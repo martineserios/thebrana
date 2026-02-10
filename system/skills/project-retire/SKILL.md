@@ -14,7 +14,16 @@ allowed-tools:
 1. Identify the project to retire from `$ARGUMENTS` or current project context.
 
 2. **Primary path (claude-flow available):**
-   Query memory DB for all patterns tagged with this project via `cd $HOME && npx claude-flow memory search -q "project:{name}"`. List them with confidence scores.
+   Locate the binary:
+   ```bash
+   CF=""
+   for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
+       [ -x "$candidate" ] && CF="$candidate" && break
+   done
+   [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
+   [ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+   ```
+   Query memory DB for all patterns tagged with this project via `cd $HOME && $CF memory search -q "project:{name}"`. List them with confidence scores.
 
 3. **Fallback path (claude-flow unavailable):**
    Read the project's `~/.claude/projects/{project-hash}/memory/MEMORY.md` and list all documented patterns.

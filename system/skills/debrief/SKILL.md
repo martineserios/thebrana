@@ -88,7 +88,14 @@ Good: "Database schema drift breaks things silently — `memory init --force` sh
 For each finding, store it in claude-flow for cross-session recall:
 
 ```bash
-cd "$HOME" && npx claude-flow memory store \
+CF=""
+for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
+    [ -x "$candidate" ] && CF="$candidate" && break
+done
+[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
+[ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+
+cd "$HOME" && $CF memory store \
   -k "errata:{PROJECT}:{short-id}" \
   -v '{"type": "errata|learning|issue", "title": "...", "description": "...", "severity": "high|medium|low"}' \
   --namespace patterns \

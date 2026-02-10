@@ -130,7 +130,14 @@ Present the plan to the user:
 Before touching code, query for relevant patterns:
 
 ```bash
-cd "$HOME" && npx claude-flow memory search -q "project:brana phase:N" --format json 2>/dev/null || true
+CF=""
+for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
+    [ -x "$candidate" ] && CF="$candidate" && break
+done
+[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
+[ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+
+cd "$HOME" && $CF memory search -q "project:brana phase:N" --format json 2>/dev/null || true
 ```
 
 Also check auto memory at `~/.claude/projects/*/memory/MEMORY.md` for relevant notes.
@@ -184,7 +191,7 @@ This is NOT a full `/debrief`. It's a quick extraction:
 For each finding, store immediately:
 
 ```bash
-cd "$HOME" && npx claude-flow memory store \
+cd "$HOME" && $CF memory store \
   -k "build:brana:phase-N:item-M:{short-id}" \
   -v '{"type": "build-learning", "phase": N, "item": "...", "finding": "...", "severity": "..."}' \
   --namespace patterns \
@@ -323,7 +330,7 @@ This produces a directory with:
 Record the phase completion so future `/build-phase` invocations and `/pattern-recall` queries know what was done:
 
 ```bash
-cd "$HOME" && npx claude-flow memory store \
+cd "$HOME" && $CF memory store \
   -k "build:brana:phase-N:complete" \
   -v '{"phase": N, "roadmap": "lean|full", "tag": "vX.Y.0", "date": "YYYY-MM-DD", "work_items": N, "errata_found": N, "learnings": N}' \
   --namespace patterns \
