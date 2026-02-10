@@ -122,6 +122,17 @@ for skill_dir in "$SYSTEM_DIR"/skills/*/; do
     fi
 done
 
+# Agent descriptions (loaded into context — see 24-roadmap-corrections.md error #7)
+for agent_file in "$SYSTEM_DIR"/agents/*.md 2>/dev/null; do
+    if [ -f "$agent_file" ]; then
+        AGENT_DESC_SIZE=$(sed -n '/^---$/,/^---$/p' "$agent_file" | grep '^description:' | wc -c)
+        BUDGET=$((BUDGET + AGENT_DESC_SIZE))
+        if [ "$AGENT_DESC_SIZE" -gt 0 ]; then
+            echo "  $(basename "$agent_file") description: ${AGENT_DESC_SIZE} bytes"
+        fi
+    fi
+done
+
 echo "  Total always-loaded: ${BUDGET} bytes"
 if [ "$BUDGET" -gt 15360 ]; then
     fail "Context budget exceeds 15KB (${BUDGET} bytes > 15360 bytes)"

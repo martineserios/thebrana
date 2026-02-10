@@ -46,9 +46,12 @@ echo "  ✓ agents/"
 
 # Step 5: Merge settings.json (brana base + user overlay)
 if [ -f "$TARGET_DIR/settings.json" ]; then
-    MERGED=$(jq -s '.[0] * .[1]' "$SYSTEM_DIR/settings.json" "$TARGET_DIR/settings.json")
+    # Additive hooks merge: brana hooks overlay user hooks, user wins for everything else.
+    # Without this, user's empty hooks: {} would overwrite brana's hook configs.
+    # See 24-roadmap-corrections.md error #1 for details.
+    MERGED=$(jq -s '(.[0].hooks // {}) as $brana | (.[1].hooks // {}) as $user | .[0] * .[1] * {hooks: ($user * $brana)}' "$SYSTEM_DIR/settings.json" "$TARGET_DIR/settings.json")
     echo "$MERGED" > "$TARGET_DIR/settings.json"
-    echo "  ✓ settings.json (merged — user settings preserved)"
+    echo "  ✓ settings.json (merged — user settings preserved, hooks additive)"
 else
     cp "$SYSTEM_DIR/settings.json" "$TARGET_DIR/settings.json"
     echo "  ✓ settings.json (new)"
