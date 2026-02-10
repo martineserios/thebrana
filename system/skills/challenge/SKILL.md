@@ -33,3 +33,7 @@ This skill spawns a Sonnet subagent to adversarially review a plan, approach, or
 4. **Present findings** alongside the original plan.
 
 5. **Let the user decide** which concerns to address. Do not auto-apply changes.
+
+## Rules
+
+- **Ask for clarification whenever you need it.** If the scope of the challenge is unclear, you're unsure what to focus on, or you need more context — ask. Don't guess.

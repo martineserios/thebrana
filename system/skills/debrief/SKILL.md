@@ -118,3 +118,4 @@ Summarize what was documented:
 - **Learnings must be actionable.** Each one should contain a **Rule:** that someone can follow next time. If you can't state it as a rule, it's not a learning yet.
 - **Don't duplicate.** Read the existing errata doc first. If an error is already documented, skip it or note it was confirmed.
 - **Errata entries follow existing format exactly.** Match the heading style, field names, and table format already in the doc.
+- **Ask for clarification whenever you need it.** If a finding is ambiguous, you're unsure how to classify something, or the user's intent is unclear — ask. Don't guess.

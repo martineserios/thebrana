@@ -29,3 +29,7 @@ allowed-tools:
 6. If `$ARGUMENTS` provided, focus search on that topic. Otherwise, do a broad tech-stack match.
 
 7. Explicitly note: cross-pollinated patterns should be validated in the current project context before trusting them. What works in one project may not work in another.
+
+## Rules
+
+- **Ask for clarification whenever you need it.** If you're unsure which patterns are relevant, the project context is unclear, or you need the user to narrow the scope — ask. Don't guess.
