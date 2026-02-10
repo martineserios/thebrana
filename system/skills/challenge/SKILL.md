@@ -34,6 +34,29 @@ This skill spawns a Sonnet subagent to adversarially review a plan, approach, or
 
 5. **Let the user decide** which concerns to address. Do not auto-apply changes.
 
+6. **Store challenge outcome** in ReasoningBank after the user decides:
+
+   Locate the claude-flow binary:
+   ```bash
+   CF=""
+   for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
+       [ -x "$candidate" ] && CF="$candidate" && break
+   done
+   [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
+   [ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+   ```
+
+   Store the outcome:
+   ```bash
+   cd $HOME && $CF memory store \
+     -k "challenge:{PROJECT}:{short-topic}" \
+     -v '{"flavor": "pre-mortem|simplicity|assumption|adversarial", "target": "what was challenged", "findings": "key concerns raised", "decision": "accepted|rejected|partial", "confidence": 0.5, "transferable": false, "recall_count": 0}' \
+     --namespace patterns \
+     --tags "project:PROJECT,type:challenge,outcome:accepted|rejected|partial,confidence:quarantine"
+   ```
+
+   If claude-flow is unavailable, append to `~/.claude/projects/{project-hash}/memory/MEMORY.md`.
+
 ## Rules
 
 - **Ask for clarification whenever you need it.** If the scope of the challenge is unclear, you're unsure what to focus on, or you need more context — ask. Don't guess.
