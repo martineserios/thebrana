@@ -13,7 +13,16 @@ allowed-tools:
 1. If `$ARGUMENTS` provided, use it as query. Otherwise, infer query from current project context (tech stack, current task, recent errors).
 
 2. **Primary path (claude-flow available):**
-   Run `cd $HOME && npx claude-flow memory search -q "$ARGUMENTS"` to search the memory DB for matching patterns. Parse the JSON value of each result to extract `confidence`, `transferable`, and `recall_count` fields.
+   Locate the binary:
+   ```bash
+   CF=""
+   for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
+       [ -x "$candidate" ] && CF="$candidate" && break
+   done
+   [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
+   [ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+   ```
+   Run `cd $HOME && $CF memory search -q "$ARGUMENTS"` to search the memory DB for matching patterns. Parse the JSON value of each result to extract `confidence`, `transferable`, and `recall_count` fields.
 
 3. **Fallback path (claude-flow unavailable):**
    Search `~/.claude/projects/*/memory/` for relevant MEMORY.md files. Grep for keywords from the query. Present findings.

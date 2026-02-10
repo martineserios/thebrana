@@ -21,7 +21,16 @@ allowed-tools:
    - `transferable`: false (locked to source project until proven)
 
 3. **Primary path (claude-flow available):**
-   Store via `cd $HOME && npx claude-flow memory store -k "pattern:{PROJECT}:{short-title}" -v '{"problem": "...", "solution": "...", "confidence": 0.5, "transferable": false}' --namespace patterns --tags "project:NAME,tech:TECH,type:CATEGORY,outcome:success|failure|partial"`
+   Locate the binary:
+   ```bash
+   CF=""
+   for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
+       [ -x "$candidate" ] && CF="$candidate" && break
+   done
+   [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
+   [ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+   ```
+   Store via `cd $HOME && $CF memory store -k "pattern:{PROJECT}:{short-title}" -v '{"problem": "...", "solution": "...", "confidence": 0.5, "transferable": false}' --namespace patterns --tags "project:NAME,tech:TECH,type:CATEGORY,outcome:success|failure|partial"`
 
 4. **Fallback path (claude-flow unavailable):**
    Append to `~/.claude/projects/{project-hash}/memory/MEMORY.md` in a structured format:
@@ -41,9 +50,9 @@ allowed-tools:
 
    After storing the new learning, review patterns that were recalled this session and evaluate whether they were useful.
 
-   a. Search for existing patterns: `cd $HOME && npx claude-flow memory search -q "project:{PROJECT}" --limit 20`
+   a. Search for existing patterns: `cd $HOME && $CF memory search -q "project:{PROJECT}" --limit 20`
    b. For each recalled pattern that **was useful** this session:
-      - Retrieve: `cd $HOME && npx claude-flow memory search -q "{pattern-key}"`
+      - Retrieve: `cd $HOME && $CF memory search -q "{pattern-key}"`
       - Parse the JSON value, increment `recall_count` by 1
       - If `recall_count >= 3` → **promote**: set `confidence: 0.8`, `transferable: true`
       - Re-store with updated fields using the same key and tags
