@@ -107,7 +107,8 @@ Summarize what was documented:
 ### Stored in claude-flow: N entries
 
 ### Follow-up suggestions
-- [Any `/apply-errata`, `/re-evaluate-reflections`, or other actions recommended]
+- "Run `/maintain-specs` to propagate these findings through the spec docs (re-evaluate reflections, apply errata layer by layer, update doc 25)."
+- [Any other `/apply-errata`, `/re-evaluate-reflections`, or other actions recommended]
 ```
 
 ## Rules
