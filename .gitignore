@@ -1,0 +1,6 @@
+# Runtime state (claude-flow)
+.swarm/
+.claude/memory.db
+
+# MCP config (local dev)
+.mcp.json
