@@ -39,6 +39,17 @@ if [ -n "$CF" ]; then
     CONTEXT=$(timeout 5 $CF memory search -q "project:$PROJECT" --format json 2>&1 | grep -v '^\[' || true)
 fi
 
+# Log recalled patterns to session file for promotion tracking
+if [ -n "$CONTEXT" ]; then
+    SESSION_FILE="/tmp/brana-session-${SESSION_ID}.jsonl"
+    jq -n -c \
+        --argjson ts "$(date +%s)" \
+        --arg tool "session-start" \
+        --arg outcome "recall" \
+        --arg detail "$CONTEXT" \
+        '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail}' >> "$SESSION_FILE"
+fi
+
 # Fallback: grep native auto memory for project name
 if [ -z "$CONTEXT" ]; then
     MEMORY_HIT=""
@@ -57,8 +68,11 @@ fi
 
 # Output — only inject context if we found something
 if [ -n "$CONTEXT" ]; then
+    # Prepend confidence note so the model knows pattern maturity
+    CONTEXT_WITH_NOTE="[Recalled patterns — confidence:quarantine means unproven, treat with caution. confidence:proven means validated across 3+ sessions.]
+$CONTEXT"
     # Escape for JSON embedding
-    ESCAPED=$(echo "$CONTEXT" | jq -Rs '.')
+    ESCAPED=$(echo "$CONTEXT_WITH_NOTE" | jq -Rs '.')
     echo "{\"continue\": true, \"additionalContext\": $ESCAPED}"
 else
     echo '{"continue": true}'
