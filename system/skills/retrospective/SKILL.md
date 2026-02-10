@@ -37,6 +37,23 @@ allowed-tools:
 
 5. Confirm what was stored and where.
 
+6. **Review recalled patterns (promotion tracking):**
+
+   After storing the new learning, review patterns that were recalled this session and evaluate whether they were useful.
+
+   a. Search for existing patterns: `cd $HOME && npx claude-flow memory search -q "project:{PROJECT}" --limit 20`
+   b. For each recalled pattern that **was useful** this session:
+      - Retrieve: `cd $HOME && npx claude-flow memory search -q "{pattern-key}"`
+      - Parse the JSON value, increment `recall_count` by 1
+      - If `recall_count >= 3` → **promote**: set `confidence: 0.8`, `transferable: true`
+      - Re-store with updated fields using the same key and tags
+   c. For each recalled pattern that **was harmful or misleading** this session:
+      - **Demote**: set `confidence: 0.1` (suspect), keep `transferable: false`
+      - Re-store with updated fields
+   d. Report what was promoted, demoted, or unchanged.
+
+   **Skip this step** if no patterns were recalled this session or if the user wants to skip it.
+
 ### Tag Vocabulary
 
 Use these prefixes consistently:
