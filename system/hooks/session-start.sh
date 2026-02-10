@@ -26,9 +26,17 @@ fi
 
 CONTEXT=""
 
-# Primary path: claude-flow memory search (run from $HOME for global DB)
-if command -v npx &>/dev/null; then
-    CONTEXT=$(cd "$HOME" && timeout 5 npx claude-flow memory search -q "project:$PROJECT" --format json 2>/dev/null || true)
+# Locate claude-flow binary (nvm global → PATH → npx fallback)
+CF=""
+for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
+    [ -x "$candidate" ] && CF="$candidate" && break
+done
+[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
+[ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+
+# Primary path: claude-flow memory search
+if [ -n "$CF" ]; then
+    CONTEXT=$(timeout 5 $CF memory search -q "project:$PROJECT" --format json 2>&1 | grep -v '^\[' || true)
 fi
 
 # Fallback: grep native auto memory for project name

@@ -29,8 +29,8 @@ fi
 
 # Summarize accumulated events
 TOTAL=$(wc -l < "$SESSION_FILE")
-SUCCESSES=$(grep -c '"outcome":"success"' "$SESSION_FILE" 2>/dev/null || echo 0)
-FAILURES=$(grep -c '"outcome":"failure"' "$SESSION_FILE" 2>/dev/null || echo 0)
+SUCCESSES=$(grep -c '"outcome":"success"' "$SESSION_FILE" 2>/dev/null) || SUCCESSES=0
+FAILURES=$(grep -c '"outcome":"failure"' "$SESSION_FILE" 2>/dev/null) || FAILURES=0
 TOOLS=$(jq -r '.tool' "$SESSION_FILE" 2>/dev/null | sort -u | paste -sd ',' || echo "unknown")
 FILES=$(jq -r '.detail // empty' "$SESSION_FILE" 2>/dev/null | sort -u | head -10 | paste -sd ',' || echo "")
 TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
@@ -46,9 +46,17 @@ SUMMARY_JSON=$(jq -n \
     --arg files "$FILES" \
     '{project: $project, session: $session, timestamp: $ts, events: $total, successes: $ok, failures: $fail, tools: $tools, files: $files}')
 
-# Layer 1: try claude-flow memory store (run from $HOME for global DB)
+# Locate claude-flow binary (nvm global → PATH → npx fallback)
+CF=""
+for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
+    [ -x "$candidate" ] && CF="$candidate" && break
+done
+[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
+[ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+
+# Layer 1: try claude-flow memory store
 STORED_L1=false
-if command -v npx &>/dev/null; then
+if [ -n "$CF" ]; then
     KEY="session:${PROJECT}:${SESSION_ID}"
     VALUE=$(echo "$SUMMARY_JSON" | jq -c '.')
     if [ "$FAILURES" -gt 0 ]; then
@@ -57,7 +65,7 @@ if command -v npx &>/dev/null; then
         OUTCOME="success"
     fi
     TAGS="project:$PROJECT,type:session-summary,outcome:$OUTCOME"
-    if cd "$HOME" && timeout 5 npx claude-flow memory store -k "$KEY" -v "$VALUE" --namespace patterns --tags "$TAGS" 2>/dev/null; then
+    if timeout 5 $CF memory store -k "$KEY" -v "$VALUE" --namespace patterns --tags "$TAGS" >/dev/null 2>&1; then
         STORED_L1=true
     fi
 fi
