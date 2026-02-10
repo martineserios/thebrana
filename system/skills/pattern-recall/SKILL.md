@@ -13,7 +13,7 @@ allowed-tools:
 1. If `$ARGUMENTS` provided, use it as query. Otherwise, infer query from current project context (tech stack, current task, recent errors).
 
 2. **Primary path (claude-flow available):**
-   Run `npx claude-flow hooks recall --query "$ARGUMENTS"` to search ReasoningBank for matching patterns. Parse and present results grouped by confidence level.
+   Run `cd $HOME && npx claude-flow memory search -q "$ARGUMENTS"` to search the memory DB for matching patterns. Parse and present results grouped by confidence level.
 
 3. **Fallback path (claude-flow unavailable):**
    Search `~/.claude/projects/*/memory/` for relevant MEMORY.md files. Grep for keywords from the query. Present findings.

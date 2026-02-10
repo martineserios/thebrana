@@ -13,7 +13,7 @@ allowed-tools:
 1. Detect current project's tech stack and problem domain.
 
 2. **Primary path (claude-flow available):**
-   Run `npx claude-flow hooks recall --cross-project --query "$ARGUMENTS"` to find transferable patterns from other projects.
+   Run `cd $HOME && npx claude-flow memory search -q "$ARGUMENTS"` to find patterns across all projects. Filter for transferable patterns from other projects in the results.
 
 3. **Fallback path (claude-flow unavailable):**
    Scan `~/.claude/projects/*/memory/MEMORY.md` files from OTHER projects (not current). Grep for technology and pattern type matches.

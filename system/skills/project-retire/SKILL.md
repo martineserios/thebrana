@@ -14,7 +14,7 @@ allowed-tools:
 1. Identify the project to retire from `$ARGUMENTS` or current project context.
 
 2. **Primary path (claude-flow available):**
-   Query ReasoningBank for all patterns tagged with this project via `npx claude-flow hooks recall --query "project:{name}"`. List them with confidence scores.
+   Query memory DB for all patterns tagged with this project via `cd $HOME && npx claude-flow memory search -q "project:{name}"`. List them with confidence scores.
 
 3. **Fallback path (claude-flow unavailable):**
    Read the project's `~/.claude/projects/{project-hash}/memory/MEMORY.md` and list all documented patterns.

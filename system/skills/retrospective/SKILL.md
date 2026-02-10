@@ -21,7 +21,7 @@ allowed-tools:
    - `transferable`: false (locked to source project until proven)
 
 3. **Primary path (claude-flow available):**
-   Store via `npx claude-flow hooks learn --patterns '{"problem": "...", "solution": "...", "tags": ["project:NAME", "tech:TECH", "type:CATEGORY", "outcome:success|failure|partial"], "confidence": 0.5, "transferable": false}'`
+   Store via `cd $HOME && npx claude-flow memory store -k "pattern:{PROJECT}:{short-title}" -v '{"problem": "...", "solution": "...", "confidence": 0.5, "transferable": false}' --namespace patterns --tags "project:NAME,tech:TECH,type:CATEGORY,outcome:success|failure|partial"`
 
 4. **Fallback path (claude-flow unavailable):**
    Append to `~/.claude/projects/{project-hash}/memory/MEMORY.md` in a structured format:

@@ -25,21 +25,37 @@ if [ -d "$HOME/.claude/projects" ]; then
 fi
 echo "  Found $MEMORY_COUNT memory files"
 
-# Layer 1: ReasoningBank (claude-flow)
-echo "Exporting Layer 1 (ReasoningBank)..."
+# Layer 1: claude-flow memory DB
+echo "Exporting Layer 1 (claude-flow memory)..."
 PATTERN_COUNT=0
-REASONING_DB="$HOME/.swarm/memory.db"
-if [ -f "$REASONING_DB" ]; then
-    if command -v sqlite3 &>/dev/null; then
+
+# Find memory DB: prefer $HOME/.swarm/memory.db, fall back to CWD .swarm/memory.db
+REASONING_DB=""
+if [ -f "$HOME/.swarm/memory.db" ]; then
+    REASONING_DB="$HOME/.swarm/memory.db"
+elif [ -f ".swarm/memory.db" ]; then
+    REASONING_DB=".swarm/memory.db"
+fi
+
+if [ -n "$REASONING_DB" ]; then
+    # Primary: use claude-flow export command
+    if command -v npx &>/dev/null; then
+        if cd "$HOME" && npx claude-flow memory export --output "$OUTPUT_DIR/reasoning-bank.json" --format json 2>/dev/null; then
+            PATTERN_COUNT=$(jq 'length // 0' "$OUTPUT_DIR/reasoning-bank.json" 2>/dev/null || echo "0")
+        else
+            echo '{"patterns": [], "note": "claude-flow export failed"}' > "$OUTPUT_DIR/reasoning-bank.json"
+        fi
+    # Fallback: direct sqlite3 query
+    elif command -v sqlite3 &>/dev/null; then
         sqlite3 "$REASONING_DB" "SELECT json_object('patterns', json_group_array(json_object('id', id, 'content', content, 'namespace', namespace, 'tags', tags, 'confidence', confidence, 'created_at', created_at))) FROM patterns;" > "$OUTPUT_DIR/reasoning-bank.json" 2>/dev/null || {
             echo '{"patterns": [], "note": "sqlite3 export failed — database may have different schema"}' > "$OUTPUT_DIR/reasoning-bank.json"
         }
         PATTERN_COUNT=$(sqlite3 "$REASONING_DB" "SELECT COUNT(*) FROM patterns;" 2>/dev/null || echo "0")
     else
-        echo '{"patterns": [], "note": "sqlite3 not available — install sqlite3 to export ReasoningBank"}' > "$OUTPUT_DIR/reasoning-bank.json"
+        echo '{"patterns": [], "note": "Neither npx nor sqlite3 available for export"}' > "$OUTPUT_DIR/reasoning-bank.json"
     fi
 else
-    echo '{"patterns": [], "note": "ReasoningBank not found at '"$REASONING_DB"' — claude-flow may not have been used yet"}' > "$OUTPUT_DIR/reasoning-bank.json"
+    echo '{"patterns": [], "note": "Memory DB not found at $HOME/.swarm/memory.db or .swarm/memory.db — claude-flow may not have been used yet"}' > "$OUTPUT_DIR/reasoning-bank.json"
 fi
 echo "  Found $PATTERN_COUNT patterns"
 

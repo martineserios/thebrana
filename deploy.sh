@@ -29,6 +29,7 @@ echo "Cleaning brana-managed directories..."
 rm -rf "$TARGET_DIR/skills"
 rm -rf "$TARGET_DIR/rules"
 rm -rf "$TARGET_DIR/agents"
+rm -rf "$TARGET_DIR/hooks"
 
 # Step 4: Copy system files
 echo "Deploying files..."
@@ -43,6 +44,10 @@ echo "  ✓ rules/"
 
 cp -r "$SYSTEM_DIR/agents" "$TARGET_DIR/agents"
 echo "  ✓ agents/"
+
+cp -r "$SYSTEM_DIR/hooks" "$TARGET_DIR/hooks"
+chmod +x "$TARGET_DIR/hooks/"*.sh
+echo "  ✓ hooks/"
 
 # Step 5: Merge settings.json (brana base + user overlay)
 if [ -f "$TARGET_DIR/settings.json" ]; then
@@ -64,5 +69,6 @@ echo "  - CLAUDE.md (mastermind identity)"
 echo "  - $(find "$TARGET_DIR/skills" -name "SKILL.md" | wc -l) skills"
 echo "  - $(find "$TARGET_DIR/rules" -name "*.md" | wc -l) rules"
 echo "  - $(find "$TARGET_DIR/agents" -name "*.md" | wc -l) agents"
+echo "  - $(find "$TARGET_DIR/hooks" -name "*.sh" | wc -l) hooks"
 echo ""
 echo "Start a new Claude Code session to activate changes."

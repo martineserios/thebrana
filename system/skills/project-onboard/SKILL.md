@@ -15,7 +15,7 @@ allowed-tools:
 
 2. **Scan project structure**: list key directories, entry points, and config files. Build a mental model of the project.
 
-3. **Recall relevant patterns**: use pattern-recall logic (claude-flow `npx claude-flow hooks recall --query "{tech stack}"` or fallback to `~/.claude/projects/*/memory/` grep) to surface patterns from other projects using the same technologies.
+3. **Recall relevant patterns**: use pattern-recall logic (claude-flow `cd $HOME && npx claude-flow memory search -q "{tech stack}"` or fallback to `~/.claude/projects/*/memory/` grep) to surface patterns from other projects using the same technologies.
 
 4. **Check existing configuration**: look for `.claude/CLAUDE.md` in the project — if present, read it. If not, suggest creating one based on findings.
 

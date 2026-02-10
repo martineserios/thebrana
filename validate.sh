@@ -123,7 +123,7 @@ for skill_dir in "$SYSTEM_DIR"/skills/*/; do
 done
 
 # Agent descriptions (loaded into context — see 24-roadmap-corrections.md error #7)
-for agent_file in "$SYSTEM_DIR"/agents/*.md 2>/dev/null; do
+for agent_file in "$SYSTEM_DIR"/agents/*.md; do
     if [ -f "$agent_file" ]; then
         AGENT_DESC_SIZE=$(sed -n '/^---$/,/^---$/p' "$agent_file" | grep '^description:' | wc -c)
         BUDGET=$((BUDGET + AGENT_DESC_SIZE))
@@ -174,6 +174,55 @@ if [ -n "$OVERSIZED" ]; then
 else
     pass "All files under 50KB"
 fi
+echo ""
+
+# Check 9: Hook scripts
+echo "Checking hook scripts..."
+KNOWN_EVENTS="PreToolUse PostToolUse PreToolUseFailure PostToolUseFailure Stop Notification SubagentStop SubagentNotification SessionStart SessionPause SessionEnd"
+
+# Validate each .sh file in hooks/
+for hook_script in "$SYSTEM_DIR"/hooks/*.sh; do
+    if [ ! -f "$hook_script" ]; then continue; fi
+    hook_name=$(basename "$hook_script")
+
+    if [ ! -s "$hook_script" ]; then
+        fail "hooks/$hook_name — empty file"
+        continue
+    fi
+
+    if ! head -1 "$hook_script" | grep -qE '^#!/(usr/bin/env bash|bin/bash)'; then
+        fail "hooks/$hook_name — missing or invalid shebang"
+        continue
+    fi
+
+    if ! bash -n "$hook_script" 2>/dev/null; then
+        fail "hooks/$hook_name — syntax error"
+        continue
+    fi
+
+    pass "hooks/$hook_name — valid script"
+done
+
+# Validate settings.json hook event names are known
+HOOK_EVENTS=$(jq -r '.hooks // {} | keys[]' "$SYSTEM_DIR/settings.json" 2>/dev/null || true)
+for event in $HOOK_EVENTS; do
+    if ! echo "$KNOWN_EVENTS" | grep -qw "$event"; then
+        fail "settings.json references unknown hook event: $event"
+    else
+        pass "settings.json hook event '$event' is valid"
+    fi
+done
+
+# Validate that all commands in settings.json have corresponding scripts
+HOOK_CMDS=$(jq -r '.hooks // {} | .[][] | .hooks[]? | .command // empty' "$SYSTEM_DIR/settings.json" 2>/dev/null || true)
+for cmd in $HOOK_CMDS; do
+    SCRIPT_NAME=$(basename "$cmd")
+    if [ ! -f "$SYSTEM_DIR/hooks/$SCRIPT_NAME" ]; then
+        fail "settings.json references hooks/$SCRIPT_NAME but file not found in system/hooks/"
+    else
+        pass "settings.json command '$SCRIPT_NAME' has matching script"
+    fi
+done
 echo ""
 
 # Summary
