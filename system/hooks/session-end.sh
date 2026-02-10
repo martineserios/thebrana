@@ -44,7 +44,10 @@ SUMMARY_JSON=$(jq -n \
     --argjson fail "$FAILURES" \
     --arg tools "$TOOLS" \
     --arg files "$FILES" \
-    '{project: $project, session: $session, timestamp: $ts, events: $total, successes: $ok, failures: $fail, tools: $tools, files: $files}')
+    --argjson confidence 0.5 \
+    --argjson transferable false \
+    --argjson recall_count 0 \
+    '{project: $project, session: $session, timestamp: $ts, events: $total, successes: $ok, failures: $fail, tools: $tools, files: $files, confidence: $confidence, transferable: $transferable, recall_count: $recall_count}')
 
 # Locate claude-flow binary (nvm global → PATH → npx fallback)
 CF=""
@@ -64,7 +67,7 @@ if [ -n "$CF" ]; then
     else
         OUTCOME="success"
     fi
-    TAGS="project:$PROJECT,type:session-summary,outcome:$OUTCOME"
+    TAGS="project:$PROJECT,type:session-summary,outcome:$OUTCOME,confidence:quarantine"
     if timeout 5 $CF memory store -k "$KEY" -v "$VALUE" --namespace patterns --tags "$TAGS" >/dev/null 2>&1; then
         STORED_L1=true
     fi

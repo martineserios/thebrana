@@ -98,7 +98,35 @@ else
 fi
 echo ""
 
-# Test 4: Clean up test data
+# Test 4: Store and retrieve JSON with embedded metadata (quarantine fields)
+echo "Testing metadata round-trip..."
+META_KEY="test:metadata:$(date +%s)"
+META_VALUE=$(jq -n -c '{problem: "test issue", solution: "test fix", confidence: 0.5, transferable: false, recall_count: 0}')
+
+if timeout 10 $CF memory store -k "$META_KEY" -v "$META_VALUE" --namespace test --tags "type:health-check,confidence:quarantine" >/dev/null 2>&1; then
+    # Retrieve by key and verify JSON fields survived the round-trip
+    META_RETRIEVED=$(timeout 10 $CF memory retrieve -k "$META_KEY" --namespace test --format json 2>/dev/null || true)
+    if [ -z "$META_RETRIEVED" ] || echo "$META_RETRIEVED" | grep -q 'Key not found'; then
+        fail "metadata round-trip — retrieve returned empty (key=$META_KEY)"
+    else
+        META_CONTENT=$(echo "$META_RETRIEVED" | jq -r '.content // empty' 2>/dev/null || true)
+        if [ -z "$META_CONTENT" ]; then
+            fail "metadata round-trip — no content field in retrieved entry"
+        elif echo "$META_CONTENT" | jq -e '.confidence' >/dev/null 2>&1 && echo "$META_CONTENT" | jq -e '.recall_count' >/dev/null 2>&1; then
+            pass "metadata round-trip — confidence and recall_count fields survived"
+        else
+            fail "metadata round-trip — metadata fields missing from content: $META_CONTENT"
+        fi
+    fi
+else
+    fail "metadata round-trip — store failed"
+fi
+
+# Clean up metadata test
+timeout 10 $CF memory delete "$META_KEY" >/dev/null 2>&1 || true
+echo ""
+
+# Test 5: Clean up basic test data
 echo "Cleaning up test data..."
 timeout 10 $CF memory delete "$TEST_KEY" >/dev/null 2>&1 || true
 echo ""

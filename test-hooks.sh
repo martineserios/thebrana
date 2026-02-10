@@ -101,6 +101,66 @@ test_hook "$HOOKS_DIR/session-end.sh" "$(jq -n \
 rm -f "$SESSION_FILE"
 echo ""
 
+# Test 5: session-end stores quarantine metadata
+echo "Testing session-end metadata..."
+
+# Locate claude-flow binary (same logic as hooks)
+CF=""
+for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
+    [ -x "$candidate" ] && CF="$candidate" && break
+done
+[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
+
+if [ -n "$CF" ]; then
+    META_SESSION_ID="test-meta-$(date +%s)"
+    META_SESSION_FILE="/tmp/brana-session-${META_SESSION_ID}.jsonl"
+    META_KEY="session:$(basename "$HOME"):${META_SESSION_ID}"
+
+    # Create a fake session file with events
+    jq -n -c '{ts: 1234567890, tool: "Bash", outcome: "success", detail: "echo test"}' > "$META_SESSION_FILE"
+    jq -n -c '{ts: 1234567891, tool: "Read", outcome: "failure", detail: "missing.txt"}' >> "$META_SESSION_FILE"
+
+    # Run session-end hook
+    echo '{}' | jq -c --arg sid "$META_SESSION_ID" --arg cwd "$HOME" \
+        '{session_id: $sid, cwd: $cwd, hook_event_name: "SessionEnd"}' | \
+        timeout 15 bash "$HOOKS_DIR/session-end.sh" >/dev/null 2>&1 || true
+
+    # Retrieve the stored value by key and verify quarantine metadata fields
+    # session-end stores to namespace "patterns" with key "session:PROJECT:SESSION_ID"
+    # PROJECT = basename of git root (or CWD if not a git repo)
+    META_PROJECT=$(git -C "$HOME" rev-parse --show-toplevel 2>/dev/null || echo "$HOME")
+    META_PROJECT=$(basename "$META_PROJECT")
+    META_KEY="session:${META_PROJECT}:${META_SESSION_ID}"
+
+    RETRIEVED=$(timeout 10 $CF memory retrieve -k "$META_KEY" --namespace patterns --format json 2>/dev/null || true)
+    if [ -z "$RETRIEVED" ] || echo "$RETRIEVED" | grep -q 'Key not found'; then
+        fail "session-end metadata — stored value not found (key=$META_KEY)"
+    else
+        CONTENT=$(echo "$RETRIEVED" | jq -r '.content // empty' 2>/dev/null || true)
+        if [ -z "$CONTENT" ]; then
+            fail "session-end metadata — no content field in retrieved entry"
+        else
+            if echo "$CONTENT" | jq -e '.confidence' >/dev/null 2>&1; then
+                pass "session-end metadata — confidence field present"
+            else
+                fail "session-end metadata — confidence field missing from stored value"
+            fi
+            if echo "$CONTENT" | jq -e '.recall_count' >/dev/null 2>&1; then
+                pass "session-end metadata — recall_count field present"
+            else
+                fail "session-end metadata — recall_count field missing from stored value"
+            fi
+        fi
+    fi
+
+    # Clean up
+    timeout 10 $CF memory delete "$META_KEY" >/dev/null 2>&1 || true
+    rm -f "$META_SESSION_FILE"
+else
+    echo "  SKIP: claude-flow not found — cannot test metadata storage"
+fi
+echo ""
+
 # Summary
 echo "=== Hook Smoke Summary ==="
 echo "Passed: $PASSED"
