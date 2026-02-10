@@ -189,3 +189,7 @@ Scope options:
 - **Doc-body analysis** catches things Refresh Targets miss. A doc might mention "Syncthing" in prose but not list it in targets. Scanning the full doc ensures comprehensive coverage.
 - **Temp file pattern** (`/tmp/refresh-results/`) provides a clean handoff between agents and the compiler step without polluting the workspace.
 - **Haiku model** for scouts because these are web-search-and-summarize tasks — Haiku is sufficient and much cheaper.
+
+## Rules
+
+- **Ask for clarification whenever you need it.** If the scope is ambiguous, findings contradict each other, or you need the user to prioritize which docs to update — ask. Don't guess.

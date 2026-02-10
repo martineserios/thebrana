@@ -28,3 +28,7 @@ allowed-tools:
    - Suggested next steps
 
 7. If this is a genuinely new project with no `.claude/CLAUDE.md`, create an initial one with project-specific conventions discovered during scanning.
+
+## Rules
+
+- **Ask for clarification whenever you need it.** If the project structure is unusual, you're unsure about conventions to adopt, or you need the user to confirm tech stack choices — ask. Don't guess.

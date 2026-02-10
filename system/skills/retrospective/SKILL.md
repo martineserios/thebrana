@@ -44,3 +44,7 @@ Use these prefixes consistently:
 - `tech:` — technology (e.g., `tech:supabase`, `tech:nextjs`, `tech:python`)
 - `type:` — problem category (e.g., `type:auth`, `type:deployment`, `type:testing`)
 - `outcome:` — `outcome:success`, `outcome:failure`, or `outcome:partial`
+
+### Rules
+
+- **Ask for clarification whenever you need it.** If the learning is ambiguous, you're unsure how to tag it, or you need more context — ask. Don't guess.

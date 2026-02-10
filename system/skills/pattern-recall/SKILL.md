@@ -25,3 +25,7 @@ allowed-tools:
    - Whether it's transferable
 
 5. If no patterns found, say so explicitly — don't hallucinate past experience.
+
+## Rules
+
+- **Ask for clarification whenever you need it.** If the query is too broad, you're unsure what domain to search, or the results are ambiguous — ask. Don't guess.

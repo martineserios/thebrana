@@ -29,3 +29,7 @@ allowed-tools:
 6. Suggest updating `~/.claude/memory/portfolio.md` to mark the project as retired.
 
 7. **Never delete anything** — only tag and archive. Deletion is a human decision.
+
+## Rules
+
+- **Ask for clarification whenever you need it.** If you're unsure which patterns to keep active vs archive, or the project scope is ambiguous — ask. Don't guess.
