@@ -60,6 +60,17 @@ For each **errata** finding, write a new error entry following the existing doc 
 
 Also add each new error to the severity summary table at the top of the doc.
 
+**Status rules — debrief only logs, never resolves:**
+
+| Finding type | Initial status | Who resolves it |
+|---|---|---|
+| Spec mismatch (needs doc edits) | `pending` | `/apply-errata` or `/maintain-specs` |
+| Code bug (already fixed this session) | `code-fix` | Already done — note what was fixed in Comments |
+| Code bug (not yet fixed) | `pending` | Next implementation session |
+| Informational (no action needed) | `informational` | N/A |
+
+**Never mark a spec-level error as `applied` during debrief.** That's `/apply-errata`'s job — it does the formal edit, gate checks, and marks resolution with date and comments.
+
 ### Step 5: Write process learnings
 
 For each **process learning**, append to the "Lessons Learned" section of the errata doc (create it if it doesn't exist). Each learning should:
