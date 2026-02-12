@@ -1,5 +1,7 @@
 # thebrana — Operator's Station
 
+> Part of **enter_thebrana** — two repos, one system. `thebrana` builds what `enter` designs. Neither is complete without the other.
+
 The brain that deploys to `~/.claude/`. Edit here, deploy there.
 
 ## Current State

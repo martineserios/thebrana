@@ -1,5 +1,7 @@
 # brana
 
+> Part of [**enter_thebrana**](../) — two repos, one system. `thebrana` builds what [`enter`](../enter/) designs.
+>
 > The mastermind brain system — Claude Code configuration files that deploy to `~/.claude/`, creating a cross-project intelligence layer.
 
 ## Quick Start
