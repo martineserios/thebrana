@@ -129,6 +129,17 @@ Summarize what was documented:
 - [Any other `/apply-errata`, `/re-evaluate-reflections`, or other actions recommended]
 ```
 
+### Step 8: Backup knowledge
+
+After storing findings in memory, back up the knowledge artifacts:
+
+```bash
+BACKUP_SCRIPT="$HOME/enter_thebrana/brana-knowledge/backup.sh"
+[ -x "$BACKUP_SCRIPT" ] && "$BACKUP_SCRIPT"
+```
+
+Skip silently if the script doesn't exist.
+
 ## Rules
 
 - **Extract from evidence, don't invent.** Every finding must trace back to something that actually happened this session — a command that failed, a mismatch you observed, a workaround you applied.
