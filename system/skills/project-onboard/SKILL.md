@@ -30,13 +30,21 @@ allowed-tools:
 
 5. **Check PM integration**: look for GitHub Issues, a PM repo, or project management references.
 
-6. **Present summary**:
+6. **Check SDD/TDD setup:**
+   - Does `docs/decisions/` exist? If yes, report "SDD enforcement: active (PreToolUse hook blocks impl without spec on feat/* branches)"
+   - Check if `tdd-guard` is in PATH (`command -v tdd-guard`). If yes, report "TDD enforcement: active (TDD-Guard PreToolUse hook)"
+   - If neither exists, include in the summary:
+     "**SDD/TDD not configured.** To enable:
+      - `mkdir -p docs/decisions` — spec-before-code enforcement
+      - `npm install -g tdd-guard && tdd-guard on` — test-before-code enforcement"
+
+7. **Present summary**:
    - Tech stack detected
    - Relevant patterns found (with source projects)
    - Project structure overview
    - Suggested next steps
 
-7. If this is a genuinely new project with no `.claude/CLAUDE.md`, create an initial one with project-specific conventions discovered during scanning.
+8. If this is a genuinely new project with no `.claude/CLAUDE.md`, create an initial one with project-specific conventions discovered during scanning.
 
 ## Rules
 
