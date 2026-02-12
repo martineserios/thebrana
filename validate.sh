@@ -24,8 +24,8 @@ for skill_dir in "$SYSTEM_DIR"/skills/*/; do
         continue
     fi
 
-    # Extract and validate YAML frontmatter
-    frontmatter=$(sed -n '/^---$/,/^---$/p' "$skill_file" | sed '1d;$d')
+    # Extract YAML frontmatter (only the first --- block, ignoring --- horizontal rules in body)
+    frontmatter=$(awk 'NR==1 && /^---$/{in_fm=1; next} in_fm && /^---$/{exit} in_fm{print}' "$skill_file")
     if [ -z "$frontmatter" ]; then
         fail "No YAML frontmatter in skills/$skill_name/SKILL.md"
         continue
@@ -51,7 +51,7 @@ echo "Checking rules..."
 for rule_file in "$SYSTEM_DIR"/rules/*.md; do
     rule_name=$(basename "$rule_file")
     if head -1 "$rule_file" | grep -q '^---$'; then
-        frontmatter=$(sed -n '/^---$/,/^---$/p' "$rule_file" | sed '1d;$d')
+        frontmatter=$(awk 'NR==1 && /^---$/{in_fm=1; next} in_fm && /^---$/{exit} in_fm{print}' "$rule_file")
         if ! echo "$frontmatter" | python3 -c "import sys, yaml; yaml.safe_load(sys.stdin)" 2>/dev/null; then
             fail "Invalid YAML frontmatter in rules/$rule_name"
         else
@@ -76,7 +76,7 @@ echo ""
 echo "Checking agents..."
 for agent_file in "$SYSTEM_DIR"/agents/*.md; do
     agent_name=$(basename "$agent_file" .md)
-    frontmatter=$(sed -n '/^---$/,/^---$/p' "$agent_file" | sed '1d;$d')
+    frontmatter=$(awk 'NR==1 && /^---$/{in_fm=1; next} in_fm && /^---$/{exit} in_fm{print}' "$agent_file")
     if [ -z "$frontmatter" ]; then
         fail "No YAML frontmatter in agents/$agent_name.md"
         continue
