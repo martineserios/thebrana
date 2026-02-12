@@ -127,13 +127,13 @@ done
 If `$CF` is found:
 ```bash
 # Search for stage-specific patterns
-cd "$HOME" && $CF memory search -q "stage:{STAGE} business venture" --limit 10 2>/dev/null || true
+cd "$HOME" && $CF memory search --query "stage:{STAGE} business venture" --limit 10 2>/dev/null || true
 
 # Search for domain-specific patterns
-cd "$HOME" && $CF memory search -q "domain:{DOMAIN}" --limit 10 2>/dev/null || true
+cd "$HOME" && $CF memory search --query "domain:{DOMAIN}" --limit 10 2>/dev/null || true
 
 # Search for transferable code patterns
-cd "$HOME" && $CF memory search -q "transferable:true type:process" --limit 10 2>/dev/null || true
+cd "$HOME" && $CF memory search --query "transferable:true type:process" --limit 10 2>/dev/null || true
 ```
 
 Fallback: grep `~/.claude/projects/*/memory/MEMORY.md` and `~/.claude/memory/portfolio.md` for relevant terms.

@@ -23,7 +23,7 @@ allowed-tools:
    [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
    [ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
    ```
-   Query memory DB for all patterns tagged with this project via `cd $HOME && $CF memory search -q "project:{name}"`. List them with confidence scores.
+   Query memory DB for all patterns tagged with this project via `cd $HOME && $CF memory search --query "project:{name}"`. List them with confidence scores.
 
 3. **Fallback path (claude-flow unavailable):**
    Read the project's `~/.claude/projects/{project-hash}/memory/MEMORY.md` and list all documented patterns.

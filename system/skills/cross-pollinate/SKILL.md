@@ -22,7 +22,7 @@ allowed-tools:
    [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
    [ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
    ```
-   Run `cd $HOME && $CF memory search -q "$ARGUMENTS"` to find patterns across all projects. Filter for transferable patterns from other projects in the results.
+   Run `cd $HOME && $CF memory search --query "$ARGUMENTS"` to find patterns across all projects. Filter for transferable patterns from other projects in the results.
 
 3. **Fallback path (claude-flow unavailable):**
    Scan `~/.claude/projects/*/memory/MEMORY.md` files from OTHER projects (not current). Grep for technology and pattern type matches.

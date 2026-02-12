@@ -222,7 +222,7 @@ cd "$HOME" && $CF memory store \
 
 Also search for previous snapshots to enable trend comparison:
 ```bash
-cd "$HOME" && $CF memory search -q "growth-check:{PROJECT}" --limit 5 2>/dev/null || true
+cd "$HOME" && $CF memory search --query "growth-check:{PROJECT}" --limit 5 2>/dev/null || true
 ```
 
 Fallback: append summary to `~/.claude/projects/{project-hash}/memory/MEMORY.md`.

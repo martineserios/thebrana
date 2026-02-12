@@ -36,7 +36,7 @@ done
 
 # Primary path: claude-flow memory search
 if [ -n "$CF" ]; then
-    CONTEXT=$(timeout 5 $CF memory search -q "project:$PROJECT" --format json 2>&1 | grep -v '^\[' || true)
+    CONTEXT=$(timeout 5 $CF memory search --query "project:$PROJECT" --format json 2>&1 | grep -v '^\[' || true)
 fi
 
 # Log recalled patterns to session file for promotion tracking
