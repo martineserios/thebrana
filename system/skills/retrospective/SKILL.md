@@ -71,6 +71,17 @@ Use these prefixes consistently:
 - `type:` — problem category (e.g., `type:auth`, `type:deployment`, `type:testing`)
 - `outcome:` — `outcome:success`, `outcome:failure`, or `outcome:partial`
 
+### Step 7: Backup knowledge
+
+After storing patterns, back up the knowledge artifacts:
+
+```bash
+BACKUP_SCRIPT="$HOME/enter_thebrana/brana-knowledge/backup.sh"
+[ -x "$BACKUP_SCRIPT" ] && "$BACKUP_SCRIPT"
+```
+
+Skip silently if the script doesn't exist.
+
 ### Rules
 
 - **Ask for clarification whenever you need it.** If the learning is ambiguous, you're unsure how to tag it, or you need more context — ask. Don't guess.

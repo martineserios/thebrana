@@ -310,20 +310,16 @@ cd ~/enter_thebrana/thebrana && git tag -a vX.Y.0 -m "Phase N complete: [one-lin
 cd ~/enter_thebrana/enter && git tag -a specs-after-phase-N -m "Specs updated after Phase N build"
 ```
 
-#### 7c: Snapshot knowledge
+#### 7c: Backup knowledge
 
-Run `export-knowledge.sh` to create a portable snapshot of the brain's state at the end of this phase. This is insurance — if the DB corrupts or claude-flow breaks, you have a JSON + markdown dump of everything learned.
+Back up knowledge artifacts to the brana-knowledge repo (replaces the old export-knowledge.sh approach — the backup repo IS the portable snapshot, versioned on GitHub):
 
 ```bash
-cd ~/enter_thebrana/thebrana && bash export-knowledge.sh "./knowledge-export-phase-N-$(date +%Y%m%d)"
+BACKUP_SCRIPT="$HOME/enter_thebrana/brana-knowledge/backup.sh"
+[ -x "$BACKUP_SCRIPT" ] && "$BACKUP_SCRIPT"
 ```
 
-This produces a directory with:
-- `reasoning-bank.json` — all patterns from ReasoningBank
-- `auto-memory/` — cross-project memory files
-- `project-memory-*/` — per-project memory
-
-**Don't commit the export** — it's a local backup, not a tracked artifact. It lives alongside the repo, not inside it.
+Skip silently if the script doesn't exist.
 
 #### 7d: Store phase completion in memory
 

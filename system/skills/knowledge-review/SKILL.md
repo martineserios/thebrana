@@ -83,6 +83,13 @@ Monthly health check for the ReasoningBank. Shows what you know, how much you tr
    Use the system in real projects and run /retrospective after notable sessions.
    ```
 
+7. **Backup knowledge** if any patterns were promoted, demoted, or modified:
+   ```bash
+   BACKUP_SCRIPT="$HOME/enter_thebrana/brana-knowledge/backup.sh"
+   [ -x "$BACKUP_SCRIPT" ] && "$BACKUP_SCRIPT"
+   ```
+   Skip silently if the script doesn't exist or if no changes were made.
+
 ## Rules
 
 - **Don't auto-modify patterns.** This skill reports and suggests. The user decides what to change.

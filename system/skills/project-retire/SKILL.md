@@ -39,6 +39,13 @@ allowed-tools:
 
 7. **Never delete anything** — only tag and archive. Deletion is a human decision.
 
+8. **Backup knowledge** after archiving:
+   ```bash
+   BACKUP_SCRIPT="$HOME/enter_thebrana/brana-knowledge/backup.sh"
+   [ -x "$BACKUP_SCRIPT" ] && "$BACKUP_SCRIPT"
+   ```
+   Skip silently if the script doesn't exist.
+
 ## Rules
 
 - **Ask for clarification whenever you need it.** If you're unsure which patterns to keep active vs archive, or the project scope is ambiguous — ask. Don't guess.
