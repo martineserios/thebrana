@@ -80,7 +80,7 @@ SDD:         □□□□□  0/5
 DDD:         □□□□  0/4
 TDD:         ■□□□  1/4
 Quality:     □□□□  0/4
-PM & Memory: □□□□  0/4
+PM & Memory: □□□□□ 0/5
 Verification: □□□  0/3
 ```
 
@@ -240,6 +240,11 @@ Fallback (claude-flow unavailable): append to `~/.claude/projects/{project-hash}
 **P3 — portfolio.md:** Add or update project entry in `~/.claude/memory/portfolio.md`.
 
 **P4 — Pattern recall:** Verify patterns return. If P2 succeeded, P4 should pass.
+
+**P5 — MEMORY.md hygiene:** Read `~/.claude/projects/*/memory/MEMORY.md` for this project:
+   - If over 200 lines, move detailed content into topic files (only first 200 lines load at session start)
+   - If it contains behavioral directives ("always do X", "never do Y", "must/should"), move them to `~/.claude/rules/` or the project's `.claude/CLAUDE.md`
+   - The distinction: **MEMORY.md = facts Claude discovered** (descriptive). **CLAUDE.md / rules/ = instructions humans wrote** (prescriptive).
 
 ### Important Rules
 
