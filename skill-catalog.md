@@ -12,6 +12,7 @@ Deployed from `system/skills/` via `deploy.sh`.
 | `/challenge` | Big decision or plan | Spawns Sonnet to stress-test the approach; stores outcome in ReasoningBank |
 | `/cross-pollinate` | Stuck, or starting work in a new domain | Searches ReasoningBank for transferable patterns from other projects |
 | `/debrief` | End of implementation session | Extracts errata + process learnings, writes to doc 24 + ReasoningBank |
+| `/decide <title>` | Before implementing a new feature | Creates ADR in docs/decisions/ (Nygard format); also enables spec-before-code enforcement |
 | `/knowledge-review` | Monthly (or when curious) | Reports ReasoningBank health: confidence distribution, staleness, promotion candidates |
 | `/pattern-recall` | Starting work on a topic | Queries ReasoningBank for relevant patterns, grouped by confidence tier |
 | `/project-onboard` | First session in a new project | Scans structure, detects stack, recalls relevant portfolio patterns |
