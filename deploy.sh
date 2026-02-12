@@ -62,6 +62,23 @@ else
     echo "  ✓ settings.json (new)"
 fi
 
+# Step 6: Ensure claude-flow has sql.js (missing from package.json, required at runtime)
+CF_BIN=""
+for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
+    [ -x "$candidate" ] && CF_BIN="$candidate" && break
+done
+if [ -n "$CF_BIN" ]; then
+    CF_PKG_DIR="$(dirname "$CF_BIN")/../lib/node_modules/claude-flow"
+    if [ -d "$CF_PKG_DIR" ] && [ ! -d "$CF_PKG_DIR/node_modules/sql.js" ]; then
+        echo "Installing sql.js in claude-flow (missing dependency)..."
+        npm install sql.js --prefix "$CF_PKG_DIR" --silent 2>/dev/null && echo "  ✓ sql.js installed" || echo "  ⚠ sql.js install failed (ReasoningBank will degrade to Layer 0)"
+    elif [ -d "$CF_PKG_DIR/node_modules/sql.js" ]; then
+        echo "  ✓ claude-flow sql.js present"
+    fi
+else
+    echo "  ⚠ claude-flow not found (ReasoningBank unavailable, Layer 0 fallback active)"
+fi
+
 echo ""
 echo "=== Deploy Complete ==="
 echo "Deployed to: $TARGET_DIR"
