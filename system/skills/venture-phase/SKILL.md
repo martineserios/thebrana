@@ -144,13 +144,13 @@ done
 If `$CF` is found:
 ```bash
 # Search for milestone-specific patterns
-cd "$HOME" && $CF memory search -q "milestone:{TYPE} business" --limit 10 2>/dev/null || true
+cd "$HOME" && $CF memory search --query "milestone:{TYPE} business" --limit 10 2>/dev/null || true
 
 # Search for stage-specific patterns
-cd "$HOME" && $CF memory search -q "stage:{STAGE} venture" --limit 10 2>/dev/null || true
+cd "$HOME" && $CF memory search --query "stage:{STAGE} venture" --limit 10 2>/dev/null || true
 
 # Search for transferable patterns from code projects
-cd "$HOME" && $CF memory search -q "transferable:true type:process" --limit 5 2>/dev/null || true
+cd "$HOME" && $CF memory search --query "transferable:true type:process" --limit 5 2>/dev/null || true
 ```
 
 Fallback: grep `~/.claude/projects/*/memory/MEMORY.md` for relevant terms.

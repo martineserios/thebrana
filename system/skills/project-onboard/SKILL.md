@@ -15,7 +15,7 @@ allowed-tools:
 
 2. **Scan project structure**: list key directories, entry points, and config files. Build a mental model of the project.
 
-3. **Recall relevant patterns**: use pattern-recall logic (locate claude-flow binary via smart discovery, then `cd $HOME && $CF memory search -q "{tech stack}"`, or fallback to `~/.claude/projects/*/memory/` grep) to surface patterns from other projects using the same technologies.
+3. **Recall relevant patterns**: use pattern-recall logic (locate claude-flow binary via smart discovery, then `cd $HOME && $CF memory search --query "{tech stack}"`, or fallback to `~/.claude/projects/*/memory/` grep) to surface patterns from other projects using the same technologies.
 
    ```bash
    CF=""

@@ -85,7 +85,7 @@ echo ""
 
 # Test 3: Search for the test pattern
 echo "Testing memory search..."
-SEARCH_RESULT=$(timeout 10 $CF memory search -q "$TEST_VALUE" 2>/dev/null || true)
+SEARCH_RESULT=$(timeout 10 $CF memory search --query "$TEST_VALUE" 2>/dev/null || true)
 
 if [ -z "$SEARCH_RESULT" ]; then
     fail "memory search returned empty — stored value not found"

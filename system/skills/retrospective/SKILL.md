@@ -50,9 +50,9 @@ allowed-tools:
 
    After storing the new learning, review patterns that were recalled this session and evaluate whether they were useful.
 
-   a. Search for existing patterns: `cd $HOME && $CF memory search -q "project:{PROJECT}" --limit 20`
+   a. Search for existing patterns: `cd $HOME && $CF memory search --query "project:{PROJECT}" --limit 20`
    b. For each recalled pattern that **was useful** this session:
-      - Retrieve: `cd $HOME && $CF memory search -q "{pattern-key}"`
+      - Retrieve: `cd $HOME && $CF memory search --query "{pattern-key}"`
       - Parse the JSON value, increment `recall_count` by 1
       - If `recall_count >= 3` → **promote**: set `confidence: 0.8`, `transferable: true`
       - Re-store with updated fields using the same key and tags

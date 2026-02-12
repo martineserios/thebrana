@@ -22,7 +22,7 @@ allowed-tools:
    [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
    [ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
    ```
-   Run `cd $HOME && $CF memory search -q "$ARGUMENTS"` to search the memory DB for matching patterns. Parse the JSON value of each result to extract `confidence`, `transferable`, and `recall_count` fields.
+   Run `cd $HOME && $CF memory search --query "$ARGUMENTS"` to search the memory DB for matching patterns. Parse the JSON value of each result to extract `confidence`, `transferable`, and `recall_count` fields.
 
 3. **Fallback path (claude-flow unavailable):**
    Search `~/.claude/projects/*/memory/` for relevant MEMORY.md files. Grep for keywords from the query. Present findings.

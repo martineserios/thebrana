@@ -137,7 +137,7 @@ done
 [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
 [ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
 
-cd "$HOME" && $CF memory search -q "project:brana phase:N" --format json 2>/dev/null || true
+cd "$HOME" && $CF memory search --query "project:brana phase:N" --format json 2>/dev/null || true
 ```
 
 Also check auto memory at `~/.claude/projects/*/memory/MEMORY.md` for relevant notes.
