@@ -161,6 +161,113 @@ else
 fi
 echo ""
 
+# ─── PreToolUse Tests ───
+# These tests create temporary git repos to test the spec-before-code hook.
+
+echo "Testing pre-tool-use (spec-before-code enforcement)..."
+
+PRE_HOOK="$HOOKS_DIR/pre-tool-use.sh"
+
+if [ ! -x "$PRE_HOOK" ]; then
+    fail "pre-tool-use.sh — not executable or missing"
+else
+
+# Test helper for PreToolUse: run hook with given JSON, return output
+run_pre_hook() {
+    echo "$1" | timeout 10 bash "$PRE_HOOK" 2>/dev/null
+}
+
+# Test 6: Allows spec files on feat/* branches
+echo "  Test 6: allows spec files on feat/* branches..."
+TMPDIR6=$(mktemp -d)
+trap "rm -rf $TMPDIR6" EXIT
+(
+    cd "$TMPDIR6"
+    git init -q
+    git commit --allow-empty -m "init" -q
+    git checkout -b feat/test -q
+    mkdir -p docs/decisions
+) >/dev/null 2>&1
+OUTPUT6=$(run_pre_hook "$(jq -n \
+    --arg tool "Write" \
+    --arg cwd "$TMPDIR6" \
+    --arg fp "$TMPDIR6/docs/decisions/ADR-001.md" \
+    '{tool_name: $tool, cwd: $cwd, tool_input: {file_path: $fp}}')")
+if echo "$OUTPUT6" | jq -e '.continue == true' >/dev/null 2>&1; then
+    pass "pre-tool-use — allows spec files on feat/* branches"
+else
+    fail "pre-tool-use — should allow spec files, got: $OUTPUT6"
+fi
+rm -rf "$TMPDIR6"
+
+# Test 7: Blocks impl files without spec activity
+echo "  Test 7: blocks impl files without spec activity..."
+TMPDIR7=$(mktemp -d)
+(
+    cd "$TMPDIR7"
+    git init -q
+    git commit --allow-empty -m "init" -q
+    git checkout -b feat/test -q
+    mkdir -p docs/decisions
+) >/dev/null 2>&1
+OUTPUT7=$(run_pre_hook "$(jq -n \
+    --arg tool "Write" \
+    --arg cwd "$TMPDIR7" \
+    --arg fp "$TMPDIR7/src/app.ts" \
+    '{tool_name: $tool, cwd: $cwd, tool_input: {file_path: $fp}}')")
+if echo "$OUTPUT7" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1; then
+    pass "pre-tool-use — blocks impl without spec activity"
+else
+    fail "pre-tool-use — should deny impl without spec, got: $OUTPUT7"
+fi
+rm -rf "$TMPDIR7"
+
+# Test 8: Passes through without docs/decisions/
+echo "  Test 8: passes through without docs/decisions/..."
+TMPDIR8=$(mktemp -d)
+(
+    cd "$TMPDIR8"
+    git init -q
+    git commit --allow-empty -m "init" -q
+    git checkout -b feat/test -q
+) >/dev/null 2>&1
+OUTPUT8=$(run_pre_hook "$(jq -n \
+    --arg tool "Write" \
+    --arg cwd "$TMPDIR8" \
+    --arg fp "$TMPDIR8/src/app.ts" \
+    '{tool_name: $tool, cwd: $cwd, tool_input: {file_path: $fp}}')")
+if echo "$OUTPUT8" | jq -e '.continue == true' >/dev/null 2>&1; then
+    pass "pre-tool-use — passes through without opt-in"
+else
+    fail "pre-tool-use — should pass through without docs/decisions/, got: $OUTPUT8"
+fi
+rm -rf "$TMPDIR8"
+
+# Test 9: Passes through on non-feat branches
+echo "  Test 9: passes through on non-feat branches..."
+TMPDIR9=$(mktemp -d)
+(
+    cd "$TMPDIR9"
+    git init -q
+    git commit --allow-empty -m "init" -q
+    git checkout -b fix/something -q
+    mkdir -p docs/decisions
+) >/dev/null 2>&1
+OUTPUT9=$(run_pre_hook "$(jq -n \
+    --arg tool "Write" \
+    --arg cwd "$TMPDIR9" \
+    --arg fp "$TMPDIR9/src/app.ts" \
+    '{tool_name: $tool, cwd: $cwd, tool_input: {file_path: $fp}}')")
+if echo "$OUTPUT9" | jq -e '.continue == true' >/dev/null 2>&1; then
+    pass "pre-tool-use — passes through on non-feat branches"
+else
+    fail "pre-tool-use — should pass through on fix/* branch, got: $OUTPUT9"
+fi
+rm -rf "$TMPDIR9"
+
+fi # end pre-tool-use tests
+echo ""
+
 # Summary
 echo "=== Hook Smoke Summary ==="
 echo "Passed: $PASSED"
