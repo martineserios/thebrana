@@ -38,13 +38,19 @@ allowed-tools:
       - `mkdir -p docs/decisions` — spec-before-code enforcement
       - `npm install -g tdd-guard && tdd-guard on` — test-before-code enforcement"
 
-7. **Present summary**:
+7. **Check auto memory health**: read the project's `MEMORY.md` in `~/.claude/projects/*/memory/` if it exists:
+   - Is it over 200 lines? (warn: only first 200 lines are loaded at session start)
+   - Does it contain behavioral directives ("always", "never", "must", "should") that belong in `~/.claude/rules/` or CLAUDE.md?
+   - The distinction: MEMORY.md stores facts Claude discovered. Rules/CLAUDE.md store instructions humans wrote.
+
+8. **Present summary**:
    - Tech stack detected
    - Relevant patterns found (with source projects)
    - Project structure overview
+   - Auto memory health (clean / needs attention)
    - Suggested next steps
 
-8. If this is a genuinely new project with no `.claude/CLAUDE.md`, create an initial one with project-specific conventions discovered during scanning.
+9. If this is a genuinely new project with no `.claude/CLAUDE.md`, create an initial one with project-specific conventions discovered during scanning.
 
 ## Rules
 
