@@ -8,7 +8,7 @@ The brain that deploys to `~/.claude/`. Edit here, deploy there.
 
 | Component | Count | Location |
 |-----------|-------|----------|
-| Skills | 17 (12 code + 5 venture) | `system/skills/` |
+| Skills | 18 (13 code + 5 venture) | `system/skills/` |
 | Rules | 8 | `system/rules/` |
 | Hooks | 5 | `system/hooks/` |
 | Agents | 1 (scout) | `system/agents/` |

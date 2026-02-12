@@ -48,7 +48,8 @@ Target options:
    - Use `WebSearch` with the source URL/name + recent date qualifiers (2025-2026)
    - Use `WebFetch` for specific URLs that have known content (changelogs, blog indexes)
    - Extract: new posts/releases, version changes, new claims, referenced creators
-   - Tag each finding: `[NEW]`, `[UPDATE]`, `[CREATOR]`, or `[STALE]`
+   - **Version check**: compare current version against `version_observed` in registry. If different, tag as `[VERSION]` finding with HIGH severity — all doc claims based on the old version need re-verification
+   - Tag each finding: `[NEW]`, `[UPDATE]`, `[VERSION]`, `[CREATOR]`, or `[STALE]`
 
 5. **Deep Dive on high-signal findings.** For findings tagged HIGH severity:
    - Read the full source content with `WebFetch`
@@ -92,6 +93,13 @@ Target options:
    #### [UPDATE] Title — MEDIUM
    ...
 
+   #### [VERSION] Title — HIGH
+   - Source: [name](url)
+   - Old version: vX.Y.Z (observed: YYYY-MM-DD)
+   - New version: vA.B.C
+   - Affects: docs NN, MM (all claims based on old version)
+   - Action: re-verify doc claims against new version
+
    ### New Sources Discovered
    - [source name](url) — type: blog — suggested trust: unvalidated — found via: [parent source]
 
@@ -111,6 +119,7 @@ Target options:
 11. **Propose registry updates.** List all changes to `research-sources.yaml`:
     - New sources to add (with full schema)
     - `last_checked` date updates
+    - `version_observed` + `date_observed` updates (when version changed)
     - Yield history increments
     - Trust tier promotions/demotions (with reasoning)
     - Do NOT modify the YAML directly — present proposals for user approval
