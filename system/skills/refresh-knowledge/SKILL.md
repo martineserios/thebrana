@@ -74,6 +74,8 @@ Scope options:
 
    c. **Combine both** into the agent prompt. The Refresh Targets are the minimum — doc-body keywords are additional search vectors that catch things the targets missed.
 
+   d. **Read the source registry.** Load `~/enter_thebrana/enter/research-sources.yaml` and filter sources where `relevance` includes any doc number in this group. Include their URLs, cadence, and trust tier in the agent prompt.
+
 6. **Group docs by topic** to reduce agent count and share context between related docs. Use these groupings (adjust if scope is narrower):
 
    | Group | Docs | Output File |
@@ -121,6 +123,11 @@ Scope options:
    ## URLs to check
    [Paste the URLs list from each doc's Refresh Targets]
 
+   ## Registry sources (from research-sources.yaml)
+   [For each source where relevance includes docs in this group:]
+   - [source name] ([trust_tier]): [url] — last checked: [date], cadence: [cadence]
+   - Check for: new posts since last_checked, version changes, new references
+
    ## Additional keyword searches (from doc body analysis)
    - "[keyword from doc body] updates 2026"
    - "[tool mentioned in prose] new version"
@@ -132,6 +139,11 @@ Scope options:
    - What changed (with source URL)
    - Which doc and section it affects
    - Severity: HIGH (doc conclusion wrong), MEDIUM (needs update), LOW (minor)
+
+   Follow the Recursive Discovery archetype from doc 33:
+   - For each new source/creator found that is NOT in the registry, note it as a [REGISTRY] finding
+   - For each reference that warrants follow-up, note it as a [LEAD] finding
+   - Do not recurse beyond the immediate source — leads will be processed separately by /research
 
    If nothing significant changed, say so.
 
@@ -157,6 +169,10 @@ Scope options:
 
    If a doc has no findings: "No significant changes found."
 
+   Also extract:
+   - [REGISTRY] findings → list as "Registry additions proposed"
+   - [LEAD] findings → list as "Research leads created"
+
 10. **Present actionable summary.** After all per-doc reports:
 
     **Summary table:**
@@ -172,10 +188,14 @@ Scope options:
     - **HIGH priority updates** — details for anything HIGH severity
     - **Cross-doc implications** — findings that impact multiple docs
     - **Refresh Targets maintenance** — any docs whose Refresh Targets section itself needs updating (new tools to track, stale URLs, etc.)
+    - **Registry growth** — new sources/creators discovered across all groups
+    - **Leads queue** — references that warrant deeper /research follow-up
 
 11. **Clean up temp files.** Run: `rm -rf /tmp/refresh-results`
 
-12. **Propagation reminder.** Always end with:
+12. **Update registry metadata.** For each source that was checked, propose updating `last_checked` and incrementing `yield_history.checks` in research-sources.yaml. Present as a diff for user approval.
+
+13. **Propagation reminder.** Always end with:
 
     > **Propagation reminder:** If you update any dimension docs based on these findings, run upward propagation:
     > - Check reflection docs (08, 14) for impacts
