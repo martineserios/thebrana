@@ -73,25 +73,10 @@ if [ -n "$CF" ]; then
     fi
 fi
 
-# Layer 1 fallback: append to pending-learnings.md
-if [ "$STORED_L1" = false ]; then
-    mkdir -p "$HOME/.claude/memory"
-    {
-        echo ""
-        echo "## Session $SESSION_ID ($TIMESTAMP)"
-        echo "- Project: $PROJECT"
-        echo "- Events: $TOTAL ($SUCCESSES ok, $FAILURES fail)"
-        echo "- Tools: $TOOLS"
-        if [ -n "$FILES" ]; then echo "- Files: $FILES"; fi
-    } >> "$HOME/.claude/memory/pending-learnings.md"
-fi
-
-# Layer 0: always write to native auto memory
-# Find the project's auto memory directory by matching the project name
+# Layer 0: find the project's auto memory directory
 LAYER0_DIR=""
 for projdir in "$HOME"/.claude/projects/*/; do
     if [ -d "${projdir}memory" ]; then
-        # Check if this project dir's memory mentions our project
         if grep -qi "$PROJECT" "${projdir}memory/MEMORY.md" 2>/dev/null; then
             LAYER0_DIR="${projdir}memory"
             break
@@ -99,6 +84,19 @@ for projdir in "$HOME"/.claude/projects/*/; do
     fi
 done
 
+# Layer 1 fallback: write to project auto memory (not global)
+if [ "$STORED_L1" = false ] && [ -n "$LAYER0_DIR" ]; then
+    {
+        echo ""
+        echo "## Session $SESSION_ID ($TIMESTAMP)"
+        echo "- Project: $PROJECT"
+        echo "- Events: $TOTAL ($SUCCESSES ok, $FAILURES fail)"
+        echo "- Tools: $TOOLS"
+        if [ -n "$FILES" ]; then echo "- Files: $FILES"; fi
+    } >> "$LAYER0_DIR/pending-learnings.md"
+fi
+
+# Layer 0: always write session summary to project auto memory
 if [ -n "$LAYER0_DIR" ]; then
     {
         echo ""
