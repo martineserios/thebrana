@@ -36,7 +36,7 @@ Three layers, each with its own persistence and scope:
 thebrana/
 ├── system/                         ← Deploys to ~/.claude/
 │   ├── CLAUDE.md                   ← Mastermind identity
-│   ├── skills/ (17)                ← Invokable skills
+│   ├── skills/ (18)                ← Invokable skills
 │   ├── rules/ (8)                  ← Always-loaded behavioral rules
 │   ├── hooks/ (5)                  ← Event-driven shell scripts
 │   └── agents/ (1)                 ← Specialized sub-agents
@@ -46,9 +46,9 @@ thebrana/
 └── README.md
 ```
 
-## Skills (17)
+## Skills (18)
 
-### Code-Focused (12)
+### Code-Focused (13)
 
 | Skill | Description |
 |-------|-------------|
@@ -63,6 +63,7 @@ thebrana/
 | `/project-onboard` | Bootstrap a new project with relevant knowledge |
 | `/project-retire` | Archive a project's patterns |
 | `/refresh-knowledge` | Research external updates to dimension docs |
+| `/research` | Research a topic, doc, or creator with recursive discovery |
 | `/retrospective` | Store learnings and patterns in the knowledge system |
 
 ### Venture/Business (5)
@@ -108,7 +109,7 @@ thebrana/
 
 | Repo | Role | Contains |
 |------|------|----------|
-| **enter** | Architect | 33 spec docs (dimension → reflection → roadmap) |
+| **enter** | Architect | 34 spec docs (dimension → reflection → roadmap) |
 | **thebrana** (here) | Operator | System files that deploy to `~/.claude/` |
 | **brana-knowledge** | Vault | Knowledge exports and backups |
 

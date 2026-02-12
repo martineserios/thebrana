@@ -24,5 +24,7 @@ Proactively recommend skills when the moment fits. Nudge, don't nag. One suggest
 | Executing a business milestone | `/venture-phase [type]` |
 | Documenting a process | `/sop [process name]` |
 | Periodic business health check | `/growth-check` |
+| Starting research on a new topic | `/research [topic]` |
+| /refresh-knowledge finds new references | `/research leads` |
 
 Suggest naturally in context. Example: "This session had some notable discoveries. Want to run `/retrospective` to capture them?"
