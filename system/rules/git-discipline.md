@@ -19,18 +19,24 @@ All work falls into one of two categories. The workflow is the same for both.
 ### Planned work (phases, features, capabilities)
 
 ```bash
-git checkout -b feat/phase-3-learning-loop
+git worktree add ../repo-feat-learning-loop -b feat/phase-3-learning-loop
+cd ../repo-feat-learning-loop
 # ... work, commit along the way ...
-git checkout main && git merge --no-ff feat/phase-3-learning-loop
+cd ../repo
+git merge --no-ff feat/phase-3-learning-loop
+git worktree remove ../repo-feat-learning-loop
 git branch -d feat/phase-3-learning-loop
 ```
 
 ### Unplanned work (bugs, fixes, "I just noticed this")
 
 ```bash
-git checkout -b fix/typo-in-doc-14
+git worktree add ../repo-fix-doc14 -b fix/typo-in-doc-14
+cd ../repo-fix-doc14
 # ... fix it, commit ...
-git checkout main && git merge --no-ff fix/typo-in-doc-14
+cd ../repo
+git merge --no-ff fix/typo-in-doc-14
+git worktree remove ../repo-fix-doc14
 git branch -d fix/typo-in-doc-14
 ```
 
@@ -48,16 +54,63 @@ The prefix IS the organization. It tells the story at a glance.
 | `test/` | Adding or fixing tests | `test/hook-validation` |
 | `perf/` | Performance improvement | `perf/memory-search-speed` |
 
-## Handling interruptions
+## Worktrees for branch operations
 
-Working on a feature and notice a bug? Commit what you have, switch, fix, come back:
+Use `git worktree` instead of `git checkout` when switching branches. Worktrees let you have multiple branches checked out simultaneously in separate directories — no stashing, no WIP commits, no losing your place.
+
+### The workflow
 
 ```bash
-git add -A && git commit -m "wip: pause for bugfix"
-git checkout main
-git checkout -b fix/the-bug
-# ... fix, commit, merge to main, delete branch ...
-git checkout feat/your-feature    # back to work
+# Create worktree for a feature (new branch)
+git worktree add ../repo-feat-name -b feat/feature-name
+
+# Work in the worktree
+cd ../repo-feat-name
+# ... edit, commit ...
+
+# Merge from the worktree (no checkout needed on main)
+cd ../repo                          # back to main worktree
+git merge --no-ff feat/feature-name
+
+# Clean up
+git worktree remove ../repo-feat-name
+git branch -d feat/feature-name
+```
+
+### When to use worktrees
+
+- **Branch operations** (merge, rebase): avoid stash/checkout dance
+- **Parallel work**: work on feature A while agent works on feature B
+- **Interruptions**: don't WIP-commit — just `cd` to another worktree
+- **Review**: inspect a branch without leaving your current work
+
+### Naming convention
+
+Worktree directories sit next to the repo: `../repo-branch-shortname`. Examples:
+- `../enter-feat-agents` for `feat/agent-skill-symbiosis`
+- `../thebrana-fix-deploy` for `fix/deploy-script`
+
+### Rules
+
+- **One branch per worktree** — git enforces this
+- **Always use `git worktree remove`** to clean up — never `rm -rf` the directory
+- **Don't leave stale worktrees** — remove after merge
+- **`git worktree list`** to see what's active
+
+### Handling interruptions (with worktrees)
+
+Working on a feature and notice a bug? No stashing needed:
+
+```bash
+# From your feature worktree, create a new worktree for the fix
+git worktree add ../repo-fix-bug -b fix/the-bug
+cd ../repo-fix-bug
+# ... fix, commit ...
+cd ../repo
+git merge --no-ff fix/the-bug
+git worktree remove ../repo-fix-bug
+git branch -d fix/the-bug
+cd ../repo-feat-name              # back to your feature, untouched
 ```
 
 ## Commits
