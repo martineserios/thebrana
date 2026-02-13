@@ -1,6 +1,6 @@
 ---
 name: pattern-recall
-description: Query learned patterns relevant to the current context or a specific topic
+description: Query learned patterns relevant to the current context or a specific topic. Use when starting work on any topic, before deep implementation, or when encountering a problem that might have been solved before.
 allowed-tools:
   - Bash
   - Read

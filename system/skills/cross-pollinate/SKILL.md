@@ -1,6 +1,6 @@
 ---
 name: cross-pollinate
-description: Pull patterns from other projects that might be relevant to the current one
+description: Pull patterns from other projects that might be relevant to the current one. Use when stuck on a problem, encountering a familiar pattern, or starting work on a tech stack used in another project.
 allowed-tools:
   - Bash
   - Read

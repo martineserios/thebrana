@@ -1,6 +1,6 @@
 ---
 name: refresh-knowledge
-description: Refresh Knowledge Base
+description: Refresh external research for dimension docs — web-search for updates to spec topics. Use when dimension docs may be stale or before major phase planning.
 allowed-tools:
   - Read
   - Glob
