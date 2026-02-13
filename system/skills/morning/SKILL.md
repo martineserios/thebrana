@@ -84,6 +84,39 @@ gh pr list --state open 2>/dev/null || true
 
 Also check MEMORY.md for any flagged blockers from previous sessions.
 
+### Step 3b: GitHub Issue for Blocker (Optional)
+
+If the top blocker is not already tracked as a GitHub Issue, offer to create one. Since `/morning` is read-oriented, this requires user confirmation.
+
+```bash
+if command -v gh &>/dev/null && gh repo view &>/dev/null 2>&1; then
+    # Check if the blocker already has an issue
+    EXISTING=$(gh issue list --search "{blocker description}" --label "type:blocker" --json number --jq '.[0].number' 2>/dev/null)
+    if [ -z "$EXISTING" ]; then
+        # Ask user: "The top blocker doesn't have a GitHub Issue. Create one?"
+        # Only proceed if user confirms
+
+        # Create labels (idempotent)
+        for label in "source:morning" "type:blocker" "priority:high"; do
+            gh label create "$label" --force 2>/dev/null || true
+        done
+
+        gh issue create \
+          --title "Blocker: {blocker description}" \
+          --label "source:morning,type:blocker,priority:high" \
+          --body "Surfaced during /morning check on {date}.
+
+**Impact:** {what this blocks}
+**Context:** {brief context}" \
+          2>/dev/null || true
+    fi
+fi
+```
+
+**Important:** Always ask the user before creating the issue. `/morning` is read-oriented — writing should be opt-in.
+
+Skip silently if `gh` is not installed or the project has no GitHub remote.
+
 ---
 
 ## Step 4: Surface Now Priorities

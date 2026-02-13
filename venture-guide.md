@@ -28,7 +28,7 @@ Brana was designed for software projects, but its learning loop is domain-agnost
 
 ## 1. Overview
 
-Brana gives you **12 venture-specific skills**, **1 venture agent**, and **7 universal skills** that transfer from code projects. Together they form a complete business operating system.
+Brana gives you **13 venture-specific skills**, **1 venture agent**, and **7 universal skills** that transfer from code projects. Together they form a complete business operating system.
 
 ```
 VENTURE SKILLS (Foundation)           VENTURE SKILLS (Operations)
@@ -40,6 +40,7 @@ VENTURE SKILLS (Foundation)           VENTURE SKILLS (Operations)
 /sop              (document)         /financial-model (projections)
                                      /content-plan    (marketing)
                                      /monthly-close   (financial close)
+                                     /monthly-plan    (forward planning)
 
 UNIVERSAL SKILLS (transfer as-is)
 ─────────────────────────────────
@@ -381,6 +382,32 @@ Hypothesis → Design → Success Criteria → Run → Measure → Learn → Dec
 
 ---
 
+#### `/monthly-plan` — Forward-Looking Monthly Plan
+
+**Purpose:** Synthesize accumulated data into next month's action plan — revenue targets, priorities, experiments, pipeline actions, budget.
+
+**When to use:**
+- End of month (after `/monthly-close`)
+- Start of a new month when planning
+- Before board meetings or quarterly planning
+
+**What it does:**
+1. Gathers data from 6 sources: `/monthly-close`, `/growth-check`, `/pipeline`, `/experiment`, `/financial-model`, `/weekly-review`
+2. Sets revenue target (3 scenarios: conservative/base/stretch)
+3. Derives 3-5 priorities tied to bottleneck data
+4. Lists running experiments + proposes 1-2 new ones
+5. Identifies pipeline actions (overdue follow-ups, stalled deals)
+6. Allocates budget by category with runway impact
+7. Compiles key dates for the month
+8. Outputs to `docs/planning/plan-YYYY-MM.md`
+9. Stores snapshot in ReasoningBank
+
+**Key rule:** The plan is a proposal — every priority references a data source. Run `/monthly-close` first if no close exists for the prior month.
+
+**GitHub Issues:** Optionally, venture skills can create GitHub Issues for action items (`/weekly-review`), experiments (`/experiment`), and blockers (`/morning`). Issues are a secondary queryable index — markdown stays primary.
+
+---
+
 ## 4. Universal Skills That Transfer
 
 Seven skills designed for code projects work identically for business projects:
@@ -430,6 +457,7 @@ Business decisions are harder to reverse than code decisions. ADRs, challenges, 
            │    │  /morning (daily) ← reads snapshots     │
            │    │  /weekly-review   ← reads all outputs   │
            │    │  /monthly-close   ← reads month data    │
+           │    │  /monthly-plan    ← reads all 6 sources │
            │    │  /financial-model ← reads actuals       │
            │    │  /content-plan    ← reads metrics       │
            │    └─────────────────────────────────────────┘
@@ -459,6 +487,7 @@ Business decisions are harder to reverse than code decisions. ADRs, challenges, 
 - `/morning` aggregates snapshots → daily focus card
 - `/weekly-review` aggregates the week → portfolio + plan
 - `/monthly-close` aggregates the month → financial summary
+- `/monthly-plan` reads all 6 sources → forward-looking action plan (revenue targets, priorities, experiments, pipeline actions, budget)
 
 ---
 
@@ -583,11 +612,12 @@ This is the non-negotiable meta-practice. 30 minutes. Even a bad weekly review b
 Week 1:  /growth-check — health dashboard, identify bottleneck
 Week 2:  Work on bottleneck — /experiment if testing, /venture-phase if milestone
 Week 3:  Continue execution, /sop for any new repeatable process
-Week 4:  /monthly-close → /debrief the month → /knowledge-review
+Week 4:  /monthly-close → /monthly-plan → /debrief the month → /knowledge-review
 
 Monthly touchpoints:
 ├── /growth-check (health baseline)
-├── /monthly-close (financial summary)
+├── /monthly-close (financial summary — backward-looking)
+├── /monthly-plan (action plan — forward-looking)
 ├── /financial-model update (if projections changed)
 └── /content-plan review (is content on track?)
 ```
@@ -892,10 +922,11 @@ Patterns from code projects inform business projects and vice versa:
 ### "End of month"
 
 ```
-1. /monthly-close → financial summary
-2. /growth-check → health dashboard
-3. Review: actuals vs projections → adjust /financial-model if needed
-4. /debrief → extract month's learnings
+1. /monthly-close → financial summary (backward-looking)
+2. /monthly-plan  → action plan for next month (forward-looking)
+3. /growth-check → health dashboard
+4. Review: actuals vs projections → adjust /financial-model if needed
+5. /debrief → extract month's learnings
 ```
 
 ### "End of quarter"
@@ -941,6 +972,7 @@ See `quick-reference.md` for the condensed one-page version.
 | `/financial-model` | `/financial-model` | Yes |
 | `/content-plan` | `/content-plan` | Yes |
 | `/monthly-close` | `/monthly-close` | Yes |
+| `/monthly-plan` | `/monthly-plan` | Yes |
 | `/decide` | `/decide [title]` | Yes |
 | `/retrospective` | `/retrospective` | No |
 | `/debrief` | `/debrief` | No |

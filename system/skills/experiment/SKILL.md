@@ -216,6 +216,35 @@ If `docs/experiments/README.md` exists, add the new experiment to the table. If 
 | EXP-NNN | {title} | Running | {score} | {channel} | {today} |
 ```
 
+### Step 7b: GitHub Issue (Optional)
+
+If `gh` CLI is available, create a tracking issue for the new experiment.
+
+```bash
+if command -v gh &>/dev/null && gh repo view &>/dev/null 2>&1; then
+    # Create labels (idempotent)
+    for label in "source:experiment" "type:experiment" "status:running"; do
+        gh label create "$label" --force 2>/dev/null || true
+    done
+
+    # Create issue for the experiment
+    gh issue create \
+      --title "EXP-{NNN}: {short title}" \
+      --label "source:experiment,type:experiment,status:running" \
+      --body "**Hypothesis:** {hypothesis}
+**ICE Score:** {total} (I:{n} C:{n} E:{n})
+**Channel:** {channel}
+**Duration:** {duration}
+**Success criteria:** {primary criterion}
+**Kill criteria:** {kill criterion}
+
+Experiment record: docs/experiments/EXP-{NNN}-{slug}.md" \
+      2>/dev/null || true
+fi
+```
+
+Skip silently if `gh` is not installed or the project has no GitHub remote.
+
 ---
 
 ## Step 8: Measure Results (returning to a running experiment)
@@ -295,6 +324,32 @@ Append to `~/.claude/projects/{project-hash}/memory/MEMORY.md`:
 ### 10c: Update index
 
 Update the experiment's row in `docs/experiments/README.md` with final status and outcome.
+
+### 10d: Close GitHub Issue (Optional)
+
+If `gh` CLI is available and an issue exists for this experiment, close it with the outcome.
+
+```bash
+if command -v gh &>/dev/null && gh repo view &>/dev/null 2>&1; then
+    # Find the issue by title prefix
+    ISSUE_NUM=$(gh issue list --search "EXP-{NNN}" --json number --jq '.[0].number' 2>/dev/null)
+    if [ -n "$ISSUE_NUM" ]; then
+        gh issue close "$ISSUE_NUM" \
+          --comment "**Outcome:** {Scale/Kill/Iterate}
+**Primary criterion met:** {Yes/No}
+**Key learning:** {one-line learning}
+
+Full results: docs/experiments/EXP-{NNN}-{slug}.md" \
+          2>/dev/null || true
+
+        # Update label to reflect outcome
+        gh issue edit "$ISSUE_NUM" \
+          --remove-label "status:running" \
+          --add-label "status:{outcome}" \
+          2>/dev/null || true
+    fi
+fi
+```
 
 ---
 

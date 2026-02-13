@@ -31,6 +31,14 @@ For the complete usage guide, see **[venture-guide.md](venture-guide.md)**.
 | `/venture-phase [type]` | Executing a business milestone | Plans and executes: launch, hiring, fundraise, expansion, process, custom |
 | `/growth-check` | Monthly/quarterly health check | AARRR funnel + stage-appropriate metrics + trend tracking |
 | `/sop [name]` | Process repeated 3+ times | Creates versioned SOP in docs/sops/ with auto-incrementing number |
+| `/morning` | Daily session start on venture project | Stage-aware focus card: priorities, blockers, key metric, calendar |
+| `/weekly-review` | Friday or Monday | Portfolio update, kill zombies, metrics delta, ship log, plan next week |
+| `/pipeline` | Sales tracking | Stage-aware CRM: leads, deals, conversions, follow-ups |
+| `/experiment` | Growth testing | Hypothesis → test → ICE score → success criteria → results → learning |
+| `/financial-model` | Fundraise or monthly planning | 3-scenario revenue projection, P&L template, unit economics, cash flow |
+| `/content-plan` | Quarterly content strategy | Content calendar, channels, distribution checklist, performance tracking |
+| `/monthly-close` | End of month | P&L summary, actuals vs projections, trend analysis, runway update |
+| `/monthly-plan` | End of month (after close) | Forward-looking plan: revenue targets, priorities, experiments, pipeline actions, budget |
 
 ## Project Commands (enter repo)
 
@@ -51,6 +59,8 @@ In `enter/.claude/commands/`. Only available when working in the enter repo.
 **Project lifecycle:** project-onboard → project-retire
 **Spec maintenance:** refresh-knowledge → maintain-specs → apply-errata → re-evaluate-reflections
 **Venture lifecycle:** venture-onboard → venture-align → venture-phase → growth-check → sop
+**Venture operations:** morning → weekly-review → monthly-close → monthly-plan
+**Venture growth:** pipeline → experiment → financial-model → content-plan
 **Universal (work for both):** decide, debrief, challenge, retrospective, pattern-recall, cross-pollinate
 
 ## CLI Pattern
