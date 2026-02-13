@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-set -euo pipefail
+# No strict mode — hooks must always return valid JSON.
+# This hook uses || pass_through for graceful fallback.
+
+# Ensure valid CWD (may be in deleted worktree)
+cd /tmp 2>/dev/null || true
 
 # PreToolUse: Spec-Before-Code Enforcement
 #

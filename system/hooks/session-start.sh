@@ -1,15 +1,18 @@
 #!/usr/bin/env bash
-set -euo pipefail
+# No strict mode — hooks must always return valid JSON.
 
 # Brana SessionStart hook — recall relevant patterns at session start.
 # Input:  stdin JSON (session_id, cwd, hook_event_name, matcher)
 # Output: stdout JSON with additionalContext field
 
-INPUT=$(cat)
-SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty')
-CWD=$(echo "$INPUT" | jq -r '.cwd // empty')
+# Ensure valid CWD
+cd /tmp 2>/dev/null || true
 
-if [ -z "$SESSION_ID" ] || [ -z "$CWD" ]; then
+INPUT=$(cat) || true
+SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null) || true
+CWD=$(echo "$INPUT" | jq -r '.cwd // empty' 2>/dev/null) || true
+
+if [ -z "${SESSION_ID:-}" ] || [ -z "${CWD:-}" ]; then
     echo '{"continue": true}'
     exit 0
 fi
@@ -43,11 +46,11 @@ fi
 if [ -n "$CONTEXT" ]; then
     SESSION_FILE="/tmp/brana-session-${SESSION_ID}.jsonl"
     jq -n -c \
-        --argjson ts "$(date +%s)" \
+        --argjson ts "$(date +%s 2>/dev/null || echo 0)" \
         --arg tool "session-start" \
         --arg outcome "recall" \
         --arg detail "$CONTEXT" \
-        '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail}' >> "$SESSION_FILE"
+        '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail}' >> "$SESSION_FILE" 2>/dev/null || true
 fi
 
 # Fallback: grep native auto memory for project name
@@ -72,7 +75,7 @@ if [ -n "$CONTEXT" ]; then
     CONTEXT_WITH_NOTE="[Recalled patterns — confidence:quarantine means unproven, treat with caution. confidence:proven means validated across 3+ sessions.]
 $CONTEXT"
     # Escape for JSON embedding
-    ESCAPED=$(echo "$CONTEXT_WITH_NOTE" | jq -Rs '.')
+    ESCAPED=$(echo "$CONTEXT_WITH_NOTE" | jq -Rs '.' 2>/dev/null) || ESCAPED='""'
     echo "{\"continue\": true, \"additionalContext\": $ESCAPED}"
 else
     echo '{"continue": true}'

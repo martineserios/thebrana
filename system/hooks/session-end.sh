@@ -1,15 +1,18 @@
 #!/usr/bin/env bash
-set -euo pipefail
+# No strict mode — hooks must always return valid JSON.
 
 # Brana SessionEnd hook — flush accumulated session events to persistent storage.
 # Input:  stdin JSON (session_id, cwd, hook_event_name, matcher)
 # Output: stdout JSON with continue: true
 
-INPUT=$(cat)
-SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty')
-CWD=$(echo "$INPUT" | jq -r '.cwd // empty')
+# Ensure valid CWD
+cd /tmp 2>/dev/null || true
 
-if [ -z "$SESSION_ID" ] || [ -z "$CWD" ]; then
+INPUT=$(cat) || true
+SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null) || true
+CWD=$(echo "$INPUT" | jq -r '.cwd // empty' 2>/dev/null) || true
+
+if [ -z "${SESSION_ID:-}" ] || [ -z "${CWD:-}" ]; then
     echo '{"continue": true}'
     exit 0
 fi
@@ -28,26 +31,26 @@ if [ ! -f "$SESSION_FILE" ] || [ ! -s "$SESSION_FILE" ]; then
 fi
 
 # Summarize accumulated events
-TOTAL=$(wc -l < "$SESSION_FILE")
+TOTAL=$(wc -l < "$SESSION_FILE" 2>/dev/null) || TOTAL=0
 SUCCESSES=$(grep -c '"outcome":"success"' "$SESSION_FILE" 2>/dev/null) || SUCCESSES=0
 FAILURES=$(grep -c '"outcome":"failure"' "$SESSION_FILE" 2>/dev/null) || FAILURES=0
 TOOLS=$(jq -r '.tool' "$SESSION_FILE" 2>/dev/null | sort -u | paste -sd ',' || echo "unknown")
 FILES=$(jq -r '.detail // empty' "$SESSION_FILE" 2>/dev/null | sort -u | head -10 | paste -sd ',' || echo "")
-TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || TIMESTAMP="unknown"
 
 SUMMARY_JSON=$(jq -n \
-    --arg project "$PROJECT" \
-    --arg session "$SESSION_ID" \
-    --arg ts "$TIMESTAMP" \
-    --argjson total "$TOTAL" \
-    --argjson ok "$SUCCESSES" \
-    --argjson fail "$FAILURES" \
-    --arg tools "$TOOLS" \
-    --arg files "$FILES" \
+    --arg project "${PROJECT:-unknown}" \
+    --arg session "${SESSION_ID:-unknown}" \
+    --arg ts "${TIMESTAMP:-unknown}" \
+    --argjson total "${TOTAL:-0}" \
+    --argjson ok "${SUCCESSES:-0}" \
+    --argjson fail "${FAILURES:-0}" \
+    --arg tools "${TOOLS:-unknown}" \
+    --arg files "${FILES:-}" \
     --argjson confidence 0.5 \
     --argjson transferable false \
     --argjson recall_count 0 \
-    '{project: $project, session: $session, timestamp: $ts, events: $total, successes: $ok, failures: $fail, tools: $tools, files: $files, confidence: $confidence, transferable: $transferable, recall_count: $recall_count}')
+    '{project: $project, session: $session, timestamp: $ts, events: $total, successes: $ok, failures: $fail, tools: $tools, files: $files, confidence: $confidence, transferable: $transferable, recall_count: $recall_count}' 2>/dev/null) || SUMMARY_JSON="{}"
 
 # Locate claude-flow binary (nvm global → PATH → npx fallback)
 CF=""
@@ -61,7 +64,7 @@ done
 STORED_L1=false
 if [ -n "$CF" ]; then
     KEY="session:${PROJECT}:${SESSION_ID}"
-    VALUE=$(echo "$SUMMARY_JSON" | jq -c '.')
+    VALUE=$(echo "$SUMMARY_JSON" | jq -c '.' 2>/dev/null) || VALUE="$SUMMARY_JSON"
     if [ "$FAILURES" -gt 0 ]; then
         OUTCOME="mixed"
     else
