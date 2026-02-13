@@ -14,6 +14,8 @@ Nudge once per trigger. Don't nag.
 | Debrief finds errata | `/maintain-specs` |
 | Changed rule/hook/skill/config | `/back-propagate` |
 | Stale dimension docs | `/refresh-knowledge` then `/maintain-specs` |
+| After `/maintain-specs` changes impl-relevant specs | `/reconcile` |
+| Specs updated but thebrana not rebuilt | `/reconcile` |
 | Big decision (challenger didn't fire) | `/challenge` |
 | Need an ADR | `/decide [title]` |
 | Project needs alignment | `/project-align` |
