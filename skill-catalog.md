@@ -20,6 +20,18 @@ Deployed from `system/skills/` via `deploy.sh`.
 | `/refresh-knowledge` | Dimension docs might be stale | Spawns parallel agents to web-search for updates to each doc's topics |
 | `/retrospective` | Session produced a notable learning | Stores pattern with quarantine metadata; promotes/demotes recalled patterns |
 
+## Venture/Business Skills
+
+For the complete usage guide, see **[venture-guide.md](venture-guide.md)**.
+
+| Skill | Trigger | What It Does |
+|-------|---------|-------------|
+| `/venture-onboard` | First session on a business project | Diagnoses stage, recommends framework, identifies gaps (read-only) |
+| `/venture-align` | After `/venture-onboard` identifies gaps | Creates business structure: metrics, meetings, SOPs, OKRs (stage-aware) |
+| `/venture-phase [type]` | Executing a business milestone | Plans and executes: launch, hiring, fundraise, expansion, process, custom |
+| `/growth-check` | Monthly/quarterly health check | AARRR funnel + stage-appropriate metrics + trend tracking |
+| `/sop [name]` | Process repeated 3+ times | Creates versioned SOP in docs/sops/ with auto-incrementing number |
+
 ## Project Commands (enter repo)
 
 In `enter/.claude/commands/`. Only available when working in the enter repo.
@@ -38,6 +50,8 @@ In `enter/.claude/commands/`. Only available when working in the enter repo.
 **Quality:** challenge
 **Project lifecycle:** project-onboard → project-retire
 **Spec maintenance:** refresh-knowledge → maintain-specs → apply-errata → re-evaluate-reflections
+**Venture lifecycle:** venture-onboard → venture-align → venture-phase → growth-check → sop
+**Universal (work for both):** decide, debrief, challenge, retrospective, pattern-recall, cross-pollinate
 
 ## CLI Pattern
 

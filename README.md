@@ -39,12 +39,18 @@ thebrana/
 │   ├── skills/ (18)                ← Invokable skills
 │   ├── rules/ (8)                  ← Always-loaded behavioral rules
 │   ├── hooks/ (5)                  ← Event-driven shell scripts
-│   └── agents/ (1)                 ← Specialized sub-agents
+│   └── agents/ (7)                 ← Specialized sub-agents
 ├── deploy.sh                       ← Validate + copy to ~/.claude/
 ├── validate.sh                     ← Pre-deploy checks
 ├── export-knowledge.sh             ← Export memory + ReasoningBank
 └── README.md
 ```
+
+## Guides
+
+| Guide | For |
+|-------|-----|
+| **[Venture Guide](venture-guide.md)** | Managing business projects with brana — complete manual with workflows, diagrams, good practices |
 
 ## Skills (18)
 
@@ -99,11 +105,17 @@ thebrana/
 | `post-tool-use.sh` | PostToolUse | Learn from significant tool uses |
 | `post-tool-use-failure.sh` | PostToolUseFailure | Learn from tool failures (anti-patterns) |
 
-## Agents (1)
+## Agents (7)
 
 | Agent | Model | Purpose |
 |-------|-------|---------|
 | `scout` | Haiku | Fast research — codebase exploration, information gathering |
+| `memory-curator` | Haiku | Recall patterns, cross-pollinate, check knowledge health |
+| `project-scanner` | Haiku | Scan project structure, detect stack, check alignment |
+| `venture-scanner` | Haiku | Diagnose business project — stage, frameworks, gaps |
+| `challenger` | Sonnet | Adversarial review of plans and architecture decisions |
+| `debrief-analyst` | Sonnet | Extract errata, learnings, and patterns from sessions |
+| `archiver` | Haiku | Archive project patterns when retiring |
 
 ## Ecosystem
 
