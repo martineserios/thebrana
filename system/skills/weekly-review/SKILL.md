@@ -260,6 +260,36 @@ Fallback: append summary to `~/.claude/projects/{project-hash}/memory/MEMORY.md`
 
 If `~/.claude/memory/portfolio.md` exists, update the venture entries with the new green/yellow/red status from Step 1.
 
+### GitHub Issues (Optional)
+
+If `gh` CLI is available and the project has a GitHub repo, create issues for committed action items. Markdown snapshots remain the primary record — Issues provide a queryable secondary index.
+
+```bash
+if command -v gh &>/dev/null && gh repo view &>/dev/null 2>&1; then
+    # Create labels (idempotent)
+    for label in "source:weekly-review" "type:action-item" "priority:high"; do
+        gh label create "$label" --force 2>/dev/null || true
+    done
+
+    # Issue for each committed zombie (from Step 2)
+    # For each zombie the user chose "Commit":
+    gh issue create \
+      --title "Committed: {zombie item}" \
+      --label "source:weekly-review,type:action-item,priority:high" \
+      --body "Committed during weekly review {YYYY-MM-DD}. Next action: {action}. Deadline: {date}." \
+      2>/dev/null || true
+
+    # Issue for #1 priority Now item (from Step 5)
+    gh issue create \
+      --title "Priority: {#1 Now item}" \
+      --label "source:weekly-review,type:action-item,priority:high" \
+      --body "Top priority for week of {YYYY-MM-DD}. Why now: {reason}." \
+      2>/dev/null || true
+fi
+```
+
+Skip silently if `gh` is not installed or the project has no GitHub remote.
+
 ---
 
 ## Output Template
