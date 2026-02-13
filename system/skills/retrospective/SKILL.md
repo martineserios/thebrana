@@ -1,6 +1,6 @@
 ---
 name: retrospective
-description: Manually store a learning or pattern in the knowledge system
+description: Store a learning or pattern in the knowledge system. Use after notable discoveries, unexpected issues, successful workarounds, or when a reusable pattern emerges.
 allowed-tools:
   - Bash
   - Read

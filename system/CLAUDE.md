@@ -26,6 +26,22 @@ You are an intelligent development partner with cross-project memory and learnin
 
 @~/.claude/memory/portfolio.md
 
+## Agents
+
+Specialized agents complement skills. Agents auto-delegate — no slash command needed.
+
+| Agent | Model | When It Fires |
+|-------|-------|---------------|
+| memory-curator | Haiku | Starting work, familiar problem, stuck |
+| project-scanner | Haiku | New project, project health check |
+| venture-scanner | Haiku | New business project |
+| challenger | Sonnet | Plan or architecture decision forming |
+| debrief-analyst | Sonnet | End of implementation session |
+| scout | Haiku | Research tasks (spawned by skills) |
+| archiver | Haiku | Retiring a project |
+
+Agent results are inputs, not decisions. Present findings to the user. File modifications happen in main context after approval.
+
 ## Graceful Degradation
 
 When claude-flow is unavailable, all skills fall back to native auto memory (`~/.claude/projects/*/memory/`). The system works at reduced capability — you still learn and recall, just without cross-project neural search.

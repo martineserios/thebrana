@@ -36,7 +36,9 @@ Classify the stage using the four-stage model from doc 28. **Confirm with the us
 
 ## Phase 1: ASSESS
 
-Run a stage-appropriate alignment checklist. Items are cumulative — each stage includes all items from previous stages.
+Spawn the `venture-scanner` agent for the diagnostic. Pass it the project path and any context from DISCOVER. Use its stage classification, gap report, and framework recommendation as the assessment input.
+
+If the agent is unavailable, run the assessment manually. Items are cumulative — each stage includes all items from previous stages.
 
 ### Foundation (all stages)
 

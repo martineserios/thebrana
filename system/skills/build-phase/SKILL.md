@@ -127,7 +127,9 @@ Present the plan to the user:
 
 ### Step 2: Recall before building
 
-Before touching code, query for relevant patterns:
+Spawn the `memory-curator` agent with the phase topic to recall relevant patterns. Pass it the phase number, relevant technologies, and any known pain points from doc 24. Use its findings to inform implementation planning.
+
+If the agent is unavailable, fall back to manual recall:
 
 ```bash
 CF=""
@@ -218,7 +220,9 @@ If any criteria are not met, create additional work items and loop back to Step 
 
 ### Step 5: Full debrief
 
-Run the equivalent of `/debrief` but focused on the entire phase:
+Spawn the `debrief-analyst` agent with the git log from phase start to now and a session summary. Review its classified findings (errata, learnings, issues), then write approved errata to doc 24.
+
+If the agent is unavailable, run the debrief manually:
 
 1. **Gather evidence** — `git log` from phase start to now, all mini-debrief findings, conversation context.
 2. **Classify** into errata / learnings / issues.

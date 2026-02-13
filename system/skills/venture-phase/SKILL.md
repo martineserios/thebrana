@@ -217,7 +217,9 @@ If any criteria are not met, create additional work items and loop back to Step 
 
 ## Step 5: Debrief
 
-Full milestone debrief — the equivalent of `/debrief` for business milestones:
+Spawn the `debrief-analyst` agent for a mini-debrief after milestone completion. Pass it the milestone type, work items completed, and any mini-debrief notes. Review its classified findings, then write approved entries to ReasoningBank.
+
+If the agent is unavailable, run the debrief manually:
 
 1. **Gather evidence** — all mini-debrief findings, docs created, decisions made.
 2. **Classify** into:

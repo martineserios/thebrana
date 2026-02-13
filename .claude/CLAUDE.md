@@ -6,13 +6,13 @@ The brain that deploys to `~/.claude/`. Edit here, deploy there.
 
 ## Current State
 
-| Component | Count | Location |
-|-----------|-------|----------|
-| Skills | 18 (13 code + 5 venture) | `system/skills/` |
-| Rules | 8 | `system/rules/` |
-| Hooks | 5 | `system/hooks/` |
-| Agents | 1 (scout) | `system/agents/` |
-| Version | v0.5.0 | Phase 5: Alignment |
+| Component | Location |
+|-----------|----------|
+| Skills | `system/skills/` |
+| Rules | `system/rules/` |
+| Hooks | `system/hooks/` |
+| Agents | `system/agents/` |
+| Version | v0.5.0 (Phase 5: Alignment) |
 
 ## Deploy Flow
 

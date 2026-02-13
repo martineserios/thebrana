@@ -50,7 +50,9 @@ Before any assessment, gather context from the user. This shapes tier suggestion
 
 ## Phase 1: ASSESS
 
-Run the 28-item alignment checklist against the current project.
+Spawn the `project-scanner` agent for the diagnostic scan. Pass it the project path and any context from DISCOVER. Use its structured report (alignment scores, gaps, portfolio patterns) as the assessment input.
+
+If the agent is unavailable, run the assessment manually:
 
 ### Step 1: Detect Tech Stack
 
