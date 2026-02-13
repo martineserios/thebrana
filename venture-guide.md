@@ -10,36 +10,49 @@ Brana was designed for software projects, but its learning loop is domain-agnost
 
 1. [Overview](#1-overview)
 2. [Getting Started](#2-getting-started)
-3. [The Five Venture Skills](#3-the-five-venture-skills)
+3. [The Twelve Venture Skills](#3-the-twelve-venture-skills)
 4. [Universal Skills That Transfer](#4-universal-skills-that-transfer)
 5. [How Skills Interact](#5-how-skills-interact)
 6. [The Document Structure](#6-the-document-structure)
 7. [The Stage Model](#7-the-stage-model)
-8. [Session Workflows](#8-session-workflows)
-9. [The Learning System](#9-the-learning-system)
-10. [Good Practices](#10-good-practices)
-11. [Common Scenarios](#11-common-scenarios)
-12. [Quick Reference](#12-quick-reference)
+8. [Daily / Weekly / Monthly Cadences](#8-daily--weekly--monthly-cadences)
+9. [Growth and Experiments](#9-growth-and-experiments)
+10. [Financial Management](#10-financial-management)
+11. [Sales Pipeline](#11-sales-pipeline)
+12. [The Learning System](#12-the-learning-system)
+13. [Good Practices](#13-good-practices)
+14. [Common Scenarios](#14-common-scenarios)
+15. [Quick Reference](#15-quick-reference)
 
 ---
 
 ## 1. Overview
 
-Brana gives you **5 venture-specific skills**, **1 venture agent**, and **7 universal skills** that transfer from code projects. Together they form a complete business management system.
+Brana gives you **12 venture-specific skills**, **1 venture agent**, and **7 universal skills** that transfer from code projects. Together they form a complete business operating system.
 
 ```
-VENTURE SKILLS                    UNIVERSAL SKILLS (transfer as-is)
-──────────────                    ─────────────────────────────────
-/venture-onboard  (diagnose)      /decide          (record decisions)
-/venture-align    (build)         /retrospective   (store learnings)
-/venture-phase    (execute)       /debrief         (end-of-session extraction)
-/growth-check     (monitor)       /challenge       (stress-test plans)
-/sop              (document)      /pattern-recall  (query past learnings)
-                                  /cross-pollinate (pull from other projects)
-                                  /knowledge-review(memory health check)
+VENTURE SKILLS (Foundation)           VENTURE SKILLS (Operations)
+──────────────────────────           ───────────────────────────
+/venture-onboard  (diagnose)         /morning         (daily check)
+/venture-align    (build)            /weekly-review   (weekly cadence)
+/venture-phase    (execute)          /pipeline        (sales tracking)
+/growth-check     (monitor)          /experiment      (growth testing)
+/sop              (document)         /financial-model (projections)
+                                     /content-plan    (marketing)
+                                     /monthly-close   (financial close)
+
+UNIVERSAL SKILLS (transfer as-is)
+─────────────────────────────────
+/decide          (record decisions)
+/retrospective   (store learnings)
+/debrief         (end-of-session extraction)
+/challenge       (stress-test plans)
+/pattern-recall  (query past learnings)
+/cross-pollinate (pull from other projects)
+/knowledge-review(memory health check)
 ```
 
-The venture skills create and maintain a `docs/` structure inside your project. The universal skills feed a cross-project memory system (ReasoningBank) that accumulates learnings over time.
+The foundation skills create and maintain a `docs/` structure inside your project. The operational skills run your daily, weekly, and monthly rhythms. The universal skills feed a cross-project memory system (ReasoningBank) that accumulates learnings over time.
 
 ---
 
@@ -67,14 +80,19 @@ That's it. After these two steps you have a working management structure. Everyt
 
 - Claude Code installed and configured
 - Brana deployed (`./deploy.sh` from the thebrana repo)
+- Venture extension deployed (`./deploy.sh` from this repo)
 - A project directory for your venture (can be empty or existing)
 - Optionally: claude-flow for cross-project memory (works without it, just no persistent patterns)
+- Optionally: Google Workspace MCP for calendar integration
+- Optionally: Airtable/HubSpot MCP for CRM integration
 
 ---
 
-## 3. The Five Venture Skills
+## 3. The Twelve Venture Skills
 
-### `/venture-onboard` — The Diagnostic
+### Foundation Skills (thebrana core)
+
+#### `/venture-onboard` — The Diagnostic
 
 **Purpose:** Scan a business project, classify its stage, and produce a gap report.
 
@@ -92,23 +110,11 @@ That's it. After these two steps you have a working management structure. Everyt
 5. Searches ReasoningBank for relevant patterns
 6. Produces a prioritized gap report
 
-**What it produces:** A diagnostic report. No files created.
-
-**Key rule:** This is read-only. It observes, it doesn't change. To act on its findings, use `/venture-align`.
-
-**Example output:**
-```
-Stage: Validation
-Framework: Lean Startup + light OKRs
-Gaps:
-  Critical: No revenue tracking, unknown retention
-  Important: No OKRs, experiment log empty
-  Nice-to-have: Financial dashboard
-```
+**Key rule:** This is read-only. It observes, it doesn't change.
 
 ---
 
-### `/venture-align` — The Builder
+#### `/venture-align` — The Builder
 
 **Purpose:** Take the diagnostic and build the management structure.
 
@@ -120,11 +126,7 @@ Gaps:
 **What it does (6 phases):**
 
 ```
-DISCOVER ──→ ASSESS ──→ PLAN ──→ IMPLEMENT ──→ VERIFY ──→ DOCUMENT
-    │           │         │          │             │           │
-Interview   Checklist   Action    Create        Before/    Store in
-or reuse    scored by   list you  files (asks   after      memory
-onboard     stage       approve   permission)   score
+DISCOVER → ASSESS → PLAN → IMPLEMENT → VERIFY → DOCUMENT
 ```
 
 **What it creates (depends on stage):**
@@ -136,159 +138,246 @@ onboard     stage       approve   permission)   score
 | + Growth | docs/okrs/, docs/sops/ (with index), hiring plan, decision framework |
 | + Scale | Org chart, cascading OKRs, process automation docs, onboarding playbook |
 
-**Key rule:** Asks for confirmation before every file. Never overwrites existing files — reads first, merges, or asks.
-
-**Tip:** You don't need to create everything at once. `/venture-align` is pain-driven: fill the critical gaps first, come back for the rest when it hurts.
+**Key rule:** Asks for confirmation before every file. Never overwrites existing files.
 
 ---
 
-### `/venture-phase` — The Executor
+#### `/venture-phase` — The Executor
 
 **Purpose:** Plan and execute a specific business milestone with learning loops.
 
-**When to use:** When you have a concrete milestone to execute — a product launch, hiring round, fundraise, expansion, process overhaul, or any custom milestone.
-
 **Invocation:**
 ```
-/venture-phase                    ← asks what milestone
-/venture-phase product launch     ← plans a product launch
-/venture-phase hiring             ← plans a hiring round
-/venture-phase fundraise          ← plans a fundraise
-/venture-phase expansion          ← plans market expansion
-/venture-phase process            ← plans process overhaul
-/venture-phase custom             ← you define the milestone
+/venture-phase                    — asks what milestone
+/venture-phase product launch     — plans a product launch
+/venture-phase hiring             — plans a hiring round
+/venture-phase fundraise          — plans a fundraise
+/venture-phase expansion          — plans market expansion
+/venture-phase process            — plans process overhaul
+/venture-phase custom             — you define the milestone
 ```
 
 **The execution loop:**
-
 ```
-┌─────────────────────────────────────────────────────┐
-│  ORIENT                                              │
-│  Identify milestone, detect stage, read context      │
-│                                                      │
-│  PLAN                                                │
-│  Generate work items from template                   │
-│  Present for approval — WAITS for your OK            │
-│                                                      │
-│  RECALL                                              │
-│  Search memory for relevant patterns                 │
-│                                                      │
-│  EXECUTE (for each work item)                        │
-│  ┌────────────────────────────────────┐              │
-│  │ 1. State what's being done         │              │
-│  │ 2. Create/update docs              │  repeats     │
-│  │ 3. Verify exit criteria            │  for each    │
-│  │ 4. Mini-debrief:                   │  work item   │
-│  │    - Anything surprising?          │              │
-│  │    - Anything reusable?            │              │
-│  │    - Should the plan change?       │              │
-│  │ 5. Store learning in memory        │              │
-│  └────────────────────────────────────┘              │
-│                                                      │
-│  VALIDATE                                            │
-│  Check all exit criteria are met                     │
-│                                                      │
-│  DEBRIEF                                             │
-│  Full milestone debrief — errata + learnings         │
-│                                                      │
-│  REPORT                                              │
-│  Summary: what was done, learned, next steps         │
-└─────────────────────────────────────────────────────┘
+ORIENT → PLAN → RECALL → EXECUTE (per work item) → VALIDATE → DEBRIEF → REPORT
 ```
 
-**Pre-built milestone templates:**
+Each work item gets a mini-debrief: anything surprising? anything reusable? should the plan change?
 
-| Milestone | Work Items |
-|-----------|-----------|
-| Product launch | Market research, positioning, channel strategy, launch checklist, go-to-market plan, post-launch metrics |
-| Hiring | Role definition, job description, sourcing strategy, interview process (creates SOP), onboarding SOP |
-| Fundraise | Pitch deck, financial model, investor list, outreach plan, term sheet prep |
-| Expansion | Market research, positioning adaptation, channel testing, metrics framework, scale/pivot decision |
-| Process overhaul | Current state audit, process debt inventory, prioritize, implement SOPs, verify |
-| Custom | You define: name, work items, exit criteria, timeline |
-
-**Key rule:** The plan in Step 1 is a proposal. You approve it. Exit criteria are non-negotiable — the milestone isn't complete if criteria aren't met.
-
-**Tip:** One milestone per invocation. Don't try to run two milestones in one session. Finish one, debrief, then start the next.
+**Key rule:** The plan is a proposal. You approve it. Exit criteria are non-negotiable.
 
 ---
 
-### `/sop` — The Process Documenter
+#### `/sop` — The Process Documenter
 
 **Purpose:** Interview you about a repeatable process and produce a structured, versioned SOP.
 
 **When to use:** When a process has repeated 3+ times and needs documenting.
-
-**Invocation:**
-```
-/sop                          ← asks what process
-/sop customer onboarding      ← documents the onboarding process
-/sop weekly sync              ← documents the meeting process
-```
 
 **What it does:**
 1. Interviews you (8 questions: what, who, trigger, frequency, steps, output, failure modes, success criteria)
 2. Auto-increments the SOP number (SOP-001, SOP-002, ...)
 3. Creates `docs/sops/SOP-NNN-slug.md` with full template
 4. Updates `docs/sops/README.md` (index)
-5. Stores pattern in ReasoningBank
 
-**SOP template structure:**
-```
-Purpose → Owner → Trigger → Prerequisites
-→ Steps (with decision points)
-→ Exit Criteria → Common Issues → Metrics
-→ Version → Last Updated → Next Review (6 months)
-```
-
-**Key rule:** Don't systematize too early. If you've only done a process once, it's too early for an SOP. Wait for 3+ repetitions. But when you do systematize, do it thoroughly — a vague SOP is worse than no SOP.
-
-**Tip:** Decision points are the most valuable part. Real processes branch: "If the customer says X, do A. If they say Y, do B." An SOP without decision points only works for the happy path.
+**Key rule:** Don't systematize too early. Wait for 3+ repetitions.
 
 ---
 
-### `/growth-check` — The Health Monitor
+#### `/growth-check` — The Health Monitor
 
-**Purpose:** AARRR funnel analysis + stage-appropriate metrics audit. Identifies the bottleneck and recommends where to focus.
+**Purpose:** AARRR funnel analysis + stage-appropriate metrics audit.
 
 **When to use:**
 - Monthly or quarterly (set a cadence and stick to it)
-- Before major decisions (fundraise, expansion, hiring) to baseline health
+- Before major decisions to baseline health
 - When something feels wrong and you need data
 
 **What it does:**
-1. Detects the business stage from existing docs
-2. Collects stage-appropriate metrics (from docs or asks you)
+1. Detects the business stage
+2. Collects stage-appropriate metrics
 3. Runs AARRR funnel analysis (Acquisition → Activation → Retention → Referral → Revenue)
 4. Benchmarks each metric (GREEN / YELLOW / RED)
-5. Identifies the bottleneck (worst conversion = where effort should focus)
+5. Identifies the bottleneck
 6. Compares against previous checks for trend tracking
 7. Saves report to `docs/metrics/health-YYYY-MM-DD.md`
 
-**AARRR Funnel:**
+**Key rule:** Don't fake data. If a metric isn't tracked, mark it "Not tracked."
+
+---
+
+### Operational Skills (venture extension)
+
+#### `/morning` — Daily Operational Check
+
+**Purpose:** Stage-aware daily review that produces a focus card for the day.
+
+**When to use:**
+- Start of every work session on a venture project
+- When you need to reorient after a break
+
+**What it does:**
+1. Detects stage from project docs
+2. Pulls last `/growth-check` snapshot for current metrics
+3. Shows blockers from task list
+4. Surfaces Now priorities from portfolio
+5. Checks calendar (if Google Workspace MCP configured)
+6. Outputs today's focus card
+
+**Output:** Focus card — 3 priorities, top blocker, key metric to watch.
+
+**Stage-dependent:**
+- Discovery: Light card — priorities + interview count
+- Validation: Metrics + priorities + experiments status
+- Growth/Scale: Full dashboard with team items
+
+---
+
+#### `/weekly-review` — Weekly Cadence
+
+**Purpose:** The non-negotiable weekly practice. Updates portfolio, kills zombies, plans next week.
+
+**When to use:**
+- Friday or Monday (pick one, be consistent)
+- Weekly — this is the highest-leverage meta-practice
+
+**What it does:**
+1. Portfolio update — green/yellow/red across all ventures
+2. Kill zombies — flag initiatives untouched for 2+ weeks
+3. Metrics delta — this week vs last week
+4. Ship log — what was shipped this week
+5. Plan next week's Now — 3-5 items max
+6. Store trends in ReasoningBank
+
+**Output:** Weekly review report at `docs/metrics/weekly-YYYY-MM-DD.md` + updated portfolio.
+
+**Key rule:** 30 minutes, non-negotiable. Even a bad weekly review is better than no weekly review.
+
+---
+
+#### `/pipeline` — Sales/CRM Tracking
+
+**Purpose:** Track leads, deals, conversions, and follow-ups. Stage-aware CRM.
+
+**When to use:**
+- New lead or contact to track
+- Deal progresses to a new stage
+- Reviewing pipeline health
+- Preparing for sales-focused meetings
+
+**What it does:**
+1. Detects stage for appropriate pipeline complexity
+2. Loads existing pipeline from `docs/pipeline/`
+3. Updates lead/deal records
+4. Calculates conversion rates between stages
+5. Shows pipeline snapshot with follow-ups due
+
+**Stage-dependent:**
+- Discovery: Simple contact list
+- Validation: Basic funnel (lead → trial → paid)
+- Growth+: Full pipeline (lead → qualified → demo → proposal → negotiation → closed)
+
+**Optional integrations:** Airtable MCP, HubSpot MCP for external CRM sync.
+
+---
+
+#### `/experiment` — Growth Testing Loop
+
+**Purpose:** Structured experimentation with auto-incrementing records and ICE scoring.
+
+**When to use:**
+- `/growth-check` identifies a bottleneck to address
+- Testing a new growth channel, feature, or pricing
+- Any time you have a hypothesis to validate
+
+**What it does:**
+1. Reads `/growth-check` for bottleneck context
+2. Interviews you: hypothesis, evidence, what would disprove it
+3. Designs the test with ICE scoring (Impact x Confidence x Ease)
+4. Sets measurable success criteria BEFORE running
+5. Creates `docs/experiments/EXP-NNN-slug.md`
+6. When returning to measure: records results, decides (scale/kill/iterate)
+7. Stores learning in ReasoningBank
+
+**The experiment loop:**
 ```
-Acquisition → Activation → Retention → Referral → Revenue
-   How do      Do they      Do they     Do they    Do they
-   users       get value    come        tell       pay?
-   find you?   quickly?     back?       others?
+Hypothesis → Design → Success Criteria → Run → Measure → Learn → Decide
+                                                              ↓
+                                                   Scale / Kill / Iterate
 ```
 
-The bottleneck is the stage with the worst conversion. Improving stages downstream of the bottleneck is wasted work — you're optimizing revenue when nobody activates.
+**Key rule:** Define success criteria before running. Post-hoc criteria are meaningless.
 
-**Benchmark thresholds (adapt for your domain):**
+---
 
-| Metric | GREEN | YELLOW | RED |
-|--------|-------|--------|-----|
-| LTV:CAC | ≥3:1 | 2:1-3:1 | <2:1 |
-| Monthly churn | <3% | 3-7% | >7% |
-| Gross margin | >70% | 50-70% | <50% |
-| Net retention | >110% | 100-110% | <100% |
-| Runway | >18 months | 12-18 months | <12 months |
-| Activation rate | >30% | 15-30% | <15% |
+#### `/financial-model` — Revenue Projections
 
-**Key rule:** Don't fake data. If a metric isn't tracked, mark it "Not tracked" and recommend tracking it. Never estimate.
+**Purpose:** 3-scenario revenue projection, P&L template, unit economics, cash flow analysis.
 
-**Tip:** A single health check is useful. A series over time is powerful. The trend matters more than any single snapshot. Run it consistently and the comparisons become the most valuable output.
+**When to use:**
+- Fundraise preparation
+- Monthly or quarterly planning
+- When investors ask for projections
+- Building a business case for expansion
+
+**What it does:**
+1. Detects business model type (SaaS, marketplace, service, e-commerce)
+2. Builds 3-scenario revenue projection (base/upside/downside)
+3. P&L template with stage-appropriate line items
+4. Unit economics: CAC, LTV, LTV:CAC, payback period
+5. Cash flow analysis: burn rate, runway, break-even
+6. Outputs to `docs/financial/model-YYYY-MM.md`
+
+**Key rule:** Use actual data where available. Mark assumptions explicitly.
+
+---
+
+#### `/content-plan` — Marketing Cadence
+
+**Purpose:** Quarterly content strategy aligned to growth goals.
+
+**When to use:**
+- Quarterly content planning
+- Launching a new content channel
+- When `/growth-check` shows acquisition as the bottleneck
+
+**What it does:**
+1. Reads `/growth-check` for acquisition metrics
+2. Defines content themes and pillars
+3. Selects stage-appropriate channels
+4. Builds quarterly calendar with weekly cadence
+5. Creates distribution checklist per content piece
+6. Sets up performance tracking
+7. Outputs to `docs/content/plan-YYYY-QN.md`
+
+**Stage-dependent channels:**
+- Discovery: Founder's blog, social, community
+- Validation: + newsletter, guest posts, partnerships
+- Growth: + paid content, SEO, video
+- Scale: + PR, analyst relations, thought leadership
+
+---
+
+#### `/monthly-close` — Monthly Financial Close
+
+**Purpose:** The monthly heartbeat of business health. P&L summary, actuals vs projections, trend analysis.
+
+**When to use:**
+- End of each month
+- Preparing for board or investor updates
+- When you need a comprehensive financial picture
+
+**What it does:**
+1. Pulls `/growth-check` snapshots for the full month
+2. Compares actuals vs `/financial-model` projections
+3. P&L summary (revenue, COGS, expenses, net income)
+4. Metrics vs targets with variance analysis
+5. MoM trend analysis across key metrics
+6. Cash flow update: burn rate, runway, break-even
+7. Outputs to `docs/financial/close-YYYY-MM.md`
+8. Stores snapshot in ReasoningBank for historical tracking
+
+**Key rule:** Run this even if you don't have perfect data. Partial closes build the habit.
 
 ---
 
@@ -296,120 +385,80 @@ The bottleneck is the stage with the worst conversion. Improving stages downstre
 
 Seven skills designed for code projects work identically for business projects:
 
-### `/decide [title]` — Record business decisions
+| Skill | Purpose | Business Use |
+|-------|---------|-------------|
+| `/decide [title]` | Record decisions as ADRs | "Why did we pick this market?" — ADRs answer it in 6 months |
+| `/retrospective` | Store a single learning | "Referrals convert 3x better than Instagram leads" |
+| `/debrief` | End-of-session extraction | Extracts errata, learnings, issues from current session |
+| `/challenge` | Stress-test a plan | "Should we expand to 3 cities?" — adversarial review |
+| `/pattern-recall` | Query past learnings | Starting work on any topic, encountering a familiar problem |
+| `/cross-pollinate` | Pull from other projects | CI/CD patterns → operational workflows |
+| `/knowledge-review` | Memory health check | Monthly review of ReasoningBank health |
 
-Creates an Architecture Decision Record (ADR) in `docs/decisions/`. The format (Context, Decision, Consequences) works for "use JWT for auth" and "hire a COO before a CTO" equally.
-
-**When to use:** Before any consequential, hard-to-reverse decision.
-
-**Tip:** Business decisions are less reversible than code decisions — they benefit even more from structured records. "Why did we choose this market?" is a question you'll ask in 6 months. The ADR answers it.
-
-### `/retrospective` — Store a single learning
-
-Stores a pattern in ReasoningBank with confidence metadata. Use after notable discoveries, unexpected issues, or successful workarounds.
-
-**When to use:** When something worth remembering happens mid-session. Not at the end (that's `/debrief`) — during.
-
-**Example:** "Discovered that terapeuta referrals convert 3x better than Instagram leads."
-
-### `/debrief` — End-of-session extraction
-
-Extracts errata, learnings, and issues from the current session. Classifies them and stores in memory.
-
-**When to use:** End of every significant work session.
-
-**Tip:** This is the learning muscle. Skip it and learnings evaporate. Run it and they compound. Even a short session produces something worth storing.
-
-### `/challenge` — Stress-test a plan
-
-Spawns an adversarial review. Four flavors: pre-mortem, simplicity audit, assumption challenge, adversarial critique.
-
-**When to use:** Before committing to a major decision. "Should we expand to 3 cities?" "Should we take this investment?" "Is our pricing right?"
-
-**Tip:** Run this BEFORE you're emotionally committed. Once you've decided, confirmation bias makes the challenge less useful.
-
-### `/pattern-recall` — Query past learnings
-
-Searches ReasoningBank for patterns relevant to your current context.
-
-**When to use:** Starting work on any topic, before deep planning, or when encountering a familiar problem.
-
-**Tip:** This gets more valuable over time. Early on, there are few patterns. After 6 months of debriefs and retrospectives, the recall surface is rich.
-
-### `/cross-pollinate` — Pull from other projects
-
-Searches for transferable patterns from other projects in your portfolio.
-
-**When to use:** When stuck on a problem, starting work in a new domain, or when you suspect another project solved a similar problem.
-
-**Example cross-pollinations:**
-- CI/CD rollback patterns → SOP fallback procedures
-- Spec-driven development → Decision-before-action discipline
-- Technical debt tracking → Process debt tracking
-- Feature flag rollouts → Pilot program design
-
-### `/knowledge-review` — Memory health check
-
-Monthly review of ReasoningBank health: pattern count, confidence distribution, staleness, promotion candidates.
-
-**When to use:** Monthly, or when the system feels stale.
+Business decisions are harder to reverse than code decisions. ADRs, challenges, and debriefs are even more valuable in the business domain.
 
 ---
 
 ## 5. How Skills Interact
 
 ```
-                    ┌──────────────┐
-                    │/venture-     │
-                    │  onboard     │── Diagnoses stage and gaps
-                    └──────┬───────┘
-                           │ feeds into
-                           ▼
-                    ┌──────────────┐
-                    │/venture-     │
-                    │  align       │── Creates structure to fill gaps
-                    └──────┬───────┘
-                           │ produces
-                           ▼
-          ┌────────────────────────────────┐
-          │        docs/ structure          │
-          │  decisions, metrics, SOPs,      │
-          │  meetings, experiments, etc.    │
-          └──────┬──────────┬──────────┬───┘
-                 │          │          │
-        ┌────────▼──┐  ┌───▼──────┐  ┌▼──────────┐
-        │/venture-  │  │/growth-  │  │  /sop     │
-        │  phase    │  │  check   │  │           │
-        │           │  │          │  │           │
-        │ Executes  │  │ Monitors │  │ Documents │
-        │milestones │  │ health   │  │ processes │
-        └─────┬─────┘  └────┬─────┘  └─────┬────┘
-              │             │               │
-              │    all read and write docs/ │
-              │             │               │
-              ▼             ▼               ▼
-        ┌─────────────────────────────────────────┐
-        │            ReasoningBank                 │
-        │  (cross-project patterns and learnings)  │
-        │                                          │
-        │  /retrospective  → stores learnings      │
-        │  /debrief        → extracts from session │
-        │  /pattern-recall → retrieves patterns    │
-        │  /cross-pollinate→ pulls from elsewhere  │
-        │  /decide         → records decisions     │
-        │  /challenge      → stress-tests plans    │
-        └─────────────────────────────────────────┘
+                    ┌──────────────────────┐
+                    │  /venture-onboard    │── Diagnoses stage and gaps
+                    └──────────┬───────────┘
+                               │ feeds into
+                               ▼
+                    ┌──────────────────────┐
+                    │  /venture-align      │── Creates structure to fill gaps
+                    └──────────┬───────────┘
+                               │ produces
+                               ▼
+          ┌────────────────────────────────────────┐
+          │            docs/ structure              │
+          │  decisions, metrics, SOPs, meetings,    │
+          │  experiments, financial, pipeline,      │
+          │  content, OKRs                          │
+          └───┬────────┬────────┬────────┬────────┬┘
+              │        │        │        │        │
+     ┌────────▼──┐ ┌───▼────┐ ┌▼─────┐ ┌▼─────┐ ┌▼──────────┐
+     │/venture-  │ │/growth-│ │/sop  │ │/pipe-│ │/experiment│
+     │  phase    │ │  check │ │      │ │ line │ │           │
+     │ Executes  │ │Monitors│ │Docs  │ │Tracks│ │ Tests     │
+     │milestones │ │ health │ │procs │ │sales │ │ growth    │
+     └─────┬─────┘ └───┬────┘ └──┬───┘ └──┬───┘ └─────┬────┘
+           │           │         │        │            │
+           │    ┌──────▼──────────────────▼────────────▼──┐
+           │    │  /morning (daily) ← reads snapshots     │
+           │    │  /weekly-review   ← reads all outputs   │
+           │    │  /monthly-close   ← reads month data    │
+           │    │  /financial-model ← reads actuals       │
+           │    │  /content-plan    ← reads metrics       │
+           │    └─────────────────────────────────────────┘
+           │
+           ▼
+     ┌──────────────────────────────────────────────┐
+     │             ReasoningBank                     │
+     │   (cross-project patterns and learnings)      │
+     │                                               │
+     │   /retrospective  → stores learnings          │
+     │   /debrief        → extracts from session     │
+     │   /pattern-recall → retrieves patterns        │
+     │   /cross-pollinate→ pulls from elsewhere      │
+     │   /decide         → records decisions         │
+     │   /challenge      → stress-tests plans        │
+     └──────────────────────────────────────────────┘
 ```
 
-**The key data flows:**
+**Key data flows:**
 - `/venture-onboard` reads existing docs → produces diagnostic
-- `/venture-align` reads diagnostic → creates docs
-- `/venture-phase` reads docs (decisions, SOPs, metrics, OKRs) → creates new docs → debriefs after each work item
-- `/growth-check` reads metrics → produces health report → stores snapshot for trend tracking
-- `/sop` interviews you → creates SOP → updates index
-- `/decide` interviews you → creates ADR
-- `/debrief` reads session context → classifies learnings → stores in ReasoningBank
-- `/pattern-recall` reads ReasoningBank → surfaces relevant past learnings
+- `/venture-align` reads diagnostic → creates docs structure
+- `/growth-check` reads metrics → stores snapshots → feeds `/morning`, `/weekly-review`, `/monthly-close`
+- `/pipeline` tracks deals → feeds `/growth-check` and `/monthly-close`
+- `/experiment` reads bottleneck from `/growth-check` → stores results → feeds `/weekly-review`
+- `/financial-model` builds projections → `/monthly-close` compares actuals vs plan
+- `/content-plan` reads `/growth-check` acquisition data and `/experiment` results
+- `/morning` aggregates snapshots → daily focus card
+- `/weekly-review` aggregates the week → portfolio + plan
+- `/monthly-close` aggregates the month → financial summary
 
 ---
 
@@ -423,37 +472,32 @@ my-venture/
 ├── docs/
 │   ├── decisions/                     ← /decide creates ADRs here
 │   │   └── ADR-001-*.md              (auto-incrementing)
-│   ├── metrics/                       ← /growth-check writes here
+│   ├── metrics/                       ← /growth-check, /morning, /weekly-review
 │   │   ├── README.md                  (current metrics table)
-│   │   └── health-YYYY-MM-DD.md       (snapshots over time)
+│   │   ├── health-YYYY-MM-DD.md       (growth-check snapshots)
+│   │   └── weekly-YYYY-MM-DD.md       (weekly review reports)
 │   ├── meetings/                      ← /venture-align creates cadence
 │   │   ├── cadence.md                 (meeting schedule)
 │   │   └── YYYY-MM-DD-topic.md        (meeting notes)
-│   ├── experiments/                   ← Track hypotheses
-│   │   └── README.md                  (experiment log)
+│   ├── experiments/                   ← /experiment tracks hypotheses
+│   │   ├── README.md                  (experiment index)
+│   │   └── EXP-NNN-slug.md           (auto-incrementing)
+│   ├── financial/                     ← /financial-model, /monthly-close
+│   │   ├── model-YYYY-MM.md           (revenue projections)
+│   │   └── close-YYYY-MM.md           (monthly close reports)
+│   ├── pipeline/                      ← /pipeline tracks deals
+│   │   └── README.md                  (current pipeline state)
+│   ├── content/                       ← /content-plan tracks marketing
+│   │   └── plan-YYYY-QN.md           (quarterly content plans)
 │   ├── sops/                          ← /sop creates SOPs here
 │   │   ├── README.md                  (index of all SOPs)
-│   │   ├── SOP-001-*.md
-│   │   ├── SOP-002-*.md
-│   │   └── SOP-NNN-*.md              (auto-incrementing)
+│   │   └── SOP-NNN-slug.md           (auto-incrementing)
 │   ├── okrs/                          ← Growth stage+
-│   │   └── Q1-2026.md                (quarterly OKRs)
+│   │   └── QN-YYYY.md                (quarterly OKRs)
 │   ├── customer-hypothesis.md         ← Validation stage+
-│   ├── mvp-definition.md              ← Validation stage+
-│   ├── planning/                      ← Strategy and planning docs
-│   ├── strategy/                      ← Go-to-market, customer journey
-│   └── operations/                    ← Safety protocols, ops docs
+│   └── mvp-definition.md              ← Validation stage+
 └── csv/                               ← Reference data (optional)
 ```
-
-**What goes where:**
-- Permanent decisions → `docs/decisions/` (ADR format)
-- Repeatable processes → `docs/sops/` (SOP format)
-- Numbers and health → `docs/metrics/` (tables + snapshots)
-- Meeting structure → `docs/meetings/` (cadence + notes)
-- Experiments → `docs/experiments/` (hypothesis → result)
-- Goals → `docs/okrs/` (quarterly objectives)
-- Everything else → organize by topic (`planning/`, `strategy/`, `operations/`)
 
 ---
 
@@ -475,77 +519,233 @@ DISCOVERY ──────→ VALIDATION ──────→ GROWTH ──�
 
 | | Discovery | Validation | Growth | Scale |
 |--|-----------|------------|--------|-------|
-| **Framework** | Lean Startup / Customer Dev | Lean + light OKRs | EOS or Scaling Up + OKRs | EOS + cascading OKRs |
-| **Metrics** | Interview count, hypothesis validation | MRR, retention, burn, runway | CAC, LTV, LTV:CAC, churn, margin | Rule of 40, NRR, burn multiple |
-| **Meetings** | Weekly founder sync | Weekly team + monthly metrics | Daily + weekly L10 + monthly + quarterly | Full cadence stack |
-| **SOPs** | None — too early | Only if process repeats 3x | All core processes | Everything + automation |
-| **OKRs** | No | Light (1-2 objectives max) | Full quarterly (per team) | Cascading (company → department) |
-| **Org design** | Flat, founder decides all | Functional leads emerge | Departments, RACI/RAPID | Divisions, two-pizza teams |
+| **Framework** | Lean Startup | Lean + light OKRs | EOS/Scaling Up + OKRs | EOS + cascading OKRs |
+| **Metrics** | Qualitative | MRR, retention, burn | CAC, LTV, LTV:CAC, churn | Rule of 40, NRR, burn multiple |
+| **Meetings** | Weekly sync | Weekly + monthly | Daily + weekly + monthly + quarterly | Full cadence stack |
+| **SOPs** | None | Only if 3x repeated | All core processes | Everything + automation |
+| **OKRs** | No | Light (1-2 max) | Full quarterly | Cascading |
+| **Pipeline** | Contact list | Basic funnel | Full CRM | Multi-segment |
+| **Financial** | Burn tracking | Basic P&L | Full model + unit economics | Departmental P&L |
+| **Content** | Founder's voice | Newsletter + social | Multi-channel | Full content org |
 
 ### Stage transition signals
 
-| From → To | Signals | What to do |
-|-----------|---------|------------|
-| Discovery → Validation | First paying customers, repeatable interest | Run `/venture-onboard`, upgrade `/venture-align` |
-| Validation → Growth | Repeatable revenue, product-market fit, $1M+ ARR | Run `/venture-onboard`, `/venture-align` for Growth structure, start formal OKRs |
-| Growth → Scale | $10M+ ARR, 50+ people, multiple product lines | Run `/venture-onboard`, `/venture-align` for Scale structure |
+| From → To | Signals |
+|-----------|---------|
+| Discovery → Validation | First paying customers, repeatable interest |
+| Validation → Growth | Repeatable revenue, product-market fit, $1M+ ARR |
+| Growth → Scale | $10M+ ARR, 50+ people, multiple product lines |
 
-**Key principle:** Don't adopt frameworks above your stage. EOS for a pre-PMF startup is harmful overengineering. Lean Startup for a scaling company is insufficient underengineering.
+**Key principle:** Don't adopt frameworks above your stage.
 
 ---
 
-## 8. Session Workflows
+## 8. Daily / Weekly / Monthly Cadences
 
-### Starting a session
+### The Daily Rhythm
 
 ```
-1. Open session in your venture project directory
-   (system auto-recalls relevant patterns via session-start hook)
+1. Open session → /morning
+   ← Focus card: 3 priorities, top blocker, key metric
 
-2. What are you doing today?
+2. Work on priorities
+   ← Use /pipeline for sales, /experiment for testing,
+     /decide for decisions, /retrospective for learnings
 
-   Executing a milestone ──────→ /venture-phase [type]
-   Documenting a process ──────→ /sop [name]
-   Making a decision ──────────→ /decide [title]
-   Checking business health ───→ /growth-check
-   Reviewing a plan ───────────→ /challenge
-   Looking for past learnings ─→ /pattern-recall
-   Working on general tasks ───→ just work, use /decide and
-                                  /retrospective as they come up
-
-3. Work...
-
-4. End of session
-   └── /debrief (extracts learnings, stores in memory)
+3. End of session → /debrief
+   ← Extracts learnings, stores in memory
 ```
 
-### Monthly cadence
+The `/morning` skill adapts to stage:
+- **Discovery:** Light — priorities + interview count. No standup to yourself.
+- **Validation:** Metrics snapshot + priorities + experiment status.
+- **Growth/Scale:** Full dashboard with team items and calendar.
+
+### The Weekly Rhythm
+
+```
+Every [Friday/Monday]:
+
+/weekly-review
+├── Portfolio: green/yellow/red for each venture
+├── Zombie check: anything untouched 2+ weeks?
+├── Metrics delta: this week vs last
+├── Ship log: what got done
+├── Plan: 3-5 Now items for next week
+└── Store: trends saved for future recall
+```
+
+This is the non-negotiable meta-practice. 30 minutes. Even a bad weekly review beats no weekly review.
+
+### The Monthly Rhythm
 
 ```
 Week 1:  /growth-check — health dashboard, identify bottleneck
-Week 2:  Work on bottleneck — use /venture-phase if it's a milestone
+Week 2:  Work on bottleneck — /experiment if testing, /venture-phase if milestone
 Week 3:  Continue execution, /sop for any new repeatable process
-Week 4:  /debrief the month, /knowledge-review for memory health
+Week 4:  /monthly-close → /debrief the month → /knowledge-review
+
+Monthly touchpoints:
+├── /growth-check (health baseline)
+├── /monthly-close (financial summary)
+├── /financial-model update (if projections changed)
+└── /content-plan review (is content on track?)
 ```
 
-### Quarterly cadence
+### The Quarterly Rhythm
 
 ```
-Start:   /venture-onboard — reassess stage (has it changed?)
-         Update OKRs in docs/okrs/
-         /venture-phase to plan the quarter's milestone
+Start of quarter:
+├── /venture-onboard — reassess stage (has it changed?)
+├── Update OKRs in docs/okrs/
+├── /venture-phase to plan the quarter's milestone
+├── /financial-model for the quarter's projections
+└── /content-plan for the quarter's content strategy
 
-During:  Monthly growth-checks
-         SOPs as processes stabilize
-         /decide for any major decision
+During quarter:
+├── Monthly growth-checks + monthly-closes
+├── Weekly reviews (non-negotiable)
+├── /sop as processes stabilize
+├── /experiment for growth testing
+└── /decide for major decisions
 
-End:     /debrief the quarter
-         /venture-onboard to measure progress
+End of quarter:
+├── /debrief the quarter
+├── /venture-onboard to measure progress
+└── /growth-check → compare to quarter start
 ```
 
 ---
 
-## 9. The Learning System
+## 9. Growth and Experiments
+
+### The Growth Experiment Loop
+
+Every growth initiative should follow the experiment loop:
+
+```
+Identify bottleneck (/growth-check)
+    ↓
+Form hypothesis
+    ↓
+Design test (/experiment)
+    ↓
+Set success criteria (BEFORE running)
+    ↓
+Run test → track results
+    ↓
+Measure → compare to criteria
+    ↓
+Decide: Scale / Kill / Iterate
+    ↓
+Record learning (ReasoningBank)
+```
+
+### ICE Scoring
+
+Prioritize experiments with ICE scores:
+
+| Factor | 1 (Low) | 5 (Medium) | 10 (High) |
+|--------|---------|-----------|-----------|
+| **Impact** | Marginal improvement | Noticeable improvement | Game-changing |
+| **Confidence** | Pure speculation | Some evidence | Strong evidence |
+| **Ease** | Months of work | Weeks | Days or hours |
+
+Score = (Impact + Confidence + Ease) / 3. Run experiments with highest ICE scores first.
+
+### Experiment Discipline
+
+- **One variable at a time.** Testing price AND channel simultaneously means you can't attribute results.
+- **Time-bound.** Every experiment has a deadline. No indefinite "let's see what happens."
+- **Kill quickly.** If results are clearly negative at 50% of the timeline, kill it.
+- **Document everything.** Future-you (or your team) will ask "did we try X?" The experiment log answers it.
+
+---
+
+## 10. Financial Management
+
+### The Financial Skill Stack
+
+```
+/financial-model   — Build projections (forward-looking)
+/monthly-close     — Summarize actuals (backward-looking)
+/growth-check      — Track key metrics (ongoing)
+/pipeline          — Track revenue attribution (deals → revenue)
+```
+
+### Financial Model Types
+
+| Business Model | Key Revenue Drivers | Key Metrics |
+|----------------|-------------------|-------------|
+| SaaS | MRR × customer count | MRR, ARR, churn, LTV:CAC |
+| Marketplace | GMV × take rate | GMV, take rate, liquidity |
+| Service/Consulting | Rate × hours/projects | Utilization, project margin |
+| E-commerce | Orders × AOV | AOV, repeat rate, COGS |
+
+### The Monthly Close Habit
+
+Even pre-revenue companies benefit from a monthly close:
+- **Discovery:** Track burn rate and runway. That's it.
+- **Validation:** Add MRR, basic P&L.
+- **Growth:** Full P&L, unit economics, variance analysis.
+- **Scale:** Departmental P&L, cash flow forecasting, board-ready metrics.
+
+The `/monthly-close` skill adapts the template to your stage.
+
+### Unit Economics
+
+```
+CAC = Total acquisition spend / New customers acquired
+LTV = Average revenue per customer × Average customer lifetime
+LTV:CAC = Should be ≥ 3:1 for healthy business
+Payback = CAC / Monthly revenue per customer (in months)
+Gross Margin = (Revenue - COGS) / Revenue
+```
+
+Track these monthly. The trend matters more than any single number.
+
+---
+
+## 11. Sales Pipeline
+
+### Pipeline Stages
+
+The `/pipeline` skill uses stage-appropriate pipeline complexity:
+
+**Discovery:**
+```
+Contact List: Name | Company | Notes | Status (interested/not interested)
+```
+
+**Validation:**
+```
+Lead → Trial → Paid
+```
+
+**Growth+:**
+```
+Lead → Qualified → Demo → Proposal → Negotiation → Closed Won / Closed Lost
+```
+
+### Pipeline Metrics
+
+| Metric | What | Why It Matters |
+|--------|------|---------------|
+| Conversion rate per stage | % that advance to next stage | Identifies where deals stall |
+| Average deal size | Revenue per closed deal | Revenue forecasting |
+| Sales cycle length | Days from lead to close | Forecasting + resource planning |
+| Pipeline value | Sum of all active deals × probability | Revenue forecast |
+| Follow-ups due | Deals requiring action | Prevents leads going cold |
+
+### CRM Integration
+
+The `/pipeline` skill works in two modes:
+1. **Markdown mode** (default) — all data in `docs/pipeline/`. Simple, version-controlled, no external dependencies.
+2. **MCP mode** (optional) — syncs with Airtable or HubSpot via MCP servers. External CRM is the source of truth, `/pipeline` reads and writes through MCP tools.
+
+---
+
+## 12. The Learning System
 
 Every venture skill feeds a persistent learning system. This is what makes brana more than a template generator — it accumulates knowledge that gets smarter over time.
 
@@ -554,11 +754,13 @@ Every venture skill feeds a persistent learning system. This is what makes brana
 ```
 SESSION ACTIVITY
      │
-     ├── /retrospective ──→ stores individual learnings
-     ├── /debrief ─────────→ extracts session-wide findings
-     ├── /venture-phase ───→ mini-debriefs after each work item
-     ├── /growth-check ────→ stores health snapshots
-     ├── /sop ─────────────→ stores process patterns
+     ├── /retrospective  → stores individual learnings
+     ├── /debrief        → extracts session-wide findings
+     ├── /venture-phase   → mini-debriefs after each work item
+     ├── /growth-check    → stores health snapshots
+     ├── /experiment      → stores experiment results + learnings
+     ├── /monthly-close   → stores financial snapshots
+     ├── /sop            → stores process patterns
      │
      ▼
 REASONINGBANK (cross-project memory)
@@ -571,8 +773,9 @@ REASONINGBANK (cross-project memory)
      ▼
 FUTURE SESSIONS
      │
-     ├── /pattern-recall ──→ surfaces relevant patterns
-     ├── /cross-pollinate ─→ pulls from other projects
+     ├── /pattern-recall  → surfaces relevant patterns
+     ├── /cross-pollinate → pulls from other projects
+     ├── /morning         → auto-recalls context
      └── session-start hook → auto-recalls context
 ```
 
@@ -590,61 +793,55 @@ metric:     mrr, cac, ltv, churn, arr, nrr
 
 ### Cross-project learning
 
-Patterns from code projects can inform business projects and vice versa:
+Patterns from code projects inform business projects and vice versa:
 
 | Code Pattern | Business Application |
 |-------------|---------------------|
-| CI/CD pipeline design | Operational workflow — automated gates with rollback |
-| Spec-driven development | Decision-before-action — write ADR before executing |
+| CI/CD pipeline design | Operational workflow with automated gates |
+| Spec-driven development | Decision-before-action discipline |
 | Technical debt tracking | Process debt — same compounding dynamics |
-| Feature flags / gradual rollout | Pilot programs — test in one market before expanding |
-| Code review culture | Decision review — no major decision without ADR |
-| Test coverage | Metric coverage — what % of AARRR stages are measured? |
+| Feature flags / gradual rollout | Pilot programs — test one market first |
+| Code review culture | Decision review — ADR before executing |
+| Test coverage | Metric coverage — what % of AARRR is measured? |
 
 ---
 
-## 10. Good Practices
+## 13. Good Practices
 
 ### Do
 
-- **Record every sale from day one.** Financial data is the foundation of every metric. Without it, `/growth-check` is blind.
+- **Record every sale from day one.** Financial data is the foundation. Without it, everything is blind.
 - **Run `/growth-check` consistently.** Monthly minimum. The trend matters more than any single number.
-- **End sessions with `/debrief`.** Learnings evaporate if not captured. Even a 2-minute debrief is worth it.
-- **Use `/decide` for any hard-to-reverse decision.** "Why did we choose this?" is a question future-you will ask.
-- **Let the stage drive the framework.** Don't adopt heavy processes before you need them. Don't stay informal when things are breaking.
-- **Fill the data gaps before adding new structure.** A metrics template with "No data" in every cell is theater. Fill the cells first.
-- **Use `/challenge` before committing.** Stress-test plans when you can still change them, not after.
-- **Keep SOPs current.** A stale SOP is worse than no SOP — it gives false confidence. Review every 6 months.
+- **End sessions with `/debrief`.** Even a 2-minute debrief is worth it.
+- **Use `/morning` to start sessions.** 5 minutes of orientation prevents hours of wandering.
+- **Run `/weekly-review` non-negotiably.** This is the single highest-leverage practice.
+- **Use `/decide` for hard-to-reverse decisions.** Future-you will ask "why?"
+- **Let the stage drive the framework.** Don't over-engineer. Don't under-engineer.
+- **Fill data gaps before adding structure.** Templates with "No data" in every cell is theater.
+- **Use `/challenge` before committing.** Stress-test when you can still change.
+- **Keep SOPs current.** Review every 6 months. Stale SOPs give false confidence.
 
 ### Don't
 
-- **Don't systematize too early.** Wait until a process repeats 3+ times before writing an SOP. Premature systematization creates bureaucracy, not efficiency.
-- **Don't skip the diagnostic.** `/venture-onboard` before `/venture-align`. Diagnosis before treatment. Always.
-- **Don't run multiple milestones at once.** One `/venture-phase` at a time. Finish it, debrief it, then start the next one.
-- **Don't fake metrics.** If you don't have the data, say "Not tracked." Estimates create false confidence.
-- **Don't adopt frameworks above your stage.** EOS for a 2-person startup is cosplay. Lean Startup for a 50-person company is negligence.
-- **Don't skip mini-debriefs.** Each work item in `/venture-phase` gets a mini-debrief. It takes 30 seconds and prevents losing learnings.
-- **Don't overwrite existing docs.** All skills read first, then merge. If there's a conflict, they ask you.
-
-### Tips
-
-- **The bottleneck is the highest-leverage output of `/growth-check`.** You can read a dashboard. What you need is "here's where your effort should go and why."
-- **ADRs work better for business decisions than code decisions** because business decisions are harder to reverse. "We hired a COO" can't be `git revert`ed.
-- **SOPs should include decision points.** "If the customer says X, do A. If they say Y, do B." A linear SOP only covers the happy path.
-- **Review meeting cadence every quarter.** Too many meetings kills deep work. Too few creates misalignment. Adjust based on pain, not theory.
-- **Your KNOWLEDGE_EXTRACTION.md (or equivalent) is the founder brain dump.** Do it once, do it thoroughly. Every skill reads it for context.
-- **The venture-scanner agent fires automatically** during `/venture-align`. You don't need to invoke it manually — it runs as part of the assessment phase.
+- **Don't systematize too early.** Wait for 3+ repetitions before writing an SOP.
+- **Don't skip the diagnostic.** `/venture-onboard` before `/venture-align`. Always.
+- **Don't run multiple milestones at once.** One `/venture-phase` at a time.
+- **Don't fake metrics.** "Not tracked" is better than an estimate.
+- **Don't adopt frameworks above your stage.** EOS for 2 people is cosplay.
+- **Don't skip mini-debriefs.** 30 seconds per work item prevents losing learnings.
+- **Don't overwrite existing docs.** All skills read first, then merge.
+- **Don't define success criteria after the experiment.** That's confirmation bias.
 
 ---
 
-## 11. Common Scenarios
+## 14. Common Scenarios
 
 ### "I have a new business idea"
 
 ```
-1. Create a project directory
+1. mkdir ~/projects/my-idea && cd ~/projects/my-idea
 2. /venture-onboard → probably Discovery stage
-3. /venture-align   → creates lightweight Foundation structure
+3. /venture-align   → creates lightweight structure
 4. Don't write SOPs. Don't set OKRs. Focus on customer interviews.
 5. /decide for the 2-3 big bets (market, channel, pricing)
 6. /growth-check when you have first customers
@@ -654,11 +851,11 @@ Patterns from code projects can inform business projects and vice versa:
 
 ```
 1. /venture-onboard → probably Validation stage
-2. /venture-align   → creates Validation structure (hypothesis, MVP, experiments)
-3. Start recording every sale (SOP-003 pattern)
+2. /venture-align   → creates Validation structure
+3. /pipeline to start tracking every sale
 4. Contact ex-customers to understand retention
 5. /growth-check after 30 days of data
-6. /venture-phase custom → plan the operational sprint
+6. /experiment for your first growth test
 ```
 
 ### "We're growing but things are breaking"
@@ -667,105 +864,87 @@ Patterns from code projects can inform business projects and vice versa:
 1. /venture-onboard → probably Growth stage
 2. /venture-align   → creates Growth structure (OKRs, SOPs, hiring plan)
 3. /venture-phase process → process overhaul milestone
-4. /sop for every core process (production, onboarding, sales, support)
-5. /growth-check quarterly
-6. /decide for org structure, framework selection, hiring priorities
+4. /sop for every core process
+5. /financial-model for projections
+6. /growth-check quarterly, /monthly-close monthly
 ```
 
-### "I need to execute a specific milestone"
+### "I need to raise money"
 
 ```
-1. /venture-phase [type]
-2. Review the generated work items
-3. Approve or modify the plan
-4. Execute work items one by one (each gets a mini-debrief)
-5. Validate exit criteria
-6. Full debrief → learnings stored
+1. /growth-check → baseline metrics
+2. /financial-model → 3-scenario projections
+3. /venture-phase fundraise → pitch prep milestone
+4. /monthly-close → clean financials
+5. /challenge → stress-test the pitch
 ```
 
-### "We're switching stages"
+### "I want to grow faster"
 
 ```
-1. /venture-onboard → confirms new stage
-2. /venture-align   → upgrades structure for new stage
-3. /decide for framework transition (e.g., "Adopt EOS")
-4. Review all existing SOPs — do they still apply?
-5. Update meeting cadence — growth stage needs more structure
+1. /growth-check → identify the AARRR bottleneck
+2. /experiment → design a test for the bottleneck
+3. /content-plan → if acquisition is the bottleneck
+4. /pipeline → if conversion is the bottleneck
+5. /weekly-review → track experiment progress
 ```
 
-### "I want to check if the business is healthy"
+### "End of month"
 
 ```
-1. /growth-check
-2. Review the dashboard (GREEN/YELLOW/RED)
-3. Look at the AARRR funnel — where's the bottleneck?
-4. Compare against the previous check — what's trending?
+1. /monthly-close → financial summary
+2. /growth-check → health dashboard
+3. Review: actuals vs projections → adjust /financial-model if needed
+4. /debrief → extract month's learnings
+```
+
+### "End of quarter"
+
+```
+1. /venture-onboard → has the stage changed?
+2. /monthly-close for Q's last month
+3. Compare Q's OKRs to actuals
+4. /venture-phase to plan next quarter
+5. Update /financial-model for next quarter
+6. /content-plan for next quarter
+```
+
+### "I want to check business health"
+
+```
+1. /growth-check → GREEN/YELLOW/RED dashboard
+2. Look at AARRR funnel → where's the bottleneck?
+3. Compare to previous check → what's trending?
+4. /challenge if something looks concerning
 5. Act on the top recommendation
-```
-
-### "End of a work session"
-
-```
-1. /debrief → extracts errata, learnings, issues
-2. Review what was classified
-3. Approve storage to ReasoningBank
-4. Check if any findings warrant an ADR or SOP update
 ```
 
 ---
 
-## 12. Quick Reference
+## 15. Quick Reference
 
-### Skill invocations
+See `quick-reference.md` for the condensed one-page version.
 
-| Skill | Invocation | Creates files? |
+### All skill invocations
+
+| Skill | Invocation | Creates Files? |
 |-------|-----------|---------------|
-| `/venture-onboard` | `/venture-onboard` | No (diagnostic only) |
-| `/venture-align` | `/venture-align` | Yes (structure + templates) |
-| `/venture-phase` | `/venture-phase [type]` | Yes (milestone docs) |
-| `/sop` | `/sop [process name]` | Yes (SOP + index update) |
-| `/growth-check` | `/growth-check` | Yes (health snapshot) |
-| `/decide` | `/decide [title]` | Yes (ADR) |
-| `/retrospective` | `/retrospective` | No (stores in memory) |
-| `/debrief` | `/debrief` | No (stores in memory) |
-| `/challenge` | `/challenge` | No (analysis only) |
-| `/pattern-recall` | `/pattern-recall` | No (retrieves from memory) |
-| `/cross-pollinate` | `/cross-pollinate` | No (retrieves from memory) |
-
-### When to use what
-
-| Situation | Skill |
-|-----------|-------|
-| First time on a project | `/venture-onboard` → `/venture-align` |
-| Executing a business milestone | `/venture-phase [type]` |
-| Process repeated 3+ times | `/sop [name]` |
-| Monthly/quarterly health check | `/growth-check` |
-| Important business decision | `/decide [title]` |
-| Something surprising happened | `/retrospective` |
-| End of work session | `/debrief` |
-| About to commit to a big plan | `/challenge` |
-| Starting work on any topic | `/pattern-recall` |
-| Stuck or looking for prior art | `/cross-pollinate` |
-| Memory feels stale | `/knowledge-review` |
-| Stage may have changed | `/venture-onboard` (reassess) |
-
-### Stage-appropriate frameworks
-
-| Stage | Framework | Metrics Focus | Meeting Cadence |
-|-------|-----------|---------------|-----------------|
-| Discovery | Lean Startup | Qualitative (interviews, hypotheses) | Weekly sync (informal) |
-| Validation | Lean + light OKRs | MRR, retention, burn, runway | Weekly + monthly |
-| Growth | EOS/Scaling Up + OKRs | CAC, LTV, LTV:CAC, churn, margin | Daily + weekly + monthly + quarterly |
-| Scale | EOS + cascading OKRs | Rule of 40, NRR, burn multiple | Full cadence stack |
-
-### File locations
-
-| What | Where |
-|------|-------|
-| Business decisions | `docs/decisions/ADR-NNN-*.md` |
-| Standard operating procedures | `docs/sops/SOP-NNN-*.md` |
-| Metrics + health snapshots | `docs/metrics/` |
-| Meeting cadence + notes | `docs/meetings/` |
-| Experiments | `docs/experiments/` |
-| OKRs (Growth+) | `docs/okrs/` |
-| Project identity | `CLAUDE.md` |
+| `/venture-onboard` | `/venture-onboard` | No |
+| `/venture-align` | `/venture-align` | Yes |
+| `/venture-phase` | `/venture-phase [type]` | Yes |
+| `/sop` | `/sop [process name]` | Yes |
+| `/growth-check` | `/growth-check` | Yes |
+| `/morning` | `/morning` | No |
+| `/weekly-review` | `/weekly-review` | Yes |
+| `/pipeline` | `/pipeline` | Yes |
+| `/experiment` | `/experiment` | Yes |
+| `/financial-model` | `/financial-model` | Yes |
+| `/content-plan` | `/content-plan` | Yes |
+| `/monthly-close` | `/monthly-close` | Yes |
+| `/decide` | `/decide [title]` | Yes |
+| `/retrospective` | `/retrospective` | No |
+| `/debrief` | `/debrief` | No |
+| `/challenge` | `/challenge` | No |
+| `/pattern-recall` | `/pattern-recall` | No |
+| `/cross-pollinate` | `/cross-pollinate` | No |
+| `/knowledge-review` | `/knowledge-review` | No |
