@@ -1,6 +1,6 @@
 ---
 name: refresh-knowledge
-description: Refresh external research for dimension docs — web-search for updates to spec topics. Use when dimension docs may be stale or before major phase planning.
+description: Refresh external research for spec docs — web-search for updates to dimension, venture/PM, and cross-cutting topics. Use when docs may be stale or before major phase planning.
 allowed-tools:
   - Read
   - Glob
@@ -12,17 +12,18 @@ allowed-tools:
 
 # Refresh Knowledge
 
-Systematically research updates for dimension docs in the enter specs repo. Launches **background** scout agents grouped by topic to avoid context explosion, compiles findings from temp files, then cleans up. Reports only — does not modify docs.
+Systematically research updates for spec docs in the enter specs repo. Launches **background** scout agents grouped by topic to avoid context explosion, compiles findings from temp files, then cleans up. Reports only — does not modify docs.
 
 ## Usage
 
 `/refresh-knowledge [scope]`
 
 Scope options:
-- `all` (default) — research all researchable dimension docs
+- `all` (default) — research all researchable docs
 - `high` — high-priority docs only (04, 05, 09, 11, 20, 21)
 - `medium` — medium-priority docs only (06, 13, 22, 23, 25)
 - `low` — low-priority docs only (07, 10, 12, 15, 16)
+- `venture` — venture/PM docs only (19, 28, 29, 34)
 - A specific doc number (e.g., `11`) — research only that doc
 
 ## Procedure
@@ -39,6 +40,7 @@ Scope options:
    - High: 04, 05, 09, 11, 20, 21
    - Medium: 06, 13, 22, 23, 25
    - Low: 07, 10, 12, 15, 16
+   - Venture: 19, 28, 29, 34
 
    **Groups (topic clusters):**
 
@@ -53,6 +55,7 @@ Scope options:
    | G: Anthropic blog | 20, 21 | `/tmp/refresh-results/group-g-anthropic-blog.md` |
    | H: Testing + eval | 22, 23 | `/tmp/refresh-results/group-h-testing-eval.md` |
    | I: Self-documentation | 25 | `/tmp/refresh-results/group-i-self-doc.md` |
+   | J: Venture/PM | 19, 28, 29, 34 | `/tmp/refresh-results/group-j-venture-pm.md` |
 
    When scope is a single doc, just launch one agent. When scope is a priority tier, only launch the groups that contain docs in that tier.
 
@@ -61,11 +64,11 @@ Scope options:
    - `model: "haiku"` (cost-efficient for web search tasks)
    - `run_in_background: true` (critical — keeps main context clean)
 
-   **CRITICAL — agents read their own docs.** Do NOT read dimension docs or the source registry in the main context. Each agent reads its own docs within its own context window. The main context only provides file paths.
+   **CRITICAL — agents read their own docs.** Do NOT read spec docs or the source registry in the main context. Each agent reads its own docs within its own context window. The main context only provides file paths.
 
    **Agent prompt template:**
    ```
-   Research updates for brana dimension documents [NUMBERS] — [TITLES].
+   Research updates for brana spec documents [NUMBERS] — [TITLES].
 
    ## Step 1: Read your docs
 
@@ -165,13 +168,13 @@ Scope options:
 
 ## Design Rationale
 
-- **Agents read their own docs** — the main context never loads dimension docs or the registry. This prevents the context explosion that occurs when 16 docs (~100K+ tokens) are loaded before agent dispatch.
+- **Agents read their own docs** — the main context never loads spec docs or the registry. This prevents the context explosion that occurs when 20 docs (~120K+ tokens) are loaded before agent dispatch.
 - **Background agents** keep research results out of main context. Each agent's full web results (~3-5K tokens) stay in its own context. Only the compiled summary enters the main conversation.
-- **Topic grouping** (9 groups vs 16 individual agents) shares context between related docs and reduces overhead while keeping agents focused.
+- **Topic grouping** (10 groups vs 20 individual agents) shares context between related docs and reduces overhead while keeping agents focused.
 - **Temp file pattern** (`/tmp/refresh-results/`) provides a clean handoff between agents and the compiler step without polluting the workspace.
 - **Haiku model** for scouts because these are web-search-and-summarize tasks — Haiku is sufficient and much cheaper.
 
 ## Rules
 
-- **NEVER read dimension docs or the source registry in the main context.** This is the #1 rule. Agents read their own material.
+- **NEVER read spec docs or the source registry in the main context.** This is the #1 rule. Agents read their own material.
 - **Ask for clarification whenever you need it.** If the scope is ambiguous, findings contradict each other, or you need the user to prioritize which docs to update — ask. Don't guess.
