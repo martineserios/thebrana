@@ -12,7 +12,7 @@ allowed-tools:
 
 # Refresh Knowledge
 
-Systematically research updates for dimension docs in the brana-v2-specs repo. Launches **background** scout agents grouped by topic to avoid context explosion, compiles findings from temp files, then cleans up. Reports only — does not modify docs.
+Systematically research updates for dimension docs in the enter specs repo. Launches **background** scout agents grouped by topic to avoid context explosion, compiles findings from temp files, then cleans up. Reports only — does not modify docs.
 
 ## Usage
 
@@ -27,56 +27,20 @@ Scope options:
 
 ## Procedure
 
-1. **Locate the spec repo.** Default: `~/brana-v2-specs`. If `$ARGUMENTS` contains a path, use that instead.
+1. **Determine scope.** Parse `$ARGUMENTS` for scope keyword or doc number. Default to `all`.
 
-2. **Determine scope.** Parse `$ARGUMENTS` for scope keyword or doc number. Default to `all`.
+2. **Prepare temp directory.** Run `mkdir -p /tmp/refresh-results`. All agent output goes here — never into main context.
 
-3. **Prepare temp directory.** Run `mkdir -p /tmp/refresh-results`. All agent output goes here — never into main context.
+3. **Resolve doc file paths.** Use `Glob` with pattern `??-*.md` in `~/enter_thebrana/enter/` to find all dimension doc filenames. Map doc numbers to actual file paths. Do NOT read the doc contents — only collect the paths.
 
-4. **Build the doc list.** Based on scope, select docs to research:
+4. **Build the doc list and groups.** Based on scope, select which groups to launch:
 
-   **High priority (external tools change fast):**
-   - 04: Claude 4.6 capabilities
-   - 05: claude-flow v3
-   - 09: Claude Code native features
-   - 11: Ecosystem (skills, plugins, community)
-   - 20: Anthropic blog findings
-   - 21: Anthropic engineering deep dive
+   **Priority tiers:**
+   - High: 04, 05, 09, 11, 20, 21
+   - Medium: 06, 13, 22, 23, 25
+   - Low: 07, 10, 12, 15, 16
 
-   **Medium priority (research evolves slower):**
-   - 06: claude-flow internals (RuVector, AgentDB, SONA)
-   - 13: Challenger agent
-   - 22: Testing
-   - 23: Evaluation
-   - 25: Self-documentation tooling
-
-   **Low priority (mostly stable):**
-   - 07: claude-flow + Claude 4.6 integration
-   - 10: Statusline research
-   - 12: Skill selector
-   - 15: Self-development workflow
-   - 16: Knowledge health
-
-5. **Extract search material from each doc.** For each doc in scope:
-
-   a. **Read the FULL doc** (not just Refresh Targets). Scan the entire body for:
-      - Tool names and version numbers mentioned anywhere
-      - Proper nouns (people, organizations, projects, frameworks)
-      - Key claims with specific numbers (percentages, benchmarks, counts)
-      - URLs embedded in prose or reference sections
-      - Concepts and techniques that have searchable names
-
-   b. **Read the `## Refresh Targets` section** and extract:
-      - **Tools** to monitor (name + what to check)
-      - **Creators** to follow (person/org + what to look for)
-      - **Searches** to run (specific web search queries)
-      - **URLs** to check (changelogs, release pages, blog indexes)
-
-   c. **Combine both** into the agent prompt. The Refresh Targets are the minimum — doc-body keywords are additional search vectors that catch things the targets missed.
-
-   d. **Read the source registry.** Load `~/enter_thebrana/enter/research-sources.yaml` and filter sources where `relevance` includes any doc number in this group. Include their URLs, cadence, and trust tier in the agent prompt.
-
-6. **Group docs by topic** to reduce agent count and share context between related docs. Use these groupings (adjust if scope is narrower):
+   **Groups (topic clusters):**
 
    | Group | Docs | Output File |
    |-------|------|-------------|
@@ -92,69 +56,66 @@ Scope options:
 
    When scope is a single doc, just launch one agent. When scope is a priority tier, only launch the groups that contain docs in that tier.
 
-7. **Launch ALL group agents in background.** For each group, launch a Task agent with:
+5. **Launch ALL group agents in background.** For each group, launch a Task agent with:
    - `subagent_type: "scout"` (has Read, Glob, Grep, WebSearch, WebFetch)
    - `model: "haiku"` (cost-efficient for web search tasks)
    - `run_in_background: true` (critical — keeps main context clean)
 
-   Each agent prompt must include:
-   - One-paragraph summary of what each doc in the group covers
-   - Key claims and numbers from the doc body (extracted in step 5a)
-   - The explicit Refresh Targets searches and URLs (from step 5b)
-   - Additional keyword searches derived from doc body analysis (from step 5c)
-   - Instruction to **write findings to the group's output file** (e.g., `/tmp/refresh-results/group-a-claude-code.md`)
-   - The structured report format (see step 9)
+   **CRITICAL — agents read their own docs.** Do NOT read dimension docs or the source registry in the main context. Each agent reads its own docs within its own context window. The main context only provides file paths.
 
    **Agent prompt template:**
    ```
-   Research updates for brana-v2-specs documents [NUMBERS] — [TITLES].
+   Research updates for brana dimension documents [NUMBERS] — [TITLES].
 
-   ## What these docs cover
-   [1-2 sentences per doc summarizing content and key claims]
+   ## Step 1: Read your docs
 
-   ## Key claims to verify (from doc body)
-   - [Specific numbers, versions, counts, benchmarks from the doc prose]
-   - [Tool versions mentioned: "X v1.2.3"]
-   - [People/orgs cited and their contributions]
+   Read these files in full:
+   - [FULL PATH TO DOC 1]
+   - [FULL PATH TO DOC 2]
+   - ...
 
-   ## Refresh Targets searches
-   [Paste the Searches list from each doc's Refresh Targets]
+   For each doc, extract:
+   - Tool names and version numbers mentioned anywhere
+   - Proper nouns (people, organizations, projects, frameworks)
+   - Key claims with specific numbers (percentages, benchmarks, counts)
+   - URLs embedded in prose or reference sections
+   - The `## Refresh Targets` section (Tools, Creators, Searches, URLs)
 
-   ## URLs to check
-   [Paste the URLs list from each doc's Refresh Targets]
+   ## Step 2: Read the source registry
 
-   ## Registry sources (from research-sources.yaml)
-   [For each source where relevance includes docs in this group:]
-   - [source name] ([trust_tier]): [url] — last checked: [date], cadence: [cadence]
-   - Check for: new posts since last_checked, version changes, new references
+   Read `~/enter_thebrana/enter/research-sources.yaml` and filter for sources where `relevance` includes any of docs [NUMBERS]. Note their URLs, cadence, trust tier, and last_checked date.
 
-   ## Additional keyword searches (from doc body analysis)
-   - "[keyword from doc body] updates 2026"
-   - "[tool mentioned in prose] new version"
-   - "[person cited] new blog posts"
+   ## Step 3: Web research
 
-   ## Instructions
+   Using the extracted search material, run web searches for:
+   - Each query listed in the Refresh Targets `Searches` subsection
+   - Each URL listed in the Refresh Targets `URLs` subsection (via WebFetch)
+   - Additional keyword searches: "[tool from doc] new version 2026", "[person cited] new blog posts 2026"
+   - Registry sources filtered in step 2
+
+   ## Step 4: Write findings
+
    For each finding, report:
    - Tag: [NEW], [UPDATE], [CREATOR], or [STALE]
    - What changed (with source URL)
    - Which doc and section it affects
    - Severity: HIGH (doc conclusion wrong), MEDIUM (needs update), LOW (minor)
 
-   Follow the Recursive Discovery archetype from doc 33:
+   Follow the Recursive Discovery archetype:
    - For each new source/creator found that is NOT in the registry, note it as a [REGISTRY] finding
    - For each reference that warrants follow-up, note it as a [LEAD] finding
    - Do not recurse beyond the immediate source — leads will be processed separately by /research
 
    If nothing significant changed, say so.
 
-   **Write your complete findings to /tmp/refresh-results/[GROUP-FILE].md**
+   **Write your complete findings to [OUTPUT FILE PATH]**
    ```
 
    Launch ALL group agents in a **single message** with multiple Task tool calls so they run concurrently.
 
-8. **Wait for all agents to complete.** The system will notify as each finishes. Do NOT read output files until all agents are done (avoid pulling partial results into context).
+6. **Wait for all agents to complete.** The system will notify as each finishes. Do NOT read output files until all agents are done (avoid pulling partial results into context).
 
-9. **Compile the summary report.** Once all agents are done, read ONLY the `/tmp/refresh-results/group-*.md` files (not the raw agent transcripts). For each group file, extract:
+7. **Compile the summary report.** Once all agents are done, read ONLY the `/tmp/refresh-results/group-*.md` files (not the raw agent transcripts). For each group file, extract:
 
    ```
    ## Doc NN: Title
@@ -173,7 +134,7 @@ Scope options:
    - [REGISTRY] findings → list as "Registry additions proposed"
    - [LEAD] findings → list as "Research leads created"
 
-10. **Present actionable summary.** After all per-doc reports:
+8. **Present actionable summary.** After all per-doc reports:
 
     **Summary table:**
     ```markdown
@@ -191,11 +152,11 @@ Scope options:
     - **Registry growth** — new sources/creators discovered across all groups
     - **Leads queue** — references that warrant deeper /research follow-up
 
-11. **Clean up temp files.** Run: `rm -rf /tmp/refresh-results`
+9. **Clean up temp files.** Run: `rm -rf /tmp/refresh-results`
 
-12. **Update registry metadata.** For each source that was checked, propose updating `last_checked` and incrementing `yield_history.checks` in research-sources.yaml. Present as a diff for user approval.
+10. **Update registry metadata.** For each source that was checked, propose updating `last_checked` and incrementing `yield_history.checks` in research-sources.yaml. Present as a diff for user approval.
 
-13. **Propagation reminder.** Always end with:
+11. **Propagation reminder.** Always end with:
 
     > **Propagation reminder:** If you update any dimension docs based on these findings, run upward propagation:
     > - Check reflection docs (08, 14) for impacts
@@ -204,12 +165,13 @@ Scope options:
 
 ## Design Rationale
 
-- **Background agents** prevent context explosion. Each agent's full research (~3-5K tokens of web results) stays in its own context. Only the compiled summary enters the main conversation.
+- **Agents read their own docs** — the main context never loads dimension docs or the registry. This prevents the context explosion that occurs when 16 docs (~100K+ tokens) are loaded before agent dispatch.
+- **Background agents** keep research results out of main context. Each agent's full web results (~3-5K tokens) stay in its own context. Only the compiled summary enters the main conversation.
 - **Topic grouping** (9 groups vs 16 individual agents) shares context between related docs and reduces overhead while keeping agents focused.
-- **Doc-body analysis** catches things Refresh Targets miss. A doc might mention "Syncthing" in prose but not list it in targets. Scanning the full doc ensures comprehensive coverage.
 - **Temp file pattern** (`/tmp/refresh-results/`) provides a clean handoff between agents and the compiler step without polluting the workspace.
 - **Haiku model** for scouts because these are web-search-and-summarize tasks — Haiku is sufficient and much cheaper.
 
 ## Rules
 
+- **NEVER read dimension docs or the source registry in the main context.** This is the #1 rule. Agents read their own material.
 - **Ask for clarification whenever you need it.** If the scope is ambiguous, findings contradict each other, or you need the user to prioritize which docs to update — ask. Don't guess.
