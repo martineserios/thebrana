@@ -1,6 +1,6 @@
 ---
 name: gsheets
-description: "Google Sheets operations — read, write, create, and manage spreadsheets via MCP. Use when the user wants to interact with Google Sheets, view spreadsheet data, update cells, create new spreadsheets, or when another skill needs Sheets access."
+description: "Google Sheets via MCP — read, write, create, list, share spreadsheets"
 ---
 
 # Google Sheets — MCP Operations
