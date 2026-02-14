@@ -66,6 +66,16 @@
             "timeout": 5000
           }
         ]
+      },
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/post-plan-challenge.sh",
+            "timeout": 5000
+          }
+        ]
       }
     ],
     "PostToolUseFailure": [
