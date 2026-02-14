@@ -39,6 +39,7 @@ For the complete usage guide, see **[venture-guide.md](venture-guide.md)**.
 | `/content-plan` | Quarterly content strategy | Content calendar, channels, distribution checklist, performance tracking |
 | `/monthly-close` | End of month | P&L summary, actuals vs projections, trend analysis, runway update |
 | `/monthly-plan` | End of month (after close) | Forward-looking plan: revenue targets, priorities, experiments, pipeline actions, budget |
+| `/gsheets [action]` | Direct Sheets operations | Read, write, create, list, share spreadsheets via MCP (performance-optimal) |
 
 ## Project Commands (enter repo)
 
@@ -61,6 +62,7 @@ In `enter/.claude/commands/`. Only available when working in the enter repo.
 **Venture lifecycle:** venture-onboard → venture-align → venture-phase → growth-check → sop
 **Venture operations:** morning → weekly-review → monthly-close → monthly-plan
 **Venture growth:** pipeline → experiment → financial-model → content-plan
+**Integrations:** gsheets
 **Universal (work for both):** decide, debrief, challenge, retrospective, pattern-recall, cross-pollinate
 
 ## CLI Pattern

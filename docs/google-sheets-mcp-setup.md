@@ -8,7 +8,10 @@ How to connect Google Sheets to brana's venture skills via MCP (Model Context Pr
 
 Google Sheets is the default operational data store for early-stage ventures. Connecting it via MCP lets venture skills read and write directly to spreadsheets — no copy-paste, no CSV exports.
 
+**Primary interface:** Use `/gsheets` for direct Sheets operations (read, write, create, list, share). Other skills call Sheets automatically when MCP is configured.
+
 **What this enables:**
+- `/gsheets` — direct read/write/create/manage operations on any spreadsheet
 - `/growth-check` reads metrics directly from Sheets
 - `/monthly-close` pulls financial data from P&L tabs
 - `/pipeline` syncs deal data with CRM spreadsheets
@@ -16,7 +19,7 @@ Google Sheets is the default operational data store for early-stage ventures. Co
 - `/morning` shows live metric snapshots
 
 **Without MCP:** Skills work fine — you provide data during conversation, or skills read from `docs/` markdown files.
-**With MCP:** Skills read/write Sheets directly, reducing manual data entry.
+**With MCP:** Skills read/write Sheets directly, reducing manual data entry. Use `/gsheets` for ad-hoc operations.
 
 ---
 
@@ -114,6 +117,7 @@ Add to your project's `.mcp.json` or global `~/.claude/settings.json`:
 
 | Skill | Without MCP | With MCP |
 |-------|-------------|----------|
+| **`/gsheets`** | **N/A — requires MCP** | **Direct read/write/create/manage for any spreadsheet** |
 | `/growth-check` | Asks user for metric values during conversation | Reads metrics directly from designated Sheets tab |
 | `/monthly-close` | User provides P&L data verbally | Reads P&L from financial workbook, writes close summary |
 | `/pipeline` | Markdown-only pipeline in `docs/pipeline/` | Syncs with CRM spreadsheet, reads/writes deal records |
@@ -170,6 +174,7 @@ Skills reference sheets by tab name within the spreadsheet.
 
 ## Cross-References
 
+- **`/gsheets` skill** — primary interface for Sheets operations once MCP is configured
 - [venture-guide.md](../venture-guide.md) — full skill usage guide
 - Doc 34 (34-venture-operating-system.md in enter repo) — MCP server research and priority tiers
 - [skill-catalog.md](../skill-catalog.md) — all available skills
