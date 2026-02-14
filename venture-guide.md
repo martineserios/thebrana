@@ -84,6 +84,7 @@ That's it. After these two steps you have a working management structure. Everyt
 - Venture extension deployed (`./deploy.sh` from this repo)
 - A project directory for your venture (can be empty or existing)
 - Optionally: claude-flow for cross-project memory (works without it, just no persistent patterns)
+- Optionally: Google Sheets MCP for spreadsheet access (see [setup guide](docs/google-sheets-mcp-setup.md), use `/gsheets` for direct operations)
 - Optionally: Google Workspace MCP for calendar integration
 - Optionally: Airtable/HubSpot MCP for CRM integration
 
