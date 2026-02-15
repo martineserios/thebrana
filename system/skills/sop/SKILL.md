@@ -111,6 +111,16 @@ Write to `docs/sops/SOP-NNN-slug.md`:
 |-------|-------|------------|
 | {What goes wrong} | {Why} | {How to fix it} |
 
+## Resilience
+
+{Include this section for processes involving deployed systems or automated workflows. Remove for purely manual processes.}
+
+| Aspect | Design | Notes |
+|--------|--------|-------|
+| **Restartability** | {Can the process resume from any step without manual intervention?} | {What state must be preserved?} |
+| **Data isolation** | {Are immutable records (audit trail) separated from mutable working state?} | {Where does each layer live?} |
+| **Degradation** | {What happens when a dependency fails? Which steps can proceed independently?} | {Fallback behavior per step} |
+
 ## Metrics
 
 | Metric | Target | How to Measure |
