@@ -128,6 +128,23 @@ For each stage:
 
 ---
 
+## Step 3b: Founder Leverage Check
+
+For teams ≤10 people, the founder is often the hidden bottleneck. Ask:
+
+1. **What % of your time is on unique, high-leverage work?** (strategy, product vision, key relationships)
+2. **What % is on repeatable work someone else could do?** (ops, admin, routine decisions)
+
+| Founder Leverage | Status | Recommendation |
+|-----------------|--------|----------------|
+| >60% high-leverage | Green | Healthy — founder focused on what matters |
+| 40-60% high-leverage | Yellow | Delegation debt accumulating — identify 1-2 tasks to hand off or automate |
+| <40% high-leverage | Red | Founder is the bottleneck — needs an SOP pass (`/sop`) or first operational hire |
+
+If red, this often matters more than any AARRR metric — a bottlenecked founder can't fix the funnel.
+
+---
+
 ## Step 4: Benchmark Comparison
 
 Compare metrics against benchmarks from [28-startup-smb-management.md](../../enter/28-startup-smb-management.md). For each metric, classify as:
