@@ -125,6 +125,16 @@ Present the plan to the user:
 
 **Wait for user approval before proceeding.** The plan is a proposal, not a commitment.
 
+#### Scaffolding review gate
+
+Before approving execution, validate that the design is solid at the right altitude. Errors caught here prevent expensive rework during implementation:
+
+1. **Architecture check** — does the plan specify file paths, data flow, and interface boundaries? Vague plans ("integrate with X") generate vague code.
+2. **Dependency check** — are all external dependencies (APIs, tools, libraries) verified as available and working? Don't discover a missing dependency mid-build.
+3. **Conflict check** — do any work items modify the same files or systems? Flag overlap before parallel execution starts.
+
+If any check fails, refine the plan before proceeding. A precise plan produces near-1:1 implementation (proven by Phase 4 vs Phase 2 precision gap).
+
 ### Step 2: Recall before building
 
 Spawn the `memory-curator` agent with the phase topic to recall relevant patterns. Pass it the phase number, relevant technologies, and any known pain points from doc 24. Use its findings to inform implementation planning.

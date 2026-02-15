@@ -77,6 +77,19 @@ Based on milestone type, generate work items. Present to the user for approval b
 | **Partnerships** | Key ecosystem partners committed? | Launching into a vacuum, no distribution allies |
 | **Distribution vector** | Where do target users already spend time? How do we embed there? | Requires users to adopt a new platform or change habits |
 
+**Production readiness gates** — for launches involving deployed systems, validate these before work items:
+
+| Gate | Question | Red Flag |
+|------|----------|----------|
+| **Pipeline isolation** | Are build, test, and deploy stages cleanly separated? | Monolithic script, no staging environment |
+| **Reproducibility** | Can the system be rebuilt from source? Dependencies pinned? | "Works on my machine", unpinned deps |
+| **Observability** | Monitoring, alerting, logging in place? | No visibility into production behavior |
+| **Rollback** | Can you revert to previous version in < 5 minutes? | No rollback procedure, destructive migrations |
+| **Cost controls** | Per-request/per-agent cost tracked? Budget caps set? | Unbounded API calls, no spending alerts |
+| **Governance** | Security review done? Data handling documented? Compliance checked? | No security review, no ToS for user data |
+
+Skip this table for milestones that don't involve deployed systems (e.g., market research, hiring).
+
 | # | Work Item | Description | Exit Criteria |
 |---|-----------|-------------|---------------|
 | 1 | Market research | Competitive landscape, positioning gaps, target audience | Documented in docs/decisions/ |
