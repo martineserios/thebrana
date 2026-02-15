@@ -68,6 +68,27 @@ For each stage-appropriate metric, check `docs/metrics/` for current values. If 
 | Runway (months) | {calc} | 12+ months ideal | |
 | DAU/MAU ratio | {ask/check} | >20% = sticky product | |
 
+### Validation Stage Metrics — Cycle/Product/Service Businesses
+
+For non-subscription businesses (cycle-project, physical product, consulting), standard SaaS metrics misdiagnose health. A business with 95% "churn" may be healthy if recompra rate is strong. Use these instead of or alongside the SaaS table above:
+
+| Metric | Value | Benchmark | Status |
+|--------|-------|-----------|--------|
+| Monthly revenue | {ask/check} | Growing MoM | |
+| Recompra rate (repeat purchase) | {calc} | >20% early, >40% mature | |
+| Average order value (AOV) | {calc} | Stable or growing | |
+| Revenue per client (lifetime) | {calc} | Growing over time | |
+| Channel attribution (top channel %) | {calc} | No single channel >60% | |
+| Top-client revenue concentration | {calc} | No single client >15% of revenue | |
+| Referrer/partner contribution (% revenue) | {calc} | Track, no fixed benchmark | |
+| Burn rate (monthly) | {ask/check} | — | |
+| Runway (months) | {calc} | 12+ months ideal | |
+
+**Notes:**
+- **Recompra rate** = clients with 2+ purchases / total clients. More meaningful than "churn" for non-subscription.
+- **Concentration risk** is critical: if one client or channel represents >25% of revenue, flag it.
+- **Channel attribution** = first-touch (who brought the client in). Track per-channel revenue to spot dependency.
+
 ### Growth Stage Metrics
 
 | Metric | Value | Benchmark | Status |
@@ -125,6 +146,46 @@ For each stage:
 | **Revenue** | Do they pay? | Conversion rate, ARPU | Growing ARPU |
 
 **Identify the bottleneck** — the stage with the worst conversion rate. This is where effort should focus. Improving stages downstream of the bottleneck is wasted work (you're optimizing revenue when nobody activates).
+
+### Adapted Funnel for Cycle/Product Businesses
+
+For non-SaaS businesses (physical product, cycle-project, consulting), adapt the funnel:
+
+```
+ACQUISITION → FIRST SALE → RECOMPRA → REFERRAL → REVENUE GROWTH
+    {N}    →    {N}     →   {N}    →   {N}    →    {$}
+           {X%}         {X%}       {X%}        {$/client}
+```
+
+| Stage | Question | Metric | Healthy |
+|-------|----------|--------|---------|
+| **Acquisition** | How do leads find you? | Leads by channel, CAC per channel | Diversified, no >60% single channel |
+| **First Sale** | Do leads convert? | Lead → first purchase rate | >10% warm leads |
+| **Recompra** | Do they buy again? | Recompra rate (2+ purchases / total) | >20% early, >40% mature |
+| **Referral** | Do they bring others? | Referral rate, referrer revenue contribution | Growing referrer share |
+| **Revenue Growth** | Is revenue growing per client? | AOV trend, revenue per client over time | Stable or growing AOV |
+
+### Channel Attribution Analysis
+
+When channel data is available (sales records, referrer tracking):
+
+1. **Attribute each client** to their acquisition channel (first-touch: who brought them in)
+2. **Revenue by channel** — which channels bring the highest-value clients?
+3. **Channel dependency** — flag if any single channel represents >40% of revenue
+4. **Referrer performance** — if partners/referrers exist, track clients referred, revenue generated, conversion rate
+
+### Revenue Risk Signals
+
+Check for these common risks in early-stage businesses:
+
+| Risk Signal | Threshold | Status | Impact |
+|-------------|-----------|--------|--------|
+| Whale client (top client % of revenue) | >15% single client | Flag | Revenue fragility |
+| Channel concentration | >60% from one channel | Flag | Acquisition fragility |
+| Accounts receivable (unpaid orders) | Any outstanding | Track | Cash flow risk |
+| Accounts payable (unpaid suppliers) | Any outstanding | Track | Supplier relationship risk |
+| Declining recompra rate | MoM decline | Flag | Product-market fit weakening |
+| Rising AOV with flat volume | AOV up, orders flat | Watch | May indicate price-sensitive ceiling |
 
 ---
 

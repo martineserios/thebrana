@@ -52,6 +52,24 @@ ls docs/pipeline/*.md 2>/dev/null | sort
 
 Extract closed deals, revenue by source, conversion rates for the month.
 
+### 1d: Cash flow data (external sources)
+
+Many early-stage businesses track financial data in Google Sheets, spreadsheets, or external databases rather than in project docs. Check for these:
+
+```bash
+# Check CLAUDE.md for spreadsheet references
+[ -f ".claude/CLAUDE.md" ] && grep -iE "spreadsheet|google sheets|sheet_id|workbook" ".claude/CLAUDE.md"
+
+# Check for MCP Google Sheets configuration
+[ -f ".claude/settings.json" ] && grep -i "google-sheets" ".claude/settings.json"
+```
+
+If Google Sheets or external data sources exist:
+1. **Identify the cash flow / payments sheet** (look for: PAGOS, CAJA, Payments, Cash Flow, Transactions)
+2. **Pull the month's transactions** and sort chronologically
+3. **Reconstruct cash flow**: compute running balance from transactions
+4. **Cross-reference with P&L**: do transaction totals match revenue/expense line items?
+
 If any source is missing, note it as "Not available" in the report. Do not fabricate numbers.
 
 ---
@@ -186,6 +204,54 @@ If fewer than 2 months of data exist, note: "Trend analysis requires 2+ months o
 ```
 
 If burn rate is increasing, flag it. If runway drops below 12 months, flag it as RED.
+
+### Cash Flow Reconstruction
+
+If transaction-level data is available (PAGOS, bank statements, Google Sheets), reconstruct the month's actual cash flow:
+
+```markdown
+### Cash Flow Detail — {YYYY-MM}
+
+| Date | Type | Category | Description | Amount | Balance |
+|------|------|----------|-------------|--------|---------|
+| {date} | Ingreso/Egreso | {cat} | {desc} | ${amount} | ${running} |
+
+**Total inflows:** ${sum_ingresos}
+**Total outflows:** ${sum_egresos}
+**Net cash flow:** ${net}
+```
+
+This is more granular than the P&L and catches timing differences (revenue recognized vs cash received).
+
+### Accounts Receivable / Payable Check
+
+Scan for outstanding obligations:
+
+```markdown
+### AR / AP — {YYYY-MM}
+
+**Accounts Receivable (owed to us):**
+| Client | Amount | Age (days) | Status |
+|--------|--------|-----------|--------|
+| {client} | ${amount} | {days} | Outstanding / Overdue |
+
+**Accounts Payable (we owe):**
+| Supplier | Amount | Age (days) | Status |
+|----------|--------|-----------|--------|
+| {supplier} | ${amount} | {days} | Outstanding / Overdue |
+```
+
+Flag any AR >30 days as overdue. Flag total AR >10% of monthly revenue as a collection risk.
+
+### COGS Reality Check
+
+For businesses with production or sourcing costs, verify that reported COGS captures actual costs:
+
+- **External purchases** — raw materials, inventory bought from suppliers
+- **Internal production costs** — labor, equipment, utilities allocated to production
+- **Hidden costs** — if only external purchases are tracked, COGS is understated. Flag the gap and recommend tracking full production cost.
+
+Compare: `Gross Margin (reported)` vs `Gross Margin (adjusted for estimated full COGS)`. If the gap is >10pp, flag it.
 
 ---
 

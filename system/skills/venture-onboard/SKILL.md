@@ -53,6 +53,30 @@ done
 
 Look for indicators: business plans, pitch decks, financial models, SOPs, OKR docs, meeting notes, decision logs, customer research, competitor analysis.
 
+### Data Completeness Audit
+
+If the business uses external data stores (Google Sheets, databases, CRMs), audit data completeness. Many ventures have the structure but not the data — empty tables are a common gap.
+
+```bash
+# Check for spreadsheet references
+[ -f ".claude/CLAUDE.md" ] && grep -iE "spreadsheet|sheet_id|workbook" ".claude/CLAUDE.md"
+```
+
+If data sources are found, assess each table/sheet:
+
+| Table | Rows | Key Gaps | Status |
+|-------|------|----------|--------|
+| {table_name} | {count} | {missing columns or empty fields} | Complete / Partial / Empty |
+
+**Common data gaps in early-stage ventures:**
+- Client acquisition channel not tracked (who referred them?)
+- Cash flow not reconstructed from transactions
+- COGS only captures external purchases, not internal production
+- No referrer/partner attribution linking
+- Stock/inventory not reconciled with sales
+
+Present the data completeness matrix alongside the structural gap report. Empty tables with correct headers are "partial" — the schema exists but the data doesn't.
+
 ## Step 3: Stage Classification
 
 Map the discovery answers to the four business stages from [28-startup-smb-management.md](../../enter/28-startup-smb-management.md):

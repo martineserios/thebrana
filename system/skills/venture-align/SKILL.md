@@ -55,6 +55,7 @@ If the agent is unavailable, run the assessment manually. Items are cumulative �
 - [ ] **V2 — MVP definition** exists (what we're testing, success criteria)
 - [ ] **V3 — Experiment tracking** (what we're testing, results, conclusions)
 - [ ] **V4 — Burn rate** tracked (monthly spend, months of runway)
+- [ ] **V5 — Referrer/partner tracking** (acquisition channel attribution, referrer performance)
 
 ### Growth Stage (adds to Validation)
 
@@ -262,6 +263,36 @@ Select the appropriate stage table.
 **V3 — Experiment tracking:** Create `docs/experiments/README.md` with experiment log template.
 
 **V4 — Burn rate:** Add burn rate row to `docs/metrics/README.md` if not present.
+
+**V5 — Referrer/partner tracking:** Create `docs/referrer-tracking.md` if the business has referral partners, therapists, affiliates, or sales agents:
+
+```markdown
+# Referrer / Partner Tracking
+
+Last updated: {today}
+
+## Active Referrers
+
+| ID | Name | Type | Clients Referred | Revenue Generated | Status |
+|----|------|------|-----------------|-------------------|--------|
+| {id} | {name} | {type} | {count} | ${amount} | Active / Inactive |
+
+## Channel Attribution
+
+Each client should have a `CANAL_ORIGEN` (acquisition channel) and `REFERIDO_POR` (specific referrer, if applicable).
+
+| Channel | Clients | % of Total | Revenue | % of Revenue |
+|---------|---------|-----------|---------|-------------|
+| {channel} | {count} | {%} | ${amount} | {%} |
+
+## Notes
+
+- Attribution uses first-touch: the channel/person who brought the client in originally
+- Track even if informal — "friend of founder" is a channel worth measuring
+- Flag concentration: if any single channel or referrer represents >40% of clients, diversification is needed
+```
+
+For businesses without formal referral programs, still recommend tracking acquisition source per client — even a simple "how did you hear about us?" column is valuable.
 
 ### Growth Stage Items
 
