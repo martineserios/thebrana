@@ -287,6 +287,19 @@ Select the appropriate stage table.
 
 ---
 
+## Input Metrics (Leading Indicators)
+
+Lagging indicators (MRR, users) tell you what happened. Input metrics tell you what's *about to* happen. Track both.
+
+| Input Metric | Target | Current | Status |
+|-------------|--------|---------|--------|
+| Experiments run this quarter | {target} | | |
+| Customer interviews conducted | {target} | | |
+| Processes automated / SOPs created | {target} | | |
+| {Custom leading indicator} | {target} | | |
+
+---
+
 **Review date:** {end of quarter}
 **Grading:** 0.0 (no progress) → 1.0 (fully achieved). Target 0.7 (ambitious but achievable).
 ```

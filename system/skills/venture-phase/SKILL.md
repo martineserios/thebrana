@@ -67,11 +67,21 @@ Based on milestone type, generate work items. Present to the user for approval b
 
 ### Product Launch
 
+**Pre-launch gates** — validate these before starting work items. If any gate is red, address it first:
+
+| Gate | Question | Red Flag |
+|------|----------|----------|
+| **Timing** | Is the market ready? Are customers pulling for this? | Building ahead of demand, no inbound signal |
+| **IP / Moat** | What's defensible? Documented? | Nothing proprietary, easily cloned |
+| **Security / Trust** | Privacy, compliance, data handling baseline? | No security review, no ToS |
+| **Partnerships** | Key ecosystem partners committed? | Launching into a vacuum, no distribution allies |
+| **Distribution vector** | Where do target users already spend time? How do we embed there? | Requires users to adopt a new platform or change habits |
+
 | # | Work Item | Description | Exit Criteria |
 |---|-----------|-------------|---------------|
 | 1 | Market research | Competitive landscape, positioning gaps, target audience | Documented in docs/decisions/ |
 | 2 | Positioning | Value proposition, messaging, differentiation | One-pager created |
-| 3 | Channel strategy | Which channels, why, budget allocation | Channel plan documented |
+| 3 | Channel strategy | Which channels, why, budget allocation. Prioritize channels where users already are — embed, don't demand adoption | Channel plan documented with distribution vector rationale |
 | 4 | Launch checklist | Pre-launch, launch day, post-launch tasks | Checklist created in docs/ |
 | 5 | Go-to-market plan | Timeline, milestones, responsibilities | Plan documented |
 | 6 | Post-launch metrics | What to measure, targets, review cadence | Metrics framework in docs/metrics/ |
