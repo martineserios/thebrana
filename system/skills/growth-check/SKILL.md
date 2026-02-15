@@ -19,13 +19,13 @@ Periodically (monthly or quarterly) or when something feels wrong. Also useful b
 
 ---
 
-## Step 1: Detect Stage
+## Step 1: Detect Stage and Business Model Type
 
-Check existing docs for stage indicators:
+Check existing docs for stage and business model indicators:
 
 ```bash
-# Look for stage in CLAUDE.md
-[ -f ".claude/CLAUDE.md" ] && grep -i "stage" ".claude/CLAUDE.md"
+# Look for stage and business model in CLAUDE.md
+[ -f ".claude/CLAUDE.md" ] && grep -iE "stage|model|subscription|marketplace|consulting|service" ".claude/CLAUDE.md"
 
 # Look for metrics docs
 [ -d "docs/metrics" ] && ls docs/metrics/
@@ -35,6 +35,10 @@ Check existing docs for stage indicators:
 ```
 
 If stage unclear, ask the user: "What stage is this business at? (Discovery / Validation / Growth / Scale)"
+
+If business model type unclear, ask: "What's the business model type? (Subscription / Cycle-project / Marketplace / Consulting / Service)"
+
+**Business model type is a prerequisite for metric selection.** Standard SaaS metrics (MRR, churn rate, DAU/MAU, net revenue retention) misdiagnose non-subscription businesses — a cycle-based service with 95% "churn" may be healthy if recompra (repeat purchase) rate is strong. Select metrics and benchmarks appropriate to both the stage AND the model type. See lesson #20 in [24-roadmap-corrections.md](../../enter/24-roadmap-corrections.md).
 
 ---
 
@@ -157,6 +161,7 @@ Output a structured report:
 
 **Date:** {today}
 **Stage:** {Discovery | Validation | Growth | Scale}
+**Business Model:** {Subscription | Cycle-project | Marketplace | Consulting | Service}
 
 ### Health Dashboard
 

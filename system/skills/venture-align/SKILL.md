@@ -32,6 +32,8 @@ If `/venture-onboard` was run this session, use its output (stage, domain, gaps,
 
 Classify the stage using the four-stage model from doc 28. **Confirm with the user before proceeding.**
 
+**Framework discipline:** Stage-aware frameworks are powerful but easy to over-load. When setting up OKRs alongside other frameworks (EOS Rocks, Shape Up cycles), follow the stacking rule from [28-startup-smb-management.md](../../enter/28-startup-smb-management.md): **maximum 3 active layers** (operating system + goal system + cadence), and don't run EOS Rocks + OKRs as parallel goal systems — Rocks already ARE quarterly goals. If > 3 frameworks are detected during DISCOVER, warn the user and recommend dropping a layer before adding structure.
+
 ---
 
 ## Phase 1: ASSESS
