@@ -46,6 +46,12 @@ If business model type unclear, ask: "What's the business model type? (Subscript
 
 For each stage-appropriate metric, check `docs/metrics/` for current values. If not tracked there, ask the user.
 
+**Metric table routing by business model:**
+- **Subscription / SaaS** → use the standard metrics tables (MRR, churn, DAU/MAU, net retention)
+- **Cycle-project / Product / Service / Consulting** → use the "Cycle/Product/Service" tables (recompra, AOV, channel attribution, concentration)
+- **Marketplace** → use standard tables for platform metrics + cycle tables for supplier/demand side
+- **Hybrid** → combine relevant metrics from both. When in doubt, track both and let the data reveal which matters.
+
 ### Discovery Stage Metrics
 
 | Metric | Value | Benchmark | Status |
