@@ -1,6 +1,6 @@
 ---
 name: gsheets
-description: "Google Sheets via MCP — read, write, create, list, share spreadsheets"
+description: "Google Sheets via MCP — read, write, create, list, share spreadsheets. Use when reading, writing, or managing Google Sheets data."
 ---
 
 # Google Sheets — MCP Operations

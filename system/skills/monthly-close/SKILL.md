@@ -1,6 +1,6 @@
 ---
 name: monthly-close
-description: "Monthly financial close — P&L summary, actuals vs projections, trend analysis, runway update. The monthly heartbeat of business health."
+description: "Monthly financial close — P&L summary, actuals vs projections, trend analysis, runway update. The monthly heartbeat of business health. Use at month-end for P&L summary, actuals vs projections, and trend analysis."
 allowed-tools:
   - Read
   - Write

@@ -1,6 +1,6 @@
 ---
 name: monthly-plan
-description: "Forward-looking monthly plan — revenue targets, priorities tied to bottleneck, experiments, pipeline actions, budget allocation."
+description: "Forward-looking monthly plan — revenue targets, priorities tied to bottleneck, experiments, pipeline actions, budget allocation. Use at month-start (after /monthly-close) to set targets and priorities."
 allowed-tools:
   - Read
   - Write

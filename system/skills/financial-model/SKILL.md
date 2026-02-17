@@ -1,6 +1,6 @@
 ---
 name: financial-model
-description: "Revenue projections, scenario analysis, P&L template, unit economics, and cash flow analysis. Stage-aware financial modeling for founders."
+description: "Revenue projections, scenario analysis, P&L template, unit economics, and cash flow analysis. Stage-aware financial modeling for founders. Use for fundraise prep, quarterly planning, or building a business case."
 allowed-tools:
   - Read
   - Write

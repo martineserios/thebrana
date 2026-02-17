@@ -1,6 +1,6 @@
 ---
 name: challenge
-description: Spawn a Sonnet subagent to stress-test the current plan or approach. One-pass adversarial review.
+description: "Spawn a Sonnet subagent to stress-test the current plan or approach. One-pass adversarial review. Use when a significant decision, plan, or architecture needs adversarial review."
 allowed-tools:
   - Task
   - Read

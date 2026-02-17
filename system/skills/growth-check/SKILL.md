@@ -1,6 +1,6 @@
 ---
 name: growth-check
-description: Business health audit — AARRR funnel analysis and stage-appropriate metrics check with trend tracking
+description: "Business health audit — AARRR funnel analysis and stage-appropriate metrics check with trend tracking. Use monthly/quarterly or when business metrics need assessment."
 allowed-tools:
   - Bash
   - Read

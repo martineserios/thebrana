@@ -1,6 +1,6 @@
 ---
 name: experiment
-description: "Growth experiment loop — hypothesis, test design, success criteria, results, learning. Structured experimentation with auto-incrementing records."
+description: "Growth experiment loop — hypothesis, test design, success criteria, results, learning. Structured experimentation with auto-incrementing records. Use when testing a growth hypothesis or after /growth-check identifies a bottleneck."
 allowed-tools:
   - Read
   - Write

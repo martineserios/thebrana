@@ -1,6 +1,6 @@
 ---
 name: project-align
-description: Actively align a project with brana development practices — assess gaps, plan fixes, implement structure, verify, and document.
+description: "Actively align a project with brana development practices — assess gaps, plan fixes, implement structure, verify, and document. Use when setting up a new project or when an existing project needs structural alignment."
 allowed-tools:
   - Bash
   - Read
