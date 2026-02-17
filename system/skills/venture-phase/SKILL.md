@@ -1,6 +1,6 @@
 ---
 name: venture-phase
-description: Plan and execute a business milestone — product launch, hiring, fundraise, expansion, or custom — with learning loops
+description: "Plan and execute a business milestone — product launch, hiring, fundraise, expansion, or custom — with learning loops. Use when executing a business milestone (launch, hiring, fundraise, expansion)."
 allowed-tools:
   - Bash
   - Read

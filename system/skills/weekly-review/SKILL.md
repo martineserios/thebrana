@@ -1,6 +1,6 @@
 ---
 name: weekly-review
-description: Weekly cadence review — portfolio health, zombie cleanup, metrics delta, ship log, and next-week planning with trend storage
+description: "Weekly cadence review — portfolio health, zombie cleanup, metrics delta, ship log, and next-week planning with trend storage. Use every Friday or Monday for the weekly business and project review."
 allowed-tools:
   - Read
   - Write

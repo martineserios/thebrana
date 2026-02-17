@@ -1,6 +1,6 @@
 ---
 name: knowledge-review
-description: Monthly review of ReasoningBank health — pattern stats, staleness, confidence distribution, and suggested actions
+description: "Monthly review of ReasoningBank health — pattern stats, staleness, confidence distribution, and suggested actions. Use monthly to audit knowledge store health and pattern quality."
 allowed-tools:
   - Bash
   - Read

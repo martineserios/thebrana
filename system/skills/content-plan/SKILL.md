@@ -1,6 +1,6 @@
 ---
 name: content-plan
-description: "Marketing content planning — themes, calendar, distribution checklist, performance tracking. Quarterly content strategy aligned to growth goals."
+description: "Marketing content planning — themes, calendar, distribution checklist, performance tracking. Quarterly content strategy aligned to growth goals. Use when planning quarterly content strategy or launching a new content channel."
 allowed-tools:
   - Read
   - Write

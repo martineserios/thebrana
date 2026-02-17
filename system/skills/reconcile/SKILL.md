@@ -1,6 +1,6 @@
 ---
 name: reconcile
-description: Detect drift between enter specs and thebrana implementation, plan fixes, apply after approval.
+description: "Detect drift between enter specs and thebrana implementation, plan fixes, apply after approval. Use after /maintain-specs changes or periodically to sync specs with implementation."
 allowed-tools:
   - Bash
   - Read
