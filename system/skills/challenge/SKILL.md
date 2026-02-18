@@ -1,6 +1,6 @@
 ---
 name: challenge
-description: "Spawn a Sonnet subagent to stress-test the current plan or approach. One-pass adversarial review. Use when a significant decision, plan, or architecture needs adversarial review."
+description: "Spawn an Opus subagent to stress-test the current plan or approach. One-pass adversarial review. Use when a significant decision, plan, or architecture needs adversarial review."
 allowed-tools:
   - Task
   - Read
@@ -12,7 +12,7 @@ context: fork
 
 # Challenge
 
-This skill spawns a Sonnet subagent to adversarially review a plan, approach, or decision.
+This skill spawns an Opus subagent to adversarially review a plan, approach, or decision.
 
 1. **Gather context** about what to challenge:
    - If `$ARGUMENTS` provided, use it as the description of what to challenge.
