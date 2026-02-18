@@ -1,6 +1,6 @@
 ---
 name: project-scanner
-description: Scan a project's structure, detect tech stack, check brana alignment, and recall portfolio patterns. Use when entering an unfamiliar project or for periodic project health checks.
+description: "Scan a project's structure, detect tech stack, check brana alignment, and recall portfolio patterns. Use when entering an unfamiliar project or for periodic project health checks. Not for: business stage classification (use venture-scanner), knowledge recall (use memory-curator), web research (use scout)."
 model: haiku
 tools:
   - Bash
