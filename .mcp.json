@@ -2,7 +2,7 @@
   "mcpServers": {
     "context7": {
       "command": "npx",
-      "args": ["@upstash/context7@latest"]
+      "args": ["@upstash/context7-mcp@latest"]
     }
   }
 }
