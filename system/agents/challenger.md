@@ -1,6 +1,6 @@
 ---
 name: challenger
-description: "Adversarially review a plan, architecture decision, or approach. Stress-test proposals before commitment. Use when a significant decision is being made or a plan is being finalized. Not for: data collection (use scout/metrics-collector), project diagnostics (use project-scanner), session debrief (use debrief-analyst)."
+description: "Adversarially review a plan, architecture decision, or approach. Stress-test before commitment. Use when a significant decision is being made or a plan is being finalized. Not for: data collection, project diagnostics, session debrief."
 model: opus
 tools:
   - Read

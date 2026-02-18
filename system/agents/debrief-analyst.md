@@ -1,6 +1,6 @@
 ---
 name: debrief-analyst
-description: "Extract errata, learnings, and patterns from a work session. Classify findings into errata, process learnings, and issues. Use at the end of implementation sessions or when notable learnings should be captured. Not for: adversarial review (use challenger), project scanning (use project-scanner), knowledge recall (use memory-curator)."
+description: "Extract errata, learnings, and patterns from a work session. Classify into errata, process learnings, and issues. Use at end of implementation sessions or when notable learnings emerge. Not for: adversarial review, project scanning, knowledge recall."
 model: opus
 tools:
   - Bash

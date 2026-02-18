@@ -1,6 +1,6 @@
 ---
 name: scout
-description: "Fast research agent for quick codebase exploration and web search. Use when finding files, searching code, or fetching external info. Not for: knowledge system queries (use memory-curator), project diagnostics (use project-scanner), business analysis (use venture-scanner)."
+description: "Fast research for codebase exploration and web search. Use when finding files, searching code, or fetching external info. Not for: knowledge recall, project diagnostics, business analysis."
 model: haiku
 tools:
   - Read
