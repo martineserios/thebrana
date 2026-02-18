@@ -44,37 +44,48 @@ Target options:
    - **Leads mode**: read leads from `mcp__claude-flow__memory_search` (namespace: `research-leads`, tags: `status:queued`)
    - **Registry mode**: skip to step 8
 
-4. **Scan sources (Wide Scan).** For each relevant source:
-   - Use `WebSearch` with the source URL/name + recent date qualifiers (2025-2026)
-   - Use `WebFetch` for specific URLs that have known content (changelogs, blog indexes)
-   - Extract: new posts/releases, version changes, new claims, referenced creators
-   - **Version check**: compare current version against `version_observed` in registry. If different, tag as `[VERSION]` finding with HIGH severity — all doc claims based on the old version need re-verification
-   - Tag each finding: `[NEW]`, `[UPDATE]`, `[VERSION]`, `[CREATOR]`, or `[STALE]`
+4. **Phase 1 — Wide Scan (metadata only, no WebFetch).** Launch parallel scouts to scan sources. Each scout:
+   - Uses `WebSearch` ONLY — titles, snippets, URLs. **Never WebFetch in Phase 1.**
+   - Writes findings to `/tmp/research-{target}-{N}.md` (one file per scout)
+   - Returns ONLY a 2-line summary to main context: `"Wrote N findings to /tmp/research-{target}-{N}.md. X HIGH, Y MEDIUM, Z LOW."`
+   - Tags findings: `[NEW]`, `[UPDATE]`, `[VERSION]`, `[CREATOR]`, or `[STALE]`
+   - **Version check**: compare current version against `version_observed` in registry. If different, tag as `[VERSION]` with HIGH severity
+   - **Budget**: max 5 scouts for topic mode, max 8 for doc/creator mode
+   - Scout spawn prompt MUST include: "Write all findings to {filepath}. Return only a 2-line summary with counts. Do NOT use WebFetch."
 
-5. **Deep Dive on high-signal findings.** For findings tagged HIGH severity:
-   - Read the full source content with `WebFetch`
-   - Extract specific claims, numbers, architectures, and references
+5. **Phase 2 — Triage (main context reads temp files incrementally).** For each temp file from Phase 1:
+   - Read ONE temp file at a time (never all at once)
+   - Classify each finding: HIGH (doc conclusion wrong, key claim outdated), MEDIUM (needs update), LOW (minor addition)
+   - Extract HIGH-priority URLs that need deep reading
+   - Summarize the file's findings in 3-5 lines, then move to the next file
+   - After all files processed, compile a shortlist of HIGH-priority URLs (max 6)
+
+6. **Phase 3 — Deep Dive (targeted WebFetch, max 3 scouts).** For HIGH-priority URLs from Phase 2:
+   - Launch max 3 scouts, each gets max 2 WebFetch calls
+   - Each scout writes deep findings to `/tmp/research-{target}-deep-{N}.md`
+   - Each scout returns ONLY a 2-line summary
+   - Main context reads deep findings incrementally (same as Phase 2)
    - Note any creators or sources cited that are NOT in the registry
 
-6. **Recurse on new references (up to 3 hops).** For each new source/creator found:
+7. **Recurse on new references (max 2 hops, max 3 scouts).** For new sources/creators found in Phase 3:
    - Check if already in registry → if yes, note and skip
-   - If not in registry, launch a scout agent (`subagent_type: "scout"`, `model: "haiku"`) to check the reference
-   - Maximum 10 scout agents total (budget cap)
-   - Maximum 3 hops deep from the original source
+   - Launch scouts with the same temp-file protocol (WebSearch only, write to file, return summary)
+   - Maximum 3 additional scouts (not 10)
+   - Maximum 2 hops deep from the original source
    - Stop recursing when: max depth reached, finding priority drops below MEDIUM, or source already in registry
 
-7. **Connect findings to docs.** For each finding, identify:
+8. **Connect findings to docs.** For each finding, identify:
    - Which dimension doc(s) it affects
    - Which section within the doc
    - Severity: HIGH (doc conclusion wrong or key claim outdated), MEDIUM (needs update), LOW (minor addition)
 
-8. **Registry health report** (for `registry` mode or appended to other modes):
+9. **Registry health report** (for `registry` mode or appended to other modes):
    - Trust tier distribution (how many proven/promising/unvalidated/demoted)
    - Sources overdue for check (last_checked + cadence < today)
    - Creators with no recent findings (potential demote candidates)
    - Sources with high yield (potential cadence upgrade candidates)
 
-9. **Report findings.** Present structured output:
+10. **Report findings.** Present structured output:
 
    ```
    ## Research: [target]
@@ -112,11 +123,11 @@ Target options:
    - Promote/demote: [source] from [tier] to [tier] — reason
    ```
 
-10. **Create leads for unfollowed threads.** For references that were not recursed into (budget exhausted, low priority):
+11. **Create leads for unfollowed threads.** For references that were not recursed into (budget exhausted, low priority):
     - Store as leads in claude-flow memory (namespace: `research-leads`) if available
     - Otherwise, list them in the report under "Leads Created" for manual tracking
 
-11. **Propose registry updates.** List all changes to `research-sources.yaml`:
+12. **Propose registry updates.** List all changes to `research-sources.yaml`:
     - New sources to add (with full schema)
     - `last_checked` date updates
     - `version_observed` + `date_observed` updates (when version changed)
@@ -136,16 +147,27 @@ When researching, select the appropriate archetype based on the target:
 
 ## Architecture
 
-- Main context orchestrates the research loop
-- Background Haiku scouts for parallel source scanning (max 10 concurrent)
+- Main context orchestrates the 3-phase loop. **Main context never does WebFetch or WebSearch directly.**
 - Scouts use `subagent_type: "scout"`, `model: "haiku"`, `run_in_background: true`
-- Findings written to temp files (`/tmp/research-[target]-*.md`) to avoid context explosion
-- Main context compiles from temp files after all scouts complete
+- **Temp file contract (mandatory):** Scouts write findings to `/tmp/research-{target}-{N}.md`. Scouts return ONLY a 2-line summary via TaskOutput. Main context reads temp files one at a time.
+- **Phase budget:** Phase 1 max 5-8 scouts (WebSearch only). Phase 3 max 3 scouts (WebFetch, max 2 per scout). Recursion max 3 scouts.
+- **Total scout cap:** max 14 scouts per invocation (8 scan + 3 deep + 3 recurse)
+- **Scout spawn prompt template:** Always include these lines in every scout prompt:
+  ```
+  CRITICAL RULES:
+  1. Write ALL findings to {filepath}. Use Bash to write: echo "..." >> {filepath}
+  2. Return ONLY a 2-line summary: "Wrote N findings to {filepath}. X HIGH, Y MEDIUM, Z LOW."
+  3. Phase 1 scouts: WebSearch ONLY. Never use WebFetch.
+  4. Phase 3 scouts: Max 2 WebFetch calls. Write results to file, not to output.
+  ```
 
 ## Rules
 
 - **Never modify dimension docs directly.** Report findings, don't apply them.
 - **Never modify the registry directly.** Propose changes, let the user approve.
-- **Respect the budget cap.** Maximum 10 scout agents per invocation.
-- **Date-stamp everything.** All findings include the date they were found (2026-02-12 format).
+- **Respect the phase budgets.** Phase 1: 5-8 scouts. Phase 3: 3 scouts. Recursion: 3 scouts.
+- **Temp file protocol is mandatory.** No scout may return full findings via TaskOutput.
+- **No WebFetch in Phase 1.** Metadata-first: titles, snippets, URLs only.
+- **Read temp files incrementally.** Never read all scout outputs in a single turn.
+- **Date-stamp everything.** All findings include the date they were found (YYYY-MM-DD format).
 - **Source attribution.** Every finding must link back to the source URL.
