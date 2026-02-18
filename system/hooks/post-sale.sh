@@ -73,13 +73,22 @@ for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
 done
 [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
 
+CF_WARNING=""
 if [ -n "$CF" ]; then
     STORE_KEY="deal-closed-$(date +%Y%m%d-%H%M%S 2>/dev/null || echo unknown)"
-    timeout 3 $CF memory store \
+    CF_ERR=$(timeout 3 $CF memory store \
         -k "$STORE_KEY" \
         -v "$SNAPSHOT" \
         --namespace business \
-        --tags "deal,closed-won,pipeline" 2>/dev/null || true
+        --tags "deal,closed-won,pipeline" 2>&1) || true
+    CF_EXIT=$?
+    if [ $CF_EXIT -eq 124 ]; then
+        CF_WARNING="Deal snapshot store timed out. Manual: claude-flow memory store -k '$STORE_KEY' -v '$SNAPSHOT' --namespace business"
+    elif [ $CF_EXIT -ne 0 ]; then
+        CF_WARNING="Deal snapshot store failed. Manual: claude-flow memory store -k '$STORE_KEY' -v '$SNAPSHOT' --namespace business"
+    fi
+else
+    CF_WARNING="claude-flow not found. Deal snapshot not persisted. Manual backup recommended."
 fi
 
 # Log to session JSONL
@@ -95,5 +104,9 @@ fi
 
 # Output with additionalContext
 CONTEXT="Deal closure detected: ${DEAL_NAME}. Consider updating Google Sheets via MCP integration and running /growth-check to refresh metrics."
+if [ -n "$CF_WARNING" ]; then
+    CONTEXT="$CONTEXT
+[Hook warning] $CF_WARNING"
+fi
 ESCAPED=$(echo "$CONTEXT" | jq -Rs '.' 2>/dev/null) || ESCAPED='""'
 echo "{\"continue\": true, \"additionalContext\": $ESCAPED}"

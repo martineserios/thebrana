@@ -38,8 +38,18 @@ done
 [ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
 
 # Primary path: claude-flow memory search
+CF_WARNING=""
 if [ -n "$CF" ]; then
-    CONTEXT=$(timeout 5 $CF memory search --query "project:$PROJECT" --format json 2>&1 | grep -v '^\[' || true)
+    CF_OUTPUT=$(timeout 5 $CF memory search --query "project:$PROJECT" --format json 2>&1) || true
+    CF_EXIT=$?
+    CONTEXT=$(echo "$CF_OUTPUT" | grep -v '^\[' || true)
+    if [ $CF_EXIT -eq 124 ]; then
+        CF_WARNING="Memory search timed out (>5s). Patterns not recalled. Try: claude-flow memory search --query 'project:$PROJECT'"
+    elif [ $CF_EXIT -ne 0 ] && [ -z "$CONTEXT" ]; then
+        CF_WARNING="Memory search failed. Try: claude-flow memory search --query 'project:$PROJECT'"
+    fi
+else
+    CF_WARNING="claude-flow not found. Memory recall unavailable. Install: npm i -g claude-flow"
 fi
 
 # Log recalled patterns to session file for promotion tracking
@@ -70,12 +80,18 @@ if [ -z "$CONTEXT" ]; then
 fi
 
 # Output — only inject context if we found something
+OUTPUT_PARTS=""
 if [ -n "$CONTEXT" ]; then
-    # Prepend confidence note so the model knows pattern maturity
-    CONTEXT_WITH_NOTE="[Recalled patterns — confidence:quarantine means unproven, treat with caution. confidence:proven means validated across 3+ sessions.]
+    OUTPUT_PARTS="[Recalled patterns — confidence:quarantine means unproven, treat with caution. confidence:proven means validated across 3+ sessions.]
 $CONTEXT"
-    # Escape for JSON embedding
-    ESCAPED=$(echo "$CONTEXT_WITH_NOTE" | jq -Rs '.' 2>/dev/null) || ESCAPED='""'
+fi
+if [ -n "$CF_WARNING" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}[Hook warning] $CF_WARNING"
+fi
+
+if [ -n "$OUTPUT_PARTS" ]; then
+    ESCAPED=$(echo "$OUTPUT_PARTS" | jq -Rs '.' 2>/dev/null) || ESCAPED='""'
     echo "{\"continue\": true, \"additionalContext\": $ESCAPED}"
 else
     echo '{"continue": true}'
