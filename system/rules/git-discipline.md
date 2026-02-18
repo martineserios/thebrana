@@ -96,6 +96,7 @@ Worktree directories sit next to the repo: `../repo-branch-shortname`. Examples:
 - **Always use `git worktree remove`** to clean up — never `rm -rf` the directory
 - **Don't leave stale worktrees** — remove after merge
 - **`git worktree list`** to see what's active
+- **Agents can't write to worktrees** — Task agents are sandboxed to the project directory. Worktrees live outside it (`../`). Pattern: agents compose content → main context writes to worktree.
 
 ### Handling interruptions (with worktrees)
 
