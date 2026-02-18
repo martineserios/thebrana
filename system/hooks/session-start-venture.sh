@@ -67,12 +67,16 @@ else
     [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
 
     if [ -n "$CF" ]; then
-        REVIEW_HIT=$(timeout 3 $CF memory search --query "weekly-review" --namespace business 2>/dev/null | head -3 || true)
-        if [ -z "$REVIEW_HIT" ]; then
+        CF_OUTPUT=$(timeout 3 $CF memory search --query "weekly-review" --namespace business 2>&1) || true
+        CF_EXIT=$?
+        REVIEW_HIT=$(echo "$CF_OUTPUT" | head -3 || true)
+        if [ $CF_EXIT -eq 124 ]; then
+            STALE_WARNING="Weekly review check timed out. Consider running /weekly-review."
+        elif [ -z "$REVIEW_HIT" ]; then
             STALE_WARNING="No weekly review found. Consider running /weekly-review."
         fi
     else
-        STALE_WARNING="No weekly review found. Consider running /weekly-review."
+        STALE_WARNING="claude-flow not found — weekly review status unknown. Consider running /weekly-review."
     fi
 fi
 

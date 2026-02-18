@@ -62,6 +62,7 @@ done
 
 # Layer 1: try claude-flow memory store
 STORED_L1=false
+CF_WARNING=""
 if [ -n "$CF" ]; then
     KEY="session:${PROJECT}:${SESSION_ID}"
     VALUE=$(echo "$SUMMARY_JSON" | jq -c '.' 2>/dev/null) || VALUE="$SUMMARY_JSON"
@@ -71,9 +72,27 @@ if [ -n "$CF" ]; then
         OUTCOME="success"
     fi
     TAGS="project:$PROJECT,type:session-summary,outcome:$OUTCOME,confidence:quarantine"
-    if timeout 5 $CF memory store -k "$KEY" -v "$VALUE" --namespace patterns --tags "$TAGS" >/dev/null 2>&1; then
+    CF_ERR=$(timeout 5 $CF memory store -k "$KEY" -v "$VALUE" --namespace patterns --tags "$TAGS" 2>&1) || true
+    CF_EXIT=$?
+    if [ $CF_EXIT -eq 0 ]; then
         STORED_L1=true
+    elif [ $CF_EXIT -eq 124 ]; then
+        CF_WARNING="Session summary store timed out (>5s). Try: claude-flow memory store -k '$KEY'"
+    else
+        CF_WARNING="Session summary store failed (exit $CF_EXIT). Try: claude-flow memory store -k '$KEY'"
     fi
+else
+    CF_WARNING="claude-flow not found. Session summary not persisted. Install: npm i -g claude-flow"
+fi
+
+# Log CF warning to session file for diagnostics
+if [ -n "$CF_WARNING" ]; then
+    jq -n -c \
+        --argjson ts "$(date +%s 2>/dev/null || echo 0)" \
+        --arg tool "session-end" \
+        --arg outcome "cf-warning" \
+        --arg detail "$CF_WARNING" \
+        '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail}' >> "$SESSION_FILE" 2>/dev/null || true
 fi
 
 # Layer 0: find the project's auto memory directory
