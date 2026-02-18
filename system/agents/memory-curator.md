@@ -1,6 +1,6 @@
 ---
 name: memory-curator
-description: Recall relevant patterns from the knowledge system, cross-pollinate from other projects, and check knowledge health. Use when starting work on a topic, when encountering a familiar problem, or for periodic knowledge checks.
+description: "Recall relevant patterns from the knowledge system, cross-pollinate from other projects, and check knowledge health. Use when starting work on a topic, encountering a familiar problem, or for periodic knowledge checks. Not for: codebase search (use scout), project structure detection (use project-scanner), web research (use scout)."
 model: haiku
 tools:
   - Bash

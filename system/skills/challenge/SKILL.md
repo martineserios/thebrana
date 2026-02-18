@@ -24,8 +24,8 @@ This skill spawns a Sonnet subagent to adversarially review a plan, approach, or
    - Migration/performance/estimates → **Assumption buster**: "What are you assuming that might not be true?"
    - Code/security review → **Adversarial reviewer**: Find concrete problems, security issues, performance concerns.
 
-3. **Spawn Sonnet subagent** using the Task tool:
-   - `model: "sonnet"`
+3. **Spawn Opus subagent** using the Task tool:
+   - `model: "opus"`
    - `subagent_type: "general-purpose"`
    - Provide: the plan/approach being challenged + relevant code/files
    - Key instruction: "Be specific and actionable. Don't nitpick — focus on things that would actually cause problems or wasted effort. Suggest concrete alternatives for each concern."

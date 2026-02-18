@@ -1,6 +1,6 @@
 ---
 name: metrics-collector
-description: Collect venture metrics from snapshots, experiments, pipeline, financials. Use when growth-check, weekly-review, or monthly-close run.
+description: "Collect venture metrics from snapshots, experiments, pipeline, financials. Use when growth-check, weekly-review, or monthly-close run. Not for: daily focus cards (use daily-ops), deal-level analysis (use pipeline-tracker), general research (use scout)."
 model: haiku
 tools:
   - Bash

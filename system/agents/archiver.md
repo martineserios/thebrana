@@ -1,6 +1,6 @@
 ---
 name: archiver
-description: Archive a project's patterns and knowledge when retiring. Categorize patterns as transferable, historical, or deletable.
+description: "Archive a project's patterns and knowledge when retiring. Categorize patterns as transferable, historical, or deletable. Use when retiring a project or archiving its knowledge for future reference. Not for: active project work (use project-scanner), pattern recall (use memory-curator), daily operations (use daily-ops)."
 model: haiku
 tools:
   - Bash
