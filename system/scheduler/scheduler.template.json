@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "defaults": {
+    "model": "haiku",
+    "allowedTools": "Read,Glob,Grep,WebSearch",
+    "logRetention": 30,
+    "timeoutSeconds": 300
+  },
+  "jobs": {
+    "staleness-report": {
+      "type": "command",
+      "command": "./scripts/staleness-report.sh",
+      "project": "~/enter_thebrana/enter",
+      "schedule": "Mon *-*-* 09:00:00",
+      "enabled": false,
+      "_comment": "Weekly staleness check on spec docs (enable after scripts/ exist)"
+    },
+    "link-check": {
+      "type": "command",
+      "command": "lychee --config .lychee.toml *.md",
+      "project": "~/enter_thebrana/enter",
+      "schedule": "Mon *-*-* 09:00:00",
+      "enabled": false,
+      "_comment": "Weekly dead link check (enable after lychee is installed)"
+    },
+    "knowledge-review": {
+      "type": "skill",
+      "skill": "/knowledge-review",
+      "project": "~/enter_thebrana/enter",
+      "schedule": "*-*-01 10:00:00",
+      "model": "sonnet",
+      "allowedTools": "Read,Glob,Grep,WebSearch,WebFetch",
+      "enabled": false,
+      "_comment": "Monthly knowledge health check"
+    },
+    "morning-check": {
+      "type": "skill",
+      "skill": "/morning",
+      "project": "~/enter_thebrana/enter",
+      "schedule": "Mon..Fri *-*-* 08:00:00",
+      "model": "haiku",
+      "enabled": false,
+      "_comment": "Daily morning focus card (set project to your active venture)"
+    },
+    "weekly-review": {
+      "type": "skill",
+      "skill": "/weekly-review",
+      "project": "~/enter_thebrana/enter",
+      "schedule": "Fri *-*-* 17:00:00",
+      "model": "sonnet",
+      "enabled": false,
+      "_comment": "Friday weekly portfolio review"
+    }
+  }
+}
