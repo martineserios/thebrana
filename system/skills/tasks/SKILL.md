@@ -33,6 +33,7 @@ language guided by the task-convention rule — no skill invocation needed.
 - `/tasks replan [project] [phase-id]` — restructure a phase
 - `/tasks archive [project]` — move completed phases to archive
 - `/tasks migrate <file>` — import tasks from a markdown backlog
+- `/tasks execute [scope] [--dry-run] [--max-parallel N] [--retry]` — execute tasks via subagents
 
 ---
 
@@ -281,3 +282,136 @@ Import tasks from an existing markdown backlog.
 4. Wait for approval — user adjusts mapping
 5. Write tasks.json
 6. Report: "Imported {N} tasks from {file}."
+
+---
+
+## /tasks execute
+
+Execute tasks via subagents — DAG-aware parallel execution with automatic wave scheduling.
+
+```
+/tasks execute [scope] [--dry-run] [--max-parallel N] [--retry]
+```
+
+**Arguments:**
+- `scope`: task/milestone/phase ID, or `"next"` for the next unblocked wave. Default: next
+- `--dry-run`: show execution plan without running agents
+- `--max-parallel N`: max concurrent subagents per wave (default: 3)
+- `--retry`: re-run failed/partial tasks, skip completed
+
+### Prerequisites
+
+Tasks must have `spawn` field set (see ADR-003 for schema). Tasks without `spawn` are skipped with a message: "no tasks configured for agent execution."
+
+### Steps
+
+1. **Read tasks.json**, identify scope
+2. **Filter executable tasks** — only tasks with `spawn: "subagent"` and status `pending` (or `in_progress`/failed for `--retry`)
+3. **Build execution waves** from `blocked_by` DAG (topological sort):
+   - Wave 1: tasks with no unmet dependencies
+   - Wave 2: tasks whose blockers are all in wave 1
+   - Wave N: tasks whose blockers are all in earlier waves
+4. **Check parent `spawn_strategy`** — if set, override wave ordering:
+   - `"parallel"`: all children in one wave (ignore inter-child deps)
+   - `"sequential"`: one task per wave, in order
+   - `"auto"`: use DAG (default behavior)
+5. **Present execution plan:**
+   ```
+   Execution plan for ph-002 (3 waves, 8 tasks):
+
+     Wave 1 (parallel):
+       t-007 Design auth flow          haiku   research
+       t-010 Design schema             haiku   research
+
+     Wave 2 (parallel):
+       t-008 Implement JWT middleware   sonnet  code
+       t-011 Write migrations           sonnet  code
+
+     Wave 3 (parallel):
+       t-009 Write auth tests           sonnet  code
+       t-012 Seed dev data              sonnet  code
+
+   Estimated: 3 waves, max 2 parallel agents per wave.
+   Proceed? (yes / dry-run was requested)
+   ```
+6. **User confirms**
+7. **Execute wave-by-wave:**
+   - For each task in the wave, spawn a subagent via the Task tool:
+     - `subagent_type`: from `agent_config.type` (default: `"general-purpose"`)
+     - `model`: from `agent_config.model` (default: haiku for research, sonnet for code)
+     - `prompt`: task subject + description + relevant context (file paths, dependencies)
+   - **Non-code tasks** (research, analysis, manual):
+     - Agent produces a summary/deliverable
+     - Write `agent_result` to tasks.json: `{status: "completed", summary: "...", completed_at: "..."}`
+     - Mark task status: completed
+   - **Code tasks** (execution: code):
+     - Agent reads code, composes changes, writes output to `/tmp/task-{id}-output.json`
+     - Agent does NOT write to project files — compose only
+     - Queue task for write-back phase
+   - **Failed tasks:**
+     - Write `agent_result`: `{status: "failed", error: "...", completed_at: "..."}`
+     - Task stays `in_progress`. Dependents remain blocked.
+     - Log error and continue with remaining tasks in wave
+8. **Write-back phase** (code tasks, sequential):
+   - For each completed code task:
+     - Read `/tmp/task-{id}-output.json`
+     - Create worktree: `git worktree add ../project-{prefix}{id} -b {prefix}{id}-{slug}`
+     - Apply changes in worktree
+     - Run tests (if applicable)
+     - If tests pass: commit, mark completed
+     - If tests fail: mark `agent_result.status: "partial"`, leave for user
+     - Clean up: remove worktree
+9. **Report summary:**
+   ```
+   Execution complete:
+     ✓ 6 tasks completed
+     ~ 1 task partial (t-009: tests failed)
+     ✗ 1 task failed (t-012: agent timeout)
+
+   Milestone 'Auth System': 3/4 done
+   Next: /tasks execute --retry ph-002
+   ```
+
+### Model routing
+
+| Task characteristic | Default model | Override via |
+|---------------------|---------------|-------------|
+| Research, analysis | haiku | `agent_config.model` |
+| Code, tests | sonnet | `agent_config.model` |
+| Architecture, design | opus | user sets explicitly |
+
+### Failure recovery
+
+- `--retry` re-runs tasks with `agent_result.status` of `"failed"` or `"partial"`
+- Completed tasks are skipped
+- User can also fall back to manual: `/tasks start <id>` on any failed task
+
+### Schema fields (on task objects)
+
+```json
+{
+  "spawn": "subagent",
+  "agent_config": {"type": "general-purpose", "model": "sonnet"},
+  "agent_result": null
+}
+```
+
+After execution:
+```json
+{
+  "agent_result": {
+    "status": "completed",
+    "summary": "Implemented JWT middleware with refresh token rotation",
+    "error": null,
+    "completed_at": "2026-02-18T14:30:00Z"
+  }
+}
+```
+
+On parent tasks, `spawn_strategy` controls child batching:
+```json
+{
+  "type": "milestone",
+  "spawn_strategy": "auto"
+}
+```
