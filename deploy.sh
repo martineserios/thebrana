@@ -69,7 +69,36 @@ else
     echo "  ✓ settings.json (new)"
 fi
 
-# Step 6: Ensure claude-flow has sql.js (missing from package.json, required at runtime)
+# Step 6: Deploy scheduler
+SCHED_SRC="$SYSTEM_DIR/scheduler"
+SCHED_DIR="$TARGET_DIR/scheduler"
+if [ -d "$SCHED_SRC" ]; then
+    mkdir -p "$SCHED_DIR/logs" "$SCHED_DIR/locks" "$SCHED_DIR/templates"
+
+    # Copy scripts (always overwrite — brana-managed)
+    cp "$SCHED_SRC/brana-scheduler" "$SCHED_DIR/brana-scheduler"
+    cp "$SCHED_SRC/brana-scheduler-runner.sh" "$SCHED_DIR/brana-scheduler-runner.sh"
+    chmod +x "$SCHED_DIR/brana-scheduler" "$SCHED_DIR/brana-scheduler-runner.sh"
+
+    # Copy templates (always overwrite)
+    cp "$SCHED_SRC/templates/"* "$SCHED_DIR/templates/"
+
+    # Copy config template only if user config doesn't exist yet
+    if [ ! -f "$SCHED_DIR/scheduler.json" ]; then
+        cp "$SCHED_SRC/scheduler.template.json" "$SCHED_DIR/scheduler.json"
+        echo "  ✓ scheduler/ (new — edit scheduler.json then run: brana-scheduler deploy)"
+    else
+        echo "  ✓ scheduler/ (updated scripts, user config preserved)"
+    fi
+
+    # Add brana-scheduler to PATH via symlink
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$SCHED_DIR/brana-scheduler" "$HOME/.local/bin/brana-scheduler"
+else
+    echo "  — scheduler/ (not found in source, skipping)"
+fi
+
+# Step 7: Ensure claude-flow has sql.js (missing from package.json, required at runtime)
 CF_BIN=""
 for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
     [ -x "$candidate" ] && CF_BIN="$candidate" && break
@@ -94,5 +123,8 @@ echo "  - $(find "$TARGET_DIR/skills" -name "SKILL.md" | wc -l) skills"
 echo "  - $(find "$TARGET_DIR/rules" -name "*.md" | wc -l) rules"
 echo "  - $(find "$TARGET_DIR/agents" -name "*.md" | wc -l) agents"
 echo "  - $(find "$TARGET_DIR/hooks" -name "*.sh" | wc -l) hooks"
+if [ -d "$TARGET_DIR/scheduler" ]; then
+    echo "  - scheduler (brana-scheduler CLI on PATH)"
+fi
 echo ""
 echo "Start a new Claude Code session to activate changes."

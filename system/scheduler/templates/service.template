@@ -1,0 +1,8 @@
+[Unit]
+Description=brana scheduler: {{JOB_NAME}}
+
+[Service]
+Type=oneshot
+ExecStart=%h/.claude/scheduler/brana-scheduler-runner.sh {{JOB_NAME}}
+Environment=HOME=%h
+Environment=PATH=%h/.local/bin:%h/.nvm/versions/node/v20.19.0/bin:/usr/local/bin:/usr/bin:/bin

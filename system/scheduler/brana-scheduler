@@ -1,0 +1,382 @@
+#!/usr/bin/env bash
+# brana-scheduler — Manage scheduled brana jobs via systemd user timers.
+# Usage: brana-scheduler <command> [args]
+#
+# Commands:
+#   deploy              Generate systemd units from config and enable timers
+#   status              Show all jobs with last run, next run, exit status
+#   logs [job] [-n N]   Show log for a job (default: last run)
+#   enable <job>        Enable a job timer
+#   disable <job>       Disable a job timer
+#   run <job>           Run a job immediately
+#   validate            Check config syntax, paths, and system prerequisites
+#   teardown            Stop all timers and remove systemd units
+
+set -euo pipefail
+
+SCHEDULER_DIR="$HOME/.claude/scheduler"
+CONFIG="$SCHEDULER_DIR/scheduler.json"
+UNIT_DIR="$HOME/.config/systemd/user"
+TEMPLATE_DIR="$SCHEDULER_DIR/templates"
+UNIT_PREFIX="brana-sched"
+
+# Colors (if terminal)
+if [ -t 1 ]; then
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[0;33m'
+    BLUE='\033[0;34m'
+    NC='\033[0m'
+else
+    RED='' GREEN='' YELLOW='' BLUE='' NC=''
+fi
+
+die() { echo -e "${RED}ERROR:${NC} $*" >&2; exit 1; }
+info() { echo -e "${BLUE}>>>${NC} $*"; }
+ok() { echo -e "${GREEN}  OK${NC} $*"; }
+warn() { echo -e "${YELLOW}WARN:${NC} $*"; }
+
+# Check prerequisites
+check_jq() { command -v jq &>/dev/null || die "jq is required but not installed"; }
+check_systemd() { command -v systemctl &>/dev/null || die "systemd is required"; }
+check_config() { [ -f "$CONFIG" ] || die "Config not found: $CONFIG (run deploy first or copy template)"; }
+
+# -------------------------------------------------------------------
+# validate — Check config syntax, paths, prerequisites
+# -------------------------------------------------------------------
+cmd_validate() {
+    local errors=0
+
+    info "Checking prerequisites..."
+    command -v jq &>/dev/null && ok "jq" || { warn "jq not found"; ((errors++)); }
+    command -v systemctl &>/dev/null && ok "systemctl" || { warn "systemd not found"; ((errors++)); }
+    command -v flock &>/dev/null && ok "flock" || { warn "flock not found"; ((errors++)); }
+    command -v claude &>/dev/null && ok "claude CLI" || { warn "claude CLI not found (skill jobs won't work)"; ((errors++)); }
+
+    # Check linger
+    if loginctl show-user "$(whoami)" 2>/dev/null | grep -q "Linger=yes"; then
+        ok "loginctl linger enabled"
+    else
+        warn "loginctl linger not enabled (timers won't fire after logout)"
+        echo "  Fix: sudo loginctl enable-linger $(whoami)"
+        ((errors++))
+    fi
+
+    # Check config
+    if [ ! -f "$CONFIG" ]; then
+        warn "Config not found: $CONFIG"
+        ((errors++))
+    else
+        ok "Config file exists"
+
+        # Validate JSON syntax
+        if jq empty "$CONFIG" 2>/dev/null; then
+            ok "Valid JSON"
+        else
+            warn "Invalid JSON in $CONFIG"
+            ((errors++))
+        fi
+
+        # Check job paths
+        local jobs
+        jobs=$(jq -r '.jobs | keys[]' "$CONFIG" 2>/dev/null)
+        for job in $jobs; do
+            local project
+            project=$(jq -r --arg j "$job" '.jobs[$j].project' "$CONFIG")
+            project="${project/#\~/$HOME}"
+            if [ -d "$project" ]; then
+                ok "  $job → $project"
+            else
+                warn "  $job → $project (directory not found)"
+                ((errors++))
+            fi
+        done
+    fi
+
+    if [ "$errors" -eq 0 ]; then
+        echo -e "\n${GREEN}All checks passed.${NC}"
+    else
+        echo -e "\n${YELLOW}$errors issue(s) found.${NC}"
+        return 1
+    fi
+}
+
+# -------------------------------------------------------------------
+# deploy — Generate systemd units and enable timers
+# -------------------------------------------------------------------
+cmd_deploy() {
+    check_jq
+    check_systemd
+    check_config
+
+    info "Deploying scheduler..."
+
+    # Ensure linger is enabled
+    if ! loginctl show-user "$(whoami)" 2>/dev/null | grep -q "Linger=yes"; then
+        warn "Linger not enabled. Timers won't fire after logout."
+        echo "  Run: sudo loginctl enable-linger $(whoami)"
+    fi
+
+    mkdir -p "$UNIT_DIR"
+
+    # Read all jobs
+    local jobs
+    jobs=$(jq -r '.jobs | keys[]' "$CONFIG")
+
+    for job in $jobs; do
+        local enabled schedule
+        enabled=$(jq -r --arg j "$job" '.jobs[$j].enabled // true' "$CONFIG")
+        schedule=$(jq -r --arg j "$job" '.jobs[$j].schedule // empty' "$CONFIG")
+
+        if [ -z "$schedule" ]; then
+            warn "Job '$job' has no schedule, skipping"
+            continue
+        fi
+
+        local service_unit="$UNIT_DIR/${UNIT_PREFIX}-${job}.service"
+        local timer_unit="$UNIT_DIR/${UNIT_PREFIX}-${job}.timer"
+
+        # Generate service unit
+        sed "s|{{JOB_NAME}}|$job|g" "$TEMPLATE_DIR/service.template" > "$service_unit"
+
+        # Generate timer unit
+        sed -e "s|{{JOB_NAME}}|$job|g" -e "s|{{SCHEDULE}}|$schedule|g" "$TEMPLATE_DIR/timer.template" > "$timer_unit"
+
+        if [ "$enabled" = "true" ]; then
+            systemctl --user enable --now "${UNIT_PREFIX}-${job}.timer" 2>/dev/null
+            ok "$job (enabled, schedule: $schedule)"
+        else
+            systemctl --user disable --now "${UNIT_PREFIX}-${job}.timer" 2>/dev/null || true
+            echo -e "  ${YELLOW}--${NC} $job (disabled)"
+        fi
+    done
+
+    systemctl --user daemon-reload
+    info "Deploy complete. Run 'brana-scheduler status' to verify."
+}
+
+# -------------------------------------------------------------------
+# status — Show all jobs
+# -------------------------------------------------------------------
+cmd_status() {
+    check_jq
+    check_config
+
+    local jobs
+    jobs=$(jq -r '.jobs | keys[]' "$CONFIG")
+
+    printf "%-25s %-10s %-12s %-22s %s\n" "JOB" "ENABLED" "LAST STATUS" "NEXT RUN" "SCHEDULE"
+    printf "%-25s %-10s %-12s %-22s %s\n" "---" "-------" "-----------" "--------" "--------"
+
+    for job in $jobs; do
+        local enabled schedule
+        enabled=$(jq -r --arg j "$job" '.jobs[$j].enabled // true' "$CONFIG")
+        schedule=$(jq -r --arg j "$job" '.jobs[$j].schedule // "—"' "$CONFIG")
+
+        local last_status="—"
+        local next_run="—"
+        local timer_unit="${UNIT_PREFIX}-${job}.timer"
+        local service_unit="${UNIT_PREFIX}-${job}.service"
+
+        if systemctl --user is-active "$timer_unit" &>/dev/null; then
+            # Get next run from timer
+            next_run=$(systemctl --user show "$timer_unit" --property=NextElapseUSecRealtime --value 2>/dev/null | head -1)
+            if [ -n "$next_run" ] && [ "$next_run" != "n/a" ]; then
+                next_run=$(date -d "@$(($(date -d "$next_run" +%s 2>/dev/null || echo 0)))" "+%Y-%m-%d %H:%M" 2>/dev/null || echo "$next_run")
+            fi
+        fi
+
+        # Check last run status from logs
+        local log_dir="$SCHEDULER_DIR/logs/$job"
+        if [ -d "$log_dir" ]; then
+            local latest_log
+            latest_log=$(ls -t "$log_dir"/*.log 2>/dev/null | head -1)
+            if [ -n "$latest_log" ]; then
+                if grep -q "^SUCCESS" "$latest_log" 2>/dev/null; then
+                    last_status="ok"
+                elif grep -q "^TIMEOUT" "$latest_log" 2>/dev/null; then
+                    last_status="timeout"
+                elif grep -q "^FAILED" "$latest_log" 2>/dev/null; then
+                    last_status="failed"
+                elif grep -q "^SKIPPED" "$latest_log" 2>/dev/null; then
+                    last_status="skipped"
+                fi
+            fi
+        fi
+
+        local enabled_str
+        if [ "$enabled" = "true" ]; then
+            enabled_str="${GREEN}yes${NC}"
+        else
+            enabled_str="${YELLOW}no${NC}"
+        fi
+
+        printf "%-25s %-10b %-12s %-22s %s\n" "$job" "$enabled_str" "$last_status" "$next_run" "$schedule"
+    done
+}
+
+# -------------------------------------------------------------------
+# logs — Show logs for a job
+# -------------------------------------------------------------------
+cmd_logs() {
+    local job="${1:-}"
+    local num="${2:-1}"
+
+    if [ -z "$job" ]; then
+        # List all jobs with log counts
+        info "Available job logs:"
+        for dir in "$SCHEDULER_DIR/logs"/*/; do
+            [ -d "$dir" ] || continue
+            local name count
+            name=$(basename "$dir")
+            count=$(ls "$dir"/*.log 2>/dev/null | wc -l)
+            echo "  $name ($count runs)"
+        done
+        return
+    fi
+
+    # Handle -n flag
+    if [ "${2:-}" = "-n" ] && [ -n "${3:-}" ]; then
+        num="$3"
+    fi
+
+    local log_dir="$SCHEDULER_DIR/logs/$job"
+    if [ ! -d "$log_dir" ]; then
+        die "No logs found for job: $job"
+    fi
+
+    local logs
+    logs=$(ls -t "$log_dir"/*.log 2>/dev/null | head -"$num")
+    if [ -z "$logs" ]; then
+        die "No log files in $log_dir"
+    fi
+
+    for log in $logs; do
+        echo -e "${BLUE}=== $(basename "$log") ===${NC}"
+        cat "$log"
+        echo ""
+    done
+}
+
+# -------------------------------------------------------------------
+# enable/disable — Toggle a job
+# -------------------------------------------------------------------
+cmd_enable() {
+    local job="${1:?Usage: brana-scheduler enable <job>}"
+    check_systemd
+
+    local timer_unit="${UNIT_PREFIX}-${job}.timer"
+    if [ ! -f "$UNIT_DIR/$timer_unit" ]; then
+        die "Timer unit not found: $timer_unit (run 'brana-scheduler deploy' first)"
+    fi
+
+    # Update config
+    check_jq
+    check_config
+    local tmp
+    tmp=$(mktemp)
+    jq --arg j "$job" '.jobs[$j].enabled = true' "$CONFIG" > "$tmp" && mv "$tmp" "$CONFIG"
+
+    systemctl --user enable --now "$timer_unit"
+    ok "Enabled $job"
+}
+
+cmd_disable() {
+    local job="${1:?Usage: brana-scheduler disable <job>}"
+    check_systemd
+
+    local timer_unit="${UNIT_PREFIX}-${job}.timer"
+
+    # Update config
+    check_jq
+    check_config
+    local tmp
+    tmp=$(mktemp)
+    jq --arg j "$job" '.jobs[$j].enabled = false' "$CONFIG" > "$tmp" && mv "$tmp" "$CONFIG"
+
+    systemctl --user disable --now "$timer_unit" 2>/dev/null || true
+    ok "Disabled $job"
+}
+
+# -------------------------------------------------------------------
+# run — Run a job immediately
+# -------------------------------------------------------------------
+cmd_run() {
+    local job="${1:?Usage: brana-scheduler run <job>}"
+    check_systemd
+
+    local service_unit="${UNIT_PREFIX}-${job}.service"
+    if [ ! -f "$UNIT_DIR/$service_unit" ]; then
+        # Fallback: run runner directly
+        info "Running $job directly..."
+        "$SCHEDULER_DIR/brana-scheduler-runner.sh" "$job"
+        return
+    fi
+
+    info "Running $job via systemd..."
+    systemctl --user start "$service_unit"
+    ok "Started $job. Check logs with: brana-scheduler logs $job"
+}
+
+# -------------------------------------------------------------------
+# teardown — Remove all scheduler units
+# -------------------------------------------------------------------
+cmd_teardown() {
+    check_systemd
+    info "Tearing down scheduler..."
+
+    # Stop and disable all brana-sched timers
+    for timer in "$UNIT_DIR"/${UNIT_PREFIX}-*.timer; do
+        [ -f "$timer" ] || continue
+        local unit_name
+        unit_name=$(basename "$timer")
+        systemctl --user disable --now "$unit_name" 2>/dev/null || true
+        rm -f "$timer"
+        ok "Removed timer: $unit_name"
+    done
+
+    # Remove service units
+    for service in "$UNIT_DIR"/${UNIT_PREFIX}-*.service; do
+        [ -f "$service" ] || continue
+        rm -f "$service"
+        ok "Removed: $(basename "$service")"
+    done
+
+    systemctl --user daemon-reload
+    info "Teardown complete. Config and logs preserved."
+}
+
+# -------------------------------------------------------------------
+# Main dispatch
+# -------------------------------------------------------------------
+case "${1:-help}" in
+    deploy)   cmd_deploy ;;
+    status)   cmd_status ;;
+    logs)     shift; cmd_logs "$@" ;;
+    enable)   cmd_enable "${2:-}" ;;
+    disable)  cmd_disable "${2:-}" ;;
+    run)      cmd_run "${2:-}" ;;
+    validate) cmd_validate ;;
+    teardown) cmd_teardown ;;
+    help|--help|-h)
+        echo "brana-scheduler — Manage scheduled brana jobs"
+        echo ""
+        echo "Usage: brana-scheduler <command> [args]"
+        echo ""
+        echo "Commands:"
+        echo "  deploy              Generate systemd units and enable timers"
+        echo "  status              Show all jobs with schedule and last status"
+        echo "  logs [job] [-n N]   Show log for a job (default: last run)"
+        echo "  enable <job>        Enable a job timer"
+        echo "  disable <job>       Disable a job timer"
+        echo "  run <job>           Run a job immediately"
+        echo "  validate            Check config, paths, and prerequisites"
+        echo "  teardown            Stop all timers, remove units"
+        echo ""
+        echo "Config: ~/.claude/scheduler/scheduler.json"
+        echo "Logs:   ~/.claude/scheduler/logs/<job>/"
+        ;;
+    *)
+        die "Unknown command: $1 (try 'brana-scheduler help')"
+        ;;
+esac
