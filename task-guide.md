@@ -22,6 +22,7 @@ The system works through natural language. You talk to Claude about your work, a
 12. [Migration from Markdown Backlogs](#12-migration-from-markdown-backlogs)
 13. [Common Scenarios](#13-common-scenarios)
 14. [Quick Reference](#14-quick-reference)
+15. [Agent Execution](#15-agent-execution)
 
 ---
 
@@ -446,6 +447,7 @@ Claude: Marking done. Notes: "Client approved API changes via email."
 | `/tasks replan [project] [phase]` | Restructure |
 | `/tasks archive [project]` | Archive completed phases |
 | `/tasks migrate <file>` | Import from markdown |
+| `/tasks execute [scope]` | Execute tasks via subagents |
 
 ### Task file locations
 
@@ -456,3 +458,124 @@ Claude: Marking done. Notes: "Client approved API changes via email."
 | Portfolio registry | `~/.claude/tasks-portfolio.json` |
 | Convention rule | `~/.claude/rules/task-convention.md` |
 | Skill | `~/.claude/skills/tasks/SKILL.md` |
+
+---
+
+## 15. Agent Execution
+
+Tasks can be executed automatically by spawning subagents — one agent per task, with DAG-aware parallelism.
+
+### How it works
+
+```
+You (or /tasks execute)
+  |
+Orchestrator reads DAG, builds waves
+  |
+Wave 1: spawn agents for unblocked tasks (parallel)
+  → agents complete → results written to tasks.json
+  |
+Wave 2: spawn agents for newly unblocked tasks
+  → ...
+  |
+Write-back: code task outputs applied to worktrees (sequential)
+  |
+Summary report
+```
+
+### Setting up tasks for agent execution
+
+Add the `spawn` field to any task you want agents to handle:
+
+```json
+{
+  "id": "t-008",
+  "subject": "Implement JWT middleware",
+  "spawn": "subagent",
+  "agent_config": {"type": "general-purpose", "model": "sonnet"}
+}
+```
+
+Tasks without `spawn` are manual (v1 behavior). Both modes coexist — you can agent-execute some tasks and manually do others in the same phase.
+
+On milestones/phases, `spawn_strategy` controls how children execute:
+
+| Strategy | Behavior |
+|----------|----------|
+| `"auto"` | Use the DAG — parallel where dependencies allow (default) |
+| `"parallel"` | All children in one wave (ignore inter-child deps) |
+| `"sequential"` | One task per wave, in order |
+| `null` | Manual execution — no agent spawning |
+
+### Running it
+
+```
+You: "execute the auth milestone"
+
+Claude: Execution plan for ms-003 Auth System (2 waves, 4 tasks):
+
+          Wave 1:
+            t-007 Design auth flow          haiku
+
+          Wave 2 (parallel):
+            t-008 Implement JWT middleware   sonnet
+            t-009 Write auth tests           sonnet
+
+        Proceed?
+
+You: "yes"
+
+Claude: Wave 1: spawning 1 agent...
+        ✓ t-007 completed — "Auth flow: JWT with refresh, OAuth2 deferred"
+
+        Wave 2: spawning 2 agents...
+        ✓ t-008 completed — branch feat/t-008-jwt-middleware, tests pass
+        ~ t-009 partial — 2/5 test cases failing
+
+        Summary: 3/4 tasks done, 1 partial.
+        Fix t-009 manually or /tasks execute --retry ms-003
+```
+
+Or use the command directly: `/tasks execute ms-003`
+
+### Dry run
+
+Preview the execution plan without running anything:
+
+```
+/tasks execute ms-003 --dry-run
+```
+
+Shows wave breakdown, agent types, and models — useful for cost estimation before committing.
+
+### Code tasks and the sandbox
+
+Agents are sandboxed to the project directory — they can't write to worktrees (which live at `../`). For code tasks, the system uses compose-then-write:
+
+1. **Agent phase**: agent reads code, analyzes, composes changes → writes to `/tmp/task-{id}-output.json`
+2. **Write phase**: orchestrator creates worktree, applies changes, runs tests, commits
+
+Multiple code agents compose in parallel (the expensive part). Write-backs happen sequentially (the cheap part).
+
+### Model routing
+
+| Task type | Default model |
+|-----------|---------------|
+| Research, analysis | haiku |
+| Code implementation, tests | sonnet |
+| Architecture, complex design | opus (user-set only) |
+
+Override per task with `agent_config.model`.
+
+### When things fail
+
+| What happened | What the system does |
+|---------------|---------------------|
+| Agent timed out | Task marked failed. Dependents stay blocked. |
+| Tests failed | Task marked partial. User decides: retry or take over. |
+| Invalid output | Task reverts to pending. Try again or do manually. |
+| You cancel (Ctrl+C) | Completed tasks keep status. In-progress revert to pending. |
+
+Retry failed tasks: `/tasks execute --retry <scope>`
+
+Or take over manually: `/tasks start <id>` on any failed task.
