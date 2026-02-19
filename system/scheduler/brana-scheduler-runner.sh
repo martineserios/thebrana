@@ -9,9 +9,28 @@ JOB_NAME="${1:?Usage: brana-scheduler-runner.sh <job-name>}"
 CONFIG="$HOME/.claude/scheduler/scheduler.json"
 LOG_BASE="$HOME/.claude/scheduler/logs"
 LOCK_DIR="$HOME/.claude/scheduler/locks"
+STATUS_FILE="$HOME/.claude/scheduler/last-status.json"
 
 # Ensure dirs exist
 mkdir -p "$LOCK_DIR"
+
+# Write job status to last-status.json (one entry per job, atomic write)
+write_status() {
+    local status="$1" exit_code="$2" attempts="${3:-1}"
+    local tmp
+    tmp=$(mktemp)
+    local entry
+    entry=$(jq -n --arg job "$JOB_NAME" --arg status "$status" \
+        --argjson exit_code "$exit_code" --argjson attempts "$attempts" \
+        --arg ts "$(date -Iseconds)" \
+        '{($job): {status: $status, exit_code: $exit_code, timestamp: $ts, attempts: $attempts}}')
+    if [ -f "$STATUS_FILE" ]; then
+        jq --argjson new "$entry" '. * $new' "$STATUS_FILE" > "$tmp" 2>/dev/null || echo "$entry" > "$tmp"
+    else
+        echo "$entry" > "$tmp"
+    fi
+    mv "$tmp" "$STATUS_FILE"
+}
 
 # Parse job config with jq
 if [ ! -f "$CONFIG" ]; then
@@ -78,6 +97,7 @@ LOCKFILE="$LOCK_DIR/$PROJECT_SLUG.lock"
 exec 9>"$LOCKFILE"
 if ! flock -n 9; then
     echo "SKIPPED: Another scheduled job is running in $PROJECT_SLUG" >> "$LOGFILE"
+    write_status "SKIPPED" 75
     exit 75  # EX_TEMPFAIL
 fi
 
@@ -117,19 +137,31 @@ esac
 # Release lock
 flock -u 9
 
+# Determine status label
+if [ "$EXIT_CODE" -eq 124 ]; then
+    STATUS_LABEL="TIMEOUT"
+elif [ "$EXIT_CODE" -eq 0 ]; then
+    STATUS_LABEL="SUCCESS"
+else
+    STATUS_LABEL="FAILED"
+fi
+
 # Log exit status
 {
     echo ""
     echo "==="
-    if [ "$EXIT_CODE" -eq 124 ]; then
+    if [ "$STATUS_LABEL" = "TIMEOUT" ]; then
         echo "TIMEOUT after ${TIMEOUT_SECS}s"
-    elif [ "$EXIT_CODE" -eq 0 ]; then
+    elif [ "$STATUS_LABEL" = "SUCCESS" ]; then
         echo "SUCCESS"
     else
         echo "FAILED (exit code: $EXIT_CODE)"
     fi
     echo "Finished: $(date -Iseconds)"
 } >> "$LOGFILE"
+
+# Write status for statusline and notifications
+write_status "$STATUS_LABEL" "$EXIT_CODE"
 
 # Prune old logs (keep last N)
 PRUNE_COUNT=$(ls -t "$JOB_LOG_DIR"/*.log 2>/dev/null | tail -n +"$((LOG_RETENTION + 1))" | wc -l)
