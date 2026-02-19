@@ -67,10 +67,15 @@ DEFAULTS_TOOLS=$(jq -r '.defaults.allowedTools // "Read,Glob,Grep,WebSearch"' "$
 DEFAULTS_RETENTION=$(jq -r '.defaults.logRetention // 30' "$CONFIG")
 DEFAULTS_TIMEOUT=$(jq -r '.defaults.timeoutSeconds // 300' "$CONFIG")
 
+DEFAULTS_RETRIES=$(jq -r '.defaults.maxRetries // 0' "$CONFIG")
+DEFAULTS_BACKOFF=$(jq -r '.defaults.retryBackoffSec // 30' "$CONFIG")
+
 MODEL=$(echo "$JOB" | jq -r --arg def "$DEFAULTS_MODEL" '.model // $def')
 ALLOWED_TOOLS=$(echo "$JOB" | jq -r --arg def "$DEFAULTS_TOOLS" '.allowedTools // $def')
 LOG_RETENTION=$(echo "$JOB" | jq -r --arg def "$DEFAULTS_RETENTION" '.logRetention // $def')
 TIMEOUT_SECS=$(echo "$JOB" | jq -r --arg def "$DEFAULTS_TIMEOUT" '.timeoutSeconds // $def')
+MAX_RETRIES=$(echo "$JOB" | jq -r --arg def "$DEFAULTS_RETRIES" '.maxRetries // $def')
+RETRY_BACKOFF=$(echo "$JOB" | jq -r --arg def "$DEFAULTS_BACKOFF" '.retryBackoffSec // $def')
 
 # Set up logging
 JOB_LOG_DIR="$LOG_BASE/$JOB_NAME"
@@ -93,49 +98,70 @@ LOCKFILE="$LOCK_DIR/$PROJECT_SLUG.lock"
     echo ""
 } > "$LOGFILE"
 
-# Acquire project lock (non-blocking — skip if locked)
-exec 9>"$LOCKFILE"
-if ! flock -n 9; then
-    echo "SKIPPED: Another scheduled job is running in $PROJECT_SLUG" >> "$LOGFILE"
-    write_status "SKIPPED" 75
-    exit 75  # EX_TEMPFAIL
-fi
-
-# Run the job
+# Run the job with retry loop
+MAX_ATTEMPTS=$((MAX_RETRIES + 1))
 EXIT_CODE=0
+ATTEMPT=0
+
 cd "$PROJECT"
 
-case "$JOB_TYPE" in
-    skill)
-        SKILL=$(echo "$JOB" | jq -r '.skill')
-        # Build a natural language prompt that triggers skill invocation
-        PROMPT="Execute the $SKILL skill for this project. Follow all skill instructions completely."
+for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
+    # Acquire project lock (non-blocking — skip if locked)
+    exec 9>"$LOCKFILE"
+    if ! flock -n 9; then
+        echo "SKIPPED: Another scheduled job is running in $PROJECT_SLUG" >> "$LOGFILE"
+        write_status "SKIPPED" 75
+        exit 75  # EX_TEMPFAIL — no retry on lock conflict
+    fi
 
-        # Resolve model to full Claude model ID
-        case "$MODEL" in
-            haiku)  MODEL_ID="haiku" ;;
-            sonnet) MODEL_ID="sonnet" ;;
-            opus)   MODEL_ID="opus" ;;
-            *)      MODEL_ID="$MODEL" ;;
-        esac
+    if [ "$ATTEMPT" -gt 1 ]; then
+        echo "" >> "$LOGFILE"
+        echo "--- Retry attempt $ATTEMPT/$MAX_ATTEMPTS ---" >> "$LOGFILE"
+    fi
 
-        timeout "$TIMEOUT_SECS" claude -p "$PROMPT" \
-            --model "$MODEL_ID" \
-            --allowedTools "$ALLOWED_TOOLS" \
-            >> "$LOGFILE" 2>&1 || EXIT_CODE=$?
-        ;;
-    command)
-        COMMAND=$(echo "$JOB" | jq -r '.command')
-        timeout "$TIMEOUT_SECS" bash -c "$COMMAND" >> "$LOGFILE" 2>&1 || EXIT_CODE=$?
-        ;;
-    *)
-        echo "ERROR: Unknown job type: $JOB_TYPE" >> "$LOGFILE"
-        EXIT_CODE=1
-        ;;
-esac
+    EXIT_CODE=0
+    case "$JOB_TYPE" in
+        skill)
+            SKILL=$(echo "$JOB" | jq -r '.skill')
+            PROMPT="Execute the $SKILL skill for this project. Follow all skill instructions completely."
 
-# Release lock
-flock -u 9
+            case "$MODEL" in
+                haiku)  MODEL_ID="haiku" ;;
+                sonnet) MODEL_ID="sonnet" ;;
+                opus)   MODEL_ID="opus" ;;
+                *)      MODEL_ID="$MODEL" ;;
+            esac
+
+            timeout "$TIMEOUT_SECS" claude -p "$PROMPT" \
+                --model "$MODEL_ID" \
+                --allowedTools "$ALLOWED_TOOLS" \
+                >> "$LOGFILE" 2>&1 || EXIT_CODE=$?
+            ;;
+        command)
+            COMMAND=$(echo "$JOB" | jq -r '.command')
+            timeout "$TIMEOUT_SECS" bash -c "$COMMAND" >> "$LOGFILE" 2>&1 || EXIT_CODE=$?
+            ;;
+        *)
+            echo "ERROR: Unknown job type: $JOB_TYPE" >> "$LOGFILE"
+            EXIT_CODE=1
+            ;;
+    esac
+
+    # Release lock between attempts (prevents blocking other jobs)
+    flock -u 9
+
+    # Success — stop retrying
+    if [ "$EXIT_CODE" -eq 0 ]; then
+        break
+    fi
+
+    # Retries remaining — backoff and continue
+    if [ "$ATTEMPT" -lt "$MAX_ATTEMPTS" ]; then
+        BACKOFF=$((RETRY_BACKOFF * (1 << (ATTEMPT - 1))))
+        echo "FAILED (exit code: $EXIT_CODE), retrying in ${BACKOFF}s (attempt $ATTEMPT/$MAX_ATTEMPTS)" >> "$LOGFILE"
+        sleep "$BACKOFF"
+    fi
+done
 
 # Determine status label
 if [ "$EXIT_CODE" -eq 124 ]; then
@@ -157,11 +183,14 @@ fi
     else
         echo "FAILED (exit code: $EXIT_CODE)"
     fi
+    if [ "$ATTEMPT" -gt 1 ]; then
+        echo "Attempts: $ATTEMPT/$MAX_ATTEMPTS"
+    fi
     echo "Finished: $(date -Iseconds)"
 } >> "$LOGFILE"
 
 # Write status for statusline and notifications
-write_status "$STATUS_LABEL" "$EXIT_CODE"
+write_status "$STATUS_LABEL" "$EXIT_CODE" "$ATTEMPT"
 
 # Prune old logs (keep last N)
 PRUNE_COUNT=$(ls -t "$JOB_LOG_DIR"/*.log 2>/dev/null | tail -n +"$((LOG_RETENTION + 1))" | wc -l)
