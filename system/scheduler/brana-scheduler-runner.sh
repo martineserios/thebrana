@@ -3,7 +3,7 @@
 # Reads job config from scheduler.json, acquires project lock, runs job, logs output.
 # Usage: brana-scheduler-runner.sh <job-name>
 
-set -euo pipefail
+set -uo pipefail
 
 JOB_NAME="${1:?Usage: brana-scheduler-runner.sh <job-name>}"
 CONFIG="$HOME/.claude/scheduler/scheduler.json"
