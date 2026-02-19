@@ -49,6 +49,13 @@ cp -r "$SYSTEM_DIR/hooks" "$TARGET_DIR/hooks"
 chmod +x "$TARGET_DIR/hooks/"*.sh
 echo "  ✓ hooks/"
 
+# Deploy statusline (standalone file, not in a subdirectory)
+if [ -f "$SYSTEM_DIR/statusline.sh" ]; then
+    cp "$SYSTEM_DIR/statusline.sh" "$TARGET_DIR/statusline.sh"
+    chmod +x "$TARGET_DIR/statusline.sh"
+    echo "  ✓ statusline.sh"
+fi
+
 # Step 5: Merge settings.json (brana base + user overlay)
 if [ -f "$TARGET_DIR/settings.json" ]; then
     # Additive hooks merge: brana hooks overlay user hooks, user wins for everything else.

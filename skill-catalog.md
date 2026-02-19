@@ -19,8 +19,11 @@ Deployed from `system/skills/` via `deploy.sh`.
 | `/project-retire` | Archiving a project | Preserves transferable patterns, archives project-specific ones |
 | `/refresh-knowledge` | Dimension docs might be stale | Spawns parallel agents to web-search for updates to each doc's topics |
 | `/retrospective` | Session produced a notable learning | Stores pattern with quarantine metadata; promotes/demotes recalled patterns |
+| `/tasks [command]` | Planning or tracking work | Manage tasks with hierarchy — plan, status, roadmap, start, done. NL is primary; commands are shortcuts |
 
 ## Venture/Business Skills
+
+For the complete task management guide, see **[task-guide.md](task-guide.md)**.
 
 For the complete usage guide, see **[venture-guide.md](venture-guide.md)**.
 
@@ -56,6 +59,7 @@ In `enter/.claude/commands/`. Only available when working in the enter repo.
 
 **Knowledge lifecycle:** pattern-recall → retrospective → knowledge-review → cross-pollinate
 **Build workflow:** build-phase → debrief → maintain-specs
+**Task management:** tasks
 **Quality:** challenge
 **Project lifecycle:** project-onboard → project-retire
 **Spec maintenance:** refresh-knowledge → maintain-specs → apply-errata → re-evaluate-reflections

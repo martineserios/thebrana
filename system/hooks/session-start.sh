@@ -79,11 +79,62 @@ if [ -z "$CONTEXT" ]; then
     fi
 fi
 
+# ── Task context injection ──────────────────────────────
+TASK_CONTEXT=""
+TASKS_FILE=""
+
+# Find tasks.json in project
+if [ -d "$GIT_ROOT/.claude" ] && [ -f "$GIT_ROOT/.claude/tasks.json" ]; then
+    TASKS_FILE="$GIT_ROOT/.claude/tasks.json"
+elif [ -d "$CWD/.claude" ] && [ -f "$CWD/.claude/tasks.json" ]; then
+    TASKS_FILE="$CWD/.claude/tasks.json"
+fi
+
+if [ -n "$TASKS_FILE" ] && [ -f "$TASKS_FILE" ]; then
+    # Extract compact summary with jq
+    TASK_SUMMARY=$(jq -r '
+      .project as $proj |
+      ([.tasks[] | select(.type == "phase" and .status == "in_progress")] | first) as $phase |
+      ([.tasks[] | select(.type == "task" or .type == "subtask")] | length) as $total |
+      ([.tasks[] | select((.type == "task" or .type == "subtask") and .status == "completed")] | length) as $done |
+      ([.tasks[] | select(.status == "in_progress" and (.type == "task" or .type == "subtask"))] | first) as $current |
+      ([.tasks[] | select(.stream == "bugs" and .status != "completed" and .status != "cancelled")] | length) as $bugs |
+      "Project: \($proj)" +
+      (if $phase then " | Phase: \($phase.subject) (\($done)/\($total))" else "" end) +
+      (if $current then " | Working on: \($current.id) \($current.subject)" else "" end) +
+      (if $bugs > 0 then " | Bugs: \($bugs) open" else "" end)
+    ' "$TASKS_FILE" 2>/dev/null) || true
+
+    if [ -n "$TASK_SUMMARY" ]; then
+        TASK_CONTEXT="[Active tasks] $TASK_SUMMARY
+Tasks file: $TASKS_FILE"
+    fi
+else
+    # Fallback: portfolio summary if tasks-portfolio.json exists
+    PORTFOLIO_FILE="$HOME/.claude/tasks-portfolio.json"
+    if [ -f "$PORTFOLIO_FILE" ]; then
+        PORTFOLIO_SUMMARY=$(jq -r '
+          [.projects[] |
+            .slug as $slug | .path as $path |
+            ($path + "/.claude/tasks.json") as $tf |
+            {slug: $slug, path: $path}
+          ] | map(.slug) | join(", ")
+        ' "$PORTFOLIO_FILE" 2>/dev/null) || true
+        if [ -n "$PORTFOLIO_SUMMARY" ]; then
+            TASK_CONTEXT="[Task portfolio] Projects: $PORTFOLIO_SUMMARY. Use /tasks status for details."
+        fi
+    fi
+fi
+
 # Output — only inject context if we found something
 OUTPUT_PARTS=""
 if [ -n "$CONTEXT" ]; then
     OUTPUT_PARTS="[Recalled patterns — confidence:quarantine means unproven, treat with caution. confidence:proven means validated across 3+ sessions.]
 $CONTEXT"
+fi
+if [ -n "$TASK_CONTEXT" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}$TASK_CONTEXT"
 fi
 if [ -n "$CF_WARNING" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
