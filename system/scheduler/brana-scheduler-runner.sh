@@ -77,6 +77,11 @@ TIMEOUT_SECS=$(echo "$JOB" | jq -r --arg def "$DEFAULTS_TIMEOUT" '.timeoutSecond
 MAX_RETRIES=$(echo "$JOB" | jq -r --arg def "$DEFAULTS_RETRIES" '.maxRetries // $def')
 RETRY_BACKOFF=$(echo "$JOB" | jq -r --arg def "$DEFAULTS_BACKOFF" '.retryBackoffSec // $def')
 
+# captureOutput: store run summary in claude-flow memory (default true)
+# Use has() pattern — jq '//' treats false as falsy
+DEFAULTS_CAPTURE=$(jq -r 'if .defaults | has("captureOutput") then .defaults.captureOutput else true end' "$CONFIG")
+CAPTURE_OUTPUT=$(echo "$JOB" | jq -r --arg def "$DEFAULTS_CAPTURE" 'if has("captureOutput") then .captureOutput else $def end')
+
 # Set up logging
 JOB_LOG_DIR="$LOG_BASE/$JOB_NAME"
 mkdir -p "$JOB_LOG_DIR"
@@ -147,6 +152,9 @@ for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
             ;;
     esac
 
+    # Capture last output line for memory (before retry messages)
+    JOB_SUMMARY=$(tail -1 "$LOGFILE")
+
     # Release lock between attempts (prevents blocking other jobs)
     flock -u 9
 
@@ -191,6 +199,33 @@ fi
 
 # Write status for statusline and notifications
 write_status "$STATUS_LABEL" "$EXIT_CODE" "$ATTEMPT"
+
+# Store run summary in claude-flow memory (graceful degradation)
+if [ "$CAPTURE_OUTPUT" = "true" ]; then
+    CF=""
+    for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
+        [ -x "$candidate" ] && CF="$candidate" && break
+    done
+    [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
+
+    if [ -n "$CF" ]; then
+        RUN_DATE=$(date +%Y-%m-%d)
+        MEMORY_KEY="sched:${JOB_NAME}:${RUN_DATE}"
+        SAFE_SUMMARY=$(echo "$JOB_SUMMARY" | tr -d '"' | tr '\n' ' ' | cut -c1-500)
+        MEMORY_VALUE=$(jq -nc \
+            --arg job "$JOB_NAME" --arg status "$STATUS_LABEL" \
+            --argjson exit_code "$EXIT_CODE" --argjson attempts "$ATTEMPT" \
+            --arg ts "$(date -Iseconds)" --arg summary "$SAFE_SUMMARY" \
+            '{job: $job, status: $status, exit_code: $exit_code, attempts: $attempts, timestamp: $ts, summary: $summary}')
+        MEMORY_TAGS="job:${JOB_NAME},status:${STATUS_LABEL},type:scheduler-run"
+
+        (cd "$HOME" && "$CF" memory store --upsert \
+            -k "$MEMORY_KEY" \
+            -v "$MEMORY_VALUE" \
+            --namespace scheduler-runs \
+            --tags "$MEMORY_TAGS") 2>/dev/null || true
+    fi
+fi
 
 # Prune old logs (keep last N)
 PRUNE_COUNT=$(ls -t "$JOB_LOG_DIR"/*.log 2>/dev/null | tail -n +"$((LOG_RETENTION + 1))" | wc -l)
