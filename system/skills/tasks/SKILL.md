@@ -34,6 +34,8 @@ language guided by the task-convention rule — no skill invocation needed.
 - `/tasks archive [project]` — move completed phases to archive
 - `/tasks migrate <file>` — import tasks from a markdown backlog
 - `/tasks execute [scope] [--dry-run] [--max-parallel N] [--retry]` — execute tasks via subagents
+- `/tasks tags [project]` — tag inventory, filtering, and bulk tag management
+- `/tasks context <id> [text]` — view or set rich context on a task
 
 ---
 
@@ -53,9 +55,10 @@ Interactive phase planning. Builds the hierarchy conversationally.
    - If no: create milestone only, tasks deferred
 7. **Ask about dependencies:** "Any tasks that block others?"
 8. **Propose the full tree** formatted as a roadmap view
-9. **Wait for approval** — user can adjust before writing
-10. **Write tasks.json** — one Write for the entire batch
-11. **Report:** show the tree with IDs for reference
+9. **Offer bulk tags:** "Tag all tasks in this phase? (comma-separated, or skip)" — applies tags to every task in the phase
+10. **Wait for approval** — user can adjust before writing
+11. **Write tasks.json** — one Write for the entire batch
+12. **Report:** show the tree with IDs and tags for reference
 
 ### Defaults
 - Stream: roadmap (unless user specifies otherwise)
@@ -90,9 +93,12 @@ High-level progress view with aggregation.
 
   Tech Debt
     {item}                  pending
+
+  Tags: scheduler(4) research(3) quick-win(2)
 ```
 
 Progress bars: filled = completed, empty = remaining
+Tag summary line at bottom: shows all tags with counts across active tasks (non-completed). Omit line if no tasks have tags.
 
 ### Portfolio view (no project argument)
 
@@ -114,7 +120,7 @@ Full tree view — every level expanded.
 
 1. Read tasks.json
 2. Build tree from parent references
-3. Render with indentation, status icons, and blocked indicators:
+3. Render with indentation, status icons, tags (if any), and blocked indicators:
 
 ```
 {project} Roadmap
@@ -127,12 +133,12 @@ Full tree view — every level expanded.
   ph-002 Phase 2: API Foundation           ████░░░░ 3/8
     ms-003 Auth System                     ██░░░░░░ 1/3
       t-007 Design auth flow               ✓
-      t-008 Implement JWT middleware        → next (unblocked)
+      t-008 Implement JWT middleware [auth, quick-win] → next (unblocked)
       t-009 Write auth tests               · blocked by t-008
     ms-004 Database Setup                  ░░░░░░░░ 0/3
       t-010 Design schema                  · blocked by ms-003
       t-011 Write migrations               · blocked by t-010
-      t-012 Seed dev data                  · blocked by t-011
+      t-012 Seed dev data [scheduler]      · blocked by t-011
 
   Bugs
     ms-005 Auth token expiry               ██░░░░░░ 1/3
@@ -142,6 +148,7 @@ Full tree view — every level expanded.
 ```
 
 Status icons: completed, -> next unblocked, <- in progress, . pending/blocked
+Tags shown inline as `[tag1, tag2]` after subject — only when tags array is non-empty.
 
 ---
 
@@ -153,17 +160,20 @@ Find the highest-priority unblocked task.
 
 1. Read tasks.json
 2. Filter: status=pending, blocked_by all completed, type=task|subtask
-3. Sort by: priority (P0 first) -> order -> created date
-4. Show top 3 candidates:
+3. If `--tag X` provided, additionally filter to tasks containing tag X
+4. Sort by: priority (P0 first) -> order -> created date
+5. Show top 3 candidates with tags inline:
 
 ```
 Next up:
-  1. t-008 Implement JWT middleware     P1  S  roadmap
-  2. t-014 Fix token refresh            P1  M  bugs
-  3. t-020 Update API docs              P2  S  docs
+  1. t-008 Implement JWT middleware [auth, quick-win]  P1  S  roadmap
+  2. t-014 Fix token refresh                           P1  M  bugs
+  3. t-020 Update API docs [docs]                      P2  S  docs
 
 Start one? (number or "1" to begin)
 ```
+
+Optional `--tag` narrows candidates: `/tasks next --tag scheduler`
 
 ---
 
@@ -234,9 +244,10 @@ Quick-add a single task.
 1. Parse description from argument
 2. Read tasks.json
 3. Ask: "Which stream?" (default: roadmap) and "Which milestone?" (show active ones)
-4. Auto-assign next id, set defaults
-5. Confirm: "Add t-013 'Handle rate limiting' under ms-003 Auth System?"
-6. Write tasks.json
+4. If `--tags "tag1,tag2"` provided, use those. Otherwise ask: "Any tags? (comma-separated, or skip)"
+5. Auto-assign next id, set defaults (tags default to `[]`)
+6. Confirm: "Add t-013 'Handle rate limiting' [scheduler] under ms-003 Auth System?"
+7. Write tasks.json
 
 ---
 
@@ -282,6 +293,110 @@ Import tasks from an existing markdown backlog.
 4. Wait for approval — user adjusts mapping
 5. Write tasks.json
 6. Report: "Imported {N} tasks from {file}."
+
+---
+
+## /tasks tags
+
+Tag inventory, filtering, and bulk tag management.
+
+### Usage
+
+```
+/tasks tags [project]                    — tag inventory (all tags + task counts)
+/tasks tags --filter "tag1,tag2"         — AND filter (tasks with ALL listed tags)
+/tasks tags --any "tag1,tag2"            — OR filter (tasks with ANY listed tag)
+/tasks tags add <id|ids> "tag1,tag2"     — add tags to one or more tasks
+/tasks tags remove <id|ids> "tag1"       — remove a tag from one or more tasks
+```
+
+### Steps
+
+**Inventory (no subcommand):**
+1. Read tasks.json
+2. Collect all unique tags across all tasks
+3. Count tasks per tag (include status breakdown)
+4. Render:
+
+```
+Tags in {project}:
+
+  scheduler     4 tasks  (2 pending, 1 in_progress, 1 completed)
+  quick-win     3 tasks  (3 pending)
+  research      2 tasks  (1 in_progress, 1 completed)
+  auth          2 tasks  (2 pending)
+```
+
+**Filter (`--filter` or `--any`):**
+1. Read tasks.json
+2. `--filter`: keep tasks where tags array contains ALL specified tags (AND)
+3. `--any`: keep tasks where tags array contains ANY specified tag (OR)
+4. Render matching tasks as a flat list with status and tags:
+
+```
+Tasks tagged [scheduler]:
+  t-008 Implement JWT middleware [scheduler, auth]     → pending
+  t-012 Seed dev data [scheduler]                      · blocked
+  t-018 Deploy scheduler config [scheduler, quick-win] ← in_progress
+  t-021 Scheduler v2 research [scheduler, research]    ✓ completed
+```
+
+**Add tags:**
+1. Parse task id(s) — comma-separated or space-separated
+2. Parse tags — comma-separated quoted string
+3. Read tasks.json, find tasks
+4. Append new tags (deduplicate, preserve existing)
+5. Confirm: "Add tags [scheduler, auth] to t-008, t-009?"
+6. Write tasks.json
+
+**Remove tags:**
+1. Parse task id(s) and tag to remove
+2. Read tasks.json, filter out the tag from each task's tags array
+3. Confirm: "Remove tag 'scheduler' from t-008, t-009?"
+4. Write tasks.json
+
+---
+
+## /tasks context
+
+View or set rich context on a task — rationale, links, notes, decisions.
+
+### Usage
+
+```
+/tasks context <id>                     — show context for a task
+/tasks context <id> "context text"      — set context (replaces existing)
+/tasks context <id> --append "note"     — append to existing context
+```
+
+### Steps
+
+**View (no text):**
+1. Read tasks.json, find task by id
+2. If context is null/empty: "No context set for {id}. Add some?"
+3. If context exists: display it with task subject as header
+
+```
+t-008 Implement JWT middleware
+
+Context:
+  Rationale: chose JWT over session cookies for stateless API. See ADR-005.
+  Key constraint: tokens must expire in 15min, refresh tokens in 7d.
+  Related: t-009 (tests), ms-003 (parent milestone).
+```
+
+**Set (with text):**
+1. Read tasks.json, find task
+2. Replace context field with provided text
+3. Confirm: "Set context on t-008?"
+4. Write tasks.json
+
+**Append (`--append`):**
+1. Read tasks.json, find task
+2. If context is null, set to the appended text
+3. If context exists, append with newline separator
+4. Confirm: "Append to t-008 context?"
+5. Write tasks.json
 
 ---
 

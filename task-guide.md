@@ -23,6 +23,7 @@ The system works through natural language. You talk to Claude about your work, a
 13. [Common Scenarios](#13-common-scenarios)
 14. [Quick Reference](#14-quick-reference)
 15. [Agent Execution](#15-agent-execution)
+16. [Tags & Context](#16-tags--context)
 
 ---
 
@@ -355,6 +356,7 @@ Manual archive: `/tasks archive palco`
 A PostToolUse hook validates every write to tasks.json:
 - JSON syntax (catches malformed writes)
 - Required fields (catches missing data)
+- Optional field types: `tags` must be array of strings, `context` must be string (if present)
 - Parent rollup (auto-completes parents when all children done)
 
 You don't need to think about this — it happens automatically.
@@ -432,6 +434,9 @@ Claude: Marking done. Notes: "Client approved API changes via email."
 | "plan a new phase for X" | Interactive planning session |
 | "add a task for Y" | Quick-add with context |
 | "this is a bug" | Creates task in bugs stream |
+| "show tasks tagged X" | Filter by tag |
+| "tag t-008 as X" | Add tag to task |
+| "add context to t-008" | Set task context |
 
 ### Commands (shortcuts, never required)
 
@@ -448,6 +453,11 @@ Claude: Marking done. Notes: "Client approved API changes via email."
 | `/tasks archive [project]` | Archive completed phases |
 | `/tasks migrate <file>` | Import from markdown |
 | `/tasks execute [scope]` | Execute tasks via subagents |
+| `/tasks tags [project]` | Tag inventory, filter, add/remove |
+| `/tasks tags --filter "a,b"` | Tasks with ALL listed tags |
+| `/tasks tags add <id> "a,b"` | Add tags to task(s) |
+| `/tasks context <id> [text]` | View or set task context |
+| `/tasks next --tag X` | Next unblocked filtered by tag |
 
 ### Task file locations
 
@@ -579,3 +589,119 @@ Override per task with `agent_config.model`.
 Retry failed tasks: `/tasks execute --retry <scope>`
 
 Or take over manually: `/tasks start <id>` on any failed task.
+
+---
+
+## 16. Tags & Context
+
+Two optional fields that add flexible classification and rich background to tasks.
+
+### Tags
+
+Tags are arbitrary strings on any task — they complement the fixed stream taxonomy with ad-hoc groupings.
+
+```json
+{
+  "id": "t-008",
+  "subject": "Implement JWT middleware",
+  "tags": ["auth", "quick-win"],
+  "stream": "roadmap"
+}
+```
+
+Streams answer "what kind of work?" (5 fixed values). Tags answer "what else is this related to?" (unlimited, user-defined).
+
+#### Working with tags
+
+```
+You: "show me all tasks tagged 'scheduler'"
+
+Claude: Tasks tagged [scheduler]:
+          t-008 Implement JWT middleware [scheduler, auth]     pending
+          t-012 Seed dev data [scheduler]                      blocked
+          t-018 Deploy scheduler config [scheduler, quick-win] in_progress
+
+You: "tag t-020 and t-021 as 'research'"
+
+Claude: Add tag 'research' to t-020, t-021? Confirm?
+```
+
+Or use commands: `/tasks tags --filter "scheduler"`, `/tasks tags add t-020,t-021 "research"`
+
+#### Tag inventory
+
+```
+You: "what tags do we have?"
+
+Claude: Tags in palco:
+          scheduler     4 tasks  (2 pending, 1 in_progress, 1 completed)
+          quick-win     3 tasks  (3 pending)
+          auth          2 tasks  (2 pending)
+```
+
+Or: `/tasks tags palco`
+
+#### Filtering next task by tag
+
+```
+/tasks next --tag scheduler
+```
+
+Narrows candidates to tasks with the specified tag.
+
+### Context
+
+Free-form text attached to a task — rationale, links, constraints, decisions. Richer than `notes` (which captures outcomes), context captures the *why* and *how*.
+
+```json
+{
+  "id": "t-008",
+  "subject": "Implement JWT middleware",
+  "context": "Chose JWT over session cookies for stateless API. See ADR-005.\nKey constraint: tokens expire in 15min, refresh in 7d.",
+  "notes": null
+}
+```
+
+#### Setting context
+
+```
+You: "add some context to t-008 — we chose JWT because of the stateless API"
+
+Claude: Set context on t-008: "Chose JWT for stateless API. See ADR-005."
+        Confirm?
+```
+
+Or: `/tasks context t-008 "Chose JWT for stateless API. See ADR-005."`
+
+Append to existing context: `/tasks context t-008 --append "Also needs PKCE for mobile clients."`
+
+#### Viewing context
+
+```
+/tasks context t-008
+```
+
+Shows the full context with the task subject as header.
+
+### Schema
+
+Both fields are optional — existing tasks.json files work unchanged.
+
+| Field | Type | Default | Validation |
+|-------|------|---------|-----------|
+| `tags` | `string[]` | `[]` | Must be array; items must be strings |
+| `context` | `string` | `null` | Must be string if present |
+
+Tags sit after `description` (classification cluster). Context sits after `notes` (free-form text cluster).
+
+### Planning with tags
+
+During `/tasks plan`, Claude offers to bulk-tag all tasks in a phase:
+
+```
+Claude: Tag all tasks in this phase? (comma-separated, or skip)
+You: "scheduler, v2"
+Claude: Applied [scheduler, v2] to all 6 tasks.
+```
+
+When adding tasks with `/tasks add`, pass `--tags "tag1,tag2"` or Claude asks interactively.

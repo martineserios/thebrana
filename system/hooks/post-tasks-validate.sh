@@ -44,7 +44,13 @@ SCHEMA_ERRORS=$(jq -r '
         if .type == null then "task \(.id // "?") missing type" else empty end,
         if (.type | IN("phase","milestone","task","subtask") | not)
           then "task \(.id // "?"): invalid type \(.type)" else empty end,
-        if .stream == null then "task \(.id // "?") missing stream" else empty end
+        if .stream == null then "task \(.id // "?") missing stream" else empty end,
+        if .tags != null and (.tags | type) != "array"
+          then "task \(.id // "?"): tags must be array" else empty end,
+        if .tags != null and (.tags | type) == "array" and ([.tags[] | type != "string"] | any)
+          then "task \(.id // "?"): tags items must be strings" else empty end,
+        if .context != null and (.context | type) != "string"
+          then "task \(.id // "?"): context must be string" else empty end
       ] | .[]
     )
   ] | if length > 0 then join("; ") else empty end
