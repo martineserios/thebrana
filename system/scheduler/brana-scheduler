@@ -77,20 +77,71 @@ cmd_validate() {
             errors=$((errors + 1))
         fi
 
-        # Check job paths
+        # Check job paths and calendar schedules
         local jobs
         jobs=$(jq -r '.jobs | keys[]' "$CONFIG" 2>/dev/null)
+
+        info "Checking jobs..."
         for job in $jobs; do
-            local project
+            local project schedule
             project=$(jq -r --arg j "$job" '.jobs[$j].project' "$CONFIG")
             project="${project/#\~/$HOME}"
+            schedule=$(jq -r --arg j "$job" '.jobs[$j].schedule // empty' "$CONFIG")
+
             if [ -d "$project" ]; then
                 ok "  $job → $project"
             else
                 warn "  $job → $project (directory not found)"
                 errors=$((errors + 1))
             fi
+
+            # Validate calendar expression
+            if [ -n "$schedule" ]; then
+                if systemd-analyze calendar "$schedule" &>/dev/null; then
+                    local next_run
+                    next_run=$(systemd-analyze calendar "$schedule" 2>/dev/null | grep "Next elapse:" | head -1 | sed 's/.*Next elapse: //')
+                    ok "  $job schedule: $schedule (next: $next_run)"
+                else
+                    warn "  $job invalid calendar: $schedule"
+                    errors=$((errors + 1))
+                fi
+            else
+                warn "  $job has no schedule"
+                errors=$((errors + 1))
+            fi
         done
+    fi
+
+    # Verify deployed units (must run after daemon-reload)
+    info "Checking deployed units..."
+    if [ -d "$UNIT_DIR" ]; then
+        local has_units=false
+        for unit in "$UNIT_DIR"/${UNIT_PREFIX}-*.service; do
+            [ -f "$unit" ] || continue
+            has_units=true
+            local unit_name
+            unit_name=$(basename "$unit")
+            if systemd-analyze --user verify --recursive-errors=yes "$unit_name" 2>/dev/null; then
+                ok "  $unit_name"
+            else
+                warn "  $unit_name has issues"
+                errors=$((errors + 1))
+            fi
+        done
+        if [ "$has_units" = false ]; then
+            warn "No deployed service units found (run 'brana-scheduler deploy' first)"
+        fi
+
+        # Check OnFailure target exists
+        if [ -f "$UNIT_DIR/brana-sched-notify@.service" ]; then
+            ok "  notify template unit deployed"
+        else
+            warn "  brana-sched-notify@.service not found (OnFailure won't work)"
+            errors=$((errors + 1))
+        fi
+    else
+        warn "Unit directory not found: $UNIT_DIR"
+        errors=$((errors + 1))
     fi
 
     if [ "$errors" -eq 0 ]; then
