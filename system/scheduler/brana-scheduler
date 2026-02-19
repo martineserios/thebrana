@@ -119,6 +119,15 @@ cmd_deploy() {
 
     mkdir -p "$UNIT_DIR"
 
+    # Deploy notify template unit
+    cp "$TEMPLATE_DIR/notify@.service" "$UNIT_DIR/brana-sched-notify@.service"
+    ok "notify template unit"
+
+    # Read defaults for timeout/retry calculation
+    local DEFAULTS_TIMEOUT DEFAULTS_RETRIES
+    DEFAULTS_TIMEOUT=$(jq -r '.defaults.timeoutSeconds // 300' "$CONFIG")
+    DEFAULTS_RETRIES=$(jq -r '.defaults.maxRetries // 0' "$CONFIG")
+
     # Read all jobs
     local jobs
     jobs=$(jq -r '.jobs | keys[]' "$CONFIG")
@@ -136,8 +145,15 @@ cmd_deploy() {
         local service_unit="$UNIT_DIR/${UNIT_PREFIX}-${job}.service"
         local timer_unit="$UNIT_DIR/${UNIT_PREFIX}-${job}.timer"
 
+        # Compute service timeout (job timeout + 60s safety margin for retries)
+        local job_timeout
+        job_timeout=$(jq -r --arg j "$job" --arg def "$DEFAULTS_TIMEOUT" '.jobs[$j].timeoutSeconds // $def' "$CONFIG")
+        local max_retries
+        max_retries=$(jq -r --arg j "$job" --arg def "$DEFAULTS_RETRIES" '.jobs[$j].maxRetries // $def' "$CONFIG")
+        local service_timeout=$(( (job_timeout + 60) * (max_retries + 1) ))
+
         # Generate service unit
-        sed "s|{{JOB_NAME}}|$job|g" "$TEMPLATE_DIR/service.template" > "$service_unit"
+        sed -e "s|{{JOB_NAME}}|$job|g" -e "s|{{TIMEOUT}}|$service_timeout|g" "$TEMPLATE_DIR/service.template" > "$service_unit"
 
         # Generate timer unit
         sed -e "s|{{JOB_NAME}}|$job|g" -e "s|{{SCHEDULE}}|$schedule|g" "$TEMPLATE_DIR/timer.template" > "$timer_unit"
