@@ -211,7 +211,13 @@ cmd_deploy() {
 
         if [ "$enabled" = "true" ]; then
             systemctl --user enable --now "${UNIT_PREFIX}-${job}.timer" 2>/dev/null
-            ok "$job (enabled, schedule: $schedule)"
+            local next_run=""
+            next_run=$(systemd-analyze calendar "$schedule" 2>/dev/null | grep "Next elapse:" | head -1 | sed 's/.*Next elapse: //') || true
+            if [ -n "$next_run" ]; then
+                ok "$job (enabled, next: $next_run)"
+            else
+                ok "$job (enabled, schedule: $schedule)"
+            fi
         else
             systemctl --user disable --now "${UNIT_PREFIX}-${job}.timer" 2>/dev/null || true
             echo -e "  ${YELLOW}--${NC} $job (disabled)"
@@ -219,7 +225,26 @@ cmd_deploy() {
     done
 
     systemctl --user daemon-reload
-    info "Deploy complete. Run 'brana-scheduler status' to verify."
+
+    # Verify units after daemon-reload
+    info "Verifying units..."
+    local verify_errors=0
+    for unit in "$UNIT_DIR"/${UNIT_PREFIX}-*.service; do
+        [ -f "$unit" ] || continue
+        local unit_name
+        unit_name=$(basename "$unit")
+        if systemd-analyze --user verify --recursive-errors=yes "$unit_name" 2>/dev/null; then
+            ok "  $unit_name"
+        else
+            warn "  $unit_name has issues"
+            verify_errors=$((verify_errors + 1))
+        fi
+    done
+    if [ "$verify_errors" -gt 0 ]; then
+        warn "$verify_errors unit(s) have issues. Run 'brana-scheduler validate' for details."
+    fi
+
+    info "Deploy complete."
 }
 
 # -------------------------------------------------------------------
