@@ -78,7 +78,8 @@ if [ -d "$SCHED_SRC" ]; then
     # Copy scripts (always overwrite — brana-managed)
     cp "$SCHED_SRC/brana-scheduler" "$SCHED_DIR/brana-scheduler"
     cp "$SCHED_SRC/brana-scheduler-runner.sh" "$SCHED_DIR/brana-scheduler-runner.sh"
-    chmod +x "$SCHED_DIR/brana-scheduler" "$SCHED_DIR/brana-scheduler-runner.sh"
+    cp "$SCHED_SRC/brana-scheduler-notify.sh" "$SCHED_DIR/brana-scheduler-notify.sh"
+    chmod +x "$SCHED_DIR/brana-scheduler" "$SCHED_DIR/brana-scheduler-runner.sh" "$SCHED_DIR/brana-scheduler-notify.sh"
 
     # Copy templates (always overwrite)
     cp "$SCHED_SRC/templates/"* "$SCHED_DIR/templates/"
