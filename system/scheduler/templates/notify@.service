@@ -1,0 +1,8 @@
+[Unit]
+Description=brana scheduler notification for %I
+
+[Service]
+Type=oneshot
+ExecStart=%h/.claude/scheduler/brana-scheduler-notify.sh %I
+Environment=HOME=%h
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
