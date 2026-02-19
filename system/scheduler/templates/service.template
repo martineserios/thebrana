@@ -1,8 +1,10 @@
 [Unit]
 Description=brana scheduler: {{JOB_NAME}}
+OnFailure=brana-sched-notify@%n.service
 
 [Service]
 Type=oneshot
 ExecStart=%h/.claude/scheduler/brana-scheduler-runner.sh {{JOB_NAME}}
+TimeoutStartSec={{TIMEOUT}}s
 Environment=HOME=%h
 Environment=PATH=%h/.local/bin:%h/.nvm/versions/node/v20.19.0/bin:/usr/local/bin:/usr/bin:/bin

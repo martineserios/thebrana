@@ -80,4 +80,19 @@ if [ -n "$TASK_FILE" ]; then
     printf '%b' " $S 🐛 ${Cr}${T_BUGS}${R}"
   fi
 fi
+# ── Scheduler health ─────────────────────────────────
+SCHED_STATUS="$HOME/.claude/scheduler/last-status.json"
+if [ -f "$SCHED_STATUS" ]; then
+  IFS=$'\t' read -r S_OK S_FAIL <<< \
+    "$(jq -r '[
+      ([.[] | select(.status == "SUCCESS")] | length),
+      ([.[] | select(.status == "FAILED" or .status == "TIMEOUT")] | length)
+    ] | @tsv' "$SCHED_STATUS" 2>/dev/null)"
+  S_OK=${S_OK:-0}; S_FAIL=${S_FAIL:-0}
+  if (( S_FAIL > 0 )); then
+    printf '%b' " $S 📅 ${Cg}${S_OK}✓${R} ${Cr}${S_FAIL}✗${R}"
+  elif (( S_OK > 0 )); then
+    printf '%b' " $S 📅 ${Cg}${S_OK}✓${R}"
+  fi
+fi
 echo
