@@ -36,13 +36,16 @@ Three layers, each with its own persistence and scope:
 thebrana/
 ├── system/                         ← Deploys to ~/.claude/
 │   ├── CLAUDE.md                   ← Mastermind identity
-│   ├── skills/ (18)                ← Invokable skills
-│   ├── rules/ (8)                  ← Always-loaded behavioral rules
-│   ├── hooks/ (5)                  ← Event-driven shell scripts
-│   └── agents/ (7)                 ← Specialized sub-agents
+│   ├── skills/ (19)                ← Invokable skills
+│   ├── rules/ (9)                  ← Always-loaded behavioral rules
+│   ├── hooks/ (6)                  ← Event-driven shell scripts
+│   ├── agents/ (7)                 ← Specialized sub-agents
+│   └── statusline.sh              ← Status line with task metrics
 ├── deploy.sh                       ← Validate + copy to ~/.claude/
 ├── validate.sh                     ← Pre-deploy checks
 ├── export-knowledge.sh             ← Export memory + ReasoningBank
+├── task-guide.md                   ← Task management user guide
+├── venture-guide.md                ← Venture management user guide
 └── README.md
 ```
 
@@ -51,10 +54,11 @@ thebrana/
 | Guide | For |
 |-------|-----|
 | **[Venture Guide](venture-guide.md)** | Managing business projects with brana — complete manual with workflows, diagrams, good practices |
+| **[Task Guide](task-guide.md)** | Planning and tracking work across projects — hierarchy, streams, branches, portfolio view |
 
-## Skills (18)
+## Skills (19)
 
-### Code-Focused (13)
+### Code-Focused (14)
 
 | Skill | Description |
 |-------|-------------|
@@ -71,6 +75,7 @@ thebrana/
 | `/refresh-knowledge` | Research external updates to dimension docs |
 | `/research` | Research a topic, doc, or creator with recursive discovery |
 | `/retrospective` | Store learnings and patterns in the knowledge system |
+| `/tasks` | Manage tasks — plan, track, navigate across phases and streams |
 
 ### Venture/Business (5)
 
@@ -82,7 +87,7 @@ thebrana/
 | `/venture-onboard` | Discover and diagnose a business project |
 | `/venture-phase` | Plan and execute a business milestone |
 
-## Rules (8)
+## Rules (9)
 
 | Rule | Purpose |
 |------|---------|
@@ -91,11 +96,12 @@ thebrana/
 | `pm-awareness` | Check issues, link commits, track progress |
 | `research-discipline` | Read project docs before web research |
 | `sdd-tdd` | Spec-driven and test-driven development |
+| `task-convention` | Task schema, NL interaction rules, branch mapping |
 | `skill-suggestions` | Proactive skill recommendations |
 | `universal-quality` | Test before commit, no secrets, type safety |
 | `work-preferences` | Parallelism, simplicity, automation |
 
-## Hooks (5)
+## Hooks (6)
 
 | Hook | Event | Purpose |
 |------|-------|---------|
@@ -104,6 +110,7 @@ thebrana/
 | `pre-tool-use.sh` | PreToolUse | SDD enforcement — block code before spec/test |
 | `post-tool-use.sh` | PostToolUse | Learn from significant tool uses |
 | `post-tool-use-failure.sh` | PostToolUseFailure | Learn from tool failures (anti-patterns) |
+| `post-tasks-validate.sh` | PostToolUse | Validate tasks.json schema + auto-rollup parents |
 
 ## Agents (7)
 

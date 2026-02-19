@@ -117,6 +117,25 @@ fi
 
 Skip silently if `gh` is not installed or the project has no GitHub remote.
 
+### Step 3c: Task context (if tasks.json exists)
+
+Check if `{project-root}/.claude/tasks.json` exists.
+
+If yes:
+1. Read with jq: active phase, in-progress tasks, next unblocked, open bugs
+2. Include in focus card:
+
+   **Tasks:**
+   - Phase: {phase-subject} — {done}/{total} ({percent}%)
+   - In progress: {current-task-subject}
+   - Next: {next-unblocked-subject}
+   - Open bugs: {count}
+
+3. If a task has been in_progress for >3 days (compare started date), flag as stale:
+   "t-008 'Implement JWT middleware' started 3 days ago — still in progress."
+
+If no tasks.json: skip this step, proceed as before.
+
 ---
 
 ## Step 4: Surface Now Priorities

@@ -52,6 +52,16 @@ Ask the user: "How does each venture feel right now? I have the data below — d
 
 Present a draft table and let the user override. Gut feel matters here — data confirms or challenges it, but the founder decides the color.
 
+### Step 1b: Task progress delta (if tasks.json exists)
+
+For each project with `.claude/tasks.json`:
+1. Count tasks completed since last weekly snapshot (compare completed dates against 7 days ago)
+2. Count tasks added (compare created dates against 7 days ago)
+3. Compute phase progress change
+
+Include in portfolio section:
+  {project}: {tasks_completed} completed, {tasks_added} added, Phase {N}: {old%} -> {new%}
+
 ---
 
 ## Step 2: Kill Zombies
@@ -182,6 +192,15 @@ For each candidate, evaluate:
 ```
 
 Get user confirmation. These become the focus for next week's `/morning` checks.
+
+### Step 5b: Task-aware next week planning
+
+When selecting Now items, prioritize:
+1. In-progress tasks (already started, should finish)
+2. Next unblocked tasks by priority
+3. Open bugs by priority
+
+Show task IDs so user can reference them: "t-008 Implement JWT middleware (P1, unblocked)"
 
 ---
 

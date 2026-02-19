@@ -76,6 +76,16 @@
             "timeout": 5000
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/post-tasks-validate.sh",
+            "timeout": 5000
+          }
+        ]
       }
     ],
     "PostToolUseFailure": [
