@@ -48,10 +48,10 @@ cmd_validate() {
     local errors=0
 
     info "Checking prerequisites..."
-    command -v jq &>/dev/null && ok "jq" || { warn "jq not found"; ((errors++)); }
-    command -v systemctl &>/dev/null && ok "systemctl" || { warn "systemd not found"; ((errors++)); }
-    command -v flock &>/dev/null && ok "flock" || { warn "flock not found"; ((errors++)); }
-    command -v claude &>/dev/null && ok "claude CLI" || { warn "claude CLI not found (skill jobs won't work)"; ((errors++)); }
+    command -v jq &>/dev/null && ok "jq" || { warn "jq not found"; errors=$((errors + 1)); }
+    command -v systemctl &>/dev/null && ok "systemctl" || { warn "systemd not found"; errors=$((errors + 1)); }
+    command -v flock &>/dev/null && ok "flock" || { warn "flock not found"; errors=$((errors + 1)); }
+    command -v claude &>/dev/null && ok "claude CLI" || { warn "claude CLI not found (skill jobs won't work)"; errors=$((errors + 1)); }
 
     # Check linger
     if loginctl show-user "$(whoami)" 2>/dev/null | grep -q "Linger=yes"; then
@@ -59,13 +59,13 @@ cmd_validate() {
     else
         warn "loginctl linger not enabled (timers won't fire after logout)"
         echo "  Fix: sudo loginctl enable-linger $(whoami)"
-        ((errors++))
+        errors=$((errors + 1))
     fi
 
     # Check config
     if [ ! -f "$CONFIG" ]; then
         warn "Config not found: $CONFIG"
-        ((errors++))
+        errors=$((errors + 1))
     else
         ok "Config file exists"
 
@@ -74,7 +74,7 @@ cmd_validate() {
             ok "Valid JSON"
         else
             warn "Invalid JSON in $CONFIG"
-            ((errors++))
+            errors=$((errors + 1))
         fi
 
         # Check job paths
@@ -88,7 +88,7 @@ cmd_validate() {
                 ok "  $job → $project"
             else
                 warn "  $job → $project (directory not found)"
-                ((errors++))
+                errors=$((errors + 1))
             fi
         done
     fi
@@ -125,7 +125,7 @@ cmd_deploy() {
 
     for job in $jobs; do
         local enabled schedule
-        enabled=$(jq -r --arg j "$job" '.jobs[$j].enabled // true' "$CONFIG")
+        enabled=$(jq -r --arg j "$job" '.jobs[$j] | if has("enabled") then .enabled else true end' "$CONFIG")
         schedule=$(jq -r --arg j "$job" '.jobs[$j].schedule // empty' "$CONFIG")
 
         if [ -z "$schedule" ]; then
@@ -170,7 +170,7 @@ cmd_status() {
 
     for job in $jobs; do
         local enabled schedule
-        enabled=$(jq -r --arg j "$job" '.jobs[$j].enabled // true' "$CONFIG")
+        enabled=$(jq -r --arg j "$job" '.jobs[$j] | if has("enabled") then .enabled else true end' "$CONFIG")
         schedule=$(jq -r --arg j "$job" '.jobs[$j].schedule // "—"' "$CONFIG")
 
         local last_status="—"

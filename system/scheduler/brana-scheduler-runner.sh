@@ -27,7 +27,7 @@ fi
 
 JOB_TYPE=$(echo "$JOB" | jq -r '.type')
 PROJECT=$(echo "$JOB" | jq -r '.project')
-ENABLED=$(echo "$JOB" | jq -r '.enabled // true')
+ENABLED=$(echo "$JOB" | jq -r 'if has("enabled") then .enabled else true end')
 
 if [ "$ENABLED" != "true" ]; then
     echo "Job $JOB_NAME is disabled, skipping."
