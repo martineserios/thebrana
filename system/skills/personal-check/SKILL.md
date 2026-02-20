@@ -62,9 +62,10 @@ Read `$PERSONAL/life.md`.
 ls -t "$PERSONAL/journal/"*.md 2>/dev/null | head -1
 ```
 
+- If no journal files exist, note "No journal entries yet."
+- If files exist, check whether the most recent one has content beyond template markers (lines with just `-`). If only template dashes, report: "Journal template created for {week} but not yet filled in."
 - Parse the week number and date range from the filename and header
 - If the most recent entry is >14 days old, flag: "No journal entry in {N} days — consider writing this week's 3Ls."
-- If no journal entries exist, note "No journal entries yet."
 
 ---
 
