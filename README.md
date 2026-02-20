@@ -95,7 +95,7 @@ thebrana/
 | `memory-framework` | CLAUDE.md vs MEMORY.md separation |
 | `pm-awareness` | Check issues, link commits, track progress |
 | `research-discipline` | Read project docs before web research |
-| `sdd-tdd` | Spec-driven and test-driven development |
+| `sdd-tdd` | Test-first development — universal testing discipline + hook enforcement |
 | `task-convention` | Task schema, NL interaction rules, branch mapping |
 | `skill-suggestions` | Proactive skill recommendations |
 | `universal-quality` | Test before commit, no secrets, type safety |

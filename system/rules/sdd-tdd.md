@@ -1,26 +1,22 @@
-# Spec-Driven & Test-Driven Development
+# Test-First Development
 
-## When `docs/decisions/` exists in the project
+## Always
 
-This project has opted into spec-driven development:
+For every non-trivial code change:
 
-- **Create an ADR before implementing any new feature.** Use `/decide <title>` to create one in `docs/decisions/`. The PreToolUse hook will block implementation on `feat/*` branches until a spec or test exists.
-- **Write tests before implementation code.** If TDD-Guard is installed, it enforces this automatically.
-- **Feature branches (`feat/*`) must have spec/test activity before implementation.** Commits touching `docs/`, `test/`, `tests/`, or `*.test.*`/`*.spec.*` files satisfy this requirement.
+- **Bug fix:** write a failing test that reproduces the bug, then fix it.
+- **New function or feature:** write at least one test before the implementation.
+- **Refactor:** verify existing tests pass before and after.
 
-## When `tdd-guard` is installed
+When tests exist, run them before committing. When they don't, write one.
 
-TDD-Guard enforces RED-GREEN-REFACTOR:
-- Write a failing test first
-- Write minimal code to pass
-- Refactor while green
-- Toggle with `tdd-guard on/off`
+Never weaken a test assertion without first investigating why it fails. The code is wrong until proven otherwise.
 
-## For projects without `docs/decisions/`
+## Enhanced enforcement (projects with `docs/decisions/`)
 
-These rules don't apply — the project hasn't opted into SDD enforcement.
+Projects with `docs/decisions/` activate stricter enforcement:
 
-## Recommended setup for new projects
+- **ADR before implementation.** Use `/decide <title>` on `feat/*` branches. The PreToolUse hook blocks implementation files until a spec or test exists on the branch.
+- **Feature branches require spec/test activity first.** Commits touching `docs/`, `test/`, `tests/`, or `*.test.*`/`*.spec.*` satisfy this.
 
-- `mkdir -p docs/decisions` — opt into spec-driven enforcement
-- `npm install -g tdd-guard && tdd-guard on` — opt into TDD enforcement
+Projects without `docs/decisions/` don't get hook enforcement, but the testing discipline above still applies.
