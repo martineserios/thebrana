@@ -136,6 +136,26 @@ If yes:
 
 If no tasks.json: skip this step, proceed as before.
 
+### Step 3d: Personal tasks (if personal/ exists)
+
+```bash
+PERSONAL="$HOME/enter_thebrana/personal"
+[ -d "$PERSONAL" ] && [ -f "$PERSONAL/tasks.md" ]
+```
+
+If yes:
+1. Read `$PERSONAL/tasks.md` — extract Active table rows
+2. Count active personal tasks, show top 2-3 in the focus card
+3. Flag any overdue items
+
+Include in focus card:
+
+   **Personal:** ({N} active)
+   - {task 1}
+   - {task 2}
+
+If personal/ doesn't exist: skip silently.
+
 ---
 
 ## Step 4: Surface Now Priorities

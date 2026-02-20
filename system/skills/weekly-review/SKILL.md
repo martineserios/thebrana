@@ -62,6 +62,28 @@ For each project with `.claude/tasks.json`:
 Include in portfolio section:
   {project}: {tasks_completed} completed, {tasks_added} added, Phase {N}: {old%} -> {new%}
 
+### Step 1c: Personal life areas (if personal/ exists)
+
+```bash
+PERSONAL="$HOME/enter_thebrana/personal"
+[ -d "$PERSONAL" ] && [ -f "$PERSONAL/life.md" ]
+```
+
+If yes:
+1. Read `$PERSONAL/life.md` — extract area ratings
+2. Surface any areas rated <5 (need attention)
+3. Check file modification date — flag if >90 days stale
+
+Include in portfolio section:
+
+   **Personal areas needing attention:**
+   - {area}: {rating}/10
+   {Stale warning if >90d since last review}
+
+If all areas are healthy (>=5) or unrated, note "Personal areas: OK" or "Personal areas: not yet rated."
+
+If personal/ doesn't exist: skip silently.
+
 ---
 
 ## Step 2: Kill Zombies
