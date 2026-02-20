@@ -16,6 +16,11 @@
 
 Each MCP server costs 4-17K tokens in tool definitions. Tool Search reduces this ~85%. Before adding a server, estimate tool count impact (~500-2000 tokens/tool). Prefer skills or sub-agents when possible.
 
+## Edit precision
+
+- For Edit (str_replace), include 3+ surrounding lines in old_string — wide context prevents mismatches.
+- For files under 50 LOC, prefer Write over Edit — fewer failure modes.
+
 ## File edit ordering
 
 Read A → Edit A → Read B → Edit B (sequential). Never batch edits without prior reads.

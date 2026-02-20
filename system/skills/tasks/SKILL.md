@@ -226,6 +226,7 @@ Complete the current task.
    - Commit with conventional type from stream mapping
    - Create PR: `gh pr create --title "{type}: {subject}" --body "Closes #{github_issue}"`
    - Offer to merge: "Merge to main? (PR #{N})"
+   - **Worktree cleanup:** if task was started in a worktree (`git worktree list` shows `../project-{prefix}{id}`), offer to remove it after merge: `git worktree remove ../project-{prefix}{id} && git branch -d {branch}`
 4. **For execution: external/manual:**
    - Ask: "Any notes on the outcome?"
    - Record in task.notes

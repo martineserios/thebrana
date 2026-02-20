@@ -6,7 +6,7 @@ Delegate WITHOUT being asked when the situation matches an agent (see CLAUDE.md 
 
 ## Suggest Skills
 
-Nudge once per trigger. Don't nag.
+Nudge once per trigger. Don't nag. Include what triggered the nudge.
 
 | Trigger | Suggest |
 |---------|---------|
