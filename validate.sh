@@ -139,6 +139,47 @@ if [ "$BUDGET" -gt 24576 ]; then
 else
     pass "Context budget OK (${BUDGET}/24576 bytes)"
 fi
+
+# Check 5b: Instruction density
+echo "Checking instruction density..."
+DIRECTIVE_PATTERN='(^- \*\*|^[0-9]+\. \*\*|^\* \*\*|^- (Always|Never|Use|Prefer|Avoid|Check|Run|Keep|Only|Do |Don.t|If |When |Before|After|Every|No |The |For |Set|Skip|Match|Create|Read|Write|Delete|Mark|Store|Spawn|Present|Wait|Include|Ensure|Reserve|Resist|Stop|Defer|Flag|Append|Insert)|^\| .+\| .+\|)'
+DIRECTIVES=0
+
+# CLAUDE.md directives
+if [ -f "$SYSTEM_DIR/CLAUDE.md" ]; then
+    c=$(grep -cE "$DIRECTIVE_PATTERN" "$SYSTEM_DIR/CLAUDE.md" || true)
+    c=${c:-0}
+    DIRECTIVES=$((DIRECTIVES + c))
+fi
+
+# Rule directives (unconditional only)
+for rule_file in "$SYSTEM_DIR"/rules/*.md; do
+    [ -f "$rule_file" ] || continue
+    # Skip path-scoped rules (they don't always load)
+    grep -q '^paths:' "$rule_file" 2>/dev/null && continue
+    c=$(grep -cE "$DIRECTIVE_PATTERN" "$rule_file" || true)
+    c=${c:-0}
+    DIRECTIVES=$((DIRECTIVES + c))
+done
+
+# Skill descriptions (1 trigger directive each)
+for skill_dir in "$SYSTEM_DIR"/skills/*/; do
+    [ -f "$skill_dir/SKILL.md" ] && DIRECTIVES=$((DIRECTIVES + 1))
+done
+
+# Agent descriptions (~2 boundary directives each)
+for agent_file in "$SYSTEM_DIR"/agents/*.md; do
+    [ -f "$agent_file" ] && DIRECTIVES=$((DIRECTIVES + 2))
+done
+
+echo "  Total always-present directives: ~${DIRECTIVES}"
+if [ "$DIRECTIVES" -gt 300 ]; then
+    fail "Instruction density critical (${DIRECTIVES} > 300 max)"
+elif [ "$DIRECTIVES" -gt 200 ]; then
+    warn "Instruction density high (${DIRECTIVES} > 200 warn threshold)"
+else
+    pass "Instruction density OK (~${DIRECTIVES}/200 warn, 300 max)"
+fi
 echo ""
 
 # Check 6: No secrets
