@@ -1,14 +1,18 @@
 # Task Convention
 
-## When starting work
+## Before branching
 
-Before branching, check `.claude/tasks.json`. If a matching task exists, use its id in the branch name and set `in_progress`. If none exists for significant work, suggest creating one.
+1. Read `.claude/tasks.json`. State what you found.
+2. Task exists → use its branch convention, set `in_progress`.
+3. No task → propose one before branching.
 
-Tasks: `{project}/.claude/tasks.json`. Archive: `.claude/tasks-archive.json`.
+After completing: update task to `completed` with notes.
+
+Tasks: `{project}/.claude/tasks.json`.
 
 Fields: id, subject, description, tags, status, stream, type, parent, order, priority, effort, execution, blocked_by, branch, github_issue, created, started, completed, notes, context. Types: phase/milestone/task/subtask (ph-/ms-/t-/st-). Status: pending/in_progress/completed/cancelled. Streams: roadmap/bugs/tech-debt/docs/experiments. Execution: code/external/manual. Tags/context: null default.
 
-**Reads**: no confirmation. **Writes**: suggest then confirm. **Planning**: discuss, propose tree, confirm, single Write.
+Reads: free. Writes: confirm first. Planning: propose tree, confirm.
 
 Branch: roadmap=feat/, bugs=fix/, tech-debt=refactor/, docs=docs/. Format: `{prefix}{id}-{slug}`. Start=branch+in_progress. Done=commit+PR. External/manual: status only.
 
