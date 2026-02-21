@@ -1,5 +1,11 @@
 # Task Convention
 
+## When starting work
+
+Before creating a branch for non-trivial work, check `.claude/tasks.json`. If a matching task exists, use its id in the branch name (`{prefix}{id}-{slug}`) and set status to `in_progress`. If no task exists for significant work, suggest creating one.
+
+## Schema
+
 Tasks: `{project}/.claude/tasks.json`. Archive: `.claude/tasks-archive.json`.
 
 Fields: id, subject, description, tags, status, stream, type, parent, order, priority, effort, execution, blocked_by, branch, github_issue, created, started, completed, notes, context. Types: phase/milestone/task/subtask (prefix: ph-/ms-/t-/st-). Status: pending/in_progress/completed/cancelled. Streams: roadmap/bugs/tech-debt/docs/experiments. Execution: code/external/manual. Tags: [] default, arbitrary strings, complement streams. Context: null default, free-form string.
