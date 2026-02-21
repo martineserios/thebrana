@@ -108,7 +108,7 @@ tinyhomes   Phase 1: Validation        ██░░░░░░ 25%
 somos       Cold Lead Flow             ████████ done
 ```
 
-Read project paths from `~/.claude/tasks-portfolio.json`. For each, read `.claude/tasks.json` if it exists.
+Read project paths from `~/.claude/tasks-portfolio.json`. Paths use `~/` prefix — resolve to `$HOME` before reading. For each, read `.claude/tasks.json` if it exists.
 
 ---
 

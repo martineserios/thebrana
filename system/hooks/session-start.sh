@@ -115,8 +115,8 @@ else
     if [ -f "$PORTFOLIO_FILE" ]; then
         PORTFOLIO_SUMMARY=$(jq -r '
           [.projects[] |
-            .slug as $slug | .path as $path |
-            ($path + "/.claude/tasks.json") as $tf |
+            .slug as $slug |
+            (.path | gsub("^~/"; env.HOME + "/")) as $path |
             {slug: $slug, path: $path}
           ] | map(.slug) | join(", ")
         ' "$PORTFOLIO_FILE" 2>/dev/null) || true
