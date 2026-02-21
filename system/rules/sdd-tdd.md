@@ -1,16 +1,15 @@
 # Test-First Development
 
-## Always
+## Before implementation
 
-For every non-trivial code change:
+Before writing or editing implementation code, answer: what test would verify this change?
 
-- **Bug fix:** write a failing test that reproduces the bug, then fix it.
-- **New function or feature:** write at least one test before the implementation.
-- **Refactor:** verify existing tests pass before and after.
+- Write the test first. See it fail. Then implement.
+- Bug fix: reproduce with a failing test before fixing.
+- Refactor: run existing tests before and after.
+- No test framework or no testable logic (config, docs, markup): state this and proceed.
 
-When tests exist, run them before committing. When they don't, write one.
-
-Never weaken a test assertion without first investigating why it fails. The code is wrong until proven otherwise.
+Never weaken a test assertion without investigating the code. The test is right until proven otherwise.
 
 ## Enhanced enforcement (projects with `docs/decisions/`)
 
