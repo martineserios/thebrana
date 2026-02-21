@@ -91,26 +91,35 @@ elif [ -d "$CWD/.claude" ] && [ -f "$CWD/.claude/tasks.json" ]; then
 fi
 
 if [ -n "$TASKS_FILE" ] && [ -f "$TASKS_FILE" ]; then
-    # Extract compact summary with jq
+    # Extract summary + next unblocked task in single jq call
     TASK_SUMMARY=$(jq -r '
       .project as $proj |
+      ([.tasks[] | select(.status == "completed") | .id]) as $completed |
       ([.tasks[] | select(.type == "phase" and .status == "in_progress")] | first) as $phase |
       ([.tasks[] | select(.type == "task" or .type == "subtask")] | length) as $total |
       ([.tasks[] | select((.type == "task" or .type == "subtask") and .status == "completed")] | length) as $done |
-      ([.tasks[] | select(.status == "in_progress" and (.type == "task" or .type == "subtask"))] | first) as $current |
       ([.tasks[] | select(.stream == "bugs" and .status != "completed" and .status != "cancelled")] | length) as $bugs |
+      ([.tasks[] | select(
+        (.type == "task" or .type == "subtask") and
+        .status == "pending" and
+        ((.blocked_by // []) | all(. as $b | $completed | index($b) != null))
+      )] | sort_by(.order) | first) as $next |
       "Project: \($proj)" +
       (if $phase then " | Phase: \($phase.subject) (\($done)/\($total))" else "" end) +
-      (if $current then " | Working on: \($current.id) \($current.subject)" else "" end) +
-      (if $bugs > 0 then " | Bugs: \($bugs) open" else "" end)
+      (if $bugs > 0 then " | Bugs: \($bugs) open" else "" end) +
+      "\n" +
+      (if $next then "Next unblocked: \($next.id) \($next.subject) (pending)"
+       elif ($total > 0 and $total == $done) then "All tasks completed. Use /tasks plan for next phase."
+       else "" end) +
+      "\nCommands: /tasks next, /tasks plan, /tasks add, /tasks start <id>"
     ' "$TASKS_FILE" 2>/dev/null) || true
 
     if [ -n "$TASK_SUMMARY" ]; then
-        TASK_CONTEXT="[Active tasks] $TASK_SUMMARY
-Tasks file: $TASKS_FILE"
+        TASK_CONTEXT="[Active tasks] $TASK_SUMMARY"
     fi
 else
-    # Fallback: portfolio summary if tasks-portfolio.json exists
+    # No tasks.json — suggest creating one, with portfolio fallback
+    TASK_CONTEXT="[Tasks] No tasks.json found. Use /tasks plan to create one."
     PORTFOLIO_FILE="$HOME/.claude/tasks-portfolio.json"
     if [ -f "$PORTFOLIO_FILE" ]; then
         PORTFOLIO_SUMMARY=$(jq -r '
@@ -121,7 +130,7 @@ else
           ] | map(.slug) | join(", ")
         ' "$PORTFOLIO_FILE" 2>/dev/null) || true
         if [ -n "$PORTFOLIO_SUMMARY" ]; then
-            TASK_CONTEXT="[Task portfolio] Projects: $PORTFOLIO_SUMMARY. Use /tasks status for details."
+            TASK_CONTEXT="[Task portfolio] Projects: $PORTFOLIO_SUMMARY. No tasks.json — use /tasks plan to create one."
         fi
     fi
 fi
