@@ -10,6 +10,7 @@ Nudge once per trigger. Don't nag. Include what triggered the nudge.
 
 | Trigger | Suggest |
 |---------|---------|
+| Work starting (feat/fix/refactor) | check `tasks.json` |
 | Next roadmap phase | `/build-phase` |
 | Debrief finds errata | `/maintain-specs` |
 | Changed rule/hook/skill/config | `/back-propagate` |
