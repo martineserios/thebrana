@@ -50,6 +50,17 @@
       "model": "sonnet",
       "enabled": false,
       "_comment": "Friday weekly portfolio review"
+    },
+    "agentdb-watch": {
+      "type": "command",
+      "command": "./system/scheduler/check-agentdb-integration.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 09:00:00",
+      "enabled": true,
+      "maxRetries": 1,
+      "retryBackoffSec": 60,
+      "captureOutput": true,
+      "_comment": "Daily check: has claude-flow + AgentDB integration shipped? (parked ms-007)"
     }
   }
 }
