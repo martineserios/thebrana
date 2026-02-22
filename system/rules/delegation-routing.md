@@ -24,7 +24,7 @@ Nudge once per trigger. Don't nag. Include what triggered the nudge.
 | Business milestone | `/venture-phase [type]` |
 | Documenting a process | `/sop [process name]` |
 | Business health check | `/growth-check` |
-| Monthly knowledge health | `/knowledge-review` |
+| Monthly knowledge health | `/memory review` |
 | Uncommitted spec changes | `/repo-cleanup` |
 | Research on a new topic | `/research [topic]` |
 | /refresh-knowledge finds refs | `/research leads` |
