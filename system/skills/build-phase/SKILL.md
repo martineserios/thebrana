@@ -323,7 +323,14 @@ cd ~/enter_thebrana/thebrana && git tag -a vX.Y.0 -m "Phase N complete: [one-lin
 cd ~/enter_thebrana/enter && git tag -a specs-after-phase-N -m "Specs updated after Phase N build"
 ```
 
-#### 7c: Backup knowledge
+#### 7c: User-facing documentation
+
+If this phase introduces new commands, skills, conventions, or changes existing ones:
+- Update or create the relevant guide in `docs/` (e.g., `docs/skills-system.md`, `docs/task-guide.md`)
+- Keep it short — reference, not tutorial
+- Shipped without docs means not shipped
+
+#### 7d: Backup knowledge
 
 Back up knowledge artifacts to the brana-knowledge repo (replaces the old export-knowledge.sh approach — the backup repo IS the portable snapshot, versioned on GitHub):
 
@@ -333,7 +340,7 @@ Back up knowledge artifacts to the brana-knowledge repo (replaces the old export
 
 Skip silently if the script doesn't exist.
 
-#### 7d: Store phase completion in memory
+#### 7e: Store phase completion in memory
 
 Record the phase completion so future `/build-phase` invocations and `/pattern-recall` queries know what was done:
 
@@ -345,7 +352,7 @@ cd "$HOME" && $CF memory store \
   --tags "project:brana,type:phase-complete,phase:N"
 ```
 
-#### 7e: Report
+#### 7f: Report
 
 Produce a summary the user can scan. This is also what future sessions will see if they query for phase history.
 
