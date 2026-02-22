@@ -1,6 +1,7 @@
 ---
 name: scheduler
 description: Scheduled jobs.
+group: utility
 allowed-tools:
   - Bash
 ---

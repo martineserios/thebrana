@@ -1,6 +1,7 @@
 ---
 name: venture-onboard
 description: Discover and diagnose a business project — stage classification, framework recommendation, gap report. Use when taking over a business project or starting work on a new venture for the first time.
+group: venture
 allowed-tools:
   - Bash
   - Read
@@ -140,12 +141,7 @@ Based on stage, recommend stage-appropriate frameworks:
 Search for relevant patterns from other business projects or transferable code project patterns:
 
 ```bash
-CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
-done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
-[ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+source "$HOME/.claude/scripts/cf-env.sh"
 ```
 
 If `$CF` is found:

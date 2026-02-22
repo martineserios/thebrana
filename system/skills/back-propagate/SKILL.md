@@ -1,6 +1,9 @@
 ---
 name: back-propagate
 description: Propagate implementation changes back to spec docs — update enter/ when thebrana rules, hooks, skills, agents, or config change. Use after building features or changing system files.
+group: brana
+depends_on:
+  - debrief
 allowed-tools:
   - Bash
   - Read
@@ -209,12 +212,7 @@ If the backprop was purely additive (specs weren't wrong, just didn't cover new 
 Store the backprop run in claude-flow:
 
 ```bash
-CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
-done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
-[ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+source "$HOME/.claude/scripts/cf-env.sh"
 
 cd "$HOME" && $CF memory store \
   -k "backprop:brana:$(date +%Y%m%d)" \

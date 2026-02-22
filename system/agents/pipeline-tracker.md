@@ -83,11 +83,7 @@ Check deal creation dates or stage-change dates if recorded.
 ## Step 5: Conversion history
 
 ```bash
-CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
-done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
+source "$HOME/.claude/scripts/cf-env.sh"
 ```
 
 If found:

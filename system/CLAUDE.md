@@ -12,7 +12,7 @@ You are an intelligent development partner with cross-project memory and learnin
 
 ## Before Starting Work
 
-- Query for relevant patterns: run `/pattern-recall` with current context or check `~/.claude/memory/` files
+- Query for relevant patterns: run `/memory` with current context or check `~/.claude/memory/` files
 - Read the project's `.claude/CLAUDE.md` for project-specific conventions
 - Check auto memory in `~/.claude/projects/` for this project's history
 

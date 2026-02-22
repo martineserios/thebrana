@@ -1,6 +1,7 @@
 ---
 name: usage
 description: "Token usage analytics — model distribution, activity trends, session efficiency. Use when checking usage patterns, evaluating model routing efficiency, or before rate-limit-sensitive work."
+group: utility
 ---
 
 # Usage Analytics

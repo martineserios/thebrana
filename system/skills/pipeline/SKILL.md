@@ -1,6 +1,7 @@
 ---
 name: pipeline
 description: "Sales pipeline tracking — leads, deals, conversions, follow-ups. Stage-aware CRM that works with markdown or MCP integrations. Use when tracking leads, updating deals, or reviewing pipeline health."
+group: venture
 allowed-tools:
   - Read
   - Write
@@ -219,12 +220,7 @@ If `docs/pipeline/README.md` doesn't exist yet, create it with:
 ### Store in ReasoningBank
 
 ```bash
-CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
-done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
-[ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+source "$HOME/.claude/scripts/cf-env.sh"
 ```
 
 If `$CF` is found:

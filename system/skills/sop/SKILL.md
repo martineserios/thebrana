@@ -1,6 +1,7 @@
 ---
 name: sop
 description: "Create a structured, versioned Standard Operating Procedure from a described process. Use when a repeatable process needs formal documentation."
+group: venture
 allowed-tools:
   - Bash
   - Read
@@ -152,12 +153,7 @@ If `docs/sops/README.md` exists, add the new SOP to it. If not, create:
 ### 10. Store in ReasoningBank
 
 ```bash
-CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
-done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
-[ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+source "$HOME/.claude/scripts/cf-env.sh"
 ```
 
 If `$CF` is found:

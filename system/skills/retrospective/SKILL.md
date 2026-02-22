@@ -1,6 +1,7 @@
 ---
 name: retrospective
 description: Store a learning or pattern in the knowledge system. Use after notable discoveries, unexpected issues, successful workarounds, or when a reusable pattern emerges.
+group: learning
 allowed-tools:
   - Bash
   - Read
@@ -21,15 +22,9 @@ allowed-tools:
    - `transferable`: false (locked to source project until proven)
 
 3. **Primary path (claude-flow available):**
-   Locate the binary:
    ```bash
-   CF=""
-   for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-       [ -x "$candidate" ] && CF="$candidate" && break
-   done
-   [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
-   [ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
-   ```
+source "$HOME/.claude/scripts/cf-env.sh"
+```
    Store via `cd $HOME && $CF memory store -k "pattern:{PROJECT}:{short-title}" -v '{"problem": "...", "solution": "...", "confidence": 0.5, "transferable": false}' --namespace patterns --tags "project:NAME,tech:TECH,type:CATEGORY,outcome:success|failure|partial"`
 
 4. **Fallback path (claude-flow unavailable):**
@@ -76,8 +71,7 @@ Use these prefixes consistently:
 After storing patterns, back up the knowledge artifacts:
 
 ```bash
-BACKUP_SCRIPT="$HOME/enter_thebrana/brana-knowledge/backup.sh"
-[ -x "$BACKUP_SCRIPT" ] && "$BACKUP_SCRIPT"
+"$HOME/.claude/scripts/backup-knowledge.sh"
 ```
 
 Skip silently if the script doesn't exist.

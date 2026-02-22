@@ -1,6 +1,7 @@
 ---
 name: project-retire
 description: "Archive a project's patterns and mark them as historical. Use when retiring a project or archiving its knowledge for future reference."
+group: execution
 allowed-tools:
   - Bash
   - Read
@@ -14,14 +15,8 @@ allowed-tools:
 1. Identify the project to retire from `$ARGUMENTS` or current project context.
 
 2. **Primary path (claude-flow available):**
-   Locate the binary:
    ```bash
-   CF=""
-   for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-       [ -x "$candidate" ] && CF="$candidate" && break
-   done
-   [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
-   [ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+   source "$HOME/.claude/scripts/cf-env.sh"
    ```
    Query memory DB for all patterns tagged with this project via `cd $HOME && $CF memory search --query "project:{name}"`. List them with confidence scores.
 
@@ -41,8 +36,7 @@ allowed-tools:
 
 8. **Backup knowledge** after archiving:
    ```bash
-   BACKUP_SCRIPT="$HOME/enter_thebrana/brana-knowledge/backup.sh"
-   [ -x "$BACKUP_SCRIPT" ] && "$BACKUP_SCRIPT"
+   "$HOME/.claude/scripts/backup-knowledge.sh"
    ```
    Skip silently if the script doesn't exist.
 

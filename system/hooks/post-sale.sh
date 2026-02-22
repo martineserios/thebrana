@@ -67,11 +67,7 @@ if [ -n "$DEAL_VALUE" ]; then
 fi
 
 # Store snapshot in ReasoningBank
-CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
-done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
+source "$HOME/.claude/scripts/cf-env.sh"
 
 CF_WARNING=""
 if [ -n "$CF" ]; then

@@ -1,6 +1,9 @@
 ---
 name: venture-align
 description: "Set up business management structure — stage-appropriate templates, SOPs, OKRs, metrics, meeting cadences. Use when setting up or restructuring a business project's management framework."
+group: venture
+depends_on:
+  - venture-onboard
 allowed-tools:
   - Bash
   - Read
@@ -377,12 +380,7 @@ Remaining gaps:
 ### Store in ReasoningBank
 
 ```bash
-CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
-done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
-[ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+source "$HOME/.claude/scripts/cf-env.sh"
 ```
 
 If `$CF` is found:

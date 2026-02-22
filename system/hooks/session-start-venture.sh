@@ -60,11 +60,7 @@ if [ -n "$NEWEST_REVIEW" ]; then
     fi
 else
     # No weekly review found — check ReasoningBank as fallback
-    CF=""
-    for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-        [ -x "$candidate" ] && CF="$candidate" && break
-    done
-    [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
+    source "$HOME/.claude/scripts/cf-env.sh"
 
     if [ -n "$CF" ]; then
         CF_OUTPUT=$(timeout 3 $CF memory search --query "weekly-review" --namespace business 2>&1) || true

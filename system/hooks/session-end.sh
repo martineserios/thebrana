@@ -52,13 +52,7 @@ SUMMARY_JSON=$(jq -n \
     --argjson recall_count 0 \
     '{project: $project, session: $session, timestamp: $ts, events: $total, successes: $ok, failures: $fail, tools: $tools, files: $files, confidence: $confidence, transferable: $transferable, recall_count: $recall_count}' 2>/dev/null) || SUMMARY_JSON="{}"
 
-# Locate claude-flow binary (nvm global → PATH → npx fallback)
-CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
-done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
-[ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+source "$HOME/.claude/scripts/cf-env.sh"
 
 # Layer 1: try claude-flow memory store
 STORED_L1=false

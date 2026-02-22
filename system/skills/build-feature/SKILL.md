@@ -1,6 +1,11 @@
 ---
 name: build-feature
 description: "Guide a feature from zero to shipped — research, brainstorm, design, plan, build, close. Works for any project and any kind of work (code, design, infra, venture, process). Use when building a new feature, capability, or deliverable in any project."
+group: execution
+depends_on:
+  - decide
+  - challenge
+  - debrief
 allowed-tools:
   - Bash
   - Read
@@ -118,12 +123,7 @@ Spawn a `memory-curator` agent to search for patterns from other portfolio proje
 If the agent is unavailable, fall back to manual search:
 
 ```bash
-CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
-done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
-[ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+source "$HOME/.claude/scripts/cf-env.sh"
 
 [ -n "$CF" ] && cd "$HOME" && $CF memory search --query "{feature keywords}" --format json 2>/dev/null || true
 ```
@@ -357,12 +357,7 @@ Quick extraction — 30 seconds, not a full `/debrief`:
 For significant findings, store in memory:
 
 ```bash
-CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
-done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
-[ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+source "$HOME/.claude/scripts/cf-env.sh"
 
 [ -n "$CF" ] && cd "$HOME" && $CF memory store \
   -k "build:{project}:{feature-slug}:{short-finding-id}" \

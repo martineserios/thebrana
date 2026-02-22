@@ -63,11 +63,7 @@ Classify each as: present / partial / missing.
 ## Step 5: Pattern recall
 
 ```bash
-CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
-done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
+source "$HOME/.claude/scripts/cf-env.sh"
 ```
 
 If found:

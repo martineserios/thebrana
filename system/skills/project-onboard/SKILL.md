@@ -1,6 +1,7 @@
 ---
 name: project-onboard
 description: Bootstrap a new project by scanning its structure and recalling relevant portfolio knowledge. Use when entering an unfamiliar project for the first time.
+group: execution
 allowed-tools:
   - Bash
   - Read
@@ -18,13 +19,8 @@ allowed-tools:
 3. **Recall relevant patterns**: use pattern-recall logic (locate claude-flow binary via smart discovery, then `cd $HOME && $CF memory search --query "{tech stack}"`, or fallback to `~/.claude/projects/*/memory/` grep) to surface patterns from other projects using the same technologies.
 
    ```bash
-   CF=""
-   for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-       [ -x "$candidate" ] && CF="$candidate" && break
-   done
-   [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
-   [ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
-   ```
+source "$HOME/.claude/scripts/cf-env.sh"
+```
 
 4. **Check existing configuration**: look for `.claude/CLAUDE.md` in the project — if present, read it. If not, suggest creating one based on findings.
 

@@ -1,6 +1,7 @@
 ---
 name: venture-phase
 description: "Plan and execute a business milestone — product launch, hiring, fundraise, expansion, or custom — with learning loops. Use when executing a business milestone (launch, hiring, fundraise, expansion)."
+group: venture
 allowed-tools:
   - Bash
   - Read
@@ -156,12 +157,7 @@ Ask the user to define:
 Search for relevant patterns before executing:
 
 ```bash
-CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
-done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
-[ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+source "$HOME/.claude/scripts/cf-env.sh"
 ```
 
 If `$CF` is found:

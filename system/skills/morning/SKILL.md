@@ -1,6 +1,9 @@
 ---
 name: morning
 description: "Daily operational check — stage-aware focus card with priorities, blockers, key metric, and optional calendar review. Use at session start on a venture project for daily priorities and focus."
+group: venture
+depends_on:
+  - growth-check
 allowed-tools:
   - Read
   - Glob
@@ -49,11 +52,7 @@ Look for the most recent `/growth-check` output:
 ls -t docs/metrics/health-*.md 2>/dev/null | head -1
 
 # Search ReasoningBank for stored snapshots
-CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
-done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
+source "$HOME/.claude/scripts/cf-env.sh"
 
 if [ -n "$CF" ]; then
     cd "$HOME" && $CF memory search --query "growth-check:$(basename $OLDPWD)" --limit 1 2>/dev/null || true

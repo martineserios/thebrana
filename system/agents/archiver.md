@@ -22,11 +22,7 @@ You are a project retirement agent. Your job is to scan a project's accumulated 
 Scan all knowledge sources for the project:
 
 ```bash
-CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
-done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
+source "$HOME/.claude/scripts/cf-env.sh"
 ```
 
 If found: `cd $HOME && $CF memory search --query "project:{NAME}" --limit 50`

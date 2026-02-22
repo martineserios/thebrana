@@ -9,6 +9,7 @@ The brain that deploys to `~/.claude/`. Edit here, deploy there.
 | Component | Location |
 |-----------|----------|
 | Skills | `system/skills/` |
+| Scripts | `system/scripts/` |
 | Rules | `system/rules/` |
 | Hooks | `system/hooks/` |
 | Agents | `system/agents/` |
@@ -18,10 +19,11 @@ The brain that deploys to `~/.claude/`. Edit here, deploy there.
 
 ```
 system/          deploy.sh         ~/.claude/
-├── skills/ ──────────────────────→ skills/
-├── rules/  ──────────────────────→ rules/
-├── hooks/  ──────────────────────→ hooks (settings.json)
-├── agents/ ──────────────────────→ agents/
+├── skills/  ─────────────────────→ skills/
+├── scripts/ ─────────────────────→ scripts/
+├── rules/   ─────────────────────→ rules/
+├── hooks/   ─────────────────────→ hooks (settings.json)
+├── agents/  ─────────────────────→ agents/
 └── CLAUDE.md ────────────────────→ CLAUDE.md
 ```
 

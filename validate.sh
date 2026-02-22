@@ -264,6 +264,58 @@ for cmd in $HOOK_CMDS; do
         pass "settings.json command '$SCRIPT_NAME' has matching script"
     fi
 done
+# Check 10: Shared scripts
+echo "Checking shared scripts..."
+if [ -d "$SYSTEM_DIR/scripts" ]; then
+    for script_file in "$SYSTEM_DIR"/scripts/*.sh; do
+        [ -f "$script_file" ] || continue
+        script_name=$(basename "$script_file")
+
+        if ! head -1 "$script_file" | grep -qE '^#!/(usr/bin/env bash|bin/bash)'; then
+            fail "scripts/$script_name — missing or invalid shebang"
+            continue
+        fi
+
+        if ! bash -n "$script_file" 2>/dev/null; then
+            fail "scripts/$script_name — syntax error"
+            continue
+        fi
+
+        pass "scripts/$script_name — valid script"
+    done
+else
+    pass "No scripts/ directory (optional)"
+fi
+echo ""
+
+# Check 11: Skill depends_on references
+echo "Checking skill dependencies..."
+SKILL_DIRS=$(for d in "$SYSTEM_DIR"/skills/*/; do basename "$d"; done)
+for skill_dir in "$SYSTEM_DIR"/skills/*/; do
+    skill_name=$(basename "$skill_dir")
+    skill_file="$skill_dir/SKILL.md"
+    [ -f "$skill_file" ] || continue
+
+    frontmatter=$(awk 'NR==1 && /^---$/{in_fm=1; next} in_fm && /^---$/{exit} in_fm{print}' "$skill_file")
+    [ -z "$frontmatter" ] && continue
+
+    deps=$(echo "$frontmatter" | python3 -c "
+import sys, yaml
+d = yaml.safe_load(sys.stdin)
+deps = d.get('depends_on', [])
+if deps:
+    print('\n'.join(deps))
+" 2>/dev/null) || true
+
+    if [ -n "$deps" ]; then
+        while IFS= read -r dep; do
+            if ! echo "$SKILL_DIRS" | grep -qx "$dep"; then
+                fail "skills/$skill_name depends_on '$dep' but no skills/$dep/ directory exists"
+            fi
+        done <<< "$deps"
+    fi
+done
+pass "Skill dependency references checked"
 echo ""
 
 # Summary

@@ -202,11 +202,7 @@ write_status "$STATUS_LABEL" "$EXIT_CODE" "$ATTEMPT"
 
 # Store run summary in claude-flow memory (graceful degradation)
 if [ "$CAPTURE_OUTPUT" = "true" ]; then
-    CF=""
-    for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-        [ -x "$candidate" ] && CF="$candidate" && break
-    done
-    [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
+    source "$HOME/.claude/scripts/cf-env.sh"
 
     if [ -n "$CF" ]; then
         RUN_DATE=$(date +%Y-%m-%d)

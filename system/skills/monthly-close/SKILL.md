@@ -1,6 +1,11 @@
 ---
 name: monthly-close
 description: "Monthly financial close — P&L summary, actuals vs projections, trend analysis, runway update. The monthly heartbeat of business health. Use at month-end for P&L summary, actuals vs projections, and trend analysis."
+group: venture
+depends_on:
+  - growth-check
+  - financial-model
+  - pipeline
 allowed-tools:
   - Read
   - Write
@@ -319,12 +324,7 @@ Use this template:
 Store the close summary in ReasoningBank for historical tracking.
 
 ```bash
-CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
-done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
-[ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+source "$HOME/.claude/scripts/cf-env.sh"
 ```
 
 If `$CF` is found:
