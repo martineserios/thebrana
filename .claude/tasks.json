@@ -781,6 +781,28 @@
       "completed": null,
       "notes": null,
       "context": "Critical paths: session-start (recall), session-end (store), pattern-recall skill, retrospective skill, scheduler runner memory store, cross-pollinate skill."
+    },
+    {
+      "id": "t-025",
+      "subject": "Skills refactor — shared scripts, consolidation, dependency metadata",
+      "description": "Extract shared primitives (cf-env.sh, memory-store.sh, backup-knowledge.sh) from 38 copy-pasted blocks across skills/hooks/agents. Consolidate pattern-recall + cross-pollinate + knowledge-review into /memory skill. Add depends_on and group frontmatter to all skills. Update deploy.sh and validate.sh for scripts/.",
+      "tags": ["refactor", "skills", "dx"],
+      "status": "completed",
+      "stream": "tech-debt",
+      "type": "task",
+      "parent": null,
+      "order": 5,
+      "priority": "P2",
+      "effort": "L",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": "feat/t-025-skills-refactor",
+      "github_issue": null,
+      "created": "2026-02-22",
+      "started": "2026-02-22",
+      "completed": "2026-02-22",
+      "notes": "Backlog #44. 4 phases: shared scripts (38 files), skill consolidation (36→33), frontmatter metadata (group+depends_on), skill-graph.sh. ~400 lines saved.",
+      "context": null
     }
   ]
 }
