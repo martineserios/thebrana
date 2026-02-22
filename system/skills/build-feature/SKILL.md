@@ -411,6 +411,13 @@ Update `docs/features/{feature-slug}.md`:
 - Add `## Learnings` section with key findings from the debrief
 - Add `## Implementation notes` with anything future maintainers should know
 
+### 6c-2: User-facing documentation
+
+If the feature introduces new commands, skills, conventions, or changes existing ones:
+- Update or create the relevant guide in `docs/` (e.g., `docs/skills-system.md`, `docs/task-guide.md`)
+- Keep it short — reference, not tutorial
+- This is **not optional** — shipped without docs means not shipped
+
 ### 6d: Store learnings in memory
 
 ```bash
