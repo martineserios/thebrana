@@ -30,6 +30,7 @@ rm -rf "$TARGET_DIR/skills"
 rm -rf "$TARGET_DIR/rules"
 rm -rf "$TARGET_DIR/agents"
 rm -rf "$TARGET_DIR/hooks"
+rm -rf "$TARGET_DIR/scripts"
 
 # Step 4: Copy system files
 echo "Deploying files..."
@@ -48,6 +49,13 @@ echo "  ✓ agents/"
 cp -r "$SYSTEM_DIR/hooks" "$TARGET_DIR/hooks"
 chmod +x "$TARGET_DIR/hooks/"*.sh
 echo "  ✓ hooks/"
+
+if [ -d "$SYSTEM_DIR/scripts" ]; then
+    mkdir -p "$TARGET_DIR/scripts"
+    cp "$SYSTEM_DIR/scripts/"*.sh "$TARGET_DIR/scripts/"
+    chmod +x "$TARGET_DIR/scripts/"*.sh
+    echo "  ✓ scripts/"
+fi
 
 # Deploy statusline (standalone file, not in a subdirectory)
 if [ -f "$SYSTEM_DIR/statusline.sh" ]; then
@@ -124,6 +132,9 @@ echo "  - $(find "$TARGET_DIR/skills" -name "SKILL.md" | wc -l) skills"
 echo "  - $(find "$TARGET_DIR/rules" -name "*.md" | wc -l) rules"
 echo "  - $(find "$TARGET_DIR/agents" -name "*.md" | wc -l) agents"
 echo "  - $(find "$TARGET_DIR/hooks" -name "*.sh" | wc -l) hooks"
+if [ -d "$TARGET_DIR/scripts" ]; then
+    echo "  - $(find "$TARGET_DIR/scripts" -name "*.sh" | wc -l) scripts"
+fi
 if [ -d "$TARGET_DIR/scheduler" ]; then
     echo "  - scheduler (brana-scheduler CLI on PATH)"
 fi

@@ -29,13 +29,7 @@ fi
 
 CONTEXT=""
 
-# Locate claude-flow binary (nvm global → PATH → npx fallback)
-CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
-done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
-[ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+source "$HOME/.claude/scripts/cf-env.sh"
 
 # Primary path: claude-flow memory search
 CF_WARNING=""

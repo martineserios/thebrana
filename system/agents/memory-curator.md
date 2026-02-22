@@ -20,11 +20,7 @@ You are a knowledge recall agent. Your job is to find relevant patterns, cross-p
 ## Finding the claude-flow binary
 
 ```bash
-CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
-done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
+source "$HOME/.claude/scripts/cf-env.sh"
 ```
 
 ## Search patterns

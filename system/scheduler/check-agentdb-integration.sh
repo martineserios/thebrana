@@ -8,10 +8,7 @@ set -uo pipefail
 echo "=== AgentDB Integration Watch ($(date +%F)) ==="
 
 # Current installed version
-CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
-done
+source "$HOME/.claude/scripts/cf-env.sh"
 CURRENT=$($CF --version 2>/dev/null | grep -oP 'v\K.*' || echo "unknown")
 echo "Installed claude-flow: $CURRENT"
 

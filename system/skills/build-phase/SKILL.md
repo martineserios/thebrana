@@ -142,12 +142,7 @@ Spawn the `memory-curator` agent with the phase topic to recall relevant pattern
 If the agent is unavailable, fall back to manual recall:
 
 ```bash
-CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
-done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
-[ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+source "$HOME/.claude/scripts/cf-env.sh"
 
 cd "$HOME" && $CF memory search --query "project:brana phase:N" --format json 2>/dev/null || true
 ```
@@ -329,8 +324,7 @@ cd ~/enter_thebrana/enter && git tag -a specs-after-phase-N -m "Specs updated af
 Back up knowledge artifacts to the brana-knowledge repo (replaces the old export-knowledge.sh approach — the backup repo IS the portable snapshot, versioned on GitHub):
 
 ```bash
-BACKUP_SCRIPT="$HOME/enter_thebrana/brana-knowledge/backup.sh"
-[ -x "$BACKUP_SCRIPT" ] && "$BACKUP_SCRIPT"
+"$HOME/.claude/scripts/backup-knowledge.sh"
 ```
 
 Skip silently if the script doesn't exist.

@@ -227,12 +227,7 @@ Seed with terms extracted from the DISCOVER conversation about the domain.
 **P2 — ReasoningBank patterns:** Store initial alignment patterns using claude-flow binary:
 
 ```bash
-CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
-done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
-[ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+source "$HOME/.claude/scripts/cf-env.sh"
 ```
 
 Store: `cd $HOME && $CF memory store -k "alignment:{PROJECT}:{date}" -v '{...}' --namespace alignment --tags "project:{PROJECT},type:alignment"`

@@ -206,12 +206,7 @@ cd $ENTER && git add 24-roadmap-corrections.md && git commit -m "docs(reconcile)
 Store the reconcile run in claude-flow for future reference:
 
 ```bash
-CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
-done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
-[ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+source "$HOME/.claude/scripts/cf-env.sh"
 
 cd "$HOME" && $CF memory store \
   -k "reconcile:brana:$(date +%Y%m%d)" \

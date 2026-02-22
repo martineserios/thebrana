@@ -12,14 +12,9 @@ allowed-tools:
 
 Monthly health check for the ReasoningBank. Shows what you know, how much you trust it, and what needs attention. Human-powered review, not automated cleanup.
 
-1. **Locate claude-flow binary** using smart discovery:
+1. **Locate claude-flow:**
    ```bash
-   CF=""
-   for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-       [ -x "$candidate" ] && CF="$candidate" && break
-   done
-   [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
-   [ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+   source "$HOME/.claude/scripts/cf-env.sh"
    ```
 
 2. **Gather stats** from ReasoningBank:
@@ -85,8 +80,7 @@ Monthly health check for the ReasoningBank. Shows what you know, how much you tr
 
 7. **Backup knowledge** if any patterns were promoted, demoted, or modified:
    ```bash
-   BACKUP_SCRIPT="$HOME/enter_thebrana/brana-knowledge/backup.sh"
-   [ -x "$BACKUP_SCRIPT" ] && "$BACKUP_SCRIPT"
+   "$HOME/.claude/scripts/backup-knowledge.sh"
    ```
    Skip silently if the script doesn't exist or if no changes were made.
 

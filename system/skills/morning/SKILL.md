@@ -49,11 +49,7 @@ Look for the most recent `/growth-check` output:
 ls -t docs/metrics/health-*.md 2>/dev/null | head -1
 
 # Search ReasoningBank for stored snapshots
-CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
-done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
+source "$HOME/.claude/scripts/cf-env.sh"
 
 if [ -n "$CF" ]; then
     cd "$HOME" && $CF memory search --query "growth-check:$(basename $OLDPWD)" --limit 1 2>/dev/null || true

@@ -36,15 +36,9 @@ This skill spawns an Opus subagent to adversarially review a plan, approach, or 
 
 6. **Store challenge outcome** in ReasoningBank after the user decides:
 
-   Locate the claude-flow binary:
    ```bash
-   CF=""
-   for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-       [ -x "$candidate" ] && CF="$candidate" && break
-   done
-   [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
-   [ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
-   ```
+source "$HOME/.claude/scripts/cf-env.sh"
+```
 
    Store the outcome:
    ```bash

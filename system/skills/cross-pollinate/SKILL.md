@@ -13,15 +13,9 @@ allowed-tools:
 1. Detect current project's tech stack and problem domain.
 
 2. **Primary path (claude-flow available):**
-   Locate the binary:
    ```bash
-   CF=""
-   for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-       [ -x "$candidate" ] && CF="$candidate" && break
-   done
-   [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
-   [ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
-   ```
+source "$HOME/.claude/scripts/cf-env.sh"
+```
    Run `cd $HOME && $CF memory search --query "$ARGUMENTS"` to find patterns across all projects. Filter for transferable patterns from other projects in the results.
 
 3. **Fallback path (claude-flow unavailable):**

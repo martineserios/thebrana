@@ -88,12 +88,7 @@ Good: "Database schema drift breaks things silently — `memory init --force` sh
 For each finding, store it in claude-flow for cross-session recall:
 
 ```bash
-CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
-done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
-[ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+source "$HOME/.claude/scripts/cf-env.sh"
 
 cd "$HOME" && $CF memory store \
   -k "errata:{PROJECT}:{short-id}" \
@@ -134,8 +129,7 @@ Summarize what was documented:
 After storing findings in memory, back up the knowledge artifacts:
 
 ```bash
-BACKUP_SCRIPT="$HOME/enter_thebrana/brana-knowledge/backup.sh"
-[ -x "$BACKUP_SCRIPT" ] && "$BACKUP_SCRIPT"
+"$HOME/.claude/scripts/backup-knowledge.sh"
 ```
 
 Skip silently if the script doesn't exist.

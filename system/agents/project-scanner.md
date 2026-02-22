@@ -81,11 +81,7 @@ Check each item and classify as present / partial / missing:
 ## Step 4: Recall portfolio patterns
 
 ```bash
-CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
-done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
+source "$HOME/.claude/scripts/cf-env.sh"
 ```
 
 If found: `cd $HOME && $CF memory search --query "{detected tech stack}" --limit 10`
