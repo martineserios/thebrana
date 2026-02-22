@@ -1,6 +1,9 @@
 ---
 name: back-propagate
 description: Propagate implementation changes back to spec docs — update enter/ when thebrana rules, hooks, skills, agents, or config change. Use after building features or changing system files.
+group: brana
+depends_on:
+  - debrief
 allowed-tools:
   - Bash
   - Read

@@ -1,6 +1,12 @@
 ---
 name: monthly-plan
 description: "Forward-looking monthly plan — revenue targets, priorities tied to bottleneck, experiments, pipeline actions, budget allocation. Use at month-start (after /monthly-close) to set targets and priorities."
+group: venture
+depends_on:
+  - growth-check
+  - pipeline
+  - financial-model
+  - monthly-close
 allowed-tools:
   - Read
   - Write

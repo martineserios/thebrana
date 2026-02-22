@@ -1,6 +1,7 @@
 ---
 name: project-onboard
 description: Bootstrap a new project by scanning its structure and recalling relevant portfolio knowledge. Use when entering an unfamiliar project for the first time.
+group: execution
 allowed-tools:
   - Bash
   - Read

@@ -1,6 +1,7 @@
 ---
 name: personal-check
 description: "Personal life check — tasks, life areas, journal freshness. Use at session start for personal priorities."
+group: utility
 allowed-tools:
   - Read
   - Glob

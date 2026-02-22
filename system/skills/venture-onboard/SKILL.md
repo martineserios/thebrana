@@ -1,6 +1,7 @@
 ---
 name: venture-onboard
 description: Discover and diagnose a business project — stage classification, framework recommendation, gap report. Use when taking over a business project or starting work on a new venture for the first time.
+group: venture
 allowed-tools:
   - Bash
   - Read

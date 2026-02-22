@@ -1,6 +1,7 @@
 ---
 name: debrief
 description: "Extract errata, fixes, and process learnings from the current session and document them. Use at the end of implementation sessions to capture learnings and errata."
+group: learning
 allowed-tools:
   - Bash
   - Read

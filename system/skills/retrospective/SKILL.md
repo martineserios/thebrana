@@ -1,6 +1,7 @@
 ---
 name: retrospective
 description: Store a learning or pattern in the knowledge system. Use after notable discoveries, unexpected issues, successful workarounds, or when a reusable pattern emerges.
+group: learning
 allowed-tools:
   - Bash
   - Read

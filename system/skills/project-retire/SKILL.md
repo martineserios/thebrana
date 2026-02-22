@@ -1,6 +1,7 @@
 ---
 name: project-retire
 description: "Archive a project's patterns and mark them as historical. Use when retiring a project or archiving its knowledge for future reference."
+group: execution
 allowed-tools:
   - Bash
   - Read

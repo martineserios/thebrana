@@ -1,6 +1,7 @@
 ---
 name: respondio-prompts
 description: "Respond.io AI agent prompt engineering — write instructions, actions, KB files, and multi-agent architectures within platform constraints. Use when writing or reviewing Respond.io agent prompts, designing multi-agent handoff flows, or creating knowledge bases."
+group: utility
 allowed-tools:
   - Read
   - Write

@@ -1,6 +1,7 @@
 ---
 name: tasks
 description: "Manage tasks — plan, track, navigate phases and streams. Use when planning phases, viewing roadmaps, or restructuring work."
+group: brana
 allowed-tools:
   - Read
   - Write

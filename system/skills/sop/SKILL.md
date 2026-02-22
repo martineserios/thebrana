@@ -1,6 +1,7 @@
 ---
 name: sop
 description: "Create a structured, versioned Standard Operating Procedure from a described process. Use when a repeatable process needs formal documentation."
+group: venture
 allowed-tools:
   - Bash
   - Read

@@ -1,6 +1,9 @@
 ---
 name: venture-align
 description: "Set up business management structure — stage-appropriate templates, SOPs, OKRs, metrics, meeting cadences. Use when setting up or restructuring a business project's management framework."
+group: venture
+depends_on:
+  - venture-onboard
 allowed-tools:
   - Bash
   - Read

@@ -1,6 +1,11 @@
 ---
 name: build-feature
 description: "Guide a feature from zero to shipped — research, brainstorm, design, plan, build, close. Works for any project and any kind of work (code, design, infra, venture, process). Use when building a new feature, capability, or deliverable in any project."
+group: execution
+depends_on:
+  - decide
+  - challenge
+  - debrief
 allowed-tools:
   - Bash
   - Read

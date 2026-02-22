@@ -1,6 +1,7 @@
 ---
 name: challenge
 description: "Spawn an Opus subagent to stress-test the current plan or approach. One-pass adversarial review. Use when a significant decision, plan, or architecture needs adversarial review."
+group: learning
 allowed-tools:
   - Task
   - Read

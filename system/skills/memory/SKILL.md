@@ -1,6 +1,7 @@
 ---
 name: memory
 description: "Knowledge system operations — recall patterns, cross-pollinate across projects, review knowledge health. Subcommands: recall, pollinate, review. Use for pattern queries, cross-project transfer, or monthly knowledge audits."
+group: learning
 allowed-tools:
   - Bash
   - Read

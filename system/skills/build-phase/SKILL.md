@@ -1,6 +1,10 @@
 ---
 name: build-phase
 description: "Plan and implement the next roadmap phase with built-in learning loops — debrief after each work item, maintain-specs after each phase. Use when ready to implement the next phase of the roadmap."
+group: brana
+depends_on:
+  - debrief
+  - reconcile
 allowed-tools:
   - Bash
   - Read

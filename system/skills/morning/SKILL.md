@@ -1,6 +1,9 @@
 ---
 name: morning
 description: "Daily operational check — stage-aware focus card with priorities, blockers, key metric, and optional calendar review. Use at session start on a venture project for daily priorities and focus."
+group: venture
+depends_on:
+  - growth-check
 allowed-tools:
   - Read
   - Glob

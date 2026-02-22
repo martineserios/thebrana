@@ -1,6 +1,7 @@
 ---
 name: decide
 description: "Create an Architecture Decision Record (ADR) in docs/decisions/. Use when making an architecture decision or before implementing a new feature."
+group: execution
 allowed-tools:
   - Bash
   - Read
