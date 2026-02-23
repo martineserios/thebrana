@@ -267,22 +267,34 @@ done
 # Check 10: Commands
 echo "Checking commands..."
 if [ -d "$SYSTEM_DIR/commands" ]; then
-    for cmd_file in "$SYSTEM_DIR"/commands/*.md; do
+    for cmd_file in "$SYSTEM_DIR"/commands/*; do
         [ -f "$cmd_file" ] || continue
-        cmd_name=$(basename "$cmd_file" .md)
+        cmd_name=$(basename "$cmd_file")
 
-        frontmatter=$(awk 'NR==1 && /^---$/{in_fm=1; next} in_fm && /^---$/{exit} in_fm{print}' "$cmd_file")
-        if [ -z "$frontmatter" ]; then
-            fail "No YAML frontmatter in commands/$cmd_name.md"
-            continue
+        if [[ "$cmd_name" == *.md ]]; then
+            # Markdown command — check YAML frontmatter
+            frontmatter=$(awk 'NR==1 && /^---$/{in_fm=1; next} in_fm && /^---$/{exit} in_fm{print}' "$cmd_file")
+            if [ -z "$frontmatter" ]; then
+                fail "No YAML frontmatter in commands/$cmd_name"
+                continue
+            fi
+            if ! echo "$frontmatter" | python3 -c "import sys, yaml; yaml.safe_load(sys.stdin)" 2>/dev/null; then
+                fail "Invalid YAML in commands/$cmd_name"
+                continue
+            fi
+            pass "commands/$cmd_name — valid frontmatter"
+        else
+            # Shell script command — check shebang and syntax
+            if ! head -1 "$cmd_file" | grep -qE '^#!/(usr/bin/env bash|bin/bash)'; then
+                fail "commands/$cmd_name — missing or invalid shebang"
+                continue
+            fi
+            if ! bash -n "$cmd_file" 2>/dev/null; then
+                fail "commands/$cmd_name — syntax error"
+                continue
+            fi
+            pass "commands/$cmd_name — valid script"
         fi
-
-        if ! echo "$frontmatter" | python3 -c "import sys, yaml; yaml.safe_load(sys.stdin)" 2>/dev/null; then
-            fail "Invalid YAML in commands/$cmd_name.md"
-            continue
-        fi
-
-        pass "commands/$cmd_name.md — valid frontmatter"
     done
 else
     pass "No commands/ directory (optional)"

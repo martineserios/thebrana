@@ -59,7 +59,11 @@ fi
 
 if [ -d "$SYSTEM_DIR/commands" ]; then
     mkdir -p "$TARGET_DIR/commands"
-    cp "$SYSTEM_DIR/commands/"*.md "$TARGET_DIR/commands/"
+    cp "$SYSTEM_DIR/commands/"* "$TARGET_DIR/commands/"
+    # Make shell scripts executable
+    for f in "$TARGET_DIR/commands/"*; do
+        [ -f "$f" ] && head -1 "$f" | grep -q '^#!' && chmod +x "$f"
+    done
     echo "  ✓ commands/"
 fi
 
@@ -142,7 +146,7 @@ if [ -d "$TARGET_DIR/scripts" ]; then
     echo "  - $(find "$TARGET_DIR/scripts" -name "*.sh" | wc -l) scripts"
 fi
 if [ -d "$TARGET_DIR/commands" ]; then
-    echo "  - $(find "$TARGET_DIR/commands" -name "*.md" | wc -l) commands"
+    echo "  - $(find "$TARGET_DIR/commands" -type f | wc -l) commands"
 fi
 if [ -d "$TARGET_DIR/scheduler" ]; then
     echo "  - scheduler (brana-scheduler CLI on PATH)"

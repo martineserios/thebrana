@@ -1,0 +1,195 @@
+#!/bin/bash
+
+# Claude Code command to initialize a new project with CLAUDE.md template
+# Usage: claude init-project <project-name> [project-type]
+
+set -e
+
+PROJECT_NAME="$1"
+PROJECT_TYPE="${2:-python}"
+TEMPLATE_DIR="$HOME/.claude/templates"
+TEMPLATE_FILE="$TEMPLATE_DIR/CLAUDE.md"
+
+# Validate inputs
+if [ -z "$PROJECT_NAME" ]; then
+    echo "Error: Project name is required"
+    echo "Usage: claude init-project <project-name> [project-type]"
+    exit 1
+fi
+
+if [ ! -f "$TEMPLATE_FILE" ]; then
+    echo "Error: CLAUDE.md template not found at $TEMPLATE_FILE"
+    echo "Please ensure the template exists before running this command"
+    exit 1
+fi
+
+# Create project directory
+if [ -d "$PROJECT_NAME" ]; then
+    echo "Error: Directory '$PROJECT_NAME' already exists"
+    exit 1
+fi
+
+echo "Creating project: $PROJECT_NAME"
+mkdir -p "$PROJECT_NAME"
+cd "$PROJECT_NAME"
+
+# Copy and customize CLAUDE.md template
+echo "Setting up CLAUDE.md..."
+cp "$TEMPLATE_FILE" "CLAUDE.md"
+
+# Initialize git repository
+echo "Initializing git repository..."
+git init
+
+# Create basic project structure based on type
+case "$PROJECT_TYPE" in
+    python)
+        echo "Setting up Python project structure..."
+        mkdir -p src tests docs data output
+        
+        # Create pyproject.toml
+        cat > pyproject.toml << 'EOF'
+[project]
+name = "PROJECT_NAME_PLACEHOLDER"
+version = "0.1.0"
+description = ""
+authors = [{name = "Your Name", email = "your.email@example.com"}]
+dependencies = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = ["--strict-markers", "--strict-config"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+select = ["E", "W", "F", "I", "B", "C4", "ARG", "SIM"]
+ignore = ["E501", "W503"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+strict_optional = true
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]
+EOF
+        
+        # Replace placeholder in pyproject.toml
+        sed -i "s/PROJECT_NAME_PLACEHOLDER/$PROJECT_NAME/g" pyproject.toml
+        
+        # Create basic test file
+        cat > tests/test_example.py << 'EOF'
+"""Example test file demonstrating TDD approach."""
+
+def test_example():
+    """Example test to ensure testing framework is working."""
+    assert True, "This test should pass"
+
+# TODO: Replace with actual tests following TDD methodology
+# 1. Write failing test
+# 2. Write minimal code to pass
+# 3. Refactor
+# 4. Repeat
+EOF
+        
+        # Create .gitignore
+        cat > .gitignore << 'EOF'
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environment variables
+.env
+.env.local
+
+# Project specific
+output/
+*.log
+EOF
+        ;;
+esac
+
+# Add all files to git
+echo "Adding initial files to git..."
+git add .
+git commit -m "Initial project setup with CLAUDE.md methodology
+
+- Added CLAUDE.md with TDD workflow and branch strategy
+- Set up basic project structure for $PROJECT_TYPE
+- Configured testing and code quality tools"
+
+echo ""
+echo "✅ Project '$PROJECT_NAME' initialized successfully!"
+echo ""
+echo "Next steps:"
+echo "1. cd $PROJECT_NAME"
+echo "2. Review and customize CLAUDE.md for your specific project"
+echo "3. Set up your development environment"
+echo "4. Start with TDD: write your first failing test"
+echo ""
+echo "Remember: TDD is mandatory! Write tests first, then implement."
