@@ -257,8 +257,8 @@ cmd_status() {
     local jobs
     jobs=$(jq -r '.jobs | keys[]' "$CONFIG")
 
-    printf "%-25s %-10s %-12s %-22s %s\n" "JOB" "ENABLED" "LAST STATUS" "NEXT RUN" "SCHEDULE"
-    printf "%-25s %-10s %-12s %-22s %s\n" "---" "-------" "-----------" "--------" "--------"
+    printf "%-25s %-10s %-22s %-12s %-22s %s\n" "JOB" "ENABLED" "LAST RUN" "STATUS" "NEXT RUN" "SCHEDULE"
+    printf "%-25s %-10s %-22s %-12s %-22s %s\n" "---" "-------" "--------" "------" "--------" "--------"
 
     for job in $jobs; do
         local enabled schedule
@@ -278,8 +278,9 @@ cmd_status() {
             fi
         fi
 
-        # Check last run status from logs
+        # Check last run status and datetime from logs
         local log_dir="$SCHEDULER_DIR/logs/$job"
+        local last_run="—"
         if [ -d "$log_dir" ]; then
             local latest_log
             latest_log=$(ls -t "$log_dir"/*.log 2>/dev/null | head -1)
@@ -293,6 +294,14 @@ cmd_status() {
                 elif grep -q "^SKIPPED" "$latest_log" 2>/dev/null; then
                     last_status="skipped"
                 fi
+                # Extract datetime from filename (format: YYYY-MM-DD-HHMMSS.log)
+                local log_basename
+                log_basename=$(basename "$latest_log" .log)
+                if [[ "$log_basename" =~ ^([0-9]{4}-[0-9]{2}-[0-9]{2})-([0-9]{2})([0-9]{2})([0-9]{2})$ ]]; then
+                    last_run="${BASH_REMATCH[1]} ${BASH_REMATCH[2]}:${BASH_REMATCH[3]}"
+                else
+                    last_run="$log_basename"
+                fi
             fi
         fi
 
@@ -303,7 +312,7 @@ cmd_status() {
             enabled_str="${YELLOW}no${NC}"
         fi
 
-        printf "%-25s %-10b %-12s %-22s %s\n" "$job" "$enabled_str" "$last_status" "$next_run" "$schedule"
+        printf "%-25s %-10b %-22s %-12s %-22s %s\n" "$job" "$enabled_str" "$last_run" "$last_status" "$next_run" "$schedule"
     done
 }
 
