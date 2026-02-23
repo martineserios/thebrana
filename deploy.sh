@@ -57,6 +57,12 @@ if [ -d "$SYSTEM_DIR/scripts" ]; then
     echo "  ✓ scripts/"
 fi
 
+if [ -d "$SYSTEM_DIR/commands" ]; then
+    mkdir -p "$TARGET_DIR/commands"
+    cp "$SYSTEM_DIR/commands/"*.md "$TARGET_DIR/commands/"
+    echo "  ✓ commands/"
+fi
+
 # Deploy statusline (standalone file, not in a subdirectory)
 if [ -f "$SYSTEM_DIR/statusline.sh" ]; then
     cp "$SYSTEM_DIR/statusline.sh" "$TARGET_DIR/statusline.sh"
@@ -134,6 +140,9 @@ echo "  - $(find "$TARGET_DIR/agents" -name "*.md" | wc -l) agents"
 echo "  - $(find "$TARGET_DIR/hooks" -name "*.sh" | wc -l) hooks"
 if [ -d "$TARGET_DIR/scripts" ]; then
     echo "  - $(find "$TARGET_DIR/scripts" -name "*.sh" | wc -l) scripts"
+fi
+if [ -d "$TARGET_DIR/commands" ]; then
+    echo "  - $(find "$TARGET_DIR/commands" -name "*.md" | wc -l) commands"
 fi
 if [ -d "$TARGET_DIR/scheduler" ]; then
     echo "  - scheduler (brana-scheduler CLI on PATH)"

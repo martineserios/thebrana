@@ -264,7 +264,32 @@ for cmd in $HOOK_CMDS; do
         pass "settings.json command '$SCRIPT_NAME' has matching script"
     fi
 done
-# Check 10: Shared scripts
+# Check 10: Commands
+echo "Checking commands..."
+if [ -d "$SYSTEM_DIR/commands" ]; then
+    for cmd_file in "$SYSTEM_DIR"/commands/*.md; do
+        [ -f "$cmd_file" ] || continue
+        cmd_name=$(basename "$cmd_file" .md)
+
+        frontmatter=$(awk 'NR==1 && /^---$/{in_fm=1; next} in_fm && /^---$/{exit} in_fm{print}' "$cmd_file")
+        if [ -z "$frontmatter" ]; then
+            fail "No YAML frontmatter in commands/$cmd_name.md"
+            continue
+        fi
+
+        if ! echo "$frontmatter" | python3 -c "import sys, yaml; yaml.safe_load(sys.stdin)" 2>/dev/null; then
+            fail "Invalid YAML in commands/$cmd_name.md"
+            continue
+        fi
+
+        pass "commands/$cmd_name.md — valid frontmatter"
+    done
+else
+    pass "No commands/ directory (optional)"
+fi
+echo ""
+
+# Check 11: Shared scripts
 echo "Checking shared scripts..."
 if [ -d "$SYSTEM_DIR/scripts" ]; then
     for script_file in "$SYSTEM_DIR"/scripts/*.sh; do
@@ -288,7 +313,7 @@ else
 fi
 echo ""
 
-# Check 11: Skill depends_on references
+# Check 12: Skill depends_on references
 echo "Checking skill dependencies..."
 SKILL_DIRS=$(for d in "$SYSTEM_DIR"/skills/*/; do basename "$d"; done)
 for skill_dir in "$SYSTEM_DIR"/skills/*/; do
