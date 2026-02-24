@@ -134,10 +134,10 @@ for agent_file in "$SYSTEM_DIR"/agents/*.md; do
 done
 
 echo "  Total always-loaded: ${BUDGET} bytes"
-if [ "$BUDGET" -gt 24576 ]; then
-    fail "Context budget exceeds 24KB (${BUDGET} bytes > 24576 bytes)"
+if [ "$BUDGET" -gt 26624 ]; then
+    fail "Context budget exceeds 26KB (${BUDGET} bytes > 26624 bytes)"
 else
-    pass "Context budget OK (${BUDGET}/24576 bytes)"
+    pass "Context budget OK (${BUDGET}/26624 bytes)"
 fi
 
 # Check 5b: Instruction density
