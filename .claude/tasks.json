@@ -891,6 +891,28 @@
       "completed": "2026-02-23",
       "notes": "Shipped. Single SKILL.md section, challenger-reviewed. Auto-merged via hook.",
       "context": "Challenger-reviewed. Schema normalization needed (bare array vs {tasks:[]}). Single flag: --unified."
+    },
+    {
+      "id": "t-030",
+      "subject": "Define team member roles from SOPs",
+      "description": "Define job descriptions, responsibilities, and task assignments for each brana agent/team member based on existing SOPs and skill descriptions. Formalize role boundaries, delegation rules, escalation paths, ownership areas. Output: docs/team-roles.md or equivalent. Cross-reference: system/agents/, delegation-routing rule, skill 'When to use' triggers.",
+      "tags": ["agents", "sops", "team"],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": null,
+      "order": 6,
+      "priority": "P2",
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-02-24",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "Backlog #79. Sources: agent .md files (10 agents), delegation-routing.md, skill SKILL.md triggers, existing SOPs."
     }
   ]
 }
