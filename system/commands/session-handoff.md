@@ -46,6 +46,21 @@ If the agent is unavailable, do a quick manual scan:
 2. Review conversation for: errors hit, workarounds used, surprises
 3. Classify into errata / learnings / issues (even if empty — "clean session" is valid)
 
+### Step 2b: Graduation suggestions (Wave 3)
+
+Check session JSONL for correction patterns worth promoting:
+
+```bash
+SESSION_FILES=$(ls /tmp/brana-session-*.jsonl 2>/dev/null)
+```
+
+For each session file, count corrections and identify files that were corrected multiple times. If a correction pattern appears 2+ times (same file re-edited, same error type resolved), suggest graduation:
+
+- Include in the handoff note under **Learnings**: "Correction pattern: {file/error} corrected {N} times — eligible for fast-track promotion via `/retrospective`"
+- These patterns resolved real errors during active work, giving higher confidence than recall-only promotion
+
+Skip silently if no session JSONL files exist or no corrections found.
+
 ### Step 3: Doc drift heuristic
 
 Check if system files were modified this session:
@@ -79,6 +94,7 @@ Find `session-handoff.md` in `~/.claude/projects/` for the current project's mem
 **Learnings:**
 - {from debrief-analyst output, if any}
 - {errata found, process insights, issues}
+- {correction patterns eligible for graduation, if any}
 
 **State:**
 - Branch: {current branch}
@@ -141,6 +157,7 @@ Skip silently if the script doesn't exist.
 - {if errata: "Run `/apply-errata` to fix spec mismatches"}
 - {if drift: "Run `/back-propagate` to sync specs with implementation"}
 - {if learnings: "Run `/maintain-specs` to propagate through spec layers"}
+- {if correction patterns: "Run `/retrospective` to promote correction patterns (fast-track eligible)"}
 ```
 
 ---
@@ -165,7 +182,7 @@ If another session modified files that the handoff also touched:
 - Compatible (additive): note what was added, incorporate it
 - Conflicting: flag to user, don't auto-resolve
 
-### Step 4: Check flags from previous session
+### Step 4: Check flags and correction patterns from previous session
 
 Look for flag files left by the close mode or session-end hook:
 
@@ -175,6 +192,17 @@ MEMORY_DIR=$(find ~/.claude/projects/ -maxdepth 2 -name "MEMORY.md" -path "*$(ba
 ```
 
 If `.needs-backprop` exists, include in the report: "Previous session changed system files. Consider `/back-propagate`."
+
+Also check claude-flow for high-confidence correction patterns from this project:
+
+```bash
+source "$HOME/.claude/scripts/cf-env.sh"
+if [ -n "$CF" ]; then
+    cd "$HOME" && $CF memory search --query "project:{PROJECT} type:correction" --namespace patterns
+fi
+```
+
+If correction patterns with `confidence: 0.8` exist, surface them in the report: "[Priority recall] These correction patterns have proven reliable — apply early if similar errors arise: {pattern list}"
 
 ### Step 5: Report
 
