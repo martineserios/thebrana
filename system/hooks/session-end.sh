@@ -2,6 +2,7 @@
 # No strict mode — hooks must always return valid JSON.
 
 # Brana SessionEnd hook — flush accumulated session events to persistent storage.
+# Wave 1 (#75): compound metrics (correction rate, test coverage, cascade count).
 # Input:  stdin JSON (session_id, cwd, hook_event_name, matcher)
 # Output: stdout JSON with continue: true
 
@@ -38,6 +39,12 @@ TOOLS=$(jq -r '.tool' "$SESSION_FILE" 2>/dev/null | sort -u | paste -sd ',' || e
 FILES=$(jq -r '.detail // empty' "$SESSION_FILE" 2>/dev/null | sort -u | head -10 | paste -sd ',' || echo "")
 TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || TIMESTAMP="unknown"
 
+# Wave 1 compound metrics
+CORRECTIONS=$(grep -c '"outcome":"correction"' "$SESSION_FILE" 2>/dev/null) || CORRECTIONS=0
+TEST_WRITES=$(grep -c '"outcome":"test-write"' "$SESSION_FILE" 2>/dev/null) || TEST_WRITES=0
+CASCADES=$(grep -c '"cascade":true' "$SESSION_FILE" 2>/dev/null) || CASCADES=0
+EDITS=$(jq -r 'select(.tool == "Edit" or .tool == "Write") | .tool' "$SESSION_FILE" 2>/dev/null | wc -l) || EDITS=0
+
 SUMMARY_JSON=$(jq -n \
     --arg project "${PROJECT:-unknown}" \
     --arg session "${SESSION_ID:-unknown}" \
@@ -45,12 +52,16 @@ SUMMARY_JSON=$(jq -n \
     --argjson total "${TOTAL:-0}" \
     --argjson ok "${SUCCESSES:-0}" \
     --argjson fail "${FAILURES:-0}" \
+    --argjson corrections "${CORRECTIONS:-0}" \
+    --argjson test_writes "${TEST_WRITES:-0}" \
+    --argjson cascades "${CASCADES:-0}" \
+    --argjson edits "${EDITS:-0}" \
     --arg tools "${TOOLS:-unknown}" \
     --arg files "${FILES:-}" \
     --argjson confidence 0.5 \
     --argjson transferable false \
     --argjson recall_count 0 \
-    '{project: $project, session: $session, timestamp: $ts, events: $total, successes: $ok, failures: $fail, tools: $tools, files: $files, confidence: $confidence, transferable: $transferable, recall_count: $recall_count}' 2>/dev/null) || SUMMARY_JSON="{}"
+    '{project: $project, session: $session, timestamp: $ts, events: $total, successes: $ok, failures: $fail, corrections: $corrections, test_writes: $test_writes, cascades: $cascades, edits: $edits, tools: $tools, files: $files, confidence: $confidence, transferable: $transferable, recall_count: $recall_count}' 2>/dev/null) || SUMMARY_JSON="{}"
 
 source "$HOME/.claude/scripts/cf-env.sh"
 
@@ -107,6 +118,7 @@ if [ "$STORED_L1" = false ] && [ -n "$LAYER0_DIR" ]; then
         echo "## Session $SESSION_ID ($TIMESTAMP)"
         echo "- Project: $PROJECT"
         echo "- Events: $TOTAL ($SUCCESSES ok, $FAILURES fail)"
+        echo "- Corrections: $CORRECTIONS | Test writes: $TEST_WRITES | Cascades: $CASCADES"
         echo "- Tools: $TOOLS"
         if [ -n "$FILES" ]; then echo "- Files: $FILES"; fi
     } >> "$LAYER0_DIR/pending-learnings.md"
@@ -118,6 +130,7 @@ if [ -n "$LAYER0_DIR" ]; then
         echo ""
         echo "### Session $SESSION_ID ($TIMESTAMP)"
         echo "- Events: $TOTAL ($SUCCESSES ok, $FAILURES fail)"
+        echo "- Corrections: $CORRECTIONS | Test writes: $TEST_WRITES | Cascades: $CASCADES"
         echo "- Tools: $TOOLS"
         if [ -n "$FILES" ]; then echo "- Files: $FILES"; fi
     } >> "$LAYER0_DIR/sessions.md"
@@ -148,7 +161,7 @@ if [ -n "$LAYER0_DIR" ]; then
                 echo ""
                 echo "**State:**"
                 echo "- Branch: $BRANCH"
-                echo "- Events: $TOTAL ($SUCCESSES ok, $FAILURES fail)"
+                echo "- Events: $TOTAL ($SUCCESSES ok, $FAILURES fail, $CORRECTIONS corrections, $CASCADES cascades)"
                 echo ""
                 echo "**Next:**"
                 echo "- (auto-generated — run /session-handoff for full close)"

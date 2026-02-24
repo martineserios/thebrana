@@ -2,6 +2,7 @@
 # No strict mode — hooks must never fail and block the session.
 
 # Brana PostToolUse hook — log significant tool successes during session.
+# Wave 1 (#75): correction detection, test-file detection.
 # Input:  stdin JSON (session_id, tool_name, tool_input, cwd)
 # Output: stdout JSON (minimal — async hook)
 
@@ -16,6 +17,7 @@ TOOL_INPUT=$(echo "$INPUT" | jq -r '.tool_input // "{}"' 2>/dev/null) || true
 if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
     TS=$(date +%s 2>/dev/null) || TS=0
     DETAIL=""
+    OUTCOME="success"
 
     case "${TOOL_NAME:-}" in
         Bash)
@@ -30,10 +32,27 @@ if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
     esac
 
     SESSION_FILE="/tmp/brana-session-${SESSION_ID}.jsonl"
+
+    # --- Correction detection ---
+    # If Edit/Write targets a file that was just edited (last event), it's a correction.
+    if [ "${TOOL_NAME:-}" = "Edit" ] || [ "${TOOL_NAME:-}" = "Write" ]; then
+        if [ -f "$SESSION_FILE" ] && [ -n "$DETAIL" ]; then
+            LAST_EDIT=$(tail -1 "$SESSION_FILE" 2>/dev/null | jq -r 'select(.tool == "Edit" or .tool == "Write") | .detail // empty' 2>/dev/null) || LAST_EDIT=""
+            if [ -n "$LAST_EDIT" ] && [ "$LAST_EDIT" = "$DETAIL" ]; then
+                OUTCOME="correction"
+            fi
+        fi
+
+        # --- Test-file detection ---
+        if echo "$DETAIL" | grep -qE '(\.test\.|\.spec\.|/tests/|/test/|test_|_test\.)' 2>/dev/null; then
+            OUTCOME="test-write"
+        fi
+    fi
+
     jq -n -c \
         --argjson ts "${TS:-0}" \
         --arg tool "${TOOL_NAME:-unknown}" \
-        --arg outcome "success" \
+        --arg outcome "$OUTCOME" \
         --arg detail "${DETAIL:-unknown}" \
         '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail}' >> "$SESSION_FILE" 2>/dev/null || true
 fi
