@@ -334,13 +334,14 @@ All work happens on this branch. Main stays clean until Phase 6.
 For each task (in dependency order):
 
 ```
-1. State what you're building (reference the issue number if available)
+1. Plan: state what you'll change, which files, and why. Verify the plan addresses the task's acceptance criteria before touching any file.
 2. Implement
-3. Verify (run tests, lint, manual check — whatever's appropriate)
-4. Commit: feat({scope}): {description}
+3. If a tool fails: attempt to fix autonomously (re-read the file, adjust the edit, try an alternative). Only escalate to the user after 2 failed attempts on the same target.
+4. Verify: run tests, lint, or manual check. Compare before/after state — does the change achieve the intended outcome?
+5. Commit: feat({scope}): {description}
    - If issue exists, add "fixes #{issue}" to close it
-5. Mini-debrief (see below)
-6. Move to next task
+6. Mini-debrief (see below)
+7. Move to next task
 ```
 
 **At natural breakpoints** (every 2-3 tasks, or after a complex one), ask:
@@ -351,9 +352,10 @@ For each task (in dependency order):
 
 Quick extraction — 30 seconds, not a full `/debrief`:
 
-1. **Did anything surprise?** API that didn't work as expected, file in the wrong place, undocumented behavior.
-2. **Spec mismatch?** Feature brief says X, reality requires Y.
-3. **Reusable pattern?** Something worth remembering for next time.
+1. **Before/after check:** What state was the system in before this task? What state is it in now? Does the after-state match the intended outcome?
+2. **Did anything surprise?** API that didn't work as expected, file in the wrong place, undocumented behavior.
+3. **Spec mismatch?** Feature brief says X, reality requires Y.
+4. **Reusable pattern?** Something worth remembering for next time.
 
 For significant findings, store in memory:
 
