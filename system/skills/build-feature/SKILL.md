@@ -97,6 +97,7 @@ Three parallel research tracks. Spawn agents for tracks 2 and 3 while running tr
 ### Track 1: Project docs (run directly)
 
 Search the project for relevant context:
+- **Look at existing implementations first.** Before designing anything new, find the closest existing feature or subcommand in the codebase and read its implementation. Use it as a reference for patterns, conventions, and structure. Building from an existing model prevents reinventing solved patterns.
 - Grep for keywords related to the feature
 - Read related source files, ADRs, README sections
 - Check CLAUDE.md conventions that constrain the implementation

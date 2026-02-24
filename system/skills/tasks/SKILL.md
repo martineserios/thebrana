@@ -26,6 +26,7 @@ language guided by the task-convention rule — no skill invocation needed.
 
 - `/tasks plan [project] "[phase-title]"` — plan a phase interactively
 - `/tasks status [project]` — progress overview (omit project = portfolio)
+- `/tasks portfolio [--unified]` — cross-project actionable tasks
 - `/tasks roadmap [project]` — full tree view with all levels
 - `/tasks next [project]` — next unblocked task by priority
 - `/tasks start <id>` — begin work on a task
@@ -110,6 +111,88 @@ somos       Cold Lead Flow             ████████ done
 ```
 
 Read project paths from `~/.claude/tasks-portfolio.json`. Paths use `~/` prefix — resolve to `$HOME` before reading. For each, read `.claude/tasks.json` if it exists.
+
+---
+
+## /tasks portfolio
+
+Cross-project actionable task view. Shows individual tasks you can work on across all registered projects. Complements `/tasks status` (progress bars) with a task-level drill-down.
+
+### Usage
+
+```
+/tasks portfolio              — by-project view (default)
+/tasks portfolio --unified    — priority-sorted flat list
+```
+
+### Steps
+
+1. **Read `~/.claude/tasks-portfolio.json`** — get project list
+2. **Resolve paths** — replace `~/` with `$HOME`
+3. **For each project**, read `{path}/.claude/tasks.json`
+   - If file doesn't exist: skip silently
+   - **Normalize JSON**: if root is a bare array `[{...}]`, treat as the tasks list. If root is an object with `.tasks`, use that.
+4. **Classify each task** (type: task or subtask only — skip phases and milestones):
+   - `in_progress`: status is `in_progress`
+   - `pending`: status is `pending` AND all `blocked_by` IDs have status `completed`
+   - `blocked`: status is `pending` AND any `blocked_by` ID is not `completed`
+   - `parked`: tags array contains `"parked"` (shown with `[parked]` flag)
+   - `completed`: status is `completed`
+5. **Sort within each project**: in_progress → pending → blocked → last 3 completed (by `completed` date descending)
+6. **Compute summary**: total actionable tasks, project count, pending count, in_progress count
+7. **Render** by-project or unified view
+
+### By-project view (default)
+
+```
+Portfolio — 17 tasks across 4 projects (14 pending, 3 in progress)
+
+  nexeye
+    ← t-003 First production deploy                    in_progress
+    → t-016 Fix inference-worker-2 overlay failure      pending
+    · t-017 Fix staging deploy                          blocked by t-003
+    ✓ t-015 Configure GitHub Actions CI                 completed 2026-02-18
+    ✓ t-014 Fix DNS resolution                          completed 2026-02-17
+    ✓ t-013 Set up Docker Swarm                         completed 2026-02-16
+
+  palco
+    ← t-003 V2→V3 cutover                              in_progress
+    → t-004 Review metrics Google Sheet                 pending
+    → t-011 Run Supabase migration                      pending
+    ✓ t-010 Build V3 trigger endpoint                   completed 2026-02-15
+    ✓ t-009 Migrate campaign schema                     completed 2026-02-14
+    ✓ t-008 Add rate limiting                           completed 2026-02-13
+
+  somos_mirada
+    → t-001 Fill kb-indicaciones-consulta-virtual-bsas  pending
+    → t-002 Fill kb-indicaciones-consulta-virtual-eng   pending
+    ...(+7 more pending)
+    (no recent completions)
+
+  tinyhomes — all done (3 tasks)
+```
+
+Status icons (same as `/tasks roadmap`): ✓ completed, → pending/next, ← in_progress, · blocked.
+Parked tasks show inline: `· ms-007 Wire AgentDB [parked]  blocked (upstream)`.
+Projects with no tasks.json are omitted. All-completed projects show as a collapsed line.
+When a project has more than 5 pending tasks, show the first 3 then `...(+N more pending)`.
+
+### Unified priority view (`--unified`)
+
+```
+Portfolio — priority view (17 tasks across 4 projects)
+
+  1. ← nexeye  t-003 First production deploy            in_progress  P1
+  2. ← palco   t-003 V2→V3 cutover                      in_progress  P1
+  3. → palco   t-004 Review metrics Google Sheet         pending
+  4. → palco   t-011 Run Supabase migration              pending
+  5. → somos   t-001 Fill kb-indicaciones-virtual-bsas   pending
+  6. → somos   t-002 Fill kb-indicaciones-virtual-eng    pending
+  ...
+```
+
+Sort order: P0 > P1 > P2 > null. Ties broken by: in_progress first, then pending, then `order` field.
+Blocked and completed tasks are excluded from the unified view (only actionable tasks).
 
 ---
 
