@@ -49,8 +49,8 @@ fi
 # Wave 3: correction-pattern priority recall
 CORRECTION_CONTEXT=""
 if [ -n "$CF" ]; then
-    CP_OUTPUT=$(timeout 5 $CF memory search --query "project:$PROJECT type:correction" --namespace patterns --format json 2>&1) || true
-    if [ $? -eq 0 ] && [ -n "$CP_OUTPUT" ]; then
+    CP_OUTPUT=$(timeout 5 $CF memory search --query "project:$PROJECT type:correction" --namespace patterns --format json 2>&1); CP_EXIT=$?
+    if [ $CP_EXIT -eq 0 ] && [ -n "$CP_OUTPUT" ]; then
         # Extract high-confidence correction patterns (promoted via fast-track or recall)
         CP_LINES=$(echo "$CP_OUTPUT" | jq -r '.[] | select(.value | fromjson? | .confidence >= 0.8) | (.key + ": " + (.value | fromjson? | .solution // "unknown"))' 2>/dev/null | head -3) || CP_LINES=""
         if [ -n "$CP_LINES" ]; then
