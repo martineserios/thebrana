@@ -29,5 +29,6 @@ Nudge once per trigger. Don't nag. Include what triggered the nudge.
 | Research on a new topic | `/research [topic]` |
 | /refresh-knowledge finds refs | `/research leads` |
 | Planning new work | `/tasks plan` or `/tasks add` |
+| Session ending (user says done/bye/closing) | `/session-handoff` |
 
 If the user invokes a skill, use it. If they don't but the situation matches an agent, auto-delegate. Never both.
