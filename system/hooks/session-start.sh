@@ -46,6 +46,20 @@ else
     CF_WARNING="claude-flow not found. Memory recall unavailable. Install: npm i -g claude-flow"
 fi
 
+# Wave 3: correction-pattern priority recall
+CORRECTION_CONTEXT=""
+if [ -n "$CF" ]; then
+    CP_OUTPUT=$(timeout 5 $CF memory search --query "project:$PROJECT type:correction" --namespace patterns --format json 2>&1) || true
+    if [ $? -eq 0 ] && [ -n "$CP_OUTPUT" ]; then
+        # Extract high-confidence correction patterns (promoted via fast-track or recall)
+        CP_LINES=$(echo "$CP_OUTPUT" | jq -r '.[] | select(.value | fromjson? | .confidence >= 0.8) | (.key + ": " + (.value | fromjson? | .solution // "unknown"))' 2>/dev/null | head -3) || CP_LINES=""
+        if [ -n "$CP_LINES" ]; then
+            CORRECTION_CONTEXT="[Correction patterns — high confidence, apply early if similar errors arise]
+$CP_LINES"
+        fi
+    fi
+fi
+
 # Log recalled patterns to session file for promotion tracking
 if [ -n "$CONTEXT" ]; then
     SESSION_FILE="/tmp/brana-session-${SESSION_ID}.jsonl"
@@ -169,6 +183,10 @@ fi
 if [ -n "$TASK_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
 }$TASK_CONTEXT"
+fi
+if [ -n "$CORRECTION_CONTEXT" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}$CORRECTION_CONTEXT"
 fi
 if [ -n "$LOOP_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS

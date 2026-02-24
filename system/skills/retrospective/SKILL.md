@@ -19,6 +19,7 @@ allowed-tools:
    - `solution`: what worked (or what didn't)
    - `tags`: project name, technology, problem type, outcome
    - `confidence`: 0.5 (quarantined — new learnings start unproven)
+   - `correction_weight`: 0 (how many corrections this pattern resolved; >= 2 triggers fast-track promotion)
    - `transferable`: false (locked to source project until proven)
 
 3. **Primary path (claude-flow available):**
@@ -50,11 +51,18 @@ source "$HOME/.claude/scripts/cf-env.sh"
       - Retrieve: `cd $HOME && $CF memory search --query "{pattern-key}"`
       - Parse the JSON value, increment `recall_count` by 1
       - If `recall_count >= 3` → **promote**: set `confidence: 0.8`, `transferable: true`
+      - If `correction_weight >= 2` → **fast-track promote**: set `confidence: 0.8`, `transferable: true` (pattern resolved multiple corrections — proven through practice)
       - Re-store with updated fields using the same key and tags
    c. For each recalled pattern that **was harmful or misleading** this session:
       - **Demote**: set `confidence: 0.1` (suspect), keep `transferable: false`
       - Re-store with updated fields
    d. Report what was promoted, demoted, or unchanged.
+
+   e. **Correction-weight check (Wave 3):** Scan the session JSONL for correction events:
+      ```bash
+      SESSION_FILES=$(ls /tmp/brana-session-*.jsonl 2>/dev/null)
+      ```
+      For each file, count `"outcome":"correction"` events. If a pattern's solution was used to resolve a correction (same file or same error type), increment that pattern's `correction_weight`. Patterns with `correction_weight >= 2` qualify for fast-track promotion even if `recall_count < 3`.
 
    **Skip this step** if no patterns were recalled this session or if the user wants to skip it.
 
