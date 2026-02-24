@@ -51,7 +51,8 @@ Target options:
    - Returns ONLY a 2-line summary to main context: `"Wrote N findings to /tmp/research-{target}-{N}.md. X HIGH, Y MEDIUM, Z LOW."`
    - Tags findings: `[NEW]`, `[UPDATE]`, `[VERSION]`, `[CREATOR]`, or `[STALE]`
    - **Version check**: compare current version against `version_observed` in registry. If different, tag as `[VERSION]` with HIGH severity
-   - **Budget**: max 5 scouts for topic mode, max 8 for doc/creator mode
+   - **Security scout (mandatory for topic/ecosystem mode)**: one scout must search for CVEs, security advisories, and community trust signals. Tag findings `[SECURITY]`.
+   - **Budget**: max 5 scouts for topic mode, max 8 for doc/creator mode (security scout counts toward budget)
    - Scout spawn prompt MUST include: "Write all findings to {filepath}. Return only a 2-line summary with counts. Do NOT use WebFetch."
 
 5. **Phase 2 — Triage (main context reads temp files incrementally).** For each temp file from Phase 1:
@@ -151,7 +152,7 @@ When researching, select the appropriate archetype based on the target:
 - Main context orchestrates the 3-phase loop. **Main context never does WebFetch or WebSearch directly.**
 - Scouts use `subagent_type: "scout"`, `model: "haiku"`, `run_in_background: true`
 - **Temp file contract (mandatory):** Scouts write findings to `/tmp/research-{target}-{N}.md`. Scouts return ONLY a 2-line summary via TaskOutput. Main context reads temp files one at a time.
-- **Phase budget:** Phase 1 max 5-8 scouts (WebSearch only). Phase 3 max 3 scouts (WebFetch, max 2 per scout). Recursion max 3 scouts.
+- **Phase budget:** Phase 1 max 5-8 scouts (WebSearch only; one for security in topic/ecosystem mode). Phase 3 max 3 scouts (WebFetch, max 2 per scout). Recursion max 3 scouts.
 - **Total scout cap:** max 14 scouts per invocation (8 scan + 3 deep + 3 recurse)
 - **Scout spawn prompt template:** Always include these lines in every scout prompt:
   ```
@@ -172,3 +173,4 @@ When researching, select the appropriate archetype based on the target:
 - **Read temp files incrementally.** Never read all scout outputs in a single turn.
 - **Date-stamp everything.** All findings include the date they were found (YYYY-MM-DD format).
 - **Source attribution.** Every finding must link back to the source URL.
+- **Security-first for infrastructure research.** Include a security scout in Phase 1 when researching tools that could become production infrastructure.
