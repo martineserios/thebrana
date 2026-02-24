@@ -875,7 +875,7 @@
       "subject": "Add /tasks portfolio subcommand to tasks skill",
       "description": "Add portfolio subcommand to system/skills/tasks/SKILL.md — cross-project pending tasks view with by-project and unified modes. Feature brief: docs/features/tasks-portfolio.md. Backlog: enter #67.",
       "tags": ["skills", "tasks"],
-      "status": "in_progress",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": null,
@@ -888,8 +888,8 @@
       "github_issue": null,
       "created": "2026-02-23",
       "started": "2026-02-23",
-      "completed": null,
-      "notes": null,
+      "completed": "2026-02-23",
+      "notes": "Shipped. Single SKILL.md section, challenger-reviewed. Auto-merged via hook.",
       "context": "Challenger-reviewed. Schema normalization needed (bare array vs {tasks:[]}). Single flag: --unified."
     }
   ]

@@ -1,7 +1,7 @@
 # Feature: /tasks portfolio
 
 **Date:** 2026-02-23
-**Status:** designing
+**Status:** shipped
 **Backlog:** enter #67
 
 ## Goal
