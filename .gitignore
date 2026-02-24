@@ -2,5 +2,8 @@
 .swarm/
 .claude/memory.db
 
+# Local Claude Code config
+.claude/settings.json
+
 # MCP config (local dev)
 .mcp.json
