@@ -2,6 +2,7 @@
 name: refresh-knowledge
 description: Refresh external research for spec docs — web-search for updates to dimension, venture/PM, and cross-cutting topics. Use when docs may be stale or before major phase planning.
 group: brana
+context: fork
 allowed-tools:
   - Read
   - Glob

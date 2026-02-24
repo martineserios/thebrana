@@ -179,12 +179,18 @@ For each work item, follow this cycle:
 ┌─────────────────────────────────────────┐
 │            FOR EACH WORK ITEM           │
 │                                         │
-│  1. State what you're building          │
+│  1. Plan: state what you'll change,     │
+│     which files, why. Verify plan       │
+│     meets acceptance criteria.          │
 │  2. Implement it (on the phase branch)  │
-│  3. Verify it (run tests, manual check) │
-│  4. Commit (conventional commits)       │
-│  5. Mini-debrief (see below)            │
-│  6. Store learning in memory            │
+│  3. If tool fails: fix autonomously     │
+│     (re-read, adjust, alternative).     │
+│     Escalate after 2 failed attempts.   │
+│  4. Verify: before/after state check.   │
+│     Does the change achieve intent?     │
+│  5. Commit (conventional commits)       │
+│  6. Mini-debrief (see below)            │
+│  7. Store learning in memory            │
 │                                         │
 │  → Next work item (informed by what     │
 │    you just learned)                    │
@@ -195,9 +201,10 @@ For each work item, follow this cycle:
 
 This is NOT a full `/debrief`. It's a quick extraction:
 
-1. **Did anything surprise you?** An API that didn't work as expected, a file in the wrong place, a command that needed flags not documented.
-2. **Did you hit a spec mismatch?** If yes — note it. You'll write it up properly in the full debrief.
-3. **Did you discover something reusable?** A pattern, a shortcut, a gotcha.
+1. **Before/after check:** What state was the system in before? What state is it in now? Does the after-state match the intended outcome?
+2. **Did anything surprise you?** An API that didn't work as expected, a file in the wrong place, a command that needed flags not documented.
+3. **Did you hit a spec mismatch?** If yes — note it. You'll write it up properly in the full debrief.
+4. **Did you discover something reusable?** A pattern, a shortcut, a gotcha.
 
 For each finding, store immediately:
 
