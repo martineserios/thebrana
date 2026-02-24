@@ -2,7 +2,7 @@
 # No strict mode — failure hooks especially must never fail themselves.
 
 # Brana PostToolUseFailure hook — log tool failures during session.
-# Failures are often more valuable than successes for learning.
+# Wave 1 (#75): error categorization, cascade detection.
 # Input:  stdin JSON (session_id, tool_name, tool_input, cwd)
 # Output: stdout JSON (minimal — async hook)
 
@@ -31,12 +31,46 @@ if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
     esac
 
     SESSION_FILE="/tmp/brana-session-${SESSION_ID}.jsonl"
+    CASCADE=false
+
+    # --- Cascade detection ---
+    # If the last 2 events were also failures on the same target, this is a cascade (3+ consecutive).
+    if [ -f "$SESSION_FILE" ] && [ -n "$DETAIL" ]; then
+        RECENT_FAILS=$(tail -2 "$SESSION_FILE" 2>/dev/null | jq -r 'select(.outcome == "failure") | .detail // empty' 2>/dev/null) || RECENT_FAILS=""
+        MATCH_COUNT=$(echo "$RECENT_FAILS" | grep -cxF "$DETAIL" 2>/dev/null) || MATCH_COUNT=0
+        if [ "$MATCH_COUNT" -ge 2 ]; then
+            CASCADE=true
+        fi
+    fi
+
+    # --- Error categorization ---
+    ERROR_CAT="unknown"
+    case "${TOOL_NAME:-}" in
+        Edit)
+            ERROR_CAT="edit-mismatch"
+            ;;
+        Write)
+            ERROR_CAT="write-fail"
+            ;;
+        Bash)
+            ERROR_CAT="command-fail"
+            ;;
+        WebFetch|WebSearch)
+            ERROR_CAT="network-fail"
+            ;;
+        *)
+            ERROR_CAT="tool-fail"
+            ;;
+    esac
+
     jq -n -c \
         --argjson ts "${TS:-0}" \
         --arg tool "${TOOL_NAME:-unknown}" \
         --arg outcome "failure" \
         --arg detail "${DETAIL:-unknown}" \
-        '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail}' >> "$SESSION_FILE" 2>/dev/null || true
+        --arg error_cat "$ERROR_CAT" \
+        --argjson cascade "$CASCADE" \
+        '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail, error_cat: $error_cat, cascade: $cascade}' >> "$SESSION_FILE" 2>/dev/null || true
 fi
 
 echo '{"continue": true}'
