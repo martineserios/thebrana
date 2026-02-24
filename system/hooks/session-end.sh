@@ -3,6 +3,7 @@
 
 # Brana SessionEnd hook — flush accumulated session events to persistent storage.
 # Wave 1 (#75): compound metrics (correction rate, test coverage, cascade count).
+# Wave 4 (#75): flywheel metrics (correction_rate, auto_fix_rate, test_write_rate, cascade_rate, delegation_count).
 # Input:  stdin JSON (session_id, cwd, hook_event_name, matcher)
 # Output: stdout JSON with continue: true
 
@@ -45,6 +46,46 @@ TEST_WRITES=$(grep -c '"outcome":"test-write"' "$SESSION_FILE" 2>/dev/null) || T
 CASCADES=$(grep -c '"cascade":true' "$SESSION_FILE" 2>/dev/null) || CASCADES=0
 EDITS=$(jq -r 'select(.tool == "Edit" or .tool == "Write") | .tool' "$SESSION_FILE" 2>/dev/null | wc -l) || EDITS=0
 
+# Wave 4: flywheel metrics — rates derived from compound metrics
+# correction_rate: corrections per edit (lower = better planning)
+if [ "$EDITS" -gt 0 ]; then
+    CORRECTION_RATE=$(awk "BEGIN {printf \"%.2f\", $CORRECTIONS / $EDITS}") || CORRECTION_RATE="0.00"
+else
+    CORRECTION_RATE="0.00"
+fi
+
+# test_write_rate: test writes per edit (higher = better TDD discipline)
+if [ "$EDITS" -gt 0 ]; then
+    TEST_WRITE_RATE=$(awk "BEGIN {printf \"%.2f\", $TEST_WRITES / $EDITS}") || TEST_WRITE_RATE="0.00"
+else
+    TEST_WRITE_RATE="0.00"
+fi
+
+# cascade_rate: cascades per failure (lower = better error handling)
+if [ "$FAILURES" -gt 0 ]; then
+    CASCADE_RATE=$(awk "BEGIN {printf \"%.2f\", $CASCADES / $FAILURES}") || CASCADE_RATE="0.00"
+else
+    CASCADE_RATE="0.00"
+fi
+
+# auto_fix_rate: failure→success recovery on same target (higher = better autonomous recovery)
+AUTO_FIXES=0
+if [ "$FAILURES" -gt 0 ]; then
+    AUTO_FIXES=$(jq -r '[.outcome, .detail] | @tsv' "$SESSION_FILE" 2>/dev/null | awk '
+        BEGIN { fixes=0 }
+        /^failure\t/ { prev_fail[$2]=1 }
+        /^success\t/ { if ($2 in prev_fail) { fixes++; delete prev_fail[$2] } }
+        /^correction\t/ { if ($2 in prev_fail) { fixes++; delete prev_fail[$2] } }
+        END { print fixes }
+    ' 2>/dev/null) || AUTO_FIXES=0
+    AUTO_FIX_RATE=$(awk "BEGIN {printf \"%.2f\", $AUTO_FIXES / $FAILURES}") || AUTO_FIX_RATE="0.00"
+else
+    AUTO_FIX_RATE="0.00"
+fi
+
+# delegation_count: Task tool invocations (proxy for subagent delegation)
+DELEGATIONS=$(grep -c '"tool":"Task"' "$SESSION_FILE" 2>/dev/null) || DELEGATIONS=0
+
 SUMMARY_JSON=$(jq -n \
     --arg project "${PROJECT:-unknown}" \
     --arg session "${SESSION_ID:-unknown}" \
@@ -56,12 +97,17 @@ SUMMARY_JSON=$(jq -n \
     --argjson test_writes "${TEST_WRITES:-0}" \
     --argjson cascades "${CASCADES:-0}" \
     --argjson edits "${EDITS:-0}" \
+    --arg correction_rate "${CORRECTION_RATE:-0.00}" \
+    --arg auto_fix_rate "${AUTO_FIX_RATE:-0.00}" \
+    --arg test_write_rate "${TEST_WRITE_RATE:-0.00}" \
+    --arg cascade_rate "${CASCADE_RATE:-0.00}" \
+    --argjson delegations "${DELEGATIONS:-0}" \
     --arg tools "${TOOLS:-unknown}" \
     --arg files "${FILES:-}" \
     --argjson confidence 0.5 \
     --argjson transferable false \
     --argjson recall_count 0 \
-    '{project: $project, session: $session, timestamp: $ts, events: $total, successes: $ok, failures: $fail, corrections: $corrections, test_writes: $test_writes, cascades: $cascades, edits: $edits, tools: $tools, files: $files, confidence: $confidence, transferable: $transferable, recall_count: $recall_count}' 2>/dev/null) || SUMMARY_JSON="{}"
+    '{project: $project, session: $session, timestamp: $ts, events: $total, successes: $ok, failures: $fail, corrections: $corrections, test_writes: $test_writes, cascades: $cascades, edits: $edits, flywheel: {correction_rate: $correction_rate, auto_fix_rate: $auto_fix_rate, test_write_rate: $test_write_rate, cascade_rate: $cascade_rate, delegations: $delegations}, tools: $tools, files: $files, confidence: $confidence, transferable: $transferable, recall_count: $recall_count}' 2>/dev/null) || SUMMARY_JSON="{}"
 
 source "$HOME/.claude/scripts/cf-env.sh"
 
@@ -85,6 +131,23 @@ if [ -n "$CF" ]; then
         CF_WARNING="Session summary store timed out (>5s). Try: claude-flow memory store -k '$KEY'"
     else
         CF_WARNING="Session summary store failed (exit $CF_EXIT). Try: claude-flow memory store -k '$KEY'"
+    fi
+    # Wave 4: store flywheel metrics as separate key for trending
+    if [ "$STORED_L1" = true ]; then
+        FW_KEY="flywheel:${PROJECT}:${SESSION_ID}"
+        FW_VALUE=$(jq -n -c \
+            --arg project "$PROJECT" \
+            --arg session "$SESSION_ID" \
+            --arg ts "$TIMESTAMP" \
+            --arg correction_rate "$CORRECTION_RATE" \
+            --arg auto_fix_rate "$AUTO_FIX_RATE" \
+            --arg test_write_rate "$TEST_WRITE_RATE" \
+            --arg cascade_rate "$CASCADE_RATE" \
+            --argjson delegations "${DELEGATIONS:-0}" \
+            --argjson edits "${EDITS:-0}" \
+            --argjson failures "${FAILURES:-0}" \
+            '{project: $project, session: $session, timestamp: $ts, correction_rate: $correction_rate, auto_fix_rate: $auto_fix_rate, test_write_rate: $test_write_rate, cascade_rate: $cascade_rate, delegations: $delegations, edits: $edits, failures: $failures}' 2>/dev/null) || FW_VALUE="{}"
+        timeout 5 $CF memory store -k "$FW_KEY" -v "$FW_VALUE" --namespace metrics --tags "project:$PROJECT,type:flywheel" 2>/dev/null || true
     fi
 else
     CF_WARNING="claude-flow not found. Session summary not persisted. Install: npm i -g claude-flow"
@@ -119,6 +182,7 @@ if [ "$STORED_L1" = false ] && [ -n "$LAYER0_DIR" ]; then
         echo "- Project: $PROJECT"
         echo "- Events: $TOTAL ($SUCCESSES ok, $FAILURES fail)"
         echo "- Corrections: $CORRECTIONS | Test writes: $TEST_WRITES | Cascades: $CASCADES"
+        echo "- Flywheel: corr=$CORRECTION_RATE fix=$AUTO_FIX_RATE test=$TEST_WRITE_RATE casc=$CASCADE_RATE deleg=$DELEGATIONS"
         echo "- Tools: $TOOLS"
         if [ -n "$FILES" ]; then echo "- Files: $FILES"; fi
     } >> "$LAYER0_DIR/pending-learnings.md"
@@ -131,6 +195,7 @@ if [ -n "$LAYER0_DIR" ]; then
         echo "### Session $SESSION_ID ($TIMESTAMP)"
         echo "- Events: $TOTAL ($SUCCESSES ok, $FAILURES fail)"
         echo "- Corrections: $CORRECTIONS | Test writes: $TEST_WRITES | Cascades: $CASCADES"
+        echo "- Flywheel: corr=$CORRECTION_RATE fix=$AUTO_FIX_RATE test=$TEST_WRITE_RATE casc=$CASCADE_RATE deleg=$DELEGATIONS"
         echo "- Tools: $TOOLS"
         if [ -n "$FILES" ]; then echo "- Files: $FILES"; fi
     } >> "$LAYER0_DIR/sessions.md"
@@ -162,6 +227,7 @@ if [ -n "$LAYER0_DIR" ]; then
                 echo "**State:**"
                 echo "- Branch: $BRANCH"
                 echo "- Events: $TOTAL ($SUCCESSES ok, $FAILURES fail, $CORRECTIONS corrections, $CASCADES cascades)"
+                echo "- Flywheel: corr=$CORRECTION_RATE fix=$AUTO_FIX_RATE test=$TEST_WRITE_RATE casc=$CASCADE_RATE deleg=$DELEGATIONS"
                 echo ""
                 echo "**Next:**"
                 echo "- (auto-generated — run /session-handoff for full close)"
