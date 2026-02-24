@@ -15,7 +15,7 @@ allowed-tools:
 
 # Research
 
-The atomic research primitive. Takes a topic, doc number, creator, or lead. Checks sources in the registry, follows references recursively, produces structured findings. Can be invoked standalone for ad-hoc research or called by `/refresh-knowledge` for batch operations.
+The atomic research primitive. Takes a topic, doc number, or creator. Checks sources in the registry, follows references recursively, produces structured findings. Can be invoked standalone for ad-hoc research or called by `/refresh-knowledge` for batch operations.
 
 ## Usage
 
@@ -25,7 +25,6 @@ Target options:
 - A topic (e.g., `/research context engineering`) — find and check sources related to this topic
 - A doc number (e.g., `/research 14`) — research updates for this specific dimension doc
 - A creator (e.g., `/research creator:simon-willison`) — check a creator's recent output
-- `leads` — process queued leads from claude-flow memory (namespace: research-leads)
 - `registry` — report on registry health (trust tier distribution, stale sources, cadence overdue)
 
 ## Procedure
@@ -35,7 +34,6 @@ Target options:
 2. **Determine target type.** Parse `$ARGUMENTS`:
    - If it's a number → doc mode (research updates for that doc)
    - If it starts with `creator:` → creator mode (check that creator's channels)
-   - If it's `leads` → leads mode (process research-leads from claude-flow memory)
    - If it's `registry` → registry health mode (analyze the YAML)
    - Otherwise → topic mode (search for the topic across registry sources)
 
@@ -43,7 +41,6 @@ Target options:
    - **Doc mode**: filter registry sources where `relevance` includes the doc number
    - **Creator mode**: find the creator entry, use all their channels
    - **Topic mode**: search source names/descriptions for topic keywords, plus run web searches
-   - **Leads mode**: read leads from `mcp__claude-flow__memory_search` (namespace: `research-leads`, tags: `status:queued`)
    - **Registry mode**: skip to step 8
 
 4. **Phase 1 — Wide Scan (metadata only, no WebFetch).** Launch parallel scouts to scan sources. Each scout:
@@ -117,8 +114,8 @@ Target options:
    ### New Sources Discovered
    - [source name](url) — type: blog — suggested trust: unvalidated — found via: [parent source]
 
-   ### New Leads Created
-   - Lead: "topic or reference" — priority: HIGH/MEDIUM/LOW — reason
+   ### Proposed Backlog Items
+   - Item: "topic or reference" — priority: HIGH/MEDIUM/LOW — reason — affects: doc NN
 
    ### Registry Updates Proposed
    - Update last_checked for [sources checked]
@@ -126,9 +123,10 @@ Target options:
    - Promote/demote: [source] from [tier] to [tier] — reason
    ```
 
-11. **Create leads for unfollowed threads.** For references that were not recursed into (budget exhausted, low priority):
-    - Store as leads in claude-flow memory (namespace: `research-leads`) if available
-    - Otherwise, list them in the report under "Leads Created" for manual tracking
+11. **Propose backlog items for unfollowed threads.** For references that were not recursed into (budget exhausted, low priority):
+    - Include in the report under "Proposed Backlog Items"
+    - Format each as: item description, priority, reason it's worth pursuing, affected doc(s)
+    - User reviews the report and decides which to add to the backlog
 
 12. **Propose registry updates.** List all changes to `research-sources.yaml`:
     - New sources to add (with full schema)
