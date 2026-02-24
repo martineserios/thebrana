@@ -123,6 +123,40 @@ if [ -n "$LAYER0_DIR" ]; then
     } >> "$LAYER0_DIR/sessions.md"
 fi
 
+# Self-learning loop: detect system file changes for next session
+if [ -n "$LAYER0_DIR" ]; then
+    DRIFT_FILES=$(git -C "$GIT_ROOT" diff --name-only HEAD~10..HEAD 2>/dev/null | grep -E '(skills/|agents/|hooks/|rules/|commands/|CLAUDE\.md|settings\.json|deploy\.sh)' | tr '\n' ',' || true)
+    if [ -n "$DRIFT_FILES" ]; then
+        echo "$(date +%Y-%m-%d) $DRIFT_FILES" > "$LAYER0_DIR/.needs-backprop"
+    fi
+fi
+
+# Self-learning loop: auto-generate minimal handoff if not written today
+if [ -n "$LAYER0_DIR" ]; then
+    HANDOFF="$LAYER0_DIR/session-handoff.md"
+    TODAY=$(date +%Y-%m-%d)
+    if [ -f "$HANDOFF" ] && ! grep -q "## $TODAY" "$HANDOFF" 2>/dev/null; then
+        COMMITS=$(git -C "$GIT_ROOT" log --oneline --since="8 hours ago" 2>/dev/null | head -5) || COMMITS=""
+        BRANCH=$(git -C "$GIT_ROOT" branch --show-current 2>/dev/null) || BRANCH="unknown"
+        if [ -n "$COMMITS" ]; then
+            {
+                echo ""
+                echo "## $TODAY — auto-captured (session-end hook)"
+                echo ""
+                echo "**Accomplished:**"
+                echo "$COMMITS" | while read -r line; do echo "- $line"; done
+                echo ""
+                echo "**State:**"
+                echo "- Branch: $BRANCH"
+                echo "- Events: $TOTAL ($SUCCESSES ok, $FAILURES fail)"
+                echo ""
+                echo "**Next:**"
+                echo "- (auto-generated — run /session-handoff for full close)"
+            } >> "$HANDOFF"
+        fi
+    fi
+fi
+
 # Clean up temp file
 rm -f "$SESSION_FILE"
 

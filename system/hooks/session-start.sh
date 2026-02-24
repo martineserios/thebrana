@@ -129,6 +129,37 @@ else
     fi
 fi
 
+# Self-learning loop: check flags from previous session
+LOOP_CONTEXT=""
+LAYER0_DIR=""
+for projdir in "$HOME"/.claude/projects/*/; do
+    if [ -d "${projdir}memory" ]; then
+        if grep -qi "$PROJECT" "${projdir}memory/MEMORY.md" 2>/dev/null; then
+            LAYER0_DIR="${projdir}memory"
+            break
+        fi
+    fi
+done
+
+if [ -n "$LAYER0_DIR" ]; then
+    # Check for doc drift flag
+    BACKPROP_FLAG="$LAYER0_DIR/.needs-backprop"
+    if [ -f "$BACKPROP_FLAG" ]; then
+        DRIFT_INFO=$(cat "$BACKPROP_FLAG" 2>/dev/null) || true
+        LOOP_CONTEXT="[Previous session] System files changed ($DRIFT_INFO). Consider running /back-propagate to sync specs."
+        rm -f "$BACKPROP_FLAG"
+    fi
+
+    # Check for pending errata
+    if [ -f "$LAYER0_DIR/pending-learnings.md" ]; then
+        PENDING_COUNT=$(grep -c '^## Session' "$LAYER0_DIR/pending-learnings.md" 2>/dev/null) || PENDING_COUNT=0
+        if [ "$PENDING_COUNT" -gt 0 ]; then
+            LOOP_CONTEXT="${LOOP_CONTEXT:+$LOOP_CONTEXT
+}[Pending learnings] $PENDING_COUNT unprocessed session(s) in pending-learnings.md. Consider running /debrief."
+        fi
+    fi
+fi
+
 # Output — only inject context if we found something
 OUTPUT_PARTS=""
 if [ -n "$CONTEXT" ]; then
@@ -138,6 +169,10 @@ fi
 if [ -n "$TASK_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
 }$TASK_CONTEXT"
+fi
+if [ -n "$LOOP_CONTEXT" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}$LOOP_CONTEXT"
 fi
 if [ -n "$CF_WARNING" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
