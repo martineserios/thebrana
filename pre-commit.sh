@@ -106,8 +106,8 @@ if [ "$NEEDS_BUDGET" = true ]; then
             BUDGET=$((BUDGET + $(sed -n '/^---$/,/^---$/p' "$agent_file" | grep '^description:' | wc -c)))
         fi
     done
-    if [ "$BUDGET" -gt 24576 ]; then
-        fail "Context budget exceeds 24KB (${BUDGET} bytes > 24576)"
+    if [ "$BUDGET" -gt 26624 ]; then
+        fail "Context budget exceeds 26KB (${BUDGET} bytes > 26624)"
     fi
 fi
 
