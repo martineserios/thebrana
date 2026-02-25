@@ -26,13 +26,13 @@ The cheapest checks. Run on every commit, block deployment if they fail.
 
 ### Configuration Validity
 
-From [22-testing.md](./22-testing.md) Layer 0 (Static Validation):
+From [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md) Layer 0 (Static Validation):
 
 - **YAML frontmatter** — every skill, rule, and agent definition has valid frontmatter with required fields (`name`, `description`, `allowed-tools`)
-- **Context budget** — total always-loaded context (CLAUDE.md + rules + skill descriptions + agent descriptions) stays under the ~24KB ceiling. Every KB competes with working context ([21-anthropic-engineering-deep-dive.md](./21-anthropic-engineering-deep-dive.md))
+- **Context budget** — total always-loaded context (CLAUDE.md + rules + skill descriptions + agent descriptions) stays under the ~24KB ceiling. Every KB competes with working context ([21-anthropic-engineering-deep-dive.md](../../../brana-knowledge/dimensions/21-anthropic-engineering-deep-dive.md))
 - **Hook configuration** — `settings.json` references scripts that exist, event names are valid, async constraints are respected
 - **Link integrity** — all markdown cross-references (`[doc NN](./NN-filename.md)`) resolve to real files
-- **Pre-commit validation** — `.git/hooks/pre-commit` scripts in both repos validate spec consistency before commit: cross-references, README/CLAUDE.md coverage (enter); YAML frontmatter, JSON syntax, secrets, context budget (thebrana). Shift-left complement to deploy-time validation. See [35-context-engineering-principles.md](./35-context-engineering-principles.md) for budget failure modes
+- **Pre-commit validation** — `.git/hooks/pre-commit` in thebrana validates spec consistency before commit: YAML frontmatter, JSON syntax, secrets, context budget. Shift-left complement to deploy-time validation. See [35-context-engineering-principles.md](../../brana-knowledge/dimensions/35-context-engineering-principles.md) for budget failure modes
 
 ### Knowledge Store Integrity
 
@@ -58,7 +58,7 @@ Hooks process JSON input from tool calls and sessions. They must resist adversar
 - **Event spoofing** — input claiming to be from SessionStart but arriving via PostToolUseFailure, or vice versa
 - **Escape sequences** — strings designed to break out of quoted contexts in shell scripts
 
-Test: replay recorded hook input fixtures with adversarial variants. Hooks should exit non-zero or sanitize safely — never execute injected commands. Tool: Promptfoo red team plugins ([22-testing.md](./22-testing.md)). Doc 22 identifies "Instruction poisoning incidents: 0 promoted" as a critical safety metric.
+Test: replay recorded hook input fixtures with adversarial variants. Hooks should exit non-zero or sanitize safely — never execute injected commands. Tool: Promptfoo red team plugins ([22-testing.md](../../../brana-knowledge/dimensions/22-testing.md)). Doc 22 identifies "Instruction poisoning incidents: 0 promoted" as a critical safety metric.
 
 ---
 
@@ -68,7 +68,7 @@ Does the learning loop actually learn? Does recall actually recall? These are de
 
 ### Learning Loop Round-Trip
 
-The strongest behavioral test. From [22-testing.md](./22-testing.md) record/playback pattern:
+The strongest behavioral test. From [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md) record/playback pattern:
 
 1. **Store** a pattern via SessionEnd hook (or manual `memory store`)
 2. **Recall** it via SessionStart hook (or manual `memory search`)
@@ -78,7 +78,7 @@ If this round-trip fails, nothing else matters. The brain isn't learning.
 
 ### Quarantine Behavior
 
-From [16-knowledge-health.md](./16-knowledge-health.md) immune system design:
+From [16-knowledge-health.md](../../../brana-knowledge/dimensions/16-knowledge-health.md) immune system design:
 
 - New patterns enter at `confidence: 0.5`, `status: quarantined`, `transferable: false`
 - Patterns are NOT cross-pollinated during quarantine
@@ -89,18 +89,18 @@ Test each transition. The quarantine is the immune system's first layer — if i
 
 ### Skill Instruction Quarantine
 
-From [16-knowledge-health.md](./16-knowledge-health.md) Vector 8 — external skills can poison the instruction set. When a skill is installed from an external source (skills.sh, community repos), its SKILL.md content becomes part of Claude's instructions. Assurance must verify:
+From [16-knowledge-health.md](../../../brana-knowledge/dimensions/16-knowledge-health.md) Vector 8 — external skills can poison the instruction set. When a skill is installed from an external source (skills.sh, community repos), its SKILL.md content becomes part of Claude's instructions. Assurance must verify:
 
 - **Source integrity** — new skills from external sources enter a review quarantine before deployment to `~/.claude/skills/`
 - **Instruction override prevention** — skill SKILL.md content is validated to not override CLAUDE.md rules or safety directives
 - **Conflict detection** — skill instructions conflicting with established rules are flagged for human review
 - **Trust tier compliance** — quarantined skills are NOT loaded into context until promoted to trusted tier
 
-Test: install an external skill, verify it enters quarantine. Run a task — the quarantined skill should NOT activate until explicitly promoted. Reference: [12-skill-selector.md](./12-skill-selector.md) for the three-tier trust model (local core / curated catalog / discovery).
+Test: install an external skill, verify it enters quarantine. Run a task — the quarantined skill should NOT activate until explicitly promoted. Reference: [12-skill-selector.md](../../../brana-knowledge/dimensions/12-skill-selector.md) for the three-tier trust model (local core / curated catalog / discovery).
 
 ### Skill Activation
 
-From [23-evaluation.md](./23-evaluation.md) and Vercel's eval findings:
+From [23-evaluation.md](../../../brana-knowledge/dimensions/23-evaluation.md) and Vercel's eval findings:
 
 - Skills activate at only ~20% rate with simple instructions (Vercel data)
 - Scott Spence demonstrated 84% with forced eval hooks
@@ -148,11 +148,11 @@ The behavioral test checks that store→recall works mechanically. The outcome t
 4. **SessionStart fires** — check if relevant patterns are recalled
 5. **Grade the outcome**: Did recalled patterns improve time-to-solution or prevent repeated mistakes?
 
-This converts non-deterministic learning behavior into a deterministic regression test (Block Engineering's record/playback pattern from [22-testing.md](./22-testing.md)).
+This converts non-deterministic learning behavior into a deterministic regression test (Block Engineering's record/playback pattern from [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md)).
 
 ### Grade Outcomes Not Paths
 
-From [23-evaluation.md](./23-evaluation.md) — Anthropic's core eval principle:
+From [23-evaluation.md](../../../brana-knowledge/dimensions/23-evaluation.md) — Anthropic's core eval principle:
 
 Don't measure HOW the brain works internally. Measure WHAT it produces:
 
@@ -176,7 +176,7 @@ Infrastructure noise can account for up to 6 percentage points of score differen
 
 ## Knowledge Health as Ongoing Assurance
 
-From [16-knowledge-health.md](./16-knowledge-health.md) — the immune system IS the ongoing assurance layer. The quarantine, decay, and contradiction detection mechanisms don't just prevent bad patterns — they continuously validate that the knowledge store is healthy.
+From [16-knowledge-health.md](../../../brana-knowledge/dimensions/16-knowledge-health.md) — the immune system IS the ongoing assurance layer. The quarantine, decay, and contradiction detection mechanisms don't just prevent bad patterns — they continuously validate that the knowledge store is healthy.
 
 ### Key Health Indicators
 
@@ -202,7 +202,7 @@ What it checks:
 
 ## Calibration: User Feedback Closes the Loop
 
-The system can self-test structural and behavioral properties. It cannot self-test whether the user finds it useful. That calibration comes from [00-user-practices.md](./00-user-practices.md):
+The system can self-test structural and behavioral properties. It cannot self-test whether the user finds it useful. That calibration comes from [00-user-practices.md](../00-user-practices.md):
 
 - **"The patterns recalled today were actually useful"** vs **"mostly noise"** — qualitative signal that complements precision@k
 - **Practices the user keeps documenting manually** — signals for missing automation (a practice repeated 3+ times should graduate to a hook or check)
@@ -231,9 +231,9 @@ The architecture reflection ([14-mastermind-architecture.md](./14-mastermind-arc
 ## Cross-References
 
 - [14-mastermind-architecture.md](./14-mastermind-architecture.md) — R2: what this reflection validates
-- [22-testing.md](./22-testing.md) — testing methodology: 7-layer pyramid, record/playback, headless mode
-- [23-evaluation.md](./23-evaluation.md) — eval methodology: pass@k/pass^k, RAG metrics, LLM-as-judge, fixture evals
-- [16-knowledge-health.md](./16-knowledge-health.md) — immune system design: quarantine, decay, contradiction detection
-- [00-user-practices.md](./00-user-practices.md) — user feedback loop: calibration signal for outcome quality
+- [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md) — testing methodology: 7-layer pyramid, record/playback, headless mode
+- [23-evaluation.md](../../../brana-knowledge/dimensions/23-evaluation.md) — eval methodology: pass@k/pass^k, RAG metrics, LLM-as-judge, fixture evals
+- [16-knowledge-health.md](../../../brana-knowledge/dimensions/16-knowledge-health.md) — immune system design: quarantine, decay, contradiction detection
+- [00-user-practices.md](../00-user-practices.md) — user feedback loop: calibration signal for outcome quality
 - [08-diagnosis.md](./08-diagnosis.md) — R1: triage decisions that R3 validates were correct
 - [32-lifecycle.md](./32-lifecycle.md) — R4: lifecycle stages where assurance applies (test before merge, validate before deploy)

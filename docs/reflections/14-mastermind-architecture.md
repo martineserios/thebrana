@@ -2,7 +2,7 @@
 
 How to run a single Claude Code instance with claude-flow that accumulates knowledge across every project while maintaining project-specific context. The "single evolving brain" system.
 
-> **Architecture redesign in progress:** [39-architecture-redesign.md](./39-architecture-redesign.md) proposes merging the enter/ and thebrana/ repos into a single repo, evolving brana-knowledge/ into an active indexed KB, and wiring retrieval via claude-flow embeddings. The workspace architecture section below describes the *current* (pre-merge) structure. When doc 39's migration phases execute, sections of this doc will need updating — particularly Workspace Architecture, ReasoningBank, and skill path references.
+> **Architecture redesign complete (2026-02-25):** [39-architecture-redesign.md](../39-architecture-redesign.md) merged enter/ into thebrana/ (Phases 0–4 done). The workspace is now a single unified repo with `docs/` (specs) + `system/` (implementation). brana-knowledge/ is an active indexed KB with semantic retrieval via claude-flow embeddings.
 
 ---
 
@@ -181,27 +181,24 @@ Each agent description includes "Not for..." constraints that disambiguate auto-
 
 ## Workspace Architecture: Directory Roles
 
-The brana ecosystem lives in three repositories, each a self-sufficient workstation. `cd` into a directory to activate its role — the global brain follows you everywhere, and the local CLAUDE.md tells it what job you're doing.
+The brana ecosystem lives in two repositories. `cd` into thebrana to activate the unified architect+operator role — the global brain follows you everywhere, and the local CLAUDE.md tells it what job you're doing.
 
 ```
 ~/enter_thebrana/
-├── enter/                      ARCHITECT — design the system
-│   ├── CLAUDE.md               ← "You are designing brana. Here's the doc map."
-│   ├── 00-38 spec docs         ← Dimension → Reflection → Roadmap layers
-│   └── .claude/ (future)       ← Architect-specific rules and skills
-│
-├── thebrana/                   OPERATOR — build and maintain the system
-│   ├── .claude/CLAUDE.md       ← "You are maintaining the brain. Here's what's deployed."
-│   ├── system/                 ← The actual brain files (skills, rules, hooks, agents)
+├── thebrana/                   ARCHITECT + OPERATOR — design and build the system
+│   ├── .claude/CLAUDE.md       ← "You are the architect+operator."
+│   ├── docs/                   ← Specs: reflections/, roadmaps, decisions/
+│   ├── system/                 ← Implementation: skills, rules, hooks, agents
 │   ├── deploy.sh               ← system/ → ~/.claude/
 │   └── validate.sh             ← Pre-deploy checks
 │
-└── brana-knowledge/            VAULT — knowledge exports and backups
-    ├── native-memory/          ← Auto memory snapshots
-    └── reasoning-bank/         ← ReasoningBank exports
+└── brana-knowledge/            KNOWLEDGE BASE — deep dives on any topic
+    ├── dimensions/             ← One doc per topic (27 docs, semantically indexed)
+    ├── research-sources.yaml   ← Tracked sources with trust tiers
+    └── backup/                 ← System knowledge exports
 ```
 
-### How Context Loads in Each Workstation
+### How Context Loads
 
 When you `cd ~/enter_thebrana/thebrana && claude`:
 
@@ -211,17 +208,13 @@ When you `cd ~/enter_thebrana/thebrana && claude`:
 4. **Local CLAUDE.md** — `thebrana/.claude/CLAUDE.md` ("You are the architect+operator. Here's the document structure and system layout.")
 5. **Local rules** — `thebrana/.claude/rules/*` (project-specific, if any)
 
-The same 5 steps happen in any project. Steps 1-3 are always the same (the brain's identity). Steps 4-5 change based on where you are (the workstation's role).
+The same 5 steps happen in any project. Steps 1-3 are always the same (the brain's identity). Steps 4-5 change based on where you are.
 
-> **Post-merge (ADR-006):** The architect (enter) and operator (thebrana) merged into a single repo. Specs live in `docs/` and `docs/reflections/`, implementation in `system/`. The cognitive separation is directory-based, not repo-based. Knowledge dimension docs live in `brana-knowledge/dimensions/`.
+### Design Decision: Directory Separation, Not Repo Separation
 
-### Design Decision: Bridge by Reference, Don't Duplicate
+The cognitive separation between architect and operator is directory-based: `docs/` for specs, `system/` for implementation. Branch conventions preserve the boundary: `docs/*` branches for spec work (no `system/` edits), `feat/*` branches for implementation (should also touch `docs/` when behavior changes).
 
-Information flows one direction per layer. Specs (enter) inform implementation (thebrana), not the other way around. Each CLAUDE.md references the other repos by pointing to them, never by copying their content. This prevents divergence — the source of truth stays in one place.
-
-- `enter/CLAUDE.md` references thebrana for "where to build what you designed"
-- `thebrana/.claude/CLAUDE.md` references enter for "where to find the spec for this feature"
-- Neither duplicates the other's content
+brana-knowledge is a separate repo because it's a library (no backlog, no tasks), not an active project. Dimension docs are the source of truth — semantically indexed into claude-flow memory via `index-knowledge.sh`, retrievable from any session via `memory_search`.
 
 ---
 
@@ -310,7 +303,7 @@ Both write to /tmp/brana-session-{id}.jsonl — the shared event stream
 that SessionEnd reads to compute compound metrics and flywheel rates.
 ```
 
-> **Hook format details:** See [09-claude-code-native-features.md](./09-claude-code-native-features.md) for the full hook JSON format, event list, stdin/stdout contracts, and async constraints.
+> **Hook format details:** See [09-claude-code-native-features.md](../../../brana-knowledge/dimensions/09-claude-code-native-features.md) for the full hook JSON format, event list, stdin/stdout contracts, and async constraints.
 
 ### Team-Level Hooks (v3.1 Extension)
 
@@ -321,7 +314,7 @@ When using Agent Teams, two additional Claude Code events extend the learning lo
 
 These are optional extensions to the 3-hook core above. They matter when teammates work independently — without them, only the lead's session contributes to the learning loop. With them, every teammate's completions feed the ReasoningBank.
 
-> **v3.1 analysis:** See [07-claude-flow-plus-claude-4.6.md](./07-claude-flow-plus-claude-4.6.md) "v3.1 Update" section for what's shipped vs planned, AutoMemoryBridge architecture, and adoption strategy.
+> **v3.1 analysis:** See [07-claude-flow-plus-claude-4.6.md](../../../brana-knowledge/dimensions/07-claude-flow-plus-claude-4.6.md) "v3.1 Update" section for what's shipped vs planned, AutoMemoryBridge architecture, and adoption strategy.
 
 ---
 
@@ -329,7 +322,7 @@ These are optional extensions to the 3-hook core above. They matter when teammat
 
 Hooks fire within interactive sessions. The scheduler fires between them — running maintenance tasks on a cadence without human presence.
 
-**brana-scheduler** is a thin bash+jq wrapper over systemd user timers ([ADR-002](./docs/decisions/ADR-002-scheduler-thin-layer-over-systemd.md), accepted 2026-02-19). It gives the brain a heartbeat: jobs run on schedule, results flow into claude-flow memory, and the next `/morning` session sees what happened overnight.
+**brana-scheduler** is a thin bash+jq wrapper over systemd user timers ([ADR-002](../decisions/ADR-002-scheduler-thin-layer-over-systemd.md), accepted 2026-02-19). It gives the brain a heartbeat: jobs run on schedule, results flow into claude-flow memory, and the next `/morning` session sees what happened overnight.
 
 ### Architecture
 
@@ -364,7 +357,7 @@ Skills can run headless via `claude -p "Execute /skill-name"` — the scheduler 
 
 ## The ReasoningBank Schema (Cross-Project Brain)
 
-> **Alpha caveat:** claude-flow (which hosts ReasoningBank) is alpha software. Every call must be wrapped in error handling with fallback to Layer 0 (auto memory files at `~/.claude/projects/*/memory/`). Schema may change between versions — pin your version and run `memory init --force` after upgrades. **After every install/upgrade**, also install the missing sql.js dependency: `npm install sql.js --prefix $(dirname $(which claude-flow))/..` (not declared in package.json but dynamically imported at 19+ sites — see errata #25). See [05-claude-flow-v3-analysis.md](./05-claude-flow-v3-analysis.md) for the full stability assessment.
+> **Alpha caveat:** claude-flow (which hosts ReasoningBank) is alpha software. Every call must be wrapped in error handling with fallback to Layer 0 (auto memory files at `~/.claude/projects/*/memory/`). Schema may change between versions — pin your version and run `memory init --force` after upgrades. **After every install/upgrade**, also install the missing sql.js dependency: `npm install sql.js --prefix $(dirname $(which claude-flow))/..` (not declared in package.json but dynamically imported at 19+ sites — see errata #25). See [05-claude-flow-v3-analysis.md](../../../brana-knowledge/dimensions/05-claude-flow-v3-analysis.md) for the full stability assessment.
 
 Each pattern stored with rich metadata:
 
@@ -583,32 +576,32 @@ This project is being archived. Extract everything valuable:
 
 Active alignment pipeline — the bridge between diagnostic (`/project-onboard`) and enforcement (PreToolUse hooks). Runs a 5-phase process: DISCOVER (interview), ASSESS (28-item checklist), PLAN (gap-based action list), IMPLEMENT (create files and structure), VERIFY (before/after comparison), DOCUMENT (ReasoningBank + report).
 
-Three tiers: minimal (foundation only, 4 items), standard (foundation + SDD + TDD, 13 items), full (all 7 groups, 28 items). Works on both greenfield and brownfield projects. See [27-project-alignment-methodology.md](./27-project-alignment-methodology.md) for the full methodology.
+Three tiers: minimal (foundation only, 4 items), standard (foundation + SDD + TDD, 13 items), full (all 7 groups, 28 items). Works on both greenfield and brownfield projects. See [27-project-alignment-methodology.md](../../../brana-knowledge/dimensions/27-project-alignment-methodology.md) for the full methodology.
 
 ### Beyond the Six: `/research` — "What's new in the world?"
 
-The six skills above manage *internal* knowledge — what you've learned, how to transfer it, how to align projects. `/research` manages *external* knowledge acquisition: checking sources, following references, discovering new creators. It's the atomic primitive that `/refresh-knowledge` orchestrates across docs. Source registry, trust tiers, version pinning, leads queue, and recursive discovery are formalized in [33-research-methodology.md](./33-research-methodology.md).
+The six skills above manage *internal* knowledge — what you've learned, how to transfer it, how to align projects. `/research` manages *external* knowledge acquisition: checking sources, following references, discovering new creators. It's the atomic primitive that `/refresh-knowledge` orchestrates across docs. Source registry, trust tiers, version pinning, leads queue, and recursive discovery are formalized in [33-research-methodology.md](../../../brana-knowledge/dimensions/33-research-methodology.md).
 
 ### Beyond the Six: Venture Operating System — "Run the business"
 
-The core six skills + `/research` handle the *development system*. A parallel layer of venture management skills handles the *business system*: daily operational checks (`/morning`), weekly cadence reviews (`/weekly-review`), monthly financial close (`/monthly-close`), forward planning (`/monthly-plan`), sales pipeline (`/pipeline`), growth experiments (`/experiment`), content strategy (`/content-plan`), and financial modeling (`/financial-model`). These skills compose into a daily operating system for startups and SMBs. See [34-venture-operating-system.md](./34-venture-operating-system.md) for the full architecture, MCP integrations, and skill cadences.
+The core six skills + `/research` handle the *development system*. A parallel layer of venture management skills handles the *business system*: daily operational checks (`/morning`), weekly cadence reviews (`/weekly-review`), monthly financial close (`/monthly-close`), forward planning (`/monthly-plan`), sales pipeline (`/pipeline`), growth experiments (`/experiment`), content strategy (`/content-plan`), and financial modeling (`/financial-model`). These skills compose into a daily operating system for startups and SMBs. See [34-venture-operating-system.md](../../../brana-knowledge/dimensions/34-venture-operating-system.md) for the full architecture, MCP integrations, and skill cadences.
 
 ### Beyond the Six: Task Management — "Plan and track work"
 
-The `/tasks` skill provides structured project planning: hierarchical task tracking (phase > milestone > task), multi-stream support (roadmap, bugs, tech-debt, docs, experiments), branch integration, and portfolio-wide visibility. Data lives in `{project}/.claude/tasks.json` — git-tracked, zero dependencies. A PostToolUse hook handles schema validation and automatic parent rollup. See [ADR-002](./docs/decisions/ADR-002-tasks-as-data-layer.md) for the data layer decision and [ADR-003](./docs/decisions/ADR-003-agent-driven-task-execution.md) for agent-driven execution — subagent spawning per task with DAG-aware wave parallelism and compose-then-write for code tasks.
+The `/tasks` skill provides structured project planning: hierarchical task tracking (phase > milestone > task), multi-stream support (roadmap, bugs, tech-debt, docs, experiments), branch integration, and portfolio-wide visibility. Data lives in `{project}/.claude/tasks.json` — git-tracked, zero dependencies. A PostToolUse hook handles schema validation and automatic parent rollup. See [ADR-002](../decisions/ADR-002-tasks-as-data-layer.md) for the data layer decision and [ADR-003](../decisions/ADR-003-agent-driven-task-execution.md) for agent-driven execution — subagent spawning per task with DAG-aware wave parallelism and compose-then-write for code tasks.
 
 ### Beyond the Six: Spec Maintenance Loop — "Keep specs and implementation in sync"
 
-Four commands form a closed maintenance loop between the enter spec repo and thebrana implementation. Each handles one direction of change propagation:
+Four commands form a closed maintenance loop within thebrana (specs in `docs/` ↔ implementation in `system/`). Each handles one direction of change propagation:
 
 | Command | Direction | Purpose |
 |---------|-----------|---------|
 | `/refresh-knowledge` | external → specs | Research external updates to dimension docs |
 | `/maintain-specs` | specs → specs | Cascade changes upward: dimension → reflection → roadmap |
-| `/reconcile` | specs → implementation | Detect drift, fix thebrana to match current specs |
-| `/back-propagate` | implementation → specs | Update enter docs when thebrana changes (new skills, rules, hooks, config) |
+| `/reconcile` | specs → implementation | Detect drift, fix `system/` to match current specs in `docs/` |
+| `/back-propagate` | implementation → specs | Update `docs/` when `system/` changes (new skills, rules, hooks, config) |
 
-The loop runs in both directions: when specs evolve, `/maintain-specs` cascades internally and `/reconcile` pushes forward to implementation. When implementation evolves, `/back-propagate` pushes backward to specs. `/refresh-knowledge` feeds the loop with external updates. `/build-phase` orchestrates greenfield implementation from specs and triggers `/back-propagate` on completion. See [25-self-documentation.md](./25-self-documentation.md) for the full command architecture and flow diagrams.
+The loop runs in both directions: when specs evolve, `/maintain-specs` cascades internally and `/reconcile` pushes forward to implementation. When implementation evolves, `/back-propagate` pushes backward to specs. `/refresh-knowledge` feeds the loop with external updates. `/build-phase` orchestrates greenfield implementation from specs and triggers `/back-propagate` on completion. See [25-self-documentation.md](../25-self-documentation.md) for the full command architecture and flow diagrams.
 
 ---
 
@@ -694,7 +687,7 @@ Month 3: The mastermind has 500+ patterns across 5 projects.
 | **security-guidance** (Anthropic) | Universal safety net across all projects |
 | **commit-commands** (Anthropic) | Consistent git workflow everywhere |
 | **Context7 MCP** (Upstash) | Real-time library docs — the mastermind always has current knowledge. Fetches version-specific documentation on demand, preventing stale training-data errors. |
-| **claude-flow MCP** | Cross-project memory via ReasoningBank. **Scope:** use only the memory commands (`memory search`, `memory store`, `memory init`) from claude-flow's 170+ MCP tool surface — skip the rest unless a specific need arises. **Note:** AgentDB (the graph DB backend) is stalled — last npm publish Jan 2, 2026. The fallback strategy (claude-flow embeddings CLI + SQLite) is the primary path forward. See [05-claude-flow-v3-analysis.md](./05-claude-flow-v3-analysis.md) and [39-architecture-redesign.md](./39-architecture-redesign.md) section 7.5. |
+| **claude-flow MCP** | Cross-project memory via ReasoningBank. **Scope:** use only the memory commands (`memory search`, `memory store`, `memory init`) from claude-flow's 170+ MCP tool surface — skip the rest unless a specific need arises. **Note:** AgentDB (the graph DB backend) is stalled — last npm publish Jan 2, 2026. The fallback strategy (claude-flow embeddings CLI + SQLite) is the primary path forward. See [05-claude-flow-v3-analysis.md](../../../brana-knowledge/dimensions/05-claude-flow-v3-analysis.md) and [39-architecture-redesign.md](../39-architecture-redesign.md) section 7.5. |
 | **LSP plugins** for your languages | Type intelligence at zero cost, per-project |
 | **claude-md-management** (Anthropic) | Keeps each project's CLAUDE.md healthy |
 
@@ -734,9 +727,9 @@ Four enforcement levels, each stronger than the last:
 
 Convention sets expectations. Skills provide the workflow. Hooks enforce the gate. Linters validate the structure.
 
-**Active alignment:** The `/project-align` skill (see [27-project-alignment-methodology.md](./27-project-alignment-methodology.md)) actively creates the structure projects need for enforcement — it's the bridge between "the mastermind can enforce" and "the project is ready for enforcement."
+**Active alignment:** The `/project-align` skill (see [27-project-alignment-methodology.md](../../../brana-knowledge/dimensions/27-project-alignment-methodology.md)) actively creates the structure projects need for enforcement — it's the bridge between "the mastermind can enforce" and "the project is ready for enforcement."
 
-See [32-lifecycle.md](./32-lifecycle.md) for the full DDD → SDD → TDD development workflow, discipline ordering, detailed enforcement mechanisms, multi-agent context isolation, and the connection to the learning loop. See [11-ecosystem-skills-plugins.md](./11-ecosystem-skills-plugins.md) section 5 for the enforcement tools landscape.
+See [32-lifecycle.md](./32-lifecycle.md) for the full DDD → SDD → TDD development workflow, discipline ordering, detailed enforcement mechanisms, multi-agent context isolation, and the connection to the learning loop. See [11-ecosystem-skills-plugins.md](../../../brana-knowledge/dimensions/11-ecosystem-skills-plugins.md) section 5 for the enforcement tools landscape.
 
 ---
 
@@ -765,11 +758,11 @@ The single brain isn't just "the same Claude everywhere." It's a Claude that rem
 
 ## Context Engineering: What Anthropic's Research Tells Us
 
-Findings from Anthropic's engineering blog (see [21-anthropic-engineering-deep-dive.md](./21-anthropic-engineering-deep-dive.md)) that directly inform the mastermind's architecture.
+Findings from Anthropic's engineering blog (see [21-anthropic-engineering-deep-dive.md](../../../brana-knowledge/dimensions/21-anthropic-engineering-deep-dive.md)) that directly inform the mastermind's architecture.
 
 ### Context Rot and Just-In-Time Loading
 
-Context engineering = optimizing token allocation within finite attention budgets. As context grows, model performance degrades (n-squared complexity, gradient not cliff). The ~24KB context budget is a first-order architectural constraint. For the formal decision framework (where new information belongs, tier placement criteria, failure modes), see [35-context-engineering-principles.md](./35-context-engineering-principles.md).
+Context engineering = optimizing token allocation within finite attention budgets. As context grows, model performance degrades (n-squared complexity, gradient not cliff). The ~24KB context budget is a first-order architectural constraint. For the formal decision framework (where new information belongs, tier placement criteria, failure modes), see [35-context-engineering-principles.md](../../../brana-knowledge/dimensions/35-context-engineering-principles.md).
 
 Two principles from Anthropic's research: (1) keep always-loaded instructions minimal — "for each line ask: would removing this cause mistakes?" (2) load data just-in-time rather than pre-loading — skills activate on demand, SessionStart injects a digest not everything.
 
@@ -817,7 +810,7 @@ See [31-assurance.md](./31-assurance.md) for the full verification framework: st
 
 ## Self-Describing Configuration and User Feedback
 
-See [32-lifecycle.md](./32-lifecycle.md) for self-describing configuration (frontmatter for skills/rules, `.claude/` as documentation, staleness and locality), the user feedback loop ([00-user-practices.md](./00-user-practices.md)), and the graduation pathway from manual practices to automated enforcement.
+See [32-lifecycle.md](./32-lifecycle.md) for self-describing configuration (frontmatter for skills/rules, `.claude/` as documentation, staleness and locality), the user feedback loop ([00-user-practices.md](../00-user-practices.md)), and the graduation pathway from manual practices to automated enforcement.
 
 ---
 

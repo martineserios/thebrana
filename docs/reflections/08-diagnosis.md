@@ -29,7 +29,7 @@ R1 triages every dimension doc → R2 composes the architecture → R3 validates
 ### 2. PM Separation (Code + PM Repos)
 **Why keep:** Clean separation of concerns. Code stays lean for deployment, decisions are preserved for context. The symlink bridge is lightweight and breaks gracefully.
 
-**For v2:** ~~Preserve the pattern.~~ **Superseded by [39-architecture-redesign.md](./39-architecture-redesign.md).** Doc 39's analysis concludes the repo boundary adds overhead without contributing to spec quality. The cognitive separation (design vs build) is preserved by directory structure and branch conventions (`docs/*` vs `feat/*`), not by repo boundaries. The merge is planned (see doc 39 migration phases).
+**For v2:** ~~Preserve the pattern.~~ **Superseded by [39-architecture-redesign.md](../39-architecture-redesign.md).** Doc 39's analysis concludes the repo boundary adds overhead without contributing to spec quality. The cognitive separation (design vs build) is preserved by directory structure and branch conventions (`docs/*` vs `feat/*`), not by repo boundaries. The merge is planned (see doc 39 migration phases).
 
 ### 3. Concurrent Execution Golden Rule
 **Why keep:** "1 MESSAGE = ALL RELATED OPERATIONS" is a genuine performance win. Batching parallel tool calls reduces round-trips and token waste.
@@ -54,7 +54,7 @@ R1 triages every dimension doc → R2 composes the architecture → R3 validates
 ### 7. Progressive Disclosure
 **Why keep:** Backlog (summary) -> Feature README (overview) -> Requirements (detail) -> Architecture (deep dive). Right level of detail when you need it.
 
-**For v2:** Preserve this layering. Essential for navigating large projects without drowning in docs. But per [25-self-documentation.md](./25-self-documentation.md) Mechanism 7 (documentation locality), each layer must be generated or linked — not manually duplicated. If the same fact lives in both a spec doc and MEMORY.md, changes to one silently break the other. Progressive disclosure works only when the summary layers are generated views of the source docs.
+**For v2:** Preserve this layering. Essential for navigating large projects without drowning in docs. But per [25-self-documentation.md](../25-self-documentation.md) Mechanism 7 (documentation locality), each layer must be generated or linked — not manually duplicated. If the same fact lives in both a spec doc and MEMORY.md, changes to one silently break the other. Progressive disclosure works only when the summary layers are generated views of the source docs.
 
 ---
 
@@ -113,7 +113,7 @@ The routing system pre-computes skill selections before the model sees the task.
 ### 5. Custom Branch Protection Hooks
 CLAUDE.md instructions ("never push to main") combined with git hooks handle branch protection. Custom PreToolUse hooks for git commands add latency without adding safety.
 
-**Note:** This applies to branch protection only. PreToolUse hooks are essential for development discipline enforcement (spec-before-code, test-before-code) — see [14-mastermind-architecture.md](./14-mastermind-architecture.md) "Project Enforcement" section and [11-ecosystem-skills-plugins.md](./11-ecosystem-skills-plugins.md) section 5 for the enforcement tools landscape.
+**Note:** This applies to branch protection only. PreToolUse hooks are essential for development discipline enforcement (spec-before-code, test-before-code) — see [14-mastermind-architecture.md](./14-mastermind-architecture.md) "Project Enforcement" section and [11-ecosystem-skills-plugins.md](../../../brana-knowledge/dimensions/11-ecosystem-skills-plugins.md) section 5 for the enforcement tools landscape.
 
 ---
 
@@ -172,7 +172,7 @@ CLAUDE.md instructions ("never push to main") combined with git hooks handle bra
 
 ## Validation from Testing & Evaluation Research
 
-Findings from docs [22-testing.md](./22-testing.md) and [23-evaluation.md](./23-evaluation.md) that validate, refine, or inform the decisions above.
+Findings from docs [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md) and [23-evaluation.md](../../../brana-knowledge/dimensions/23-evaluation.md) that validate, refine, or inform the decisions above.
 
 ### Decisions Confirmed by Hard Data
 
@@ -190,7 +190,7 @@ Findings from docs [22-testing.md](./22-testing.md) and [23-evaluation.md](./23-
 
 ### Insights from Self-Documentation Research
 
-Findings from [25-self-documentation.md](./25-self-documentation.md) that refine existing decisions and resolve open questions.
+Findings from [25-self-documentation.md](../25-self-documentation.md) that refine existing decisions and resolve open questions.
 
 **Progressive disclosure — now has a machine-readable layer.** Keep pattern #7 says "right level of detail when you need it." Doc 25 adds frontmatter metadata (status, growth_stage, depends_on) that enables auto-generated indexes and dependency graphs. Progressive disclosure isn't just about document structure — it's about making the layers navigable by both humans and AI agents. Growth stages (seedling → budding → evergreen) tell AI agents how much to trust each doc.
 
@@ -198,7 +198,7 @@ Findings from [25-self-documentation.md](./25-self-documentation.md) that refine
 
 ### User Feedback Loop
 
-Findings from [00-user-practices.md](./00-user-practices.md) that inform keep/drop/defer decisions.
+Findings from [00-user-practices.md](../00-user-practices.md) that inform keep/drop/defer decisions.
 
 **Manual practices are a signal for automation.** When the user repeatedly documents the same practice ("always run validate before deploy"), that's evidence the practice should graduate from a manual habit to a hook or validation check. The keep/drop decisions above assumed static system capabilities — doc 00 adds a living feedback channel where usage patterns can promote deferred items to "keep" or demote kept items to "drop" based on real experience.
 
@@ -220,7 +220,7 @@ Every dimension doc triaged for brana v2. Docs 01-07 covered above (Keep/Drop/De
 **Verdict: Keep — three-tier trust model.** The local core / curated catalog / discovery tier model is the right framework for skill trust. The quarantine pattern (doc 16) extends this. R2 uses it for skill architecture, R4 for lifecycle (trust graduation).
 
 ### Doc 13 — Challenger Agent
-**Verdict: Keep as capability.** Adversarial review (Opus challenger) is valuable for big decisions. Implemented as `/challenge`. Subscription-native, rate-limit-aware. Low maintenance, high value when used. Model upgraded from Sonnet to Opus for deeper adversarial quality (see [13-challenger-agent.md](./13-challenger-agent.md)).
+**Verdict: Keep as capability.** Adversarial review (Opus challenger) is valuable for big decisions. Implemented as `/challenge`. Subscription-native, rate-limit-aware. Low maintenance, high value when used. Model upgraded from Sonnet to Opus for deeper adversarial quality (see [13-challenger-agent.md](../../../brana-knowledge/dimensions/13-challenger-agent.md)).
 
 ### Doc 15 — Self-Development Workflow
 **Verdict: Keep — genome/connectome separation is foundational.** The distinction between system code (genome, versioned in git) and learned knowledge (connectome, never rolled back) is a first-order architectural decision. R2 builds on it, R4 operationalizes it. The deploy pipeline, testing strategy, and rollback safety all flow from this separation.
@@ -270,15 +270,15 @@ Every dimension doc triaged for brana v2. Docs 01-07 covered above (Keep/Drop/De
 
 Architectural questions that were open during initial design but have been resolved through research and implementation.
 
-2. **ReasoningBank confidence decay?** → Yes. Monthly decay function: unused patterns lose 0.05/month, failed patterns lose 0.2, below 0.2 gets auto-archived. Decay is not deletion — archived patterns are restorable. See [16-knowledge-health.md](./16-knowledge-health.md).
+2. **ReasoningBank confidence decay?** → Yes. Monthly decay function: unused patterns lose 0.05/month, failed patterns lose 0.2, below 0.2 gets auto-archived. Decay is not deletion — archived patterns are restorable. See [16-knowledge-health.md](../../../brana-knowledge/dimensions/16-knowledge-health.md).
 
-4. **How much of this can be native-only?** → claude-flow is a hard constraint. Accept the alpha risk, plan around it with version pinning, error wrapping, and degraded mode (fall back to plain Claude Code when claude-flow is unavailable). See [17-implementation-roadmap.md](./17-implementation-roadmap.md).
+4. **How much of this can be native-only?** → claude-flow is a hard constraint. Accept the alpha risk, plan around it with version pinning, error wrapping, and degraded mode (fall back to plain Claude Code when claude-flow is unavailable). See [17-implementation-roadmap.md](../17-implementation-roadmap.md).
 
-5. **claude-flow stability risk?** → Every claude-flow call is wrapped in error handling. Degraded mode writes learnings to markdown fallback files. Each phase's dependency is additive — if a feature breaks, you lose that phase's enhancement but everything below still works. See [17-implementation-roadmap.md](./17-implementation-roadmap.md).
+5. **claude-flow stability risk?** → Every claude-flow call is wrapped in error handling. Degraded mode writes learnings to markdown fallback files. Each phase's dependency is additive — if a feature breaks, you lose that phase's enhancement but everything below still works. See [17-implementation-roadmap.md](../17-implementation-roadmap.md).
 
-6. **ADRs vs inline comments?** → Neither in pure form. Keep decisions in existing documents but extract a decision index — a generated list of key decisions with links to source sections. See [25-self-documentation.md](./25-self-documentation.md).
+6. **ADRs vs inline comments?** → Neither in pure form. Keep decisions in existing documents but extract a decision index — a generated list of key decisions with links to source sections. See [25-self-documentation.md](../25-self-documentation.md).
 
-12. **Native Agent Teams or claude-flow swarms?** → Hybrid. Native Agent Teams for execution coordination, claude-flow ReasoningBank for cross-session memory. First concrete pattern: multi-agent TDD with context isolation (see [14-mastermind-architecture.md](./14-mastermind-architecture.md), [22-testing.md](./22-testing.md), [11-ecosystem-skills-plugins.md](./11-ecosystem-skills-plugins.md)).
+12. **Native Agent Teams or claude-flow swarms?** → Hybrid. Native Agent Teams for execution coordination, claude-flow ReasoningBank for cross-session memory. First concrete pattern: multi-agent TDD with context isolation (see [14-mastermind-architecture.md](./14-mastermind-architecture.md), [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md), [11-ecosystem-skills-plugins.md](../../../brana-knowledge/dimensions/11-ecosystem-skills-plugins.md)).
 
 ---
 
@@ -302,7 +302,7 @@ Architectural questions that were open during initial design but have been resol
 ### Agent Strategy
 10. **How many agent types?** Current brana has 76 (too many). What's the right number? 10? 15? 20?
 11. **Should agents have persistent identities?** Named agents with memory vs anonymous workers spawned per task.
-12. ~~**Native Agent Teams or claude-flow swarms for coordination?**~~ → Resolved: hybrid. Native Agent Teams for execution coordination, claude-flow ReasoningBank for cross-session memory. First concrete pattern: multi-agent TDD with context isolation (see [14-mastermind-architecture.md](./14-mastermind-architecture.md) "Project Enforcement", [22-testing.md](./22-testing.md) "Multi-Agent TDD", [11-ecosystem-skills-plugins.md](./11-ecosystem-skills-plugins.md) section 5).
+12. ~~**Native Agent Teams or claude-flow swarms for coordination?**~~ → Resolved: hybrid. Native Agent Teams for execution coordination, claude-flow ReasoningBank for cross-session memory. First concrete pattern: multi-agent TDD with context isolation (see [14-mastermind-architecture.md](./14-mastermind-architecture.md) "Project Enforcement", [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md) "Multi-Agent TDD", [11-ecosystem-skills-plugins.md](../../../brana-knowledge/dimensions/11-ecosystem-skills-plugins.md) section 5).
 
 ### Cost Optimization
 13. **Is model routing worth the complexity?** Simple rule: Opus for architecture, Sonnet for code, Haiku for review. Or let the user decide?
