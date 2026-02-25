@@ -919,7 +919,7 @@
       "subject": "Add /retrospective call to /session-handoff close mode",
       "description": "After Step 2 (debrief-analyst), store each learning as a quarantined pattern via the retrospective workflow. Closes the learning loop — patterns are stored every session without requiring manual /retrospective invocation.",
       "tags": ["skills", "learning-loop"],
-      "status": "in_progress",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": null,
@@ -932,8 +932,8 @@
       "github_issue": null,
       "created": "2026-02-25",
       "started": "2026-02-25",
-      "completed": null,
-      "notes": null,
+      "completed": "2026-02-25",
+      "notes": "Step 2c added to session-handoff close mode. Stores learnings as quarantined patterns (confidence 0.5). Skips read-only sessions and errata-only findings. Full promotion review stays manual.",
       "context": "Backlog #83. Session-handoff captures what happened, retrospective stores reusable patterns. Merging them closes the gap."
     }
   ]
