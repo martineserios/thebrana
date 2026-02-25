@@ -80,7 +80,7 @@ Present the data completeness matrix alongside the structural gap report. Empty 
 
 ## Step 3: Stage Classification
 
-Map the discovery answers to the four business stages from [28-startup-smb-management.md](../../enter/28-startup-smb-management.md):
+Map the discovery answers to the four business stages from [28-startup-smb-management.md](~/enter_thebrana/brana-knowledge/dimensions/28-startup-smb-management.md):
 
 ### Discovery Stage
 - **Signals:** No revenue or pre-revenue. Team of 1-3. Exploring problem space. No repeatable process yet.

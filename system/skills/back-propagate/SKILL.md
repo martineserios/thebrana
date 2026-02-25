@@ -40,7 +40,7 @@ This is the missing arrow: **implementation → specs**. The other commands cove
 #### 0a: Locate repos
 
 ```bash
-ENTER="$HOME/enter_thebrana/enter"
+SPECS_DIR="$HOME/enter_thebrana/thebrana/docs"  # Was ENTER="$HOME/enter_thebrana/enter" — Phase 2 will rework git workflow
 THEBRANA="$HOME/enter_thebrana/thebrana"
 ```
 
@@ -241,7 +241,7 @@ If claude-flow is unavailable, append to `~/.claude/projects/*/memory/MEMORY.md`
 ### Merge
 To merge into enter/main:
 ```
-cd ~/enter_thebrana/enter
+cd ~/enter_thebrana/thebrana
 git merge --no-ff docs/backprop-YYYYMMDD
 git worktree remove ../enter-docs/backprop-YYYYMMDD
 git branch -d docs/backprop-YYYYMMDD

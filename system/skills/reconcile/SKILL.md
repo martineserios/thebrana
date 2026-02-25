@@ -37,7 +37,7 @@ This is the missing arrow: **specs → existing implementation**. The other comm
 #### 0a: Locate repos
 
 ```bash
-ENTER="$HOME/enter_thebrana/enter"
+SPECS_DIR="$HOME/enter_thebrana/thebrana/docs"  # Was ENTER — same-repo now
 THEBRANA="$HOME/enter_thebrana/thebrana"
 ```
 
@@ -180,7 +180,7 @@ For each change:
 
 ### Step 6: Log to doc 24
 
-Append a reconcile entry to `~/enter_thebrana/enter/24-roadmap-corrections.md`:
+Append a reconcile entry to `~/enter_thebrana/thebrana/docs/24-roadmap-corrections.md`:
 
 ```markdown
 ### Reconcile Run — [YYYY-MM-DD]

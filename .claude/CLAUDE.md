@@ -1,22 +1,45 @@
-# thebrana — Operator's Station
+# thebrana — Design and Build the Brain
 
-> Part of **enter_thebrana** — two repos, one system. `thebrana` builds what `enter` designs. Neither is complete without the other.
+> The unified brana system repo. Design specs live in `docs/`, implementation lives in `system/`. One repo, one feedback loop. (Merged from enter + thebrana per ADR-006.)
 
-The brain that deploys to `~/.claude/`. Edit here, deploy there.
+## Two Workspaces, One Repo
 
-## Current State
+| Workspace | Location | Purpose |
+|-----------|----------|---------|
+| **Architect** | `docs/` | Research, design, plan — dimension/reflection/roadmap docs |
+| **Operator** | `system/` | Build, deploy, maintain — skills, hooks, rules, agents |
 
-| Component | Location |
-|-----------|----------|
-| Skills | `system/skills/` |
-| Scripts | `system/scripts/` |
-| Commands | `system/commands/` |
-| Rules | `system/rules/` |
-| Hooks | `system/hooks/` |
-| Agents | `system/agents/` |
-| Version | v0.5.0 (Phase 5: Alignment) |
+Branch conventions preserve the separation:
+- `docs/*` branches: spec work (no `system/` edits)
+- `feat/*` branches: implementation (should also touch `docs/` when behavior changes)
 
-## Deploy Flow
+## Document Architecture
+
+Docs are split by nature across two repos:
+
+```
+thebrana/docs/                    ← operational docs (this repo)
+├── reflections/                  ← 08, 14, 29, 31, 32 — cross-cutting synthesis
+├── 00, 15, 17-19, 24, 25, 30    ← roadmap + operational docs
+├── 39-architecture-redesign      ← active migration plan
+├── decisions/                    ← ADRs
+└── features/                     ← feature briefs
+
+brana-knowledge/dimensions/       ← knowledge docs (separate repo)
+├── 01-07, 09-13, 16, 20-23      ← research in depth
+├── 26-28, 33-38                  ← research in depth
+└── research-sources.yaml         ← tracked external sources
+```
+
+- **Dimension** → `brana-knowledge/dimensions/` (knowledge/research)
+- **Reflection** → `docs/reflections/` (cross-cutting synthesis)
+- **Roadmap** → `docs/` (implementation plans)
+
+### Reflection DAG
+
+R1(08 Triage) → R2(14 Architecture) → R3(31 Assurance) / R4(32 Lifecycle) → R5(29 Transfer)
+
+## System Architecture
 
 ```
 system/          deploy.sh         ~/.claude/
@@ -29,14 +52,11 @@ system/          deploy.sh         ~/.claude/
 └── CLAUDE.md ────────────────────→ CLAUDE.md
 ```
 
-## Workflow
-
-1. Edit files in `system/`
-2. Run `./validate.sh` — check frontmatter, context budget (15KB), secrets, structure
-3. Run `./deploy.sh` — validate + copy to `~/.claude/`
-4. Start a new Claude Code session to test changes
+Version: v0.6.0 (Phase 1: Unified Repo)
 
 ## Commands
+
+### Operator Commands
 
 | Command | Purpose |
 |---------|---------|
@@ -44,32 +64,54 @@ system/          deploy.sh         ~/.claude/
 | `./validate.sh` | Pre-deploy checks (frontmatter, budget, secrets) |
 | `./export-knowledge.sh` | Export native memory + ReasoningBank |
 
-## Rules
+### Architect Commands
 
-- **Never edit `~/.claude/` directly** — always edit `system/` and deploy
-- **Validate before deploy** — `./validate.sh` catches errors before they reach production
-- **Context budget: 15KB** — every byte of always-loaded content costs attention
-- **Test after deploy** — start a new session to verify changes work
+| Command | Purpose |
+|---------|---------|
+| `/build-phase` | Plan and implement next roadmap phase |
+| `/maintain-specs` | Cascade spec changes: dimension → reflection → roadmap |
+| `/back-propagate` | Propagate implementation changes back to specs |
+| `/refresh-knowledge` | Research external updates to dimension docs |
+| `/challenge` | Adversarial review of a plan or decision |
+| `/decide` | Create an Architecture Decision Record |
+| `/reconcile` | Detect spec-vs-implementation drift, plan fixes, apply after approval |
+| `/debrief` | Extract errata and learnings from current session |
+| `/research` | Research a topic, doc, or creator — recursive discovery |
 
 ## Specs Reference
 
-When you need the "why" behind a system component, find it in the specs:
-
 | Topic | Doc |
 |-------|-----|
-| Architecture (layers, hooks, skills) | [14-mastermind-architecture.md](../../enter/14-mastermind-architecture.md) |
-| Lifecycle (DDD → SDD → TDD workflow) | [32-lifecycle.md](../../enter/32-lifecycle.md) |
-| Testing and assurance | [31-assurance.md](../../enter/31-assurance.md) |
-| Quality tooling (validation, linting) | [22-quality-tooling-analysis.md](../../enter/22-quality-tooling-analysis.md) |
-| Roadmap and next steps | [18-menu-driven-roadmap.md](../../enter/18-menu-driven-roadmap.md) |
-| Errata and corrections | [24-roadmap-corrections.md](../../enter/24-roadmap-corrections.md) |
-| Alignment methodology | [27-project-alignment-methodology.md](../../enter/27-project-alignment-methodology.md) |
+| Architecture (layers, hooks, skills) | [14-mastermind-architecture.md](../docs/reflections/14-mastermind-architecture.md) |
+| Lifecycle (DDD → SDD → TDD workflow) | [32-lifecycle.md](../docs/reflections/32-lifecycle.md) |
+| Testing and assurance | [31-assurance.md](../docs/reflections/31-assurance.md) |
+| Quality tooling (validation, linting) | [22-testing.md](~/enter_thebrana/brana-knowledge/dimensions/22-testing.md) |
+| Roadmap and next steps | [18-lean-roadmap.md](../docs/18-lean-roadmap.md) |
+| Errata and corrections | [24-roadmap-corrections.md](../docs/24-roadmap-corrections.md) |
+| Alignment methodology | [27-project-alignment-methodology.md](~/enter_thebrana/brana-knowledge/dimensions/27-project-alignment-methodology.md) |
+| Architecture redesign | [39-architecture-redesign.md](../docs/39-architecture-redesign.md) |
 
-## Portability
+## Ecosystem
 
-Two commands rebuild the brain on any machine:
+| Repo | Role | You go here to... |
+|------|------|-------------------|
+| **thebrana** (here) | Design + Build | Research, plan, implement, deploy |
+| **brana-knowledge** | Knowledge base | General knowledge, research, backups |
 
-```bash
-./deploy.sh          # Deploy brain to ~/.claude/
-./restore.sh         # Restore knowledge from brana-knowledge backup
-```
+## Rules
+
+- **Never edit `~/.claude/` directly** — always edit `system/` and deploy
+- Keep documents concise and opinionated
+- Changes propagate: dimension → reflection → roadmap (`/maintain-specs`)
+- Spec changes push to implementation (`/reconcile`)
+- Implementation changes push back to specs (`/back-propagate`)
+- When adding new docs, update `docs/README.md`
+
+## Memory (claude-flow)
+
+When the claude-flow MCP server is available, use it for persistent memory:
+
+- **Store** architectural decisions, research findings, and conclusions (`memory_store`)
+- **Search** before starting work on a topic (`memory_search`)
+- Use namespace `specs` for specification-related patterns
+- Use namespace `decisions` for architectural decisions

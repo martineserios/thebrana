@@ -16,7 +16,7 @@ Create a structured, versioned SOP from a described process. The business equiva
 
 ## When to use
 
-Whenever a repeatable process needs documenting. Key principle from [28-startup-smb-management.md](../../enter/28-startup-smb-management.md): don't systematize too early — wait until a process repeats 3+ times. But when you do systematize, do it well.
+Whenever a repeatable process needs documenting. Key principle from [28-startup-smb-management.md](~/enter_thebrana/brana-knowledge/dimensions/28-startup-smb-management.md): don't systematize too early — wait until a process repeats 3+ times. But when you do systematize, do it well.
 
 ---
 

@@ -45,7 +45,7 @@ Look for the errata/corrections document:
 
 1. Check if the current project has a doc matching `*corrections*` or `*errata*` — use `Glob` with pattern `**/*correction*` and `**/*errata*`.
 2. If found, read it to get the current error count and format.
-3. If not found, check `~/enter_thebrana/enter/24-roadmap-corrections.md` (the brana specs errata doc).
+3. If not found, check `~/enter_thebrana/thebrana/docs/24-roadmap-corrections.md` (the brana specs errata doc).
 4. If neither exists, create findings in a `DEBRIEF.md` file in the project root.
 
 ### Step 4: Write errata entries

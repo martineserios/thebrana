@@ -15,7 +15,7 @@ allowed-tools:
 
 Active alignment pipeline: DISCOVER → ASSESS → PLAN → IMPLEMENT → VERIFY → DOCUMENT.
 
-Unlike `/project-onboard` (diagnostic, read-only), this skill creates files, configures structure, and implements practices. See [27-project-alignment-methodology.md](../../enter/27-project-alignment-methodology.md) for the full methodology.
+Unlike `/project-onboard` (diagnostic, read-only), this skill creates files, configures structure, and implements practices. See [27-project-alignment-methodology.md](~/enter_thebrana/brana-knowledge/dimensions/27-project-alignment-methodology.md) for the full methodology.
 
 ---
 

@@ -34,7 +34,7 @@ Scope options:
 
 2. **Prepare temp directory.** Run `mkdir -p /tmp/refresh-results`. All agent output goes here — never into main context.
 
-3. **Resolve doc file paths.** Use `Glob` with pattern `??-*.md` in `~/enter_thebrana/enter/` to find all dimension doc filenames. Map doc numbers to actual file paths. Do NOT read the doc contents — only collect the paths.
+3. **Resolve doc file paths.** Use `Glob` with pattern `??-*.md` in `~/enter_thebrana/brana-knowledge/dimensions/` to find all dimension doc filenames. Map doc numbers to actual file paths. Do NOT read the doc contents — only collect the paths.
 
 4. **Build the doc list and groups.** Based on scope, select which groups to launch:
 
@@ -88,7 +88,7 @@ Scope options:
 
    ## Step 2: Read the source registry
 
-   Read `~/enter_thebrana/enter/research-sources.yaml` and filter for sources where `relevance` includes any of docs [NUMBERS]. Note their URLs, cadence, trust tier, and last_checked date.
+   Read `~/enter_thebrana/brana-knowledge/dimensions/research-sources.yaml` and filter for sources where `relevance` includes any of docs [NUMBERS]. Note their URLs, cadence, trust tier, and last_checked date.
 
    ## Step 3: Web research
 
