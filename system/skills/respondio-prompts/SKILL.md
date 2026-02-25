@@ -157,7 +157,7 @@ Each action ≤1,000 chars. Format: `When [condition], [action verb] to [exact t
 
 | # | Action | Canonical syntax | Primary gotcha |
 |---|--------|-----------------|----------------|
-| 1 | Close | `Close with category "[Name]", note "[text]"` | Categories must pre-exist. Update lifecycle BEFORE close. |
+| 1 | Close | `Close with category "[Name]", note "[text]"` | Categories must pre-exist. Update lifecycle BEFORE close. Summary + close only after user is informed of next steps. |
 | 2 | Assign | `Assign to @[Team/User/Agent]` | Agent continues responding unless told to stop. |
 | 3 | Lifecycle | `Update Lifecycle stage to "[Stage]"` | Exact names, case-sensitive. Must execute BEFORE close. |
 | 4 | Contact Fields | `Update $contact.[field] to [value]` | Silent failures on typos — names must match Settings. |
