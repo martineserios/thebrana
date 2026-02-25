@@ -55,7 +55,7 @@ External dependency — installed per-project, not built by brana. Recommended d
 
 When using Agent Teams: isolate agents by discipline.
 
-**For TDD:** Separate test-writing agent from implementation agent. The test writer works from the spec; the implementer works from tests. Prevents tests that verify implementation details. See [22-testing.md](./22-testing.md) "Multi-Agent TDD".
+**For TDD:** Separate test-writing agent from implementation agent. The test writer works from the spec; the implementer works from tests. Prevents tests that verify implementation details. See [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md) "Multi-Agent TDD".
 
 **For DDD:** Separate domain-modeler from implementer. The modeler reads requirements and produces domain models; the implementer reads the domain model and implements without modifying it.
 
@@ -71,7 +71,7 @@ How to keep the finite attention budget useful as sessions grow and the system a
 
 ### Context Rot
 
-Context engineering = optimizing token allocation within finite attention budgets. As context length increases, model ability to capture pairwise token relationships diminishes. This is a **performance gradient, not a hard cliff** — caused by transformer architecture's n-squared complexity. Source: [21-anthropic-engineering-deep-dive.md](./21-anthropic-engineering-deep-dive.md).
+Context engineering = optimizing token allocation within finite attention budgets. As context length increases, model ability to capture pairwise token relationships diminishes. This is a **performance gradient, not a hard cliff** — caused by transformer architecture's n-squared complexity. Source: [21-anthropic-engineering-deep-dive.md](../../../brana-knowledge/dimensions/21-anthropic-engineering-deep-dive.md).
 
 **Implication:** The ~24KB context budget isn't arbitrary. Every KB of always-loaded instructions competes with working context. The SessionStart hook should inject a brief summary (not a dump) of relevant patterns. The mastermind CLAUDE.md should be as lean as possible — "for each line ask: would removing this cause mistakes?"
 
@@ -101,13 +101,13 @@ Additionally, the **Notification** hook type (`permission_prompt`, `idle_prompt`
 
 ## Self-Describing Configuration
 
-The mastermind's own `.claude/` files are simultaneously configuration and documentation (see [25-self-documentation.md](./25-self-documentation.md)). The system that runs is also the system that describes itself.
+The mastermind's own `.claude/` files are simultaneously configuration and documentation (see [25-self-documentation.md](../25-self-documentation.md)). The system that runs is also the system that describes itself.
 
 **Frontmatter for skills and rules.** Each SKILL.md already requires `name` and `description` in frontmatter. Extend with `status` (experimental/stable/deprecated) and `growth_stage` (seedling/budding/evergreen) to signal trust level. An experimental skill should be treated differently from a battle-tested one — same principle as doc 25's growth stages for spec documents.
 
 **The `.claude/` directory IS the documentation.** Reading the directory tree tells you what the mastermind does. Each file is self-describing: CLAUDE.md is identity, rules/ is universal standards, skills/ is capabilities, agents/ is team composition. No separate "system docs" needed — Cyrille Martraire's principle: "store documentation on the documented thing itself."
 
-**Staleness applies to configs too.** A skill that references claude-flow v3.1 commands when v3.3 changed the API is a stale config. The same layer-aware staleness thresholds (30/90/180 days) and dependency-triggered reviews from [25-self-documentation.md](./25-self-documentation.md) apply. When claude-flow releases a new version, review all skills that call its commands.
+**Staleness applies to configs too.** A skill that references claude-flow v3.1 commands when v3.3 changed the API is a stale config. The same layer-aware staleness thresholds (30/90/180 days) and dependency-triggered reviews from [25-self-documentation.md](../25-self-documentation.md) apply. When claude-flow releases a new version, review all skills that call its commands.
 
 **Documentation locality applies to configs too.** Per doc 25 Mechanism 7: the ReasoningBank schema is the source of truth in doc 14. Implementation code references it by doc ID ("per spec 14"), never duplicates it. MEMORY.md summaries are a lossy cache — agents should follow links for the actual schema.
 
@@ -119,7 +119,7 @@ How often different parts of the system need attention.
 
 ### The Genome (System Code)
 
-From [15-self-development-workflow.md](./15-self-development-workflow.md) — the genome is what gets deployed to `~/.claude/`:
+From [15-self-development-workflow.md](../15-self-development-workflow.md) — the genome is what gets deployed to `~/.claude/`:
 
 | Component | Review Trigger | Why |
 |-----------|---------------|-----|
@@ -137,14 +137,14 @@ From [15-self-development-workflow.md](./15-self-development-workflow.md) — th
 |-----------|---------------|-----|
 | Pattern health | Monthly | `/memory review` — staleness, contradictions, confidence distribution |
 | Token usage | After each session or weekly | `/usage-stats` — model distribution, session patterns, activity trends, anomaly detection |
-| Source registry | Per source cadence (weekly–quarterly) | `/research registry` — trust tier health, overdue checks, yield tracking. See [33-research-methodology.md](./33-research-methodology.md) |
+| Source registry | Per source cadence (weekly–quarterly) | `/research registry` — trust tier health, overdue checks, yield tracking. See [33-research-methodology.md](../../../brana-knowledge/dimensions/33-research-methodology.md) |
 | Pattern curation | After each session with notable learnings | `/retrospective` — the engine that builds knowledge trust |
 | Cross-project transfer | When starting work in a different project | `/memory pollinate` — checks for applicable patterns |
 | Knowledge backup | Before claude-flow upgrades | `backup-knowledge.sh` — snapshot ReasoningBank + auto memory |
 
 ### The Spec Repo
 
-From [25-self-documentation.md](./25-self-documentation.md) — layer-aware staleness thresholds:
+From [25-self-documentation.md](../25-self-documentation.md) — layer-aware staleness thresholds:
 
 | Layer | Threshold | Why |
 |-------|-----------|-----|
@@ -156,7 +156,7 @@ From [25-self-documentation.md](./25-self-documentation.md) — layer-aware stal
 
 ### Scheduled Automation
 
-From [ADR-002](./docs/decisions/ADR-002-scheduler-thin-layer-over-systemd.md) — brana-scheduler runs maintenance jobs on a cadence, bridging the gap between session-bound hooks and manual skill invocations:
+From [ADR-002](../decisions/ADR-002-scheduler-thin-layer-over-systemd.md) — brana-scheduler runs maintenance jobs on a cadence, bridging the gap between session-bound hooks and manual skill invocations:
 
 | Job | Schedule | What it does |
 |-----|----------|-------------|
@@ -174,7 +174,7 @@ How the system grows from manual practices to automated enforcement.
 
 ### The Graduation Pathway
 
-From [00-user-practices.md](./00-user-practices.md) — the feedback loop that drives evolution:
+From [00-user-practices.md](../00-user-practices.md) — the feedback loop that drives evolution:
 
 ```
 Manual practice (user does it by hand, documents in doc 00)
@@ -192,7 +192,7 @@ Each level is harder to set up but more reliable. The system should start manual
 
 ### Git Workflow as Lifecycle Tool
 
-From [26-git-branching-strategies.md](./26-git-branching-strategies.md) — GitHub Flow as the development lifecycle:
+From [26-git-branching-strategies.md](../../../brana-knowledge/dimensions/26-git-branching-strategies.md) — GitHub Flow as the development lifecycle:
 
 - **Every change starts on a branch.** Before the first edit, not after.
 - **Branch prefixes map to work types:** `feat/`, `fix/`, `docs/`, `chore/`, `refactor/`, `test/`, `perf/`
@@ -227,7 +227,7 @@ The debrief→maintain-specs loop is what keeps specs alive. Without it, specs d
 
 The mastermind architecture describes a system that learns from code sessions. But it has a blind spot: the user's subjective experience. Did the SessionStart recall feel useful or noisy? Did `/memory pollinate` surface relevant patterns or junk? Did the deploy flow feel smooth or brittle?
 
-[00-user-practices.md](./00-user-practices.md) closes this gap. It captures field notes from real usage — observations the user makes while living with the system. These observations feed back into the architecture:
+[00-user-practices.md](../00-user-practices.md) closes this gap. It captures field notes from real usage — observations the user makes while living with the system. These observations feed back into the architecture:
 
 - **Graduation path:** A manual practice the user keeps repeating signals a missing automation. That observation, recorded in doc 00, becomes a hook or validation check in a future phase.
 - **Anti-pattern discovery:** When the user notices something that consistently doesn't work, it gets recorded and eventually influences triage decisions in [08-diagnosis.md](./08-diagnosis.md).
@@ -240,7 +240,7 @@ The mastermind architecture describes a system that learns from code sessions. B
 ### Lifecycle
 3. **When does the brain get too big?** 500 patterns is manageable. 5,000? At some point you need pruning, archival, or hierarchical summarization.
 
-8. **Background learning ("the night shift")?** Background workers that re-analyze old sessions with new knowledge, extracting patterns you missed in real-time. **Note:** Blocked by claude-flow daemon stability — see [05-claude-flow-v3-analysis.md](./05-claude-flow-v3-analysis.md). Revisit after daemon reliability is confirmed.
+8. **Background learning ("the night shift")?** Background workers that re-analyze old sessions with new knowledge, extracting patterns you missed in real-time. **Note:** Blocked by claude-flow daemon stability — see [05-claude-flow-v3-analysis.md](../../../brana-knowledge/dimensions/05-claude-flow-v3-analysis.md). Revisit after daemon reliability is confirmed.
 
 10. **Apprentice mode for new projects?** When starting a new project, aggressively query ReasoningBank for anything remotely relevant, building up project-specific knowledge fast. Then dial back as the project matures.
 
@@ -250,12 +250,12 @@ The mastermind architecture describes a system that learns from code sessions. B
 
 - [14-mastermind-architecture.md](./14-mastermind-architecture.md) — R2: architecture that this reflection tracks through time
 - [31-assurance.md](./31-assurance.md) — R3: validation at each lifecycle stage
-- [15-self-development-workflow.md](./15-self-development-workflow.md) — genome/connectome separation, deploy pipeline, testing, versioning
-- [25-self-documentation.md](./25-self-documentation.md) — staleness detection, growth stages, documentation locality
-- [16-knowledge-health.md](./16-knowledge-health.md) — immune system as ongoing maintenance
-- [00-user-practices.md](./00-user-practices.md) — user feedback loop: graduation pathway from manual to automated
-- [26-git-branching-strategies.md](./26-git-branching-strategies.md) — GitHub Flow as lifecycle tool
-- [22-testing.md](./22-testing.md) — testing methodology integrated into the build cycle
+- [15-self-development-workflow.md](../15-self-development-workflow.md) — genome/connectome separation, deploy pipeline, testing, versioning
+- [25-self-documentation.md](../25-self-documentation.md) — staleness detection, growth stages, documentation locality
+- [16-knowledge-health.md](../../../brana-knowledge/dimensions/16-knowledge-health.md) — immune system as ongoing maintenance
+- [00-user-practices.md](../00-user-practices.md) — user feedback loop: graduation pathway from manual to automated
+- [26-git-branching-strategies.md](../../../brana-knowledge/dimensions/26-git-branching-strategies.md) — GitHub Flow as lifecycle tool
+- [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md) — testing methodology integrated into the build cycle
 - [08-diagnosis.md](./08-diagnosis.md) — R1: triage decisions that lifecycle implements
 
 ---

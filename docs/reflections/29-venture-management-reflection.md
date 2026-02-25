@@ -1,6 +1,6 @@
 # 29 - Venture Management: From Code Projects to Any Project
 
-Reflection on [28-startup-smb-management.md](./28-startup-smb-management.md). Synthesizes what transfers, what doesn't, what the system needs to support non-code projects, and how the skill architecture should evolve.
+Reflection on [28-startup-smb-management.md](../../../brana-knowledge/dimensions/28-startup-smb-management.md). Synthesizes what transfers, what doesn't, what the system needs to support non-code projects, and how the skill architecture should evolve.
 
 ---
 
@@ -186,7 +186,7 @@ Existing tags (`project:`, `tech:`, `type:`, `outcome:`) continue to work. Busin
 - Growth: OKRs, SOPs for repeatable processes, meeting cadence, hiring plan, decision frameworks (RACI/RAPID)
 - Scale: org chart, cascading OKRs, process automation docs, financial dashboard, onboarding playbook
 
-**Framework discipline:** Stage-aware frameworks are powerful but easy to over-load. When setting up OKRs alongside other frameworks (EOS Rocks, Shape Up cycles), follow the stacking rule from [28-startup-smb-management.md](./28-startup-smb-management.md): **maximum 3 active layers** (operating system + goal system + cadence), and don't run EOS Rocks + OKRs as parallel goal systems — Rocks already ARE quarterly goals. If a framework is consuming more maintenance time than the value it produces, drop a layer. `/venture-align` should warn when > 3 frameworks are active and `/growth-check` should flag framework bloat as a health issue.
+**Framework discipline:** Stage-aware frameworks are powerful but easy to over-load. When setting up OKRs alongside other frameworks (EOS Rocks, Shape Up cycles), follow the stacking rule from [28-startup-smb-management.md](../../../brana-knowledge/dimensions/28-startup-smb-management.md): **maximum 3 active layers** (operating system + goal system + cadence), and don't run EOS Rocks + OKRs as parallel goal systems — Rocks already ARE quarterly goals. If a framework is consuming more maintenance time than the value it produces, drop a layer. `/venture-align` should warn when > 3 frameworks are active and `/growth-check` should flag framework bloat as a health issue.
 
 ### 3. `/venture-phase` — Business Milestone Execution
 
@@ -239,7 +239,7 @@ degradation modes) → Metrics → Version → Review Date
 8. Compare current metrics to previous `/growth-check` snapshots (trend analysis)
 9. Output health report: green/yellow/red per metric, bottleneck identified, recommended actions
 
-**Business model adaptation:** Metric frameworks must adapt to the business model type, not just the stage. Standard SaaS metrics (MRR, churn rate, DAU/MAU, net revenue retention) misdiagnose non-subscription businesses — a cycle-based service with 95% "churn" may be healthy if recompra (repeat purchase) rate is strong. Non-SaaS metrics include: recompra rate (clients with 2+ purchases / total), average order value, revenue per client, channel attribution, top-client concentration, referrer contribution. See lesson #20 in [24-roadmap-corrections.md](./24-roadmap-corrections.md).
+**Business model adaptation:** Metric frameworks must adapt to the business model type, not just the stage. Standard SaaS metrics (MRR, churn rate, DAU/MAU, net revenue retention) misdiagnose non-subscription businesses — a cycle-based service with 95% "churn" may be healthy if recompra (repeat purchase) rate is strong. Non-SaaS metrics include: recompra rate (clients with 2+ purchases / total), average order value, revenue per client, channel attribution, top-client concentration, referrer contribution. See lesson #20 in [24-roadmap-corrections.md](../24-roadmap-corrections.md).
 
 **ReasoningBank integration:** Store each check as a snapshot. Over time, build a metrics trajectory that surfaces trends across sessions.
 
@@ -569,10 +569,10 @@ Always-on (not a framework, a habit):
 
 ## Sources
 
-- [28-startup-smb-management.md](./28-startup-smb-management.md) — The dimension doc this reflects on
+- [28-startup-smb-management.md](../../../brana-knowledge/dimensions/28-startup-smb-management.md) — The dimension doc this reflects on
 - [08-diagnosis.md](./08-diagnosis.md) — Keep/drop/defer analysis (pattern for reflection docs)
 - [14-mastermind-architecture.md](./14-mastermind-architecture.md) — Three-layer architecture (Identity, Intelligence, Context)
-- [27-project-alignment-methodology.md](./27-project-alignment-methodology.md) — Alignment pipeline pattern (DISCOVER → ASSESS → PLAN → IMPLEMENT → VERIFY → DOCUMENT)
+- [27-project-alignment-methodology.md](../../../brana-knowledge/dimensions/27-project-alignment-methodology.md) — Alignment pipeline pattern (DISCOVER → ASSESS → PLAN → IMPLEMENT → VERIFY → DOCUMENT)
 
 ### Research Sources (Question Resolution)
 
