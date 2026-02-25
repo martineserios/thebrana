@@ -166,7 +166,7 @@ Each action ≤1,000 chars. Format: `When [condition], [action verb] to [exact t
 | 7 | Workflow | `Trigger workflow ![name]` | No variable passing. Must be published. Set fields first. |
 | 8 | Handle Calls | `Handle inbound calls` | Inbound only. 3-min cap. No mid-call transfer. |
 
-**Variable prefixes**: `@` routing targets, `$contact.` field references, `%` tags, `!` workflows.
+**Variable prefixes** (Respond.io platform standard): `@` people/teams, `$` fields/variables, `%` tags, `!` workflows. `{{ }}` in examples is human-readability markup only — not parsed by agents in prompts.
 
 ### Writing KB files
 
