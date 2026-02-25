@@ -61,6 +61,38 @@ For each session file, count corrections and identify files that were corrected 
 
 Skip silently if no session JSONL files exist or no corrections found.
 
+### Step 2c: Store learnings as patterns (retrospective)
+
+For each learning extracted by the debrief-analyst in Step 2, store it as a pattern following the `/retrospective` workflow.
+
+1. Structure each learning as:
+   - `problem`: the context or issue
+   - `solution`: what worked or what was discovered
+   - `tags`: project name, technology, problem type, outcome
+   - `confidence`: 0.5 (quarantined — new learnings start unproven)
+   - `correction_weight`: 0
+   - `transferable`: false
+
+2. Store via claude-flow:
+   ```bash
+   source "$HOME/.claude/scripts/cf-env.sh"
+
+   cd "$HOME" && $CF memory store \
+     -k "pattern:{PROJECT}:{short-title}" \
+     -v '{"problem": "...", "solution": "...", "confidence": 0.5, "transferable": false, "correction_weight": 0}' \
+     --namespace patterns \
+     --tags "project:{PROJECT},type:{CATEGORY},outcome:{OUTCOME}"
+   ```
+
+3. If claude-flow is unavailable, append to the project's MEMORY.md (same fallback as `/retrospective`).
+
+**Skip this step if:**
+- Session was read-only (no commits, no changes)
+- Debrief-analyst returned no learnings
+- Only errata were found (errata go to `/apply-errata`, not pattern storage)
+
+**Do NOT run the full promotion review** (Step 6 of `/retrospective`) — that's a heavier operation for manual invocation. This step only stores new patterns.
+
 ### Step 3: Doc drift heuristic
 
 Check if system files were modified this session:
@@ -150,6 +182,7 @@ Skip silently if the script doesn't exist.
 
 **Commits this session:** {N}
 **Learnings extracted:** {N} ({errata} errata, {learnings} learnings, {issues} issues)
+**Patterns stored:** {N} (via retrospective — confidence 0.5, quarantined)
 **Doc drift detected:** {yes/no — files listed if yes}
 **Handoff note updated:** {path}
 

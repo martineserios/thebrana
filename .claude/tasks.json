@@ -913,6 +913,28 @@
       "completed": null,
       "notes": null,
       "context": "Backlog #79. Sources: agent .md files (10 agents), delegation-routing.md, skill SKILL.md triggers, existing SOPs."
+    },
+    {
+      "id": "t-031",
+      "subject": "Add /retrospective call to /session-handoff close mode",
+      "description": "After Step 2 (debrief-analyst), store each learning as a quarantined pattern via the retrospective workflow. Closes the learning loop — patterns are stored every session without requiring manual /retrospective invocation.",
+      "tags": ["skills", "learning-loop"],
+      "status": "in_progress",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": null,
+      "order": 7,
+      "priority": "P2",
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": "feat/t-031-session-handoff-retrospective",
+      "github_issue": null,
+      "created": "2026-02-25",
+      "started": "2026-02-25",
+      "completed": null,
+      "notes": null,
+      "context": "Backlog #83. Session-handoff captures what happened, retrospective stores reusable patterns. Merging them closes the gap."
     }
   ]
 }
