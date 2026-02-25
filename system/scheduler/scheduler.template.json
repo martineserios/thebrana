@@ -61,6 +61,17 @@
       "retryBackoffSec": 60,
       "captureOutput": true,
       "_comment": "Daily check: has claude-flow + AgentDB integration shipped? (parked ms-007)"
+    },
+    "reindex-knowledge": {
+      "type": "command",
+      "command": "./system/scripts/index-knowledge.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Sun *-*-* 03:00:00",
+      "enabled": true,
+      "maxRetries": 1,
+      "timeoutSeconds": 600,
+      "captureOutput": true,
+      "_comment": "Weekly full reindex of brana-knowledge dimension docs into claude-flow memory"
     }
   }
 }
