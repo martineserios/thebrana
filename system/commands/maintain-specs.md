@@ -1,3 +1,8 @@
+---
+name: maintain-specs
+description: "Run the full spec repo correction cycle: apply errata, re-evaluate reflections, deepen synthesis, and check doc hygiene"
+---
+
 # Maintain Specs
 
 Run the full spec repo correction cycle: apply pending errata first (so reflections start from a corrected baseline), then re-evaluate reflection docs against dimension docs, deepen the reflection layer, and check if doc 25 needs updating. Each step exits early if nothing needs doing.

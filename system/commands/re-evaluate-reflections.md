@@ -1,3 +1,8 @@
+---
+name: re-evaluate-reflections
+description: "Cross-check reflection docs against dimension docs to find gaps, contradictions, and missed findings"
+---
+
 # Re-Evaluate Reflections
 
 Check whether the 5 reflection docs (08-triage, 14-architecture, 31-assurance, 32-lifecycle, 29-transfer) fully account for everything in the dimension docs they depend on. Find gaps, contradictions, and missed findings — then log them as new errata in doc 24's format.

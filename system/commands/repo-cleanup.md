@@ -1,3 +1,8 @@
+---
+name: repo-cleanup
+description: "Commit accumulated spec doc changes: survey, group by logical batch, branch, commit, merge"
+---
+
 # Repo Cleanup
 
 Commit accumulated spec doc changes that have built up across sessions. Follows GitHub Flow: branch, commit, merge, delete.

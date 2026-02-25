@@ -26,7 +26,7 @@ PERSONAL="$HOME/enter_thebrana/personal"
 [ -d "$PERSONAL" ] || { echo "No personal/ directory found at $PERSONAL"; exit 0; }
 ```
 
-If the directory doesn't exist, output "Personal Life OS not set up — run /personal-check from enter to initialize." and stop.
+If the directory doesn't exist, output "Personal Life OS not set up — create ~/enter_thebrana/personal/ to initialize." and stop.
 
 ---
 

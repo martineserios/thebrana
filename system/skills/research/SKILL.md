@@ -30,7 +30,7 @@ Target options:
 
 ## Procedure
 
-1. **Load the source registry.** Read `research-sources.yaml` from the enter repo (`~/enter_thebrana/brana-knowledge/research-sources.yaml`). If it doesn't exist, warn the user and fall back to freeform web search.
+1. **Load the source registry.** Read `research-sources.yaml` from brana-knowledge (`~/enter_thebrana/brana-knowledge/research-sources.yaml`). If it doesn't exist, warn the user and fall back to freeform web search.
 
 2. **Determine target type.** Parse `$ARGUMENTS`:
    - If it's a number → doc mode (research updates for that doc)

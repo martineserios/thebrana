@@ -1,6 +1,11 @@
+---
+name: refresh-knowledge
+description: "Research the web for updates to dimension docs: version deltas, new content from creators, ecosystem changes"
+---
+
 # Refresh Knowledge Base
 
-Refresh the dimension docs in the enter repo by researching the web for updates, new releases, new content from referenced creators, and emerging relevant work.
+Refresh the dimension docs in brana-knowledge by researching the web for updates, new releases, new content from referenced creators, and emerging relevant work.
 
 ## How It Works
 
