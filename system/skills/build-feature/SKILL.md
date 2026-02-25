@@ -156,6 +156,20 @@ Discuss with the user naturally — don't rush to structure:
 
 Keep the conversation flowing. Let the user think out loud. Ask follow-up questions. Challenge assumptions gently.
 
+### 2a-2: Divergent exploration
+
+Before converging on a single approach, generate **3 distinct alternatives**:
+
+| # | Approach | Key trade-off | Main risk | Rough effort |
+|---|----------|---------------|-----------|-------------|
+| 1 | **The obvious** — what comes to mind first | | | |
+| 2 | **The simpler** — a 10x simpler version | | | |
+| 3 | **The creative** — what if we solved this differently? | | | |
+
+Present the comparison table to the user. They pick one (or a hybrid) to carry into Phase 2b.
+
+**Skip clause:** If the user arrived with a specific committed approach (e.g., "add JWT auth using this library"), they've already converged — acknowledge the choice and proceed to 2b directly.
+
 ### 2b: Persist the feature brief
 
 When the shape is clear, write a feature brief.
