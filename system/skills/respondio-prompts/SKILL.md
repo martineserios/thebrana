@@ -160,7 +160,7 @@ Each action ≤1,000 chars. Format: `When [condition], [action verb] to [exact t
 | 1 | Close | `Close with category "[Name]", note "[text]"` | Categories must pre-exist. Update lifecycle BEFORE close. Summary + close only after user is informed of next steps. |
 | 2 | Assign | `Assign to @[Team/User/Agent]` | Agent continues responding unless told to stop. Two load-balancing modes: round robin, least open conversations. 2-attempt clarification threshold before fallback assign. |
 | 3 | Lifecycle | `Update Lifecycle stage to "[Stage]"` | Exact names, case-sensitive. Must execute BEFORE close. Bidirectional (advance or regress). Triggered by intent signals, often paired with Assign. |
-| 4 | Contact Fields | `Update $contact.[field] to [value]` | Silent failures on typos — names must match Settings. |
+| 4 | Contact Fields | `Update $contact.[field] to [value]` | Silent failures on typos — names must match Settings. Reactive capture: update when shared, not when asked. Action prompts use natural language field names; `$contact.` prefix is for instructions. |
 | 5 | Comments | `Add comment: "[text]"` | ≤2,000 chars. Write-only — agents cannot read comments. |
 | 6 | Tags | `Add tag %[TagName]` / `Remove tag %[TagName]` | Cannot read/check tags. One-way signals to Workflows. |
 | 7 | Workflow | `Trigger workflow ![name]` | No variable passing. Must be published. Set fields first. |
