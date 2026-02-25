@@ -647,14 +647,13 @@ Separated from Phase 1 because these are logic rewrites, not path substitutions.
 
 Validate the full loop before investing in content. Write 1-2 dimension docs AND the indexing pipeline in the same session. If retrieval doesn't work, knowledge base is just another file graveyard.
 
-- [ ] Write 1-2 seed dimension docs from existing project knowledge (just enough to test the pipeline)
-- [ ] Set up indexing pipeline based on Phase 0.5 spike results (bash script, claude-flow CLI or alternative)
-- [ ] Update memory-curator agent to search brana-knowledge index
-- [ ] **End-to-end test:** from a project session (e.g. psilea CWD), verify memory-curator finds the seed dimension doc via semantic search
-- [ ] If test passes: retrieval works, proceed to Phase 4 (scale content)
-- [ ] If test fails: diagnose and fix before writing more dimension docs
-- [ ] Set up on-commit hook for incremental indexing
-- [ ] Set up weekly full reindex via brana-scheduler (safety net)
+- [x] Seed dimension docs — 26 docs already in place from Phase 1 redistribution (enter dimension docs → brana-knowledge/dimensions/)
+- [x] Indexing pipeline — `system/scripts/index-knowledge.sh`: parses by ## sections, stores in claude-flow memory with 384-dim ONNX embeddings. 26 docs → 317 sections → 315 stored (2 encoding errors in doc 09)
+- [x] Memory-curator agent updated — searches knowledge namespace, surfaces dimension doc findings alongside patterns
+- [x] **End-to-end test PASSED:** "git worktree workflow" → doc 26 at 0.63, "testing claude code hooks" → doc 09 at 0.59, "design thinking" → doc 38 at 0.53. Cross-doc discrimination works.
+- [x] Test passes — retrieval validated, proceed to Phase 4
+- [x] On-commit hook — brana-knowledge post-commit runs `index-knowledge.sh --changed` in background
+- [x] Weekly full reindex — scheduler template updated (Sunday 3am)
 - [ ] If AgentDB reaches alpha.5+/beta before kill date (2026-06-24), upgrade to full AgentDB backend
 
 ### Phase 4: Evolve brana-knowledge (ongoing, after retrieval is validated)

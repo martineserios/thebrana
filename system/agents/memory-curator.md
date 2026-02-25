@@ -26,16 +26,20 @@ source "$HOME/.claude/scripts/cf-env.sh"
 ## Search patterns
 
 1. **Topic recall:** `cd $HOME && $CF memory search --query "{topic}" --limit 20`
-2. **Project patterns:** `cd $HOME && $CF memory search --query "project:{name}" --limit 20`
-3. **Cross-project:** `cd $HOME && $CF memory search --query "transferable:true {tech}" --limit 10`
+2. **Knowledge base:** `cd $HOME && $CF memory search --query "{topic}" --limit 10` — results in the `knowledge` namespace come from brana-knowledge dimension docs (indexed via `index-knowledge.sh`). These contain research, domain expertise, and methodology. Present them as "Knowledge base: [topic] — from [doc filename]".
+3. **Project patterns:** `cd $HOME && $CF memory search --query "project:{name}" --limit 20`
+4. **Cross-project:** `cd $HOME && $CF memory search --query "transferable:true {tech}" --limit 10`
 
-**Fallback** (no claude-flow): scan `~/.claude/projects/*/memory/MEMORY.md` and `~/.claude/memory/portfolio.md` for keyword matches.
+**Fallback** (no claude-flow): scan `~/.claude/projects/*/memory/MEMORY.md`, `~/.claude/memory/portfolio.md`, and `~/enter_thebrana/brana-knowledge/dimensions/` for keyword matches.
 
 ## Output format
 
-Group results by confidence tier:
+Group results by source:
 
 ```
+## Knowledge base (from brana-knowledge dimensions)
+- [topic]: [key finding] — source: {doc filename}, score: X
+
 ## Proven patterns (confidence >= 0.7)
 - [pattern] — confidence: X, recalls: N, source: PROJECT, transferable: yes/no
 
