@@ -77,6 +77,7 @@ Version: v0.6.0 (Phase 1: Unified Repo)
 | `/reconcile` | Detect spec-vs-implementation drift, plan fixes, apply after approval |
 | `/debrief` | Extract errata and learnings from current session |
 | `/research` | Research a topic, doc, or creator — recursive discovery |
+| `/knowledge` | Browse, annotate, review, and reindex brana-knowledge |
 
 ## Specs Reference
 
