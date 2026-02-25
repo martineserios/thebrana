@@ -162,7 +162,7 @@ Each action ≤1,000 chars. Format: `When [condition], [action verb] to [exact t
 | 3 | Lifecycle | `Update Lifecycle stage to "[Stage]"` | Exact names, case-sensitive. Must execute BEFORE close. Bidirectional (advance or regress). Triggered by intent signals, often paired with Assign. |
 | 4 | Contact Fields | `Update $contact.[field] to [value]` | Silent failures on typos — names must match Settings. Reactive capture: update when shared, not when asked. Action prompts use natural language field names; `$contact.` prefix is for instructions. |
 | 5 | Comments | `Add comment: "[text]"` | ≤2,000 chars. Write-only — agents cannot read comments. |
-| 6 | Tags | `Add tag %[TagName]` / `Remove tag %[TagName]` | Cannot read/check tags. One-way signals to Workflows. |
+| 6 | Tags | `Add tag %[TagName]` / `Remove tag %[TagName]` | Cannot read/check tags. One-way signals to Workflows. Bidirectional: intent-based add, resolution-based remove. Tags are boolean state signals, not data. |
 | 7 | Workflow | `Trigger workflow ![name]` | No variable passing. Must be published. Set fields first. |
 | 8 | Handle Calls | `Handle inbound calls` | Inbound only. 3-min cap. No mid-call transfer. |
 
