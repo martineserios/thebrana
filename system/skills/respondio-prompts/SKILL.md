@@ -164,7 +164,7 @@ Each action ≤1,000 chars. Format: `When [condition], [action verb] to [exact t
 | 5 | Comments | `Add comment: "[text]"` | ≤2,000 chars. Write-only — agents cannot read comments. Always paired with Assign (handoff artifact). Two archetypes: handoff summary (summary + next action) and escalation brief (issue + done + reason). |
 | 6 | Tags | `Add tag %[TagName]` / `Remove tag %[TagName]` | Cannot read/check tags. One-way signals to Workflows. Bidirectional: intent-based add, resolution-based remove. Tags are boolean state signals, not data. |
 | 7 | Workflow | `Trigger workflow ![name]` | No variable passing. Must be published. Set fields first. |
-| 8 | Handle Calls | `Handle inbound calls` | Inbound only. 3-min cap. No mid-call transfer. |
+| 8 | Handle Calls | `Handle inbound calls` | Inbound only. 3-min cap. No mid-call transfer. Uses different instruction architecture: CALL CONTEXT / ROLE / COMMUNICATION STYLE / MUST DO / MUST NOT DO / FALLBACK / ERROR HANDLING. No FLOW section — voice is conversational, not sequential. No action chaining. |
 
 **Variable prefixes** (Respond.io platform standard): `@` users/teams/AI agents, `$` fields/variables, `%` tags, `!` workflows. `{{ }}` in examples is human-readability markup only — not parsed by agents in prompts.
 
