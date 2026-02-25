@@ -636,12 +636,12 @@ File moves, path updates, config merges, validate cycle. Pure structural migrati
 
 Separated from Phase 1 because these are logic rewrites, not path substitutions. `/back-propagate` and `/reconcile` have multi-step git workflows designed around two-repo operations that need fundamental rethinking.
 
-- [ ] Rewrite `/back-propagate` for same-repo operation (currently: create worktree in enter, branch, edit specs, merge — becomes: edit `docs/` on same or parallel branch)
-- [ ] Rewrite `/reconcile` for same-repo operation (currently: cross-repo reads/writes — becomes: `docs/` → `system/` within same repo)
-- [ ] Update `/build-phase` path references (8 refs in SKILL.md)
-- [ ] Remove cross-repo worktree logic where no longer needed
-- [ ] Run deploy.sh + validate cycle again
-- [ ] **Degraded mode acceptable:** if skill rewrites prove complex, `/back-propagate` and `/reconcile` can run in degraded mode (manual edits) while the logic is reworked. The merge is still valuable without them.
+- [x] Rewrite `/back-propagate` for same-repo operation — now: same-repo `docs/` + cross-repo `brana-knowledge/dimensions/` pattern
+- [x] Rewrite `/reconcile` for same-repo operation — now: intra-repo `docs/` → `system/` with optional brana-knowledge scan
+- [x] Update `/build-phase` path references — single worktree branch, no two-repo merge dance
+- [x] Remove cross-repo worktree logic where no longer needed — also fixed stale refs in research, personal-check, commands, skill-catalog, doc 14
+- [x] Run deploy.sh + validate cycle — passed (also added missing YAML frontmatter to 5 project commands)
+- [x] ~~Degraded mode acceptable~~ — not needed, full rewrites completed in one session
 
 ### Phase 3: Wire Retrieval Prototype (1 session — BEFORE writing dimension docs)
 
