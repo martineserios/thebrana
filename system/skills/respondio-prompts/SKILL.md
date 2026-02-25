@@ -86,6 +86,9 @@ Check existing prompts (or design requirements) against platform constraints. Fl
 10. **Action independence**: distinguish chained (output→input) from independent (different triggers) — only chains have the 2-3 limit
 11. **Follow-up chain**: last follow-up routes to a closing action, not a dead-end
 12. **Variable prefix consistency**: `@` for routing, `$contact.` for fields, `%` for tags, `!` for workflows
+13. **Null-check guards**: data collection steps check `$contact.field` before asking (skip if populated)
+14. **Spam handling**: entry-point agent has explicit spam detection + silent close pattern
+15. **Fallback section exists**: separate from BOUNDARIES — recovery paths when intent unclear or KB misses
 
 ---
 
@@ -124,6 +127,25 @@ Scope limits, valid assignment targets, escalation triggers.
 | Motivate rules | "Leave OPEN because humans need the conversation" | "NEVER close" (no reason) |
 | Explicit conditions | "When pain reported, assign to @Team Euge" | "Escalate if serious" |
 | Keyword guidance | "Search for 'TEMPLATE: OBJECION-CARO'" | "Ver KB Sección B" |
+
+### Instruction patterns (beyond the core 4)
+
+Production instructions benefit from dedicated sections beyond CONTEXT/ROLE/FLOW/BOUNDARIES:
+
+| Section | Purpose | When to include |
+|---------|---------|-----------------|
+| `# FOLLOW UP HANDLING` | Instruction-driven inactivity logic with timing and messages | When follow-up needs precise scripting beyond UI config |
+| `# FALLBACK HANDLING` | Recovery when intent is unclear or KB returns nothing | Always — separate from BOUNDARIES (prohibitions ≠ recovery) |
+| `# SPAM HANDLING` | Detect spam/promotional messages, close without engaging | Entry-point agents receiving unfiltered inbound |
+| `# CHECK MISSING DATA` | Guard: only ask if `$contact.field` is null/undefined | Agents collecting data contacts may already have |
+| `# COLLECT INFORMATION` | Sequence: ask one → save immediately → ask next | Data collection agents — prevents loss on drop |
+| `# BUSINESS HOURS` | Hours in instructions for self-serve "we're closed" replies | When agents must distinguish hours without a workflow |
+
+**Key patterns:**
+- **Null-check before asking**: `Only ask for [field] if $contact.[field] is missing, null, or undefined`
+- **Save before next ask**: persist each field immediately, before requesting the next
+- **Redundancy for critical rules**: repeat safety-critical behaviors 2-3 times across FLOW, BOUNDARIES, and FALLBACK
+- **Fallback ≠ Boundaries**: boundaries are prohibitions ("never invent"), fallbacks are recovery actions ("if unclear, escalate")
 
 ### Writing action prompts
 
