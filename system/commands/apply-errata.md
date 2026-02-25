@@ -1,3 +1,8 @@
+---
+name: apply-errata
+description: "Apply pending errata from doc 24 through the layer hierarchy: dimension, reflection, roadmap — with gate checks between layers"
+---
+
 # Apply Errata
 
 Read doc 24 (roadmap corrections) and apply fixes following the layer hierarchy: dimension docs first, then reflection docs, then roadmap docs — with gate checks between each layer to catch cascading inconsistencies.
