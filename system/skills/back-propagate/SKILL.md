@@ -1,6 +1,6 @@
 ---
 name: back-propagate
-description: Propagate implementation changes back to spec docs — update enter/ when thebrana rules, hooks, skills, agents, or config change. Use after building features or changing system files.
+description: Propagate implementation changes back to spec docs — update docs/ when system/ rules, hooks, skills, agents, or config change. Use after building features or changing system files.
 group: brana
 depends_on:
   - debrief
@@ -16,7 +16,7 @@ allowed-tools:
 
 # Back-Propagate
 
-Sync enter specs (what should be built) with thebrana (what was built). When implementation evolves — new skills, changed hooks, updated rules — the spec docs must catch up.
+Sync spec docs (what should be built) with the implementation (what was built). When implementation evolves — new skills, changed hooks, updated rules — the spec docs must catch up.
 
 This is the missing arrow: **implementation → specs**. The other commands cover:
 - `/reconcile` — specs → existing implementation (forward sync)
@@ -27,45 +27,65 @@ This is the missing arrow: **implementation → specs**. The other commands cove
 
 ## When to use
 
-- After building a new skill, agent, hook, or rule in thebrana
+- After building a new skill, agent, hook, or rule in `system/`
 - After modifying system files (CLAUDE.md, settings.json, deploy.sh)
 - After `/build-phase` completes — propagate what was actually built back to specs
 - When `/debrief` findings include implementation changes
 - When delegation-routing triggers: "Changed rule/hook/skill/config"
 
+## Architecture
+
+Specs live in two places after the enter→thebrana merge (ADR-006):
+
+| Layer | Location | Scope |
+|-------|----------|-------|
+| **Roadmap docs** | `thebrana/docs/` (00, 15, 17-19, 24, 25, 30, 39) | Implementation plans, tracking, corrections |
+| **Reflection docs** | `thebrana/docs/reflections/` (08, 14, 29, 31, 32) | Cross-cutting synthesis |
+| **Dimension docs** | `brana-knowledge/dimensions/` (01-07, 09-13, 16, 20-23, 26-28, 33-38) | Research, domain knowledge |
+
+Roadmaps and reflections are **same-repo** — branch, edit, merge. Dimension docs are **cross-repo** (brana-knowledge) — only needed when a system change affects domain knowledge.
+
 ## Process
 
 ### Step 0: Orient
 
-#### 0a: Locate repos
+#### 0a: Locate paths
 
 ```bash
-SPECS_DIR="$HOME/enter_thebrana/thebrana/docs"  # Was ENTER="$HOME/enter_thebrana/enter" — Phase 2 will rework git workflow
 THEBRANA="$HOME/enter_thebrana/thebrana"
+DOCS="$THEBRANA/docs"
+REFLECTIONS="$THEBRANA/docs/reflections"
+KNOWLEDGE="$HOME/enter_thebrana/brana-knowledge/dimensions"
 ```
 
-Verify both exist. If either is missing, abort with a clear message.
+Verify `$THEBRANA` exists. If `$KNOWLEDGE` doesn't exist, note it — dimension docs won't be updated (acceptable; roadmap and reflection updates still proceed).
 
 #### 0b: Check working state
 
-Run `git status` in enter. If enter has uncommitted changes, warn the user:
+Run `git status` in thebrana. If there are uncommitted changes, warn the user:
 
-> "enter has uncommitted changes. Back-propagate will modify spec files. Commit or stash first?"
+> "thebrana has uncommitted changes. Back-propagate will modify spec files. Commit or stash first?"
 
 Wait for confirmation before proceeding.
 
 #### 0c: Create branch
 
-Before any edits, create a worktree branch in enter:
+Before any edits, create a worktree branch:
 
 ```bash
 BRANCH="docs/backprop-$(date +%Y%m%d)"
-git -C $ENTER worktree add "$ENTER/../enter-$BRANCH" -b "$BRANCH"
+cd $THEBRANA && git worktree add "$THEBRANA/../thebrana-$BRANCH" -b "$BRANCH"
 ```
 
 If a branch with that name already exists (second backprop in one day), append a counter: `-2`, `-3`, etc.
 
 All spec edits happen in the worktree. Reference the worktree path as `$WORKTREE` in subsequent steps.
+
+If dimension docs need updating, also create a branch in brana-knowledge:
+
+```bash
+cd $HOME/enter_thebrana/brana-knowledge && git checkout -b "docs/backprop-$(date +%Y%m%d)"
+```
 
 ### Step 1: Detect changes
 
@@ -89,17 +109,17 @@ Parse the description to build a change manifest:
 
 #### Mode B: Git scan
 
-If no `$ARGUMENTS`, scan thebrana for recent changes:
+If no `$ARGUMENTS`, scan for recent changes:
 
 ```bash
 cd $THEBRANA
-git log --oneline --since="7 days ago" --name-only
+git log --oneline --since="7 days ago" --name-only -- system/
 ```
 
 If empty, widen to 30 days:
 
 ```bash
-git log --oneline --since="30 days ago" --name-only
+git log --oneline --since="30 days ago" --name-only -- system/
 ```
 
 Group changed files into areas:
@@ -120,22 +140,23 @@ If both modes produce no changes, report "No recent implementation changes found
 
 ### Step 2: Map to spec docs
 
-For each change area, identify which enter docs need updating. Core mapping:
+For each change area, identify which docs need updating:
 
-| Change area | Primary docs | Secondary docs |
-|------------|-------------|----------------|
+| Change area | Primary docs (same-repo) | Dimension docs (brana-knowledge) |
+|------------|--------------------------|----------------------------------|
 | Skills | 14 (Architecture), 25 (Self-doc) | Domain dimension doc for the skill's topic |
 | Agents | 14 (Architecture), 25 (Self-doc) | Domain dimension doc for the agent's topic |
 | Hooks | 14 (Architecture), 25 (Self-doc) | — |
-| Rules | Relevant dimension doc, 14 (Architecture) | — |
+| Rules | 14 (Architecture) | Relevant dimension doc |
 | CLAUDE.md | 14 (Architecture), 00 (Foundation) | — |
 | Config | 14 (Architecture), 25 (Self-doc) | — |
 | Deploy | 14 (Architecture), 25 (Self-doc) | — |
 
-**Safety net:** Also grep enter/ for direct references to the changed files or concepts:
+**Safety net:** Grep docs/ and brana-knowledge/ for direct references to the changed files or concepts:
 
 ```bash
-cd $ENTER && grep -rl "changed-concept" *.md
+cd $THEBRANA && grep -rl "changed-concept" docs/ docs/reflections/
+cd $KNOWLEDGE && grep -rl "changed-concept" *.md 2>/dev/null || true
 ```
 
 Add any discovered docs to the mapping.
@@ -154,11 +175,11 @@ Present a structured plan:
 
 ### Proposed Updates
 
-| # | Doc | Section | Update type | Description |
-|---|-----|---------|-------------|-------------|
-| 1 | 14 | §Skills table | Add row | New skill /foo with description "..." |
-| 2 | 25 | §Maintenance commands | Add entry | /foo command added |
-| 3 | 07 | §Tools | Add paragraph | /foo integrates with topic X |
+| # | Doc | Location | Section | Update type | Description |
+|---|-----|----------|---------|-------------|-------------|
+| 1 | 14 | docs/reflections/ | §Skills table | Add row | New skill /foo |
+| 2 | 25 | docs/ | §Commands | Add entry | /foo command added |
+| 3 | 07 | brana-knowledge | §Tools | Add paragraph | /foo integrates with topic X |
 
 ### No update needed
 - Doc 08: reviewed, no relevant sections
@@ -173,9 +194,9 @@ Present a structured plan:
 
 After approval, apply changes layer by layer:
 
-1. **Dimension docs first** (01-07, 09-13, 20-23, 26-28, 33) — these are the source of truth
-2. **Reflection docs** (08, 14, 29, 31, 32) — cross-cutting synthesis
-3. **Roadmap docs** (15, 17-19, 24, 25, 30) — implementation tracking
+1. **Dimension docs first** (brana-knowledge/dimensions/) — these are the source of truth
+2. **Reflection docs** (docs/reflections/ — 08, 14, 29, 31, 32) — cross-cutting synthesis
+3. **Roadmap docs** (docs/ — 15, 17-19, 24, 25, 30) — implementation tracking
 4. **Doc 00** (Foundation) — if user practices or preferences changed
 
 For each edit:
@@ -183,19 +204,25 @@ For each edit:
 - Use the **Edit tool** for targeted modifications. Match the existing doc's voice, formatting, and level of detail.
 - Insert new content near related existing content — don't append randomly.
 
-Commit each logical group in the worktree:
+Commit each logical group:
 
 ```bash
+# Same-repo docs (roadmaps + reflections)
 cd $WORKTREE
-git add [changed-files]
+git add docs/ docs/reflections/
 git commit -m "docs(NN,MM): back-propagate [description]"
+
+# Cross-repo dimension docs (if any)
+cd $HOME/enter_thebrana/brana-knowledge
+git add dimensions/
+git commit -m "docs(NN): back-propagate [description]"
 ```
 
 Use the same commit format as past manual backprops: `docs(NN,MM): back-propagate [description]` where NN,MM are the doc numbers changed.
 
 ### Step 5: Log to doc 24
 
-If drift was found (specs were wrong or materially incomplete), append a brief entry to `24-roadmap-corrections.md`:
+If drift was found (specs were wrong or materially incomplete), append a brief entry to `docs/24-roadmap-corrections.md`:
 
 ```markdown
 ### Back-Propagation — [YYYY-MM-DD]
@@ -230,7 +257,7 @@ If claude-flow is unavailable, append to `~/.claude/projects/*/memory/MEMORY.md`
 ## Back-Propagation Complete
 
 **Date:** YYYY-MM-DD
-**Branch:** docs/backprop-YYYYMMDD (in enter worktree)
+**Branch:** docs/backprop-YYYYMMDD
 
 ### Updates Applied
 - [list each doc updated with one-line description]
@@ -239,11 +266,18 @@ If claude-flow is unavailable, append to `~/.claude/projects/*/memory/MEMORY.md`
 - `abc1234` docs(NN,MM): back-propagate [description]
 
 ### Merge
-To merge into enter/main:
+To merge into main:
 ```
 cd ~/enter_thebrana/thebrana
 git merge --no-ff docs/backprop-YYYYMMDD
-git worktree remove ../enter-docs/backprop-YYYYMMDD
+git worktree remove ../thebrana-docs/backprop-YYYYMMDD
+git branch -d docs/backprop-YYYYMMDD
+```
+
+If brana-knowledge was updated:
+```
+cd ~/enter_thebrana/brana-knowledge
+git checkout main && git merge --no-ff docs/backprop-YYYYMMDD
 git branch -d docs/backprop-YYYYMMDD
 ```
 
@@ -264,4 +298,4 @@ git branch -d docs/backprop-YYYYMMDD
 - **Plan then apply.** Always show the full update plan and get approval before making any changes.
 - **Match existing voice.** Each spec doc has its own style and depth level. New content should blend in, not stand out.
 - **One commit per logical group.** If updating docs 14 and 25 for the same change, that's one commit. Different changes get different commits.
-- **No scout agents needed.** Back-propagation typically reads 3-5 files in thebrana and edits 2-4 files in enter. The context cost is low — no need to delegate to agents.
+- **No scout agents needed.** Back-propagation typically reads 3-5 files and edits 2-4 docs. The context cost is low — no need to delegate to agents.

@@ -159,17 +159,19 @@ Summarize what past sessions learned that's relevant to this phase. If nothing f
 
 #### 3a: Create the phase branch
 
-**Before any edits**, create a branch for this phase's work:
+**Before any edits**, create a worktree branch for this phase's work:
 
 ```bash
-# In thebrana (implementation)
-cd ~/enter_thebrana/thebrana && git checkout -b feat/phase-N-title
-
-# In enter (specs) — if spec updates are expected
-cd ~/enter_thebrana/thebrana && git checkout -b docs/phase-N-errata
+cd ~/enter_thebrana/thebrana && git worktree add ../thebrana-feat-phase-N -b feat/phase-N-title
 ```
 
-All work for this phase happens on these branches. Main stays clean until the phase is complete and verified.
+Implementation (`system/`) and spec updates (`docs/`, `docs/reflections/`) happen on the same branch in the same repo. Main stays clean until the phase is complete and verified.
+
+If dimension docs in brana-knowledge need updating, also branch there:
+
+```bash
+cd ~/enter_thebrana/brana-knowledge && git checkout -b docs/phase-N-errata
+```
 
 #### 3b: The build loop
 
@@ -274,16 +276,17 @@ cd ~/enter_thebrana/thebrana && git status
 **2. Merge the phase branch into main:**
 
 ```bash
-# thebrana repo
 cd ~/enter_thebrana/thebrana
-git checkout main
 git merge --no-ff feat/phase-N-title -m "feat: complete Phase N — [title]"
+git worktree remove ../thebrana-feat-phase-N
 git branch -d feat/phase-N-title
+```
 
-# enter repo (spec updates)
-cd ~/enter_thebrana/thebrana
+If brana-knowledge was also branched:
+```bash
+cd ~/enter_thebrana/brana-knowledge
 git checkout main
-git merge --no-ff docs/phase-N-errata -m "docs: update specs after Phase N build"
+git merge --no-ff docs/phase-N-errata -m "docs: update knowledge after Phase N build"
 git branch -d docs/phase-N-errata
 ```
 
@@ -293,10 +296,9 @@ git branch -d docs/phase-N-errata
 
 ```bash
 cd ~/enter_thebrana/thebrana && git status && git log --oneline --graph -10
-cd ~/enter_thebrana/thebrana && git status && git log --oneline --graph -10
 ```
 
-Both repos should be on `main`, clean, with the merge commit visible.
+Repo should be on `main`, clean, with the merge commit visible.
 
 #### 7b: Tag the phase in thebrana
 
@@ -325,9 +327,9 @@ cd ~/enter_thebrana/thebrana && git tag -a vX.Y.0 -m "Phase N complete: [one-lin
 - `git checkout v0.1.0` — go back to Phase 1 state if Phase 2 breaks something
 - `git diff v0.1.0..HEAD` — compare current state to the end of a previous phase
 
-**Optional:** also tag the enter repo if the spec changes from this phase are significant:
+**Optional:** also tag brana-knowledge if dimension docs were significantly updated:
 ```bash
-cd ~/enter_thebrana/thebrana && git tag -a specs-after-phase-N -m "Specs updated after Phase N build"
+cd ~/enter_thebrana/brana-knowledge && git tag -a knowledge-after-phase-N -m "Knowledge updated after Phase N build"
 ```
 
 #### 7c: User-facing documentation

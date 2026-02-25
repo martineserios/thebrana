@@ -203,15 +203,17 @@ The brana ecosystem lives in three repositories, each a self-sufficient workstat
 
 ### How Context Loads in Each Workstation
 
-When you `cd ~/enter_thebrana/enter && claude`:
+When you `cd ~/enter_thebrana/thebrana && claude`:
 
 1. **Global identity** — `~/.claude/CLAUDE.md` ("I am a mastermind. I accumulate knowledge across projects.")
 2. **Global rules** — `~/.claude/rules/*` (10 rules: quality, git, SDD/TDD, memory framework, context budget, task convention, etc.)
 3. **Global auto memory** — `~/.claude/memory/MEMORY.md` (first 200 lines, cross-project observations)
-4. **Local CLAUDE.md** — `enter/CLAUDE.md` ("You are the architect. Here's the document structure.")
-5. **Local rules** — `enter/.claude/rules/*` (project-specific, if any)
+4. **Local CLAUDE.md** — `thebrana/.claude/CLAUDE.md` ("You are the architect+operator. Here's the document structure and system layout.")
+5. **Local rules** — `thebrana/.claude/rules/*` (project-specific, if any)
 
-The same 5 steps happen in thebrana or any other project. Steps 1-3 are always the same (the brain's identity). Steps 4-5 change based on where you are (the workstation's role).
+The same 5 steps happen in any project. Steps 1-3 are always the same (the brain's identity). Steps 4-5 change based on where you are (the workstation's role).
+
+> **Post-merge (ADR-006):** The architect (enter) and operator (thebrana) merged into a single repo. Specs live in `docs/` and `docs/reflections/`, implementation in `system/`. The cognitive separation is directory-based, not repo-based. Knowledge dimension docs live in `brana-knowledge/dimensions/`.
 
 ### Design Decision: Bridge by Reference, Don't Duplicate
 

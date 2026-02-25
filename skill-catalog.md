@@ -44,9 +44,9 @@ For the complete usage guide, see **[venture-guide.md](venture-guide.md)**.
 | `/monthly-plan` | End of month (after close) | Forward-looking plan: revenue targets, priorities, experiments, pipeline actions, budget |
 | `/gsheets [action]` | Direct Sheets operations | Read, write, create, list, share spreadsheets via MCP (performance-optimal) |
 
-## Project Commands (enter repo)
+## Project Commands (thebrana)
 
-In `enter/.claude/commands/`. Only available when working in the enter repo.
+In `thebrana/.claude/commands/`. Available when working in the thebrana repo.
 
 | Command | What It Does |
 |---------|-------------|
