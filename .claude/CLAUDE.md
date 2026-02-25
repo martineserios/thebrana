@@ -77,6 +77,7 @@ Version: v0.6.0 (Phase 1: Unified Repo)
 | `/reconcile` | Detect spec-vs-implementation drift, plan fixes, apply after approval |
 | `/debrief` | Extract errata and learnings from current session |
 | `/research` | Research a topic, doc, or creator — recursive discovery |
+| `/knowledge` | Browse, annotate, review, and reindex brana-knowledge |
 
 ## Specs Reference
 
@@ -107,7 +108,7 @@ Version: v0.6.0 (Phase 1: Unified Repo)
 - Implementation changes push back to specs (`/back-propagate`)
 - When adding new docs, update `docs/README.md`
 
-## Memory (claude-flow)
+## Memory and Knowledge Retrieval (claude-flow)
 
 When the claude-flow MCP server is available, use it for persistent memory:
 
@@ -115,3 +116,11 @@ When the claude-flow MCP server is available, use it for persistent memory:
 - **Search** before starting work on a topic (`memory_search`)
 - Use namespace `specs` for specification-related patterns
 - Use namespace `decisions` for architectural decisions
+- Use namespace `knowledge` for dimension doc content — **315 sections from 26 dimension docs are indexed with semantic embeddings**. Any `memory_search` query automatically searches knowledge base content alongside patterns.
+
+### Knowledge Base Pipeline
+
+brana-knowledge dimension docs are indexed into claude-flow memory via `system/scripts/index-knowledge.sh`. Each `##` section becomes a searchable entry with 384-dim ONNX embeddings (all-MiniLM-L6-v2). Reindexing happens:
+- **On commit** — post-commit hook in brana-knowledge reindexes changed files
+- **Weekly** — scheduled full reindex (Sunday 3am) as safety net
+- **Manual** — `index-knowledge.sh [file]` or `index-knowledge.sh` (all)

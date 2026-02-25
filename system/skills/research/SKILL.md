@@ -138,6 +138,13 @@ Target options:
     - Trust tier promotions/demotions (with reasoning)
     - Do NOT modify the YAML directly — present proposals for user approval
 
+13. **Write to knowledge base (user approval required).** If findings are significant enough to warrant a new dimension doc or major update to an existing one:
+    - For a **new topic**: propose creating a new dimension doc in `~/enter_thebrana/brana-knowledge/dimensions/{topic-slug}.md`. Use topic-based filename (not numbered). Present the proposed doc structure and get user approval before writing.
+    - For an **existing doc update**: propose specific edits to the relevant dimension doc. Present the changes and get user approval.
+    - After writing, commit in brana-knowledge (the post-commit hook auto-reindexes for retrieval).
+    - After writing, regenerate INDEX.md: `~/enter_thebrana/thebrana/system/scripts/generate-index.sh`
+    - **Skip this step** if findings are minor (LOW severity only) or if the user declines.
+
 ## Research Archetypes
 
 When researching, select the appropriate archetype based on the target:
@@ -168,6 +175,7 @@ When researching, select the appropriate archetype based on the target:
 
 - **Never modify dimension docs directly.** Report findings, don't apply them.
 - **Never modify the registry directly.** Propose changes, let the user approve.
+- **Knowledge base writes require approval.** Never auto-create or auto-edit dimension docs. Present the proposal, let the user approve.
 - **Respect the phase budgets.** Phase 1: 5-8 scouts. Phase 3: 3 scouts. Recursion: 3 scouts.
 - **Temp file protocol is mandatory.** No scout may return full findings via TaskOutput.
 - **No WebFetch in Phase 1.** Metadata-first: titles, snippets, URLs only.

@@ -17,6 +17,7 @@ Deployed from `system/skills/` via `deploy.sh`.
 | `/pattern-recall` | Starting work on a topic | Queries ReasoningBank for relevant patterns, grouped by confidence tier |
 | `/project-onboard` | First session in a new project | Scans structure, detects stack, recalls relevant portfolio patterns |
 | `/project-retire` | Archiving a project | Preserves transferable patterns, archives project-specific ones |
+| `/knowledge [cmd]` | Managing the knowledge base | Browse, review staleness, annotate, reindex brana-knowledge dimension docs |
 | `/refresh-knowledge` | Dimension docs might be stale | Spawns parallel agents to web-search for updates to each doc's topics |
 | `/retrospective` | Session produced a notable learning | Stores pattern with quarantine metadata; promotes/demotes recalled patterns |
 | `/tasks [command]` | Planning or tracking work | Manage tasks with hierarchy — plan, status, roadmap, start, done. NL is primary; commands are shortcuts |
@@ -62,6 +63,7 @@ In `thebrana/.claude/commands/`. Available when working in the thebrana repo.
 **Task management:** tasks
 **Quality:** challenge
 **Project lifecycle:** project-onboard → project-retire
+**Knowledge management:** knowledge → research → refresh-knowledge
 **Spec maintenance:** refresh-knowledge → maintain-specs → apply-errata → re-evaluate-reflections
 **Venture lifecycle:** venture-onboard → venture-align → venture-phase → growth-check → sop
 **Venture operations:** morning → weekly-review → monthly-close → monthly-plan

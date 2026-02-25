@@ -660,12 +660,12 @@ Validate the full loop before investing in content. Write 1-2 dimension docs AND
 
 Now that the full loop works (write doc → index → retrieve from project session), scale the content.
 
-- [ ] Restructure brana-knowledge: add `dimensions/`, `reflections/`, relocate backup content to `backup/` (existing `projects/` and `memory/` dirs → `backup/`)
-- [ ] Write brana-knowledge CLAUDE.md (English default, topic-based filenames)
-- [ ] Create auto-generated `dimensions/INDEX.md` script (from YAML frontmatter)
-- [ ] Update `/research` skill to write general knowledge to brana-knowledge
-- [ ] Create `/knowledge` skill (with annotation cycle support and `--reindex` flag)
-- [ ] Create first batch of dimension docs from existing project knowledge (transfer from project MEMORY.md files)
+- [x] Restructure brana-knowledge: add `dimensions/`, `reflections/`, relocate backup content to `backup/` (existing `projects/` and `memory/` dirs → `backup/`)
+- [x] Write brana-knowledge CLAUDE.md (English default, topic-based filenames)
+- [x] Create auto-generated `dimensions/INDEX.md` script (from YAML frontmatter)
+- [x] Update `/research` skill to write general knowledge to brana-knowledge
+- [x] Create `/knowledge` skill (with annotation cycle support and `--reindex` flag)
+- [x] Create first batch of dimension docs from existing project knowledge (meta-whatsapp-template-classification.md promoted)
 - [ ] Growing organically: every `/research` session, every transferable `/retrospective` pattern feeds the knowledge base
 
 ---
