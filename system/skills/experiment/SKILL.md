@@ -63,6 +63,28 @@ Check `.claude/CLAUDE.md`, `docs/metrics/`, `docs/okrs/` for stage indicators (D
 
 If `$ARGUMENTS` contains `measure` and an `EXP-NNN` identifier, skip to **Step 8: Measure Results**. Otherwise, proceed with new experiment creation.
 
+### 1e: Explore the problem space
+
+Before jumping to a single hypothesis, broaden the search:
+
+1. **Reframe the bottleneck** (from Steps 1b-1c) as 2-3 "How might we..." questions:
+   - "How might we [desired outcome] for [audience] given [constraint]?"
+
+2. **Generate 3+ hypothesis candidates** from the HMW questions, each in format:
+   - "We believe that [action] will [outcome] for [audience]."
+
+3. **Quick-rank** each candidate:
+
+   | # | Hypothesis | Impact (H/M/L) | Testability (easy/hard) |
+   |---|-----------|:--------------:|:----------------------:|
+   | 1 | ... | | |
+   | 2 | ... | | |
+   | 3 | ... | | |
+
+4. **Pick the most promising** for full development in Step 2.
+
+**Skip clause:** If the user arrives with a specific hypothesis already formed, present it alongside 1-2 alternatives and let them confirm or switch. Don't force exploration when conviction exists.
+
 ---
 
 ## Step 2: Hypothesis
