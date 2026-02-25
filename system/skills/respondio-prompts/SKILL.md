@@ -76,7 +76,7 @@ Check existing prompts (or design requirements) against platform constraints. Fl
 
 1. **Character limits**: instructions ≤10,000 chars, action prompts ≤1,000 chars, comments ≤2,000 chars
 2. **4-part framework**: CONTEXT → ROLE & COMMUNICATION STYLE → FLOW → BOUNDARIES
-3. **KB references**: keyword-based ("search for 'TEMPLATE: X'"), never section-based ("Ver KB C")
+3. **KB references**: use semantic anchors ("search for 'TEMPLATE: X'"), never section-based ("Ver KB C") or filename-based. Retrieval is vector/semantic search — TEMPLATE: anchors work as unique semantic targets.
 4. **Dual-mention rule**: every action referenced in BOTH instructions AND action settings
 5. **Silent handoffs**: explicit "Do not respond to the Contact when assigning to [AI agent]"
 6. **System Override Protection**: lifecycle updated BEFORE close action
@@ -170,13 +170,21 @@ Each action ≤1,000 chars. Format: `When [condition], [action verb] to [exact t
 
 ### Writing KB files
 
-- Every template: `TEMPLATE: UNIQUE-ID` header (keyword anchor)
-- Descriptive section headers (agents find via keyword search, not filename)
+**Retrieval**: vector/semantic search over content — not keyword matching or filename search. Agents cannot prioritize or choose between sources; all enabled sources are searched equally.
+
+**Supported formats**: PDF, TXT, MD, CSV, DOCX, PPTX, PPSX, images (JPEG, PNG, BMP, WEBP, TIFF). Snippets NOT supported for AI Agents.
+
+**Limits**: 20MB per file (paid), 100 files per workspace, 20MB total, 50 daily add/edit actions, 3 sources processed in parallel per response.
+
+**Content rules**:
+- Every template: `TEMPLATE: UNIQUE-ID` header (semantic anchor for retrieval)
+- Descriptive section headers (agents find via semantic search, not filename)
 - Verbatim copy-paste content (prevents hallucination)
-- No marketing copy, filler, or "Ver Sección X" references
+- FAQ format: full question + full answer (not minimal "Yes/No")
 - Topic-specific files over monoliths (higher signal-to-noise)
 - Shared data in a single file attached to all agents (prices, doctors, scope)
-- Up to 3 KB sources processed in parallel; 100 files, 20MB total per workspace
+- Clear headings, bold key points, full sentences, clean tables
+- Multilingual: auto-detects and responds in contact's language
 
 ### Multi-agent handoff patterns
 
@@ -270,10 +278,10 @@ Essential limits that affect every decision. For full details, check `docs/promp
 | Action prompts | 1,000 chars each |
 | Internal comments | 2,000 chars |
 | Conversation visibility | Last 20 messages |
-| KB files per workspace | 100 files, 20MB total |
+| KB files per workspace | 100 files, 20MB total, 20MB per file (paid), 50 daily changes |
 | Response time | 10-15s typical, 20s+ with KB |
 
-**What agents CANNOT do**: see beyond 20 messages, see assignment history, distinguish AI from human messages, search KB by filename, send files/images/video, read internal comments, read/check tags, detect field update failures, create new lifecycle stages/fields/categories, pass variables to workflows, detect agent online status.
+**What agents CANNOT do**: see beyond 20 messages, see assignment history, distinguish AI from human messages, search KB by filename or title, prioritize between KB sources, send files/images/video, read internal comments, read/check tags, detect field update failures, create new lifecycle stages/fields/categories, pass variables to workflows, detect agent online status.
 
 ---
 
