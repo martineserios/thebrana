@@ -84,6 +84,8 @@ Check existing prompts (or design requirements) against platform constraints. Fl
 8. **Anti-loop**: bot-message check at flow start, never-route-back rules
 9. **Single source of truth**: no duplicated prices, doctor names, addresses across agents
 10. **Action independence**: distinguish chained (output→input) from independent (different triggers) — only chains have the 2-3 limit
+11. **Follow-up chain**: last follow-up routes to a closing action, not a dead-end
+12. **Variable prefix consistency**: `@` for routing, `$contact.` for fields, `%` for tags, `!` for workflows
 
 ---
 
@@ -127,16 +129,22 @@ Scope limits, valid assignment targets, escalation triggers.
 
 Each action ≤1,000 chars. Format: `When [condition], [action verb] to [exact target name].`
 
-7 action types:
-1. **Close** — categories must pre-exist; neutral language in notes
-2. **Assign** — `@Team`/`@User`/`@AI Agent`; agent continues responding unless told to stop
-3. **Update Lifecycle** — exact stage names; always BEFORE close
-4. **Update Contact Fields** — exact names from Settings; silent failures on typos
-5. **Add Comment** — ≤2,000 chars; AI agents write-only (cannot read); @mention users only
-6. **Update Tags** — `%TagName`; cannot read/check tags; can trigger Workflows
-7. **Trigger Workflow** — `!workflow_name`; no variable passing; must be published
+**Action execution order**: actions fire BEFORE the reply message. For silent handoffs the agent must be told NOT to respond. For announced handoffs the transition message IS the reply.
 
-Actions execute BEFORE the agent's reply message. For silent handoffs the agent must be told NOT to respond. For announced handoffs the transition message IS the reply.
+**8 action types — syntax + primary gotcha:**
+
+| # | Action | Canonical syntax | Primary gotcha |
+|---|--------|-----------------|----------------|
+| 1 | Close | `Close with category "[Name]", note "[text]"` | Categories must pre-exist. Update lifecycle BEFORE close. |
+| 2 | Assign | `Assign to @[Team/User/Agent]` | Agent continues responding unless told to stop. |
+| 3 | Lifecycle | `Update Lifecycle stage to "[Stage]"` | Exact names, case-sensitive. Must execute BEFORE close. |
+| 4 | Contact Fields | `Update $contact.[field] to [value]` | Silent failures on typos — names must match Settings. |
+| 5 | Comments | `Add comment: "[text]"` | ≤2,000 chars. Write-only — agents cannot read comments. |
+| 6 | Tags | `Add tag %[TagName]` / `Remove tag %[TagName]` | Cannot read/check tags. One-way signals to Workflows. |
+| 7 | Workflow | `Trigger workflow ![name]` | No variable passing. Must be published. Set fields first. |
+| 8 | Handle Calls | `Handle inbound calls` | Inbound only. 3-min cap. No mid-call transfer. |
+
+**Variable prefixes**: `@` routing targets, `$contact.` field references, `%` tags, `!` workflows.
 
 ### Writing KB files
 
@@ -165,6 +173,22 @@ Actions execute BEFORE the agent's reply message. For silent handoffs the agent 
 
 **The 20-message problem**: critical context from early messages may be invisible to later agents. Mitigate with contact fields (primary), short flows, front-loaded data collection.
 
+### Follow-up configuration
+
+Follow-ups are configured in Respond.io UI, but instructions handle post-follow-up routing.
+
+| Constraint | Limit |
+|-----------|-------|
+| Max follow-ups | 5 |
+| Max interval | 24h after last message |
+| Testing | Live sessions only (not Preview Mode) |
+| Last follow-up | Must chain to closing action (e.g., route to Cierre) |
+
+Design rules:
+- UI configures follow-up messages and timing
+- Instructions handle routing when follow-ups exhaust ("after follow-up with no response → route to Cierre")
+- Never rely on follow-ups for core flow — they're a safety net for inactivity
+
 ---
 
 ## Phase 4: Validate
@@ -182,6 +206,14 @@ For action prompts, each individual prompt block must be ≤1,000 chars.
 ### Field name validation
 
 Cross-reference all `$contact.fieldName` references against `VARIABLE_VALIDATION.md` or Settings. Flag any that might be misspelled.
+
+### Variable prefix validation
+
+Cross-reference all variable references for correct prefix usage:
+- [ ] `@Team`/`@Agent` targets match Respond.io workspace names
+- [ ] `$contact.fieldName` uses correct prefix and exact field name
+- [ ] `%TagName` tags exist in Settings → Tags
+- [ ] `!workflow_name` workflows are published (not draft)
 
 ### Handoff safety
 
