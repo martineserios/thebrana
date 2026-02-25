@@ -1,0 +1,310 @@
+# 08 - Diagnosis: Keep, Drop, Defer
+
+What to preserve, eliminate, and postpone for brana v2. R1 in the reflection DAG — the triage operation that feeds all downstream reflections.
+
+### Reflection DAG Orientation
+
+```
+R1: Triage (this doc)  →  R2: Architecture (14)
+  "What matters?"            "How does it compose?"
+                                   ↓              ↓
+                             R3: Assurance (31)  R4: Lifecycle (32)
+                             "Does it work?"     "How does it evolve?"
+
+R5: Transfer (29) — semi-independent, cross-references R2-R4
+  "What generalizes?"
+```
+
+R1 triages every dimension doc → R2 composes the architecture → R3 validates it works → R4 tracks how it evolves → R5 identifies what transfers beyond code projects.
+
+---
+
+## Proven Patterns Worth Preserving
+
+### 1. CLAUDE.md as Lightweight Orchestrator
+**Why keep:** The pattern of CLAUDE.md as an index (~12 KB) rather than a monolithic doc is effective. It keeps context overhead manageable while pointing to detailed modules. Vercel's evaluations confirm this empirically: static markdown in context (AGENTS.md/CLAUDE.md) achieves **100% pass rate** vs **79%** for skills with explicit "Use when..." descriptions, vs **53%** for skills with default descriptions. Always-in-context knowledge beats lazy-loaded retrieval for anything the agent always needs.
+
+**For v2:** Continue this pattern. CLAUDE.md should be a concise control center, not a dumping ground. Reserve it for knowledge that must be 100% available; use skills for explicit workflows.
+
+### 2. PM Separation (Code + PM Repos)
+**Why keep:** Clean separation of concerns. Code stays lean for deployment, decisions are preserved for context. The symlink bridge is lightweight and breaks gracefully.
+
+**For v2:** ~~Preserve the pattern.~~ **Superseded by [39-architecture-redesign.md](./39-architecture-redesign.md).** Doc 39's analysis concludes the repo boundary adds overhead without contributing to spec quality. The cognitive separation (design vs build) is preserved by directory structure and branch conventions (`docs/*` vs `feat/*`), not by repo boundaries. The merge is planned (see doc 39 migration phases).
+
+### 3. Concurrent Execution Golden Rule
+**Why keep:** "1 MESSAGE = ALL RELATED OPERATIONS" is a genuine performance win. Batching parallel tool calls reduces round-trips and token waste.
+
+**For v2:** This should be a core principle, enforced through instructions rather than hooks.
+
+### 4. Work Journal & Crash Recovery
+**Why keep:** Long sessions crash. Having automatic session state persistence and recovery options is valuable.
+
+**For v2:** Simplify the file structure (fewer, larger journal files instead of hundreds of small ones). Consider using ReasoningBank for state persistence instead of custom JSON.
+
+### 5. Hook Lifecycle
+**Why keep:** SessionStart, PreToolUse, PostToolUse, SessionEnd - the event model is sound. Hooks enable extensibility without modifying core instructions.
+
+**For v2:** Use native Claude Code hooks. Strip down to essential hooks only (crash recovery, branch protection, session tracking, development discipline enforcement).
+
+### 6. Feature Lifecycle (SPARC Phases)
+**Why keep:** Specification -> Pseudocode -> Architecture -> Refinement -> Completion forces structured thinking. Features tracked through phases prevent skipping important steps.
+
+**For v2:** Keep the phases. Simplify the tracking (checkboxes in BACKLOG.md, not separate files for small features).
+
+### 7. Progressive Disclosure
+**Why keep:** Backlog (summary) -> Feature README (overview) -> Requirements (detail) -> Architecture (deep dive). Right level of detail when you need it.
+
+**For v2:** Preserve this layering. Essential for navigating large projects without drowning in docs. But per [25-self-documentation.md](./25-self-documentation.md) Mechanism 7 (documentation locality), each layer must be generated or linked — not manually duplicated. If the same fact lives in both a spec doc and MEMORY.md, changes to one silently break the other. Progressive disclosure works only when the summary layers are generated views of the source docs.
+
+---
+
+## Over-Engineered Components to Eliminate
+
+### 1. 5-Phase Skill Routing Pipeline
+**Why drop:** Context Detection -> FACT Fast Match -> ruvector Semantic -> dspy Validation -> Agent Coordination is 5 phases with 3 external dependencies for what Claude 4.6 can reason about directly.
+
+**Replace with:** Put skill descriptions in `.claude/skills/` and trust the model to read and apply them. Use rules directory for path-scoped guidance. If routing is needed, a single keyword-match phase is sufficient.
+
+### 2. registry.yaml + context-loader.sh
+**Why drop:** The module registry and loader were needed when CLAUDE.md couldn't handle dynamic context. Claude Code's rules directory and native skill loading handle this now.
+
+**Replace with:** `.claude/rules/` for path-scoped rules (auto-loaded by Claude Code), CLAUDE.md for global instructions, skills directory for specialized behaviors.
+
+### 3. Custom Agent Activation Matrices
+**Why drop:** Keyword-triggered agent activation ("audit" -> verification-quality + code-analyzer) adds a brittle indirection layer. The user or the model can decide which agent type to use.
+
+**Replace with:** Document agent capabilities in CLAUDE.md. Let the model or user choose based on task description. The Task tool's `subagent_type` parameter already handles this.
+
+### 4. 76 Agent Configurations
+**Why drop:** 76 agents with inconsistent metadata (mixed priority formats, incomplete descriptions) creates confusion. Most sessions use 3-5 agents.
+
+**Replace with:** A curated set of 10-15 well-defined agent types. Each with clear purpose, capabilities, and use cases. Quality over quantity.
+
+### 5. Complex Topology Auto-Selection
+**Why drop:** Adaptive topology switching between hierarchical, mesh, star, and ring is engineering for engineering's sake. Most tasks work fine with a simple lead + workers pattern.
+
+**Replace with:** Native Agent Teams with a team lead and specialized workers. Only add topology complexity for specific use cases that demonstrate need. **Caveat (Feb 2026):** Agent Teams remain experimental — disabled by default (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`), 2x token cost (~800k vs ~440k for 3-worker subagent team), no file locking (last-write-wins), no resumption for in-process teammates. Use subagents for production patterns; escalate to Teams only for genuinely parallel multi-file work where coordination benefits outweigh the experimental status.
+
+### 6. Multiple Consensus Protocols
+**Why drop:** Raft, Byzantine, Gossip, CRDT, Quorum - development tooling doesn't need Byzantine fault tolerance. Agents aren't adversarial.
+
+**Replace with:** Simple task assignment via shared task list (native Agent Teams). If verification is needed, add a single reviewer agent. **Same Agent Teams caveat applies** — use subagent-based task assignment until Teams exit experimental status.
+
+---
+
+## Things Claude 4.6 Makes Obsolete
+
+### 1. Custom Skill Routing
+Claude 4.6 can read skill definitions and apply them through reasoning. The 5-phase pipeline that routes tasks to skills is unnecessary when the model can do this natively.
+
+**Exception:** If you have 100+ skills and can't fit them all in context, you still need a loading strategy. But this should be simple (rules directory + path scoping), not a 5-phase pipeline.
+
+### 2. Module Load Strategy Management
+The always/contextual/on-demand loading system was designed for context window limitations. With 1M context on Opus 4.6, loading 47 KB of modules is trivial. The overhead of managing load strategies may exceed the overhead of just loading everything.
+
+**Nuance:** For very large module sets, loading strategy still matters. But for 8-10 core modules, just load them all.
+
+### 3. Keyword-Based Agent Spawning
+"When user says 'performance', spawn perf-analyzer" is a brittle pattern. Claude 4.6 can understand intent from natural language and choose appropriate agent types without keyword matching.
+
+### 4. Pre-computed Routing Decisions
+The routing system pre-computes skill selections before the model sees the task. Claude 4.6's reasoning is fast enough to make these decisions inline, without a preprocessing step.
+
+### 5. Custom Branch Protection Hooks
+CLAUDE.md instructions ("never push to main") combined with git hooks handle branch protection. Custom PreToolUse hooks for git commands add latency without adding safety.
+
+**Note:** This applies to branch protection only. PreToolUse hooks are essential for development discipline enforcement (spec-before-code, test-before-code) — see [14-mastermind-architecture.md](./14-mastermind-architecture.md) "Project Enforcement" section and [11-ecosystem-skills-plugins.md](./11-ecosystem-skills-plugins.md) section 5 for the enforcement tools landscape.
+
+---
+
+## Claude-Flow Features Worth Adopting
+
+### 1. ReasoningBank (Persistent Pattern Memory)
+**Why adopt:** Cross-session learning is the single biggest gap in native Claude Code. Patterns stored in SQLite with SHA-512 embeddings (no API cost) enable the system to remember what worked.
+
+**Implementation priority:** High. This is the #1 value-add over native capabilities.
+
+**When to use:** Any project where similar problems are solved repeatedly. Architecture patterns, debugging approaches, test strategies, code review standards.
+
+### 2. WASM Agent Booster (When Stable)
+**Why adopt:** Bypassing LLM calls for deterministic transforms (rename variables, add types, remove console.log) saves real money and time.
+
+**Implementation priority:** Medium. Wait for alpha stability to improve.
+
+**When to use:** High-volume workloads with many simple, repetitive operations.
+
+### 3. Token Routing (WASM -> Haiku -> Sonnet -> Opus)
+**Why adopt:** Using the cheapest capable model for each task reduces costs by 30-50%. Opus for decisions, Sonnet for implementation, Haiku for scouts.
+
+**Implementation priority:** Medium. Can be implemented with simple heuristics before needing full MoE routing.
+
+**When to use:** Any project running multiple agents or long sessions.
+
+### 4. Background Workers (Audit, TestGaps, Optimize)
+**Why adopt:** Having workers that continuously scan for quality issues, test gaps, and optimization opportunities adds value without interrupting main work.
+
+**Implementation priority:** Low. Nice to have, not essential for v2 launch.
+
+**When to use:** Mature projects with established codebases.
+
+---
+
+## Claude-Flow Features to Skip
+
+### 1. Full Swarm Topologies
+**Why skip:** Hierarchical, mesh, star, ring with adaptive switching is over-engineered for development tooling. Native Agent Teams with a lead + workers pattern covers 95% of cases.
+
+### 2. Byzantine Fault Tolerance
+**Why skip:** Agents aren't adversarial. If an agent produces bad output, a reviewer agent catches it. You don't need 2/3 consensus for code generation.
+
+### 3. SONA Self-Learning (For Now)
+**Why skip initially:** Promising but unproven at scale. Requires 100+ task executions before providing value. The learning curve is steep and failure modes are poorly documented.
+
+**Revisit when:** ReasoningBank is established and you want automated pattern optimization.
+
+### 4. Full 170+ MCP Tool Surface
+**Why skip:** Most tools are unused in any given session. Adding all of them creates noise and increases complexity. Use only what's needed.
+
+### 5. Daemon System
+**Why skip:** Background workers with priorities and scheduling require reliability guarantees that alpha software can't provide. Run workers manually or on-demand instead.
+
+---
+
+## Validation from Testing & Evaluation Research
+
+Findings from docs [22-testing.md](./22-testing.md) and [23-evaluation.md](./23-evaluation.md) that validate, refine, or inform the decisions above.
+
+### Decisions Confirmed by Hard Data
+
+**Drop custom skill routing — even stronger case.** Vercel's agent evals found CLAUDE.md achieves 100% pass rate vs 53% for skill invocation. Skills were never invoked in 56% of test cases. This isn't just "Claude 4.6 can reason about skills" — the data shows static instructions outperform dynamic skill routing for domain knowledge.
+
+**Thin CLAUDE.md — now has a ceiling number.** Frontier models show linear instruction-following decay with a ceiling around ~150-200 instructions. Target 15-30 always-present instructions. This answers the "how thin?" question with empirical evidence: every instruction competes for attention, and the decay is measurable.
+
+**Hook lifecycle — validated, but skill activation is fragile.** Skills activate at only ~20% rate with simple instructions. Scott Spence demonstrated 84% activation with forced eval hooks and 200+ tests. The hook lifecycle is the right pattern, but skills need explicit activation enforcement, not just availability.
+
+### New Input for Open Questions
+
+**ReasoningBank from day one or later?** (question #7) — Eval-driven development methodology (Anthropic, Vercel, Obra) says: write the eval before the feature. Build a 20-task recall eval suite FIRST, then add ReasoningBank. If recall precision < 50%, the feature isn't ready. This gives a concrete decision framework rather than debating timing.
+
+**Infrastructure noise.** Anthropic found up to 6 percentage point score differences from infrastructure configuration alone (same model, same prompts). Any quality measurement of keep/drop decisions must account for this variance.
+
+### Insights from Self-Documentation Research
+
+Findings from [25-self-documentation.md](./25-self-documentation.md) that refine existing decisions and resolve open questions.
+
+**Progressive disclosure — now has a machine-readable layer.** Keep pattern #7 says "right level of detail when you need it." Doc 25 adds frontmatter metadata (status, growth_stage, depends_on) that enables auto-generated indexes and dependency graphs. Progressive disclosure isn't just about document structure — it's about making the layers navigable by both humans and AI agents. Growth stages (seedling → budding → evergreen) tell AI agents how much to trust each doc.
+
+**Open question #6 resolved: ADRs vs inline comments.** Doc 25 recommends neither in their pure form. Instead: keep decisions in existing documents but extract a **decision index** — a generated list of key decisions with links to the source sections. This is the ADR pattern without restructuring existing docs. No new files, just a navigable index.
+
+### User Feedback Loop
+
+Findings from [00-user-practices.md](./00-user-practices.md) that inform keep/drop/defer decisions.
+
+**Manual practices are a signal for automation.** When the user repeatedly documents the same practice ("always run validate before deploy"), that's evidence the practice should graduate from a manual habit to a hook or validation check. The keep/drop decisions above assumed static system capabilities — doc 00 adds a living feedback channel where usage patterns can promote deferred items to "keep" or demote kept items to "drop" based on real experience.
+
+**Anti-patterns discovered in practice outweigh theoretical concerns.** The "over-engineered components to eliminate" section above is based on analysis. Doc 00 captures what the user actually stumbles over. When a user-discovered anti-pattern contradicts a spec decision, the user's experience takes precedence — update the spec, not the practice.
+
+---
+
+## Dimension Doc Triage: Full Coverage
+
+Every dimension doc triaged for brana v2. Docs 01-07 covered above (Keep/Drop/Defer sections). Remaining docs triaged below.
+
+### Doc 09 — Claude Code Native Features
+**Verdict: Keep as reference.** The definitive catalog of Claude Code's 6 extension layers (CLAUDE.md, rules, skills, subagents, teams, hooks). Source of truth for hook event list, stdin/stdout contracts, async constraints. R2 depends on it heavily for hook design. Not directly actionable — it's infrastructure knowledge.
+
+### Doc 10 — Statusline Research
+**Verdict: Defer.** Community status line projects (session monitoring, cost tracking, context visualization) are nice-to-have. No dimension doc depends on it, no reflection needs it. Revisit when brana is stable and the user wants observability.
+
+### Doc 12 — Skill Selector
+**Verdict: Keep — three-tier trust model.** The local core / curated catalog / discovery tier model is the right framework for skill trust. The quarantine pattern (doc 16) extends this. R2 uses it for skill architecture, R4 for lifecycle (trust graduation).
+
+### Doc 13 — Challenger Agent
+**Verdict: Keep as capability.** Adversarial review (Opus challenger) is valuable for big decisions. Implemented as `/challenge`. Subscription-native, rate-limit-aware. Low maintenance, high value when used. Model upgraded from Sonnet to Opus for deeper adversarial quality (see [13-challenger-agent.md](./13-challenger-agent.md)).
+
+### Doc 15 — Self-Development Workflow
+**Verdict: Keep — genome/connectome separation is foundational.** The distinction between system code (genome, versioned in git) and learned knowledge (connectome, never rolled back) is a first-order architectural decision. R2 builds on it, R4 operationalizes it. The deploy pipeline, testing strategy, and rollback safety all flow from this separation.
+
+### Doc 16 — Knowledge Health
+**Verdict: Keep — immune system is critical.** Eight infection vectors + prevention/healing strategies. The quarantine-first approach is validated. R3 uses it for ongoing assurance, R4 for maintenance cadences. Without this, the learning loop is a liability, not a feature.
+
+### Doc 19 — PM System Design
+**Verdict: Keep as reference for solo PM.** Now/Next/Later, weekly review, portfolio file, GitHub Issues + branch strategy. Applicable to both code projects and business projects (R5 cross-references it). Not yet implemented as a plugin — deferred to pain-driven additions.
+
+### Docs 20-21 — Anthropic Blog Findings & Engineering Deep Dive
+**Verdict: Keep as informational.** Doc 20 is an index; doc 21 is the exhaustive analysis. Together they provide the empirical foundation for context engineering theory, sub-agent sizing, token budget constraints, and eval methodology. R2 cites them for architecture principles. Not directly actionable — they're the research backing.
+
+### Doc 22 — Testing
+**Verdict: Keep.** The 7-layer testing pyramid, record/playback pattern, and headless mode testing are the foundation for R3 (assurance). Deterministic vs non-deterministic distinction is essential for knowing what can be CI-gated vs what needs eval.
+
+### Doc 23 — Evaluation
+**Verdict: Keep.** pass@k vs pass^k, RAG metrics, LLM-as-judge, fixture evals. R3 uses this for outcome evaluation methodology. The "grade outcomes not paths" principle applies across all reflection docs.
+
+### Doc 26 — Git Branching Strategies
+**Verdict: Keep — decision made.** GitHub Flow validated as optimal for solo developer with spec-driven workflows. R4 operationalizes this as the lifecycle tool. The `--no-ff` always rule, branch naming convention, and short-lived branch discipline all stem from this research.
+
+### Doc 27 — Project Alignment Methodology
+**Verdict: Keep.** 28-item checklist, 3 tiers, 5-phase pipeline. Implemented as `/project-align`. The bridge between R2's enforcement hierarchy and real projects that need the structure for enforcement to apply.
+
+### Doc 28 — Startup & SMB Management
+**Verdict: Keep.** Source for R5 (transfer). Frameworks, books, phase-based models, software→business pattern transfer. Five venture skills emerged from this research.
+
+### Doc 33 — Research Methodology
+**Verdict: Keep.** Formalizes the recursive discovery process that produced the other 32 docs. Source registry (trust tiers, cadence, version pinning), leads queue, 5 research archetypes, and the `/research` skill as atomic primitive called by `/refresh-knowledge`. Without this, research stays ad-hoc and unreproducible.
+
+### Doc 34 — Venture Operating System
+**Verdict: Keep.** The business operations layer — MCP integrations (Google Sheets, Slack, QuickBooks, Stripe), daily/weekly/monthly skill cadences (`/morning`, `/weekly-review`, `/monthly-close`, `/monthly-plan`), growth experiments, pipeline tracking, financial modeling. Extends doc 28's frameworks into a deployable operating system. R5 synthesizes the venture management pattern; doc 34 provides the full implementation architecture.
+
+### Doc 35 — Context Engineering Principles
+**Verdict: Keep — decision framework for information placement.** Formalizes where new information belongs (always-loaded vs warm vs cold), the budget architecture (23KB hard limit with empirical growth history), progressive disclosure (hot/warm/cold tiers), sub-agent summary protocols, and context failure modes (saturation, attention rot, knowledge poisoning, budget creep). R2 uses it for architecture decisions, R3 validates against it, R4 operationalizes budget management. Without this, placement decisions are ad-hoc and budget grows unchecked.
+
+### Doc 38 — Design Thinking
+**Verdict: Keep.** Applies design thinking methodology (empathy mapping, HMW questions, divergent ideation) to brana's development process. Source for R5 creative methods, R2 skill design patterns.
+
+### Doc 39 — Architecture Redesign
+**Verdict: Keep — supersedes item 2 above (PM Separation).** Three decisions: (1) merge enter/ into thebrana/ as `docs/` workspace, (2) evolve brana-knowledge/ into an active indexed knowledge base, (3) wire retrieval via claude-flow embeddings CLI. Spike validated (Phase 0.5 passed — 384-dim ONNX embeddings, semantic similarity confirmed). AgentDB stalled; fallback (embeddings + SQLite) is primary strategy. Migration phases: 0→0.5(done)→1(structural)→2(skill rewrites)→3(retrieval prototype)→4(scale content). R2 architecture directly affected; R3/R4/R5 will need updates when phases execute.
+
+---
+
+## Resolved Questions (from R2)
+
+Architectural questions that were open during initial design but have been resolved through research and implementation.
+
+2. **ReasoningBank confidence decay?** → Yes. Monthly decay function: unused patterns lose 0.05/month, failed patterns lose 0.2, below 0.2 gets auto-archived. Decay is not deletion — archived patterns are restorable. See [16-knowledge-health.md](./16-knowledge-health.md).
+
+4. **How much of this can be native-only?** → claude-flow is a hard constraint. Accept the alpha risk, plan around it with version pinning, error wrapping, and degraded mode (fall back to plain Claude Code when claude-flow is unavailable). See [17-implementation-roadmap.md](./17-implementation-roadmap.md).
+
+5. **claude-flow stability risk?** → Every claude-flow call is wrapped in error handling. Degraded mode writes learnings to markdown fallback files. Each phase's dependency is additive — if a feature breaks, you lose that phase's enhancement but everything below still works. See [17-implementation-roadmap.md](./17-implementation-roadmap.md).
+
+6. **ADRs vs inline comments?** → Neither in pure form. Keep decisions in existing documents but extract a decision index — a generated list of key decisions with links to source sections. See [25-self-documentation.md](./25-self-documentation.md).
+
+12. **Native Agent Teams or claude-flow swarms?** → Hybrid. Native Agent Teams for execution coordination, claude-flow ReasoningBank for cross-session memory. First concrete pattern: multi-agent TDD with context isolation (see [14-mastermind-architecture.md](./14-mastermind-architecture.md), [22-testing.md](./22-testing.md), [11-ecosystem-skills-plugins.md](./11-ecosystem-skills-plugins.md)).
+
+---
+
+## Open Questions for Discussion
+
+### Architecture
+1. **How thin should CLAUDE.md be?** Current: 12 KB index + 35 KB modules. Could we get to 5 KB index + rules directory + skills?
+2. **Should we use rules directory instead of modules?** Claude Code's rules auto-load by path. This could replace the entire module loading system.
+3. **One CLAUDE.md or multiple?** Monorepo patterns support nested CLAUDE.md files. Is this simpler than module loading?
+
+### PM Framework
+4. **Should PM automation exist?** Auto-creating feature folders, updating backlogs, syncing sprint status. Or keep it manual for simplicity?
+5. **Is the full SPARC lifecycle necessary for all features?** Maybe P3/P4 features don't need the full specification-to-completion pipeline.
+6. **ADRs vs inline comments?** Architecture decisions could be tracked in code comments or CLAUDE.md instead of separate files.
+
+### Claude-Flow Integration
+7. **ReasoningBank from day one or add later?** Starting with it means learning the tooling upfront. Adding later means retrofitting.
+8. **Which MCP tools are essential?** Of 170+ tools, which 10-15 provide 80% of the value?
+9. **How to handle claude-flow alpha instability?** Pin versions? Vendor specific modules? Wait for stable release?
+
+### Agent Strategy
+10. **How many agent types?** Current brana has 76 (too many). What's the right number? 10? 15? 20?
+11. **Should agents have persistent identities?** Named agents with memory vs anonymous workers spawned per task.
+12. ~~**Native Agent Teams or claude-flow swarms for coordination?**~~ → Resolved: hybrid. Native Agent Teams for execution coordination, claude-flow ReasoningBank for cross-session memory. First concrete pattern: multi-agent TDD with context isolation (see [14-mastermind-architecture.md](./14-mastermind-architecture.md) "Project Enforcement", [22-testing.md](./22-testing.md) "Multi-Agent TDD", [11-ecosystem-skills-plugins.md](./11-ecosystem-skills-plugins.md) section 5).
+
+### Cost Optimization
+13. **Is model routing worth the complexity?** Simple rule: Opus for architecture, Sonnet for code, Haiku for review. Or let the user decide?
+14. **How much should we invest in WASM bypass?** If alpha stability improves, this could save significant cost. But it's a bet on external tooling.
+15. **Token budget allocation?** How much of the session budget goes to learning vs execution?

@@ -39,8 +39,8 @@ When you're ready to implement the next phase of the roadmap.
 
 Parse `$ARGUMENTS` for roadmap selection:
 
-- If `$ARGUMENTS` contains `lean` → use **doc 18** (`~/enter_thebrana/enter/18-lean-roadmap.md`)
-- If `$ARGUMENTS` contains `full` → use **doc 17** (`~/enter_thebrana/enter/17-implementation-roadmap.md`)
+- If `$ARGUMENTS` contains `lean` → use **doc 18** (`~/enter_thebrana/thebrana/docs/18-lean-roadmap.md`)
+- If `$ARGUMENTS` contains `full` → use **doc 17** (`~/enter_thebrana/thebrana/docs/17-implementation-roadmap.md`)
 - If neither specified → **always ask the user**. Present the comparison so they can choose fresh each time:
 
 ```markdown
@@ -87,8 +87,8 @@ Both roadmaps are compatible — lean is the on-ramp to full. Nothing you build 
 
 1. **Read the selected roadmap doc** — find the section for the target phase.
 2. **Also read the other roadmap** for supplementary detail (doc 17 has more implementation specifics even when using doc 18's structure).
-3. **Read doc 24** (`~/enter_thebrana/enter/24-roadmap-corrections.md`) for known errata affecting this phase.
-4. **Read doc 00** (`~/enter_thebrana/enter/00-user-practices.md`) for field observations that should inform this phase.
+3. **Read doc 24** (`~/enter_thebrana/thebrana/docs/24-roadmap-corrections.md`) for known errata affecting this phase.
+4. **Read doc 00** (`~/enter_thebrana/thebrana/docs/00-user-practices.md`) for field observations that should inform this phase.
 
 ### Step 1: Plan the phase
 
@@ -166,7 +166,7 @@ Summarize what past sessions learned that's relevant to this phase. If nothing f
 cd ~/enter_thebrana/thebrana && git checkout -b feat/phase-N-title
 
 # In enter (specs) — if spec updates are expected
-cd ~/enter_thebrana/enter && git checkout -b docs/phase-N-errata
+cd ~/enter_thebrana/thebrana && git checkout -b docs/phase-N-errata
 ```
 
 All work for this phase happens on these branches. Main stays clean until the phase is complete and verified.
@@ -281,7 +281,7 @@ git merge --no-ff feat/phase-N-title -m "feat: complete Phase N — [title]"
 git branch -d feat/phase-N-title
 
 # enter repo (spec updates)
-cd ~/enter_thebrana/enter
+cd ~/enter_thebrana/thebrana
 git checkout main
 git merge --no-ff docs/phase-N-errata -m "docs: update specs after Phase N build"
 git branch -d docs/phase-N-errata
@@ -293,7 +293,7 @@ git branch -d docs/phase-N-errata
 
 ```bash
 cd ~/enter_thebrana/thebrana && git status && git log --oneline --graph -10
-cd ~/enter_thebrana/enter && git status && git log --oneline --graph -10
+cd ~/enter_thebrana/thebrana && git status && git log --oneline --graph -10
 ```
 
 Both repos should be on `main`, clean, with the merge commit visible.
@@ -327,7 +327,7 @@ cd ~/enter_thebrana/thebrana && git tag -a vX.Y.0 -m "Phase N complete: [one-lin
 
 **Optional:** also tag the enter repo if the spec changes from this phase are significant:
 ```bash
-cd ~/enter_thebrana/enter && git tag -a specs-after-phase-N -m "Specs updated after Phase N build"
+cd ~/enter_thebrana/thebrana && git tag -a specs-after-phase-N -m "Specs updated after Phase N build"
 ```
 
 #### 7c: User-facing documentation

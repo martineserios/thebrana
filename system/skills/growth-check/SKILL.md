@@ -39,7 +39,7 @@ If stage unclear, ask the user: "What stage is this business at? (Discovery / Va
 
 If business model type unclear, ask: "What's the business model type? (Subscription / Cycle-project / Marketplace / Consulting / Service)"
 
-**Business model type is a prerequisite for metric selection.** Standard SaaS metrics (MRR, churn rate, DAU/MAU, net revenue retention) misdiagnose non-subscription businesses — a cycle-based service with 95% "churn" may be healthy if recompra (repeat purchase) rate is strong. Select metrics and benchmarks appropriate to both the stage AND the model type. See lesson #20 in [24-roadmap-corrections.md](../../enter/24-roadmap-corrections.md).
+**Business model type is a prerequisite for metric selection.** Standard SaaS metrics (MRR, churn rate, DAU/MAU, net revenue retention) misdiagnose non-subscription businesses — a cycle-based service with 95% "churn" may be healthy if recompra (repeat purchase) rate is strong. Select metrics and benchmarks appropriate to both the stage AND the model type. See lesson #20 in [24-roadmap-corrections.md](../../docs/24-roadmap-corrections.md).
 
 ---
 
@@ -215,7 +215,7 @@ If red, this often matters more than any AARRR metric — a bottlenecked founder
 
 ## Step 4: Benchmark Comparison
 
-Compare metrics against benchmarks from [28-startup-smb-management.md](../../enter/28-startup-smb-management.md). For each metric, classify as:
+Compare metrics against benchmarks from [28-startup-smb-management.md](~/enter_thebrana/brana-knowledge/dimensions/28-startup-smb-management.md). For each metric, classify as:
 
 - **Green** — at or above benchmark, healthy
 - **Yellow** — below benchmark but not critical, needs attention
