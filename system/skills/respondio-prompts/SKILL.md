@@ -85,7 +85,7 @@ Check existing prompts (or design requirements) against platform constraints. Fl
 9. **Single source of truth**: no duplicated prices, doctor names, addresses across agents
 10. **Action independence**: distinguish chained (output→input) from independent (different triggers) — only chains have the 2-3 limit
 11. **Follow-up chain**: last follow-up routes to a closing action, not a dead-end
-12. **Variable prefix consistency**: `@` for routing, `$contact.` for fields, `%` for tags, `!` for workflows
+12. **Variable prefix consistency**: `@` for users/teams/AI agents, `$contact.` for fields, `%` for tags, `!` for workflows
 13. **Null-check guards**: data collection steps check `$contact.field` before asking (skip if populated)
 14. **Spam handling**: entry-point agent has explicit spam detection + silent close pattern
 15. **Fallback section exists**: separate from BOUNDARIES — recovery paths when intent unclear or KB misses
@@ -158,7 +158,7 @@ Each action ≤1,000 chars. Format: `When [condition], [action verb] to [exact t
 | # | Action | Canonical syntax | Primary gotcha |
 |---|--------|-----------------|----------------|
 | 1 | Close | `Close with category "[Name]", note "[text]"` | Categories must pre-exist. Update lifecycle BEFORE close. Summary + close only after user is informed of next steps. |
-| 2 | Assign | `Assign to @[Team/User/Agent]` | Agent continues responding unless told to stop. |
+| 2 | Assign | `Assign to @[Team/User/Agent]` | Agent continues responding unless told to stop. Two load-balancing modes: round robin, least open conversations. 2-attempt clarification threshold before fallback assign. |
 | 3 | Lifecycle | `Update Lifecycle stage to "[Stage]"` | Exact names, case-sensitive. Must execute BEFORE close. |
 | 4 | Contact Fields | `Update $contact.[field] to [value]` | Silent failures on typos — names must match Settings. |
 | 5 | Comments | `Add comment: "[text]"` | ≤2,000 chars. Write-only — agents cannot read comments. |
@@ -166,7 +166,7 @@ Each action ≤1,000 chars. Format: `When [condition], [action verb] to [exact t
 | 7 | Workflow | `Trigger workflow ![name]` | No variable passing. Must be published. Set fields first. |
 | 8 | Handle Calls | `Handle inbound calls` | Inbound only. 3-min cap. No mid-call transfer. |
 
-**Variable prefixes** (Respond.io platform standard): `@` people/teams, `$` fields/variables, `%` tags, `!` workflows. `{{ }}` in examples is human-readability markup only — not parsed by agents in prompts.
+**Variable prefixes** (Respond.io platform standard): `@` users/teams/AI agents, `$` fields/variables, `%` tags, `!` workflows. `{{ }}` in examples is human-readability markup only — not parsed by agents in prompts.
 
 ### Writing KB files
 
