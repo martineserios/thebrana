@@ -7,4 +7,3 @@
 - **Type safety**: prefer typed approaches where the language supports it.
 - **Code review mindset**: write code as if someone else will maintain it tomorrow.
 - **Test assertion discipline**: investigate code before weakening assertions. Explain why the expectation was wrong.
-- **Learn from corrections**: after a user correction, capture the pattern — what went wrong, what the fix was, and what rule prevents recurrence. Feed into `/debrief` or `/retrospective`.
