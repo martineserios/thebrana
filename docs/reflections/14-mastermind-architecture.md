@@ -67,6 +67,7 @@ The hooks are the glue connecting all three.
 │   └── init-project                          ← Bootstrap new project with CLAUDE.md + structure
 ├── rules/
 │   ├── universal-quality.md                  ← Always: test before ship, no secrets in code
+│   ├── self-improvement.md                   ← Always: innate learning loop — capture, apply, reflect automatically
 │   ├── git-discipline.md                     ← Always: conventional commits, worktrees, branch protection
 │   ├── sdd-tdd.md                            ← Always: spec-before-code, test-before-code
 │   ├── context-budget.md                     ← Always: 3-tier context thresholds, expensive-op guards
@@ -203,7 +204,7 @@ The brana ecosystem lives in two repositories. `cd` into thebrana to activate th
 When you `cd ~/enter_thebrana/thebrana && claude`:
 
 1. **Global identity** — `~/.claude/CLAUDE.md` ("I am a mastermind. I accumulate knowledge across projects.")
-2. **Global rules** — `~/.claude/rules/*` (10 rules: quality, git, SDD/TDD, memory framework, context budget, task convention, etc.)
+2. **Global rules** — `~/.claude/rules/*` (11 rules: quality, self-improvement, git, SDD/TDD, memory framework, context budget, task convention, etc.)
 3. **Global auto memory** — `~/.claude/memory/MEMORY.md` (first 200 lines, cross-project observations)
 4. **Local CLAUDE.md** — `thebrana/.claude/CLAUDE.md` ("You are the architect+operator. Here's the document structure and system layout.")
 5. **Local rules** — `thebrana/.claude/rules/*` (project-specific, if any)
