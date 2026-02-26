@@ -17,7 +17,7 @@ This skill spawns an Opus subagent to adversarially review a plan, approach, or 
 
 1. **Gather context** about what to challenge:
    - If `$ARGUMENTS` provided, use it as the description of what to challenge.
-   - Otherwise, look for the most recent plan, proposal, or significant decision in the conversation.
+   - If no arguments: **self-challenge mode** — challenge your own most recent substantive answer. Scan the conversation for your last analysis, recommendation, plan, or decision. That becomes the target. Frame it as: "Let me stress-test what I just said."
 
 2. **Choose challenge flavor** based on context:
    - Architecture/design decisions → **Pre-mortem**: "Imagine this solution failed in production 3 months from now. What went wrong?"
@@ -54,4 +54,5 @@ source "$HOME/.claude/scripts/cf-env.sh"
 
 ## Rules
 
-- **Ask for clarification whenever you need it.** If the scope of the challenge is unclear, you're unsure what to focus on, or you need more context — ask. Don't guess.
+- **No arguments = self-challenge.** Empty `/challenge` targets your own last answer. Never ask "what should I challenge?" — either use the provided arguments or self-challenge.
+- **Ask for clarification on scope**, not on target. If you know WHAT to challenge but not HOW DEEP, ask. If the conversation has no substantive prior answer to self-challenge (e.g., session just started), then ask what to target.
