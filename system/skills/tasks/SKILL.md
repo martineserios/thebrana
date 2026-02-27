@@ -22,6 +22,49 @@ When explicitly managing tasks: planning phases, viewing roadmaps,
 restructuring work. Daily task interaction happens through natural
 language guided by the task-convention rule — no skill invocation needed.
 
+## Display Themes
+
+All rendering sections below use the **task-line template** to determine icons,
+progress bars, and decorations. Resolve the active theme before rendering:
+
+1. If `--theme <name>` flag is on the command, use it
+2. Else read `~/.claude/tasks-config.json` → `{"theme": "<name>"}`
+3. Else default to `classic`
+
+### Task-line template
+
+```
+classic:   {icon} {id}  {subject}  {detail}
+           ✓ done  ← active  → pending  · blocked  · parked
+           bars: ████░░░░  {done}/{total}
+
+emoji:     {icon} {id}  {subject}  {detail}
+           ✅ done  🔨 active  🔲 pending  🔒 blocked  💤 parked
+           bars: ████░░░░  {done}/{total}
+           project header: 📋 {name}
+           portfolio header: boxed ╭╮╰╯ with 📊
+           priority high: ⚡high
+           blocked ref: ⛓ {id}
+           health dots: 🟢 done  🟡 active  🔴 blocked
+
+minimal:   {icon} {id}  {subject}  {detail}
+           ● done  ◐ active  ○ pending  ⊘ blocked  ◌ parked
+           bars: ━━━━╍╍╍╍  {done}/{total}
+           blocked ref: ← {id}
+```
+
+### Tree connectors (all themes)
+
+Hierarchy views (status, roadmap) use box-drawing characters:
+
+```
+├── child (has siblings after)
+└── child (last sibling)
+│   continuation line
+```
+
+---
+
 ## Commands
 
 - `/tasks plan [project] "[phase-title]"` — plan a phase interactively
@@ -38,6 +81,7 @@ language guided by the task-convention rule — no skill invocation needed.
 - `/tasks execute [scope] [--dry-run] [--max-parallel N] [--retry]` — execute tasks via subagents
 - `/tasks tags [project]` — tag inventory, filtering, and bulk tag management
 - `/tasks context <id> [text]` — view or set rich context on a task
+- `/tasks theme [name]` — view or set display theme (classic, emoji, minimal)
 
 ---
 
@@ -76,39 +120,53 @@ High-level progress view with aggregation.
 
 ### Steps
 
-1. **Detect project** or show portfolio if omitted
-2. **Read tasks.json** (for portfolio: read from each project path in tasks-portfolio.json)
-3. **Compute per-phase:** total tasks, completed, in_progress, blocked
-4. **Compute per-stream:** roadmap progress, bug count, tech-debt count
-5. **Render:**
+1. **Resolve active theme** (see Display Themes)
+2. **Detect project** or show portfolio if omitted
+3. **Read tasks.json** (for portfolio: read from each project path in tasks-portfolio.json)
+4. **Compute per-phase:** total tasks, completed, in_progress, blocked
+5. **Compute per-stream:** roadmap progress, bug count, tech-debt count
+6. **Render using task-line template** — use tree connectors for hierarchy:
 
 ```
 {project} — {active-phase-subject}
 
   Roadmap
-    {phase-subject}         {bar} {done}/{total}
-      {milestone-subject}   {bar} {done}/{total}
-
-  Bugs
-    {bug-subject}           {bar} {done}/{total}
-    {bug-subject}           done
-
-  Tech Debt
-    {item}                  pending
+  ├── {phase-subject}                  {bar} {done}/{total}
+  │   ├── {milestone-subject}          {bar} {done}/{total}
+  │   └── {milestone-subject}          {bar} {done}/{total}
+  │
+  ├── Bugs
+  │   ├── {bug-subject}                {bar} {done}/{total}
+  │   └── {bug-subject}                done
+  │
+  └── Tech Debt
+      └── {item}                       pending
 
   Tags: scheduler(4) research(3) quick-win(2)
 ```
 
-Progress bars: filled = completed, empty = remaining
+Progress bars use active theme fill/empty characters.
 Tag summary line at bottom: shows all tags with counts across active tasks (non-completed). Omit line if no tasks have tags.
 
 ### Portfolio view (no project argument)
 
+Render using task-line template icons. Emoji theme adds health dots and project emoji prefix.
+
 ```
+classic/minimal:
 palco       Phase 2: API Foundation    ████░░░░ 60%   2 bugs
 tinyhomes   Phase 1: Validation        ██░░░░░░ 25%
 somos       Cold Lead Flow             ████████ done
+
+emoji:
+📊 Portfolio
+
+🟡 palco       Phase 2: API Foundation    ████░░░░ 60%   2 bugs
+🟡 tinyhomes   Phase 1: Validation        ██░░░░░░ 25%
+🟢 somos       Cold Lead Flow             ████████ done
 ```
+
+Health dots (emoji only): 🟢 all done, 🟡 has active/pending work, 🔴 has blocked tasks.
 
 Read project paths from `~/.claude/tasks-portfolio.json`. Paths use `~/` prefix — resolve to `$HOME` before reading. For each, read `.claude/tasks.json` if it exists.
 
@@ -127,22 +185,25 @@ Cross-project actionable task view. Shows individual tasks you can work on acros
 
 ### Steps
 
-1. **Read `~/.claude/tasks-portfolio.json`** — get project list
-2. **Resolve paths** — replace `~/` with `$HOME`
-3. **For each project**, read `{path}/.claude/tasks.json`
+1. **Resolve active theme** (see Display Themes)
+2. **Read `~/.claude/tasks-portfolio.json`** — get project list
+3. **Resolve paths** — replace `~/` with `$HOME`
+4. **For each project**, read `{path}/.claude/tasks.json`
    - If file doesn't exist: skip silently
    - **Normalize JSON**: if root is a bare array `[{...}]`, treat as the tasks list. If root is an object with `.tasks`, use that.
-4. **Classify each task** (type: task or subtask only — skip phases and milestones):
+5. **Classify each task** (type: task or subtask only — skip phases and milestones):
    - `in_progress`: status is `in_progress`
    - `pending`: status is `pending` AND all `blocked_by` IDs have status `completed`
    - `blocked`: status is `pending` AND any `blocked_by` ID is not `completed`
    - `parked`: tags array contains `"parked"` (shown with `[parked]` flag)
    - `completed`: status is `completed`
-5. **Sort within each project**: in_progress → pending → blocked → last 3 completed (by `completed` date descending)
-6. **Compute summary**: total actionable tasks, project count, pending count, in_progress count
-7. **Render** by-project or unified view
+6. **Sort within each project**: in_progress → pending → blocked → last 3 completed (by `completed` date descending)
+7. **Compute summary**: total actionable tasks, project count, pending count, in_progress count
+8. **Render using task-line template** — by-project or unified view
 
 ### By-project view (default)
+
+Render task lines using active theme icons. Example in **classic**:
 
 ```
 Portfolio — 17 tasks across 4 projects (14 pending, 3 in progress)
@@ -172,12 +233,46 @@ Portfolio — 17 tasks across 4 projects (14 pending, 3 in progress)
   tinyhomes — all done (3 tasks)
 ```
 
-Status icons (same as `/tasks roadmap`): ✓ completed, → pending/next, ← in_progress, · blocked.
-Parked tasks show inline: `· ms-007 Wire AgentDB [parked]  blocked (upstream)`.
+Same view in **emoji** — note boxed header, health dots, themed icons:
+
+```
+╭──────────────────────────────────────────────────────╮
+│  📊 Portfolio — 17 tasks · 4 projects                │
+│  🔨 3 in progress · 🔲 14 pending                    │
+╰──────────────────────────────────────────────────────╯
+
+  🟡 nexeye
+    🔨 t-003 First production deploy                    in_progress
+    🔲 t-016 Fix inference-worker-2 overlay failure      pending
+    🔒 t-017 Fix staging deploy                          ⛓ t-003
+    ✅ t-015 Configure GitHub Actions CI                 completed 2026-02-18
+    ✅ t-014 Fix DNS resolution                          completed 2026-02-17
+    ✅ t-013 Set up Docker Swarm                         completed 2026-02-16
+
+  🟡 palco
+    🔨 t-003 V2→V3 cutover                              in_progress
+    🔲 t-004 Review metrics Google Sheet                 pending
+    🔲 t-011 Run Supabase migration                      pending
+    ✅ t-010 Build V3 trigger endpoint                   completed 2026-02-15
+    ✅ t-009 Migrate campaign schema                     completed 2026-02-14
+    ✅ t-008 Add rate limiting                           completed 2026-02-13
+
+  🟡 somos_mirada
+    🔲 t-001 Fill kb-indicaciones-consulta-virtual-bsas  pending
+    🔲 t-002 Fill kb-indicaciones-consulta-virtual-eng   pending
+    ...(+7 more pending)
+    (no recent completions)
+
+  🟢 tinyhomes — all done (3 tasks)
+```
+
+Parked tasks show inline: `{blocked-icon} ms-007 Wire AgentDB [parked]  blocked (upstream)`.
 Projects with no tasks.json are omitted. All-completed projects show as a collapsed line.
 When a project has more than 5 pending tasks, show the first 3 then `...(+N more pending)`.
 
 ### Unified priority view (`--unified`)
+
+Render using task-line template icons. Example in **classic**:
 
 ```
 Portfolio — priority view (17 tasks across 4 projects)
@@ -202,36 +297,37 @@ Full tree view — every level expanded.
 
 ### Steps
 
-1. Read tasks.json
-2. Build tree from parent references
-3. Render with indentation, status icons, tags (if any), and blocked indicators:
+1. **Resolve active theme** (see Display Themes)
+2. Read tasks.json
+3. Build tree from parent references
+4. **Render using task-line template** — use tree connectors for hierarchy:
 
 ```
 {project} Roadmap
 
-  ph-001 Phase 1: Setup                    ████████ done
-    ms-001 Dev Environment                 ████████ done
-      t-001 Install dependencies           ✓
-      t-002 Configure linting              ✓
-
-  ph-002 Phase 2: API Foundation           ████░░░░ 3/8
-    ms-003 Auth System                     ██░░░░░░ 1/3
-      t-007 Design auth flow               ✓
-      t-008 Implement JWT middleware [auth, quick-win] → next (unblocked)
-      t-009 Write auth tests               · blocked by t-008
-    ms-004 Database Setup                  ░░░░░░░░ 0/3
-      t-010 Design schema                  · blocked by ms-003
-      t-011 Write migrations               · blocked by t-010
-      t-012 Seed dev data [scheduler]      · blocked by t-011
+  ph-001 Phase 1: Setup                            ████████ done
+  ├── ms-001 Dev Environment                       ████████ done
+  │   ├── ✓ t-001 Install dependencies
+  │   └── ✓ t-002 Configure linting
+  │
+  ph-002 Phase 2: API Foundation                   ████░░░░ 3/8
+  ├── ms-003 Auth System                           ██░░░░░░ 1/3
+  │   ├── ✓ t-007 Design auth flow
+  │   ├── → t-008 Implement JWT middleware [auth, quick-win]  next
+  │   └── · t-009 Write auth tests                 blocked by t-008
+  └── ms-004 Database Setup                        ░░░░░░░░ 0/3
+      ├── · t-010 Design schema                    blocked by ms-003
+      ├── · t-011 Write migrations                 blocked by t-010
+      └── · t-012 Seed dev data [scheduler]        blocked by t-011
 
   Bugs
-    ms-005 Auth token expiry               ██░░░░░░ 1/3
-      t-013 Investigate root cause         ✓
-      t-014 Fix token refresh              ← in progress
-      t-015 Add regression test            · blocked by t-014
+  └── ms-005 Auth token expiry                     ██░░░░░░ 1/3
+      ├── ✓ t-013 Investigate root cause
+      ├── ← t-014 Fix token refresh
+      └── · t-015 Add regression test              blocked by t-014
 ```
 
-Status icons: completed, -> next unblocked, <- in progress, . pending/blocked
+Icons come from the active theme's task-line template. Example above uses classic.
 Tags shown inline as `[tag1, tag2]` after subject — only when tags array is non-empty.
 
 ---
@@ -242,21 +338,23 @@ Find the highest-priority unblocked task.
 
 ### Steps
 
-1. Read tasks.json
-2. Filter: status=pending, blocked_by all completed, type=task|subtask
-3. If `--tag X` provided, additionally filter to tasks containing tag X
-4. Sort by: priority (P0 first) -> order -> created date
-5. Show top 3 candidates with tags inline:
+1. **Resolve active theme** (see Display Themes)
+2. Read tasks.json
+3. Filter: status=pending, blocked_by all completed, type=task|subtask
+4. If `--tag X` provided, additionally filter to tasks containing tag X
+5. Sort by: priority (P0 first) -> order -> created date
+6. **Render using task-line template** — show top 3 candidates with tags inline:
 
 ```
 Next up:
-  1. t-008 Implement JWT middleware [auth, quick-win]  P1  S  roadmap
-  2. t-014 Fix token refresh                           P1  M  bugs
-  3. t-020 Update API docs [docs]                      P2  S  docs
+  1. → t-008 Implement JWT middleware [auth, quick-win]  P1  S  roadmap
+  2. → t-014 Fix token refresh                           P1  M  bugs
+  3. → t-020 Update API docs [docs]                      P2  S  docs
 
 Start one? (number or "1" to begin)
 ```
 
+Icons come from active theme (example above uses classic `→`).
 Optional `--tag` narrows candidates: `/tasks next --tag scheduler`
 
 ---
@@ -398,10 +496,11 @@ Tag inventory, filtering, and bulk tag management.
 ### Steps
 
 **Inventory (no subcommand):**
-1. Read tasks.json
-2. Collect all unique tags across all tasks
-3. Count tasks per tag (include status breakdown)
-4. Render:
+1. **Resolve active theme** (see Display Themes)
+2. Read tasks.json
+3. Collect all unique tags across all tasks
+4. Count tasks per tag (include status breakdown)
+5. Render:
 
 ```
 Tags in {project}:
@@ -416,15 +515,17 @@ Tags in {project}:
 1. Read tasks.json
 2. `--filter`: keep tasks where tags array contains ALL specified tags (AND)
 3. `--any`: keep tasks where tags array contains ANY specified tag (OR)
-4. Render matching tasks as a flat list with status and tags:
+4. **Render using task-line template** — flat list with status and tags:
 
 ```
 Tasks tagged [scheduler]:
-  t-008 Implement JWT middleware [scheduler, auth]     → pending
-  t-012 Seed dev data [scheduler]                      · blocked
-  t-018 Deploy scheduler config [scheduler, quick-win] ← in_progress
-  t-021 Scheduler v2 research [scheduler, research]    ✓ completed
+  → t-008 Implement JWT middleware [scheduler, auth]     pending
+  · t-012 Seed dev data [scheduler]                      blocked
+  ← t-018 Deploy scheduler config [scheduler, quick-win] in_progress
+  ✓ t-021 Scheduler v2 research [scheduler, research]    completed
 ```
+
+Icons come from active theme (example above uses classic).
 
 **Add tags:**
 1. Parse task id(s) — comma-separated or space-separated
@@ -482,6 +583,45 @@ Context:
 3. If context exists, append with newline separator
 4. Confirm: "Append to t-008 context?"
 5. Write tasks.json
+
+---
+
+## /tasks theme
+
+View or set the display theme.
+
+### Usage
+
+```
+/tasks theme              — show current theme
+/tasks theme emoji        — set theme to emoji
+/tasks theme classic      — set theme to classic
+/tasks theme minimal      — set theme to minimal
+```
+
+### Steps
+
+**View (no argument):**
+1. Read `~/.claude/tasks-config.json`
+2. If file exists and has `theme` field, show: "Current theme: **{name}**"
+3. If no file: "Current theme: **classic** (default). Set with `/tasks theme <name>`."
+
+**Set (with name):**
+1. Validate name is one of: `classic`, `emoji`, `minimal`
+2. Read `~/.claude/tasks-config.json` (create if missing)
+3. Set `theme` field to the given name, preserve other fields
+4. Write the file
+5. Report: "Theme set to **{name}**. All `/tasks` output will use {name} icons."
+
+### Config format
+
+```json
+{
+  "theme": "emoji"
+}
+```
+
+Stored at `~/.claude/tasks-config.json` (global, not per-project).
 
 ---
 
@@ -561,16 +701,17 @@ Tasks must have `spawn` field set (see ADR-003 for schema). Tasks without `spawn
      - If tests pass: commit, mark completed
      - If tests fail: mark `agent_result.status: "partial"`, leave for user
      - Clean up: remove worktree
-9. **Report summary:**
+9. **Report summary** (render using task-line template icons for completed):
    ```
    Execution complete:
      ✓ 6 tasks completed
-     ~ 1 task partial (t-009: tests failed)
+     ◐ 1 task partial (t-009: tests failed)
      ✗ 1 task failed (t-012: agent timeout)
 
    Milestone 'Auth System': 3/4 done
    Next: /tasks execute --retry ph-002
    ```
+   Icons come from active theme (✓/✅/● for completed).
 
 ### Model routing
 
