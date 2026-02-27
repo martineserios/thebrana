@@ -1,7 +1,7 @@
 # Feature: Themeable Task Display
 
 **Date:** 2026-02-27
-**Status:** building
+**Status:** shipped
 
 ## Goal
 
@@ -41,10 +41,11 @@ Solo developer using brana's task system across multiple projects.
 
 ### Persistence (hybrid)
 
-- **Config file:** `{project}/.claude/tasks-config.json` (or `~/.claude/tasks-config.json` for global)
+- **Config file:** `~/.claude/tasks-config.json` (global only — simplified from per-project after challenger review)
 - **Set command:** `/tasks theme <name>` writes to config
 - **Override flag:** `--theme <name>` on any subcommand, one-time
 - **Default:** `classic` when no config exists
+- **Resolution:** `--theme` flag > global config > classic default
 
 ### Box-drawing trees
 
@@ -69,6 +70,24 @@ Every subcommand that renders output: status, portfolio, roadmap, next, tags, co
 - Emoji 2-char width is the main alignment challenge in monospace
 - Claude Code renders GFM markdown in monospace — code blocks preserve spacing
 
+## Design
+
+### Post-challenger adjustments
+- **Theme drift mitigation:** Uses "task-line template" pattern — compact inline block near top of SKILL.md, referenced by name in every rendering section. Avoids distant lookup table problem.
+- **Config simplified:** Global-only (`~/.claude/tasks-config.json`), 2-level resolution (flag > global > classic). No per-project config.
+- **Emoji alignment:** Accepted as trade-off. Emoji theme trades column precision for visual scannability.
+- **Tree connectors:** Universal (all themes), removed from theme table since they don't vary.
+- **No ADR:** Cosmetic feature in a single file with no architectural impact.
+
+### Files modified
+- `system/skills/tasks/SKILL.md` — theme system + rendering updates (617 → 758 lines)
+
+## Learnings
+
+- Instruction-based systems (SKILL.md) need repetitive local references, not distant lookup tables — LLMs attend to nearby examples
+- Challenger review caught the core risk (theme drift) before build, saving rework
+- The "render using task-line template" phrase acts as a consistent anchor across sections
+
 ## Open questions
 
-None — shaped interactively.
+None — shaped interactively, design validated by challenger.
