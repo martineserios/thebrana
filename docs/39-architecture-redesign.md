@@ -433,29 +433,31 @@ Knowledge has two access patterns:
 
 The authoring layer is markdown files in brana-knowledge (dimension docs, reflections). The retrieval layer is an index built FROM those files, stored in AgentDB/claude-flow.
 
-### 7.2 Technology Stack (verified 2026-02-25)
+### 7.2 Technology Stack (verified 2026-02-27)
 
 #### Packages and versions
 
 | Package | Installed | Latest | Role | Status |
 |---------|-----------|--------|------|--------|
-| **claude-flow** | alpha.44 | alpha.50 | Orchestration, MCP, memory | Active (daily releases) |
+| **claude-flow** | **v3.5.1** | v3.5.1 | Orchestration, MCP, memory + AgentDB | **Active** — major upgrade from alpha.44. Native AgentDB integration. |
 | **@claude-flow/embeddings** | **alpha.12** | alpha.12 | ONNX embedding generation | Current. Upgraded from alpha.1. |
-| **@claude-flow/memory** | (bundled) | alpha.11 | SQLite + AgentDB hybrid backend | Active |
-| **agentdb** | alpha.3.3 | alpha.3.3 | Graph DB + Cypher + vector search | **Stalled** — last publish Jan 2. Version alpha.3.7 referenced in @claude-flow/memory doesn't exist on npm. |
+| **@claude-flow/memory** | **alpha.11** | alpha.11 | SQLite + AgentDB hybrid backend | Active. ControllerRegistry shim bridges memory-bridge.js → AgentDB v3. |
+| **agentdb** | **3.0.0-alpha.10** | 3.0.0-alpha.10 | Graph DB + Cypher + vector search | **Active** — integrated via claude-flow v3.5.1. BM25 hybrid search, reflexion, causal graph, skills. |
 | **ruvector** | (dep) | 0.1.100 | Rust vector DB, HNSW, SONA | Hyperactive (100 patches) |
 | **@ruvector/rvf** | 0.1.9 | 0.2.0 | Unified vector format SDK | Active, minor version bump |
 | **@ruvector/graph-node** | (dep) | 2.0.2 | Native Cypher engine | Active |
 
 All packages by sole maintainer (ruvnet). No cloud dependency — everything runs local.
 
+> **Bridge activation (2026-02-27):** `memory-bridge.js` imports `ControllerRegistry` from `@claude-flow/memory`, but the package doesn't export it natively. A shim at `.claude-flow/controller-registry-shim.js` wraps AgentDB v3's `getController()`/`database`/`embedder` API. `deploy.sh` copies the shim and patches the re-export on every deploy. BM25 hybrid search confirmed active (provenance: `semantic:X+bm25:Y`).
+
 #### AgentDB v3 three-layer model (from ADR-005)
 
 | Layer | Technology | Knowledge role | Readiness |
 |-------|-----------|----------------|-----------|
-| **Relational** | sql.js (SQLite) | Metadata: source, author, trust tier, freshness, tags | **Ready** — works today via claude-flow memory |
-| **Vector** | RVF (HNSW indexing) | Semantic search: "find knowledge related to customer retention" | **Ready** — spike proved embeddings work (see 7.3) |
-| **Graph** | Cypher engine (@ruvector/graph-node) | Connections: topic A relates to topic B via concept C | **Not ready** — depends on AgentDB maturity. Kill date: 2026-06-24. |
+| **Relational** | better-sqlite3 (via AgentDB) | Metadata: source, author, trust tier, freshness, tags | **Active** — via claude-flow memory + AgentDB bridge |
+| **Vector** | HNSW (ruvector) + BM25 hybrid | Semantic search + lexical ranking: 0.7 × cosine + 0.3 × BM25 | **Active** — bridge confirmed working (2026-02-27) |
+| **Graph** | Cypher engine (@ruvector/graph-node) | Connections: topic A relates to topic B via concept C | **Not ready** — controllers return null. Deferred. |
 
 ### 7.3 Spike Results: Embedding Pipeline Validated
 
@@ -515,18 +517,18 @@ brana-knowledge/reflections/*.md
 
 **The pipeline is ~100 lines of bash** built on proven primitives. Not a product to install — a script to write.
 
-### 7.5 Fallback Strategy (updated)
+### 7.5 Active Strategy + Fallback (updated 2026-02-27)
 
-The fallback IS the primary strategy. Don't wait for AgentDB.
+AgentDB is now the active backend via claude-flow v3.5.1 + ControllerRegistry shim. SQLite-only is the fallback.
 
-| Layer | Use now (proven) | Upgrade later (if AgentDB matures) |
-|-------|-----------------|-------------------------------------|
-| **Embeddings** | claude-flow CLI, ONNX local | Same |
-| **Storage** | claude-flow memory (SQLite) | AgentDB (SQLite + vector + graph) |
-| **Search** | `embeddings search` + `memory search` | AgentDB unified semantic search |
-| **Graph** | Markdown cross-references in reflection docs | Cypher queries via @ruvector/graph-node |
+| Layer | Active (via AgentDB bridge) | Fallback (if bridge fails) |
+|-------|----------------------------|---------------------------|
+| **Embeddings** | ONNX local (all-MiniLM-L6-v2, 384-dim) | Same |
+| **Storage** | AgentDB (better-sqlite3 + HNSW) | sql.js raw `memory_entries` table |
+| **Search** | BM25 hybrid (semantic + lexical, provenance tracking) | Basic cosine similarity via `memory search` |
+| **Graph** | Markdown cross-references in reflection docs | Same — Cypher controllers return null, deferred |
 
-This delivers 80% of the value with tools that work today. The only deferred capability is machine-queryable relationship discovery (graph), which reflection docs partially cover as human-readable cross-references.
+The bridge delivers ~90% of AgentDB's value. Remaining gaps: graph layer (Cypher queries), reasoningBank/mutationGuard/attestationLog controllers return null — likely need schema or initialization work in AgentDB v3.
 
 ### 7.6 Ecosystem Assessment
 
@@ -654,7 +656,7 @@ Validate the full loop before investing in content. Write 1-2 dimension docs AND
 - [x] Test passes — retrieval validated, proceed to Phase 4
 - [x] On-commit hook — brana-knowledge post-commit runs `index-knowledge.sh --changed` in background
 - [x] Weekly full reindex — scheduler template updated (Sunday 3am)
-- [ ] If AgentDB reaches alpha.5+/beta before kill date (2026-06-24), upgrade to full AgentDB backend
+- [x] AgentDB backend activated (2026-02-27) — claude-flow v3.5.1 + ControllerRegistry shim. BM25 hybrid search, reflexion, causal graph, skills controllers active. Graph layer deferred (controllers return null).
 
 ### Phase 4: Evolve brana-knowledge (ongoing, after retrieval is validated)
 
