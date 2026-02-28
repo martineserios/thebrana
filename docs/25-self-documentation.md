@@ -493,7 +493,7 @@ Commands for building and reviewing.
 | `/build-phase` | Implement next roadmap phase with scaffolding gates + learning loops. Build loop: plan → implement → autonomous fix (2 attempts before escalate) → verify (before/after state check) → commit → mini-debrief | When ready to build the next phase |
 | `/build-feature` | Guide a feature from zero to shipped in 7 phases (orient, discover, shape, design, plan, build, close). Build loop: plan what you'll change and why → implement → autonomous fix on failure → verify before/after state → commit → mini-debrief with before/after check | **When building a new feature, capability, or deliverable in any project** — not for brana's own roadmap (use `/build-phase`) or business milestones (use `/venture-phase`) |
 | `/debrief` | Extract errata, fixes, and process learnings from a session | **End of implementation sessions** |
-| `/challenge` | Spawn an Opus subagent to stress-test a plan or decision | **Before committing to a big decision** |
+| `/challenge` | Spawn an Opus subagent to stress-test a plan or decision. Empty invocation self-challenges the last answer | **Before committing to a big decision**, or after any answer to stress-test it |
 | `/decide` | Create an Architecture Decision Record (ADR) in `docs/decisions/` | **Before implementing a significant decision** — captures context, decision, consequences |
 | `/usage-stats` | Token usage analytics — model distribution, activity trends, session efficiency | **When checking usage patterns** or evaluating model routing efficiency |
 | `/tasks` | Plan, track, and execute tasks — hierarchy (phase > milestone > task), streams, tags, context, branch integration, agent execution via subagents | **When planning phases, viewing roadmaps, or executing task waves** — 13 subcommands including `execute`, `tags`, and `context` |
@@ -608,9 +608,9 @@ The active version of `/project-onboard`. Runs a 28-item checklist, identifies g
 ```
 /build-phase           (brana's own roadmap phases)
 /build-feature [desc]  (any feature in any project)
-/challenge [plan]      (adversarial review)
+/challenge [plan]      (adversarial review — or empty to self-challenge last answer)
 ```
-`/build-phase` plans, implements, debriefs, and maintains specs in one cycle — specifically for brana's roadmap. `/build-feature` is the general-purpose equivalent: it guides any feature from zero to shipped in 7 phases (orient, discover, shape, design, plan, build, close), spawning scout, memory-curator, challenger, and debrief-analyst agents at appropriate stages. Creates feature briefs in `docs/features/`, ADRs when `docs/decisions/` exists, and GitHub Issues when available. `/challenge` is surgical — use it when you have a specific decision and want a second opinion.
+`/build-phase` plans, implements, debriefs, and maintains specs in one cycle — specifically for brana's roadmap. `/build-feature` is the general-purpose equivalent: it guides any feature from zero to shipped in 7 phases (orient, discover, shape, design, plan, build, close), spawning scout, memory-curator, challenger, and debrief-analyst agents at appropriate stages. Creates feature briefs in `docs/features/`, ADRs when `docs/decisions/` exists, and GitHub Issues when available. `/challenge` is surgical — provide a plan to stress-test, or invoke empty to self-challenge the last answer.
 
 Example — stress-testing a migration plan:
 ```
