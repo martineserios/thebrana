@@ -90,7 +90,7 @@ claude-flow v3.5.1 natively integrates AgentDB v3 as its memory engine while **p
 
 ### Nothing breaks. These are optional improvements:
 
-1. **deploy.sh** — No changes needed. CLI API is identical.
+1. **deploy.sh** — Two changes applied: (a) embeddings.json path fix (`$SCRIPT_DIR` not `$SOURCE_DIR/../`), (b) ControllerRegistry shim deployment — copies `.claude-flow/controller-registry-shim.js` to `@claude-flow/memory/dist/` and patches `index.js` re-export to activate the AgentDB bridge in `memory-bridge.js`.
 2. **Hooks** — No changes needed. `$CF memory store/search` works the same.
 3. **Skills** — No changes needed. MCP tools preserved.
 4. **Agents** — No changes needed. CLI fallback pattern works.

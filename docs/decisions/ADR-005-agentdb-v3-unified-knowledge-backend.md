@@ -1,7 +1,7 @@
 # ADR-005: AgentDB v3 + RVF as Unified Knowledge Backend
 
 **Date:** 2026-02-24
-**Status:** deferred (superseded by ADR-006 — AgentDB stalled, fallback strategy is now primary. Revisit if AgentDB reaches alpha.5+/beta before 2026-06-24.)
+**Status:** partially activated (2026-02-27) — AgentDB v3 integrated via claude-flow v3.5.1 + ControllerRegistry shim. Relational + vector layers active (BM25 hybrid search). Graph layer deferred (Cypher controllers return null). Original kill date (2026-06-24) superseded by successful integration.
 
 ## Context
 
