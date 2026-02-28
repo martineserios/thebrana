@@ -132,8 +132,8 @@ if [ -n "$CF_BIN" ]; then
     fi
     # Deploy embeddings config (ensures 384-dim all-MiniLM-L6-v2 across all projects)
     mkdir -p "$HOME/.claude-flow"
-    if [ -f "$SOURCE_DIR/../.claude-flow/embeddings.json" ]; then
-        cp "$SOURCE_DIR/../.claude-flow/embeddings.json" "$HOME/.claude-flow/embeddings.json"
+    if [ -f "$SCRIPT_DIR/.claude-flow/embeddings.json" ]; then
+        cp "$SCRIPT_DIR/.claude-flow/embeddings.json" "$HOME/.claude-flow/embeddings.json"
         echo "  ✓ embeddings config deployed (384-dim, all-MiniLM-L6-v2)"
     fi
 else
