@@ -485,7 +485,7 @@
       "subject": "RVF Memory Migration + claude-flow Upgrade",
       "description": "Upgrade claude-flow from alpha.34 to alpha.44, migrate ReasoningBank from SQLite to RVF/AgentDB. Zero data loss. Backlog items #31/#32 collapse into this. Research: ruvnet built both projects. MS-005 (upgrade) and MS-006 (spike) complete. MS-007 (wiring) parked — waiting for upstream claude-flow + AgentDB integration (issue #829).",
       "tags": ["claude-flow", "rvf", "memory"],
-      "status": "in_progress",
+      "status": "completed",
       "stream": "roadmap",
       "type": "phase",
       "parent": null,
@@ -497,9 +497,9 @@
       "branch": "feat/ph-002-rvf-migration",
       "github_issue": null,
       "created": "2026-02-22",
-      "started": null,
-      "completed": null,
-      "notes": null,
+      "started": "2026-02-24",
+      "completed": "2026-02-27",
+      "notes": "claude-flow upgraded to v3.5.1. AgentDB bridge activated via ControllerRegistry shim. BM25 hybrid search confirmed working (semantic+bm25 provenance). 384-dim ONNX embeddings (all-MiniLM-L6-v2). deploy.sh updated to persist shim across deploys.",
       "context": "134 active entries in memory.db (132 hash-fallback 128-dim, 2 ONNX 384-dim). Namespaces: patterns(129), scheduler-runs(3), business(1), decisions(1). DB size 725KB. claude-flow alpha.34 → alpha.44 (10 versions behind)."
     },
     {
