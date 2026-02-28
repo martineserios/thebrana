@@ -136,6 +136,18 @@ if [ -n "$CF_BIN" ]; then
         cp "$SCRIPT_DIR/.claude-flow/embeddings.json" "$HOME/.claude-flow/embeddings.json"
         echo "  ✓ embeddings config deployed (384-dim, all-MiniLM-L6-v2)"
     fi
+    # Deploy ControllerRegistry shim (activates AgentDB bridge in memory-bridge.js)
+    CF_MEM_DIST="$CF_PKG_DIR/node_modules/@claude-flow/memory/dist"
+    if [ -d "$CF_MEM_DIST" ] && [ -f "$SCRIPT_DIR/.claude-flow/controller-registry-shim.js" ]; then
+        cp "$SCRIPT_DIR/.claude-flow/controller-registry-shim.js" "$CF_MEM_DIST/controller-registry-shim.js"
+        # Ensure index.js re-exports ControllerRegistry
+        if ! grep -q "controller-registry-shim" "$CF_MEM_DIST/index.js" 2>/dev/null; then
+            sed -i '1i // ===== ControllerRegistry Shim (bridges memory-bridge.js → AgentDB v3) =====\nexport { ControllerRegistry } from '\''./controller-registry-shim.js'\'';' "$CF_MEM_DIST/index.js"
+        fi
+        echo "  ✓ AgentDB bridge shim deployed (BM25 hybrid, reflexion, causal, skills)"
+    elif [ ! -d "$CF_MEM_DIST" ]; then
+        echo "  ⚠ @claude-flow/memory not installed (bridge inactive, basic sql.js fallback)"
+    fi
 else
     echo "  ⚠ claude-flow not found (ReasoningBank unavailable, Layer 0 fallback active)"
 fi
