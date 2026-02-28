@@ -117,7 +117,7 @@ else
     echo "  — scheduler/ (not found in source, skipping)"
 fi
 
-# Step 7: Ensure claude-flow has sql.js (missing from package.json, required at runtime)
+# Step 7: claude-flow runtime setup
 CF_BIN=""
 for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
     [ -x "$candidate" ] && CF_BIN="$candidate" && break
@@ -129,6 +129,12 @@ if [ -n "$CF_BIN" ]; then
         npm install sql.js --prefix "$CF_PKG_DIR" --silent 2>/dev/null && echo "  ✓ sql.js installed" || echo "  ⚠ sql.js install failed (ReasoningBank will degrade to Layer 0)"
     elif [ -d "$CF_PKG_DIR/node_modules/sql.js" ]; then
         echo "  ✓ claude-flow sql.js present"
+    fi
+    # Deploy embeddings config (ensures 384-dim all-MiniLM-L6-v2 across all projects)
+    mkdir -p "$HOME/.claude-flow"
+    if [ -f "$SOURCE_DIR/../.claude-flow/embeddings.json" ]; then
+        cp "$SOURCE_DIR/../.claude-flow/embeddings.json" "$HOME/.claude-flow/embeddings.json"
+        echo "  ✓ embeddings config deployed (384-dim, all-MiniLM-L6-v2)"
     fi
 else
     echo "  ⚠ claude-flow not found (ReasoningBank unavailable, Layer 0 fallback active)"
