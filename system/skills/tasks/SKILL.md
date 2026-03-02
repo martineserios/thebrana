@@ -756,3 +756,48 @@ On parent tasks, `spawn_strategy` controls child batching:
   "spawn_strategy": "auto"
 }
 ```
+
+---
+
+## /tasks reprioritize
+
+Research-informed priority reassessment across project backlogs.
+
+### Usage
+
+```
+/tasks reprioritize [project] [--reresearch] [--scope P2+]
+```
+
+### Default behavior (no flags)
+
+1. Read tasks.json for the project (or portfolio if omitted)
+2. For each pending task without a priority, analyze: revenue impact, urgency, dependencies, effort
+3. Propose priority assignments (P0-P3 tiers: P0 = this week, P1 = next, P2 = queue, P3 = backlog)
+4. Wait for approval before writing
+
+### With `--reresearch`
+
+1. Read tasks.json
+2. Identify tasks with external context: URLs in description/context/notes, tool/platform names in tags (e.g., "kapso", "respond-io", "meta")
+3. For each, spawn a scout agent for brief web research (latest docs, changelog, API status)
+4. Compare findings against current task description — flag if scope changed, tool matured, or blocker resolved
+5. Propose priority adjustments with research summary
+6. Wait for approval before writing
+
+### With `--scope P2+`
+
+Only re-evaluate tasks at P2 or lower (skip P0/P1 which were recently triaged).
+
+### Priority tiers
+
+| Tier | Meaning | Review cadence |
+|------|---------|----------------|
+| P0 | This week — active work | Daily |
+| P1 | Next up — queue | Weekly |
+| P2 | Backlog — when bandwidth allows | Monthly |
+| P3 | Icebox — someday/maybe | Quarterly |
+
+### Sort order
+
+P0 > P1 > P2 > P3 > null. Ties broken by: in_progress first, then pending, then `order` field.

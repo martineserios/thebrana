@@ -98,7 +98,7 @@
       "started": "2026-02-19",
       "completed": "2026-02-19",
       "notes": null,
-      "context": "Primary notification channel \u2014 headless-safe. Status line reads this. notify-send is secondary best-effort."
+      "context": "Primary notification channel — headless-safe. Status line reads this. notify-send is secondary best-effort."
     },
     {
       "id": "t-003",
@@ -228,7 +228,7 @@
       "started": "2026-02-19",
       "completed": "2026-02-19",
       "notes": null,
-      "context": "Research: template instantiation \u2014 %n passes full unit name. Must NOT have OnFailure on itself (recursion)."
+      "context": "Research: template instantiation — %n passes full unit name. Must NOT have OnFailure on itself (recursion)."
     },
     {
       "id": "t-007",
@@ -484,7 +484,11 @@
       "id": "ph-002",
       "subject": "RVF Memory Migration + claude-flow Upgrade",
       "description": "Upgrade claude-flow from alpha.34 to alpha.44, migrate ReasoningBank from SQLite to RVF/AgentDB. Zero data loss. Backlog items #31/#32 collapse into this. Research: ruvnet built both projects. MS-005 (upgrade) and MS-006 (spike) complete. MS-007 (wiring) parked — waiting for upstream claude-flow + AgentDB integration (issue #829).",
-      "tags": ["claude-flow", "rvf", "memory"],
+      "tags": [
+        "claude-flow",
+        "rvf",
+        "memory"
+      ],
       "status": "completed",
       "stream": "roadmap",
       "type": "phase",
@@ -506,10 +510,12 @@
       "id": "ms-005",
       "subject": "Backup + Upgrade claude-flow",
       "description": "Backup current memory.db, export all entries as JSON, upgrade claude-flow to alpha.44, verify memory still works after upgrade.",
-      "tags": ["claude-flow"],
+      "tags": [
+        "claude-flow"
+      ],
       "status": "completed",
-      "started": "2026-02-22",
-      "completed": "2026-02-22",
+      "started": null,
+      "completed": null,
       "stream": "roadmap",
       "type": "milestone",
       "parent": "ph-002",
@@ -521,8 +527,6 @@
       "branch": null,
       "github_issue": null,
       "created": "2026-02-22",
-      "started": null,
-      "completed": null,
       "notes": null,
       "context": null
     },
@@ -530,10 +534,13 @@
       "id": "t-016",
       "subject": "Backup memory.db and export all entries as JSON",
       "description": "cp ~/.swarm/memory.db ~/.swarm/memory.db.bak-pre-rvf. Export all 134 active memory_entries as JSON (key, namespace, content, tags, embedding_model, embedding_dimensions, status, created_at). This is the safety net — zero data loss guaranteed.",
-      "tags": ["claude-flow", "backup"],
+      "tags": [
+        "claude-flow",
+        "backup"
+      ],
       "status": "completed",
-      "started": "2026-02-22",
-      "completed": "2026-02-22",
+      "started": null,
+      "completed": null,
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-005",
@@ -545,8 +552,6 @@
       "branch": "feat/ph-002-rvf-migration",
       "github_issue": null,
       "created": "2026-02-22",
-      "started": null,
-      "completed": null,
       "notes": null,
       "context": null
     },
@@ -554,10 +559,12 @@
       "id": "t-017",
       "subject": "Upgrade claude-flow to alpha.44",
       "description": "npm install -g claude-flow@latest. Verify binary discovery still works. Run test-memory.sh round-trip. Check for breaking changes in alpha.35-44 (especially memory CLI flags). Fix sql.js dependency if needed.",
-      "tags": ["claude-flow"],
+      "tags": [
+        "claude-flow"
+      ],
       "status": "completed",
-      "started": "2026-02-22",
-      "completed": "2026-02-22",
+      "started": null,
+      "completed": null,
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-005",
@@ -565,12 +572,12 @@
       "priority": null,
       "effort": "S",
       "execution": "code",
-      "blocked_by": ["t-016"],
+      "blocked_by": [
+        "t-016"
+      ],
       "branch": "feat/ph-002-rvf-migration",
       "github_issue": null,
       "created": "2026-02-22",
-      "started": null,
-      "completed": null,
       "notes": null,
       "context": "Known errata: -q flag broken in alpha.34 (already fixed in brana). sql.js dependency must be manually installed post-upgrade. deploy.sh automates this."
     },
@@ -578,10 +585,12 @@
       "id": "t-018",
       "subject": "Verify existing memory accessible after upgrade",
       "description": "After upgrade: claude-flow memory search --query 'project:thebrana' should return results. claude-flow memory list --namespace patterns should show 129 entries. Run test-memory.sh. If schema changed, check migration_state table.",
-      "tags": ["claude-flow"],
+      "tags": [
+        "claude-flow"
+      ],
       "status": "completed",
-      "started": "2026-02-22",
-      "completed": "2026-02-22",
+      "started": null,
+      "completed": null,
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-005",
@@ -589,12 +598,12 @@
       "priority": null,
       "effort": "S",
       "execution": "code",
-      "blocked_by": ["t-017"],
+      "blocked_by": [
+        "t-017"
+      ],
       "branch": "feat/ph-002-rvf-migration",
       "github_issue": null,
       "created": "2026-02-22",
-      "started": null,
-      "completed": null,
       "notes": null,
       "context": null
     },
@@ -602,10 +611,12 @@
       "id": "ms-006",
       "subject": "Install RVF + Evaluate Integration",
       "description": "Install rvf-cli, spike: ingest current entries into .rvf, compare search quality vs SQLite/hash-fallback baseline. Determine integration path (CLI wrapper vs claude-flow backend config).",
-      "tags": ["rvf"],
+      "tags": [
+        "rvf"
+      ],
       "status": "completed",
-      "started": "2026-02-22",
-      "completed": "2026-02-22",
+      "started": null,
+      "completed": null,
       "stream": "roadmap",
       "type": "milestone",
       "parent": "ph-002",
@@ -613,12 +624,12 @@
       "priority": null,
       "effort": null,
       "execution": "code",
-      "blocked_by": ["ms-005"],
+      "blocked_by": [
+        "ms-005"
+      ],
       "branch": null,
       "github_issue": null,
       "created": "2026-02-22",
-      "started": null,
-      "completed": null,
       "notes": null,
       "context": null
     },
@@ -626,10 +637,13 @@
       "id": "t-019",
       "subject": "Install rvf-cli via cargo",
       "description": "cargo install rvf-cli. Verify binary works: rvf --help, rvf --version. Check available subcommands (ingest, query, export, etc.).",
-      "tags": ["rvf", "rust"],
+      "tags": [
+        "rvf",
+        "rust"
+      ],
       "status": "completed",
-      "started": "2026-02-22",
-      "completed": "2026-02-22",
+      "started": null,
+      "completed": null,
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-006",
@@ -637,12 +651,12 @@
       "priority": null,
       "effort": "S",
       "execution": "code",
-      "blocked_by": ["t-018"],
+      "blocked_by": [
+        "t-018"
+      ],
       "branch": "feat/ph-002-rvf-migration",
       "github_issue": null,
       "created": "2026-02-22",
-      "started": null,
-      "completed": null,
       "notes": null,
       "context": "cargo is available at ~/.cargo/bin/cargo. Rust toolchain already installed."
     },
@@ -650,10 +664,12 @@
       "id": "t-020",
       "subject": "Spike: ingest exported JSON into .rvf file",
       "description": "Use rvf-cli to ingest the JSON export from t-016 into a new .rvf file at ~/.swarm/memory.rvf. Map: key→key, content→value, namespace→namespace, tags→tags. Generate real embeddings during ingest if supported.",
-      "tags": ["rvf"],
+      "tags": [
+        "rvf"
+      ],
       "status": "completed",
-      "started": "2026-02-22",
-      "completed": "2026-02-22",
+      "started": null,
+      "completed": null,
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-006",
@@ -661,12 +677,12 @@
       "priority": null,
       "effort": "M",
       "execution": "code",
-      "blocked_by": ["t-019"],
+      "blocked_by": [
+        "t-019"
+      ],
       "branch": "feat/ph-002-rvf-migration",
       "github_issue": null,
       "created": "2026-02-22",
-      "started": null,
-      "completed": null,
       "notes": null,
       "context": "132 entries have hash-fallback 128-dim embeddings (poor quality). 2 have ONNX 384-dim. RVF should re-embed all entries with proper vectors during ingest."
     },
@@ -674,10 +690,12 @@
       "id": "t-021",
       "subject": "Compare search quality: RVF vs SQLite baseline",
       "description": "Run 5 test queries against both backends: (1) exact key lookup, (2) keyword search, (3) semantic paraphrase, (4) cross-project pattern, (5) namespace-filtered search. Document accuracy and latency for each. This determines if RVF is worth wiring in.",
-      "tags": ["rvf"],
+      "tags": [
+        "rvf"
+      ],
       "status": "completed",
-      "started": "2026-02-22",
-      "completed": "2026-02-22",
+      "started": null,
+      "completed": null,
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-006",
@@ -685,12 +703,12 @@
       "priority": null,
       "effort": "M",
       "execution": "code",
-      "blocked_by": ["t-020"],
+      "blocked_by": [
+        "t-020"
+      ],
       "branch": "feat/ph-002-rvf-migration",
       "github_issue": null,
       "created": "2026-02-22",
-      "started": null,
-      "completed": null,
       "notes": null,
       "context": "Key test: search for 'authentication security' should find patterns about 'login', 'session tokens', etc. — this is where hash-fallback fails and real embeddings shine."
     },
@@ -698,7 +716,11 @@
       "id": "ms-007",
       "subject": "Wire AgentDB into brana",
       "description": "Connect AgentDB/RVF to brana's hooks/skills. Completed via claude-flow v3.5.1 upgrade which natively integrates AgentDB v3.",
-      "tags": ["rvf", "agentdb", "integration"],
+      "tags": [
+        "rvf",
+        "agentdb",
+        "integration"
+      ],
       "status": "completed",
       "stream": "roadmap",
       "type": "milestone",
@@ -707,7 +729,9 @@
       "priority": null,
       "effort": null,
       "execution": "code",
-      "blocked_by": ["ms-006"],
+      "blocked_by": [
+        "ms-006"
+      ],
       "branch": null,
       "github_issue": null,
       "created": "2026-02-22",
@@ -720,7 +744,11 @@
       "id": "t-022",
       "subject": "Evaluate AgentDB as metadata-aware vector layer",
       "description": "AgentDB (npm) is ruvnet's intended application layer on top of RVF. Install via npx, test CLI (query, import, stats, mcp). Check: does `npx agentdb query --help` support metadata filters from CLI? Test MCP server mode. Import current 134 entries. Compare hybrid search quality vs claude-flow and raw rvf-cli baselines. This replaces the original plan of wiring rvf-cli directly.",
-      "tags": ["rvf", "agentdb", "integration"],
+      "tags": [
+        "rvf",
+        "agentdb",
+        "integration"
+      ],
       "status": "completed",
       "stream": "roadmap",
       "type": "task",
@@ -729,7 +757,9 @@
       "priority": null,
       "effort": "M",
       "execution": "code",
-      "blocked_by": ["t-021"],
+      "blocked_by": [
+        "t-021"
+      ],
       "branch": "feat/t-022-evaluate-agentdb",
       "github_issue": null,
       "created": "2026-02-22",
@@ -742,7 +772,10 @@
       "id": "t-023",
       "subject": "Update deploy.sh and export-knowledge.sh for AgentDB",
       "description": "deploy.sh: handle AgentDB store in backup/restore flow. export-knowledge.sh: export from AgentDB (agentdb export). restore.sh: import from backup (agentdb import). Backwards compatible — detect which backend exists (SQLite fallback if AgentDB not installed).",
-      "tags": ["agentdb", "integration"],
+      "tags": [
+        "agentdb",
+        "integration"
+      ],
       "status": "completed",
       "stream": "roadmap",
       "type": "task",
@@ -751,7 +784,9 @@
       "priority": null,
       "effort": "S",
       "execution": "code",
-      "blocked_by": ["t-022"],
+      "blocked_by": [
+        "t-022"
+      ],
       "branch": "feat/t-022-evaluate-agentdb",
       "github_issue": null,
       "created": "2026-02-22",
@@ -764,7 +799,10 @@
       "id": "t-024",
       "subject": "End-to-end verification: hooks, skills, scheduler all use AgentDB",
       "description": "Verify: (1) session-start.sh recalls patterns via AgentDB, (2) session-end.sh stores session summary, (3) /pattern-recall returns results, (4) /retrospective stores new pattern, (5) scheduler runner stores job summary, (6) test-memory.sh passes. Run full round-trip.",
-      "tags": ["agentdb", "verification"],
+      "tags": [
+        "agentdb",
+        "verification"
+      ],
       "status": "completed",
       "stream": "roadmap",
       "type": "task",
@@ -773,7 +811,10 @@
       "priority": null,
       "effort": "M",
       "execution": "code",
-      "blocked_by": ["t-022", "t-023"],
+      "blocked_by": [
+        "t-022",
+        "t-023"
+      ],
       "branch": "feat/t-022-evaluate-agentdb",
       "github_issue": null,
       "created": "2026-02-22",
@@ -786,7 +827,11 @@
       "id": "t-025",
       "subject": "Skills refactor — shared scripts, consolidation, dependency metadata",
       "description": "Extract shared primitives (cf-env.sh, memory-store.sh, backup-knowledge.sh) from 38 copy-pasted blocks across skills/hooks/agents. Consolidate pattern-recall + cross-pollinate + knowledge-review into /memory skill. Add depends_on and group frontmatter to all skills. Update deploy.sh and validate.sh for scripts/.",
-      "tags": ["refactor", "skills", "dx"],
+      "tags": [
+        "refactor",
+        "skills",
+        "dx"
+      ],
       "status": "completed",
       "stream": "tech-debt",
       "type": "task",
@@ -808,7 +853,10 @@
       "id": "t-026",
       "subject": "Fix erratum #67 — doc 14 skill count 33→34",
       "description": "Doc 14 line 151 says 'All 33 deployed skills' but actual count is 34 after /meta-template was added. Update the count.",
-      "tags": ["errata", "docs"],
+      "tags": [
+        "errata",
+        "docs"
+      ],
       "status": "completed",
       "stream": "bugs",
       "type": "task",
@@ -830,7 +878,10 @@
       "id": "t-027",
       "subject": "Fix erratum #70 — pre-commit range parsing false positive",
       "description": "Check 3 in enter/pre-commit.sh does literal grep for doc numbers but CLAUDE.md uses range notation (09-13, 20-23, 26-28). Expand ranges before grepping so docs inside ranges pass validation.",
-      "tags": ["errata", "tooling"],
+      "tags": [
+        "errata",
+        "tooling"
+      ],
       "status": "completed",
       "stream": "bugs",
       "type": "task",
@@ -852,7 +903,10 @@
       "id": "t-028",
       "subject": "Close backlog #65 — claude-flow permissions resolved",
       "description": "Verify claude-flow binary works, mark backlog #65 as done in doc 30.",
-      "tags": ["errata", "docs"],
+      "tags": [
+        "errata",
+        "docs"
+      ],
       "status": "completed",
       "stream": "bugs",
       "type": "task",
@@ -874,7 +928,10 @@
       "id": "t-029",
       "subject": "Add /tasks portfolio subcommand to tasks skill",
       "description": "Add portfolio subcommand to system/skills/tasks/SKILL.md — cross-project pending tasks view with by-project and unified modes. Feature brief: docs/features/tasks-portfolio.md. Backlog: enter #67.",
-      "tags": ["skills", "tasks"],
+      "tags": [
+        "skills",
+        "tasks"
+      ],
       "status": "completed",
       "stream": "roadmap",
       "type": "task",
@@ -896,13 +953,17 @@
       "id": "t-030",
       "subject": "Define team member roles from SOPs",
       "description": "Define job descriptions, responsibilities, and task assignments for each brana agent/team member based on existing SOPs and skill descriptions. Formalize role boundaries, delegation rules, escalation paths, ownership areas. Output: docs/team-roles.md or equivalent. Cross-reference: system/agents/, delegation-routing rule, skill 'When to use' triggers.",
-      "tags": ["agents", "sops", "team"],
+      "tags": [
+        "agents",
+        "sops",
+        "team"
+      ],
       "status": "pending",
       "stream": "roadmap",
       "type": "task",
       "parent": null,
       "order": 6,
-      "priority": "P2",
+      "priority": "P3",
       "effort": "M",
       "execution": "code",
       "blocked_by": [],
@@ -918,7 +979,10 @@
       "id": "t-031",
       "subject": "Add /retrospective call to /session-handoff close mode",
       "description": "After Step 2 (debrief-analyst), store each learning as a quarantined pattern via the retrospective workflow. Closes the learning loop — patterns are stored every session without requiring manual /retrospective invocation.",
-      "tags": ["skills", "learning-loop"],
+      "tags": [
+        "skills",
+        "learning-loop"
+      ],
       "status": "completed",
       "stream": "roadmap",
       "type": "task",
@@ -935,6 +999,847 @@
       "completed": "2026-02-25",
       "notes": "Step 2c added to session-handoff close mode. Stores learnings as quarantined patterns (confidence 0.5). Skips read-only sessions and errata-only findings. Full promotion review stays manual.",
       "context": "Backlog #83. Session-handoff captures what happened, retrospective stores reusable patterns. Merging them closes the gap."
+    },
+    {
+      "id": "t-032",
+      "subject": "Incorporate doc 30 backlog into the task system",
+      "description": "Doc 30 has 21 pending + 7 deferred backlog items tracked in a markdown table, disconnected from the /tasks workflow. Migrate actionable items into tasks.json (as a phase or standalone tasks), archive stale ones, and decide what to do with the 62 research leads (#410-#471). Goal: single source of truth for what's next — no split brain between doc 30 and tasks.json.",
+      "tags": [
+        "workflow",
+        "tasks"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": null,
+      "order": 8,
+      "priority": "P2",
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "21 pending items span: workflow(5), skills(3), docs(4), dx(2), infra(3), research(2), product(1), capabilities(1). 7 deferred. 62 research leads. 3 open GitHub issues also not in tasks.json."
+    },
+    {
+      "id": "t-033",
+      "subject": "Add --wide display mode to /tasks command",
+      "description": "Add a --wide (or --full) flag to /tasks status, /tasks portfolio, and /tasks roadmap that renders task info leveraging the full terminal width. Wide mode shows more columns per line (e.g., id, subject, status, tags, priority, effort, stream, blocked_by, dates — all on one row) instead of the current compact vertical format. Think kubectl get pods -o wide. Update the Display Themes section in SKILL.md with wide-mode templates for each theme.",
+      "tags": [
+        "skills",
+        "tasks",
+        "dx"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": null,
+      "order": 9,
+      "priority": "P3",
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "Inspired by kubectl -o wide. Current format is vertical/compact — good for quick glance but loses info density on wide terminals."
+    },
+    {
+      "id": "ph-003",
+      "subject": "Obsidian Knowledge Graph Integration",
+      "description": "Set up Obsidian as visualization layer for brana docs, formalize all cross-references for graph view, normalize skill output, and build auditor/contradiction detection. Two milestones: vault setup + cross-ref formalization (apply now), auditor pattern (plan, execute later).",
+      "tags": [
+        "obsidian",
+        "knowledge-graph",
+        "docs"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "phase",
+      "parent": null,
+      "order": 10,
+      "priority": "P2",
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": "feat/ph-003-obsidian-integration",
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": "2026-03-02",
+      "completed": "2026-03-02",
+      "notes": "ms-008: vault setup (symlink, 561 refs formalized, doc-linking rule, 4 skills updated). ms-009: auditor built into /memory review --audit, integration test fixed 10 contradictions.",
+      "context": "Backlog-urls #50 review sparked this. Brana has 178 formal + 191 informal cross-refs across 36+ docs. Obsidian graph view works with formal links out of the box. Auditor pattern from Steve Phelps adapted to brana's architecture."
+    },
+    {
+      "id": "ms-008",
+      "subject": "Vault Setup & Cross-Reference Formalization",
+      "description": "Create Obsidian vault from existing docs, symlink brana-knowledge, convert all informal refs to formal links, update skills to output graph-compatible references.",
+      "tags": [
+        "obsidian"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "milestone",
+      "parent": "ph-003",
+      "order": 1,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": "2026-03-02",
+      "completed": "2026-03-02",
+      "notes": "3/3 tasks done: t-034 (symlink+gitignore), t-035 (561 refs formalized), t-036 (doc-linking rule + 4 skills updated).",
+      "context": null
+    },
+    {
+      "id": "t-034",
+      "subject": "Create Obsidian vault symlinks + .gitignore",
+      "description": "Symlink brana-knowledge/dimensions → docs/dimensions so Obsidian sees both repos in one vault. Add .obsidian/ to .gitignore (Obsidian creates local config on first open). Verify: open docs/ as vault, graph view shows 178 formal link connections.",
+      "tags": [
+        "obsidian"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-008",
+      "order": 1,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": "feat/ph-003-obsidian-integration",
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": "2026-03-02",
+      "completed": "2026-03-02",
+      "notes": "Symlink docs/dimensions → ../../brana-knowledge/dimensions. Added .obsidian/ to .gitignore.",
+      "context": null
+    },
+    {
+      "id": "t-035",
+      "subject": "Convert 561 informal doc refs to formal markdown links",
+      "description": "Bulk-convert informal 'doc NN' prose refs → '[doc NN](./path.md)' formal links via Python script. Preserves existing formal links. Cross-repo refs use symlinked path (dimensions/NN-name.md). Cover thebrana/docs/ and brana-knowledge/dimensions/. Validate: all links resolve, no broken refs.",
+      "tags": [
+        "obsidian",
+        "docs"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-008",
+      "order": 2,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [
+        "t-034"
+      ],
+      "branch": "feat/ph-003-obsidian-integration",
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": "2026-03-02",
+      "completed": "2026-03-02",
+      "notes": "561 refs across 37 files (22 thebrana/docs + 15 brana-knowledge/dimensions). Script at /tmp/formalize-doc-refs.py.",
+      "context": "191 informal refs across 36+ docs. Pattern: 'doc 14', 'Doc 17', 'doc 31'. Must map doc numbers to filenames (e.g., 14 → reflections/14-mastermind-architecture.md, 17 → 17-implementation-roadmap.md). Some docs are in brana-knowledge (dimensions/) — use symlinked path."
+    },
+    {
+      "id": "t-036",
+      "subject": "Update knowledge-writing skills to use formal links",
+      "description": "Update skills that create or modify docs to always use formal '[doc NN](path)' links when referencing other docs. Skills: /research, /retrospective, /maintain-specs, /back-propagate, /debrief, /build-phase, /session-handoff, /knowledge, /build-feature. Add convention note to each SKILL.md. This ensures new content stays Obsidian-graph-compatible.",
+      "tags": [
+        "obsidian",
+        "skills"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-008",
+      "order": 3,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [
+        "t-035"
+      ],
+      "branch": "feat/ph-003-obsidian-integration",
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": "2026-03-02",
+      "completed": "2026-03-02",
+      "notes": "Added system/rules/doc-linking.md (global rule). Updated 4 skill templates: research, build-phase, debrief, back-propagate. maintain-specs and session-handoff don't exist as separate skill files.",
+      "context": "9 skills write knowledge. Convention: 'When referencing another doc, always use [doc NN](relative-path.md) format — never bare \"doc NN\" prose. This keeps the Obsidian knowledge graph connected.'"
+    },
+    {
+      "id": "ms-009",
+      "subject": "Auditor / Contradiction Detection",
+      "description": "Build contradiction detection for brana's knowledge layer. Extract factual assertions from docs (counts, versions, architecture claims), cross-reference across all docs that touch the same topic, flag mismatches. Output: contradiction report in errata-like format.",
+      "tags": [
+        "auditor",
+        "knowledge-graph"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "milestone",
+      "parent": "ph-003",
+      "order": 2,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [
+        "ms-008"
+      ],
+      "branch": "feat/ms-009-auditor",
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": "2026-03-02",
+      "completed": "2026-03-02",
+      "notes": "3/3 tasks done. Auditor mode added to /memory skill, integration test found and fixed 10 contradictions.",
+      "context": "Pattern from Steve Phelps (backlog #50): auditor skill traverses wiki-links for contradictions. Adapted for brana: use formal markdown links + grep-based assertion extraction instead of Obsidian API."
+    },
+    {
+      "id": "t-037",
+      "subject": "Design assertion extraction + contradiction model",
+      "description": "Research task: define what 'assertions' look like in brana docs — component counts ('10 agents'), version numbers ('v3.5.1'), architecture claims ('claude-flow is the memory layer'), tool/file names. Design extraction heuristics (regex patterns, section parsing). Define contradiction types: stale count, version mismatch, renamed entity, conflicting claim. Output: design doc or notes in task context.",
+      "tags": [
+        "auditor",
+        "research"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-009",
+      "order": 1,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": "feat/ms-009-auditor",
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": "2026-03-02",
+      "completed": "2026-03-02",
+      "notes": "5 assertion types defined: count, version, component list, architecture claim, process claim. Extraction heuristics: regex for counts/versions, table parsing for lists. Contradiction types: stale count, version mismatch, incomplete list, conflicting claim.",
+      "context": "Example contradictions to catch: doc 14 says '33 skills' but actual count is 34. CLAUDE.md says 'claude-flow' but upstream renamed to 'ruflo'. Doc 32 references a hook that was removed."
+    },
+    {
+      "id": "t-038",
+      "subject": "Implement /memory review --audit mode",
+      "description": "New mode in /memory review skill: extract assertions from target doc (or all reflections), find all docs that reference same topics via formal links, compare assertions, flag mismatches. Output: contradiction report in doc 24 errata format (erratum number, location, issue, severity, suggested fix).",
+      "tags": [
+        "auditor",
+        "skills"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-009",
+      "order": 2,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [
+        "t-037",
+        "t-036"
+      ],
+      "branch": "feat/ms-009-auditor",
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": "2026-03-02",
+      "completed": "2026-03-02",
+      "notes": "Added --audit mode to /memory review SKILL.md. 7 steps: select targets, extract assertions, verify counts, cross-reference, report, classify severity, offer fixes.",
+      "context": "Builds on /reconcile (spec vs impl drift) but works at knowledge layer (doc vs doc). Uses formal links from t-036 as traversal paths."
+    },
+    {
+      "id": "t-039",
+      "subject": "Integration test: run auditor across all reflections",
+      "description": "Run /memory review --audit on all 5 reflection docs (08, 14, 29, 31, 32) + CLAUDE.md + system/CLAUDE.md. Fix contradictions found. Validates the tool works end-to-end and produces actionable output.",
+      "tags": [
+        "auditor",
+        "verification"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-009",
+      "order": 3,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [
+        "t-038"
+      ],
+      "branch": "feat/ms-009-auditor",
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": "2026-03-02",
+      "completed": "2026-03-02",
+      "notes": "Audited doc 14 + both CLAUDE.md files. Found 10 contradictions (3 HIGH, 4 MEDIUM, 2 LOW, 1 MEDIUM label fix). All fixed. Report: docs/24-roadmap-corrections.audit-2026-03-02.md",
+      "context": "5 reflections + 2 CLAUDE.md files = 7 docs to audit. Expected findings: stale counts, renamed entities (claude-flow → ruflo), removed/added components not reflected everywhere."
+    },
+    {
+      "id": "t-040",
+      "subject": "Trim git-discipline.md to reduce context footprint",
+      "description": "Trim git-discipline.md from 142 to ~70 lines by consolidating worktree tutorial examples into concise references. paths: scoping doesn't apply — behavioral/process rules need to be in context before file work, not triggered by file patterns. Real savings come from shorter content.",
+      "tags": [
+        "context-engineering",
+        "rules"
+      ],
+      "status": "completed",
+      "stream": "tech-debt",
+      "type": "task",
+      "parent": null,
+      "order": 11,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": "feat/t040-context-harness-improvements",
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": "2026-03-02",
+      "completed": "2026-03-02",
+      "notes": "142→51 lines. Removed 3 redundant worktree bash blocks, motivational text, one-time setup. All behavioral rules preserved. paths: scoping doesn't apply to process rules — trimming is more effective.",
+      "context": "From backlog #61 review (Julian DeAngelis — Agent Harness / Context Engineering). Brana has conditional loading infra but 0 of 11 rules use it."
+    },
+    {
+      "id": "t-041",
+      "subject": "Add early context warning zone (55-65%)",
+      "description": "Update context-budget.md to add a yellow zone at 55-65% that triggers lighter interventions (prefer summaries over full reads, stop loading new files, consider delegation) before the 70% hard compact trigger. Based on Chroma research showing degradation starts well before full utilization.",
+      "tags": [
+        "context-engineering",
+        "rules"
+      ],
+      "status": "completed",
+      "stream": "tech-debt",
+      "type": "task",
+      "parent": null,
+      "order": 12,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": "feat/t040-context-harness-improvements",
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": "2026-03-02",
+      "completed": "2026-03-02",
+      "notes": "Added 55-70% yellow zone + context rot explanation line. Threshold lowered from 70% to 55% for first intervention.",
+      "context": "Chroma 18-model study: all models degrade as context grows, some at 50K of 1M. Current brana threshold (70%) may be too late."
+    },
+    {
+      "id": "t-042",
+      "subject": "Add few-shot examples to sdd-tdd and task-convention rules",
+      "description": "Add 2-3 line concrete examples to sdd-tdd.md (spec-first workflow example) and task-convention.md (branch naming example). DeAngelis: 'Models learn from examples far better than abstract instructions.' Must stay within context budget.",
+      "tags": [
+        "context-engineering",
+        "rules"
+      ],
+      "status": "completed",
+      "stream": "tech-debt",
+      "type": "task",
+      "parent": null,
+      "order": 13,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": "feat/t040-context-harness-improvements",
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": null,
+      "completed": null,
+      "notes": "sdd-tdd: added 8-line spec-first example (ADR → test → impl). task-convention: added 5-line branch naming examples (stream → prefix mapping).",
+      "context": "Current rules are 100% directive with zero examples. Key anti-pattern: task-convention branch naming errors recur."
+    },
+    {
+      "id": "t-043",
+      "subject": "Test/lint feedback hook in PostToolUse chain",
+      "description": "Add PostToolUse hook that detects test/lint Bash commands and logs pass/fail to session JSONL. Feeds into flywheel metrics (test_pass_rate). Currently PostToolUse logs corrections/cascades but has no test result signal. DeAngelis: 'More structured feedback = less human-in-the-loop.'",
+      "tags": [
+        "context-engineering",
+        "hooks",
+        "feedback-loop"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": null,
+      "order": 14,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "From backlog #61 review. Currently: agent writes code → PostToolUse logs it → done. No automatic 'did it pass tests?' signal."
+    },
+    {
+      "id": "t-044",
+      "subject": "PR review agent (PostToolUse on gh pr create)",
+      "description": "PostToolUse hook on Bash that detects 'gh pr create' and auto-triggers a code review subagent before merge. Lightweight for single-user but catches issues pre-merge. DeAngelis runs review agents in CI for every PR at MercadoLibre.",
+      "tags": [
+        "context-engineering",
+        "hooks",
+        "feedback-loop"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": null,
+      "order": 15,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "From backlog #61 review. Challenger reviews plans (ExitPlanMode), nothing reviews code (PR creation)."
+    },
+    {
+      "id": "t-045",
+      "subject": "Skills bundling executable scripts",
+      "description": "Enable skills to bundle helper scripts (.sh, .py) alongside SKILL.md. Currently all logic is inline markdown. DeAngelis: 'Skills can bundle and execute scripts, making extensibility essentially infinite.' Candidates: /research (URL triage script), /knowledge (indexing helper), /usage-stats (stats parser).",
+      "tags": [
+        "context-engineering",
+        "skills"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": null,
+      "order": 16,
+      "priority": null,
+      "effort": "L",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "From backlog #61 review. Some skills already reference external scripts (cf-env.sh) but none bundle their own helpers in the skill directory."
+    },
+    {
+      "id": "t-046",
+      "subject": "Research NotebookLM integration for brana",
+      "description": "Explore using Google NotebookLM as a research companion for brana knowledge work.",
+      "tags": [
+        "research",
+        "notebooklm",
+        "knowledge"
+      ],
+      "status": "completed",
+      "stream": "experiments",
+      "type": "task",
+      "parent": null,
+      "order": 17,
+      "priority": null,
+      "effort": null,
+      "execution": "external",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": "2026-03-02",
+      "completed": "2026-03-02",
+      "notes": "Research complete. 15+ sources, 10 HIGH findings. Primary vector: PleasePrompto/notebooklm-mcp v1.5.3 (29 tools). Feature brief at docs/features/notebooklm-integration.md. Challenger-reviewed. Promoted to ph-004.",
+      "context": "Superseded by ph-004. Feature brief: docs/features/notebooklm-integration.md"
+    },
+    {
+      "id": "t-047",
+      "subject": "Write beginner's guide to thebrana",
+      "description": "Create a clear, standalone guide for people who know nothing about thebrana. Should explain: what brana is and why it exists, the two-workspace model (docs/ vs system/), how deploy.sh works, the most important slash commands and when to use them, how hooks/rules/agents/skills fit together, the spec cascade (dimension → reflection → roadmap → code), and how to get started from zero. Target audience: someone who just cloned the repo and has no context. Tone: practical, no jargon without explanation, with examples. Could live at docs/guides/getting-started.md or similar.",
+      "tags": [
+        "docs",
+        "onboarding",
+        "dx"
+      ],
+      "status": "pending",
+      "stream": "docs",
+      "type": "task",
+      "parent": null,
+      "order": 18,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "The overview given in this session (commands, diagrams, hook flow, spec cascade, agent routing) is a good starting skeleton."
+    },
+    {
+      "id": "ph-004",
+      "subject": "NotebookLM Integration",
+      "description": "Integrate Google NotebookLM as a second-opinion AI layer for brana. Gemini grounded in dimension docs complements Claude's synthesis. Also enables visual artifact generation (infographics, podcasts, slides). Feature brief: docs/features/notebooklm-integration.md. Challenger-reviewed: use minimal MCP profile, gate on value comparison (t-050), MCP config goes in .mcp.json not settings.json.",
+      "tags": [
+        "notebooklm",
+        "research",
+        "knowledge"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "phase",
+      "parent": null,
+      "order": 4,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "Research: t-046. Challenger flagged 3 critical issues (wrong config file, missing allowed-tools, context bloat). All addressed in task design."
+    },
+    {
+      "id": "ms-010",
+      "subject": "Spike: Validate Value (experiment-first)",
+      "description": "Install MCP with minimal profile, create notebook with key dimension docs, and run the critical comparison test. Gate: if Gemini synthesis doesn't meaningfully complement Claude's on 3 known topics, the phase stops here.",
+      "tags": [
+        "notebooklm"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "milestone",
+      "parent": "ph-004",
+      "order": 1,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": null
+    },
+    {
+      "id": "t-048",
+      "subject": "Install notebooklm-mcp (minimal profile), auth, measure context cost",
+      "description": "Run `claude mcp add notebooklm npx notebooklm-mcp@latest` — this adds to .mcp.json (NOT settings.json, per challenger review). Use minimal profile to limit tool count. Auth via browser Google login. Measure: how many tokens does the MCP server add to session start? Compare with/without. Document profile options and which tools each exposes.",
+      "tags": [
+        "notebooklm",
+        "mcp"
+      ],
+      "status": "in_progress",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-010",
+      "order": 1,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": "feat/t-048-notebooklm-mcp-setup",
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": "2026-03-02",
+      "completed": null,
+      "notes": "MCP server added to .mcp.json (minimal profile, 5 tools). Feature brief persisted at docs/features/notebooklm-integration.md with corrected tool counts. Committed on feat/t-048-notebooklm-mcp-setup. Main cleaned for merge. USER ACTION NEEDED: run `npx notebooklm-mcp@latest` in terminal for browser Google OAuth, then restart Claude Code session. After auth: tools appear, measure context cost. Content generation NOT available via MCP (web UI only).",
+      "context": "Challenger critical finding: MCP config goes in .mcp.json, not settings.json. deploy.sh doesn't touch MCP servers. Context budget rule warns MCP servers cost 4-17K tokens each — 29 tools could be 15-25K. Minimal profile limits exposure."
+    },
+    {
+      "id": "t-049",
+      "subject": "Create brana-knowledge notebook + upload 5 key dimension docs",
+      "description": "Create a 'brana-knowledge' notebook in NotebookLM. Upload 5 key dimension docs as sources (start with: 01-brana-system, 04-claude, 11-ecosystem, 14-architecture reflection, 22-testing). Verify sources are indexed. Test basic ask_question to confirm grounding works.",
+      "tags": [
+        "notebooklm",
+        "knowledge"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-010",
+      "order": 2,
+      "priority": null,
+      "effort": "S",
+      "execution": "external",
+      "blocked_by": [
+        "t-048"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "Security boundary: dimension docs and reflections are safe to upload (public/semi-public knowledge). NEVER upload: project code, .env files, client data, task details with PII."
+    },
+    {
+      "id": "t-050",
+      "subject": "GATE: Compare Claude vs Gemini synthesis on 3 known topics",
+      "description": "Pick 3 topics where you know the brana docs well (e.g., hook architecture, spec cascade, context budget). For each: (1) ask Claude to synthesize from the docs, (2) ask NotebookLM the same question via ask_question with expanded citations. Compare: does Gemini catch anything Claude missed? Does it surface connections across docs that Claude didn't? Does it add noise? Score each topic: +1 (added value), 0 (neutral), -1 (noise). GATE: if total score <= 0, phase stops here — NotebookLM doesn't earn deeper integration.",
+      "tags": [
+        "notebooklm",
+        "validation"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-010",
+      "order": 3,
+      "priority": null,
+      "effort": "M",
+      "execution": "external",
+      "blocked_by": [
+        "t-049"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "Challenger observation: this is the most valuable task in the entire phase. If Gemini adds nothing, the remaining 7 tasks are wasted effort. Run this as a manual experiment — no code changes needed."
+    },
+    {
+      "id": "ms-011",
+      "subject": "Integrate into /research and /challenge Skills",
+      "description": "Wire NotebookLM as a second-opinion signal in /research Phase 2 triage and evaluate for /challenge adversarial reviews. Requires adding MCP tools to skill allowed-tools lists. Measure context budget impact.",
+      "tags": [
+        "notebooklm",
+        "skills"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "milestone",
+      "parent": "ph-004",
+      "order": 2,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [
+        "ms-010"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "Challenger critical finding: /research SKILL.md has allowed-tools whitelist (Read, Glob, Grep, Bash, WebSearch, WebFetch, Task). Must explicitly add mcp__notebooklm__ask_question or delegate via subagent."
+    },
+    {
+      "id": "t-051",
+      "subject": "Add mcp__notebooklm__ask_question to /research allowed-tools",
+      "description": "Edit system/skills/research/SKILL.md to add mcp__notebooklm__ask_question to the allowed-tools list. Alternatively, design a subagent delegation pattern if we want to keep the skill sandbox clean. Decision: inline tool vs subagent — consider ADR if non-obvious.",
+      "tags": [
+        "notebooklm",
+        "skills",
+        "research"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-011",
+      "order": 1,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [
+        "ms-010"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": null
+    },
+    {
+      "id": "t-052",
+      "subject": "Wire ask_question as Phase 2 triage signal in /research",
+      "description": "Add a step in /research Phase 2 (triage) that queries the brana-knowledge NotebookLM notebook for Gemini's grounded perspective on the topic being researched. Present both Claude's web findings and Gemini's doc-grounded synthesis side by side. Make this optional (skip if NotebookLM MCP not available — graceful degradation).",
+      "tags": [
+        "notebooklm",
+        "skills",
+        "research"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-011",
+      "order": 2,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [
+        "t-051"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": null
+    },
+    {
+      "id": "t-053",
+      "subject": "Evaluate NotebookLM for /challenge adversarial reviews",
+      "description": "Test whether NotebookLM can enhance /challenge by providing Gemini-grounded adversarial perspective. Hypothesis: Gemini can catch gaps where a plan contradicts existing dimension docs (e.g., 'doc 22 says X about testing but this plan ignores it'). Test on 2 recent plans/ADRs. If valuable, add mcp__notebooklm__ask_question to /challenge skill or challenger agent. If not, document why and skip.",
+      "tags": [
+        "notebooklm",
+        "skills",
+        "challenge"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-011",
+      "order": 3,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [
+        "t-051"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "User requested this evaluation. The challenger agent already runs as Opus — adding Gemini perspective would make it a dual-model adversarial review. Could also be wired into the post-plan-challenge.sh hook."
+    },
+    {
+      "id": "ms-012",
+      "subject": "Knowledge Sync + Content Generation",
+      "description": "Script to sync all dimension docs to NotebookLM, test visual artifact generation (infographics, podcasts), and document the integration's value boundaries and rollback procedure. Manual sync first (no post-commit hook — auth fragility per challenger review).",
+      "tags": [
+        "notebooklm",
+        "knowledge",
+        "content"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "milestone",
+      "parent": "ph-004",
+      "order": 3,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [
+        "ms-011"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "Challenger warning: browser-based auth is fragile for automation. Manual sync script first, evaluate post-commit hook only if auth proves stable."
+    },
+    {
+      "id": "t-054",
+      "subject": "Script to sync all dimension docs → NotebookLM sources",
+      "description": "Write a script (system/scripts/sync-notebooklm.sh or .py) that reads all dimension docs from brana-knowledge/dimensions/ and uploads/updates them as sources in the brana-knowledge NotebookLM notebook. Handle: new docs (add), changed docs (update), removed docs (delete source). Manual invocation only — no post-commit hook yet.",
+      "tags": [
+        "notebooklm",
+        "knowledge",
+        "scripts"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-012",
+      "order": 1,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [
+        "ms-011"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": null
+    },
+    {
+      "id": "t-055",
+      "subject": "Test content generation: 1 infographic + 1 podcast from dimension docs",
+      "description": "Test NotebookLM Studio content generation via MCP: (1) create_infographic from a dimension doc — evaluate visual quality, layout options. (2) create_podcast from a reflection doc — evaluate audio quality, accuracy, usefulness for passive learning. Document the create→poll→receive workflow and any latency/reliability issues.",
+      "tags": [
+        "notebooklm",
+        "content"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-012",
+      "order": 2,
+      "priority": null,
+      "effort": "S",
+      "execution": "external",
+      "blocked_by": [
+        "ms-011"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "create_* returns requestId → poll get_*_status → receive asset URL. Async workflow — need to handle polling in Claude Code (Bash sleep loop or manual check)."
+    },
+    {
+      "id": "t-056",
+      "subject": "Document: value boundaries, rollback procedure, context budget impact",
+      "description": "Write integration doc covering: (1) when NotebookLM adds value vs when to skip it, (2) how to disable the integration quickly (remove from .mcp.json, restart session), (3) measured context budget impact (tokens added by MCP server), (4) security boundaries (what to upload, what never to upload), (5) auth re-authentication procedure when token expires.",
+      "tags": [
+        "notebooklm",
+        "docs"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-012",
+      "order": 3,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [
+        "t-054",
+        "t-055"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": null
     }
   ]
 }
