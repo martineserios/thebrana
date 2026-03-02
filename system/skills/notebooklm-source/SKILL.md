@@ -77,7 +77,7 @@ Call mcp__notebooklm__get_health
 
 **CLAUDE:** Validate the result (word count, structure, limits).
 
-**CLAUDE:** Write the optimized file to `/tmp/notebooklm-{filename}.md`.
+**CLAUDE:** Write the optimized file to `/tmp/notebooklm-{notebook-name}/{filename}.md` (subfolder per notebook so user can drag the whole folder at once).
 
 **CLAUDE:** Show the user:
 1. A before/after diff summary (what changed and why)
@@ -135,7 +135,7 @@ Show existing notebooks. Ask:
 **YOU:** Now do these steps in order:
 1. Open [notebooklm.google](https://notebooklm.google)
 2. Click **"+ New notebook"**
-3. Upload the files listed under "Files to upload"
+3. Upload the files from the `/tmp/notebooklm-{name}/` folder (drag the whole folder)
 4. Add any URLs listed under "URLs to add"
 5. Add any Google Docs listed under "Google Docs to add"
 6. Wait for ingestion to finish (progress bar)
@@ -407,5 +407,5 @@ Based on general RAG behavior and community reports. Google does not publish Not
 6. **Strip noise.** Boilerplate, empty sections, image refs, broken links.
 7. **Preserve meaning.** Restructure and format, never alter substance.
 8. **Show diffs.** Always show what changed before writing.
-9. **Write to /tmp/.** Never modify original source files.
+9. **Write to /tmp/notebooklm-{name}/.** One subfolder per notebook. Never modify original source files.
 10. **Label every step.** User must always know if Claude acts next or they do.
