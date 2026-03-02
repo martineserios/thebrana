@@ -107,6 +107,22 @@
 | `unknown` | 4 | 0 | 0 | 4 |
 | `not-relevant` | 2 | 0 | 0 | 2 |
 
+## Picked Item Workflow
+
+When a backlog item is picked to work on (beyond review/research), use `/build-feature`:
+
+1. **Orient** — research the item, understand the landscape
+2. **Discover** — brainstorm approaches, evaluate trade-offs
+3. **Shape** — write an ADR (`/decide`) capturing the decision
+4. **Design** — spec-driven development (SDD): write the spec before code
+5. **Plan** — break into tasks, write tests first (TDD)
+6. **Build** — implement, test, verify
+7. **Close** — debrief, back-propagate to specs
+
+This ensures every backlog item gets the same rigor thebrana was built with: ADRs, SDD, TDD, challenger review on significant decisions.
+
+---
+
 ## Priority Queue (next actions)
 
 1. ~~**#9** — Study harness problem~~ `reviewed` — 3 lines to 2 rules files
