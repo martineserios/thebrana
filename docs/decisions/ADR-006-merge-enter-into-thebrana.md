@@ -152,5 +152,5 @@ See [doc 39](../39-architecture-redesign.md), section 10 for full risk table (10
 
 - [39-architecture-redesign.md](../39-architecture-redesign.md) — full analysis and migration details
 - [ADR-005](./ADR-005-agentdb-v3-unified-knowledge-backend.md) — AgentDB proposal (deferred by this ADR)
-- [14-mastermind-architecture.md](../14-mastermind-architecture.md) — current architecture (pre-merge)
+- [14-mastermind-architecture.md](../reflections/14-mastermind-architecture.md) — current architecture (pre-merge)
 - [Doc 24](../24-roadmap-corrections.md), errata #73-76 — cascade findings from [doc 39](../39-architecture-redesign.md) maintain-specs run

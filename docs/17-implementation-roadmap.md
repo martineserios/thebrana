@@ -198,7 +198,7 @@ Plan B cost:
 └── README.md
 ```
 
-**Testing strategy:** The actual implementation uses a 3-layer test suite: `validate.sh` (static checks — YAML, JSON, syntax, secrets, context budget), `test-hooks.sh` (pipe fake JSON to deployed hooks, verify exit 0 + valid JSON), `test-memory.sh` (claude-flow store → search → verify round-trip). Wrapped by `test.sh` which runs all layers. The full 7-layer pyramid from [22-testing.md](./22-testing.md) is adopted pain-driven — add layers as failures motivate them, not upfront. Run `./test.sh` before merging to master.
+**Testing strategy:** The actual implementation uses a 3-layer test suite: `validate.sh` (static checks — YAML, JSON, syntax, secrets, context budget), `test-hooks.sh` (pipe fake JSON to deployed hooks, verify exit 0 + valid JSON), `test-memory.sh` (claude-flow store → search → verify round-trip). Wrapped by `test.sh` which runs all layers. The full 7-layer pyramid from [22-testing.md](dimensions/22-testing.md) is adopted pain-driven — add layers as failures motivate them, not upfront. Run `./test.sh` before merging to master.
 
 ### claude-flow Setup
 
@@ -283,7 +283,7 @@ Start minimal:
 
 ## Phase 1: Foundation Skills + Plugins (Weeks 2-4)
 
-**Goal:** The six mastermind skills from [14-mastermind-architecture.md](./14-mastermind-architecture.md), plus foundational plugins. The brain has its core capabilities but no automated learning yet. This is scaffolding — invest just enough polish to be usable, save quality engineering for Phase 2.
+**Goal:** The six mastermind skills from [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md), plus foundational plugins. The brain has its core capabilities but no automated learning yet. This is scaffolding — invest just enough polish to be usable, save quality engineering for Phase 2.
 
 ### Skills
 
@@ -296,11 +296,11 @@ Build in this order (each depends on the previous being conceptually proven):
 | 3 | `/project-onboard` | `memory search -q` | Cross-project query — validates tagging |
 | 4 | `/memory pollinate` | `memory search -q` | Most nuanced — needs patterns to exist first |
 | 5 | `/project-retire` | `memory store` + bulk operations | Least urgent, most complex |
-| 6 | `/challenge` | Task tool with `model: "sonnet"` | Cross-model adversarial review — see [13-challenger-agent.md](./13-challenger-agent.md) |
+| 6 | `/challenge` | Task tool with `model: "sonnet"` | Cross-model adversarial review — see [13-challenger-agent.md](dimensions/13-challenger-agent.md) |
 
 ### Plugins to Install
 
-From the [11-ecosystem-skills-plugins.md](./11-ecosystem-skills-plugins.md) analysis:
+From the [11-ecosystem-skills-plugins.md](dimensions/11-ecosystem-skills-plugins.md) analysis:
 
 | Plugin | Why | Scope |
 |--------|-----|-------|
@@ -326,7 +326,7 @@ From the [11-ecosystem-skills-plugins.md](./11-ecosystem-skills-plugins.md) anal
 
 ### Skill Catalog (Tier 2)
 
-Create `system/skill-catalog.yaml` — a passive reference of vetted external skills. Not installed, zero context cost, but known-good. See [12-skill-selector.md](./12-skill-selector.md) for the full trust model.
+Create `system/skill-catalog.yaml` — a passive reference of vetted external skills. Not installed, zero context cost, but known-good. See [12-skill-selector.md](dimensions/12-skill-selector.md) for the full trust model.
 
 As you manually install and evaluate skills during this phase, add the good ones to the catalog with version pin + checksum. This catalog grows organically through actual use, not upfront speculation.
 
@@ -384,7 +384,7 @@ After Phase 1:
 
 ### The Three Hooks
 
-Wire these into `system/settings.json` per the design in [14-mastermind-architecture.md](./14-mastermind-architecture.md). See [09-claude-code-native-features.md](./09-claude-code-native-features.md) for the hook JSON format, all 14 events, stdin/stdout contracts, and async constraints.
+Wire these into `system/settings.json` per the design in [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md). See [09-claude-code-native-features.md](dimensions/09-claude-code-native-features.md) for the hook JSON format, all 14 events, stdin/stdout contracts, and async constraints.
 
 #### Hook 1: SessionStart — "Remember what you know"
 
@@ -444,7 +444,7 @@ PostToolUseFailure (SEPARATE event — needs its own hook config):
 
 **Important:** Both hooks must be async (`"async": true`) and lightweight. Use environment variable guard (`BRANA_HOOK_RUNNING=1`) to prevent infinite loops. Async hooks cannot block or return decisions — they can only log and provide feedback on the next turn.
 
-### Hook Capabilities to Leverage (from deep dive — see [20-anthropic-blog-findings.md](./20-anthropic-blog-findings.md))
+### Hook Capabilities to Leverage (from deep dive — see [20-anthropic-blog-findings.md](dimensions/20-anthropic-blog-findings.md))
 
 Several hook capabilities discovered during the doc research that improve the learning loop:
 
@@ -473,9 +473,9 @@ Test sequence:
   9. Verify pattern is NOT recalled (still in quarantine, not transferable)
 ```
 
-**Testing methodology:** This sequence is the record/playback pattern from [22-testing.md](./22-testing.md) — capture hook inputs/outputs during a real session, then replay as a deterministic CI test. The manual sequence above should be converted to an automated replay test once the loop is stable.
+**Testing methodology:** This sequence is the record/playback pattern from [22-testing.md](dimensions/22-testing.md) — capture hook inputs/outputs during a real session, then replay as a deterministic CI test. The manual sequence above should be converted to an automated replay test once the loop is stable.
 
-**Measuring recall quality:** Use RAG metrics from [23-evaluation.md](./23-evaluation.md) and the eval framework in [14-mastermind-architecture.md](./14-mastermind-architecture.md#evaluating-the-brain): precision@k (were recalled patterns relevant?), recall@k (were relevant patterns found?), staleness rate (<15%). The >50% value target in exit criteria maps to precision@5 > 0.5.
+**Measuring recall quality:** Use RAG metrics from [23-evaluation.md](dimensions/23-evaluation.md) and the eval framework in [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md#evaluating-the-brain): precision@k (were recalled patterns relevant?), recall@k (were relevant patterns found?), staleness rate (<15%). The >50% value target in exit criteria maps to precision@5 > 0.5.
 
 ### Early Quarantine (Immune System Layer 1)
 
@@ -537,7 +537,7 @@ A daily cron or next-SessionStart can flush pending learnings to ReasoningBank.
 
 ### SONA Activation
 
-From [06-claude-flow-internals.md](./06-claude-flow-internals.md): SONA (Self-Organizing Neural Architecture) provides trajectory tracking, MoE (Mixture of Experts) routing, and EWC++ catastrophic forgetting prevention.
+From [06-claude-flow-internals.md](dimensions/06-claude-flow-internals.md): SONA (Self-Organizing Neural Architecture) provides trajectory tracking, MoE (Mixture of Experts) routing, and EWC++ catastrophic forgetting prevention.
 
 **When to activate:** After ~50-100 patterns have accumulated in ReasoningBank. Before that, there isn't enough data for SONA to find meaningful trajectories.
 
@@ -566,7 +566,7 @@ Post-SONA (Phase 3+):
 
 ### Evaluation Methodology (from Anthropic's Evals Research)
 
-The SONA evaluation gate above follows Anthropic's proven eval methodology (see [21-anthropic-engineering-deep-dive.md](./21-anthropic-engineering-deep-dive.md), section 11 and [23-evaluation.md](./23-evaluation.md) for the full eval strategy). Key principles to apply:
+The SONA evaluation gate above follows Anthropic's proven eval methodology (see [21-anthropic-engineering-deep-dive.md](dimensions/21-anthropic-engineering-deep-dive.md), section 11 and [23-evaluation.md](dimensions/23-evaluation.md) for the full eval strategy). Key principles to apply:
 
 **Start small:** Begin with 20-50 real queries, not comprehensive suites. These should represent actual problems you've solved — known answers that can be verified.
 
@@ -619,7 +619,7 @@ Promotion path:
 
 ### Skill Discovery and Install (from [doc 12](dimensions/12-skill-selector.md)/13)
 
-With SONA active, build two new commands from the [12-skill-selector.md](./12-skill-selector.md) trust model:
+With SONA active, build two new commands from the [12-skill-selector.md](dimensions/12-skill-selector.md) trust model:
 
 **`/skill-discover`** — searches registries (skills.sh, etc.) using SONA semantic search. Shows results but **never auto-installs**. Human decides.
 
@@ -629,7 +629,7 @@ With SONA active, build two new commands from the [12-skill-selector.md](./12-sk
 
 ### Smart Challenge Suggestions (from [doc 13](dimensions/13-challenger-agent.md))
 
-With SONA active and challenge outcomes accumulated from Phase 2, the system can suggest when to challenge. See [13-challenger-agent.md](./13-challenger-agent.md) for the full design.
+With SONA active and challenge outcomes accumulated from Phase 2, the system can suggest when to challenge. See [13-challenger-agent.md](dimensions/13-challenger-agent.md) for the full design.
 
 ```
 SONA query: "How often were challenges on architecture changes accepted?"
@@ -663,7 +663,7 @@ Rate-limit aware: only suggest if quota > 50% remaining.
 
 ## Phase 4: Knowledge Health (Weeks 10-14)
 
-**Goal:** Full immune system from [16-knowledge-health.md](./16-knowledge-health.md). The brain doesn't just learn — it monitors, detects, and heals its own knowledge.
+**Goal:** Full immune system from [16-knowledge-health.md](dimensions/16-knowledge-health.md). The brain doesn't just learn — it monitors, detects, and heals its own knowledge.
 
 ### Remaining Immune System Layers
 
@@ -737,7 +737,7 @@ When a session has failures:
 
 ### Healing: Anti-Patterns
 
-Implement the conversion from bad patterns to anti-patterns (see [16-knowledge-health.md](./16-knowledge-health.md)):
+Implement the conversion from bad patterns to anti-patterns (see [16-knowledge-health.md](dimensions/16-knowledge-health.md)):
 - Never delete — convert to explicit warnings
 - Cascading correction for cross-pollinated bad patterns
 - Anti-pattern library grows into "things learned the hard way"
@@ -807,7 +807,7 @@ This is the recursive payoff: the brain improving its own wiring based on what i
 
 ### Auto-Challenge on Plan Mode (from [doc 13](dimensions/13-challenger-agent.md))
 
-Hook on ExitPlanMode for high-blast-radius plans. Haiku pre-screens, Sonnet digs deep if warranted. Rate-limit-aware — self-regulates based on remaining quota. See [13-challenger-agent.md](./13-challenger-agent.md).
+Hook on ExitPlanMode for high-blast-radius plans. Haiku pre-screens, Sonnet digs deep if warranted. Rate-limit-aware — self-regulates based on remaining quota. See [13-challenger-agent.md](dimensions/13-challenger-agent.md).
 
 **Max5 budget calibration:** With 1,000 messages/block, the challenger has comfortable headroom. Default strategy:
 - Auto-challenge on medium+ blast radius (Haiku pre-screen → Sonnet if warranted)
@@ -1004,17 +1004,17 @@ Phases are sequential but overlap is fine — you can start building Phase 2 hoo
 
 ## References
 
-- [09-claude-code-native-features.md](./09-claude-code-native-features.md) — Hook JSON format, all 14 events, stdin/stdout contracts, async constraints
-- [14-mastermind-architecture.md](./14-mastermind-architecture.md) — The architecture this roadmap implements
+- [09-claude-code-native-features.md](dimensions/09-claude-code-native-features.md) — Hook JSON format, all 14 events, stdin/stdout contracts, async constraints
+- [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md) — The architecture this roadmap implements
 - [15-self-development-workflow.md](./15-self-development-workflow.md) — Deploy pipeline, testing, versioning
-- [16-knowledge-health.md](./16-knowledge-health.md) — Immune system implemented in Phase 4
+- [16-knowledge-health.md](dimensions/16-knowledge-health.md) — Immune system implemented in Phase 4
 - [24-roadmap-corrections.md](./24-roadmap-corrections.md) — Errata: deploy.sh merge bug, Stop→SessionEnd, hook format, PostToolUseFailure
-- [05-claude-flow-v3-analysis.md](./05-claude-flow-v3-analysis.md) — claude-flow architecture
-- [06-claude-flow-internals.md](./06-claude-flow-internals.md) — SONA, RuVector, WASM details
-- [11-ecosystem-skills-plugins.md](./11-ecosystem-skills-plugins.md) — Plugin selections for Phase 1
-- [12-skill-selector.md](./12-skill-selector.md) — Trust model, skill catalog, discovery, quarantine
-- [13-challenger-agent.md](./13-challenger-agent.md) — Cross-model adversarial review, subscription-native
-- [22-testing.md](./22-testing.md) — Testing strategy: 7-layer pyramid, record/playback, CI/CD, static validation
-- [23-evaluation.md](./23-evaluation.md) — Evaluation strategy: pass@k, RAG metrics, LLM-as-judge, eval-driven development
+- [05-claude-flow-v3-analysis.md](dimensions/05-claude-flow-v3-analysis.md) — claude-flow architecture
+- [06-claude-flow-internals.md](dimensions/06-claude-flow-internals.md) — SONA, RuVector, WASM details
+- [11-ecosystem-skills-plugins.md](dimensions/11-ecosystem-skills-plugins.md) — Plugin selections for Phase 1
+- [12-skill-selector.md](dimensions/12-skill-selector.md) — Trust model, skill catalog, discovery, quarantine
+- [13-challenger-agent.md](dimensions/13-challenger-agent.md) — Cross-model adversarial review, subscription-native
+- [22-testing.md](dimensions/22-testing.md) — Testing strategy: 7-layer pyramid, record/playback, CI/CD, static validation
+- [23-evaluation.md](dimensions/23-evaluation.md) — Evaluation strategy: pass@k, RAG metrics, LLM-as-judge, eval-driven development
 - [00-user-practices.md](./00-user-practices.md) — User feedback loop: field notes from real usage, graduation pathway from manual practice to automated hook/check
 - [25-self-documentation.md](./25-self-documentation.md) — Frontmatter convention, staleness detection, CI/CD for docs, growth stages for skills/configs

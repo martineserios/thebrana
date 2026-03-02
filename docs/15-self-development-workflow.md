@@ -559,7 +559,7 @@ The real axis is **blast radius** — how many projects break if this change is 
 | Critical | Full SPARC + staged rollout over 1 week | Branch + validate + A/B test + deploy |
 | Nuclear | Full SPARC + knowledge backup + staged rollout + manual verification of first 3 sessions | Full SPARC + backup + staged rollout |
 
-**Exception: learning loop changes are ALWAYS heavyweight.** The damage they cause is invisible — bad patterns entering ReasoningBank look normal until they surface as wrong advice weeks later. You can't test for "will this produce subtly wrong learnings over 50 sessions." That requires slow rollout and observation. See [16-knowledge-health.md](./16-knowledge-health.md) for the full analysis of knowledge poisoning and the immune system design.
+**Exception: learning loop changes are ALWAYS heavyweight.** The damage they cause is invisible — bad patterns entering ReasoningBank look normal until they surface as wrong advice weeks later. You can't test for "will this produce subtly wrong learnings over 50 sessions." That requires slow rollout and observation. See [16-knowledge-health.md](dimensions/16-knowledge-health.md) for the full analysis of knowledge poisoning and the immune system design.
 
 ---
 
@@ -763,7 +763,7 @@ Questions from the initial brainstorm, now answered:
 
 5. **When to rewrite?** → Resolved in When to Rewrite above. Track 7 health metrics monthly. Knowledge-first migration when the signals are clear. Prefer continuous simplification to avoid needing a rewrite.
 
-6. **Knowledge poisoning and health?** → Resolved in [16-knowledge-health.md](./16-knowledge-health.md). Comprehensive immune system: quarantine, dual-track confidence, transferability gates, decay, contradiction detection, failure attribution, anti-patterns.
+6. **Knowledge poisoning and health?** → Resolved in [16-knowledge-health.md](dimensions/16-knowledge-health.md). Comprehensive immune system: quarantine, dual-track confidence, transferability gates, decay, contradiction detection, failure attribution, anti-patterns.
 
 ---
 
