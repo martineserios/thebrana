@@ -1616,7 +1616,7 @@
       "created": "2026-03-02",
       "started": "2026-03-02",
       "completed": "2026-03-02",
-      "notes": "GATE PASS (+1). Topics: hooks+SDD/testing (0), context engineering (+1), agent-skill symbiosis (0). Judged by Sonnet 4.6 (independent from Opus that wrote Claude answers). Gemini is a detail-extraction engine — recovers specificity Claude compresses but introduces math errors and hallucination risk. Value: second-opinion detail recovery, not authoritative source.",
+      "notes": "Two rounds. v1 broad synthesis: PASS (+1). v2 exhaustive enumeration: FAIL (0). Combined verdict: CONDITIONAL PASS — Gemini adds value only when prompted correctly. Key findings: (1) Gemini is a detail-extraction engine, not synthesis. (2) Broad 'brana system' queries trigger canned 3-layer overview (catastrophic failure). (3) Specific technical noun anchors + enumeration framing produce rich results. (4) Anti-hallucination compliance is weakest dimension — states '9 patterns' then lists 6, invents API header strings. (5) Prompting strategy implemented in /challenge and /research: anchor to nouns, enumerate don't summarize, detect canned responses, tag [NLM-UNVERIFIED].",
       "context": "Challenger observation: this is the most valuable task in the entire phase. If Gemini adds nothing, the remaining 7 tasks are wasted effort. Run this as a manual experiment — no code changes needed."
     },
     {

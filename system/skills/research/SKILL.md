@@ -48,7 +48,7 @@ Flags:
    - If it's `registry` → registry health mode (analyze the YAML)
    - Otherwise → topic mode (search for the topic across registry sources)
 
-3. **Phase 0 — NotebookLM prior knowledge (only when `--nlm` flag is present).**
+3. **Phase 0 — NotebookLM detail extraction (only when `--nlm` flag is present).**
 
    **CLAUDE:** Check if NotebookLM MCP is available and authenticated:
    ```
@@ -64,17 +64,29 @@ Flags:
    **CLAUDE:** For each relevant notebook found (max 2):
    ```
    Call mcp__notebooklm__select_notebook
-   Call mcp__notebooklm__ask_question:
-   "What do you know about [target]? Summarize the key facts, claims, and conclusions
-    from your sources. Cite which source each claim comes from."
    ```
 
-   **CLAUDE:** Compile NotebookLM responses as "Prior Knowledge" — a baseline of what's already known. This shapes the web research:
-   - Claims to verify or update
-   - Gaps to fill
-   - Contradictions to resolve
+   **Prompting strategy (critical — determines quality):**
+   - Extract the most specific technical noun from the target. Use that as query anchor.
+   - **Never** start queries with broad system names ("brana system", "the architecture") — this triggers canned overview responses from Gemini.
+   - Use enumeration framing ("list every", "for each X give Y") — not "explain" or "summarize".
 
-   Write prior knowledge to `/tmp/research-{target}-nlm-prior.md`. Include in the triage context so web findings are compared against existing knowledge.
+   ```
+   Call mcp__notebooklm__ask_question:
+   "List all specific numbers, thresholds, version constraints, structural details,
+    and named dependencies from your sources about [specific technical noun].
+    For each, cite which source and section. If you cannot find something verbatim
+    in your sources, say so explicitly rather than stating it as fact."
+   ```
+
+   **Canned-response detection:** If the response is < 150 words, matches a generic system overview, or doesn't contain specific facts, discard and retry once with a more specific anchor term. If retry fails, note "Gemini returned no grounded details" and proceed without.
+
+   **CLAUDE:** Compile NotebookLM responses as "Prior Details" — granular facts already documented. Tag each claim `[NLM]`. This shapes the web research:
+   - Specific claims to verify or update
+   - Gaps in granular detail to fill
+   - Numbers or thresholds to cross-check
+
+   Write prior details to `/tmp/research-{target}-nlm-prior.md`. Include in the triage context so web findings are compared against existing knowledge.
 
 4. **Select relevant sources.** Based on target type:
    - **Doc mode**: filter registry sources where `relevance` includes the doc number
@@ -92,7 +104,7 @@ Flags:
    - **Security scout (mandatory for topic/ecosystem mode)**: one scout must search for CVEs, security advisories, and community trust signals. Tag findings `[SECURITY]`.
    - **Budget**: max 5 scouts for topic mode, max 8 for doc/creator mode (security scout counts toward budget)
    - Scout spawn prompt MUST include: "Write all findings to {filepath}. Return only a 2-line summary with counts. Do NOT use WebFetch."
-   - **When `--nlm` prior knowledge exists**: include in scout prompts: "Compare findings against these known claims from NotebookLM: [summary from Phase 0]. Tag confirmations as [CONFIRMED], contradictions as [CONTRADICTS]."
+   - **When `--nlm` prior details exist**: include in scout prompts: "Compare findings against these claims from NotebookLM: [summary from Phase 0]. Tag confirmations as [CONFIRMED], contradictions as [CONTRADICTS-NLM]."
 
 6. **Phase 2 — Triage (main context reads temp files incrementally).** For each temp file from Phase 1:
    - Read ONE temp file at a time (never all at once)
@@ -100,6 +112,10 @@ Flags:
    - Extract HIGH-priority URLs that need deep reading
    - Summarize the file's findings in 3-5 lines, then move to the next file
    - After all files processed, compile a shortlist of HIGH-priority URLs (max 6)
+   - **When `--nlm` prior details exist**, cross-check NLM claims against scout findings:
+     - `[CONFIRMED]` — web finding corroborates NLM claim (higher confidence)
+     - `[CONTRADICTS-NLM]` — web finding disagrees with NLM claim (NLM may be wrong, investigate)
+     - `[NLM-ONLY]` — NLM claim with no web corroboration (flag in report, do not treat as ground truth). This catches Gemini's hallucination pattern: confidently stating specific details that no other source confirms.
 
 7. **Phase 3 — Deep Dive (targeted WebFetch, max 3 scouts).** For HIGH-priority URLs from Phase 2:
    - Launch max 3 scouts, each gets max 2 WebFetch calls
@@ -242,3 +258,6 @@ When researching, select the appropriate archetype based on the target:
 - **Date-stamp everything.** All findings include the date they were found (YYYY-MM-DD format).
 - **Source attribution.** Every finding must link back to the source URL.
 - **Security-first for infrastructure research.** Include a security scout in Phase 1 when researching tools that could become production infrastructure.
+- **NLM claims are unverified until corroborated.** Gemini is a detail-extraction engine — it recovers specifics Claude compresses but introduces math errors, attribution confusion, and hallucinated references. Tag `[NLM-ONLY]` claims in reports. Never treat NLM output as ground truth.
+- **Anchor NLM queries to technical nouns.** Use specific tool names, hook names, thresholds as anchors. Broad system-level framing ("brana system", "the architecture") triggers canned overview responses.
+- **Detect canned NLM responses.** If Gemini returns < 150 words or a generic overview, rephrase with a more specific anchor and retry once. Two failures = skip NLM for this query.

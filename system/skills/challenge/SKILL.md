@@ -16,7 +16,7 @@ context: fork
 
 # Challenge
 
-Dual-model adversarial review. Opus stress-tests reasoning and finds logical flaws. Gemini stress-tests against documented knowledge and finds contradictions with existing docs. Both run independently, findings are merged.
+Dual-model adversarial review. Opus stress-tests reasoning and finds logical flaws. Gemini retrieves specific documented constraints for compliance checking. Both run independently — Opus reasons, Gemini retrieves, Claude merges and judges.
 
 1. **Gather context** about what to challenge:
    - If `$ARGUMENTS` provided, use it as the description of what to challenge.
@@ -36,30 +36,46 @@ Dual-model adversarial review. Opus stress-tests reasoning and finds logical fla
    - Provide: the plan/approach being challenged + relevant code/files + the chosen flavor
    - Key instruction: "Be specific and actionable. Don't nitpick — focus on things that would actually cause problems or wasted effort. Suggest concrete alternatives for each concern. Rate each finding: CRITICAL (would block success), WARNING (risk but manageable), OBSERVATION (minor, for consideration)."
 
-   **3b. Gemini challenger** — Query NotebookLM (skip silently if unavailable):
+   **3b. Gemini detail retriever** — Query NotebookLM (skip silently if unavailable):
    - Call `mcp__notebooklm__get_health` — if not authenticated, skip 3b entirely
    - Call `mcp__notebooklm__search_notebooks` with keywords from the challenge target
-   - If a relevant notebook exists, call `mcp__notebooklm__ask_question` with:
-     ```
-     "I need you to adversarially review this plan/decision:
+   - If a relevant notebook exists, run a **two-pass retrieval**:
 
-     [challenge target summary]
-
-     Your job: find problems. Specifically:
-     1. What documented constraints, decisions, or best practices does this contradict or ignore?
-     2. What past failures or known pitfalls in the sources apply here?
-     3. What assumptions does this make that the documented knowledge doesn't support?
-     4. What's missing — what do the docs say is important for this kind of work that the plan doesn't address?
-
-     Be specific. Cite sources. Rate each finding: CRITICAL, WARNING, or OBSERVATION."
+   **Pass 1 — Constraint extraction** (Gemini's strength: detail retrieval, not reasoning):
+   - Extract specific technical nouns from the challenge target (hook names, tool names, thresholds, module names). Use these as query anchors — never "the brana system" or broad abstractions.
+   - Call `mcp__notebooklm__ask_question` with:
      ```
-   - If the response is thin (no real findings), run a second query focused on related topics:
+     "List every specific constraint, threshold, requirement, and documented rule
+      from your sources that relates to [specific technical noun from the plan].
+      For each, give the exact number or rule and cite which source document.
+      If you cannot find something verbatim in your sources, say so explicitly
+      rather than stating it as fact. Do not summarize — enumerate."
      ```
-     "What are the most common mistakes or overlooked requirements when doing [topic area]?
-      What do the sources warn about?"
+   - **Canned-response detection:** If the response is < 150 words, matches a generic system overview pattern, or doesn't contain any specific numbers/constraints, discard and retry once with a more specific anchor term from the plan. If retry also fails, note "Gemini returned no grounded constraints" and proceed without.
+
+   **Pass 2 — Adjacent constraints** (if Pass 1 returned results):
+   - Call `mcp__notebooklm__ask_question` in the same session:
+     ```
+     "What documented requirements, version constraints, and named dependencies
+      are adjacent to [topic from Pass 1]? Include specific thresholds, tool names,
+      and file paths. If inferring beyond your sources, mark it [INFERENCE]."
      ```
 
-4. **Merge and present findings.** Combine both challengers' output into a single report:
+   **3c. Compliance check** (Claude, main context — after both 3a and 3b complete):
+   - Take the constraints retrieved by Gemini in 3b
+   - Check the challenge target against each retrieved constraint
+   - Flag violations as findings with source attribution
+   - This is where the adversarial reasoning happens — Claude judges, Gemini retrieves
+
+4. **Merge and present findings with confidence tiers.** Combine all output into a single report. Each finding gets a confidence tier based on its source:
+
+   | Source | Confidence | Why |
+   |--------|-----------|-----|
+   | Agreement (Opus + Gemini) | **HIGH** | Two models, different architectures, same concern |
+   | Opus-only | **MEDIUM** | Strong reasoning, may lack doc grounding |
+   | Gemini with source citation | **MEDIUM** `[NLM-UNVERIFIED]` | Good retrieval, but citation needs verification |
+   | Gemini citing external tools/practices not in docs | **LOW** `[NLM-UNVERIFIED]` | Hallucination risk — Gemini invents plausible references |
+   | Compliance check (3c) | **HIGH** | Claude reasoning on Gemini-retrieved constraints |
 
    ```
    ## Challenge Report
@@ -68,22 +84,23 @@ Dual-model adversarial review. Opus stress-tests reasoning and finds logical fla
    **Flavor:** [pre-mortem / simplicity / assumption / adversarial]
 
    ### Critical Findings (would block success)
-   - [Finding] — Source: Opus / Gemini ([source doc])
+   - [Finding] — Source: Opus / Compliance-check — Confidence: HIGH/MEDIUM
 
    ### Warnings (risk but manageable)
-   - [Finding] — Source: Opus / Gemini ([source doc])
+   - [Finding] — Source: Opus / Compliance-check — Confidence: HIGH/MEDIUM
 
    ### Observations (minor, for consideration)
-   - [Finding] — Source: Opus / Gemini ([source doc])
+   - [Finding] — Source: Gemini `[NLM-UNVERIFIED]` — Confidence: LOW/MEDIUM
 
-   ### Agreement
-   - [Where both challengers raised the same concern — these are highest confidence]
+   ### Agreement (highest confidence)
+   - [Where both challengers raised the same concern]
+
+   ### Gemini Constraint Retrieval
+   - [Constraints retrieved by Gemini — available for manual verification]
 
    ### Verdict
    PROCEED / PROCEED WITH CHANGES / RECONSIDER
    ```
-
-   When both Opus and Gemini flag the same concern independently, mark it as **high-confidence** — two models from different companies with different training data agree something is a problem.
 
 5. **Let the user decide** which concerns to address. Do not auto-apply changes.
 
@@ -111,3 +128,6 @@ source "$HOME/.claude/scripts/cf-env.sh"
 - **Both challengers run in parallel.** Don't wait for one to finish before starting the other. Launch Opus subagent and Gemini query at the same time.
 - **Gemini is optional.** If NotebookLM is unavailable, the challenge runs as Opus-only. Never fail the skill because Gemini is missing.
 - **Agreement = high confidence.** When both models independently flag the same issue, highlight it. Two different AI architectures agreeing on a problem is a strong signal.
+- **Gemini retrieves, Claude reasons.** Never ask Gemini to "adversarially review" or "find problems" — it falls back to generic summaries. Ask it to enumerate specific constraints, then Claude checks compliance. Gemini is a detail-extraction engine, not a synthesis engine.
+- **Anchor Gemini queries to technical nouns.** Use specific terms from the plan (hook names, tool names, thresholds) as query anchors. Never start a Gemini query with broad system names — this triggers canned overview responses.
+- **Tag all Gemini-only claims.** Any finding sourced exclusively from Gemini must carry `[NLM-UNVERIFIED]`. The user decides whether to verify against source docs.
