@@ -1,7 +1,8 @@
 # Backlog URLs — AI Systems & Claude Code Enhancement
 
-> Pre-scanned 2026-02-20. Sources: LinkedIn, GitHub, blogs.
+> Pre-scanned 2026-02-20 (batch 1), 2026-03-02 (batch 2). Sources: LinkedIn, GitHub, blogs, X.
 > Status: `new` | `reviewed` | `applied` | `skipped`
+> Cross-ref: doc 30 Links section (#473–#506 = batch 2)
 
 ---
 
@@ -24,6 +25,18 @@
 | 29 | [ClawWork](https://www.linkedin.com/posts/chao-huang-208993177_introducing-clawwork-transform-your-openclaw-share-7429075091826659328-jh_T) | Agent Accountability | Chao Huang | OpenClaw → AI coworker with economic-accountability patterns; $10K earned in 7h across 44+ industries | `ai-agent-systems` | `new` |
 | 30 | [Claude Code Dev Tools](https://www.linkedin.com/posts/miguelmirandadias_claudecode-ai-developertools-share-7429445478326554624-mIvS) | Claude Code Tooling | Miguel Miranda | Claude Code as AI developer tool; 79% automation vs 21% augmentation in 500K+ interactions | `claude-code-enhancement` | `new` |
 | 34 | [YaVendio/OLIVE Protocol](https://www.linkedin.com/posts/cruz-melo_github-yavendioolive-transform-python-share-7430082392440287233-P__5) | MCP Alternative Protocol | Cruz Melo (YaVendio CTO) | OLIVE: HTTP-based alternative to MCP; transforms Python functions into remote tools for AI agents | `mcp-tooling`, `ai-agent-systems` | `new` |
+| 36 | [Custom AI Orchestration CLI](https://www.linkedin.com/posts/michael-a-tomcal-2186486a_i-built-a-custom-orchestration-cli-for-ai-share-7432079783460745217-qN7W) | AI Agent Orchestration | Michael Tomcal | Built custom orchestration CLI for AI agents — orchestration patterns, multi-agent coordination | `ai-agent-systems` | `new` |
+| 43 | [Open-Source OS for AI](https://www.linkedin.com/posts/osama-jaber-osama2001_we-open-sourced-an-operating-system-for-ai-share-7432586733197856768-6LQ7) | AI Operating System | Osama Jaber | Open-sourced operating system for AI agents — runtime, scheduling, resource management | `ai-agent-systems` | `new` |
+| 44 | [CLAUDE.md at 400 Lines](https://www.linkedin.com/posts/alejandro-gomez-cerezo_mi-claude-md-tiene-400-l%C3%ADneas-y-acaba-de-share-7432346651350114305-01aO) | CLAUDE.md Engineering | Alejandro Gomez Cerezo | CLAUDE.md at 400 lines — large-scale prompt engineering, structure at scale | `claude-code-enhancement` | `new` |
+| 45 | [Claude Code + Codex Together](https://www.linkedin.com/posts/richard-rizk-a09a70213_we-just-made-claude-code-and-codex-work-together-ugcPost-7432103995143311360-4JeU) | Multi-Agent Collaboration | Richard Rizk | Made Claude Code and Codex work together — dual-agent workflow, complementary strengths | `claude-code-enhancement`, `ai-agent-systems` | `new` |
+| 46 | [Theo: Delete Your CLAUDE.md](https://www.linkedin.com/posts/dileep-krishna_theo-says-delete-your-claudemd-half-the-share-7432685118689021952-6qbX) | CLAUDE.md Debate | Dileep Krishna (citing Theo) | Theo argues for deleting CLAUDE.md — contrarian view on prompt file engineering | `claude-code-enhancement` | `new` |
+| 48 | [GitHub Spec Kit](https://github.com/github/spec-kit) | Spec-Driven Development | GitHub | Official GitHub spec-kit — spec-driven development toolkit, structured specifications | `claude-code-enhancement`, `ai-agent-systems` | `new` |
+| 49 | [Claude Code Tips That Changed How I Work](https://medium.com/@ianodad/some-claude-code-tips-that-actually-changed-how-i-work-b34f35b3dc73) | Claude Code Workflow | Ian Odad | Practical Claude Code tips that materially changed workflow | `claude-code-enhancement` | `new` |
+| 50 | [Shared Memory for Claude Code](https://www.linkedin.com/posts/steve-phelps-203270_a-shared-memory-for-claude-code-share-7432414226435956736-HihS) | Persistent Memory | Steve Phelps | Shared memory layer for Claude Code — persistent cross-session state | `claude-code-enhancement` | `new` |
+| 59 | [Ruflo v3.50 (formerly claude-flow)](https://www.linkedin.com/posts/reuvencohen_so-long-claude-flow-hello-ruflo-v350-ugcPost-7433292476595003393-bpqi) | claude-flow Rebrand | Reuven Cohen | claude-flow renamed to Ruflo v3.50 — direct upstream impact on brana memory stack | `ai-agent-systems`, `mcp-tooling` | `new` |
+| 62 | [AI Web Agent Backbone](https://www.linkedin.com/posts/digcreator_the-ultimate-backbone-for-ai-web-agents-just-share-7433607645422485505-3LHz) | Web Agent Infrastructure | DigCreator | Ultimate backbone for AI web agents — infrastructure layer for browser-based agents | `ai-agent-systems` | `new` |
+| 65 | [Open Source MCP Server](https://www.linkedin.com/posts/krajewski-ptr_an-open-source-mcp-server-just-came-out-that-share-7433883947069218816-rODp) | MCP Server | Krajewski | New open source MCP server — evaluate for brana MCP ecosystem | `mcp-tooling` | `new` |
+| 67 | [Agent Orchestrator](https://www.linkedin.com/posts/prateekkarnal_agent-orchestrator-lets-one-person-manage-share-7434120370519015424-dw50) | Agent Orchestration | Prateek Karnal | Agent orchestrator for one-person management of multiple agents | `ai-agent-systems` | `new` |
 
 ## MEDIUM — Relevant context, not immediately actionable
 
@@ -45,6 +58,24 @@
 | 32 | [OpenCode Permission Security](https://www.linkedin.com/posts/iv%C3%A1n-s%C3%A1nchez-b87649396_opencodes-permission-system-is-not-security-share-7428582778096742400-jHEn) | Agent Security | Ivan Sanchez | AI agent permissions: file modification controls, default-allow patterns, Docker/VM isolation | `ai-agent-systems` | `new` |
 | 33 | [8 Rules for OpenClaw](https://www.linkedin.com/posts/olga-s-2a7822165_8-rules-without-them-working-with-openclaw-share-7429974204667772928-qz33) | Agent Best Practices | Olga S. | OpenClaw 8 core Layer 1 tools: file access, command execution, web access | `ai-agent-systems` | `new` |
 | 35 | [CLAUDE.md Tips](https://www.linkedin.com/posts/yauhen-klishevich_this-one-%F0%9D%97%96%F0%9D%97%9F%F0%9D%97%94%F0%9D%97%A8%F0%9D%97%97%F0%9D%97%98%F0%9D%97%BA%F0%9D%97%B1-file-might-be-share-7430352145373331457-LPLx) | CLAUDE.md Engineering | Yauhen Klishevich | Tips on CLAUDE.md file structure and prompt engineering for Claude Code | `claude-code-enhancement`, `prompt-engineering` | `new` |
+| 37 | [SaaS Payment Gateway Bypass](https://www.linkedin.com/posts/askjohngeorge_bypassed-a-saas-payment-gateway-in-under-share-7432147819970330624-qlyv) | Security Testing | John George | Bypassed a SaaS payment gateway — agent security implications | `security` | `new` |
+| 38 | [Infrastructure Shift](https://www.linkedin.com/posts/thewinstonbrown_theres-a-real-infrastructure-shift-happening-share-7432525372778291202-XdLz) | Infrastructure Trends | Winston Brown | Real infrastructure shift happening — AI-era infra patterns | `devops-ci` | `new` |
+| 39 | [Runway FlightPaths](https://www.runway.team/blog/introducing-flightpaths-by-runway) | CI/CD Planning | Runway | Introducing FlightPaths — release planning and CI/CD orchestration | `devops-ci` | `new` |
+| 40 | [MLOps / K8s / Docker](https://www.linkedin.com/posts/roshan-erukulla-79b12a178_mlops-kubernetes-docker-share-7431511968093732864-Qe_b) | MLOps Infrastructure | Roshan Erukulla | MLOps, Kubernetes, Docker patterns and practices | `devops-ci` | `new` |
+| 41 | [Self-Hostable Data Warehouse](https://www.artmann.co/articles/build-a-lightweight-self-hostable-data-warehouse) | Data Infrastructure | Artmann | Build a lightweight self-hostable data warehouse — DuckDB/Parquet patterns | `devops-ci` | `new` |
+| 47 | [Claude Code AI Engineering](https://www.linkedin.com/posts/innovativemonk_claudecode-aiengineering-devtools-share-7431229766130794496-4gmn) | Claude Code DevTools | InnovativeMonk | Claude Code AI engineering and developer tools patterns | `claude-code-enhancement` | `new` |
+| 51 | [OpenClaw Agent Problems](https://www.linkedin.com/posts/julio-andres-olivares_un-gran-problema-con-openclaw-y-agentes-share-7432898145749127168-LLZr) | Agent Challenges | Julio Olivares | Major problem with OpenClaw and agent orchestration | `ai-agent-systems` | `new` |
+| 52 | [Agentic AI / OpenClaw](https://www.linkedin.com/posts/imaxxs_agenticai-aiagents-openclaw-ugcPost-7432613287302746112-qVXX) | Agent Ecosystem | Imaxxs | Agentic AI, agents, OpenClaw ecosystem discussion | `ai-agent-systems` | `new` |
+| 53 | [Development Flow Needs](https://www.linkedin.com/posts/duncankmckinnon_what-do-development-flows-need-to-be-more-share-7432894534344323072-HuoK) | Dev Workflow | Duncan McKinnon | What development flows need to be more effective — workflow patterns | `ai-agent-systems` | `new` |
+| 54 | [Boris Cherny Interview](https://www.linkedin.com/posts/zihong-chen_chatting-with-boris-cherny-the-guy-who-share-7431418512260284416-jlwd) | Creator Interview | Zihong Chen | Interview with Boris Cherny — likely Claude Code or TypeScript related | `claude-code-enhancement` | `new` |
+| 55 | [Claude + Codex Self-Improvement](https://www.linkedin.com/posts/suraj-kumar-86217a20a_claude-added-codex-and-codex-made-itself-share-7433492783962918912-n4mv) | AI Evolution | Suraj Kumar | Claude added Codex, Codex made itself — self-improving agent patterns | `claude-code-enhancement`, `ai-agent-systems` | `new` |
+| 56 | [Claude Code Dev Tools](https://www.linkedin.com/posts/tamzid-ahmed-fahim_claudecode-ai-developertools-share-7433097099807961089-HcHi) | Developer Tools | Tamzid Ahmed Fahim | Claude Code AI developer tools and productivity | `claude-code-enhancement` | `new` |
+| 57 | [Claude Code AI Engineering](https://www.linkedin.com/posts/robinlorenz-ai_claudecode-aiengineering-developertools-share-7433102275214016513-iyrU) | AI Engineering | Robin Lorenz | Claude Code AI engineering and developer tools best practices | `claude-code-enhancement` | `new` |
+| 58 | [Claude Code Productivity](https://www.linkedin.com/posts/larryfang_claudecode-aiengineering-developerproductivity-share-7433018516984975361--Cfk) | Developer Productivity | Larry Fang | Claude Code engineering and developer productivity patterns | `claude-code-enhancement` | `new` |
+| 63 | [BrainWire](https://www.linkedin.com/posts/hoenig-clemens-09456b98_brainwire-ugcPost-7433661030351708160-EYXj) | Agent Memory System | Clemens Hoenig | BrainWire — agent memory and knowledge wiring system | `ai-agent-systems` | `new` |
+| 64 | [BrainWire DeepBrain DeepNote](https://www.linkedin.com/posts/hoenig-clemens-09456b98_brainwiredeepbraindeepnote-activity-7433988368239198208-6fAB) | Agent Cognition | Clemens Hoenig | BrainWire DeepBrain DeepNote — deeper agent cognition patterns | `ai-agent-systems` | `new` |
+| 68 | [Cloning Slack with Claude Code](https://www.linkedin.com/posts/nathancavaglione_day-314-cloning-slack-with-claude-code-share-7433958640103026689-hdKo) | Claude Code Project | Nathan Cavaglione | Day 314: Building Slack clone with Claude Code — large project patterns | `claude-code-enhancement` | `new` |
+| 69 | [Multi-Agent Systems](https://www.linkedin.com/posts/alan-helouani_aiengineering-agenticai-multiagentsystems-ugcPost-7427344045565210624-yaHC) | Multi-Agent Architecture | Alan Helouani | AI engineering, agentic AI, multi-agent system patterns | `ai-agent-systems` | `new` |
 
 ## LOW — Not relevant to Claude Code / AI systems
 
@@ -54,6 +85,10 @@
 | 3 | [RLM Reimplementation](https://www.linkedin.com/posts/andrew-hinh_i-reimplemented-rlm-minimal-httpslnkdin-share-7428003615186874368-qPPt) | RLM Minimal | Andrew Hinh | Reimplementing RLM minimal | `not-relevant` | `new` |
 | 11 | [Kafka Tutorial](https://www.linkedin.com/posts/nk-systemdesign-one_give-me-2-mins-and-ill-teach-you-how-kafka-share-7428424730640158720-_gsJ) | System Design | NK SystemDesign | Kafka messaging architecture in 2 minutes | `devops-ci` | `new` |
 | 17 | [Neo4j Ontology](https://www.linkedin.com/posts/akash-g-7a5224246_knowledgegraphs-neo4j-ontology-share-7427272928578269185-FOks) | Knowledge Graphs | Akash G. | Knowledge graph architecture with Neo4j — no AI agent focus | `knowledge-graphs` | `new` |
+| 42 | [LinkedIn Activity Post](https://www.linkedin.com/posts/activity-7432762547293798400-uNt1) | Unknown | Unknown | LinkedIn activity post — content unclear from URL | `unknown` | `new` |
+| 60 | [X Post](https://x.com/i/status/2027123051477815797) | Unknown | Unknown | X/Twitter post — content not accessible from URL slug | `unknown` | `new` |
+| 61 | [X Post](https://x.com/i/status/2027888587975569534) | Unknown | Unknown | X/Twitter post — content not accessible from URL slug | `unknown` | `new` |
+| 66 | [Gastown Hall AI](https://gastownhall.ai) | AI Platform | Gastown Hall | AI community or product — needs review | `unknown` | `new` |
 
 ---
 
@@ -61,13 +96,15 @@
 
 | Tag | Count | HIGH | MED | LOW |
 |-----|-------|------|-----|-----|
-| `claude-code-enhancement` | 16 | 11 | 5 | 0 |
-| `ai-agent-systems` | 15 | 6 | 9 | 0 |
-| `mcp-tooling` | 4 | 4 | 0 | 0 |
+| `claude-code-enhancement` | 29 | 17 | 12 | 0 |
+| `ai-agent-systems` | 29 | 12 | 17 | 0 |
+| `mcp-tooling` | 6 | 6 | 0 | 0 |
+| `devops-ci` | 6 | 0 | 5 | 1 |
 | `prompt-engineering` | 3 | 0 | 3 | 0 |
-| `knowledge-graphs` | 3 | 1 | 2 | 0 |
+| `knowledge-graphs` | 3 | 1 | 1 | 1 |
 | `general-ai-learning` | 2 | 0 | 2 | 0 |
-| `devops-ci` | 2 | 0 | 1 | 1 |
+| `security` | 1 | 0 | 1 | 0 |
+| `unknown` | 4 | 0 | 0 | 4 |
 | `not-relevant` | 2 | 0 | 0 | 2 |
 
 ## Priority Queue (next actions)
@@ -82,3 +119,13 @@
 8. **#12** — Study GitHub agentic workflows for CI/CD evolution
 9. **#22** — Evaluate GraphRAG for knowledge system enhancement
 10. **#29** — Study ClawWork accountability patterns
+11. **#59** — Evaluate Ruflo v3.50 rebrand impact on brana (claude-flow → ruflo)
+12. **#50** — Study shared memory for Claude Code (cross-session persistence)
+13. **#48** — Evaluate GitHub spec-kit for spec-driven development
+14. **#45** — Study Claude Code + Codex dual-agent workflow
+15. **#65** — Evaluate new open source MCP server
+16. **#36** — Study custom AI orchestration CLI patterns
+17. **#67** — Evaluate Agent Orchestrator (Prateek Karnal / Composio)
+18. **#49** — Extract Claude Code workflow tips (Ian Odad)
+19. **#44** — Compare 400-line CLAUDE.md approach vs brana's split architecture
+20. **#46** — Study "delete your CLAUDE.md" contrarian argument
