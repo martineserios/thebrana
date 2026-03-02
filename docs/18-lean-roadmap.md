@@ -95,7 +95,7 @@ Everything dropped here can be added later. Nothing in this plan prevents gradua
 └── README.md
 ```
 
-**Testing strategy:** Three layers, run before merging: static validation, hook smoke tests, memory round-trip. The full pyramid from [22-testing.md](./22-testing.md) is adopted pain-driven — add layers when failures motivate them, not upfront.
+**Testing strategy:** Three layers, run before merging: static validation, hook smoke tests, memory round-trip. The full pyramid from [22-testing.md](dimensions/22-testing.md) is adopted pain-driven — add layers when failures motivate them, not upfront.
 
 **What's different from [doc 17](17-implementation-roadmap.md):**
 - No `rollback.sh` — `git checkout` + `deploy.sh` IS your rollback
@@ -178,7 +178,7 @@ Same `export-knowledge.sh` from [doc 17](17-implementation-roadmap.md). Build it
 
 ### Three Hooks
 
-Wire into `system/settings.json`. See [09-claude-code-native-features.md](./09-claude-code-native-features.md) for the hook JSON format, all 14 events, and async constraints.
+Wire into `system/settings.json`. See [09-claude-code-native-features.md](dimensions/09-claude-code-native-features.md) for the hook JSON format, all 14 events, and async constraints.
 
 #### SessionStart — "Remember what you know"
 
@@ -243,7 +243,7 @@ This prevents the worst failure mode — bad patterns spreading across projects 
 7. After 3 successful recalls → pattern promotable
 ```
 
-**Record/playback:** Once this manual sequence works, capture the hook inputs/outputs and convert to a deterministic replay test (see [22-testing.md](./22-testing.md) for the Block Engineering pattern). This is the single most impactful testing technique for non-deterministic agent behavior.
+**Record/playback:** Once this manual sequence works, capture the hook inputs/outputs and convert to a deterministic replay test (see [22-testing.md](dimensions/22-testing.md) for the Block Engineering pattern). This is the single most impactful testing technique for non-deterministic agent behavior.
 
 ### Exit Criteria
 
@@ -298,7 +298,7 @@ This phase is intentionally loose. By week 6, you'll know what's actually broken
   - Any that seem wrong? Demote or convert to anti-pattern.
   - Any that are stale? Lower confidence manually.
   - Any contradictions? Resolve them.
-  - Grade recall quality using RAG metrics: precision@k (were recalled patterns relevant?), staleness rate, faithfulness. See [23-evaluation.md](./23-evaluation.md) and [14-mastermind-architecture.md](./14-mastermind-architecture.md#evaluating-the-brain) for the full measurement framework.
+  - Grade recall quality using RAG metrics: precision@k (were recalled patterns relevant?), staleness rate, faithfulness. See [23-evaluation.md](dimensions/23-evaluation.md) and [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md#evaluating-the-brain) for the full measurement framework.
 - This is [doc 16](dimensions/16-knowledge-health.md)'s immune system, but human-powered instead of automated.
 
 ### Exit Criteria
@@ -315,7 +315,7 @@ This phase is intentionally loose. By week 6, you'll know what's actually broken
 
 ## Phase 4: Project Enforcement (After Phase 3)
 
-**Goal:** The mastermind enforces spec-driven and test-driven development in managed projects. Not suggestions in CLAUDE.md (~80% compliance) — deterministic enforcement via PreToolUse hooks (~100%). See [14-mastermind-architecture.md](./14-mastermind-architecture.md) "Project Enforcement" section for the architectural design.
+**Goal:** The mastermind enforces spec-driven and test-driven development in managed projects. Not suggestions in CLAUDE.md (~80% compliance) — deterministic enforcement via PreToolUse hooks (~100%). See [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md) "Project Enforcement" section for the architectural design.
 
 **Prerequisite:** Phase 3 complete (v0.3.0). The learning loop must work before enforcement layers on top — ADRs feed into ReasoningBank via `/retrospective`.
 
@@ -653,7 +653,7 @@ Add entry for `/decide`:
 ### What You Build
 
 - `/project-align` skill — 5-phase pipeline: DISCOVER → ASSESS → PLAN → IMPLEMENT → VERIFY → DOCUMENT
-- [Doc 27](dimensions/27-project-alignment-methodology.md) methodology as the reference (what "aligned" means): [27-project-alignment-methodology.md](./27-project-alignment-methodology.md)
+- [Doc 27](dimensions/27-project-alignment-methodology.md) methodology as the reference (what "aligned" means): [27-project-alignment-methodology.md](dimensions/27-project-alignment-methodology.md)
 - Alignment checklist: 28 items, 7 groups, 3 tiers (minimal / standard / full)
 
 ### Why This Phase Exists
@@ -683,7 +683,7 @@ Agents and skills now integrate as complementary layers rather than independent 
 - **Delegation-routing rule** — agents auto-delegate when skills go uninvoked, closing the gap from ~79% to ~95%
 - **Skill-to-agent integration** — four patterns formalized: skill spawns agent (A), agent preloads skill (B), auto-delegation (C), multi-agent orchestration via skills (D)
 
-See [14-mastermind-architecture.md](./14-mastermind-architecture.md) "Agent + Skill Symbiosis" section for the full architecture.
+See [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md) "Agent + Skill Symbiosis" section for the full architecture.
 
 ---
 
@@ -691,11 +691,11 @@ See [14-mastermind-architecture.md](./14-mastermind-architecture.md) "Agent + Sk
 
 This isn't a phase — it's a menu. Add items when you feel the pain, not on a schedule.
 
-**Multi-Agent TDD** — separate test-writer and implementer teammates in Agent Teams. Add when using Agent Teams on real projects and context pollution between test/impl is observed. See [22-testing.md](./22-testing.md) "Multi-Agent TDD" section.
+**Multi-Agent TDD** — separate test-writer and implementer teammates in Agent Teams. Add when using Agent Teams on real projects and context pollution between test/impl is observed. See [22-testing.md](dimensions/22-testing.md) "Multi-Agent TDD" section.
 
 **Full SDD workflow orchestration** — cc-sdd-style 5-phase gates (steering → spec-init → spec-design → spec-tasks → spec-impl). Add when the minimal spec-before-code hook isn't structured enough. The hook is a gate; a full workflow skill would be a guide.
 
-**Project health monitoring** — statusline display of alignment metrics (ADR freshness, test coverage trend, debrief frequency). The base statusline is deployed (`~/.claude/statusline.sh` — see [doc 10](dimensions/10-statusline-research.md) §Brana Implementation); this backlog item is about layering alignment-specific metrics on top. Add when you want passive awareness of alignment drift. See [10-statusline-research.md](./10-statusline-research.md) "Project Health Monitoring via Statusline" and [27-project-alignment-methodology.md](./27-project-alignment-methodology.md) "Project Health Monitoring".
+**Project health monitoring** — statusline display of alignment metrics (ADR freshness, test coverage trend, debrief frequency). The base statusline is deployed (`~/.claude/statusline.sh` — see [doc 10](dimensions/10-statusline-research.md) §Brana Implementation); this backlog item is about layering alignment-specific metrics on top. Add when you want passive awareness of alignment drift. See [10-statusline-research.md](dimensions/10-statusline-research.md) "Project Health Monitoring via Statusline" and [27-project-alignment-methodology.md](dimensions/27-project-alignment-methodology.md) "Project Health Monitoring".
 
 **`/project-align --check`** — periodic re-assessment mode. Runs the 28-item checklist without implementing, reports regressions. Add when alignment drift becomes a real concern across multiple projects.
 
@@ -898,18 +898,18 @@ Each step is independent. You can do Phase 4 (immune system) without Phase 3 (SO
 
 ## References
 
-- [09-claude-code-native-features.md](./09-claude-code-native-features.md) — Hook JSON format, all 14 events, stdin/stdout contracts, async constraints
+- [09-claude-code-native-features.md](dimensions/09-claude-code-native-features.md) — Hook JSON format, all 14 events, stdin/stdout contracts, async constraints
 - [17-implementation-roadmap.md](./17-implementation-roadmap.md) — The comprehensive roadmap (keep both)
-- [14-mastermind-architecture.md](./14-mastermind-architecture.md) — Architecture this implements
-- [16-knowledge-health.md](./16-knowledge-health.md) — Full immune system (for when quarantine isn't enough)
+- [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md) — Architecture this implements
+- [16-knowledge-health.md](dimensions/16-knowledge-health.md) — Full immune system (for when quarantine isn't enough)
 - [24-roadmap-corrections.md](./24-roadmap-corrections.md) — Errata: deploy.sh merge bug, Stop→SessionEnd, hook format, PostToolUseFailure
-- [06-claude-flow-internals.md](./06-claude-flow-internals.md) — SONA details (for when tag-based recall isn't enough)
-- [12-skill-selector.md](./12-skill-selector.md) — Trust model (for when you're sharing skills)
-- [13-challenger-agent.md](./13-challenger-agent.md) — Full challenger design (for when one-pass isn't enough)
-- [22-testing.md](./22-testing.md) — Testing strategy: record/playback, static validation, CI/CD pipeline
-- [23-evaluation.md](./23-evaluation.md) — Evaluation strategy: RAG metrics for recall quality, eval-driven development
+- [06-claude-flow-internals.md](dimensions/06-claude-flow-internals.md) — SONA details (for when tag-based recall isn't enough)
+- [12-skill-selector.md](dimensions/12-skill-selector.md) — Trust model (for when you're sharing skills)
+- [13-challenger-agent.md](dimensions/13-challenger-agent.md) — Full challenger design (for when one-pass isn't enough)
+- [22-testing.md](dimensions/22-testing.md) — Testing strategy: record/playback, static validation, CI/CD pipeline
+- [23-evaluation.md](dimensions/23-evaluation.md) — Evaluation strategy: RAG metrics for recall quality, eval-driven development
 - [00-user-practices.md](./00-user-practices.md) — User feedback loop: field notes from real usage, graduation pathway from manual practice to hook/check
 - [25-self-documentation.md](./25-self-documentation.md) — Frontmatter convention, staleness detection, growth stages for skills/configs
-- [11-ecosystem-skills-plugins.md](./11-ecosystem-skills-plugins.md) — SDD/TDD enforcement tools (section 5): TDD-Guard, cc-sdd, Superpowers, multi-agent TDD
+- [11-ecosystem-skills-plugins.md](dimensions/11-ecosystem-skills-plugins.md) — SDD/TDD enforcement tools (section 5): TDD-Guard, cc-sdd, Superpowers, multi-agent TDD
 - [19-pm-system-design.md](./19-pm-system-design.md) — ADR design, `/decide` skill spec, CLAUDE.md compliance limitations
-- [27-project-alignment-methodology.md](./27-project-alignment-methodology.md) — Project alignment: 28-item checklist, 3 tiers, 5-phase pipeline, cross-project learning
+- [27-project-alignment-methodology.md](dimensions/27-project-alignment-methodology.md) — Project alignment: 28-item checklist, 3 tiers, 5-phase pipeline, cross-project learning

@@ -123,7 +123,7 @@ Sources:
 
 **Documented weaknesses:** Manual maintenance, two-repo coordination overhead, no automation, template drift, heavy for small projects.
 
-See [03-pm-framework.md](./03-pm-framework.md) for the full analysis.
+See [03-pm-framework.md](dimensions/03-pm-framework.md) for the full analysis.
 
 ---
 
@@ -465,7 +465,7 @@ The PM component is a **plugin**, not core:
 
 ## References
 
-- [03-pm-framework.md](./03-pm-framework.md) — Brana v1 PM system description
-- [14-mastermind-architecture.md](./14-mastermind-architecture.md) — System architecture (PM as plugin)
+- [03-pm-framework.md](dimensions/03-pm-framework.md) — Brana v1 PM system description
+- [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md) — System architecture (PM as plugin)
 - [17-implementation-roadmap.md](./17-implementation-roadmap.md) — Full roadmap (PM integration in Phase 1)
 - [18-lean-roadmap.md](./18-lean-roadmap.md) — Lean roadmap (PM awareness rule)

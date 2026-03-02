@@ -32,7 +32,7 @@ From [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md) Layer 0 
 - **Context budget** — total always-loaded context (CLAUDE.md + rules + skill descriptions + agent descriptions) stays under the ~24KB ceiling. Every KB competes with working context ([21-anthropic-engineering-deep-dive.md](../../../brana-knowledge/dimensions/21-anthropic-engineering-deep-dive.md))
 - **Hook configuration** — `settings.json` references scripts that exist, event names are valid, async constraints are respected
 - **Link integrity** — all markdown cross-references (`[doc NN](./NN-filename.md)`) resolve to real files
-- **Pre-commit validation** — `.git/hooks/pre-commit` in thebrana validates spec consistency before commit: YAML frontmatter, JSON syntax, secrets, context budget. Shift-left complement to deploy-time validation. See [35-context-engineering-principles.md](../../brana-knowledge/dimensions/35-context-engineering-principles.md) for budget failure modes
+- **Pre-commit validation** — `.git/hooks/pre-commit` in thebrana validates spec consistency before commit: YAML frontmatter, JSON syntax, secrets, context budget. Shift-left complement to deploy-time validation. See [35-context-engineering-principles.md](../dimensions/35-context-engineering-principles.md) for budget failure modes
 
 ### Knowledge Store Integrity
 

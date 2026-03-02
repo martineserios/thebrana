@@ -116,6 +116,6 @@ Practices that were automated or built into the system. When a manual practice b
 ## Cross-References
 
 - [15-self-development-workflow.md](./15-self-development-workflow.md) — genome vs connectome; user practices are connectome input
-- [16-knowledge-health.md](./16-knowledge-health.md) — quarantine applies here too; unverified practices stay provisional
+- [16-knowledge-health.md](dimensions/16-knowledge-health.md) — quarantine applies here too; unverified practices stay provisional
 - [24-roadmap-corrections.md](./24-roadmap-corrections.md) — errata pattern; user practices catch the same class of errors at usage level instead of spec level
 - [25-self-documentation.md](./25-self-documentation.md) — documentation locality; this doc is the ONE place for user-discovered practices

@@ -244,14 +244,14 @@ Scripts read all `*.md` files, parse YAML frontmatter, and write output between 
 
 The repo has two kinds of cross-references:
 
-1. **Formal markdown links**: `[16-knowledge-health.md](./16-knowledge-health.md)` — machine-checkable
+1. **Formal markdown links**: `[16-knowledge-health.md](dimensions/16-knowledge-health.md)` — machine-checkable
 2. **Informal prose references**: "[doc 16](dimensions/16-knowledge-health.md)", "per [doc 12](dimensions/12-skill-selector.md) quarantine rules" — human-readable but invisible to link checkers
 
 About half the references are informal. These are the most fragile: if a document is renamed or its sections reorganize, the prose reference silently breaks.
 
 ### The Fix
 
-**Convert informal references to formal links.** Every "see [doc 16](dimensions/16-knowledge-health.md)" should become `[doc 16](./16-knowledge-health.md)`. This is a one-time cleanup that makes the entire collection machine-checkable via lychee.
+**Convert informal references to formal links.** Every "see [doc 16](dimensions/16-knowledge-health.md)" should become `[doc 16](dimensions/16-knowledge-health.md)`. This is a one-time cleanup that makes the entire collection machine-checkable via lychee.
 
 **Add a cross-reference validation script** that:
 1. Extracts all `doc NN` prose references (regex: `doc\s+\d+`)
@@ -452,7 +452,7 @@ Each document should mark its key decisions with a consistent pattern (a heading
 
 ## All Commands
 
-The brana system has skills across code-focused and venture/business categories, plus agents (scout, memory-curator, project-scanner, venture-scanner, challenger, debrief-analyst, archiver, daily-ops, metrics-collector, pipeline-tracker). Commands are organized in four categories, all invoked via `/command-name` in a session. Skills and agents integrate via four patterns documented in [14-mastermind-architecture.md](./14-mastermind-architecture.md).
+The brana system has skills across code-focused and venture/business categories, plus agents (scout, memory-curator, project-scanner, venture-scanner, challenger, debrief-analyst, archiver, daily-ops, metrics-collector, pipeline-tracker). Commands are organized in four categories, all invoked via `/command-name` in a session. Skills and agents integrate via four patterns documented in [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md).
 
 ### Spec Maintenance
 
@@ -462,7 +462,7 @@ Commands for keeping the spec repo healthy. These operate on documents.
 |---|---|---|
 | **`/maintain-specs`** | Full correction cycle: apply errata → re-evaluate reflections → deepen → check [doc 25](25-self-documentation.md) → update memory → surface findings | **After `/debrief`, or when you suspect doc drift** |
 | `/refresh-knowledge` | Web search for external updates to dimension and venture/PM docs (10 topic groups, including Group J: [docs 19](19-pm-system-design.md), 28, 29, 34) | Before `/maintain-specs` when external tools may have changed |
-| `/research` | Atomic research primitive: topic, doc, creator, or leads — recursive discovery with source registry | **Ad-hoc research** or called by `/refresh-knowledge` per doc. See [33-research-methodology.md](./33-research-methodology.md) |
+| `/research` | Atomic research primitive: topic, doc, creator, or leads — recursive discovery with source registry | **Ad-hoc research** or called by `/refresh-knowledge` per doc. See [33-research-methodology.md](dimensions/33-research-methodology.md) |
 | `/re-evaluate-reflections` | Cross-check dimension vs reflection docs | When you only want to check, not fix |
 | `/apply-errata` | Apply pending fixes from [doc 24](24-roadmap-corrections.md), layer by layer | When you already have errata and just want to apply them |
 | `/back-propagate` | Reverse flow: implementation change → identify affected spec docs → update dimension/reflection/roadmap | **After adding/changing a rule, hook, skill, or config** — closes the implementation→spec gap |
@@ -497,13 +497,13 @@ Commands for building and reviewing.
 | `/decide` | Create an Architecture Decision Record (ADR) in `docs/decisions/` | **Before implementing a significant decision** — captures context, decision, consequences |
 | `/usage-stats` | Token usage analytics — model distribution, activity trends, session efficiency | **When checking usage patterns** or evaluating model routing efficiency |
 | `/tasks` | Plan, track, and execute tasks — hierarchy (phase > milestone > task), streams, tags, context, branch integration, agent execution via subagents | **When planning phases, viewing roadmaps, or executing task waves** — 13 subcommands including `execute`, `tags`, and `context` |
-| `/scheduler` | Manage systemd-timer scheduled jobs — status, enable/disable, logs, manual runs. Thin wrapper over `brana-scheduler` CLI | **When managing scheduled background jobs** — see [ADR-002](./docs/decisions/ADR-002-scheduler-thin-layer-over-systemd.md) |
+| `/scheduler` | Manage systemd-timer scheduled jobs — status, enable/disable, logs, manual runs. Thin wrapper over `brana-scheduler` CLI | **When managing scheduled background jobs** — see [ADR-002](decisions/ADR-002-scheduler-thin-layer-over-systemd.md) |
 | `/respondio-prompts` | Respond.io AI agent prompt engineering — write instructions, actions, KB files, multi-agent architectures within platform constraints | **When writing or reviewing Respond.io agent prompts**, designing multi-agent handoff flows, or creating knowledge bases |
 | `/pdf` | Convert markdown to PDF using md-to-pdf — consistent A4 format, clean styling | **When exporting proposals, docs, or reports to PDF** — produces client-ready output |
 
 ### Business & Venture Management
 
-Commands for non-code project management. These operate on business project structure and knowledge. See [28-startup-smb-management.md](./28-startup-smb-management.md) for the research and [29-venture-management-reflection.md](./29-venture-management-reflection.md) for the architecture rationale.
+Commands for non-code project management. These operate on business project structure and knowledge. See [28-startup-smb-management.md](dimensions/28-startup-smb-management.md) for the research and [29-venture-management-reflection.md](reflections/29-venture-management-reflection.md) for the architecture rationale.
 
 | Command | Purpose | When to use |
 |---|---|---|
@@ -1181,12 +1181,12 @@ That's it. Re-evaluates, applies fixes, checks [doc 25](25-self-documentation.md
 
 ## Cross-References
 
-- [08-diagnosis.md](./08-diagnosis.md) — keep/drop/defer decisions, validated by testing/eval research
-- [14-mastermind-architecture.md](./14-mastermind-architecture.md) — three-layer architecture that this doc's frontmatter schema mirrors
-- [15-self-development-workflow.md](./15-self-development-workflow.md) — genome vs connectome; doc health is connectome health
-- [16-knowledge-health.md](./16-knowledge-health.md) — staleness detection for patterns maps directly to staleness detection for documents
-- [17-implementation-roadmap.md](./17-implementation-roadmap.md) — milestone-tied review cadence
-- [18-lean-roadmap.md](./18-lean-roadmap.md) — pain-driven additions philosophy applies to doc tooling too
-- [24-roadmap-corrections.md](./24-roadmap-corrections.md) — the errata pattern is the strongest anti-staleness mechanism in this repo
-- [28-startup-smb-management.md](./28-startup-smb-management.md) — dimension doc for business/venture management; source for venture skill framework recommendations
-- [29-venture-management-reflection.md](./29-venture-management-reflection.md) — venture skill architecture rationale; cross-references coding practice docs → business patterns
+- [08-diagnosis.md](reflections/08-diagnosis.md) — keep/drop/defer decisions, validated by testing/eval research
+- [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md) — three-layer architecture that this doc's frontmatter schema mirrors
+- [15-self-development-workflow.md](15-self-development-workflow.md) — genome vs connectome; doc health is connectome health
+- [16-knowledge-health.md](dimensions/16-knowledge-health.md) — staleness detection for patterns maps directly to staleness detection for documents
+- [17-implementation-roadmap.md](17-implementation-roadmap.md) — milestone-tied review cadence
+- [18-lean-roadmap.md](18-lean-roadmap.md) — pain-driven additions philosophy applies to doc tooling too
+- [24-roadmap-corrections.md](24-roadmap-corrections.md) — the errata pattern is the strongest anti-staleness mechanism in this repo
+- [28-startup-smb-management.md](dimensions/28-startup-smb-management.md) — dimension doc for business/venture management; source for venture skill framework recommendations
+- [29-venture-management-reflection.md](reflections/29-venture-management-reflection.md) — venture skill architecture rationale; cross-references coding practice docs → business patterns
