@@ -33,7 +33,7 @@
 | 48 | [GitHub Spec Kit](https://github.com/github/spec-kit) | Spec-Driven Development | GitHub | Official GitHub spec-kit — spec-driven development toolkit, structured specifications | `claude-code-enhancement`, `ai-agent-systems` | `new` |
 | 49 | [Claude Code Tips That Changed How I Work](https://medium.com/@ianodad/some-claude-code-tips-that-actually-changed-how-i-work-b34f35b3dc73) | Claude Code Workflow | Ian Odad | Practical Claude Code tips that materially changed workflow | `claude-code-enhancement` | `new` |
 | 50 | [Shared Memory for Claude Code](https://www.linkedin.com/posts/steve-phelps-203270_a-shared-memory-for-claude-code-share-7432414226435956736-HihS) | Persistent Memory | Steve Phelps | Shared memory layer for Claude Code — persistent cross-session state | `claude-code-enhancement` | `new` |
-| 59 | [Ruflo v3.50 (formerly claude-flow)](https://www.linkedin.com/posts/reuvencohen_so-long-claude-flow-hello-ruflo-v350-ugcPost-7433292476595003393-bpqi) | claude-flow Rebrand | Reuven Cohen | claude-flow renamed to Ruflo v3.50 — direct upstream impact on brana memory stack | `ai-agent-systems`, `mcp-tooling` | `new` |
+| 59 | [Ruflo v3.50 (formerly claude-flow)](https://www.linkedin.com/posts/reuvencohen_so-long-claude-flow-hello-ruflo-v350-ugcPost-7433292476595003393-bpqi) | claude-flow Rebrand | Reuven Cohen | claude-flow renamed to Ruflo v3.50 — direct upstream impact on brana memory stack | `ai-agent-systems`, `mcp-tooling` | `reviewed` — No immediate action. Legacy `claude-flow` npm alias works (both at 3.5.2). Brana on v3.5.1. 92 refs across 33 system files need eventual rename. Embedding dimension risk: ruflo defaults 768-dim WASM, our embeddings.json forces 384-dim (safe). Upgrade to ruflo@3.5.2 when next maintenance cycle. Watch: alias deprecation = urgent. |
 | 62 | [AI Web Agent Backbone](https://www.linkedin.com/posts/digcreator_the-ultimate-backbone-for-ai-web-agents-just-share-7433607645422485505-3LHz) | Web Agent Infrastructure | DigCreator | Ultimate backbone for AI web agents — infrastructure layer for browser-based agents | `ai-agent-systems` | `new` |
 | 65 | [Open Source MCP Server](https://www.linkedin.com/posts/krajewski-ptr_an-open-source-mcp-server-just-came-out-that-share-7433883947069218816-rODp) | MCP Server | Krajewski | New open source MCP server — evaluate for brana MCP ecosystem | `mcp-tooling` | `new` |
 | 67 | [Agent Orchestrator](https://www.linkedin.com/posts/prateekkarnal_agent-orchestrator-lets-one-person-manage-share-7434120370519015424-dw50) | Agent Orchestration | Prateek Karnal | Agent orchestrator for one-person management of multiple agents | `ai-agent-systems` | `new` |
@@ -119,7 +119,7 @@
 8. **#12** — Study GitHub agentic workflows for CI/CD evolution
 9. **#22** — Evaluate GraphRAG for knowledge system enhancement
 10. **#29** — Study ClawWork accountability patterns
-11. **#59** — Evaluate Ruflo v3.50 rebrand impact on brana (claude-flow → ruflo)
+11. ~~**#59** — Evaluate Ruflo v3.50 rebrand~~ `reviewed` — no immediate action, alias works, 92 refs to rename eventually
 12. **#50** — Study shared memory for Claude Code (cross-session persistence)
 13. **#48** — Evaluate GitHub spec-kit for spec-driven development
 14. **#45** — Study Claude Code + Codex dual-agent workflow
