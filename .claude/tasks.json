@@ -966,7 +966,9 @@
       "priority": "P3",
       "effort": "M",
       "execution": "code",
-      "blocked_by": [],
+      "blocked_by": [
+        "t-057"
+      ],
       "branch": null,
       "github_issue": null,
       "created": "2026-02-24",
@@ -1016,7 +1018,9 @@
       "priority": "P2",
       "effort": "M",
       "execution": "code",
-      "blocked_by": [],
+      "blocked_by": [
+        "t-057"
+      ],
       "branch": null,
       "github_issue": null,
       "created": "2026-03-02",
