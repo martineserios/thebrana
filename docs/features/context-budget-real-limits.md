@@ -6,7 +6,7 @@
 
 ## Goal
 
-Correct doc 35's misleading "<1% of 200K" claim, add instruction-count validation to `validate.sh`, and document MCP server budget advisory — so the context budget system reflects the true overhead picture.
+Correct [doc 35](../dimensions/35-context-engineering-principles.md)'s misleading "<1% of 200K" claim, add instruction-count validation to `validate.sh`, and document MCP server budget advisory — so the context budget system reflects the true overhead picture.
 
 ## Audience
 
@@ -23,7 +23,7 @@ Brana developers (us) — ensuring the budget guardrails match reality.
 
 1. Count current instructions (audit baseline)
 2. Add instruction counter to validate.sh (warn >30, error >150)
-3. Update doc 35 budget narrative (correct claims, add full overhead picture)
+3. Update [doc 35](../dimensions/35-context-engineering-principles.md) budget narrative (correct claims, add full overhead picture)
 4. Add MCP advisory to context-budget.md rule (5 lines)
 5. Update backlog #55 as done
 
@@ -35,11 +35,11 @@ Brana developers (us) — ensuring the budget guardrails match reality.
 
 ## Research findings
 
-- Total fixed overhead: 76-142K tokens (38-71% of 200K), not the <1% doc 35 claims
+- Total fixed overhead: 76-142K tokens (38-71% of 200K), not the <1% [doc 35](../dimensions/35-context-engineering-principles.md) claims
 - MCP tools: 30-70K tokens, reduced to ~8.5K by Tool Search (85%)
 - Compaction buffer: 33-45K reserved by Claude Code (invisible to user)
 - Instruction density: >150-200 rules causes model inconsistency
-- Docs 08, 22 already spec instruction limits (~30 always-present) but validate.sh doesn't enforce them
+- [Docs 08](../reflections/08-diagnosis.md), 22 already spec instruction limits (~30 always-present) but validate.sh doesn't enforce them
 - Challenger verdict: keep bytes as coarse guardrail, add instruction count as primary quality gate
 
 ## Design

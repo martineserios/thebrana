@@ -78,7 +78,7 @@ Runner uses natural language prompts: `claude -p "Execute the /morning daily ope
 
 ## Research findings
 
-### Execution mechanism (doc 09, doc 21)
+### Execution mechanism (doc 09, [doc 21](../dimensions/21-anthropic-engineering-deep-dive.md))
 - `claude -p "prompt"` is the headless mode — non-interactive, suitable for cron
 - `--allowedTools "Read,Glob,Grep,WebSearch"` scopes permissions per invocation
 - `--output-format json` or `stream-json` for structured output
@@ -87,13 +87,13 @@ Runner uses natural language prompts: `claude -p "Execute the /morning daily ope
 ### Prior decisions
 - Backlog #33 (n8n/Windmill): deferred — overkill for current needs
 - Backlog #21 (Agent SDK headless): closed — SDK not mature enough
-- Doc 32 #8 (background learning): blocked on daemon reliability — this scheduler avoids that by NOT being a daemon
+- [Doc 32](../reflections/32-lifecycle.md) #8 (background learning): blocked on daemon reliability — this scheduler avoids that by NOT being a daemon
 
 ### Existing infrastructure
 - Session hooks already handle session-start/end lifecycle
 - 31 skills ready for headless invocation
 - claude-flow memory available for state persistence
-- Doc 25 already designed weekly checks (staleness, links, frontmatter) — just not automated
+- [Doc 25](../25-self-documentation.md) already designed weekly checks (staleness, links, frontmatter) — just not automated
 
 ## Resolved questions
 

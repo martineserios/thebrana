@@ -12,7 +12,7 @@ Brana has ~15 recurring tasks that should run at regular intervals (daily/weekly
 - **Daily**: morning focus cards for venture projects
 - **On-demand**: arbitrary commands and scripts
 
-These tasks are well-defined (doc 25 designed the weekly checks, doc 34 designed the business cadence) but none are automated. The user must remember to trigger each one. Backlog items #33 (n8n/Windmill) and #21 (Agent SDK for cron) were deferred — external platforms are overkill, the SDK isn't mature.
+These tasks are well-defined (doc 25 designed the weekly checks, [doc 34](../dimensions/34-venture-operating-system.md) designed the business cadence) but none are automated. The user must remember to trigger each one. Backlog items #33 (n8n/Windmill) and #21 (Agent SDK for cron) were deferred — external platforms are overkill, the SDK isn't mature.
 
 The execution mechanism exists: `claude -p "prompt"` runs Claude Code headlessly with `--allowedTools` for permission scoping and `--model` for cost control.
 
@@ -46,7 +46,7 @@ A `/scheduler` skill provides in-session management as a thin wrapper over the C
 
 ### Why NOT a custom daemon:
 - Daemons need process supervision, crash recovery, PID management
-- Doc 05 flagged claude-flow daemon stability as a concern
+- [Doc 05](../dimensions/05-claude-flow-v3-analysis.md) flagged claude-flow daemon stability as a concern
 - systemd already IS the process supervisor — reuse it
 - A config file + deploy script is ~200 lines; a daemon is ~2000+
 

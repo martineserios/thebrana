@@ -103,13 +103,13 @@ Additionally, the **Notification** hook type (`permission_prompt`, `idle_prompt`
 
 The mastermind's own `.claude/` files are simultaneously configuration and documentation (see [25-self-documentation.md](../25-self-documentation.md)). The system that runs is also the system that describes itself.
 
-**Frontmatter for skills and rules.** Each SKILL.md already requires `name` and `description` in frontmatter. Extend with `status` (experimental/stable/deprecated) and `growth_stage` (seedling/budding/evergreen) to signal trust level. An experimental skill should be treated differently from a battle-tested one — same principle as doc 25's growth stages for spec documents.
+**Frontmatter for skills and rules.** Each SKILL.md already requires `name` and `description` in frontmatter. Extend with `status` (experimental/stable/deprecated) and `growth_stage` (seedling/budding/evergreen) to signal trust level. An experimental skill should be treated differently from a battle-tested one — same principle as [doc 25](../25-self-documentation.md)'s growth stages for spec documents.
 
 **The `.claude/` directory IS the documentation.** Reading the directory tree tells you what the mastermind does. Each file is self-describing: CLAUDE.md is identity, rules/ is universal standards, skills/ is capabilities, agents/ is team composition. No separate "system docs" needed — Cyrille Martraire's principle: "store documentation on the documented thing itself."
 
 **Staleness applies to configs too.** A skill that references claude-flow v3.1 commands when v3.3 changed the API is a stale config. The same layer-aware staleness thresholds (30/90/180 days) and dependency-triggered reviews from [25-self-documentation.md](../25-self-documentation.md) apply. When claude-flow releases a new version, review all skills that call its commands.
 
-**Documentation locality applies to configs too.** Per doc 25 Mechanism 7: the ReasoningBank schema is the source of truth in doc 14. Implementation code references it by doc ID ("per spec 14"), never duplicates it. MEMORY.md summaries are a lossy cache — agents should follow links for the actual schema.
+**Documentation locality applies to configs too.** Per [doc 25](../25-self-documentation.md) Mechanism 7: the ReasoningBank schema is the source of truth in [doc 14](14-mastermind-architecture.md). Implementation code references it by doc ID ("per spec 14"), never duplicates it. MEMORY.md summaries are a lossy cache — agents should follow links for the actual schema.
 
 ---
 
@@ -123,8 +123,8 @@ From [15-self-development-workflow.md](../15-self-development-workflow.md) — t
 
 | Component | Review Trigger | Why |
 |-----------|---------------|-----|
-| Skills | After claude-flow version change | API commands may break (lesson #16 from doc 24) |
-| Hooks | After Claude Code update | Hook events may change (error #2 from doc 24) |
+| Skills | After claude-flow version change | API commands may break (lesson #16 from [doc 24](../24-roadmap-corrections.md)) |
+| Hooks | After Claude Code update | Hook events may change (error #2 from [doc 24](../24-roadmap-corrections.md)) |
 | Rules | After adding a tool preference | New rules need propagation (doc 00 records these) |
 | CLAUDE.md | Per phase milestone | Architecture may have shifted |
 | Context budget | After adding skills/agents/rules | Budget creep is invisible until it degrades performance |
@@ -164,7 +164,7 @@ From [ADR-002](../decisions/ADR-002-scheduler-thin-layer-over-systemd.md) — br
 
 The runner stores summaries in claude-flow memory (`namespace: scheduler-runs`). `/morning` and session-start can surface overnight results via `memory search --query "sched:"`.
 
-**Key design principle:** Scheduler jobs reserve exit code 1 for actual failures only. Informational findings (dep-stale, warnings) go into output and memory — never exit codes. This prevents false-positive OnFailure notifications (see learning #59 in doc 24).
+**Key design principle:** Scheduler jobs reserve exit code 1 for actual failures only. Informational findings (dep-stale, warnings) go into output and memory — never exit codes. This prevents false-positive OnFailure notifications (see learning #59 in [doc 24](../24-roadmap-corrections.md)).
 
 ---
 
@@ -188,7 +188,7 @@ Enforcement (encoded as a hook, runs automatically)
 
 Each level is harder to set up but more reliable. The system should start manual and graduate upward based on pain signals from real usage.
 
-**Evidence:** The Python tool preferences (uv + ruff, doc 00 entry 2026-02-12) started as a manual practice. After confirming them across projects, they graduated to `~/.claude/rules/universal-quality.md` — now enforced by convention across all projects.
+**Evidence:** The Python tool preferences (uv + ruff, [doc 00](../00-user-practices.md) entry 2026-02-12) started as a manual practice. After confirming them across projects, they graduated to `~/.claude/rules/universal-quality.md` — now enforced by convention across all projects.
 
 ### Git Workflow as Lifecycle Tool
 
@@ -229,7 +229,7 @@ The mastermind architecture describes a system that learns from code sessions. B
 
 [00-user-practices.md](../00-user-practices.md) closes this gap. It captures field notes from real usage — observations the user makes while living with the system. These observations feed back into the architecture:
 
-- **Graduation path:** A manual practice the user keeps repeating signals a missing automation. That observation, recorded in doc 00, becomes a hook or validation check in a future phase.
+- **Graduation path:** A manual practice the user keeps repeating signals a missing automation. That observation, recorded in [doc 00](../00-user-practices.md), becomes a hook or validation check in a future phase.
 - **Anti-pattern discovery:** When the user notices something that consistently doesn't work, it gets recorded and eventually influences triage decisions in [08-diagnosis.md](./08-diagnosis.md).
 - **Calibration signal:** The user's qualitative assessment of recall quality complements the quantitative RAG metrics defined in [31-assurance.md](./31-assurance.md).
 

@@ -357,7 +357,7 @@ System code (skills, hooks, rules) changes in discrete releases via deploy.sh. K
 
 **The "collector's fallacy" is addressed by the dimension doc pattern.**
 
-Doc 19's critique of Second Brain is valid: "capturing aggressively but never processing or using what's captured." The dimension doc pattern forces processing:
+[Doc 19](19-pm-system-design.md)'s critique of Second Brain is valid: "capturing aggressively but never processing or using what's captured." The dimension doc pattern forces processing:
 
 1. **Research** — gather sources, read deeply
 2. **Analyze** — extract principles, compare frameworks
@@ -631,7 +631,7 @@ File moves, path updates, config merges, validate cycle. Pure structural migrati
 - [ ] Update validate.sh for unified structure
 - [ ] Migrate enter's auto-memory → thebrana's auto-memory (careful diff, not 15-minute rush — see Q5 and section 14)
 - [ ] Run full deploy.sh + validate cycle
-- [ ] Update doc 14 (architecture), doc 25 (self-documentation), doc 00 (user practices)
+- [ ] Update [doc 14](reflections/14-mastermind-architecture.md) (architecture), [doc 25](25-self-documentation.md) (self-documentation), [doc 00](00-user-practices.md) (user practices)
 - [ ] Archive enter repo (read-only, README pointer)
 
 ### Phase 2: Skill Logic Rewrites (follows Phase 1, may extend 1-2 days)
@@ -641,7 +641,7 @@ Separated from Phase 1 because these are logic rewrites, not path substitutions.
 - [x] Rewrite `/back-propagate` for same-repo operation — now: same-repo `docs/` + cross-repo `brana-knowledge/dimensions/` pattern
 - [x] Rewrite `/reconcile` for same-repo operation — now: intra-repo `docs/` → `system/` with optional brana-knowledge scan
 - [x] Update `/build-phase` path references — single worktree branch, no two-repo merge dance
-- [x] Remove cross-repo worktree logic where no longer needed — also fixed stale refs in research, personal-check, commands, skill-catalog, doc 14
+- [x] Remove cross-repo worktree logic where no longer needed — also fixed stale refs in research, personal-check, commands, skill-catalog, [doc 14](reflections/14-mastermind-architecture.md)
 - [x] Run deploy.sh + validate cycle — passed (also added missing YAML frontmatter to 5 project commands)
 - [x] ~~Degraded mode acceptable~~ — not needed, full rewrites completed in one session
 
@@ -650,9 +650,9 @@ Separated from Phase 1 because these are logic rewrites, not path substitutions.
 Validate the full loop before investing in content. Write 1-2 dimension docs AND the indexing pipeline in the same session. If retrieval doesn't work, knowledge base is just another file graveyard.
 
 - [x] Seed dimension docs — 26 docs already in place from Phase 1 redistribution (enter dimension docs → brana-knowledge/dimensions/)
-- [x] Indexing pipeline — `system/scripts/index-knowledge.sh`: parses by ## sections, stores in claude-flow memory with 384-dim ONNX embeddings. 26 docs → 317 sections → 315 stored (2 encoding errors in doc 09)
+- [x] Indexing pipeline — `system/scripts/index-knowledge.sh`: parses by ## sections, stores in claude-flow memory with 384-dim ONNX embeddings. 26 docs → 317 sections → 315 stored (2 encoding errors in [doc 09](dimensions/09-claude-code-native-features.md))
 - [x] Memory-curator agent updated — searches knowledge namespace, surfaces dimension doc findings alongside patterns
-- [x] **End-to-end test PASSED:** "git worktree workflow" → doc 26 at 0.63, "testing claude code hooks" → doc 09 at 0.59, "design thinking" → doc 38 at 0.53. Cross-doc discrimination works.
+- [x] **End-to-end test PASSED:** "git worktree workflow" → [doc 26](dimensions/26-git-branching-strategies.md) at 0.63, "testing claude code hooks" → [doc 09](dimensions/09-claude-code-native-features.md) at 0.59, "design thinking" → [doc 38](dimensions/38-design-thinking.md) at 0.53. Cross-doc discrimination works.
 - [x] Test passes — retrieval validated, proceed to Phase 4
 - [x] On-commit hook — brana-knowledge post-commit runs `index-knowledge.sh --changed` in background
 - [x] Weekly full reindex — scheduler template updated (Sunday 3am)

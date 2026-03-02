@@ -2,7 +2,7 @@
 
 > Pre-scanned 2026-02-20 (batch 1), 2026-03-02 (batch 2). Sources: LinkedIn, GitHub, blogs, X.
 > Status: `new` | `reviewed` | `applied` | `skipped`
-> Cross-ref: doc 30 Links section (#473–#506 = batch 2)
+> Cross-ref: [doc 30](30-backlog.md) Links section (#473–#506 = batch 2)
 
 ---
 
