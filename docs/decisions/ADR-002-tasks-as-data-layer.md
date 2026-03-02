@@ -5,7 +5,7 @@
 
 ## Context
 
-The brana system needs project planning and task management that works across code and non-code projects, supports hierarchy (phase > milestone > task), integrates with branch strategy, and works through natural language. Doc 19 designed a GitHub Issues-first PM system that was never built. The current pain: no structured task tracking, no planning visibility, no cross-session state.
+The brana system needs project planning and task management that works across code and non-code projects, supports hierarchy (phase > milestone > task), integrates with branch strategy, and works through natural language. [Doc 19](../19-pm-system-design.md) designed a GitHub Issues-first PM system that was never built. The current pain: no structured task tracking, no planning visibility, no cross-session state.
 
 Three data layer options were evaluated:
 1. Native Claude Code Tasks — metadata doesn't query, session-scoped, insufficient for hierarchy

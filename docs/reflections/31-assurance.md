@@ -58,7 +58,7 @@ Hooks process JSON input from tool calls and sessions. They must resist adversar
 - **Event spoofing** — input claiming to be from SessionStart but arriving via PostToolUseFailure, or vice versa
 - **Escape sequences** — strings designed to break out of quoted contexts in shell scripts
 
-Test: replay recorded hook input fixtures with adversarial variants. Hooks should exit non-zero or sanitize safely — never execute injected commands. Tool: Promptfoo red team plugins ([22-testing.md](../../../brana-knowledge/dimensions/22-testing.md)). Doc 22 identifies "Instruction poisoning incidents: 0 promoted" as a critical safety metric.
+Test: replay recorded hook input fixtures with adversarial variants. Hooks should exit non-zero or sanitize safely — never execute injected commands. Tool: Promptfoo red team plugins ([22-testing.md](../../../brana-knowledge/dimensions/22-testing.md)). [Doc 22](../dimensions/22-testing.md) identifies "Instruction poisoning incidents: 0 promoted" as a critical safety metric.
 
 ---
 

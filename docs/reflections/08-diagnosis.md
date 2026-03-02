@@ -29,7 +29,7 @@ R1 triages every dimension doc → R2 composes the architecture → R3 validates
 ### 2. PM Separation (Code + PM Repos)
 **Why keep:** Clean separation of concerns. Code stays lean for deployment, decisions are preserved for context. The symlink bridge is lightweight and breaks gracefully.
 
-**For v2:** ~~Preserve the pattern.~~ **Superseded by [39-architecture-redesign.md](../39-architecture-redesign.md).** Doc 39's analysis concludes the repo boundary adds overhead without contributing to spec quality. The cognitive separation (design vs build) is preserved by directory structure and branch conventions (`docs/*` vs `feat/*`), not by repo boundaries. The merge is planned (see doc 39 migration phases).
+**For v2:** ~~Preserve the pattern.~~ **Superseded by [39-architecture-redesign.md](../39-architecture-redesign.md).** [Doc 39](../39-architecture-redesign.md)'s analysis concludes the repo boundary adds overhead without contributing to spec quality. The cognitive separation (design vs build) is preserved by directory structure and branch conventions (`docs/*` vs `feat/*`), not by repo boundaries. The merge is planned (see [doc 39](../39-architecture-redesign.md) migration phases).
 
 ### 3. Concurrent Execution Golden Rule
 **Why keep:** "1 MESSAGE = ALL RELATED OPERATIONS" is a genuine performance win. Batching parallel tool calls reduces round-trips and token waste.
@@ -192,76 +192,76 @@ Findings from docs [22-testing.md](../../../brana-knowledge/dimensions/22-testin
 
 Findings from [25-self-documentation.md](../25-self-documentation.md) that refine existing decisions and resolve open questions.
 
-**Progressive disclosure — now has a machine-readable layer.** Keep pattern #7 says "right level of detail when you need it." Doc 25 adds frontmatter metadata (status, growth_stage, depends_on) that enables auto-generated indexes and dependency graphs. Progressive disclosure isn't just about document structure — it's about making the layers navigable by both humans and AI agents. Growth stages (seedling → budding → evergreen) tell AI agents how much to trust each doc.
+**Progressive disclosure — now has a machine-readable layer.** Keep pattern #7 says "right level of detail when you need it." [Doc 25](../25-self-documentation.md) adds frontmatter metadata (status, growth_stage, depends_on) that enables auto-generated indexes and dependency graphs. Progressive disclosure isn't just about document structure — it's about making the layers navigable by both humans and AI agents. Growth stages (seedling → budding → evergreen) tell AI agents how much to trust each doc.
 
-**Open question #6 resolved: ADRs vs inline comments.** Doc 25 recommends neither in their pure form. Instead: keep decisions in existing documents but extract a **decision index** — a generated list of key decisions with links to the source sections. This is the ADR pattern without restructuring existing docs. No new files, just a navigable index.
+**Open question #6 resolved: ADRs vs inline comments.** [Doc 25](../25-self-documentation.md) recommends neither in their pure form. Instead: keep decisions in existing documents but extract a **decision index** — a generated list of key decisions with links to the source sections. This is the ADR pattern without restructuring existing docs. No new files, just a navigable index.
 
 ### User Feedback Loop
 
 Findings from [00-user-practices.md](../00-user-practices.md) that inform keep/drop/defer decisions.
 
-**Manual practices are a signal for automation.** When the user repeatedly documents the same practice ("always run validate before deploy"), that's evidence the practice should graduate from a manual habit to a hook or validation check. The keep/drop decisions above assumed static system capabilities — doc 00 adds a living feedback channel where usage patterns can promote deferred items to "keep" or demote kept items to "drop" based on real experience.
+**Manual practices are a signal for automation.** When the user repeatedly documents the same practice ("always run validate before deploy"), that's evidence the practice should graduate from a manual habit to a hook or validation check. The keep/drop decisions above assumed static system capabilities — [doc 00](../00-user-practices.md) adds a living feedback channel where usage patterns can promote deferred items to "keep" or demote kept items to "drop" based on real experience.
 
-**Anti-patterns discovered in practice outweigh theoretical concerns.** The "over-engineered components to eliminate" section above is based on analysis. Doc 00 captures what the user actually stumbles over. When a user-discovered anti-pattern contradicts a spec decision, the user's experience takes precedence — update the spec, not the practice.
+**Anti-patterns discovered in practice outweigh theoretical concerns.** The "over-engineered components to eliminate" section above is based on analysis. [Doc 00](../00-user-practices.md) captures what the user actually stumbles over. When a user-discovered anti-pattern contradicts a spec decision, the user's experience takes precedence — update the spec, not the practice.
 
 ---
 
 ## Dimension Doc Triage: Full Coverage
 
-Every dimension doc triaged for brana v2. Docs 01-07 covered above (Keep/Drop/Defer sections). Remaining docs triaged below.
+Every dimension doc triaged for brana v2. [Docs 01](../dimensions/01-brana-system-analysis.md)-07 covered above (Keep/Drop/Defer sections). Remaining docs triaged below.
 
-### Doc 09 — Claude Code Native Features
+### [Doc 09](../dimensions/09-claude-code-native-features.md) — Claude Code Native Features
 **Verdict: Keep as reference.** The definitive catalog of Claude Code's 6 extension layers (CLAUDE.md, rules, skills, subagents, teams, hooks). Source of truth for hook event list, stdin/stdout contracts, async constraints. R2 depends on it heavily for hook design. Not directly actionable — it's infrastructure knowledge.
 
-### Doc 10 — Statusline Research
+### [Doc 10](../dimensions/10-statusline-research.md) — Statusline Research
 **Verdict: Defer.** Community status line projects (session monitoring, cost tracking, context visualization) are nice-to-have. No dimension doc depends on it, no reflection needs it. Revisit when brana is stable and the user wants observability.
 
-### Doc 12 — Skill Selector
+### [Doc 12](../dimensions/12-skill-selector.md) — Skill Selector
 **Verdict: Keep — three-tier trust model.** The local core / curated catalog / discovery tier model is the right framework for skill trust. The quarantine pattern (doc 16) extends this. R2 uses it for skill architecture, R4 for lifecycle (trust graduation).
 
-### Doc 13 — Challenger Agent
+### [Doc 13](../dimensions/13-challenger-agent.md) — Challenger Agent
 **Verdict: Keep as capability.** Adversarial review (Opus challenger) is valuable for big decisions. Implemented as `/challenge`. Subscription-native, rate-limit-aware. Low maintenance, high value when used. Model upgraded from Sonnet to Opus for deeper adversarial quality (see [13-challenger-agent.md](../../../brana-knowledge/dimensions/13-challenger-agent.md)).
 
-### Doc 15 — Self-Development Workflow
+### [Doc 15](../15-self-development-workflow.md) — Self-Development Workflow
 **Verdict: Keep — genome/connectome separation is foundational.** The distinction between system code (genome, versioned in git) and learned knowledge (connectome, never rolled back) is a first-order architectural decision. R2 builds on it, R4 operationalizes it. The deploy pipeline, testing strategy, and rollback safety all flow from this separation.
 
-### Doc 16 — Knowledge Health
+### [Doc 16](../dimensions/16-knowledge-health.md) — Knowledge Health
 **Verdict: Keep — immune system is critical.** Eight infection vectors + prevention/healing strategies. The quarantine-first approach is validated. R3 uses it for ongoing assurance, R4 for maintenance cadences. Without this, the learning loop is a liability, not a feature.
 
-### Doc 19 — PM System Design
+### [Doc 19](../19-pm-system-design.md) — PM System Design
 **Verdict: Keep as reference for solo PM.** Now/Next/Later, weekly review, portfolio file, GitHub Issues + branch strategy. Applicable to both code projects and business projects (R5 cross-references it). Not yet implemented as a plugin — deferred to pain-driven additions.
 
-### Docs 20-21 — Anthropic Blog Findings & Engineering Deep Dive
-**Verdict: Keep as informational.** Doc 20 is an index; doc 21 is the exhaustive analysis. Together they provide the empirical foundation for context engineering theory, sub-agent sizing, token budget constraints, and eval methodology. R2 cites them for architecture principles. Not directly actionable — they're the research backing.
+### [Docs 20](../dimensions/20-anthropic-blog-findings.md)-21 — Anthropic Blog Findings & Engineering Deep Dive
+**Verdict: Keep as informational.** [Doc 20](../dimensions/20-anthropic-blog-findings.md) is an index; [doc 21](../dimensions/21-anthropic-engineering-deep-dive.md) is the exhaustive analysis. Together they provide the empirical foundation for context engineering theory, sub-agent sizing, token budget constraints, and eval methodology. R2 cites them for architecture principles. Not directly actionable — they're the research backing.
 
-### Doc 22 — Testing
+### [Doc 22](../dimensions/22-testing.md) — Testing
 **Verdict: Keep.** The 7-layer testing pyramid, record/playback pattern, and headless mode testing are the foundation for R3 (assurance). Deterministic vs non-deterministic distinction is essential for knowing what can be CI-gated vs what needs eval.
 
-### Doc 23 — Evaluation
+### [Doc 23](../dimensions/23-evaluation.md) — Evaluation
 **Verdict: Keep.** pass@k vs pass^k, RAG metrics, LLM-as-judge, fixture evals. R3 uses this for outcome evaluation methodology. The "grade outcomes not paths" principle applies across all reflection docs.
 
-### Doc 26 — Git Branching Strategies
+### [Doc 26](../dimensions/26-git-branching-strategies.md) — Git Branching Strategies
 **Verdict: Keep — decision made.** GitHub Flow validated as optimal for solo developer with spec-driven workflows. R4 operationalizes this as the lifecycle tool. The `--no-ff` always rule, branch naming convention, and short-lived branch discipline all stem from this research.
 
-### Doc 27 — Project Alignment Methodology
+### [Doc 27](../dimensions/27-project-alignment-methodology.md) — Project Alignment Methodology
 **Verdict: Keep.** 28-item checklist, 3 tiers, 5-phase pipeline. Implemented as `/project-align`. The bridge between R2's enforcement hierarchy and real projects that need the structure for enforcement to apply.
 
-### Doc 28 — Startup & SMB Management
+### [Doc 28](../dimensions/28-startup-smb-management.md) — Startup & SMB Management
 **Verdict: Keep.** Source for R5 (transfer). Frameworks, books, phase-based models, software→business pattern transfer. Five venture skills emerged from this research.
 
-### Doc 33 — Research Methodology
+### [Doc 33](../dimensions/33-research-methodology.md) — Research Methodology
 **Verdict: Keep.** Formalizes the recursive discovery process that produced the other 32 docs. Source registry (trust tiers, cadence, version pinning), leads queue, 5 research archetypes, and the `/research` skill as atomic primitive called by `/refresh-knowledge`. Without this, research stays ad-hoc and unreproducible.
 
-### Doc 34 — Venture Operating System
-**Verdict: Keep.** The business operations layer — MCP integrations (Google Sheets, Slack, QuickBooks, Stripe), daily/weekly/monthly skill cadences (`/morning`, `/weekly-review`, `/monthly-close`, `/monthly-plan`), growth experiments, pipeline tracking, financial modeling. Extends doc 28's frameworks into a deployable operating system. R5 synthesizes the venture management pattern; doc 34 provides the full implementation architecture.
+### [Doc 34](../dimensions/34-venture-operating-system.md) — Venture Operating System
+**Verdict: Keep.** The business operations layer — MCP integrations (Google Sheets, Slack, QuickBooks, Stripe), daily/weekly/monthly skill cadences (`/morning`, `/weekly-review`, `/monthly-close`, `/monthly-plan`), growth experiments, pipeline tracking, financial modeling. Extends [doc 28](../dimensions/28-startup-smb-management.md)'s frameworks into a deployable operating system. R5 synthesizes the venture management pattern; [doc 34](../dimensions/34-venture-operating-system.md) provides the full implementation architecture.
 
-### Doc 35 — Context Engineering Principles
+### [Doc 35](../dimensions/35-context-engineering-principles.md) — Context Engineering Principles
 **Verdict: Keep — decision framework for information placement.** Formalizes where new information belongs (always-loaded vs warm vs cold), the budget architecture (23KB hard limit with empirical growth history), progressive disclosure (hot/warm/cold tiers), sub-agent summary protocols, and context failure modes (saturation, attention rot, knowledge poisoning, budget creep). R2 uses it for architecture decisions, R3 validates against it, R4 operationalizes budget management. Without this, placement decisions are ad-hoc and budget grows unchecked.
 
-### Doc 38 — Design Thinking
+### [Doc 38](../dimensions/38-design-thinking.md) — Design Thinking
 **Verdict: Keep.** Applies design thinking methodology (empathy mapping, HMW questions, divergent ideation) to brana's development process. Source for R5 creative methods, R2 skill design patterns.
 
-### Doc 39 — Architecture Redesign
+### [Doc 39](../39-architecture-redesign.md) — Architecture Redesign
 **Verdict: Keep — supersedes item 2 above (PM Separation).** Three decisions: (1) merge enter/ into thebrana/ as `docs/` workspace, (2) evolve brana-knowledge/ into an active indexed knowledge base, (3) wire retrieval via claude-flow embeddings CLI. Spike validated (Phase 0.5 passed — 384-dim ONNX embeddings, semantic similarity confirmed). AgentDB stalled; fallback (embeddings + SQLite) is primary strategy. Migration phases: 0→0.5(done)→1(structural)→2(skill rewrites)→3(retrieval prototype)→4(scale content). R2 architecture directly affected; R3/R4/R5 will need updates when phases execute.
 
 ---

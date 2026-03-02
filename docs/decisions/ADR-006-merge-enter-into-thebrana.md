@@ -14,7 +14,7 @@ Brana's architecture currently splits across three repos:
 | `thebrana` | Operator | Skills, hooks, rules, agents, commands, scripts, deploy pipeline |
 | `brana-knowledge` | Vault | Memory exports, backups |
 
-This separation was designed to enforce the distinction between "designing the system" and "building the system." In practice, it creates friction without contributing to spec quality (see doc 39 for full analysis).
+This separation was designed to enforce the distinction between "designing the system" and "building the system." In practice, it creates friction without contributing to spec quality (see [doc 39](../39-architecture-redesign.md) for full analysis).
 
 ### Problems
 
@@ -121,7 +121,7 @@ AgentDB (alpha.3.3) is stalled — last npm publish Jan 2, 2026. @claude-flow/me
 | 3 | Retrieval prototype (1-2 seed docs + indexing pipeline + end-to-end test) | 1 session | Pending |
 | 4 | Scale brana-knowledge content | Ongoing | Pending |
 
-**Phase 1 checklist:** see doc 39, section 9 for full work items (13 items, including 30 path refs across 11 files).
+**Phase 1 checklist:** see [doc 39](../39-architecture-redesign.md), section 9 for full work items (13 items, including 30 path refs across 11 files).
 
 **Phase 2 note:** `/back-propagate` and `/reconcile` need logic rewrites, not path substitution. Degraded mode (manual edits) acceptable while logic is reworked.
 
@@ -146,11 +146,11 @@ AgentDB (alpha.3.3) is stalled — last npm publish Jan 2, 2026. @claude-flow/me
 
 ### Risks
 
-See doc 39, section 10 for full risk table (10 risks with mitigations).
+See [doc 39](../39-architecture-redesign.md), section 10 for full risk table (10 risks with mitigations).
 
 ## References
 
 - [39-architecture-redesign.md](../39-architecture-redesign.md) — full analysis and migration details
 - [ADR-005](./ADR-005-agentdb-v3-unified-knowledge-backend.md) — AgentDB proposal (deferred by this ADR)
 - [14-mastermind-architecture.md](../14-mastermind-architecture.md) — current architecture (pre-merge)
-- Doc 24, errata #73-76 — cascade findings from doc 39 maintain-specs run
+- [Doc 24](../24-roadmap-corrections.md), errata #73-76 — cascade findings from [doc 39](../39-architecture-redesign.md) maintain-specs run

@@ -8,15 +8,15 @@ An alternative to [17-implementation-roadmap.md](./17-implementation-roadmap.md)
 
 ## Why This Document Exists
 
-Doc 17 is a comprehensive plan. It's also 6 phases, 5 immune system layers, SONA evaluation gates, A/B testing frameworks, token routing tiers, multi-round debate protocols, skill catalog checksums, and knowledge migration systems.
+[Doc 17](17-implementation-roadmap.md) is a comprehensive plan. It's also 6 phases, 5 immune system layers, SONA evaluation gates, A/B testing frameworks, token routing tiers, multi-round debate protocols, skill catalog checksums, and knowledge migration systems.
 
 For a solo developer with 3-5 projects on a Max5 subscription, that's enterprise software for a personal tool. This document asks: what if we build only what we'll actually need in the first 6 months?
 
-Everything dropped here can be added later. Nothing in this plan prevents graduating to doc 17's full vision. The difference is: doc 17 builds the infrastructure first and hopes the value follows. This document builds the value first and adds infrastructure when it hurts not to have it.
+Everything dropped here can be added later. Nothing in this plan prevents graduating to [doc 17](17-implementation-roadmap.md)'s full vision. The difference is: [doc 17](17-implementation-roadmap.md) builds the infrastructure first and hopes the value follows. This document builds the value first and adds infrastructure when it hurts not to have it.
 
 ---
 
-## Design Constraints (Same as Doc 17)
+## Design Constraints (Same as [Doc 17](17-implementation-roadmap.md))
 
 | Constraint | Value |
 |---|---|
@@ -30,7 +30,7 @@ Everything dropped here can be added later. Nothing in this plan prevents gradua
 
 ## What's Dropped (and Why)
 
-| Doc 17 Feature | Why It's Dropped | When to Add It Back |
+| [Doc 17](17-implementation-roadmap.md) Feature | Why It's Dropped | When to Add It Back |
 |---|---|---|
 | **SONA as a milestone** | Tag-based `memory search` works for <1000 patterns. SONA's neural features (MoE, EWC++, trajectory tracking) are for scale we won't hit in 6 months. | When tag-based recall fails you — you search for something you know is in ReasoningBank and it doesn't surface. That's the signal. |
 | **Token routing tiers** | On Max5 subscription, you pay per message block, not per token. Routing Haiku vs Sonnet vs Opus saves nothing. | If you switch to API billing. |
@@ -97,7 +97,7 @@ Everything dropped here can be added later. Nothing in this plan prevents gradua
 
 **Testing strategy:** Three layers, run before merging: static validation, hook smoke tests, memory round-trip. The full pyramid from [22-testing.md](./22-testing.md) is adopted pain-driven — add layers when failures motivate them, not upfront.
 
-**What's different from doc 17:**
+**What's different from [doc 17](17-implementation-roadmap.md):**
 - No `rollback.sh` — `git checkout` + `deploy.sh` IS your rollback
 - No `backup-knowledge.sh` — `export-knowledge.sh` IS your backup
 - No `CHANGELOG.md` — git log IS your changelog
@@ -154,7 +154,7 @@ Build all 6 in week 1-2. Keep them simple:
 
 ### Export Escape Hatch
 
-Same `export-knowledge.sh` from doc 17. Build it before you store a single pattern.
+Same `export-knowledge.sh` from [doc 17](17-implementation-roadmap.md). Build it before you store a single pattern.
 
 ### Exit Criteria
 
@@ -229,7 +229,7 @@ promotion: 3 successful recalls in different sessions
 failure: immediate demotion to suspect on bad recall
 ```
 
-This prevents the worst failure mode — bad patterns spreading across projects before they're proven. If quarantine alone isn't catching problems after 3-4 months, revisit doc 16's full immune system. Until then, this is enough.
+This prevents the worst failure mode — bad patterns spreading across projects before they're proven. If quarantine alone isn't catching problems after 3-4 months, revisit [doc 16](dimensions/16-knowledge-health.md)'s full immune system. Until then, this is enough.
 
 ### Testing the Loop
 
@@ -299,7 +299,7 @@ This phase is intentionally loose. By week 6, you'll know what's actually broken
   - Any that are stale? Lower confidence manually.
   - Any contradictions? Resolve them.
   - Grade recall quality using RAG metrics: precision@k (were recalled patterns relevant?), staleness rate, faithfulness. See [23-evaluation.md](./23-evaluation.md) and [14-mastermind-architecture.md](./14-mastermind-architecture.md#evaluating-the-brain) for the full measurement framework.
-- This is doc 16's immune system, but human-powered instead of automated.
+- This is [doc 16](dimensions/16-knowledge-health.md)'s immune system, but human-powered instead of automated.
 
 ### Exit Criteria
 
@@ -321,7 +321,7 @@ This phase is intentionally loose. By week 6, you'll know what's actually broken
 
 ### Why This Phase Exists
 
-Research (doc 11 section 5, doc 09 PreToolUse) showed:
+Research (doc 11 section 5, [doc 09](dimensions/09-claude-code-native-features.md) PreToolUse) showed:
 - CLAUDE.md rules alone achieve ~80% compliance for complex workflows (Claude Code issues #21119, #6120, #15443)
 - PreToolUse hooks with `permissionDecision: "deny"` achieve ~100% (deterministic block)
 - TDD-Guard (external) pushed TDD compliance from ~20% to ~84% via PreToolUse hooks
@@ -653,7 +653,7 @@ Add entry for `/decide`:
 ### What You Build
 
 - `/project-align` skill — 5-phase pipeline: DISCOVER → ASSESS → PLAN → IMPLEMENT → VERIFY → DOCUMENT
-- Doc 27 methodology as the reference (what "aligned" means): [27-project-alignment-methodology.md](./27-project-alignment-methodology.md)
+- [Doc 27](dimensions/27-project-alignment-methodology.md) methodology as the reference (what "aligned" means): [27-project-alignment-methodology.md](./27-project-alignment-methodology.md)
 - Alignment checklist: 28 items, 7 groups, 3 tiers (minimal / standard / full)
 
 ### Why This Phase Exists
@@ -695,11 +695,11 @@ This isn't a phase — it's a menu. Add items when you feel the pain, not on a s
 
 **Full SDD workflow orchestration** — cc-sdd-style 5-phase gates (steering → spec-init → spec-design → spec-tasks → spec-impl). Add when the minimal spec-before-code hook isn't structured enough. The hook is a gate; a full workflow skill would be a guide.
 
-**Project health monitoring** — statusline display of alignment metrics (ADR freshness, test coverage trend, debrief frequency). The base statusline is deployed (`~/.claude/statusline.sh` — see doc 10 §Brana Implementation); this backlog item is about layering alignment-specific metrics on top. Add when you want passive awareness of alignment drift. See [10-statusline-research.md](./10-statusline-research.md) "Project Health Monitoring via Statusline" and [27-project-alignment-methodology.md](./27-project-alignment-methodology.md) "Project Health Monitoring".
+**Project health monitoring** — statusline display of alignment metrics (ADR freshness, test coverage trend, debrief frequency). The base statusline is deployed (`~/.claude/statusline.sh` — see [doc 10](dimensions/10-statusline-research.md) §Brana Implementation); this backlog item is about layering alignment-specific metrics on top. Add when you want passive awareness of alignment drift. See [10-statusline-research.md](./10-statusline-research.md) "Project Health Monitoring via Statusline" and [27-project-alignment-methodology.md](./27-project-alignment-methodology.md) "Project Health Monitoring".
 
 **`/project-align --check`** — periodic re-assessment mode. Runs the 28-item checklist without implementing, reports regressions. Add when alignment drift becomes a real concern across multiple projects.
 
-| Pain | Solution | Doc 17 Equivalent |
+| Pain | Solution | [Doc 17](17-implementation-roadmap.md) Equivalent |
 |---|---|---|
 | "Tag search isn't finding patterns I know exist" | Activate SONA: `neural train`, switch to vector similarity | Phase 3: SONA activation |
 | "Stale patterns keep resurfacing" | Add monthly decay function (confidence -= 0.05 for unused patterns) | Phase 4: Layer 4 |
@@ -770,13 +770,13 @@ After v0.5.0    Pain-driven additions
 **Total to refined system (v0.3.0):** ~12 weeks
 **Total to enforced system (v0.4.0):** after Phase 3 real-world validation
 **Total to aligned system (v0.5.0):** after Phase 4 real-world validation
-**Total to doc 17's full vision:** whenever reality demands it
+**Total to [doc 17](17-implementation-roadmap.md)'s full vision:** whenever reality demands it
 
 ---
 
-## Comparison: Doc 17 vs Doc 18
+## Comparison: [Doc 17](17-implementation-roadmap.md) vs [Doc 18](18-lean-roadmap.md)
 
-| Dimension | Doc 17 (Full Roadmap) | Doc 18 (Lean Roadmap) |
+| Dimension | [Doc 17](17-implementation-roadmap.md) (Full Roadmap) | [Doc 18](18-lean-roadmap.md) (Lean Roadmap) |
 |---|---|---|
 | **Phases** | 6 (0-5) | 5 + pain-driven menu |
 | **Timeline to usable** | 6 weeks (v0.3.0) | 6 weeks (v0.2.0) |
@@ -793,43 +793,43 @@ After v0.5.0    Pain-driven additions
 
 ### Which to Use?
 
-**Use Doc 17 if:**
+**Use [Doc 17](17-implementation-roadmap.md) if:**
 - You enjoy building systems infrastructure
 - You want the full vision from day 1
 - You're comfortable with a 4-month runway before the system is "done"
 - You believe the immune system complexity will pay off early
 
-**Use Doc 18 if:**
+**Use [Doc 18](18-lean-roadmap.md) if:**
 - You want to be using the brain in 3 weeks
 - You'd rather add complexity in response to pain than in anticipation of it
 - 3-5 projects and <1000 patterns don't justify enterprise infrastructure
 - You believe manual review beats automated systems at this scale
 
 **The hybrid approach (recommended):**
-- Start with Doc 18's Phases 1-2 (get to a working brain fast)
-- Use Doc 17 as the reference architecture for the "pain-driven additions" phase
-- When something hurts, look up the solution in Doc 17 and implement it
+- Start with [Doc 18](18-lean-roadmap.md)'s Phases 1-2 (get to a working brain fast)
+- Use [Doc 17](17-implementation-roadmap.md) as the reference architecture for the "pain-driven additions" phase
+- When something hurts, look up the solution in [Doc 17](17-implementation-roadmap.md) and implement it
 - See the upgrade path below for exactly how this works
 
 ---
 
-## Upgrade Path: Doc 18 → Doc 17
+## Upgrade Path: [Doc 18](18-lean-roadmap.md) → [Doc 17](17-implementation-roadmap.md)
 
-This roadmap is designed as the on-ramp to doc 17, not a fork. Every decision here is a subset of doc 17's decisions — nothing conflicts, nothing needs redoing.
+This roadmap is designed as the on-ramp to [doc 17](17-implementation-roadmap.md), not a fork. Every decision here is a subset of [doc 17](17-implementation-roadmap.md)'s decisions — nothing conflicts, nothing needs redoing.
 
 ### Why It Composes Without Rework
 
-**Same data, same schema.** Both roadmaps use ReasoningBank's pattern storage (SQLite + JSON blobs). Doc 18 stores patterns with tags, confidence, and transferable flags. Doc 17's additional features (dual-track confidence, decay timestamps, contradiction references) are extra fields on the same JSON. When you add them, existing patterns get sensible defaults — no migration needed.
+**Same data, same schema.** Both roadmaps use ReasoningBank's pattern storage (SQLite + JSON blobs). [Doc 18](18-lean-roadmap.md) stores patterns with tags, confidence, and transferable flags. [Doc 17](17-implementation-roadmap.md)'s additional features (dual-track confidence, decay timestamps, contradiction references) are extra fields on the same JSON. When you add them, existing patterns get sensible defaults — no migration needed.
 
-**Same hooks, richer logic.** Both use the same three hooks (SessionStart, SessionEnd, PostToolUse) wired to the same triggers. Doc 17 adds more logic inside them (failure attribution, auto-challenge on ExitPlanMode). You enhance the hook scripts — you don't replace them.
+**Same hooks, richer logic.** Both use the same three hooks (SessionStart, SessionEnd, PostToolUse) wired to the same triggers. [Doc 17](17-implementation-roadmap.md) adds more logic inside them (failure attribution, auto-challenge on ExitPlanMode). You enhance the hook scripts — you don't replace them.
 
-**Same skills, more skills.** Both start with the same 6 core skills. Doc 17 adds `/skill-discover`, `/skill-install`, `/knowledge-audit`, `/system-health`. These are new files in `system/skills/`, not changes to existing ones.
+**Same skills, more skills.** Both start with the same 6 core skills. [Doc 17](17-implementation-roadmap.md) adds `/skill-discover`, `/skill-install`, `/knowledge-audit`, `/system-health`. These are new files in `system/skills/`, not changes to existing ones.
 
 **SONA reads existing data.** When you activate `neural train`, it indexes the patterns already in ReasoningBank. It doesn't need patterns stored in a special format — it works on what's there.
 
 ### Compatibility Matrix
 
-| Doc 18 Decision | Doc 17 Upgrade | Redo? |
+| [Doc 18](18-lean-roadmap.md) Decision | [Doc 17](17-implementation-roadmap.md) Upgrade | Redo? |
 |---|---|---|
 | `cp -r` deploy | Switch to symlinks in deploy.sh | **One line change.** Old deploys still work. |
 | No rollback.sh | Create rollback.sh | **Add a file.** Nothing to undo. |
@@ -846,7 +846,7 @@ This roadmap is designed as the on-ramp to doc 17, not a fork. Every decision he
 
 ### The One Thing to Get Right Early: Tagging Discipline
 
-The only potential friction in the upgrade is **tag quality**. Doc 17's advanced features (SONA similarity search, transferability gates, contradiction detection) all rely on patterns having consistent, meaningful tags. If your lean phase stores patterns with sloppy tags like `["fix", "bug", "code"]`, the advanced features won't work well on that data.
+The only potential friction in the upgrade is **tag quality**. [Doc 17](17-implementation-roadmap.md)'s advanced features (SONA similarity search, transferability gates, contradiction detection) all rely on patterns having consistent, meaningful tags. If your lean phase stores patterns with sloppy tags like `["fix", "bug", "code"]`, the advanced features won't work well on that data.
 
 **The fix is free:** establish a tag vocabulary when you build the SessionEnd hook in Phase 2. Example:
 
@@ -884,11 +884,11 @@ Doc 17 Phase 5: Self-improve   v0.8.0  Auto-challenge, dashboard, recursive lear
   Effort: ongoing
 ```
 
-Each step is independent. You can do Phase 4 (immune system) without Phase 3 (SONA). You can do auto-challenge without A/B testing. Pick from doc 17's menu based on what actually hurts.
+Each step is independent. You can do Phase 4 (immune system) without Phase 3 (SONA). You can do auto-challenge without A/B testing. Pick from [doc 17](17-implementation-roadmap.md)'s menu based on what actually hurts.
 
 ### What You'll Never Need to Redo
 
-- **Patterns stored during lean phases** — they're in ReasoningBank with tags, confidence, timestamps. Every doc 17 feature reads this data.
+- **Patterns stored during lean phases** — they're in ReasoningBank with tags, confidence, timestamps. Every [doc 17](17-implementation-roadmap.md) feature reads this data.
 - **Hook wiring** — same triggers, same settings.json structure. You add logic, not replace it.
 - **Skills** — same files, same frontmatter format. You add new ones and enhance existing ones.
 - **Export escape hatch** — works the same at every scale. The Phase 5 enrichments just export more fields.

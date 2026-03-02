@@ -23,7 +23,7 @@ The user — sees overnight staleness reports surfaced via claude-flow memory se
 ## Scope (v1)
 
 ### #45 — staleness-report.sh
-- Layer-aware age check: roadmap=30d, reflection=90d, dimension=180d (from doc 25)
+- Layer-aware age check: roadmap=30d, reflection=90d, dimension=180d (from [doc 25](../25-self-documentation.md))
 - Git log last-modified per doc (zero dependencies beyond git)
 - Dependency freshness: grep `doc NN` references, compare git dates
 - Two-tier output: WARN (approaching threshold) and STALE (past threshold)

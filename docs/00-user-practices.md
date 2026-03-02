@@ -91,7 +91,7 @@ Practices around working across multiple projects, context switching, and cross-
 Practices around changing the brana system itself — when to modify, how to test changes, what goes wrong.
 
 - **2026-02-10:** Remember to trigger upward propagation when modifying docs. The system (Claude) sometimes forgets. The rule: changes to a dimension doc → recheck reflection docs (08, 14). Changes to a reflection doc → recheck roadmap docs (17, 18, 19, 24). If the system doesn't do this automatically, remind it: "you updated a dimension doc, check propagation." This is a manual guardrail until it can be automated as a validation check or hook.
-- **2026-02-12:** Two directions of propagation, two commands. **Forward** (`/maintain-specs`): spec change cascades to dependent specs (dimension → reflection → roadmap). **Backward** (`/back-propagate`): implementation change propagates back to specs (rule/hook/skill → dimension → reflection → roadmap). Without `/back-propagate`, implementation decisions silently diverge from specs. Example: adding ruff+uv as a rule without updating docs 22 and 27 means `/project-align` wouldn't know about the standard.
+- **2026-02-12:** Two directions of propagation, two commands. **Forward** (`/maintain-specs`): spec change cascades to dependent specs (dimension → reflection → roadmap). **Backward** (`/back-propagate`): implementation change propagates back to specs (rule/hook/skill → dimension → reflection → roadmap). Without `/back-propagate`, implementation decisions silently diverge from specs. Example: adding ruff+uv as a rule without updating [docs 22](dimensions/22-testing.md) and 27 means `/project-align` wouldn't know about the standard.
 
 ---
 

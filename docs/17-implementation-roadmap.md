@@ -617,7 +617,7 @@ Promotion path:
   Successful in 2+ different projects → transferable: true
 ```
 
-### Skill Discovery and Install (from doc 12/13)
+### Skill Discovery and Install (from [doc 12](dimensions/12-skill-selector.md)/13)
 
 With SONA active, build two new commands from the [12-skill-selector.md](./12-skill-selector.md) trust model:
 
@@ -627,7 +627,7 @@ With SONA active, build two new commands from the [12-skill-selector.md](./12-sk
 
 **Skill quarantine:** extends the pattern quarantine model to external skills. New skills from Tier 2/3 enter probation — 3 successful uses + human review before promotion. No external skill ever auto-promotes to global Tier 1.
 
-### Smart Challenge Suggestions (from doc 13)
+### Smart Challenge Suggestions (from [doc 13](dimensions/13-challenger-agent.md))
 
 With SONA active and challenge outcomes accumulated from Phase 2, the system can suggest when to challenge. See [13-challenger-agent.md](./13-challenger-agent.md) for the full design.
 
@@ -784,7 +784,7 @@ Store A/B results in ReasoningBank tagged `domain: brana-system`.
 
 ### System Health Dashboard
 
-Track monthly (from doc 15's "When to Rewrite" section):
+Track monthly (from [doc 15](15-self-development-workflow.md)'s "When to Rewrite" section):
 
 | Metric | Target | Warning | Action |
 |---|---|---|---|
@@ -805,7 +805,7 @@ Once the system has enough self-referential patterns (`domain: brana-system`), i
 
 This is the recursive payoff: the brain improving its own wiring based on what it's learned about maintaining itself.
 
-### Auto-Challenge on Plan Mode (from doc 13)
+### Auto-Challenge on Plan Mode (from [doc 13](dimensions/13-challenger-agent.md))
 
 Hook on ExitPlanMode for high-blast-radius plans. Haiku pre-screens, Sonnet digs deep if warranted. Rate-limit-aware — self-regulates based on remaining quota. See [13-challenger-agent.md](./13-challenger-agent.md).
 
@@ -817,7 +817,7 @@ Hook on ExitPlanMode for high-blast-radius plans. Haiku pre-screens, Sonnet digs
 
 The system doesn't challenge everything — it challenges where the data says challenges are most likely to catch real issues.
 
-### Smart Skill Suggestion on Onboard (from doc 12/13)
+### Smart Skill Suggestion on Onboard (from [doc 12](dimensions/12-skill-selector.md)/13)
 
 `/project-onboard` now leverages the skill catalog and ReasoningBank effectiveness data:
 

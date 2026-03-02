@@ -379,16 +379,16 @@ Produce a summary the user can scan. This is also what future sessions will see 
 | 2 | [description] | `def5678` | [how] |
 
 ### What was learned
-- **Errata found:** N new entries in doc 24 (errors #X-#Y)
-- **Process learnings:** N entries added to doc 24 Lessons Learned
+- **Errata found:** N new entries in [doc 24](24-roadmap-corrections.md) (errors #X-#Y)
+- **Process learnings:** N entries added to [doc 24](24-roadmap-corrections.md) Lessons Learned
 - **Patterns stored:** N entries in ReasoningBank
 - **Key insight:** [the single most important thing learned this phase, in one sentence]
 
 ### Specs updated (from maintain-specs)
 | Doc | What changed |
 |-----|-------------|
-| 08 | [change summary] |
-| 14 | [change summary] |
+| [08](reflections/08-diagnosis.md) | [change summary] |
+| [14](reflections/14-mastermind-architecture.md) | [change summary] |
 
 ### Exit criteria
 - [x] criterion 1

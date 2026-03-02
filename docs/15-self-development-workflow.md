@@ -340,7 +340,7 @@ This is the recursive magic: when you `cd ~/projects/brana && claude`, the maste
 
 ## Feature Lifecycle for System Changes
 
-Use the same SPARC phases from doc 03, adapted for self-modification.
+Use the same SPARC phases from [doc 03](dimensions/03-pm-framework.md), adapted for self-modification.
 
 ### Example: Adding a `/pattern-confidence` command
 
@@ -775,7 +775,7 @@ Questions from the initial brainstorm, now answered:
 2. **How to measure system quality over time?** Candidates: rollbacks/month, time-to-first-useful-output on new projects, pattern recall precision (how often recalled patterns actually help). Need to pick 3-4 metrics and track them.
 
 ### Knowledge
-3. **What counts as "success" for a recalled pattern?** Tests passing? User explicitly approving? Session completing without errors? The definition shapes what the system optimizes for. See doc 16 for deeper analysis.
+3. **What counts as "success" for a recalled pattern?** Tests passing? User explicitly approving? Session completing without errors? The definition shapes what the system optimizes for. See [doc 16](dimensions/16-knowledge-health.md) for deeper analysis.
 
 4. **How to handle partially correct patterns?** A pattern that's 80% right and 20% wrong. Can't delete (80% is valuable) or keep as-is (20% causes damage). Need a refinement mechanism, not just accept/reject.
 

@@ -78,7 +78,7 @@ Code projects have `package.json`, `tsconfig.json`, `Dockerfile` — structure f
 
 ### Gap 3: Business Phase Execution
 
-`/build-phase` is tightly coupled to the brana roadmap — it reads doc 17/18, detects git tags, creates phase branches in the thebrana repo. Business milestones are different:
+`/build-phase` is tightly coupled to the brana roadmap — it reads [doc 17](../17-implementation-roadmap.md)/18, detects git tags, creates phase branches in the thebrana repo. Business milestones are different:
 
 - **Product launch** — market research → positioning → channel strategy → launch → post-launch review
 - **Hiring round** — role definition → sourcing → interviews → offer → onboarding SOP
@@ -155,7 +155,7 @@ Existing tags (`project:`, `tech:`, `type:`, `outcome:`) continue to work. Busin
 2. Scan existing structure (docs, SOPs, metrics, decisions)
 3. Data completeness audit — if external data stores exist (Google Sheets, CRMs, databases), assess each table for row count, missing columns, empty fields. Empty tables with correct headers are "partial" not "present." Common gaps: client acquisition channel, cash flow reconstruction, COGS for internal production, referrer attribution, stock reconciliation.
 4. Pattern recall (ReasoningBank query for stage + domain)
-5. Framework recommendation based on stage (from doc 28 research)
+5. Framework recommendation based on stage (from [doc 28](../dimensions/28-startup-smb-management.md) research)
 6. Gap report with prioritized next steps (includes data completeness matrix alongside structural gaps)
 
 **Key architectural decision:** Stage classification drives everything downstream. The four stages (Discovery → Validation → Growth → Scale) from the Startup Genome research are the branching point. Each stage has different:
@@ -220,7 +220,7 @@ Purpose → Owner → Trigger → Prerequisites → Steps (with decision points)
 degradation modes) → Metrics → Version → Review Date
 ```
 
-**Key principle from doc 28:** Don't systematize too early. Wait until a process repeats 3+ times. But when you do systematize, do it well — a good SOP prevents process debt the way a good spec prevents technical debt.
+**Key principle from [doc 28](../dimensions/28-startup-smb-management.md):** Don't systematize too early. Wait until a process repeats 3+ times. But when you do systematize, do it well — a good SOP prevents process debt the way a good spec prevents technical debt.
 
 ### 5. `/growth-check` — Business Health Audit
 
@@ -275,18 +275,18 @@ This cross-pollination is what `/memory pollinate` already does — but with bus
 
 The brana system's coding practice docs contain patterns that transfer directly to business project management. These aren't vague analogies — they're structural parallels where the same mental model applies to different artifacts.
 
-### Doc 03 (PM Framework) → Business Operations
+### [Doc 03](../dimensions/03-pm-framework.md) (PM Framework) → Business Operations
 
 The PM framework separates **code work from PM work** — dedicated repos, different cadences, different tools. The same separation applies to business: **strategy work** (vision, positioning, market research) is not **operations work** (SOPs, hiring, metrics tracking). Conflating them leads to the same failure mode as mixing features and project management in one stream: strategic thinking gets crowded out by operational urgency.
 
 Specific transfers:
 - **Feature lifecycle (SPARC phases)** → **Business initiative lifecycle.** Scope → Plan → Approve → Run → Close maps directly to business initiatives. A product launch has the same phases as a feature — it starts with scoping, needs a plan, requires approval (from stakeholders, not a PR reviewer), executes, and needs a retrospective.
-- **BACKLOG.md as prioritized intake** → **Business backlog.** The same Now/Next/Later pattern from doc 19 works for business priorities. A venture needs a single prioritized list of initiatives, not scattered ideas across Slack threads and notes apps.
+- **BACKLOG.md as prioritized intake** → **Business backlog.** The same Now/Next/Later pattern from [doc 19](../19-pm-system-design.md) works for business priorities. A venture needs a single prioritized list of initiatives, not scattered ideas across Slack threads and notes apps.
 - **Progressive disclosure in documentation** → **Handbook layering.** Just as CLAUDE.md shouldn't dump everything on the AI at once, business handbooks should layer: summary → detail → reference. New hires read the summary. Specialists dive into detail. Nobody reads the whole thing.
 
-### Doc 08 (Diagnosis) → Business Process Evaluation
+### [Doc 08](08-diagnosis.md) (Diagnosis) → Business Process Evaluation
 
-Doc 08's **keep/drop/defer** analysis is a general-purpose evaluation framework. Applied to business:
+[Doc 08](08-diagnosis.md)'s **keep/drop/defer** analysis is a general-purpose evaluation framework. Applied to business:
 
 - **Keep** — processes that demonstrably contribute to outcomes (the sales process that closes deals, the standup that surfaces blockers)
 - **Drop** — processes that exist from habit, not value ("we've always done a Monday all-hands" — has it ever surfaced a real decision?)
@@ -294,9 +294,9 @@ Doc 08's **keep/drop/defer** analysis is a general-purpose evaluation framework.
 
 The anti-pattern "over-engineered components to eliminate" maps directly: businesses accumulate **over-complicated processes** the same way codebases accumulate over-engineered abstractions. The weekly 2-hour planning meeting that could be a 15-minute async check-in. The 12-field CRM entry when 3 fields matter. The 40-page business plan when a 2-page canvas would suffice.
 
-### Doc 14 (Mastermind Architecture) → Business Intelligence Structure
+### [Doc 14](14-mastermind-architecture.md) (Mastermind Architecture) → Business Intelligence Structure
 
-Doc 14's three-layer model maps to business organizations:
+[Doc 14](14-mastermind-architecture.md)'s three-layer model maps to business organizations:
 
 | Mastermind Layer | Business Equivalent | What It Contains |
 |-----------------|---------------------|------------------|
@@ -308,21 +308,21 @@ The **genome vs connectome** distinction is critical for businesses too:
 - **Genome** = your documented systems (SOPs, playbooks, org chart, compensation philosophy). These are stable, version-controlled, and deploy-able to new hires.
 - **Connectome** = your institutional memory (why that pricing model failed, which investor actually adds value, what customers really mean when they say "it's too expensive"). This lives in people's heads — and is lost when they leave unless you capture it.
 
-### Doc 15 (Self-Development) → Operational Maturity
+### [Doc 15](../15-self-development-workflow.md) (Self-Development) → Operational Maturity
 
-Doc 15's genome/connectome separation maps to business operational maturity:
+[Doc 15](../15-self-development-workflow.md)'s genome/connectome separation maps to business operational maturity:
 
 - **Genome (business systems):** SOPs, playbooks, job descriptions, onboarding checklists, interview rubrics — the documented, repeatable parts. These are the business equivalent of config files and deploy scripts. They can be "deployed" to any new hire or team.
 - **Connectome (learned knowledge):** Market intelligence, customer behavior patterns, competitive landscape insights, supplier relationships — the accumulated wisdom. This is the business equivalent of the ReasoningBank.
 
 Additional transfers:
 - **Deploy pipeline** → **Process rollout.** New SOPs should roll out like code deploys: test in a small team first, verify it works, then expand. Don't deploy a new sales process to the entire team on Monday morning.
-- **Testing** → **Process validation.** Before formalizing a process as an SOP, validate it works. Run it 3 times manually. Check that the output is consistent. The "wait until it repeats 3 times" principle from doc 28.
+- **Testing** → **Process validation.** Before formalizing a process as an SOP, validate it works. Run it 3 times manually. Check that the output is consistent. The "wait until it repeats 3 times" principle from [doc 28](../dimensions/28-startup-smb-management.md).
 - **Self-healing** → **Process improvement loops.** The system that detects when a hook fails and adjusts → the business that detects when an SOP isn't followed and asks "why not?" Maybe the process is wrong, not the person.
 
-### Doc 16 (Knowledge Health) → Business Knowledge Poisoning
+### [Doc 16](../dimensions/16-knowledge-health.md) (Knowledge Health) → Business Knowledge Poisoning
 
-Doc 16's eight infection vectors apply directly to business knowledge. These are the ways a business's institutional memory gets corrupted:
+[Doc 16](../dimensions/16-knowledge-health.md)'s eight infection vectors apply directly to business knowledge. These are the ways a business's institutional memory gets corrupted:
 
 | Knowledge Infection | Business Example |
 |-------------------|-----------------|
@@ -337,9 +337,9 @@ Doc 16's eight infection vectors apply directly to business knowledge. These are
 
 The **immune system** concepts transfer too: quarantine new business patterns (test them before making them standard), decay patterns that haven't been recalled (review and retire stale SOPs), run contradiction detection (audit your handbook for conflicting guidance).
 
-### Doc 19 (PM System Design) → Solo Founder PM
+### [Doc 19](../19-pm-system-design.md) (PM System Design) → Solo Founder PM
 
-Doc 19's solo PM best practices are directly applicable to solo founders and small teams:
+[Doc 19](../19-pm-system-design.md)'s solo PM best practices are directly applicable to solo founders and small teams:
 
 - **Now/Next/Later** → **Business prioritization.** Three buckets, not 20-item Gantt charts. What are we doing this week? What's queued for next? What's on the horizon?
 - **Weekly review** → **Business review cadence.** The weekly review from PM ("what shipped, what's blocked, what's next") maps to the business review ("what moved metrics, what's stuck, what's the next experiment").
@@ -347,9 +347,9 @@ Doc 19's solo PM best practices are directly applicable to solo founders and sma
 - **Kill zombie projects** → **Kill zombie initiatives.** The initiative nobody's working on but nobody's willing to kill. The partnership "in progress" for 6 months. The feature idea that keeps getting discussed but never scoped. Apply the same rule: if it hasn't moved in 2 weeks, it's either dead or needs explicit commitment.
 - **Second Brain / PARA overlap** → Business knowledge organization follows the same pattern: Projects (active initiatives), Areas (ongoing responsibilities), Resources (reference material), Archive (completed/retired).
 
-### Doc 22 (Testing) → Business Process Validation
+### [Doc 22](../dimensions/22-testing.md) (Testing) → Business Process Validation
 
-Doc 22's testing pyramid maps to a **validation pyramid for business processes:**
+[Doc 22](../dimensions/22-testing.md)'s testing pyramid maps to a **validation pyramid for business processes:**
 
 | Testing Layer | Business Validation Equivalent |
 |--------------|-------------------------------|
@@ -386,7 +386,7 @@ The initial five skills (`/venture-onboard`, `/venture-align`, `/venture-phase`,
 
 The forward-looking planning gap — no skill synthesized accumulated data into next month's action plan — is addressed by `/monthly-plan`, designed as the complement to `/monthly-close`. Where `/monthly-close` looks backward (what happened), `/monthly-plan` looks forward (what to do next), consuming growth-check snapshots, pipeline state, experiment results, financial model projections, and weekly review velocity data.
 
-These 7 skills (plus `/monthly-plan`) connect to the existing 5: `/morning` reads `/growth-check` snapshots, `/weekly-review` aggregates `/morning` outputs, `/monthly-close` combines `/financial-model` projections with `/pipeline` actuals. `/monthly-plan` reads all six data sources (`/monthly-close`, `/growth-check`, `/pipeline`, `/experiment`, `/financial-model`, `/weekly-review`) to produce a forward-looking action plan — revenue targets, bottleneck-driven priorities, experiment proposals, pipeline actions, and budget allocation. The full interaction graph is documented in doc 34, section 8.
+These 7 skills (plus `/monthly-plan`) connect to the existing 5: `/morning` reads `/growth-check` snapshots, `/weekly-review` aggregates `/morning` outputs, `/monthly-close` combines `/financial-model` projections with `/pipeline` actuals. `/monthly-plan` reads all six data sources (`/monthly-close`, `/growth-check`, `/pipeline`, `/experiment`, `/financial-model`, `/weekly-review`) to produce a forward-looking action plan — revenue targets, bottleneck-driven priorities, experiment proposals, pipeline actions, and budget allocation. The full interaction graph is documented in [doc 34](../dimensions/34-venture-operating-system.md), section 8.
 
 **Supporting infrastructure:**
 - 3 new agents: `daily-ops` (Haiku), `metrics-collector` (Haiku), `pipeline-tracker` (Haiku)
@@ -418,7 +418,7 @@ This reflection doc will be enriched over time as the venture skills are used an
 - Accumulate patterns in ReasoningBank
 - Run `/debrief` and `/retrospective` after business sessions
 - Identify which frameworks actually work at which stages (evidence-based, not theoretical)
-- **First fieldwork (2026-02-15):** psilea (cycle-product, validation stage) revealed 10 generic patterns. Four skills updated: `/growth-check` (non-SaaS metrics, adapted AARRR, channel attribution, revenue risk signals), `/monthly-close` (external data sources, cash flow reconstruction, AR/AP, COGS check), `/venture-onboard` (data completeness audit), `/venture-align` (V5 referrer tracking). Key learning: one real-project session improved skills more than three spec-driven reconcile passes (lesson #42 in doc 24)
+- **First fieldwork (2026-02-15):** psilea (cycle-product, validation stage) revealed 10 generic patterns. Four skills updated: `/growth-check` (non-SaaS metrics, adapted AARRR, channel attribution, revenue risk signals), `/monthly-close` (external data sources, cash flow reconstruction, AR/AP, COGS check), `/venture-onboard` (data completeness audit), `/venture-align` (V5 referrer tracking). Key learning: one real-project session improved skills more than three spec-driven reconcile passes (lesson #42 in [doc 24](../24-roadmap-corrections.md))
 
 ### Phase 3: Cross-Pollination
 - Patterns flow between code and business projects via ReasoningBank
@@ -426,12 +426,12 @@ This reflection doc will be enriched over time as the venture skills are used an
 - Document which cross-domain transfers are high-confidence (proven) vs quarantined (unproven)
 
 ### Phase 4: Framework Refinement
-- Doc 28's framework recommendations are research-based. After real usage, update with evidence:
+- [Doc 28](../dimensions/28-startup-smb-management.md)'s framework recommendations are research-based. After real usage, update with evidence:
   - Which frameworks actually helped at which stages?
   - Which metrics actually predicted outcomes?
   - Which SOP templates were most useful?
   - Where did the stage classification model break down?
-- Update this reflection doc and doc 28 via `/maintain-specs`
+- Update this reflection doc and [doc 28](../dimensions/28-startup-smb-management.md) via `/maintain-specs`
 
 ### Phase 5: Unified Project Management
 - The distinction between "code project" and "business project" may blur

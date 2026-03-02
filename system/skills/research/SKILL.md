@@ -100,7 +100,7 @@ Target options:
 
    #### [NEW] Title — HIGH
    - Source: [name](url)
-   - Affects: doc NN, section "Section Name"
+   - Affects: [doc NN](relative-path.md), section "Section Name"
    - Detail: what changed and why it matters
    - Action: specific suggestion (update claim, add reference, etc.)
 
@@ -111,7 +111,7 @@ Target options:
    - Source: [name](url)
    - Old version: vX.Y.Z (observed: YYYY-MM-DD)
    - New version: vA.B.C
-   - Affects: docs NN, MM (all claims based on old version)
+   - Affects: [doc NN](path.md), [doc MM](path.md) (all claims based on old version)
    - Action: re-verify doc claims against new version
 
    ### New Sources Discovered

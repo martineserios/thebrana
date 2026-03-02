@@ -62,7 +62,7 @@ diataxis_type: explanation  # tutorial | how-to | reference | explanation
 
 This is a trust signal for AI agents: a `growth_stage: seedling` tells Claude to treat content as speculative, while `evergreen` means firm decision.
 
-**depends_on / depended_by** — Explicit dependency graph. Must be symmetric: if doc 17 depends on doc 14, then doc 14's `depended_by` must include 17. A validation script enforces this.
+**depends_on / depended_by** — Explicit dependency graph. Must be symmetric: if [doc 17](17-implementation-roadmap.md) depends on [doc 14](reflections/14-mastermind-architecture.md), then [doc 14](reflections/14-mastermind-architecture.md)'s `depended_by` must include 17. A validation script enforces this.
 
 **diataxis_type** — Which of the four documentation types this doc primarily serves (Daniele Procida's Diataxis framework). Almost all current docs are `explanation`. This field exists to surface gaps — when implementation starts, the repo will need `how-to` and `reference` docs too.
 
@@ -122,15 +122,15 @@ When `/refresh-knowledge` runs, agents compare pinned versions against the lates
 
 Age isn't the only trigger. If doc A depends on doc B, and B was updated more recently than A was last reviewed, flag A for review even if it hasn't hit its age threshold.
 
-This catches the most dangerous failure mode: a dimension doc changes, but the reflection and roadmap docs that depend on it don't get updated. Doc 24 (roadmap corrections) exists because exactly this happened — specs referenced incorrect concepts that had changed upstream.
+This catches the most dangerous failure mode: a dimension doc changes, but the reflection and roadmap docs that depend on it don't get updated. [Doc 24](24-roadmap-corrections.md) (roadmap corrections) exists because exactly this happened — specs referenced incorrect concepts that had changed upstream.
 
 ### Tie Reviews to Implementation Milestones
 
 The only review cadence that actually works: review docs when you start implementing from them.
 
-- Start Phase 1 → review docs 04-07, 09, 11 (the dimension docs that inform it)
-- Complete Phase 2 → update docs 17, 18 (the roadmap docs that describe it)
-- Find an error during implementation → add to doc 24 (errata)
+- Start Phase 1 → review [docs 04](dimensions/04-claude-4.6-capabilities.md)-07, 09, 11 (the dimension docs that inform it)
+- Complete Phase 2 → update [docs 17](17-implementation-roadmap.md), 18 (the roadmap docs that describe it)
+- Find an error during implementation → add to [doc 24](24-roadmap-corrections.md) (errata)
 
 Calendar-based "quarterly review" cycles are too infrequent and disconnected from reality. By the time you review, the damage is done.
 
@@ -245,13 +245,13 @@ Scripts read all `*.md` files, parse YAML frontmatter, and write output between 
 The repo has two kinds of cross-references:
 
 1. **Formal markdown links**: `[16-knowledge-health.md](./16-knowledge-health.md)` — machine-checkable
-2. **Informal prose references**: "doc 16", "per doc 12 quarantine rules" — human-readable but invisible to link checkers
+2. **Informal prose references**: "[doc 16](dimensions/16-knowledge-health.md)", "per [doc 12](dimensions/12-skill-selector.md) quarantine rules" — human-readable but invisible to link checkers
 
 About half the references are informal. These are the most fragile: if a document is renamed or its sections reorganize, the prose reference silently breaks.
 
 ### The Fix
 
-**Convert informal references to formal links.** Every "see doc 16" should become `[doc 16](./16-knowledge-health.md)`. This is a one-time cleanup that makes the entire collection machine-checkable via lychee.
+**Convert informal references to formal links.** Every "see [doc 16](dimensions/16-knowledge-health.md)" should become `[doc 16](./16-knowledge-health.md)`. This is a one-time cleanup that makes the entire collection machine-checkable via lychee.
 
 **Add a cross-reference validation script** that:
 1. Extracts all `doc NN` prose references (regex: `doc\s+\d+`)
@@ -289,12 +289,12 @@ When Claude reads the spec documents to build the brana system, it needs to know
 - The doc has been through discussion and revision
 - Core ideas are sound but details may shift during implementation
 - Safe to reference, but check before depending on specifics
-- *Current examples: docs 17, 18, 19 (roadmaps and PM design — will evolve during implementation)*
+- *Current examples: [docs 17](17-implementation-roadmap.md), 18, 19 (roadmaps and PM design — will evolve during implementation)*
 
 **Evergreen** — Settled decision. Rarely changes. Safe to depend on.
 - The doc has been validated through implementation experience or through cross-referencing multiple research sources
 - Core findings are stable. Only details (version numbers, tool names) may need updating
-- *Current examples: docs 01-03 (current system analysis — facts about what exists), doc 08 (diagnosis — decisions are made)*
+- *Current examples: [docs 01](dimensions/01-brana-system-analysis.md)-03 (current system analysis — facts about what exists), [doc 08](reflections/08-diagnosis.md) (diagnosis — decisions are made)*
 
 ### Promotion Criteria
 
@@ -310,7 +310,7 @@ The growth stages map to Swyx's Learning Gears framework:
 - **Connector gear** (budding) — linking ideas, building frameworks, structured analysis
 - **Mining gear** (evergreen) — deep architectural work, settled conclusions
 
-This repo's natural evolution: docs 01-03 were Explorer output, docs 04-13 were Connector output, docs 14-19 are Mining output.
+This repo's natural evolution: [docs 01](dimensions/01-brana-system-analysis.md)-03 were Explorer output, [docs 04](dimensions/04-claude-4.6-capabilities.md)-13 were Connector output, [docs 14](reflections/14-mastermind-architecture.md)-19 are Mining output.
 
 ---
 
@@ -336,11 +336,11 @@ Martraire's *Living Documentation* principle: **knowledge should live on the thi
 - **Spec content lives in the numbered doc files.** Period. No substantive claims in README.md, no architectural decisions in MEMORY.md, no design rationale in CLAUDE.md.
 - **README.md is a generated view.** It should contain only: a brief purpose statement, a generated doc table, a generated dependency graph, and a generated decision index. All generated from frontmatter. If README.md requires manual editing beyond the purpose statement, something is wrong.
 - **MEMORY.md is a lossy cache.** It compresses spec content for agent context windows. It's allowed to be stale — agents should follow links to source docs for decisions. Never add information to MEMORY.md that doesn't exist in a source doc.
-- **CLAUDE.md is behavioral instructions.** It tells agents HOW to work with the repo, not WHAT the specs say. "When adding new docs, update README.md" is correct. "The system uses three trust tiers" is not — that belongs in doc 12.
+- **CLAUDE.md is behavioral instructions.** It tells agents HOW to work with the repo, not WHAT the specs say. "When adding new docs, update README.md" is correct. "The system uses three trust tiers" is not — that belongs in [doc 12](dimensions/12-skill-selector.md).
 
 ### Specific Anti-Patterns
 
-**The Summary Creep.** MEMORY.md starts as a brief index, then grows paragraphs of architectural summaries. Now there are two places describing the mastermind architecture: docs 14/31/32 and MEMORY.md. When a reflection doc changes, MEMORY.md drifts silently.
+**The Summary Creep.** MEMORY.md starts as a brief index, then grows paragraphs of architectural summaries. Now there are two places describing the mastermind architecture: [docs 14](reflections/14-mastermind-architecture.md)/31/32 and MEMORY.md. When a reflection doc changes, MEMORY.md drifts silently.
 
 *Fix:* MEMORY.md summaries should be one-liners with links. Deep content stays in source docs. Treat MEMORY.md like a database index — it helps you find things, it doesn't replace them.
 
@@ -350,7 +350,7 @@ Martraire's *Living Documentation* principle: **knowledge should live on the thi
 
 **The Meta-Doc Spiral.** A doc about how to write docs (this one). A doc about how to review docs. A doc about the doc validation pipeline. A doc about the doc generation scripts. Each meta-doc adds maintenance burden without adding spec content.
 
-*Fix:* Cap meta-docs at one (this document). Validation and generation details belong in script comments or a short section in CLAUDE.md, not in dedicated spec documents. This doc is already at the limit — resist creating doc 26 about "documentation workflow."
+*Fix:* Cap meta-docs at one (this document). Validation and generation details belong in script comments or a short section in CLAUDE.md, not in dedicated spec documents. This doc is already at the limit — resist creating [doc 26](dimensions/26-git-branching-strategies.md) about "documentation workflow."
 
 **The Cross-Repo Reference.** Spec docs reference thebrana/ implementation details. Implementation docs reference spec doc numbers. Now changes in either repo can silently break the other.
 
@@ -398,7 +398,7 @@ Research surfaced many approaches that are wrong for this specific repo. Capturi
 
 ### The Gap
 
-Decisions are scattered across 30 documents. When a future reader asks "why did we choose quarantine over deletion for bad patterns?" they must search through doc 16 to find the reasoning. There's no central list of decisions.
+Decisions are scattered across 30 documents. When a future reader asks "why did we choose quarantine over deletion for bad patterns?" they must search through [doc 16](dimensions/16-knowledge-health.md) to find the reasoning. There's no central list of decisions.
 
 ### The Solution
 
@@ -460,11 +460,11 @@ Commands for keeping the spec repo healthy. These operate on documents.
 
 | Command | Purpose | When to use |
 |---|---|---|
-| **`/maintain-specs`** | Full correction cycle: apply errata → re-evaluate reflections → deepen → check doc 25 → update memory → surface findings | **After `/debrief`, or when you suspect doc drift** |
-| `/refresh-knowledge` | Web search for external updates to dimension and venture/PM docs (10 topic groups, including Group J: docs 19, 28, 29, 34) | Before `/maintain-specs` when external tools may have changed |
+| **`/maintain-specs`** | Full correction cycle: apply errata → re-evaluate reflections → deepen → check [doc 25](25-self-documentation.md) → update memory → surface findings | **After `/debrief`, or when you suspect doc drift** |
+| `/refresh-knowledge` | Web search for external updates to dimension and venture/PM docs (10 topic groups, including Group J: [docs 19](19-pm-system-design.md), 28, 29, 34) | Before `/maintain-specs` when external tools may have changed |
 | `/research` | Atomic research primitive: topic, doc, creator, or leads — recursive discovery with source registry | **Ad-hoc research** or called by `/refresh-knowledge` per doc. See [33-research-methodology.md](./33-research-methodology.md) |
 | `/re-evaluate-reflections` | Cross-check dimension vs reflection docs | When you only want to check, not fix |
-| `/apply-errata` | Apply pending fixes from doc 24, layer by layer | When you already have errata and just want to apply them |
+| `/apply-errata` | Apply pending fixes from [doc 24](24-roadmap-corrections.md), layer by layer | When you already have errata and just want to apply them |
 | `/back-propagate` | Reverse flow: implementation change → identify affected spec docs → update dimension/reflection/roadmap | **After adding/changing a rule, hook, skill, or config** — closes the implementation→spec gap |
 | `/reconcile` | Detect drift between enter specs and thebrana implementation, plan fixes, apply after approval | **After `/maintain-specs`** when impl-relevant specs changed, or periodically to check for accumulated drift |
 | `/repo-cleanup` | Commit accumulated spec doc changes with proper branching | When modified files have built up across sessions |
@@ -1074,7 +1074,7 @@ Code and business patterns live in the same ReasoningBank.
 ```
 /maintain-specs
 ```
-That's it. Re-evaluates, applies fixes, checks doc 25, updates memory, asks about storing findings. Exits early at every step if nothing needs doing.
+That's it. Re-evaluates, applies fixes, checks [doc 25](25-self-documentation.md), updates memory, asks about storing findings. Exits early at every step if nothing needs doing.
 
 **After a long gap or major external changes:**
 ```

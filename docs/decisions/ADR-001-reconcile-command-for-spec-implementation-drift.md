@@ -46,7 +46,7 @@ Create `/reconcile` as a skill in `thebrana`, deployed to `~/.claude/skills/reco
    - Skill metadata and instructions
    - Deploy script expectations (`deploy.sh`)
 
-4. **Drift report: log to doc 24.** Append drift findings and applied changes to `24-roadmap-corrections.md` (the existing errata doc). Keeps the audit trail in one place.
+4. **Drift report: log to [doc 24](../24-roadmap-corrections.md).** Append drift findings and applied changes to `24-roadmap-corrections.md` (the existing errata doc). Keeps the audit trail in one place.
 
 5. **Trigger: suggest after /maintain-specs.** When `/maintain-specs` cascades changes that touch implementation-relevant specs, it suggests running `/reconcile` to push those changes into the built system. Completes the loop.
 
@@ -74,7 +74,7 @@ For each area of thebrana, compare against the relevant spec surface:
 | `system/hooks/` | Hook specs in reflection docs (08, 14), dimension docs (05, 06) |
 | `system/rules/` | Rule definitions in reflection docs, CLAUDE.md rules section |
 | `system/config/` | Config specs in dimension docs, deploy script expectations |
-| `deploy.sh` | Deploy process described in roadmap docs, doc 25 self-docs |
+| `deploy.sh` | Deploy process described in roadmap docs, [doc 25](../25-self-documentation.md) self-docs |
 | `CLAUDE.md` | Conventions defined across enter/ docs |
 
 ## Consequences
@@ -83,7 +83,7 @@ For each area of thebrana, compare against the relevant spec surface:
 
 - **Spec changes flow to implementation.** No more manual tracking of what changed in enter/ and whether thebrana reflects it.
 - **Complete maintenance loop.** The four commands now cover all arrows: `/refresh-knowledge` (external → specs), `/maintain-specs` (specs → specs), `/reconcile` (specs → implementation), `/back-propagate` (implementation → specs).
-- **Auditable drift history.** Doc 24 records what drifted and when, making it possible to spot recurring drift patterns.
+- **Auditable drift history.** [Doc 24](../24-roadmap-corrections.md) records what drifted and when, making it possible to spot recurring drift patterns.
 - **Natural chaining.** `/maintain-specs` → suggests `/reconcile` → changes land in thebrana. One smooth flow.
 
 ### Harder

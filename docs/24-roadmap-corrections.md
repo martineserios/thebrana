@@ -17,81 +17,81 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | # | Error | Severity | Status | Comments |
 |---|---|---|---|---|
 | 1 | Settings merge bug in deploy.sh | **High** | code-fix | Fixed in deploy.sh additive merge |
-| 2 | Stop vs SessionEnd mismatch | **High** | applied (2026-02-10) | Docs 08, 14, 17, 18 updated |
-| 3 | Hook format not specified | **Medium** | informational | Roadmaps cross-ref doc 09 |
+| 2 | Stop vs SessionEnd mismatch | **High** | applied (2026-02-10) | [Docs 08](reflections/08-diagnosis.md), 14, 17, 18 updated |
+| 3 | Hook format not specified | **Medium** | informational | Roadmaps cross-ref [doc 09](dimensions/09-claude-code-native-features.md) |
 | 4 | Event list incomplete | **Medium** | informational | PostToolUseFailure now in hooks |
 | 5 | CLAUDE_ENV_FILE not in specs | **Low** | informational | Used in session-start.sh |
 | 6 | Async hook limitations | **Low** | informational | Design-compatible |
 | 7 | Context budget calc incomplete | **Low** | code-fix | Agent desc added to validate.sh |
-| 8 | Roadmap docs missing doc 00 / user feedback loop | **Low** | applied (2026-02-10) | Already in both docs (17 line 327, 18 line 103) — missed during earlier review |
+| 8 | Roadmap docs missing [doc 00](00-user-practices.md) / user feedback loop | **Low** | applied (2026-02-10) | Already in both docs (17 line 327, 18 line 103) — missed during earlier review |
 | 9 | claude-flow hooks recall/learn don't exist in v3 | **High** | applied (2026-02-10) | All 7 files fixed to memory API |
-| 10 | Doc 14 doesn't acknowledge ReasoningBank alpha risk | **Medium** | applied (2026-02-10) | Blockquote caveat added |
-| 11 | Doc 14 doesn't scope MCP tool surface | **Medium** | applied (2026-02-10) | Scope note in Context7 entry |
-| 12 | Doc 14 background learning assumes daemon reliability | **Low** | applied (2026-02-10) | Note in open question #8 |
+| 10 | [Doc 14](reflections/14-mastermind-architecture.md) doesn't acknowledge ReasoningBank alpha risk | **Medium** | applied (2026-02-10) | Blockquote caveat added |
+| 11 | [Doc 14](reflections/14-mastermind-architecture.md) doesn't scope MCP tool surface | **Medium** | applied (2026-02-10) | Scope note in Context7 entry |
+| 12 | [Doc 14](reflections/14-mastermind-architecture.md) background learning assumes daemon reliability | **Low** | applied (2026-02-10) | Note in open question #8 |
 | 13 | `grep -c` + `|| echo 0` double output under `set -e` | **Medium** | code-fix | session-end.sh fixed, test covers it |
 | 14 | `npx claude-flow` from `$HOME` downloads on every call | **Medium** | code-fix | Smart binary discovery in both hooks |
 | 15 | claude-flow CLI debug output pollutes hook stdout | **Medium** | code-fix | stdout suppressed/filtered in hooks |
-| 16 | Roadmaps don't schedule testing from docs 22/23 | **Low** | applied (2026-02-10) | Testing note + test scripts added to docs 17, 18; exit criteria updated |
+| 16 | Roadmaps don't schedule testing from [docs 22](dimensions/22-testing.md)/23 | **Low** | applied (2026-02-10) | Testing note + test scripts added to [docs 17](17-implementation-roadmap.md), 18; exit criteria updated |
 | 17 | `memory search` preview truncates stored JSON values | **Medium** | code-fix | Tests use `memory retrieve` instead of search for verification |
 | 18 | `memory retrieve` requires `--namespace` flag | **Low** | informational | Positional arg form also broken; must use `-k KEY --namespace NS` |
-| 19 | Doc 14 conflates Context7 MCP with claude-flow scoping | **Medium** | applied (2026-02-10) | Split into two separate table rows |
-| 20 | Doc 08 doesn't mention native subagent `memory:` field | **Low** | informational | ReasoningBank still justified for semantic search; native `memory:` is simpler fallback |
-| 21 | Doc 14 doesn't reference doc 07 or mention v3.1 Agent Teams hooks | **Medium** | applied (2026-02-10) | Team-level hooks section + doc 07 cross-ref added |
-| 22 | Doc 08 "essential hooks" list missing development discipline enforcement | **Medium** | applied (2026-02-10) | Added to essential list + PreToolUse caveat note |
-| 23 | Doc 08 open question #12 answered by docs 11, 14, 22 | **Low** | applied (2026-02-10) | Resolved with hybrid answer + cross-refs |
+| 19 | [Doc 14](reflections/14-mastermind-architecture.md) conflates Context7 MCP with claude-flow scoping | **Medium** | applied (2026-02-10) | Split into two separate table rows |
+| 20 | [Doc 08](reflections/08-diagnosis.md) doesn't mention native subagent `memory:` field | **Low** | informational | ReasoningBank still justified for semantic search; native `memory:` is simpler fallback |
+| 21 | [Doc 14](reflections/14-mastermind-architecture.md) doesn't reference [doc 07](dimensions/07-claude-flow-plus-claude-4.6.md) or mention v3.1 Agent Teams hooks | **Medium** | applied (2026-02-10) | Team-level hooks section + [doc 07](dimensions/07-claude-flow-plus-claude-4.6.md) cross-ref added |
+| 22 | [Doc 08](reflections/08-diagnosis.md) "essential hooks" list missing development discipline enforcement | **Medium** | applied (2026-02-10) | Added to essential list + PreToolUse caveat note |
+| 23 | [Doc 08](reflections/08-diagnosis.md) open question #12 answered by [docs 11](dimensions/11-ecosystem-skills-plugins.md), 14, 22 | **Low** | applied (2026-02-10) | Resolved with hybrid answer + cross-refs |
 | 24 | `validate.sh` frontmatter extraction matches all `---` lines | **Medium** | code-fix | awk-based first-block extraction |
 | 25 | claude-flow sql.js dependency missing after upgrade | **Medium** | code-fix (2026-02-12) | Root cause: npx creates separate package cache. Fixed: direct binary in .mcp.json + deploy.sh auto-install |
 | 26 | claude-flow alpha.34 breaks `-q` flag for `memory search` | **High** | code-fix (2026-02-12) | Global `-Q`/`--quiet` shadows `-q`. All 15 files fixed to `--query`. |
-| 27 | Doc 14 skill templates use `npx claude-flow` anti-pattern | **Medium** | applied (2026-02-12) | Replaced with `$CF` + binary discovery preamble |
-| 28 | Doc 14 ReasoningBank caveat missing sql.js post-install step | **Medium** | applied (2026-02-12) | sql.js install command added to caveat |
+| 27 | [Doc 14](reflections/14-mastermind-architecture.md) skill templates use `npx claude-flow` anti-pattern | **Medium** | applied (2026-02-12) | Replaced with `$CF` + binary discovery preamble |
+| 28 | [Doc 14](reflections/14-mastermind-architecture.md) ReasoningBank caveat missing sql.js post-install step | **Medium** | applied (2026-02-12) | sql.js install command added to caveat |
 | 29 | `session-end.sh` fallback writes to global path instead of project-scoped | **Medium** | code-fix (2026-02-12) | Fallback `pending-learnings.md` now in `$LAYER0_DIR/` |
-| 30 | enter/README.md document count off by one (32 vs 33) | **Low** | code-fix (2026-02-12) | Corrected to 34 when adding doc 33 |
-| 31 | Doc 08 missing triage entry for doc 33 | **Low** | applied (2026-02-12) | Cascade from doc 33 creation — triage verdict added |
-| 32 | Doc 14 doesn't acknowledge /research skill | **Low** | applied (2026-02-12) | Cascade from doc 33 — "Beyond the Six" subsection added |
-| 33 | Doc 32 missing source registry cadence in maintenance table | **Low** | applied (2026-02-12) | Cascade from doc 33 — row added to Connectome table |
-| 34 | Doc 05 version pinned at alpha.28 in opening paragraph | **High** | applied (2026-02-13) | Refresh cascade — alpha.34 already in Refresh Targets but not in prose |
-| 35 | Doc 10 wrong repo URLs for ccstatusline and claude-powerline | **High** | applied (2026-02-13) | Refresh cascade — Versions table had wrong GitHub orgs, URLs section had correct ones |
-| 36 | Doc 11 stale ecosystem counts | **Medium** | applied (2026-02-13) | Refresh cascade — skills.sh 53,764→56,414, plugins 28→36, Trail of Bits 23→29 |
-| 37 | Doc 20 missing zero-day vulnerability discovery post | **Medium** | applied (2026-02-13) | Refresh cascade — Anthropic red team published 500+ 0-days finding (Feb 5, 2026) |
-| 38 | Doc 04 context window misleading — 1M not default | **Medium** | applied (2026-02-13) | Refresh cascade — 200K default, 1M requires API beta header |
-| 39 | Doc 26 worktree recommendation contradicts implementation | **Low** | applied (2026-02-13) | Back-propagated: "Don't adopt yet" → "Adopted" after git-discipline.md updated |
+| 30 | enter/README.md document count off by one (32 vs 33) | **Low** | code-fix (2026-02-12) | Corrected to 34 when adding [doc 33](dimensions/33-research-methodology.md) |
+| 31 | [Doc 08](reflections/08-diagnosis.md) missing triage entry for [doc 33](dimensions/33-research-methodology.md) | **Low** | applied (2026-02-12) | Cascade from [doc 33](dimensions/33-research-methodology.md) creation — triage verdict added |
+| 32 | [Doc 14](reflections/14-mastermind-architecture.md) doesn't acknowledge /research skill | **Low** | applied (2026-02-12) | Cascade from [doc 33](dimensions/33-research-methodology.md) — "Beyond the Six" subsection added |
+| 33 | [Doc 32](reflections/32-lifecycle.md) missing source registry cadence in maintenance table | **Low** | applied (2026-02-12) | Cascade from [doc 33](dimensions/33-research-methodology.md) — row added to Connectome table |
+| 34 | [Doc 05](dimensions/05-claude-flow-v3-analysis.md) version pinned at alpha.28 in opening paragraph | **High** | applied (2026-02-13) | Refresh cascade — alpha.34 already in Refresh Targets but not in prose |
+| 35 | [Doc 10](dimensions/10-statusline-research.md) wrong repo URLs for ccstatusline and claude-powerline | **High** | applied (2026-02-13) | Refresh cascade — Versions table had wrong GitHub orgs, URLs section had correct ones |
+| 36 | [Doc 11](dimensions/11-ecosystem-skills-plugins.md) stale ecosystem counts | **Medium** | applied (2026-02-13) | Refresh cascade — skills.sh 53,764→56,414, plugins 28→36, Trail of Bits 23→29 |
+| 37 | [Doc 20](dimensions/20-anthropic-blog-findings.md) missing zero-day vulnerability discovery post | **Medium** | applied (2026-02-13) | Refresh cascade — Anthropic red team published 500+ 0-days finding (Feb 5, 2026) |
+| 38 | [Doc 04](dimensions/04-claude-4.6-capabilities.md) context window misleading — 1M not default | **Medium** | applied (2026-02-13) | Refresh cascade — 200K default, 1M requires API beta header |
+| 39 | [Doc 26](dimensions/26-git-branching-strategies.md) worktree recommendation contradicts implementation | **Low** | applied (2026-02-13) | Back-propagated: "Don't adopt yet" → "Adopted" after git-discipline.md updated |
 | 40 | git-discipline.md exceeded context budget (4928 bytes) | **Medium** | reverted (2026-02-13) | Trim was applied then reversed — user decided full examples are worth the bytes. Budget raised 15,360→18,432 to accommodate. See erratum #41. |
 | 41 | Context budget cap too conservative (15,360 bytes) | **Low** | code-fix (2026-02-13) | Research confirmed 15KB is <1% of 200K context window. Real pressure is MCP tool defs (30-67K tokens), not rules. Budget raised to 18,432 bytes in validate.sh. |
-| 42 | Doc 08 missing triage entry for doc 34 | **Low** | applied (2026-02-13) | Maintain-specs cascade — doc 34 (venture OS) added but never triaged in R1 |
-| 43 | Docs 08, 14 recommend Agent Teams despite experimental status | **High** | applied (2026-02-15) | Caveat added to doc 08 (items 5, 6) + doc 14 (Pattern D) |
-| 44 | Doc 31 missing prompt injection testing for hooks | **High** | applied (2026-02-15) | Adversarial Input Validation section added to doc 31 Structural Assurance |
-| 45 | Doc 31 missing instruction poisoning assurance | **High** | applied (2026-02-15) | Skill Instruction Quarantine section added to doc 31 Behavioral Assurance |
-| 46 | Doc 32 missing Context Autopilot in lifecycle | **High** | applied (2026-02-15) | Context Autopilot + Notification hook note added to doc 32 |
-| 47 | Doc 29 /growth-check missing business model type detection | **High** | applied (2026-02-15) | Step 1 updated to include business model type detection |
-| 48 | Docs 08, 14 missing AGENTS.md invocation rate data | **Medium** | applied (2026-02-15) | 100%/79%/53% spectrum added to doc 08 (item 1) + doc 14 (Pattern C) |
-| 49 | Doc 29 /venture-align missing framework stacking warning | **Medium** | applied (2026-02-15) | Framework discipline paragraph added after /venture-align checklist |
+| 42 | [Doc 08](reflections/08-diagnosis.md) missing triage entry for [doc 34](dimensions/34-venture-operating-system.md) | **Low** | applied (2026-02-13) | Maintain-specs cascade — [doc 34](dimensions/34-venture-operating-system.md) (venture OS) added but never triaged in R1 |
+| 43 | [Docs 08](reflections/08-diagnosis.md), 14 recommend Agent Teams despite experimental status | **High** | applied (2026-02-15) | Caveat added to [doc 08](reflections/08-diagnosis.md) (items 5, 6) + [doc 14](reflections/14-mastermind-architecture.md) (Pattern D) |
+| 44 | [Doc 31](reflections/31-assurance.md) missing prompt injection testing for hooks | **High** | applied (2026-02-15) | Adversarial Input Validation section added to [doc 31](reflections/31-assurance.md) Structural Assurance |
+| 45 | [Doc 31](reflections/31-assurance.md) missing instruction poisoning assurance | **High** | applied (2026-02-15) | Skill Instruction Quarantine section added to [doc 31](reflections/31-assurance.md) Behavioral Assurance |
+| 46 | [Doc 32](reflections/32-lifecycle.md) missing Context Autopilot in lifecycle | **High** | applied (2026-02-15) | Context Autopilot + Notification hook note added to [doc 32](reflections/32-lifecycle.md) |
+| 47 | [Doc 29](reflections/29-venture-management-reflection.md) /growth-check missing business model type detection | **High** | applied (2026-02-15) | Step 1 updated to include business model type detection |
+| 48 | [Docs 08](reflections/08-diagnosis.md), 14 missing AGENTS.md invocation rate data | **Medium** | applied (2026-02-15) | 100%/79%/53% spectrum added to [doc 08](reflections/08-diagnosis.md) (item 1) + [doc 14](reflections/14-mastermind-architecture.md) (Pattern C) |
+| 49 | [Doc 29](reflections/29-venture-management-reflection.md) /venture-align missing framework stacking warning | **Medium** | applied (2026-02-15) | Framework discipline paragraph added after /venture-align checklist |
 | 50 | Venture skills have model detection but no non-SaaS metric tables | **High** | code-fix (2026-02-15) | Parallel metric tables, adapted AARRR, channel attribution, COGS check added to 4 skills |
-| 51 | Doc 14 agent roster has swapped models (memory-curator / debrief-analyst) | **Medium** | applied (2026-02-16) | memory-curator Sonnet→Haiku, debrief-analyst Haiku→Sonnet |
-| 52 | Docs 14, 31, 32 reference stale 15KB context budget (now 19KB) | **Low** | applied (2026-02-16) | Updated to ~19KB in all three docs. Note: doc 14 line 730 was missed (still said 15KB). |
-| 53 | Context budget refs stale again after skill triggers (19KB → 21KB) | **Low** | applied (2026-02-17) | Back-propagated: docs 14, 31, 32 updated to ~21KB. Also fixed doc 14 line 730 missed by erratum #52. |
+| 51 | [Doc 14](reflections/14-mastermind-architecture.md) agent roster has swapped models (memory-curator / debrief-analyst) | **Medium** | applied (2026-02-16) | memory-curator Sonnet→Haiku, debrief-analyst Haiku→Sonnet |
+| 52 | [Docs 14](reflections/14-mastermind-architecture.md), 31, 32 reference stale 15KB context budget (now 19KB) | **Low** | applied (2026-02-16) | Updated to ~19KB in all three docs. Note: [doc 14](reflections/14-mastermind-architecture.md) line 730 was missed (still said 15KB). |
+| 53 | Context budget refs stale again after skill triggers (19KB → 21KB) | **Low** | applied (2026-02-17) | Back-propagated: [docs 14](reflections/14-mastermind-architecture.md), 31, 32 updated to ~21KB. Also fixed [doc 14](reflections/14-mastermind-architecture.md) line 730 missed by erratum #52. |
 | 54 | Context budget refs stale again (21KB → 23KB) — 3rd consecutive session | **Low** | applied (2026-02-18) | Systemic pattern: every validate.sh budget change leaves docs behind. Fixed in backprop. See learnings #46. |
-| 55 | Doc 08 missing triage for doc 35 + stale challenger model | **Medium** | applied (2026-02-18) | Maintain-specs cascade: doc 35 triage added, "Sonnet" → "Opus" for challenger |
-| 56 | Doc 35 stale budget (21KB) and skill count (29) — same pattern as #54 | **Medium** | applied (2026-02-18) | Three refs: intro 21→23KB, decision tree 21→23KB, v0.5 row 29→31 skills |
-| 57 | Docs 14, 31, 32 missing cross-refs to new doc 35 | **Medium** | applied (2026-02-18) | Maintain-specs cascade: doc 14 context engineering xref, doc 31 pre-commit + 35 failure modes, doc 32 /usage in lifecycle |
-| 58 | Doc 14 missing scheduler/automation architecture | **High** | applied (2026-02-20) | Maintain-specs cascade: "Scheduled Automation" section added after hooks |
-| 59 | Doc 32 missing scheduler in lifecycle maintenance | **Medium** | applied (2026-02-20) | Maintain-specs cascade: "Scheduled Automation" subsection added to Maintenance Cadences |
-| 60 | Backlog #38 description stale — "personal side project" vs Personal Life OS | **Low** | applied (2026-02-20) | Doc 30 item #38 updated + marked done |
+| 55 | [Doc 08](reflections/08-diagnosis.md) missing triage for [doc 35](dimensions/35-context-engineering-principles.md) + stale challenger model | **Medium** | applied (2026-02-18) | Maintain-specs cascade: [doc 35](dimensions/35-context-engineering-principles.md) triage added, "Sonnet" → "Opus" for challenger |
+| 56 | [Doc 35](dimensions/35-context-engineering-principles.md) stale budget (21KB) and skill count (29) — same pattern as #54 | **Medium** | applied (2026-02-18) | Three refs: intro 21→23KB, decision tree 21→23KB, v0.5 row 29→31 skills |
+| 57 | [Docs 14](reflections/14-mastermind-architecture.md), 31, 32 missing cross-refs to new [doc 35](dimensions/35-context-engineering-principles.md) | **Medium** | applied (2026-02-18) | Maintain-specs cascade: [doc 14](reflections/14-mastermind-architecture.md) context engineering xref, [doc 31](reflections/31-assurance.md) pre-commit + 35 failure modes, [doc 32](reflections/32-lifecycle.md) /usage in lifecycle |
+| 58 | [Doc 14](reflections/14-mastermind-architecture.md) missing scheduler/automation architecture | **High** | applied (2026-02-20) | Maintain-specs cascade: "Scheduled Automation" section added after hooks |
+| 59 | [Doc 32](reflections/32-lifecycle.md) missing scheduler in lifecycle maintenance | **Medium** | applied (2026-02-20) | Maintain-specs cascade: "Scheduled Automation" subsection added to Maintenance Cadences |
+| 60 | Backlog #38 description stale — "personal side project" vs Personal Life OS | **Low** | applied (2026-02-20) | [Doc 30](30-backlog.md) item #38 updated + marked done |
 | 61 | /personal-check journal check reports "no entries" when template file exists | **Low** | code-fix (2026-02-20) | Step 4 now distinguishes empty template from missing file |
-| 62 | Doc 35 instruction density warn threshold 200 vs actual 150 | **Medium** | applied (2026-02-20) | Backprop: missed by prior backprops when validate.sh added density check |
-| 63 | Doc 14 skill count 31 vs actual 36 — 5th instance of count drift | **Low** | applied (2026-02-20) | Backprop: same systemic pattern as #52-54. Fixed alongside #62. |
+| 62 | [Doc 35](dimensions/35-context-engineering-principles.md) instruction density warn threshold 200 vs actual 150 | **Medium** | applied (2026-02-20) | Backprop: missed by prior backprops when validate.sh added density check |
+| 63 | [Doc 14](reflections/14-mastermind-architecture.md) skill count 31 vs actual 36 — 5th instance of count drift | **Low** | applied (2026-02-20) | Backprop: same systemic pattern as #52-54. Fixed alongside #62. |
 | 64 | Bulk regex replacement breaks embedded code blocks | **Medium** | code-fix (2026-02-22) | Python regex expected standalone fenced blocks; 9 files had patterns inside larger blocks. Manual fix required. |
 | 65 | Python frontmatter script dedup logic strips list items | **Medium** | code-fix (2026-02-22) | bulk-frontmatter.py dedup logic removed `  - dep` lines, leaving empty `depends_on:` in 8 skills. Second fix script needed. |
 | 66 | Bash `declare -A` fails when env variable name conflicts | **Low** | code-fix (2026-02-22) | `GROUPS` conflicted with existing env var. Rewrote skill-graph.sh with embedded Python. |
-| 67 | Doc 14 skill count 36 vs actual 33 after consolidation | **Low** | applied (2026-02-24) | Systemic count drift — same pattern as #52-54, #63. Doc 14 now shows 34, matching actual count (34 skills in thebrana/system/skills/). Self-corrected via subsequent backprop + skill additions. |
+| 67 | [Doc 14](reflections/14-mastermind-architecture.md) skill count 36 vs actual 33 after consolidation | **Low** | applied (2026-02-24) | Systemic count drift — same pattern as #52-54, #63. [Doc 14](reflections/14-mastermind-architecture.md) now shows 34, matching actual count (34 skills in thebrana/system/skills/). Self-corrected via subsequent backprop + skill additions. |
 | 68 | Feature shipped without user-facing documentation | **Medium** | code-fix (2026-02-22) | Skills refactor (#44) merged with no human-readable guide. Caught by user. Fixed: docs/skills-system.md + mandatory doc step in build-feature/build-phase. |
 | 69 | Deploy pipeline missing `commands/` artifact type | **Medium** | code-fix (2026-02-23) | `session-handoff`, `init-project` existed only in `~/.claude/commands/` with no source in `system/`. Violates "never edit ~/.claude/ directly" rule. |
 | 70 | Pre-commit Check 3 can't parse doc number ranges in CLAUDE.md | **Medium** | code-fix (2026-02-23) | Fixed via backlog #66: Check 3 now uses Python range expansion to build a flat list of all referenced doc numbers before checking membership. |
 | 71 | Lesson #36 over-broad — `bypassPermissions` agents CAN write cross-repo | **High** | applied (2026-02-24) | Lesson #36 annotated with supersession note pointing to lesson #68, which documents the nuanced rule: default-mode agents sandboxed by hooks, `bypassPermissions` agents bypass hooks entirely. |
 | 72 | Portfolio tasks.json schema inconsistent across projects | **Low** | informational | Palco/somos/nexeye use bare `[{...}]` array. Tinyhomes/thebrana use `{"tasks": [...]}` wrapper. `/tasks portfolio` handles both via normalize step. Should standardize during next `/project-align` pass. |
-| 73 | Doc 08 missing triage for docs 38, 39 | **Medium** | applied (2026-02-25) | Maintain-specs cascade — two new dimension docs added without triage entries |
-| 74 | Doc 08 "PM Separation: preserve the pattern" contradicted by doc 39 | **High** | applied (2026-02-25) | Doc 39 supersedes with directory-based separation. Supersession note added to item 2. |
-| 75 | Doc 14 missing cross-reference to doc 39 | **Medium** | applied (2026-02-25) | Forward reference added with note that sections will need updating when migration phases execute |
-| 76 | Doc 14 AgentDB presented without stalled status | **High** | applied (2026-02-25) | Last npm publish Jan 2, 2026. Fallback (embeddings + SQLite) is primary. Note added to Foundation Stack table. |
+| 73 | [Doc 08](reflections/08-diagnosis.md) missing triage for [docs 38](dimensions/38-design-thinking.md), 39 | **Medium** | applied (2026-02-25) | Maintain-specs cascade — two new dimension docs added without triage entries |
+| 74 | [Doc 08](reflections/08-diagnosis.md) "PM Separation: preserve the pattern" contradicted by [doc 39](39-architecture-redesign.md) | **High** | applied (2026-02-25) | [Doc 39](39-architecture-redesign.md) supersedes with directory-based separation. Supersession note added to item 2. |
+| 75 | [Doc 14](reflections/14-mastermind-architecture.md) missing cross-reference to [doc 39](39-architecture-redesign.md) | **Medium** | applied (2026-02-25) | Forward reference added with note that sections will need updating when migration phases execute |
+| 76 | [Doc 14](reflections/14-mastermind-architecture.md) AgentDB presented without stalled status | **High** | applied (2026-02-25) | Last npm publish Jan 2, 2026. Fallback (embeddings + SQLite) is primary. Note added to Foundation Stack table. |
 
 ---
 
@@ -128,7 +128,7 @@ This ensures:
 
 ## Error 2: Stop vs SessionEnd Mismatch
 
-**Severity:** High — changes hook architecture in docs 14, 17, 18
+**Severity:** High — changes hook architecture in [docs 14](reflections/14-mastermind-architecture.md), 17, 18
 
 **Spec says:** "Three critical hooks: SessionStart, **Stop**, PostToolUse" — described as firing at session end to extract learnings.
 
@@ -149,9 +149,9 @@ This ensures:
 
 ## Error 3: Hook Format Not Specified in Roadmap Docs
 
-**Severity:** Medium — implementation detail, doc 09 covers it
+**Severity:** Medium — implementation detail, [doc 09](dimensions/09-claude-code-native-features.md) covers it
 
-**Gap:** Docs 17 and 18 describe what hooks should DO but never specify the actual JSON format for `settings.json`. The hook system has a specific nested structure:
+**Gap:** [Docs 17](17-implementation-roadmap.md) and 18 describe what hooks should DO but never specify the actual JSON format for `settings.json`. The hook system has a specific nested structure:
 
 ```json
 {
@@ -180,7 +180,7 @@ Key details missing from the roadmap specs:
 - **Stdin contract:** Receives JSON with session context, tool inputs, etc.
 - **Output contract:** JSON with `hookSpecificOutput` containing event-specific fields
 
-**Fix:** Docs 17 and 18 should cross-reference doc 09 for hook technical details rather than duplicating them.
+**Fix:** [Docs 17](17-implementation-roadmap.md) and 18 should cross-reference [doc 09](dimensions/09-claude-code-native-features.md) for hook technical details rather than duplicating them.
 
 ---
 
@@ -196,7 +196,7 @@ Key details missing from the roadmap specs:
 | `SessionEnd` | Store learnings | No (specs say "Stop") |
 | `PostToolUse` | Notice outcomes | Yes |
 | `PostToolUseFailure` | Notice failures (separate event!) | No |
-| `PreToolUse` | Could guard dangerous commands | Doc 09 only |
+| `PreToolUse` | Could guard dangerous commands | [Doc 09](dimensions/09-claude-code-native-features.md) only |
 | `SubagentStop` | Could capture subagent learnings | No |
 | `PreCompact` | Could extract knowledge before compaction | No |
 | `UserPromptSubmit` | Could auto-trigger recall | No |
@@ -255,18 +255,18 @@ TOTAL=$((TOTAL + AGENT_LINES))
 
 ---
 
-## Error 8: Roadmap Docs Missing Doc 00 / User Feedback Loop
+## Error 8: Roadmap Docs Missing [Doc 00](00-user-practices.md) / User Feedback Loop
 
 **Severity:** Low — no phase blocked, but graduation pathway has no implementation step
 
-**Gap:** Doc 14 (mastermind architecture) now declares the user feedback loop as part of the architecture — doc 00 captures field practices, and manual practices graduate to automated hooks/checks over time. Doc 08 (diagnosis) says "manual practices are a signal for automation." But none of the roadmap docs (17, 18, 19) mention doc 00, user practices, or the graduation pathway.
+**Gap:** [Doc 14](reflections/14-mastermind-architecture.md) (mastermind architecture) now declares the user feedback loop as part of the architecture — [doc 00](00-user-practices.md) captures field practices, and manual practices graduate to automated hooks/checks over time. [Doc 08](reflections/08-diagnosis.md) (diagnosis) says "manual practices are a signal for automation." But none of the roadmap docs (17, 18, 19) mention [doc 00](00-user-practices.md), user practices, or the graduation pathway.
 
 **Impact:** Someone following either roadmap won't know to:
-- Create doc 00 (or its equivalent) as part of project setup
+- Create [doc 00](00-user-practices.md) (or its equivalent) as part of project setup
 - Establish the practice-to-automation graduation workflow
-- Monitor doc 00 entries for clustering (repeated pain = automation signal)
+- Monitor [doc 00](00-user-practices.md) entries for clustering (repeated pain = automation signal)
 
-**Fix:** Add doc 00 reference to Phase 1 setup steps in docs 17 and 18. The graduation workflow (manual practice → hook/check) is a Phase 2+ concern but should be mentioned as a design intent from Phase 1.
+**Fix:** Add [doc 00](00-user-practices.md) reference to Phase 1 setup steps in [docs 17](17-implementation-roadmap.md) and 18. The graduation workflow (manual practice → hook/check) is a Phase 2+ concern but should be mentioned as a design intent from Phase 1.
 
 ---
 
@@ -296,45 +296,45 @@ TOTAL=$((TOTAL + AGENT_LINES))
 
 ---
 
-## Error 10: Doc 14 Doesn't Acknowledge ReasoningBank Alpha Risk
+## Error 10: [Doc 14](reflections/14-mastermind-architecture.md) Doesn't Acknowledge ReasoningBank Alpha Risk
 
 **Severity:** Medium — doesn't block current work but affects implementation trust decisions
 
-**Source:** Doc 05 (claude-flow v3 analysis) vs Doc 14 (mastermind architecture)
+**Source:** [Doc 05](dimensions/05-claude-flow-v3-analysis.md) (claude-flow v3 analysis) vs [Doc 14](reflections/14-mastermind-architecture.md) (mastermind architecture)
 
-**Gap:** Doc 05 explicitly classifies SONA/ReasoningBank as alpha status (line 178-181) and recommends "Wait for Stability" before relying on SONA self-learning. Doc 14 builds the entire intelligence layer on ReasoningBank as a stable dependency without acknowledging this known limitation or proposing degraded-mode strategies inline.
+**Gap:** [Doc 05](dimensions/05-claude-flow-v3-analysis.md) explicitly classifies SONA/ReasoningBank as alpha status (line 178-181) and recommends "Wait for Stability" before relying on SONA self-learning. [Doc 14](reflections/14-mastermind-architecture.md) builds the entire intelligence layer on ReasoningBank as a stable dependency without acknowledging this known limitation or proposing degraded-mode strategies inline.
 
-**Impact:** An implementer following doc 14 alone would treat ReasoningBank as production-ready, missing the need for: error handling wrappers around every call, graceful degradation to Layer 0 (auto memory), and acceptance that early phases will have unreliable learning.
+**Impact:** An implementer following [doc 14](reflections/14-mastermind-architecture.md) alone would treat ReasoningBank as production-ready, missing the need for: error handling wrappers around every call, graceful degradation to Layer 0 (auto memory), and acceptance that early phases will have unreliable learning.
 
-**Fix:** Doc 14 should note in the ReasoningBank sections that claude-flow is alpha and all calls must be wrapped with fallback to Layer 0. Doc 14 already has "Resolved Questions" noting "Accept the alpha risk" — but this caveat needs to be visible at the point of use, not just in a Q&A section.
+**Fix:** [Doc 14](reflections/14-mastermind-architecture.md) should note in the ReasoningBank sections that claude-flow is alpha and all calls must be wrapped with fallback to Layer 0. [Doc 14](reflections/14-mastermind-architecture.md) already has "Resolved Questions" noting "Accept the alpha risk" — but this caveat needs to be visible at the point of use, not just in a Q&A section.
 
 **Docs to update:** 14 (inline caveat near ReasoningBank references)
 
 ---
 
-## Error 11: Doc 14 Doesn't Scope MCP Tool Surface
+## Error 11: [Doc 14](reflections/14-mastermind-architecture.md) Doesn't Scope MCP Tool Surface
 
 **Severity:** Medium — affects Phase 1 plugin install decisions
 
-**Source:** Doc 05 (claude-flow v3 analysis) vs Doc 14 (mastermind architecture)
+**Source:** [Doc 05](dimensions/05-claude-flow-v3-analysis.md) (claude-flow v3 analysis) vs [Doc 14](reflections/14-mastermind-architecture.md) (mastermind architecture)
 
-**Gap:** Doc 05 explicitly recommends (line 186): "Skip... Full 170+ MCP tool surface (use only what's needed)." Doc 14 references available MCP tools without this caution, which could lead to installing the full tool surface when only a handful of commands are needed.
+**Gap:** [Doc 05](dimensions/05-claude-flow-v3-analysis.md) explicitly recommends (line 186): "Skip... Full 170+ MCP tool surface (use only what's needed)." [Doc 14](reflections/14-mastermind-architecture.md) references available MCP tools without this caution, which could lead to installing the full tool surface when only a handful of commands are needed.
 
-**Fix:** Doc 14's plugin/tool recommendations should explicitly state to use only the memory commands (`memory search`, `memory store`, `memory init`) and skip the broader MCP surface.
+**Fix:** [Doc 14](reflections/14-mastermind-architecture.md)'s plugin/tool recommendations should explicitly state to use only the memory commands (`memory search`, `memory store`, `memory init`) and skip the broader MCP surface.
 
 **Docs to update:** 14 (plugin recommendations section)
 
 ---
 
-## Error 12: Doc 14 Background Learning Assumes Daemon Reliability
+## Error 12: [Doc 14](reflections/14-mastermind-architecture.md) Background Learning Assumes Daemon Reliability
 
 **Severity:** Low — affects "advanced ideas" section only, not current implementation
 
-**Source:** Doc 05 (claude-flow v3 analysis) vs Doc 14 (mastermind architecture)
+**Source:** [Doc 05](dimensions/05-claude-flow-v3-analysis.md) (claude-flow v3 analysis) vs [Doc 14](reflections/14-mastermind-architecture.md) (mastermind architecture)
 
-**Gap:** Doc 05 (line 180) flags the daemon system as needing reliability guarantees before use. Doc 14's "Advanced Ideas" section (open question #8: "Background learning — the night shift") proposes background workers that re-analyze old sessions, which depends on daemon stability that doc 05 says isn't there.
+**Gap:** [Doc 05](dimensions/05-claude-flow-v3-analysis.md) (line 180) flags the daemon system as needing reliability guarantees before use. [Doc 14](reflections/14-mastermind-architecture.md)'s "Advanced Ideas" section (open question #8: "Background learning — the night shift") proposes background workers that re-analyze old sessions, which depends on daemon stability that [doc 05](dimensions/05-claude-flow-v3-analysis.md) says isn't there.
 
-**Fix:** Doc 14 should note that background learning is post-daemon-stabilization. The idea is sound but blocked by claude-flow alpha status.
+**Fix:** [Doc 14](reflections/14-mastermind-architecture.md) should note that background learning is post-daemon-stabilization. The idea is sound but blocked by claude-flow alpha status.
 
 **Docs to update:** 14 (open questions section)
 
@@ -396,15 +396,15 @@ done
 
 ---
 
-## Error 16: Roadmaps Don't Schedule Testing from Docs 22/23
+## Error 16: Roadmaps Don't Schedule Testing from [Docs 22](dimensions/22-testing.md)/23
 
 **Severity:** Low — informational, no phase blocked
 
-**Discovery:** Docs 22 (testing) and 23 (evaluation) describe a 7-layer testing pyramid, BATS framework, Promptfoo eval config, and eval methodologies. Docs 17 and 18 (roadmaps) only mention record/playback and RAG metrics from these docs — the rest is never scheduled.
+**Discovery:** [Docs 22](dimensions/22-testing.md) (testing) and 23 (evaluation) describe a 7-layer testing pyramid, BATS framework, Promptfoo eval config, and eval methodologies. [Docs 17](17-implementation-roadmap.md) and 18 (roadmaps) only mention record/playback and RAG metrics from these docs — the rest is never scheduled.
 
 **Impact:** The gap is intentional (pain-driven: add tests as failures motivate them), but it should be documented as a conscious decision rather than an oversight. A basic 3-layer test suite was implemented: validate.sh (static), test-hooks.sh (smoke), test-memory.sh (round-trip).
 
-**Files affected:** Docs 17, 18 (informational — no change needed if pain-driven approach is accepted)
+**Files affected:** [Docs 17](17-implementation-roadmap.md), 18 (informational — no change needed if pain-driven approach is accepted)
 
 ---
 
@@ -444,11 +444,11 @@ Additionally, the positional form `memory retrieve KEY` (without `-k`) also fail
 
 ---
 
-## Error 19: Doc 14 Conflates Context7 MCP with Claude-Flow Scoping
+## Error 19: [Doc 14](reflections/14-mastermind-architecture.md) Conflates Context7 MCP with Claude-Flow Scoping
 
 **Severity:** Medium — causes confusion about which tool does what
 
-**Discovery:** Doc 14 line 483 (Plugin & Skill Recommendations table) had a single row that combined two unrelated tools:
+**Discovery:** [Doc 14](reflections/14-mastermind-architecture.md) line 483 (Plugin & Skill Recommendations table) had a single row that combined two unrelated tools:
 
 > **Context7 MCP** (Upstash) — Real-time library docs — the mastermind always has current knowledge. **Scope:** use only the memory commands (`memory search`, `memory store`, `memory init`) from claude-flow's 170+ MCP tool surface...
 
@@ -460,69 +460,69 @@ Context7 is an Upstash MCP server for fetching real-time, version-specific libra
 
 ---
 
-## Error 20: Doc 08 Doesn't Mention Native Subagent `memory:` Field
+## Error 20: [Doc 08](reflections/08-diagnosis.md) Doesn't Mention Native Subagent `memory:` Field
 
 **Severity:** Low — informational, doesn't change the architecture
 
-**Discovery:** Doc 09 (lines 464-487, 739, 1175) documents a native `memory:` field on custom subagents with three scopes (`user`, `project`, `local`). Doc 09 even maps: "ReasoningBank (claude-flow) → Subagent `memory: user` field."
+**Discovery:** [Doc 09](dimensions/09-claude-code-native-features.md) (lines 464-487, 739, 1175) documents a native `memory:` field on custom subagents with three scopes (`user`, `project`, `local`). [Doc 09](dimensions/09-claude-code-native-features.md) even maps: "ReasoningBank (claude-flow) → Subagent `memory: user` field."
 
-Doc 08 recommends ReasoningBank as "#1 value-add" (line 108) without mentioning this native alternative exists.
+[Doc 08](reflections/08-diagnosis.md) recommends ReasoningBank as "#1 value-add" (line 108) without mentioning this native alternative exists.
 
-**Impact:** Low — ReasoningBank provides semantic search with SHA-512 embeddings, tags, namespaces, and cross-project queries that native `memory:` doesn't offer. The recommendation is still valid. But doc 08 should acknowledge native `memory:` as a simpler fallback (which is what the implementation already does as Layer 0).
+**Impact:** Low — ReasoningBank provides semantic search with SHA-512 embeddings, tags, namespaces, and cross-project queries that native `memory:` doesn't offer. The recommendation is still valid. But [doc 08](reflections/08-diagnosis.md) should acknowledge native `memory:` as a simpler fallback (which is what the implementation already does as Layer 0).
 
 **No fix needed** — the implementation handles this correctly. Logged for awareness.
 
 ---
 
-## Error 21: Doc 14 Doesn't Reference Doc 07 or Mention v3.1 Agent Teams Hooks
+## Error 21: [Doc 14](reflections/14-mastermind-architecture.md) Doesn't Reference [Doc 07](dimensions/07-claude-flow-plus-claude-4.6.md) or Mention v3.1 Agent Teams Hooks
 
 **Severity:** Medium — doesn't block current work but hook architecture is incomplete
 
-**Source:** Doc 07 (v3.1 update) vs Doc 14 (mastermind architecture)
+**Source:** [Doc 07](dimensions/07-claude-flow-plus-claude-4.6.md) (v3.1 update) vs [Doc 14](reflections/14-mastermind-architecture.md) (mastermind architecture)
 
-**Gap:** Doc 07's v3.1 update confirms two new Claude Code hook events are real and shipped in claude-flow v3.1.0-alpha.28:
+**Gap:** [Doc 07](dimensions/07-claude-flow-plus-claude-4.6.md)'s v3.1 update confirms two new Claude Code hook events are real and shipped in claude-flow v3.1.0-alpha.28:
 
 - **TeammateIdle** — fires when a teammate goes idle; claude-flow's `teammate-idle` hook auto-assigns pending work
 - **TaskCompleted** — fires on task completion; claude-flow's `task-completed` hook trains patterns from successful tasks
 
-Doc 14's "Hooks That Make the Brain Work" section (lines 122-181) describes three core hooks (SessionStart, SessionEnd, PostToolUse/PostToolUseFailure) but doesn't mention these team-level hooks. Doc 14 has no cross-reference to doc 07 anywhere.
+[Doc 14](reflections/14-mastermind-architecture.md)'s "Hooks That Make the Brain Work" section (lines 122-181) describes three core hooks (SessionStart, SessionEnd, PostToolUse/PostToolUseFailure) but doesn't mention these team-level hooks. [Doc 14](reflections/14-mastermind-architecture.md) has no cross-reference to [doc 07](dimensions/07-claude-flow-plus-claude-4.6.md) anywhere.
 
-**Impact:** An implementer following doc 14 alone would build a 3-hook learning system without knowing that v3.1 adds team-aware hooks that extend the learning loop to multi-agent workflows. When teams are used, individual teammate sessions fire their own SessionStart/SessionEnd — but the team-level coordination (which teammate gets what task, which completions trigger pattern training) requires the v3.1 hooks.
+**Impact:** An implementer following [doc 14](reflections/14-mastermind-architecture.md) alone would build a 3-hook learning system without knowing that v3.1 adds team-aware hooks that extend the learning loop to multi-agent workflows. When teams are used, individual teammate sessions fire their own SessionStart/SessionEnd — but the team-level coordination (which teammate gets what task, which completions trigger pattern training) requires the v3.1 hooks.
 
-**Fix:** Add cross-reference to doc 07 in doc 14's hook section. Note TeammateIdle and TaskCompleted as optional extensions to the 3-hook core, relevant when using Agent Teams.
+**Fix:** Add cross-reference to [doc 07](dimensions/07-claude-flow-plus-claude-4.6.md) in [doc 14](reflections/14-mastermind-architecture.md)'s hook section. Note TeammateIdle and TaskCompleted as optional extensions to the 3-hook core, relevant when using Agent Teams.
 
 **Docs to update:** 14 (hook architecture section, plugin recommendations)
 
 ---
 
-## Error 22: Doc 08 "Essential Hooks" List Missing Development Discipline Enforcement
+## Error 22: [Doc 08](reflections/08-diagnosis.md) "Essential Hooks" List Missing Development Discipline Enforcement
 
 **Severity:** Medium — could cause implementer to skip the enforcement hook
 
-**Source:** Doc 11 (SDD/TDD enforcement tools) + Doc 14 (Project Enforcement) vs Doc 08 (Diagnosis)
+**Source:** [Doc 11](dimensions/11-ecosystem-skills-plugins.md) (SDD/TDD enforcement tools) + [Doc 14](reflections/14-mastermind-architecture.md) (Project Enforcement) vs [Doc 08](reflections/08-diagnosis.md) (Diagnosis)
 
-**Gap:** Doc 08 line 32 recommends: "Strip down to essential hooks only (crash recovery, branch protection, session tracking)." This list was written before doc 11's SDD/TDD enforcement tools research. Now that doc 14 establishes PreToolUse as the enforcement gate for spec-before-code discipline, "development discipline enforcement" belongs in the essential hooks list.
+**Gap:** [Doc 08](reflections/08-diagnosis.md) line 32 recommends: "Strip down to essential hooks only (crash recovery, branch protection, session tracking)." This list was written before [doc 11](dimensions/11-ecosystem-skills-plugins.md)'s SDD/TDD enforcement tools research. Now that [doc 14](reflections/14-mastermind-architecture.md) establishes PreToolUse as the enforcement gate for spec-before-code discipline, "development discipline enforcement" belongs in the essential hooks list.
 
-Additionally, doc 08 line 98-99 says "Custom PreToolUse hooks for git commands add latency without adding safety" (specifically about branch protection). While correct for that use case, an implementer might over-generalize this to all PreToolUse hooks and skip the SDD enforcement hook that doc 14 establishes as essential.
+Additionally, [doc 08](reflections/08-diagnosis.md) line 98-99 says "Custom PreToolUse hooks for git commands add latency without adding safety" (specifically about branch protection). While correct for that use case, an implementer might over-generalize this to all PreToolUse hooks and skip the SDD enforcement hook that [doc 14](reflections/14-mastermind-architecture.md) establishes as essential.
 
-**Fix:** Add "development discipline enforcement" to doc 08's essential hooks list (line 32). Add a note to the "Custom Branch Protection Hooks" entry (line 98-99) distinguishing branch protection PreToolUse (drop) from SDD enforcement PreToolUse (keep, see doc 14).
+**Fix:** Add "development discipline enforcement" to [doc 08](reflections/08-diagnosis.md)'s essential hooks list (line 32). Add a note to the "Custom Branch Protection Hooks" entry (line 98-99) distinguishing branch protection PreToolUse (drop) from SDD enforcement PreToolUse (keep, see [doc 14](reflections/14-mastermind-architecture.md)).
 
 **Docs to update:** 08 (hook lifecycle, custom branch protection)
 
 ---
 
-## Error 23: Doc 08 Open Question #12 Answered by Docs 11, 14, 22
+## Error 23: [Doc 08](reflections/08-diagnosis.md) Open Question #12 Answered by [Docs 11](dimensions/11-ecosystem-skills-plugins.md), 14, 22
 
 **Severity:** Low — doesn't block implementation but misleads by presenting a resolved question as open
 
-**Gap:** Doc 08 line 212 asks: "Native Agent Teams or claude-flow swarms for coordination? Or a hybrid where native teams handle execution and claude-flow handles memory/learning?"
+**Gap:** [Doc 08](reflections/08-diagnosis.md) line 212 asks: "Native Agent Teams or claude-flow swarms for coordination? Or a hybrid where native teams handle execution and claude-flow handles memory/learning?"
 
 This is now answered:
-- Doc 14 "Project Enforcement" establishes: Native Agent Teams for execution, claude-flow for memory/learning (the hybrid option)
-- Doc 22 "Multi-Agent TDD" provides the first concrete team pattern: separate test-writer and implementer agents with tool-scoped isolation
-- Doc 11 section 5 catalogs the multi-agent context isolation pattern as "worth borrowing"
+- [Doc 14](reflections/14-mastermind-architecture.md) "Project Enforcement" establishes: Native Agent Teams for execution, claude-flow for memory/learning (the hybrid option)
+- [Doc 22](dimensions/22-testing.md) "Multi-Agent TDD" provides the first concrete team pattern: separate test-writer and implementer agents with tool-scoped isolation
+- [Doc 11](dimensions/11-ecosystem-skills-plugins.md) section 5 catalogs the multi-agent context isolation pattern as "worth borrowing"
 
-**Fix:** Move question #12 from "Open Questions" to "Resolved Questions" with the answer: hybrid — native Agent Teams for execution coordination, claude-flow ReasoningBank for cross-session memory. First concrete pattern: multi-agent TDD (see docs 14, 22).
+**Fix:** Move question #12 from "Open Questions" to "Resolved Questions" with the answer: hybrid — native Agent Teams for execution coordination, claude-flow ReasoningBank for cross-session memory. First concrete pattern: multi-agent TDD (see [docs 14](reflections/14-mastermind-architecture.md), 22).
 
 **Docs to update:** 08 (open questions section)
 
@@ -589,13 +589,13 @@ $CF memory search --query "project:$PROJECT" --format json
 
 ---
 
-## Error 27: Doc 14 Skill Templates Use `npx claude-flow` Anti-Pattern
+## Error 27: [Doc 14](reflections/14-mastermind-architecture.md) Skill Templates Use `npx claude-flow` Anti-Pattern
 
 **Severity:** Medium — implemented skills would be slow or broken
 
-**Discovery:** `/maintain-specs` cycle found doc 14 lines 311, 336, 372 use `cd $HOME && npx claude-flow memory search/store`, the exact anti-pattern documented in lesson #17. The implemented skills (thebrana) already use smart binary discovery, but the spec doc still shows the old pattern.
+**Discovery:** `/maintain-specs` cycle found [doc 14](reflections/14-mastermind-architecture.md) lines 311, 336, 372 use `cd $HOME && npx claude-flow memory search/store`, the exact anti-pattern documented in lesson #17. The implemented skills (thebrana) already use smart binary discovery, but the spec doc still shows the old pattern.
 
-**Impact:** Anyone implementing skills from doc 14's templates would create hooks/skills that: (a) download claude-flow on every invocation (~10s, exceeding hook timeouts), (b) use a separate npx cache missing sql.js, (c) potentially run a different version than the CLI.
+**Impact:** Anyone implementing skills from [doc 14](reflections/14-mastermind-architecture.md)'s templates would create hooks/skills that: (a) download claude-flow on every invocation (~10s, exceeding hook timeouts), (b) use a separate npx cache missing sql.js, (c) potentially run a different version than the CLI.
 
 **Fix:** Replace `npx claude-flow` with `$CF` (smart binary discovery variable) and add a binary discovery preamble above the skill templates section.
 
@@ -605,11 +605,11 @@ $CF memory search --query "project:$PROJECT" --format json
 
 ---
 
-## Error 28: Doc 14 ReasoningBank Caveat Missing sql.js Post-Install Step
+## Error 28: [Doc 14](reflections/14-mastermind-architecture.md) ReasoningBank Caveat Missing sql.js Post-Install Step
 
 **Severity:** Medium — ReasoningBank silently non-functional after upgrade
 
-**Discovery:** `/maintain-specs` cycle found doc 14 line 215 says "pin your version and run `memory init --force` after upgrades" but omits the sql.js installation step. An implementer would upgrade, run `memory init --force`, and still have a broken ReasoningBank because sql.js was never declared as a dependency.
+**Discovery:** `/maintain-specs` cycle found [doc 14](reflections/14-mastermind-architecture.md) line 215 says "pin your version and run `memory init --force` after upgrades" but omits the sql.js installation step. An implementer would upgrade, run `memory init --force`, and still have a broken ReasoningBank because sql.js was never declared as a dependency.
 
 **Impact:** All memory store/search operations fail silently. Layer 0 fallback masks the failure — the system appears to work but ReasoningBank provides zero value.
 
@@ -639,23 +639,23 @@ $CF memory search --query "project:$PROJECT" --format json
 
 **Severity:** Low — cosmetic, no implementation impact
 
-**Discovery:** README.md Status section said "32 documents total" but docs 00-32 = 33 documents (inclusive count). The count was likely set when doc 00 was added but the total wasn't incremented.
+**Discovery:** README.md Status section said "32 documents total" but [docs 00](00-user-practices.md)-32 = 33 documents (inclusive count). The count was likely set when [doc 00](00-user-practices.md) was added but the total wasn't incremented.
 
 **Impact:** None — no spec or implementation decision depended on this count.
 
-**Fix:** Corrected to 34 during the doc 33 addition session.
+**Fix:** Corrected to 34 during the [doc 33](dimensions/33-research-methodology.md) addition session.
 
 **Status:** code-fix (2026-02-12)
 
 ---
 
-## Error 43: Docs 08, 14 Recommend Agent Teams Despite Experimental Status
+## Error 43: [Docs 08](reflections/08-diagnosis.md), 14 Recommend Agent Teams Despite Experimental Status
 
 **Severity:** High — could lead to adopting unstable feature for production use
 
-**Discovery:** /maintain-specs re-evaluate-reflections (2026-02-15). Doc 08 says "Replace with: Native Agent Teams." Doc 14 underexplores Teams as an architecture option. But doc 09 shows Agent Teams are experimental (disabled by default, `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`), 2x token cost (~800k vs ~440k for 3-worker team), no file locking (last-write-wins), no resumption for in-process teammates.
+**Discovery:** /maintain-specs re-evaluate-reflections (2026-02-15). [Doc 08](reflections/08-diagnosis.md) says "Replace with: Native Agent Teams." [Doc 14](reflections/14-mastermind-architecture.md) underexplores Teams as an architecture option. But [doc 09](dimensions/09-claude-code-native-features.md) shows Agent Teams are experimental (disabled by default, `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`), 2x token cost (~800k vs ~440k for 3-worker team), no file locking (last-write-wins), no resumption for in-process teammates.
 
-**Fix:** Add caveat to docs 08 and 14: "Agent Teams remain experimental as of Feb 2026. Use subagents for production patterns; escalate to Teams only for genuinely parallel multi-file work where coordination benefits outweigh 2x token cost and experimental status."
+**Fix:** Add caveat to [docs 08](reflections/08-diagnosis.md) and 14: "Agent Teams remain experimental as of Feb 2026. Use subagents for production patterns; escalate to Teams only for genuinely parallel multi-file work where coordination benefits outweigh 2x token cost and experimental status."
 
 **Docs to update:** 08, 14
 
@@ -663,13 +663,13 @@ $CF memory search --query "project:$PROJECT" --format json
 
 ---
 
-## Error 44: Doc 31 Missing Prompt Injection Testing for Hooks
+## Error 44: [Doc 31](reflections/31-assurance.md) Missing Prompt Injection Testing for Hooks
 
 **Severity:** High — security gap in assurance framework
 
-**Discovery:** /maintain-specs re-evaluate-reflections (2026-02-15). Doc 31 validates hook syntax (`bash -n`) and tests learning loop round-trips, but never tests adversarial input payloads. Hooks process JSON from tool calls — without adversarial testing, shell metacharacters, escape sequences, or injection payloads could pass through. Doc 22 identifies "Instruction poisoning incidents: 0 promoted" as a critical safety metric and recommends Promptfoo red team plugins.
+**Discovery:** /maintain-specs re-evaluate-reflections (2026-02-15). [Doc 31](reflections/31-assurance.md) validates hook syntax (`bash -n`) and tests learning loop round-trips, but never tests adversarial input payloads. Hooks process JSON from tool calls — without adversarial testing, shell metacharacters, escape sequences, or injection payloads could pass through. [Doc 22](dimensions/22-testing.md) identifies "Instruction poisoning incidents: 0 promoted" as a critical safety metric and recommends Promptfoo red team plugins.
 
-**Fix:** Add "Adversarial Input Validation" section to doc 31's Behavioral Assurance: test hooks with payloads containing shell metacharacters, deeply nested JSON, and escape sequences. Reference Promptfoo red team plugins (doc 22).
+**Fix:** Add "Adversarial Input Validation" section to [doc 31](reflections/31-assurance.md)'s Behavioral Assurance: test hooks with payloads containing shell metacharacters, deeply nested JSON, and escape sequences. Reference Promptfoo red team plugins (doc 22).
 
 **Docs to update:** 31
 
@@ -677,13 +677,13 @@ $CF memory search --query "project:$PROJECT" --format json
 
 ---
 
-## Error 45: Doc 31 Missing Instruction Poisoning Assurance
+## Error 45: [Doc 31](reflections/31-assurance.md) Missing Instruction Poisoning Assurance
 
 **Severity:** High — external skills can override safety rules undetected
 
-**Discovery:** /maintain-specs re-evaluate-reflections (2026-02-15). Doc 16 identifies Vector 8: "When a skill is installed from an external source, its SKILL.md content becomes part of Claude's instructions. A malicious or poorly written skill could override safety rules." Doc 31 covers pattern quarantine (knowledge entering ReasoningBank) but has zero assurance for skill instruction quarantine (instructions entering the context).
+**Discovery:** /maintain-specs re-evaluate-reflections (2026-02-15). [Doc 16](dimensions/16-knowledge-health.md) identifies Vector 8: "When a skill is installed from an external source, its SKILL.md content becomes part of Claude's instructions. A malicious or poorly written skill could override safety rules." [Doc 31](reflections/31-assurance.md) covers pattern quarantine (knowledge entering ReasoningBank) but has zero assurance for skill instruction quarantine (instructions entering the context).
 
-**Fix:** Add "Skill Instruction Quarantine" section to doc 31 after quarantine behavior tests. Verify external skills enter quarantine before deployment, SKILL.md content doesn't override CLAUDE.md or rules, conflicts are flagged. Reference doc 12's three-tier trust model.
+**Fix:** Add "Skill Instruction Quarantine" section to [doc 31](reflections/31-assurance.md) after quarantine behavior tests. Verify external skills enter quarantine before deployment, SKILL.md content doesn't override CLAUDE.md or rules, conflicts are flagged. Reference [doc 12](dimensions/12-skill-selector.md)'s three-tier trust model.
 
 **Docs to update:** 31
 
@@ -691,13 +691,13 @@ $CF memory search --query "project:$PROJECT" --format json
 
 ---
 
-## Error 46: Doc 32 Missing Context Autopilot in Lifecycle
+## Error 46: [Doc 32](reflections/32-lifecycle.md) Missing Context Autopilot in Lifecycle
 
 **Severity:** High — could lead to implementing manual context strategies redundantly
 
-**Discovery:** /maintain-specs re-evaluate-reflections (2026-02-15). Doc 32's "Keeping Sessions Healthy" section describes three context management strategies (compaction, structured note-taking, sub-agent architectures) but doesn't mention Context Autopilot — a native Claude Code feature that auto-manages the context window. Also misses the Notification hook type (`permission_prompt`, `idle_prompt`, `auth_success`).
+**Discovery:** /maintain-specs re-evaluate-reflections (2026-02-15). [Doc 32](reflections/32-lifecycle.md)'s "Keeping Sessions Healthy" section describes three context management strategies (compaction, structured note-taking, sub-agent architectures) but doesn't mention Context Autopilot — a native Claude Code feature that auto-manages the context window. Also misses the Notification hook type (`permission_prompt`, `idle_prompt`, `auth_success`).
 
-**Fix:** Update doc 32's context management section to acknowledge Context Autopilot and clarify which manual strategies remain relevant when Autopilot is enabled. Add Notification hook type to the hook lifecycle discussion.
+**Fix:** Update [doc 32](reflections/32-lifecycle.md)'s context management section to acknowledge Context Autopilot and clarify which manual strategies remain relevant when Autopilot is enabled. Add Notification hook type to the hook lifecycle discussion.
 
 **Docs to update:** 32
 
@@ -705,13 +705,13 @@ $CF memory search --query "project:$PROJECT" --format json
 
 ---
 
-## Error 47: Doc 29 /growth-check Missing Business Model Type Detection
+## Error 47: [Doc 29](reflections/29-venture-management-reflection.md) /growth-check Missing Business Model Type Detection
 
 **Severity:** High — could cause health misdiagnosis for non-SaaS ventures
 
-**Discovery:** /maintain-specs re-evaluate-reflections (2026-02-15). Doc 28 lesson #20: "Metric frameworks must adapt to business model type. A cycle-based service with 95% 'churn' looks catastrophic in SaaS terms but is normal." Doc 29's `/growth-check` detects stage but not business model type, applying SaaS-centric metrics to all ventures.
+**Discovery:** /maintain-specs re-evaluate-reflections (2026-02-15). [Doc 28](dimensions/28-startup-smb-management.md) lesson #20: "Metric frameworks must adapt to business model type. A cycle-based service with 95% 'churn' looks catastrophic in SaaS terms but is normal." [Doc 29](reflections/29-venture-management-reflection.md)'s `/growth-check` detects stage but not business model type, applying SaaS-centric metrics to all ventures.
 
-**Fix:** Update doc 29 `/growth-check` Step 1 from "Detect stage" to "Detect stage AND business model type (subscription, cycle/project, marketplace, consulting, service)." Move the existing business model adaptation note from afterthought into core logic.
+**Fix:** Update [doc 29](reflections/29-venture-management-reflection.md) `/growth-check` Step 1 from "Detect stage" to "Detect stage AND business model type (subscription, cycle/project, marketplace, consulting, service)." Move the existing business model adaptation note from afterthought into core logic.
 
 **Docs to update:** 29
 
@@ -719,13 +719,13 @@ $CF memory search --query "project:$PROJECT" --format json
 
 ---
 
-## Error 48: Docs 08, 14 Missing AGENTS.md Invocation Rate Data
+## Error 48: [Docs 08](reflections/08-diagnosis.md), 14 Missing AGENTS.md Invocation Rate Data
 
 **Severity:** Medium — affects optimal knowledge architecture split
 
-**Discovery:** /maintain-specs re-evaluate-reflections (2026-02-15). Vercel's evaluations (doc 11) show static markdown (AGENTS.md) achieves 100% invocation vs 53% for default skills, 79% with explicit "Use when..." descriptions. This data changes the optimal split between always-in-context CLAUDE.md and lazy-loaded skills. Doc 08's triage and doc 14's architecture don't cite this empirical finding.
+**Discovery:** /maintain-specs re-evaluate-reflections (2026-02-15). Vercel's evaluations (doc 11) show static markdown (AGENTS.md) achieves 100% invocation vs 53% for default skills, 79% with explicit "Use when..." descriptions. This data changes the optimal split between always-in-context CLAUDE.md and lazy-loaded skills. [Doc 08](reflections/08-diagnosis.md)'s triage and [doc 14](reflections/14-mastermind-architecture.md)'s architecture don't cite this empirical finding.
 
-**Fix:** Doc 08: update "Proven Patterns Worth Preserving" CLAUDE.md entry to cite 100% vs 79% vs 53% spectrum. Doc 14: expand Pattern C to reference Vercel's finding and clarify that passive context beats skill retrieval for always-needed knowledge.
+**Fix:** [Doc 08](reflections/08-diagnosis.md): update "Proven Patterns Worth Preserving" CLAUDE.md entry to cite 100% vs 79% vs 53% spectrum. [Doc 14](reflections/14-mastermind-architecture.md): expand Pattern C to reference Vercel's finding and clarify that passive context beats skill retrieval for always-needed knowledge.
 
 **Docs to update:** 08, 14
 
@@ -733,13 +733,13 @@ $CF memory search --query "project:$PROJECT" --format json
 
 ---
 
-## Error 49: Doc 29 /venture-align Missing Framework Stacking Warning
+## Error 49: [Doc 29](reflections/29-venture-management-reflection.md) /venture-align Missing Framework Stacking Warning
 
 **Severity:** Medium — common early-stage failure mode not prevented
 
-**Discovery:** /maintain-specs re-evaluate-reflections (2026-02-15). Doc 28 resolved question #2 with explicit guidance: "Layer, don't stack. Maximum 3 active layers. Don't run EOS Rocks + OKRs as parallel systems — Rocks already ARE quarterly goals." Doc 29's `/venture-align` creates OKRs and meeting cadences but never warns against framework stacking.
+**Discovery:** /maintain-specs re-evaluate-reflections (2026-02-15). [Doc 28](dimensions/28-startup-smb-management.md) resolved question #2 with explicit guidance: "Layer, don't stack. Maximum 3 active layers. Don't run EOS Rocks + OKRs as parallel systems — Rocks already ARE quarterly goals." [Doc 29](reflections/29-venture-management-reflection.md)'s `/venture-align` creates OKRs and meeting cadences but never warns against framework stacking.
 
-**Fix:** Add "Framework Discipline" paragraph to doc 29's `/venture-align` section: maximum 3 active framework layers, EOS Rocks + OKRs are mutually exclusive, drop a framework when maintenance time exceeds value.
+**Fix:** Add "Framework Discipline" paragraph to [doc 29](reflections/29-venture-management-reflection.md)'s `/venture-align` section: maximum 3 active framework layers, EOS Rocks + OKRs are mutually exclusive, drop a framework when maintenance time exceeds value.
 
 **Docs to update:** 29
 
@@ -765,11 +765,11 @@ $CF memory search --query "project:$PROJECT" --format json
 
 ---
 
-## Error 51: Doc 14 Agent Roster Has Swapped Models
+## Error 51: [Doc 14](reflections/14-mastermind-architecture.md) Agent Roster Has Swapped Models
 
 **Severity:** Medium — could lead to wrong model selection during rebuild from specs
 
-**Discovery:** `/maintain-specs` cross-check of doc 14 agent roster (lines 144-155) against deployed agents in `~/.claude/agents/`. Two models are swapped:
+**Discovery:** `/maintain-specs` cross-check of [doc 14](reflections/14-mastermind-architecture.md) agent roster (lines 144-155) against deployed agents in `~/.claude/agents/`. Two models are swapped:
 - `memory-curator`: spec says **Sonnet**, deployed is **Haiku**
 - `debrief-analyst`: spec says **Haiku**, deployed is **Sonnet**
 
@@ -777,28 +777,28 @@ The global `CLAUDE.md` agent table matches the deployed (correct) models. The sw
 
 **Files affected:** `14-mastermind-architecture.md` (agent roster table)
 
-**Fix:** Update doc 14 agent roster: memory-curator → Haiku, debrief-analyst → Sonnet.
+**Fix:** Update [doc 14](reflections/14-mastermind-architecture.md) agent roster: memory-curator → Haiku, debrief-analyst → Sonnet.
 
 **Status:** applied (2026-02-16) — both model fields corrected in agent roster table
 
 ---
 
-## Error 52: Docs 14, 31, 32 Reference Stale 15KB Context Budget
+## Error 52: [Docs 14](reflections/14-mastermind-architecture.md), 31, 32 Reference Stale 15KB Context Budget
 
 **Severity:** Low — implementation uses `validate.sh` value, not spec prose
 
 **Discovery:** `/maintain-specs` cross-check. Three docs reference "15KB context budget":
-- Doc 14, line 700: "The 15KB context budget is a first-order architectural constraint"
-- Doc 31, line 32: "stays under the 15KB ceiling"
-- Doc 32, line 76: "The 15KB context budget isn't arbitrary"
+- [Doc 14](reflections/14-mastermind-architecture.md), line 700: "The 15KB context budget is a first-order architectural constraint"
+- [Doc 31](reflections/31-assurance.md), line 32: "stays under the 15KB ceiling"
+- [Doc 32](reflections/32-lifecycle.md), line 76: "The 15KB context budget isn't arbitrary"
 
-The budget was raised twice: 15,360 → 18,432 (erratum #41, 2026-02-13) → 19,456 (gsheets skill addition). Doc 24 only records the first raise.
+The budget was raised twice: 15,360 → 18,432 (erratum #41, 2026-02-13) → 19,456 (gsheets skill addition). [Doc 24](24-roadmap-corrections.md) only records the first raise.
 
 **Files affected:** `14-mastermind-architecture.md`, `31-assurance.md`, `32-lifecycle.md`
 
 **Fix:** Update all three docs to reference ~19KB (or "19KB"). The exact number lives in `validate.sh`; spec prose should say approximately 19KB.
 
-**Status:** applied (2026-02-16) — "15KB" → "~19KB" in docs 14, 31, 32
+**Status:** applied (2026-02-16) — "15KB" → "~19KB" in [docs 14](reflections/14-mastermind-architecture.md), 31, 32
 
 ---
 
@@ -806,68 +806,68 @@ The budget was raised twice: 15,360 → 18,432 (erratum #41, 2026-02-13) → 19,
 
 **Severity:** Low — systemic pattern, implementation uses `validate.sh` value
 
-**Discovery:** `/back-propagate` after raising budget to 23,552 bytes. Docs 14, 25, 35 all referenced 21KB. This is the same pattern as errors #52 (15KB→19KB) and #53 (19KB→21KB) — every `validate.sh` budget change leaves spec docs behind.
+**Discovery:** `/back-propagate` after raising budget to 23,552 bytes. [Docs 14](reflections/14-mastermind-architecture.md), 25, 35 all referenced 21KB. This is the same pattern as errors #52 (15KB→19KB) and #53 (19KB→21KB) — every `validate.sh` budget change leaves spec docs behind.
 
 **Files affected:** `14-mastermind-architecture.md`, `25-self-documentation.md`, `35-context-engineering-principles.md`
 
 **Fix:** Updated during backprop session. The systemic fix is either: (a) enter's pre-commit hook validates budget references against validate.sh, or (b) a single source of truth (validate.sh) is referenced by prose instead of hardcoding numbers.
 
-**Status:** applied (2026-02-18) — back-propagated 21KB → 23KB in docs 14, 25, 35
+**Status:** applied (2026-02-18) — back-propagated 21KB → 23KB in [docs 14](reflections/14-mastermind-architecture.md), 25, 35
 
 ---
 
-## Note: Doc 14 Line Number Shifts
+## Note: [Doc 14](reflections/14-mastermind-architecture.md) Line Number Shifts
 
-The reflection layer redesign (docs 31, 32) removed ~160 lines from doc 14 — "Evaluating the Brain," DDD/SDD/TDD workflows, "Self-Describing Configuration," "User Feedback Loop," resolved questions, and lifecycle open questions were moved to docs 31 (R3: Assurance) and 32 (R4: Lifecycle). Errata entries that reference doc 14 line numbers (errors #10, #11, #12, #19, #21, #27, #28) now point to lines that have shifted. All these errata are already `applied` — the line numbers in the error descriptions are historical, not current.
+The reflection layer redesign (docs 31, 32) removed ~160 lines from [doc 14](reflections/14-mastermind-architecture.md) — "Evaluating the Brain," DDD/SDD/TDD workflows, "Self-Describing Configuration," "User Feedback Loop," resolved questions, and lifecycle open questions were moved to [docs 31](reflections/31-assurance.md) (R3: Assurance) and 32 (R4: Lifecycle). Errata entries that reference [doc 14](reflections/14-mastermind-architecture.md) line numbers (errors #10, #11, #12, #19, #21, #27, #28) now point to lines that have shifted. All these errata are already `applied` — the line numbers in the error descriptions are historical, not current.
 
 ---
 
 ## Recommendations
 
 1. **Fix deploy.sh** (error #1) — must happen before Phase 2 adds hooks to settings.json
-2. ~~**Update docs 14, 17, 18** to use `SessionEnd` instead of `Stop` for learning extraction (error #2)~~ — **applied 2026-02-10** (docs 08, 14, 17, 18)
-3. **Add cross-references** from docs 17/18 to doc 09 for hook format details (error #3)
+2. ~~**Update [docs 14](reflections/14-mastermind-architecture.md), 17, 18** to use `SessionEnd` instead of `Stop` for learning extraction (error #2)~~ — **applied 2026-02-10** (docs 08, 14, 17, 18)
+3. **Add cross-references** from [docs 17](17-implementation-roadmap.md)/18 to [doc 09](dimensions/09-claude-code-native-features.md) for hook format details (error #3)
 4. **Add `PostToolUseFailure`** to the hook design in roadmap docs (error #4)
 5. **Add agent descriptions** to context budget check in `validate.sh` (error #7)
 6. Errors #5 and #6 are informational — documented here for reference during implementation
-7. **Add doc 00 reference** to Phase 1 setup in docs 17 and 18 — mention graduation pathway as Phase 2+ design intent (error #8)
+7. **Add [doc 00](00-user-practices.md) reference** to Phase 1 setup in [docs 17](17-implementation-roadmap.md) and 18 — mention graduation pathway as Phase 2+ design intent (error #8)
 8. ~~**Replace all `hooks recall`/`hooks learn`** with `memory search`/`memory store` (error #9)~~ — **applied 2026-02-10** (docs 14, 17, 18; implementation code applied earlier)
-9. ~~**Add alpha risk caveat** to doc 14 ReasoningBank sections (error #10)~~ — **applied 2026-02-10** (blockquote above ReasoningBank schema)
-10. ~~**Scope MCP tool surface** in doc 14 plugin recommendations (error #11)~~ — **applied 2026-02-10** (note in Context7 MCP table entry)
-11. ~~**Note daemon dependency** on doc 14 background learning ideas (error #12)~~ — **applied 2026-02-10** (note in open question #8)
-12. ~~**Add development discipline enforcement** to doc 08's essential hooks list (error #22)~~ — **applied 2026-02-10** (essential list + PreToolUse note)
-13. ~~**Resolve open question #12** in doc 08 — answered by docs 11, 14, 22 (error #23)~~ — **applied 2026-02-10** (strikethrough + hybrid answer)
+9. ~~**Add alpha risk caveat** to [doc 14](reflections/14-mastermind-architecture.md) ReasoningBank sections (error #10)~~ — **applied 2026-02-10** (blockquote above ReasoningBank schema)
+10. ~~**Scope MCP tool surface** in [doc 14](reflections/14-mastermind-architecture.md) plugin recommendations (error #11)~~ — **applied 2026-02-10** (note in Context7 MCP table entry)
+11. ~~**Note daemon dependency** on [doc 14](reflections/14-mastermind-architecture.md) background learning ideas (error #12)~~ — **applied 2026-02-10** (note in open question #8)
+12. ~~**Add development discipline enforcement** to [doc 08](reflections/08-diagnosis.md)'s essential hooks list (error #22)~~ — **applied 2026-02-10** (essential list + PreToolUse note)
+13. ~~**Resolve open question #12** in [doc 08](reflections/08-diagnosis.md) — answered by [docs 11](dimensions/11-ecosystem-skills-plugins.md), 14, 22 (error #23)~~ — **applied 2026-02-10** (strikethrough + hybrid answer)
 
 ---
 
 ## Cross-References
 
-- **Doc 05** (`05-claude-flow-v3-analysis.md`): claude-flow alpha assessment — source for errors #10-12
-- **Doc 08** (`08-diagnosis.md`): Hook lifecycle — Stop→SessionEnd fixed (error #2)
-- **Doc 09** (`09-claude-code-native-features.md`): Hook format details, all 14 events, stdin/stdout contracts
-- **Doc 14** (`14-mastermind-architecture.md`): Skill commands fixed (error #9). Alpha risk caveat (#10), MCP scope (#11), daemon note (#12) — all applied 2026-02-10
-- **Doc 17** (`17-implementation-roadmap.md`): All API commands fixed (errors #2, #9)
-- **Doc 18** (`18-lean-roadmap.md`): All API commands fixed (errors #2, #9)
-- **Doc 00** (`00-user-practices.md`): User feedback loop — graduation pathway from manual practice to automated hook/check
-- **Doc 07** (`07-claude-flow-plus-claude-4.6.md`): v3.1 Agent Teams bridge analysis — source for error #21
-- **Doc 11** (`11-ecosystem-skills-plugins.md`): SDD/TDD enforcement tools — source for errors #22, #23
-- **Doc 22** (`22-testing.md`): Multi-agent TDD, TDD-Guard — source for error #23
-- **Doc 16** (`16-knowledge-health.md`): Eight infection vectors — Vector 8 (instruction poisoning) source for error #45
-- **Doc 28** (`28-startup-smb-management.md`): Business model detection, framework stacking — source for errors #47, #49
-- **Doc 29** (`29-venture-management-reflection.md`): Venture transfer reflection — target for errors #47, #49, #50
-- **Doc 31** (`31-assurance.md`): Verification framework — target for errors #44, #45
-- **Doc 32** (`32-lifecycle.md`): Lifecycle reflection — target for error #46
-- **Doc 35** (`35-context-engineering-principles.md`): Context engineering dimension — target for error #54
+- **[Doc 05](dimensions/05-claude-flow-v3-analysis.md)** (`05-claude-flow-v3-analysis.md`): claude-flow alpha assessment — source for errors #10-12
+- **[Doc 08](reflections/08-diagnosis.md)** (`08-diagnosis.md`): Hook lifecycle — Stop→SessionEnd fixed (error #2)
+- **[Doc 09](dimensions/09-claude-code-native-features.md)** (`09-claude-code-native-features.md`): Hook format details, all 14 events, stdin/stdout contracts
+- **[Doc 14](reflections/14-mastermind-architecture.md)** (`14-mastermind-architecture.md`): Skill commands fixed (error #9). Alpha risk caveat (#10), MCP scope (#11), daemon note (#12) — all applied 2026-02-10
+- **[Doc 17](17-implementation-roadmap.md)** (`17-implementation-roadmap.md`): All API commands fixed (errors #2, #9)
+- **[Doc 18](18-lean-roadmap.md)** (`18-lean-roadmap.md`): All API commands fixed (errors #2, #9)
+- **[Doc 00](00-user-practices.md)** (`00-user-practices.md`): User feedback loop — graduation pathway from manual practice to automated hook/check
+- **[Doc 07](dimensions/07-claude-flow-plus-claude-4.6.md)** (`07-claude-flow-plus-claude-4.6.md`): v3.1 Agent Teams bridge analysis — source for error #21
+- **[Doc 11](dimensions/11-ecosystem-skills-plugins.md)** (`11-ecosystem-skills-plugins.md`): SDD/TDD enforcement tools — source for errors #22, #23
+- **[Doc 22](dimensions/22-testing.md)** (`22-testing.md`): Multi-agent TDD, TDD-Guard — source for error #23
+- **[Doc 16](dimensions/16-knowledge-health.md)** (`16-knowledge-health.md`): Eight infection vectors — Vector 8 (instruction poisoning) source for error #45
+- **[Doc 28](dimensions/28-startup-smb-management.md)** (`28-startup-smb-management.md`): Business model detection, framework stacking — source for errors #47, #49
+- **[Doc 29](reflections/29-venture-management-reflection.md)** (`29-venture-management-reflection.md`): Venture transfer reflection — target for errors #47, #49, #50
+- **[Doc 31](reflections/31-assurance.md)** (`31-assurance.md`): Verification framework — target for errors #44, #45
+- **[Doc 32](reflections/32-lifecycle.md)** (`32-lifecycle.md`): Lifecycle reflection — target for error #46
+- **[Doc 35](dimensions/35-context-engineering-principles.md)** (`35-context-engineering-principles.md`): Context engineering dimension — target for error #54
 - **Phase 1 code** (`thebrana/deploy.sh`): Settings merge bug location
 
 ---
 
-## Error 58: Doc 14 Missing Scheduler/Automation Architecture
+## Error 58: [Doc 14](reflections/14-mastermind-architecture.md) Missing Scheduler/Automation Architecture
 
 **Severity:** High — architecture gap
 **Status:** applied (2026-02-20)
 
-**Discovery:** Maintain-specs re-evaluation (2026-02-20). ADR-002 was accepted, 5 scheduler items shipped (#45, #48, #49, #50, #51), but doc 14 (R2 Architecture) has zero mentions of scheduler, automation, systemd, or timer. Someone reading the architecture blueprint wouldn't know the automation layer exists.
+**Discovery:** Maintain-specs re-evaluation (2026-02-20). ADR-002 was accepted, 5 scheduler items shipped (#45, #48, #49, #50, #51), but [doc 14](reflections/14-mastermind-architecture.md) (R2 Architecture) has zero mentions of scheduler, automation, systemd, or timer. Someone reading the architecture blueprint wouldn't know the automation layer exists.
 
 **Files affected:**
 - `14-mastermind-architecture.md` — "Scheduled Automation: The Out-of-Session Layer" section added after hooks
@@ -876,12 +876,12 @@ The reflection layer redesign (docs 31, 32) removed ~160 lines from doc 14 — "
 
 ---
 
-## Error 59: Doc 32 Missing Scheduler in Lifecycle Maintenance
+## Error 59: [Doc 32](reflections/32-lifecycle.md) Missing Scheduler in Lifecycle Maintenance
 
 **Severity:** Medium — lifecycle coverage gap
 **Status:** applied (2026-02-20)
 
-**Discovery:** Maintain-specs re-evaluation (2026-02-20). brana-scheduler runs weekly staleness checks and can run any headless job on a cadence, but doc 32 (R4 Lifecycle) doesn't mention scheduled jobs in its maintenance coverage.
+**Discovery:** Maintain-specs re-evaluation (2026-02-20). brana-scheduler runs weekly staleness checks and can run any headless job on a cadence, but [doc 32](reflections/32-lifecycle.md) (R4 Lifecycle) doesn't mention scheduled jobs in its maintenance coverage.
 
 **Files affected:**
 - `32-lifecycle.md` — "Scheduled Automation" subsection added under Maintenance Cadences
@@ -893,12 +893,12 @@ The reflection layer redesign (docs 31, 32) removed ~160 lines from doc 14 — "
 **Severity:** Low — backlog hygiene, no implementation impact
 **Status:** applied (2026-02-20)
 
-**Discovery:** Debrief (2026-02-20). Backlog item #38 in doc 30 says "define and bootstrap a personal side project. Scope TBD — use `/project-onboard` + `/project-align` to set up once scope is decided." What was actually built is a Personal Life OS with tasks.md, life.md, journal/, and a `/personal-check` skill. Neither `/project-onboard` nor `/project-align` were used — challenger review stripped them as unnecessary overhead.
+**Discovery:** Debrief (2026-02-20). Backlog item #38 in [doc 30](30-backlog.md) says "define and bootstrap a personal side project. Scope TBD — use `/project-onboard` + `/project-align` to set up once scope is decided." What was actually built is a Personal Life OS with tasks.md, life.md, journal/, and a `/personal-check` skill. Neither `/project-onboard` nor `/project-align` were used — challenger review stripped them as unnecessary overhead.
 
 **Files affected:**
 - `30-backlog.md` — item #38 description and status
 
-**Fix applied:** Doc 30 item #38 description updated to reflect what was built, status changed to `done (2026-02-20)` with notes.
+**Fix applied:** [Doc 30](30-backlog.md) item #38 description updated to reflect what was built, status changed to `done (2026-02-20)` with notes.
 
 ---
 
@@ -916,12 +916,12 @@ The reflection layer redesign (docs 31, 32) removed ~160 lines from doc 14 — "
 
 ---
 
-## Error 62: Doc 35 Instruction Density Warn Threshold 200 vs Actual 150
+## Error 62: [Doc 35](dimensions/35-context-engineering-principles.md) Instruction Density Warn Threshold 200 vs Actual 150
 
 **Severity:** Medium — wrong threshold in spec leads to wrong validate.sh configuration
 **Status:** applied (2026-02-20)
 
-**Discovery:** Back-propagation (2026-02-20). Doc 35 line 143 said "warn 200, error 300" but `validate.sh` uses warn 150, error 300 since the instruction density check was added (feat/context-budget-real-limits). The backprop for that feature missed updating doc 35's threshold.
+**Discovery:** Back-propagation (2026-02-20). [Doc 35](dimensions/35-context-engineering-principles.md) line 143 said "warn 200, error 300" but `validate.sh` uses warn 150, error 300 since the instruction density check was added (feat/context-budget-real-limits). The backprop for that feature missed updating [doc 35](dimensions/35-context-engineering-principles.md)'s threshold.
 
 **Files affected:**
 - `35-context-engineering-principles.md` — instruction density section
@@ -930,12 +930,12 @@ The reflection layer redesign (docs 31, 32) removed ~160 lines from doc 14 — "
 
 ---
 
-## Error 63: Doc 14 Skill Count 31 vs Actual 36 — 5th Instance of Count Drift
+## Error 63: [Doc 14](reflections/14-mastermind-architecture.md) Skill Count 31 vs Actual 36 — 5th Instance of Count Drift
 
 **Severity:** Low — informational, same systemic pattern as #52-54
 **Status:** applied (2026-02-20)
 
-**Discovery:** Back-propagation (2026-02-20). Doc 14 Pattern C still said "All 31 deployed skills" when the actual count was 36. Five skills added across multiple sessions without updating this specific reference. Same pattern as errata #52, #53, #54 (budget/count refs go stale on every addition).
+**Discovery:** Back-propagation (2026-02-20). [Doc 14](reflections/14-mastermind-architecture.md) Pattern C still said "All 31 deployed skills" when the actual count was 36. Five skills added across multiple sessions without updating this specific reference. Same pattern as errata #52, #53, #54 (budget/count refs go stale on every addition).
 
 **Files affected:**
 - `14-mastermind-architecture.md` — Pattern C skill count
@@ -983,16 +983,16 @@ The reflection layer redesign (docs 31, 32) removed ~160 lines from doc 14 — "
 
 ---
 
-## Error 67: Doc 14 skill count 36 vs actual 33 after consolidation
+## Error 67: [Doc 14](reflections/14-mastermind-architecture.md) skill count 36 vs actual 33 after consolidation
 
 **Severity:** Low — informational, same systemic pattern as #52-54, #63
 **Status:** applied (2026-02-23)
 
-**Discovery:** Skills refactor consolidated 3 skills into 1 (`/memory`), reducing count from 36 to 33. Doc 14 still references the old count. 6th instance of count drift.
+**Discovery:** Skills refactor consolidated 3 skills into 1 (`/memory`), reducing count from 36 to 33. [Doc 14](reflections/14-mastermind-architecture.md) still references the old count. 6th instance of count drift.
 
 **Files affected:** `14-mastermind-architecture.md` — Pattern C skill count
 
-**Fix applied:** Updated "All 33 deployed skills" → "All 34 deployed skills" in doc 14 line 151. Also removed stale "(282 bytes remaining)" since budget headroom changes frequently.
+**Fix applied:** Updated "All 33 deployed skills" → "All 34 deployed skills" in [doc 14](reflections/14-mastermind-architecture.md) line 151. Also removed stale "(282 bytes remaining)" since budget headroom changes frequently.
 
 ---
 
@@ -1029,7 +1029,7 @@ The reflection layer redesign (docs 31, 32) removed ~160 lines from doc 14 — "
 **Severity:** Medium — forces `--no-verify` on commits touching docs inside ranges
 **Status:** code-fix (2026-02-23)
 
-**Discovery:** During `/back-propagate`, editing doc 12 (`12-skill-selector.md`) triggered pre-commit Check 3: "Doc 12 not referenced in CLAUDE.md dimension/reflection/roadmap lists." But doc 12 IS listed — CLAUDE.md line 18 says `01-07, 09-13, 20-23, 26-28, 33, 35`. The check does `grep -q "$DOC_NUM" CLAUDE.md` which looks for literal "12" — it can't parse range notation `09-13`.
+**Discovery:** During `/back-propagate`, editing [doc 12](dimensions/12-skill-selector.md) (`12-skill-selector.md`) triggered pre-commit Check 3: "[Doc 12](dimensions/12-skill-selector.md) not referenced in CLAUDE.md dimension/reflection/roadmap lists." But [doc 12](dimensions/12-skill-selector.md) IS listed — CLAUDE.md line 18 says `01-07, 09-13, 20-23, 26-28, 33, 35`. The check does `grep -q "$DOC_NUM" CLAUDE.md` which looks for literal "12" — it can't parse range notation `09-13`.
 
 **Files affected:**
 - `pre-commit.sh` — Check 3 (lines 41-45)
@@ -1093,7 +1093,7 @@ claude-flow runs as MCP server (`.mcp.json`) for in-session tool calls and has a
 
 ### 13. Precise roadmaps eliminate implementation ambiguity
 
-Phase 4's 8 work items in doc 18 were detailed enough (file paths, logic flows, exit criteria, template content) that the plan and implementation were nearly 1:1 translations. No rework, no design decisions during coding, no blocked tasks. Phase 2 had rougher specs and required multiple correction rounds. **Rule: invest time in roadmap precision — detailed WIs with file paths, logic pseudocode, and exit criteria. The implementation session should be typing, not thinking.**
+Phase 4's 8 work items in [doc 18](18-lean-roadmap.md) were detailed enough (file paths, logic flows, exit criteria, template content) that the plan and implementation were nearly 1:1 translations. No rework, no design decisions during coding, no blocked tasks. Phase 2 had rougher specs and required multiple correction rounds. **Rule: invest time in roadmap precision — detailed WIs with file paths, logic pseudocode, and exit criteria. The implementation session should be typing, not thinking.**
 
 ### 14. Validation scripts must exercise the patterns they validate
 
@@ -1101,7 +1101,7 @@ Phase 4's 8 work items in doc 18 were detailed enough (file paths, logic flows, 
 
 ### 15. Graceful degradation is not optional — it's the feature
 
-When ReasoningBank broke (sql.js missing), every operation that tried to store or recall patterns failed. But the system kept working: skills were created, deployed, tested, and documented using Layer 0 (auto memory files). The two-layer architecture from doc 17 — "anything critical enough to survive claude-flow outage should ALSO be written to Layer 0" — proved exactly right. **Rule: always implement the degraded path first. The enhanced path (ReasoningBank, SONA, etc.) is a bonus. If the floor (Layer 0) works, the system survives anything.**
+When ReasoningBank broke (sql.js missing), every operation that tried to store or recall patterns failed. But the system kept working: skills were created, deployed, tested, and documented using Layer 0 (auto memory files). The two-layer architecture from [doc 17](17-implementation-roadmap.md) — "anything critical enough to survive claude-flow outage should ALSO be written to Layer 0" — proved exactly right. **Rule: always implement the degraded path first. The enhanced path (ReasoningBank, SONA, etc.) is a bonus. If the floor (Layer 0) works, the system survives anything.**
 
 ### 16. Alpha tool upgrades must be followed by smoke tests
 
@@ -1113,11 +1113,11 @@ Upgrading claude-flow from alpha.28 to alpha.34 silently broke `memory search` �
 
 ### 18. Spec docs describe what and why, not how
 
-Doc 14's skill templates were updated to use a `$CF` variable with a 7-line bash discovery block. The user flagged it as over-engineered — and they were right. The architecture doc should show the concept (`claude-flow memory search --query "..."`); the implementation code (thebrana's actual skill files) handles the how (binary discovery, fallback chains, error handling). Mixing levels of abstraction in spec docs adds noise without value. **Rule: keep spec docs at the concept level. Implementation details belong in implementation code. A one-line note pointing to the deployed code is better than duplicating it in the spec.**
+[Doc 14](reflections/14-mastermind-architecture.md)'s skill templates were updated to use a `$CF` variable with a 7-line bash discovery block. The user flagged it as over-engineered — and they were right. The architecture doc should show the concept (`claude-flow memory search --query "..."`); the implementation code (thebrana's actual skill files) handles the how (binary discovery, fallback chains, error handling). Mixing levels of abstraction in spec docs adds noise without value. **Rule: keep spec docs at the concept level. Implementation details belong in implementation code. A one-line note pointing to the deployed code is better than duplicating it in the spec.**
 
 ### 19. Pain-driven development needs real usage data
 
-After completing v0.5.0 (all 5 lean phases), `/build-phase lean` correctly identified zero pain signals — doc 00 had no usage entries, ReasoningBank had only build-learnings, no real-project patterns existed. Building more would have been building in anticipation, not in response. **Rule: after completing a roadmap's structured phases, stop building and start using. Pain-driven mode requires accumulated friction from real work. Without it, you're guessing at what to build next.**
+After completing v0.5.0 (all 5 lean phases), `/build-phase lean` correctly identified zero pain signals — [doc 00](00-user-practices.md) had no usage entries, ReasoningBank had only build-learnings, no real-project patterns existed. Building more would have been building in anticipation, not in response. **Rule: after completing a roadmap's structured phases, stop building and start using. Pain-driven mode requires accumulated friction from real work. Without it, you're guessing at what to build next.**
 
 ### 20. Metric frameworks must adapt to the business model
 
@@ -1157,7 +1157,7 @@ The skills refactor completed 4 phases, passed validation, deployed successfully
 
 ### 26. Maximize parallelism within each approval gate
 
-This session ran mostly sequential: triage → extract → apply skill edits → backprop, one step at a time. Within each step, there was untapped parallelism: the 3 skill edits could have been 3 parallel agent worktrees; docs 29 and 25 could have been edited concurrently; the backprop plan could have been prepared while skill edits were merging. The real dependency chain is between approval gates (can't backprop until you know what was built), not between independent edits within a gate. **Rule: after user approval, launch all independent work within that gate in parallel — separate worktrees, separate agents, merge when all complete. Sequential work within a gate is wasted wall-clock time.**
+This session ran mostly sequential: triage → extract → apply skill edits → backprop, one step at a time. Within each step, there was untapped parallelism: the 3 skill edits could have been 3 parallel agent worktrees; [docs 29](reflections/29-venture-management-reflection.md) and 25 could have been edited concurrently; the backprop plan could have been prepared while skill edits were merging. The real dependency chain is between approval gates (can't backprop until you know what was built), not between independent edits within a gate. **Rule: after user approval, launch all independent work within that gate in parallel — separate worktrees, separate agents, merge when all complete. Sequential work within a gate is wasted wall-clock time.**
 
 ### 27. Scout prompts need explicit system context to produce actionable results
 
@@ -1177,7 +1177,7 @@ Phase B's agent (general-purpose, bypassPermissions mode) was blocked by securit
 
 ### 30. User feedback during implementation improves deliverables more than plan precision
 
-The original plan for the source registry had `last_checked` dates and yield history — good for tracking when sources were checked. Mid-implementation, the user pointed out that version tracking matters more: when doc 05 says "claude-flow v3.1.0-alpha.34", what matters isn't when we last checked the repo but whether that version is still current. This led to `version_observed` + `date_observed` fields and a "Version Drift Detection" section in doc 33 — the most architecturally significant addition to the registry, and it wasn't in the plan. **Rule: treat user feedback during implementation as a feature, not an interruption. Pause, integrate the feedback into the current branch, and continue. The plan is a starting point, not a contract.**
+The original plan for the source registry had `last_checked` dates and yield history — good for tracking when sources were checked. Mid-implementation, the user pointed out that version tracking matters more: when [doc 05](dimensions/05-claude-flow-v3-analysis.md) says "claude-flow v3.1.0-alpha.34", what matters isn't when we last checked the repo but whether that version is still current. This led to `version_observed` + `date_observed` fields and a "Version Drift Detection" section in [doc 33](dimensions/33-research-methodology.md) — the most architecturally significant addition to the registry, and it wasn't in the plan. **Rule: treat user feedback during implementation as a feature, not an interruption. Pause, integrate the feedback into the current branch, and continue. The plan is a starting point, not a contract.**
 
 ### 28. Multi-repo sessions require explicit CWD per git command
 
@@ -1219,7 +1219,7 @@ Dry-run testing `post-sale.sh` with `echo '{"content":"line1\nline2"}'` failed: 
 
 ### 39. Haiku agents fabricate specific source references that look authoritative
 
-During maintain-specs, 5 parallel Haiku agents returned 12 findings. The R1 agent claimed doc 14 uses `memory search -q` syntax — grep verification found zero matches. The R2 agent claimed doc 14 has broken CLI examples — also zero matches. These weren't vague suggestions; they cited specific sections and line numbers that didn't exist. The fabrications were plausible enough to waste verification time. **Rule: every Haiku agent finding that cites a specific code pattern, line number, or file content must be grep-verified before acting on it. Haiku agents fabricate authoritative-sounding references at ~90% rate in cross-checking tasks. The materiality filter (lesson #12) catches the false positives, but only if you verify instead of trusting the citation.**
+During maintain-specs, 5 parallel Haiku agents returned 12 findings. The R1 agent claimed [doc 14](reflections/14-mastermind-architecture.md) uses `memory search -q` syntax — grep verification found zero matches. The R2 agent claimed [doc 14](reflections/14-mastermind-architecture.md) has broken CLI examples — also zero matches. These weren't vague suggestions; they cited specific sections and line numbers that didn't exist. The fabrications were plausible enough to waste verification time. **Rule: every Haiku agent finding that cites a specific code pattern, line number, or file content must be grep-verified before acting on it. Haiku agents fabricate authoritative-sounding references at ~90% rate in cross-checking tasks. The materiality filter (lesson #12) catches the false positives, but only if you verify instead of trusting the citation.**
 
 ### 40. Reconcile adds awareness but not capability — a second implementation pass is needed
 
@@ -1239,11 +1239,11 @@ A continuation session lost the exact link→doc classification mappings from 3 
 
 ### 44. Separate mutation scripts from normalization scripts
 
-The link distribution task needed two operations: (1) move 198 rows from doc 30 into 11 dimension docs, (2) normalize Research Resources sections (add headers, merge numbering schemes, renumber sequentially). Combining both into one script would have made debugging harder — the move script produced formatting issues (missing headers, mixed `LI-xxx` and sequential numbering) that only became visible after running it. A second cleanup script fixed formatting independently. **Rule: for bulk file mutations, split into mutation (move/insert/delete data) and normalization (fix formatting/headers/numbering) as separate scripts. Run mutation first, inspect results, then normalize. Each script stays simple and testable. The cost of two scripts is zero; the cost of debugging a combined script that both moved and reformatted is significant.**
+The link distribution task needed two operations: (1) move 198 rows from [doc 30](30-backlog.md) into 11 dimension docs, (2) normalize Research Resources sections (add headers, merge numbering schemes, renumber sequentially). Combining both into one script would have made debugging harder — the move script produced formatting issues (missing headers, mixed `LI-xxx` and sequential numbering) that only became visible after running it. A second cleanup script fixed formatting independently. **Rule: for bulk file mutations, split into mutation (move/insert/delete data) and normalization (fix formatting/headers/numbering) as separate scripts. Run mutation first, inspect results, then normalize. Each script stays simple and testable. The cost of two scripts is zero; the cost of debugging a combined script that both moved and reformatted is significant.**
 
 ### 45. Back-propagation misses accumulate silently — maintain-specs is the safety net
 
-Erratum #51 (agent model swap: memory-curator Sonnet→Haiku, debrief-analyst Haiku→Sonnet) existed since Phase 5 implementation but wasn't caught until a maintain-specs cross-check compared the doc 14 roster against deployed agent files. The mismatch was harmless in practice (the deployed agents were correct), but the spec was wrong for potentially weeks. **Rule: treat `/maintain-specs` as the safety net for `/back-propagate` failures. Back-propagation is voluntary and easy to forget after implementation sessions. Maintain-specs is systematic and catches accumulated drift. Run maintain-specs at least once per week or after every 2-3 implementation sessions, regardless of whether back-propagation was done.**
+Erratum #51 (agent model swap: memory-curator Sonnet→Haiku, debrief-analyst Haiku→Sonnet) existed since Phase 5 implementation but wasn't caught until a maintain-specs cross-check compared the [doc 14](reflections/14-mastermind-architecture.md) roster against deployed agent files. The mismatch was harmless in practice (the deployed agents were correct), but the spec was wrong for potentially weeks. **Rule: treat `/maintain-specs` as the safety net for `/back-propagate` failures. Back-propagation is voluntary and easy to forget after implementation sessions. Maintain-specs is systematic and catches accumulated drift. Run maintain-specs at least once per week or after every 2-3 implementation sessions, regardless of whether back-propagation was done.**
 
 ### 46. Budget changes need automated propagation — three occurrences is a pattern
 
@@ -1263,7 +1263,7 @@ Validation that runs only at deploy-time (`validate.sh`, `deploy.sh`) catches er
 
 ### 50. Batch backlog items in one branch to reduce merge friction
 
-Four backlog items (#16, #27, #29, #30) were implemented in a single branch rather than four separate ones. This avoided 3 extra merge cycles and the merge conflict that would have compounded in doc 30 (each branch updating different item statuses). The one merge conflict that did occur (HEAD had partial progress on #29, branch had "done") was straightforward. **Rule: when doing multiple independent backlog items in one session, use one branch for all. Update doc 30 status once at the end. The merge friction of N branches touching the same status-tracking file exceeds the benefit of branch isolation for small, independent work items.**
+Four backlog items (#16, #27, #29, #30) were implemented in a single branch rather than four separate ones. This avoided 3 extra merge cycles and the merge conflict that would have compounded in [doc 30](30-backlog.md) (each branch updating different item statuses). The one merge conflict that did occur (HEAD had partial progress on #29, branch had "done") was straightforward. **Rule: when doing multiple independent backlog items in one session, use one branch for all. Update [doc 30](30-backlog.md) status once at the end. The merge friction of N branches touching the same status-tracking file exceeds the benefit of branch isolation for small, independent work items.**
 
 ### 51. Haiku scouts can't write temp files — design the protocol to tolerate inline returns
 
@@ -1271,11 +1271,11 @@ The `/research` skill mandates scouts write findings to `/tmp/research-{target}-
 
 ### 52. Clean main before merging worktree branches — or the merge will conflict with itself
 
-When creating new files in the main working directory, then copying those same files to a worktree branch for committing, the merge back to main fails because main still has the uncommitted originals. The fix is mechanical: `git checkout -- modified-file && rm new-file` on main before `git merge --no-ff`. This happened twice in one session (doc 08 and doc 09 commits). **Rule: when using the pattern "create content on main → copy to worktree → commit on branch → merge back", always restore main to its clean state before the merge. The worktree branch now owns the canonical version; main's uncommitted copies are just drafts that must be discarded. Add this as an explicit step in the worktree workflow.**
+When creating new files in the main working directory, then copying those same files to a worktree branch for committing, the merge back to main fails because main still has the uncommitted originals. The fix is mechanical: `git checkout -- modified-file && rm new-file` on main before `git merge --no-ff`. This happened twice in one session (doc 08 and [doc 09](dimensions/09-claude-code-native-features.md) commits). **Rule: when using the pattern "create content on main → copy to worktree → commit on branch → merge back", always restore main to its clean state before the merge. The worktree branch now owns the canonical version; main's uncommitted copies are just drafts that must be discarded. Add this as an explicit step in the worktree workflow.**
 
 ### 53. Research across sessions compounds — prior docs ground the recommendation
 
-Doc 09 (mobile vs desktop criteria) was dramatically stronger than doc 08 (AI mobile platforms) because doc 08 existed as grounding. The recommendation in doc 09 could cite ADR-002, reference doc 02's original analysis, and show how new data (Airbnb 58% mobile 2024, Argentina 69% mobile e-commerce) validates or challenges prior decisions. A standalone research doc without project context produces generic findings; a research doc that reads prior ADRs and planning docs first produces project-specific insights. **Rule: always read the project's existing research and decision docs before launching external research scouts. External findings without internal context produce generic advice; external findings cross-referenced against internal decisions produce actionable validation or challenge.**
+[Doc 09](dimensions/09-claude-code-native-features.md) (mobile vs desktop criteria) was dramatically stronger than [doc 08](reflections/08-diagnosis.md) (AI mobile platforms) because [doc 08](reflections/08-diagnosis.md) existed as grounding. The recommendation in [doc 09](dimensions/09-claude-code-native-features.md) could cite ADR-002, reference [doc 02](dimensions/02-nexeye-skill-selection.md)'s original analysis, and show how new data (Airbnb 58% mobile 2024, Argentina 69% mobile e-commerce) validates or challenges prior decisions. A standalone research doc without project context produces generic findings; a research doc that reads prior ADRs and planning docs first produces project-specific insights. **Rule: always read the project's existing research and decision docs before launching external research scouts. External findings without internal context produce generic advice; external findings cross-referenced against internal decisions produce actionable validation or challenge.**
 
 ### 54. The "mobile vs web" question is actually 3 separate questions
 
@@ -1287,7 +1287,7 @@ Backlog #25 upgraded the challenger agent from Sonnet to Opus. `/back-propagate`
 
 ### 56. Uncommitted changes from previous sessions accumulate silently
 
-Learnings #51-54 from a prior research session were left unstaged in `24-roadmap-corrections.md`. They survived because no conflicting branch touched that file region. But they could have been lost to a `git checkout`, overwritten by a merge conflict, or simply forgotten. `git status` showed them only because the current session's merge also modified the same file. **Rule: before ending any session that produces doc 24 entries, run `git status` and commit everything. Uncommitted learnings in the working directory are at risk of loss — they're not in git history, not in claude-flow memory, and invisible to the next session unless it happens to touch the same file.**
+Learnings #51-54 from a prior research session were left unstaged in `24-roadmap-corrections.md`. They survived because no conflicting branch touched that file region. But they could have been lost to a `git checkout`, overwritten by a merge conflict, or simply forgotten. `git status` showed them only because the current session's merge also modified the same file. **Rule: before ending any session that produces [doc 24](24-roadmap-corrections.md) entries, run `git status` and commit everything. Uncommitted learnings in the working directory are at risk of loss — they're not in git history, not in claude-flow memory, and invisible to the next session unless it happens to touch the same file.**
 
 ### 57. jq `!=` operator breaks under zsh — use alternative patterns
 
@@ -1315,7 +1315,7 @@ Twice this session, editing files in the main worktree (enter/) before creating 
 
 ### 63. Backprop misses accumulate across sessions — functional thresholds worse than counts
 
-Errata #52-54 documented budget number drift (counts going stale). But this session revealed a worse variant: doc 35's instruction density warn threshold was 200 when the implementation used 150 — a functional spec error, not just a stale count. Budget amounts are informational; thresholds affect behavior. **Rule: when back-propagating, prioritize functional values (thresholds, limits, flags) over informational ones (counts, sizes). A wrong count is confusing; a wrong threshold causes wrong implementations.**
+Errata #52-54 documented budget number drift (counts going stale). But this session revealed a worse variant: [doc 35](dimensions/35-context-engineering-principles.md)'s instruction density warn threshold was 200 when the implementation used 150 — a functional spec error, not just a stale count. Budget amounts are informational; thresholds affect behavior. **Rule: when back-propagating, prioritize functional values (thresholds, limits, flags) over informational ones (counts, sizes). A wrong count is confusing; a wrong threshold causes wrong implementations.**
 
 ### 64. Untracked artifacts accumulate silently outside the deploy pipeline
 
@@ -1331,7 +1331,7 @@ This session changed TinyHomes commission from 10%→13%. If MEMORY.md had cache
 
 ### 67. Pre-commit hooks that parse structured text need structure-aware parsing
 
-Enter's pre-commit Check 3 validates that staged doc numbers appear in CLAUDE.md. CLAUDE.md uses range notation (`09-13`) but the check uses `grep -q "12"` — literal string search that can't parse ranges. This forced `--no-verify` on a legitimate doc 12 edit during `/back-propagate`. The same class of bug would hit any validation that greps for values encoded in ranges, lists, or structured formats. **Rule: when a pre-commit check validates membership in a list, it must understand the list's actual format. If the list uses ranges, expand them before checking. If it uses comma-separated values, split them. `grep` is for flat text, not structured data — use `awk`, `python`, or bash range expansion for anything more complex.**
+Enter's pre-commit Check 3 validates that staged doc numbers appear in CLAUDE.md. CLAUDE.md uses range notation (`09-13`) but the check uses `grep -q "12"` — literal string search that can't parse ranges. This forced `--no-verify` on a legitimate [doc 12](dimensions/12-skill-selector.md) edit during `/back-propagate`. The same class of bug would hit any validation that greps for values encoded in ranges, lists, or structured formats. **Rule: when a pre-commit check validates membership in a list, it must understand the list's actual format. If the list uses ranges, expand them before checking. If it uses comma-separated values, split them. `grep` is for flat text, not structured data — use `awk`, `python`, or bash range expansion for anything more complex.**
 
 ### 68. Agent sandboxing is hook-enforced, not platform-enforced — `bypassPermissions` bypasses it
 
@@ -1374,15 +1374,15 @@ Respond.io action prompts have a hard 1,000-char limit. Agent 3's Assign action 
 
 | # | Area | Type | Finding | Resolution |
 |---|------|------|---------|-----------|
-| 1 | Deploy | Missing | `rollback.sh` described in doc 17 (Phase 0 exit criteria marks `[x]`) but doesn't exist in thebrana | Deferred — add to doc 30 backlog |
-| 2 | Deploy | Missing | `backup-knowledge.sh` described in docs 17 & 32 but backup logic lives in `brana-knowledge/backup.sh` | Deferred — spec should reference actual location |
-| 3 | Deploy | Stale | `skill-catalog.yaml` described in docs 12 & 17 but implementation has `skill-catalog.md` (markdown, not YAML) | Deferred — format difference, nothing parses it yet |
+| 1 | Deploy | Missing | `rollback.sh` described in [doc 17](17-implementation-roadmap.md) (Phase 0 exit criteria marks `[x]`) but doesn't exist in thebrana | Deferred — add to [doc 30](30-backlog.md) backlog |
+| 2 | Deploy | Missing | `backup-knowledge.sh` described in [docs 17](17-implementation-roadmap.md) & 32 but backup logic lives in `brana-knowledge/backup.sh` | Deferred — spec should reference actual location |
+| 3 | Deploy | Stale | `skill-catalog.yaml` described in [docs 12](dimensions/12-skill-selector.md) & 17 but implementation has `skill-catalog.md` (markdown, not YAML) | Deferred — format difference, nothing parses it yet |
 
-**Notes:** First `/reconcile` run. System is broadly in sync — 19 skills, 5 hooks, 8 rules, 7 agents, CLAUDE.md, settings.json, deploy.sh all match spec expectations. The 3 findings are low-materiality: aspirational safety scripts from doc 17's directory tree that were either deferred, implemented in a different location, or built in a different format.
+**Notes:** First `/reconcile` run. System is broadly in sync — 19 skills, 5 hooks, 8 rules, 7 agents, CLAUDE.md, settings.json, deploy.sh all match spec expectations. The 3 findings are low-materiality: aspirational safety scripts from [doc 17](17-implementation-roadmap.md)'s directory tree that were either deferred, implemented in a different location, or built in a different format.
 
 ### Reconcile Run — 2026-02-15
 
-**Trigger:** post-maintain-specs (errata #47, #49 updated venture skill specs in doc 29)
+**Trigger:** post-maintain-specs (errata #47, #49 updated venture skill specs in [doc 29](reflections/29-venture-management-reflection.md))
 **Drift found:** 3 findings across 1 area (Skills)
 **Applied:** 3 auto-fixes
 **Deferred:** 0
@@ -1393,11 +1393,11 @@ Respond.io action prompts have a hard 1,000-char limit. Agent 3's Assign action 
 | 2 | Skills | Incomplete | `/growth-check` missing business model adaptation note (SaaS metrics misdiagnose non-subscription businesses) | Applied — included in Step 1 update |
 | 3 | Skills | Incomplete | `/venture-align` missing framework stacking warning (max 3 layers, EOS Rocks + OKRs redundant) | Applied — framework discipline paragraph added after Phase 0 DISCOVER |
 
-**Notes:** Focused reconcile after `/maintain-specs` applied errata #47 and #49 to doc 29. All 3 findings were auto-fixable text updates to existing SKILL.md files. No new capabilities needed.
+**Notes:** Focused reconcile after `/maintain-specs` applied errata #47 and #49 to [doc 29](reflections/29-venture-management-reflection.md). All 3 findings were auto-fixable text updates to existing SKILL.md files. No new capabilities needed.
 
 ### Reconcile Run — 2026-02-18
 
-**Trigger:** post-maintain-specs (errata #55 updated challenger model in doc 08, #56 fixed stale refs in doc 35)
+**Trigger:** post-maintain-specs (errata #55 updated challenger model in [doc 08](reflections/08-diagnosis.md), #56 fixed stale refs in [doc 35](dimensions/35-context-engineering-principles.md))
 **Drift found:** 1 finding across 1 area (Skills)
 **Applied:** 1 auto-fix
 **Deferred:** 0
@@ -1412,7 +1412,7 @@ Respond.io action prompts have a hard 1,000-char limit. Agent 3's Assign action 
 
 **Trigger:** `/back-propagate` after adding `system/commands/` to thebrana deploy pipeline
 **Docs updated:** 14 (directory tree + context composition), 17 (system tree)
-**Finding:** Spec docs had no concept of `commands/` as an artifact type. The directory trees in docs 14 and 17 listed skills, agents, rules, hooks, and scripts but not commands. The context composition list in doc 14 didn't mention commands as an available-on-demand layer. All three gaps would lead an implementer to overlook commands when building or extending the deploy pipeline.
+**Finding:** Spec docs had no concept of `commands/` as an artifact type. The directory trees in [docs 14](reflections/14-mastermind-architecture.md) and 17 listed skills, agents, rules, hooks, and scripts but not commands. The context composition list in [doc 14](reflections/14-mastermind-architecture.md) didn't mention commands as an available-on-demand layer. All three gaps would lead an implementer to overlook commands when building or extending the deploy pipeline.
 
 ### Reconcile Run — 2026-02-23
 
@@ -1425,10 +1425,10 @@ Respond.io action prompts have a hard 1,000-char limit. Agent 3's Assign action 
 |---|------|------|---------|-----------|
 | — | — | — | No material drift detected | — |
 
-**Notes:** Clean reconcile. 34 skills, 10 agents, 10 rules, 9 hooks, 4 scripts all match specs. Budget 24KB enforced. Three informational items noted: (1) Extra hook scripts (post-sale, post-plan-challenge, post-tasks-validate, session-start-venture) exist in implementation but aren't individually described in spec — not material since spec describes hook types, not scripts. (2-3) CLAUDE.md header wording and "After Completing Work" section differ slightly from doc 14 description — semantically equivalent, no behavioral impact.
+**Notes:** Clean reconcile. 34 skills, 10 agents, 10 rules, 9 hooks, 4 scripts all match specs. Budget 24KB enforced. Three informational items noted: (1) Extra hook scripts (post-sale, post-plan-challenge, post-tasks-validate, session-start-venture) exist in implementation but aren't individually described in spec — not material since spec describes hook types, not scripts. (2-3) CLAUDE.md header wording and "After Completing Work" section differ slightly from [doc 14](reflections/14-mastermind-architecture.md) description — semantically equivalent, no behavioral impact.
 
 ### Back-Propagation — 2026-02-25
 
 **Trigger:** `/back-propagate` after respondio-prompts expansion, design thinking integration, Wave 1-4 implementation, workflow practice rules
 **Docs updated:** 14 (budget reference ~24→~26KB, repo tree range 00-32→00-38), 35 (budget constraint 24,576→26,624 across all references, version history row)
-**Finding:** `validate.sh` enforces 26,624 bytes since workflow practice rules were added, but doc 35 still documented 24,576. Doc 14 repo tree said "00-32 spec docs" but docs now go up to 38 (design-thinking). Waves 1-4, agent roster, rules list, and skill count were already accurate in specs.
+**Finding:** `validate.sh` enforces 26,624 bytes since workflow practice rules were added, but [doc 35](dimensions/35-context-engineering-principles.md) still documented 24,576. [Doc 14](reflections/14-mastermind-architecture.md) repo tree said "00-32 spec docs" but docs now go up to 38 (design-thinking). Waves 1-4, agent roster, rules list, and skill count were already accurate in specs.

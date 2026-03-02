@@ -176,5 +176,5 @@ Skills reference sheets by tab name within the spreadsheet.
 
 - **`/gsheets` skill** — primary interface for Sheets operations once MCP is configured
 - [venture-guide.md](../venture-guide.md) — full skill usage guide
-- Doc 34 (34-venture-operating-system.md in enter repo) — MCP server research and priority tiers
+- [Doc 34](dimensions/34-venture-operating-system.md) (34-venture-operating-system.md in enter repo) — MCP server research and priority tiers
 - [skill-catalog.md](../skill-catalog.md) — all available skills
