@@ -16,4 +16,14 @@ Reads: free. Writes: confirm first. Planning: propose tree, confirm.
 
 Branch: roadmap=feat/, bugs=fix/, tech-debt=refactor/, docs=docs/. Format: `{prefix}{id}-{slug}`. Start=branch+in_progress. Done=commit+PR. External/manual: status only.
 
+## Example
+
+```
+Task t-015 (stream: roadmap) → branch: feat/t-015-jwt-auth
+Task t-022 (stream: bugs)    → branch: fix/t-022-session-timeout
+Task t-030 (stream: docs)    → branch: docs/t-030-api-contracts
+```
+
 Status changes on main or task branch only. Rollup via hook. Unblocked = all blocked_by completed. Priority/effort null unless user specifies.
+
+Tasks with URLs or platform/tool names in description get brief research (via scout agent) before priority assignment. This applies when adding new tasks or during `/tasks reprioritize --reresearch`.
