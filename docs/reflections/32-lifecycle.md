@@ -73,7 +73,7 @@ How to keep the finite attention budget useful as sessions grow and the system a
 
 Context engineering = optimizing token allocation within finite attention budgets. As context length increases, model ability to capture pairwise token relationships diminishes. This is a **performance gradient, not a hard cliff** — caused by transformer architecture's n-squared complexity. Source: [21-anthropic-engineering-deep-dive.md](../../../brana-knowledge/dimensions/21-anthropic-engineering-deep-dive.md).
 
-**Implication:** The ~24KB context budget isn't arbitrary. Every KB of always-loaded instructions competes with working context. The SessionStart hook should inject a brief summary (not a dump) of relevant patterns. The mastermind CLAUDE.md should be as lean as possible — "for each line ask: would removing this cause mistakes?"
+**Implication:** The ~26KB context budget isn't arbitrary. Every KB of always-loaded instructions competes with working context. The SessionStart hook should inject a brief summary (not a dump) of relevant patterns. The mastermind CLAUDE.md should be as lean as possible — "for each line ask: would removing this cause mistakes?"
 
 ### Just-In-Time Context
 
