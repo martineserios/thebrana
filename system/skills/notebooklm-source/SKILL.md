@@ -38,7 +38,6 @@ A guided workflow. Claude does the heavy lifting (reading, reformatting, validat
 | `audio-prompt [topic]` | Generate a custom Audio Overview prompt |
 | `validate [path]` | Score a file's NotebookLM-readiness |
 | `batch [glob]` | Validate + prepare multiple files |
-| `sync [name]` | Prepare files into a persistent folder for Google Drive sync |
 
 ---
 
@@ -92,8 +91,6 @@ Call mcp__notebooklm__get_health
 ## Recipe: `curate [name]`
 
 > Plan a thematic notebook, prepare all sources, produce a ready-to-upload package.
->
-> For docs that evolve over time, consider `sync` instead — it keeps files updated via Google Drive.
 
 **CLAUDE:** Check MCP auth + list existing notebooks.
 ```
@@ -295,97 +292,6 @@ Show specific fix suggestions for each issue found. If score is NEEDS WORK or PO
 **CLAUDE:** Report: "N files prepared. Upload them from `/tmp/notebooklm-*.md`."
 
 **YOU:** Upload the prepared files to your notebook at [notebooklm.google](https://notebooklm.google).
-
----
-
-## Recipe: `sync [name]`
-
-> Prepare files into a persistent local folder that mirrors a Google Drive folder. When files change, re-run `sync` to update them — Drive auto-syncs to NotebookLM.
-
-**When to use `sync` vs `curate`:**
-- **`sync`** — for docs that evolve over time (specs, dimension docs, project docs). Changes propagate automatically via Drive → NotebookLM.
-- **`curate`** — for point-in-time snapshots (research findings, synthesis docs). Upload once, no sync needed.
-
-### First-time setup
-
-**CLAUDE:** Check MCP auth.
-```
-Call mcp__notebooklm__get_health
-→ If not authenticated, run mcp__notebooklm__setup_auth
-```
-
-**CLAUDE:** Ask:
-- What docs should stay in sync? (glob pattern, file list, or directory)
-- What notebook is this for? (existing name or new)
-
-**WAIT:** User provides sources and notebook name.
-
-**CLAUDE:** Create a persistent folder at `~/notebooklm-sync/{name}/`. This folder persists across sessions (unlike `/tmp/`).
-
-**CLAUDE:** For each source file:
-- Run `prepare` (read, reformat, validate)
-- Write the optimized file to `~/notebooklm-sync/{name}/{filename}.md`
-
-**CLAUDE:** Write a sync manifest to `~/notebooklm-sync/{name}/.sync-manifest.json`:
-```json
-{
-  "name": "[name]",
-  "created": "ISO timestamp",
-  "last_sync": "ISO timestamp",
-  "notebook_url": null,
-  "sources": [
-    {
-      "original": "/absolute/path/to/source.md",
-      "prepared": "~/notebooklm-sync/{name}/source.md",
-      "last_modified": "ISO timestamp",
-      "words": 1234,
-      "score": "GOOD"
-    }
-  ]
-}
-```
-
-**CLAUDE:** Show the user:
-1. The folder path: `~/notebooklm-sync/{name}/`
-2. List of prepared files with scores
-3. Total word count
-
-**YOU:** First-time setup (do once):
-1. Open [Google Drive](https://drive.google.com)
-2. Create a folder named `NotebookLM — {name}`
-3. Upload all files from `~/notebooklm-sync/{name}/` into the Drive folder (drag the whole folder contents)
-4. Open [notebooklm.google](https://notebooklm.google)
-5. Create a new notebook (or open existing)
-6. Click **"Add source"** → **"Google Drive"** → select the `NotebookLM — {name}` folder
-7. Wait for ingestion to finish
-8. Paste the notebook share URL back here
-
-**WAIT:** User provides the notebook URL.
-
-**CLAUDE:** Update the manifest with the notebook URL. Register in local library:
-```
-Call mcp__notebooklm__add_notebook with name, description, topics, use_cases, url
-```
-
-**CLAUDE:** Confirm: "Sync folder set up. Next time docs change, run `/notebooklm-source sync {name}` to update."
-
-### Subsequent syncs
-
-**CLAUDE:** Read the manifest at `~/notebooklm-sync/{name}/.sync-manifest.json`.
-
-**CLAUDE:** For each source in the manifest:
-- Compare original file's modification time against `last_modified` in manifest
-- If changed → re-run `prepare`, overwrite the prepared file, update manifest
-- If unchanged → skip
-
-**CLAUDE:** Show the user:
-1. Which files were updated (with before/after word counts)
-2. Which files were unchanged (skipped)
-3. Any new files in the source directories not yet in the manifest
-
-**YOU:** Re-upload the **changed files only** to the same Drive folder (overwrite existing). NotebookLM will re-ingest automatically.
-
-> **Tip:** If you set up Google Drive desktop sync (`Drive for desktop`), the local `~/notebooklm-sync/{name}/` folder can point directly to your Drive folder — then re-uploads happen automatically. Ask Claude to set up the symlink.
 
 ---
 
