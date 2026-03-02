@@ -16,6 +16,7 @@ Nudge once per trigger. Don't nag. Include what triggered the nudge.
 | Changed rule/hook/skill/config | `/back-propagate` |
 | Stale dimension docs | `/refresh-knowledge` then `/maintain-specs` |
 | After `/maintain-specs` changes impl-relevant specs | `/reconcile` |
+| After `/maintain-specs` cascades across docs | `/memory review --audit` (touched docs only) |
 | Specs updated but thebrana not rebuilt | `/reconcile` |
 | Big decision (challenger didn't fire) | `/challenge` |
 | Need an ADR | `/decide [title]` |

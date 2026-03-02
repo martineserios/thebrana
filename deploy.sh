@@ -152,6 +152,12 @@ else
     echo "  ⚠ claude-flow not found (ReasoningBank unavailable, Layer 0 fallback active)"
 fi
 
+# Step 8: Verify doc counts match reality
+echo ""
+if [ -f "$SCRIPT_DIR/system/scripts/verify-counts.sh" ]; then
+    "$SCRIPT_DIR/system/scripts/verify-counts.sh"
+fi
+
 echo ""
 echo "=== Deploy Complete ==="
 echo "Deployed to: $TARGET_DIR"
