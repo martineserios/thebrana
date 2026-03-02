@@ -5,5 +5,8 @@
 # Local Claude Code config
 .claude/settings.json
 
+# Obsidian local config (created on vault open)
+.obsidian/
+
 # MCP config (local dev)
 .mcp.json
