@@ -70,7 +70,8 @@ The hooks are the glue connecting all three.
 │   ├── self-improvement.md                   ← Always: innate learning loop — capture, apply, reflect automatically
 │   ├── git-discipline.md                     ← Always: conventional commits, worktrees, branch protection
 │   ├── sdd-tdd.md                            ← Always: spec-before-code, test-before-code
-│   ├── context-budget.md                     ← Always: 3-tier context thresholds, expensive-op guards
+│   ├── context-budget.md                     ← Always: 4-tier context thresholds (55/70/85%), expensive-op guards
+│   ├── doc-linking.md                        ← Always: use formal markdown links when referencing docs
 │   ├── delegation-routing.md                 ← Always: auto-delegate to agents, suggest skills by trigger
 │   ├── memory-framework.md                   ← Always: CLAUDE.md vs MEMORY.md separation, reference-not-cache
 │   ├── task-convention.md                     ← Always: check tasks.json before branching, status flow
@@ -204,7 +205,7 @@ The brana ecosystem lives in two repositories. `cd` into thebrana to activate th
 When you `cd ~/enter_thebrana/thebrana && claude`:
 
 1. **Global identity** — `~/.claude/CLAUDE.md` ("I am a mastermind. I accumulate knowledge across projects.")
-2. **Global rules** — `~/.claude/rules/*` (11 rules: quality, self-improvement, git, SDD/TDD, memory framework, context budget, task convention, etc.)
+2. **Global rules** — `~/.claude/rules/*` (12 rules: quality, self-improvement, git, SDD/TDD, memory framework, context budget, doc-linking, task convention, etc.)
 3. **Global auto memory** — `~/.claude/memory/MEMORY.md` (first 200 lines, cross-project observations)
 4. **Local CLAUDE.md** — `thebrana/.claude/CLAUDE.md` ("You are the architect+operator. Here's the document structure and system layout.")
 5. **Local rules** — `thebrana/.claude/rules/*` (project-specific, if any)
@@ -763,7 +764,7 @@ Findings from Anthropic's engineering blog (see [21-anthropic-engineering-deep-d
 
 ### Context Rot and Just-In-Time Loading
 
-Context engineering = optimizing token allocation within finite attention budgets. As context grows, model performance degrades (n-squared complexity, gradient not cliff). The ~24KB context budget is a first-order architectural constraint. For the formal decision framework (where new information belongs, tier placement criteria, failure modes), see [35-context-engineering-principles.md](../../../brana-knowledge/dimensions/35-context-engineering-principles.md).
+Context engineering = optimizing token allocation within finite attention budgets. As context grows, model performance degrades (n-squared complexity, gradient not cliff). The ~26KB context budget is a first-order architectural constraint. For the formal decision framework (where new information belongs, tier placement criteria, failure modes), see [35-context-engineering-principles.md](../../../brana-knowledge/dimensions/35-context-engineering-principles.md).
 
 Two principles from Anthropic's research: (1) keep always-loaded instructions minimal — "for each line ask: would removing this cause mistakes?" (2) load data just-in-time rather than pre-loading — skills activate on demand, SessionStart injects a digest not everything.
 
@@ -777,7 +778,7 @@ When sub-agents explore extensively (tens of thousands+ tokens), they should ret
 
 ### Context Budget Guard (Feb 2026)
 
-The `context-budget.md` rule enforces runtime context discipline beyond the static budget ceiling. Three thresholds: below 70% proceed normally, 70-85% compact first, above 85% delegate to a fresh subagent. Applies to any operation with 5+ file reads, 3+ WebFetch calls, or 5+ scout spawns. Bulk file edits (5+ files) use a Python script instead of individual Read+Edit calls. WebFetch is treated as expensive (50-100K tokens/call) — prefer WebSearch for metadata, fetch only HIGH-priority items.
+The `context-budget.md` rule enforces runtime context discipline beyond the static budget ceiling. Four thresholds: below 55% proceed normally, 55-70% yellow zone (prefer summaries, avoid loading new large files, consider delegation), 70-85% compact first, above 85% delegate to a fresh subagent. Context accuracy degrades gradually as the window fills (context rot — Chroma 18-model study confirms all models degrade, some as early as 50K of 1M), so intervention starts at 55% rather than waiting for 70%. Applies to any operation with 5+ file reads, 3+ WebFetch calls, or 5+ scout spawns. Bulk file edits (5+ files) use a Python script instead of individual Read+Edit calls. WebFetch is treated as expensive (50-100K tokens/call) — prefer WebSearch for metadata, fetch only HIGH-priority items.
 
 The `/research` skill enforces a 3-phase metadata-first protocol: Phase 1 scouts use WebSearch only (no content fetching), Phase 2 triages from metadata incrementally, Phase 3 does targeted WebFetch for HIGH-priority items only (max 3 scouts, max 2 fetches each). Scouts write to temp files and return 2-line summaries — main context never ingests raw scout output.
 
@@ -799,7 +800,7 @@ Quantified relationships from Anthropic's data:
 - Token usage explains **80% of the variance** in benchmark performance
 - Tool Search: 85% token reduction. Programmatic Tool Calling: 37% reduction.
 
-**Implication for brana:** Every architectural decision should be evaluated through the lens of token efficiency. The context budget (~24KB) is the single most important constraint. Skills that produce verbose output must use `context: fork`. The scout agent should be the default for exploration, not the main context.
+**Implication for brana:** Every architectural decision should be evaluated through the lens of token efficiency. The context budget (~26KB) is the single most important constraint. Skills that produce verbose output must use `context: fork`. The scout agent should be the default for exploration, not the main context.
 
 ---
 
