@@ -220,7 +220,7 @@ git commit -m "docs(NN): back-propagate [description]"
 
 Use the same commit format as past manual backprops: `docs(NN,MM): back-propagate [description]` where NN,MM are the doc numbers changed.
 
-### Step 5: Log to doc 24
+### Step 5: Log to [doc 24](24-roadmap-corrections.md)
 
 If drift was found (specs were wrong or materially incomplete), append a brief entry to `docs/24-roadmap-corrections.md`:
 
@@ -232,7 +232,7 @@ If drift was found (specs were wrong or materially incomplete), append a brief e
 **Finding:** [brief description of what specs were missing]
 ```
 
-If the backprop was purely additive (specs weren't wrong, just didn't cover new features yet), skip this step — doc 24 is for corrections and errata, not routine additions.
+If the backprop was purely additive (specs weren't wrong, just didn't cover new features yet), skip this step — [doc 24](24-roadmap-corrections.md) is for corrections and errata, not routine additions.
 
 ### Step 6: Store in memory
 
