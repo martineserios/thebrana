@@ -1,6 +1,6 @@
 ---
 name: challenge
-description: "Spawn an Opus subagent to stress-test the current plan or approach. One-pass adversarial review. Use when a significant decision, plan, or architecture needs adversarial review."
+description: "Dual-model adversarial review. Opus subagent stress-tests reasoning; Gemini stress-tests against documented knowledge. Use when a significant decision, plan, or architecture needs adversarial review."
 group: learning
 allowed-tools:
   - Task
@@ -16,7 +16,7 @@ context: fork
 
 # Challenge
 
-This skill spawns an Opus subagent to adversarially review a plan, approach, or decision.
+Dual-model adversarial review. Opus stress-tests reasoning and finds logical flaws. Gemini stress-tests against documented knowledge and finds contradictions with existing docs. Both run independently, findings are merged.
 
 1. **Gather context** about what to challenge:
    - If `$ARGUMENTS` provided, use it as the description of what to challenge.
@@ -28,29 +28,66 @@ This skill spawns an Opus subagent to adversarially review a plan, approach, or 
    - Migration/performance/estimates → **Assumption buster**: "What are you assuming that might not be true?"
    - Code/security review → **Adversarial reviewer**: Find concrete problems, security issues, performance concerns.
 
-3. **Query NotebookLM for doc-grounded context** (auto, skip silently if unavailable):
-   - Call `mcp__notebooklm__get_health` — if not authenticated, skip this step
-   - Call `mcp__notebooklm__search_notebooks` with keywords from the challenge target
-   - If a relevant notebook exists, call `mcp__notebooklm__ask_question`:
-     ```
-     "What documented constraints, decisions, best practices, or past failures
-      are relevant to: [challenge target summary]?
-      Cite specific sources."
-     ```
-   - Feed the response to the Opus subagent as **"Prior knowledge (Gemini, grounded in dimension docs)"**
-   - The subagent should compare the plan against this documented knowledge and flag contradictions
+3. **Launch both challengers in parallel:**
 
-4. **Spawn Opus subagent** using the Task tool:
+   **3a. Opus challenger** — Spawn subagent using the Task tool:
    - `model: "opus"`
    - `subagent_type: "general-purpose"`
-   - Provide: the plan/approach being challenged + relevant code/files
-   - Key instruction: "Be specific and actionable. Don't nitpick — focus on things that would actually cause problems or wasted effort. Suggest concrete alternatives for each concern."
+   - Provide: the plan/approach being challenged + relevant code/files + the chosen flavor
+   - Key instruction: "Be specific and actionable. Don't nitpick — focus on things that would actually cause problems or wasted effort. Suggest concrete alternatives for each concern. Rate each finding: CRITICAL (would block success), WARNING (risk but manageable), OBSERVATION (minor, for consideration)."
 
-5. **Present findings** alongside the original plan. If NotebookLM context was used, note which concerns are backed by documented knowledge vs pure reasoning.
+   **3b. Gemini challenger** — Query NotebookLM (skip silently if unavailable):
+   - Call `mcp__notebooklm__get_health` — if not authenticated, skip 3b entirely
+   - Call `mcp__notebooklm__search_notebooks` with keywords from the challenge target
+   - If a relevant notebook exists, call `mcp__notebooklm__ask_question` with:
+     ```
+     "I need you to adversarially review this plan/decision:
 
-6. **Let the user decide** which concerns to address. Do not auto-apply changes.
+     [challenge target summary]
 
-7. **Store challenge outcome** in ReasoningBank after the user decides:
+     Your job: find problems. Specifically:
+     1. What documented constraints, decisions, or best practices does this contradict or ignore?
+     2. What past failures or known pitfalls in the sources apply here?
+     3. What assumptions does this make that the documented knowledge doesn't support?
+     4. What's missing — what do the docs say is important for this kind of work that the plan doesn't address?
+
+     Be specific. Cite sources. Rate each finding: CRITICAL, WARNING, or OBSERVATION."
+     ```
+   - If the response is thin (no real findings), run a second query focused on related topics:
+     ```
+     "What are the most common mistakes or overlooked requirements when doing [topic area]?
+      What do the sources warn about?"
+     ```
+
+4. **Merge and present findings.** Combine both challengers' output into a single report:
+
+   ```
+   ## Challenge Report
+
+   **Target:** [what was challenged]
+   **Flavor:** [pre-mortem / simplicity / assumption / adversarial]
+
+   ### Critical Findings (would block success)
+   - [Finding] — Source: Opus / Gemini ([source doc])
+
+   ### Warnings (risk but manageable)
+   - [Finding] — Source: Opus / Gemini ([source doc])
+
+   ### Observations (minor, for consideration)
+   - [Finding] — Source: Opus / Gemini ([source doc])
+
+   ### Agreement
+   - [Where both challengers raised the same concern — these are highest confidence]
+
+   ### Verdict
+   PROCEED / PROCEED WITH CHANGES / RECONSIDER
+   ```
+
+   When both Opus and Gemini flag the same concern independently, mark it as **high-confidence** — two models from different companies with different training data agree something is a problem.
+
+5. **Let the user decide** which concerns to address. Do not auto-apply changes.
+
+6. **Store challenge outcome** in ReasoningBank after the user decides:
 
    ```bash
 source "$HOME/.claude/scripts/cf-env.sh"
@@ -71,3 +108,6 @@ source "$HOME/.claude/scripts/cf-env.sh"
 
 - **No arguments = self-challenge.** Empty `/challenge` targets your own last answer. Never ask "what should I challenge?" — either use the provided arguments or self-challenge.
 - **Ask for clarification on scope**, not on target. If you know WHAT to challenge but not HOW DEEP, ask. If the conversation has no substantive prior answer to self-challenge (e.g., session just started), then ask what to target.
+- **Both challengers run in parallel.** Don't wait for one to finish before starting the other. Launch Opus subagent and Gemini query at the same time.
+- **Gemini is optional.** If NotebookLM is unavailable, the challenge runs as Opus-only. Never fail the skill because Gemini is missing.
+- **Agreement = high confidence.** When both models independently flag the same issue, highlight it. Two different AI architectures agreeing on a problem is a strong signal.
