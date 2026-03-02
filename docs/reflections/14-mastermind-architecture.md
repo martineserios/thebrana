@@ -64,7 +64,8 @@ The hooks are the glue connecting all three.
 │   ├── backup-knowledge.sh                   ← Trigger brana-knowledge backup
 │   ├── index-knowledge.sh                    ← Index brana-knowledge into claude-flow memory
 │   ├── generate-index.sh                     ← Generate knowledge base INDEX.md
-│   └── skill-graph.sh                        ← Skill interaction and dependency diagram
+│   ├── skill-graph.sh                        ← Skill interaction and dependency diagram
+│   └── verify-counts.sh                      ← Post-deploy count verification (ADR-007)
 ├── commands/
 │   ├── session-handoff.md                    ← Rolling session continuity log (dated sections)
 │   ├── init-project                          ← Bootstrap new project with CLAUDE.md + structure
