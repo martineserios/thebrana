@@ -39,13 +39,13 @@ The hooks are the glue connecting all three.
 ```
 ~/.claude/                                    THE MASTERMIND
 ├── CLAUDE.md                                 ← Identity + universal principles
-├── skills/                                      ← 35 deployed skills (each has SKILL.md with frontmatter)
+├── skills/                                      ← 36 deployed skills (each has SKILL.md with frontmatter)
 │   ├── memory/SKILL.md                       ← Knowledge ops: recall, pollinate, review, audit
 │   ├── project-onboard/SKILL.md              ← Bootstrap a new project with relevant knowledge
 │   ├── retrospective/SKILL.md                ← End-of-session learning extraction
 │   ├── decide/SKILL.md                       ← Create ADRs in docs/decisions/
 │   ├── tasks/SKILL.md                        ← Plan, track, and execute tasks across phases and streams
-│   └── ...                                   ← +30 more (build-phase, research, reconcile, etc.)
+│   └── ...                                   ← +31 more (build-phase, research, reconcile, etc.)
 ├── skill-catalog.md                             ← Vetted external skills (version-pinned, not installed)
 ├── agents/
 │   ├── scout.md                              ← Haiku-powered fast research agent
@@ -160,7 +160,7 @@ Skills are user-invocable workflows (`/command`). Agents auto-delegate when the 
 
 **Pattern B: Agent preloads skill knowledge.** Agents can have skills preloaded via the `skills:` YAML field — full skill content injected at startup, not just available for invocation. Use sparingly: only for small domain knowledge skills where the agent always needs that context. Large skills bloat the agent's context window.
 
-**Pattern C: Auto-delegation fills skill invocation gaps.** Vercel's eval found skills aren't invoked 56% of the time even when available. Explicit "Use when..." descriptions raise invocation from 53% to 79%. Agents fill the remaining gap (79% to ~95%) via auto-delegation — the model routes to a relevant agent when the user doesn't invoke the corresponding skill. **Key architectural implication:** static markdown in context (CLAUDE.md/AGENTS.md) achieves **100%** availability — passive context always beats skill-based retrieval. The knowledge architecture should prioritize what goes in always-loaded context based on availability risk: always-needed knowledge → CLAUDE.md (100%), explicit workflows → skills (79% with good descriptions + agents close the gap). **Status (Mar 2026):** All 35 deployed skills have explicit "Use when..." trigger descriptions in their SKILL.md frontmatter. Context budget raised to ~26KB to accommodate trigger text, context-budget rule, additional skills, and workflow practice rules.
+**Pattern C: Auto-delegation fills skill invocation gaps.** Vercel's eval found skills aren't invoked 56% of the time even when available. Explicit "Use when..." descriptions raise invocation from 53% to 79%. Agents fill the remaining gap (79% to ~95%) via auto-delegation — the model routes to a relevant agent when the user doesn't invoke the corresponding skill. **Key architectural implication:** static markdown in context (CLAUDE.md/AGENTS.md) achieves **100%** availability — passive context always beats skill-based retrieval. The knowledge architecture should prioritize what goes in always-loaded context based on availability risk: always-needed knowledge → CLAUDE.md (100%), explicit workflows → skills (79% with good descriptions + agents close the gap). **Status (Mar 2026):** All 36 deployed skills have explicit "Use when..." trigger descriptions in their SKILL.md frontmatter. Context budget raised to ~26KB to accommodate trigger text, context-budget rule, additional skills, and workflow practice rules.
 
 **Pattern D: Multi-agent workflows.** For subagents: agents cannot spawn other agents (subagent limitation). Orchestration stays in the main context via skills that use the Task tool to spawn multiple agents in parallel. The skill is the conductor; agents are the musicians. For Agent Teams (experimental, Feb 2026): peer-to-peer coordination with shared task lists and DAG dependencies — but at 2x token cost (~800k vs ~440k for 3-worker team), no file locking, and disabled by default. **Use subagents for production orchestration; reserve Agent Teams for genuinely parallel multi-file work where peer coordination justifies the experimental status and cost.**
 
@@ -172,7 +172,7 @@ Skills are user-invocable workflows (`/command`). Agents auto-delegate when the 
 | **memory-curator** | Haiku | Knowledge lifecycle: recall, store, promote, demote | Read, Bash (claude-flow) |
 | **project-scanner** | Haiku | Project structure analysis for onboarding/alignment | Read-only |
 | **venture-scanner** | Haiku | Business project analysis for venture onboarding | Read-only |
-| **challenger** | Opus | Adversarial review: pre-mortem, simplicity, assumptions, adversarial | Read-only (no Write/Edit/Bash) |
+| **challenger** | Opus + Gemini | Adversarial review: Opus reasoning + Gemini doc-grounded second opinion via NotebookLM | Read-only (no Write/Edit/Bash) |
 | **debrief-analyst** | Opus | Session learning extraction, errata identification | Read-only |
 | **archiver** | Haiku | Knowledge backup and export | Read, Bash |
 | **daily-ops** | Haiku | Daily operational checks for venture projects | Read-only |
