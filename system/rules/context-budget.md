@@ -2,9 +2,12 @@
 
 ## Thresholds
 
-- **<70% context:** proceed normally
+- **<55% context:** proceed normally
+- **55-70% (yellow zone):** prefer summaries over full file reads, avoid loading new large files, consider delegating next steps to subagent
 - **70-85%:** `/compact` before the next expensive operation
 - **>85%:** delegate to a fresh subagent, don't attempt in main context
+
+Context accuracy degrades gradually as the window fills (context rot), not at a cliff. Earlier intervention = better output quality.
 
 ## Expensive operations
 

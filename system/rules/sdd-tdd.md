@@ -19,3 +19,17 @@ Projects with `docs/decisions/` activate stricter enforcement:
 - **Feature branches require spec/test activity first.** Commits touching `docs/`, `test/`, `tests/`, or `*.test.*`/`*.spec.*` satisfy this.
 
 Projects without `docs/decisions/` don't get hook enforcement, but the testing discipline above still applies.
+
+## Example: spec-first on a feat branch
+
+```
+# 1. Create branch and ADR
+git worktree add ../repo-feat-auth -b feat/t-015-jwt-auth
+/decide JWT authentication strategy   → docs/decisions/ADR-005-jwt-auth.md
+
+# 2. Write failing test
+tests/auth.test.ts                     → expect(verifyToken(expired)).toBe(false)
+
+# 3. Now implement (PreToolUse hook allows it)
+src/auth.ts                            → export function verifyToken(token: string): boolean { ... }
+```
