@@ -7,6 +7,9 @@ allowed-tools:
   - Read
   - Glob
   - Grep
+  - mcp__notebooklm__ask_question
+  - mcp__notebooklm__search_notebooks
+  - mcp__notebooklm__get_health
 disable-model-invocation: true
 context: fork
 ---
@@ -25,17 +28,29 @@ This skill spawns an Opus subagent to adversarially review a plan, approach, or 
    - Migration/performance/estimates → **Assumption buster**: "What are you assuming that might not be true?"
    - Code/security review → **Adversarial reviewer**: Find concrete problems, security issues, performance concerns.
 
-3. **Spawn Opus subagent** using the Task tool:
+3. **Query NotebookLM for doc-grounded context** (auto, skip silently if unavailable):
+   - Call `mcp__notebooklm__get_health` — if not authenticated, skip this step
+   - Call `mcp__notebooklm__search_notebooks` with keywords from the challenge target
+   - If a relevant notebook exists, call `mcp__notebooklm__ask_question`:
+     ```
+     "What documented constraints, decisions, best practices, or past failures
+      are relevant to: [challenge target summary]?
+      Cite specific sources."
+     ```
+   - Feed the response to the Opus subagent as **"Prior knowledge (Gemini, grounded in dimension docs)"**
+   - The subagent should compare the plan against this documented knowledge and flag contradictions
+
+4. **Spawn Opus subagent** using the Task tool:
    - `model: "opus"`
    - `subagent_type: "general-purpose"`
    - Provide: the plan/approach being challenged + relevant code/files
    - Key instruction: "Be specific and actionable. Don't nitpick — focus on things that would actually cause problems or wasted effort. Suggest concrete alternatives for each concern."
 
-4. **Present findings** alongside the original plan.
+5. **Present findings** alongside the original plan. If NotebookLM context was used, note which concerns are backed by documented knowledge vs pure reasoning.
 
-5. **Let the user decide** which concerns to address. Do not auto-apply changes.
+6. **Let the user decide** which concerns to address. Do not auto-apply changes.
 
-6. **Store challenge outcome** in ReasoningBank after the user decides:
+7. **Store challenge outcome** in ReasoningBank after the user decides:
 
    ```bash
 source "$HOME/.claude/scripts/cf-env.sh"
