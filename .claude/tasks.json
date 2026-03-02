@@ -1461,7 +1461,7 @@
       "created": "2026-03-02",
       "started": "2026-03-02",
       "completed": "2026-03-02",
-      "notes": "Research complete. 15+ sources, 10 HIGH findings. Primary vector: PleasePrompto/notebooklm-mcp v1.5.3 (29 tools). Feature brief at docs/features/notebooklm-integration.md. Challenger-reviewed. Promoted to ph-004.",
+      "notes": "Research complete. 15+ sources, 10 HIGH findings. Primary vector: PleasePrompto/notebooklm-mcp (5-16 tools across 3 profiles, not 29 as initially reported). Feature brief at docs/features/notebooklm-integration.md. Challenger-reviewed. Promoted to ph-004.",
       "context": "Superseded by ph-004. Feature brief: docs/features/notebooklm-integration.md"
     },
     {
@@ -1548,7 +1548,7 @@
         "notebooklm",
         "mcp"
       ],
-      "status": "in_progress",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-010",
@@ -1557,13 +1557,13 @@
       "effort": "S",
       "execution": "code",
       "blocked_by": [],
-      "branch": "feat/t-048-notebooklm-mcp-setup",
+      "branch": null,
       "github_issue": null,
       "created": "2026-03-02",
       "started": "2026-03-02",
-      "completed": null,
-      "notes": "MCP server added to .mcp.json (minimal profile, 5 tools). Feature brief persisted at docs/features/notebooklm-integration.md with corrected tool counts. Committed on feat/t-048-notebooklm-mcp-setup. Main cleaned for merge. USER ACTION NEEDED: run `npx notebooklm-mcp@latest` in terminal for browser Google OAuth, then restart Claude Code session. After auth: tools appear, measure context cost. Content generation NOT available via MCP (web UI only).",
-      "context": "Challenger critical finding: MCP config goes in .mcp.json, not settings.json. deploy.sh doesn't touch MCP servers. Context budget rule warns MCP servers cost 4-17K tokens each — 29 tools could be 15-25K. Minimal profile limits exposure."
+      "completed": "2026-03-02",
+      "notes": "MCP server added to .mcp.json with full profile (16 tools). Auth completed via browser OAuth. Worktree branch deleted (work superseded by direct main edits). New skill /notebooklm-source created with 6 subcommands. Content generation is web UI only, not MCP.",
+      "context": "Challenger critical finding: MCP config goes in .mcp.json, not settings.json. deploy.sh doesn't touch MCP servers. Full profile chosen over minimal after hands-on testing — all query/library tools are useful."
     },
     {
       "id": "t-049",
@@ -1655,7 +1655,7 @@
         "skills",
         "research"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-011",
@@ -1669,21 +1669,21 @@
       "branch": null,
       "github_issue": null,
       "created": "2026-03-02",
-      "started": null,
-      "completed": null,
-      "notes": null,
+      "started": "2026-03-02",
+      "completed": "2026-03-02",
+      "notes": "Added 5 NotebookLM MCP tools + Write to /research allowed-tools. Decision: inline tools (not subagent) — simpler, the skill already forks context.",
       "context": null
     },
     {
       "id": "t-052",
-      "subject": "Wire ask_question as Phase 2 triage signal in /research",
-      "description": "Add a step in /research Phase 2 (triage) that queries the brana-knowledge NotebookLM notebook for Gemini's grounded perspective on the topic being researched. Present both Claude's web findings and Gemini's doc-grounded synthesis side by side. Make this optional (skip if NotebookLM MCP not available — graceful degradation).",
+      "subject": "Wire ask_question as Phase 0 prior knowledge in /research",
+      "description": "Add a step in /research that queries NotebookLM notebooks for prior knowledge before web research. Make this optional via --nlm flag (graceful degradation if MCP not available).",
       "tags": [
         "notebooklm",
         "skills",
         "research"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-011",
@@ -1697,10 +1697,10 @@
       "branch": null,
       "github_issue": null,
       "created": "2026-03-02",
-      "started": null,
-      "completed": null,
-      "notes": null,
-      "context": null
+      "started": "2026-03-02",
+      "completed": "2026-03-02",
+      "notes": "Implemented as --nlm flag. Phase 0 queries notebooks for prior knowledge before web scan. Phase 1 scouts compare findings against prior knowledge (tag CONFIRMED/CONTRADICTS). Step 14 prepares findings as NotebookLM-optimized source. Full feedback loop: research → NLM → future research.",
+      "context": "Design evolved from Phase 2 triage signal to Phase 0 prior knowledge + Phase 1 scout enrichment + post-research source output. More comprehensive than original spec."
     },
     {
       "id": "t-053",
@@ -1788,8 +1788,8 @@
     },
     {
       "id": "t-055",
-      "subject": "Test content generation: 1 infographic + 1 podcast from dimension docs",
-      "description": "Test NotebookLM Studio content generation via MCP: (1) create_infographic from a dimension doc — evaluate visual quality, layout options. (2) create_podcast from a reflection doc — evaluate audio quality, accuracy, usefulness for passive learning. Document the create→poll→receive workflow and any latency/reliability issues.",
+      "subject": "Test Audio Overview from dimension docs (web UI)",
+      "description": "Test NotebookLM Audio Overview generation from dimension docs via the web UI (content generation is NOT available via MCP). Use /notebooklm-source audio-prompt to generate custom prompts. Test with 1 dimension doc and 1 reflection doc. Evaluate: audio quality, accuracy, usefulness for passive learning.",
       "tags": [
         "notebooklm",
         "content"
@@ -1810,8 +1810,8 @@
       "created": "2026-03-02",
       "started": null,
       "completed": null,
-      "notes": null,
-      "context": "create_* returns requestId → poll get_*_status → receive asset URL. Async workflow — need to handle polling in Claude Code (Bash sleep loop or manual check)."
+      "notes": "Rescoped: content generation (infographics, podcasts) is web UI only — MCP has no create_* tools. Infographic dropped (not available in standard NotebookLM). Audio Overview is the viable content type.",
+      "context": "Claude prepares the custom prompt via /notebooklm-source audio-prompt, user pastes it in NotebookLM Audio Overview UI."
     },
     {
       "id": "t-056",

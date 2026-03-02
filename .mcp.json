@@ -10,6 +10,13 @@
     "context7": {
       "command": "npx",
       "args": ["@upstash/context7-mcp@latest"]
+    },
+    "notebooklm": {
+      "command": "npx",
+      "args": ["notebooklm-mcp@latest"],
+      "env": {
+        "NOTEBOOKLM_PROFILE": "full"
+      }
     }
   }
 }
