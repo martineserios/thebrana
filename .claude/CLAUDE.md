@@ -28,6 +28,7 @@ thebrana/docs/                    ← operational docs (this repo)
 brana-knowledge/dimensions/       ← knowledge docs (separate repo)
 ├── 01-07, 09-13, 16, 20-23      ← research in depth
 ├── 26-28, 33-38                  ← research in depth
+├── client-retention, meta-whatsapp, smb-marketing ← topic docs
 └── research-sources.yaml         ← tracked external sources
 ```
 
@@ -37,7 +38,7 @@ brana-knowledge/dimensions/       ← knowledge docs (separate repo)
 
 ### Reflection DAG
 
-R1(08 Triage) → R2(14 Architecture) → R3(31 Assurance) / R4(32 Lifecycle) → R5(29 Transfer)
+R1(08 Triage) → R2(14 Architecture) → R3(31 Assurance) / R4(32 Lifecycle) → R5(29 Venture)
 
 ## System Architecture
 
@@ -116,7 +117,7 @@ When the claude-flow MCP server is available, use it for persistent memory:
 - **Search** before starting work on a topic (`memory_search`)
 - Use namespace `specs` for specification-related patterns
 - Use namespace `decisions` for architectural decisions
-- Use namespace `knowledge` for dimension doc content — **315 sections from 26 dimension docs are indexed with semantic embeddings**. Any `memory_search` query automatically searches knowledge base content alongside patterns.
+- Use namespace `knowledge` for dimension doc content — **315 sections from 29 dimension docs are indexed with semantic embeddings**. Any `memory_search` query automatically searches knowledge base content alongside patterns.
 
 ### Knowledge Base Pipeline
 

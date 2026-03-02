@@ -1,6 +1,6 @@
 ---
 name: memory
-description: "Knowledge system operations — recall patterns, cross-pollinate across projects, review knowledge health. Subcommands: recall, pollinate, review. Use for pattern queries, cross-project transfer, or monthly knowledge audits."
+description: "Knowledge system operations — recall patterns, cross-pollinate across projects, review knowledge health, audit docs for contradictions. Subcommands: recall, pollinate, review, review --audit. Use for pattern queries, cross-project transfer, monthly knowledge audits, or contradiction detection."
 group: learning
 allowed-tools:
   - Bash
@@ -20,6 +20,7 @@ Parse `$ARGUMENTS` for the subcommand:
 - `/memory recall [query]` or `/memory [query]` — search patterns (default)
 - `/memory pollinate [query]` — cross-project pattern transfer
 - `/memory review` — monthly knowledge health audit
+- `/memory review --audit [doc]` — cross-doc contradiction detection
 
 If no subcommand recognized, default to **recall** with the full arguments as query. If no arguments at all, infer query from current project context.
 
@@ -111,6 +112,83 @@ source "$HOME/.claude/scripts/cf-env.sh"
    ```bash
    "$HOME/.claude/scripts/backup-knowledge.sh"
    ```
+
+---
+
+## review --audit — Cross-Doc Contradiction Detection
+
+Traverses docs via formal `[doc NN](path)` links and flags factual contradictions. Works at the knowledge layer (doc vs doc), complementing `/reconcile` (spec vs implementation).
+
+### Scope
+
+- `/memory review --audit` — audit all 5 reflections + both CLAUDE.md files (default)
+- `/memory review --audit [doc]` — audit a specific doc and everything it links to
+
+### Assertion Types to Extract
+
+| Type | Pattern | Example |
+|------|---------|---------|
+| **Count** | `N (skills\|agents\|hooks\|rules\|docs\|dimensions\|reflections)` | "34 deployed skills" |
+| **Version** | `v\d+\.\d+(\.\d+)?` or version-like strings | "v0.6.0", "all-MiniLM-L6-v2" |
+| **Component list** | Markdown tables or bullet lists enumerating named items | Agent table, skill catalog |
+| **Architecture claim** | Statements about what components do or how they connect | "claude-flow is the memory layer" |
+| **Process claim** | Workflow descriptions with arrows or numbered sequences | "DDD → SDD → TDD", "dimension → reflection → roadmap" |
+
+### Steps
+
+1. **Select target docs.** Default: `reflections/08-diagnosis.md`, `reflections/14-mastermind-architecture.md`, `reflections/29-venture-management-reflection.md`, `reflections/31-assurance.md`, `reflections/32-lifecycle.md`, `.claude/CLAUDE.md`, `system/CLAUDE.md`. Or the single doc specified by user.
+
+2. **Extract assertions.** For each target doc, read it and extract factual claims:
+   - Grep for count patterns: `\b\d+\s+(skills?|agents?|hooks?|rules?|commands?|dimensions?|reflections?|patterns?|docs?)\b`
+   - Grep for version patterns: `\bv?\d+\.\d+(\.\d+)?\b` in non-URL contexts
+   - Identify component lists: tables with `|` separators listing named items
+   - Note architecture and process claims in prose
+
+3. **Verify counts against reality.** For verifiable counts:
+   - Skills: `ls system/skills/ | wc -l`
+   - Agents: count entries in `system/agents/`
+   - Rules: `ls system/rules/*.md | wc -l`
+   - Hooks: grep hook types in `system/hooks/` or settings.json
+   - Dimension docs: `ls docs/dimensions/*.md | wc -l` (via symlink)
+   - Reflection docs: `ls docs/reflections/*.md | wc -l`
+
+4. **Cross-reference assertions.** For each assertion, search other docs that mention the same topic (using formal links as the traversal graph). Flag when:
+   - Two docs state different counts for the same thing
+   - A version number in one doc doesn't match another
+   - A component list in doc A has items not in doc B's list (or vice versa)
+   - An architecture claim in one doc contradicts another
+
+5. **Report.** Output in errata-compatible format:
+
+   ```
+   ## Audit Report — YYYY-MM-DD
+
+   ### Contradictions Found: N
+
+   #### C-001: [title] — SEVERITY
+   - **Location:** [doc NN](path.md), line ~N
+   - **Claim:** "34 deployed skills"
+   - **Reality/Conflict:** actual count is 35 (verified via ls system/skills/)
+   - **Suggested fix:** update count to 35
+
+   #### C-002: [title] — SEVERITY
+   - **Location:** [doc NN](path.md) vs [doc MM](path.md)
+   - **Claim A:** "4 hook types"
+   - **Claim B:** "5 hooks: PreToolUse, SessionStart, SessionEnd, PostToolUse, PostToolUseFailure"
+   - **Suggested fix:** update doc NN to reflect 5 hook types
+
+   ### Verified Assertions: N
+   - Skills count: 35 ✓ (verified in 2 docs)
+   - Agent count: 10 ✓ (consistent across 2 docs)
+   ...
+   ```
+
+6. **Severity classification:**
+   - **HIGH**: count or version is wrong (leads to wrong implementation decisions)
+   - **MEDIUM**: component list is incomplete or stale (missing items)
+   - **LOW**: prose claim is imprecise but not misleading
+
+7. **Offer to apply fixes.** For HIGH/MEDIUM items, propose edits. Don't auto-apply — present and let user decide. If approved, apply as errata to [doc 24](24-roadmap-corrections.md).
 
 ---
 
