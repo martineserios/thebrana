@@ -420,17 +420,39 @@ Complete the current task.
 
 ## /tasks add
 
-Quick-add a single task.
+Quick-add a single task with intelligent suggestions.
 
 ### Steps
 
 1. Parse description from argument
-2. Read tasks.json
+2. Read tasks.json (all pending tasks, active milestones, tag vocabulary)
 3. Ask: "Which stream?" (default: roadmap) and "Which milestone?" (show active ones)
-4. If `--tags "tag1,tag2"` provided, use those. Otherwise ask: "Any tags? (comma-separated, or skip)"
-5. Auto-assign next id, set defaults (tags default to `[]`)
-6. Confirm: "Add t-013 'Handle rate limiting' [scheduler] under ms-003 Auth System?"
-7. Write tasks.json
+4. If `--tags "tag1,tag2"` provided, use those. Otherwise:
+   - **Suggest tags** extracted from description keywords matched against existing tag vocabulary
+   - Present: "Suggested tags: [payments, integration] — accept? (y/edit/skip)"
+5. **Suggest effort** from description complexity:
+   - Short + specific → S, moderate → M, broad/vague → L, multi-system → XL
+   - Present: "Suggested effort: M — accept? (y/edit/skip)"
+6. Auto-assign next id, set defaults
+7. **Dependency scan** — cross-reference all pending tasks:
+   - Match by **tag overlap** (2+ shared tags with the new task)
+   - Match by **subject keyword** overlap (significant words from description appear in existing task subjects)
+   - If candidates found, present as a numbered list:
+     ```
+     Possible dependencies found:
+     1. t-041 "Setup Stripe SDK" (shared tags: payments, integration)
+     2. t-039 "API auth middleware" (keyword match: "integrate")
+     Add any as blocked_by? (enter numbers, or skip)
+     ```
+   - If no candidates found, skip silently
+   - **Never auto-commit dependencies** — always ask
+8. **Build-trap check** — if the description contains solution verbs ("build", "implement", "create", "add", "setup") without outcome/problem context:
+   - Prompt: "This looks like a solution. What problem does it solve? (enter text, or skip)"
+   - If the user provides text, store it in the `context` field
+   - If skipped, proceed without context
+9. Priority: **leave null** (user sets manually via `/tasks reprioritize` or direct edit)
+10. Confirm: "Add t-013 'Handle rate limiting' [scheduler, M] under ms-003 Auth System? blocked_by: [t-041]"
+11. Write tasks.json
 
 ---
 
