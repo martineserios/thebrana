@@ -35,7 +35,7 @@ fi
 # Summarize accumulated events
 TOTAL=$(wc -l < "$SESSION_FILE" 2>/dev/null) || TOTAL=0
 SUCCESSES=$(grep -c '"outcome":"success"' "$SESSION_FILE" 2>/dev/null) || SUCCESSES=0
-FAILURES=$(grep -c '"outcome":"failure"' "$SESSION_FILE" 2>/dev/null) || FAILURES=0
+FAILURES=$(jq -r 'select(.outcome == "failure" or .outcome == "test-fail" or .outcome == "lint-fail") | .outcome' "$SESSION_FILE" 2>/dev/null | wc -l) || FAILURES=0
 TOOLS=$(jq -r '.tool' "$SESSION_FILE" 2>/dev/null | sort -u | paste -sd ',' || echo "unknown")
 FILES=$(jq -r '.detail // empty' "$SESSION_FILE" 2>/dev/null | sort -u | head -10 | paste -sd ',' || echo "")
 TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || TIMESTAMP="unknown"
@@ -44,6 +44,10 @@ TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || TIMESTAMP="unknown"
 CORRECTIONS=$(grep -c '"outcome":"correction"' "$SESSION_FILE" 2>/dev/null) || CORRECTIONS=0
 TEST_WRITES=$(grep -c '"outcome":"test-write"' "$SESSION_FILE" 2>/dev/null) || TEST_WRITES=0
 CASCADES=$(grep -c '"cascade":true' "$SESSION_FILE" 2>/dev/null) || CASCADES=0
+TEST_PASSES=$(grep -c '"outcome":"test-pass"' "$SESSION_FILE" 2>/dev/null) || TEST_PASSES=0
+TEST_FAILS=$(grep -c '"outcome":"test-fail"' "$SESSION_FILE" 2>/dev/null) || TEST_FAILS=0
+LINT_PASSES=$(grep -c '"outcome":"lint-pass"' "$SESSION_FILE" 2>/dev/null) || LINT_PASSES=0
+LINT_FAILS=$(grep -c '"outcome":"lint-fail"' "$SESSION_FILE" 2>/dev/null) || LINT_FAILS=0
 EDITS=$(jq -r 'select(.tool == "Edit" or .tool == "Write") | .tool' "$SESSION_FILE" 2>/dev/null | wc -l) || EDITS=0
 
 # Wave 4: flywheel metrics — rates derived from compound metrics
@@ -74,13 +78,33 @@ if [ "$FAILURES" -gt 0 ]; then
     AUTO_FIXES=$(jq -r '[.outcome, .detail] | @tsv' "$SESSION_FILE" 2>/dev/null | awk '
         BEGIN { fixes=0 }
         /^failure\t/ { prev_fail[$2]=1 }
+        /^test-fail\t/ { prev_fail[$2]=1 }
+        /^lint-fail\t/ { prev_fail[$2]=1 }
         /^success\t/ { if ($2 in prev_fail) { fixes++; delete prev_fail[$2] } }
         /^correction\t/ { if ($2 in prev_fail) { fixes++; delete prev_fail[$2] } }
+        /^test-pass\t/ { if ($2 in prev_fail) { fixes++; delete prev_fail[$2] } }
+        /^lint-pass\t/ { if ($2 in prev_fail) { fixes++; delete prev_fail[$2] } }
         END { print fixes }
     ' 2>/dev/null) || AUTO_FIXES=0
     AUTO_FIX_RATE=$(awk "BEGIN {printf \"%.2f\", $AUTO_FIXES / $FAILURES}") || AUTO_FIX_RATE="0.00"
 else
     AUTO_FIX_RATE="0.00"
+fi
+
+# test_pass_rate: test passes / total test runs (higher = better test health)
+TEST_TOTAL=$((TEST_PASSES + TEST_FAILS))
+if [ "$TEST_TOTAL" -gt 0 ]; then
+    TEST_PASS_RATE=$(awk "BEGIN {printf \"%.2f\", $TEST_PASSES / $TEST_TOTAL}") || TEST_PASS_RATE="N/A"
+else
+    TEST_PASS_RATE="N/A"
+fi
+
+# lint_pass_rate: lint passes / total lint runs (higher = cleaner code)
+LINT_TOTAL=$((LINT_PASSES + LINT_FAILS))
+if [ "$LINT_TOTAL" -gt 0 ]; then
+    LINT_PASS_RATE=$(awk "BEGIN {printf \"%.2f\", $LINT_PASSES / $LINT_TOTAL}") || LINT_PASS_RATE="N/A"
+else
+    LINT_PASS_RATE="N/A"
 fi
 
 # delegation_count: Task tool invocations (proxy for subagent delegation)
@@ -97,17 +121,23 @@ SUMMARY_JSON=$(jq -n \
     --argjson test_writes "${TEST_WRITES:-0}" \
     --argjson cascades "${CASCADES:-0}" \
     --argjson edits "${EDITS:-0}" \
+    --argjson test_passes "${TEST_PASSES:-0}" \
+    --argjson test_fails "${TEST_FAILS:-0}" \
+    --argjson lint_passes "${LINT_PASSES:-0}" \
+    --argjson lint_fails "${LINT_FAILS:-0}" \
     --arg correction_rate "${CORRECTION_RATE:-0.00}" \
     --arg auto_fix_rate "${AUTO_FIX_RATE:-0.00}" \
     --arg test_write_rate "${TEST_WRITE_RATE:-0.00}" \
     --arg cascade_rate "${CASCADE_RATE:-0.00}" \
+    --arg test_pass_rate "${TEST_PASS_RATE:-N/A}" \
+    --arg lint_pass_rate "${LINT_PASS_RATE:-N/A}" \
     --argjson delegations "${DELEGATIONS:-0}" \
     --arg tools "${TOOLS:-unknown}" \
     --arg files "${FILES:-}" \
     --argjson confidence 0.5 \
     --argjson transferable false \
     --argjson recall_count 0 \
-    '{project: $project, session: $session, timestamp: $ts, events: $total, successes: $ok, failures: $fail, corrections: $corrections, test_writes: $test_writes, cascades: $cascades, edits: $edits, flywheel: {correction_rate: $correction_rate, auto_fix_rate: $auto_fix_rate, test_write_rate: $test_write_rate, cascade_rate: $cascade_rate, delegations: $delegations}, tools: $tools, files: $files, confidence: $confidence, transferable: $transferable, recall_count: $recall_count}' 2>/dev/null) || SUMMARY_JSON="{}"
+    '{project: $project, session: $session, timestamp: $ts, events: $total, successes: $ok, failures: $fail, corrections: $corrections, test_writes: $test_writes, cascades: $cascades, edits: $edits, test_passes: $test_passes, test_fails: $test_fails, lint_passes: $lint_passes, lint_fails: $lint_fails, flywheel: {correction_rate: $correction_rate, auto_fix_rate: $auto_fix_rate, test_write_rate: $test_write_rate, cascade_rate: $cascade_rate, test_pass_rate: $test_pass_rate, lint_pass_rate: $lint_pass_rate, delegations: $delegations}, tools: $tools, files: $files, confidence: $confidence, transferable: $transferable, recall_count: $recall_count}' 2>/dev/null) || SUMMARY_JSON="{}"
 
 source "$HOME/.claude/scripts/cf-env.sh"
 
@@ -143,10 +173,16 @@ if [ -n "$CF" ]; then
             --arg auto_fix_rate "$AUTO_FIX_RATE" \
             --arg test_write_rate "$TEST_WRITE_RATE" \
             --arg cascade_rate "$CASCADE_RATE" \
+            --arg test_pass_rate "$TEST_PASS_RATE" \
+            --arg lint_pass_rate "$LINT_PASS_RATE" \
+            --argjson test_passes "${TEST_PASSES:-0}" \
+            --argjson test_fails "${TEST_FAILS:-0}" \
+            --argjson lint_passes "${LINT_PASSES:-0}" \
+            --argjson lint_fails "${LINT_FAILS:-0}" \
             --argjson delegations "${DELEGATIONS:-0}" \
             --argjson edits "${EDITS:-0}" \
             --argjson failures "${FAILURES:-0}" \
-            '{project: $project, session: $session, timestamp: $ts, correction_rate: $correction_rate, auto_fix_rate: $auto_fix_rate, test_write_rate: $test_write_rate, cascade_rate: $cascade_rate, delegations: $delegations, edits: $edits, failures: $failures}' 2>/dev/null) || FW_VALUE="{}"
+            '{project: $project, session: $session, timestamp: $ts, correction_rate: $correction_rate, auto_fix_rate: $auto_fix_rate, test_write_rate: $test_write_rate, cascade_rate: $cascade_rate, test_pass_rate: $test_pass_rate, lint_pass_rate: $lint_pass_rate, test_passes: $test_passes, test_fails: $test_fails, lint_passes: $lint_passes, lint_fails: $lint_fails, delegations: $delegations, edits: $edits, failures: $failures}' 2>/dev/null) || FW_VALUE="{}"
         timeout 5 $CF memory store -k "$FW_KEY" -v "$FW_VALUE" --namespace metrics --tags "project:$PROJECT,type:flywheel" 2>/dev/null || true
     fi
 else
@@ -182,6 +218,7 @@ if [ "$STORED_L1" = false ] && [ -n "$LAYER0_DIR" ]; then
         echo "- Project: $PROJECT"
         echo "- Events: $TOTAL ($SUCCESSES ok, $FAILURES fail)"
         echo "- Corrections: $CORRECTIONS | Test writes: $TEST_WRITES | Cascades: $CASCADES"
+        echo "- Tests: $TEST_PASSES pass, $TEST_FAILS fail (rate=$TEST_PASS_RATE) | Lint: $LINT_PASSES pass, $LINT_FAILS fail (rate=$LINT_PASS_RATE)"
         echo "- Flywheel: corr=$CORRECTION_RATE fix=$AUTO_FIX_RATE test=$TEST_WRITE_RATE casc=$CASCADE_RATE deleg=$DELEGATIONS"
         echo "- Tools: $TOOLS"
         if [ -n "$FILES" ]; then echo "- Files: $FILES"; fi
@@ -195,6 +232,7 @@ if [ -n "$LAYER0_DIR" ]; then
         echo "### Session $SESSION_ID ($TIMESTAMP)"
         echo "- Events: $TOTAL ($SUCCESSES ok, $FAILURES fail)"
         echo "- Corrections: $CORRECTIONS | Test writes: $TEST_WRITES | Cascades: $CASCADES"
+        echo "- Tests: $TEST_PASSES pass, $TEST_FAILS fail (rate=$TEST_PASS_RATE) | Lint: $LINT_PASSES pass, $LINT_FAILS fail (rate=$LINT_PASS_RATE)"
         echo "- Flywheel: corr=$CORRECTION_RATE fix=$AUTO_FIX_RATE test=$TEST_WRITE_RATE casc=$CASCADE_RATE deleg=$DELEGATIONS"
         echo "- Tools: $TOOLS"
         if [ -n "$FILES" ]; then echo "- Files: $FILES"; fi
@@ -227,6 +265,7 @@ if [ -n "$LAYER0_DIR" ]; then
                 echo "**State:**"
                 echo "- Branch: $BRANCH"
                 echo "- Events: $TOTAL ($SUCCESSES ok, $FAILURES fail, $CORRECTIONS corrections, $CASCADES cascades)"
+                echo "- Tests: $TEST_PASSES pass, $TEST_FAILS fail (rate=$TEST_PASS_RATE) | Lint: $LINT_PASSES pass, $LINT_FAILS fail (rate=$LINT_PASS_RATE)"
                 echo "- Flywheel: corr=$CORRECTION_RATE fix=$AUTO_FIX_RATE test=$TEST_WRITE_RATE casc=$CASCADE_RATE deleg=$DELEGATIONS"
                 echo ""
                 echo "**Next:**"
