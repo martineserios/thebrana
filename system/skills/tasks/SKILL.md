@@ -8,6 +8,7 @@ allowed-tools:
   - Glob
   - Grep
   - Bash
+  - AskUserQuestion
 ---
 
 # Tasks
@@ -429,38 +430,37 @@ Quick-add a single task with intelligent suggestions.
 
 ### Steps
 
+All interactive confirmations use the **AskUserQuestion** tool for a selectable UI experience. Batch independent questions into a single AskUserQuestion call (up to 4 questions per call).
+
 1. Parse description from argument
 2. Read tasks.json (all pending tasks, active milestones, tag vocabulary)
-3. **URL auto-detection:** if the description contains `https://`, suggest `stream: research`, auto-extract the URL to the `context` field (format: `URL: {url}`), and skip the milestone prompt. Otherwise ask: "Which stream?" (default: roadmap) and "Which milestone?" (show active ones)
-4. If `--tags "tag1,tag2"` provided, use those. Otherwise:
-   - **Suggest tags** extracted from description keywords matched against existing tag vocabulary
-   - Present: "Suggested tags: [payments, integration] — accept? (y/edit/skip)"
-5. **Suggest effort** from description complexity:
-   - Short + specific → S, moderate → M, broad/vague → L, multi-system → XL
-   - Present: "Suggested effort: M — accept? (y/edit/skip)"
-6. Auto-assign next id, set defaults
-7. **Dependency scan** — cross-reference all pending tasks:
+3. **URL auto-detection:** if the description contains `https://`, suggest `stream: research`, auto-extract the URL to the `context` field (format: `URL: {url}`), and skip the milestone/stream prompt.
+4. **First question batch** — use a single AskUserQuestion with up to 4 questions:
+   - **Stream** (skip if URL auto-detected): options from active streams, recommended first. Header: "Stream"
+   - **Tags**: suggest tags from description keywords matched against existing vocabulary. Options: "Accept {suggested}" (recommended), "Edit", "Skip". Header: "Tags"
+   - **Effort**: suggest from description complexity (S/M/L/XL). Options: each size with description. Header: "Effort"
+   - **Milestone** (skip if URL auto-detected or no active milestones): options from active milestones + "None". Header: "Milestone"
+5. Auto-assign next id, set defaults
+6. **Dependency scan** — cross-reference all pending tasks:
    - Match by **tag overlap** (2+ shared tags with the new task)
    - Match by **subject keyword** overlap (significant words from description appear in existing task subjects)
-   - If candidates found, present as a numbered list:
+   - If candidates found, present via AskUserQuestion (multiSelect: true):
      ```
-     Possible dependencies found:
-     1. t-041 "Setup Stripe SDK" (shared tags: payments, integration)
-     2. t-039 "API auth middleware" (keyword match: "integrate")
-     Add any as blocked_by? (enter numbers, or skip)
+     question: "Link any as blocked_by?"
+     options: one per candidate task ("{id} {subject} (reason)")
      ```
    - If no candidates found, skip silently
    - **Never auto-commit dependencies** — always ask
    - **Research cross-reference** (runs alongside dependency scan):
-     - Adding a **non-research** task → scan research stream for tag overlap → "Related research found: {id} '{subject}' — link or promote?"
-     - Adding a **research** task → scan non-research tasks for tag overlap → "May relate to: {id} '{subject}'"
-8. **Build-trap check** — if the description contains solution verbs ("build", "implement", "create", "add", "setup") without outcome/problem context:
-   - Prompt: "This looks like a solution. What problem does it solve? (enter text, or skip)"
+     - Adding a **non-research** task → scan research stream for tag overlap → include in dependency question or separate AskUserQuestion
+     - Adding a **research** task → scan non-research tasks for tag overlap → surface as informational note
+7. **Build-trap check** — if the description contains solution verbs ("build", "implement", "create", "add", "setup") without outcome/problem context:
+   - AskUserQuestion: "This looks like a solution. What problem does it solve?" Options: user provides context via "Other" free text, or "Skip". Header: "Problem"
    - If the user provides text, store it in the `context` field
    - If skipped, proceed without context
-9. Priority: **leave null** (user sets manually via `/tasks reprioritize` or direct edit)
-10. Confirm: "Add t-013 'Handle rate limiting' [scheduler, M] under ms-003 Auth System? blocked_by: [t-041]"
-11. Write tasks.json
+8. Priority: **leave null** (user sets manually via `/tasks reprioritize` or direct edit)
+9. **Final confirmation** — AskUserQuestion: "Add {id} '{subject}' [{tags}, {effort}] under {milestone}? blocked_by: [{deps}]" Options: "Confirm" (recommended), "Edit", "Cancel". Header: "Confirm"
+10. Write tasks.json
 
 ---
 
