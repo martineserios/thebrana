@@ -1011,7 +1011,7 @@
         "tasks",
         "skills"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": null,
@@ -1020,12 +1020,12 @@
       "effort": "M",
       "execution": "code",
       "blocked_by": [],
-      "branch": null,
+      "branch": "feat/t-032-smart-tasks-add",
       "github_issue": null,
       "created": "2026-03-02",
-      "started": null,
-      "completed": null,
-      "notes": null,
+      "started": "2026-03-03",
+      "completed": "2026-03-03",
+      "notes": "Smart /tasks add with suggest-only pattern (ADR-008). 20 doc 30 items migrated (t-061–t-080). Dependency scan, tag/effort suggestion, build-trap check. Challenge-corrected from PM literature.",
       "context": "21 pending items span: workflow(5), skills(3), docs(4), dx(2), infra(3), research(2), product(1), capabilities(1). 7 deferred. 62 research leads. 3 open GitHub issues also not in tasks.json."
     },
     {

@@ -1,7 +1,7 @@
 # Feature: Smart /tasks add with dependency scan
 
 **Date:** 2026-03-03
-**Status:** designing
+**Status:** shipped
 
 ## Goal
 When adding a task via `/tasks add`, the system suggests tags, effort, parent milestone, and dependency candidates by cross-referencing existing pending tasks. User confirms each suggestion. No auto-priority, no auto-commit of dependencies. Additionally, migrate doc 30's pending backlog items into tasks.json as a one-time operation.
