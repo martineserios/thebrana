@@ -39,7 +39,7 @@ The hooks are the glue connecting all three.
 ```
 ~/.claude/                                    THE MASTERMIND
 ├── CLAUDE.md                                 ← Identity + universal principles
-├── skills/                                      ← 38 deployed skills (each has SKILL.md with frontmatter)
+├── skills/                                      ← 39 deployed skills (each has SKILL.md with frontmatter)
 │   ├── memory/SKILL.md                       ← Knowledge ops: recall, pollinate, review, audit
 │   ├── project-onboard/SKILL.md              ← Bootstrap a new project with relevant knowledge
 │   ├── retrospective/SKILL.md                ← End-of-session learning extraction
@@ -160,7 +160,7 @@ Skills are user-invocable workflows (`/command`). Agents auto-delegate when the 
 
 **Pattern B: Agent preloads skill knowledge.** Agents can have skills preloaded via the `skills:` YAML field — full skill content injected at startup, not just available for invocation. Use sparingly: only for small domain knowledge skills where the agent always needs that context. Large skills bloat the agent's context window.
 
-**Pattern C: Auto-delegation fills skill invocation gaps.** Vercel's eval found skills aren't invoked 56% of the time even when available. Explicit "Use when..." descriptions raise invocation from 53% to 79%. Agents fill the remaining gap (79% to ~95%) via auto-delegation — the model routes to a relevant agent when the user doesn't invoke the corresponding skill. **Key architectural implication:** static markdown in context (CLAUDE.md/AGENTS.md) achieves **100%** availability — passive context always beats skill-based retrieval. The knowledge architecture should prioritize what goes in always-loaded context based on availability risk: always-needed knowledge → CLAUDE.md (100%), explicit workflows → skills (79% with good descriptions + agents close the gap). **Status (Mar 2026):** All 36 deployed skills have explicit "Use when..." trigger descriptions in their SKILL.md frontmatter. Context budget raised to ~26KB to accommodate trigger text, context-budget rule, additional skills, and workflow practice rules.
+**Pattern C: Auto-delegation fills skill invocation gaps.** Vercel's eval found skills aren't invoked 56% of the time even when available. Explicit "Use when..." descriptions raise invocation from 53% to 79%. Agents fill the remaining gap (79% to ~95%) via auto-delegation — the model routes to a relevant agent when the user doesn't invoke the corresponding skill. **Key architectural implication:** static markdown in context (CLAUDE.md/AGENTS.md) achieves **100%** availability — passive context always beats skill-based retrieval. The knowledge architecture should prioritize what goes in always-loaded context based on availability risk: always-needed knowledge → CLAUDE.md (100%), explicit workflows → skills (79% with good descriptions + agents close the gap). **Status (Mar 2026):** All 39 deployed skills have explicit "Use when..." trigger descriptions in their SKILL.md frontmatter. Context budget raised to ~26KB to accommodate trigger text, context-budget rule, additional skills, and workflow practice rules.
 
 **Pattern D: Multi-agent workflows.** For subagents: agents cannot spawn other agents (subagent limitation). Orchestration stays in the main context via skills that use the Task tool to spawn multiple agents in parallel. The skill is the conductor; agents are the musicians. For Agent Teams (experimental, Feb 2026): peer-to-peer coordination with shared task lists and DAG dependencies — but at 2x token cost (~800k vs ~440k for 3-worker team), no file locking, and disabled by default. **Use subagents for production orchestration; reserve Agent Teams for genuinely parallel multi-file work where peer coordination justifies the experimental status and cost.**
 
@@ -203,7 +203,7 @@ The brana ecosystem lives in two repositories. `cd` into thebrana to activate th
 │   └── validate.sh             ← Pre-deploy checks
 │
 └── brana-knowledge/            KNOWLEDGE BASE — deep dives on any topic
-    ├── dimensions/             ← One doc per topic (29 docs, semantically indexed)
+    ├── dimensions/             ← One doc per topic (33 docs, semantically indexed)
     ├── research-sources.yaml   ← Tracked sources with trust tiers
     └── backup/                 ← System knowledge exports
 ```

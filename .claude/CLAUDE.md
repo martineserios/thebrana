@@ -117,7 +117,7 @@ When the claude-flow MCP server is available, use it for persistent memory:
 - **Search** before starting work on a topic (`memory_search`)
 - Use namespace `specs` for specification-related patterns
 - Use namespace `decisions` for architectural decisions
-- Use namespace `knowledge` for dimension doc content — **315 sections from 29 dimension docs are indexed with semantic embeddings**. Any `memory_search` query automatically searches knowledge base content alongside patterns.
+- Use namespace `knowledge` for dimension doc content — **315+ sections from 33 dimension docs are indexed with semantic embeddings**. Any `memory_search` query automatically searches knowledge base content alongside patterns.
 
 ### Knowledge Base Pipeline
 
