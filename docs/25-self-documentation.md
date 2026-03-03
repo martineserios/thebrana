@@ -499,6 +499,7 @@ Commands for building and reviewing.
 | `/tasks` | Plan, track, and execute tasks — hierarchy (phase > milestone > task), streams, tags, context, branch integration, agent execution via subagents | **When planning phases, viewing roadmaps, or executing task waves** — 13 subcommands including `execute`, `tags`, and `context` |
 | `/scheduler` | Manage systemd-timer scheduled jobs — status, enable/disable, logs, manual runs. Thin wrapper over `brana-scheduler` CLI | **When managing scheduled background jobs** — see [ADR-002](decisions/ADR-002-scheduler-thin-layer-over-systemd.md) |
 | `/respondio-prompts` | Respond.io AI agent prompt engineering — write instructions, actions, KB files, multi-agent architectures within platform constraints | **When writing or reviewing Respond.io agent prompts**, designing multi-agent handoff flows, or creating knowledge bases |
+| `/respondio` | Respond.io workspace operations via MCP — contacts, messages, conversations, tags, templates, lifecycle, audit | **When querying, debugging, or operating on Respond.io data** — live workspace interface, complements `/respondio-prompts` |
 | `/pdf` | Convert markdown to PDF using md-to-pdf — consistent A4 format, clean styling | **When exporting proposals, docs, or reports to PDF** — produces client-ready output |
 
 ### Business & Venture Management

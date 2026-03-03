@@ -39,13 +39,13 @@ The hooks are the glue connecting all three.
 ```
 ~/.claude/                                    THE MASTERMIND
 ├── CLAUDE.md                                 ← Identity + universal principles
-├── skills/                                      ← 36 deployed skills (each has SKILL.md with frontmatter)
+├── skills/                                      ← 38 deployed skills (each has SKILL.md with frontmatter)
 │   ├── memory/SKILL.md                       ← Knowledge ops: recall, pollinate, review, audit
 │   ├── project-onboard/SKILL.md              ← Bootstrap a new project with relevant knowledge
 │   ├── retrospective/SKILL.md                ← End-of-session learning extraction
 │   ├── decide/SKILL.md                       ← Create ADRs in docs/decisions/
 │   ├── tasks/SKILL.md                        ← Plan, track, and execute tasks across phases and streams
-│   └── ...                                   ← +31 more (build-phase, research, reconcile, etc.)
+│   └── ...                                   ← +33 more (build-phase, research, reconcile, respondio, etc.)
 ├── skill-catalog.md                             ← Vetted external skills (version-pinned, not installed)
 ├── agents/
 │   ├── scout.md                              ← Haiku-powered fast research agent
