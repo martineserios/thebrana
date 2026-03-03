@@ -272,16 +272,20 @@ This is the moment where the single brain activates — it doesn't start from ze
 ```
 On every session end:
   1. Read session JSONL (/tmp/brana-session-{id}.jsonl)
-  2. Compute compound metrics (Wave 1):
+  2. Compute compound metrics (Wave 1 + t-043):
      - corrections: same file re-edited (indicates plan revision)
      - test_writes: test file edits detected
      - cascades: 3+ consecutive failures on same target
      - edits: total Edit/Write tool uses
-  3. Compute flywheel rates (Wave 4):
+     - test_passes, test_fails: Bash test runner outcomes (t-043)
+     - lint_passes, lint_fails: Bash linter outcomes (t-043)
+  3. Compute flywheel rates (Wave 4 + t-043):
      - correction_rate = corrections / edits (lower = better planning)
      - auto_fix_rate = failure→success recoveries / failures (higher = better)
      - test_write_rate = test_writes / edits (higher = better TDD)
      - cascade_rate = cascades / failures (lower = better error handling)
+     - test_pass_rate = test_passes / (test_passes + test_fails) — "N/A" if no tests ran
+     - lint_pass_rate = lint_passes / (lint_passes + lint_fails) — "N/A" if no lints ran
      - delegation_count = Task tool invocations
   4. Store session summary in ReasoningBank (patterns namespace)
   5. Store flywheel metrics separately (metrics namespace) for trending
@@ -300,14 +304,22 @@ PostToolUse — fires on successful tool use:
      "success" — indicates the previous edit needed revision
   3. Test-file detection (Wave 1): if target matches test patterns
      (*.test.*, *.spec.*, /tests/, test_*), classify as "test-write"
+  4. Test/lint command detection (t-043): if Bash command matches a
+     test runner (npm test, pytest, cargo test, etc.), classify as
+     "test-pass". If it matches a linter (eslint, shellcheck, ruff,
+     etc.), classify as "lint-pass".
 
 PostToolUseFailure — fires when a tool fails:
-  1. Categorize error type: edit-mismatch, write-fail, command-fail,
-     network-fail, tool-fail
-  2. Cascade detection (Wave 1): if the last 2 JSONL entries were also
-     failures on the SAME target, mark cascade=true — signals the agent
-     is stuck and should try a different approach
-  3. Log to session JSONL with error category and cascade flag
+  1. Test/lint command detection (t-043): if Bash command matches a
+     test runner, classify as "test-fail" (error_cat=test-fail).
+     If linter, classify as "lint-fail" (error_cat=lint-fail).
+     Otherwise, default to "failure" (error_cat=command-fail).
+  2. Categorize error type: edit-mismatch, write-fail, command-fail,
+     test-fail, lint-fail, network-fail, tool-fail
+  3. Cascade detection (Wave 1): if the last 2 JSONL entries were also
+     failures (including test-fail/lint-fail) on the SAME target,
+     mark cascade=true
+  4. Log to session JSONL with error category and cascade flag
 
 Both write to /tmp/brana-session-{id}.jsonl — the shared event stream
 that SessionEnd reads to compute compound metrics and flywheel rates.
