@@ -19,6 +19,7 @@ allowed-tools:
   - mcp__notebooklm__get_health
   - mcp__notebooklm__get_library_stats
   - mcp__notebooklm__setup_auth
+  - AskUserQuestion
 ---
 
 # NotebookLM Source Preparation

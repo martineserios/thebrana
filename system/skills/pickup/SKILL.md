@@ -6,6 +6,7 @@ allowed-tools:
   - Glob
   - Grep
   - Bash
+  - AskUserQuestion
 ---
 
 # Pickup — Resume From Last Session

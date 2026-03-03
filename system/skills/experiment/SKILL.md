@@ -8,6 +8,7 @@ allowed-tools:
   - Glob
   - Grep
   - Bash
+  - AskUserQuestion
 ---
 
 # Experiment — Growth Experiment Loop

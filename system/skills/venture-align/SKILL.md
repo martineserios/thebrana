@@ -11,6 +11,7 @@ allowed-tools:
   - Edit
   - Glob
   - Grep
+  - AskUserQuestion
 ---
 
 # Venture Align

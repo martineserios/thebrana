@@ -7,6 +7,7 @@ allowed-tools:
   - Glob
   - Grep
   - Bash
+  - AskUserQuestion
 ---
 
 # Personal Check — Life OS Focus Card

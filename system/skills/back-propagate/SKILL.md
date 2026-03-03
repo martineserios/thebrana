@@ -12,6 +12,7 @@ allowed-tools:
   - Glob
   - Grep
   - Task
+  - AskUserQuestion
 ---
 
 # Back-Propagate

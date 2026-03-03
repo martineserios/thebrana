@@ -9,6 +9,7 @@ allowed-tools:
   - Glob
   - Grep
   - Edit
+  - AskUserQuestion
 ---
 
 # Project Align

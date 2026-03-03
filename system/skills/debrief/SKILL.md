@@ -9,6 +9,7 @@ allowed-tools:
   - Edit
   - Glob
   - Grep
+  - AskUserQuestion
 ---
 
 # Debrief

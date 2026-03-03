@@ -9,6 +9,7 @@ allowed-tools:
   - Glob
   - Grep
   - Bash
+  - AskUserQuestion
 ---
 
 # Morning — Daily Operational Check

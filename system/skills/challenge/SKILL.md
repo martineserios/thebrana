@@ -10,6 +10,7 @@ allowed-tools:
   - mcp__notebooklm__ask_question
   - mcp__notebooklm__search_notebooks
   - mcp__notebooklm__get_health
+  - AskUserQuestion
 disable-model-invocation: true
 context: fork
 ---

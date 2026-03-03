@@ -6,6 +6,7 @@ allowed-tools:
   - Bash
   - Read
   - Glob
+  - AskUserQuestion
 ---
 
 # Export PDF — Markdown to PDF Converter

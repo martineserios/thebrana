@@ -4,6 +4,7 @@ description: Scheduled jobs.
 group: utility
 allowed-tools:
   - Bash
+  - AskUserQuestion
 ---
 
 # Scheduler Management

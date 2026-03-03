@@ -8,6 +8,7 @@ allowed-tools:
   - Write
   - Glob
   - Grep
+  - AskUserQuestion
 ---
 
 # SOP — Standard Operating Procedure Creator

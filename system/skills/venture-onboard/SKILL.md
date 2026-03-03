@@ -8,6 +8,7 @@ allowed-tools:
   - Glob
   - Grep
   - Write
+  - AskUserQuestion
 ---
 
 # Venture Onboard

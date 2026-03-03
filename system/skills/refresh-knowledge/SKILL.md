@@ -10,6 +10,7 @@ allowed-tools:
   - Bash
   - WebSearch
   - Task
+  - AskUserQuestion
 ---
 
 # Refresh Knowledge

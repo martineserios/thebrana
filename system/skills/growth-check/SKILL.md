@@ -8,6 +8,7 @@ allowed-tools:
   - Write
   - Glob
   - Grep
+  - AskUserQuestion
 ---
 
 # Growth Check — Business Health Audit
