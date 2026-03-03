@@ -1373,7 +1373,7 @@
         "hooks",
         "feedback-loop"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": null,
@@ -1382,12 +1382,12 @@
       "effort": "M",
       "execution": "code",
       "blocked_by": [],
-      "branch": null,
+      "branch": "feat/t-043-test-lint-hook",
       "github_issue": null,
       "created": "2026-03-02",
-      "started": null,
-      "completed": null,
-      "notes": null,
+      "started": "2026-03-03",
+      "completed": "2026-03-03",
+      "notes": "Added test/lint detection to post-tool-use.sh, post-tool-use-failure.sh, session-end.sh. 39/39 tests pass. Outcomes: test-pass, test-fail, lint-pass, lint-fail. Flywheel metrics: test_pass_rate, lint_pass_rate (N/A when no runs).",
       "context": "From backlog #61 review. Currently: agent writes code → PostToolUse logs it → done. No automatic 'did it pass tests?' signal."
     },
     {
