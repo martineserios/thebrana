@@ -57,7 +57,8 @@ The hooks are the glue connecting all three.
 │   ├── archiver.md                           ← Knowledge backup and export
 │   ├── daily-ops.md                          ← Daily operational checks for venture projects
 │   ├── metrics-collector.md                  ← Gather data for venture skills
-│   └── pipeline-tracker.md                   ← Pipeline tracking and deal analysis
+│   ├── pipeline-tracker.md                   ← Pipeline tracking and deal analysis
+│   └── pr-reviewer.md                       ← PR diff review on gh pr create (read-only + gh CLI)
 ├── scripts/
 │   ├── cf-env.sh                             ← Discover claude-flow binary, export $CF
 │   ├── memory-store.sh                       ← Store key-value in memory with fallback
@@ -178,6 +179,7 @@ Skills are user-invocable workflows (`/command`). Agents auto-delegate when the 
 | **daily-ops** | Haiku | Daily operational checks for venture projects | Read-only |
 | **metrics-collector** | Haiku | Gather data for venture skills (growth-check, weekly-review, monthly-close) | Read-only |
 | **pipeline-tracker** | Haiku | Pipeline tracking and deal analysis | Read-only |
+| **pr-reviewer** | Sonnet | PR diff review: security, logic, style, completeness | Read-only + Bash (gh CLI) |
 
 ### Key Principle
 
@@ -185,7 +187,7 @@ Agents are safety nets, not replacements. The community builds skills (portable,
 
 ### Agent Boundaries
 
-Each agent description includes "Not for..." constraints that disambiguate auto-delegation routing. When multiple agents cover adjacent domains (e.g., scout vs memory-curator for research, project-scanner vs venture-scanner for diagnostics), explicit negative boundaries prevent the model from routing to the wrong agent. Model distribution: Haiku (8 agents — fast, cheap tasks), Opus (2 agents — challenger, debrief-analyst — where reasoning depth justifies the cost).
+Each agent description includes "Not for..." constraints that disambiguate auto-delegation routing. When multiple agents cover adjacent domains (e.g., scout vs memory-curator for research, project-scanner vs venture-scanner for diagnostics), explicit negative boundaries prevent the model from routing to the wrong agent. Model distribution: Haiku (8 agents — fast, cheap tasks), Opus (2 agents — challenger, debrief-analyst — where reasoning depth justifies the cost), Sonnet (1 agent — pr-reviewer — code understanding without Opus cost).
 
 ---
 
@@ -323,6 +325,10 @@ PostToolUseFailure — fires when a tool fails:
 
 Both write to /tmp/brana-session-{id}.jsonl — the shared event stream
 that SessionEnd reads to compute compound metrics and flywheel rates.
+
+  5. PR review nudge (t-044): if Bash command matches `gh pr create`,
+     emit additionalContext suggesting the user spawn the pr-reviewer
+     agent for automated code review. Handled by post-pr-review.sh.
 ```
 
 > **Hook format details:** See [09-claude-code-native-features.md](../../../brana-knowledge/dimensions/09-claude-code-native-features.md) for the full hook JSON format, event list, stdin/stdout contracts, and async constraints.
