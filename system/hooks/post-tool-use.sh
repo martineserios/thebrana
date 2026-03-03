@@ -37,6 +37,8 @@ if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
             OUTCOME="test-pass"
         elif echo "$DETAIL" | grep -qE '(^|\s|/)(eslint|flake8|ruff(\s+check)?|pylint|cargo\s+clippy|golangci-lint|shellcheck|biome\s+check|npm\s+run\s+lint|npx\s+eslint)(\s|$|;|\|)' 2>/dev/null; then
             OUTCOME="lint-pass"
+        elif echo "$DETAIL" | grep -qE '(^|\s)gh\s+pr\s+create(\s|$)' 2>/dev/null; then
+            OUTCOME="pr-create"
         fi
     fi
 

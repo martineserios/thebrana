@@ -86,6 +86,16 @@
             "timeout": 5000
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/post-pr-review.sh",
+            "timeout": 5000
+          }
+        ]
       }
     ],
     "PostToolUseFailure": [
