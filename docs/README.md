@@ -58,6 +58,7 @@ After deep research into brana's current `.claude/` system, nexeye's skill selec
 | File | What It Covers |
 |------|---------------|
 | `docs/features/task-management-system.md` | Task management system: JSON data layer, NL interface, hierarchical planning, branch integration |
+| `docs/features/test-lint-feedback-hook.md` | Test/lint feedback hook: outcome classification, 7 flywheel metrics, two-layer storage, auto-fix state machine |
 
 ### Architecture Decision Records
 
@@ -67,6 +68,7 @@ After deep research into brana's current `.claude/` system, nexeye's skill selec
 | `docs/decisions/ADR-002-tasks-as-data-layer.md` | Tasks as JSON data layer — schema, convention rule, hook validation |
 | `docs/decisions/ADR-003-agent-driven-task-execution.md` | Agent-driven task execution — subagent spawning, DAG wave parallelism, compose-then-write |
 | `docs/decisions/ADR-004-session-handoff-self-learning-loop.md` | Session handoff as self-learning loop — auto-detect close/pickup, debrief integration, doc drift flags |
+| `docs/decisions/ADR-009-test-lint-feedback-hook.md` | Test/lint feedback hook architecture — runner regex, JSONL event stream, two-layer storage, 7 flywheel metrics |
 
 ## How to Use
 
