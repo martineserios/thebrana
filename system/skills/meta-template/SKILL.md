@@ -8,6 +8,7 @@ allowed-tools:
   - Glob
   - Grep
   - Task
+  - AskUserQuestion
 ---
 
 # Meta WhatsApp Template Writer

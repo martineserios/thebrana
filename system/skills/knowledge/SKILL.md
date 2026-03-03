@@ -11,6 +11,7 @@ allowed-tools:
   - Task
   - Write
   - Edit
+  - AskUserQuestion
 ---
 
 # Knowledge

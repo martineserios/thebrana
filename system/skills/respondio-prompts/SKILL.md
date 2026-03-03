@@ -11,6 +11,7 @@ allowed-tools:
   - Task
   - WebSearch
   - WebFetch
+  - AskUserQuestion
 ---
 
 # Respond.io Prompt Engineering

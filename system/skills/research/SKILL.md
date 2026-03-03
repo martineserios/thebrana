@@ -17,6 +17,7 @@ allowed-tools:
   - mcp__notebooklm__select_notebook
   - mcp__notebooklm__search_notebooks
   - mcp__notebooklm__get_health
+  - AskUserQuestion
 ---
 
 # Research

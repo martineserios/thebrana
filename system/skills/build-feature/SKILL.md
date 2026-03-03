@@ -16,6 +16,7 @@ allowed-tools:
   - Task
   - WebSearch
   - WebFetch
+  - AskUserQuestion
 ---
 
 # Build Feature
