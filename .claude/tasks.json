@@ -98,7 +98,7 @@
       "started": "2026-02-19",
       "completed": "2026-02-19",
       "notes": null,
-      "context": "Primary notification channel \u2014 headless-safe. Status line reads this. notify-send is secondary best-effort."
+      "context": "Primary notification channel — headless-safe. Status line reads this. notify-send is secondary best-effort."
     },
     {
       "id": "t-003",
@@ -228,7 +228,7 @@
       "started": "2026-02-19",
       "completed": "2026-02-19",
       "notes": null,
-      "context": "Research: template instantiation \u2014 %n passes full unit name. Must NOT have OnFailure on itself (recursion)."
+      "context": "Research: template instantiation — %n passes full unit name. Must NOT have OnFailure on itself (recursion)."
     },
     {
       "id": "t-007",
@@ -433,13 +433,13 @@
       "created": "2026-02-20",
       "started": "2026-02-20",
       "completed": "2026-02-20",
-      "notes": "Root cause: 5 structural failures \u2014 conditional opt-in, explicit escape hatch, spec-first\u2260test-first, tdd-guard not installed, documentation tone. Fix: unconditional Always section, escape hatch removed, tdd-guard dependency removed.",
+      "notes": "Root cause: 5 structural failures — conditional opt-in, explicit escape hatch, spec-first≠test-first, tdd-guard not installed, documentation tone. Fix: unconditional Always section, escape hatch removed, tdd-guard dependency removed.",
       "context": null
     },
     {
       "id": "t-013",
       "subject": "Task planning system not applied organically",
-      "description": "The /tasks skill, task-convention.md rule, and delegation-routing exist but Claude doesn't naturally use task planning, phase structure, or /tasks next before starting work. The system is built but not adopted \u2014 Claude jumps straight to implementation instead of checking tasks, creating branches per task convention, or following the planning workflow.",
+      "description": "The /tasks skill, task-convention.md rule, and delegation-routing exist but Claude doesn't naturally use task planning, phase structure, or /tasks next before starting work. The system is built but not adopted — Claude jumps straight to implementation instead of checking tasks, creating branches per task convention, or following the planning workflow.",
       "tags": [],
       "status": "completed",
       "stream": "bugs",
@@ -483,7 +483,7 @@
     {
       "id": "ph-002",
       "subject": "RVF Memory Migration + claude-flow Upgrade",
-      "description": "Upgrade claude-flow from alpha.34 to alpha.44, migrate ReasoningBank from SQLite to RVF/AgentDB. Zero data loss. Backlog items #31/#32 collapse into this. Research: ruvnet built both projects. MS-005 (upgrade) and MS-006 (spike) complete. MS-007 (wiring) parked \u2014 waiting for upstream claude-flow + AgentDB integration (issue #829).",
+      "description": "Upgrade claude-flow from alpha.34 to alpha.44, migrate ReasoningBank from SQLite to RVF/AgentDB. Zero data loss. Backlog items #31/#32 collapse into this. Research: ruvnet built both projects. MS-005 (upgrade) and MS-006 (spike) complete. MS-007 (wiring) parked — waiting for upstream claude-flow + AgentDB integration (issue #829).",
       "tags": [
         "claude-flow",
         "rvf",
@@ -504,7 +504,7 @@
       "started": "2026-02-24",
       "completed": "2026-02-27",
       "notes": "claude-flow upgraded to v3.5.1. AgentDB bridge activated via ControllerRegistry shim. BM25 hybrid search confirmed working (semantic+bm25 provenance). 384-dim ONNX embeddings (all-MiniLM-L6-v2). deploy.sh updated to persist shim across deploys.",
-      "context": "134 active entries in memory.db (132 hash-fallback 128-dim, 2 ONNX 384-dim). Namespaces: patterns(129), scheduler-runs(3), business(1), decisions(1). DB size 725KB. claude-flow alpha.34 \u2192 alpha.44 (10 versions behind)."
+      "context": "134 active entries in memory.db (132 hash-fallback 128-dim, 2 ONNX 384-dim). Namespaces: patterns(129), scheduler-runs(3), business(1), decisions(1). DB size 725KB. claude-flow alpha.34 → alpha.44 (10 versions behind)."
     },
     {
       "id": "ms-005",
@@ -533,7 +533,7 @@
     {
       "id": "t-016",
       "subject": "Backup memory.db and export all entries as JSON",
-      "description": "cp ~/.swarm/memory.db ~/.swarm/memory.db.bak-pre-rvf. Export all 134 active memory_entries as JSON (key, namespace, content, tags, embedding_model, embedding_dimensions, status, created_at). This is the safety net \u2014 zero data loss guaranteed.",
+      "description": "cp ~/.swarm/memory.db ~/.swarm/memory.db.bak-pre-rvf. Export all 134 active memory_entries as JSON (key, namespace, content, tags, embedding_model, embedding_dimensions, status, created_at). This is the safety net — zero data loss guaranteed.",
       "tags": [
         "claude-flow",
         "backup"
@@ -663,7 +663,7 @@
     {
       "id": "t-020",
       "subject": "Spike: ingest exported JSON into .rvf file",
-      "description": "Use rvf-cli to ingest the JSON export from t-016 into a new .rvf file at ~/.swarm/memory.rvf. Map: key\u2192key, content\u2192value, namespace\u2192namespace, tags\u2192tags. Generate real embeddings during ingest if supported.",
+      "description": "Use rvf-cli to ingest the JSON export from t-016 into a new .rvf file at ~/.swarm/memory.rvf. Map: key→key, content→value, namespace→namespace, tags→tags. Generate real embeddings during ingest if supported.",
       "tags": [
         "rvf"
       ],
@@ -710,7 +710,7 @@
       "github_issue": null,
       "created": "2026-02-22",
       "notes": null,
-      "context": "Key test: search for 'authentication security' should find patterns about 'login', 'session tokens', etc. \u2014 this is where hash-fallback fails and real embeddings shine."
+      "context": "Key test: search for 'authentication security' should find patterns about 'login', 'session tokens', etc. — this is where hash-fallback fails and real embeddings shine."
     },
     {
       "id": "ms-007",
@@ -737,8 +737,8 @@
       "created": "2026-02-22",
       "started": "2026-02-27",
       "completed": "2026-02-27",
-      "notes": "Completed via upstream upgrade, not custom wiring. claude-flow v3.5.1 natively bundles AgentDB v3 + RVF as optional deps. memory_entries schema preserved \u2014 zero code changes to hooks/skills/agents. Installed: claude-flow@3.5.1, agentic-flow@2.0.7, agentdb@3.0.0-alpha.10, @xenova/transformers@2.17.2. deploy.sh updated to deploy embeddings.json. Backup at ~/.swarm/memory.db.bak-pre-v3.",
-      "context": "Ecosystem stack: AgentDB (application) \u2192 RVF (format) \u2192 ruvector-core (engine). claude-flow v3.5.1 integrates AgentDB as memory bridge with BM25 hybrid search. All 580 memory entries preserved."
+      "notes": "Completed via upstream upgrade, not custom wiring. claude-flow v3.5.1 natively bundles AgentDB v3 + RVF as optional deps. memory_entries schema preserved — zero code changes to hooks/skills/agents. Installed: claude-flow@3.5.1, agentic-flow@2.0.7, agentdb@3.0.0-alpha.10, @xenova/transformers@2.17.2. deploy.sh updated to deploy embeddings.json. Backup at ~/.swarm/memory.db.bak-pre-v3.",
+      "context": "Ecosystem stack: AgentDB (application) → RVF (format) → ruvector-core (engine). claude-flow v3.5.1 integrates AgentDB as memory bridge with BM25 hybrid search. All 580 memory entries preserved."
     },
     {
       "id": "t-022",
@@ -765,13 +765,13 @@
       "created": "2026-02-22",
       "started": "2026-02-27",
       "completed": "2026-02-27",
-      "notes": "Key finding: claude-flow v3.5.1 natively integrates AgentDB v3 as optional dep while preserving memory_entries table schema. Upgrade is drop-in \u2014 zero breaking changes. AgentDB standalone CLI has bugs (migration broken, persistence quirks) but irrelevant since cf wraps it. Upgraded: claude-flow alpha.44\u21923.5.1, agentic-flow 2.0.3\u21922.0.7. Fixed: embeddings dimension mismatch (768\u2192384) by deploying embeddings.json to ~/.claude-flow/. New features available: BM25 hybrid search, reflexion memory, causal reasoning, skill library. Full eval at /tmp/agentdb-eval/evaluation-report.md.",
+      "notes": "Key finding: claude-flow v3.5.1 natively integrates AgentDB v3 as optional dep while preserving memory_entries table schema. Upgrade is drop-in — zero breaking changes. AgentDB standalone CLI has bugs (migration broken, persistence quirks) but irrelevant since cf wraps it. Upgraded: claude-flow alpha.44→3.5.1, agentic-flow 2.0.3→2.0.7. Fixed: embeddings dimension mismatch (768→384) by deploying embeddings.json to ~/.claude-flow/. New features available: BM25 hybrid search, reflexion memory, causal reasoning, skill library. Full eval at /tmp/agentdb-eval/evaluation-report.md.",
       "context": "Upstream status as of 2026-02-27: claude-flow v3.5.1 stable (was alpha.44), AgentDB v3.0.0-alpha.10 (was 2.0.0-alpha.2.21). Issue #829 still open but active. Architecture now officially shows AgentDB as memory backend."
     },
     {
       "id": "t-023",
       "subject": "Update deploy.sh and export-knowledge.sh for AgentDB",
-      "description": "deploy.sh: handle AgentDB store in backup/restore flow. export-knowledge.sh: export from AgentDB (agentdb export). restore.sh: import from backup (agentdb import). Backwards compatible \u2014 detect which backend exists (SQLite fallback if AgentDB not installed).",
+      "description": "deploy.sh: handle AgentDB store in backup/restore flow. export-knowledge.sh: export from AgentDB (agentdb export). restore.sh: import from backup (agentdb import). Backwards compatible — detect which backend exists (SQLite fallback if AgentDB not installed).",
       "tags": [
         "agentdb",
         "integration"
@@ -820,12 +820,12 @@
       "created": "2026-02-22",
       "started": "2026-02-27",
       "completed": "2026-02-27",
-      "notes": "Verified: (1) cf-env.sh finds claude-flow v3.5.1 binary \u2713, (2) $CF memory search returns results from patterns and knowledge namespaces \u2713, (3) $CF memory store writes 384-dim entries \u2713, (4) $CF embeddings generate uses ONNX all-MiniLM-L6-v2 384-dim \u2713, (5) test-memory.sh 4/4 pass \u2713. All 580 existing entries preserved with correct dimensions. BM25 hybrid search active.",
+      "notes": "Verified: (1) cf-env.sh finds claude-flow v3.5.1 binary ✓, (2) $CF memory search returns results from patterns and knowledge namespaces ✓, (3) $CF memory store writes 384-dim entries ✓, (4) $CF embeddings generate uses ONNX all-MiniLM-L6-v2 384-dim ✓, (5) test-memory.sh 4/4 pass ✓. All 580 existing entries preserved with correct dimensions. BM25 hybrid search active.",
       "context": "Critical paths: session-start (recall), session-end (store), pattern-recall skill, retrospective skill, scheduler runner memory store, cross-pollinate skill."
     },
     {
       "id": "t-025",
-      "subject": "Skills refactor \u2014 shared scripts, consolidation, dependency metadata",
+      "subject": "Skills refactor — shared scripts, consolidation, dependency metadata",
       "description": "Extract shared primitives (cf-env.sh, memory-store.sh, backup-knowledge.sh) from 38 copy-pasted blocks across skills/hooks/agents. Consolidate pattern-recall + cross-pollinate + knowledge-review into /memory skill. Add depends_on and group frontmatter to all skills. Update deploy.sh and validate.sh for scripts/.",
       "tags": [
         "refactor",
@@ -846,12 +846,12 @@
       "created": "2026-02-22",
       "started": "2026-02-22",
       "completed": "2026-02-22",
-      "notes": "Backlog #44. 4 phases: shared scripts (38 files), skill consolidation (36\u219233), frontmatter metadata (group+depends_on), skill-graph.sh. ~400 lines saved.",
+      "notes": "Backlog #44. 4 phases: shared scripts (38 files), skill consolidation (36→33), frontmatter metadata (group+depends_on), skill-graph.sh. ~400 lines saved.",
       "context": null
     },
     {
       "id": "t-026",
-      "subject": "Fix erratum #67 \u2014 doc 14 skill count 33\u219234",
+      "subject": "Fix erratum #67 — doc 14 skill count 33→34",
       "description": "Doc 14 line 151 says 'All 33 deployed skills' but actual count is 34 after /meta-template was added. Update the count.",
       "tags": [
         "errata",
@@ -871,12 +871,12 @@
       "created": "2026-02-23",
       "started": "2026-02-23",
       "completed": "2026-02-23",
-      "notes": "Updated 33\u219234 in doc 14 Pattern C. Also removed stale byte count.",
+      "notes": "Updated 33→34 in doc 14 Pattern C. Also removed stale byte count.",
       "context": null
     },
     {
       "id": "t-027",
-      "subject": "Fix erratum #70 \u2014 pre-commit range parsing false positive",
+      "subject": "Fix erratum #70 — pre-commit range parsing false positive",
       "description": "Check 3 in enter/pre-commit.sh does literal grep for doc numbers but CLAUDE.md uses range notation (09-13, 20-23, 26-28). Expand ranges before grepping so docs inside ranges pass validation.",
       "tags": [
         "errata",
@@ -896,12 +896,12 @@
       "created": "2026-02-23",
       "started": "2026-02-23",
       "completed": "2026-02-23",
-      "notes": "Python range expansion replaces literal grep. Tested against CLAUDE.md \u2014 all 33 doc numbers expand correctly.",
+      "notes": "Python range expansion replaces literal grep. Tested against CLAUDE.md — all 33 doc numbers expand correctly.",
       "context": null
     },
     {
       "id": "t-028",
-      "subject": "Close backlog #65 \u2014 claude-flow permissions resolved",
+      "subject": "Close backlog #65 — claude-flow permissions resolved",
       "description": "Verify claude-flow binary works, mark backlog #65 as done in doc 30.",
       "tags": [
         "errata",
@@ -927,7 +927,7 @@
     {
       "id": "t-029",
       "subject": "Add /tasks portfolio subcommand to tasks skill",
-      "description": "Add portfolio subcommand to system/skills/tasks/SKILL.md \u2014 cross-project pending tasks view with by-project and unified modes. Feature brief: docs/features/tasks-portfolio.md. Backlog: enter #67.",
+      "description": "Add portfolio subcommand to system/skills/tasks/SKILL.md — cross-project pending tasks view with by-project and unified modes. Feature brief: docs/features/tasks-portfolio.md. Backlog: enter #67.",
       "tags": [
         "skills",
         "tasks"
@@ -980,7 +980,7 @@
     {
       "id": "t-031",
       "subject": "Add /retrospective call to /session-handoff close mode",
-      "description": "After Step 2 (debrief-analyst), store each learning as a quarantined pattern via the retrospective workflow. Closes the learning loop \u2014 patterns are stored every session without requiring manual /retrospective invocation.",
+      "description": "After Step 2 (debrief-analyst), store each learning as a quarantined pattern via the retrospective workflow. Closes the learning loop — patterns are stored every session without requiring manual /retrospective invocation.",
       "tags": [
         "skills",
         "learning-loop"
@@ -1005,7 +1005,7 @@
     {
       "id": "t-032",
       "subject": "Incorporate doc 30 backlog into the task system",
-      "description": "Doc 30 has 21 pending + 7 deferred backlog items tracked in a markdown table, disconnected from the /tasks workflow. Migrate actionable items into tasks.json (as a phase or standalone tasks), archive stale ones, and decide what to do with the 62 research leads (#410-#471). Goal: single source of truth for what's next \u2014 no split brain between doc 30 and tasks.json. Additionally, enhance /tasks add with automatic dependency scan: when adding a task, cross-reference all pending items by tag overlap and subject keywords, propose blocked_by links before confirming. Prevents orphaned tasks missing obvious dependencies.",
+      "description": "Doc 30 has 21 pending + 7 deferred backlog items tracked in a markdown table, disconnected from the /tasks workflow. Migrate actionable items into tasks.json (as a phase or standalone tasks), archive stale ones, and decide what to do with the 62 research leads (#410-#471). Goal: single source of truth for what's next — no split brain between doc 30 and tasks.json. Additionally, enhance /tasks add with automatic dependency scan: when adding a task, cross-reference all pending items by tag overlap and subject keywords, propose blocked_by links before confirming. Prevents orphaned tasks missing obvious dependencies.",
       "tags": [
         "workflow",
         "tasks",
@@ -1031,7 +1031,7 @@
     {
       "id": "t-033",
       "subject": "Add --wide display mode to /tasks command",
-      "description": "Add a --wide (or --full) flag to /tasks status, /tasks portfolio, and /tasks roadmap that renders task info leveraging the full terminal width. Wide mode shows more columns per line (e.g., id, subject, status, tags, priority, effort, stream, blocked_by, dates \u2014 all on one row) instead of the current compact vertical format. Think kubectl get pods -o wide. Update the Display Themes section in SKILL.md with wide-mode templates for each theme.",
+      "description": "Add a --wide (or --full) flag to /tasks status, /tasks portfolio, and /tasks roadmap that renders task info leveraging the full terminal width. Wide mode shows more columns per line (e.g., id, subject, status, tags, priority, effort, stream, blocked_by, dates — all on one row) instead of the current compact vertical format. Think kubectl get pods -o wide. Update the Display Themes section in SKILL.md with wide-mode templates for each theme.",
       "tags": [
         "skills",
         "tasks",
@@ -1052,7 +1052,7 @@
       "started": null,
       "completed": null,
       "notes": null,
-      "context": "Inspired by kubectl -o wide. Current format is vertical/compact \u2014 good for quick glance but loses info density on wide terminals."
+      "context": "Inspired by kubectl -o wide. Current format is vertical/compact — good for quick glance but loses info density on wide terminals."
     },
     {
       "id": "ph-003",
@@ -1107,7 +1107,7 @@
     {
       "id": "t-034",
       "subject": "Create Obsidian vault symlinks + .gitignore",
-      "description": "Symlink brana-knowledge/dimensions \u2192 docs/dimensions so Obsidian sees both repos in one vault. Add .obsidian/ to .gitignore (Obsidian creates local config on first open). Verify: open docs/ as vault, graph view shows 178 formal link connections.",
+      "description": "Symlink brana-knowledge/dimensions → docs/dimensions so Obsidian sees both repos in one vault. Add .obsidian/ to .gitignore (Obsidian creates local config on first open). Verify: open docs/ as vault, graph view shows 178 formal link connections.",
       "tags": [
         "obsidian"
       ],
@@ -1125,13 +1125,13 @@
       "created": "2026-03-02",
       "started": "2026-03-02",
       "completed": "2026-03-02",
-      "notes": "Symlink docs/dimensions \u2192 ../../brana-knowledge/dimensions. Added .obsidian/ to .gitignore.",
+      "notes": "Symlink docs/dimensions → ../../brana-knowledge/dimensions. Added .obsidian/ to .gitignore.",
       "context": null
     },
     {
       "id": "t-035",
       "subject": "Convert 561 informal doc refs to formal markdown links",
-      "description": "Bulk-convert informal 'doc NN' prose refs \u2192 '[doc NN](./path.md)' formal links via Python script. Preserves existing formal links. Cross-repo refs use symlinked path (dimensions/NN-name.md). Cover thebrana/docs/ and brana-knowledge/dimensions/. Validate: all links resolve, no broken refs.",
+      "description": "Bulk-convert informal 'doc NN' prose refs → '[doc NN](./path.md)' formal links via Python script. Preserves existing formal links. Cross-repo refs use symlinked path (dimensions/NN-name.md). Cover thebrana/docs/ and brana-knowledge/dimensions/. Validate: all links resolve, no broken refs.",
       "tags": [
         "obsidian",
         "docs"
@@ -1153,7 +1153,7 @@
       "started": "2026-03-02",
       "completed": "2026-03-02",
       "notes": "561 refs across 37 files (22 thebrana/docs + 15 brana-knowledge/dimensions). Script at /tmp/formalize-doc-refs.py.",
-      "context": "191 informal refs across 36+ docs. Pattern: 'doc 14', 'Doc 17', 'doc 31'. Must map doc numbers to filenames (e.g., 14 \u2192 reflections/14-mastermind-architecture.md, 17 \u2192 17-implementation-roadmap.md). Some docs are in brana-knowledge (dimensions/) \u2014 use symlinked path."
+      "context": "191 informal refs across 36+ docs. Pattern: 'doc 14', 'Doc 17', 'doc 31'. Must map doc numbers to filenames (e.g., 14 → reflections/14-mastermind-architecture.md, 17 → 17-implementation-roadmap.md). Some docs are in brana-knowledge (dimensions/) — use symlinked path."
     },
     {
       "id": "t-036",
@@ -1180,7 +1180,7 @@
       "started": "2026-03-02",
       "completed": "2026-03-02",
       "notes": "Added system/rules/doc-linking.md (global rule). Updated 4 skill templates: research, build-phase, debrief, back-propagate. maintain-specs and session-handoff don't exist as separate skill files.",
-      "context": "9 skills write knowledge. Convention: 'When referencing another doc, always use [doc NN](relative-path.md) format \u2014 never bare \"doc NN\" prose. This keeps the Obsidian knowledge graph connected.'"
+      "context": "9 skills write knowledge. Convention: 'When referencing another doc, always use [doc NN](relative-path.md) format — never bare \"doc NN\" prose. This keeps the Obsidian knowledge graph connected.'"
     },
     {
       "id": "ms-009",
@@ -1212,7 +1212,7 @@
     {
       "id": "t-037",
       "subject": "Design assertion extraction + contradiction model",
-      "description": "Research task: define what 'assertions' look like in brana docs \u2014 component counts ('10 agents'), version numbers ('v3.5.1'), architecture claims ('claude-flow is the memory layer'), tool/file names. Design extraction heuristics (regex patterns, section parsing). Define contradiction types: stale count, version mismatch, renamed entity, conflicting claim. Output: design doc or notes in task context.",
+      "description": "Research task: define what 'assertions' look like in brana docs — component counts ('10 agents'), version numbers ('v3.5.1'), architecture claims ('claude-flow is the memory layer'), tool/file names. Design extraction heuristics (regex patterns, section parsing). Define contradiction types: stale count, version mismatch, renamed entity, conflicting claim. Output: design doc or notes in task context.",
       "tags": [
         "auditor",
         "research"
@@ -1287,12 +1287,12 @@
       "started": "2026-03-02",
       "completed": "2026-03-02",
       "notes": "Audited doc 14 + both CLAUDE.md files. Found 10 contradictions (3 HIGH, 4 MEDIUM, 2 LOW, 1 MEDIUM label fix). All fixed. Report: docs/24-roadmap-corrections.audit-2026-03-02.md",
-      "context": "5 reflections + 2 CLAUDE.md files = 7 docs to audit. Expected findings: stale counts, renamed entities (claude-flow \u2192 ruflo), removed/added components not reflected everywhere."
+      "context": "5 reflections + 2 CLAUDE.md files = 7 docs to audit. Expected findings: stale counts, renamed entities (claude-flow → ruflo), removed/added components not reflected everywhere."
     },
     {
       "id": "t-040",
       "subject": "Trim git-discipline.md to reduce context footprint",
-      "description": "Trim git-discipline.md from 142 to ~70 lines by consolidating worktree tutorial examples into concise references. paths: scoping doesn't apply \u2014 behavioral/process rules need to be in context before file work, not triggered by file patterns. Real savings come from shorter content.",
+      "description": "Trim git-discipline.md from 142 to ~70 lines by consolidating worktree tutorial examples into concise references. paths: scoping doesn't apply — behavioral/process rules need to be in context before file work, not triggered by file patterns. Real savings come from shorter content.",
       "tags": [
         "context-engineering",
         "rules"
@@ -1311,8 +1311,8 @@
       "created": "2026-03-02",
       "started": "2026-03-02",
       "completed": "2026-03-02",
-      "notes": "142\u219251 lines. Removed 3 redundant worktree bash blocks, motivational text, one-time setup. All behavioral rules preserved. paths: scoping doesn't apply to process rules \u2014 trimming is more effective.",
-      "context": "From backlog #61 review (Julian DeAngelis \u2014 Agent Harness / Context Engineering). Brana has conditional loading infra but 0 of 11 rules use it."
+      "notes": "142→51 lines. Removed 3 redundant worktree bash blocks, motivational text, one-time setup. All behavioral rules preserved. paths: scoping doesn't apply to process rules — trimming is more effective.",
+      "context": "From backlog #61 review (Julian DeAngelis — Agent Harness / Context Engineering). Brana has conditional loading infra but 0 of 11 rules use it."
     },
     {
       "id": "t-041",
@@ -1361,7 +1361,7 @@
       "created": "2026-03-02",
       "started": null,
       "completed": null,
-      "notes": "sdd-tdd: added 8-line spec-first example (ADR \u2192 test \u2192 impl). task-convention: added 5-line branch naming examples (stream \u2192 prefix mapping).",
+      "notes": "sdd-tdd: added 8-line spec-first example (ADR → test → impl). task-convention: added 5-line branch naming examples (stream → prefix mapping).",
       "context": "Current rules are 100% directive with zero examples. Key anti-pattern: task-convention branch naming errors recur."
     },
     {
@@ -1388,7 +1388,7 @@
       "started": null,
       "completed": null,
       "notes": null,
-      "context": "From backlog #61 review. Currently: agent writes code \u2192 PostToolUse logs it \u2192 done. No automatic 'did it pass tests?' signal."
+      "context": "From backlog #61 review. Currently: agent writes code → PostToolUse logs it → done. No automatic 'did it pass tests?' signal."
     },
     {
       "id": "t-044",
@@ -1470,7 +1470,7 @@
     {
       "id": "t-047",
       "subject": "Write beginner's guide to thebrana",
-      "description": "Create a clear, standalone guide for people who know nothing about thebrana. Should explain: what brana is and why it exists, the two-workspace model (docs/ vs system/), how deploy.sh works, the most important slash commands and when to use them, how hooks/rules/agents/skills fit together, the spec cascade (dimension \u2192 reflection \u2192 roadmap \u2192 code), and how to get started from zero. Target audience: someone who just cloned the repo and has no context. Tone: practical, no jargon without explanation, with examples. Could live at docs/guides/getting-started.md or similar.",
+      "description": "Create a clear, standalone guide for people who know nothing about thebrana. Should explain: what brana is and why it exists, the two-workspace model (docs/ vs system/), how deploy.sh works, the most important slash commands and when to use them, how hooks/rules/agents/skills fit together, the spec cascade (dimension → reflection → roadmap → code), and how to get started from zero. Target audience: someone who just cloned the repo and has no context. Tone: practical, no jargon without explanation, with examples. Could live at docs/guides/getting-started.md or similar.",
       "tags": [
         "docs",
         "onboarding",
@@ -1546,7 +1546,7 @@
     {
       "id": "t-048",
       "subject": "Install notebooklm-mcp (minimal profile), auth, measure context cost",
-      "description": "Run `claude mcp add notebooklm npx notebooklm-mcp@latest` \u2014 this adds to .mcp.json (NOT settings.json, per challenger review). Use minimal profile to limit tool count. Auth via browser Google login. Measure: how many tokens does the MCP server add to session start? Compare with/without. Document profile options and which tools each exposes.",
+      "description": "Run `claude mcp add notebooklm npx notebooklm-mcp@latest` — this adds to .mcp.json (NOT settings.json, per challenger review). Use minimal profile to limit tool count. Auth via browser Google login. Measure: how many tokens does the MCP server add to session start? Compare with/without. Document profile options and which tools each exposes.",
       "tags": [
         "notebooklm",
         "mcp"
@@ -1566,7 +1566,7 @@
       "started": "2026-03-02",
       "completed": "2026-03-02",
       "notes": "MCP server added to .mcp.json with full profile (16 tools). Auth completed via browser OAuth. Worktree branch deleted (work superseded by direct main edits). New skill /notebooklm-source created with 6 subcommands. Content generation is web UI only, not MCP.",
-      "context": "Challenger critical finding: MCP config goes in .mcp.json, not settings.json. deploy.sh doesn't touch MCP servers. Full profile chosen over minimal after hands-on testing \u2014 all query/library tools are useful."
+      "context": "Challenger critical finding: MCP config goes in .mcp.json, not settings.json. deploy.sh doesn't touch MCP servers. Full profile chosen over minimal after hands-on testing — all query/library tools are useful."
     },
     {
       "id": "t-049",
@@ -1598,7 +1598,7 @@
     {
       "id": "t-050",
       "subject": "GATE: Compare Claude vs Gemini synthesis on 3 known topics",
-      "description": "Pick 3 topics where you know the brana docs well (e.g., hook architecture, spec cascade, context budget). For each: (1) ask Claude to synthesize from the docs, (2) ask NotebookLM the same question via ask_question with expanded citations. Compare: does Gemini catch anything Claude missed? Does it surface connections across docs that Claude didn't? Does it add noise? Score each topic: +1 (added value), 0 (neutral), -1 (noise). GATE: if total score <= 0, phase stops here \u2014 NotebookLM doesn't earn deeper integration.",
+      "description": "Pick 3 topics where you know the brana docs well (e.g., hook architecture, spec cascade, context budget). For each: (1) ask Claude to synthesize from the docs, (2) ask NotebookLM the same question via ask_question with expanded citations. Compare: does Gemini catch anything Claude missed? Does it surface connections across docs that Claude didn't? Does it add noise? Score each topic: +1 (added value), 0 (neutral), -1 (noise). GATE: if total score <= 0, phase stops here — NotebookLM doesn't earn deeper integration.",
       "tags": [
         "notebooklm",
         "validation"
@@ -1619,8 +1619,8 @@
       "created": "2026-03-02",
       "started": "2026-03-02",
       "completed": "2026-03-02",
-      "notes": "Two rounds. v1 broad synthesis: PASS (+1). v2 exhaustive enumeration: FAIL (0). Combined verdict: CONDITIONAL PASS \u2014 Gemini adds value only when prompted correctly. Key findings: (1) Gemini is a detail-extraction engine, not synthesis. (2) Broad 'brana system' queries trigger canned 3-layer overview (catastrophic failure). (3) Specific technical noun anchors + enumeration framing produce rich results. (4) Anti-hallucination compliance is weakest dimension \u2014 states '9 patterns' then lists 6, invents API header strings. (5) Prompting strategy implemented in /challenge and /research: anchor to nouns, enumerate don't summarize, detect canned responses, tag [NLM-UNVERIFIED].",
-      "context": "Challenger observation: this is the most valuable task in the entire phase. If Gemini adds nothing, the remaining 7 tasks are wasted effort. Run this as a manual experiment \u2014 no code changes needed."
+      "notes": "Two rounds. v1 broad synthesis: PASS (+1). v2 exhaustive enumeration: FAIL (0). Combined verdict: CONDITIONAL PASS — Gemini adds value only when prompted correctly. Key findings: (1) Gemini is a detail-extraction engine, not synthesis. (2) Broad 'brana system' queries trigger canned 3-layer overview (catastrophic failure). (3) Specific technical noun anchors + enumeration framing produce rich results. (4) Anti-hallucination compliance is weakest dimension — states '9 patterns' then lists 6, invents API header strings. (5) Prompting strategy implemented in /challenge and /research: anchor to nouns, enumerate don't summarize, detect canned responses, tag [NLM-UNVERIFIED].",
+      "context": "Challenger observation: this is the most valuable task in the entire phase. If Gemini adds nothing, the remaining 7 tasks are wasted effort. Run this as a manual experiment — no code changes needed."
     },
     {
       "id": "ms-011",
@@ -1652,7 +1652,7 @@
     {
       "id": "t-051",
       "subject": "Add mcp__notebooklm__ask_question to /research allowed-tools",
-      "description": "Edit system/skills/research/SKILL.md to add mcp__notebooklm__ask_question to the allowed-tools list. Alternatively, design a subagent delegation pattern if we want to keep the skill sandbox clean. Decision: inline tool vs subagent \u2014 consider ADR if non-obvious.",
+      "description": "Edit system/skills/research/SKILL.md to add mcp__notebooklm__ask_question to the allowed-tools list. Alternatively, design a subagent delegation pattern if we want to keep the skill sandbox clean. Decision: inline tool vs subagent — consider ADR if non-obvious.",
       "tags": [
         "notebooklm",
         "skills",
@@ -1674,7 +1674,7 @@
       "created": "2026-03-02",
       "started": "2026-03-02",
       "completed": "2026-03-02",
-      "notes": "Added 5 NotebookLM MCP tools + Write to /research allowed-tools. Decision: inline tools (not subagent) \u2014 simpler, the skill already forks context.",
+      "notes": "Added 5 NotebookLM MCP tools + Write to /research allowed-tools. Decision: inline tools (not subagent) — simpler, the skill already forks context.",
       "context": null
     },
     {
@@ -1702,7 +1702,7 @@
       "created": "2026-03-02",
       "started": "2026-03-02",
       "completed": "2026-03-02",
-      "notes": "Implemented as --nlm flag. Phase 0 queries notebooks for prior knowledge before web scan. Phase 1 scouts compare findings against prior knowledge (tag CONFIRMED/CONTRADICTS). Step 14 prepares findings as NotebookLM-optimized source. Full feedback loop: research \u2192 NLM \u2192 future research.",
+      "notes": "Implemented as --nlm flag. Phase 0 queries notebooks for prior knowledge before web scan. Phase 1 scouts compare findings against prior knowledge (tag CONFIRMED/CONTRADICTS). Step 14 prepares findings as NotebookLM-optimized source. Full feedback loop: research → NLM → future research.",
       "context": "Design evolved from Phase 2 triage signal to Phase 0 prior knowledge + Phase 1 scout enrichment + post-research source output. More comprehensive than original spec."
     },
     {
@@ -1730,13 +1730,13 @@
       "created": "2026-03-02",
       "started": "2026-03-02",
       "completed": "2026-03-02",
-      "notes": "Added NotebookLM tools to /challenge skill. Step 3 auto-queries relevant notebooks for doc-grounded context before spawning Opus subagent. Dual-model adversarial: Gemini provides documented constraints, Opus does the reasoning. Graceful degradation if MCP unavailable. Evaluation pending real usage \u2014 value will be validated on next /challenge run.",
-      "context": "User requested this evaluation. The challenger agent already runs as Opus \u2014 adding Gemini perspective makes it a dual-model adversarial review."
+      "notes": "Added NotebookLM tools to /challenge skill. Step 3 auto-queries relevant notebooks for doc-grounded context before spawning Opus subagent. Dual-model adversarial: Gemini provides documented constraints, Opus does the reasoning. Graceful degradation if MCP unavailable. Evaluation pending real usage — value will be validated on next /challenge run.",
+      "context": "User requested this evaluation. The challenger agent already runs as Opus — adding Gemini perspective makes it a dual-model adversarial review."
     },
     {
       "id": "ms-012",
       "subject": "Knowledge Sync + Content Generation",
-      "description": "Script to sync all dimension docs to NotebookLM, test visual artifact generation (infographics, podcasts), and document the integration's value boundaries and rollback procedure. Manual sync first (no post-commit hook \u2014 auth fragility per challenger review).",
+      "description": "Script to sync all dimension docs to NotebookLM, test visual artifact generation (infographics, podcasts), and document the integration's value boundaries and rollback procedure. Manual sync first (no post-commit hook — auth fragility per challenger review).",
       "tags": [
         "notebooklm",
         "knowledge",
@@ -1763,8 +1763,8 @@
     },
     {
       "id": "t-054",
-      "subject": "Script to sync all dimension docs \u2192 NotebookLM sources",
-      "description": "Write a script (system/scripts/sync-notebooklm.sh or .py) that reads all dimension docs from brana-knowledge/dimensions/ and uploads/updates them as sources in the brana-knowledge NotebookLM notebook. Handle: new docs (add), changed docs (update), removed docs (delete source). Manual invocation only \u2014 no post-commit hook yet.",
+      "subject": "Script to sync all dimension docs → NotebookLM sources",
+      "description": "Write a script (system/scripts/sync-notebooklm.sh or .py) that reads all dimension docs from brana-knowledge/dimensions/ and uploads/updates them as sources in the brana-knowledge NotebookLM notebook. Handle: new docs (add), changed docs (update), removed docs (delete source). Manual invocation only — no post-commit hook yet.",
       "tags": [
         "notebooklm",
         "knowledge",
@@ -1813,7 +1813,7 @@
       "created": "2026-03-02",
       "started": null,
       "completed": null,
-      "notes": "Rescoped: content generation (infographics, podcasts) is web UI only \u2014 MCP has no create_* tools. Infographic dropped (not available in standard NotebookLM). Audio Overview is the viable content type.",
+      "notes": "Rescoped: content generation (infographics, podcasts) is web UI only — MCP has no create_* tools. Infographic dropped (not available in standard NotebookLM). Audio Overview is the viable content type.",
       "context": "Claude prepares the custom prompt via /notebooklm-source audio-prompt, user pastes it in NotebookLM Audio Overview UI."
     },
     {
@@ -1873,7 +1873,7 @@
     {
       "id": "t-058",
       "subject": "Research skill distribution channels (skills.sh, CC templates, community registries)",
-      "description": "Research and evaluate skill distribution channels for brana: (1) Claude Skills Registry (sk CLI, 82K+ skills indexed from GitHub \u2014 claude-skill-registry), (2) Claude Code official templates (npm claude-code-templates \u2014 scaffolding agents/commands/hooks/MCPs as installable bundles), (3) community curated lists (awesome-claude-code, awesome-agent-skills). Assess: how to publish brana skills individually to the registry, how to package brana as a template bundle on npm, and whether listing in awesome-claude-code is worthwhile. Deliverable: a brief with recommended distribution strategy and packaging requirements.",
+      "description": "Research and evaluate skill distribution channels for brana: (1) Claude Skills Registry (sk CLI, 82K+ skills indexed from GitHub — claude-skill-registry), (2) Claude Code official templates (npm claude-code-templates — scaffolding agents/commands/hooks/MCPs as installable bundles), (3) community curated lists (awesome-claude-code, awesome-agent-skills). Assess: how to publish brana skills individually to the registry, how to package brana as a template bundle on npm, and whether listing in awesome-claude-code is worthwhile. Deliverable: a brief with recommended distribution strategy and packaging requirements.",
       "tags": [
         "skills",
         "distribution",
@@ -1901,7 +1901,7 @@
     {
       "id": "t-059",
       "subject": "Integrate Playwright browser tools into testing skills and workflows",
-      "description": "Leverage claude-flow's browser_* MCP tools (backed by agent-browser \u2192 Playwright) as a standard testing tool across projects. Scope:\n\n1. **UI testing**: Navigate deployed apps, fill forms, click buttons, take screenshots, verify rendered state. Use browser_snapshot for AI-optimized accessibility tree + element refs.\n2. **API testing**: Use browser + network interception or curl-via-terminal for endpoint verification (login flows, auth tokens, protected resources).\n3. **Integration testing**: End-to-end flows \u2014 login \u2192 navigate \u2192 perform action \u2192 verify result. Combine browser_* with terminal_* for mixed UI+API checks.\n4. **Post-deploy smoke tests**: After CI deploys, run browser-based health checks (load page, verify title, check for errors).\n5. **Visual regression**: Screenshot comparison across deploys.\n\nImplementation:\n- Create a /test-e2e skill or integrate into existing /build-feature verification step\n- Document the ad-hoc pattern for self-signed certs: `agent-browser --ignore-https-errors` via Bash\n- Evaluate trajectory learning (SONA) for recording successful test patterns\n- Consider a PostToolUse hook that auto-screenshots on browser_click failures\n\nKey facts:\n- claude-flow browser_* = agent-browser (Vercel Labs) \u2192 Playwright/Chromium\n- MCP tools don't pass --ignore-https-errors (use Bash directly for self-signed)\n- Element refs (@e1, @e2) give 93% context reduction vs raw DOM\n- agent-browser supports: --headed, --headers, --ignore-https-errors, --profile (session persistence)",
+      "description": "Leverage claude-flow's browser_* MCP tools (backed by agent-browser → Playwright) as a standard testing tool across projects. Scope:\n\n1. **UI testing**: Navigate deployed apps, fill forms, click buttons, take screenshots, verify rendered state. Use browser_snapshot for AI-optimized accessibility tree + element refs.\n2. **API testing**: Use browser + network interception or curl-via-terminal for endpoint verification (login flows, auth tokens, protected resources).\n3. **Integration testing**: End-to-end flows — login → navigate → perform action → verify result. Combine browser_* with terminal_* for mixed UI+API checks.\n4. **Post-deploy smoke tests**: After CI deploys, run browser-based health checks (load page, verify title, check for errors).\n5. **Visual regression**: Screenshot comparison across deploys.\n\nImplementation:\n- Create a /test-e2e skill or integrate into existing /build-feature verification step\n- Document the ad-hoc pattern for self-signed certs: `agent-browser --ignore-https-errors` via Bash\n- Evaluate trajectory learning (SONA) for recording successful test patterns\n- Consider a PostToolUse hook that auto-screenshots on browser_click failures\n\nKey facts:\n- claude-flow browser_* = agent-browser (Vercel Labs) → Playwright/Chromium\n- MCP tools don't pass --ignore-https-errors (use Bash directly for self-signed)\n- Element refs (@e1, @e2) give 93% context reduction vs raw DOM\n- agent-browser supports: --headed, --headers, --ignore-https-errors, --profile (session persistence)",
       "tags": [
         "testing",
         "playwright",
@@ -1929,7 +1929,7 @@
     {
       "id": "t-060",
       "subject": "NLM source-creation workflow in /challenge and /research",
-      "description": "/challenge and /research should include a source-creation step when NotebookLM is involved: (1) Claude creates formatted source files from research findings, (2) user uploads them to a NotebookLM notebook, (3) user provides the notebook URL, (4) Claude queries NLM grounded against the uploaded sources. Without this workflow, NLM queries are ungrounded and pointless. Update /challenge (two-pass with NLM) and /research (--nlm flag) to include this handoff pattern. Consider: /notebooklm-source already handles formatting \u2014 integrate or reference it.",
+      "description": "/challenge and /research should include a source-creation step when NotebookLM is involved: (1) Claude creates formatted source files from research findings, (2) user uploads them to a NotebookLM notebook, (3) user provides the notebook URL, (4) Claude queries NLM grounded against the uploaded sources. Without this workflow, NLM queries are ungrounded and pointless. Update /challenge (two-pass with NLM) and /research (--nlm flag) to include this handoff pattern. Consider: /notebooklm-source already handles formatting — integrate or reference it.",
       "tags": [
         "notebooklm",
         "skills",
@@ -1957,7 +1957,7 @@
     },
     {
       "id": "t-061",
-      "subject": "MCP session history explorer \u2014 /history command",
+      "subject": "MCP session history explorer — /history command",
       "description": "Build /history command for cross-project session handoff search. Scan all ~/.claude/projects/*/memory/session-handoff.md for recent entries. Triggered by lost Psilea session handoff (2026-02-25). Relates to multi-project workflow (#82).",
       "tags": [
         "skills",
@@ -2112,7 +2112,7 @@
     {
       "id": "t-067",
       "subject": "Status line improvements (project name, CTX% accuracy)",
-      "description": "Project differentiation \u2014 show git repo name / portfolio project. CTX% accuracy \u2014 align with runtime compaction trigger. Contamination audit (2026-02-27): nexeye settings.json overrides global. Fix: remove statusLine from project settings.",
+      "description": "Project differentiation — show git repo name / portfolio project. CTX% accuracy — align with runtime compaction trigger. Contamination audit (2026-02-27): nexeye settings.json overrides global. Fix: remove statusLine from project settings.",
       "tags": [
         "dx",
         "statusline"
@@ -2137,7 +2137,7 @@
     {
       "id": "t-068",
       "subject": "Planning workflow redesign (tasks clarity + per-project scoping)",
-      "description": "Unified initiative: (1) Tasks system clarity \u2014 simpler model, better defaults. (2) Per-project task scoping \u2014 auto CWD to git root detection. (3) Backlog skill /backlog \u2014 add/update/list/promote, auto-dedup. Status line integration for task awareness.",
+      "description": "Unified initiative: (1) Tasks system clarity — simpler model, better defaults. (2) Per-project task scoping — auto CWD to git root detection. (3) Backlog skill /backlog — add/update/list/promote, auto-dedup. Status line integration for task awareness.",
       "tags": [
         "skills",
         "tasks",
@@ -2467,6 +2467,1675 @@
       "completed": null,
       "notes": null,
       "context": "Migrated from doc 30 backlog #85"
+    },
+    {
+      "id": "t-091",
+      "subject": "Code Intelligence & Plugin Discovery",
+      "description": "Official docs on LSP integration, plugin discovery, code intelligence features in Claude Code",
+      "tags": [
+        "claude-code-enhancement"
+      ],
+      "status": "completed",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": "2026-03-03",
+      "completed": "2026-03-03",
+      "notes": "Install pyright-lsp for palco. Skip marketplace conversion (deploy.sh sufficient for single user).",
+      "context": "URL: https://code.claude.com/docs/en/discover-plugins#code-intelligence | Author: Anthropic | Source tier: high | Original: #5"
+    },
+    {
+      "id": "t-092",
+      "subject": "MCP Server Infrastructure",
+      "description": "Production MCP server: deterministic agent infra, code quality analysis, 17+ languages, explicit Claude Code integration",
+      "tags": [
+        "mcp-tooling",
+        "ai-agent-systems"
+      ],
+      "status": "completed",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": "2026-03-03",
+      "completed": "2026-03-03",
+      "notes": "Use CLI on-demand, not as MCP server (22 tools = 11-44K token tax). Run dead code detection on palco V3.",
+      "context": "URL: https://github.com/paiml/paiml-mcp-agent-toolkit | Author: Pragmatic AI Labs | Source tier: high | Original: #7"
+    },
+    {
+      "id": "t-093",
+      "subject": "Edit Format Performance",
+      "description": "str_replace vs diff format swings LLM coding performance 20-40%; infrastructure wrapper matters as much as model weights",
+      "tags": [
+        "claude-code-enhancement",
+        "ai-agent-systems"
+      ],
+      "status": "completed",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": "2026-03-03",
+      "completed": "2026-03-03",
+      "notes": "Applied: wide Edit context + Write<50LOC in context-budget.md, test assertion discipline in universal-quality.md.",
+      "context": "URL: https://mkweb.dev/blog/llm-harness-problem | Author: mkweb.dev | Source tier: high | Original: #9"
+    },
+    {
+      "id": "t-094",
+      "subject": "Agentic CI/CD",
+      "description": "CI/CD evolving into repository-level autonomous agent behaviors; continuous AI instead of continuous integration",
+      "tags": [
+        "claude-code-enhancement",
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/eddie-aftandilian-772b267_we-launched-github-agentic-workflows-today-share-7428234738760323073-xAzO | Author: Eddie Aftandilian (GitHub) | Source tier: high | Original: #12"
+    },
+    {
+      "id": "t-095",
+      "subject": "FastMCP 3.0 GA",
+      "description": "FastMCP 3.0 context applications for rich adaptive agent systems; direct MCP tooling upgrade",
+      "tags": [
+        "mcp-tooling",
+        "claude-code-enhancement"
+      ],
+      "status": "completed",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": "2026-03-03",
+      "completed": "2026-03-03",
+      "notes": "FastMCP 3.0 is for building MCP servers, not using them. Relevant when a portfolio project needs a custom server. No action now.",
+      "context": "URL: https://www.linkedin.com/posts/daniel-avila-arias_el-skill-de-fastmcp-30-ya-est%C3%A1-disponible-ugcPost-7428477350339629056-kBp0 | Author: Daniel Avila Arias | Source tier: high | Original: #13"
+    },
+    {
+      "id": "t-096",
+      "subject": "Multi-Agent Workflow",
+      "description": "$300/mo workflow: Claude Opus for planning/research, Codex for review; agents manage parallel tasks via worktrees",
+      "tags": [
+        "claude-code-enhancement",
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/anurag-bhagsain_my-coding-workflow-with-ai-agents-total-share-7428668544512499712-cpLp | Author: Anurag Bhagsain | Source tier: high | Original: #14"
+    },
+    {
+      "id": "t-097",
+      "subject": "Multi-Agent Orchestration",
+      "description": "Persistent multi-agent orchestration: plan, staff, coordinate, and merge code autonomously on your machine",
+      "tags": [
+        "ai-agent-systems"
+      ],
+      "status": "completed",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": "2026-03-03",
+      "completed": "2026-03-03",
+      "notes": "Extracted 2 patterns: worktree cleanup in /tasks done, actionable nudges in delegation-routing. Persistent agent memory skipped (existing debrief/retrospective sufficient).",
+      "context": "URL: https://github.com/nikhilgarg28/delegate | Author: Nikhil Garg | Source tier: high | Original: #16"
+    },
+    {
+      "id": "t-098",
+      "subject": "Claude Learning Resource",
+      "description": "Comprehensive guide: Claude, Claude Code, Projects, file handling, structured courses with official Anthropic resources",
+      "tags": [
+        "claude-code-enhancement"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://sara-kukovec.github.io/Learn-Claude/ | Author: Sara Kukovec | Source tier: high | Original: #19"
+    },
+    {
+      "id": "t-099",
+      "subject": "Knowledge Graphs for Agents",
+      "description": "GraphRAG: structured knowledge graphs reduce hallucinations, enable semantic agent reasoning beyond vector-only retrieval",
+      "tags": [
+        "knowledge-graphs",
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/rag-graphrag-genai-share-7429126855745585152-XDWA | Author: RAG/GraphRAG community | Source tier: high | Original: #22"
+    },
+    {
+      "id": "t-100",
+      "subject": "AI-Driven Development",
+      "description": "Transformational change to engineering practice via AI-driven development and Claude Code adoption",
+      "tags": [
+        "claude-code-enhancement"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/robertrita_this-changes-what-engineering-means-share-7429321401486098432-CBnq | Author: Robert Rita | Source tier: high | Original: #24"
+    },
+    {
+      "id": "t-101",
+      "subject": "Developer Productivity",
+      "description": "AI engineering practices, Claude Code tooling, and developer productivity improvements",
+      "tags": [
+        "claude-code-enhancement"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/robin-lorenz-54055412a_aiengineering-claudecode-developerproductivity-share-7428128377552875520-_7j- | Author: Robin Lorenz | Source tier: high | Original: #27"
+    },
+    {
+      "id": "t-102",
+      "subject": "Product Management + AI",
+      "description": "PM perspective on Claude Code integration for product development workflows",
+      "tags": [
+        "claude-code-enhancement"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/vstakhovsky_ai-productmanagement-claudecode-share-7429311443616907264-q-Vw | Author: Vstakhovsky | Source tier: high | Original: #28"
+    },
+    {
+      "id": "t-103",
+      "subject": "Agent Accountability",
+      "description": "OpenClaw → AI coworker with economic-accountability patterns; $10K earned in 7h across 44+ industries",
+      "tags": [
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/chao-huang-208993177_introducing-clawwork-transform-your-openclaw-share-7429075091826659328-jh_T | Author: Chao Huang | Source tier: high | Original: #29"
+    },
+    {
+      "id": "t-104",
+      "subject": "Claude Code Tooling",
+      "description": "Claude Code as AI developer tool; 79% automation vs 21% augmentation in 500K+ interactions",
+      "tags": [
+        "claude-code-enhancement"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/miguelmirandadias_claudecode-ai-developertools-share-7429445478326554624-mIvS | Author: Miguel Miranda | Source tier: high | Original: #30"
+    },
+    {
+      "id": "t-105",
+      "subject": "MCP Alternative Protocol",
+      "description": "OLIVE: HTTP-based alternative to MCP; transforms Python functions into remote tools for AI agents",
+      "tags": [
+        "mcp-tooling",
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/cruz-melo_github-yavendioolive-transform-python-share-7430082392440287233-P__5 | Author: Cruz Melo (YaVendio CTO) | Source tier: high | Original: #34"
+    },
+    {
+      "id": "t-106",
+      "subject": "AI Agent Orchestration",
+      "description": "Built custom orchestration CLI for AI agents — orchestration patterns, multi-agent coordination",
+      "tags": [
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/michael-a-tomcal-2186486a_i-built-a-custom-orchestration-cli-for-ai-share-7432079783460745217-qN7W | Author: Michael Tomcal | Source tier: high | Original: #36"
+    },
+    {
+      "id": "t-107",
+      "subject": "AI Operating System",
+      "description": "Open-sourced operating system for AI agents — runtime, scheduling, resource management",
+      "tags": [
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/osama-jaber-osama2001_we-open-sourced-an-operating-system-for-ai-share-7432586733197856768-6LQ7 | Author: Osama Jaber | Source tier: high | Original: #43"
+    },
+    {
+      "id": "t-108",
+      "subject": "CLAUDE.md Engineering",
+      "description": "CLAUDE.md at 400 lines — large-scale prompt engineering, structure at scale",
+      "tags": [
+        "claude-code-enhancement"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/alejandro-gomez-cerezo_mi-claude-md-tiene-400-l%C3%ADneas-y-acaba-de-share-7432346651350114305-01aO | Author: Alejandro Gomez Cerezo | Source tier: high | Original: #44"
+    },
+    {
+      "id": "t-109",
+      "subject": "Multi-Agent Collaboration",
+      "description": "Made Claude Code and Codex work together — dual-agent workflow, complementary strengths",
+      "tags": [
+        "claude-code-enhancement",
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/richard-rizk-a09a70213_we-just-made-claude-code-and-codex-work-together-ugcPost-7432103995143311360-4JeU | Author: Richard Rizk | Source tier: high | Original: #45"
+    },
+    {
+      "id": "t-110",
+      "subject": "CLAUDE.md Debate",
+      "description": "Theo argues for deleting CLAUDE.md — contrarian view on prompt file engineering",
+      "tags": [
+        "claude-code-enhancement"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/dileep-krishna_theo-says-delete-your-claudemd-half-the-share-7432685118689021952-6qbX | Author: Dileep Krishna (citing Theo) | Source tier: high | Original: #46"
+    },
+    {
+      "id": "t-111",
+      "subject": "Spec-Driven Development",
+      "description": "Official GitHub spec-kit — spec-driven development toolkit, structured specifications",
+      "tags": [
+        "claude-code-enhancement",
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://github.com/github/spec-kit | Author: GitHub | Source tier: high | Original: #48"
+    },
+    {
+      "id": "t-112",
+      "subject": "Claude Code Workflow",
+      "description": "Practical Claude Code tips that materially changed workflow",
+      "tags": [
+        "claude-code-enhancement"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://medium.com/@ianodad/some-claude-code-tips-that-actually-changed-how-i-work-b34f35b3dc73 | Author: Ian Odad | Source tier: high | Original: #49"
+    },
+    {
+      "id": "t-113",
+      "subject": "Persistent Memory",
+      "description": "Obsidian wiki-links as shared knowledge graph + auditor skill for contradiction detection + shared tag taxonomy",
+      "tags": [
+        "claude-code-enhancement"
+      ],
+      "status": "completed",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": "2026-03-03",
+      "completed": "2026-03-03",
+      "notes": "No action. Brana already solves this differently: semantic embeddings (580+ entries, 384-dim) + doc hierarchy + cross-references + /reconcile. The \"auditor traverses graph for contradictions\" pattern could enhance /memory review someday but low priority — brana's reflection DAG prevents most contradictions structurally.",
+      "context": "URL: https://www.linkedin.com/posts/steve-phelps-203270_a-shared-memory-for-claude-code-share-7432414226435956736-HihS | Author: Steve Phelps | Source tier: high | Original: #50"
+    },
+    {
+      "id": "t-114",
+      "subject": "claude-flow Rebrand",
+      "description": "claude-flow renamed to Ruflo v3.50 — direct upstream impact on brana memory stack",
+      "tags": [
+        "ai-agent-systems",
+        "mcp-tooling"
+      ],
+      "status": "completed",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": "2026-03-03",
+      "completed": "2026-03-03",
+      "notes": "No immediate action. Legacy `claude-flow` npm alias works (both at 3.5.2 as of 2026-03-02). Brana on v3.5.1. 92 refs across 33 system files need eventual rename. Embedding dimension risk: ruflo defaults 768-dim WASM, our embeddings.json forces 384-dim (safe). Upgrade to ruflo@3.5.2 when next maintenance cycle. **RECHECK: verify `claude-flow` and `ruflo` npm versions still match — if they diverge, alias is being abandoned and migration is urgent.**",
+      "context": "URL: https://www.linkedin.com/posts/reuvencohen_so-long-claude-flow-hello-ruflo-v350-ugcPost-7433292476595003393-bpqi | Author: Reuven Cohen | Source tier: high | Original: #59"
+    },
+    {
+      "id": "t-115",
+      "subject": "Web Agent Infrastructure",
+      "description": "Ultimate backbone for AI web agents — infrastructure layer for browser-based agents",
+      "tags": [
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/digcreator_the-ultimate-backbone-for-ai-web-agents-just-share-7433607645422485505-3LHz | Author: DigCreator | Source tier: high | Original: #62"
+    },
+    {
+      "id": "t-116",
+      "subject": "MCP Server",
+      "description": "New open source MCP server — evaluate for brana MCP ecosystem",
+      "tags": [
+        "mcp-tooling"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/krajewski-ptr_an-open-source-mcp-server-just-came-out-that-share-7433883947069218816-rODp | Author: Krajewski | Source tier: high | Original: #65"
+    },
+    {
+      "id": "t-117",
+      "subject": "Agent Orchestration",
+      "description": "Agent orchestrator for one-person management of multiple agents",
+      "tags": [
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/prateekkarnal_agent-orchestrator-lets-one-person-manage-share-7434120370519015424-dw50 | Author: Prateek Karnal | Source tier: high | Original: #67"
+    },
+    {
+      "id": "t-118",
+      "subject": "Agent Harness / Context Engineering",
+      "description": "Context engineering at scale: 4 levers (custom rules, MCPs, skills, SDD) + feedback loops. Rolling out across 20K devs. Context rot at ~60% window. Modular rules <500 lines, on-demand skill loading, spec-driven development, Stop hook gates.",
+      "tags": [
+        "claude-code-enhancement",
+        "ai-agent-systems"
+      ],
+      "status": "completed",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": "2026-03-03",
+      "completed": "2026-03-03",
+      "notes": "Applied: trimmed git-discipline 142→51 lines, added 55% context rot yellow zone, few-shot examples in sdd-tdd + task-convention. Deferred: test/lint feedback hook (t-043), PR review agent (t-044), script-bundled skills (t-045).",
+      "context": "URL: https://x.com/juliandeangeIis/status/2027888587975569534 | Author: Julian DeAngelis (MercadoLibre) | Source tier: high | Original: #61"
+    },
+    {
+      "id": "t-119",
+      "subject": "Claude Code Origins",
+      "description": "Keynote by Claude Code creator — content inaccessible but likely high relevance",
+      "tags": [
+        "claude-code-enhancement"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/basiakubicka_the-guy-who-created-claude-code-just-gave-share-7426304877305311232-HNyI | Author: Basia Kubicka (poster) | Source tier: medium | Original: #1"
+    },
+    {
+      "id": "t-120",
+      "subject": "AI Learning Path",
+      "description": "Self-taught AI journey from scratch to career growth",
+      "tags": [
+        "general-ai-learning"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/shivanivirdi_i-taught-myself-ai-from-scratch-got-promoted-share-7426849470778208257-Wybd | Author: Shivani Virdi | Source tier: medium | Original: #4"
+    },
+    {
+      "id": "t-121",
+      "subject": "Model Capabilities",
+      "description": "Discussion of Opus 4.6 features while broader community focused elsewhere",
+      "tags": [
+        "general-ai-learning"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/marcosheidemann_while-everyone-was-talking-about-opus-46-share-7428029536497364992-Qsqp | Author: Marcos Heidemann | Source tier: medium | Original: #6"
+    },
+    {
+      "id": "t-122",
+      "subject": "Prompt Template",
+      "description": "High-quality UGC generation prompt template",
+      "tags": [
+        "prompt-engineering"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/harshiltomar_steal-this-mega-prompt-to-generate-high-quality-ugcPost-7425131572258947072-EYx4 | Author: Harshil Tomar | Source tier: medium | Original: #8"
+    },
+    {
+      "id": "t-123",
+      "subject": "Agent Swarms",
+      "description": "AI automation, RPA, and autonomous agent swarms for business transformation",
+      "tags": [
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/pedro-sequeira-martins_ai-softwareengineering-automation-share-7427682468666859521-1015 | Author: Pedro Sequeira Martins | Source tier: medium | Original: #10"
+    },
+    {
+      "id": "t-124",
+      "subject": "Code Review Agents",
+      "description": "Comparison of multiple code review agent implementations",
+      "tags": [
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/daniel-avila-arias_he-probado-varios-agentes-de-revisi%C3%B3n-de-ugcPost-7428876869841715200-CM6t | Author: Daniel Avila Arias | Source tier: medium | Original: #15"
+    },
+    {
+      "id": "t-125",
+      "subject": "Claude Code Workflows",
+      "description": "Claude Code workflows for software engineering",
+      "tags": [
+        "claude-code-enhancement"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/varunzxzx_ai-softwareengineering-claudecode-share-7428343713225146369-M0bk | Author: Varun | Source tier: medium | Original: #18"
+    },
+    {
+      "id": "t-126",
+      "subject": "Agent Framework",
+      "description": "OpenClaw: open-source autonomous agent system",
+      "tags": [
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/vinothgovindarajan_openclaw-agents-ai-share-7429409471778471938-mjqN | Author: Vinoth Govindarajan | Source tier: medium | Original: #20"
+    },
+    {
+      "id": "t-127",
+      "subject": "Semantic Data Layer",
+      "description": "BigQuery native semantic graph layer; graphs as instruction manuals for bounded agent traversal",
+      "tags": [
+        "knowledge-graphs"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/axel-thevenot_a-new-bigquerys-native-semantic-layer-using-share-7429576816618713088-uAMs | Author: Axel Thevenot | Source tier: medium | Original: #21"
+    },
+    {
+      "id": "t-128",
+      "subject": "Agent Web APIs",
+      "description": "New web APIs enabling AI agent interaction with the web",
+      "tags": [
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/zachary-boland_the-web-just-got-an-api-for-ai-agents-and-share-7427842401345654786-D4v3 | Author: Zachary Boland | Source tier: medium | Original: #23"
+    },
+    {
+      "id": "t-129",
+      "subject": "AI Tooling",
+      "description": "Solution built for previously unmet need in AI tooling — topic unclear",
+      "tags": [
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/hrishioa_six-months-ago-we-badly-needed-something-share-7429573370880581632-M7L_ | Author: Hrishioa | Source tier: medium | Original: #25"
+    },
+    {
+      "id": "t-130",
+      "subject": "LLM Fine-Tuning",
+      "description": "Democratizing LLM fine-tuning without deep expertise",
+      "tags": [
+        "prompt-engineering"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/alejandro-ao_you-dont-need-to-be-an-expert-to-fine-tune-share-7429479134050938880-ms1h | Author: Alejandro AO | Source tier: medium | Original: #26"
+    },
+    {
+      "id": "t-131",
+      "subject": "GitHub Deprecation",
+      "description": "Projects Classic sunset (Aug 2024); API sunset Nov 2024. DevOps awareness.",
+      "tags": [
+        "devops-ci"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://github.blog/changelog/2024-05-23-sunset-notice-projects-classic/ | Author: GitHub | Source tier: medium | Original: #31"
+    },
+    {
+      "id": "t-132",
+      "subject": "Agent Security",
+      "description": "AI agent permissions: file modification controls, default-allow patterns, Docker/VM isolation",
+      "tags": [
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/iv%C3%A1n-s%C3%A1nchez-b87649396_opencodes-permission-system-is-not-security-share-7428582778096742400-jHEn | Author: Ivan Sanchez | Source tier: medium | Original: #32"
+    },
+    {
+      "id": "t-133",
+      "subject": "Agent Best Practices",
+      "description": "OpenClaw 8 core Layer 1 tools: file access, command execution, web access",
+      "tags": [
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/olga-s-2a7822165_8-rules-without-them-working-with-openclaw-share-7429974204667772928-qz33 | Author: Olga S. | Source tier: medium | Original: #33"
+    },
+    {
+      "id": "t-134",
+      "subject": "CLAUDE.md Engineering",
+      "description": "Tips on CLAUDE.md file structure and prompt engineering for Claude Code",
+      "tags": [
+        "claude-code-enhancement",
+        "prompt-engineering"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/yauhen-klishevich_this-one-%F0%9D%97%96%F0%9D%97%9F%F0%9D%97%94%F0%9D%97%A8%F0%9D%97%97%F0%9D%97%98%F0%9D%97%BA%F0%9D%97%B1-file-might-be-share-7430352145373331457-LPLx | Author: Yauhen Klishevich | Source tier: medium | Original: #35"
+    },
+    {
+      "id": "t-135",
+      "subject": "Security Testing",
+      "description": "Bypassed a SaaS payment gateway — agent security implications",
+      "tags": [
+        "security"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/askjohngeorge_bypassed-a-saas-payment-gateway-in-under-share-7432147819970330624-qlyv | Author: John George | Source tier: medium | Original: #37"
+    },
+    {
+      "id": "t-136",
+      "subject": "Infrastructure Trends",
+      "description": "Real infrastructure shift happening — AI-era infra patterns",
+      "tags": [
+        "devops-ci"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/thewinstonbrown_theres-a-real-infrastructure-shift-happening-share-7432525372778291202-XdLz | Author: Winston Brown | Source tier: medium | Original: #38"
+    },
+    {
+      "id": "t-137",
+      "subject": "CI/CD Planning",
+      "description": "Introducing FlightPaths — release planning and CI/CD orchestration",
+      "tags": [
+        "devops-ci"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.runway.team/blog/introducing-flightpaths-by-runway | Author: Runway | Source tier: medium | Original: #39"
+    },
+    {
+      "id": "t-138",
+      "subject": "MLOps Infrastructure",
+      "description": "MLOps, Kubernetes, Docker patterns and practices",
+      "tags": [
+        "devops-ci"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/roshan-erukulla-79b12a178_mlops-kubernetes-docker-share-7431511968093732864-Qe_b | Author: Roshan Erukulla | Source tier: medium | Original: #40"
+    },
+    {
+      "id": "t-139",
+      "subject": "Data Infrastructure",
+      "description": "Build a lightweight self-hostable data warehouse — DuckDB/Parquet patterns",
+      "tags": [
+        "devops-ci"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.artmann.co/articles/build-a-lightweight-self-hostable-data-warehouse | Author: Artmann | Source tier: medium | Original: #41"
+    },
+    {
+      "id": "t-140",
+      "subject": "Claude Code DevTools",
+      "description": "Claude Code AI engineering and developer tools patterns",
+      "tags": [
+        "claude-code-enhancement"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/innovativemonk_claudecode-aiengineering-devtools-share-7431229766130794496-4gmn | Author: InnovativeMonk | Source tier: medium | Original: #47"
+    },
+    {
+      "id": "t-141",
+      "subject": "Agent Challenges",
+      "description": "Major problem with OpenClaw and agent orchestration",
+      "tags": [
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/julio-andres-olivares_un-gran-problema-con-openclaw-y-agentes-share-7432898145749127168-LLZr | Author: Julio Olivares | Source tier: medium | Original: #51"
+    },
+    {
+      "id": "t-142",
+      "subject": "Agent Ecosystem",
+      "description": "Agentic AI, agents, OpenClaw ecosystem discussion",
+      "tags": [
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/imaxxs_agenticai-aiagents-openclaw-ugcPost-7432613287302746112-qVXX | Author: Imaxxs | Source tier: medium | Original: #52"
+    },
+    {
+      "id": "t-143",
+      "subject": "Dev Workflow",
+      "description": "What development flows need to be more effective — workflow patterns",
+      "tags": [
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/duncankmckinnon_what-do-development-flows-need-to-be-more-share-7432894534344323072-HuoK | Author: Duncan McKinnon | Source tier: medium | Original: #53"
+    },
+    {
+      "id": "t-144",
+      "subject": "Creator Interview",
+      "description": "Interview with Boris Cherny — likely Claude Code or TypeScript related",
+      "tags": [
+        "claude-code-enhancement"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/zihong-chen_chatting-with-boris-cherny-the-guy-who-share-7431418512260284416-jlwd | Author: Zihong Chen | Source tier: medium | Original: #54"
+    },
+    {
+      "id": "t-145",
+      "subject": "AI Evolution",
+      "description": "Claude added Codex, Codex made itself — self-improving agent patterns",
+      "tags": [
+        "claude-code-enhancement",
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/suraj-kumar-86217a20a_claude-added-codex-and-codex-made-itself-share-7433492783962918912-n4mv | Author: Suraj Kumar | Source tier: medium | Original: #55"
+    },
+    {
+      "id": "t-146",
+      "subject": "Developer Tools",
+      "description": "Claude Code AI developer tools and productivity",
+      "tags": [
+        "claude-code-enhancement"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/tamzid-ahmed-fahim_claudecode-ai-developertools-share-7433097099807961089-HcHi | Author: Tamzid Ahmed Fahim | Source tier: medium | Original: #56"
+    },
+    {
+      "id": "t-147",
+      "subject": "AI Engineering",
+      "description": "Claude Code AI engineering and developer tools best practices",
+      "tags": [
+        "claude-code-enhancement"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/robinlorenz-ai_claudecode-aiengineering-developertools-share-7433102275214016513-iyrU | Author: Robin Lorenz | Source tier: medium | Original: #57"
+    },
+    {
+      "id": "t-148",
+      "subject": "Developer Productivity",
+      "description": "Claude Code engineering and developer productivity patterns",
+      "tags": [
+        "claude-code-enhancement"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/larryfang_claudecode-aiengineering-developerproductivity-share-7433018516984975361--Cfk | Author: Larry Fang | Source tier: medium | Original: #58"
+    },
+    {
+      "id": "t-149",
+      "subject": "Agent Memory System",
+      "description": "BrainWire — agent memory and knowledge wiring system",
+      "tags": [
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/hoenig-clemens-09456b98_brainwire-ugcPost-7433661030351708160-EYXj | Author: Clemens Hoenig | Source tier: medium | Original: #63"
+    },
+    {
+      "id": "t-150",
+      "subject": "Agent Cognition",
+      "description": "BrainWire DeepBrain DeepNote — deeper agent cognition patterns",
+      "tags": [
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/hoenig-clemens-09456b98_brainwiredeepbraindeepnote-activity-7433988368239198208-6fAB | Author: Clemens Hoenig | Source tier: medium | Original: #64"
+    },
+    {
+      "id": "t-151",
+      "subject": "Claude Code Project",
+      "description": "Day 314: Building Slack clone with Claude Code — large project patterns",
+      "tags": [
+        "claude-code-enhancement"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/nathancavaglione_day-314-cloning-slack-with-claude-code-share-7433958640103026689-hdKo | Author: Nathan Cavaglione | Source tier: medium | Original: #68"
+    },
+    {
+      "id": "t-152",
+      "subject": "Multi-Agent Architecture",
+      "description": "AI engineering, agentic AI, multi-agent system patterns",
+      "tags": [
+        "ai-agent-systems"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/alan-helouani_aiengineering-agenticai-multiagentsystems-ugcPost-7427344045565210624-yaHC | Author: Alan Helouani | Source tier: medium | Original: #69"
+    },
+    {
+      "id": "t-153",
+      "subject": "OSS Growth",
+      "description": "Growing open source projects faster",
+      "tags": [
+        "not-relevant"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/gavrielco_my-open-source-project-is-growing-faster-activity-7427659960504795136-Di1I | Author: Gavriel Chesterton | Source tier: low | Original: #2"
+    },
+    {
+      "id": "t-154",
+      "subject": "RLM Minimal",
+      "description": "Reimplementing RLM minimal",
+      "tags": [
+        "not-relevant"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/andrew-hinh_i-reimplemented-rlm-minimal-httpslnkdin-share-7428003615186874368-qPPt | Author: Andrew Hinh | Source tier: low | Original: #3"
+    },
+    {
+      "id": "t-155",
+      "subject": "System Design",
+      "description": "Kafka messaging architecture in 2 minutes",
+      "tags": [
+        "devops-ci"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/nk-systemdesign-one_give-me-2-mins-and-ill-teach-you-how-kafka-share-7428424730640158720-_gsJ | Author: NK SystemDesign | Source tier: low | Original: #11"
+    },
+    {
+      "id": "t-156",
+      "subject": "Knowledge Graphs",
+      "description": "Knowledge graph architecture with Neo4j — no AI agent focus",
+      "tags": [
+        "knowledge-graphs"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/akash-g-7a5224246_knowledgegraphs-neo4j-ontology-share-7427272928578269185-FOks | Author: Akash G. | Source tier: low | Original: #17"
+    },
+    {
+      "id": "t-157",
+      "subject": "Unknown",
+      "description": "LinkedIn activity post — content unclear from URL",
+      "tags": [
+        "unknown"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://www.linkedin.com/posts/activity-7432762547293798400-uNt1 | Author: Unknown | Source tier: low | Original: #42"
+    },
+    {
+      "id": "t-158",
+      "subject": "Unknown",
+      "description": "X/Twitter post — content not accessible from URL slug",
+      "tags": [
+        "unknown"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://x.com/i/status/2027123051477815797 | Author: Unknown | Source tier: low | Original: #60"
+    },
+    {
+      "id": "t-159",
+      "subject": "AI Platform",
+      "description": "AI community or product — needs review",
+      "tags": [
+        "unknown"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "URL: https://gastownhall.ai | Author: Gastown Hall | Source tier: low | Original: #66"
     }
   ]
 }

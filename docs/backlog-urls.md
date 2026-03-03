@@ -1,5 +1,7 @@
 # Backlog URLs — AI Systems & Claude Code Enhancement
 
+> **Superseded.** All 69 items migrated to `.claude/tasks.json` (stream: `research`, IDs t-091 through t-159). Use `/tasks next --stream research` or `/tasks status` to browse. This file is kept for reference only.
+>
 > Pre-scanned 2026-02-20 (batch 1), 2026-03-02 (batch 2). Sources: LinkedIn, GitHub, blogs, X.
 > Status: `new` | `reviewed` | `applied` | `skipped`
 > Cross-ref: [doc 30](30-backlog.md) Links section (#473–#506 = batch 2)

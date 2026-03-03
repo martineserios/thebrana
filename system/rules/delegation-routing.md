@@ -32,6 +32,7 @@ Nudge once per trigger. Don't nag. Include what triggered the nudge.
 | Planning new work | `/tasks plan` or `/tasks add` |
 | Backlog item picked to implement | `/build-feature` (ADR → SDD → TDD) |
 | New task added with URL or platform name | brief research before priority |
+| New research task added (stream=research) | tag matching against pending non-research tasks |
 | Monthly or after `/growth-check` | `/tasks reprioritize --reresearch` |
 | Session ending (user says done/bye/closing) | `/session-handoff` |
 
