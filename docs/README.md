@@ -59,6 +59,10 @@ After deep research into brana's current `.claude/` system, nexeye's skill selec
 |------|---------------|
 | `docs/features/task-management-system.md` | Task management system: JSON data layer, NL interface, hierarchical planning, branch integration |
 | `docs/features/test-lint-feedback-hook.md` | Test/lint feedback hook: outcome classification, 7 flywheel metrics, two-layer storage, auto-fix state machine |
+| `docs/features/tasks-theme-system.md` | Task display themes: classic/emoji/minimal, task-line template, tree connectors |
+| `docs/features/tasks-wide-mode.md` | Wide display mode for /tasks: tabular rows with all metadata columns, `--wide` flag |
+| `docs/features/smart-tasks-add.md` | Smart /tasks add: suggest-only pattern, dependency scan, build-trap check (ADR-008) |
+| `docs/features/research-stream.md` | Research as first-class task stream: URL auto-detection, tag-based cross-reference |
 
 ### Architecture Decision Records
 
@@ -68,7 +72,13 @@ After deep research into brana's current `.claude/` system, nexeye's skill selec
 | `docs/decisions/ADR-002-tasks-as-data-layer.md` | Tasks as JSON data layer — schema, convention rule, hook validation |
 | `docs/decisions/ADR-003-agent-driven-task-execution.md` | Agent-driven task execution — subagent spawning, DAG wave parallelism, compose-then-write |
 | `docs/decisions/ADR-004-session-handoff-self-learning-loop.md` | Session handoff as self-learning loop — auto-detect close/pickup, debrief integration, doc drift flags |
+| `docs/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md` | AgentDB v3 unified knowledge backend — BM25 hybrid search, controller shim, embedding bridge |
+| `docs/decisions/ADR-006-merge-enter-into-thebrana.md` | Merge enter into thebrana — unified repo, docs/ + system/ separation |
+| `docs/decisions/ADR-007-verify-counts-deploy-hook.md` | Post-deploy count verification — skills, agents, scripts, rules validation |
+| `docs/decisions/ADR-008-smart-tasks-add-suggest-only.md` | Smart /tasks add — suggest-only UX pattern, AskUserQuestion confirmations |
 | `docs/decisions/ADR-009-test-lint-feedback-hook.md` | Test/lint feedback hook architecture — runner regex, JSONL event stream, two-layer storage, 7 flywheel metrics |
+| `docs/decisions/ADR-010-pr-review-agent.md` | PR review agent — PostToolUse nudge, pr-reviewer agent, Sonnet model for code review |
+| `docs/decisions/ADR-011-skills-bundling.md` | Skills bundling — deploy.sh chmod for bundled scripts, knowledge skill as first bundled skill |
 
 ## How to Use
 
