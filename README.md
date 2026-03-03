@@ -1,8 +1,6 @@
 # brana
 
-> Part of [**enter_thebrana**](../) — two repos, one system. `thebrana` builds what [`enter`](../enter/) designs.
->
-> The mastermind brain system — Claude Code configuration files that deploy to `~/.claude/`, creating a cross-project intelligence layer.
+> The mastermind brain system — Claude Code configuration files that deploy to `~/.claude/`, creating a cross-project intelligence layer that learns, remembers, and improves across every session.
 
 ## Quick Start
 
@@ -21,7 +19,7 @@ Three layers, each with its own persistence and scope:
 │  Universal principles, personality       │
 ├─────────────────────────────────────────┤
 │  INTELLIGENCE — What do I know?         │
-│  ~/.swarm/memory.db (ReasoningBank)     │
+│  claude-flow memory.db                   │
 │  Cross-project patterns, learnings       │
 ├─────────────────────────────────────────┤
 │  CONTEXT — What am I working on?        │
@@ -36,14 +34,17 @@ Three layers, each with its own persistence and scope:
 thebrana/
 ├── system/                         ← Deploys to ~/.claude/
 │   ├── CLAUDE.md                   ← Mastermind identity
-│   ├── skills/ (19)                ← Invokable skills
-│   ├── rules/ (9)                  ← Always-loaded behavioral rules
-│   ├── hooks/ (6)                  ← Event-driven shell scripts
-│   ├── agents/ (7)                 ← Specialized sub-agents
-│   └── statusline.sh              ← Status line with task metrics
+│   ├── skills/ (39)                ← Invokable slash commands
+│   ├── rules/ (12)                 ← Always-loaded behavioral rules
+│   ├── hooks/ (10)                 ← Event-driven shell scripts
+│   ├── agents/ (11)               ← Specialized sub-agents
+│   ├── scripts/ (7)               ← Helper scripts
+│   ├── commands/ (7)              ← CLI commands
+│   └── settings.json              ← Hook registration
+├── docs/
+│   └── guide/                     ← System documentation
 ├── deploy.sh                       ← Validate + copy to ~/.claude/
 ├── validate.sh                     ← Pre-deploy checks
-├── export-knowledge.sh             ← Export memory + ReasoningBank
 ├── task-guide.md                   ← Task management user guide
 ├── venture-guide.md                ← Venture management user guide
 └── README.md
@@ -53,104 +54,126 @@ thebrana/
 
 | Guide | For |
 |-------|-----|
-| **[Venture Guide](venture-guide.md)** | Managing business projects with brana — complete manual with workflows, diagrams, good practices |
-| **[Task Guide](task-guide.md)** | Planning and tracking work across projects — hierarchy, streams, branches, portfolio view |
+| **[System Guide](docs/guide/system-guide.md)** | What brana is, how it works, getting started |
+| **[Skills Catalog](docs/guide/skills.md)** | All 39 skills — description, category, when to use |
+| **[Hooks Explained](docs/guide/hooks.md)** | All 10 hooks — trigger, behavior, output |
+| **[Agent Roster](docs/guide/agents.md)** | All 11 agents — model, tools, auto-delegation triggers |
+| **[Extending Brana](docs/guide/extending.md)** | How to add skills, rules, hooks, and agents |
+| **[Venture Guide](venture-guide.md)** | Managing business projects with brana |
+| **[Task Guide](task-guide.md)** | Planning and tracking work across projects |
 
-## Skills (19)
+## Skills (39)
 
-### Code-Focused (14)
+### Development (13)
 
 | Skill | Description |
 |-------|-------------|
 | `/build-phase` | Plan and implement the next roadmap phase |
-| `/challenge` | Adversarial review of plans and decisions |
-| `/cross-pollinate` | Pull patterns from other projects |
-| `/debrief` | Extract errata and learnings from current session |
+| `/build-feature` | Guide a feature from zero to shipped |
 | `/decide` | Create Architecture Decision Records |
-| `/knowledge-review` | Monthly review of ReasoningBank health |
-| `/pattern-recall` | Query learned patterns relevant to current context |
-| `/project-align` | Assess and align a project with brana practices |
-| `/project-onboard` | Bootstrap a new project with relevant knowledge |
-| `/project-retire` | Archive a project's patterns |
-| `/refresh-knowledge` | Research external updates to dimension docs |
+| `/challenge` | Dual-model adversarial review of plans and decisions |
+| `/debrief` | Extract errata and learnings from current session |
+| `/reconcile` | Detect spec-vs-implementation drift, plan fixes |
+| `/back-propagate` | Propagate implementation changes back to specs |
 | `/research` | Research a topic, doc, or creator with recursive discovery |
-| `/retrospective` | Store learnings and patterns in the knowledge system |
-| `/tasks` | Manage tasks — plan, track, navigate across phases and streams |
+| `/refresh-knowledge` | Research external updates to dimension docs |
+| `/knowledge` | Browse, annotate, review, and reindex the knowledge base |
+| `/tasks` | Manage tasks — plan, track, navigate phases and streams |
+| `/pickup` | Resume from last session with handoff context |
+| `/usage-stats` | Token usage analytics and model distribution |
 
-### Venture/Business (5)
+### Quality & Memory (6)
 
 | Skill | Description |
 |-------|-------------|
-| `/growth-check` | Business health audit (AARRR funnel, metrics) |
-| `/sop` | Create Standard Operating Procedures |
+| `/memory` | Recall, cross-pollinate, review knowledge health |
+| `/retrospective` | Store learnings and patterns in the knowledge system |
+| `/project-align` | Align a project with brana development practices |
+| `/project-onboard` | Bootstrap a new project with portfolio knowledge |
+| `/project-retire` | Archive a project's patterns when retiring |
+| `/personal-check` | Personal life check — tasks, life areas, journal |
+
+### Business / Venture (13)
+
+| Skill | Description |
+|-------|-------------|
 | `/venture-align` | Set up business management structure |
 | `/venture-onboard` | Discover and diagnose a business project |
 | `/venture-phase` | Plan and execute a business milestone |
+| `/growth-check` | Business health audit — AARRR funnel analysis |
+| `/experiment` | Growth experiment loop — hypothesis to learning |
+| `/morning` | Daily operational check — focus card with priorities |
+| `/weekly-review` | Weekly cadence review — portfolio health, ship log |
+| `/monthly-close` | Monthly financial close — P&L, trends, runway |
+| `/monthly-plan` | Forward-looking monthly plan — targets, priorities |
+| `/financial-model` | Revenue projections, scenario analysis, unit economics |
+| `/pipeline` | Sales pipeline tracking — leads, deals, follow-ups |
+| `/sop` | Create Standard Operating Procedures |
+| `/proposal` | Generate client proposals with cost breakdown |
 
-## Rules (9)
+### Integrations (7)
+
+| Skill | Description |
+|-------|-------------|
+| `/gsheets` | Google Sheets via MCP — read, write, manage |
+| `/notebooklm-source` | Prepare sources for NotebookLM upload |
+| `/export-pdf` | Convert markdown to PDF |
+| `/meta-template` | Write Meta WhatsApp templates for Utility classification |
+| `/respondio-prompts` | Respond.io AI agent prompt engineering |
+| `/content-plan` | Marketing content planning — themes, calendar, tracking |
+| `/scheduler` | Scheduled jobs management |
+
+## Rules (12)
 
 | Rule | Purpose |
 |------|---------|
-| `git-discipline` | Branch naming, conventional commits, `--no-ff` merges |
+| `context-budget` | Context window management thresholds |
+| `delegation-routing` | Auto-delegate to agents, suggest skills |
+| `doc-linking` | Relative-path markdown links |
+| `git-discipline` | Branching, worktrees, conventional commits, `--no-ff` |
 | `memory-framework` | CLAUDE.md vs MEMORY.md separation |
 | `pm-awareness` | Check issues, link commits, track progress |
 | `research-discipline` | Read project docs before web research |
-| `sdd-tdd` | Test-first development — universal testing discipline + hook enforcement |
-| `task-convention` | Task schema, NL interaction rules, branch mapping |
-| `skill-suggestions` | Proactive skill recommendations |
+| `sdd-tdd` | Test-first development, spec-before-code enforcement |
+| `self-improvement` | Auto-learn from corrections, failures, sessions |
+| `task-convention` | Task schema, branch mapping, status lifecycle |
 | `universal-quality` | Test before commit, no secrets, type safety |
-| `work-preferences` | Parallelism, simplicity, automation |
+| `work-preferences` | Parallelism, simplicity, autonomous execution |
 
-## Hooks (6)
+## Hooks (10)
 
 | Hook | Event | Purpose |
 |------|-------|---------|
 | `session-start.sh` | SessionStart | Recall relevant patterns for current project |
-| `session-end.sh` | SessionEnd | Extract and store session learnings |
-| `pre-tool-use.sh` | PreToolUse | SDD enforcement — block code before spec/test |
-| `post-tool-use.sh` | PostToolUse | Learn from significant tool uses |
-| `post-tool-use-failure.sh` | PostToolUseFailure | Learn from tool failures (anti-patterns) |
-| `post-tasks-validate.sh` | PostToolUse | Validate tasks.json schema + auto-rollup parents |
+| `session-start-venture.sh` | SessionStart | Detect venture projects, nudge daily-ops agent |
+| `pre-tool-use.sh` | PreToolUse | Spec-first gate — block code before spec/test |
+| `post-tool-use.sh` | PostToolUse | Log significant tool successes, detect corrections |
+| `post-pr-review.sh` | PostToolUse | Nudge pr-reviewer agent after PR creation |
+| `post-plan-challenge.sh` | PostToolUse | Nudge challenger agent after plan finalization |
+| `post-sale.sh` | PostToolUse | Detect deal closures, snapshot to memory |
+| `post-tasks-validate.sh` | PostToolUse | Validate tasks.json schema, auto-rollup parents |
+| `post-tool-use-failure.sh` | PostToolUseFailure | Log tool failures, categorize errors |
+| `session-end.sh` | SessionEnd | Flush session events, compute flywheel metrics |
 
-## Agents (7)
+## Agents (11)
 
 | Agent | Model | Purpose |
 |-------|-------|---------|
-| `scout` | Haiku | Fast research — codebase exploration, information gathering |
+| `scout` | Haiku | Fast research — codebase exploration, web search |
 | `memory-curator` | Haiku | Recall patterns, cross-pollinate, check knowledge health |
 | `project-scanner` | Haiku | Scan project structure, detect stack, check alignment |
 | `venture-scanner` | Haiku | Diagnose business project — stage, frameworks, gaps |
-| `challenger` | Sonnet | Adversarial review of plans and architecture decisions |
-| `debrief-analyst` | Sonnet | Extract errata, learnings, and patterns from sessions |
+| `challenger` | Opus | Adversarial review of plans and architecture decisions |
+| `debrief-analyst` | Opus | Extract errata, learnings, and patterns from sessions |
+| `pr-reviewer` | Sonnet | Review PR diffs for quality, security, and correctness |
+| `daily-ops` | Haiku | Daily venture focus card — health, actions, experiments |
+| `metrics-collector` | Haiku | Collect venture metrics from multiple sources |
+| `pipeline-tracker` | Haiku | Pipeline status — deal stages, follow-ups, trends |
 | `archiver` | Haiku | Archive project patterns when retiring |
-
-## Ecosystem
-
-| Repo | Role | Contains |
-|------|------|----------|
-| **enter** | Architect | 34 spec docs (dimension → reflection → roadmap) |
-| **thebrana** (here) | Operator | System files that deploy to `~/.claude/` |
-| **brana-knowledge** | Vault | Knowledge exports and backups |
 
 ## Adding Components
 
-### New Skill
-
-1. Create `system/skills/{name}/SKILL.md` with YAML frontmatter (`name`, `description`, `allowed-tools`)
-2. Write instructions in the body
-3. `./validate.sh && ./deploy.sh`
-
-### New Rule
-
-1. Create `system/rules/{name}.md`
-2. Omit `paths:` for unconditional loading, or add `paths:` to scope it
-3. `./validate.sh && ./deploy.sh`
-
-### New Hook
-
-1. Create `system/hooks/{event}.sh`
-2. Register in `system/settings.json` under the appropriate event
-3. `./validate.sh && ./deploy.sh`
+See [Extending Brana](docs/guide/extending.md) for detailed instructions on adding skills, rules, hooks, and agents.
 
 ## Version History
 
@@ -161,5 +184,4 @@ thebrana/
 | v0.3.0 | 3 — Learning | Quarantine, two-layer memory, knowledge health |
 | v0.4.0 | 4 — Quality | Validation, context budget, self-documentation |
 | v0.5.0 | 5 — Alignment | `/project-align`, venture management skills |
-
-See [enter/](../enter/) for full architecture documentation.
+| v0.6.0 | 6 — Documentation | System guide, skills catalog, hooks/agents/extending docs |
