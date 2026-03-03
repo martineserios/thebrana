@@ -4136,6 +4136,32 @@
       "completed": null,
       "notes": null,
       "context": "URL: https://gastownhall.ai | Author: Gastown Hall | Source tier: low | Original: #66"
+    },
+    {
+      "id": "t-160",
+      "subject": "Sync tasks with GitHub Issues and GitHub Projects",
+      "description": "Bidirectional sync between tasks.json and GitHub Issues/Projects. Issues serve as task lifecycle tracking and context persistence. Issue numbering not required but welcomed if it fits naturally — low-cost, positive-potential integration.",
+      "tags": [
+        "workflow",
+        "dx",
+        "skills"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": "L",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-03",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "Issues as task lifecycle tracking + context persistence. Issue numbering not required but welcomed if it fits naturally — low-cost, positive-potential integration."
     }
   ]
 }
