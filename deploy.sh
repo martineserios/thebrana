@@ -38,6 +38,8 @@ cp "$SYSTEM_DIR/CLAUDE.md" "$TARGET_DIR/CLAUDE.md"
 echo "  ✓ CLAUDE.md"
 
 cp -r "$SYSTEM_DIR/skills" "$TARGET_DIR/skills"
+# Make bundled skill scripts executable
+find "$TARGET_DIR/skills" \( -name "*.sh" -o -name "*.py" \) -exec chmod +x {} +
 echo "  ✓ skills/"
 
 cp -r "$SYSTEM_DIR/rules" "$TARGET_DIR/rules"
