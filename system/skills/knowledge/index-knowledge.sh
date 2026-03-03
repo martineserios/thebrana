@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
 # Index brana-knowledge dimension docs into claude-flow memory for semantic search.
 #
-# DEPRECATED: This script is now bundled with the knowledge skill.
-# Canonical location: system/skills/knowledge/index-knowledge.sh
-# Deployed to: $HOME/.claude/skills/knowledge/index-knowledge.sh
-# This copy is kept for backward compatibility (brana-knowledge post-commit hook, scheduler).
-#
 # Usage:
 #   index-knowledge.sh              # Index all dimension docs
 #   index-knowledge.sh file1.md     # Index specific file(s)

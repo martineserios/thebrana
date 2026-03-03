@@ -1,10 +1,5 @@
 #!/usr/bin/env bash
 # Generate dimensions/INDEX.md from dimension doc headers.
-# DEPRECATED: This script is now bundled with the knowledge skill.
-# Canonical location: system/skills/knowledge/generate-index.sh
-# Deployed to: $HOME/.claude/skills/knowledge/generate-index.sh
-# This copy is kept for backward compatibility (brana-knowledge post-commit hook, scheduler).
-#
 # Usage: generate-index.sh [knowledge-dir]
 # Default knowledge-dir: ~/enter_thebrana/brana-knowledge
 

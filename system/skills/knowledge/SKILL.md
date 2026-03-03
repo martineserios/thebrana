@@ -36,8 +36,8 @@ Subcommands:
 KNOWLEDGE="$HOME/enter_thebrana/brana-knowledge"
 DIMENSIONS="$KNOWLEDGE/dimensions"
 SOURCES="$KNOWLEDGE/research-sources.yaml"
-INDEXER="$HOME/enter_thebrana/thebrana/system/scripts/index-knowledge.sh"
-INDEX_GEN="$HOME/enter_thebrana/thebrana/system/scripts/generate-index.sh"
+INDEXER="$HOME/.claude/skills/knowledge/index-knowledge.sh"
+INDEX_GEN="$HOME/.claude/skills/knowledge/generate-index.sh"
 ```
 
 ## Procedure
