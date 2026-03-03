@@ -160,7 +160,7 @@ Skills are user-invocable workflows (`/command`). Agents auto-delegate when the 
 
 **Pattern B: Agent preloads skill knowledge.** Agents can have skills preloaded via the `skills:` YAML field — full skill content injected at startup, not just available for invocation. Use sparingly: only for small domain knowledge skills where the agent always needs that context. Large skills bloat the agent's context window.
 
-**Pattern C: Auto-delegation fills skill invocation gaps.** Vercel's eval found skills aren't invoked 56% of the time even when available. Explicit "Use when..." descriptions raise invocation from 53% to 79%. Agents fill the remaining gap (79% to ~95%) via auto-delegation — the model routes to a relevant agent when the user doesn't invoke the corresponding skill. **Key architectural implication:** static markdown in context (CLAUDE.md/AGENTS.md) achieves **100%** availability — passive context always beats skill-based retrieval. The knowledge architecture should prioritize what goes in always-loaded context based on availability risk: always-needed knowledge → CLAUDE.md (100%), explicit workflows → skills (79% with good descriptions + agents close the gap). **Status (Mar 2026):** All 39 deployed skills have explicit "Use when..." trigger descriptions in their SKILL.md frontmatter. Context budget raised to ~26KB to accommodate trigger text, context-budget rule, additional skills, and workflow practice rules.
+**Pattern C: Auto-delegation fills skill invocation gaps.** Vercel's eval found skills aren't invoked 56% of the time even when available. Explicit "Use when..." descriptions raise invocation from 53% to 79%. Agents fill the remaining gap (79% to ~95%) via auto-delegation — the model routes to a relevant agent when the user doesn't invoke the corresponding skill. **Key architectural implication:** static markdown in context (CLAUDE.md/AGENTS.md) achieves **100%** availability — passive context always beats skill-based retrieval. The knowledge architecture should prioritize what goes in always-loaded context based on availability risk: always-needed knowledge → CLAUDE.md (100%), explicit workflows → skills (79% with good descriptions + agents close the gap). **Status (Mar 2026):** All 39 deployed skills have explicit "Use when..." trigger descriptions in their SKILL.md frontmatter. All skills include `AskUserQuestion` in `allowed-tools` — interactive confirmations use selectable options instead of plain text prompts, with batching (up to 4 questions per call). Context budget raised to ~26KB to accommodate trigger text, context-budget rule, additional skills, and workflow practice rules.
 
 **Pattern D: Multi-agent workflows.** For subagents: agents cannot spawn other agents (subagent limitation). Orchestration stays in the main context via skills that use the Task tool to spawn multiple agents in parallel. The skill is the conductor; agents are the musicians. For Agent Teams (experimental, Feb 2026): peer-to-peer coordination with shared task lists and DAG dependencies — but at 2x token cost (~800k vs ~440k for 3-worker team), no file locking, and disabled by default. **Use subagents for production orchestration; reserve Agent Teams for genuinely parallel multi-file work where peer coordination justifies the experimental status and cost.**
 
@@ -472,7 +472,7 @@ You accumulate knowledge, patterns, and judgment over time.
 name: memory
 description: Query the cross-project ReasoningBank for patterns relevant to the
   current task. Use before starting complex work to leverage past experience.
-allowed-tools: [Bash, Read]
+allowed-tools: [Bash, Read, AskUserQuestion]
 ---
 
 Before solving this problem, search your accumulated knowledge:
@@ -495,7 +495,7 @@ If no patterns found, say so honestly. Start fresh.
 name: memory
 description: Find solutions from OTHER projects that might apply to the current
   problem. Useful when stuck or when starting something a different project already solved.
-allowed-tools: [Bash, Read]
+allowed-tools: [Bash, Read, AskUserQuestion]
 ---
 
 Search for cross-project patterns:
@@ -516,7 +516,7 @@ Search for cross-project patterns:
 ---
 name: retrospective
 description: Store a learning or pattern in the knowledge system.
-allowed-tools: [Bash, Read, Write, Glob, Grep]
+allowed-tools: [Bash, Read, Write, Glob, Grep, AskUserQuestion]
 ---
 
 1. Structure the learning as a pattern:
@@ -549,7 +549,7 @@ The `correction_weight` field (Wave 3) creates a fast track: patterns that resol
 name: project-onboard
 description: Bootstrap a new project with relevant knowledge from all other projects.
   Queries ReasoningBank for patterns matching the new project's tech stack and domain.
-allowed-tools: [Bash, Read, Write]
+allowed-tools: [Bash, Read, Write, AskUserQuestion]
 ---
 
 A new project is being set up. Help it benefit from everything you've learned:
@@ -575,7 +575,7 @@ A new project is being set up. Help it benefit from everything you've learned:
 name: project-retire
 description: When a project is done or archived, distill ALL its learnings into
   universal patterns. Nothing is lost when a project ends.
-allowed-tools: [Bash, Read, Write]
+allowed-tools: [Bash, Read, Write, AskUserQuestion]
 ---
 
 This project is being archived. Extract everything valuable:
@@ -610,7 +610,7 @@ The core six skills + `/research` handle the *development system*. A parallel la
 
 ### Beyond the Six: Task Management — "Plan and track work"
 
-The `/tasks` skill provides structured project planning: hierarchical task tracking (phase > milestone > task), multi-stream support (roadmap, bugs, tech-debt, docs, experiments), branch integration, and portfolio-wide visibility. Data lives in `{project}/.claude/tasks.json` — git-tracked, zero dependencies. A PostToolUse hook handles schema validation and automatic parent rollup. See [ADR-002](../decisions/ADR-002-tasks-as-data-layer.md) for the data layer decision and [ADR-003](../decisions/ADR-003-agent-driven-task-execution.md) for agent-driven execution — subagent spawning per task with DAG-aware wave parallelism and compose-then-write for code tasks.
+The `/tasks` skill provides structured project planning: hierarchical task tracking (phase > milestone > task), multi-stream support (roadmap, bugs, tech-debt, docs, experiments, research), branch integration, and portfolio-wide visibility. Data lives in `{project}/.claude/tasks.json` — git-tracked, zero dependencies. A PostToolUse hook handles schema validation and automatic parent rollup. See [ADR-002](../decisions/ADR-002-tasks-as-data-layer.md) for the data layer decision and [ADR-003](../decisions/ADR-003-agent-driven-task-execution.md) for agent-driven execution — subagent spawning per task with DAG-aware wave parallelism and compose-then-write for code tasks.
 
 ### Beyond the Six: Spec Maintenance Loop — "Keep specs and implementation in sync"
 
