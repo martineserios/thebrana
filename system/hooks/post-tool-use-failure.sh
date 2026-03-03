@@ -30,13 +30,23 @@ if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
             ;;
     esac
 
+    # --- Test/lint command detection (Bash only) ---
+    OUTCOME="failure"
+    if [ "${TOOL_NAME:-}" = "Bash" ] && [ -n "$DETAIL" ]; then
+        if echo "$DETAIL" | grep -qE '(^|\s|/)(npm\s+test|npx\s+(jest|vitest|mocha)|bun\s+test|pytest|python\s+-m\s+pytest|cargo\s+test|go\s+test|make\s+test|\.\/validate\.sh)(\s|$|;|\|)' 2>/dev/null; then
+            OUTCOME="test-fail"
+        elif echo "$DETAIL" | grep -qE '(^|\s|/)(eslint|flake8|ruff(\s+check)?|pylint|cargo\s+clippy|golangci-lint|shellcheck|biome\s+check|npm\s+run\s+lint|npx\s+eslint)(\s|$|;|\|)' 2>/dev/null; then
+            OUTCOME="lint-fail"
+        fi
+    fi
+
     SESSION_FILE="/tmp/brana-session-${SESSION_ID}.jsonl"
     CASCADE=false
 
     # --- Cascade detection ---
     # If the last 2 events were also failures on the same target, this is a cascade (3+ consecutive).
     if [ -f "$SESSION_FILE" ] && [ -n "$DETAIL" ]; then
-        RECENT_FAILS=$(tail -2 "$SESSION_FILE" 2>/dev/null | jq -r 'select(.outcome == "failure") | .detail // empty' 2>/dev/null) || RECENT_FAILS=""
+        RECENT_FAILS=$(tail -2 "$SESSION_FILE" 2>/dev/null | jq -r 'select(.outcome == "failure" or .outcome == "test-fail" or .outcome == "lint-fail") | .detail // empty' 2>/dev/null) || RECENT_FAILS=""
         MATCH_COUNT=$(echo "$RECENT_FAILS" | grep -cxF "$DETAIL" 2>/dev/null) || MATCH_COUNT=0
         if [ "$MATCH_COUNT" -ge 2 ]; then
             CASCADE=true
@@ -53,7 +63,13 @@ if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
             ERROR_CAT="write-fail"
             ;;
         Bash)
-            ERROR_CAT="command-fail"
+            if [ "$OUTCOME" = "test-fail" ]; then
+                ERROR_CAT="test-fail"
+            elif [ "$OUTCOME" = "lint-fail" ]; then
+                ERROR_CAT="lint-fail"
+            else
+                ERROR_CAT="command-fail"
+            fi
             ;;
         WebFetch|WebSearch)
             ERROR_CAT="network-fail"
@@ -66,7 +82,7 @@ if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
     jq -n -c \
         --argjson ts "${TS:-0}" \
         --arg tool "${TOOL_NAME:-unknown}" \
-        --arg outcome "failure" \
+        --arg outcome "$OUTCOME" \
         --arg detail "${DETAIL:-unknown}" \
         --arg error_cat "$ERROR_CAT" \
         --argjson cascade "$CASCADE" \

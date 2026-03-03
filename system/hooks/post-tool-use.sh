@@ -31,6 +31,15 @@ if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
             ;;
     esac
 
+    # --- Test/lint command detection (Bash only) ---
+    if [ "${TOOL_NAME:-}" = "Bash" ] && [ -n "$DETAIL" ]; then
+        if echo "$DETAIL" | grep -qE '(^|\s|/)(npm\s+test|npx\s+(jest|vitest|mocha)|bun\s+test|pytest|python\s+-m\s+pytest|cargo\s+test|go\s+test|make\s+test|\.\/validate\.sh)(\s|$|;|\|)' 2>/dev/null; then
+            OUTCOME="test-pass"
+        elif echo "$DETAIL" | grep -qE '(^|\s|/)(eslint|flake8|ruff(\s+check)?|pylint|cargo\s+clippy|golangci-lint|shellcheck|biome\s+check|npm\s+run\s+lint|npx\s+eslint)(\s|$|;|\|)' 2>/dev/null; then
+            OUTCOME="lint-pass"
+        fi
+    fi
+
     SESSION_FILE="/tmp/brana-session-${SESSION_ID}.jsonl"
 
     # --- Correction detection ---
