@@ -54,9 +54,51 @@ minimal:   {icon} {id}  {subject}  {detail}
            blocked ref: ← {id}
 ```
 
+### Wide mode (`--wide`)
+
+Any view command (`status`, `portfolio`, `roadmap`, `next`, `tags --filter`) accepts `--wide`.
+Wide mode renders tasks as **tabular rows** with all metadata visible on one line — like `kubectl get pods -o wide`.
+Wide mode composes with any theme (icons come from the active theme).
+
+**Wide-mode template:**
+
+```
+Columns:  {icon} {id}  {subject}  {status}  {tags}  {pri}  {eff}  {stream}  {blocked_by}  {started}  {completed}
+
+Header row (always shown):
+  ID       Subject                         Status    Tags              Pri  Eff  Stream   Blocked     Started     Done
+
+Task rows (classic icons):
+  ✓ t-007  Design auth flow                done      auth              P1   S    roadmap  —           2026-02-10  2026-02-12
+  → t-008  Implement JWT middleware         pending   auth, quick-win   P1   S    roadmap  —           —           —
+  · t-009  Write auth tests                blocked   auth              P1   M    roadmap  t-008       —           —
+
+Task rows (emoji icons):
+  ✅ t-007  Design auth flow                done      auth              P1   S    roadmap  —           2026-02-10  2026-02-12
+  🔲 t-008  Implement JWT middleware         pending   auth, quick-win   P1   S    roadmap  —           —           —
+  🔒 t-009  Write auth tests                blocked   auth              ⛓ t-008
+
+Task rows (minimal icons):
+  ● t-007  Design auth flow                done      auth              P1   S    roadmap  —           2026-02-10  2026-02-12
+  ○ t-008  Implement JWT middleware         pending   auth, quick-win   P1   S    roadmap  —           —           —
+  ⊘ t-009  Write auth tests                blocked   auth              P1   M    roadmap  ← t-008     —           —
+```
+
+**Rules:**
+- `subject` gets remaining width after fixed columns; truncate with `…` if too long
+- `tags` shows first 3 comma-separated, then `+N` if more
+- Null fields render as `—` (em-dash), never blank
+- Phases/milestones render as **section headers** (bold subject + progress bar, no per-column detail):
+  ```
+  ph-002  Phase 2: API Foundation                                        ████░░░░ 3/8
+    ✓ t-007  Design auth flow              done      auth              P1   S    roadmap  —           2026-02-10  2026-02-12
+    → t-008  Implement JWT middleware       pending   auth, quick-win   P1   S    roadmap  —           —           —
+  ```
+- Without `--wide`, all views use the compact tree layout (unchanged default behavior)
+
 ### Tree connectors (all themes)
 
-Hierarchy views (status, roadmap) use box-drawing characters:
+Hierarchy views (status, roadmap) use box-drawing characters when not in `--wide` mode:
 
 ```
 ├── child (has siblings after)
@@ -69,10 +111,10 @@ Hierarchy views (status, roadmap) use box-drawing characters:
 ## Commands
 
 - `/tasks plan [project] "[phase-title]"` — plan a phase interactively
-- `/tasks status [project]` — progress overview (omit project = portfolio)
-- `/tasks portfolio [--unified]` — cross-project actionable tasks
-- `/tasks roadmap [project]` — full tree view with all levels
-- `/tasks next [project] [--stream X]` — next unblocked task by priority
+- `/tasks status [project] [--wide]` — progress overview (omit project = portfolio)
+- `/tasks portfolio [--unified] [--wide]` — cross-project actionable tasks
+- `/tasks roadmap [project] [--wide]` — full tree view with all levels
+- `/tasks next [project] [--stream X] [--wide]` — next unblocked task by priority
 - `/tasks start <id>` — begin work on a task
 - `/tasks done [id]` — complete current task
 - `/tasks add "[description]"` — quick-add a task
@@ -126,7 +168,7 @@ High-level progress view with aggregation.
 3. **Read tasks.json** (for portfolio: read from each project path in tasks-portfolio.json)
 4. **Compute per-phase:** total tasks, completed, in_progress, blocked
 5. **Compute per-stream:** roadmap progress, bug count, tech-debt count, research triage counts (new/reviewed/applied)
-6. **Render using task-line template** — use tree connectors for hierarchy:
+6. **If `--wide`**, render using **wide-mode template** (see Display Themes > Wide mode). Otherwise render using task-line template with tree connectors:
 
 ```
 {project} — {active-phase-subject}
@@ -186,6 +228,7 @@ Cross-project actionable task view. Shows individual tasks you can work on acros
 ```
 /tasks portfolio              — by-project view (default)
 /tasks portfolio --unified    — priority-sorted flat list
+/tasks portfolio --wide       — tabular with all columns
 ```
 
 ### Steps
@@ -204,7 +247,7 @@ Cross-project actionable task view. Shows individual tasks you can work on acros
    - `completed`: status is `completed`
 6. **Sort within each project**: in_progress → pending → blocked → last 3 completed (by `completed` date descending)
 7. **Compute summary**: total actionable tasks, project count, pending count, in_progress count
-8. **Render using task-line template** — by-project or unified view
+8. **If `--wide`**, render using **wide-mode template** (see Display Themes > Wide mode) — flat table grouped by project. Otherwise render using task-line template — by-project or unified view.
 
 ### By-project view (default)
 
@@ -305,7 +348,7 @@ Full tree view — every level expanded.
 1. **Resolve active theme** (see Display Themes)
 2. Read tasks.json
 3. Build tree from parent references
-4. **Render using task-line template** — use tree connectors for hierarchy:
+4. **If `--wide`**, render using **wide-mode template** (see Display Themes > Wide mode) with phase/milestone section headers. Otherwise render using task-line template with tree connectors:
 
 ```
 {project} Roadmap
@@ -348,7 +391,7 @@ Find the highest-priority unblocked task.
 3. Filter: status=pending, blocked_by all completed, type=task|subtask
 4. If `--tag X` provided, additionally filter to tasks containing tag X. If `--stream X` provided, additionally filter to tasks in that stream.
 5. Sort by: priority (P0 first) -> order -> created date
-6. **Render using task-line template** — show top 3 candidates with tags inline:
+6. **If `--wide`**, render top 3 using **wide-mode template** (all columns). Otherwise render using task-line template — show top 3 candidates with tags inline:
 
 ```
 Next up:
@@ -545,7 +588,7 @@ Tags in {project}:
 1. Read tasks.json
 2. `--filter`: keep tasks where tags array contains ALL specified tags (AND)
 3. `--any`: keep tasks where tags array contains ANY specified tag (OR)
-4. **Render using task-line template** — flat list with status and tags:
+4. **If `--wide`**, render using **wide-mode template** (all columns). Otherwise render using task-line template — flat list with status and tags:
 
 ```
 Tasks tagged [scheduler]:
