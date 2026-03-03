@@ -71,7 +71,7 @@ Hierarchy views (status, roadmap) use box-drawing characters:
 - `/tasks status [project]` — progress overview (omit project = portfolio)
 - `/tasks portfolio [--unified]` — cross-project actionable tasks
 - `/tasks roadmap [project]` — full tree view with all levels
-- `/tasks next [project]` — next unblocked task by priority
+- `/tasks next [project] [--stream X]` — next unblocked task by priority
 - `/tasks start <id>` — begin work on a task
 - `/tasks done [id]` — complete current task
 - `/tasks add "[description]"` — quick-add a task
@@ -124,7 +124,7 @@ High-level progress view with aggregation.
 2. **Detect project** or show portfolio if omitted
 3. **Read tasks.json** (for portfolio: read from each project path in tasks-portfolio.json)
 4. **Compute per-phase:** total tasks, completed, in_progress, blocked
-5. **Compute per-stream:** roadmap progress, bug count, tech-debt count
+5. **Compute per-stream:** roadmap progress, bug count, tech-debt count, research triage counts (new/reviewed/applied)
 6. **Render using task-line template** — use tree connectors for hierarchy:
 
 ```
@@ -141,6 +141,10 @@ High-level progress view with aggregation.
   │
   └── Tech Debt
       └── {item}                       pending
+
+  Research                              5 new · 2 reviewed · 1 applied
+  ├── → t-105 GraphRAG evaluation           pending [knowledge-graphs]
+  └── ...(+62 more)
 
   Tags: scheduler(4) research(3) quick-win(2)
 ```
@@ -341,7 +345,7 @@ Find the highest-priority unblocked task.
 1. **Resolve active theme** (see Display Themes)
 2. Read tasks.json
 3. Filter: status=pending, blocked_by all completed, type=task|subtask
-4. If `--tag X` provided, additionally filter to tasks containing tag X
+4. If `--tag X` provided, additionally filter to tasks containing tag X. If `--stream X` provided, additionally filter to tasks in that stream.
 5. Sort by: priority (P0 first) -> order -> created date
 6. **Render using task-line template** — show top 3 candidates with tags inline:
 
@@ -356,6 +360,7 @@ Start one? (number or "1" to begin)
 
 Icons come from active theme (example above uses classic `→`).
 Optional `--tag` narrows candidates: `/tasks next --tag scheduler`
+Optional `--stream` narrows by stream: `/tasks next --stream research`
 
 ---
 
@@ -426,7 +431,7 @@ Quick-add a single task with intelligent suggestions.
 
 1. Parse description from argument
 2. Read tasks.json (all pending tasks, active milestones, tag vocabulary)
-3. Ask: "Which stream?" (default: roadmap) and "Which milestone?" (show active ones)
+3. **URL auto-detection:** if the description contains `https://`, suggest `stream: research`, auto-extract the URL to the `context` field (format: `URL: {url}`), and skip the milestone prompt. Otherwise ask: "Which stream?" (default: roadmap) and "Which milestone?" (show active ones)
 4. If `--tags "tag1,tag2"` provided, use those. Otherwise:
    - **Suggest tags** extracted from description keywords matched against existing tag vocabulary
    - Present: "Suggested tags: [payments, integration] — accept? (y/edit/skip)"
@@ -446,6 +451,9 @@ Quick-add a single task with intelligent suggestions.
      ```
    - If no candidates found, skip silently
    - **Never auto-commit dependencies** — always ask
+   - **Research cross-reference** (runs alongside dependency scan):
+     - Adding a **non-research** task → scan research stream for tag overlap → "Related research found: {id} '{subject}' — link or promote?"
+     - Adding a **research** task → scan non-research tasks for tag overlap → "May relate to: {id} '{subject}'"
 8. **Build-trap check** — if the description contains solution verbs ("build", "implement", "create", "add", "setup") without outcome/problem context:
    - Prompt: "This looks like a solution. What problem does it solve? (enter text, or skip)"
    - If the user provides text, store it in the `context` field
