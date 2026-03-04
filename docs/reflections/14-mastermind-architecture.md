@@ -39,13 +39,17 @@ The hooks are the glue connecting all three.
 ```
 ~/.claude/                                    THE MASTERMIND
 ├── CLAUDE.md                                 ← Identity + universal principles
-├── skills/                                      ← 39 deployed skills (each has SKILL.md with frontmatter)
+├── skills/                                      ← 39 deployed skills (SKILL.md + optional bundled scripts)
 │   ├── memory/SKILL.md                       ← Knowledge ops: recall, pollinate, review, audit
 │   ├── project-onboard/SKILL.md              ← Bootstrap a new project with relevant knowledge
 │   ├── retrospective/SKILL.md                ← End-of-session learning extraction
 │   ├── decide/SKILL.md                       ← Create ADRs in docs/decisions/
 │   ├── tasks/SKILL.md                        ← Plan, track, and execute tasks across phases and streams
-│   └── ...                                   ← +33 more (build-phase, research, reconcile, respondio, etc.)
+│   ├── knowledge/                            ← First bundled skill (ADR-011)
+│   │   ├── SKILL.md                          ← Browse, annotate, review, reindex knowledge
+│   │   ├── generate-index.sh                 ← Generate INDEX.md for brana-knowledge
+│   │   └── index-knowledge.sh                ← Index dimensions into claude-flow memory
+│   └── ...                                   ← +32 more (build-phase, research, reconcile, respondio, etc.)
 ├── skill-catalog.md                             ← Vetted external skills (version-pinned, not installed)
 ├── agents/
 │   ├── scout.md                              ← Haiku-powered fast research agent
@@ -155,7 +159,7 @@ You don't configure anything when switching projects. You just `cd` and the laye
 
 Skills are user-invocable workflows (`/command`). Agents auto-delegate when the model decides. They overlap intentionally — agents are safety nets, not replacements. If a user invokes a skill, the skill runs. If a user doesn't, the model may auto-delegate to an agent that covers the same domain.
 
-### Four Integration Patterns
+### Five Integration Patterns
 
 **Pattern A: Skill spawns agent as worker.** Orchestrator skills delegate focused work to agents via the Task tool. The skill controls the workflow; the agent does the heavy lifting in a forked context. Example: `/build-phase` spawns memory-curator for recall and debrief-analyst for end-of-cycle extraction.
 
@@ -164,6 +168,8 @@ Skills are user-invocable workflows (`/command`). Agents auto-delegate when the 
 **Pattern C: Auto-delegation fills skill invocation gaps.** Vercel's eval found skills aren't invoked 56% of the time even when available. Explicit "Use when..." descriptions raise invocation from 53% to 79%. Agents fill the remaining gap (79% to ~95%) via auto-delegation — the model routes to a relevant agent when the user doesn't invoke the corresponding skill. **Key architectural implication:** static markdown in context (CLAUDE.md/AGENTS.md) achieves **100%** availability — passive context always beats skill-based retrieval. The knowledge architecture should prioritize what goes in always-loaded context based on availability risk: always-needed knowledge → CLAUDE.md (100%), explicit workflows → skills (79% with good descriptions + agents close the gap). **Status (Mar 2026):** All 39 deployed skills have explicit "Use when..." trigger descriptions in their SKILL.md frontmatter. All skills include `AskUserQuestion` in `allowed-tools` — interactive confirmations use selectable options instead of plain text prompts, with batching (up to 4 questions per call). Context budget raised to ~26KB to accommodate trigger text, context-budget rule, additional skills, and workflow practice rules.
 
 **Pattern D: Multi-agent workflows.** For subagents: agents cannot spawn other agents (subagent limitation). Orchestration stays in the main context via skills that use the Task tool to spawn multiple agents in parallel. The skill is the conductor; agents are the musicians. For Agent Teams (experimental, Feb 2026): peer-to-peer coordination with shared task lists and DAG dependencies — but at 2x token cost (~800k vs ~440k for 3-worker team), no file locking, and disabled by default. **Use subagents for production orchestration; reserve Agent Teams for genuinely parallel multi-file work where peer coordination justifies the experimental status and cost.**
+
+**Pattern E: Skill bundles executable scripts.** Pure-markdown skills hit a ceiling for automation-heavy workflows ([ADR-011](../decisions/ADR-011-skills-bundling.md)). Skills can bundle `.sh`/`.py` scripts alongside SKILL.md in subdirectories. `deploy.sh` copies the entire skill folder and `chmod +x` all bundled scripts. First example: `/knowledge` bundles `generate-index.sh` (INDEX.md generation) and `index-knowledge.sh` (dimension → claude-flow memory indexing). Use when a skill's workflow requires repeatable shell logic that would otherwise live in `scripts/` with no clear ownership. Keep scripts focused — one concern per file, invocable standalone or from the SKILL.md workflow.
 
 ### The Agent Roster
 
