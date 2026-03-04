@@ -4307,7 +4307,7 @@
         "linkedin",
         "personal-brand"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-016",
@@ -4319,7 +4319,7 @@
       "branch": null,
       "github_issue": null,
       "created": "2026-03-03",
-      "started": null,
+      "started": "2026-03-04",
       "completed": null,
       "notes": null,
       "context": null
@@ -4333,7 +4333,7 @@
         "linkedin",
         "consulting"
       ],
-      "status": "in_progress",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-016",
@@ -4348,8 +4348,8 @@
       "github_issue": null,
       "created": "2026-03-03",
       "started": "2026-03-03",
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-03",
+      "notes": "Decision: bridge positioning with Case Studies as spine (35%). Full weights: Case Studies 35%, How-Tos 25%, Contrarian 20%, BIP 20%. Week-4 gate applies. Rationale: primary audience is non-technical founders (proven buyers), secondary is technical leaders (validators). Customer persona from actual client data: founders with AI FOMO who need a business-to-AI translator. Content rules: experience-based only, systems lens as natural language (not taught), signature phrase 'Todo es un sistema.' Components shelf + patterns vocabulary grow organically. Principles emerge from Phase A. Brief updated with full positioning, content philosophy, components shelf, and 9 recurring content angles.",
       "context": "Product insight: Moore's adoption curve says target early adopters first (BIP 40% + Contrarian 20%), Case Studies increase later for pragmatist conversion."
     },
     {
