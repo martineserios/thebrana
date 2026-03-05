@@ -111,7 +111,7 @@ OUTPUT=$(echo '{"session_id":"'"$TEST_SESSION"'","tool_name":"Edit","tool_input"
     | bash "$HOOKS_DIR/pre-tool-use.sh" 2>/dev/null)
 
 assert_contains "hook continues (not deny)" "$OUTPUT" '"continue": true'
-assert_contains "injects cascade warning" "$OUTPUT" 'cascade'
+assert_contains "injects cascade warning" "$OUTPUT" 'Cascade detected'
 
 # --- Test 4: Different file — no cascade contamination ---
 echo ""
