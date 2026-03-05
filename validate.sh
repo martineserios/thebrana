@@ -17,6 +17,8 @@ pass() { echo "  PASS: $1"; }
 echo "Checking skill frontmatter..."
 for skill_dir in "$SYSTEM_DIR"/skills/*/; do
     skill_name=$(basename "$skill_dir")
+    # Skip acquired/ — it contains marketplace skills with their own subdirectories
+    [ "$skill_name" = "acquired" ] && continue
     skill_file="$skill_dir/SKILL.md"
 
     if [ ! -f "$skill_file" ]; then
@@ -115,6 +117,7 @@ done
 
 # Skill descriptions (just the description line from frontmatter)
 for skill_dir in "$SYSTEM_DIR"/skills/*/; do
+    [ "$(basename "$skill_dir")" = "acquired" ] && continue
     skill_file="$skill_dir/SKILL.md"
     if [ -f "$skill_file" ]; then
         DESC_SIZE=$(grep '^description:' "$skill_file" | wc -c)
@@ -164,6 +167,7 @@ done
 
 # Skill descriptions (1 trigger directive each)
 for skill_dir in "$SYSTEM_DIR"/skills/*/; do
+    [ "$(basename "$skill_dir")" = "acquired" ] && continue
     [ -f "$skill_dir/SKILL.md" ] && DIRECTIVES=$((DIRECTIVES + 1))
 done
 
@@ -196,6 +200,7 @@ echo ""
 # Check 7: Duplicate skill names
 echo "Checking for duplicate skill names..."
 SKILL_NAMES=$(for f in "$SYSTEM_DIR"/skills/*/SKILL.md; do
+    echo "$f" | grep -q '/acquired/' && continue
     sed -n '/^---$/,/^---$/p' "$f" | grep '^name:' | sed 's/name: *//'
 done | sort)
 DUPES=$(echo "$SKILL_NAMES" | uniq -d)
@@ -327,9 +332,10 @@ echo ""
 
 # Check 12: Skill depends_on references
 echo "Checking skill dependencies..."
-SKILL_DIRS=$(for d in "$SYSTEM_DIR"/skills/*/; do basename "$d"; done)
+SKILL_DIRS=$(for d in "$SYSTEM_DIR"/skills/*/; do basename "$d"; done | grep -v '^acquired$')
 for skill_dir in "$SYSTEM_DIR"/skills/*/; do
     skill_name=$(basename "$skill_dir")
+    [ "$skill_name" = "acquired" ] && continue
     skill_file="$skill_dir/SKILL.md"
     [ -f "$skill_file" ] || continue
 
