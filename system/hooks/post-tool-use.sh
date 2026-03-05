@@ -26,6 +26,10 @@ if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
         Edit|Write)
             DETAIL=$(echo "$TOOL_INPUT" | jq -r '.file_path // empty' 2>/dev/null) || DETAIL=""
             ;;
+        Skill)
+            DETAIL=$(echo "$TOOL_INPUT" | jq -r '.skill_name // empty' 2>/dev/null) || DETAIL=""
+            OUTCOME="skill-invoke"
+            ;;
         *)
             DETAIL="${TOOL_NAME:-unknown}"
             ;;
