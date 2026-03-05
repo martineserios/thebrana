@@ -1,6 +1,6 @@
 # Skills Catalog
 
-> 39 slash commands organized by purpose. Each skill is a markdown file (`system/skills/{name}/SKILL.md`) with YAML frontmatter defining its name, description, and allowed tools.
+> 40 slash commands organized by purpose. Each skill is a markdown file (`system/skills/{name}/SKILL.md`) with YAML frontmatter defining its name, description, and allowed tools.
 
 ## Development
 
@@ -139,9 +139,12 @@ Marketing content planning — themes, calendar, distribution checklist, perform
 ### `/scheduler`
 Scheduled jobs management.
 
+### `/acquire-skills`
+Find and install marketplace skills for project tech gaps. Scans project files for tech signals, diffs against local skills, searches Vercel skills CLI or web for matches. User approves before install.
+
 ## Commands
 
-In addition to the 39 skills above, brana includes 7 commands in `system/commands/`. Commands are like skills but typically orchestrate multi-step workflows:
+In addition to the 40 skills above, brana includes 7 commands in `system/commands/`. Commands are like skills but typically orchestrate multi-step workflows:
 
 | Command | Description |
 |---------|-------------|
@@ -152,6 +155,12 @@ In addition to the 39 skills above, brana includes 7 commands in `system/command
 | `/refresh-knowledge` | Research web for updates to dimension docs |
 | `/repo-cleanup` | Commit accumulated spec changes — survey, batch, branch, merge |
 | `init-project` | Initialize a new project with brana structure |
+
+## Acquired
+
+Skills installed from external marketplaces via `/acquire-skills`. Each lives in `system/skills/acquired/<name>/SKILL.md` and deploys alongside native skills.
+
+_No acquired skills yet. Run `/acquire-skills` in a project to populate this section._
 
 ## Skill Anatomy
 
