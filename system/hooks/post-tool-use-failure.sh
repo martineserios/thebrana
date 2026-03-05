@@ -89,13 +89,18 @@ if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
         '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail, error_cat: $error_cat, cascade: $cascade}' >> "$SESSION_FILE" 2>/dev/null || true
 
     # --- Cascade flag for PreToolUse throttle ---
-    # When cascade detected, write a flag file so pre-tool-use.sh can nudge "stop and reassess".
+    # When cascade detected on file-targeted tools, write a flag file so pre-tool-use.sh can nudge.
     # Flag is per-session + per-file to avoid cross-contamination.
+    # Only for Edit/Write — Bash commands aren't file-targeted, so flags would be orphaned.
     if [ "$CASCADE" = true ] && [ -n "$DETAIL" ]; then
-        CASCADE_DIR="/tmp/brana-cascade"
-        mkdir -p "$CASCADE_DIR" 2>/dev/null || true
-        SAFE_DETAIL=$(echo "$DETAIL" | tr '/' '-' | sed 's/^-//')
-        echo "$DETAIL" > "$CASCADE_DIR/${SESSION_ID}-${SAFE_DETAIL}" 2>/dev/null || true
+        case "${TOOL_NAME:-}" in
+            Edit|Write)
+                CASCADE_DIR="/tmp/brana-cascade"
+                mkdir -p "$CASCADE_DIR" 2>/dev/null || true
+                PATH_HASH=$(echo -n "$DETAIL" | md5sum 2>/dev/null | cut -c1-12) || PATH_HASH=$(echo "$DETAIL" | tr '/' '-' | sed 's/^-//')
+                echo "$DETAIL" > "$CASCADE_DIR/${SESSION_ID}-${PATH_HASH}" 2>/dev/null || true
+                ;;
+        esac
     fi
 fi
 
