@@ -4,9 +4,9 @@
 
 Delegate WITHOUT being asked when the situation matches an agent (see CLAUDE.md agents table).
 
-## Suggest Skills
+## Use Skills Directly
 
-Nudge once per trigger. Don't nag. Include what triggered the nudge.
+When a trigger matches, **invoke the skill** — don't just suggest it. Only nudge when the match is ambiguous or the user is mid-flow. If the user declines, don't repeat.
 
 | Trigger | Suggest |
 |---------|---------|
