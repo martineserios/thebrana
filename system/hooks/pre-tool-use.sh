@@ -18,9 +18,15 @@ cd /tmp 2>/dev/null || true
 
 INPUT=$(cat)
 
-# Helper: pass through (allow the tool call)
+# Helper: pass through (allow the tool call, optionally with cascade context)
 pass_through() {
-    echo '{"continue": true}'
+    if [ -n "${CASCADE_CONTEXT:-}" ]; then
+        local escaped
+        escaped=$(echo "$CASCADE_CONTEXT" | jq -Rs '.' 2>/dev/null) || escaped='""'
+        echo "{\"continue\": true, \"additionalContext\": $escaped}"
+    else
+        echo '{"continue": true}'
+    fi
     exit 0
 }
 
@@ -49,9 +55,21 @@ case "$TOOL_NAME" in
     *) pass_through ;;
 esac
 
-# Step 3: Extract file path
+# Step 3: Extract file path and session ID
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || pass_through
 [ -z "$FILE_PATH" ] && pass_through
+SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null) || true
+
+# Step 3b: Cascade throttle check
+# If post-tool-use-failure.sh flagged this file as cascading, inject a nudge (not a deny).
+CASCADE_CONTEXT=""
+if [ -n "$SESSION_ID" ] && [ -n "$FILE_PATH" ]; then
+    SAFE_DETAIL=$(echo "$FILE_PATH" | tr '/' '-' | sed 's/^-//')
+    CASCADE_FLAG="/tmp/brana-cascade/${SESSION_ID}-${SAFE_DETAIL}"
+    if [ -f "$CASCADE_FLAG" ]; then
+        CASCADE_CONTEXT="[Cascade detected] This file has failed 3+ times consecutively. Stop and reassess your approach — the current strategy is not working. Consider: different edit strategy, reading the file first, or asking the user for guidance."
+    fi
+fi
 
 # Step 4: Find git root
 GIT_ROOT=$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null) || pass_through

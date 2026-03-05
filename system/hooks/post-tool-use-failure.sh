@@ -87,6 +87,16 @@ if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
         --arg error_cat "$ERROR_CAT" \
         --argjson cascade "$CASCADE" \
         '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail, error_cat: $error_cat, cascade: $cascade}' >> "$SESSION_FILE" 2>/dev/null || true
+
+    # --- Cascade flag for PreToolUse throttle ---
+    # When cascade detected, write a flag file so pre-tool-use.sh can nudge "stop and reassess".
+    # Flag is per-session + per-file to avoid cross-contamination.
+    if [ "$CASCADE" = true ] && [ -n "$DETAIL" ]; then
+        CASCADE_DIR="/tmp/brana-cascade"
+        mkdir -p "$CASCADE_DIR" 2>/dev/null || true
+        SAFE_DETAIL=$(echo "$DETAIL" | tr '/' '-' | sed 's/^-//')
+        echo "$DETAIL" > "$CASCADE_DIR/${SESSION_ID}-${SAFE_DETAIL}" 2>/dev/null || true
+    fi
 fi
 
 echo '{"continue": true}'
