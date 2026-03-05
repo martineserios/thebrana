@@ -5161,7 +5161,7 @@
         "skills",
         "context-engineering"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "research",
       "type": "task",
       "parent": null,
@@ -5173,10 +5173,10 @@
       "branch": null,
       "github_issue": null,
       "created": "2026-03-05",
-      "started": null,
-      "completed": null,
-      "notes": null,
-      "context": "URL: https://www.linkedin.com/posts/alvarogarciagutierrez99_claude-code-skills-had-a-4-utilization-rate-share-7434532019860254720-G4xP"
+      "started": "2026-03-05",
+      "completed": "2026-03-05",
+      "notes": "Alvaro Garcia / rudel.ai: 4% skill utilization across 6 users, 500+ sessions. Root causes: invisible discovery (RAG), optional execution, improper loading (Read vs Skill). Fix: CLAUDE.md making skill use mandatory → 61% utilization, +10% task completion. Directly validates t-198 (tracking) and need to tighten delegation-routing.md from nudge-once to stronger enforcement.",
+      "context": "URL: https://www.linkedin.com/posts/alvarogarciagutierrez99_claude-code-skills-had-a-4-utilization-rate-share-7434532019860254720-G4xP\n\nResearch 2026-03-05: rudel.ai measured real-world skill adoption. Key insight: brana delegation-routing.md says \"nudge once, don't nag\" which is the exact pattern producing 4%. Their fix: make discovery+loading mandatory and atomic in CLAUDE.md. Also: doc 37 (ruvnet) already flagged this gap as transferable practice #2."
     },
     {
       "id": "t-185",
@@ -5470,7 +5470,7 @@
         "feedback-loop",
         "dx"
       ],
-      "status": "in_progress",
+      "status": "completed",
       "stream": "roadmap",
       "parent": null,
       "order": null,
@@ -5482,8 +5482,8 @@
       "github_issue": null,
       "created": "2026-03-05",
       "started": "2026-03-05",
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-05",
+      "notes": "Flag file: /tmp/brana-cascade/{session}-{safe-path}. PreToolUse injects additionalContext nudge, not deny. 8/8 tests passing.",
       "context": "Synergies: t-103 (Agent Accountability), t-111 (Spec-Driven Dev). From HTTP hooks analysis session 2026-03-05. Flag file: /tmp/brana-cascade-{session_id}-{file_hash}. Pre-tool-use checks for flag before allowing Write/Edit on cascading file."
     },
     {
@@ -5631,17 +5631,17 @@
       "stream": "roadmap",
       "parent": null,
       "order": null,
-      "priority": "P1",
+      "priority": "P3",
       "effort": "M",
       "execution": "code",
-      "blocked_by": null,
+      "blocked_by": [],
       "branch": null,
       "github_issue": null,
       "created": "2026-03-05",
       "started": null,
       "completed": null,
-      "notes": null,
-      "context": "Synergies: t-182 (ghost tokens), t-067 (statusline CTX%), t-061 (session history). Compaction is the biggest silent context loss. PreCompact is a new CC event."
+      "notes": "Blocked: PreCompact has no additionalContext injection and no PostCompact event exists yet (only feature request #14258). Without PostCompact, context preservation is just a backup tool, not a real fix. Demoted to P3 until CC adds PostCompact.",
+      "context": "Synergies: t-182 (ghost tokens), t-067 (statusline CTX%), t-061 (session history). Compaction is the biggest silent context loss. PreCompact is a new CC event.\n\nResearch 2026-03-05: PreCompact fires before compaction, receives transcript_path, but cannot inject additionalContext or block. Command hooks only. No PostCompact event yet. Reopens when CC adds PostCompact."
     },
     {
       "id": "t-203",
