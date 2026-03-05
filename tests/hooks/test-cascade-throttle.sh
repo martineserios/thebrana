@@ -64,6 +64,14 @@ assert_file_not_exists() {
     fi
 }
 
+# Helper: compute flag path (must match hook's hash logic)
+flag_path() {
+    local session="$1" filepath="$2"
+    local hash
+    hash=$(echo -n "$filepath" | md5sum 2>/dev/null | cut -c1-12)
+    echo "/tmp/brana-cascade/${session}-${hash}"
+}
+
 # --- Setup ---
 TEST_SESSION="test-cascade-$$"
 SESSION_FILE="/tmp/brana-session-${TEST_SESSION}.jsonl"
@@ -84,7 +92,7 @@ OUTPUT=$(echo '{"session_id":"'"$TEST_SESSION"'","tool_name":"Edit","tool_input"
     | bash "$HOOKS_DIR/post-tool-use-failure.sh" 2>/dev/null)
 
 assert_contains "hook returns valid JSON" "$OUTPUT" '"continue": true'
-assert_file_not_exists "no cascade flag created" "$CASCADE_DIR/${TEST_SESSION}-src-app.ts"
+assert_file_not_exists "no cascade flag created" "$(flag_path "$TEST_SESSION" "/src/app.ts")"
 
 # --- Test 2: Cascade detected — flag IS created ---
 echo ""
@@ -99,7 +107,7 @@ OUTPUT=$(echo '{"session_id":"'"$TEST_SESSION"'","tool_name":"Edit","tool_input"
     | bash "$HOOKS_DIR/post-tool-use-failure.sh" 2>/dev/null)
 
 assert_contains "hook returns valid JSON" "$OUTPUT" '"continue": true'
-assert_file_exists "cascade flag created" "$CASCADE_DIR/${TEST_SESSION}-src-app.ts"
+assert_file_exists "cascade flag created" "$(flag_path "$TEST_SESSION" "/src/app.ts")"
 
 # --- Test 3: PreToolUse reads cascade flag — injects context (not deny) ---
 echo ""

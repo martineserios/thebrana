@@ -64,6 +64,15 @@ if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
         fi
     fi
 
+    # --- Clear cascade flag on success ---
+    # If a previously-cascading file succeeds, remove the flag to stop warning fatigue.
+    if [ "${TOOL_NAME:-}" = "Edit" ] || [ "${TOOL_NAME:-}" = "Write" ]; then
+        if [ -n "$SESSION_ID" ] && [ -n "$DETAIL" ]; then
+            PATH_HASH=$(echo -n "$DETAIL" | md5sum 2>/dev/null | cut -c1-12) || PATH_HASH=$(echo "$DETAIL" | tr '/' '-' | sed 's/^-//')
+            rm -f "/tmp/brana-cascade/${SESSION_ID}-${PATH_HASH}" 2>/dev/null || true
+        fi
+    fi
+
     jq -n -c \
         --argjson ts "${TS:-0}" \
         --arg tool "${TOOL_NAME:-unknown}" \
