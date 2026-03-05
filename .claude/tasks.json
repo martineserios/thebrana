@@ -5470,7 +5470,7 @@
         "feedback-loop",
         "dx"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "stream": "roadmap",
       "parent": null,
       "order": null,
@@ -5478,10 +5478,10 @@
       "effort": "S",
       "execution": "code",
       "blocked_by": null,
-      "branch": null,
+      "branch": "feat/t-196-cascade-throttle",
       "github_issue": null,
       "created": "2026-03-05",
-      "started": null,
+      "started": "2026-03-05",
       "completed": null,
       "notes": null,
       "context": "Synergies: t-103 (Agent Accountability), t-111 (Spec-Driven Dev). From HTTP hooks analysis session 2026-03-05. Flag file: /tmp/brana-cascade-{session_id}-{file_hash}. Pre-tool-use checks for flag before allowing Write/Edit on cascading file."
