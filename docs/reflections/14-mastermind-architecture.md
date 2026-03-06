@@ -39,7 +39,7 @@ The hooks are the glue connecting all three.
 ```
 ~/.claude/                                    THE MASTERMIND
 ├── CLAUDE.md                                 ← Identity + universal principles
-├── skills/                                      ← 39 deployed skills (SKILL.md + optional bundled scripts)
+├── skills/                                      ← 40 deployed skills (SKILL.md + optional bundled scripts)
 │   ├── memory/SKILL.md                       ← Knowledge ops: recall, pollinate, review, audit
 │   ├── project-onboard/SKILL.md              ← Bootstrap a new project with relevant knowledge
 │   ├── retrospective/SKILL.md                ← End-of-session learning extraction
@@ -86,7 +86,7 @@ The hooks are the glue connecting all three.
 │   ├── sdd-tdd.md                            ← Always: spec-before-code, test-before-code
 │   ├── context-budget.md                     ← Always: 4-tier context thresholds (55/70/85%), expensive-op guards
 │   ├── doc-linking.md                        ← Always: use formal markdown links when referencing docs
-│   ├── delegation-routing.md                 ← Always: auto-delegate to agents, suggest skills by trigger
+│   ├── delegation-routing.md                 ← Always: auto-delegate to agents, invoke skills by trigger
 │   ├── memory-framework.md                   ← Always: CLAUDE.md vs MEMORY.md separation, reference-not-cache
 │   ├── task-convention.md                     ← Always: check tasks.json before branching, status flow
 │   ├── pm-awareness.md                       ← Always: check issues before starting work
@@ -165,7 +165,7 @@ Skills are user-invocable workflows (`/command`). Agents auto-delegate when the 
 
 **Pattern B: Agent preloads skill knowledge.** Agents can have skills preloaded via the `skills:` YAML field — full skill content injected at startup, not just available for invocation. Use sparingly: only for small domain knowledge skills where the agent always needs that context. Large skills bloat the agent's context window.
 
-**Pattern C: Auto-delegation fills skill invocation gaps.** Vercel's eval found skills aren't invoked 56% of the time even when available. Explicit "Use when..." descriptions raise invocation from 53% to 79%. Agents fill the remaining gap (79% to ~95%) via auto-delegation — the model routes to a relevant agent when the user doesn't invoke the corresponding skill. **Key architectural implication:** static markdown in context (CLAUDE.md/AGENTS.md) achieves **100%** availability — passive context always beats skill-based retrieval. The knowledge architecture should prioritize what goes in always-loaded context based on availability risk: always-needed knowledge → CLAUDE.md (100%), explicit workflows → skills (79% with good descriptions + agents close the gap). **Status (Mar 2026):** All 39 deployed skills have explicit "Use when..." trigger descriptions in their SKILL.md frontmatter. All skills include `AskUserQuestion` in `allowed-tools` — interactive confirmations use selectable options instead of plain text prompts, with batching (up to 4 questions per call). Context budget raised to ~26KB to accommodate trigger text, context-budget rule, additional skills, and workflow practice rules.
+**Pattern C: Auto-delegation fills skill invocation gaps.** Vercel's eval found skills aren't invoked 56% of the time even when available. Explicit "Use when..." descriptions raise invocation from 53% to 79%. Agents fill the remaining gap (79% to ~95%) via auto-delegation — the model routes to a relevant agent when the user doesn't invoke the corresponding skill. **Key architectural implication:** static markdown in context (CLAUDE.md/AGENTS.md) achieves **100%** availability — passive context always beats skill-based retrieval. The knowledge architecture should prioritize what goes in always-loaded context based on availability risk: always-needed knowledge → CLAUDE.md (100%), explicit workflows → skills (79% with good descriptions + agents close the gap). **Status (Mar 2026):** All 40 deployed skills have explicit "Use when..." trigger descriptions in their SKILL.md frontmatter. All skills include `AskUserQuestion` in `allowed-tools` — interactive confirmations use selectable options instead of plain text prompts, with batching (up to 4 questions per call). Context budget raised to ~26KB to accommodate trigger text, context-budget rule, additional skills, and workflow practice rules.
 
 **Pattern D: Multi-agent workflows.** For subagents: agents cannot spawn other agents (subagent limitation). Orchestration stays in the main context via skills that use the Task tool to spawn multiple agents in parallel. The skill is the conductor; agents are the musicians. For Agent Teams (experimental, Feb 2026): peer-to-peer coordination with shared task lists and DAG dependencies — but at 2x token cost (~800k vs ~440k for 3-worker team), no file locking, and disabled by default. **Use subagents for production orchestration; reserve Agent Teams for genuinely parallel multi-file work where peer coordination justifies the experimental status and cost.**
 
@@ -252,9 +252,15 @@ Before Write or Edit executes:
 
   Pure git operations, no claude-flow dependency, <100ms latency.
   Always allows spec/test file writes. Passes through on non-feat branches.
+
+Cascade-aware throttle (t-196):
+  5. Check /tmp/brana-cascade/{session}-{md5hash} for the target file
+  6. If flag exists → inject additionalContext warning:
+     "This file has failed repeatedly. Stop and reassess your approach."
+  7. Does NOT block — advisory only (continue: true)
 ```
 
-This is the enforcement gate. Everything else in the system (rules, skills) suggests discipline. This hook enforces it. See "Project Enforcement" section below for the full design.
+Two enforcement behaviors: SDD gate (blocks) and cascade throttle (warns). Both run on every Edit/Write.
 
 ### SessionStart — "Remember what you know"
 
@@ -316,6 +322,12 @@ PostToolUse — fires on successful tool use:
      test runner (npm test, pytest, cargo test, etc.), classify as
      "test-pass". If it matches a linter (eslint, shellcheck, ruff,
      etc.), classify as "lint-pass".
+  5. Skill invocation tracking (t-198): if tool_name is "Skill",
+     extract skill_name from tool_input and classify as "skill-invoke".
+     Enables per-skill utilization analysis via session JSONL.
+  6. Cascade flag cleanup (t-198): on successful Edit/Write, clear
+     the cascade throttle flag for that file path — prevents stale
+     warnings after a fix lands.
 
 PostToolUseFailure — fires when a tool fails:
   1. Test/lint command detection (t-043): if Bash command matches a
@@ -328,6 +340,10 @@ PostToolUseFailure — fires when a tool fails:
      failures (including test-fail/lint-fail) on the SAME target,
      mark cascade=true
   4. Log to session JSONL with error category and cascade flag
+  5. Cascade throttle flag (t-196): on Edit/Write failures only,
+     write a flag file at /tmp/brana-cascade/{session}-{md5hash}.
+     Bash failures do NOT create flags (prevents orphans).
+     md5sum of file path prevents collisions from lossy path sanitization.
 
 Both write to /tmp/brana-session-{id}.jsonl — the shared event stream
 that SessionEnd reads to compute compound metrics and flywheel rates.
