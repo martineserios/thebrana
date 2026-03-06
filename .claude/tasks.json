@@ -5523,7 +5523,7 @@
         "feedback-loop",
         "context-engineering"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "parent": null,
       "order": null,
@@ -5531,12 +5531,12 @@
       "effort": "S",
       "execution": "code",
       "blocked_by": null,
-      "branch": null,
+      "branch": "feat/t-198-skill-utilization-tracking",
       "github_issue": null,
       "created": "2026-03-05",
-      "started": null,
-      "completed": null,
-      "notes": null,
+      "started": "2026-03-05",
+      "completed": "2026-03-05",
+      "notes": "Implemented Skill tool detection in post-tool-use.sh (outcome: skill-invoke, detail: skill_name). Also strengthened delegation-routing.md from passive nudge to active invocation. Tests: 5/5 green. Research finding: 4% → 61% utilization when skills used directly vs suggested (Álvaro García / rudel.ai).",
       "context": "Synergies: t-184 (skills 4% utilization), t-058 (skill distribution), t-070 (parameterizable skills), t-075 (VoltAgent catalog). Motivated by Alvaro Garcia post on skill utilization rates."
     },
     {
@@ -5727,6 +5727,32 @@
       "completed": null,
       "notes": null,
       "context": "Synergies: t-061 (session history explorer), t-067 (statusline), t-094 (Agentic CI/CD), t-072 (styled CLI output). Only build after data pipeline (F1-F9) exists. HTTP hooks dual-write alongside command hooks."
+    },
+    {
+      "id": "t-206",
+      "subject": "/acquire-skills — marketplace skill discovery and installation",
+      "type": "task",
+      "description": "Manual command that scans project tech stack, diffs against local skills, searches marketplaces (Vercel CLI > WebSearch > future MCP), presents candidates, and installs user-approved skills to system/skills/acquired/.",
+      "tags": [
+        "skills",
+        "marketplace",
+        "dx"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "parent": null,
+      "order": null,
+      "priority": "P2",
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": null,
+      "branch": "feat/t-206-acquire-skills",
+      "github_issue": null,
+      "created": "2026-03-05",
+      "started": "2026-03-05",
+      "completed": "2026-03-05",
+      "notes": "ADR-012, feature brief, SKILL.md, user guide, skill catalog updated. 3-tier search with graceful degradation. validate.sh updated to exclude acquired/ directory. 40th skill.",
+      "context": "Research: Vercel skills CLI (npx skills), SkillHub MCP (7K+ skills), SkillsMP (350K+), aitmpl (400+ components). Challenger rejected automated version — manual command achieves 90% value at 10% complexity."
     }
   ]
 }
