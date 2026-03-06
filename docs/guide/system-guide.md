@@ -260,7 +260,7 @@ The presence of venture directories (`docs/sops/`, `docs/okrs/`, etc.) triggers 
 
 | Doc | What it covers |
 |-----|---------------|
-| [Skills Catalog](skills.md) | All 39 skills — description, category, when to use |
+| [Skills Catalog](skills.md) | All 40 skills — description, category, when to use |
 | [Hooks Explained](hooks.md) | All 10 hooks — trigger, behavior, output |
 | [Agent Roster](agents.md) | All 11 agents — model, tools, auto-delegation triggers |
 | [Extending Brana](extending.md) | How to add skills, rules, hooks, and agents |
