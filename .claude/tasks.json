@@ -5977,7 +5977,7 @@
       "subject": "Write /build SKILL.md — 7 strategies, task-aware",
       "type": "task",
       "parent": "ms-018",
-      "status": "pending",
+      "status": "in_progress",
       "stream": "roadmap",
       "description": "The core build loop skill. 7 strategies (feature, bug fix, greenfield, refactor, spike, migration, investigation). Includes: CLASSIFY step with mandatory confirmation, SPECIFY interactive research loop, PLAN task breakdown, BUILD with TDD enforcement, CLOSE with retrospective + docs. Task-aware: creates/attaches to tasks.json entries, updates build_step field.",
       "tags": [
@@ -5988,7 +5988,8 @@
       "effort": "L",
       "execution": "code",
       "blocked_by": [],
-      "created": "2026-03-07"
+      "created": "2026-03-07",
+      "started": "2026-03-07"
     },
     {
       "id": "t-216",
