@@ -220,12 +220,26 @@ After 12+ manual posts, build `/content-draft` informed by real experience.
 
 ### Bilingual Strategy
 
+**Two-profile approach (decided 2026-03-07):** Use LinkedIn's built-in secondary language profile feature. Each audience sees a fully native profile automatically.
+
+| Element | English (primary) | Spanish (secondary) |
+|---------|-------------------|---------------------|
+| **Headline** | `I see systems. Then I build them. Business problems → AI/ML products, architecture to production.` | Original Spanish adaptation (not translated) — LATAM-specific framing |
+| **About** | Full English, closes with "Todo es un sistema. Mapealo." | Full Spanish, Argentine voice, LATAM pain points, same signature |
+| **Experience** | English descriptions, system-problem-first framing | Spanish descriptions, adapted for LATAM context |
+| **Skills** | Same (language-neutral) | Same |
+
+**Content posts** follow separate language weights:
+
 | Language | Content type | Weight | Pillar focus |
 |----------|-------------|--------|-------------|
 | English | Technical how-tos, frameworks, build-in-public | 70% | Pillars 1-3 |
 | Spanish | Case studies, venture insights, LATAM tech commentary | 30% | Pillar 4 + selected from 1-3 |
 
-Spanish content is **original**, not translated. Uses Argentine context, local examples, local pain points.
+**Rules:**
+- Spanish content is **original**, not translated. Uses Argentine context, local examples, local pain points.
+- Don't mix languages in a single profile section. Each profile is fully in its language.
+- The Spanish signature "Todo es un sistema. Mapealo." appears in BOTH profiles — in the English About it's a distinctive foreign-language closer, in the Spanish About it's native.
 
 Note: at ~1 Spanish post/week, building a standalone LATAM audience is slow. Spanish content serves dual purpose: LATAM visibility + demonstrates range to bilingual followers. If Spanish posts outperform, increase allocation.
 

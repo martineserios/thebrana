@@ -144,7 +144,7 @@ Find and install marketplace skills for project tech gaps. Scans project files f
 
 ## Commands
 
-In addition to the 40 skills above, brana includes 7 commands in `system/commands/`. Commands are like skills but typically orchestrate multi-step workflows:
+Brana also includes commands in `system/commands/`. Commands are like skills but typically orchestrate multi-step workflows:
 
 | Command | Description |
 |---------|-------------|
