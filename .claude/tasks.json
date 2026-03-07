@@ -5960,7 +5960,7 @@
       "subject": "Core Build Loop",
       "type": "milestone",
       "parent": "t-214",
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "description": "Build the core /build and /close skills, integrate /tasks with /build, update hooks.",
       "tags": [
@@ -6041,7 +6041,7 @@
       "subject": "Update pre-tool-use hook for build loop conventions",
       "type": "task",
       "parent": "ms-018",
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "description": "Ensure TDD gate works with new branch/strategy conventions. Verify spec-first enforcement still activates on feat/* branches. No changes expected to core logic — mostly validation that existing hook works with new flow.",
       "tags": [
@@ -6054,7 +6054,10 @@
       "blocked_by": [
         "t-215"
       ],
-      "created": "2026-03-07"
+      "created": "2026-03-07",
+      "started": "2026-03-07",
+      "completed": "2026-03-07",
+      "notes": "Verified: pre-tool-use.sh gates on feat/* branches with docs/decisions/ opt-in. No code changes needed — existing hook is compatible with /build flow."
     },
     {
       "id": "ms-019",
