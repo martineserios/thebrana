@@ -5977,7 +5977,7 @@
       "subject": "Write /build SKILL.md — 7 strategies, task-aware",
       "type": "task",
       "parent": "ms-018",
-      "status": "in_progress",
+      "status": "completed",
       "stream": "roadmap",
       "description": "The core build loop skill. 7 strategies (feature, bug fix, greenfield, refactor, spike, migration, investigation). Includes: CLASSIFY step with mandatory confirmation, SPECIFY interactive research loop, PLAN task breakdown, BUILD with TDD enforcement, CLOSE with retrospective + docs. Task-aware: creates/attaches to tasks.json entries, updates build_step field.",
       "tags": [
@@ -5989,14 +5989,15 @@
       "execution": "code",
       "blocked_by": [],
       "created": "2026-03-07",
-      "started": "2026-03-07"
+      "started": "2026-03-07",
+      "completed": "2026-03-07"
     },
     {
       "id": "t-216",
       "subject": "Write /close SKILL.md — replaces session-handoff + debrief",
       "type": "task",
       "parent": "ms-018",
-      "status": "in_progress",
+      "status": "completed",
       "stream": "roadmap",
       "description": "Session close skill. Absorbs /session-handoff close mode and /debrief. Writes handoff note, extracts learnings, stores patterns, computes metrics. Auto-detects close context (no pickup mode — that moves to session-start hook).",
       "tags": [
@@ -6009,14 +6010,15 @@
       "execution": "code",
       "blocked_by": [],
       "created": "2026-03-07",
-      "started": "2026-03-07"
+      "started": "2026-03-07",
+      "completed": "2026-03-07"
     },
     {
       "id": "t-217",
       "subject": "Integrate /tasks with /build — deep state sharing",
       "type": "task",
       "parent": "ms-018",
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "description": "Deep integration between tasks and build systems. Changes to /tasks skill: (1) /tasks add auto-classifies strategy field, (2) /tasks start enters /build for code tasks, (3) /tasks status shows build_step, (4) /tasks done only for manual/external tasks. New task fields: strategy, build_step. Cross-reference on /build entry: search for similar/related tasks, dedup, merge, or link. /build CLOSE auto-completes the task.",
       "tags": [
@@ -6030,7 +6032,9 @@
       "blocked_by": [
         "t-215"
       ],
-      "created": "2026-03-07"
+      "created": "2026-03-07",
+      "started": "2026-03-07",
+      "completed": "2026-03-07"
     },
     {
       "id": "t-218",

@@ -194,6 +194,7 @@ High-level progress view with aggregation.
 
 Progress bars use active theme fill/empty characters.
 Tag summary line at bottom: shows all tags with counts across active tasks (non-completed). Omit line if no tasks have tags.
+For in-progress tasks with a `build_step` field, show the step inline: `← t-008 Implement JWT [BUILD]`.
 
 ### Portfolio view (no project argument)
 
@@ -410,19 +411,31 @@ Optional `--stream` narrows by stream: `/tasks next --stream research`
 
 ## /tasks start
 
-Begin work on a specific task.
+Begin work on a specific task. For code tasks, enters the `/build` loop.
 
 ### Steps
 
 1. **Parse id** from argument, or offer candidates from /tasks next
 2. **Read tasks.json**, find the task
 3. **Check blocked_by** — if any blocker not completed, warn and abort
-4. **Determine execution mode:**
-   - `code`: check git status clean -> create branch `{prefix}{id}-{slug}` -> set status + started date + branch field
+4. **Auto-classify strategy** (if not already set on the task):
+   - Infer from task tags, stream, and description:
+     - `stream: bugs` or tag `bug` → strategy: `bug-fix`
+     - `stream: research` → strategy: `spike`
+     - `stream: tech-debt` or tag `refactor` → strategy: `refactor`
+     - `stream: docs` → strategy: `feature` (light)
+     - Tag `migration` → strategy: `migration`
+     - Tag `investigation` → strategy: `investigation`
+     - Default → strategy: `feature`
+   - **Confirm with user:** "Start t-008 as **feature**? [feature / bug-fix / refactor / spike / other]"
+   - Write the confirmed `strategy` field to the task
+5. **Determine execution mode:**
+   - `code`: check git status clean → create branch `{prefix}{id}-{slug}` → set status + started date + branch field → **enter `/build` with the task's strategy** (build_step: classify)
    - `external`: set status + started date, show task description
    - `manual`: set status + started date, show checklist from description
-5. **Write tasks.json**
-6. **Report:** "Started t-008 'Implement JWT middleware'. Branch: feat/t-008-jwt-middleware."
+6. **Write tasks.json** (status: in_progress, started: today, strategy: confirmed)
+7. **Report:** "Started t-008 'Implement JWT middleware' as **feature**. Branch: feat/t-008-jwt-middleware."
+8. **For code tasks:** proceed directly into `/build` — no separate invocation needed
 
 ### Branch creation
 
@@ -443,7 +456,7 @@ git worktree add ../project-feat-t-008 -b feat/t-008-jwt-middleware
 
 ## /tasks done
 
-Complete the current task.
+Complete the current task. For code tasks that went through `/build`, the CLOSE step already handles completion — use `/tasks done` only for manual and external tasks.
 
 ### Steps
 
@@ -452,18 +465,19 @@ Complete the current task.
    - If on a task branch (feat/t-NNN-*), extract id from branch name
    - Otherwise: show in_progress tasks, ask which one
 2. **Read tasks.json**, find the task
-3. **For execution: code:**
+3. **Check if build-managed:** if the task has a `build_step` field set, warn: "This task is in the /build loop (step: {build_step}). Use /build CLOSE to complete it, or force-complete here?"
+4. **For execution: code** (non-build-managed):
    - Stage changes: `git add -A` (or ask user what to stage)
    - Commit with conventional type from stream mapping
    - Create PR: `gh pr create --title "{type}: {subject}" --body "Closes #{github_issue}"`
    - Offer to merge: "Merge to main? (PR #{N})"
    - **Worktree cleanup:** if task was started in a worktree (`git worktree list` shows `../project-{prefix}{id}`), offer to remove it after merge: `git worktree remove ../project-{prefix}{id} && git branch -d {branch}`
-4. **For execution: external/manual:**
+5. **For execution: external/manual:**
    - Ask: "Any notes on the outcome?"
    - Record in task.notes
-5. **Update task:** status -> completed, completed -> today's date
-6. **Write tasks.json** — hook handles rollup + validation
-7. **Report:** "Completed t-008. Milestone 'Auth System': 2/3 done."
+6. **Update task:** status → completed, completed → today's date, clear build_step
+7. **Write tasks.json** — hook handles rollup + validation
+8. **Report:** "Completed t-008. Milestone 'Auth System': 2/3 done."
 
 ---
 
@@ -483,7 +497,7 @@ All interactive confirmations use the **AskUserQuestion** tool for a selectable 
    - **Tags**: suggest tags from description keywords matched against existing vocabulary. Options: "Accept {suggested}" (recommended), "Edit", "Skip". Header: "Tags"
    - **Effort**: suggest from description complexity (S/M/L/XL). Options: each size with description. Header: "Effort"
    - **Milestone** (skip if URL auto-detected or no active milestones): options from active milestones + "None". Header: "Milestone"
-5. Auto-assign next id, set defaults
+5. Auto-assign next id, set defaults. Auto-classify `strategy` from description/stream/tags (same heuristic as `/tasks start`). Leave `build_step` null.
 6. **Dependency scan** — cross-reference all pending tasks:
    - Match by **tag overlap** (2+ shared tags with the new task)
    - Match by **subject keyword** overlap (significant words from description appear in existing task subjects)

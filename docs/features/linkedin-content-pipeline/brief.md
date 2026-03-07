@@ -17,16 +17,25 @@ Build a brana-assisted content pipeline that transforms session activity, framew
 
 ## Positioning
 
-**"I make AI work for businesses — here's how, and here's the system behind it."**
+**"I see systems. Then I build them. Business problems → AI/ML products, architecture to production."**
 
-Bridge positioning: content speaks to founders in business language but demonstrates technical depth. Case Studies lead, brana proves the method. Every post should pass the dual test: founders hear "he solves my kind of problem," technical people hear "he thinks about architecture, not just code."
+LinkedIn headline (decided 2026-03-07): `I see systems. Then I build them. Business problems → AI/ML products, architecture to production.`
 
-**Core identity:** Builder. Everything published traces to something built, broken, or used firsthand. No theory, no smoke — experience-based content only.
+Systems thinker who ships. The differentiator is the systems lens — seeing components, layers, patterns, interactions where others see chaos. The proof is end-to-end builds: architecture to deploy, ML to infra, one brain. Content speaks to founders in business language but demonstrates technical depth that earns CTO-level peer recognition.
+
+**Dual test (every post):** Founders hear "he solves my kind of problem." Technical people hear "he thinks about architecture, not just code."
+
+**Core identity:** Builder. Everything published traces to something built, broken, or used firsthand. No theory, no smoke — experience-based content only. Not just a systems thinker — a systems thinker who implements. Full-stack in the deepest sense: ML + software architecture + infrastructure + deploy.
+
+**Positioning evolution (decided 2026-03-07):** Started as "AI systems designer" (narrow, captures brana well). Evolved to "systems thinker who builds" — broader, honest about the full range (NexEye full-SaaS architecture, brana open source, 12+ cross-domain projects). The systems lens IS the differentiator on LinkedIn (nobody else leads with this). The full-stack depth IS the proof (shown in About, Experience, and content — not claimed in the headline).
+
+**CTO-readiness signal (implicit, never claimed):** The profile should make CTOs think "this person thinks like me" and founders think "this is the technical partner I need." Never say "fractional CTO" — let the evidence lead the viewer to that conclusion. The career arc (Civil Engineer → ML → AI Systems) is itself the differentiator.
 
 **Signature phrase:**
 - Spanish: **"Todo es un sistema. Mapealo."**
 - English: **"Everything is a system. Map it."**
 - Closes every post. Means something different after every story. First half is the lens (seeing). Second half is the action (builder).
+- Lands harder with the full-range positioning: "sistema" means the *whole thing* — ML, infra, business process, deploy — not just the AI layer.
 - **Brand statement** (bio, header, about section): "Behind every effortless moment is a system someone built with care."
 - **Founding collection** (poster series, carousel covers): "Good systems make ordinary people do extraordinary things." / "Behind every smooth operation is someone who thought very carefully." / "Simplicity is what complexity looks like when it's done."
 
@@ -34,12 +43,53 @@ Bridge positioning: content speaks to founders in business language but demonstr
 
 **Background:** Civil Engineer (UBA) → Data Science Instructor/Program Lead (Digital House, scaled 3→16 courses) → ML Engineer → Freelance AI Engineer. 12+ projects across flood modeling, wildfire detection, medical AI, NLP voicebots, computer vision, CRM automation, WhatsApp platforms, marketplace. Brana is the meta-system built to manage all of it.
 
+### Anti-positioning (decided 2026-03-07)
+
+What we are NOT. These are explicit guardrails — if content, copy, or profile decisions drift toward any of these, course-correct immediately.
+
+| Not this | Why | The actual difference |
+|----------|-----|----------------------|
+| **No-code automator** (n8n, Make, Zapier) | Crowded, low-value, commoditized. Our work requires real code and architecture. | We write code — PyTorch, FastAPI, React, Docker, Terraform. We design inference pipelines, not drag-and-drop flows. |
+| **AI wrapper / prompt engineer** | "I put GPT on your business" is not a system. It's a feature. | We build the system around the AI — data pipelines, feedback loops, memory layers, deploy infra. The model is 10% of the work. |
+| **Generic full-stack dev** | Commoditized on LinkedIn. Every bootcamp grad says this. | We think in systems first, then build. The Civil Engineer → ML arc is the differentiator. Architecture decisions, not CRUD apps. |
+| **AI influencer / content creator** | We're a builder who writes, not a writer who builds. | Every post traces to something built, broken, or shipped. Zero theory-only content. |
+| **"Fractional CTO" label** | Overused, often means "advisor who doesn't code." | We code, architect, AND deploy. CTO-level thinking + IC-level execution. Let the evidence show it, never claim the title. |
+
+**ML identity guardrail:** Machine learning is core to who we are — not a buzzword. The profile, About, and content must make clear this person does real ML (NLP, computer vision, graph neural networks, model training, inference pipelines) not just API calls to OpenAI. The headline includes "AI/ML" not just "AI." Technical posts reference real ML trade-offs, not wrapper patterns.
+
+### Project Assets (honest status)
+
+| Asset | What it is | Status | Usable claims |
+|-------|-----------|--------|---------------|
+| **brana** | AI development system (37 skills, 10 agents, 580+ knowledge entries) | Open source, in daily use across 6 projects | "Built and use daily" — real metrics, real system |
+| **NexEye** | Real-time wildfire detection platform (full SaaS: FastAPI + React + YOLO + Docker Swarm) | Pre-production. Contract near-signed with Neuquén province government. | "Designed and built the full architecture" — not "in production" |
+| **Past work** | Encora (2y11m), Froneus (7m), INTA flood model, Galo AI, Digital House | Delivered, in production | Full claims — these shipped |
+
+**Rule:** Never claim production scale for pre-production work. NexEye is a portfolio piece and architecture story, not a "running at scale" claim. When the Neuquén contract signs and it goes live, update this section.
+
+### Business Model & Economic Strategy (decided 2026-03-07)
+
+**Revenue target:** $10k/month as a solo developer.
+
+**Revenue engine:** AI consulting / business-to-system translation. Fast cash cycle (2-4 week projects), upsell after initial delivery, referral-driven pipeline. This is what LinkedIn optimizes for.
+
+**Growth model:** Land → deliver → expand. First engagement $3-5k (map process, implement one system). Second $3-5k (results earned trust). Third becomes retainer ($2-3k/month). Three clients at recurring = $6-9k/month base + new projects on top.
+
+**CTO/cofounder roles:** Come through relationships and reputation, not LinkedIn posts. The content and profile build the credibility that makes these conversations happen naturally. Don't chase — attract.
+
+**NexEye:** Parallel track. If contract signs, it becomes both a product revenue stream and the flagship case study. Until then, it's architecture evidence.
+
+**Why not lead with big builds:** Building NexEye-type products solo means doing 5 roles (CTO + backend + frontend + DevOps + ML) for one salary. Intellectually satisfying but economically inefficient at $10k/month. Consulting is higher $/hour, faster cash cycle, and creates the optionality for selective big builds later.
+
+**Diversity preference:** Consulting satisfies this — new domain every few weeks (medical practice, wildfire detection, WhatsApp campaigns, marketplace). Cross-domain pattern recognition IS the systems lens in action.
+
 ### Content Philosophy
 
 - **Not trying to teach. Just talk that way.** Systems vocabulary and patterns appear naturally. No definitions, no "let me explain what a feedback loop is."
 - **Repetition compounds.** A term used in post 3 reappears in post 11 in a different industry. By post 30, followers think in your language.
 - **Principles emerge, not declared.** Phase A (12 manual posts) reveals the real principles. Don't design a curriculum before having an audience.
 - **Zoom as signature format.** Posts move between abstraction layers — enter at one level, exit at another. The movement between layers IS the content.
+- **Practitioner mode, not tutorial mode (decided 2026-03-07).** Technical posts show implementation depth through war stories and decisions, not step-by-step instructions. "I deployed Docker Swarm on Hetzner. Here's the decision that broke everything." NOT "How to deploy Docker Swarm — step by step." Tutorial mode attracts juniors. Practitioner mode attracts peers and decision-makers. The 45% technical content (Pillar 2 How-Tos 25% + Pillar 4 Build-in-Public 20%) establishes CTO-level credibility while remaining accessible to founders through narrative framing.
 
 ### Components Shelf (grows organically)
 
@@ -211,7 +261,7 @@ Each project yields 3-5 distinct stories (sub-projects, architecture decisions, 
 
 ### Pillar 2: How-Tos (25%)
 
-Accessible: "how to think about AI for your business" + occasional technical deep dive. Always rooted in something you built.
+Practitioner-mode: "here's what happened when I did it" not "here's how to do it." Business-accessible framing with technical depth underneath. Always rooted in something built. Includes architecture and infrastructure topics — not just AI layer. (Updated 2026-03-07: expanded scope to reflect full-range positioning.)
 
 | Topic | Hook |
 |-------|------|
@@ -220,6 +270,9 @@ Accessible: "how to think about AI for your business" + occasional technical dee
 | Context Budget (55/70/85%) | "Your AI degrades before you notice — the budget system" |
 | Failure tracking | "Why I document every AI mistake — and how it makes the next project better" |
 | Graduation Pathway | "Manual → Convention → Workflow → Enforcement" |
+| Docker Swarm architecture | "Encrypted overlay networking silently drops packets on Hetzner. Took me 3 days." |
+| CI/CD pipeline design | "Our staging deploy went to production. Here's the one secret we forgot." |
+| Multi-environment deployment | "Why I destroy and rebuild infrastructure from scratch — and the script that makes it safe" |
 
 ### Pillar 3: Contrarian Takes (20%)
 
@@ -270,13 +323,11 @@ Brana as proof-of-method — the "behind the scenes" that earns technical credib
 
 ## Format Mix (v1: 30-50-20)
 
-Adjusted from 60-30-10 after challenger review (no carousel tooling exists for v1):
+Adjusted from 60-30-10 after challenger review:
 
-- **30%** carousels/PDFs — using /export-pdf for plain slides (v2: Canva templates for visual upgrade)
+- **30%** carousels — created in NotebookLM from Claude-prepared source files and style guides (decided t-176, 2026-03-05)
 - **50%** text posts — takes, reflections, build-in-public updates, case studies
 - **20%** polls/questions — community engagement, topic validation, pillar weight testing
-
-Carousel % increases when visual tooling is available (t-176).
 
 ## Deferred (v2+)
 
@@ -319,9 +370,13 @@ Carousel % increases when visual tooling is available (t-176).
 - **Scoring formula:** dropped in favor of filter→group→human-pick (challenger C3)
 - **sessions.md location:** absolute path `~/.claude/projects/.../memory/sessions.md`, not in-repo (challenger C1)
 - **Deduplication:** /content-draft auto-updates published.md, not manual (challenger W1)
+- **t-175: Case Studies weight:** increased to 35% (bridge spine connecting founders + technologists). Full weights: Case Studies 35%, How-Tos 25%, Contrarian 20%, Build-in-Public 20%. Week-4 gate applies.
+- **t-176: Carousel tooling:** NotebookLM. Claude provides prompts, source files, and style guides. User creates carousels in NLM manually. (Updated from /export-pdf, 2026-03-05.)
+- **Positioning scope (2026-03-07):** Evolved from narrow "AI systems designer" to "systems thinker who builds." Systems lens is the headline differentiator. Full-stack depth (ML + architecture + infra + deploy) is the proof shown in About/Experience/content. Encompasses both consulting implementations and complex product builds (NexEye). CTO-readiness signaled implicitly, never claimed.
+- **Headline (2026-03-07):** `I see systems. Then I build them. Business problems → AI/ML products, architecture to production.`
+- **Technical content approach (2026-03-07):** Practitioner mode, not tutorial mode. War stories and decisions, not step-by-step guides. Attracts peers and decision-makers. 45% of content (Pillar 2 + Pillar 4) establishes technical credibility.
+- **Economic strategy (2026-03-07):** Lead with consulting/implementation (fast cash, upsell, $10k/month target). CTO/cofounder roles come through reputation, not LinkedIn posts. Big builds are selective, not the primary revenue engine. Consulting satisfies diversity preference.
 
 ## Pending decisions (tracked as tasks)
 
-- t-175: Consulting pillar weight — keep Case Studies at 10% or increase to 20%?
-- t-176: Carousel tooling decision — /export-pdf, Canva templates, or defer?
 - t-174: Voice/tone guide — write 3-5 example posts defining natural voice
