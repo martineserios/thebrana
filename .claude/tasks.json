@@ -1884,7 +1884,7 @@
       "type": "task",
       "parent": null,
       "order": null,
-      "priority": "P2",
+      "priority": "P3",
       "effort": "M",
       "execution": "external",
       "blocked_by": [
@@ -1969,7 +1969,7 @@
       "type": "task",
       "parent": null,
       "order": null,
-      "priority": "P2",
+      "priority": "P3",
       "effort": "M",
       "execution": "code",
       "blocked_by": [],
@@ -2045,7 +2045,7 @@
       "type": "task",
       "parent": null,
       "order": null,
-      "priority": "P2",
+      "priority": "P3",
       "effort": "M",
       "execution": "code",
       "blocked_by": [],
@@ -4151,7 +4151,7 @@
       "type": "task",
       "parent": null,
       "order": null,
-      "priority": "P2",
+      "priority": "P3",
       "effort": "L",
       "execution": "code",
       "blocked_by": [],
@@ -4260,9 +4260,7 @@
       "priority": "P0",
       "effort": "M",
       "execution": "manual",
-      "blocked_by": [
-        "t-170"
-      ],
+      "blocked_by": null,
       "branch": null,
       "github_issue": null,
       "created": "2026-03-03",
@@ -4397,9 +4395,7 @@
       "priority": "P1",
       "effort": "L",
       "execution": "manual",
-      "blocked_by": [
-        "t-170"
-      ],
+      "blocked_by": null,
       "branch": null,
       "github_issue": null,
       "created": "2026-03-03",
@@ -5553,7 +5549,7 @@
       "stream": "roadmap",
       "parent": null,
       "order": null,
-      "priority": "P2",
+      "priority": "P1",
       "effort": "S",
       "execution": "code",
       "blocked_by": null,
@@ -5605,7 +5601,7 @@
       "stream": "roadmap",
       "parent": null,
       "order": null,
-      "priority": "P2",
+      "priority": "P1",
       "effort": "M",
       "execution": "code",
       "blocked_by": null,
@@ -5753,6 +5749,613 @@
       "completed": "2026-03-05",
       "notes": "ADR-012, feature brief, SKILL.md, user guide, skill catalog updated. 3-tier search with graceful degradation. validate.sh updated to exclude acquired/ directory. 40th skill.",
       "context": "Research: Vercel skills CLI (npx skills), SkillHub MCP (7K+ skills), SkillsMP (350K+), aitmpl (400+ components). Challenger rejected automated version — manual command achieves 90% value at 10% complexity."
+    },
+    {
+      "id": "t-207",
+      "subject": "/fix — structured bug fixing workflow",
+      "type": "task",
+      "description": "Skill for structured bug fixing: reproduce (failing test), diagnose (root cause), fix, verify (test passes), commit. Guided workflow that enforces test-first debugging discipline.",
+      "tags": [
+        "skills",
+        "dx",
+        "workflow"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "parent": null,
+      "order": null,
+      "priority": "P2",
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": null,
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-06",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": null
+    },
+    {
+      "id": "t-208",
+      "subject": "/log — append-only business event log",
+      "type": "task",
+      "description": "Skill to capture business events: meetings, calls, decisions, observations. Append-only markdown file (timestamped entries). Supports quick capture and later review. Business-scoped for now; may share with personal project later.",
+      "tags": [
+        "dx",
+        "workflow"
+      ],
+      "status": "in_progress",
+      "stream": "roadmap",
+      "parent": null,
+      "order": null,
+      "priority": "P1",
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": null,
+      "branch": "feat/t-208-event-log",
+      "github_issue": null,
+      "created": "2026-03-06",
+      "started": "2026-03-07",
+      "completed": null,
+      "notes": null,
+      "context": "Challenger review (2026-03-07):\n\nC1 (HIGH): Overlap with MEMORY.md and /debrief — third capture surface risk. Most \"events\" are actually tasks, pipeline entries, or memory notes. Risk: log becomes unprocessed graveyard.\n\nC2 (HIGH): CWD routing ambiguity — breaks when logging cross-project from wrong CWD, SSH, /tmp, etc. CWD is proxy for intent, not intent itself. No .git-like marker for scope.\n\nW1 (MED): Auto-creating research tasks for every URL adds noise. Not every URL is \"come back to this\" — many are reference links. Should confirm, not auto-create.\n\nW2 (MED): Entry type auto-detection is fragile keyword matching, will misclassify constantly. #tags already solve searchability without classification layer.\n\nW3 (MED): 41st skill — sprawl. User's own rule: \"embed as steps in existing commands.\" Bulk paste could be /tasks bulk instead.\n\nO1: Append chronologically (bottom), not reverse — cleaner git diffs.\nO2: No rotation mentioned — add archival after 90 days.\nO3: /log search is just grep — no skill wrapper needed.\n\nVerdict: PROCEED WITH CHANGES. Core value is bulk-paste-and-triage, not the event log abstraction. Simplify heavily."
+    },
+    {
+      "type": "task",
+      "status": "pending",
+      "stream": "research",
+      "parent": null,
+      "order": null,
+      "priority": "P2",
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": null,
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-07",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "id": "t-209",
+      "subject": "AI + Claude Code open source (Nikolas Markou)",
+      "description": "LinkedIn post about open-sourcing Claude Code related tools.",
+      "tags": [
+        "linkedin",
+        "claude-code-enhancement"
+      ],
+      "context": "URL: https://www.linkedin.com/posts/nikolasmarkou_ai-claudecode-opensource-share-7435345234659696640-LuZj"
+    },
+    {
+      "type": "task",
+      "status": "pending",
+      "stream": "research",
+      "parent": null,
+      "order": null,
+      "priority": "P2",
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": null,
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-07",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "id": "t-210",
+      "subject": "Someone deconstructed Claude Code and open-sourced (Ayel Magambetov)",
+      "description": "LinkedIn post about deconstructing and open-sourcing Claude Code internals.",
+      "tags": [
+        "linkedin",
+        "claude-code-enhancement"
+      ],
+      "context": "URL: https://www.linkedin.com/posts/ayelmagambetov_someone-deconstructed-claude-code-and-open-sourced-share-7434898607386017793-6bDb"
+    },
+    {
+      "type": "task",
+      "status": "pending",
+      "stream": "research",
+      "parent": null,
+      "order": null,
+      "priority": "P2",
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": null,
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-07",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "id": "t-211",
+      "subject": "Data governance + MCP + AI (Ronald Mego)",
+      "description": "LinkedIn post on data governance with MCP and AI.",
+      "tags": [
+        "linkedin",
+        "mcp-tooling",
+        "ai-agent-systems"
+      ],
+      "context": "URL: https://www.linkedin.com/posts/ronaldmego_datagovernance-mcp-ai-ugcPost-7435649101913985024-WiY5"
+    },
+    {
+      "type": "task",
+      "status": "pending",
+      "stream": "research",
+      "parent": null,
+      "order": null,
+      "priority": "P2",
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": null,
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-07",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "id": "t-212",
+      "subject": "Marketing is 100x harder than vibe coding (Walid Boulanouar)",
+      "description": "LinkedIn post on the difficulty of marketing vs building with AI.",
+      "tags": [
+        "linkedin",
+        "content",
+        "venture"
+      ],
+      "context": "URL: https://www.linkedin.com/posts/walid-boulanouar_marketing-is-100x-harder-than-vibe-coding-share-7435068674723512321-IBRS"
+    },
+    {
+      "type": "task",
+      "status": "pending",
+      "stream": "research",
+      "parent": null,
+      "order": null,
+      "priority": "P2",
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": null,
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-07",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "id": "t-213",
+      "subject": "Personal AI infrastructure (Daniel Miessler)",
+      "description": "Blog post on building personal AI infrastructure.",
+      "tags": [
+        "ai-agent-systems",
+        "claude-code-enhancement"
+      ],
+      "context": "URL: https://danielmiessler.com/blog/personal-ai-infrastructure"
+    },
+    {
+      "id": "t-214",
+      "subject": "Map brana as a system — SOPs, workflows, user guides for everyone",
+      "type": "task",
+      "description": "System redesign: 42→25 commands, 4-step build loop with 7 strategies, /tasks+/build deep integration, two documentation trees (user guide + contributor docs). See docs/features/build-loop-redesign.md for full spec.",
+      "tags": [
+        "docs",
+        "architecture",
+        "dx",
+        "workflow"
+      ],
+      "status": "in_progress",
+      "stream": "roadmap",
+      "parent": null,
+      "order": null,
+      "priority": "P1",
+      "effort": "XL",
+      "execution": "code",
+      "blocked_by": null,
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-07",
+      "started": "2026-03-07",
+      "completed": null,
+      "notes": null,
+      "context": "User observation: 41 skills are loose — they need to be part of flows. Existing docs describe individual commands but not how they compose. Goal: transform brana from 'collection of tools' to 'documented system with clear workflows.' Examples of flows to map: daily workflow (session start → work → capture → session end), spec lifecycle (research → design → build → backprop), venture workflow (align → plan → execute → review). This is strategic — it's what makes brana transferable beyond its creator."
+    },
+    {
+      "id": "ms-018",
+      "subject": "Core Build Loop",
+      "type": "milestone",
+      "parent": "t-214",
+      "status": "pending",
+      "stream": "roadmap",
+      "description": "Build the core /build and /close skills, integrate /tasks with /build, update hooks.",
+      "tags": [
+        "build-loop"
+      ],
+      "priority": "P1",
+      "effort": "L",
+      "execution": "code",
+      "blocked_by": [],
+      "created": "2026-03-07"
+    },
+    {
+      "id": "t-215",
+      "subject": "Write /build SKILL.md — 7 strategies, task-aware",
+      "type": "task",
+      "parent": "ms-018",
+      "status": "pending",
+      "stream": "roadmap",
+      "description": "The core build loop skill. 7 strategies (feature, bug fix, greenfield, refactor, spike, migration, investigation). Includes: CLASSIFY step with mandatory confirmation, SPECIFY interactive research loop, PLAN task breakdown, BUILD with TDD enforcement, CLOSE with retrospective + docs. Task-aware: creates/attaches to tasks.json entries, updates build_step field.",
+      "tags": [
+        "build-loop",
+        "skill"
+      ],
+      "priority": "P1",
+      "effort": "L",
+      "execution": "code",
+      "blocked_by": [],
+      "created": "2026-03-07"
+    },
+    {
+      "id": "t-216",
+      "subject": "Write /close SKILL.md — replaces session-handoff + debrief",
+      "type": "task",
+      "parent": "ms-018",
+      "status": "pending",
+      "stream": "roadmap",
+      "description": "Session close skill. Absorbs /session-handoff close mode and /debrief. Writes handoff note, extracts learnings, stores patterns, computes metrics. Auto-detects close context (no pickup mode — that moves to session-start hook).",
+      "tags": [
+        "build-loop",
+        "skill",
+        "session"
+      ],
+      "priority": "P1",
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [],
+      "created": "2026-03-07"
+    },
+    {
+      "id": "t-217",
+      "subject": "Integrate /tasks with /build — deep state sharing",
+      "type": "task",
+      "parent": "ms-018",
+      "status": "pending",
+      "stream": "roadmap",
+      "description": "Deep integration between tasks and build systems. Changes to /tasks skill: (1) /tasks add auto-classifies strategy field, (2) /tasks start enters /build for code tasks, (3) /tasks status shows build_step, (4) /tasks done only for manual/external tasks. New task fields: strategy, build_step. Cross-reference on /build entry: search for similar/related tasks, dedup, merge, or link. /build CLOSE auto-completes the task.",
+      "tags": [
+        "build-loop",
+        "tasks",
+        "integration"
+      ],
+      "priority": "P1",
+      "effort": "L",
+      "execution": "code",
+      "blocked_by": [
+        "t-215"
+      ],
+      "created": "2026-03-07"
+    },
+    {
+      "id": "t-218",
+      "subject": "Update pre-tool-use hook for build loop conventions",
+      "type": "task",
+      "parent": "ms-018",
+      "status": "pending",
+      "stream": "roadmap",
+      "description": "Ensure TDD gate works with new branch/strategy conventions. Verify spec-first enforcement still activates on feat/* branches. No changes expected to core logic — mostly validation that existing hook works with new flow.",
+      "tags": [
+        "build-loop",
+        "hooks"
+      ],
+      "priority": "P2",
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [
+        "t-215"
+      ],
+      "created": "2026-03-07"
+    },
+    {
+      "id": "ms-019",
+      "subject": "Skill Consolidation",
+      "type": "milestone",
+      "parent": "t-214",
+      "status": "pending",
+      "stream": "roadmap",
+      "description": "Merge redundant skills: onboard, align, review, research refresh, session hooks.",
+      "tags": [
+        "build-loop",
+        "consolidation"
+      ],
+      "priority": "P1",
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [
+        "ms-018"
+      ],
+      "created": "2026-03-07"
+    },
+    {
+      "id": "t-219",
+      "subject": "Merge /project-onboard + /venture-onboard → /onboard",
+      "type": "task",
+      "parent": "ms-019",
+      "status": "pending",
+      "stream": "roadmap",
+      "description": "One /onboard command that detects project type (code, venture, hybrid) and applies the right scanning + knowledge recall.",
+      "tags": [
+        "consolidation",
+        "skill"
+      ],
+      "priority": "P1",
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [],
+      "created": "2026-03-07"
+    },
+    {
+      "id": "t-220",
+      "subject": "Merge /project-align + /venture-align → /align",
+      "type": "task",
+      "parent": "ms-019",
+      "status": "pending",
+      "stream": "roadmap",
+      "description": "One /align command that applies structure templates based on project type. Code projects get .claude/, docs/decisions/, tests/. Venture projects additionally get docs/sops/, docs/okrs/, docs/metrics/.",
+      "tags": [
+        "consolidation",
+        "skill"
+      ],
+      "priority": "P1",
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [],
+      "created": "2026-03-07"
+    },
+    {
+      "id": "t-221",
+      "subject": "Merge /weekly-review + /monthly-close + /monthly-plan + /growth-check → /review",
+      "type": "task",
+      "parent": "ms-019",
+      "status": "pending",
+      "stream": "roadmap",
+      "description": "One /review command with auto-detected or explicit cadence (--weekly, --monthly). Monthly includes close + plan. Absorbs growth-check as the health audit component.",
+      "tags": [
+        "consolidation",
+        "skill",
+        "venture"
+      ],
+      "priority": "P1",
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [],
+      "created": "2026-03-07"
+    },
+    {
+      "id": "t-222",
+      "subject": "Absorb /refresh-knowledge into /research --refresh",
+      "type": "task",
+      "parent": "ms-019",
+      "status": "pending",
+      "stream": "roadmap",
+      "description": "Add --refresh flag to /research that runs the batch dimension doc update workflow currently in /refresh-knowledge. Delete the standalone skill.",
+      "tags": [
+        "consolidation",
+        "skill"
+      ],
+      "priority": "P2",
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [],
+      "created": "2026-03-07"
+    },
+    {
+      "id": "t-223",
+      "subject": "Merge session-start-venture.sh into session-start.sh",
+      "type": "task",
+      "parent": "ms-019",
+      "status": "pending",
+      "stream": "roadmap",
+      "description": "One session-start hook. Absorb venture project detection (check for docs/sops/, docs/okrs/) and daily-ops nudge into the main hook. Absorb /pickup logic (read session-handoff.md). Delete session-start-venture.sh. Update settings.json.",
+      "tags": [
+        "consolidation",
+        "hooks",
+        "session"
+      ],
+      "priority": "P1",
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [
+        "t-216"
+      ],
+      "created": "2026-03-07"
+    },
+    {
+      "id": "ms-020",
+      "subject": "Documentation Restructure",
+      "type": "milestone",
+      "parent": "t-214",
+      "status": "pending",
+      "stream": "roadmap",
+      "description": "Restructure docs/ into guide/ (user docs) + architecture/ (contributor docs). Write workflow guides and command reference.",
+      "tags": [
+        "build-loop",
+        "docs"
+      ],
+      "priority": "P1",
+      "effort": "L",
+      "execution": "code",
+      "blocked_by": [
+        "ms-019"
+      ],
+      "created": "2026-03-07"
+    },
+    {
+      "id": "t-224",
+      "subject": "Restructure docs/ → guide/ + architecture/ split",
+      "type": "task",
+      "parent": "ms-020",
+      "status": "pending",
+      "stream": "roadmap",
+      "description": "Move files: system-guide.md → architecture/overview.md, decisions/ → architecture/decisions/, features/ → architecture/features/. Create guide/workflows/ and guide/commands/ directories. Move skills.md/hooks.md/agents.md/extending.md → architecture/. Update all internal links.",
+      "tags": [
+        "docs",
+        "restructure"
+      ],
+      "priority": "P1",
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [],
+      "created": "2026-03-07"
+    },
+    {
+      "id": "t-225",
+      "subject": "Write user workflow guides (build, capture, session, research, venture, learn)",
+      "type": "task",
+      "parent": "ms-020",
+      "status": "pending",
+      "stream": "roadmap",
+      "description": "6 workflow guides in docs/guide/workflows/. User-friendly, example-driven. Explains how to use brana for each workflow. No implementation details — that's in architecture/.",
+      "tags": [
+        "docs",
+        "user-guide"
+      ],
+      "priority": "P1",
+      "effort": "L",
+      "execution": "code",
+      "blocked_by": [
+        "t-224"
+      ],
+      "created": "2026-03-07"
+    },
+    {
+      "id": "t-226",
+      "subject": "Write command reference pages (one per command + index)",
+      "type": "task",
+      "parent": "ms-020",
+      "status": "pending",
+      "stream": "roadmap",
+      "description": "docs/guide/commands/index.md with all ~25 commands (one-line each). One .md per command with usage, examples, options. User-facing — explains what the command does, not how it's implemented.",
+      "tags": [
+        "docs",
+        "user-guide",
+        "reference"
+      ],
+      "priority": "P1",
+      "effort": "L",
+      "execution": "code",
+      "blocked_by": [
+        "t-224"
+      ],
+      "created": "2026-03-07"
+    },
+    {
+      "id": "t-227",
+      "subject": "Write getting-started.md + concepts.md",
+      "type": "task",
+      "parent": "ms-020",
+      "status": "pending",
+      "stream": "roadmap",
+      "description": "getting-started.md: install, first session, core workflow overview. concepts.md: glossary (skill, hook, rule, agent, dimension, reflection, stream, phase, milestone, strategy, build_step).",
+      "tags": [
+        "docs",
+        "user-guide"
+      ],
+      "priority": "P1",
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [
+        "t-224"
+      ],
+      "created": "2026-03-07"
+    },
+    {
+      "id": "t-228",
+      "subject": "Remove hardcoded counts from all docs, delete verify-counts.sh",
+      "type": "task",
+      "parent": "ms-020",
+      "status": "pending",
+      "stream": "roadmap",
+      "description": "Grep all docs for hardcoded counts (N skills, N agents, N rules, N hooks). Replace with references to source of truth (e.g., 'see the skills catalog' instead of '40 skills'). Delete system/scripts/verify-counts.sh.",
+      "tags": [
+        "docs",
+        "cleanup"
+      ],
+      "priority": "P2",
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [],
+      "created": "2026-03-07"
+    },
+    {
+      "id": "ms-021",
+      "subject": "Cleanup and Retirement",
+      "type": "milestone",
+      "parent": "t-214",
+      "status": "pending",
+      "stream": "roadmap",
+      "description": "Retire old skills, update routing rules and task conventions.",
+      "tags": [
+        "build-loop",
+        "cleanup"
+      ],
+      "priority": "P1",
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [
+        "ms-020"
+      ],
+      "created": "2026-03-07"
+    },
+    {
+      "id": "t-229",
+      "subject": "Retire 17 old skills (remove SKILL.md dirs)",
+      "type": "task",
+      "parent": "ms-021",
+      "status": "pending",
+      "stream": "roadmap",
+      "description": "Delete skill directories for: pickup, build-feature, build-phase, back-propagate, decide (standalone only — logic moves to /build), knowledge, refresh-knowledge, venture-onboard, venture-align, project-onboard, project-align, morning, growth-check, weekly-review, monthly-close, monthly-plan, experiment, content-plan, sop, usage-stats, personal-check. Run validate.sh after to confirm no broken references.",
+      "tags": [
+        "cleanup",
+        "retirement"
+      ],
+      "priority": "P1",
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [],
+      "created": "2026-03-07"
+    },
+    {
+      "id": "t-230",
+      "subject": "Update delegation-routing.md for new command names",
+      "type": "task",
+      "parent": "ms-021",
+      "status": "pending",
+      "stream": "roadmap",
+      "description": "Rewrite the trigger→command table in delegation-routing.md to reference new command names (/build, /close, /onboard, /align, /review, /research --refresh). Remove triggers for retired commands.",
+      "tags": [
+        "cleanup",
+        "rules"
+      ],
+      "priority": "P1",
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [],
+      "created": "2026-03-07"
+    },
+    {
+      "id": "t-231",
+      "subject": "Update task-convention.md for /tasks start → /build flow",
+      "type": "task",
+      "parent": "ms-021",
+      "status": "pending",
+      "stream": "roadmap",
+      "description": "Update the task convention rule to document: strategy and build_step fields, /tasks start entering /build for code tasks, /tasks done only for manual/external, auto-classification of strategy at /tasks add time, cross-reference check at /build entry.",
+      "tags": [
+        "cleanup",
+        "rules"
+      ],
+      "priority": "P1",
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [
+        "t-217"
+      ],
+      "created": "2026-03-07"
     }
   ]
 }
