@@ -5996,7 +5996,7 @@
       "subject": "Write /close SKILL.md — replaces session-handoff + debrief",
       "type": "task",
       "parent": "ms-018",
-      "status": "pending",
+      "status": "in_progress",
       "stream": "roadmap",
       "description": "Session close skill. Absorbs /session-handoff close mode and /debrief. Writes handoff note, extracts learnings, stores patterns, computes metrics. Auto-detects close context (no pickup mode — that moves to session-start hook).",
       "tags": [
@@ -6008,7 +6008,8 @@
       "effort": "M",
       "execution": "code",
       "blocked_by": [],
-      "created": "2026-03-07"
+      "created": "2026-03-07",
+      "started": "2026-03-07"
     },
     {
       "id": "t-217",
