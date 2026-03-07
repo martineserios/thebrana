@@ -111,16 +111,18 @@ The user controls the pace. Stay in the research→discuss loop until the user s
 
 #### Research loop
 
+**Seed from task metadata:** If attached to a task, extract research keywords from the task's `tags`, `description`, and `context` fields. These are the initial search vectors for all research tracks below.
+
 Run research in this order — each layer adds context for the next:
 
-1. **Knowledge base** — search claude-flow memory + dimension docs for related patterns
+1. **Knowledge base** — search claude-flow memory + dimension docs using task tags and description keywords
    ```bash
    source "$HOME/.claude/scripts/cf-env.sh"
-   cd "$HOME" && $CF memory search --query "{topic keywords}" --namespace knowledge --format json
+   cd "$HOME" && $CF memory search --query "{task tags + description keywords}" --namespace knowledge --format json
    ```
-2. **Project docs** — grep/read the project's own documentation, existing implementations, CLAUDE.md
-3. **Cross-project patterns** — search claude-flow for patterns from other projects
-4. **Web research** — spawn scout agents for external research (parallel with discussion)
+2. **Project docs** — grep/read the project's own documentation, existing implementations, CLAUDE.md. Search for task tags and related concepts.
+3. **Cross-project patterns** — search claude-flow for patterns from other projects matching task tags
+4. **Web research** — spawn scout agents for external research using task description + tags as search terms (parallel with discussion)
 
 #### Present and discuss
 
