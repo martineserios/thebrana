@@ -174,6 +174,58 @@ if [ -n "$LAYER0_DIR" ]; then
     fi
 fi
 
+# ── Venture project detection (absorbed from session-start-venture.sh) ──
+VENTURE_CONTEXT=""
+VENTURE_DIRS="docs/sops docs/okrs docs/metrics docs/pipeline docs/venture"
+IS_VENTURE=false
+
+for dir in $VENTURE_DIRS; do
+    if [ -d "$CWD/$dir" ]; then
+        IS_VENTURE=true
+        break
+    fi
+done
+
+# Fallback: grep CLAUDE.md for business keywords
+if [ "$IS_VENTURE" = false ] && [ -f "$CWD/CLAUDE.md" ]; then
+    if grep -qiE '(venture|business|startup|revenue|pipeline|okr|growth)' "$CWD/CLAUDE.md" 2>/dev/null; then
+        IS_VENTURE=true
+    fi
+fi
+
+if [ "$IS_VENTURE" = true ]; then
+    VENTURE_CONTEXT="Venture project detected. Auto-delegating to daily-ops agent for morning check."
+
+    # Weekly review staleness check
+    NEWEST_REVIEW=""
+    if [ -d "$CWD/docs/reviews" ]; then
+        NEWEST_REVIEW=$(find "$CWD/docs/reviews" -name 'weekly-*.md' -type f -printf '%T@\n' 2>/dev/null | sort -rn | head -1 || true)
+    fi
+
+    if [ -n "$NEWEST_REVIEW" ]; then
+        NOW=$(date +%s 2>/dev/null) || NOW=0
+        AGE_SECONDS=$(echo "$NOW - ${NEWEST_REVIEW%.*}" | bc 2>/dev/null) || AGE_SECONDS=0
+        SEVEN_DAYS=604800
+        if [ "$AGE_SECONDS" -gt "$SEVEN_DAYS" ]; then
+            DAYS_AGO=$(( AGE_SECONDS / 86400 ))
+            VENTURE_CONTEXT="$VENTURE_CONTEXT
+Weekly review is ${DAYS_AGO} days old. Consider running /review weekly."
+        fi
+    else
+        VENTURE_CONTEXT="$VENTURE_CONTEXT
+No weekly review found. Consider running /review weekly."
+    fi
+
+    # Log to session JSONL
+    SESSION_FILE="/tmp/brana-session-${SESSION_ID}.jsonl"
+    jq -n -c \
+        --argjson ts "$(date +%s 2>/dev/null || echo 0)" \
+        --arg tool "session-start-venture" \
+        --arg outcome "venture-detected" \
+        --arg detail "$VENTURE_CONTEXT" \
+        '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail}' >> "$SESSION_FILE" 2>/dev/null || true
+fi
+
 # Output — only inject context if we found something
 OUTPUT_PARTS=""
 if [ -n "$CONTEXT" ]; then
@@ -191,6 +243,10 @@ fi
 if [ -n "$LOOP_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
 }$LOOP_CONTEXT"
+fi
+if [ -n "$VENTURE_CONTEXT" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}[Venture] $VENTURE_CONTEXT"
 fi
 if [ -n "$CF_WARNING" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS

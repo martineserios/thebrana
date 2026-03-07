@@ -4821,7 +4821,7 @@
         "linkedin",
         "personal-brand"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "stream": "roadmap",
       "type": "subtask",
       "parent": "t-162",
@@ -4833,10 +4833,10 @@
       "branch": null,
       "github_issue": null,
       "created": "2026-03-05",
-      "started": null,
+      "started": "2026-03-07",
       "completed": null,
-      "notes": null,
-      "context": "Current: 'Machine Learning Engineer | Data Developer | MLOps | AI Systems Builder'. Problem: generic, no positioning, reads like a resume."
+      "notes": "EN: 'I see systems. Then I build them. Business problems → AI/ML products, architecture to production.' ES headline pending (st-009).",
+      "context": "Current: 'Machine Learning Engineer | Data Developer | MLOps | AI Systems Builder'. Decided: 'I see systems. Then I build them. Business problems → AI/ML products, architecture to production.' Spanish headline will be original (not translated) in secondary profile."
     },
     {
       "id": "st-002",
@@ -4866,8 +4866,8 @@
     },
     {
       "id": "st-003",
-      "subject": "Rewrite About section",
-      "description": "Replace generic motivational text with positioning statement, brana story, credibility evidence, content pillars, and CTA.",
+      "subject": "Rewrite About section (English primary profile)",
+      "description": "Replace generic motivational text with positioning statement, brana story, credibility evidence, content pillars, and CTA. Fully in English, close with Spanish signature. Spanish About goes in the secondary language profile (st-009).",
       "tags": [
         "content",
         "linkedin",
@@ -5021,6 +5021,36 @@
       "completed": null,
       "notes": null,
       "context": "Banner is wasted real estate. NLM visual styles already tested (darkmode, blueprint, sketch, minimalist, organic) in docs/features/linkedin-content-pipeline/nlm-visual-test/."
+    },
+    {
+      "id": "st-009",
+      "subject": "Create Spanish secondary profile (headline, About, experience)",
+      "description": "Use LinkedIn's secondary language profile feature to create a full Spanish profile. Original content, not translated. Argentine voice, LATAM-specific pain points. Headline adapted (not translated). About section written from scratch for LATAM founders. Experience descriptions reframed in Spanish.",
+      "tags": [
+        "content",
+        "linkedin",
+        "personal-brand"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "subtask",
+      "parent": "t-162",
+      "order": 9,
+      "priority": "P0",
+      "effort": "M",
+      "execution": "manual",
+      "blocked_by": [
+        "st-001",
+        "st-003",
+        "st-007"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-07",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "LinkedIn has a built-in secondary language profile feature. Spanish visitors see the Spanish profile automatically. Write original Spanish content, don't translate English. Blocked by English headline, About, and Experience — those set the positioning that Spanish adapts from."
     },
     {
       "id": "t-179",
@@ -6064,7 +6094,7 @@
       "subject": "Skill Consolidation",
       "type": "milestone",
       "parent": "t-214",
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "description": "Merge redundant skills: onboard, align, review, research refresh, session hooks.",
       "tags": [
@@ -6084,7 +6114,7 @@
       "subject": "Merge /project-onboard + /venture-onboard → /onboard",
       "type": "task",
       "parent": "ms-019",
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "description": "One /onboard command that detects project type (code, venture, hybrid) and applies the right scanning + knowledge recall.",
       "tags": [
@@ -6095,14 +6125,16 @@
       "effort": "M",
       "execution": "code",
       "blocked_by": [],
-      "created": "2026-03-07"
+      "created": "2026-03-07",
+      "started": "2026-03-07",
+      "completed": "2026-03-07"
     },
     {
       "id": "t-220",
       "subject": "Merge /project-align + /venture-align → /align",
       "type": "task",
       "parent": "ms-019",
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "description": "One /align command that applies structure templates based on project type. Code projects get .claude/, docs/decisions/, tests/. Venture projects additionally get docs/sops/, docs/okrs/, docs/metrics/.",
       "tags": [
@@ -6113,14 +6145,16 @@
       "effort": "M",
       "execution": "code",
       "blocked_by": [],
-      "created": "2026-03-07"
+      "created": "2026-03-07",
+      "started": "2026-03-07",
+      "completed": "2026-03-07"
     },
     {
       "id": "t-221",
       "subject": "Merge /weekly-review + /monthly-close + /monthly-plan + /growth-check → /review",
       "type": "task",
       "parent": "ms-019",
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "description": "One /review command with auto-detected or explicit cadence (--weekly, --monthly). Monthly includes close + plan. Absorbs growth-check as the health audit component.",
       "tags": [
@@ -6132,14 +6166,16 @@
       "effort": "M",
       "execution": "code",
       "blocked_by": [],
-      "created": "2026-03-07"
+      "created": "2026-03-07",
+      "started": "2026-03-07",
+      "completed": "2026-03-07"
     },
     {
       "id": "t-222",
       "subject": "Absorb /refresh-knowledge into /research --refresh",
       "type": "task",
       "parent": "ms-019",
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "description": "Add --refresh flag to /research that runs the batch dimension doc update workflow currently in /refresh-knowledge. Delete the standalone skill.",
       "tags": [
@@ -6150,14 +6186,16 @@
       "effort": "S",
       "execution": "code",
       "blocked_by": [],
-      "created": "2026-03-07"
+      "created": "2026-03-07",
+      "started": "2026-03-07",
+      "completed": "2026-03-07"
     },
     {
       "id": "t-223",
       "subject": "Merge session-start-venture.sh into session-start.sh",
       "type": "task",
       "parent": "ms-019",
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "description": "One session-start hook. Absorb venture project detection (check for docs/sops/, docs/okrs/) and daily-ops nudge into the main hook. Absorb /pickup logic (read session-handoff.md). Delete session-start-venture.sh. Update settings.json.",
       "tags": [
@@ -6171,7 +6209,9 @@
       "blocked_by": [
         "t-216"
       ],
-      "created": "2026-03-07"
+      "created": "2026-03-07",
+      "started": "2026-03-07",
+      "completed": "2026-03-07"
     },
     {
       "id": "ms-020",
