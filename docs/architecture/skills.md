@@ -1,49 +1,31 @@
 # Skills Catalog
 
-> 40 slash commands organized by purpose. Each skill is a markdown file (`system/skills/{name}/SKILL.md`) with YAML frontmatter defining its name, description, and allowed tools.
+> Slash commands organized by purpose. Each skill is a markdown file (`system/skills/{name}/SKILL.md`) with YAML frontmatter defining its name, description, and allowed tools.
 
-## Development
+## Build & Development
 
 Skills for building, shipping, and maintaining code.
 
-### `/build-phase`
-Plan and implement the next roadmap phase with built-in learning loops — debrief after each work item, maintain-specs after each phase. The main driver for progressing through the roadmap.
+### `/build`
+Build anything — auto-detects strategy (feature, bug fix, refactor, spike, migration, investigation, greenfield). 4-step loop: SPECIFY → PLAN → BUILD → CLOSE. Integrates with `/tasks` — strategy and build_step fields track progress. Task tags and description seed the research loop.
 
-### `/build-feature`
-Guide a feature from zero to shipped — research, brainstorm, design, plan, build, close. Works for any project and any kind of work (code, design, infra, venture, process). The general-purpose feature builder.
-
-### `/decide`
-Create an Architecture Decision Record (ADR) in `docs/decisions/`. Use before implementing a new feature to document the decision rationale. Required on `feat/*` branches by the spec-first hook.
+### `/close`
+End a session — extract learnings, write handoff note, store patterns, detect doc drift. Absorbs the old `/session-handoff` close mode and `/debrief`.
 
 ### `/challenge`
 Dual-model adversarial review. Opus subagent stress-tests reasoning; Gemini stress-tests against documented knowledge. Use when a significant decision, plan, or architecture needs adversarial review.
 
-### `/debrief`
-Extract errata, fixes, and process learnings from the current session. Use at the end of implementation sessions to capture what went right, what went wrong, and what to remember.
-
 ### `/reconcile`
 Detect drift between spec docs and `system/` implementation. Plans fixes and applies them after approval. Use after `/maintain-specs` or periodically to keep specs and code in sync.
 
-### `/back-propagate`
-Propagate implementation changes back to spec docs — update `docs/` when `system/` rules, hooks, skills, agents, or config change. The reverse of `/reconcile`.
-
 ### `/research`
-Research a topic, doc, or creator — check sources, follow references recursively, produce findings. Spawns scout agents for parallel web search. Use for deep research on any topic.
-
-### `/refresh-knowledge`
-Refresh external research for spec docs — web-search for updates to dimension, venture/PM, and cross-cutting topics. Use when docs may be stale or before major phase planning.
-
-### `/knowledge`
-Browse, annotate, review, and reindex the brana-knowledge dimension docs. The interface to the knowledge base.
+Research a topic, doc, or creator — check sources, follow references recursively, produce findings. Spawns scout agents for parallel web search. `--refresh` flag runs batch dimension doc updates (replaces the old `/refresh-knowledge`).
 
 ### `/tasks`
-Manage tasks — plan, track, navigate phases and streams. Supports `plan`, `add`, `start`, `list`, `reprioritize`, and `--wide` display mode. The central task management interface.
+Manage tasks — plan, track, navigate phases and streams. Supports `plan`, `add`, `start`, `done`, `status`, `portfolio`, `roadmap`, `next`, `reprioritize`, `tags`, `context`, `execute`, and `--wide` display mode. `/tasks start` auto-classifies strategy and enters `/build` for code tasks.
 
-### `/pickup`
-Resume from last session — read handoff notes, cross-reference task status, present actionable items. Use at session start to continue where you left off.
-
-### `/usage-stats`
-Token usage analytics — model distribution, activity trends, session efficiency. Use when checking usage patterns or evaluating model routing.
+### `/log`
+Capture events — links, calls, meetings, ideas, observations — into a searchable append-only log. Includes bulk mode for WhatsApp dumps and URL-to-task promotion.
 
 ## Quality & Memory
 
@@ -59,57 +41,33 @@ Knowledge system operations with subcommands:
 ### `/retrospective`
 Store a learning or pattern in the knowledge system. Use after notable discoveries, unexpected issues, or successful workarounds.
 
-### `/project-align`
-Actively align a project with brana practices — assess gaps, plan fixes, implement structure, verify, and document. Use when setting up a new project or when one needs structural alignment.
+### `/onboard`
+Scan and diagnose a project — auto-detects type (code, venture, or hybrid). Outputs a gap report with recommendations. Diagnostic only — no file creation.
 
-### `/project-onboard`
-Bootstrap a new project by scanning its structure and recalling relevant portfolio knowledge. Use when entering an unfamiliar project for the first time.
+### `/align`
+Actively align a project with brana practices — 6 phases: DISCOVER → ASSESS → PLAN → IMPLEMENT → VERIFY → DOCUMENT. Auto-detects project type and applies type-appropriate checklists.
 
 ### `/project-retire`
 Archive a project's patterns and mark them as historical. Categorizes knowledge as transferable, historical, or deletable.
-
-### `/personal-check`
-Personal life check — tasks, life areas, journal freshness. Use at session start for personal priorities.
 
 ## Business / Venture
 
 Skills for managing business projects through their lifecycle.
 
-### `/venture-align`
-Set up business management structure — stage-appropriate templates, SOPs, OKRs, metrics, meeting cadences. The structural foundation for a venture project.
-
-### `/venture-onboard`
-Discover and diagnose a business project — stage classification, framework recommendation, gap report. Use when taking over a business project or starting on a new venture.
+### `/review`
+Business review with three subcommands:
+- `weekly` (default) — portfolio health, metrics delta, ship log, next-week planning
+- `monthly` — monthly close + forward plan (P&L, actuals vs projections, targets)
+- `check` — ad-hoc AARRR funnel audit and growth health check
 
 ### `/venture-phase`
 Plan and execute a business milestone — product launch, hiring, fundraise, expansion, or custom. Includes learning loops for continuous improvement.
-
-### `/growth-check`
-Business health audit — AARRR funnel analysis and stage-appropriate metrics check with trend tracking. Use monthly/quarterly for business health assessment.
-
-### `/experiment`
-Growth experiment loop — hypothesis, test design, success criteria, results, learning. Structured experimentation with auto-incrementing records.
-
-### `/morning`
-Daily operational check — stage-aware focus card with priorities, blockers, key metric, and optional calendar review. Use at session start on a venture project.
-
-### `/weekly-review`
-Weekly cadence review — portfolio health, zombie cleanup, metrics delta, ship log, and next-week planning with trend storage. Use every Friday or Monday.
-
-### `/monthly-close`
-Monthly financial close — P&L summary, actuals vs projections, trend analysis, runway update. The monthly heartbeat of business health.
-
-### `/monthly-plan`
-Forward-looking monthly plan — revenue targets, priorities tied to bottleneck, experiments, pipeline actions, budget allocation. Use at month-start after `/monthly-close`.
 
 ### `/financial-model`
 Revenue projections, scenario analysis, P&L template, unit economics, and cash flow analysis. Stage-aware financial modeling for founders.
 
 ### `/pipeline`
 Sales pipeline tracking — leads, deals, conversions, follow-ups. Stage-aware CRM that works with markdown or MCP integrations.
-
-### `/sop`
-Create a structured, versioned Standard Operating Procedure from a described process. Use when a repeatable process needs formal documentation.
 
 ### `/proposal`
 Generate a client proposal — interview-driven, structured markdown with cost breakdown and timeline.
@@ -133,9 +91,6 @@ Write Meta WhatsApp templates optimized for Utility classification — empirical
 ### `/respondio-prompts`
 Respond.io AI agent prompt engineering — write instructions, actions, KB files, and multi-agent architectures within platform constraints.
 
-### `/content-plan`
-Marketing content planning — themes, calendar, distribution checklist, performance tracking. Quarterly content strategy aligned to growth goals.
-
 ### `/scheduler`
 Scheduled jobs management.
 
@@ -144,15 +99,13 @@ Find and install marketplace skills for project tech gaps. Scans project files f
 
 ## Commands
 
-Brana also includes commands in `system/commands/`. Commands are like skills but typically orchestrate multi-step workflows:
+Brana also includes commands in `system/commands/`. Commands orchestrate multi-step spec workflows:
 
 | Command | Description |
 |---------|-------------|
-| `/session-handoff` | Auto-detect pickup or close — extracts learnings, writes handoff note |
 | `/maintain-specs` | Full spec correction cycle — errata, reflections, synthesis, hygiene |
 | `/apply-errata` | Apply pending errata through the layer hierarchy |
 | `/re-evaluate-reflections` | Cross-check reflections against dimension docs |
-| `/refresh-knowledge` | Research web for updates to dimension docs |
 | `/repo-cleanup` | Commit accumulated spec changes — survey, batch, branch, merge |
 | `init-project` | Initialize a new project with brana structure |
 

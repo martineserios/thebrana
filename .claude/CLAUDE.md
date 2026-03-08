@@ -21,9 +21,10 @@ Docs are split by nature across two repos:
 thebrana/docs/                    ← operational docs (this repo)
 ├── reflections/                  ← 08, 14, 29, 31, 32 — cross-cutting synthesis
 ├── 00, 15, 17-19, 24, 25, 30    ← roadmap + operational docs
-├── 39-architecture-redesign      ← active migration plan
-├── decisions/                    ← ADRs
-└── features/                     ← feature briefs
+├── guide/                        ← user-facing workflow guides + command reference
+├── architecture/                 ← contributor docs (overview, skills, hooks, agents, extending)
+│   ├── decisions/                ← ADRs
+│   └── features/                 ← feature briefs
 
 brana-knowledge/dimensions/       ← knowledge docs (separate repo)
 ├── 01-07, 09-13, 16, 20-23      ← research in depth
@@ -65,20 +66,20 @@ Version: v0.6.0 (Phase 1: Unified Repo)
 | `./validate.sh` | Pre-deploy checks (frontmatter, budget, secrets) |
 | `./export-knowledge.sh` | Export native memory + ReasoningBank |
 
-### Architect Commands
+### Build & Development
 
 | Command | Purpose |
 |---------|---------|
-| `/build-phase` | Plan and implement next roadmap phase |
-| `/maintain-specs` | Cascade spec changes: dimension → reflection → roadmap |
-| `/back-propagate` | Propagate implementation changes back to specs |
-| `/refresh-knowledge` | Research external updates to dimension docs |
+| `/build` | Build anything — auto-detects strategy (feature, bug fix, refactor, spike, migration, investigation, greenfield) |
+| `/close` | End session — extract learnings, write handoff, store patterns |
+| `/tasks` | Manage tasks — plan, track, navigate work |
 | `/challenge` | Adversarial review of a plan or decision |
-| `/decide` | Create an Architecture Decision Record |
 | `/reconcile` | Detect spec-vs-implementation drift, plan fixes, apply after approval |
-| `/debrief` | Extract errata and learnings from current session |
-| `/research` | Research a topic, doc, or creator — recursive discovery |
-| `/knowledge` | Browse, annotate, review, and reindex brana-knowledge |
+| `/maintain-specs` | Cascade spec changes: dimension → reflection → roadmap |
+| `/research` | Research a topic, doc, or creator — recursive discovery. `--refresh` for batch dimension updates |
+| `/onboard` | Scan and diagnose a project (code, venture, or hybrid) |
+| `/align` | Implement project structure based on /onboard findings |
+| `/review` | Business health — weekly (default), monthly, or ad-hoc check |
 
 ## Specs Reference
 
@@ -107,7 +108,7 @@ Version: v0.6.0 (Phase 1: Unified Repo)
 - Keep documents concise and opinionated
 - Changes propagate: dimension → reflection → roadmap (`/maintain-specs`)
 - Spec changes push to implementation (`/reconcile`)
-- Implementation changes push back to specs (`/back-propagate`)
+- Implementation changes update docs in the same commit (no separate back-propagation step)
 - When adding new docs, update `docs/README.md`
 
 ## Memory and Knowledge Retrieval (claude-flow)
