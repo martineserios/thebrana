@@ -39,17 +39,16 @@ The hooks are the glue connecting all three.
 ```
 ~/.claude/                                    THE MASTERMIND
 ├── CLAUDE.md                                 ← Identity + universal principles
-├── skills/                                      ← 40 deployed skills (SKILL.md + optional bundled scripts)
-│   ├── memory/SKILL.md                       ← Knowledge ops: recall, pollinate, review, audit
-│   ├── project-onboard/SKILL.md              ← Bootstrap a new project with relevant knowledge
-│   ├── retrospective/SKILL.md                ← End-of-session learning extraction
-│   ├── decide/SKILL.md                       ← Create ADRs in docs/decisions/
+├── skills/                                      ← 25 deployed skills (SKILL.md + optional bundled scripts)
+│   ├── build/SKILL.md                        ← Unified dev command — 7 strategies, task-aware
+│   ├── close/SKILL.md                        ← Session end — learnings, handoff, patterns
 │   ├── tasks/SKILL.md                        ← Plan, track, and execute tasks across phases and streams
-│   ├── knowledge/                            ← First bundled skill (ADR-011)
-│   │   ├── SKILL.md                          ← Browse, annotate, review, reindex knowledge
-│   │   ├── generate-index.sh                 ← Generate INDEX.md for brana-knowledge
-│   │   └── index-knowledge.sh                ← Index dimensions into claude-flow memory
-│   └── ...                                   ← +32 more (build-phase, research, reconcile, respondio, etc.)
+│   ├── onboard/SKILL.md                      ← Scan and diagnose a project (code/venture/hybrid)
+│   ├── align/SKILL.md                        ← Implement project structure from /onboard findings
+│   ├── review/SKILL.md                       ← Business health — weekly, monthly, ad-hoc check
+│   ├── research/SKILL.md                     ← Research topics + --refresh for dimension updates
+│   ├── memory/SKILL.md                       ← Knowledge ops: recall, pollinate, review, audit
+│   └── ...                                   ← +17 more (challenge, reconcile, log, pipeline, etc.)
 ├── skill-catalog.md                             ← Vetted external skills (version-pinned, not installed)
 ├── agents/
 │   ├── scout.md                              ← Haiku-powered fast research agent
@@ -69,13 +68,10 @@ The hooks are the glue connecting all three.
 │   ├── backup-knowledge.sh                   ← Trigger brana-knowledge backup
 │   ├── index-knowledge.sh                    ← Index brana-knowledge into claude-flow memory
 │   ├── generate-index.sh                     ← Generate knowledge base INDEX.md
-│   ├── skill-graph.sh                        ← Skill interaction and dependency diagram
-│   └── verify-counts.sh                      ← Post-deploy count verification (ADR-007)
+│   └── skill-graph.sh                        ← Skill interaction and dependency diagram
 ├── commands/
-│   ├── session-handoff.md                    ← Rolling session continuity log (dated sections)
 │   ├── init-project                          ← Bootstrap new project with CLAUDE.md + structure
 │   ├── maintain-specs.md                     ← Cascade spec changes: dimension → reflection → roadmap
-│   ├── refresh-knowledge.md                  ← Research external updates to dimension docs
 │   ├── re-evaluate-reflections.md            ← Cross-check reflections against dimensions
 │   ├── apply-errata.md                       ← Apply pending errata through layer hierarchy
 │   └── repo-cleanup.md                       ← Commit accumulated spec doc changes
@@ -142,7 +138,7 @@ Loaded automatically:
 
 Available on demand:
   6. ~/.claude/skills/*               ← /memory recall, /memory pollinate, etc.
-  7. ~/.claude/commands/*             ← /session-handoff, /init-project (slash commands)
+  7. ~/.claude/commands/*             ← /init-project, /maintain-specs (slash commands)
   8. ~/projects/alpha/.claude/skills/* ← /deploy, /migrate (project-specific)
   9. All installed plugins             ← pr-review-toolkit, security-guidance, etc.
 
@@ -161,7 +157,7 @@ Skills are user-invocable workflows (`/command`). Agents auto-delegate when the 
 
 ### Five Integration Patterns
 
-**Pattern A: Skill spawns agent as worker.** Orchestrator skills delegate focused work to agents via the Task tool. The skill controls the workflow; the agent does the heavy lifting in a forked context. Example: `/build-phase` spawns memory-curator for recall and debrief-analyst for end-of-cycle extraction.
+**Pattern A: Skill spawns agent as worker.** Orchestrator skills delegate focused work to agents via the Task tool. The skill controls the workflow; the agent does the heavy lifting in a forked context. Example: `/build` spawns memory-curator for recall and debrief-analyst for end-of-cycle extraction.
 
 **Pattern B: Agent preloads skill knowledge.** Agents can have skills preloaded via the `skills:` YAML field — full skill content injected at startup, not just available for invocation. Use sparingly: only for small domain knowledge skills where the agent always needs that context. Large skills bloat the agent's context window.
 
@@ -183,7 +179,7 @@ Skills are user-invocable workflows (`/command`). Agents auto-delegate when the 
 | **debrief-analyst** | Opus | Session learning extraction, errata identification | Read-only |
 | **archiver** | Haiku | Knowledge backup and export | Read, Bash |
 | **daily-ops** | Haiku | Daily operational checks for venture projects | Read-only |
-| **metrics-collector** | Haiku | Gather data for venture skills (growth-check, weekly-review, monthly-close) | Read-only |
+| **metrics-collector** | Haiku | Gather data for /review (weekly, monthly, ad-hoc check) | Read-only |
 | **pipeline-tracker** | Haiku | Pipeline tracking and deal analysis | Read-only |
 | **pr-reviewer** | Sonnet | PR diff review: security, logic, style, completeness | Read-only + Bash (gh CLI) |
 
@@ -248,7 +244,7 @@ Before Write or Edit executes:
   2. Check if on a feat/* branch
   3. If both: verify spec or test activity exists on this branch
   4. If no spec/test activity → block with permissionDecision: "deny"
-     "Create an ADR (/decide) or write tests before implementation."
+     "Create an ADR or write tests before implementation."
 
   Pure git operations, no claude-flow dependency, <100ms latency.
   Always allows spec/test file writes. Passes through on non-feat branches.
@@ -274,8 +270,8 @@ On every session start:
   4. Fallback: grep native auto memory if claude-flow unavailable
   5. Inject task context (from tasks.json: current phase, next unblocked task)
   6. Check self-learning flags from previous session:
-     - .needs-backprop → "System files changed, consider /back-propagate"
-     - pending-learnings.md → "N unprocessed sessions, consider /debrief"
+     - .needs-backprop → "System files changed, update docs in next commit"
+     - pending-learnings.md → "N unprocessed sessions, consider /close"
   7. Log recalled patterns to session JSONL for promotion tracking
 ```
 
@@ -304,7 +300,7 @@ On every session end:
   4. Store session summary in ReasoningBank (patterns namespace)
   5. Store flywheel metrics separately (metrics namespace) for trending
   6. Write to Layer 0: sessions.md, pending-learnings.md (if CF fails)
-  7. Auto-generate minimal handoff note if /session-handoff wasn't called
+  7. Auto-generate minimal handoff note if /close wasn't called
   8. Detect system file drift → write .needs-backprop flag for next session
 ```
 
@@ -372,7 +368,7 @@ These are optional extensions to the 3-hook core above. They matter when teammat
 
 Hooks fire within interactive sessions. The scheduler fires between them — running maintenance tasks on a cadence without human presence.
 
-**brana-scheduler** is a thin bash+jq wrapper over systemd user timers ([ADR-002](../decisions/ADR-002-scheduler-thin-layer-over-systemd.md), accepted 2026-02-19). It gives the brain a heartbeat: jobs run on schedule, results flow into claude-flow memory, and the next `/morning` session sees what happened overnight.
+**brana-scheduler** is a thin bash+jq wrapper over systemd user timers ([ADR-002](../architecture/decisions/ADR-002-scheduler-thin-layer-over-systemd.md), accepted 2026-02-19). It gives the brain a heartbeat: jobs run on schedule, results flow into claude-flow memory, and the next session sees what happened overnight.
 
 ### Architecture
 
@@ -393,7 +389,7 @@ The runner handles: config-driven retry with exponential backoff, `flock` concur
 |-------|-----------|---------|
 | Hooks | During a session, per event | SessionStart recalls patterns, SessionEnd extracts learnings |
 | Scheduler | Between sessions, on cadence | Weekly staleness check, overnight research refresh |
-| Skills | On user invocation | `/maintain-specs`, `/research`, `/growth-check` |
+| Skills | On user invocation | `/maintain-specs`, `/research`, `/review` |
 | Agents | On auto-delegation | challenger reviews a plan, scout researches a topic |
 
 Skills can run headless via `claude -p "Execute /skill-name"` — the scheduler invokes them the same way a user would, just unattended.
@@ -570,31 +566,9 @@ allowed-tools: [Bash, Read, Write, Glob, Grep, AskUserQuestion]
 
 The `correction_weight` field (Wave 3) creates a fast track: patterns that resolve real errors during active work earn promotion at 2 corrections instead of the standard 3 recalls. This rewards battle-tested fixes over passively recalled knowledge.
 
-### 4. `/project-onboard` — "I'm starting a new project"
+### 4. `/onboard` — "I'm starting a new project"
 
-```markdown
----
-name: project-onboard
-description: Bootstrap a new project with relevant knowledge from all other projects.
-  Queries ReasoningBank for patterns matching the new project's tech stack and domain.
-allowed-tools: [Bash, Read, Write, AskUserQuestion]
----
-
-A new project is being set up. Help it benefit from everything you've learned:
-
-1. Analyze the project: tech stack, framework, language, domain
-2. Query ReasoningBank for ALL patterns matching these technologies
-3. Group findings:
-   - Architecture patterns that worked in similar stacks
-   - Common pitfalls to avoid (from failures in other projects)
-   - Testing strategies that proved effective
-   - Performance patterns worth applying from day one
-4. Suggest initial .claude/ structure:
-   - CLAUDE.md skeleton based on similar projects
-   - rules/ based on technology conventions you've learned
-   - skills/ for workflows this tech stack needs
-5. Create a "lessons from the portfolio" section in the new project's CLAUDE.md
-```
+Scans and diagnoses a project — auto-detects type (code, venture, or hybrid) from project manifests and directory structure. Outputs a gap report with recommendations. Diagnostic only — no file creation. See `/align` for implementing the recommendations.
 
 ### 5. `/project-retire` — "Archive this project's knowledge"
 
@@ -622,19 +596,17 @@ This project is being archived. Extract everything valuable:
 5. Update portfolio.md
 ```
 
-### 6. `/project-align` — "Get this project aligned with brana practices"
+### 6. `/align` — "Get this project aligned with brana practices"
 
-Active alignment pipeline — the bridge between diagnostic (`/project-onboard`) and enforcement (PreToolUse hooks). Runs a 5-phase process: DISCOVER (interview), ASSESS (28-item checklist), PLAN (gap-based action list), IMPLEMENT (create files and structure), VERIFY (before/after comparison), DOCUMENT (ReasoningBank + report).
-
-Three tiers: minimal (foundation only, 4 items), standard (foundation + SDD + TDD, 13 items), full (all 7 groups, 28 items). Works on both greenfield and brownfield projects. See [27-project-alignment-methodology.md](../../../brana-knowledge/dimensions/27-project-alignment-methodology.md) for the full methodology.
+Active alignment pipeline — the bridge between diagnostic (`/onboard`) and enforcement (PreToolUse hooks). Runs a 6-phase process: DISCOVER → ASSESS → PLAN → IMPLEMENT → VERIFY → DOCUMENT. Auto-detects project type (code or venture) and applies type-appropriate checklists. Works on both greenfield and brownfield projects. See [27-project-alignment-methodology.md](../../../brana-knowledge/dimensions/27-project-alignment-methodology.md) for the full methodology.
 
 ### Beyond the Six: `/research` — "What's new in the world?"
 
-The six skills above manage *internal* knowledge — what you've learned, how to transfer it, how to align projects. `/research` manages *external* knowledge acquisition: checking sources, following references, discovering new creators. It's the atomic primitive that `/refresh-knowledge` orchestrates across docs. Source registry, trust tiers, version pinning, leads queue, and recursive discovery are formalized in [33-research-methodology.md](../../../brana-knowledge/dimensions/33-research-methodology.md).
+The six skills above manage *internal* knowledge — what you've learned, how to transfer it, how to align projects. `/research` manages *external* knowledge acquisition: checking sources, following references, discovering new creators. The `--refresh` flag orchestrates batch updates across dimension docs. Source registry, trust tiers, version pinning, leads queue, and recursive discovery are formalized in [33-research-methodology.md](../../../brana-knowledge/dimensions/33-research-methodology.md).
 
 ### Beyond the Six: Venture Operating System — "Run the business"
 
-The core six skills + `/research` handle the *development system*. A parallel layer of venture management skills handles the *business system*: daily operational checks (`/morning`), weekly cadence reviews (`/weekly-review`), monthly financial close (`/monthly-close`), forward planning (`/monthly-plan`), sales pipeline (`/pipeline`), growth experiments (`/experiment`), content strategy (`/content-plan`), and financial modeling (`/financial-model`). These skills compose into a daily operating system for startups and SMBs. See [34-venture-operating-system.md](../../../brana-knowledge/dimensions/34-venture-operating-system.md) for the full architecture, MCP integrations, and skill cadences.
+The core six skills + `/research` handle the *development system*. The `/review` skill handles periodic business health: weekly cadence reviews (default), monthly close + forward plan (`/review monthly`), and ad-hoc growth audits (`/review check`). Additional venture skills include `/pipeline` (sales tracking), `/venture-phase` (business milestones), and `/financial-model` (revenue projections). These compose into a daily operating system for startups and SMBs. See [34-venture-operating-system.md](../../../brana-knowledge/dimensions/34-venture-operating-system.md) for the full architecture.
 
 ### Beyond the Six: Task Management — "Plan and track work"
 
@@ -642,16 +614,15 @@ The `/tasks` skill provides structured project planning: hierarchical task track
 
 ### Beyond the Six: Spec Maintenance Loop — "Keep specs and implementation in sync"
 
-Four commands form a closed maintenance loop within thebrana (specs in `docs/` ↔ implementation in `system/`). Each handles one direction of change propagation:
+Three commands form a closed maintenance loop within thebrana (specs in `docs/` ↔ implementation in `system/`). Each handles one direction of change propagation:
 
 | Command | Direction | Purpose |
 |---------|-----------|---------|
-| `/refresh-knowledge` | external → specs | Research external updates to dimension docs |
+| `/research --refresh` | external → specs | Research external updates to dimension docs |
 | `/maintain-specs` | specs → specs | Cascade changes upward: dimension → reflection → roadmap |
 | `/reconcile` | specs → implementation | Detect drift, fix `system/` to match current specs in `docs/` |
-| `/back-propagate` | implementation → specs | Update `docs/` when `system/` changes (new skills, rules, hooks, config) |
 
-The loop runs in both directions: when specs evolve, `/maintain-specs` cascades internally and `/reconcile` pushes forward to implementation. When implementation evolves, `/back-propagate` pushes backward to specs. `/refresh-knowledge` feeds the loop with external updates. `/build-phase` orchestrates greenfield implementation from specs and triggers `/back-propagate` on completion. See [25-self-documentation.md](../25-self-documentation.md) for the full command architecture and flow diagrams.
+Implementation changes update docs in the same commit (no separate back-propagation step — the old `/back-propagate` was retired). When specs evolve, `/maintain-specs` cascades internally and `/reconcile` pushes forward to implementation. `/research --refresh` feeds the loop with external updates. `/build` orchestrates implementation and includes doc updates in the CLOSE step. See [25-self-documentation.md](../25-self-documentation.md) for the full command architecture.
 
 ---
 
@@ -704,7 +675,7 @@ Day 5: Working on project-alpha
   └─ Now 47 patterns for alpha.
 
 Day 8: Start project-beta (Rust CLI)
-  └─ /project-onboard → "No Rust patterns yet, but from alpha you know:
+  └─ /onboard → "No Rust patterns yet, but from alpha you know:
      testing strategy, git workflow, error handling philosophy."
   └─ Apply testing discipline from alpha to beta.
   └─ Learn Rust-specific patterns. Store them.
@@ -716,7 +687,7 @@ Day 15: Back to project-alpha
   └─ Cross-pollination happens naturally.
 
 Day 30: Start project-gamma (React Native + Supabase)
-  └─ /project-onboard → "From alpha: Supabase RLS patterns, auth flow,
+  └─ /onboard → "From alpha: Supabase RLS patterns, auth flow,
      webhook handling. From beta: async patterns, error handling."
   └─ Gamma starts with 30% of its problems already solved.
 
@@ -771,13 +742,13 @@ Four enforcement levels, each stronger than the last:
 | Level | Mechanism | Compliance | Where It Lives |
 |-------|-----------|-----------|---------------|
 | **Convention** | Rules files (`.claude/rules/`) | ~80% | `sdd-tdd.md` — documents expectations |
-| **Workflow** | Skills (on-demand invocation) | ~85-95% | `/decide` — creates ADRs, `/domain-model` — creates domain specs (future) |
+| **Workflow** | Skills (on-demand invocation) | ~85-95% | `/build` SPECIFY step creates ADRs, `/domain-model` — creates domain specs (future) |
 | **Enforcement** | PreToolUse hooks | ~100% | `pre-tool-use.sh` — blocks violations |
 | **Structural** | Architecture linters (CI/CD) | ~100% | ArchUnit, dependency-cruiser, import-linter — enforce bounded context boundaries |
 
 Convention sets expectations. Skills provide the workflow. Hooks enforce the gate. Linters validate the structure.
 
-**Active alignment:** The `/project-align` skill (see [27-project-alignment-methodology.md](../../../brana-knowledge/dimensions/27-project-alignment-methodology.md)) actively creates the structure projects need for enforcement — it's the bridge between "the mastermind can enforce" and "the project is ready for enforcement."
+**Active alignment:** The `/align` skill (see [27-project-alignment-methodology.md](~/enter_thebrana/brana-knowledge/dimensions/27-project-alignment-methodology.md)) actively creates the structure projects need for enforcement — it's the bridge between "the mastermind can enforce" and "the project is ready for enforcement."
 
 See [32-lifecycle.md](./32-lifecycle.md) for the full DDD → SDD → TDD development workflow, discipline ordering, detailed enforcement mechanisms, multi-agent context isolation, and the connection to the learning loop. See [11-ecosystem-skills-plugins.md](../../../brana-knowledge/dimensions/11-ecosystem-skills-plugins.md) section 5 for the enforcement tools landscape.
 
@@ -798,7 +769,7 @@ This system adds:
 | **Confidence-weighted recall** | Patterns that worked 5 times rank higher than one-time solutions |
 | **Failure memory** | What DIDN'T work is stored and recalled to prevent repeating mistakes |
 | **Progressive mastery** | The system gets better at every domain it touches, compounding over time |
-| **New project bootstrapping** | Day-1 knowledge from the entire portfolio via `/project-onboard` |
+| **New project bootstrapping** | Day-1 knowledge from the entire portfolio via `/onboard` |
 | **Knowledge preservation** | Projects end, but their learnings live on via `/project-retire` |
 | **Development discipline** | Three-layer enforcement (DDD → SDD → TDD): domain modeling, spec-before-code, test-before-code — deterministic where possible, convention where not |
 

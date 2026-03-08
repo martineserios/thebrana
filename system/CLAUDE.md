@@ -40,7 +40,7 @@ Specialized agents complement skills. Agents auto-delegate — no slash command 
 | scout | Haiku | Research tasks (spawned by skills) |
 | archiver | Haiku | Retiring a project |
 | daily-ops | Haiku | Session start on venture project |
-| metrics-collector | Haiku | Growth-check, weekly-review, monthly-close |
+| metrics-collector | Haiku | /review — weekly, monthly, ad-hoc check |
 | pipeline-tracker | Haiku | Pipeline tracking, deal events |
 
 Agent results are inputs, not decisions. Present findings to the user. File modifications happen in main context after approval.

@@ -36,16 +36,7 @@ Fires at every session start. Derives the project name from the git root, sets e
 
 **What it enables:** Claude starts each session already knowing the project, its history, and what patterns apply — instead of starting from zero.
 
-### session-start-venture.sh
-
-**Matcher:** `""` (all events)
-**Timeout:** 10,000ms
-
-Fires alongside `session-start.sh`. Checks for venture-specific directories (`docs/sops/`, `docs/okrs/`, `docs/metrics/`, `docs/pipeline/`, `docs/venture/`). If found, nudges the daily-ops agent to produce a focus card.
-
-**Output:** `additionalContext` nudging daily-ops delegation when venture artifacts are detected.
-
-**What it enables:** Business projects automatically get a daily status check without the user having to ask.
+Venture detection is built into `session-start.sh` — it checks for venture-specific directories (`docs/sops/`, `docs/okrs/`, `docs/metrics/`, `docs/pipeline/`, `docs/venture/`) and nudges the daily-ops agent when found.
 
 ## PreToolUse Hooks
 

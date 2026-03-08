@@ -35,7 +35,7 @@ If no venture artifacts found, report this and stop.
 ## Step 2: Pull last health snapshot
 
 ```bash
-# Most recent growth-check output
+# Most recent review check output
 ls -t docs/metrics/health-*.md 2>/dev/null | head -1
 
 # Most recent weekly review
