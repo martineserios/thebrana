@@ -22,16 +22,6 @@
             "timeout": 10000
           }
         ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/session-start-venture.sh",
-            "timeout": 10000
-          }
-        ]
       }
     ],
     "SessionEnd": [

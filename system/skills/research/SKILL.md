@@ -22,11 +22,11 @@ allowed-tools:
 
 # Research
 
-The atomic research primitive. Takes a topic, doc number, creator, or lead. Checks sources in the registry, follows references recursively, produces structured findings. Can be invoked standalone for ad-hoc research or called by `/refresh-knowledge` for batch operations.
+The atomic research primitive. Takes a topic, doc number, creator, or lead. Checks sources in the registry, follows references recursively, produces structured findings. Also runs batch knowledge refresh via `--refresh`.
 
 ## Usage
 
-`/research [target] [--nlm]`
+`/research [target] [--nlm] [--refresh [scope]]`
 
 Target options:
 - A topic (e.g., `/research context engineering`) — find and check sources related to this topic
@@ -37,12 +37,14 @@ Target options:
 
 Flags:
 - `--nlm` — Enhance with NotebookLM. Before web research, query relevant notebooks for prior knowledge. After research, prepare findings as a NotebookLM-optimized source file.
+- `--refresh [scope]` — Batch refresh mode (replaces `/refresh-knowledge`). Launches parallel scout agents grouped by topic to research updates for dimension docs. Scope: `all` (default), `high`, `medium`, `low`, `venture`, or a doc number. See "Batch Refresh Mode" section below.
 
 ## Procedure
 
 1. **Load the source registry.** Read `research-sources.yaml` from brana-knowledge (`~/enter_thebrana/brana-knowledge/research-sources.yaml`). If it doesn't exist, warn the user and fall back to freeform web search.
 
 2. **Determine target type.** Parse `$ARGUMENTS`:
+   - If `--refresh` flag is present → batch refresh mode (see "Batch Refresh Mode" below)
    - If it's a number → doc mode (research updates for that doc)
    - If it starts with `creator:` → creator mode (check that creator's channels)
    - If it's `leads` → leads mode (process research-leads from claude-flow memory)
@@ -246,6 +248,44 @@ When researching, select the appropriate archetype based on the target:
   3. Phase 1 scouts: WebSearch ONLY. Never use WebFetch.
   4. Phase 3 scouts: Max 2 WebFetch calls. Write results to file, not to output.
   ```
+
+## Batch Refresh Mode (`--refresh`)
+
+Systematically research updates for brana-knowledge dimension docs. Launches parallel scout agents grouped by topic to check for version deltas, new content from creators, and ecosystem changes. Reports only — does not modify docs. Replaces the former `/refresh-knowledge` command.
+
+### Usage
+
+`/research --refresh [scope]`
+
+Scope: `all` (default), `high`, `medium`, `low`, `venture`, or a specific doc number.
+
+Priority tiers:
+- High: 04, 05, 09, 11, 20, 21
+- Medium: 06, 13, 22, 23, 25
+- Low: 07, 10, 12, 15, 16
+- Venture: 19, 28, 29, 34
+
+### Procedure
+
+1. **Prepare temp directory:** `mkdir -p /tmp/refresh-results`
+2. **Resolve doc paths** via Glob in `~/enter_thebrana/brana-knowledge/dimensions/`
+3. **Group docs by topic** (10 groups: Claude Code, claude-flow, Ecosystem, etc.)
+4. **Launch scout agents per group** — all in parallel, background mode:
+   - Each scout reads its own docs + research-sources.yaml (main context never loads these)
+   - Scouts use WebSearch + WebFetch to check for updates
+   - Each writes findings to `/tmp/refresh-results/group-{letter}.md`
+5. **Wait for all agents**, then compile summary:
+   - Per-doc findings tagged `[NEW]`, `[UPDATE]`, `[VERSION]`, `[STALE]`
+   - Summary table with severity counts
+   - Registry additions proposed, research leads queued
+6. **Clean up:** `rm -rf /tmp/refresh-results`
+7. **Propagation reminder:** if updates found, suggest running `/maintain-specs`
+
+### Key rule
+
+**Never read spec docs or the source registry in the main context.** Agents read their own material within their own context windows.
+
+---
 
 ## Rules
 

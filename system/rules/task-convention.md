@@ -10,11 +10,11 @@ After completing: update task to `completed` with notes.
 
 Tasks: `{project}/.claude/tasks.json`.
 
-Fields: id, subject, description, tags, status, stream, type, parent, order, priority, effort, execution, blocked_by, branch, github_issue, created, started, completed, notes, context. Types: phase/milestone/task/subtask (ph-/ms-/t-/st-). Status: pending/in_progress/completed/cancelled. Streams: roadmap/bugs/tech-debt/docs/experiments/research. Execution: code/external/manual. Tags/context: null default.
+Fields: id, subject, description, tags, status, stream, type, parent, order, priority, effort, execution, blocked_by, branch, github_issue, created, started, completed, notes, context, strategy, build_step. Types: phase/milestone/task/subtask (ph-/ms-/t-/st-). Status: pending/in_progress/completed/cancelled. Streams: roadmap/bugs/tech-debt/docs/experiments/research. Execution: code/external/manual. Strategy: feature/bug-fix/refactor/spike/migration/investigation/greenfield (auto-classified, user-confirmed). Build_step: specify/plan/build/close (tracks position in /build loop). Tags/context: null default.
 
 Reads: free. Writes: confirm first. Planning: propose tree, confirm.
 
-Branch: roadmap=feat/, bugs=fix/, tech-debt=refactor/, docs=docs/, experiments=experiment/, research=research/. Format: `{prefix}{id}-{slug}`. Start=branch+in_progress. Done=commit+PR. External/manual: status only.
+Branch: roadmap=feat/, bugs=fix/, tech-debt=refactor/, docs=docs/, experiments=experiment/, research=research/. Format: `{prefix}{id}-{slug}`. Start=branch+in_progress+auto-classify strategy. Code tasks: `/tasks start` enters `/build` automatically. Done: `/build` CLOSE step handles code tasks. `/tasks done` is for manual/external tasks only.
 
 ## Example
 
