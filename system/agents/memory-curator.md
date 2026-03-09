@@ -56,4 +56,4 @@ Group results by source:
 - Parse JSON values to extract confidence, transferable, and recall_count fields
 - For cross-pollination: only surface patterns marked `transferable: true` or with confidence > 0.7
 - Keep output concise — aim for 500-1500 tokens
-- Note which patterns came from the current project vs other projects
+- Note which patterns came from the current project vs other clients

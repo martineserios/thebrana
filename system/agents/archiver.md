@@ -38,7 +38,7 @@ Also read:
 For each pattern/learning found, classify as:
 
 ### Transferable
-Patterns that apply to other projects. These should be promoted:
+Patterns that apply to other clients. These should be promoted:
 - Confidence >= 0.7
 - Not project-specific (general tech patterns, process patterns)
 - Worked reliably in this project

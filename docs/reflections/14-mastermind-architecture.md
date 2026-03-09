@@ -529,7 +529,7 @@ Before solving this problem, search your accumulated knowledge:
 If no patterns found, say so honestly. Start fresh.
 ```
 
-### 2. `/brana:memory pollinate` — "What would my other projects teach me?"
+### 2. `/brana:memory pollinate` — "What would my other clients teach me?"
 
 ```markdown
 ---
@@ -722,7 +722,7 @@ Month 3: The mastermind has 500+ patterns across 5 projects.
 
 | What | Role in the System |
 |------|-------------------|
-| **security-guidance** (Anthropic) | Universal safety net across all projects |
+| **security-guidance** (Anthropic) | Universal safety net across all clients |
 | **commit-commands** (Anthropic) | Consistent git workflow everywhere |
 | **Context7 MCP** (Upstash) | Real-time library docs — the mastermind always has current knowledge. Fetches version-specific documentation on demand, preventing stale training-data errors. |
 | **claude-flow MCP** | Cross-project memory via ReasoningBank. **Scope:** use only the memory commands (`memory search`, `memory store`, `memory init`) from claude-flow's 170+ MCP tool surface — skip the rest unless a specific need arises. **Note:** AgentDB (the graph DB backend) is stalled — last npm publish Jan 2, 2026. The fallback strategy (claude-flow embeddings CLI + SQLite) is the primary path forward. See [05-claude-flow-v3-analysis.md](../../../brana-knowledge/dimensions/05-claude-flow-v3-analysis.md) and [39-architecture-redesign.md](../39-architecture-redesign.md) section 7.5. |

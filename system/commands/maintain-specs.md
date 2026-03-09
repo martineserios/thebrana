@@ -94,7 +94,7 @@ Review what was discovered during this maintain-specs run. If any of these emerg
 
 - A new pattern or insight about how the docs relate to each other
 - A recurring error type that suggests a process improvement
-- A finding that would be useful in other projects (transferable)
+- A finding that would be useful in other clients (transferable)
 - A correction that reveals a broader lesson (not just "doc X was wrong" but "we keep making this kind of mistake because...")
 
 **Don't auto-store.** Present the candidate findings and let the user decide. Example: "This run found that Context7 and claude-flow were conflated in doc 14 — a recurring pattern of mixing tool identities in recommendation tables. Want to store this as a learning via `/brana:retrospective`?"

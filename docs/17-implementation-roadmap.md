@@ -322,7 +322,7 @@ From the [11-ecosystem-skills-plugins.md](dimensions/11-ecosystem-skills-plugins
 |---------|---------|
 | `/what-do-i-know` | Query all memory for a topic |
 | `/teach-me` | Manually inject a pattern into ReasoningBank |
-| `/portfolio` | Show all projects + cross-client insights |
+| `/portfolio` | Show all clients + cross-client insights |
 
 ### Skill Catalog (Tier 2)
 

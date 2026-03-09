@@ -710,7 +710,7 @@ Example — after a Phase 2 implementation session:
 ```
 /brana:memory pollinate [topic]
 ```
-Searches for transferable patterns across all projects. Only shows patterns with `transferable: true` or high confidence.
+Searches for transferable patterns across all clients. Only shows patterns with `transferable: true` or high confidence.
 
 Example — struggling with test reliability in a new project:
 ```
@@ -891,7 +891,7 @@ New learning ──→ confidence: 0.5 (quarantined)
               /brana:memory pollinate can share it
                       │
                       ▼
-              other projects benefit
+              other clients benefit
 
     recalled + harmful ──→ confidence: 0.1 (suspect)
 ```

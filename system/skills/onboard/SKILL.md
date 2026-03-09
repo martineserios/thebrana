@@ -42,7 +42,7 @@ Classify as: **code** (has manifests, no venture dirs), **venture** (has venture
 
 ## Step 2: Scan structure
 
-### For all projects
+### For all clients
 - Read `.claude/CLAUDE.md` if it exists
 - Check for `docs/decisions/`, `.claude/tasks.json`
 - Check auto memory health: `~/.claude/projects/*/memory/MEMORY.md`

@@ -64,7 +64,7 @@ source "$HOME/.claude/scripts/cf-env.sh"
 
 1. Detect current project's tech stack and problem domain.
 
-2. **Primary path:** Run `cd $HOME && $CF memory search --query "$QUERY"` to find patterns across all projects. Filter for **transferable patterns from other clients** only.
+2. **Primary path:** Run `cd $HOME && $CF memory search --query "$QUERY"` to find patterns across all clients. Filter for **transferable patterns from other clients** only.
 
 3. **Fallback path:** Scan `~/.claude/projects/*/memory/MEMORY.md` from OTHER projects. Grep for technology and pattern type matches.
 

@@ -8,7 +8,7 @@ How to manage multiple clients from the mastermind system. Not a core function �
 
 A PM component for a solo developer managing 3-5 projects simultaneously, integrated with Claude Code as the primary interface. The system should:
 
-- Track work across all projects from a single view
+- Track work across all clients from a single view
 - Bridge the gap between PM state and code state (issues → branches → PRs → merges)
 - Minimize maintenance overhead (the PM system should not become a project itself)
 - Work as a plugin — projects without PM enabled work fine without it
@@ -69,15 +69,15 @@ Sources:
 
 - **Plain text / markdown in git** — zero external dependencies, always accessible, versionable
 - **Weekly review** (30 min) — the single most impactful meta-project practice. Update status for each project, review backlogs, identify blockers, decide "Now" focus for next week.
-- **Portfolio file** — one view across all projects with traffic-light status (green/yellow/red)
+- **Portfolio file** — one view across all clients with traffic-light status (green/yellow/red)
 - **Decision logs** — lightweight ADRs for significant decisions, table format for minor ones
 - **Ship log** — record what you shipped, not just what you planned. Fights "I'm not accomplishing anything" feeling.
 
 **The "meta-project" pattern:**
 
 Managing 3-5 projects requires a layer above individual project management:
-- One portfolio file listing all projects with status + current focus
-- Weekly review touching all projects
+- One portfolio file listing all clients with status + current focus
+- Weekly review touching all clients
 - Now/Next/Later prioritization across the portfolio
 - Kill zombie projects: anything untouched for 4+ weeks either gets committed to or archived
 
@@ -121,7 +121,7 @@ Sources:
 
 **Strengths:** Clean separation, progressive disclosure (summary → detail), template consistency, decision preservation, single source of truth.
 
-**Documented weaknesses:** Manual maintenance, two-repo coordination overhead, no automation, template drift, heavy for small projects.
+**Documented weaknesses:** Manual maintenance, two-repo coordination overhead, no automation, template drift, heavy for small clients.
 
 See [03-pm-framework.md](dimensions/03-pm-framework.md) for the full analysis.
 
@@ -421,7 +421,7 @@ project-root/
 
 | Skill | What It Does | Implementation |
 |---|---|---|
-| `/project-status` | Portfolio view across all projects | `gh project item-list` → formatted markdown |
+| `/project-status` | Portfolio view across all clients | `gh project item-list` → formatted markdown |
 | `/start-task <issue>` | Load context, create branch, show issue details | `gh issue view` + `gh issue develop` + read CONTEXT.md |
 | `/done` | Commit, create PR, update CONTEXT.md | Conventional commit + `gh pr create` with `Closes #N` |
 | `/plan-feature <title>` | Create parent issue + sub-issues + feature spec | `gh issue create` + template in `docs/features/` |
