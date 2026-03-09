@@ -36,10 +36,12 @@ The hooks are the glue connecting all three.
 
 ## The Full Directory Architecture
 
+Two layers: the **plugin** (toolkit — loaded by Claude Code's plugin system) and the **identity layer** (deployed once via `bootstrap.sh`).
+
 ```
-~/.claude/                                    THE MASTERMIND
-├── CLAUDE.md                                 ← Identity + universal principles
-├── skills/                                      ← 25 deployed skills (SKILL.md + optional bundled scripts)
+thebrana/system/                              PLUGIN (loaded by Claude Code)
+├── .claude-plugin/plugin.json                ← Plugin manifest
+├── skills/                                   ← 37 skills as /brana:* slash commands
 │   ├── build/SKILL.md                        ← Unified dev command — 7 strategies, task-aware
 │   ├── close/SKILL.md                        ← Session end — learnings, handoff, patterns
 │   ├── tasks/SKILL.md                        ← Plan, track, and execute tasks across phases and streams
@@ -48,9 +50,8 @@ The hooks are the glue connecting all three.
 │   ├── review/SKILL.md                       ← Business health — weekly, monthly, ad-hoc check
 │   ├── research/SKILL.md                     ← Research topics + --refresh for dimension updates
 │   ├── memory/SKILL.md                       ← Knowledge ops: recall, pollinate, review, audit
-│   └── ...                                   ← +17 more (challenge, reconcile, log, pipeline, etc.)
-├── skill-catalog.md                             ← Vetted external skills (version-pinned, not installed)
-├── agents/
+│   └── ...                                   ← +29 more (challenge, reconcile, log, pipeline, etc.)
+├── agents/                                   ← 11 specialized sub-agents
 │   ├── scout.md                              ← Haiku-powered fast research agent
 │   ├── memory-curator.md                     ← Knowledge lifecycle management
 │   ├── project-scanner.md                    ← Project structure analysis
@@ -61,36 +62,47 @@ The hooks are the glue connecting all three.
 │   ├── daily-ops.md                          ← Daily operational checks for venture projects
 │   ├── metrics-collector.md                  ← Gather data for venture skills
 │   ├── pipeline-tracker.md                   ← Pipeline tracking and deal analysis
-│   └── pr-reviewer.md                       ← PR diff review on gh pr create (read-only + gh CLI)
-├── scripts/
-│   ├── cf-env.sh                             ← Discover claude-flow binary, export $CF
-│   ├── memory-store.sh                       ← Store key-value in memory with fallback
-│   ├── backup-knowledge.sh                   ← Trigger brana-knowledge backup
-│   ├── index-knowledge.sh                    ← Index brana-knowledge into claude-flow memory
-│   ├── generate-index.sh                     ← Generate knowledge base INDEX.md
-│   └── skill-graph.sh                        ← Skill interaction and dependency diagram
-├── commands/
-│   ├── init-project                          ← Bootstrap new project with CLAUDE.md + structure
+│   └── pr-reviewer.md                        ← PR diff review on gh pr create (read-only + gh CLI)
+├── hooks/
+│   ├── hooks.json                            ← Hook registration (PreToolUse, SessionStart, SessionEnd, PostToolUse, PostToolUseFailure)
+│   ├── pre-tool-use.sh                       ← SDD gate + cascade throttle
+│   ├── session-start.sh                      ← Pattern recall + task context
+│   ├── session-end.sh                        ← Flywheel metrics + learning flush
+│   ├── post-tool-use.sh                      ← Log successes, detect corrections
+│   ├── post-sale.sh                          ← Deal closure detection
+│   ├── post-plan-challenge.sh                ← Challenger nudge after plan finalization
+│   ├── post-tasks-validate.sh                ← tasks.json schema + auto-rollup
+│   ├── post-pr-review.sh                     ← PR reviewer nudge
+│   ├── post-tool-use-failure.sh              ← Error categorization
+│   └── lib/cf-env.sh                         ← Bundled claude-flow env (portable)
+├── commands/                                 ← Agent commands
 │   ├── maintain-specs.md                     ← Cascade spec changes: dimension → reflection → roadmap
 │   ├── re-evaluate-reflections.md            ← Cross-check reflections against dimensions
 │   ├── apply-errata.md                       ← Apply pending errata through layer hierarchy
 │   └── repo-cleanup.md                       ← Commit accumulated spec doc changes
-├── rules/
-│   ├── universal-quality.md                  ← Always: test before ship, no secrets in code
-│   ├── self-improvement.md                   ← Always: innate learning loop — capture, apply, reflect automatically
-│   ├── git-discipline.md                     ← Always: conventional commits, worktrees, branch protection
-│   ├── sdd-tdd.md                            ← Always: spec-before-code, test-before-code
-│   ├── context-budget.md                     ← Always: 4-tier context thresholds (55/70/85%), expensive-op guards
-│   ├── doc-linking.md                        ← Always: use formal markdown links when referencing docs
-│   ├── delegation-routing.md                 ← Always: auto-delegate to agents, invoke skills by trigger
-│   ├── memory-framework.md                   ← Always: CLAUDE.md vs MEMORY.md separation, reference-not-cache
-│   ├── task-convention.md                     ← Always: check tasks.json before branching, status flow
-│   ├── pm-awareness.md                       ← Always: check issues before starting work
-│   ├── research-discipline.md                ← Always: read project docs before web search
-│   └── work-preferences.md                   ← Always: parallelism, simplicity, automation through usage
+├── CLAUDE.md                                 ← Mastermind identity
+└── settings.json                             ← {} (hooks now in hooks.json)
+
+~/.claude/                                    IDENTITY LAYER (via bootstrap.sh)
+├── CLAUDE.md                                 ← Global identity + universal principles
+├── rules/                                    ← 12 behavioral rules (always loaded)
+│   ├── universal-quality.md                  ← Test before ship, no secrets in code
+│   ├── self-improvement.md                   ← Innate learning loop
+│   ├── git-discipline.md                     ← Conventional commits, worktrees, --no-ff
+│   ├── sdd-tdd.md                            ← Spec-before-code, test-before-code
+│   ├── context-budget.md                     ← 4-tier context thresholds (55/70/85%)
+│   ├── delegation-routing.md                 ← Auto-delegate to agents, invoke skills by trigger
+│   ├── task-convention.md                     ← Check tasks.json before branching
+│   └── ...                                   ← +5 more (doc-linking, memory-framework, etc.)
+├── scripts/
+│   ├── cf-env.sh                             ← Discover claude-flow binary, export $CF
+│   ├── memory-store.sh                       ← Store key-value in memory with fallback
+│   ├── backup-knowledge.sh                   ← Trigger brana-knowledge backup
+│   └── index-knowledge.sh                    ← Index brana-knowledge into claude-flow memory
 ├── memory/
 │   └── MEMORY.md                             ← Auto memory (first 200 lines always in context)
-└── settings.json                             ← Global hooks (PreToolUse, SessionStart, SessionEnd, PostToolUse, PostToolUseFailure)
+├── statusline.sh                             ← Status bar (branch, task, context %)
+└── scheduler/                                ← Scheduled jobs (brana-scheduler)
 
 ~/.swarm/                                     CLAUDE-FLOW INTELLIGENCE
 ├── memory.db                                 ← ReasoningBank (ALL projects, tagged by domain)
@@ -110,17 +122,13 @@ The hooks are the glue connecting all three.
 │       └── agents/
 │           └── domain-expert.md              ← "You understand e-commerce: inventory, payments, fulfillment"
 │
-├── beta/
-│   └── .claude/
-│       ├── CLAUDE.md                         ← "This is a Rust CLI tool. clap + tokio + serde..."
-│       ├── rules/
-│       └── skills/
-│
-└── gamma/
-    └── .claude/
-        ├── CLAUDE.md                         ← "React Native mobile app. Expo + React Query..."
-        └── ...
+└── ...                                       ← Other projects follow the same pattern
 ```
+
+**Installation:**
+- **Plugin:** `claude --plugin-dir ./system` (dev) or `/plugin marketplace add martineserios/thebrana` + `/plugin install brana` (users)
+- **Identity layer:** `./bootstrap.sh` (one-time, idempotent)
+- **deploy.sh:** Deprecated (v0.7.0). Still works but will be removed in v0.8.0.
 
 ---
 
@@ -130,19 +138,19 @@ When you `cd ~/projects/alpha && claude`:
 
 ```
 Loaded automatically:
-  1. ~/.claude/CLAUDE.md              ← "I am a mastermind. My principles are..."
-  2. ~/.claude/rules/*                ← Universal quality, git discipline, learning triggers
+  1. ~/.claude/CLAUDE.md              ← "I am a mastermind. My principles are..." (identity layer)
+  2. ~/.claude/rules/*                ← Universal quality, git discipline, learning triggers (identity layer)
   3. ~/.claude/memory/MEMORY.md       ← Cross-project auto memory (first 200 lines)
-  4. ~/projects/alpha/.claude/CLAUDE.md  ← "This project is an e-commerce platform..."
+  4. ~/projects/alpha/.claude/CLAUDE.md  ← "This is an e-commerce platform..."
   5. ~/projects/alpha/.claude/rules/* ← path-scoped project rules
 
-Available on demand:
-  6. ~/.claude/skills/*               ← /brana:memory recall, /brana:memory pollinate, etc.
-  7. ~/.claude/commands/*             ← /init-project, /brana:maintain-specs (slash commands)
+Available on demand (via brana plugin):
+  6. /brana:build, /brana:tasks, etc.  ← 37 skills loaded from plugin
+  7. Agent commands                    ← maintain-specs, apply-errata, etc.
   8. ~/projects/alpha/.claude/skills/* ← /deploy, /migrate (project-specific)
-  9. All installed plugins             ← pr-review-toolkit, security-guidance, etc.
+  9. Other installed plugins           ← pr-review-toolkit, security-guidance, etc.
 
-Triggered by hooks:
+Triggered by hooks (via brana plugin):
   10. SessionStart → queries ReasoningBank for alpha-relevant patterns
   11. SessionEnd → extracts learnings, stores in ReasoningBank
 ```
@@ -165,7 +173,7 @@ Skills are user-invocable workflows (`/command`). Agents auto-delegate when the 
 
 **Pattern D: Multi-agent workflows.** For subagents: agents cannot spawn other agents (subagent limitation). Orchestration stays in the main context via skills that use the Task tool to spawn multiple agents in parallel. The skill is the conductor; agents are the musicians. For Agent Teams (experimental, Feb 2026): peer-to-peer coordination with shared task lists and DAG dependencies — but at 2x token cost (~800k vs ~440k for 3-worker team), no file locking, and disabled by default. **Use subagents for production orchestration; reserve Agent Teams for genuinely parallel multi-file work where peer coordination justifies the experimental status and cost.**
 
-**Pattern E: Skill bundles executable scripts.** Pure-markdown skills hit a ceiling for automation-heavy workflows ([ADR-011](../decisions/ADR-011-skills-bundling.md)). Skills can bundle `.sh`/`.py` scripts alongside SKILL.md in subdirectories. `deploy.sh` copies the entire skill folder and `chmod +x` all bundled scripts. First example: `/knowledge` bundles `generate-index.sh` (INDEX.md generation) and `index-knowledge.sh` (dimension → claude-flow memory indexing). Use when a skill's workflow requires repeatable shell logic that would otherwise live in `scripts/` with no clear ownership. Keep scripts focused — one concern per file, invocable standalone or from the SKILL.md workflow.
+**Pattern E: Skill bundles executable scripts.** Pure-markdown skills hit a ceiling for automation-heavy workflows ([ADR-011](../decisions/ADR-011-skills-bundling.md)). Skills can bundle `.sh`/`.py` scripts alongside SKILL.md in subdirectories. The plugin system loads skill folders directly; `bootstrap.sh` handles identity-layer scripts with `chmod +x`. Use when a skill's workflow requires repeatable shell logic that would otherwise live in `scripts/` with no clear ownership. Keep scripts focused — one concern per file, invocable standalone or from the SKILL.md workflow.
 
 ### The Agent Roster
 
@@ -202,8 +210,8 @@ The brana ecosystem lives in two repositories. `cd` into thebrana to activate th
 ├── thebrana/                   ARCHITECT + OPERATOR — design and build the system
 │   ├── .claude/CLAUDE.md       ← "You are the architect+operator."
 │   ├── docs/                   ← Specs: reflections/, roadmaps, decisions/
-│   ├── system/                 ← Implementation: skills, rules, hooks, agents
-│   ├── deploy.sh               ← system/ → ~/.claude/
+│   ├── system/                 ← Plugin: skills, hooks, agents, commands
+│   ├── bootstrap.sh            ← Identity layer → ~/.claude/
 │   └── validate.sh             ← Pre-deploy checks
 │
 └── brana-knowledge/            KNOWLEDGE BASE — deep dives on any topic
