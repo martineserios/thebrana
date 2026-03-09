@@ -6437,7 +6437,7 @@
       "completed": null,
       "stream": "roadmap",
       "strategy": "feature",
-      "build_step": "specify",
+      "build_step": "build",
       "description": "Replace deploy.sh with a proper npm package. Users install via `npm install -g thebrana`, then `brana init` (copies + settings merge + dep checks), `brana update` (re-sync), `brana doctor` (health check), `brana eject` (standalone). Dev mode: `brana init --dev` uses symlinks so system/ edits take effect immediately. Open-source ready. Conversation context: user found deploy.sh friction (why copy when I can just edit the repo?), analyzed 5 approaches (symlinks, npm, git-clone, CC templates, wait-for-plugin), npm package won.",
       "tags": [
         "distribution",
