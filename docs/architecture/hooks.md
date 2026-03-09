@@ -14,7 +14,7 @@ Claude Code supports five hook events:
 | `PostToolUse` | After a tool call succeeds |
 | `PostToolUseFailure` | After a tool call fails |
 
-Hooks are registered in `system/settings.json` with a **matcher** (which tool names trigger the hook) and a **timeout** (max execution time in ms). They receive session context as JSON on stdin and return JSON on stdout.
+Hooks are registered in `system/hooks/hooks.json` (plugin events) or `~/.claude/settings.json` (PostToolUse — CC plugin bug workaround). They receive session context as JSON on stdin and return JSON on stdout.
 
 A hook can:
 - **Pass through** — `{"continue": true}` — let execution proceed
@@ -156,20 +156,42 @@ Fires at every session end. Reads the accumulated session JSONL file (`/tmp/bran
 
 ## Hook Registration
 
-Hooks are registered in `system/settings.json`:
+Since v0.7.0 (plugin architecture), hooks are split across two locations:
+
+### Plugin hooks — `system/hooks/hooks.json`
+
+PreToolUse, SessionStart, and SessionEnd hooks are registered in the plugin's `hooks.json`:
+
+```json
+{
+  "hooks": [
+    {
+      "event": "PreToolUse",
+      "matcher": "Write|Edit",
+      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool-use.sh",
+      "timeout": 5000
+    }
+  ]
+}
+```
+
+- **event** — the CC lifecycle event
+- **matcher** — pipe-separated tool names or empty string for all
+- **command** — path using `${CLAUDE_PLUGIN_ROOT}` for plugin-relative resolution
+- **timeout** — max execution time in milliseconds
+
+### PostToolUse hooks — `~/.claude/settings.json`
+
+CC v2.1.x does not dispatch `PostToolUse` or `PostToolUseFailure` events from plugin `hooks.json` (CC issue #24529). As a workaround, `bootstrap.sh` installs these hooks to `~/.claude/settings.json`:
 
 ```json
 {
   "hooks": {
-    "PreToolUse": [
+    "PostToolUse": [
       {
-        "matcher": "Write|Edit",
+        "matcher": "Write|Edit|Bash",
         "hooks": [
-          {
-            "type": "command",
-            "command": "$HOME/.claude/hooks/pre-tool-use.sh",
-            "timeout": 5000
-          }
+          { "type": "command", "command": "$HOME/.claude/hooks/post-tool-use.sh", "timeout": 5000 }
         ]
       }
     ]
@@ -177,9 +199,6 @@ Hooks are registered in `system/settings.json`:
 }
 ```
 
-- **matcher** — pipe-separated tool names (`"Write|Edit"`) or empty string for all
-- **type** — always `"command"` (shell script)
-- **command** — path to the hook script (uses `$HOME` for portability)
-- **timeout** — max execution time in milliseconds
+When CC fixes issue #24529, these hooks will move back to `hooks.json` in the plugin.
 
 Multiple hooks can register for the same event. They run sequentially; if any PreToolUse hook blocks, the tool call is denied.
