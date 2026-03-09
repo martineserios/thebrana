@@ -100,13 +100,13 @@ Flags:
 
 5. **Phase 1 — Wide Scan (metadata only, no WebFetch).** Launch parallel scouts to scan sources. Each scout:
    - Uses `WebSearch` ONLY — titles, snippets, URLs. **Never WebFetch in Phase 1.**
-   - Writes findings to `/tmp/research-{target}-{N}.md` (one file per scout)
-   - Returns ONLY a 2-line summary to main context: `"Wrote N findings to /tmp/research-{target}-{N}.md. X HIGH, Y MEDIUM, Z LOW."`
+   - Returns ALL findings as structured text in the agent result (scouts cannot write files)
+   - **Main context writes** each scout's findings to `/tmp/research-{target}-{N}.md` after receiving the result
    - Tags findings: `[NEW]`, `[UPDATE]`, `[VERSION]`, `[CREATOR]`, or `[STALE]`
    - **Version check**: compare current version against `version_observed` in registry. If different, tag as `[VERSION]` with HIGH severity
    - **Security scout (mandatory for topic/ecosystem mode)**: one scout must search for CVEs, security advisories, and community trust signals. Tag findings `[SECURITY]`.
    - **Budget**: max 5 scouts for topic mode, max 8 for doc/creator mode (security scout counts toward budget)
-   - Scout spawn prompt MUST include: "Write all findings to {filepath}. Return only a 2-line summary with counts. Do NOT use WebFetch."
+   - Scout spawn prompt MUST include: "Return ALL findings as structured markdown in your response. Start with a summary line: 'X HIGH, Y MEDIUM, Z LOW findings.' Then list each finding. Do NOT use WebFetch."
    - **When `--nlm` prior details exist**: include in scout prompts: "Compare findings against these claims from NotebookLM: [summary from Phase 0]. Tag confirmations as [CONFIRMED], contradictions as [CONTRADICTS-NLM]."
 
 6. **Phase 2 — Triage (main context reads temp files incrementally).** For each temp file from Phase 1:
@@ -122,14 +122,14 @@ Flags:
 
 7. **Phase 3 — Deep Dive (targeted WebFetch, max 3 scouts).** For HIGH-priority URLs from Phase 2:
    - Launch max 3 scouts, each gets max 2 WebFetch calls
-   - Each scout writes deep findings to `/tmp/research-{target}-deep-{N}.md`
-   - Each scout returns ONLY a 2-line summary
+   - Each scout returns ALL deep findings as structured text in the agent result
+   - **Main context writes** each scout's findings to `/tmp/research-{target}-deep-{N}.md` after receiving the result
    - Main context reads deep findings incrementally (same as Phase 2)
    - Note any creators or sources cited that are NOT in the registry
 
 8. **Recurse on new references (max 2 hops, max 3 scouts).** For new sources/creators found in Phase 3:
    - Check if already in registry → if yes, note and skip
-   - Launch scouts with the same temp-file protocol (WebSearch only, write to file, return summary)
+   - Launch scouts with the same return-inline protocol (WebSearch only, return findings in agent result)
    - Maximum 3 additional scouts (not 10)
    - Maximum 2 hops deep from the original source
    - Stop recursing when: max depth reached, finding priority drops below MEDIUM, or source already in registry
@@ -236,17 +236,18 @@ When researching, select the appropriate archetype based on the target:
 ## Architecture
 
 - Main context orchestrates the 3-phase loop. **Main context never does WebFetch or WebSearch directly.**
-- Scouts use `subagent_type: "scout"`, `model: "haiku"`, `run_in_background: true`
-- **Temp file contract (mandatory):** Scouts write findings to `/tmp/research-{target}-{N}.md`. Scouts return ONLY a 2-line summary via TaskOutput. Main context reads temp files one at a time.
+- Scouts use `subagent_type: "brana:scout"`, `run_in_background: true`
+- **Return-inline contract (mandatory):** Scouts return ALL findings as structured text in their agent result. **Scouts cannot write files** (no Bash/Write tools). Main context receives findings and writes to `/tmp/research-{target}-{N}.md` one at a time.
 - **Phase budget:** Phase 1 max 5-8 scouts (WebSearch only; one for security in topic/ecosystem mode). Phase 3 max 3 scouts (WebFetch, max 2 per scout). Recursion max 3 scouts.
 - **Total scout cap:** max 14 scouts per invocation (8 scan + 3 deep + 3 recurse)
 - **Scout spawn prompt template:** Always include these lines in every scout prompt:
   ```
   CRITICAL RULES:
-  1. Write ALL findings to {filepath}. Use Bash to write: echo "..." >> {filepath}
-  2. Return ONLY a 2-line summary: "Wrote N findings to {filepath}. X HIGH, Y MEDIUM, Z LOW."
-  3. Phase 1 scouts: WebSearch ONLY. Never use WebFetch.
-  4. Phase 3 scouts: Max 2 WebFetch calls. Write results to file, not to output.
+  1. Return ALL findings as structured markdown in your response.
+  2. Start with a summary line: "X HIGH, Y MEDIUM, Z LOW findings."
+  3. Then list each finding with tags, source URL, severity, and detail.
+  4. Phase 1 scouts: WebSearch ONLY. Never use WebFetch.
+  5. Phase 3 scouts: Max 2 WebFetch calls.
   ```
 
 ## Batch Refresh Mode (`--refresh`)
@@ -273,7 +274,8 @@ Priority tiers:
 4. **Launch scout agents per group** — all in parallel, background mode:
    - Each scout reads its own docs + research-sources.yaml (main context never loads these)
    - Scouts use WebSearch + WebFetch to check for updates
-   - Each writes findings to `/tmp/refresh-results/group-{letter}.md`
+   - Each returns ALL findings as structured text in the agent result (scouts cannot write files)
+   - **Main context writes** each group's findings to `/tmp/refresh-results/group-{letter}.md` after receiving
 5. **Wait for all agents**, then compile summary:
    - Per-doc findings tagged `[NEW]`, `[UPDATE]`, `[VERSION]`, `[STALE]`
    - Summary table with severity counts
