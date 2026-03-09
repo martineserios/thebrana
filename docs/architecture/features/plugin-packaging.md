@@ -1,7 +1,7 @@
 # Feature: Plugin Packaging — Distribute thebrana as CC Plugin
 
 **Date:** 2026-03-08
-**Status:** building
+**Status:** shipped
 
 ## Spike Results (2026-03-08)
 

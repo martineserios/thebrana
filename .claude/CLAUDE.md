@@ -44,17 +44,37 @@ R1(08 Triage) → R2(14 Architecture) → R3(31 Assurance) / R4(32 Lifecycle) �
 ## System Architecture
 
 ```
-system/          deploy.sh         ~/.claude/
-├── skills/   ────────────────────→ skills/
-├── scripts/  ────────────────────→ scripts/
-├── commands/ ────────────────────→ commands/
-├── rules/    ────────────────────→ rules/
-├── hooks/    ────────────────────→ hooks (settings.json)
-├── agents/   ────────────────────→ agents/
-└── CLAUDE.md ────────────────────→ CLAUDE.md
+system/                               Plugin (loaded by Claude Code)
+├── .claude-plugin/plugin.json        ← plugin manifest
+├── skills/                           ← /brana:* slash commands
+├── commands/                         ← agent commands
+├── hooks/hooks.json + *.sh           ← event hooks
+├── agents/                           ← specialized agents
+└── CLAUDE.md                         ← mastermind identity
+
+bootstrap.sh                          Identity layer → ~/.claude/
+├── CLAUDE.md                         ← global identity
+├── rules/                            ← behavioral rules
+├── scripts/                          ← helper scripts
+├── statusline.sh                     ← status bar
+└── scheduler/                        ← scheduled jobs
 ```
 
-Version: v0.6.0 (Phase 1: Unified Repo)
+Version: v0.7.0 (Plugin Architecture)
+
+## Installation
+
+```bash
+# Dev mode (recommended for contributors)
+claude --plugin-dir ./system
+
+# Install from GitHub
+/plugin marketplace add martineserios/thebrana
+/plugin install brana
+
+# Identity layer (CLAUDE.md, rules, scripts — run once)
+./bootstrap.sh
+```
 
 ## Commands
 
@@ -62,7 +82,8 @@ Version: v0.6.0 (Phase 1: Unified Repo)
 
 | Command | Purpose |
 |---------|---------|
-| `./deploy.sh` | Validate + deploy system files to `~/.claude/` |
+| `./bootstrap.sh` | Deploy identity layer (CLAUDE.md, rules, scripts) to `~/.claude/` |
+| `./bootstrap.sh --check` | Show what bootstrap would change without applying |
 | `./validate.sh` | Pre-deploy checks (frontmatter, budget, secrets) |
 | `./export-knowledge.sh` | Export native memory + ReasoningBank |
 
@@ -104,7 +125,7 @@ Version: v0.6.0 (Phase 1: Unified Repo)
 
 ## Rules
 
-- **Never edit `~/.claude/` directly** — always edit `system/` and deploy
+- **Never edit `~/.claude/` directly** — edit `system/` (plugin loads it) or re-run `./bootstrap.sh` (identity layer)
 - Keep documents concise and opinionated
 - Changes propagate: dimension → reflection → roadmap (`/brana:maintain-specs`)
 - Spec changes push to implementation (`/brana:reconcile`)
