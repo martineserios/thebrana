@@ -160,7 +160,7 @@ if [ -n "$CF" ]; then
     else
         OUTCOME="success"
     fi
-    TAGS="project:$PROJECT,type:session-summary,outcome:$OUTCOME,confidence:quarantine"
+    TAGS="client:$PROJECT,type:session-summary,outcome:$OUTCOME,confidence:quarantine"
     CF_ERR=$(timeout 5 $CF memory store -k "$KEY" -v "$VALUE" --namespace patterns --tags "$TAGS" 2>&1) || true
     CF_EXIT=$?
     if [ $CF_EXIT -eq 0 ]; then
@@ -191,7 +191,7 @@ if [ -n "$CF" ]; then
             --argjson edits "${EDITS:-0}" \
             --argjson failures "${FAILURES:-0}" \
             '{project: $project, session: $session, timestamp: $ts, correction_rate: $correction_rate, auto_fix_rate: $auto_fix_rate, test_write_rate: $test_write_rate, cascade_rate: $cascade_rate, test_pass_rate: $test_pass_rate, lint_pass_rate: $lint_pass_rate, test_passes: $test_passes, test_fails: $test_fails, lint_passes: $lint_passes, lint_fails: $lint_fails, delegations: $delegations, edits: $edits, failures: $failures}' 2>/dev/null) || FW_VALUE="{}"
-        timeout 5 $CF memory store -k "$FW_KEY" -v "$FW_VALUE" --namespace metrics --tags "project:$PROJECT,type:flywheel" 2>/dev/null || true
+        timeout 5 $CF memory store -k "$FW_KEY" -v "$FW_VALUE" --namespace metrics --tags "client:$PROJECT,type:flywheel" 2>/dev/null || true
     fi
 else
     CF_WARNING="claude-flow not found. Session summary not persisted. Install: npm i -g claude-flow"

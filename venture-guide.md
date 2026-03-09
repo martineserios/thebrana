@@ -28,7 +28,7 @@ Brana was designed for software projects, but its learning loop is domain-agnost
 
 ## 1. Overview
 
-Brana gives you **13 venture-specific skills**, **1 venture agent**, and **7 universal skills** that transfer from code projects. Together they form a complete business operating system.
+Brana gives you **13 venture-specific skills**, **1 venture agent**, and **7 universal skills** that transfer from code clients. Together they form a complete business operating system.
 
 ```
 VENTURE SKILLS (Foundation)           VENTURE SKILLS (Operations)
@@ -49,11 +49,11 @@ UNIVERSAL SKILLS (transfer as-is)
 /debrief         (end-of-session extraction)
 /brana:challenge       (stress-test plans)
 /pattern-recall  (query past learnings)
-/cross-pollinate (pull from other projects)
+/cross-pollinate (pull from other clients)
 /knowledge-review(memory health check)
 ```
 
-The foundation skills create and maintain a `docs/` structure inside your project. The operational skills run your daily, weekly, and monthly rhythms. The universal skills feed a cross-project memory system (ReasoningBank) that accumulates learnings over time.
+The foundation skills create and maintain a `docs/` structure inside your project. The operational skills run your daily, weekly, and monthly rhythms. The universal skills feed a cross-client memory system (ReasoningBank) that accumulates learnings over time.
 
 ---
 
@@ -83,7 +83,7 @@ That's it. After these two steps you have a working management structure. Everyt
 - Brana deployed (`./deploy.sh` from the thebrana repo)
 - Venture extension deployed (`./deploy.sh` from this repo)
 - A project directory for your venture (can be empty or existing)
-- Optionally: claude-flow for cross-project memory (works without it, just no persistent patterns)
+- Optionally: claude-flow for cross-client memory (works without it, just no persistent patterns)
 - Optionally: Google Sheets MCP for spreadsheet access (see [setup guide](docs/google-sheets-mcp-setup.md), use `/brana:gsheets` for direct operations)
 - Optionally: Google Workspace MCP for calendar integration
 - Optionally: Airtable/HubSpot MCP for CRM integration
@@ -420,7 +420,7 @@ Seven skills designed for code projects work identically for business projects:
 | `/debrief` | End-of-session extraction | Extracts errata, learnings, issues from current session |
 | `/brana:challenge` | Stress-test a plan | "Should we expand to 3 cities?" — adversarial review |
 | `/pattern-recall` | Query past learnings | Starting work on any topic, encountering a familiar problem |
-| `/cross-pollinate` | Pull from other projects | CI/CD patterns → operational workflows |
+| `/cross-pollinate` | Pull from other clients | CI/CD patterns → operational workflows |
 | `/knowledge-review` | Memory health check | Monthly review of ReasoningBank health |
 
 Business decisions are harder to reverse than code decisions. ADRs, challenges, and debriefs are even more valuable in the business domain.
@@ -466,7 +466,7 @@ Business decisions are harder to reverse than code decisions. ADRs, challenges, 
            ▼
      ┌──────────────────────────────────────────────┐
      │             ReasoningBank                     │
-     │   (cross-project patterns and learnings)      │
+     │   (cross-client patterns and learnings)      │
      │                                               │
      │   /brana:retrospective  → stores learnings          │
      │   /debrief        → extracts from session     │
@@ -794,7 +794,7 @@ SESSION ACTIVITY
      ├── /sop            → stores process patterns
      │
      ▼
-REASONINGBANK (cross-project memory)
+REASONINGBANK (cross-client memory)
      │
      ├── confidence scoring (0.0 to 1.0)
      ├── quarantine period (new patterns start at 0.5)
@@ -805,7 +805,7 @@ REASONINGBANK (cross-project memory)
 FUTURE SESSIONS
      │
      ├── /pattern-recall  → surfaces relevant patterns
-     ├── /cross-pollinate → pulls from other projects
+     ├── /cross-pollinate → pulls from other clients
      ├── /morning         → auto-recalls context
      └── session-start hook → auto-recalls context
 ```
@@ -824,7 +824,7 @@ metric:     mrr, cac, ltv, churn, arr, nrr
 
 ### Cross-project learning
 
-Patterns from code projects inform business projects and vice versa:
+Patterns from code clients inform business projects and vice versa:
 
 | Code Pattern | Business Application |
 |-------------|---------------------|

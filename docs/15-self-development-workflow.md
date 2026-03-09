@@ -52,7 +52,7 @@ The mastermind system is software. Give it its own project, its own repo, its ow
 │   │   │   ├── memory/SKILL.md
 │   │   │   │   │   │   ├── retrospective/SKILL.md
 │   │   │   ├── project-onboard/SKILL.md
-│   │   │   └── project-retire/SKILL.md
+│   │   │   └── client-retire/SKILL.md
 │   │   ├── agents/
 │   │   │   ├── architect.md
 │   │   │   ├── reviewer.md
@@ -95,7 +95,7 @@ The mastermind system is software. Give it its own project, its own repo, its ow
 └── gamma/                                ← A normal project
 ```
 
-The `brana/` project lives alongside your other projects. The mastermind manages it just like any other project — same SPARC phases, same code review, same patterns. But with extra safety rails because the stakes are higher.
+The `brana/` project lives alongside your other clients. The mastermind manages it just like any other client — same SPARC phases, same code review, same patterns. But with extra safety rails because the stakes are higher.
 
 ---
 
@@ -202,7 +202,7 @@ echo "Knowledge backed up: $BACKUP_DIR/memory_$DATE.db"
 **When to backup:**
 - Before every deploy (automatic, called by deploy.sh)
 - Daily via cron (cheap insurance)
-- Before `/brana:project-retire` (you're about to transform data)
+- Before `/brana:client-retire` (you're about to transform data)
 
 **What about git for knowledge?**
 
@@ -298,7 +298,7 @@ The brana project has its own `.claude/CLAUDE.md` that gives Claude special awar
 # Brana System Development
 
 You are editing the mastermind system — the skills, hooks, agents, and rules
-that control YOUR OWN behavior across all projects.
+that control YOUR OWN behavior across all clients.
 
 ## Safety Rules
 
@@ -327,7 +327,7 @@ that control YOUR OWN behavior across all projects.
 ## What You're Working With
 
 system/CLAUDE.md        → The mastermind identity (edit carefully)
-system/skills/          → Skills invoked across all projects
+system/skills/          → Skills invoked across all clients
 system/agents/          → Subagents available everywhere
 system/commands/        → Slash commands available everywhere
 system/rules/           → Always-loaded rules
@@ -419,7 +419,7 @@ Acceptance criteria:
 | **Broken SessionStart hook** | Every session starts broken. Can't query ReasoningBank. | Hook must `exit 0` on error — degrade, don't block. Try/catch wrapper. | Rollback settings.json to last good version. Knowledge untouched. |
 | **Corrupted CLAUDE.md** | Identity is garbled or empty. Claude behaves erratically. | Validation script checks CLAUDE.md isn't empty, has required sections. | Rollback symlink to last tagged commit. |
 | **Context explosion** | Too much always-loaded content. Eats token budget. Slow, expensive. | Budget validation script blocks deploy if >15KB. | Remove newest rule/skill, re-deploy. |
-| **ReasoningBank corruption** | All cross-project memory lost. | Daily backups. Backup before every deploy. | Restore from latest backup. Gap is at most 1 day. |
+| **ReasoningBank corruption** | All cross-client memory lost. | Daily backups. Backup before every deploy. | Restore from latest backup. Gap is at most 1 day. |
 | **Infinite hook loop** | Hook triggers action that triggers hook again. | Environment variable guard: `BRANA_HOOK_RUNNING=1`. Check before executing. | Kill session. Remove hook. Deploy without it. |
 
 ### The Self-Healing Hook

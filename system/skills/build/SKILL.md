@@ -121,7 +121,7 @@ Run research in this order — each layer adds context for the next:
    cd "$HOME" && $CF memory search --query "{task tags + description keywords}" --namespace knowledge --format json
    ```
 2. **Project docs** — grep/read the project's own documentation, existing implementations, CLAUDE.md. Search for task tags and related concepts.
-3. **Cross-project patterns** — search claude-flow for patterns from other projects matching task tags
+3. **Cross-project patterns** — search claude-flow for patterns from other clients matching task tags
 4. **Web research** — spawn scout agents for external research using task description + tags as search terms (parallel with discussion)
 
 #### Present and discuss
@@ -139,7 +139,7 @@ cd "$HOME" && $CF memory store \
   -k "research:{project}:{topic}:{finding-slug}" \
   -v '{"finding": "...", "source": "...", "confidence": 0.3, "ttl_days": 30}' \
   --namespace knowledge \
-  --tags "type:research,project:{project},topic:{topic}" \
+  --tags "type:research,client:{project},topic:{topic}" \
   --upsert
 ```
 Confidence 0.3 + 30-day TTL: intermediate findings age out if not promoted.
@@ -506,7 +506,7 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
        -k "pattern:{project}:{slug}" \
        -v '{"problem": "...", "solution": "...", "confidence": 0.5}' \
        --namespace patterns \
-       --tags "project:{project},type:build-learning" \
+       --tags "client:{project},type:build-learning" \
        --upsert
      ```
    If claude-flow unavailable, append to project's auto memory MEMORY.md.

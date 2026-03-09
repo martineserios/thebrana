@@ -122,7 +122,7 @@ claude --plugin-dir ./system
 |------|------|-------------------|
 | **thebrana** (here) | Design + Build | Research, plan, implement, deploy |
 | **brana-knowledge** | Knowledge base | General knowledge, research, backups |
-| **projects/** | Portfolio | All client/venture projects live in `~/enter_thebrana/projects/` |
+| **projects/** | Portfolio | All clients live in `~/enter_thebrana/projects/` |
 
 ## Rules
 

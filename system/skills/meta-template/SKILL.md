@@ -47,7 +47,7 @@ Read `$ARGUMENTS`:
 - If provided, use as starting context (template purpose, project name)
 - If empty, ask: "What template do you need? (appointment confirmation, follow-up, welcome, etc.)"
 
-### 1b: Load cross-project formula
+### 1b: Load cross-client formula
 
 Read `~/.claude/memory/meta-whatsapp-templates.md` — this contains the empirically validated formula, safe elements, and kill lines.
 

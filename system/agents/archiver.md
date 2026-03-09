@@ -25,7 +25,7 @@ Scan all knowledge sources for the project:
 source "$HOME/.claude/scripts/cf-env.sh"
 ```
 
-If found: `cd $HOME && $CF memory search --query "project:{NAME}" --limit 50`
+If found: `cd $HOME && $CF memory search --query "client:{NAME}" --limit 50`
 
 Also read:
 - `~/.claude/projects/*/memory/MEMORY.md` for the project
@@ -38,7 +38,7 @@ Also read:
 For each pattern/learning found, classify as:
 
 ### Transferable
-Patterns that apply to other projects. These should be promoted:
+Patterns that apply to other clients. These should be promoted:
 - Confidence >= 0.7
 - Not project-specific (general tech patterns, process patterns)
 - Worked reliably in this project
@@ -68,7 +68,7 @@ Check `~/.claude/memory/portfolio.md` and suggest updates:
 ## Archive Report: {Project Name}
 
 ### Transferable Patterns ({N})
-{For each: key, description, confidence, suggested tags for cross-project discovery}
+{For each: key, description, confidence, suggested tags for cross-client discovery}
 
 ### Historical Patterns ({N})
 {For each: key, description, why it's worth keeping}

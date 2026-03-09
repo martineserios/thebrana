@@ -34,7 +34,7 @@ Skills for learning, recalling, and aligning projects.
 ### `/brana:memory`
 Knowledge system operations with subcommands:
 - `recall` — Query patterns relevant to current context
-- `pollinate` — Cross-pollinate learnings from other projects
+- `pollinate` — Cross-pollinate learnings from other clients
 - `review` — Monthly knowledge health check
 - `review --audit` — Contradiction detection across docs
 
@@ -47,7 +47,7 @@ Scan and diagnose a project — auto-detects type (code, venture, or hybrid). Ou
 ### `/brana:align`
 Actively align a project with brana practices — 6 phases: DISCOVER → ASSESS → PLAN → IMPLEMENT → VERIFY → DOCUMENT. Auto-detects project type and applies type-appropriate checklists.
 
-### `/brana:project-retire`
+### `/brana:client-retire`
 Archive a project's patterns and mark them as historical. Categorizes knowledge as transferable, historical, or deletable.
 
 ## Business / Venture

@@ -140,7 +140,7 @@ if [ -n "$CF_BIN" ]; then
     elif [ -d "$CF_PKG_DIR/node_modules/sql.js" ]; then
         echo "  ✓ claude-flow sql.js present"
     fi
-    # Deploy embeddings config (ensures 384-dim all-MiniLM-L6-v2 across all projects)
+    # Deploy embeddings config (ensures 384-dim all-MiniLM-L6-v2 across all clients)
     mkdir -p "$HOME/.claude-flow"
     if [ -f "$SCRIPT_DIR/.claude-flow/embeddings.json" ]; then
         cp "$SCRIPT_DIR/.claude-flow/embeddings.json" "$HOME/.claude-flow/embeddings.json"

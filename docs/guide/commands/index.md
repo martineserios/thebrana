@@ -82,4 +82,4 @@ All brana commands, grouped by workflow.
 | `/brana:respondio-prompts` | Respond.io AI agent prompts |
 | `/brana:meta-template` | WhatsApp template optimization |
 | `/brana:scheduler` | Scheduled jobs |
-| `/brana:project-retire` | Archive a project |
+| `/brana:client-retire` | Archive a project |

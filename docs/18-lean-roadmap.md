@@ -1,6 +1,6 @@
 # 18 - Lean Roadmap: The Minimum Brain That Ships
 
-An alternative to [17-implementation-roadmap.md](./17-implementation-roadmap.md) that strips everything to what actually delivers value now. Same foundation (claude-flow), same destination (cross-project intelligence), fewer moving parts.
+An alternative to [17-implementation-roadmap.md](./17-implementation-roadmap.md) that strips everything to what actually delivers value now. Same foundation (claude-flow), same destination (cross-client intelligence), fewer moving parts.
 
 **Philosophy:** Build the 20% that delivers 80% of the value. Add complexity only when reality demands it, not when specs predict it.
 
@@ -52,7 +52,7 @@ Everything dropped here can be added later. Nothing in this plan prevents gradua
 | **Two-layer memory** | Layer 0 (native auto memory) + Layer 1 (ReasoningBank). Keeps working if claude-flow breaks. Near-zero cost. |
 | **Three hooks** | SessionStart (recall), SessionEnd (learn), PostToolUse (notice). The learning loop IS the product. |
 | **Quarantine** | New patterns enter at 0.5 confidence, transferable: false. 3 successes to promote. One mechanism, biggest impact. |
-| **6 core skills** | memory, retrospective, project-onboard, project-retire, challenge. The user interface. |
+| **6 core skills** | memory, retrospective, project-onboard, client-retire, challenge. The user interface. |
 | **Challenger (one-pass)** | `/brana:challenge` spawns Sonnet, gets one review, done. No debate, no auto-trigger, no pre-screening. |
 | **Export escape hatch** | `export-knowledge.sh` on day 1. Non-negotiable safety net. |
 | **PM awareness** | One rule file. Mastermind knows about PM repos. |
@@ -80,7 +80,7 @@ Everything dropped here can be added later. Nothing in this plan prevents gradua
 │   │   ├── memory.md
 │   │   ├── retrospective.md
 │   │   ├── project-onboard.md
-│   │   │   ├── project-retire.md
+│   │   │   ├── client-retire.md
 │   │   └── challenge.md
 │   ├── agents/
 │   │   └── scout.md                 ← Haiku fast research
@@ -140,8 +140,8 @@ Build all 6 in week 1-2. Keep them simple:
 | `/brana:memory recall` | Query ReasoningBank for current context | `memory search -q` |
 | `/brana:retrospective` | Manually store a learning | `memory store -k -v --namespace --tags` |
 | `/project-onboard` | Bootstrap a new project + recall portfolio knowledge | `memory search -q` |
-| `/brana:memory pollinate` | Pull patterns from other projects | `memory search -q` |
-| `/brana:project-retire` | Archive project patterns, mark as historical | bulk tag update |
+| `/brana:memory pollinate` | Pull patterns from other clients | `memory search -q` |
+| `/brana:client-retire` | Archive project patterns, mark as historical | bulk tag update |
 | `/brana:challenge` | Sonnet reviews your current plan (one pass) | Task tool with `model: "sonnet"` |
 
 ### Plugins to Install
@@ -229,7 +229,7 @@ promotion: 3 successful recalls in different sessions
 failure: immediate demotion to suspect on bad recall
 ```
 
-This prevents the worst failure mode — bad patterns spreading across projects before they're proven. If quarantine alone isn't catching problems after 3-4 months, revisit [doc 16](dimensions/16-knowledge-health.md)'s full immune system. Until then, this is enough.
+This prevents the worst failure mode — bad patterns spreading across clients before they're proven. If quarantine alone isn't catching problems after 3-4 months, revisit [doc 16](dimensions/16-knowledge-health.md)'s full immune system. Until then, this is enough.
 
 ### Testing the Loop
 
@@ -254,7 +254,7 @@ This prevents the worst failure mode — bad patterns spreading across projects 
 - [ ] Quarantine working: new patterns at 0.5, not transferable
 - [ ] Layer 0 fallback working (pending-learnings.md)
 - [ ] After 10+ sessions across 2+ projects: >50% of recalled patterns actually useful
-- [ ] At least one cross-project pattern surfaced via manual `/brana:memory pollinate`
+- [ ] At least one cross-client pattern surfaced via manual `/brana:memory pollinate`
 - [ ] At least one failure recalled and avoided
 - [ ] Tag: `v0.2.0`
 
@@ -307,7 +307,7 @@ This phase is intentionally loose. By week 6, you'll know what's actually broken
 - [ ] At least one pattern promoted through quarantine to trusted
 - [ ] At least one bad pattern caught and demoted or converted to anti-pattern
 - [ ] Monthly review done at least once — health snapshot documented
-- [ ] Cross-pollination has delivered at least one genuinely useful cross-project insight
+- [ ] Cross-pollination has delivered at least one genuinely useful cross-client insight
 - [ ] The system feels like it's helping, not like overhead
 - [ ] Tag: `v0.3.0`
 
@@ -315,7 +315,7 @@ This phase is intentionally loose. By week 6, you'll know what's actually broken
 
 ## Phase 4: Project Enforcement (After Phase 3)
 
-**Goal:** The mastermind enforces spec-driven and test-driven development in managed projects. Not suggestions in CLAUDE.md (~80% compliance) — deterministic enforcement via PreToolUse hooks (~100%). See [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md) "Project Enforcement" section for the architectural design.
+**Goal:** The mastermind enforces spec-driven and test-driven development in managed clients. Not suggestions in CLAUDE.md (~80% compliance) — deterministic enforcement via PreToolUse hooks (~100%). See [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md) "Project Enforcement" section for the architectural design.
 
 **Prerequisite:** Phase 3 complete (v0.3.0). The learning loop must work before enforcement layers on top — ADRs feed into ReasoningBank via `/brana:retrospective`.
 
@@ -391,7 +391,7 @@ done
 [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
 [ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
 ```
-Store: `cd $HOME && $CF memory store -k "decision:{PROJECT}:{slug}" -v '{"type": "decision", "title": "...", "status": "proposed", "confidence": 0.5, "transferable": false}' --namespace decisions --tags "project:{PROJECT},type:decision,status:proposed"`
+Store: `cd $HOME && $CF memory store -k "decision:{PROJECT}:{slug}" -v '{"type": "decision", "title": "...", "status": "proposed", "confidence": 0.5, "transferable": false}' --namespace decisions --tags "client:{PROJECT},type:decision,status:proposed"`
 
 9. **Fallback (claude-flow unavailable).** Append to `~/.claude/projects/{project-hash}/memory/MEMORY.md`:
 ```
@@ -679,7 +679,7 @@ Agents and skills now integrate as complementary layers rather than independent 
 
 **What was built:**
 - **Improved skill descriptions** — explicit "Use when..." trigger conditions on all 18 skills, raising invocation from 53% to ~79%
-- **6 new agents** (memory-curator, project-scanner, venture-scanner, challenger, debrief-analyst, archiver) joining the existing scout — 7 total
+- **6 new agents** (memory-curator, client-scanner, venture-scanner, challenger, debrief-analyst, archiver) joining the existing scout — 7 total
 - **Delegation-routing rule** — agents auto-delegate when skills go uninvoked, closing the gap from ~79% to ~95%
 - **Skill-to-agent integration** — four patterns formalized: skill spawns agent (A), agent preloads skill (B), auto-delegation (C), multi-agent orchestration via skills (D)
 
@@ -697,7 +697,7 @@ This isn't a phase — it's a menu. Add items when you feel the pain, not on a s
 
 **Project health monitoring** — statusline display of alignment metrics (ADR freshness, test coverage trend, debrief frequency). The base statusline is deployed (`~/.claude/statusline.sh` — see [doc 10](dimensions/10-statusline-research.md) §Brana Implementation); this backlog item is about layering alignment-specific metrics on top. Add when you want passive awareness of alignment drift. See [10-statusline-research.md](dimensions/10-statusline-research.md) "Project Health Monitoring via Statusline" and [27-project-alignment-methodology.md](dimensions/27-project-alignment-methodology.md) "Project Health Monitoring".
 
-**`/project-align --check`** — periodic re-assessment mode. Runs the 28-item checklist without implementing, reports regressions. Add when alignment drift becomes a real concern across multiple projects.
+**`/project-align --check`** — periodic re-assessment mode. Runs the 28-item checklist without implementing, reports regressions. Add when alignment drift becomes a real concern across multiple clients.
 
 | Pain | Solution | [Doc 17](17-implementation-roadmap.md) Equivalent |
 |---|---|---|
@@ -866,7 +866,7 @@ This costs nothing to implement. It makes tag-based recall work better NOW and m
 Doc 18 Phase 1 (weeks 1-3)    v0.1.0  Foundation in place
 Doc 18 Phase 2 (weeks 3-6)    v0.2.0  Learning loop + quarantine working
 Doc 18 Phase 3 (weeks 6-12)   v0.3.0  Refined, 200-500 patterns accumulated
-Doc 18 Phase 4 (after Phase 3) v0.4.0  SDD/TDD enforcement in managed projects
+Doc 18 Phase 4 (after Phase 3) v0.4.0  SDD/TDD enforcement in managed clients
 Doc 18 Phase 5 (after Phase 4) v0.5.0  Active project alignment pipeline
 
    ── pain-driven transition ── (not a deadline — when you feel it)
@@ -912,4 +912,4 @@ Each step is independent. You can do Phase 4 (immune system) without Phase 3 (SO
 - [25-self-documentation.md](./25-self-documentation.md) — Frontmatter convention, staleness detection, growth stages for skills/configs
 - [11-ecosystem-skills-plugins.md](dimensions/11-ecosystem-skills-plugins.md) — SDD/TDD enforcement tools (section 5): TDD-Guard, cc-sdd, Superpowers, multi-agent TDD
 - [19-pm-system-design.md](./19-pm-system-design.md) — ADR design, `/decide` skill spec, CLAUDE.md compliance limitations
-- [27-project-alignment-methodology.md](dimensions/27-project-alignment-methodology.md) — Project alignment: 28-item checklist, 3 tiers, 5-phase pipeline, cross-project learning
+- [27-project-alignment-methodology.md](dimensions/27-project-alignment-methodology.md) — Project alignment: 28-item checklist, 3 tiers, 5-phase pipeline, cross-client learning

@@ -87,7 +87,7 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 69 | Deploy pipeline missing `commands/` artifact type | **Medium** | code-fix (2026-02-23) | `session-handoff`, `init-project` existed only in `~/.claude/commands/` with no source in `system/`. Violates "never edit ~/.claude/ directly" rule. |
 | 70 | Pre-commit Check 3 can't parse doc number ranges in CLAUDE.md | **Medium** | code-fix (2026-02-23) | Fixed via backlog #66: Check 3 now uses Python range expansion to build a flat list of all referenced doc numbers before checking membership. |
 | 71 | Lesson #36 over-broad — `bypassPermissions` agents CAN write cross-repo | **High** | applied (2026-02-24) | Lesson #36 annotated with supersession note pointing to lesson #68, which documents the nuanced rule: default-mode agents sandboxed by hooks, `bypassPermissions` agents bypass hooks entirely. |
-| 72 | Portfolio tasks.json schema inconsistent across projects | **Low** | informational | Palco/somos/nexeye use bare `[{...}]` array. Tinyhomes/thebrana use `{"tasks": [...]}` wrapper. `/brana:tasks portfolio` handles both via normalize step. Should standardize during next `/project-align` pass. |
+| 72 | Portfolio tasks.json schema inconsistent across clients | **Low** | informational | Palco/somos/nexeye use bare `[{...}]` array. Tinyhomes/thebrana use `{"tasks": [...]}` wrapper. `/brana:tasks portfolio` handles both via normalize step. Should standardize during next `/project-align` pass. |
 | 73 | [Doc 08](reflections/08-diagnosis.md) missing triage for [docs 38](dimensions/38-design-thinking.md), 39 | **Medium** | applied (2026-02-25) | Maintain-specs cascade — two new dimension docs added without triage entries |
 | 74 | [Doc 08](reflections/08-diagnosis.md) "PM Separation: preserve the pattern" contradicted by [doc 39](39-architecture-redesign.md) | **High** | applied (2026-02-25) | [Doc 39](39-architecture-redesign.md) supersedes with directory-based separation. Supersession note added to item 2. |
 | 75 | [Doc 14](reflections/14-mastermind-architecture.md) missing cross-reference to [doc 39](39-architecture-redesign.md) | **Medium** | applied (2026-02-25) | Forward reference added with note that sections will need updating when migration phases execute |
@@ -286,9 +286,9 @@ TOTAL=$((TOTAL + AGENT_LINES))
 - `system/hooks/session-end.sh` (lines 51-57) — learn at session end
 - `system/skills/pattern-recall/SKILL.md` — `hooks recall --query`
 - `system/skills/retrospective/SKILL.md` — `hooks learn --patterns`
-- `system/skills/cross-pollinate/SKILL.md` — `hooks recall --cross-project --query`
+- `system/skills/cross-pollinate/SKILL.md` — `hooks recall --cross-client --query`
 - `system/skills/project-onboard/SKILL.md` — `hooks recall --query`
-- `system/skills/project-retire/SKILL.md` — `hooks recall --query`
+- `system/skills/client-retire/SKILL.md` — `hooks recall --query`
 
 **Additional issue:** Hook scripts ran `npx claude-flow` from the project CWD, but the global memory DB lives at `$HOME/.swarm/memory.db`. Commands must run from `$HOME` (via `cd "$HOME" &&`) for the global DB to be found.
 
@@ -468,7 +468,7 @@ Context7 is an Upstash MCP server for fetching real-time, version-specific libra
 
 [Doc 08](reflections/08-diagnosis.md) recommends ReasoningBank as "#1 value-add" (line 108) without mentioning this native alternative exists.
 
-**Impact:** Low — ReasoningBank provides semantic search with SHA-512 embeddings, tags, namespaces, and cross-project queries that native `memory:` doesn't offer. The recommendation is still valid. But [doc 08](reflections/08-diagnosis.md) should acknowledge native `memory:` as a simpler fallback (which is what the implementation already does as Layer 0).
+**Impact:** Low — ReasoningBank provides semantic search with SHA-512 embeddings, tags, namespaces, and cross-client queries that native `memory:` doesn't offer. The recommendation is still valid. But [doc 08](reflections/08-diagnosis.md) should acknowledge native `memory:` as a simpler fallback (which is what the implementation already does as Layer 0).
 
 **No fix needed** — the implementation handles this correctly. Logged for awareness.
 
@@ -553,7 +553,7 @@ frontmatter=$(awk 'NR==1 && /^---$/{in_fm=1; next} in_fm && /^---$/{exit} in_fm{
 
 **Root cause (discovered 2026-02-12):** When `.mcp.json` uses `npx claude-flow@version`, npx creates a **separate** package cache (`~/.npm/_npx/{hash}/`) from the global install (`~/.nvm/.../lib/node_modules/claude-flow/`). sql.js must be installed in **both** locations independently. Fixing one leaves the other broken.
 
-**Impact:** All ReasoningBank operations fail. The system falls back to Layer 0 (auto memory files), which works but loses semantic search, tagging, and cross-project queries.
+**Impact:** All ReasoningBank operations fail. The system falls back to Layer 0 (auto memory files), which works but loses semantic search, tagging, and cross-client queries.
 
 **Fix (root):** Eliminate the dual-path problem entirely:
 1. Point `.mcp.json` to the global binary directly (not npx): `"command": "/home/.../.nvm/versions/node/v20.19.0/bin/claude-flow"`
@@ -572,15 +572,15 @@ frontmatter=$(awk 'NR==1 && /^---$/{in_fm=1; next} in_fm && /^---$/{exit} in_fm{
 
 **Discovery:** Upgrading from alpha.28 to alpha.34, `memory search -q "query"` fails with "Required option missing: --query". The alpha.34 release added global `-Q`/`--quiet` flag, which shadows the `-q` shorthand that `memory search` previously used for `--query`. The `--help` text still shows `-q` in examples, making this doubly confusing.
 
-**Impact:** Every hook and skill that calls `memory search -q` silently fails (returns empty or errors). The session-start recall hook, pattern-recall, retrospective, cross-pollinate, project-onboard, project-retire, build-phase, venture-onboard, venture-phase, growth-check, and test-memory.sh — all broken. 15 files total across implementation and spec docs.
+**Impact:** Every hook and skill that calls `memory search -q` silently fails (returns empty or errors). The session-start recall hook, pattern-recall, retrospective, cross-pollinate, project-onboard, client-retire, build-phase, venture-onboard, venture-phase, growth-check, and test-memory.sh — all broken. 15 files total across implementation and spec docs.
 
 **Fix:** Replace all `-q` with `--query` in every file that calls `memory search`:
 ```bash
 # Before (alpha.28)
-$CF memory search -q "project:$PROJECT" --format json
+$CF memory search -q "client:$PROJECT" --format json
 
 # After (alpha.34)
-$CF memory search --query "project:$PROJECT" --format json
+$CF memory search --query "client:$PROJECT" --format json
 ```
 
 **Files affected:** 11 in thebrana (1 hook, 9 skills, 1 test), 4 spec docs (07, 14, 17, 18, 24).
@@ -949,9 +949,9 @@ The reflection layer redesign (docs 31, 32) removed ~160 lines from [doc 14](ref
 **Severity:** Medium — required manual rework on 9 files
 **Status:** code-fix (2026-02-22)
 
-**Discovery:** Python script (`/tmp/bulk-cf-replace.py`) used regex to find standalone fenced code blocks containing the cf-discovery pattern and replace them with a `source` one-liner. The regex expected ````bash\n...cf-discovery...\n``` `` as a standalone block, but 9 files had the cf-discovery embedded inside larger code blocks with additional commands (e.g., setup sections with both discovery and memory store). The regex either missed them entirely or ate surrounding text (knowledge-review lost its heading, project-retire lost indentation).
+**Discovery:** Python script (`/tmp/bulk-cf-replace.py`) used regex to find standalone fenced code blocks containing the cf-discovery pattern and replace them with a `source` one-liner. The regex expected ````bash\n...cf-discovery...\n``` `` as a standalone block, but 9 files had the cf-discovery embedded inside larger code blocks with additional commands (e.g., setup sections with both discovery and memory store). The regex either missed them entirely or ate surrounding text (knowledge-review lost its heading, client-retire lost indentation).
 
-**Files affected:** 9 skills where cf-discovery was part of a larger fenced block, notably `knowledge-review/SKILL.md` and `project-retire/SKILL.md`.
+**Files affected:** 9 skills where cf-discovery was part of a larger fenced block, notably `knowledge-review/SKILL.md` and `client-retire/SKILL.md`.
 
 **Fix applied:** Manual editing of all 9 remaining files after bulk pass.
 
@@ -1145,7 +1145,7 @@ Attempting to re-store a pattern with the same key and namespace fails with `UNI
 
 ### 26. Bulk regex edits need a two-pass verification strategy
 
-The Python bulk-edit script caught 32 of 41 replacements. The remaining 9 had variations the regex didn't anticipate: embedded blocks, different indentation, mixed content. The fix was manual editing — one file at a time. The broken files (knowledge-review lost its heading, project-retire lost indentation) were only caught by reviewing the diff, not by validation. **Rule: after any bulk regex replacement across 10+ files, run a verification pass: (1) count expected vs actual replacements, (2) `git diff` every changed file for formatting damage, (3) grep for any remaining instances of the old pattern. The bulk script is the first pass, not the only pass.**
+The Python bulk-edit script caught 32 of 41 replacements. The remaining 9 had variations the regex didn't anticipate: embedded blocks, different indentation, mixed content. The fix was manual editing — one file at a time. The broken files (knowledge-review lost its heading, client-retire lost indentation) were only caught by reviewing the diff, not by validation. **Rule: after any bulk regex replacement across 10+ files, run a verification pass: (1) count expected vs actual replacements, (2) `git diff` every changed file for formatting damage, (3) grep for any remaining instances of the old pattern. The bulk script is the first pass, not the only pass.**
 
 ### 27. Embedded Python in bash scripts beats associative arrays
 
@@ -1347,7 +1347,7 @@ While building `/brana:tasks portfolio` on a thebrana feature branch, edits to `
 
 ### 71. Challenger review is most valuable for SKILL.md instructions — not just code
 
-The challenger caught a real schema inconsistency (bare array vs `{tasks: [...]}`) across portfolio projects that would have caused silent failures at runtime. For SKILL.md instructions (not code), the challenger also correctly identified that 3 flags was over-complex — Claude interpreting flag combinations is harder than code implementing them. The simplification from 3 flags to 1 reduced instruction ambiguity without losing capability. **Rule: run challenger review on SKILL.md instruction changes, not just code. The failure mode for instructions is ambiguity (Claude interprets differently each time), not bugs. Challengers catch ambiguity that the author can't see.**
+The challenger caught a real schema inconsistency (bare array vs `{tasks: [...]}`) across portfolio clients that would have caused silent failures at runtime. For SKILL.md instructions (not code), the challenger also correctly identified that 3 flags was over-complex — Claude interpreting flag combinations is harder than code implementing them. The simplification from 3 flags to 1 reduced instruction ambiguity without losing capability. **Rule: run challenger review on SKILL.md instruction changes, not just code. The failure mode for instructions is ambiguity (Claude interprets differently each time), not bugs. Challengers catch ambiguity that the author can't see.**
 
 ### 72. Automated dual-mention audits catch what manual planning misses
 

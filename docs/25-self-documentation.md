@@ -452,7 +452,7 @@ Each document should mark its key decisions with a consistent pattern (a heading
 
 ## All Commands
 
-The brana system has skills across code-focused and venture/business categories, plus agents (scout, memory-curator, project-scanner, venture-scanner, challenger, debrief-analyst, archiver, daily-ops, metrics-collector, pipeline-tracker). Commands are organized in four categories, all invoked via `/command-name` in a session. Skills and agents integrate via four patterns documented in [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md).
+The brana system has skills across code-focused and venture/business categories, plus agents (scout, memory-curator, client-scanner, venture-scanner, challenger, debrief-analyst, archiver, daily-ops, metrics-collector, pipeline-tracker). Commands are organized in four categories, all invoked via `/command-name` in a session. Skills and agents integrate via four patterns documented in [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md).
 
 ### Spec Maintenance
 
@@ -477,10 +477,10 @@ Commands for the learning loop. These operate on the pattern memory (claude-flow
 |---|---|---|
 | `/brana:memory recall` | Search learned patterns, grouped by confidence tier (proven/quarantined/suspect) | **Start of work** — "what do I already know about this?" |
 | `/brana:retrospective` | Store a learning + review recalled patterns (promote useful, demote harmful) | **End of work** — "what did I learn this session?" |
-| `/brana:memory pollinate` | Pull transferable patterns from other projects | **When stuck** — "did another project solve this?" |
+| `/brana:memory pollinate` | Pull transferable patterns from other clients | **When stuck** — "did another project solve this?" |
 | `/project-onboard` | Bootstrap a new code project: scan structure, recall relevant patterns, suggest CLAUDE.md | **Once per project** — first session in a new codebase |
 | `/project-align` | Active alignment pipeline: assess gaps → plan → implement structure → verify → document | **After `/project-onboard`** identifies gaps, or when setting up a new project |
-| `/brana:project-retire` | Archive a project's patterns, keep transferable ones active | **Once per project** — when a project is done |
+| `/brana:client-retire` | Archive a project's patterns, keep transferable ones active | **Once per project** — when a project is done |
 | `/brana:memory review` | Monthly ReasoningBank health check: stats, staleness, promotion candidates | **Monthly** or when curious about knowledge health |
 | `/session-handoff` | Auto-detect close/pickup mode. Close: debrief-analyst → store learnings as quarantined patterns (retrospective) → graduation suggestions → doc drift heuristic → handoff note → claude-flow store. Pickup: read handoff → reconcile cross-session changes → surface flags + correction patterns | **Session start or end** — auto-detects which mode based on git activity |
 
@@ -533,7 +533,7 @@ Commands fit into natural moments in your work. You don't need all of them every
 /project-onboard
 ```
 
-Example: You clone a new Next.js + Supabase project. `/project-onboard` scans `package.json`, detects the stack, and recalls patterns from other projects that used the same tech:
+Example: You clone a new Next.js + Supabase project. `/project-onboard` scans `package.json`, detects the stack, and recalls patterns from other clients that used the same tech:
 
 ```
 Tech stack detected: Next.js 14, Supabase, TypeScript, Tailwind
@@ -650,7 +650,7 @@ Stored pattern:
   key: pattern:brana:npx-unreliable-in-hooks
   confidence: 0.5 (quarantined)
   transferable: false
-  tags: project:brana, tech:nodejs, type:hooks, outcome:failure
+  tags: client:brana, tech:nodejs, type:hooks, outcome:failure
 
 Reviewing recalled patterns from this session...
   - "Hook testing requires full pipeline simulation" was recalled
@@ -710,14 +710,14 @@ Example — after a Phase 2 implementation session:
 ```
 /brana:memory pollinate [topic]
 ```
-Searches for transferable patterns across all projects. Only shows patterns with `transferable: true` or high confidence.
+Searches for transferable patterns across all clients. Only shows patterns with `transferable: true` or high confidence.
 
 Example — struggling with test reliability in a new project:
 ```
 /brana:memory pollinate flaky tests
 ```
 ```
-Found 2 transferable patterns from other projects:
+Found 2 transferable patterns from other clients:
 
 [brana] ((var++)) under set -e exits when var is 0
   Bash arithmetic post-increment returns the old value. Under set -e,
@@ -736,14 +736,14 @@ context before trusting them.
 
 ---
 
-**Retiring a project:**
+**Retiring a client:**
 ```
-/brana:project-retire [project-name]
+/brana:client-retire [project-name]
 ```
 
 Example:
 ```
-/brana:project-retire nexeye
+/brana:client-retire nexeye
 ```
 ```
 Found 12 patterns for nexeye:
@@ -891,7 +891,7 @@ New learning ──→ confidence: 0.5 (quarantined)
               /brana:memory pollinate can share it
                       │
                       ▼
-              other projects benefit
+              other clients benefit
 
     recalled + harmful ──→ confidence: 0.1 (suspect)
 ```

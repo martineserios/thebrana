@@ -112,7 +112,7 @@ Hierarchy views (status, roadmap) use box-drawing characters when not in `--wide
 
 - `/brana:tasks plan [project] "[phase-title]"` — plan a phase interactively
 - `/brana:tasks status [project] [--wide]` — progress overview (omit project = portfolio)
-- `/brana:tasks portfolio [--unified] [--wide]` — cross-project actionable tasks
+- `/brana:tasks portfolio [--unified] [--wide]` — cross-client actionable tasks
 - `/brana:tasks roadmap [project] [--wide]` — full tree view with all levels
 - `/brana:tasks next [project] [--stream X] [--wide]` — next unblocked task by priority
 - `/brana:tasks start <id>` — begin work on a task
@@ -165,7 +165,7 @@ High-level progress view with aggregation.
 
 1. **Resolve active theme** (see Display Themes)
 2. **Detect project** or show portfolio if omitted
-3. **Read tasks.json** (for portfolio: read from each project path in tasks-portfolio.json)
+3. **Read tasks.json** (for portfolio: read from each client's project paths in tasks-portfolio.json)
 4. **Compute per-phase:** total tasks, completed, in_progress, blocked
 5. **Compute per-stream:** roadmap progress, bug count, tech-debt count, research triage counts (new/reviewed/applied)
 6. **If `--wide`**, render using **wide-mode template** (see Display Themes > Wide mode). Otherwise render using task-line template with tree connectors:
@@ -216,13 +216,13 @@ emoji:
 
 Health dots (emoji only): 🟢 all done, 🟡 has active/pending work, 🔴 has blocked tasks.
 
-Read project paths from `~/.claude/tasks-portfolio.json`. Paths use `~/` prefix — resolve to `$HOME` before reading. For each, read `.claude/tasks.json` if it exists.
+Read client/project paths from `~/.claude/tasks-portfolio.json`. Schema: `{ clients: [{ slug, projects: [{ slug, path }] }] }`. Legacy flat `{ projects: [...] }` also supported. Paths use `~/` prefix — resolve to `$HOME` before reading. For each project, read `{path}/.claude/tasks.json` if it exists.
 
 ---
 
 ## /brana:tasks portfolio
 
-Cross-project actionable task view. Shows individual tasks you can work on across all registered projects. Complements `/brana:tasks status` (progress bars) with a task-level drill-down.
+Cross-client actionable task view. Shows individual tasks you can work on across all registered clients. Complements `/brana:tasks status` (progress bars) with a task-level drill-down.
 
 ### Usage
 
@@ -235,19 +235,20 @@ Cross-project actionable task view. Shows individual tasks you can work on acros
 ### Steps
 
 1. **Resolve active theme** (see Display Themes)
-2. **Read `~/.claude/tasks-portfolio.json`** — get project list
+2. **Read `~/.claude/tasks-portfolio.json`** — get client list
 3. **Resolve paths** — replace `~/` with `$HOME`
-4. **For each project**, read `{path}/.claude/tasks.json`
+4. **For each client**, iterate its projects array. For each project, read `{path}/.claude/tasks.json`
    - If file doesn't exist: skip silently
    - **Normalize JSON**: if root is a bare array `[{...}]`, treat as the tasks list. If root is an object with `.tasks`, use that.
+   - **Legacy schema**: if root has `.projects` instead of `.clients`, treat each entry as a single-project client (slug = project slug)
 5. **Classify each task** (type: task or subtask only — skip phases and milestones):
    - `in_progress`: status is `in_progress`
    - `pending`: status is `pending` AND all `blocked_by` IDs have status `completed`
    - `blocked`: status is `pending` AND any `blocked_by` ID is not `completed`
    - `parked`: tags array contains `"parked"` (shown with `[parked]` flag)
    - `completed`: status is `completed`
-6. **Sort within each project**: in_progress → pending → blocked → last 3 completed (by `completed` date descending)
-7. **Compute summary**: total actionable tasks, project count, pending count, in_progress count
+6. **Sort within each client**: in_progress → pending → blocked → last 3 completed (by `completed` date descending)
+7. **Compute summary**: total actionable tasks, client count, pending count, in_progress count
 8. **If `--wide`**, render using **wide-mode template** (see Display Themes > Wide mode) — flat table grouped by project. Otherwise render using task-line template — by-project or unified view.
 
 ### By-project view (default)
@@ -255,7 +256,7 @@ Cross-project actionable task view. Shows individual tasks you can work on acros
 Render task lines using active theme icons. Example in **classic**:
 
 ```
-Portfolio — 17 tasks across 4 projects (14 pending, 3 in progress)
+Portfolio — 17 tasks across 4 clients (14 pending, 3 in progress)
 
   nexeye
     ← t-003 First production deploy                    in_progress
@@ -273,7 +274,7 @@ Portfolio — 17 tasks across 4 projects (14 pending, 3 in progress)
     ✓ t-009 Migrate campaign schema                     completed 2026-02-14
     ✓ t-008 Add rate limiting                           completed 2026-02-13
 
-  somos_mirada
+  somos
     → t-001 Fill kb-indicaciones-consulta-virtual-bsas  pending
     → t-002 Fill kb-indicaciones-consulta-virtual-eng   pending
     ...(+7 more pending)
@@ -286,7 +287,7 @@ Same view in **emoji** — note boxed header, health dots, themed icons:
 
 ```
 ╭──────────────────────────────────────────────────────╮
-│  📊 Portfolio — 17 tasks · 4 projects                │
+│  📊 Portfolio — 17 tasks · 4 clients                 │
 │  🔨 3 in progress · 🔲 14 pending                    │
 ╰──────────────────────────────────────────────────────╯
 
@@ -306,7 +307,7 @@ Same view in **emoji** — note boxed header, health dots, themed icons:
     ✅ t-009 Migrate campaign schema                     completed 2026-02-14
     ✅ t-008 Add rate limiting                           completed 2026-02-13
 
-  🟡 somos_mirada
+  🟡 somos
     🔲 t-001 Fill kb-indicaciones-consulta-virtual-bsas  pending
     🔲 t-002 Fill kb-indicaciones-consulta-virtual-eng   pending
     ...(+7 more pending)
@@ -316,7 +317,7 @@ Same view in **emoji** — note boxed header, health dots, themed icons:
 ```
 
 Parked tasks show inline: `{blocked-icon} ms-007 Wire AgentDB [parked]  blocked (upstream)`.
-Projects with no tasks.json are omitted. All-completed projects show as a collapsed line.
+Clients with no tasks.json are omitted. All-completed clients show as a collapsed line.
 When a project has more than 5 pending tasks, show the first 3 then `...(+N more pending)`.
 
 ### Unified priority view (`--unified`)
@@ -324,7 +325,7 @@ When a project has more than 5 pending tasks, show the first 3 then `...(+N more
 Render using task-line template icons. Example in **classic**:
 
 ```
-Portfolio — priority view (17 tasks across 4 projects)
+Portfolio — priority view (17 tasks across 4 clients)
 
   1. ← nexeye  t-003 First production deploy            in_progress  P1
   2. ← palco   t-003 V2→V3 cutover                      in_progress  P1

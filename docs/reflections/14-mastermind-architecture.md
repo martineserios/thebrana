@@ -19,7 +19,7 @@ The system has three distinct layers, each with its own persistence and scope:
 ├─────────────────────────────────────────────┤
 │  INTELLIGENCE — What do I know?             │
 │  ReasoningBank, SONA trajectories,          │
-│  cross-project patterns, learned failures   │
+│  cross-client patterns, learned failures   │
 │  Lives at: ~/.swarm/memory.db               │
 ├─────────────────────────────────────────────┤
 │  CONTEXT — What am I working on right now?  │
@@ -28,7 +28,7 @@ The system has three distinct layers, each with its own persistence and scope:
 └─────────────────────────────────────────────┘
 ```
 
-Claude Code's native hierarchy handles layers 1 and 3 — `~/.claude/CLAUDE.md` is always loaded (the mastermind), and `project/.claude/CLAUDE.md` layers on top when you're in a project. Claude-flow's ReasoningBank fills layer 2 — the cross-project memory that native Claude Code can't do.
+Claude Code's native hierarchy handles layers 1 and 3 — `~/.claude/CLAUDE.md` is always loaded (the mastermind), and `project/.claude/CLAUDE.md` layers on top when you're in a project. Claude-flow's ReasoningBank fills layer 2 — the cross-client memory that native Claude Code can't do.
 
 The hooks are the glue connecting all three.
 
@@ -54,12 +54,12 @@ thebrana/system/                              PLUGIN (loaded by Claude Code)
 ├── agents/                                   ← 11 specialized sub-agents
 │   ├── scout.md                              ← Haiku-powered fast research agent
 │   ├── memory-curator.md                     ← Knowledge lifecycle management
-│   ├── project-scanner.md                    ← Project structure analysis
+│   ├── client-scanner.md                    ← Project structure analysis
 │   ├── venture-scanner.md                    ← Business project analysis
 │   ├── challenger.md                         ← Opus adversarial review (read-only)
 │   ├── debrief-analyst.md                    ← Opus session learning extraction
 │   ├── archiver.md                           ← Knowledge backup and export
-│   ├── daily-ops.md                          ← Daily operational checks for venture projects
+│   ├── daily-ops.md                          ← Daily operational checks for venture clients
 │   ├── metrics-collector.md                  ← Gather data for venture skills
 │   ├── pipeline-tracker.md                   ← Pipeline tracking and deal analysis
 │   └── pr-reviewer.md                        ← PR diff review on gh pr create (read-only + gh CLI)
@@ -188,12 +188,12 @@ Skills are user-invocable workflows (`/command`). Agents auto-delegate when the 
 |-------|-------|---------|-------|
 | **scout** | Haiku | Fast research, file discovery | Read-only |
 | **memory-curator** | Haiku | Knowledge lifecycle: recall, store, promote, demote | Read, Bash (claude-flow) |
-| **project-scanner** | Haiku | Project structure analysis for onboarding/alignment | Read-only |
+| **client-scanner** | Haiku | Project structure analysis for onboarding/alignment | Read-only |
 | **venture-scanner** | Haiku | Business project analysis for venture onboarding | Read-only |
 | **challenger** | Opus + Gemini | Adversarial review: Opus reasoning + Gemini doc-grounded second opinion via NotebookLM | Read-only (no Write/Edit/Bash) |
 | **debrief-analyst** | Opus | Session learning extraction, errata identification | Read-only |
 | **archiver** | Haiku | Knowledge backup and export | Read, Bash |
-| **daily-ops** | Haiku | Daily operational checks for venture projects | Read-only |
+| **daily-ops** | Haiku | Daily operational checks for venture clients | Read-only |
 | **metrics-collector** | Haiku | Gather data for /brana:review (weekly, monthly, ad-hoc check) | Read-only |
 | **pipeline-tracker** | Haiku | Pipeline tracking and deal analysis | Read-only |
 | **pr-reviewer** | Sonnet | PR diff review: security, logic, style, completeness | Read-only + Bash (gh CLI) |
@@ -204,7 +204,7 @@ Agents are safety nets, not replacements. The community builds skills (portable,
 
 ### Agent Boundaries
 
-Each agent description includes "Not for..." constraints that disambiguate auto-delegation routing. When multiple agents cover adjacent domains (e.g., scout vs memory-curator for research, project-scanner vs venture-scanner for diagnostics), explicit negative boundaries prevent the model from routing to the wrong agent. Model distribution: Haiku (8 agents — fast, cheap tasks), Opus (2 agents — challenger, debrief-analyst — where reasoning depth justifies the cost), Sonnet (1 agent — pr-reviewer — code understanding without Opus cost).
+Each agent description includes "Not for..." constraints that disambiguate auto-delegation routing. When multiple agents cover adjacent domains (e.g., scout vs memory-curator for research, client-scanner vs venture-scanner for diagnostics), explicit negative boundaries prevent the model from routing to the wrong agent. Model distribution: Haiku (8 agents — fast, cheap tasks), Opus (2 agents — challenger, debrief-analyst — where reasoning depth justifies the cost), Sonnet (1 agent — pr-reviewer — code understanding without Opus cost).
 
 ---
 
@@ -231,9 +231,9 @@ The brana ecosystem lives in two repositories. `cd` into thebrana to activate th
 
 When you `cd ~/enter_thebrana/thebrana && claude`:
 
-1. **Global identity** — `~/.claude/CLAUDE.md` ("I am a mastermind. I accumulate knowledge across projects.")
+1. **Global identity** — `~/.claude/CLAUDE.md` ("I am a mastermind. I accumulate knowledge across clients.")
 2. **Global rules** — `~/.claude/rules/*` (12 rules: quality, self-improvement, git, SDD/TDD, memory framework, context budget, doc-linking, task convention, etc.)
-3. **Global auto memory** — `~/.claude/memory/MEMORY.md` (first 200 lines, cross-project observations)
+3. **Global auto memory** — `~/.claude/memory/MEMORY.md` (first 200 lines, cross-client observations)
 4. **Local CLAUDE.md** — `thebrana/.claude/CLAUDE.md` ("You are the architect+operator. Here's the document structure and system layout.")
 5. **Local rules** — `thebrana/.claude/rules/*` (project-specific, if any)
 
@@ -418,7 +418,7 @@ Skills can run headless via `claude -p "Execute /skill-name"` — the scheduler 
 
 ---
 
-## The ReasoningBank Schema (Cross-Project Brain)
+## The ReasoningBank Schema (Cross-Client Brain)
 
 > **Alpha caveat:** claude-flow (which hosts ReasoningBank) is alpha software. Every call must be wrapped in error handling with fallback to Layer 0 (auto memory files at `~/.claude/projects/*/memory/`). Schema may change between versions — pin your version and run `memory init --force` after upgrades. **After every install/upgrade**, also install the missing sql.js dependency: `npm install sql.js --prefix $(dirname $(which claude-flow))/..` (not declared in package.json but dynamically imported at 19+ sites — see errata #25). See [05-claude-flow-v3-analysis.md](../../../brana-knowledge/dimensions/05-claude-flow-v3-analysis.md) for the full stability assessment.
 
@@ -461,7 +461,7 @@ The identity document — who this brain IS:
 ```markdown
 # Mastermind
 
-You are a single intelligence that works across multiple projects.
+You are a single intelligence that works across multiple clients.
 You accumulate knowledge, patterns, and judgment over time.
 
 ## Core Principles
@@ -493,7 +493,7 @@ You accumulate knowledge, patterns, and judgment over time.
 
 - Extract and store learnings (automatic via SessionEnd hook)
 - Update project CLAUDE.md if architecture changed
-- Flag universal patterns for cross-project use
+- Flag universal patterns for cross-client use
 
 ## Project Portfolio
 
@@ -511,7 +511,7 @@ You accumulate knowledge, patterns, and judgment over time.
 ```markdown
 ---
 name: memory
-description: Query the cross-project ReasoningBank for patterns relevant to the
+description: Query the cross-client ReasoningBank for patterns relevant to the
   current task. Use before starting complex work to leverage past experience.
 allowed-tools: [Bash, Read, AskUserQuestion]
 ---
@@ -529,7 +529,7 @@ Before solving this problem, search your accumulated knowledge:
 If no patterns found, say so honestly. Start fresh.
 ```
 
-### 2. `/brana:memory pollinate` — "What would my other projects teach me?"
+### 2. `/brana:memory pollinate` — "What would my other clients teach me?"
 
 ```markdown
 ---
@@ -539,7 +539,7 @@ description: Find solutions from OTHER projects that might apply to the current
 allowed-tools: [Bash, Read, AskUserQuestion]
 ---
 
-Search for cross-project patterns:
+Search for cross-client patterns:
 
 1. Identify the core problem type: auth? performance? data modeling? error handling? testing?
 2. Query ReasoningBank with technology-agnostic terms:
@@ -587,11 +587,11 @@ The `correction_weight` field (Wave 3) creates a fast track: patterns that resol
 
 Scans and diagnoses a project — auto-detects type (code, venture, or hybrid) from project manifests and directory structure. Outputs a gap report with recommendations. Diagnostic only — no file creation. See `/brana:align` for implementing the recommendations.
 
-### 5. `/brana:project-retire` — "Archive this project's knowledge"
+### 5. `/brana:client-retire` — "Archive this project's knowledge"
 
 ```markdown
 ---
-name: project-retire
+name: client-retire
 description: When a project is done or archived, distill ALL its learnings into
   universal patterns. Nothing is lost when a project ends.
 allowed-tools: [Bash, Read, Write, AskUserQuestion]
@@ -666,7 +666,7 @@ A living document the mastermind maintains at `~/.claude/memory/portfolio.md`:
 - **Current phase:** Beta testing
 - **Last session:** 2026-02-07 — added parallel file processing
 
-## Cross-Project Insights
+## Cross-Client Insights
 - Auth patterns from alpha transferable to any Supabase project
 - Beta's error handling strategy should be the default for all Rust projects
 - Testing approach from beta (property-based + unit) caught more bugs than alpha's (unit only)
@@ -722,7 +722,7 @@ Month 3: The mastermind has 500+ patterns across 5 projects.
 
 | What | Role in the System |
 |------|-------------------|
-| **security-guidance** (Anthropic) | Universal safety net across all projects |
+| **security-guidance** (Anthropic) | Universal safety net across all clients |
 | **commit-commands** (Anthropic) | Consistent git workflow everywhere |
 | **Context7 MCP** (Upstash) | Real-time library docs — the mastermind always has current knowledge. Fetches version-specific documentation on demand, preventing stale training-data errors. |
 | **claude-flow MCP** | Cross-project memory via ReasoningBank. **Scope:** use only the memory commands (`memory search`, `memory store`, `memory init`) from claude-flow's 170+ MCP tool surface — skip the rest unless a specific need arises. **Note:** AgentDB (the graph DB backend) is stalled — last npm publish Jan 2, 2026. The fallback strategy (claude-flow embeddings CLI + SQLite) is the primary path forward. See [05-claude-flow-v3-analysis.md](../../../brana-knowledge/dimensions/05-claude-flow-v3-analysis.md) and [39-architecture-redesign.md](../39-architecture-redesign.md) section 7.5. |
@@ -733,7 +733,7 @@ Month 3: The mastermind has 500+ patterns across 5 projects.
 
 | What | Role in the System |
 |------|-------------------|
-| **pr-review-toolkit** (Anthropic) | Universal code review — the reviewer agent carries standards across projects |
+| **pr-review-toolkit** (Anthropic) | Universal code review — the reviewer agent carries standards across clients |
 | **Trail of Bits security skills** | Professional audit skills — install globally, apply everywhere |
 | **Superpowers TDD pattern** (borrow) | Encode as a global rule: "test before code" discipline travels with the brain |
 | **Superpowers debugging pattern** (borrow) | 3-failure escalation as a global rule — prevents brute-force debugging in any project |
@@ -744,7 +744,7 @@ Month 3: The mastermind has 500+ patterns across 5 projects.
 |------|-------------------|
 | **hookify** (Anthropic) | Create per-project hooks easily without manual JSON |
 | **Custom SessionStart/SessionEnd hooks** | The glue — ReasoningBank queries on start, learning extraction on session end |
-| **CC Notify** (community) | Know when long cross-project background tasks finish |
+| **CC Notify** (community) | Know when long cross-client background tasks finish |
 
 ---
 
@@ -776,7 +776,7 @@ See [32-lifecycle.md](./32-lifecycle.md) for the full DDD → SDD → TDD develo
 Plain Claude Code gives you:
 - Project-specific context (CLAUDE.md, rules, skills) — great
 - Auto memory within a project — good but siloed
-- No cross-project knowledge transfer — the gap
+- No cross-client knowledge transfer — the gap
 
 This system adds:
 
@@ -787,7 +787,7 @@ This system adds:
 | **Failure memory** | What DIDN'T work is stored and recalled to prevent repeating mistakes |
 | **Progressive mastery** | The system gets better at every domain it touches, compounding over time |
 | **New project bootstrapping** | Day-1 knowledge from the entire portfolio via `/brana:onboard` |
-| **Knowledge preservation** | Projects end, but their learnings live on via `/brana:project-retire` |
+| **Knowledge preservation** | Projects end, but their learnings live on via `/brana:client-retire` |
 | **Development discipline** | Three-layer enforcement (DDD → SDD → TDD): domain modeling, spec-before-code, test-before-code — deterministic where possible, convention where not |
 
 The single brain isn't just "the same Claude everywhere." It's a Claude that remembers, learns, and transfers knowledge — getting measurably better with every project it touches.
@@ -897,10 +897,10 @@ Skills like `/brana:research` propose backlog items in their reports. The user d
 ## Open Questions
 
 ### Architecture
-1. **How aggressive should cross-pollination be?** Should SessionStart always inject cross-project patterns, or only when explicitly asked? Too much = noise. Too little = missed connections.
+1. **How aggressive should cross-pollination be?** Should SessionStart always inject cross-client patterns, or only when explicitly asked? Too much = noise. Too little = missed connections.
 
 ### Privacy & Isolation
-6. **Project isolation when needed?** Sometimes you DON'T want cross-project contamination — a client project shouldn't leak patterns to a competitor's project. Need a "walls" mechanism.
+6. **Project isolation when needed?** Sometimes you DON'T want cross-client contamination — a client project shouldn't leak patterns to a competitor's project. Need a "walls" mechanism.
 
 7. **Sensitive pattern filtering?** Some learnings contain project-specific secrets or business logic. Need a way to mark patterns as non-transferable.
 
