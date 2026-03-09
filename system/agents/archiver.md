@@ -25,7 +25,7 @@ Scan all knowledge sources for the project:
 source "$HOME/.claude/scripts/cf-env.sh"
 ```
 
-If found: `cd $HOME && $CF memory search --query "project:{NAME}" --limit 50`
+If found: `cd $HOME && $CF memory search --query "client:{NAME}" --limit 50`
 
 Also read:
 - `~/.claude/projects/*/memory/MEMORY.md` for the project

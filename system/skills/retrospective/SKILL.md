@@ -27,7 +27,7 @@ allowed-tools:
    ```bash
 source "$HOME/.claude/scripts/cf-env.sh"
 ```
-   Store via `cd $HOME && $CF memory store -k "pattern:{PROJECT}:{short-title}" -v '{"problem": "...", "solution": "...", "confidence": 0.5, "transferable": false}' --namespace patterns --tags "project:NAME,tech:TECH,type:CATEGORY,outcome:success|failure|partial"`
+   Store via `cd $HOME && $CF memory store -k "pattern:{PROJECT}:{short-title}" -v '{"problem": "...", "solution": "...", "confidence": 0.5, "transferable": false}' --namespace patterns --tags "client:NAME,tech:TECH,type:CATEGORY,outcome:success|failure|partial"`
 
 4. **Fallback path (claude-flow unavailable):**
    Append to `~/.claude/projects/{project-hash}/memory/MEMORY.md` in a structured format:
@@ -47,7 +47,7 @@ source "$HOME/.claude/scripts/cf-env.sh"
 
    After storing the new learning, review patterns that were recalled this session and evaluate whether they were useful.
 
-   a. Search for existing patterns: `cd $HOME && $CF memory search --query "project:{PROJECT}" --limit 20`
+   a. Search for existing patterns: `cd $HOME && $CF memory search --query "client:{PROJECT}" --limit 20`
    b. For each recalled pattern that **was useful** this session:
       - Retrieve: `cd $HOME && $CF memory search --query "{pattern-key}"`
       - Parse the JSON value, increment `recall_count` by 1

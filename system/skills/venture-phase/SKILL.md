@@ -212,7 +212,7 @@ cd "$HOME" && $CF memory store \
   -k "venture:{PROJECT}:{MILESTONE}:item-{N}:{short-id}" \
   -v '{"type": "venture-learning", "milestone": "...", "item": "...", "finding": "...", "severity": "..."}' \
   --namespace business \
-  --tags "project:{PROJECT},type:venture-learning,milestone:{TYPE},stage:{STAGE}"
+  --tags "client:{PROJECT},type:venture-learning,milestone:{TYPE},stage:{STAGE}"
 ```
 
 Fallback: append to `~/.claude/projects/{project-hash}/memory/MEMORY.md`.
@@ -253,7 +253,7 @@ cd "$HOME" && $CF memory store \
   -k "venture:{PROJECT}:{MILESTONE}:debrief" \
   -v '{"type": "milestone-debrief", "milestone": "...", "work_items": N, "learnings": [...], "errata": [...], "issues": [...]}' \
   --namespace business \
-  --tags "project:{PROJECT},type:milestone-debrief,milestone:{TYPE},stage:{STAGE},outcome:{success|partial|failed}"
+  --tags "client:{PROJECT},type:milestone-debrief,milestone:{TYPE},stage:{STAGE},outcome:{success|partial|failed}"
 ```
 
 ---

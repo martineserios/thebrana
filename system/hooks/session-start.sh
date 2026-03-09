@@ -40,13 +40,13 @@ fi
 # Primary path: claude-flow memory search
 CF_WARNING=""
 if [ -n "$CF" ]; then
-    CF_OUTPUT=$(timeout 5 $CF memory search --query "project:$PROJECT" --format json 2>&1) || true
+    CF_OUTPUT=$(timeout 5 $CF memory search --query "client:$PROJECT" --format json 2>&1) || true
     CF_EXIT=$?
     CONTEXT=$(echo "$CF_OUTPUT" | grep -v '^\[' || true)
     if [ $CF_EXIT -eq 124 ]; then
-        CF_WARNING="Memory search timed out (>5s). Patterns not recalled. Try: claude-flow memory search --query 'project:$PROJECT'"
+        CF_WARNING="Memory search timed out (>5s). Patterns not recalled. Try: claude-flow memory search --query 'client:$PROJECT'"
     elif [ $CF_EXIT -ne 0 ] && [ -z "$CONTEXT" ]; then
-        CF_WARNING="Memory search failed. Try: claude-flow memory search --query 'project:$PROJECT'"
+        CF_WARNING="Memory search failed. Try: claude-flow memory search --query 'client:$PROJECT'"
     fi
 else
     CF_WARNING="claude-flow not found. Memory recall unavailable. Install: npm i -g claude-flow"
@@ -55,7 +55,7 @@ fi
 # Wave 3: correction-pattern priority recall
 CORRECTION_CONTEXT=""
 if [ -n "$CF" ]; then
-    CP_OUTPUT=$(timeout 5 $CF memory search --query "project:$PROJECT type:correction" --namespace patterns --format json 2>&1); CP_EXIT=$?
+    CP_OUTPUT=$(timeout 5 $CF memory search --query "client:$PROJECT type:correction" --namespace patterns --format json 2>&1); CP_EXIT=$?
     if [ $CP_EXIT -eq 0 ] && [ -n "$CP_OUTPUT" ]; then
         # Extract high-confidence correction patterns (promoted via fast-track or recall)
         CP_LINES=$(echo "$CP_OUTPUT" | jq -r '.[] | select(.value | fromjson? | .confidence >= 0.8) | (.key + ": " + (.value | fromjson? | .solution // "unknown"))' 2>/dev/null | head -3) || CP_LINES=""

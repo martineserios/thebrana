@@ -167,7 +167,7 @@ Remaining gaps:
      -k "alignment:{PROJECT}:{date}" \
      -v '{"type": "{code|venture}-alignment", "score_before": N, "score_after": N}' \
      --namespace alignment \
-     --tags "project:{PROJECT},type:alignment" \
+     --tags "client:{PROJECT},type:alignment" \
      --upsert
    ```
 2. **Update portfolio.md** with project entry

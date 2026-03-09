@@ -577,10 +577,10 @@ frontmatter=$(awk 'NR==1 && /^---$/{in_fm=1; next} in_fm && /^---$/{exit} in_fm{
 **Fix:** Replace all `-q` with `--query` in every file that calls `memory search`:
 ```bash
 # Before (alpha.28)
-$CF memory search -q "project:$PROJECT" --format json
+$CF memory search -q "client:$PROJECT" --format json
 
 # After (alpha.34)
-$CF memory search --query "project:$PROJECT" --format json
+$CF memory search --query "client:$PROJECT" --format json
 ```
 
 **Files affected:** 11 in thebrana (1 hook, 9 skills, 1 test), 4 spec docs (07, 14, 17, 18, 24).

@@ -230,7 +230,7 @@ cd "$HOME" && $CF memory store \
   -k "pipeline:{PROJECT}:{date}" \
   -v '{"type": "pipeline-snapshot", "stage": "...", "total_leads": N, "active_deals": N, "pipeline_value": N, "win_rate": N, "follow_ups_due": N, "overdue": N}' \
   --namespace business \
-  --tags "project:{PROJECT},type:pipeline,stage:{STAGE}"
+  --tags "client:{PROJECT},type:pipeline,stage:{STAGE}"
 ```
 
 Also search for previous snapshots to enable trend comparison:

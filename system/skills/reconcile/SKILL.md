@@ -229,7 +229,7 @@ cd "$HOME" && $CF memory store \
   -k "reconcile:brana:$(date +%Y%m%d)" \
   -v "{\"type\": \"reconcile\", \"date\": \"$(date +%Y-%m-%d)\", \"drift_found\": N, \"applied\": N, \"deferred\": N, \"areas\": [\"skills\", \"hooks\", ...]}" \
   --namespace patterns \
-  --tags "project:brana,type:reconcile" \
+  --tags "client:brana,type:reconcile" \
   --upsert
 ```
 

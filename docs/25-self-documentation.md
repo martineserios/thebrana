@@ -650,7 +650,7 @@ Stored pattern:
   key: pattern:brana:npx-unreliable-in-hooks
   confidence: 0.5 (quarantined)
   transferable: false
-  tags: project:brana, tech:nodejs, type:hooks, outcome:failure
+  tags: client:brana, tech:nodejs, type:hooks, outcome:failure
 
 Reviewing recalled patterns from this session...
   - "Hook testing requires full pipeline simulation" was recalled

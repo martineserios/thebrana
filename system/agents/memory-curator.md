@@ -27,7 +27,7 @@ source "$HOME/.claude/scripts/cf-env.sh"
 
 1. **Topic recall:** `cd $HOME && $CF memory search --query "{topic}" --limit 20`
 2. **Knowledge base:** `cd $HOME && $CF memory search --query "{topic}" --limit 10` — results in the `knowledge` namespace come from brana-knowledge dimension docs (indexed via `index-knowledge.sh`). These contain research, domain expertise, and methodology. Present them as "Knowledge base: [topic] — from [doc filename]".
-3. **Project patterns:** `cd $HOME && $CF memory search --query "project:{name}" --limit 20`
+3. **Project patterns:** `cd $HOME && $CF memory search --query "client:{name}" --limit 20`
 4. **Cross-project:** `cd $HOME && $CF memory search --query "transferable:true {tech}" --limit 10`
 
 **Fallback** (no claude-flow): scan `~/.claude/projects/*/memory/MEMORY.md`, `~/.claude/memory/portfolio.md`, and `~/enter_thebrana/brana-knowledge/dimensions/` for keyword matches.

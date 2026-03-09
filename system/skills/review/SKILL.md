@@ -48,7 +48,7 @@ Weekly cadence review — portfolio health, zombie cleanup, metrics delta, ship 
      -k "review:weekly:{PROJECT}:{date}" \
      -v '{"type": "weekly-review", "metrics": {...}, "zombies": N, "shipped": N}' \
      --namespace business \
-     --tags "project:{PROJECT},type:weekly-review" \
+     --tags "client:{PROJECT},type:weekly-review" \
      --upsert
    ```
 9. **Next-week planning:** based on bottleneck identified in metrics + unblocked tasks

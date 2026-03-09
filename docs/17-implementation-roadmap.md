@@ -400,7 +400,7 @@ Action:
 Fallback: If claude-flow unavailable → skip, log warning
 ```
 
-**claude-flow command:** `cd "$HOME" && npx claude-flow@$VERSION memory search --query "project:$(basename $PWD)"`
+**claude-flow command:** `cd "$HOME" && npx claude-flow@$VERSION memory search --query "client:$(basename $PWD)"`
 
 #### Hook 2: SessionEnd — "Remember what you learned"
 
@@ -421,7 +421,7 @@ Action:
 Fallback: If claude-flow unavailable → write to ~/.claude/memory/pending-learnings.md
 ```
 
-**claude-flow command:** `cd "$HOME" && npx claude-flow@$VERSION memory store -k "pattern:$PROJECT:{id}" -v '{...}' --namespace patterns --tags "project:$PROJECT"`
+**claude-flow command:** `cd "$HOME" && npx claude-flow@$VERSION memory store -k "pattern:$PROJECT:{id}" -v '{...}' --namespace patterns --tags "client:$PROJECT"`
 
 #### Hook 3: PostToolUse + PostToolUseFailure — "Notice important moments"
 

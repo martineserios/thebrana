@@ -391,7 +391,7 @@ done
 [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
 [ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
 ```
-Store: `cd $HOME && $CF memory store -k "decision:{PROJECT}:{slug}" -v '{"type": "decision", "title": "...", "status": "proposed", "confidence": 0.5, "transferable": false}' --namespace decisions --tags "project:{PROJECT},type:decision,status:proposed"`
+Store: `cd $HOME && $CF memory store -k "decision:{PROJECT}:{slug}" -v '{"type": "decision", "title": "...", "status": "proposed", "confidence": 0.5, "transferable": false}' --namespace decisions --tags "client:{PROJECT},type:decision,status:proposed"`
 
 9. **Fallback (claude-flow unavailable).** Append to `~/.claude/projects/{project-hash}/memory/MEMORY.md`:
 ```

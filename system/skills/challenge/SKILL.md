@@ -117,7 +117,7 @@ source "$HOME/.claude/scripts/cf-env.sh"
      -k "challenge:{PROJECT}:{short-topic}" \
      -v '{"flavor": "pre-mortem|simplicity|assumption|adversarial", "target": "what was challenged", "findings": "key concerns raised", "decision": "accepted|rejected|partial", "confidence": 0.5, "transferable": false, "recall_count": 0}' \
      --namespace patterns \
-     --tags "project:PROJECT,type:challenge,outcome:accepted|rejected|partial,confidence:quarantine"
+     --tags "client:PROJECT,type:challenge,outcome:accepted|rejected|partial,confidence:quarantine"
    ```
 
    If claude-flow is unavailable, append to `~/.claude/projects/{project-hash}/memory/MEMORY.md`.
