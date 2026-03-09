@@ -14,7 +14,7 @@ Brana's knowledge artifacts are scattered across multiple locations and formats:
 | `~/.swarm/memory.rvf` | RVF vectors (partial, Feb 22) | RVF binary | 69K |
 | `~/.swarm/*.json` | Migration artifacts, ID mappings | JSON | 375K |
 | `~/.claude/projects/*/memory/` | Per-project auto-memory (9 projects) | Markdown | ~100K |
-| `~/.claude/memory/` | Global cross-project knowledge | Markdown | ~25K |
+| `~/.claude/memory/` | Global cross-client knowledge | Markdown | ~25K |
 | `~/.claude/scheduler/` | Job state | JSON | ~1K |
 
 Two vector index systems coexist: legacy HNSW (Feb 10, stale) and RVF (Feb 22, partial). Pre-migration backups consume 924K — more than the active database. The `.swarm/` directory has 10 files in 4 formats.

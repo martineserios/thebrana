@@ -1,6 +1,6 @@
 # 19 - Project Management System: Research, Analysis, and Design
 
-How to manage multiple projects from the mastermind system. Not a core function — an optional plugin that layers PM capabilities on top of development work. Informed by Tiago Forte's Second Brain, solo PM best practices, GitHub Projects v2, Claude Code patterns, and brana v1's existing PM framework.
+How to manage multiple clients from the mastermind system. Not a core function — an optional plugin that layers PM capabilities on top of development work. Informed by Tiago Forte's Second Brain, solo PM best practices, GitHub Projects v2, Claude Code patterns, and brana v1's existing PM framework.
 
 ---
 

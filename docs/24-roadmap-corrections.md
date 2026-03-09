@@ -87,7 +87,7 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 69 | Deploy pipeline missing `commands/` artifact type | **Medium** | code-fix (2026-02-23) | `session-handoff`, `init-project` existed only in `~/.claude/commands/` with no source in `system/`. Violates "never edit ~/.claude/ directly" rule. |
 | 70 | Pre-commit Check 3 can't parse doc number ranges in CLAUDE.md | **Medium** | code-fix (2026-02-23) | Fixed via backlog #66: Check 3 now uses Python range expansion to build a flat list of all referenced doc numbers before checking membership. |
 | 71 | Lesson #36 over-broad — `bypassPermissions` agents CAN write cross-repo | **High** | applied (2026-02-24) | Lesson #36 annotated with supersession note pointing to lesson #68, which documents the nuanced rule: default-mode agents sandboxed by hooks, `bypassPermissions` agents bypass hooks entirely. |
-| 72 | Portfolio tasks.json schema inconsistent across projects | **Low** | informational | Palco/somos/nexeye use bare `[{...}]` array. Tinyhomes/thebrana use `{"tasks": [...]}` wrapper. `/brana:tasks portfolio` handles both via normalize step. Should standardize during next `/project-align` pass. |
+| 72 | Portfolio tasks.json schema inconsistent across clients | **Low** | informational | Palco/somos/nexeye use bare `[{...}]` array. Tinyhomes/thebrana use `{"tasks": [...]}` wrapper. `/brana:tasks portfolio` handles both via normalize step. Should standardize during next `/project-align` pass. |
 | 73 | [Doc 08](reflections/08-diagnosis.md) missing triage for [docs 38](dimensions/38-design-thinking.md), 39 | **Medium** | applied (2026-02-25) | Maintain-specs cascade — two new dimension docs added without triage entries |
 | 74 | [Doc 08](reflections/08-diagnosis.md) "PM Separation: preserve the pattern" contradicted by [doc 39](39-architecture-redesign.md) | **High** | applied (2026-02-25) | [Doc 39](39-architecture-redesign.md) supersedes with directory-based separation. Supersession note added to item 2. |
 | 75 | [Doc 14](reflections/14-mastermind-architecture.md) missing cross-reference to [doc 39](39-architecture-redesign.md) | **Medium** | applied (2026-02-25) | Forward reference added with note that sections will need updating when migration phases execute |
@@ -286,7 +286,7 @@ TOTAL=$((TOTAL + AGENT_LINES))
 - `system/hooks/session-end.sh` (lines 51-57) — learn at session end
 - `system/skills/pattern-recall/SKILL.md` — `hooks recall --query`
 - `system/skills/retrospective/SKILL.md` — `hooks learn --patterns`
-- `system/skills/cross-pollinate/SKILL.md` — `hooks recall --cross-project --query`
+- `system/skills/cross-pollinate/SKILL.md` — `hooks recall --cross-client --query`
 - `system/skills/project-onboard/SKILL.md` — `hooks recall --query`
 - `system/skills/client-retire/SKILL.md` — `hooks recall --query`
 
@@ -468,7 +468,7 @@ Context7 is an Upstash MCP server for fetching real-time, version-specific libra
 
 [Doc 08](reflections/08-diagnosis.md) recommends ReasoningBank as "#1 value-add" (line 108) without mentioning this native alternative exists.
 
-**Impact:** Low — ReasoningBank provides semantic search with SHA-512 embeddings, tags, namespaces, and cross-project queries that native `memory:` doesn't offer. The recommendation is still valid. But [doc 08](reflections/08-diagnosis.md) should acknowledge native `memory:` as a simpler fallback (which is what the implementation already does as Layer 0).
+**Impact:** Low — ReasoningBank provides semantic search with SHA-512 embeddings, tags, namespaces, and cross-client queries that native `memory:` doesn't offer. The recommendation is still valid. But [doc 08](reflections/08-diagnosis.md) should acknowledge native `memory:` as a simpler fallback (which is what the implementation already does as Layer 0).
 
 **No fix needed** — the implementation handles this correctly. Logged for awareness.
 
@@ -553,7 +553,7 @@ frontmatter=$(awk 'NR==1 && /^---$/{in_fm=1; next} in_fm && /^---$/{exit} in_fm{
 
 **Root cause (discovered 2026-02-12):** When `.mcp.json` uses `npx claude-flow@version`, npx creates a **separate** package cache (`~/.npm/_npx/{hash}/`) from the global install (`~/.nvm/.../lib/node_modules/claude-flow/`). sql.js must be installed in **both** locations independently. Fixing one leaves the other broken.
 
-**Impact:** All ReasoningBank operations fail. The system falls back to Layer 0 (auto memory files), which works but loses semantic search, tagging, and cross-project queries.
+**Impact:** All ReasoningBank operations fail. The system falls back to Layer 0 (auto memory files), which works but loses semantic search, tagging, and cross-client queries.
 
 **Fix (root):** Eliminate the dual-path problem entirely:
 1. Point `.mcp.json` to the global binary directly (not npx): `"command": "/home/.../.nvm/versions/node/v20.19.0/bin/claude-flow"`
@@ -1347,7 +1347,7 @@ While building `/brana:tasks portfolio` on a thebrana feature branch, edits to `
 
 ### 71. Challenger review is most valuable for SKILL.md instructions — not just code
 
-The challenger caught a real schema inconsistency (bare array vs `{tasks: [...]}`) across portfolio projects that would have caused silent failures at runtime. For SKILL.md instructions (not code), the challenger also correctly identified that 3 flags was over-complex — Claude interpreting flag combinations is harder than code implementing them. The simplification from 3 flags to 1 reduced instruction ambiguity without losing capability. **Rule: run challenger review on SKILL.md instruction changes, not just code. The failure mode for instructions is ambiguity (Claude interprets differently each time), not bugs. Challengers catch ambiguity that the author can't see.**
+The challenger caught a real schema inconsistency (bare array vs `{tasks: [...]}`) across portfolio clients that would have caused silent failures at runtime. For SKILL.md instructions (not code), the challenger also correctly identified that 3 flags was over-complex — Claude interpreting flag combinations is harder than code implementing them. The simplification from 3 flags to 1 reduced instruction ambiguity without losing capability. **Rule: run challenger review on SKILL.md instruction changes, not just code. The failure mode for instructions is ambiguity (Claude interprets differently each time), not bugs. Challengers catch ambiguity that the author can't see.**
 
 ### 72. Automated dual-mention audits catch what manual planning misses
 

@@ -287,7 +287,7 @@ Solve problems  ──→ Formalize patterns   Developers who want depth, not ti
 
 You are an **AI systems designer** — someone who designs, builds, and operates intelligent systems using LLMs and agent frameworks as components. You think at the architecture level: what are the feedback loops, what are the failure modes, how do the pieces compose, how does the system learn from its own mistakes.
 
-Brana is your documented case study. Your portfolio projects (Somos Mirada, NexEye, Proyecto Anita, Psilea, TinyHomes) are your proof. Your 80+ documented errors are your credibility.
+Brana is your documented case study. Your portfolio clients (Somos Mirada, NexEye, Proyecto Anita, Psilea, TinyHomes) are your proof. Your 80+ documented errors are your credibility.
 
 ### Positioning formula (Moore)
 
@@ -834,7 +834,7 @@ SKILL PROCESS — 4 PHASES:
   5. ADRs — recent decisions
   6. frameworks — evergreen content (when sources 1-5 are sparse)
 
-  Also query: claude-flow memory_search for cross-project patterns
+  Also query: claude-flow memory_search for cross-client patterns
 
 
   Phase 2: CLASSIFY

@@ -477,7 +477,7 @@ Commands for the learning loop. These operate on the pattern memory (claude-flow
 |---|---|---|
 | `/brana:memory recall` | Search learned patterns, grouped by confidence tier (proven/quarantined/suspect) | **Start of work** — "what do I already know about this?" |
 | `/brana:retrospective` | Store a learning + review recalled patterns (promote useful, demote harmful) | **End of work** — "what did I learn this session?" |
-| `/brana:memory pollinate` | Pull transferable patterns from other projects | **When stuck** — "did another project solve this?" |
+| `/brana:memory pollinate` | Pull transferable patterns from other clients | **When stuck** — "did another project solve this?" |
 | `/project-onboard` | Bootstrap a new code project: scan structure, recall relevant patterns, suggest CLAUDE.md | **Once per project** — first session in a new codebase |
 | `/project-align` | Active alignment pipeline: assess gaps → plan → implement structure → verify → document | **After `/project-onboard`** identifies gaps, or when setting up a new project |
 | `/brana:client-retire` | Archive a project's patterns, keep transferable ones active | **Once per project** — when a project is done |
@@ -533,7 +533,7 @@ Commands fit into natural moments in your work. You don't need all of them every
 /project-onboard
 ```
 
-Example: You clone a new Next.js + Supabase project. `/project-onboard` scans `package.json`, detects the stack, and recalls patterns from other projects that used the same tech:
+Example: You clone a new Next.js + Supabase project. `/project-onboard` scans `package.json`, detects the stack, and recalls patterns from other clients that used the same tech:
 
 ```
 Tech stack detected: Next.js 14, Supabase, TypeScript, Tailwind
@@ -717,7 +717,7 @@ Example — struggling with test reliability in a new project:
 /brana:memory pollinate flaky tests
 ```
 ```
-Found 2 transferable patterns from other projects:
+Found 2 transferable patterns from other clients:
 
 [brana] ((var++)) under set -e exits when var is 0
   Bash arithmetic post-increment returns the old value. Under set -e,
@@ -736,7 +736,7 @@ context before trusting them.
 
 ---
 
-**Retiring a project:**
+**Retiring a client:**
 ```
 /brana:client-retire [project-name]
 ```

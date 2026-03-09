@@ -1,6 +1,6 @@
 ---
 name: align
-description: "Actively align a project with brana practices — assess gaps, plan fixes, implement structure, verify. Works for code and venture projects. Auto-detects type. Use when setting up a new project or realigning an existing one."
+description: "Actively align a project with brana practices — assess gaps, plan fixes, implement structure, verify. Works for code and venture clients. Auto-detects type. Use when setting up a new project or realigning an existing one."
 group: execution
 depends_on:
   - onboard
@@ -86,7 +86,7 @@ Each item: **present**, **partial**, **missing**. Output gap report with visual 
 - **Standard** — 13 items, recommended for shipping projects
 - **Full** — 28 items, for long-lived/complex projects
 
-### Stage selection (venture projects)
+### Stage selection (venture clients)
 Items are stage-cumulative. Only implement up to the current stage.
 
 Present the plan and **wait for user approval**.

@@ -328,7 +328,7 @@ At Growth and Scale stages, use the full pipeline with qualified stages.
 - **Don't invent data.** If a field is unknown, leave it blank or mark it "TBD." Never guess deal values or conversion rates.
 - **Follow-ups are the highest-value output.** A pipeline without follow-up dates is just a list. Always ask for or suggest a next action and follow-up date.
 - **Flag stale deals.** Any deal sitting at the same stage for more than 2x the average duration for that stage gets flagged. Stale deals are the #1 pipeline killer.
-- **Record win/loss reasons.** Closing a deal without recording why is losing the learning. This feeds `/growth-check` and cross-project patterns.
+- **Record win/loss reasons.** Closing a deal without recording why is losing the learning. This feeds `/growth-check` and cross-client patterns.
 - **Stage-appropriate complexity.** Discovery gets a contact list, not a weighted pipeline. Don't over-tool early-stage sales.
 - **Store results in ReasoningBank when available, fall back to auto memory when not.**
 - **Ask for clarification whenever you need it.** If the deal stage is ambiguous, the value is unclear, or you're unsure about the pipeline structure, ask.

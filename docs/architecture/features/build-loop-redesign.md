@@ -72,7 +72,7 @@ One command: `/brana:build "description"`
 | Investigation | SYMPTOMS → INVESTIGATE → REPORT | "why/investigate/understand", stream: research |
 
 **SPECIFY** (interactive, open-ended — feature, greenfield, migration, refactor):
-- Research loop: knowledge base → project docs → cross-project patterns → web
+- Research loop: knowledge base → project docs → cross-client patterns → web
 - Present findings, discuss with user — user controls pace
 - Scout agents run web research in parallel while discussing
 - Auto-store findings in claude-flow (confidence: 0.3, ttl: 30d — ages out if not promoted)

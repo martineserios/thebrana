@@ -38,7 +38,7 @@ The operator (single user) managing multiple clients via brana's task system.
 
 ### Flags
 
-- `--unified` — priority-sorted cross-project view (default: by-project)
+- `--unified` — priority-sorted cross-client view (default: by-project)
 
 Other options baked in as sensible defaults (no flags):
 - Blocked tasks: always shown
@@ -86,7 +86,7 @@ Top line: `Portfolio — {total} tasks across {N} clients ({pending} pending, {i
 - CWD project inclusion (use `/brana:tasks status` for current project). Note: CWD not included unless registered in tasks-portfolio.json under a client.
 - Frontmatter config block for parameterizable toggles (enter #69)
 - Interactive task selection ("start one?")
-- Integration with `/brana:tasks next` (cross-project next)
+- Integration with `/brana:tasks next` (cross-client next)
 - Additional flags (--no-blocked, --completed N) — revisit if defaults don't satisfy
 
 ## Open questions

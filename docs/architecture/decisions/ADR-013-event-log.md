@@ -12,7 +12,7 @@ There's no **capture layer** between "something happened" and "here's a task to 
 
 A challenger review (Opus adversarial) identified key risks in the initial three-scope, CWD-routed design:
 - Overlap with MEMORY.md (learnings), /debrief (errata), /brana:pipeline (leads)
-- CWD routing ambiguity (logging cross-project events from wrong directory)
+- CWD routing ambiguity (logging cross-client events from wrong directory)
 - Entry type auto-detection is fragile keyword matching
 - 41st skill — sprawl concern
 

@@ -68,7 +68,7 @@ Check `~/.claude/memory/portfolio.md` and suggest updates:
 ## Archive Report: {Project Name}
 
 ### Transferable Patterns ({N})
-{For each: key, description, confidence, suggested tags for cross-project discovery}
+{For each: key, description, confidence, suggested tags for cross-client discovery}
 
 ### Historical Patterns ({N})
 {For each: key, description, why it's worth keeping}

@@ -10,7 +10,7 @@ Deployed from `system/skills/` via `deploy.sh`.
 |-------|---------|-------------|
 | `/build-phase` | Ready to implement next roadmap phase | Full cycle: plan + recall + build loop + debrief + maintain-specs |
 | `/brana:challenge` | Big decision or plan | Spawns Sonnet to stress-test the approach; stores outcome in ReasoningBank |
-| `/cross-pollinate` | Stuck, or starting work in a new domain | Searches ReasoningBank for transferable patterns from other projects |
+| `/cross-pollinate` | Stuck, or starting work in a new domain | Searches ReasoningBank for transferable patterns from other clients |
 | `/debrief` | End of implementation session | Extracts errata + process learnings, writes to doc 24 + ReasoningBank |
 | `/decide <title>` | Before implementing a new feature | Creates ADR in docs/decisions/ (Nygard format); also enables spec-before-code enforcement |
 | `/knowledge-review` | Monthly (or when curious) | Reports ReasoningBank health: confidence distribution, staleness, promotion candidates |

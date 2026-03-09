@@ -36,10 +36,10 @@ Weekly cadence review — portfolio health, zombie cleanup, metrics delta, ship 
 
 1. **Detect stage and business model** from CLAUDE.md / docs/metrics/
 2. **Spawn metrics-collector agent** to gather current metrics from all data sources (Google Sheets, docs/metrics/, tasks.json)
-3. **Portfolio health:** read tasks.json across portfolio projects, compute progress per project
+3. **Portfolio health:** read tasks.json across portfolio clients, compute progress per project
 4. **Zombie cleanup:** identify tasks older than 30 days with no activity — present for archival or reprioritization
 5. **Metrics delta:** compare current metrics vs last week's stored values
-6. **Ship log:** `git log --oneline --since="7 days ago"` across active projects
+6. **Ship log:** `git log --oneline --since="7 days ago"` across active clients
 7. **Pipeline check:** read pipeline state (if /brana:pipeline is configured)
 8. **Store trends:**
    ```bash

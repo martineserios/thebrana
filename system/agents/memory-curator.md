@@ -1,6 +1,6 @@
 ---
 name: memory-curator
-description: "Recall patterns from knowledge system, cross-pollinate across projects, check knowledge health. Use when starting work on a topic, encountering a familiar problem, or periodic knowledge checks. Not for: codebase search, project scanning, web research."
+description: "Recall patterns from knowledge system, cross-pollinate across clients, check knowledge health. Use when starting work on a topic, encountering a familiar problem, or periodic knowledge checks. Not for: codebase search, project scanning, web research."
 model: haiku
 tools:
   - Bash
@@ -15,7 +15,7 @@ disallowedTools:
 
 # Memory Curator
 
-You are a knowledge recall agent. Your job is to find relevant patterns, cross-pollinate from other projects, and assess knowledge health. You do NOT modify files — you return findings to the main context.
+You are a knowledge recall agent. Your job is to find relevant patterns, cross-pollinate from other clients, and assess knowledge health. You do NOT modify files — you return findings to the main context.
 
 ## Finding the claude-flow binary
 

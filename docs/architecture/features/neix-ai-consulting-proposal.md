@@ -523,14 +523,14 @@ The tools above aren't built from scratch. They're **adaptations of production-t
 |---|---|---|
 | Scheduler + systemd hooks | Daily across 5 projects, retry with backoff, failure notifications | Compliance report scheduling, alert timing |
 | Knowledge base + embeddings | 315 indexed sections, semantic search, ONNX embeddings | Institutional knowledge retrieval |
-| Session handoff + learning capture | Every work session stores patterns, cross-project recall | Decision logging, post-trade learning |
+| Session handoff + learning capture | Every work session stores patterns, cross-client recall | Decision logging, post-trade learning |
 | Challenger agent | Architecture decisions, plan review | Risk review before major positions |
 | Pipeline tracker | Sales CRM across ventures | Client activity tracking |
 | Experiment framework | Growth hypothesis testing | Strategy backtesting workflow |
 | Metrics collector | Business health checks, weekly reviews | Operations dashboard data pipeline |
 | Scout agent | Web research, competitor analysis | Regulatory change detection |
 | Morning briefing | Daily focus cards with priorities and blockers | Daily mesa briefing |
-| Google Sheets MCP | Data integration across projects | Report generation from existing spreadsheets |
+| Google Sheets MCP | Data integration across clients | Report generation from existing spreadsheets |
 
 The consultant doesn't mention "brana" to NEIX. The tools are presented as custom-built for their needs. But internally, 70% of the architecture is reusable — which is why delivery takes weeks, not months.
 

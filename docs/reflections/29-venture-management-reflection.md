@@ -302,7 +302,7 @@ The anti-pattern "over-engineered components to eliminate" maps directly: busine
 |-----------------|---------------------|------------------|
 | **Identity** (genome — who you are) | **Mission & Purpose** | Vision, values, positioning, competitive moat — the things that don't change quarter to quarter |
 | **Intelligence** (connectome — what you've learned) | **Institutional Knowledge** | Market intelligence, customer patterns, pricing learnings, hiring lessons — the things you accumulate |
-| **Context** (current state — what you're doing now) | **Current Initiative** | This quarter's OKRs, active projects, in-flight experiments — the things that change constantly |
+| **Context** (current state — what you're doing now) | **Current Initiative** | This quarter's OKRs, active clients, in-flight experiments — the things that change constantly |
 
 The **genome vs connectome** distinction is critical for businesses too:
 - **Genome** = your documented systems (SOPs, playbooks, org chart, compensation philosophy). These are stable, version-controlled, and deploy-able to new hires.
@@ -343,7 +343,7 @@ The **immune system** concepts transfer too: quarantine new business patterns (t
 
 - **Now/Next/Later** → **Business prioritization.** Three buckets, not 20-item Gantt charts. What are we doing this week? What's queued for next? What's on the horizon?
 - **Weekly review** → **Business review cadence.** The weekly review from PM ("what shipped, what's blocked, what's next") maps to the business review ("what moved metrics, what's stuck, what's the next experiment").
-- **Portfolio file** → **Multi-venture portfolio.** If managing multiple ventures or product lines, the portfolio pattern (one file tracking state across projects) prevents context-switching blindness.
+- **Portfolio file** → **Multi-venture portfolio.** If managing multiple ventures or product lines, the portfolio pattern (one file tracking state across clients) prevents context-switching blindness.
 - **Kill zombie projects** → **Kill zombie initiatives.** The initiative nobody's working on but nobody's willing to kill. The partnership "in progress" for 6 months. The feature idea that keeps getting discussed but never scoped. Apply the same rule: if it hasn't moved in 2 weeks, it's either dead or needs explicit commitment.
 - **Second Brain / PARA overlap** → Business knowledge organization follows the same pattern: Projects (active initiatives), Areas (ongoing responsibilities), Resources (reference material), Archive (completed/retired).
 

@@ -112,7 +112,7 @@ Hierarchy views (status, roadmap) use box-drawing characters when not in `--wide
 
 - `/brana:tasks plan [project] "[phase-title]"` — plan a phase interactively
 - `/brana:tasks status [project] [--wide]` — progress overview (omit project = portfolio)
-- `/brana:tasks portfolio [--unified] [--wide]` — cross-project actionable tasks
+- `/brana:tasks portfolio [--unified] [--wide]` — cross-client actionable tasks
 - `/brana:tasks roadmap [project] [--wide]` — full tree view with all levels
 - `/brana:tasks next [project] [--stream X] [--wide]` — next unblocked task by priority
 - `/brana:tasks start <id>` — begin work on a task

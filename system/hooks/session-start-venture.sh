@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # No strict mode — hooks must always return valid JSON.
 
-# Brana SessionStart hook — detect venture projects, nudge daily-ops agent.
+# Brana SessionStart hook — detect venture clients, nudge daily-ops agent.
 # Input:  stdin JSON (session_id, cwd, hook_event_name, matcher)
 # Output: stdout JSON with additionalContext field
 

@@ -24,7 +24,7 @@ Replaces three former skills (`/pattern-recall`, `/cross-pollinate`, `/knowledge
 | Command | What it does |
 |---------|-------------|
 | `/brana:memory` or `/brana:memory recall [query]` | Query patterns relevant to current context |
-| `/brana:memory pollinate [query]` | Pull transferable patterns from other projects |
+| `/brana:memory pollinate [query]` | Pull transferable patterns from other clients |
 | `/brana:memory review` | Monthly knowledge health audit |
 
 ## Skill Metadata

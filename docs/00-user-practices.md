@@ -55,7 +55,7 @@ Practices around invoking skills, when to use which, and gotchas.
 
 ## Tool Preferences
 
-Opinionated tool choices that apply across all managed projects. Enforced via `~/.claude/rules/universal-quality.md`.
+Opinionated tool choices that apply across all managed clients. Enforced via `~/.claude/rules/universal-quality.md`.
 
 - **2026-02-12:** Python projects always use **uv** (package/env manager) and **ruff** (linter/formatter). No pip, poetry, conda, venv, black, flake8, isort. One tool per job: `uv` for environments and dependencies, `ruff` for code quality, `pytest` for testing. Run via `uv run pytest`, `ruff check --fix`, `ruff format`. Configured in `pyproject.toml` — no separate config files.
 
@@ -77,9 +77,9 @@ Practices around the deploy/validate cycle, common mistakes, recovery patterns.
 
 ---
 
-## Cross-Project Work
+## Cross-Client Work
 
-Practices around working across multiple projects, context switching, and cross-pollination.
+Practices around working across multiple clients, context switching, and cross-pollination.
 
 - **2026-02-12:** Each directory is a workstation. `cd enter` = architect mode (design specs). `cd thebrana` = operator mode (build and deploy). `cd brana-knowledge` = vault (export and backup). The global brain (`~/.claude/`) follows you everywhere — you don't configure anything when switching. The local CLAUDE.md tells the brain what role to play.
 - **2026-02-12:** Don't cross-edit. Don't edit specs from thebrana (`cd thebrana` then modify `../enter/` files), and don't edit system code from enter (`cd enter` then modify `../thebrana/` files). Each workstation has the context for its own files. Cross-editing loses that context and leads to mistakes that the local CLAUDE.md would have prevented.

@@ -31,7 +31,7 @@ Fast research agent for codebase exploration and web search. Finds files, search
 | **Tools** | Bash, Read, Glob, Grep |
 | **Fires when** | Starting work on a topic, encountering a familiar problem, periodic checks |
 
-Recalls patterns from the knowledge system, cross-pollinates across projects, and checks knowledge health. Uses claude-flow CLI for semantic search. Returns relevant patterns and health assessments.
+Recalls patterns from the knowledge system, cross-pollinates across clients, and checks knowledge health. Uses claude-flow CLI for semantic search. Returns relevant patterns and health assessments.
 
 ### client-scanner
 
@@ -91,7 +91,7 @@ Reviews PR diffs for code quality, security, bugs, and style. Uses `gh` CLI to r
 | **Tools** | Bash, Read, Glob, Grep |
 | **Fires when** | Session start on a venture project (via session-start-venture hook) |
 
-Produces a daily focus card for venture projects — health snapshot, pending actions, experiments in progress, key metrics. Scans SOPs, OKRs, pipeline, and metrics directories.
+Produces a daily focus card for venture clients — health snapshot, pending actions, experiments in progress, key metrics. Scans SOPs, OKRs, pipeline, and metrics directories.
 
 ### metrics-collector
 
@@ -119,7 +119,7 @@ Reads deal records, identifies overdue follow-ups, spots stage-stuck deals, and 
 |---|---|
 | **Model** | Haiku |
 | **Tools** | Bash, Read, Glob, Grep |
-| **Fires when** | Retiring a project (via `/brana:client-retire`) |
+| **Fires when** | Retiring a client (via `/brana:client-retire`) |
 
 Scans a project's accumulated knowledge and categorizes patterns as transferable (useful in other projects), historical (project-specific, archive only), or deletable (stale/irrelevant). Supports the project retirement workflow.
 
@@ -135,7 +135,7 @@ The `delegation-routing` rule maps situations to agents:
 | Plan or architecture decision forming | challenger |
 | End of implementation session | debrief-analyst |
 | Research tasks (spawned by skills) | scout |
-| Retiring a project | archiver |
+| Retiring a client | archiver |
 | Session start on venture project | daily-ops |
 | Growth-check, weekly-review, monthly-close | metrics-collector |
 | Pipeline tracking, deal events | pipeline-tracker |

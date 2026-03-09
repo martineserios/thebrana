@@ -7,7 +7,7 @@
 When adding a task via `/brana:tasks add`, the system suggests tags, effort, parent milestone, and dependency candidates by cross-referencing existing pending tasks. User confirms each suggestion. No auto-priority, no auto-commit of dependencies. Additionally, migrate doc 30's pending backlog items into tasks.json as a one-time operation.
 
 ## Audience
-Solo developer using brana's `/brana:tasks` skill to manage backlogs across projects.
+Solo developer using brana's `/brana:tasks` skill to manage backlogs across clients.
 
 ## Constraints
 - Skill is pure markdown (SKILL.md) — no bundled scripts yet (t-045 pending)

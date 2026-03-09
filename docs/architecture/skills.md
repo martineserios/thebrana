@@ -34,7 +34,7 @@ Skills for learning, recalling, and aligning projects.
 ### `/brana:memory`
 Knowledge system operations with subcommands:
 - `recall` — Query patterns relevant to current context
-- `pollinate` — Cross-pollinate learnings from other projects
+- `pollinate` — Cross-pollinate learnings from other clients
 - `review` — Monthly knowledge health check
 - `review --audit` — Contradiction detection across docs
 

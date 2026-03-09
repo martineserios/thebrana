@@ -121,7 +121,7 @@ Discovered during brainstorming. Not a schedule — seeds for Phase A.
 5. **What I removed** — subtraction as design. "7 tools became 3 and a single flow." KISS.
 6. **The inherited system** — "I don't build from zero. I adapt what you already have." Respects existing processes and humans.
 7. **The refusal story** — projects you said no to. "After mapping the system, I told them they didn't need AI."
-8. **Eternal apprentice who ships** — show the learning AND the result in the same post. Real, relatable, cross-project.
+8. **Eternal apprentice who ships** — show the learning AND the result in the same post. Real, relatable, cross-client.
 9. **The meta-system** — brana as a system for building systems. Abstraction layers in action.
 
 ## Audience

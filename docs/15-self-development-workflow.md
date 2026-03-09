@@ -419,7 +419,7 @@ Acceptance criteria:
 | **Broken SessionStart hook** | Every session starts broken. Can't query ReasoningBank. | Hook must `exit 0` on error — degrade, don't block. Try/catch wrapper. | Rollback settings.json to last good version. Knowledge untouched. |
 | **Corrupted CLAUDE.md** | Identity is garbled or empty. Claude behaves erratically. | Validation script checks CLAUDE.md isn't empty, has required sections. | Rollback symlink to last tagged commit. |
 | **Context explosion** | Too much always-loaded content. Eats token budget. Slow, expensive. | Budget validation script blocks deploy if >15KB. | Remove newest rule/skill, re-deploy. |
-| **ReasoningBank corruption** | All cross-project memory lost. | Daily backups. Backup before every deploy. | Restore from latest backup. Gap is at most 1 day. |
+| **ReasoningBank corruption** | All cross-client memory lost. | Daily backups. Backup before every deploy. | Restore from latest backup. Gap is at most 1 day. |
 | **Infinite hook loop** | Hook triggers action that triggers hook again. | Environment variable guard: `BRANA_HOOK_RUNNING=1`. Check before executing. | Kill session. Remove hook. Deploy without it. |
 
 ### The Self-Healing Hook

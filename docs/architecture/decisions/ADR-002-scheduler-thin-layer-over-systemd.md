@@ -9,7 +9,7 @@ Brana has ~15 recurring tasks that should run at regular intervals (daily/weekly
 
 - **Weekly**: staleness reports, link checks, dependency freshness, frontmatter validation
 - **Monthly**: knowledge reviews, growth checks, monthly financial close
-- **Daily**: morning focus cards for venture projects
+- **Daily**: morning focus cards for venture clients
 - **On-demand**: arbitrary commands and scripts
 
 These tasks are well-defined (doc 25 designed the weekly checks, [doc 34](../dimensions/34-venture-operating-system.md) designed the business cadence) but none are automated. The user must remember to trigger each one. Backlog items #33 (n8n/Windmill) and #21 (Agent SDK for cron) were deferred — external platforms are overkill, the SDK isn't mature.

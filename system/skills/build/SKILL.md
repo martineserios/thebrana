@@ -121,7 +121,7 @@ Run research in this order — each layer adds context for the next:
    cd "$HOME" && $CF memory search --query "{task tags + description keywords}" --namespace knowledge --format json
    ```
 2. **Project docs** — grep/read the project's own documentation, existing implementations, CLAUDE.md. Search for task tags and related concepts.
-3. **Cross-project patterns** — search claude-flow for patterns from other projects matching task tags
+3. **Cross-project patterns** — search claude-flow for patterns from other clients matching task tags
 4. **Web research** — spawn scout agents for external research using task description + tags as search terms (parallel with discussion)
 
 #### Present and discuss

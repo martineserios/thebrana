@@ -169,7 +169,7 @@ cd "$HOME" && $CF memory search --query "milestone:{TYPE} business" --limit 10 2
 # Search for stage-specific patterns
 cd "$HOME" && $CF memory search --query "stage:{STAGE} venture" --limit 10 2>/dev/null || true
 
-# Search for transferable patterns from code projects
+# Search for transferable patterns from code clients
 cd "$HOME" && $CF memory search --query "transferable:true type:process" --limit 5 2>/dev/null || true
 ```
 
