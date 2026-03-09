@@ -21,6 +21,7 @@ Docs are split by nature across two repos:
 thebrana/docs/                    ← operational docs (this repo)
 ├── reflections/                  ← 08, 14, 29, 31, 32 — cross-cutting synthesis
 ├── 00, 15, 17-19, 24, 25, 30    ← roadmap + operational docs
+├── research/                     ← /brana:research output (comparisons, deep dives)
 ├── guide/                        ← user-facing workflow guides + command reference
 ├── architecture/                 ← contributor docs (overview, skills, hooks, agents, extending)
 │   ├── decisions/                ← ADRs
