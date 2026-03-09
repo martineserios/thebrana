@@ -165,34 +165,91 @@ if [ -f "$SYSTEM_DIR/statusline.sh" ]; then
     fi
 fi
 
-# --- Step 4b: Migrate hooks from settings.json ---
-# Plugin handles hooks via hooks/hooks.json — remove from global settings to prevent duplicates
-echo "Hook migration:"
+# --- Step 4b: Install PostToolUse hooks to settings.json ---
+# CC v2.1.x doesn't reliably dispatch PostToolUse events from plugin hooks.json.
+# Workaround: install PostToolUse + PostToolUseFailure to settings.json (works reliably).
+# Plugin keeps: PreToolUse, SessionStart, SessionEnd.
+# When CC fixes plugin PostToolUse dispatch, move these back to plugin hooks.json.
+echo "PostToolUse hooks:"
 SETTINGS_FILE="$TARGET_DIR/settings.json"
-if [ -f "$SETTINGS_FILE" ] && grep -q '"hooks"' "$SETTINGS_FILE" 2>/dev/null; then
-    if $CHECK_ONLY; then
-        echo "  ~ settings.json (would remove hooks section — now handled by plugin)"
-        CHANGES=$((CHANGES + 1))
+HOOKS_DIR="$SYSTEM_DIR/hooks"
+if [ -f "$SETTINGS_FILE" ] && command -v jq &>/dev/null; then
+    # Build the hooks JSON using the absolute path to hook scripts
+    HOOKS_JSON=$(jq -n \
+        --arg hooks_dir "$HOOKS_DIR" \
+        '{
+            "PostToolUse": [
+                {
+                    "matcher": "Write|Edit|Bash",
+                    "hooks": [{
+                        "type": "command",
+                        "command": ($hooks_dir + "/post-tool-use.sh"),
+                        "timeout": 5000
+                    }]
+                },
+                {
+                    "matcher": "Write|Edit",
+                    "hooks": [{
+                        "type": "command",
+                        "command": ($hooks_dir + "/post-sale.sh"),
+                        "timeout": 5000
+                    }]
+                },
+                {
+                    "matcher": "ExitPlanMode",
+                    "hooks": [{
+                        "type": "command",
+                        "command": ($hooks_dir + "/post-plan-challenge.sh"),
+                        "timeout": 5000
+                    }]
+                },
+                {
+                    "matcher": "Write|Edit",
+                    "hooks": [{
+                        "type": "command",
+                        "command": ($hooks_dir + "/post-tasks-validate.sh"),
+                        "timeout": 5000
+                    }]
+                },
+                {
+                    "matcher": "Bash",
+                    "hooks": [{
+                        "type": "command",
+                        "command": ($hooks_dir + "/post-pr-review.sh"),
+                        "timeout": 5000
+                    }]
+                }
+            ],
+            "PostToolUseFailure": [
+                {
+                    "matcher": "Write|Edit|Bash",
+                    "hooks": [{
+                        "type": "command",
+                        "command": ($hooks_dir + "/post-tool-use-failure.sh"),
+                        "timeout": 5000
+                    }]
+                }
+            ]
+        }')
+
+    # Merge hooks into settings.json (replaces existing hooks section)
+    CURRENT_HOOKS=$(jq '.hooks // {}' "$SETTINGS_FILE" 2>/dev/null) || CURRENT_HOOKS="{}"
+    if [ "$CURRENT_HOOKS" = "$HOOKS_JSON" ] 2>/dev/null; then
+        echo "  = settings.json hooks (unchanged)"
     else
-        # Use jq if available, otherwise Python, otherwise warn
-        if command -v jq &>/dev/null; then
-            jq 'del(.hooks)' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
-            echo "  ~ settings.json (removed hooks — now handled by plugin)"
-            CHANGES=$((CHANGES + 1))
-        elif command -v python3 &>/dev/null; then
-            python3 -c "
-import json, sys
-with open('$SETTINGS_FILE') as f: d = json.load(f)
-d.pop('hooks', None)
-with open('$SETTINGS_FILE', 'w') as f: json.dump(d, f, indent=2)
-print('  ~ settings.json (removed hooks — now handled by plugin)')
-" && CHANGES=$((CHANGES + 1))
+        CHANGES=$((CHANGES + 1))
+        if $CHECK_ONLY; then
+            echo "  ~ settings.json hooks (would update PostToolUse + PostToolUseFailure)"
         else
-            echo "  ! settings.json still has hooks (install jq or python3 to auto-migrate)"
+            jq --argjson hooks "$HOOKS_JSON" '.hooks = $hooks' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" \
+                && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+            echo "  ~ settings.json hooks (installed PostToolUse + PostToolUseFailure)"
         fi
     fi
+elif [ ! -f "$SETTINGS_FILE" ]; then
+    echo "  ! settings.json not found (create one first, then re-run)"
 else
-    echo "  = settings.json (no hooks to migrate)"
+    echo "  ! jq not found (required to install hooks to settings.json)"
 fi
 
 # --- Step 5: Scheduler ---

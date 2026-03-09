@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run validation
+        run: ./validate.sh
+
+      - name: Check plugin manifest
+        run: |
+          # Verify plugin.json is valid JSON
+          python3 -c "import json; json.load(open('system/.claude-plugin/plugin.json'))"
+          # Verify marketplace.json is valid JSON
+          python3 -c "import json; json.load(open('.claude-plugin/marketplace.json'))"
+
+      - name: Check version sync
+        run: |
+          # plugin.json and marketplace.json versions must match
+          PLUGIN_VER=$(python3 -c "import json; print(json.load(open('system/.claude-plugin/plugin.json'))['version'])")
+          MARKET_VER=$(python3 -c "import json; print(json.load(open('.claude-plugin/marketplace.json'))['plugins'][0]['version'])")
+          if [ "$PLUGIN_VER" != "$MARKET_VER" ]; then
+            echo "Version mismatch: plugin.json=$PLUGIN_VER marketplace.json=$MARKET_VER"
+            exit 1
+          fi
+          echo "Versions match: $PLUGIN_VER"
+
+      - name: Check hook scripts are executable
+        run: |
+          for script in system/hooks/*.sh; do
+            if [ ! -x "$script" ]; then
+              echo "Not executable: $script"
+              exit 1
+            fi
+          done
+          echo "All hook scripts are executable"

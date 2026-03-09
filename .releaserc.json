@@ -1,0 +1,22 @@
+{
+  "branches": ["main"],
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    ["@semantic-release/changelog", {
+      "changelogFile": "CHANGELOG.md"
+    }],
+    ["@semantic-release/exec", {
+      "prepareCmd": "python3 -c \"\nimport json, sys\nv = '${nextRelease.version}'\nfor path in ['system/.claude-plugin/plugin.json', '.claude-plugin/marketplace.json']:\n    with open(path) as f: d = json.load(f)\n    if 'version' in d: d['version'] = v\n    if 'plugins' in d:\n        for p in d['plugins']: p['version'] = v\n    with open(path, 'w') as f: json.dump(d, f, indent=2)\n    f.write('\\\\n')\nprint(f'Bumped to {v}')\n\""
+    }],
+    ["@semantic-release/git", {
+      "assets": [
+        "CHANGELOG.md",
+        "system/.claude-plugin/plugin.json",
+        ".claude-plugin/marketplace.json"
+      ],
+      "message": "chore(release): ${nextRelease.version}\n\n${nextRelease.notes}"
+    }],
+    "@semantic-release/github"
+  ]
+}
