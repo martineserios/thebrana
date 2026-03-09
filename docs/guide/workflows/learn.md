@@ -20,7 +20,7 @@ Work → Corrections/Discoveries → Pattern Storage → Recall → Better Work
 ```
 /brana:retrospective         — store a learning or pattern manually
 /brana:memory recall [query] — search for relevant patterns
-/brana:memory pollinate      — cross-project pattern transfer
+/brana:memory pollinate      — cross-client pattern transfer
 /brana:memory review         — monthly knowledge health audit
 /brana:memory review --audit — cross-doc contradiction detection
 ```
@@ -39,14 +39,14 @@ New learnings start at 0.5 (quarantined). They get promoted through recall and c
 
 ## Cross-project transfer
 
-Patterns marked as `transferable` can surface in other projects:
+Patterns marked as `transferable` can surface in other clients:
 
 ```
-/brana:memory pollinate      — find patterns from other projects relevant to current work
+/brana:memory pollinate      — find patterns from other clients relevant to current work
 ```
 
 ## Storage
 
-- **claude-flow** — semantic search across all projects (primary)
+- **claude-flow** — semantic search across all clients (primary)
 - **Auto memory** — `~/.claude/projects/*/memory/MEMORY.md` (fallback)
-- Both work — claude-flow adds cross-project neural search
+- Both work — claude-flow adds cross-client neural search

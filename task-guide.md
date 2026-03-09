@@ -1,6 +1,6 @@
 # Task Management Guide
 
-How to plan and track work across projects using brana's task system — from daily coding to multi-phase roadmaps.
+How to plan and track work across clients using brana's task system — from daily coding to multi-phase roadmaps.
 
 The system works through natural language. You talk to Claude about your work, and it manages structured tasks behind the scenes. Commands exist as shortcuts, never requirements.
 
@@ -53,8 +53,8 @@ Phase            (big planning bucket — a roadmap chunk)
 ### Three zoom levels
 
 ```
-Portfolio    "how are all my projects doing?"
-  Project    "where's palco at?"
+Portfolio    "how are all my clients doing?"
+  Client     "where's palco at?"
     Roadmap  "show me every task and dependency"
 ```
 
@@ -287,10 +287,10 @@ Auto-detected from project type (has `.git`?) but overridable per task.
 
 ## 8. Portfolio View
 
-From any directory — see all projects at once:
+From any directory — see all clients at once:
 
 ```
-You: "how are we doing across projects?"
+You: "how are we doing across clients?"
 
 Claude: Portfolio — 2026-02-18
 
@@ -300,13 +300,13 @@ Claude: Portfolio — 2026-02-18
   nexeye       Ph3: Production           ======..  4/6    -> Monitoring
   psilea       —                         no tasks
 
-  Summary: 4 active projects | 15/27 tasks | 3 in progress | 1 bug
+  Summary: 4 active clients | 15/27 tasks | 3 in progress | 1 bug
   Stale: somos — last activity 12 days ago
 ```
 
-Or: `/tasks status` (no project argument)
+Or: `/tasks status` (no client argument)
 
-The portfolio view reads from `~/.claude/tasks-portfolio.json` — a simple registry of project paths. Add projects to it when you onboard them.
+The portfolio view reads from `~/.claude/tasks-portfolio.json` — a registry of clients and their projects with metadata. Each project entry has: `slug`, `path`, `type` (code/venture/hybrid), `stage` (discovery/validation/growth/scale), `tech_stack`, and `created` date. Multi-project clients show as `client/project` in views. See `docs/architecture/features/tasks-portfolio.md` for the full schema.
 
 ---
 
@@ -321,7 +321,7 @@ Model | project | branch | Ph3: 5/8 | -> JWT middleware | 1 bug | CTX 42%
 
 **Outside a project (thebrana, home):**
 ```
-Model | thebrana | main | 4 projects | 15/27 tasks | 1 bug | CTX 42%
+Model | thebrana | main | 4 clients | 15/27 tasks | 1 bug | CTX 42%
 ```
 
 Updates on session start. Shows: phase progress, current/next task, open bugs.
@@ -428,7 +428,7 @@ Claude: Marking done. Notes: "Client approved API changes via email."
 |-----|-----------|
 | "what's next?" | Shows next unblocked task |
 | "where are we?" | Project status overview |
-| "how are all projects doing?" | Portfolio view |
+| "how are all clients doing?" | Portfolio view |
 | "let's work on X" | Starts task (suggests confirmation) |
 | "that's done" | Completes current task |
 | "plan a new phase for X" | Interactive planning session |

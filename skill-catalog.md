@@ -10,13 +10,13 @@ Deployed from `system/skills/` via `deploy.sh`.
 |-------|---------|-------------|
 | `/build-phase` | Ready to implement next roadmap phase | Full cycle: plan + recall + build loop + debrief + maintain-specs |
 | `/brana:challenge` | Big decision or plan | Spawns Sonnet to stress-test the approach; stores outcome in ReasoningBank |
-| `/cross-pollinate` | Stuck, or starting work in a new domain | Searches ReasoningBank for transferable patterns from other projects |
+| `/cross-pollinate` | Stuck, or starting work in a new domain | Searches ReasoningBank for transferable patterns from other clients |
 | `/debrief` | End of implementation session | Extracts errata + process learnings, writes to doc 24 + ReasoningBank |
 | `/decide <title>` | Before implementing a new feature | Creates ADR in docs/decisions/ (Nygard format); also enables spec-before-code enforcement |
 | `/knowledge-review` | Monthly (or when curious) | Reports ReasoningBank health: confidence distribution, staleness, promotion candidates |
 | `/pattern-recall` | Starting work on a topic | Queries ReasoningBank for relevant patterns, grouped by confidence tier |
 | `/project-onboard` | First session in a new project | Scans structure, detects stack, recalls relevant portfolio patterns |
-| `/brana:project-retire` | Archiving a project | Preserves transferable patterns, archives project-specific ones |
+| `/brana:client-retire` | Archiving a project | Preserves transferable patterns, archives project-specific ones |
 | `/knowledge [cmd]` | Managing the knowledge base | Browse, review staleness, annotate, reindex brana-knowledge dimension docs |
 | `/refresh-knowledge` | Dimension docs might be stale | Spawns parallel agents to web-search for updates to each doc's topics |
 | `/brana:retrospective` | Session produced a notable learning | Stores pattern with quarantine metadata; promotes/demotes recalled patterns |
@@ -62,7 +62,7 @@ In `thebrana/.claude/commands/`. Available when working in the thebrana repo.
 **Build workflow:** build-phase → debrief → maintain-specs
 **Task management:** tasks
 **Quality:** challenge
-**Project lifecycle:** project-onboard → project-retire
+**Project lifecycle:** project-onboard → client-retire
 **Knowledge management:** knowledge → research → refresh-knowledge
 **Spec maintenance:** refresh-knowledge → maintain-specs → apply-errata → re-evaluate-reflections
 **Venture lifecycle:** venture-onboard → venture-align → venture-phase → growth-check → sop

@@ -9,7 +9,7 @@ Make `/brana:tasks` output visually configurable with 3 display themes (classic,
 
 ## Audience
 
-Solo developer using brana's task system across multiple projects.
+Solo developer using brana's task system across multiple clients.
 
 ## Constraints
 

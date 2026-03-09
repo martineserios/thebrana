@@ -188,7 +188,7 @@ Enforcement (encoded as a hook, runs automatically)
 
 Each level is harder to set up but more reliable. The system should start manual and graduate upward based on pain signals from real usage.
 
-**Evidence:** The Python tool preferences (uv + ruff, [doc 00](../00-user-practices.md) entry 2026-02-12) started as a manual practice. After confirming them across projects, they graduated to `~/.claude/rules/universal-quality.md` — now enforced by convention across all projects.
+**Evidence:** The Python tool preferences (uv + ruff, [doc 00](../00-user-practices.md) entry 2026-02-12) started as a manual practice. After confirming them across clients, they graduated to `~/.claude/rules/universal-quality.md` — now enforced by convention across all clients.
 
 ### Git Workflow as Lifecycle Tool
 

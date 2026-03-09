@@ -169,7 +169,7 @@ cd "$HOME" && $CF memory search --query "milestone:{TYPE} business" --limit 10 2
 # Search for stage-specific patterns
 cd "$HOME" && $CF memory search --query "stage:{STAGE} venture" --limit 10 2>/dev/null || true
 
-# Search for transferable patterns from code projects
+# Search for transferable patterns from code clients
 cd "$HOME" && $CF memory search --query "transferable:true type:process" --limit 5 2>/dev/null || true
 ```
 
@@ -212,7 +212,7 @@ cd "$HOME" && $CF memory store \
   -k "venture:{PROJECT}:{MILESTONE}:item-{N}:{short-id}" \
   -v '{"type": "venture-learning", "milestone": "...", "item": "...", "finding": "...", "severity": "..."}' \
   --namespace business \
-  --tags "project:{PROJECT},type:venture-learning,milestone:{TYPE},stage:{STAGE}"
+  --tags "client:{PROJECT},type:venture-learning,milestone:{TYPE},stage:{STAGE}"
 ```
 
 Fallback: append to `~/.claude/projects/{project-hash}/memory/MEMORY.md`.
@@ -253,7 +253,7 @@ cd "$HOME" && $CF memory store \
   -k "venture:{PROJECT}:{MILESTONE}:debrief" \
   -v '{"type": "milestone-debrief", "milestone": "...", "work_items": N, "learnings": [...], "errata": [...], "issues": [...]}' \
   --namespace business \
-  --tags "project:{PROJECT},type:milestone-debrief,milestone:{TYPE},stage:{STAGE},outcome:{success|partial|failed}"
+  --tags "client:{PROJECT},type:milestone-debrief,milestone:{TYPE},stage:{STAGE},outcome:{success|partial|failed}"
 ```
 
 ---

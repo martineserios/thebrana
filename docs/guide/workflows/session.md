@@ -8,7 +8,7 @@ Sessions start automatically. The `session-start` hook:
 - Recalls relevant patterns from memory
 - Shows active tasks and next unblocked item
 - Checks for flags from the previous session (doc drift, pending errata)
-- Detects venture projects and nudges daily-ops
+- Detects venture clients and nudges daily-ops
 
 No command needed — just start working.
 

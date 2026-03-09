@@ -295,7 +295,7 @@ Build in this order (each depends on the previous being conceptually proven):
 | 2 | `/brana:retrospective` | `memory store -k -v --namespace --tags` | Store learnings manually — test the write path |
 | 3 | `/project-onboard` | `memory search -q` | Cross-project query — validates tagging |
 | 4 | `/brana:memory pollinate` | `memory search -q` | Most nuanced — needs patterns to exist first |
-| 5 | `/brana:project-retire` | `memory store` + bulk operations | Least urgent, most complex |
+| 5 | `/brana:client-retire` | `memory store` + bulk operations | Least urgent, most complex |
 | 6 | `/brana:challenge` | Task tool with `model: "sonnet"` | Cross-model adversarial review — see [13-challenger-agent.md](dimensions/13-challenger-agent.md) |
 
 ### Plugins to Install
@@ -322,7 +322,7 @@ From the [11-ecosystem-skills-plugins.md](dimensions/11-ecosystem-skills-plugins
 |---------|---------|
 | `/what-do-i-know` | Query all memory for a topic |
 | `/teach-me` | Manually inject a pattern into ReasoningBank |
-| `/portfolio` | Show all projects + cross-project insights |
+| `/portfolio` | Show all clients + cross-client insights |
 
 ### Skill Catalog (Tier 2)
 
@@ -342,7 +342,7 @@ This is lightweight — a rule + awareness in the onboard skill. The PM framewor
 
 ### User Feedback Loop
 
-Create [00-user-practices.md](./00-user-practices.md) (or its equivalent in the brana project) during Phase 1 setup. This is the user's field notebook — patterns discovered through real usage that feed back into system evolution. Categories: session workflow, memory, skills, hooks, deploy, cross-project, system evolution, anti-patterns.
+Create [00-user-practices.md](./00-user-practices.md) (or its equivalent in the brana project) during Phase 1 setup. This is the user's field notebook — patterns discovered through real usage that feed back into system evolution. Categories: session workflow, memory, skills, hooks, deploy, cross-client, system evolution, anti-patterns.
 
 The graduation pathway (manual practice → automated hook/check) becomes actionable in Phase 2 when hooks exist. But the document should exist from Phase 1 so observations start accumulating immediately. When multiple entries cluster around the same pain point, that's a signal to automate — a practice the user has to remember manually should eventually become a hook or validation check.
 
@@ -400,7 +400,7 @@ Action:
 Fallback: If claude-flow unavailable → skip, log warning
 ```
 
-**claude-flow command:** `cd "$HOME" && npx claude-flow@$VERSION memory search --query "project:$(basename $PWD)"`
+**claude-flow command:** `cd "$HOME" && npx claude-flow@$VERSION memory search --query "client:$(basename $PWD)"`
 
 #### Hook 2: SessionEnd — "Remember what you learned"
 
@@ -421,7 +421,7 @@ Action:
 Fallback: If claude-flow unavailable → write to ~/.claude/memory/pending-learnings.md
 ```
 
-**claude-flow command:** `cd "$HOME" && npx claude-flow@$VERSION memory store -k "pattern:$PROJECT:{id}" -v '{...}' --namespace patterns --tags "project:$PROJECT"`
+**claude-flow command:** `cd "$HOME" && npx claude-flow@$VERSION memory store -k "pattern:$PROJECT:{id}" -v '{...}' --namespace patterns --tags "client:$PROJECT"`
 
 #### Hook 3: PostToolUse + PostToolUseFailure — "Notice important moments"
 
@@ -522,7 +522,7 @@ A daily cron or next-SessionStart can flush pending learnings to ReasoningBank.
 
 **Value (the real test):**
 - [x] After 10+ sessions across 2+ projects, review recalled patterns. What percentage were actually useful? Target: >50% relevance. If below, the tagging strategy or recall query needs tuning before Phase 3.
-- [x] At least one cross-project moment: a pattern from project A surfaced (via manual `/brana:memory pollinate`) and helped in project B.
+- [x] At least one cross-client moment: a pattern from project A surfaced (via manual `/brana:memory pollinate`) and helped in project B.
 - [x] At least one failure-memory moment: the system recalled a failed approach and the user avoided repeating it.
 
 **Pattern accumulation check:** Track pattern count. You need ~50 for SONA activation in Phase 3. At 3-5 projects × 2-3 sessions/week × 5-10 patterns/session, expect 30-75 patterns over Phase 2's 2-3 weeks. If accumulation is slower, extend Phase 2 rather than rushing to Phase 3 with insufficient data.
@@ -800,8 +800,8 @@ Track monthly (from [doc 15](15-self-development-workflow.md)'s "When to Rewrite
 Once the system has enough self-referential patterns (`domain: brana-system`), it can:
 
 1. **Notice recurring problems** — "The last 3 sessions started slow because SessionStart hook is querying too many patterns. Suggest: limit to top-10 by confidence."
-2. **Cross-pollinate from other projects** — "In project-alpha, you solved a similar problem with caching. Your hooks could use the same pattern."
-3. **Identify unused components** — "The `/brana:project-retire` skill hasn't been invoked in 3 months. Consider archiving it to save context budget."
+2. **Cross-pollinate from other clients** — "In project-alpha, you solved a similar problem with caching. Your hooks could use the same pattern."
+3. **Identify unused components** — "The `/brana:client-retire` skill hasn't been invoked in 3 months. Consider archiving it to save context budget."
 
 This is the recursive payoff: the brain improving its own wiring based on what it's learned about maintaining itself.
 
@@ -876,7 +876,7 @@ The escape hatch grows with the system. Every new data type stored gets an expor
 - [x] New project bootstrapping is measurably faster than month 1 (the portfolio effect is real)
 - [x] Pattern recall precision >70% (up from Phase 2's >50% and Phase 3's >60%)
 - [x] The challenger has caught at least 3 genuine issues that would have become code without it
-- [x] You can point to a specific moment where cross-project knowledge transfer saved significant time
+- [x] You can point to a specific moment where cross-client knowledge transfer saved significant time
 - [x] Tag: `v1.0.0` — the brain is self-maintaining
 
 ---

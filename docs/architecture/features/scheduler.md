@@ -9,7 +9,7 @@ Run brana skills, maintenance tasks, and custom commands at configurable frequen
 
 ## Audience
 
-Single-user brana operator managing multiple projects (enter, thebrana, palco, somos_mirada, tinyhomes, nexeye, psilea).
+Single-user brana operator managing multiple clients (enter, thebrana, palco, somos_mirada, tinyhomes, nexeye, psilea).
 
 ## Constraints
 

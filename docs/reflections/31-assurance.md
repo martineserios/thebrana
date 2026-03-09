@@ -186,7 +186,7 @@ From [16-knowledge-health.md](../../../brana-knowledge/dimensions/16-knowledge-h
 | Staleness rate | <15% of recalled patterns are outdated | 15-30% | >30% |
 | Contradiction count | 0 active contradictions | 1-2 flagged | >2 unflagged |
 | Confidence calibration | High-confidence patterns succeed more than low-confidence | No correlation | Inverted correlation |
-| Cross-pollination accuracy | >50% of cross-project recalls are useful | 25-50% | <25% (noise) |
+| Cross-pollination accuracy | >50% of cross-client recalls are useful | 25-50% | <25% (noise) |
 
 ### The `/brana:memory review` Skill as Health Check
 
@@ -219,7 +219,7 @@ The architecture reflection ([14-mastermind-architecture.md](./14-mastermind-arc
 | R2 Claim | R3 Verification |
 |----------|-----------------|
 | Three-layer architecture (Identity, Intelligence, Context) composes correctly | Structural: context budget check, hook config validation |
-| ReasoningBank enables cross-project learning | Behavioral: round-trip test. Outcome: cross-pollination accuracy |
+| ReasoningBank enables cross-client learning | Behavioral: round-trip test. Outcome: cross-pollination accuracy |
 | Quarantine prevents bad pattern spread | Behavioral: quarantine transition tests |
 | Hooks drive the learning loop | Behavioral: hook lifecycle tests with realistic inputs |
 | Skills provide the workflow | Behavioral: skill activation rate. Outcome: skill usefulness (LLM-as-judge) |

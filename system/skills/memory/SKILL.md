@@ -1,6 +1,6 @@
 ---
 name: memory
-description: "Knowledge system operations — recall patterns, cross-pollinate across projects, review knowledge health, audit docs for contradictions. Subcommands: recall, pollinate, review, review --audit. Use for pattern queries, cross-project transfer, monthly knowledge audits, or contradiction detection."
+description: "Knowledge system operations — recall patterns, cross-pollinate across clients, review knowledge health, audit docs for contradictions. Subcommands: recall, pollinate, review, review --audit. Use for pattern queries, cross-client transfer, monthly knowledge audits, or contradiction detection."
 group: learning
 allowed-tools:
   - Bash
@@ -19,7 +19,7 @@ Unified interface for the knowledge system. Replaces `/pattern-recall`, `/cross-
 Parse `$ARGUMENTS` for the subcommand:
 
 - `/brana:memory recall [query]` or `/brana:memory [query]` — search patterns (default)
-- `/brana:memory pollinate [query]` — cross-project pattern transfer
+- `/brana:memory pollinate [query]` — cross-client pattern transfer
 - `/brana:memory review` — monthly knowledge health audit
 - `/brana:memory review --audit [doc]` — cross-doc contradiction detection
 
@@ -60,11 +60,11 @@ source "$HOME/.claude/scripts/cf-env.sh"
 
 ---
 
-## pollinate — Cross-Project Pattern Transfer
+## pollinate — Cross-Client Pattern Transfer
 
 1. Detect current project's tech stack and problem domain.
 
-2. **Primary path:** Run `cd $HOME && $CF memory search --query "$QUERY"` to find patterns across all projects. Filter for **transferable patterns from other projects** only.
+2. **Primary path:** Run `cd $HOME && $CF memory search --query "$QUERY"` to find patterns across all clients. Filter for **transferable patterns from other clients** only.
 
 3. **Fallback path:** Scan `~/.claude/projects/*/memory/MEMORY.md` from OTHER projects. Grep for technology and pattern type matches.
 

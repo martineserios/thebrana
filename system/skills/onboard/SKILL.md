@@ -1,6 +1,6 @@
 ---
 name: onboard
-description: "Scan and diagnose a project — tech stack, structure, stage, gaps, patterns. Works for code and venture projects. Auto-detects project type. Use when entering an unfamiliar project for the first time."
+description: "Scan and diagnose a project — tech stack, structure, stage, gaps, patterns. Works for code and venture clients. Auto-detects project type. Use when entering an unfamiliar project for the first time."
 group: execution
 allowed-tools:
   - Bash
@@ -42,7 +42,7 @@ Classify as: **code** (has manifests, no venture dirs), **venture** (has venture
 
 ## Step 2: Scan structure
 
-### For all projects
+### For all clients
 - Read `.claude/CLAUDE.md` if it exists
 - Check for `docs/decisions/`, `.claude/tasks.json`
 - Check auto memory health: `~/.claude/projects/*/memory/MEMORY.md`
@@ -56,7 +56,7 @@ Classify as: **code** (has manifests, no venture dirs), **venture** (has venture
 - Check TDD setup: test framework configured, `tdd-guard` available
 - Scan project structure: entry points, key directories, config files
 
-### For venture projects (additionally)
+### For venture clients (additionally)
 - Run discovery interview (skip what's obvious from docs):
   1. What's the business? One-sentence description.
   2. What stage? Discovery / Validation / Growth / Scale. Revenue? Team size?
@@ -90,7 +90,7 @@ Fallback: grep `~/.claude/projects/*/memory/MEMORY.md` and `~/.claude/memory/por
 - SDD (decisions/, ADR, PreToolUse hook)
 - TDD (test framework, runner, coverage)
 
-**For venture projects** — assess against stage-appropriate items:
+**For venture clients** — assess against stage-appropriate items:
 - Foundation (description, decision log, metrics, cadence)
 - Validation items (hypothesis, MVP, experiments, burn rate)
 - Growth items (OKRs, SOPs, meeting cadence, hiring plan)

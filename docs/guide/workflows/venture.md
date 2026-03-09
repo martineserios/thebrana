@@ -5,11 +5,11 @@ Brana includes tools for managing business projects — stage-appropriate framew
 ## Getting started with a business project
 
 ```
-/brana:onboard              — scan and diagnose (auto-detects venture projects)
+/brana:onboard              — scan and diagnose (auto-detects venture clients)
 /brana:align                — implement stage-appropriate structure
 ```
 
-Brana detects venture projects by looking for `docs/sops/`, `docs/okrs/`, `docs/metrics/`, or business keywords in CLAUDE.md.
+Brana detects venture clients by looking for `docs/sops/`, `docs/okrs/`, `docs/metrics/`, or business keywords in CLAUDE.md.
 
 ## Business stages
 

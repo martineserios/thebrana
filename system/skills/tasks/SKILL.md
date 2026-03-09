@@ -63,10 +63,10 @@ Wide mode composes with any theme (icons come from the active theme).
 **Wide-mode template:**
 
 ```
-Columns:  {icon} {id}  {subject}  {status}  {tags}  {pri}  {eff}  {stream}  {blocked_by}  {started}  {completed}
+Columns:  {icon} {id}  {subject}  {status}  {tags}  {pri}  {eff}  {stream}  {project}  {blocked_by}  {started}  {completed}
 
 Header row (always shown):
-  ID       Subject                         Status    Tags              Pri  Eff  Stream   Blocked     Started     Done
+  ID       Subject                         Status    Tags              Pri  Eff  Stream   Project      Blocked     Started     Done
 
 Task rows (classic icons):
   ✓ t-007  Design auth flow                done      auth              P1   S    roadmap  —           2026-02-10  2026-02-12
@@ -88,6 +88,7 @@ Task rows (minimal icons):
 - `subject` gets remaining width after fixed columns; truncate with `…` if too long
 - `tags` shows first 3 comma-separated, then `+N` if more
 - Null fields render as `—` (em-dash), never blank
+- `project` column: in portfolio views, shows `client/project` for multi-project clients, client slug for single-project. In single-project views, shows project slug from tasks.json root or `—`
 - Phases/milestones render as **section headers** (bold subject + progress bar, no per-column detail):
   ```
   ph-002  Phase 2: API Foundation                                        ████░░░░ 3/8
@@ -112,7 +113,7 @@ Hierarchy views (status, roadmap) use box-drawing characters when not in `--wide
 
 - `/brana:tasks plan [project] "[phase-title]"` — plan a phase interactively
 - `/brana:tasks status [project] [--wide]` — progress overview (omit project = portfolio)
-- `/brana:tasks portfolio [--unified] [--wide]` — cross-project actionable tasks
+- `/brana:tasks portfolio [--unified] [--wide]` — cross-client actionable tasks
 - `/brana:tasks roadmap [project] [--wide]` — full tree view with all levels
 - `/brana:tasks next [project] [--stream X] [--wide]` — next unblocked task by priority
 - `/brana:tasks start <id>` — begin work on a task
@@ -165,7 +166,7 @@ High-level progress view with aggregation.
 
 1. **Resolve active theme** (see Display Themes)
 2. **Detect project** or show portfolio if omitted
-3. **Read tasks.json** (for portfolio: read from each project path in tasks-portfolio.json)
+3. **Read tasks.json** (for portfolio: read from each client's project paths in tasks-portfolio.json)
 4. **Compute per-phase:** total tasks, completed, in_progress, blocked
 5. **Compute per-stream:** roadmap progress, bug count, tech-debt count, research triage counts (new/reviewed/applied)
 6. **If `--wide`**, render using **wide-mode template** (see Display Themes > Wide mode). Otherwise render using task-line template with tree connectors:
@@ -216,13 +217,13 @@ emoji:
 
 Health dots (emoji only): 🟢 all done, 🟡 has active/pending work, 🔴 has blocked tasks.
 
-Read project paths from `~/.claude/tasks-portfolio.json`. Paths use `~/` prefix — resolve to `$HOME` before reading. For each, read `.claude/tasks.json` if it exists.
+Read client/project paths from `~/.claude/tasks-portfolio.json`. Schema: `{ clients: [{ slug, projects: [{ slug, path, type?, stage?, tech_stack?, created? }] }] }`. Legacy flat `{ projects: [...] }` also supported. Paths use `~/` prefix — resolve to `$HOME` before reading. For each project, read `{path}/.claude/tasks.json` if it exists. Project metadata (`type`, `stage`, `tech_stack`) is available from the registry for display in views.
 
 ---
 
 ## /brana:tasks portfolio
 
-Cross-project actionable task view. Shows individual tasks you can work on across all registered projects. Complements `/brana:tasks status` (progress bars) with a task-level drill-down.
+Cross-client actionable task view. Shows individual tasks you can work on across all registered clients. Complements `/brana:tasks status` (progress bars) with a task-level drill-down.
 
 ### Usage
 
@@ -235,27 +236,36 @@ Cross-project actionable task view. Shows individual tasks you can work on acros
 ### Steps
 
 1. **Resolve active theme** (see Display Themes)
-2. **Read `~/.claude/tasks-portfolio.json`** — get project list
+2. **Read `~/.claude/tasks-portfolio.json`** — get client list
 3. **Resolve paths** — replace `~/` with `$HOME`
-4. **For each project**, read `{path}/.claude/tasks.json`
+4. **For each client**, iterate its projects array. For each project, read `{path}/.claude/tasks.json`
    - If file doesn't exist: skip silently
    - **Normalize JSON**: if root is a bare array `[{...}]`, treat as the tasks list. If root is an object with `.tasks`, use that.
+   - **Legacy schema**: if root has `.projects` instead of `.clients`, treat each entry as a single-project client (slug = project slug)
+   - **Project metadata**: each project entry may have `type`, `stage`, `tech_stack`, `created` — use for display (e.g., type badge, stage indicator)
 5. **Classify each task** (type: task or subtask only — skip phases and milestones):
    - `in_progress`: status is `in_progress`
    - `pending`: status is `pending` AND all `blocked_by` IDs have status `completed`
    - `blocked`: status is `pending` AND any `blocked_by` ID is not `completed`
    - `parked`: tags array contains `"parked"` (shown with `[parked]` flag)
    - `completed`: status is `completed`
-6. **Sort within each project**: in_progress → pending → blocked → last 3 completed (by `completed` date descending)
-7. **Compute summary**: total actionable tasks, project count, pending count, in_progress count
+6. **Sort within each client**: in_progress → pending → blocked → last 3 completed (by `completed` date descending)
+7. **Compute summary**: total actionable tasks, client count, pending count, in_progress count
 8. **If `--wide`**, render using **wide-mode template** (see Display Themes > Wide mode) — flat table grouped by project. Otherwise render using task-line template — by-project or unified view.
 
 ### By-project view (default)
 
-Render task lines using active theme icons. Example in **classic**:
+Render task lines using active theme icons.
+
+**Project header logic:**
+- **Single-project client**: show client slug only (e.g., `nexeye`)
+- **Multi-project client**: show `client/project` (e.g., `nexeye/eyedetect`, `nexeye/lens-api`)
+- **Project type badge** (optional, emoji theme only): append type after header — `[code]`, `[venture]`, `[hybrid]`
+
+Example in **classic** (single-project clients — current state):
 
 ```
-Portfolio — 17 tasks across 4 projects (14 pending, 3 in progress)
+Portfolio — 17 tasks across 4 clients (14 pending, 3 in progress)
 
   nexeye
     ← t-003 First production deploy                    in_progress
@@ -273,7 +283,7 @@ Portfolio — 17 tasks across 4 projects (14 pending, 3 in progress)
     ✓ t-009 Migrate campaign schema                     completed 2026-02-14
     ✓ t-008 Add rate limiting                           completed 2026-02-13
 
-  somos_mirada
+  somos
     → t-001 Fill kb-indicaciones-consulta-virtual-bsas  pending
     → t-002 Fill kb-indicaciones-consulta-virtual-eng   pending
     ...(+7 more pending)
@@ -282,15 +292,27 @@ Portfolio — 17 tasks across 4 projects (14 pending, 3 in progress)
   tinyhomes — all done (3 tasks)
 ```
 
-Same view in **emoji** — note boxed header, health dots, themed icons:
+Example in **classic** (multi-project client):
+
+```
+  nexeye/eyedetect
+    ← t-003 First production deploy                    in_progress
+    → t-016 Fix inference-worker-2 overlay failure      pending
+
+  nexeye/lens-api
+    → t-001 Set up FastAPI scaffold                     pending
+    → t-002 Define OpenAPI schema                       pending
+```
+
+Same view in **emoji** — note boxed header, health dots, themed icons, type badge:
 
 ```
 ╭──────────────────────────────────────────────────────╮
-│  📊 Portfolio — 17 tasks · 4 projects                │
+│  📊 Portfolio — 17 tasks · 4 clients                 │
 │  🔨 3 in progress · 🔲 14 pending                    │
 ╰──────────────────────────────────────────────────────╯
 
-  🟡 nexeye
+  🟡 nexeye [hybrid]
     🔨 t-003 First production deploy                    in_progress
     🔲 t-016 Fix inference-worker-2 overlay failure      pending
     🔒 t-017 Fix staging deploy                          ⛓ t-003
@@ -298,7 +320,7 @@ Same view in **emoji** — note boxed header, health dots, themed icons:
     ✅ t-014 Fix DNS resolution                          completed 2026-02-17
     ✅ t-013 Set up Docker Swarm                         completed 2026-02-16
 
-  🟡 palco
+  🟡 palco [hybrid]
     🔨 t-003 V2→V3 cutover                              in_progress
     🔲 t-004 Review metrics Google Sheet                 pending
     🔲 t-011 Run Supabase migration                      pending
@@ -306,7 +328,7 @@ Same view in **emoji** — note boxed header, health dots, themed icons:
     ✅ t-009 Migrate campaign schema                     completed 2026-02-14
     ✅ t-008 Add rate limiting                           completed 2026-02-13
 
-  🟡 somos_mirada
+  🟡 somos [venture]
     🔲 t-001 Fill kb-indicaciones-consulta-virtual-bsas  pending
     🔲 t-002 Fill kb-indicaciones-consulta-virtual-eng   pending
     ...(+7 more pending)
@@ -316,15 +338,17 @@ Same view in **emoji** — note boxed header, health dots, themed icons:
 ```
 
 Parked tasks show inline: `{blocked-icon} ms-007 Wire AgentDB [parked]  blocked (upstream)`.
-Projects with no tasks.json are omitted. All-completed projects show as a collapsed line.
+Clients with no tasks.json are omitted. All-completed clients show as a collapsed line.
 When a project has more than 5 pending tasks, show the first 3 then `...(+N more pending)`.
 
 ### Unified priority view (`--unified`)
 
-Render using task-line template icons. Example in **classic**:
+Render using task-line template icons. **Client prefix**: use `client/project` when the client has multiple projects, otherwise just client slug.
+
+Example in **classic**:
 
 ```
-Portfolio — priority view (17 tasks across 4 projects)
+Portfolio — priority view (17 tasks across 4 clients)
 
   1. ← nexeye  t-003 First production deploy            in_progress  P1
   2. ← palco   t-003 V2→V3 cutover                      in_progress  P1
@@ -333,6 +357,12 @@ Portfolio — priority view (17 tasks across 4 projects)
   5. → somos   t-001 Fill kb-indicaciones-virtual-bsas   pending
   6. → somos   t-002 Fill kb-indicaciones-virtual-eng    pending
   ...
+```
+
+Multi-project example:
+```
+  1. ← nexeye/eyedetect  t-003 First production deploy  in_progress  P1
+  2. → nexeye/lens-api    t-001 Set up scaffold           pending
 ```
 
 Sort order: P0 > P1 > P2 > null. Ties broken by: in_progress first, then pending, then `order` field.

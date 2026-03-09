@@ -38,7 +38,7 @@ After deep research into brana's current `.claude/` system, nexeye's skill selec
 | `24-roadmap-corrections.md` | Errata: 7 errors found during Phase 2 planning — deploy.sh merge bug, Stop vs SessionEnd mismatch, missing hook format/events, async constraints, budget calc gap |
 | `25-self-documentation.md` | Self-documentation: YAML frontmatter convention, staleness detection with layer-aware thresholds, CI/CD pipeline for docs, growth stages as trust signals, auto-generated indexes, cross-reference hygiene, documentation locality |
 | `26-git-branching-strategies.md` | Git branching strategies: comprehensive comparison of GitHub Flow, GitFlow, Trunk-Based Development, GitLab Flow — who uses them, when they work, when they break, solo developer recommendations |
-| `27-project-alignment-methodology.md` | Project alignment: 28-item checklist, 3 tiers, 5-phase pipeline, cross-project learning from alignment outcomes |
+| `27-project-alignment-methodology.md` | Project alignment: 28-item checklist, 3 tiers, 5-phase pipeline, cross-client learning from alignment outcomes |
 | `28-startup-smb-management.md` | Startup & SMB management: scaling non-coding projects — frameworks (EOS, OKRs, Scaling Up, Shape Up), books, phase-based models, software→business pattern transfer, operational systems, AI-augmented management, knowledge ecosystem |
 | `29-venture-management-reflection.md` | Venture management reflection: what transfers from code to business, what doesn't, five new venture skills, cross-domain learning architecture, coding practice → business pattern mapping |
 | `30-backlog.md` | Backlog: ideas to develop in the future — simple task list reviewed by `/brana:maintain-specs` each cycle |

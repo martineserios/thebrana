@@ -1,6 +1,6 @@
 # Brana System Guide
 
-> The brain for Claude Code — a cross-project intelligence layer that learns, remembers, and improves across every session.
+> The brain for Claude Code — a cross-client intelligence layer that learns, remembers, and improves across every session.
 
 ## What is Brana?
 
@@ -71,7 +71,7 @@ Every session follows this arc:
 Two hooks fire automatically:
 
 - **session-start.sh** — Derives the project name from git root, queries claude-flow for recent patterns, recalls relevant knowledge. Injects context via `additionalContext`.
-- **session-start-venture.sh** — Detects venture projects (by checking for `docs/sops/`, `docs/okrs/`, etc.) and nudges the daily-ops agent if found.
+- **session-start-venture.sh** — Detects venture clients (by checking for `docs/sops/`, `docs/okrs/`, etc.) and nudges the daily-ops agent if found.
 
 The result: Claude starts the session already knowing what project you're in, what patterns apply, and what happened last time.
 
@@ -127,14 +127,14 @@ Claude Code's built-in per-project memory at `~/.claude/projects/*/memory/`. Eac
 
 ### Layer 2: Claude-Flow Memory
 
-The `claude-flow` MCP server provides semantic search over a SQLite database with ONNX embeddings. This enables cross-project pattern recall and knowledge base search.
+The `claude-flow` MCP server provides semantic search over a SQLite database with ONNX embeddings. This enables cross-client pattern recall and knowledge base search.
 
 Namespaces:
 - `specs` — specification-related patterns
 - `decisions` — architectural decisions
 - `knowledge` — dimension doc content (315+ indexed sections)
 
-When claude-flow is unavailable, the system degrades gracefully — auto memory still works, just without cross-project search.
+When claude-flow is unavailable, the system degrades gracefully — auto memory still works, just without cross-client search.
 
 ## Skills
 
@@ -186,7 +186,7 @@ See [agents.md](agents.md) for the full roster.
 - [Claude Code](https://claude.ai/code) CLI installed
 - Git
 - `jq` (for hooks)
-- Optional: `claude-flow` MCP server for cross-project memory
+- Optional: `claude-flow` MCP server for cross-client memory
 
 ### Install
 

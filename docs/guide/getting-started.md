@@ -103,7 +103,7 @@ Tasks live in `.claude/tasks.json` in your project. They track status, priority,
 
 Extracts what was learned, writes a handoff note for the next session, and stores patterns in the knowledge system.
 
-## Working across projects
+## Working across clients
 
 Brana works from any directory. Open Claude Code in your project folder and all brana skills are available:
 
