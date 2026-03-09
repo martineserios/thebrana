@@ -14,20 +14,20 @@ allowed-tools:
 
 # Log — Event Capture
 
-Append-only event log. The lowest-friction entry point into brana — no need to know tasks.json schema, pipeline stages, or memory conventions. Just `/log "something happened"`.
+Append-only event log. The lowest-friction entry point into brana — no need to know tasks.json schema, pipeline stages, or memory conventions. Just `/brana:log "something happened"`.
 
 ## When to use
 
 - Something happened (call, meeting, idea, observation) and you want to record it
 - You received links or references to capture for later
 - Pasting a WhatsApp or chat dump to triage
-- Anything that doesn't fit `/tasks add` (not a commitment yet) or `/pipeline` (not a qualified lead yet)
+- Anything that doesn't fit `/brana:tasks add` (not a commitment yet) or `/brana:pipeline` (not a qualified lead yet)
 
 ## Commands
 
 ```
-/log "text with optional #tags"     — quick append
-/log bulk                           — paste multi-line content, parse + deduplicate
+/brana:log "text with optional #tags"     — quick append
+/brana:log bulk                           — paste multi-line content, parse + deduplicate
 ```
 
 ## File
@@ -38,7 +38,7 @@ Create it on first use if it doesn't exist.
 
 ---
 
-## /log "text"
+## /brana:log "text"
 
 Quick append — the default mode.
 
@@ -74,7 +74,7 @@ Quick append — the default mode.
    - For each **new** URL (not already in any task):
      - Use AskUserQuestion: "Found {N} new URL(s). Create research tasks?"
        - Options: "Yes — create tasks", "No — just log"
-     - If yes: for each URL, run `/tasks add` with stream=research, the URL in context, and tags from the log entry
+     - If yes: for each URL, run `/brana:tasks add` with stream=research, the URL in context, and tags from the log entry
    - For URLs that already exist in tasks: note "(already tracked as {task-id})" silently in the log entry
 
 7. **Write the entry** using the Edit tool (append to the day section).
@@ -91,7 +91,7 @@ Quick append — the default mode.
 
 ### Example
 
-User: `/log "Call with Juan from Kapso — interested in automation for their onboarding flow #somos #call"`
+User: `/brana:log "Call with Juan from Kapso — interested in automation for their onboarding flow #somos #call"`
 
 Result in `~/.claude/memory/event-log.md`:
 ```markdown
@@ -104,7 +104,7 @@ Report: `Logged: "Call with Juan from Kapso..." [#somos, #call] at 14:32`
 
 ---
 
-## /log bulk
+## /brana:log bulk
 
 Paste and parse multiple entries at once — designed for WhatsApp dumps, meeting notes, or batched captures.
 
@@ -150,7 +150,7 @@ Paste and parse multiple entries at once — designed for WhatsApp dumps, meetin
 7. **URL task creation.** If new URLs were found:
    - Use AskUserQuestion: "Create research tasks for {N} new URLs?"
      - Options: list each URL with a checkbox-style selection
-   - For confirmed URLs: run `/tasks add` with stream=research
+   - For confirmed URLs: run `/brana:tasks add` with stream=research
 
 8. **Report.**
    ```
@@ -172,11 +172,11 @@ Paste and parse multiple entries at once — designed for WhatsApp dumps, meetin
 - **One file.** Everything in `~/.claude/memory/event-log.md`. Tags provide the filtering mechanism.
 - **Archival is conservative.** Only archive entries >90 days old, only when the file exceeds 500 lines, and only after user confirms.
 
-## What /log is NOT
+## What /brana:log is NOT
 
-- Not a replacement for `/tasks add` — tasks are commitments, log entries are observations
+- Not a replacement for `/brana:tasks add` — tasks are commitments, log entries are observations
 - Not a replacement for MEMORY.md — memory stores patterns, log stores events
-- Not a replacement for `/pipeline` — pipeline tracks deals, log captures first contact
+- Not a replacement for `/brana:pipeline` — pipeline tracks deals, log captures first contact
 - Not a calendar, reminder system, or analytics tool
 
 The log is an **inbox**. Other commands are the **outbox**. Capture fast, route later.

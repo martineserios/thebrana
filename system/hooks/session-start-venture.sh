@@ -60,7 +60,13 @@ if [ -n "$NEWEST_REVIEW" ]; then
     fi
 else
     # No weekly review found — check ReasoningBank as fallback
-    source "$HOME/.claude/scripts/cf-env.sh"
+    # Source cf-env.sh: plugin-bundled copy first, bootstrap fallback
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    if [ -f "$SCRIPT_DIR/lib/cf-env.sh" ]; then
+        source "$SCRIPT_DIR/lib/cf-env.sh"
+    else
+        source "$HOME/.claude/scripts/cf-env.sh"
+    fi
 
     if [ -n "$CF" ]; then
         CF_OUTPUT=$(timeout 3 $CF memory search --query "weekly-review" --namespace business 2>&1) || true

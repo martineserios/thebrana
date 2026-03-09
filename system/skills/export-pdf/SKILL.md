@@ -17,7 +17,7 @@ Convert a markdown file to a styled PDF using mdpdf.
 
 ### 1. Parse arguments
 
-If `$ARGUMENTS` is empty, ask the user for the markdown file path. If provided, use it directly (e.g., `/export-pdf propuesta-integracion-payway.md`).
+If `$ARGUMENTS` is empty, ask the user for the markdown file path. If provided, use it directly (e.g., `/brana:export-pdf propuesta-integracion-payway.md`).
 
 ### 2. Resolve path
 

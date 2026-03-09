@@ -202,7 +202,7 @@ echo "Knowledge backed up: $BACKUP_DIR/memory_$DATE.db"
 **When to backup:**
 - Before every deploy (automatic, called by deploy.sh)
 - Daily via cron (cheap insurance)
-- Before `/project-retire` (you're about to transform data)
+- Before `/brana:project-retire` (you're about to transform data)
 
 **What about git for knowledge?**
 
@@ -268,7 +268,7 @@ git init
 claude --plugin-dir ~/projects/brana/system
 
 # In the session:
-# - Try /memory recall "test query"
+# - Try /brana:memory recall "test query"
 # - Check that hooks fire
 # - Verify context is reasonable
 # - Look for errors

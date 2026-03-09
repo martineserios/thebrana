@@ -8,7 +8,7 @@
 
 ## What It Does (Plain English)
 
-When you start working on a project that uses tech you don't have skills for — say Cloudflare Workers, Prisma, or Stripe — you can run `/acquire-skills` and the system will:
+When you start working on a project that uses tech you don't have skills for — say Cloudflare Workers, Prisma, or Stripe — you can run `/brana:acquire-skills` and the system will:
 
 1. Look at your project's files to figure out what tech it uses
 2. Compare that against the skills you already have
@@ -23,15 +23,15 @@ You run it once when entering a new project or picking up unfamiliar tech. After
 Three ways to invoke:
 
 ```
-/acquire-skills                    — scan the current project
-/acquire-skills t-045              — scan what a specific task needs
-/acquire-skills cloudflare         — search directly for a keyword
+/brana:acquire-skills                    — scan the current project
+/brana:acquire-skills t-045              — scan what a specific task needs
+/brana:acquire-skills cloudflare         — search directly for a keyword
 ```
 
 ### Example Session
 
 ```
-> /acquire-skills
+> /brana:acquire-skills
 
 Scanning project: nexeye_eyedetect
 
@@ -188,7 +188,7 @@ The web search tier works but produces noisier results. For better skill discove
 npm install -g skills
 ```
 
-This gives `/acquire-skills` access to a structured npm-based skill ecosystem with thousands of community skills. The skill auto-detects the CLI and uses it as the primary search source.
+This gives `/brana:acquire-skills` access to a structured npm-based skill ecosystem with thousands of community skills. The skill auto-detects the CLI and uses it as the primary search source.
 
 ## Removing Acquired Skills
 

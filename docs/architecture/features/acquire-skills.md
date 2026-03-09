@@ -5,7 +5,7 @@
 
 ## Goal
 
-A manual command (`/acquire-skills`) that scans a project's tech stack, identifies skill gaps against locally installed skills, searches marketplaces for matching skills, and installs user-approved ones permanently.
+A manual command (`/brana:acquire-skills`) that scans a project's tech stack, identifies skill gaps against locally installed skills, searches marketplaces for matching skills, and installs user-approved ones permanently.
 
 ## Audience
 
@@ -32,7 +32,7 @@ The brana operator (me) — when entering a new project, picking up unfamiliar t
 
 ## Deferred
 
-- Auto-trigger on `/tasks start` (premature — no evidence of frequency)
+- Auto-trigger on `/brana:tasks start` (premature — no evidence of frequency)
 - Quality scoring beyond marketplace-provided scores
 - Lifecycle management (usage-based promotion/removal)
 - Skill update checking (version drift)

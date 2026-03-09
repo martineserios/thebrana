@@ -1,13 +1,13 @@
-# Feature: Smart /tasks add with dependency scan
+# Feature: Smart /brana:tasks add with dependency scan
 
 **Date:** 2026-03-03
 **Status:** shipped
 
 ## Goal
-When adding a task via `/tasks add`, the system suggests tags, effort, parent milestone, and dependency candidates by cross-referencing existing pending tasks. User confirms each suggestion. No auto-priority, no auto-commit of dependencies. Additionally, migrate doc 30's pending backlog items into tasks.json as a one-time operation.
+When adding a task via `/brana:tasks add`, the system suggests tags, effort, parent milestone, and dependency candidates by cross-referencing existing pending tasks. User confirms each suggestion. No auto-priority, no auto-commit of dependencies. Additionally, migrate doc 30's pending backlog items into tasks.json as a one-time operation.
 
 ## Audience
-Solo developer using brana's `/tasks` skill to manage backlogs across projects.
+Solo developer using brana's `/brana:tasks` skill to manage backlogs across projects.
 
 ## Constraints
 - Skill is pure markdown (SKILL.md) — no bundled scripts yet (t-045 pending)
@@ -16,11 +16,11 @@ Solo developer using brana's `/tasks` skill to manage backlogs across projects.
   - No auto-priority (priority is a strategic choice, not algorithmic)
   - Dependencies are suggestions labeled "possible — confirm?", never auto-committed
   - Build-trap detection: flag solution-language tasks without outcome context
-- Backward compatible — existing `/tasks add` behavior preserved, intelligence is additive
+- Backward compatible — existing `/brana:tasks add` behavior preserved, intelligence is additive
 
 ## Scope (v1)
 
-### Smart /tasks add enhancement
+### Smart /brana:tasks add enhancement
 - **Tag suggestion**: Extract keywords from description, match against existing tag vocabulary
 - **Effort suggestion**: Estimate from description length/complexity (S/M/L)
 - **Parent suggestion**: Match against active milestones by keyword/tag overlap
@@ -36,8 +36,8 @@ Solo developer using brana's `/tasks` skill to manage backlogs across projects.
 ## Deferred
 - Auto-priority / ICE scoring (future automation dial)
 - Duplicate detection via embeddings (needs claude-flow, separate task)
-- `/tasks groom` command (separate feature)
-- `/tasks dump` brain-dump mode (separate feature)
+- `/brana:tasks groom` command (separate feature)
+- `/brana:tasks dump` brain-dump mode (separate feature)
 - Discovery stream (needs broader workflow design)
 - URL/platform-name research trigger via scout agent
 
@@ -50,10 +50,10 @@ Solo developer using brana's `/tasks` skill to manage backlogs across projects.
 4. **Build-trap signal** (Perri): Flag tasks describing solutions without outcome context.
 5. **Extensibility**: Each suggestion step is independent — can be automated progressively (ask → auto-accept-if-confident → auto-accept-always).
 
-### From /tasks SKILL.md analysis
+### From /brana:tasks SKILL.md analysis
 - Current add flow: 7 steps (parse → read → ask stream → ask milestone → ask tags → auto-ID → confirm)
 - Enhancement adds 4 new steps between tag assignment and confirmation
-- Existing flows (`/tasks start`, `/tasks execute`, `/tasks portfolio`) already check blocked_by — no changes needed there
+- Existing flows (`/brana:tasks start`, `/brana:tasks execute`, `/brana:tasks portfolio`) already check blocked_by — no changes needed there
 
 ## Open questions
 None — design corrected by challenge, approach chosen (suggest-only).

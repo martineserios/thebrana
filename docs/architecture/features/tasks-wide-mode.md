@@ -1,11 +1,11 @@
-# Feature: Wide Display Mode for /tasks
+# Feature: Wide Display Mode for /brana:tasks
 
 **Date:** 2026-03-03
 **Status:** shipped
 
 ## Goal
 
-Add `--wide` flag to `/tasks` view commands that renders tasks as tabular rows with all metadata columns visible on one line — like `kubectl get pods -o wide`.
+Add `--wide` flag to `/brana:tasks` view commands that renders tasks as tabular rows with all metadata columns visible on one line — like `kubectl get pods -o wide`.
 
 ## Audience
 

@@ -291,12 +291,12 @@ Build in this order (each depends on the previous being conceptually proven):
 
 | # | Skill | claude-flow Feature | Why This Order |
 |---|-------|-------------------|---------------|
-| 1 | `/memory recall` | `memory search -q` | Most fundamental — query before working |
-| 2 | `/retrospective` | `memory store -k -v --namespace --tags` | Store learnings manually — test the write path |
+| 1 | `/brana:memory recall` | `memory search -q` | Most fundamental — query before working |
+| 2 | `/brana:retrospective` | `memory store -k -v --namespace --tags` | Store learnings manually — test the write path |
 | 3 | `/project-onboard` | `memory search -q` | Cross-project query — validates tagging |
-| 4 | `/memory pollinate` | `memory search -q` | Most nuanced — needs patterns to exist first |
-| 5 | `/project-retire` | `memory store` + bulk operations | Least urgent, most complex |
-| 6 | `/challenge` | Task tool with `model: "sonnet"` | Cross-model adversarial review — see [13-challenger-agent.md](dimensions/13-challenger-agent.md) |
+| 4 | `/brana:memory pollinate` | `memory search -q` | Most nuanced — needs patterns to exist first |
+| 5 | `/brana:project-retire` | `memory store` + bulk operations | Least urgent, most complex |
+| 6 | `/brana:challenge` | Task tool with `model: "sonnet"` | Cross-model adversarial review — see [13-challenger-agent.md](dimensions/13-challenger-agent.md) |
 
 ### Plugins to Install
 
@@ -360,17 +360,17 @@ After Phase 1:
 
 **Functional:**
 - [x] All 6 skills manually invokable and working
-- [x] `/memory recall` returns results from manually-inserted test patterns
-- [x] `/retrospective` successfully stores patterns in ReasoningBank
+- [x] `/brana:memory recall` returns results from manually-inserted test patterns
+- [x] `/brana:retrospective` successfully stores patterns in ReasoningBank
 - [x] All plugins installed and functional
 - [x] System reviewer agent catches at least one test issue
-- [x] `/challenge` skill spawns Sonnet subagent and returns actionable feedback
+- [x] `/brana:challenge` skill spawns Sonnet subagent and returns actionable feedback
 - [x] `skill-catalog.yaml` created with at least 5 vetted external skills
 - [x] PM awareness rule in place
 - [x] Context budget under 15KB
 - [x] `./test.sh` passes all layers (validate + hooks + memory)
 
-**Value:** Use skills in 3+ real sessions across different projects. After each session ask: "Did `/memory recall` surface anything useful? Did `/challenge` catch a real issue?" If not, adjust skill instructions before Phase 2. A skill that's invokable but unhelpful is worse than no skill (it wastes context).
+**Value:** Use skills in 3+ real sessions across different projects. After each session ask: "Did `/brana:memory recall` surface anything useful? Did `/brana:challenge` catch a real issue?" If not, adjust skill instructions before Phase 2. A skill that's invokable but unhelpful is worse than no skill (it wastes context).
 
 - [x] Tag: `v0.2.0`
 
@@ -522,7 +522,7 @@ A daily cron or next-SessionStart can flush pending learnings to ReasoningBank.
 
 **Value (the real test):**
 - [x] After 10+ sessions across 2+ projects, review recalled patterns. What percentage were actually useful? Target: >50% relevance. If below, the tagging strategy or recall query needs tuning before Phase 3.
-- [x] At least one cross-project moment: a pattern from project A surfaced (via manual `/memory pollinate`) and helped in project B.
+- [x] At least one cross-project moment: a pattern from project A surfaced (via manual `/brana:memory pollinate`) and helped in project B.
 - [x] At least one failure-memory moment: the system recalled a failed approach and the user avoided repeating it.
 
 **Pattern accumulation check:** Track pattern count. You need ~50 for SONA activation in Phase 3. At 3-5 projects × 2-3 sessions/week × 5-10 patterns/session, expect 30-75 patterns over Phase 2's 2-3 weeks. If accumulation is slower, extend Phase 2 rather than rushing to Phase 3 with insufficient data.
@@ -633,7 +633,7 @@ With SONA active and challenge outcomes accumulated from Phase 2, the system can
 
 ```
 SONA query: "How often were challenges on architecture changes accepted?"
-  → "45% acceptance rate. Recommend running /challenge."
+  → "45% acceptance rate. Recommend running /brana:challenge."
 
 Rate-limit aware: only suggest if quota > 50% remaining.
 ```
@@ -650,7 +650,7 @@ Rate-limit aware: only suggest if quota > 50% remaining.
 - [x] `/skill-discover` returns relevant results from registries
 - [x] `/skill-install` installs from catalog with checksum verification
 - [x] Skill quarantine operational for external skills
-- [x] System suggests `/challenge` based on blast radius + historical acceptance rate
+- [x] System suggests `/brana:challenge` based on blast radius + historical acceptance rate
 
 **Value:**
 - [x] Pattern recall precision: >60% of recalled patterns rated useful by you in real sessions (up from Phase 2's >50% baseline — intelligence layer should improve this)
@@ -801,7 +801,7 @@ Once the system has enough self-referential patterns (`domain: brana-system`), i
 
 1. **Notice recurring problems** — "The last 3 sessions started slow because SessionStart hook is querying too many patterns. Suggest: limit to top-10 by confidence."
 2. **Cross-pollinate from other projects** — "In project-alpha, you solved a similar problem with caching. Your hooks could use the same pattern."
-3. **Identify unused components** — "The `/project-retire` skill hasn't been invoked in 3 months. Consider archiving it to save context budget."
+3. **Identify unused components** — "The `/brana:project-retire` skill hasn't been invoked in 3 months. Consider archiving it to save context budget."
 
 This is the recursive payoff: the brain improving its own wiring based on what it's learned about maintaining itself.
 
@@ -890,7 +890,7 @@ Weeks 1-2       Phase 0: Skeleton
                 └─ Tag: v0.1.0
 
 Weeks 2-4       Phase 1: Foundation (scaffolding — don't over-polish)
-                ├─ 6 skills (5 mastermind + /challenge), plugins, agents
+                ├─ 6 skills (5 mastermind + /brana:challenge), plugins, agents
                 ├─ skill-catalog.yaml, PM awareness rule
                 ├─ Use in 3+ real sessions to validate before Phase 2
                 └─ Tag: v0.2.0
@@ -965,7 +965,7 @@ Phases are sequential but overlap is fine — you can start building Phase 2 hoo
 |---|---|---|
 | **0** | CLI install, `init` | Can't start. Wait for fix or use older version. |
 | **1** | `memory search`, `memory store` | Skills work manually, just slower. |
-| **2** | Hook lifecycle integration, pre/post task hooks | Learning loop stops. Fall back to manual `/retrospective`. |
+| **2** | Hook lifecycle integration, pre/post task hooks | Learning loop stops. Fall back to manual `/brana:retrospective`. |
 | **3** | SONA, `neural train`, WASM transforms | **Evaluation gate catches this.** If SONA fails, Plan B: tag-based recall, no vector similarity, still functional. |
 | **4** | ReasoningBank queries, stats, bulk operations | Immune system degrades. Manual audits still possible. |
 | **5** | Full stack + self-referential patterns | Self-improvement pauses. System still functional. |

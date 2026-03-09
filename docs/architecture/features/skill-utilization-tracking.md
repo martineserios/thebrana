@@ -8,7 +8,7 @@
 
 ## What It Does (Plain English)
 
-Brana has 37+ skills — `/tasks`, `/research`, `/build-phase`, etc. Before this feature, there was no way to know which skills were actually being used, how often, or which ones were dead weight.
+Brana has 37+ skills — `/brana:tasks`, `/brana:research`, `/build-phase`, etc. Before this feature, there was no way to know which skills were actually being used, how often, or which ones were dead weight.
 
 Now, every time a skill is invoked, the system silently records it: which skill, when, during which session. Over time this builds a usage picture that answers:
 
@@ -21,7 +21,7 @@ Alongside this, the **delegation routing rule** was strengthened. Previously, th
 ## How It Works (Non-Technical)
 
 ```
-You invoke /tasks status
+You invoke /brana:tasks status
        |
        v
 Claude uses the Skill tool internally

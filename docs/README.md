@@ -41,7 +41,7 @@ After deep research into brana's current `.claude/` system, nexeye's skill selec
 | `27-project-alignment-methodology.md` | Project alignment: 28-item checklist, 3 tiers, 5-phase pipeline, cross-project learning from alignment outcomes |
 | `28-startup-smb-management.md` | Startup & SMB management: scaling non-coding projects — frameworks (EOS, OKRs, Scaling Up, Shape Up), books, phase-based models, software→business pattern transfer, operational systems, AI-augmented management, knowledge ecosystem |
 | `29-venture-management-reflection.md` | Venture management reflection: what transfers from code to business, what doesn't, five new venture skills, cross-domain learning architecture, coding practice → business pattern mapping |
-| `30-backlog.md` | Backlog: ideas to develop in the future — simple task list reviewed by `/maintain-specs` each cycle |
+| `30-backlog.md` | Backlog: ideas to develop in the future — simple task list reviewed by `/brana:maintain-specs` each cycle |
 | `31-assurance.md` | R3 Assurance: verification framework — structural checks, behavioral tests, outcome evaluation, RAG metrics, knowledge health, user feedback calibration |
 | `32-lifecycle.md` | R4 Lifecycle: system evolution — DDD/SDD/TDD workflow, context management, self-describing config, maintenance cadences, graduation pathway, git workflow, build-phase cycle |
 | `33-research-methodology.md` | Research methodology: recursive discovery, source registry, research archetypes, leads queue, evolution mechanics |
@@ -59,10 +59,10 @@ Feature briefs live in `docs/architecture/features/`. Key briefs:
 
 | File | What It Covers |
 |------|---------------|
-| `docs/architecture/features/build-loop-redesign.md` | Build loop redesign: 42→25 skills, 4-step loop, 7 strategies, /tasks+/build integration |
+| `docs/architecture/features/build-loop-redesign.md` | Build loop redesign: 42→25 skills, 4-step loop, 7 strategies, /tasks+/brana:build integration |
 | `docs/architecture/features/task-management-system.md` | Task management system: JSON data layer, NL interface, hierarchical planning, branch integration |
-| `docs/architecture/features/event-log.md` | Event log: /log skill for capturing links, calls, meetings, ideas |
-| `docs/architecture/features/smart-tasks-add.md` | Smart /tasks add: suggest-only pattern, dependency scan, build-trap check (ADR-008) |
+| `docs/architecture/features/event-log.md` | Event log: /brana:log skill for capturing links, calls, meetings, ideas |
+| `docs/architecture/features/smart-tasks-add.md` | Smart /brana:tasks add: suggest-only pattern, dependency scan, build-trap check (ADR-008) |
 | `docs/architecture/features/research-stream.md` | Research as first-class task stream: URL auto-detection, tag-based cross-reference |
 
 ### Architecture Decision Records
@@ -74,7 +74,7 @@ ADRs live in `docs/architecture/decisions/`. Key decisions:
 | `docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md` | Reconcile command for spec-to-implementation drift |
 | `docs/architecture/decisions/ADR-002-tasks-as-data-layer.md` | Tasks as JSON data layer — schema, convention rule, hook validation |
 | `docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md` | Merge enter into thebrana — unified repo |
-| `docs/architecture/decisions/ADR-013-event-log.md` | Event log — /log skill, append-only JSONL, inline tags |
+| `docs/architecture/decisions/ADR-013-event-log.md` | Event log — /brana:log skill, append-only JSONL, inline tags |
 
 ## How to Use
 

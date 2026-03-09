@@ -101,7 +101,7 @@ claude-flow v3.5.1 natively integrates AgentDB v3 as its memory engine while **p
 
 1. **Debrief skill** — Could use reflexion episodes instead of flat patterns (richer learning)
 2. **Session hooks** — Could store episodes with reward signals (enables skill consolidation)
-3. **Memory skill** — `/memory review` could use ExplainableRecall for provenance
+3. **Memory skill** — `/brana:memory review` could use ExplainableRecall for provenance
 4. **Scheduler** — Could track causal edges (does indexing improve search quality?)
 
 ## Upgrade Procedure

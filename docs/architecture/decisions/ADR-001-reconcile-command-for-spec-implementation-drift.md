@@ -9,9 +9,9 @@ The brana system has four maintenance commands that cover most of the spec-imple
 
 - `/build-phase` — specs → new implementation (greenfield builds from roadmap WIs)
 - `/back-propagate` — implementation → specs (reverse sync when code diverges from docs)
-- `/maintain-specs` — specs → specs (cascade changes within the doc layers: dimension → reflection → roadmap)
+- `/brana:maintain-specs` — specs → specs (cascade changes within the doc layers: dimension → reflection → roadmap)
 
-However, there is a missing arrow: **specs → existing implementation**. In practice, the `enter` specs are frequently updated (via `/maintain-specs`, `/refresh-knowledge`, manual edits), but these changes don't automatically flow into the already-built `thebrana`. The user currently applies these manually, which is error-prone and easy to forget.
+However, there is a missing arrow: **specs → existing implementation**. In practice, the `enter` specs are frequently updated (via `/brana:maintain-specs`, `/refresh-knowledge`, manual edits), but these changes don't automatically flow into the already-built `thebrana`. The user currently applies these manually, which is error-prone and easy to forget.
 
 The gap is:
 1. Specs evolve (new capabilities, corrected conventions, updated skill metadata)
@@ -26,11 +26,11 @@ This is analogous to infrastructure drift detection (e.g., `terraform plan`/`app
 2. **Approval model** — show a plan then apply in batch, or per-change approval?
 3. **What counts as "specs"?** — roadmap WIs, reflection docs, CLAUDE.md conventions, skill metadata, deploy script expectations?
 4. **Drift report artifact** — should it produce an auditable log of what was found and applied?
-5. **Trigger point** — should `/maintain-specs` automatically suggest `/reconcile` when it finds changes that affect thebrana?
+5. **Trigger point** — should `/brana:maintain-specs` automatically suggest `/brana:reconcile` when it finds changes that affect thebrana?
 
 ## Decision
 
-Create `/reconcile` as a skill in `thebrana`, deployed to `~/.claude/skills/reconcile.yml`.
+Create `/brana:reconcile` as a skill in `thebrana`, deployed to `~/.claude/skills/reconcile.yml`.
 
 ### Design choices
 
@@ -48,12 +48,12 @@ Create `/reconcile` as a skill in `thebrana`, deployed to `~/.claude/skills/reco
 
 4. **Drift report: log to [doc 24](../24-roadmap-corrections.md).** Append drift findings and applied changes to `24-roadmap-corrections.md` (the existing errata doc). Keeps the audit trail in one place.
 
-5. **Trigger: suggest after /maintain-specs.** When `/maintain-specs` cascades changes that touch implementation-relevant specs, it suggests running `/reconcile` to push those changes into the built system. Completes the loop.
+5. **Trigger: suggest after /brana:maintain-specs.** When `/brana:maintain-specs` cascades changes that touch implementation-relevant specs, it suggests running `/brana:reconcile` to push those changes into the built system. Completes the loop.
 
 ### Command flow
 
 ```
-/reconcile
+/brana:reconcile
   1. Scan enter/ specs (all layers + CLAUDE.md + conventions)
   2. Scan thebrana/ implementation (skills, hooks, rules, config, deploy)
   3. Diff — identify drift per area
@@ -82,12 +82,12 @@ For each area of thebrana, compare against the relevant spec surface:
 ### Easier
 
 - **Spec changes flow to implementation.** No more manual tracking of what changed in enter/ and whether thebrana reflects it.
-- **Complete maintenance loop.** The four commands now cover all arrows: `/refresh-knowledge` (external → specs), `/maintain-specs` (specs → specs), `/reconcile` (specs → implementation), `/back-propagate` (implementation → specs).
+- **Complete maintenance loop.** The four commands now cover all arrows: `/refresh-knowledge` (external → specs), `/brana:maintain-specs` (specs → specs), `/brana:reconcile` (specs → implementation), `/back-propagate` (implementation → specs).
 - **Auditable drift history.** [Doc 24](../24-roadmap-corrections.md) records what drifted and when, making it possible to spot recurring drift patterns.
-- **Natural chaining.** `/maintain-specs` → suggests `/reconcile` → changes land in thebrana. One smooth flow.
+- **Natural chaining.** `/brana:maintain-specs` → suggests `/brana:reconcile` → changes land in thebrana. One smooth flow.
 
 ### Harder
 
 - **Full scan cost.** Every run compares everything, which may be slow as the system grows. Acceptable for now; add targeting later if needed.
-- **Broad spec surface.** Comparing against all enter docs + conventions means more potential false positives. Will need the same materiality filtering proven in `/maintain-specs`.
-- **Cross-repo changes.** `/reconcile` reads from enter/ but writes to thebrana/. Must handle the case where thebrana has uncommitted changes or is on a different branch.
+- **Broad spec surface.** Comparing against all enter docs + conventions means more potential false positives. Will need the same materiality filtering proven in `/brana:maintain-specs`.
+- **Cross-repo changes.** `/brana:reconcile` reads from enter/ but writes to thebrana/. Must handle the case where thebrana has uncommitted changes or is on a different branch.

@@ -4,11 +4,11 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 
 **Status values:**
 - `pending` — logged, not yet addressed
-- `applied (date)` — spec fix applied by `/apply-errata` or `/maintain-specs`
+- `applied (date)` — spec fix applied by `/brana:apply-errata` or `/brana:maintain-specs`
 - `code-fix` — fix lives in implementation code, not specs
 - `informational` — no fix needed, awareness for implementers
 
-**Workflow:** `/debrief` logs findings as `pending` → `/apply-errata` processes them, marks `applied`, adds comments.
+**Workflow:** `/debrief` logs findings as `pending` → `/brana:apply-errata` processes them, marks `applied`, adds comments.
 
 ---
 
@@ -47,7 +47,7 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 29 | `session-end.sh` fallback writes to global path instead of project-scoped | **Medium** | code-fix (2026-02-12) | Fallback `pending-learnings.md` now in `$LAYER0_DIR/` |
 | 30 | enter/README.md document count off by one (32 vs 33) | **Low** | code-fix (2026-02-12) | Corrected to 34 when adding [doc 33](dimensions/33-research-methodology.md) |
 | 31 | [Doc 08](reflections/08-diagnosis.md) missing triage entry for [doc 33](dimensions/33-research-methodology.md) | **Low** | applied (2026-02-12) | Cascade from [doc 33](dimensions/33-research-methodology.md) creation — triage verdict added |
-| 32 | [Doc 14](reflections/14-mastermind-architecture.md) doesn't acknowledge /research skill | **Low** | applied (2026-02-12) | Cascade from [doc 33](dimensions/33-research-methodology.md) — "Beyond the Six" subsection added |
+| 32 | [Doc 14](reflections/14-mastermind-architecture.md) doesn't acknowledge /brana:research skill | **Low** | applied (2026-02-12) | Cascade from [doc 33](dimensions/33-research-methodology.md) — "Beyond the Six" subsection added |
 | 33 | [Doc 32](reflections/32-lifecycle.md) missing source registry cadence in maintenance table | **Low** | applied (2026-02-12) | Cascade from [doc 33](dimensions/33-research-methodology.md) — row added to Connectome table |
 | 34 | [Doc 05](dimensions/05-claude-flow-v3-analysis.md) version pinned at alpha.28 in opening paragraph | **High** | applied (2026-02-13) | Refresh cascade — alpha.34 already in Refresh Targets but not in prose |
 | 35 | [Doc 10](dimensions/10-statusline-research.md) wrong repo URLs for ccstatusline and claude-powerline | **High** | applied (2026-02-13) | Refresh cascade — Versions table had wrong GitHub orgs, URLs section had correct ones |
@@ -87,7 +87,7 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 69 | Deploy pipeline missing `commands/` artifact type | **Medium** | code-fix (2026-02-23) | `session-handoff`, `init-project` existed only in `~/.claude/commands/` with no source in `system/`. Violates "never edit ~/.claude/ directly" rule. |
 | 70 | Pre-commit Check 3 can't parse doc number ranges in CLAUDE.md | **Medium** | code-fix (2026-02-23) | Fixed via backlog #66: Check 3 now uses Python range expansion to build a flat list of all referenced doc numbers before checking membership. |
 | 71 | Lesson #36 over-broad — `bypassPermissions` agents CAN write cross-repo | **High** | applied (2026-02-24) | Lesson #36 annotated with supersession note pointing to lesson #68, which documents the nuanced rule: default-mode agents sandboxed by hooks, `bypassPermissions` agents bypass hooks entirely. |
-| 72 | Portfolio tasks.json schema inconsistent across projects | **Low** | informational | Palco/somos/nexeye use bare `[{...}]` array. Tinyhomes/thebrana use `{"tasks": [...]}` wrapper. `/tasks portfolio` handles both via normalize step. Should standardize during next `/project-align` pass. |
+| 72 | Portfolio tasks.json schema inconsistent across projects | **Low** | informational | Palco/somos/nexeye use bare `[{...}]` array. Tinyhomes/thebrana use `{"tasks": [...]}` wrapper. `/brana:tasks portfolio` handles both via normalize step. Should standardize during next `/project-align` pass. |
 | 73 | [Doc 08](reflections/08-diagnosis.md) missing triage for [docs 38](dimensions/38-design-thinking.md), 39 | **Medium** | applied (2026-02-25) | Maintain-specs cascade — two new dimension docs added without triage entries |
 | 74 | [Doc 08](reflections/08-diagnosis.md) "PM Separation: preserve the pattern" contradicted by [doc 39](39-architecture-redesign.md) | **High** | applied (2026-02-25) | [Doc 39](39-architecture-redesign.md) supersedes with directory-based separation. Supersession note added to item 2. |
 | 75 | [Doc 14](reflections/14-mastermind-architecture.md) missing cross-reference to [doc 39](39-architecture-redesign.md) | **Medium** | applied (2026-02-25) | Forward reference added with note that sections will need updating when migration phases execute |
@@ -593,7 +593,7 @@ $CF memory search --query "project:$PROJECT" --format json
 
 **Severity:** Medium — implemented skills would be slow or broken
 
-**Discovery:** `/maintain-specs` cycle found [doc 14](reflections/14-mastermind-architecture.md) lines 311, 336, 372 use `cd $HOME && npx claude-flow memory search/store`, the exact anti-pattern documented in lesson #17. The implemented skills (thebrana) already use smart binary discovery, but the spec doc still shows the old pattern.
+**Discovery:** `/brana:maintain-specs` cycle found [doc 14](reflections/14-mastermind-architecture.md) lines 311, 336, 372 use `cd $HOME && npx claude-flow memory search/store`, the exact anti-pattern documented in lesson #17. The implemented skills (thebrana) already use smart binary discovery, but the spec doc still shows the old pattern.
 
 **Impact:** Anyone implementing skills from [doc 14](reflections/14-mastermind-architecture.md)'s templates would create hooks/skills that: (a) download claude-flow on every invocation (~10s, exceeding hook timeouts), (b) use a separate npx cache missing sql.js, (c) potentially run a different version than the CLI.
 
@@ -609,7 +609,7 @@ $CF memory search --query "project:$PROJECT" --format json
 
 **Severity:** Medium — ReasoningBank silently non-functional after upgrade
 
-**Discovery:** `/maintain-specs` cycle found [doc 14](reflections/14-mastermind-architecture.md) line 215 says "pin your version and run `memory init --force` after upgrades" but omits the sql.js installation step. An implementer would upgrade, run `memory init --force`, and still have a broken ReasoningBank because sql.js was never declared as a dependency.
+**Discovery:** `/brana:maintain-specs` cycle found [doc 14](reflections/14-mastermind-architecture.md) line 215 says "pin your version and run `memory init --force` after upgrades" but omits the sql.js installation step. An implementer would upgrade, run `memory init --force`, and still have a broken ReasoningBank because sql.js was never declared as a dependency.
 
 **Impact:** All memory store/search operations fail silently. Layer 0 fallback masks the failure — the system appears to work but ReasoningBank provides zero value.
 
@@ -653,7 +653,7 @@ $CF memory search --query "project:$PROJECT" --format json
 
 **Severity:** High — could lead to adopting unstable feature for production use
 
-**Discovery:** /maintain-specs re-evaluate-reflections (2026-02-15). [Doc 08](reflections/08-diagnosis.md) says "Replace with: Native Agent Teams." [Doc 14](reflections/14-mastermind-architecture.md) underexplores Teams as an architecture option. But [doc 09](dimensions/09-claude-code-native-features.md) shows Agent Teams are experimental (disabled by default, `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`), 2x token cost (~800k vs ~440k for 3-worker team), no file locking (last-write-wins), no resumption for in-process teammates.
+**Discovery:** /brana:maintain-specs re-evaluate-reflections (2026-02-15). [Doc 08](reflections/08-diagnosis.md) says "Replace with: Native Agent Teams." [Doc 14](reflections/14-mastermind-architecture.md) underexplores Teams as an architecture option. But [doc 09](dimensions/09-claude-code-native-features.md) shows Agent Teams are experimental (disabled by default, `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`), 2x token cost (~800k vs ~440k for 3-worker team), no file locking (last-write-wins), no resumption for in-process teammates.
 
 **Fix:** Add caveat to [docs 08](reflections/08-diagnosis.md) and 14: "Agent Teams remain experimental as of Feb 2026. Use subagents for production patterns; escalate to Teams only for genuinely parallel multi-file work where coordination benefits outweigh 2x token cost and experimental status."
 
@@ -667,7 +667,7 @@ $CF memory search --query "project:$PROJECT" --format json
 
 **Severity:** High — security gap in assurance framework
 
-**Discovery:** /maintain-specs re-evaluate-reflections (2026-02-15). [Doc 31](reflections/31-assurance.md) validates hook syntax (`bash -n`) and tests learning loop round-trips, but never tests adversarial input payloads. Hooks process JSON from tool calls — without adversarial testing, shell metacharacters, escape sequences, or injection payloads could pass through. [Doc 22](dimensions/22-testing.md) identifies "Instruction poisoning incidents: 0 promoted" as a critical safety metric and recommends Promptfoo red team plugins.
+**Discovery:** /brana:maintain-specs re-evaluate-reflections (2026-02-15). [Doc 31](reflections/31-assurance.md) validates hook syntax (`bash -n`) and tests learning loop round-trips, but never tests adversarial input payloads. Hooks process JSON from tool calls — without adversarial testing, shell metacharacters, escape sequences, or injection payloads could pass through. [Doc 22](dimensions/22-testing.md) identifies "Instruction poisoning incidents: 0 promoted" as a critical safety metric and recommends Promptfoo red team plugins.
 
 **Fix:** Add "Adversarial Input Validation" section to [doc 31](reflections/31-assurance.md)'s Behavioral Assurance: test hooks with payloads containing shell metacharacters, deeply nested JSON, and escape sequences. Reference Promptfoo red team plugins (doc 22).
 
@@ -681,7 +681,7 @@ $CF memory search --query "project:$PROJECT" --format json
 
 **Severity:** High — external skills can override safety rules undetected
 
-**Discovery:** /maintain-specs re-evaluate-reflections (2026-02-15). [Doc 16](dimensions/16-knowledge-health.md) identifies Vector 8: "When a skill is installed from an external source, its SKILL.md content becomes part of Claude's instructions. A malicious or poorly written skill could override safety rules." [Doc 31](reflections/31-assurance.md) covers pattern quarantine (knowledge entering ReasoningBank) but has zero assurance for skill instruction quarantine (instructions entering the context).
+**Discovery:** /brana:maintain-specs re-evaluate-reflections (2026-02-15). [Doc 16](dimensions/16-knowledge-health.md) identifies Vector 8: "When a skill is installed from an external source, its SKILL.md content becomes part of Claude's instructions. A malicious or poorly written skill could override safety rules." [Doc 31](reflections/31-assurance.md) covers pattern quarantine (knowledge entering ReasoningBank) but has zero assurance for skill instruction quarantine (instructions entering the context).
 
 **Fix:** Add "Skill Instruction Quarantine" section to [doc 31](reflections/31-assurance.md) after quarantine behavior tests. Verify external skills enter quarantine before deployment, SKILL.md content doesn't override CLAUDE.md or rules, conflicts are flagged. Reference [doc 12](dimensions/12-skill-selector.md)'s three-tier trust model.
 
@@ -695,7 +695,7 @@ $CF memory search --query "project:$PROJECT" --format json
 
 **Severity:** High — could lead to implementing manual context strategies redundantly
 
-**Discovery:** /maintain-specs re-evaluate-reflections (2026-02-15). [Doc 32](reflections/32-lifecycle.md)'s "Keeping Sessions Healthy" section describes three context management strategies (compaction, structured note-taking, sub-agent architectures) but doesn't mention Context Autopilot — a native Claude Code feature that auto-manages the context window. Also misses the Notification hook type (`permission_prompt`, `idle_prompt`, `auth_success`).
+**Discovery:** /brana:maintain-specs re-evaluate-reflections (2026-02-15). [Doc 32](reflections/32-lifecycle.md)'s "Keeping Sessions Healthy" section describes three context management strategies (compaction, structured note-taking, sub-agent architectures) but doesn't mention Context Autopilot — a native Claude Code feature that auto-manages the context window. Also misses the Notification hook type (`permission_prompt`, `idle_prompt`, `auth_success`).
 
 **Fix:** Update [doc 32](reflections/32-lifecycle.md)'s context management section to acknowledge Context Autopilot and clarify which manual strategies remain relevant when Autopilot is enabled. Add Notification hook type to the hook lifecycle discussion.
 
@@ -709,7 +709,7 @@ $CF memory search --query "project:$PROJECT" --format json
 
 **Severity:** High — could cause health misdiagnosis for non-SaaS ventures
 
-**Discovery:** /maintain-specs re-evaluate-reflections (2026-02-15). [Doc 28](dimensions/28-startup-smb-management.md) lesson #20: "Metric frameworks must adapt to business model type. A cycle-based service with 95% 'churn' looks catastrophic in SaaS terms but is normal." [Doc 29](reflections/29-venture-management-reflection.md)'s `/growth-check` detects stage but not business model type, applying SaaS-centric metrics to all ventures.
+**Discovery:** /brana:maintain-specs re-evaluate-reflections (2026-02-15). [Doc 28](dimensions/28-startup-smb-management.md) lesson #20: "Metric frameworks must adapt to business model type. A cycle-based service with 95% 'churn' looks catastrophic in SaaS terms but is normal." [Doc 29](reflections/29-venture-management-reflection.md)'s `/growth-check` detects stage but not business model type, applying SaaS-centric metrics to all ventures.
 
 **Fix:** Update [doc 29](reflections/29-venture-management-reflection.md) `/growth-check` Step 1 from "Detect stage" to "Detect stage AND business model type (subscription, cycle/project, marketplace, consulting, service)." Move the existing business model adaptation note from afterthought into core logic.
 
@@ -723,7 +723,7 @@ $CF memory search --query "project:$PROJECT" --format json
 
 **Severity:** Medium — affects optimal knowledge architecture split
 
-**Discovery:** /maintain-specs re-evaluate-reflections (2026-02-15). Vercel's evaluations (doc 11) show static markdown (AGENTS.md) achieves 100% invocation vs 53% for default skills, 79% with explicit "Use when..." descriptions. This data changes the optimal split between always-in-context CLAUDE.md and lazy-loaded skills. [Doc 08](reflections/08-diagnosis.md)'s triage and [doc 14](reflections/14-mastermind-architecture.md)'s architecture don't cite this empirical finding.
+**Discovery:** /brana:maintain-specs re-evaluate-reflections (2026-02-15). Vercel's evaluations (doc 11) show static markdown (AGENTS.md) achieves 100% invocation vs 53% for default skills, 79% with explicit "Use when..." descriptions. This data changes the optimal split between always-in-context CLAUDE.md and lazy-loaded skills. [Doc 08](reflections/08-diagnosis.md)'s triage and [doc 14](reflections/14-mastermind-architecture.md)'s architecture don't cite this empirical finding.
 
 **Fix:** [Doc 08](reflections/08-diagnosis.md): update "Proven Patterns Worth Preserving" CLAUDE.md entry to cite 100% vs 79% vs 53% spectrum. [Doc 14](reflections/14-mastermind-architecture.md): expand Pattern C to reference Vercel's finding and clarify that passive context beats skill retrieval for always-needed knowledge.
 
@@ -737,7 +737,7 @@ $CF memory search --query "project:$PROJECT" --format json
 
 **Severity:** Medium — common early-stage failure mode not prevented
 
-**Discovery:** /maintain-specs re-evaluate-reflections (2026-02-15). [Doc 28](dimensions/28-startup-smb-management.md) resolved question #2 with explicit guidance: "Layer, don't stack. Maximum 3 active layers. Don't run EOS Rocks + OKRs as parallel systems — Rocks already ARE quarterly goals." [Doc 29](reflections/29-venture-management-reflection.md)'s `/venture-align` creates OKRs and meeting cadences but never warns against framework stacking.
+**Discovery:** /brana:maintain-specs re-evaluate-reflections (2026-02-15). [Doc 28](dimensions/28-startup-smb-management.md) resolved question #2 with explicit guidance: "Layer, don't stack. Maximum 3 active layers. Don't run EOS Rocks + OKRs as parallel systems — Rocks already ARE quarterly goals." [Doc 29](reflections/29-venture-management-reflection.md)'s `/venture-align` creates OKRs and meeting cadences but never warns against framework stacking.
 
 **Fix:** Add "Framework Discipline" paragraph to [doc 29](reflections/29-venture-management-reflection.md)'s `/venture-align` section: maximum 3 active framework layers, EOS Rocks + OKRs are mutually exclusive, drop a framework when maintenance time exceeds value.
 
@@ -769,7 +769,7 @@ $CF memory search --query "project:$PROJECT" --format json
 
 **Severity:** Medium — could lead to wrong model selection during rebuild from specs
 
-**Discovery:** `/maintain-specs` cross-check of [doc 14](reflections/14-mastermind-architecture.md) agent roster (lines 144-155) against deployed agents in `~/.claude/agents/`. Two models are swapped:
+**Discovery:** `/brana:maintain-specs` cross-check of [doc 14](reflections/14-mastermind-architecture.md) agent roster (lines 144-155) against deployed agents in `~/.claude/agents/`. Two models are swapped:
 - `memory-curator`: spec says **Sonnet**, deployed is **Haiku**
 - `debrief-analyst`: spec says **Haiku**, deployed is **Sonnet**
 
@@ -787,7 +787,7 @@ The global `CLAUDE.md` agent table matches the deployed (correct) models. The sw
 
 **Severity:** Low — implementation uses `validate.sh` value, not spec prose
 
-**Discovery:** `/maintain-specs` cross-check. Three docs reference "15KB context budget":
+**Discovery:** `/brana:maintain-specs` cross-check. Three docs reference "15KB context budget":
 - [Doc 14](reflections/14-mastermind-architecture.md), line 700: "The 15KB context budget is a first-order architectural constraint"
 - [Doc 31](reflections/31-assurance.md), line 32: "stays under the 15KB ceiling"
 - [Doc 32](reflections/32-lifecycle.md), line 76: "The 15KB context budget isn't arbitrary"
@@ -988,7 +988,7 @@ The reflection layer redesign (docs 31, 32) removed ~160 lines from [doc 14](ref
 **Severity:** Low — informational, same systemic pattern as #52-54, #63
 **Status:** applied (2026-02-23)
 
-**Discovery:** Skills refactor consolidated 3 skills into 1 (`/memory`), reducing count from 36 to 33. [Doc 14](reflections/14-mastermind-architecture.md) still references the old count. 6th instance of count drift.
+**Discovery:** Skills refactor consolidated 3 skills into 1 (`/brana:memory`), reducing count from 36 to 33. [Doc 14](reflections/14-mastermind-architecture.md) still references the old count. 6th instance of count drift.
 
 **Files affected:** `14-mastermind-architecture.md` — Pattern C skill count
 
@@ -1001,7 +1001,7 @@ The reflection layer redesign (docs 31, 32) removed ~160 lines from [doc 14](ref
 **Severity:** Medium — caught by user post-merge
 **Status:** code-fix (2026-02-22)
 
-**Discovery:** Skills refactor (#44) was merged with full Phase 4 documentation (CLAUDE.md, backlog, tasks.json, delegation-routing) but zero human-readable guides. The SKILL.md files serve as Claude-facing docs, but there was nothing explaining the new `/memory` skill, shared scripts convention, or skill metadata to the human user. User caught it and flagged it.
+**Discovery:** Skills refactor (#44) was merged with full Phase 4 documentation (CLAUDE.md, backlog, tasks.json, delegation-routing) but zero human-readable guides. The SKILL.md files serve as Claude-facing docs, but there was nothing explaining the new `/brana:memory` skill, shared scripts convention, or skill metadata to the human user. User caught it and flagged it.
 
 **Files affected:** No guide existed. Created `docs/skills-system.md`.
 
@@ -1133,7 +1133,7 @@ Psilea's three core SOPs (production, onboarding, sales) are interconnected: onb
 
 ### 23. Domain knowledge needs `domain:` tags, not `project:` tags
 
-During `/retrospective`, 3 venture management patterns (stage detection, framework layering, Cardone vs Sullivan/Hardy) were stored with `project:brana` tags because they were discovered during brana spec work. But these are domain knowledge — any business project should recall them, not just brana. A search from a different project wouldn't find them. After catching this, patterns were re-stored with `domain:venture-management` tags and `transferable: true`, keeping `source_project` as a metadata field for origin tracking. **Rule: distinguish system patterns (`project:{name}`, non-transferable, about how the system works) from domain patterns (`domain:{name}`, transferable, about what the system knows). The key prefix convention is `pattern:{project}:*` for system and `pattern:{domain}:*` for domain knowledge.**
+During `/brana:retrospective`, 3 venture management patterns (stage detection, framework layering, Cardone vs Sullivan/Hardy) were stored with `project:brana` tags because they were discovered during brana spec work. But these are domain knowledge — any business project should recall them, not just brana. A search from a different project wouldn't find them. After catching this, patterns were re-stored with `domain:venture-management` tags and `transferable: true`, keeping `source_project` as a metadata field for origin tracking. **Rule: distinguish system patterns (`project:{name}`, non-transferable, about how the system works) from domain patterns (`domain:{name}`, transferable, about what the system knows). The key prefix convention is `pattern:{project}:*` for system and `pattern:{domain}:*` for domain knowledge.**
 
 ### 24. claude-flow `memory store` supports `--upsert` for updates
 
@@ -1227,7 +1227,7 @@ Erratum #47 reconcile added "detect business model type" to `/growth-check` Step
 
 ### 41. User preferences must be persisted to auto memory immediately, not deferred
 
-A Co-Authored-By preference from a previous session was lost when context compacted. The user had to repeat themselves. The preference wasn't saved to MEMORY.md because the retrospective that would have captured it never ran (session ended first). **Rule: when the user expresses any durable preference ("always X", "never Y"), save it to auto memory immediately — don't wait for end-of-session `/retrospective`. Preferences are cheap to store (~1 line in MEMORY.md) and expensive to violate (user frustration, repeated corrections). Treat explicit user preferences as higher priority than pattern storage.**
+A Co-Authored-By preference from a previous session was lost when context compacted. The user had to repeat themselves. The preference wasn't saved to MEMORY.md because the retrospective that would have captured it never ran (session ended first). **Rule: when the user expresses any durable preference ("always X", "never Y"), save it to auto memory immediately — don't wait for end-of-session `/brana:retrospective`. Preferences are cheap to store (~1 line in MEMORY.md) and expensive to violate (user frustration, repeated corrections). Treat explicit user preferences as higher priority than pattern storage.**
 
 ### 42. Real-project work is the best skill-improvement methodology
 
@@ -1243,7 +1243,7 @@ The link distribution task needed two operations: (1) move 198 rows from [doc 30
 
 ### 45. Back-propagation misses accumulate silently — maintain-specs is the safety net
 
-Erratum #51 (agent model swap: memory-curator Sonnet→Haiku, debrief-analyst Haiku→Sonnet) existed since Phase 5 implementation but wasn't caught until a maintain-specs cross-check compared the [doc 14](reflections/14-mastermind-architecture.md) roster against deployed agent files. The mismatch was harmless in practice (the deployed agents were correct), but the spec was wrong for potentially weeks. **Rule: treat `/maintain-specs` as the safety net for `/back-propagate` failures. Back-propagation is voluntary and easy to forget after implementation sessions. Maintain-specs is systematic and catches accumulated drift. Run maintain-specs at least once per week or after every 2-3 implementation sessions, regardless of whether back-propagation was done.**
+Erratum #51 (agent model swap: memory-curator Sonnet→Haiku, debrief-analyst Haiku→Sonnet) existed since Phase 5 implementation but wasn't caught until a maintain-specs cross-check compared the [doc 14](reflections/14-mastermind-architecture.md) roster against deployed agent files. The mismatch was harmless in practice (the deployed agents were correct), but the spec was wrong for potentially weeks. **Rule: treat `/brana:maintain-specs` as the safety net for `/back-propagate` failures. Back-propagation is voluntary and easy to forget after implementation sessions. Maintain-specs is systematic and catches accumulated drift. Run maintain-specs at least once per week or after every 2-3 implementation sessions, regardless of whether back-propagation was done.**
 
 ### 46. Budget changes need automated propagation — three occurrences is a pattern
 
@@ -1267,7 +1267,7 @@ Four backlog items (#16, #27, #29, #30) were implemented in a single branch rath
 
 ### 51. Haiku scouts can't write temp files — design the protocol to tolerate inline returns
 
-The `/research` skill mandates scouts write findings to `/tmp/research-{target}-{N}.md` and return only a 2-line summary. In practice, Haiku and Sonnet scouts (subagent_type: "scout") lack Bash access and can't write files. They return findings inline in the task result. This happened across 8 scouts in two consecutive research sessions — the pattern is consistent, not a fluke. The skill procedure still works: triage from task notifications instead of temp files. **Rule: when designing multi-phase research with scout agents, treat temp-file output as aspirational — always have a fallback plan to triage from task result data. Scout agents are read-only by design. If file persistence is truly needed, use a general-purpose agent (which has Write/Bash) instead of a scout, at the cost of higher token usage.**
+The `/brana:research` skill mandates scouts write findings to `/tmp/research-{target}-{N}.md` and return only a 2-line summary. In practice, Haiku and Sonnet scouts (subagent_type: "scout") lack Bash access and can't write files. They return findings inline in the task result. This happened across 8 scouts in two consecutive research sessions — the pattern is consistent, not a fluke. The skill procedure still works: triage from task notifications instead of temp files. **Rule: when designing multi-phase research with scout agents, treat temp-file output as aspirational — always have a fallback plan to triage from task result data. Scout agents are read-only by design. If file persistence is truly needed, use a general-purpose agent (which has Write/Bash) instead of a scout, at the cost of higher token usage.**
 
 ### 52. Clean main before merging worktree branches — or the merge will conflict with itself
 
@@ -1283,7 +1283,7 @@ Users asking "should I launch mobile or desktop?" conflate three distinct decisi
 
 ### 55. Reconcile catches what back-propagate misses — and vice versa
 
-Backlog #25 upgraded the challenger agent from Sonnet to Opus. `/back-propagate` updated spec docs (13, 14, 25) but missed the `/challenge` SKILL.md description — because backprop focuses on specs (enter), not implementation files (thebrana). The subsequent `/reconcile` caught it: specs said "Opus" but the skill still said "Sonnet." One command alone doesn't close the loop; running both in sequence does. **Rule: after any model/config change that touches both repos, run `/back-propagate` (impl→specs) then `/reconcile` (specs→impl). Backprop updates what the spec docs say; reconcile updates what the implementation files say. Neither alone catches everything — they're complementary halves of a bidirectional sync.**
+Backlog #25 upgraded the challenger agent from Sonnet to Opus. `/back-propagate` updated spec docs (13, 14, 25) but missed the `/brana:challenge` SKILL.md description — because backprop focuses on specs (enter), not implementation files (thebrana). The subsequent `/brana:reconcile` caught it: specs said "Opus" but the skill still said "Sonnet." One command alone doesn't close the loop; running both in sequence does. **Rule: after any model/config change that touches both repos, run `/back-propagate` (impl→specs) then `/brana:reconcile` (specs→impl). Backprop updates what the spec docs say; reconcile updates what the implementation files say. Neither alone catches everything — they're complementary halves of a bidirectional sync.**
 
 ### 56. Uncommitted changes from previous sessions accumulate silently
 
@@ -1343,7 +1343,7 @@ Lesson #36 concluded "agents are sandboxed to their spawning repo's directory tr
 
 ### 70. Cross-repo edits during a feature branch are invisible to that branch's git
 
-While building `/tasks portfolio` on a thebrana feature branch, edits to `enter/30-backlog.md` (adding items #67-69) were lost when the thebrana branch auto-merged. Enter is a separate git repo — its working tree changes aren't tracked by thebrana's branch lifecycle. The edits had to be re-applied manually. **Rule: when a feature touches multiple repos (e.g., thebrana implementation + enter backlog), commit cross-repo edits immediately in their own repo before continuing work in the primary repo. Don't rely on "I'll commit it all at the end" — branch events (merge, hook, checkout) in the primary repo can reset the other repo's working tree.**
+While building `/brana:tasks portfolio` on a thebrana feature branch, edits to `enter/30-backlog.md` (adding items #67-69) were lost when the thebrana branch auto-merged. Enter is a separate git repo — its working tree changes aren't tracked by thebrana's branch lifecycle. The edits had to be re-applied manually. **Rule: when a feature touches multiple repos (e.g., thebrana implementation + enter backlog), commit cross-repo edits immediately in their own repo before continuing work in the primary repo. Don't rely on "I'll commit it all at the end" — branch events (merge, hook, checkout) in the primary repo can reset the other repo's working tree.**
 
 ### 71. Challenger review is most valuable for SKILL.md instructions — not just code
 
@@ -1367,7 +1367,7 @@ Respond.io action prompts have a hard 1,000-char limit. Agent 3's Assign action 
 
 ### Reconcile Run — 2026-02-13
 
-**Trigger:** manual (first run, testing `/reconcile` command)
+**Trigger:** manual (first run, testing `/brana:reconcile` command)
 **Drift found:** 3 findings across 1 area (Deploy)
 **Applied:** 0 auto-fixes
 **Deferred:** 3 (aspirational spec claims about safety scripts)
@@ -1378,7 +1378,7 @@ Respond.io action prompts have a hard 1,000-char limit. Agent 3's Assign action 
 | 2 | Deploy | Missing | `backup-knowledge.sh` described in [docs 17](17-implementation-roadmap.md) & 32 but backup logic lives in `brana-knowledge/backup.sh` | Deferred — spec should reference actual location |
 | 3 | Deploy | Stale | `skill-catalog.yaml` described in [docs 12](dimensions/12-skill-selector.md) & 17 but implementation has `skill-catalog.md` (markdown, not YAML) | Deferred — format difference, nothing parses it yet |
 
-**Notes:** First `/reconcile` run. System is broadly in sync — 19 skills, 5 hooks, 8 rules, 7 agents, CLAUDE.md, settings.json, deploy.sh all match spec expectations. The 3 findings are low-materiality: aspirational safety scripts from [doc 17](17-implementation-roadmap.md)'s directory tree that were either deferred, implemented in a different location, or built in a different format.
+**Notes:** First `/brana:reconcile` run. System is broadly in sync — 19 skills, 5 hooks, 8 rules, 7 agents, CLAUDE.md, settings.json, deploy.sh all match spec expectations. The 3 findings are low-materiality: aspirational safety scripts from [doc 17](17-implementation-roadmap.md)'s directory tree that were either deferred, implemented in a different location, or built in a different format.
 
 ### Reconcile Run — 2026-02-15
 
@@ -1393,7 +1393,7 @@ Respond.io action prompts have a hard 1,000-char limit. Agent 3's Assign action 
 | 2 | Skills | Incomplete | `/growth-check` missing business model adaptation note (SaaS metrics misdiagnose non-subscription businesses) | Applied — included in Step 1 update |
 | 3 | Skills | Incomplete | `/venture-align` missing framework stacking warning (max 3 layers, EOS Rocks + OKRs redundant) | Applied — framework discipline paragraph added after Phase 0 DISCOVER |
 
-**Notes:** Focused reconcile after `/maintain-specs` applied errata #47 and #49 to [doc 29](reflections/29-venture-management-reflection.md). All 3 findings were auto-fixable text updates to existing SKILL.md files. No new capabilities needed.
+**Notes:** Focused reconcile after `/brana:maintain-specs` applied errata #47 and #49 to [doc 29](reflections/29-venture-management-reflection.md). All 3 findings were auto-fixable text updates to existing SKILL.md files. No new capabilities needed.
 
 ### Reconcile Run — 2026-02-18
 
@@ -1404,9 +1404,9 @@ Respond.io action prompts have a hard 1,000-char limit. Agent 3's Assign action 
 
 | # | Area | Type | Finding | Resolution |
 |---|------|------|---------|-----------|
-| 1 | Skills | Stale | `/challenge` SKILL.md says "Spawn a Sonnet subagent" (lines 3, 15) but challenger agent uses `model: opus` since backlog #25 | Applied — "Sonnet" → "Opus" in both description and body |
+| 1 | Skills | Stale | `/brana:challenge` SKILL.md says "Spawn a Sonnet subagent" (lines 3, 15) but challenger agent uses `model: opus` since backlog #25 | Applied — "Sonnet" → "Opus" in both description and body |
 
-**Notes:** Clean reconcile. 31 skills, 10 agents, 8 hooks, 9 rules all match specs. Budget 22,404/23,552. The only drift was the /challenge skill description not updated when the agent model was upgraded.
+**Notes:** Clean reconcile. 31 skills, 10 agents, 8 hooks, 9 rules all match specs. Budget 22,404/23,552. The only drift was the /brana:challenge skill description not updated when the agent model was upgraded.
 
 ### Back-Propagation — 2026-02-23
 

@@ -1,4 +1,4 @@
-# Feature: /tasks portfolio
+# Feature: /brana:tasks portfolio
 
 **Date:** 2026-02-23
 **Status:** shipped
@@ -6,7 +6,7 @@
 
 ## Goal
 
-Add a `portfolio` subcommand to the `/tasks` skill that shows actionable tasks across all registered projects — answering "what should I work on next?" at a glance.
+Add a `portfolio` subcommand to the `/brana:tasks` skill that shows actionable tasks across all registered projects — answering "what should I work on next?" at a glance.
 
 ## Audience
 
@@ -49,10 +49,10 @@ Other options baked in as sensible defaults (no flags):
 
 Top line: `Portfolio — {total} tasks across {N} projects ({pending} pending, {in_progress} in progress)`
 
-### Distinction from `/tasks status`
+### Distinction from `/brana:tasks status`
 
-`/tasks status` (no project) = progress bars per project (how far along)
-`/tasks portfolio` = individual task list (what to do next)
+`/brana:tasks status` (no project) = progress bars per project (how far along)
+`/brana:tasks portfolio` = individual task list (what to do next)
 
 ## Design
 
@@ -83,10 +83,10 @@ Top line: `Portfolio — {total} tasks across {N} projects ({pending} pending, {
 
 ## Deferred
 
-- CWD project inclusion (use `/tasks status` for current project). Note: CWD not included unless registered in tasks-portfolio.json.
+- CWD project inclusion (use `/brana:tasks status` for current project). Note: CWD not included unless registered in tasks-portfolio.json.
 - Frontmatter config block for parameterizable toggles (enter #69)
 - Interactive task selection ("start one?")
-- Integration with `/tasks next` (cross-project next)
+- Integration with `/brana:tasks next` (cross-project next)
 - Additional flags (--no-blocked, --completed N) — revisit if defaults don't satisfy
 
 ## Open questions

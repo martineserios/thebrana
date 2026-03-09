@@ -8,18 +8,18 @@ How to connect Google Sheets to brana's venture skills via MCP (Model Context Pr
 
 Google Sheets is the default operational data store for early-stage ventures. Connecting it via MCP lets venture skills read and write directly to spreadsheets — no copy-paste, no CSV exports.
 
-**Primary interface:** Use `/gsheets` for direct Sheets operations (read, write, create, list, share). Other skills call Sheets automatically when MCP is configured.
+**Primary interface:** Use `/brana:gsheets` for direct Sheets operations (read, write, create, list, share). Other skills call Sheets automatically when MCP is configured.
 
 **What this enables:**
-- `/gsheets` — direct read/write/create/manage operations on any spreadsheet
+- `/brana:gsheets` — direct read/write/create/manage operations on any spreadsheet
 - `/growth-check` reads metrics directly from Sheets
 - `/monthly-close` pulls financial data from P&L tabs
-- `/pipeline` syncs deal data with CRM spreadsheets
-- `/financial-model` reads actuals and writes projections
+- `/brana:pipeline` syncs deal data with CRM spreadsheets
+- `/brana:financial-model` reads actuals and writes projections
 - `/morning` shows live metric snapshots
 
 **Without MCP:** Skills work fine — you provide data during conversation, or skills read from `docs/` markdown files.
-**With MCP:** Skills read/write Sheets directly, reducing manual data entry. Use `/gsheets` for ad-hoc operations.
+**With MCP:** Skills read/write Sheets directly, reducing manual data entry. Use `/brana:gsheets` for ad-hoc operations.
 
 ---
 
@@ -117,11 +117,11 @@ Add to your project's `.mcp.json` or global `~/.claude/settings.json`:
 
 | Skill | Without MCP | With MCP |
 |-------|-------------|----------|
-| **`/gsheets`** | **N/A — requires MCP** | **Direct read/write/create/manage for any spreadsheet** |
+| **`/brana:gsheets`** | **N/A — requires MCP** | **Direct read/write/create/manage for any spreadsheet** |
 | `/growth-check` | Asks user for metric values during conversation | Reads metrics directly from designated Sheets tab |
 | `/monthly-close` | User provides P&L data verbally | Reads P&L from financial workbook, writes close summary |
-| `/pipeline` | Markdown-only pipeline in `docs/pipeline/` | Syncs with CRM spreadsheet, reads/writes deal records |
-| `/financial-model` | Builds model from conversation input | Reads actuals from Sheets, writes projections back |
+| `/brana:pipeline` | Markdown-only pipeline in `docs/pipeline/` | Syncs with CRM spreadsheet, reads/writes deal records |
+| `/brana:financial-model` | Builds model from conversation input | Reads actuals from Sheets, writes projections back |
 | `/morning` | No live metrics — uses last stored snapshot | Reads today's metrics from dashboard tab |
 | `/weekly-review` | Manual metric collection | Auto-pulls week's metrics for delta comparison |
 | `/monthly-plan` | Reads from `docs/` markdown files only | Reads live data from Sheets for more current planning |
@@ -135,11 +135,11 @@ For the Psilea project (Google Sheets with `setup.gs` deployed), this maps exist
 
 | Sheet Tab | Skill | Field Mapping |
 |-----------|-------|--------------|
-| **CLIENTES** | `/growth-check`, `/pipeline` | Active clients → customer count, acquisition metrics |
+| **CLIENTES** | `/growth-check`, `/brana:pipeline` | Active clients → customer count, acquisition metrics |
 | **VENTAS** | `/monthly-close`, `/growth-check` | Sales → revenue, deal count, conversion |
-| **CAJA** | `/monthly-close`, `/financial-model` | Cash flow → cash on hand, burn rate, runway |
+| **CAJA** | `/monthly-close`, `/brana:financial-model` | Cash flow → cash on hand, burn rate, runway |
 | **PYL** (P&L) | `/monthly-close` | Profit & Loss → revenue, COGS, expenses, net income |
-| **SERVICIOS** | `/pipeline`, `/experiment` | Services → product catalog, pricing, utilization |
+| **SERVICIOS** | `/brana:pipeline`, `/experiment` | Services → product catalog, pricing, utilization |
 
 ### Spreadsheet ID
 
@@ -174,7 +174,7 @@ Skills reference sheets by tab name within the spreadsheet.
 
 ## Cross-References
 
-- **`/gsheets` skill** — primary interface for Sheets operations once MCP is configured
+- **`/brana:gsheets` skill** — primary interface for Sheets operations once MCP is configured
 - [venture-guide.md](../venture-guide.md) — full skill usage guide
 - [Doc 34](dimensions/34-venture-operating-system.md) (34-venture-operating-system.md in enter repo) — MCP server research and priority tiers
 - [skill-catalog.md](../skill-catalog.md) — all available skills

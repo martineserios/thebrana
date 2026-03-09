@@ -26,12 +26,12 @@ The atomic research primitive. Takes a topic, doc number, creator, or lead. Chec
 
 ## Usage
 
-`/research [target] [--nlm] [--refresh [scope]]`
+`/brana:research [target] [--nlm] [--refresh [scope]]`
 
 Target options:
-- A topic (e.g., `/research context engineering`) — find and check sources related to this topic
-- A doc number (e.g., `/research 14`) — research updates for this specific dimension doc
-- A creator (e.g., `/research creator:simon-willison`) — check a creator's recent output
+- A topic (e.g., `/brana:research context engineering`) — find and check sources related to this topic
+- A doc number (e.g., `/brana:research 14`) — research updates for this specific dimension doc
+- A creator (e.g., `/brana:research creator:simon-willison`) — check a creator's recent output
 - `leads` — process queued leads from claude-flow memory (namespace: research-leads)
 - `registry` — report on registry health (trust tier distribution, stale sources, cadence overdue)
 
@@ -197,7 +197,7 @@ Flags:
 
 14. **Prepare NotebookLM source (only when `--nlm` flag is present).**
 
-    **CLAUDE:** Format the research findings as a NotebookLM-optimized Markdown file following the `/notebooklm-source` template:
+    **CLAUDE:** Format the research findings as a NotebookLM-optimized Markdown file following the `/brana:notebooklm-source` template:
     - Executive summary (2-3 sentences: topic, date, key takeaway)
     - H2 sections per finding cluster (not per individual finding)
     - Bold key terms and named entities
@@ -255,7 +255,7 @@ Systematically research updates for brana-knowledge dimension docs. Launches par
 
 ### Usage
 
-`/research --refresh [scope]`
+`/brana:research --refresh [scope]`
 
 Scope: `all` (default), `high`, `medium`, `low`, `venture`, or a specific doc number.
 
@@ -279,7 +279,7 @@ Priority tiers:
    - Summary table with severity counts
    - Registry additions proposed, research leads queued
 6. **Clean up:** `rm -rf /tmp/refresh-results`
-7. **Propagation reminder:** if updates found, suggest running `/maintain-specs`
+7. **Propagation reminder:** if updates found, suggest running `/brana:maintain-specs`
 
 ### Key rule
 

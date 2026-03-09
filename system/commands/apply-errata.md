@@ -107,7 +107,7 @@ The Comments column is the resolution record. It should say *what was done*, not
 - **Only apply fixes that doc 24 explicitly describes or that gate checks surface.** Don't invent corrections beyond what the evidence shows.
 - **Preserve doc voice and structure.** Change the minimum text needed. Don't rewrite surrounding paragraphs.
 - **Show each fix before applying.** State: which doc, which section, what changes. Then edit.
-- **Gate checks are targeted, not exhaustive.** Only check sections that touch the corrected content. A full cross-check is what `/re-evaluate-reflections` is for.
+- **Gate checks are targeted, not exhaustive.** Only check sections that touch the corrected content. A full cross-check is what `/brana:re-evaluate-reflections` is for.
 - **Cascade findings get logged to doc 24.** Even if you apply them immediately, document them as new errata entries so there's a record.
 - **Ask for clarification whenever you need it.** If a fix is ambiguous, a cascade finding is unclear, or you're unsure whether a change is material — ask. Don't guess.
 
@@ -149,4 +149,4 @@ The Comments column is the resolution record. It should say *what was done*, not
 
 ## Note
 
-This command is also available as Step 2 of `/maintain-specs`, which runs the full correction cycle (re-evaluate + apply + doc 25 check). Use this standalone command when you already have errata in doc 24 and just want to apply them.
+This command is also available as Step 2 of `/brana:maintain-specs`, which runs the full correction cycle (re-evaluate + apply + doc 25 check). Use this standalone command when you already have errata in doc 24 and just want to apply them.

@@ -21,9 +21,9 @@ Scan project context, identify missing skills, search external marketplaces, ins
 ## Usage
 
 ```
-/acquire-skills                    — scan current project
-/acquire-skills <task-id>          — scan a specific task's needs
-/acquire-skills <keyword>          — direct search ("cloudflare")
+/brana:acquire-skills                    — scan current project
+/brana:acquire-skills <task-id>          — scan a specific task's needs
+/brana:acquire-skills <keyword>          — direct search ("cloudflare")
 ```
 
 ## Process

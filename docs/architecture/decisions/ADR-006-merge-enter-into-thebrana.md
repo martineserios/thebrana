@@ -20,11 +20,11 @@ This separation was designed to enforce the distinction between "designing the s
 
 1. **Feedback loop is too long.** Discovery → fix → deploy requires 4 context switches across repos. Small changes (tweak a skill description, fix a hook instruction) carry the same overhead as large features.
 
-2. **Enter trails implementation.** `/back-propagate` exists because implementation diverges from specs. `/reconcile` exists because specs diverge from implementation. Neither side leads — they chase each other.
+2. **Enter trails implementation.** `/back-propagate` exists because implementation diverges from specs. `/brana:reconcile` exists because specs diverge from implementation. Neither side leads — they chase each other.
 
 3. **Two backlogs create management overhead.** Enter backlog (82 items) and thebrana tasks (38 items) require manual coordination to promote ideas into implementation.
 
-4. **Cross-repo operations are pure plumbing.** `/back-propagate` creates worktrees in enter. `/reconcile` reads enter and writes thebrana. `/maintain-specs` triggers reconcile across repos. The sync discipline is valuable; the repo boundary adds plumbing, not value.
+4. **Cross-repo operations are pure plumbing.** `/back-propagate` creates worktrees in enter. `/brana:reconcile` reads enter and writes thebrana. `/brana:maintain-specs` triggers reconcile across repos. The sync discipline is valuable; the repo boundary adds plumbing, not value.
 
 5. **No general knowledge system.** Brana captures development patterns (claude-flow memory) and brana-specific research (enter docs). Business domain knowledge, methodology knowledge, and cross-domain insights have no home.
 
@@ -117,13 +117,13 @@ AgentDB (alpha.3.3) is stalled — last npm publish Jan 2, 2026. @claude-flow/me
 | 0 | This ADR + pre-merge prep | — | **Done** |
 | 0.5 | Embedding spike | 30 min | **Done** (2026-02-25) |
 | 1 | Structural merge (file moves, path updates, config merges) | 1 session | Pending |
-| 2 | Skill logic rewrites (`/back-propagate`, `/reconcile` for same-repo) | 1-2 days | Pending |
+| 2 | Skill logic rewrites (`/back-propagate`, `/brana:reconcile` for same-repo) | 1-2 days | Pending |
 | 3 | Retrieval prototype (1-2 seed docs + indexing pipeline + end-to-end test) | 1 session | Pending |
 | 4 | Scale brana-knowledge content | Ongoing | Pending |
 
 **Phase 1 checklist:** see [doc 39](../39-architecture-redesign.md), section 9 for full work items (13 items, including 30 path refs across 11 files).
 
-**Phase 2 note:** `/back-propagate` and `/reconcile` need logic rewrites, not path substitution. Degraded mode (manual edits) acceptable while logic is reworked.
+**Phase 2 note:** `/back-propagate` and `/brana:reconcile` need logic rewrites, not path substitution. Degraded mode (manual edits) acceptable while logic is reworked.
 
 **Phase 3 gate:** retrieval must work end-to-end before Phase 4 content investment. Write seed doc → index → retrieve from project session. If this fails, knowledge base is just a file graveyard.
 
@@ -132,7 +132,7 @@ AgentDB (alpha.3.3) is stalled — last npm publish Jan 2, 2026. @claude-flow/me
 ### Positive
 
 - **Single feedback loop.** Discover gap → fix spec → fix code → deploy, all in one repo. No context switches.
-- **Simplified maintenance.** `/back-propagate` and `/reconcile` become intra-repo operations (no cross-repo worktrees).
+- **Simplified maintenance.** `/back-propagate` and `/brana:reconcile` become intra-repo operations (no cross-repo worktrees).
 - **Unified backlog.** One view of "what should brana do next?"
 - **General knowledge unlocked.** Business, methodology, and cross-domain insights get a structured, indexed, retrievable home.
 - **Compounding returns.** Every session adds knowledge; every future session benefits from retrieval.
@@ -141,7 +141,7 @@ AgentDB (alpha.3.3) is stalled — last npm publish Jan 2, 2026. @claude-flow/me
 
 - **Git history fragmentation.** `git log --follow` won't cross the repo boundary. Mitigated by tagging enter's final state.
 - **Spec discipline relies on hooks, not boundaries.** Repo boundary was a hard constraint; pre-commit hooks are soft (bypassable with `--no-verify`). Tripwire at 3 skips.
-- **New cross-repo friction with brana-knowledge.** `/research` reads from it, `/retrospective` writes to it. Accepted: library reads are lower friction than active-project syncs.
+- **New cross-repo friction with brana-knowledge.** `/brana:research` reads from it, `/brana:retrospective` writes to it. Accepted: library reads are lower friction than active-project syncs.
 - **30 hardcoded path references.** Skills, hooks, and commands reference `~/enter_thebrana/enter/`. Phase 1 updates these; Phase 2 rewrites the complex ones.
 
 ### Risks

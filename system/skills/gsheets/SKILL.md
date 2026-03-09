@@ -17,16 +17,16 @@ Direct interface to Google Sheets via MCP. Read, write, create, and manage sprea
 
 ## Usage
 
-`/gsheets [action] [args...]`
+`/brana:gsheets [action] [args...]`
 
 Actions:
-- `/gsheets list` — list spreadsheets or folders
-- `/gsheets read <spreadsheet> [sheet] [range]` — read data
-- `/gsheets write <spreadsheet> <sheet> <range>` — update data
-- `/gsheets create <title>` — create new spreadsheet
-- `/gsheets summary <spreadsheet>` — quick overview (sheets, headers, row counts)
-- `/gsheets share <spreadsheet> <email> [role]` — share access
-- `/gsheets` (no args) — ask user what they need
+- `/brana:gsheets list` — list spreadsheets or folders
+- `/brana:gsheets read <spreadsheet> [sheet] [range]` — read data
+- `/brana:gsheets write <spreadsheet> <sheet> <range>` — update data
+- `/brana:gsheets create <title>` — create new spreadsheet
+- `/brana:gsheets summary <spreadsheet>` — quick overview (sheets, headers, row counts)
+- `/brana:gsheets share <spreadsheet> <email> [role]` — share access
+- `/brana:gsheets` (no args) — ask user what they need
 
 ---
 
@@ -119,7 +119,7 @@ ToolSearch query: "+google-sheets share"
 
 ## Step 3: Performance Rules
 
-These rules apply to ALL Sheets operations, whether invoked via `/gsheets` or by other skills.
+These rules apply to ALL Sheets operations, whether invoked via `/brana:gsheets` or by other skills.
 
 1. **Always specify a range when reading.** Never fetch an entire sheet unless the user explicitly asks for all data. Default to reading headers (row 1) first, then expand as needed.
 

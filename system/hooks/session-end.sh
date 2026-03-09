@@ -141,7 +141,13 @@ SUMMARY_JSON=$(jq -n \
     --argjson recall_count 0 \
     '{project: $project, session: $session, timestamp: $ts, events: $total, successes: $ok, failures: $fail, corrections: $corrections, test_writes: $test_writes, cascades: $cascades, pr_creates: $pr_creates, edits: $edits, test_passes: $test_passes, test_fails: $test_fails, lint_passes: $lint_passes, lint_fails: $lint_fails, flywheel: {correction_rate: $correction_rate, auto_fix_rate: $auto_fix_rate, test_write_rate: $test_write_rate, cascade_rate: $cascade_rate, test_pass_rate: $test_pass_rate, lint_pass_rate: $lint_pass_rate, delegations: $delegations, pr_creates: $pr_creates}, tools: $tools, files: $files, confidence: $confidence, transferable: $transferable, recall_count: $recall_count}' 2>/dev/null) || SUMMARY_JSON="{}"
 
-source "$HOME/.claude/scripts/cf-env.sh"
+# Source cf-env.sh: plugin-bundled copy first, bootstrap fallback
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/lib/cf-env.sh" ]; then
+    source "$SCRIPT_DIR/lib/cf-env.sh"
+else
+    source "$HOME/.claude/scripts/cf-env.sh"
+fi
 
 # Layer 1: try claude-flow memory store
 STORED_L1=false

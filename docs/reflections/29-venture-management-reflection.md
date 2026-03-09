@@ -42,11 +42,11 @@ These existing skills work for business projects without modification:
 
 | Skill | Why It Works As-Is |
 |-------|-------------------|
-| `/retrospective` | "Store a learning" is universal. Problem → solution → confidence → tags. Same for "customer churn spike" as for "race condition in auth." |
-| `/memory recall` | Querying past learnings works identically. Tag vocabulary expands (add `stage:`, `domain:`) but the mechanism is unchanged. |
-| `/memory pollinate` | Cross-project pattern transfer is actually *more* valuable when spanning code + business — patterns from building CI/CD pipelines inform how to build operational workflows. |
-| `/memory review` | ReasoningBank health check is domain-agnostic. Confidence levels, staleness, promotion — all apply. |
-| `/challenge` | Adversarial review of a business plan is at least as valuable as challenging a technical architecture. Same four flavors (pre-mortem, simplicity, assumption, adversarial). |
+| `/brana:retrospective` | "Store a learning" is universal. Problem → solution → confidence → tags. Same for "customer churn spike" as for "race condition in auth." |
+| `/brana:memory recall` | Querying past learnings works identically. Tag vocabulary expands (add `stage:`, `domain:`) but the mechanism is unchanged. |
+| `/brana:memory pollinate` | Cross-project pattern transfer is actually *more* valuable when spanning code + business — patterns from building CI/CD pipelines inform how to build operational workflows. |
+| `/brana:memory review` | ReasoningBank health check is domain-agnostic. Confidence levels, staleness, promotion — all apply. |
+| `/brana:challenge` | Adversarial review of a business plan is at least as valuable as challenging a technical architecture. Same four flavors (pre-mortem, simplicity, assumption, adversarial). |
 | `/decide` | ADR format (Context, Decision, Consequences) works for "use JWT for auth" and "hire a COO before a CTO" equally. Business decisions are *more* consequential and *less* reversible than code decisions — they benefit even more from structured decision records. |
 | `/debrief` | Extracting errata/learnings/issues from a session works regardless of domain. The classification (spec mismatch, process learning, issue) applies to business findings too. |
 
@@ -88,7 +88,7 @@ Code projects have `package.json`, `tsconfig.json`, `Dockerfile` — structure f
 
 Each is a "phase" with work items, exit criteria, and debrief loops — but the work items are business actions, not code commits.
 
-**What's needed:** A phase execution engine that works for any milestone type. This is `/venture-phase`.
+**What's needed:** A phase execution engine that works for any milestone type. This is `/brana:venture-phase`.
 
 ### Gap 4: Process Documentation
 
@@ -188,7 +188,7 @@ Existing tags (`project:`, `tech:`, `type:`, `outcome:`) continue to work. Busin
 
 **Framework discipline:** Stage-aware frameworks are powerful but easy to over-load. When setting up OKRs alongside other frameworks (EOS Rocks, Shape Up cycles), follow the stacking rule from [28-startup-smb-management.md](../../../brana-knowledge/dimensions/28-startup-smb-management.md): **maximum 3 active layers** (operating system + goal system + cadence), and don't run EOS Rocks + OKRs as parallel goal systems — Rocks already ARE quarterly goals. If a framework is consuming more maintenance time than the value it produces, drop a layer. `/venture-align` should warn when > 3 frameworks are active and `/growth-check` should flag framework bloat as a health issue.
 
-### 3. `/venture-phase` — Business Milestone Execution
+### 3. `/brana:venture-phase` — Business Milestone Execution
 
 **Analog of:** `/build-phase`
 **Mode:** Active (plans, creates docs, debriefs)
@@ -267,7 +267,7 @@ And vice versa:
 | Meeting cadence discipline | Async communication discipline | "Not every sync needs a meeting; some need a doc" → handbook-first culture |
 | Hiring for Unique Ability | Team composition for complementary skills | "Hire specialists for your gaps" → "Assign tasks to the right agent type" |
 
-This cross-pollination is what `/memory pollinate` already does — but with business patterns in the ReasoningBank, it becomes dramatically more valuable. The pattern transfer architecture relies on R2's tagging system ([14-mastermind-architecture.md](./14-mastermind-architecture.md)) — `transferable: true` + technology-agnostic tags enable cross-domain recall.
+This cross-pollination is what `/brana:memory pollinate` already does — but with business patterns in the ReasoningBank, it becomes dramatically more valuable. The pattern transfer architecture relies on R2's tagging system ([14-mastermind-architecture.md](./14-mastermind-architecture.md)) — `transferable: true` + technology-agnostic tags enable cross-domain recall.
 
 ---
 
@@ -370,14 +370,14 @@ The **deterministic vs non-deterministic** distinction also transfers:
 
 ## The Expanded Skill Set: From 5 to 12
 
-The initial five skills (`/venture-onboard`, `/venture-align`, `/venture-phase`, `/sop`, `/growth-check`) addressed structural gaps. Research (doc 34) identified 7 additional skills for daily operations:
+The initial five skills (`/venture-onboard`, `/venture-align`, `/brana:venture-phase`, `/sop`, `/growth-check`) addressed structural gaps. Research (doc 34) identified 7 additional skills for daily operations:
 
 | Skill | Gap Addressed | Frequency |
 |-------|---------------|-----------|
 | `/morning` | No daily operational routine | Daily |
 | `/weekly-review` | No weekly cadence enforcement | Weekly |
-| `/pipeline` | Gap #4 (sales/growth layer) | As needed |
-| `/financial-model` | Gap #2 (financial layer) | Monthly / fundraise |
+| `/brana:pipeline` | Gap #4 (sales/growth layer) | As needed |
+| `/brana:financial-model` | Gap #2 (financial layer) | Monthly / fundraise |
 | `/experiment` | Gap #4 (growth layer) | Per growth cycle |
 | `/content-plan` | Gap #4 (marketing) | Per content cycle |
 | `/monthly-close` | Gap #2 (financial layer) | Monthly |
@@ -386,7 +386,7 @@ The initial five skills (`/venture-onboard`, `/venture-align`, `/venture-phase`,
 
 The forward-looking planning gap — no skill synthesized accumulated data into next month's action plan — is addressed by `/monthly-plan`, designed as the complement to `/monthly-close`. Where `/monthly-close` looks backward (what happened), `/monthly-plan` looks forward (what to do next), consuming growth-check snapshots, pipeline state, experiment results, financial model projections, and weekly review velocity data.
 
-These 7 skills (plus `/monthly-plan`) connect to the existing 5: `/morning` reads `/growth-check` snapshots, `/weekly-review` aggregates `/morning` outputs, `/monthly-close` combines `/financial-model` projections with `/pipeline` actuals. `/monthly-plan` reads all six data sources (`/monthly-close`, `/growth-check`, `/pipeline`, `/experiment`, `/financial-model`, `/weekly-review`) to produce a forward-looking action plan — revenue targets, bottleneck-driven priorities, experiment proposals, pipeline actions, and budget allocation. The full interaction graph is documented in [doc 34](../dimensions/34-venture-operating-system.md), section 8.
+These 7 skills (plus `/monthly-plan`) connect to the existing 5: `/morning` reads `/growth-check` snapshots, `/weekly-review` aggregates `/morning` outputs, `/monthly-close` combines `/brana:financial-model` projections with `/brana:pipeline` actuals. `/monthly-plan` reads all six data sources (`/monthly-close`, `/growth-check`, `/brana:pipeline`, `/experiment`, `/brana:financial-model`, `/weekly-review`) to produce a forward-looking action plan — revenue targets, bottleneck-driven priorities, experiment proposals, pipeline actions, and budget allocation. The full interaction graph is documented in [doc 34](../dimensions/34-venture-operating-system.md), section 8.
 
 **Supporting infrastructure:**
 - 3 new agents: `daily-ops` (Haiku), `metrics-collector` (Haiku), `pipeline-tracker` (Haiku)
@@ -405,8 +405,8 @@ This reflection doc will be enriched over time as the venture skills are used an
 - Deployed alongside existing code skills
 
 ### Phase 1.5: Daily Operations (Complete)
-- Built 7 new daily/weekly/monthly skills (`/morning`, `/weekly-review`, `/pipeline`, `/financial-model`, `/experiment`, `/content-plan`, `/monthly-close`) plus `/monthly-plan` for forward-looking synthesis
-- Google Sheets MCP integration guide published, `/gsheets` skill deployed for direct Sheets operations
+- Built 7 new daily/weekly/monthly skills (`/morning`, `/weekly-review`, `/brana:pipeline`, `/brana:financial-model`, `/experiment`, `/content-plan`, `/monthly-close`) plus `/monthly-plan` for forward-looking synthesis
+- Google Sheets MCP integration guide published, `/brana:gsheets` skill deployed for direct Sheets operations
 - Deployed 3 agents: `daily-ops` (Haiku), `metrics-collector` (Haiku), `pipeline-tracker` (Haiku)
 - Deployed 2 hooks: `session-start-venture` (venture detection + daily-ops nudge + weekly-review staleness), `post-sale` (deal closure detection + ReasoningBank snapshot)
 - `weekly-reminder` absorbed into `session-start-venture` (Claude Code hooks don't support cron)
@@ -416,13 +416,13 @@ This reflection doc will be enriched over time as the venture skills are used an
 - Artifact lifecycle follows [32-lifecycle.md](./32-lifecycle.md) (R4) patterns — SOPs have review dates, OKRs have quarterly cycles, metric snapshots accumulate into trend data
 - Use venture skills on real business projects
 - Accumulate patterns in ReasoningBank
-- Run `/debrief` and `/retrospective` after business sessions
+- Run `/debrief` and `/brana:retrospective` after business sessions
 - Identify which frameworks actually work at which stages (evidence-based, not theoretical)
 - **First fieldwork (2026-02-15):** psilea (cycle-product, validation stage) revealed 10 generic patterns. Four skills updated: `/growth-check` (non-SaaS metrics, adapted AARRR, channel attribution, revenue risk signals), `/monthly-close` (external data sources, cash flow reconstruction, AR/AP, COGS check), `/venture-onboard` (data completeness audit), `/venture-align` (V5 referrer tracking). Key learning: one real-project session improved skills more than three spec-driven reconcile passes (lesson #42 in [doc 24](../24-roadmap-corrections.md))
 
 ### Phase 3: Cross-Pollination
 - Patterns flow between code and business projects via ReasoningBank
-- `/memory pollinate` surfaces insights like "your CI/CD rollback pattern maps to your SOP fallback procedure"
+- `/brana:memory pollinate` surfaces insights like "your CI/CD rollback pattern maps to your SOP fallback procedure"
 - Document which cross-domain transfers are high-confidence (proven) vs quarantined (unproven)
 
 ### Phase 4: Framework Refinement
@@ -431,13 +431,13 @@ This reflection doc will be enriched over time as the venture skills are used an
   - Which metrics actually predicted outcomes?
   - Which SOP templates were most useful?
   - Where did the stage classification model break down?
-- Update this reflection doc and [doc 28](../dimensions/28-startup-smb-management.md) via `/maintain-specs`
+- Update this reflection doc and [doc 28](../dimensions/28-startup-smb-management.md) via `/brana:maintain-specs`
 
 ### Phase 5: Unified Project Management
 - The distinction between "code project" and "business project" may blur
 - Many projects are both (a SaaS startup is code + business simultaneously)
 - The skill system should detect which aspects need attention and recommend accordingly
-- `/project-onboard` and `/venture-onboard` may merge into a unified `/onboard` that detects the project type and adapts
+- `/project-onboard` and `/venture-onboard` may merge into a unified `/brana:onboard` that detects the project type and adapts
 
 ---
 

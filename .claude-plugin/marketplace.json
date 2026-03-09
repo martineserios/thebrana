@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "brana",
+  "description": "AI development system — skills, agents, and hooks for systematic software engineering with Claude Code",
+  "owner": {
+    "name": "Martin Eserios"
+  },
+  "plugins": [
+    {
+      "name": "brana",
+      "description": "AI development system — skills, agents, and hooks for systematic software engineering with Claude Code",
+      "version": "0.7.0",
+      "source": "./system",
+      "category": "development",
+      "tags": ["ai", "development", "tdd", "skills", "agents", "hooks"]
+    }
+  ]
+}

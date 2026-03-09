@@ -28,7 +28,7 @@ Build a thin scheduling layer with three components:
 
 4. **Notification unit** (`brana-sched-notify@.service`) — systemd template unit triggered via `OnFailure=`. Writes failure to `last-status.json` (primary, headless-safe) and attempts `notify-send` (secondary, desktop). No OnFailure on itself (recursion guard).
 
-A `/scheduler` skill provides in-session management as a thin wrapper over the CLI.
+A `/brana:scheduler` skill provides in-session management as a thin wrapper over the CLI.
 
 ### Why systemd timers (only, no crontab fallback):
 - `journalctl --user -u brana-sched-{job}` for built-in logging

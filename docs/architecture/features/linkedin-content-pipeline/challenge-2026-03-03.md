@@ -18,7 +18,7 @@ The feature design says sessions.md is the "primary fuel source" but never speci
 
 ### C2: 60% carousels with no carousel tool is a v1 blocker
 
-At 3 posts/week with 60% carousels = ~2 carousels/week. `/export-pdf` produces plain PDFs via mdpdf — not designed slides. Each carousel requires 30-60 min of manual Canva/Figma work. The 2-hour Sunday batch allocates 0 minutes for visual design.
+At 3 posts/week with 60% carousels = ~2 carousels/week. `/brana:export-pdf` produces plain PDFs via mdpdf — not designed slides. Each carousel requires 30-60 min of manual Canva/Figma work. The 2-hour Sunday batch allocates 0 minutes for visual design.
 
 **Fix:** Either (a) drop carousel target to 20-30% for v1, (b) create pre-built Canva templates that accept markdown text, or (c) accept plain PDFs initially with a v2 visual upgrade.
 
@@ -65,7 +65,7 @@ First 60-90 min after posting determine reach — requires being online. Buffer 
 | # | Doc A says | Doc B says |
 |---|-----------|-----------|
 | 1 | Feature brief: Foundation "Weeks 1-2", 6 posts | Doc 43: Foundation "Weeks 1-4", 12 posts |
-| 2 | Format mix: "60% carousels" | /export-pdf: produces plain PDFs only |
+| 2 | Format mix: "60% carousels" | /brana:export-pdf: produces plain PDFs only |
 | 3 | Quality gate: "AI must NOT manage scheduling" | Process: "Schedule via Buffer" (Buffer IS scheduling automation) |
 | 4 | Design: "AI extracts, human writes" | Skill output: full hook + body + CTA drafts |
 | 5 | "Build a LATAM audience" | 30% = ~1 Spanish post/week (insufficient volume) |

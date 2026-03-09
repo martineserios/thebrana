@@ -28,7 +28,7 @@ A guided workflow. Claude does the heavy lifting (reading, reformatting, validat
 
 ## Usage
 
-`/notebooklm-source [subcommand] [args]`
+`/brana:notebooklm-source [subcommand] [args]`
 
 | Subcommand | What happens |
 |------------|-------------|
@@ -150,7 +150,7 @@ Show existing notebooks. Ask:
 Call mcp__notebooklm__add_notebook with name, description, topics, use_cases, url
 ```
 
-**CLAUDE:** Confirm: "Notebook registered. You can now query it or run `/notebooklm-source synthesis {name}`."
+**CLAUDE:** Confirm: "Notebook registered. You can now query it or run `/brana:notebooklm-source synthesis {name}`."
 
 ---
 

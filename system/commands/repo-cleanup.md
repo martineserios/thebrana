@@ -22,7 +22,7 @@ Commit accumulated spec doc changes that have built up across sessions. Follows 
    - Changes from the same session or cause should be one commit
    - Use `git diff <file>` content to infer what session/cause produced each change
    - Common groupings:
-     - Errata applications (doc corrections from `/maintain-specs` or `/apply-errata`)
+     - Errata applications (doc corrections from `/brana:maintain-specs` or `/brana:apply-errata`)
      - New docs (untracked `.md` files)
      - Frontmatter updates (staleness metadata)
      - Content updates from `/refresh-knowledge`

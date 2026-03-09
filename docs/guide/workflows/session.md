@@ -15,10 +15,10 @@ No command needed — just start working.
 ## Ending a session
 
 ```
-/close              — when you're done for the day
+/brana:close              — when you're done for the day
 ```
 
-`/close` automatically:
+`/brana:close` automatically:
 1. Gathers what you did (git log + conversation)
 2. Extracts learnings and classifies them (errata, learnings, issues)
 3. Writes a handoff note for the next session

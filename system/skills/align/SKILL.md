@@ -18,11 +18,11 @@ allowed-tools:
 
 DISCOVER → ASSESS → PLAN → IMPLEMENT → VERIFY → DOCUMENT.
 
-Creates files, configures structure, and implements practices. Unlike `/onboard` (diagnostic, read-only), this skill actively builds. Replaces `/project-align` and `/venture-align`.
+Creates files, configures structure, and implements practices. Unlike `/brana:onboard` (diagnostic, read-only), this skill actively builds. Replaces `/project-align` and `/venture-align`.
 
 ## When to use
 
-Initial setup of a new project, or when an existing project needs structural alignment. Run `/onboard` first for the diagnostic — `/align` implements what `/onboard` finds.
+Initial setup of a new project, or when an existing project needs structural alignment. Run `/brana:onboard` first for the diagnostic — `/brana:align` implements what `/brana:onboard` finds.
 
 ---
 
@@ -34,7 +34,7 @@ Before assessment, gather context. This shapes tier, CLAUDE.md content, and impl
 
 ### Auto-detect project type
 
-Same detection as `/onboard`: check for manifests (code) and venture dirs/keywords (venture). Classify as code, venture, or hybrid.
+Same detection as `/brana:onboard`: check for manifests (code) and venture dirs/keywords (venture). Classify as code, venture, or hybrid.
 
 ### Greenfield questions
 1. What is this project? One-sentence description.

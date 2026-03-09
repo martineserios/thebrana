@@ -19,7 +19,7 @@ Key principles:
 |---|---|
 | **Model** | Haiku |
 | **Tools** | Read, Glob, Grep, WebSearch, WebFetch |
-| **Fires when** | Research tasks, spawned by skills like `/research` |
+| **Fires when** | Research tasks, spawned by skills like `/brana:research` |
 
 Fast research agent for codebase exploration and web search. Finds files, searches code, and fetches external information. Returns concise, structured findings (1,000-2,000 tokens). Cannot run commands or write files.
 
@@ -111,7 +111,7 @@ Collects venture metrics from multiple sources — health snapshots, experiment 
 | **Tools** | Bash, Read, Glob, Grep |
 | **Fires when** | Pipeline or deal-related work is happening |
 
-Reads deal records, identifies overdue follow-ups, spots stage-stuck deals, and summarizes conversion trends. Works with the `/pipeline` skill for CRM tracking.
+Reads deal records, identifies overdue follow-ups, spots stage-stuck deals, and summarizes conversion trends. Works with the `/brana:pipeline` skill for CRM tracking.
 
 ### archiver
 
@@ -119,7 +119,7 @@ Reads deal records, identifies overdue follow-ups, spots stage-stuck deals, and 
 |---|---|
 | **Model** | Haiku |
 | **Tools** | Bash, Read, Glob, Grep |
-| **Fires when** | Retiring a project (via `/project-retire`) |
+| **Fires when** | Retiring a project (via `/brana:project-retire`) |
 
 Scans a project's accumulated knowledge and categorizes patterns as transferable (useful in other projects), historical (project-specific, archive only), or deletable (stale/irrelevant). Supports the project retirement workflow.
 

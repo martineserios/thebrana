@@ -117,4 +117,4 @@ If everything checks out, say: "No material gaps found between doc [DIM_NUM] and
 
 ## Note
 
-This command is also available as Step 1 of `/maintain-specs`, which runs the full correction cycle (re-evaluate + apply + doc 25 check). Use this standalone command when you only want to cross-check without applying fixes.
+This command is also available as Step 1 of `/brana:maintain-specs`, which runs the full correction cycle (re-evaluate + apply + doc 25 check). Use this standalone command when you only want to cross-check without applying fixes.

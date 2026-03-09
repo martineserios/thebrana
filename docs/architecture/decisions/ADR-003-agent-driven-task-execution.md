@@ -5,7 +5,7 @@
 
 ## Context
 
-The task management system (ADR-002, v1) tracks tasks in `tasks.json` with a dependency DAG via `blocked_by`. Tasks are executed manually — one at a time, by the user invoking `/tasks start` and `/tasks done`. The DAG already encodes which tasks can run in parallel (siblings with no mutual `blocked_by` edges), but this parallelism is unused.
+The task management system (ADR-002, v1) tracks tasks in `tasks.json` with a dependency DAG via `blocked_by`. Tasks are executed manually — one at a time, by the user invoking `/brana:tasks start` and `/brana:tasks done`. The DAG already encodes which tasks can run in parallel (siblings with no mutual `blocked_by` edges), but this parallelism is unused.
 
 Claude Code provides native agent spawning: the Task tool for subagents and TeamCreate for multi-agent teams. These can automate multi-task execution — spawn an agent per task, collect results, advance the DAG.
 
@@ -13,7 +13,7 @@ Key constraint: subagents are sandboxed to the project directory and cannot writ
 
 ## Decision
 
-Extend the task schema with optional agent execution fields and add a `/tasks execute` subcommand that reads the DAG, builds execution waves via topological sort, and spawns subagents to execute tasks in parallel.
+Extend the task schema with optional agent execution fields and add a `/brana:tasks execute` subcommand that reads the DAG, builds execution waves via topological sort, and spawns subagents to execute tasks in parallel.
 
 ### Why subagents over teams
 
@@ -49,10 +49,10 @@ All fields are optional and default to `null`. Existing tasks.json files work un
 | Code implementation, tests | sonnet | Good balance of speed and capability for code |
 | Architecture, complex design | opus | User-set only — never auto-assigned |
 
-### `/tasks execute` flow
+### `/brana:tasks execute` flow
 
 ```
-/tasks execute [scope] [--dry-run] [--max-parallel N] [--retry]
+/brana:tasks execute [scope] [--dry-run] [--max-parallel N] [--retry]
 ```
 
 1. Read tasks.json, identify scope (task/milestone/phase ID, or `"next"`)
@@ -91,13 +91,13 @@ Parallel code tasks: agents run in parallel (the expensive part — reading, ana
 | Tests fail (code task) | `agent_result.status: "partial"`. User decides: retry or take over. |
 | User cancels (Ctrl+C) | In-flight agents terminate. Completed tasks keep status. In-progress revert to `pending`. |
 
-Recovery: `/tasks execute --retry <scope>` re-runs failed/partial tasks, skips completed ones.
+Recovery: `/brana:tasks execute --retry <scope>` re-runs failed/partial tasks, skips completed ones.
 
 ### Budget impact
 
 - Convention rule: **0 bytes added** — no changes needed (new fields are optional, pass through validation)
 - PostToolUse hook: **no changes** — new fields are extra JSON properties that jq validation ignores
-- All agent execution logic lives in SKILL.md (loaded on demand only when `/tasks execute` is invoked)
+- All agent execution logic lives in SKILL.md (loaded on demand only when `/brana:tasks execute` is invoked)
 
 ## Consequences
 

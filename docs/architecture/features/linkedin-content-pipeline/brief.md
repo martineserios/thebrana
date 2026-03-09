@@ -385,7 +385,7 @@ Adjusted from 60-30-10 after challenger review:
 - **sessions.md location:** absolute path `~/.claude/projects/.../memory/sessions.md`, not in-repo (challenger C1)
 - **Deduplication:** /content-draft auto-updates published.md, not manual (challenger W1)
 - **t-175: Case Studies weight:** increased to 35% (bridge spine connecting founders + technologists). Full weights: Case Studies 35%, How-Tos 25%, Contrarian 20%, Build-in-Public 20%. Week-4 gate applies.
-- **t-176: Carousel tooling:** NotebookLM. Claude provides prompts, source files, and style guides. User creates carousels in NLM manually. (Updated from /export-pdf, 2026-03-05.)
+- **t-176: Carousel tooling:** NotebookLM. Claude provides prompts, source files, and style guides. User creates carousels in NLM manually. (Updated from /brana:export-pdf, 2026-03-05.)
 - **Positioning scope (2026-03-07):** Evolved from narrow "AI systems designer" to "systems thinker who builds." Systems lens is the headline differentiator. Full-stack depth (ML + architecture + infra + deploy) is the proof shown in About/Experience/content. Encompasses both consulting implementations and complex product builds (NexEye). CTO-readiness signaled implicitly, never claimed.
 - **Headline (2026-03-07):** `I see systems. Then I build them. Business problems → AI/ML products, architecture to production.`
 - **Technical content approach (2026-03-07):** Practitioner mode, not tutorial mode. War stories and decisions, not step-by-step guides. Attracts peers and decision-makers. 45% of content (Pillar 2 + Pillar 4) establishes technical credibility.

@@ -419,7 +419,7 @@ Each tool below maps a proven brana capability to a NEIX pain point. These are n
 ### Tier 2: High Impact (Month 2-3, builds on Tier 1 data)
 
 #### 4. Client Portfolio Intelligence
-**Brana source:** `/pipeline` skill + `metrics-collector` agent + `gsheets` MCP
+**Brana source:** `/brana:pipeline` skill + `metrics-collector` agent + `gsheets` MCP
 **What it does for NEIX:** Automated client-facing reports: portfolio performance, asset allocation, risk exposure, benchmark comparison. Account managers like Nicanor get a "client brief" before every call. Reports auto-generated from trading system data + market feeds.
 **UB calculation:**
 - Mecanismo 2: Account managers handle more clients = milestone + fee mensual pre-acordado
@@ -427,7 +427,7 @@ Each tool below maps a proven brana capability to a NEIX pain point. These are n
 - Build time: 2-3 weeks
 
 #### 5. Regulatory Change Monitor
-**Brana source:** `/research` skill + `scout` agent + `knowledge` system + `scheduler`
+**Brana source:** `/brana:research` skill + `scout` agent + `knowledge` system + `scheduler`
 **What it does for NEIX:** Agents continuously scan CNV resolutions, UIF disposiciones, BYMA circulares, and regulatory news. When something relevant changes, it generates an impact analysis: what changed, who's affected, what NEIX needs to do, and by when. Delivered to compliance + legal.
 **UB calculation:**
 - Mecanismo 2: Faster regulatory response, reduced exposure window = milestone + fee mensual pre-acordado
@@ -453,7 +453,7 @@ Each tool below maps a proven brana capability to a NEIX pain point. These are n
 - Build time: 3-4 weeks for v1
 
 #### 8. Decision Review System
-**Brana source:** `/decide` skill (ADR pattern) + `/challenge` (adversarial review) + `/retrospective` (learning capture)
+**Brana source:** `/decide` skill (ADR pattern) + `/brana:challenge` (adversarial review) + `/brana:retrospective` (learning capture)
 **What it does for NEIX:** Structured decision logging for significant trading and operational decisions. Before major positions or process changes, the system prompts for context-decision-consequences format. After outcomes are known, it captures the learning. Builds a searchable decision history that informs future choices.
 **UB calculation:**
 - Mecanismo 2: Better decisions over time = milestone + fee mensual pre-acordado

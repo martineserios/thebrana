@@ -124,7 +124,7 @@ source "$HOME/.claude/scripts/cf-env.sh"
 
 ## Rules
 
-- **No arguments = self-challenge.** Empty `/challenge` targets your own last answer. Never ask "what should I challenge?" — either use the provided arguments or self-challenge.
+- **No arguments = self-challenge.** Empty `/brana:challenge` targets your own last answer. Never ask "what should I challenge?" — either use the provided arguments or self-challenge.
 - **Ask for clarification on scope**, not on target. If you know WHAT to challenge but not HOW DEEP, ask. If the conversation has no substantive prior answer to self-challenge (e.g., session just started), then ask what to target.
 - **Both challengers run in parallel.** Don't wait for one to finish before starting the other. Launch Opus subagent and Gemini query at the same time.
 - **Gemini is optional.** If NotebookLM is unavailable, the challenge runs as Opus-only. Never fail the skill because Gemini is missing.

@@ -1,7 +1,7 @@
 # Feature: Plugin Packaging — Distribute thebrana as CC Plugin
 
 **Date:** 2026-03-08
-**Status:** building
+**Status:** shipped
 
 ## Spike Results (2026-03-08)
 
@@ -130,8 +130,8 @@ Key difference: paths relative to plugin root, not `$HOME`.
 ### Namespace Impact
 
 Skills referencing other skills (internal cross-refs):
-- `/build` calls `/challenge` → `/brana:build` calls `/brana:challenge`
-- Delegation routing references `/build`, `/close`, `/tasks`, etc.
+- `/brana:build` calls `/brana:challenge` → `/brana:build` calls `/brana:challenge`
+- Delegation routing references `/brana:build`, `/brana:close`, `/brana:tasks`, etc.
 - ~15 rules/docs reference skill names
 
 ## Design
@@ -238,7 +238,7 @@ Many files reference `$HOME/.claude/` paths. Some are valid (bootstrap-layer fil
 
 **W1: settings.json may be empty after hooks extraction.** Confirmed: current settings.json contains ONLY hooks. No plugin settings.json needed.
 
-**W2: Namespace migration broader than spec accounts for.** `~/.claude/rules/*.md`, project MEMORY.md files, other project CLAUDE.md files all reference `/build`, `/close`, etc.
+**W2: Namespace migration broader than spec accounts for.** `~/.claude/rules/*.md`, project MEMORY.md files, other project CLAUDE.md files all reference `/brana:build`, `/brana:close`, etc.
 → **Resolution:** Add migration checklist: system/rules, system/CLAUDE.md, ~/.claude/memory/MEMORY.md, all project .claude/ files. Check if CC supports simultaneous old+new names during transition.
 
 **W3: bootstrap.sh should be re-runnable, not "one-time".** Rules and CLAUDE.md change frequently. Need a re-deploy mechanism.

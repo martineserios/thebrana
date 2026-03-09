@@ -23,7 +23,7 @@ Solo developer managing 3-5 projects across code and non-code work.
 
 - tasks.json schema with hierarchy, streams, execution modes
 - Convention rule for NL interaction (reads free, writes confirmed)
-- /tasks skill with 13 subcommands (v1: 10, v1.1: +execute, +tags, +context)
+- /brana:tasks skill with 13 subcommands (v1: 10, v1.1: +execute, +tags, +context)
 - PostToolUse hook: JSON validation + parent rollup
 - Session start: task context injection
 - Status line: phase progress, current task, bug count
@@ -36,8 +36,8 @@ See ADR-003 for agent-driven task execution — subagent spawning per task, DAG-
 
 ## Deferred
 
-- GitHub Issues sync (/tasks sync)
-- Markdown rendering (/tasks render > roadmap.md)
+- GitHub Issues sync (/brana:tasks sync)
+- Markdown rendering (/brana:tasks render > roadmap.md)
 - Time tracking (estimated vs actual)
 - Recurring tasks
 - Cross-project dependencies
@@ -55,6 +55,6 @@ See ADR-003 for agent-driven task execution — subagent spawning per task, DAG-
 See ADR-002 for architecture decision. Key components:
 1. tasks.json per project (.claude/tasks.json)
 2. Convention rule (~80 lines, teaches Claude schema + NL behavior)
-3. /tasks skill (13 subcommands: plan, status, roadmap, next, start, done, add, replan, archive, migrate, execute, tags, context)
+3. /brana:tasks skill (13 subcommands: plan, status, roadmap, next, start, done, add, replan, archive, migrate, execute, tags, context)
 4. PostToolUse hook (validation + rollup — deterministic enforcement)
 5. Session start + status line integration (passive visibility)

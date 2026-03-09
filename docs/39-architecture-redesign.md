@@ -45,7 +45,7 @@ Enter (specs) ──/build-phase──→ Thebrana (system/) ──deploy.sh─�
      └──────/reconcile──────────────────┘
 
 Projects use deployed brana (~/.claude/) via /build-feature, /debrief, etc.
-Learnings flow back via /retrospective → claude-flow memory → future sessions.
+Learnings flow back via /brana:retrospective → claude-flow memory → future sessions.
 ```
 
 ### 2.3 Three Task Management Layers
@@ -88,7 +88,7 @@ Each switch means: new terminal, new CWD, new Claude Code session, lost context.
 Enter was designed to lead ("design first, build second"). In practice, it trails. The evidence:
 
 - `/back-propagate` exists because implementation diverges from specs
-- `/reconcile` exists because specs diverge from implementation
+- `/brana:reconcile` exists because specs diverge from implementation
 - Neither side is the authoritative leader — they chase each other
 - Phase 4 succeeded not because specs were in a separate repo, but because specs were **detailed** (file paths, pseudocode, exit criteria)
 
@@ -106,8 +106,8 @@ The quality of specs matters. The repo boundary doesn't contribute to that quali
 | Operation | What it does | Overhead |
 |-----------|-------------|----------|
 | `/back-propagate` | Creates worktree in enter, edits specs | Separate git repo, branch, merge cycle |
-| `/reconcile` | Reads enter, writes thebrana | Cross-repo reads, separate commits |
-| `/maintain-specs` | Internal to enter | Fine, but triggers reconcile (cross-repo) |
+| `/brana:reconcile` | Reads enter, writes thebrana | Cross-repo reads, separate commits |
+| `/brana:maintain-specs` | Internal to enter | Fine, but triggers reconcile (cross-repo) |
 
 These operations are valuable — the sync discipline is real. But the cross-repo boundary doesn't add value; it adds plumbing.
 
@@ -195,7 +195,7 @@ This knowledge exists in the operator's head and in scattered project docs, but 
          palco/         reflections/      life.md
          ...            sources.yaml
               │              ↑
-              │    /research  │  /retrospective (transferable)
+              │    /brana:research  │  /brana:retrospective (transferable)
               └──────────────┘
                   learnings feed knowledge base
 ```
@@ -230,8 +230,8 @@ This knowledge exists in the operator's head and in scattered project docs, but 
 | Operation | Before | After |
 |-----------|--------|-------|
 | `/back-propagate` | Creates worktree in enter repo | Edits `docs/` in same repo, same or parallel branch |
-| `/reconcile` | Reads enter, writes thebrana | Reads `docs/`, writes `system/` — same repo |
-| `/maintain-specs` | Internal to enter | Internal to `docs/` — unchanged |
+| `/brana:reconcile` | Reads enter, writes thebrana | Reads `docs/`, writes `system/` — same repo |
+| `/brana:maintain-specs` | Internal to enter | Internal to `docs/` — unchanged |
 | `/build-phase` | Reads enter roadmap, builds in thebrana | Reads `docs/` roadmap, builds in `system/` — same repo |
 
 **One backlog, one task system.**
@@ -260,13 +260,13 @@ decisions, research (docs/) AND implementation, deployment, maintenance (system/
 - system/ — Build here. Skills, hooks, rules, agents. Deploys to ~/.claude/.
 
 ## Architect Commands (docs/ workspace)
-/maintain-specs, /back-propagate, /reconcile, /refresh-knowledge, /challenge, /decide
+/brana:maintain-specs, /back-propagate, /brana:reconcile, /refresh-knowledge, /brana:challenge, /decide
 
 ## Operator Commands (system/ workspace)
 /build-phase, /build-feature, /deploy, /validate
 
 ## Shared Commands
-/debrief, /retrospective, /session-handoff, /tasks
+/debrief, /brana:retrospective, /session-handoff, /brana:tasks
 ```
 
 Root CLAUDE.md covers both roles. If needed, a nested `docs/CLAUDE.md` can add architect-specific context that loads when Claude touches files in `docs/` (Claude Code's lazy subdirectory loading).
@@ -556,12 +556,12 @@ The ecosystem points in our direction (local-first, vector search, graph relatio
 |-------|-----------------|-------------|
 | `/build-phase` | Reads `~/enter_thebrana/enter/18-*.md` | Reads `./docs/18-*.md` (relative path) |
 | `/back-propagate` | Creates worktree in enter repo, edits specs | Edits `docs/` in same repo (same branch or parallel branch) |
-| `/reconcile` | Reads enter, writes thebrana (cross-repo) | Reads `docs/`, writes `system/` (same repo) |
-| `/maintain-specs` | Internal to enter repo | Internal to `docs/` directory (unchanged logic) |
-| `/research` | Reads `enter/research-sources.yaml` | Reads `./docs/research-sources.yaml` AND `brana-knowledge/sources.yaml` |
+| `/brana:reconcile` | Reads enter, writes thebrana (cross-repo) | Reads `docs/`, writes `system/` (same repo) |
+| `/brana:maintain-specs` | Internal to enter repo | Internal to `docs/` directory (unchanged logic) |
+| `/brana:research` | Reads `enter/research-sources.yaml` | Reads `./docs/research-sources.yaml` AND `brana-knowledge/sources.yaml` |
 | `/debrief` | Falls back to `enter/24-roadmap-corrections.md` | Falls back to `./docs/24-roadmap-corrections.md` |
 | `/session-handoff` | CWD-based memory routing | Unchanged — CWD=thebrana for brana work, CWD=project for project work |
-| `/retrospective` | Stores in claude-flow memory | Additionally: if pattern is transferable AND domain-relevant, suggest writing a brana-knowledge dimension doc |
+| `/brana:retrospective` | Stores in claude-flow memory | Additionally: if pattern is transferable AND domain-relevant, suggest writing a brana-knowledge dimension doc |
 | `/build-feature` | Unaffected (works from project CWD) | Unaffected. Gains access to knowledge base via memory-curator agent querying indexed brana-knowledge |
 
 ### 8.2 New Skills Needed
@@ -593,7 +593,7 @@ Two steps eliminated. One context switch instead of three.
 
 **After:**
 1. Read an article about customer retention
-2. Switch to brana-knowledge → `/research customer-retention` → write/update `dimensions/customer-retention.md`
+2. Switch to brana-knowledge → `/brana:research customer-retention` → write/update `dimensions/customer-retention.md`
 3. Knowledge is indexed, searchable by brana from any project session
 4. Next time psilea needs retention strategy, memory-curator finds the dimension doc
 
@@ -636,10 +636,10 @@ File moves, path updates, config merges, validate cycle. Pure structural migrati
 
 ### Phase 2: Skill Logic Rewrites (follows Phase 1, may extend 1-2 days)
 
-Separated from Phase 1 because these are logic rewrites, not path substitutions. `/back-propagate` and `/reconcile` have multi-step git workflows designed around two-repo operations that need fundamental rethinking.
+Separated from Phase 1 because these are logic rewrites, not path substitutions. `/back-propagate` and `/brana:reconcile` have multi-step git workflows designed around two-repo operations that need fundamental rethinking.
 
 - [x] Rewrite `/back-propagate` for same-repo operation — now: same-repo `docs/` + cross-repo `brana-knowledge/dimensions/` pattern
-- [x] Rewrite `/reconcile` for same-repo operation — now: intra-repo `docs/` → `system/` with optional brana-knowledge scan
+- [x] Rewrite `/brana:reconcile` for same-repo operation — now: intra-repo `docs/` → `system/` with optional brana-knowledge scan
 - [x] Update `/build-phase` path references — single worktree branch, no two-repo merge dance
 - [x] Remove cross-repo worktree logic where no longer needed — also fixed stale refs in research, personal-check, commands, skill-catalog, [doc 14](reflections/14-mastermind-architecture.md)
 - [x] Run deploy.sh + validate cycle — passed (also added missing YAML frontmatter to 5 project commands)
@@ -665,10 +665,10 @@ Now that the full loop works (write doc → index → retrieve from project sess
 - [x] Restructure brana-knowledge: add `dimensions/`, `reflections/`, relocate backup content to `backup/` (existing `projects/` and `memory/` dirs → `backup/`)
 - [x] Write brana-knowledge CLAUDE.md (English default, topic-based filenames)
 - [x] Create auto-generated `dimensions/INDEX.md` script (from YAML frontmatter)
-- [x] Update `/research` skill to write general knowledge to brana-knowledge
+- [x] Update `/brana:research` skill to write general knowledge to brana-knowledge
 - [x] Create `/knowledge` skill (with annotation cycle support and `--reindex` flag)
 - [x] Create first batch of dimension docs from existing project knowledge (meta-whatsapp-template-classification.md promoted)
-- [ ] Growing organically: every `/research` session, every transferable `/retrospective` pattern feeds the knowledge base
+- [ ] Growing organically: every `/brana:research` session, every transferable `/brana:retrospective` pattern feeds the knowledge base
 
 ---
 
@@ -680,9 +680,9 @@ Now that the full loop works (write doc → index → retrieve from project sess
 | **CLAUDE.md role confusion** | Unified CLAUDE.md serves two roles, instructions may conflict | Use nested `docs/CLAUDE.md` for architect-specific context (lazy loading). Root CLAUDE.md covers shared identity. |
 | **Spec discipline weakens** | Without repo boundary, easier to skip spec updates | Pre-commit hook: `feat/*` branches touching `system/` must also touch `docs/` (or explicitly skip with reason). **Tripwire:** if 3 consecutive `feat/*` branches skip `docs/` updates, make the hook mandatory. The repo boundary was a hard constraint; the hook is a soft one — monitor it. |
 | **brana-knowledge becomes a graveyard** | Collector's fallacy: docs written but never used | Freshness tracking in sources.yaml. Scheduled `/knowledge review` checks staleness. Quality pipelines that detect and correct knowledge drift (#466). **Critical gate:** retrieval must be validated (Phase 3) BEFORE scaling content (Phase 4). Without retrieval, no one asks for the knowledge. Write 1-2 seed docs + test the full loop before investing in content. |
-| **New cross-repo friction (thebrana↔brana-knowledge)** | `/research` reads from brana-knowledge, `/retrospective` writes to it — bidirectional cross-repo ops | Accepted trade-off. brana-knowledge is a library (no backlog, no tasks), not an active project. Cross-repo reads to a library are lower friction than cross-repo syncs between two active projects. |
+| **New cross-repo friction (thebrana↔brana-knowledge)** | `/brana:research` reads from brana-knowledge, `/brana:retrospective` writes to it — bidirectional cross-repo ops | Accepted trade-off. brana-knowledge is a library (no backlog, no tasks), not an active project. Cross-repo reads to a library are lower friction than cross-repo syncs between two active projects. |
 | **Embedding CLI assumption untested** | Indexing pipeline design assumes `claude-flow` CLI generates embeddings without MCP session — never verified | Phase 0.5 spike (10 min) validates or invalidates. If CLI doesn't exist, redesign around Python sentence-transformers or MCP-session-based approach. |
-| **Skill rewrites underestimated** | `/back-propagate` and `/reconcile` need logic rewrites, not just path substitution (30 refs across 11 files) | Phase 2 separated from Phase 1. Degraded mode acceptable for a few days while logic is reworked. |
+| **Skill rewrites underestimated** | `/back-propagate` and `/brana:reconcile` need logic rewrites, not just path substitution (30 refs across 11 files) | Phase 2 separated from Phase 1. Degraded mode acceptable for a few days while logic is reworked. |
 | **AgentDB doesn't mature** | Kill date passes, no graph/vector backend | Fallback to claude-flow memory + CLI embeddings. Markdown files are always the source of truth regardless. |
 | **Knowledge base grows unbounded** | Too many dimension docs, retrieval quality drops | Follow enter's pattern: 30-50 docs is fine flat. Reflections synthesize and reduce. Archive stale docs. |
 | **Migration breaks deployed brana** | Path references wrong after merge, deploy.sh produces broken ~/.claude/ | Migration Phase 1 ends with full deploy + validate cycle. Test in parallel before cutting over. |
@@ -761,7 +761,7 @@ Knowledge→system is a different relationship than specs→implementation. The 
 |-------|------|----------|-------|
 | **Phase 0.5** (embedding spike) | Before anything else | 10 min | Validates or invalidates indexing pipeline design. Gate for Phase 3. |
 | **Phase 1** (merge enter → thebrana) | Next focused session | 1 day | File moves, path updates, config merges, validate cycle. Structural only. |
-| **Phase 2** (skill logic rewrites) | Follows Phase 1 | 1-2 days | `/back-propagate` and `/reconcile` need logic rewrites, not just path substitution. Degraded mode acceptable while in progress. |
+| **Phase 2** (skill logic rewrites) | Follows Phase 1 | 1-2 days | `/back-propagate` and `/brana:reconcile` need logic rewrites, not just path substitution. Degraded mode acceptable while in progress. |
 | **Phase 3** (wire retrieval prototype) | After Phase 1 | 1 session | Write 1-2 seed docs + indexing pipeline + end-to-end test. Must pass before scaling content. |
 | **Phase 4** (evolve brana-knowledge) | After Phase 3 validates | Ongoing | Scale content, create `/knowledge` skill, grow organically. |
 
@@ -809,7 +809,7 @@ External references that informed or validated this design. Backlog link numbers
 
 | Source | Key Contribution |
 |--------|-----------------|
-| claude-reflect-system (haddock-development) | Continual learning: corrections → permanent memory in CLAUDE.md via hooks. Validates brana's /debrief + /retrospective → rules feedback loop. |
+| claude-reflect-system (haddock-development) | Continual learning: corrections → permanent memory in CLAUDE.md via hooks. Validates brana's /debrief + /brana:retrospective → rules feedback loop. |
 | claude-meta (aviadr1) | Meta-rules about rules — self-improving CLAUDE.md through reflection prompts. Validates brana's memory-framework.md pattern. |
 
 ---
@@ -823,7 +823,7 @@ Adversarial review conducted 2026-02-25 (Opus challenger agent). Verdict: **proc
 | # | Finding | Impact | Resolution |
 |---|---------|--------|------------|
 | C1 | **Knowledge base graveyard — no retrieval means no demand.** Memory-curator depends on Phase 3 indexing. Without retrieval, knowledge dies on the shelf. | Phase 2 content investment wasted | **Flipped Phase 2↔3.** Retrieval prototype (Phase 3) now comes before content scaling (Phase 4). End-to-end test required: write seed doc → index → retrieve from project session. |
-| C2 | **"1 day" underestimates skill rewrites.** 30 hardcoded `~/enter_thebrana/enter/` refs across 11 files. `/back-propagate` and `/reconcile` need logic rewrites, not path substitution. | Migration takes longer, frustration | **Split Phase 1 (structural) from Phase 2 (skill logic).** Degraded mode acceptable while skill logic is reworked. |
+| C2 | **"1 day" underestimates skill rewrites.** 30 hardcoded `~/enter_thebrana/enter/` refs across 11 files. `/back-propagate` and `/brana:reconcile` need logic rewrites, not path substitution. | Migration takes longer, frustration | **Split Phase 1 (structural) from Phase 2 (skill logic).** Degraded mode acceptable while skill logic is reworked. |
 | C3 | **Embedding CLI assumption untested.** `claude-flow` CLI embedding generation never verified. If it doesn't exist, both primary and fallback indexing designs are invalid. | Entire retrieval architecture invalidated | **RESOLVED.** Phase 0.5 spike completed 2026-02-25. CLI generates real 384-dim ONNX embeddings (all-MiniLM-L6-v2), semantic similarity verified (0.65 related, 0.23 unrelated). See section 7.3. |
 
 ### Warnings (documented, mitigations added)
@@ -831,7 +831,7 @@ Adversarial review conducted 2026-02-25 (Opus challenger agent). Verdict: **proc
 | # | Finding | Resolution |
 |---|---------|------------|
 | W1 | **Spec discipline weakens** — repo boundary was a hard constraint, pre-commit hook is soft (bypassable with `--no-verify`) | Tripwire added to risk table: 3 consecutive skips → make hook mandatory |
-| W2 | **New cross-repo friction** (thebrana↔brana-knowledge) — `/research` reads, `/retrospective` writes | Accepted trade-off, documented in risk table. Library ≠ active project. |
+| W2 | **New cross-repo friction** (thebrana↔brana-knowledge) — `/brana:research` reads, `/brana:retrospective` writes | Accepted trade-off, documented in risk table. Library ≠ active project. |
 | W3 | **Auto-memory merge is not "15 minutes"** — patterns reference doc numbers and file structures that change | Q5 updated: careful diff, revisit after 2 weeks |
 
 ### Observations (noted for implementation)

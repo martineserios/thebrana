@@ -20,7 +20,7 @@ Glossary of brana terms.
 | **Milestone** | Mid-level grouping (`ms-NNN`). Groups tasks. |
 | **Task** | A unit of work (`t-NNN`). Has status, tags, stream, priority. |
 | **Stream** | Category of work: `roadmap`, `bugs`, `tech-debt`, `docs`, `experiments`, `research`. |
-| **Strategy** | How `/build` approaches the work: `feature`, `bug-fix`, `refactor`, `spike`, `migration`, `investigation`, `greenfield`. |
+| **Strategy** | How `/brana:build` approaches the work: `feature`, `bug-fix`, `refactor`, `spike`, `migration`, `investigation`, `greenfield`. |
 | **Build step** | Current position in the build loop: `classify`, `specify`, `plan`, `build`, `close`. |
 
 ## Knowledge system

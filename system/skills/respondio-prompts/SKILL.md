@@ -23,10 +23,10 @@ Write, review, and architect AI agent prompt systems for Respond.io. Covers inst
 When writing or reviewing Respond.io agent prompts, designing multi-agent flows, creating knowledge bases, or debugging agent behavior on the platform.
 
 **Invocation:**
-- `/respondio-prompts` — interactive mode, ask what to build
-- `/respondio-prompts write agent instructions` — write instructions for an agent
-- `/respondio-prompts review` — review existing prompts against best practices
-- `/respondio-prompts design handoff flow` — design multi-agent routing
+- `/brana:respondio-prompts` — interactive mode, ask what to build
+- `/brana:respondio-prompts write agent instructions` — write instructions for an agent
+- `/brana:respondio-prompts review` — review existing prompts against best practices
+- `/brana:respondio-prompts design handoff flow` — design multi-agent routing
 
 ## Process
 

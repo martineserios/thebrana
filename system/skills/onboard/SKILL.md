@@ -122,7 +122,7 @@ Classify each as: **present**, **partial**, **missing**.
 {clean / needs attention}
 
 ### Suggested Next Steps
-1. Run `/align` to implement recommended structure
+1. Run `/brana:align` to implement recommended structure
 2. {most impactful gap to close}
 3. {second priority}
 ```
@@ -131,7 +131,7 @@ If no `.claude/CLAUDE.md` exists and this is a new project, offer to create an i
 
 ## Rules
 
-- **This is diagnostic — don't create files.** Use `/align` for active structure creation.
+- **This is diagnostic — don't create files.** Use `/brana:align` for active structure creation.
 - **Auto-detect type, confirm with user.** "This looks like a [code/venture/hybrid] project. Correct?"
 - **Stage drives venture recommendations.** Don't recommend Growth frameworks for Discovery-stage businesses.
 - **Ask for clarification when needed.** Unusual structure, ambiguous domain, unclear stage — ask.

@@ -1,17 +1,17 @@
 # Research
 
-The `/research` command is the atomic research primitive — takes a topic, follows references, produces structured findings.
+The `/brana:research` command is the atomic research primitive — takes a topic, follows references, produces structured findings.
 
 ## Quick start
 
 ```
-/research context engineering       — research a topic
-/research 14                        — research updates for a specific dimension doc
-/research creator:simon-willison    — check a creator's recent output
-/research leads                     — process queued research leads
-/research registry                  — check source registry health
-/research --refresh                 — batch refresh all dimension docs
-/research --refresh high            — refresh high-priority docs only
+/brana:research context engineering       — research a topic
+/brana:research 14                        — research updates for a specific dimension doc
+/brana:research creator:simon-willison    — check a creator's recent output
+/brana:research leads                     — process queued research leads
+/brana:research registry                  — check source registry health
+/brana:research --refresh                 — batch refresh all dimension docs
+/brana:research --refresh high            — refresh high-priority docs only
 ```
 
 ## How it works
@@ -25,7 +25,7 @@ The `/research` command is the atomic research primitive — takes a topic, foll
 ## With NotebookLM
 
 ```
-/research context engineering --nlm
+/brana:research context engineering --nlm
 ```
 
 Queries NotebookLM notebooks for prior knowledge before web research. Uses specific technical nouns as query anchors to avoid generic responses.
