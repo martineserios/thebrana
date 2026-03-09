@@ -262,6 +262,8 @@ if [ -f "$SYSTEM_DIR/hooks/hooks.json" ]; then
     for event in $HJ_EVENTS; do
         if ! echo "$KNOWN_EVENTS" | grep -qw "$event"; then
             fail "hooks.json references unknown hook event: $event"
+        elif echo "$event" | grep -qE '^Post(ToolUse|ToolUseFailure)$'; then
+            warn "hooks.json has '$event' — CC v2.1.x does not dispatch this from plugins. Use settings.json via bootstrap.sh instead (CC issue #24529)"
         else
             pass "hooks.json hook event '$event' is valid"
         fi
