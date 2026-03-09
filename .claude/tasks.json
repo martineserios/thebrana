@@ -8409,7 +8409,7 @@
         "portfolio",
         "naming"
       ],
-      "status": "in_progress",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": null,
@@ -8422,11 +8422,11 @@
       "github_issue": null,
       "created": "2026-03-09",
       "started": "2026-03-09",
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-09",
+      "notes": "Challenger dropped per-task project field. Enriched registry + views + docs only. st-018/019/020 all completed.",
       "context": "Follow-up to t-281 (rename projects\u2192clients). The nested schema { clients: [{ slug, projects: [{ slug, path }] }] } is in place but tasks don't yet reference which project they belong to, and views don't show project names.",
       "strategy": "feature",
-      "build_step": "close"
+      "build_step": null
     },
     {
       "id": "st-018",
