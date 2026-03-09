@@ -31,11 +31,13 @@ Systems thinker who ships. The differentiator is the systems lens — seeing com
 
 **CTO-readiness signal (implicit, never claimed):** The profile should make CTOs think "this person thinks like me" and founders think "this is the technical partner I need." Never say "fractional CTO" — let the evidence lead the viewer to that conclusion. The career arc (Civil Engineer → ML → AI Systems) is itself the differentiator.
 
-**Signature phrase:**
-- Spanish: **"Todo es un sistema. Mapealo."**
+**Signature phrase (decided 2026-03-09, reverted to two beats after challenge):**
 - English: **"Everything is a system. Map it."**
-- Closes every post. Means something different after every story. First half is the lens (seeing). Second half is the action (builder).
+- Spanish: **"Todo es un sistema. Mapealo."**
+- Two beats only. Lens + action. Three-beat version ("Push it to production" / "Ponelo en producción") was tested and cut — it diluted the punch and repeated "production" already covered in the About body. Shorter is stickier.
+- Closes every post AND the About section. Means something different after every story. First half is the lens (seeing). Second half is the action (builder).
 - Lands harder with the full-range positioning: "sistema" means the *whole thing* — ML, infra, business process, deploy — not just the AI layer.
+- "Mapealo" is rioplatense (voseo) — intentional brand mark, only voseo element in the otherwise LATAM-neutral Spanish profile.
 - **Brand statement** (bio, header, about section): "Behind every effortless moment is a system someone built with care."
 - **Founding collection** (poster series, carousel covers): "Good systems make ordinary people do extraordinary things." / "Behind every smooth operation is someone who thought very carefully." / "Simplicity is what complexity looks like when it's done."
 
@@ -224,10 +226,38 @@ After 12+ manual posts, build `/content-draft` informed by real experience.
 
 | Element | English (primary) | Spanish (secondary) |
 |---------|-------------------|---------------------|
-| **Headline** | `I see systems. Then I build them. Business problems → AI/ML products, architecture to production.` | Original Spanish adaptation (not translated) — LATAM-specific framing |
-| **About** | Full English, closes with "Todo es un sistema. Mapealo." | Full Spanish, Argentine voice, LATAM pain points, same signature |
+| **Headline** | `I see systems. Then I build them. Business problems → AI/ML products, architecture to production.` | `Veo sistemas. Los llevo a producción. Problemas de negocio → productos de IA/ML.` |
+| **About** | Full English (see below) | Full Spanish, LATAM-neutral body + rioplatense signature only (see below) |
 | **Experience** | English descriptions, system-problem-first framing | Spanish descriptions, adapted for LATAM context |
 | **Skills** | Same (language-neutral) | Same |
+
+#### About section copy (decided 2026-03-09, 4 challenge rounds)
+
+**English:**
+
+> Every business runs on a system — most just don't know it. How work comes in, how it moves through your team, how it gets delivered. I start every project the same way: map it, design it, build it — end to end. I don't own a layer of the solution. I own the whole thing — from the problem to the solution in production.
+>
+> I don't start building until I've seen the problem from every angle I can find — how the business works, how the data flows, how AI fits — if it fits at all — how the system holds. Then I design the architecture, build it, and push it to production myself. I've done this across flood prediction, real-time computer vision, AI for health tech, and CRM automation. The pattern is always the same.
+>
+> Civil Engineer. Then ML Engineer. The system changes. The lens doesn't.
+>
+> I write about what I build — including what didn't work. That's usually the better post. If any of this sounds familiar, say hi.
+>
+> Everything is a system. Map it.
+
+**Spanish:**
+
+> Todo negocio funciona con un sistema — la mayoría no lo sabe. Cómo entra el trabajo, cómo se mueve dentro del equipo, cómo se entrega. Cada proyecto arranca igual: mapearlo, diseñarlo, implementarlo — de punta a punta. No me quedo con una parte de la solución. Me quedo con toda — del problema a la solución en producción.
+>
+> No arranco a desarrollar hasta que veo el problema desde todos los ángulos posibles — cómo funciona el negocio, cómo fluyen los datos, cómo encaja la IA — si es que encaja — cómo se comporta el sistema. Después diseño la solución, la desarrollo, y la llevo a producción yo mismo. Lo hice en predicción de inundaciones, visión por computadora en tiempo real, IA para healthtech y automatización de CRM. El patrón es siempre el mismo.
+>
+> Ingeniero Civil. Después, Ingeniero en ML. El sistema cambia. La forma de verlo, no.
+>
+> Escribo sobre lo que hago — incluyendo lo que no salió bien. Esos suelen ser los mejores posts. Si algo te resuena, estoy por acá.
+>
+> Todo es un sistema. Mapealo.
+
+**Register decision:** LATAM-neutral body text (no voseo, no Argentine slang). Rioplatense only in the signature ("Mapealo") as an intentional brand mark.
 
 **Content posts** follow separate language weights:
 
@@ -239,7 +269,7 @@ After 12+ manual posts, build `/content-draft` informed by real experience.
 **Rules:**
 - Spanish content is **original**, not translated. Uses Argentine context, local examples, local pain points.
 - Don't mix languages in a single profile section. Each profile is fully in its language.
-- The Spanish signature "Todo es un sistema. Mapealo." appears in BOTH profiles — in the English About it's a distinctive foreign-language closer, in the Spanish About it's native.
+- Each profile closes with the signature in its own language. English: "Everything is a system. Map it." Spanish: "Todo es un sistema. Mapealo."
 
 Note: at ~1 Spanish post/week, building a standalone LATAM audience is slow. Spanish content serves dual purpose: LATAM visibility + demonstrates range to bilingual followers. If Spanish posts outperform, increase allocation.
 
@@ -387,9 +417,39 @@ Adjusted from 60-30-10 after challenger review:
 - **t-175: Case Studies weight:** increased to 35% (bridge spine connecting founders + technologists). Full weights: Case Studies 35%, How-Tos 25%, Contrarian 20%, Build-in-Public 20%. Week-4 gate applies.
 - **t-176: Carousel tooling:** NotebookLM. Claude provides prompts, source files, and style guides. User creates carousels in NLM manually. (Updated from /brana:export-pdf, 2026-03-05.)
 - **Positioning scope (2026-03-07):** Evolved from narrow "AI systems designer" to "systems thinker who builds." Systems lens is the headline differentiator. Full-stack depth (ML + architecture + infra + deploy) is the proof shown in About/Experience/content. Encompasses both consulting implementations and complex product builds (NexEye). CTO-readiness signaled implicitly, never claimed.
-- **Headline (2026-03-07):** `I see systems. Then I build them. Business problems → AI/ML products, architecture to production.`
+- **Headline (2026-03-07):** EN: `I see systems. Then I build them. Business problems → AI/ML products, architecture to production.` ES: `Veo sistemas. Los llevo a producción. Problemas de negocio → productos de IA/ML.`
+- **About section (2026-03-09):** Complete in both languages after 4 challenge rounds. See Bilingual Strategy section for full copy. Key decisions: P1 for founders (systems lens + ownership), P2 for technical readers (perspectives + proof domains), career arc one-liner, practitioner content hook, non-salesy CTA, two-beat signature closer.
+- **Signature reverted to two beats (2026-03-09):** "Everything is a system. Map it." / "Todo es un sistema. Mapealo." Three-beat version cut after challenge — diluted punch, repeated "production."
 - **Technical content approach (2026-03-07):** Practitioner mode, not tutorial mode. War stories and decisions, not step-by-step guides. Attracts peers and decision-makers. 45% of content (Pillar 2 + Pillar 4) establishes technical credibility.
 - **Economic strategy (2026-03-07):** Lead with consulting/implementation (fast cash, upsell, $10k/month target). CTO/cofounder roles come through reputation, not LinkedIn posts. Big builds are selective, not the primary revenue engine. Consulting satisfies diversity preference.
+
+## Pending reviews (from challenge rounds)
+
+Items to monitor and adjust based on real data. These are not blockers — they are calibration points validated through experimentation.
+
+### Headline
+- **"I see systems" cold landing test:** Monitor profile views → About read-through rate in weeks 1-4. If cold visitors don't convert to About reads, headline is the first suspect. Alternative ready: more concrete openers tested during shaping.
+
+### About section — P2
+- **Four domains may read as "jack of all trades" to CTOs:** "flood prediction, real-time computer vision, AI for health tech, and CRM automation." If CTO engagement is low, try cutting to three domains. The cross-domain range IS the differentiator per brief, but four in one sentence is the calibration edge.
+- **"The pattern is always the same" is the least distinctive line.** Not weak enough to rewrite now, but first candidate for revision if About feels flat after publishing.
+
+### CTA
+- **English "say hi" vs Spanish "estoy por acá":** Spanish version is slightly more passive. If inbound from Spanish profile is low, switch to "escribime" (more direct, still casual). Monitor separately per language.
+
+### Measurements (start tracking week 1)
+
+| Signal | What to watch | Action trigger | Alternative ready |
+|--------|--------------|----------------|-------------------|
+| Headline click-through | Profile views → About reads | Low conversion after 4 weeks | More concrete headline openers explored in shaping session |
+| CTO engagement | Comments/DMs from technical profiles | Near-zero after 8 weeks | Cut domains to 3, add more specific ML vocabulary |
+| Spanish inbound | DMs/connections from LATAM | Zero after 6 weeks | Replace "estoy por acá" with "escribime" |
+| "About" drop-off | Where people stop reading (track via profile view patterns) | High views, low engagement | Shorten P2 or move proof earlier |
+| Domain list perception | Feedback on "jack of all trades" | Any CTO mentions it | Cut weakest domain, keep 3 strongest |
+
+### Experimentation mindset
+
+This profile copy is a validated starting point, not a final version. Every element was shaped through multiple rounds of discussion, criteria analysis, and adversarial challenge. Alternatives exist for most decisions. The approach: ship → measure → adjust. Don't optimize in the abstract — let real engagement data drive changes.
 
 ## Pending decisions (tracked as tasks)
 
