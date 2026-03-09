@@ -42,3 +42,18 @@ jobs:
             fi
           done
           echo "All hook scripts are executable"
+
+      - name: Run tests
+        run: |
+          FAIL=0
+          for test in tests/**/*.sh; do
+            echo "=== Running $test ==="
+            if bash "$test"; then
+              echo "--- PASSED ---"
+            else
+              echo "--- FAILED ---"
+              FAIL=1
+            fi
+            echo ""
+          done
+          exit $FAIL
