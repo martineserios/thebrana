@@ -8241,7 +8241,7 @@
         "naming",
         "portfolio"
       ],
-      "status": "in_progress",
+      "status": "completed",
       "stream": "tech-debt",
       "type": "task",
       "parent": null,
@@ -8254,11 +8254,11 @@
       "github_issue": null,
       "created": "2026-03-09",
       "started": "2026-03-09",
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-09",
+      "notes": "86 files, 6 commits. Skill/agent renamed, portfolio schema restructured, memory tags updated. Legacy fallback supported. Two-pass bulk rename pattern confirmed.",
       "context": "Insight: clients (e.g. NexEye) can have multiple projects (eyedetect, eyedetect-mobile). Current flat \"projects\" list doesn't capture this hierarchy. Rename makes the mental model match reality.",
       "strategy": "refactor",
-      "build_step": "build"
+      "build_step": null
     },
     {
       "id": "t-282",
@@ -8377,6 +8377,33 @@
       "completed": null,
       "notes": null,
       "context": "Source: Miessler phase-based learning + memory tiering. Research: docs/personal/miessler-telos-research.md. Currently /brana:close extracts learnings but doesn't tier them or force the 3 structured questions.",
+      "strategy": null,
+      "build_step": null
+    },
+    {
+      "id": "t-287",
+      "subject": "Add project-level metadata to client tasks",
+      "description": "Three parts: (1) Add 'project' field to tasks.json task schema — each task can specify which project under a client it belongs to (e.g., eyedetect under nexeye). (2) Document the client→project hierarchy in tasks-portfolio.md and schema docs. (3) Update portfolio/status views in tasks SKILL.md to display project name alongside client when rendering tasks.",
+      "tags": [
+        "portfolio",
+        "naming"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": "L",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-09",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "Follow-up to t-281 (rename projects→clients). The nested schema { clients: [{ slug, projects: [{ slug, path }] }] } is in place but tasks don't yet reference which project they belong to, and views don't show project names.",
       "strategy": null,
       "build_step": null
     }
