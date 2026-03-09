@@ -6426,6 +6426,59 @@
         "t-217"
       ],
       "created": "2026-03-07"
+    },
+    {
+      "id": "t-232",
+      "subject": "npm package distribution — brana CLI (init, update, doctor, eject)",
+      "type": "task",
+      "parent": null,
+      "status": "in_progress",
+      "started": "2026-03-08",
+      "completed": null,
+      "stream": "roadmap",
+      "strategy": "feature",
+      "build_step": "specify",
+      "description": "Replace deploy.sh with a proper npm package. Users install via `npm install -g thebrana`, then `brana init` (copies + settings merge + dep checks), `brana update` (re-sync), `brana doctor` (health check), `brana eject` (standalone). Dev mode: `brana init --dev` uses symlinks so system/ edits take effect immediately. Open-source ready. Conversation context: user found deploy.sh friction (why copy when I can just edit the repo?), analyzed 5 approaches (symlinks, npm, git-clone, CC templates, wait-for-plugin), npm package won.",
+      "tags": [
+        "distribution",
+        "dx",
+        "npm",
+        "open-source"
+      ],
+      "priority": "P1",
+      "effort": "L",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-08",
+      "notes": null,
+      "context": "Related: t-058 (distribution research, kept separate). Supersedes t-091 conclusion ('deploy.sh sufficient for single user'). deploy.sh does: validation, settings.json merge (jq), clean rm + copy, chmod +x, claude-flow deps (sql.js, embeddings, AgentDB shim), scheduler symlinks. Non-trivial parts that must survive: settings merge, chmod, cf runtime setup."
+    },
+    {
+      "id": "t-233",
+      "subject": "tmux launcher script for multi-project workflow",
+      "type": "task",
+      "parent": null,
+      "status": "pending",
+      "started": null,
+      "completed": null,
+      "stream": "roadmap",
+      "description": "Shell script that creates a tmux session with named windows for each active project. Reads portfolio.md or a config to auto-detect active projects. Each window cd's to the project dir. Optional: auto-launch claude in each window. Include in thebrana repo for distribution.",
+      "tags": [
+        "dx",
+        "tmux",
+        "workflow"
+      ],
+      "priority": "P3",
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-08",
+      "notes": null,
+      "context": "Emerged from t-232 discussion. User wants smooth multi-project workflow without manual cd + claude per project."
     }
   ]
 }
