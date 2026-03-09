@@ -6429,15 +6429,15 @@
     },
     {
       "id": "t-232",
-      "subject": "npm package distribution — brana CLI (init, update, doctor, eject)",
+      "subject": "Plugin packaging — distribute thebrana as Claude Code plugin",
       "type": "task",
       "parent": null,
-      "status": "in_progress",
+      "status": "completed",
       "started": "2026-03-08",
-      "completed": null,
+      "completed": "2026-03-08",
       "stream": "roadmap",
       "strategy": "feature",
-      "build_step": "build",
+      "build_step": "close",
       "description": "Replace deploy.sh with a proper npm package. Users install via `npm install -g thebrana`, then `brana init` (copies + settings merge + dep checks), `brana update` (re-sync), `brana doctor` (health check), `brana eject` (standalone). Dev mode: `brana init --dev` uses symlinks so system/ edits take effect immediately. Open-source ready. Conversation context: user found deploy.sh friction (why copy when I can just edit the repo?), analyzed 5 approaches (symlinks, npm, git-clone, CC templates, wait-for-plugin), npm package won.",
       "tags": [
         "distribution",
@@ -6449,10 +6449,10 @@
       "effort": "L",
       "execution": "code",
       "blocked_by": [],
-      "branch": null,
+      "branch": "feat/t-232-plugin-packaging",
       "github_issue": null,
       "created": "2026-03-08",
-      "notes": null,
+      "notes": "Pivoted from npm CLI to CC native plugin. Two-layer arch: plugin (skills/hooks/agents/commands) + bootstrap.sh (identity: CLAUDE.md/rules/scripts/scheduler/claude-flow). Spike confirmed ${CLAUDE_PLUGIN_ROOT} for hook paths. Namespace migration: 1014 changes across 95 files (/skill → /brana:skill). Key learnings: relative hook paths fail (CC resolves from CWD), duplicate hooks fire if both settings.json and hooks.json define them, cf-env.sh must be bundled in plugin for portability.",
       "context": "Related: t-058 (distribution research, kept separate). Supersedes t-091 conclusion ('deploy.sh sufficient for single user'). deploy.sh does: validation, settings.json merge (jq), clean rm + copy, chmod +x, claude-flow deps (sql.js, embeddings, AgentDB shim), scheduler symlinks. Non-trivial parts that must survive: settings merge, chmod, cf runtime setup."
     },
     {
