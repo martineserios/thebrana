@@ -8241,7 +8241,7 @@
         "naming",
         "portfolio"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "stream": "tech-debt",
       "type": "task",
       "parent": null,
@@ -8250,15 +8250,15 @@
       "effort": "L",
       "execution": "code",
       "blocked_by": [],
-      "branch": null,
+      "branch": "refactor/t-281-rename-projects-to-clients",
       "github_issue": null,
       "created": "2026-03-09",
-      "started": null,
+      "started": "2026-03-09",
       "completed": null,
       "notes": null,
       "context": "Insight: clients (e.g. NexEye) can have multiple projects (eyedetect, eyedetect-mobile). Current flat \"projects\" list doesn't capture this hierarchy. Rename makes the mental model match reality.",
       "strategy": "refactor",
-      "build_step": null
+      "build_step": "build"
     },
     {
       "id": "t-282",

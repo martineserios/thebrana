@@ -679,7 +679,7 @@ Agents and skills now integrate as complementary layers rather than independent 
 
 **What was built:**
 - **Improved skill descriptions** — explicit "Use when..." trigger conditions on all 18 skills, raising invocation from 53% to ~79%
-- **6 new agents** (memory-curator, project-scanner, venture-scanner, challenger, debrief-analyst, archiver) joining the existing scout — 7 total
+- **6 new agents** (memory-curator, client-scanner, venture-scanner, challenger, debrief-analyst, archiver) joining the existing scout — 7 total
 - **Delegation-routing rule** — agents auto-delegate when skills go uninvoked, closing the gap from ~79% to ~95%
 - **Skill-to-agent integration** — four patterns formalized: skill spawns agent (A), agent preloads skill (B), auto-delegation (C), multi-agent orchestration via skills (D)
 

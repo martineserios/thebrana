@@ -54,7 +54,7 @@ thebrana/system/                              PLUGIN (loaded by Claude Code)
 ├── agents/                                   ← 11 specialized sub-agents
 │   ├── scout.md                              ← Haiku-powered fast research agent
 │   ├── memory-curator.md                     ← Knowledge lifecycle management
-│   ├── project-scanner.md                    ← Project structure analysis
+│   ├── client-scanner.md                    ← Project structure analysis
 │   ├── venture-scanner.md                    ← Business project analysis
 │   ├── challenger.md                         ← Opus adversarial review (read-only)
 │   ├── debrief-analyst.md                    ← Opus session learning extraction
@@ -188,7 +188,7 @@ Skills are user-invocable workflows (`/command`). Agents auto-delegate when the 
 |-------|-------|---------|-------|
 | **scout** | Haiku | Fast research, file discovery | Read-only |
 | **memory-curator** | Haiku | Knowledge lifecycle: recall, store, promote, demote | Read, Bash (claude-flow) |
-| **project-scanner** | Haiku | Project structure analysis for onboarding/alignment | Read-only |
+| **client-scanner** | Haiku | Project structure analysis for onboarding/alignment | Read-only |
 | **venture-scanner** | Haiku | Business project analysis for venture onboarding | Read-only |
 | **challenger** | Opus + Gemini | Adversarial review: Opus reasoning + Gemini doc-grounded second opinion via NotebookLM | Read-only (no Write/Edit/Bash) |
 | **debrief-analyst** | Opus | Session learning extraction, errata identification | Read-only |
@@ -204,7 +204,7 @@ Agents are safety nets, not replacements. The community builds skills (portable,
 
 ### Agent Boundaries
 
-Each agent description includes "Not for..." constraints that disambiguate auto-delegation routing. When multiple agents cover adjacent domains (e.g., scout vs memory-curator for research, project-scanner vs venture-scanner for diagnostics), explicit negative boundaries prevent the model from routing to the wrong agent. Model distribution: Haiku (8 agents — fast, cheap tasks), Opus (2 agents — challenger, debrief-analyst — where reasoning depth justifies the cost), Sonnet (1 agent — pr-reviewer — code understanding without Opus cost).
+Each agent description includes "Not for..." constraints that disambiguate auto-delegation routing. When multiple agents cover adjacent domains (e.g., scout vs memory-curator for research, client-scanner vs venture-scanner for diagnostics), explicit negative boundaries prevent the model from routing to the wrong agent. Model distribution: Haiku (8 agents — fast, cheap tasks), Opus (2 agents — challenger, debrief-analyst — where reasoning depth justifies the cost), Sonnet (1 agent — pr-reviewer — code understanding without Opus cost).
 
 ---
 

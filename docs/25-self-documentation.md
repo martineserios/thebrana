@@ -452,7 +452,7 @@ Each document should mark its key decisions with a consistent pattern (a heading
 
 ## All Commands
 
-The brana system has skills across code-focused and venture/business categories, plus agents (scout, memory-curator, project-scanner, venture-scanner, challenger, debrief-analyst, archiver, daily-ops, metrics-collector, pipeline-tracker). Commands are organized in four categories, all invoked via `/command-name` in a session. Skills and agents integrate via four patterns documented in [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md).
+The brana system has skills across code-focused and venture/business categories, plus agents (scout, memory-curator, client-scanner, venture-scanner, challenger, debrief-analyst, archiver, daily-ops, metrics-collector, pipeline-tracker). Commands are organized in four categories, all invoked via `/command-name` in a session. Skills and agents integrate via four patterns documented in [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md).
 
 ### Spec Maintenance
 

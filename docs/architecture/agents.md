@@ -33,7 +33,7 @@ Fast research agent for codebase exploration and web search. Finds files, search
 
 Recalls patterns from the knowledge system, cross-pollinates across projects, and checks knowledge health. Uses claude-flow CLI for semantic search. Returns relevant patterns and health assessments.
 
-### project-scanner
+### client-scanner
 
 | | |
 |---|---|
@@ -130,7 +130,7 @@ The `delegation-routing` rule maps situations to agents:
 | Situation | Agent |
 |-----------|-------|
 | Starting work, familiar problem, stuck | memory-curator |
-| New project, project health check | project-scanner |
+| New project, project health check | client-scanner |
 | New business project | venture-scanner |
 | Plan or architecture decision forming | challenger |
 | End of implementation session | debrief-analyst |

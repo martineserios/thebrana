@@ -33,7 +33,7 @@ Specialized agents complement skills. Agents auto-delegate — no slash command 
 | Agent | Model | When It Fires |
 |-------|-------|---------------|
 | memory-curator | Haiku | Starting work, familiar problem, stuck |
-| project-scanner | Haiku | New project, project health check |
+| client-scanner | Haiku | New project, project health check |
 | venture-scanner | Haiku | New business project |
 | challenger | Opus | Plan or architecture decision forming |
 | debrief-analyst | Opus | End of implementation session |

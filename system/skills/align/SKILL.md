@@ -52,7 +52,7 @@ Same detection as `/brana:onboard`: check for manifests (code) and venture dirs/
 
 ## Phase 1: ASSESS
 
-Spawn the `project-scanner` (code) or `venture-scanner` (venture) agent. If unavailable, run manually.
+Spawn the `client-scanner` (code) or `venture-scanner` (venture) agent. If unavailable, run manually.
 
 ### Code checklist (28 items)
 
