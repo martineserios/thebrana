@@ -133,6 +133,37 @@ You don't need to worry about releases. When your PR is merged to `main`:
 4. A git tag and GitHub Release are created
 5. Users get the update on their next `/plugin update brana`
 
+## Becoming a contributor
+
+1. Open an issue or comment on an existing one expressing interest
+2. A maintainer will add you as a collaborator (`write` access)
+3. Once a second contributor joins, PR approval reviews will be enabled
+
+## Maintainer checklist: adding a contributor
+
+When the first external contributor joins, run these steps:
+
+```bash
+# 1. Add collaborator
+gh api repos/martineserios/thebrana/collaborators/USERNAME -X PUT -f permission=write
+
+# 2. Enable PR review requirement
+gh api repos/martineserios/thebrana/branches/main/protection \
+  -X PUT -H "Accept: application/vnd.github+json" --input - <<'EOF'
+{
+  "required_status_checks": { "strict": true, "contexts": ["validate"] },
+  "enforce_admins": true,
+  "required_pull_request_reviews": {
+    "required_approving_review_count": 1,
+    "dismiss_stale_reviews": true
+  },
+  "restrictions": null,
+  "allow_force_pushes": false,
+  "allow_deletions": false
+}
+EOF
+```
+
 ## Questions?
 
 Open an issue or start a discussion. We're happy to help.
