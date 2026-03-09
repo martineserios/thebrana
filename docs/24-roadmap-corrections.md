@@ -288,7 +288,7 @@ TOTAL=$((TOTAL + AGENT_LINES))
 - `system/skills/retrospective/SKILL.md` — `hooks learn --patterns`
 - `system/skills/cross-pollinate/SKILL.md` — `hooks recall --cross-project --query`
 - `system/skills/project-onboard/SKILL.md` — `hooks recall --query`
-- `system/skills/project-retire/SKILL.md` — `hooks recall --query`
+- `system/skills/client-retire/SKILL.md` — `hooks recall --query`
 
 **Additional issue:** Hook scripts ran `npx claude-flow` from the project CWD, but the global memory DB lives at `$HOME/.swarm/memory.db`. Commands must run from `$HOME` (via `cd "$HOME" &&`) for the global DB to be found.
 
@@ -572,7 +572,7 @@ frontmatter=$(awk 'NR==1 && /^---$/{in_fm=1; next} in_fm && /^---$/{exit} in_fm{
 
 **Discovery:** Upgrading from alpha.28 to alpha.34, `memory search -q "query"` fails with "Required option missing: --query". The alpha.34 release added global `-Q`/`--quiet` flag, which shadows the `-q` shorthand that `memory search` previously used for `--query`. The `--help` text still shows `-q` in examples, making this doubly confusing.
 
-**Impact:** Every hook and skill that calls `memory search -q` silently fails (returns empty or errors). The session-start recall hook, pattern-recall, retrospective, cross-pollinate, project-onboard, project-retire, build-phase, venture-onboard, venture-phase, growth-check, and test-memory.sh — all broken. 15 files total across implementation and spec docs.
+**Impact:** Every hook and skill that calls `memory search -q` silently fails (returns empty or errors). The session-start recall hook, pattern-recall, retrospective, cross-pollinate, project-onboard, client-retire, build-phase, venture-onboard, venture-phase, growth-check, and test-memory.sh — all broken. 15 files total across implementation and spec docs.
 
 **Fix:** Replace all `-q` with `--query` in every file that calls `memory search`:
 ```bash
@@ -949,9 +949,9 @@ The reflection layer redesign (docs 31, 32) removed ~160 lines from [doc 14](ref
 **Severity:** Medium — required manual rework on 9 files
 **Status:** code-fix (2026-02-22)
 
-**Discovery:** Python script (`/tmp/bulk-cf-replace.py`) used regex to find standalone fenced code blocks containing the cf-discovery pattern and replace them with a `source` one-liner. The regex expected ````bash\n...cf-discovery...\n``` `` as a standalone block, but 9 files had the cf-discovery embedded inside larger code blocks with additional commands (e.g., setup sections with both discovery and memory store). The regex either missed them entirely or ate surrounding text (knowledge-review lost its heading, project-retire lost indentation).
+**Discovery:** Python script (`/tmp/bulk-cf-replace.py`) used regex to find standalone fenced code blocks containing the cf-discovery pattern and replace them with a `source` one-liner. The regex expected ````bash\n...cf-discovery...\n``` `` as a standalone block, but 9 files had the cf-discovery embedded inside larger code blocks with additional commands (e.g., setup sections with both discovery and memory store). The regex either missed them entirely or ate surrounding text (knowledge-review lost its heading, client-retire lost indentation).
 
-**Files affected:** 9 skills where cf-discovery was part of a larger fenced block, notably `knowledge-review/SKILL.md` and `project-retire/SKILL.md`.
+**Files affected:** 9 skills where cf-discovery was part of a larger fenced block, notably `knowledge-review/SKILL.md` and `client-retire/SKILL.md`.
 
 **Fix applied:** Manual editing of all 9 remaining files after bulk pass.
 
@@ -1145,7 +1145,7 @@ Attempting to re-store a pattern with the same key and namespace fails with `UNI
 
 ### 26. Bulk regex edits need a two-pass verification strategy
 
-The Python bulk-edit script caught 32 of 41 replacements. The remaining 9 had variations the regex didn't anticipate: embedded blocks, different indentation, mixed content. The fix was manual editing — one file at a time. The broken files (knowledge-review lost its heading, project-retire lost indentation) were only caught by reviewing the diff, not by validation. **Rule: after any bulk regex replacement across 10+ files, run a verification pass: (1) count expected vs actual replacements, (2) `git diff` every changed file for formatting damage, (3) grep for any remaining instances of the old pattern. The bulk script is the first pass, not the only pass.**
+The Python bulk-edit script caught 32 of 41 replacements. The remaining 9 had variations the regex didn't anticipate: embedded blocks, different indentation, mixed content. The fix was manual editing — one file at a time. The broken files (knowledge-review lost its heading, client-retire lost indentation) were only caught by reviewing the diff, not by validation. **Rule: after any bulk regex replacement across 10+ files, run a verification pass: (1) count expected vs actual replacements, (2) `git diff` every changed file for formatting damage, (3) grep for any remaining instances of the old pattern. The bulk script is the first pass, not the only pass.**
 
 ### 27. Embedded Python in bash scripts beats associative arrays
 

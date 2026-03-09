@@ -207,7 +207,7 @@ Risks and resolutions. Auto-populated from challenger review.
 ### Command inventory (25, down from 42)
 
 **Kept:**
-`/brana:build`, `/brana:close`, `/brana:tasks`, `/brana:log`, `/brana:research`, `/brana:retrospective`, `/brana:memory`, `/brana:challenge`, `/brana:reconcile`, `/brana:maintain-specs`, `/brana:pipeline`, `/brana:review`, `/brana:venture-phase`, `/brana:financial-model`, `/brana:onboard`, `/brana:align`, `/brana:project-retire`, `/brana:proposal`, `/brana:export-pdf`, `/brana:gsheets`, `/brana:notebooklm-source`, `/brana:respondio-prompts`, `/brana:meta-template`, `/brana:scheduler`, `/brana:acquire-skills`
+`/brana:build`, `/brana:close`, `/brana:tasks`, `/brana:log`, `/brana:research`, `/brana:retrospective`, `/brana:memory`, `/brana:challenge`, `/brana:reconcile`, `/brana:maintain-specs`, `/brana:pipeline`, `/brana:review`, `/brana:venture-phase`, `/brana:financial-model`, `/brana:onboard`, `/brana:align`, `/brana:client-retire`, `/brana:proposal`, `/brana:export-pdf`, `/brana:gsheets`, `/brana:notebooklm-source`, `/brana:respondio-prompts`, `/brana:meta-template`, `/brana:scheduler`, `/brana:acquire-skills`
 
 **Retired (17):**
 

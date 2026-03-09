@@ -52,7 +52,7 @@ The mastermind system is software. Give it its own project, its own repo, its ow
 │   │   │   ├── memory/SKILL.md
 │   │   │   │   │   │   ├── retrospective/SKILL.md
 │   │   │   ├── project-onboard/SKILL.md
-│   │   │   └── project-retire/SKILL.md
+│   │   │   └── client-retire/SKILL.md
 │   │   ├── agents/
 │   │   │   ├── architect.md
 │   │   │   ├── reviewer.md
@@ -202,7 +202,7 @@ echo "Knowledge backed up: $BACKUP_DIR/memory_$DATE.db"
 **When to backup:**
 - Before every deploy (automatic, called by deploy.sh)
 - Daily via cron (cheap insurance)
-- Before `/brana:project-retire` (you're about to transform data)
+- Before `/brana:client-retire` (you're about to transform data)
 
 **What about git for knowledge?**
 

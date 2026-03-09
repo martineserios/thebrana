@@ -52,7 +52,7 @@ Everything dropped here can be added later. Nothing in this plan prevents gradua
 | **Two-layer memory** | Layer 0 (native auto memory) + Layer 1 (ReasoningBank). Keeps working if claude-flow breaks. Near-zero cost. |
 | **Three hooks** | SessionStart (recall), SessionEnd (learn), PostToolUse (notice). The learning loop IS the product. |
 | **Quarantine** | New patterns enter at 0.5 confidence, transferable: false. 3 successes to promote. One mechanism, biggest impact. |
-| **6 core skills** | memory, retrospective, project-onboard, project-retire, challenge. The user interface. |
+| **6 core skills** | memory, retrospective, project-onboard, client-retire, challenge. The user interface. |
 | **Challenger (one-pass)** | `/brana:challenge` spawns Sonnet, gets one review, done. No debate, no auto-trigger, no pre-screening. |
 | **Export escape hatch** | `export-knowledge.sh` on day 1. Non-negotiable safety net. |
 | **PM awareness** | One rule file. Mastermind knows about PM repos. |
@@ -80,7 +80,7 @@ Everything dropped here can be added later. Nothing in this plan prevents gradua
 │   │   ├── memory.md
 │   │   ├── retrospective.md
 │   │   ├── project-onboard.md
-│   │   │   ├── project-retire.md
+│   │   │   ├── client-retire.md
 │   │   └── challenge.md
 │   ├── agents/
 │   │   └── scout.md                 ← Haiku fast research
@@ -141,7 +141,7 @@ Build all 6 in week 1-2. Keep them simple:
 | `/brana:retrospective` | Manually store a learning | `memory store -k -v --namespace --tags` |
 | `/project-onboard` | Bootstrap a new project + recall portfolio knowledge | `memory search -q` |
 | `/brana:memory pollinate` | Pull patterns from other projects | `memory search -q` |
-| `/brana:project-retire` | Archive project patterns, mark as historical | bulk tag update |
+| `/brana:client-retire` | Archive project patterns, mark as historical | bulk tag update |
 | `/brana:challenge` | Sonnet reviews your current plan (one pass) | Task tool with `model: "sonnet"` |
 
 ### Plugins to Install

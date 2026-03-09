@@ -47,7 +47,7 @@ Scan and diagnose a project — auto-detects type (code, venture, or hybrid). Ou
 ### `/brana:align`
 Actively align a project with brana practices — 6 phases: DISCOVER → ASSESS → PLAN → IMPLEMENT → VERIFY → DOCUMENT. Auto-detects project type and applies type-appropriate checklists.
 
-### `/brana:project-retire`
+### `/brana:client-retire`
 Archive a project's patterns and mark them as historical. Categorizes knowledge as transferable, historical, or deletable.
 
 ## Business / Venture

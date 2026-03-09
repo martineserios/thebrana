@@ -295,7 +295,7 @@ Build in this order (each depends on the previous being conceptually proven):
 | 2 | `/brana:retrospective` | `memory store -k -v --namespace --tags` | Store learnings manually — test the write path |
 | 3 | `/project-onboard` | `memory search -q` | Cross-project query — validates tagging |
 | 4 | `/brana:memory pollinate` | `memory search -q` | Most nuanced — needs patterns to exist first |
-| 5 | `/brana:project-retire` | `memory store` + bulk operations | Least urgent, most complex |
+| 5 | `/brana:client-retire` | `memory store` + bulk operations | Least urgent, most complex |
 | 6 | `/brana:challenge` | Task tool with `model: "sonnet"` | Cross-model adversarial review — see [13-challenger-agent.md](dimensions/13-challenger-agent.md) |
 
 ### Plugins to Install
@@ -801,7 +801,7 @@ Once the system has enough self-referential patterns (`domain: brana-system`), i
 
 1. **Notice recurring problems** — "The last 3 sessions started slow because SessionStart hook is querying too many patterns. Suggest: limit to top-10 by confidence."
 2. **Cross-pollinate from other projects** — "In project-alpha, you solved a similar problem with caching. Your hooks could use the same pattern."
-3. **Identify unused components** — "The `/brana:project-retire` skill hasn't been invoked in 3 months. Consider archiving it to save context budget."
+3. **Identify unused components** — "The `/brana:client-retire` skill hasn't been invoked in 3 months. Consider archiving it to save context budget."
 
 This is the recursive payoff: the brain improving its own wiring based on what it's learned about maintaining itself.
 

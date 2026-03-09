@@ -587,11 +587,11 @@ The `correction_weight` field (Wave 3) creates a fast track: patterns that resol
 
 Scans and diagnoses a project — auto-detects type (code, venture, or hybrid) from project manifests and directory structure. Outputs a gap report with recommendations. Diagnostic only — no file creation. See `/brana:align` for implementing the recommendations.
 
-### 5. `/brana:project-retire` — "Archive this project's knowledge"
+### 5. `/brana:client-retire` — "Archive this project's knowledge"
 
 ```markdown
 ---
-name: project-retire
+name: client-retire
 description: When a project is done or archived, distill ALL its learnings into
   universal patterns. Nothing is lost when a project ends.
 allowed-tools: [Bash, Read, Write, AskUserQuestion]
@@ -787,7 +787,7 @@ This system adds:
 | **Failure memory** | What DIDN'T work is stored and recalled to prevent repeating mistakes |
 | **Progressive mastery** | The system gets better at every domain it touches, compounding over time |
 | **New project bootstrapping** | Day-1 knowledge from the entire portfolio via `/brana:onboard` |
-| **Knowledge preservation** | Projects end, but their learnings live on via `/brana:project-retire` |
+| **Knowledge preservation** | Projects end, but their learnings live on via `/brana:client-retire` |
 | **Development discipline** | Three-layer enforcement (DDD → SDD → TDD): domain modeling, spec-before-code, test-before-code — deterministic where possible, convention where not |
 
 The single brain isn't just "the same Claude everywhere." It's a Claude that remembers, learns, and transfers knowledge — getting measurably better with every project it touches.

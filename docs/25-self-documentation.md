@@ -480,7 +480,7 @@ Commands for the learning loop. These operate on the pattern memory (claude-flow
 | `/brana:memory pollinate` | Pull transferable patterns from other projects | **When stuck** — "did another project solve this?" |
 | `/project-onboard` | Bootstrap a new code project: scan structure, recall relevant patterns, suggest CLAUDE.md | **Once per project** — first session in a new codebase |
 | `/project-align` | Active alignment pipeline: assess gaps → plan → implement structure → verify → document | **After `/project-onboard`** identifies gaps, or when setting up a new project |
-| `/brana:project-retire` | Archive a project's patterns, keep transferable ones active | **Once per project** — when a project is done |
+| `/brana:client-retire` | Archive a project's patterns, keep transferable ones active | **Once per project** — when a project is done |
 | `/brana:memory review` | Monthly ReasoningBank health check: stats, staleness, promotion candidates | **Monthly** or when curious about knowledge health |
 | `/session-handoff` | Auto-detect close/pickup mode. Close: debrief-analyst → store learnings as quarantined patterns (retrospective) → graduation suggestions → doc drift heuristic → handoff note → claude-flow store. Pickup: read handoff → reconcile cross-session changes → surface flags + correction patterns | **Session start or end** — auto-detects which mode based on git activity |
 
@@ -738,12 +738,12 @@ context before trusting them.
 
 **Retiring a project:**
 ```
-/brana:project-retire [project-name]
+/brana:client-retire [project-name]
 ```
 
 Example:
 ```
-/brana:project-retire nexeye
+/brana:client-retire nexeye
 ```
 ```
 Found 12 patterns for nexeye:

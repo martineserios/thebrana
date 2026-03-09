@@ -119,7 +119,7 @@ Reads deal records, identifies overdue follow-ups, spots stage-stuck deals, and 
 |---|---|
 | **Model** | Haiku |
 | **Tools** | Bash, Read, Glob, Grep |
-| **Fires when** | Retiring a project (via `/brana:project-retire`) |
+| **Fires when** | Retiring a project (via `/brana:client-retire`) |
 
 Scans a project's accumulated knowledge and categorizes patterns as transferable (useful in other projects), historical (project-specific, archive only), or deletable (stale/irrelevant). Supports the project retirement workflow.
 
