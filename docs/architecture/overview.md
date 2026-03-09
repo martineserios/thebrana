@@ -41,21 +41,26 @@ Three layers, each with its own persistence:
 
 ## The Deploy Model
 
-Brana is versioned in `system/` and deployed to `~/.claude/`:
+Brana uses a **two-layer deployment**: a plugin (loaded by Claude Code) and an identity layer (deployed via `bootstrap.sh`).
 
 ```
-system/                  deploy.sh         ~/.claude/
-├── skills/           ────────────────→   skills/
-├── rules/            ────────────────→   rules/
-├── hooks/            ────────────────→   hooks/
-├── agents/           ────────────────→   agents/
-├── scripts/          ────────────────→   scripts/
-├── commands/         ────────────────→   commands/
-├── settings.json     ────────────────→   settings.json
-└── CLAUDE.md         ────────────────→   CLAUDE.md
+system/                               Plugin (loaded by Claude Code)
+├── .claude-plugin/plugin.json        ← plugin manifest
+├── skills/                           ← /brana:* slash commands
+├── commands/                         ← agent commands
+├── hooks/hooks.json + *.sh           ← event hooks
+├── agents/                           ← specialized agents
+└── CLAUDE.md                         ← mastermind identity
+
+bootstrap.sh                          Identity layer → ~/.claude/
+├── CLAUDE.md                         ← global identity
+├── rules/                            ← behavioral rules
+├── scripts/                          ← helper scripts
+├── statusline.sh                     ← status bar
+└── scheduler/                        ← scheduled jobs
 ```
 
-You never edit `~/.claude/` directly. Edit `system/`, run `./validate.sh && ./deploy.sh`.
+You never edit `~/.claude/` directly. Edit `system/` (plugin loads it) or re-run `./bootstrap.sh` (identity layer).
 
 ## Session Lifecycle
 
@@ -133,7 +138,7 @@ When claude-flow is unavailable, the system degrades gracefully — auto memory 
 
 ## Skills
 
-39 slash commands organized by purpose. Skills are markdown files with YAML frontmatter that define allowed tools and instructions.
+24 slash commands organized by purpose. Skills are markdown files with YAML frontmatter that define allowed tools and instructions.
 
 Categories:
 - **Development** — Build, ship, and maintain code
@@ -186,16 +191,20 @@ See [agents.md](agents.md) for the full roster.
 ### Install
 
 ```bash
-git clone <repo-url> enter_thebrana/thebrana
-cd enter_thebrana/thebrana
-./validate.sh && ./deploy.sh
-```
+# Dev mode (recommended for contributors)
+claude --plugin-dir ./system
 
-`deploy.sh` copies everything from `system/` to `~/.claude/`, registers hooks in `settings.json`, and deploys the embeddings config.
+# Install from GitHub
+/plugin marketplace add martineserios/thebrana
+/plugin install brana
+
+# Identity layer (CLAUDE.md, rules, scripts — run once)
+./bootstrap.sh
+```
 
 ### Verify
 
-After deploy, start a new Claude Code session. You should see:
+After install, start a new Claude Code session. You should see:
 - Session start hook fires (pattern recall)
 - `/brana:tasks` and other skills are available
 - `pre-tool-use` gate activates on `feat/*` branches in projects with `docs/decisions/`
@@ -211,9 +220,6 @@ claude
 
 # See available tasks
 /brana:tasks
-
-# Start working
-/pickup
 ```
 
 ## Project Setup

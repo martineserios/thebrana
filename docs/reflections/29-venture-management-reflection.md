@@ -399,6 +399,8 @@ These 7 skills (plus `/monthly-plan`) connect to the existing 5: `/morning` read
 
 This reflection doc will be enriched over time as the venture skills are used and learnings accumulate.
 
+> **Reconcile note (2026-03-09):** The t-214 build loop redesign (Mar 2026) consolidated venture skills from 12+ to 5: `/brana:venture-phase`, `/brana:review` (absorbed `/weekly-review`, `/monthly-close`, `/growth-check`, `/morning`), `/brana:pipeline`, `/brana:financial-model`, `/brana:proposal`. Skills like `/venture-onboard` and `/venture-align` merged into `/brana:onboard` and `/brana:align`. `/sop`, `/experiment`, `/content-plan`, `/monthly-plan` were retired. The phase history below reflects original skill names at time of implementation.
+
 ### Phase 1: Foundation (Complete)
 - Created the five venture skills
 - Extended tag vocabulary for business patterns
@@ -433,11 +435,11 @@ This reflection doc will be enriched over time as the venture skills are used an
   - Where did the stage classification model break down?
 - Update this reflection doc and [doc 28](../dimensions/28-startup-smb-management.md) via `/brana:maintain-specs`
 
-### Phase 5: Unified Project Management
-- The distinction between "code project" and "business project" may blur
-- Many projects are both (a SaaS startup is code + business simultaneously)
-- The skill system should detect which aspects need attention and recommend accordingly
-- `/project-onboard` and `/venture-onboard` may merge into a unified `/brana:onboard` that detects the project type and adapts
+### Phase 5: Unified Project Management (Complete)
+- `/project-onboard` and `/venture-onboard` merged into `/brana:onboard` — auto-detects project type (code, venture, hybrid)
+- `/project-align` and `/venture-align` merged into `/brana:align`
+- `/brana:review` absorbed weekly, monthly, and growth-check into one skill with subcommands
+- The unified model works: one skill detects context and adapts, rather than requiring the user to pick the right variant
 
 ---
 

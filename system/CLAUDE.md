@@ -42,6 +42,7 @@ Specialized agents complement skills. Agents auto-delegate — no slash command 
 | daily-ops | Haiku | Session start on venture project |
 | metrics-collector | Haiku | /brana:review — weekly, monthly, ad-hoc check |
 | pipeline-tracker | Haiku | Pipeline tracking, deal events |
+| pr-reviewer | Sonnet | PR creation (auto-triggered) |
 
 Agent results are inputs, not decisions. Present findings to the user. File modifications happen in main context after approval.
 
