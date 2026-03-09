@@ -249,26 +249,51 @@ for hook_script in "$SYSTEM_DIR"/hooks/*.sh; do
     pass "hooks/$hook_name — valid script"
 done
 
-# Validate settings.json hook event names are known
-HOOK_EVENTS=$(jq -r '.hooks // {} | keys[]' "$SYSTEM_DIR/settings.json" 2>/dev/null || true)
-for event in $HOOK_EVENTS; do
-    if ! echo "$KNOWN_EVENTS" | grep -qw "$event"; then
-        fail "settings.json references unknown hook event: $event"
+# Validate hooks.json (plugin format — primary)
+if [ -f "$SYSTEM_DIR/hooks/hooks.json" ]; then
+    if jq . "$SYSTEM_DIR/hooks/hooks.json" > /dev/null 2>&1; then
+        pass "hooks/hooks.json — valid JSON"
     else
-        pass "settings.json hook event '$event' is valid"
+        fail "hooks/hooks.json — invalid JSON"
     fi
-done
 
-# Validate that all commands in settings.json have corresponding scripts
-HOOK_CMDS=$(jq -r '.hooks // {} | .[][] | .hooks[]? | .command // empty' "$SYSTEM_DIR/settings.json" 2>/dev/null || true)
-for cmd in $HOOK_CMDS; do
-    SCRIPT_NAME=$(basename "$cmd")
-    if [ ! -f "$SYSTEM_DIR/hooks/$SCRIPT_NAME" ]; then
-        fail "settings.json references hooks/$SCRIPT_NAME but file not found in system/hooks/"
-    else
-        pass "settings.json command '$SCRIPT_NAME' has matching script"
-    fi
-done
+    # Validate event names
+    HJ_EVENTS=$(jq -r '.hooks // {} | keys[]' "$SYSTEM_DIR/hooks/hooks.json" 2>/dev/null || true)
+    for event in $HJ_EVENTS; do
+        if ! echo "$KNOWN_EVENTS" | grep -qw "$event"; then
+            fail "hooks.json references unknown hook event: $event"
+        else
+            pass "hooks.json hook event '$event' is valid"
+        fi
+    done
+
+    # Validate commands use ${CLAUDE_PLUGIN_ROOT} and point to existing scripts
+    HJ_CMDS=$(jq -r '.hooks // {} | .[][] | .hooks[]? | .command // empty' "$SYSTEM_DIR/hooks/hooks.json" 2>/dev/null || true)
+    for cmd in $HJ_CMDS; do
+        SCRIPT_NAME=$(basename "$cmd")
+        if ! echo "$cmd" | grep -q '${CLAUDE_PLUGIN_ROOT}'; then
+            fail "hooks.json command '$SCRIPT_NAME' does not use \${CLAUDE_PLUGIN_ROOT}"
+        fi
+        if [ ! -f "$SYSTEM_DIR/hooks/$SCRIPT_NAME" ]; then
+            fail "hooks.json references hooks/$SCRIPT_NAME but file not found"
+        elif [ ! -x "$SYSTEM_DIR/hooks/$SCRIPT_NAME" ]; then
+            fail "hooks/$SCRIPT_NAME is not executable"
+        else
+            pass "hooks.json command '$SCRIPT_NAME' — exists, executable, uses plugin root"
+        fi
+    done
+fi
+
+# Validate settings.json hook event names (legacy — should be empty in v0.7.0+)
+HOOK_EVENTS=$(jq -r '.hooks // {} | keys[]' "$SYSTEM_DIR/settings.json" 2>/dev/null || true)
+if [ -n "$HOOK_EVENTS" ]; then
+    warn "settings.json still has hooks — should be empty in v0.7.0+ (use hooks/hooks.json)"
+    for event in $HOOK_EVENTS; do
+        if ! echo "$KNOWN_EVENTS" | grep -qw "$event"; then
+            fail "settings.json references unknown hook event: $event"
+        fi
+    done
+fi
 # Check 10: Commands
 echo "Checking commands..."
 if [ -d "$SYSTEM_DIR/commands" ]; then
