@@ -252,3 +252,19 @@ Many files reference `$HOME/.claude/` paths. Some are valid (bootstrap-layer fil
 - O1: Verify marketplace access is actually available before planning distribution around it.
 - O2: `session-start-venture.sh` not wired in settings.json — may be legacy. Clarify.
 - O3: Add changelog for 0.6.0 → 0.7.0 transition.
+
+## Post-Ship Errata
+
+### E1: PostToolUse/PostToolUseFailure don't fire from plugin hooks.json (2026-03-09)
+
+CC v2.1.x does not dispatch PostToolUse or PostToolUseFailure events to plugin hooks. Root cause: `CLAUDE_PLUGIN_ROOT` environment variable not set by the hook executor (CC issue [#24529](https://github.com/anthropics/claude-code/issues/24529)). Only PreToolUse, SessionStart, and SessionEnd work from plugins.
+
+**Workaround:** `bootstrap.sh` installs PostToolUse and PostToolUseFailure hooks to `~/.claude/settings.json` with absolute paths to `system/hooks/` scripts. Plugin `hooks/hooks.json` only registers PreToolUse, SessionStart, SessionEnd.
+
+**When CC fixes #24529:** Move PostToolUse/PostToolUseFailure back to `hooks/hooks.json`, remove from `bootstrap.sh` Step 4b, update doc 14.
+
+### E2: Stale ~/.claude/{skills,commands,agents} from deploy.sh (2026-03-09)
+
+Users upgrading from `deploy.sh` to the plugin have stale copies of skills, commands, and agents in `~/.claude/`. These cause duplicate skill registration — skills appear both unprefixed (from `~/.claude/skills/`) and with `brana:` prefix (from the plugin). Silent, confusing failure mode.
+
+**Fix:** `bootstrap.sh` Step 1b removes `~/.claude/skills/`, `~/.claude/commands/`, and `~/.claude/agents/` if they exist. Users must run `bootstrap.sh` after upgrading to clear the duplicates. The plugin is the sole source for these components.
