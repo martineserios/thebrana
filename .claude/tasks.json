@@ -4821,7 +4821,7 @@
         "linkedin",
         "personal-brand"
       ],
-      "status": "in_progress",
+      "status": "completed",
       "stream": "roadmap",
       "type": "subtask",
       "parent": "t-162",
@@ -4834,8 +4834,8 @@
       "github_issue": null,
       "created": "2026-03-05",
       "started": "2026-03-07",
-      "completed": null,
-      "notes": "EN: 'I see systems. Then I build them. Business problems → AI/ML products, architecture to production.' ES headline pending (st-009).",
+      "completed": "2026-03-09",
+      "notes": "Headline defined: EN + ES versions",
       "context": "Current: 'Machine Learning Engineer | Data Developer | MLOps | AI Systems Builder'. Decided: 'I see systems. Then I build them. Business problems → AI/ML products, architecture to production.' Spanish headline will be original (not translated) in secondary profile."
     },
     {
@@ -4847,7 +4847,7 @@
         "linkedin",
         "personal-brand"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "type": "subtask",
       "parent": "t-162",
@@ -4860,8 +4860,8 @@
       "github_issue": null,
       "created": "2026-03-05",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-09",
+      "notes": "Instruction: remove Open to Work badge",
       "context": "Green badge undermines authority positioning. You're not a job seeker — you're a systems designer who consults."
     },
     {
@@ -4873,7 +4873,7 @@
         "linkedin",
         "personal-brand"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "type": "subtask",
       "parent": "t-162",
@@ -4886,8 +4886,8 @@
       "github_issue": null,
       "created": "2026-03-05",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-09",
+      "notes": "About section copy in EN + ES, challenged and refined",
       "context": "Current About is vague ('prioritize learning', 'multidisciplinary teams'). Zero specifics, zero positioning, zero CTA. Bilingual strategy: English primary, Spanish signature."
     },
     {
@@ -4913,7 +4913,7 @@
       "created": "2026-03-05",
       "started": null,
       "completed": null,
-      "notes": null,
+      "notes": "Manual: follow LinkedIn verification flow",
       "context": "Verification prompt already visible on profile. Trust signal for authority positioning."
     },
     {
@@ -4925,7 +4925,7 @@
         "linkedin",
         "personal-brand"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "type": "subtask",
       "parent": "t-162",
@@ -4938,8 +4938,8 @@
       "github_issue": null,
       "created": "2026-03-05",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-09",
+      "notes": "Skills reorder defined: ML > Architecture > Python",
       "context": "Current: LangGraph and Streamlit shown first (47 total). Too niche for first impression — should reflect systems design positioning."
     },
     {
@@ -4951,7 +4951,7 @@
         "linkedin",
         "personal-brand"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "type": "subtask",
       "parent": "t-162",
@@ -4966,8 +4966,8 @@
       "github_issue": null,
       "created": "2026-03-05",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-09",
+      "notes": "Featured: pin GitHub profile",
       "context": "No Featured section currently. Blocked by About rewrite — Featured items should reinforce the positioning established there."
     },
     {
@@ -4979,7 +4979,7 @@
         "linkedin",
         "personal-brand"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "type": "subtask",
       "parent": "t-162",
@@ -4992,8 +4992,8 @@
       "github_issue": null,
       "created": "2026-03-05",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-09",
+      "notes": "All 6 roles rewritten with system-problem-first framing, EN+ES, challenged",
       "context": "Current titles: Data Developer (Upwork), Data Scientist (Encora), ML Engineer (Froneus), Data Scientist (INTA), Data Engineer (Galo AI). Descriptions are resume-style bullet points."
     },
     {
@@ -5005,7 +5005,7 @@
         "linkedin",
         "personal-brand"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "type": "subtask",
       "parent": "t-162",
@@ -5018,8 +5018,8 @@
       "github_issue": null,
       "created": "2026-03-05",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-09",
+      "notes": "Banner concepts defined: Options B and C recommended",
       "context": "Banner is wasted real estate. NLM visual styles already tested (darkmode, blueprint, sketch, minimalist, organic) in docs/features/linkedin-content-pipeline/nlm-visual-test/."
     },
     {
@@ -5031,7 +5031,7 @@
         "linkedin",
         "personal-brand"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "type": "subtask",
       "parent": "t-162",
@@ -5048,8 +5048,8 @@
       "github_issue": null,
       "created": "2026-03-07",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-09",
+      "notes": "Spanish secondary profile: all ES versions ready",
       "context": "LinkedIn has a built-in secondary language profile feature. Spanish visitors see the Spanish profile automatically. Write original Spanish content, don't translate English. Blocked by English headline, About, and Experience — those set the positioning that Spanish adapts from."
     },
     {
@@ -5970,7 +5970,7 @@
         "workflow"
       ],
       "status": "completed",
-      "completed": "2026-03-07",
+      "completed": null,
       "stream": "roadmap",
       "parent": null,
       "order": null,
@@ -5982,7 +5982,6 @@
       "github_issue": null,
       "created": "2026-03-07",
       "started": "2026-03-07",
-      "completed": null,
       "notes": null,
       "context": "User observation: 41 skills are loose — they need to be part of flows. Existing docs describe individual commands but not how they compose. Goal: transform brana from 'collection of tools' to 'documented system with clear workflows.' Examples of flows to map: daily workflow (session start → work → capture → session end), spec lifecycle (research → design → build → backprop), venture workflow (align → plan → execute → review). This is strategic — it's what makes brana transferable beyond its creator."
     },
@@ -6479,6 +6478,185 @@
       "created": "2026-03-08",
       "notes": null,
       "context": "Emerged from t-232 discussion. User wants smooth multi-project workflow without manual cd + claude per project."
+    },
+    {
+      "id": "t-234",
+      "subject": "Review brana-knowledge structure and functioning",
+      "description": "Review the brana-knowledge repo structure, nature, and functioning. Understand the reflection layer, roadmap layer, dimension docs, and how they interconnect. Document findings.",
+      "tags": [
+        "architecture",
+        "docs"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": "P1",
+      "effort": "M",
+      "execution": "manual",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-09",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": null,
+      "strategy": "investigation",
+      "build_step": null
+    },
+    {
+      "id": "st-010",
+      "subject": "Fix NexEye overclaim — add pre-production qualifier",
+      "description": "Brief rule: never claim production for pre-production work. 'Designed every layer' sounds shipped. Add 'pre-launch with provincial government' qualifier.",
+      "type": "subtask",
+      "parent": "st-007",
+      "status": "completed",
+      "stream": "roadmap",
+      "tags": [
+        "challenge-fix",
+        "critical"
+      ],
+      "priority": "P0",
+      "effort": "S",
+      "execution": "manual",
+      "created": "2026-03-09",
+      "completed": "2026-03-09",
+      "notes": "NexEye: added (pre-launch) qualifier"
+    },
+    {
+      "id": "st-011",
+      "subject": "Fix Digital House Spanish voseo — switch to impersonal",
+      "description": "Three voseo verbs (tomás, convertís, diseñás) break LATAM-neutral register rule. Switch to impersonal: se toma, se convierte, se diseña.",
+      "type": "subtask",
+      "parent": "st-007",
+      "status": "completed",
+      "stream": "roadmap",
+      "tags": [
+        "challenge-fix",
+        "critical"
+      ],
+      "priority": "P0",
+      "effort": "S",
+      "execution": "manual",
+      "created": "2026-03-09",
+      "completed": "2026-03-09",
+      "notes": "Digital House ES: voseo → impersonal register"
+    },
+    {
+      "id": "st-012",
+      "subject": "Trim Upwork description for LinkedIn scannability",
+      "description": "~120 words + 3 bullets is too long. LinkedIn truncates after ~3 lines on mobile. Cut intro to 2 sentences max, let bullets do the work.",
+      "type": "subtask",
+      "parent": "st-007",
+      "status": "completed",
+      "stream": "roadmap",
+      "tags": [
+        "challenge-fix",
+        "critical"
+      ],
+      "priority": "P0",
+      "effort": "S",
+      "execution": "manual",
+      "created": "2026-03-09",
+      "completed": "2026-03-09",
+      "notes": "Upwork: trimmed to 1 sentence + 3 bullets"
+    },
+    {
+      "id": "st-013",
+      "subject": "Fix Somos Mirada unverifiable claim",
+      "description": "'The practice runs differently now' — no metric, no proof. Cut the sentence or add a measurable outcome.",
+      "type": "subtask",
+      "parent": "st-007",
+      "status": "completed",
+      "stream": "roadmap",
+      "tags": [
+        "challenge-fix",
+        "warning"
+      ],
+      "priority": "P1",
+      "effort": "S",
+      "execution": "manual",
+      "created": "2026-03-09",
+      "completed": "2026-03-09",
+      "notes": "Somos Mirada: overclaim already removed in C1 fix"
+    },
+    {
+      "id": "st-014",
+      "subject": "Add specifics to Encora description",
+      "description": "2y11m is the longest tenure but has zero specifics. Reads as evasive. Add at least one concrete project or domain without violating NDA.",
+      "type": "subtask",
+      "parent": "st-007",
+      "status": "completed",
+      "stream": "roadmap",
+      "tags": [
+        "challenge-fix",
+        "warning"
+      ],
+      "priority": "P1",
+      "effort": "S",
+      "execution": "manual",
+      "created": "2026-03-09",
+      "completed": "2026-03-09",
+      "notes": "Encora: added specifics (financial services, prediction models)"
+    },
+    {
+      "id": "st-015",
+      "subject": "Soften Galo AI systems retrofit",
+      "description": "'I just didn't know it yet' is charming but borderline forced. Keep it but ensure surrounding roles earn the systems framing through specifics, not retrospective narration.",
+      "type": "subtask",
+      "parent": "st-007",
+      "status": "completed",
+      "stream": "roadmap",
+      "tags": [
+        "challenge-fix",
+        "warning"
+      ],
+      "priority": "P2",
+      "effort": "S",
+      "execution": "manual",
+      "created": "2026-03-09",
+      "completed": "2026-03-09",
+      "notes": "P2 - challenger deemed acceptable, kept as-is"
+    },
+    {
+      "id": "st-016",
+      "subject": "Cut INA emotional padding to one sentence",
+      "description": "'Every architecture decision since carries that weight' is personal essay, not LinkedIn. Cut third paragraph to: 'When the system failing means people at risk, you design differently.'",
+      "type": "subtask",
+      "parent": "st-007",
+      "status": "completed",
+      "stream": "roadmap",
+      "tags": [
+        "challenge-fix",
+        "warning"
+      ],
+      "priority": "P1",
+      "effort": "S",
+      "execution": "manual",
+      "created": "2026-03-09",
+      "completed": "2026-03-09",
+      "notes": "INA: emotional padding cut to one sentence"
+    },
+    {
+      "id": "st-017",
+      "subject": "Replace Spanglish deployar/deployé with LATAM-neutral verbs",
+      "description": "'Deployar' and 'deployé' in Upwork Spanish description. Use 'implementar' / 'poner en producción' for LATAM-neutral register.",
+      "type": "subtask",
+      "parent": "st-007",
+      "status": "completed",
+      "stream": "roadmap",
+      "tags": [
+        "challenge-fix",
+        "warning"
+      ],
+      "priority": "P1",
+      "effort": "S",
+      "execution": "manual",
+      "created": "2026-03-09",
+      "completed": "2026-03-09",
+      "notes": "Froneus ES: deployar → poner en producción"
     }
   ]
 }
