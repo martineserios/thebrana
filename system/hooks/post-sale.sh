@@ -67,7 +67,13 @@ if [ -n "$DEAL_VALUE" ]; then
 fi
 
 # Store snapshot in ReasoningBank
-source "$HOME/.claude/scripts/cf-env.sh"
+# Source cf-env.sh: plugin-bundled copy first, bootstrap fallback
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/lib/cf-env.sh" ]; then
+    source "$SCRIPT_DIR/lib/cf-env.sh"
+else
+    source "$HOME/.claude/scripts/cf-env.sh"
+fi
 
 CF_WARNING=""
 if [ -n "$CF" ]; then
