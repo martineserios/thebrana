@@ -137,14 +137,14 @@ else
     PORTFOLIO_FILE="$HOME/.claude/tasks-portfolio.json"
     if [ -f "$PORTFOLIO_FILE" ]; then
         PORTFOLIO_SUMMARY=$(jq -r '
-          [.projects[] |
-            .slug as $slug |
-            (.path | gsub("^~/"; env.HOME + "/")) as $path |
-            {slug: $slug, path: $path}
-          ] | map(.slug) | join(", ")
+          if .clients then
+            [.clients[] | .slug] | join(", ")
+          elif .projects then
+            [.projects[] | .slug] | join(", ")
+          else empty end
         ' "$PORTFOLIO_FILE" 2>/dev/null) || true
         if [ -n "$PORTFOLIO_SUMMARY" ]; then
-            TASK_CONTEXT="[Task portfolio] Projects: $PORTFOLIO_SUMMARY. No tasks.json — use /brana:tasks plan to create one."
+            TASK_CONTEXT="[Task portfolio] Clients: $PORTFOLIO_SUMMARY. No tasks.json — use /brana:tasks plan to create one."
         fi
     fi
 fi
