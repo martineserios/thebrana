@@ -107,24 +107,20 @@ Titles: change where LinkedIn allows it (freelance/self-employed roles). Company
 
 **EN:**
 ```
-I design and build complete AI-powered systems for businesses that need more than a model — they need architecture, infrastructure, and deployment that works in the real world.
+End-to-end AI systems for businesses that need architecture, infrastructure, and deployment — not just a model.
 
-Every engagement starts the same way: understand the business, map the system, figure out where AI actually helps (and where it doesn't), then build and deploy the whole thing.
-
-• NexEye — Wildfire detection platform for a provincial government. Full system: real-time computer vision (YOLO), FastAPI backend, React dashboard, Docker Swarm infrastructure, CI/CD pipeline, multi-environment deployment. Designed every layer.
-• Somos Mirada — AI for a surgical practice. Redesigned the patient flow as a system: WhatsApp automation for scheduling, CRM integration, intelligent triage. The practice runs differently now.
-• Proyecto Anita — Multi-tenant WhatsApp campaign platform. The architecture challenge: make multi-tenancy work without per-tenant infrastructure. Designed the system, built it, deployed it.
+• NexEye — Wildfire detection for a provincial government (pre-launch). Real-time computer vision (YOLO), FastAPI, React, Docker Swarm, CI/CD. Designed and built every layer.
+• Somos Mirada — AI for a surgical practice. Redesigned patient flow as a system: WhatsApp automation, CRM integration, intelligent triage.
+• Proyecto Anita — Multi-tenant WhatsApp campaign platform. Architecture challenge: multi-tenancy without per-tenant infrastructure.
 ```
 
 **ES:**
 ```
-Diseño y desarrollo sistemas completos con IA para negocios que necesitan más que un modelo — necesitan arquitectura, infraestructura y deploy que funcione en el mundo real.
+Sistemas de IA de punta a punta para negocios que necesitan arquitectura, infraestructura y puesta en producción — no solo un modelo.
 
-Cada proyecto arranca igual: entender el negocio, mapear el sistema, definir dónde la IA realmente ayuda (y dónde no), y después diseñar y deployar todo.
-
-• NexEye — Plataforma de detección de incendios para un gobierno provincial. Sistema completo: visión por computadora en tiempo real (YOLO), backend FastAPI, dashboard React, infraestructura Docker Swarm, pipeline CI/CD, deploy multi-entorno. Diseñé cada capa.
-• Somos Mirada — IA para una práctica quirúrgica. Rediseñé el flujo de pacientes como sistema: automatización por WhatsApp para turnos, integración CRM, triage inteligente. La práctica funciona diferente ahora.
-• Proyecto Anita — Plataforma multi-tenant de campañas por WhatsApp. El desafío de arquitectura: hacer que multi-tenancy funcione sin infraestructura por tenant. Diseñé el sistema, lo desarrollé, lo deployé.
+• NexEye — Detección de incendios para un gobierno provincial (pre-lanzamiento). Visión por computadora en tiempo real (YOLO), FastAPI, React, Docker Swarm, CI/CD. Diseñé y construí cada capa.
+• Somos Mirada — IA para una práctica quirúrgica. Rediseñé el flujo de pacientes como sistema: automatización por WhatsApp, integración CRM, triage inteligente.
+• Proyecto Anita — Plataforma multi-tenant de campañas por WhatsApp. Desafío de arquitectura: multi-tenancy sin infraestructura por tenant.
 ```
 
 ### Role 2: Encora (Sep 2021 - Jul 2024)
@@ -133,18 +129,18 @@ Cada proyecto arranca igual: entender el negocio, mapear el sistema, definir dó
 
 **EN:**
 ```
-Nearly three years building ML systems for enterprise clients. The work that taught me the difference between a model that works in a notebook and a system that works in production.
+Nearly three years building ML systems for enterprise clients across financial services and operations. The work that taught me the difference between a model that works in a notebook and a system that works in production.
 
-Designed data pipelines, trained models, and — more importantly — figured out how to integrate ML into business processes that weren't built for it. The hardest part of enterprise ML is never the model. It's the system around it: data quality, stakeholder alignment, monitoring, and the dozen integration points nobody thinks about until they break.
+Built prediction models and recommendation engines that had to integrate into existing business workflows — legacy systems, real-time data feeds, stakeholder approval chains. The hardest part of enterprise ML is never the model. It's the system around it: data quality, monitoring, and the dozen integration points nobody thinks about until they break.
 
 Azure ML, Databricks, cross-functional collaboration with product and engineering teams.
 ```
 
 **ES:**
 ```
-Casi tres años construyendo sistemas de ML para clientes enterprise. El trabajo que me enseñó la diferencia entre un modelo que funciona en un notebook y un sistema que funciona en producción.
+Casi tres años construyendo sistemas de ML para clientes enterprise en servicios financieros y operaciones. El trabajo que me enseñó la diferencia entre un modelo que funciona en un notebook y un sistema que funciona en producción.
 
-Diseñé pipelines de datos, entrené modelos, y — más importante — descubrí cómo integrar ML en procesos de negocio que no fueron pensados para eso. Lo más difícil del ML enterprise nunca es el modelo. Es el sistema alrededor: calidad de datos, alineación con stakeholders, monitoreo, y las decenas de puntos de integración en los que nadie piensa hasta que se rompen.
+Construí modelos de predicción y motores de recomendación que tenían que integrarse en workflows de negocio existentes — sistemas legacy, feeds de datos en tiempo real, cadenas de aprobación. Lo más difícil del ML enterprise nunca es el modelo. Es el sistema alrededor: calidad de datos, monitoreo, y las decenas de puntos de integración en los que nadie piensa hasta que se rompen.
 
 Azure ML, Databricks, colaboración cross-funcional con equipos de producto e ingeniería.
 ```
@@ -164,9 +160,9 @@ spaCy, Rasa, Python.
 
 **ES:**
 ```
-NLP en producción — donde equivocarse tiene consecuencias reales. Diseñé y entrené modelos para reconocimiento de entidades y clasificación de intenciones, y después construí el sistema que los mantenía confiables después del deploy.
+NLP en producción — donde equivocarse tiene consecuencias reales. Diseñé y entrené modelos para reconocimiento de entidades y clasificación de intenciones, y después construí el sistema que los mantenía confiables en producción.
 
-Pipeline completo: recolección de datos, estrategia de anotación, entrenamiento, deploy y monitoreo de drift. Siete meses, pero acá aprendí que deployar un modelo es el 20% del trabajo — mantenerlo preciso en producción es el otro 80%.
+Pipeline completo: recolección de datos, estrategia de anotación, entrenamiento, puesta en producción y monitoreo de drift. Siete meses, pero acá aprendí que poner un modelo en producción es el 20% del trabajo — mantenerlo preciso es el otro 80%.
 
 spaCy, Rasa, Python.
 ```
@@ -181,7 +177,7 @@ Graph neural networks for urban flood prediction. The problem: hydrodynamic simu
 
 The solution: a graph-based surrogate model that trades computational cost for speed while maintaining the accuracy needed to make evacuation decisions. I designed the GNN architecture, built the training pipeline, defined the evaluation framework, and published the research.
 
-This project changed how I think about building AI. When the system failing isn't a bug report but people at risk, you design differently. Every architecture decision since carries that weight.
+When the system failing means people at risk, you design differently.
 
 PyTorch, graph neural networks, PostgreSQL.
 ```
@@ -192,7 +188,7 @@ Redes neuronales de grafos para predicción de inundaciones urbanas. El problema
 
 La solución: un modelo sustituto basado en grafos que intercambia costo computacional por velocidad manteniendo la precisión necesaria para decisiones de evacuación. Diseñé la arquitectura GNN, construí el pipeline de entrenamiento, definí el framework de evaluación y publiqué la investigación.
 
-Este proyecto cambió cómo pienso sobre construir IA. Cuando la falla del sistema no es un bug report sino gente en riesgo, se diseña diferente. Cada decisión de arquitectura desde entonces carga con ese peso.
+Cuando la falla del sistema significa gente en riesgo, se diseña diferente.
 
 PyTorch, redes neuronales de grafos, PostgreSQL.
 ```
@@ -234,7 +230,7 @@ This wasn't a teaching role — it was a systems design problem. How do you take
 ```
 Escalé un programa de Data Science de 3 a 16 cursos. Diseñé currículum, formé instructores y construí el sistema operativo que hizo posible mantener calidad consistente durante crecimiento rápido.
 
-Este no fue un rol docente — fue un problema de diseño de sistemas. ¿Cómo tomás la expertise de una persona y la convertís en un proceso repetible que 16 instructores diferentes entregan al mismo nivel? Diseñás un sistema: materiales estandarizados, loops de feedback, checks de calidad, pipelines de desarrollo de instructores. El mismo enfoque que uso hoy para sistemas de ML — solo cambian los materiales.
+Este no fue un rol docente — fue un problema de diseño de sistemas. ¿Cómo se toma la expertise de una persona y se convierte en un proceso repetible que 16 instructores diferentes entregan al mismo nivel? Se diseña un sistema: materiales estandarizados, loops de feedback, checks de calidad, pipelines de desarrollo de instructores. El mismo enfoque que uso hoy para sistemas de ML — solo cambian los materiales.
 ```
 
 ### Role 7: (unknown — provide details and I'll draft)
@@ -283,7 +279,7 @@ Apply all the "ES" versions from above:
 
 **Remember:** LATAM-neutral body text. Rioplatense only in the signature ("Mapealo").
 
-**Exception:** The Digital House description uses voseo ("tomás", "convertís", "diseñás") — this is acceptable because it's a conversational aside that sounds natural, not a formal claim. If it feels inconsistent, switch to "se toma", "se convierte", "se diseña."
+Digital House Spanish description uses impersonal form ("se toma", "se convierte", "se diseña") — consistent with LATAM-neutral register.
 
 ---
 

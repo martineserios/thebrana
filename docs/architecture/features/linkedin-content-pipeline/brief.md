@@ -451,6 +451,63 @@ Items to monitor and adjust based on real data. These are not blockers — they 
 
 This profile copy is a validated starting point, not a final version. Every element was shaped through multiple rounds of discussion, criteria analysis, and adversarial challenge. Alternatives exist for most decisions. The approach: ship → measure → adjust. Don't optimize in the abstract — let real engagement data drive changes.
 
+## Current LinkedIn Profile State (snapshot 2026-03-05)
+
+Baseline before optimization. Screenshots at `~/Pictures/Screenshots/Screenshot From 2026-03-05 13-31-*.png`.
+
+### Header
+- **Name:** Martín Ríos
+- **Headline:** `Machine Learning Engineer | Data Developer | MLOps | AI Systems Builder`
+- **Photo:** Headshot with headphones
+- **Banner:** Default blue/teal gradient (no custom banner)
+- **Location:** Argentina
+- **Website:** https://github.com/martineserios
+- **Connections:** 500+
+- **Followers:** 8,795
+- **Open to Work badge:** Active — Data Specialist, Data Scientist, Data Consultant (REMOVE — contradicts positioning)
+- **Verified:** No (LinkedIn prompting to verify)
+- **Profile languages:** English (primary), Español (secondary) — already configured
+
+### About (current — to be replaced)
+> In the range of opportunities, I prioritize those where learning is necessary. I choose to work on projects that challenge me, force me to adapt and learn those things that I am interested in. On a second level, I have a penchant for those projects with social impact. I value working in multidisciplinary teams, motivated by goals, with an open communication tone.
+
+Generic, no positioning, no systems lens, no proof. Full replacement decided (see Bilingual Strategy > About section copy).
+
+### Experience (7 roles visible)
+
+| # | Title | Company | Type | Period | Duration | Key skills shown |
+|---|-------|---------|------|--------|----------|------------------|
+| 1 | Data Developer | Upwork | Freelance | Mar 2023 - Present | 3y 1m | AWS SageMaker, Terraform +5 |
+| 2 | Data Scientist | Encora | Contract | Sep 2021 - Jul 2024 | 2y 11m | Azure ML, Azure Databricks +3 |
+| 3 | Machine Learning Engineer | Froneus | Full-time | Mar 2021 - Sep 2021 | 7m | spaCy, Rasa +4 |
+| 4 | Data Scientist | Instituto Nacional del Agua | Freelance | Mar 2020 - Mar 2021 | 1y 1m | PyTorch, PostgreSQL +2 |
+| 5 | Data Engineer | Galo AI | Freelance | Sep 2019 - Aug 2020 | 1y | Google DataPrep, BigQuery +1 |
+| 6-7 | (not visible — "Show all 7 experiences") | | | | | Likely Digital House + 1 more |
+
+**Issues:** Titles are role-based ("Data Developer", "Data Scientist") not system-problem-first. Descriptions are task-lists, not narratives. No systems lens. Upwork as current employer signals freelancer-for-hire, not consultant. Need full reframe per st-007.
+
+### Skills
+- **Total:** 47
+- **Top visible:** LangGraph, Streamlit (too tool-specific, should lead with broader capabilities)
+- **Needs reorder:** Top 3 should signal positioning — Machine Learning, System Design/Architecture, Python
+
+### Education
+- **Universidad de Buenos Aires** — Civil Engineer (2009-2018)
+- Good — the arc is visible. No changes needed.
+
+### Certifications
+- DS4A / Latin America 2020: Graduated with Honors — Correlation One
+
+### Languages
+- Inglés only listed (should add Español as native)
+
+### Causes
+- Disaster and Humanitarian Relief · Science and Technology · Economic Empowerment · Poverty Alleviation
+
+### Activity
+- Recent comments: "Buenas!" (2mo ago), "Gran solución!" (11mo ago), "Grosso!" (11mo ago)
+- Low engagement history — profile optimization is the foundation before content starts
+
 ## Pending decisions (tracked as tasks)
 
 - t-174: Voice/tone guide — write 3-5 example posts defining natural voice
