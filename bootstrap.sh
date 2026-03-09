@@ -147,6 +147,36 @@ if [ -f "$SYSTEM_DIR/statusline.sh" ]; then
     fi
 fi
 
+# --- Step 4b: Migrate hooks from settings.json ---
+# Plugin handles hooks via hooks/hooks.json — remove from global settings to prevent duplicates
+echo "Hook migration:"
+SETTINGS_FILE="$TARGET_DIR/settings.json"
+if [ -f "$SETTINGS_FILE" ] && grep -q '"hooks"' "$SETTINGS_FILE" 2>/dev/null; then
+    if $CHECK_ONLY; then
+        echo "  ~ settings.json (would remove hooks section — now handled by plugin)"
+        CHANGES=$((CHANGES + 1))
+    else
+        # Use jq if available, otherwise Python, otherwise warn
+        if command -v jq &>/dev/null; then
+            jq 'del(.hooks)' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+            echo "  ~ settings.json (removed hooks — now handled by plugin)"
+            CHANGES=$((CHANGES + 1))
+        elif command -v python3 &>/dev/null; then
+            python3 -c "
+import json, sys
+with open('$SETTINGS_FILE') as f: d = json.load(f)
+d.pop('hooks', None)
+with open('$SETTINGS_FILE', 'w') as f: json.dump(d, f, indent=2)
+print('  ~ settings.json (removed hooks — now handled by plugin)')
+" && CHANGES=$((CHANGES + 1))
+        else
+            echo "  ! settings.json still has hooks (install jq or python3 to auto-migrate)"
+        fi
+    fi
+else
+    echo "  = settings.json (no hooks to migrate)"
+fi
+
 # --- Step 5: Scheduler ---
 echo "Scheduler:"
 SCHED_SRC="$SYSTEM_DIR/scheduler"
