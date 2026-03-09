@@ -306,7 +306,7 @@ Claude: Portfolio — 2026-02-18
 
 Or: `/tasks status` (no client argument)
 
-The portfolio view reads from `~/.claude/tasks-portfolio.json` — a registry of clients and their projects. Add clients to it when you onboard them.
+The portfolio view reads from `~/.claude/tasks-portfolio.json` — a registry of clients and their projects with metadata. Each project entry has: `slug`, `path`, `type` (code/venture/hybrid), `stage` (discovery/validation/growth/scale), `tech_stack`, and `created` date. Multi-project clients show as `client/project` in views. See `docs/architecture/features/tasks-portfolio.md` for the full schema.
 
 ---
 
