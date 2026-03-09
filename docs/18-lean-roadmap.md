@@ -53,7 +53,7 @@ Everything dropped here can be added later. Nothing in this plan prevents gradua
 | **Three hooks** | SessionStart (recall), SessionEnd (learn), PostToolUse (notice). The learning loop IS the product. |
 | **Quarantine** | New patterns enter at 0.5 confidence, transferable: false. 3 successes to promote. One mechanism, biggest impact. |
 | **6 core skills** | memory, retrospective, project-onboard, project-retire, challenge. The user interface. |
-| **Challenger (one-pass)** | `/challenge` spawns Sonnet, gets one review, done. No debate, no auto-trigger, no pre-screening. |
+| **Challenger (one-pass)** | `/brana:challenge` spawns Sonnet, gets one review, done. No debate, no auto-trigger, no pre-screening. |
 | **Export escape hatch** | `export-knowledge.sh` on day 1. Non-negotiable safety net. |
 | **PM awareness** | One rule file. Mastermind knows about PM repos. |
 
@@ -137,12 +137,12 @@ Build all 6 in week 1-2. Keep them simple:
 
 | Skill | What It Does | claude-flow Command |
 |---|---|---|
-| `/memory recall` | Query ReasoningBank for current context | `memory search -q` |
-| `/retrospective` | Manually store a learning | `memory store -k -v --namespace --tags` |
+| `/brana:memory recall` | Query ReasoningBank for current context | `memory search -q` |
+| `/brana:retrospective` | Manually store a learning | `memory store -k -v --namespace --tags` |
 | `/project-onboard` | Bootstrap a new project + recall portfolio knowledge | `memory search -q` |
-| `/memory pollinate` | Pull patterns from other projects | `memory search -q` |
-| `/project-retire` | Archive project patterns, mark as historical | bulk tag update |
-| `/challenge` | Sonnet reviews your current plan (one pass) | Task tool with `model: "sonnet"` |
+| `/brana:memory pollinate` | Pull patterns from other projects | `memory search -q` |
+| `/brana:project-retire` | Archive project patterns, mark as historical | bulk tag update |
+| `/brana:challenge` | Sonnet reviews your current plan (one pass) | Task tool with `model: "sonnet"` |
 
 ### Plugins to Install
 
@@ -160,8 +160,8 @@ Same `export-knowledge.sh` from [doc 17](17-implementation-roadmap.md). Build it
 
 - [ ] `deploy.sh` copies system to `~/.claude/` and loads correctly
 - [ ] All 6 skills invokable and working
-- [ ] `/memory recall` returns results from manually-inserted test patterns
-- [ ] `/challenge` spawns Sonnet and returns useful feedback
+- [ ] `/brana:memory recall` returns results from manually-inserted test patterns
+- [ ] `/brana:challenge` spawns Sonnet and returns useful feedback
 - [ ] `export-knowledge.sh` produces output
 - [ ] claude-flow CLI responds to basic commands
 - [ ] Context budget under 15KB
@@ -254,7 +254,7 @@ This prevents the worst failure mode — bad patterns spreading across projects 
 - [ ] Quarantine working: new patterns at 0.5, not transferable
 - [ ] Layer 0 fallback working (pending-learnings.md)
 - [ ] After 10+ sessions across 2+ projects: >50% of recalled patterns actually useful
-- [ ] At least one cross-project pattern surfaced via manual `/memory pollinate`
+- [ ] At least one cross-project pattern surfaced via manual `/brana:memory pollinate`
 - [ ] At least one failure recalled and avoided
 - [ ] Tag: `v0.2.0`
 
@@ -280,13 +280,13 @@ This phase is intentionally loose. By week 6, you'll know what's actually broken
 - Track manually at first. Automate only if manual tracking becomes annoying.
 
 **Cross-pollination refinement:**
-- `/memory pollinate` is too noisy or too quiet
+- `/brana:memory pollinate` is too noisy or too quiet
 - Technology matching needs tuning (too specific = nothing found, too broad = irrelevant)
 - Add tech-stack tags to project onboarding
 
 **Challenge improvements:**
 - Store challenge outcomes in ReasoningBank (which challenges caught real issues?)
-- Adjust when you invoke `/challenge` based on experience, not automation
+- Adjust when you invoke `/brana:challenge` based on experience, not automation
 
 **Skill catalog (lightweight):**
 - A markdown file listing external skills you've tried and vetted
@@ -317,7 +317,7 @@ This phase is intentionally loose. By week 6, you'll know what's actually broken
 
 **Goal:** The mastermind enforces spec-driven and test-driven development in managed projects. Not suggestions in CLAUDE.md (~80% compliance) — deterministic enforcement via PreToolUse hooks (~100%). See [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md) "Project Enforcement" section for the architectural design.
 
-**Prerequisite:** Phase 3 complete (v0.3.0). The learning loop must work before enforcement layers on top — ADRs feed into ReasoningBank via `/retrospective`.
+**Prerequisite:** Phase 3 complete (v0.3.0). The learning loop must work before enforcement layers on top — ADRs feed into ReasoningBank via `/brana:retrospective`.
 
 ### Why This Phase Exists
 
@@ -838,7 +838,7 @@ This roadmap is designed as the on-ramp to [doc 17](17-implementation-roadmap.md
 | Single confidence field | Dual-track (session + validated) | **Add a field.** Existing patterns: `session_confidence = confidence`, `validated_confidence = confidence`. One-time backfill query. |
 | No decay | Add monthly decay function | **Add a cron/script.** Reads existing `last_used` timestamps already being recorded. |
 | No contradiction detection | Add contradiction check to SessionEnd hook | **Add logic to existing hook.** Reads existing tags already being stored. |
-| One-pass `/challenge` | Multi-round debate + auto-trigger | **Enhance skill file.** Old invocations still work, new flag enables debate mode. |
+| One-pass `/brana:challenge` | Multi-round debate + auto-trigger | **Enhance skill file.** Old invocations still work, new flag enables debate mode. |
 | Manual monthly review | `/knowledge-audit` skill | **The skill automates what you were doing manually.** Same checks, scripted instead of human. |
 | Markdown skill catalog | YAML + checksums | **Format conversion.** 10 minutes. Data is the same. |
 | No A/B testing | Add A/B framework | **New capability.** Doesn't touch existing code. |

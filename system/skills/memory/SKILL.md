@@ -18,10 +18,10 @@ Unified interface for the knowledge system. Replaces `/pattern-recall`, `/cross-
 
 Parse `$ARGUMENTS` for the subcommand:
 
-- `/memory recall [query]` or `/memory [query]` — search patterns (default)
-- `/memory pollinate [query]` — cross-project pattern transfer
-- `/memory review` — monthly knowledge health audit
-- `/memory review --audit [doc]` — cross-doc contradiction detection
+- `/brana:memory recall [query]` or `/brana:memory [query]` — search patterns (default)
+- `/brana:memory pollinate [query]` — cross-project pattern transfer
+- `/brana:memory review` — monthly knowledge health audit
+- `/brana:memory review --audit [doc]` — cross-doc contradiction detection
 
 If no subcommand recognized, default to **recall** with the full arguments as query. If no arguments at all, infer query from current project context.
 
@@ -118,12 +118,12 @@ source "$HOME/.claude/scripts/cf-env.sh"
 
 ## review --audit — Cross-Doc Contradiction Detection
 
-Traverses docs via formal `[doc NN](path)` links and flags factual contradictions. Works at the knowledge layer (doc vs doc), complementing `/reconcile` (spec vs implementation).
+Traverses docs via formal `[doc NN](path)` links and flags factual contradictions. Works at the knowledge layer (doc vs doc), complementing `/brana:reconcile` (spec vs implementation).
 
 ### Scope
 
-- `/memory review --audit` — audit all 5 reflections + both CLAUDE.md files (default)
-- `/memory review --audit [doc]` — audit a specific doc and everything it links to
+- `/brana:memory review --audit` — audit all 5 reflections + both CLAUDE.md files (default)
+- `/brana:memory review --audit [doc]` — audit a specific doc and everything it links to
 
 ### Assertion Types to Extract
 

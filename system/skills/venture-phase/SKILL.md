@@ -22,13 +22,13 @@ Plan and execute a business milestone with learning loops baked into the process
 When executing a specific business milestone: product launch, hiring round, fundraise, market expansion, process overhaul, or any custom milestone.
 
 **Invocation:**
-- `/venture-phase` — ask what milestone
-- `/venture-phase product launch` — plan a product launch
-- `/venture-phase hiring` — plan a hiring round
-- `/venture-phase fundraise` — plan a fundraise
-- `/venture-phase expansion` — plan market expansion
-- `/venture-phase process` — plan process overhaul
-- `/venture-phase {custom}` — custom milestone
+- `/brana:venture-phase` — ask what milestone
+- `/brana:venture-phase product launch` — plan a product launch
+- `/brana:venture-phase hiring` — plan a hiring round
+- `/brana:venture-phase fundraise` — plan a fundraise
+- `/brana:venture-phase expansion` — plan market expansion
+- `/brana:venture-phase process` — plan process overhaul
+- `/brana:venture-phase {custom}` — custom milestone
 
 ---
 

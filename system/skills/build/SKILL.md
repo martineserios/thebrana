@@ -1,6 +1,6 @@
 ---
 name: build
-description: "Build anything — features, bug fixes, refactors, spikes, migrations, investigations. Auto-detects strategy from description, integrates with /tasks, enforces TDD. The unified development command."
+description: "Build anything — features, bug fixes, refactors, spikes, migrations, investigations. Auto-detects strategy from description, integrates with /brana:tasks, enforces TDD. The unified development command."
 group: execution
 depends_on:
   - tasks
@@ -21,16 +21,16 @@ allowed-tools:
 
 # Build
 
-The unified development command. One entry point for all work types: features, bug fixes, greenfield projects, refactors, spikes, migrations, and investigations. Auto-detects the right strategy, integrates deeply with `/tasks`, and enforces TDD throughout.
+The unified development command. One entry point for all work types: features, bug fixes, greenfield projects, refactors, spikes, migrations, and investigations. Auto-detects the right strategy, integrates deeply with `/brana:tasks`, and enforces TDD throughout.
 
 ## Invocation
 
 ```
-/build "description"              — start from a description
-/build                            — ask what to build
+/brana:build "description"              — start from a description
+/brana:build                            — ask what to build
 ```
 
-Also entered via `/tasks start <id>` for code tasks — see Task Integration below.
+Also entered via `/brana:tasks start <id>` for code tasks — see Task Integration below.
 
 ---
 
@@ -54,7 +54,7 @@ Before anything else, check if this work already exists or relates to existing w
      - "No relation — create new"
    ```
 4. **If no matches**, proceed silently.
-5. **If entering via `/tasks start`**, skip cross-reference (task already identified).
+5. **If entering via `/brana:tasks start`**, skip cross-reference (task already identified).
 
 ---
 
@@ -64,7 +64,7 @@ Mandatory. One interaction. Never skip.
 
 ### Detection rules
 
-Analyze the description (and task metadata if from `/tasks start`) to propose a strategy:
+Analyze the description (and task metadata if from `/brana:tasks start`) to propose a strategy:
 
 | Strategy | Stream signal | Description signal |
 |----------|-------------|-------------------|
@@ -400,7 +400,7 @@ No branch. No spec. No tasks.json entry. No docs. Just learn.
    question: "Spike succeeded. Create a feature task to build this?"
    options: ["Yes — create task", "No — just log the finding"]
    ```
-   If yes: `/tasks add` with context from the spike.
+   If yes: `/brana:tasks add` with context from the spike.
 4. **If no** — documented dead end. Move on.
 5. **Clean up:** `rm -rf /tmp/spike-{slug}/` (ask first).
 
@@ -474,7 +474,7 @@ No branch. No commits. Read-only. May lead to a build.
 3. **If fix needed** — offer to start a bug fix:
    ```
    question: "Investigation found a bug. Start a fix?"
-   options: ["Yes — start /build fix", "No — just log"]
+   options: ["Yes — start /brana:build fix", "No — just log"]
    ```
    If yes: enter BUG FIX strategy with investigation findings as context.
 
@@ -521,7 +521,7 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    - Update `docs/guide/commands/index.md` if applicable
    - **Shipped without user docs means not shipped.**
 
-5. **Update task** (if entered via `/tasks start`):
+5. **Update task** (if entered via `/brana:tasks start`):
    - Set status → `completed`
    - Set completed date
    - Add notes from retrospective
@@ -556,9 +556,9 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
 
 ## Task Integration
 
-### Entry via /tasks start
+### Entry via /brana:tasks start
 
-When `/tasks start <id>` invokes this skill:
+When `/brana:tasks start <id>` invokes this skill:
 
 1. **Task metadata is pre-loaded:**
    - `subject` → seeds the description
@@ -599,7 +599,7 @@ The build loop updates these fields on the task in tasks.json:
 
 ### Creating tasks automatically
 
-When `/build` is invoked WITHOUT `/tasks start`:
+When `/brana:build` is invoked WITHOUT `/brana:tasks start`:
 
 1. After CLASSIFY, auto-create a task in tasks.json:
    ```json
@@ -651,5 +651,5 @@ Claude proposes the size. User can override: "this is bigger than it looks" or "
 6. **Don't auto-merge.** Present the merge command. Let the user decide.
 7. **Mid-stream reclassification is allowed.** The user can change strategy at any point. Carry forward what's been learned.
 8. **Mini-debrief after every task in BUILD.** 30 seconds. What surprised? Pattern? Don't skip.
-9. **Cross-reference before creating work.** Always check for related tasks first (unless entering via /tasks start).
+9. **Cross-reference before creating work.** Always check for related tasks first (unless entering via /brana:tasks start).
 10. **Graceful degradation.** If claude-flow is unavailable, use auto memory. If no test framework, note it and proceed. If no GitHub Issues, use tasks.json.

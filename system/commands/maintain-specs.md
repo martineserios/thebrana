@@ -13,13 +13,13 @@ This does NOT include `/refresh-knowledge` (web search for external updates). Ru
 
 ## Step 1: Apply errata
 
-Run `/apply-errata`. Apply known fixes first so that reflection docs start from a corrected baseline before cross-checking. It handles the full layer-aware cycle: classify → dimension fixes → gate check → reflection fixes → gate check → roadmap fixes → update doc 24.
+Run `/brana:apply-errata`. Apply known fixes first so that reflection docs start from a corrected baseline before cross-checking. It handles the full layer-aware cycle: classify → dimension fixes → gate check → reflection fixes → gate check → roadmap fixes → update doc 24.
 
 If no pending errata → it will report "No pending errata" and this step is done.
 
 ## Step 2: Re-evaluate reflections
 
-Run `/re-evaluate-reflections`. It cross-checks all 5 reflection docs (08, 14, 29, 31, 32) against the dimension docs they depend on and logs any new gaps as doc 24 errata entries.
+Run `/brana:re-evaluate-reflections`. It cross-checks all 5 reflection docs (08, 14, 29, 31, 32) against the dimension docs they depend on and logs any new gaps as doc 24 errata entries.
 
 If no gaps found → report "Reflections current" and skip to Step 3.
 
@@ -90,14 +90,14 @@ If no pending items or user declines → report "Backlog reviewed, no action."
 
 ## Step 7: Surface findings for storage
 
-Review what was discovered during this maintain-specs run. If any of these emerged, **ask the user** whether to store them in claude-flow memory via `/retrospective`:
+Review what was discovered during this maintain-specs run. If any of these emerged, **ask the user** whether to store them in claude-flow memory via `/brana:retrospective`:
 
 - A new pattern or insight about how the docs relate to each other
 - A recurring error type that suggests a process improvement
 - A finding that would be useful in other projects (transferable)
 - A correction that reveals a broader lesson (not just "doc X was wrong" but "we keep making this kind of mistake because...")
 
-**Don't auto-store.** Present the candidate findings and let the user decide. Example: "This run found that Context7 and claude-flow were conflated in doc 14 — a recurring pattern of mixing tool identities in recommendation tables. Want to store this as a learning via `/retrospective`?"
+**Don't auto-store.** Present the candidate findings and let the user decide. Example: "This run found that Context7 and claude-flow were conflated in doc 14 — a recurring pattern of mixing tool identities in recommendation tables. Want to store this as a learning via `/brana:retrospective`?"
 
 If nothing worth storing → report "No findings to store."
 
@@ -115,7 +115,7 @@ If the script doesn't exist, skip silently — the user hasn't set up the knowle
 ## Rules
 
 - **Early exit at every step.** If a step finds nothing, say so and move on. Don't force work where there's none.
-- **Sub-commands own their rules.** `/re-evaluate-reflections` and `/apply-errata` each have their own rules for doc voice, materiality, gate checks, etc. Don't override them here.
+- **Sub-commands own their rules.** `/brana:re-evaluate-reflections` and `/brana:apply-errata` each have their own rules for doc voice, materiality, gate checks, etc. Don't override them here.
 - **Ask for clarification whenever you need it.** If the user's intent is unclear — ask. Don't guess.
 
 ## Output Format
@@ -124,10 +124,10 @@ If the script doesn't exist, skip silently — the user hasn't set up the knowle
 ## Spec Maintenance Report
 
 ### Step 1: Apply Errata
-[Output from `/apply-errata` / "No pending errata"]
+[Output from `/brana:apply-errata` / "No pending errata"]
 
 ### Step 2: Re-evaluate Reflections
-[Output from `/re-evaluate-reflections` / "Reflections current — no gaps found"]
+[Output from `/brana:re-evaluate-reflections` / "Reflections current — no gaps found"]
 
 ### Step 3: Deepen Reflections
 [Improvements applied / "Reflections already sharp"]
@@ -142,7 +142,7 @@ If the script doesn't exist, skip silently — the user hasn't set up the knowle
 [Items shown to user / "Backlog reviewed, no action"]
 
 ### Step 7: Findings Worth Storing
-[Candidates for /retrospective / "No findings to store"]
+[Candidates for /brana:retrospective / "No findings to store"]
 
 ### Step 8: Backup Knowledge
 [Backed up N entries / "No changes to back up" / "Backup script not found"]
@@ -159,4 +159,4 @@ If the script doesn't exist, skip silently — the user hasn't set up the knowle
 
 **After the report:** If any changes during this run touched specs that describe thebrana behavior (skills, hooks, rules, agents, config, deploy, CLAUDE.md conventions), suggest:
 
-> "This run changed specs that affect thebrana implementation. Run `/reconcile` to push those changes into the built system?"
+> "This run changed specs that affect thebrana implementation. Run `/brana:reconcile` to push those changes into the built system?"

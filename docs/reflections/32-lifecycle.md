@@ -61,7 +61,7 @@ When using Agent Teams: isolate agents by discipline.
 
 ### Connection to the Learning Loop
 
-ADRs created by `/decide` are pattern-worthy — `/retrospective` extracts "decision X was made because Y" and stores it in ReasoningBank. Domain models (future) would feed the same loop. The enforcement hooks themselves are pure git-based, no claude-flow dependency. Learning happens through the skill layer (`/retrospective`, `/memory recall`).
+ADRs created by `/decide` are pattern-worthy — `/brana:retrospective` extracts "decision X was made because Y" and stores it in ReasoningBank. Domain models (future) would feed the same loop. The enforcement hooks themselves are pure git-based, no claude-flow dependency. Learning happens through the skill layer (`/brana:retrospective`, `/brana:memory recall`).
 
 ---
 
@@ -79,7 +79,7 @@ Context engineering = optimizing token allocation within finite attention budget
 
 Instead of pre-loading all patterns at session start, maintain lightweight identifiers and dynamically load data during execution. Mirrors human cognition: external organization systems rather than memorization.
 
-**Implication:** This validates the skill architecture (descriptions only until invoked) and the two-layer memory design (MEMORY.md index + topic files on demand). The SessionStart hook should inject a digest, not everything. Skills like `/memory recall` and `/memory pollinate` do the heavy loading when actually needed.
+**Implication:** This validates the skill architecture (descriptions only until invoked) and the two-layer memory design (MEMORY.md index + topic files on demand). The SessionStart hook should inject a digest, not everything. Skills like `/brana:memory recall` and `/brana:memory pollinate` do the heavy loading when actually needed.
 
 ### Keeping Sessions Healthy
 
@@ -135,11 +135,11 @@ From [15-self-development-workflow.md](../15-self-development-workflow.md) — t
 
 | Component | Review Trigger | How |
 |-----------|---------------|-----|
-| Pattern health | Monthly | `/memory review` — staleness, contradictions, confidence distribution |
+| Pattern health | Monthly | `/brana:memory review` — staleness, contradictions, confidence distribution |
 | Token usage | After each session or weekly | `/usage-stats` — model distribution, session patterns, activity trends, anomaly detection |
-| Source registry | Per source cadence (weekly–quarterly) | `/research registry` — trust tier health, overdue checks, yield tracking. See [33-research-methodology.md](../../../brana-knowledge/dimensions/33-research-methodology.md) |
-| Pattern curation | After each session with notable learnings | `/retrospective` — the engine that builds knowledge trust |
-| Cross-project transfer | When starting work in a different project | `/memory pollinate` — checks for applicable patterns |
+| Source registry | Per source cadence (weekly–quarterly) | `/brana:research registry` — trust tier health, overdue checks, yield tracking. See [33-research-methodology.md](../../../brana-knowledge/dimensions/33-research-methodology.md) |
+| Pattern curation | After each session with notable learnings | `/brana:retrospective` — the engine that builds knowledge trust |
+| Cross-project transfer | When starting work in a different project | `/brana:memory pollinate` — checks for applicable patterns |
 | Knowledge backup | Before claude-flow upgrades | `backup-knowledge.sh` — snapshot ReasoningBank + auto memory |
 
 ### The Spec Repo
@@ -212,11 +212,11 @@ dimension docs → reflection docs → precise roadmap → implement → debrief
 
 Each cycle:
 1. **Plan** — read the roadmap, verify specs are current
-2. **Recall** — `/memory recall` for relevant learned patterns
+2. **Recall** — `/brana:memory recall` for relevant learned patterns
 3. **Build** — implement work items with mini-debriefs after each
 4. **Test** — run `./test.sh` before merging
 5. **Debrief** — `/debrief` extracts errata and learnings
-6. **Maintain** — `/maintain-specs` propagates findings through spec layers
+6. **Maintain** — `/brana:maintain-specs` propagates findings through spec layers
 7. **Tag** — version the release, update portfolio
 
 The debrief→maintain-specs loop is what keeps specs alive. Without it, specs drift from reality with every implementation session.
@@ -225,7 +225,7 @@ The debrief→maintain-specs loop is what keeps specs alive. Without it, specs d
 
 ## The User Feedback Loop
 
-The mastermind architecture describes a system that learns from code sessions. But it has a blind spot: the user's subjective experience. Did the SessionStart recall feel useful or noisy? Did `/memory pollinate` surface relevant patterns or junk? Did the deploy flow feel smooth or brittle?
+The mastermind architecture describes a system that learns from code sessions. But it has a blind spot: the user's subjective experience. Did the SessionStart recall feel useful or noisy? Did `/brana:memory pollinate` surface relevant patterns or junk? Did the deploy flow feel smooth or brittle?
 
 [00-user-practices.md](../00-user-practices.md) closes this gap. It captures field notes from real usage — observations the user makes while living with the system. These observations feed back into the architecture:
 

@@ -444,7 +444,7 @@ The PM component is a **plugin**, not core:
 - **Loads when:** A project has `docs/decisions/` or is linked to the GitHub Project
 - **Doesn't load when:** Quick scripts, experiments, one-off repos
 - **Connects to learning loop:** PM decisions (ADRs) are pattern-worthy. The Stop hook can extract "decision X was made because Y" and store it in ReasoningBank.
-- **Connects to challenger:** `/challenge` on plan mode can check "does this plan align with the current milestone's scope?"
+- **Connects to challenger:** `/brana:challenge` on plan mode can check "does this plan align with the current milestone's scope?"
 - **Context budget:** PM skills load on demand (zero cost until invoked). CONTEXT.md is small (~500 bytes). PM awareness rule is one small file.
 
 ---

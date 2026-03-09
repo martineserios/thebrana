@@ -111,7 +111,7 @@ Detects writes to pipeline deal files. When a deal moves to a closed stage, snap
 **Matcher:** `Write|Edit`
 **Timeout:** 5,000ms
 
-Triggers on writes to any `*/tasks.json` file. Performs three checks:
+Triggers on writes to any `*/brana:tasks.json` file. Performs three checks:
 
 1. **JSON validity** — catches syntax errors immediately
 2. **Schema validation** — checks required fields, valid types, valid status values

@@ -197,7 +197,7 @@ cd enter_thebrana/thebrana
 
 After deploy, start a new Claude Code session. You should see:
 - Session start hook fires (pattern recall)
-- `/tasks` and other skills are available
+- `/brana:tasks` and other skills are available
 - `pre-tool-use` gate activates on `feat/*` branches in projects with `docs/decisions/`
 
 ### First Session
@@ -207,10 +207,10 @@ After deploy, start a new Claude Code session. You should see:
 claude
 
 # Check what brana knows about this project
-/memory recall
+/brana:memory recall
 
 # See available tasks
-/tasks
+/brana:tasks
 
 # Start working
 /pickup

@@ -12,7 +12,7 @@ An automated version was proposed and rejected via challenger review — it buil
 
 ## Decision
 
-Build `/acquire-skills` as a skill (SKILL.md) with three-tier marketplace search:
+Build `/brana:acquire-skills` as a skill (SKILL.md) with three-tier marketplace search:
 
 1. **SkillHub MCP** (if configured) — structured JSON, AI quality scores
 2. **Vercel skills CLI** (if installed) — `npx skills search`, npm ecosystem
@@ -21,7 +21,7 @@ Build `/acquire-skills` as a skill (SKILL.md) with three-tier marketplace search
 The skill scans project context (package.json, Dockerfile, CLAUDE.md, tasks.json), diffs against local skills, searches for gaps, presents candidates, and installs user-approved skills to `system/skills/acquired/`.
 
 Key design choices:
-- **Manual trigger only** — no auto-detection, no hooks. User runs `/acquire-skills` when they need it.
+- **Manual trigger only** — no auto-detection, no hooks. User runs `/brana:acquire-skills` when they need it.
 - **User approves everything** — candidates presented with quality info, user picks which to install.
 - **Version-controlled** — acquired skills saved to `system/skills/acquired/<name>/`, deployed via existing deploy.sh pipeline.
 - **Single catalog** — `skill-catalog.md` updated with acquired entries. No new registry files.

@@ -12,17 +12,17 @@ Work → Corrections/Discoveries → Pattern Storage → Recall → Better Work
 
 - **On correction** — pattern captured in auto memory immediately
 - **On session start** — patterns recalled and applied
-- **On session end** — `/close` extracts and stores learnings
+- **On session end** — `/brana:close` extracts and stores learnings
 - **On failure** — stop, reassess, don't patch forward
 
 ### Explicit learning
 
 ```
-/retrospective         — store a learning or pattern manually
-/memory recall [query] — search for relevant patterns
-/memory pollinate      — cross-project pattern transfer
-/memory review         — monthly knowledge health audit
-/memory review --audit — cross-doc contradiction detection
+/brana:retrospective         — store a learning or pattern manually
+/brana:memory recall [query] — search for relevant patterns
+/brana:memory pollinate      — cross-project pattern transfer
+/brana:memory review         — monthly knowledge health audit
+/brana:memory review --audit — cross-doc contradiction detection
 ```
 
 ## Confidence levels
@@ -42,7 +42,7 @@ New learnings start at 0.5 (quarantined). They get promoted through recall and c
 Patterns marked as `transferable` can surface in other projects:
 
 ```
-/memory pollinate      — find patterns from other projects relevant to current work
+/brana:memory pollinate      — find patterns from other projects relevant to current work
 ```
 
 ## Storage

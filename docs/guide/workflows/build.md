@@ -1,13 +1,13 @@
 # Building Things
 
-The `/build` command handles all development work — features, bug fixes, refactors, spikes, migrations, and investigations.
+The `/brana:build` command handles all development work — features, bug fixes, refactors, spikes, migrations, and investigations.
 
 ## Quick start
 
 ```
-/build landing page for tinyhouse    — describe what you want to build
-/tasks start t-015                   — start from an existing task
-/build                               — ask what to build
+/brana:build landing page for tinyhouse    — describe what you want to build
+/brana:tasks start t-015                   — start from an existing task
+/brana:build                               — ask what to build
 ```
 
 ## How it works
@@ -31,9 +31,9 @@ The `/build` command handles all development work — features, bug fixes, refac
 
 ## Task integration
 
-`/build` works deeply with `/tasks`:
+`/brana:build` works deeply with `/brana:tasks`:
 
-- `/tasks start <id>` auto-classifies the work type and enters `/build`
+- `/brana:tasks start <id>` auto-classifies the work type and enters `/brana:build`
 - During build, the task's `build_step` field tracks progress
 - CLOSE auto-completes the task and updates tasks.json
 - Task tags and description seed the research phase

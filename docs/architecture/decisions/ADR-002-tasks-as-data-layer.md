@@ -16,7 +16,7 @@ Constraint: Claude Code subscription only, zero API calls.
 
 ## Decision
 
-Use a JSON file per project (`{project}/.claude/tasks.json`) as the single source of truth for task management. Claude Code's intelligence (guided by a convention rule) provides the NL interaction layer. PostToolUse hooks provide deterministic enforcement (schema validation, parent rollup). The /tasks skill provides explicit shortcuts for complex operations.
+Use a JSON file per project (`{project}/.claude/tasks.json`) as the single source of truth for task management. Claude Code's intelligence (guided by a convention rule) provides the NL interaction layer. PostToolUse hooks provide deterministic enforcement (schema validation, parent rollup). The /brana:tasks skill provides explicit shortcuts for complex operations.
 
 GitHub Issues sync and markdown rendering are deferred — the JSON schema supports both as future additions (github_issue field, structured hierarchy).
 

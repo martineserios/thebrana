@@ -174,5 +174,5 @@ The cascade check runs BEFORE the spec-first gate. Both can inject `additionalCo
 
 - **Flag cleanup**: session-end.sh could remove cascade flags for the ending session
 - **Cascade metrics**: session-end.sh already computes `cascade_rate` — this feature makes that metric actionable
-- **Escalation**: after 5+ cascades in a session, could suggest `/challenge` or user escalation
+- **Escalation**: after 5+ cascades in a session, could suggest `/brana:challenge` or user escalation
 - **HTTP hooks migration** (t-205): when brana moves to HTTP hooks, cascade state could live in the server instead of flag files

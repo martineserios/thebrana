@@ -106,7 +106,7 @@ From [23-evaluation.md](../../../brana-knowledge/dimensions/23-evaluation.md) an
 - Scott Spence demonstrated 84% with forced eval hooks
 - CLAUDE.md achieves 100% pass rate vs 53% for skill invocation
 
-**What to test:** When a user invokes `/memory recall topic`, does the skill execute? When SessionStart fires, does it actually query ReasoningBank? These are activation checks, not quality checks.
+**What to test:** When a user invokes `/brana:memory recall topic`, does the skill execute? When SessionStart fires, does it actually query ReasoningBank? These are activation checks, not quality checks.
 
 ### Hook Lifecycle
 
@@ -188,9 +188,9 @@ From [16-knowledge-health.md](../../../brana-knowledge/dimensions/16-knowledge-h
 | Confidence calibration | High-confidence patterns succeed more than low-confidence | No correlation | Inverted correlation |
 | Cross-pollination accuracy | >50% of cross-project recalls are useful | 25-50% | <25% (noise) |
 
-### The `/memory review` Skill as Health Check
+### The `/brana:memory review` Skill as Health Check
 
-Monthly execution of `/memory review` produces the health report. It's the equivalent of running a test suite on the knowledge store — not testing code, but testing the quality of accumulated knowledge.
+Monthly execution of `/brana:memory review` produces the health report. It's the equivalent of running a test suite on the knowledge store — not testing code, but testing the quality of accumulated knowledge.
 
 What it checks:
 - Pattern count by namespace and confidence tier

@@ -5,8 +5,8 @@ Brana includes tools for managing business projects — stage-appropriate framew
 ## Getting started with a business project
 
 ```
-/onboard              — scan and diagnose (auto-detects venture projects)
-/align                — implement stage-appropriate structure
+/brana:onboard              — scan and diagnose (auto-detects venture projects)
+/brana:align                — implement stage-appropriate structure
 ```
 
 Brana detects venture projects by looking for `docs/sops/`, `docs/okrs/`, `docs/metrics/`, or business keywords in CLAUDE.md.
@@ -25,23 +25,23 @@ Every recommendation is stage-aware:
 ## Periodic reviews
 
 ```
-/review                — weekly health check (default)
-/review monthly        — monthly close + forward plan
-/review check          — ad-hoc AARRR funnel audit
+/brana:review                — weekly health check (default)
+/brana:review monthly        — monthly close + forward plan
+/brana:review check          — ad-hoc AARRR funnel audit
 ```
 
 ## Pipeline
 
 ```
-/pipeline              — manage leads, deals, follow-ups
+/brana:pipeline              — manage leads, deals, follow-ups
 ```
 
 ## Business milestones
 
 ```
-/venture-phase launch     — product launch
-/venture-phase fundraise  — fundraise preparation
-/venture-phase expansion  — market expansion
+/brana:venture-phase launch     — product launch
+/brana:venture-phase fundraise  — fundraise preparation
+/brana:venture-phase expansion  — market expansion
 ```
 
 ## Key principle

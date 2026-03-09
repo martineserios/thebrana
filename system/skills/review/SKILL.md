@@ -22,13 +22,13 @@ Unified business review skill. Replaces `/weekly-review`, `/monthly-close`, `/mo
 
 Parse `$ARGUMENTS`:
 
-- `/review` or `/review weekly` — weekly cadence review (default)
-- `/review monthly` or `/review --monthly` — monthly close + forward plan
-- `/review check` or `/review --check` — ad-hoc AARRR funnel audit
+- `/brana:review` or `/brana:review weekly` — weekly cadence review (default)
+- `/brana:review monthly` or `/brana:review --monthly` — monthly close + forward plan
+- `/brana:review check` or `/brana:review --check` — ad-hoc AARRR funnel audit
 
 ---
 
-## /review weekly
+## /brana:review weekly
 
 Weekly cadence review — portfolio health, zombie cleanup, metrics delta, ship log, next-week planning.
 
@@ -40,7 +40,7 @@ Weekly cadence review — portfolio health, zombie cleanup, metrics delta, ship 
 4. **Zombie cleanup:** identify tasks older than 30 days with no activity — present for archival or reprioritization
 5. **Metrics delta:** compare current metrics vs last week's stored values
 6. **Ship log:** `git log --oneline --since="7 days ago"` across active projects
-7. **Pipeline check:** read pipeline state (if /pipeline is configured)
+7. **Pipeline check:** read pipeline state (if /brana:pipeline is configured)
 8. **Store trends:**
    ```bash
    source "$HOME/.claude/scripts/cf-env.sh"
@@ -79,7 +79,7 @@ Weekly cadence review — portfolio health, zombie cleanup, metrics delta, ship 
 
 ---
 
-## /review monthly
+## /brana:review monthly
 
 Monthly close + forward plan — P&L summary, actuals vs projections, targets for next month.
 
@@ -105,7 +105,7 @@ Monthly close + forward plan — P&L summary, actuals vs projections, targets fo
 
 ---
 
-## /review check
+## /brana:review check
 
 Ad-hoc AARRR funnel audit — stage-appropriate metrics health check.
 

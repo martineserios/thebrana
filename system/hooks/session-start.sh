@@ -123,9 +123,9 @@ if [ -n "$TASKS_FILE" ] && [ -f "$TASKS_FILE" ]; then
       (if $bugs > 0 then " | Bugs: \($bugs) open" else "" end) +
       "\n" +
       (if $next then "Next unblocked: \($next.id) \($next.subject) (pending)"
-       elif ($total > 0 and $total == $done) then "All tasks completed. Use /tasks plan for next phase."
+       elif ($total > 0 and $total == $done) then "All tasks completed. Use /brana:tasks plan for next phase."
        else "" end) +
-      "\nCommands: /tasks next, /tasks plan, /tasks add, /tasks start <id>"
+      "\nCommands: /brana:tasks next, /brana:tasks plan, /brana:tasks add, /brana:tasks start <id>"
     ' "$TASKS_FILE" 2>/dev/null) || true
 
     if [ -n "$TASK_SUMMARY" ]; then
@@ -133,7 +133,7 @@ if [ -n "$TASKS_FILE" ] && [ -f "$TASKS_FILE" ]; then
     fi
 else
     # No tasks.json — suggest creating one, with portfolio fallback
-    TASK_CONTEXT="[Tasks] No tasks.json found. Use /tasks plan to create one."
+    TASK_CONTEXT="[Tasks] No tasks.json found. Use /brana:tasks plan to create one."
     PORTFOLIO_FILE="$HOME/.claude/tasks-portfolio.json"
     if [ -f "$PORTFOLIO_FILE" ]; then
         PORTFOLIO_SUMMARY=$(jq -r '
@@ -144,7 +144,7 @@ else
           ] | map(.slug) | join(", ")
         ' "$PORTFOLIO_FILE" 2>/dev/null) || true
         if [ -n "$PORTFOLIO_SUMMARY" ]; then
-            TASK_CONTEXT="[Task portfolio] Projects: $PORTFOLIO_SUMMARY. No tasks.json — use /tasks plan to create one."
+            TASK_CONTEXT="[Task portfolio] Projects: $PORTFOLIO_SUMMARY. No tasks.json — use /brana:tasks plan to create one."
         fi
     fi
 fi
@@ -215,11 +215,11 @@ if [ "$IS_VENTURE" = true ]; then
         if [ "$AGE_SECONDS" -gt "$SEVEN_DAYS" ]; then
             DAYS_AGO=$(( AGE_SECONDS / 86400 ))
             VENTURE_CONTEXT="$VENTURE_CONTEXT
-Weekly review is ${DAYS_AGO} days old. Consider running /review weekly."
+Weekly review is ${DAYS_AGO} days old. Consider running /brana:review weekly."
         fi
     else
         VENTURE_CONTEXT="$VENTURE_CONTEXT
-No weekly review found. Consider running /review weekly."
+No weekly review found. Consider running /brana:review weekly."
     fi
 
     # Log to session JSONL

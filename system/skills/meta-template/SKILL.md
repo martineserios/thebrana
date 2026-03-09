@@ -20,10 +20,10 @@ Write WhatsApp Business templates that hit the Utility sweet spot — maximum wa
 When creating, reviewing, or rewriting WhatsApp Business templates for any project that sends messages via Meta's WhatsApp Business API.
 
 **Invocation:**
-- `/meta-template` — interactive mode, ask what template to build
-- `/meta-template [template purpose]` — build a specific template (e.g., `/meta-template appointment confirmation`)
-- `/meta-template review` — audit existing templates against the formula
-- `/meta-template appeal [template name]` — generate appeal text for a template
+- `/brana:meta-template` — interactive mode, ask what template to build
+- `/brana:meta-template [template purpose]` — build a specific template (e.g., `/brana:meta-template appointment confirmation`)
+- `/brana:meta-template review` — audit existing templates against the formula
+- `/brana:meta-template appeal [template name]` — generate appeal text for a template
 
 ---
 

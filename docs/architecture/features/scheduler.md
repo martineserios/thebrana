@@ -49,7 +49,7 @@ Single-user brana operator managing multiple projects (enter, thebrana, palco, s
 - Exits with appropriate code for systemd to track success/failure
 
 ### Management skill
-- `/scheduler` — view status, toggle jobs from within Claude Code
+- `/brana:scheduler` — view status, toggle jobs from within Claude Code
 - Thin wrapper over `brana-scheduler` CLI
 
 ### Skill invocation
@@ -138,7 +138,7 @@ thebrana/system/scheduler/
     └── timer.template           # systemd .timer unit template
 
 thebrana/system/skills/scheduler/
-└── SKILL.md                     # /scheduler skill for in-session management
+└── SKILL.md                     # /brana:scheduler skill for in-session management
 ```
 
 ### Deploy target
@@ -295,7 +295,7 @@ WantedBy=timers.target
 
 `Persistent=true` catches up on missed runs (machine off, sleep). Matches APScheduler's `misfire_grace_time` pattern from Palco.
 
-### /scheduler skill
+### /brana:scheduler skill
 
 Thin in-session wrapper:
 - `Show status of all scheduled jobs` → `brana-scheduler status`
@@ -347,7 +347,7 @@ Implementation lives in `thebrana` repo. Deploy target: `~/.claude/scheduler/`.
 | 3 | Implement systemd unit templates | — | `service.template` and `timer.template` with correct variable substitution |
 | 4 | Implement `brana-scheduler` CLI | #2, #3 | `deploy`, `status`, `logs`, `enable`, `disable`, `run`, `validate`, `teardown` all working. Checks linger on deploy. |
 | 5 | Create example `scheduler.template.json` | — | Template with commented example jobs (staleness-report, knowledge-review, morning-check) |
-| 6 | Create `/scheduler` skill | #4 | Skill wraps CLI commands, provides in-session management |
+| 6 | Create `/brana:scheduler` skill | #4 | Skill wraps CLI commands, provides in-session management |
 | 7 | Update `deploy.sh` to install scheduler | #1-#5 | Scheduler files deployed to `~/.claude/scheduler/`, template copied if config doesn't exist |
 | 8 | End-to-end test: deploy + run + verify | #4, #7 | Manual test: deploy a command job, run it, verify log output and systemd timer |
 

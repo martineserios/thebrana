@@ -220,7 +220,7 @@ Every dimension doc triaged for brana v2. [Docs 01](../dimensions/01-brana-syste
 **Verdict: Keep — three-tier trust model.** The local core / curated catalog / discovery tier model is the right framework for skill trust. The quarantine pattern (doc 16) extends this. R2 uses it for skill architecture, R4 for lifecycle (trust graduation).
 
 ### [Doc 13](../dimensions/13-challenger-agent.md) — Challenger Agent
-**Verdict: Keep as capability.** Adversarial review (Opus challenger) is valuable for big decisions. Implemented as `/challenge`. Subscription-native, rate-limit-aware. Low maintenance, high value when used. Model upgraded from Sonnet to Opus for deeper adversarial quality (see [13-challenger-agent.md](../../../brana-knowledge/dimensions/13-challenger-agent.md)).
+**Verdict: Keep as capability.** Adversarial review (Opus challenger) is valuable for big decisions. Implemented as `/brana:challenge`. Subscription-native, rate-limit-aware. Low maintenance, high value when used. Model upgraded from Sonnet to Opus for deeper adversarial quality (see [13-challenger-agent.md](../../../brana-knowledge/dimensions/13-challenger-agent.md)).
 
 ### [Doc 15](../15-self-development-workflow.md) — Self-Development Workflow
 **Verdict: Keep — genome/connectome separation is foundational.** The distinction between system code (genome, versioned in git) and learned knowledge (connectome, never rolled back) is a first-order architectural decision. R2 builds on it, R4 operationalizes it. The deploy pipeline, testing strategy, and rollback safety all flow from this separation.
@@ -250,7 +250,7 @@ Every dimension doc triaged for brana v2. [Docs 01](../dimensions/01-brana-syste
 **Verdict: Keep.** Source for R5 (transfer). Frameworks, books, phase-based models, software→business pattern transfer. Five venture skills emerged from this research.
 
 ### [Doc 33](../dimensions/33-research-methodology.md) — Research Methodology
-**Verdict: Keep.** Formalizes the recursive discovery process that produced the other 32 docs. Source registry (trust tiers, cadence, version pinning), leads queue, 5 research archetypes, and the `/research` skill as atomic primitive called by `/refresh-knowledge`. Without this, research stays ad-hoc and unreproducible.
+**Verdict: Keep.** Formalizes the recursive discovery process that produced the other 32 docs. Source registry (trust tiers, cadence, version pinning), leads queue, 5 research archetypes, and the `/brana:research` skill as atomic primitive called by `/refresh-knowledge`. Without this, research stays ad-hoc and unreproducible.
 
 ### [Doc 34](../dimensions/34-venture-operating-system.md) — Venture Operating System
 **Verdict: Keep.** The business operations layer — MCP integrations (Google Sheets, Slack, QuickBooks, Stripe), daily/weekly/monthly skill cadences (`/morning`, `/weekly-review`, `/monthly-close`, `/monthly-plan`), growth experiments, pipeline tracking, financial modeling. Extends [doc 28](../dimensions/28-startup-smb-management.md)'s frameworks into a deployable operating system. R5 synthesizes the venture management pattern; [doc 34](../dimensions/34-venture-operating-system.md) provides the full implementation architecture.

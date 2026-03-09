@@ -508,7 +508,7 @@ FORMAT MIX (v1)
   │  ~6 posts/month        build-in-public updates, case studies  │
   │                                                               │
   │  CAROUSEL/PDF (30%):   How-tos, frameworks, step-by-step      │
-  │  ~4 posts/month        guides. Plain PDF via /export-pdf.     │
+  │  ~4 posts/month        guides. Plain PDF via /brana:export-pdf.     │
   │                        Visual upgrade in v2 (t-176).          │
   │                                                               │
   │  POLLS/QUESTIONS (20%):Community engagement, topic validation, │
@@ -534,7 +534,7 @@ FORMAT MIX (v1)
 First comment: relevant link + hashtags
 ```
 
-### Carousel structure (markdown -> PDF via /export-pdf)
+### Carousel structure (markdown -> PDF via /brana:export-pdf)
 
 ```markdown
 ## Slide 1: Title + hook
@@ -592,7 +592,7 @@ At ~1 Spanish post/week, this won't build a standalone LATAM audience fast. It s
 | 1. Research positioning | Validate "AI systems designer" niche | t-170 (done) |
 | 2. Write voice/tone guide | 3-5 example posts in your natural voice | t-174 |
 | 3. Decide pillar weights | Case Studies at 10% or 20%? | t-175 |
-| 4. Decide carousel tooling | /export-pdf, Canva templates, or defer? | t-176 |
+| 4. Decide carousel tooling | /brana:export-pdf, Canva templates, or defer? | t-176 |
 | 5. Optimize LinkedIn profile | Headline, about section, banner, featured | t-162 |
 
 **LinkedIn profile spec (t-162):**

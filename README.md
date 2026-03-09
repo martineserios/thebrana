@@ -71,14 +71,14 @@ thebrana/
 | `/build-phase` | Plan and implement the next roadmap phase |
 | `/build-feature` | Guide a feature from zero to shipped |
 | `/decide` | Create Architecture Decision Records |
-| `/challenge` | Dual-model adversarial review of plans and decisions |
+| `/brana:challenge` | Dual-model adversarial review of plans and decisions |
 | `/debrief` | Extract errata and learnings from current session |
-| `/reconcile` | Detect spec-vs-implementation drift, plan fixes |
+| `/brana:reconcile` | Detect spec-vs-implementation drift, plan fixes |
 | `/back-propagate` | Propagate implementation changes back to specs |
-| `/research` | Research a topic, doc, or creator with recursive discovery |
+| `/brana:research` | Research a topic, doc, or creator with recursive discovery |
 | `/refresh-knowledge` | Research external updates to dimension docs |
 | `/knowledge` | Browse, annotate, review, and reindex the knowledge base |
-| `/tasks` | Manage tasks — plan, track, navigate phases and streams |
+| `/brana:tasks` | Manage tasks — plan, track, navigate phases and streams |
 | `/pickup` | Resume from last session with handoff context |
 | `/usage-stats` | Token usage analytics and model distribution |
 
@@ -86,11 +86,11 @@ thebrana/
 
 | Skill | Description |
 |-------|-------------|
-| `/memory` | Recall, cross-pollinate, review knowledge health |
-| `/retrospective` | Store learnings and patterns in the knowledge system |
+| `/brana:memory` | Recall, cross-pollinate, review knowledge health |
+| `/brana:retrospective` | Store learnings and patterns in the knowledge system |
 | `/project-align` | Align a project with brana development practices |
 | `/project-onboard` | Bootstrap a new project with portfolio knowledge |
-| `/project-retire` | Archive a project's patterns when retiring |
+| `/brana:project-retire` | Archive a project's patterns when retiring |
 | `/personal-check` | Personal life check — tasks, life areas, journal |
 
 ### Business / Venture (13)
@@ -99,29 +99,29 @@ thebrana/
 |-------|-------------|
 | `/venture-align` | Set up business management structure |
 | `/venture-onboard` | Discover and diagnose a business project |
-| `/venture-phase` | Plan and execute a business milestone |
+| `/brana:venture-phase` | Plan and execute a business milestone |
 | `/growth-check` | Business health audit — AARRR funnel analysis |
 | `/experiment` | Growth experiment loop — hypothesis to learning |
 | `/morning` | Daily operational check — focus card with priorities |
 | `/weekly-review` | Weekly cadence review — portfolio health, ship log |
 | `/monthly-close` | Monthly financial close — P&L, trends, runway |
 | `/monthly-plan` | Forward-looking monthly plan — targets, priorities |
-| `/financial-model` | Revenue projections, scenario analysis, unit economics |
-| `/pipeline` | Sales pipeline tracking — leads, deals, follow-ups |
+| `/brana:financial-model` | Revenue projections, scenario analysis, unit economics |
+| `/brana:pipeline` | Sales pipeline tracking — leads, deals, follow-ups |
 | `/sop` | Create Standard Operating Procedures |
-| `/proposal` | Generate client proposals with cost breakdown |
+| `/brana:proposal` | Generate client proposals with cost breakdown |
 
 ### Integrations (7)
 
 | Skill | Description |
 |-------|-------------|
-| `/gsheets` | Google Sheets via MCP — read, write, manage |
-| `/notebooklm-source` | Prepare sources for NotebookLM upload |
-| `/export-pdf` | Convert markdown to PDF |
-| `/meta-template` | Write Meta WhatsApp templates for Utility classification |
-| `/respondio-prompts` | Respond.io AI agent prompt engineering |
+| `/brana:gsheets` | Google Sheets via MCP — read, write, manage |
+| `/brana:notebooklm-source` | Prepare sources for NotebookLM upload |
+| `/brana:export-pdf` | Convert markdown to PDF |
+| `/brana:meta-template` | Write Meta WhatsApp templates for Utility classification |
+| `/brana:respondio-prompts` | Respond.io AI agent prompt engineering |
 | `/content-plan` | Marketing content planning — themes, calendar, tracking |
-| `/scheduler` | Scheduled jobs management |
+| `/brana:scheduler` | Scheduled jobs management |
 
 ## Rules (12)
 

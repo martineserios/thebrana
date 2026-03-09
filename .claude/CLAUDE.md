@@ -70,16 +70,16 @@ Version: v0.6.0 (Phase 1: Unified Repo)
 
 | Command | Purpose |
 |---------|---------|
-| `/build` | Build anything — auto-detects strategy (feature, bug fix, refactor, spike, migration, investigation, greenfield) |
-| `/close` | End session — extract learnings, write handoff, store patterns |
-| `/tasks` | Manage tasks — plan, track, navigate work |
-| `/challenge` | Adversarial review of a plan or decision |
-| `/reconcile` | Detect spec-vs-implementation drift, plan fixes, apply after approval |
-| `/maintain-specs` | Cascade spec changes: dimension → reflection → roadmap |
-| `/research` | Research a topic, doc, or creator — recursive discovery. `--refresh` for batch dimension updates |
-| `/onboard` | Scan and diagnose a project (code, venture, or hybrid) |
-| `/align` | Implement project structure based on /onboard findings |
-| `/review` | Business health — weekly (default), monthly, or ad-hoc check |
+| `/brana:build` | Build anything — auto-detects strategy (feature, bug fix, refactor, spike, migration, investigation, greenfield) |
+| `/brana:close` | End session — extract learnings, write handoff, store patterns |
+| `/brana:tasks` | Manage tasks — plan, track, navigate work |
+| `/brana:challenge` | Adversarial review of a plan or decision |
+| `/brana:reconcile` | Detect spec-vs-implementation drift, plan fixes, apply after approval |
+| `/brana:maintain-specs` | Cascade spec changes: dimension → reflection → roadmap |
+| `/brana:research` | Research a topic, doc, or creator — recursive discovery. `--refresh` for batch dimension updates |
+| `/brana:onboard` | Scan and diagnose a project (code, venture, or hybrid) |
+| `/brana:align` | Implement project structure based on /brana:onboard findings |
+| `/brana:review` | Business health — weekly (default), monthly, or ad-hoc check |
 
 ## Specs Reference
 
@@ -106,8 +106,8 @@ Version: v0.6.0 (Phase 1: Unified Repo)
 
 - **Never edit `~/.claude/` directly** — always edit `system/` and deploy
 - Keep documents concise and opinionated
-- Changes propagate: dimension → reflection → roadmap (`/maintain-specs`)
-- Spec changes push to implementation (`/reconcile`)
+- Changes propagate: dimension → reflection → roadmap (`/brana:maintain-specs`)
+- Spec changes push to implementation (`/brana:reconcile`)
 - Implementation changes update docs in the same commit (no separate back-propagation step)
 - When adding new docs, update `docs/README.md`
 

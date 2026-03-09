@@ -22,7 +22,7 @@ End a work session. Extracts what was learned, writes a handoff note for the nex
 - User says "done", "bye", "closing", "that's it", or similar
 - End of a long implementation session
 - Before switching to a different project
-- Explicitly: `/close`
+- Explicitly: `/brana:close`
 
 ## Steps
 
@@ -50,7 +50,7 @@ Collect from multiple sources:
    git diff --stat HEAD~5..HEAD 2>/dev/null
    ```
 2. **Conversation context** — review for: errors hit, workarounds used, surprises, things that didn't match expectations
-3. **If `$ARGUMENTS` provided** — use as focus hint (e.g., `/close hooks` focuses on hook-related findings)
+3. **If `$ARGUMENTS` provided** — use as focus hint (e.g., `/brana:close hooks` focuses on hook-related findings)
 
 ### Step 3: Extract and classify findings
 
@@ -89,7 +89,7 @@ For each **errata** finding:
 
 | Finding | Status | Who resolves |
 |---------|--------|-------------|
-| Spec mismatch (needs doc edits) | `pending` | `/maintain-specs` |
+| Spec mismatch (needs doc edits) | `pending` | `/brana:maintain-specs` |
 | Code bug (fixed this session) | `code-fix` | Already done |
 | Code bug (not fixed) | `pending` | Next session |
 
@@ -150,7 +150,7 @@ Find `session-handoff.md` in `~/.claude/projects/` for the current project. Appe
 
 **Next:**
 - {follow-up actions, deferred items}
-- {if errata found: "Run /maintain-specs"}
+- {if errata found: "Run /brana:maintain-specs"}
 - {if doc drift: "Consider updating specs"}
 
 **Blockers:**
@@ -196,7 +196,7 @@ Then backup:
 **Handoff note updated:** {path}
 
 ### Follow-up
-- {if errata: "/maintain-specs to propagate findings"}
+- {if errata: "/brana:maintain-specs to propagate findings"}
 - {if drift: "Specs may need updating for changed system files"}
 - {if issues: "Issues logged for next session"}
 ```
@@ -210,6 +210,6 @@ Then backup:
 3. **Don't duplicate.** Read existing errata before adding. If already documented, skip or note confirmation.
 4. **Gate on changes.** Read-only sessions get a one-line handoff and no debrief.
 5. **Don't block on failures.** Agent fails → manual scan. Claude-flow fails → handoff note is the fallback. Backup fails → skip.
-6. **Suggest, don't execute.** Doc drift → suggest updating specs. Errata → suggest `/maintain-specs`. Let the user decide when.
+6. **Suggest, don't execute.** Doc drift → suggest updating specs. Errata → suggest `/brana:maintain-specs`. Let the user decide when.
 7. **Be specific.** "The API was wrong" is useless. "Spec says `hooks recall`, actual is `memory search`" is useful.
 8. **Ask for clarification when needed.** Ambiguous findings → ask. Don't guess classifications.

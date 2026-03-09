@@ -8,7 +8,7 @@
 The brana system has three disconnected session lifecycle concerns:
 
 1. **Session pickup** — `/session-handoff` reads previous session's note and reconciles cross-session changes
-2. **Knowledge extraction** — `/debrief` + `/retrospective` extract learnings, but only if the user remembers to call them
+2. **Knowledge extraction** — `/debrief` + `/brana:retrospective` extract learnings, but only if the user remembers to call them
 3. **Doc sync** — `/back-propagate` updates specs when implementation changes, but only if manually invoked
 
 The gap: no automation connects "I'm done building" to "extract what I learned" to "check if docs need updating." The user must remember to call 3 separate commands in the right order. Most sessions end without any of them.
@@ -53,5 +53,5 @@ Pro: formal project history. Con: duplicates handoff note + git log + claude-flo
 - Every session that produces commits will automatically extract learnings (via close mode or hook fallback)
 - Doc drift is flagged within the session and surfaced at next session start
 - No new debrief implementation — reuses debrief-analyst agent
-- Backlog #72 (session-close workflow) resolved, #68 (handoff as changelog) absorbed into enriched handoff format, #41 (changelog-based doc updates) stays separate for `/maintain-specs`
+- Backlog #72 (session-close workflow) resolved, #68 (handoff as changelog) absorbed into enriched handoff format, #41 (changelog-based doc updates) stays separate for `/brana:maintain-specs`
 - Context budget: skill description grows by ~50 bytes (within budget)

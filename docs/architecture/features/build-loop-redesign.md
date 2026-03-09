@@ -6,9 +6,9 @@
 
 ## Problem
 
-Brana has 42 skills with 7 touching the build lifecycle (`/build-feature`, `/back-propagate`, `/reconcile`, `/decide`, `/challenge`, `/debrief`, `/maintain-specs`). Users must know which to invoke and when. The 7-phase `/build-feature` is heavy for small changes. `/back-propagate` was designed for a two-repo world that no longer exists (ADR-006 merged enter into thebrana). No industry tool requires 7 phases — the effective pattern is 4 steps.
+Brana has 42 skills with 7 touching the build lifecycle (`/build-feature`, `/back-propagate`, `/brana:reconcile`, `/decide`, `/brana:challenge`, `/debrief`, `/brana:maintain-specs`). Users must know which to invoke and when. The 7-phase `/build-feature` is heavy for small changes. `/back-propagate` was designed for a two-repo world that no longer exists (ADR-006 merged enter into thebrana). No industry tool requires 7 phases — the effective pattern is 4 steps.
 
-Beyond the build flow, the full 42-skill surface has redundancies: `/pickup` duplicates what `session-start.sh` could do, `/debrief` and `/retrospective` and `/session-handoff` all store learnings, 12 venture skills serve a solo founder, and documentation exists only for developers — not for users.
+Beyond the build flow, the full 42-skill surface has redundancies: `/pickup` duplicates what `session-start.sh` could do, `/debrief` and `/brana:retrospective` and `/session-handoff` all store learnings, 12 venture skills serve a solo founder, and documentation exists only for developers — not for users.
 
 ## Decision Record (frozen 2026-03-07)
 
@@ -25,18 +25,18 @@ Challenger review (Opus adversarial) identified:
 - W4: Challenge absorbed into SPECIFY loses context isolation → resolved by still spawning separate challenger agent
 
 **Decision:**
-1. Replace 7 build commands with one `/build` command using a 4-step loop
+1. Replace 7 build commands with one `/brana:build` command using a 4-step loop
 2. Simplify 42 skills to ~25 by merging redundancies and retiring unused commands
 3. Add 7 work-type strategies that adapt the loop (feature, bug fix, greenfield, refactor, spike, migration, investigation)
-4. Integrate `/tasks start` as the entry point to `/build` for code tasks
+4. Integrate `/brana:tasks start` as the entry point to `/brana:build` for code tasks
 5. Create two documentation trees: user guides (`docs/guide/`) and contributor docs (`docs/architecture/`)
 6. Retire `/back-propagate` and `verify-counts.sh` — fix root cause (no hardcoded counts in prose)
 7. Embed documentation as a mandatory CLOSE step — shipped without both docs means not shipped
 
 **Consequences:**
-- Easier: one command (`/build`) replaces 7, with automatic strategy detection
+- Easier: one command (`/brana:build`) replaces 7, with automatic strategy detection
 - Easier: users have a guide that explains workflows, not just skill implementations
-- Easier: `/tasks start` flows directly into building — no gap
+- Easier: `/brana:tasks start` flows directly into building — no gap
 - Harder: migration from 42 to 25 skills requires careful phasing
 - Risk: auto-detection misclassifies work type — mitigated by mandatory confirmation step
 
@@ -52,10 +52,10 @@ Challenger review (Opus adversarial) identified:
 
 ### The Build Loop
 
-One command: `/build "description"`
+One command: `/brana:build "description"`
 
 **Step 0: CLASSIFY** (mandatory, one interaction)
-- Auto-detect work type from description + task metadata (if started via `/tasks start`)
+- Auto-detect work type from description + task metadata (if started via `/brana:tasks start`)
 - Present classification for user confirmation
 - Mid-stream reclassification allowed at any point
 
@@ -125,8 +125,8 @@ One command: `/build "description"`
 - Focus on answering the question
 
 **ANSWER** (spike only):
-- Did it work? Store finding via /retrospective
-- If yes → leads to /build (feature) with validated approach
+- Did it work? Store finding via /brana:retrospective
+- If yes → leads to /brana:build (feature) with validated approach
 - If no → documented dead end
 - Delete throwaway code
 
@@ -143,8 +143,8 @@ One command: `/build "description"`
 **REPORT** (investigation only):
 - Root cause or candidates
 - Recommended action: fix, refactor, accept, defer
-- Store findings via /retrospective
-- If fix needed → leads to /build --fix
+- Store findings via /brana:retrospective
+- If fix needed → leads to /brana:build --fix
 
 **CLOSE** (all strategies except spike and investigation):
 - Validate acceptance criteria
@@ -152,18 +152,18 @@ One command: `/build "description"`
 - Store learnings (claude-flow, confidence: 0.5)
 - Update feature spec status → shipped (contributor doc)
 - Write/update user guide (user doc)
-- Update task status → completed (if started via /tasks start)
+- Update task status → completed (if started via /brana:tasks start)
 - Merge (present command, don't auto-execute)
 
-### /tasks start integration
+### /brana:tasks start integration
 
-When `/tasks start <id>` is invoked on a task with `execution: code`:
+When `/brana:tasks start <id>` is invoked on a task with `execution: code`:
 1. Read task metadata (subject, stream, tags, description, context)
 2. Auto-classify from stream + description
 3. Confirm classification with user
 4. Create branch from task convention
-5. Enter `/build` with task context pre-loaded
-6. `/build` CLOSE updates task status → completed
+5. Enter `/brana:build` with task context pre-loaded
+6. `/brana:build` CLOSE updates task status → completed
 
 Tasks with `execution: manual` or `execution: external` just get status updated — no build loop.
 
@@ -207,32 +207,32 @@ Risks and resolutions. Auto-populated from challenger review.
 ### Command inventory (25, down from 42)
 
 **Kept:**
-`/build`, `/close`, `/tasks`, `/log`, `/research`, `/retrospective`, `/memory`, `/challenge`, `/reconcile`, `/maintain-specs`, `/pipeline`, `/review`, `/venture-phase`, `/financial-model`, `/onboard`, `/align`, `/project-retire`, `/proposal`, `/export-pdf`, `/gsheets`, `/notebooklm-source`, `/respondio-prompts`, `/meta-template`, `/scheduler`, `/acquire-skills`
+`/brana:build`, `/brana:close`, `/brana:tasks`, `/brana:log`, `/brana:research`, `/brana:retrospective`, `/brana:memory`, `/brana:challenge`, `/brana:reconcile`, `/brana:maintain-specs`, `/brana:pipeline`, `/brana:review`, `/brana:venture-phase`, `/brana:financial-model`, `/brana:onboard`, `/brana:align`, `/brana:project-retire`, `/brana:proposal`, `/brana:export-pdf`, `/brana:gsheets`, `/brana:notebooklm-source`, `/brana:respondio-prompts`, `/brana:meta-template`, `/brana:scheduler`, `/brana:acquire-skills`
 
 **Retired (17):**
 
 | Command | Replacement |
 |---------|-------------|
 | `/pickup` | session-start hook reads handoff |
-| `/session-handoff` | Renamed to `/close` |
-| `/debrief` | Absorbed into `/close` and build CLOSE |
-| `/build-feature` | Replaced by `/build` |
-| `/build-phase` | Replaced by `/build` |
+| `/session-handoff` | Renamed to `/brana:close` |
+| `/debrief` | Absorbed into `/brana:close` and build CLOSE |
+| `/build-feature` | Replaced by `/brana:build` |
+| `/build-phase` | Replaced by `/brana:build` |
 | `/back-propagate` | Same-commit doc updates + no hardcoded counts |
 | `/decide` | Absorbed into build SPECIFY |
 | `/knowledge` | Direct file operations + scripts |
-| `/refresh-knowledge` | `/research --refresh` |
-| `/venture-onboard` | Merged into `/onboard` |
-| `/venture-align` | Merged into `/align` |
-| `/project-onboard` | Merged into `/onboard` |
-| `/project-align` | Merged into `/align` |
+| `/refresh-knowledge` | `/brana:research --refresh` |
+| `/venture-onboard` | Merged into `/brana:onboard` |
+| `/venture-align` | Merged into `/brana:align` |
+| `/project-onboard` | Merged into `/brana:onboard` |
+| `/project-align` | Merged into `/brana:align` |
 | `/morning` | session-start hook |
-| `/growth-check` | Merged into `/review` |
-| `/weekly-review` | Merged into `/review` |
-| `/monthly-close` | Merged into `/review --monthly` |
-| `/monthly-plan` | Merged into `/review --monthly` |
-| `/experiment` | `/tasks add` + build loop (spike strategy) |
-| `/content-plan` | `/tasks plan` |
+| `/growth-check` | Merged into `/brana:review` |
+| `/weekly-review` | Merged into `/brana:review` |
+| `/monthly-close` | Merged into `/brana:review --monthly` |
+| `/monthly-plan` | Merged into `/brana:review --monthly` |
+| `/experiment` | `/brana:tasks add` + build loop (spike strategy) |
+| `/content-plan` | `/brana:tasks plan` |
 | `/sop` | Write docs directly |
 | `/usage-stats` | Rarely used |
 | `/personal-check` | Non-brana scope |
@@ -275,14 +275,14 @@ docs/
 | `session-end.sh` | Unchanged |
 | `rules/sdd-tdd.md` | Unchanged — TDD discipline preserved |
 | `rules/delegation-routing.md` | Updated — new command names, simplified trigger table |
-| `rules/task-convention.md` | Updated — /tasks start → /build integration |
+| `rules/task-convention.md` | Updated — /brana:tasks start → /brana:build integration |
 | `validate.sh` | Keep. Trim instruction density heuristic. |
 | `verify-counts.sh` | Delete. Remove hardcoded counts from docs. |
 
 ## Deferred
 
-- `/log review` — show last 7 days, promote entries to tasks (v1.1)
-- `/log search` — keyword search (grep works for v1)
+- `/brana:log review` — show last 7 days, promote entries to tasks (v1.1)
+- `/brana:log search` — keyword search (grep works for v1)
 - Auto-generated command index from SKILL.md frontmatter
 - Multi-agent build (parallel task execution via agent teams)
 - Domain-Driven Design enforcement (docs/domain/ opt-in, per doc 32)
@@ -297,7 +297,7 @@ Key findings from the SPECIFY research loop:
 
 **Martin Fowler (SDD analysis, Aug 2025):** SDD works well for larger features and greenfield but is overhead for small fixes. AI still drifts from specs mid-stream. Validates adaptive sizing — bug fixes skip SPECIFY.
 
-**GitHub Spec Kit:** `/specify → /plan → /tasks → code`. Open source, MIT. Validates the 4-step loop. Their format influenced the feature spec format.
+**GitHub Spec Kit:** `/specify → /plan → /brana:tasks → code`. Open source, MIT. Validates the 4-step loop. Their format influenced the feature spec format.
 
 **Shape Up (Basecamp):** Fixed time, variable scope. No backlog. Cooldown periods. Relevant for rhythm but brana keeps its backlog (tasks.json) — the solo developer context is different from a team.
 
@@ -323,20 +323,20 @@ session-start.sh (hook, automatic)
 ├── Detect venture project (absorbs session-start-venture.sh)
 └── Present context
 
-/tasks start <id> (entry point for code tasks)
+/brana:tasks start <id> (entry point for code tasks)
 ├── Read task metadata
 ├── Auto-classify work type
 ├── Confirm with user
 ├── Create branch
-└── Enter /build
+└── Enter /brana:build
 
-/build (the loop — 7 strategies)
+/brana:build (the loop — 7 strategies)
 ├── CLASSIFY → strategy selection
 ├── Strategy-specific steps (SPECIFY/REPRODUCE/QUESTION/etc.)
 ├── BUILD (TDD: test first, implement, verify)
 └── CLOSE (retrospect, docs, merge)
 
-/close (session end)
+/brana:close (session end)
 ├── Write handoff note
 ├── Extract learnings (absorbs /debrief)
 ├── Store patterns
@@ -346,11 +346,11 @@ session-start.sh (hook, automatic)
 
 ### Migration path
 
-Phase 1: Build the new `/build` skill (SKILL.md)
+Phase 1: Build the new `/brana:build` skill (SKILL.md)
 Phase 2: Merge session hooks (session-start absorbs pickup + venture detection)
-Phase 3: Rename `/session-handoff` to `/close`, absorb `/debrief`
+Phase 3: Rename `/session-handoff` to `/brana:close`, absorb `/debrief`
 Phase 4: Merge project/venture onboard and align
-Phase 5: Merge venture review skills into `/review`
+Phase 5: Merge venture review skills into `/brana:review`
 Phase 6: Restructure docs/ (guide/ + architecture/ split)
 Phase 7: Retire old skills, update delegation-routing
 Phase 8: Remove hardcoded counts from all docs, delete verify-counts.sh
@@ -366,7 +366,7 @@ See Decision Record for the full list. Key resolutions:
 
 ## Open questions
 
-- Should `/build` auto-commit tasks.json changes or require explicit `/tasks done`?
+- Should `/brana:build` auto-commit tasks.json changes or require explicit `/brana:tasks done`?
 - Should the feature spec format be enforced by validate.sh (check for required sections)?
-- How to handle interrupted builds — `/build` started but session ended before CLOSE?
+- How to handle interrupted builds — `/brana:build` started but session ended before CLOSE?
 - Should mid-stream reclassification reset to step 0 or continue from current position?

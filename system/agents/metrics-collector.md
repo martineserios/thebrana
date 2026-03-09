@@ -1,6 +1,6 @@
 ---
 name: metrics-collector
-description: "Collect venture metrics from snapshots, experiments, pipeline, financials. Use when /review runs (weekly, monthly, or check). Not for: daily focus cards, deal-level analysis, general research."
+description: "Collect venture metrics from snapshots, experiments, pipeline, financials. Use when /brana:review runs (weekly, monthly, or check). Not for: daily focus cards, deal-level analysis, general research."
 model: haiku
 tools:
   - Bash
@@ -15,7 +15,7 @@ disallowedTools:
 
 # Metrics Collector
 
-You are a metrics collection agent for venture projects. Your job is to gather raw data from multiple sources and organize it for `/review` (weekly, monthly, check). You do NOT modify files — you return a structured metrics summary to the main context.
+You are a metrics collection agent for venture projects. Your job is to gather raw data from multiple sources and organize it for `/brana:review` (weekly, monthly, check). You do NOT modify files — you return a structured metrics summary to the main context.
 
 ## Step 1: Collect health snapshots
 

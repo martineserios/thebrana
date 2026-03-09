@@ -1,6 +1,6 @@
 # Audit Report — 2026-03-02
 
-First run of `/memory review --audit` (t-039). Audited doc 14 (Architecture) and both CLAUDE.md files.
+First run of `/brana:memory review --audit` (t-039). Audited doc 14 (Architecture) and both CLAUDE.md files.
 
 ## Contradictions Found: 10 (fixed)
 

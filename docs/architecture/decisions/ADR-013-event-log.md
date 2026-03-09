@@ -11,14 +11,14 @@ Information arrives constantly — WhatsApp links, phone call outcomes, meeting 
 There's no **capture layer** between "something happened" and "here's a task to track." Events are raw material. Tasks are commitments. The system needs a place for raw material.
 
 A challenger review (Opus adversarial) identified key risks in the initial three-scope, CWD-routed design:
-- Overlap with MEMORY.md (learnings), /debrief (errata), /pipeline (leads)
+- Overlap with MEMORY.md (learnings), /debrief (errata), /brana:pipeline (leads)
 - CWD routing ambiguity (logging cross-project events from wrong directory)
 - Entry type auto-detection is fragile keyword matching
 - 41st skill — sprawl concern
 
 ## Decision
 
-Build `/log` as a single-file, tag-based event log with bulk paste support.
+Build `/brana:log` as a single-file, tag-based event log with bulk paste support.
 
 Key design choices:
 - **Single global file** (`~/.claude/memory/event-log.md`) — one place to search, one place to read. Tags provide scope routing instead of per-project files.
@@ -28,17 +28,17 @@ Key design choices:
 - **Append-only, chronological** — new entries go at the bottom of the current day's section. Cleaner git diffs than reverse-chronological.
 - **Archival at 500 lines** — entries older than 90 days move to `event-log-archive-YYYY.md`.
 
-What `/log` is NOT:
-- Not a replacement for `/tasks add` (tasks are commitments, log entries are observations)
+What `/brana:log` is NOT:
+- Not a replacement for `/brana:tasks add` (tasks are commitments, log entries are observations)
 - Not a replacement for MEMORY.md (memory stores patterns, log stores events)
-- Not a replacement for `/pipeline` (pipeline tracks deals, log captures first contact)
+- Not a replacement for `/brana:pipeline` (pipeline tracks deals, log captures first contact)
 - Not a calendar, reminder system, or analytics tool
 
-The log is an **inbox** — fast capture first, classify later. Some entries get promoted to tasks via `/log review` (v1.1). Most stay as searchable context.
+The log is an **inbox** — fast capture first, classify later. Some entries get promoted to tasks via `/brana:log review` (v1.1). Most stay as searchable context.
 
 ## Consequences
 
 - **Easier:** capturing information in the moment. One command, any context.
 - **Easier:** WhatsApp dump triage. Bulk mode parses, deduplicates, confirms.
 - **Harder:** nothing significant — complexity is contained in one SKILL.md file.
-- **Risk:** log becomes unread graveyard. Mitigated by `/log review` (v1.1) and the URL-to-task promotion flow.
+- **Risk:** log becomes unread graveyard. Mitigated by `/brana:log review` (v1.1) and the URL-to-task promotion flow.

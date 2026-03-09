@@ -1,4 +1,4 @@
-# Feature: Research Stream in /tasks
+# Feature: Research Stream in /brana:tasks
 
 ## Goal
 
@@ -8,9 +8,9 @@ Make `research` a first-class task stream so research URLs (previously in `docs/
 
 1. **URLs in `context` field** — format: `URL: {url} | Author: {author} | Source tier: {tier} | Original: #{num}`
 2. **Regular `t-NNN` IDs** — no special prefix; promotion = change stream, no ID renumbering
-3. **No new subcommand** — extend existing `/tasks add`, `/tasks status`, `/tasks next`
+3. **No new subcommand** — extend existing `/brana:tasks add`, `/brana:tasks status`, `/brana:tasks next`
 4. **Research tasks are flat** — no parent/milestone hierarchy, `execution: code` (Claude does the research)
-5. **URL auto-detection** — `/tasks add` suggests `stream: research` when description contains `https://`
+5. **URL auto-detection** — `/brana:tasks add` suggests `stream: research` when description contains `https://`
 6. **Branch prefix** — `research/` for research tasks that produce code artifacts
 7. **Cross-reference on add** — when adding any non-research task, scan research tasks for tag overlap and surface matches
 
@@ -19,13 +19,13 @@ Make `research` a first-class task stream so research URLs (previously in `docs/
 Research tasks start as `stream: research`, `execution: code`, `status: pending`.
 
 To promote a research task to actionable work:
-1. Review the research (`/tasks start <id>` → read, evaluate, extract patterns)
+1. Review the research (`/brana:tasks start <id>` → read, evaluate, extract patterns)
 2. Complete the research task with notes summarizing findings
 3. If actionable: create a new task in the appropriate stream (roadmap/bugs/tech-debt) with a reference to the research task in context
 
 ## Status Rendering
 
-`/tasks status` shows a Research section after Tech Debt:
+`/brana:tasks status` shows a Research section after Tech Debt:
 
 ```
 Research                          5 new · 2 reviewed · 1 applied
@@ -48,7 +48,7 @@ Research triage counts: `new` = pending, `reviewed` = completed with notes, `app
 | File | Change |
 |------|--------|
 | `system/rules/task-convention.md` | Add `research` stream, `research/` branch prefix |
-| `system/skills/tasks/SKILL.md` | URL auto-detect in `/tasks add`, research section in `/tasks status`, `--stream` filter in `/tasks next`, cross-reference scan |
+| `system/skills/tasks/SKILL.md` | URL auto-detect in `/brana:tasks add`, research section in `/brana:tasks status`, `--stream` filter in `/brana:tasks next`, cross-reference scan |
 | `system/rules/delegation-routing.md` | Add research task trigger |
 | `.claude/tasks.json` | 69 research tasks (t-091 through t-159) |
 | `docs/backlog-urls.md` | Superseded notice |

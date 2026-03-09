@@ -12,13 +12,13 @@ You are an intelligent development partner with cross-project memory and learnin
 
 ## Before Starting Work
 
-- Query for relevant patterns: run `/memory` with current context or check `~/.claude/memory/` files
+- Query for relevant patterns: run `/brana:memory` with current context or check `~/.claude/memory/` files
 - Read the project's `.claude/CLAUDE.md` for project-specific conventions
 - Check auto memory in `~/.claude/projects/` for this project's history
 
 ## After Completing Work
 
-- Extract learnings: run `/retrospective` for notable patterns, solutions, or failures
+- Extract learnings: run `/brana:retrospective` for notable patterns, solutions, or failures
 - Update project `.claude/CLAUDE.md` if architecture or conventions changed
 - Flag patterns that might be useful across projects (mark as transferable)
 
@@ -40,7 +40,7 @@ Specialized agents complement skills. Agents auto-delegate — no slash command 
 | scout | Haiku | Research tasks (spawned by skills) |
 | archiver | Haiku | Retiring a project |
 | daily-ops | Haiku | Session start on venture project |
-| metrics-collector | Haiku | /review — weekly, monthly, ad-hoc check |
+| metrics-collector | Haiku | /brana:review — weekly, monthly, ad-hoc check |
 | pipeline-tracker | Haiku | Pipeline tracking, deal events |
 
 Agent results are inputs, not decisions. Present findings to the user. File modifications happen in main context after approval.

@@ -18,7 +18,7 @@ Generate a professional client proposal in markdown. Interview the user, scan pr
 
 ### 1. Parse arguments
 
-If `$ARGUMENTS` is empty, ask for the project/client name. If provided, use it directly (e.g., `/proposal mandawa`).
+If `$ARGUMENTS` is empty, ask for the project/client name. If provided, use it directly (e.g., `/brana:proposal mandawa`).
 
 ### 2. Locate project root
 
@@ -204,7 +204,7 @@ Insert `<div style="page-break-before: always;"></div>` before these sections to
 Write the file. Show the user:
 - File path
 - Section summary
-- Recommend: "Run `/export-pdf propuesta-{slug}.md` to generate the PDF."
+- Recommend: "Run `/brana:export-pdf propuesta-{slug}.md` to generate the PDF."
 
 ## Rules
 

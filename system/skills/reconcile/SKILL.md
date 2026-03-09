@@ -1,6 +1,6 @@
 ---
 name: reconcile
-description: "Detect drift between spec docs and system/ implementation, plan fixes, apply after approval. Use after /maintain-specs changes or periodically to sync specs with implementation."
+description: "Detect drift between spec docs and system/ implementation, plan fixes, apply after approval. Use after /brana:maintain-specs changes or periodically to sync specs with implementation."
 group: brana
 allowed-tools:
   - Bash
@@ -20,13 +20,13 @@ Compare spec docs (what should be built) against `system/` (what is built). Iden
 This is the missing arrow: **specs → existing implementation**. The other commands cover:
 - `/build-phase` — specs → new implementation (greenfield)
 - `/back-propagate` — implementation → specs (reverse sync)
-- `/maintain-specs` — specs → specs (cascade within docs)
+- `/brana:maintain-specs` — specs → specs (cascade within docs)
 
-`/reconcile` closes the loop: specs evolve, and the built system catches up.
+`/brana:reconcile` closes the loop: specs evolve, and the built system catches up.
 
 ## When to use
 
-- After `/maintain-specs` cascades changes that affect implementation
+- After `/brana:maintain-specs` cascades changes that affect implementation
 - After manually editing specs that describe thebrana behavior
 - Periodically, to check for accumulated drift
 - Before a new `/build-phase`, to ensure the current system matches current specs
@@ -130,7 +130,7 @@ Compare the "should" claims (Step 1) against the "is" claims (Step 2). Classify 
 | **Incomplete** | Implementation exists but is missing parts the spec requires | "Hook exists but doesn't handle the fallback case spec requires" |
 | **Extra** | Implementation has something specs don't mention | Not necessarily wrong — flag for review, don't auto-remove |
 
-**Materiality filter.** Apply the same test proven in `/maintain-specs`: "Would this drift lead to wrong behavior or a wrong implementation decision?" Discard cosmetic differences, minor wording variations, and enhancement suggestions. Only surface drift that matters.
+**Materiality filter.** Apply the same test proven in `/brana:maintain-specs`: "Would this drift lead to wrong behavior or a wrong implementation decision?" Discard cosmetic differences, minor wording variations, and enhancement suggestions. Only surface drift that matters.
 
 ### Step 4: Present drift report
 

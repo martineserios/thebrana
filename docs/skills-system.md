@@ -1,6 +1,6 @@
 # Skills System Guide
 
-Quick reference for the brana skills system — shared scripts, the `/memory` skill, and skill metadata.
+Quick reference for the brana skills system — shared scripts, the `/brana:memory` skill, and skill metadata.
 
 ## Shared Scripts
 
@@ -17,15 +17,15 @@ Quick reference for the brana skills system — shared scripts, the `/memory` sk
 - Need to store a memory entry: call `memory-store.sh` (don't source cf-env.sh separately)
 - Need to trigger backup: call `backup-knowledge.sh`
 
-## The `/memory` Skill
+## The `/brana:memory` Skill
 
 Replaces three former skills (`/pattern-recall`, `/cross-pollinate`, `/knowledge-review`):
 
 | Command | What it does |
 |---------|-------------|
-| `/memory` or `/memory recall [query]` | Query patterns relevant to current context |
-| `/memory pollinate [query]` | Pull transferable patterns from other projects |
-| `/memory review` | Monthly knowledge health audit |
+| `/brana:memory` or `/brana:memory recall [query]` | Query patterns relevant to current context |
+| `/brana:memory pollinate [query]` | Pull transferable patterns from other projects |
+| `/brana:memory review` | Monthly knowledge health audit |
 
 ## Skill Metadata
 

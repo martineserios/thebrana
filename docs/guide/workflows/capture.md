@@ -1,12 +1,12 @@
 # Capturing Events
 
-The `/log` command is the lowest-friction way to record anything that happens — calls, meetings, ideas, links, observations.
+The `/brana:log` command is the lowest-friction way to record anything that happens — calls, meetings, ideas, links, observations.
 
 ## Quick start
 
 ```
-/log "Call with Juan from Kapso — interested in automation #somos #call"
-/log bulk                    — paste a WhatsApp dump or meeting notes
+/brana:log "Call with Juan from Kapso — interested in automation #somos #call"
+/brana:log bulk                    — paste a WhatsApp dump or meeting notes
 ```
 
 ## How it works
@@ -21,14 +21,14 @@ The `/log` command is the lowest-friction way to record anything that happens �
 Add `#tags` inline — they're visible in the entry and serve as the filtering mechanism:
 
 ```
-/log "Found an article on RAG patterns #research #knowledge-graphs"
-/log "Competitor launched new pricing #tinyhomes #competitive"
+/brana:log "Found an article on RAG patterns #research #knowledge-graphs"
+/brana:log "Competitor launched new pricing #tinyhomes #competitive"
 ```
 
-## What /log is NOT
+## What /brana:log is NOT
 
-- Not `/tasks add` — tasks are commitments, log entries are observations
+- Not `/brana:tasks add` — tasks are commitments, log entries are observations
 - Not MEMORY.md — memory stores patterns, log stores events
-- Not `/pipeline` — pipeline tracks deals, log captures first contact
+- Not `/brana:pipeline` — pipeline tracks deals, log captures first contact
 
 The log is an **inbox**. Other commands are the **outbox**. Capture fast, route later.

@@ -35,9 +35,9 @@ VENTURE SKILLS (Foundation)           VENTURE SKILLS (Operations)
 ──────────────────────────           ───────────────────────────
 /venture-onboard  (diagnose)         /morning         (daily check)
 /venture-align    (build)            /weekly-review   (weekly cadence)
-/venture-phase    (execute)          /pipeline        (sales tracking)
+/brana:venture-phase    (execute)          /brana:pipeline        (sales tracking)
 /growth-check     (monitor)          /experiment      (growth testing)
-/sop              (document)         /financial-model (projections)
+/sop              (document)         /brana:financial-model (projections)
                                      /content-plan    (marketing)
                                      /monthly-close   (financial close)
                                      /monthly-plan    (forward planning)
@@ -45,9 +45,9 @@ VENTURE SKILLS (Foundation)           VENTURE SKILLS (Operations)
 UNIVERSAL SKILLS (transfer as-is)
 ─────────────────────────────────
 /decide          (record decisions)
-/retrospective   (store learnings)
+/brana:retrospective   (store learnings)
 /debrief         (end-of-session extraction)
-/challenge       (stress-test plans)
+/brana:challenge       (stress-test plans)
 /pattern-recall  (query past learnings)
 /cross-pollinate (pull from other projects)
 /knowledge-review(memory health check)
@@ -84,7 +84,7 @@ That's it. After these two steps you have a working management structure. Everyt
 - Venture extension deployed (`./deploy.sh` from this repo)
 - A project directory for your venture (can be empty or existing)
 - Optionally: claude-flow for cross-project memory (works without it, just no persistent patterns)
-- Optionally: Google Sheets MCP for spreadsheet access (see [setup guide](docs/google-sheets-mcp-setup.md), use `/gsheets` for direct operations)
+- Optionally: Google Sheets MCP for spreadsheet access (see [setup guide](docs/google-sheets-mcp-setup.md), use `/brana:gsheets` for direct operations)
 - Optionally: Google Workspace MCP for calendar integration
 - Optionally: Airtable/HubSpot MCP for CRM integration
 
@@ -144,19 +144,19 @@ DISCOVER → ASSESS → PLAN → IMPLEMENT → VERIFY → DOCUMENT
 
 ---
 
-#### `/venture-phase` — The Executor
+#### `/brana:venture-phase` — The Executor
 
 **Purpose:** Plan and execute a specific business milestone with learning loops.
 
 **Invocation:**
 ```
-/venture-phase                    — asks what milestone
-/venture-phase product launch     — plans a product launch
-/venture-phase hiring             — plans a hiring round
-/venture-phase fundraise          — plans a fundraise
-/venture-phase expansion          — plans market expansion
-/venture-phase process            — plans process overhaul
-/venture-phase custom             — you define the milestone
+/brana:venture-phase                    — asks what milestone
+/brana:venture-phase product launch     — plans a product launch
+/brana:venture-phase hiring             — plans a hiring round
+/brana:venture-phase fundraise          — plans a fundraise
+/brana:venture-phase expansion          — plans market expansion
+/brana:venture-phase process            — plans process overhaul
+/brana:venture-phase custom             — you define the milestone
 ```
 
 **The execution loop:**
@@ -257,7 +257,7 @@ Each work item gets a mini-debrief: anything surprising? anything reusable? shou
 
 ---
 
-#### `/pipeline` — Sales/CRM Tracking
+#### `/brana:pipeline` — Sales/CRM Tracking
 
 **Purpose:** Track leads, deals, conversions, and follow-ups. Stage-aware CRM.
 
@@ -312,7 +312,7 @@ Hypothesis → Design → Success Criteria → Run → Measure → Learn → Dec
 
 ---
 
-#### `/financial-model` — Revenue Projections
+#### `/brana:financial-model` — Revenue Projections
 
 **Purpose:** 3-scenario revenue projection, P&L template, unit economics, cash flow analysis.
 
@@ -371,7 +371,7 @@ Hypothesis → Design → Success Criteria → Run → Measure → Learn → Dec
 
 **What it does:**
 1. Pulls `/growth-check` snapshots for the full month
-2. Compares actuals vs `/financial-model` projections
+2. Compares actuals vs `/brana:financial-model` projections
 3. P&L summary (revenue, COGS, expenses, net income)
 4. Metrics vs targets with variance analysis
 5. MoM trend analysis across key metrics
@@ -393,7 +393,7 @@ Hypothesis → Design → Success Criteria → Run → Measure → Learn → Dec
 - Before board meetings or quarterly planning
 
 **What it does:**
-1. Gathers data from 6 sources: `/monthly-close`, `/growth-check`, `/pipeline`, `/experiment`, `/financial-model`, `/weekly-review`
+1. Gathers data from 6 sources: `/monthly-close`, `/growth-check`, `/brana:pipeline`, `/experiment`, `/brana:financial-model`, `/weekly-review`
 2. Sets revenue target (3 scenarios: conservative/base/stretch)
 3. Derives 3-5 priorities tied to bottleneck data
 4. Lists running experiments + proposes 1-2 new ones
@@ -416,9 +416,9 @@ Seven skills designed for code projects work identically for business projects:
 | Skill | Purpose | Business Use |
 |-------|---------|-------------|
 | `/decide [title]` | Record decisions as ADRs | "Why did we pick this market?" — ADRs answer it in 6 months |
-| `/retrospective` | Store a single learning | "Referrals convert 3x better than Instagram leads" |
+| `/brana:retrospective` | Store a single learning | "Referrals convert 3x better than Instagram leads" |
 | `/debrief` | End-of-session extraction | Extracts errata, learnings, issues from current session |
-| `/challenge` | Stress-test a plan | "Should we expand to 3 cities?" — adversarial review |
+| `/brana:challenge` | Stress-test a plan | "Should we expand to 3 cities?" — adversarial review |
 | `/pattern-recall` | Query past learnings | Starting work on any topic, encountering a familiar problem |
 | `/cross-pollinate` | Pull from other projects | CI/CD patterns → operational workflows |
 | `/knowledge-review` | Memory health check | Monthly review of ReasoningBank health |
@@ -459,7 +459,7 @@ Business decisions are harder to reverse than code decisions. ADRs, challenges, 
            │    │  /weekly-review   ← reads all outputs   │
            │    │  /monthly-close   ← reads month data    │
            │    │  /monthly-plan    ← reads all 6 sources │
-           │    │  /financial-model ← reads actuals       │
+           │    │  /brana:financial-model ← reads actuals       │
            │    │  /content-plan    ← reads metrics       │
            │    └─────────────────────────────────────────┘
            │
@@ -468,12 +468,12 @@ Business decisions are harder to reverse than code decisions. ADRs, challenges, 
      │             ReasoningBank                     │
      │   (cross-project patterns and learnings)      │
      │                                               │
-     │   /retrospective  → stores learnings          │
+     │   /brana:retrospective  → stores learnings          │
      │   /debrief        → extracts from session     │
      │   /pattern-recall → retrieves patterns        │
      │   /cross-pollinate→ pulls from elsewhere      │
      │   /decide         → records decisions         │
-     │   /challenge      → stress-tests plans        │
+     │   /brana:challenge      → stress-tests plans        │
      └──────────────────────────────────────────────┘
 ```
 
@@ -481,9 +481,9 @@ Business decisions are harder to reverse than code decisions. ADRs, challenges, 
 - `/venture-onboard` reads existing docs → produces diagnostic
 - `/venture-align` reads diagnostic → creates docs structure
 - `/growth-check` reads metrics → stores snapshots → feeds `/morning`, `/weekly-review`, `/monthly-close`
-- `/pipeline` tracks deals → feeds `/growth-check` and `/monthly-close`
+- `/brana:pipeline` tracks deals → feeds `/growth-check` and `/monthly-close`
 - `/experiment` reads bottleneck from `/growth-check` → stores results → feeds `/weekly-review`
-- `/financial-model` builds projections → `/monthly-close` compares actuals vs plan
+- `/brana:financial-model` builds projections → `/monthly-close` compares actuals vs plan
 - `/content-plan` reads `/growth-check` acquisition data and `/experiment` results
 - `/morning` aggregates snapshots → daily focus card
 - `/weekly-review` aggregates the week → portfolio + plan
@@ -512,10 +512,10 @@ my-venture/
 │   ├── experiments/                   ← /experiment tracks hypotheses
 │   │   ├── README.md                  (experiment index)
 │   │   └── EXP-NNN-slug.md           (auto-incrementing)
-│   ├── financial/                     ← /financial-model, /monthly-close
+│   ├── financial/                     ← /brana:financial-model, /monthly-close
 │   │   ├── model-YYYY-MM.md           (revenue projections)
 │   │   └── close-YYYY-MM.md           (monthly close reports)
-│   ├── pipeline/                      ← /pipeline tracks deals
+│   ├── pipeline/                      ← /brana:pipeline tracks deals
 │   │   └── README.md                  (current pipeline state)
 │   ├── content/                       ← /content-plan tracks marketing
 │   │   └── plan-YYYY-QN.md           (quarterly content plans)
@@ -579,8 +579,8 @@ DISCOVERY ──────→ VALIDATION ──────→ GROWTH ──�
    ← Focus card: 3 priorities, top blocker, key metric
 
 2. Work on priorities
-   ← Use /pipeline for sales, /experiment for testing,
-     /decide for decisions, /retrospective for learnings
+   ← Use /brana:pipeline for sales, /experiment for testing,
+     /decide for decisions, /brana:retrospective for learnings
 
 3. End of session → /debrief
    ← Extracts learnings, stores in memory
@@ -611,7 +611,7 @@ This is the non-negotiable meta-practice. 30 minutes. Even a bad weekly review b
 
 ```
 Week 1:  /growth-check — health dashboard, identify bottleneck
-Week 2:  Work on bottleneck — /experiment if testing, /venture-phase if milestone
+Week 2:  Work on bottleneck — /experiment if testing, /brana:venture-phase if milestone
 Week 3:  Continue execution, /sop for any new repeatable process
 Week 4:  /monthly-close → /monthly-plan → /debrief the month → /knowledge-review
 
@@ -619,7 +619,7 @@ Monthly touchpoints:
 ├── /growth-check (health baseline)
 ├── /monthly-close (financial summary — backward-looking)
 ├── /monthly-plan (action plan — forward-looking)
-├── /financial-model update (if projections changed)
+├── /brana:financial-model update (if projections changed)
 └── /content-plan review (is content on track?)
 ```
 
@@ -629,8 +629,8 @@ Monthly touchpoints:
 Start of quarter:
 ├── /venture-onboard — reassess stage (has it changed?)
 ├── Update OKRs in docs/okrs/
-├── /venture-phase to plan the quarter's milestone
-├── /financial-model for the quarter's projections
+├── /brana:venture-phase to plan the quarter's milestone
+├── /brana:financial-model for the quarter's projections
 └── /content-plan for the quarter's content strategy
 
 During quarter:
@@ -698,10 +698,10 @@ Score = (Impact + Confidence + Ease) / 3. Run experiments with highest ICE score
 ### The Financial Skill Stack
 
 ```
-/financial-model   — Build projections (forward-looking)
+/brana:financial-model   — Build projections (forward-looking)
 /monthly-close     — Summarize actuals (backward-looking)
 /growth-check      — Track key metrics (ongoing)
-/pipeline          — Track revenue attribution (deals → revenue)
+/brana:pipeline          — Track revenue attribution (deals → revenue)
 ```
 
 ### Financial Model Types
@@ -741,7 +741,7 @@ Track these monthly. The trend matters more than any single number.
 
 ### Pipeline Stages
 
-The `/pipeline` skill uses stage-appropriate pipeline complexity:
+The `/brana:pipeline` skill uses stage-appropriate pipeline complexity:
 
 **Discovery:**
 ```
@@ -770,9 +770,9 @@ Lead → Qualified → Demo → Proposal → Negotiation → Closed Won / Closed
 
 ### CRM Integration
 
-The `/pipeline` skill works in two modes:
+The `/brana:pipeline` skill works in two modes:
 1. **Markdown mode** (default) — all data in `docs/pipeline/`. Simple, version-controlled, no external dependencies.
-2. **MCP mode** (optional) — syncs with Airtable or HubSpot via MCP servers. External CRM is the source of truth, `/pipeline` reads and writes through MCP tools.
+2. **MCP mode** (optional) — syncs with Airtable or HubSpot via MCP servers. External CRM is the source of truth, `/brana:pipeline` reads and writes through MCP tools.
 
 ---
 
@@ -785,9 +785,9 @@ Every venture skill feeds a persistent learning system. This is what makes brana
 ```
 SESSION ACTIVITY
      │
-     ├── /retrospective  → stores individual learnings
+     ├── /brana:retrospective  → stores individual learnings
      ├── /debrief        → extracts session-wide findings
-     ├── /venture-phase   → mini-debriefs after each work item
+     ├── /brana:venture-phase   → mini-debriefs after each work item
      ├── /growth-check    → stores health snapshots
      ├── /experiment      → stores experiment results + learnings
      ├── /monthly-close   → stores financial snapshots
@@ -849,14 +849,14 @@ Patterns from code projects inform business projects and vice versa:
 - **Use `/decide` for hard-to-reverse decisions.** Future-you will ask "why?"
 - **Let the stage drive the framework.** Don't over-engineer. Don't under-engineer.
 - **Fill data gaps before adding structure.** Templates with "No data" in every cell is theater.
-- **Use `/challenge` before committing.** Stress-test when you can still change.
+- **Use `/brana:challenge` before committing.** Stress-test when you can still change.
 - **Keep SOPs current.** Review every 6 months. Stale SOPs give false confidence.
 
 ### Don't
 
 - **Don't systematize too early.** Wait for 3+ repetitions before writing an SOP.
 - **Don't skip the diagnostic.** `/venture-onboard` before `/venture-align`. Always.
-- **Don't run multiple milestones at once.** One `/venture-phase` at a time.
+- **Don't run multiple milestones at once.** One `/brana:venture-phase` at a time.
 - **Don't fake metrics.** "Not tracked" is better than an estimate.
 - **Don't adopt frameworks above your stage.** EOS for 2 people is cosplay.
 - **Don't skip mini-debriefs.** 30 seconds per work item prevents losing learnings.
@@ -883,7 +883,7 @@ Patterns from code projects inform business projects and vice versa:
 ```
 1. /venture-onboard → probably Validation stage
 2. /venture-align   → creates Validation structure
-3. /pipeline to start tracking every sale
+3. /brana:pipeline to start tracking every sale
 4. Contact ex-customers to understand retention
 5. /growth-check after 30 days of data
 6. /experiment for your first growth test
@@ -894,9 +894,9 @@ Patterns from code projects inform business projects and vice versa:
 ```
 1. /venture-onboard → probably Growth stage
 2. /venture-align   → creates Growth structure (OKRs, SOPs, hiring plan)
-3. /venture-phase process → process overhaul milestone
+3. /brana:venture-phase process → process overhaul milestone
 4. /sop for every core process
-5. /financial-model for projections
+5. /brana:financial-model for projections
 6. /growth-check quarterly, /monthly-close monthly
 ```
 
@@ -904,10 +904,10 @@ Patterns from code projects inform business projects and vice versa:
 
 ```
 1. /growth-check → baseline metrics
-2. /financial-model → 3-scenario projections
-3. /venture-phase fundraise → pitch prep milestone
+2. /brana:financial-model → 3-scenario projections
+3. /brana:venture-phase fundraise → pitch prep milestone
 4. /monthly-close → clean financials
-5. /challenge → stress-test the pitch
+5. /brana:challenge → stress-test the pitch
 ```
 
 ### "I want to grow faster"
@@ -916,7 +916,7 @@ Patterns from code projects inform business projects and vice versa:
 1. /growth-check → identify the AARRR bottleneck
 2. /experiment → design a test for the bottleneck
 3. /content-plan → if acquisition is the bottleneck
-4. /pipeline → if conversion is the bottleneck
+4. /brana:pipeline → if conversion is the bottleneck
 5. /weekly-review → track experiment progress
 ```
 
@@ -926,7 +926,7 @@ Patterns from code projects inform business projects and vice versa:
 1. /monthly-close → financial summary (backward-looking)
 2. /monthly-plan  → action plan for next month (forward-looking)
 3. /growth-check → health dashboard
-4. Review: actuals vs projections → adjust /financial-model if needed
+4. Review: actuals vs projections → adjust /brana:financial-model if needed
 5. /debrief → extract month's learnings
 ```
 
@@ -936,8 +936,8 @@ Patterns from code projects inform business projects and vice versa:
 1. /venture-onboard → has the stage changed?
 2. /monthly-close for Q's last month
 3. Compare Q's OKRs to actuals
-4. /venture-phase to plan next quarter
-5. Update /financial-model for next quarter
+4. /brana:venture-phase to plan next quarter
+5. Update /brana:financial-model for next quarter
 6. /content-plan for next quarter
 ```
 
@@ -947,7 +947,7 @@ Patterns from code projects inform business projects and vice versa:
 1. /growth-check → GREEN/YELLOW/RED dashboard
 2. Look at AARRR funnel → where's the bottleneck?
 3. Compare to previous check → what's trending?
-4. /challenge if something looks concerning
+4. /brana:challenge if something looks concerning
 5. Act on the top recommendation
 ```
 
@@ -963,21 +963,21 @@ See `quick-reference.md` for the condensed one-page version.
 |-------|-----------|---------------|
 | `/venture-onboard` | `/venture-onboard` | No |
 | `/venture-align` | `/venture-align` | Yes |
-| `/venture-phase` | `/venture-phase [type]` | Yes |
+| `/brana:venture-phase` | `/brana:venture-phase [type]` | Yes |
 | `/sop` | `/sop [process name]` | Yes |
 | `/growth-check` | `/growth-check` | Yes |
 | `/morning` | `/morning` | No |
 | `/weekly-review` | `/weekly-review` | Yes |
-| `/pipeline` | `/pipeline` | Yes |
+| `/brana:pipeline` | `/brana:pipeline` | Yes |
 | `/experiment` | `/experiment` | Yes |
-| `/financial-model` | `/financial-model` | Yes |
+| `/brana:financial-model` | `/brana:financial-model` | Yes |
 | `/content-plan` | `/content-plan` | Yes |
 | `/monthly-close` | `/monthly-close` | Yes |
 | `/monthly-plan` | `/monthly-plan` | Yes |
 | `/decide` | `/decide [title]` | Yes |
-| `/retrospective` | `/retrospective` | No |
+| `/brana:retrospective` | `/brana:retrospective` | No |
 | `/debrief` | `/debrief` | No |
-| `/challenge` | `/challenge` | No |
+| `/brana:challenge` | `/brana:challenge` | No |
 | `/pattern-recall` | `/pattern-recall` | No |
 | `/cross-pollinate` | `/cross-pollinate` | No |
 | `/knowledge-review` | `/knowledge-review` | No |

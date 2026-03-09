@@ -110,25 +110,25 @@ Hierarchy views (status, roadmap) use box-drawing characters when not in `--wide
 
 ## Commands
 
-- `/tasks plan [project] "[phase-title]"` — plan a phase interactively
-- `/tasks status [project] [--wide]` — progress overview (omit project = portfolio)
-- `/tasks portfolio [--unified] [--wide]` — cross-project actionable tasks
-- `/tasks roadmap [project] [--wide]` — full tree view with all levels
-- `/tasks next [project] [--stream X] [--wide]` — next unblocked task by priority
-- `/tasks start <id>` — begin work on a task
-- `/tasks done [id]` — complete current task
-- `/tasks add "[description]"` — quick-add a task
-- `/tasks replan [project] [phase-id]` — restructure a phase
-- `/tasks archive [project]` — move completed phases to archive
-- `/tasks migrate <file>` — import tasks from a markdown backlog
-- `/tasks execute [scope] [--dry-run] [--max-parallel N] [--retry]` — execute tasks via subagents
-- `/tasks tags [project]` — tag inventory, filtering, and bulk tag management
-- `/tasks context <id> [text]` — view or set rich context on a task
-- `/tasks theme [name]` — view or set display theme (classic, emoji, minimal)
+- `/brana:tasks plan [project] "[phase-title]"` — plan a phase interactively
+- `/brana:tasks status [project] [--wide]` — progress overview (omit project = portfolio)
+- `/brana:tasks portfolio [--unified] [--wide]` — cross-project actionable tasks
+- `/brana:tasks roadmap [project] [--wide]` — full tree view with all levels
+- `/brana:tasks next [project] [--stream X] [--wide]` — next unblocked task by priority
+- `/brana:tasks start <id>` — begin work on a task
+- `/brana:tasks done [id]` — complete current task
+- `/brana:tasks add "[description]"` — quick-add a task
+- `/brana:tasks replan [project] [phase-id]` — restructure a phase
+- `/brana:tasks archive [project]` — move completed phases to archive
+- `/brana:tasks migrate <file>` — import tasks from a markdown backlog
+- `/brana:tasks execute [scope] [--dry-run] [--max-parallel N] [--retry]` — execute tasks via subagents
+- `/brana:tasks tags [project]` — tag inventory, filtering, and bulk tag management
+- `/brana:tasks context <id> [text]` — view or set rich context on a task
+- `/brana:tasks theme [name]` — view or set display theme (classic, emoji, minimal)
 
 ---
 
-## /tasks plan
+## /brana:tasks plan
 
 Interactive phase planning. Builds the hierarchy conversationally.
 
@@ -157,7 +157,7 @@ Interactive phase planning. Builds the hierarchy conversationally.
 
 ---
 
-## /tasks status
+## /brana:tasks status
 
 High-level progress view with aggregation.
 
@@ -220,16 +220,16 @@ Read project paths from `~/.claude/tasks-portfolio.json`. Paths use `~/` prefix 
 
 ---
 
-## /tasks portfolio
+## /brana:tasks portfolio
 
-Cross-project actionable task view. Shows individual tasks you can work on across all registered projects. Complements `/tasks status` (progress bars) with a task-level drill-down.
+Cross-project actionable task view. Shows individual tasks you can work on across all registered projects. Complements `/brana:tasks status` (progress bars) with a task-level drill-down.
 
 ### Usage
 
 ```
-/tasks portfolio              — by-project view (default)
-/tasks portfolio --unified    — priority-sorted flat list
-/tasks portfolio --wide       — tabular with all columns
+/brana:tasks portfolio              — by-project view (default)
+/brana:tasks portfolio --unified    — priority-sorted flat list
+/brana:tasks portfolio --wide       — tabular with all columns
 ```
 
 ### Steps
@@ -340,7 +340,7 @@ Blocked and completed tasks are excluded from the unified view (only actionable 
 
 ---
 
-## /tasks roadmap
+## /brana:tasks roadmap
 
 Full tree view — every level expanded.
 
@@ -381,7 +381,7 @@ Tags shown inline as `[tag1, tag2]` after subject — only when tags array is no
 
 ---
 
-## /tasks next
+## /brana:tasks next
 
 Find the highest-priority unblocked task.
 
@@ -404,18 +404,18 @@ Start one? (number or "1" to begin)
 ```
 
 Icons come from active theme (example above uses classic `→`).
-Optional `--tag` narrows candidates: `/tasks next --tag scheduler`
-Optional `--stream` narrows by stream: `/tasks next --stream research`
+Optional `--tag` narrows candidates: `/brana:tasks next --tag scheduler`
+Optional `--stream` narrows by stream: `/brana:tasks next --stream research`
 
 ---
 
-## /tasks start
+## /brana:tasks start
 
-Begin work on a specific task. For code tasks, enters the `/build` loop.
+Begin work on a specific task. For code tasks, enters the `/brana:build` loop.
 
 ### Steps
 
-1. **Parse id** from argument, or offer candidates from /tasks next
+1. **Parse id** from argument, or offer candidates from /brana:tasks next
 2. **Read tasks.json**, find the task
 3. **Check blocked_by** — if any blocker not completed, warn and abort
 4. **Auto-classify strategy** (if not already set on the task):
@@ -430,12 +430,12 @@ Begin work on a specific task. For code tasks, enters the `/build` loop.
    - **Confirm with user:** "Start t-008 as **feature**? [feature / bug-fix / refactor / spike / other]"
    - Write the confirmed `strategy` field to the task
 5. **Determine execution mode:**
-   - `code`: check git status clean → create branch `{prefix}{id}-{slug}` → set status + started date + branch field → **enter `/build` with the task's strategy** (build_step: classify)
+   - `code`: check git status clean → create branch `{prefix}{id}-{slug}` → set status + started date + branch field → **enter `/brana:build` with the task's strategy** (build_step: classify)
    - `external`: set status + started date, show task description
    - `manual`: set status + started date, show checklist from description
 6. **Write tasks.json** (status: in_progress, started: today, strategy: confirmed)
 7. **Report:** "Started t-008 'Implement JWT middleware' as **feature**. Branch: feat/t-008-jwt-middleware."
-8. **For code tasks:** proceed directly into `/build` — no separate invocation needed
+8. **For code tasks:** proceed directly into `/brana:build` — no separate invocation needed
 
 ### Branch creation
 
@@ -454,9 +454,9 @@ git worktree add ../project-feat-t-008 -b feat/t-008-jwt-middleware
 
 ---
 
-## /tasks done
+## /brana:tasks done
 
-Complete the current task. For code tasks that went through `/build`, the CLOSE step already handles completion — use `/tasks done` only for manual and external tasks.
+Complete the current task. For code tasks that went through `/brana:build`, the CLOSE step already handles completion — use `/brana:tasks done` only for manual and external tasks.
 
 ### Steps
 
@@ -465,7 +465,7 @@ Complete the current task. For code tasks that went through `/build`, the CLOSE 
    - If on a task branch (feat/t-NNN-*), extract id from branch name
    - Otherwise: show in_progress tasks, ask which one
 2. **Read tasks.json**, find the task
-3. **Check if build-managed:** if the task has a `build_step` field set, warn: "This task is in the /build loop (step: {build_step}). Use /build CLOSE to complete it, or force-complete here?"
+3. **Check if build-managed:** if the task has a `build_step` field set, warn: "This task is in the /brana:build loop (step: {build_step}). Use /brana:build CLOSE to complete it, or force-complete here?"
 4. **For execution: code** (non-build-managed):
    - Stage changes: `git add -A` (or ask user what to stage)
    - Commit with conventional type from stream mapping
@@ -481,7 +481,7 @@ Complete the current task. For code tasks that went through `/build`, the CLOSE 
 
 ---
 
-## /tasks add
+## /brana:tasks add
 
 Quick-add a single task with intelligent suggestions.
 
@@ -497,7 +497,7 @@ All interactive confirmations use the **AskUserQuestion** tool for a selectable 
    - **Tags**: suggest tags from description keywords matched against existing vocabulary. Options: "Accept {suggested}" (recommended), "Edit", "Skip". Header: "Tags"
    - **Effort**: suggest from description complexity (S/M/L/XL). Options: each size with description. Header: "Effort"
    - **Milestone** (skip if URL auto-detected or no active milestones): options from active milestones + "None". Header: "Milestone"
-5. Auto-assign next id, set defaults. Auto-classify `strategy` from description/stream/tags (same heuristic as `/tasks start`). Leave `build_step` null.
+5. Auto-assign next id, set defaults. Auto-classify `strategy` from description/stream/tags (same heuristic as `/brana:tasks start`). Leave `build_step` null.
 6. **Dependency scan** — cross-reference all pending tasks:
    - Match by **tag overlap** (2+ shared tags with the new task)
    - Match by **subject keyword** overlap (significant words from description appear in existing task subjects)
@@ -515,13 +515,13 @@ All interactive confirmations use the **AskUserQuestion** tool for a selectable 
    - AskUserQuestion: "This looks like a solution. What problem does it solve?" Options: user provides context via "Other" free text, or "Skip". Header: "Problem"
    - If the user provides text, store it in the `context` field
    - If skipped, proceed without context
-8. Priority: **leave null** (user sets manually via `/tasks reprioritize` or direct edit)
+8. Priority: **leave null** (user sets manually via `/brana:tasks reprioritize` or direct edit)
 9. **Final confirmation** — AskUserQuestion: "Add {id} '{subject}' [{tags}, {effort}] under {milestone}? blocked_by: [{deps}]" Options: "Confirm" (recommended), "Edit", "Cancel". Header: "Confirm"
 10. Write tasks.json
 
 ---
 
-## /tasks replan
+## /brana:tasks replan
 
 Restructure an existing phase.
 
@@ -535,7 +535,7 @@ Restructure an existing phase.
 
 ---
 
-## /tasks archive
+## /brana:tasks archive
 
 Move completed phases to archive.
 
@@ -551,7 +551,7 @@ Move completed phases to archive.
 
 ---
 
-## /tasks migrate
+## /brana:tasks migrate
 
 Import tasks from an existing markdown backlog.
 
@@ -566,18 +566,18 @@ Import tasks from an existing markdown backlog.
 
 ---
 
-## /tasks tags
+## /brana:tasks tags
 
 Tag inventory, filtering, and bulk tag management.
 
 ### Usage
 
 ```
-/tasks tags [project]                    — tag inventory (all tags + task counts)
-/tasks tags --filter "tag1,tag2"         — AND filter (tasks with ALL listed tags)
-/tasks tags --any "tag1,tag2"            — OR filter (tasks with ANY listed tag)
-/tasks tags add <id|ids> "tag1,tag2"     — add tags to one or more tasks
-/tasks tags remove <id|ids> "tag1"       — remove a tag from one or more tasks
+/brana:tasks tags [project]                    — tag inventory (all tags + task counts)
+/brana:tasks tags --filter "tag1,tag2"         — AND filter (tasks with ALL listed tags)
+/brana:tasks tags --any "tag1,tag2"            — OR filter (tasks with ANY listed tag)
+/brana:tasks tags add <id|ids> "tag1,tag2"     — add tags to one or more tasks
+/brana:tasks tags remove <id|ids> "tag1"       — remove a tag from one or more tasks
 ```
 
 ### Steps
@@ -630,16 +630,16 @@ Icons come from active theme (example above uses classic).
 
 ---
 
-## /tasks context
+## /brana:tasks context
 
 View or set rich context on a task — rationale, links, notes, decisions.
 
 ### Usage
 
 ```
-/tasks context <id>                     — show context for a task
-/tasks context <id> "context text"      — set context (replaces existing)
-/tasks context <id> --append "note"     — append to existing context
+/brana:tasks context <id>                     — show context for a task
+/brana:tasks context <id> "context text"      — set context (replaces existing)
+/brana:tasks context <id> --append "note"     — append to existing context
 ```
 
 ### Steps
@@ -673,17 +673,17 @@ Context:
 
 ---
 
-## /tasks theme
+## /brana:tasks theme
 
 View or set the display theme.
 
 ### Usage
 
 ```
-/tasks theme              — show current theme
-/tasks theme emoji        — set theme to emoji
-/tasks theme classic      — set theme to classic
-/tasks theme minimal      — set theme to minimal
+/brana:tasks theme              — show current theme
+/brana:tasks theme emoji        — set theme to emoji
+/brana:tasks theme classic      — set theme to classic
+/brana:tasks theme minimal      — set theme to minimal
 ```
 
 ### Steps
@@ -691,14 +691,14 @@ View or set the display theme.
 **View (no argument):**
 1. Read `~/.claude/tasks-config.json`
 2. If file exists and has `theme` field, show: "Current theme: **{name}**"
-3. If no file: "Current theme: **classic** (default). Set with `/tasks theme <name>`."
+3. If no file: "Current theme: **classic** (default). Set with `/brana:tasks theme <name>`."
 
 **Set (with name):**
 1. Validate name is one of: `classic`, `emoji`, `minimal`
 2. Read `~/.claude/tasks-config.json` (create if missing)
 3. Set `theme` field to the given name, preserve other fields
 4. Write the file
-5. Report: "Theme set to **{name}**. All `/tasks` output will use {name} icons."
+5. Report: "Theme set to **{name}**. All `/brana:tasks` output will use {name} icons."
 
 ### Config format
 
@@ -712,12 +712,12 @@ Stored at `~/.claude/tasks-config.json` (global, not per-project).
 
 ---
 
-## /tasks execute
+## /brana:tasks execute
 
 Execute tasks via subagents — DAG-aware parallel execution with automatic wave scheduling.
 
 ```
-/tasks execute [scope] [--dry-run] [--max-parallel N] [--retry]
+/brana:tasks execute [scope] [--dry-run] [--max-parallel N] [--retry]
 ```
 
 **Arguments:**
@@ -796,7 +796,7 @@ Tasks must have `spawn` field set (see ADR-003 for schema). Tasks without `spawn
      ✗ 1 task failed (t-012: agent timeout)
 
    Milestone 'Auth System': 3/4 done
-   Next: /tasks execute --retry ph-002
+   Next: /brana:tasks execute --retry ph-002
    ```
    Icons come from active theme (✓/✅/● for completed).
 
@@ -812,7 +812,7 @@ Tasks must have `spawn` field set (see ADR-003 for schema). Tasks without `spawn
 
 - `--retry` re-runs tasks with `agent_result.status` of `"failed"` or `"partial"`
 - Completed tasks are skipped
-- User can also fall back to manual: `/tasks start <id>` on any failed task
+- User can also fall back to manual: `/brana:tasks start <id>` on any failed task
 
 ### Schema fields (on task objects)
 
@@ -846,14 +846,14 @@ On parent tasks, `spawn_strategy` controls child batching:
 
 ---
 
-## /tasks reprioritize
+## /brana:tasks reprioritize
 
 Research-informed priority reassessment across project backlogs.
 
 ### Usage
 
 ```
-/tasks reprioritize [project] [--reresearch] [--scope P2+]
+/brana:tasks reprioritize [project] [--reresearch] [--scope P2+]
 ```
 
 ### Default behavior (no flags)
