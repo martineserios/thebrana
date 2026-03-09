@@ -125,6 +125,24 @@ if [ -f "$TARGET_DIR/CLAUDE.md" ] && [ ! -f "$TARGET_DIR/CLAUDE.md.bootstrap-bac
 fi
 sync_file "$SYSTEM_DIR/CLAUDE.md" "$TARGET_DIR/CLAUDE.md" "CLAUDE.md"
 
+# --- Step 1b: Remove stale pre-plugin directories ---
+# Skills, commands, and agents are now provided by the plugin (system/).
+# Old deploy.sh copied them to ~/.claude/ — remove to prevent duplicates.
+echo "Plugin migration cleanup:"
+for stale_dir in skills commands agents; do
+    if [ -d "$TARGET_DIR/$stale_dir" ]; then
+        CHANGES=$((CHANGES + 1))
+        if $CHECK_ONLY; then
+            echo "  - $stale_dir/ (would remove — now provided by plugin)"
+        else
+            rm -rf "$TARGET_DIR/$stale_dir"
+            echo "  - $stale_dir/ (removed — now provided by plugin)"
+        fi
+    else
+        echo "  = $stale_dir/ (already clean)"
+    fi
+done
+
 # --- Step 2: Rules ---
 echo "Rules:"
 sync_dir "$SYSTEM_DIR/rules" "$TARGET_DIR/rules" "rules/"
