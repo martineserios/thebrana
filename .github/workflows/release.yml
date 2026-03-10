@@ -6,13 +6,10 @@ on:
 
 permissions:
   contents: write
-  issues: write
-  pull-requests: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
-    # Only run on main, skip if commit is from semantic-release itself
     if: "!contains(github.event.head_commit.message, 'chore(release):')"
     steps:
       - uses: actions/checkout@v4
@@ -24,13 +21,7 @@ jobs:
           node-version: 20
 
       - name: Install semantic-release
-        run: |
-          npm install -g \
-            semantic-release \
-            @semantic-release/changelog \
-            @semantic-release/git \
-            @semantic-release/github \
-            @semantic-release/exec
+        run: npm install -g semantic-release @semantic-release/github
 
       - name: Release
         env:
