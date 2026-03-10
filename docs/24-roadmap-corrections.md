@@ -86,6 +86,8 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 68 | Feature shipped without user-facing documentation | **Medium** | code-fix (2026-02-22) | Skills refactor (#44) merged with no human-readable guide. Caught by user. Fixed: docs/skills-system.md + mandatory doc step in build-feature/build-phase. |
 | 69 | Deploy pipeline missing `commands/` artifact type | **Medium** | code-fix (2026-02-23) | `session-handoff`, `init-project` existed only in `~/.claude/commands/` with no source in `system/`. Violates "never edit ~/.claude/ directly" rule. |
 | 70 | Pre-commit Check 3 can't parse doc number ranges in CLAUDE.md | **Medium** | code-fix (2026-02-23) | Fixed via backlog #66: Check 3 now uses Python range expansion to build a flat list of all referenced doc numbers before checking membership. |
+| 71 | GITHUB_TOKEN can't bypass branch protection rulesets | **High** | informational | `github-actions[bot]` is not admin — RepositoryRole:5 bypass only covers human users/PATs. Tag+release-only semantic-release is the workaround. |
+| 72 | `persist-credentials: false` contradicts semantic-release push | **Medium** | code-fix (2026-03-09) | Removed from release.yml. With tag-only mode (no commits to push) it's moot. |
 | 71 | Lesson #36 over-broad — `bypassPermissions` agents CAN write cross-repo | **High** | applied (2026-02-24) | Lesson #36 annotated with supersession note pointing to lesson #68, which documents the nuanced rule: default-mode agents sandboxed by hooks, `bypassPermissions` agents bypass hooks entirely. |
 | 72 | Portfolio tasks.json schema inconsistent across clients | **Low** | informational | Palco/somos/nexeye use bare `[{...}]` array. Tinyhomes/thebrana use `{"tasks": [...]}` wrapper. `/brana:backlog portfolio` handles both via normalize step. Should standardize during next `/project-align` pass. |
 | 73 | [Doc 08](reflections/08-diagnosis.md) missing triage for [docs 38](dimensions/38-design-thinking.md), 39 | **Medium** | applied (2026-02-25) | Maintain-specs cascade — two new dimension docs added without triage entries |
@@ -1036,6 +1038,37 @@ The reflection layer redesign (docs 31, 32) removed ~160 lines from [doc 14](ref
 - Affects any doc inside a range: 01-07 (except 00), 09-13, 20-23, 26-28
 
 **Fix applied:** Replaced literal `grep -q "$DOC_NUM"` with Python range expansion that builds a flat list of all referenced doc numbers from CLAUDE.md. Ranges like `09-13` are expanded to `09 10 11 12 13` before membership check. See backlog #66.
+
+---
+
+## Error 71: GITHUB_TOKEN can't bypass branch protection rulesets
+
+**Severity:** High — blocks automated releases entirely
+**Status:** informational
+
+**Discovery:** During first release pipeline setup (v1.0.0). Migrated from legacy branch protection to GitHub rulesets with `RepositoryRole: 5 (admin)` bypass. `@semantic-release/git` still failed with `GH013: Repository rule violations` when pushing version bump commits to main.
+
+**Root cause:** `GITHUB_TOKEN` (associated with `github-actions[bot]`) is NOT treated as an admin user by rulesets. Admin bypass only covers actual admin-role human users or Personal Access Tokens from admin accounts. The bot operates with workflow-scoped permissions, not a repository role.
+
+**Files affected:**
+- `.github/workflows/release.yml`
+- `.releaserc.json`
+
+**Resolution:** Removed all semantic-release plugins that push commits to protected branches (`@semantic-release/git`, `@semantic-release/changelog`, `@semantic-release/exec`). Kept only `commit-analyzer` + `release-notes-generator` + `@semantic-release/github` (creates releases + tags without pushing to the branch). If commit-pushing is required, use a PAT from an actual admin user stored as a repo secret.
+
+---
+
+## Error 72: `persist-credentials: false` contradicts semantic-release push
+
+**Severity:** Medium — contributed to release pipeline debugging cycle
+**Status:** code-fix (2026-03-09)
+
+**Discovery:** During release pipeline debugging. `actions/checkout` was configured with `persist-credentials: false` (common security template), but semantic-release needs the token persisted in git config to push tags.
+
+**Files affected:**
+- `.github/workflows/release.yml`
+
+**Fix applied:** Removed `persist-credentials: false` from checkout step. With tag-only mode (no commits to push to main), the default credential persistence is sufficient for tag creation.
 
 ---
 
