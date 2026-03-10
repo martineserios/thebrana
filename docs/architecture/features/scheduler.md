@@ -203,7 +203,7 @@ thebrana/system/skills/scheduler/
     "morning-check": {
       "type": "skill",
       "skill": "/morning",
-      "project": "~/enter_thebrana/projects/somos_mirada",
+      "project": "~/enter_thebrana/clients/somos_mirada",
       "schedule": "Mon..Fri *-*-* 08:00:00",
       "model": "haiku",
       "enabled": false

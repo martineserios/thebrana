@@ -395,6 +395,158 @@ else
     echo "  — claude-flow not found (Layer 0 fallback)"
 fi
 
+# --- Step 7: Plugin auto-registration ---
+echo "Plugin registration:"
+PLUGINS_DIR="$TARGET_DIR/plugins"
+mkdir -p "$PLUGINS_DIR/cache" "$PLUGINS_DIR/marketplaces"
+
+# 7a: Register brana marketplace in known_marketplaces.json
+KNOWN_MP="$PLUGINS_DIR/known_marketplaces.json"
+if [ ! -f "$KNOWN_MP" ]; then
+    if ! $CHECK_ONLY; then
+        echo '{}' > "$KNOWN_MP"
+    fi
+fi
+if command -v jq &>/dev/null; then
+    BRANA_MP=$(jq -r '.brana // empty' "$KNOWN_MP" 2>/dev/null)
+    if [ -z "$BRANA_MP" ]; then
+        CHANGES=$((CHANGES + 1))
+        if $CHECK_ONLY; then
+            echo "  + known_marketplaces.json (would add brana)"
+        else
+            NOW=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+            jq --arg loc "$PLUGINS_DIR/marketplaces/brana" \
+               --arg now "$NOW" \
+               '. + {"brana": {"source": {"source": "github", "repo": "martineserios/thebrana"}, "installLocation": $loc, "lastUpdated": $now, "autoUpdate": true}}' \
+               "$KNOWN_MP" > "$KNOWN_MP.tmp" && mv "$KNOWN_MP.tmp" "$KNOWN_MP"
+            echo "  + known_marketplaces.json (brana marketplace registered)"
+        fi
+    else
+        echo "  = known_marketplaces.json (brana already registered)"
+    fi
+fi
+
+# 7b: Symlink marketplace source (local repo → marketplace dir)
+MP_LINK="$PLUGINS_DIR/marketplaces/brana"
+if [ -L "$MP_LINK" ]; then
+    CURRENT_TARGET=$(readlink -f "$MP_LINK" 2>/dev/null || true)
+    if [ "$CURRENT_TARGET" = "$(readlink -f "$SCRIPT_DIR")" ]; then
+        echo "  = marketplaces/brana (symlink current)"
+    else
+        CHANGES=$((CHANGES + 1))
+        if ! $CHECK_ONLY; then
+            rm "$MP_LINK"
+            ln -s "$SCRIPT_DIR" "$MP_LINK"
+            echo "  ~ marketplaces/brana (symlink updated)"
+        else
+            echo "  ~ marketplaces/brana (would update symlink)"
+        fi
+    fi
+elif [ -d "$MP_LINK" ]; then
+    # Real directory exists (from git clone) — replace with symlink for dev
+    CHANGES=$((CHANGES + 1))
+    if ! $CHECK_ONLY; then
+        rm -rf "$MP_LINK"
+        ln -s "$SCRIPT_DIR" "$MP_LINK"
+        echo "  ~ marketplaces/brana (replaced clone with symlink to local repo)"
+    else
+        echo "  ~ marketplaces/brana (would replace clone with symlink)"
+    fi
+else
+    CHANGES=$((CHANGES + 1))
+    if ! $CHECK_ONLY; then
+        ln -s "$SCRIPT_DIR" "$MP_LINK"
+        echo "  + marketplaces/brana (symlinked to local repo)"
+    else
+        echo "  + marketplaces/brana (would symlink to local repo)"
+    fi
+fi
+
+# 7c: Snapshot system/ to plugin cache
+PLUGIN_VERSION=$(jq -r '.version // "0.0.0"' "$SYSTEM_DIR/.claude-plugin/plugin.json" 2>/dev/null || echo "0.0.0")
+CACHE_DIR="$PLUGINS_DIR/cache/brana/brana/$PLUGIN_VERSION"
+if [ -d "$CACHE_DIR" ]; then
+    # Check if cache is stale (compare with system/)
+    CACHE_DIFF=$(diff -rq "$CACHE_DIR" "$SYSTEM_DIR" 2>/dev/null | grep -v ".claude-plugin" | head -5 || true)
+    if [ -n "$CACHE_DIFF" ]; then
+        CHANGES=$((CHANGES + 1))
+        if $CHECK_ONLY; then
+            echo "  ~ cache/brana/brana/$PLUGIN_VERSION (would sync)"
+        else
+            rsync -av --delete --exclude='.claude-plugin' "$SYSTEM_DIR/" "$CACHE_DIR/" > /dev/null
+            mkdir -p "$CACHE_DIR/.claude-plugin"
+            cp "$SYSTEM_DIR/.claude-plugin/plugin.json" "$CACHE_DIR/.claude-plugin/plugin.json"
+            echo "  ~ cache/brana/brana/$PLUGIN_VERSION (synced)"
+        fi
+    else
+        echo "  = cache/brana/brana/$PLUGIN_VERSION (current)"
+    fi
+else
+    CHANGES=$((CHANGES + 1))
+    if $CHECK_ONLY; then
+        echo "  + cache/brana/brana/$PLUGIN_VERSION (would snapshot)"
+    else
+        mkdir -p "$CACHE_DIR/.claude-plugin"
+        rsync -av --exclude='.git' "$SYSTEM_DIR/" "$CACHE_DIR/" > /dev/null
+        cp "$SYSTEM_DIR/.claude-plugin/plugin.json" "$CACHE_DIR/.claude-plugin/plugin.json"
+        echo "  + cache/brana/brana/$PLUGIN_VERSION (snapshotted)"
+    fi
+fi
+
+# 7d: Register in installed_plugins.json
+# CC uses "name@marketplace" keys with array values: [{scope, installPath, version, ...}]
+INSTALLED="$PLUGINS_DIR/installed_plugins.json"
+PLUGIN_KEY="brana@brana"
+if [ ! -f "$INSTALLED" ]; then
+    if ! $CHECK_ONLY; then
+        echo '{"version": 2, "plugins": {}}' > "$INSTALLED"
+    fi
+fi
+if command -v jq &>/dev/null; then
+    # Get current git SHA for tracking
+    GIT_SHA=$(git -C "$SCRIPT_DIR" rev-parse HEAD 2>/dev/null || echo "unknown")
+
+    BRANA_INSTALLED=$(jq -r --arg key "$PLUGIN_KEY" '.plugins[$key] // empty' "$INSTALLED" 2>/dev/null)
+    if [ -z "$BRANA_INSTALLED" ] || [ "$BRANA_INSTALLED" = "null" ]; then
+        CHANGES=$((CHANGES + 1))
+        if $CHECK_ONLY; then
+            echo "  + installed_plugins.json (would register $PLUGIN_KEY)"
+        else
+            NOW=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+            jq --arg key "$PLUGIN_KEY" \
+               --arg ver "$PLUGIN_VERSION" \
+               --arg path "$CACHE_DIR" \
+               --arg now "$NOW" \
+               --arg sha "$GIT_SHA" \
+               '.plugins[$key] = [{"scope": "user", "installPath": $path, "version": $ver, "installedAt": $now, "lastUpdated": $now, "gitCommitSha": $sha}]' \
+               "$INSTALLED" > "$INSTALLED.tmp" && mv "$INSTALLED.tmp" "$INSTALLED"
+            echo "  + installed_plugins.json ($PLUGIN_KEY registered)"
+        fi
+    else
+        # Update version/path/sha if changed
+        INSTALLED_VER=$(jq -r --arg key "$PLUGIN_KEY" '.plugins[$key][0].version // ""' "$INSTALLED" 2>/dev/null)
+        INSTALLED_SHA=$(jq -r --arg key "$PLUGIN_KEY" '.plugins[$key][0].gitCommitSha // ""' "$INSTALLED" 2>/dev/null)
+        if [ "$INSTALLED_VER" != "$PLUGIN_VERSION" ] || [ "$INSTALLED_SHA" != "$GIT_SHA" ]; then
+            CHANGES=$((CHANGES + 1))
+            if $CHECK_ONLY; then
+                echo "  ~ installed_plugins.json (would update $PLUGIN_KEY v$INSTALLED_VER → v$PLUGIN_VERSION)"
+            else
+                NOW=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+                jq --arg key "$PLUGIN_KEY" \
+                   --arg ver "$PLUGIN_VERSION" \
+                   --arg path "$CACHE_DIR" \
+                   --arg now "$NOW" \
+                   --arg sha "$GIT_SHA" \
+                   '.plugins[$key] = [{"scope": "user", "installPath": $path, "version": $ver, "installedAt": (.plugins[$key][0].installedAt // $now), "lastUpdated": $now, "gitCommitSha": $sha}]' \
+                   "$INSTALLED" > "$INSTALLED.tmp" && mv "$INSTALLED.tmp" "$INSTALLED"
+                echo "  ~ installed_plugins.json ($PLUGIN_KEY updated → v$PLUGIN_VERSION @ ${GIT_SHA:0:7})"
+            fi
+        else
+            echo "  = installed_plugins.json ($PLUGIN_KEY v$PLUGIN_VERSION registered)"
+        fi
+    fi
+fi
+
 # --- Summary ---
 echo ""
 if $CHECK_ONLY; then
@@ -416,9 +568,10 @@ else
         echo "  - scheduler (brana-scheduler on PATH)"
     fi
     echo ""
-    echo "Plugin (skills, agents, hooks) loaded via:"
-    echo "  Dev:  claude --plugin-dir ./system"
-    echo "  Prod: claude plugin install brana"
+    echo "Plugin (skills, agents, hooks):"
+    echo "  - Registered in installed_plugins.json"
+    echo "  - Cache at: $PLUGINS_DIR/cache/brana/brana/$PLUGIN_VERSION"
+    echo "  - Dev override: claude --plugin-dir ./system"
     echo ""
     echo "Start a new Claude Code session to activate."
 fi
