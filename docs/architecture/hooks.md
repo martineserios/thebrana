@@ -1,166 +1,80 @@
-# Hooks Explained
+# Hooks Architecture
 
-> 10 shell scripts that fire on Claude Code lifecycle events. Hooks enforce discipline, log events, and nudge agents — all without requiring user action. They communicate through JSON on stdin/stdout.
+> 10 shell scripts that fire on Claude Code lifecycle events. Hooks enforce discipline, log events, and nudge agents -- all without requiring user action. For complete I/O specs, see [Hook Reference](../reference/hooks.md).
 
-## How Hooks Work
+## How hooks work
 
 Claude Code supports five hook events:
 
-| Event | When it fires |
-|-------|---------------|
-| `SessionStart` | At the beginning of every session |
-| `SessionEnd` | At the end of every session |
-| `PreToolUse` | Before a tool call executes (can block it) |
-| `PostToolUse` | After a tool call succeeds |
-| `PostToolUseFailure` | After a tool call fails |
+| Event | When it fires | Can block? |
+|-------|---------------|------------|
+| `SessionStart` | Beginning of every session | No |
+| `SessionEnd` | End of every session | No |
+| `PreToolUse` | Before a tool call executes | Yes |
+| `PostToolUse` | After a tool call succeeds | No |
+| `PostToolUseFailure` | After a tool call fails | No |
 
-Hooks are registered in `system/hooks/hooks.json` (plugin events) or `~/.claude/settings.json` (PostToolUse — CC plugin bug workaround). They receive session context as JSON on stdin and return JSON on stdout.
+Hooks receive session context as JSON on stdin, return JSON on stdout. A hook can pass through (`{"continue": true}`), inject context (`additionalContext`), or block (PreToolUse only, via `permissionDecision: "deny"`).
 
-A hook can:
-- **Pass through** — `{"continue": true}` — let execution proceed
-- **Inject context** — `{"continue": true, "additionalContext": "..."}` — add information to Claude's context
-- **Block** (PreToolUse only) — `{"continue": false, "reason": "..."}` — deny the tool call
+All brana hooks follow a safety principle: they never fail fatally. Every hook uses `|| true` fallbacks and graceful degradation.
 
-All brana hooks follow a safety principle: they never fail fatally. Every hook uses `|| true` fallbacks and graceful degradation so a broken hook never blocks a session.
+## Plugin/bootstrap split (CC bug #24529)
 
-## SessionStart Hooks
+CC v2.1.x silently drops PostToolUse and PostToolUseFailure events from plugin `hooks.json`. Only PreToolUse, SessionStart, and SessionEnd fire reliably from plugins.
 
-### session-start.sh
+| Installed via | Events | File |
+|--------------|--------|------|
+| Plugin `hooks.json` | PreToolUse, SessionStart, SessionEnd | `system/hooks/hooks.json` |
+| Bootstrap `settings.json` | PostToolUse, PostToolUseFailure | `~/.claude/settings.json` |
 
-**Matcher:** `""` (all events)
-**Timeout:** 10,000ms
+When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Workaround](posttooluse-workaround.md) for details.
 
-Fires at every session start. Derives the project name from the git root, sets environment variables (`BRANA_PROJECT`, `BRANA_SESSION_ID`), and queries claude-flow for recent patterns relevant to the current project.
+## Shared library
 
-**Output:** `additionalContext` with recalled patterns and project context.
+**`lib/cf-env.sh`** -- Locates the `claude-flow` binary. Source it to get `$CF`. Search order: nvm global install, PATH lookup, npx fallback. Used by session-start, session-end, session-start-venture, and post-sale hooks.
 
-**What it enables:** Claude starts each session already knowing the project, its history, and what patterns apply — instead of starting from zero.
+## Hook inventory
 
-Venture detection is built into `session-start.sh` — it checks for venture-specific directories (`docs/sops/`, `docs/okrs/`, `docs/metrics/`, `docs/pipeline/`, `docs/venture/`) and nudges the daily-ops agent when found.
+### Plugin hooks (hooks.json)
 
-## PreToolUse Hooks
+| Hook | Event | Matcher | Purpose |
+|------|-------|---------|---------|
+| `pre-tool-use.sh` | PreToolUse | `Write\|Edit` | Spec-before-code gate + cascade throttle |
+| `session-start.sh` | SessionStart | `""` (all) | Pattern recall, task context, venture detection |
+| `session-end.sh` | SessionEnd | `""` (all) | Flywheel metrics, session summary, handoff |
 
-### pre-tool-use.sh
+### Bootstrap hooks (settings.json)
 
-**Matcher:** `Write|Edit`
-**Timeout:** 5,000ms
+| Hook | Event | Matcher | Purpose |
+|------|-------|---------|---------|
+| `post-tool-use.sh` | PostToolUse | `Write\|Edit\|Bash` | Log successes, detect corrections and test writes |
+| `post-tool-use-failure.sh` | PostToolUseFailure | `Write\|Edit\|Bash` | Log failures, detect cascades (3+ consecutive) |
+| `post-plan-challenge.sh` | PostToolUse | `ExitPlanMode` | Nudge challenger agent after plan finalization |
+| `post-tasks-validate.sh` | PostToolUse | `Write\|Edit` | Validate tasks.json schema + auto-rollup parents |
+| `post-sale.sh` | PostToolUse | `Write\|Edit` | Detect deal closures in pipeline files |
+| `post-pr-review.sh` | PostToolUse | `Bash` | Nudge pr-reviewer agent after `gh pr create` |
 
-The spec-first gate. Blocks implementation file writes on `feat/*` branches when:
+### Inactive
 
-1. The project has opted in (has `docs/decisions/` directory)
-2. On a `feat/*` branch
-3. No spec or test activity exists on the branch yet
+| Hook | Status |
+|------|--------|
+| `session-start-venture.sh` | Logic absorbed into `session-start.sh`. Kept for reference. |
 
-Always allows writes to spec files (`docs/`), test files (`test/`, `tests/`, `*.test.*`, `*.spec.*`), and doc files.
+## Design principles
 
-**Output:** Either `{"continue": true}` (allowed) or `{"continue": false, "reason": "..."}` (blocked with explanation of what's needed first).
+**Spec-first enforcement** -- `pre-tool-use.sh` is the strongest feedback mechanism (a "Stop hook"). A PERMISSION DENY cannot be ignored. Projects opt in by having `docs/decisions/`.
 
-**What it enables:** Enforces the test-first, spec-first development discipline. You can't write implementation code until you've written a spec or test — the hook physically prevents it.
+**Session event pipeline** -- PostToolUse/PostToolUseFailure hooks append JSONL events to `/tmp/brana-session-{SESSION_ID}.jsonl`. The session-end hook consumes this file, computes flywheel metrics (correction_rate, auto_fix_rate, test_write_rate, cascade_rate, test_pass_rate, lint_pass_rate), and persists to claude-flow memory.
 
-## PostToolUse Hooks
+**Immediate response pattern** -- `session-end.sh` responds with `{"continue": true}` immediately, then forks heavy processing to background. CC cancels hooks during session teardown, so the response must come before any processing.
 
-### post-tool-use.sh
+**Cascade detection** -- `post-tool-use-failure.sh` tracks consecutive failures on the same target. At 3+ failures, it flags a cascade so `pre-tool-use.sh` can inject a warning on the next attempt.
 
-**Matcher:** `Write|Edit|Bash`
-**Timeout:** 5,000ms
+**Agent nudging** -- Several hooks inject `additionalContext` that triggers auto-delegation to agents: post-plan-challenge (challenger), post-pr-review (pr-reviewer), session-start (daily-ops for venture projects).
 
-The primary learning hook. Logs significant tool successes to a session-scoped JSONL file (`/tmp/brana-session-{id}.jsonl`). Detects:
+## Hook registration format
 
-- **Corrections** — edits to files created earlier in the same session (something went wrong the first time)
-- **Test file creation** — writes to files matching test patterns
-
-**Output:** `{"continue": true}` (async logging, no context injection).
-
-**What it enables:** Accumulates raw event data that `session-end.sh` processes into flywheel metrics.
-
-### post-pr-review.sh
-
-**Matcher:** `Bash`
-**Timeout:** 5,000ms
-
-Detects `gh pr create` commands in Bash tool calls. When a PR is created, nudges the pr-reviewer agent for automated code review.
-
-**Output:** `additionalContext` suggesting PR review delegation.
-
-**What it enables:** Every PR automatically gets a code review suggestion — no manual invocation needed.
-
-### post-plan-challenge.sh
-
-**Matcher:** `ExitPlanMode`
-**Timeout:** 5,000ms
-
-Detects `ExitPlanMode` calls. Nudges the challenger agent for adversarial review of the finalized plan.
-
-**Output:** `additionalContext` suggesting challenger delegation.
-
-**What it enables:** Plans get stress-tested before implementation begins.
-
-### post-sale.sh
-
-**Matcher:** `Write|Edit`
-**Timeout:** 5,000ms
-
-Detects writes to pipeline deal files. When a deal moves to a closed stage, snapshots the event to claude-flow memory.
-
-**Output:** `additionalContext` on deal closure events.
-
-**What it enables:** Sales milestones are automatically captured in the knowledge system.
-
-### post-tasks-validate.sh
-
-**Matcher:** `Write|Edit`
-**Timeout:** 5,000ms
-
-Triggers on writes to any `*/tasks.json` file. Performs three checks:
-
-1. **JSON validity** — catches syntax errors immediately
-2. **Schema validation** — checks required fields, valid types, valid status values
-3. **Auto-rollup** — when subtasks complete, automatically updates parent task status
-
-**Output:** `additionalContext` with validation errors or rollup notifications.
-
-**What it enables:** Task files stay valid and parent tasks reflect their children's progress automatically.
-
-## PostToolUseFailure Hooks
-
-### post-tool-use-failure.sh
-
-**Matcher:** `Write|Edit|Bash`
-**Timeout:** 5,000ms
-
-Logs tool failures to the session JSONL file. Categorizes errors by tool type (command failures, file write failures, edit failures). Tracks failure cascades — when multiple failures occur in sequence.
-
-**Output:** `{"continue": true}` (async logging).
-
-**What it enables:** Failure patterns surface at session end through flywheel metrics, helping identify recurring problems.
-
-## SessionEnd Hooks
-
-### session-end.sh
-
-**Matcher:** `""` (all events)
-**Timeout:** 10,000ms
-
-Fires at every session end. Reads the accumulated session JSONL file (`/tmp/brana-session-{id}.jsonl`), computes flywheel metrics, and writes a session summary to claude-flow memory.
-
-**Flywheel metrics computed:**
-- `correction_rate` — fraction of writes that needed correction
-- `auto_fix_rate` — corrections resolved without user intervention
-- `test_write_rate` — fraction of implementation files with accompanying tests
-- `cascade_rate` — how often changes propagate across files
-- `delegation_count` — how many tasks were delegated to agents
-
-**Output:** `{"continue": true}` (async flush to persistent storage).
-
-**What it enables:** Session-level learning. Patterns that emerge from metrics (e.g., high correction rate on a particular file type) surface in future sessions via the session-start recall.
-
-## Hook Registration
-
-Since v0.7.0 (plugin architecture), hooks are split across two locations:
-
-### Plugin hooks — `system/hooks/hooks.json`
-
-PreToolUse, SessionStart, and SessionEnd hooks are registered in the plugin's `hooks.json`:
+Plugin hooks use `${CLAUDE_PLUGIN_ROOT}` for paths:
 
 ```json
 {
@@ -175,14 +89,7 @@ PreToolUse, SessionStart, and SessionEnd hooks are registered in the plugin's `h
 }
 ```
 
-- **event** — the CC lifecycle event
-- **matcher** — pipe-separated tool names or empty string for all
-- **command** — path using `${CLAUDE_PLUGIN_ROOT}` for plugin-relative resolution
-- **timeout** — max execution time in milliseconds
-
-### PostToolUse hooks — `~/.claude/settings.json`
-
-CC v2.1.x does not dispatch `PostToolUse` or `PostToolUseFailure` events from plugin `hooks.json` (CC issue #24529). As a workaround, `bootstrap.sh` installs these hooks to `~/.claude/settings.json`:
+Bootstrap hooks use absolute paths in `~/.claude/settings.json`:
 
 ```json
 {
@@ -198,7 +105,5 @@ CC v2.1.x does not dispatch `PostToolUse` or `PostToolUseFailure` events from pl
   }
 }
 ```
-
-When CC fixes issue #24529, these hooks will move back to `hooks.json` in the plugin.
 
 Multiple hooks can register for the same event. They run sequentially; if any PreToolUse hook blocks, the tool call is denied.

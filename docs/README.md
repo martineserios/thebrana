@@ -1,103 +1,182 @@
-# enter
+# Documentation Index
 
-> Part of [**enter_thebrana**](../) — two repos, one system. `enter` designs what [`thebrana`](../thebrana/) builds.
+Complete index of all brana documentation. Three sections: reference (specs), guide (how-to), architecture (design + research).
 
-Discovery and specification documents for the brana orchestration system.
+## docs/reference/ -- Complete specs
 
-## What This Is
+Source of truth for every component. Read these when you need exact behavior.
 
-After deep research into brana's current `.claude/` system, nexeye's skill selection patterns, the PM framework, Claude 4.6 native capabilities, and claude-flow v3 internals, this repo captures those findings in structured documents. The goal is to have a clean starting point for discussing and building the new system.
+| File | Contents |
+|------|----------|
+| [skills.md](reference/skills.md) | All 25 skills with subcommands, triggers, allowed tools, examples |
+| [hooks.md](reference/hooks.md) | All 10 hooks with I/O JSON specs, event types, matcher patterns |
+| [agents.md](reference/agents.md) | All 11 agents with models, tools, auto-fire triggers, behavior specs |
+| [rules.md](reference/rules.md) | All 12 rules with full content |
+| [commands.md](reference/commands.md) | Agent commands (maintain-specs, apply-errata, etc.) |
+| [scripts.md](reference/scripts.md) | Shell scripts (bootstrap.sh, validate.sh, etc.) |
+| [configuration.md](reference/configuration.md) | Config files: plugin.json, hooks.json, settings.json, scheduler.json |
 
-## Documents
+## docs/guide/ -- How-to guides
 
-| File | What It Covers |
-|------|---------------|
-| `01-brana-system-analysis.md` | How brana works today: modules, routing, hooks, PM separation |
-| `02-nexeye-skill-selection.md` | How nexeye routes skills to agents automatically |
-| `03-pm-framework.md` | The PM approach: code/PM separation, feature lifecycle, priorities |
-| `04-claude-4.6-capabilities.md` | What Claude 4.6 can do natively without external tooling |
-| `05-claude-flow-v3-analysis.md` | claude-flow v3 architecture, agents, topologies, consensus |
-| `06-claude-flow-internals.md` | Deep dive: RuVector, AgentDB, WASM Agent Booster, SONA |
-| `07-claude-flow-plus-claude-4.6.md` | How claude-flow and Claude 4.6 work together |
-| `08-diagnosis.md` | R1 Triage: what to keep, drop, defer — full coverage of all dimension docs, resolved questions, DAG orientation |
-| `09-claude-code-native-features.md` | Deep dive into Claude Code 4.6 native features: skills, subagents, agent teams, hooks, memory, disaggregated CLAUDE.md |
-| `10-statusline-research.md` | Community status line projects: visualization, interactivity, cost tracking |
-| `11-ecosystem-skills-plugins.md` | Claude Code ecosystem: Vercel skills.sh, official plugins, community offerings, what to adopt |
-| `12-skill-selector.md` | Dynamic skill selection: registry access, trust tiers, curated catalog, skill quarantine, earned automation |
-| `13-challenger-agent.md` | Cross-model adversarial review: subscription-native, four challenge flavors, rate-limit-aware, earned automation |
-| `14-mastermind-architecture.md` | Single-brain system architecture: three layers, directory tree, hooks, ReasoningBank, skills, portfolio, enforcement hierarchy, context engineering theory |
-| `15-self-development-workflow.md` | Genome vs connectome separation, deploy pipeline, testing, versioning, self-healing, the system that maintains itself |
-| `16-knowledge-health.md` | Knowledge poisoning vectors, immune system design: quarantine, decay, contradiction detection, anti-patterns, healing |
-| `17-implementation-roadmap.md` | Phased build plan: claude-flow as foundation, 6 phases from skeleton to self-improving brain, risk mitigation, timeline |
-| `18-lean-roadmap.md` | Stripped-down alternative: 3 phases, quarantine-only immune system, pain-driven additions, ships faster |
-| `19-pm-system-design.md` | Project management plugin: research (Second Brain, GitHub Projects, Claude Code patterns), analysis, design decisions, branch strategy |
-| `20-anthropic-blog-findings.md` | Research index: engineering blog reference table, safety research, Claude Code doc discoveries, agent teams vs subagents comparison, community PM tools, validation/new findings matrix |
-| `21-anthropic-engineering-deep-dive.md` | Exhaustive deep dive into all 18 Anthropic engineering blog posts: exact architectures, code patterns, metrics, failure modes, cross-cutting patterns for orchestration |
-| `22-testing.md` | Testing: 7-layer pyramid (static validation → unit → replay → behavioral → e2e → chaos → monitoring), CI/CD pipeline, record/playback pattern, tools (BATS, Promptfoo, ShellCheck), Obra pressure testing |
-| `23-evaluation.md` | Evaluation: Anthropic eval methodology, pass@k vs pass^k, Vercel fixture evals, RAG metrics for memory, challenger quality assessment, eval-driven development, practitioner insights, benchmarks |
-| `24-roadmap-corrections.md` | Errata: 7 errors found during Phase 2 planning — deploy.sh merge bug, Stop vs SessionEnd mismatch, missing hook format/events, async constraints, budget calc gap |
-| `25-self-documentation.md` | Self-documentation: YAML frontmatter convention, staleness detection with layer-aware thresholds, CI/CD pipeline for docs, growth stages as trust signals, auto-generated indexes, cross-reference hygiene, documentation locality |
-| `26-git-branching-strategies.md` | Git branching strategies: comprehensive comparison of GitHub Flow, GitFlow, Trunk-Based Development, GitLab Flow — who uses them, when they work, when they break, solo developer recommendations |
-| `27-project-alignment-methodology.md` | Project alignment: 28-item checklist, 3 tiers, 5-phase pipeline, cross-client learning from alignment outcomes |
-| `28-startup-smb-management.md` | Startup & SMB management: scaling non-coding projects — frameworks (EOS, OKRs, Scaling Up, Shape Up), books, phase-based models, software→business pattern transfer, operational systems, AI-augmented management, knowledge ecosystem |
-| `29-venture-management-reflection.md` | Venture management reflection: what transfers from code to business, what doesn't, five new venture skills, cross-domain learning architecture, coding practice → business pattern mapping |
-| `30-backlog.md` | Backlog: ideas to develop in the future — simple task list reviewed by `/brana:maintain-specs` each cycle |
-| `31-assurance.md` | R3 Assurance: verification framework — structural checks, behavioral tests, outcome evaluation, RAG metrics, knowledge health, user feedback calibration |
-| `32-lifecycle.md` | R4 Lifecycle: system evolution — DDD/SDD/TDD workflow, context management, self-describing config, maintenance cadences, graduation pathway, git workflow, build-phase cycle |
-| `33-research-methodology.md` | Research methodology: recursive discovery, source registry, research archetypes, leads queue, evolution mechanics |
-| `34-venture-operating-system.md` | Venture operating system: stage-aware business management, 5 venture skills, meeting cadences, financial modeling, experiment loops |
-| `35-context-engineering-principles.md` | Context engineering: decision framework for information placement, budget architecture, progressive disclosure, sub-agent protocols, failure modes |
-| `36-claw-ecosystem-chat-interface.md` | Claw ecosystem: chat interface research — OpenClaw (security issues), NanoClaw (WhatsApp + containers), ZeroClaw (Rust + performance), integration analysis for brana, API/subscription model, somos_mirada viability |
-| `37-ruvnet-development-practices.md` | RuvNet development practices: three-tier maturity model, ADR patterns (MADR+SPARC), CLAUDE.md as dev contract, release strategy, CCEPL methodology, CompanyOS validation, agentic drift, transferable practices for brana |
-| `38-design-thinking.md` | Design thinking: core frameworks (d.school, IDEO, Double Diamond), diverge-converge principle, brana workflow mapping, venture design integration, portable techniques, AI-augmented DT, coding project applications |
-| `39-architecture-redesign.md` | Architecture redesign: merge enter into thebrana, evolve brana-knowledge into active knowledge base, wire retrieval via AgentDB/embeddings. Three decisions justified, migration plan, impact analysis |
-| `00-user-practices.md` | User practices: field notes from building and using the brana system — the feedback loop that drives system evolution, graduated practices log |
+User-facing documentation. Start here.
 
-### Feature Briefs
+| File | Contents |
+|------|----------|
+| [getting-started.md](guide/getting-started.md) | Install, first session, core workflow |
+| [configuration.md](guide/configuration.md) | Configuring brana for your workflow |
+| [scheduler.md](guide/scheduler.md) | Setting up scheduled jobs |
+| [troubleshooting.md](guide/troubleshooting.md) | Common issues and fixes |
+| [upgrading.md](guide/upgrading.md) | Version upgrade procedures |
+| [concepts.md](guide/concepts.md) | Key terms: skills, rules, hooks, agents, identity layer |
+| [commands/index.md](guide/commands/index.md) | Quick command reference |
 
-Feature briefs live in `docs/architecture/features/`. Key briefs:
+### Workflow guides (docs/guide/workflows/)
 
-| File | What It Covers |
-|------|---------------|
-| `docs/architecture/features/build-loop-redesign.md` | Build loop redesign: 42→25 skills, 4-step loop, 7 strategies, /tasks+/brana:build integration |
-| `docs/architecture/features/task-management-system.md` | Task management system: JSON data layer, NL interface, hierarchical planning, branch integration |
-| `docs/architecture/features/event-log.md` | Event log: /brana:log skill for capturing links, calls, meetings, ideas |
-| `docs/architecture/features/smart-tasks-add.md` | Smart /brana:backlog add: suggest-only pattern, dependency scan, build-trap check (ADR-008) |
-| `docs/architecture/features/research-stream.md` | Research as first-class task stream: URL auto-detection, tag-based cross-reference |
+| File | Contents |
+|------|----------|
+| [build.md](guide/workflows/build.md) | The build loop -- 7 strategies, task integration |
+| [research.md](guide/workflows/research.md) | 3-phase research with scout agents |
+| [session.md](guide/workflows/session.md) | Session lifecycle -- start hooks, close, handoffs |
+| [capture.md](guide/workflows/capture.md) | Event logging with /brana:log |
+| [learn.md](guide/workflows/learn.md) | Learning loop -- confidence, recall, cross-project transfer |
+| [venture.md](guide/workflows/venture.md) | Business projects -- reviews, pipeline, milestones, proposals |
 
-### Architecture Decision Records
+## docs/architecture/ -- Design and research
 
-ADRs live in `docs/architecture/decisions/`. Key decisions:
+Contributor-facing docs. System design, decisions, and feature briefs.
 
-| File | What It Covers |
-|------|---------------|
-| `docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md` | Reconcile command for spec-to-implementation drift |
-| `docs/architecture/decisions/ADR-002-tasks-as-data-layer.md` | Tasks as JSON data layer — schema, convention rule, hook validation |
-| `docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md` | Merge enter into thebrana — unified repo |
-| `docs/architecture/decisions/ADR-013-event-log.md` | Event log — /brana:log skill, append-only JSONL, inline tags |
+### System design
 
-## How to Use
+| File | Contents |
+|------|----------|
+| [overview.md](architecture/overview.md) | System architecture overview |
+| [skills.md](architecture/skills.md) | Skills architecture -- 8 groups, design-level overview |
+| [hooks.md](architecture/hooks.md) | Hooks architecture -- plugin/bootstrap split, design principles |
+| [agents.md](architecture/agents.md) | Agents architecture -- groups, routing, hook triggers |
+| [plugin-structure.md](architecture/plugin-structure.md) | Plugin packaging and manifest |
+| [testing-validation.md](architecture/testing-validation.md) | Testing and validation approach |
+| [posttooluse-workaround.md](architecture/posttooluse-workaround.md) | CC bug #24529 workaround details |
+| [building-methodology.md](architecture/building-methodology.md) | How brana is built (DDD/SDD/TDD) |
+| [system-documentation-map.md](architecture/system-documentation-map.md) | Documentation structure map |
 
-Read the documents in order for the full picture, or jump to specific topics:
+### Extending brana
 
-- **Understanding the current system:** Start with `01` and `02`
-- **PM approach:** Read `03`
-- **What's possible now:** Read `04` for native capabilities, `05`-`06` for claude-flow, `09` for the full Claude Code 4.6 feature deep dive, `10` for statusline research, `11` for the skills/plugins ecosystem
-- **Integration patterns:** Read `07`
-- **Decision-making:** Read `08` for the keep/drop/defer triage (R1) — now covers all dimension docs
-- **The vision:** Read `14` for the mastermind single-brain architecture (R2), `31` for verification framework (R3), `32` for lifecycle and evolution (R4), `15` for genome/connectome separation, `16` for knowledge health
-- **Building it:** Read `12` for skill selection, `13` for the challenger agent, `17` for the comprehensive roadmap, `18` for the lean alternative (or start with `18` and use `17` as reference), `27` for the project alignment methodology (how to get projects aligned with brana practices)
-- **Project management:** Read `19` for the PM plugin design (research, analysis, GitHub Issues + branch strategy integration). See `docs/features/task-management-system.md` for the active feature brief and `docs/decisions/ADR-002` for the architecture decision
-- **Testing:** Read `22` for the testing strategy — CI/CD pipeline, static validation, unit tests, record/playback, chaos testing
-- **Evaluation:** Read `23` for eval methodology — pass@k/pass^k, RAG metrics, LLM-as-judge, skill activation rates, benchmarks
-- **Corrections:** Read `24` for errors found in [docs 14](reflections/14-mastermind-architecture.md), 17, 18 during Phase 2 planning — must-fix items before implementing hooks
-- **Self-documentation:** Read `25` for how to keep this repo alive — frontmatter convention, staleness detection, CI/CD for docs, growth stages
-- **Git workflow:** Read `26` for git branching strategy research — GitHub Flow, GitFlow, Trunk-Based Development, GitLab Flow comparison with solo developer recommendations
-- **Non-coding projects:** Read `28` for startup and SMB management — scaling frameworks, books, phase-based models, software→business pattern transfer, operational systems, AI-augmented management. Read `29` for the reflection: what transfers, what doesn't, venture skill architecture, cross-references to coding practice docs
-- **User practices:** Read `00` for field notes from real usage — the feedback loop that closes the system evolution cycle. Start here when onboarding.
-- **Research methodology:** Read `33` for how brana discovers and maintains knowledge — research archetypes, source registry, recursive discovery, leads queue, evolution mechanics
-- **Future research:** Read `20` for Anthropic blog findings to revisit later, `21` for the exhaustive technical deep dive into all Anthropic engineering posts
+| File | Contents |
+|------|----------|
+| [extending.md](architecture/extending.md) | General guide to extending the system |
+| [extending-skills.md](architecture/extending-skills.md) | How to add a new skill |
+| [extending-hooks.md](architecture/extending-hooks.md) | How to add a new hook |
+| [extending-agents.md](architecture/extending-agents.md) | How to add a new agent |
 
-## Status
+### Architecture Decision Records (docs/architecture/decisions/)
 
-Started as discovery documents, now includes implementation roadmaps, system design, testing strategy, and self-documentation practices. Documents 01-16 capture research and architecture decisions. Documents 17-18 are implementation roadmaps (full and lean). Document 19 is the PM plugin design. Documents 20-21 cover Anthropic blog research. Documents 22-23 cover testing and evaluation. Document 24 captures roadmap corrections and errata. Document 25 covers self-documentation for the repo itself. Document 26 covers git branching strategies. Document 27 covers the project alignment methodology — the active pipeline for getting projects to the right structure. Document 28 covers startup and SMB management — scaling non-coding projects with patterns transferred from software engineering. Document 29 reflects on [doc 28](dimensions/28-startup-smb-management.md): what transfers from code to business, the venture skill architecture, and detailed cross-references to coding practice docs. Document 00 captures user-discovered practices from real usage. Documents 31-32 complete the reflection layer: assurance (R3) and lifecycle (R4). Document 33 formalizes the research methodology — archetypes, source registry, recursive discovery, and evolution mechanics.
+| ADR | Decision |
+|-----|----------|
+| [ADR-001](architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md) | Reconcile command for spec-to-implementation drift |
+| [ADR-002](architecture/decisions/ADR-002-tasks-as-data-layer.md) | Tasks as JSON data layer |
+| [ADR-002 (scheduler)](architecture/decisions/ADR-002-scheduler-thin-layer-over-systemd.md) | Scheduler as thin layer over systemd |
+| [ADR-003](architecture/decisions/ADR-003-agent-driven-task-execution.md) | Agent-driven task execution |
+| [ADR-004](architecture/decisions/ADR-004-session-handoff-self-learning-loop.md) | Session handoff and self-learning loop |
+| [ADR-005](architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md) | AgentDB v3 as unified knowledge backend |
+| [ADR-006](architecture/decisions/ADR-006-merge-enter-into-thebrana.md) | Merge enter into thebrana |
+| [ADR-007](architecture/decisions/ADR-007-verify-counts-deploy-hook.md) | Verify counts deploy hook |
+| [ADR-008](architecture/decisions/ADR-008-smart-tasks-add-suggest-only.md) | Smart tasks add -- suggest-only pattern |
+| [ADR-009](architecture/decisions/ADR-009-test-lint-feedback-hook.md) | Test/lint feedback hook |
+| [ADR-010](architecture/decisions/ADR-010-pr-review-agent.md) | PR review agent |
+| [ADR-011](architecture/decisions/ADR-011-skills-bundling.md) | Skills bundling |
+| [ADR-012](architecture/decisions/ADR-012-acquire-skills.md) | Acquire skills from marketplaces |
+| [ADR-013](architecture/decisions/ADR-013-event-log.md) | Event log (/brana:log) |
+| [ADR-014](architecture/decisions/ADR-014-plugin-management-skill.md) | Plugin management skill |
+
+### Feature briefs (docs/architecture/features/)
+
+| File | Contents |
+|------|----------|
+| [build-loop-redesign.md](architecture/features/build-loop-redesign.md) | Build loop: 42->25 skills, 4-step loop, 7 strategies |
+| [task-management-system.md](architecture/features/task-management-system.md) | Task management: JSON data layer, NL interface |
+| [event-log.md](architecture/features/event-log.md) | Event log: /brana:log skill |
+| [smart-tasks-add.md](architecture/features/smart-tasks-add.md) | Smart /brana:backlog add: suggest-only pattern |
+| [research-stream.md](architecture/features/research-stream.md) | Research as first-class task stream |
+| [acquire-skills.md](architecture/features/acquire-skills.md) | Acquire skills from external marketplaces |
+| [cascade-throttle.md](architecture/features/cascade-throttle.md) | Cascade throttle for failure detection |
+| [scheduler.md](architecture/features/scheduler.md) | Scheduled jobs system |
+| [scheduler-hardening.md](architecture/features/scheduler-hardening.md) | Scheduler hardening and reliability |
+| [plugin-packaging.md](architecture/features/plugin-packaging.md) | Plugin packaging for marketplace |
+| [test-lint-feedback-hook.md](architecture/features/test-lint-feedback-hook.md) | Test/lint feedback hook |
+| [tasks-portfolio.md](architecture/features/tasks-portfolio.md) | Cross-project portfolio view |
+| [tasks-wide-mode.md](architecture/features/tasks-wide-mode.md) | Wide display mode for tasks |
+| [tasks-theme-system.md](architecture/features/tasks-theme-system.md) | Task display themes |
+| [project-metadata.md](architecture/features/project-metadata.md) | Project metadata system |
+| [skill-utilization-tracking.md](architecture/features/skill-utilization-tracking.md) | Skill utilization tracking |
+| [staleness-and-memory-pipeline.md](architecture/features/staleness-and-memory-pipeline.md) | Staleness detection and memory pipeline |
+| [context-budget-real-limits.md](architecture/features/context-budget-real-limits.md) | Context budget real-world limits |
+| [acquire-skills-guide.md](architecture/features/acquire-skills-guide.md) | Acquire skills implementation guide |
+| [agentdb-v3-upgrade-evaluation.md](architecture/features/agentdb-v3-upgrade-evaluation.md) | AgentDB v3 upgrade evaluation |
+
+## Research and spec docs (docs/ root)
+
+Design specifications and research from the original enter repo, now part of thebrana.
+
+### Reflections (docs/reflections/)
+
+Cross-cutting synthesis documents. DAG: R1(08) -> R2(14) -> R3(31) / R4(32) -> R5(29).
+
+| Doc | Reflection | Contents |
+|-----|-----------|----------|
+| 08 | R1 Triage | What to keep, drop, defer |
+| 14 | R2 Architecture | Single-brain system architecture |
+| 29 | R5 Venture | Venture management reflection |
+| 31 | R3 Assurance | Verification framework |
+| 32 | R4 Lifecycle | System evolution, DDD/SDD/TDD workflow |
+
+### Roadmap and operational docs
+
+| Doc | Contents |
+|-----|----------|
+| 00 | User practices: field notes from real usage |
+| 15 | Self-development workflow: genome vs connectome |
+| 17 | Implementation roadmap (comprehensive, 6 phases) |
+| 18 | Lean roadmap (3 phases, ships faster) |
+| 19 | PM system design |
+| 24 | Roadmap corrections and errata |
+| 25 | Self-documentation practices |
+| 30 | Backlog: future ideas |
+| 39 | Architecture redesign: merge plan |
+
+### Research docs (numbered, in docs/ root)
+
+Original research and analysis from the enter phase. Documents 01-13, 16, 20-23, 26-28, 33-38 cover topics from system analysis through design thinking. See the full listing in the [research section](#research-topics) below.
+
+<details>
+<summary>Research topics (click to expand)</summary>
+
+| Doc | Topic |
+|-----|-------|
+| 01 | Brana system analysis |
+| 02 | Nexeye skill selection |
+| 03 | PM framework |
+| 04 | Claude 4.6 capabilities |
+| 05 | claude-flow v3 analysis |
+| 06 | claude-flow internals |
+| 07 | claude-flow + Claude 4.6 integration |
+| 09 | Claude Code native features |
+| 10 | Statusline research |
+| 11 | Ecosystem skills and plugins |
+| 12 | Skill selector design |
+| 13 | Challenger agent design |
+| 16 | Knowledge health |
+| 20 | Anthropic blog findings |
+| 21 | Anthropic engineering deep dive |
+| 22 | Testing strategy |
+| 23 | Evaluation methodology |
+| 26 | Git branching strategies |
+| 27 | Project alignment methodology |
+| 28 | Startup and SMB management |
+| 33 | Research methodology |
+| 34 | Venture operating system |
+| 35 | Context engineering principles |
+| 36 | Claw ecosystem research |
+| 37 | RuvNet development practices |
+| 38 | Design thinking |
+
+</details>
