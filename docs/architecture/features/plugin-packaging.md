@@ -268,3 +268,16 @@ CC v2.1.x does not dispatch PostToolUse or PostToolUseFailure events to plugin h
 Users upgrading from `deploy.sh` to the plugin have stale copies of skills, commands, and agents in `~/.claude/`. These cause duplicate skill registration — skills appear both unprefixed (from `~/.claude/skills/`) and with `brana:` prefix (from the plugin). Silent, confusing failure mode.
 
 **Fix:** `bootstrap.sh` Step 1b removes `~/.claude/skills/`, `~/.claude/commands/`, and `~/.claude/agents/` if they exist. Users must run `bootstrap.sh` after upgrading to clear the duplicates. The plugin is the sole source for these components.
+
+### E3: Plugin cache does not auto-update after new commits (2026-03-09)
+
+`claude plugin install` snapshots files at the install-time git SHA into `~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/`. After new commits to `system/`, the cache silently serves stale skills, agents, and hooks — no auto-update, no warning. Renames are worst-case: old files persist alongside new ones (e.g., `project-scanner.md` still present after rename to `client-scanner.md`).
+
+**Impact:** Users running installed plugins get outdated behavior indefinitely. Discovered when cache was 40 commits behind HEAD after the t-281 projects→clients rename.
+
+**Workarounds:**
+1. **Dev mode (recommended for contributors):** `claude --plugin-dir ./system` — always reads from HEAD, no cache involved.
+2. **Manual sync:** `rsync -av --delete system/ ~/.claude/plugins/cache/brana/brana/0.7.0/` — must use `--delete` to remove renamed/deleted files.
+3. **Reinstall:** `claude plugin uninstall brana && claude plugin install brana` — re-snapshots from current commit.
+
+**Future fix:** Add a `bootstrap.sh --sync-plugin` flag or post-merge hook that auto-syncs `system/` to the plugin cache when changes are detected.
