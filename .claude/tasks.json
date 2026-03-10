@@ -98,7 +98,7 @@
       "started": "2026-02-19",
       "completed": "2026-02-19",
       "notes": null,
-      "context": "Primary notification channel \u2014 headless-safe. Status line reads this. notify-send is secondary best-effort."
+      "context": "Primary notification channel — headless-safe. Status line reads this. notify-send is secondary best-effort."
     },
     {
       "id": "t-003",
@@ -228,7 +228,7 @@
       "started": "2026-02-19",
       "completed": "2026-02-19",
       "notes": null,
-      "context": "Research: template instantiation \u2014 %n passes full unit name. Must NOT have OnFailure on itself (recursion)."
+      "context": "Research: template instantiation — %n passes full unit name. Must NOT have OnFailure on itself (recursion)."
     },
     {
       "id": "t-007",
@@ -433,13 +433,13 @@
       "created": "2026-02-20",
       "started": "2026-02-20",
       "completed": "2026-02-20",
-      "notes": "Root cause: 5 structural failures \u2014 conditional opt-in, explicit escape hatch, spec-first\u2260test-first, tdd-guard not installed, documentation tone. Fix: unconditional Always section, escape hatch removed, tdd-guard dependency removed.",
+      "notes": "Root cause: 5 structural failures — conditional opt-in, explicit escape hatch, spec-first≠test-first, tdd-guard not installed, documentation tone. Fix: unconditional Always section, escape hatch removed, tdd-guard dependency removed.",
       "context": null
     },
     {
       "id": "t-013",
       "subject": "Task planning system not applied organically",
-      "description": "The /tasks skill, task-convention.md rule, and delegation-routing exist but Claude doesn't naturally use task planning, phase structure, or /tasks next before starting work. The system is built but not adopted \u2014 Claude jumps straight to implementation instead of checking tasks, creating branches per task convention, or following the planning workflow.",
+      "description": "The /tasks skill, task-convention.md rule, and delegation-routing exist but Claude doesn't naturally use task planning, phase structure, or /tasks next before starting work. The system is built but not adopted — Claude jumps straight to implementation instead of checking tasks, creating branches per task convention, or following the planning workflow.",
       "tags": [],
       "status": "completed",
       "stream": "bugs",
@@ -483,7 +483,7 @@
     {
       "id": "ph-002",
       "subject": "RVF Memory Migration + claude-flow Upgrade",
-      "description": "Upgrade claude-flow from alpha.34 to alpha.44, migrate ReasoningBank from SQLite to RVF/AgentDB. Zero data loss. Backlog items #31/#32 collapse into this. Research: ruvnet built both projects. MS-005 (upgrade) and MS-006 (spike) complete. MS-007 (wiring) parked \u2014 waiting for upstream claude-flow + AgentDB integration (issue #829).",
+      "description": "Upgrade claude-flow from alpha.34 to alpha.44, migrate ReasoningBank from SQLite to RVF/AgentDB. Zero data loss. Backlog items #31/#32 collapse into this. Research: ruvnet built both projects. MS-005 (upgrade) and MS-006 (spike) complete. MS-007 (wiring) parked — waiting for upstream claude-flow + AgentDB integration (issue #829).",
       "tags": [
         "claude-flow",
         "rvf",
@@ -504,7 +504,7 @@
       "started": "2026-02-24",
       "completed": "2026-02-27",
       "notes": "claude-flow upgraded to v3.5.1. AgentDB bridge activated via ControllerRegistry shim. BM25 hybrid search confirmed working (semantic+bm25 provenance). 384-dim ONNX embeddings (all-MiniLM-L6-v2). deploy.sh updated to persist shim across deploys.",
-      "context": "134 active entries in memory.db (132 hash-fallback 128-dim, 2 ONNX 384-dim). Namespaces: patterns(129), scheduler-runs(3), business(1), decisions(1). DB size 725KB. claude-flow alpha.34 \u2192 alpha.44 (10 versions behind)."
+      "context": "134 active entries in memory.db (132 hash-fallback 128-dim, 2 ONNX 384-dim). Namespaces: patterns(129), scheduler-runs(3), business(1), decisions(1). DB size 725KB. claude-flow alpha.34 → alpha.44 (10 versions behind)."
     },
     {
       "id": "ms-005",
@@ -533,7 +533,7 @@
     {
       "id": "t-016",
       "subject": "Backup memory.db and export all entries as JSON",
-      "description": "cp ~/.swarm/memory.db ~/.swarm/memory.db.bak-pre-rvf. Export all 134 active memory_entries as JSON (key, namespace, content, tags, embedding_model, embedding_dimensions, status, created_at). This is the safety net \u2014 zero data loss guaranteed.",
+      "description": "cp ~/.swarm/memory.db ~/.swarm/memory.db.bak-pre-rvf. Export all 134 active memory_entries as JSON (key, namespace, content, tags, embedding_model, embedding_dimensions, status, created_at). This is the safety net — zero data loss guaranteed.",
       "tags": [
         "claude-flow",
         "backup"
@@ -663,7 +663,7 @@
     {
       "id": "t-020",
       "subject": "Spike: ingest exported JSON into .rvf file",
-      "description": "Use rvf-cli to ingest the JSON export from t-016 into a new .rvf file at ~/.swarm/memory.rvf. Map: key\u2192key, content\u2192value, namespace\u2192namespace, tags\u2192tags. Generate real embeddings during ingest if supported.",
+      "description": "Use rvf-cli to ingest the JSON export from t-016 into a new .rvf file at ~/.swarm/memory.rvf. Map: key→key, content→value, namespace→namespace, tags→tags. Generate real embeddings during ingest if supported.",
       "tags": [
         "rvf"
       ],
@@ -710,7 +710,7 @@
       "github_issue": null,
       "created": "2026-02-22",
       "notes": null,
-      "context": "Key test: search for 'authentication security' should find patterns about 'login', 'session tokens', etc. \u2014 this is where hash-fallback fails and real embeddings shine."
+      "context": "Key test: search for 'authentication security' should find patterns about 'login', 'session tokens', etc. — this is where hash-fallback fails and real embeddings shine."
     },
     {
       "id": "ms-007",
@@ -737,8 +737,8 @@
       "created": "2026-02-22",
       "started": "2026-02-27",
       "completed": "2026-02-27",
-      "notes": "Completed via upstream upgrade, not custom wiring. claude-flow v3.5.1 natively bundles AgentDB v3 + RVF as optional deps. memory_entries schema preserved \u2014 zero code changes to hooks/skills/agents. Installed: claude-flow@3.5.1, agentic-flow@2.0.7, agentdb@3.0.0-alpha.10, @xenova/transformers@2.17.2. deploy.sh updated to deploy embeddings.json. Backup at ~/.swarm/memory.db.bak-pre-v3.",
-      "context": "Ecosystem stack: AgentDB (application) \u2192 RVF (format) \u2192 ruvector-core (engine). claude-flow v3.5.1 integrates AgentDB as memory bridge with BM25 hybrid search. All 580 memory entries preserved."
+      "notes": "Completed via upstream upgrade, not custom wiring. claude-flow v3.5.1 natively bundles AgentDB v3 + RVF as optional deps. memory_entries schema preserved — zero code changes to hooks/skills/agents. Installed: claude-flow@3.5.1, agentic-flow@2.0.7, agentdb@3.0.0-alpha.10, @xenova/transformers@2.17.2. deploy.sh updated to deploy embeddings.json. Backup at ~/.swarm/memory.db.bak-pre-v3.",
+      "context": "Ecosystem stack: AgentDB (application) → RVF (format) → ruvector-core (engine). claude-flow v3.5.1 integrates AgentDB as memory bridge with BM25 hybrid search. All 580 memory entries preserved."
     },
     {
       "id": "t-022",
@@ -765,13 +765,13 @@
       "created": "2026-02-22",
       "started": "2026-02-27",
       "completed": "2026-02-27",
-      "notes": "Key finding: claude-flow v3.5.1 natively integrates AgentDB v3 as optional dep while preserving memory_entries table schema. Upgrade is drop-in \u2014 zero breaking changes. AgentDB standalone CLI has bugs (migration broken, persistence quirks) but irrelevant since cf wraps it. Upgraded: claude-flow alpha.44\u21923.5.1, agentic-flow 2.0.3\u21922.0.7. Fixed: embeddings dimension mismatch (768\u2192384) by deploying embeddings.json to ~/.claude-flow/. New features available: BM25 hybrid search, reflexion memory, causal reasoning, skill library. Full eval at /tmp/agentdb-eval/evaluation-report.md.",
+      "notes": "Key finding: claude-flow v3.5.1 natively integrates AgentDB v3 as optional dep while preserving memory_entries table schema. Upgrade is drop-in — zero breaking changes. AgentDB standalone CLI has bugs (migration broken, persistence quirks) but irrelevant since cf wraps it. Upgraded: claude-flow alpha.44→3.5.1, agentic-flow 2.0.3→2.0.7. Fixed: embeddings dimension mismatch (768→384) by deploying embeddings.json to ~/.claude-flow/. New features available: BM25 hybrid search, reflexion memory, causal reasoning, skill library. Full eval at /tmp/agentdb-eval/evaluation-report.md.",
       "context": "Upstream status as of 2026-02-27: claude-flow v3.5.1 stable (was alpha.44), AgentDB v3.0.0-alpha.10 (was 2.0.0-alpha.2.21). Issue #829 still open but active. Architecture now officially shows AgentDB as memory backend."
     },
     {
       "id": "t-023",
       "subject": "Update deploy.sh and export-knowledge.sh for AgentDB",
-      "description": "deploy.sh: handle AgentDB store in backup/restore flow. export-knowledge.sh: export from AgentDB (agentdb export). restore.sh: import from backup (agentdb import). Backwards compatible \u2014 detect which backend exists (SQLite fallback if AgentDB not installed).",
+      "description": "deploy.sh: handle AgentDB store in backup/restore flow. export-knowledge.sh: export from AgentDB (agentdb export). restore.sh: import from backup (agentdb import). Backwards compatible — detect which backend exists (SQLite fallback if AgentDB not installed).",
       "tags": [
         "agentdb",
         "integration"
@@ -820,12 +820,12 @@
       "created": "2026-02-22",
       "started": "2026-02-27",
       "completed": "2026-02-27",
-      "notes": "Verified: (1) cf-env.sh finds claude-flow v3.5.1 binary \u2713, (2) $CF memory search returns results from patterns and knowledge namespaces \u2713, (3) $CF memory store writes 384-dim entries \u2713, (4) $CF embeddings generate uses ONNX all-MiniLM-L6-v2 384-dim \u2713, (5) test-memory.sh 4/4 pass \u2713. All 580 existing entries preserved with correct dimensions. BM25 hybrid search active.",
+      "notes": "Verified: (1) cf-env.sh finds claude-flow v3.5.1 binary ✓, (2) $CF memory search returns results from patterns and knowledge namespaces ✓, (3) $CF memory store writes 384-dim entries ✓, (4) $CF embeddings generate uses ONNX all-MiniLM-L6-v2 384-dim ✓, (5) test-memory.sh 4/4 pass ✓. All 580 existing entries preserved with correct dimensions. BM25 hybrid search active.",
       "context": "Critical paths: session-start (recall), session-end (store), pattern-recall skill, retrospective skill, scheduler runner memory store, cross-pollinate skill."
     },
     {
       "id": "t-025",
-      "subject": "Skills refactor \u2014 shared scripts, consolidation, dependency metadata",
+      "subject": "Skills refactor — shared scripts, consolidation, dependency metadata",
       "description": "Extract shared primitives (cf-env.sh, memory-store.sh, backup-knowledge.sh) from 38 copy-pasted blocks across skills/hooks/agents. Consolidate pattern-recall + cross-pollinate + knowledge-review into /memory skill. Add depends_on and group frontmatter to all skills. Update deploy.sh and validate.sh for scripts/.",
       "tags": [
         "refactor",
@@ -846,12 +846,12 @@
       "created": "2026-02-22",
       "started": "2026-02-22",
       "completed": "2026-02-22",
-      "notes": "Backlog #44. 4 phases: shared scripts (38 files), skill consolidation (36\u219233), frontmatter metadata (group+depends_on), skill-graph.sh. ~400 lines saved.",
+      "notes": "Backlog #44. 4 phases: shared scripts (38 files), skill consolidation (36→33), frontmatter metadata (group+depends_on), skill-graph.sh. ~400 lines saved.",
       "context": null
     },
     {
       "id": "t-026",
-      "subject": "Fix erratum #67 \u2014 doc 14 skill count 33\u219234",
+      "subject": "Fix erratum #67 — doc 14 skill count 33→34",
       "description": "Doc 14 line 151 says 'All 33 deployed skills' but actual count is 34 after /meta-template was added. Update the count.",
       "tags": [
         "errata",
@@ -871,12 +871,12 @@
       "created": "2026-02-23",
       "started": "2026-02-23",
       "completed": "2026-02-23",
-      "notes": "Updated 33\u219234 in doc 14 Pattern C. Also removed stale byte count.",
+      "notes": "Updated 33→34 in doc 14 Pattern C. Also removed stale byte count.",
       "context": null
     },
     {
       "id": "t-027",
-      "subject": "Fix erratum #70 \u2014 pre-commit range parsing false positive",
+      "subject": "Fix erratum #70 — pre-commit range parsing false positive",
       "description": "Check 3 in enter/pre-commit.sh does literal grep for doc numbers but CLAUDE.md uses range notation (09-13, 20-23, 26-28). Expand ranges before grepping so docs inside ranges pass validation.",
       "tags": [
         "errata",
@@ -896,12 +896,12 @@
       "created": "2026-02-23",
       "started": "2026-02-23",
       "completed": "2026-02-23",
-      "notes": "Python range expansion replaces literal grep. Tested against CLAUDE.md \u2014 all 33 doc numbers expand correctly.",
+      "notes": "Python range expansion replaces literal grep. Tested against CLAUDE.md — all 33 doc numbers expand correctly.",
       "context": null
     },
     {
       "id": "t-028",
-      "subject": "Close backlog #65 \u2014 claude-flow permissions resolved",
+      "subject": "Close backlog #65 — claude-flow permissions resolved",
       "description": "Verify claude-flow binary works, mark backlog #65 as done in doc 30.",
       "tags": [
         "errata",
@@ -927,7 +927,7 @@
     {
       "id": "t-029",
       "subject": "Add /tasks portfolio subcommand to tasks skill",
-      "description": "Add portfolio subcommand to system/skills/tasks/SKILL.md \u2014 cross-project pending tasks view with by-project and unified modes. Feature brief: docs/features/tasks-portfolio.md. Backlog: enter #67.",
+      "description": "Add portfolio subcommand to system/skills/tasks/SKILL.md — cross-project pending tasks view with by-project and unified modes. Feature brief: docs/features/tasks-portfolio.md. Backlog: enter #67.",
       "tags": [
         "skills",
         "tasks"
@@ -980,7 +980,7 @@
     {
       "id": "t-031",
       "subject": "Add /retrospective call to /session-handoff close mode",
-      "description": "After Step 2 (debrief-analyst), store each learning as a quarantined pattern via the retrospective workflow. Closes the learning loop \u2014 patterns are stored every session without requiring manual /retrospective invocation.",
+      "description": "After Step 2 (debrief-analyst), store each learning as a quarantined pattern via the retrospective workflow. Closes the learning loop — patterns are stored every session without requiring manual /retrospective invocation.",
       "tags": [
         "skills",
         "learning-loop"
@@ -1005,7 +1005,7 @@
     {
       "id": "t-032",
       "subject": "Incorporate doc 30 backlog into the task system",
-      "description": "Doc 30 has 21 pending + 7 deferred backlog items tracked in a markdown table, disconnected from the /tasks workflow. Migrate actionable items into tasks.json (as a phase or standalone tasks), archive stale ones, and decide what to do with the 62 research leads (#410-#471). Goal: single source of truth for what's next \u2014 no split brain between doc 30 and tasks.json. Additionally, enhance /tasks add with automatic dependency scan: when adding a task, cross-reference all pending items by tag overlap and subject keywords, propose blocked_by links before confirming. Prevents orphaned tasks missing obvious dependencies.",
+      "description": "Doc 30 has 21 pending + 7 deferred backlog items tracked in a markdown table, disconnected from the /tasks workflow. Migrate actionable items into tasks.json (as a phase or standalone tasks), archive stale ones, and decide what to do with the 62 research leads (#410-#471). Goal: single source of truth for what's next — no split brain between doc 30 and tasks.json. Additionally, enhance /tasks add with automatic dependency scan: when adding a task, cross-reference all pending items by tag overlap and subject keywords, propose blocked_by links before confirming. Prevents orphaned tasks missing obvious dependencies.",
       "tags": [
         "workflow",
         "tasks",
@@ -1025,13 +1025,13 @@
       "created": "2026-03-02",
       "started": "2026-03-03",
       "completed": "2026-03-03",
-      "notes": "Smart /tasks add with suggest-only pattern (ADR-008). 20 doc 30 items migrated (t-061\u2013t-080). Dependency scan, tag/effort suggestion, build-trap check. Challenge-corrected from PM literature.",
+      "notes": "Smart /tasks add with suggest-only pattern (ADR-008). 20 doc 30 items migrated (t-061–t-080). Dependency scan, tag/effort suggestion, build-trap check. Challenge-corrected from PM literature.",
       "context": "21 pending items span: workflow(5), skills(3), docs(4), dx(2), infra(3), research(2), product(1), capabilities(1). 7 deferred. 62 research leads. 3 open GitHub issues also not in tasks.json."
     },
     {
       "id": "t-033",
       "subject": "Add --wide display mode to /tasks command",
-      "description": "Add a --wide (or --full) flag to /tasks status, /tasks portfolio, and /tasks roadmap that renders task info leveraging the full terminal width. Wide mode shows more columns per line (e.g., id, subject, status, tags, priority, effort, stream, blocked_by, dates \u2014 all on one row) instead of the current compact vertical format. Think kubectl get pods -o wide. Update the Display Themes section in SKILL.md with wide-mode templates for each theme.",
+      "description": "Add a --wide (or --full) flag to /tasks status, /tasks portfolio, and /tasks roadmap that renders task info leveraging the full terminal width. Wide mode shows more columns per line (e.g., id, subject, status, tags, priority, effort, stream, blocked_by, dates — all on one row) instead of the current compact vertical format. Think kubectl get pods -o wide. Update the Display Themes section in SKILL.md with wide-mode templates for each theme.",
       "tags": [
         "skills",
         "tasks",
@@ -1052,7 +1052,7 @@
       "started": null,
       "completed": "2026-03-03",
       "notes": "Added --wide flag to status, portfolio, roadmap, next, tags --filter. Wide-mode template in Display Themes section. Feature brief at docs/features/tasks-wide-mode.md.",
-      "context": "Inspired by kubectl -o wide. Current format is vertical/compact \u2014 good for quick glance but loses info density on wide terminals."
+      "context": "Inspired by kubectl -o wide. Current format is vertical/compact — good for quick glance but loses info density on wide terminals."
     },
     {
       "id": "ph-003",
@@ -1107,7 +1107,7 @@
     {
       "id": "t-034",
       "subject": "Create Obsidian vault symlinks + .gitignore",
-      "description": "Symlink brana-knowledge/dimensions \u2192 docs/dimensions so Obsidian sees both repos in one vault. Add .obsidian/ to .gitignore (Obsidian creates local config on first open). Verify: open docs/ as vault, graph view shows 178 formal link connections.",
+      "description": "Symlink brana-knowledge/dimensions → docs/dimensions so Obsidian sees both repos in one vault. Add .obsidian/ to .gitignore (Obsidian creates local config on first open). Verify: open docs/ as vault, graph view shows 178 formal link connections.",
       "tags": [
         "obsidian"
       ],
@@ -1125,13 +1125,13 @@
       "created": "2026-03-02",
       "started": "2026-03-02",
       "completed": "2026-03-02",
-      "notes": "Symlink docs/dimensions \u2192 ../../brana-knowledge/dimensions. Added .obsidian/ to .gitignore.",
+      "notes": "Symlink docs/dimensions → ../../brana-knowledge/dimensions. Added .obsidian/ to .gitignore.",
       "context": null
     },
     {
       "id": "t-035",
       "subject": "Convert 561 informal doc refs to formal markdown links",
-      "description": "Bulk-convert informal 'doc NN' prose refs \u2192 '[doc NN](./path.md)' formal links via Python script. Preserves existing formal links. Cross-repo refs use symlinked path (dimensions/NN-name.md). Cover thebrana/docs/ and brana-knowledge/dimensions/. Validate: all links resolve, no broken refs.",
+      "description": "Bulk-convert informal 'doc NN' prose refs → '[doc NN](./path.md)' formal links via Python script. Preserves existing formal links. Cross-repo refs use symlinked path (dimensions/NN-name.md). Cover thebrana/docs/ and brana-knowledge/dimensions/. Validate: all links resolve, no broken refs.",
       "tags": [
         "obsidian",
         "docs"
@@ -1153,7 +1153,7 @@
       "started": "2026-03-02",
       "completed": "2026-03-02",
       "notes": "561 refs across 37 files (22 thebrana/docs + 15 brana-knowledge/dimensions). Script at /tmp/formalize-doc-refs.py.",
-      "context": "191 informal refs across 36+ docs. Pattern: 'doc 14', 'Doc 17', 'doc 31'. Must map doc numbers to filenames (e.g., 14 \u2192 reflections/14-mastermind-architecture.md, 17 \u2192 17-implementation-roadmap.md). Some docs are in brana-knowledge (dimensions/) \u2014 use symlinked path."
+      "context": "191 informal refs across 36+ docs. Pattern: 'doc 14', 'Doc 17', 'doc 31'. Must map doc numbers to filenames (e.g., 14 → reflections/14-mastermind-architecture.md, 17 → 17-implementation-roadmap.md). Some docs are in brana-knowledge (dimensions/) — use symlinked path."
     },
     {
       "id": "t-036",
@@ -1180,7 +1180,7 @@
       "started": "2026-03-02",
       "completed": "2026-03-02",
       "notes": "Added system/rules/doc-linking.md (global rule). Updated 4 skill templates: research, build-phase, debrief, back-propagate. maintain-specs and session-handoff don't exist as separate skill files.",
-      "context": "9 skills write knowledge. Convention: 'When referencing another doc, always use [doc NN](relative-path.md) format \u2014 never bare \"doc NN\" prose. This keeps the Obsidian knowledge graph connected.'"
+      "context": "9 skills write knowledge. Convention: 'When referencing another doc, always use [doc NN](relative-path.md) format — never bare \"doc NN\" prose. This keeps the Obsidian knowledge graph connected.'"
     },
     {
       "id": "ms-009",
@@ -1212,7 +1212,7 @@
     {
       "id": "t-037",
       "subject": "Design assertion extraction + contradiction model",
-      "description": "Research task: define what 'assertions' look like in brana docs \u2014 component counts ('10 agents'), version numbers ('v3.5.1'), architecture claims ('claude-flow is the memory layer'), tool/file names. Design extraction heuristics (regex patterns, section parsing). Define contradiction types: stale count, version mismatch, renamed entity, conflicting claim. Output: design doc or notes in task context.",
+      "description": "Research task: define what 'assertions' look like in brana docs — component counts ('10 agents'), version numbers ('v3.5.1'), architecture claims ('claude-flow is the memory layer'), tool/file names. Design extraction heuristics (regex patterns, section parsing). Define contradiction types: stale count, version mismatch, renamed entity, conflicting claim. Output: design doc or notes in task context.",
       "tags": [
         "auditor",
         "research"
@@ -1287,12 +1287,12 @@
       "started": "2026-03-02",
       "completed": "2026-03-02",
       "notes": "Audited doc 14 + both CLAUDE.md files. Found 10 contradictions (3 HIGH, 4 MEDIUM, 2 LOW, 1 MEDIUM label fix). All fixed. Report: docs/24-roadmap-corrections.audit-2026-03-02.md",
-      "context": "5 reflections + 2 CLAUDE.md files = 7 docs to audit. Expected findings: stale counts, renamed entities (claude-flow \u2192 ruflo), removed/added components not reflected everywhere."
+      "context": "5 reflections + 2 CLAUDE.md files = 7 docs to audit. Expected findings: stale counts, renamed entities (claude-flow → ruflo), removed/added components not reflected everywhere."
     },
     {
       "id": "t-040",
       "subject": "Trim git-discipline.md to reduce context footprint",
-      "description": "Trim git-discipline.md from 142 to ~70 lines by consolidating worktree tutorial examples into concise references. paths: scoping doesn't apply \u2014 behavioral/process rules need to be in context before file work, not triggered by file patterns. Real savings come from shorter content.",
+      "description": "Trim git-discipline.md from 142 to ~70 lines by consolidating worktree tutorial examples into concise references. paths: scoping doesn't apply — behavioral/process rules need to be in context before file work, not triggered by file patterns. Real savings come from shorter content.",
       "tags": [
         "context-engineering",
         "rules"
@@ -1311,8 +1311,8 @@
       "created": "2026-03-02",
       "started": "2026-03-02",
       "completed": "2026-03-02",
-      "notes": "142\u219251 lines. Removed 3 redundant worktree bash blocks, motivational text, one-time setup. All behavioral rules preserved. paths: scoping doesn't apply to process rules \u2014 trimming is more effective.",
-      "context": "From backlog #61 review (Julian DeAngelis \u2014 Agent Harness / Context Engineering). Brana has conditional loading infra but 0 of 11 rules use it."
+      "notes": "142→51 lines. Removed 3 redundant worktree bash blocks, motivational text, one-time setup. All behavioral rules preserved. paths: scoping doesn't apply to process rules — trimming is more effective.",
+      "context": "From backlog #61 review (Julian DeAngelis — Agent Harness / Context Engineering). Brana has conditional loading infra but 0 of 11 rules use it."
     },
     {
       "id": "t-041",
@@ -1361,7 +1361,7 @@
       "created": "2026-03-02",
       "started": null,
       "completed": null,
-      "notes": "sdd-tdd: added 8-line spec-first example (ADR \u2192 test \u2192 impl). task-convention: added 5-line branch naming examples (stream \u2192 prefix mapping).",
+      "notes": "sdd-tdd: added 8-line spec-first example (ADR → test → impl). task-convention: added 5-line branch naming examples (stream → prefix mapping).",
       "context": "Current rules are 100% directive with zero examples. Key anti-pattern: task-convention branch naming errors recur."
     },
     {
@@ -1388,7 +1388,7 @@
       "started": "2026-03-03",
       "completed": "2026-03-03",
       "notes": "Added test/lint detection to post-tool-use.sh, post-tool-use-failure.sh, session-end.sh. 39/39 tests pass. Outcomes: test-pass, test-fail, lint-pass, lint-fail. Flywheel metrics: test_pass_rate, lint_pass_rate (N/A when no runs).",
-      "context": "From backlog #61 review. Currently: agent writes code \u2192 PostToolUse logs it \u2192 done. No automatic 'did it pass tests?' signal."
+      "context": "From backlog #61 review. Currently: agent writes code → PostToolUse logs it → done. No automatic 'did it pass tests?' signal."
     },
     {
       "id": "t-044",
@@ -1470,7 +1470,7 @@
     {
       "id": "t-047",
       "subject": "Write beginner's guide to thebrana",
-      "description": "Create a clear, standalone guide for people who know nothing about thebrana. Should explain: what brana is and why it exists, the two-workspace model (docs/ vs system/), how deploy.sh works, the most important slash commands and when to use them, how hooks/rules/agents/skills fit together, the spec cascade (dimension \u2192 reflection \u2192 roadmap \u2192 code), and how to get started from zero. Target audience: someone who just cloned the repo and has no context. Tone: practical, no jargon without explanation, with examples. Could live at docs/guides/getting-started.md or similar.",
+      "description": "Create a clear, standalone guide for people who know nothing about thebrana. Should explain: what brana is and why it exists, the two-workspace model (docs/ vs system/), how deploy.sh works, the most important slash commands and when to use them, how hooks/rules/agents/skills fit together, the spec cascade (dimension → reflection → roadmap → code), and how to get started from zero. Target audience: someone who just cloned the repo and has no context. Tone: practical, no jargon without explanation, with examples. Could live at docs/guides/getting-started.md or similar.",
       "tags": [
         "docs",
         "onboarding",
@@ -1546,7 +1546,7 @@
     {
       "id": "t-048",
       "subject": "Install notebooklm-mcp (minimal profile), auth, measure context cost",
-      "description": "Run `claude mcp add notebooklm npx notebooklm-mcp@latest` \u2014 this adds to .mcp.json (NOT settings.json, per challenger review). Use minimal profile to limit tool count. Auth via browser Google login. Measure: how many tokens does the MCP server add to session start? Compare with/without. Document profile options and which tools each exposes.",
+      "description": "Run `claude mcp add notebooklm npx notebooklm-mcp@latest` — this adds to .mcp.json (NOT settings.json, per challenger review). Use minimal profile to limit tool count. Auth via browser Google login. Measure: how many tokens does the MCP server add to session start? Compare with/without. Document profile options and which tools each exposes.",
       "tags": [
         "notebooklm",
         "mcp"
@@ -1566,7 +1566,7 @@
       "started": "2026-03-02",
       "completed": "2026-03-02",
       "notes": "MCP server added to .mcp.json with full profile (16 tools). Auth completed via browser OAuth. Worktree branch deleted (work superseded by direct main edits). New skill /notebooklm-source created with 6 subcommands. Content generation is web UI only, not MCP.",
-      "context": "Challenger critical finding: MCP config goes in .mcp.json, not settings.json. deploy.sh doesn't touch MCP servers. Full profile chosen over minimal after hands-on testing \u2014 all query/library tools are useful."
+      "context": "Challenger critical finding: MCP config goes in .mcp.json, not settings.json. deploy.sh doesn't touch MCP servers. Full profile chosen over minimal after hands-on testing — all query/library tools are useful."
     },
     {
       "id": "t-049",
@@ -1598,7 +1598,7 @@
     {
       "id": "t-050",
       "subject": "GATE: Compare Claude vs Gemini synthesis on 3 known topics",
-      "description": "Pick 3 topics where you know the brana docs well (e.g., hook architecture, spec cascade, context budget). For each: (1) ask Claude to synthesize from the docs, (2) ask NotebookLM the same question via ask_question with expanded citations. Compare: does Gemini catch anything Claude missed? Does it surface connections across docs that Claude didn't? Does it add noise? Score each topic: +1 (added value), 0 (neutral), -1 (noise). GATE: if total score <= 0, phase stops here \u2014 NotebookLM doesn't earn deeper integration.",
+      "description": "Pick 3 topics where you know the brana docs well (e.g., hook architecture, spec cascade, context budget). For each: (1) ask Claude to synthesize from the docs, (2) ask NotebookLM the same question via ask_question with expanded citations. Compare: does Gemini catch anything Claude missed? Does it surface connections across docs that Claude didn't? Does it add noise? Score each topic: +1 (added value), 0 (neutral), -1 (noise). GATE: if total score <= 0, phase stops here — NotebookLM doesn't earn deeper integration.",
       "tags": [
         "notebooklm",
         "validation"
@@ -1619,8 +1619,8 @@
       "created": "2026-03-02",
       "started": "2026-03-02",
       "completed": "2026-03-02",
-      "notes": "Two rounds. v1 broad synthesis: PASS (+1). v2 exhaustive enumeration: FAIL (0). Combined verdict: CONDITIONAL PASS \u2014 Gemini adds value only when prompted correctly. Key findings: (1) Gemini is a detail-extraction engine, not synthesis. (2) Broad 'brana system' queries trigger canned 3-layer overview (catastrophic failure). (3) Specific technical noun anchors + enumeration framing produce rich results. (4) Anti-hallucination compliance is weakest dimension \u2014 states '9 patterns' then lists 6, invents API header strings. (5) Prompting strategy implemented in /challenge and /research: anchor to nouns, enumerate don't summarize, detect canned responses, tag [NLM-UNVERIFIED].",
-      "context": "Challenger observation: this is the most valuable task in the entire phase. If Gemini adds nothing, the remaining 7 tasks are wasted effort. Run this as a manual experiment \u2014 no code changes needed."
+      "notes": "Two rounds. v1 broad synthesis: PASS (+1). v2 exhaustive enumeration: FAIL (0). Combined verdict: CONDITIONAL PASS — Gemini adds value only when prompted correctly. Key findings: (1) Gemini is a detail-extraction engine, not synthesis. (2) Broad 'brana system' queries trigger canned 3-layer overview (catastrophic failure). (3) Specific technical noun anchors + enumeration framing produce rich results. (4) Anti-hallucination compliance is weakest dimension — states '9 patterns' then lists 6, invents API header strings. (5) Prompting strategy implemented in /challenge and /research: anchor to nouns, enumerate don't summarize, detect canned responses, tag [NLM-UNVERIFIED].",
+      "context": "Challenger observation: this is the most valuable task in the entire phase. If Gemini adds nothing, the remaining 7 tasks are wasted effort. Run this as a manual experiment — no code changes needed."
     },
     {
       "id": "ms-011",
@@ -1652,7 +1652,7 @@
     {
       "id": "t-051",
       "subject": "Add mcp__notebooklm__ask_question to /research allowed-tools",
-      "description": "Edit system/skills/research/SKILL.md to add mcp__notebooklm__ask_question to the allowed-tools list. Alternatively, design a subagent delegation pattern if we want to keep the skill sandbox clean. Decision: inline tool vs subagent \u2014 consider ADR if non-obvious.",
+      "description": "Edit system/skills/research/SKILL.md to add mcp__notebooklm__ask_question to the allowed-tools list. Alternatively, design a subagent delegation pattern if we want to keep the skill sandbox clean. Decision: inline tool vs subagent — consider ADR if non-obvious.",
       "tags": [
         "notebooklm",
         "skills",
@@ -1674,7 +1674,7 @@
       "created": "2026-03-02",
       "started": "2026-03-02",
       "completed": "2026-03-02",
-      "notes": "Added 5 NotebookLM MCP tools + Write to /research allowed-tools. Decision: inline tools (not subagent) \u2014 simpler, the skill already forks context.",
+      "notes": "Added 5 NotebookLM MCP tools + Write to /research allowed-tools. Decision: inline tools (not subagent) — simpler, the skill already forks context.",
       "context": null
     },
     {
@@ -1702,7 +1702,7 @@
       "created": "2026-03-02",
       "started": "2026-03-02",
       "completed": "2026-03-02",
-      "notes": "Implemented as --nlm flag. Phase 0 queries notebooks for prior knowledge before web scan. Phase 1 scouts compare findings against prior knowledge (tag CONFIRMED/CONTRADICTS). Step 14 prepares findings as NotebookLM-optimized source. Full feedback loop: research \u2192 NLM \u2192 future research.",
+      "notes": "Implemented as --nlm flag. Phase 0 queries notebooks for prior knowledge before web scan. Phase 1 scouts compare findings against prior knowledge (tag CONFIRMED/CONTRADICTS). Step 14 prepares findings as NotebookLM-optimized source. Full feedback loop: research → NLM → future research.",
       "context": "Design evolved from Phase 2 triage signal to Phase 0 prior knowledge + Phase 1 scout enrichment + post-research source output. More comprehensive than original spec."
     },
     {
@@ -1730,13 +1730,13 @@
       "created": "2026-03-02",
       "started": "2026-03-02",
       "completed": "2026-03-02",
-      "notes": "Added NotebookLM tools to /challenge skill. Step 3 auto-queries relevant notebooks for doc-grounded context before spawning Opus subagent. Dual-model adversarial: Gemini provides documented constraints, Opus does the reasoning. Graceful degradation if MCP unavailable. Evaluation pending real usage \u2014 value will be validated on next /challenge run.",
-      "context": "User requested this evaluation. The challenger agent already runs as Opus \u2014 adding Gemini perspective makes it a dual-model adversarial review."
+      "notes": "Added NotebookLM tools to /challenge skill. Step 3 auto-queries relevant notebooks for doc-grounded context before spawning Opus subagent. Dual-model adversarial: Gemini provides documented constraints, Opus does the reasoning. Graceful degradation if MCP unavailable. Evaluation pending real usage — value will be validated on next /challenge run.",
+      "context": "User requested this evaluation. The challenger agent already runs as Opus — adding Gemini perspective makes it a dual-model adversarial review."
     },
     {
       "id": "ms-012",
       "subject": "Knowledge Sync + Content Generation",
-      "description": "Script to sync all dimension docs to NotebookLM, test visual artifact generation (infographics, podcasts), and document the integration's value boundaries and rollback procedure. Manual sync first (no post-commit hook \u2014 auth fragility per challenger review).",
+      "description": "Script to sync all dimension docs to NotebookLM, test visual artifact generation (infographics, podcasts), and document the integration's value boundaries and rollback procedure. Manual sync first (no post-commit hook — auth fragility per challenger review).",
       "tags": [
         "notebooklm",
         "knowledge",
@@ -1763,8 +1763,8 @@
     },
     {
       "id": "t-054",
-      "subject": "Script to sync all dimension docs \u2192 NotebookLM sources",
-      "description": "Write a script (system/scripts/sync-notebooklm.sh or .py) that reads all dimension docs from brana-knowledge/dimensions/ and uploads/updates them as sources in the brana-knowledge NotebookLM notebook. Handle: new docs (add), changed docs (update), removed docs (delete source). Manual invocation only \u2014 no post-commit hook yet.",
+      "subject": "Script to sync all dimension docs → NotebookLM sources",
+      "description": "Write a script (system/scripts/sync-notebooklm.sh or .py) that reads all dimension docs from brana-knowledge/dimensions/ and uploads/updates them as sources in the brana-knowledge NotebookLM notebook. Handle: new docs (add), changed docs (update), removed docs (delete source). Manual invocation only — no post-commit hook yet.",
       "tags": [
         "notebooklm",
         "knowledge",
@@ -1813,7 +1813,7 @@
       "created": "2026-03-02",
       "started": null,
       "completed": null,
-      "notes": "Rescoped: content generation (infographics, podcasts) is web UI only \u2014 MCP has no create_* tools. Infographic dropped (not available in standard NotebookLM). Audio Overview is the viable content type.",
+      "notes": "Rescoped: content generation (infographics, podcasts) is web UI only — MCP has no create_* tools. Infographic dropped (not available in standard NotebookLM). Audio Overview is the viable content type.",
       "context": "Claude prepares the custom prompt via /notebooklm-source audio-prompt, user pastes it in NotebookLM Audio Overview UI."
     },
     {
@@ -1873,7 +1873,7 @@
     {
       "id": "t-058",
       "subject": "Research skill distribution channels (skills.sh, CC templates, community registries)",
-      "description": "Research and evaluate skill distribution channels for brana: (1) Claude Skills Registry (sk CLI, 82K+ skills indexed from GitHub \u2014 claude-skill-registry), (2) Claude Code official templates (npm claude-code-templates \u2014 scaffolding agents/commands/hooks/MCPs as installable bundles), (3) community curated lists (awesome-claude-code, awesome-agent-skills). Assess: how to publish brana skills individually to the registry, how to package brana as a template bundle on npm, and whether listing in awesome-claude-code is worthwhile. Deliverable: a brief with recommended distribution strategy and packaging requirements.",
+      "description": "Research and evaluate skill distribution channels for brana: (1) Claude Skills Registry (sk CLI, 82K+ skills indexed from GitHub — claude-skill-registry), (2) Claude Code official templates (npm claude-code-templates — scaffolding agents/commands/hooks/MCPs as installable bundles), (3) community curated lists (awesome-claude-code, awesome-agent-skills). Assess: how to publish brana skills individually to the registry, how to package brana as a template bundle on npm, and whether listing in awesome-claude-code is worthwhile. Deliverable: a brief with recommended distribution strategy and packaging requirements.",
       "tags": [
         "skills",
         "distribution",
@@ -1901,7 +1901,7 @@
     {
       "id": "t-059",
       "subject": "Integrate Playwright browser tools into testing skills and workflows",
-      "description": "Leverage claude-flow's browser_* MCP tools (backed by agent-browser \u2192 Playwright) as a standard testing tool across projects. Scope:\n\n1. **UI testing**: Navigate deployed apps, fill forms, click buttons, take screenshots, verify rendered state. Use browser_snapshot for AI-optimized accessibility tree + element refs.\n2. **API testing**: Use browser + network interception or curl-via-terminal for endpoint verification (login flows, auth tokens, protected resources).\n3. **Integration testing**: End-to-end flows \u2014 login \u2192 navigate \u2192 perform action \u2192 verify result. Combine browser_* with terminal_* for mixed UI+API checks.\n4. **Post-deploy smoke tests**: After CI deploys, run browser-based health checks (load page, verify title, check for errors).\n5. **Visual regression**: Screenshot comparison across deploys.\n\nImplementation:\n- Create a /test-e2e skill or integrate into existing /build-feature verification step\n- Document the ad-hoc pattern for self-signed certs: `agent-browser --ignore-https-errors` via Bash\n- Evaluate trajectory learning (SONA) for recording successful test patterns\n- Consider a PostToolUse hook that auto-screenshots on browser_click failures\n\nKey facts:\n- claude-flow browser_* = agent-browser (Vercel Labs) \u2192 Playwright/Chromium\n- MCP tools don't pass --ignore-https-errors (use Bash directly for self-signed)\n- Element refs (@e1, @e2) give 93% context reduction vs raw DOM\n- agent-browser supports: --headed, --headers, --ignore-https-errors, --profile (session persistence)",
+      "description": "Leverage claude-flow's browser_* MCP tools (backed by agent-browser → Playwright) as a standard testing tool across projects. Scope:\n\n1. **UI testing**: Navigate deployed apps, fill forms, click buttons, take screenshots, verify rendered state. Use browser_snapshot for AI-optimized accessibility tree + element refs.\n2. **API testing**: Use browser + network interception or curl-via-terminal for endpoint verification (login flows, auth tokens, protected resources).\n3. **Integration testing**: End-to-end flows — login → navigate → perform action → verify result. Combine browser_* with terminal_* for mixed UI+API checks.\n4. **Post-deploy smoke tests**: After CI deploys, run browser-based health checks (load page, verify title, check for errors).\n5. **Visual regression**: Screenshot comparison across deploys.\n\nImplementation:\n- Create a /test-e2e skill or integrate into existing /build-feature verification step\n- Document the ad-hoc pattern for self-signed certs: `agent-browser --ignore-https-errors` via Bash\n- Evaluate trajectory learning (SONA) for recording successful test patterns\n- Consider a PostToolUse hook that auto-screenshots on browser_click failures\n\nKey facts:\n- claude-flow browser_* = agent-browser (Vercel Labs) → Playwright/Chromium\n- MCP tools don't pass --ignore-https-errors (use Bash directly for self-signed)\n- Element refs (@e1, @e2) give 93% context reduction vs raw DOM\n- agent-browser supports: --headed, --headers, --ignore-https-errors, --profile (session persistence)",
       "tags": [
         "testing",
         "playwright",
@@ -1929,7 +1929,7 @@
     {
       "id": "t-060",
       "subject": "NLM source-creation workflow in /challenge and /research",
-      "description": "/challenge and /research should include a source-creation step when NotebookLM is involved: (1) Claude creates formatted source files from research findings, (2) user uploads them to a NotebookLM notebook, (3) user provides the notebook URL, (4) Claude queries NLM grounded against the uploaded sources. Without this workflow, NLM queries are ungrounded and pointless. Update /challenge (two-pass with NLM) and /research (--nlm flag) to include this handoff pattern. Consider: /notebooklm-source already handles formatting \u2014 integrate or reference it.",
+      "description": "/challenge and /research should include a source-creation step when NotebookLM is involved: (1) Claude creates formatted source files from research findings, (2) user uploads them to a NotebookLM notebook, (3) user provides the notebook URL, (4) Claude queries NLM grounded against the uploaded sources. Without this workflow, NLM queries are ungrounded and pointless. Update /challenge (two-pass with NLM) and /research (--nlm flag) to include this handoff pattern. Consider: /notebooklm-source already handles formatting — integrate or reference it.",
       "tags": [
         "notebooklm",
         "skills",
@@ -1957,7 +1957,7 @@
     },
     {
       "id": "t-061",
-      "subject": "MCP session history explorer \u2014 /history command",
+      "subject": "MCP session history explorer — /history command",
       "description": "Build /history command for cross-project session handoff search. Scan all ~/.claude/projects/*/memory/session-handoff.md for recent entries. Triggered by lost Psilea session handoff (2026-02-25). Relates to multi-project workflow (#82).",
       "tags": [
         "skills",
@@ -2004,7 +2004,7 @@
       "started": null,
       "completed": null,
       "notes": null,
-      "context": "Migrated from doc 30 backlog #35. Existing trigger: /brana:export-pdf now auto-adds generated PDFs to .gitignore (2026-03-09). This is a micro-instance of the pattern \u2014 skills that produce derived artifacts should auto-manage .gitignore. Generalize: any skill/hook that generates files from sources (PDF from MD, compiled assets, model outputs) should register the output in .gitignore or a tracking manifest."
+      "context": "Migrated from doc 30 backlog #35. Existing trigger: /brana:export-pdf now auto-adds generated PDFs to .gitignore (2026-03-09). This is a micro-instance of the pattern — skills that produce derived artifacts should auto-manage .gitignore. Generalize: any skill/hook that generates files from sources (PDF from MD, compiled assets, model outputs) should register the output in .gitignore or a tracking manifest."
     },
     {
       "id": "t-063",
@@ -2112,7 +2112,7 @@
     {
       "id": "t-067",
       "subject": "Status line improvements (project name, CTX% accuracy)",
-      "description": "Project differentiation \u2014 show git repo name / portfolio project. CTX% accuracy \u2014 align with runtime compaction trigger. Contamination audit (2026-02-27): nexeye settings.json overrides global. Fix: remove statusLine from project settings.",
+      "description": "Project differentiation — show git repo name / portfolio project. CTX% accuracy — align with runtime compaction trigger. Contamination audit (2026-02-27): nexeye settings.json overrides global. Fix: remove statusLine from project settings.",
       "tags": [
         "dx",
         "statusline"
@@ -2137,7 +2137,7 @@
     {
       "id": "t-068",
       "subject": "Planning workflow redesign (tasks clarity + per-project scoping)",
-      "description": "Unified initiative: (1) Tasks system clarity \u2014 simpler model, better defaults. (2) Per-project task scoping \u2014 auto CWD to git root detection. (3) Backlog skill /backlog \u2014 add/update/list/promote, auto-dedup. Status line integration for task awareness.",
+      "description": "Unified initiative: (1) Tasks system clarity — simpler model, better defaults. (2) Per-project task scoping — auto CWD to git root detection. (3) Backlog skill /backlog — add/update/list/promote, auto-dedup. Status line integration for task awareness.",
       "tags": [
         "skills",
         "tasks",
@@ -2765,7 +2765,7 @@
     {
       "id": "t-103",
       "subject": "Agent Accountability",
-      "description": "OpenClaw \u2192 AI coworker with economic-accountability patterns; $10K earned in 7h across 44+ industries",
+      "description": "OpenClaw → AI coworker with economic-accountability patterns; $10K earned in 7h across 44+ industries",
       "tags": [
         "ai-agent-systems"
       ],
@@ -2838,7 +2838,7 @@
     {
       "id": "t-106",
       "subject": "AI Agent Orchestration",
-      "description": "Built custom orchestration CLI for AI agents \u2014 orchestration patterns, multi-agent coordination",
+      "description": "Built custom orchestration CLI for AI agents — orchestration patterns, multi-agent coordination",
       "tags": [
         "ai-agent-systems"
       ],
@@ -2862,7 +2862,7 @@
     {
       "id": "t-107",
       "subject": "AI Operating System",
-      "description": "Open-sourced operating system for AI agents \u2014 runtime, scheduling, resource management",
+      "description": "Open-sourced operating system for AI agents — runtime, scheduling, resource management",
       "tags": [
         "ai-agent-systems"
       ],
@@ -2886,7 +2886,7 @@
     {
       "id": "t-108",
       "subject": "CLAUDE.md Engineering",
-      "description": "CLAUDE.md at 400 lines \u2014 large-scale prompt engineering, structure at scale",
+      "description": "CLAUDE.md at 400 lines — large-scale prompt engineering, structure at scale",
       "tags": [
         "claude-code-enhancement"
       ],
@@ -2910,7 +2910,7 @@
     {
       "id": "t-109",
       "subject": "Multi-Agent Collaboration",
-      "description": "Made Claude Code and Codex work together \u2014 dual-agent workflow, complementary strengths",
+      "description": "Made Claude Code and Codex work together — dual-agent workflow, complementary strengths",
       "tags": [
         "claude-code-enhancement",
         "ai-agent-systems"
@@ -2935,7 +2935,7 @@
     {
       "id": "t-110",
       "subject": "CLAUDE.md Debate",
-      "description": "Theo argues for deleting CLAUDE.md \u2014 contrarian view on prompt file engineering",
+      "description": "Theo argues for deleting CLAUDE.md — contrarian view on prompt file engineering",
       "tags": [
         "claude-code-enhancement"
       ],
@@ -2959,7 +2959,7 @@
     {
       "id": "t-111",
       "subject": "Spec-Driven Development",
-      "description": "Official GitHub spec-kit \u2014 spec-driven development toolkit, structured specifications",
+      "description": "Official GitHub spec-kit — spec-driven development toolkit, structured specifications",
       "tags": [
         "claude-code-enhancement",
         "ai-agent-systems"
@@ -3026,13 +3026,13 @@
       "created": "2026-03-03",
       "started": "2026-03-03",
       "completed": "2026-03-03",
-      "notes": "No action. Brana already solves this differently: semantic embeddings (580+ entries, 384-dim) + doc hierarchy + cross-references + /reconcile. The \"auditor traverses graph for contradictions\" pattern could enhance /memory review someday but low priority \u2014 brana's reflection DAG prevents most contradictions structurally.",
+      "notes": "No action. Brana already solves this differently: semantic embeddings (580+ entries, 384-dim) + doc hierarchy + cross-references + /reconcile. The \"auditor traverses graph for contradictions\" pattern could enhance /memory review someday but low priority — brana's reflection DAG prevents most contradictions structurally.",
       "context": "URL: https://www.linkedin.com/posts/steve-phelps-203270_a-shared-memory-for-claude-code-share-7432414226435956736-HihS | Author: Steve Phelps | Source tier: high | Original: #50"
     },
     {
       "id": "t-114",
       "subject": "claude-flow Rebrand",
-      "description": "claude-flow renamed to Ruflo v3.50 \u2014 direct upstream impact on brana memory stack",
+      "description": "claude-flow renamed to Ruflo v3.50 — direct upstream impact on brana memory stack",
       "tags": [
         "ai-agent-systems",
         "mcp-tooling"
@@ -3051,13 +3051,13 @@
       "created": "2026-03-03",
       "started": "2026-03-03",
       "completed": "2026-03-03",
-      "notes": "No immediate action. Legacy `claude-flow` npm alias works (both at 3.5.2 as of 2026-03-02). Brana on v3.5.1. 92 refs across 33 system files need eventual rename. Embedding dimension risk: ruflo defaults 768-dim WASM, our embeddings.json forces 384-dim (safe). Upgrade to ruflo@3.5.2 when next maintenance cycle. **RECHECK: verify `claude-flow` and `ruflo` npm versions still match \u2014 if they diverge, alias is being abandoned and migration is urgent.**",
+      "notes": "No immediate action. Legacy `claude-flow` npm alias works (both at 3.5.2 as of 2026-03-02). Brana on v3.5.1. 92 refs across 33 system files need eventual rename. Embedding dimension risk: ruflo defaults 768-dim WASM, our embeddings.json forces 384-dim (safe). Upgrade to ruflo@3.5.2 when next maintenance cycle. **RECHECK: verify `claude-flow` and `ruflo` npm versions still match — if they diverge, alias is being abandoned and migration is urgent.**",
       "context": "URL: https://www.linkedin.com/posts/reuvencohen_so-long-claude-flow-hello-ruflo-v350-ugcPost-7433292476595003393-bpqi | Author: Reuven Cohen | Source tier: high | Original: #59"
     },
     {
       "id": "t-115",
       "subject": "Web Agent Infrastructure",
-      "description": "Ultimate backbone for AI web agents \u2014 infrastructure layer for browser-based agents",
+      "description": "Ultimate backbone for AI web agents — infrastructure layer for browser-based agents",
       "tags": [
         "ai-agent-systems"
       ],
@@ -3081,7 +3081,7 @@
     {
       "id": "t-116",
       "subject": "MCP Server",
-      "description": "New open source MCP server \u2014 evaluate for brana MCP ecosystem",
+      "description": "New open source MCP server — evaluate for brana MCP ecosystem",
       "tags": [
         "mcp-tooling"
       ],
@@ -3148,13 +3148,13 @@
       "created": "2026-03-03",
       "started": "2026-03-03",
       "completed": "2026-03-03",
-      "notes": "Applied: trimmed git-discipline 142\u219251 lines, added 55% context rot yellow zone, few-shot examples in sdd-tdd + task-convention. Deferred: test/lint feedback hook (t-043), PR review agent (t-044), script-bundled skills (t-045).",
+      "notes": "Applied: trimmed git-discipline 142→51 lines, added 55% context rot yellow zone, few-shot examples in sdd-tdd + task-convention. Deferred: test/lint feedback hook (t-043), PR review agent (t-044), script-bundled skills (t-045).",
       "context": "URL: https://x.com/juliandeangeIis/status/2027888587975569534 | Author: Julian DeAngelis (MercadoLibre) | Source tier: high | Original: #61"
     },
     {
       "id": "t-119",
       "subject": "Claude Code Origins",
-      "description": "Keynote by Claude Code creator \u2014 content inaccessible but likely high relevance",
+      "description": "Keynote by Claude Code creator — content inaccessible but likely high relevance",
       "tags": [
         "claude-code-enhancement"
       ],
@@ -3394,7 +3394,7 @@
     {
       "id": "t-129",
       "subject": "AI Tooling",
-      "description": "Solution built for previously unmet need in AI tooling \u2014 topic unclear",
+      "description": "Solution built for previously unmet need in AI tooling — topic unclear",
       "tags": [
         "ai-agent-systems"
       ],
@@ -3539,7 +3539,7 @@
     {
       "id": "t-135",
       "subject": "Security Testing",
-      "description": "Bypassed a SaaS payment gateway \u2014 agent security implications",
+      "description": "Bypassed a SaaS payment gateway — agent security implications",
       "tags": [
         "security"
       ],
@@ -3563,7 +3563,7 @@
     {
       "id": "t-136",
       "subject": "Infrastructure Trends",
-      "description": "Real infrastructure shift happening \u2014 AI-era infra patterns",
+      "description": "Real infrastructure shift happening — AI-era infra patterns",
       "tags": [
         "devops-ci"
       ],
@@ -3587,7 +3587,7 @@
     {
       "id": "t-137",
       "subject": "CI/CD Planning",
-      "description": "Introducing FlightPaths \u2014 release planning and CI/CD orchestration",
+      "description": "Introducing FlightPaths — release planning and CI/CD orchestration",
       "tags": [
         "devops-ci"
       ],
@@ -3635,7 +3635,7 @@
     {
       "id": "t-139",
       "subject": "Data Infrastructure",
-      "description": "Build a lightweight self-hostable data warehouse \u2014 DuckDB/Parquet patterns",
+      "description": "Build a lightweight self-hostable data warehouse — DuckDB/Parquet patterns",
       "tags": [
         "devops-ci"
       ],
@@ -3731,7 +3731,7 @@
     {
       "id": "t-143",
       "subject": "Dev Workflow",
-      "description": "What development flows need to be more effective \u2014 workflow patterns",
+      "description": "What development flows need to be more effective — workflow patterns",
       "tags": [
         "ai-agent-systems"
       ],
@@ -3755,7 +3755,7 @@
     {
       "id": "t-144",
       "subject": "Creator Interview",
-      "description": "Interview with Boris Cherny \u2014 likely Claude Code or TypeScript related",
+      "description": "Interview with Boris Cherny — likely Claude Code or TypeScript related",
       "tags": [
         "claude-code-enhancement"
       ],
@@ -3779,7 +3779,7 @@
     {
       "id": "t-145",
       "subject": "AI Evolution",
-      "description": "Claude added Codex, Codex made itself \u2014 self-improving agent patterns",
+      "description": "Claude added Codex, Codex made itself — self-improving agent patterns",
       "tags": [
         "claude-code-enhancement",
         "ai-agent-systems"
@@ -3876,7 +3876,7 @@
     {
       "id": "t-149",
       "subject": "Agent Memory System",
-      "description": "BrainWire \u2014 agent memory and knowledge wiring system",
+      "description": "BrainWire — agent memory and knowledge wiring system",
       "tags": [
         "ai-agent-systems"
       ],
@@ -3900,7 +3900,7 @@
     {
       "id": "t-150",
       "subject": "Agent Cognition",
-      "description": "BrainWire DeepBrain DeepNote \u2014 deeper agent cognition patterns",
+      "description": "BrainWire DeepBrain DeepNote — deeper agent cognition patterns",
       "tags": [
         "ai-agent-systems"
       ],
@@ -3924,7 +3924,7 @@
     {
       "id": "t-151",
       "subject": "Claude Code Project",
-      "description": "Day 314: Building Slack clone with Claude Code \u2014 large project patterns",
+      "description": "Day 314: Building Slack clone with Claude Code — large project patterns",
       "tags": [
         "claude-code-enhancement"
       ],
@@ -4044,7 +4044,7 @@
     {
       "id": "t-156",
       "subject": "Knowledge Graphs",
-      "description": "Knowledge graph architecture with Neo4j \u2014 no AI agent focus",
+      "description": "Knowledge graph architecture with Neo4j — no AI agent focus",
       "tags": [
         "knowledge-graphs"
       ],
@@ -4068,7 +4068,7 @@
     {
       "id": "t-157",
       "subject": "Unknown",
-      "description": "LinkedIn activity post \u2014 content unclear from URL",
+      "description": "LinkedIn activity post — content unclear from URL",
       "tags": [
         "unknown"
       ],
@@ -4092,7 +4092,7 @@
     {
       "id": "t-158",
       "subject": "Unknown",
-      "description": "X/Twitter post \u2014 content not accessible from URL slug",
+      "description": "X/Twitter post — content not accessible from URL slug",
       "tags": [
         "unknown"
       ],
@@ -4116,7 +4116,7 @@
     {
       "id": "t-159",
       "subject": "AI Platform",
-      "description": "AI community or product \u2014 needs review",
+      "description": "AI community or product — needs review",
       "tags": [
         "unknown"
       ],
@@ -4140,7 +4140,7 @@
     {
       "id": "t-160",
       "subject": "Sync tasks with GitHub Issues and GitHub Projects",
-      "description": "Bidirectional sync between tasks.json and GitHub Issues/Projects. Issues serve as task lifecycle tracking and context persistence. Issue numbering not required but welcomed if it fits naturally \u2014 low-cost, positive-potential integration.",
+      "description": "Bidirectional sync between tasks.json and GitHub Issues/Projects. Issues serve as task lifecycle tracking and context persistence. Issue numbering not required but welcomed if it fits naturally — low-cost, positive-potential integration.",
       "tags": [
         "workflow",
         "dx",
@@ -4161,7 +4161,7 @@
       "started": null,
       "completed": null,
       "notes": null,
-      "context": "Issues as task lifecycle tracking + context persistence. Issue numbering not required but welcomed if it fits naturally \u2014 low-cost, positive-potential integration. Promoted P3→P1 on 2026-03-09: user reports GitHub Issues/Projects not being updated by tasks planner — this is a real workflow gap."
+      "context": "Issues as task lifecycle tracking + context persistence. Issue numbering not required but welcomed if it fits naturally — low-cost, positive-potential integration. Promoted P3→P1 on 2026-03-09: user reports GitHub Issues/Projects not being updated by tasks planner — this is a real workflow gap."
     },
     {
       "id": "t-161",
@@ -4265,7 +4265,7 @@
       "started": "2026-03-05",
       "completed": null,
       "notes": null,
-      "context": "Positioning: 'AI systems designer' \u2014 bridge between founders and technologists. SSI target: 70+. Each subtask discussed, researched, and shaped collaboratively."
+      "context": "Positioning: 'AI systems designer' — bridge between founders and technologists. SSI target: 70+. Each subtask discussed, researched, and shaped collaboratively."
     },
     {
       "id": "t-170",
@@ -4322,7 +4322,7 @@
     },
     {
       "id": "t-175",
-      "subject": "Decide: Case Studies pillar weight \u2014 keep 10% or increase to 20% for consulting?",
+      "subject": "Decide: Case Studies pillar weight — keep 10% or increase to 20% for consulting?",
       "description": "Challenger flagged Case Studies (10%) is the only 'hire me' pillar but smallest allocation. Product insights (Moore) suggest keeping 40% BIP for early adopters, increase Case Studies later for chasm crossing.",
       "tags": [
         "content",
@@ -4350,7 +4350,7 @@
     },
     {
       "id": "t-176",
-      "subject": "Decide: carousel tooling \u2014 /export-pdf plain PDFs, Canva templates, or defer?",
+      "subject": "Decide: carousel tooling — /export-pdf plain PDFs, Canva templates, or defer?",
       "description": "Carousel target at 30% for v1. Decide approach: /export-pdf (automated, plain), Canva templates (manual, professional), or defer carousels to v2.",
       "tags": [
         "content",
@@ -4405,7 +4405,7 @@
     {
       "id": "t-178",
       "subject": "Define consulting service offering (menu, pricing, process)",
-      "description": "Whole Product gap from product literature review (Moore). Content generates interest but there's nothing to sell when inbound arrives. Define: service menu (strategy roadmap, PoC build, training workshop, retainer), pricing model ($150-300/hr or project-based), engagement process (discovery call \u2192 proposal \u2192 SOW). Keep simple \u2014 v1 is a one-pager, not a website.",
+      "description": "Whole Product gap from product literature review (Moore). Content generates interest but there's nothing to sell when inbound arrives. Define: service menu (strategy roadmap, PoC build, training workshop, retainer), pricing model ($150-300/hr or project-based), engagement process (discovery call → proposal → SOW). Keep simple — v1 is a one-pager, not a website.",
       "tags": [
         "content",
         "linkedin",
@@ -4836,7 +4836,7 @@
       "started": "2026-03-07",
       "completed": "2026-03-09",
       "notes": "Headline defined: EN + ES versions",
-      "context": "Current: 'Machine Learning Engineer | Data Developer | MLOps | AI Systems Builder'. Decided: 'I see systems. Then I build them. Business problems \u2192 AI/ML products, architecture to production.' Spanish headline will be original (not translated) in secondary profile."
+      "context": "Current: 'Machine Learning Engineer | Data Developer | MLOps | AI Systems Builder'. Decided: 'I see systems. Then I build them. Business problems → AI/ML products, architecture to production.' Spanish headline will be original (not translated) in secondary profile."
     },
     {
       "id": "st-002",
@@ -4862,7 +4862,7 @@
       "started": null,
       "completed": "2026-03-09",
       "notes": "Instruction: remove Open to Work badge",
-      "context": "Green badge undermines authority positioning. You're not a job seeker \u2014 you're a systems designer who consults."
+      "context": "Green badge undermines authority positioning. You're not a job seeker — you're a systems designer who consults."
     },
     {
       "id": "st-003",
@@ -4940,7 +4940,7 @@
       "started": null,
       "completed": "2026-03-09",
       "notes": "Skills reorder defined: ML > Architecture > Python",
-      "context": "Current: LangGraph and Streamlit shown first (47 total). Too niche for first impression \u2014 should reflect systems design positioning."
+      "context": "Current: LangGraph and Streamlit shown first (47 total). Too niche for first impression — should reflect systems design positioning."
     },
     {
       "id": "st-006",
@@ -4968,7 +4968,7 @@
       "started": null,
       "completed": "2026-03-09",
       "notes": "Featured: pin GitHub profile",
-      "context": "No Featured section currently. Blocked by About rewrite \u2014 Featured items should reinforce the positioning established there."
+      "context": "No Featured section currently. Blocked by About rewrite — Featured items should reinforce the positioning established there."
     },
     {
       "id": "st-007",
@@ -5050,7 +5050,7 @@
       "started": null,
       "completed": "2026-03-09",
       "notes": "Spanish secondary profile: all ES versions ready",
-      "context": "LinkedIn has a built-in secondary language profile feature. Spanish visitors see the Spanish profile automatically. Write original Spanish content, don't translate English. Blocked by English headline, About, and Experience \u2014 those set the positioning that Spanish adapts from."
+      "context": "LinkedIn has a built-in secondary language profile feature. Spanish visitors see the Spanish profile automatically. Write original Spanish content, don't translate English. Blocked by English headline, About, and Experience — those set the positioning that Spanish adapts from."
     },
     {
       "id": "t-179",
@@ -5201,7 +5201,7 @@
       "created": "2026-03-05",
       "started": "2026-03-05",
       "completed": "2026-03-05",
-      "notes": "Alvaro Garcia / rudel.ai: 4% skill utilization across 6 users, 500+ sessions. Root causes: invisible discovery (RAG), optional execution, improper loading (Read vs Skill). Fix: CLAUDE.md making skill use mandatory \u2192 61% utilization, +10% task completion. Directly validates t-198 (tracking) and need to tighten delegation-routing.md from nudge-once to stronger enforcement.",
+      "notes": "Alvaro Garcia / rudel.ai: 4% skill utilization across 6 users, 500+ sessions. Root causes: invisible discovery (RAG), optional execution, improper loading (Read vs Skill). Fix: CLAUDE.md making skill use mandatory → 61% utilization, +10% task completion. Directly validates t-198 (tracking) and need to tighten delegation-routing.md from nudge-once to stronger enforcement.",
       "context": "URL: https://www.linkedin.com/posts/alvarogarciagutierrez99_claude-code-skills-had-a-4-utilization-rate-share-7434532019860254720-G4xP\n\nResearch 2026-03-05: rudel.ai measured real-world skill adoption. Key insight: brana delegation-routing.md says \"nudge once, don't nag\" which is the exact pattern producing 4%. Their fix: make discovery+loading mandatory and atomic in CLAUDE.md. Also: doc 37 (ruvnet) already flagged this gap as transferable practice #2."
     },
     {
@@ -5231,7 +5231,7 @@
     },
     {
       "id": "t-186",
-      "subject": "Introducing cmux \u2014 open source terminal multiplexer (Austin Wang)",
+      "subject": "Introducing cmux — open source terminal multiplexer (Austin Wang)",
       "description": "Review LinkedIn post on cmux tool",
       "tags": [
         "linkedin",
@@ -5307,7 +5307,7 @@
     },
     {
       "id": "t-189",
-      "subject": "Building software like humans \u2014 still? (Robert Kelly)",
+      "subject": "Building software like humans — still? (Robert Kelly)",
       "description": "Review LinkedIn post on AI-native software development",
       "tags": [
         "linkedin",
@@ -5332,7 +5332,7 @@
     },
     {
       "id": "t-190",
-      "subject": "Pinchtab \u2014 standalone HTTP server for AI agent browser control (Niranjan Akella)",
+      "subject": "Pinchtab — standalone HTTP server for AI agent browser control (Niranjan Akella)",
       "description": "Pure HTTP API browser automation for any AI agent. 12MB binary, zero deps, accessibility-first DOM, stealth mode, persistent sessions. ~800 tokens per page snapshot vs ~10K for screenshots (13x cheaper). 1.6K stars, MIT. Alternative to Playwright MCP, OpenClaw browser, Browser Use.",
       "tags": [
         "linkedin",
@@ -5412,7 +5412,7 @@
     {
       "id": "t-193",
       "subject": "Google Workspace CLI (Rust, npm, skills.sh)",
-      "description": "Evaluate Google Workspace CLI \u2014 Rust-based, npm-distributed, skills.sh integration",
+      "description": "Evaluate Google Workspace CLI — Rust-based, npm-distributed, skills.sh integration",
       "tags": [
         "tooling",
         "mcp-tooling",
@@ -5437,7 +5437,7 @@
     },
     {
       "id": "t-194",
-      "subject": "Claude Code HTTP hooks \u2014 event-driven agent control (@santtiagom_)",
+      "subject": "Claude Code HTTP hooks — event-driven agent control (@santtiagom_)",
       "description": "Claude Code now supports HTTP hooks (not just local command hooks). PreToolUse etc. send HTTP POST with event JSON to your server. Server responds to allow/block. Enables: agent analytics, permission control, event-driven architectures. Source: Dickson Tsai (Anthropic).",
       "tags": [
         "hooks",
@@ -5459,7 +5459,7 @@
       "started": "2026-03-05",
       "completed": "2026-03-05",
       "notes": "HTTP hooks = new type alongside command hooks (Feb 2026). POST JSON to URL, server responds allow/block. 16+ events vs brana 5. No migration needed for existing hooks. New opportunities: analytics dashboard, remote permission control, SubagentStart/Stop tracking, multi-instance coordination. HookLab = community visual testing tool.",
-      "context": "URL: https://x.com/santtiagom_/status/2029553389894254795\nSource: Dickson Tsai (@dickson_tsai) from Anthropic\nKey: HTTP hooks complement existing command hooks. POST JSON event \u2192 server responds allow/block. Non-2xx or timeout = error ignored, Claude continues.\n\nResearch findings: HTTP hooks launched Feb 28 2026 (Dickson Tsai, Anthropic). type:http in settings.json. New events: PermissionRequest, UserPromptSubmit, Notification, SubagentStart/Stop, Stop, TaskCompleted, ConfigChange, InstructionsLoaded, PreCompact, WorktreeCreate/Remove. Non-blocking by default (non-2xx/timeout = continue). allowedEnvVars for header env var interpolation."
+      "context": "URL: https://x.com/santtiagom_/status/2029553389894254795\nSource: Dickson Tsai (@dickson_tsai) from Anthropic\nKey: HTTP hooks complement existing command hooks. POST JSON event → server responds allow/block. Non-2xx or timeout = error ignored, Claude continues.\n\nResearch findings: HTTP hooks launched Feb 28 2026 (Dickson Tsai, Anthropic). type:http in settings.json. New events: PermissionRequest, UserPromptSubmit, Notification, SubagentStart/Stop, Stop, TaskCompleted, ConfigChange, InstructionsLoaded, PreCompact, WorktreeCreate/Remove. Non-blocking by default (non-2xx/timeout = continue). allowedEnvVars for header env var interpolation."
     },
     {
       "id": "t-195",
@@ -5562,7 +5562,7 @@
       "created": "2026-03-05",
       "started": "2026-03-05",
       "completed": "2026-03-05",
-      "notes": "Implemented Skill tool detection in post-tool-use.sh (outcome: skill-invoke, detail: skill_name). Also strengthened delegation-routing.md from passive nudge to active invocation. Tests: 5/5 green. Research finding: 4% \u2192 61% utilization when skills used directly vs suggested (\u00c1lvaro Garc\u00eda / rudel.ai).",
+      "notes": "Implemented Skill tool detection in post-tool-use.sh (outcome: skill-invoke, detail: skill_name). Also strengthened delegation-routing.md from passive nudge to active invocation. Tests: 5/5 green. Research finding: 4% → 61% utilization when skills used directly vs suggested (Álvaro García / rudel.ai).",
       "context": "Synergies: t-184 (skills 4% utilization), t-058 (skill distribution), t-070 (parameterizable skills), t-075 (VoltAgent catalog). Motivated by Alvaro Garcia post on skill utilization rates."
     },
     {
@@ -5641,7 +5641,7 @@
       "started": null,
       "completed": null,
       "notes": null,
-      "context": "Synergies: t-069 (System documentation map), t-077 (Changelog approach). SRP refactor \u2014 when one concern fails (e.g. claude-flow timeout), others still complete."
+      "context": "Synergies: t-069 (System documentation map), t-077 (Changelog approach). SRP refactor — when one concern fails (e.g. claude-flow timeout), others still complete."
     },
     {
       "id": "t-202",
@@ -5720,7 +5720,7 @@
       "started": null,
       "completed": null,
       "notes": null,
-      "context": "Synergies: t-108/t-134 (CLAUDE.md Engineering), t-182 (ghost tokens), t-061 (session history). Runtime cousin of CLAUDE.md \u2014 dynamic context injection."
+      "context": "Synergies: t-108/t-134 (CLAUDE.md Engineering), t-182 (ghost tokens), t-061 (session history). Runtime cousin of CLAUDE.md — dynamic context injection."
     },
     {
       "id": "t-205",
@@ -5756,7 +5756,7 @@
     },
     {
       "id": "t-206",
-      "subject": "/acquire-skills \u2014 marketplace skill discovery and installation",
+      "subject": "/acquire-skills — marketplace skill discovery and installation",
       "type": "task",
       "description": "Manual command that scans project tech stack, diffs against local skills, searches marketplaces (Vercel CLI > WebSearch > future MCP), presents candidates, and installs user-approved skills to system/skills/acquired/.",
       "tags": [
@@ -5778,11 +5778,11 @@
       "started": "2026-03-05",
       "completed": "2026-03-05",
       "notes": "ADR-012, feature brief, SKILL.md, user guide, skill catalog updated. 3-tier search with graceful degradation. validate.sh updated to exclude acquired/ directory. 40th skill.",
-      "context": "Research: Vercel skills CLI (npx skills), SkillHub MCP (7K+ skills), SkillsMP (350K+), aitmpl (400+ components). Challenger rejected automated version \u2014 manual command achieves 90% value at 10% complexity."
+      "context": "Research: Vercel skills CLI (npx skills), SkillHub MCP (7K+ skills), SkillsMP (350K+), aitmpl (400+ components). Challenger rejected automated version — manual command achieves 90% value at 10% complexity."
     },
     {
       "id": "t-207",
-      "subject": "/fix \u2014 structured bug fixing workflow",
+      "subject": "/fix — structured bug fixing workflow",
       "type": "task",
       "description": "Skill for structured bug fixing: reproduce (failing test), diagnose (root cause), fix, verify (test passes), commit. Guided workflow that enforces test-first debugging discipline.",
       "tags": [
@@ -5808,7 +5808,7 @@
     },
     {
       "id": "t-208",
-      "subject": "/log \u2014 append-only business event log",
+      "subject": "/log — append-only business event log",
       "type": "task",
       "description": "Skill to capture business events: meetings, calls, decisions, observations. Append-only markdown file (timestamped entries). Supports quick capture and later review. Business-scoped for now; may share with personal project later.",
       "tags": [
@@ -5829,7 +5829,7 @@
       "started": "2026-03-07",
       "completed": "2026-03-09",
       "notes": "SKILL.md complete with quick append + bulk mode. All challenger feedback addressed: tags not CWD, no auto-classification, URL confirmation required, 90-day archival.",
-      "context": "Challenger review (2026-03-07):\n\nC1 (HIGH): Overlap with MEMORY.md and /debrief \u2014 third capture surface risk. Most \"events\" are actually tasks, pipeline entries, or memory notes. Risk: log becomes unprocessed graveyard.\n\nC2 (HIGH): CWD routing ambiguity \u2014 breaks when logging cross-project from wrong CWD, SSH, /tmp, etc. CWD is proxy for intent, not intent itself. No .git-like marker for scope.\n\nW1 (MED): Auto-creating research tasks for every URL adds noise. Not every URL is \"come back to this\" \u2014 many are reference links. Should confirm, not auto-create.\n\nW2 (MED): Entry type auto-detection is fragile keyword matching, will misclassify constantly. #tags already solve searchability without classification layer.\n\nW3 (MED): 41st skill \u2014 sprawl. User's own rule: \"embed as steps in existing commands.\" Bulk paste could be /tasks bulk instead.\n\nO1: Append chronologically (bottom), not reverse \u2014 cleaner git diffs.\nO2: No rotation mentioned \u2014 add archival after 90 days.\nO3: /log search is just grep \u2014 no skill wrapper needed.\n\nVerdict: PROCEED WITH CHANGES. Core value is bulk-paste-and-triage, not the event log abstraction. Simplify heavily."
+      "context": "Challenger review (2026-03-07):\n\nC1 (HIGH): Overlap with MEMORY.md and /debrief — third capture surface risk. Most \"events\" are actually tasks, pipeline entries, or memory notes. Risk: log becomes unprocessed graveyard.\n\nC2 (HIGH): CWD routing ambiguity — breaks when logging cross-project from wrong CWD, SSH, /tmp, etc. CWD is proxy for intent, not intent itself. No .git-like marker for scope.\n\nW1 (MED): Auto-creating research tasks for every URL adds noise. Not every URL is \"come back to this\" — many are reference links. Should confirm, not auto-create.\n\nW2 (MED): Entry type auto-detection is fragile keyword matching, will misclassify constantly. #tags already solve searchability without classification layer.\n\nW3 (MED): 41st skill — sprawl. User's own rule: \"embed as steps in existing commands.\" Bulk paste could be /tasks bulk instead.\n\nO1: Append chronologically (bottom), not reverse — cleaner git diffs.\nO2: No rotation mentioned — add archival after 90 days.\nO3: /log search is just grep — no skill wrapper needed.\n\nVerdict: PROCEED WITH CHANGES. Core value is bulk-paste-and-triage, not the event log abstraction. Simplify heavily."
     },
     {
       "type": "task",
@@ -5960,9 +5960,9 @@
     },
     {
       "id": "t-214",
-      "subject": "Map brana as a system \u2014 SOPs, workflows, user guides for everyone",
+      "subject": "Map brana as a system — SOPs, workflows, user guides for everyone",
       "type": "task",
-      "description": "System redesign: 42\u219225 commands, 4-step build loop with 7 strategies, /tasks+/build deep integration, two documentation trees (user guide + contributor docs). See docs/features/build-loop-redesign.md for full spec.",
+      "description": "System redesign: 42→25 commands, 4-step build loop with 7 strategies, /tasks+/build deep integration, two documentation trees (user guide + contributor docs). See docs/features/build-loop-redesign.md for full spec.",
       "tags": [
         "docs",
         "architecture",
@@ -5983,7 +5983,7 @@
       "created": "2026-03-07",
       "started": "2026-03-07",
       "notes": null,
-      "context": "User observation: 41 skills are loose \u2014 they need to be part of flows. Existing docs describe individual commands but not how they compose. Goal: transform brana from 'collection of tools' to 'documented system with clear workflows.' Examples of flows to map: daily workflow (session start \u2192 work \u2192 capture \u2192 session end), spec lifecycle (research \u2192 design \u2192 build \u2192 backprop), venture workflow (align \u2192 plan \u2192 execute \u2192 review). This is strategic \u2014 it's what makes brana transferable beyond its creator."
+      "context": "User observation: 41 skills are loose — they need to be part of flows. Existing docs describe individual commands but not how they compose. Goal: transform brana from 'collection of tools' to 'documented system with clear workflows.' Examples of flows to map: daily workflow (session start → work → capture → session end), spec lifecycle (research → design → build → backprop), venture workflow (align → plan → execute → review). This is strategic — it's what makes brana transferable beyond its creator."
     },
     {
       "id": "ms-018",
@@ -6004,7 +6004,7 @@
     },
     {
       "id": "t-215",
-      "subject": "Write /build SKILL.md \u2014 7 strategies, task-aware",
+      "subject": "Write /build SKILL.md — 7 strategies, task-aware",
       "type": "task",
       "parent": "ms-018",
       "status": "completed",
@@ -6024,12 +6024,12 @@
     },
     {
       "id": "t-216",
-      "subject": "Write /close SKILL.md \u2014 replaces session-handoff + debrief",
+      "subject": "Write /close SKILL.md — replaces session-handoff + debrief",
       "type": "task",
       "parent": "ms-018",
       "status": "completed",
       "stream": "roadmap",
-      "description": "Session close skill. Absorbs /session-handoff close mode and /debrief. Writes handoff note, extracts learnings, stores patterns, computes metrics. Auto-detects close context (no pickup mode \u2014 that moves to session-start hook).",
+      "description": "Session close skill. Absorbs /session-handoff close mode and /debrief. Writes handoff note, extracts learnings, stores patterns, computes metrics. Auto-detects close context (no pickup mode — that moves to session-start hook).",
       "tags": [
         "build-loop",
         "skill",
@@ -6045,7 +6045,7 @@
     },
     {
       "id": "t-217",
-      "subject": "Integrate /tasks with /build \u2014 deep state sharing",
+      "subject": "Integrate /tasks with /build — deep state sharing",
       "type": "task",
       "parent": "ms-018",
       "status": "completed",
@@ -6073,7 +6073,7 @@
       "parent": "ms-018",
       "status": "completed",
       "stream": "roadmap",
-      "description": "Ensure TDD gate works with new branch/strategy conventions. Verify spec-first enforcement still activates on feat/* branches. No changes expected to core logic \u2014 mostly validation that existing hook works with new flow.",
+      "description": "Ensure TDD gate works with new branch/strategy conventions. Verify spec-first enforcement still activates on feat/* branches. No changes expected to core logic — mostly validation that existing hook works with new flow.",
       "tags": [
         "build-loop",
         "hooks"
@@ -6087,7 +6087,7 @@
       "created": "2026-03-07",
       "started": "2026-03-07",
       "completed": "2026-03-07",
-      "notes": "Verified: pre-tool-use.sh gates on feat/* branches with docs/decisions/ opt-in. No code changes needed \u2014 existing hook is compatible with /build flow."
+      "notes": "Verified: pre-tool-use.sh gates on feat/* branches with docs/decisions/ opt-in. No code changes needed — existing hook is compatible with /build flow."
     },
     {
       "id": "ms-019",
@@ -6111,7 +6111,7 @@
     },
     {
       "id": "t-219",
-      "subject": "Merge /project-onboard + /venture-onboard \u2192 /onboard",
+      "subject": "Merge /project-onboard + /venture-onboard → /onboard",
       "type": "task",
       "parent": "ms-019",
       "status": "completed",
@@ -6131,7 +6131,7 @@
     },
     {
       "id": "t-220",
-      "subject": "Merge /project-align + /venture-align \u2192 /align",
+      "subject": "Merge /project-align + /venture-align → /align",
       "type": "task",
       "parent": "ms-019",
       "status": "completed",
@@ -6151,7 +6151,7 @@
     },
     {
       "id": "t-221",
-      "subject": "Merge /weekly-review + /monthly-close + /monthly-plan + /growth-check \u2192 /review",
+      "subject": "Merge /weekly-review + /monthly-close + /monthly-plan + /growth-check → /review",
       "type": "task",
       "parent": "ms-019",
       "status": "completed",
@@ -6237,14 +6237,14 @@
     },
     {
       "id": "t-224",
-      "subject": "Restructure docs/ \u2192 guide/ + architecture/ split",
+      "subject": "Restructure docs/ → guide/ + architecture/ split",
       "type": "task",
       "parent": "ms-020",
       "status": "completed",
       "started": "2026-03-07",
       "completed": "2026-03-07",
       "stream": "roadmap",
-      "description": "Move files: system-guide.md \u2192 architecture/overview.md, decisions/ \u2192 architecture/decisions/, features/ \u2192 architecture/features/. Create guide/workflows/ and guide/commands/ directories. Move skills.md/hooks.md/agents.md/extending.md \u2192 architecture/. Update all internal links.",
+      "description": "Move files: system-guide.md → architecture/overview.md, decisions/ → architecture/decisions/, features/ → architecture/features/. Create guide/workflows/ and guide/commands/ directories. Move skills.md/hooks.md/agents.md/extending.md → architecture/. Update all internal links.",
       "tags": [
         "docs",
         "restructure"
@@ -6264,7 +6264,7 @@
       "started": "2026-03-07",
       "completed": "2026-03-07",
       "stream": "roadmap",
-      "description": "6 workflow guides in docs/guide/workflows/. User-friendly, example-driven. Explains how to use brana for each workflow. No implementation details \u2014 that's in architecture/.",
+      "description": "6 workflow guides in docs/guide/workflows/. User-friendly, example-driven. Explains how to use brana for each workflow. No implementation details — that's in architecture/.",
       "tags": [
         "docs",
         "user-guide"
@@ -6286,7 +6286,7 @@
       "started": "2026-03-07",
       "completed": "2026-03-07",
       "stream": "roadmap",
-      "description": "docs/guide/commands/index.md with all ~25 commands (one-line each). One .md per command with usage, examples, options. User-facing \u2014 explains what the command does, not how it's implemented.",
+      "description": "docs/guide/commands/index.md with all ~25 commands (one-line each). One .md per command with usage, examples, options. User-facing — explains what the command does, not how it's implemented.",
       "tags": [
         "docs",
         "user-guide",
@@ -6374,7 +6374,7 @@
       "completed": "2026-03-07",
       "notes": "Retired 22 skills + 2 commands. 25 skills remain. validate.sh passes clean.",
       "stream": "roadmap",
-      "description": "Delete skill directories for: pickup, build-feature, build-phase, back-propagate, decide (standalone only \u2014 logic moves to /build), knowledge, refresh-knowledge, venture-onboard, venture-align, project-onboard, project-align, morning, growth-check, weekly-review, monthly-close, monthly-plan, experiment, content-plan, sop, usage-stats, personal-check. Run validate.sh after to confirm no broken references.",
+      "description": "Delete skill directories for: pickup, build-feature, build-phase, back-propagate, decide (standalone only — logic moves to /build), knowledge, refresh-knowledge, venture-onboard, venture-align, project-onboard, project-align, morning, growth-check, weekly-review, monthly-close, monthly-plan, experiment, content-plan, sop, usage-stats, personal-check. Run validate.sh after to confirm no broken references.",
       "tags": [
         "cleanup",
         "retirement"
@@ -6394,7 +6394,7 @@
       "started": "2026-03-07",
       "completed": "2026-03-07",
       "stream": "roadmap",
-      "description": "Rewrite the trigger\u2192command table in delegation-routing.md to reference new command names (/build, /close, /onboard, /align, /review, /research --refresh). Remove triggers for retired commands.",
+      "description": "Rewrite the trigger→command table in delegation-routing.md to reference new command names (/build, /close, /onboard, /align, /review, /research --refresh). Remove triggers for retired commands.",
       "tags": [
         "cleanup",
         "rules"
@@ -6407,7 +6407,7 @@
     },
     {
       "id": "t-231",
-      "subject": "Update task-convention.md for /tasks start \u2192 /build flow",
+      "subject": "Update task-convention.md for /tasks start → /build flow",
       "type": "task",
       "parent": "ms-021",
       "status": "completed",
@@ -6429,7 +6429,7 @@
     },
     {
       "id": "t-232",
-      "subject": "Plugin packaging \u2014 distribute thebrana as Claude Code plugin",
+      "subject": "Plugin packaging — distribute thebrana as Claude Code plugin",
       "type": "task",
       "parent": null,
       "status": "completed",
@@ -6452,7 +6452,7 @@
       "branch": "feat/t-232-plugin-packaging",
       "github_issue": null,
       "created": "2026-03-08",
-      "notes": "Pivoted from npm CLI to CC native plugin. Two-layer arch: plugin (skills/hooks/agents/commands) + bootstrap.sh (identity: CLAUDE.md/rules/scripts/scheduler/claude-flow). Spike confirmed ${CLAUDE_PLUGIN_ROOT} for hook paths. Namespace migration: 1014 changes across 95 files (/skill \u2192 /brana:skill). Key learnings: relative hook paths fail (CC resolves from CWD), duplicate hooks fire if both settings.json and hooks.json define them, cf-env.sh must be bundled in plugin for portability.",
+      "notes": "Pivoted from npm CLI to CC native plugin. Two-layer arch: plugin (skills/hooks/agents/commands) + bootstrap.sh (identity: CLAUDE.md/rules/scripts/scheduler/claude-flow). Spike confirmed ${CLAUDE_PLUGIN_ROOT} for hook paths. Namespace migration: 1014 changes across 95 files (/skill → /brana:skill). Key learnings: relative hook paths fail (CC resolves from CWD), duplicate hooks fire if both settings.json and hooks.json define them, cf-env.sh must be bundled in plugin for portability.",
       "context": "Related: t-058 (distribution research, kept separate). Supersedes t-091 conclusion ('deploy.sh sufficient for single user'). deploy.sh does: validation, settings.json merge (jq), clean rm + copy, chmod +x, claude-flow deps (sql.js, embeddings, AgentDB shim), scheduler symlinks. Non-trivial parts that must survive: settings merge, chmod, cf runtime setup."
     },
     {
@@ -6509,7 +6509,7 @@
     },
     {
       "id": "st-010",
-      "subject": "Fix NexEye overclaim \u2014 add pre-production qualifier",
+      "subject": "Fix NexEye overclaim — add pre-production qualifier",
       "description": "Brief rule: never claim production for pre-production work. 'Designed every layer' sounds shipped. Add 'pre-launch with provincial government' qualifier.",
       "type": "subtask",
       "parent": "st-007",
@@ -6528,8 +6528,8 @@
     },
     {
       "id": "st-011",
-      "subject": "Fix Digital House Spanish voseo \u2014 switch to impersonal",
-      "description": "Three voseo verbs (tom\u00e1s, convert\u00eds, dise\u00f1\u00e1s) break LATAM-neutral register rule. Switch to impersonal: se toma, se convierte, se dise\u00f1a.",
+      "subject": "Fix Digital House Spanish voseo — switch to impersonal",
+      "description": "Three voseo verbs (tomás, convertís, diseñás) break LATAM-neutral register rule. Switch to impersonal: se toma, se convierte, se diseña.",
       "type": "subtask",
       "parent": "st-007",
       "status": "completed",
@@ -6543,7 +6543,7 @@
       "execution": "manual",
       "created": "2026-03-09",
       "completed": "2026-03-09",
-      "notes": "Digital House ES: voseo \u2192 impersonal register"
+      "notes": "Digital House ES: voseo → impersonal register"
     },
     {
       "id": "st-012",
@@ -6567,7 +6567,7 @@
     {
       "id": "st-013",
       "subject": "Fix Somos Mirada unverifiable claim",
-      "description": "'The practice runs differently now' \u2014 no metric, no proof. Cut the sentence or add a measurable outcome.",
+      "description": "'The practice runs differently now' — no metric, no proof. Cut the sentence or add a measurable outcome.",
       "type": "subtask",
       "parent": "st-007",
       "status": "completed",
@@ -6642,8 +6642,8 @@
     },
     {
       "id": "st-017",
-      "subject": "Replace Spanglish deployar/deploy\u00e9 with LATAM-neutral verbs",
-      "description": "'Deployar' and 'deploy\u00e9' in Upwork Spanish description. Use 'implementar' / 'poner en producci\u00f3n' for LATAM-neutral register.",
+      "subject": "Replace Spanglish deployar/deployé with LATAM-neutral verbs",
+      "description": "'Deployar' and 'deployé' in Upwork Spanish description. Use 'implementar' / 'poner en producción' for LATAM-neutral register.",
       "type": "subtask",
       "parent": "st-007",
       "status": "completed",
@@ -6657,11 +6657,11 @@
       "execution": "manual",
       "created": "2026-03-09",
       "completed": "2026-03-09",
-      "notes": "Froneus ES: deployar \u2192 poner en producci\u00f3n"
+      "notes": "Froneus ES: deployar → poner en producción"
     },
     {
       "id": "t-235",
-      "subject": "Monitor CC #24529 \u2014 move PostToolUse back to plugin when fixed",
+      "subject": "Monitor CC #24529 — move PostToolUse back to plugin when fixed",
       "description": "CC v2.1.x does not dispatch PostToolUse/PostToolUseFailure from plugin hooks.json (CLAUDE_PLUGIN_ROOT not set). Currently worked around via bootstrap.sh settings.json injection. When CC fixes #24529, move hooks back to plugin hooks.json and remove bootstrap Step 4b.",
       "tags": [
         "hooks",
@@ -6738,7 +6738,7 @@
     },
     {
       "id": "t-259",
-      "subject": "Define professional thesis \u2014 what you believe about AI + systems",
+      "subject": "Define professional thesis — what you believe about AI + systems",
       "description": "Core belief that drives your work. Contrarian enough to be interesting, true enough to defend.",
       "tags": [
         "personal",
@@ -7569,7 +7569,7 @@
     {
       "id": "ms-033",
       "subject": "Knowledge & Notes System",
-      "description": "Personal knowledge management \u2014 capture, organize, retrieve.",
+      "description": "Personal knowledge management — capture, organize, retrieve.",
       "tags": [
         "personal",
         "productivity",
@@ -8019,7 +8019,7 @@
     {
       "id": "t-250",
       "subject": "Research Telos framework as input for personal space design",
-      "description": "Research Miessler's Telos framework (purpose, goals, challenges, strategies, projects) as one of several inputs for designing the personal space within thebrana. Draft Problems + Mission. Part of broader personal space design effort \u2014 not a standalone deliverable.",
+      "description": "Research Miessler's Telos framework (purpose, goals, challenges, strategies, projects) as one of several inputs for designing the personal space within thebrana. Draft Problems + Mission. Part of broader personal space design effort — not a standalone deliverable.",
       "tags": [
         "personal",
         "growth",
@@ -8046,7 +8046,7 @@
     },
     {
       "id": "t-251",
-      "subject": "Signal capture hook \u2014 ratings + sentiment + failure context",
+      "subject": "Signal capture hook — ratings + sentiment + failure context",
       "description": "PostToolUse or Stop hook that detects user ratings/sentiment, writes to ratings.jsonl, captures full context on low ratings (1-3). Feeds into AI Steering Rules. Miessler has 3,540+ signals captured this way.",
       "tags": [
         "hooks",
@@ -8094,12 +8094,12 @@
       "started": null,
       "completed": null,
       "notes": null,
-      "context": "Source: Miessler PAI Algorithm v0.2.23. ISC = granular, binary, testable success conditions managed as Tasks. The culmination of the Algorithm is VERIFY \u2014 checking every criterion with evidence."
+      "context": "Source: Miessler PAI Algorithm v0.2.23. ISC = granular, binary, testable success conditions managed as Tasks. The culmination of the Algorithm is VERIFY — checking every criterion with evidence."
     },
     {
       "id": "t-253",
-      "subject": "Deep dive Miessler PAI \u2014 extract more patterns for brana + Personal OS",
-      "description": "Go deeper into Miessler's Personal AI Infrastructure. Read his related posts (Telos, Human 3.0, Fabric, Algorithm evolution). Extract patterns for signal capture, ISC implementation, EXTEND.yaml, memory v7, Steering Rules derivation. He's building the best individual AI system out there \u2014 learn everything transferable.",
+      "subject": "Deep dive Miessler PAI — extract more patterns for brana + Personal OS",
+      "description": "Go deeper into Miessler's Personal AI Infrastructure. Read his related posts (Telos, Human 3.0, Fabric, Algorithm evolution). Extract patterns for signal capture, ISC implementation, EXTEND.yaml, memory v7, Steering Rules derivation. He's building the best individual AI system out there — learn everything transferable.",
       "tags": [
         "research",
         "personal",
@@ -8121,12 +8121,12 @@
       "created": "2026-03-09",
       "started": "2026-03-09",
       "completed": "2026-03-09",
-      "notes": "Deep dive complete. 5 scouts: GitHub, blog, community, tools, competitors. Full report: docs/research/miessler-pai-deep-dive.md. Key finding: blog (v2.4) is outdated \u2014 repo is at v4.0.3 with 7-tier memory. Brana moat = consulting + knowledge retrieval + spec-driven dev.",
+      "notes": "Deep dive complete. 5 scouts: GitHub, blog, community, tools, competitors. Full report: docs/research/miessler-pai-deep-dive.md. Key finding: blog (v2.4) is outdated — repo is at v4.0.3 with 7-tier memory. Brana moat = consulting + knowledge retrieval + spec-driven dev.",
       "context": "Initial research: docs/research/miessler-pai-comparison.md. Source: https://danielmiessler.com/blog/personal-ai-infrastructure. Key areas to go deeper: (1) Algorithm v0.2.23 full spec, (2) Memory v7.0 implementation, (3) Signal capture hooks code, (4) AI Steering Rules derivation process, (5) EXTEND.yaml skill customization, (6) Telos framework, (7) Fabric pattern library architecture. Cross-reference with brana's existing architecture (docs/reflections/14, system/hooks, system/skills)."
     },
     {
       "id": "t-254",
-      "subject": "Research Miessler's Daemon (personal API via MCP) \u2014 design pattern for brana",
+      "subject": "Research Miessler's Daemon (personal API via MCP) — design pattern for brana",
       "description": "Daemon makes personal context queryable by any AI tool via MCP. Evaluate: should brana expose a personal API? What context would it serve? How does it differ from claude-flow memory?",
       "tags": [
         "research",
@@ -8149,11 +8149,11 @@
       "started": null,
       "completed": null,
       "notes": null,
-      "context": "Source: danielmiessler.com/blog/launching-daemon-personal-api. Daemon bridges PAI to external services. MCP-based. Related to brana's claude-flow memory but different \u2014 Daemon is an API for others to query YOUR context."
+      "context": "Source: danielmiessler.com/blog/launching-daemon-personal-api. Daemon bridges PAI to external services. MCP-based. Related to brana's claude-flow memory but different — Daemon is an API for others to query YOUR context."
     },
     {
       "id": "t-255",
-      "subject": "Study PAI v4.0.3 repo structure \u2014 Algorithm spec, EXTEND.yaml, hook code",
+      "subject": "Study PAI v4.0.3 repo structure — Algorithm spec, EXTEND.yaml, hook code",
       "description": "The blog (v2.4) is outdated. Repo is at v4.0.3 with 7-tier memory, EXTEND.yaml, community hooks. Read the actual code: Packs/pai-algorithm-skill, hook implementations, EXTEND.yaml merge strategies.",
       "tags": [
         "research",
@@ -8180,7 +8180,7 @@
     },
     {
       "id": "t-256",
-      "subject": "Listen to Cognitive Revolution podcast \u2014 Miessler PAI interview (2h 28m)",
+      "subject": "Listen to Cognitive Revolution podcast — Miessler PAI interview (2h 28m)",
       "description": "Full interview covering TELOS, multi-agent orchestration, cybersecurity implications. 2h 28m. Extract: insights not in blog, evolution of thinking, practical challenges, vision for PAI ecosystem.",
       "tags": [
         "research",
@@ -8208,8 +8208,8 @@
     },
     {
       "id": "t-257",
-      "subject": "Research IndieDevDan's approach \u2014 CONTEXT > MODEL > PROMPT principle, just-prompt MCP",
-      "description": "Daniel Disler (@IndyDevDan) \u2014 Miessler's cited influence. Agentic engineering toolbox, just-prompt MCP server (unified interface to all LLMs), Principled AI Coding course. Different approach from PAI \u2014 more modular, less monolithic.",
+      "subject": "Research IndieDevDan's approach — CONTEXT > MODEL > PROMPT principle, just-prompt MCP",
+      "description": "Daniel Disler (@IndyDevDan) — Miessler's cited influence. Agentic engineering toolbox, just-prompt MCP server (unified interface to all LLMs), Principled AI Coding course. Different approach from PAI — more modular, less monolithic.",
       "tags": [
         "research",
         "brana",
@@ -8263,7 +8263,7 @@
     {
       "id": "t-282",
       "subject": "Enhance /brana:challenge with multi-agent council debate",
-      "description": "Extend /brana:challenge to support multi-agent decision making: capture a thought, red-team it, then have a council of AI agents debate the idea from different angles. Currently challenger is a single adversarial review \u2014 add council mode with multiple perspectives (devil's advocate, optimist, pragmatist, domain expert). Inspired by Miessler PAI's multi-agent orchestration pattern.",
+      "description": "Extend /brana:challenge to support multi-agent decision making: capture a thought, red-team it, then have a council of AI agents debate the idea from different angles. Currently challenger is a single adversarial review — add council mode with multiple perspectives (devil's advocate, optimist, pragmatist, domain expert). Inspired by Miessler PAI's multi-agent orchestration pattern.",
       "tags": [
         "skills",
         "challenge",
@@ -8284,13 +8284,13 @@
       "started": null,
       "completed": null,
       "notes": null,
-      "context": "Source: Miessler PAI multi-agent decision pattern. Research: docs/personal/miessler-telos-research.md. Currently /brana:challenge spawns one challenger agent \u2014 this would add council mode.",
+      "context": "Source: Miessler PAI multi-agent decision pattern. Research: docs/personal/miessler-telos-research.md. Currently /brana:challenge spawns one challenger agent — this would add council mode.",
       "strategy": null,
       "build_step": null
     },
     {
       "id": "t-283",
-      "subject": "Design personalization layer architecture (Identity \u2192 Preferences \u2192 Workflows \u2192 Skills \u2192 Hooks \u2192 Memory \u2192 Interface)",
+      "subject": "Design personalization layer architecture (Identity → Preferences → Workflows → Skills → Hooks → Memory → Interface)",
       "description": "Miessler's PAI has a 7-layer personalization stack where each layer builds on the one below. Brana currently has 2 layers (plugin + bootstrap). Research and design how a layered personalization architecture could work: Identity (Telos/CLAUDE.md), Preferences (rules/), Workflows (skills), Skills (skills/), Hooks (hooks/), Memory (claude-flow + MEMORY.md), Interface (CLI). Document the mapping and identify gaps.",
       "tags": [
         "architecture",
@@ -8312,14 +8312,14 @@
       "started": null,
       "completed": null,
       "notes": null,
-      "context": "Source: Miessler PAI 7-layer architecture. Research: docs/personal/miessler-telos-research.md. Brana already has most layers implicitly \u2014 this task makes them explicit and identifies gaps.",
+      "context": "Source: Miessler PAI 7-layer architecture. Research: docs/personal/miessler-telos-research.md. Brana already has most layers implicitly — this task makes them explicit and identifies gaps.",
       "strategy": null,
       "build_step": null
     },
     {
       "id": "t-284",
-      "subject": "Content curation skill \u2014 /brana:digest (Surface-inspired)",
-      "description": "Skill to process content inputs (articles, podcasts, videos) into structured summaries. Inspired by Miessler's Surface system (3,000+ sources \u2192 curated distillation). v1 scope: user pastes URLs or text, skill extracts key ideas, tags them, stores in log or knowledge base. Not an automated feed \u2014 manual trigger with AI-assisted extraction. Serves both personal consumption and project research.",
+      "subject": "Content curation skill — /brana:digest (Surface-inspired)",
+      "description": "Skill to process content inputs (articles, podcasts, videos) into structured summaries. Inspired by Miessler's Surface system (3,000+ sources → curated distillation). v1 scope: user pastes URLs or text, skill extracts key ideas, tags them, stores in log or knowledge base. Not an automated feed — manual trigger with AI-assisted extraction. Serves both personal consumption and project research.",
       "tags": [
         "skills",
         "content",
@@ -8404,7 +8404,7 @@
     {
       "id": "t-287",
       "subject": "Add project-level metadata to client tasks",
-      "description": "Three parts: (1) Add 'project' field to tasks.json task schema \u2014 each task can specify which project under a client it belongs to (e.g., eyedetect under nexeye). (2) Document the client\u2192project hierarchy in tasks-portfolio.md and schema docs. (3) Update portfolio/status views in tasks SKILL.md to display project name alongside client when rendering tasks.",
+      "description": "Three parts: (1) Add 'project' field to tasks.json task schema — each task can specify which project under a client it belongs to (e.g., eyedetect under nexeye). (2) Document the client→project hierarchy in tasks-portfolio.md and schema docs. (3) Update portfolio/status views in tasks SKILL.md to display project name alongside client when rendering tasks.",
       "tags": [
         "portfolio",
         "naming"
@@ -8424,7 +8424,7 @@
       "started": "2026-03-09",
       "completed": "2026-03-09",
       "notes": "Challenger dropped per-task project field. Enriched registry + views + docs only. st-018/019/020 all completed.",
-      "context": "Follow-up to t-281 (rename projects\u2192clients). The nested schema { clients: [{ slug, projects: [{ slug, path }] }] } is in place but tasks don't yet reference which project they belong to, and views don't show project names.",
+      "context": "Follow-up to t-281 (rename projects→clients). The nested schema { clients: [{ slug, projects: [{ slug, path }] }] } is in place but tasks don't yet reference which project they belong to, and views don't show project names.",
       "strategy": "feature",
       "build_step": null
     },
@@ -8511,7 +8511,7 @@
     {
       "id": "t-288",
       "subject": "Session close: update user-friendly docs alongside technical docs",
-      "description": "When closing a session, /brana:close currently updates technical docs (handoff, MEMORY.md, errata). It should also detect when user-facing deliverables (proposals, SOPs, client docs) were affected by session work and prompt to update them. Three jobs: (1) Detect what changed \u2014 scan git diff + conversation for affected deliverables. (2) Update technical docs \u2014 current /brana:close behavior (handoff, MEMORY, errata). (3) Update user-friendly docs \u2014 regenerate or flag client-facing docs that reference changed data (e.g., proposal cost tables, feature descriptions, timelines). Each job should be a distinct command or step so they can run independently.",
+      "description": "When closing a session, /brana:close currently updates technical docs (handoff, MEMORY.md, errata). It should also detect when user-facing deliverables (proposals, SOPs, client docs) were affected by session work and prompt to update them. Three jobs: (1) Detect what changed — scan git diff + conversation for affected deliverables. (2) Update technical docs — current /brana:close behavior (handoff, MEMORY, errata). (3) Update user-friendly docs — regenerate or flag client-facing docs that reference changed data (e.g., proposal cost tables, feature descriptions, timelines). Each job should be a distinct command or step so they can run independently.",
       "tags": [
         "skills",
         "close",
@@ -8533,7 +8533,7 @@
       "started": null,
       "completed": null,
       "notes": null,
-      "context": "Trigger: during proyecto_anita session, created technical design docs AND client-facing proposal for purchase order optimization. /brana:close only updated technical docs (handoff, MEMORY). The proposal PDF was a separate manual step. Pattern: technical changes often imply user-facing doc updates (proposals, SOPs, onboarding guides). Three commands needed: (1) /brana:close detect \u2014 what changed this session, what docs are affected. (2) /brana:close technical \u2014 handoff + MEMORY + errata (current behavior). (3) /brana:close deliverables \u2014 flag/update client-facing docs, regenerate PDFs if source .md changed. Also: /brana:export-pdf now auto-gitignores output \u2014 this pattern (derived artifacts auto-managed) should generalize."
+      "context": "Trigger: during proyecto_anita session, created technical design docs AND client-facing proposal for purchase order optimization. /brana:close only updated technical docs (handoff, MEMORY). The proposal PDF was a separate manual step. Pattern: technical changes often imply user-facing doc updates (proposals, SOPs, onboarding guides). Three commands needed: (1) /brana:close detect — what changed this session, what docs are affected. (2) /brana:close technical — handoff + MEMORY + errata (current behavior). (3) /brana:close deliverables — flag/update client-facing docs, regenerate PDFs if source .md changed. Also: /brana:export-pdf now auto-gitignores output — this pattern (derived artifacts auto-managed) should generalize."
     },
     {
       "id": "t-289",
@@ -8561,6 +8561,58 @@
       "completed": null,
       "notes": null,
       "context": "Discovered during proyecto_anita session — /brana:backlog invocation intercepted Claude Code's native TaskCreate/TaskUpdate/TaskList tools. Native /tasks is useful for lightweight todo tracking without the full brana task system. Both should coexist.\n\nDecision: rename to /brana:backlog. Subcommand renames:\n- roadmap → view (backlog view = full tree, more natural)\n- portfolio → status --all (fold cross-project into status with flag)\n- reprioritize → prioritize (shorter, 'backlog prioritize' reads well)\n\nBare /brana:backlog → usage/help (not status — explicit is better).\n\nFiles to update:\n- skills/tasks/SKILL.md (name field, all command references)\n- rules/delegation-routing.md (trigger table)\n- rules/task-convention.md (branch/start/done references)\n- skills/build/SKILL.md (references /brana:backlog pick/done)\n- skills/close/SKILL.md (references /brana:backlog)\n- skills/venture-phase/SKILL.md, align/SKILL.md, onboard/SKILL.md (if they reference it)\n- Rename directory: skills/tasks/ → skills/backlog/"
+    },
+    {
+      "id": "t-290",
+      "subject": "Apply background-fork pattern to session-start.sh",
+      "description": "session-start.sh does heavy work (claude-flow searches, jq, git, file reads) that could hit the 10s timeout as it grows. Apply the same pattern used in session-end.sh: respond with JSON immediately, fork processing to background. The additionalContext injection needs special handling since it must be in the initial response.",
+      "tags": null,
+      "status": "pending",
+      "stream": "tech-debt",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-10",
+      "started": null,
+      "completed": null,
+      "notes": "session-start needs additionalContext in the response, so can not fully background — may need a hybrid approach (fast path for context, background for logging/metrics).",
+      "context": null,
+      "strategy": null,
+      "build_step": null
+    },
+    {
+      "id": "t-291",
+      "subject": "Research Claude official plugins for brana suite synergy",
+      "description": "Analyze all 37 claude-plugins-official entries. For each: standalone value, overlap with brana skills, integration opportunity (wrap, extend, depend-on, replace). Produce compatibility matrix and recommendation for brana suite architecture.",
+      "tags": [
+        "plugin-suite",
+        "research",
+        "strategy"
+      ],
+      "status": "pending",
+      "stream": "research",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": "L",
+      "execution": "manual",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-10",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "Plugins to analyze: typescript-lsp, pyright-lsp, gopls-lsp, rust-analyzer-lsp, clangd-lsp, php-lsp, swift-lsp, kotlin-lsp, csharp-lsp, jdtls-lsp, lua-lsp, agent-sdk-dev, pr-review-toolkit, commit-commands, feature-dev, security-guidance, code-review, code-simplifier, explanatory-output-style, learning-output-style, frontend-design, playground, ralph-loop, hookify, plugin-dev, claude-code-setup, claude-md-management, skill-creator, greptile, serena, playwright, github, supabase, atlassian, laravel-boost, figma, asana, linear, Notion, gitlab, sentry, slack, vercel, stripe, firebase, context7, pinecone, huggingface-skills, circleback, superpowers, posthog, coderabbit, sonatype-guide, firecrawl, qodo-skills, semgrep. Categorize by: LSP (11), dev workflow (12), integrations (14), community (varies). Key questions: which compete with brana skills? which complement? which should brana-core depend on? which should brana wrap/extend?",
+      "strategy": "spike",
+      "build_step": null
     }
   ]
 }
