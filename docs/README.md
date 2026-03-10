@@ -62,7 +62,7 @@ Feature briefs live in `docs/architecture/features/`. Key briefs:
 | `docs/architecture/features/build-loop-redesign.md` | Build loop redesign: 42→25 skills, 4-step loop, 7 strategies, /tasks+/brana:build integration |
 | `docs/architecture/features/task-management-system.md` | Task management system: JSON data layer, NL interface, hierarchical planning, branch integration |
 | `docs/architecture/features/event-log.md` | Event log: /brana:log skill for capturing links, calls, meetings, ideas |
-| `docs/architecture/features/smart-tasks-add.md` | Smart /brana:tasks add: suggest-only pattern, dependency scan, build-trap check (ADR-008) |
+| `docs/architecture/features/smart-tasks-add.md` | Smart /brana:backlog add: suggest-only pattern, dependency scan, build-trap check (ADR-008) |
 | `docs/architecture/features/research-stream.md` | Research as first-class task stream: URL auto-detection, tag-based cross-reference |
 
 ### Architecture Decision Records

@@ -4,7 +4,7 @@ A plugin for [Claude Code](https://claude.com/claude-code) that turns it into a 
 
 ## What you get
 
-- **37 skills** — `/brana:build`, `/brana:tasks`, `/brana:research`, `/brana:close`, and more. One command to build features, fix bugs, run spikes, manage tasks, or review business health.
+- **37 skills** — `/brana:build`, `/brana:backlog`, `/brana:research`, `/brana:close`, and more. One command to build features, fix bugs, run spikes, manage tasks, or review business health.
 - **12 rules** — Git discipline, test-first development, context budget management, research methodology. Always active, no setup needed.
 - **10 hooks** — Automatic behaviors: recall patterns on session start, enforce spec-before-code on feature branches, capture learnings on session end.
 - **11 agents** — Specialized sub-agents for code review, adversarial challenge, research, business ops, and more. They fire automatically when the situation matches.
@@ -48,8 +48,8 @@ This copies CLAUDE.md, rules, and scripts to `~/.claude/`. Most users want both 
 
 ```
 /brana:build "add user authentication"    — start building (auto-detects strategy)
-/brana:tasks plan                         — plan work across a project
-/brana:tasks start t-015                  — pick a task and enter the build loop
+/brana:backlog plan                         — plan work across a project
+/brana:backlog pick t-015                  — pick a task and enter the build loop
 /brana:close                              — end session, capture learnings
 ```
 

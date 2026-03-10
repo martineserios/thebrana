@@ -27,7 +27,7 @@ Add `#tags` inline — they're visible in the entry and serve as the filtering m
 
 ## What /brana:log is NOT
 
-- Not `/brana:tasks add` — tasks are commitments, log entries are observations
+- Not `/brana:backlog add` — tasks are commitments, log entries are observations
 - Not MEMORY.md — memory stores patterns, log stores events
 - Not `/brana:pipeline` — pipeline tracks deals, log captures first contact
 

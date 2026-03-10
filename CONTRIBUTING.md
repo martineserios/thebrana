@@ -41,7 +41,7 @@ cd thebrana
 claude --plugin-dir ./system
 
 # 3. Verify it works
-/brana:tasks    # should show the task list
+/brana:backlog    # should show the task list
 ```
 
 That's it. Every edit you make to `system/` is live on the next Claude Code session.

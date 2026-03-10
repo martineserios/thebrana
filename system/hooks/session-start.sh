@@ -123,9 +123,9 @@ if [ -n "$TASKS_FILE" ] && [ -f "$TASKS_FILE" ]; then
       (if $bugs > 0 then " | Bugs: \($bugs) open" else "" end) +
       "\n" +
       (if $next then "Next unblocked: \($next.id) \($next.subject) (pending)"
-       elif ($total > 0 and $total == $done) then "All tasks completed. Use /brana:tasks plan for next phase."
+       elif ($total > 0 and $total == $done) then "All tasks completed. Use /brana:backlog plan for next phase."
        else "" end) +
-      "\nCommands: /brana:tasks next, /brana:tasks plan, /brana:tasks add, /brana:tasks start <id>"
+      "\nCommands: /brana:backlog next, /brana:backlog plan, /brana:backlog add, /brana:backlog pick <id>"
     ' "$TASKS_FILE" 2>/dev/null) || true
 
     if [ -n "$TASK_SUMMARY" ]; then
@@ -133,7 +133,7 @@ if [ -n "$TASKS_FILE" ] && [ -f "$TASKS_FILE" ]; then
     fi
 else
     # No tasks.json — suggest creating one, with portfolio fallback
-    TASK_CONTEXT="[Tasks] No tasks.json found. Use /brana:tasks plan to create one."
+    TASK_CONTEXT="[Tasks] No tasks.json found. Use /brana:backlog plan to create one."
     PORTFOLIO_FILE="$HOME/.claude/tasks-portfolio.json"
     if [ -f "$PORTFOLIO_FILE" ]; then
         PORTFOLIO_SUMMARY=$(jq -r '
@@ -144,7 +144,7 @@ else
           else empty end
         ' "$PORTFOLIO_FILE" 2>/dev/null) || true
         if [ -n "$PORTFOLIO_SUMMARY" ]; then
-            TASK_CONTEXT="[Task portfolio] Clients: $PORTFOLIO_SUMMARY. No tasks.json — use /brana:tasks plan to create one."
+            TASK_CONTEXT="[Task portfolio] Clients: $PORTFOLIO_SUMMARY. No tasks.json — use /brana:backlog plan to create one."
         fi
     fi
 fi

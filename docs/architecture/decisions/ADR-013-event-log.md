@@ -29,7 +29,7 @@ Key design choices:
 - **Archival at 500 lines** — entries older than 90 days move to `event-log-archive-YYYY.md`.
 
 What `/brana:log` is NOT:
-- Not a replacement for `/brana:tasks add` (tasks are commitments, log entries are observations)
+- Not a replacement for `/brana:backlog add` (tasks are commitments, log entries are observations)
 - Not a replacement for MEMORY.md (memory stores patterns, log stores events)
 - Not a replacement for `/brana:pipeline` (pipeline tracks deals, log captures first contact)
 - Not a calendar, reminder system, or analytics tool

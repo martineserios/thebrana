@@ -266,7 +266,7 @@ decisions, research (docs/) AND implementation, deployment, maintenance (system/
 /build-phase, /build-feature, /deploy, /validate
 
 ## Shared Commands
-/debrief, /brana:retrospective, /session-handoff, /brana:tasks
+/debrief, /brana:retrospective, /session-handoff, /brana:backlog
 ```
 
 Root CLAUDE.md covers both roles. If needed, a nested `docs/CLAUDE.md` can add architect-specific context that loads when Claude touches files in `docs/` (Claude Code's lazy subdirectory loading).

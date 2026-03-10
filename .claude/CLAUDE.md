@@ -94,7 +94,7 @@ claude --plugin-dir ./system
 |---------|---------|
 | `/brana:build` | Build anything — auto-detects strategy (feature, bug fix, refactor, spike, migration, investigation, greenfield) |
 | `/brana:close` | End session — extract learnings, write handoff, store patterns |
-| `/brana:tasks` | Manage tasks — plan, track, navigate work |
+| `/brana:backlog` | Manage tasks — plan, track, navigate work |
 | `/brana:challenge` | Adversarial review of a plan or decision |
 | `/brana:reconcile` | Detect spec-vs-implementation drift, plan fixes, apply after approval |
 | `/brana:maintain-specs` | Cascade spec changes: dimension → reflection → roadmap |

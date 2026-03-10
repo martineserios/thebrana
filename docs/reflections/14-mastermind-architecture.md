@@ -152,7 +152,7 @@ Loaded automatically:
   5. ~/projects/alpha/.claude/rules/* ← path-scoped project rules
 
 Available on demand (via brana plugin):
-  6. /brana:build, /brana:tasks, etc.  ← 24 skills loaded from plugin
+  6. /brana:build, /brana:backlog, etc.  ← 24 skills loaded from plugin
   7. Agent commands                    ← maintain-specs, apply-errata, etc.
   8. ~/projects/alpha/.claude/skills/* ← /deploy, /migrate (project-specific)
   9. Other installed plugins           ← pr-review-toolkit, security-guidance, etc.
@@ -627,7 +627,7 @@ The core six skills + `/brana:research` handle the *development system*. The `/b
 
 ### Beyond the Six: Task Management — "Plan and track work"
 
-The `/brana:tasks` skill provides structured project planning: hierarchical task tracking (phase > milestone > task), multi-stream support (roadmap, bugs, tech-debt, docs, experiments, research), branch integration, and portfolio-wide visibility. Data lives in `{project}/.claude/tasks.json` — git-tracked, zero dependencies. A PostToolUse hook handles schema validation and automatic parent rollup. See [ADR-002](../decisions/ADR-002-tasks-as-data-layer.md) for the data layer decision and [ADR-003](../decisions/ADR-003-agent-driven-task-execution.md) for agent-driven execution — subagent spawning per task with DAG-aware wave parallelism and compose-then-write for code tasks.
+The `/brana:backlog` skill provides structured project planning: hierarchical task tracking (phase > milestone > task), multi-stream support (roadmap, bugs, tech-debt, docs, experiments, research), branch integration, and portfolio-wide visibility. Data lives in `{project}/.claude/tasks.json` — git-tracked, zero dependencies. A PostToolUse hook handles schema validation and automatic parent rollup. See [ADR-002](../decisions/ADR-002-tasks-as-data-layer.md) for the data layer decision and [ADR-003](../decisions/ADR-003-agent-driven-task-execution.md) for agent-driven execution — subagent spawning per task with DAG-aware wave parallelism and compose-then-write for code tasks.
 
 ### Beyond the Six: Spec Maintenance Loop — "Keep specs and implementation in sync"
 

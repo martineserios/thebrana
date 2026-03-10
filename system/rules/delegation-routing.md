@@ -11,8 +11,8 @@ When a trigger matches, **invoke the skill** — don't just suggest it. Only nud
 | Trigger | Action |
 |---------|--------|
 | Work starting (feat/fix/refactor) | check `tasks.json`, then `/brana:build` |
-| Planning new work | `/brana:tasks plan` or `/brana:tasks add` |
-| Backlog item picked to implement | `/brana:tasks start` → `/brana:build` |
+| Planning new work | `/brana:backlog plan` or `/brana:backlog add` |
+| Backlog item picked to implement | `/brana:backlog pick` → `/brana:build` |
 | Session ending (user says done/bye/closing) | `/brana:close` |
 | Big decision (challenger didn't fire) | `/brana:challenge` |
 | New project or unfamiliar codebase | `/brana:onboard` |
@@ -30,6 +30,6 @@ When a trigger matches, **invoke the skill** — don't just suggest it. Only nud
 | Uncommitted spec changes | `/brana:repo-cleanup` |
 | New task added with URL or platform name | brief research before priority |
 | New research task added (stream=research) | tag matching against pending non-research tasks |
-| Monthly or after `/brana:review check` | `/brana:tasks reprioritize --reresearch` |
+| Monthly or after `/brana:review check` | `/brana:backlog triage --reresearch` |
 
 If the user invokes a skill, use it. If they don't but the situation matches an agent, auto-delegate. Never both.

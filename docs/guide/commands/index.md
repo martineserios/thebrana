@@ -15,17 +15,17 @@ All brana commands, grouped by workflow.
 
 | Command | Description |
 |---------|-------------|
-| `/brana:tasks plan [project]` | Plan a phase interactively |
-| `/brana:tasks status [project]` | Progress overview |
-| `/brana:tasks next [project]` | Next unblocked task by priority |
-| `/brana:tasks start <id>` | Begin work (enters /brana:build for code tasks) |
-| `/brana:tasks done [id]` | Complete task (manual/external only — code tasks use /brana:build CLOSE) |
-| `/brana:tasks add "description"` | Quick-add a task |
-| `/brana:tasks portfolio` | Cross-project task view |
-| `/brana:tasks roadmap [project]` | Full tree view |
-| `/brana:tasks tags [project]` | Tag inventory and filtering |
-| `/brana:tasks context <id>` | View or set task context |
-| `/brana:tasks reprioritize` | Research-informed priority reassessment |
+| `/brana:backlog plan [project]` | Plan a phase interactively |
+| `/brana:backlog status [project]` | Progress overview |
+| `/brana:backlog next [project]` | Next unblocked task by priority |
+| `/brana:backlog pick <id>` | Begin work (enters /brana:build for code tasks) |
+| `/brana:backlog done [id]` | Complete task (manual/external only — code tasks use /brana:build CLOSE) |
+| `/brana:backlog add "description"` | Quick-add a task |
+| `/brana:backlog portfolio` | Cross-project task view |
+| `/brana:backlog roadmap [project]` | Full tree view |
+| `/brana:backlog tags [project]` | Tag inventory and filtering |
+| `/brana:backlog context <id>` | View or set task context |
+| `/brana:backlog triage` | Research-informed priority reassessment |
 
 ## Capture & Research
 

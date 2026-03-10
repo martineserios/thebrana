@@ -7,7 +7,7 @@
 Skills for building, shipping, and maintaining code.
 
 ### `/brana:build`
-Build anything — auto-detects strategy (feature, bug fix, refactor, spike, migration, investigation, greenfield). 4-step loop: SPECIFY → PLAN → BUILD → CLOSE. Integrates with `/brana:tasks` — strategy and build_step fields track progress. Task tags and description seed the research loop.
+Build anything — auto-detects strategy (feature, bug fix, refactor, spike, migration, investigation, greenfield). 4-step loop: SPECIFY → PLAN → BUILD → CLOSE. Integrates with `/brana:backlog` — strategy and build_step fields track progress. Task tags and description seed the research loop.
 
 ### `/brana:close`
 End a session — extract learnings, write handoff note, store patterns, detect doc drift. Absorbs the old `/session-handoff` close mode and `/debrief`.
@@ -21,8 +21,8 @@ Detect drift between spec docs and `system/` implementation. Plans fixes and app
 ### `/brana:research`
 Research a topic, doc, or creator — check sources, follow references recursively, produce findings. Spawns scout agents for parallel web search. `--refresh` flag runs batch dimension doc updates (replaces the old `/refresh-knowledge`).
 
-### `/brana:tasks`
-Manage tasks — plan, track, navigate phases and streams. Supports `plan`, `add`, `start`, `done`, `status`, `portfolio`, `roadmap`, `next`, `reprioritize`, `tags`, `context`, `execute`, and `--wide` display mode. `/brana:tasks start` auto-classifies strategy and enters `/brana:build` for code tasks.
+### `/brana:backlog`
+Manage tasks — plan, track, navigate phases and streams. Supports `plan`, `add`, `start`, `done`, `status`, `portfolio`, `roadmap`, `next`, `triage`, `tags`, `context`, `execute`, and `--wide` display mode. `/brana:backlog pick` auto-classifies strategy and enters `/brana:build` for code tasks.
 
 ### `/brana:log`
 Capture events — links, calls, meetings, ideas, observations — into a searchable append-only log. Includes bulk mode for WhatsApp dumps and URL-to-task promotion.
