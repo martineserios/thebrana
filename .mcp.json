@@ -3,6 +3,10 @@
     "context7": {
       "command": "npx",
       "args": ["@upstash/context7-mcp@latest"]
+    },
+    "linkedin": {
+      "command": "uvx",
+      "args": ["linkedin-scraper-mcp"]
     }
   }
 }
