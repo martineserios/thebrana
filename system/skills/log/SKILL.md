@@ -21,7 +21,7 @@ Append-only event log. The lowest-friction entry point into brana — no need to
 - Something happened (call, meeting, idea, observation) and you want to record it
 - You received links or references to capture for later
 - Pasting a WhatsApp or chat dump to triage
-- Anything that doesn't fit `/brana:tasks add` (not a commitment yet) or `/brana:pipeline` (not a qualified lead yet)
+- Anything that doesn't fit `/brana:backlog add` (not a commitment yet) or `/brana:pipeline` (not a qualified lead yet)
 
 ## Commands
 
@@ -74,7 +74,7 @@ Quick append — the default mode.
    - For each **new** URL (not already in any task):
      - Use AskUserQuestion: "Found {N} new URL(s). Create research tasks?"
        - Options: "Yes — create tasks", "No — just log"
-     - If yes: for each URL, run `/brana:tasks add` with stream=research, the URL in context, and tags from the log entry
+     - If yes: for each URL, run `/brana:backlog add` with stream=research, the URL in context, and tags from the log entry
    - For URLs that already exist in tasks: note "(already tracked as {task-id})" silently in the log entry
 
 7. **Write the entry** using the Edit tool (append to the day section).
@@ -150,7 +150,7 @@ Paste and parse multiple entries at once — designed for WhatsApp dumps, meetin
 7. **URL task creation.** If new URLs were found:
    - Use AskUserQuestion: "Create research tasks for {N} new URLs?"
      - Options: list each URL with a checkbox-style selection
-   - For confirmed URLs: run `/brana:tasks add` with stream=research
+   - For confirmed URLs: run `/brana:backlog add` with stream=research
 
 8. **Report.**
    ```
@@ -174,7 +174,7 @@ Paste and parse multiple entries at once — designed for WhatsApp dumps, meetin
 
 ## What /brana:log is NOT
 
-- Not a replacement for `/brana:tasks add` — tasks are commitments, log entries are observations
+- Not a replacement for `/brana:backlog add` — tasks are commitments, log entries are observations
 - Not a replacement for MEMORY.md — memory stores patterns, log stores events
 - Not a replacement for `/brana:pipeline` — pipeline tracks deals, log captures first contact
 - Not a calendar, reminder system, or analytics tool

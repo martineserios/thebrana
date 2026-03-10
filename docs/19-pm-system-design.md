@@ -425,7 +425,7 @@ project-root/
 | `/start-task <issue>` | Load context, create branch, show issue details | `gh issue view` + `gh issue develop` + read CONTEXT.md |
 | `/done` | Commit, create PR, update CONTEXT.md | Conventional commit + `gh pr create` with `Closes #N` |
 | `/plan-feature <title>` | Create parent issue + sub-issues + feature spec | `gh issue create` + template in `docs/features/` |
-| `/weekly-review` | Guided walkthrough: status each project, check stale issues, reprioritize | `gh issue list` per repo + `gh project item-list` |
+| `/weekly-review` | Guided walkthrough: status each project, check stale issues, triage | `gh issue list` per repo + `gh project item-list` |
 | `/decide <title>` | Create ADR from template in `docs/decisions/` | Copy template, auto-increment number |
 | `/sync-backlog` | Generate BACKLOG.md from GitHub Issues | `gh issue list` → formatted markdown |
 

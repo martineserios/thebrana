@@ -6,7 +6,7 @@ The `/brana:build` command handles all development work — features, bug fixes,
 
 ```
 /brana:build landing page for tinyhouse    — describe what you want to build
-/brana:tasks start t-015                   — start from an existing task
+/brana:backlog pick t-015                   — start from an existing task
 /brana:build                               — ask what to build
 ```
 
@@ -31,9 +31,9 @@ The `/brana:build` command handles all development work — features, bug fixes,
 
 ## Task integration
 
-`/brana:build` works deeply with `/brana:tasks`:
+`/brana:build` works deeply with `/brana:backlog`:
 
-- `/brana:tasks start <id>` auto-classifies the work type and enters `/brana:build`
+- `/brana:backlog pick <id>` auto-classifies the work type and enters `/brana:build`
 - During build, the task's `build_step` field tracks progress
 - CLOSE auto-completes the task and updates tasks.json
 - Task tags and description seed the research phase

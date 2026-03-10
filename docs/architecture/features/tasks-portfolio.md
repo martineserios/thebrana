@@ -1,4 +1,4 @@
-# Feature: /brana:tasks portfolio
+# Feature: /brana:backlog portfolio
 
 **Date:** 2026-02-23
 **Status:** shipped
@@ -7,7 +7,7 @@
 
 ## Goal
 
-Add a `portfolio` subcommand to the `/brana:tasks` skill that shows actionable tasks across all registered clients — answering "what should I work on next?" at a glance.
+Add a `portfolio` subcommand to the `/brana:backlog` skill that shows actionable tasks across all registered clients — answering "what should I work on next?" at a glance.
 
 ## Audience
 
@@ -113,10 +113,10 @@ tasks-portfolio.json
 
 Top line: `Portfolio — {total} tasks across {N} clients ({pending} pending, {in_progress} in progress)`
 
-### Distinction from `/brana:tasks status`
+### Distinction from `/brana:backlog status`
 
-`/brana:tasks status` (no project) = progress bars per project (how far along)
-`/brana:tasks portfolio` = individual task list (what to do next)
+`/brana:backlog status` (no project) = progress bars per project (how far along)
+`/brana:backlog portfolio` = individual task list (what to do next)
 
 ## Design
 
@@ -138,7 +138,7 @@ Top line: `Portfolio — {total} tasks across {N} clients ({pending} pending, {i
 
 ### Files to modify
 
-1. `system/skills/tasks/SKILL.md` — portfolio section + wide-mode template
+1. `system/skills/backlog/SKILL.md` — portfolio section + wide-mode template
 
 ### Challenger findings (addressed)
 
@@ -150,10 +150,10 @@ Top line: `Portfolio — {total} tasks across {N} clients ({pending} pending, {i
 
 ## Deferred
 
-- CWD project inclusion (use `/brana:tasks status` for current project). Note: CWD not included unless registered in tasks-portfolio.json under a client.
+- CWD project inclusion (use `/brana:backlog status` for current project). Note: CWD not included unless registered in tasks-portfolio.json under a client.
 - Frontmatter config block for parameterizable toggles (enter #69)
 - Interactive task selection ("start one?")
-- Integration with `/brana:tasks next` (cross-client next)
+- Integration with `/brana:backlog next` (cross-client next)
 - Additional flags (--no-blocked, --completed N) — revisit if defaults don't satisfy
 - Auto-registration via `/brana:onboard` (t-288)
 

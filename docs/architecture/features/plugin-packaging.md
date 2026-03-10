@@ -131,7 +131,7 @@ Key difference: paths relative to plugin root, not `$HOME`.
 
 Skills referencing other skills (internal cross-refs):
 - `/brana:build` calls `/brana:challenge` → `/brana:build` calls `/brana:challenge`
-- Delegation routing references `/brana:build`, `/brana:close`, `/brana:tasks`, etc.
+- Delegation routing references `/brana:build`, `/brana:close`, `/brana:backlog`, etc.
 - ~15 rules/docs reference skill names
 
 ## Design

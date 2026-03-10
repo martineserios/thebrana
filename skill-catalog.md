@@ -20,7 +20,7 @@ Deployed from `system/skills/` via `deploy.sh`.
 | `/knowledge [cmd]` | Managing the knowledge base | Browse, review staleness, annotate, reindex brana-knowledge dimension docs |
 | `/refresh-knowledge` | Dimension docs might be stale | Spawns parallel agents to web-search for updates to each doc's topics |
 | `/brana:retrospective` | Session produced a notable learning | Stores pattern with quarantine metadata; promotes/demotes recalled patterns |
-| `/brana:tasks [command]` | Planning or tracking work | Manage tasks with hierarchy — plan, status, roadmap, start, done. NL is primary; commands are shortcuts |
+| `/brana:backlog [command]` | Planning or tracking work | Manage tasks with hierarchy — plan, status, roadmap, start, done. NL is primary; commands are shortcuts |
 
 ## Venture/Business Skills
 

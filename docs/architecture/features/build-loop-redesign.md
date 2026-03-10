@@ -28,7 +28,7 @@ Challenger review (Opus adversarial) identified:
 1. Replace 7 build commands with one `/brana:build` command using a 4-step loop
 2. Simplify 42 skills to ~25 by merging redundancies and retiring unused commands
 3. Add 7 work-type strategies that adapt the loop (feature, bug fix, greenfield, refactor, spike, migration, investigation)
-4. Integrate `/brana:tasks start` as the entry point to `/brana:build` for code tasks
+4. Integrate `/brana:backlog pick` as the entry point to `/brana:build` for code tasks
 5. Create two documentation trees: user guides (`docs/guide/`) and contributor docs (`docs/architecture/`)
 6. Retire `/back-propagate` and `verify-counts.sh` — fix root cause (no hardcoded counts in prose)
 7. Embed documentation as a mandatory CLOSE step — shipped without both docs means not shipped
@@ -36,7 +36,7 @@ Challenger review (Opus adversarial) identified:
 **Consequences:**
 - Easier: one command (`/brana:build`) replaces 7, with automatic strategy detection
 - Easier: users have a guide that explains workflows, not just skill implementations
-- Easier: `/brana:tasks start` flows directly into building — no gap
+- Easier: `/brana:backlog pick` flows directly into building — no gap
 - Harder: migration from 42 to 25 skills requires careful phasing
 - Risk: auto-detection misclassifies work type — mitigated by mandatory confirmation step
 
@@ -55,7 +55,7 @@ Challenger review (Opus adversarial) identified:
 One command: `/brana:build "description"`
 
 **Step 0: CLASSIFY** (mandatory, one interaction)
-- Auto-detect work type from description + task metadata (if started via `/brana:tasks start`)
+- Auto-detect work type from description + task metadata (if started via `/brana:backlog pick`)
 - Present classification for user confirmation
 - Mid-stream reclassification allowed at any point
 
@@ -152,12 +152,12 @@ One command: `/brana:build "description"`
 - Store learnings (claude-flow, confidence: 0.5)
 - Update feature spec status → shipped (contributor doc)
 - Write/update user guide (user doc)
-- Update task status → completed (if started via /brana:tasks start)
+- Update task status → completed (if started via /brana:backlog pick)
 - Merge (present command, don't auto-execute)
 
-### /brana:tasks start integration
+### /brana:backlog pick integration
 
-When `/brana:tasks start <id>` is invoked on a task with `execution: code`:
+When `/brana:backlog pick <id>` is invoked on a task with `execution: code`:
 1. Read task metadata (subject, stream, tags, description, context)
 2. Auto-classify from stream + description
 3. Confirm classification with user
@@ -207,7 +207,7 @@ Risks and resolutions. Auto-populated from challenger review.
 ### Command inventory (25, down from 42)
 
 **Kept:**
-`/brana:build`, `/brana:close`, `/brana:tasks`, `/brana:log`, `/brana:research`, `/brana:retrospective`, `/brana:memory`, `/brana:challenge`, `/brana:reconcile`, `/brana:maintain-specs`, `/brana:pipeline`, `/brana:review`, `/brana:venture-phase`, `/brana:financial-model`, `/brana:onboard`, `/brana:align`, `/brana:client-retire`, `/brana:proposal`, `/brana:export-pdf`, `/brana:gsheets`, `/brana:notebooklm-source`, `/brana:respondio-prompts`, `/brana:meta-template`, `/brana:scheduler`, `/brana:acquire-skills`
+`/brana:build`, `/brana:close`, `/brana:backlog`, `/brana:log`, `/brana:research`, `/brana:retrospective`, `/brana:memory`, `/brana:challenge`, `/brana:reconcile`, `/brana:maintain-specs`, `/brana:pipeline`, `/brana:review`, `/brana:venture-phase`, `/brana:financial-model`, `/brana:onboard`, `/brana:align`, `/brana:client-retire`, `/brana:proposal`, `/brana:export-pdf`, `/brana:gsheets`, `/brana:notebooklm-source`, `/brana:respondio-prompts`, `/brana:meta-template`, `/brana:scheduler`, `/brana:acquire-skills`
 
 **Retired (17):**
 
@@ -231,8 +231,8 @@ Risks and resolutions. Auto-populated from challenger review.
 | `/weekly-review` | Merged into `/brana:review` |
 | `/monthly-close` | Merged into `/brana:review --monthly` |
 | `/monthly-plan` | Merged into `/brana:review --monthly` |
-| `/experiment` | `/brana:tasks add` + build loop (spike strategy) |
-| `/content-plan` | `/brana:tasks plan` |
+| `/experiment` | `/brana:backlog add` + build loop (spike strategy) |
+| `/content-plan` | `/brana:backlog plan` |
 | `/sop` | Write docs directly |
 | `/usage-stats` | Rarely used |
 | `/personal-check` | Non-brana scope |
@@ -275,7 +275,7 @@ docs/
 | `session-end.sh` | Unchanged |
 | `rules/sdd-tdd.md` | Unchanged — TDD discipline preserved |
 | `rules/delegation-routing.md` | Updated — new command names, simplified trigger table |
-| `rules/task-convention.md` | Updated — /brana:tasks start → /brana:build integration |
+| `rules/task-convention.md` | Updated — /brana:backlog pick → /brana:build integration |
 | `validate.sh` | Keep. Trim instruction density heuristic. |
 | `verify-counts.sh` | Delete. Remove hardcoded counts from docs. |
 
@@ -297,7 +297,7 @@ Key findings from the SPECIFY research loop:
 
 **Martin Fowler (SDD analysis, Aug 2025):** SDD works well for larger features and greenfield but is overhead for small fixes. AI still drifts from specs mid-stream. Validates adaptive sizing — bug fixes skip SPECIFY.
 
-**GitHub Spec Kit:** `/specify → /plan → /brana:tasks → code`. Open source, MIT. Validates the 4-step loop. Their format influenced the feature spec format.
+**GitHub Spec Kit:** `/specify → /plan → /brana:backlog → code`. Open source, MIT. Validates the 4-step loop. Their format influenced the feature spec format.
 
 **Shape Up (Basecamp):** Fixed time, variable scope. No backlog. Cooldown periods. Relevant for rhythm but brana keeps its backlog (tasks.json) — the solo developer context is different from a team.
 
@@ -323,7 +323,7 @@ session-start.sh (hook, automatic)
 ├── Detect venture project (absorbs session-start-venture.sh)
 └── Present context
 
-/brana:tasks start <id> (entry point for code tasks)
+/brana:backlog pick <id> (entry point for code tasks)
 ├── Read task metadata
 ├── Auto-classify work type
 ├── Confirm with user
@@ -366,7 +366,7 @@ See Decision Record for the full list. Key resolutions:
 
 ## Open questions
 
-- Should `/brana:build` auto-commit tasks.json changes or require explicit `/brana:tasks done`?
+- Should `/brana:build` auto-commit tasks.json changes or require explicit `/brana:backlog done`?
 - Should the feature spec format be enforced by validate.sh (check for required sections)?
 - How to handle interrupted builds — `/brana:build` started but session ended before CLOSE?
 - Should mid-stream reclassification reset to step 0 or continue from current position?

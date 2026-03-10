@@ -206,7 +206,7 @@ claude --plugin-dir ./system
 
 After install, start a new Claude Code session. You should see:
 - Session start hook fires (pattern recall)
-- `/brana:tasks` and other skills are available
+- `/brana:backlog` and other skills are available
 - `pre-tool-use` gate activates on `feat/*` branches in projects with `docs/decisions/`
 
 ### First Session
@@ -219,7 +219,7 @@ claude
 /brana:memory recall
 
 # See available tasks
-/brana:tasks
+/brana:backlog
 ```
 
 ## Project Setup

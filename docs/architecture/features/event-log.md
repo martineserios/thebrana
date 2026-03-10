@@ -53,9 +53,9 @@ Something happens (call, link, idea, meeting)
         v
   ~/.claude/memory/event-log.md
         |
-        +---> URL detected? ---> confirm ---> /brana:tasks add (research stream)
+        +---> URL detected? ---> confirm ---> /brana:backlog add (research stream)
         |
-        +---> Actionable? ---> /brana:tasks add (manually, or via /brana:log review v1.1)
+        +---> Actionable? ---> /brana:backlog add (manually, or via /brana:log review v1.1)
         |
         +---> Pipeline lead? ---> /brana:pipeline (manually)
         |
@@ -70,7 +70,7 @@ The log is the **inbox**. Other commands are the **outbox**. Capture fast, route
 
 | Command | What it stores | When to use instead of /brana:log |
 |---------|---------------|----------------------------|
-| `/brana:tasks add` | Commitments with priority, effort, status | When you know it's actionable right now |
+| `/brana:backlog add` | Commitments with priority, effort, status | When you know it's actionable right now |
 | `/brana:pipeline` | Leads/deals with stages and follow-ups | When you've qualified a lead |
 | `/brana:retrospective` | Patterns with confidence scores | When you've confirmed a reusable learning |
 | MEMORY.md | Cross-session operational facts | When it's a stable fact, not a one-time event |

@@ -4151,8 +4151,8 @@
       "type": "task",
       "parent": null,
       "order": null,
-      "priority": "P3",
-      "effort": "L",
+      "priority": "P1",
+      "effort": "M",
       "execution": "code",
       "blocked_by": [],
       "branch": null,
@@ -4161,7 +4161,7 @@
       "started": null,
       "completed": null,
       "notes": null,
-      "context": "Issues as task lifecycle tracking + context persistence. Issue numbering not required but welcomed if it fits naturally \u2014 low-cost, positive-potential integration."
+      "context": "Issues as task lifecycle tracking + context persistence. Issue numbering not required but welcomed if it fits naturally \u2014 low-cost, positive-potential integration. Promoted P3→P1 on 2026-03-09: user reports GitHub Issues/Projects not being updated by tasks planner — this is a real workflow gap."
     },
     {
       "id": "t-161",
@@ -8534,6 +8534,33 @@
       "completed": null,
       "notes": null,
       "context": "Trigger: during proyecto_anita session, created technical design docs AND client-facing proposal for purchase order optimization. /brana:close only updated technical docs (handoff, MEMORY). The proposal PDF was a separate manual step. Pattern: technical changes often imply user-facing doc updates (proposals, SOPs, onboarding guides). Three commands needed: (1) /brana:close detect \u2014 what changed this session, what docs are affected. (2) /brana:close technical \u2014 handoff + MEMORY + errata (current behavior). (3) /brana:close deliverables \u2014 flag/update client-facing docs, regenerate PDFs if source .md changed. Also: /brana:export-pdf now auto-gitignores output \u2014 this pattern (derived artifacts auto-managed) should generalize."
+    },
+    {
+      "id": "t-289",
+      "subject": "Rename /brana:backlog → /brana:backlog — collides with Claude Code native /tasks",
+      "description": "Rename chosen: /brana:backlog → /brana:backlog. Three subcommand renames: roadmap→view, portfolio→status --all, reprioritize→prioritize. Bare /brana:backlog shows usage/help. Full command set: status [--all|--unified|--wide], add, next, start, done, plan, replan, view [--wide], prioritize [--reresearch|--scope], tags, context, archive, migrate, execute, theme. Update: (1) SKILL.md name field + all subcommand references, (2) delegation-routing.md, (3) task-convention.md, (4) any skill that calls /brana:backlog internally (build, close, start, venture-phase, align, onboard).",
+      "tags": [
+        "skills",
+        "naming",
+        "dx",
+        "quick-win"
+      ],
+      "status": "pending",
+      "stream": "bugs",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": "P1",
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-09",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "Discovered during proyecto_anita session — /brana:backlog invocation intercepted Claude Code's native TaskCreate/TaskUpdate/TaskList tools. Native /tasks is useful for lightweight todo tracking without the full brana task system. Both should coexist.\n\nDecision: rename to /brana:backlog. Subcommand renames:\n- roadmap → view (backlog view = full tree, more natural)\n- portfolio → status --all (fold cross-project into status with flag)\n- reprioritize → prioritize (shorter, 'backlog prioritize' reads well)\n\nBare /brana:backlog → usage/help (not status — explicit is better).\n\nFiles to update:\n- skills/tasks/SKILL.md (name field, all command references)\n- rules/delegation-routing.md (trigger table)\n- rules/task-convention.md (branch/start/done references)\n- skills/build/SKILL.md (references /brana:backlog pick/done)\n- skills/close/SKILL.md (references /brana:backlog)\n- skills/venture-phase/SKILL.md, align/SKILL.md, onboard/SKILL.md (if they reference it)\n- Rename directory: skills/tasks/ → skills/backlog/"
     }
   ]
 }

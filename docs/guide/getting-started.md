@@ -88,9 +88,9 @@ This is the main command. It auto-detects the type of work and guides you throug
 ### Managing tasks
 
 ```
-/brana:tasks plan              — break work into tasks
-/brana:tasks start t-015       — pick a task, enter the build loop
-/brana:tasks list              — see what's pending
+/brana:backlog plan              — break work into tasks
+/brana:backlog pick t-015       — pick a task, enter the build loop
+/brana:backlog list              — see what's pending
 ```
 
 Tasks live in `.claude/tasks.json` in your project. They track status, priority, dependencies, and connect to git branches.
@@ -120,7 +120,7 @@ Each project can have its own `.claude/CLAUDE.md` with project-specific conventi
 |---------|-------------|
 | `/brana:build` | Build anything — 7 strategies for different work types |
 | `/brana:close` | End session — extract learnings, write handoff |
-| `/brana:tasks` | Manage tasks — plan, track, navigate |
+| `/brana:backlog` | Manage tasks — plan, track, navigate |
 | `/brana:log` | Capture events — calls, meetings, ideas, links |
 | `/brana:research` | Research a topic — recursive discovery |
 | `/brana:memory` | Query the knowledge system |

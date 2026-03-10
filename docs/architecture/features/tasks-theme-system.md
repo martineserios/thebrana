@@ -5,7 +5,7 @@
 
 ## Goal
 
-Make `/brana:tasks` output visually configurable with 3 display themes (classic, emoji, minimal), selectable via persistent config with per-command override — so the user picks the aesthetic they prefer once and every subcommand respects it.
+Make `/brana:backlog` output visually configurable with 3 display themes (classic, emoji, minimal), selectable via persistent config with per-command override — so the user picks the aesthetic they prefer once and every subcommand respects it.
 
 ## Audience
 
@@ -42,7 +42,7 @@ Solo developer using brana's task system across multiple clients.
 ### Persistence (hybrid)
 
 - **Config file:** `~/.claude/tasks-config.json` (global only — simplified from per-project after challenger review)
-- **Set command:** `/brana:tasks theme <name>` writes to config
+- **Set command:** `/brana:backlog theme <name>` writes to config
 - **Override flag:** `--theme <name>` on any subcommand, one-time
 - **Default:** `classic` when no config exists
 - **Resolution:** `--theme` flag > global config > classic default
@@ -80,7 +80,7 @@ Every subcommand that renders output: status, portfolio, roadmap, next, tags, co
 - **No ADR:** Cosmetic feature in a single file with no architectural impact.
 
 ### Files modified
-- `system/skills/tasks/SKILL.md` — theme system + rendering updates (617 → 758 lines)
+- `system/skills/backlog/SKILL.md` — theme system + rendering updates (617 → 758 lines)
 
 ## Learnings
 

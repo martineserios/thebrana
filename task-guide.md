@@ -94,7 +94,7 @@ You: "yes"
 Claude: Created Phase 3 with 1 milestone and 4 tasks in tasks.json.
 ```
 
-Or use the explicit command: `/tasks plan palco "API Foundation"`
+Or use the explicit command: `/brana:backlog plan palco "API Foundation"`
 
 ### Where tasks live
 
@@ -136,7 +136,7 @@ Claude: Starting t-005 'Implement JWT middleware'
 You: "yes"
 ```
 
-Or: `/tasks start t-005`
+Or: `/brana:backlog pick t-005`
 
 ### Finishing work
 
@@ -150,7 +150,7 @@ Claude: Completing t-005 'Implement JWT middleware'
         Create the PR?
 ```
 
-Or: `/tasks done`  (auto-detects from current branch)
+Or: `/brana:backlog done`  (auto-detects from current branch)
 
 ### Quick status check
 
@@ -164,7 +164,7 @@ Claude: palco — Phase 3: API Foundation
         Next: t-006 'Add login endpoints' (unblocked)
 ```
 
-Or: `/tasks status palco`
+Or: `/brana:backlog status palco`
 
 ---
 
@@ -183,7 +183,7 @@ You: "we need a payments phase for palco"
 -> tasks.json updated
 ```
 
-Or: `/tasks plan palco "Payments"`
+Or: `/brana:backlog plan palco "Payments"`
 
 ### Add a task mid-work
 
@@ -201,7 +201,7 @@ Claude: Added t-015 with blocked_by: [t-005]
 ### Restructure a phase
 
 ```
-/tasks replan palco ph-003
+/brana:backlog replan palco ph-003
 ```
 
 Shows the current tree, lets you add/remove/reorder interactively.
@@ -232,7 +232,7 @@ Claude: Creating bug milestone 'Login 500':
         Stream: bugs. Created?
 ```
 
-View by stream: "show me all open bugs" or `/tasks status palco`
+View by stream: "show me all open bugs" or `/brana:backlog status palco`
 
 ---
 
@@ -304,7 +304,7 @@ Claude: Portfolio — 2026-02-18
   Stale: somos — last activity 12 days ago
 ```
 
-Or: `/tasks status` (no client argument)
+Or: `/brana:backlog status` (no client argument)
 
 The portfolio view reads from `~/.claude/tasks-portfolio.json` — a registry of clients and their projects with metadata. Each project entry has: `slug`, `path`, `type` (code/venture/hybrid), `stage` (discovery/validation/growth/scale), `tech_stack`, and `created` date. Multi-project clients show as `client/project` in views. See `docs/architecture/features/tasks-portfolio.md` for the full schema.
 
@@ -347,9 +347,9 @@ Existing skills gain task awareness automatically:
 When a phase completes (all children done), the system auto-archives it:
 - Completed subtree moves from `tasks.json` -> `tasks-archive.json`
 - Active file stays small (good for context budget)
-- Archive is searchable: `/tasks history palco`
+- Archive is searchable: `/brana:backlog history palco`
 
-Manual archive: `/tasks archive palco`
+Manual archive: `/brana:backlog archive palco`
 
 ### Data integrity
 
@@ -368,7 +368,7 @@ You don't need to think about this — it happens automatically.
 If your project has an existing `BACKLOG.md` or `roadmap.md`:
 
 ```
-/tasks migrate docs/planning/BACKLOG.md
+/brana:backlog migrate docs/planning/BACKLOG.md
 ```
 
 Claude reads the markdown, proposes a tasks.json structure, and lets you approve before writing.
@@ -442,22 +442,22 @@ Claude: Marking done. Notes: "Client approved API changes via email."
 
 | Command | What |
 |---------|------|
-| `/tasks status [project]` | Progress view (portfolio if no project) |
-| `/tasks roadmap <project>` | Full tree with all levels |
-| `/tasks next [project]` | Next unblocked by priority |
-| `/tasks start <id>` | Begin work (branch, status) |
-| `/tasks done [id]` | Complete (commit, PR, status) |
-| `/tasks plan [project] "[phase]"` | Interactive planning |
-| `/tasks add "[task]"` | Quick add |
-| `/tasks replan [project] [phase]` | Restructure |
-| `/tasks archive [project]` | Archive completed phases |
-| `/tasks migrate <file>` | Import from markdown |
-| `/tasks execute [scope]` | Execute tasks via subagents |
-| `/tasks tags [project]` | Tag inventory, filter, add/remove |
-| `/tasks tags --filter "a,b"` | Tasks with ALL listed tags |
-| `/tasks tags add <id> "a,b"` | Add tags to task(s) |
-| `/tasks context <id> [text]` | View or set task context |
-| `/tasks next --tag X` | Next unblocked filtered by tag |
+| `/brana:backlog status [project]` | Progress view (portfolio if no project) |
+| `/brana:backlog roadmap <project>` | Full tree with all levels |
+| `/brana:backlog next [project]` | Next unblocked by priority |
+| `/brana:backlog pick <id>` | Begin work (branch, status) |
+| `/brana:backlog done [id]` | Complete (commit, PR, status) |
+| `/brana:backlog plan [project] "[phase]"` | Interactive planning |
+| `/brana:backlog add "[task]"` | Quick add |
+| `/brana:backlog replan [project] [phase]` | Restructure |
+| `/brana:backlog archive [project]` | Archive completed phases |
+| `/brana:backlog migrate <file>` | Import from markdown |
+| `/brana:backlog execute [scope]` | Execute tasks via subagents |
+| `/brana:backlog tags [project]` | Tag inventory, filter, add/remove |
+| `/brana:backlog tags --filter "a,b"` | Tasks with ALL listed tags |
+| `/brana:backlog tags add <id> "a,b"` | Add tags to task(s) |
+| `/brana:backlog context <id> [text]` | View or set task context |
+| `/brana:backlog next --tag X` | Next unblocked filtered by tag |
 
 ### Task file locations
 
@@ -467,7 +467,7 @@ Claude: Marking done. Notes: "Client approved API changes via email."
 | Archive | `{project}/.claude/tasks-archive.json` |
 | Portfolio registry | `~/.claude/tasks-portfolio.json` |
 | Convention rule | `~/.claude/rules/task-convention.md` |
-| Skill | `~/.claude/skills/tasks/SKILL.md` |
+| Skill | `~/.claude/skills/backlog/SKILL.md` |
 
 ---
 
@@ -478,7 +478,7 @@ Tasks can be executed automatically by spawning subagents — one agent per task
 ### How it works
 
 ```
-You (or /tasks execute)
+You (or /brana:backlog execute)
   |
 Orchestrator reads DAG, builds waves
   |
@@ -543,17 +543,17 @@ Claude: Wave 1: spawning 1 agent...
         ~ t-009 partial — 2/5 test cases failing
 
         Summary: 3/4 tasks done, 1 partial.
-        Fix t-009 manually or /tasks execute --retry ms-003
+        Fix t-009 manually or /brana:backlog execute --retry ms-003
 ```
 
-Or use the command directly: `/tasks execute ms-003`
+Or use the command directly: `/brana:backlog execute ms-003`
 
 ### Dry run
 
 Preview the execution plan without running anything:
 
 ```
-/tasks execute ms-003 --dry-run
+/brana:backlog execute ms-003 --dry-run
 ```
 
 Shows wave breakdown, agent types, and models — useful for cost estimation before committing.
@@ -586,9 +586,9 @@ Override per task with `agent_config.model`.
 | Invalid output | Task reverts to pending. Try again or do manually. |
 | You cancel (Ctrl+C) | Completed tasks keep status. In-progress revert to pending. |
 
-Retry failed tasks: `/tasks execute --retry <scope>`
+Retry failed tasks: `/brana:backlog execute --retry <scope>`
 
-Or take over manually: `/tasks start <id>` on any failed task.
+Or take over manually: `/brana:backlog pick <id>` on any failed task.
 
 ---
 
@@ -626,7 +626,7 @@ You: "tag t-020 and t-021 as 'research'"
 Claude: Add tag 'research' to t-020, t-021? Confirm?
 ```
 
-Or use commands: `/tasks tags --filter "scheduler"`, `/tasks tags add t-020,t-021 "research"`
+Or use commands: `/brana:backlog tags --filter "scheduler"`, `/brana:backlog tags add t-020,t-021 "research"`
 
 #### Tag inventory
 
@@ -639,12 +639,12 @@ Claude: Tags in palco:
           auth          2 tasks  (2 pending)
 ```
 
-Or: `/tasks tags palco`
+Or: `/brana:backlog tags palco`
 
 #### Filtering next task by tag
 
 ```
-/tasks next --tag scheduler
+/brana:backlog next --tag scheduler
 ```
 
 Narrows candidates to tasks with the specified tag.
@@ -671,14 +671,14 @@ Claude: Set context on t-008: "Chose JWT for stateless API. See ADR-005."
         Confirm?
 ```
 
-Or: `/tasks context t-008 "Chose JWT for stateless API. See ADR-005."`
+Or: `/brana:backlog context t-008 "Chose JWT for stateless API. See ADR-005."`
 
-Append to existing context: `/tasks context t-008 --append "Also needs PKCE for mobile clients."`
+Append to existing context: `/brana:backlog context t-008 --append "Also needs PKCE for mobile clients."`
 
 #### Viewing context
 
 ```
-/tasks context t-008
+/brana:backlog context t-008
 ```
 
 Shows the full context with the task subject as header.
@@ -696,7 +696,7 @@ Tags sit after `description` (classification cluster). Context sits after `notes
 
 ### Planning with tags
 
-During `/tasks plan`, Claude offers to bulk-tag all tasks in a phase:
+During `/brana:backlog plan`, Claude offers to bulk-tag all tasks in a phase:
 
 ```
 Claude: Tag all tasks in this phase? (comma-separated, or skip)
@@ -704,4 +704,4 @@ You: "scheduler, v2"
 Claude: Applied [scheduler, v2] to all 6 tasks.
 ```
 
-When adding tasks with `/tasks add`, pass `--tags "tag1,tag2"` or Claude asks interactively.
+When adding tasks with `/brana:backlog add`, pass `--tags "tag1,tag2"` or Claude asks interactively.
