@@ -4,6 +4,9 @@
 # Brana SessionStart hook — recall relevant patterns at session start.
 # Input:  stdin JSON (session_id, cwd, hook_event_name, matcher)
 # Output: stdout JSON with additionalContext field
+#
+# Strategy: emit JSON response as fast as possible (additionalContext must be
+# synchronous), then fork non-essential logging to background.
 
 # Ensure valid CWD
 cd /tmp 2>/dev/null || true
@@ -64,17 +67,6 @@ if [ -n "$CF" ]; then
 $CP_LINES"
         fi
     fi
-fi
-
-# Log recalled patterns to session file for promotion tracking
-if [ -n "$CONTEXT" ]; then
-    SESSION_FILE="/tmp/brana-session-${SESSION_ID}.jsonl"
-    jq -n -c \
-        --argjson ts "$(date +%s 2>/dev/null || echo 0)" \
-        --arg tool "session-start" \
-        --arg outcome "recall" \
-        --arg detail "$CONTEXT" \
-        '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail}' >> "$SESSION_FILE" 2>/dev/null || true
 fi
 
 # Fallback: grep native auto memory for project name
@@ -222,14 +214,6 @@ Weekly review is ${DAYS_AGO} days old. Consider running /brana:review weekly."
 No weekly review found. Consider running /brana:review weekly."
     fi
 
-    # Log to session JSONL
-    SESSION_FILE="/tmp/brana-session-${SESSION_ID}.jsonl"
-    jq -n -c \
-        --argjson ts "$(date +%s 2>/dev/null || echo 0)" \
-        --arg tool "session-start-venture" \
-        --arg outcome "venture-detected" \
-        --arg detail "$VENTURE_CONTEXT" \
-        '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail}' >> "$SESSION_FILE" 2>/dev/null || true
 fi
 
 # Output — only inject context if we found something
@@ -265,3 +249,30 @@ if [ -n "$OUTPUT_PARTS" ]; then
 else
     echo '{"continue": true}'
 fi
+
+# ── Fork non-essential work to background ───────────────
+# Logging and metrics don't affect the response — run after JSON is emitted.
+(
+    SESSION_FILE="/tmp/brana-session-${SESSION_ID}.jsonl"
+
+    # Log recalled patterns to session file for promotion tracking
+    if [ -n "$CONTEXT" ]; then
+        jq -n -c \
+            --argjson ts "$(date +%s 2>/dev/null || echo 0)" \
+            --arg tool "session-start" \
+            --arg outcome "recall" \
+            --arg detail "$CONTEXT" \
+            '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail}' >> "$SESSION_FILE" 2>/dev/null || true
+    fi
+
+    # Log venture detection to session file
+    if [ "$IS_VENTURE" = true ] && [ -n "$VENTURE_CONTEXT" ]; then
+        jq -n -c \
+            --argjson ts "$(date +%s 2>/dev/null || echo 0)" \
+            --arg tool "session-start-venture" \
+            --arg outcome "venture-detected" \
+            --arg detail "$VENTURE_CONTEXT" \
+            '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail}' >> "$SESSION_FILE" 2>/dev/null || true
+    fi
+) &
+disown 2>/dev/null || true
