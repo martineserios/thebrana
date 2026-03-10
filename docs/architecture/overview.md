@@ -39,28 +39,59 @@ Three layers, each with its own persistence:
 
 **Context** is the per-project `.claude/` directory — project-specific `CLAUDE.md`, `tasks.json`, and auto memory.
 
-## The Deploy Model
+## The Deploy Model (v1.0)
 
-Brana uses a **two-layer deployment**: a plugin (loaded by Claude Code) and an identity layer (deployed via `bootstrap.sh`).
+Brana uses a **two-layer deployment**: a plugin (loaded by Claude Code) and an identity layer (deployed via `bootstrap.sh`). Each layer has a distinct role and lifecycle.
+
+### Layer 1: Plugin (`system/`)
+
+The plugin is the **toolkit** — what Claude can _do_. Claude Code loads it natively via `--plugin-dir ./system` (dev mode) or `/plugin install brana` (marketplace). Everything inside `system/` is available immediately in the session.
 
 ```
-system/                               Plugin (loaded by Claude Code)
-├── .claude-plugin/plugin.json        ← plugin manifest
-├── skills/                           ← /brana:* slash commands
-├── commands/                         ← agent commands
-├── hooks/hooks.json + *.sh           ← event hooks
-├── agents/                           ← specialized agents
-└── CLAUDE.md                         ← mastermind identity
-
-bootstrap.sh                          Identity layer → ~/.claude/
-├── CLAUDE.md                         ← global identity
-├── rules/                            ← behavioral rules
-├── scripts/                          ← helper scripts
-├── statusline.sh                     ← status bar
-└── scheduler/                        ← scheduled jobs
+system/
+├── .claude-plugin/
+│   ├── plugin.json              ← plugin manifest (name, version, author)
+│   └── marketplace.json         ← marketplace listing (features, install instructions)
+├── skills/                      ← /brana:* slash commands (24 skills)
+├── commands/                    ← agent commands
+├── hooks/
+│   ├── hooks.json               ← hook event→script mapping
+│   ├── pre-tool-use.sh          ← spec-first gate
+│   ├── session-start.sh         ← context recall
+│   ├── session-end.sh           ← metrics + memory flush
+│   └── ...                      ← 7 more hook scripts
+├── agents/                      ← 11 specialized sub-agents
+└── CLAUDE.md                    ← mastermind identity
 ```
+
+### Layer 2: Identity (`bootstrap.sh`)
+
+The identity layer is the **mindset** — how Claude _thinks_. It deploys files to `~/.claude/` that persist across all projects and sessions.
+
+```
+bootstrap.sh                     → deploys to ~/.claude/
+├── CLAUDE.md                    ← global identity (principles, portfolio)
+├── rules/                       ← behavioral rules (12 always-loaded directives)
+├── scripts/                     ← helper scripts (cf-env.sh, etc.)
+├── statusline.sh                ← status bar
+└── scheduler/                   ← scheduled jobs (weekly reindex, etc.)
+```
+
+### Why two layers?
+
+| Concern | Plugin handles it | Bootstrap handles it |
+|---------|-------------------|---------------------|
+| Skills, hooks, agents | Yes | No |
+| Behavioral rules | No | Yes |
+| Global CLAUDE.md identity | No | Yes |
+| Per-session loading | Automatic (CC native) | Persistent (~/.claude/) |
+| Updates | `/plugin update brana` | `./bootstrap.sh` |
 
 You never edit `~/.claude/` directly. Edit `system/` (plugin loads it) or re-run `./bootstrap.sh` (identity layer).
+
+### Hook deployment workaround
+
+Claude Code v2.1.x has a bug where **PostToolUse and PostToolUseFailure events don't fire from plugin `hooks.json`** (only PreToolUse, SessionStart, and SessionEnd work). As a workaround, `bootstrap.sh` installs PostToolUse/PostToolUseFailure hooks directly into `~/.claude/settings.json` with absolute paths. The plugin's `hooks.json` only declares PreToolUse, SessionStart, and SessionEnd events. Track CC issue #24529 for resolution.
 
 ## Session Lifecycle
 
