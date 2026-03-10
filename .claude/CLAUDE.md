@@ -61,7 +61,7 @@ bootstrap.sh                          Identity layer → ~/.claude/
 └── scheduler/                        ← scheduled jobs
 ```
 
-Version: v0.7.0 (Plugin Architecture)
+Version: v1.0.0
 
 ## Installation
 
@@ -122,7 +122,7 @@ claude --plugin-dir ./system
 |------|------|-------------------|
 | **thebrana** (here) | Design + Build | Research, plan, implement, deploy |
 | **brana-knowledge** | Knowledge base | General knowledge, research, backups |
-| **projects/** | Portfolio | All clients live in `~/enter_thebrana/projects/` |
+| **clients/** | Portfolio | All clients live in `~/enter_thebrana/clients/` |
 
 ## Rules
 

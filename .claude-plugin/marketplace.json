@@ -9,7 +9,7 @@
     {
       "name": "brana",
       "description": "AI development system — skills, agents, and hooks for systematic software engineering with Claude Code",
-      "version": "0.7.0",
+      "version": "1.0.0",
       "source": "./system",
       "category": "development",
       "tags": ["ai", "development", "tdd", "skills", "agents", "hooks"]
