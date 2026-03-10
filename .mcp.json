@@ -1,22 +1,8 @@
 {
   "mcpServers": {
-    "claude-flow": {
-      "command": "/home/martineserios/.nvm/versions/node/v20.19.0/bin/claude-flow",
-      "args": ["mcp", "start"],
-      "env": {
-        "CLAUDE_FLOW_TOOL_GROUPS": "memory"
-      }
-    },
     "context7": {
       "command": "npx",
       "args": ["@upstash/context7-mcp@latest"]
-    },
-    "notebooklm": {
-      "command": "npx",
-      "args": ["notebooklm-mcp@latest"],
-      "env": {
-        "NOTEBOOKLM_PROFILE": "full"
-      }
     }
   }
 }

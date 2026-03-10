@@ -67,10 +67,14 @@ echo ""
 
 # Check 3: JSON validity
 echo "Checking JSON files..."
-if jq . "$SYSTEM_DIR/settings.json" > /dev/null 2>&1; then
-    pass "settings.json — valid JSON"
+if [ -f "$SYSTEM_DIR/settings.json" ]; then
+    if jq . "$SYSTEM_DIR/settings.json" > /dev/null 2>&1; then
+        pass "settings.json — valid JSON"
+    else
+        fail "settings.json — invalid JSON"
+    fi
 else
-    fail "settings.json — invalid JSON"
+    pass "settings.json — not present (OK since v1.0.0)"
 fi
 echo ""
 
