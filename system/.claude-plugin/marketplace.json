@@ -1,0 +1,41 @@
+{
+  "name": "brana",
+  "description": "AI development system — skills, agents, and hooks for systematic software engineering with Claude Code. Enforces spec-first, test-first workflows with cross-session memory and learning.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Martin Eserios",
+    "url": "https://github.com/martineserios"
+  },
+  "repository": "https://github.com/martineserios/thebrana",
+  "license": "MIT",
+  "keywords": [
+    "ai",
+    "development",
+    "tdd",
+    "sdd",
+    "skills",
+    "agents",
+    "hooks",
+    "memory",
+    "claude-code",
+    "plugin"
+  ],
+  "compatibility": {
+    "claude_code": ">=2.1.0"
+  },
+  "install": {
+    "plugin": "/plugin marketplace add martineserios/thebrana && /plugin install brana",
+    "dev": "claude --plugin-dir ./system",
+    "identity": "./bootstrap.sh"
+  },
+  "features": [
+    "24 slash commands for development, quality, business, and integrations",
+    "10 lifecycle hooks (session start/end, spec-first gate, auto-challenge)",
+    "11 specialized agents (memory, challenger, PR reviewer, daily ops)",
+    "Cross-session memory with semantic search (claude-flow integration)",
+    "Spec-first enforcement on feat/* branches with docs/decisions/",
+    "Flywheel metrics: correction rate, test write rate, cascade rate",
+    "Venture OS: weekly review, pipeline, financial model, growth experiments",
+    "Identity layer: CLAUDE.md, behavioral rules, helper scripts"
+  ]
+}
