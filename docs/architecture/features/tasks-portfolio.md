@@ -27,7 +27,7 @@ The operator (single user) managing multiple clients via brana's task system.
       "projects": [
         {
           "slug": "eyedetect",
-          "path": "~/enter_thebrana/projects/nexeye_eyedetect",
+          "path": "~/enter_thebrana/clients/nexeye_eyedetect",
           "type": "hybrid",
           "stage": "growth",
           "tech_stack": ["python", "fastapi", "react", "computer-vision", "docker", "supabase"],
@@ -55,7 +55,7 @@ The operator (single user) managing multiple clients via brana's task system.
 ```json
 {
   "projects": [
-    { "slug": "nexeye_eyedetect", "path": "~/enter_thebrana/projects/nexeye_eyedetect" }
+    { "slug": "nexeye_eyedetect", "path": "~/enter_thebrana/clients/nexeye_eyedetect" }
   ]
 }
 ```

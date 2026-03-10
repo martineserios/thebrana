@@ -47,7 +47,7 @@ Add metadata to project entries:
     "slug": "nexeye",
     "projects": [{
       "slug": "eyedetect",
-      "path": "~/enter_thebrana/projects/nexeye_eyedetect",
+      "path": "~/enter_thebrana/clients/nexeye_eyedetect",
       "type": "code",
       "stage": null,
       "tech_stack": ["docker", "swarm", "python"],
