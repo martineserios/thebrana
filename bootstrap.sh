@@ -7,27 +7,75 @@ set -euo pipefail
 # This script handles: CLAUDE.md, rules, scripts, scheduler, claude-flow
 #
 # Usage:
-#   ./bootstrap.sh          Full sync (idempotent, safe to re-run)
-#   ./bootstrap.sh --check  Show what would change without applying
-#   ./bootstrap.sh --help   Show this help
+#   ./bootstrap.sh                Full sync (idempotent, safe to re-run)
+#   ./bootstrap.sh --check        Show what would change without applying
+#   ./bootstrap.sh --sync-plugin  Sync plugin cache with current system/
+#   ./bootstrap.sh --help         Show this help
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SYSTEM_DIR="$SCRIPT_DIR/system"
 TARGET_DIR="$HOME/.claude"
 CHECK_ONLY=false
 
+# --- Plugin cache sync (standalone operation) ---
+sync_plugin_cache() {
+    local system_dir="$1"
+    local cache_base="$HOME/.claude/plugins/cache/brana/brana"
+
+    # Find installed version directory
+    local cache_dir=""
+    for d in "$cache_base"/*/; do
+        [ -d "$d" ] && cache_dir="${d%/}" && break
+    done
+
+    if [ -z "$cache_dir" ]; then
+        echo "No installed brana plugin found in $cache_base"
+        echo "Install with: claude plugin install brana"
+        exit 1
+    fi
+
+    local version=$(basename "$cache_dir")
+    echo "=== Syncing plugin cache ==="
+    echo "Source:  $system_dir"
+    echo "Cache:   $cache_dir (v$version)"
+    echo ""
+
+    # Dry-run diff first
+    local diff_output
+    diff_output=$(diff -rq "$cache_dir" "$system_dir" 2>/dev/null | grep -v ".claude-plugin" || true)
+
+    if [ -z "$diff_output" ]; then
+        echo "Plugin cache is already up to date."
+        exit 0
+    fi
+
+    echo "Changes:"
+    echo "$diff_output" | while IFS= read -r line; do
+        echo "  $line"
+    done
+    echo ""
+
+    rsync -av --delete --exclude='.claude-plugin' "$system_dir/" "$cache_dir/" > /dev/null
+    echo "Plugin cache synced. Restart Claude Code to activate."
+}
+
 # Parse args
 case "${1:-}" in
     --check)  CHECK_ONLY=true ;;
+    --sync-plugin)
+        sync_plugin_cache "$SYSTEM_DIR"
+        exit 0
+        ;;
     --help|-h)
-        echo "Usage: ./bootstrap.sh [--check|--help]"
+        echo "Usage: ./bootstrap.sh [--check|--sync-plugin|--help]"
         echo ""
         echo "Deploy brana identity layer (CLAUDE.md, rules, scripts, scheduler, claude-flow)."
         echo "The brana plugin handles skills, agents, hooks, and commands."
         echo ""
         echo "Options:"
-        echo "  --check  Show what would change without applying"
-        echo "  --help   Show this help"
+        echo "  --check        Show what would change without applying"
+        echo "  --sync-plugin  Sync installed plugin cache with current system/"
+        echo "  --help         Show this help"
         echo ""
         echo "This script is idempotent — safe to run multiple times."
         exit 0
