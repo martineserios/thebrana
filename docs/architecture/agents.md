@@ -1,147 +1,69 @@
-# Agent Roster
+# Agents Architecture
 
-> 11 specialized sub-agents that auto-delegate when the situation matches. Agents are defined as markdown files in `system/agents/` with YAML frontmatter specifying model, tools, and disallowed tools.
+> 11 specialized sub-agents that auto-delegate when the situation matches. Defined as markdown files in `system/agents/` with YAML frontmatter specifying model, tools, and disallowed tools. For complete behavior specs, see [Agent Reference](../reference/agents.md).
 
-## How Agents Work
+## Design principles
 
-Agents are spawned as sub-processes by Claude Code's Agent tool. They receive a task, work autonomously using their allowed tools, and return findings to the main context. The user then decides what to act on.
+- **Agent results are inputs, not decisions.** The main context presents findings to the user. File modifications happen in main context after approval.
+- **All agents are read-only.** Every agent disallows Write, Edit, and NotebookEdit. Some have Bash for CLI commands (e.g., `gh`, `git`, `claude-flow`).
+- **Auto-delegation is rule-based.** The `delegation-routing` rule (in `~/.claude/rules/`) defines triggers -- agents fire without being asked when the situation matches.
+- **Model selection by task complexity.** Haiku for fast/cheap work (8 agents), Sonnet for moderate analysis (1), Opus for deep reasoning (2).
 
-Key principles:
-- **Agent results are inputs, not decisions.** The main context presents findings to the user.
-- **Agents are mostly read-only.** All agents disallow Write, Edit, and NotebookEdit. Some have Bash for CLI commands (e.g., `gh`, `git`, `claude-flow`).
-- **Auto-delegation is rule-based.** The `delegation-routing` rule defines triggers — agents fire without being asked when the situation matches.
+## Routing table
 
-## Agent Details
+| Agent | Model | Auto-fires when | Read-only |
+|-------|-------|-----------------|-----------|
+| memory-curator | Haiku | Starting work, familiar problem, stuck | Yes |
+| client-scanner | Haiku | New client, project health check | Yes |
+| venture-scanner | Haiku | New business project | Yes |
+| challenger | Opus | Plan or architecture decision forming | Yes |
+| debrief-analyst | Opus | End of implementation session | Yes |
+| scout | Haiku | Research tasks (spawned by skills) | Yes |
+| archiver | Haiku | Retiring a client | Yes |
+| daily-ops | Haiku | Session start on venture project | Yes |
+| metrics-collector | Haiku | `/brana:review` runs (weekly, monthly, check) | Yes |
+| pipeline-tracker | Haiku | Pipeline tracking, deal events | Yes |
+| pr-reviewer | Sonnet | PR creation (auto-triggered via hook) | Yes |
 
-### scout
+## Agent groups
 
-| | |
-|---|---|
-| **Model** | Haiku |
-| **Tools** | Read, Glob, Grep, WebSearch, WebFetch |
-| **Fires when** | Research tasks, spawned by skills like `/brana:research` |
+### Knowledge agents
 
-Fast research agent for codebase exploration and web search. Finds files, searches code, and fetches external information. Returns concise, structured findings (1,000-2,000 tokens). Cannot run commands or write files.
+- **memory-curator** (Haiku) -- Searches claude-flow memory and native auto memory for relevant patterns. Groups results by confidence tier: Proven (>= 0.7), Quarantined (0.2-0.7), Suspect (< 0.2). Also surfaces knowledge base results from brana-knowledge dimension docs.
+- **scout** (Haiku) -- Fast research agent. Searches codebase and web for information. Returns 1,000-2,000 tokens. Phase 1 scouts use WebSearch only; Phase 3 scouts get max 2 WebFetch calls. Cannot write files or run commands.
 
-### memory-curator
+### Diagnostic agents
 
-| | |
-|---|---|
-| **Model** | Haiku |
-| **Tools** | Bash, Read, Glob, Grep |
-| **Fires when** | Starting work on a topic, encountering a familiar problem, periodic checks |
+- **client-scanner** (Haiku) -- Detects tech stack, scans structure, runs 28-item alignment checklist across 6 groups (Foundation, SDD, TDD, Quality, PM & Memory, Verification). Returns alignment score with visual bars per group.
+- **venture-scanner** (Haiku) -- Classifies business stage (Discovery/Validation/Growth/Scale), recommends stage-appropriate framework, runs stage-cumulative gap analysis. Never recommends frameworks above current stage.
 
-Recalls patterns from the knowledge system, cross-pollinates across clients, and checks knowledge health. Uses claude-flow CLI for semantic search. Returns relevant patterns and health assessments.
+### Review agents
 
-### client-scanner
+- **challenger** (Opus) -- Adversarial review with 4 flavors: pre-mortem, simplicity challenge, assumption buster, adversarial user. Findings classified as Critical/Warning/Observation with verdict (PROCEED, PROCEED WITH CHANGES, RECONSIDER). Strictly read-only -- no Bash.
+- **debrief-analyst** (Opus) -- Extracts session findings into 6 categories: errata, process learnings, issues, correction patterns, cascade patterns, test coverage gaps. Applies confidence quarantine to new findings.
+- **pr-reviewer** (Sonnet) -- Reviews PR diffs against 4-category checklist: Security (Critical), Logic (High), Style & Convention (Medium), Completeness (Medium). Assigns risk level. Auto-triggered via `post-pr-review.sh` hook.
 
-| | |
-|---|---|
-| **Model** | Haiku |
-| **Tools** | Bash, Read, Glob, Grep |
-| **Fires when** | Entering an unfamiliar project, project health checks |
+### Business agents
 
-Scans project structure, detects tech stack (by reading manifest files), and checks brana alignment. Returns a structured diagnostic with stack info, alignment gaps, and recommendations.
+- **daily-ops** (Haiku) -- Daily focus card for venture projects: top 3 priorities, key metric + trend, blockers, overdue follow-ups, active experiments. Fires via session-start.sh venture detection.
+- **metrics-collector** (Haiku) -- Collects health snapshots, experiment results, pipeline data, financial data from project directories and claude-flow. Reports data gaps.
+- **pipeline-tracker** (Haiku) -- Pipeline status: deals per stage, overdue follow-ups (no activity 14+ days), stage-stuck deals, conversion trends.
 
-### venture-scanner
+### Lifecycle agents
 
-| | |
-|---|---|
-| **Model** | Haiku |
-| **Tools** | Bash, Read, Glob, Grep |
-| **Fires when** | First encounter with a business project, business health audits |
+- **archiver** (Haiku) -- Categorizes a client's patterns as transferable (confidence >= 0.7, not project-specific), historical (project-specific but worth keeping), or deletable (low confidence, never validated). When in doubt, classifies as historical.
 
-Diagnoses a business project — classifies its stage, recommends stage-appropriate frameworks, and identifies gaps. Scans for business artifacts (SOPs, OKRs, metrics, pipeline) and maps them to a maturity model.
+## Hook-triggered agents
 
-### challenger
+Several agents are nudged by hooks injecting `additionalContext`:
 
-| | |
-|---|---|
-| **Model** | Opus |
-| **Tools** | Read, Glob, Grep |
-| **Fires when** | Plan or architecture decision is forming, after `ExitPlanMode` |
+| Hook | Agent triggered |
+|------|----------------|
+| `post-plan-challenge.sh` | challenger (after ExitPlanMode) |
+| `post-pr-review.sh` | pr-reviewer (after `gh pr create`) |
+| `session-start.sh` | daily-ops (venture project detected) |
 
-Adversarial review agent. Stress-tests plans and decisions with three challenge flavors: pre-mortem ("what kills this?"), simplicity challenge ("what's the simplest version?"), and assumption check ("what are we taking for granted?"). Strictly read-only — no Bash access.
-
-### debrief-analyst
-
-| | |
-|---|---|
-| **Model** | Opus |
-| **Tools** | Bash, Read, Glob, Grep |
-| **Fires when** | End of implementation sessions, notable learnings emerge |
-
-Extracts errata, learnings, and patterns from work sessions. Reads recent git history, changed files, and session context. Classifies findings into errata (factual corrections), process learnings (workflow improvements), and issues (problems to track).
-
-### pr-reviewer
-
-| | |
-|---|---|
-| **Model** | Sonnet |
-| **Tools** | Read, Glob, Grep, Bash |
-| **Fires when** | After `gh pr create` (via post-pr-review hook) |
-
-Reviews PR diffs for code quality, security, bugs, and style. Uses `gh` CLI to read PR data and project files for context. Returns a structured review with severity-rated findings. Auto-triggered on PR creation.
-
-### daily-ops
-
-| | |
-|---|---|
-| **Model** | Haiku |
-| **Tools** | Bash, Read, Glob, Grep |
-| **Fires when** | Session start on a venture project (via session-start-venture hook) |
-
-Produces a daily focus card for venture clients — health snapshot, pending actions, experiments in progress, key metrics. Scans SOPs, OKRs, pipeline, and metrics directories.
-
-### metrics-collector
-
-| | |
-|---|---|
-| **Model** | Haiku |
-| **Tools** | Bash, Read, Glob, Grep |
-| **Fires when** | `/growth-check`, `/weekly-review`, or `/monthly-close` run |
-
-Collects venture metrics from multiple sources — health snapshots, experiment results, pipeline data, financial records. Returns organized raw data for skills to analyze.
-
-### pipeline-tracker
-
-| | |
-|---|---|
-| **Model** | Haiku |
-| **Tools** | Bash, Read, Glob, Grep |
-| **Fires when** | Pipeline or deal-related work is happening |
-
-Reads deal records, identifies overdue follow-ups, spots stage-stuck deals, and summarizes conversion trends. Works with the `/brana:pipeline` skill for CRM tracking.
-
-### archiver
-
-| | |
-|---|---|
-| **Model** | Haiku |
-| **Tools** | Bash, Read, Glob, Grep |
-| **Fires when** | Retiring a client (via `/brana:client-retire`) |
-
-Scans a project's accumulated knowledge and categorizes patterns as transferable (useful in other clients), historical (project-specific, archive only), or deletable (stale/irrelevant). Supports the project retirement workflow.
-
-## Auto-Delegation Triggers
-
-The `delegation-routing` rule maps situations to agents:
-
-| Situation | Agent |
-|-----------|-------|
-| Starting work, familiar problem, stuck | memory-curator |
-| New project, project health check | client-scanner |
-| New business project | venture-scanner |
-| Plan or architecture decision forming | challenger |
-| End of implementation session | debrief-analyst |
-| Research tasks (spawned by skills) | scout |
-| Retiring a client | archiver |
-| Session start on venture project | daily-ops |
-| Growth-check, weekly-review, monthly-close | metrics-collector |
-| Pipeline tracking, deal events | pipeline-tracker |
-| After PR creation | pr-reviewer |
-
-## Agent Anatomy
+## Agent anatomy
 
 Every agent lives at `system/agents/{name}.md`:
 
@@ -166,4 +88,4 @@ disallowedTools:
 Instructions for the agent...
 ```
 
-The `model` field controls cost and capability. Haiku for fast/cheap tasks, Sonnet for moderate analysis, Opus for deep reasoning. All agents disallow file modification tools.
+The `model` field controls cost and capability. The `description` includes explicit "Use when" and "Not for" guidance to help with routing decisions.
