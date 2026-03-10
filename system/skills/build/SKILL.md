@@ -3,7 +3,7 @@ name: build
 description: "Build anything — features, bug fixes, refactors, spikes, migrations, investigations. Auto-detects strategy from description, integrates with /brana:backlog, enforces TDD. The unified development command."
 group: execution
 depends_on:
-  - tasks
+  - backlog
   - challenge
   - retrospective
 allowed-tools:
