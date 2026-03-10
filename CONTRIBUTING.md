@@ -105,16 +105,33 @@ chore: update CI workflow
 
 ### Testing your changes
 
-There's no test suite yet (it's a Claude Code plugin — the "tests" are using the skills and hooks). To verify your changes:
+#### Skills, agents, and commands
 
 1. Start a session with `claude --plugin-dir ./system`
 2. Exercise the skill/hook/agent you changed
 3. Confirm it works as expected
-4. Check that `./validate.sh` passes
+
+#### Hooks
+
+Test hooks locally by piping JSON to the script:
 
 ```bash
-./validate.sh    # runs pre-deploy checks (frontmatter, budget, secrets)
+# Test a PreToolUse hook
+echo '{"tool_name":"Write","tool_input":{"file_path":"src/app.ts"}}' | bash system/hooks/pre-tool-use.sh
+
+# Test a SessionStart hook
+echo '{}' | bash system/hooks/session-start.sh
 ```
+
+The hook should print valid JSON to stdout. Check exit codes: 0 = allow, non-zero = block (for PreToolUse).
+
+#### Validation
+
+```bash
+./validate.sh    # runs pre-deploy checks (frontmatter, budget, secrets, hook permissions)
+```
+
+Run `validate.sh` before every PR. CI runs it too, but catching issues locally saves time.
 
 ## Code style
 
