@@ -284,6 +284,24 @@ echo '{"continue": true}'
         fi
     fi
 
+    # ADR-015: snapshot MEMORY.md and sync companion files to project repo
+    SYNC_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../scripts/sync-state.sh"
+    if [ -x "$SYNC_SCRIPT" ] && [ -n "$GIT_ROOT" ] && [ -d "$GIT_ROOT" ]; then
+        # Snapshot MEMORY.md for this project
+        "$SYNC_SCRIPT" snapshot "$GIT_ROOT" 2>/dev/null || true
+
+        # Sync companion files (sessions.md, handoff.md) for this project
+        if [ -n "$LAYER0_DIR" ]; then
+            REPO_MEMORY="$GIT_ROOT/.claude/memory"
+            mkdir -p "$REPO_MEMORY" 2>/dev/null || true
+            for f in sessions.md session-handoff.md .needs-backprop; do
+                if [ -f "$LAYER0_DIR/$f" ]; then
+                    cp "$LAYER0_DIR/$f" "$REPO_MEMORY/$f" 2>/dev/null || true
+                fi
+            done
+        fi
+    fi
+
     # Clean up temp file
     rm -f "$SESSION_FILE"
 ) &
