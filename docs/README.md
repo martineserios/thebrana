@@ -40,6 +40,9 @@ User-facing documentation. Start here.
 | [capture.md](guide/workflows/capture.md) | Event logging with /brana:log |
 | [learn.md](guide/workflows/learn.md) | Learning loop -- confidence, recall, cross-project transfer |
 | [venture.md](guide/workflows/venture.md) | Business projects -- reviews, pipeline, milestones, proposals |
+| [spec-graph.md](guide/workflows/spec-graph.md) | Spec dependency graph -- generation, querying, consumer integration |
+| [decision-log.md](guide/workflows/decision-log.md) | JSONL decision log -- log, read, archive, hook integration |
+| [model-routing.md](guide/workflows/model-routing.md) | Dynamic model routing -- complexity scoring, overrides, calibration |
 
 ## docs/architecture/ -- Design and research
 
@@ -87,6 +90,10 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-012](architecture/decisions/ADR-012-acquire-skills.md) | Acquire skills from marketplaces |
 | [ADR-013](architecture/decisions/ADR-013-event-log.md) | Event log (/brana:log) |
 | [ADR-014](architecture/decisions/ADR-014-plugin-management-skill.md) | Plugin management skill |
+| [ADR-015](architecture/decisions/ADR-015-state-consolidation-plugin-first.md) | State consolidation and plugin-first architecture |
+| [ADR-016](architecture/decisions/ADR-016-spec-dependency-graph.md) | Spec dependency graph |
+| [ADR-017](architecture/decisions/ADR-017-decision-log.md) | JSONL decision log |
+| [ADR-018](architecture/decisions/ADR-018-dynamic-model-routing.md) | Dynamic model routing |
 
 ### Feature briefs (docs/architecture/features/)
 
