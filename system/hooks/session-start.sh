@@ -216,6 +216,32 @@ No weekly review found. Consider running /brana:review weekly."
 
 fi
 
+# ── Spec graph staleness check ────────────────────────────
+STALE_WARNING=""
+SPEC_GRAPH="$GIT_ROOT/docs/spec-graph.json"
+if [ -f "$SPEC_GRAPH" ]; then
+    GENERATED=$(python3 -c "import json,sys; print(json.load(sys.stdin).get('_meta',{}).get('generated',''))" < "$SPEC_GRAPH" 2>/dev/null || echo "")
+    if [ -n "$GENERATED" ]; then
+        DAYS_OLD=$(python3 -c "from datetime import datetime,timezone; print((datetime.now(timezone.utc)-datetime.fromisoformat('$GENERATED'.replace('Z','+00:00'))).days)" 2>/dev/null || echo "0")
+        if [ "$DAYS_OLD" -gt 7 ]; then
+            STALE_WARNING="Spec graph is stale (generated: $GENERATED, ${DAYS_OLD}d ago). Run: uv run python3 system/scripts/spec_graph.py generate"
+        fi
+    fi
+else
+    STALE_WARNING="No spec graph found. Run: uv run python3 system/scripts/spec_graph.py generate"
+fi
+
+# ── Decision log: inject HIGH findings from last session ──
+DECISION_CONTEXT=""
+DECISIONS_PY="$SCRIPT_DIR/../scripts/decisions.py"
+if [ -f "$DECISIONS_PY" ]; then
+    HIGH_FINDINGS=$(uv run python3 "$DECISIONS_PY" read --last 10 --severity HIGH 2>/dev/null || echo "")
+    if [ -n "$HIGH_FINDINGS" ]; then
+        DECISION_CONTEXT="Recent HIGH findings from last session:
+$HIGH_FINDINGS"
+    fi
+fi
+
 # Output — only inject context if we found something
 OUTPUT_PARTS=""
 if [ -n "$CONTEXT" ]; then
@@ -237,6 +263,14 @@ fi
 if [ -n "$VENTURE_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
 }[Venture] $VENTURE_CONTEXT"
+fi
+if [ -n "$STALE_WARNING" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}[Spec graph] $STALE_WARNING"
+fi
+if [ -n "$DECISION_CONTEXT" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}[Decision log] $DECISION_CONTEXT"
 fi
 if [ -n "$CF_WARNING" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS

@@ -305,6 +305,14 @@ echo '{"continue": true}'
         "$SYNC_SCRIPT" push 2>/dev/null || true
     fi
 
+    # Write session summary to decision log
+    DECISIONS_PY="$SCRIPT_DIR/../scripts/decisions.py"
+    if [ -f "$DECISIONS_PY" ]; then
+        SUMMARY="Session metrics: corrections=$CORRECTIONS, test_writes=$TEST_WRITES, cascades=$CASCADES, edits=$EDITS"
+        uv run python3 "$DECISIONS_PY" log "session-end" "action" "$SUMMARY" \
+            --severity "LOW" 2>/dev/null || true
+    fi
+
     # Clean up temp file
     rm -f "$SESSION_FILE"
 ) &
