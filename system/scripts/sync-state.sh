@@ -36,6 +36,7 @@ REPO_PATHS=(
 COMPANION_FILES=(
     "sessions.md"
     "session-handoff.md"
+    "event-log.md"
     "MEMORY-snapshot.md"
 )
 
