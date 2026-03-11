@@ -162,8 +162,11 @@ cmd_create() {
     [[ -z "$subject" ]] && die "Task $task_id not found in $tasks_json"
 
     # Dedup: check if issue already exists by searching title
-    local existing
-    existing="$(gh issue list --search "Task: $task_id in:title" --json number --jq '.[0].number // empty' 2>/dev/null || echo "")"
+    local tmp_dedup existing
+    tmp_dedup="$(mktemp)"
+    gh issue list --search "Task: $task_id in:title" --json number > "$tmp_dedup" 2>/dev/null || true
+    existing="$(jq -r '.[0].number // empty' "$tmp_dedup" 2>/dev/null || echo "")"
+    rm -f "$tmp_dedup"
     if [[ -n "$existing" ]]; then
         log "Issue #$existing already exists for $task_id — skipping creation"
         echo "$existing"
@@ -320,10 +323,12 @@ cmd_pull_context() {
 cmd_sync_all() {
     local tasks_json="${1:-}"
     local dry_run=false
+    local exclude_stream=""
     shift || true
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --dry-run) dry_run=true ;;
+            --exclude-stream) shift; exclude_stream="${1:-}" ;;
             *) ;;
         esac
         shift
@@ -338,12 +343,16 @@ cmd_sync_all() {
 
     # Find tasks needing sync
     # 1. Non-completed tasks without github_issue → need creation
-    local needs_create
-    needs_create="$(jq -r '
+    local needs_create stream_filter=""
+    if [[ -n "$exclude_stream" ]]; then
+        stream_filter="| select(.stream != \"$exclude_stream\")"
+    fi
+    needs_create="$(jq -r --arg excl "$exclude_stream" '
         .tasks[] |
         select(.type == "task" or .type == "subtask" or .type == "phase" or .type == "milestone") |
         select(.status != "completed" and .status != "cancelled") |
         select(.github_issue == null or .github_issue == "") |
+        if $excl != "" then select(.stream != $excl) else . end |
         .id
     ' "$tasks_json" 2>/dev/null || echo "")"
 
