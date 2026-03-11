@@ -11,3 +11,8 @@
 # MCP config (local dev)
 .mcp.json
 ruvector.db
+
+# Python virtual environment
+.venv/
+__pycache__/
+.pytest_cache/
