@@ -1,0 +1,56 @@
+{
+  "clients": [
+    {
+      "slug": "anita",
+      "projects": [
+        {
+          "slug": "proyecto_anita",
+          "path": "~/enter_thebrana/projects/proyecto_anita",
+          "type": "hybrid",
+          "stage": "growth",
+          "tech_stack": ["python", "fastapi", "react", "nextjs", "supabase", "gcp"],
+          "created": "2025-10-01"
+        }
+      ]
+    },
+    {
+      "slug": "tinyhomes",
+      "projects": [
+        {
+          "slug": "tinyhomes",
+          "path": "~/enter_thebrana/projects/tinyhomes",
+          "type": "venture",
+          "stage": "validation",
+          "tech_stack": ["supabase", "expo", "react-native", "mercadopago"],
+          "created": "2025-11-01"
+        }
+      ]
+    },
+    {
+      "slug": "somos",
+      "projects": [
+        {
+          "slug": "somos_mirada",
+          "path": "~/enter_thebrana/projects/somos_mirada",
+          "type": "venture",
+          "stage": "growth",
+          "tech_stack": ["respond-io", "whatsapp", "ai-agents"],
+          "created": "2025-09-01"
+        }
+      ]
+    },
+    {
+      "slug": "nexeye",
+      "projects": [
+        {
+          "slug": "eyedetect",
+          "path": "~/enter_thebrana/projects/nexeye_eyedetect",
+          "type": "hybrid",
+          "stage": "growth",
+          "tech_stack": ["python", "fastapi", "react", "computer-vision", "docker", "supabase"],
+          "created": "2025-12-01"
+        }
+      ]
+    }
+  ]
+}
