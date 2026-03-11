@@ -1,13 +1,3 @@
 {
-  "theme": "emoji",
-  "github_sync": {
-    "enabled": true,
-    "repo": null,
-    "project": null,
-    "labels": {
-      "stream": true,
-      "priority": true,
-      "tags": 2
-    }
-  }
+  "theme": "emoji"
 }
