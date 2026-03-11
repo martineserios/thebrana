@@ -149,6 +149,116 @@ else
     fail "export unexpected output: $output"
 fi
 
+# --- Test 9: companion file sync via push ---
+echo ""
+echo "companion file sync:"
+PORTFOLIO="$HOME/.claude/tasks-portfolio.json"
+if [ -f "$PORTFOLIO" ]; then
+    # Get first project path from portfolio
+    FIRST_PROJECT=$(jq -r '
+        if .clients then .clients[0].projects[0].path
+        elif .projects then .projects[0].path
+        else empty end
+    ' "$PORTFOLIO" 2>/dev/null | sed "s|^~|$HOME|") || FIRST_PROJECT=""
+
+    if [ -n "$FIRST_PROJECT" ] && [ -d "$FIRST_PROJECT" ]; then
+        PROJECT_NAME=$(basename "$FIRST_PROJECT")
+        CC_DIR=""
+        for projdir in "$HOME"/.claude/projects/*/; do
+            if [ -d "${projdir}memory" ] && grep -qi "$PROJECT_NAME" "${projdir}memory/MEMORY.md" 2>/dev/null; then
+                CC_DIR="${projdir}memory"
+                break
+            fi
+        done
+
+        if [ -n "$CC_DIR" ] && [ -f "$CC_DIR/sessions.md" ]; then
+            REPO_MEMORY="$FIRST_PROJECT/.claude/memory"
+            mkdir -p "$REPO_MEMORY" 2>/dev/null || true
+
+            # Save original if exists
+            [ -f "$REPO_MEMORY/sessions.md" ] && cp "$REPO_MEMORY/sessions.md" "/tmp/test-sessions-backup-$$.md"
+
+            output=$(run_sync push)
+            if [ -f "$REPO_MEMORY/sessions.md" ]; then
+                if cmp -s "$CC_DIR/sessions.md" "$REPO_MEMORY/sessions.md"; then
+                    pass "push syncs companion sessions.md to project repo"
+                else
+                    fail "sessions.md content mismatch after push"
+                fi
+            else
+                fail "sessions.md not synced to project repo"
+            fi
+
+            # Restore original
+            if [ -f "/tmp/test-sessions-backup-$$.md" ]; then
+                mv "/tmp/test-sessions-backup-$$.md" "$REPO_MEMORY/sessions.md"
+            fi
+        else
+            pass "companion sync — skipped (no sessions.md in CC memory for $PROJECT_NAME)"
+        fi
+    else
+        pass "companion sync — skipped (no valid project path in portfolio)"
+    fi
+else
+    pass "companion sync — skipped (no portfolio file)"
+fi
+
+# --- Test 10: snapshot creates MEMORY-snapshot.md ---
+echo ""
+echo "snapshot output:"
+SNAPSHOT_DIR="$REPO_ROOT/.claude/memory"
+mkdir -p "$SNAPSHOT_DIR" 2>/dev/null || true
+# Save original if exists
+[ -f "$SNAPSHOT_DIR/MEMORY-snapshot.md" ] && cp "$SNAPSHOT_DIR/MEMORY-snapshot.md" "/tmp/test-snapshot-backup-$$.md"
+
+output=$(run_sync snapshot "$REPO_ROOT")
+if [ -f "$SNAPSHOT_DIR/MEMORY-snapshot.md" ]; then
+    pass "snapshot creates MEMORY-snapshot.md"
+else
+    # May not exist if no CC MEMORY.md found for this project
+    if echo "$output" | grep -q "skipped"; then
+        pass "snapshot correctly skipped (no MEMORY.md for project)"
+    else
+        fail "snapshot did not create MEMORY-snapshot.md"
+    fi
+fi
+
+# Restore
+if [ -f "/tmp/test-snapshot-backup-$$.md" ]; then
+    mv "/tmp/test-snapshot-backup-$$.md" "$SNAPSHOT_DIR/MEMORY-snapshot.md"
+else
+    rm -f "$SNAPSHOT_DIR/MEMORY-snapshot.md"
+fi
+
+# --- Test 11: import without export file ---
+echo ""
+echo "import (no export file):"
+EXPORT_FILE="$REPO_ROOT/system/state/patterns-export.json"
+if [ -f "$EXPORT_FILE" ]; then
+    mv "$EXPORT_FILE" "/tmp/test-export-backup-$$.json"
+fi
+output=$(run_sync import)
+if echo "$output" | grep -q "skipped"; then
+    pass "import skips gracefully when no export file"
+else
+    fail "import should report missing export: $output"
+fi
+[ -f "/tmp/test-export-backup-$$.json" ] && mv "/tmp/test-export-backup-$$.json" "$EXPORT_FILE"
+
+# --- Test 12: import with export file ---
+echo ""
+echo "import (with export file):"
+if [ -f "$EXPORT_FILE" ]; then
+    output=$(run_sync import)
+    if echo "$output" | grep -qE "(import complete|skipped)"; then
+        pass "import runs (completed or skipped if no claude-flow)"
+    else
+        fail "import unexpected output: $output"
+    fi
+else
+    pass "import with file — skipped (no export file in state/)"
+fi
+
 # --- Summary ---
 echo ""
 echo "=== $PASS passed, $FAIL failed ==="
