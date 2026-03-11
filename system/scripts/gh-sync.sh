@@ -323,10 +323,12 @@ cmd_pull_context() {
 cmd_sync_all() {
     local tasks_json="${1:-}"
     local dry_run=false
+    local exclude_stream=""
     shift || true
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --dry-run) dry_run=true ;;
+            --exclude-stream) shift; exclude_stream="${1:-}" ;;
             *) ;;
         esac
         shift
@@ -341,12 +343,16 @@ cmd_sync_all() {
 
     # Find tasks needing sync
     # 1. Non-completed tasks without github_issue → need creation
-    local needs_create
-    needs_create="$(jq -r '
+    local needs_create stream_filter=""
+    if [[ -n "$exclude_stream" ]]; then
+        stream_filter="| select(.stream != \"$exclude_stream\")"
+    fi
+    needs_create="$(jq -r --arg excl "$exclude_stream" '
         .tasks[] |
         select(.type == "task" or .type == "subtask" or .type == "phase" or .type == "milestone") |
         select(.status != "completed" and .status != "cancelled") |
         select(.github_issue == null or .github_issue == "") |
+        if $excl != "" then select(.stream != $excl) else . end |
         .id
     ' "$tasks_json" 2>/dev/null || echo "")"
 
