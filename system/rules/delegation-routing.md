@@ -30,6 +30,6 @@ When a trigger matches, **invoke the skill** — don't just suggest it. Only nud
 | Uncommitted spec changes | `/brana:repo-cleanup` |
 | New task added with URL or platform name | brief research before priority |
 | New research task added (stream=research) | tag matching against pending non-research tasks |
-| Monthly or after `/brana:review check` | `/brana:backlog prioritize --reresearch` |
+| Monthly or after `/brana:review check` | `/brana:backlog triage --reresearch` |
 
 If the user invokes a skill, use it. If they don't but the situation matches an agent, auto-delegate. Never both.

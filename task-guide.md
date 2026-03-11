@@ -443,7 +443,7 @@ Claude: Marking done. Notes: "Client approved API changes via email."
 | Command | What |
 |---------|------|
 | `/brana:backlog status [project]` | Progress view (portfolio if no project) |
-| `/brana:backlog view <project>` | Full tree with all levels |
+| `/brana:backlog roadmap <project>` | Full tree with all levels |
 | `/brana:backlog next [project]` | Next unblocked by priority |
 | `/brana:backlog start <id>` | Begin work (branch, status) |
 | `/brana:backlog done [id]` | Complete (commit, PR, status) |

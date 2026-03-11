@@ -56,7 +56,7 @@ minimal:   {icon} {id}  {subject}  {detail}
 
 ### Wide mode (`--wide`)
 
-Any view command (`status`, `view`, `next`, `tags --filter`) accepts `--wide`.
+Any view command (`status`, `roadmap`, `next`, `tags --filter`) accepts `--wide`.
 Wide mode renders tasks as **tabular rows** with all metadata visible on one line — like `kubectl get pods -o wide`.
 Wide mode composes with any theme (icons come from the active theme).
 
@@ -112,9 +112,8 @@ Hierarchy views (status, roadmap) use box-drawing characters when not in `--wide
 ## Commands
 
 - `/brana:backlog plan [project] "[phase-title]"` — plan a phase interactively
-- `/brana:backlog status [project] [--all] [--wide]` — progress overview (omit project = summary, `--all` = cross-client tasks)
-- `/brana:backlog status --all [--unified] [--wide]` — cross-client actionable tasks
-- `/brana:backlog view [project] [--wide]` — full tree view with all levels
+- `/brana:backlog status [project] [--all] [--unified] [--wide]` — progress overview (`--all` = cross-client task drill-down, `--unified` = priority-sorted flat list)
+- `/brana:backlog roadmap [project] [--wide]` — full tree view with all levels
 - `/brana:backlog next [project] [--stream X] [--wide]` — next unblocked task by priority
 - `/brana:backlog start <id>` — begin work on a task
 - `/brana:backlog done [id]` — complete current task
@@ -126,7 +125,7 @@ Hierarchy views (status, roadmap) use box-drawing characters when not in `--wide
 - `/brana:backlog tags [project]` — tag inventory, filtering, and bulk tag management
 - `/brana:backlog context <id> [text]` — view or set rich context on a task
 - `/brana:backlog theme [name]` — view or set display theme (classic, emoji, minimal)
-- `/brana:backlog prioritize [project] [--reresearch] [--scope P2+]` — research-informed priority reassessment
+- `/brana:backlog triage [project] [--reresearch] [--scope P2+]` — research-informed priority reassessment
 - `/brana:backlog sync [--dry-run] [--force]` — sync tasks.json with GitHub Issues
 
 ---
@@ -362,7 +361,7 @@ Blocked and completed tasks are excluded from the unified view (only actionable 
 
 ---
 
-## /brana:backlog view
+## /brana:backlog roadmap
 
 Full tree view — every level expanded.
 
@@ -544,7 +543,7 @@ All interactive confirmations use the **AskUserQuestion** tool for a selectable 
    - AskUserQuestion: "This looks like a solution. What problem does it solve?" Options: user provides context via "Other" free text, or "Skip". Header: "Problem"
    - If the user provides text, store it in the `context` field
    - If skipped, proceed without context
-8. Priority: **leave null** (user sets manually via `/brana:backlog prioritize` or direct edit)
+8. Priority: **leave null** (user sets manually via `/brana:backlog triage` or direct edit)
 9. **Final confirmation** — AskUserQuestion: "Add {id} '{subject}' [{tags}, {effort}] under {milestone}? blocked_by: [{deps}]" Options: "Confirm" (recommended), "Edit", "Cancel". Header: "Confirm"
 10. Write tasks.json
 11. **GitHub sync** (if `github_sync.enabled` in `~/.claude/tasks-config.json`):
@@ -878,14 +877,14 @@ On parent tasks, `spawn_strategy` controls child batching:
 
 ---
 
-## /brana:backlog prioritize
+## /brana:backlog triage
 
 Research-informed priority reassessment across project backlogs.
 
 ### Usage
 
 ```
-/brana:backlog prioritize [project] [--reresearch] [--scope P2+]
+/brana:backlog triage [project] [--reresearch] [--scope P2+]
 ```
 
 ### Default behavior (no flags)

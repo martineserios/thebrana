@@ -22,10 +22,10 @@ All brana commands, grouped by workflow.
 | `/brana:backlog done [id]` | Complete task (manual/external only — code tasks use /brana:build CLOSE) |
 | `/brana:backlog add "description"` | Quick-add a task |
 | `/brana:backlog status --all` | Cross-project task view |
-| `/brana:backlog view [project]` | Full tree view |
+| `/brana:backlog roadmap [project]` | Full tree view |
 | `/brana:backlog tags [project]` | Tag inventory and filtering |
 | `/brana:backlog context <id>` | View or set task context |
-| `/brana:backlog prioritize` | Research-informed priority reassessment |
+| `/brana:backlog triage` | Research-informed priority reassessment |
 
 ## Capture & Research
 

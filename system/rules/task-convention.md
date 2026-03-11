@@ -27,4 +27,4 @@ Task t-091 (stream: research) → branch: research/t-091-graphrag-eval (most rev
 
 Status changes on main or task branch only. Rollup via hook. Unblocked = all blocked_by completed. Priority/effort null unless user specifies.
 
-Tasks with URLs or platform/tool names in description get brief research (via scout agent) before priority assignment. This applies when adding new tasks or during `/brana:backlog prioritize --reresearch`.
+Tasks with URLs or platform/tool names in description get brief research (via scout agent) before priority assignment. This applies when adding new tasks or during `/brana:backlog triage --reresearch`.
