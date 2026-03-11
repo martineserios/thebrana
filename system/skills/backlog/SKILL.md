@@ -127,6 +127,7 @@ Hierarchy views (status, roadmap) use box-drawing characters when not in `--wide
 - `/brana:backlog context <id> [text]` — view or set rich context on a task
 - `/brana:backlog theme [name]` — view or set display theme (classic, emoji, minimal)
 - `/brana:backlog triage [project] [--reresearch] [--scope P2+]` — research-informed priority reassessment
+- `/brana:backlog sync [--dry-run] [--force]` — sync tasks.json with GitHub Issues
 
 ---
 
@@ -465,8 +466,12 @@ Begin work on a specific task. For code tasks, enters the `/brana:build` loop.
    - `external`: set status + started date, show task description
    - `manual`: set status + started date, show checklist from description
 6. **Write tasks.json** (status: in_progress, started: today, strategy: confirmed)
-7. **Report:** "Started t-008 'Implement JWT middleware' as **feature**. Branch: feat/t-008-jwt-middleware."
-8. **For code tasks:** proceed directly into `/brana:build` — no separate invocation needed
+7. **GitHub sync** (if `github_sync.enabled` in `~/.claude/tasks-config.json`):
+   - If task has no `github_issue`: run `system/scripts/gh-sync.sh create {task-id} {tasks-json-path}`. Read issue number from stdout, write to task's `github_issue` field.
+   - If task has `github_issue`: run `system/scripts/gh-sync.sh pull-context {issue-number}`. If comments returned, replace `## GitHub Comments` section in task's `context` field.
+   - If sync fails (exit code 1 or 2): warn "GitHub sync failed. Task started locally." — do NOT block pick.
+8. **Report:** "Started t-008 'Implement JWT middleware' as **feature**. Branch: feat/t-008-jwt-middleware."
+9. **For code tasks:** proceed directly into `/brana:build` — no separate invocation needed
 
 ### Branch creation
 
@@ -508,7 +513,10 @@ Complete the current task. For code tasks that went through `/brana:build`, the 
    - Record in task.notes
 6. **Update task:** status → completed, completed → today's date, clear build_step
 7. **Write tasks.json** — hook handles rollup + validation
-8. **Report:** "Completed t-008. Milestone 'Auth System': 2/3 done."
+8. **GitHub sync** (if `github_sync.enabled` in `~/.claude/tasks-config.json`):
+   - If task has `github_issue`: run `system/scripts/gh-sync.sh close {issue-number}`.
+   - If sync fails: warn "GitHub issue not closed. Close manually: gh issue close #{issue-number}" — do NOT block done.
+9. **Report:** "Completed t-008. Milestone 'Auth System': 2/3 done."
 
 ---
 
@@ -549,6 +557,9 @@ All interactive confirmations use the **AskUserQuestion** tool for a selectable 
 8. Priority: **leave null** (user sets manually via `/brana:backlog triage` or direct edit)
 9. **Final confirmation** — AskUserQuestion: "Add {id} '{subject}' [{tags}, {effort}] under {milestone}? blocked_by: [{deps}]" Options: "Confirm" (recommended), "Edit", "Cancel". Header: "Confirm"
 10. Write tasks.json
+11. **GitHub sync** (if `github_sync.enabled` in `~/.claude/tasks-config.json`):
+    - Run `system/scripts/gh-sync.sh create {task-id} {tasks-json-path}`. Read issue number from stdout, write to task's `github_issue` field.
+    - If sync fails: warn "GitHub issue not created. Run `/brana:backlog sync` later." — do NOT block add.
 
 ---
 
@@ -919,3 +930,29 @@ Only re-evaluate tasks at P2 or lower (skip P0/P1 which were recently triaged).
 ### Sort order
 
 P0 > P1 > P2 > P3 > null. Ties broken by: in_progress first, then pending, then `order` field.
+
+---
+
+## /brana:backlog sync
+
+Sync tasks.json with GitHub Issues. Creates missing issues, closes completed ones, updates stale labels.
+
+### Usage
+
+```
+/brana:backlog sync [--dry-run] [--force]
+```
+
+### Steps
+
+1. **Check config** — read `github_sync.enabled` from `~/.claude/tasks-config.json`. If not enabled, report: "GitHub sync not configured. Add `github_sync` to `~/.claude/tasks-config.json`."
+2. **Read tasks.json** — find tasks needing sync:
+   - Non-completed tasks without `github_issue` → need creation
+   - Completed tasks with `github_issue` + open issue → need closing
+   - Tasks with label drift (compare current task fields against live GitHub labels via `gh issue view --json labels`)
+3. **Report plan:** "Sync plan: ~N to create, ~M to close, ~K to update."
+4. **If `--dry-run`:** show the plan (task IDs + subjects) and exit without executing.
+5. **If not dry-run:** confirm with user before executing.
+6. **Execute:** run `system/scripts/gh-sync.sh sync-all {tasks-json-path}`. Script handles progress output.
+7. **If `--force`:** run `system/scripts/gh-sync.sh sync-all {tasks-json-path}` without filtering — re-sync all tasks.
+8. **Report summary:** "Sync complete: N created, M closed, K errors."

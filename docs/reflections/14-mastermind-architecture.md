@@ -41,7 +41,7 @@ Two layers: the **plugin** (toolkit — loaded by Claude Code's plugin system) a
 ```
 thebrana/system/                              PLUGIN (loaded by Claude Code)
 ├── .claude-plugin/plugin.json                ← Plugin manifest
-├── skills/                                   ← 25 skills as /brana:* slash commands
+├── skills/                                   ← /brana:* slash commands (see system/skills/)
 │   ├── build/SKILL.md                        ← Unified dev command — 7 strategies, task-aware
 │   ├── close/SKILL.md                        ← Session end — learnings, handoff, patterns
 │   ├── backlog/SKILL.md                      ← Plan, track, and execute tasks across phases and streams
@@ -152,7 +152,7 @@ Loaded automatically:
   5. ~/projects/alpha/.claude/rules/* ← path-scoped project rules
 
 Available on demand (via brana plugin):
-  6. /brana:build, /brana:backlog, etc.  ← 25 skills loaded from plugin
+  6. /brana:build, /brana:backlog, etc.  ← Skills loaded from plugin (see system/skills/)
   7. Agent commands                    ← maintain-specs, apply-errata, etc.
   8. ~/projects/alpha/.claude/skills/* ← /deploy, /migrate (project-specific)
   9. Other installed plugins           ← pr-review-toolkit, security-guidance, etc.
@@ -176,7 +176,7 @@ Skills are user-invocable workflows (`/command`). Agents auto-delegate when the 
 
 **Pattern B: Agent preloads skill knowledge.** Agents can have skills preloaded via the `skills:` YAML field — full skill content injected at startup, not just available for invocation. Use sparingly: only for small domain knowledge skills where the agent always needs that context. Large skills bloat the agent's context window.
 
-**Pattern C: Auto-delegation fills skill invocation gaps.** Vercel's eval found skills aren't invoked 56% of the time even when available. Explicit "Use when..." descriptions raise invocation from 53% to 79%. Agents fill the remaining gap (79% to ~95%) via auto-delegation — the model routes to a relevant agent when the user doesn't invoke the corresponding skill. **Key architectural implication:** static markdown in context (CLAUDE.md/AGENTS.md) achieves **100%** availability — passive context always beats skill-based retrieval. The knowledge architecture should prioritize what goes in always-loaded context based on availability risk: always-needed knowledge → CLAUDE.md (100%), explicit workflows → skills (79% with good descriptions + agents close the gap). **Status (Mar 2026):** All 25 deployed skills have explicit "Use when..." trigger descriptions in their SKILL.md frontmatter. All skills include `AskUserQuestion` in `allowed-tools` — interactive confirmations use selectable options instead of plain text prompts, with batching (up to 4 questions per call). Context budget raised to ~26KB to accommodate trigger text, context-budget rule, additional skills, and workflow practice rules.
+**Pattern C: Auto-delegation fills skill invocation gaps.** Vercel's eval found skills aren't invoked 56% of the time even when available. Explicit "Use when..." descriptions raise invocation from 53% to 79%. Agents fill the remaining gap (79% to ~95%) via auto-delegation — the model routes to a relevant agent when the user doesn't invoke the corresponding skill. **Key architectural implication:** static markdown in context (CLAUDE.md/AGENTS.md) achieves **100%** availability — passive context always beats skill-based retrieval. The knowledge architecture should prioritize what goes in always-loaded context based on availability risk: always-needed knowledge → CLAUDE.md (100%), explicit workflows → skills (79% with good descriptions + agents close the gap). **Status (Mar 2026):** All deployed skills have explicit "Use when..." trigger descriptions in their SKILL.md frontmatter. All skills include `AskUserQuestion` in `allowed-tools` — interactive confirmations use selectable options instead of plain text prompts, with batching (up to 4 questions per call). Context budget raised to ~26KB to accommodate trigger text, context-budget rule, additional skills, and workflow practice rules.
 
 **Pattern D: Multi-agent workflows.** For subagents: agents cannot spawn other agents (subagent limitation). Orchestration stays in the main context via skills that use the Task tool to spawn multiple agents in parallel. The skill is the conductor; agents are the musicians. For Agent Teams (experimental, Feb 2026): peer-to-peer coordination with shared task lists and DAG dependencies — but at 2x token cost (~800k vs ~440k for 3-worker team), no file locking, and disabled by default. **Use subagents for production orchestration; reserve Agent Teams for genuinely parallel multi-file work where peer coordination justifies the experimental status and cost.**
 
@@ -290,10 +290,9 @@ On every session start:
      - .needs-backprop → "System files changed, update docs in next commit"
      - pending-learnings.md → "N unprocessed sessions, consider /brana:close"
   7. Log recalled patterns to session JSONL for promotion tracking
-  8. Fork `sync-state.sh push` to background (non-blocking state sync)
 ```
 
-This is the moment where the single brain activates — it doesn't start from zero, it starts from everything it's ever learned. The correction-pattern priority recall (Wave 3) ensures that proven fixes from past sessions are surfaced before generic patterns. The background state push (ADR-015) ensures repo-committed state stays current without blocking session startup.
+This is the moment where the single brain activates — it doesn't start from zero, it starts from everything it's ever learned. The correction-pattern priority recall (Wave 3) ensures that proven fixes from past sessions are surfaced before generic patterns.
 
 ### SessionEnd — "Remember what you learned"
 
@@ -320,8 +319,6 @@ On every session end:
   6. Write to Layer 0: sessions.md, pending-learnings.md (if CF fails)
   7. Auto-generate minimal handoff note if /brana:close wasn't called
   8. Detect system file drift → write .needs-backprop flag for next session
-  9. Snapshot MEMORY.md via `sync-state.sh snapshot`
- 10. Sync companion files (sessions.md, session-handoff.md, MEMORY-snapshot.md) to project repo
 ```
 
 ### PostToolUse + PostToolUseFailure — "Notice important moments"
@@ -418,12 +415,6 @@ Skills can run headless via `claude -p "Execute /skill-name"` — the scheduler 
 
 - **staleness-report** (weekly, Monday 08:00) — layer-aware spec doc freshness check (`scripts/staleness-report.sh`)
 - Additional jobs configured in `scheduler.json`, deployed via `brana-scheduler deploy`
-
----
-
-## Operational State Sync (ADR-015)
-
-The brain's state is distributed across repos, auto memory, and claude-flow. `sync-state.sh` reconciles them with five subcommands: `push` (cache to repos), `pull` (repos to cache), `export` (claude-flow to repo JSON), `import` (repo JSON to claude-flow), and `snapshot` (capture MEMORY.md for a project). Sync is hook-driven rather than manual: SessionStart forks `push` to background so it never blocks startup, and SessionEnd snapshots the current project's memory and syncs companion files (sessions.md, session-handoff.md, event-log.md, MEMORY-snapshot.md). On a new machine, `pull` + `import` restores the full operational state from repo-committed artifacts.
 
 ---
 

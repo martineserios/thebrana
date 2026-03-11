@@ -9,7 +9,7 @@ Brana operates as two deployment layers plus a knowledge repo:
 ```
 thebrana/system/                      PLUGIN (loaded by Claude Code)
 ├── .claude-plugin/plugin.json        manifest
-├── skills/                           /brana:* slash commands (25 skills)
+├── skills/                           /brana:* slash commands
 ├── commands/                         agent commands
 ├── hooks/hooks.json + *.sh           event hooks (10 scripts)
 ├── agents/                           specialized agents (11)

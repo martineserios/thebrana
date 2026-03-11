@@ -526,7 +526,11 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    - Set completed date
    - Add notes from retrospective
 
-6. **Merge** — present the command, do NOT auto-execute:
+6. **GitHub sync** (if `github_sync.enabled` in `~/.claude/tasks-config.json`):
+   - If task has `github_issue`: run `system/scripts/gh-sync.sh close {issue-number}`.
+   - If sync fails: warn "GitHub issue not closed. Close manually: gh issue close #{issue-number}" — do NOT block CLOSE.
+
+7. **Merge** — present the command, do NOT auto-execute:
    ```bash
    git checkout main
    git merge --no-ff feat/{branch-name} -m "{type}: {description}"

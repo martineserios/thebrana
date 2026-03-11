@@ -49,7 +49,7 @@ These existing skills work for business projects without modification:
 | `/brana:challenge` | Adversarial review of a business plan is at least as valuable as challenging a technical architecture. Same four flavors (pre-mortem, simplicity, assumption, adversarial). |
 | `/brana:close` | Session close — extracting errata/learnings/issues, writing handoff notes, storing patterns. The classification (spec mismatch, process learning, issue) applies to business findings too. ADR-style decisions are captured via the build loop. |
 
-**Implication:** 6 of the current 25 skills need zero changes for venture work. The knowledge system (ReasoningBank, auto memory, confidence-weighted recall, promotion/demotion) is fully domain-agnostic.
+**Implication:** 6 of the current skills need zero changes for venture work. The knowledge system (ReasoningBank, auto memory, confidence-weighted recall, promotion/demotion) is fully domain-agnostic.
 
 ---
 
