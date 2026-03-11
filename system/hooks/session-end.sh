@@ -300,6 +300,9 @@ echo '{"continue": true}'
                 fi
             done
         fi
+
+        # ADR-015: push global operational state (event-log, portfolio) to thebrana repo
+        "$SYNC_SCRIPT" push 2>/dev/null || true
     fi
 
     # Clean up temp file
