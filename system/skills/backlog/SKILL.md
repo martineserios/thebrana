@@ -833,11 +833,26 @@ Tasks must have `spawn` field set (see ADR-003 for schema). Tasks without `spawn
 
 ### Model routing
 
-| Task characteristic | Default model | Override via |
-|---------------------|---------------|-------------|
-| Research, analysis | haiku | `agent_config.model` |
-| Code, tests | sonnet | `agent_config.model` |
-| Architecture, design | opus | user sets explicitly |
+Before spawning an agent for a task, compute a complexity score (0.0–1.0):
+
+| Input | Score contribution | Max |
+|-------|-------------------|-----|
+| `min(word_count(description) / 100, 0.3)` | Description length | 0.3 |
+| `min(len(blocked_by) * 0.1, 0.2)` | Dependency count | 0.2 |
+| `0.2` if stream is `roadmap` | Stream type | 0.2 |
+| `0.1` if `architecture` in tags | Architecture tag | 0.1 |
+| `0.1` if effort is `L` or `XL` | Effort estimate | 0.1 |
+
+Score → model mapping:
+- **< 0.3** → haiku (simple tasks)
+- **0.3–0.7** → sonnet (standard tasks)
+- **> 0.7** → opus (complex tasks)
+
+**Override:** If the task or `agent_config.model` specifies a model explicitly, that wins over the computed score.
+
+**Logging:** Log each routing decision to the decision log as a `cost` entry: `uv run python3 system/scripts/decisions.py log "backlog" "cost" "t-NNN routed to MODEL (score: X.XX)"`
+
+**Fallback:** If no task metadata is available (e.g., ad-hoc agent spawn), use the agent's default model from its frontmatter.
 
 ### Failure recovery
 

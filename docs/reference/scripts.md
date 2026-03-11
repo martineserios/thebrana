@@ -104,6 +104,92 @@ Default skills directory: `../skills` relative to the script.
 
 ---
 
+## spec_graph.py
+
+| Field | Value |
+|-------|-------|
+| **Purpose** | Generate a JSON dependency graph of all spec documents |
+| **Usage** | `uv run python3 system/scripts/spec_graph.py generate [--output PATH]` |
+| **Dependencies** | Python 3 (stdlib only) |
+
+Parses all markdown files in `docs/` and `docs/dimensions/` (symlink), extracts cross-reference links and `system/` file mentions, and outputs a JSON dependency graph.
+
+### Subcommands
+
+| Subcommand | Description |
+|------------|-------------|
+| `generate` | Parse docs, build graph, write JSON |
+
+### Arguments (generate)
+
+| Flag | Required | Default | Description |
+|------|----------|---------|-------------|
+| `--output` | No | `docs/spec-graph.json` | Output file path |
+
+### Output
+
+JSON with `_meta` (stats) and `nodes` (per-doc references, referenced_by, impl_files). See [spec-graph workflow guide](../guide/workflows/spec-graph.md) for schema details.
+
+---
+
+## decisions.py
+
+| Field | Value |
+|-------|-------|
+| **Purpose** | Manage the JSONL decision log — log entries, read/filter, archive old files |
+| **Usage** | `uv run python3 system/scripts/decisions.py <subcommand> [args]` |
+| **Dependencies** | Python 3 (stdlib only) |
+
+Append-only JSONL decision log stored in `system/state/decisions/`.
+
+### Subcommands
+
+| Subcommand | Description |
+|------------|-------------|
+| `log` | Append one entry to the current session's file |
+| `read` | Read and filter entries across all active files |
+| `archive` | Move old files to `archive/` subdirectory |
+
+### Arguments (log)
+
+| Positional | Description |
+|-----------|-------------|
+| `agent` | Agent name (e.g., main, scout, challenger) |
+| `type` | Entry type: decision, finding, concern, action, error, cost |
+| `content` | Entry text |
+
+| Flag | Required | Default | Description |
+|------|----------|---------|-------------|
+| `--severity` | No | -- | HIGH, MEDIUM, or LOW |
+| `--refs` | No | -- | Comma-separated references |
+| `--target` | No | -- | Entry this responds to |
+
+### Arguments (read)
+
+| Flag | Required | Default | Description |
+|------|----------|---------|-------------|
+| `--last` | No | all | Return only last N entries |
+| `--type` | No | -- | Filter by entry type |
+| `--agent` | No | -- | Filter by agent name |
+| `--severity` | No | -- | Filter by severity |
+| `--json` | No | false | Output raw JSON lines |
+
+### Arguments (archive)
+
+| Flag | Required | Default | Description |
+|------|----------|---------|-------------|
+| `--days` | No | 30 | Age threshold in days |
+| `--dry-run` | No | false | Preview without moving |
+
+### Environment variables
+
+| Variable | Description |
+|----------|-------------|
+| `BRANA_SESSION_ID` | Session identifier for file naming |
+| `BRANA_DECISIONS_DIR` | Override state directory path (testing) |
+
+---
+
 ## backup-knowledge.sh
 
 | Field | Value |

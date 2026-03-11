@@ -86,11 +86,15 @@ If a branch with that name already exists (second reconcile in one day), append 
 
 Read the spec surface — everything that describes what the implementation should look like. Spawn parallel scout agents to scan each area efficiently:
 
+**Graph-scoped scanning:** If `docs/spec-graph.json` exists, read it. For each `system/` area being checked, find nodes whose `impl_files` contain files in that area. Only scan those docs — this replaces exhaustive scanning with targeted, graph-informed lookups.
+
+**Fallback (no graph):** If `docs/spec-graph.json` doesn't exist, scan all files in `brana-knowledge/dimensions/`, `docs/reflections/`, and `docs/` root. This ensures new docs are always included without hardcoded number ranges.
+
 | Spec area | Location | What to extract |
 |-----------|----------|----------------|
-| **Dimension docs** | `brana-knowledge/dimensions/` (01-07, 09-13, 16, 20-23, 26-28, 33-38) | Tool capabilities, integration patterns, behavioral expectations |
-| **Reflection docs** | `docs/reflections/` (08, 14, 29, 31, 32) | Architecture decisions, cross-cutting conventions, quality criteria |
-| **Roadmap docs** | `docs/` (15, 17-19, 24, 25, 30) | Implementation details, WI specs, known errata, self-doc expectations |
+| **Dimension docs** | `brana-knowledge/dimensions/` (all `.md` files) | Tool capabilities, integration patterns, behavioral expectations |
+| **Reflection docs** | `docs/reflections/` (all `.md` files) | Architecture decisions, cross-cutting conventions, quality criteria |
+| **Roadmap docs** | `docs/` (all `.md` files in root) | Implementation details, WI specs, known errata, self-doc expectations |
 | **CLAUDE.md** | `.claude/CLAUDE.md` | Commands table, ecosystem roles, rules, memory conventions |
 | **Project commands** | `.claude/commands/*.md` | Project-level command definitions |
 
