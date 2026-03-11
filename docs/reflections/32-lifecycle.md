@@ -221,11 +221,12 @@ Each cycle:
 
 The debrief→maintain-specs loop is what keeps specs alive. Without it, specs drift from reality with every implementation session.
 
-**Three feedback paths.** Findings from implementation don't all go to the same place — each path serves a different layer:
+**Four feedback paths.** Findings from implementation don't all go to the same place — each path serves a different layer:
 
 1. **Implementation findings → `/brana:maintain-specs`** — when building reveals a spec error or gap, maintain-specs cascades the fix through dimension → reflection → roadmap. This is the **document layer**: correcting what the system says.
-2. **Tactical advice → task `context` field** — `system/rules/tactical-context.md` auto-appends session advice to related tasks by keyword/tag matching. This is the **execution layer**: enriching the next session that picks up the same task.
-3. **Reusable patterns → `/brana:retrospective`** — extracts durable patterns into claude-flow memory (ReasoningBank) with confidence tracking. This is the **knowledge layer**: building institutional memory that outlives any single task or spec.
+2. **Event capture → `/brana:log`** — links, calls, meetings, ideas, observations are captured into a searchable append-only log. This is the **observation layer**: recording what happened so it can be triaged later (e.g. promoted to a task or referenced in a review).
+3. **Tactical advice → task `context` field** — `system/rules/tactical-context.md` guides appending session advice to related tasks by keyword/tag matching. This is the **execution layer**: enriching the next session that picks up the same task.
+4. **Reusable patterns → `/brana:retrospective`** — extracts durable patterns into claude-flow memory (ReasoningBank) with confidence tracking. This is the **knowledge layer**: building institutional memory that outlives any single task or spec.
 
 ---
 
