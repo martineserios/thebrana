@@ -102,6 +102,7 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 82 | [Doc 32](reflections/32-lifecycle.md) missing tactical-context feedback path | **High** | applied (2026-03-11) | Three feedback paths clarified: maintain-specs (document layer), tactical-context (execution layer), retrospective (knowledge layer). |
 | 83 | [Doc 29](reflections/29-venture-management-reflection.md) missing state sync for machine recovery | **High** | applied (2026-03-11) | "State Transfer and Recovery" subsection added with push/pull/export/import workflow and team onboarding via snapshot. |
 | 84 | [Doc 14](reflections/14-mastermind-architecture.md) hook responsibilities incomplete — missing sync additions | **Medium** | applied (2026-03-11) | SessionStart step 8 (fork push), SessionEnd steps 9-10 (snapshot + sync companions) added to hook sequences. |
+| 85 | [ADR-015](architecture/decisions/ADR-015-state-consolidation-plugin-first.md) sync trigger matrix omits session-end push for global state | **Medium** | applied (2026-03-11) | Matrix listed session-end as MEMORY.md snapshot only. Reality: session-end now also pushes global state (event-log, portfolio, tasks). Matrix + "Why both?" paragraph updated. |
 
 ---
 
