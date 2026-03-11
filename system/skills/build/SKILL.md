@@ -208,24 +208,35 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
 
 ### PLAN
 
-1. **Break spec into ordered tasks** with acceptance criteria.
+1. **Impact analysis** (if `docs/spec-graph.json` exists):
+   From the feature description, identify `system/` files likely to be modified. Read `docs/spec-graph.json` and find all nodes whose `impl_files` contain those paths. Display a blast radius table:
+
+   | Doc | Type | Relevant because |
+   |-----|------|-----------------|
+   | docs/reflections/14-... | impl_files match | Contains system/skills/build references |
+
+   Use this to inform the task breakdown — each affected doc area may need its own task.
+
+   **Fallback:** If `docs/spec-graph.json` doesn't exist, skip impact analysis and proceed directly to task breakdown.
+
+2. **Break spec into ordered tasks** with acceptance criteria.
    - Each task is small enough for one commit
    - Titles are imperative: "Implement X", "Add Y"
    - Dependencies are explicit
 
-2. **Check GitHub Issues:**
+3. **Check GitHub Issues:**
    ```bash
    gh repo view --json hasIssuesEnabled 2>/dev/null
    ```
    If available, create a tracking issue + sub-issues. Otherwise, create tasks.json entries.
 
-3. **Present the plan** for approval. Use AskUserQuestion:
+4. **Present the plan** for approval. Use AskUserQuestion:
    ```
    question: "Task breakdown ready. Approve?"
    options: ["Approve", "Adjust", "Cancel"]
    ```
 
-4. Update spec status to `building`.
+5. Update spec status to `building`.
 
 ### BUILD
 
