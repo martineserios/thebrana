@@ -5,7 +5,7 @@
       "projects": [
         {
           "slug": "proyecto_anita",
-          "path": "~/enter_thebrana/projects/proyecto_anita",
+          "path": "~/enter_thebrana/clients/proyecto_anita",
           "type": "hybrid",
           "stage": "growth",
           "tech_stack": ["python", "fastapi", "react", "nextjs", "supabase", "gcp"],
@@ -18,7 +18,7 @@
       "projects": [
         {
           "slug": "tinyhomes",
-          "path": "~/enter_thebrana/projects/tinyhomes",
+          "path": "~/enter_thebrana/clients/tinyhomes",
           "type": "venture",
           "stage": "validation",
           "tech_stack": ["supabase", "expo", "react-native", "mercadopago"],
@@ -31,7 +31,7 @@
       "projects": [
         {
           "slug": "somos_mirada",
-          "path": "~/enter_thebrana/projects/somos_mirada",
+          "path": "~/enter_thebrana/clients/somos_mirada",
           "type": "venture",
           "stage": "growth",
           "tech_stack": ["respond-io", "whatsapp", "ai-agents"],
@@ -44,7 +44,7 @@
       "projects": [
         {
           "slug": "eyedetect",
-          "path": "~/enter_thebrana/projects/nexeye_eyedetect",
+          "path": "~/enter_thebrana/clients/nexeye_eyedetect",
           "type": "hybrid",
           "stage": "growth",
           "tech_stack": ["python", "fastapi", "react", "computer-vision", "docker", "supabase"],
