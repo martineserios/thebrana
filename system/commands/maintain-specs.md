@@ -19,7 +19,11 @@ If no pending errata → it will report "No pending errata" and this step is don
 
 ## Step 2: Re-evaluate reflections
 
-Run `/brana:re-evaluate-reflections`. It cross-checks all 5 reflection docs (08, 14, 29, 31, 32) against the dimension docs they depend on and logs any new gaps as doc 24 errata entries.
+**Graph-scoped evaluation:** If `docs/spec-graph.json` exists and a specific doc was changed in Step 1, read its `referenced_by` list from the graph. Only re-evaluate those 1-hop neighbors instead of all 5 reflections. This focuses the evaluation on docs actually affected by the change.
+
+**Fallback:** If `docs/spec-graph.json` doesn't exist, or if the changed doc isn't in the graph, re-evaluate all 5 reflection docs (current behavior).
+
+Run `/brana:re-evaluate-reflections`. It cross-checks reflection docs against the dimension docs they depend on and logs any new gaps as doc 24 errata entries.
 
 If no gaps found → report "Reflections current" and skip to Step 3.
 
