@@ -452,7 +452,7 @@ Each document should mark its key decisions with a consistent pattern (a heading
 
 ## All Commands
 
-The brana system has 25 skills (invoked as `/brana:*`), 4 agent commands, and 11 specialized agents (scout, memory-curator, client-scanner, venture-scanner, challenger, debrief-analyst, archiver, daily-ops, metrics-collector, pipeline-tracker, pr-reviewer). Skills and agents integrate via five patterns documented in [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md).
+The brana system has 25+ skills (invoked as `/brana:*`), 4 agent commands, and 11 specialized agents (scout, memory-curator, client-scanner, venture-scanner, challenger, debrief-analyst, archiver, daily-ops, metrics-collector, pipeline-tracker, pr-reviewer). Skills and agents integrate via five patterns documented in [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md).
 
 ### Spec Maintenance
 

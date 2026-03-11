@@ -41,7 +41,7 @@ Two layers: the **plugin** (toolkit — loaded by Claude Code's plugin system) a
 ```
 thebrana/system/                              PLUGIN (loaded by Claude Code)
 ├── .claude-plugin/plugin.json                ← Plugin manifest
-├── skills/                                   ← 25 skills as /brana:* slash commands
+├── skills/                                   ← /brana:* slash commands (see system/skills/)
 │   ├── build/SKILL.md                        ← Unified dev command — 7 strategies, task-aware
 │   ├── close/SKILL.md                        ← Session end — learnings, handoff, patterns
 │   ├── backlog/SKILL.md                      ← Plan, track, and execute tasks across phases and streams
@@ -152,7 +152,7 @@ Loaded automatically:
   5. ~/projects/alpha/.claude/rules/* ← path-scoped project rules
 
 Available on demand (via brana plugin):
-  6. /brana:build, /brana:backlog, etc.  ← 25 skills loaded from plugin
+  6. /brana:build, /brana:backlog, etc.  ← Skills loaded from plugin (see system/skills/)
   7. Agent commands                    ← maintain-specs, apply-errata, etc.
   8. ~/projects/alpha/.claude/skills/* ← /deploy, /migrate (project-specific)
   9. Other installed plugins           ← pr-review-toolkit, security-guidance, etc.
@@ -176,7 +176,7 @@ Skills are user-invocable workflows (`/command`). Agents auto-delegate when the 
 
 **Pattern B: Agent preloads skill knowledge.** Agents can have skills preloaded via the `skills:` YAML field — full skill content injected at startup, not just available for invocation. Use sparingly: only for small domain knowledge skills where the agent always needs that context. Large skills bloat the agent's context window.
 
-**Pattern C: Auto-delegation fills skill invocation gaps.** Vercel's eval found skills aren't invoked 56% of the time even when available. Explicit "Use when..." descriptions raise invocation from 53% to 79%. Agents fill the remaining gap (79% to ~95%) via auto-delegation — the model routes to a relevant agent when the user doesn't invoke the corresponding skill. **Key architectural implication:** static markdown in context (CLAUDE.md/AGENTS.md) achieves **100%** availability — passive context always beats skill-based retrieval. The knowledge architecture should prioritize what goes in always-loaded context based on availability risk: always-needed knowledge → CLAUDE.md (100%), explicit workflows → skills (79% with good descriptions + agents close the gap). **Status (Mar 2026):** All 24 deployed skills have explicit "Use when..." trigger descriptions in their SKILL.md frontmatter. All skills include `AskUserQuestion` in `allowed-tools` — interactive confirmations use selectable options instead of plain text prompts, with batching (up to 4 questions per call). Context budget raised to ~26KB to accommodate trigger text, context-budget rule, additional skills, and workflow practice rules.
+**Pattern C: Auto-delegation fills skill invocation gaps.** Vercel's eval found skills aren't invoked 56% of the time even when available. Explicit "Use when..." descriptions raise invocation from 53% to 79%. Agents fill the remaining gap (79% to ~95%) via auto-delegation — the model routes to a relevant agent when the user doesn't invoke the corresponding skill. **Key architectural implication:** static markdown in context (CLAUDE.md/AGENTS.md) achieves **100%** availability — passive context always beats skill-based retrieval. The knowledge architecture should prioritize what goes in always-loaded context based on availability risk: always-needed knowledge → CLAUDE.md (100%), explicit workflows → skills (79% with good descriptions + agents close the gap). **Status (Mar 2026):** All deployed skills have explicit "Use when..." trigger descriptions in their SKILL.md frontmatter. All skills include `AskUserQuestion` in `allowed-tools` — interactive confirmations use selectable options instead of plain text prompts, with batching (up to 4 questions per call). Context budget raised to ~26KB to accommodate trigger text, context-budget rule, additional skills, and workflow practice rules.
 
 **Pattern D: Multi-agent workflows.** For subagents: agents cannot spawn other agents (subagent limitation). Orchestration stays in the main context via skills that use the Task tool to spawn multiple agents in parallel. The skill is the conductor; agents are the musicians. For Agent Teams (experimental, Feb 2026): peer-to-peer coordination with shared task lists and DAG dependencies — but at 2x token cost (~800k vs ~440k for 3-worker team), no file locking, and disabled by default. **Use subagents for production orchestration; reserve Agent Teams for genuinely parallel multi-file work where peer coordination justifies the experimental status and cost.**
 

@@ -142,7 +142,7 @@ Skills referencing other skills (internal cross-refs):
 system/
 ├── .claude-plugin/
 │   └── plugin.json              ← NEW
-├── skills/                      ← existing (24 skills)
+├── skills/                      ← existing skills
 │   ├── build/SKILL.md
 │   ├── challenge/SKILL.md
 │   └── ...

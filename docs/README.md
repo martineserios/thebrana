@@ -8,7 +8,7 @@ Source of truth for every component. Read these when you need exact behavior.
 
 | File | Contents |
 |------|----------|
-| [skills.md](reference/skills.md) | All 25 skills with subcommands, triggers, allowed tools, examples |
+| [skills.md](reference/skills.md) | All skills with subcommands, triggers, allowed tools, examples |
 | [hooks.md](reference/hooks.md) | All 10 hooks with I/O JSON specs, event types, matcher patterns |
 | [agents.md](reference/agents.md) | All 11 agents with models, tools, auto-fire triggers, behavior specs |
 | [rules.md](reference/rules.md) | All 12 rules with full content |

@@ -52,7 +52,7 @@ system/
 ├── .claude-plugin/
 │   ├── plugin.json              ← plugin manifest (name, version, author)
 │   └── marketplace.json         ← marketplace listing (features, install instructions)
-├── skills/                      ← /brana:* slash commands (24 skills)
+├── skills/                      ← /brana:* slash commands
 ├── commands/                    ← agent commands
 ├── hooks/
 │   ├── hooks.json               ← hook event→script mapping
