@@ -290,9 +290,10 @@ On every session start:
      - .needs-backprop → "System files changed, update docs in next commit"
      - pending-learnings.md → "N unprocessed sessions, consider /brana:close"
   7. Log recalled patterns to session JSONL for promotion tracking
+  8. Fork `sync-state.sh push` to background (non-blocking state sync)
 ```
 
-This is the moment where the single brain activates — it doesn't start from zero, it starts from everything it's ever learned. The correction-pattern priority recall (Wave 3) ensures that proven fixes from past sessions are surfaced before generic patterns.
+This is the moment where the single brain activates — it doesn't start from zero, it starts from everything it's ever learned. The correction-pattern priority recall (Wave 3) ensures that proven fixes from past sessions are surfaced before generic patterns. The background state push (ADR-015) ensures repo-committed state stays current without blocking session startup.
 
 ### SessionEnd — "Remember what you learned"
 
@@ -319,6 +320,8 @@ On every session end:
   6. Write to Layer 0: sessions.md, pending-learnings.md (if CF fails)
   7. Auto-generate minimal handoff note if /brana:close wasn't called
   8. Detect system file drift → write .needs-backprop flag for next session
+  9. Snapshot MEMORY.md via `sync-state.sh snapshot`
+ 10. Sync companion files (sessions.md, session-handoff.md, event-log.md, MEMORY-snapshot.md)
 ```
 
 ### PostToolUse + PostToolUseFailure — "Notice important moments"
@@ -415,6 +418,12 @@ Skills can run headless via `claude -p "Execute /skill-name"` — the scheduler 
 
 - **staleness-report** (weekly, Monday 08:00) — layer-aware spec doc freshness check (`scripts/staleness-report.sh`)
 - Additional jobs configured in `scheduler.json`, deployed via `brana-scheduler deploy`
+
+---
+
+## Operational State Sync (ADR-015)
+
+The brain's state is distributed across repos, auto memory, and claude-flow. `sync-state.sh` reconciles them with five subcommands: `push` (cache to repos), `pull` (repos to cache), `export` (claude-flow to repo JSON), `import` (repo JSON to claude-flow), and `snapshot` (capture MEMORY.md for a project). Sync is hook-driven rather than manual: SessionStart forks `push` to background so it never blocks startup, and SessionEnd snapshots the current project's memory and syncs companion files (sessions.md, session-handoff.md, event-log.md, MEMORY-snapshot.md). On a new machine, `pull` + `import` restores the full operational state from repo-committed artifacts.
 
 ---
 

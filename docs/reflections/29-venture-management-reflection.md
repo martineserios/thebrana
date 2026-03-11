@@ -139,6 +139,17 @@ Current namespaces: `patterns`, `decisions`, `alignment`
 
 Existing tags (`project:`, `tech:`, `type:`, `outcome:`) continue to work. Business tags layer on top.
 
+### State Transfer and Recovery
+
+Venture skills produce distributed artifacts across sessions: growth-check snapshots, monthly financials, pipeline deals, event logs, and task portfolios. These live in project repos and claude-flow memory — losing either means losing operational continuity.
+
+`sync-state.sh` ([ADR-015](../architecture/decisions/ADR-015-state-sync.md)) handles transfer:
+- `push` persists session state (MEMORY.md, tasks.json, ReasoningBank entries) to project repos
+- `pull` restores state on a new machine
+- `export`/`import` handles claude-flow patterns separately (embedding-dependent)
+
+New machine recovery: `sync-state.sh pull && sync-state.sh import`. Team onboarding uses `sync-state.sh snapshot [project-dir]` for selective MEMORY.md sharing without exposing full session history.
+
 ---
 
 ## The Five New Skills
