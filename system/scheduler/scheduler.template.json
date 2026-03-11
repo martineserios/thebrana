@@ -72,6 +72,27 @@
       "timeoutSeconds": 600,
       "captureOutput": true,
       "_comment": "Weekly full reindex of brana-knowledge dimension docs into claude-flow memory"
+    },
+    "sync-state": {
+      "type": "command",
+      "command": "./system/scripts/sync-state.sh push --auto-commit",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 09:00:00",
+      "enabled": true,
+      "timeoutSeconds": 60,
+      "captureOutput": true,
+      "_comment": "ADR-015: daily safety net — sync operational state from cache to repos"
+    },
+    "export-patterns": {
+      "type": "command",
+      "command": "./system/scripts/sync-state.sh export --auto-commit",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Sun *-*-* 03:05:00",
+      "enabled": true,
+      "maxRetries": 1,
+      "timeoutSeconds": 120,
+      "captureOutput": true,
+      "_comment": "ADR-015: weekly backup of claude-flow patterns and decisions to git"
     }
   }
 }
