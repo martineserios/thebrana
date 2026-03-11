@@ -8547,7 +8547,7 @@
         "dx",
         "quick-win"
       ],
-      "status": "in_progress",
+      "status": "completed",
       "stream": "bugs",
       "type": "task",
       "parent": null,
@@ -8560,10 +8560,10 @@
       "github_issue": 154,
       "created": "2026-03-09",
       "started": "2026-03-11",
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-11",
+      "notes": "Only pick→start and portfolio→status --all renamed. roadmap and triage kept as-is per user decision.",
       "context": "Discovered during proyecto_anita session — /brana:backlog invocation intercepted Claude Code's native TaskCreate/TaskUpdate/TaskList tools. Native /tasks is useful for lightweight todo tracking without the full brana task system. Both should coexist.\n\nDecision: rename to /brana:backlog. Subcommand renames:\n- roadmap → view (backlog view = full tree, more natural)\n- portfolio → status --all (fold cross-project into status with flag)\n- reprioritize → prioritize (shorter, 'backlog prioritize' reads well)\n\nBare /brana:backlog → usage/help (not status — explicit is better).\n\nFiles to update:\n- skills/tasks/SKILL.md (name field, all command references)\n- rules/delegation-routing.md (trigger table)\n- rules/task-convention.md (branch/start/done references)\n- skills/build/SKILL.md (references /brana:backlog start/done)\n- skills/close/SKILL.md (references /brana:backlog)\n- skills/venture-phase/SKILL.md, align/SKILL.md, onboard/SKILL.md (if they reference it)\n- Rename directory: skills/tasks/ → skills/backlog/",
-      "build_step": "build"
+      "build_step": null
     },
     {
       "id": "t-290",
