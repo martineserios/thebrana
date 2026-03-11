@@ -6,7 +6,7 @@ The `/brana:build` command handles all development work -- features, bug fixes, 
 
 ```
 /brana:build "JWT authentication for the API"   -- describe what you want
-/brana:backlog pick t-015                        -- start from an existing task
+/brana:backlog start t-015                        -- start from an existing task
 /brana:build                                     -- asks what to build
 ```
 
@@ -33,7 +33,7 @@ The `/brana:build` command handles all development work -- features, bug fixes, 
 
 `/brana:build` works deeply with `/brana:backlog`:
 
-- `/brana:backlog pick <id>` auto-classifies the work type and enters `/brana:build`
+- `/brana:backlog start <id>` auto-classifies the work type and enters `/brana:build`
 - During build, the task's `build_step` field tracks progress (specify/plan/build/close)
 - CLOSE auto-completes the task and updates tasks.json
 - Task tags and description seed the research phase
@@ -42,7 +42,7 @@ The `/brana:build` command handles all development work -- features, bug fixes, 
 
 | Skill | How it connects |
 |-------|----------------|
-| `/brana:backlog pick` | Enters build via task selection |
+| `/brana:backlog start` | Enters build via task selection |
 | `/brana:challenge` | Reviews spec during SPECIFY (context-isolated via fork) |
 | `/brana:retrospective` | Stores learnings at CLOSE |
 | `/brana:close` | Session-level close (build's CLOSE is per-task) |

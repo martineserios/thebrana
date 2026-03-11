@@ -25,7 +25,7 @@ After giving actionable advice that relates to a pending or in-progress task —
    ```
    If `context` is null, set it. If it exists, append with a newline separator.
 
-5. **Scope: current project only.** Read tasks.json from CWD's project. Don't cross-reference other clients' tasks — that's `/brana:backlog portfolio` territory.
+5. **Scope: current project only.** Read tasks.json from CWD's project. Don't cross-reference other clients' tasks — that's `/brana:backlog status --all` territory.
 
 ## What qualifies as tactical advice
 

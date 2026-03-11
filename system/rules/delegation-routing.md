@@ -12,7 +12,7 @@ When a trigger matches, **invoke the skill** — don't just suggest it. Only nud
 |---------|--------|
 | Work starting (feat/fix/refactor) | check `tasks.json`, then `/brana:build` |
 | Planning new work | `/brana:backlog plan` or `/brana:backlog add` |
-| Backlog item picked to implement | `/brana:backlog pick` → `/brana:build` |
+| Backlog item picked to implement | `/brana:backlog start` → `/brana:build` |
 | Session ending (user says done/bye/closing) | `/brana:close` |
 | Big decision (challenger didn't fire) | `/brana:challenge` |
 | New project or unfamiliar codebase | `/brana:onboard` |

@@ -1,4 +1,4 @@
-# Feature: /brana:backlog portfolio
+# Feature: /brana:backlog status --all
 
 **Date:** 2026-02-23
 **Status:** shipped
@@ -7,7 +7,7 @@
 
 ## Goal
 
-Add a `portfolio` subcommand to the `/brana:backlog` skill that shows actionable tasks across all registered clients — answering "what should I work on next?" at a glance.
+Add a `status --all` flag to the `/brana:backlog` skill that shows actionable tasks across all registered clients — answering "what should I work on next?" at a glance. (Originally shipped as `/brana:backlog portfolio`, renamed to `/brana:backlog status --all` in t-289.)
 
 ## Audience
 
@@ -116,7 +116,7 @@ Top line: `Portfolio — {total} tasks across {N} clients ({pending} pending, {i
 ### Distinction from `/brana:backlog status`
 
 `/brana:backlog status` (no project) = progress bars per project (how far along)
-`/brana:backlog portfolio` = individual task list (what to do next)
+`/brana:backlog status --all` = individual task list (what to do next)
 
 ## Design
 

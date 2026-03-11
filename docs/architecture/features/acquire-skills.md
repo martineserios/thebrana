@@ -32,7 +32,7 @@ The brana operator (me) — when entering a new project, picking up unfamiliar t
 
 ## Deferred
 
-- Auto-trigger on `/brana:backlog pick` (premature — no evidence of frequency)
+- Auto-trigger on `/brana:backlog start` (premature — no evidence of frequency)
 - Quality scoring beyond marketplace-provided scores
 - Lifecycle management (usage-based promotion/removal)
 - Skill update checking (version drift)

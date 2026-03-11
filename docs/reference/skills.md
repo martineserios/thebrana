@@ -54,7 +54,7 @@ Manage the project backlog -- plan, track, and navigate work across phases, mile
 /brana:backlog status                    -- portfolio overview
 /brana:backlog next --stream roadmap     -- next roadmap task
 /brana:backlog add "Fix auth token expiry"
-/brana:backlog pick t-008               -- start working on task
+/brana:backlog start t-008               -- start working on task
 ```
 
 ---

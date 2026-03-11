@@ -136,7 +136,7 @@ Claude: Starting t-005 'Implement JWT middleware'
 You: "yes"
 ```
 
-Or: `/brana:backlog pick t-005`
+Or: `/brana:backlog start t-005`
 
 ### Finishing work
 
@@ -445,7 +445,7 @@ Claude: Marking done. Notes: "Client approved API changes via email."
 | `/brana:backlog status [project]` | Progress view (portfolio if no project) |
 | `/brana:backlog roadmap <project>` | Full tree with all levels |
 | `/brana:backlog next [project]` | Next unblocked by priority |
-| `/brana:backlog pick <id>` | Begin work (branch, status) |
+| `/brana:backlog start <id>` | Begin work (branch, status) |
 | `/brana:backlog done [id]` | Complete (commit, PR, status) |
 | `/brana:backlog plan [project] "[phase]"` | Interactive planning |
 | `/brana:backlog add "[task]"` | Quick add |
@@ -588,7 +588,7 @@ Override per task with `agent_config.model`.
 
 Retry failed tasks: `/brana:backlog execute --retry <scope>`
 
-Or take over manually: `/brana:backlog pick <id>` on any failed task.
+Or take over manually: `/brana:backlog start <id>` on any failed task.
 
 ---
 

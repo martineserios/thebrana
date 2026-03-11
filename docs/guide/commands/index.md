@@ -18,10 +18,10 @@ All brana commands, grouped by workflow.
 | `/brana:backlog plan [project]` | Plan a phase interactively |
 | `/brana:backlog status [project]` | Progress overview |
 | `/brana:backlog next [project]` | Next unblocked task by priority |
-| `/brana:backlog pick <id>` | Begin work (enters /brana:build for code tasks) |
+| `/brana:backlog start <id>` | Begin work (enters /brana:build for code tasks) |
 | `/brana:backlog done [id]` | Complete task (manual/external only — code tasks use /brana:build CLOSE) |
 | `/brana:backlog add "description"` | Quick-add a task |
-| `/brana:backlog portfolio` | Cross-project task view |
+| `/brana:backlog status --all` | Cross-project task view |
 | `/brana:backlog roadmap [project]` | Full tree view |
 | `/brana:backlog tags [project]` | Tag inventory and filtering |
 | `/brana:backlog context <id>` | View or set task context |

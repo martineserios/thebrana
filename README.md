@@ -33,7 +33,7 @@ cd thebrana && ./bootstrap.sh
 
 ```
 /brana:build "add user authentication"   -- auto-detects strategy (feature, bug fix, refactor...)
-/brana:backlog pick t-015                -- pick a task and enter the build loop
+/brana:backlog start t-015                -- pick a task and enter the build loop
 /brana:close                             -- end session, capture learnings
 ```
 
