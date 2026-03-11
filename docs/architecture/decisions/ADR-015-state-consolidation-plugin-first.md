@@ -253,7 +253,7 @@ session-end    ─→ MEMORY.md snapshot
                                                ─→ rebuild knowledge ns
 ```
 
-**Why both?** Hooks fire on every session (fast, ~90% of syncs). But `session-end.sh` runs in a background fork and may fail silently. The scheduler guarantees no sync gap exceeds 24h. `Persistent=true` means if the machine was asleep at 9am, the job runs as soon as it wakes.
+**Why both?** Both `session-start.sh` and `session-end.sh` perform push (belt and suspenders). But both run in background forks and may fail silently. The scheduler guarantees no sync gap exceeds 24h. `Persistent=true` means if the machine was asleep at 9am, the job runs as soon as it wakes.
 
 #### Sync trigger matrix
 
@@ -267,6 +267,9 @@ session-start.sh    event-log.md, portfolio.md     cache ↔ repo     every sess
                     MEMORY-snapshot.md              cache → repo     every session
 
 session-end.sh      MEMORY.md snapshot             CC path → cache  every session
+                    event-log.md, portfolio.md     cache → repo     every session
+                    tasks-portfolio.json            cache → repo     every session
+                    sessions.md, handoff.md         cache → repo     every session
 
 sync-state (sched)  same as session-start           cache ↔ repo     daily 9am
 
