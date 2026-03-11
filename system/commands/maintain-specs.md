@@ -116,6 +116,18 @@ BACKUP_SCRIPT="$HOME/enter_thebrana/brana-knowledge/backup.sh"
 
 If the script doesn't exist, skip silently — the user hasn't set up the knowledge repo yet.
 
+## Step 9: Regenerate spec graph
+
+If any steps above modified docs (applied errata, deepened reflections, updated doc 25), regenerate the spec dependency graph so consumers stay current:
+
+```bash
+uv run python3 system/scripts/spec_graph.py generate
+```
+
+If `spec_graph.py` doesn't exist, skip silently.
+
+If no docs were modified this run → skip: "Spec graph unchanged."
+
 ## Rules
 
 - **Early exit at every step.** If a step finds nothing, say so and move on. Don't force work where there's none.

@@ -227,9 +227,8 @@ if [ -f "$SPEC_GRAPH" ]; then
             STALE_WARNING="Spec graph is stale (generated: $GENERATED, ${DAYS_OLD}d ago). Run: uv run python3 system/scripts/spec_graph.py generate"
         fi
     fi
-else
-    STALE_WARNING="No spec graph found. Run: uv run python3 system/scripts/spec_graph.py generate"
 fi
+# No warning if graph doesn't exist — session-end auto-generates it
 
 # ── Decision log: inject HIGH findings from last session ──
 DECISION_CONTEXT=""
