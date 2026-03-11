@@ -116,7 +116,7 @@ The fastest-rotting content is external tool versions (#2 on the staleness gradi
 | agentic-flow | v2.0.7 | https://www.npmjs.com/package/agentic-flow |
 ```
 
-When `/refresh-knowledge` runs, agents compare pinned versions against the latest from each Source URL. Version deltas are the highest-priority output — a breaking change in claude-flow is more urgent than a new blog post. After applying updates, the Versions table is updated to the new baseline. Packages pinned as "—" get their first version filled on the first refresh cycle.
+When `/brana:research --refresh` runs, agents compare pinned versions against the latest from each Source URL. Version deltas are the highest-priority output — a breaking change in claude-flow is more urgent than a new blog post. After applying updates, the Versions table is updated to the new baseline. Packages pinned as "—" get their first version filled on the first refresh cycle.
 
 ### Dependency-Triggered Reviews
 
@@ -452,7 +452,7 @@ Each document should mark its key decisions with a consistent pattern (a heading
 
 ## All Commands
 
-The brana system has skills across code-focused and venture/business categories, plus agents (scout, memory-curator, client-scanner, venture-scanner, challenger, debrief-analyst, archiver, daily-ops, metrics-collector, pipeline-tracker). Commands are organized in four categories, all invoked via `/command-name` in a session. Skills and agents integrate via four patterns documented in [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md).
+The brana system has 25 skills (invoked as `/brana:*`), 4 agent commands, and 11 specialized agents (scout, memory-curator, client-scanner, venture-scanner, challenger, debrief-analyst, archiver, daily-ops, metrics-collector, pipeline-tracker, pr-reviewer). Skills and agents integrate via five patterns documented in [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md).
 
 ### Spec Maintenance
 
@@ -460,13 +460,12 @@ Commands for keeping the spec repo healthy. These operate on documents.
 
 | Command | Purpose | When to use |
 |---|---|---|
-| **`/brana:maintain-specs`** | Full correction cycle: apply errata → re-evaluate reflections → deepen → check [doc 25](25-self-documentation.md) → update memory → surface findings | **After `/debrief`, or when you suspect doc drift** |
-| `/refresh-knowledge` | Web search for external updates to dimension and venture/PM docs (10 topic groups, including Group J: [docs 19](19-pm-system-design.md), 28, 29, 34) | Before `/brana:maintain-specs` when external tools may have changed |
-| `/brana:research` | Atomic research primitive: topic, doc, creator, or leads — recursive discovery with source registry | **Ad-hoc research** or called by `/refresh-knowledge` per doc. See [33-research-methodology.md](dimensions/33-research-methodology.md) |
+| **`/brana:maintain-specs`** | Full correction cycle: apply errata → re-evaluate reflections → deepen → check [doc 25](25-self-documentation.md) → update memory → surface findings | **After `/brana:close`, or when you suspect doc drift** |
+| `/brana:research --refresh` | Web search for external updates to dimension docs (batch mode, parallel scouts by topic group) | Before `/brana:maintain-specs` when external tools may have changed |
+| `/brana:research` | Atomic research primitive: topic, doc, creator, or leads — recursive discovery with source registry | **Ad-hoc research**. See [33-research-methodology.md](dimensions/33-research-methodology.md) |
 | `/brana:re-evaluate-reflections` | Cross-check dimension vs reflection docs | When you only want to check, not fix |
 | `/brana:apply-errata` | Apply pending fixes from [doc 24](24-roadmap-corrections.md), layer by layer | When you already have errata and just want to apply them |
-| `/back-propagate` | Reverse flow: implementation change → identify affected spec docs → update dimension/reflection/roadmap | **After adding/changing a rule, hook, skill, or config** — closes the implementation→spec gap |
-| `/brana:reconcile` | Detect drift between enter specs and thebrana implementation, plan fixes, apply after approval | **After `/brana:maintain-specs`** when impl-relevant specs changed, or periodically to check for accumulated drift |
+| `/brana:reconcile` | Detect drift between specs and thebrana implementation, plan fixes, apply after approval | **After `/brana:maintain-specs`** when impl-relevant specs changed, or periodically to check for accumulated drift |
 | `/brana:repo-cleanup` | Commit accumulated spec doc changes with proper branching | When modified files have built up across sessions |
 
 ### Knowledge Management
@@ -478,11 +477,11 @@ Commands for the learning loop. These operate on the pattern memory (claude-flow
 | `/brana:memory recall` | Search learned patterns, grouped by confidence tier (proven/quarantined/suspect) | **Start of work** — "what do I already know about this?" |
 | `/brana:retrospective` | Store a learning + review recalled patterns (promote useful, demote harmful) | **End of work** — "what did I learn this session?" |
 | `/brana:memory pollinate` | Pull transferable patterns from other clients | **When stuck** — "did another project solve this?" |
-| `/project-onboard` | Bootstrap a new code project: scan structure, recall relevant patterns, suggest CLAUDE.md | **Once per project** — first session in a new codebase |
-| `/project-align` | Active alignment pipeline: assess gaps → plan → implement structure → verify → document | **After `/project-onboard`** identifies gaps, or when setting up a new project |
+| `/brana:onboard` | Scan and diagnose a project (code, venture, or hybrid) — structure, stage, gaps, patterns | **First session on a new project** — auto-detects project type |
+| `/brana:align` | Active alignment pipeline: assess gaps → plan → implement structure → verify → document | **After `/brana:onboard`** identifies gaps, or when setting up a new project |
 | `/brana:client-retire` | Archive a project's patterns, keep transferable ones active | **Once per project** — when a project is done |
 | `/brana:memory review` | Monthly ReasoningBank health check: stats, staleness, promotion candidates | **Monthly** or when curious about knowledge health |
-| `/session-handoff` | Auto-detect close/pickup mode. Close: debrief-analyst → store learnings as quarantined patterns (retrospective) → graduation suggestions → doc drift heuristic → handoff note → claude-flow store. Pickup: read handoff → reconcile cross-session changes → surface flags + correction patterns | **Session start or end** — auto-detects which mode based on git activity |
+| `/brana:close` | Session end: debrief-analyst → store learnings as quarantined patterns → doc drift heuristic → handoff note → claude-flow store | **Session end** — auto-detects what happened from git activity |
 
 ### Implementation & Quality
 
@@ -490,17 +489,16 @@ Commands for building and reviewing.
 
 | Command | Purpose | When to use |
 |---|---|---|
-| `/build-phase` | Implement next roadmap phase with scaffolding gates + learning loops. Build loop: plan → implement → autonomous fix (2 attempts before escalate) → verify (before/after state check) → commit → mini-debrief | When ready to build the next phase |
-| `/build-feature` | Guide a feature from zero to shipped in 7 phases (orient, discover, shape, design, plan, build, close). Build loop: plan what you'll change and why → implement → autonomous fix on failure → verify before/after state → commit → mini-debrief with before/after check | **When building a new feature, capability, or deliverable in any project** — not for brana's own roadmap (use `/build-phase`) or business milestones (use `/brana:venture-phase`) |
-| `/debrief` | Extract errata, fixes, and process learnings from a session | **End of implementation sessions** |
+| `/brana:build` | Unified dev command — auto-detects strategy (feature, bug fix, refactor, spike, migration, investigation, greenfield). Build loop: specify → plan → build → close | **When building anything** — integrates with `/brana:backlog pick` |
+| `/brana:close` | Extract errata, learnings, patterns from a session. Write handoff note, detect doc drift | **End of session** — or when switching projects |
 | `/brana:challenge` | Spawn an Opus subagent to stress-test a plan or decision. Empty invocation self-challenges the last answer | **Before committing to a big decision**, or after any answer to stress-test it |
-| `/decide` | Create an Architecture Decision Record (ADR) in `docs/decisions/` | **Before implementing a significant decision** — captures context, decision, consequences |
-| `/usage-stats` | Token usage analytics — model distribution, activity trends, session efficiency | **When checking usage patterns** or evaluating model routing efficiency |
-| `/brana:backlog` | Plan, track, and execute tasks — hierarchy (phase > milestone > task), streams, tags, context, branch integration, agent execution via subagents | **When planning phases, viewing roadmaps, or executing task waves** — 13 subcommands including `execute`, `tags`, and `context` |
-| `/brana:scheduler` | Manage systemd-timer scheduled jobs — status, enable/disable, logs, manual runs. Thin wrapper over `brana-scheduler` CLI | **When managing scheduled background jobs** — see [ADR-002](decisions/ADR-002-scheduler-thin-layer-over-systemd.md) |
-| `/brana:respondio-prompts` | Respond.io AI agent prompt engineering — write instructions, actions, KB files, multi-agent architectures within platform constraints | **When writing or reviewing Respond.io agent prompts**, designing multi-agent handoff flows, or creating knowledge bases |
-| `/respondio` | Respond.io workspace operations via MCP — contacts, messages, conversations, tags, templates, lifecycle, audit | **When querying, debugging, or operating on Respond.io data** — live workspace interface, complements `/brana:respondio-prompts` |
-| `/pdf` | Convert markdown to PDF using md-to-pdf — consistent A4 format, clean styling | **When exporting proposals, docs, or reports to PDF** — produces client-ready output |
+| `/brana:backlog` | Plan, track, and execute tasks — hierarchy (phase > milestone > task), streams, tags, context, branch integration, agent execution via subagents | **When planning phases, viewing roadmaps, or executing task waves** — 15 subcommands including `execute`, `tags`, `context`, `theme`, `triage` |
+| `/brana:scheduler` | Manage systemd-timer scheduled jobs — status, enable/disable, logs, manual runs | **When managing scheduled background jobs** |
+| `/brana:respondio-prompts` | Respond.io AI agent prompt engineering — write instructions, actions, KB files, multi-agent architectures within platform constraints | **When writing or reviewing Respond.io agent prompts** |
+| `/brana:export-pdf` | Convert markdown to PDF using mdpdf — consistent A4 format, clean styling | **When exporting proposals, docs, or reports to PDF** |
+| `/brana:log` | Capture events (links, calls, meetings, ideas) into append-only log. Bulk mode for WhatsApp dumps | **When something happened** — quick capture |
+| `/brana:plugin` | Manage Claude Code plugins — add marketplaces, install, update, remove, list | **When managing plugin installations** |
+| `/brana:acquire-skills` | Find and install skills for project tech gaps | **For new or unfamiliar tech** |
 
 ### Business & Venture Management
 
@@ -508,21 +506,16 @@ Commands for non-code project management. These operate on business project stru
 
 | Command | Purpose | When to use |
 |---|---|---|
-| `/venture-onboard` | Diagnostic: stage classification, framework recommendation, gap report | **First session on a business project** — the business equivalent of `/project-onboard` |
-| `/venture-align` | Active setup: stage-appropriate templates, SOPs, OKRs, metrics, meeting cadences | **After `/venture-onboard`** identifies gaps — the business equivalent of `/project-align` |
-| `/brana:venture-phase` | Plan and execute a business milestone (launch, hiring, fundraise, expansion, process overhaul) | **When executing a specific business milestone** — the business equivalent of `/build-phase` |
-| `/sop` | Create a structured, versioned Standard Operating Procedure | **When a repeatable process needs documenting** — the business equivalent of writing a spec |
-| `/growth-check` | AARRR funnel analysis + stage-appropriate metrics health check | **Monthly/quarterly** or when something feels wrong — the business equivalent of running tests |
-| `/morning` | Daily operational check: focus card, priorities, blockers, key metric. Step 3d shows personal tasks if `~/enter_thebrana/personal/` exists | **Daily** — start of work session on a business project |
-| `/weekly-review` | Weekly cadence review: portfolio health, metrics delta, ship log, next-week planning. Step 1c shows life area ratings if `~/enter_thebrana/personal/` exists | **Weekly** — end of work week |
-| `/personal-check` | Personal life check: tasks, life areas, journal freshness. Read-only focus card from `~/enter_thebrana/personal/` | **Daily** — personal priorities and life area health |
-| `/monthly-close` | Monthly financial close: P&L summary, actuals vs projections, trend analysis, runway | **Monthly** — financial close and business review |
-| `/monthly-plan` | Forward-looking monthly plan: revenue targets, priorities, experiments, pipeline actions | **Monthly** — after `/monthly-close`, planning next month |
+| `/brana:onboard` | Diagnostic: scan and diagnose a project (auto-detects code/venture/hybrid). For ventures: stage classification, framework recommendation, gap report | **First session on a business project** |
+| `/brana:align` | Active setup: stage-appropriate templates, SOPs, OKRs, metrics, meeting cadences | **After `/brana:onboard`** identifies gaps |
+| `/brana:venture-phase` | Plan and execute a business milestone (launch, hiring, fundraise, expansion, process overhaul) | **When executing a specific business milestone** |
+| `/brana:review` | Business health — weekly (default), monthly, or ad-hoc check. Replaces separate /morning, /weekly-review, /monthly-close, /monthly-plan | **Daily/weekly/monthly** — `/brana:review check` (daily), `/brana:review` (weekly), `/brana:review monthly` |
 | `/brana:pipeline` | Sales pipeline tracking: leads, deals, conversions, follow-ups | **Ongoing** — when managing sales activity |
-| `/experiment` | Growth experiment loop: hypothesis, test design, success criteria, results, learning | **When testing a growth hypothesis** |
-| `/content-plan` | Marketing content planning: themes, calendar, distribution, performance tracking | **Quarterly** — content strategy planning |
 | `/brana:financial-model` | Revenue projections, scenario analysis, P&L template, unit economics | **When building or updating financial projections** |
-| `/brana:gsheets` | Google Sheets operations via MCP: read, write, create, list, share | **When working with spreadsheet data** — batch operations, range queries |
+| `/brana:proposal` | Generate a client proposal — interview-driven, structured markdown with cost breakdown | **When preparing a service proposal** |
+| `/brana:meta-template` | Write Meta WhatsApp templates optimized for Utility classification | **When creating WhatsApp Business templates** |
+| `/brana:notebooklm-source` | Prepare and format sources for NotebookLM upload | **When feeding research into NotebookLM** |
+| `/brana:gsheets` | Google Sheets operations via MCP: read, write, create, list, share | **When working with spreadsheet data** |
 
 ### When to Use What — The Workflow Map
 
@@ -530,10 +523,10 @@ Commands fit into natural moments in your work. You don't need all of them every
 
 **Starting a new code project:**
 ```
-/project-onboard
+/brana:onboard
 ```
 
-Example: You clone a new Next.js + Supabase project. `/project-onboard` scans `package.json`, detects the stack, and recalls patterns from other clients that used the same tech:
+Example: You clone a new Next.js + Supabase project. `/brana:onboard` scans `package.json`, detects the stack, and recalls patterns from other clients that used the same tech:
 
 ```
 Tech stack detected: Next.js 14, Supabase, TypeScript, Tailwind
@@ -579,39 +572,20 @@ Example — broad recall before starting work:
 
 ---
 
-**Making a significant decision:**
-```
-/decide [title]
-```
-Creates an Architecture Decision Record (ADR) in `docs/decisions/`. Auto-increments the number, stores in ReasoningBank. Works for both code decisions ("use JWT for auth") and business decisions ("hire a COO before a CTO").
-
-Example:
-```
-/decide use PostgreSQL over MongoDB for user data
-```
-```
-Created: docs/decisions/ADR-003-use-postgresql-over-mongodb-for-user-data.md
-Status: proposed
-Next: Fill in Context, Decision, and Consequences sections.
-```
-
----
-
 **Aligning a project with brana practices:**
 ```
-/project-align
+/brana:align
 ```
-The active version of `/project-onboard`. Runs a 28-item checklist, identifies gaps, and creates the missing structure: CLAUDE.md, rules, docs/decisions/, test framework, domain glossary. Works in tiers (Minimal/Standard/Full) — the user picks.
+The active complement to `/brana:onboard`. Runs a 28-item checklist, identifies gaps, and creates the missing structure: CLAUDE.md, rules, docs/decisions/, test framework, domain glossary. Works in tiers (Minimal/Standard/Full) — the user picks.
 
 ---
 
 **Planning and building:**
 ```
-/build-phase           (brana's own roadmap phases)
-/build-feature [desc]  (any feature in any project)
+/brana:build [description]   (any feature, bug fix, refactor, spike, etc.)
 /brana:challenge [plan]      (adversarial review — or empty to self-challenge last answer)
 ```
-`/build-phase` plans, implements, debriefs, and maintains specs in one cycle — specifically for brana's roadmap. `/build-feature` is the general-purpose equivalent: it guides any feature from zero to shipped in 7 phases (orient, discover, shape, design, plan, build, close), spawning scout, memory-curator, challenger, and debrief-analyst agents at appropriate stages. Creates feature briefs in `docs/features/`, ADRs when `docs/decisions/` exists, and GitHub Issues when available. `/brana:challenge` is surgical — provide a plan to stress-test, or invoke empty to self-challenge the last answer.
+`/brana:build` is the unified dev command. It auto-detects strategy (feature, bug fix, refactor, spike, migration, investigation, greenfield) and guides work through 4 phases: specify → plan → build → close. Spawns scout, memory-curator, challenger, and debrief-analyst agents at appropriate stages. Creates feature briefs in `docs/features/`, ADRs when `docs/decisions/` exists. `/brana:challenge` is surgical — provide a plan to stress-test, or invoke empty to self-challenge the last answer.
 
 Example — stress-testing a migration plan:
 ```
@@ -671,37 +645,25 @@ Supabase RLS policies silently return empty rows instead of 403 errors.
 
 **End of implementation sessions:**
 ```
-/debrief
-/brana:maintain-specs
+/brana:close
 ```
-`/debrief` captures what went wrong (errata) and what you learned (lessons). `/brana:maintain-specs` propagates those findings into the spec docs. Together they close the feedback loop.
+`/brana:close` extracts what went wrong (errata) and what you learned (lessons), writes a handoff note for the next session, stores patterns, and detects doc drift. Then `/brana:maintain-specs` propagates findings into the spec docs.
 
 Example — after a Phase 2 implementation session:
 ```
-/debrief
+/brana:close
 ```
 ```
-## Debrief Complete
-### Errata documented: 2
-- Error #17: memory search preview truncates stored JSON values
-- Error #18: memory retrieve requires --namespace flag
-### Learnings documented: 1
-- search is for discovery, retrieve is for verification
-### Stored in claude-flow: 3 entries
-### Follow-up: Run /brana:maintain-specs to propagate findings
-```
-```
-/brana:maintain-specs
-```
-```
-## Spec Maintenance Report
-### Step 1: Re-evaluate Reflections
-- Doc 14: 1 gap found — Context7/claude-flow conflation. Fixed.
-### Step 2: Apply Errata
-- Error #19 applied (doc 14 table row split)
-### Step 3: Doc 25
-- Doc 25 current.
-### Summary: 1 error applied, 2 docs modified
+## Session Close
+Commits this session: 8
+Learnings extracted: 3 (2 errata, 1 learning, 0 issues)
+Patterns stored: 2
+Doc drift detected: yes
+Handoff note updated: ~/.claude/projects/.../memory/session-handoff.md
+
+### Follow-up
+- /brana:maintain-specs to propagate findings
+- Specs may need updating for changed system files
 ```
 
 ---
@@ -758,13 +720,13 @@ Updated portfolio.md: nexeye marked as retired.
 
 **Starting a new business project:**
 ```
-/venture-onboard
+/brana:onboard
 ```
-The business equivalent of `/project-onboard`. Classifies the business stage (Discovery/Validation/Growth/Scale), recommends frameworks (Lean Startup, EOS, OKRs, Scaling Up), and identifies gaps.
+Auto-detects project type (code/venture/hybrid). For ventures: classifies the business stage (Discovery/Validation/Growth/Scale), recommends frameworks (Lean Startup, EOS, OKRs, Scaling Up), and identifies gaps.
 
 Example:
 ```
-/venture-onboard
+/brana:onboard
 ```
 ```
 ## Venture Onboard: Acme SaaS
@@ -783,16 +745,16 @@ Important:
   - No CLAUDE.md with business context
   - No experiment tracking
 
-Suggested: Run /venture-align to implement the recommended structure
+Suggested: Run /brana:align to implement the recommended structure
 ```
 
 ---
 
 **Setting up business management structure:**
 ```
-/venture-align
+/brana:align
 ```
-The business equivalent of `/project-align`. Creates stage-appropriate templates: CLAUDE.md with business context, decision log, metrics framework, meeting cadence, OKR templates, SOP directory. Runs a stage-aware checklist and shows before/after scores.
+The active complement to `/brana:onboard`. Creates stage-appropriate templates: CLAUDE.md with business context, decision log, metrics framework, meeting cadence, OKR templates, SOP directory. Runs a stage-aware checklist and shows before/after scores.
 
 ---
 
@@ -800,7 +762,7 @@ The business equivalent of `/project-align`. Creates stage-appropriate templates
 ```
 /brana:venture-phase [type]
 ```
-The business equivalent of `/build-phase`. Plans and executes a business milestone with learning loops. Five built-in milestone types: product launch, hiring round, fundraise, market expansion, process overhaul. Each generates stage-appropriate work items with exit criteria.
+Plans and executes a business milestone with learning loops. Five built-in milestone types: product launch, hiring round, fundraise, market expansion, process overhaul. Each generates stage-appropriate work items with exit criteria.
 
 Example:
 ```
@@ -814,43 +776,25 @@ Work Items:
 | 1 | Role definition | Job spec in docs/ |
 | 2 | Job description | JD created |
 | 3 | Sourcing strategy | Strategy documented |
-| 4 | Interview process | SOP created via /sop |
-| 5 | Onboarding SOP | SOP created via /sop |
+| 4 | Interview process | SOP documented |
+| 5 | Onboarding SOP | SOP documented |
 
 Approve this plan? [y/n]
 ```
 
 ---
 
-**Documenting a repeatable business process:**
-```
-/sop [process name]
-```
-Creates a structured, versioned SOP in `docs/sops/SOP-NNN-slug.md`. Interviews the user about the process, then produces a template with: purpose, owner, trigger, steps with decision points, exit criteria, common issues, metrics. Auto-increments the SOP number (same pattern as `/decide`).
-
-Example:
-```
-/sop customer onboarding
-```
-```
-Created: docs/sops/SOP-001-customer-onboarding.md
-Owner: Customer Success
-Trigger: New customer signs contract
-Steps: 8 (including 2 decision points)
-Next review: 6 months
-```
-
----
-
 **Checking business health:**
 ```
-/growth-check
+/brana:review check        (daily focus card)
+/brana:review              (weekly health check — default)
+/brana:review monthly      (monthly close + forward plan)
 ```
-The business equivalent of running tests. Detects business model type (subscription, cycle-project, marketplace, consulting, service) and selects appropriate metrics. Audits stage-appropriate metrics against benchmarks, runs AARRR funnel analysis to identify the bottleneck, checks founder leverage for small teams (<40% on unique work = red), and compares against previous snapshots for trend tracking.
+`/brana:review` consolidates daily, weekly, and monthly business health into one command. Detects business model type and selects appropriate metrics. Weekly mode audits stage-appropriate metrics, runs AARRR funnel analysis, checks founder leverage, and compares against previous snapshots.
 
 Example:
 ```
-/growth-check
+/brana:review
 ```
 ```
 ## Growth Check: Acme SaaS
@@ -871,10 +815,8 @@ Trend vs last check: MRR ↑12%, churn → (flat), LTV:CAC ↓
 ---
 
 **Continuing a previous session:**
-```
-/session-handoff
-```
-Reads the handoff note left by the previous session, reconciles any cross-session changes, and picks up where the last session left off.
+
+The SessionStart hook auto-recalls patterns, tasks, and correction patterns from the previous session. No separate command needed — context is injected automatically when Claude Code starts.
 
 ### The Confidence Lifecycle
 
@@ -900,46 +842,39 @@ Hooks handle the plumbing (auto-recall at session start, auto-store at session e
 
 ### Command Architecture
 
-Three orchestrators (brana roadmap, any-project features, business milestones), shared learning loop. No circular follow-ups.
+Two orchestrators (code and business), shared learning loop. No circular follow-ups.
 
 ```
-BRANA ROADMAP              ANY PROJECT FEATURE          BUSINESS PROJECTS
-═════════════              ══════════════════            ═════════════════
+CODE PROJECTS                              BUSINESS PROJECTS
+══════════════                             ═════════════════
 
-/build-phase               /build-feature [desc]        /brana:venture-phase [type]
-  │                          │                            │
-  ├── Orient → Plan          ├── Orient → Discover        ├── Orient → Plan
-  │   → Recall               │   → Shape (brainstorm)     │   → Recall
-  ├── Build loop ─┐          │   → Design + ADR           ├── Execute loop ─┐
-  │   │  implement           │   → Plan (GH Issues)       │   │  create docs
-  │   │  → verify            ├── Build loop ─┐            │   │  → verify
-  │   │  → commit            │   │  implement              │   │  → mini-debrief
-  │   │  → mini-debrief      │   │  → verify → commit     │   │  → store learning
-  │   │  → store             │   │  → mini-debrief        │   └──────────────┐
-  │   └──────────┐           │   └──────────┐             ├── Validate exit criteria
-  ├── Validate exit criteria ├── Validate                 ├── Full debrief
-  ├── Full /debrief          ├── Full /debrief            └── Report
-  ├── Full /brana:maintain-specs   ├── Update feature brief
-  └── Tag release + report   └── Merge + report
+/brana:build [desc]                        /brana:venture-phase [type]
+  │                                          │
+  ├── SPECIFY → define scope + ADR           ├── Orient → Plan
+  │   → Recall patterns                      │   → Recall
+  ├── PLAN → implementation plan             ├── Execute loop ─┐
+  ├── BUILD loop ─┐                          │   │  create docs
+  │   │  implement                           │   │  → verify
+  │   │  → verify                            │   │  → mini-debrief
+  │   │  → commit                            │   │  → store learning
+  │   │  → mini-debrief                      │   └──────────────┐
+  │   └──────────┐                           ├── Validate exit criteria
+  ├── CLOSE → PR, debrief, update task       └── Report + debrief
+  └── /brana:close at session end
 
-/project-onboard → /project-align      /venture-onboard → /venture-align
-  (diagnostic)      (active setup)       (diagnostic)       (active setup)
+/brana:onboard → /brana:align              /brana:onboard → /brana:align
+  (auto-detects code)                        (auto-detects venture)
 
-                    /decide              /sop
-                    (ADRs)               (SOPs)
-
-                                         /growth-check
-                                         (metrics audit)
+                                           /brana:review (daily/weekly/monthly)
 
 SHARED LEARNING LOOP
 ════════════════════
 
-/debrief (after any session — code or business)
+/brana:close (after any session — code or business)
   │
-  ├──→ "Run /brana:maintain-specs to propagate findings"  (forward)
-  └──→ "Run /back-propagate if implementation changed"  (reverse)
+  └──→ "Run /brana:maintain-specs to propagate findings"  (forward)
 
-/refresh-knowledge (optional, run separately)
+/brana:research --refresh (optional, run separately)
   │
   └──→ "Run /brana:maintain-specs to propagate changes"
 
@@ -996,7 +931,7 @@ FORWARD PROPAGATION (specs → implementation)
   │            → user approves before any changes
   │
   ├── Step 5: Apply auto-fixable changes (text, config, metadata)
-  │            → new capabilities deferred to /build-phase
+  │            → new capabilities deferred to /brana:build
   │
   ├── Step 6: Log to doc 24 — reconcile run entry with findings table
   │
@@ -1010,55 +945,21 @@ The two commands form a pair: /brana:maintain-specs cascades within specs,
 
 BACK PROPAGATION (implementation → specs)
 ─────────────────────────────────────────
-/back-propagate
-  │
-  ├── Step 1: Detect what changed — scan recent implementation
-  │            changes (rules, hooks, skills, configs, user
-  │            practices) or accept user description
-  │
-  ├── Step 2: Map changes to affected spec docs — grep spec
-  │            repo for the topic, identify which dimension,
-  │            reflection, and roadmap docs cover it
-  │
-  ├── Step 3: Update dimension docs (the source of truth)
-  │            — add tool/practice/decision to the relevant
-  │            research/analysis doc
-  │
-  ├── Step 4: Update reflection docs (if the dimension
-  │            change affects synthesis or architecture)
-  │
-  ├── Step 5: Update roadmap docs (if the change affects
-  │            future implementation plans)
-  │
-  ├── Step 6: Update doc 00 (user practices) if the change
-  │            represents a user preference or tool choice
-  │
-  └── Step 7: Report what was updated
-
-Worst case: nothing changed anywhere → clean "all specs current" report.
+Implementation changes update docs in the same commit (no separate
+back-propagation step). The /brana:close session-end skill detects
+doc drift and suggests /brana:maintain-specs when system files changed.
 
 INTEGRATION POINTS
 ──────────────────
-Commands that should suggest /back-propagate:
-
-  /debrief     → when findings include implementation changes
-                  (rules added, hooks modified, skills created)
-  /project-align → after creating structure (rules, configs)
-                  that represents decisions not yet in specs
-  /venture-align → after creating SOPs, OKRs, templates
-                  that encode domain decisions
-  /build-phase → after any work item changes implementation
-                  in ways the specs didn't anticipate
-
 Commands that should suggest /brana:reconcile:
 
   /brana:maintain-specs → when cascaded changes touch impl-relevant specs
                     (skills, hooks, rules, agents, config, deploy)
 
-Commands that should suggest /brana:maintain-specs (existing, unchanged):
+Commands that should suggest /brana:maintain-specs:
 
-  /debrief     → when findings include spec-level errata
-  /refresh-knowledge → after discovering external changes
+  /brana:close    → when findings include spec-level errata
+  /brana:research --refresh → after discovering external changes
 
 CROSS-POLLINATION (the differentiator)
 ══════════════════════════════════════
@@ -1067,7 +968,7 @@ Code and business patterns live in the same ReasoningBank.
 /brana:retrospective stores learnings from any session type.
 ```
 
-**Why `/refresh-knowledge` is separate:** It runs web searches across all dimension docs — expensive and slow. The rest of the cycle works purely from local docs and is fast. Run `/refresh-knowledge` when you suspect external tools or platforms have changed, then `/brana:maintain-specs` to propagate.
+**Why `/brana:research --refresh` is separate:** It runs web searches across all dimension docs — expensive and slow. The rest of the cycle works purely from local docs and is fast. Run `/brana:research --refresh` when you suspect external tools or platforms have changed, then `/brana:maintain-specs` to propagate.
 
 ### Recommended Workflow
 
@@ -1079,7 +980,7 @@ That's it. Re-evaluates, applies fixes, checks [doc 25](25-self-documentation.md
 
 **After a long gap or major external changes:**
 ```
-/refresh-knowledge     ← check external world first
+/brana:research --refresh  ← check external world first
 [update stale dimension docs manually]
 /brana:maintain-specs        ← propagate through all layers
 ```

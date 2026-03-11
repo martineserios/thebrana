@@ -47,10 +47,9 @@ These existing skills work for business projects without modification:
 | `/brana:memory pollinate` | Cross-project pattern transfer is actually *more* valuable when spanning code + business — patterns from building CI/CD pipelines inform how to build operational workflows. |
 | `/brana:memory review` | ReasoningBank health check is domain-agnostic. Confidence levels, staleness, promotion — all apply. |
 | `/brana:challenge` | Adversarial review of a business plan is at least as valuable as challenging a technical architecture. Same four flavors (pre-mortem, simplicity, assumption, adversarial). |
-| `/decide` | ADR format (Context, Decision, Consequences) works for "use JWT for auth" and "hire a COO before a CTO" equally. Business decisions are *more* consequential and *less* reversible than code decisions — they benefit even more from structured decision records. |
-| `/debrief` | Extracting errata/learnings/issues from a session works regardless of domain. The classification (spec mismatch, process learning, issue) applies to business findings too. |
+| `/brana:close` | Session close — extracting errata/learnings/issues, writing handoff notes, storing patterns. The classification (spec mismatch, process learning, issue) applies to business findings too. ADR-style decisions are captured via the build loop. |
 
-**Implication:** 7 of 12 existing skills need zero changes. The knowledge system (ReasoningBank, auto memory, confidence-weighted recall, promotion/demotion) is fully domain-agnostic.
+**Implication:** 6 of the current 25 skills need zero changes for venture work. The knowledge system (ReasoningBank, auto memory, confidence-weighted recall, promotion/demotion) is fully domain-agnostic.
 
 ---
 
