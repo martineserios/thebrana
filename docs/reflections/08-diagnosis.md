@@ -258,11 +258,35 @@ Every dimension doc triaged for brana v2. [Docs 01](../dimensions/01-brana-syste
 ### [Doc 35](../dimensions/35-context-engineering-principles.md) — Context Engineering Principles
 **Verdict: Keep — decision framework for information placement.** Formalizes where new information belongs (always-loaded vs warm vs cold), the budget architecture (23KB hard limit with empirical growth history), progressive disclosure (hot/warm/cold tiers), sub-agent summary protocols, and context failure modes (saturation, attention rot, knowledge poisoning, budget creep). R2 uses it for architecture decisions, R3 validates against it, R4 operationalizes budget management. Without this, placement decisions are ad-hoc and budget grows unchecked.
 
+### [Doc 36](../../../brana-knowledge/dimensions/36-claw-ecosystem-chat-interface.md) — Claw Ecosystem & Chat Interface
+**Verdict: Keep.** Maps the agent runtime landscape (OpenClaw, NanoClaw, ZeroClaw) for building chat interfaces powered by brana. Source for R5 (delivery layer for venture clients). Security analysis (OpenClaw CVEs) informs R3 assurance. Complements [doc 39-Kapso](../../../brana-knowledge/dimensions/39-kapso-ai-platform.md) as infrastructure layer.
+
+### [Doc 37](../../../brana-knowledge/dimensions/37-ruvnet-development-practices.md) — ruvnet Development Practices
+**Verdict: Keep.** Studies claude-flow creator's development methodology — three-tier maturity model, MADR+SPARC ADRs, CCEPL failure taxonomy. Source for R4 lifecycle practices. 5 transferable practices identified for brana process improvement.
+
 ### [Doc 38](../dimensions/38-design-thinking.md) — Design Thinking
 **Verdict: Keep.** Applies design thinking methodology (empathy mapping, HMW questions, divergent ideation) to brana's development process. Source for R5 creative methods, R2 skill design patterns.
 
-### [Doc 39](../39-architecture-redesign.md) — Architecture Redesign
+### [Doc 39 — thebrana](../39-architecture-redesign.md) — Architecture Redesign
 **Verdict: Keep — supersedes item 2 above (PM Separation).** Three decisions: (1) merge enter/ into thebrana/ as `docs/` workspace, (2) evolve brana-knowledge/ into an active indexed knowledge base, (3) wire retrieval via claude-flow embeddings CLI. Spike validated (Phase 0.5 passed — 384-dim ONNX embeddings, semantic similarity confirmed). AgentDB stalled; fallback (embeddings + SQLite) is primary strategy. Migration phases: 0→0.5(done)→1(structural)→2(skill rewrites)→3(retrieval prototype)→4(scale content). R2 architecture directly affected; R3/R4/R5 will need updates when phases execute.
+
+### [Doc 39 — Kapso](../../../brana-knowledge/dimensions/39-kapso-ai-platform.md) — Kapso AI Platform
+**Verdict: Keep.** WhatsApp infrastructure for agent delivery — MCP server, webhooks, visual workflows, AI Fields, voice agents. Source for R5 (venture delivery). Concrete platform for proyecto_anita and somos_mirada WhatsApp services. Complements [doc 36](../../../brana-knowledge/dimensions/36-claw-ecosystem-chat-interface.md) (Kapso is delivery layer, claws are agent runtime).
+
+### [Doc 40](../../../brana-knowledge/dimensions/40-product-discovery-literature.md) — Product Discovery Literature
+**Verdict: Keep.** Frameworks for validating product ideas before building — Lean UX, Shape Up, Jobs to Be Done, continuous discovery habits. Source for R5 venture methodology. Grounds `/brana:venture-phase` launch milestone.
+
+### [Doc 41](../../../brana-knowledge/dimensions/41-growth-metrics-market-strategy-literature.md) — Growth Metrics & Market Strategy
+**Verdict: Keep.** AARRR funnel, LTV:CAC, Rule of 40, market sizing, competitive analysis frameworks. Source for R5 metrics and `/brana:review` financial checks.
+
+### [Doc 42](../../../brana-knowledge/dimensions/42-product-operations-literature.md) — Product Operations
+**Verdict: Keep.** SOPs, process design, operational scaling, team structure. Source for R5 operational maturity assessment in `/brana:onboard` venture mode.
+
+### [Doc 43](../../../brana-knowledge/dimensions/43-linkedin-personal-brand-strategy.md) — LinkedIn Personal Brand Strategy
+**Verdict: Keep.** Content strategy, positioning, audience building for professional presence. Source for thebrana's own LinkedIn content pipeline (ph-005). Not directly used by R2-R5 architecture but informs brand-as-system patterns.
+
+### [Doc 44](../../../brana-knowledge/dimensions/44-systems-thinking-nature.md) — Systems Thinking & Nature
+**Verdict: Keep.** Natural systems as models for engineered systems — feedback loops, emergence, resilience patterns, biomimicry. Deepest abstraction layer — grounds the "everything is a system" philosophy that brana is built on.
 
 ---
 

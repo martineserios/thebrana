@@ -18,7 +18,7 @@ The system has three distinct layers, each with its own persistence and scope:
 │  Lives at: ~/.claude/                       │
 ├─────────────────────────────────────────────┤
 │  INTELLIGENCE — What do I know?             │
-│  ReasoningBank, SONA trajectories,          │
+│  ReasoningBank, BM25 hybrid search,         │
 │  cross-client patterns, learned failures   │
 │  Lives at: ~/.swarm/memory.db               │
 ├─────────────────────────────────────────────┤
@@ -41,16 +41,16 @@ Two layers: the **plugin** (toolkit — loaded by Claude Code's plugin system) a
 ```
 thebrana/system/                              PLUGIN (loaded by Claude Code)
 ├── .claude-plugin/plugin.json                ← Plugin manifest
-├── skills/                                   ← 24 skills as /brana:* slash commands
+├── skills/                                   ← 25 skills as /brana:* slash commands
 │   ├── build/SKILL.md                        ← Unified dev command — 7 strategies, task-aware
 │   ├── close/SKILL.md                        ← Session end — learnings, handoff, patterns
-│   ├── tasks/SKILL.md                        ← Plan, track, and execute tasks across phases and streams
+│   ├── backlog/SKILL.md                      ← Plan, track, and execute tasks across phases and streams
 │   ├── onboard/SKILL.md                      ← Scan and diagnose a project (code/venture/hybrid)
 │   ├── align/SKILL.md                        ← Implement project structure from /brana:onboard findings
 │   ├── review/SKILL.md                       ← Business health — weekly, monthly, ad-hoc check
 │   ├── research/SKILL.md                     ← Research topics + --refresh for dimension updates
 │   ├── memory/SKILL.md                       ← Knowledge ops: recall, pollinate, review, audit
-│   └── ...                                   ← +16 more (challenge, reconcile, log, pipeline, etc.)
+│   └── ...                                   ← +17 more (challenge, reconcile, log, pipeline, plugin, etc.)
 ├── agents/                                   ← 11 specialized sub-agents
 │   ├── scout.md                              ← Haiku-powered fast research agent
 │   ├── memory-curator.md                     ← Knowledge lifecycle management
@@ -152,7 +152,7 @@ Loaded automatically:
   5. ~/projects/alpha/.claude/rules/* ← path-scoped project rules
 
 Available on demand (via brana plugin):
-  6. /brana:build, /brana:backlog, etc.  ← 24 skills loaded from plugin
+  6. /brana:build, /brana:backlog, etc.  ← 25 skills loaded from plugin
   7. Agent commands                    ← maintain-specs, apply-errata, etc.
   8. ~/projects/alpha/.claude/skills/* ← /deploy, /migrate (project-specific)
   9. Other installed plugins           ← pr-review-toolkit, security-guidance, etc.

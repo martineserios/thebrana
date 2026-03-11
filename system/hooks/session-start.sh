@@ -274,5 +274,11 @@ fi
             --arg detail "$VENTURE_CONTEXT" \
             '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail}' >> "$SESSION_FILE" 2>/dev/null || true
     fi
+
+    # ADR-015: sync operational state from cache to repos (push)
+    SYNC_SCRIPT="$SCRIPT_DIR/../scripts/sync-state.sh"
+    if [ -x "$SYNC_SCRIPT" ]; then
+        "$SYNC_SCRIPT" push 2>/dev/null || true
+    fi
 ) &
 disown 2>/dev/null || true
