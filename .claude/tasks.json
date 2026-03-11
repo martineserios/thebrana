@@ -4146,7 +4146,7 @@
         "dx",
         "skills"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "stream": "roadmap",
       "type": "task",
       "parent": null,
@@ -4155,13 +4155,15 @@
       "effort": "M",
       "execution": "code",
       "blocked_by": [],
-      "branch": null,
-      "github_issue": null,
+      "branch": "feat/t-160-github-issues-sync",
+      "github_issue": 31,
       "created": "2026-03-03",
-      "started": null,
+      "started": "2026-03-11",
       "completed": null,
       "notes": null,
-      "context": "Issues as task lifecycle tracking + context persistence. Issue numbering not required but welcomed if it fits naturally — low-cost, positive-potential integration. Promoted P3→P1 on 2026-03-09: user reports GitHub Issues/Projects not being updated by tasks planner — this is a real workflow gap."
+      "context": "Issues as task lifecycle tracking + context persistence. Issue numbering not required but welcomed if it fits naturally — low-cost, positive-potential integration. Promoted P3→P1 on 2026-03-09: user reports GitHub Issues/Projects not being updated by tasks planner — this is a real workflow gap.",
+      "strategy": "feature",
+      "build_step": "build"
     },
     {
       "id": "t-161",
@@ -8696,6 +8698,60 @@
       "notes": "Backfilled 7 somos tasks: t-024/t-025/t-026 (presencial grouping), t-027 (docs legales), t-029 (dominio), t-023 (template deps), ph-001 (phase strategy).",
       "context": null,
       "strategy": null,
+      "build_step": null
+    },
+    {
+      "id": "t-326",
+      "subject": "State consolidation — audit and sync brana state to git repos",
+      "description": "Audit all brana state leaking to ~/.claude/ outside git repos. Implement cache-then-sync architecture (ADR-015).",
+      "tags": [
+        "state-consolidation",
+        "adr-015"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": null,
+      "order": 326,
+      "priority": "P1",
+      "effort": "L",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": "feat/t-326-state-consolidation",
+      "github_issue": null,
+      "created": "2026-03-10",
+      "started": "2026-03-10",
+      "completed": "2026-03-11",
+      "notes": "ADR-015 accepted. 10/10 migration steps complete. Scheduler: sync-state daily, export-patterns weekly.",
+      "context": null,
+      "strategy": "investigation",
+      "build_step": null
+    },
+    {
+      "id": "t-326",
+      "subject": "State consolidation - audit and sync brana state to git repos",
+      "description": "ADR-015 cache-then-sync architecture",
+      "tags": [
+        "state-consolidation",
+        "adr-015"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": null,
+      "order": 326,
+      "priority": "P1",
+      "effort": "L",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": "feat/t-326-state-consolidation",
+      "github_issue": null,
+      "created": "2026-03-10",
+      "started": "2026-03-10",
+      "completed": "2026-03-11",
+      "notes": "ADR-015 accepted. 10/10 migration steps complete.",
+      "context": null,
+      "strategy": "investigation",
       "build_step": null
     }
   ]

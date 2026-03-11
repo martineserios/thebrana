@@ -1,7 +1,7 @@
 # Feature: GitHub Issues Sync
 
 **Date:** 2026-03-10
-**Status:** specifying
+**Status:** building
 **Task:** t-160
 
 ## Problem
