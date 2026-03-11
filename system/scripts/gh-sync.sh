@@ -162,8 +162,11 @@ cmd_create() {
     [[ -z "$subject" ]] && die "Task $task_id not found in $tasks_json"
 
     # Dedup: check if issue already exists by searching title
-    local existing
-    existing="$(gh issue list --search "Task: $task_id in:title" --json number --jq '.[0].number // empty' 2>/dev/null || echo "")"
+    local tmp_dedup existing
+    tmp_dedup="$(mktemp)"
+    gh issue list --search "Task: $task_id in:title" --json number > "$tmp_dedup" 2>/dev/null || true
+    existing="$(jq -r '.[0].number // empty' "$tmp_dedup" 2>/dev/null || echo "")"
+    rm -f "$tmp_dedup"
     if [[ -n "$existing" ]]; then
         log "Issue #$existing already exists for $task_id — skipping creation"
         echo "$existing"
