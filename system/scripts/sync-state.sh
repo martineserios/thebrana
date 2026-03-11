@@ -160,7 +160,7 @@ cmd_pull() {
     for i in "${!CACHE_PATHS[@]}"; do
         if [ -f "${REPO_PATHS[$i]}" ]; then
             mkdir -p "$(dirname "${CACHE_PATHS[$i]}")"
-            sync_file "${REPO_PATHS[$i]}" "${CACHE_PATHS[$i]}"
+            sync_file "${REPO_PATHS[$i]}" "${CACHE_PATHS[$i]}" || true
         fi
     done
 
@@ -196,7 +196,7 @@ cmd_pull() {
             local repo_memory="$resolved/.claude/memory"
             for companion in "${COMPANION_FILES[@]}"; do
                 if [ -f "$repo_memory/$companion" ]; then
-                    sync_file "$repo_memory/$companion" "$cc_dir/$companion"
+                    sync_file "$repo_memory/$companion" "$cc_dir/$companion" || true
                 fi
             done
         done
