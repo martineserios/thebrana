@@ -53,7 +53,7 @@ Solo developer using brana's `/brana:backlog` skill to manage backlogs across cl
 ### From /brana:backlog SKILL.md analysis
 - Current add flow: 7 steps (parse → read → ask stream → ask milestone → ask tags → auto-ID → confirm)
 - Enhancement adds 4 new steps between tag assignment and confirmation
-- Existing flows (`/brana:backlog pick`, `/brana:backlog execute`, `/brana:backlog portfolio`) already check blocked_by — no changes needed there
+- Existing flows (`/brana:backlog start`, `/brana:backlog execute`, `/brana:backlog status --all`) already check blocked_by — no changes needed there
 
 ## Open questions
 None — design corrected by challenge, approach chosen (suggest-only).

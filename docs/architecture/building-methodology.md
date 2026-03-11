@@ -139,7 +139,7 @@ A typical feature from start to finish:
 
 # 2. Plan
 /brana:backlog add                   # create task with strategy classification
-/brana:backlog pick                  # enters /brana:build automatically
+/brana:backlog start                  # enters /brana:build automatically
 
 # 3. Build (inside /brana:build)
 # SPECIFY: ADR via /decide, domain model if needed

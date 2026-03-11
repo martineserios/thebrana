@@ -31,7 +31,7 @@ Ensure `gh` CLI is installed and authenticated: `gh auth status`.
 | Event | What happens |
 |-------|-------------|
 | `/brana:backlog add` | Creates a GitHub Issue with labels |
-| `/brana:backlog pick` | Creates issue (if missing), pulls comments into task context |
+| `/brana:backlog start` | Creates issue (if missing), pulls comments into task context |
 | `/brana:backlog done` | Closes the GitHub Issue |
 | `/brana:build` CLOSE | Closes the GitHub Issue |
 | `/brana:backlog sync` | Bulk sync — creates missing, closes completed, updates labels |

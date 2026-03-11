@@ -145,7 +145,7 @@ git worktree remove ../thebrana-fix-deploy && git branch -d fix/session-end-hook
 
 Format: `{prefix}{id}-{slug}` (e.g., `feat/t-015-jwt-auth`).
 
-**Code tasks:** `/brana:backlog pick` enters `/brana:build` automatically. `/brana:build` CLOSE step handles completion. `/brana:backlog done` is for manual/external tasks only.
+**Code tasks:** `/brana:backlog start` enters `/brana:build` automatically. `/brana:build` CLOSE step handles completion. `/brana:backlog done` is for manual/external tasks only.
 
 ---
 

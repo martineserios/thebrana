@@ -19,7 +19,7 @@ Make `research` a first-class task stream so research URLs (previously in `docs/
 Research tasks start as `stream: research`, `execution: code`, `status: pending`.
 
 To promote a research task to actionable work:
-1. Review the research (`/brana:backlog pick <id>` → read, evaluate, extract patterns)
+1. Review the research (`/brana:backlog start <id>` → read, evaluate, extract patterns)
 2. Complete the research task with notes summarizing findings
 3. If actionable: create a new task in the appropriate stream (roadmap/bugs/tech-debt) with a reference to the research task in context
 

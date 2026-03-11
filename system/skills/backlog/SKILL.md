@@ -43,7 +43,7 @@ emoji:     {icon} {id}  {subject}  {detail}
            ✅ done  🔨 active  🔲 pending  🔒 blocked  💤 parked
            bars: ████░░░░  {done}/{total}
            project header: 📋 {name}
-           portfolio header: boxed ╭╮╰╯ with 📊
+           status --all header: boxed ╭╮╰╯ with 📊
            priority high: ⚡high
            blocked ref: ⛓ {id}
            health dots: 🟢 done  🟡 active  🔴 blocked
@@ -56,7 +56,7 @@ minimal:   {icon} {id}  {subject}  {detail}
 
 ### Wide mode (`--wide`)
 
-Any view command (`status`, `portfolio`, `roadmap`, `next`, `tags --filter`) accepts `--wide`.
+Any view command (`status`, `view`, `next`, `tags --filter`) accepts `--wide`.
 Wide mode renders tasks as **tabular rows** with all metadata visible on one line — like `kubectl get pods -o wide`.
 Wide mode composes with any theme (icons come from the active theme).
 
@@ -88,7 +88,7 @@ Task rows (minimal icons):
 - `subject` gets remaining width after fixed columns; truncate with `…` if too long
 - `tags` shows first 3 comma-separated, then `+N` if more
 - Null fields render as `—` (em-dash), never blank
-- `project` column: in portfolio views, shows `client/project` for multi-project clients, client slug for single-project. In single-project views, shows project slug from tasks.json root or `—`
+- `project` column: in cross-client views (`--all`), shows `client/project` for multi-project clients, client slug for single-project. In single-project views, shows project slug from tasks.json root or `—`
 - Phases/milestones render as **section headers** (bold subject + progress bar, no per-column detail):
   ```
   ph-002  Phase 2: API Foundation                                        ████░░░░ 3/8
@@ -112,11 +112,11 @@ Hierarchy views (status, roadmap) use box-drawing characters when not in `--wide
 ## Commands
 
 - `/brana:backlog plan [project] "[phase-title]"` — plan a phase interactively
-- `/brana:backlog status [project] [--wide]` — progress overview (omit project = portfolio)
-- `/brana:backlog portfolio [--unified] [--wide]` — cross-client actionable tasks
-- `/brana:backlog roadmap [project] [--wide]` — full tree view with all levels
+- `/brana:backlog status [project] [--all] [--wide]` — progress overview (omit project = summary, `--all` = cross-client tasks)
+- `/brana:backlog status --all [--unified] [--wide]` — cross-client actionable tasks
+- `/brana:backlog view [project] [--wide]` — full tree view with all levels
 - `/brana:backlog next [project] [--stream X] [--wide]` — next unblocked task by priority
-- `/brana:backlog pick <id>` — begin work on a task
+- `/brana:backlog start <id>` — begin work on a task
 - `/brana:backlog done [id]` — complete current task
 - `/brana:backlog add "[description]"` — quick-add a task
 - `/brana:backlog replan [project] [phase-id]` — restructure a phase
@@ -126,7 +126,7 @@ Hierarchy views (status, roadmap) use box-drawing characters when not in `--wide
 - `/brana:backlog tags [project]` — tag inventory, filtering, and bulk tag management
 - `/brana:backlog context <id> [text]` — view or set rich context on a task
 - `/brana:backlog theme [name]` — view or set display theme (classic, emoji, minimal)
-- `/brana:backlog triage [project] [--reresearch] [--scope P2+]` — research-informed priority reassessment
+- `/brana:backlog prioritize [project] [--reresearch] [--scope P2+]` — research-informed priority reassessment
 - `/brana:backlog sync [--dry-run] [--force]` — sync tasks.json with GitHub Issues
 
 ---
@@ -162,13 +162,13 @@ Interactive phase planning. Builds the hierarchy conversationally.
 
 ## /brana:backlog status
 
-High-level progress view with aggregation.
+High-level progress view with aggregation. Use `--all` for cross-client task-level drill-down.
 
 ### Steps
 
 1. **Resolve active theme** (see Display Themes)
-2. **Detect project** or show portfolio if omitted
-3. **Read tasks.json** (for portfolio: read from each client's project paths in tasks-portfolio.json)
+2. **Detect project** or show summary portfolio if omitted
+3. **Read tasks.json** (for summary: read from each client's project paths in tasks-portfolio.json)
 4. **Compute per-phase:** total tasks, completed, in_progress, blocked
 5. **Compute per-stream:** roadmap progress, bug count, tech-debt count, research triage counts (new/reviewed/applied)
 6. **If `--wide`**, render using **wide-mode template** (see Display Themes > Wide mode). Otherwise render using task-line template with tree connectors:
@@ -199,7 +199,7 @@ Progress bars use active theme fill/empty characters.
 Tag summary line at bottom: shows all tags with counts across active tasks (non-completed). Omit line if no tasks have tags.
 For in-progress tasks with a `build_step` field, show the step inline: `← t-008 Implement JWT [BUILD]`.
 
-### Portfolio view (no project argument)
+### Summary view (no project argument)
 
 Render using task-line template icons. Emoji theme adds health dots and project emoji prefix.
 
@@ -221,21 +221,11 @@ Health dots (emoji only): 🟢 all done, 🟡 has active/pending work, 🔴 has 
 
 Read client/project paths from `~/.claude/tasks-portfolio.json`. Schema: `{ clients: [{ slug, projects: [{ slug, path, type?, stage?, tech_stack?, created? }] }] }`. Legacy flat `{ projects: [...] }` also supported. Paths use `~/` prefix — resolve to `$HOME` before reading. For each project, read `{path}/.claude/tasks.json` if it exists. Project metadata (`type`, `stage`, `tech_stack`) is available from the registry for display in views.
 
----
+### Cross-client task view (`--all`)
 
-## /brana:backlog portfolio
+Shows individual tasks you can work on across all registered clients. Complements the summary view (progress bars) with a task-level drill-down. Accepts `--unified` for priority-sorted flat list, `--wide` for tabular output.
 
-Cross-client actionable task view. Shows individual tasks you can work on across all registered clients. Complements `/brana:backlog status` (progress bars) with a task-level drill-down.
-
-### Usage
-
-```
-/brana:backlog portfolio              — by-project view (default)
-/brana:backlog portfolio --unified    — priority-sorted flat list
-/brana:backlog portfolio --wide       — tabular with all columns
-```
-
-### Steps
+#### Steps
 
 1. **Resolve active theme** (see Display Themes)
 2. **Read `~/.claude/tasks-portfolio.json`** — get client list
@@ -255,7 +245,7 @@ Cross-client actionable task view. Shows individual tasks you can work on across
 7. **Compute summary**: total actionable tasks, client count, pending count, in_progress count
 8. **If `--wide`**, render using **wide-mode template** (see Display Themes > Wide mode) — flat table grouped by project. Otherwise render using task-line template — by-project or unified view.
 
-### By-project view (default)
+#### By-project view (default)
 
 Render task lines using active theme icons.
 
@@ -343,7 +333,7 @@ Parked tasks show inline: `{blocked-icon} ms-007 Wire AgentDB [parked]  blocked 
 Clients with no tasks.json are omitted. All-completed clients show as a collapsed line.
 When a project has more than 5 pending tasks, show the first 3 then `...(+N more pending)`.
 
-### Unified priority view (`--unified`)
+#### Unified priority view (`--unified`)
 
 Render using task-line template icons. **Client prefix**: use `client/project` when the client has multiple projects, otherwise just client slug.
 
@@ -372,7 +362,7 @@ Blocked and completed tasks are excluded from the unified view (only actionable 
 
 ---
 
-## /brana:backlog roadmap
+## /brana:backlog view
 
 Full tree view — every level expanded.
 
@@ -441,7 +431,7 @@ Optional `--stream` narrows by stream: `/brana:backlog next --stream research`
 
 ---
 
-## /brana:backlog pick
+## /brana:backlog start
 
 Begin work on a specific task. For code tasks, enters the `/brana:build` loop.
 
@@ -469,7 +459,7 @@ Begin work on a specific task. For code tasks, enters the `/brana:build` loop.
 7. **GitHub sync** (if `github_sync.enabled` in `~/.claude/tasks-config.json`):
    - If task has no `github_issue`: run `system/scripts/gh-sync.sh create {task-id} {tasks-json-path}`. Read issue number from stdout, write to task's `github_issue` field.
    - If task has `github_issue`: run `system/scripts/gh-sync.sh pull-context {issue-number}`. If comments returned, replace `## GitHub Comments` section in task's `context` field.
-   - If sync fails (exit code 1 or 2): warn "GitHub sync failed. Task started locally." — do NOT block pick.
+   - If sync fails (exit code 1 or 2): warn "GitHub sync failed. Task started locally." — do NOT block start.
 8. **Report:** "Started t-008 'Implement JWT middleware' as **feature**. Branch: feat/t-008-jwt-middleware."
 9. **For code tasks:** proceed directly into `/brana:build` — no separate invocation needed
 
@@ -536,7 +526,7 @@ All interactive confirmations use the **AskUserQuestion** tool for a selectable 
    - **Tags**: suggest tags from description keywords matched against existing vocabulary. Options: "Accept {suggested}" (recommended), "Edit", "Skip". Header: "Tags"
    - **Effort**: suggest from description complexity (S/M/L/XL). Options: each size with description. Header: "Effort"
    - **Milestone** (skip if URL auto-detected or no active milestones): options from active milestones + "None". Header: "Milestone"
-5. Auto-assign next id, set defaults. Auto-classify `strategy` from description/stream/tags (same heuristic as `/brana:backlog pick`). Leave `build_step` null.
+5. Auto-assign next id, set defaults. Auto-classify `strategy` from description/stream/tags (same heuristic as `/brana:backlog start`). Leave `build_step` null.
 6. **Dependency scan** — cross-reference all pending tasks:
    - Match by **tag overlap** (2+ shared tags with the new task)
    - Match by **subject keyword** overlap (significant words from description appear in existing task subjects)
@@ -554,7 +544,7 @@ All interactive confirmations use the **AskUserQuestion** tool for a selectable 
    - AskUserQuestion: "This looks like a solution. What problem does it solve?" Options: user provides context via "Other" free text, or "Skip". Header: "Problem"
    - If the user provides text, store it in the `context` field
    - If skipped, proceed without context
-8. Priority: **leave null** (user sets manually via `/brana:backlog triage` or direct edit)
+8. Priority: **leave null** (user sets manually via `/brana:backlog prioritize` or direct edit)
 9. **Final confirmation** — AskUserQuestion: "Add {id} '{subject}' [{tags}, {effort}] under {milestone}? blocked_by: [{deps}]" Options: "Confirm" (recommended), "Edit", "Cancel". Header: "Confirm"
 10. Write tasks.json
 11. **GitHub sync** (if `github_sync.enabled` in `~/.claude/tasks-config.json`):
@@ -854,7 +844,7 @@ Tasks must have `spawn` field set (see ADR-003 for schema). Tasks without `spawn
 
 - `--retry` re-runs tasks with `agent_result.status` of `"failed"` or `"partial"`
 - Completed tasks are skipped
-- User can also fall back to manual: `/brana:backlog pick <id>` on any failed task
+- User can also fall back to manual: `/brana:backlog start <id>` on any failed task
 
 ### Schema fields (on task objects)
 
@@ -888,14 +878,14 @@ On parent tasks, `spawn_strategy` controls child batching:
 
 ---
 
-## /brana:backlog triage
+## /brana:backlog prioritize
 
 Research-informed priority reassessment across project backlogs.
 
 ### Usage
 
 ```
-/brana:backlog triage [project] [--reresearch] [--scope P2+]
+/brana:backlog prioritize [project] [--reresearch] [--scope P2+]
 ```
 
 ### Default behavior (no flags)

@@ -14,7 +14,7 @@ Fields: id, subject, description, tags, status, stream, type, parent, order, pri
 
 Reads: free. Writes: confirm first. Planning: propose tree, confirm.
 
-Branch: roadmap=feat/, bugs=fix/, tech-debt=refactor/, docs=docs/, experiments=experiment/, research=research/. Format: `{prefix}{id}-{slug}`. Start=branch+in_progress+auto-classify strategy. Code tasks: `/brana:backlog pick` enters `/brana:build` automatically. Done: `/brana:build` CLOSE step handles code tasks. `/brana:backlog done` is for manual/external tasks only.
+Branch: roadmap=feat/, bugs=fix/, tech-debt=refactor/, docs=docs/, experiments=experiment/, research=research/. Format: `{prefix}{id}-{slug}`. Start=branch+in_progress+auto-classify strategy. Code tasks: `/brana:backlog start` enters `/brana:build` automatically. Done: `/brana:build` CLOSE step handles code tasks. `/brana:backlog done` is for manual/external tasks only.
 
 ## Example
 
@@ -22,9 +22,9 @@ Branch: roadmap=feat/, bugs=fix/, tech-debt=refactor/, docs=docs/, experiments=e
 Task t-015 (stream: roadmap) → branch: feat/t-015-jwt-auth
 Task t-022 (stream: bugs)    → branch: fix/t-022-session-timeout
 Task t-030 (stream: docs)    → branch: docs/t-030-api-contracts
-Task t-091 (stream: research) → branch: research/t-091-graphrag-eval (most reviewed via /brana:backlog pick, no branch needed)
+Task t-091 (stream: research) → branch: research/t-091-graphrag-eval (most reviewed via /brana:backlog start, no branch needed)
 ```
 
 Status changes on main or task branch only. Rollup via hook. Unblocked = all blocked_by completed. Priority/effort null unless user specifies.
 
-Tasks with URLs or platform/tool names in description get brief research (via scout agent) before priority assignment. This applies when adding new tasks or during `/brana:backlog triage --reresearch`.
+Tasks with URLs or platform/tool names in description get brief research (via scout agent) before priority assignment. This applies when adding new tasks or during `/brana:backlog prioritize --reresearch`.

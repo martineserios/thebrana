@@ -28,7 +28,7 @@ Challenger review (Opus adversarial) identified:
 1. Replace 7 build commands with one `/brana:build` command using a 4-step loop
 2. Simplify 42 skills to ~25 by merging redundancies and retiring unused commands
 3. Add 7 work-type strategies that adapt the loop (feature, bug fix, greenfield, refactor, spike, migration, investigation)
-4. Integrate `/brana:backlog pick` as the entry point to `/brana:build` for code tasks
+4. Integrate `/brana:backlog start` as the entry point to `/brana:build` for code tasks
 5. Create two documentation trees: user guides (`docs/guide/`) and contributor docs (`docs/architecture/`)
 6. Retire `/back-propagate` and `verify-counts.sh` — fix root cause (no hardcoded counts in prose)
 7. Embed documentation as a mandatory CLOSE step — shipped without both docs means not shipped
@@ -36,7 +36,7 @@ Challenger review (Opus adversarial) identified:
 **Consequences:**
 - Easier: one command (`/brana:build`) replaces 7, with automatic strategy detection
 - Easier: users have a guide that explains workflows, not just skill implementations
-- Easier: `/brana:backlog pick` flows directly into building — no gap
+- Easier: `/brana:backlog start` flows directly into building — no gap
 - Harder: migration from 42 to 25 skills requires careful phasing
 - Risk: auto-detection misclassifies work type — mitigated by mandatory confirmation step
 
@@ -55,7 +55,7 @@ Challenger review (Opus adversarial) identified:
 One command: `/brana:build "description"`
 
 **Step 0: CLASSIFY** (mandatory, one interaction)
-- Auto-detect work type from description + task metadata (if started via `/brana:backlog pick`)
+- Auto-detect work type from description + task metadata (if started via `/brana:backlog start`)
 - Present classification for user confirmation
 - Mid-stream reclassification allowed at any point
 
@@ -152,12 +152,12 @@ One command: `/brana:build "description"`
 - Store learnings (claude-flow, confidence: 0.5)
 - Update feature spec status → shipped (contributor doc)
 - Write/update user guide (user doc)
-- Update task status → completed (if started via /brana:backlog pick)
+- Update task status → completed (if started via /brana:backlog start)
 - Merge (present command, don't auto-execute)
 
-### /brana:backlog pick integration
+### /brana:backlog start integration
 
-When `/brana:backlog pick <id>` is invoked on a task with `execution: code`:
+When `/brana:backlog start <id>` is invoked on a task with `execution: code`:
 1. Read task metadata (subject, stream, tags, description, context)
 2. Auto-classify from stream + description
 3. Confirm classification with user
@@ -275,7 +275,7 @@ docs/
 | `session-end.sh` | Unchanged |
 | `rules/sdd-tdd.md` | Unchanged — TDD discipline preserved |
 | `rules/delegation-routing.md` | Updated — new command names, simplified trigger table |
-| `rules/task-convention.md` | Updated — /brana:backlog pick → /brana:build integration |
+| `rules/task-convention.md` | Updated — /brana:backlog start → /brana:build integration |
 | `validate.sh` | Keep. Trim instruction density heuristic. |
 | `verify-counts.sh` | Delete. Remove hardcoded counts from docs. |
 
@@ -323,7 +323,7 @@ session-start.sh (hook, automatic)
 ├── Detect venture project (absorbs session-start-venture.sh)
 └── Present context
 
-/brana:backlog pick <id> (entry point for code tasks)
+/brana:backlog start <id> (entry point for code tasks)
 ├── Read task metadata
 ├── Auto-classify work type
 ├── Confirm with user

@@ -30,7 +30,7 @@ The unified development command. One entry point for all work types: features, b
 /brana:build                            — ask what to build
 ```
 
-Also entered via `/brana:backlog pick <id>` for code tasks — see Task Integration below.
+Also entered via `/brana:backlog start <id>` for code tasks — see Task Integration below.
 
 ---
 
@@ -54,7 +54,7 @@ Before anything else, check if this work already exists or relates to existing w
      - "No relation — create new"
    ```
 4. **If no matches**, proceed silently.
-5. **If entering via `/brana:backlog pick`**, skip cross-reference (task already identified).
+5. **If entering via `/brana:backlog start`**, skip cross-reference (task already identified).
 
 ---
 
@@ -64,7 +64,7 @@ Mandatory. One interaction. Never skip.
 
 ### Detection rules
 
-Analyze the description (and task metadata if from `/brana:backlog pick`) to propose a strategy:
+Analyze the description (and task metadata if from `/brana:backlog start`) to propose a strategy:
 
 | Strategy | Stream signal | Description signal |
 |----------|-------------|-------------------|
@@ -521,7 +521,7 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    - Update `docs/guide/commands/index.md` if applicable
    - **Shipped without user docs means not shipped.**
 
-5. **Update task** (if entered via `/brana:backlog pick`):
+5. **Update task** (if entered via `/brana:backlog start`):
    - Set status → `completed`
    - Set completed date
    - Add notes from retrospective
@@ -560,9 +560,9 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
 
 ## Task Integration
 
-### Entry via /brana:backlog pick
+### Entry via /brana:backlog start
 
-When `/brana:backlog pick <id>` invokes this skill:
+When `/brana:backlog start <id>` invokes this skill:
 
 1. **Task metadata is pre-loaded:**
    - `subject` → seeds the description
@@ -603,7 +603,7 @@ The build loop updates these fields on the task in tasks.json:
 
 ### Creating tasks automatically
 
-When `/brana:build` is invoked WITHOUT `/brana:backlog pick`:
+When `/brana:build` is invoked WITHOUT `/brana:backlog start`:
 
 1. After CLASSIFY, auto-create a task in tasks.json:
    ```json
@@ -655,5 +655,5 @@ Claude proposes the size. User can override: "this is bigger than it looks" or "
 6. **Don't auto-merge.** Present the merge command. Let the user decide.
 7. **Mid-stream reclassification is allowed.** The user can change strategy at any point. Carry forward what's been learned.
 8. **Mini-debrief after every task in BUILD.** 30 seconds. What surprised? Pattern? Don't skip.
-9. **Cross-reference before creating work.** Always check for related tasks first (unless entering via /brana:backlog pick).
+9. **Cross-reference before creating work.** Always check for related tasks first (unless entering via /brana:backlog start).
 10. **Graceful degradation.** If claude-flow is unavailable, use auto memory. If no test framework, note it and proceed. If no GitHub Issues, use tasks.json.

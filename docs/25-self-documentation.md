@@ -489,7 +489,7 @@ Commands for building and reviewing.
 
 | Command | Purpose | When to use |
 |---|---|---|
-| `/brana:build` | Unified dev command — auto-detects strategy (feature, bug fix, refactor, spike, migration, investigation, greenfield). Build loop: specify → plan → build → close | **When building anything** — integrates with `/brana:backlog pick` |
+| `/brana:build` | Unified dev command — auto-detects strategy (feature, bug fix, refactor, spike, migration, investigation, greenfield). Build loop: specify → plan → build → close | **When building anything** — integrates with `/brana:backlog start` |
 | `/brana:close` | Extract errata, learnings, patterns from a session. Write handoff note, detect doc drift | **End of session** — or when switching projects |
 | `/brana:challenge` | Spawn an Opus subagent to stress-test a plan or decision. Empty invocation self-challenges the last answer | **Before committing to a big decision**, or after any answer to stress-test it |
 | `/brana:backlog` | Plan, track, and execute tasks — hierarchy (phase > milestone > task), streams, tags, context, branch integration, agent execution via subagents | **When planning phases, viewing roadmaps, or executing task waves** — 15 subcommands including `execute`, `tags`, `context`, `theme`, `triage` |

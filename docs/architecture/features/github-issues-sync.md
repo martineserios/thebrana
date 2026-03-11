@@ -109,7 +109,7 @@ Resolution order: `.claude/tasks-config.json` (project root) → `~/.claude/task
 | Task event | GitHub action |
 |------------|--------------|
 | `/brana:backlog add` | `gh issue create` with labels. Store issue # in `github_issue`. If project: add item + set fields. |
-| `/brana:backlog pick` | If no issue: create one. Update labels to include `status:in-progress`. If project: set Status = "In Progress". Pull issue comments → task `context`. |
+| `/brana:backlog start` | If no issue: create one. Update labels to include `status:in-progress`. If project: set Status = "In Progress". Pull issue comments → task `context`. |
 | `/brana:build` CLOSE | `gh issue close`. If project: set Status = "Done". |
 | `/brana:backlog done` | Same as CLOSE. |
 | `/brana:backlog sync` | Bulk: create missing issues, update stale labels, close completed, dry-run audit. |
@@ -180,7 +180,7 @@ Labels auto-created on first use. Colors: stream=blue, priority=red, tags=gray.
 
 ### One-shot context pull (at pick time)
 
-When `/brana:backlog pick` runs and the task has a `github_issue`:
+When `/brana:backlog start` runs and the task has a `github_issue`:
 
 1. Run `gh-sync.sh pull-context <issue-number>`
 2. Script returns last 5 comments, formatted as:

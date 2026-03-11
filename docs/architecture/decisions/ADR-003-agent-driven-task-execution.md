@@ -5,7 +5,7 @@
 
 ## Context
 
-The task management system (ADR-002, v1) tracks tasks in `tasks.json` with a dependency DAG via `blocked_by`. Tasks are executed manually — one at a time, by the user invoking `/brana:backlog pick` and `/brana:backlog done`. The DAG already encodes which tasks can run in parallel (siblings with no mutual `blocked_by` edges), but this parallelism is unused.
+The task management system (ADR-002, v1) tracks tasks in `tasks.json` with a dependency DAG via `blocked_by`. Tasks are executed manually — one at a time, by the user invoking `/brana:backlog start` and `/brana:backlog done`. The DAG already encodes which tasks can run in parallel (siblings with no mutual `blocked_by` edges), but this parallelism is unused.
 
 Claude Code provides native agent spawning: the Task tool for subagents and TeamCreate for multi-agent teams. These can automate multi-task execution — spawn an agent per task, collect results, advance the DAG.
 

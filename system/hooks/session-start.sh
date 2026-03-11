@@ -117,7 +117,7 @@ if [ -n "$TASKS_FILE" ] && [ -f "$TASKS_FILE" ]; then
       (if $next then "Next unblocked: \($next.id) \($next.subject) (pending)"
        elif ($total > 0 and $total == $done) then "All tasks completed. Use /brana:backlog plan for next phase."
        else "" end) +
-      "\nCommands: /brana:backlog next, /brana:backlog plan, /brana:backlog add, /brana:backlog pick <id>"
+      "\nCommands: /brana:backlog next, /brana:backlog plan, /brana:backlog add, /brana:backlog start <id>"
     ' "$TASKS_FILE" 2>/dev/null) || true
 
     if [ -n "$TASK_SUMMARY" ]; then
