@@ -32,9 +32,23 @@ Append-only event log. The lowest-friction entry point into brana — no need to
 
 ## File
 
-Single global file: `~/.claude/memory/event-log.md`
+Per-project log with global fallback.
 
-Create it on first use if it doesn't exist.
+### Resolution order
+
+1. **CWD project**: `git rev-parse --show-toplevel` → basename → find matching CC project memory dir → `{dir}/event-log.md`
+2. **Tag routing**: if entry has `#projectslug` matching a registered project in `tasks-portfolio.json`, route to that project's log
+3. **Global fallback**: `~/.claude/memory/event-log.md` — when no project context is detected
+
+### Finding the CC project memory dir
+
+```
+~/.claude/projects/-{sanitized-path}/memory/event-log.md
+```
+
+Where `sanitized-path` is the absolute project path with `/` replaced by `-` and leading `-`. Example: project at `/home/user/enter_thebrana/thebrana` → `~/.claude/projects/-home-user-enter-thebrana-thebrana/memory/event-log.md`.
+
+Create the file on first use if it doesn't exist.
 
 ---
 
@@ -48,7 +62,7 @@ Quick append — the default mode.
 
 2. **Extract tags.** Find all `#word` tokens in the text. Remove the `#` prefix and collect as tags. Leave the `#tag` inline in the entry text — tags are visible, not hidden metadata.
 
-3. **Read the log file** at `~/.claude/memory/event-log.md`.
+3. **Resolve the log file** using the resolution order above (CWD project → tag routing → global fallback). Read it.
    - If it doesn't exist, create it with a header:
      ```markdown
      # Event Log
@@ -165,11 +179,11 @@ Paste and parse multiple entries at once — designed for WhatsApp dumps, meetin
 ## Rules
 
 - **Append-only.** Never edit or delete existing entries. The log is a historical record.
-- **Tags, not CWD.** Scope comes from inline `#tags`, not from which directory you're in. Works from anywhere.
+- **CWD first, tags second.** Route by project (CWD), fall back to `#tag` matching, then global. Works from anywhere — global log catches entries with no project context.
 - **No auto-detection.** Don't try to classify entries as "call", "meeting", "idea" automatically. The user adds `#call`, `#meeting`, `#idea` if they want to categorize.
 - **Confirm URLs.** Never silently create tasks from URLs. Always ask first via AskUserQuestion.
 - **Chronological within each day.** New entries go at the bottom of the day's section.
-- **One file.** Everything in `~/.claude/memory/event-log.md`. Tags provide the filtering mechanism.
+- **Per-project files.** Each project gets its own `event-log.md` in its CC memory dir. Tags still provide cross-project filtering (grep across all logs).
 - **Archival is conservative.** Only archive entries >90 days old, only when the file exceeds 500 lines, and only after user confirms.
 
 ## What /brana:log is NOT
