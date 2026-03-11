@@ -94,6 +94,10 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 74 | [Doc 08](reflections/08-diagnosis.md) "PM Separation: preserve the pattern" contradicted by [doc 39](39-architecture-redesign.md) | **High** | applied (2026-02-25) | [Doc 39](39-architecture-redesign.md) supersedes with directory-based separation. Supersession note added to item 2. |
 | 75 | [Doc 14](reflections/14-mastermind-architecture.md) missing cross-reference to [doc 39](39-architecture-redesign.md) | **Medium** | applied (2026-02-25) | Forward reference added with note that sections will need updating when migration phases execute |
 | 76 | [Doc 14](reflections/14-mastermind-architecture.md) AgentDB presented without stalled status | **High** | applied (2026-02-25) | Last npm publish Jan 2, 2026. Fallback (embeddings + SQLite) is primary. Note added to Foundation Stack table. |
+| 77 | [Doc 08](reflections/08-diagnosis.md) missing triage for 8 dimension docs (36-37, 39-Kapso, 40-44) | **High** | applied (2026-03-11) | Dimension docs added across multiple sessions without triage entries. Same pattern as #73. |
+| 78 | [Doc 14](reflections/14-mastermind-architecture.md) skill count 24 vs actual 25, tasks/ path vs backlog/ | **Low** | applied (2026-03-11) | 6th instance of count drift (#52, #54, #63, #67, #78). Also: SONA trajectories → BM25 hybrid search. |
+| 79 | [Doc 25](25-self-documentation.md) All Commands table references 10+ retired skill names | **High** | applied (2026-03-11) | /debrief, /session-handoff, /back-propagate, /refresh-knowledge, /build-phase, /build-feature, /morning, /weekly-review, /monthly-close, /monthly-plan all renamed. Full table + workflow examples rewritten. |
+| 80 | [Doc 29](reflections/29-venture-management-reflection.md) "7 of 12 skills" framing with obsolete baseline | **Medium** | applied (2026-03-11) | System has 25 skills, not 12. Updated to "6 of 25". /decide and /debrief references also updated. |
 
 ---
 
