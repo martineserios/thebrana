@@ -4146,7 +4146,7 @@
         "dx",
         "skills"
       ],
-      "status": "in_progress",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": null,
@@ -4159,11 +4159,11 @@
       "github_issue": 31,
       "created": "2026-03-03",
       "started": "2026-03-11",
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-11",
+      "notes": "Shipped v1: gh-sync.sh (6 subcommands), skill-embedded sync in pick/done/add/CLOSE, /brana:backlog sync for bulk ops. Projects v2 deferred. Key learning: gh CLI pipes unreliably in some terminal environments — use temp files for JSON output.",
       "context": "Issues as task lifecycle tracking + context persistence. Issue numbering not required but welcomed if it fits naturally — low-cost, positive-potential integration. Promoted P3→P1 on 2026-03-09: user reports GitHub Issues/Projects not being updated by tasks planner — this is a real workflow gap.",
       "strategy": "feature",
-      "build_step": "build"
+      "build_step": "close"
     },
     {
       "id": "t-161",
