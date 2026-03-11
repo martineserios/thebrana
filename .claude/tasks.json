@@ -8677,7 +8677,7 @@
       "tags": [
         "plugin-suite"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "type": "subtask",
       "parent": "t-293",
@@ -8692,8 +8692,8 @@
       "github_issue": null,
       "created": "2026-03-10",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-11",
+      "notes": "Backfilled 7 somos tasks: t-024/t-025/t-026 (presencial grouping), t-027 (docs legales), t-029 (dominio), t-023 (template deps), ph-001 (phase strategy).",
       "context": null,
       "strategy": null,
       "build_step": null
