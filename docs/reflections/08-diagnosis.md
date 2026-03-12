@@ -136,7 +136,7 @@ CLAUDE.md instructions ("never push to main") combined with git hooks handle bra
 ### 3. Token Routing (WASM -> Haiku -> Sonnet -> Opus)
 **Why adopt:** Using the cheapest capable model for each task reduces costs by 30-50%. Opus for decisions, Sonnet for implementation, Haiku for scouts.
 
-**Implementation priority:** Medium. Can be implemented with simple heuristics before needing full MoE routing.
+**Implementation priority:** Medium. Can be implemented with simple heuristics before needing full MoE routing. *(Note: WASM tier deferred — current brana implementation uses Haiku → Sonnet → Opus with static agent assignment. See agents table in [14-mastermind-architecture.md](./14-mastermind-architecture.md).)*
 
 **When to use:** Any project running multiple agents or long sessions.
 
@@ -335,6 +335,6 @@ Architectural questions that were open during initial design but have been resol
 12. ~~**Native Agent Teams or claude-flow swarms for coordination?**~~ → Resolved: hybrid. Native Agent Teams for execution coordination, claude-flow ReasoningBank for cross-session memory. First concrete pattern: multi-agent TDD with context isolation (see [14-mastermind-architecture.md](./14-mastermind-architecture.md) "Project Enforcement", [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md) "Multi-Agent TDD", [11-ecosystem-skills-plugins.md](../../../brana-knowledge/dimensions/11-ecosystem-skills-plugins.md) section 5).
 
 ### Cost Optimization
-13. **Is model routing worth the complexity?** Simple rule: Opus for architecture, Sonnet for code, Haiku for review. Or let the user decide?
+13. ~~**Is model routing worth the complexity?**~~ → Resolved: **not worth adding beyond the agent table.** TurboFlow's three-tier routing (Haiku → Sonnet → Opus) achieves ~75% cost reduction vs always-Opus by detecting complexity at task spawn time. Brana's agent roster already implements this statically: Haiku for 8 fast agents, Sonnet for pr-reviewer, Opus for challenger/debrief-analyst. The static assignment approximates dynamic routing without the complexity of a classifier. Add a session-level cost ceiling before adding dynamic routing — cost visibility first, routing second. See [45-turboflow-agent-orchestration.md](../../../brana-knowledge/dimensions/45-turboflow-agent-orchestration.md).
 14. **How much should we invest in WASM bypass?** If alpha stability improves, this could save significant cost. But it's a bet on external tooling.
 15. **Token budget allocation?** How much of the session budget goes to learning vs execution?

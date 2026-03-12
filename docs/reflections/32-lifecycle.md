@@ -245,7 +245,7 @@ The mastermind architecture describes a system that learns from code sessions. B
 ## Open Questions
 
 ### Lifecycle
-3. **When does the brain get too big?** 500 patterns is manageable. 5,000? At some point you need pruning, archival, or hierarchical summarization.
+3. **When does the brain get too big?** 500 patterns is manageable. 5,000? At some point you need pruning, archival, or hierarchical summarization. A fourth option from Beads (TurboFlow): structural decomposition — instead of one ReasoningBank that grows unbounded, shard into per-concern JSONL files (decisions, errors, patterns, cross-pollination). Each file stays bounded by domain size, not system age. Trade-off: no semantic search across shards vs no monolithic growth. Worth revisiting if ReasoningBank hits 2,000+ patterns and precision@k degrades. See [45-turboflow-agent-orchestration.md](../../../brana-knowledge/dimensions/45-turboflow-agent-orchestration.md).
 
 8. **Background learning ("the night shift")?** Background workers that re-analyze old sessions with new knowledge, extracting patterns you missed in real-time. **Note:** Blocked by claude-flow daemon stability — see [05-claude-flow-v3-analysis.md](../../../brana-knowledge/dimensions/05-claude-flow-v3-analysis.md). Revisit after daemon reliability is confirmed.
 

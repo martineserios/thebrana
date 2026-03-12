@@ -21,6 +21,9 @@ The system has three distinct layers, each with its own persistence and scope:
 │  ReasoningBank, BM25 hybrid search,         │
 │  cross-client patterns, learned failures   │
 │  Lives at: ~/.swarm/memory.db               │
+│  Single SQLite DB, not git-tracked,         │
+│  not parallel-safe. Trade-off: semantic     │
+│  search + confidence vs git-native safety.  │
 ├─────────────────────────────────────────────┤
 │  CONTEXT — What am I working on right now?  │
 │  Project CLAUDE.md, rules, skills, agents   │
@@ -873,6 +876,8 @@ The **single system for anything actionable**: things to research, build, fix, e
 
 The **system for things that inform work**, not things that ARE work. Stored in claude-flow's ReasoningBank (`.swarm/memory.db`) or auto memory files (`~/.claude/projects/*/memory/`).
 
+**Parallel-write limitation:** MEMORY.md (single file) is not safe for concurrent agent writes — last write wins. This is acceptable for the current pattern (one main session + read-only subagents). If parallel agents ever need to write session notes simultaneously, consider the Beads pattern: per-concern JSONL files that are git-naturally mergeable. See [45-turboflow-agent-orchestration.md](../../../brana-knowledge/dimensions/45-turboflow-agent-orchestration.md). Defer until the use case exists.
+
 **What belongs here:**
 - **Patterns** — "Haiku scouts can't write temp files" (namespace: `patterns`)
 - **Session metadata** — "session 8: kapso research, 1 commit, 4 learnings" (namespace: `patterns`, tag: `session-close`)
@@ -905,7 +910,9 @@ Skills like `/brana:research` propose backlog items in their reports. The user d
 7. **Sensitive pattern filtering?** Some learnings contain project-specific secrets or business logic. Need a way to mark patterns as non-transferable.
 
 ### Advanced Ideas
-9. **Project DNA matching?** Each project gets a vector embedding of its architecture. New problems are matched against the most similar project's DNA, not just tag overlap.
+9a. ~~**Within-project spec navigation (partially answered).**~~ The spec-graph.json file (see [45-turboflow-agent-orchestration.md](../../../brana-knowledge/dimensions/45-turboflow-agent-orchestration.md), GitNexus pattern) precomputes doc→doc and doc→file dependencies. `/brana:maintain-specs` and `/brana:reconcile` can read this instead of walking files at query time. This is the "index-time vs query-time" pattern applied to specs. Effort: small.
+
+9b. **Cross-project DNA matching (still open)?** Each project gets a vector embedding of its architecture. New problems are matched against the most similar project's DNA, not just tag overlap. No precedent in current tooling. Defer until cross-pollination recall quality is measured and found insufficient.
 
 See [32-lifecycle.md](./32-lifecycle.md) for lifecycle-related open questions: brain size limits (#3), background learning (#8), apprentice mode (#10).
 
