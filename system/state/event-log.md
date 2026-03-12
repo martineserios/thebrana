@@ -36,3 +36,6 @@
 - 08:06 — https://www.linkedin.com/posts/harshiltomar_things-every-vibe-coder-must-learn-extended-share-7434198445915078656-gcZ5 #linkedin #vibe-coding
 - 11:41 — domain verified #somos #meta-hygiene #dominio
 - 12:02 — Documentación solicitada a secretaria de Martín Devoto para verificación empresa Meta: constancia CUIT, certificado marca INPI, DNI, teléfono empresa. Devoto es autónomo con marca registrada "Somos Mirada" #somos #meta-hygiene #verificacion
+- 15:58 — Recibida documentación de secretaria de Martín Devoto. Constancia CUIT (ARCA): DEVOTO MARTIN HECTOR, CUIT 20-17713090-8, autónomo T2 Cat II, domicilio fiscal Arenales 1611 P4 CABA. Certificado marca INPI: "somos mirada" mixta, Reg 3.425.107, Clase 9, vence 4/08/2033. Falta DNI. ALERTA: domicilio fiscal (Arenales 1611) ≠ domicilio en BM (Montevideo 1410) — alinear antes de verificar #somos #meta-hygiene #verificacion
+- 17:15 — Asked cofounder Mariano (domain owner) if there's an email with the nexeyetech.com domain — needed for Brevo sender verification. Waiting for his answer #nexeye #email #brevo #t-078
+- 19:55 — Asked Mariano to fill Meta BM business details for NexEye (all empty: no legal name, no address, no phone, no website). Blocks WABA creation + business verification + t-080 #nexeye #meta #whatsapp #t-080
