@@ -6920,7 +6920,7 @@
       "created": "2026-03-11",
       "started": "2026-03-11",
       "completed": "2026-03-11",
-      "notes": "40-line lens extracted from 514-line brief. Saves ~5K tokens per harvest.",
+      "notes": "52-line lens extracted from 514-line brief. Saves ~5K tokens per harvest.",
       "context": null,
       "strategy": "feature",
       "build_step": "close"
