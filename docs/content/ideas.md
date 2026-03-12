@@ -22,7 +22,7 @@
 - **Components:** "The memory layer"
 - **Sources:** ADR-016, t-348/350/353, spec-graph.json, commits 2bac31a/76e02fc/681cc86
 
-### [seed] Stop writing prompts. Start writing specs.
+### [picked] Stop writing prompts. Start writing specs.
 - **Angle:** Three ADRs in one week: spec dependency graph, decision log, model routing. The pattern: specifications ARE the context. Not prompt engineering — specification-driven development. The spec tells the AI what to do better than any prompt.
 - **Pillar:** Contrarian
 - **Sources:** ADR-016/017/018, TurboFlow integration commit 1da021e
