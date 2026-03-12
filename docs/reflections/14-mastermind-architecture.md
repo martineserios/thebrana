@@ -77,6 +77,7 @@ thebrana/system/                              PLUGIN (loaded by Claude Code)
 │   ├── post-tasks-validate.sh                ← tasks.json schema + auto-rollup
 │   ├── post-pr-review.sh                     ← PR reviewer nudge
 │   ├── post-tool-use-failure.sh              ← Error categorization
+│   ├── task-sync.sh + task-sync.py           ← Incremental tasks.json → GitHub Issues sync (PostToolUse)
 │   └── lib/cf-env.sh                         ← Bundled claude-flow env (portable)
 ├── commands/                                 ← Agent commands
 │   ├── maintain-specs.md                     ← Cascade spec changes: dimension → reflection → roadmap
@@ -88,7 +89,7 @@ thebrana/system/                              PLUGIN (loaded by Claude Code)
 
 ~/.claude/settings.json                           POSTTOOLUSE HOOKS (CC plugin bug workaround)
 ├── PostToolUse hooks                             ← post-tool-use.sh, post-sale.sh, post-plan-challenge.sh,
-│                                                   post-tasks-validate.sh, post-pr-review.sh
+│                                                   post-tasks-validate.sh, post-pr-review.sh, task-sync.sh
 └── PostToolUseFailure hooks                      ← post-tool-use-failure.sh
     NOTE: CC v2.1.x does not dispatch PostToolUse/PostToolUseFailure from plugin hooks.json.
     bootstrap.sh installs these to ~/.claude/settings.json as workaround. Track CC issue #24529.
