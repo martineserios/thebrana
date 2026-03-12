@@ -5062,7 +5062,7 @@
         "linkedin",
         "general-ai-learning"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "personal",
       "type": "task",
       "parent": "ms-022",
@@ -5075,8 +5075,8 @@
       "github_issue": null,
       "created": "2026-03-05",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-12",
+      "notes": "Reviewed. Acceptable (founder test only). Knowledge work transformation — could reframe as systems-thinking angle on workforce evolution.",
       "context": "URL: https://www.linkedin.com/posts/prateekkarnal_the-nature-of-all-knowledge-work-has-fundamentally-ugcPost-7433833854848753664--NuY"
     },
     {
@@ -5088,7 +5088,7 @@
         "claude-code-enhancement",
         "security"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "personal",
       "type": "task",
       "parent": "ms-022",
@@ -5101,8 +5101,8 @@
       "github_issue": null,
       "created": "2026-03-05",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-12",
+      "notes": "Reviewed. Acceptable (CTO test only). Claude Code env security — potential How-To on sandboxing AI dev tools.",
       "context": "URL: https://www.linkedin.com/posts/askjohngeorge_you-cant-protect-your-env-from-claude-code-share-7434306641065308160-oRce"
     },
     {
@@ -5113,7 +5113,7 @@
         "linkedin",
         "unknown"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "personal",
       "type": "task",
       "parent": "ms-022",
@@ -5126,8 +5126,8 @@
       "github_issue": null,
       "created": "2026-03-05",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-12",
+      "notes": "No post content available, activity ID only. Closed without evaluation.",
       "context": "URL: https://www.linkedin.com/posts/activity-7434595798572703744-zWCK"
     },
     {
@@ -5138,7 +5138,7 @@
         "linkedin",
         "context-engineering"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "personal",
       "type": "task",
       "parent": "ms-022",
@@ -5151,8 +5151,8 @@
       "github_issue": null,
       "created": "2026-03-05",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-12",
+      "notes": "Reviewed. Strong match (both tests). Seed written to docs/content/ideas.md.",
       "context": "URL: https://www.linkedin.com/posts/avipil_i-found-%F0%9D%9F%AE%F0%9D%9F%B1%F0%9D%9F%AC%F0%9D%9F%AC%F0%9D%9F%AC-%F0%9D%97%B4%F0%9D%97%B5%F0%9D%97%BC%F0%9D%98%80%F0%9D%98%81-%F0%9D%98%81%F0%9D%97%BC%F0%9D%97%B8%F0%9D%97%B2%F0%9D%97%BB-share-7434623528978702337-xM-1"
     },
     {
@@ -5214,7 +5214,7 @@
         "linkedin",
         "general-ai-learning"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "personal",
       "type": "task",
       "parent": "ms-022",
@@ -5227,8 +5227,8 @@
       "github_issue": null,
       "created": "2026-03-05",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-12",
+      "notes": "Reviewed. Acceptable (founder test). SaaS in 30 days — speed-to-market angle, but risks \"vibe coding\" territory.",
       "context": "URL: https://www.linkedin.com/posts/todd-hurley-1b1a8123_i-built-a-production-saas-app-in-30-days-share-7434422337166528512-OkGk"
     },
     {
@@ -5239,7 +5239,7 @@
         "linkedin",
         "tooling"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "personal",
       "type": "task",
       "parent": "ms-022",
@@ -5252,8 +5252,8 @@
       "github_issue": null,
       "created": "2026-03-05",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-12",
+      "notes": "Reviewed. Skip — cmux is a dev tool, no founder angle, weak architecture angle. Off-lens.",
       "context": "URL: https://www.linkedin.com/posts/austinwang115_introducing-cmux-the-open-source-terminal-ugcPost-7434665511151566849-eq3G"
     },
     {
@@ -5265,7 +5265,7 @@
         "claude-code-enhancement",
         "tooling"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "personal",
       "type": "task",
       "parent": "ms-022",
@@ -5278,8 +5278,8 @@
       "github_issue": null,
       "created": "2026-03-05",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-12",
+      "notes": "Reviewed. Acceptable (CTO test only). AI dev tools ecosystem — could pair with brana as case study.",
       "context": "URL: https://www.linkedin.com/posts/aslam-c_ai-claudecode-developertools-share-7434811247746834432--Wuu"
     },
     {
@@ -5290,7 +5290,7 @@
         "linkedin",
         "ai-agent-systems"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "personal",
       "type": "task",
       "parent": "ms-022",
@@ -5303,8 +5303,8 @@
       "github_issue": null,
       "created": "2026-03-05",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-12",
+      "notes": "Reviewed. Strong match (both tests). Seed written to docs/content/ideas.md.",
       "context": "URL: https://www.linkedin.com/posts/vinothgovindarajan_openclaw-agents-ai-share-7434327721800814592-zoLE"
     },
     {
@@ -5315,7 +5315,7 @@
         "linkedin",
         "general-ai-learning"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "personal",
       "type": "task",
       "parent": "ms-022",
@@ -5328,8 +5328,8 @@
       "github_issue": null,
       "created": "2026-03-05",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-12",
+      "notes": "Reviewed. Strong match (both tests). Seed written to docs/content/ideas.md.",
       "context": "URL: https://www.linkedin.com/posts/robertkellydfw_were-still-building-software-like-humans-share-7433547371772387328-3AMT"
     },
     {
@@ -5342,7 +5342,7 @@
         "tooling",
         "ai-agent-systems"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "personal",
       "type": "task",
       "parent": "ms-022",
@@ -5355,8 +5355,8 @@
       "github_issue": null,
       "created": "2026-03-05",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-12",
+      "notes": "Reviewed. Strong match (both tests). Seed written to docs/content/ideas.md.",
       "context": "URL: https://www.linkedin.com/posts/niranjanakella_file9-5ca3c3e5-d352-4d67-9ada-8003b9be3eeejpg-share-7434931574883725312-DVU_\nKey claims: /text endpoint ~800 tokens vs screenshot ~10K tokens. Framework-agnostic HTTP API. Multi-instance orchestration with dashboard. Stealth mode bypasses bot detection. Compare against brana claude-flow browser tools."
     },
     {
@@ -5368,7 +5368,7 @@
         "rust",
         "not-relevant"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "personal",
       "type": "task",
       "parent": "ms-022",
@@ -5381,8 +5381,8 @@
       "github_issue": null,
       "created": "2026-03-05",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-12",
+      "notes": "Reviewed. Skip — Rust + astronomy is niche crossover, no clear positioning fit. Off-lens.",
       "context": "URL: https://www.linkedin.com/posts/hoenig-clemens-09456b98_rust-astronomy-dataengineering-share-7434538821331075073-ccF5"
     },
     {
@@ -5394,7 +5394,7 @@
         "ai-agent-systems",
         "tooling"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "personal",
       "type": "task",
       "parent": "ms-022",
@@ -5407,8 +5407,8 @@
       "github_issue": null,
       "created": "2026-03-05",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-12",
+      "notes": "Reviewed. Acceptable (CTO test only). Pydantic + deep agents — framework comparison angle possible.",
       "context": "URL: https://www.linkedin.com/posts/kacper-wlodarczyk_pydantic-deepagents-cli-ugcPost-7434238156452851712-t_iP"
     },
     {
@@ -5471,7 +5471,7 @@
         "linkedin",
         "unknown"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "personal",
       "type": "task",
       "parent": "ms-022",
@@ -5484,8 +5484,8 @@
       "github_issue": null,
       "created": "2026-03-05",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-12",
+      "notes": "No post content available, activity ID only. Closed without evaluation.",
       "context": "URL: https://www.linkedin.com/feed/update/urn:li:activity:7435338765604319232/"
     },
     {
@@ -5835,7 +5835,7 @@
     },
     {
       "type": "task",
-      "status": "pending",
+      "status": "completed",
       "stream": "personal",
       "parent": "ms-022",
       "order": null,
@@ -5847,8 +5847,8 @@
       "github_issue": null,
       "created": "2026-03-07",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-12",
+      "notes": "Reviewed. Acceptable (CTO test). Open-sourcing Claude Code tools — open-source strategy angle.",
       "id": "t-209",
       "subject": "AI + Claude Code open source (Nikolas Markou)",
       "description": "LinkedIn post about open-sourcing Claude Code related tools.",
@@ -5860,7 +5860,7 @@
     },
     {
       "type": "task",
-      "status": "pending",
+      "status": "completed",
       "stream": "personal",
       "parent": "ms-022",
       "order": null,
@@ -5872,8 +5872,8 @@
       "github_issue": null,
       "created": "2026-03-07",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-12",
+      "notes": "Reviewed. Strong match (both tests). Seed written to docs/content/ideas.md.",
       "id": "t-210",
       "subject": "Someone deconstructed Claude Code and open-sourced (Ayel Magambetov)",
       "description": "LinkedIn post about deconstructing and open-sourcing Claude Code internals.",
@@ -5885,7 +5885,7 @@
     },
     {
       "type": "task",
-      "status": "pending",
+      "status": "completed",
       "stream": "personal",
       "parent": "ms-022",
       "order": null,
@@ -5897,8 +5897,8 @@
       "github_issue": null,
       "created": "2026-03-07",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-12",
+      "notes": "Reviewed. Strong match (both tests). Seed written to docs/content/ideas.md.",
       "id": "t-211",
       "subject": "Data governance + MCP + AI (Ronald Mego)",
       "description": "LinkedIn post on data governance with MCP and AI.",
@@ -5911,7 +5911,7 @@
     },
     {
       "type": "task",
-      "status": "pending",
+      "status": "completed",
       "stream": "personal",
       "parent": "ms-022",
       "order": null,
@@ -5923,8 +5923,8 @@
       "github_issue": null,
       "created": "2026-03-07",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-12",
+      "notes": "Reviewed. Acceptable (founder test). Marketing vs coding difficulty — resonates with builder-founder tension.",
       "id": "t-212",
       "subject": "Marketing is 100x harder than vibe coding (Walid Boulanouar)",
       "description": "LinkedIn post on the difficulty of marketing vs building with AI.",
@@ -6879,7 +6879,7 @@
         "business",
         "content"
       ],
-      "status": "in_progress",
+      "status": "completed",
       "stream": "personal",
       "type": "milestone",
       "parent": "ph-005",
@@ -6892,8 +6892,8 @@
       "github_issue": null,
       "created": "2026-03-09",
       "started": "2026-03-11",
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-12",
+      "notes": "Content Engine foundation complete: lens.md, /brana:harvest skill, 10 seed ideas (4 from session artifacts + 6 from creator post review). 21/21 subtasks done. Next: /brana:content-draft skill (Phase B, after manual Phase A validation).",
       "context": null,
       "strategy": null,
       "build_step": null
@@ -8660,7 +8660,7 @@
         "workflow",
         "dx"
       ],
-      "status": "in_progress",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": null,
@@ -8673,11 +8673,11 @@
       "github_issue": 157,
       "created": "2026-03-10",
       "started": "2026-03-11",
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-11",
+      "notes": "Merged to main 2026-03-11. Behavioral rule in tactical-context.md + /brana:log per-project enhancement.",
       "context": "Origin: somos_mirada session. Expand: per-project event logs + auto-match tactical advice to related tasks by keyword/tag overlap.",
       "strategy": "feature",
-      "build_step": "build"
+      "build_step": null
     },
     {
       "id": "st-293a",
@@ -8702,7 +8702,7 @@
       "created": "2026-03-10",
       "started": null,
       "completed": "2026-03-11",
-      "notes": "Backfilled 7 somos tasks: t-024/t-025/t-026 (presencial grouping), t-027 (docs legales), t-029 (dominio), t-023 (template deps), ph-001 (phase strategy).",
+      "notes": "Backfilled 7 somos tasks: t-024/t-025/t-026 (presencial grouping), t-027 (docs legales), t-029 (dominio), t-023 (template deps), ph-001 (phase strategy).Merged to main 2026-03-11. Behavioral rule in tactical-context.md + /brana:log per-project enhancement.",
       "context": null,
       "strategy": null,
       "build_step": null
@@ -9313,7 +9313,7 @@
       "notes": null,
       "context": null,
       "strategy": "feature",
-      "build_step": "build"
+      "build_step": null
     },
     {
       "id": "ms-040",
@@ -9340,7 +9340,7 @@
       "notes": null,
       "context": null,
       "strategy": "feature",
-      "build_step": "build"
+      "build_step": null
     },
     {
       "id": "t-347",
@@ -9350,7 +9350,7 @@
         "turboflow",
         "spec-graph"
       ],
-      "status": "in_progress",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-040",
@@ -9363,11 +9363,11 @@
       "github_issue": null,
       "created": "2026-03-11",
       "started": "2026-03-11",
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-12",
+      "notes": "12/12 tests pass. Script at system/scripts/spec_graph.py, output at docs/spec-graph.json (159 nodes, 483 edges). ADR-016 accepted.",
       "context": null,
       "strategy": "feature",
-      "build_step": "build"
+      "build_step": null
     },
     {
       "id": "t-348",
@@ -9525,7 +9525,7 @@
         "turboflow",
         "spec-graph"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-040",
@@ -9540,8 +9540,8 @@
       "github_issue": null,
       "created": "2026-03-11",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-12",
+      "notes": "spec-graph.json generated 2026-03-11 (59KB, 159 nodes, 483 edges, 68 orphans).",
       "context": null,
       "strategy": "feature",
       "build_step": null
@@ -10730,6 +10730,62 @@
       "completed": "2026-03-11",
       "notes": null,
       "context": "Soft enforcement — warning, not block. Bug fix and refactor branches are exempt.",
+      "strategy": null,
+      "build_step": null
+    },
+    {
+      "id": "t-392",
+      "subject": "/brana:brainstorm — interactive idea maturation skill",
+      "description": "New skill: /brana:brainstorm. User has a raw idea → interactive session with AskUserQuestion-driven flow. Auto-researches concepts/tools proactively as they come up. Output: idea doc (markdown) + offer to create backlog task. Leverages AskUserQuestion throughout for structured interaction.",
+      "tags": [
+        "skills",
+        "dx",
+        "workflow"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-12",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "Interactive brainstorming command. Key decisions: name=/brana:brainstorm, output=idea doc + task offer, research=proactive auto-fetch. Must use AskUserQuestion for all interaction (not plain text prompts).",
+      "strategy": "feature",
+      "build_step": null
+    },
+    {
+      "id": "t-393",
+      "subject": "/brana:project — project lifecycle for non-code client work",
+      "description": "Design and implement a project management approach for client work that goes beyond code features. Projects may include: proposals, research, data collection, service design, consulting deliverables, and software. Needs its own lifecycle (propose → scope → execute → deliver) distinct from /brana:build's code-centric flow. First test case: Palco agent relevamiento project.",
+      "tags": [
+        "projects",
+        "client-work",
+        "proposal"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": "L",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-12",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "2026-03-12: First need surfaced during Palco agent relevamiento — a project that involves KB creation, data collection instrument design, employee surveys, report generation, and agent implementation. /brana:build's feature strategy doesn't fit because it's not a single code deliverable.",
       "strategy": null,
       "build_step": null
     }
