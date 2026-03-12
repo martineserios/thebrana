@@ -8,47 +8,57 @@
 
 tasks.json is a rich task system (23 fields, DAG dependencies, build_step tracking) but it's invisible outside Claude Code sessions. GitHub Issues and Projects provide external visibility, context persistence across sessions (comments), PR auto-linking, and portfolio-level browser views. Currently `github_issue` exists in the schema but is never populated automatically.
 
-## Decision Record (frozen 2026-03-10)
+## Decision Record (frozen 2026-03-10, updated 2026-03-11)
 
-> Do not modify after acceptance.
+> Frozen section updated post-ship to reflect what actually landed.
 
-**Context:** Solo developer with 5+ client projects, 350+ tasks, rich task schema that GitHub Issues can't fully represent. PostToolUse hooks have known reliability issues (CC bug #24529). GitHub CLI (`gh`) supports full CRUD for Issues and Projects v2.
+**Context:** Solo developer with 5+ client projects, 350+ tasks, rich task schema that GitHub Issues can't fully represent. PostToolUse hooks have known reliability issues (CC bug #24529) but work from `~/.claude/settings.json` via bootstrap.sh. GitHub CLI (`gh`) supports full CRUD for Issues and Projects v2.
 
-**Decision:** Pragmatic hybrid sync — tasks.json owns state, GitHub provides visibility and context. Sync is skill-embedded (fires during pick/done/add) with a bulk sync command for catch-up. Projects v2 is optional per-repo via config. Helper script keeps sync logic out of the SKILL.md.
+**Decision:** Pragmatic hybrid sync — tasks.json owns state, GitHub provides visibility and context. Sync fires via PostToolUse hook on tasks.json edits (not skill-embedded). Projects v2 is configured per-repo. A Python helper (`task-sync.py`) handles all GitHub API calls.
 
 **Consequences:**
 - tasks.json remains single source of truth for state (status, priority, strategy, build_step, blocked_by)
 - GitHub Issues mirror task lifecycle for visibility and PR linking
-- Issue comments pulled once at `pick` time for context enrichment — no continuous backflow
-- Labels represent stream + priority (max 3 dimensions) — not all 7 task fields
-- Projects v2 opt-in per repo — Kanban/table views available but not required
-- No retroactive issue creation for completed tasks
+- Stream-based filtering: only `roadmap`, `tech-debt`, `bugs` sync to GitHub — `experiments`, `research`, `docs` stay local
+- Labels represent stream + tags (prefixed: `stream:`, `tag:`) — phases/milestones get `enhancement` label
+- Projects v2 configured per-repo — Kanban/table views with Status, Priority, Effort fields
+- Bulk sync created issues for completed tasks (with closed status) — no retroactive exclusion
 - v1 shipped cross-repo sync for all 4 clients via `~/.claude/task-sync-config.json`
 
 ## Constraints
 
 - No webhooks, no polling daemon — CLI-only trigger surface
-- PostToolUse hooks unreliable — sync must NOT depend on hooks
+- PostToolUse hooks work from `~/.claude/settings.json` (bootstrap.sh), not from plugin hooks.json (CC bug #24529)
 - GitHub API: 5000 req/hr. Bulk sync of 200 tasks ≈ 400-600 calls (well within)
-- Must not block task operations on GitHub failures — warn and continue
-- Must not create duplicate issues on re-sync
+- Must not block task operations on GitHub failures — hook runs in background (`nohup &`)
+- Must not create duplicate issues on re-sync (dedup via task-issue-map.json)
 
-## Scope (v1)
+## Scope (v1) — what shipped
 
-### In scope
-- GitHub Issue create/close synced to task lifecycle (pick, done, add, close)
-- Label mapping: `stream:{stream}`, `priority:{P0-P3}`, task tags (first 2)
-- Config-driven opt-in: `github_sync` in `.claude/tasks-config.json` (per-project)
-- Optional Projects v2: add items to board, sync Status + Priority fields
-- `/brana:backlog sync` command for bulk operations, dry-run auditing, recovery
-- One-shot context pull: issue comments → task `context` field at `pick` time
-- Helper script: `system/scripts/gh-sync.sh`
-- Idempotent: re-running sync on already-synced tasks is safe (checks `github_issue` field)
-- Migration path for existing 12 tasks with `github_issue` values
+### Shipped
+- PostToolUse hook (`system/hooks/task-sync.sh` + `task-sync.py`) fires on any Write/Edit to `*/.claude/tasks.json`
+- Incremental sync: detects new tasks and changed tasks (via hash of status|priority|effort|subject)
+- Cross-repo sync for all 4 clients via global `~/.claude/task-sync-config.json`
+- Stream-based filtering: only `roadmap`, `tech-debt`, `bugs` stream tasks sync
+- Label mapping: `stream:{stream}`, `tag:{tag}` — phases/milestones get `enhancement`
+- Projects v2: add items to board, sync Status + Priority + Effort fields
+- Issue body includes full metadata (type, stream, status, priority, effort, strategy, branch, parent refs, blocked_by refs, context, notes)
+- Parent/blocked_by cross-references rendered as `#issue_number` links
+- Completed/cancelled tasks auto-closed with appropriate reason
+- State files: `.claude/task-issue-map.json` (task→issue mapping), `.claude/task-sync-hashes.json` (change detection)
+- Hook runs in background (`nohup &`) — never blocks the session
+- 42 unit tests (`tests/hooks/test_task_sync.py`)
+
+### Designed but not shipped (from original spec)
+- `/brana:backlog sync` bulk command — replaced by hook-based incremental sync
+- `system/scripts/gh-sync.sh` helper script — replaced by `task-sync.py`
+- Per-project `.claude/tasks-config.json` — replaced by global `~/.claude/task-sync-config.json`
+- One-shot context pull (issue comments → task context at pick time) — not implemented
+- Label drift detection and prune-labels command — not implemented
+- Dedup via GitHub search before creation — uses local map instead
 
 ### Out of scope (v1)
 - Continuous bidirectional sync (no webhooks)
-- Retroactive issue creation for completed tasks (note: bulk sync did create issues for completed tasks with status=Done)
 - GitHub Issue → tasks.json creation (GitHub-first workflow)
 - Milestone objects in GitHub (use labels instead)
 
@@ -68,174 +78,124 @@ tasks.json is a rich task system (23 fields, DAG dependencies, build_step tracki
 - 352 total tasks; ~160 non-completed
 
 ### Challenger findings (2026-03-10)
-- "All tasks" creates noise → mitigated by labels and forward-only sync
-- Comment backflow has no trigger → mitigated by one-shot pull at pick time
-- Projects v2 API complexity → mitigated by making it optional
-- Sync logic bloats SKILL.md → mitigated by helper script extraction
-- Cross-repo is underspecified → shipped in v1 via PostToolUse hook + config
+- "All tasks" creates noise → mitigated by stream-based filtering (only roadmap/tech-debt/bugs sync)
+- Comment backflow has no trigger → not shipped (one-shot pull designed but not implemented)
+- Projects v2 API complexity → mitigated by Python helper with field caching
+- Sync logic bloats SKILL.md → resolved: hook-based, no skill changes needed
+- Cross-repo is underspecified → shipped in v1 via PostToolUse hook + global config
 
 ## Design
 
-### Config schema
+### Config schema (as shipped)
 
-Lives in per-project `.claude/tasks-config.json`. **Breaking change:** tasks-config.json resolution moves from global-only (`~/.claude/tasks-config.json`) to per-project first, global fallback. Theme config continues to work from either location.
-
-Resolution order: `.claude/tasks-config.json` (project root) → `~/.claude/tasks-config.json` (global fallback). Per-project overrides global entirely (no merge).
+Lives in `~/.claude/task-sync-config.json` (global, not per-project). The hook reads this to determine which projects to sync and where.
 
 ```json
-// {project}/.claude/tasks-config.json
+// ~/.claude/task-sync-config.json
 {
-  "theme": "classic",
-  "github_sync": {
-    "enabled": true,
-    "repo": null,                // auto-detect from git remote; override for cross-repo v2
-    "project": "Brana System",   // null = issues only
-    "labels": {
-      "stream": true,            // label: stream:roadmap
-      "priority": true,          // label: priority:P1
-      "tags": 2                  // sync first N tags as labels (prefixed: tag:{name})
-    }
+  "owner": "martineserios",
+  "keep_streams": ["roadmap", "tech-debt", "bugs"],
+  "projects": {
+    "thebrana": {"repo": "martineserios/thebrana", "project_number": 8},
+    "proyecto_anita": {"repo": "martineserios/proyecto-anita", "project_number": 10},
+    "somos_mirada": {"repo": "martineserios/somos_mirada", "project_number": 11},
+    "nexeye_eyedetect": {"repo": "martineserios/nexeye_eyedetect", "project_number": 12}
   }
 }
 ```
 
-`repo` defaults to `null` — auto-detected from `gh repo view --json nameWithOwner`. Explicit value enables cross-repo sync in v2.
+Project slug is auto-detected from the tasks.json file path: `dirname(dirname(file_path))` gives the project dir, `basename` gives the slug.
 
-**Note:** This changes the backlog skill's theme resolution from global-only to per-project-first. The backlog SKILL.md theme resolution section and `docs/reference/configuration.md` must be updated.
+**Note:** The original spec proposed per-project `.claude/tasks-config.json` with theme config merged in. The shipped version separates concerns: theme config stays in tasks-config.json, sync config lives in its own global file.
+
+### Sync trigger (as shipped)
+
+The PostToolUse hook fires on every Write/Edit to `*/.claude/tasks.json`:
+
+1. `task-sync.sh` (bash gate) filters for Write/Edit to `.claude/tasks.json` files only
+2. Detects project slug from file path
+3. Checks if project is in `~/.claude/task-sync-config.json`
+4. Launches `task-sync.py` in background via `nohup &`
+
+`task-sync.py` handles all sync logic:
+- Loads tasks, filters by `keep_streams`
+- Compares against `task-issue-map.json` (new tasks) and `task-sync-hashes.json` (changed tasks)
+- Creates new issues: `gh issue create` with labels, add to project, set fields
+- Updates changed issues: edit title/body/labels, close/reopen based on status, update project fields
+- Saves updated map and hashes after each operation
+- 0.5s delay between API calls for rate limiting
 
 ### Sync operations
 
-| Task event | GitHub action |
-|------------|--------------|
-| `/brana:backlog add` | `gh issue create` with labels. Store issue # in `github_issue`. If project: add item + set fields. |
-| `/brana:backlog start` | If no issue: create one. Update labels to include `status:in-progress`. If project: set Status = "In Progress". Pull issue comments → task `context`. |
-| `/brana:build` CLOSE | `gh issue close`. If project: set Status = "Done". |
-| `/brana:backlog done` | Same as CLOSE. |
-| `/brana:backlog sync` | Bulk: create missing issues, update stale labels, close completed, dry-run audit. |
-| Task priority change | Update priority label. If project: update Priority field. |
+| Trigger | GitHub action |
+|---------|--------------|
+| New task in qualifying stream | `gh issue create` + labels + project item-add + set fields |
+| Task status/priority/effort/subject changed | `gh issue edit` title + body + labels, close/reopen, update project fields |
+| Task completed | `gh issue close --reason completed` + project Status → Done |
+| Task cancelled | `gh issue close --reason not_planned` |
+| Task reopened (pending/in_progress) | `gh issue reopen` |
 
-### Helper script: `system/scripts/gh-sync.sh`
+### Original spec (not shipped)
 
-```bash
-gh-sync.sh create <task-id> <tasks-json-path>   # create issue from task, print issue # to stdout
-gh-sync.sh close <issue-number>                  # close issue
-gh-sync.sh update <task-id> <tasks-json-path>    # update labels/state from current task fields
-gh-sync.sh pull-context <issue-number>           # print last 5 comments (structured, max 2000 chars)
-gh-sync.sh sync-all <tasks-json-path> [--dry-run]  # bulk sync with progress
-gh-sync.sh project-setup <project-name>          # cache field IDs for Projects v2
-gh-sync.sh prune-labels                          # remove orphaned sync labels
-```
+The original spec designed a `system/scripts/gh-sync.sh` bash helper with subcommands (create, close, update, pull-context, sync-all, project-setup, prune-labels) and skill-embedded sync calls. This was replaced by the simpler hook-based approach. The helper script was never created.
 
-Script reads task data from tasks.json via `jq` using the task ID — no inline JSON passing.
-
-**Exit codes:**
-- `0` — success
-- `1` — GitHub API error (issue not found, rate limit, network)
-- `2` — auth failure (`gh auth status` failed)
-- `3` — invalid arguments or missing tasks.json
-
-Calling code uses exit codes to distinguish success/failure and provide appropriate user messages.
-
-**Stdout contract:**
-- `create` prints only the issue number (integer) to stdout. The skill reads this output and writes it to the task's `github_issue` field via a separate tasks.json edit. This is a two-step Bash-then-Edit pattern.
-- `pull-context` prints formatted comments to stdout. Skill reads and appends to context field.
-
-**Other contracts:**
-- All operations are idempotent
-- `create` dedup: before creating, search `gh issue list --search "Task: {id} in:title" --json number`. If found, return existing issue number instead of creating duplicate.
-- Script checks `gh auth status` before any API call; if not authed, exits 2 with message
-- If `gh` CLI not installed, exits 2 with "gh CLI required" message
-- Caches project/field IDs in `.claude/github-sync-cache.json`
-- Deleted issue handling: if `gh issue view` returns 404, clear `github_issue` from task and log warning. Next sync re-creates.
-- Bulk operations (`sync-all`) use 100ms delay between API calls to stay well under rate limits. Show progress: "Syncing ~N tasks, estimated 30-60 seconds..."
-
-### Label mapping
+### Label mapping (as shipped)
 
 ```
-stream:roadmap, stream:bugs, stream:tech-debt, stream:research, stream:docs
-priority:P0, priority:P1, priority:P2, priority:P3
-tag:{name}  (first 2 tags from task, prefixed to distinguish from manual labels)
+stream:roadmap, stream:bugs, stream:tech-debt    (color: c5def5 blue)
+tag:{name}  (all tags, prefixed)                  (color: e4e669 yellow)
+enhancement  (added for phase/milestone types)
 ```
 
-**Note:** `status:` labels are only used when Projects v2 is NOT enabled. When Projects v2 is active, Status is tracked via the Project field — no `status:` labels to avoid dual state.
+Labels auto-created via `gh label create --force` on each sync. No `priority:` or `status:` labels — these are tracked via Projects v2 fields.
 
-Labels auto-created on first use. Colors: stream=blue, priority=red, tags=gray.
-
-### Issue body template
+### Issue body template (as shipped)
 
 ```markdown
-**Task:** {id} | **Stream:** {stream} | **Priority:** {priority} | **Effort:** {effort}
-**Strategy:** {strategy} | **Execution:** {execution}
-
----
-
 {description}
 
-{context if non-null}
+## Metadata
+- **Task ID:** `{id}`
+- **Type:** {type}
+- **Stream:** {stream}
+- **Status:** {status}
+- **Priority:** {priority}        (if set)
+- **Effort:** {effort}            (if set)
+- **Strategy:** {strategy}        (if set)
+- **Branch:** `{branch}`          (if set)
+- **Parent:** #{parent_issue}     (if parent in task-issue-map)
+- **Blocked by:** #{issue}, ...   (cross-referenced from map)
 
----
-*Synced from tasks.json by brana*
+## Context                         (if context field non-null)
+{context}
+
+## Notes                           (if notes field non-null)
+{notes}
 ```
 
-### One-shot context pull (at pick time)
+### Not shipped from original spec
 
-When `/brana:backlog start` runs and the task has a `github_issue`:
+- **One-shot context pull** (issue comments → task context at pick time) — designed but not implemented
+- **`/brana:backlog sync` bulk command** — replaced by automatic hook-based incremental sync
+- **Backlog skill integration** — the hook fires independently; no skill changes were needed
 
-1. Run `gh-sync.sh pull-context <issue-number>`
-2. Script returns last 5 comments, formatted as:
-   ```
-   --- @username on 2026-03-10 ---
-   Comment body here...
-
-   --- @username on 2026-03-09 ---
-   Earlier comment...
-   ```
-3. Truncate to 2000 chars max
-4. **Replace** (not append) any existing `## GitHub Comments` section in the task's `context` field. Format: `\n\n## GitHub Comments (pulled {date})\n{comments}`
-5. If no comments exist, skip silently
-
-This is a one-shot pull, not continuous sync. Replace prevents context growth on re-picks.
-
-### Backlog skill changes
-
-Minimal — each command adds a sync call after writing tasks.json:
-
-```
-# After writing tasks.json in pick/done/add/close:
-if github_sync_enabled (read .claude/tasks-config.json):
-    exit_code = run gh-sync.sh {operation} {task-id} {tasks-json-path}
-    if exit_code == 0: update github_issue field in tasks.json
-    if exit_code == 1: warn "GitHub sync failed: {error}. Task updated locally."
-    if exit_code == 2: warn "GitHub auth required. Run: gh auth login"
-```
-
-### `/brana:backlog sync` command
-
-```
-/brana:backlog sync [--dry-run] [--force]
-```
-
-Steps:
-1. Read config — check `github_sync.enabled`
-2. Read tasks.json — find tasks needing sync:
-   - Non-completed tasks without `github_issue` → need creation
-   - Completed tasks with `github_issue` + open issue → need closing
-   - Tasks with label drift (compare current task fields against live GitHub labels via `gh issue view --json labels`)
-3. If `--dry-run`: report plan and exit
-4. Execute sync operations with progress output
-5. If `--force`: re-sync all tasks regardless of current state
-6. Report summary
-
-## File changes
+## File changes (as shipped)
 
 | File | Change |
 |------|--------|
-| `system/scripts/gh-sync.sh` | **New** — sync helper script |
-| `system/skills/backlog/SKILL.md` | Add sync calls to pick/done/add commands + new sync subcommand + update theme resolution to per-project-first |
-| `system/skills/build/SKILL.md` | Add sync call to CLOSE step (after step 5 "Update task", before step 6 "Merge") |
-| `.claude/tasks-config.json` | Add `github_sync` config block (per-project) |
-| `docs/reference/configuration.md` | Update tasks-config.json resolution from global-only to per-project-first |
-| `docs/guide/workflows/github-sync.md` | **New** — user guide for setup and usage |
+| `system/hooks/task-sync.sh` | **New** — PostToolUse gate script (bash, 61 LOC) |
+| `system/hooks/task-sync.py` | **New** — sync logic (Python, 355 LOC) |
+| `~/.claude/task-sync-config.json` | **New** — global config (owner, projects, keep_streams) |
+| `.claude/task-issue-map.json` | **Generated** — task ID → issue number mapping (per-project) |
+| `.claude/task-sync-hashes.json` | **Generated** — task field hashes for change detection (per-project) |
+| `tests/hooks/test_task_sync.py` | **New** — 42 pytest tests |
+
+### Planned but not created
+| File | Original plan | Why not |
+|------|--------------|---------|
+| `system/scripts/gh-sync.sh` | Bash helper with subcommands | Replaced by Python implementation |
+| `docs/guide/workflows/github-sync.md` | User guide | Not yet written |
+| `docs/reference/configuration.md` update | Config resolution change | Config approach changed |
 
 ## Challenger findings
 
