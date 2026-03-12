@@ -95,6 +95,8 @@ Read the spec surface — everything that describes what the implementation shou
 | **Dimension docs** | `brana-knowledge/dimensions/` (all `.md` files) | Tool capabilities, integration patterns, behavioral expectations |
 | **Reflection docs** | `docs/reflections/` (all `.md` files) | Architecture decisions, cross-cutting conventions, quality criteria |
 | **Roadmap docs** | `docs/` (all `.md` files in root) | Implementation details, WI specs, known errata, self-doc expectations |
+| **Feature docs (tech)** | `docs/architecture/features/` (all `.md` files) | Design decisions, code flow, key files, API surface claims |
+| **Feature docs (user)** | `docs/guide/features/` (all `.md` files) | Usage instructions, options, examples, troubleshooting steps |
 | **CLAUDE.md** | `.claude/CLAUDE.md` | Commands table, ecosystem roles, rules, memory conventions |
 | **Project commands** | `.claude/commands/*.md` | Project-level command definitions |
 
@@ -104,6 +106,8 @@ For each area, extract **concrete claims about the implementation** — things l
 - "rule W should enforce convention V"
 - "CLAUDE.md should list agent table with these entries"
 - "deploy.sh should handle sql.js dependency"
+- "feature doc says key file is at path X with role Y" (from tech doc Key Files tables)
+- "user guide says option Z has default W" (from user guide Options tables)
 
 Ignore abstract analysis or research — only extract claims that can be verified against system/ files.
 

@@ -549,8 +549,9 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    - Key: write for someone who's never seen the codebase — copy-pasteable examples
 
    **Also update existing docs if affected:**
-   - If new command: add to `docs/guide/commands/index.md`
+   - If new command/skill: add to `docs/guide/commands/index.md` — read the file, find the right workflow group table, insert a row with `| /brana:{name} | {description from skill frontmatter} |`. If no group fits, add to "Utilities".
    - If workflow changed: update relevant `docs/guide/workflows/*.md`
+   - If existing feature docs reference changed files: update them (check `docs/architecture/features/` Key Files tables)
 
    **Shipped without docs means not shipped.**
 
@@ -563,14 +564,27 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    - If task has `github_issue`: run `system/scripts/gh-sync.sh close {issue-number}`.
    - If sync fails: warn "GitHub issue not closed. Close manually: gh issue close #{issue-number}" — do NOT block CLOSE.
 
-7. **Merge** — present the command, do NOT auto-execute:
+7. **Pre-merge doc check** (feature, greenfield, migration only):
+   - Run: `git diff --name-only main...HEAD | grep -E '(docs/architecture/features/|docs/guide/features/)'`
+   - **If no doc files in diff:** warn clearly:
+     ```
+     ⚠ No feature docs found in this branch.
+     "Shipped without docs means not shipped."
+     Generate docs now? (yes / skip — I'll add them later)
+     ```
+     If user says yes: loop back to step 4 (doc generation).
+     If user says skip: proceed to merge (soft enforcement, not a hard block).
+   - **If doc files present:** proceed silently.
+   - **Bug fix / refactor branches:** skip this check entirely.
+
+8. **Merge** — present the command, do NOT auto-execute:
    ```bash
    git checkout main
    git merge --no-ff feat/{branch-name} -m "{type}: {description}"
    git branch -d feat/{branch-name}
    ```
 
-7. **Report:**
+9. **Report:**
    ```markdown
    ## Build Complete: {title}
 

@@ -127,6 +127,26 @@ git diff --name-only HEAD~10..HEAD 2>/dev/null | grep -E '(skills/|agents/|hooks
   ```
 - **If no matches:** skip silently
 
+#### Feature doc staleness check
+
+After detecting system-level drift, also check if session changes affect existing feature docs:
+
+1. **Get changed implementation files** from this session:
+   ```bash
+   git diff --name-only HEAD~10..HEAD 2>/dev/null | grep -E '\.(ts|js|py|sh|json)$'
+   ```
+
+2. **Scan feature docs** in `docs/architecture/features/` and `docs/guide/features/`:
+   - For each feature doc, check the **Key Files** table (tech doc) or content references
+   - If any changed implementation file appears in a feature doc's Key Files or is referenced by path, that doc is **potentially stale**
+
+3. **Report stale docs:**
+   - List them in the handoff note under a `**Stale feature docs:**` section
+   - Append to `.needs-backprop` marker: `docs-stale: {doc1.md}, {doc2.md}`
+   - Suggest: "Review these docs next session or run `/brana:reconcile`"
+
+4. **Skip if:** no feature docs exist yet, or no implementation files changed
+
 ### Step 7: Write handoff note
 
 Find `session-handoff.md` in `~/.claude/projects/` for the current project. Append:
