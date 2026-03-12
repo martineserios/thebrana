@@ -21,7 +21,14 @@ Dual-model adversarial review. Opus stress-tests reasoning and finds logical fla
 
 1. **Gather context** about what to challenge:
    - If `$ARGUMENTS` provided, use it as the description of what to challenge.
-   - If no arguments: **self-challenge mode** — challenge your own most recent substantive answer. Scan the conversation for your last analysis, recommendation, plan, or decision. That becomes the target. Frame it as: "Let me stress-test what I just said."
+   - If no arguments: **conversation-context inference** — scan recent conversation turns (both user and assistant) to identify the most significant unchalllenged decision, plan, or proposal. Priority order:
+     1. A plan or architecture decision being actively discussed
+     2. A proposal the user described or asked about
+     3. Your own most recent substantive recommendation
+     4. A trade-off or choice where alternatives weren't explored
+   - Extract: the decision/plan itself, the key constraints mentioned, and any assumptions stated or implied.
+   - Frame it naturally: "I see we're discussing [X]. Let me stress-test that." — not "Let me challenge my last answer."
+   - If the conversation has no substantive decision context (e.g., session just started, only greetings), then ask what to target.
 
 2. **Choose challenge flavor** based on context:
    - Architecture/design decisions → **Pre-mortem**: "Imagine this solution failed in production 3 months from now. What went wrong?"
@@ -124,8 +131,8 @@ source "$HOME/.claude/scripts/cf-env.sh"
 
 ## Rules
 
-- **No arguments = self-challenge.** Empty `/brana:challenge` targets your own last answer. Never ask "what should I challenge?" — either use the provided arguments or self-challenge.
-- **Ask for clarification on scope**, not on target. If you know WHAT to challenge but not HOW DEEP, ask. If the conversation has no substantive prior answer to self-challenge (e.g., session just started), then ask what to target.
+- **No arguments = conversation inference.** Empty `/brana:challenge` scans the conversation for the most significant unchalllenged decision or plan — from either user or assistant. Never ask "what should I challenge?" unless the conversation truly has no decision context (session just started, only greetings).
+- **Ask for clarification on scope**, not on target. If you know WHAT to challenge but not HOW DEEP, ask.
 - **Both challengers run in parallel.** Don't wait for one to finish before starting the other. Launch Opus subagent and Gemini query at the same time.
 - **Gemini is optional.** If NotebookLM is unavailable, the challenge runs as Opus-only. Never fail the skill because Gemini is missing.
 - **Agreement = high confidence.** When both models independently flag the same issue, highlight it. Two different AI architectures agreeing on a problem is a strong signal.
