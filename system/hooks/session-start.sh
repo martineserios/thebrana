@@ -158,7 +158,16 @@ if [ -n "$LAYER0_DIR" ]; then
     BACKPROP_FLAG="$LAYER0_DIR/.needs-backprop"
     if [ -f "$BACKPROP_FLAG" ]; then
         DRIFT_INFO=$(cat "$BACKPROP_FLAG" 2>/dev/null) || true
-        LOOP_CONTEXT="[Previous session] System files changed ($DRIFT_INFO). Consider running /back-propagate to sync specs."
+        # Separate system drift from feature doc staleness
+        DOCS_STALE=$(echo "$DRIFT_INFO" | grep "^docs-stale:" | sed 's/^docs-stale: //' || true)
+        SYS_DRIFT=$(echo "$DRIFT_INFO" | grep -v "^docs-stale:" || true)
+        if [ -n "$SYS_DRIFT" ]; then
+            LOOP_CONTEXT="[Previous session] System files changed ($SYS_DRIFT). Consider running /brana:reconcile to sync specs."
+        fi
+        if [ -n "$DOCS_STALE" ]; then
+            LOOP_CONTEXT="$LOOP_CONTEXT
+[Stale feature docs] These docs may need updating: $DOCS_STALE. Review or run /brana:reconcile."
+        fi
         rm -f "$BACKPROP_FLAG"
     fi
 

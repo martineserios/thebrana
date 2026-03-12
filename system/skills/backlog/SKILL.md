@@ -500,6 +500,16 @@ Complete the current task. For code tasks that went through `/brana:build`, the 
 5. **For execution: external/manual:**
    - Ask: "Any notes on the outcome?"
    - Record in task.notes
+   - **Doc prompt:** if the task produced user-visible deliverables (check: tags contain `docs`, `feature`, `workflow`, `skill`, or description mentions "build", "create", "launch", "design"), ask via AskUserQuestion:
+     ```
+     question: "This task produced deliverables. Generate documentation?"
+     options:
+       - "Tech doc + user guide" (writes both from templates)
+       - "Tech doc only"
+       - "User guide only"
+       - "Skip docs"
+     ```
+     If user selects any doc option, generate using templates at `system/skills/build/templates/tech-doc.md` and/or `system/skills/build/templates/user-guide.md`. Output to `docs/architecture/features/{task-slug}.md` and/or `docs/guide/features/{task-slug}.md`.
 6. **Update task:** status → completed, completed → today's date, clear build_step
 7. **Write tasks.json** — hook handles rollup + validation
 8. **GitHub sync** (if `github_sync.enabled` in `~/.claude/tasks-config.json`):
