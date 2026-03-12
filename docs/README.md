@@ -120,6 +120,13 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [acquire-skills-guide.md](architecture/features/acquire-skills-guide.md) | Acquire skills implementation guide |
 | [agentdb-v3-upgrade-evaluation.md](architecture/features/agentdb-v3-upgrade-evaluation.md) | AgentDB v3 upgrade evaluation |
 
+## Content (docs/content/)
+
+| File | Contents |
+|------|----------|
+| [lens.md](content/lens.md) | Positioning filter — pillars, dual test, anti-topics, components shelf |
+| [ideas.md](content/ideas.md) | Content idea seeds (capped at 10 active) |
+
 ## Research and spec docs (docs/ root)
 
 Design specifications and research from the original enter repo, now part of thebrana.

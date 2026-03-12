@@ -23,7 +23,7 @@ tasks.json is a rich task system (23 fields, DAG dependencies, build_step tracki
 - Labels represent stream + priority (max 3 dimensions) — not all 7 task fields
 - Projects v2 opt-in per repo — Kanban/table views available but not required
 - No retroactive issue creation for completed tasks
-- v1 scoped to thebrana; other repos opt in via config
+- v1 shipped cross-repo sync for all 4 clients via `~/.claude/task-sync-config.json`
 
 ## Constraints
 
@@ -48,8 +48,7 @@ tasks.json is a rich task system (23 fields, DAG dependencies, build_step tracki
 
 ### Out of scope (v1)
 - Continuous bidirectional sync (no webhooks)
-- Cross-repo portfolio sync (thebrana only in v1)
-- Retroactive issue creation for completed tasks
+- Retroactive issue creation for completed tasks (note: bulk sync did create issues for completed tasks with status=Done)
 - GitHub Issue → tasks.json creation (GitHub-first workflow)
 - Milestone objects in GitHub (use labels instead)
 
@@ -73,7 +72,7 @@ tasks.json is a rich task system (23 fields, DAG dependencies, build_step tracki
 - Comment backflow has no trigger → mitigated by one-shot pull at pick time
 - Projects v2 API complexity → mitigated by making it optional
 - Sync logic bloats SKILL.md → mitigated by helper script extraction
-- Cross-repo is underspecified → deferred to v2
+- Cross-repo is underspecified → shipped in v1 via PostToolUse hook + config
 
 ## Design
 
