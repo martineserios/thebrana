@@ -419,6 +419,14 @@ for doc in "$DOCS_DIR"/reflections/*.md; do
             *) continue ;;
         esac
 
+        # Skip subset counts (e.g., "8 agents — fast" is a per-model count, not total)
+        # Only flag if within 30% of actual — close enough to be a stale total
+        diff=$((num - actual))
+        [ "$diff" -lt 0 ] && diff=$((-diff))
+        threshold=$((actual * 30 / 100))
+        [ "$threshold" -lt 2 ] && threshold=2
+        [ "$diff" -ge "$threshold" ] && continue
+
         if [ "$num" != "$actual" ]; then
             warn "Count drift in $docname:$linenum — says '$num $component' but actual is $actual"
             COUNT_DRIFT=$((COUNT_DRIFT + 1))
