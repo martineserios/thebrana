@@ -10742,7 +10742,7 @@
         "dx",
         "workflow"
       ],
-      "status": "in_progress",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": null,
@@ -10755,11 +10755,11 @@
       "github_issue": null,
       "created": "2026-03-12",
       "started": "2026-03-12",
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-12",
+      "notes": "Skill at system/skills/brainstorm/SKILL.md. 5 phases: Seed, Expand, Challenge, Shape, Output. 21/21 tests pass. AskUserQuestion-driven, auto-research, idea doc + task offer output.",
       "context": "Interactive brainstorming command. Key decisions: name=/brana:brainstorm, output=idea doc + task offer, research=proactive auto-fetch. Must use AskUserQuestion for all interaction (not plain text prompts).",
       "strategy": "feature",
-      "build_step": "build"
+      "build_step": null
     },
     {
       "id": "t-393",
