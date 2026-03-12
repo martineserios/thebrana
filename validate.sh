@@ -392,6 +392,53 @@ done
 pass "Skill dependency references checked"
 echo ""
 
+# Check 13: Count drift in reflection docs
+echo "Checking for count drift in docs..."
+DOCS_DIR="$SCRIPT_DIR/docs"
+
+# Count actual system components
+ACTUAL_SKILLS=$(for d in "$SYSTEM_DIR"/skills/*/; do [ "$(basename "$d")" != "acquired" ] && echo 1; done | wc -l | tr -d ' ')
+ACTUAL_RULES=$(ls "$SYSTEM_DIR"/rules/*.md 2>/dev/null | wc -l | tr -d ' ')
+ACTUAL_AGENTS=$(ls "$SYSTEM_DIR"/agents/*.md 2>/dev/null | wc -l | tr -d ' ')
+
+# Scan reflection docs for hardcoded counts
+# Match enumeration patterns: "(N skills:", "N rules —", "N skills," that count brana components
+# Avoid contextual mentions like "76 agents with inconsistent metadata" or "3-5 agents"
+COUNT_DRIFT=0
+for doc in "$DOCS_DIR"/reflections/*.md; do
+    [ -f "$doc" ] || continue
+    docname=$(basename "$doc")
+
+    while IFS=: read -r linenum num component; do
+        [ -z "$component" ] && continue
+
+        case "$component" in
+            skills) actual=$ACTUAL_SKILLS ;;
+            rules) actual=$ACTUAL_RULES ;;
+            agents) actual=$ACTUAL_AGENTS ;;
+            *) continue ;;
+        esac
+
+        if [ "$num" != "$actual" ]; then
+            warn "Count drift in $docname:$linenum — says '$num $component' but actual is $actual"
+            COUNT_DRIFT=$((COUNT_DRIFT + 1))
+        fi
+    done < <(perl -ne '
+        # Match patterns that enumerate brana system components:
+        # "(13 rules:" or "13 rules —" or "13 rules," or "13 rules)" — enumeration context
+        while (/\((\d+)\s+(skills|rules|agents)[:\s,)]/g) { print "$.:$1:$2\n" }
+        # Also match "has/have N skills" or "deploys N agents"
+        while (/(?:has|have|deploys?|includes?|contains?)\s+(\d+)\s+(skills|rules|agents)\b/g) { print "$.:$1:$2\n" }
+    ' "$doc" 2>/dev/null || true)
+done
+
+if [ "$COUNT_DRIFT" -eq 0 ]; then
+    pass "No count drift detected (skills=$ACTUAL_SKILLS, rules=$ACTUAL_RULES, agents=$ACTUAL_AGENTS)"
+else
+    echo "  Actual counts: skills=$ACTUAL_SKILLS, rules=$ACTUAL_RULES, agents=$ACTUAL_AGENTS"
+fi
+echo ""
+
 # Summary
 echo "=== Validation Summary ==="
 echo "Errors: $ERRORS"

@@ -6984,6 +6984,33 @@
       "build_step": "build"
     },
     {
+      "id": "t-381",
+      "subject": "Fix claude-flow memory store permission denied in zsh",
+      "description": "claude-flow memory store returns 'permission denied' in zsh Bash tool. Likely zsh eval issue with the $CF binary path. Affects pattern storage in /brana:close and /brana:retrospective. Fallback to MEMORY.md works but loses semantic search.",
+      "tags": [
+        "tech-debt",
+        "claude-flow"
+      ],
+      "status": "pending",
+      "stream": "tech-debt",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": "P2",
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-11",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "Observed in /brana:close and /brana:maintain-specs sessions. `source cf-env.sh && \"$CF\" memory store ...` returns `(eval):1: permission denied:`. Full absolute path sourcing works for cf-env.sh itself, but the store command fails. Fallback: write to MEMORY.md instead.",
+      "strategy": null,
+      "build_step": null
+    },
+    {
       "id": "ms-023",
       "subject": "Consulting Validation",
       "description": "Validate demand, shape the offering, design delivery. Mom Tests -> synthesis -> service design -> pricing.",
@@ -10043,7 +10070,7 @@
         "personal-os",
         "telegram"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-043",
@@ -10058,8 +10085,8 @@
       "github_issue": null,
       "created": "2026-03-11",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-11",
+      "notes": "Bot live at @BranaPersonalBot. Sends morning prompt at 8AM ART, captures all messages to journal/YYYY-MM-DD.md. Commands: /start, /prompt, /intention, /today. Run with: cd ~/enter_thebrana/personal && uv run python bot.py",
       "context": "Telegram Bot API (free, open). Three prompts: Reflect, Deepen, Challenge. Single funnel \u2014 everything enters through Telegram. Bot routes to journal files. Design doc: docs/personal/personal-os-design.md",
       "strategy": null,
       "build_step": null

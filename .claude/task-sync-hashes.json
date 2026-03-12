@@ -175,5 +175,6 @@
   "t-365": "pending|None|M|Write identity/beliefs.md \u2014 core beliefs, challengeable",
   "t-377": "pending|None|M|Build /brana:review-personal skill (weekly review)",
   "t-366": "pending|None|M|Write identity/narrative.md \u2014 the story so far (first version)",
-  "t-367": "pending|None|S|Share bookshelf \u2014 refine domains of thought"
+  "t-367": "pending|None|S|Share bookshelf \u2014 refine domains of thought",
+  "t-381": "pending|P2|S|Fix claude-flow memory store permission denied in zsh"
 }
