@@ -8576,7 +8576,7 @@
       "subject": "Apply background-fork pattern to session-start.sh",
       "description": "session-start.sh does heavy work (claude-flow searches, jq, git, file reads) that could hit the 10s timeout as it grows. Apply the same pattern used in session-end.sh: respond with JSON immediately, fork processing to background. The additionalContext injection needs special handling since it must be in the initial response.",
       "tags": null,
-      "status": "pending",
+      "status": "in_progress",
       "stream": "tech-debt",
       "type": "task",
       "parent": null,
@@ -8585,15 +8585,15 @@
       "effort": null,
       "execution": "code",
       "blocked_by": [],
-      "branch": null,
+      "branch": "refactor/t-290-session-start-background-fork",
       "github_issue": 155,
       "created": "2026-03-10",
-      "started": null,
+      "started": "2026-03-12",
       "completed": null,
       "notes": "session-start needs additionalContext in the response, so can not fully background — may need a hybrid approach (fast path for context, background for logging/metrics).",
       "context": null,
-      "strategy": null,
-      "build_step": null
+      "strategy": "refactor",
+      "build_step": "plan"
     },
     {
       "id": "t-291",
