@@ -33,6 +33,7 @@ From [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md) Layer 0 
 - **Hook configuration** — `settings.json` references scripts that exist, event names are valid, async constraints are respected
 - **Link integrity** — all markdown cross-references (`[doc NN](./NN-filename.md)`) resolve to real files
 - **Pre-commit validation** — `.git/hooks/pre-commit` in thebrana validates spec consistency before commit: YAML frontmatter, JSON syntax, secrets, context budget. Shift-left complement to deploy-time validation. See [35-context-engineering-principles.md](../dimensions/35-context-engineering-principles.md) for budget failure modes
+- **Count drift detection** — `validate.sh` Check 13 scans reflection docs for hardcoded component counts (e.g., "13 rules") and compares against actual `system/` contents. Uses a 30% proximity threshold to distinguish stale totals from subset counts (e.g., per-model agent distributions). Catches the recurring count drift pattern (7+ historical occurrences)
 
 ### Knowledge Store Integrity
 
