@@ -10396,7 +10396,7 @@
         "dx",
         "skills"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "experiments",
       "type": "task",
       "parent": null,
@@ -10405,14 +10405,14 @@
       "effort": "M",
       "execution": "code",
       "blocked_by": [],
-      "branch": null,
+      "branch": "experiment/t-381-context-inference",
       "github_issue": null,
       "created": "2026-03-11",
-      "started": null,
-      "completed": null,
-      "notes": null,
-      "context": "Arose during vibe coding when user wanted to capture ideas mid-flow. Realized the pattern is broader than a single command: any skill that takes an optional argument should be able to read conversation context as a fallback. This follows the automation-through-usage rule \u2014 embed in frequently-used commands, not standalone ones. Key technical question: how to access conversation history from within a skill (SKILL.md has no explicit API for this, but the LLM naturally has the conversation in context).",
-      "strategy": null,
+      "started": "2026-03-11",
+      "completed": "2026-03-11",
+      "notes": "Spike complete. Pattern: skills with context:fork have full conversation. No API needed \u2014 just instruct the LLM to scan conversation when no args. Applied to /brana:challenge (decision inference) and /brana:backlog add (actionable item inference). Generalizable to any skill with optional arguments.",
+      "context": "Arose during vibe coding when user wanted to capture ideas mid-flow. Realized the pattern is broader than a single command: any skill that takes an optional argument should be able to read conversation context as a fallback. This follows the automation-through-usage rule \u2014 embed in frequently-used commands, not standalone ones. Key technical question: how to access conversation history from within a skill (SKILL.md has no explicit API for this, but the LLM naturally has the conversation in context).\n\n2026-03-11: Spike prototype in /brana:challenge. Key finding: context: fork gives skills full conversation history. No API needed \u2014 just instruct the LLM to scan recent turns. Pattern: replace narrow self-challenge (own last answer) with broader conversation-context inference (any decision/plan from either party).",
+      "strategy": "spike",
       "build_step": null
     }
   ]
