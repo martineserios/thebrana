@@ -1,0 +1,19 @@
+[Unit]
+Description=Personal Telegram Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=botuser
+Group=botuser
+WorkingDirectory=/opt/personal-bot
+EnvironmentFile=/opt/personal-bot/.env
+ExecStart=/home/ubuntu/.local/bin/uv run python bot.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
