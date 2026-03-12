@@ -1439,3 +1439,43 @@
 - Flywheel: corr=0.29 fix=0.50 test=0.00 casc=0.25 deleg=0 prs=0
 - Tools: Bash,Edit,Write,session-start
 - Files: ,        print(f"{t[\"id\"]} | {t[\"subject\"]} | {c}"),        print(f"{tid:8s} | {subj:60s} | {c}"),        print(f"{tid:8s} | {subj:65s} | {c}"),        print(f'{t[\"id\"]:8s} | {t[\"subject\"][:60]:60s} | {c}'),        subj = t["subject"][:60],        subj = t["subject"][:65],        tid = t["id"],    c = t.get("completed"),    c = t.get('completed')
+
+### Session cac246b4-0e60-417a-a940-858133928128 (2026-03-12T00:51:11Z)
+- Events: 130 (121 ok, 5 fail)
+- Corrections: 2 | Test writes: 0 | Cascades: 1 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.12 fix=0.80 test=0.00 casc=0.20 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: ,    ,                    print(c['text'][:3000]),                    sys.exit(0),                   shell=True, capture_output=True, text=True),                if c.get('type') == 'text' and len(c.get('text','')) > 100:,            content = obj.get('message', {}).get('content', []),            d = json.load(f),            for c in content:,            print(f'{event}: {cmd[:120]}')
+
+### Session 12b4b7b4-e5d7-404d-9a5d-ac8071990fc9 (2026-03-12T01:08:11Z)
+- Events: 28 (25 ok, 1 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=1.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,session-start
+- Files: ,  "query": "client:thebrana",,  "results": [],,  "searchTime": "7ms",  "searchType": "semantic",,"$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null; echo "exit: $?",(e.g., "8 agents — fast") as total count drift.,)",- doc 14: skill count +17→+18 (harvest skill added),- doc 30: close backlog #37 (Claw/Kapso research complete)
+
+### Session f19c1c71-6713-473e-b6f4-19b2aae6b1e0 (2026-03-12T01:09:12Z)
+- Events: 352 (303 ok, 8 fail)
+- Corrections: 36 | Test writes: 1 | Cascades: 0 | PR creates: 0
+- Tests: 1 pass, 0 fail (rate=1.00) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.49 fix=0.75 test=0.01 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: ,        break,        existing = t.get('context') or '',        print(f\"Build step: {t['build_step']}\"),        print(f\"Completed: {t['completed']}\"),        print(f\"Notes: {t['notes']}\"),        print(f\"Status: {t['status']}\"),        print(json.dumps(t, indent=2)),        t['branch'] = 'experiment/t-381-context-inference',        t['build_step'] = 'build'
+
+### Session 683eef6b-b2f3-4558-a49a-9fea14077b93 (2026-03-12T01:17:13Z)
+- Events: 35 (23 ok, 2 fail)
+- Corrections: 8 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.89 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: ,        t['completed'] = '2026-03-11',        t['notes'] = 'Bot live at @BranaPersonalBot. Sends morning prompt at 8AM ART, captures all messages to journal/YYYY-MM-DD.md. Commands: /start, /prompt, /intention, /today. Run with: cd ~/enter_thebrana/personal && uv run python bot.py',        t['status'] = 'completed',    data = json.load(f),    if t['id'] == 't-368':,    json.dump(data, f, indent=2),  "query": "client:thebrana",,  "results": [],,  "searchTime": "16ms"
+
+### Session f37f8ac5-fb4f-458e-b79b-aca8a3085dc2 (2026-03-12T01:30:01Z)
+- Events: 58 (49 ok, 3 fail)
+- Corrections: 3 | Test writes: 2 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.16 fix=0.67 test=0.11 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: ,            task['notes'] = 'All 6 integration points shipped in one branch. /close drift detection, /reconcile feature doc scanning, /backlog done doc prompts, command index auto-update, session-start staleness surfacing, pre-merge doc check.',        if task['id'] == 'ms-046':,        task['completed'] = '2026-03-11',        task['started'] = task.get('started') or '2026-03-11',        task['status'] = 'completed',    data = json.load(f),    f.write('\n'),    if task['id'] in ids_to_complete:,    json.dump(data, f, indent=2)

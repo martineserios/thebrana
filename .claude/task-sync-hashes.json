@@ -160,8 +160,8 @@
   "ms-043": "pending|None|None|Phase 0 \u2014 30-Day Practice",
   "ms-044": "pending|None|None|Phase 1 \u2014 Add Structure",
   "ms-045": "pending|None|None|Phase 2 \u2014 Bot + Brana Integration",
-  "t-362": "pending|None|S|Create personal/ repo with initial structure",
-  "t-368": "pending|None|M|Build minimal Telegram bot (prompt + capture + journal save)",
+  "t-362": "completed|None|S|Create personal/ repo with initial structure",
+  "t-368": "in_progress|None|M|Build minimal Telegram bot (prompt + capture + journal save)",
   "t-371": "pending|None|S|Create file structure based on Phase 0 findings",
   "t-374": "pending|None|M|Enhance Telegram bot: Kindle highlight intake",
   "t-363": "pending|None|M|Write identity/mission.md \u2014 problem chain + mission statement",
@@ -176,5 +176,13 @@
   "t-377": "pending|None|M|Build /brana:review-personal skill (weekly review)",
   "t-366": "pending|None|M|Write identity/narrative.md \u2014 the story so far (first version)",
   "t-367": "pending|None|S|Share bookshelf \u2014 refine domains of thought",
-  "t-381": "pending|P2|S|Fix claude-flow memory store permission denied in zsh"
+  "t-381": "pending|P2|S|Fix claude-flow memory store permission denied in zsh",
+  "t-382": "completed|P1|M|Auto-generate tech docs + user guide in /brana:build CLOSE step",
+  "ms-046": "in_progress|P1|L|Doc framework integration across work lifecycle",
+  "t-383": "pending|P1|S|/brana:close: detect stale feature docs from session changes",
+  "t-384": "pending|P1|S|/brana:reconcile: scan feature docs for spec-impl drift",
+  "t-385": "pending|P2|S|/brana:backlog done: prompt for docs on manual/external tasks",
+  "t-386": "pending|P2|S|Auto-update docs/guide/commands/index.md when skills ship",
+  "t-387": "pending|P2|M|Session-start: surface stale feature docs",
+  "t-388": "pending|P1|S|Pre-merge check: warn if feat/* branch has no doc files"
 }
