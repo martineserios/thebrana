@@ -1479,3 +1479,11 @@
 - Flywheel: corr=0.16 fix=0.67 test=0.11 casc=0.00 deleg=0 prs=0
 - Tools: Bash,Edit,Write,session-start
 - Files: ,            task['notes'] = 'All 6 integration points shipped in one branch. /close drift detection, /reconcile feature doc scanning, /backlog done doc prompts, command index auto-update, session-start staleness surfacing, pre-merge doc check.',        if task['id'] == 'ms-046':,        task['completed'] = '2026-03-11',        task['started'] = task.get('started') or '2026-03-11',        task['status'] = 'completed',    data = json.load(f),    f.write('\n'),    if task['id'] in ids_to_complete:,    json.dump(data, f, indent=2)
+
+### Session 77004954-53ce-461c-a614-63bc43c9d41b (2026-03-12T01:41:56Z)
+- Events: 85 (79 ok, 5 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 1 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.80 test=0.00 casc=0.20 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: ,            t['blocked_by'] = [remap.get(b, b) for b in t['blocked_by']],            t['blocked_by'].append('t-385'),            t['branch'] = 'feat/t-390-oci-deploy-scripts',        "blocked_by": ["t-383"],,        "blocked_by": ["t-384"],,        "blocked_by": [],,        "branch": "feat/t-384-oci-deploy-scripts",,        "branch": None,,        "build_step": "build"

@@ -26,3 +26,39 @@
 - **Angle:** Three ADRs in one week: spec dependency graph, decision log, model routing. The pattern: specifications ARE the context. Not prompt engineering — specification-driven development. The spec tells the AI what to do better than any prompt.
 - **Pillar:** Contrarian
 - **Sources:** ADR-016/017/018, TurboFlow integration commit 1da021e
+
+## 2026-03-12
+
+### [seed] Your AI agent is burning 25,000 tokens you can't see
+- **Angle:** Ghost tokens — invisible waste in AI agent systems. Most teams never measure actual token consumption vs useful output. Observability isn't optional for production AI. The silent bottleneck: you're paying for reasoning that goes nowhere.
+- **Pillar:** How-To
+- **Components:** "The silent bottleneck"
+- **Sources:** Avi Pil LinkedIn post (t-182), production AI cost patterns
+
+### [seed] Your AI agent doesn't need more tools — it needs a browser
+- **Angle:** Pinchtab: 12MB binary, zero deps, pure HTTP API for AI agent browser control. Accessibility-first DOM. The pattern: agents that can see and interact with the web without Selenium/Playwright complexity. Infrastructure decision that changes what agents can do.
+- **Pillar:** Case Study
+- **Components:** "The bridge"
+- **Sources:** Niranjan Akella LinkedIn post (t-190), agent infrastructure patterns
+
+### [seed] Someone reverse-engineered Claude Code — here's what they found
+- **Angle:** An engineer deconstructed Claude Code's internals and open-sourced the findings. What the architecture reveals about building AI-native dev tools: the system prompt, tool orchestration, context management. Reverse engineering as architecture learning.
+- **Pillar:** How-To
+- **Sources:** Ayel Magambetov LinkedIn post (t-210), Claude Code architecture
+
+### [seed] AI agents that understand data governance exist — you're just not building them
+- **Angle:** MCP (Model Context Protocol) + data governance. Most AI implementations ignore compliance until it's too late. The human gate: where the system stops and waits for a governance decision before proceeding. Building compliant AI from day one, not as an afterthought.
+- **Pillar:** Case Study
+- **Components:** "The human gate"
+- **Sources:** Ronald Mego LinkedIn post (t-211), MCP governance patterns
+
+### [seed] We're still building software like it's 2015
+- **Angle:** The paradigm shift most teams resist: AI-native development isn't "add AI to your workflow" — it's rethinking the workflow from scratch. Waterfall → agile was painful. Agile → AI-native will be worse. The teams that adapt aren't the ones with the best models.
+- **Pillar:** Contrarian
+- **Sources:** Robert Kelly LinkedIn post (t-189), AI-native development patterns
+
+### [seed] Open-source AI agents are eating the enterprise stack
+- **Angle:** OpenClaw and similar frameworks: open-source agent architectures that rival enterprise tools. The correction loop: open-source agents learn faster because failures are visible. Why the next wave of AI infrastructure will be built in the open.
+- **Pillar:** Contrarian
+- **Components:** "The correction loop"
+- **Sources:** Vinoth Govindarajan LinkedIn post (t-188), OpenClaw framework
