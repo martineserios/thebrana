@@ -10742,7 +10742,7 @@
         "dx",
         "workflow"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "stream": "roadmap",
       "type": "task",
       "parent": null,
@@ -10751,15 +10751,15 @@
       "effort": "M",
       "execution": "code",
       "blocked_by": [],
-      "branch": null,
+      "branch": "feat/t-392-brainstorm-skill",
       "github_issue": null,
       "created": "2026-03-12",
-      "started": null,
+      "started": "2026-03-12",
       "completed": null,
       "notes": null,
       "context": "Interactive brainstorming command. Key decisions: name=/brana:brainstorm, output=idea doc + task offer, research=proactive auto-fetch. Must use AskUserQuestion for all interaction (not plain text prompts).",
       "strategy": "feature",
-      "build_step": null
+      "build_step": "build"
     },
     {
       "id": "t-393",
