@@ -1423,3 +1423,19 @@
 - Flywheel: corr=0.50 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
 - Tools: Bash,Write,session-start
 - Files: ,        print(f'         ctx: {ctx}'),        print(f\"    ... +{len(tasks)-5} more\"),        print(f\"    {t['id']}: {t['subject']} [{tags}]\"),        tags = ', '.join(t.get('tags', [])[:3]),    # find parent subject,    by_parent.setdefault(p, []).append(t),    ctx = (t.get('context') or '')[:120],    data = json.load(f),    done = len([k for k in kids if k['status'] == 'completed'])
+
+### Session 683eef6b-b2f3-4558-a49a-9fea14077b93 (2026-03-12T00:35:12Z)
+- Events: 33 (28 ok, 0 fail)
+- Corrections: 4 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.31 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: ,        'context': 'Challenge finding: active questions driving reading may be backwards for high-Openness types. Validate, dont assume.', 'strategy': None, 'build_step': None,        'context': 'Complements Telegram bot. For when user is already in a Claude Code session.', 'strategy': None, 'build_step': None,        'context': 'Current domains: philosophy, self-help/living better, technology, intersections. Bookshelf adds specificity.', 'strategy': None, 'build_step': None,        'context': 'Design doc: docs/personal/personal-os-design.md (Part IV: Structure)', 'strategy': None, 'build_step': None,        'context': 'Design doc: docs/personal/personal-os-design.md (Part VII: Workflows)', 'strategy': None, 'build_step': None,        'context': 'Design doc: docs/personal/personal-os-design.md (Part VIII: Phased Rollout)', 'strategy': None, 'build_step': None,        'context': 'Draft P0/P1/P2 in miessler-telos-research.md. Needs user input to finalize.', 'strategy': None, 'build_step': None,        'context': 'Flow 4 in design doc. Only build if weekly review proved valuable in Phase 1.', 'strategy': None, 'build_step': None,        'context': 'Framework: Narrative Identity theory. Research: docs/personal/personality-frameworks-research.md. Depends on mission, values, beliefs being written first.', 'strategy': None, 'build_step': None
+
+### Session 12b4b7b4-e5d7-404d-9a5d-ac8071990fc9 (2026-03-12T00:36:00Z)
+- Events: 81 (71 ok, 4 fail)
+- Corrections: 5 | Test writes: 0 | Cascades: 1 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.29 fix=0.50 test=0.00 casc=0.25 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: ,        print(f"{t[\"id\"]} | {t[\"subject\"]} | {c}"),        print(f"{tid:8s} | {subj:60s} | {c}"),        print(f"{tid:8s} | {subj:65s} | {c}"),        print(f'{t[\"id\"]:8s} | {t[\"subject\"][:60]:60s} | {c}'),        subj = t["subject"][:60],        subj = t["subject"][:65],        tid = t["id"],    c = t.get("completed"),    c = t.get('completed')

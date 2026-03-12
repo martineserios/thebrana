@@ -53,7 +53,7 @@ thebrana/system/                              PLUGIN (loaded by Claude Code)
 │   ├── review/SKILL.md                       ← Business health — weekly, monthly, ad-hoc check
 │   ├── research/SKILL.md                     ← Research topics + --refresh for dimension updates
 │   ├── memory/SKILL.md                       ← Knowledge ops: recall, pollinate, review, audit
-│   └── ...                                   ← +17 more (challenge, reconcile, log, pipeline, plugin, etc.)
+│   └── ...                                   ← +18 more (challenge, reconcile, harvest, log, pipeline, plugin, etc.)
 ├── agents/                                   ← 11 specialized sub-agents
 │   ├── scout.md                              ← Haiku-powered fast research agent
 │   ├── memory-curator.md                     ← Knowledge lifecycle management

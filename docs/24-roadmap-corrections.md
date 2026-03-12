@@ -1090,6 +1090,34 @@ The reflection layer redesign (docs 31, 32) removed ~160 lines from [doc 14](ref
 
 ---
 
+## Error 73: github-issues-sync spec diverged from shipped implementation
+
+**Severity:** Medium — spec readers will look for `system/scripts/gh-sync.sh` but actual sync runs via `system/hooks/task-sync.sh` + `task-sync.py`
+**Status:** pending
+
+**Discovery:** Debrief agent comparison of spec vs. implementation (2026-03-11). Feature brief specifies `system/scripts/gh-sync.sh` as the sync helper with a specific CLI interface. Implementation shipped as a PostToolUse hook pair instead.
+
+**Files affected:**
+- `docs/architecture/features/github-issues-sync.md` — File changes table (line 229-238) and Design section
+
+**Fix:** Update spec to reflect dual implementation: `gh-sync.sh` for manual/bulk operations (if kept), `task-sync.sh` + `task-sync.py` as PostToolUse hook for automatic incremental sync.
+
+---
+
+## Error 74: github-issues-sync spec lists retroactive issue creation as out-of-scope but it shipped
+
+**Severity:** Low — parenthetical note acknowledges the contradiction but structure is misleading
+**Status:** pending
+
+**Discovery:** Debrief agent (2026-03-11). Line 51 says "Retroactive issue creation for completed tasks" is out of scope, while a parenthetical acknowledges bulk sync did create them.
+
+**Files affected:**
+- `docs/architecture/features/github-issues-sync.md` — Out of scope section
+
+**Fix:** Move retroactive creation to "In scope" with note: "Bulk sync creates issues for completed tasks with Status=Done (closed immediately)."
+
+---
+
 ## Lessons Learned
 
 Process insights from implementing the corrections. These apply to brana's development going forward.

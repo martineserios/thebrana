@@ -6984,33 +6984,6 @@
       "build_step": "build"
     },
     {
-      "id": "t-381",
-      "subject": "Fix claude-flow memory store permission denied in zsh",
-      "description": "claude-flow memory store returns 'permission denied' in zsh Bash tool. Likely zsh eval issue with the $CF binary path. Affects pattern storage in /brana:close and /brana:retrospective. Fallback to MEMORY.md works but loses semantic search.",
-      "tags": [
-        "tech-debt",
-        "claude-flow"
-      ],
-      "status": "pending",
-      "stream": "tech-debt",
-      "type": "task",
-      "parent": null,
-      "order": null,
-      "priority": "P2",
-      "effort": "S",
-      "execution": "code",
-      "blocked_by": [],
-      "branch": null,
-      "github_issue": null,
-      "created": "2026-03-11",
-      "started": null,
-      "completed": null,
-      "notes": null,
-      "context": "Observed in /brana:close and /brana:maintain-specs sessions. `source cf-env.sh && \"$CF\" memory store ...` returns `(eval):1: permission denied:`. Full absolute path sourcing works for cf-env.sh itself, but the store command fails. Fallback: write to MEMORY.md instead.",
-      "strategy": null,
-      "build_step": null
-    },
-    {
       "id": "ms-023",
       "subject": "Consulting Validation",
       "description": "Validate demand, shape the offering, design delivery. Mom Tests -> synthesis -> service design -> pricing.",
@@ -9870,7 +9843,7 @@
         "personal",
         "personal-os"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-037",
@@ -9882,9 +9855,9 @@
       "branch": null,
       "github_issue": null,
       "created": "2026-03-11",
-      "started": null,
-      "completed": null,
-      "notes": null,
+      "started": "2026-03-11",
+      "completed": "2026-03-11",
+      "notes": "Repo existed with old templates (life wheel, tasks.md). Restructured to Personal OS: identity/, journal/, questions/, reading/, synthesis/, writing/, review/. Old files removed.",
       "context": "Design doc: docs/personal/personal-os-design.md (Part IV: Structure)",
       "strategy": null,
       "build_step": null
@@ -10070,7 +10043,7 @@
         "personal-os",
         "telegram"
       ],
-      "status": "completed",
+      "status": "in_progress",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-043",
@@ -10084,9 +10057,9 @@
       "branch": null,
       "github_issue": null,
       "created": "2026-03-11",
-      "started": null,
-      "completed": "2026-03-11",
-      "notes": "Bot live at @BranaPersonalBot. Sends morning prompt at 8AM ART, captures all messages to journal/YYYY-MM-DD.md. Commands: /start, /prompt, /intention, /today. Run with: cd ~/enter_thebrana/personal && uv run python bot.py",
+      "started": "2026-03-11",
+      "completed": null,
+      "notes": null,
       "context": "Telegram Bot API (free, open). Three prompts: Reflect, Deepen, Challenge. Single funnel \u2014 everything enters through Telegram. Bot routes to journal files. Design doc: docs/personal/personal-os-design.md",
       "strategy": null,
       "build_step": null
@@ -10412,6 +10385,33 @@
       "completed": null,
       "notes": null,
       "context": "Reads personal/journal/*.md for the current week. Presents themes. Helps user write synthesis.",
+      "strategy": null,
+      "build_step": null
+    },
+    {
+      "id": "t-381",
+      "subject": "Conversation-context inference for skills (no-arg defaults)",
+      "description": "When a skill is invoked without arguments, read recent conversation turns to infer intent. Applies broadly: /brana:challenge with no arg \u2192 infer what to challenge from discussion. /brana:backlog add with no description \u2192 draft subject+context from chat. /brana:build with no task \u2192 detect what was just discussed. Replaces the standalone /brana:idea concept \u2014 same UX (minimal friction capture) but embedded in existing commands.",
+      "tags": [
+        "dx",
+        "skills"
+      ],
+      "status": "pending",
+      "stream": "experiments",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-11",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "Arose during vibe coding when user wanted to capture ideas mid-flow. Realized the pattern is broader than a single command: any skill that takes an optional argument should be able to read conversation context as a fallback. This follows the automation-through-usage rule \u2014 embed in frequently-used commands, not standalone ones. Key technical question: how to access conversation history from within a skill (SKILL.md has no explicit API for this, but the LLM naturally has the conversation in context).",
       "strategy": null,
       "build_step": null
     }
