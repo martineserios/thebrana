@@ -517,7 +517,7 @@ Quick-add a single task with intelligent suggestions.
 
 All interactive confirmations use the **AskUserQuestion** tool for a selectable UI experience. Batch independent questions into a single AskUserQuestion call (up to 4 questions per call).
 
-1. Parse description from argument
+1. **Parse description** from argument. If no description provided: scan recent conversation turns for actionable items — problems discussed, ideas proposed, improvements suggested, or work identified. Draft a subject + description from the strongest candidate and present it: "Add task: '{subject}'? [Confirm / Edit / Cancel]". If no actionable item found in conversation, ask for a description.
 2. Read tasks.json (all pending tasks, active milestones, tag vocabulary)
 3. **URL auto-detection:** if the description contains `https://`, suggest `stream: research`, auto-extract the URL to the `context` field (format: `URL: {url}`), and skip the milestone/stream prompt.
 4. **First question batch** — use a single AskUserQuestion with up to 4 questions:
