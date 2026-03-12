@@ -499,6 +499,7 @@ Commands for building and reviewing.
 | `/brana:log` | Capture events (links, calls, meetings, ideas) into append-only log. Bulk mode for WhatsApp dumps | **When something happened** — quick capture |
 | `/brana:plugin` | Manage Claude Code plugins — add marketplaces, install, update, remove, list | **When managing plugin installations** |
 | `/brana:acquire-skills` | Find and install skills for project tech gaps | **For new or unfamiliar tech** |
+| `/brana:harvest` | Extract post ideas from recent work through positioning lens — content pipeline | **When looking for content ideas from recent sessions** |
 
 ### Business & Venture Management
 
