@@ -63,7 +63,7 @@ R1 triages every dimension doc → R2 composes the architecture → R3 validates
 ### 1. 5-Phase Skill Routing Pipeline
 **Why drop:** Context Detection -> FACT Fast Match -> ruvector Semantic -> dspy Validation -> Agent Coordination is 5 phases with 3 external dependencies for what Claude 4.6 can reason about directly.
 
-**Replace with:** Put skill descriptions in `.claude/skills/` and trust the model to read and apply them. Use rules directory for path-scoped guidance. If routing is needed, a single keyword-match phase is sufficient.
+**Replace with:** Put skill descriptions in `system/skills/` (loaded via plugin) and trust the model to read and apply them. Use rules directory for path-scoped guidance. If routing is needed, a single keyword-match phase is sufficient.
 
 ### 2. registry.yaml + context-loader.sh
 **Why drop:** The module registry and loader were needed when CLAUDE.md couldn't handle dynamic context. Claude Code's rules directory and native skill loading handle this now.
@@ -95,12 +95,12 @@ R1 triages every dimension doc → R2 composes the architecture → R3 validates
 ## Things Claude 4.6 Makes Obsolete
 
 ### 1. Custom Skill Routing
-Claude 4.6 can read skill definitions and apply them through reasoning. The 5-phase pipeline that routes tasks to skills is unnecessary when the model can do this natively.
+Claude 4.6 can read skill definitions and apply them through reasoning. The multi-phase pipeline that routes tasks to skills is unnecessary when the model can do this natively.
 
 **Exception:** If you have 100+ skills and can't fit them all in context, you still need a loading strategy. But this should be simple (rules directory + path scoping), not a 5-phase pipeline.
 
 ### 2. Module Load Strategy Management
-The always/contextual/on-demand loading system was designed for context window limitations. With 1M context on Opus 4.6, loading 47 KB of modules is trivial. The overhead of managing load strategies may exceed the overhead of just loading everything.
+The always/contextual/on-demand loading system was designed for context window limitations. With 200K context (1M via API beta), loading ~26 KB of always-on rules is trivial. The overhead of managing load strategies may exceed the overhead of just loading everything.
 
 **Nuance:** For very large module sets, loading strategy still matters. But for 8-10 core modules, just load them all.
 
@@ -120,7 +120,7 @@ CLAUDE.md instructions ("never push to main") combined with git hooks handle bra
 ## Claude-Flow Features Worth Adopting
 
 ### 1. ReasoningBank (Persistent Pattern Memory)
-**Why adopt:** Cross-session learning is the single biggest gap in native Claude Code. Patterns stored in SQLite with SHA-512 embeddings (no API cost) enable the system to remember what worked.
+**Why adopt:** Cross-session learning is the single biggest gap in native Claude Code. Patterns stored in SQLite with all-MiniLM-L6-v2 384-dim embeddings (local ONNX, no API cost) enable the system to remember what worked.
 
 **Implementation priority:** High. This is the #1 value-add over native capabilities.
 
@@ -216,6 +216,9 @@ Every dimension doc triaged for brana v2. [Docs 01](../dimensions/01-brana-syste
 ### [Doc 10](../dimensions/10-statusline-research.md) — Statusline Research
 **Verdict: Defer.** Community status line projects (session monitoring, cost tracking, context visualization) are nice-to-have. No dimension doc depends on it, no reflection needs it. Revisit when brana is stable and the user wants observability.
 
+### [Doc 11](../../../brana-knowledge/dimensions/11-ecosystem-skills-plugins.md) — Ecosystem: Skills, Plugins & Hooks
+**Verdict: Keep — ecosystem intelligence.** The definitive catalog of Claude Code's 4 extension channels (skills.sh, Anthropic marketplace, bundled plugins, community hooks). Source for skill architecture decisions in R2 and enforcement tool selection. Referenced throughout this doc for multi-agent TDD patterns and marketplace integration.
+
 ### [Doc 12](../dimensions/12-skill-selector.md) — Skill Selector
 **Verdict: Keep — three-tier trust model.** The local core / curated catalog / discovery tier model is the right framework for skill trust. The quarantine pattern (doc 16) extends this. R2 uses it for skill architecture, R4 for lifecycle (trust graduation).
 
@@ -244,7 +247,7 @@ Every dimension doc triaged for brana v2. [Docs 01](../dimensions/01-brana-syste
 **Verdict: Keep — decision made.** GitHub Flow validated as optimal for solo developer with spec-driven workflows. R4 operationalizes this as the lifecycle tool. The `--no-ff` always rule, branch naming convention, and short-lived branch discipline all stem from this research.
 
 ### [Doc 27](../dimensions/27-project-alignment-methodology.md) — Project Alignment Methodology
-**Verdict: Keep.** 28-item checklist, 3 tiers, 5-phase pipeline. Implemented as `/project-align`. The bridge between R2's enforcement hierarchy and real projects that need the structure for enforcement to apply.
+**Verdict: Keep.** 28-item checklist, 3 tiers, 6-phase pipeline (discover, assess, plan, implement, verify, document). Implemented as `/brana:align`. The bridge between R2's enforcement hierarchy and real projects that need the structure for enforcement to apply.
 
 ### [Doc 28](../dimensions/28-startup-smb-management.md) — Startup & SMB Management
 **Verdict: Keep.** Source for R5 (transfer). Frameworks, books, phase-based models, software→business pattern transfer. Five venture skills emerged from this research.
@@ -288,6 +291,9 @@ Every dimension doc triaged for brana v2. [Docs 01](../dimensions/01-brana-syste
 ### [Doc 44](../../../brana-knowledge/dimensions/44-systems-thinking-nature.md) — Systems Thinking & Nature
 **Verdict: Keep.** Natural systems as models for engineered systems — feedback loops, emergence, resilience patterns, biomimicry. Deepest abstraction layer — grounds the "everything is a system" philosophy that brana is built on.
 
+### [Doc 45](../../../brana-knowledge/dimensions/45-turboflow-agent-orchestration.md) — TurboFlow Agent Orchestration
+**Verdict: Keep as reference.** TurboFlow v4.0 wraps Ruflo v3.5 with higher-level orchestration: Beads (git-native cross-session memory), GitNexus (codebase knowledge graphs), worktree isolation, and three-tier model routing. Validates brana's architectural choices from an external consumer perspective. Beads' JSONL-over-git approach is an alternative to brana's SQLite + embeddings strategy — worth watching for convergence patterns.
+
 ---
 
 ## Resolved Questions (from R2)
@@ -296,7 +302,7 @@ Architectural questions that were open during initial design but have been resol
 
 2. **ReasoningBank confidence decay?** → Yes. Monthly decay function: unused patterns lose 0.05/month, failed patterns lose 0.2, below 0.2 gets auto-archived. Decay is not deletion — archived patterns are restorable. See [16-knowledge-health.md](../../../brana-knowledge/dimensions/16-knowledge-health.md).
 
-4. **How much of this can be native-only?** → claude-flow is a hard constraint. Accept the alpha risk, plan around it with version pinning, error wrapping, and degraded mode (fall back to plain Claude Code when claude-flow is unavailable). See [17-implementation-roadmap.md](../17-implementation-roadmap.md).
+4. **How much of this can be native-only?** → claude-flow (now Ruflo) is an enhancement layer, not a hard dependency. The plugin + bootstrap architecture functions independently; claude-flow adds semantic memory search and cross-session pattern recall. Degrade gracefully: fall back to auto-memory (plain markdown) when claude-flow is unavailable. See [17-implementation-roadmap.md](../17-implementation-roadmap.md).
 
 5. **claude-flow stability risk?** → Every claude-flow call is wrapped in error handling. Degraded mode writes learnings to markdown fallback files. Each phase's dependency is additive — if a feature breaks, you lose that phase's enhancement but everything below still works. See [17-implementation-roadmap.md](../17-implementation-roadmap.md).
 

@@ -49,7 +49,7 @@ DDD enforcement has three aspects:
 
 **Adopted tool:** TDD-Guard — PreToolUse hooks that block implementation writes without failing tests. Covers Jest, Vitest, pytest, Go, Rust. Increased compliance from ~20% (CLAUDE.md alone) to ~84%.
 
-External dependency — installed per-project, not built by brana. Recommended during `/project-onboard`.
+External dependency — installed per-project, not built by brana. Recommended during `/brana:onboard`.
 
 ### Multi-Agent Context Isolation (Future)
 
@@ -129,14 +129,14 @@ From [15-self-development-workflow.md](../15-self-development-workflow.md) — t
 | CLAUDE.md | Per phase milestone | Architecture may have shifted |
 | Context budget | After adding skills/agents/rules | Budget creep is invisible until it degrades performance |
 
-**The deploy pipeline:** All changes flow through the brana project repo. Never edit `~/.claude/` directly. `deploy.sh` handles the genome; the connectome (ReasoningBank) is never touched by deploys. The cardinal rule: a system rollback must NEVER touch the knowledge store.
+**The deploy pipeline:** All changes flow through the brana project repo. Never edit `~/.claude/` directly. The plugin system (`system/`) loads skills, hooks, and agents natively; `bootstrap.sh` deploys the identity layer (CLAUDE.md, rules, scripts). The connectome (learned knowledge) is never touched by deploys. The cardinal rule: a system rollback must NEVER touch the knowledge store.
 
 ### The Connectome (Learned Knowledge)
 
 | Component | Review Trigger | How |
 |-----------|---------------|-----|
 | Pattern health | Monthly | `/brana:memory review` — staleness, contradictions, confidence distribution |
-| Token usage | After each session or weekly | `/usage-stats` — model distribution, session patterns, activity trends, anomaly detection |
+| Token usage | After each session or weekly | Session cost tracking via statusline — model distribution, session patterns |
 | Source registry | Per source cadence (weekly–quarterly) | `/brana:research registry` — trust tier health, overdue checks, yield tracking. See [33-research-methodology.md](../../../brana-knowledge/dimensions/33-research-methodology.md) |
 | Pattern curation | After each session with notable learnings | `/brana:retrospective` — the engine that builds knowledge trust |
 | Cross-project transfer | When starting work in a different project | `/brana:memory pollinate` — checks for applicable patterns |
@@ -162,7 +162,7 @@ From [ADR-002](../decisions/ADR-002-scheduler-thin-layer-over-systemd.md) — br
 |-----|----------|-------------|
 | staleness-report | Weekly (Mon 08:00) | Layer-aware spec freshness check — flags STALE/WARN/DEP docs |
 
-The runner stores summaries in claude-flow memory (`namespace: scheduler-runs`). `/morning` and session-start can surface overnight results via `memory search --query "sched:"`.
+The runner stores summaries in claude-flow memory (`namespace: scheduler-runs`). `/brana:review` and session-start can surface overnight results via `memory search --query "sched:"`.
 
 **Key design principle:** Scheduler jobs reserve exit code 1 for actual failures only. Informational findings (dep-stale, warnings) go into output and memory — never exit codes. This prevents false-positive OnFailure notifications (see learning #59 in [doc 24](../24-roadmap-corrections.md)).
 
@@ -215,11 +215,11 @@ Each cycle:
 2. **Recall** — `/brana:memory recall` for relevant learned patterns
 3. **Build** — implement work items with mini-debriefs after each
 4. **Test** — run `./test.sh` before merging
-5. **Debrief** — `/debrief` extracts errata and learnings
+5. **Close** — `/brana:close` extracts errata, learnings, and session handoff
 6. **Maintain** — `/brana:maintain-specs` propagates findings through spec layers
 7. **Tag** — version the release, update portfolio
 
-The debrief→maintain-specs loop is what keeps specs alive. Without it, specs drift from reality with every implementation session.
+The close→maintain-specs loop is what keeps specs alive. Without it, specs drift from reality with every implementation session.
 
 **Four feedback paths.** Findings from implementation don't all go to the same place — each path serves a different layer:
 

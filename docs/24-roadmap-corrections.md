@@ -103,6 +103,15 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 83 | [Doc 29](reflections/29-venture-management-reflection.md) missing state sync for machine recovery | **High** | applied (2026-03-11) | "State Transfer and Recovery" subsection added with push/pull/export/import workflow and team onboarding via snapshot. |
 | 84 | [Doc 14](reflections/14-mastermind-architecture.md) hook responsibilities incomplete — missing sync additions | **Medium** | applied (2026-03-11) | SessionStart step 8 (fork push), SessionEnd steps 9-10 (snapshot + sync companions) added to hook sequences. |
 | 85 | [ADR-015](architecture/decisions/ADR-015-state-consolidation-plugin-first.md) sync trigger matrix omits session-end push for global state | **Medium** | applied (2026-03-11) | Matrix listed session-end as MEMORY.md snapshot only. Reality: session-end now also pushes global state (event-log, portfolio, tasks). Matrix + "Why both?" paragraph updated. |
+| 86 | [Doc 08](reflections/08-diagnosis.md) "SHA-512 embeddings" — factual error | **High** | applied (2026-03-11) | Should be "all-MiniLM-L6-v2 384-dim embeddings (local ONNX)". SHA-512 is a cryptographic hash, not an embedding model. |
+| 87 | [Doc 08](reflections/08-diagnosis.md) missing triage entry for [doc 11](../../../brana-knowledge/dimensions/11-ecosystem-skills-plugins.md) | **High** | applied (2026-03-11) | Referenced 3x in body but skipped in triage section. Same pattern as #73, #77. |
+| 88 | [Doc 08](reflections/08-diagnosis.md) missing triage entry for [doc 45](../../../brana-knowledge/dimensions/45-turboflow-agent-orchestration.md) | **Medium** | applied (2026-03-11) | New dimension doc from TurboFlow integration. Routine maintenance gap. |
+| 89 | [Doc 08](reflections/08-diagnosis.md) "claude-flow is a hard constraint" — outdated framing | **Medium** | applied (2026-03-11) | Current arch: plugin + bootstrap independent, claude-flow is enhancement layer. Updated to "enhancement layer, not a hard dependency." |
+| 90 | [Doc 08](reflections/08-diagnosis.md) "47 KB of modules" stale, doc 27 "5-phase" should be 6-phase | **Medium** | applied (2026-03-11) | System is ~26KB now. Doc 27 triage updated to 6-phase + `/brana:align`. |
+| 91 | [Doc 08](reflections/08-diagnosis.md) `.claude/skills/` path should be `system/skills/` | **Medium** | applied (2026-03-11) | Plugin architecture uses system/skills/, not .claude/skills/. |
+| 92 | [Doc 14](reflections/14-mastermind-architecture.md) rules count 12 vs actual 13 | **Medium** | applied (2026-03-11) | 7th instance of count drift. Updated both tree and prose to 13 with full list. |
+| 93 | [Doc 32](reflections/32-lifecycle.md) `/project-onboard` and `/debrief` retired names | **High** | applied (2026-03-11) | Updated to `/brana:onboard` and `/brana:close`. Build cycle step 5 rewritten. |
+| 94 | [Doc 32](reflections/32-lifecycle.md) `/usage-stats` doesn't exist, `deploy.sh` deprecated, `/morning` retired | **Medium** | applied (2026-03-11) | Token usage row rewritten. Deploy pipeline updated to plugin + bootstrap.sh. `/morning` → `/brana:review`. |
 
 ---
 
