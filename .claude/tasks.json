@@ -10414,6 +10414,34 @@
       "context": "Arose during vibe coding when user wanted to capture ideas mid-flow. Realized the pattern is broader than a single command: any skill that takes an optional argument should be able to read conversation context as a fallback. This follows the automation-through-usage rule \u2014 embed in frequently-used commands, not standalone ones. Key technical question: how to access conversation history from within a skill (SKILL.md has no explicit API for this, but the LLM naturally has the conversation in context).\n\n2026-03-11: Spike prototype in /brana:challenge. Key finding: context: fork gives skills full conversation history. No API needed \u2014 just instruct the LLM to scan recent turns. Pattern: replace narrow self-challenge (own last answer) with broader conversation-context inference (any decision/plan from either party).",
       "strategy": "spike",
       "build_step": null
+    },
+    {
+      "id": "t-382",
+      "subject": "Auto-generate tech docs + user guide in /brana:build CLOSE step",
+      "description": "Expand the CLOSE step to auto-generate two doc types per feature: (1) docs/architecture/features/{feature}.md — tech internals for developers (design decisions, code flow, key modules, API surface). (2) docs/guide/{feature}.md — user guide for end users (what it does, how to use it, examples). Template-driven for consistency. Strategy-aware: feature/greenfield/migration get both docs; bug fixes get neither; refactors get tech doc only. Solves: features ship without documentation, inconsistent docs, hard onboarding for new devs.",
+      "tags": [
+        "docs",
+        "build-loop",
+        "dx"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": "P1",
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": "feat/t-382-build-close-docs",
+      "github_issue": null,
+      "created": "2026-03-11",
+      "started": "2026-03-11",
+      "completed": "2026-03-11",
+      "notes": "Two templates (tech-doc.md, user-guide.md) added to system/skills/build/templates/. CLOSE step 4 expanded with strategy-aware routing table. Dogfooded on itself — this feature's own docs were the first generated pair. 14 validation tests pass.",
+      "context": "Related: t-288 (session close updates user-friendly docs). Current CLOSE step 4 only writes docs/guide/commands/ and docs/guide/workflows/ for new commands. This expands to full tech + user docs per feature. t-288 is about detecting stale deliverables; this is about generating new docs per feature.",
+      "strategy": "feature",
+      "build_step": null
     }
   ]
 }

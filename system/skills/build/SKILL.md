@@ -526,11 +526,33 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    - Set status to `shipped`
    - Add learnings from retrospective
 
-4. **Write/update user documentation** (feature, greenfield, migration only):
-   - If new command: write `docs/guide/commands/{command}.md`
-   - If workflow changed: update `docs/guide/workflows/{workflow}.md`
-   - Update `docs/guide/commands/index.md` if applicable
-   - **Shipped without user docs means not shipped.**
+4. **Generate feature documentation** (strategy-aware):
+
+   **Which docs to generate:**
+
+   | Strategy | Tech Doc | User Guide |
+   |----------|----------|------------|
+   | feature | yes | yes |
+   | greenfield | yes | yes |
+   | migration | yes | yes |
+   | refactor | only if architecture changed | no |
+   | bug-fix | no | no |
+
+   **Tech doc** — write `docs/architecture/features/{feature-slug}.md`:
+   - Use template from `system/skills/build/templates/tech-doc.md`
+   - Fill from: build context, design decisions made in SPECIFY/PLAN, code written in BUILD
+   - Key: capture WHY decisions were made, not just WHAT was built
+
+   **User guide** — write `docs/guide/features/{feature-slug}.md`:
+   - Use template from `system/skills/build/templates/user-guide.md`
+   - Fill from: user-facing behavior, commands, configuration, examples
+   - Key: write for someone who's never seen the codebase — copy-pasteable examples
+
+   **Also update existing docs if affected:**
+   - If new command: add to `docs/guide/commands/index.md`
+   - If workflow changed: update relevant `docs/guide/workflows/*.md`
+
+   **Shipped without docs means not shipped.**
 
 5. **Update task** (if entered via `/brana:backlog start`):
    - Set status → `completed`
@@ -662,7 +684,7 @@ Claude proposes the size. User can override: "this is bigger than it looks" or "
 2. **TDD always** (except spike). Write the test before the code. The PreToolUse hook enforces this on feat/* branches.
 3. **User controls pace in SPECIFY.** Never auto-advance from research to draft. Wait for the signal.
 4. **Challenger is context-isolated.** Always spawn a separate agent for the challenger review. Never self-review.
-5. **Shipped without docs means not shipped.** CLOSE checks for user guide updates on feature/greenfield/migration. Skip only for bug fixes and refactors.
+5. **Shipped without docs means not shipped.** CLOSE generates tech doc + user guide from templates (feature/greenfield/migration). Refactors get tech doc only if architecture changed. Bug fixes skip docs.
 6. **Don't auto-merge.** Present the merge command. Let the user decide.
 7. **Mid-stream reclassification is allowed.** The user can change strategy at any point. Carry forward what's been learned.
 8. **Mini-debrief after every task in BUILD.** 30 seconds. What surprised? Pattern? Don't skip.
