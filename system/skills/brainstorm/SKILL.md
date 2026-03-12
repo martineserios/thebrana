@@ -103,26 +103,96 @@ AskUserQuestion (batch up to 4 questions):
     - "None / not sure"
 ```
 
-### Phase 3 — Challenge
+### Phase 3 — Discuss & Challenge
 
-Play devil's advocate. Present 2-3 risks or counterarguments:
+This is the core of the brainstorm — an interactive back-and-forth dialogue.
+Not a list of risks. A real conversation where you push back, ask hard questions,
+and help the user stress-test their thinking.
+
+**This phase loops until the user is ready to move on.**
+
+#### Round 1 — Proactive challenge
+
+Pick the **weakest assumption** in the idea so far. State it directly, then ask:
 
 ```
 AskUserQuestion:
-  question: "Here are potential challenges. Which concern you most?"
-  header: "Risks"
-  multiSelect: true
+  question: "You're assuming {assumption}. What if that's wrong?"
+  header: "Challenge"
   options:
-    - "{risk 1 — derived from research + seed}"
-    - "{risk 2 — derived from research + seed}"
-    - "{risk 3 — derived from research + seed}"
-    - "None of these worry me"
+    - "Good point — let me rethink"     → discuss alternatives together
+    - "I've validated this because..."  → user defends, you probe deeper
+    - "It's a bet I'm willing to take"  → acknowledge, move to next challenge
+    - "Actually, let me explain..."     → free text, then respond to their reasoning
 ```
 
-For each selected risk, briefly propose a mitigation. Keep it to 1-2 sentences each.
+**Respond to their answer.** Don't just acknowledge — engage:
+- If they rethink: suggest 2 alternative approaches, ask which resonates
+- If they defend: ask a follow-up that tests the defense ("How would you know if...")
+- If they accept the risk: name what failing would look like, ask if that's survivable
 
-If the user mentions a new concept during any phase, **auto-research it** (WebSearch, 1 query)
-and fold findings into the conversation.
+#### Round 2 — Flip the perspective
+
+Take the opposite position. If the user wants to build something, argue for buying.
+If they want to go fast, argue for going slow. If they want simple, argue for comprehensive.
+
+State the counter-position in 2-3 sentences, then:
+
+```
+AskUserQuestion:
+  question: "Playing devil's advocate: {counter-position}. What's wrong with this argument?"
+  header: "Counter"
+  options:
+    - "That's actually a good point"     → explore the counter-position together
+    - "Here's why that won't work..."    → free text defense
+    - "Both could work — help me decide" → comparative analysis
+    - "Skip — I'm confident in my direction"
+```
+
+#### Round 3+ — Follow the thread
+
+Based on the discussion so far, either:
+
+**A) Drill deeper** — if an interesting tension surfaced, explore it:
+- "You said {X} but earlier you said {Y} — how do those fit together?"
+- "What would {audience} say about this?"
+- "If you had to cut one thing, what goes?"
+
+**B) Widen the lens** — if the idea is solid, explore adjacent territory:
+- "Who else has tried something like this? What happened?"
+- "What's the version of this that's 10x simpler?"
+- "What would make this a must-have instead of a nice-to-have?"
+
+Each round uses AskUserQuestion with contextual options. Keep rounds short — one
+question at a time, real responses, not lectures.
+
+#### Exit
+
+After each round, offer an exit:
+
+```
+AskUserQuestion:
+  question: "Keep discussing, or ready to shape this into something concrete?"
+  header: "Continue?"
+  options:
+    - "Keep going — I want to explore {aspect}"
+    - "Challenge me harder on {topic}"
+    - "Ready to shape it"               → proceed to Phase 4
+    - "Let me think — save what we have" → jump to Phase 5 with current state
+```
+
+If the user mentions a new concept during any round, **auto-research it**
+(WebSearch, 1 query) and fold findings into the next response before asking
+the next question.
+
+#### Discussion behavior rules
+
+- **One question at a time.** Never stack 3 challenges — ask one, respond, ask the next.
+- **React to their answers.** Reference what they said. "You mentioned X — that changes things because..."
+- **Escalate, don't repeat.** Each round goes deeper than the last. Never re-ask the same challenge.
+- **Name your role.** Say "Playing devil's advocate here..." or "Pushing back on this..." so the user knows you're challenging, not disagreeing.
+- **Celebrate good thinking.** When the user gives a strong defense, say so. "That's a solid answer — it holds up because..."
+- **Research mid-discussion.** If the user mentions a competitor, tool, or reference you don't know, search for it immediately and bring findings into the next question.
 
 ### Phase 4 — Shape
 

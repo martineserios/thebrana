@@ -55,13 +55,22 @@ assert_grep "Write in allowed-tools" "Write" "$SKILL_MD"
 # Core phases exist
 assert_grep "Has Phase 1 (Seed)" "Phase 1.*Seed" "$SKILL_MD"
 assert_grep "Has Phase 2 (Expand)" "Phase 2.*Expand" "$SKILL_MD"
-assert_grep "Has Phase 3 (Challenge)" "Phase 3.*Challenge" "$SKILL_MD"
+assert_grep "Has Phase 3 (Discuss & Challenge)" "Phase 3.*Discuss.*Challenge" "$SKILL_MD"
 assert_grep "Has Phase 4 (Shape)" "Phase 4.*Shape" "$SKILL_MD"
 assert_grep "Has Phase 5 (Output)" "Phase 5.*Output" "$SKILL_MD"
 
+# Discussion phase structure
+assert_grep "Has Round 1 (proactive challenge)" "Round 1.*Proactive challenge" "$SKILL_MD"
+assert_grep "Has Round 2 (flip perspective)" "Round 2.*Flip the perspective" "$SKILL_MD"
+assert_grep "Has Round 3+ (follow thread)" "Round 3.*Follow the thread" "$SKILL_MD"
+assert_grep "Has discussion exit mechanism" "Keep discussing.*ready to shape" "$SKILL_MD"
+assert_grep "Has discussion behavior rules" "Discussion behavior rules" "$SKILL_MD"
+assert_grep "One question at a time rule" "One question at a time" "$SKILL_MD"
+assert_grep "Escalate don't repeat rule" "Escalate.*don.t repeat" "$SKILL_MD"
+assert_grep "Research mid-discussion" "Research mid-discussion" "$SKILL_MD"
+
 # Interactive elements
 assert_grep "Uses AskUserQuestion pattern" "AskUserQuestion:" "$SKILL_MD"
-assert_grep "Has multiSelect option" "multiSelect" "$SKILL_MD"
 assert_grep "Has header fields" "header:" "$SKILL_MD"
 
 # Output targets
