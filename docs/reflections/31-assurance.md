@@ -39,6 +39,7 @@ From [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md) Layer 0 
 - **ReasoningBank accessible** — `memory search --query "test"` returns without error (catches sql.js missing, schema drift, DB corruption)
 - **Round-trip verification** — store a test entry, retrieve it, verify content matches. This is the minimum viable health check for the intelligence layer
 - **Namespace isolation** — patterns stored in namespace `patterns` don't leak into namespace `decisions`
+- **Agent-level namespace isolation (when parallel agents write)** — if multiple agents write to the vector store simultaneously, verify embeddings from agent A cannot be retrieved by a query scoped to agent B's namespace. Currently N/A (only main-context writes to ReasoningBank). Activate this check before introducing any parallel-write agent pattern. Reference: [45-turboflow-agent-orchestration.md](../../../brana-knowledge/dimensions/45-turboflow-agent-orchestration.md) schema namespacing pattern
 
 ### Enforcement Gate Verification
 
