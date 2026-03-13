@@ -439,10 +439,10 @@ The authoring layer is markdown files in brana-knowledge (dimension docs, reflec
 
 | Package | Installed | Latest | Role | Status |
 |---------|-----------|--------|------|--------|
-| **claude-flow** | **v3.5.1** | v3.5.1 | Orchestration, MCP, memory + AgentDB | **Active** — major upgrade from alpha.44. Native AgentDB integration. |
+| **claude-flow** | **v3.5.15** | v3.5.15 | Orchestration, MCP, memory + AgentDB | **Active** — upgraded from v3.5.1. 14 patch releases, no breaking changes. |
 | **@claude-flow/embeddings** | **alpha.12** | alpha.12 | ONNX embedding generation | Current. Upgraded from alpha.1. |
-| **@claude-flow/memory** | **alpha.11** | alpha.11 | SQLite + AgentDB hybrid backend | Active. ControllerRegistry shim bridges memory-bridge.js → AgentDB v3. |
-| **agentdb** | **3.0.0-alpha.10** | 3.0.0-alpha.10 | Graph DB + Cypher + vector search | **Active** — integrated via claude-flow v3.5.1. BM25 hybrid search, reflexion, causal graph, skills. |
+| **@claude-flow/memory** | — | — | SQLite + AgentDB hybrid backend | **Removed in v3.5.15** — memory ops handled directly by claude-flow core. |
+| **agentdb** | **3.0.0-alpha.10** | 3.0.0-alpha.10 | Graph DB + Cypher + vector search | **Active** — integrated via claude-flow. BM25 hybrid search, reflexion, causal graph, skills. |
 | **ruvector** | (dep) | 0.1.100 | Rust vector DB, HNSW, SONA | Hyperactive (100 patches) |
 | **@ruvector/rvf** | 0.1.9 | 0.2.0 | Unified vector format SDK | Active, minor version bump |
 | **@ruvector/graph-node** | (dep) | 2.0.2 | Native Cypher engine | Active |
@@ -519,7 +519,7 @@ brana-knowledge/reflections/*.md
 
 ### 7.5 Active Strategy + Fallback (updated 2026-02-27)
 
-AgentDB is now the active backend via claude-flow v3.5.1 + ControllerRegistry shim. SQLite-only is the fallback.
+AgentDB is now the active backend via claude-flow v3.5.15. SQLite-only is the fallback. ControllerRegistry shim no longer needed (@claude-flow/memory removed in v3.5.15).
 
 | Layer | Active (via AgentDB bridge) | Fallback (if bridge fails) |
 |-------|----------------------------|---------------------------|

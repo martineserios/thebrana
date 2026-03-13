@@ -9270,7 +9270,7 @@
         "ruflo",
         "upgrade"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "stream": "tech-debt",
       "type": "task",
       "parent": null,
@@ -9279,14 +9279,14 @@
       "effort": "S",
       "execution": "code",
       "blocked_by": [],
-      "branch": null,
+      "branch": "refactor/t-346-upgrade-ruflo-v3.5.15",
       "github_issue": null,
       "created": "2026-03-11",
-      "started": null,
+      "started": "2026-03-13",
       "completed": null,
       "notes": "From /brana:research ruflo (2026-03-11). MCP isolation mitigates dependency CVEs (glob, tar). No alias divergence risk.",
       "context": null,
-      "strategy": null,
+      "strategy": "refactor",
       "build_step": null
     },
     {
