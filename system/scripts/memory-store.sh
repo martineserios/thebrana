@@ -20,7 +20,7 @@ if [ -z "$KEY" ] || [ -z "$VALUE" ]; then
     exit 1
 fi
 
-# Primary: claude-flow memory store
+# Primary: ruflo memory store
 if [ -n "$CF" ]; then
     STORE_CMD="cd $HOME && $CF memory store -k \"$KEY\" -v '$VALUE' --namespace $NAMESPACE"
     [ -n "$TAGS" ] && STORE_CMD="$STORE_CMD --tags \"$TAGS\""

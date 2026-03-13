@@ -127,7 +127,7 @@ source "$HOME/.claude/scripts/cf-env.sh"
      --tags "client:PROJECT,type:challenge,outcome:accepted|rejected|partial,confidence:quarantine"
    ```
 
-   If claude-flow is unavailable, append to `~/.claude/projects/{project-hash}/memory/MEMORY.md`.
+   If ruflo is unavailable, append to `~/.claude/projects/{project-hash}/memory/MEMORY.md`.
 
 ## Rules
 

@@ -104,7 +104,7 @@ echo ""
 # Test 5: session-end stores quarantine metadata
 echo "Testing session-end metadata..."
 
-# Locate claude-flow binary (same logic as hooks)
+# Locate ruflo binary (same logic as hooks)
 CF=""
 for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
     [ -x "$candidate" ] && CF="$candidate" && break
@@ -157,7 +157,7 @@ if [ -n "$CF" ]; then
     timeout 10 $CF memory delete "$META_KEY" >/dev/null 2>&1 || true
     rm -f "$META_SESSION_FILE"
 else
-    echo "  SKIP: claude-flow not found — cannot test metadata storage"
+    echo "  SKIP: ruflo not found — cannot test metadata storage"
 fi
 echo ""
 

@@ -17,7 +17,7 @@ echo ""
 fail() { echo "  FAIL: $1"; ERRORS=$((ERRORS + 1)); }
 pass() { echo "  PASS: $1"; PASSED=$((PASSED + 1)); }
 
-# Locate claude-flow binary
+# Locate ruflo binary
 CF=""
 
 # 1. Check nvm global bin (most reliable — no download delay)
@@ -50,7 +50,7 @@ if [ -z "$CF" ] && command -v npx &>/dev/null; then
 fi
 
 if [ -z "$CF" ]; then
-    fail "claude-flow not found — cannot test memory"
+    fail "ruflo not found — cannot test memory"
     echo ""
     echo "=== Memory Test Summary ==="
     echo "Passed: 0"

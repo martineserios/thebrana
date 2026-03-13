@@ -95,7 +95,7 @@ For each **errata** finding:
 
 ### Step 5: Store learnings as patterns
 
-For each learning from Step 3, store via claude-flow:
+For each learning from Step 3, store via ruflo:
 
 ```bash
 source /home/martineserios/.claude/scripts/cf-env.sh
@@ -108,7 +108,7 @@ cd "$HOME" && $CF memory store \
   --upsert
 ```
 
-If claude-flow is unavailable, append to the project's auto memory `MEMORY.md` under `~/.claude/projects/`.
+If ruflo is unavailable, append to the project's auto memory `MEMORY.md` under `~/.claude/projects/`.
 
 **Skip if:** session was read-only (no commits), or debrief returned no learnings.
 
@@ -196,7 +196,7 @@ cd "$HOME" && $CF memory store \
   --upsert
 ```
 
-If claude-flow unavailable, skip — the handoff note is the fallback.
+If ruflo unavailable, skip — the handoff note is the fallback.
 
 Then backup:
 

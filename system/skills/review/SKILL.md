@@ -98,7 +98,7 @@ Monthly close + forward plan — P&L summary, actuals vs projections, targets fo
    - Propose 2-3 priorities tied to the bottleneck
    - Pipeline actions: follow-ups, qualification reviews
    - Budget allocation: where to spend next month
-4. **Store trends** in claude-flow (namespace: business)
+4. **Store trends** in ruflo (namespace: business)
 5. **Write reports:**
    - `docs/reviews/monthly-close-YYYY-MM.md`
    - `docs/reviews/monthly-plan-YYYY-MM.md`
@@ -121,7 +121,7 @@ Ad-hoc AARRR funnel audit — stage-appropriate metrics health check.
 3. **Traffic-light each metric:** green (healthy), yellow (watch), red (action needed)
 4. **Identify bottleneck:** which AARRR stage is the weakest?
 5. **Recommend actions** tied to the bottleneck
-6. **Store snapshot** in claude-flow
+6. **Store snapshot** in ruflo
 7. **Present report:**
 
 ```markdown
@@ -154,4 +154,4 @@ Ad-hoc AARRR funnel audit — stage-appropriate metrics health check.
 3. **Store trends consistently.** Every review stores a snapshot for comparison.
 4. **Ask for data you can't find.** Don't guess metrics — ask the user or check data sources.
 5. **Bottleneck → action.** Every review identifies the #1 bottleneck and proposes actions tied to it.
-6. **Graceful degradation.** No Google Sheets → ask user. No claude-flow → write to docs/reviews/ only.
+6. **Graceful degradation.** No Google Sheets → ask user. No ruflo → write to docs/reviews/ only.

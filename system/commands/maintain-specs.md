@@ -94,7 +94,7 @@ If no pending items or user declines → report "Backlog reviewed, no action."
 
 ## Step 7: Surface findings for storage
 
-Review what was discovered during this maintain-specs run. If any of these emerged, **ask the user** whether to store them in claude-flow memory via `/brana:retrospective`:
+Review what was discovered during this maintain-specs run. If any of these emerged, **ask the user** whether to store them in ruflo memory via `/brana:retrospective`:
 
 - A new pattern or insight about how the docs relate to each other
 - A recurring error type that suggests a process improvement

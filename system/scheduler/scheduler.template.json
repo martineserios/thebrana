@@ -71,7 +71,7 @@
       "maxRetries": 1,
       "timeoutSeconds": 600,
       "captureOutput": true,
-      "_comment": "Weekly full reindex of brana-knowledge dimension docs into claude-flow memory"
+      "_comment": "Weekly full reindex of brana-knowledge dimension docs into ruflo memory"
     },
     "sync-state": {
       "type": "command",

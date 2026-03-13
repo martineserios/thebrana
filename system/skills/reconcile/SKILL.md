@@ -102,7 +102,7 @@ Read the spec surface — everything that describes what the implementation shou
 
 For each area, extract **concrete claims about the implementation** — things like:
 - "skill X should exist with description Y"
-- "hook Z should call claude-flow memory store"
+- "hook Z should call ruflo memory store"
 - "rule W should enforce convention V"
 - "CLAUDE.md should list agent table with these entries"
 - "deploy.sh should handle sql.js dependency"
@@ -228,7 +228,7 @@ Commit the doc 24 update alongside the other changes.
 
 ### Step 7: Store in memory
 
-Store the reconcile run in claude-flow for future reference:
+Store the reconcile run in ruflo for future reference:
 
 ```bash
 source "$HOME/.claude/scripts/cf-env.sh"
@@ -241,7 +241,7 @@ cd "$HOME" && $CF memory store \
   --upsert
 ```
 
-If claude-flow is unavailable, append to `~/.claude/projects/*/memory/MEMORY.md`.
+If ruflo is unavailable, append to `~/.claude/projects/*/memory/MEMORY.md`.
 
 ### Step 8: Report
 

@@ -349,15 +349,18 @@ else
     echo "  — scheduler/ (not found in source)"
 fi
 
-# --- Step 6: claude-flow runtime ---
-echo "claude-flow:"
+# --- Step 6: ruflo runtime ---
+echo "ruflo:"
 CF_BIN=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF_BIN="$candidate" && break
+for name in ruflo claude-flow; do
+    for candidate in "$HOME"/.nvm/versions/node/*/bin/$name; do
+        [ -x "$candidate" ] && CF_BIN="$candidate" && break 2
+    done
 done
 
 if [ -n "$CF_BIN" ]; then
-    CF_PKG_DIR="$(dirname "$CF_BIN")/../lib/node_modules/claude-flow"
+    CF_BIN_NAME="$(basename "$CF_BIN")"
+    CF_PKG_DIR="$(dirname "$CF_BIN")/../lib/node_modules/$CF_BIN_NAME"
 
     # sql.js dependency
     if [ -d "$CF_PKG_DIR" ] && [ ! -d "$CF_PKG_DIR/node_modules/sql.js" ]; then
@@ -392,7 +395,7 @@ if [ -n "$CF_BIN" ]; then
         echo "  — @claude-flow/memory not installed (basic fallback)"
     fi
 else
-    echo "  — claude-flow not found (Layer 0 fallback)"
+    echo "  — ruflo not found (Layer 0 fallback)"
 fi
 
 # --- Step 7: Plugin auto-registration ---

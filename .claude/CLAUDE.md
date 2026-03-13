@@ -133,9 +133,9 @@ claude --plugin-dir ./system
 - Implementation changes update docs in the same commit (no separate back-propagation step)
 - When adding new docs, update `docs/README.md`
 
-## Memory and Knowledge Retrieval (claude-flow)
+## Memory and Knowledge Retrieval (ruflo)
 
-When the claude-flow MCP server is available, use it for persistent memory:
+When the ruflo MCP server is available, use it for persistent memory:
 
 - **Store** architectural decisions, research findings, and conclusions (`memory_store`)
 - **Search** before starting work on a topic (`memory_search`)
@@ -145,7 +145,7 @@ When the claude-flow MCP server is available, use it for persistent memory:
 
 ### Knowledge Base Pipeline
 
-brana-knowledge dimension docs are indexed into claude-flow memory via `system/scripts/index-knowledge.sh`. Each `##` section becomes a searchable entry with 384-dim ONNX embeddings (all-MiniLM-L6-v2). Reindexing happens:
+brana-knowledge dimension docs are indexed into ruflo memory via `system/scripts/index-knowledge.sh`. Each `##` section becomes a searchable entry with 384-dim ONNX embeddings (all-MiniLM-L6-v2). Reindexing happens:
 - **On commit** — post-commit hook in brana-knowledge reindexes changed files
 - **Weekly** — scheduled full reindex (Sunday 3am) as safety net
 - **Manual** — `index-knowledge.sh [file]` or `index-knowledge.sh` (all)

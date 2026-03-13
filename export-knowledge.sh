@@ -25,8 +25,8 @@ if [ -d "$HOME/.claude/projects" ]; then
 fi
 echo "  Found $MEMORY_COUNT memory files"
 
-# Layer 1: claude-flow memory DB
-echo "Exporting Layer 1 (claude-flow memory)..."
+# Layer 1: ruflo memory DB
+echo "Exporting Layer 1 (ruflo memory)..."
 PATTERN_COUNT=0
 
 # Find memory DB: prefer $HOME/.swarm/memory.db, fall back to CWD .swarm/memory.db
@@ -40,7 +40,7 @@ fi
 if [ -n "$REASONING_DB" ]; then
     # Primary: use claude-flow export command
     if command -v npx &>/dev/null; then
-        if cd "$HOME" && npx claude-flow memory export --output "$OUTPUT_DIR/reasoning-bank.json" --format json 2>/dev/null; then
+        if cd "$HOME" && npx ruflo memory export --output "$OUTPUT_DIR/reasoning-bank.json" --format json 2>/dev/null; then
             PATTERN_COUNT=$(jq 'length // 0' "$OUTPUT_DIR/reasoning-bank.json" 2>/dev/null || echo "0")
         else
             echo '{"patterns": [], "note": "claude-flow export failed"}' > "$OUTPUT_DIR/reasoning-bank.json"

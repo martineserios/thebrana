@@ -77,7 +77,7 @@ TIMEOUT_SECS=$(echo "$JOB" | jq -r --arg def "$DEFAULTS_TIMEOUT" '.timeoutSecond
 MAX_RETRIES=$(echo "$JOB" | jq -r --arg def "$DEFAULTS_RETRIES" '.maxRetries // $def')
 RETRY_BACKOFF=$(echo "$JOB" | jq -r --arg def "$DEFAULTS_BACKOFF" '.retryBackoffSec // $def')
 
-# captureOutput: store run summary in claude-flow memory (default true)
+# captureOutput: store run summary in ruflo memory (default true)
 # Use has() pattern — jq '//' treats false as falsy
 DEFAULTS_CAPTURE=$(jq -r 'if .defaults | has("captureOutput") then .defaults.captureOutput else true end' "$CONFIG")
 CAPTURE_OUTPUT=$(echo "$JOB" | jq -r --arg def "$DEFAULTS_CAPTURE" 'if has("captureOutput") then .captureOutput else $def end')
@@ -200,7 +200,7 @@ fi
 # Write status for statusline and notifications
 write_status "$STATUS_LABEL" "$EXIT_CODE" "$ATTEMPT"
 
-# Store run summary in claude-flow memory (graceful degradation)
+# Store run summary in ruflo memory (graceful degradation)
 if [ "$CAPTURE_OUTPUT" = "true" ]; then
     source "$HOME/.claude/scripts/cf-env.sh"
 

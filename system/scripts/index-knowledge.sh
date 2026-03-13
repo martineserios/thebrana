@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Index brana-knowledge dimension docs into claude-flow memory for semantic search.
+# Index brana-knowledge dimension docs into ruflo memory for semantic search.
 #
 # DEPRECATED: This script is now bundled with the knowledge skill.
 # Canonical location: system/skills/knowledge/index-knowledge.sh
@@ -15,7 +15,7 @@
 #   Key:       knowledge:dimension:{doc-slug}:{section-slug}
 #   Namespace: knowledge
 #   Tags:      source:brana-knowledge,type:dimension,doc:{filename}
-#   Value:     Section content (auto-embedded by claude-flow memory store)
+#   Value:     Section content (auto-embedded by ruflo memory store)
 
 set -euo pipefail
 
@@ -31,7 +31,7 @@ done
 [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
 
 if [ -z "$CF" ]; then
-    echo "ERROR: claude-flow not found. Cannot index." >&2
+    echo "ERROR: ruflo not found. Cannot index." >&2
     exit 1
 fi
 

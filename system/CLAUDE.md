@@ -48,4 +48,4 @@ Agent results are inputs, not decisions. Present findings to the user. File modi
 
 ## Graceful Degradation
 
-When claude-flow is unavailable, all skills fall back to native auto memory (`~/.claude/projects/*/memory/`). The system works at reduced capability — you still learn and recall, just without cross-client neural search.
+When ruflo is unavailable, all skills fall back to native auto memory (`~/.claude/projects/*/memory/`). The system works at reduced capability — you still learn and recall, just without cross-client neural search.

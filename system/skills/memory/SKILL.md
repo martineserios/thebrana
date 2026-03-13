@@ -37,10 +37,10 @@ source "$HOME/.claude/scripts/cf-env.sh"
 
 1. Use the query from `$ARGUMENTS` (after stripping the `recall` subcommand). If empty, infer from current project context (tech stack, current task, recent errors).
 
-2. **Primary path (claude-flow available):**
+2. **Primary path (ruflo available):**
    Run `cd $HOME && $CF memory search --query "$QUERY"` to search the memory DB. Parse JSON values to extract `confidence`, `transferable`, and `recall_count` fields.
 
-3. **Fallback path (claude-flow unavailable):**
+3. **Fallback path (ruflo unavailable):**
    Search `~/.claude/projects/*/memory/` for relevant MEMORY.md files. Grep for keywords from the query.
 
 4. **Group results by confidence tier:**

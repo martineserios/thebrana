@@ -115,7 +115,7 @@ The user controls the pace. Stay in the research→discuss loop until the user s
 
 Run research in this order — each layer adds context for the next:
 
-1. **Knowledge base** — search claude-flow memory + dimension docs using task tags and description keywords
+1. **Knowledge base** — search ruflo memory + dimension docs using task tags and description keywords
    ```bash
    source "$HOME/.claude/scripts/cf-env.sh"
    cd "$HOME" && $CF memory search --query "{task tags + description keywords}" --namespace knowledge --format json
@@ -133,7 +133,7 @@ Run research in this order — each layer adds context for the next:
 
 #### Auto-store findings
 
-Every research finding gets stored immediately in claude-flow:
+Every research finding gets stored immediately in ruflo:
 ```bash
 cd "$HOME" && $CF memory store \
   -k "research:{project}:{topic}:{finding-slug}" \
@@ -255,7 +255,7 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
       - What surprised?
       - Spec mismatch? (feature spec says X, reality requires Y)
       - Reusable pattern?
-      - Store significant findings in claude-flow
+      - Store significant findings in ruflo
 
 3. **At natural breakpoints** (every 2-3 tasks), ask:
    ```
@@ -511,7 +511,7 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    - What errors or re-approaches happened?
    - What surprised us?
    - What patterns should we store for next time?
-   - Store learnings in claude-flow:
+   - Store learnings in ruflo:
      ```bash
      cd "$HOME" && $CF memory store \
        -k "pattern:{project}:{slug}" \
@@ -520,7 +520,7 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
        --tags "client:{project},type:build-learning" \
        --upsert
      ```
-   If claude-flow unavailable, append to project's auto memory MEMORY.md.
+   If ruflo unavailable, append to project's auto memory MEMORY.md.
 
 3. **Update feature spec** (feature, greenfield, migration only):
    - Set status to `shipped`
@@ -703,4 +703,4 @@ Claude proposes the size. User can override: "this is bigger than it looks" or "
 7. **Mid-stream reclassification is allowed.** The user can change strategy at any point. Carry forward what's been learned.
 8. **Mini-debrief after every task in BUILD.** 30 seconds. What surprised? Pattern? Don't skip.
 9. **Cross-reference before creating work.** Always check for related tasks first (unless entering via /brana:backlog start).
-10. **Graceful degradation.** If claude-flow is unavailable, use auto memory. If no test framework, note it and proceed. If no GitHub Issues, use tasks.json.
+10. **Graceful degradation.** If ruflo is unavailable, use auto memory. If no test framework, note it and proceed. If no GitHub Issues, use tasks.json.

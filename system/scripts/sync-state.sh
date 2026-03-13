@@ -6,8 +6,8 @@ set -euo pipefail
 # Subcommands:
 #   push [--auto-commit]   — cache → repos (session-start hook, daily scheduler)
 #   pull                   — repos → cache (new machine setup)
-#   export [--auto-commit] — claude-flow patterns+decisions → repo JSON
-#   import                 — repo JSON → claude-flow patterns+decisions
+#   export [--auto-commit] — ruflo patterns+decisions → repo JSON
+#   import                 — repo JSON → ruflo patterns+decisions
 #   snapshot <project-dir> — MEMORY.md snapshot for a specific project
 #
 # Design: unidirectional per subcommand. push always writes cache→repo.
@@ -224,7 +224,7 @@ cmd_export() {
     fi
 
     if [ -z "${CF:-}" ]; then
-        log "export skipped — claude-flow not available"
+        log "export skipped — ruflo not available"
         return 1
     fi
 
@@ -274,7 +274,7 @@ cmd_export() {
     fi
 
     if [ "$changed" = true ] && [ "$auto_commit" = true ]; then
-        auto_commit_state "sync: export claude-flow patterns and decisions"
+        auto_commit_state "sync: export ruflo patterns and decisions"
     fi
 }
 
@@ -295,7 +295,7 @@ cmd_import() {
     fi
 
     if [ -z "${CF:-}" ]; then
-        log "import skipped — claude-flow not available"
+        log "import skipped — ruflo not available"
         return 1
     fi
 
@@ -419,7 +419,7 @@ case "${1:-help}" in
         echo "  push [--auto-commit]    Cache → repos (operational state + companion files)"
         echo "  pull                    Repos → cache (new machine restore)"
         echo "  export [--auto-commit]  Claude-flow patterns+decisions → repo JSON"
-        echo "  import                  Repo JSON → claude-flow patterns+decisions"
+        echo "  import                  Repo JSON → ruflo patterns+decisions"
         echo "  snapshot <project-dir>  MEMORY.md snapshot for a project"
         ;;
     *)

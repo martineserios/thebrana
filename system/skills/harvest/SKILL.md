@@ -131,5 +131,5 @@ Report what was saved.
 - **No lens = no harvest.** Abort if `docs/content/lens.md` doesn't exist.
 - **Human picks the ideas.** Never auto-save. AskUserQuestion is the gate.
 - **Ideas only.** No draft writing — that's future `/brana:content-draft` territory.
-- **Graceful without claude-flow.** All sources are local files and git.
+- **Graceful without ruflo.** All sources are local files and git.
 - **Skip noise.** Merge commits, doc formatting, chore tasks, WIP commits — filter out.

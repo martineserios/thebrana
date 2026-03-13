@@ -127,7 +127,7 @@ else
     echo "  — scheduler/ (not found in source, skipping)"
 fi
 
-# Step 7: claude-flow runtime setup
+# Step 7: ruflo runtime setup
 CF_BIN=""
 for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
     [ -x "$candidate" ] && CF_BIN="$candidate" && break
@@ -159,7 +159,7 @@ if [ -n "$CF_BIN" ]; then
         echo "  ⚠ @claude-flow/memory not installed (bridge inactive, basic sql.js fallback)"
     fi
 else
-    echo "  ⚠ claude-flow not found (ReasoningBank unavailable, Layer 0 fallback active)"
+    echo "  ⚠ ruflo not found (ReasoningBank unavailable, Layer 0 fallback active)"
 fi
 
 echo ""

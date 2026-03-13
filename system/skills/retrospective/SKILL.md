@@ -23,13 +23,13 @@ allowed-tools:
    - `correction_weight`: 0 (how many corrections this pattern resolved; >= 2 triggers fast-track promotion)
    - `transferable`: false (locked to source project until proven)
 
-3. **Primary path (claude-flow available):**
+3. **Primary path (ruflo available):**
    ```bash
 source "$HOME/.claude/scripts/cf-env.sh"
 ```
    Store via `cd $HOME && $CF memory store -k "pattern:{PROJECT}:{short-title}" -v '{"problem": "...", "solution": "...", "confidence": 0.5, "transferable": false}' --namespace patterns --tags "client:NAME,tech:TECH,type:CATEGORY,outcome:success|failure|partial"`
 
-4. **Fallback path (claude-flow unavailable):**
+4. **Fallback path (ruflo unavailable):**
    Append to `~/.claude/projects/{project-hash}/memory/MEMORY.md` in a structured format:
    ```
    ## Pattern: {title}

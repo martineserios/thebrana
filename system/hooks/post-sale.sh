@@ -85,12 +85,12 @@ if [ -n "$CF" ]; then
         --tags "deal,closed-won,pipeline" 2>&1) || true
     CF_EXIT=$?
     if [ $CF_EXIT -eq 124 ]; then
-        CF_WARNING="Deal snapshot store timed out. Manual: claude-flow memory store -k '$STORE_KEY' -v '$SNAPSHOT' --namespace business"
+        CF_WARNING="Deal snapshot store timed out. Manual: ruflo memory store -k '$STORE_KEY' -v '$SNAPSHOT' --namespace business"
     elif [ $CF_EXIT -ne 0 ]; then
-        CF_WARNING="Deal snapshot store failed. Manual: claude-flow memory store -k '$STORE_KEY' -v '$SNAPSHOT' --namespace business"
+        CF_WARNING="Deal snapshot store failed. Manual: ruflo memory store -k '$STORE_KEY' -v '$SNAPSHOT' --namespace business"
     fi
 else
-    CF_WARNING="claude-flow not found. Deal snapshot not persisted. Manual backup recommended."
+    CF_WARNING="ruflo not found. Deal snapshot not persisted. Manual backup recommended."
 fi
 
 # Log to session JSONL

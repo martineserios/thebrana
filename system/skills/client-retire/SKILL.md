@@ -15,13 +15,13 @@ allowed-tools:
 
 1. Identify the client to retire from `$ARGUMENTS` or current client context.
 
-2. **Primary path (claude-flow available):**
+2. **Primary path (ruflo available):**
    ```bash
    source "$HOME/.claude/scripts/cf-env.sh"
    ```
    Query memory DB for all patterns tagged with this client via `cd $HOME && $CF memory search --query "client:{name}"`. List them with confidence scores.
 
-3. **Fallback path (claude-flow unavailable):**
+3. **Fallback path (ruflo unavailable):**
    Read the client's `~/.claude/projects/{project-hash}/memory/MEMORY.md` and list all documented patterns.
 
 4. For each pattern, categorize:

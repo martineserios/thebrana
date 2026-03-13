@@ -32,7 +32,7 @@ Target options:
 - A topic (e.g., `/brana:research context engineering`) — find and check sources related to this topic
 - A doc number (e.g., `/brana:research 14`) — research updates for this specific dimension doc
 - A creator (e.g., `/brana:research creator:simon-willison`) — check a creator's recent output
-- `leads` — process queued leads from claude-flow memory (namespace: research-leads)
+- `leads` — process queued leads from ruflo memory (namespace: research-leads)
 - `registry` — report on registry health (trust tier distribution, stale sources, cadence overdue)
 
 Flags:
@@ -47,7 +47,7 @@ Flags:
    - If `--refresh` flag is present → batch refresh mode (see "Batch Refresh Mode" below)
    - If it's a number → doc mode (research updates for that doc)
    - If it starts with `creator:` → creator mode (check that creator's channels)
-   - If it's `leads` → leads mode (process research-leads from claude-flow memory)
+   - If it's `leads` → leads mode (process research-leads from ruflo memory)
    - If it's `registry` → registry health mode (analyze the YAML)
    - Otherwise → topic mode (search for the topic across registry sources)
 
@@ -184,7 +184,7 @@ Flags:
    ```
 
 12. **Create leads for unfollowed threads.** For references that were not recursed into (budget exhausted, low priority):
-    - Store as leads in claude-flow memory (namespace: `research-leads`) if available
+    - Store as leads in ruflo memory (namespace: `research-leads`) if available
     - Otherwise, list them in the report under "Leads Created" for manual tracking
 
 13. **Propose registry updates.** List all changes to `research-sources.yaml`:

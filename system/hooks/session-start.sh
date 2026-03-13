@@ -52,7 +52,7 @@ fi
 CF_WARNING=""
 PIDS=""
 
-# Job 1: claude-flow memory search (patterns)
+# Job 1: ruflo memory search (patterns)
 if [ -n "$CF" ]; then
     (
         CF_OUTPUT=$(timeout 4 $CF memory search --query "client:$PROJECT" --format json 2>&1) || true
@@ -67,7 +67,7 @@ if [ -n "$CF" ]; then
     ) &
     PIDS="$PIDS $!"
 else
-    CF_WARNING="claude-flow not found. Memory recall unavailable. Install: npm i -g claude-flow"
+    CF_WARNING="ruflo not found. Memory recall unavailable. Install: npm i -g ruflo"
     echo "" > "$TMPDIR_SS/cf-context"
 fi
 
@@ -281,9 +281,9 @@ fi
 if [ -f "$TMPDIR_SS/cf-warning" ]; then
     CF_WARN_TYPE=$(cat "$TMPDIR_SS/cf-warning" 2>/dev/null) || true
     if [ "$CF_WARN_TYPE" = "TIMEOUT" ]; then
-        CF_WARNING="Memory search timed out (>4s). Patterns not recalled. Try: claude-flow memory search --query 'client:$PROJECT'"
+        CF_WARNING="Memory search timed out (>4s). Patterns not recalled. Try: ruflo memory search --query 'client:$PROJECT'"
     elif [ "$CF_WARN_TYPE" = "FAILED" ]; then
-        CF_WARNING="Memory search failed. Try: claude-flow memory search --query 'client:$PROJECT'"
+        CF_WARNING="Memory search failed. Try: ruflo memory search --query 'client:$PROJECT'"
     fi
 fi
 

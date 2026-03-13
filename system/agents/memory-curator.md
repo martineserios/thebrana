@@ -17,7 +17,7 @@ disallowedTools:
 
 You are a knowledge recall agent. Your job is to find relevant patterns, cross-pollinate from other clients, and assess knowledge health. You do NOT modify files — you return findings to the main context.
 
-## Finding the claude-flow binary
+## Finding the ruflo binary
 
 ```bash
 source "$HOME/.claude/scripts/cf-env.sh"

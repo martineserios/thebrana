@@ -160,7 +160,7 @@ Remaining gaps:
 
 ## Phase 5: DOCUMENT
 
-1. **Store in claude-flow:**
+1. **Store in ruflo:**
    ```bash
    source "$HOME/.claude/scripts/cf-env.sh"
    [ -n "$CF" ] && cd "$HOME" && $CF memory store \

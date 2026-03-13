@@ -78,7 +78,7 @@ else
             STALE_WARNING="No weekly review found. Consider running /weekly-review."
         fi
     else
-        STALE_WARNING="claude-flow not found — weekly review status unknown. Consider running /weekly-review."
+        STALE_WARNING="ruflo not found — weekly review status unknown. Consider running /weekly-review."
     fi
 fi
 

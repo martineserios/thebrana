@@ -150,7 +150,7 @@ echo '{"continue": true}'
         source "$HOME/.claude/scripts/cf-env.sh"
     fi
 
-    # Layer 1: try claude-flow memory store
+    # Layer 1: try ruflo memory store
     STORED_L1=false
     CF_WARNING=""
     if [ -n "$CF" ]; then
@@ -167,9 +167,9 @@ echo '{"continue": true}'
         if [ $CF_EXIT -eq 0 ]; then
             STORED_L1=true
         elif [ $CF_EXIT -eq 124 ]; then
-            CF_WARNING="Session summary store timed out (>5s). Try: claude-flow memory store -k '$KEY'"
+            CF_WARNING="Session summary store timed out (>5s). Try: ruflo memory store -k '$KEY'"
         else
-            CF_WARNING="Session summary store failed (exit $CF_EXIT). Try: claude-flow memory store -k '$KEY'"
+            CF_WARNING="Session summary store failed (exit $CF_EXIT). Try: ruflo memory store -k '$KEY'"
         fi
         # Wave 4: store flywheel metrics as separate key for trending
         if [ "$STORED_L1" = true ]; then
@@ -195,7 +195,7 @@ echo '{"continue": true}'
             timeout 5 $CF memory store -k "$FW_KEY" -v "$FW_VALUE" --namespace metrics --tags "client:$PROJECT,type:flywheel" 2>/dev/null || true
         fi
     else
-        CF_WARNING="claude-flow not found. Session summary not persisted. Install: npm i -g claude-flow"
+        CF_WARNING="ruflo not found. Session summary not persisted. Install: npm i -g ruflo"
     fi
 
     # Log CF warning to session file for diagnostics
