@@ -234,3 +234,21 @@
 
 **Next:**
 - (auto-generated — run /session-handoff for full close)
+
+## 2026-03-12 — auto-captured (session-end hook)
+
+**Accomplished:**
+- 06b1503 chore: session close — handoff + doc drift marker
+- 88d485d feat(t-392): upgrade brainstorm Phase 3 to interactive discussion
+- 3b29d90 Merge feat/t-392-brainstorm-skill: /brana:brainstorm interactive idea maturation
+- a9be2dc feat(t-392): /brana:brainstorm — interactive idea maturation skill
+- 0830c19 Merge chore/session-2026-03-12-housekeeping: task closures + content seeds
+
+**State:**
+- Branch: main
+- Events: 102 (90 ok, 6 fail, 1 corrections, 0 cascades, 0 prs)
+- Tests: 1 pass, 0 fail (rate=1.00) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.12 fix=0.67 test=0.38 casc=0.00 deleg=0 prs=0
+
+**Next:**
+- (auto-generated — run /session-handoff for full close)

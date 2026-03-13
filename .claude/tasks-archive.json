@@ -1,0 +1,995 @@
+{
+  "tasks": [
+    {
+      "id": "ph-001",
+      "subject": "Scheduler Hardening (Wave 1)",
+      "description": "Make brana-scheduler production-ready: validation, notifications, retry. Feature brief: docs/features/scheduler-hardening.md",
+      "tags": [
+        "scheduler",
+        "wave-1"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "phase",
+      "parent": null,
+      "order": 1,
+      "priority": "P1",
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": "feat/scheduler-hardening",
+      "github_issue": 3,
+      "created": "2026-02-19",
+      "started": "2026-02-19",
+      "completed": "2026-02-19",
+      "notes": null,
+      "context": "Backlog items #48/#49/#50 from enter/30-backlog.md. Research complete, challenger-reviewed, feature brief written."
+    },
+    {
+      "id": "ms-001",
+      "subject": "Runner Refactor",
+      "description": "Refactor brana-scheduler-runner.sh: remove set -e, add last-status.json, add retry with backoff",
+      "tags": [
+        "scheduler"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "milestone",
+      "parent": "ph-001",
+      "order": 1,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-02-19",
+      "started": "2026-02-19",
+      "completed": "2026-02-19",
+      "notes": null,
+      "context": null
+    },
+    {
+      "id": "t-001",
+      "subject": "Remove set -e from runner, explicit error handling",
+      "description": "Remove set -euo pipefail, keep set -uo pipefail. All error paths already use explicit EXIT_CODE. Verify identical behavior.",
+      "tags": [
+        "scheduler"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-001",
+      "order": 1,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": "feat/scheduler-hardening",
+      "github_issue": 4,
+      "created": "2026-02-19",
+      "started": "2026-02-19",
+      "completed": "2026-02-19",
+      "notes": null,
+      "context": "Challenger finding: set -e kills retry loop before second attempt. Runner already handles errors via EXIT_CODE=$?."
+    },
+    {
+      "id": "t-002",
+      "subject": "Add last-status.json writing to runner",
+      "description": "After every job run, write JSON to ~/.claude/scheduler/last-status.json. Atomic write (tmp+mv). Contains: job, status, exit_code, timestamp, attempts.",
+      "tags": [
+        "scheduler"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-001",
+      "order": 2,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [
+        "t-001"
+      ],
+      "branch": "feat/scheduler-hardening",
+      "github_issue": 5,
+      "created": "2026-02-19",
+      "started": "2026-02-19",
+      "completed": "2026-02-19",
+      "notes": null,
+      "context": "Primary notification channel \u2014 headless-safe. Status line reads this. notify-send is secondary best-effort."
+    },
+    {
+      "id": "t-003",
+      "subject": "Add retry loop with flock-release-between-attempts",
+      "description": "Wrap job execution in retry loop. Release flock between attempts. Exponential backoff: sleep N, 2N, 4N. Only retry on non-zero (not SKIPPED).",
+      "tags": [
+        "scheduler"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-001",
+      "order": 3,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [
+        "t-001"
+      ],
+      "branch": "feat/scheduler-hardening",
+      "github_issue": 6,
+      "created": "2026-02-19",
+      "started": "2026-02-19",
+      "completed": "2026-02-19",
+      "notes": null,
+      "context": "Challenger finding: lock-between-retries prevents 210s+ blockage of other jobs sharing the same project."
+    },
+    {
+      "id": "t-004",
+      "subject": "Add maxRetries/retryBackoffSec to scheduler config defaults",
+      "description": "Add defaults.maxRetries (0) and defaults.retryBackoffSec (30) to scheduler.json. Per-job override. Runner reads with fallback.",
+      "tags": [
+        "scheduler"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-001",
+      "order": 4,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [
+        "t-003"
+      ],
+      "branch": "feat/scheduler-hardening",
+      "github_issue": 7,
+      "created": "2026-02-19",
+      "started": "2026-02-19",
+      "completed": "2026-02-19",
+      "notes": "Config reading with jq fallbacks implemented in t-003 commit. Existing configs work without changes (defaults: maxRetries=0, retryBackoffSec=30).",
+      "context": "Challenger finding: default maxRetries=0 prevents silent behavior change on existing jobs."
+    },
+    {
+      "id": "ms-002",
+      "subject": "Failure Notifications",
+      "description": "OnFailure systemd unit + notify script for desktop notifications",
+      "tags": [
+        "scheduler"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "milestone",
+      "parent": "ph-001",
+      "order": 2,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [
+        "ms-001"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-02-19",
+      "started": "2026-02-19",
+      "completed": "2026-02-19",
+      "notes": null,
+      "context": null
+    },
+    {
+      "id": "t-005",
+      "subject": "Create brana-scheduler-notify.sh",
+      "description": "Notification script: writes to last-status.json (primary), best-effort notify-send (secondary). Receives failed unit name as arg.",
+      "tags": [
+        "scheduler"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-002",
+      "order": 1,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [
+        "t-002"
+      ],
+      "branch": "feat/scheduler-hardening",
+      "github_issue": 8,
+      "created": "2026-02-19",
+      "started": "2026-02-19",
+      "completed": "2026-02-19",
+      "notes": null,
+      "context": "Research: notify-send needs DISPLAY + DBUS_SESSION_BUS_ADDRESS. Graceful degradation if headless."
+    },
+    {
+      "id": "t-006",
+      "subject": "Create templates/notify@.service template unit",
+      "description": "Type=oneshot template unit. Runs notify script with %I (instance name = failed unit). Sets env vars for notify-send. No OnFailure on itself.",
+      "tags": [
+        "scheduler"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-002",
+      "order": 2,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [
+        "t-005"
+      ],
+      "branch": "feat/scheduler-hardening",
+      "github_issue": 9,
+      "created": "2026-02-19",
+      "started": "2026-02-19",
+      "completed": "2026-02-19",
+      "notes": null,
+      "context": "Research: template instantiation \u2014 %n passes full unit name. Must NOT have OnFailure on itself (recursion)."
+    },
+    {
+      "id": "t-007",
+      "subject": "Wire OnFailure + TimeoutStartSec into service.template",
+      "description": "Add OnFailure=brana-sched-notify@%n.service and TimeoutStartSec={{TIMEOUT}}s to service.template. Deploy generates with job timeout + 60.",
+      "tags": [
+        "scheduler"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-002",
+      "order": 3,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [
+        "t-006"
+      ],
+      "branch": "feat/scheduler-hardening",
+      "github_issue": 10,
+      "created": "2026-02-19",
+      "started": "2026-02-19",
+      "completed": "2026-02-19",
+      "notes": null,
+      "context": null
+    },
+    {
+      "id": "ms-003",
+      "subject": "Validation",
+      "description": "systemd-analyze verify + calendar validation in brana-scheduler CLI",
+      "tags": [
+        "scheduler"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "milestone",
+      "parent": "ph-001",
+      "order": 3,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [
+        "ms-002"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-02-19",
+      "started": "2026-02-19",
+      "completed": "2026-02-19",
+      "notes": null,
+      "context": null
+    },
+    {
+      "id": "t-008",
+      "subject": "Add calendar + verify + OnFailure check to validate command",
+      "description": "In cmd_validate(): systemd-analyze calendar per job, systemd-analyze --user verify --recursive-errors=yes on deployed units, custom OnFailure target check.",
+      "tags": [
+        "scheduler"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-003",
+      "order": 1,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [
+        "t-007"
+      ],
+      "branch": "feat/scheduler-hardening",
+      "github_issue": 11,
+      "created": "2026-02-19",
+      "started": "2026-02-19",
+      "completed": "2026-02-19",
+      "notes": null,
+      "context": "Research: verify must run AFTER daemon-reload. --recursive-errors=yes required (default exits 0 with errors). Calendar validates OnCalendar syntax separately."
+    },
+    {
+      "id": "t-009",
+      "subject": "Update deploy: generate notify unit + calendar preview + verify",
+      "description": "In cmd_deploy(): generate brana-sched-notify@.service from template, show calendar next-run per job, verify units after daemon-reload.",
+      "tags": [
+        "scheduler"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-003",
+      "order": 2,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [
+        "t-007",
+        "t-008"
+      ],
+      "branch": "feat/scheduler-hardening",
+      "github_issue": 12,
+      "created": "2026-02-19",
+      "started": "2026-02-19",
+      "completed": "2026-02-19",
+      "notes": null,
+      "context": null
+    },
+    {
+      "id": "ms-004",
+      "subject": "Integration",
+      "description": "deploy.sh + statusline integration",
+      "tags": [
+        "scheduler"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "milestone",
+      "parent": "ph-001",
+      "order": 4,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [
+        "ms-002"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-02-19",
+      "started": "2026-02-19",
+      "completed": "2026-02-19",
+      "notes": null,
+      "context": null
+    },
+    {
+      "id": "t-010",
+      "subject": "Update deploy.sh to copy new scheduler files",
+      "description": "Copy brana-scheduler-notify.sh and templates/notify@.service in deploy.sh. chmod +x. Backwards compatible.",
+      "tags": [
+        "scheduler"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-004",
+      "order": 1,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [
+        "t-005",
+        "t-006"
+      ],
+      "branch": "feat/scheduler-hardening",
+      "github_issue": 13,
+      "created": "2026-02-19",
+      "started": "2026-02-19",
+      "completed": "2026-02-19",
+      "notes": null,
+      "context": null
+    },
+    {
+      "id": "t-011",
+      "subject": "Add scheduler health segment to statusline.sh",
+      "description": "Read ~/.claude/scheduler/last-status.json, count SUCCESS vs FAILED. Show job health. Single jq call, zero-cost when not deployed.",
+      "tags": [
+        "scheduler"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-004",
+      "order": 2,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [
+        "t-002"
+      ],
+      "branch": "feat/scheduler-hardening",
+      "github_issue": 14,
+      "created": "2026-02-19",
+      "started": "2026-02-19",
+      "completed": "2026-02-19",
+      "notes": null,
+      "context": null
+    },
+    {
+      "id": "ph-002",
+      "subject": "RVF Memory Migration + claude-flow Upgrade",
+      "description": "Upgrade claude-flow from alpha.34 to alpha.44, migrate ReasoningBank from SQLite to RVF/AgentDB. Zero data loss. Backlog items #31/#32 collapse into this. Research: ruvnet built both projects. MS-005 (upgrade) and MS-006 (spike) complete. MS-007 (wiring) parked \u2014 waiting for upstream claude-flow + AgentDB integration (issue #829).",
+      "tags": [
+        "claude-flow",
+        "rvf",
+        "memory"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "phase",
+      "parent": null,
+      "order": 4,
+      "priority": "P1",
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": "feat/ph-002-rvf-migration",
+      "github_issue": null,
+      "created": "2026-02-22",
+      "started": "2026-02-24",
+      "completed": "2026-02-27",
+      "notes": "claude-flow upgraded to v3.5.1. AgentDB bridge activated via ControllerRegistry shim. BM25 hybrid search confirmed working (semantic+bm25 provenance). 384-dim ONNX embeddings (all-MiniLM-L6-v2). deploy.sh updated to persist shim across deploys.",
+      "context": "134 active entries in memory.db (132 hash-fallback 128-dim, 2 ONNX 384-dim). Namespaces: patterns(129), scheduler-runs(3), business(1), decisions(1). DB size 725KB. claude-flow alpha.34 \u2192 alpha.44 (10 versions behind)."
+    },
+    {
+      "id": "ms-005",
+      "subject": "Backup + Upgrade claude-flow",
+      "description": "Backup current memory.db, export all entries as JSON, upgrade claude-flow to alpha.44, verify memory still works after upgrade.",
+      "tags": [
+        "claude-flow"
+      ],
+      "status": "completed",
+      "started": null,
+      "completed": null,
+      "stream": "roadmap",
+      "type": "milestone",
+      "parent": "ph-002",
+      "order": 1,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-02-22",
+      "notes": null,
+      "context": null
+    },
+    {
+      "id": "t-016",
+      "subject": "Backup memory.db and export all entries as JSON",
+      "description": "cp ~/.swarm/memory.db ~/.swarm/memory.db.bak-pre-rvf. Export all 134 active memory_entries as JSON (key, namespace, content, tags, embedding_model, embedding_dimensions, status, created_at). This is the safety net \u2014 zero data loss guaranteed.",
+      "tags": [
+        "claude-flow",
+        "backup"
+      ],
+      "status": "completed",
+      "started": null,
+      "completed": null,
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-005",
+      "order": 1,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": "feat/ph-002-rvf-migration",
+      "github_issue": null,
+      "created": "2026-02-22",
+      "notes": null,
+      "context": null
+    },
+    {
+      "id": "t-017",
+      "subject": "Upgrade claude-flow to alpha.44",
+      "description": "npm install -g claude-flow@latest. Verify binary discovery still works. Run test-memory.sh round-trip. Check for breaking changes in alpha.35-44 (especially memory CLI flags). Fix sql.js dependency if needed.",
+      "tags": [
+        "claude-flow"
+      ],
+      "status": "completed",
+      "started": null,
+      "completed": null,
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-005",
+      "order": 2,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [
+        "t-016"
+      ],
+      "branch": "feat/ph-002-rvf-migration",
+      "github_issue": null,
+      "created": "2026-02-22",
+      "notes": null,
+      "context": "Known errata: -q flag broken in alpha.34 (already fixed in brana). sql.js dependency must be manually installed post-upgrade. deploy.sh automates this."
+    },
+    {
+      "id": "t-018",
+      "subject": "Verify existing memory accessible after upgrade",
+      "description": "After upgrade: claude-flow memory search --query 'project:thebrana' should return results. claude-flow memory list --namespace patterns should show 129 entries. Run test-memory.sh. If schema changed, check migration_state table.",
+      "tags": [
+        "claude-flow"
+      ],
+      "status": "completed",
+      "started": null,
+      "completed": null,
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-005",
+      "order": 3,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [
+        "t-017"
+      ],
+      "branch": "feat/ph-002-rvf-migration",
+      "github_issue": null,
+      "created": "2026-02-22",
+      "notes": null,
+      "context": null
+    },
+    {
+      "id": "ms-006",
+      "subject": "Install RVF + Evaluate Integration",
+      "description": "Install rvf-cli, spike: ingest current entries into .rvf, compare search quality vs SQLite/hash-fallback baseline. Determine integration path (CLI wrapper vs claude-flow backend config).",
+      "tags": [
+        "rvf"
+      ],
+      "status": "completed",
+      "started": null,
+      "completed": null,
+      "stream": "roadmap",
+      "type": "milestone",
+      "parent": "ph-002",
+      "order": 2,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [
+        "ms-005"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-02-22",
+      "notes": null,
+      "context": null
+    },
+    {
+      "id": "t-019",
+      "subject": "Install rvf-cli via cargo",
+      "description": "cargo install rvf-cli. Verify binary works: rvf --help, rvf --version. Check available subcommands (ingest, query, export, etc.).",
+      "tags": [
+        "rvf",
+        "rust"
+      ],
+      "status": "completed",
+      "started": null,
+      "completed": null,
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-006",
+      "order": 1,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [
+        "t-018"
+      ],
+      "branch": "feat/ph-002-rvf-migration",
+      "github_issue": null,
+      "created": "2026-02-22",
+      "notes": null,
+      "context": "cargo is available at ~/.cargo/bin/cargo. Rust toolchain already installed."
+    },
+    {
+      "id": "t-020",
+      "subject": "Spike: ingest exported JSON into .rvf file",
+      "description": "Use rvf-cli to ingest the JSON export from t-016 into a new .rvf file at ~/.swarm/memory.rvf. Map: key\u2192key, content\u2192value, namespace\u2192namespace, tags\u2192tags. Generate real embeddings during ingest if supported.",
+      "tags": [
+        "rvf"
+      ],
+      "status": "completed",
+      "started": null,
+      "completed": null,
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-006",
+      "order": 2,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [
+        "t-019"
+      ],
+      "branch": "feat/ph-002-rvf-migration",
+      "github_issue": null,
+      "created": "2026-02-22",
+      "notes": null,
+      "context": "132 entries have hash-fallback 128-dim embeddings (poor quality). 2 have ONNX 384-dim. RVF should re-embed all entries with proper vectors during ingest."
+    },
+    {
+      "id": "t-021",
+      "subject": "Compare search quality: RVF vs SQLite baseline",
+      "description": "Run 5 test queries against both backends: (1) exact key lookup, (2) keyword search, (3) semantic paraphrase, (4) cross-project pattern, (5) namespace-filtered search. Document accuracy and latency for each. This determines if RVF is worth wiring in.",
+      "tags": [
+        "rvf"
+      ],
+      "status": "completed",
+      "started": null,
+      "completed": null,
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-006",
+      "order": 3,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [
+        "t-020"
+      ],
+      "branch": "feat/ph-002-rvf-migration",
+      "github_issue": null,
+      "created": "2026-02-22",
+      "notes": null,
+      "context": "Key test: search for 'authentication security' should find patterns about 'login', 'session tokens', etc. \u2014 this is where hash-fallback fails and real embeddings shine."
+    },
+    {
+      "id": "ms-007",
+      "subject": "Wire AgentDB into brana",
+      "description": "Connect AgentDB/RVF to brana's hooks/skills. Completed via claude-flow v3.5.1 upgrade which natively integrates AgentDB v3.",
+      "tags": [
+        "rvf",
+        "agentdb",
+        "integration"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "milestone",
+      "parent": "ph-002",
+      "order": 3,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [
+        "ms-006"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-02-22",
+      "started": "2026-02-27",
+      "completed": "2026-02-27",
+      "notes": "Completed via upstream upgrade, not custom wiring. claude-flow v3.5.1 natively bundles AgentDB v3 + RVF as optional deps. memory_entries schema preserved \u2014 zero code changes to hooks/skills/agents. Installed: claude-flow@3.5.1, agentic-flow@2.0.7, agentdb@3.0.0-alpha.10, @xenova/transformers@2.17.2. deploy.sh updated to deploy embeddings.json. Backup at ~/.swarm/memory.db.bak-pre-v3.",
+      "context": "Ecosystem stack: AgentDB (application) \u2192 RVF (format) \u2192 ruvector-core (engine). claude-flow v3.5.1 integrates AgentDB as memory bridge with BM25 hybrid search. All 580 memory entries preserved."
+    },
+    {
+      "id": "t-022",
+      "subject": "Evaluate AgentDB as metadata-aware vector layer",
+      "description": "AgentDB (npm) is ruvnet's intended application layer on top of RVF. Install via npx, test CLI (query, import, stats, mcp). Check: does `npx agentdb query --help` support metadata filters from CLI? Test MCP server mode. Import current 134 entries. Compare hybrid search quality vs claude-flow and raw rvf-cli baselines. This replaces the original plan of wiring rvf-cli directly.",
+      "tags": [
+        "rvf",
+        "agentdb",
+        "integration"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-007",
+      "order": 1,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [
+        "t-021"
+      ],
+      "branch": "feat/t-022-evaluate-agentdb",
+      "github_issue": null,
+      "created": "2026-02-22",
+      "started": "2026-02-27",
+      "completed": "2026-02-27",
+      "notes": "Key finding: claude-flow v3.5.1 natively integrates AgentDB v3 as optional dep while preserving memory_entries table schema. Upgrade is drop-in \u2014 zero breaking changes. AgentDB standalone CLI has bugs (migration broken, persistence quirks) but irrelevant since cf wraps it. Upgraded: claude-flow alpha.44\u21923.5.1, agentic-flow 2.0.3\u21922.0.7. Fixed: embeddings dimension mismatch (768\u2192384) by deploying embeddings.json to ~/.claude-flow/. New features available: BM25 hybrid search, reflexion memory, causal reasoning, skill library. Full eval at /tmp/agentdb-eval/evaluation-report.md.",
+      "context": "Upstream status as of 2026-02-27: claude-flow v3.5.1 stable (was alpha.44), AgentDB v3.0.0-alpha.10 (was 2.0.0-alpha.2.21). Issue #829 still open but active. Architecture now officially shows AgentDB as memory backend."
+    },
+    {
+      "id": "t-023",
+      "subject": "Update deploy.sh and export-knowledge.sh for AgentDB",
+      "description": "deploy.sh: handle AgentDB store in backup/restore flow. export-knowledge.sh: export from AgentDB (agentdb export). restore.sh: import from backup (agentdb import). Backwards compatible \u2014 detect which backend exists (SQLite fallback if AgentDB not installed).",
+      "tags": [
+        "agentdb",
+        "integration"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-007",
+      "order": 2,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [
+        "t-022"
+      ],
+      "branch": "feat/t-022-evaluate-agentdb",
+      "github_issue": null,
+      "created": "2026-02-22",
+      "started": "2026-02-27",
+      "completed": "2026-02-27",
+      "notes": "Scope reduced: since cf v3.5.1 preserves memory_entries schema, deploy.sh and export-knowledge.sh work as-is. Only change needed: deploy embeddings.json to ~/.claude-flow/ (added to deploy.sh step 7).",
+      "context": null
+    },
+    {
+      "id": "t-024",
+      "subject": "End-to-end verification: hooks, skills, scheduler all use AgentDB",
+      "description": "Verify: (1) session-start.sh recalls patterns via AgentDB, (2) session-end.sh stores session summary, (3) /pattern-recall returns results, (4) /retrospective stores new pattern, (5) scheduler runner stores job summary, (6) test-memory.sh passes. Run full round-trip.",
+      "tags": [
+        "agentdb",
+        "verification"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-007",
+      "order": 3,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [
+        "t-022",
+        "t-023"
+      ],
+      "branch": "feat/t-022-evaluate-agentdb",
+      "github_issue": null,
+      "created": "2026-02-22",
+      "started": "2026-02-27",
+      "completed": "2026-02-27",
+      "notes": "Verified: (1) cf-env.sh finds claude-flow v3.5.1 binary \u2713, (2) $CF memory search returns results from patterns and knowledge namespaces \u2713, (3) $CF memory store writes 384-dim entries \u2713, (4) $CF embeddings generate uses ONNX all-MiniLM-L6-v2 384-dim \u2713, (5) test-memory.sh 4/4 pass \u2713. All 580 existing entries preserved with correct dimensions. BM25 hybrid search active.",
+      "context": "Critical paths: session-start (recall), session-end (store), pattern-recall skill, retrospective skill, scheduler runner memory store, cross-pollinate skill."
+    },
+    {
+      "id": "ph-003",
+      "subject": "Obsidian Knowledge Graph Integration",
+      "description": "Set up Obsidian as visualization layer for brana docs, formalize all cross-references for graph view, normalize skill output, and build auditor/contradiction detection. Two milestones: vault setup + cross-ref formalization (apply now), auditor pattern (plan, execute later).",
+      "tags": [
+        "obsidian",
+        "knowledge-graph",
+        "docs"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "phase",
+      "parent": null,
+      "order": 10,
+      "priority": "P2",
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": "feat/ph-003-obsidian-integration",
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": "2026-03-02",
+      "completed": "2026-03-02",
+      "notes": "ms-008: vault setup (symlink, 561 refs formalized, doc-linking rule, 4 skills updated). ms-009: auditor built into /memory review --audit, integration test fixed 10 contradictions.",
+      "context": "Backlog-urls #50 review sparked this. Brana has 178 formal + 191 informal cross-refs across 36+ docs. Obsidian graph view works with formal links out of the box. Auditor pattern from Steve Phelps adapted to brana's architecture."
+    },
+    {
+      "id": "ms-008",
+      "subject": "Vault Setup & Cross-Reference Formalization",
+      "description": "Create Obsidian vault from existing docs, symlink brana-knowledge, convert all informal refs to formal links, update skills to output graph-compatible references.",
+      "tags": [
+        "obsidian"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "milestone",
+      "parent": "ph-003",
+      "order": 1,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": "2026-03-02",
+      "completed": "2026-03-02",
+      "notes": "3/3 tasks done: t-034 (symlink+gitignore), t-035 (561 refs formalized), t-036 (doc-linking rule + 4 skills updated).",
+      "context": null
+    },
+    {
+      "id": "t-034",
+      "subject": "Create Obsidian vault symlinks + .gitignore",
+      "description": "Symlink brana-knowledge/dimensions \u2192 docs/dimensions so Obsidian sees both repos in one vault. Add .obsidian/ to .gitignore (Obsidian creates local config on first open). Verify: open docs/ as vault, graph view shows 178 formal link connections.",
+      "tags": [
+        "obsidian"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-008",
+      "order": 1,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": "feat/ph-003-obsidian-integration",
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": "2026-03-02",
+      "completed": "2026-03-02",
+      "notes": "Symlink docs/dimensions \u2192 ../../brana-knowledge/dimensions. Added .obsidian/ to .gitignore.",
+      "context": null
+    },
+    {
+      "id": "t-035",
+      "subject": "Convert 561 informal doc refs to formal markdown links",
+      "description": "Bulk-convert informal 'doc NN' prose refs \u2192 '[doc NN](./path.md)' formal links via Python script. Preserves existing formal links. Cross-repo refs use symlinked path (dimensions/NN-name.md). Cover thebrana/docs/ and brana-knowledge/dimensions/. Validate: all links resolve, no broken refs.",
+      "tags": [
+        "obsidian",
+        "docs"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-008",
+      "order": 2,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [
+        "t-034"
+      ],
+      "branch": "feat/ph-003-obsidian-integration",
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": "2026-03-02",
+      "completed": "2026-03-02",
+      "notes": "561 refs across 37 files (22 thebrana/docs + 15 brana-knowledge/dimensions). Script at /tmp/formalize-doc-refs.py.",
+      "context": "191 informal refs across 36+ docs. Pattern: 'doc 14', 'Doc 17', 'doc 31'. Must map doc numbers to filenames (e.g., 14 \u2192 reflections/14-mastermind-architecture.md, 17 \u2192 17-implementation-roadmap.md). Some docs are in brana-knowledge (dimensions/) \u2014 use symlinked path."
+    },
+    {
+      "id": "t-036",
+      "subject": "Update knowledge-writing skills to use formal links",
+      "description": "Update skills that create or modify docs to always use formal '[doc NN](path)' links when referencing other docs. Skills: /research, /retrospective, /maintain-specs, /back-propagate, /debrief, /build-phase, /session-handoff, /knowledge, /build-feature. Add convention note to each SKILL.md. This ensures new content stays Obsidian-graph-compatible.",
+      "tags": [
+        "obsidian",
+        "skills"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-008",
+      "order": 3,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [
+        "t-035"
+      ],
+      "branch": "feat/ph-003-obsidian-integration",
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": "2026-03-02",
+      "completed": "2026-03-02",
+      "notes": "Added system/rules/doc-linking.md (global rule). Updated 4 skill templates: research, build-phase, debrief, back-propagate. maintain-specs and session-handoff don't exist as separate skill files.",
+      "context": "9 skills write knowledge. Convention: 'When referencing another doc, always use [doc NN](relative-path.md) format \u2014 never bare \"doc NN\" prose. This keeps the Obsidian knowledge graph connected.'"
+    },
+    {
+      "id": "ms-009",
+      "subject": "Auditor / Contradiction Detection",
+      "description": "Build contradiction detection for brana's knowledge layer. Extract factual assertions from docs (counts, versions, architecture claims), cross-reference across all docs that touch the same topic, flag mismatches. Output: contradiction report in errata-like format.",
+      "tags": [
+        "auditor",
+        "knowledge-graph"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "milestone",
+      "parent": "ph-003",
+      "order": 2,
+      "priority": null,
+      "effort": null,
+      "execution": "code",
+      "blocked_by": [
+        "ms-008"
+      ],
+      "branch": "feat/ms-009-auditor",
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": "2026-03-02",
+      "completed": "2026-03-02",
+      "notes": "3/3 tasks done. Auditor mode added to /memory skill, integration test found and fixed 10 contradictions.",
+      "context": "Pattern from Steve Phelps (backlog #50): auditor skill traverses wiki-links for contradictions. Adapted for brana: use formal markdown links + grep-based assertion extraction instead of Obsidian API."
+    },
+    {
+      "id": "t-037",
+      "subject": "Design assertion extraction + contradiction model",
+      "description": "Research task: define what 'assertions' look like in brana docs \u2014 component counts ('10 agents'), version numbers ('v3.5.1'), architecture claims ('claude-flow is the memory layer'), tool/file names. Design extraction heuristics (regex patterns, section parsing). Define contradiction types: stale count, version mismatch, renamed entity, conflicting claim. Output: design doc or notes in task context.",
+      "tags": [
+        "auditor",
+        "research"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-009",
+      "order": 1,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": "feat/ms-009-auditor",
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": "2026-03-02",
+      "completed": "2026-03-02",
+      "notes": "5 assertion types defined: count, version, component list, architecture claim, process claim. Extraction heuristics: regex for counts/versions, table parsing for lists. Contradiction types: stale count, version mismatch, incomplete list, conflicting claim.",
+      "context": "Example contradictions to catch: doc 14 says '33 skills' but actual count is 34. CLAUDE.md says 'claude-flow' but upstream renamed to 'ruflo'. Doc 32 references a hook that was removed."
+    },
+    {
+      "id": "t-038",
+      "subject": "Implement /memory review --audit mode",
+      "description": "New mode in /memory review skill: extract assertions from target doc (or all reflections), find all docs that reference same topics via formal links, compare assertions, flag mismatches. Output: contradiction report in doc 24 errata format (erratum number, location, issue, severity, suggested fix).",
+      "tags": [
+        "auditor",
+        "skills"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-009",
+      "order": 2,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [
+        "t-037",
+        "t-036"
+      ],
+      "branch": "feat/ms-009-auditor",
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": "2026-03-02",
+      "completed": "2026-03-02",
+      "notes": "Added --audit mode to /memory review SKILL.md. 7 steps: select targets, extract assertions, verify counts, cross-reference, report, classify severity, offer fixes.",
+      "context": "Builds on /reconcile (spec vs impl drift) but works at knowledge layer (doc vs doc). Uses formal links from t-036 as traversal paths."
+    },
+    {
+      "id": "t-039",
+      "subject": "Integration test: run auditor across all reflections",
+      "description": "Run /memory review --audit on all 5 reflection docs (08, 14, 29, 31, 32) + CLAUDE.md + system/CLAUDE.md. Fix contradictions found. Validates the tool works end-to-end and produces actionable output.",
+      "tags": [
+        "auditor",
+        "verification"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-009",
+      "order": 3,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [
+        "t-038"
+      ],
+      "branch": "feat/ms-009-auditor",
+      "github_issue": null,
+      "created": "2026-03-02",
+      "started": "2026-03-02",
+      "completed": "2026-03-02",
+      "notes": "Audited doc 14 + both CLAUDE.md files. Found 10 contradictions (3 HIGH, 4 MEDIUM, 2 LOW, 1 MEDIUM label fix). All fixed. Report: docs/24-roadmap-corrections.audit-2026-03-02.md",
+      "context": "5 reflections + 2 CLAUDE.md files = 7 docs to audit. Expected findings: stale counts, renamed entities (claude-flow \u2192 ruflo), removed/added components not reflected everywhere."
+    }
+  ]
+}
