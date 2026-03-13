@@ -6,14 +6,14 @@ Helper scripts that support hooks, skills, and maintenance workflows. Located in
 
 | Field | Value |
 |-------|-------|
-| **Purpose** | Locate the claude-flow binary |
+| **Purpose** | Locate the ruflo binary |
 | **Usage** | `source cf-env.sh` -- sets `$CF` variable |
-| **Dependencies** | None (graceful if claude-flow is absent) |
+| **Dependencies** | None (graceful if ruflo is absent) |
 
 Search order:
 1. nvm global install: `$HOME/.nvm/versions/node/*/bin/claude-flow`
-2. PATH lookup: `command -v claude-flow`
-3. npx fallback: `npx claude-flow`
+2. PATH lookup: `command -v ruflo`
+3. npx fallback: `npx ruflo`
 
 Exports `$CF` (empty string if not found). A duplicate copy exists at `system/hooks/lib/cf-env.sh` for the plugin hooks to use without depending on bootstrap installation.
 
@@ -23,11 +23,11 @@ Exports `$CF` (empty string if not found). A duplicate copy exists at `system/ho
 
 | Field | Value |
 |-------|-------|
-| **Purpose** | Store a key-value pair in claude-flow memory with auto-fallback |
+| **Purpose** | Store a key-value pair in ruflo memory with auto-fallback |
 | **Usage** | `memory-store.sh -k KEY -v VALUE [-n NAMESPACE] [-t TAGS]` |
 | **Dependencies** | `cf-env.sh` (sourced automatically) |
 
-Attempts to store via `claude-flow memory store`. If claude-flow is unavailable or the store fails, falls back to appending the entry to the first project `MEMORY.md` file found in `~/.claude/projects/*/memory/`.
+Attempts to store via `ruflo memory store`. If ruflo is unavailable or the store fails, falls back to appending the entry to the first project `MEMORY.md` file found in `~/.claude/projects/*/memory/`.
 
 ### Arguments
 
@@ -44,9 +44,9 @@ Attempts to store via `claude-flow memory store`. If claude-flow is unavailable 
 
 | Field | Value |
 |-------|-------|
-| **Purpose** | Index brana-knowledge dimension docs into claude-flow memory for semantic search |
+| **Purpose** | Index brana-knowledge dimension docs into ruflo memory for semantic search |
 | **Usage** | `index-knowledge.sh` (all), `index-knowledge.sh file.md` (specific), `index-knowledge.sh --changed` (git-changed only) |
-| **Dependencies** | claude-flow with real embeddings (not hash-fallback), `@xenova/transformers` |
+| **Dependencies** | ruflo with real embeddings (not hash-fallback), `@xenova/transformers` |
 | **Status** | Deprecated -- canonical copy at `system/skills/knowledge/index-knowledge.sh`. Kept for backward compatibility (post-commit hook, scheduler). |
 
 Splits each dimension doc by `##` headings. Each section becomes a memory entry:
@@ -56,7 +56,7 @@ Splits each dimension doc by `##` headings. Each section becomes a memory entry:
 - **Tags:** `source:brana-knowledge,type:dimension,doc:{filename}`
 - **Value:** Section content, truncated to 2000 characters
 
-Validates that claude-flow produces real ONNX embeddings (not hash-fallback, which produces 768-dim instead of 384-dim vectors).
+Validates that ruflo produces real ONNX embeddings (not hash-fallback, which produces 768-dim instead of 384-dim vectors).
 
 ### Modes
 

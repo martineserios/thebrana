@@ -198,27 +198,27 @@ loginctl show-user $USER | grep Linger
 
 Then redeploy: `brana-scheduler deploy`.
 
-## claude-flow and memory
+## ruflo and memory
 
-### claude-flow not found
+### ruflo not found
 
 **Symptom:** Memory-related features degrade silently. Session start hook does not show pattern recall.
 
-**Cause:** claude-flow is not installed globally.
+**Cause:** ruflo is not installed globally.
 
 **Fix:**
 
 ```bash
-npm install -g claude-flow
+npm install -g ruflo
 ```
 
-If using nvm, install in the active node version. Bootstrap expects to find `claude-flow` in `~/.nvm/versions/node/*/bin/`.
+If using nvm, install in the active node version. Bootstrap expects to find `ruflo` in `~/.nvm/versions/node/*/bin/`.
 
 ### Embedding dimension mismatch
 
 **Symptom:** Memory search returns no results or errors about vector dimensions.
 
-**Cause:** Without `@xenova/transformers` installed globally, claude-flow falls back to a hash-based embedding that produces 768-dimensional vectors instead of the expected 384-dimensional ONNX vectors.
+**Cause:** Without `@xenova/transformers` installed globally, ruflo falls back to a hash-based embedding that produces 768-dimensional vectors instead of the expected 384-dimensional ONNX vectors.
 
 **Fix:**
 

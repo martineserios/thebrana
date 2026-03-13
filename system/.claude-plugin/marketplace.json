@@ -32,7 +32,7 @@
     "24 slash commands for development, quality, business, and integrations",
     "10 lifecycle hooks (session start/end, spec-first gate, auto-challenge)",
     "11 specialized agents (memory, challenger, PR reviewer, daily ops)",
-    "Cross-session memory with semantic search (claude-flow integration)",
+    "Cross-session memory with semantic search (ruflo integration)",
     "Spec-first enforcement on feat/* branches with docs/decisions/",
     "Flywheel metrics: correction rate, test write rate, cascade rate",
     "Venture OS: weekly review, pipeline, financial model, growth experiments",

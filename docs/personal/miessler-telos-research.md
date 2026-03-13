@@ -97,7 +97,7 @@ Inward (my own knowledge, projects, and autonomy compound over time) and outward
 
 - Named AI personas (Serena, Marcus) — theater
 - Voice interface (ElevenLabs) — low ROI for text-first consulting
-- 7-tier memory directories — brana's MEMORY.md + claude-flow is simpler
+- 7-tier memory directories — brana's MEMORY.md + ruflo is simpler
 - MoltBot digital employees — enterprise pattern
 
 ## Open Questions for Full Personal Space Design

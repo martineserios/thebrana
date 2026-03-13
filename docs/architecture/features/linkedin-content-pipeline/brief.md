@@ -212,7 +212,7 @@ After 12+ manual posts, build `/content-draft` informed by real experience.
 ### `/content-draft` Skill (built in Phase B, after manual validation)
 
 - Reads `sessions.md` at its actual absolute path: `~/.claude/projects/.../memory/sessions.md`
-- Also queries claude-flow `memory_search` for richer structured session data (fallback if sessions.md is sparse)
+- Also queries ruflo `memory_search` for richer structured session data (fallback if sessions.md is sparse)
 - Reads `git log --since="7 days ago"`, recent errata, completed tasks
 - Presents candidates grouped by pillar, filtered by novelty (checks published.md) and pillar balance
 - User picks 3 topics (no opaque scoring formula — human judgment is the ranker)

@@ -46,7 +46,7 @@ See ADR-003 for agent-driven task execution — subagent spawning per task, DAG-
 ## Research findings
 
 - Native Claude Code Tasks: session-scoped, metadata doesn't query, insufficient for PM
-- claude-flow tasks: agent coordination tool, 4 fixed types, no hierarchy
+- ruflo tasks: agent coordination tool, 4 fixed types, no hierarchy
 - Agent SDK: execution layer, requires API key, doesn't solve data persistence
 - JSON files: full control, no N+1, git-tracked, zero dependencies
 

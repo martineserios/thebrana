@@ -30,7 +30,7 @@ Glossary of brana terms.
 | **Dimension doc** | Deep research document in `brana-knowledge/dimensions/`. Source of truth for a topic. |
 | **Reflection doc** | Cross-cutting synthesis in `docs/reflections/`. Derives from dimensions. |
 | **Roadmap doc** | Implementation plan in `docs/`. Derives from reflections. |
-| **Pattern** | A learned problem-solution pair stored in claude-flow memory with a confidence score. |
+| **Pattern** | A learned problem-solution pair stored in ruflo memory with a confidence score. |
 | **Auto memory** | Claude-authored notes in `~/.claude/projects/*/memory/MEMORY.md`. Persists across sessions. |
 
 ## Development practices

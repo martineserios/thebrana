@@ -24,7 +24,7 @@ Build a thin scheduling layer with three components:
 
 2. **CLI tool** (`brana-scheduler`) — Bash script that reads the config with `jq` and manages systemd timer units. Commands: `deploy`, `status`, `logs`, `enable`, `disable`, `run`, `validate`, `teardown`.
 
-3. **Runner script** (`brana-scheduler-runner.sh`) — Bash wrapper invoked by systemd per job. Acquires per-project lockfile, sets up project CWD, calls `claude -p` with the right flags (for skill jobs) or runs commands directly, captures output to log files, applies per-job timeout, prunes old logs. Post-hardening additions: retry loop with exponential backoff (configurable `maxRetries`/`retryBackoffSec`, flock release between attempts), `last-status.json` atomic writes for statusline health, and output-to-memory pipeline (`captureOutput` stores run summaries in claude-flow memory).
+3. **Runner script** (`brana-scheduler-runner.sh`) — Bash wrapper invoked by systemd per job. Acquires per-project lockfile, sets up project CWD, calls `claude -p` with the right flags (for skill jobs) or runs commands directly, captures output to log files, applies per-job timeout, prunes old logs. Post-hardening additions: retry loop with exponential backoff (configurable `maxRetries`/`retryBackoffSec`, flock release between attempts), `last-status.json` atomic writes for statusline health, and output-to-memory pipeline (`captureOutput` stores run summaries in ruflo memory).
 
 4. **Notification unit** (`brana-sched-notify@.service`) — systemd template unit triggered via `OnFailure=`. Writes failure to `last-status.json` (primary, headless-safe) and attempts `notify-send` (secondary, desktop). No OnFailure on itself (recursion guard).
 
@@ -46,7 +46,7 @@ A `/brana:scheduler` skill provides in-session management as a thin wrapper over
 
 ### Why NOT a custom daemon:
 - Daemons need process supervision, crash recovery, PID management
-- [Doc 05](../dimensions/05-claude-flow-v3-analysis.md) flagged claude-flow daemon stability as a concern
+- [Doc 05](../dimensions/05-claude-flow-v3-analysis.md) flagged ruflo daemon stability as a concern
 - systemd already IS the process supervisor — reuse it
 - A config file + deploy script is ~200 lines; a daemon is ~2000+
 
@@ -73,7 +73,7 @@ A `/brana:scheduler` skill provides in-session management as a thin wrapper over
 - Transient failures self-heal via retry with backoff (opt-in, `maxRetries` default 0)
 - Failures surface via desktop notifications and statusline health segment (`📅 3✓ 1✗`)
 - `brana-scheduler validate` catches silent OnCalendar typos and missing units before they cause silent failures
-- `/morning` and session-start can query scheduler run history via claude-flow memory search
+- `/morning` and session-start can query scheduler run history via ruflo memory search
 
 ### Becomes harder
 - systemd user services require `loginctl enable-linger $USER` to run without login session
@@ -87,7 +87,7 @@ A `/brana:scheduler` skill provides in-session management as a thin wrapper over
 - `loginctl enable-linger` — required for timers after logout
 - `claude` CLI on PATH — headless mode must be available
 - `flock` — for concurrency control (part of util-linux, always present)
-- `claude-flow` CLI — for output-to-memory pipeline (graceful degradation if unavailable)
+- `ruflo` CLI — for output-to-memory pipeline (graceful degradation if unavailable)
 - `notify-send` — for desktop failure notifications (graceful degradation if headless)
 
 ### Risks

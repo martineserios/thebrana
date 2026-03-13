@@ -6,18 +6,18 @@
 
 ## Goal
 
-Create a staleness detection script for spec docs (#45) and extend the scheduler runner to capture job output into claude-flow memory (#51). Together, these make the weekly staleness check visible in `/morning` and session-start.
+Create a staleness detection script for spec docs (#45) and extend the scheduler runner to capture job output into ruflo memory (#51). Together, these make the weekly staleness check visible in `/morning` and session-start.
 
 ## Audience
 
-The user — sees overnight staleness reports surfaced via claude-flow memory search.
+The user — sees overnight staleness reports surfaced via ruflo memory search.
 
 ## Constraints
 
 - #45 lives in enter repo (`scripts/staleness-report.sh`) — bash + git, no Python
-- #51 lives in thebrana repo (runner enhancement) — bash + claude-flow CLI
+- #51 lives in thebrana repo (runner enhancement) — bash + ruflo CLI
 - Scheduler job config already exists (disabled, type: command, `./scripts/staleness-report.sh`)
-- claude-flow memory uses `memory store -k key -v value --namespace ns --tags "tags"`
+- ruflo memory uses `memory store -k key -v value --namespace ns --tags "tags"`
 - Output must work headless (no interactive prompts)
 
 ## Scope (v1)
@@ -31,9 +31,9 @@ The user — sees overnight staleness reports surfaced via claude-flow memory se
 
 ### #51 — output-to-memory pipeline
 - Post-run hook in runner: on success, extract summary from log
-- Store in claude-flow memory: `namespace: scheduler-runs`, key: `sched:{job}:{date}`
+- Store in ruflo memory: `namespace: scheduler-runs`, key: `sched:{job}:{date}`
 - Tags: `job:{name}`, `status:{SUCCESS|FAILED}`, `type:scheduler-run`
-- Graceful degradation: if claude-flow unavailable, skip silently
+- Graceful degradation: if ruflo unavailable, skip silently
 
 ## Deferred
 
@@ -48,7 +48,7 @@ The user — sees overnight staleness reports surfaced via claude-flow memory se
 - dbt warn_after/error_after pattern is transferable for two-tier alerting
 - Giant Swarm frontmatter-validator is closest prior art
 - `claude -p --output-format json | jq '.result'` for structured output capture
-- claude-flow CLI: `memory store --upsert -k key -v value --namespace ns --tags "tags"`
+- ruflo CLI: `memory store --upsert -k key -v value --namespace ns --tags "tags"`
 
 ## Design
 
@@ -73,9 +73,9 @@ print summary
 ### output-to-memory pipeline flow
 ```
 # In runner, after job completes successfully:
-if claude-flow available and captureOutput enabled:
+if ruflo available and captureOutput enabled:
     summary = tail -20 logfile | head summary line
-    claude-flow memory store \
+    ruflo memory store \
       -k "sched:{job}:{date}" \
       -v "{status, summary, duration}" \
       --namespace scheduler-runs \

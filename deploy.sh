@@ -129,16 +129,19 @@ fi
 
 # Step 7: ruflo runtime setup
 CF_BIN=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF_BIN="$candidate" && break
+for name in ruflo claude-flow; do
+    for candidate in "$HOME"/.nvm/versions/node/*/bin/$name; do
+        [ -x "$candidate" ] && CF_BIN="$candidate" && break 2
+    done
 done
 if [ -n "$CF_BIN" ]; then
-    CF_PKG_DIR="$(dirname "$CF_BIN")/../lib/node_modules/claude-flow"
+    CF_BIN_NAME="$(basename "$CF_BIN")"
+    CF_PKG_DIR="$(dirname "$CF_BIN")/../lib/node_modules/$CF_BIN_NAME"
     if [ -d "$CF_PKG_DIR" ] && [ ! -d "$CF_PKG_DIR/node_modules/sql.js" ]; then
-        echo "Installing sql.js in claude-flow (missing dependency)..."
+        echo "Installing sql.js in ruflo (missing dependency)..."
         npm install sql.js --prefix "$CF_PKG_DIR" --silent 2>/dev/null && echo "  ✓ sql.js installed" || echo "  ⚠ sql.js install failed (ReasoningBank will degrade to Layer 0)"
     elif [ -d "$CF_PKG_DIR/node_modules/sql.js" ]; then
-        echo "  ✓ claude-flow sql.js present"
+        echo "  ✓ ruflo sql.js present"
     fi
     # Deploy embeddings config (ensures 384-dim all-MiniLM-L6-v2 across all clients)
     mkdir -p "$HOME/.claude-flow"
@@ -147,17 +150,8 @@ if [ -n "$CF_BIN" ]; then
         echo "  ✓ embeddings config deployed (384-dim, all-MiniLM-L6-v2)"
     fi
     # Deploy ControllerRegistry shim (activates AgentDB bridge in memory-bridge.js)
-    CF_MEM_DIST="$CF_PKG_DIR/node_modules/@claude-flow/memory/dist"
-    if [ -d "$CF_MEM_DIST" ] && [ -f "$SCRIPT_DIR/.claude-flow/controller-registry-shim.js" ]; then
-        cp "$SCRIPT_DIR/.claude-flow/controller-registry-shim.js" "$CF_MEM_DIST/controller-registry-shim.js"
-        # Ensure index.js re-exports ControllerRegistry
-        if ! grep -q "controller-registry-shim" "$CF_MEM_DIST/index.js" 2>/dev/null; then
-            sed -i '1i // ===== ControllerRegistry Shim (bridges memory-bridge.js → AgentDB v3) =====\nexport { ControllerRegistry } from '\''./controller-registry-shim.js'\'';' "$CF_MEM_DIST/index.js"
-        fi
-        echo "  ✓ AgentDB bridge shim deployed (BM25 hybrid, reflexion, causal, skills)"
-    elif [ ! -d "$CF_MEM_DIST" ]; then
-        echo "  ⚠ @claude-flow/memory not installed (bridge inactive, basic sql.js fallback)"
-    fi
+    # Note: @claude-flow/memory removed in v3.5.15 — ControllerRegistry shim no longer needed
+    # AgentDB bridge is now handled directly by ruflo core
 else
     echo "  ⚠ ruflo not found (ReasoningBank unavailable, Layer 0 fallback active)"
 fi

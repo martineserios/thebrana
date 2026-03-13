@@ -24,25 +24,25 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 6 | Async hook limitations | **Low** | informational | Design-compatible |
 | 7 | Context budget calc incomplete | **Low** | code-fix | Agent desc added to validate.sh |
 | 8 | Roadmap docs missing [doc 00](00-user-practices.md) / user feedback loop | **Low** | applied (2026-02-10) | Already in both docs (17 line 327, 18 line 103) — missed during earlier review |
-| 9 | claude-flow hooks recall/learn don't exist in v3 | **High** | applied (2026-02-10) | All 7 files fixed to memory API |
+| 9 | ruflo hooks recall/learn don't exist in v3 | **High** | applied (2026-02-10) | All 7 files fixed to memory API |
 | 10 | [Doc 14](reflections/14-mastermind-architecture.md) doesn't acknowledge ReasoningBank alpha risk | **Medium** | applied (2026-02-10) | Blockquote caveat added |
 | 11 | [Doc 14](reflections/14-mastermind-architecture.md) doesn't scope MCP tool surface | **Medium** | applied (2026-02-10) | Scope note in Context7 entry |
 | 12 | [Doc 14](reflections/14-mastermind-architecture.md) background learning assumes daemon reliability | **Low** | applied (2026-02-10) | Note in open question #8 |
 | 13 | `grep -c` + `|| echo 0` double output under `set -e` | **Medium** | code-fix | session-end.sh fixed, test covers it |
-| 14 | `npx claude-flow` from `$HOME` downloads on every call | **Medium** | code-fix | Smart binary discovery in both hooks |
-| 15 | claude-flow CLI debug output pollutes hook stdout | **Medium** | code-fix | stdout suppressed/filtered in hooks |
+| 14 | `npx ruflo` from `$HOME` downloads on every call | **Medium** | code-fix | Smart binary discovery in both hooks |
+| 15 | ruflo CLI debug output pollutes hook stdout | **Medium** | code-fix | stdout suppressed/filtered in hooks |
 | 16 | Roadmaps don't schedule testing from [docs 22](dimensions/22-testing.md)/23 | **Low** | applied (2026-02-10) | Testing note + test scripts added to [docs 17](17-implementation-roadmap.md), 18; exit criteria updated |
 | 17 | `memory search` preview truncates stored JSON values | **Medium** | code-fix | Tests use `memory retrieve` instead of search for verification |
 | 18 | `memory retrieve` requires `--namespace` flag | **Low** | informational | Positional arg form also broken; must use `-k KEY --namespace NS` |
-| 19 | [Doc 14](reflections/14-mastermind-architecture.md) conflates Context7 MCP with claude-flow scoping | **Medium** | applied (2026-02-10) | Split into two separate table rows |
+| 19 | [Doc 14](reflections/14-mastermind-architecture.md) conflates Context7 MCP with ruflo scoping | **Medium** | applied (2026-02-10) | Split into two separate table rows |
 | 20 | [Doc 08](reflections/08-diagnosis.md) doesn't mention native subagent `memory:` field | **Low** | informational | ReasoningBank still justified for semantic search; native `memory:` is simpler fallback |
 | 21 | [Doc 14](reflections/14-mastermind-architecture.md) doesn't reference [doc 07](dimensions/07-claude-flow-plus-claude-4.6.md) or mention v3.1 Agent Teams hooks | **Medium** | applied (2026-02-10) | Team-level hooks section + [doc 07](dimensions/07-claude-flow-plus-claude-4.6.md) cross-ref added |
 | 22 | [Doc 08](reflections/08-diagnosis.md) "essential hooks" list missing development discipline enforcement | **Medium** | applied (2026-02-10) | Added to essential list + PreToolUse caveat note |
 | 23 | [Doc 08](reflections/08-diagnosis.md) open question #12 answered by [docs 11](dimensions/11-ecosystem-skills-plugins.md), 14, 22 | **Low** | applied (2026-02-10) | Resolved with hybrid answer + cross-refs |
 | 24 | `validate.sh` frontmatter extraction matches all `---` lines | **Medium** | code-fix | awk-based first-block extraction |
-| 25 | claude-flow sql.js dependency missing after upgrade | **Medium** | code-fix (2026-02-12) | Root cause: npx creates separate package cache. Fixed: direct binary in .mcp.json + deploy.sh auto-install |
-| 26 | claude-flow alpha.34 breaks `-q` flag for `memory search` | **High** | code-fix (2026-02-12) | Global `-Q`/`--quiet` shadows `-q`. All 15 files fixed to `--query`. |
-| 27 | [Doc 14](reflections/14-mastermind-architecture.md) skill templates use `npx claude-flow` anti-pattern | **Medium** | applied (2026-02-12) | Replaced with `$CF` + binary discovery preamble |
+| 25 | ruflo sql.js dependency missing after upgrade | **Medium** | code-fix (2026-02-12) | Root cause: npx creates separate package cache. Fixed: direct binary in .mcp.json + deploy.sh auto-install |
+| 26 | ruflo alpha.34 breaks `-q` flag for `memory search` | **High** | code-fix (2026-02-12) | Global `-Q`/`--quiet` shadows `-q`. All 15 files fixed to `--query`. |
+| 27 | [Doc 14](reflections/14-mastermind-architecture.md) skill templates use `npx ruflo` anti-pattern | **Medium** | applied (2026-02-12) | Replaced with `$CF` + binary discovery preamble |
 | 28 | [Doc 14](reflections/14-mastermind-architecture.md) ReasoningBank caveat missing sql.js post-install step | **Medium** | applied (2026-02-12) | sql.js install command added to caveat |
 | 29 | `session-end.sh` fallback writes to global path instead of project-scoped | **Medium** | code-fix (2026-02-12) | Fallback `pending-learnings.md` now in `$LAYER0_DIR/` |
 | 30 | enter/README.md document count off by one (32 vs 33) | **Low** | code-fix (2026-02-12) | Corrected to 34 when adding [doc 33](dimensions/33-research-methodology.md) |
@@ -106,7 +106,7 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 86 | [Doc 08](reflections/08-diagnosis.md) "SHA-512 embeddings" — factual error | **High** | applied (2026-03-11) | Should be "all-MiniLM-L6-v2 384-dim embeddings (local ONNX)". SHA-512 is a cryptographic hash, not an embedding model. |
 | 87 | [Doc 08](reflections/08-diagnosis.md) missing triage entry for [doc 11](../../../brana-knowledge/dimensions/11-ecosystem-skills-plugins.md) | **High** | applied (2026-03-11) | Referenced 3x in body but skipped in triage section. Same pattern as #73, #77. |
 | 88 | [Doc 08](reflections/08-diagnosis.md) missing triage entry for [doc 45](../../../brana-knowledge/dimensions/45-turboflow-agent-orchestration.md) | **Medium** | applied (2026-03-11) | New dimension doc from TurboFlow integration. Routine maintenance gap. |
-| 89 | [Doc 08](reflections/08-diagnosis.md) "claude-flow is a hard constraint" — outdated framing | **Medium** | applied (2026-03-11) | Current arch: plugin + bootstrap independent, claude-flow is enhancement layer. Updated to "enhancement layer, not a hard dependency." |
+| 89 | [Doc 08](reflections/08-diagnosis.md) "ruflo is a hard constraint" — outdated framing | **Medium** | applied (2026-03-11) | Current arch: plugin + bootstrap independent, ruflo is enhancement layer. Updated to "enhancement layer, not a hard dependency." |
 | 90 | [Doc 08](reflections/08-diagnosis.md) "47 KB of modules" stale, doc 27 "5-phase" should be 6-phase | **Medium** | applied (2026-03-11) | System is ~26KB now. Doc 27 triage updated to 6-phase + `/brana:align`. |
 | 91 | [Doc 08](reflections/08-diagnosis.md) `.claude/skills/` path should be `system/skills/` | **Medium** | applied (2026-03-11) | Plugin architecture uses system/skills/, not .claude/skills/. |
 | 92 | [Doc 14](reflections/14-mastermind-architecture.md) rules count 12 vs actual 13 | **Medium** | applied (2026-03-11) | 7th instance of count drift. Updated both tree and prose to 13 with full list. |
@@ -290,11 +290,11 @@ TOTAL=$((TOTAL + AGENT_LINES))
 
 ---
 
-## Error 9: claude-flow `hooks recall`/`hooks learn` Don't Exist in v3
+## Error 9: ruflo `hooks recall`/`hooks learn` Don't Exist in v3
 
 **Severity:** High — blocks Phase 1 completion and Phase 2 learning loop
 
-**Discovery:** The hook scripts and 5 skill files reference `npx claude-flow hooks recall` and `npx claude-flow hooks learn`. These commands don't exist in claude-flow v3. The actual v3 API is:
+**Discovery:** The hook scripts and 5 skill files reference `npx ruflo hooks recall` and `npx ruflo hooks learn`. These commands don't exist in ruflo v3. The actual v3 API is:
 
 | Spec command | Actual v3 command |
 |---|---|
@@ -310,7 +310,7 @@ TOTAL=$((TOTAL + AGENT_LINES))
 - `system/skills/project-onboard/SKILL.md` — `hooks recall --query`
 - `system/skills/client-retire/SKILL.md` — `hooks recall --query`
 
-**Additional issue:** Hook scripts ran `npx claude-flow` from the project CWD, but the global memory DB lives at `$HOME/.swarm/memory.db`. Commands must run from `$HOME` (via `cd "$HOME" &&`) for the global DB to be found.
+**Additional issue:** Hook scripts ran `npx ruflo` from the project CWD, but the global memory DB lives at `$HOME/.swarm/memory.db`. Commands must run from `$HOME` (via `cd "$HOME" &&`) for the global DB to be found.
 
 **Fix:** Replace all `hooks recall`/`hooks learn` calls with `memory search`/`memory store`, and prefix with `cd "$HOME" &&` for portability.
 
@@ -320,13 +320,13 @@ TOTAL=$((TOTAL + AGENT_LINES))
 
 **Severity:** Medium — doesn't block current work but affects implementation trust decisions
 
-**Source:** [Doc 05](dimensions/05-claude-flow-v3-analysis.md) (claude-flow v3 analysis) vs [Doc 14](reflections/14-mastermind-architecture.md) (mastermind architecture)
+**Source:** [Doc 05](dimensions/05-claude-flow-v3-analysis.md) (ruflo v3 analysis) vs [Doc 14](reflections/14-mastermind-architecture.md) (mastermind architecture)
 
 **Gap:** [Doc 05](dimensions/05-claude-flow-v3-analysis.md) explicitly classifies SONA/ReasoningBank as alpha status (line 178-181) and recommends "Wait for Stability" before relying on SONA self-learning. [Doc 14](reflections/14-mastermind-architecture.md) builds the entire intelligence layer on ReasoningBank as a stable dependency without acknowledging this known limitation or proposing degraded-mode strategies inline.
 
 **Impact:** An implementer following [doc 14](reflections/14-mastermind-architecture.md) alone would treat ReasoningBank as production-ready, missing the need for: error handling wrappers around every call, graceful degradation to Layer 0 (auto memory), and acceptance that early phases will have unreliable learning.
 
-**Fix:** [Doc 14](reflections/14-mastermind-architecture.md) should note in the ReasoningBank sections that claude-flow is alpha and all calls must be wrapped with fallback to Layer 0. [Doc 14](reflections/14-mastermind-architecture.md) already has "Resolved Questions" noting "Accept the alpha risk" — but this caveat needs to be visible at the point of use, not just in a Q&A section.
+**Fix:** [Doc 14](reflections/14-mastermind-architecture.md) should note in the ReasoningBank sections that ruflo is alpha and all calls must be wrapped with fallback to Layer 0. [Doc 14](reflections/14-mastermind-architecture.md) already has "Resolved Questions" noting "Accept the alpha risk" — but this caveat needs to be visible at the point of use, not just in a Q&A section.
 
 **Docs to update:** 14 (inline caveat near ReasoningBank references)
 
@@ -336,7 +336,7 @@ TOTAL=$((TOTAL + AGENT_LINES))
 
 **Severity:** Medium — affects Phase 1 plugin install decisions
 
-**Source:** [Doc 05](dimensions/05-claude-flow-v3-analysis.md) (claude-flow v3 analysis) vs [Doc 14](reflections/14-mastermind-architecture.md) (mastermind architecture)
+**Source:** [Doc 05](dimensions/05-claude-flow-v3-analysis.md) (ruflo v3 analysis) vs [Doc 14](reflections/14-mastermind-architecture.md) (mastermind architecture)
 
 **Gap:** [Doc 05](dimensions/05-claude-flow-v3-analysis.md) explicitly recommends (line 186): "Skip... Full 170+ MCP tool surface (use only what's needed)." [Doc 14](reflections/14-mastermind-architecture.md) references available MCP tools without this caution, which could lead to installing the full tool surface when only a handful of commands are needed.
 
@@ -350,11 +350,11 @@ TOTAL=$((TOTAL + AGENT_LINES))
 
 **Severity:** Low — affects "advanced ideas" section only, not current implementation
 
-**Source:** [Doc 05](dimensions/05-claude-flow-v3-analysis.md) (claude-flow v3 analysis) vs [Doc 14](reflections/14-mastermind-architecture.md) (mastermind architecture)
+**Source:** [Doc 05](dimensions/05-claude-flow-v3-analysis.md) (ruflo v3 analysis) vs [Doc 14](reflections/14-mastermind-architecture.md) (mastermind architecture)
 
 **Gap:** [Doc 05](dimensions/05-claude-flow-v3-analysis.md) (line 180) flags the daemon system as needing reliability guarantees before use. [Doc 14](reflections/14-mastermind-architecture.md)'s "Advanced Ideas" section (open question #8: "Background learning — the night shift") proposes background workers that re-analyze old sessions, which depends on daemon stability that [doc 05](dimensions/05-claude-flow-v3-analysis.md) says isn't there.
 
-**Fix:** [Doc 14](reflections/14-mastermind-architecture.md) should note that background learning is post-daemon-stabilization. The idea is sound but blocked by claude-flow alpha status.
+**Fix:** [Doc 14](reflections/14-mastermind-architecture.md) should note that background learning is post-daemon-stabilization. The idea is sound but blocked by ruflo alpha status.
 
 **Docs to update:** 14 (open questions section)
 
@@ -380,13 +380,13 @@ FAILURES=$(grep -c '"outcome":"failure"' "$SESSION_FILE" 2>/dev/null) || FAILURE
 
 ---
 
-## Error 14: `npx claude-flow` from `$HOME` Downloads on Every Call
+## Error 14: `npx ruflo` from `$HOME` Downloads on Every Call
 
-**Severity:** Medium — caused 5-second timeout in hooks, making claude-flow silently unreachable
+**Severity:** Medium — caused 5-second timeout in hooks, making ruflo silently unreachable
 
-**Discovery:** Hooks used `cd "$HOME" && npx claude-flow memory ...`. From `$HOME`, there's no local `node_modules` with claude-flow. `npx` attempts to download the package every time, which exceeds the hook timeout (5s) and silently falls back to Layer 0.
+**Discovery:** Hooks used `cd "$HOME" && npx ruflo memory ...`. From `$HOME`, there's no local `node_modules` with ruflo. `npx` attempts to download the package every time, which exceeds the hook timeout (5s) and silently falls back to Layer 0.
 
-Meanwhile, claude-flow is globally installed via nvm at `$HOME/.nvm/versions/node/v20.19.0/bin/claude-flow` but not on `$PATH` in hook subprocess contexts.
+Meanwhile, ruflo is globally installed via nvm at `$HOME/.nvm/versions/node/v20.19.0/bin/claude-flow` but not on `$PATH` in hook subprocess contexts.
 
 **Fix:** Smart binary discovery — check nvm global bin first, then PATH, then npx as last resort:
 ```bash
@@ -394,19 +394,19 @@ CF=""
 for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
     [ -x "$candidate" ] && CF="$candidate" && break
 done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
-[ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+[ -z "$CF" ] && command -v ruflo &>/dev/null && CF="ruflo"
+[ -z "$CF" ] && command -v npx &>/dev/null && CF="npx ruflo"
 ```
 
 **Files affected:** `system/hooks/session-start.sh`, `system/hooks/session-end.sh`
 
 ---
 
-## Error 15: claude-flow CLI Debug Output Pollutes Hook Stdout
+## Error 15: ruflo CLI Debug Output Pollutes Hook Stdout
 
 **Severity:** Medium — hook test caught this; hooks must output clean JSON
 
-**Discovery:** After switching from `npx` to the direct binary, claude-flow's `[DEBUG]` and `[INFO]` lines went to stdout, mixing with the hook's `{"continue": true}` JSON output. Hook consumers expect pure JSON on stdout.
+**Discovery:** After switching from `npx` to the direct binary, ruflo's `[DEBUG]` and `[INFO]` lines went to stdout, mixing with the hook's `{"continue": true}` JSON output. Hook consumers expect pure JSON on stdout.
 
 **Fix:**
 - `session-end.sh`: redirect both stdout and stderr with `>/dev/null 2>&1` (we only need the exit code)
@@ -432,7 +432,7 @@ done
 
 **Severity:** Medium — caused Phase 2 metadata tests to fail on first run
 
-**Discovery:** `claude-flow memory search --query "..."` returns results with a `preview` field that truncates stored values after ~50 characters:
+**Discovery:** `ruflo memory search --query "..."` returns results with a `preview` field that truncates stored values after ~50 characters:
 
 ```json
 {"preview": "{\"project\":\"thebrana\",\"session\":\"e76be094-9600-4415-90f3-4d9..."}
@@ -454,7 +454,7 @@ Phase 2's session-end stores quarantine metadata (`confidence`, `transferable`, 
 
 **Severity:** Low — informational, discovered while fixing error #17
 
-**Discovery:** `claude-flow memory retrieve -k "key"` without `--namespace` returns "Key not found" even when the key exists. The namespace scopes the lookup and is required for retrieval (even though it's not required for search).
+**Discovery:** `ruflo memory retrieve -k "key"` without `--namespace` returns "Key not found" even when the key exists. The namespace scopes the lookup and is required for retrieval (even though it's not required for search).
 
 Additionally, the positional form `memory retrieve KEY` (without `-k`) also fails — must use the flag form `-k KEY`.
 
@@ -470,11 +470,11 @@ Additionally, the positional form `memory retrieve KEY` (without `-k`) also fail
 
 **Discovery:** [Doc 14](reflections/14-mastermind-architecture.md) line 483 (Plugin & Skill Recommendations table) had a single row that combined two unrelated tools:
 
-> **Context7 MCP** (Upstash) — Real-time library docs — the mastermind always has current knowledge. **Scope:** use only the memory commands (`memory search`, `memory store`, `memory init`) from claude-flow's 170+ MCP tool surface...
+> **Context7 MCP** (Upstash) — Real-time library docs — the mastermind always has current knowledge. **Scope:** use only the memory commands (`memory search`, `memory store`, `memory init`) from ruflo's 170+ MCP tool surface...
 
-Context7 is an Upstash MCP server for fetching real-time, version-specific library documentation. The "Scope" note about `memory search/store/init` is about claude-flow's MCP surface. These are completely different tools that got merged into one table row.
+Context7 is an Upstash MCP server for fetching real-time, version-specific library documentation. The "Scope" note about `memory search/store/init` is about ruflo's MCP surface. These are completely different tools that got merged into one table row.
 
-**Fix:** Split into two rows — Context7 for library docs, claude-flow for memory commands.
+**Fix:** Split into two rows — Context7 for library docs, ruflo for memory commands.
 
 **Files affected:** `14-mastermind-architecture.md` (line 483)
 
@@ -484,7 +484,7 @@ Context7 is an Upstash MCP server for fetching real-time, version-specific libra
 
 **Severity:** Low — informational, doesn't change the architecture
 
-**Discovery:** [Doc 09](dimensions/09-claude-code-native-features.md) (lines 464-487, 739, 1175) documents a native `memory:` field on custom subagents with three scopes (`user`, `project`, `local`). [Doc 09](dimensions/09-claude-code-native-features.md) even maps: "ReasoningBank (claude-flow) → Subagent `memory: user` field."
+**Discovery:** [Doc 09](dimensions/09-claude-code-native-features.md) (lines 464-487, 739, 1175) documents a native `memory:` field on custom subagents with three scopes (`user`, `project`, `local`). [Doc 09](dimensions/09-claude-code-native-features.md) even maps: "ReasoningBank (ruflo) → Subagent `memory: user` field."
 
 [Doc 08](reflections/08-diagnosis.md) recommends ReasoningBank as "#1 value-add" (line 108) without mentioning this native alternative exists.
 
@@ -500,10 +500,10 @@ Context7 is an Upstash MCP server for fetching real-time, version-specific libra
 
 **Source:** [Doc 07](dimensions/07-claude-flow-plus-claude-4.6.md) (v3.1 update) vs [Doc 14](reflections/14-mastermind-architecture.md) (mastermind architecture)
 
-**Gap:** [Doc 07](dimensions/07-claude-flow-plus-claude-4.6.md)'s v3.1 update confirms two new Claude Code hook events are real and shipped in claude-flow v3.1.0-alpha.28:
+**Gap:** [Doc 07](dimensions/07-claude-flow-plus-claude-4.6.md)'s v3.1 update confirms two new Claude Code hook events are real and shipped in ruflo v3.1.0-alpha.28:
 
-- **TeammateIdle** — fires when a teammate goes idle; claude-flow's `teammate-idle` hook auto-assigns pending work
-- **TaskCompleted** — fires on task completion; claude-flow's `task-completed` hook trains patterns from successful tasks
+- **TeammateIdle** — fires when a teammate goes idle; ruflo's `teammate-idle` hook auto-assigns pending work
+- **TaskCompleted** — fires on task completion; ruflo's `task-completed` hook trains patterns from successful tasks
 
 [Doc 14](reflections/14-mastermind-architecture.md)'s "Hooks That Make the Brain Work" section (lines 122-181) describes three core hooks (SessionStart, SessionEnd, PostToolUse/PostToolUseFailure) but doesn't mention these team-level hooks. [Doc 14](reflections/14-mastermind-architecture.md) has no cross-reference to [doc 07](dimensions/07-claude-flow-plus-claude-4.6.md) anywhere.
 
@@ -535,14 +535,14 @@ Additionally, [doc 08](reflections/08-diagnosis.md) line 98-99 says "Custom PreT
 
 **Severity:** Low — doesn't block implementation but misleads by presenting a resolved question as open
 
-**Gap:** [Doc 08](reflections/08-diagnosis.md) line 212 asks: "Native Agent Teams or claude-flow swarms for coordination? Or a hybrid where native teams handle execution and claude-flow handles memory/learning?"
+**Gap:** [Doc 08](reflections/08-diagnosis.md) line 212 asks: "Native Agent Teams or ruflo swarms for coordination? Or a hybrid where native teams handle execution and ruflo handles memory/learning?"
 
 This is now answered:
-- [Doc 14](reflections/14-mastermind-architecture.md) "Project Enforcement" establishes: Native Agent Teams for execution, claude-flow for memory/learning (the hybrid option)
+- [Doc 14](reflections/14-mastermind-architecture.md) "Project Enforcement" establishes: Native Agent Teams for execution, ruflo for memory/learning (the hybrid option)
 - [Doc 22](dimensions/22-testing.md) "Multi-Agent TDD" provides the first concrete team pattern: separate test-writer and implementer agents with tool-scoped isolation
 - [Doc 11](dimensions/11-ecosystem-skills-plugins.md) section 5 catalogs the multi-agent context isolation pattern as "worth borrowing"
 
-**Fix:** Move question #12 from "Open Questions" to "Resolved Questions" with the answer: hybrid — native Agent Teams for execution coordination, claude-flow ReasoningBank for cross-session memory. First concrete pattern: multi-agent TDD (see [docs 14](reflections/14-mastermind-architecture.md), 22).
+**Fix:** Move question #12 from "Open Questions" to "Resolved Questions" with the answer: hybrid — native Agent Teams for execution coordination, ruflo ReasoningBank for cross-session memory. First concrete pattern: multi-agent TDD (see [docs 14](reflections/14-mastermind-architecture.md), 22).
 
 **Docs to update:** 08 (open questions section)
 
@@ -565,13 +565,13 @@ frontmatter=$(awk 'NR==1 && /^---$/{in_fm=1; next} in_fm && /^---$/{exit} in_fm{
 
 ---
 
-## Error 25: claude-flow sql.js Dependency Missing After Upgrade
+## Error 25: ruflo sql.js Dependency Missing After Upgrade
 
 **Severity:** Medium — ReasoningBank completely non-functional
 
-**Discovery:** Both MCP (`mcp__claude-flow__memory_store`) and CLI (`claude-flow memory store`) fail with: "Cannot find package 'sql.js' imported from .../memory-initializer.js". sql.js is dynamically imported (19+ call sites in `memory-initializer.js`) but never declared in any `package.json`. Every `npm install -g claude-flow` leaves it missing.
+**Discovery:** Both MCP (`mcp__ruflo__memory_store`) and CLI (`ruflo memory store`) fail with: "Cannot find package 'sql.js' imported from .../memory-initializer.js". sql.js is dynamically imported (19+ call sites in `memory-initializer.js`) but never declared in any `package.json`. Every `npm install -g ruflo` leaves it missing.
 
-**Root cause (discovered 2026-02-12):** When `.mcp.json` uses `npx claude-flow@version`, npx creates a **separate** package cache (`~/.npm/_npx/{hash}/`) from the global install (`~/.nvm/.../lib/node_modules/claude-flow/`). sql.js must be installed in **both** locations independently. Fixing one leaves the other broken.
+**Root cause (discovered 2026-02-12):** When `.mcp.json` uses `npx ruflo@version`, npx creates a **separate** package cache (`~/.npm/_npx/{hash}/`) from the global install (`~/.nvm/.../lib/node_modules/claude-flow/`). sql.js must be installed in **both** locations independently. Fixing one leaves the other broken.
 
 **Impact:** All ReasoningBank operations fail. The system falls back to Layer 0 (auto memory files), which works but loses semantic search, tagging, and cross-client queries.
 
@@ -586,7 +586,7 @@ frontmatter=$(awk 'NR==1 && /^---$/{in_fm=1; next} in_fm && /^---$/{exit} in_fm{
 
 ---
 
-## Error 26: claude-flow alpha.34 Breaks `-q` Flag for `memory search`
+## Error 26: ruflo alpha.34 Breaks `-q` Flag for `memory search`
 
 **Severity:** High — silently breaks all memory search operations across hooks and skills
 
@@ -609,15 +609,15 @@ $CF memory search --query "client:$PROJECT" --format json
 
 ---
 
-## Error 27: [Doc 14](reflections/14-mastermind-architecture.md) Skill Templates Use `npx claude-flow` Anti-Pattern
+## Error 27: [Doc 14](reflections/14-mastermind-architecture.md) Skill Templates Use `npx ruflo` Anti-Pattern
 
 **Severity:** Medium — implemented skills would be slow or broken
 
-**Discovery:** `/brana:maintain-specs` cycle found [doc 14](reflections/14-mastermind-architecture.md) lines 311, 336, 372 use `cd $HOME && npx claude-flow memory search/store`, the exact anti-pattern documented in lesson #17. The implemented skills (thebrana) already use smart binary discovery, but the spec doc still shows the old pattern.
+**Discovery:** `/brana:maintain-specs` cycle found [doc 14](reflections/14-mastermind-architecture.md) lines 311, 336, 372 use `cd $HOME && npx ruflo memory search/store`, the exact anti-pattern documented in lesson #17. The implemented skills (thebrana) already use smart binary discovery, but the spec doc still shows the old pattern.
 
-**Impact:** Anyone implementing skills from [doc 14](reflections/14-mastermind-architecture.md)'s templates would create hooks/skills that: (a) download claude-flow on every invocation (~10s, exceeding hook timeouts), (b) use a separate npx cache missing sql.js, (c) potentially run a different version than the CLI.
+**Impact:** Anyone implementing skills from [doc 14](reflections/14-mastermind-architecture.md)'s templates would create hooks/skills that: (a) download ruflo on every invocation (~10s, exceeding hook timeouts), (b) use a separate npx cache missing sql.js, (c) potentially run a different version than the CLI.
 
-**Fix:** Replace `npx claude-flow` with `$CF` (smart binary discovery variable) and add a binary discovery preamble above the skill templates section.
+**Fix:** Replace `npx ruflo` with `$CF` (smart binary discovery variable) and add a binary discovery preamble above the skill templates section.
 
 **Files affected:** `14-mastermind-architecture.md` lines 311, 336, 372
 
@@ -645,7 +645,7 @@ $CF memory search --query "client:$PROJECT" --format json
 
 **Severity:** Medium — data isolation violation, not blocking
 
-**Discovery:** The CLAUDE.md vs MEMORY.md framework audit revealed that `session-end.sh`'s Layer 1 fallback (when claude-flow is unavailable) wrote to `~/.claude/memory/pending-learnings.md` — a global file. Meanwhile, the primary path (Layer 1) stored data in project-namespaced keys. The fallback broke project scoping.
+**Discovery:** The CLAUDE.md vs MEMORY.md framework audit revealed that `session-end.sh`'s Layer 1 fallback (when ruflo is unavailable) wrote to `~/.claude/memory/pending-learnings.md` — a global file. Meanwhile, the primary path (Layer 1) stored data in project-namespaced keys. The fallback broke project scoping.
 
 **Files affected:** `thebrana/system/hooks/session-end.sh` (lines 76-87)
 
@@ -862,7 +862,7 @@ The reflection layer redesign (docs 31, 32) removed ~160 lines from [doc 14](ref
 
 ## Cross-References
 
-- **[Doc 05](dimensions/05-claude-flow-v3-analysis.md)** (`05-claude-flow-v3-analysis.md`): claude-flow alpha assessment — source for errors #10-12
+- **[Doc 05](dimensions/05-claude-flow-v3-analysis.md)** (`05-claude-flow-v3-analysis.md`): ruflo alpha assessment — source for errors #10-12
 - **[Doc 08](reflections/08-diagnosis.md)** (`08-diagnosis.md`): Hook lifecycle — Stop→SessionEnd fixed (error #2)
 - **[Doc 09](dimensions/09-claude-code-native-features.md)** (`09-claude-code-native-features.md`): Hook format details, all 14 events, stdin/stdout contracts
 - **[Doc 14](reflections/14-mastermind-architecture.md)** (`14-mastermind-architecture.md`): Skill commands fixed (error #9). Alpha risk caveat (#10), MCP scope (#11), daemon note (#12) — all applied 2026-02-10
@@ -1132,15 +1132,15 @@ The session-end hook appeared to succeed (exit 0, output `{"continue": true}`) e
 
 ### 3. Database schema drift breaks things silently
 
-The `$HOME/.swarm/memory.db` file existed (from a previous claude-flow version) but had a stale schema — missing the `type` column that v3 expects. `memory search` still worked (read-only, tolerant), but `memory store` failed. This meant the recall hook worked fine while the learning hook was silently broken. **Rule: `memory init --force` should be a documented step whenever claude-flow is upgraded.** Old DBs don't auto-migrate.
+The `$HOME/.swarm/memory.db` file existed (from a previous ruflo version) but had a stale schema — missing the `type` column that v3 expects. `memory search` still worked (read-only, tolerant), but `memory store` failed. This meant the recall hook worked fine while the learning hook was silently broken. **Rule: `memory init --force` should be a documented step whenever ruflo is upgraded.** Old DBs don't auto-migrate.
 
-### 4. claude-flow discovers its DB relative to CWD
+### 4. ruflo discovers its DB relative to CWD
 
-This isn't documented anywhere in claude-flow. Hooks run from the project directory, but the global memory DB lives at `$HOME/.swarm/memory.db`. Without `cd "$HOME" &&` before every `npx claude-flow memory` call, the hooks would create per-project DBs or fail to find the global one. **Rule: any hook that calls claude-flow must explicitly set CWD to `$HOME`.** This should be a documented pattern in the hook template.
+This isn't documented anywhere in ruflo. Hooks run from the project directory, but the global memory DB lives at `$HOME/.swarm/memory.db`. Without `cd "$HOME" &&` before every `npx ruflo memory` call, the hooks would create per-project DBs or fail to find the global one. **Rule: any hook that calls ruflo must explicitly set CWD to `$HOME`.** This should be a documented pattern in the hook template.
 
-### 5. claude-flow `--help` doesn't show subcommand flags
+### 5. ruflo `--help` doesn't show subcommand flags
 
-`npx claude-flow memory search --help` prints the top-level `memory` help, not the `search` subcommand flags. You have to test commands directly or read the source to discover `-q`, `--format`, `--namespace`, etc. **Impact: spec authors can't discover the real API from `--help` alone.** This partially explains how Error #9 happened — someone described the API they expected rather than the one that exists.
+`npx ruflo memory search --help` prints the top-level `memory` help, not the `search` subcommand flags. You have to test commands directly or read the source to discover `-q`, `--format`, `--namespace`, etc. **Impact: spec authors can't discover the real API from `--help` alone.** This partially explains how Error #9 happened — someone described the API they expected rather than the one that exists.
 
 ### 6. Hook testing requires full pipeline simulation
 
@@ -1152,7 +1152,7 @@ Bash arithmetic `((PASSED++))` post-increments — the expression value is the *
 
 ### 8. `npx` is not a reliable binary locator in subprocesses
 
-`npx claude-flow` works interactively because your shell has nvm initialized. Hook subprocesses often don't — `$PATH` may not include nvm bins, and `npx` falls back to downloading the package fresh (taking 10+ seconds, exceeding hook timeouts). **Rule: for tools installed globally via nvm, locate the binary directly at `$HOME/.nvm/versions/node/*/bin/toolname` rather than relying on `npx`.** The smart discovery pattern (nvm bin → PATH → npx fallback) should be standard in all hook scripts.
+`npx ruflo` works interactively because your shell has nvm initialized. Hook subprocesses often don't — `$PATH` may not include nvm bins, and `npx` falls back to downloading the package fresh (taking 10+ seconds, exceeding hook timeouts). **Rule: for tools installed globally via nvm, locate the binary directly at `$HOME/.nvm/versions/node/*/bin/toolname` rather than relying on `npx`.** The smart discovery pattern (nvm bin → PATH → npx fallback) should be standard in all hook scripts.
 
 ### 9. Write tests first, then discover they test the right thing
 
@@ -1160,7 +1160,7 @@ The hook smoke test immediately caught the grep-c bug (error #13), the stdout po
 
 ### 10. MCP and CLI are complementary, not competing
 
-claude-flow runs as MCP server (`.mcp.json`) for in-session tool calls and has a CLI binary for hooks/scripts. They share the same backend DB. Hooks must use CLI (they're subprocesses, not Claude tools). In-session agents should use MCP (faster). Testing can use either (same DB, same logic). **Rule: don't force one transport for everything. MCP for in-session, CLI for hooks/scripts, both hit the same DB.**
+ruflo runs as MCP server (`.mcp.json`) for in-session tool calls and has a CLI binary for hooks/scripts. They share the same backend DB. Hooks must use CLI (they're subprocesses, not Claude tools). In-session agents should use MCP (faster). Testing can use either (same DB, same logic). **Rule: don't force one transport for everything. MCP for in-session, CLI for hooks/scripts, both hit the same DB.**
 
 ### 11. `memory search` is for discovery, `memory retrieve` is for verification
 
@@ -1180,11 +1180,11 @@ Phase 4's 8 work items in [doc 18](18-lean-roadmap.md) were detailed enough (fil
 
 ### 15. Graceful degradation is not optional — it's the feature
 
-When ReasoningBank broke (sql.js missing), every operation that tried to store or recall patterns failed. But the system kept working: skills were created, deployed, tested, and documented using Layer 0 (auto memory files). The two-layer architecture from [doc 17](17-implementation-roadmap.md) — "anything critical enough to survive claude-flow outage should ALSO be written to Layer 0" — proved exactly right. **Rule: always implement the degraded path first. The enhanced path (ReasoningBank, SONA, etc.) is a bonus. If the floor (Layer 0) works, the system survives anything.**
+When ReasoningBank broke (sql.js missing), every operation that tried to store or recall patterns failed. But the system kept working: skills were created, deployed, tested, and documented using Layer 0 (auto memory files). The two-layer architecture from [doc 17](17-implementation-roadmap.md) — "anything critical enough to survive ruflo outage should ALSO be written to Layer 0" — proved exactly right. **Rule: always implement the degraded path first. The enhanced path (ReasoningBank, SONA, etc.) is a bonus. If the floor (Layer 0) works, the system survives anything.**
 
 ### 16. Alpha tool upgrades must be followed by smoke tests
 
-Upgrading claude-flow from alpha.28 to alpha.34 silently broke `memory search` — the `-q` flag was shadowed by a new global `--quiet` flag. There was no changelog, no deprecation warning, and the `--help` text still showed the old syntax. 15 files broke at once. **Rule: after every alpha tool upgrade, run the smoke test suite (`./test.sh`) before deploying. Also run `$CF memory search --query "test"` and `$CF memory store -k "test" -v "test"` manually to verify the memory API still works.** Alpha means the API surface is unstable — treat every version bump as a potential breaking change.
+Upgrading ruflo from alpha.28 to alpha.34 silently broke `memory search` — the `-q` flag was shadowed by a new global `--quiet` flag. There was no changelog, no deprecation warning, and the `--help` text still showed the old syntax. 15 files broke at once. **Rule: after every alpha tool upgrade, run the smoke test suite (`./test.sh`) before deploying. Also run `$CF memory search --query "test"` and `$CF memory store -k "test" -v "test"` manually to verify the memory API still works.** Alpha means the API surface is unstable — treat every version bump as a potential breaking change.
 
 ### 17. Never use `npx` to run MCP servers
 
@@ -1192,7 +1192,7 @@ Upgrading claude-flow from alpha.28 to alpha.34 silently broke `memory search` �
 
 ### 18. Spec docs describe what and why, not how
 
-[Doc 14](reflections/14-mastermind-architecture.md)'s skill templates were updated to use a `$CF` variable with a 7-line bash discovery block. The user flagged it as over-engineered — and they were right. The architecture doc should show the concept (`claude-flow memory search --query "..."`); the implementation code (thebrana's actual skill files) handles the how (binary discovery, fallback chains, error handling). Mixing levels of abstraction in spec docs adds noise without value. **Rule: keep spec docs at the concept level. Implementation details belong in implementation code. A one-line note pointing to the deployed code is better than duplicating it in the spec.**
+[Doc 14](reflections/14-mastermind-architecture.md)'s skill templates were updated to use a `$CF` variable with a 7-line bash discovery block. The user flagged it as over-engineered — and they were right. The architecture doc should show the concept (`ruflo memory search --query "..."`); the implementation code (thebrana's actual skill files) handles the how (binary discovery, fallback chains, error handling). Mixing levels of abstraction in spec docs adds noise without value. **Rule: keep spec docs at the concept level. Implementation details belong in implementation code. A one-line note pointing to the deployed code is better than duplicating it in the spec.**
 
 ### 19. Pain-driven development needs real usage data
 
@@ -1214,7 +1214,7 @@ Psilea's three core SOPs (production, onboarding, sales) are interconnected: onb
 
 During `/brana:retrospective`, 3 venture management patterns (stage detection, framework layering, Cardone vs Sullivan/Hardy) were stored with `project:brana` tags because they were discovered during brana spec work. But these are domain knowledge — any business project should recall them, not just brana. A search from a different project wouldn't find them. After catching this, patterns were re-stored with `domain:venture-management` tags and `transferable: true`, keeping `source_project` as a metadata field for origin tracking. **Rule: distinguish system patterns (`project:{name}`, non-transferable, about how the system works) from domain patterns (`domain:{name}`, transferable, about what the system knows). The key prefix convention is `pattern:{project}:*` for system and `pattern:{domain}:*` for domain knowledge.**
 
-### 24. claude-flow `memory store` supports `--upsert` for updates
+### 24. ruflo `memory store` supports `--upsert` for updates
 
 Attempting to re-store a pattern with the same key and namespace fails with `UNIQUE constraint failed` by default. The `--upsert` flag exists and works — it updates the value and regenerates the vector embedding. `--force` does NOT work (silently ignored, still hits UNIQUE constraint). When parallel store calls fail, siblings show "Sibling tool call errored" — shared failure propagation. **Rule: use `memory store --upsert` when updating existing entries. Never use `--force` (doesn't work for this). Avoid parallel stores to the same key — even with `--upsert`, concurrent writes are a race condition.**
 
@@ -1248,7 +1248,7 @@ The CLAUDE.md vs MEMORY.md framework rule ("prescriptive content goes in rules/,
 
 ### 27. Hook fallback paths must respect the same scoping as primary paths
 
-`session-end.sh` stored session data via claude-flow to project-namespaced keys (Layer 1, correct) but its fallback wrote to `~/.claude/memory/pending-learnings.md` — a global file outside any project's auto-memory directory. The primary path was project-scoped; the fallback was global. This meant fallback data couldn't be associated with the right project when claude-flow recovered. **Rule: fallback paths must mirror the scoping of primary paths. If the primary path writes to a project-specific namespace, the fallback must write to the project's auto-memory directory, not a global file.**
+`session-end.sh` stored session data via ruflo to project-namespaced keys (Layer 1, correct) but its fallback wrote to `~/.claude/memory/pending-learnings.md` — a global file outside any project's auto-memory directory. The primary path was project-scoped; the fallback was global. This meant fallback data couldn't be associated with the right project when ruflo recovered. **Rule: fallback paths must mirror the scoping of primary paths. If the primary path writes to a project-specific namespace, the fallback must write to the project's auto-memory directory, not a global file.**
 
 ### 29. Background Task agents cannot edit .claude/ directory files
 
@@ -1256,7 +1256,7 @@ Phase B's agent (general-purpose, bypassPermissions mode) was blocked by securit
 
 ### 30. User feedback during implementation improves deliverables more than plan precision
 
-The original plan for the source registry had `last_checked` dates and yield history — good for tracking when sources were checked. Mid-implementation, the user pointed out that version tracking matters more: when [doc 05](dimensions/05-claude-flow-v3-analysis.md) says "claude-flow v3.1.0-alpha.34", what matters isn't when we last checked the repo but whether that version is still current. This led to `version_observed` + `date_observed` fields and a "Version Drift Detection" section in [doc 33](dimensions/33-research-methodology.md) — the most architecturally significant addition to the registry, and it wasn't in the plan. **Rule: treat user feedback during implementation as a feature, not an interruption. Pause, integrate the feedback into the current branch, and continue. The plan is a starting point, not a contract.**
+The original plan for the source registry had `last_checked` dates and yield history — good for tracking when sources were checked. Mid-implementation, the user pointed out that version tracking matters more: when [doc 05](dimensions/05-claude-flow-v3-analysis.md) says "ruflo v3.1.0-alpha.34", what matters isn't when we last checked the repo but whether that version is still current. This led to `version_observed` + `date_observed` fields and a "Version Drift Detection" section in [doc 33](dimensions/33-research-methodology.md) — the most architecturally significant addition to the registry, and it wasn't in the plan. **Rule: treat user feedback during implementation as a feature, not an interruption. Pause, integrate the feedback into the current branch, and continue. The plan is a starting point, not a contract.**
 
 ### 28. Multi-repo sessions require explicit CWD per git command
 
@@ -1334,7 +1334,7 @@ Four pending backlog items needed complexity/value assessment before starting. S
 
 ### 48. Steerable errors: capture, classify, guide
 
-Four hooks called claude-flow with `2>/dev/null` or `|| true`, silently swallowing failures. Replacing this with exit code capture and classification (124=timeout, 127=not found, general failure) plus actionable next-step commands produced hooks that surface guidance instead of hiding problems. **Rule: every hook that calls an external binary should: (a) capture stderr into a variable, (b) check the exit code with classification, (c) build a warning message with the exact command the user should try, (d) surface via additionalContext (session-start) or session log (session-end). The pattern is `CMD 2>&1 || true; CF_EXIT=$?; case $CF_EXIT in 124) timeout_msg;; 0) process_output;; *) error_msg;; esac`.**
+Four hooks called ruflo with `2>/dev/null` or `|| true`, silently swallowing failures. Replacing this with exit code capture and classification (124=timeout, 127=not found, general failure) plus actionable next-step commands produced hooks that surface guidance instead of hiding problems. **Rule: every hook that calls an external binary should: (a) capture stderr into a variable, (b) check the exit code with classification, (c) build a warning message with the exact command the user should try, (d) surface via additionalContext (session-start) or session log (session-end). The pattern is `CMD 2>&1 || true; CF_EXIT=$?; case $CF_EXIT in 124) timeout_msg;; 0) process_output;; *) error_msg;; esac`.**
 
 ### 49. Pre-commit hooks as shift-left validation
 
@@ -1366,7 +1366,7 @@ Backlog #25 upgraded the challenger agent from Sonnet to Opus. `/back-propagate`
 
 ### 56. Uncommitted changes from previous sessions accumulate silently
 
-Learnings #51-54 from a prior research session were left unstaged in `24-roadmap-corrections.md`. They survived because no conflicting branch touched that file region. But they could have been lost to a `git checkout`, overwritten by a merge conflict, or simply forgotten. `git status` showed them only because the current session's merge also modified the same file. **Rule: before ending any session that produces [doc 24](24-roadmap-corrections.md) entries, run `git status` and commit everything. Uncommitted learnings in the working directory are at risk of loss — they're not in git history, not in claude-flow memory, and invisible to the next session unless it happens to touch the same file.**
+Learnings #51-54 from a prior research session were left unstaged in `24-roadmap-corrections.md`. They survived because no conflicting branch touched that file region. But they could have been lost to a `git checkout`, overwritten by a merge conflict, or simply forgotten. `git status` showed them only because the current session's merge also modified the same file. **Rule: before ending any session that produces [doc 24](24-roadmap-corrections.md) entries, run `git status` and commit everything. Uncommitted learnings in the working directory are at risk of loss — they're not in git history, not in ruflo memory, and invisible to the next session unless it happens to touch the same file.**
 
 ### 57. jq `!=` operator breaks under zsh — use alternative patterns
 
@@ -1511,3 +1511,20 @@ Respond.io action prompts have a hard 1,000-char limit. Agent 3's Assign action 
 **Trigger:** `/back-propagate` after respondio-prompts expansion, design thinking integration, Wave 1-4 implementation, workflow practice rules
 **Docs updated:** 14 (budget reference ~24→~26KB, repo tree range 00-32→00-38), 35 (budget constraint 24,576→26,624 across all references, version history row)
 **Finding:** `validate.sh` enforces 26,624 bytes since workflow practice rules were added, but [doc 35](dimensions/35-context-engineering-principles.md) still documented 24,576. [Doc 14](reflections/14-mastermind-architecture.md) repo tree said "00-32 spec docs" but docs now go up to 38 (design-thinking). Waves 1-4, agent roster, rules list, and skill count were already accurate in specs.
+
+### Reconcile Run — 2026-03-13
+
+**Trigger:** manual `/brana:reconcile` after ruflo rename (t-346)
+**Drift found:** ~50 findings across 4 areas (docs, scripts, config)
+**Applied:** 47 auto-fixes in 2 commits
+**Deferred:** 1 (check-agentdb-integration.sh — parked, ms-007)
+
+| # | Area | Type | Finding | Resolution |
+|---|------|------|---------|-----------|
+| 1 | Docs (55 files) | Stale | ~370 "claude-flow" refs in spec docs (reflections, roadmaps, architecture, ADRs, guides, feature briefs) | Applied — bulk rename to "ruflo", preserved @claude-flow scopes, .claude-flow/ paths, dimension doc filenames |
+| 2 | Doc 39 | Stale | ControllerRegistry shim contradiction — line 452 says active, line 522 says removed | Applied — unified to "removed in v3.5.15" |
+| 3 | deploy.sh | Stale | Binary lookup searched only `claude-flow`, not `ruflo` | Applied — dual-name resolution (ruflo first, claude-flow fallback) |
+| 4 | deploy.sh | Stale | ControllerRegistry shim deployment block still present | Applied — removed, added note about v3.5.15 removal |
+| 5 | index-knowledge.sh | Stale | Binary lookup searched only `claude-flow` | Applied — dual-name resolution |
+| 6 | marketplace.json | Stale | Feature says "claude-flow integration" | Applied — updated to "ruflo integration" |
+| 7 | check-agentdb-integration.sh | Stale | Heavy "claude-flow" refs throughout | Deferred — parked (ms-007), will be rewritten if unparked |

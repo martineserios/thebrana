@@ -8,9 +8,9 @@ Sessions start automatically. The `session-start.sh` hook fires on every Session
 
 1. Derives project name from git root
 2. Sets `BRANA_PROJECT` and `BRANA_SESSION_ID` environment variables
-3. Searches claude-flow memory for project-relevant patterns
+3. Searches ruflo memory for project-relevant patterns
 4. Searches for high-confidence corrections (confidence >= 0.8)
-5. Falls back to native auto memory (`~/.claude/projects/*/memory/MEMORY.md`) when claude-flow unavailable
+5. Falls back to native auto memory (`~/.claude/projects/*/memory/MEMORY.md`) when ruflo unavailable
 6. Reads `tasks.json` and injects task summary (current phase, progress, next unblocked task)
 7. Checks self-learning flags (`.needs-backprop`, `pending-learnings.md`)
 8. Detects venture projects and nudges the daily-ops agent
@@ -29,7 +29,7 @@ No command needed -- just start working.
 2. Gathers evidence from git log and conversation
 3. Spawns the debrief-analyst agent to classify findings (errata, learnings, issues, correction patterns, cascade patterns, test coverage gaps)
 4. Writes errata entries to affected docs
-5. Stores learnings as patterns in claude-flow (or MEMORY.md fallback)
+5. Stores learnings as patterns in ruflo (or MEMORY.md fallback)
 6. Detects doc drift from system file changes
 7. Writes handoff note for the next session
 8. Reports a summary
@@ -40,7 +40,7 @@ The `session-end.sh` hook responds immediately, then forks heavy processing:
 
 - Reads accumulated session events from `/tmp/brana-session-{id}.jsonl`
 - Computes flywheel metrics: correction_rate, auto_fix_rate, test_write_rate, cascade_rate, test_pass_rate, lint_pass_rate
-- Stores session summary to claude-flow memory
+- Stores session summary to ruflo memory
 - Auto-generates minimal handoff if not written today
 - Cleans up temp files
 
@@ -58,4 +58,4 @@ Next session, the hook reads this and presents context automatically.
 
 - Say "done", "bye", or "closing" and brana auto-detects close mode
 - Read-only sessions (no commits) get a minimal handoff -- no full debrief
-- The system works even without claude-flow -- handoff notes and auto memory are the fallback
+- The system works even without ruflo -- handoff notes and auto memory are the fallback

@@ -265,13 +265,13 @@ Every dimension doc triaged for brana v2. [Docs 01](../dimensions/01-brana-syste
 **Verdict: Keep.** Maps the agent runtime landscape (OpenClaw, NanoClaw, ZeroClaw) for building chat interfaces powered by brana. Source for R5 (delivery layer for venture clients). Security analysis (OpenClaw CVEs) informs R3 assurance. Complements [doc 39-Kapso](../../../brana-knowledge/dimensions/39-kapso-ai-platform.md) as infrastructure layer.
 
 ### [Doc 37](../../../brana-knowledge/dimensions/37-ruvnet-development-practices.md) — ruvnet Development Practices
-**Verdict: Keep.** Studies claude-flow creator's development methodology — three-tier maturity model, MADR+SPARC ADRs, CCEPL failure taxonomy. Source for R4 lifecycle practices. 5 transferable practices identified for brana process improvement.
+**Verdict: Keep.** Studies ruflo creator's development methodology — three-tier maturity model, MADR+SPARC ADRs, CCEPL failure taxonomy. Source for R4 lifecycle practices. 5 transferable practices identified for brana process improvement.
 
 ### [Doc 38](../dimensions/38-design-thinking.md) — Design Thinking
 **Verdict: Keep.** Applies design thinking methodology (empathy mapping, HMW questions, divergent ideation) to brana's development process. Source for R5 creative methods, R2 skill design patterns.
 
 ### [Doc 39 — thebrana](../39-architecture-redesign.md) — Architecture Redesign
-**Verdict: Keep — supersedes item 2 above (PM Separation).** Three decisions: (1) merge enter/ into thebrana/ as `docs/` workspace, (2) evolve brana-knowledge/ into an active indexed knowledge base, (3) wire retrieval via claude-flow embeddings CLI. Spike validated (Phase 0.5 passed — 384-dim ONNX embeddings, semantic similarity confirmed). AgentDB stalled; fallback (embeddings + SQLite) is primary strategy. Migration phases: 0→0.5(done)→1(structural)→2(skill rewrites)→3(retrieval prototype)→4(scale content). R2 architecture directly affected; R3/R4/R5 will need updates when phases execute.
+**Verdict: Keep — supersedes item 2 above (PM Separation).** Three decisions: (1) merge enter/ into thebrana/ as `docs/` workspace, (2) evolve brana-knowledge/ into an active indexed knowledge base, (3) wire retrieval via ruflo embeddings CLI. Spike validated (Phase 0.5 passed — 384-dim ONNX embeddings, semantic similarity confirmed). AgentDB stalled; fallback (embeddings + SQLite) is primary strategy. Migration phases: 0→0.5(done)→1(structural)→2(skill rewrites)→3(retrieval prototype)→4(scale content). R2 architecture directly affected; R3/R4/R5 will need updates when phases execute.
 
 ### [Doc 39 — Kapso](../../../brana-knowledge/dimensions/39-kapso-ai-platform.md) — Kapso AI Platform
 **Verdict: Keep.** WhatsApp infrastructure for agent delivery — MCP server, webhooks, visual workflows, AI Fields, voice agents. Source for R5 (venture delivery). Concrete platform for proyecto_anita and somos_mirada WhatsApp services. Complements [doc 36](../../../brana-knowledge/dimensions/36-claw-ecosystem-chat-interface.md) (Kapso is delivery layer, claws are agent runtime).
@@ -302,13 +302,13 @@ Architectural questions that were open during initial design but have been resol
 
 2. **ReasoningBank confidence decay?** → Yes. Monthly decay function: unused patterns lose 0.05/month, failed patterns lose 0.2, below 0.2 gets auto-archived. Decay is not deletion — archived patterns are restorable. See [16-knowledge-health.md](../../../brana-knowledge/dimensions/16-knowledge-health.md).
 
-4. **How much of this can be native-only?** → claude-flow (now Ruflo) is an enhancement layer, not a hard dependency. The plugin + bootstrap architecture functions independently; claude-flow adds semantic memory search and cross-session pattern recall. Degrade gracefully: fall back to auto-memory (plain markdown) when claude-flow is unavailable. See [17-implementation-roadmap.md](../17-implementation-roadmap.md).
+4. **How much of this can be native-only?** → ruflo (now Ruflo) is an enhancement layer, not a hard dependency. The plugin + bootstrap architecture functions independently; ruflo adds semantic memory search and cross-session pattern recall. Degrade gracefully: fall back to auto-memory (plain markdown) when ruflo is unavailable. See [17-implementation-roadmap.md](../17-implementation-roadmap.md).
 
-5. **claude-flow stability risk?** → Every claude-flow call is wrapped in error handling. Degraded mode writes learnings to markdown fallback files. Each phase's dependency is additive — if a feature breaks, you lose that phase's enhancement but everything below still works. See [17-implementation-roadmap.md](../17-implementation-roadmap.md).
+5. **ruflo stability risk?** → Every ruflo call is wrapped in error handling. Degraded mode writes learnings to markdown fallback files. Each phase's dependency is additive — if a feature breaks, you lose that phase's enhancement but everything below still works. See [17-implementation-roadmap.md](../17-implementation-roadmap.md).
 
 6. **ADRs vs inline comments?** → Neither in pure form. Keep decisions in existing documents but extract a decision index — a generated list of key decisions with links to source sections. See [25-self-documentation.md](../25-self-documentation.md).
 
-12. **Native Agent Teams or claude-flow swarms?** → Hybrid. Native Agent Teams for execution coordination, claude-flow ReasoningBank for cross-session memory. First concrete pattern: multi-agent TDD with context isolation (see [14-mastermind-architecture.md](./14-mastermind-architecture.md), [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md), [11-ecosystem-skills-plugins.md](../../../brana-knowledge/dimensions/11-ecosystem-skills-plugins.md)).
+12. **Native Agent Teams or ruflo swarms?** → Hybrid. Native Agent Teams for execution coordination, ruflo ReasoningBank for cross-session memory. First concrete pattern: multi-agent TDD with context isolation (see [14-mastermind-architecture.md](./14-mastermind-architecture.md), [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md), [11-ecosystem-skills-plugins.md](../../../brana-knowledge/dimensions/11-ecosystem-skills-plugins.md)).
 
 ---
 
@@ -327,12 +327,12 @@ Architectural questions that were open during initial design but have been resol
 ### Claude-Flow Integration
 7. **ReasoningBank from day one or add later?** Starting with it means learning the tooling upfront. Adding later means retrofitting.
 8. **Which MCP tools are essential?** Of 170+ tools, which 10-15 provide 80% of the value?
-9. **How to handle claude-flow alpha instability?** Pin versions? Vendor specific modules? Wait for stable release?
+9. **How to handle ruflo alpha instability?** Pin versions? Vendor specific modules? Wait for stable release?
 
 ### Agent Strategy
 10. **How many agent types?** Current brana has 76 (too many). What's the right number? 10? 15? 20?
 11. **Should agents have persistent identities?** Named agents with memory vs anonymous workers spawned per task.
-12. ~~**Native Agent Teams or claude-flow swarms for coordination?**~~ → Resolved: hybrid. Native Agent Teams for execution coordination, claude-flow ReasoningBank for cross-session memory. First concrete pattern: multi-agent TDD with context isolation (see [14-mastermind-architecture.md](./14-mastermind-architecture.md) "Project Enforcement", [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md) "Multi-Agent TDD", [11-ecosystem-skills-plugins.md](../../../brana-knowledge/dimensions/11-ecosystem-skills-plugins.md) section 5).
+12. ~~**Native Agent Teams or ruflo swarms for coordination?**~~ → Resolved: hybrid. Native Agent Teams for execution coordination, ruflo ReasoningBank for cross-session memory. First concrete pattern: multi-agent TDD with context isolation (see [14-mastermind-architecture.md](./14-mastermind-architecture.md) "Project Enforcement", [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md) "Multi-Agent TDD", [11-ecosystem-skills-plugins.md](../../../brana-knowledge/dimensions/11-ecosystem-skills-plugins.md) section 5).
 
 ### Cost Optimization
 13. ~~**Is model routing worth the complexity?**~~ → Resolved: **not worth adding beyond the agent table.** TurboFlow's three-tier routing (Haiku → Sonnet → Opus) achieves ~75% cost reduction vs always-Opus by detecting complexity at task spawn time. Brana's agent roster already implements this statically: Haiku for 8 fast agents, Sonnet for pr-reviewer, Opus for challenger/debrief-analyst. The static assignment approximates dynamic routing without the complexity of a classifier. Add a session-level cost ceiling before adding dynamic routing — cost visibility first, routing second. See [45-turboflow-agent-orchestration.md](../../../brana-knowledge/dimensions/45-turboflow-agent-orchestration.md).

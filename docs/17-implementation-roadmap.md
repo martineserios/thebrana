@@ -1,8 +1,8 @@
-# 17 - Implementation Roadmap: Building the Mastermind on claude-flow
+# 17 - Implementation Roadmap: Building the Mastermind on ruflo
 
-How to go from spec documents to a working system. claude-flow is the foundation — everything builds on it. Phased approach from skeleton to self-improving brain.
+How to go from spec documents to a working system. ruflo is the foundation — everything builds on it. Phased approach from skeleton to self-improving brain.
 
-**Hard constraint:** claude-flow is the intelligence layer. Accept the alpha stability risk and plan around it.
+**Hard constraint:** ruflo is the intelligence layer. Accept the alpha stability risk and plan around it.
 
 ---
 
@@ -12,7 +12,7 @@ Decisions that shape this roadmap:
 
 | Constraint | Value | Implication |
 |---|---|---|
-| **Intelligence layer** | claude-flow (non-negotiable) | Accept alpha risk. Build safety nets. Never let instability block basic work. |
+| **Intelligence layer** | ruflo (non-negotiable) | Accept alpha risk. Build safety nets. Never let instability block basic work. |
 | **Subscription plan** | Max5 (1,000 msg/block) | Comfortable challenger budget. Can auto-challenge medium+ decisions, run debates on critical ones. |
 | **Active projects** | 3-5 during build period | Good pattern accumulation rate. ~50 patterns in 4-6 weeks. Cross-pollination valuable early. |
 | **Core value** | Cross-project intelligence | Phase 0-1 is scaffolding. Phase 2+ is where the system earns its existence. Invest quality engineering in the learning loop. |
@@ -20,11 +20,11 @@ Decisions that shape this roadmap:
 
 ---
 
-## The Foundation Constraint: Why claude-flow
+## The Foundation Constraint: Why ruflo
 
-claude-flow provides what would take months to build from scratch:
+ruflo provides what would take months to build from scratch:
 
-| Capability | What claude-flow Gives You | Alternative Without It |
+| Capability | What ruflo Gives You | Alternative Without It |
 |---|---|---|
 | **Cross-project memory** | ReasoningBank — SQLite-backed, tagged, queryable | Build your own or use flat files |
 | **Self-learning** | SONA — trajectory tracking, MoE routing, anti-catastrophic-forgetting | Nothing. This doesn't exist natively. |
@@ -34,7 +34,7 @@ claude-flow provides what would take months to build from scratch:
 | **Agent orchestration** | 60+ specialized agents, swarm coordination, consensus | Claude Code's native subagents (limited) |
 
 **The tradeoff:** alpha stability, documentation gaps, potential breaking changes.
-**The bet:** claude-flow is powerful and will keep improving. Building on it compounds with every upstream release.
+**The bet:** ruflo is powerful and will keep improving. Building on it compounds with every upstream release.
 
 ---
 
@@ -44,33 +44,33 @@ claude-flow provides what would take months to build from scratch:
 
 ```bash
 # Pin to exact version, not range
-npm install -g claude-flow@2.5.0-alpha.130
+npm install -g ruflo@2.5.0-alpha.130
 
-# In any script that calls claude-flow:
+# In any script that calls ruflo:
 CLAUDE_FLOW_VERSION="2.5.0-alpha.130"
-cd "$HOME" && npx claude-flow@$CLAUDE_FLOW_VERSION memory search --query "..."
+cd "$HOME" && npx ruflo@$CLAUDE_FLOW_VERSION memory search --query "..."
 ```
 
 Never `@latest` in production. Test new versions in staging before upgrading.
 
-> **Updated (2026-02-12):** `npx claude-flow` is now an anti-pattern (see errata #25, lesson #17). npx creates a separate package cache missing sql.js. All scripts and `.mcp.json` must use the **global binary directly** instead:
+> **Updated (2026-02-12):** `npx ruflo` is now an anti-pattern (see errata #25, lesson #17). npx creates a separate package cache missing sql.js. All scripts and `.mcp.json` must use the **global binary directly** instead:
 > ```bash
 > # Smart binary discovery (replaces npx in all examples below)
 > CF=""
 > for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
 >     [ -x "$candidate" ] && CF="$candidate" && break
 > done
-> [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
+> [ -z "$CF" ] && command -v ruflo &>/dev/null && CF="ruflo"
 > cd "$HOME" && $CF memory search --query "test"
 > ```
-> `deploy.sh` auto-installs sql.js on every deploy. After manual `npm install -g claude-flow`, run: `npm install sql.js --prefix $(dirname $(which claude-flow))/..`
+> `deploy.sh` auto-installs sql.js on every deploy. After manual `npm install -g ruflo`, run: `npm install sql.js --prefix $(dirname $(which ruflo))/..`
 
 ### Wrap Every Call
 
 ```bash
-# Every claude-flow command wrapped in error handling
+# Every ruflo command wrapped in error handling
 recall_patterns() {
-  result=$(cd "$HOME" && npx claude-flow@$CLAUDE_FLOW_VERSION memory search --query "$1" 2>/dev/null)
+  result=$(cd "$HOME" && npx ruflo@$CLAUDE_FLOW_VERSION memory search --query "$1" 2>/dev/null)
   if [ $? -ne 0 ]; then
     echo "⚠ ReasoningBank unavailable. Working without memory."
     return 0  # Degrade, never crash
@@ -82,7 +82,7 @@ recall_patterns() {
 ### Backup Before Upgrade
 
 ```bash
-# upgrade-claude-flow.sh
+# upgrade-ruflo.sh
 #!/bin/bash
 NEW_VERSION=$1
 
@@ -90,18 +90,18 @@ NEW_VERSION=$1
 sqlite3 ~/.swarm/memory.db ".backup upgrade_backup_$(date +%Y%m%d).db"
 
 # 2. Install new version in parallel
-npm install -g claude-flow@$NEW_VERSION
+npm install -g ruflo@$NEW_VERSION
 
 # 3. Run smoke tests
-cd "$HOME" && npx claude-flow@$NEW_VERSION memory search --query "test" > /dev/null 2>&1
+cd "$HOME" && npx ruflo@$NEW_VERSION memory search --query "test" > /dev/null 2>&1
 if [ $? -ne 0 ]; then
   echo "FAIL: New version can't query ReasoningBank. Keeping old version."
-  npm install -g claude-flow@$CLAUDE_FLOW_VERSION
+  npm install -g ruflo@$CLAUDE_FLOW_VERSION
   exit 1
 fi
 
 # 4. Update pinned version
-echo "Upgraded to claude-flow@$NEW_VERSION"
+echo "Upgraded to ruflo@$NEW_VERSION"
 ```
 
 ### Two-Layer Memory Architecture
@@ -116,7 +116,7 @@ Layer 0 — Native Auto Memory (always available, zero dependency)
   ~/.claude/projects/<proj>/memory/   ← Per-project auto memory
   ~/.claude/agent-memory/<agent>/     ← Subagent persistent memory (memory: user)
 
-Layer 1 — ReasoningBank (when claude-flow available)
+Layer 1 — ReasoningBank (when ruflo available)
   ~/.swarm/memory.db                  ← Vector-indexed, tagged, queryable
   HNSW similarity search              ← Find semantically related patterns
   Confidence scoring                  ← Track what works vs what doesn't
@@ -125,9 +125,9 @@ Layer 1 — ReasoningBank (when claude-flow available)
 
 **Normal mode:** Layer 1 enriches Layer 0. SessionStart queries ReasoningBank AND reads auto memory. Both contribute context.
 
-**Degraded mode (claude-flow unavailable):** Layer 0 carries the load alone. The system is less intelligent but has access to everything you explicitly wrote to auto memory files. Learnings go to `~/.claude/memory/pending-learnings.md` and flush to ReasoningBank when it's back.
+**Degraded mode (ruflo unavailable):** Layer 0 carries the load alone. The system is less intelligent but has access to everything you explicitly wrote to auto memory files. Learnings go to `~/.claude/memory/pending-learnings.md` and flush to ReasoningBank when it's back.
 
-**Key design rule:** Anything critical enough to survive claude-flow outage should ALSO be written to Layer 0. The SessionEnd hook writes to both layers. Universal high-confidence patterns get appended to MEMORY.md, not just stored in ReasoningBank.
+**Key design rule:** Anything critical enough to survive ruflo outage should ALSO be written to Layer 0. The SessionEnd hook writes to both layers. Universal high-confidence patterns get appended to MEMORY.md, not just stored in ReasoningBank.
 
 ### SONA Fallback Plan
 
@@ -159,7 +159,7 @@ Plan B cost:
 
 ## Phase 0: The Skeleton (Week 1-2)
 
-**Goal:** A working project structure with claude-flow installed, ReasoningBank initialized, and a knowledge export escape hatch. No intelligence yet — just the bones and the safety net.
+**Goal:** A working project structure with ruflo installed, ReasoningBank initialized, and a knowledge export escape hatch. No intelligence yet — just the bones and the safety net.
 
 **Bootstrap note:** This phase builds the safety rails while having no safety rails. You're doing manual brain surgery. Every file you create here will later be managed by the system it defines. Accept this — there's no way around it. The validation scripts are the first safety you build, so build them first and use them on everything that follows.
 
@@ -198,21 +198,21 @@ Plan B cost:
 └── README.md
 ```
 
-**Testing strategy:** The actual implementation uses a 3-layer test suite: `validate.sh` (static checks — YAML, JSON, syntax, secrets, context budget), `test-hooks.sh` (pipe fake JSON to deployed hooks, verify exit 0 + valid JSON), `test-memory.sh` (claude-flow store → search → verify round-trip). Wrapped by `test.sh` which runs all layers. The full 7-layer pyramid from [22-testing.md](dimensions/22-testing.md) is adopted pain-driven — add layers as failures motivate them, not upfront. Run `./test.sh` before merging to master.
+**Testing strategy:** The actual implementation uses a 3-layer test suite: `validate.sh` (static checks — YAML, JSON, syntax, secrets, context budget), `test-hooks.sh` (pipe fake JSON to deployed hooks, verify exit 0 + valid JSON), `test-memory.sh` (ruflo store → search → verify round-trip). Wrapped by `test.sh` which runs all layers. The full 7-layer pyramid from [22-testing.md](dimensions/22-testing.md) is adopted pain-driven — add layers as failures motivate them, not upfront. Run `./test.sh` before merging to master.
 
-### claude-flow Setup
+### ruflo Setup
 
 ```bash
 # Install and pin
-npm install -g claude-flow@2.5.0-alpha.130
+npm install -g ruflo@2.5.0-alpha.130
 
 # Initialize ReasoningBank
-npx claude-flow init
+npx ruflo init
 # Creates ~/.swarm/memory.db (empty)
 # Creates ~/.swarm/config.yaml
 
 # Verify it works
-cd "$HOME" && npx claude-flow memory search --query "test"
+cd "$HOME" && npx ruflo memory search --query "test"
 # Should return empty results, not an error
 ```
 
@@ -255,7 +255,7 @@ echo "Knowledge exported to $EXPORT_DIR"
 echo "This is system-agnostic. Can be imported into any future system."
 ```
 
-If claude-flow dies tomorrow, this JSON + markdown export preserves everything. Build it before you put a single pattern in.
+If ruflo dies tomorrow, this JSON + markdown export preserves everything. Build it before you put a single pattern in.
 
 ### Context Budget
 
@@ -273,7 +273,7 @@ Start minimal:
 - [x] `backup-knowledge.sh` creates ReasoningBank snapshot
 - [x] `export-knowledge.sh` produces portable JSON + markdown
 - [x] All validation scripts pass
-- [x] claude-flow CLI responds to basic commands
+- [x] ruflo CLI responds to basic commands
 
 **Value:** Phase 0 has no value metric — it's pure scaffolding. That's OK. The value starts in Phase 1.
 
@@ -289,7 +289,7 @@ Start minimal:
 
 Build in this order (each depends on the previous being conceptually proven):
 
-| # | Skill | claude-flow Feature | Why This Order |
+| # | Skill | ruflo Feature | Why This Order |
 |---|-------|-------------------|---------------|
 | 1 | `/brana:memory recall` | `memory search -q` | Most fundamental — query before working |
 | 2 | `/brana:retrospective` | `memory store -k -v --namespace --tags` | Store learnings manually — test the write path |
@@ -338,7 +338,7 @@ The code/PM repo separation from brana v1 (doc 03) carries forward. Phase 1 ensu
 - **`~/.claude/rules/pm-awareness.md`** (unconditional rule): "When starting a feature, check for a PM repo at .claude/context/pm. If it exists, read the BACKLOG.md and current sprint before planning."
 - **`/project-onboard`** for new projects: "Suggest creating a PM repo and symlinking it per the brana convention. Offer to scaffold features/ planning/ architecture/ decisions/ structure."
 
-This is lightweight — a rule + awareness in the onboard skill. The PM framework itself is organizational, not something claude-flow handles. But the mastermind should know about it.
+This is lightweight — a rule + awareness in the onboard skill. The PM framework itself is organizational, not something ruflo handles. But the mastermind should know about it.
 
 ### User Feedback Loop
 
@@ -397,10 +397,10 @@ Action:
      b. Patterns from similar tech stacks
      c. Universal high-confidence patterns (>0.8)
   3. Inject brief context summary
-Fallback: If claude-flow unavailable → skip, log warning
+Fallback: If ruflo unavailable → skip, log warning
 ```
 
-**claude-flow command:** `cd "$HOME" && npx claude-flow@$VERSION memory search --query "client:$(basename $PWD)"`
+**ruflo command:** `cd "$HOME" && npx ruflo@$VERSION memory search --query "client:$(basename $PWD)"`
 
 #### Hook 2: SessionEnd — "Remember what you learned"
 
@@ -417,11 +417,11 @@ Action:
   4. ALWAYS also write to Layer 0:
      - Universal patterns → append to ~/.claude/memory/MEMORY.md
      - Project patterns → append to project auto memory
-     - This ensures critical knowledge survives claude-flow outages
-Fallback: If claude-flow unavailable → write to ~/.claude/memory/pending-learnings.md
+     - This ensures critical knowledge survives ruflo outages
+Fallback: If ruflo unavailable → write to ~/.claude/memory/pending-learnings.md
 ```
 
-**claude-flow command:** `cd "$HOME" && npx claude-flow@$VERSION memory store -k "pattern:$PROJECT:{id}" -v '{...}' --namespace patterns --tags "client:$PROJECT"`
+**ruflo command:** `cd "$HOME" && npx ruflo@$VERSION memory store -k "pattern:$PROJECT:{id}" -v '{...}' --namespace patterns --tags "client:$PROJECT"`
 
 #### Hook 3: PostToolUse + PostToolUseFailure — "Notice important moments"
 
@@ -432,14 +432,14 @@ PostToolUse:
     - If tests pass after a fix → record the fix pattern
     - If deployment succeeds → record the deployment approach
     Filter: Only fire on learning-worthy moments (not every file save)
-  Fallback: Skip entirely if claude-flow unavailable
+  Fallback: Skip entirely if ruflo unavailable
 
 PostToolUseFailure (SEPARATE event — needs its own hook config):
   Trigger: Write|Edit|Bash — fires on FAILURE
   Action:
     - Record what didn't work (anti-patterns are often more valuable than successes)
     - Store as type: "failure" in ReasoningBank
-  Fallback: Skip entirely if claude-flow unavailable
+  Fallback: Skip entirely if ruflo unavailable
 ```
 
 **Important:** Both hooks must be async (`"async": true`) and lightweight. Use environment variable guard (`BRANA_HOOK_RUNNING=1`) to prevent infinite loops. Async hooks cannot block or return decisions — they can only log and provide feedback on the next turn.
@@ -493,7 +493,7 @@ This alone prevents the worst failure mode — bad patterns cross-pollinating be
 
 ### The Markdown Fallback
 
-When claude-flow is unavailable, learnings go to `~/.claude/memory/pending-learnings.md`:
+When ruflo is unavailable, learnings go to `~/.claude/memory/pending-learnings.md`:
 
 ```markdown
 ## Pending Learnings (will sync to ReasoningBank when available)
@@ -513,7 +513,7 @@ A daily cron or next-SessionStart can flush pending learnings to ReasoningBank.
 - [x] SessionStart hook fires and injects relevant context
 - [x] SessionEnd hook extracts patterns and stores them (ReasoningBank + Layer 0)
 - [x] PostToolUse hook captures learning-worthy moments
-- [x] All hooks degrade gracefully when claude-flow is unavailable
+- [x] All hooks degrade gracefully when ruflo is unavailable
 - [x] No infinite hook loops (environment guard works)
 - [x] Full recall→learn→recall cycle verified end-to-end
 - [x] Markdown fallback works when ReasoningBank is down
@@ -533,7 +533,7 @@ A daily cron or next-SessionStart can flush pending learnings to ReasoningBank.
 
 ## Phase 3: Intelligence Layer + SONA (Weeks 6-10)
 
-**Goal:** Activate the advanced claude-flow intelligence features — IF they work. SONA self-learning, token routing for cost optimization, and the quarantine promotion system. This phase has a built-in evaluation gate: if SONA doesn't deliver, fall to Plan B (see Risk Mitigation above) and still get quarantine, skill discovery, and challenge improvements.
+**Goal:** Activate the advanced ruflo intelligence features — IF they work. SONA self-learning, token routing for cost optimization, and the quarantine promotion system. This phase has a built-in evaluation gate: if SONA doesn't deliver, fall to Plan B (see Risk Mitigation above) and still get quarantine, skill discovery, and challenge improvements.
 
 ### SONA Activation
 
@@ -555,7 +555,7 @@ Post-SONA (Phase 3+):
 **Activation steps (with evaluation gate):**
 1. Verify 50+ patterns exist in ReasoningBank
 2. Enable SONA in `~/.swarm/config.yaml`
-3. Run initial training: `npx claude-flow neural train`
+3. Run initial training: `npx ruflo neural train`
 4. **Evaluation gate (1 week):**
    a. Prepare 10 test queries (problems you've already solved, answers known)
    b. Run each query with SONA and with tag-only
@@ -574,7 +574,7 @@ The SONA evaluation gate above follows Anthropic's proven eval methodology (see 
 
 **pass@k vs pass^k:** At 75% success per trial with 3 trials, pass@3 = ~97% (at least one succeeds) but pass^3 = ~42% (all must succeed). For pattern recall, pass@1 is what matters — does the first query return useful results?
 
-**Capability vs regression:** The SONA gate is a capability eval (can it do better?). Once SONA is accepted, convert the test queries into a regression suite — run them after every claude-flow upgrade to verify nothing degraded.
+**Capability vs regression:** The SONA gate is a capability eval (can it do better?). Once SONA is accepted, convert the test queries into a regression suite — run them after every ruflo upgrade to verify nothing degraded.
 
 **Infrastructure noise awareness:** Score differences below 3% should be treated with skepticism. SONA must show a *clear* improvement, not a marginal one within noise range.
 
@@ -885,7 +885,7 @@ The escape hatch grows with the system. Every new data type stored gets an expor
 
 ```
 Weeks 1-2       Phase 0: Skeleton
-                ├─ Project structure, deploy pipeline, claude-flow init
+                ├─ Project structure, deploy pipeline, ruflo init
                 ├─ Export escape hatch (before putting any knowledge in)
                 └─ Tag: v0.1.0
 
@@ -924,7 +924,7 @@ Month 4+        Phase 5: Self-Improvement (ongoing)
 **Total to v0.5.0 (functional system):** ~14 weeks (was 12 — added buffer for alpha instability and accumulation time)
 **Total to v1.0.0 (self-improving):** ~4 months + ongoing (was 3 — realistic given evaluation gates)
 
-**Why the stretch:** The original timeline assumed everything works first try and patterns accumulate on schedule. Adding 2 weeks of buffer accounts for: claude-flow alpha issues requiring workarounds, SONA evaluation potentially going to Plan B, and the reality that pattern accumulation depends on how many sessions you run, not calendar time.
+**Why the stretch:** The original timeline assumed everything works first try and patterns accumulate on schedule. Adding 2 weeks of buffer accounts for: ruflo alpha issues requiring workarounds, SONA evaluation potentially going to Plan B, and the reality that pattern accumulation depends on how many sessions you run, not calendar time.
 
 ---
 
@@ -959,9 +959,9 @@ Phases are sequential but overlap is fine — you can start building Phase 2 hoo
 
 ---
 
-## What Each Phase Depends On From claude-flow
+## What Each Phase Depends On From ruflo
 
-| Phase | claude-flow Features | Risk if Feature Breaks |
+| Phase | ruflo Features | Risk if Feature Breaks |
 |---|---|---|
 | **0** | CLI install, `init` | Can't start. Wait for fix or use older version. |
 | **1** | `memory search`, `memory store` | Skills work manually, just slower. |
@@ -970,7 +970,7 @@ Phases are sequential but overlap is fine — you can start building Phase 2 hoo
 | **4** | ReasoningBank queries, stats, bulk operations | Immune system degrades. Manual audits still possible. |
 | **5** | Full stack + self-referential patterns | Self-improvement pauses. System still functional. |
 
-**The key insight:** each phase's dependency on claude-flow is additive. If a feature breaks, you lose the enhancement from that phase but everything below it still works. Phase 0 with no claude-flow = plain Claude Code with good organization. That's the floor, not a disaster.
+**The key insight:** each phase's dependency on ruflo is additive. If a feature breaks, you lose the enhancement from that phase but everything below it still works. Phase 0 with no ruflo = plain Claude Code with good organization. That's the floor, not a disaster.
 
 ---
 
@@ -990,8 +990,8 @@ Phases are sequential but overlap is fine — you can start building Phase 2 hoo
 □ Create rollback.sh
 □ Create backup-knowledge.sh
 □ Create export-knowledge.sh             ← the escape hatch (before any knowledge goes in)
-□ npm install -g claude-flow@2.5.0-alpha.130
-□ npx claude-flow init
+□ npm install -g ruflo@2.5.0-alpha.130
+□ npx ruflo init
 □ Run export-knowledge.sh → verify it produces output (even if empty)
 □ Run deploy.sh → verify symlinks
 □ Start a claude session → verify identity loads
@@ -1009,7 +1009,7 @@ Phases are sequential but overlap is fine — you can start building Phase 2 hoo
 - [15-self-development-workflow.md](./15-self-development-workflow.md) — Deploy pipeline, testing, versioning
 - [16-knowledge-health.md](dimensions/16-knowledge-health.md) — Immune system implemented in Phase 4
 - [24-roadmap-corrections.md](./24-roadmap-corrections.md) — Errata: deploy.sh merge bug, Stop→SessionEnd, hook format, PostToolUseFailure
-- [05-claude-flow-v3-analysis.md](dimensions/05-claude-flow-v3-analysis.md) — claude-flow architecture
+- [05-claude-flow-v3-analysis.md](dimensions/05-claude-flow-v3-analysis.md) — ruflo architecture
 - [06-claude-flow-internals.md](dimensions/06-claude-flow-internals.md) — SONA, RuVector, WASM details
 - [11-ecosystem-skills-plugins.md](dimensions/11-ecosystem-skills-plugins.md) — Plugin selections for Phase 1
 - [12-skill-selector.md](dimensions/12-skill-selector.md) — Trust model, skill catalog, discovery, quarantine

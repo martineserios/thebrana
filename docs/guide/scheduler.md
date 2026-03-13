@@ -58,7 +58,7 @@ The scheduler config lives at `~/.claude/scheduler/scheduler.json`. Bootstrap cr
 | `timeoutSeconds` | `300` | Max runtime before timeout (exit code 124) |
 | `maxRetries` | `0` | Retry count on failure (0 = no retries) |
 | `retryBackoffSec` | `30` | Base backoff between retries (doubles each attempt) |
-| `captureOutput` | `true` | Store run summary in claude-flow memory |
+| `captureOutput` | `true` | Store run summary in ruflo memory |
 
 ### Job types
 

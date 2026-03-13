@@ -26,7 +26,7 @@ This separation was designed to enforce the distinction between "designing the s
 
 4. **Cross-repo operations are pure plumbing.** `/back-propagate` creates worktrees in enter. `/brana:reconcile` reads enter and writes thebrana. `/brana:maintain-specs` triggers reconcile across repos. The sync discipline is valuable; the repo boundary adds plumbing, not value.
 
-5. **No general knowledge system.** Brana captures development patterns (claude-flow memory) and brana-specific research (enter docs). Business domain knowledge, methodology knowledge, and cross-domain insights have no home.
+5. **No general knowledge system.** Brana captures development patterns (ruflo memory) and brana-specific research (enter docs). Business domain knowledge, methodology knowledge, and cross-domain insights have no home.
 
 ### What Phase 4 proved
 
@@ -88,18 +88,18 @@ brana-knowledge/
 - Auto-generated INDEX.md from YAML frontmatter
 - Same dimension→reflection pattern proven by enter's 39 docs
 
-### 3. Wire retrieval via claude-flow embeddings
+### 3. Wire retrieval via ruflo embeddings
 
 **Primary strategy (validated by spike):**
 
 | Component | Package | Version | Role |
 |-----------|---------|---------|------|
-| Orchestration | claude-flow | alpha.50 | MCP, memory, CLI |
+| Orchestration | ruflo | alpha.50 | MCP, memory, CLI |
 | Embeddings | @claude-flow/embeddings | alpha.12 | ONNX generation (384-dim, all-MiniLM-L6-v2) |
-| Storage | claude-flow memory | (built-in) | SQLite, namespace/tag queries |
+| Storage | ruflo memory | (built-in) | SQLite, namespace/tag queries |
 
 **Spike results (2026-02-25):**
-- CLI works without MCP session: `claude-flow embeddings generate --text "..."`
+- CLI works without MCP session: `ruflo embeddings generate --text "..."`
 - Speed: ~300ms cached, ~2.6s cold start (NOT 3ms as docs claim)
 - Semantic accuracy: cosine 0.65 (related) vs 0.23 (unrelated)
 - `@claude-flow/embeddings` MUST be installed — without it, silently degrades to useless 128-dim hash
@@ -108,7 +108,7 @@ brana-knowledge/
 
 AgentDB (alpha.3.3) is stalled — last npm publish Jan 2, 2026. @claude-flow/memory references alpha.3.7 which doesn't exist on npm. Kill date: 2026-06-24. If it matures, upgrade. If not, the embeddings + SQLite path is complete.
 
-**Supersedes ADR-005:** ADR-005 proposed AgentDB v3 as primary backend with phased migration. This ADR downgrades AgentDB to deferred/optional. The fallback strategy described in ADR-005 (continue with claude-flow memory + embeddings) becomes the primary strategy.
+**Supersedes ADR-005:** ADR-005 proposed AgentDB v3 as primary backend with phased migration. This ADR downgrades AgentDB to deferred/optional. The fallback strategy described in ADR-005 (continue with ruflo memory + embeddings) becomes the primary strategy.
 
 ## Migration Plan
 

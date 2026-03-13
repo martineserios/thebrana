@@ -290,7 +290,7 @@ Store a learning or pattern in the knowledge system.
 **Trigger:** After notable discoveries, unexpected issues, successful workarounds, or reusable patterns.
 **Allowed tools:** Bash, Read, Write, Glob, Grep, AskUserQuestion
 
-**Process:** Structure learning as pattern (problem, solution, tags, confidence 0.5) -> Store in claude-flow or MEMORY.md fallback -> Review recalled patterns for promotion/demotion -> Backup knowledge.
+**Process:** Structure learning as pattern (problem, solution, tags, confidence 0.5) -> Store in ruflo or MEMORY.md fallback -> Review recalled patterns for promotion/demotion -> Backup knowledge.
 
 **Promotion:** Patterns with 3+ recalls or correction_weight >= 2 get promoted to confidence 0.8 and transferable.
 

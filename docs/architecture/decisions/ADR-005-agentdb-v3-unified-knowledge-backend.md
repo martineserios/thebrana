@@ -1,7 +1,7 @@
 # ADR-005: AgentDB v3 + RVF as Unified Knowledge Backend
 
 **Date:** 2026-02-24
-**Status:** partially activated (2026-02-27) — AgentDB v3 integrated via claude-flow v3.5.1 + ControllerRegistry shim. Relational + vector layers active (BM25 hybrid search). Graph layer deferred (Cypher controllers return null). Original kill date (2026-06-24) superseded by successful integration.
+**Status:** partially activated (2026-02-27) — AgentDB v3 integrated via ruflo v3.5.1 + ControllerRegistry shim. Relational + vector layers active (BM25 hybrid search). Graph layer deferred (Cypher controllers return null). Original kill date (2026-06-24) superseded by successful integration.
 
 ## Context
 
@@ -45,10 +45,10 @@ AgentDB v3 replaces the current dual-layer store (SQLite `memory.db` + separate 
 - Monitor AgentDB v3 releases (alpha.4+)
 
 **Phase 1 — Hybrid (when AgentDB v3 reaches beta or alpha.5+)**
-- Install AgentDB v3 alongside existing claude-flow memory
+- Install AgentDB v3 alongside existing ruflo memory
 - New writes go to AgentDB; reads check both backends
 - AgentDB's `LegacyDataBridge` handles schema mapping from existing `memory.db`
-- Existing claude-flow MCP tools (`memory_store`, `memory_search`) still work
+- Existing ruflo MCP tools (`memory_store`, `memory_search`) still work
 - RVF CLI used for inspection: `rvf status`, `rvf inspect`, `rvf verify-witness`
 
 **Phase 2 — Gradual (after hybrid validation)**
@@ -176,7 +176,7 @@ Pro: zero risk. Con: artifact scatter worsens, stale HNSW persists, RVF file isn
 - Session snapshots via COW branching — currently manual
 - Audit trail via witness chain — currently no mutation tracking
 - Temperature-based knowledge aging — currently all patterns equal
-- Phased migration: no big-bang, hybrid coexistence with existing claude-flow
+- Phased migration: no big-bang, hybrid coexistence with existing ruflo
 - Rust enters the stack via pre-built binary (zero build cost)
 
 ### Becomes harder
@@ -191,4 +191,4 @@ Cleanup + backup updates + monitoring. Fully reversible. No behavior change.
 ### New dependencies
 - `rvf-cli` 0.1.0 (Rust, installed via cargo)
 - `agentdb` npm package (Phase 1+, when stable)
-- Monitor: AgentDB releases, RVF CLI updates, claude-flow integration (Issue #829)
+- Monitor: AgentDB releases, RVF CLI updates, ruflo integration (Issue #829)

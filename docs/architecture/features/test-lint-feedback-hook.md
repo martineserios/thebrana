@@ -32,7 +32,7 @@ SESSION END                                               v
                                               session-end.sh
                                               |-- Count outcomes
                                               |-- Compute 7 flywheel rates
-                                              |-- Store to claude-flow (Layer 1)
+                                              |-- Store to ruflo (Layer 1)
                                               |-- Write to sessions.md (Layer 0)
                                               +-- Detect system file drift
 
@@ -97,7 +97,7 @@ Result: 1 fix / 1 failure = auto_fix_rate 1.00
 
 ## Two-Layer Storage
 
-- **Layer 1:** claude-flow SQLite + HNSW. Keys: `session:{project}:{id}` (patterns), `flywheel:{project}:{id}` (metrics)
+- **Layer 1:** ruflo SQLite + HNSW. Keys: `session:{project}:{id}` (patterns), `flywheel:{project}:{id}` (metrics)
 - **Layer 0:** `sessions.md` (always written), `pending-learnings.md` (L1 fallback)
 
 ## Known Issues (Challenger 2026-03-03)

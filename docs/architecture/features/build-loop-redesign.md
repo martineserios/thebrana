@@ -44,7 +44,7 @@ Challenger review (Opus adversarial) identified:
 
 - Must preserve TDD enforcement (PreToolUse hook on feat/* branches)
 - Must preserve git discipline (branching, worktrees, --no-ff)
-- Must work without claude-flow (graceful degradation to auto memory)
+- Must work without ruflo (graceful degradation to auto memory)
 - Must not break existing projects that reference current skill names
 - Documentation is a build deliverable, not optional
 
@@ -75,7 +75,7 @@ One command: `/brana:build "description"`
 - Research loop: knowledge base → project docs → cross-client patterns → web
 - Present findings, discuss with user — user controls pace
 - Scout agents run web research in parallel while discussing
-- Auto-store findings in claude-flow (confidence: 0.3, ttl: 30d — ages out if not promoted)
+- Auto-store findings in ruflo (confidence: 0.3, ttl: 30d — ages out if not promoted)
 - User signal ("draft it", "ready", "let's spec this") moves to draft
 - At draft: auto-suggest dimension doc updates, write feature spec
 - Challenger review: spawned as separate agent (context isolation preserved)
@@ -149,7 +149,7 @@ One command: `/brana:build "description"`
 **CLOSE** (all strategies except spike and investigation):
 - Validate acceptance criteria
 - Retrospective: what errors/re-approaches happened? What to remember?
-- Store learnings (claude-flow, confidence: 0.5)
+- Store learnings (ruflo, confidence: 0.5)
 - Update feature spec status → shipped (contributor doc)
 - Write/update user guide (user doc)
 - Update task status → completed (if started via /brana:backlog start)
@@ -318,7 +318,7 @@ Sources:
 
 ```
 session-start.sh (hook, automatic)
-├── Recall patterns from claude-flow
+├── Recall patterns from ruflo
 ├── Read session-handoff.md (absorbs /pickup)
 ├── Detect venture project (absorbs session-start-venture.sh)
 └── Present context

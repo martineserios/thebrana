@@ -24,7 +24,7 @@ Three layers, each with its own persistence:
 │  Core principles, personality, portfolio │
 ├─────────────────────────────────────────┤
 │  INTELLIGENCE — What do I know?         │
-│  claude-flow memory.db                   │
+│  ruflo memory.db                   │
 │  Cross-project patterns, learnings       │
 ├─────────────────────────────────────────┤
 │  CONTEXT — What am I working on?        │
@@ -35,7 +35,7 @@ Three layers, each with its own persistence:
 
 **Identity** is the `CLAUDE.md` file that defines who the assistant is — principles, agent table, portfolio index. It's loaded every session.
 
-**Intelligence** is the memory system — claude-flow's `memory.db` stores patterns with semantic embeddings (all-MiniLM-L6-v2, 384-dim). The knowledge base (315+ sections from 33 dimension docs) is also indexed here.
+**Intelligence** is the memory system — ruflo's `memory.db` stores patterns with semantic embeddings (all-MiniLM-L6-v2, 384-dim). The knowledge base (315+ sections from 33 dimension docs) is also indexed here.
 
 **Context** is the per-project `.claude/` directory — project-specific `CLAUDE.md`, `tasks.json`, and auto memory.
 
@@ -101,7 +101,7 @@ Every session follows this arc:
 
 Two hooks fire automatically:
 
-- **session-start.sh** — Derives the project name from git root, queries claude-flow for recent patterns, recalls relevant knowledge. Injects context via `additionalContext`.
+- **session-start.sh** — Derives the project name from git root, queries ruflo for recent patterns, recalls relevant knowledge. Injects context via `additionalContext`.
 - **session-start-venture.sh** — Detects venture clients (by checking for `docs/sops/`, `docs/okrs/`, etc.) and nudges the daily-ops agent if found.
 
 The result: Claude starts the session already knowing what project you're in, what patterns apply, and what happened last time.
@@ -120,7 +120,7 @@ During work, hooks monitor tool usage:
 
 ### 3. Session End
 
-- **session-end.sh** — Flushes accumulated session events to persistent storage. Computes flywheel metrics: correction rate, auto-fix rate, test write rate, cascade rate, delegation count. Writes a session summary to claude-flow memory.
+- **session-end.sh** — Flushes accumulated session events to persistent storage. Computes flywheel metrics: correction rate, auto-fix rate, test write rate, cascade rate, delegation count. Writes a session summary to ruflo memory.
 
 ## The Feedback Loop
 
@@ -158,14 +158,14 @@ Claude Code's built-in per-project memory at `~/.claude/projects/*/memory/`. Eac
 
 ### Layer 2: Claude-Flow Memory
 
-The `claude-flow` MCP server provides semantic search over a SQLite database with ONNX embeddings. This enables cross-client pattern recall and knowledge base search.
+The `ruflo` MCP server provides semantic search over a SQLite database with ONNX embeddings. This enables cross-client pattern recall and knowledge base search.
 
 Namespaces:
 - `specs` — specification-related patterns
 - `decisions` — architectural decisions
 - `knowledge` — dimension doc content (315+ indexed sections)
 
-When claude-flow is unavailable, the system degrades gracefully — auto memory still works, just without cross-client search.
+When ruflo is unavailable, the system degrades gracefully — auto memory still works, just without cross-client search.
 
 ## Skills
 
@@ -217,7 +217,7 @@ See [agents.md](agents.md) for the full roster.
 - [Claude Code](https://claude.ai/code) CLI installed
 - Git
 - `jq` (for hooks)
-- Optional: `claude-flow` MCP server for cross-client memory
+- Optional: `ruflo` MCP server for cross-client memory
 
 ### Install
 

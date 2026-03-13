@@ -35,7 +35,7 @@ Solo developer using brana's `/brana:backlog` skill to manage backlogs across cl
 
 ## Deferred
 - Auto-priority / ICE scoring (future automation dial)
-- Duplicate detection via embeddings (needs claude-flow, separate task)
+- Duplicate detection via embeddings (needs ruflo, separate task)
 - `/brana:backlog groom` command (separate feature)
 - `/brana:backlog dump` brain-dump mode (separate feature)
 - Discovery stream (needs broader workflow design)

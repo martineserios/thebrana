@@ -26,13 +26,13 @@ Claude Code 2.1.71 introduced a native plugin system (`.claude-plugin/plugin.jso
 
 thebrana has two concerns:
 1. **Toolkit** (skills, agents, hooks, commands) — distributable, versioned, isolated
-2. **Identity** (CLAUDE.md, rules, scripts, scheduler, claude-flow) — personal config, one-time setup
+2. **Identity** (CLAUDE.md, rules, scripts, scheduler, ruflo) — personal config, one-time setup
 
 Plugins handle #1 natively. #2 stays as a bootstrap script because plugins can't distribute rules or modify `~/.claude/CLAUDE.md` by design (those are user-owned).
 
 **Decision:**
 1. Convert `system/` to a CC plugin (add `.claude-plugin/plugin.json`, convert hooks format)
-2. Write `bootstrap.sh` for identity layer (CLAUDE.md, rules, scripts, scheduler, claude-flow)
+2. Write `bootstrap.sh` for identity layer (CLAUDE.md, rules, scripts, scheduler, ruflo)
 3. Set up GitHub-based marketplace for distribution
 4. Skills become namespaced: `/brana:build`, `/brana:close`, etc.
 5. Dev mode via `claude --plugin-dir ./system` (no deploy needed)
@@ -123,7 +123,7 @@ Key difference: paths relative to plugin root, not `$HOME`.
 | Rules | 12 | Bootstrap → `~/.claude/rules/` |
 | Scripts | 6 | Bootstrap → `~/.claude/scripts/` |
 | Scheduler | 7 files | Bootstrap → `~/.claude/scheduler/` |
-| claude-flow | 3 files | Bootstrap → `~/.claude-flow/` |
+| ruflo | 3 files | Bootstrap → `~/.claude-flow/` |
 | settings.json merge | 1 | Bootstrap (hooks portion removed, only non-hook settings remain) |
 | statusline.sh | 1 | Bootstrap → `~/.claude/` |
 
@@ -185,7 +185,7 @@ Handles the identity layer (non-plugin components):
 #!/usr/bin/env bash
 # One-time setup for brana identity layer
 # Plugin handles: skills, agents, hooks, commands
-# Bootstrap handles: CLAUDE.md, rules, scripts, scheduler, claude-flow
+# Bootstrap handles: CLAUDE.md, rules, scripts, scheduler, ruflo
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SYSTEM_DIR="$SCRIPT_DIR/system"
@@ -197,7 +197,7 @@ TARGET_DIR="$HOME/.claude"
 # 4. Copy rules/
 # 5. Copy scripts/
 # 6. Setup scheduler (dirs, scripts, templates, symlink)
-# 7. Setup claude-flow (sql.js, embeddings, shim)
+# 7. Setup ruflo (sql.js, embeddings, shim)
 # 8. Report
 ```
 

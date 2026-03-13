@@ -1,6 +1,6 @@
 # 18 - Lean Roadmap: The Minimum Brain That Ships
 
-An alternative to [17-implementation-roadmap.md](./17-implementation-roadmap.md) that strips everything to what actually delivers value now. Same foundation (claude-flow), same destination (cross-client intelligence), fewer moving parts.
+An alternative to [17-implementation-roadmap.md](./17-implementation-roadmap.md) that strips everything to what actually delivers value now. Same foundation (ruflo), same destination (cross-client intelligence), fewer moving parts.
 
 **Philosophy:** Build the 20% that delivers 80% of the value. Add complexity only when reality demands it, not when specs predict it.
 
@@ -20,7 +20,7 @@ Everything dropped here can be added later. Nothing in this plan prevents gradua
 
 | Constraint | Value |
 |---|---|
-| **Intelligence layer** | claude-flow (non-negotiable) |
+| **Intelligence layer** | ruflo (non-negotiable) |
 | **Subscription** | Max5 (1,000 msg/block) |
 | **Active projects** | 3-5 during build period |
 | **Core value** | Cross-project intelligence |
@@ -48,8 +48,8 @@ Everything dropped here can be added later. Nothing in this plan prevents gradua
 
 | Feature | Why It Survives |
 |---|---|
-| **claude-flow + ReasoningBank** | The whole point. Tag-based recall, `memory store`, `memory search`. |
-| **Two-layer memory** | Layer 0 (native auto memory) + Layer 1 (ReasoningBank). Keeps working if claude-flow breaks. Near-zero cost. |
+| **ruflo + ReasoningBank** | The whole point. Tag-based recall, `memory store`, `memory search`. |
+| **Two-layer memory** | Layer 0 (native auto memory) + Layer 1 (ReasoningBank). Keeps working if ruflo breaks. Near-zero cost. |
 | **Three hooks** | SessionStart (recall), SessionEnd (learn), PostToolUse (notice). The learning loop IS the product. |
 | **Quarantine** | New patterns enter at 0.5 confidence, transferable: false. 3 successes to promote. One mechanism, biggest impact. |
 | **6 core skills** | memory, retrospective, project-onboard, client-retire, challenge. The user interface. |
@@ -61,7 +61,7 @@ Everything dropped here can be added later. Nothing in this plan prevents gradua
 
 ## Phase 1: Working Skeleton (Weeks 1-3)
 
-**Goal:** claude-flow installed, ReasoningBank initialized, 6 skills working, export escape hatch in place. You can use the system.
+**Goal:** ruflo installed, ReasoningBank initialized, 6 skills working, export escape hatch in place. You can use the system.
 
 ### What You Build
 
@@ -108,17 +108,17 @@ Everything dropped here can be added later. Nothing in this plan prevents gradua
 
 Create a user practices document (see [00-user-practices.md](./00-user-practices.md) for the template) during Phase 1. This is the field notebook — observations from real usage that drive system evolution. When the same pain point keeps appearing, that's the signal to automate it as a hook or validation check in Phase 2+.
 
-### claude-flow Setup
+### ruflo Setup
 
 ```bash
-npm install -g claude-flow@2.5.0-alpha.130
+npm install -g ruflo@2.5.0-alpha.130
 # Install missing sql.js dependency (not in package.json, required at runtime — see errata #25)
-npm install sql.js --prefix $(dirname $(which claude-flow))/..
-claude-flow init
-cd "$HOME" && claude-flow memory search --query "test"  # verify it works
+npm install sql.js --prefix $(dirname $(which ruflo))/..
+ruflo init
+cd "$HOME" && ruflo memory search --query "test"  # verify it works
 ```
 
-> **Never use `npx`** to invoke claude-flow in hooks, skills, or `.mcp.json` — it creates a separate package cache missing sql.js (see lesson #17). Use the globally-installed binary directly. `deploy.sh` auto-ensures sql.js on every deploy.
+> **Never use `npx`** to invoke ruflo in hooks, skills, or `.mcp.json` — it creates a separate package cache missing sql.js (see lesson #17). Use the globally-installed binary directly. `deploy.sh` auto-ensures sql.js on every deploy.
 
 ### Deploy
 
@@ -135,7 +135,7 @@ echo "Deployed. Verify: claude --version in any project."
 
 Build all 6 in week 1-2. Keep them simple:
 
-| Skill | What It Does | claude-flow Command |
+| Skill | What It Does | ruflo Command |
 |---|---|---|
 | `/brana:memory recall` | Query ReasoningBank for current context | `memory search -q` |
 | `/brana:retrospective` | Manually store a learning | `memory store -k -v --namespace --tags` |
@@ -163,7 +163,7 @@ Same `export-knowledge.sh` from [doc 17](17-implementation-roadmap.md). Build it
 - [ ] `/brana:memory recall` returns results from manually-inserted test patterns
 - [ ] `/brana:challenge` spawns Sonnet and returns useful feedback
 - [ ] `export-knowledge.sh` produces output
-- [ ] claude-flow CLI responds to basic commands
+- [ ] ruflo CLI responds to basic commands
 - [ ] Context budget under 15KB
 - [ ] `./test.sh` passes all layers (validate + hooks + memory)
 - [ ] Plugins installed
@@ -188,7 +188,7 @@ Action:
   1. Detect current project
   2. Query ReasoningBank: project-tagged + tech-matched + high-confidence universal
   3. Inject context summary
-Fallback: Skip if claude-flow unavailable
+Fallback: Skip if ruflo unavailable
 ```
 
 #### SessionEnd — "Remember what you learned"
@@ -213,7 +213,7 @@ Action:
   - Test failure after change → record what didn't work
   - Test pass after fix → record the fix
   - Keep it lightweight, guard against loops
-Fallback: Skip entirely if claude-flow unavailable
+Fallback: Skip entirely if ruflo unavailable
 ```
 
 **Optimization:** Use `"async": true` on the PostToolUse hook so pattern storage doesn't block Claude's work. Also use the separate `PostToolUseFailure` event to capture failure patterns specifically — often more valuable than successes.
@@ -248,7 +248,7 @@ This prevents the worst failure mode — bad patterns spreading across clients b
 ### Exit Criteria
 
 - [ ] All 3 hooks firing correctly
-- [ ] Graceful degradation when claude-flow unavailable
+- [ ] Graceful degradation when ruflo unavailable
 - [ ] No infinite hook loops
 - [ ] Full recall→learn→recall cycle verified
 - [ ] Quarantine working: new patterns at 0.5, not transferable
@@ -325,7 +325,7 @@ Research (doc 11 section 5, [doc 09](dimensions/09-claude-code-native-features.m
 - CLAUDE.md rules alone achieve ~80% compliance for complex workflows (Claude Code issues #21119, #6120, #15443)
 - PreToolUse hooks with `permissionDecision: "deny"` achieve ~100% (deterministic block)
 - TDD-Guard (external) pushed TDD compliance from ~20% to ~84% via PreToolUse hooks
-- The mastermind can enforce **spec-before-code** the same way — pure git checks, no claude-flow dependency
+- The mastermind can enforce **spec-before-code** the same way — pure git checks, no ruflo dependency
 
 ### WI-1: `/decide` Skill — ADR Creation
 
@@ -388,12 +388,12 @@ CF=""
 for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
     [ -x "$candidate" ] && CF="$candidate" && break
 done
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
-[ -z "$CF" ] && command -v npx &>/dev/null && CF="npx claude-flow"
+[ -z "$CF" ] && command -v ruflo &>/dev/null && CF="ruflo"
+[ -z "$CF" ] && command -v npx &>/dev/null && CF="npx ruflo"
 ```
 Store: `cd $HOME && $CF memory store -k "decision:{PROJECT}:{slug}" -v '{"type": "decision", "title": "...", "status": "proposed", "confidence": 0.5, "transferable": false}' --namespace decisions --tags "client:{PROJECT},type:decision,status:proposed"`
 
-9. **Fallback (claude-flow unavailable).** Append to `~/.claude/projects/{project-hash}/memory/MEMORY.md`:
+9. **Fallback (ruflo unavailable).** Append to `~/.claude/projects/{project-hash}/memory/MEMORY.md`:
 ```
 ## Decision: {title}
 - Date: YYYY-MM-DD
@@ -719,7 +719,7 @@ This isn't a phase — it's a menu. Add items when you feel the pain, not on a s
 
 ```
 Weeks 1-3       Phase 1: Working Skeleton
-                ├─ claude-flow + ReasoningBank + 6 skills + plugins
+                ├─ ruflo + ReasoningBank + 6 skills + plugins
                 ├─ export escape hatch
                 ├─ deploy.sh (cp -r, not ceremony)
                 └─ Tag: v0.1.0

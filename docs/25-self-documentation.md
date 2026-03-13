@@ -86,7 +86,7 @@ This is a trust signal for AI agents: a `growth_stage: seedling` tells Claude to
 Not all documents rot at the same rate. The staleness gradient, from fastest to slowest:
 
 1. **Specific model/API references** — model names, parameter defaults, API endpoints
-2. **External tool versions** — claude-flow features, Claude Code hook events
+2. **External tool versions** — ruflo features, Claude Code hook events
 3. **Quantitative claims** — token costs, rate limits, benchmarks
 4. **Cross-references between documents** — as docs evolve independently, refs drift
 5. **Architecture decisions** — the most stable. "Use quarantine as first immune layer" won't go stale
@@ -101,7 +101,7 @@ Different document layers need different review cadences:
 | Reflection (08, 14, 29, 31, 32) | 90 days | Architecture decisions are more stable |
 | Dimension (01-07, 09-13, 15-16, 20-23, 25-28, 33-37) | 180 days | Research and analysis are the most durable |
 
-**Implementation:** `scripts/staleness-report.sh` — checks git last-modified per doc against layer thresholds (Phase 1: age check) and flags docs whose dependencies updated more recently (Phase 2: dependency freshness). Two-tier output: WARN at 80% of threshold, STALE past threshold. Runs weekly via `brana-scheduler` with output stored in claude-flow memory (`namespace: scheduler-runs`).
+**Implementation:** `scripts/staleness-report.sh` — checks git last-modified per doc against layer thresholds (Phase 1: age check) and flags docs whose dependencies updated more recently (Phase 2: dependency freshness). Two-tier output: WARN at 80% of threshold, STALE past threshold. Runs weekly via `brana-scheduler` with output stored in ruflo memory (`namespace: scheduler-runs`).
 
 ### Version-Pinned Package Tracking
 
@@ -111,12 +111,12 @@ The fastest-rotting content is external tool versions (#2 on the staleness gradi
 **Versions:**
 | Package | Pinned | Source |
 |---------|--------|--------|
-| claude-flow | v3.1.0-alpha.44 | https://www.npmjs.com/package/claude-flow |
+| ruflo | v3.1.0-alpha.44 | https://www.npmjs.com/package/claude-flow |
 | agentdb | v3.0.0-alpha.3 | https://www.npmjs.com/package/agentdb |
 | agentic-flow | v2.0.7 | https://www.npmjs.com/package/agentic-flow |
 ```
 
-When `/brana:research --refresh` runs, agents compare pinned versions against the latest from each Source URL. Version deltas are the highest-priority output — a breaking change in claude-flow is more urgent than a new blog post. After applying updates, the Versions table is updated to the new baseline. Packages pinned as "—" get their first version filled on the first refresh cycle.
+When `/brana:research --refresh` runs, agents compare pinned versions against the latest from each Source URL. Version deltas are the highest-priority output — a breaking change in ruflo is more urgent than a new blog post. After applying updates, the Versions table is updated to the new baseline. Packages pinned as "—" get their first version filled on the first refresh cycle.
 
 ### Dependency-Triggered Reviews
 
@@ -181,8 +181,8 @@ Built from the frontmatter `depends_on` / `depended_by` fields. A script parses 
 swap:
   reasoning bank: ReasoningBank
   Reasoning Bank: ReasoningBank
-  claude flow: claude-flow
-  Claude Flow: claude-flow
+  claude flow: ruflo
+  Claude Flow: ruflo
   sona: SONA
   session end: SessionEnd
   session start: SessionStart
@@ -470,7 +470,7 @@ Commands for keeping the spec repo healthy. These operate on documents.
 
 ### Knowledge Management
 
-Commands for the learning loop. These operate on the pattern memory (claude-flow DB).
+Commands for the learning loop. These operate on the pattern memory (ruflo DB).
 
 | Command | Purpose | When to use |
 |---|---|---|
@@ -481,7 +481,7 @@ Commands for the learning loop. These operate on the pattern memory (claude-flow
 | `/brana:align` | Active alignment pipeline: assess gaps → plan → implement structure → verify → document | **After `/brana:onboard`** identifies gaps, or when setting up a new project |
 | `/brana:client-retire` | Archive a project's patterns, keep transferable ones active | **Once per project** — when a project is done |
 | `/brana:memory review` | Monthly ReasoningBank health check: stats, staleness, promotion candidates | **Monthly** or when curious about knowledge health |
-| `/brana:close` | Session end: debrief-analyst → store learnings as quarantined patterns → doc drift heuristic → handoff note → claude-flow store | **Session end** — auto-detects what happened from git activity |
+| `/brana:close` | Session end: debrief-analyst → store learnings as quarantined patterns → doc drift heuristic → handoff note → ruflo store | **Session end** — auto-detects what happened from git activity |
 
 ### Implementation & Quality
 

@@ -368,7 +368,7 @@ Acceptance criteria:
 
 **Architecture:**
 - New file: `system/commands/pattern-confidence.md`
-- Depends on: `npx claude-flow@alpha hooks stats`
+- Depends on: `npx ruflo@alpha hooks stats`
 - Context cost: ~200 bytes for command description (within budget)
 - No hook changes needed
 
@@ -789,22 +789,22 @@ Questions from the initial brainstorm, now answered:
 **Versions:**
 | Package | Pinned | Source |
 |---------|--------|--------|
-| claude-flow | v3.1.0-alpha.34 | https://www.npmjs.com/package/claude-flow |
+| ruflo | v3.1.0-alpha.34 | https://www.npmjs.com/package/claude-flow |
 | Syncthing | — | https://github.com/syncthing/syncthing |
 
 **Tools:**
 - Claude Code CLI — new plugin/skill management features, deploy workflow changes
-- claude-flow — CLI updates, hook system changes, ReasoningBank API changes
+- ruflo — CLI updates, hook system changes, ReasoningBank API changes
 - Syncthing — version updates, conflict resolution improvements (multi-machine sync)
 - BATS — test framework updates for bash hook testing
 
 **Creators:**
 - Anthropic — Claude Code plugin/skill system changes, new deployment patterns
-- ruvnet — claude-flow updates that affect brana system architecture
+- ruvnet — ruflo updates that affect brana system architecture
 
 **Searches:**
 - "Claude Code plugin deployment best practices 2026"
-- "claude-flow hook system updates 2026"
+- "ruflo hook system updates 2026"
 - "Syncthing conflict resolution dotfiles 2026"
 - "Claude Code self-modifying agent systems"
 

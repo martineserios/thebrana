@@ -466,7 +466,7 @@ Source: strong opinions formed through building brana. These drive engagement th
 | Spec-first > prompt-first | "Stop writing prompts. Start writing specifications." | Martin Fowler's SDD analysis validates the methodology |
 | Failure as data | "My AI has 80+ documented failures. That's a feature, not a bug." | Errata doc with real entries |
 | Anti-vibe-coding | "Vibe coding is technical debt with extra steps." | 72% of devs reject it (UC San Diego/Cornell) |
-| Cross-project memory | "Your AI starts from zero every session. Mine doesn't." | claude-flow integration with persistent memory |
+| Cross-project memory | "Your AI starts from zero every session. Mine doesn't." | ruflo integration with persistent memory |
 | Systems > tools | "Everyone's reviewing AI tools. Nobody's designing AI systems." | Unoccupied niche finding from research |
 | Design discipline | "The code is the easy part. The architecture is the hard part." | Production evidence from 6 projects |
 
@@ -815,7 +815,7 @@ SESSION ENTRY SCHEMA (from session-end.sh)
 - Files: {comma-separated file paths}
 ```
 
-Also specify: claude-flow `memory_search` as the richer structured source (JSON, tagged, searchable). sessions.md is the fallback when claude-flow is unavailable.
+Also specify: ruflo `memory_search` as the richer structured source (JSON, tagged, searchable). sessions.md is the fallback when ruflo is unavailable.
 
 **Step 2: Build /content-draft skill (t-166)**
 
@@ -834,7 +834,7 @@ SKILL PROCESS — 4 PHASES:
   5. ADRs — recent decisions
   6. frameworks — evergreen content (when sources 1-5 are sparse)
 
-  Also query: claude-flow memory_search for cross-client patterns
+  Also query: ruflo memory_search for cross-client patterns
 
 
   Phase 2: CLASSIFY
@@ -990,7 +990,7 @@ Location: ~/.claude/projects/.../memory/sessions.md
 Updated:  Every session (by session-end.sh)
 Contains: Flywheel metrics (7 rates), event counts, tools used, files changed
 Content:  Trend stories ("correction rate dropped"), milestone summaries
-Fallback: claude-flow memory_search (richer JSON, tagged)
+Fallback: ruflo memory_search (richer JSON, tagged)
 
 SOURCE 2: git log
 ──────────────────

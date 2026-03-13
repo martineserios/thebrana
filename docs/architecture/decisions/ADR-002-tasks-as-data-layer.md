@@ -9,7 +9,7 @@ The brana system needs project planning and task management that works across co
 
 Three data layer options were evaluated:
 1. Native Claude Code Tasks — metadata doesn't query, session-scoped, insufficient for hierarchy
-2. claude-flow tasks — agent coordination tool, limited types, no parent-child
+2. ruflo tasks — agent coordination tool, limited types, no parent-child
 3. JSON file per project — full schema control, no N+1, git-tracked, zero dependencies
 
 Constraint: Claude Code subscription only, zero API calls.

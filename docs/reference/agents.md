@@ -32,8 +32,8 @@ All agents are read-only. They return structured findings to the main context. F
 **Disallowed tools:** Write, Edit, NotebookEdit
 
 **What it does:**
-1. Searches claude-flow memory for relevant patterns using topic, project, and cross-project queries
-2. Falls back to scanning `~/.claude/projects/*/memory/MEMORY.md` and portfolio.md when claude-flow is unavailable
+1. Searches ruflo memory for relevant patterns using topic, project, and cross-project queries
+2. Falls back to scanning `~/.claude/projects/*/memory/MEMORY.md` and portfolio.md when ruflo is unavailable
 3. Groups results by confidence tier: Proven (>= 0.7), Quarantined (0.2-0.7), Suspect (< 0.2)
 4. Surfaces knowledge base results from brana-knowledge dimension docs
 
@@ -177,7 +177,7 @@ Fast research agent. Searches the codebase and web for information. Returns conc
 **Disallowed tools:** Write, Edit, NotebookEdit
 
 **What it does:**
-1. Gathers all project knowledge from claude-flow memory, MEMORY.md, portfolio.md, CLAUDE.md, and docs/decisions/
+1. Gathers all project knowledge from ruflo memory, MEMORY.md, portfolio.md, CLAUDE.md, and docs/decisions/
 2. Categorizes each pattern:
    - **Transferable:** Confidence >= 0.7, not project-specific, worked reliably -- promote to cross-client
    - **Historical:** Project-specific but worth keeping for reference
@@ -204,7 +204,7 @@ Fast research agent. Searches the codebase and web for information. Returns conc
 2. Pulls last health snapshot from docs/metrics/ and docs/reviews/
 3. Checks pending action items and overdue follow-ups
 4. Checks active experiment status
-5. Queries claude-flow for historical metrics
+5. Queries ruflo for historical metrics
 
 **Returns:** Daily focus card with top 3 priorities, key metric + trend, blockers, overdue follow-ups, and active experiments.
 
@@ -226,7 +226,7 @@ Fast research agent. Searches the codebase and web for information. Returns conc
 2. Collects experiment results from docs/experiments/
 3. Collects pipeline data from docs/pipeline/
 4. Collects financial data from docs/financial/ and monthly close reports
-5. Queries claude-flow for historical data
+5. Queries ruflo for historical data
 
 **Returns:** Metrics collection organized by source (health snapshots, experiments, pipeline, financial) with trend data and a Data Gaps section listing missing metrics.
 

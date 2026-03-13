@@ -11,7 +11,7 @@ Work -> Corrections/Discoveries -> Pattern Storage -> Recall -> Better Work
 ### Automatic learning (every session)
 
 - **On correction** -- pattern captured in auto memory immediately
-- **On session start** -- `session-start.sh` recalls patterns from claude-flow and auto memory
+- **On session start** -- `session-start.sh` recalls patterns from ruflo and auto memory
 - **On session end** -- `session-end.sh` computes flywheel metrics; `/brana:close` extracts and stores learnings
 - **On failure** -- stop, reassess from scratch, don't patch forward
 
@@ -45,14 +45,14 @@ Patterns marked as `transferable` can surface in other clients:
 /brana:memory pollinate auth patterns   -- find auth patterns from other clients
 ```
 
-The memory-curator agent auto-fires when starting work on a familiar problem, searching both claude-flow and native auto memory.
+The memory-curator agent auto-fires when starting work on a familiar problem, searching both ruflo and native auto memory.
 
 ## Storage
 
 | Layer | What it stores | When |
 |-------|---------------|------|
-| **claude-flow** | Semantic-searchable patterns across all clients | Primary (when available) |
-| **Auto memory** | `~/.claude/projects/*/memory/MEMORY.md` | Always (fallback when claude-flow unavailable) |
+| **ruflo** | Semantic-searchable patterns across all clients | Primary (when available) |
+| **Auto memory** | `~/.claude/projects/*/memory/MEMORY.md` | Always (fallback when ruflo unavailable) |
 | **Session JSONL** | Raw tool events during a session | Temp -- consumed by `session-end.sh` |
 
-Both layers work. claude-flow adds cross-client neural search and BM25 hybrid matching.
+Both layers work. ruflo adds cross-client neural search and BM25 hybrid matching.
