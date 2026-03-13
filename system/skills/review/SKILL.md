@@ -147,6 +147,52 @@ Ad-hoc AARRR funnel audit — stage-appropriate metrics health check.
 
 ---
 
+---
+
+## /brana:review routing (model routing calibration)
+
+Calibration report for dynamic model routing. Requires 30+ `cost` entries in the decision log.
+
+### Steps
+
+1. **Read cost entries:**
+   ```bash
+   uv run python3 system/scripts/decisions.py read --type cost --json
+   ```
+2. **If fewer than 30 entries**, report: "Not enough routing data yet ({N}/30). Check again after more `/brana:backlog execute` runs."
+3. **Compute per-model stats:**
+   - For each model (haiku, sonnet, opus): count tasks, average complexity score, success rate (completed vs failed/partial from `agent_result.status` in tasks.json)
+4. **Flag mismatches:**
+   - Haiku tasks that failed (score was < 0.3 but task was too complex)
+   - Opus tasks with low scores (score > 0.7 but task was trivial — wasted cost)
+   - Sonnet tasks at score boundaries (0.28-0.32 or 0.68-0.72) — threshold sensitivity
+5. **Present calibration report:**
+
+```markdown
+## Model Routing Calibration — YYYY-MM-DD
+
+### Distribution
+| Model | Tasks | Avg Score | Success Rate |
+|-------|-------|-----------|-------------|
+| haiku | N | 0.XX | NN% |
+| sonnet | N | 0.XX | NN% |
+| opus | N | 0.XX | NN% |
+
+### Mismatches
+- {task-id} routed to haiku (score: 0.15) but failed — consider raising threshold to 0.35
+- {task-id} routed to opus (score: 0.72) but was trivial — consider lowering threshold to 0.65
+
+### Threshold Recommendation
+Current: haiku < 0.3 < sonnet < 0.7 < opus
+Suggested: haiku < {X} < sonnet < {Y} < opus (based on {N} data points)
+```
+
+6. **Don't auto-adjust thresholds.** Present recommendations, let the user decide.
+
+This sub-report is appended to `/brana:review weekly` or `/brana:review check` output when enough data exists. It can also be invoked directly via `/brana:review routing`.
+
+---
+
 ## Rules
 
 1. **Business model drives metrics.** Don't apply SaaS metrics to cycle-project businesses. Recompra > churn for non-subscription models.

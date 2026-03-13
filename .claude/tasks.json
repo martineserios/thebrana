@@ -9908,7 +9908,7 @@
         "validation",
         "idea"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": null,
@@ -9921,8 +9921,8 @@
       "github_issue": null,
       "created": "2026-03-13",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-13",
+      "notes": "Added Check 14 to validate.sh: scans spec-graph.json for system/ files with no doc references.",
       "context": null,
       "strategy": null,
       "build_step": null
@@ -10104,7 +10104,7 @@
         "review",
         "idea"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": null,
@@ -10117,8 +10117,8 @@
       "github_issue": null,
       "created": "2026-03-13",
       "started": null,
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-13",
+      "notes": "Added /brana:review routing sub-report: model distribution, mismatches, threshold recommendations.",
       "context": null,
       "strategy": null,
       "build_step": null
@@ -10131,7 +10131,7 @@
         "model-routing",
         "idea"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": null,
@@ -10144,9 +10144,38 @@
       "github_issue": null,
       "created": "2026-03-13",
       "started": null,
+      "completed": "2026-03-13",
+      "notes": "Added override tracking to backlog model routing + /brana:review routing flags override patterns.",
+      "context": null,
+      "strategy": null,
+      "build_step": null
+    },
+    {
+      "id": "t-407",
+      "subject": "Claude Systems Marketplace \u2014 standardized OS layer for plug-and-play agent components",
+      "description": "Design and prototype a marketplace for Claude Code systems. Core idea: standardize Claude's hyper-personalization into an OS-like layer with hardcoded trust guarantees (rules, hooks, triggers). Components plug in reliably. Less technical users can assemble personalized agents from vetted building blocks that just work. Problems addressed: accessibility gap (non-coders can't leverage CC), trust/reliability (no guarantees when composing), monetization path (revenue model for creators), fragmentation (everyone builds from scratch).",
+      "tags": [
+        "marketplace",
+        "ai-agent-systems",
+        "platform",
+        "dx"
+      ],
+      "status": "pending",
+      "stream": "experiments",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": "XL",
+      "execution": "code",
+      "blocked_by": null,
+      "branch": null,
+      "github_issue": 594,
+      "created": "2026-03-13",
+      "started": null,
       "completed": null,
       "notes": null,
-      "context": null,
+      "context": "Inspiration/enrichment sources (not blockers):\n- t-283 Design personalization layer architecture (Identity \u2192 Preferences \u2192 Workflows \u2192 Skills \u2192 Hooks \u2192 Memory \u2192 Interface)\n- t-291 Research Claude official plugins for brana suite synergy\n- t-142 Agent Ecosystem research\n- t-075 VoltAgent awesome-agent-skills catalog review (380+)",
       "strategy": null,
       "build_step": null
     }
