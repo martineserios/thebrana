@@ -447,6 +447,43 @@ else
 fi
 echo ""
 
+# Check 14: Undocumented system files (spec-graph coverage)
+echo "Checking spec-graph coverage..."
+SPEC_GRAPH="$SCRIPT_DIR/docs/spec-graph.json"
+if [ -f "$SPEC_GRAPH" ]; then
+    # Collect all system/ files that exist
+    SYSTEM_FILES=$(find "$SYSTEM_DIR" -type f \( -name "*.md" -o -name "*.sh" -o -name "*.json" -o -name "*.py" \) | sed "s|^$SCRIPT_DIR/||" | sort)
+    # Collect all system/ files referenced by at least one doc in the graph
+    REFERENCED=$(jq -r '[.nodes[].impl_files[]? // empty] | unique[]' "$SPEC_GRAPH" 2>/dev/null | sort)
+
+    UNDOCUMENTED=0
+    while IFS= read -r sysfile; do
+        # Skip non-essential files (hooks.json, __pycache__, etc.)
+        case "$sysfile" in
+            *__pycache__*|*hooks.json|*.claude-plugin/*) continue ;;
+        esac
+        if ! echo "$REFERENCED" | grep -qxF "$sysfile"; then
+            UNDOCUMENTED=$((UNDOCUMENTED + 1))
+            if [ "$UNDOCUMENTED" -le 5 ]; then
+                warn "Undocumented system file: $sysfile (no doc references it in spec-graph)"
+            fi
+        fi
+    done <<< "$SYSTEM_FILES"
+
+    if [ "$UNDOCUMENTED" -gt 5 ]; then
+        warn "...and $((UNDOCUMENTED - 5)) more undocumented system files"
+    fi
+
+    if [ "$UNDOCUMENTED" -eq 0 ]; then
+        pass "All system files referenced by at least one doc"
+    else
+        echo "  Total undocumented: $UNDOCUMENTED (run: jq '.nodes | to_entries[] | select(.value.impl_files | length > 0)' docs/spec-graph.json)"
+    fi
+else
+    pass "spec-graph.json not found — skipping coverage check"
+fi
+echo ""
+
 # Summary
 echo "=== Validation Summary ==="
 echo "Errors: $ERRORS"

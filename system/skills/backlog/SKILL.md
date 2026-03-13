@@ -862,6 +862,8 @@ Score → model mapping:
 
 **Logging:** Log each routing decision to the decision log as a `cost` entry: `uv run python3 system/scripts/decisions.py log "backlog" "cost" "t-NNN routed to MODEL (score: X.XX)"`
 
+**User override tracking:** If the user explicitly requests a different model than the computed score suggests (e.g., "use opus for this"), log the override: `uv run python3 system/scripts/decisions.py log "backlog" "cost" "t-NNN override: computed=MODEL1 (score: X.XX), user chose MODEL2"`. After 10+ overrides in the same direction (e.g., user keeps upgrading haiku→sonnet), `/brana:review routing` will flag this as a threshold adjustment signal.
+
 **Fallback:** If no task metadata is available (e.g., ad-hoc agent spawn), use the agent's default model from its frontmatter.
 
 ### Failure recovery
