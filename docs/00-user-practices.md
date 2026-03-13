@@ -48,7 +48,7 @@ Practices around what gets stored, how to query it, and when storage causes more
 
 Practices around invoking skills, when to use which, and gotchas.
 
-- **2026-02-10:** Refresh dimension docs periodically. Dimension docs (research and analysis) are the foundation everything else builds on. When external tools update (new Claude Code features, claude-flow releases, ecosystem changes), the relevant dimension docs go stale silently. Set a habit: before starting a new implementation phase, re-read the dimension docs that inform it and check if claims still hold. This isn't automated yet — it's a manual practice until staleness detection (doc 25) is built.
+- **2026-02-10:** Refresh dimension docs periodically. Dimension docs (research and analysis) are the foundation everything else builds on. When external tools update (new Claude Code features, ruflo releases, ecosystem changes), the relevant dimension docs go stale silently. Set a habit: before starting a new implementation phase, re-read the dimension docs that inform it and check if claims still hold. This isn't automated yet — it's a manual practice until staleness detection (doc 25) is built.
 - **2026-02-10:** Use `/refresh-knowledge` to systematically research updates across dimension docs. It launches parallel scouts that web-search for changes to the tools, creators, and concepts each doc covers. Run with `all` (default), `high`/`medium`/`low` for priority tiers, or a specific doc number (e.g., `/refresh-knowledge 11`). The skill reports findings — it doesn't modify docs. You decide what to act on, then propagate upward.
 
 ---

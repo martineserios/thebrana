@@ -1,8 +1,8 @@
 # 14 - Mastermind Architecture: Single Brain, All Projects
 
-How to run a single Claude Code instance with claude-flow that accumulates knowledge across every project while maintaining project-specific context. The "single evolving brain" system.
+How to run a single Claude Code instance with ruflo that accumulates knowledge across every project while maintaining project-specific context. The "single evolving brain" system.
 
-> **Architecture redesign complete (2026-02-25):** [39-architecture-redesign.md](../39-architecture-redesign.md) merged enter/ into thebrana/ (Phases 0–4 done). The workspace is now a single unified repo with `docs/` (specs) + `system/` (implementation). brana-knowledge/ is an active indexed KB with semantic retrieval via claude-flow embeddings.
+> **Architecture redesign complete (2026-02-25):** [39-architecture-redesign.md](../39-architecture-redesign.md) merged enter/ into thebrana/ (Phases 0–4 done). The workspace is now a single unified repo with `docs/` (specs) + `system/` (implementation). brana-knowledge/ is an active indexed KB with semantic retrieval via ruflo embeddings.
 
 ---
 
@@ -78,7 +78,7 @@ thebrana/system/                              PLUGIN (loaded by Claude Code)
 │   ├── post-pr-review.sh                     ← PR reviewer nudge
 │   ├── post-tool-use-failure.sh              ← Error categorization
 │   ├── task-sync.sh + task-sync.py           ← Incremental tasks.json → GitHub Issues sync (PostToolUse)
-│   └── lib/cf-env.sh                         ← Bundled claude-flow env (portable)
+│   └── lib/cf-env.sh                         ← Bundled ruflo env (portable)
 ├── commands/                                 ← Agent commands
 │   ├── maintain-specs.md                     ← Cascade spec changes: dimension → reflection → roadmap
 │   ├── re-evaluate-reflections.md            ← Cross-check reflections against dimensions
@@ -106,10 +106,10 @@ thebrana/system/                              PLUGIN (loaded by Claude Code)
 │   ├── task-convention.md                     ← Check tasks.json before branching
 │   └── ...                                   ← +5 more (doc-linking, memory-framework, etc.)
 ├── scripts/
-│   ├── cf-env.sh                             ← Discover claude-flow binary, export $CF
+│   ├── cf-env.sh                             ← Discover ruflo binary, export $CF
 │   ├── memory-store.sh                       ← Store key-value in memory with fallback
 │   ├── backup-knowledge.sh                   ← Trigger brana-knowledge backup
-│   └── index-knowledge.sh                    ← Index brana-knowledge into claude-flow memory
+│   └── index-knowledge.sh                    ← Index brana-knowledge into ruflo memory
 ├── memory/
 │   └── MEMORY.md                             ← Auto memory (first 200 lines always in context)
 ├── statusline.sh                             ← Status bar (branch, task, context %)
@@ -191,7 +191,7 @@ Skills are user-invocable workflows (`/command`). Agents auto-delegate when the 
 | Agent | Model | Purpose | Tools |
 |-------|-------|---------|-------|
 | **scout** | Haiku | Fast research, file discovery | Read-only |
-| **memory-curator** | Haiku | Knowledge lifecycle: recall, store, promote, demote | Read, Bash (claude-flow) |
+| **memory-curator** | Haiku | Knowledge lifecycle: recall, store, promote, demote | Read, Bash (ruflo) |
 | **client-scanner** | Haiku | Project structure analysis for onboarding/alignment | Read-only |
 | **venture-scanner** | Haiku | Business project analysis for venture onboarding | Read-only |
 | **challenger** | Opus + Gemini | Adversarial review: Opus reasoning + Gemini doc-grounded second opinion via NotebookLM | Read-only (no Write/Edit/Bash) |
@@ -247,7 +247,7 @@ The same 5 steps happen in any project. Steps 1-3 are always the same (the brain
 
 The cognitive separation between architect and operator is directory-based: `docs/` for specs, `system/` for implementation. Branch conventions preserve the boundary: `docs/*` branches for spec work (no `system/` edits), `feat/*` branches for implementation (should also touch `docs/` when behavior changes).
 
-brana-knowledge is a separate repo because it's a library (no backlog, no tasks), not an active project. Dimension docs are the source of truth — semantically indexed into claude-flow memory via `index-knowledge.sh`, retrievable from any session via `memory_search`.
+brana-knowledge is a separate repo because it's a library (no backlog, no tasks), not an active project. Dimension docs are the source of truth — semantically indexed into ruflo memory via `index-knowledge.sh`, retrievable from any session via `memory_search`.
 
 ---
 
@@ -267,7 +267,7 @@ Before Write or Edit executes:
   4. If no spec/test activity → block with permissionDecision: "deny"
      "Create an ADR or write tests before implementation."
 
-  Pure git operations, no claude-flow dependency, <100ms latency.
+  Pure git operations, no ruflo dependency, <100ms latency.
   Always allows spec/test file writes. Passes through on non-feat branches.
 
 Cascade-aware throttle (t-196):
@@ -288,7 +288,7 @@ On every session start:
   3. Priority recall: search for high-confidence correction patterns
      (confidence >= 0.8) from this project — surface them first so
      proven fixes are available early if similar errors arise
-  4. Fallback: grep native auto memory if claude-flow unavailable
+  4. Fallback: grep native auto memory if ruflo unavailable
   5. Inject task context (from tasks.json: current phase, next unblocked task)
   6. Check self-learning flags from previous session:
      - .needs-backprop → "System files changed, update docs in next commit"
@@ -376,8 +376,8 @@ that SessionEnd reads to compute compound metrics and flywheel rates.
 
 When using Agent Teams, two additional Claude Code events extend the learning loop:
 
-- **TeammateIdle** — fires when a teammate goes idle. claude-flow v3.1's `teammate-idle` hook can auto-assign pending tasks from the shared task list.
-- **TaskCompleted** — fires when a task is marked complete. claude-flow v3.1's `task-completed` hook trains patterns from successful tasks (requires `--task-id`).
+- **TeammateIdle** — fires when a teammate goes idle. ruflo v3.1's `teammate-idle` hook can auto-assign pending tasks from the shared task list.
+- **TaskCompleted** — fires when a task is marked complete. ruflo v3.1's `task-completed` hook trains patterns from successful tasks (requires `--task-id`).
 
 These are optional extensions to the 3-hook core above. They matter when teammates work independently — without them, only the lead's session contributes to the learning loop. With them, every teammate's completions feed the ReasoningBank.
 
@@ -389,7 +389,7 @@ These are optional extensions to the 3-hook core above. They matter when teammat
 
 Hooks fire within interactive sessions. The scheduler fires between them — running maintenance tasks on a cadence without human presence.
 
-**brana-scheduler** is a thin bash+jq wrapper over systemd user timers ([ADR-002](../architecture/decisions/ADR-002-scheduler-thin-layer-over-systemd.md), accepted 2026-02-19). It gives the brain a heartbeat: jobs run on schedule, results flow into claude-flow memory, and the next session sees what happened overnight.
+**brana-scheduler** is a thin bash+jq wrapper over systemd user timers ([ADR-002](../architecture/decisions/ADR-002-scheduler-thin-layer-over-systemd.md), accepted 2026-02-19). It gives the brain a heartbeat: jobs run on schedule, results flow into ruflo memory, and the next session sees what happened overnight.
 
 ### Architecture
 
@@ -402,7 +402,7 @@ Hooks fire within interactive sessions. The scheduler fires between them — run
 systemd user timers → brana-scheduler-runner.sh → job command → log + memory
 ```
 
-The runner handles: config-driven retry with exponential backoff, `flock` concurrency guards, OnFailure desktop notifications (via a companion systemd unit), and an output-to-memory pipeline that stores run summaries in claude-flow (`namespace: scheduler-runs`, key: `sched:{job}:{date}`).
+The runner handles: config-driven retry with exponential backoff, `flock` concurrency guards, OnFailure desktop notifications (via a companion systemd unit), and an output-to-memory pipeline that stores run summaries in ruflo (`namespace: scheduler-runs`, key: `sched:{job}:{date}`).
 
 ### Relationship to Other Layers
 
@@ -424,7 +424,7 @@ Skills can run headless via `claude -p "Execute /skill-name"` — the scheduler 
 
 ## The ReasoningBank Schema (Cross-Client Brain)
 
-> **Alpha caveat:** claude-flow (which hosts ReasoningBank) is alpha software. Every call must be wrapped in error handling with fallback to Layer 0 (auto memory files at `~/.claude/projects/*/memory/`). Schema may change between versions — pin your version and run `memory init --force` after upgrades. **After every install/upgrade**, also install the missing sql.js dependency: `npm install sql.js --prefix $(dirname $(which claude-flow))/..` (not declared in package.json but dynamically imported at 19+ sites — see errata #25). See [05-claude-flow-v3-analysis.md](../../../brana-knowledge/dimensions/05-claude-flow-v3-analysis.md) for the full stability assessment.
+> **Alpha caveat:** ruflo (which hosts ReasoningBank) is alpha software. Every call must be wrapped in error handling with fallback to Layer 0 (auto memory files at `~/.claude/projects/*/memory/`). Schema may change between versions — pin your version and run `memory init --force` after upgrades. **After every install/upgrade**, also install the missing sql.js dependency: `npm install sql.js --prefix $(dirname $(which ruflo))/..` (not declared in package.json but dynamically imported at 19+ sites — see errata #25). See [05-claude-flow-v3-analysis.md](../../../brana-knowledge/dimensions/05-claude-flow-v3-analysis.md) for the full stability assessment.
 
 Each pattern stored with rich metadata:
 
@@ -508,7 +508,7 @@ You accumulate knowledge, patterns, and judgment over time.
 
 ## Six Mastermind Skills
 
-> **Never use `npx`** to invoke claude-flow — it creates isolated package caches with missing dependencies (errata #25, lesson #17). Use the globally installed `claude-flow` binary. The deployed skills in thebrana use a smart discovery pattern for environments where PATH may not include nvm bins.
+> **Never use `npx`** to invoke ruflo — it creates isolated package caches with missing dependencies (errata #25, lesson #17). Use the globally installed `ruflo` binary. The deployed skills in thebrana use a smart discovery pattern for environments where PATH may not include nvm bins.
 
 ### 1. `/brana:memory recall` — "What do I already know about this?"
 
@@ -522,7 +522,7 @@ allowed-tools: [Bash, Read, AskUserQuestion]
 
 Before solving this problem, search your accumulated knowledge:
 
-1. Run: claude-flow memory search --query "$ARGUMENTS"
+1. Run: ruflo memory search --query "$ARGUMENTS"
 2. Review returned patterns. For each:
    - Which project did this come from?
    - What was the confidence score?
@@ -547,7 +547,7 @@ Search for cross-client patterns:
 
 1. Identify the core problem type: auth? performance? data modeling? error handling? testing?
 2. Query ReasoningBank with technology-agnostic terms:
-   claude-flow memory search --query "$ARGUMENTS"
+   ruflo memory search --query "$ARGUMENTS"
 3. For each pattern from a DIFFERENT project:
    - Explain the original context (project, tech stack, problem)
    - Explain how the solution could transfer to THIS project
@@ -568,7 +568,7 @@ allowed-tools: [Bash, Read, Write, Glob, Grep, AskUserQuestion]
    - problem, solution, tags, confidence: 0.5 (quarantined),
      correction_weight: 0, transferable: false
 
-2. Store via claude-flow (primary) or auto memory (fallback)
+2. Store via ruflo (primary) or auto memory (fallback)
 
 3. Review recalled patterns — promotion tracking:
    a. Useful patterns: increment recall_count
@@ -729,7 +729,7 @@ Month 3: The mastermind has 500+ patterns across 5 projects.
 | **security-guidance** (Anthropic) | Universal safety net across all clients |
 | **commit-commands** (Anthropic) | Consistent git workflow everywhere |
 | **Context7 MCP** (Upstash) | Real-time library docs — the mastermind always has current knowledge. Fetches version-specific documentation on demand, preventing stale training-data errors. |
-| **claude-flow MCP** | Cross-project memory via ReasoningBank. **Scope:** use only the memory commands (`memory search`, `memory store`, `memory init`) from claude-flow's 170+ MCP tool surface — skip the rest unless a specific need arises. **Note:** AgentDB (the graph DB backend) is stalled — last npm publish Jan 2, 2026. The fallback strategy (claude-flow embeddings CLI + SQLite) is the primary path forward. See [05-claude-flow-v3-analysis.md](../../../brana-knowledge/dimensions/05-claude-flow-v3-analysis.md) and [39-architecture-redesign.md](../39-architecture-redesign.md) section 7.5. |
+| **ruflo MCP** | Cross-project memory via ReasoningBank. **Scope:** use only the memory commands (`memory search`, `memory store`, `memory init`) from ruflo's 170+ MCP tool surface — skip the rest unless a specific need arises. **Note:** AgentDB (the graph DB backend) is stalled — last npm publish Jan 2, 2026. The fallback strategy (ruflo embeddings CLI + SQLite) is the primary path forward. See [05-claude-flow-v3-analysis.md](../../../brana-knowledge/dimensions/05-claude-flow-v3-analysis.md) and [39-architecture-redesign.md](../39-architecture-redesign.md) section 7.5. |
 | **LSP plugins** for your languages | Type intelligence at zero cost, per-project |
 | **claude-md-management** (Anthropic) | Keeps each project's CLAUDE.md healthy |
 
@@ -871,11 +871,11 @@ The **single system for anything actionable**: things to research, build, fix, e
 - Evaluation tasks ("benchmark ZeroClaw vs NanoClaw")
 - Anything with a verb: research, build, fix, evaluate, compare, spike
 
-**Why one system:** Two tracking systems (backlog + claude-flow leads) means items get lost, duplicated, or forgotten. The backlog is where you look. Everything actionable goes there.
+**Why one system:** Two tracking systems (backlog + ruflo leads) means items get lost, duplicated, or forgotten. The backlog is where you look. Everything actionable goes there.
 
 ### Claude-flow Memory — Patterns and Context
 
-The **system for things that inform work**, not things that ARE work. Stored in claude-flow's ReasoningBank (`.swarm/memory.db`) or auto memory files (`~/.claude/projects/*/memory/`).
+The **system for things that inform work**, not things that ARE work. Stored in ruflo's ReasoningBank (`.swarm/memory.db`) or auto memory files (`~/.claude/projects/*/memory/`).
 
 **Parallel-write limitation:** MEMORY.md (single file) is not safe for concurrent agent writes — last write wins. This is acceptable for the current pattern (one main session + read-only subagents). If parallel agents ever need to write session notes simultaneously, consider the Beads pattern: per-concern JSONL files that are git-naturally mergeable. See [45-turboflow-agent-orchestration.md](../../../brana-knowledge/dimensions/45-turboflow-agent-orchestration.md). Defer until the use case exists.
 
@@ -893,10 +893,10 @@ The **system for things that inform work**, not things that ARE work. Stored in 
 ### The Rule
 
 > **If it has a verb (research, build, fix, evaluate) → backlog.**
-> **If it's a fact, pattern, or lesson → claude-flow memory.**
+> **If it's a fact, pattern, or lesson → ruflo memory.**
 > **If it's a directive (always, never, must) → rules/ or CLAUDE.md.**
 
-Skills like `/brana:research` propose backlog items in their reports. The user decides which get added. No skill writes directly to claude-flow leads — that created a shadow backlog nobody checked.
+Skills like `/brana:research` propose backlog items in their reports. The user decides which get added. No skill writes directly to ruflo leads — that created a shadow backlog nobody checked.
 
 ---
 

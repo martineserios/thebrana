@@ -66,7 +66,7 @@ Runner uses natural language prompts: `claude -p "Execute the /morning daily ope
 
 - **Preset bundles** — brana-maintenance and business-ops job collections (ship after real usage patterns emerge)
 - **Crontab fallback** — for systems without systemd. Current system is Ubuntu with systemd; second backend would bitrot.
-- **Output to claude-flow memory** — store run summaries so `/morning` or session-start surfaces what ran overnight
+- **Output to ruflo memory** — store run summaries so `/morning` or session-start surfaces what ran overnight
 - **Desktop notifications** — notify-send on completion/failure
 - **Retry with backoff** — for transient failures (API rate limits, network)
 - **macOS support** — launchd plist generation instead of systemd
@@ -92,7 +92,7 @@ Runner uses natural language prompts: `claude -p "Execute the /morning daily ope
 ### Existing infrastructure
 - Session hooks already handle session-start/end lifecycle
 - 31 skills ready for headless invocation
-- claude-flow memory available for state persistence
+- ruflo memory available for state persistence
 - [Doc 25](../25-self-documentation.md) already designed weekly checks (staleness, links, frontmatter) — just not automated
 
 ## Resolved questions

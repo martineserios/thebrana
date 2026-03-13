@@ -46,7 +46,7 @@ Pro: clean separation, no bi-modal command. Con: adds yet another command to rem
 Pro: faster, less token cost. Con: creates a third debrief implementation alongside `/debrief` skill and `debrief-analyst` agent. Divergence risk is high. Reusing the existing agent is cheaper to maintain.
 
 ### Separate changelog file
-Pro: formal project history. Con: duplicates handoff note + git log + claude-flow memory. Enriching the existing handoff note with a Learnings section achieves the same goal without a new artifact.
+Pro: formal project history. Con: duplicates handoff note + git log + ruflo memory. Enriching the existing handoff note with a Learnings section achieves the same goal without a new artifact.
 
 ## Consequences
 

@@ -22,7 +22,7 @@ When CC fixes plugin PostToolUse dispatch, all hooks move back to `hooks.json`.
 
 ### lib/cf-env.sh
 
-Locates the `claude-flow` binary. Source it to get the `$CF` variable.
+Locates the `ruflo` binary. Source it to get the `$CF` variable.
 
 Search order: nvm global install, PATH lookup, npx fallback. Exported as `$CF` (empty string if not found).
 
@@ -102,8 +102,8 @@ Or with cascade context:
 
 1. Derives project name from git root
 2. Writes `BRANA_PROJECT` and `BRANA_SESSION_ID` to `CLAUDE_ENV_FILE` if set
-3. Searches claude-flow memory for `client:$PROJECT` patterns
-4. Searches claude-flow for high-confidence correction patterns (`confidence >= 0.8`)
+3. Searches ruflo memory for `client:$PROJECT` patterns
+4. Searches ruflo for high-confidence correction patterns (`confidence >= 0.8`)
 5. Falls back to grepping native auto memory (`~/.claude/projects/*/memory/MEMORY.md`)
 6. Reads `tasks.json` and injects task summary (current phase, progress, next unblocked task)
 7. If no `tasks.json`, checks portfolio file and suggests creating one
@@ -153,9 +153,9 @@ Or with cascade context:
 1. Reads `/tmp/brana-session-{SESSION_ID}.jsonl` (accumulated by PostToolUse hooks)
 2. Computes compound metrics: corrections, test writes, cascades, PR creates, test/lint pass/fail counts
 3. Computes flywheel metrics: correction_rate, auto_fix_rate, test_write_rate, cascade_rate, test_pass_rate, lint_pass_rate
-4. Stores session summary to claude-flow memory (namespace: `patterns`, tags include `confidence:quarantine`)
+4. Stores session summary to ruflo memory (namespace: `patterns`, tags include `confidence:quarantine`)
 5. Stores flywheel metrics separately (namespace: `metrics`)
-6. Falls back to `pending-learnings.md` if claude-flow unavailable
+6. Falls back to `pending-learnings.md` if ruflo unavailable
 7. Always writes session summary to `sessions.md` in project auto memory
 8. Detects system file drift (last 10 commits touching skills/agents/hooks/rules) and writes `.needs-backprop` flag
 9. Auto-generates minimal session handoff if not written today
@@ -330,7 +330,7 @@ Injects schema errors or rollup messages as `additionalContext`.
 
 Only triggers when the written/edited file matches `*/docs/pipeline/deal-*.md`, `*/docs/pipeline/deals.md`, or `*/docs/pipeline/closed.md`, and the content contains "closed-won" (case-insensitive).
 
-Extracts deal name from filename and deal value from content. Stores snapshot to claude-flow memory (namespace: `business`, tags: `deal,closed-won,pipeline`). Logs to session JSONL.
+Extracts deal name from filename and deal value from content. Stores snapshot to ruflo memory (namespace: `business`, tags: `deal,closed-won,pipeline`). Logs to session JSONL.
 
 **Output JSON:**
 

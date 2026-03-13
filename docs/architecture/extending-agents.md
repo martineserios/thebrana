@@ -91,7 +91,7 @@ This is a design principle, not a limitation. Agents return findings; the main c
 | Code + CLI | `Bash, Read, Glob, Grep` | memory-curator, client-scanner, debrief-analyst, pr-reviewer |
 | Web research | `Read, Glob, Grep, WebSearch, WebFetch` | scout |
 
-Agents with `Bash` access use it for CLI tools like `gh`, `git`, and `claude-flow` — not for file modification.
+Agents with `Bash` access use it for CLI tools like `gh`, `git`, and `ruflo` — not for file modification.
 
 ### Agent Sandbox Boundaries
 

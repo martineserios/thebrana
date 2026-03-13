@@ -5,7 +5,7 @@
 ## Design principles
 
 - **Agent results are inputs, not decisions.** The main context presents findings to the user. File modifications happen in main context after approval.
-- **All agents are read-only.** Every agent disallows Write, Edit, and NotebookEdit. Some have Bash for CLI commands (e.g., `gh`, `git`, `claude-flow`).
+- **All agents are read-only.** Every agent disallows Write, Edit, and NotebookEdit. Some have Bash for CLI commands (e.g., `gh`, `git`, `ruflo`).
 - **Auto-delegation is rule-based.** The `delegation-routing` rule (in `~/.claude/rules/`) defines triggers -- agents fire without being asked when the situation matches.
 - **Model selection by task complexity.** Haiku for fast/cheap work (8 agents), Sonnet for moderate analysis (1), Opus for deep reasoning (2).
 
@@ -29,7 +29,7 @@
 
 ### Knowledge agents
 
-- **memory-curator** (Haiku) -- Searches claude-flow memory and native auto memory for relevant patterns. Groups results by confidence tier: Proven (>= 0.7), Quarantined (0.2-0.7), Suspect (< 0.2). Also surfaces knowledge base results from brana-knowledge dimension docs.
+- **memory-curator** (Haiku) -- Searches ruflo memory and native auto memory for relevant patterns. Groups results by confidence tier: Proven (>= 0.7), Quarantined (0.2-0.7), Suspect (< 0.2). Also surfaces knowledge base results from brana-knowledge dimension docs.
 - **scout** (Haiku) -- Fast research agent. Searches codebase and web for information. Returns 1,000-2,000 tokens. Phase 1 scouts use WebSearch only; Phase 3 scouts get max 2 WebFetch calls. Cannot write files or run commands.
 
 ### Diagnostic agents
@@ -46,7 +46,7 @@
 ### Business agents
 
 - **daily-ops** (Haiku) -- Daily focus card for venture projects: top 3 priorities, key metric + trend, blockers, overdue follow-ups, active experiments. Fires via session-start.sh venture detection.
-- **metrics-collector** (Haiku) -- Collects health snapshots, experiment results, pipeline data, financial data from project directories and claude-flow. Reports data gaps.
+- **metrics-collector** (Haiku) -- Collects health snapshots, experiment results, pipeline data, financial data from project directories and ruflo. Reports data gaps.
 - **pipeline-tracker** (Haiku) -- Pipeline status: deals per stage, overdue follow-ups (no activity 14+ days), stage-stuck deals, conversion trends.
 
 ### Lifecycle agents

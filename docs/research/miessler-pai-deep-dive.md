@@ -214,7 +214,7 @@ MEMORY/
 | Aider | — | Free/premium | Pure CLI, superior context fetching |
 
 ### Landscape Gaps
-- **Memory persistence:** Most systems claim it but lack documented retrieval/ranking. Brana's claude-flow (384-dim ONNX + BM25 hybrid) is more sophisticated.
+- **Memory persistence:** Most systems claim it but lack documented retrieval/ranking. Brana's ruflo (384-dim ONNX + BM25 hybrid) is more sophisticated.
 - **Multi-model routing:** IndieDevDan's just-prompt MCP hints at it. Brana's skill+hook routing is more mature.
 - **Consulting practice:** No PAI system explicitly targets AI-augmented consulting. **This is brana's unstated moat.**
 - **Agentic accountability:** Demand for explainability growing. Brana's reflection docs address this.
@@ -281,7 +281,7 @@ The blog post (v2.4) is outdated. The GitHub repo shows **PAI v4.0.3** with sign
 | Signal capture | 3,540+ ratings | — |
 | Voice | ElevenLabs multi-agent | — |
 | Open source maturity | v4.0.3, community fixes | — |
-| Cross-project knowledge | Limited | claude-flow 315+ indexed sections |
+| Cross-project knowledge | Limited | ruflo 315+ indexed sections |
 | Consulting practice design | Not addressed | Full phase (ms-023) |
 | Venture/business integration | Not addressed | /brana:review, /brana:pipeline |
 | Spec-driven development | Not documented | Reflection DAG, SDD→TDD |

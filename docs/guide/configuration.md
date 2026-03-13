@@ -86,7 +86,7 @@ brana-scheduler deploy           # regenerate systemd units from config
 ./bootstrap.sh
 ```
 
-Deploys everything: CLAUDE.md, rules, scripts, statusline, scheduler, claude-flow config, plugin registration. Idempotent -- safe to run repeatedly.
+Deploys everything: CLAUDE.md, rules, scripts, statusline, scheduler, ruflo config, plugin registration. Idempotent -- safe to run repeatedly.
 
 ### Dry-run check
 
@@ -125,9 +125,9 @@ Copies the current `system/` directory to the installed plugin cache. Use this d
 
 ## Environment variables
 
-Brana does not require any environment variables. claude-flow (the memory layer) uses these if present:
+Brana does not require any environment variables. ruflo (the memory layer) uses these if present:
 
 | Variable | Purpose |
 |----------|---------|
-| `CLAUDE_FLOW_DB` | Path to claude-flow SQLite database |
+| `CLAUDE_FLOW_DB` | Path to ruflo SQLite database |
 | `CLAUDE_PLUGIN_ROOT` | Set by Claude Code -- points to plugin directory |

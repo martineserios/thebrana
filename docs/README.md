@@ -170,9 +170,9 @@ Original research and analysis from the enter phase. Documents 01-13, 16, 20-23,
 | 02 | Nexeye skill selection |
 | 03 | PM framework |
 | 04 | Claude 4.6 capabilities |
-| 05 | claude-flow v3 analysis |
-| 06 | claude-flow internals |
-| 07 | claude-flow + Claude 4.6 integration |
+| 05 | ruflo v3 analysis |
+| 06 | ruflo internals |
+| 07 | ruflo + Claude 4.6 integration |
 | 09 | Claude Code native features |
 | 10 | Statusline research |
 | 11 | Ecosystem skills and plugins |

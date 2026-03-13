@@ -34,7 +34,7 @@ An audit of `~/.claude/` revealed that brana-created knowledge and operational s
 └── ...                                 ← CC internals (debug, history, file-history, etc.)
 
 ~/.swarm/                               NOT in git
-└── memory.db                           ← claude-flow/AgentDB semantic store (SQLite + embeddings)
+└── memory.db                           ← ruflo/AgentDB semantic store (SQLite + embeddings)
 
 ~/.claude-flow/                         NOT in git
 └── embeddings.json                     ← embedding model config (384-dim ONNX)
@@ -49,7 +49,7 @@ Brana uses two independent memory systems that serve different purposes:
 │                    BRANA MEMORY STACK                         │
 ├──────────────────────────────┬──────────────────────────────┤
 │   OPERATIONAL STATE          │    SEMANTIC MEMORY            │
-│   (this ADR's scope)         │    (claude-flow/AgentDB/RVF)  │
+│   (this ADR's scope)         │    (ruflo/AgentDB/RVF)  │
 │                              │                               │
 │   event-log.md               │    patterns namespace         │
 │   portfolio.md               │    knowledge namespace        │
@@ -78,7 +78,7 @@ No hook writes to both systems for the same data. Operational state and semantic
 | L4 | Project auto-memory | `~/.claude/projects/*/memory/MEMORY.md` | No | CC native + brana fallback |
 | L5 | Session companion files | `~/.claude/projects/*/memory/{sessions,handoff}.md` | No | brana hooks + skills |
 | L6 | Global memory | `~/.claude/memory/*.md` | No | brana skills |
-| L7 | Semantic vector store | `~/.swarm/memory.db` | No | claude-flow, index-knowledge.sh |
+| L7 | Semantic vector store | `~/.swarm/memory.db` | No | ruflo, index-knowledge.sh |
 
 **Layers 4–7 (all learned knowledge) are outside git.** This is the problem.
 
@@ -90,7 +90,7 @@ No hook writes to both systems for the same data. Operational state and semantic
 | `/brana:client-retire` + archiver agent | Client retirement | `portfolio.md` | Portfolio index updates |
 | `/brana:close` | Session end | `portfolio.md` | Pointer updates |
 | `/brana:meta-template` | Read-only | `meta-whatsapp-templates.md` | (never writes, only reads) |
-| `session-end.sh` | SessionEnd hook | `pending-learnings.md` | Fallback when claude-flow unavailable |
+| `session-end.sh` | SessionEnd hook | `pending-learnings.md` | Fallback when ruflo unavailable |
 
 ### Why bootstrap.sh exists
 
@@ -205,7 +205,7 @@ Hooks and skills continue writing to `~/.claude/projects/*/memory/` (no code cha
 
 ### 4. Semantic memory: export/import for patterns and decisions
 
-claude-flow's semantic store (`~/.swarm/memory.db`) has 6 namespaces with different recovery profiles:
+ruflo's semantic store (`~/.swarm/memory.db`) has 6 namespaces with different recovery profiles:
 
 | Namespace | Content | Entries | Recovery method |
 |-----------|---------|---------|----------------|
@@ -388,7 +388,7 @@ cd thebrana && ./bootstrap.sh
 | Git noise from frequent state changes | WARNING | `.gitattributes` + separate `state/` commits. |
 | Migration touches 23+ files | WARNING | Eliminated — no write path changes. Only sync scripts added. |
 | MEMORY.md snapshot RPO | OBSERVATION | Documented as acceptable (one session). |
-| claude-flow export is point-in-time | OBSERVATION | Weekly export + event-driven export on high-value stores (future). |
+| ruflo export is point-in-time | OBSERVATION | Weekly export + event-driven export on high-value stores (future). |
 | bootstrap.sh retirement has no CC timeline | OBSERVATION | Accepted — phased migration, monitor CC releases. |
 
 ### Migration order

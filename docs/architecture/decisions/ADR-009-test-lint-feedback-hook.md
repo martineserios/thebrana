@@ -44,7 +44,7 @@ Why JSONL over SQLite: hooks run in subshells with no shared state. Append-only 
 
 ### 4. Two-layer storage
 
-- **Layer 1 (primary):** claude-flow SQLite via `memory_store`. Keys: `session:{project}:{id}` (patterns), `flywheel:{project}:{id}` (metrics). 5s timeout.
+- **Layer 1 (primary):** ruflo SQLite via `memory_store`. Keys: `session:{project}:{id}` (patterns), `flywheel:{project}:{id}` (metrics). 5s timeout.
 - **Layer 0 (fallback):** Append to `sessions.md` in project auto-memory. Always written if Layer 1 fails or is unavailable.
 
 ### 5. Seven flywheel metrics

@@ -220,7 +220,7 @@ Return a structured summary with:
 
 ### 3. Tool restrictions
 
-All brana agents disallow `Write`, `Edit`, and `NotebookEdit`. Agents are read-only by design — they return findings for the user to approve. Some agents have `Bash` for CLI tools (`gh`, `git`, `claude-flow`).
+All brana agents disallow `Write`, `Edit`, and `NotebookEdit`. Agents are read-only by design — they return findings for the user to approve. Some agents have `Bash` for CLI tools (`gh`, `git`, `ruflo`).
 
 ### 4. Auto-delegation
 

@@ -19,7 +19,7 @@ The result: Claude remembers what it learned, follows consistent practices, and 
 | Node.js | v18+ | `node --version` |
 | jq | any | `jq --version` |
 
-Node.js is required for claude-flow (the memory layer). jq is required by bootstrap, scheduler, and several hooks. Both are strongly recommended even if not strictly mandatory for the plugin alone.
+Node.js is required for ruflo (the memory layer). jq is required by bootstrap, scheduler, and several hooks. Both are strongly recommended even if not strictly mandatory for the plugin alone.
 
 ## Installation
 
@@ -71,7 +71,7 @@ This copies files to `~/.claude/` -- Claude's global config directory. It is ide
 | `~/.claude/settings.json` | PostToolUse hooks (workaround for CC plugin bug) |
 | `~/.claude/plugins/` | Plugin cache and marketplace registration |
 
-Bootstrap also sets up claude-flow (memory layer) if it is installed globally via npm.
+Bootstrap also sets up ruflo (memory layer) if it is installed globally via npm.
 
 ## First session walkthrough
 
@@ -105,7 +105,7 @@ Run through this checklist to confirm everything is working:
 - [ ] **Hooks active** -- start a new session. You should see a brief session-start message from brana.
 - [ ] **Rules present** (if bootstrapped) -- check `ls ~/.claude/rules/*.md`. You should see files like `git-discipline.md`, `sdd-tdd.md`.
 - [ ] **Scheduler available** (if bootstrapped) -- run `brana-scheduler validate` from your terminal.
-- [ ] **claude-flow memory** (optional) -- if installed, run `claude-flow memory search -q "test"` to verify the memory layer responds.
+- [ ] **ruflo memory** (optional) -- if installed, run `ruflo memory search -q "test"` to verify the memory layer responds.
 
 ## Key commands
 

@@ -45,7 +45,7 @@ Enter (specs) ──/build-phase──→ Thebrana (system/) ──deploy.sh─�
      └──────/reconcile──────────────────┘
 
 Projects use deployed brana (~/.claude/) via /build-feature, /debrief, etc.
-Learnings flow back via /brana:retrospective → claude-flow memory → future sessions.
+Learnings flow back via /brana:retrospective → ruflo memory → future sessions.
 ```
 
 ### 2.3 Three Task Management Layers
@@ -60,7 +60,7 @@ Learnings flow back via /brana:retrospective → claude-flow memory → future s
 
 | What | Where | Scope |
 |------|-------|-------|
-| Development patterns | `~/.swarm/memory.db` (claude-flow) | Engineering solutions, corrections |
+| Development patterns | `~/.swarm/memory.db` (ruflo) | Engineering solutions, corrections |
 | Per-project memory | `~/.claude/projects/*/memory/` | Project-specific facts, session handoffs |
 | Brana specs | `enter/*.md` (38 docs) | Brana architecture research |
 | Research sources | `enter/research-sources.yaml` | Tracked external sources |
@@ -113,7 +113,7 @@ These operations are valuable — the sync discipline is real. But the cross-rep
 
 ### 3.5 No General Knowledge System
 
-Brana captures development patterns (claude-flow memory) and brana-specific research (enter dimension docs). There is no home for:
+Brana captures development patterns (ruflo memory) and brana-specific research (enter dimension docs). There is no home for:
 
 - Business domain knowledge (psilocybin science, eye detection technology, real estate markets)
 - Methodology knowledge (sales processes, customer discovery, financial modeling)
@@ -147,7 +147,7 @@ This knowledge exists in the operator's head and in scattered project docs, but 
 │   │   ├── CLAUDE.md              ← unified identity
 │   │   ├── tasks.json             ← unified operational tasks
 │   │   └── rules/
-│   ├── .mcp.json                  ← unified (includes claude-flow)
+│   ├── .mcp.json                  ← unified (includes ruflo)
 │   ├── deploy.sh
 │   └── validate.sh
 │
@@ -290,7 +290,7 @@ After migration:
 
 | Working on... | CWD | What loads |
 |---------------|-----|------------|
-| Brana (specs or implementation) | `thebrana/` | Unified CLAUDE.md, claude-flow MCP, full system |
+| Brana (specs or implementation) | `thebrana/` | Unified CLAUDE.md, ruflo MCP, full system |
 | Psilea | `projects/psilea/` | Psilea CLAUDE.md, deployed brana via ~/.claude/ |
 | Palco | `projects/palco/` | Palco CLAUDE.md, deployed brana via ~/.claude/ |
 
@@ -439,23 +439,23 @@ The authoring layer is markdown files in brana-knowledge (dimension docs, reflec
 
 | Package | Installed | Latest | Role | Status |
 |---------|-----------|--------|------|--------|
-| **claude-flow** | **v3.5.15** | v3.5.15 | Orchestration, MCP, memory + AgentDB | **Active** — upgraded from v3.5.1. 14 patch releases, no breaking changes. |
+| **ruflo** | **v3.5.15** | v3.5.15 | Orchestration, MCP, memory + AgentDB | **Active** — upgraded from v3.5.1. 14 patch releases, no breaking changes. |
 | **@claude-flow/embeddings** | **alpha.12** | alpha.12 | ONNX embedding generation | Current. Upgraded from alpha.1. |
-| **@claude-flow/memory** | — | — | SQLite + AgentDB hybrid backend | **Removed in v3.5.15** — memory ops handled directly by claude-flow core. |
-| **agentdb** | **3.0.0-alpha.10** | 3.0.0-alpha.10 | Graph DB + Cypher + vector search | **Active** — integrated via claude-flow. BM25 hybrid search, reflexion, causal graph, skills. |
+| **@claude-flow/memory** | — | — | SQLite + AgentDB hybrid backend | **Removed in v3.5.15** — memory ops handled directly by ruflo core. |
+| **agentdb** | **3.0.0-alpha.10** | 3.0.0-alpha.10 | Graph DB + Cypher + vector search | **Active** — integrated via ruflo. BM25 hybrid search, reflexion, causal graph, skills. |
 | **ruvector** | (dep) | 0.1.100 | Rust vector DB, HNSW, SONA | Hyperactive (100 patches) |
 | **@ruvector/rvf** | 0.1.9 | 0.2.0 | Unified vector format SDK | Active, minor version bump |
 | **@ruvector/graph-node** | (dep) | 2.0.2 | Native Cypher engine | Active |
 
 All packages by sole maintainer (ruvnet). No cloud dependency — everything runs local.
 
-> **Bridge activation (2026-02-27):** `memory-bridge.js` imports `ControllerRegistry` from `@claude-flow/memory`, but the package doesn't export it natively. A shim at `.claude-flow/controller-registry-shim.js` wraps AgentDB v3's `getController()`/`database`/`embedder` API. `deploy.sh` copies the shim and patches the re-export on every deploy. BM25 hybrid search confirmed active (provenance: `semantic:X+bm25:Y`).
+> **Bridge activation (2026-02-27):** ControllerRegistry shim was originally needed to bridge `memory-bridge.js` → AgentDB v3. **Removed in v3.5.15** — `@claude-flow/memory` package eliminated; ruflo core handles AgentDB directly. BM25 hybrid search confirmed active (provenance: `semantic:X+bm25:Y`).
 
 #### AgentDB v3 three-layer model (from ADR-005)
 
 | Layer | Technology | Knowledge role | Readiness |
 |-------|-----------|----------------|-----------|
-| **Relational** | better-sqlite3 (via AgentDB) | Metadata: source, author, trust tier, freshness, tags | **Active** — via claude-flow memory + AgentDB bridge |
+| **Relational** | better-sqlite3 (via AgentDB) | Metadata: source, author, trust tier, freshness, tags | **Active** — via ruflo memory + AgentDB bridge |
 | **Vector** | HNSW (ruvector) + BM25 hybrid | Semantic search + lexical ranking: 0.7 × cosine + 0.3 × BM25 | **Active** — bridge confirmed working (2026-02-27) |
 | **Graph** | Cypher engine (@ruvector/graph-node) | Connections: topic A relates to topic B via concept C | **Not ready** — controllers return null. Deferred. |
 
@@ -464,18 +464,18 @@ All packages by sole maintainer (ruvnet). No cloud dependency — everything run
 **Phase 0.5 spike completed 2026-02-25.** The CLI embedding pipeline works from bare bash — no MCP session needed.
 
 ```
-$ claude-flow embeddings generate --text "customer retention strategies"
+$ ruflo embeddings generate --text "customer retention strategies"
   Provider: transformers
   Model: onnx (all-MiniLM-L6-v2)
   Dimensions: 384
   Generation time: 300ms (cached), 2.6s (cold start)
 
-$ claude-flow embeddings compare \
+$ ruflo embeddings compare \
     --text1 "customer retention strategies" \
     --text2 "how to keep customers from leaving"
   Similarity: 0.6491 (Moderately similar)    ← correct: related topics
 
-$ claude-flow embeddings compare \
+$ ruflo embeddings compare \
     --text1 "customer retention strategies" \
     --text2 "rust memory management patterns"
   Similarity: 0.2327 (Dissimilar)            ← correct: unrelated topics
@@ -503,15 +503,15 @@ brana-knowledge/reflections/*.md
          │
          ↓
     Generate embeddings per section
-    (claude-flow CLI, ~300ms/section cached, all-MiniLM-L6-v2, 384-dim)
+    (ruflo CLI, ~300ms/section cached, all-MiniLM-L6-v2, 384-dim)
          │
          ↓
-    Store in claude-flow memory (SQLite):
+    Store in ruflo memory (SQLite):
       - Metadata: source file, section, topic, freshness, tags
       - Vector: embeddings for semantic search
          │
          ↓
-    Available via claude-flow MCP from any session
+    Available via ruflo MCP from any session
     (memory-curator agent queries index)
 ```
 
@@ -519,7 +519,7 @@ brana-knowledge/reflections/*.md
 
 ### 7.5 Active Strategy + Fallback (updated 2026-02-27)
 
-AgentDB is now the active backend via claude-flow v3.5.15. SQLite-only is the fallback. ControllerRegistry shim no longer needed (@claude-flow/memory removed in v3.5.15).
+AgentDB is now the active backend via ruflo v3.5.15. SQLite-only is the fallback. ControllerRegistry shim no longer needed (@claude-flow/memory removed in v3.5.15).
 
 | Layer | Active (via AgentDB bridge) | Fallback (if bridge fails) |
 |-------|----------------------------|---------------------------|
@@ -540,8 +540,8 @@ The ruvnet ecosystem provides infrastructure, not a product. What exists:
 
 What we build on top (~100 lines of bash):
 - Markdown parser: extract sections by `##` headers
-- Chunk-to-embedding pipeline: call `claude-flow embeddings generate` per section
-- Storage writer: call `claude-flow memory store` with embeddings + metadata
+- Chunk-to-embedding pipeline: call `ruflo embeddings generate` per section
+- Storage writer: call `ruflo memory store` with embeddings + metadata
 - Post-commit hook + scheduler integration
 
 The ecosystem points in our direction (local-first, vector search, graph relationships). The orchestration layer is ours to write.
@@ -561,7 +561,7 @@ The ecosystem points in our direction (local-first, vector search, graph relatio
 | `/brana:research` | Reads `enter/research-sources.yaml` | Reads `./docs/research-sources.yaml` AND `brana-knowledge/sources.yaml` |
 | `/debrief` | Falls back to `enter/24-roadmap-corrections.md` | Falls back to `./docs/24-roadmap-corrections.md` |
 | `/session-handoff` | CWD-based memory routing | Unchanged — CWD=thebrana for brana work, CWD=project for project work |
-| `/brana:retrospective` | Stores in claude-flow memory | Additionally: if pattern is transferable AND domain-relevant, suggest writing a brana-knowledge dimension doc |
+| `/brana:retrospective` | Stores in ruflo memory | Additionally: if pattern is transferable AND domain-relevant, suggest writing a brana-knowledge dimension doc |
 | `/build-feature` | Unaffected (works from project CWD) | Unaffected. Gains access to knowledge base via memory-curator agent querying indexed brana-knowledge |
 
 ### 8.2 New Skills Needed
@@ -608,7 +608,7 @@ Two steps eliminated. One context switch instead of three.
 
 ### Phase 0.5: Embedding Spike — COMPLETED (2026-02-25)
 
-- [x] CLI command exists: `claude-flow embeddings generate --text "..."`
+- [x] CLI command exists: `ruflo embeddings generate --text "..."`
 - [x] Model: all-MiniLM-L6-v2 via ONNX, 384 dimensions, ~300ms cached
 - [x] Works without MCP session — pure CLI, bash-hook compatible
 - [x] Semantic accuracy verified: 0.65 (related) vs 0.23 (unrelated)
@@ -624,7 +624,7 @@ File moves, path updates, config merges, validate cycle. Pure structural migrati
 - [ ] Create `thebrana/docs/` directory
 - [ ] Copy enter content to `thebrana/docs/` (preserving structure)
 - [ ] Merge CLAUDE.md files (architect + operator → unified)
-- [ ] Merge `.mcp.json` (add claude-flow to thebrana)
+- [ ] Merge `.mcp.json` (add ruflo to thebrana)
 - [ ] Merge `.claude/commands/` (enter commands → thebrana)
 - [ ] Update all skill path references (`~/enter_thebrana/enter/` → `./docs/` or relative) — 30 refs across 11 files
 - [ ] Update pre-commit hooks for unified repo
@@ -650,13 +650,13 @@ Separated from Phase 1 because these are logic rewrites, not path substitutions.
 Validate the full loop before investing in content. Write 1-2 dimension docs AND the indexing pipeline in the same session. If retrieval doesn't work, knowledge base is just another file graveyard.
 
 - [x] Seed dimension docs — 26 docs already in place from Phase 1 redistribution (enter dimension docs → brana-knowledge/dimensions/)
-- [x] Indexing pipeline — `system/scripts/index-knowledge.sh`: parses by ## sections, stores in claude-flow memory with 384-dim ONNX embeddings. 26 docs → 317 sections → 315 stored (2 encoding errors in [doc 09](dimensions/09-claude-code-native-features.md))
+- [x] Indexing pipeline — `system/scripts/index-knowledge.sh`: parses by ## sections, stores in ruflo memory with 384-dim ONNX embeddings. 26 docs → 317 sections → 315 stored (2 encoding errors in [doc 09](dimensions/09-claude-code-native-features.md))
 - [x] Memory-curator agent updated — searches knowledge namespace, surfaces dimension doc findings alongside patterns
 - [x] **End-to-end test PASSED:** "git worktree workflow" → [doc 26](dimensions/26-git-branching-strategies.md) at 0.63, "testing claude code hooks" → [doc 09](dimensions/09-claude-code-native-features.md) at 0.59, "design thinking" → [doc 38](dimensions/38-design-thinking.md) at 0.53. Cross-doc discrimination works.
 - [x] Test passes — retrieval validated, proceed to Phase 4
 - [x] On-commit hook — brana-knowledge post-commit runs `index-knowledge.sh --changed` in background
 - [x] Weekly full reindex — scheduler template updated (Sunday 3am)
-- [x] AgentDB backend activated (2026-02-27) — claude-flow v3.5.1 + ControllerRegistry shim. BM25 hybrid search, reflexion, causal graph, skills controllers active. Graph layer deferred (controllers return null).
+- [x] AgentDB backend activated (2026-02-27) — ruflo v3.5.1 + ControllerRegistry shim. BM25 hybrid search, reflexion, causal graph, skills controllers active. Graph layer deferred (controllers return null).
 
 ### Phase 4: Evolve brana-knowledge (ongoing, after retrieval is validated)
 
@@ -681,9 +681,9 @@ Now that the full loop works (write doc → index → retrieve from project sess
 | **Spec discipline weakens** | Without repo boundary, easier to skip spec updates | Pre-commit hook: `feat/*` branches touching `system/` must also touch `docs/` (or explicitly skip with reason). **Tripwire:** if 3 consecutive `feat/*` branches skip `docs/` updates, make the hook mandatory. The repo boundary was a hard constraint; the hook is a soft one — monitor it. |
 | **brana-knowledge becomes a graveyard** | Collector's fallacy: docs written but never used | Freshness tracking in sources.yaml. Scheduled `/knowledge review` checks staleness. Quality pipelines that detect and correct knowledge drift (#466). **Critical gate:** retrieval must be validated (Phase 3) BEFORE scaling content (Phase 4). Without retrieval, no one asks for the knowledge. Write 1-2 seed docs + test the full loop before investing in content. |
 | **New cross-repo friction (thebrana↔brana-knowledge)** | `/brana:research` reads from brana-knowledge, `/brana:retrospective` writes to it — bidirectional cross-repo ops | Accepted trade-off. brana-knowledge is a library (no backlog, no tasks), not an active project. Cross-repo reads to a library are lower friction than cross-repo syncs between two active clients. |
-| **Embedding CLI assumption untested** | Indexing pipeline design assumes `claude-flow` CLI generates embeddings without MCP session — never verified | Phase 0.5 spike (10 min) validates or invalidates. If CLI doesn't exist, redesign around Python sentence-transformers or MCP-session-based approach. |
+| **Embedding CLI assumption untested** | Indexing pipeline design assumes `ruflo` CLI generates embeddings without MCP session — never verified | Phase 0.5 spike (10 min) validates or invalidates. If CLI doesn't exist, redesign around Python sentence-transformers or MCP-session-based approach. |
 | **Skill rewrites underestimated** | `/back-propagate` and `/brana:reconcile` need logic rewrites, not just path substitution (30 refs across 11 files) | Phase 2 separated from Phase 1. Degraded mode acceptable for a few days while logic is reworked. |
-| **AgentDB doesn't mature** | Kill date passes, no graph/vector backend | Fallback to claude-flow memory + CLI embeddings. Markdown files are always the source of truth regardless. |
+| **AgentDB doesn't mature** | Kill date passes, no graph/vector backend | Fallback to ruflo memory + CLI embeddings. Markdown files are always the source of truth regardless. |
 | **Knowledge base grows unbounded** | Too many dimension docs, retrieval quality drops | Follow enter's pattern: 30-50 docs is fine flat. Reflections synthesize and reduce. Archive stale docs. |
 | **Migration breaks deployed brana** | Path references wrong after merge, deploy.sh produces broken ~/.claude/ | Migration Phase 1 ends with full deploy + validate cycle. Test in parallel before cutting over. |
 
@@ -718,7 +718,7 @@ Brana specs, knowledge dimensions, and reflections are all in English. Project-f
 - Runs a lightweight bash script, not MCP (per #461: "data-heavy ops as executable scripts, not context-consuming MCP calls")
 - **Incremental:** only re-indexes files changed in the commit (`git diff --name-only HEAD~1` → filter `dimensions/` and `reflections/`)
 - At ~300ms per embedding (spike-verified), 10 changed docs = ~3s. Noticeable but acceptable for a post-commit hook.
-- Falls back gracefully if claude-flow binary or @claude-flow/embeddings is missing (skips indexing, logs warning). **Must check for `hash-fallback` model** — if present, embeddings are useless.
+- Falls back gracefully if ruflo binary or @claude-flow/embeddings is missing (skips indexing, logs warning). **Must check for `hash-fallback` model** — if present, embeddings are useless.
 
 **Scheduled job (safety net):**
 - Full reindex weekly via brana-scheduler (already deployed)
@@ -750,7 +750,7 @@ Knowledge→system is a different relationship than specs→implementation. The 
 3. Merge transferable patterns into thebrana's `~/.claude/projects/-...-thebrana/memory/MEMORY.md`
 4. Leave enter's MEMORY.md on disk (frozen, not deleted — in case something was missed)
 
-**What transfers:** roadmap precision pattern, materiality filtering, claude-flow v3 gotchas, agent-skill symbiosis, context overflow prevention, bulk triage patterns, scheduler details, CLAUDE.md vs MEMORY.md framework.
+**What transfers:** roadmap precision pattern, materiality filtering, ruflo v3 gotchas, agent-skill symbiosis, context overflow prevention, bulk triage patterns, scheduler details, CLAUDE.md vs MEMORY.md framework.
 **What gets discarded:** project structure paths (change after merge), doc ranges (absorbed), cross-repo references (eliminated).
 
 ### Q6. Timeline → Spike first, merge, validate retrieval, then scale content
@@ -824,7 +824,7 @@ Adversarial review conducted 2026-02-25 (Opus challenger agent). Verdict: **proc
 |---|---------|--------|------------|
 | C1 | **Knowledge base graveyard — no retrieval means no demand.** Memory-curator depends on Phase 3 indexing. Without retrieval, knowledge dies on the shelf. | Phase 2 content investment wasted | **Flipped Phase 2↔3.** Retrieval prototype (Phase 3) now comes before content scaling (Phase 4). End-to-end test required: write seed doc → index → retrieve from project session. |
 | C2 | **"1 day" underestimates skill rewrites.** 30 hardcoded `~/enter_thebrana/enter/` refs across 11 files. `/back-propagate` and `/brana:reconcile` need logic rewrites, not path substitution. | Migration takes longer, frustration | **Split Phase 1 (structural) from Phase 2 (skill logic).** Degraded mode acceptable while skill logic is reworked. |
-| C3 | **Embedding CLI assumption untested.** `claude-flow` CLI embedding generation never verified. If it doesn't exist, both primary and fallback indexing designs are invalid. | Entire retrieval architecture invalidated | **RESOLVED.** Phase 0.5 spike completed 2026-02-25. CLI generates real 384-dim ONNX embeddings (all-MiniLM-L6-v2), semantic similarity verified (0.65 related, 0.23 unrelated). See section 7.3. |
+| C3 | **Embedding CLI assumption untested.** `ruflo` CLI embedding generation never verified. If it doesn't exist, both primary and fallback indexing designs are invalid. | Entire retrieval architecture invalidated | **RESOLVED.** Phase 0.5 spike completed 2026-02-25. CLI generates real 384-dim ONNX embeddings (all-MiniLM-L6-v2), semantic similarity verified (0.65 related, 0.23 unrelated). See section 7.3. |
 
 ### Warnings (documented, mitigations added)
 

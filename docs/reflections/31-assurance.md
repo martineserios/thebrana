@@ -128,7 +128,7 @@ Operational state lives in `~/.claude/` (fast cache) but must be recoverable fro
 - **push** — cache→repo: global files (event-log, portfolio, config) copy to `system/state/`, companion files (sessions.md, session-handoff.md) copy to each project's `.claude/memory/`
 - **pull** — repo→cache: reverse direction, idempotent when files are already in sync (must not crash on `set -e`)
 - **snapshot** — creates `MEMORY-snapshot.md` from CC project memory
-- **export/import** — round-trip claude-flow patterns+decisions through a JSON intermediary (`system/state/patterns-export.json`). Graceful skip when claude-flow is unavailable
+- **export/import** — round-trip ruflo patterns+decisions through a JSON intermediary (`system/state/patterns-export.json`). Graceful skip when ruflo is unavailable
 - **Scheduler safety net** — daily push (9am), weekly export (Sunday 3:05am) via systemd timers with `Persistent=true`
 
 Test suite: `tests/scripts/test-sync-state.sh` (15 tests covering all subcommands + edge cases).

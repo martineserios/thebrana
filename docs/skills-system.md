@@ -8,12 +8,12 @@ Quick reference for the brana skills system — shared scripts, the `/brana:memo
 
 | Script | Purpose | Usage |
 |--------|---------|-------|
-| `cf-env.sh` | Discover claude-flow binary, export `$CF` | `source "$HOME/.claude/scripts/cf-env.sh"` |
-| `memory-store.sh` | Store a key-value pair in claude-flow memory (falls back to MEMORY.md) | `"$HOME/.claude/scripts/memory-store.sh" -k KEY -v VALUE -n NAMESPACE -t TAGS` |
+| `cf-env.sh` | Discover ruflo binary, export `$CF` | `source "$HOME/.claude/scripts/cf-env.sh"` |
+| `memory-store.sh` | Store a key-value pair in ruflo memory (falls back to MEMORY.md) | `"$HOME/.claude/scripts/memory-store.sh" -k KEY -v VALUE -n NAMESPACE -t TAGS` |
 | `backup-knowledge.sh` | Trigger brana-knowledge backup if repo exists | `"$HOME/.claude/scripts/backup-knowledge.sh"` |
 
 **When writing a new skill or hook:**
-- Need `$CF` for any claude-flow command: source `cf-env.sh`
+- Need `$CF` for any ruflo command: source `cf-env.sh`
 - Need to store a memory entry: call `memory-store.sh` (don't source cf-env.sh separately)
 - Need to trigger backup: call `backup-knowledge.sh`
 

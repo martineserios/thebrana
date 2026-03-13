@@ -99,6 +99,6 @@ cat system/state/decisions/2026-03-11-ab3f92c1.jsonl
 |--------|---------------|-----------|
 | **Decision log** | Semantic events (decisions, findings) | Git-tracked, 30-day active |
 | **MEMORY.md** | Cross-session learnings, preferences | Permanent, curated |
-| **claude-flow** | Semantic memory, patterns, embeddings | Persistent, searchable |
+| **ruflo** | Semantic memory, patterns, embeddings | Persistent, searchable |
 | **tasks.json** | Work items, status, metadata | Permanent, structured |
 | **/tmp session JSONL** | Tool-level telemetry | Deleted at session end |

@@ -1,11 +1,11 @@
-# t-022 Evaluation: AgentDB v3 + claude-flow v3.5.1 Upgrade
+# t-022 Evaluation: AgentDB v3 + ruflo v3.5.1 Upgrade
 
 **Date:** 2026-02-27
 **Status:** evaluation complete
 
 ## Executive Summary
 
-claude-flow v3.5.1 natively integrates AgentDB v3 as its memory engine while **preserving the exact `memory_entries` table schema** and CLI/MCP API surface that thebrana uses. The upgrade is non-breaking and additive — all existing hooks, scripts, skills, and agents work unchanged. New AgentDB features (reflexion, causal reasoning, skill library, BM25 hybrid search) become available immediately.
+ruflo v3.5.1 natively integrates AgentDB v3 as its memory engine while **preserving the exact `memory_entries` table schema** and CLI/MCP API surface that thebrana uses. The upgrade is non-breaking and additive — all existing hooks, scripts, skills, and agents work unchanged. New AgentDB features (reflexion, causal reasoning, skill library, BM25 hybrid search) become available immediately.
 
 **Recommendation: Upgrade.** This is a drop-in improvement, not a migration.
 
@@ -25,7 +25,7 @@ claude-flow v3.5.1 natively integrates AgentDB v3 as its memory engine while **p
 | `memory export --output FILE --format json` | export-knowledge.sh | ✅ Preserved | No |
 | `embeddings generate --text TEXT` | index-knowledge.sh | ✅ Preserved | No |
 
-### MCP Tools (used by skills via mcp__claude-flow__*)
+### MCP Tools (used by skills via mcp__ruflo__*)
 
 | Tool | v3.5.1 status |
 |------|---------------|
@@ -111,13 +111,13 @@ claude-flow v3.5.1 natively integrates AgentDB v3 as its memory engine while **p
 cp ~/.swarm/memory.db ~/.swarm/memory.db.bak-pre-v3
 
 # 2. Upgrade (global)
-npm install -g claude-flow@3.5.1
+npm install -g ruflo@3.5.1
 
 # 3. Install optional deps for full feature set
 npm install -g agentic-flow@2.0.7
 
 # 4. Verify
-cd ~ && claude-flow memory search --query "test" --limit 1
+cd ~ && ruflo memory search --query "test" --limit 1
 
 # 5. Run test suite
 cd ~/enter_thebrana/thebrana && bash test-memory.sh
@@ -152,7 +152,7 @@ cd ~/enter_thebrana/thebrana && ./deploy.sh
 
 This is the best kind of upgrade: **zero breaking changes, immediate search quality improvement, future features unlocked**. The entire ms-007 milestone ("Wire AgentDB into brana") reduces to:
 
-1. `npm install -g claude-flow@3.5.1` (upgrade)
+1. `npm install -g ruflo@3.5.1` (upgrade)
 2. `bash test-memory.sh` (verify)
 3. Optional: adopt new AgentDB features in future tasks
 
