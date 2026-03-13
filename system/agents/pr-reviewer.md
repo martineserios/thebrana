@@ -50,6 +50,10 @@ You are a code review agent. Your job is to review PR diffs for quality, securit
 - Missing documentation for public APIs
 - TODOs or FIXMEs without tracking
 
+### Spec Drift (Medium)
+- If the PR modifies `system/` files and `docs/spec-graph.json` exists, check which docs reference those files: `jq '.nodes | to_entries[] | select(.value.impl_files | map(select(startswith("system/"))) | length > 0) | .key' docs/spec-graph.json`. If affected docs were NOT updated in the same PR, flag: "These docs reference the changed system files but weren't updated: {list}. Consider updating them or running `/brana:reconcile`."
+- If `docs/spec-graph.json` doesn't exist, skip this check silently.
+
 ## Output Format
 
 ```

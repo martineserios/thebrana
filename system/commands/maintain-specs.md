@@ -92,7 +92,26 @@ Also check: are there items that have already been researched and implemented bu
 
 If no pending items or user declines → report "Backlog reviewed, no action."
 
-## Step 7: Surface findings for storage
+## Step 7: Log findings to decision log
+
+For each errata applied or cascade propagated during this run, log a summary entry:
+
+```bash
+uv run python3 system/scripts/decisions.py log maintain-specs action \
+  "Applied {N} errata, {M} cascade findings across {docs list}" \
+  --severity "{HIGH if any HIGH errata, else MEDIUM}" 2>/dev/null || true
+```
+
+If individual findings were HIGH severity, log them separately:
+
+```bash
+uv run python3 system/scripts/decisions.py log maintain-specs finding \
+  "{finding summary}" --severity HIGH --refs "{affected doc numbers}" 2>/dev/null || true
+```
+
+Skip if no errata were applied and no cascades occurred.
+
+## Step 8: Surface findings for storage
 
 Review what was discovered during this maintain-specs run. If any of these emerged, **ask the user** whether to store them in ruflo memory via `/brana:retrospective`:
 
@@ -105,7 +124,7 @@ Review what was discovered during this maintain-specs run. If any of these emerg
 
 If nothing worth storing → report "No findings to store."
 
-## Step 8: Backup knowledge
+## Step 9: Backup knowledge
 
 If this run modified any knowledge artifacts (MEMORY.md files, ReasoningBank entries, portfolio), back them up:
 
@@ -116,7 +135,7 @@ BACKUP_SCRIPT="$HOME/enter_thebrana/brana-knowledge/backup.sh"
 
 If the script doesn't exist, skip silently — the user hasn't set up the knowledge repo yet.
 
-## Step 9: Regenerate spec graph
+## Step 10: Regenerate spec graph
 
 If any steps above modified docs (applied errata, deepened reflections, updated doc 25), regenerate the spec dependency graph so consumers stay current:
 

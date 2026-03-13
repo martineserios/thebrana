@@ -120,6 +120,15 @@ Check if system files were modified this session:
 git diff --name-only HEAD~10..HEAD 2>/dev/null | grep -E '(skills/|agents/|hooks/|rules/|commands/|CLAUDE\.md|settings\.json|deploy\.sh)'
 ```
 
+**Graph-aware detection:** If `docs/spec-graph.json` exists and system files were changed, query the graph to find which specific docs are affected:
+
+```bash
+# For each changed system file, find docs that reference it
+jq --arg f "system/skills/build/SKILL.md" '.nodes | to_entries[] | select(.value.impl_files | index($f)) | .key' docs/spec-graph.json
+```
+
+Include the affected doc list in the drift report instead of just "system files changed." If the graph doesn't exist, fall back to the generic message.
+
 - **If matches found:** flag in handoff note and write a marker file:
   ```bash
   MEMORY_DIR=$(find ~/.claude/projects/ -maxdepth 2 -name "MEMORY.md" -path "*$(basename $(git rev-parse --show-toplevel))*" -exec dirname {} \; 2>/dev/null | head -1)

@@ -507,7 +507,14 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    - [x] All tests pass
    ```
 
-2. **Retrospective** — look back on the build process:
+2. **Log build outcome to decision log:**
+   ```bash
+   uv run python3 system/scripts/decisions.py log main decision \
+     "Built {task-id} ({strategy}): {one-line summary of what was built}" \
+     --refs "{task-id}" 2>/dev/null || true
+   ```
+
+3. **Retrospective** — look back on the build process:
    - What errors or re-approaches happened?
    - What surprised us?
    - What patterns should we store for next time?
@@ -522,11 +529,11 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
      ```
    If ruflo unavailable, append to project's auto memory MEMORY.md.
 
-3. **Update feature spec** (feature, greenfield, migration only):
+4. **Update feature spec** (feature, greenfield, migration only):
    - Set status to `shipped`
    - Add learnings from retrospective
 
-4. **Generate feature documentation** (strategy-aware):
+5. **Generate feature documentation** (strategy-aware):
 
    **Which docs to generate:**
 
@@ -555,16 +562,16 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
 
    **Shipped without docs means not shipped.**
 
-5. **Update task** (if entered via `/brana:backlog start`):
+6. **Update task** (if entered via `/brana:backlog start`):
    - Set status → `completed`
    - Set completed date
    - Add notes from retrospective
 
-6. **GitHub sync** (if `github_sync.enabled` in `~/.claude/tasks-config.json`):
+7. **GitHub sync** (if `github_sync.enabled` in `~/.claude/tasks-config.json`):
    - If task has `github_issue`: run `system/scripts/gh-sync.sh close {issue-number}`.
    - If sync fails: warn "GitHub issue not closed. Close manually: gh issue close #{issue-number}" — do NOT block CLOSE.
 
-7. **Pre-merge doc check** (feature, greenfield, migration only):
+8. **Pre-merge doc check** (feature, greenfield, migration only):
    - Run: `git diff --name-only main...HEAD | grep -E '(docs/architecture/features/|docs/guide/features/)'`
    - **If no doc files in diff:** warn clearly:
      ```

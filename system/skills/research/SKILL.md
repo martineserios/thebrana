@@ -134,18 +134,27 @@ Flags:
    - Maximum 2 hops deep from the original source
    - Stop recursing when: max depth reached, finding priority drops below MEDIUM, or source already in registry
 
-9. **Connect findings to docs.** For each finding, identify:
+9. **Log HIGH findings to decision log.** Before presenting the report, persist HIGH-severity findings:
+
+   ```bash
+   uv run python3 system/scripts/decisions.py log scout finding "{finding title}: {detail}" \
+     --severity HIGH --refs "{affected doc numbers}" 2>/dev/null || true
+   ```
+
+   This preserves research findings across sessions (session-start.sh reads HIGH findings). Only log HIGH — MEDIUM/LOW stay in the report only.
+
+11. **Connect findings to docs.** For each finding, identify:
    - Which dimension doc(s) it affects
    - Which section within the doc
    - Severity: HIGH (doc conclusion wrong or key claim outdated), MEDIUM (needs update), LOW (minor addition)
 
-10. **Registry health report** (for `registry` mode or appended to other modes):
+12. **Registry health report** (for `registry` mode or appended to other modes):
     - Trust tier distribution (how many proven/promising/unvalidated/demoted)
     - Sources overdue for check (last_checked + cadence < today)
     - Creators with no recent findings (potential demote candidates)
     - Sources with high yield (potential cadence upgrade candidates)
 
-11. **Report findings.** Present structured output:
+13. **Report findings.** Present structured output:
 
    ```
    ## Research: [target]
@@ -183,11 +192,11 @@ Flags:
    - Promote/demote: [source] from [tier] to [tier] — reason
    ```
 
-12. **Create leads for unfollowed threads.** For references that were not recursed into (budget exhausted, low priority):
+14. **Create leads for unfollowed threads.** For references that were not recursed into (budget exhausted, low priority):
     - Store as leads in ruflo memory (namespace: `research-leads`) if available
     - Otherwise, list them in the report under "Leads Created" for manual tracking
 
-13. **Propose registry updates.** List all changes to `research-sources.yaml`:
+15. **Propose registry updates.** List all changes to `research-sources.yaml`:
     - New sources to add (with full schema)
     - `last_checked` date updates
     - `version_observed` + `date_observed` updates (when version changed)
@@ -195,7 +204,7 @@ Flags:
     - Trust tier promotions/demotions (with reasoning)
     - Do NOT modify the YAML directly — present proposals for user approval
 
-14. **Prepare NotebookLM source (only when `--nlm` flag is present).**
+16. **Prepare NotebookLM source (only when `--nlm` flag is present).**
 
     **CLAUDE:** Format the research findings as a NotebookLM-optimized Markdown file following the `/brana:notebooklm-source` template:
     - Executive summary (2-3 sentences: topic, date, key takeaway)
@@ -216,7 +225,7 @@ Flags:
 
     If prior knowledge was used from Phase 0, note which findings are **new** vs **confirmations** vs **contradictions** of existing notebook content. This helps the user decide whether to replace an old source or add alongside it.
 
-15. **Write to knowledge base (user approval required).** If findings are significant enough to warrant a new dimension doc or major update to an existing one:
+17. **Write to knowledge base (user approval required).** If findings are significant enough to warrant a new dimension doc or major update to an existing one:
     - For a **new topic**: propose creating a new dimension doc in `~/enter_thebrana/brana-knowledge/dimensions/{topic-slug}.md`. Use topic-based filename (not numbered). Present the proposed doc structure and get user approval before writing.
     - For an **existing doc update**: propose specific edits to the relevant dimension doc. Present the changes and get user approval.
     - After writing, commit in brana-knowledge (the post-commit hook auto-reindexes for retrieval).
@@ -240,6 +249,7 @@ When researching, select the appropriate archetype based on the target:
 - **Return-inline contract (mandatory):** Scouts return ALL findings as structured text in their agent result. **Scouts cannot write files** (no Bash/Write tools). Main context receives findings and writes to `/tmp/research-{target}-{N}.md` one at a time.
 - **Phase budget:** Phase 1 max 5-8 scouts (WebSearch only; one for security in topic/ecosystem mode). Phase 3 max 3 scouts (WebFetch, max 2 per scout). Recursion max 3 scouts.
 - **Total scout cap:** max 14 scouts per invocation (8 scan + 3 deep + 3 recurse)
+- **Model routing for scouts:** Phase 1 scouts (metadata-only WebSearch) use `model: "haiku"`. Phase 3 scouts (deep-dive WebFetch) use `model: "sonnet"`. This optimizes cost — scan scouts do lightweight work, deep-dive scouts need stronger comprehension.
 - **Scout spawn prompt template:** Always include these lines in every scout prompt:
   ```
   CRITICAL RULES:
