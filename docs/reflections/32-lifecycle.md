@@ -31,7 +31,7 @@ DDD enforcement has three aspects:
 
 **Bounded context boundaries.** Architecture linters (ArchUnit, dependency-cruiser, import-linter) validate at CI/CD time. Path-scoped rules (`src/domain/**` → domain layer rules) provide convention-level enforcement.
 
-**Domain model artifacts.** A `/domain-model` skill (future) creates markdown domain specs in `docs/domain/MODEL-NNN-context-name.md`, similar to how `/decide` creates ADRs.
+**Domain model artifacts.** A `/domain-model` skill (future) creates markdown domain specs in `docs/domain/MODEL-NNN-context-name.md`, similar to how ADRs are created in `docs/decisions/`.
 
 **Opt-in:** Enforcement activates when `docs/domain/` exists alongside `docs/decisions/`. Same pattern as SDD opt-in.
 
@@ -41,7 +41,7 @@ DDD enforcement has three aspects:
 
 **Opt-in:** Enforcement activates when `docs/decisions/` exists. No directory = no enforcement.
 
-**The `/decide` skill** creates ADRs using Michael Nygard's lightweight format (Context, Decision, Consequences) in `docs/decisions/ADR-NNN-title.md`. Auto-increments, stores in ReasoningBank.
+**ADR creation** uses Michael Nygard's lightweight format (Context, Decision, Consequences) in `docs/decisions/ADR-NNN-title.md`. Currently manual or via `/brana:build` SDD step — a dedicated `/brana:decide` skill is planned but not yet implemented.
 
 **The PreToolUse hook** intercepts `Write|Edit` calls on `feat/*` branches. See [14-mastermind-architecture.md](./14-mastermind-architecture.md) for the enforcement gate design; [31-assurance.md](./31-assurance.md) for how to verify it works.
 
@@ -61,7 +61,7 @@ When using Agent Teams: isolate agents by discipline.
 
 ### Connection to the Learning Loop
 
-ADRs created by `/decide` are pattern-worthy — `/brana:retrospective` extracts "decision X was made because Y" and stores it in ReasoningBank. Domain models (future) would feed the same loop. The enforcement hooks themselves are pure git-based, no ruflo dependency. Learning happens through the skill layer (`/brana:retrospective`, `/brana:memory recall`).
+ADRs are pattern-worthy — `/brana:retrospective` extracts "decision X was made because Y" and stores it in ReasoningBank. Domain models (future) would feed the same loop. The enforcement hooks themselves are pure git-based, no ruflo dependency. Learning happens through the skill layer (`/brana:retrospective`, `/brana:memory recall`).
 
 ---
 
@@ -221,12 +221,13 @@ Each cycle:
 
 The close→maintain-specs loop is what keeps specs alive. Without it, specs drift from reality with every implementation session.
 
-**Four feedback paths.** Findings from implementation don't all go to the same place — each path serves a different layer:
+**Five feedback paths.** Findings from implementation don't all go to the same place — each path serves a different layer:
 
 1. **Implementation findings → `/brana:maintain-specs`** — when building reveals a spec error or gap, maintain-specs cascades the fix through dimension → reflection → roadmap. This is the **document layer**: correcting what the system says.
 2. **Event capture → `/brana:log`** — links, calls, meetings, ideas, observations are captured into a searchable append-only log. This is the **observation layer**: recording what happened so it can be triaged later (e.g. promoted to a task or referenced in a review).
 3. **Tactical advice → task `context` field** — `system/rules/tactical-context.md` guides appending session advice to related tasks by keyword/tag matching. This is the **execution layer**: enriching the next session that picks up the same task.
 4. **Reusable patterns → `/brana:retrospective`** — extracts durable patterns into ruflo memory (ReasoningBank) with confidence tracking. This is the **knowledge layer**: building institutional memory that outlives any single task or spec.
+5. **Session decisions → `system/state/decisions/` ([ADR-017](../architecture/decisions/ADR-017-decision-log.md))** — agents write decisions, findings, concerns, errors, and cost events to append-only JSONL files during the session. session-end.sh writes a summary entry; session-start injects the previous session's HIGH findings as context. This is the **continuity layer**: cross-session signal that's git-tracked and doesn't require ReasoningBank.
 
 ---
 

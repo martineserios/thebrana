@@ -112,6 +112,22 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 92 | [Doc 14](reflections/14-mastermind-architecture.md) rules count 12 vs actual 13 | **Medium** | applied (2026-03-11) | 7th instance of count drift. Updated both tree and prose to 13 with full list. |
 | 93 | [Doc 32](reflections/32-lifecycle.md) `/project-onboard` and `/debrief` retired names | **High** | applied (2026-03-11) | Updated to `/brana:onboard` and `/brana:close`. Build cycle step 5 rewritten. |
 | 94 | [Doc 32](reflections/32-lifecycle.md) `/usage-stats` doesn't exist, `deploy.sh` deprecated, `/morning` retired | **Medium** | applied (2026-03-11) | Token usage row rewritten. Deploy pipeline updated to plugin + bootstrap.sh. `/morning` → `/brana:review`. |
+| 95 | [Doc 08](reflections/08-diagnosis.md) `/refresh-knowledge` referenced as live skill (retired) | **High** | applied (2026-03-13) | Doc 33 triage: `/refresh-knowledge` → `--refresh` flag |
+| 96 | [Doc 08](reflections/08-diagnosis.md) ADR-019 not reflected in doc 36 triage | **High** | applied (2026-03-13) | Doc 36 triage rewritten: ADR-019 consumption, ZeroClaw deferred, Kapso as adapter |
+| 97 | [Doc 14](reflections/14-mastermind-architecture.md) 2 stale "claude-flow" name refs (lines 34, 876) | **Medium** | applied (2026-03-13) | "Claude-flow's ReasoningBank" → "Ruflo's", heading renamed |
+| 98 | [Doc 14](reflections/14-mastermind-architecture.md) ADR-019 not referenced — architecture doc ignores major accepted ADR | **High** | applied (2026-03-13) | Blockquote callout added after Three Layers diagram with ADR-019 + ADR-018 summary |
+| 99 | [Doc 31](reflections/31-assurance.md) validate.sh Check 14 (spec-graph coverage) not documented | **Medium** | applied (2026-03-13) | Check 14 bullet added to Configuration Validity |
+| 100 | [Doc 31](reflections/31-assurance.md) hook config references settings.json as primary (pre-plugin) | **Medium** | applied (2026-03-13) | Updated to hooks.json (primary) + settings.json (bootstrap fallback) |
+| 101 | [Doc 32](reflections/32-lifecycle.md) `/decide` skill doesn't exist — phantom reference | **High** | applied (2026-03-13) | 3 references rewritten: ADR creation is manual or via `/brana:build`, `/brana:decide` noted as planned |
+| 102 | [Doc 32](reflections/32-lifecycle.md) ADR-017 decision log missing from feedback paths | **Medium** | applied (2026-03-13) | Fifth feedback path added: session decisions → JSONL decision log (continuity layer) |
+| 103 | [Doc 29](reflections/29-venture-management-reflection.md) ADR-019 chat sessions absent | **High** | applied (2026-03-13) | Phase 6 added to evolution roadmap: channel-agnostic access via ADR-019 |
+| 104 | [Doc 29](reflections/29-venture-management-reflection.md) `/decide` phantom + missing `brana:` prefix | **Medium** | applied (2026-03-13) | 3 `/decide` refs replaced with generic ADR creation language |
+| 105 | [Doc 08](reflections/08-diagnosis.md) ADR-018 implemented but doc says "medium priority adopt" | **High** | applied (2026-03-13) | Token routing marked "Implemented" with ADR-018 ref; resolved Q#13 rewritten |
+| 106 | [Doc 14](reflections/14-mastermind-architecture.md) decisions.py shipped but doc says "defer Beads pattern" | **Medium** | applied (2026-03-13) | "Defer Beads" → "Beads-equivalent implemented: decisions.py + ADR-017 JSONL" |
+| 107 | [Doc 14](reflections/14-mastermind-architecture.md) ADR-018 dynamic model routing absent from agent architecture | **Medium** | applied (2026-03-13) | Blockquote added after Agent Boundaries with ADR-018 + ADR-019 routing summary |
+| 108 | [Doc 08](reflections/08-diagnosis.md) essential hooks list includes dropped/unimplemented items | **Medium** | applied (2026-03-13) | Essential hooks updated to actual 3 (PreToolUse, SessionStart, SessionEnd) with disposition note |
+| 109 | [Doc 18](18-lean-roadmap.md) "What Stays" lists PostToolUse as essential but omits PreToolUse — cascade from #108 | **Medium** | applied (2026-03-13) | "Three hooks" → "Four hooks" with PreToolUse added, PostToolUse constraint noted. Phase 2 PostToolUse section gets CC bug caveat |
+| 110 | [Doc 18](18-lean-roadmap.md) Phase 2 missing ADR-017 decisions layer — cascade from #102 | **Low** | informational | ADR-017 is already implemented; doc 18 is historical roadmap. No fix needed — decisions.py operates independently of the learning loop |
 
 ---
 

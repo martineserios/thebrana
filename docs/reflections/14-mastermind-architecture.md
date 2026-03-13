@@ -31,9 +31,11 @@ The system has three distinct layers, each with its own persistence and scope:
 └─────────────────────────────────────────────┘
 ```
 
-Claude Code's native hierarchy handles layers 1 and 3 — `~/.claude/CLAUDE.md` is always loaded (the mastermind), and `project/.claude/CLAUDE.md` layers on top when you're in a project. Claude-flow's ReasoningBank fills layer 2 — the cross-client memory that native Claude Code can't do.
+Claude Code's native hierarchy handles layers 1 and 3 — `~/.claude/CLAUDE.md` is always loaded (the mastermind), and `project/.claude/CLAUDE.md` layers on top when you're in a project. Ruflo's ReasoningBank fills layer 2 — the cross-client memory that native Claude Code can't do.
 
 The hooks are the glue connecting all three.
+
+> **Channel-agnostic extension (2026-03-13):** [ADR-019](../architecture/decisions/ADR-019-brana-chat-sessions.md) extends brana beyond the Claude Code CLI. A 3-layer session architecture (channel adapters → session manager → brana agent runtime) enables WhatsApp, web widget, and CLI chat access with tiered capabilities (Tier 1 end users = KB-only/Haiku, Tier 2 clients = KB+actions/Sonnet, Tier 3 operator = full brana/dynamic routing per [ADR-018](../architecture/decisions/ADR-018-dynamic-model-routing.md)). The three core layers above remain the brain; the session layer is the interface extension. See dim-36 (claw ecosystem), dim-39 (Kapso), ph-013.
 
 ---
 
@@ -209,6 +211,8 @@ Agents are safety nets, not replacements. The community builds skills (portable,
 ### Agent Boundaries
 
 Each agent description includes "Not for..." constraints that disambiguate auto-delegation routing. When multiple agents cover adjacent domains (e.g., scout vs memory-curator for research, client-scanner vs venture-scanner for diagnostics), explicit negative boundaries prevent the model from routing to the wrong agent. Model distribution: Haiku (8 agents — fast, cheap tasks), Opus (2 agents — challenger, debrief-analyst — where reasoning depth justifies the cost), Sonnet (1 agent — pr-reviewer — code understanding without Opus cost).
+
+> **Dynamic model routing ([ADR-018](../architecture/decisions/ADR-018-dynamic-model-routing.md)):** The agent roster's model assignments are defaults. ADR-018 adds per-message complexity scoring (0.0–1.0) that can override static assignments at runtime — e.g., routing a complex question to Opus even when the default agent model is Sonnet. Extended to chat sessions via [ADR-019](../architecture/decisions/ADR-019-brana-chat-sessions.md): Tier 3 operator sessions use dynamic routing, Tier 1/2 are locked to their tier's model ceiling.
 
 ---
 
@@ -873,11 +877,11 @@ The **single system for anything actionable**: things to research, build, fix, e
 
 **Why one system:** Two tracking systems (backlog + ruflo leads) means items get lost, duplicated, or forgotten. The backlog is where you look. Everything actionable goes there.
 
-### Claude-flow Memory — Patterns and Context
+### Ruflo Memory — Patterns and Context
 
 The **system for things that inform work**, not things that ARE work. Stored in ruflo's ReasoningBank (`.swarm/memory.db`) or auto memory files (`~/.claude/projects/*/memory/`).
 
-**Parallel-write limitation:** MEMORY.md (single file) is not safe for concurrent agent writes — last write wins. This is acceptable for the current pattern (one main session + read-only subagents). If parallel agents ever need to write session notes simultaneously, consider the Beads pattern: per-concern JSONL files that are git-naturally mergeable. See [45-turboflow-agent-orchestration.md](../../../brana-knowledge/dimensions/45-turboflow-agent-orchestration.md). Defer until the use case exists.
+**Parallel-write limitation:** MEMORY.md (single file) is not safe for concurrent agent writes — last write wins. This is acceptable for the current pattern (one main session + read-only subagents). The Beads-equivalent pattern is already implemented: `system/scripts/decisions.py` writes to git-tracked JSONL files at `system/state/decisions/` ([ADR-017](../architecture/decisions/ADR-017-decision-log.md)). These are append-only, per-session, and git-naturally mergeable. The broader parallel-agent-writes use case for `tasks.json` remains deferred.
 
 **What belongs here:**
 - **Patterns** — "Haiku scouts can't write temp files" (namespace: `patterns`)

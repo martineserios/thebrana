@@ -30,10 +30,11 @@ From [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md) Layer 0 
 
 - **YAML frontmatter** — every skill, rule, and agent definition has valid frontmatter with required fields (`name`, `description`, `allowed-tools`)
 - **Context budget** — total always-loaded context (CLAUDE.md + rules + skill descriptions + agent descriptions) stays under the ~24KB ceiling. Every KB competes with working context ([21-anthropic-engineering-deep-dive.md](../../../brana-knowledge/dimensions/21-anthropic-engineering-deep-dive.md))
-- **Hook configuration** — `settings.json` references scripts that exist, event names are valid, async constraints are respected
+- **Hook configuration** — `system/hooks/hooks.json` (plugin format, primary since v0.7.0) references scripts that exist, event names are valid, async constraints are respected. `settings.json` hooks are the bootstrap-installed fallback for PostToolUse/PostToolUseFailure only (CC v2.1.x plugin bug, issue #24529)
 - **Link integrity** — all markdown cross-references (`[doc NN](./NN-filename.md)`) resolve to real files
 - **Pre-commit validation** — `.git/hooks/pre-commit` in thebrana validates spec consistency before commit: YAML frontmatter, JSON syntax, secrets, context budget. Shift-left complement to deploy-time validation. See [35-context-engineering-principles.md](../dimensions/35-context-engineering-principles.md) for budget failure modes
 - **Count drift detection** — `validate.sh` Check 13 scans reflection docs for hardcoded component counts (e.g., "13 rules") and compares against actual `system/` contents. Uses a 30% proximity threshold to distinguish stale totals from subset counts (e.g., per-model agent distributions). Catches the recurring count drift pattern (7+ historical occurrences)
+- **Spec-graph coverage** — `validate.sh` Check 14 cross-references every `system/` file (`.md`, `.sh`, `.json`, `.py`) against `docs/spec-graph.json` ([ADR-016](../architecture/decisions/ADR-016-spec-dependency-graph.md)). Files with no spec doc referencing them are flagged as undocumented. Catches implementation files invisible to the specification layer.
 
 ### Knowledge Store Integrity
 
@@ -46,7 +47,7 @@ From [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md) Layer 0 
 
 The PreToolUse hook claims to enforce spec-before-code discipline. Verify structurally:
 
-- Hook exists in `settings.json` under `PreToolUse`
+- Hook exists in `system/hooks/hooks.json` (plugin) or `settings.json` (bootstrap fallback) under `PreToolUse`
 - Script is executable and passes `bash -n` syntax check
 - On a `feat/*` branch in an opted-in project (has `docs/decisions/`), the hook blocks `Write|Edit` when no spec/test activity exists
 - On non-feat branches or non-opted-in projects, the hook passes through

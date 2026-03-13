@@ -50,7 +50,7 @@ Everything dropped here can be added later. Nothing in this plan prevents gradua
 |---|---|
 | **ruflo + ReasoningBank** | The whole point. Tag-based recall, `memory store`, `memory search`. |
 | **Two-layer memory** | Layer 0 (native auto memory) + Layer 1 (ReasoningBank). Keeps working if ruflo breaks. Near-zero cost. |
-| **Three hooks** | SessionStart (recall), SessionEnd (learn), PostToolUse (notice). The learning loop IS the product. |
+| **Four hooks** | SessionStart (recall), SessionEnd (learn), PreToolUse (enforce spec/test gate). PostToolUse (notice) planned but constrained by CC plugin bug #24529 — bootstrap fallback only. The learning loop IS the product. |
 | **Quarantine** | New patterns enter at 0.5 confidence, transferable: false. 3 successes to promote. One mechanism, biggest impact. |
 | **6 core skills** | memory, retrospective, project-onboard, client-retire, challenge. The user interface. |
 | **Challenger (one-pass)** | `/brana:challenge` spawns Sonnet, gets one review, done. No debate, no auto-trigger, no pre-screening. |
@@ -215,6 +215,8 @@ Action:
   - Keep it lightweight, guard against loops
 Fallback: Skip entirely if ruflo unavailable
 ```
+
+**Constraint (2026-03-13):** PostToolUse and PostToolUseFailure hooks don't fire from plugin `hooks.json` (CC v2.1.x bug, issue #24529). Current workaround: `bootstrap.sh` installs these to `~/.claude/settings.json` with absolute paths. Track the CC issue — when fixed, migrate to plugin hooks.json.
 
 **Optimization:** Use `"async": true` on the PostToolUse hook so pattern storage doesn't block Claude's work. Also use the separate `PostToolUseFailure` event to capture failure patterns specifically — often more valuable than successes.
 

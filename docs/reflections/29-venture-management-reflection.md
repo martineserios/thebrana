@@ -71,7 +71,7 @@ Code projects have `package.json`, `tsconfig.json`, `Dockerfile` — structure f
 - **OKR templates** — quarterly goal-setting with measurable key results.
 - **Meeting cadence docs** — which meetings happen when, with whom, about what.
 - **Metric frameworks** — which numbers matter at this stage, how to track them.
-- **Decision log** — already covered by `/decide`, but needs a business-context template.
+- **Decision log** — ADR creation (via `/brana:build` SDD step or manual) covers code decisions; needs a business-context template for venture decisions.
 
 **What's needed:** An active alignment skill that creates this structure. This is `/venture-align`.
 
@@ -91,7 +91,7 @@ Each is a "phase" with work items, exit criteria, and debrief loops — but the 
 
 ### Gap 4: Process Documentation
 
-Code has specs, tests, and inline documentation. Business has SOPs — and most businesses don't write them until it's too late (process debt compounds). Creating SOPs should be as easy as creating an ADR with `/decide`.
+Code has specs, tests, and inline documentation. Business has SOPs — and most businesses don't write them until it's too late (process debt compounds). Creating SOPs should be as easy as creating an ADR.
 
 **What's needed:** A skill that interviews the user about a process and produces a structured, versioned SOP. This is `/sop`.
 
@@ -222,7 +222,7 @@ Each follows the same loop: plan → recall → execute (with mini-debriefs) →
 **Mode:** Active (creates docs/sops/SOP-NNN-slug.md)
 **When to use:** Whenever a repeatable process needs documenting
 
-**Design:** Mirrors `/decide` in structure — auto-increment numbering, slug generation, template application, ReasoningBank storage. But the template is SOP-specific:
+**Design:** Mirrors ADR creation in structure — auto-increment numbering, slug generation, template application, ReasoningBank storage. But the template is SOP-specific:
 
 ```
 Purpose → Owner → Trigger → Prerequisites → Steps (with decision points)
@@ -450,6 +450,9 @@ This reflection doc will be enriched over time as the venture skills are used an
 - `/project-align` and `/venture-align` merged into `/brana:align`
 - `/brana:review` absorbed weekly, monthly, and growth-check into one skill with subcommands
 - The unified model works: one skill detects context and adapts, rather than requiring the user to pick the right variant
+
+### Phase 6: Channel-Agnostic Access (In Progress)
+[ADR-019](../architecture/decisions/ADR-019-brana-chat-sessions.md) (accepted 2026-03-13) extends brana beyond the CLI. A 3-tier access model (End User / Client / Operator) with Kapso as the WhatsApp adapter and a custom Session Manager enables venture clients (Tier 2) to interact with brana-powered agents via WhatsApp — making skills like `/brana:pipeline`, `/brana:financial-model`, and `/brana:review` potentially accessible from a client's phone. The session layer is channel-agnostic: WhatsApp first (via [Kapso](../../../brana-knowledge/dimensions/39-kapso-ai-platform.md)), then web widget, CLI chat. Implementation: ph-013, ms-048 (t-413–t-422).
 
 ---
 

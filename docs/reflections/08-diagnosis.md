@@ -44,7 +44,7 @@ R1 triages every dimension doc → R2 composes the architecture → R3 validates
 ### 5. Hook Lifecycle
 **Why keep:** SessionStart, PreToolUse, PostToolUse, SessionEnd - the event model is sound. Hooks enable extensibility without modifying core instructions.
 
-**For v2:** Use native Claude Code hooks. Strip down to essential hooks only (crash recovery, branch protection, session tracking, development discipline enforcement).
+**For v2:** Use native Claude Code hooks. Strip down to essential hooks only: PreToolUse (spec/test gate = development discipline enforcement), SessionStart (session tracking, context loading), SessionEnd (learnings capture, state sync). *(Crash recovery and branch protection were originally listed but never implemented — branch protection is handled via CLAUDE.md instructions, crash recovery deferred.)*
 
 ### 6. Feature Lifecycle (SPARC Phases)
 **Why keep:** Specification -> Pseudocode -> Architecture -> Refinement -> Completion forces structured thinking. Features tracked through phases prevent skipping important steps.
@@ -133,10 +133,10 @@ CLAUDE.md instructions ("never push to main") combined with git hooks handle bra
 
 **When to use:** High-volume workloads with many simple, repetitive operations.
 
-### 3. Token Routing (WASM -> Haiku -> Sonnet -> Opus)
+### 3. Token Routing (Haiku -> Sonnet -> Opus)
 **Why adopt:** Using the cheapest capable model for each task reduces costs by 30-50%. Opus for decisions, Sonnet for implementation, Haiku for scouts.
 
-**Implementation priority:** Medium. Can be implemented with simple heuristics before needing full MoE routing. *(Note: WASM tier deferred — current brana implementation uses Haiku → Sonnet → Opus with static agent assignment. See agents table in [14-mastermind-architecture.md](./14-mastermind-architecture.md).)*
+**Implementation priority:** ~~Medium.~~ **Implemented.** [ADR-018](../architecture/decisions/ADR-018-dynamic-model-routing.md) (accepted 2026-03-11) defines per-message complexity scoring (0.0–1.0) that overrides static agent assignments. WASM tier deferred. Static agent model assignments (Haiku/Sonnet/Opus) remain as defaults; ADR-018 governs runtime routing for Tier 3 operator sessions. Extended to chat sessions via [ADR-019](../architecture/decisions/ADR-019-brana-chat-sessions.md) tiered model routing (Tier 1 = Haiku locked, Tier 2 = Sonnet default, Tier 3 = dynamic).
 
 **When to use:** Any project running multiple agents or long sessions.
 
@@ -253,7 +253,7 @@ Every dimension doc triaged for brana v2. [Docs 01](../dimensions/01-brana-syste
 **Verdict: Keep.** Source for R5 (transfer). Frameworks, books, phase-based models, software→business pattern transfer. Five venture skills emerged from this research.
 
 ### [Doc 33](../dimensions/33-research-methodology.md) — Research Methodology
-**Verdict: Keep.** Formalizes the recursive discovery process that produced the other 32 docs. Source registry (trust tiers, cadence, version pinning), leads queue, 5 research archetypes, and the `/brana:research` skill as atomic primitive called by `/refresh-knowledge`. Without this, research stays ad-hoc and unreproducible.
+**Verdict: Keep.** Formalizes the recursive discovery process that produced the other 32 docs. Source registry (trust tiers, cadence, version pinning), leads queue, 5 research archetypes, and the `/brana:research` skill as atomic primitive (`--refresh` flag replaces the former `/refresh-knowledge` command). Without this, research stays ad-hoc and unreproducible.
 
 ### [Doc 34](../dimensions/34-venture-operating-system.md) — Venture Operating System
 **Verdict: Keep.** The business operations layer — MCP integrations (Google Sheets, Slack, QuickBooks, Stripe), daily/weekly/monthly skill cadences (`/morning`, `/weekly-review`, `/monthly-close`, `/monthly-plan`), growth experiments, pipeline tracking, financial modeling. Extends [doc 28](../dimensions/28-startup-smb-management.md)'s frameworks into a deployable operating system. R5 synthesizes the venture management pattern; [doc 34](../dimensions/34-venture-operating-system.md) provides the full implementation architecture.
@@ -262,7 +262,7 @@ Every dimension doc triaged for brana v2. [Docs 01](../dimensions/01-brana-syste
 **Verdict: Keep — decision framework for information placement.** Formalizes where new information belongs (always-loaded vs warm vs cold), the budget architecture (23KB hard limit with empirical growth history), progressive disclosure (hot/warm/cold tiers), sub-agent summary protocols, and context failure modes (saturation, attention rot, knowledge poisoning, budget creep). R2 uses it for architecture decisions, R3 validates against it, R4 operationalizes budget management. Without this, placement decisions are ad-hoc and budget grows unchecked.
 
 ### [Doc 36](../../../brana-knowledge/dimensions/36-claw-ecosystem-chat-interface.md) — Claw Ecosystem & Chat Interface
-**Verdict: Keep.** Maps the agent runtime landscape (OpenClaw, NanoClaw, ZeroClaw) for building chat interfaces powered by brana. Source for R5 (delivery layer for venture clients). Security analysis (OpenClaw CVEs) informs R3 assurance. Complements [doc 39-Kapso](../../../brana-knowledge/dimensions/39-kapso-ai-platform.md) as infrastructure layer.
+**Verdict: Keep.** Maps the agent runtime landscape (OpenClaw, NanoClaw, ZeroClaw) for building chat interfaces powered by brana. **Consumed by [ADR-019](../architecture/decisions/ADR-019-brana-chat-sessions.md)** (accepted 2026-03-13) as design input for the 3-layer channel-agnostic session architecture (channel adapters → session manager → brana agent runtime) with tiered access (Tier 1/2/3). OpenClaw CVE-2026-25253 is now a live disqualification decision in ADR-019. ZeroClaw deferred (complexity, Rust stack). Kapso ([doc 39](../../../brana-knowledge/dimensions/39-kapso-ai-platform.md)) is the WhatsApp channel adapter; claws are alternative multi-channel runtimes, not complementary infrastructure. Active implementation: ph-013, ms-048 (t-413–t-422).
 
 ### [Doc 37](../../../brana-knowledge/dimensions/37-ruvnet-development-practices.md) — ruvnet Development Practices
 **Verdict: Keep.** Studies ruflo creator's development methodology — three-tier maturity model, MADR+SPARC ADRs, CCEPL failure taxonomy. Source for R4 lifecycle practices. 5 transferable practices identified for brana process improvement.
@@ -335,6 +335,6 @@ Architectural questions that were open during initial design but have been resol
 12. ~~**Native Agent Teams or ruflo swarms for coordination?**~~ → Resolved: hybrid. Native Agent Teams for execution coordination, ruflo ReasoningBank for cross-session memory. First concrete pattern: multi-agent TDD with context isolation (see [14-mastermind-architecture.md](./14-mastermind-architecture.md) "Project Enforcement", [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md) "Multi-Agent TDD", [11-ecosystem-skills-plugins.md](../../../brana-knowledge/dimensions/11-ecosystem-skills-plugins.md) section 5).
 
 ### Cost Optimization
-13. ~~**Is model routing worth the complexity?**~~ → Resolved: **not worth adding beyond the agent table.** TurboFlow's three-tier routing (Haiku → Sonnet → Opus) achieves ~75% cost reduction vs always-Opus by detecting complexity at task spawn time. Brana's agent roster already implements this statically: Haiku for 8 fast agents, Sonnet for pr-reviewer, Opus for challenger/debrief-analyst. The static assignment approximates dynamic routing without the complexity of a classifier. Add a session-level cost ceiling before adding dynamic routing — cost visibility first, routing second. See [45-turboflow-agent-orchestration.md](../../../brana-knowledge/dimensions/45-turboflow-agent-orchestration.md).
+13. ~~**Is model routing worth the complexity?**~~ → Resolved: **yes — implemented via [ADR-018](../architecture/decisions/ADR-018-dynamic-model-routing.md).** Per-message complexity scoring (0.0–1.0) overrides static agent assignments at runtime. Static agent roster (Haiku for 8 fast agents, Sonnet for pr-reviewer, Opus for challenger/debrief-analyst) remains as the default; ADR-018 adds dynamic routing on top. Extended to multi-channel via [ADR-019](../architecture/decisions/ADR-019-brana-chat-sessions.md) tiered model routing.
 14. **How much should we invest in WASM bypass?** If alpha stability improves, this could save significant cost. But it's a bet on external tooling.
 15. **Token budget allocation?** How much of the session budget goes to learning vs execution?
