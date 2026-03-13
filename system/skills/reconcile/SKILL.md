@@ -84,7 +84,9 @@ If a branch with that name already exists (second reconcile in one day), append 
 
 ### Step 1: Scan specs (the "should" state)
 
-Read the spec surface — everything that describes what the implementation should look like. Spawn parallel scout agents to scan each area efficiently:
+Read the spec surface — everything that describes what the implementation should look like. Spawn parallel scout agents to scan each area efficiently.
+
+**Model routing for scanning agents:** Route agents by area complexity. Areas with many files (skills/, docs/) use `model: "sonnet"`. Areas with few files (config, CLAUDE.md, deploy.sh) use `model: "haiku"`. This optimizes cost without sacrificing quality on complex areas.
 
 **Graph-scoped scanning:** If `docs/spec-graph.json` exists, read it. For each `system/` area being checked, find nodes whose `impl_files` contain files in that area. Only scan those docs — this replaces exhaustive scanning with targeted, graph-informed lookups.
 
