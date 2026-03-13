@@ -252,3 +252,21 @@
 
 **Next:**
 - (auto-generated — run /session-handoff for full close)
+
+## 2026-03-13 — auto-captured (session-end hook)
+
+**Accomplished:**
+- fb3d4a6 Merge feat/turboflow-remaining-enhancements: validate.sh coverage check + model routing calibration
+- 1e0bb7f feat: add remaining 3 TurboFlow enhancements
+- 3dd4443 Merge feat/turboflow-passive-enhancements: 8 passive decision log + model routing enhancements
+- 800119a feat: add 8 passive TurboFlow enhancements across skills
+- ded8d6a chore: archive 3 completed phases + session close artifacts
+
+**State:**
+- Branch: experiment/t-407-claude-systems-marketplace
+- Events: 1 (0 ok, 0 fail, 0 corrections, 0 cascades, 0 prs)
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+
+**Next:**
+- (auto-generated — run /session-handoff for full close)
