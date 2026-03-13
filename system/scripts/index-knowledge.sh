@@ -21,13 +21,16 @@ set -euo pipefail
 
 KNOWLEDGE_DIR="${BRANA_KNOWLEDGE_DIR:-$HOME/enter_thebrana/brana-knowledge/dimensions}"
 
-# Load claude-flow
+# Load ruflo (formerly claude-flow)
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
 CF=""
-for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
-    [ -x "$candidate" ] && CF="$candidate" && break
+for name in ruflo claude-flow; do
+    for candidate in "$HOME"/.nvm/versions/node/*/bin/$name; do
+        [ -x "$candidate" ] && CF="$candidate" && break 2
+    done
 done
+[ -z "$CF" ] && command -v ruflo &>/dev/null && CF="ruflo"
 [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
 
 if [ -z "$CF" ]; then
@@ -38,7 +41,7 @@ fi
 # Verify we get real embeddings, not hash-fallback
 MODEL_CHECK=$($CF embeddings generate --text "test" 2>&1 || true)
 if echo "$MODEL_CHECK" | grep -q "hash-fallback"; then
-    echo "ERROR: claude-flow using hash-fallback embeddings (useless). Install @claude-flow/embeddings." >&2
+    echo "ERROR: ruflo using hash-fallback embeddings (useless). Install @xenova/transformers." >&2
     exit 1
 fi
 
