@@ -1511,3 +1511,20 @@ Respond.io action prompts have a hard 1,000-char limit. Agent 3's Assign action 
 **Trigger:** `/back-propagate` after respondio-prompts expansion, design thinking integration, Wave 1-4 implementation, workflow practice rules
 **Docs updated:** 14 (budget reference ~24→~26KB, repo tree range 00-32→00-38), 35 (budget constraint 24,576→26,624 across all references, version history row)
 **Finding:** `validate.sh` enforces 26,624 bytes since workflow practice rules were added, but [doc 35](dimensions/35-context-engineering-principles.md) still documented 24,576. [Doc 14](reflections/14-mastermind-architecture.md) repo tree said "00-32 spec docs" but docs now go up to 38 (design-thinking). Waves 1-4, agent roster, rules list, and skill count were already accurate in specs.
+
+### Reconcile Run — 2026-03-13
+
+**Trigger:** manual `/brana:reconcile` after ruflo rename (t-346)
+**Drift found:** ~50 findings across 4 areas (docs, scripts, config)
+**Applied:** 47 auto-fixes in 2 commits
+**Deferred:** 1 (check-agentdb-integration.sh — parked, ms-007)
+
+| # | Area | Type | Finding | Resolution |
+|---|------|------|---------|-----------|
+| 1 | Docs (55 files) | Stale | ~370 "claude-flow" refs in spec docs (reflections, roadmaps, architecture, ADRs, guides, feature briefs) | Applied — bulk rename to "ruflo", preserved @claude-flow scopes, .claude-flow/ paths, dimension doc filenames |
+| 2 | Doc 39 | Stale | ControllerRegistry shim contradiction — line 452 says active, line 522 says removed | Applied — unified to "removed in v3.5.15" |
+| 3 | deploy.sh | Stale | Binary lookup searched only `claude-flow`, not `ruflo` | Applied — dual-name resolution (ruflo first, claude-flow fallback) |
+| 4 | deploy.sh | Stale | ControllerRegistry shim deployment block still present | Applied — removed, added note about v3.5.15 removal |
+| 5 | index-knowledge.sh | Stale | Binary lookup searched only `claude-flow` | Applied — dual-name resolution |
+| 6 | marketplace.json | Stale | Feature says "claude-flow integration" | Applied — updated to "ruflo integration" |
+| 7 | check-agentdb-integration.sh | Stale | Heavy "claude-flow" refs throughout | Deferred — parked (ms-007), will be rewritten if unparked |
