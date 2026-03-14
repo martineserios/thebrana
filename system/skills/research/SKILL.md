@@ -18,6 +18,8 @@ allowed-tools:
   - mcp__notebooklm__search_notebooks
   - mcp__notebooklm__get_health
   - AskUserQuestion
+  - EnterPlanMode
+  - ExitPlanMode
 ---
 
 # Research
@@ -38,6 +40,14 @@ Target options:
 Flags:
 - `--nlm` — Enhance with NotebookLM. Before web research, query relevant notebooks for prior knowledge. After research, prepare findings as a NotebookLM-optimized source file.
 - `--refresh [scope]` — Batch refresh mode (replaces `/refresh-knowledge`). Launches parallel scout agents grouped by topic to research updates for dimension docs. Scope: `all` (default), `high`, `medium`, `low`, `venture`, or a doc number. See "Batch Refresh Mode" section below.
+
+## Step Registry
+
+On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
+
+Register these steps: LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, DEEP-DIVE, CROSS-REF, REPORT.
+
+**Plan mode:** Enter plan mode for INTERNAL-SEARCH, WIDE-SCAN, and TRIAGE (Phases 0-2). Exit plan mode before DEEP-DIVE (Phase 3) which may involve writing temp files.
 
 ## Procedure
 
@@ -381,3 +391,14 @@ Priority tiers:
 - **NLM claims are unverified until corroborated.** Gemini is a detail-extraction engine — it recovers specifics Claude compresses but introduces math errors, attribution confusion, and hallucinated references. Tag `[NLM-ONLY]` claims in reports. Never treat NLM output as ground truth.
 - **Anchor NLM queries to technical nouns.** Use specific tool names, hook names, thresholds as anchors. Broad system-level framing ("brana system", "the architecture") triggers canned overview responses.
 - **Detect canned NLM responses.** If Gemini returns < 150 words or a generic overview, rephrase with a more specific anchor and retry once. Two failures = skip NLM for this query.
+- **Step registry.** Follow the [guided-execution protocol](../_shared/guided-execution.md). Register steps on entry, update as each phase completes.
+
+---
+
+## Resume After Compression
+
+If context was compressed and you've lost track of progress:
+
+1. Call `TaskList` — find CC Tasks matching `/brana:research — {STEP}`
+2. The `in_progress` task is your current phase — resume from there
+3. Read temp files in `/tmp/research-{target}-*.md` for prior phase outputs

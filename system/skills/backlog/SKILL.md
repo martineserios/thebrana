@@ -9,6 +9,7 @@ allowed-tools:
   - Grep
   - Bash
   - AskUserQuestion
+  - Task
 ---
 
 # Backlog
@@ -127,6 +128,22 @@ Hierarchy views (status, roadmap) use box-drawing characters when not in `--wide
 - `/brana:backlog theme [name]` — view or set display theme (classic, emoji, minimal)
 - `/brana:backlog triage [project] [--reresearch] [--scope P2+]` — research-informed priority reassessment
 - `/brana:backlog sync [--dry-run] [--force]` — sync tasks.json with GitHub Issues
+
+---
+
+## Step Registry (plan and execute subcommands)
+
+For the `plan` and `execute` subcommands, create a CC Task step registry on entry. Follow the [guided-execution protocol](../_shared/guided-execution.md). Other subcommands (status, roadmap, next, add, etc.) are single-step and don't need a registry.
+
+**plan steps:** DETECT, READ, MILESTONES, TASKS, DEPS, PROPOSE, WRITE
+**execute steps:** READ, FILTER, WAVES, CONFIRM, EXECUTE, WRITEBACK, REPORT
+
+### Resume After Compression
+
+If context was compressed during a plan or execute flow:
+
+1. Call `TaskList` — find CC Tasks matching `/brana:backlog — {STEP}`
+2. The `in_progress` task is your current step — resume from there
 
 ---
 

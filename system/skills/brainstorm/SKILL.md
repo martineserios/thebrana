@@ -13,6 +13,7 @@ allowed-tools:
   - WebSearch
   - WebFetch
   - AskUserQuestion
+  - Task
   - mcp__context7__resolve-library-id
   - mcp__context7__query-docs
 ---
@@ -36,6 +37,12 @@ research what exists, challenge assumptions, and shape it into something concret
 3. **Research proactively.** When a tool, framework, or concept is mentioned, auto-fetch context.
 4. **Diverge then converge.** First widen (explore angles), then narrow (pick direction).
 5. **Concrete over abstract.** Push toward specifics — who, what, how, when.
+
+## Step Registry
+
+On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
+
+Register these steps: SEED, EXPAND, DISCUSS, SHAPE, OUTPUT.
 
 ## Procedure
 
@@ -303,3 +310,14 @@ Task: {t-NNN if created, or "none"}
 - **Don't force convergence.** If the user wants to keep exploring, let them. The shape phase waits.
 - **Don't skip the challenge.** Even if the idea seems solid, present at least 2 counterarguments.
 - **Don't create tasks without asking.** The idea doc is always written. The task is always offered, never auto-created.
+- **Step registry.** Follow the [guided-execution protocol](../_shared/guided-execution.md). Register steps on entry, update as each completes.
+
+---
+
+## Resume After Compression
+
+If context was compressed and you've lost track of progress:
+
+1. Call `TaskList` — find CC Tasks matching `/brana:brainstorm — {STEP}`
+2. The `in_progress` task is your current phase — resume from there
+3. Check `docs/ideas/` for any idea doc already written (Phase 5)

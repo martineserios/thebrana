@@ -1591,3 +1591,19 @@
 - Flywheel: corr=0.45 fix=0.75 test=0.05 casc=0.00 deleg=0 prs=0
 - Tools: Bash,Edit,Write,session-start
 - Files: ,                dupes[tid] = [t.get('subject','')],                dupes[tid].append(t.get('subject','')),                print(f'{k}: {v}'),            dupes[tid] = [t.get('subject','')],            dupes[tid].append(t.get('subject','')),            else:,            if tid in dupes:,            if v is not None:,            max_id = max(max_id, num)
+
+### Session b26d5468-9e5e-40f0-ab9a-33d5dfd527f9 (2026-03-14T15:06:42Z)
+- Events: 62 (53 ok, 7 fail)
+- Corrections: 0 | Test writes: 1 | Cascades: 2 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.57 test=0.20 casc=0.29 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: ,    ,                max_id = num,            'done': done, ,            'id': t['id'], ,            'status': status,,            'subject': t.get('subject', ''), ,            'total': total,            children = [c for c in tasks if c.get('parent') == mid and c.get('type') in ('task', 'subtask')],            done = sum(1 for c in children if c.get('status') == 'completed')
+
+### Session 2b829d9a-c127-43a2-bfdb-6a827d3c639c (2026-03-14T15:28:32Z)
+- Events: 17 (12 ok, 0 fail)
+- Corrections: 4 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.57 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files:         break,        print(json.dumps(t, indent=2)),    data = json.load(f),    if t.get('id') == 't-437':,",/home/martineserios/.claude/plans/zazzy-launching-sonnet.md,/home/martineserios/enter_thebrana/thebrana/.claude/tasks.json,find /home/martineserios/enter_thebrana/thebrana/system -type f -name "*.md" -o -name "*.json" | head -20,find /home/martineserios/enter_thebrana/thebrana/system/commands -type f -name "*.json" -o -name "*.md" 2>/dev/null | head -20,find /home/martineserios/enter_thebrana/thebrana/system/skills -type d -maxdepth 1 | sort

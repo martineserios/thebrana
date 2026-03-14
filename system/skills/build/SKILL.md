@@ -17,6 +17,8 @@ allowed-tools:
   - WebSearch
   - WebFetch
   - AskUserQuestion
+  - EnterPlanMode
+  - ExitPlanMode
 ---
 
 # Build
@@ -55,6 +57,24 @@ Before anything else, check if this work already exists or relates to existing w
    ```
 4. **If no matches**, proceed silently.
 5. **If entering via `/brana:backlog start`**, skip cross-reference (task already identified).
+
+---
+
+## Step 0b: STEP REGISTRY
+
+**Size gate:** Skip this for Trivial/Small sizes (see Sizing heuristics below). Only create the registry for Medium and Large builds.
+
+Create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
+
+Register these steps as CC Tasks (adapt based on detected strategy after CLASSIFY):
+
+- **Feature/Greenfield/Migration:** CLASSIFY, SPECIFY, PLAN, BUILD, CLOSE
+- **Bug fix:** CLASSIFY, REPRODUCE, DIAGNOSE, FIX, CLOSE
+- **Refactor:** CLASSIFY, SPECIFY, VERIFY-COVERAGE, BUILD, CLOSE
+- **Investigation:** CLASSIFY, SYMPTOMS, INVESTIGATE, REPORT
+- **Spike:** CLASSIFY, QUESTION, EXPERIMENT, ANSWER
+
+Since strategy isn't known yet, create the CLASSIFY task first. After CLASSIFY confirms the strategy, create the remaining steps.
 
 ---
 
@@ -106,6 +126,8 @@ SPECIFY → PLAN → BUILD → CLOSE
 ```
 
 ### SPECIFY (interactive, open-ended)
+
+**Plan mode:** Enter plan mode for the research loop (read-only exploration). Exit plan mode before writing the feature spec.
 
 The user controls the pace. Stay in the research→discuss loop until the user says to move on.
 
@@ -305,6 +327,8 @@ REPRODUCE → DIAGNOSE → FIX → CLOSE
 
 ### DIAGNOSE
 
+**Plan mode:** Enter plan mode for diagnosis (read-only analysis). Exit plan mode before presenting the fix proposal.
+
 1. **Read the code path** — trace from symptom to root cause.
 2. **Identify root cause** — not just the symptom, the underlying reason.
 3. **Present diagnosis** to user:
@@ -474,6 +498,8 @@ No branch. No commits. Read-only. May lead to a build.
 3. **Form hypotheses** — list possible causes, ordered by likelihood.
 
 ### INVESTIGATE
+
+**Plan mode:** Enter plan mode for the entire investigation (read-only analysis). Exit plan mode before the REPORT step.
 
 1. **Test hypotheses one by one:**
    - Read code paths
@@ -771,3 +797,15 @@ Claude proposes the size. User can override: "this is bigger than it looks" or "
 8. **Mini-debrief after every task in BUILD.** 30 seconds. What surprised? Pattern? Don't skip.
 9. **Cross-reference before creating work.** Always check for related tasks first (unless entering via /brana:backlog start).
 10. **Graceful degradation.** If ruflo is unavailable, use auto memory. If no test framework, note it and proceed. If no GitHub Issues, use tasks.json.
+11. **Step registry for Medium/Large builds.** Follow the [guided-execution protocol](../_shared/guided-execution.md). Skip for Trivial/Small.
+
+---
+
+## Resume After Compression
+
+If context was compressed and you've lost track of progress:
+
+1. Call `TaskList` — find CC Tasks matching `/brana:build — {STEP}`
+2. The `in_progress` task is your current step — resume from there
+3. If no `in_progress` step, find the first `pending` step with all blockers `completed`
+4. Use the task description and `build_step` field in tasks.json for additional context

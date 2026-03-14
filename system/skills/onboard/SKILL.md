@@ -9,6 +9,7 @@ allowed-tools:
   - Grep
   - Write
   - AskUserQuestion
+  - Task
 ---
 
 # Onboard — Project Discovery
@@ -20,6 +21,14 @@ Replaces `/project-onboard` and `/venture-onboard`.
 ## When to use
 
 First session on a new project, when taking over an existing project, or as a periodic health check.
+
+## Step Registry
+
+On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
+
+Register these steps: DETECT, SCAN, RECALL, GAPS, REPORT.
+
+---
 
 ## Step 1: Detect project type
 
@@ -135,3 +144,13 @@ If no `.claude/CLAUDE.md` exists and this is a new project, offer to create an i
 - **Auto-detect type, confirm with user.** "This looks like a [code/venture/hybrid] project. Correct?"
 - **Stage drives venture recommendations.** Don't recommend Growth frameworks for Discovery-stage businesses.
 - **Ask for clarification when needed.** Unusual structure, ambiguous domain, unclear stage — ask.
+- **Step registry.** Follow the [guided-execution protocol](../_shared/guided-execution.md). Register steps on entry, update as each completes.
+
+---
+
+## Resume After Compression
+
+If context was compressed and you've lost track of progress:
+
+1. Call `TaskList` — find CC Tasks matching `/brana:onboard — {STEP}`
+2. The `in_progress` task is your current step — resume from there
