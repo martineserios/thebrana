@@ -3,7 +3,7 @@
 
 use serde::Deserialize;
 use serde_json::Value;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 #[derive(Deserialize)]
@@ -358,6 +358,306 @@ pub fn perform_rollup(path: &Path, dry_run: bool) -> Result<Vec<String>, String>
     Ok(candidates)
 }
 
+/// Save a TasksFile back to disk (pretty-printed).
+pub fn save_tasks(path: &Path, val: &Value) -> Result<(), String> {
+    std::fs::write(path, serde_json::to_string_pretty(val).unwrap() + "\n")
+        .map_err(|e| format!("write failed: {e}"))
+}
+
+/// Load tasks as raw serde_json::Value (preserves all fields for mutation).
+pub fn load_raw(path: &Path) -> Result<Value, String> {
+    let content = std::fs::read_to_string(path)
+        .map_err(|e| format!("{}: {e}", path.display()))?;
+    serde_json::from_str(content.trim()).map_err(|e| format!("invalid JSON: {e}"))
+}
+
+/// Find the next available task ID (highest numeric suffix + 1).
+pub fn next_id(tasks: &[Value]) -> String {
+    let max = tasks.iter()
+        .filter_map(|t| t["id"].as_str())
+        .filter_map(|id| id.split('-').last()?.parse::<u32>().ok())
+        .max()
+        .unwrap_or(0);
+    format!("t-{}", max + 1)
+}
+
+/// Set a field on a task. Handles scalars, array append (+val)/remove (-val), and --append for text.
+pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Result<(), String> {
+    match field {
+        "tags" | "blocked_by" => {
+            let arr = task[field].as_array_mut()
+                .ok_or_else(|| format!("{field} is not an array"))?;
+            if let Some(stripped) = value.strip_prefix('+') {
+                let v = Value::String(stripped.to_string());
+                if !arr.contains(&v) { arr.push(v); }
+            } else if let Some(stripped) = value.strip_prefix('-') {
+                arr.retain(|v| v.as_str() != Some(stripped));
+            } else {
+                return Err(format!("use +val or -val for array fields (got: {value})"));
+            }
+            Ok(())
+        }
+        "context" | "notes" | "description" => {
+            if append {
+                let existing = task[field].as_str().unwrap_or("").to_string();
+                let new_val = if existing.is_empty() {
+                    value.to_string()
+                } else {
+                    format!("{existing}\n{value}")
+                };
+                task[field] = Value::String(new_val);
+            } else {
+                task[field] = Value::String(value.to_string());
+            }
+            Ok(())
+        }
+        "priority" | "effort" | "status" | "stream" | "type" | "strategy"
+        | "build_step" | "execution" | "branch" | "subject" | "parent"
+        | "started" | "completed" | "created" | "github_issue" => {
+            if value == "null" {
+                task[field] = Value::Null;
+            } else {
+                task[field] = Value::String(value.to_string());
+            }
+            Ok(())
+        }
+        _ => Err(format!("unknown field: {field}")),
+    }
+}
+
+/// Collect tag inventory: tag -> {total, pending, active, done, blocked}.
+pub fn tag_inventory(tasks: &[Value], all: &[Value]) -> Vec<(String, HashMap<String, usize>)> {
+    let mut map: HashMap<String, HashMap<String, usize>> = HashMap::new();
+    for t in tasks.iter().filter(|t| matches!(t["type"].as_str(), Some("task" | "subtask"))) {
+        if let Some(tags) = t["tags"].as_array() {
+            let st = classify(t, all);
+            for tag in tags.iter().filter_map(|v| v.as_str()) {
+                let entry = map.entry(tag.to_string()).or_default();
+                *entry.entry("total".into()).or_default() += 1;
+                *entry.entry(st.into()).or_default() += 1;
+            }
+        }
+    }
+    let mut result: Vec<_> = map.into_iter().collect();
+    result.sort_by(|a, b| b.1.get("total").unwrap_or(&0).cmp(a.1.get("total").unwrap_or(&0)));
+    result
+}
+
+/// Compute aggregate stats by status, stream, priority, type.
+pub fn compute_stats(tasks: &[Value], all: &[Value]) -> Value {
+    let mut by_status: HashMap<String, usize> = HashMap::new();
+    let mut by_stream: HashMap<String, HashMap<String, usize>> = HashMap::new();
+    let mut by_priority: HashMap<String, usize> = HashMap::new();
+    let mut by_type: HashMap<String, usize> = HashMap::new();
+
+    for t in tasks {
+        let st = classify(t, all).to_string();
+        let stream = t["stream"].as_str().unwrap_or("none").to_string();
+        let pri = t["priority"].as_str().unwrap_or("null").to_string();
+        let tp = t["type"].as_str().unwrap_or("task").to_string();
+
+        *by_status.entry(st.clone()).or_default() += 1;
+        let stream_entry = by_stream.entry(stream).or_default();
+        *stream_entry.entry("total".into()).or_default() += 1;
+        *stream_entry.entry(st).or_default() += 1;
+        *by_priority.entry(pri).or_default() += 1;
+        *by_type.entry(tp).or_default() += 1;
+    }
+
+    serde_json::json!({
+        "total": tasks.len(),
+        "by_status": by_status,
+        "by_stream": by_stream,
+        "by_priority": by_priority,
+        "by_type": by_type,
+    })
+}
+
+/// Build a tree structure from parent references.
+pub fn build_tree(tasks: &[Value], all: &[Value]) -> Vec<Value> {
+    let root_ids: Vec<&str> = tasks.iter()
+        .filter(|t| matches!(t["type"].as_str(), Some("phase")))
+        .filter_map(|t| t["id"].as_str())
+        .collect();
+
+    let mut result = Vec::new();
+    for rid in &root_ids {
+        if let Some(phase) = tasks.iter().find(|t| t["id"].as_str() == Some(rid)) {
+            result.push(build_node(phase, tasks, all));
+        }
+    }
+
+    // Orphan tasks (no parent, not a phase/milestone)
+    let parented: HashSet<&str> = tasks.iter()
+        .filter_map(|t| t["parent"].as_str())
+        .collect();
+    let _phase_ms_ids: HashSet<&str> = tasks.iter()
+        .filter(|t| matches!(t["type"].as_str(), Some("phase" | "milestone")))
+        .filter_map(|t| t["id"].as_str())
+        .collect();
+
+    // Tasks under milestones are already included, tasks without parent go to streams
+    let orphans: Vec<&Value> = tasks.iter()
+        .filter(|t| matches!(t["type"].as_str(), Some("task" | "subtask")))
+        .filter(|t| t["parent"].as_str().is_none() || t["parent"].is_null())
+        .filter(|t| !parented.contains(t["id"].as_str().unwrap_or("")))
+        .collect();
+
+    if !orphans.is_empty() {
+        // Group by stream
+        let mut by_stream: HashMap<String, Vec<Value>> = HashMap::new();
+        for t in orphans {
+            let stream = t["stream"].as_str().unwrap_or("other").to_string();
+            let st = classify(t, all);
+            let mut node = serde_json::json!({
+                "id": t["id"],
+                "subject": t["subject"],
+                "type": t["type"],
+                "status": st,
+            });
+            if let Some(bs) = t["build_step"].as_str() {
+                node["build_step"] = Value::String(bs.into());
+            }
+            by_stream.entry(stream).or_default().push(node);
+        }
+        for (stream, tasks) in by_stream {
+            result.push(serde_json::json!({
+                "id": stream,
+                "subject": stream,
+                "type": "stream",
+                "children": tasks,
+            }));
+        }
+    }
+
+    result
+}
+
+fn build_node(task: &Value, all_tasks: &[Value], all: &[Value]) -> Value {
+    let id = task["id"].as_str().unwrap_or("?");
+    let st = classify(task, all);
+
+    // Find children
+    let children: Vec<Value> = all_tasks.iter()
+        .filter(|t| t["parent"].as_str() == Some(id))
+        .map(|t| build_node(t, all_tasks, all))
+        .collect();
+
+    // Compute progress from leaf tasks
+    let (done, total) = count_leaves(&children, task);
+
+    let mut node = serde_json::json!({
+        "id": id,
+        "subject": task["subject"],
+        "type": task["type"],
+        "status": st,
+    });
+    if !children.is_empty() {
+        node["children"] = Value::Array(children);
+        node["progress"] = serde_json::json!({"done": done, "total": total});
+    }
+    if let Some(bs) = task["build_step"].as_str() {
+        node["build_step"] = Value::String(bs.into());
+    }
+    node
+}
+
+fn count_leaves(children: &[Value], _parent: &Value) -> (usize, usize) {
+    let mut done = 0;
+    let mut total = 0;
+    for c in children {
+        if let Some(sub) = c["children"].as_array() {
+            if !sub.is_empty() {
+                let (d, t) = count_leaves(sub, c);
+                done += d;
+                total += t;
+                continue;
+            }
+        }
+        total += 1;
+        if c["status"].as_str() == Some("done") {
+            done += 1;
+        }
+    }
+    (done, total)
+}
+
+/// Get subtree of a specific task (phase or milestone).
+pub fn subtree(tasks: &[Value], all: &[Value], root_id: &str) -> Option<Value> {
+    tasks.iter()
+        .find(|t| t["id"].as_str() == Some(root_id))
+        .map(|t| build_node(t, tasks, all))
+}
+
+/// Load tasks-portfolio.json and aggregate status across all projects.
+pub fn portfolio_status() -> Result<Vec<Value>, String> {
+    let home = std::env::var("HOME").unwrap_or_default();
+    let portfolio_path = std::path::PathBuf::from(&home).join(".claude/tasks-portfolio.json");
+    let content = std::fs::read_to_string(&portfolio_path)
+        .map_err(|_| "tasks-portfolio.json not found".to_string())?;
+    let portfolio: Value = serde_json::from_str(&content)
+        .map_err(|e| format!("invalid portfolio JSON: {e}"))?;
+
+    let mut results = Vec::new();
+
+    // Support both { clients: [...] } and { projects: [...] } schemas
+    let clients = if let Some(clients) = portfolio["clients"].as_array() {
+        clients.clone()
+    } else if let Some(projects) = portfolio["projects"].as_array() {
+        // Legacy: wrap each project as a single-project client
+        projects.iter().map(|p| {
+            let slug = p["slug"].as_str().or_else(|| p["name"].as_str()).unwrap_or("unknown");
+            serde_json::json!({"slug": slug, "projects": [p]})
+        }).collect()
+    } else {
+        return Err("portfolio has no clients or projects array".into());
+    };
+
+    for client in &clients {
+        let client_slug = client["slug"].as_str().unwrap_or("unknown");
+        let projects = client["projects"].as_array().cloned().unwrap_or_default();
+        for proj in &projects {
+            let proj_slug = proj["slug"].as_str().unwrap_or(client_slug);
+            let path_str = proj["path"].as_str().unwrap_or("");
+            let resolved = path_str.replace("~/", &format!("{home}/"));
+            let tasks_path = std::path::PathBuf::from(&resolved).join(".claude/tasks.json");
+
+            if !tasks_path.exists() { continue; }
+
+            let data = match load_tasks(&tasks_path) {
+                Ok(d) => d,
+                Err(_) => continue,
+            };
+
+            let task_items: Vec<_> = data.tasks.iter()
+                .filter(|t| matches!(t["type"].as_str(), Some("task" | "subtask")))
+                .collect();
+            let total = task_items.len();
+            let done = task_items.iter().filter(|t| classify(t, &data.tasks) == "done").count();
+            let active = task_items.iter().filter(|t| classify(t, &data.tasks) == "active").count();
+            let blocked = task_items.iter().filter(|t| classify(t, &data.tasks) == "blocked").count();
+
+            let active_tasks: Vec<Value> = data.tasks.iter()
+                .filter(|t| classify(t, &data.tasks) == "active")
+                .map(|t| serde_json::json!({"id": t["id"], "subject": t["subject"]}))
+                .collect();
+
+            results.push(serde_json::json!({
+                "client": client_slug,
+                "project": proj_slug,
+                "path": resolved,
+                "total": total,
+                "done": done,
+                "active": active,
+                "blocked": blocked,
+                "active_tasks": active_tasks,
+            }));
+        }
+    }
+
+    Ok(results)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -574,5 +874,136 @@ mod tests {
         let errors = validate_schema(&path);
         assert_eq!(errors, vec!["invalid JSON"]);
         std::fs::remove_dir_all(&dir).ok();
+    }
+
+    // ── Wave 1: set_field tests ─────────────────────────────────────────
+
+    #[test]
+    fn test_set_field_scalar() {
+        let mut task = json!({"id": "t-1", "status": "pending", "priority": null});
+        set_field(&mut task, "status", "in_progress", false).unwrap();
+        assert_eq!(task["status"], "in_progress");
+        set_field(&mut task, "priority", "P1", false).unwrap();
+        assert_eq!(task["priority"], "P1");
+    }
+
+    #[test]
+    fn test_set_field_null() {
+        let mut task = json!({"id": "t-1", "priority": "P1"});
+        set_field(&mut task, "priority", "null", false).unwrap();
+        assert!(task["priority"].is_null());
+    }
+
+    #[test]
+    fn test_set_field_array_append_remove() {
+        let mut task = json!({"id": "t-1", "tags": ["a", "b"]});
+        set_field(&mut task, "tags", "+c", false).unwrap();
+        assert_eq!(task["tags"], json!(["a", "b", "c"]));
+        // No duplicates
+        set_field(&mut task, "tags", "+c", false).unwrap();
+        assert_eq!(task["tags"], json!(["a", "b", "c"]));
+        // Remove
+        set_field(&mut task, "tags", "-b", false).unwrap();
+        assert_eq!(task["tags"], json!(["a", "c"]));
+    }
+
+    #[test]
+    fn test_set_field_text_append() {
+        let mut task = json!({"id": "t-1", "context": "line1"});
+        set_field(&mut task, "context", "line2", true).unwrap();
+        assert_eq!(task["context"], "line1\nline2");
+    }
+
+    #[test]
+    fn test_set_field_text_replace() {
+        let mut task = json!({"id": "t-1", "context": "old"});
+        set_field(&mut task, "context", "new", false).unwrap();
+        assert_eq!(task["context"], "new");
+    }
+
+    #[test]
+    fn test_set_field_unknown() {
+        let mut task = json!({"id": "t-1"});
+        assert!(set_field(&mut task, "nonexistent", "val", false).is_err());
+    }
+
+    // ── Wave 1: next_id tests ───────────────────────────────────────────
+
+    #[test]
+    fn test_next_id() {
+        let tasks = vec![json!({"id": "t-5"}), json!({"id": "t-10"}), json!({"id": "ph-001"})];
+        assert_eq!(next_id(&tasks), "t-11");
+    }
+
+    #[test]
+    fn test_next_id_empty() {
+        let tasks: Vec<Value> = vec![];
+        assert_eq!(next_id(&tasks), "t-1");
+    }
+
+    // ── Wave 2: tag_inventory tests ─────────────────────────────────────
+
+    #[test]
+    fn test_tag_inventory() {
+        let tasks = sample_tasks();
+        let inv = tag_inventory(&tasks, &tasks);
+        let sched = inv.iter().find(|(t, _)| t == "scheduler").unwrap();
+        assert_eq!(*sched.1.get("total").unwrap(), 2);
+    }
+
+    // ── Wave 2: compute_stats tests ─────────────────────────────────────
+
+    #[test]
+    fn test_compute_stats() {
+        let tasks = sample_tasks();
+        let stats = compute_stats(&tasks, &tasks);
+        assert_eq!(stats["total"], 7);
+        assert!(stats["by_status"]["done"].as_u64().unwrap() >= 2);
+    }
+
+    // ── Wave 3: build_tree tests ────────────────────────────────────────
+
+    #[test]
+    fn test_build_tree_with_phase() {
+        let tasks = vec![
+            json!({"id": "ph-001", "type": "phase", "status": "pending", "subject": "Phase 1", "tags": [], "blocked_by": []}),
+            json!({"id": "ms-001", "type": "milestone", "status": "pending", "subject": "MS 1", "parent": "ph-001", "tags": [], "blocked_by": []}),
+            json!({"id": "t-001", "type": "task", "status": "completed", "subject": "Task 1", "parent": "ms-001", "tags": [], "blocked_by": []}),
+            json!({"id": "t-002", "type": "task", "status": "pending", "subject": "Task 2", "parent": "ms-001", "tags": [], "blocked_by": []}),
+        ];
+        let tree = build_tree(&tasks, &tasks);
+        assert_eq!(tree.len(), 1); // one phase
+        assert_eq!(tree[0]["id"], "ph-001");
+        let ms = tree[0]["children"].as_array().unwrap();
+        assert_eq!(ms.len(), 1);
+        assert_eq!(ms[0]["progress"]["done"], 1);
+        assert_eq!(ms[0]["progress"]["total"], 2);
+    }
+
+    #[test]
+    fn test_subtree() {
+        let tasks = vec![
+            json!({"id": "ph-001", "type": "phase", "status": "pending", "subject": "P1", "tags": [], "blocked_by": []}),
+            json!({"id": "t-001", "type": "task", "status": "completed", "subject": "T1", "parent": "ph-001", "tags": [], "blocked_by": []}),
+        ];
+        let tree = subtree(&tasks, &tasks, "ph-001");
+        assert!(tree.is_some());
+        let tree = tree.unwrap();
+        assert_eq!(tree["children"].as_array().unwrap().len(), 1);
+    }
+
+    // ── Wave 4: multi-tag filter test ───────────────────────────────────
+
+    #[test]
+    fn test_multi_tag_filter() {
+        let tasks = sample_tasks();
+        let result = filter_tasks(&tasks, &tasks, Some("scheduler"), None, None, None, None, None, &["task", "subtask"]);
+        assert_eq!(result.len(), 2);
+        // Filter further for "dx" — only t-004 has both
+        let filtered: Vec<_> = result.into_iter()
+            .filter(|t| t["tags"].as_array().unwrap().iter().any(|v| v == "dx"))
+            .collect();
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0]["id"], "t-004");
     }
 }
