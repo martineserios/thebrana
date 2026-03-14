@@ -11460,7 +11460,7 @@
         "skills",
         "research"
       ],
-      "status": "in_progress",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-051",
@@ -11475,11 +11475,11 @@
       "github_issue": null,
       "created": "2026-03-14",
       "started": "2026-03-14",
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-14",
+      "notes": "Added Phase 0 (internal-first search) to /research skill. Queries ruflo namespaces (knowledge, assumptions, field-notes, decisions), falls back to grep/spec-graph. Internal context shapes scout prompts. Cross-reference step flags contradictions with CONTRADICTION: prefix.",
       "context": null,
       "strategy": "feature",
-      "build_step": "build"
+      "build_step": null
     },
     {
       "id": "t-450",
@@ -11520,7 +11520,7 @@
         "validation",
         "fitness-functions"
       ],
-      "status": "in_progress",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-051",
@@ -11536,11 +11536,11 @@
       "github_issue": null,
       "created": "2026-03-14",
       "started": "2026-03-14",
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-14",
+      "notes": "Added 8 fitness function checks (15-22) to validate.sh. Checks 15-18: assumption freshness, changelog currency, status consistency, graph integrity. Checks 19-22: scale triggers (nodes, entries, edges/node, field notes). Flags: --assumptions-only, --scale-triggers, --grace-days N. All pass on current docs.",
       "context": null,
       "strategy": "feature",
-      "build_step": "build"
+      "build_step": null
     },
     {
       "id": "t-452",
