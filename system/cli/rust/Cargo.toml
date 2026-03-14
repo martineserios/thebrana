@@ -1,8 +1,12 @@
 [package]
-name = "brana-query"
+name = "brana"
 version = "0.1.0"
 edition = "2024"
-description = "Fast JSON task filter for brana CLI"
+description = "Brana CLI — fast standalone terminal interface"
+
+[[bin]]
+name = "brana"
+path = "src/cli.rs"
 
 [[bin]]
 name = "brana-query"
@@ -16,6 +20,7 @@ path = "src/fmt.rs"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 clap = { version = "4", features = ["derive"] }
+chrono = "0.4"
 
 [profile.release]
 opt-level = "z"
