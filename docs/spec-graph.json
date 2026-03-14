@@ -1,10 +1,11 @@
 {
   "_meta": {
-    "generated": "2026-03-11T22:58:20Z",
-    "node_count": 159,
-    "edge_count": 483,
-    "impl_ref_count": 174,
-    "orphan_count": 68
+    "generated": "2026-03-14T13:35:22Z",
+    "node_count": 173,
+    "edge_count": 534,
+    "impl_ref_count": 195,
+    "orphan_count": 75,
+    "typed_edge_count": 18
   },
   "nodes": {
     "docs/00-user-practices.md": {
@@ -168,11 +169,13 @@
         "39-architecture-redesign.md",
         "25-self-documentation.md",
         "architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
+        "brana-knowledge/dimensions/11-ecosystem-skills-plugins.md",
+        "brana-knowledge/dimensions/45-turboflow-agent-orchestration.md",
+        "18-lean-roadmap.md",
         "dimensions/16-knowledge-health.md",
         "dimensions/12-skill-selector.md",
         "dimensions/28-startup-smb-management.md",
         "24-roadmap-corrections.md",
-        "18-lean-roadmap.md",
         "dimensions/02-nexeye-skill-selection.md"
       ],
       "referenced_by": [
@@ -186,6 +189,7 @@
       "impl_files": [
         "system/skills/",
         "system/`",
+        "system/skills/`",
         "system/hooks/session-start.sh`",
         "system/hooks/session-end.sh`",
         "system/skills/pattern-recall/SKILL.md`",
@@ -196,6 +200,8 @@
         "system/skills/personal-check/SKILL.md`",
         "system/scripts/skill-graph.sh`",
         "system/commands/`",
+        "system/scripts/gh-sync.sh`",
+        "system/hooks/task-sync.sh`",
         "system/skills/meta-template/SKILL.md`"
       ]
     },
@@ -299,6 +305,9 @@
         "guide/workflows/capture.md",
         "guide/workflows/learn.md",
         "guide/workflows/venture.md",
+        "guide/workflows/spec-graph.md",
+        "guide/workflows/decision-log.md",
+        "guide/workflows/model-routing.md",
         "architecture/overview.md",
         "architecture/skills.md",
         "architecture/hooks.md",
@@ -327,6 +336,10 @@
         "architecture/decisions/ADR-012-acquire-skills.md",
         "architecture/decisions/ADR-013-event-log.md",
         "architecture/decisions/ADR-014-plugin-management-skill.md",
+        "architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
+        "architecture/decisions/ADR-016-spec-dependency-graph.md",
+        "architecture/decisions/ADR-017-decision-log.md",
+        "architecture/decisions/ADR-018-dynamic-model-routing.md",
         "architecture/features/build-loop-redesign.md",
         "architecture/features/task-management-system.md",
         "architecture/features/event-log.md",
@@ -346,7 +359,9 @@
         "architecture/features/staleness-and-memory-pipeline.md",
         "architecture/features/context-budget-real-limits.md",
         "architecture/features/acquire-skills-guide.md",
-        "architecture/features/agentdb-v3-upgrade-evaluation.md"
+        "architecture/features/agentdb-v3-upgrade-evaluation.md",
+        "content/lens.md",
+        "content/ideas.md"
       ],
       "referenced_by": [],
       "impl_files": []
@@ -517,7 +532,9 @@
       "references": [
         "path"
       ],
-      "referenced_by": [],
+      "referenced_by": [
+        "docs/reflections/31-assurance.md"
+      ],
       "impl_files": [
         "system/scripts/spec_graph.py`",
         "system/skills/build`"
@@ -525,15 +542,48 @@
     },
     "docs/architecture/decisions/ADR-017-decision-log.md": {
       "references": [],
-      "referenced_by": [],
+      "referenced_by": [
+        "docs/reflections/14-mastermind-architecture.md",
+        "docs/reflections/32-lifecycle.md"
+      ],
       "impl_files": [
         "system/state/decisions/`"
       ]
     },
     "docs/architecture/decisions/ADR-018-dynamic-model-routing.md": {
       "references": [],
+      "referenced_by": [
+        "docs/reflections/08-diagnosis.md",
+        "docs/reflections/14-mastermind-architecture.md"
+      ],
+      "impl_files": []
+    },
+    "docs/architecture/decisions/ADR-019-brana-chat-sessions.md": {
+      "references": [
+        "docs/dimensions/39-kapso-ai-platform.md"
+      ],
+      "referenced_by": [
+        "docs/reflections/08-diagnosis.md",
+        "docs/reflections/29-venture-management-reflection.md",
+        "docs/reflections/14-mastermind-architecture.md"
+      ],
+      "impl_files": []
+    },
+    "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md": {
+      "references": [
+        "path",
+        "docs/architecture/features/knowledge-architecture-v2.md"
+      ],
       "referenced_by": [],
       "impl_files": []
+    },
+    "docs/architecture/decisions/ADR-022-brana-cli.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [
+        "system/cli/aliases.sh`",
+        "system/cli/themes.json`"
+      ]
     },
     "docs/architecture/extending-agents.md": {
       "references": [],
@@ -593,6 +643,21 @@
       "referenced_by": [],
       "impl_files": []
     },
+    "docs/architecture/features/brana-cli.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": []
+    },
+    "docs/architecture/features/build-close-auto-docs.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [
+        "system/skills/build/templates/`",
+        "system/skills/build/SKILL.md`",
+        "system/skills/build/templates/tech-doc.md`",
+        "system/skills/build/templates/user-guide.md`"
+      ]
+    },
     "docs/architecture/features/build-loop-redesign.md": {
       "references": [],
       "referenced_by": [],
@@ -628,9 +693,20 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
+        "system/hooks/task-sync.sh`",
         "system/scripts/gh-sync.sh`",
-        "system/skills/backlog/SKILL.md`",
-        "system/skills/build/SKILL.md`"
+        "system/hooks/task-sync.py`"
+      ]
+    },
+    "docs/architecture/features/knowledge-architecture-v2.md": {
+      "references": [
+        "path.md"
+      ],
+      "referenced_by": [
+        "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md"
+      ],
+      "impl_files": [
+        "system/scripts/second-phase-check.sh`"
       ]
     },
     "docs/architecture/features/linkedin-content-pipeline/brief.md": {
@@ -731,6 +807,11 @@
       "impl_files": []
     },
     "docs/architecture/features/neix-ai-consulting-proposal.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": []
+    },
+    "docs/architecture/features/personal-bot-oci-deploy.md": {
       "references": [],
       "referenced_by": [],
       "impl_files": []
@@ -937,10 +1018,53 @@
         "system/commands/`"
       ]
     },
+    "docs/archive/reflections/14-mastermind-architecture.md": {
+      "references": [
+        "docs/archive/39-architecture-redesign.md",
+        "docs/archive/architecture/decisions/ADR-019-brana-chat-sessions.md",
+        "docs/archive/architecture/decisions/ADR-018-dynamic-model-routing.md",
+        "docs/archive/decisions/ADR-011-skills-bundling.md",
+        "brana-knowledge/dimensions/09-claude-code-native-features.md",
+        "brana-knowledge/dimensions/07-claude-flow-plus-claude-4.6.md",
+        "docs/archive/architecture/decisions/ADR-002-scheduler-thin-layer-over-systemd.md",
+        "brana-knowledge/dimensions/05-claude-flow-v3-analysis.md",
+        "brana-knowledge/dimensions/27-project-alignment-methodology.md",
+        "brana-knowledge/dimensions/33-research-methodology.md",
+        "brana-knowledge/dimensions/34-venture-operating-system.md",
+        "docs/archive/decisions/ADR-002-tasks-as-data-layer.md",
+        "docs/archive/decisions/ADR-003-agent-driven-task-execution.md",
+        "docs/archive/25-self-documentation.md",
+        "docs/dimensions/27-project-alignment-methodology.md",
+        "docs/archive/reflections/32-lifecycle.md",
+        "brana-knowledge/dimensions/11-ecosystem-skills-plugins.md",
+        "brana-knowledge/dimensions/21-anthropic-engineering-deep-dive.md",
+        "brana-knowledge/dimensions/35-context-engineering-principles.md",
+        "docs/archive/reflections/31-assurance.md",
+        "docs/archive/00-user-practices.md",
+        "docs/archive/architecture/decisions/ADR-017-decision-log.md",
+        "brana-knowledge/dimensions/45-turboflow-agent-orchestration.md"
+      ],
+      "referenced_by": [],
+      "impl_files": [
+        "system/`",
+        "system/scripts/decisions.py`",
+        "system/state/decisions/`"
+      ]
+    },
     "docs/backlog-urls.md": {
       "references": [
         "30-backlog.md"
       ],
+      "referenced_by": [],
+      "impl_files": []
+    },
+    "docs/content/ideas.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": []
+    },
+    "docs/content/lens.md": {
+      "references": [],
       "referenced_by": [],
       "impl_files": []
     },
@@ -1135,6 +1259,7 @@
       "referenced_by": [
         "docs/reflections/08-diagnosis.md",
         "docs/reflections/14-mastermind-architecture.md",
+        "docs/archive/reflections/14-mastermind-architecture.md",
         "docs/dimensions/10-statusline-research.md"
       ],
       "impl_files": []
@@ -1225,7 +1350,9 @@
     },
     "docs/dimensions/39-kapso-ai-platform.md": {
       "references": [],
-      "referenced_by": [],
+      "referenced_by": [
+        "docs/architecture/decisions/ADR-019-brana-chat-sessions.md"
+      ],
       "impl_files": []
     },
     "docs/dimensions/40-product-discovery-literature.md": {
@@ -1320,6 +1447,11 @@
       "referenced_by": [],
       "impl_files": []
     },
+    "docs/dimensions/knowledge-architecture.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": []
+    },
     "docs/dimensions/meta-whatsapp-template-classification.md": {
       "references": [],
       "referenced_by": [],
@@ -1369,6 +1501,11 @@
         "system/.claude-plugin/plugin.json`",
         "system/hooks/hooks.json`"
       ]
+    },
+    "docs/guide/features/build-close-auto-docs.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": []
     },
     "docs/guide/getting-started.md": {
       "references": [
@@ -1493,6 +1630,11 @@
       "referenced_by": [],
       "impl_files": []
     },
+    "docs/personal/personal-os-design.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": []
+    },
     "docs/personal/personality-frameworks-research.md": {
       "references": [],
       "referenced_by": [],
@@ -1588,6 +1730,8 @@
         "docs/25-self-documentation.md",
         "docs/reflections/14-mastermind-architecture.md",
         "brana-knowledge/dimensions/11-ecosystem-skills-plugins.md",
+        "docs/architecture/decisions/ADR-018-dynamic-model-routing.md",
+        "docs/architecture/decisions/ADR-019-brana-chat-sessions.md",
         "brana-knowledge/dimensions/22-testing.md",
         "brana-knowledge/dimensions/23-evaluation.md",
         "docs/00-user-practices.md",
@@ -1619,6 +1763,7 @@
         "brana-knowledge/dimensions/42-product-operations-literature.md",
         "brana-knowledge/dimensions/43-linkedin-personal-brand-strategy.md",
         "brana-knowledge/dimensions/44-systems-thinking-nature.md",
+        "brana-knowledge/dimensions/45-turboflow-agent-orchestration.md",
         "brana-knowledge/dimensions/16-knowledge-health.md",
         "docs/17-implementation-roadmap.md"
       ],
@@ -1627,11 +1772,15 @@
         "docs/reflections/32-lifecycle.md",
         "docs/reflections/31-assurance.md"
       ],
-      "impl_files": []
+      "impl_files": [
+        "system/skills/`"
+      ]
     },
     "docs/reflections/14-mastermind-architecture.md": {
       "references": [
         "docs/39-architecture-redesign.md",
+        "docs/architecture/decisions/ADR-019-brana-chat-sessions.md",
+        "docs/architecture/decisions/ADR-018-dynamic-model-routing.md",
         "docs/decisions/ADR-011-skills-bundling.md",
         "brana-knowledge/dimensions/09-claude-code-native-features.md",
         "brana-knowledge/dimensions/07-claude-flow-plus-claude-4.6.md",
@@ -1649,7 +1798,9 @@
         "brana-knowledge/dimensions/21-anthropic-engineering-deep-dive.md",
         "brana-knowledge/dimensions/35-context-engineering-principles.md",
         "docs/reflections/31-assurance.md",
-        "docs/00-user-practices.md"
+        "docs/00-user-practices.md",
+        "docs/architecture/decisions/ADR-017-decision-log.md",
+        "brana-knowledge/dimensions/45-turboflow-agent-orchestration.md"
       ],
       "referenced_by": [
         "docs/architecture/building-methodology.md",
@@ -1666,7 +1817,9 @@
         "docs/dimensions/12-skill-selector.md"
       ],
       "impl_files": [
-        "system/`"
+        "system/`",
+        "system/scripts/decisions.py`",
+        "system/state/decisions/`"
       ]
     },
     "docs/reflections/29-venture-management-reflection.md": {
@@ -1686,6 +1839,8 @@
         "docs/dimensions/22-testing.md",
         "docs/dimensions/34-venture-operating-system.md",
         "docs/reflections/32-lifecycle.md",
+        "docs/architecture/decisions/ADR-019-brana-chat-sessions.md",
+        "brana-knowledge/dimensions/39-kapso-ai-platform.md",
         "docs/reflections/31-assurance.md",
         "docs/reflections/08-diagnosis.md",
         "brana-knowledge/dimensions/27-project-alignment-methodology.md"
@@ -1702,6 +1857,8 @@
         "brana-knowledge/dimensions/21-anthropic-engineering-deep-dive.md",
         "docs/reflections/NN-filename.md",
         "docs/dimensions/35-context-engineering-principles.md",
+        "docs/architecture/decisions/ADR-016-spec-dependency-graph.md",
+        "brana-knowledge/dimensions/45-turboflow-agent-orchestration.md",
         "docs/dimensions/22-testing.md",
         "brana-knowledge/dimensions/16-knowledge-health.md",
         "brana-knowledge/dimensions/12-skill-selector.md",
@@ -1718,6 +1875,8 @@
         "docs/dimensions/37-ruvnet-development-practices.md"
       ],
       "impl_files": [
+        "system/hooks/hooks.json`",
+        "system/`",
         "system/state/`",
         "system/state/patterns-export.json`"
       ]
@@ -1736,7 +1895,9 @@
         "docs/decisions/ADR-002-scheduler-thin-layer-over-systemd.md",
         "docs/00-user-practices.md",
         "brana-knowledge/dimensions/26-git-branching-strategies.md",
+        "docs/architecture/decisions/ADR-017-decision-log.md",
         "docs/reflections/08-diagnosis.md",
+        "brana-knowledge/dimensions/45-turboflow-agent-orchestration.md",
         "brana-knowledge/dimensions/05-claude-flow-v3-analysis.md",
         "brana-knowledge/dimensions/16-knowledge-health.md"
       ],
@@ -1749,7 +1910,9 @@
         "docs/dimensions/34-venture-operating-system.md"
       ],
       "impl_files": [
-        "system/rules/tactical-context.md`"
+        "system/`",
+        "system/rules/tactical-context.md`",
+        "system/state/decisions/`"
       ]
     },
     "docs/research/miessler-pai-comparison.md": {
@@ -1768,6 +1931,13 @@
       ],
       "impl_files": []
     },
+    "docs/research/t-407-claude-systems-marketplace.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [
+        "system/`"
+      ]
+    },
     "docs/skills-system.md": {
       "references": [],
       "referenced_by": [],
@@ -1775,5 +1945,25 @@
         "system/scripts/`"
       ]
     }
-  }
+  },
+  "typed_edges": [
+    {"from": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md", "to": "assumption:ruflo-enhancement-not-dependency", "type": "assumes"},
+    {"from": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md", "to": "assumption:160-nodes-wont-hit-500-in-6mo", "type": "assumes"},
+    {"from": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md", "to": "assumption:brana-knowledge-stays-separate-repo", "type": "assumes"},
+    {"from": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md", "to": "assumption:claude-consistently-applies-ontology", "type": "assumes"},
+    {"from": "docs/architecture/decisions/ADR-016-spec-dependency-graph.md", "to": "assumption:160-nodes-wont-hit-500-in-6mo", "type": "assumes"},
+    {"from": "docs/architecture/features/knowledge-architecture-v2.md", "to": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md", "type": "enriches"},
+    {"from": "system/scripts/spec_graph.py", "to": "docs/architecture/decisions/ADR-016-spec-dependency-graph.md", "type": "implements"},
+    {"from": "system/skills/build/SKILL.md", "to": "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md", "type": "implements"},
+    {"from": "system/skills/reconcile/SKILL.md", "to": "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md", "type": "implements"},
+    {"from": "docs/dimensions/22-testing.md", "to": "docs/architecture/decisions/ADR-009-test-lint-feedback-hook.md", "type": "informs"},
+    {"from": "docs/dimensions/27-project-alignment-methodology.md", "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md", "type": "informs"},
+    {"from": "docs/dimensions/35-context-engineering-principles.md", "to": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md", "type": "informs"},
+    {"from": "docs/dimensions/knowledge-architecture.md", "to": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md", "type": "informs"},
+    {"from": "docs/reflections/14-mastermind-architecture.md", "to": "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md", "type": "informs"},
+    {"from": "docs/reflections/31-assurance.md", "to": "docs/architecture/decisions/ADR-009-test-lint-feedback-hook.md", "type": "informs"},
+    {"from": "docs/reflections/32-lifecycle.md", "to": "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md", "type": "informs"},
+    {"from": "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md", "to": "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md", "type": "supersedes"},
+    {"from": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md", "to": "docs/17-implementation-roadmap.md", "type": "supersedes"}
+  ]
 }

@@ -1,0 +1,104 @@
+# Brana Knowledge Ontology — Minimal Viable (v1)
+#
+# ADR-021: 5 entity types + 5 relationship types.
+# Extend when ambiguity causes misclassification (see t-433).
+#
+# Usage: typed links in reasoning docs use these types.
+#   Example: [ADR-019 assumes](path.md) instead of bare [doc NN](path.md)
+#   validate.sh Check 18 enforces typed links in reasoning docs.
+
+entity_types:
+  - name: Document
+    description: Any knowledge artifact (dimension, reflection, ADR, guide)
+    examples: [dimension doc, ADR, ARCHITECTURE.md, LIFECYCLE.md]
+
+  - name: Assumption
+    description: Explicit tracked claim that may become invalid
+    examples: ["ruflo is enhancement, not hard dependency", "160 nodes won't hit 500 in 6 months"]
+
+  - name: FieldNote
+    description: Practical learning captured during work sessions
+    examples: ["Docker encrypted overlay fails on Hetzner", "gh CLI --jq piped output fails in sandbox"]
+
+  - name: Component
+    description: Implemented system element (skill, hook, agent, rule, script)
+    examples: [/brana:build, PreToolUse hook, challenger agent, sdd-tdd rule]
+
+  - name: Task
+    description: Backlog item tracked in tasks.json
+    examples: [t-444, ms-051, ph-001]
+
+relationship_types:
+  - name: assumes
+    from: [Document]
+    to: [Assumption]
+    description: Document relies on this assumption being true
+
+  - name: implements
+    from: [Component]
+    to: [Document]
+    description: Code/config that realizes a documented decision
+
+  - name: informs
+    from: [Document]
+    to: [Document]
+    description: Research or knowledge that shaped a decision or design
+
+  - name: enriches
+    from: [FieldNote]
+    to: [Document]
+    description: Practical learning that adds depth to a document
+
+  - name: supersedes
+    from: [Document]
+    to: [Document]
+    description: Newer document replaces an older one
+
+# Dimension classification
+#
+# "maintain" = actively evolving topic, staleness enforcement applies
+# "snapshot" = point-in-time research, timestamped, no enforcement
+#
+# validate.sh only checks freshness on "maintain" dimensions.
+dimension_classes:
+  maintain:
+    - 01  # Brana System Analysis
+    - 02  # Nexeye Skill Selection
+    - 03  # PM Framework
+    - 04  # Claude 4.6 Capabilities
+    - 05  # Claude-Flow v3 Analysis
+    - 06  # Claude-Flow Internals
+    - 07  # Claude-Flow + Claude 4.6
+    - 09  # Claude Code Native Features
+    - 10  # Claude Code Status Line Research
+    - 11  # Ecosystem Skills Plugins
+    - 12  # Skill Selector
+    - 13  # Challenger Agent
+    - 16  # Knowledge Health
+    - 22  # Testing Strategy
+    - 23  # Evaluation Strategy
+    - 27  # Project Alignment Methodology
+    - 33  # Research Methodology
+    - 34  # Venture Operating System
+    - 35  # Context Engineering Principles
+    - 39  # Kapso AI Platform
+    - 43  # LinkedIn Personal Brand Strategy
+    - 44  # Systems Thinking & Natural Systems
+    - 45  # TurboFlow Agent Orchestration
+    - knowledge-architecture  # Knowledge Architecture for AI Systems
+
+  snapshot:
+    - 20  # Anthropic Blog Findings
+    - 21  # Anthropic Engineering Deep Dive
+    - 26  # Git Branching Strategies
+    - 28  # Startup & SMB Management
+    - 36  # Claw Ecosystem Chat Interface
+    - 37  # RuvNet Development Practices
+    - 38  # Design Thinking
+    - 40  # Product Discovery Literature
+    - 41  # Growth Metrics Market Strategy Literature
+    - 42  # Product Operations Literature
+    - client-retention-engagement  # Client Retention & Engagement
+    - meta-whatsapp-template-classification  # Meta WhatsApp Templates Formula
+    - meta-whatsapp-templates  # Meta WhatsApp Templates
+    - smb-marketing-channels  # SMB Marketing Channels

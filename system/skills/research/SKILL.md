@@ -51,7 +51,49 @@ Flags:
    - If it's `registry` → registry health mode (analyze the YAML)
    - Otherwise → topic mode (search for the topic across registry sources)
 
-3. **Phase 0 — NotebookLM detail extraction (only when `--nlm` flag is present).**
+3. **Phase 0 — Internal Search (always runs before any web research).**
+
+   Before reaching out to the web, search what the system already knows. Internal docs may have already decided vocabulary, constraints, or conclusions about the topic. External research should deepen what docs sketched, validate assumptions, find implementations, and discover what docs couldn't know.
+
+   **Step A — Query ruflo namespaces** (if available):
+
+   ```bash
+   source /home/martineserios/.claude/scripts/cf-env.sh
+   cd "$HOME" && $CF memory search --query "$TOPIC" --namespace knowledge --limit 10 2>/dev/null
+   cd "$HOME" && $CF memory search --query "$TOPIC" --namespace assumptions --limit 10 2>/dev/null
+   cd "$HOME" && $CF memory search --query "$TOPIC" --namespace field-notes --limit 10 2>/dev/null
+   cd "$HOME" && $CF memory search --query "$TOPIC" --namespace decisions --limit 10 2>/dev/null
+   ```
+
+   **Step B — Fallback if ruflo unavailable** (any of the above fail or return nothing):
+
+   - Grep project docs (`docs/`, `system/`, `brana-knowledge/dimensions/`) for the topic keywords
+   - Read `~/.claude/projects/*/memory/MEMORY.md` for relevant patterns
+   - Check `spec-graph.json` (if it exists) for related nodes and edges:
+     ```bash
+     uv run python -c "
+     import json, sys
+     g = json.load(open('spec-graph.json'))
+     topic = '$TOPIC'.lower()
+     hits = [n for n in g.get('nodes', []) if topic in json.dumps(n).lower()]
+     for h in hits[:10]: print(h)
+     " 2>/dev/null || true
+     ```
+
+   **Step C — Compile internal context.** Note what internal docs already decided:
+   - Vocabulary and terminology choices
+   - Constraints and requirements
+   - Decisions already made (especially ADRs)
+   - Open questions that external research should answer
+   - Assumptions that need validation
+
+   Write internal context to `/tmp/research-{target}-internal.md`. This shapes all subsequent phases:
+   - Scout prompts include: "Internal docs say X about this topic. Verify, deepen, or contradict."
+   - Findings that contradict internal decisions get flagged (see cross-reference step below).
+
+   **CLAUDE:** If internal search finds substantial prior knowledge, summarize it before proceeding: "Internal docs cover [topics]. Researching externally to [deepen/validate/discover gaps]."
+
+4. **Phase 0b — NotebookLM detail extraction (only when `--nlm` flag is present).**
 
    **CLAUDE:** Check if NotebookLM MCP is available and authenticated:
    ```
@@ -91,14 +133,14 @@ Flags:
 
    Write prior details to `/tmp/research-{target}-nlm-prior.md`. Include in the triage context so web findings are compared against existing knowledge.
 
-4. **Select relevant sources.** Based on target type:
+5. **Select relevant sources.** Based on target type:
    - **Doc mode**: filter registry sources where `relevance` includes the doc number
    - **Creator mode**: find the creator entry, use all their channels
    - **Topic mode**: search source names/descriptions for topic keywords, plus run web searches
    - **Leads mode**: read leads from `mcp__claude-flow__memory_search` (namespace: `research-leads`, tags: `status:queued`)
-   - **Registry mode**: skip to step 9
+   - **Registry mode**: skip to step 13
 
-5. **Phase 1 — Wide Scan (metadata only, no WebFetch).** Launch parallel scouts to scan sources. Each scout:
+6. **Phase 1 — Wide Scan (metadata only, no WebFetch).** Launch parallel scouts to scan sources. Each scout:
    - Uses `WebSearch` ONLY — titles, snippets, URLs. **Never WebFetch in Phase 1.**
    - Returns ALL findings as structured text in the agent result (scouts cannot write files)
    - **Main context writes** each scout's findings to `/tmp/research-{target}-{N}.md` after receiving the result
@@ -107,9 +149,10 @@ Flags:
    - **Security scout (mandatory for topic/ecosystem mode)**: one scout must search for CVEs, security advisories, and community trust signals. Tag findings `[SECURITY]`.
    - **Budget**: max 5 scouts for topic mode, max 8 for doc/creator mode (security scout counts toward budget)
    - Scout spawn prompt MUST include: "Return ALL findings as structured markdown in your response. Start with a summary line: 'X HIGH, Y MEDIUM, Z LOW findings.' Then list each finding. Do NOT use WebFetch."
-   - **When `--nlm` prior details exist**: include in scout prompts: "Compare findings against these claims from NotebookLM: [summary from Phase 0]. Tag confirmations as [CONFIRMED], contradictions as [CONTRADICTS-NLM]."
+   - **When internal context exists (Phase 0)**: include in scout prompts: "Internal docs say the following about this topic: [summary from Phase 0 internal]. Tag findings that confirm internal decisions as [CONFIRMED-INTERNAL], findings that contradict as [CONTRADICTS-INTERNAL], and findings that answer open questions as [ANSWERS-INTERNAL]."
+   - **When `--nlm` prior details exist**: include in scout prompts: "Compare findings against these claims from NotebookLM: [summary from Phase 0b]. Tag confirmations as [CONFIRMED], contradictions as [CONTRADICTS-NLM]."
 
-6. **Phase 2 — Triage (main context reads temp files incrementally).** For each temp file from Phase 1:
+7. **Phase 2 — Triage (main context reads temp files incrementally).** For each temp file from Phase 1:
    - Read ONE temp file at a time (never all at once)
    - Classify each finding: HIGH (doc conclusion wrong, key claim outdated), MEDIUM (needs update), LOW (minor addition)
    - Extract HIGH-priority URLs that need deep reading
@@ -120,21 +163,21 @@ Flags:
      - `[CONTRADICTS-NLM]` — web finding disagrees with NLM claim (NLM may be wrong, investigate)
      - `[NLM-ONLY]` — NLM claim with no web corroboration (flag in report, do not treat as ground truth). This catches Gemini's hallucination pattern: confidently stating specific details that no other source confirms.
 
-7. **Phase 3 — Deep Dive (targeted WebFetch, max 3 scouts).** For HIGH-priority URLs from Phase 2:
+8. **Phase 3 — Deep Dive (targeted WebFetch, max 3 scouts).** For HIGH-priority URLs from Phase 2:
    - Launch max 3 scouts, each gets max 2 WebFetch calls
    - Each scout returns ALL deep findings as structured text in the agent result
    - **Main context writes** each scout's findings to `/tmp/research-{target}-deep-{N}.md` after receiving the result
    - Main context reads deep findings incrementally (same as Phase 2)
    - Note any creators or sources cited that are NOT in the registry
 
-8. **Recurse on new references (max 2 hops, max 3 scouts).** For new sources/creators found in Phase 3:
+9. **Recurse on new references (max 2 hops, max 3 scouts).** For new sources/creators found in Phase 3:
    - Check if already in registry → if yes, note and skip
    - Launch scouts with the same return-inline protocol (WebSearch only, return findings in agent result)
    - Maximum 3 additional scouts (not 10)
    - Maximum 2 hops deep from the original source
    - Stop recursing when: max depth reached, finding priority drops below MEDIUM, or source already in registry
 
-9. **Log HIGH findings to decision log.** Before presenting the report, persist HIGH-severity findings:
+10. **Log HIGH findings to decision log.** Before presenting the report, persist HIGH-severity findings:
 
    ```bash
    uv run python3 system/scripts/decisions.py log scout finding "{finding title}: {detail}" \
@@ -143,18 +186,31 @@ Flags:
 
    This preserves research findings across sessions (session-start.sh reads HIGH findings). Only log HIGH — MEDIUM/LOW stay in the report only.
 
-11. **Connect findings to docs.** For each finding, identify:
+11. **Cross-reference findings against internal decisions.** For each finding from Phases 1-3, compare against the internal context from Phase 0:
+
+   - **Confirms**: Finding corroborates an internal decision or assumption. Tag `[CONFIRMED-INTERNAL]`. Higher confidence.
+   - **Extends**: Finding adds new information that deepens an internal decision without contradicting it. Tag `[EXTENDS]`.
+   - **Answers**: Finding resolves an open question identified in internal docs. Tag `[ANSWERS]` and note which open question.
+   - **Contradicts**: Finding disagrees with an internal decision, assumption, or constraint. Tag as:
+     ```
+     CONTRADICTION: Finding "[finding summary]" contradicts assumption "[assumption text]" in [doc path]. Verify.
+     ```
+     Contradictions get automatic HIGH severity. List all contradictions in a dedicated "Contradictions" section of the report.
+
+   **CLAUDE:** If any contradictions are found, present them prominently before the main findings list. The user must decide whether to update the internal doc or dismiss the external finding.
+
+12. **Connect findings to docs.** For each finding, identify:
    - Which dimension doc(s) it affects
    - Which section within the doc
    - Severity: HIGH (doc conclusion wrong or key claim outdated), MEDIUM (needs update), LOW (minor addition)
 
-12. **Registry health report** (for `registry` mode or appended to other modes):
+13. **Registry health report** (for `registry` mode or appended to other modes):
     - Trust tier distribution (how many proven/promising/unvalidated/demoted)
     - Sources overdue for check (last_checked + cadence < today)
     - Creators with no recent findings (potential demote candidates)
     - Sources with high yield (potential cadence upgrade candidates)
 
-13. **Report findings.** Present structured output:
+14. **Report findings.** Present structured output:
 
    ```
    ## Research: [target]
@@ -180,6 +236,15 @@ Flags:
    - Affects: [doc NN](path.md), [doc MM](path.md) (all claims based on old version)
    - Action: re-verify doc claims against new version
 
+   ### Contradictions with Internal Docs
+   (only if Phase 0 found internal context and cross-reference detected contradictions)
+
+   #### CONTRADICTION: [finding summary]
+   - Finding: [external source](url) says X
+   - Internal: [doc path] assumes/decides Y
+   - Impact: what breaks if the external finding is correct
+   - Action: verify and update internal doc OR dismiss finding with reasoning
+
    ### New Sources Discovered
    - [source name](url) — type: blog — suggested trust: unvalidated — found via: [parent source]
 
@@ -192,11 +257,11 @@ Flags:
    - Promote/demote: [source] from [tier] to [tier] — reason
    ```
 
-14. **Create leads for unfollowed threads.** For references that were not recursed into (budget exhausted, low priority):
+15. **Create leads for unfollowed threads.** For references that were not recursed into (budget exhausted, low priority):
     - Store as leads in ruflo memory (namespace: `research-leads`) if available
     - Otherwise, list them in the report under "Leads Created" for manual tracking
 
-15. **Propose registry updates.** List all changes to `research-sources.yaml`:
+16. **Propose registry updates.** List all changes to `research-sources.yaml`:
     - New sources to add (with full schema)
     - `last_checked` date updates
     - `version_observed` + `date_observed` updates (when version changed)
@@ -204,7 +269,7 @@ Flags:
     - Trust tier promotions/demotions (with reasoning)
     - Do NOT modify the YAML directly — present proposals for user approval
 
-16. **Prepare NotebookLM source (only when `--nlm` flag is present).**
+17. **Prepare NotebookLM source (only when `--nlm` flag is present).**
 
     **CLAUDE:** Format the research findings as a NotebookLM-optimized Markdown file following the `/brana:notebooklm-source` template:
     - Executive summary (2-3 sentences: topic, date, key takeaway)
@@ -225,7 +290,7 @@ Flags:
 
     If prior knowledge was used from Phase 0, note which findings are **new** vs **confirmations** vs **contradictions** of existing notebook content. This helps the user decide whether to replace an old source or add alongside it.
 
-17. **Write to knowledge base (user approval required).** If findings are significant enough to warrant a new dimension doc or major update to an existing one:
+18. **Write to knowledge base (user approval required).** If findings are significant enough to warrant a new dimension doc or major update to an existing one:
     - For a **new topic**: propose creating a new dimension doc in `~/enter_thebrana/brana-knowledge/dimensions/{topic-slug}.md`. Use topic-based filename (not numbered). Present the proposed doc structure and get user approval before writing.
     - For an **existing doc update**: propose specific edits to the relevant dimension doc. Present the changes and get user approval.
     - After writing, commit in brana-knowledge (the post-commit hook auto-reindexes for retrieval).
@@ -301,6 +366,8 @@ Priority tiers:
 
 ## Rules
 
+- **Internal before external.** Phase 0 (internal search) always runs before any web research. Never launch web research and internal doc reading in parallel. Web results without internal context produce generic findings instead of project-specific ones.
+- **Contradiction flagging is mandatory.** If external findings contradict an internal assumption or decision, flag it with `CONTRADICTION:` prefix and HIGH severity. The user must resolve contradictions explicitly.
 - **Never modify dimension docs directly.** Report findings, don't apply them.
 - **Never modify the registry directly.** Propose changes, let the user approve.
 - **Knowledge base writes require approval.** Never auto-create or auto-edit dimension docs. Present the proposal, let the user approve.

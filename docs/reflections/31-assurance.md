@@ -1,3 +1,9 @@
+---
+last_verified: 2026-03-14
+status: active
+maturity: evergreen
+---
+
 # 31 - Assurance: Does It Work?
 
 How to verify that the mastermind system delivers on its claims. The brain says it learns, recalls, cross-pollinates, and improves over time — this reflection defines how to test those claims. R3 in the reflection DAG: validates what [R2 (Architecture)](./14-mastermind-architecture.md) specifies.

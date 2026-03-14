@@ -3,8 +3,25 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SYSTEM_DIR="$SCRIPT_DIR/system"
+DOCS_DIR="$SCRIPT_DIR/docs"
+KNOWLEDGE_DIR="$HOME/enter_thebrana/brana-knowledge"
+SPEC_GRAPH="$DOCS_DIR/spec-graph.json"
 ERRORS=0
 WARNINGS=0
+
+# Flags
+RUN_ASSUMPTIONS_ONLY=false
+RUN_SCALE_TRIGGERS=false
+GRACE_DAYS=7
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --assumptions-only) RUN_ASSUMPTIONS_ONLY=true; shift ;;
+        --scale-triggers) RUN_SCALE_TRIGGERS=true; shift ;;
+        --grace-days) GRACE_DAYS="$2"; shift 2 ;;
+        *) echo "Unknown flag: $1"; exit 1 ;;
+    esac
+done
 
 echo "=== Brana Validate ==="
 echo ""
@@ -12,6 +29,10 @@ echo ""
 fail() { echo "  FAIL: $1"; ((ERRORS++)); }
 warn() { echo "  WARN: $1"; ((WARNINGS++)); }
 pass() { echo "  PASS: $1"; }
+
+# ── Checks 1-14: Core validation ─────────────────────────────────────────
+# Skip when running subset flags
+if ! $RUN_ASSUMPTIONS_ONLY && ! $RUN_SCALE_TRIGGERS; then
 
 # Check 1: Skill YAML frontmatter
 echo "Checking skill frontmatter..."
@@ -394,7 +415,6 @@ echo ""
 
 # Check 13: Count drift in reflection docs
 echo "Checking for count drift in docs..."
-DOCS_DIR="$SCRIPT_DIR/docs"
 
 # Count actual system components
 ACTUAL_SKILLS=$(for d in "$SYSTEM_DIR"/skills/*/; do [ "$(basename "$d")" != "acquired" ] && echo 1; done | wc -l | tr -d ' ')
@@ -449,7 +469,6 @@ echo ""
 
 # Check 14: Undocumented system files (spec-graph coverage)
 echo "Checking spec-graph coverage..."
-SPEC_GRAPH="$SCRIPT_DIR/docs/spec-graph.json"
 if [ -f "$SPEC_GRAPH" ]; then
     # Collect all system/ files that exist
     SYSTEM_FILES=$(find "$SYSTEM_DIR" -type f \( -name "*.md" -o -name "*.sh" -o -name "*.json" -o -name "*.py" \) | sed "s|^$SCRIPT_DIR/||" | sort)
@@ -483,6 +502,432 @@ else
     pass "spec-graph.json not found — skipping coverage check"
 fi
 echo ""
+
+# end of checks 1-14 conditional
+fi
+
+# ── Checks 15-18: Knowledge architecture fitness functions ───────────────
+# Run when: no flags (full run) OR --assumptions-only
+if ! $RUN_SCALE_TRIGGERS; then
+
+# Check 15: Assumption freshness
+echo "Check 15: Assumption freshness..."
+STALE_ASSUMPTIONS=0
+ASSUMPTION_CHECKED=0
+NOW_EPOCH=$(date +%s)
+GRACE_EPOCH=$((GRACE_DAYS * 86400))
+
+# Scan all docs (docs/ + brana-knowledge/dimensions/) for ## Assumptions sections
+# with Last Verified column
+check_assumption_freshness() {
+    local doc="$1"
+    local label="$2"
+
+    # Skip docs modified within grace period
+    local mod_epoch
+    mod_epoch=$(git -C "$SCRIPT_DIR" log --format=%at -1 -- "$doc" 2>/dev/null || echo "0")
+    if [ "$mod_epoch" != "0" ]; then
+        local age=$((NOW_EPOCH - mod_epoch))
+        if [ "$age" -lt "$GRACE_EPOCH" ]; then
+            return 0
+        fi
+    fi
+
+    # Look for ## Assumptions section with Last Verified or last_verified dates
+    # Extract dates from table rows or YAML-like assumption blocks
+    local dates
+    dates=$(perl -ne '
+        $in_section = 1 if /^##\s+Assumptions/;
+        $in_section = 0 if $in_section && /^##\s/ && !/^##\s+Assumptions/;
+        if ($in_section) {
+            # Table row: | ... | 2026-01-15 | (last column or near-last)
+            if (/last.verified[:\s]*(\d{4}-\d{2}-\d{2})/i) {
+                print "$1\n";
+            }
+            # YAML-style: last_verified: 2026-01-15
+            elsif (/last_verified:\s*(\d{4}-\d{2}-\d{2})/) {
+                print "$1\n";
+            }
+        }
+    ' "$doc" 2>/dev/null)
+
+    [ -z "$dates" ] && return 0
+
+    while IFS= read -r verified_date; do
+        [ -z "$verified_date" ] && continue
+        ASSUMPTION_CHECKED=$((ASSUMPTION_CHECKED + 1))
+        local verified_epoch
+        verified_epoch=$(date -d "$verified_date" +%s 2>/dev/null || echo "0")
+        [ "$verified_epoch" = "0" ] && continue
+        # Default 6-month threshold (182 days)
+        local threshold=$((182 * 86400))
+        local staleness=$((NOW_EPOCH - verified_epoch))
+        if [ "$staleness" -gt "$threshold" ]; then
+            warn "Stale assumption in $label — last verified $verified_date (>6 months)"
+            STALE_ASSUMPTIONS=$((STALE_ASSUMPTIONS + 1))
+        fi
+    done <<< "$dates"
+}
+
+# Scan docs/
+for doc in "$DOCS_DIR"/**/*.md "$DOCS_DIR"/*.md; do
+    [ -f "$doc" ] || continue
+    label="${doc#$SCRIPT_DIR/}"
+    check_assumption_freshness "$doc" "$label"
+done
+
+# Scan brana-knowledge/dimensions/
+if [ -d "$KNOWLEDGE_DIR/dimensions" ]; then
+    for doc in "$KNOWLEDGE_DIR"/dimensions/*.md; do
+        [ -f "$doc" ] || continue
+        label="brana-knowledge/dimensions/$(basename "$doc")"
+        check_assumption_freshness "$doc" "$label"
+    done
+fi
+
+if [ "$STALE_ASSUMPTIONS" -eq 0 ]; then
+    pass "Check 15: PASS — Assumption freshness OK ($ASSUMPTION_CHECKED checked)"
+else
+    echo "  Check 15: WARN — $STALE_ASSUMPTIONS stale assumption(s) found ($ASSUMPTION_CHECKED checked)"
+fi
+echo ""
+
+# Check 16: Changelog currency
+echo "Check 16: Changelog currency..."
+STALE_CHANGELOGS=0
+
+check_changelog_currency() {
+    local doc="$1"
+    local label="$2"
+
+    # Skip docs modified within grace period
+    local mod_epoch
+    mod_epoch=$(git -C "$SCRIPT_DIR" log --format=%at -1 -- "$doc" 2>/dev/null || echo "0")
+    [ "$mod_epoch" = "0" ] && return 0
+    local age=$((NOW_EPOCH - mod_epoch))
+    if [ "$age" -lt "$GRACE_EPOCH" ]; then
+        return 0
+    fi
+
+    # Check if doc has a ## Changelog section
+    if ! grep -q '^## Changelog' "$doc" 2>/dev/null; then
+        return 0
+    fi
+
+    # Get last commit date for the file
+    local last_commit_date
+    last_commit_date=$(git -C "$SCRIPT_DIR" log --format=%aI -1 -- "$doc" 2>/dev/null | cut -d'T' -f1)
+    [ -z "$last_commit_date" ] && return 0
+
+    # Get the most recent date from the Changelog section
+    local last_changelog_date
+    last_changelog_date=$(perl -ne '
+        $in_cl = 1 if /^##\s+Changelog/;
+        $in_cl = 0 if $in_cl && /^##\s/ && !/^##\s+Changelog/;
+        if ($in_cl && /(\d{4}-\d{2}-\d{2})/) {
+            print "$1\n";
+        }
+    ' "$doc" 2>/dev/null | sort -r | head -1)
+
+    [ -z "$last_changelog_date" ] && return 0
+
+    # Compare: if file was modified after the last changelog entry, flag it
+    local commit_epoch
+    commit_epoch=$(date -d "$last_commit_date" +%s 2>/dev/null || echo "0")
+    local changelog_epoch
+    changelog_epoch=$(date -d "$last_changelog_date" +%s 2>/dev/null || echo "0")
+
+    if [ "$commit_epoch" -gt "$((changelog_epoch + 86400))" ]; then
+        warn "Changelog stale in $label — last commit $last_commit_date, last changelog entry $last_changelog_date"
+        STALE_CHANGELOGS=$((STALE_CHANGELOGS + 1))
+    fi
+}
+
+for doc in "$DOCS_DIR"/**/*.md "$DOCS_DIR"/*.md; do
+    [ -f "$doc" ] || continue
+    label="${doc#$SCRIPT_DIR/}"
+    check_changelog_currency "$doc" "$label"
+done
+
+if [ "$STALE_CHANGELOGS" -eq 0 ]; then
+    pass "Check 16: PASS — Changelog currency OK"
+else
+    echo "  Check 16: WARN — $STALE_CHANGELOGS doc(s) with stale changelog"
+fi
+echo ""
+
+# Check 17: Status consistency
+echo "Check 17: Status consistency..."
+STALE_ACTIVE=0
+TWELVE_MONTHS=$((365 * 86400))
+
+check_status_consistency() {
+    local doc="$1"
+    local label="$2"
+
+    # Check for status: active in frontmatter
+    local status
+    status=$(awk 'NR==1 && /^---$/{in_fm=1; next} in_fm && /^---$/{exit} in_fm && /^status:/{print $2}' "$doc" 2>/dev/null)
+    [ "$status" != "active" ] && return 0
+
+    # Get last modification time from git
+    local mod_epoch
+    mod_epoch=$(git -C "$SCRIPT_DIR" log --format=%at -1 -- "$doc" 2>/dev/null || echo "0")
+    [ "$mod_epoch" = "0" ] && return 0
+
+    local age=$((NOW_EPOCH - mod_epoch))
+    if [ "$age" -gt "$TWELVE_MONTHS" ]; then
+        local last_date
+        last_date=$(date -d "@$mod_epoch" +%Y-%m-%d 2>/dev/null)
+        warn "Status drift in $label — status: active but last modified $last_date (>12 months). Consider status: historic"
+        STALE_ACTIVE=$((STALE_ACTIVE + 1))
+    fi
+}
+
+for doc in "$DOCS_DIR"/**/*.md "$DOCS_DIR"/*.md; do
+    [ -f "$doc" ] || continue
+    label="${doc#$SCRIPT_DIR/}"
+    check_status_consistency "$doc" "$label"
+done
+
+if [ "$STALE_ACTIVE" -eq 0 ]; then
+    pass "Check 17: PASS — Status consistency OK"
+else
+    echo "  Check 17: WARN — $STALE_ACTIVE active doc(s) with no changes in 12+ months"
+fi
+echo ""
+
+# Check 18: Graph integrity
+echo "Check 18: Graph integrity..."
+INTEGRITY_ISSUES=0
+
+if [ -f "$SPEC_GRAPH" ]; then
+    # Use Python via heredoc to avoid shell expansion issues with f-strings/regex
+    INTEGRITY_ISSUES=$(python3 - "$SPEC_GRAPH" "$DOCS_DIR" <<'PYEOF'
+import json, sys, os, re
+
+spec_graph_path = sys.argv[1]
+docs_dir = sys.argv[2]
+
+with open(spec_graph_path) as f:
+    graph = json.load(f)
+
+nodes = set(graph.get('nodes', {}).keys())
+typed_edges = graph.get('typed_edges', [])
+issues = 0
+
+# Check 1: orphaned typed edges (from/to reference non-existent nodes)
+for edge in typed_edges:
+    fr = edge.get('from', '')
+    to = edge.get('to', '')
+    # assumption: references are prefixed with 'assumption:' — not node paths
+    if not to.startswith('assumption:') and to not in nodes:
+        issues += 1
+        print(f'  Orphaned edge target: {to} (from {fr})', file=sys.stderr)
+    if fr not in nodes:
+        issues += 1
+        print(f'  Orphaned edge source: {fr}', file=sys.stderr)
+
+# Check 2: assumption refs in typed_edges not in any doc's ## Assumptions
+assumption_ids = set()
+for edge in typed_edges:
+    to = edge.get('to', '')
+    if to.startswith('assumption:'):
+        assumption_ids.add(to.replace('assumption:', ''))
+
+# Scan docs for ## Assumptions sections and extract assumption slugs
+found_assumptions = set()
+for root, dirs, files in os.walk(docs_dir):
+    for fname in files:
+        if not fname.endswith('.md'):
+            continue
+        fpath = os.path.join(root, fname)
+        in_section = False
+        try:
+            with open(fpath) as df:
+                for line in df:
+                    if re.match(r'^##\s+Assumptions', line):
+                        in_section = True
+                        continue
+                    if in_section and re.match(r'^##\s', line) and not re.match(r'^##\s+Assumptions', line):
+                        in_section = False
+                    if in_section:
+                        # Match table rows: | N | assumption text |
+                        m = re.match(r'\|\s*\d+\s*\|\s*(.+?)\s*\|', line)
+                        if m:
+                            text = m.group(1).strip().lower()
+                            slug = re.sub(r'[^a-z0-9]+', '-', text).strip('-')
+                            found_assumptions.add(slug)
+                        # Match YAML claim lines
+                        m = re.match(r'\s*-?\s*claim:\s*["\']?(.+?)["\']?\s*$', line)
+                        if m:
+                            text = m.group(1).strip().lower()
+                            slug = re.sub(r'[^a-z0-9]+', '-', text).strip('-')
+                            found_assumptions.add(slug)
+        except Exception:
+            pass
+
+# Check each assumption ID against found assumptions (fuzzy match)
+for aid in assumption_ids:
+    aid_terms = set(aid.split('-'))
+    matched = False
+    for fa in found_assumptions:
+        fa_terms = set(fa.split('-'))
+        overlap = len(aid_terms & fa_terms)
+        if overlap >= len(aid_terms) * 0.5:
+            matched = True
+            break
+    if not matched:
+        issues += 1
+        print(f'  Assumption in typed_edges not found in any doc: {aid}', file=sys.stderr)
+
+print(issues)
+PYEOF
+2>&1)
+
+    # Parse: last line is the count, preceding lines are details
+    ISSUE_COUNT=$(echo "$INTEGRITY_ISSUES" | tail -1)
+    ISSUE_DETAILS=$(echo "$INTEGRITY_ISSUES" | head -n -1)
+
+    if [ -n "$ISSUE_DETAILS" ]; then
+        echo "$ISSUE_DETAILS"
+    fi
+
+    if [ "$ISSUE_COUNT" = "0" ] 2>/dev/null; then
+        pass "Check 18: PASS — Graph integrity OK"
+    else
+        warn "Check 18: WARN — $ISSUE_COUNT graph integrity issue(s)"
+    fi
+else
+    pass "Check 18: PASS — spec-graph.json not found, skipping"
+fi
+echo ""
+
+fi  # end of checks 15-18 conditional (! $RUN_SCALE_TRIGGERS)
+
+# ── Checks 19-22: Scale triggers ────────────────────────────────────────
+# Run when: no flags (full run) OR --scale-triggers
+if ! $RUN_ASSUMPTIONS_ONLY; then
+
+# Check 19: Graph node count
+echo "Check 19: Graph node count..."
+if [ -f "$SPEC_GRAPH" ]; then
+    NODE_COUNT=$(python3 -c "
+import json
+with open('$SPEC_GRAPH') as f:
+    print(len(json.load(f).get('nodes', {})))
+" 2>/dev/null || echo "0")
+
+    if [ "$NODE_COUNT" -gt 500 ] 2>/dev/null; then
+        warn "Check 19: SCALE TRIGGER — spec-graph.json has $NODE_COUNT nodes (threshold: 500). Consider AgentDB Cypher, see t-435"
+    else
+        pass "Check 19: PASS — Graph nodes: $NODE_COUNT/500"
+    fi
+else
+    pass "Check 19: PASS — spec-graph.json not found, skipping"
+fi
+echo ""
+
+# Check 20: Ruflo entry count
+echo "Check 20: Ruflo entry count..."
+RUFLO_DB="$HOME/.claude-flow/memory.db"
+if [ -f "$RUFLO_DB" ] && command -v sqlite3 &>/dev/null; then
+    ENTRY_COUNT=$(sqlite3 "$RUFLO_DB" "SELECT COUNT(*) FROM memory_entries;" 2>/dev/null || echo "0")
+    if [ "$ENTRY_COUNT" -gt 10000 ] 2>/dev/null; then
+        warn "Check 20: SCALE TRIGGER — ruflo has $ENTRY_COUNT entries (threshold: 10K). Consider temperature tiering"
+    else
+        pass "Check 20: PASS — Ruflo entries: $ENTRY_COUNT/10000"
+    fi
+else
+    pass "Check 20: PASS — Ruflo DB not found or sqlite3 unavailable, skipping"
+fi
+echo ""
+
+# Check 21: Typed edges per node
+echo "Check 21: Typed edges per node..."
+if [ -f "$SPEC_GRAPH" ]; then
+    EDGE_HOTSPOT=$(python3 -c "
+import json
+from collections import Counter
+
+with open('$SPEC_GRAPH') as f:
+    graph = json.load(f)
+
+edges = graph.get('typed_edges', [])
+counts = Counter()
+for edge in edges:
+    counts[edge.get('from', '')] += 1
+    counts[edge.get('to', '')] += 1
+
+if counts:
+    node, count = counts.most_common(1)[0]
+    print(f'{count}|{node}')
+else:
+    print('0|none')
+" 2>/dev/null || echo "0|none")
+
+    EDGE_MAX="${EDGE_HOTSPOT%%|*}"
+    EDGE_NODE="${EDGE_HOTSPOT##*|}"
+
+    if [ "$EDGE_MAX" -gt 10 ] 2>/dev/null; then
+        warn "Check 21: SCALE TRIGGER — node '$EDGE_NODE' has $EDGE_MAX typed edges (threshold: 10). Consider GraphRAG, see t-105"
+    else
+        pass "Check 21: PASS — Max typed edges per node: $EDGE_MAX/10"
+    fi
+else
+    pass "Check 21: PASS — spec-graph.json not found, skipping"
+fi
+echo ""
+
+# Check 22: Cross-client field note count
+echo "Check 22: Cross-client field note count..."
+FIELD_NOTE_COUNT=0
+
+# Count field notes across all docs (## Field Notes sections)
+count_field_notes() {
+    local dir="$1"
+    [ -d "$dir" ] || return 0
+    local count
+    count=$(perl -lne '
+        $in = 1 if /^##\s+Field\s+Notes/;
+        $in = 0 if $in && /^##\s/ && !/^##\s+Field\s+Notes/;
+        print if $in && /^[-*]\s/;
+    ' "$dir"/*.md "$dir"/**/*.md 2>/dev/null | wc -l)
+    echo "${count:-0}"
+}
+
+# Count in thebrana docs
+FN_THEBRANA=$(count_field_notes "$DOCS_DIR")
+FIELD_NOTE_COUNT=$((FIELD_NOTE_COUNT + FN_THEBRANA))
+
+# Count in brana-knowledge
+if [ -d "$KNOWLEDGE_DIR" ]; then
+    FN_KNOWLEDGE=$(count_field_notes "$KNOWLEDGE_DIR/dimensions")
+    FIELD_NOTE_COUNT=$((FIELD_NOTE_COUNT + FN_KNOWLEDGE))
+fi
+
+# Count in client projects
+CLIENTS_DIR="$HOME/enter_thebrana/clients"
+if [ -d "$CLIENTS_DIR" ]; then
+    for client_dir in "$CLIENTS_DIR"/*/; do
+        [ -d "$client_dir" ] || continue
+        for subdir in docs .claude; do
+            if [ -d "$client_dir/$subdir" ]; then
+                FN_CLIENT=$(count_field_notes "$client_dir/$subdir")
+                FIELD_NOTE_COUNT=$((FIELD_NOTE_COUNT + FN_CLIENT))
+            fi
+        done
+    done
+fi
+
+if [ "$FIELD_NOTE_COUNT" -gt 50 ]; then
+    warn "Check 22: SCALE TRIGGER — $FIELD_NOTE_COUNT field notes across repos (threshold: 50). Consider witness chains, see t-436"
+else
+    pass "Check 22: PASS — Cross-repo field notes: $FIELD_NOTE_COUNT/50"
+fi
+echo ""
+
+fi  # end of checks 19-22 conditional (! $RUN_ASSUMPTIONS_ONLY)
 
 # Summary
 echo "=== Validation Summary ==="

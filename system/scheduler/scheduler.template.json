@@ -25,7 +25,7 @@
     },
     "knowledge-review": {
       "type": "skill",
-      "skill": "/knowledge-review",
+      "skill": "/brana:memory review",
       "project": "~/enter_thebrana/thebrana",
       "schedule": "*-*-01 10:00:00",
       "model": "sonnet",
@@ -35,7 +35,7 @@
     },
     "morning-check": {
       "type": "skill",
-      "skill": "/morning",
+      "skill": "/brana:daily-ops",
       "project": "~/enter_thebrana/thebrana",
       "schedule": "Mon..Fri *-*-* 08:00:00",
       "model": "haiku",
@@ -44,7 +44,7 @@
     },
     "weekly-review": {
       "type": "skill",
-      "skill": "/weekly-review",
+      "skill": "/brana:review",
       "project": "~/enter_thebrana/thebrana",
       "schedule": "Fri *-*-* 17:00:00",
       "model": "sonnet",
@@ -93,6 +93,17 @@
       "timeoutSeconds": 120,
       "captureOutput": true,
       "_comment": "ADR-015: weekly backup of claude-flow patterns and decisions to git"
+    },
+    "index-assumptions": {
+      "type": "command",
+      "command": "./system/scripts/index-assumptions.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Sun *-*-* 03:10:00",
+      "enabled": true,
+      "maxRetries": 1,
+      "timeoutSeconds": 300,
+      "captureOutput": true,
+      "_comment": "ADR-021: weekly index of assumptions, field notes, and ADR decisions into ruflo"
     }
   }
 }

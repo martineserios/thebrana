@@ -1,0 +1,75 @@
+{
+  "classic": {
+    "icons": {
+      "done": "✓",
+      "active": "←",
+      "pending": "→",
+      "blocked": "·",
+      "parked": "·"
+    },
+    "bars": { "fill": "█", "empty": "░" },
+    "tree": { "branch": "├──", "last": "└──", "pipe": "│" },
+    "colors": {
+      "done": "green",
+      "active": "cyan",
+      "pending": "white",
+      "blocked": "dim",
+      "parked": "dim",
+      "header": "bold",
+      "P0": "bold red",
+      "P1": "yellow",
+      "P2": "white",
+      "P3": "dim"
+    }
+  },
+  "emoji": {
+    "icons": {
+      "done": "✅",
+      "active": "🔨",
+      "pending": "🔲",
+      "blocked": "🔒",
+      "parked": "💤"
+    },
+    "bars": { "fill": "█", "empty": "░" },
+    "tree": { "branch": "├──", "last": "└──", "pipe": "│" },
+    "health": { "done": "🟢", "active": "🟡", "blocked": "🔴" },
+    "priority_high": "⚡",
+    "blocked_ref": "⛓",
+    "colors": {
+      "done": "green",
+      "active": "cyan",
+      "pending": "white",
+      "blocked": "red",
+      "parked": "dim",
+      "header": "bold",
+      "P0": "bold red",
+      "P1": "yellow",
+      "P2": "white",
+      "P3": "dim"
+    }
+  },
+  "minimal": {
+    "icons": {
+      "done": "●",
+      "active": "◐",
+      "pending": "○",
+      "blocked": "⊘",
+      "parked": "◌"
+    },
+    "bars": { "fill": "━", "empty": "╍" },
+    "tree": { "branch": "├──", "last": "└──", "pipe": "│" },
+    "blocked_ref": "←",
+    "colors": {
+      "done": "green",
+      "active": "cyan",
+      "pending": "white",
+      "blocked": "dim",
+      "parked": "dim",
+      "header": "bold",
+      "P0": "bold red",
+      "P1": "yellow",
+      "P2": "white",
+      "P3": "dim"
+    }
+  }
+}
