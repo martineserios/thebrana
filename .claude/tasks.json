@@ -11192,6 +11192,62 @@
       "context": "2026-03-14: User caught this during t-428 build. All 5 Python modules written before any test file existed. Need to strengthen the TDD enforcement — possibly a PreToolUse hook that checks for test file on the branch before allowing Write to implementation files.",
       "strategy": null,
       "build_step": null
+    },
+    {
+      "id": "t-437",
+      "subject": "Multi-step skills should use CC Task tools to track progress",
+      "description": "/brana:build, /brana:backlog plan, and other multi-step skills lose track of where they are during execution — especially across context compressions. They should leverage Claude Code's TaskCreate/TaskUpdate tools to create a persistent checklist of steps, marking each in_progress/completed as they go. This prevents getting lost mid-phase and makes progress visible. Discovered during knowledge-architecture-v2 planning: the feature brief has 11 phases but no mechanism to track progress through them.",
+      "tags": [
+        "dx",
+        "skills",
+        "process-improvement"
+      ],
+      "status": "pending",
+      "stream": "bugs",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-14",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "2026-03-14: Noticed during knowledge-arch-v2 PLAN phase. /brana:build has SPECIFY→PLAN→BUILD→CLOSE steps, /brana:backlog plan has 12 steps — both should checkpoint progress via Task tools so they don't repeat or skip steps after context compression. Affects knowledge-arch-v2 implementation since its 11 phases will be executed through /brana:build.",
+      "strategy": null,
+      "build_step": null
+    },
+    {
+      "id": "t-438",
+      "subject": "Feature brief template should include documentation phases",
+      "description": "ADR-021 knowledge-architecture-v2 feature brief specifies 11 implementation phases but none cover user-facing or contributor docs. Users need: (1) a user guide explaining system behavior, field notes workflow, what surfaces when, how to interact with reports, and (2) a technical doc on extending the ontology, adding fitness functions, wiring new commands, modifying field notes lifecycle. Feature brief template should include doc phases as a standard checklist item.",
+      "tags": [
+        "dx",
+        "docs",
+        "process-improvement"
+      ],
+      "status": "pending",
+      "stream": "bugs",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-14",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "2026-03-14: Caught during knowledge-arch-v2 PLAN phase. The feature brief had no doc phases — user pointed out that users need to understand behavior (user guide) and how to modify the system (tech doc). This is a template gap, not just a one-off miss.",
+      "strategy": null,
+      "build_step": null
     }
   ]
 }

@@ -14,8 +14,8 @@ from rich.text import Text
 from rich.tree import Tree
 
 from .config import (
-    classify_task, detect_project, load_json, load_portfolio, load_tasks,
-    tasks_file_path,
+    classify_task, detect_project, git_root, load_json, load_portfolio,
+    load_tasks, tasks_file_path,
 )
 from .theme import (
     color, console, create_table, get_theme, icon, print_header,
@@ -90,7 +90,15 @@ def _focus_score(task: dict, all_tasks: list[dict]) -> float:
     return score
 
 
-def _build_blocked_chain(task_id: str, all_tasks: list[dict], depth: int = 0) -> list[tuple[int, dict]]:
+def _build_blocked_chain(
+    task_id: str, all_tasks: list[dict], depth: int = 0,
+    visited: set | None = None,
+) -> list[tuple[int, dict]]:
+    if visited is None:
+        visited = set()
+    if task_id in visited:
+        return []
+    visited.add(task_id)
     chain = []
     task = next((t for t in all_tasks if t["id"] == task_id), None)
     if not task:
@@ -99,7 +107,7 @@ def _build_blocked_chain(task_id: str, all_tasks: list[dict], depth: int = 0) ->
     for bid in task.get("blocked_by") or []:
         blocker = next((t for t in all_tasks if t["id"] == bid), None)
         if blocker and classify_task(blocker, all_tasks) != "done":
-            chain.extend(_build_blocked_chain(bid, all_tasks, depth + 1))
+            chain.extend(_build_blocked_chain(bid, all_tasks, depth + 1, visited))
     return chain
 
 
@@ -430,7 +438,13 @@ def stale(days: int = typer.Option(14, "--days", "-d", help="Staleness threshold
 
     print_header(f"Stale tasks (>{days} days)", theme)
     for t in stale_tasks:
-        age = (datetime.now() - datetime.fromisoformat(t["created"])).days
+        created = t.get("created")
+        if not created:
+            continue
+        try:
+            age = (datetime.now() - datetime.fromisoformat(created)).days
+        except ValueError:
+            continue
         st = classify_task(t, all_tasks)
         console.print(
             f"  {task_line(t, st, theme)}  ({age}d)",
@@ -442,6 +456,10 @@ def stale(days: int = typer.Option(14, "--days", "-d", help="Staleness threshold
 @backlog_app.command()
 def burndown(period: str = typer.Option("week", "--period", "-p", help="week or month")):
     """Completed vs created over time."""
+    if period not in ("week", "month"):
+        console.print(f"\n  Invalid period '{period}'. Use 'week' or 'month'.\n")
+        raise typer.Exit(1)
+
     theme = get_theme()
     data = load_tasks()
     all_tasks = data.get("tasks", [])
@@ -475,10 +493,16 @@ def diff():
     theme = get_theme()
     tf = tasks_file_path()
 
+    root = git_root()
+    if root is None:
+        console.print("\n  Not in a git repository.\n")
+        return
+
     try:
+        rel_path = tf.relative_to(root)
         result = subprocess.run(
-            ["git", "show", f"HEAD:{tf.relative_to(Path.cwd())}"],
-            capture_output=True, text=True, check=True,
+            ["git", "show", f"HEAD:{rel_path}"],
+            capture_output=True, text=True, check=True, cwd=root,
         )
         old_data = json.loads(result.stdout)
     except (subprocess.CalledProcessError, json.JSONDecodeError, ValueError):

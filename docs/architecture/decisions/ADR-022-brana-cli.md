@@ -24,7 +24,7 @@ Build a standalone CLI (`brana`) using **Python (typer + rich)** as the primary 
 
 | Layer | Language | Role | Examples |
 |-------|----------|------|----------|
-| **CLI surface** | Python (typer) | Subcommand dispatch, arg parsing, interactive prompts | `brana tasks query`, `brana sched status` |
+| **CLI surface** | Python (typer) | Subcommand dispatch, arg parsing, interactive prompts | `brana backlog query`, `brana ops status` |
 | **Rendering** | Python (rich) | Themed terminal output — tables, trees, progress bars | Theme system via `themes.json` |
 | **Glue** | Bash (existing) | Bootstrap, scheduler runner, cf-env — stays untouched | `bootstrap.sh`, `brana-scheduler-runner.sh` |
 
@@ -33,15 +33,20 @@ Build a standalone CLI (`brana`) using **Python (typer + rich)** as the primary 
 ### Command groups
 
 ```
-brana tasks {query,search,status,next,focus,blocked,stale,burndown,diff,context,graph}
-brana sched {status,logs,run,history,collisions,enable,disable,drift,health}
+brana backlog {query,search,status,next,focus,blocked,stale,burndown,diff,context,graph}
+brana ops {status,logs,run,history,collisions,enable,disable,drift,health,sync,reindex}
 brana version
 brana doctor
+brana --version
 ```
 
-**v1 launch set** (ship first, expand later): `tasks status`, `tasks next`, `tasks query`, `sched status`, `sched health`, `doctor`, `version`.
+**v1 launch set** (ship first, expand later): `backlog status`, `backlog next`, `backlog query`, `ops status`, `ops health`, `doctor`, `version`.
 
-**Scheduler writes exception:** `sched enable`, `sched disable`, and `sched run` mutate system state (systemd units, job execution). These are explicitly allowed because managing systemd from inside Claude Code is awkward and there is no skill equivalent.
+**Scheduler writes exception:** `ops enable`, `ops disable`, and `ops run` mutate system state (systemd units, job execution). These are explicitly allowed because managing systemd from inside Claude Code is awkward and there is no skill equivalent.
+
+**Bash wrappers:** `ops sync` wraps `sync-state.sh`, `ops reindex` wraps `index-knowledge.sh`.
+
+**Shell aliases:** `system/cli/aliases.sh` provides shortcuts: `bq` (backlog query), `bo` (ops status), `bf` (backlog focus), etc.
 
 ### Deep backlog integration
 
@@ -78,11 +83,15 @@ Installed via `uv pip install -e .` in the thebrana repo, or `uv run brana` for 
 ```
 system/cli/
 ├── __init__.py
-├── main.py          # root app: version, doctor
+├── main.py          # root app: version, doctor, --version flag
 ├── config.py        # paths, JSON loading, project detection
-├── theme.py         # theme loading from themes.json, Rich styling
+├── theme.py         # theme loading from themes.json, Rich styling (cached)
 ├── themes.json      # canonical icon/style definitions (single source of truth)
-├── tasks.py         # brana tasks {11 subcommands}
-└── sched.py         # brana sched {9 subcommands}
+├── backlog.py       # brana backlog {11 subcommands}
+├── ops.py           # brana ops {11 subcommands}
+├── aliases.sh       # shell aliases (bq, bo, bf, etc.)
+└── rust/            # future Rust hot-path binaries (t-427)
+    └── README.md    # candidates: brana-query, brana-fmt
 pyproject.toml       # entry point
+tests/test_cli.py    # 34+ tests
 ```

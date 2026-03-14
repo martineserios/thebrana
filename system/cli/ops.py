@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -12,7 +13,7 @@ import typer
 
 from .config import (
     SCHEDULER_CONFIG, SCHEDULER_LOGS, SCHEDULER_STATUS, SCHEDULER_TEMPLATE,
-    load_json,
+    detect_project, load_json,
 )
 from .theme import color, console, create_table, get_theme, icon, print_header
 
@@ -342,9 +343,19 @@ def drift():
     console.print()
 
 
+_JOB_NAME_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
+
+
+def _validate_job_name(job_name: str):
+    if not _JOB_NAME_RE.match(job_name):
+        console.print(f"\n  Invalid job name '{job_name}'. Use alphanumeric, hyphens, underscores.\n")
+        raise typer.Exit(1)
+
+
 @ops_app.command()
 def run(job_name: str = typer.Argument(..., help="Job to trigger manually")):
     """Manually trigger a scheduler job now."""
+    _validate_job_name(job_name)
     sched = _load_scheduler()
     if job_name not in sched.get("jobs", {}):
         console.print(f"\n  Job '{job_name}' not found in scheduler config.\n")
@@ -377,6 +388,7 @@ def disable(job_name: str = typer.Argument(..., help="Job to disable")):
 
 
 def _toggle_job(job_name: str, enabled: bool):
+    _validate_job_name(job_name)
     sched = _load_scheduler()
     jobs = sched.get("jobs", {})
 
@@ -402,3 +414,69 @@ def _toggle_job(job_name: str, enabled: bool):
         console.print(f"  [{style}]Timer {systemd_action}ed.[/]\n")
     except subprocess.CalledProcessError:
         console.print(f"  [yellow]Warning: could not {systemd_action} timer {timer_unit}[/]\n")
+
+
+@ops_app.command()
+def sync(
+    auto_commit: bool = typer.Option(False, "--auto-commit", help="Auto-commit changes"),
+    direction: str = typer.Option("push", help="push or pull"),
+):
+    """Sync operational state (wraps sync-state.sh)."""
+    root, _ = detect_project()
+    if root is None:
+        console.print("\n  Not in a git project.\n")
+        raise typer.Exit(1)
+
+    script = root / "system" / "scripts" / "sync-state.sh"
+    if not script.exists():
+        console.print(f"\n  sync-state.sh not found at {script}.\n")
+        raise typer.Exit(1)
+
+    cmd = ["bash", str(script), direction]
+    if auto_commit:
+        cmd.append("--auto-commit")
+
+    console.print(f"\n  Running sync-state.sh {direction}...")
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, cwd=root)
+        for line in result.stdout.strip().splitlines():
+            console.print(f"  {line}")
+        if result.returncode != 0:
+            for line in result.stderr.strip().splitlines():
+                console.print(f"  [red]{line}[/]")
+            raise typer.Exit(1)
+    except subprocess.TimeoutExpired:
+        console.print("  [red]Timeout after 60s.[/]\n")
+        raise typer.Exit(1)
+    console.print()
+
+
+@ops_app.command()
+def reindex():
+    """Reindex brana-knowledge into ruflo memory (wraps index-knowledge.sh)."""
+    root, _ = detect_project()
+    if root is None:
+        console.print("\n  Not in a git project.\n")
+        raise typer.Exit(1)
+
+    script = root / "system" / "scripts" / "index-knowledge.sh"
+    if not script.exists():
+        console.print(f"\n  index-knowledge.sh not found at {script}.\n")
+        raise typer.Exit(1)
+
+    console.print("\n  Running index-knowledge.sh (this may take a while)...")
+    try:
+        result = subprocess.run(
+            ["bash", str(script)], capture_output=True, text=True,
+            timeout=600, cwd=root,
+        )
+        for line in result.stdout.strip().splitlines():
+            console.print(f"  {line}")
+        if result.returncode != 0:
+            for line in result.stderr.strip().splitlines():
+                console.print(f"  [red]{line}[/]")
+            raise typer.Exit(1)
+    except subprocess.TimeoutExpired:
+        console.print("  [red]Timeout after 10m.[/]\n")
+        raise typer.Exit(1)
+    console.print()

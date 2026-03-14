@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +18,7 @@ THEMES_FILE = Path(__file__).parent / "themes.json"
 console = Console()
 
 
+@lru_cache(maxsize=1)
 def load_themes() -> dict[str, Any]:
     return json.loads(THEMES_FILE.read_text())
 

@@ -15,11 +15,30 @@ from .config import (
 )
 from .theme import console, get_theme, icon
 
+def _version_callback(value: bool):
+    if value:
+        from importlib.metadata import version as pkg_version
+        try:
+            v = pkg_version("brana-cli")
+        except Exception:
+            v = "dev"
+        print(f"brana-cli {v}")
+        raise typer.Exit()
+
+
 app = typer.Typer(
     name="brana",
     help="Brana system CLI — tasks, scheduler, and system health.",
     no_args_is_help=True,
 )
+
+
+@app.callback(invoke_without_command=True)
+def main(
+    version: bool = typer.Option(False, "--version", "-V", callback=_version_callback,
+                                  is_eager=True, help="Show version and exit"),
+):
+    pass
 
 
 def _register_subcommands():

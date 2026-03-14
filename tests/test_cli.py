@@ -282,3 +282,107 @@ class TestScheduleCollisions:
             "job-b": {"schedule": "*-*-* 09:00:00", "project": "~/proj", "enabled": False},
         }
         assert _find_collisions(jobs) == []
+
+
+# ── critical fixes ───────────────────────────────────────────────────────
+
+
+class TestCriticalFixes:
+    def test_cancelled_status_is_done(self, sample_tasks):
+        from system.cli.config import classify_task
+        cancelled = {"id": "t-099", "status": "cancelled", "tags": [], "blocked_by": []}
+        assert classify_task(cancelled, sample_tasks) == "done"
+
+    def test_cancelled_blocker_unblocks_dependent(self, sample_tasks):
+        from system.cli.config import classify_task
+        tasks = [
+            {"id": "t-a", "status": "cancelled", "tags": [], "blocked_by": []},
+            {"id": "t-b", "status": "pending", "tags": [], "blocked_by": ["t-a"]},
+        ]
+        assert classify_task(tasks[1], tasks) == "pending"
+
+    def test_circular_blocked_by_does_not_recurse(self):
+        from system.cli.backlog import _build_blocked_chain
+        tasks = [
+            {"id": "t-1", "status": "pending", "tags": [], "blocked_by": ["t-2"]},
+            {"id": "t-2", "status": "pending", "tags": [], "blocked_by": ["t-1"]},
+        ]
+        chain = _build_blocked_chain("t-1", tasks)
+        ids = [t["id"] for _, t in chain]
+        assert "t-1" in ids
+        assert "t-2" in ids
+        assert len(chain) <= 3  # no infinite expansion
+
+    def test_stale_skips_missing_created(self):
+        from system.cli.backlog import _filter_tasks
+        tasks = [
+            {"id": "t-1", "status": "pending", "type": "task", "tags": [],
+             "blocked_by": []},  # no created field
+        ]
+        # Should not crash — filter works even without created
+        result = _filter_tasks(tasks, tasks)
+        assert len(result) == 1
+
+    def test_load_json_handles_malformed(self, tmp_path):
+        from system.cli.config import load_json
+        bad = tmp_path / "bad.json"
+        bad.write_text("{broken json")
+        result = load_json(bad)
+        assert result is None
+
+    def test_load_json_handles_empty(self, tmp_path):
+        from system.cli.config import load_json
+        empty = tmp_path / "empty.json"
+        empty.write_text("")
+        assert load_json(empty) is None
+
+    def test_job_name_validation(self):
+        from click.exceptions import Exit
+        from system.cli.ops import _validate_job_name
+        _validate_job_name("agentdb-watch")
+        _validate_job_name("sync_state")
+        with pytest.raises(Exit):
+            _validate_job_name("../etc/passwd")
+        with pytest.raises(Exit):
+            _validate_job_name("job;rm -rf /")
+
+
+# ── e2e smoke tests ─────────────────────────────────────────────────────
+
+
+class TestE2ESmoke:
+    def test_version_runs(self):
+        from typer.testing import CliRunner
+        from system.cli.main import app
+        runner = CliRunner()
+        result = runner.invoke(app, ["version"])
+        assert result.exit_code == 0
+        assert "brana-cli" in result.output
+
+    def test_doctor_runs(self):
+        from typer.testing import CliRunner
+        from system.cli.main import app
+        runner = CliRunner()
+        result = runner.invoke(app, ["doctor"])
+        assert "checks passed" in result.output
+
+    def test_backlog_query_no_crash(self):
+        from typer.testing import CliRunner
+        from system.cli.main import app
+        runner = CliRunner()
+        result = runner.invoke(app, ["backlog", "query", "--tag", "nonexistent"])
+        assert result.exit_code == 0
+
+    def test_ops_health_no_crash(self):
+        from typer.testing import CliRunner
+        from system.cli.main import app
+        runner = CliRunner()
+        result = runner.invoke(app, ["ops", "health"])
+        assert result.exit_code == 0
+
+    def test_version_flag(self):
+        from typer.testing import CliRunner
+        from system.cli.main import app
+        runner = CliRunner()
+        result = runner.invoke(app, ["--version"])
+        assert result.exit_code == 0

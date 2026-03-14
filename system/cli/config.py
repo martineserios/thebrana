@@ -42,7 +42,12 @@ def load_json(path: Path) -> Any:
     text = path.read_text().strip()
     if not text:
         return None
-    return json.loads(text)
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        import sys
+        print(f"Error: malformed JSON in {path}: {e}", file=sys.stderr)
+        return None
 
 
 def load_tasks(project_root: Path | None = None) -> dict:
@@ -69,14 +74,14 @@ def load_portfolio() -> list[dict]:
             for proj in client.get("projects", []):
                 proj = dict(proj)
                 proj["_client"] = client["slug"]
-                proj["path"] = str(Path(proj["path"].replace("~/", str(HOME) + "/")).expanduser())
+                proj["path"] = str(Path(proj["path"]).expanduser())
                 projects.append(proj)
         return projects
     if "projects" in data:
         projects = []
         for proj in data["projects"]:
             proj = dict(proj)
-            proj["path"] = str(Path(proj["path"].replace("~/", str(HOME) + "/")).expanduser())
+            proj["path"] = str(Path(proj["path"]).expanduser())
             projects.append(proj)
         return projects
     return []
@@ -98,13 +103,17 @@ def tasks_file_path(project_root: Path | None = None) -> Path:
 
 
 def classify_task(task: dict, all_tasks: list[dict]) -> str:
-    if task.get("status") == "completed":
+    status = task.get("status")
+    if status == "completed":
         return "done"
-    if task.get("status") == "in_progress":
+    if status == "cancelled":
+        return "done"
+    if status == "in_progress":
         return "active"
     blocked_by = task.get("blocked_by") or []
     if blocked_by:
-        completed_ids = {t["id"] for t in all_tasks if t.get("status") == "completed"}
+        completed_ids = {t["id"] for t in all_tasks
+                         if t.get("status") in ("completed", "cancelled")}
         if not all(bid in completed_ids for bid in blocked_by):
             return "blocked"
     if "parked" in (task.get("tags") or []):
