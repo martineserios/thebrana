@@ -24,6 +24,51 @@ When explicitly managing the backlog: planning phases, viewing roadmaps,
 restructuring work. Daily task interaction happens through natural
 language guided by the task-convention rule — no skill invocation needed.
 
+## CLI Integration — MANDATORY
+
+**NEVER read or write tasks.json directly.** Use the `brana` CLI via the Bash tool for ALL task operations.
+The binary is at `system/cli/rust/target/release/brana` (from git root) or
+`${CLAUDE_PLUGIN_ROOT}/cli/rust/target/release/brana`.
+
+### Read operations
+
+| Operation | CLI command |
+|-----------|------------|
+| Project status | `brana backlog status` |
+| Cross-client status | `brana backlog status --all --json` |
+| Full roadmap tree | `brana backlog roadmap --json` |
+| Subtree of phase | `brana backlog tree <id> --json` |
+| Aggregate stats | `brana backlog stats` |
+| Tag inventory | `brana backlog tags --output json` |
+| Tag filter (AND) | `brana backlog tags --filter "a,b" --output json` |
+| Next unblocked task | `brana backlog next --stream X --tag Y` |
+| Query tasks | `brana backlog query --status pending --stream bugs --output json` |
+| Multi-tag AND query | `brana backlog query --tag "dx,cli" --count` |
+| Filter by parent | `brana backlog query --parent ph-001 --type task` |
+| Get full task | `brana backlog get <id>` |
+| Get single field | `brana backlog get <id> --field status` |
+
+### Write operations
+
+| Operation | CLI command |
+|-----------|------------|
+| Set any field | `brana backlog set <id> <field> <value>` |
+| Set to null | `brana backlog set <id> priority null` |
+| Append to text | `brana backlog set <id> context --append "note"` |
+| Add/remove tag | `brana backlog set <id> tags +newtag` / `tags -oldtag` |
+| Add blocked_by | `brana backlog set <id> blocked_by +t-100` |
+| Create task | `brana backlog add --json '{"subject":"...","stream":"...","type":"task"}'` |
+| Rollup parents | `brana backlog rollup` |
+
+### Rules
+
+1. **Every "Read tasks.json" instruction below → call the corresponding CLI command.**
+2. **Every "Write tasks.json" instruction below → call `brana backlog set` or `brana backlog add`.**
+3. For batch creates (plan command), call `brana backlog add` once per task.
+4. All CLI commands return JSON on stdout. Parse with `jq` if needed.
+5. All writes are atomic — no need to read-modify-write.
+6. CLI auto-detects tasks.json from git root. No path argument needed.
+
 ## Display Themes
 
 All rendering sections below use the **task-line template** to determine icons,
