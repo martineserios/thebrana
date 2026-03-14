@@ -34,11 +34,26 @@ Also entered via `/brana:backlog start <id>` for code tasks — see Task Integra
 
 ---
 
+## CLI Integration — MANDATORY
+
+**NEVER read or write tasks.json directly.** Use `brana backlog` CLI commands via Bash:
+
+- Cross-reference: `brana backlog search "keyword"` or `brana backlog query --tag "tag1,tag2"`
+- Get task: `brana backlog get <id>` or `brana backlog get <id> --field status`
+- Update field: `brana backlog set <id> <field> <value>`
+- Create task: `brana backlog add --json '{"subject":"...","stream":"...","type":"task"}'`
+- Status transitions: `brana backlog set <id> status in_progress`
+- Build step tracking: `brana backlog set <id> build_step specify`
+
+Binary: `system/cli/rust/target/release/brana` (from git root).
+
+---
+
 ## Step 0: CROSS-REFERENCE
 
 Before anything else, check if this work already exists or relates to existing work.
 
-1. **Read tasks.json** for the current project (and portfolio if available).
+1. **Search for related tasks** via CLI: `brana backlog search "description keywords"` and `brana backlog query --tag "relevant,tags"`.
 2. **Search** for similar tasks:
    - Subject fuzzy match (significant words from the description against existing task subjects)
    - Tag overlap (2+ shared tags)
@@ -703,35 +718,41 @@ When `/brana:backlog start <id>` invokes this skill:
 
 5. **CLOSE auto-completes the task.**
 
-### Task fields updated during build
+### Task fields updated during build (via CLI)
 
-The build loop updates these fields on the task in tasks.json:
+The build loop updates fields via `brana backlog set`:
 
-- `status`: `in_progress` → `completed`
-- `started`: set at CLASSIFY
-- `completed`: set at CLOSE
-- `strategy`: set at CLASSIFY (new field: feature, bug-fix, refactor, spike, migration, investigation)
-- `build_step`: updated as the loop progresses (new field: classify, specify, plan, build, close)
-- `notes`: appended with retrospective findings at CLOSE
-- `branch`: set at BUILD
+```bash
+# CLASSIFY
+brana backlog set <id> status in_progress
+brana backlog set <id> started 2026-03-14
+brana backlog set <id> strategy feature
+brana backlog set <id> build_step classify
+
+# SPECIFY → PLAN → BUILD (update build_step as loop progresses)
+brana backlog set <id> build_step specify
+brana backlog set <id> build_step plan
+brana backlog set <id> build_step build
+brana backlog set <id> branch "feat/t-123-slug"
+
+# CLOSE
+brana backlog set <id> status completed
+brana backlog set <id> completed 2026-03-14
+brana backlog set <id> build_step null
+brana backlog set <id> notes --append "Retrospective findings here"
+```
 
 ### Creating tasks automatically
 
 When `/brana:build` is invoked WITHOUT `/brana:backlog start`:
 
-1. After CLASSIFY, auto-create a task in tasks.json:
-   ```json
-   {
-     "id": "t-{next}",
-     "subject": "{description}",
-     "stream": "{from strategy}",
-     "strategy": "{detected}",
-     "build_step": "specify",
-     "status": "in_progress",
-     "execution": "code",
-     "created": "YYYY-MM-DD",
-     "started": "YYYY-MM-DD"
-   }
+1. After CLASSIFY, create via CLI:
+   ```bash
+   brana backlog add --json '{"subject":"{description}","stream":"{from strategy}","type":"task","strategy":"{detected}","execution":"code"}'
+   # Then set status + dates:
+   brana backlog set t-{N} status in_progress
+   brana backlog set t-{N} started YYYY-MM-DD
+   brana backlog set t-{N} build_step specify
    ```
 2. Confirm with user: "Created t-{N} for this work. Proceeding."
 3. CLOSE updates this task to completed.
