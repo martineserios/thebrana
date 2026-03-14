@@ -11742,7 +11742,7 @@
       "effort": "XL",
       "execution": "code",
       "blocked_by": [],
-      "branch": "feat/t-444-adr021-ontology",
+      "branch": "refactor/t-457-cli-integration",
       "github_issue": null,
       "created": "2026-03-14",
       "started": "2026-03-14",

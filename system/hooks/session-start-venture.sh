@@ -17,27 +17,17 @@ if [ -z "${SESSION_ID:-}" ] || [ -z "${CWD:-}" ]; then
     exit 0
 fi
 
-# --- Venture project detection ---
-# Check for venture-specific directories
-VENTURE_DIRS="docs/sops docs/okrs docs/metrics docs/pipeline docs/venture"
-IS_VENTURE=false
+# --- Venture project detection (shared with session-start.sh) ---
+_detect_venture() {
+    local cwd="$1"
+    for dir in docs/sops docs/okrs docs/metrics docs/pipeline docs/venture; do
+        [ -d "$cwd/$dir" ] && return 0
+    done
+    [ -f "$cwd/CLAUDE.md" ] && grep -qiE '(venture|business|startup|revenue|pipeline|okr|growth)' "$cwd/CLAUDE.md" 2>/dev/null && return 0
+    return 1
+}
 
-for dir in $VENTURE_DIRS; do
-    if [ -d "$CWD/$dir" ]; then
-        IS_VENTURE=true
-        break
-    fi
-done
-
-# Fallback: grep CLAUDE.md for business keywords
-if [ "$IS_VENTURE" = false ] && [ -f "$CWD/CLAUDE.md" ]; then
-    if grep -qiE '(venture|business|startup|revenue|pipeline|okr|growth)' "$CWD/CLAUDE.md" 2>/dev/null; then
-        IS_VENTURE=true
-    fi
-fi
-
-# Not a venture project — early exit
-if [ "$IS_VENTURE" = false ]; then
+if ! _detect_venture "$CWD"; then
     echo '{"continue": true}'
     exit 0
 fi

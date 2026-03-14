@@ -125,27 +125,51 @@ elif [ -d "$CWD/.claude" ] && [ -f "$CWD/.claude/tasks.json" ]; then
 fi
 
 if [ -n "$TASKS_FILE" ] && [ -f "$TASKS_FILE" ]; then
-    TASK_SUMMARY=$(jq -r '
-      .project as $proj |
-      ([.tasks[] | select(.status == "completed") | .id]) as $completed |
-      ([.tasks[] | select(.type == "phase" and .status == "in_progress")] | first) as $phase |
-      ([.tasks[] | select(.type == "task" or .type == "subtask")] | length) as $total |
-      ([.tasks[] | select((.type == "task" or .type == "subtask") and .status == "completed")] | length) as $done |
-      ([.tasks[] | select(.stream == "bugs" and .status != "completed" and .status != "cancelled")] | length) as $bugs |
-      ([.tasks[] | select(
-        (.type == "task" or .type == "subtask") and
-        .status == "pending" and
-        ((.blocked_by // []) | all(. as $b | $completed | index($b) != null))
-      )] | sort_by(.order) | first) as $next |
-      "Project: \($proj)" +
-      (if $phase then " | Phase: \($phase.subject) (\($done)/\($total))" else "" end) +
-      (if $bugs > 0 then " | Bugs: \($bugs) open" else "" end) +
-      "\n" +
-      (if $next then "Next unblocked: \($next.id) \($next.subject) (pending)"
-       elif ($total > 0 and $total == $done) then "All tasks completed. Use /brana:backlog plan for next phase."
-       else "" end) +
-      "\nCommands: /brana:backlog next, /brana:backlog plan, /brana:backlog add, /brana:backlog start <id>"
-    ' "$TASKS_FILE" 2>/dev/null) || true
+    # Use brana-query (Rust, 34x faster) if available, fall back to jq
+    BRANA_QUERY="${CLAUDE_PLUGIN_ROOT:-$GIT_ROOT/system}/cli/rust/target/release/brana-query"
+    if [ -x "$BRANA_QUERY" ]; then
+        PROJ=$(jq -r '.project // "unknown"' "$TASKS_FILE" 2>/dev/null)
+        TOTAL=$("$BRANA_QUERY" --file "$TASKS_FILE" --count 2>/dev/null) || TOTAL=0
+        DONE=$("$BRANA_QUERY" --file "$TASKS_FILE" --status done --count 2>/dev/null) || DONE=0
+        BUGS=$("$BRANA_QUERY" --file "$TASKS_FILE" --stream bugs --status pending --count 2>/dev/null) || BUGS=0
+        NEXT_ID=$("$BRANA_QUERY" --file "$TASKS_FILE" --status pending --output ids 2>/dev/null | head -1) || NEXT_ID=""
+        NEXT_SUBJ=""
+        if [ -n "$NEXT_ID" ]; then
+            NEXT_SUBJ=$(jq -r --arg id "$NEXT_ID" '.tasks[] | select(.id == $id) | .subject' "$TASKS_FILE" 2>/dev/null)
+        fi
+        TASK_SUMMARY="Project: $PROJ ($DONE/$TOTAL)"
+        [ "$BUGS" -gt 0 ] 2>/dev/null && TASK_SUMMARY="$TASK_SUMMARY | Bugs: $BUGS open"
+        if [ -n "$NEXT_ID" ]; then
+            TASK_SUMMARY="$TASK_SUMMARY
+Next unblocked: $NEXT_ID $NEXT_SUBJ (pending)"
+        elif [ "$TOTAL" -gt 0 ] && [ "$TOTAL" = "$DONE" ]; then
+            TASK_SUMMARY="$TASK_SUMMARY
+All tasks completed. Use /brana:backlog plan for next phase."
+        fi
+        TASK_SUMMARY="$TASK_SUMMARY
+Commands: /brana:backlog next, /brana:backlog plan, /brana:backlog add, /brana:backlog start <id>"
+    else
+        # Fallback: jq (slower but always available)
+        TASK_SUMMARY=$(jq -r '
+          .project as $proj |
+          ([.tasks[] | select(.status == "completed") | .id]) as $completed |
+          ([.tasks[] | select(.type == "task" or .type == "subtask")] | length) as $total |
+          ([.tasks[] | select((.type == "task" or .type == "subtask") and .status == "completed")] | length) as $done |
+          ([.tasks[] | select(.stream == "bugs" and .status != "completed" and .status != "cancelled")] | length) as $bugs |
+          ([.tasks[] | select(
+            (.type == "task" or .type == "subtask") and
+            .status == "pending" and
+            ((.blocked_by // []) | all(. as $b | $completed | index($b) != null))
+          )] | sort_by(.order) | first) as $next |
+          "Project: \($proj) (\($done)/\($total))" +
+          (if $bugs > 0 then " | Bugs: \($bugs) open" else "" end) +
+          "\n" +
+          (if $next then "Next unblocked: \($next.id) \($next.subject) (pending)"
+           elif ($total > 0 and $total == $done) then "All tasks completed. Use /brana:backlog plan for next phase."
+           else "" end) +
+          "\nCommands: /brana:backlog next, /brana:backlog plan, /brana:backlog add, /brana:backlog start <id>"
+        ' "$TASKS_FILE" 2>/dev/null) || true
+    fi
 
     if [ -n "$TASK_SUMMARY" ]; then
         TASK_CONTEXT="[Active tasks] $TASK_SUMMARY"
@@ -204,23 +228,19 @@ if [ -n "$LAYER0_DIR" ]; then
     fi
 fi
 
-# ── Venture project detection ──────────────────────────────
+# ── Venture project detection (shared helper) ─────────────
 VENTURE_CONTEXT=""
-VENTURE_DIRS="docs/sops docs/okrs docs/metrics docs/pipeline docs/venture"
+# Source shared detection logic (also used by session-start-venture.sh)
+_detect_venture() {
+    local cwd="$1"
+    for dir in docs/sops docs/okrs docs/metrics docs/pipeline docs/venture; do
+        [ -d "$cwd/$dir" ] && return 0
+    done
+    [ -f "$cwd/CLAUDE.md" ] && grep -qiE '(venture|business|startup|revenue|pipeline|okr|growth)' "$cwd/CLAUDE.md" 2>/dev/null && return 0
+    return 1
+}
 IS_VENTURE=false
-
-for dir in $VENTURE_DIRS; do
-    if [ -d "$CWD/$dir" ]; then
-        IS_VENTURE=true
-        break
-    fi
-done
-
-if [ "$IS_VENTURE" = false ] && [ -f "$CWD/CLAUDE.md" ]; then
-    if grep -qiE '(venture|business|startup|revenue|pipeline|okr|growth)' "$CWD/CLAUDE.md" 2>/dev/null; then
-        IS_VENTURE=true
-    fi
-fi
+_detect_venture "$CWD" && IS_VENTURE=true
 
 if [ "$IS_VENTURE" = true ]; then
     VENTURE_CONTEXT="Venture project detected. Auto-delegating to daily-ops agent for morning check."

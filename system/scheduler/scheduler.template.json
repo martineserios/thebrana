@@ -71,7 +71,7 @@
       "maxRetries": 1,
       "timeoutSeconds": 600,
       "captureOutput": true,
-      "_comment": "Weekly full reindex of brana-knowledge dimension docs into ruflo memory"
+      "_comment": "Weekly full reindex of brana-knowledge dimension docs into ruflo memory. Interactive: brana ops reindex"
     },
     "sync-state": {
       "type": "command",
@@ -81,7 +81,7 @@
       "enabled": true,
       "timeoutSeconds": 60,
       "captureOutput": true,
-      "_comment": "ADR-015: daily safety net — sync operational state from cache to repos"
+      "_comment": "ADR-015: daily safety net — sync operational state from cache to repos. Interactive: brana ops sync"
     },
     "export-patterns": {
       "type": "command",

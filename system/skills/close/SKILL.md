@@ -179,6 +179,8 @@ Review the learnings extracted in Step 3 for **practical discoveries** — gotch
 Check if system files were modified this session:
 
 ```bash
+# Preferred: use brana CLI if available
+uv run brana ops drift 2>/dev/null || \
 git diff --name-only HEAD~10..HEAD 2>/dev/null | grep -E '(skills/|agents/|hooks/|rules/|commands/|CLAUDE\.md|settings\.json|deploy\.sh)'
 ```
 
@@ -272,6 +274,7 @@ If ruflo unavailable, skip — the handoff note is the fallback.
 Then backup:
 
 ```bash
+# CLI alias: bbackup (or source system/cli/aliases.sh)
 "$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null || true
 ```
 
