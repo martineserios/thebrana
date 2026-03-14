@@ -11742,7 +11742,7 @@
       "effort": "XL",
       "execution": "code",
       "blocked_by": [],
-      "branch": "feat/t-444-adr021-ontology",
+      "branch": "refactor/t-457-cli-integration",
       "github_issue": null,
       "created": "2026-03-14",
       "started": "2026-03-14",
@@ -11751,6 +11751,35 @@
       "context": "2026-03-14: Full analysis in docs/architecture/features/brana-cli.md (System Integration Analysis section) and docs/guide/cli.md (Integration with Brana System section). Key wins: session-start.sh jq→Rust (34x speed), deduplicate venture detection (2 hooks→1 CLI call), scheduler.json jobs reference CLI instead of scripts (portable). See feature spec for complete replacement table.",
       "strategy": "refactor",
       "build_step": "build"
+    },
+    {
+      "id": "t-458",
+      "subject": "Guard against cross-session file contamination + disk-full silent failures",
+      "description": "Two related issues: (1) Files written by one Claude session can get accidentally committed by another concurrent session on a different branch — no guard exists. During ms-051, second-phase-check.sh was written on main but disk-full prevented commit; the file was picked up by t-457's commit on refactor/t-457-cli-integration. (2) ENOSPC (disk full) causes exit 134/128 with no error message — commands silently fail. Fix: add pre-commit disk space check in post-tasks-validate.sh or session-end hook, and add a git-status guard that warns when untracked/modified files don't match the current session's expected changes.",
+      "tags": [
+        "hooks",
+        "git",
+        "reliability",
+        "dx"
+      ],
+      "status": "pending",
+      "stream": "bugs",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-14",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "2026-03-14: Discovered during ms-051 session close. Root cause chain: (1) disk full → commit fails silently (exit 134), (2) files stay in working tree uncommitted, (3) second CLI session on different branch picks them up in its next commit. Two fixes needed: disk space pre-check (df / threshold in hook), and session-scoped file tracking (session writes a manifest of files it creates, commit hook warns if committing files not in the manifest).",
+      "strategy": null,
+      "build_step": null
     }
   ]
 }
