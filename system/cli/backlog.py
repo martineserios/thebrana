@@ -25,6 +25,52 @@ from .theme import (
 backlog_app = typer.Typer()
 
 
+# ── rust accelerator ─────────────────────────────────────────────────────
+
+
+def _find_rust_binary(name: str) -> Path | None:
+    """Find a compiled Rust binary (brana-query or brana-fmt)."""
+    candidates = [
+        Path(__file__).parent / "rust" / "target" / "release" / name,
+        Path.home() / ".local" / "bin" / name,
+    ]
+    for p in candidates:
+        if p.exists() and p.is_file():
+            return p
+    return None
+
+
+def _rust_query(
+    tasks_file: Path, *, tag: str | None = None, status: str | None = None,
+    stream: str | None = None, priority: str | None = None,
+    effort: str | None = None, search: str | None = None,
+) -> list[dict] | None:
+    """Try to filter via brana-query binary. Returns None if unavailable."""
+    binary = _find_rust_binary("brana-query")
+    if binary is None:
+        return None
+    cmd = [str(binary), "--file", str(tasks_file)]
+    if tag:
+        cmd.extend(["--tag", tag])
+    if status:
+        cmd.extend(["--status", status])
+    if stream:
+        cmd.extend(["--stream", stream])
+    if priority:
+        cmd.extend(["--priority", priority])
+    if effort:
+        cmd.extend(["--effort", effort])
+    if search:
+        cmd.extend(["--search", search])
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+        if result.returncode == 0:
+            return json.loads(result.stdout)
+    except (subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError):
+        pass
+    return None
+
+
 # ── helpers ──────────────────────────────────────────────────────────────
 
 
@@ -281,16 +327,26 @@ def query(
     effort: Optional[str] = typer.Option(None, "--effort", "-e"),
     wide: bool = typer.Option(False, "--wide", "-w"),
 ):
-    """Filter tasks with AND logic."""
+    """Filter tasks with AND logic. Uses Rust accelerator if available."""
     theme = get_theme()
-    data = load_tasks()
-    all_tasks = data.get("tasks", [])
+    tf = tasks_file_path()
 
-    results = _filter_tasks(
-        all_tasks, all_tasks,
-        tag=tag, status_filter=status_filter, stream=stream,
+    # Try Rust fast path
+    rust_results = _rust_query(
+        tf, tag=tag, status=status_filter, stream=stream,
         priority=priority, effort=effort,
     )
+    if rust_results is not None:
+        results = rust_results
+        all_tasks = load_tasks().get("tasks", [])
+    else:
+        data = load_tasks()
+        all_tasks = data.get("tasks", [])
+        results = _filter_tasks(
+            all_tasks, all_tasks,
+            tag=tag, status_filter=status_filter, stream=stream,
+            priority=priority, effort=effort,
+        )
 
     if not results:
         console.print("\n  No tasks match the filters.\n")
@@ -318,24 +374,31 @@ def query(
 
 @backlog_app.command()
 def search(text: str = typer.Argument(..., help="Free-text search")):
-    """Search across subjects, descriptions, and contexts."""
+    """Search across subjects, descriptions, and contexts. Uses Rust accelerator if available."""
     theme = get_theme()
-    data = load_tasks()
-    all_tasks = data.get("tasks", [])
-    needle = text.lower()
+    tf = tasks_file_path()
 
-    results = []
-    for t in all_tasks:
-        if t.get("type") not in ("task", "subtask"):
-            continue
-        haystack = " ".join([
-            t.get("subject", ""),
-            t.get("description", ""),
-            t.get("context") or "",
-            t.get("notes") or "",
-        ]).lower()
-        if needle in haystack:
-            results.append(t)
+    # Try Rust fast path
+    rust_results = _rust_query(tf, search=text)
+    if rust_results is not None:
+        results = rust_results
+        all_tasks = load_tasks().get("tasks", [])
+    else:
+        data = load_tasks()
+        all_tasks = data.get("tasks", [])
+        needle = text.lower()
+        results = []
+        for t in all_tasks:
+            if t.get("type") not in ("task", "subtask"):
+                continue
+            haystack = " ".join([
+                t.get("subject", ""),
+                t.get("description", ""),
+                t.get("context") or "",
+                t.get("notes") or "",
+            ]).lower()
+            if needle in haystack:
+                results.append(t)
 
     if not results:
         console.print(f'\n  No tasks match "{text}".\n')

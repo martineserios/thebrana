@@ -11340,7 +11340,7 @@
         "field-notes",
         "skills"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-051",
@@ -11354,12 +11354,12 @@
       "branch": null,
       "github_issue": null,
       "created": "2026-03-14",
-      "started": null,
+      "started": "2026-03-14",
       "completed": null,
       "notes": null,
       "context": null,
-      "strategy": null,
-      "build_step": null
+      "strategy": "feature",
+      "build_step": "build"
     },
     {
       "id": "t-446",
@@ -11370,7 +11370,7 @@
         "docs",
         "reflections"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-051",
@@ -11384,12 +11384,12 @@
       "branch": null,
       "github_issue": null,
       "created": "2026-03-14",
-      "started": null,
+      "started": "2026-03-14",
       "completed": null,
       "notes": null,
       "context": null,
-      "strategy": null,
-      "build_step": null
+      "strategy": "refactor",
+      "build_step": "build"
     },
     {
       "id": "t-447",
@@ -11400,7 +11400,7 @@
         "docs",
         "temporal"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-051",
@@ -11414,12 +11414,12 @@
       "branch": null,
       "github_issue": null,
       "created": "2026-03-14",
-      "started": null,
+      "started": "2026-03-14",
       "completed": null,
       "notes": null,
       "context": null,
-      "strategy": null,
-      "build_step": null
+      "strategy": "feature",
+      "build_step": "build"
     },
     {
       "id": "t-448",
@@ -11490,7 +11490,7 @@
         "graph",
         "ontology"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-051",
@@ -11504,12 +11504,12 @@
       "branch": null,
       "github_issue": null,
       "created": "2026-03-14",
-      "started": null,
+      "started": "2026-03-14",
       "completed": null,
       "notes": null,
       "context": null,
-      "strategy": null,
-      "build_step": null
+      "strategy": "feature",
+      "build_step": "build"
     },
     {
       "id": "t-451",
@@ -11663,6 +11663,34 @@
       "completed": null,
       "notes": null,
       "context": null,
+      "strategy": null,
+      "build_step": null
+    },
+    {
+      "id": "t-435",
+      "subject": "Enforce worktree usage for concurrent sessions on same repo",
+      "description": "Two Claude Code sessions working on feat/t-428-brana-cli and feat/t-444-adr021-ontology in the same repo directory without worktrees. The right session did git checkout -b which would stomp uncommitted changes from the left session. Git discipline rule says use worktrees, not checkout. Need enforcement — possibly a PreToolUse hook that warns when git checkout -b is used while uncommitted changes exist, suggesting worktree instead.",
+      "tags": [
+        "dx",
+        "hooks",
+        "git"
+      ],
+      "status": "pending",
+      "stream": "bugs",
+      "type": "task",
+      "parent": null,
+      "order": null,
+      "priority": "P1",
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-14",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": "2026-03-14: User caught two sessions on same repo dir — left on feat/t-428 (CLI), right on feat/t-444 (ontology). Both using git checkout instead of worktrees. Screenshot evidence provided. Could lose uncommitted work.",
       "strategy": null,
       "build_step": null
     }
