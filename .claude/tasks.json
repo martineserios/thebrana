@@ -1174,6 +1174,7 @@
     {
       "blocked_by": [],
       "branch": null,
+      "build_step": "specify",
       "completed": null,
       "context": "Migrated from doc 30 backlog #64",
       "created": "2026-03-02",
@@ -1186,8 +1187,9 @@
       "order": null,
       "parent": null,
       "priority": "P2",
-      "started": null,
-      "status": "pending",
+      "started": "2026-03-14",
+      "status": "in_progress",
+      "strategy": "feature",
       "stream": "docs",
       "subject": "System documentation map (enforcement layer reference)",
       "tags": [
@@ -12063,6 +12065,38 @@
         "cli",
         "skills",
         "audit"
+      ],
+      "type": "task"
+    },
+    {
+      "blocked_by": [
+        "t-252",
+        "t-063"
+      ],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": null,
+      "created": "2026-03-14",
+      "description": "Build skill SPECIFY step does SDD work (writes feature specs, ADRs) but never names it or references doc 32 DDD→SDD→TDD→Code flow. Fix: connect build steps to lifecycle terminology — SPECIFY=DDD+SDD, BUILD=TDD. For projects with docs/domain/, DDD should inform SPECIFY. CLI enforcement and plan mode already fixed in fix/build-plan-cli branch.",
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-470",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "tech-debt",
+      "subject": "/brana:build — wire SDD/DDD lifecycle terminology",
+      "tags": [
+        "skills",
+        "build",
+        "dx",
+        "lifecycle"
       ],
       "type": "task"
     }

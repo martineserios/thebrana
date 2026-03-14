@@ -1607,3 +1607,19 @@
 - Flywheel: corr=0.57 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
 - Tools: Bash,Edit,Write,session-start
 - Files:         break,        print(json.dumps(t, indent=2)),    data = json.load(f),    if t.get('id') == 't-437':,",/home/martineserios/.claude/plans/zazzy-launching-sonnet.md,/home/martineserios/enter_thebrana/thebrana/.claude/tasks.json,find /home/martineserios/enter_thebrana/thebrana/system -type f -name "*.md" -o -name "*.json" | head -20,find /home/martineserios/enter_thebrana/thebrana/system/commands -type f -name "*.json" -o -name "*.md" 2>/dev/null | head -20,find /home/martineserios/enter_thebrana/thebrana/system/skills -type d -maxdepth 1 | sort
+
+### Session 02253cc6-9c0f-4d1a-96c3-a8723bddb949 (2026-03-14T15:34:44Z)
+- Events: 7 (6 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,session-start
+- Files: PROFILE=":b1dcc9dd-5262-4d8d-a863-c897e6d979b9/" && dconf read /org/gnome/terminal/legacy/profiles:/${PROFILE}palette 2>/dev/null,PROFILE="b1dcc9dd-5262-4d8d-a863-c897e6d979b9" && dconf write /org/gnome/terminal/legacy/profiles:/:${PROFILE}/palette "['rgb(23,20,33)', 'rgb(192,28,40)', 'rgb(38,162,105)', 'rgb(162,115,76)', 'rgb(18,72,139)', 'rgb(211,134,225)', 'rgb(42,161,179)', 'rgb(208,207,204)', 'rgb(94,92,100)', 'rgb(246,97,81)', 'rgb(51,209,122)', 'rgb(233,173,12)', 'rgb(42,123,222)', 'rgb(230,158,245)', 'rgb(51,199,222)', 'rgb(255,255,255)']",cat ~/.claude/settings.json 2>/dev/null | head -50,dconf list /org/gnome/terminal/legacy/profiles:/ 2>/dev/null | head -5,echo $TERM_PROGRAM; echo $TERMINAL_EMULATOR; echo $COLORTERM; ps -o comm= -p $(ps -o ppid= -p $$) 2>/dev/null; echo $XDG_CURRENT_DESKTOP,ls ~/.claude/settings* 2>/dev/null; ls ~/.claude/theme* 2>/dev/null; ls ~/.claude/*.json 2>/dev/null,npm WARN exec The following package was not found and will be installed: claude-flow@3.5.15
+
+### Session 22cbd26d-8984-42da-ad9f-4807944bab69 (2026-03-14T15:55:23Z)
+- Events: 127 (99 ok, 5 fail)
+- Corrections: 22 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.63 fix=0.80 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: ,  ,        break,        break" 2>/dev/null,        print(f'Updated {t[\"id\"]}: {t[\"status\"]}'),        print(json.dumps(t, indent=2)),        t['completed'] = '2026-03-14',        t['notes'] = 'Guided execution protocol implemented. 1 new shared doc, 10 skills integrated (5 Tier 1 full, 5 Tier 2 light). Commit 2d543db.',        t['status'] = 'completed',      echo "✓ EnterPlanMode in allowed-tools"
