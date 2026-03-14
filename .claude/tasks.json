@@ -10999,7 +10999,7 @@
       "build_step": null
     },
     {
-      "id": "t-431",
+      "id": "t-439",
       "subject": "Add SemVerDoc + confidence tiers to reasoning docs",
       "description": "After 3 months with minimal metadata (last_verified, status, maturity), evaluate whether staleness detection is too coarse. If docs go stale without being flagged, add: SemVerDoc versioning (MAJOR.MINOR.PATCH) and confidence_tier (tech 6mo / architecture 18mo / methodology 36mo) to frontmatter.",
       "tags": [
@@ -11027,7 +11027,7 @@
       "build_step": null
     },
     {
-      "id": "t-432",
+      "id": "t-440",
       "subject": "Expand field notes lifecycle (keep/archive → 5 actions)",
       "description": "After 1 month of field notes in production, review usage patterns. If keep/archive is too coarse (notes accumulate without action), expand to: promote (add to main content), relate (cross-reference), trigger (launch research), contradict (flag assumption), archive.",
       "tags": [
@@ -11055,7 +11055,7 @@
       "build_step": null
     },
     {
-      "id": "t-433",
+      "id": "t-441",
       "subject": "Add LLM-assisted semantic drift detection to /brana:verify-docs",
       "description": "If quarterly manual review of 5 random assumptions shows >20% semantic drift (docs say X, code does Y, structural checks missed it), add an LLM-assisted check to /brana:verify-docs that reads assumption claims and checks them against implementation.",
       "tags": [
@@ -11167,7 +11167,7 @@
       "build_step": null
     },
     {
-      "id": "t-434",
+      "id": "t-442",
       "subject": "TDD not followed during t-428 CLI build — implementation before tests",
       "description": "During t-428 (brana CLI), all implementation code (config.py, theme.py, backlog.py, ops.py, main.py) was written before any tests. This violates the sdd-tdd rule and the /brana:build BUILD step which says write failing test first, then implement. The spec-first gate (t-429) is about ADR/spec, this is about test-first within the BUILD step itself.",
       "tags": [
@@ -11246,6 +11246,423 @@
       "completed": null,
       "notes": null,
       "context": "2026-03-14: Caught during knowledge-arch-v2 PLAN phase. The feature brief had no doc phases — user pointed out that users need to understand behavior (user guide) and how to modify the system (tech doc). This is a template gap, not just a one-off miss.",
+      "strategy": null,
+      "build_step": null
+    },
+    {
+      "id": "ms-051",
+      "subject": "Knowledge Architecture v2 — Axiomatic Reflection (ADR-021)",
+      "description": "Replace cascade architecture with axiomatic reflection. 5 layers: raw materials, reasoning docs, knowledge graph, embedded maintenance, automated cadence. Per-doc changelogs kill doc 24 errata log. Field notes capture practical learnings. Typed relationships replace untyped links.",
+      "tags": [
+        "knowledge-architecture"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "milestone",
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "effort": "XL",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-14",
+      "started": null,
+      "completed": null,
+      "notes": "ADR-021. Feature brief: docs/architecture/features/knowledge-architecture-v2.md",
+      "context": null,
+      "strategy": "feature",
+      "build_step": null
+    },
+    {
+      "id": "t-443",
+      "subject": "Phase 0: Fix scheduler paths enter→thebrana + stale skill names",
+      "description": "Live scheduler.json has 5 jobs pointing to ~/enter_thebrana/enter (archived). Fix to ~/enter_thebrana/thebrana. Also update stale skill names: /morning→/brana:daily-ops, /weekly-review→/brana:review, /knowledge-review→/brana:memory review.",
+      "tags": [
+        "knowledge-architecture",
+        "scheduler"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-051",
+      "order": null,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-14",
+      "started": "2026-03-14",
+      "completed": "2026-03-14",
+      "notes": "Fixed 5 jobs in live scheduler.json: paths enter→thebrana. Updated 3 stale skill names in both live and template: /morning→/brana:daily-ops, /weekly-review→/brana:review, /knowledge-review→/brana:memory review.",
+      "context": null,
+      "strategy": "bug-fix",
+      "build_step": null
+    },
+    {
+      "id": "t-444",
+      "subject": "Phase 1: ADR-021 finalize + minimal ontology YAML (5+5)",
+      "description": "Finalize ADR-021 status to accepted. Create brana-ontology.yaml with 5 entity types + 5 relationship types. Add Assumptions section to ADR template. Classify dimensions as maintain vs snapshot.",
+      "tags": [
+        "knowledge-architecture",
+        "ontology"
+      ],
+      "status": "completed",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-051",
+      "order": null,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [
+        "t-443"
+      ],
+      "branch": "feat/t-444-adr021-ontology",
+      "github_issue": null,
+      "created": "2026-03-14",
+      "started": "2026-03-14",
+      "completed": "2026-03-14",
+      "notes": "ADR-021 finalized (status: accepted). Created brana-ontology.yaml with 5 entity types (Document, Assumption, FieldNote, Component, Task) + 5 relationship types (assumes, implements, informs, enriches, supersedes). Classified 38 dimension docs: 24 maintain, 14 snapshot. Added Assumptions section to ADR-021. Updated feature brief status to in-progress.",
+      "context": null,
+      "strategy": "feature",
+      "build_step": null
+    },
+    {
+      "id": "t-445",
+      "subject": "Phase 2: Wire /brana:close for field notes (keep/archive)",
+      "description": "Add field notes capture to /brana:close skill. On session end, prompt user to keep or archive each learning. Kept notes appended to relevant doc's Field Notes section. First feedback loop — core engine of the system.",
+      "tags": [
+        "knowledge-architecture",
+        "field-notes",
+        "skills"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-051",
+      "order": null,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [
+        "t-444"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-14",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": null,
+      "strategy": null,
+      "build_step": null
+    },
+    {
+      "id": "t-446",
+      "subject": "Phase 3: R2 split — reasoning vs inventory (14→ARCHITECTURE.md)",
+      "description": "Split reflection 14 (65KB) into ARCHITECTURE.md (~25KB reasoning) + generated component-index.md (inventory). Dry-run classification first: derivable from system/ = inventory (generate), explains WHY = reasoning (keep). Combined content must cover original.",
+      "tags": [
+        "knowledge-architecture",
+        "docs",
+        "reflections"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-051",
+      "order": null,
+      "priority": null,
+      "effort": "L",
+      "execution": "code",
+      "blocked_by": [
+        "t-444"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-14",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": null,
+      "strategy": null,
+      "build_step": null
+    },
+    {
+      "id": "t-447",
+      "subject": "Phase 4: Add minimal metadata to R3-R5 (3 frontmatter fields)",
+      "description": "Add last_verified, status, maturity fields to reflections 31 (assurance), 32 (lifecycle), 29 (venture). Minimal temporal metadata — SemVerDoc and confidence tiers deferred to t-439.",
+      "tags": [
+        "knowledge-architecture",
+        "docs",
+        "temporal"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-051",
+      "order": null,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [
+        "t-444"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-14",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": null,
+      "strategy": null,
+      "build_step": null
+    },
+    {
+      "id": "t-448",
+      "subject": "Phase 5: Ruflo namespaces + index assumptions/field-notes",
+      "description": "Create new ruflo namespaces: assumptions, field-notes, decisions. Index existing assumptions from ADRs and field notes from /brana:close output. Verify memory_search returns results from new namespaces.",
+      "tags": [
+        "knowledge-architecture",
+        "ruflo",
+        "indexing"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-051",
+      "order": null,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [
+        "t-445"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-14",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": null,
+      "strategy": null,
+      "build_step": null
+    },
+    {
+      "id": "t-449",
+      "subject": "Phase 6: /brana:research Phase 0 — internal-first search",
+      "description": "Modify /brana:research to read project docs BEFORE any web search. Query ruflo namespaces (knowledge, assumptions, field-notes) first. Note doc decisions/vocabulary. Then research externally from doc foundation. Cross-reference findings against doc decisions.",
+      "tags": [
+        "knowledge-architecture",
+        "skills",
+        "research"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-051",
+      "order": null,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [
+        "t-448"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-14",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": null,
+      "strategy": null,
+      "build_step": null
+    },
+    {
+      "id": "t-450",
+      "subject": "Phase 7: Extend spec-graph with typed edges",
+      "description": "Extend spec_graph.py to output typed edges per brana-ontology.yaml (currently: references, referenced_by, impl_files). Store in spec-graph.json. Python BFS traversal for multi-hop queries (~160 nodes). Schema references ontology, doesn't embed it.",
+      "tags": [
+        "knowledge-architecture",
+        "graph",
+        "ontology"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-051",
+      "order": null,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [
+        "t-444"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-14",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": null,
+      "strategy": null,
+      "build_step": null
+    },
+    {
+      "id": "t-451",
+      "subject": "Phase 8: validate.sh fitness functions (checks 15-22, grace period)",
+      "description": "Add fitness function checks to validate.sh: (15) assumption freshness > confidence_tier threshold, (16) changelog currency, (17) status consistency, (18) graph integrity, (19-22) scale triggers. Grace period flag for freshly migrated docs.",
+      "tags": [
+        "knowledge-architecture",
+        "validation",
+        "fitness-functions"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-051",
+      "order": null,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [
+        "t-448",
+        "t-450"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-14",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": null,
+      "strategy": null,
+      "build_step": null
+    },
+    {
+      "id": "t-452",
+      "subject": "Phase 9: Wire /build CLOSE + remaining command integrations",
+      "description": "Wire knowledge actions into 6+ commands: /build (assumption check in PLAN, field notes + verify + changelog + reindex on CLOSE), /research (Phase 0 internal, contradictions flag), /close (field notes), /backlog (assumption staleness in priority), /review (knowledge health section), /reconcile (typed deps, assumption_stale).",
+      "tags": [
+        "knowledge-architecture",
+        "skills",
+        "integration"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-051",
+      "order": null,
+      "priority": null,
+      "effort": "M",
+      "execution": "code",
+      "blocked_by": [
+        "t-448",
+        "t-451"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-14",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": null,
+      "strategy": null,
+      "build_step": null
+    },
+    {
+      "id": "t-453",
+      "subject": "Phase 10: User guide — knowledge system behavior + workflows",
+      "description": "Write user-facing guide in docs/guide/: how the knowledge system works, field notes workflow (keep/archive), what surfaces automatically (morning reports, weekly reviews, scale triggers), how to interact with assumption checks, how temporal metadata affects staleness.",
+      "tags": [
+        "knowledge-architecture",
+        "docs",
+        "user-guide"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-051",
+      "order": null,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [
+        "t-445",
+        "t-447"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-14",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": null,
+      "strategy": null,
+      "build_step": null
+    },
+    {
+      "id": "t-454",
+      "subject": "Phase 11: Tech doc — extending ontology, fitness functions, wiring commands",
+      "description": "Write contributor-facing tech doc in docs/architecture/: how to extend the ontology (add entity/relationship types), add fitness functions to validate.sh, wire new commands for knowledge actions, modify field notes lifecycle, add ruflo namespaces.",
+      "tags": [
+        "knowledge-architecture",
+        "docs",
+        "architecture"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-051",
+      "order": null,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [
+        "t-450",
+        "t-451"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-14",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": null,
+      "strategy": null,
+      "build_step": null
+    },
+    {
+      "id": "t-455",
+      "subject": "Phase 12: Kill cascade commands + archive doc 24 (2-week soak)",
+      "description": "After phases 8+9 validated for 2+ weeks: remove /brana:apply-errata, /brana:maintain-specs, /brana:re-evaluate-reflections. Replace with /brana:verify-docs (fitness checks). Archive doc 24 errata log. Move old reflections to docs/archive/reflections/ read-only for 30 days.",
+      "tags": [
+        "knowledge-architecture",
+        "cleanup",
+        "migration"
+      ],
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "parent": "ms-051",
+      "order": null,
+      "priority": null,
+      "effort": "S",
+      "execution": "code",
+      "blocked_by": [
+        "t-451",
+        "t-452"
+      ],
+      "branch": null,
+      "github_issue": null,
+      "created": "2026-03-14",
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": null,
       "strategy": null,
       "build_step": null
     }

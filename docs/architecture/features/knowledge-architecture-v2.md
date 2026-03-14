@@ -1,6 +1,6 @@
 ---
 title: "Knowledge Architecture v2 — Implementation Spec"
-status: proposed
+status: in-progress
 date: 2026-03-14
 adr: ADR-021
 research: brana-knowledge/dimensions/knowledge-architecture.md

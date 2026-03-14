@@ -1,6 +1,6 @@
 ---
 title: "ADR-021: Knowledge Architecture v2 — Axiomatic Reflection with Temporal Awareness"
-status: proposed
+status: accepted
 date: 2026-03-14
 decision_makers: [martin]
 ---
@@ -9,7 +9,7 @@ decision_makers: [martin]
 
 ## Status
 
-Proposed (challenged 2026-03-14, revised)
+Accepted (challenged 2026-03-14, revised, accepted 2026-03-14)
 
 ## Context
 
@@ -37,7 +37,7 @@ Replace the current 3-layer cascade architecture with **Axiomatic Reflection** �
 
 4. **Field notes section** — practical learnings from work sessions appended to relevant docs. Lifecycle: promote / relate / trigger research / contradict assumption / archive.
 
-5. **Lightweight ontology** — 11 entity types, 12 typed relationship types in `brana-ontology.yaml`. Typed links in markdown replace untyped `[doc NN](path)`.
+5. **Lightweight ontology** — 5 entity types, 5 typed relationship types in `brana-ontology.yaml` (minimal viable — extend when ambiguity proves it). Typed links in markdown replace untyped `[doc NN](path)`.
 
 6. **Extended spec-graph** — existing spec-graph.json (159 nodes, 483 edges) gains typed edges (assumes, implements, enriches, contradicts, etc.)
 
@@ -136,4 +136,15 @@ See feature brief for full second-phase table with triggers and task IDs.
 
 See feature brief: [knowledge-architecture-v2.md](../features/knowledge-architecture-v2.md)
 
-9 phases, each independently valuable, ~1 session each. No big-bang migration.
+13 phases (0-12), each independently valuable, ~1 session each. No big-bang migration. Phases 10-11 add user guide and tech docs. Phase 12 kills cascade commands after 2-week soak.
+
+### Assumptions
+
+| # | Claim | If Wrong | Last Verified |
+|---|---|---|---|
+| 1 | Solo operator maintains 3 new frontmatter fields | Fields go stale; validate.sh flags missing/stale | 2026-03-14 |
+| 2 | /brana:close runs consistently | Field notes never appended; session-end hook fallback | 2026-03-14 |
+| 3 | Semantic drift is rare enough for structural checks | Docs say X, code does Y; quarterly manual review | 2026-03-14 |
+| 4 | 160 nodes won't hit 500 in 6 months | Scale trigger fires too early; ~280 in 12mo realistic | 2026-03-14 |
+| 5 | brana-knowledge stays separate repo | Cross-repo field notes need coordination; post-commit hook | 2026-03-14 |
+| 6 | Claude consistently applies ontology types | Typed links inconsistent; validate.sh + PreToolUse warning | 2026-03-14 |
