@@ -104,6 +104,16 @@
       "timeoutSeconds": 300,
       "captureOutput": true,
       "_comment": "ADR-021: weekly index of assumptions, field notes, and ADR decisions into ruflo"
+    },
+    "second-phase-review": {
+      "type": "command",
+      "command": "./system/scripts/second-phase-check.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Mon *-*-* 09:10:00",
+      "enabled": true,
+      "timeoutSeconds": 60,
+      "captureOutput": true,
+      "_comment": "ADR-021: weekly check for time-gated second-phase tasks (soak gates, maturity triggers)"
     }
   }
 }
