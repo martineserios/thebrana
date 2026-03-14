@@ -38,7 +38,7 @@ git log --oneline --since="6 hours ago" 2>/dev/null
 **If both empty** (no commits, no changes in 6 hours):
 - Write a minimal handoff entry: `## YYYY-MM-DD — read-only session`
 - Add only a **Next:** section from conversation context
-- Skip to Step 5
+- Skip to Step 8 (Write handoff note)
 
 ### Step 2: Gather evidence
 
@@ -112,7 +112,69 @@ If ruflo is unavailable, append to the project's auto memory `MEMORY.md` under `
 
 **Skip if:** session was read-only (no commits), or debrief returned no learnings.
 
-### Step 6: Detect doc drift
+### Step 6: Capture field notes
+
+Review the learnings extracted in Step 3 for **practical discoveries** — gotchas, workarounds, environment-specific behaviors, things that surprised you. These are candidates for field notes (persistent, doc-embedded knowledge per ADR-021).
+
+**Skip if:** session was read-only (no commits), or no learnings were extracted.
+
+**For each notable learning:**
+
+1. Identify the most relevant doc (dimension, reflection, ADR, or feature brief) where this learning belongs. Use the learning's topic to match — e.g., a Docker gotcha → the infrastructure dimension, a hook behavior surprise → the architecture reflection.
+
+2. Ask the user via AskUserQuestion:
+   ```
+   "Capture as field note? '{brief summary of learning}' → {target-doc-name}"
+   Options: ["Keep (append to doc)", "Archive (store in memory only)", "Skip"]
+   ```
+   Batch up to 4 field notes per AskUserQuestion call.
+
+3. **For "Keep" responses** — append to the target doc's `## Field Notes` section:
+   - If the section doesn't exist, create it at the end of the doc (before any trailing `---`)
+   - Format:
+     ```markdown
+     ### YYYY-MM-DD: [brief title]
+     [1-2 line description of the practical learning]
+     Source: [session context / task ID]
+     ```
+   - **Cap: 20 field notes per doc.** Before appending, count existing `###` entries under `## Field Notes`. If 20+, prompt via AskUserQuestion:
+     ```
+     "This doc has 20+ field notes. Oldest unactioned notes should be archived. Archive oldest 5?"
+     Options: ["Yes — archive oldest 5", "No — append anyway", "Skip this note"]
+     ```
+     If archiving: move the oldest 5 entries to ruflo (`namespace: field-notes`, tag `archived`) and remove them from the doc.
+
+4. **For "Archive" responses** — store in ruflo only:
+   ```bash
+   source /home/martineserios/.claude/scripts/cf-env.sh
+
+   cd "$HOME" && $CF memory store \
+     -k "field-note:{PROJECT}:{YYYY-MM-DD}:{short-slug}" \
+     -v '{"note": "...", "source_doc": "...", "session": "YYYY-MM-DD", "action": "archived"}' \
+     --namespace field-notes \
+     --tags "client:{PROJECT},type:field-note,status:archived" \
+     --upsert
+   ```
+   If ruflo unavailable, append to MEMORY.md under `## Field Notes (Archived)`.
+
+5. **For "Skip" responses** — discard silently.
+
+6. **Reindex affected docs** — after all field notes are appended, trigger ruflo reindex for each modified doc:
+   ```bash
+   source /home/martineserios/.claude/scripts/cf-env.sh
+
+   cd "$HOME" && $CF memory store \
+     -k "knowledge:{doc-relative-path}" \
+     -v "$(cat {absolute-doc-path})" \
+     --namespace knowledge \
+     --tags "type:dimension,reindexed:$(date +%Y-%m-%d)" \
+     --upsert
+   ```
+   If ruflo unavailable, skip reindex silently.
+
+**Track field note count** for the session report in Step 10: `{N} kept, {M} archived, {P} skipped`.
+
+### Step 7: Detect doc drift
 
 Check if system files were modified this session:
 
@@ -156,7 +218,7 @@ After detecting system-level drift, also check if session changes affect existin
 
 4. **Skip if:** no feature docs exist yet, or no implementation files changed
 
-### Step 7: Write handoff note
+### Step 8: Write handoff note
 
 Find `session-handoff.md` in `~/.claude/projects/` for the current project. Append:
 
@@ -192,7 +254,7 @@ Find `session-handoff.md` in `~/.claude/projects/` for the current project. Appe
 - Keep each section concise — 15 lines max
 - Trim old sections if file exceeds ~200 lines: collapse entries older than 30 days into an `## Archive (before YYYY-MM-DD)` summary
 
-### Step 8: Store session metadata
+### Step 9: Store session metadata
 
 ```bash
 source /home/martineserios/.claude/scripts/cf-env.sh
@@ -213,13 +275,14 @@ Then backup:
 "$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null || true
 ```
 
-### Step 9: Report
+### Step 10: Report
 
 ```markdown
 ## Session Close
 
 **Commits this session:** {N}
 **Learnings extracted:** {N} ({errata} errata, {learnings} learnings, {issues} issues)
+**Field notes:** {N kept} kept, {M archived} archived, {P skipped} skipped
 **Patterns stored:** {N}
 **Doc drift detected:** {yes/no}
 **Handoff note updated:** {path}
@@ -228,6 +291,7 @@ Then backup:
 - {if errata: "/brana:maintain-specs to propagate findings"}
 - {if drift: "Specs may need updating for changed system files"}
 - {if issues: "Issues logged for next session"}
+- {if field notes kept: "Docs updated with field notes: {list of docs}"}
 ```
 
 ---

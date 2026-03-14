@@ -53,6 +53,14 @@ _LINK_RE = re.compile(r"\[([^\]]*)\]\(([^)]+)\)")
 _FENCE_RE = re.compile(r"^(\s*)(```|~~~)")
 _SYSTEM_PATH_RE = re.compile(r"system/[^\s,)}\]\"']+")
 
+# Typed link pattern: [Label type](path.md) where type is one of the ontology relationship types
+# Examples: [ADR-019 assumes](path.md), [/brana:build implements](docs/architecture/decisions/ADR-006.md)
+_RELATIONSHIP_TYPES = frozenset({"assumes", "implements", "informs", "enriches", "supersedes"})
+_TYPED_LINK_RE = re.compile(
+    r"\[([^\]]+)\s+(assumes|implements|informs|enriches|supersedes)\]\(([^)]+)\)"
+)
+_INLINE_CODE_RE = re.compile(r"`[^`]+`")
+
 
 def _is_fence_open(line: str, in_fence: bool, fence_marker: str | None) -> tuple[bool, str | None]:
     """Track fenced-code-block state.  Returns (in_fence, fence_marker)."""
@@ -133,6 +141,58 @@ def extract_links(
             impl_files.append(cleaned)
 
     return _dedup_list(references), _dedup_list(impl_files)
+
+
+def extract_typed_edges(
+    content: str,
+    source_path: Path,
+    repo_root: Path,
+    dimensions_real: Path | None = None,
+) -> list[dict[str, str]]:
+    """Extract typed relationship edges from content.
+
+    Scans for patterns like [Label type](path.md) where type is one of:
+    assumes, implements, informs, enriches, supersedes.
+
+    Returns a list of {"from": source_key, "to": target_key, "type": rel_type}.
+    """
+    edges: list[dict[str, str]] = []
+    source_key = str(source_path)
+
+    in_fence = False
+    fence_marker: str | None = None
+
+    for line in content.splitlines():
+        in_fence, fence_marker = _is_fence_open(line, in_fence, fence_marker)
+        if in_fence:
+            continue
+
+        # Strip inline code spans to avoid matching examples like `[X assumes](path)`
+        clean_line = _INLINE_CODE_RE.sub("", line)
+
+        for _label, rel_type, raw_target in _TYPED_LINK_RE.findall(clean_line):
+            target = raw_target.strip()
+
+            # Skip URLs and bare anchors
+            if target.startswith(("http://", "https://", "#")):
+                continue
+
+            # Strip anchors
+            target = target.split("#")[0]
+            if not target:
+                continue
+
+            resolved = _resolve_path(target, source_path, repo_root, dimensions_real)
+            if resolved is None:
+                continue
+
+            edges.append({
+                "from": source_key,
+                "to": resolved,
+                "type": rel_type,
+            })
+
+    return edges
 
 
 def _has_glob(path: str) -> bool:
@@ -245,6 +305,7 @@ def build_graph(
     md_file_map = collect_markdown_files(docs_dir, repo_root)
 
     nodes: dict[str, dict[str, list[str]]] = {}
+    all_typed_edges: list[dict[str, str]] = []
 
     for key, md_path in md_file_map.items():
         rel = Path(key)
@@ -256,12 +317,28 @@ def build_graph(
             "impl_files": impls,
         }
 
+        # Extract typed edges
+        typed = extract_typed_edges(content, rel, repo_root, dimensions_real)
+        all_typed_edges.extend(typed)
+
     # Reverse pass
     for src, data in nodes.items():
         for ref in data["references"]:
             if ref in nodes:
                 if src not in nodes[ref]["referenced_by"]:
                     nodes[ref]["referenced_by"].append(src)
+
+    # Dedup typed edges (same from/to/type)
+    seen_edges: set[tuple[str, str, str]] = set()
+    deduped_typed: list[dict[str, str]] = []
+    for edge in all_typed_edges:
+        key_tuple = (edge["from"], edge["to"], edge["type"])
+        if key_tuple not in seen_edges:
+            seen_edges.add(key_tuple)
+            deduped_typed.append(edge)
+
+    # Sort typed edges for deterministic output
+    deduped_typed.sort(key=lambda e: (e["type"], e["from"], e["to"]))
 
     # Metrics
     edge_count = sum(len(d["references"]) for d in nodes.values())
@@ -278,8 +355,10 @@ def build_graph(
             "edge_count": edge_count,
             "impl_ref_count": impl_ref_count,
             "orphan_count": orphan_count,
+            "typed_edge_count": len(deduped_typed),
         },
         "nodes": dict(sorted(nodes.items())),
+        "typed_edges": deduped_typed,
     }
 
 
@@ -296,7 +375,8 @@ def cmd_generate(args: argparse.Namespace) -> None:
     meta = graph["_meta"]
     print(
         f"spec-graph: {meta['node_count']} nodes, {meta['edge_count']} edges, "
-        f"{meta['impl_ref_count']} impl refs, {meta['orphan_count']} orphans "
+        f"{meta['impl_ref_count']} impl refs, {meta['orphan_count']} orphans, "
+        f"{meta['typed_edge_count']} typed edges "
         f"-> {output}"
     )
 

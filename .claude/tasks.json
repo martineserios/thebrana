@@ -11340,7 +11340,7 @@
         "field-notes",
         "skills"
       ],
-      "status": "in_progress",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-051",
@@ -11355,11 +11355,11 @@
       "github_issue": null,
       "created": "2026-03-14",
       "started": "2026-03-14",
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-14",
+      "notes": "Added Step 6 (Field Notes) to /brana:close skill. Keep/archive via AskUserQuestion, 20-note cap per doc, ruflo reindex on append.",
       "context": null,
       "strategy": "feature",
-      "build_step": "build"
+      "build_step": null
     },
     {
       "id": "t-446",
@@ -11370,7 +11370,7 @@
         "docs",
         "reflections"
       ],
-      "status": "in_progress",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-051",
@@ -11385,11 +11385,11 @@
       "github_issue": null,
       "created": "2026-03-14",
       "started": "2026-03-14",
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-14",
+      "notes": "Split 14-mastermind-architecture.md (65KB) into ARCHITECTURE.md (15KB reasoning) + component-index.md (4KB inventory). Original archived to docs/archive/reflections/. Added frontmatter, assumptions, changelog.",
       "context": null,
       "strategy": "refactor",
-      "build_step": "build"
+      "build_step": null
     },
     {
       "id": "t-447",
@@ -11400,7 +11400,7 @@
         "docs",
         "temporal"
       ],
-      "status": "in_progress",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-051",
@@ -11415,11 +11415,11 @@
       "github_issue": null,
       "created": "2026-03-14",
       "started": "2026-03-14",
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-14",
+      "notes": "Added last_verified, status, maturity frontmatter to R3 (31-assurance), R4 (32-lifecycle), R5 (29-venture).",
       "context": null,
       "strategy": "feature",
-      "build_step": "build"
+      "build_step": null
     },
     {
       "id": "t-448",
@@ -11490,7 +11490,7 @@
         "graph",
         "ontology"
       ],
-      "status": "in_progress",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-051",
@@ -11505,11 +11505,11 @@
       "github_issue": null,
       "created": "2026-03-14",
       "started": "2026-03-14",
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-14",
+      "notes": "Extended spec_graph.py with typed edge extraction (5 relationship types from brana-ontology.yaml). Added 6 new tests. Seeded spec-graph.json with 18 typed edges from ADR relationships.",
       "context": null,
       "strategy": "feature",
-      "build_step": "build"
+      "build_step": null
     },
     {
       "id": "t-451",

@@ -257,6 +257,121 @@ def test_duplicate_dedup(repo: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# 12. Typed edge extraction — basic
+# ---------------------------------------------------------------------------
+
+def test_typed_edge_extraction(repo: Path) -> None:
+    content = """\
+[ADR-019 assumes](docs/assumptions/a1.md)
+[/brana:build implements](docs/architecture/decisions/ADR-006.md)
+[dim-22 informs](docs/architecture/decisions/ADR-016.md)
+[field-note-1 enriches](docs/dimensions/22-testing.md)
+[ADR-021 supersedes](docs/17-implementation-roadmap.md)
+[regular link](docs/other.md)
+"""
+    edges = spec_graph.extract_typed_edges(
+        content, Path("docs/source.md"), repo
+    )
+    assert len(edges) == 5
+    types = {e["type"] for e in edges}
+    assert types == {"assumes", "implements", "informs", "enriches", "supersedes"}
+    # All edges should have source as the source file
+    assert all(e["from"] == "docs/source.md" for e in edges)
+    # Regular links should NOT appear as typed edges
+    targets = {e["to"] for e in edges}
+    assert "docs/other.md" not in targets
+
+
+# ---------------------------------------------------------------------------
+# 13. Typed edges inside code fences are skipped
+# ---------------------------------------------------------------------------
+
+def test_typed_edges_skip_fences(repo: Path) -> None:
+    content = """\
+[ADR-019 assumes](docs/a1.md)
+
+```
+[ADR-020 assumes](docs/a2.md)
+```
+
+[ADR-021 supersedes](docs/old.md)
+"""
+    edges = spec_graph.extract_typed_edges(
+        content, Path("docs/source.md"), repo
+    )
+    assert len(edges) == 2
+    targets = {e["to"] for e in edges}
+    assert "docs/a1.md" in targets
+    assert "docs/old.md" in targets
+    assert "docs/a2.md" not in targets
+
+
+# ---------------------------------------------------------------------------
+# 14. Typed edges in build_graph output
+# ---------------------------------------------------------------------------
+
+def test_typed_edges_in_graph(repo: Path) -> None:
+    _write(repo, "docs/a.md", "[b informs](docs/b.md)\n[c assumes](docs/c.md)\n")
+    _write(repo, "docs/b.md", "No links here.\n")
+    _write(repo, "docs/c.md", "[a enriches](docs/a.md)\n")
+
+    graph = spec_graph.build_graph(repo, docs_dir=repo / "docs")
+
+    assert "typed_edges" in graph
+    assert graph["_meta"]["typed_edge_count"] == 3
+
+    edges = graph["typed_edges"]
+    edge_tuples = {(e["from"], e["to"], e["type"]) for e in edges}
+    assert ("docs/a.md", "docs/b.md", "informs") in edge_tuples
+    assert ("docs/a.md", "docs/c.md", "assumes") in edge_tuples
+    assert ("docs/c.md", "docs/a.md", "enriches") in edge_tuples
+
+
+# ---------------------------------------------------------------------------
+# 15. Typed edges are deduplicated
+# ---------------------------------------------------------------------------
+
+def test_typed_edges_dedup(repo: Path) -> None:
+    # Same typed link repeated twice in the same doc
+    _write(repo, "docs/a.md", "[b informs](docs/b.md)\n[b informs](docs/b.md)\n")
+    _write(repo, "docs/b.md", "standalone\n")
+
+    graph = spec_graph.build_graph(repo, docs_dir=repo / "docs")
+    assert graph["_meta"]["typed_edge_count"] == 1
+
+
+# ---------------------------------------------------------------------------
+# 16. Typed edges with relative paths
+# ---------------------------------------------------------------------------
+
+def test_typed_edges_relative_paths(repo: Path) -> None:
+    content = "[ADR-006 implements](../architecture/decisions/ADR-006.md)\n"
+    edges = spec_graph.extract_typed_edges(
+        content, Path("docs/reflections/14-arch.md"), repo
+    )
+    assert len(edges) == 1
+    assert edges[0]["to"] == "docs/architecture/decisions/ADR-006.md"
+    assert edges[0]["type"] == "implements"
+
+
+# ---------------------------------------------------------------------------
+# 17. Typed edges inside inline code are skipped
+# ---------------------------------------------------------------------------
+
+def test_typed_edges_skip_inline_code(repo: Path) -> None:
+    content = """\
+Example: `[ADR-019 assumes](path.md)` instead of bare links.
+[ADR-021 supersedes](docs/old.md)
+"""
+    edges = spec_graph.extract_typed_edges(
+        content, Path("docs/source.md"), repo
+    )
+    assert len(edges) == 1
+    assert edges[0]["type"] == "supersedes"
+    assert edges[0]["to"] == "docs/old.md"
+
+
+# ---------------------------------------------------------------------------
 # Integration: end-to-end generate via CLI
 # ---------------------------------------------------------------------------
 
@@ -277,5 +392,7 @@ def test_generate_cli(repo: Path) -> None:
     data = json.loads(out.read_text())
     assert "_meta" in data
     assert "nodes" in data
+    assert "typed_edges" in data
     assert data["_meta"]["node_count"] == 2
+    assert "typed_edge_count" in data["_meta"]
     assert "system/skills/x.md" in data["nodes"]["docs/a.md"]["impl_files"]

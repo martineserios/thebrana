@@ -1,3 +1,9 @@
+---
+last_verified: 2026-03-14
+status: active
+maturity: evergreen
+---
+
 # 29 - Venture Management: From Code Projects to Any Project
 
 Reflection on [28-startup-smb-management.md](../../../brana-knowledge/dimensions/28-startup-smb-management.md). Synthesizes what transfers, what doesn't, what the system needs to support non-code projects, and how the skill architecture should evolve.

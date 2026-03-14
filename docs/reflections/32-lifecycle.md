@@ -1,3 +1,9 @@
+---
+last_verified: 2026-03-14
+status: active
+maturity: evergreen
+---
+
 # 32 - Lifecycle: How Does It Evolve?
 
 How the mastermind system develops, maintains itself, and evolves over time. Covers the development workflow (DDD → SDD → TDD → Code), maintenance cadences, context management, configuration as documentation, and the feedback loops that keep the system alive. R4 in the reflection DAG: the temporal dimension of what [R2 (Architecture)](./14-mastermind-architecture.md) defines.
