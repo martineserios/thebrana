@@ -32,6 +32,14 @@ When executing a specific business milestone: product launch, hiring round, fund
 
 ---
 
+## Step Registry
+
+On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
+
+Register these steps: ORIENT, PLAN, RECALL, EXECUTE, VALIDATE, DEBRIEF, REPORT.
+
+---
+
 ## Step 0: Orient
 
 ### 0a: Identify the milestone
@@ -296,3 +304,14 @@ cd "$HOME" && $CF memory store \
 - **Create docs, not just notes.** Every work item should produce a durable artifact in `docs/`.
 - **Store results in ReasoningBank when available, fall back to auto memory when not.**
 - **Ask for clarification whenever you need it.** If the milestone scope is unclear, work items seem wrong, or you need the user to make a decision — ask.
+- **Step registry.** Follow the [guided-execution protocol](../_shared/guided-execution.md). Register steps on entry, update as each completes.
+
+---
+
+## Resume After Compression
+
+If context was compressed and you've lost track of progress:
+
+1. Call `TaskList` — find CC Tasks matching `/brana:venture-phase — {STEP}`
+2. The `in_progress` task is your current step — resume from there
+3. Check docs/ for artifacts already created by earlier steps

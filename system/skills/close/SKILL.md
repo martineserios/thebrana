@@ -11,6 +11,7 @@ allowed-tools:
   - Grep
   - AskUserQuestion
   - Agent
+  - Task
 ---
 
 # Close — Session End
@@ -23,6 +24,12 @@ End a work session. Extracts what was learned, writes a handoff note for the nex
 - End of a long implementation session
 - Before switching to a different project
 - Explicitly: `/brana:close`
+
+## Step Registry
+
+On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
+
+Register these steps: GATE, GATHER, EXTRACT, ERRATA, PATTERNS, FIELD-NOTES, DRIFT, HANDOFF, METADATA, REPORT.
 
 ## Steps
 
@@ -309,3 +316,14 @@ Then backup:
 6. **Suggest, don't execute.** Doc drift → suggest updating specs. Errata → suggest `/brana:maintain-specs`. Let the user decide when.
 7. **Be specific.** "The API was wrong" is useless. "Spec says `hooks recall`, actual is `memory search`" is useful.
 8. **Ask for clarification when needed.** Ambiguous findings → ask. Don't guess classifications.
+9. **Step registry.** Follow the [guided-execution protocol](../_shared/guided-execution.md). Register steps on entry, update as each completes.
+
+---
+
+## Resume After Compression
+
+If context was compressed and you've lost track of progress:
+
+1. Call `TaskList` — find CC Tasks matching `/brana:close — {STEP}`
+2. The `in_progress` task is your current step — resume from there
+3. Check git log and handoff file for what was already accomplished

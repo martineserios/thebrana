@@ -11,6 +11,8 @@ allowed-tools:
   - Grep
   - Task
   - AskUserQuestion
+  - EnterPlanMode
+  - ExitPlanMode
 ---
 
 # Reconcile
@@ -47,6 +49,14 @@ brana-knowledge/dimensions/    ← dimension docs (knowledge, cross-repo)
 ```
 
 Most reconcile work is **intra-repo** (docs/ → system/). Dimension docs in brana-knowledge provide additional spec surface but rarely contain implementation-specific claims.
+
+## Step Registry
+
+On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
+
+Register these steps: ORIENT, SCAN-SPECS, SCAN-IMPL, DIFF, PRESENT, APPLY, LOG, REPORT.
+
+**Plan mode:** Enter plan mode for SCAN-SPECS, SCAN-IMPL, and DIFF (Steps 1-3). These are read-only analysis. Exit plan mode before PRESENT (Step 4).
 
 ## Process
 
@@ -294,3 +304,14 @@ cd ~/enter_thebrana/thebrana && ./deploy.sh
 - **One branch, atomic commits.** All reconcile work happens on a single worktree branch with one commit per logical fix.
 - **Plan then apply.** Always show the full drift report and get approval before making any changes.
 - **Ask for clarification whenever you need it.** If a spec claim is ambiguous, a drift finding is borderline, or the right fix is unclear — ask. Don't guess.
+- **Step registry.** Follow the [guided-execution protocol](../_shared/guided-execution.md). Register steps on entry, update as each completes.
+
+---
+
+## Resume After Compression
+
+If context was compressed and you've lost track of progress:
+
+1. Call `TaskList` — find CC Tasks matching `/brana:reconcile — {STEP}`
+2. The `in_progress` task is your current step — resume from there
+3. Check the worktree branch for commits already applied

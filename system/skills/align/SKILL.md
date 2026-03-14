@@ -12,6 +12,9 @@ allowed-tools:
   - Glob
   - Grep
   - AskUserQuestion
+  - Task
+  - EnterPlanMode
+  - ExitPlanMode
 ---
 
 # Align — Active Project Alignment
@@ -23,6 +26,16 @@ Creates files, configures structure, and implements practices. Unlike `/brana:on
 ## When to use
 
 Initial setup of a new project, or when an existing project needs structural alignment. Run `/brana:onboard` first for the diagnostic — `/brana:align` implements what `/brana:onboard` finds.
+
+---
+
+## Step Registry
+
+On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
+
+Register these steps: DISCOVER, ASSESS, PLAN, IMPLEMENT, VERIFY, DOCUMENT.
+
+**Plan mode:** Enter plan mode for DISCOVER and ASSESS (read-only diagnostic phases). Exit plan mode before IMPLEMENT.
 
 ---
 
@@ -182,3 +195,14 @@ Remaining gaps:
 - **Respect the user's tier/stage choice.** Recommend, don't override.
 - **Stage drives venture structure.** Don't implement Growth items for Discovery businesses.
 - **Graceful degradation.** Claude-flow unavailable → auto memory fallback.
+- **Step registry.** Follow the [guided-execution protocol](../_shared/guided-execution.md). Register steps on entry, update as each completes.
+
+---
+
+## Resume After Compression
+
+If context was compressed and you've lost track of progress:
+
+1. Call `TaskList` — find CC Tasks matching `/brana:align — {STEP}`
+2. The `in_progress` task is your current phase — resume from there
+3. Check `.claude/alignment-report.md` if VERIFY was already reached

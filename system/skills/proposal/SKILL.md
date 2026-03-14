@@ -8,11 +8,19 @@ allowed-tools:
   - Write
   - Glob
   - Grep
+  - AskUserQuestion
+  - Task
 ---
 
 # Proposal — Client Proposal Generator
 
 Generate a professional client proposal in markdown. Interview the user, scan project context, produce a structured document ready for PDF export.
+
+## Step Registry
+
+On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
+
+Register these steps: PARSE, LOCATE, SCAN, INTERVIEW, GENERATE, WRITE.
 
 ## Process
 
@@ -289,3 +297,14 @@ Write the file. Show the user:
 - **Validity is always 30 days** unless the user specifies otherwise.
 - **Don't invent technical details.** If the interview didn't cover something, ask — don't fill in plausible-sounding technical specifics.
 - **Reuse previous proposal style.** If you found existing `propuesta-*.md` files, match their tone and structure.
+- **Step registry.** Follow the [guided-execution protocol](../_shared/guided-execution.md). Register steps on entry, update as each completes.
+
+---
+
+## Resume After Compression
+
+If context was compressed and you've lost track of progress:
+
+1. Call `TaskList` — find CC Tasks matching `/brana:proposal — {STEP}`
+2. The `in_progress` task is your current step — resume from there
+3. Check for partially written `propuesta-*.md` files at the project root
