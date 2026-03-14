@@ -55,7 +55,7 @@
       "type": "command",
       "command": "./system/scheduler/check-agentdb-integration.sh",
       "project": "~/enter_thebrana/thebrana",
-      "schedule": "*-*-* 09:00:00",
+      "schedule": "*-*-* 09:02:00",
       "enabled": true,
       "maxRetries": 1,
       "retryBackoffSec": 60,
