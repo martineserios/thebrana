@@ -702,11 +702,14 @@ echo "Check 18: Graph integrity..."
 INTEGRITY_ISSUES=0
 
 if [ -f "$SPEC_GRAPH" ]; then
-    # Use Python for JSON processing (jq may not be available, and this is complex)
-    INTEGRITY_ISSUES=$(python3 -c "
-import json, sys
+    # Use Python via heredoc to avoid shell expansion issues with f-strings/regex
+    INTEGRITY_ISSUES=$(python3 - "$SPEC_GRAPH" "$DOCS_DIR" <<'PYEOF'
+import json, sys, os, re
 
-with open('$SPEC_GRAPH') as f:
+spec_graph_path = sys.argv[1]
+docs_dir = sys.argv[2]
+
+with open(spec_graph_path) as f:
     graph = json.load(f)
 
 nodes = set(graph.get('nodes', {}).keys())
@@ -725,9 +728,7 @@ for edge in typed_edges:
         issues += 1
         print(f'  Orphaned edge source: {fr}', file=sys.stderr)
 
-# Check 2: assumption refs in typed_edges that don't appear in any doc's ## Assumptions
-# Collect assumption IDs from typed_edges
-import os, re, glob
+# Check 2: assumption refs in typed_edges not in any doc's ## Assumptions
 assumption_ids = set()
 for edge in typed_edges:
     to = edge.get('to', '')
@@ -736,7 +737,6 @@ for edge in typed_edges:
 
 # Scan docs for ## Assumptions sections and extract assumption slugs
 found_assumptions = set()
-docs_dir = '$DOCS_DIR'
 for root, dirs, files in os.walk(docs_dir):
     for fname in files:
         if not fname.endswith('.md'):
@@ -752,7 +752,6 @@ for root, dirs, files in os.walk(docs_dir):
                     if in_section and re.match(r'^##\s', line) and not re.match(r'^##\s+Assumptions', line):
                         in_section = False
                     if in_section:
-                        # Normalize assumption text to slug form for matching
                         # Match table rows: | N | assumption text |
                         m = re.match(r'\|\s*\d+\s*\|\s*(.+?)\s*\|', line)
                         if m:
@@ -760,7 +759,7 @@ for root, dirs, files in os.walk(docs_dir):
                             slug = re.sub(r'[^a-z0-9]+', '-', text).strip('-')
                             found_assumptions.add(slug)
                         # Match YAML claim lines
-                        m = re.match(r'\s*-?\s*claim:\s*[\"']?(.+?)[\"']?\s*$', line)
+                        m = re.match(r'\s*-?\s*claim:\s*["\']?(.+?)["\']?\s*$', line)
                         if m:
                             text = m.group(1).strip().lower()
                             slug = re.sub(r'[^a-z0-9]+', '-', text).strip('-')
@@ -768,14 +767,12 @@ for root, dirs, files in os.walk(docs_dir):
         except Exception:
             pass
 
-# Check each assumption ID against found assumptions
+# Check each assumption ID against found assumptions (fuzzy match)
 for aid in assumption_ids:
-    # Fuzzy match: check if any found assumption contains key terms
     aid_terms = set(aid.split('-'))
     matched = False
     for fa in found_assumptions:
         fa_terms = set(fa.split('-'))
-        # If >50% of assumption ID terms appear in a found assumption, consider it matched
         overlap = len(aid_terms & fa_terms)
         if overlap >= len(aid_terms) * 0.5:
             matched = True
@@ -785,7 +782,8 @@ for aid in assumption_ids:
         print(f'  Assumption in typed_edges not found in any doc: {aid}', file=sys.stderr)
 
 print(issues)
-" 2>&1)
+PYEOF
+2>&1)
 
     # Parse: last line is the count, preceding lines are details
     ISSUE_COUNT=$(echo "$INTEGRITY_ISSUES" | tail -1)

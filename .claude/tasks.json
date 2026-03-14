@@ -11733,7 +11733,7 @@
         "dx",
         "performance"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "stream": "tech-debt",
       "type": "task",
       "parent": null,
@@ -11742,15 +11742,15 @@
       "effort": "XL",
       "execution": "code",
       "blocked_by": [],
-      "branch": null,
+      "branch": "feat/t-444-adr021-ontology",
       "github_issue": null,
       "created": "2026-03-14",
-      "started": null,
+      "started": "2026-03-14",
       "completed": null,
       "notes": null,
       "context": "2026-03-14: Full analysis in docs/architecture/features/brana-cli.md (System Integration Analysis section) and docs/guide/cli.md (Integration with Brana System section). Key wins: session-start.sh jq→Rust (34x speed), deduplicate venture detection (2 hooks→1 CLI call), scheduler.json jobs reference CLI instead of scripts (portable). See feature spec for complete replacement table.",
-      "strategy": null,
-      "build_step": null
+      "strategy": "refactor",
+      "build_step": "build"
     }
   ]
 }
