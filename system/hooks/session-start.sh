@@ -228,17 +228,9 @@ if [ -n "$LAYER0_DIR" ]; then
     fi
 fi
 
-# ── Venture project detection (shared helper) ─────────────
+# ── Venture project detection (shared lib) ────────────────
 VENTURE_CONTEXT=""
-# Source shared detection logic (also used by session-start-venture.sh)
-_detect_venture() {
-    local cwd="$1"
-    for dir in docs/sops docs/okrs docs/metrics docs/pipeline docs/venture; do
-        [ -d "$cwd/$dir" ] && return 0
-    done
-    [ -f "$cwd/CLAUDE.md" ] && grep -qiE '(venture|business|startup|revenue|pipeline|okr|growth)' "$cwd/CLAUDE.md" 2>/dev/null && return 0
-    return 1
-}
+source "$SCRIPT_DIR/lib/venture.sh"
 IS_VENTURE=false
 _detect_venture "$CWD" && IS_VENTURE=true
 

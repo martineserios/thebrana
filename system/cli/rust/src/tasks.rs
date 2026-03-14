@@ -210,6 +210,154 @@ pub fn find_duplicate_ids(tasks: &[Value]) -> Vec<String> {
     dupes
 }
 
+/// Validate tasks.json schema. Returns list of error strings.
+pub fn validate_schema(path: &Path) -> Vec<String> {
+    let content = match std::fs::read_to_string(path) {
+        Ok(c) => c,
+        Err(e) => return vec![format!("cannot read file: {e}")],
+    };
+    let content = content.trim();
+    if content.is_empty() {
+        return vec!["file is empty".into()];
+    }
+
+    let val: Value = match serde_json::from_str(content) {
+        Ok(v) => v,
+        Err(_) => return vec!["invalid JSON".into()],
+    };
+
+    let mut errors = Vec::new();
+
+    if val["version"].is_null() {
+        errors.push("missing version".into());
+    }
+    if val["project"].is_null() {
+        errors.push("missing project".into());
+    }
+    if !val["tasks"].is_array() {
+        errors.push("tasks must be array".into());
+        return errors;
+    }
+
+    let valid_statuses = ["pending", "in_progress", "completed", "cancelled"];
+    let valid_types = ["phase", "milestone", "task", "subtask"];
+
+    if let Some(tasks) = val["tasks"].as_array() {
+        for t in tasks {
+            let id = t["id"].as_str().unwrap_or("?");
+            if t["id"].is_null() {
+                errors.push("task missing id".into());
+            }
+            if t["subject"].is_null() {
+                errors.push(format!("task {id} missing subject"));
+            }
+            if t["status"].is_null() {
+                errors.push(format!("task {id} missing status"));
+            } else if let Some(s) = t["status"].as_str() {
+                if !valid_statuses.contains(&s) {
+                    errors.push(format!("task {id}: invalid status {s}"));
+                }
+            }
+            if t["type"].is_null() {
+                errors.push(format!("task {id} missing type"));
+            } else if let Some(tp) = t["type"].as_str() {
+                if !valid_types.contains(&tp) {
+                    errors.push(format!("task {id}: invalid type {tp}"));
+                }
+            }
+            if t["stream"].is_null() {
+                errors.push(format!("task {id} missing stream"));
+            }
+            if !t["tags"].is_null() {
+                if !t["tags"].is_array() {
+                    errors.push(format!("task {id}: tags must be array"));
+                } else if let Some(tags) = t["tags"].as_array() {
+                    if tags.iter().any(|v| !v.is_string()) {
+                        errors.push(format!("task {id}: tags items must be strings"));
+                    }
+                }
+            }
+            if !t["context"].is_null() && !t["context"].is_string() {
+                errors.push(format!("task {id}: context must be string"));
+            }
+        }
+    }
+
+    errors
+}
+
+/// Find parent IDs that should be auto-completed (all children done).
+pub fn find_rollup_candidates(tasks: &[Value]) -> Vec<String> {
+    let mut candidates = Vec::new();
+    for parent in tasks
+        .iter()
+        .filter(|t| matches!(t["type"].as_str(), Some("milestone" | "phase")))
+    {
+        let pid = match parent["id"].as_str() {
+            Some(id) => id,
+            None => continue,
+        };
+        if parent["status"].as_str() == Some("completed") {
+            continue;
+        }
+
+        let children: Vec<_> = tasks
+            .iter()
+            .filter(|t| t["parent"].as_str() == Some(pid))
+            .collect();
+
+        if !children.is_empty()
+            && children
+                .iter()
+                .all(|c| c["status"].as_str() == Some("completed"))
+        {
+            candidates.push(pid.to_string());
+        }
+    }
+    candidates
+}
+
+/// Perform rollup: mark parents as completed, write back to file.
+/// Returns list of completed parent IDs.
+pub fn perform_rollup(path: &Path, dry_run: bool) -> Result<Vec<String>, String> {
+    let content =
+        std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
+    let mut val: Value =
+        serde_json::from_str(content.trim()).map_err(|e| format!("invalid JSON: {e}"))?;
+
+    let tasks = val["tasks"]
+        .as_array()
+        .ok_or("tasks is not an array")?;
+    let candidates = find_rollup_candidates(tasks);
+
+    if candidates.is_empty() || dry_run {
+        return Ok(candidates);
+    }
+
+    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let now = chrono::Local::now().to_rfc3339();
+
+    if let Some(tasks) = val["tasks"].as_array_mut() {
+        for t in tasks.iter_mut() {
+            if let Some(id) = t["id"].as_str() {
+                if candidates.contains(&id.to_string()) {
+                    t["status"] = Value::String("completed".into());
+                    t["completed"] = Value::String(today.clone());
+                }
+            }
+        }
+    }
+    val["last_modified"] = Value::String(now);
+
+    std::fs::write(
+        path,
+        serde_json::to_string_pretty(&val).unwrap() + "\n",
+    )
+    .map_err(|e| format!("write failed: {e}"))?;
+
+    Ok(candidates)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -347,5 +495,84 @@ mod tests {
     fn test_no_duplicates() {
         let tasks = vec![json!({"id": "t-001"}), json!({"id": "t-002"})];
         assert!(find_duplicate_ids(&tasks).is_empty());
+    }
+
+    #[test]
+    fn test_rollup_all_children_done() {
+        let tasks = vec![
+            json!({"id": "ms-001", "type": "milestone", "status": "pending", "parent": null}),
+            json!({"id": "t-010", "type": "task", "status": "completed", "parent": "ms-001"}),
+            json!({"id": "t-011", "type": "task", "status": "completed", "parent": "ms-001"}),
+        ];
+        let candidates = find_rollup_candidates(&tasks);
+        assert_eq!(candidates, vec!["ms-001"]);
+    }
+
+    #[test]
+    fn test_rollup_not_all_children_done() {
+        let tasks = vec![
+            json!({"id": "ms-001", "type": "milestone", "status": "pending", "parent": null}),
+            json!({"id": "t-010", "type": "task", "status": "completed", "parent": "ms-001"}),
+            json!({"id": "t-011", "type": "task", "status": "pending", "parent": "ms-001"}),
+        ];
+        let candidates = find_rollup_candidates(&tasks);
+        assert!(candidates.is_empty());
+    }
+
+    #[test]
+    fn test_rollup_already_completed_parent() {
+        let tasks = vec![
+            json!({"id": "ms-001", "type": "milestone", "status": "completed", "parent": null}),
+            json!({"id": "t-010", "type": "task", "status": "completed", "parent": "ms-001"}),
+        ];
+        let candidates = find_rollup_candidates(&tasks);
+        assert!(candidates.is_empty());
+    }
+
+    #[test]
+    fn test_rollup_no_children() {
+        let tasks = vec![
+            json!({"id": "ms-001", "type": "milestone", "status": "pending", "parent": null}),
+        ];
+        let candidates = find_rollup_candidates(&tasks);
+        assert!(candidates.is_empty());
+    }
+
+    #[test]
+    fn test_validate_schema_valid() {
+        let dir = std::env::temp_dir().join("brana-test-validate");
+        std::fs::create_dir_all(&dir).ok();
+        let path = dir.join("valid.json");
+        std::fs::write(&path, r#"{"version":"1","project":"test","tasks":[
+            {"id":"t-1","subject":"Test","status":"pending","type":"task","stream":"roadmap","tags":["a"],"context":"ctx"}
+        ]}"#).unwrap();
+        let errors = validate_schema(&path);
+        assert!(errors.is_empty(), "expected no errors, got: {:?}", errors);
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn test_validate_schema_missing_fields() {
+        let dir = std::env::temp_dir().join("brana-test-validate2");
+        std::fs::create_dir_all(&dir).ok();
+        let path = dir.join("invalid.json");
+        std::fs::write(&path, r#"{"tasks":[{"id":"t-1"}]}"#).unwrap();
+        let errors = validate_schema(&path);
+        assert!(errors.iter().any(|e| e.contains("missing version")));
+        assert!(errors.iter().any(|e| e.contains("missing project")));
+        assert!(errors.iter().any(|e| e.contains("missing subject")));
+        assert!(errors.iter().any(|e| e.contains("missing status")));
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn test_validate_schema_invalid_json() {
+        let dir = std::env::temp_dir().join("brana-test-validate3");
+        std::fs::create_dir_all(&dir).ok();
+        let path = dir.join("bad.json");
+        std::fs::write(&path, "not json at all").unwrap();
+        let errors = validate_schema(&path);
+        assert_eq!(errors, vec!["invalid JSON"]);
+        std::fs::remove_dir_all(&dir).ok();
     }
 }

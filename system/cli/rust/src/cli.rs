@@ -17,7 +17,7 @@ mod tasks;
 mod themes;
 
 use clap::{Parser, Subcommand};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -42,6 +42,11 @@ enum Commands {
     },
     /// System health check
     Doctor,
+    /// Validate a tasks.json file (JSON + schema)
+    Validate {
+        /// Path to tasks.json
+        file: PathBuf,
+    },
     /// Show version
     Version,
 }
@@ -100,6 +105,13 @@ enum BacklogCmd {
         #[arg(long, default_value = "week")]
         period: String,
     },
+    /// Auto-complete parents whose children are all done
+    Rollup {
+        #[arg(long)]
+        file: Option<PathBuf>,
+        #[arg(long)]
+        dry_run: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -139,6 +151,11 @@ enum OpsCmd {
     },
     /// Reindex knowledge (wraps index-knowledge.sh)
     Reindex,
+    /// Compute session metrics from JSONL event file
+    Metrics {
+        /// Path to session JSONL file
+        session_file: PathBuf,
+    },
 }
 
 fn find_tasks_file() -> Option<PathBuf> {
@@ -190,6 +207,7 @@ fn main() {
     match cli.command {
         Commands::Version => cmd_version(),
         Commands::Doctor => cmd_doctor(&theme),
+        Commands::Validate { file } => cmd_validate(&file),
         Commands::Backlog { cmd } => match cmd {
             BacklogCmd::Next { tag, stream } => cmd_next(&theme, tag, stream),
             BacklogCmd::Query {
@@ -203,6 +221,7 @@ fn main() {
             BacklogCmd::Context { task_id } => cmd_context(&task_id, &theme),
             BacklogCmd::Diff => cmd_diff(&theme),
             BacklogCmd::Burndown { period } => cmd_burndown(&period, &theme),
+            BacklogCmd::Rollup { file, dry_run } => cmd_rollup(file, dry_run),
         },
         Commands::Ops { cmd } => match cmd {
             OpsCmd::Status => cmd_ops_status(&theme),
@@ -216,6 +235,7 @@ fn main() {
             OpsCmd::Disable { job_name } => cmd_ops_toggle(&job_name, false),
             OpsCmd::Sync { auto_commit, direction } => cmd_ops_sync(&direction, auto_commit),
             OpsCmd::Reindex => cmd_ops_reindex(),
+            OpsCmd::Metrics { session_file } => cmd_ops_metrics(&session_file),
         },
     }
 }
@@ -663,6 +683,132 @@ fn cmd_ops_reindex() {
         Ok(s) if s.success() => println!("  \x1b[32mDone.\x1b[0m\n"),
         _ => { eprintln!("  \x1b[31mFailed.\x1b[0m"); std::process::exit(1); }
     }
+}
+
+// ── validate ─────────────────────────────────────────────────────────────
+
+fn cmd_validate(file: &PathBuf) {
+    let errors = tasks::validate_schema(file.as_path());
+    if errors.is_empty() {
+        println!("{{\"valid\":true}}");
+    } else {
+        let joined = errors.join("; ");
+        let escaped = serde_json::to_string(&joined).unwrap();
+        println!("{{\"valid\":false,\"errors\":{escaped}}}");
+        std::process::exit(1);
+    }
+}
+
+// ── rollup ───────────────────────────────────────────────────────────────
+
+fn cmd_rollup(file: Option<PathBuf>, dry_run: bool) {
+    let tf = file.unwrap_or_else(|| {
+        find_tasks_file().unwrap_or_else(|| {
+            eprintln!("tasks.json not found");
+            std::process::exit(1);
+        })
+    });
+    match tasks::perform_rollup(&tf, dry_run) {
+        Ok(ids) if ids.is_empty() => {
+            // No rollup needed — silent exit
+        }
+        Ok(ids) => {
+            let action = if dry_run { "would complete" } else { "completed" };
+            let json_ids = serde_json::to_string(&ids).unwrap();
+            println!("{{\"rollup\":{json_ids},\"action\":\"{action}\"}}");
+        }
+        Err(e) => {
+            eprintln!("rollup failed: {e}");
+            std::process::exit(1);
+        }
+    }
+}
+
+// ── ops metrics ──────────────────────────────────────────────────────────
+
+fn cmd_ops_metrics(session_file: &PathBuf) {
+    let content = std::fs::read_to_string(session_file).unwrap_or_default();
+    let events: Vec<serde_json::Value> = content
+        .lines()
+        .filter_map(|l| serde_json::from_str(l).ok())
+        .collect();
+
+    let total = events.len();
+    let successes = events.iter().filter(|e| e["outcome"].as_str() == Some("success")).count();
+    let failures = events.iter().filter(|e| matches!(e["outcome"].as_str(), Some("failure" | "test-fail" | "lint-fail"))).count();
+    let corrections = events.iter().filter(|e| e["outcome"].as_str() == Some("correction")).count();
+    let test_writes = events.iter().filter(|e| e["outcome"].as_str() == Some("test-write")).count();
+    let cascades = events.iter().filter(|e| e["cascade"].as_bool() == Some(true)).count();
+    let pr_creates = events.iter().filter(|e| e["outcome"].as_str() == Some("pr-create")).count();
+    let test_passes = events.iter().filter(|e| e["outcome"].as_str() == Some("test-pass")).count();
+    let test_fails = events.iter().filter(|e| e["outcome"].as_str() == Some("test-fail")).count();
+    let lint_passes = events.iter().filter(|e| e["outcome"].as_str() == Some("lint-pass")).count();
+    let lint_fails = events.iter().filter(|e| e["outcome"].as_str() == Some("lint-fail")).count();
+    let edits = events.iter().filter(|e| matches!(e["tool"].as_str(), Some("Edit" | "Write"))).count();
+    let delegations = events.iter().filter(|e| e["tool"].as_str() == Some("Task")).count();
+
+    // Tools and files
+    let tools: std::collections::BTreeSet<&str> = events.iter().filter_map(|e| e["tool"].as_str()).collect();
+    let files: std::collections::BTreeSet<&str> = events.iter()
+        .filter_map(|e| e["detail"].as_str())
+        .filter(|d| !d.is_empty())
+        .collect();
+    let files_vec: Vec<&str> = files.into_iter().take(10).collect();
+
+    // Flywheel rates
+    let correction_rate = if edits > 0 { corrections as f64 / edits as f64 } else { 0.0 };
+    let test_write_rate = if edits > 0 { test_writes as f64 / edits as f64 } else { 0.0 };
+    let cascade_rate = if failures > 0 { cascades as f64 / failures as f64 } else { 0.0 };
+
+    // Auto-fix rate: failures followed by success on same detail
+    let mut fail_files: HashSet<String> = HashSet::new();
+    let mut auto_fixes = 0usize;
+    for e in &events {
+        let detail = e["detail"].as_str().unwrap_or("").to_string();
+        match e["outcome"].as_str() {
+            Some("failure" | "test-fail" | "lint-fail") => { fail_files.insert(detail); }
+            Some("success" | "correction" | "test-pass" | "lint-pass") => {
+                if fail_files.remove(&detail) { auto_fixes += 1; }
+            }
+            _ => {}
+        }
+    }
+    let auto_fix_rate = if failures > 0 { auto_fixes as f64 / failures as f64 } else { 0.0 };
+
+    let test_total = test_passes + test_fails;
+    let test_pass_rate = if test_total > 0 { format!("{:.2}", test_passes as f64 / test_total as f64) } else { "N/A".into() };
+    let lint_total = lint_passes + lint_fails;
+    let lint_pass_rate = if lint_total > 0 { format!("{:.2}", lint_passes as f64 / lint_total as f64) } else { "N/A".into() };
+
+    let output = serde_json::json!({
+        "events": total,
+        "successes": successes,
+        "failures": failures,
+        "corrections": corrections,
+        "test_writes": test_writes,
+        "cascades": cascades,
+        "pr_creates": pr_creates,
+        "edits": edits,
+        "test_passes": test_passes,
+        "test_fails": test_fails,
+        "lint_passes": lint_passes,
+        "lint_fails": lint_fails,
+        "delegations": delegations,
+        "flywheel": {
+            "correction_rate": format!("{:.2}", correction_rate),
+            "auto_fix_rate": format!("{:.2}", auto_fix_rate),
+            "test_write_rate": format!("{:.2}", test_write_rate),
+            "cascade_rate": format!("{:.2}", cascade_rate),
+            "test_pass_rate": test_pass_rate,
+            "lint_pass_rate": lint_pass_rate,
+            "delegations": delegations,
+            "pr_creates": pr_creates,
+        },
+        "tools": tools.into_iter().collect::<Vec<_>>().join(","),
+        "files": files_vec.join(","),
+    });
+
+    println!("{}", serde_json::to_string(&output).unwrap());
 }
 
 // ── doctor ──────────────────────────────────────────────────────────────

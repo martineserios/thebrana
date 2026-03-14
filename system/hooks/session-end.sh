@@ -39,78 +39,77 @@ echo '{"continue": true}'
         exit 0
     fi
 
-    # Summarize accumulated events
-    TOTAL=$(wc -l < "$SESSION_FILE" 2>/dev/null) || TOTAL=0
-    SUCCESSES=$(grep -c '"outcome":"success"' "$SESSION_FILE" 2>/dev/null) || SUCCESSES=0
-    FAILURES=$(jq -r 'select(.outcome == "failure" or .outcome == "test-fail" or .outcome == "lint-fail") | .outcome' "$SESSION_FILE" 2>/dev/null | wc -l) || FAILURES=0
-    TOOLS=$(jq -r '.tool' "$SESSION_FILE" 2>/dev/null | sort -u | paste -sd ',' || echo "unknown")
-    FILES=$(jq -r '.detail // empty' "$SESSION_FILE" 2>/dev/null | sort -u | head -10 | paste -sd ',' || echo "")
+    # Summarize accumulated events — use Rust CLI if available, fall back to grep/jq/awk
     TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || TIMESTAMP="unknown"
 
-    # Wave 1 compound metrics
-    CORRECTIONS=$(grep -c '"outcome":"correction"' "$SESSION_FILE" 2>/dev/null) || CORRECTIONS=0
-    TEST_WRITES=$(grep -c '"outcome":"test-write"' "$SESSION_FILE" 2>/dev/null) || TEST_WRITES=0
-    CASCADES=$(grep -c '"cascade":true' "$SESSION_FILE" 2>/dev/null) || CASCADES=0
-    PR_CREATES=$(grep -c '"outcome":"pr-create"' "$SESSION_FILE" 2>/dev/null) || PR_CREATES=0
-    TEST_PASSES=$(grep -c '"outcome":"test-pass"' "$SESSION_FILE" 2>/dev/null) || TEST_PASSES=0
-    TEST_FAILS=$(grep -c '"outcome":"test-fail"' "$SESSION_FILE" 2>/dev/null) || TEST_FAILS=0
-    LINT_PASSES=$(grep -c '"outcome":"lint-pass"' "$SESSION_FILE" 2>/dev/null) || LINT_PASSES=0
-    LINT_FAILS=$(grep -c '"outcome":"lint-fail"' "$SESSION_FILE" 2>/dev/null) || LINT_FAILS=0
-    EDITS=$(jq -r 'select(.tool == "Edit" or .tool == "Write") | .tool' "$SESSION_FILE" 2>/dev/null | wc -l) || EDITS=0
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    BRANA_CLI="${SCRIPT_DIR}/../cli/rust/target/release/brana"
+    [ ! -x "$BRANA_CLI" ] && BRANA_CLI="${CLAUDE_PLUGIN_ROOT:-}/cli/rust/target/release/brana"
 
-    # Wave 4: flywheel metrics — rates derived from compound metrics
-    if [ "$EDITS" -gt 0 ]; then
-        CORRECTION_RATE=$(awk "BEGIN {printf \"%.2f\", $CORRECTIONS / $EDITS}") || CORRECTION_RATE="0.00"
-    else
-        CORRECTION_RATE="0.00"
+    if [ -x "$BRANA_CLI" ]; then
+        # Fast path: Rust binary computes all metrics in one call
+        METRICS_JSON=$("$BRANA_CLI" ops metrics "$SESSION_FILE" 2>/dev/null) || METRICS_JSON=""
+        if [ -n "$METRICS_JSON" ]; then
+            TOTAL=$(echo "$METRICS_JSON" | jq -r '.events // 0') || TOTAL=0
+            SUCCESSES=$(echo "$METRICS_JSON" | jq -r '.successes // 0') || SUCCESSES=0
+            FAILURES=$(echo "$METRICS_JSON" | jq -r '.failures // 0') || FAILURES=0
+            CORRECTIONS=$(echo "$METRICS_JSON" | jq -r '.corrections // 0') || CORRECTIONS=0
+            TEST_WRITES=$(echo "$METRICS_JSON" | jq -r '.test_writes // 0') || TEST_WRITES=0
+            CASCADES=$(echo "$METRICS_JSON" | jq -r '.cascades // 0') || CASCADES=0
+            PR_CREATES=$(echo "$METRICS_JSON" | jq -r '.pr_creates // 0') || PR_CREATES=0
+            TEST_PASSES=$(echo "$METRICS_JSON" | jq -r '.test_passes // 0') || TEST_PASSES=0
+            TEST_FAILS=$(echo "$METRICS_JSON" | jq -r '.test_fails // 0') || TEST_FAILS=0
+            LINT_PASSES=$(echo "$METRICS_JSON" | jq -r '.lint_passes // 0') || LINT_PASSES=0
+            LINT_FAILS=$(echo "$METRICS_JSON" | jq -r '.lint_fails // 0') || LINT_FAILS=0
+            EDITS=$(echo "$METRICS_JSON" | jq -r '.edits // 0') || EDITS=0
+            DELEGATIONS=$(echo "$METRICS_JSON" | jq -r '.delegations // 0') || DELEGATIONS=0
+            TOOLS=$(echo "$METRICS_JSON" | jq -r '.tools // "unknown"') || TOOLS="unknown"
+            FILES=$(echo "$METRICS_JSON" | jq -r '.files // ""') || FILES=""
+            CORRECTION_RATE=$(echo "$METRICS_JSON" | jq -r '.flywheel.correction_rate // "0.00"') || CORRECTION_RATE="0.00"
+            AUTO_FIX_RATE=$(echo "$METRICS_JSON" | jq -r '.flywheel.auto_fix_rate // "0.00"') || AUTO_FIX_RATE="0.00"
+            TEST_WRITE_RATE=$(echo "$METRICS_JSON" | jq -r '.flywheel.test_write_rate // "0.00"') || TEST_WRITE_RATE="0.00"
+            CASCADE_RATE=$(echo "$METRICS_JSON" | jq -r '.flywheel.cascade_rate // "0.00"') || CASCADE_RATE="0.00"
+            TEST_PASS_RATE=$(echo "$METRICS_JSON" | jq -r '.flywheel.test_pass_rate // "N/A"') || TEST_PASS_RATE="N/A"
+            LINT_PASS_RATE=$(echo "$METRICS_JSON" | jq -r '.flywheel.lint_pass_rate // "N/A"') || LINT_PASS_RATE="N/A"
+        fi
     fi
 
-    if [ "$EDITS" -gt 0 ]; then
-        TEST_WRITE_RATE=$(awk "BEGIN {printf \"%.2f\", $TEST_WRITES / $EDITS}") || TEST_WRITE_RATE="0.00"
-    else
-        TEST_WRITE_RATE="0.00"
-    fi
-
-    if [ "$FAILURES" -gt 0 ]; then
-        CASCADE_RATE=$(awk "BEGIN {printf \"%.2f\", $CASCADES / $FAILURES}") || CASCADE_RATE="0.00"
-    else
-        CASCADE_RATE="0.00"
-    fi
-
-    # auto_fix_rate
-    AUTO_FIXES=0
-    if [ "$FAILURES" -gt 0 ]; then
-        AUTO_FIXES=$(jq -r '[.outcome, .detail] | @tsv' "$SESSION_FILE" 2>/dev/null | awk '
-            BEGIN { fixes=0 }
-            /^failure\t/ { prev_fail[$2]=1 }
-            /^test-fail\t/ { prev_fail[$2]=1 }
-            /^lint-fail\t/ { prev_fail[$2]=1 }
-            /^success\t/ { if ($2 in prev_fail) { fixes++; delete prev_fail[$2] } }
-            /^correction\t/ { if ($2 in prev_fail) { fixes++; delete prev_fail[$2] } }
-            /^test-pass\t/ { if ($2 in prev_fail) { fixes++; delete prev_fail[$2] } }
-            /^lint-pass\t/ { if ($2 in prev_fail) { fixes++; delete prev_fail[$2] } }
-            END { print fixes }
-        ' 2>/dev/null) || AUTO_FIXES=0
-        AUTO_FIX_RATE=$(awk "BEGIN {printf \"%.2f\", $AUTO_FIXES / $FAILURES}") || AUTO_FIX_RATE="0.00"
-    else
+    # Fallback: grep/jq/awk (if Rust CLI unavailable or failed)
+    if [ -z "$METRICS_JSON" ] || [ "$METRICS_JSON" = "" ]; then
+        TOTAL=$(wc -l < "$SESSION_FILE" 2>/dev/null) || TOTAL=0
+        SUCCESSES=$(grep -c '"outcome":"success"' "$SESSION_FILE" 2>/dev/null) || SUCCESSES=0
+        FAILURES=$(jq -r 'select(.outcome == "failure" or .outcome == "test-fail" or .outcome == "lint-fail") | .outcome' "$SESSION_FILE" 2>/dev/null | wc -l) || FAILURES=0
+        TOOLS=$(jq -r '.tool' "$SESSION_FILE" 2>/dev/null | sort -u | paste -sd ',' || echo "unknown")
+        FILES=$(jq -r '.detail // empty' "$SESSION_FILE" 2>/dev/null | sort -u | head -10 | paste -sd ',' || echo "")
+        CORRECTIONS=$(grep -c '"outcome":"correction"' "$SESSION_FILE" 2>/dev/null) || CORRECTIONS=0
+        TEST_WRITES=$(grep -c '"outcome":"test-write"' "$SESSION_FILE" 2>/dev/null) || TEST_WRITES=0
+        CASCADES=$(grep -c '"cascade":true' "$SESSION_FILE" 2>/dev/null) || CASCADES=0
+        PR_CREATES=$(grep -c '"outcome":"pr-create"' "$SESSION_FILE" 2>/dev/null) || PR_CREATES=0
+        TEST_PASSES=$(grep -c '"outcome":"test-pass"' "$SESSION_FILE" 2>/dev/null) || TEST_PASSES=0
+        TEST_FAILS=$(grep -c '"outcome":"test-fail"' "$SESSION_FILE" 2>/dev/null) || TEST_FAILS=0
+        LINT_PASSES=$(grep -c '"outcome":"lint-pass"' "$SESSION_FILE" 2>/dev/null) || LINT_PASSES=0
+        LINT_FAILS=$(grep -c '"outcome":"lint-fail"' "$SESSION_FILE" 2>/dev/null) || LINT_FAILS=0
+        EDITS=$(jq -r 'select(.tool == "Edit" or .tool == "Write") | .tool' "$SESSION_FILE" 2>/dev/null | wc -l) || EDITS=0
+        DELEGATIONS=$(grep -c '"tool":"Task"' "$SESSION_FILE" 2>/dev/null) || DELEGATIONS=0
+        if [ "$EDITS" -gt 0 ]; then CORRECTION_RATE=$(awk "BEGIN {printf \"%.2f\", $CORRECTIONS / $EDITS}"); else CORRECTION_RATE="0.00"; fi
+        if [ "$EDITS" -gt 0 ]; then TEST_WRITE_RATE=$(awk "BEGIN {printf \"%.2f\", $TEST_WRITES / $EDITS}"); else TEST_WRITE_RATE="0.00"; fi
+        if [ "$FAILURES" -gt 0 ]; then CASCADE_RATE=$(awk "BEGIN {printf \"%.2f\", $CASCADES / $FAILURES}"); else CASCADE_RATE="0.00"; fi
         AUTO_FIX_RATE="0.00"
+        if [ "$FAILURES" -gt 0 ]; then
+            AUTO_FIXES=$(jq -r '[.outcome, .detail] | @tsv' "$SESSION_FILE" 2>/dev/null | awk '
+                BEGIN { fixes=0 }
+                /^failure\t/ { prev_fail[$2]=1 } /^test-fail\t/ { prev_fail[$2]=1 } /^lint-fail\t/ { prev_fail[$2]=1 }
+                /^success\t/ { if ($2 in prev_fail) { fixes++; delete prev_fail[$2] } }
+                /^correction\t/ { if ($2 in prev_fail) { fixes++; delete prev_fail[$2] } }
+                /^test-pass\t/ { if ($2 in prev_fail) { fixes++; delete prev_fail[$2] } }
+                /^lint-pass\t/ { if ($2 in prev_fail) { fixes++; delete prev_fail[$2] } }
+                END { print fixes }
+            ' 2>/dev/null) || AUTO_FIXES=0
+            AUTO_FIX_RATE=$(awk "BEGIN {printf \"%.2f\", $AUTO_FIXES / $FAILURES}")
+        fi
+        TEST_TOTAL=$((TEST_PASSES + TEST_FAILS)); if [ "$TEST_TOTAL" -gt 0 ]; then TEST_PASS_RATE=$(awk "BEGIN {printf \"%.2f\", $TEST_PASSES / $TEST_TOTAL}"); else TEST_PASS_RATE="N/A"; fi
+        LINT_TOTAL=$((LINT_PASSES + LINT_FAILS)); if [ "$LINT_TOTAL" -gt 0 ]; then LINT_PASS_RATE=$(awk "BEGIN {printf \"%.2f\", $LINT_PASSES / $LINT_TOTAL}"); else LINT_PASS_RATE="N/A"; fi
     fi
-
-    TEST_TOTAL=$((TEST_PASSES + TEST_FAILS))
-    if [ "$TEST_TOTAL" -gt 0 ]; then
-        TEST_PASS_RATE=$(awk "BEGIN {printf \"%.2f\", $TEST_PASSES / $TEST_TOTAL}") || TEST_PASS_RATE="N/A"
-    else
-        TEST_PASS_RATE="N/A"
-    fi
-
-    LINT_TOTAL=$((LINT_PASSES + LINT_FAILS))
-    if [ "$LINT_TOTAL" -gt 0 ]; then
-        LINT_PASS_RATE=$(awk "BEGIN {printf \"%.2f\", $LINT_PASSES / $LINT_TOTAL}") || LINT_PASS_RATE="N/A"
-    else
-        LINT_PASS_RATE="N/A"
-    fi
-
-    DELEGATIONS=$(grep -c '"tool":"Task"' "$SESSION_FILE" 2>/dev/null) || DELEGATIONS=0
 
     SUMMARY_JSON=$(jq -n \
         --arg project "${PROJECT:-unknown}" \

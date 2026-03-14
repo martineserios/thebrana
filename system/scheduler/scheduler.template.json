@@ -64,24 +64,26 @@
     },
     "reindex-knowledge": {
       "type": "command",
-      "command": "./system/scripts/index-knowledge.sh",
+      "command": "./system/cli/rust/target/release/brana ops reindex",
+      "command_fallback": "./system/scripts/index-knowledge.sh",
       "project": "~/enter_thebrana/thebrana",
       "schedule": "Sun *-*-* 03:00:00",
       "enabled": true,
       "maxRetries": 1,
       "timeoutSeconds": 600,
       "captureOutput": true,
-      "_comment": "Weekly full reindex of brana-knowledge dimension docs into ruflo memory. Interactive: brana ops reindex"
+      "_comment": "Weekly full reindex of brana-knowledge dimension docs into ruflo memory. Interactive: brana ops reindex. Falls back to script if Rust binary not built."
     },
     "sync-state": {
       "type": "command",
-      "command": "./system/scripts/sync-state.sh push --auto-commit",
+      "command": "./system/cli/rust/target/release/brana ops sync --auto-commit",
+      "command_fallback": "./system/scripts/sync-state.sh push --auto-commit",
       "project": "~/enter_thebrana/thebrana",
       "schedule": "*-*-* 09:00:00",
       "enabled": true,
       "timeoutSeconds": 60,
       "captureOutput": true,
-      "_comment": "ADR-015: daily safety net — sync operational state from cache to repos. Interactive: brana ops sync"
+      "_comment": "ADR-015: daily safety net — sync operational state from cache to repos. Interactive: brana ops sync. Falls back to script if Rust binary not built."
     },
     "export-patterns": {
       "type": "command",

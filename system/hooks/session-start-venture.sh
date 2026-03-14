@@ -17,15 +17,9 @@ if [ -z "${SESSION_ID:-}" ] || [ -z "${CWD:-}" ]; then
     exit 0
 fi
 
-# --- Venture project detection (shared with session-start.sh) ---
-_detect_venture() {
-    local cwd="$1"
-    for dir in docs/sops docs/okrs docs/metrics docs/pipeline docs/venture; do
-        [ -d "$cwd/$dir" ] && return 0
-    done
-    [ -f "$cwd/CLAUDE.md" ] && grep -qiE '(venture|business|startup|revenue|pipeline|okr|growth)' "$cwd/CLAUDE.md" 2>/dev/null && return 0
-    return 1
-}
+# --- Venture project detection (shared lib) ---
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/venture.sh"
 
 if ! _detect_venture "$CWD"; then
     echo '{"continue": true}'
