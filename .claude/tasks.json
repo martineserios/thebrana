@@ -11460,7 +11460,7 @@
         "skills",
         "research"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-051",
@@ -11474,12 +11474,12 @@
       "branch": null,
       "github_issue": null,
       "created": "2026-03-14",
-      "started": null,
+      "started": "2026-03-14",
       "completed": null,
       "notes": null,
       "context": null,
-      "strategy": null,
-      "build_step": null
+      "strategy": "feature",
+      "build_step": "build"
     },
     {
       "id": "t-450",
@@ -11520,7 +11520,7 @@
         "validation",
         "fitness-functions"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-051",
@@ -11535,12 +11535,12 @@
       "branch": null,
       "github_issue": null,
       "created": "2026-03-14",
-      "started": null,
+      "started": "2026-03-14",
       "completed": null,
       "notes": null,
       "context": null,
-      "strategy": null,
-      "build_step": null
+      "strategy": "feature",
+      "build_step": "build"
     },
     {
       "id": "t-452",
@@ -11582,7 +11582,7 @@
         "docs",
         "user-guide"
       ],
-      "status": "in_progress",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-051",
@@ -11598,11 +11598,11 @@
       "github_issue": null,
       "created": "2026-03-14",
       "started": "2026-03-14",
-      "completed": null,
-      "notes": null,
+      "completed": "2026-03-14",
+      "notes": "User guide at docs/guide/knowledge-system.md (242 lines). Covers: 5 layers, field notes workflow, automatic surfacing, command integrations, dimension types, typed relationships, assumptions tracking.",
       "context": null,
       "strategy": "feature",
-      "build_step": "build"
+      "build_step": null
     },
     {
       "id": "t-454",
