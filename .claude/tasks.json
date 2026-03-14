@@ -11870,31 +11870,32 @@
     },
     {
       "id": "t-463",
-      "subject": "Backlog queries via brana CLI \u2014 replace ad-hoc Python for large tasks.json",
-      "description": "tasks.json is 435KB+ and growing. Read tool context cost is extreme. Brana CLI already has backlog commands (system/cli/backlog.py, Rust src/tasks.rs). Wire CLI as the primary backlog query interface so the skill calls CLI instead of loading the full JSON into context.",
+      "subject": "CLI as composable tool \u2014 zero ad-hoc scripts for all task operations",
+      "description": "Expand brana CLI so skills never read tasks.json directly. Add write commands (set, add), missing reads (get, stats, tags, roadmap, tree), cross-client status (--all), and query enhancements (multi-tag, --type, --parent, --branch). 5 waves: write primitives, reads, tree rendering, cross-client, skill rewiring.",
       "tags": [
         "dx",
         "cli",
-        "skills"
+        "skills",
+        "architecture"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "stream": "tech-debt",
       "type": "task",
       "parent": null,
       "order": null,
       "priority": "P1",
-      "effort": "M",
+      "effort": "L",
       "execution": "code",
       "blocked_by": [],
-      "branch": null,
+      "branch": "refactor/t-463-cli-composable",
       "github_issue": null,
       "created": "2026-03-14",
-      "started": null,
+      "started": "2026-03-14",
       "completed": null,
       "notes": null,
-      "context": "From close debrief. Session used uv run python -c inline scripts 5+ times for backlog queries. CLI already exists (t-428 Rust + Python). Wire it so backlog skill shells out to CLI instead of Read + inline scripts.",
+      "context": "2026-03-14: User vision \u2014 CLI is the composable toolchain. Skills orchestrate CLI calls, never touch files. Chain: query\u2192reason\u2192set\u2192query. Each call 11ms. Spec at docs/architecture/features/cli-composable-tool.md. 5 waves planned.",
       "strategy": "refactor",
-      "build_step": null
+      "build_step": "plan"
     }
   ],
   "version": "1"
