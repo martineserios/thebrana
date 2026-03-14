@@ -1527,3 +1527,67 @@
 - Flywheel: corr=0.44 fix=0.67 test=0.01 casc=0.00 deleg=0 prs=0
 - Tools: Bash,Edit,Write,session-start
 - Files: ,    ,        ,                                break,                                print('---'),                                print(f'=== {agent_name} LATEST TEXT ==='),                                print(text[:2000]),                            break,                            if len(text) > 100:,                            print()
+
+### Session 578b3742-72f3-482f-b5a7-a12aafe095ab (2026-03-14T13:12:36Z)
+- Events: 1 (0 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: session-start
+- Files: npm WARN exec The following package was not found and will be installed: claude-flow@3.5.15
+
+### Session 0fc23277-d0c2-40b2-9e76-1c041619c929 (2026-03-14T13:13:56Z)
+- Events: 65 (61 ok, 1 fail)
+- Corrections: 2 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.20 fix=1.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: ,        "blocked_by": [],,        "branch": None,,        "build_step": None,        "completed": None,,        "context": "2026-03-14: Created as second-phase item from knowledge-architecture-v2 challenge. ADR-021. ADR-016 rejected KuzuDB for <500 nodes.",,        "context": "2026-03-14: Created as second-phase item from knowledge-architecture-v2 challenge. ADR-021. If precision <80%, activate t-105 (GraphRAG evaluation).",,        "context": "2026-03-14: Created as second-phase item from knowledge-architecture-v2 challenge. ADR-021. Original design had 11+12, reduced to 5+5 for minimal viable.",,        "context": "2026-03-14: Created as second-phase item from knowledge-architecture-v2 challenge. ADR-021.",,        "created": "2026-03-14",
+
+### Session 98bafc9d-32eb-4940-90ec-cca9ca07416c (2026-03-14T13:38:22Z)
+- Events: 192 (155 ok, 8 fail)
+- Corrections: 21 | Test writes: 3 | Cascades: 0 | PR creates: 0
+- Tests: 4 pass, 2 fail (rate=0.67) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.32 fix=0.75 test=0.05 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: ,        .result += [$t | .id = "t-\(.next | tostring)"],        .seen[$t.id] = true,        fixed += 1,        next_id += 1,        print(f'  {tid} -> t-{next_id}: {t[\"subject\"][:60]}'),        seen[tid] = True,        t['id'] = f't-{next_id}',        | .next += 1,        | .result += [$t]
+
+### Session 98bafc9d-32eb-4940-90ec-cca9ca07416c (2026-03-14T14:27:11Z)
+- Events: 87 (53 ok, 27 fail)
+- Corrections: 4 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 2 pass, 4 fail (rate=0.33) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.22 fix=0.15 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: ,  "blocked_by": [],,  "branch": null,,  "build_step": null,  "completed": null,,  "context": "2026-03-14: Full analysis in docs/architecture/features/brana-cli.md (System Integration Analysis section) and docs/guide/cli.md (Integration with Brana System section). Key wins: session-start.sh jq→Rust (34x speed), deduplicate venture detection (2 hooks→1 CLI call), scheduler.json jobs reference CLI instead of scripts (portable). See feature spec for complete replacement table.",,  "context": "2026-03-14: Inspired by t-428 CLI build session — during the build, multiple improvement ideas emerged (spec-first gate, TDD enforcement, worktree enforcement, scheduler viz) that were manually added to backlog. Close should detect these automatically. Pattern: scan conversation for solution verbs + system component nouns (hook, skill, command, CLI, scheduler, theme, alias) → classify → propose as backlog entries.",,  "created": "2026-03-14",,  "description": "During /brana:close, after extracting errata and learnings, add a new step that scans the session for feature ideas: new CLI commands, hook improvements, skill enhancements, system architecture changes. Classify each idea by component (cli/hook/skill/agent/rule/scheduler) and auto-propose as backlog tasks. The close skill already extracts learnings — this adds a forward-looking ideation lens on top.",,  "description": "Replace 12 identified inefficient patterns across the brana system with CLI commands. Covers: (1) session-start.sh jq task queries → brana-query (34x faster), (2) scheduler.json job refs → brana ops commands, (3) duplicate venture detection → brana doctor, (4) git diff+grep drift → brana ops drift, (5) gh-sync.sh 7 call sites → brana ops sync, (6) task validation → brana doctor, (7) task rollup jq → brana backlog rollup, (8) session metrics → brana ops metrics, (9) sync-state.sh scheduler ref, (10) index-knowledge.sh scheduler ref, (11) backup-knowledge.sh close ref, (12) systemctl calls → brana ops run/enable/disable. Plus wire 7 enablement workflows: morning routine (bf→start), between-session checks (bo+boh), pipeline scripting (bfq), stale hygiene, pre-commit review, dependency planning, cross-client overview.",
+
+### Session 79f1877f-4f7c-4c61-ae67-e4c8db054678 (2026-03-14T14:27:13Z)
+- Events: 223 (154 ok, 14 fail)
+- Corrections: 24 | Test writes: 7 | Cascades: 0 | PR creates: 0
+- Tests: 9 pass, 0 fail (rate=1.00) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.31 fix=0.79 test=0.09 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: ,            t['notes'] = 'Added Step 6 (Field Notes) to /brana:close skill. Keep/archive via AskUserQuestion, 20-note cap per doc, ruflo reindex on append.',            t['notes'] = 'Added last_verified, status, maturity frontmatter to R3 (31-assurance), R4 (32-lifecycle), R5 (29-venture).',            t['notes'] = 'Extended spec_graph.py with typed edge extraction (5 relationship types from brana-ontology.yaml). Added 6 new tests. Seeded spec-graph.json with 18 typed edges from ADR relationships.',            t['notes'] = 'Split 14-mastermind-architecture.md (65KB) into ARCHITECTURE.md (15KB reasoning) + component-index.md (4KB inventory). Original archived to docs/archive/reflections/. Added frontmatter, assumptions, changelog.',        'blocked_by': blocked_by,,        'branch': None,,        'build_step': None,,        'completed': None,,        'context': None,
+
+### Session 78723b67-5029-4697-aa7b-162666c29dd0 (2026-03-14T14:27:16Z)
+- Events: 2 (1 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Edit,session-start
+- Files: /home/martineserios/enter_thebrana/thebrana/.claude/tasks.json,npm WARN exec The following package was not found and will be installed: claude-flow@3.5.15
+
+### Session af795099-ba70-4269-a3d4-33c94abdb485 (2026-03-14T14:31:20Z)
+- Events: 1 (0 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: session-start
+- Files: npm WARN exec The following package was not found and will be installed: claude-flow@3.5.15
+
+### Session 9392e4bf-1e5c-4761-b6ea-6b998e48f56b (2026-03-14T14:59:22Z)
+- Events: 100 (80 ok, 8 fail)
+- Corrections: 9 | Test writes: 1 | Cascades: 0 | PR creates: 0
+- Tests: 1 pass, 0 fail (rate=1.00) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.45 fix=0.75 test=0.05 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: ,                dupes[tid] = [t.get('subject','')],                dupes[tid].append(t.get('subject','')),                print(f'{k}: {v}'),            dupes[tid] = [t.get('subject','')],            dupes[tid].append(t.get('subject','')),            else:,            if tid in dupes:,            if v is not None:,            max_id = max(max_id, num)

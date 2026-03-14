@@ -270,3 +270,21 @@
 
 **Next:**
 - (auto-generated — run /session-handoff for full close)
+
+## 2026-03-14 — auto-captured (session-end hook)
+
+**Accomplished:**
+- 325a2d8 docs(t-428): Knowledge Architecture v2 — SPECIFY phase complete
+- 8a718c7 Merge refactor/t-424-cli-tools: CLI tools spike complete
+- 5239f3c refactor(t-424): complete CLI tools spike — hybrid architecture decided
+- 36ee9dd Merge fix/t-425-agentdb-watch-service: offset agentdb-watch schedule to avoid lock contention
+- 4f93d56 fix(t-425): offset agentdb-watch schedule to avoid lock contention with sync-state
+
+**State:**
+- Branch: feat/t-428-brana-cli
+- Events: 1 (0 ok, 0 fail, 0 corrections, 0 cascades, 0 prs)
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+
+**Next:**
+- (auto-generated — run /session-handoff for full close)
