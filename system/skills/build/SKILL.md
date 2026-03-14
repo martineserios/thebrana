@@ -38,16 +38,24 @@ Also entered via `/brana:backlog start <id>` for code tasks — see Task Integra
 
 ## CLI Integration — MANDATORY
 
-**NEVER read or write tasks.json directly.** Use `brana backlog` CLI commands via Bash:
+**NEVER read or write tasks.json directly.** No `cat tasks.json`, no `uv run python` parsing, no `Read` tool on tasks.json. Use `brana backlog` CLI commands via Bash for ALL task operations:
 
-- Cross-reference: `brana backlog search "keyword"` or `brana backlog query --tag "tag1,tag2"`
-- Get task: `brana backlog get <id>` or `brana backlog get <id> --field status`
-- Update field: `brana backlog set <id> <field> <value>`
-- Create task: `brana backlog add --json '{"subject":"...","stream":"...","type":"task"}'`
-- Status transitions: `brana backlog set <id> status in_progress`
-- Build step tracking: `brana backlog set <id> build_step specify`
+```bash
+# ✗ WRONG — reads 435KB into context, wastes tokens
+cat .claude/tasks.json | uv run python -c "..."
 
-Binary: `system/cli/rust/target/release/brana` (from git root).
+# ✓ RIGHT — 11ms, 0 context tokens
+brana backlog get t-069
+brana backlog query --status pending --stream roadmap
+brana backlog search "enforcement"
+```
+
+Commands:
+- **Read:** `brana backlog get <id>`, `brana backlog query --status pending`, `brana backlog search "keyword"`, `brana backlog next`
+- **Write:** `brana backlog set <id> <field> <value>`, `brana backlog add --json '{...}'`
+- **Browse:** `brana backlog stats`, `brana backlog tags`, `brana backlog roadmap`
+
+This applies to EVERY step — CLASSIFY, SPECIFY, PLAN, BUILD, CLOSE. No exceptions.
 
 ---
 
@@ -55,9 +63,13 @@ Binary: `system/cli/rust/target/release/brana` (from git root).
 
 Before anything else, check if this work already exists or relates to existing work.
 
-1. **Search for related tasks** via CLI: `brana backlog search "description keywords"` and `brana backlog query --tag "relevant,tags"`.
-2. **Search** for similar tasks:
-   - Subject fuzzy match (significant words from the description against existing task subjects)
+1. **Search for related tasks** via CLI:
+   ```bash
+   brana backlog search "description keywords"
+   brana backlog query --tag "relevant,tags"
+   ```
+2. **Analyze results** for:
+   - Subject fuzzy match (significant words overlap)
    - Tag overlap (2+ shared tags)
    - File path overlap (if description mentions specific files)
    - URL match (if description contains URLs, check research stream)
@@ -131,6 +143,32 @@ At any point during the build, the user can say "this is actually a {type}" and 
 - If moving TO a strategy with SPECIFY: start SPECIFY from current knowledge (don't lose work)
 - If moving FROM spike to feature: the spike findings become SPECIFY context
 - If moving FROM investigation to bug fix: the report becomes REPRODUCE evidence
+
+---
+
+## Step 2: PROCESS PLAN
+
+**Mandatory for Medium/Large builds.** After CLASSIFY confirms the strategy, enter plan mode and present the full step sequence before executing any step.
+
+1. **Enter plan mode** — call `EnterPlanMode`.
+2. **Present the strategy's step sequence** as a numbered plan:
+   ```
+   ## Build Plan: {task subject}
+   Strategy: {detected strategy}
+   Size: {sizing}
+
+   Steps:
+   1. SPECIFY — research loop, draft feature spec
+   2. PLAN — break spec into ordered tasks
+   3. BUILD — TDD loop per task
+   4. CLOSE — validate, retrospective, docs, merge
+   ```
+   Adapt the steps to the detected strategy (bug fix uses REPRODUCE → DIAGNOSE → FIX → CLOSE, etc.).
+3. **Call `ExitPlanMode`** — this prompts the user to approve or adjust the plan.
+4. **If the user adjusts**, incorporate changes and re-enter plan mode if needed.
+5. **Proceed to the first step** of the approved strategy.
+
+For **Trivial/Small** builds: skip plan mode, proceed directly. State the steps inline: "This is small — I'll SPECIFY (light) → BUILD → CLOSE."
 
 ---
 
