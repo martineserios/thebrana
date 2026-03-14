@@ -10,7 +10,8 @@ cd /tmp 2>/dev/null || true
 # Blocks Write|Edit on implementation files when:
 #   1. Project has opted in (docs/decisions/ exists)
 #   2. On a feat/* branch
-#   3. No spec or test activity exists on the branch yet
+#   3. Task's build_step is "specify" or "plan" (hard gate), OR
+#   4. No spec or test activity exists on the branch yet (soft gate)
 #
 # Always allows spec/test/doc file writes.
 # Passes through on non-feat branches, non-git repos, and projects without docs/decisions/.
@@ -96,7 +97,37 @@ case "$REL_PATH" in
     *.md) pass_through ;;
 esac
 
-# Step 8: Spec activity check — has any spec/test been touched on this branch?
+# Step 8: build_step gate — check if the branch's task is past SPECIFY/PLAN
+# If tasks.json has a task matching this branch with build_step in {specify, plan},
+# deny implementation writes even if spec files exist (spec is still in progress).
+TASKS_FILE="$GIT_ROOT/.claude/tasks.json"
+if [ -f "$TASKS_FILE" ]; then
+    # Use Rust CLI if available (fast), fall back to jq
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    BRANA="${SCRIPT_DIR}/../cli/rust/target/release/brana"
+    [ ! -x "$BRANA" ] && BRANA="${CLAUDE_PLUGIN_ROOT:-}/cli/rust/target/release/brana"
+
+    BUILD_STEP=""
+    if [ -x "$BRANA" ]; then
+        BUILD_STEP=$("$BRANA" backlog query --status active --output json 2>/dev/null | \
+            jq -r --arg branch "$BRANCH" \
+            '[.[] | select(.branch == $branch)] | first | .build_step // empty' 2>/dev/null) || BUILD_STEP=""
+    fi
+    if [ -z "$BUILD_STEP" ]; then
+        BUILD_STEP=$(jq -r --arg branch "$BRANCH" \
+            '[.tasks[] | select(.branch == $branch and .status == "in_progress")] | first | .build_step // empty' \
+            "$TASKS_FILE" 2>/dev/null) || BUILD_STEP=""
+    fi
+
+    case "$BUILD_STEP" in
+        specify|plan)
+            deny "Build step is '$BUILD_STEP' — complete the spec/plan before writing implementation code. Run /brana:build to advance to BUILD step."
+            ;;
+    esac
+    # build, close, or empty/null → proceed to spec activity check
+fi
+
+# Step 9: Spec activity check — has any spec/test been touched on this branch?
 MERGE_BASE=$(git -C "$GIT_ROOT" merge-base HEAD main 2>/dev/null || \
              git -C "$GIT_ROOT" merge-base HEAD master 2>/dev/null || echo "")
 [ -z "$MERGE_BASE" ] && pass_through
@@ -115,9 +146,9 @@ SPEC_FILES="$SPEC_FILES$(git -C "$GIT_ROOT" diff --cached --name-only -- \
 SPEC_FILES="$SPEC_FILES$(git -C "$GIT_ROOT" diff --name-only -- \
     'docs/' 'test/' 'tests/' '__tests__/' '*.test.*' '*.spec.*' 2>/dev/null || true)"
 
-# Step 9: Decision
+# Step 10: Decision
 SPEC_FILES_TRIMMED=$(echo "$SPEC_FILES" | tr -d '[:space:]')
 [ -n "$SPEC_FILES_TRIMMED" ] && pass_through
 
-# Step 10: Block — no spec activity found
+# Step 11: Block — no spec activity found
 deny "Spec-first: create an ADR (/decide) or write tests before implementation on feat/* branches. This project has docs/decisions/ — enforcement is active."
