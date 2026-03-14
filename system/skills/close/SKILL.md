@@ -285,7 +285,25 @@ Then backup:
 "$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null || true
 ```
 
-### Step 10: Report
+### Step 10: Memory review
+
+Read the project's auto memory (`MEMORY.md`) and audit each entry:
+
+1. **Read** `~/.claude/projects/{project-slug}/memory/MEMORY.md`
+2. **For each entry**, classify:
+   - **Keep** — still relevant to this project, not yet implemented
+   - **Delete** — client-specific (belongs in that client's memory), outdated, or the described feature/fix has been implemented
+   - **Feature idea** — the entry describes a gap, wish, or improvement that could become a task
+3. **Delete stale entries** — remove lines that are no longer relevant
+4. **Extract feature ideas** — for each feature idea found:
+   - Search existing tasks: `brana backlog query --search "keyword" --count`
+   - If already exists (count > 0): delete the memory entry (it's tracked)
+   - If new: `brana backlog add --json '{"subject":"...","stream":"...","type":"task"}'` then delete the memory entry
+5. **Report** feature ideas extracted and entries cleaned in the session report
+
+**Skip if:** session was read-only, or MEMORY.md has fewer than 10 entries.
+
+### Step 11: Report
 
 ```markdown
 ## Session Close
@@ -294,6 +312,7 @@ Then backup:
 **Learnings extracted:** {N} ({errata} errata, {learnings} learnings, {issues} issues)
 **Field notes:** {N kept} kept, {M archived} archived, {P skipped} skipped
 **Patterns stored:** {N}
+**Memory reviewed:** {N entries deleted}, {M feature ideas extracted}
 **Doc drift detected:** {yes/no}
 **Handoff note updated:** {path}
 
@@ -302,6 +321,7 @@ Then backup:
 - {if drift: "Specs may need updating for changed system files"}
 - {if issues: "Issues logged for next session"}
 - {if field notes kept: "Docs updated with field notes: {list of docs}"}
+- {if features extracted: "New tasks from memory: {list of task IDs}"}
 ```
 
 ---
