@@ -208,6 +208,24 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
 
 ### PLAN
 
+0. **Assumption check** (after strategy confirmed, before planning):
+   Scan docs related to the task's tags and description for tracked assumptions. Read frontmatter `assumptions:` sections from relevant docs (dimension docs, ADRs, reasoning docs).
+
+   ```bash
+   # Search ruflo for assumptions related to task tags
+   source /home/martineserios/.claude/scripts/cf-env.sh
+   cd "$HOME" && $CF memory search --query "{task tags + description keywords}" --namespace assumptions --format json 2>/dev/null || true
+   ```
+
+   Also grep project docs for `assumptions:` YAML blocks in files matching the task's topic area.
+
+   **If any assumption has `last_verified` older than its confidence tier threshold** (tech: 6 months, architecture: 18 months, methodology: 36 months), warn:
+   ```
+   ⚠ Stale assumption in [doc path]: "[claim]". Last verified: YYYY-MM-DD. Verify before proceeding.
+   ```
+
+   If no assumptions are stale or no tracked assumptions exist for this area, proceed silently.
+
 1. **Impact analysis** (if `docs/spec-graph.json` exists):
    From the feature description, identify `system/` files likely to be modified. Read `docs/spec-graph.json` and find all nodes whose `impl_files` contain those paths. Display a blast radius table:
 
@@ -529,11 +547,50 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
      ```
    If ruflo unavailable, append to project's auto memory MEMORY.md.
 
-4. **Update feature spec** (feature, greenfield, migration only):
+4. **Knowledge maintenance** (after tests pass, before docs/merge):
+
+   a. **Field notes**: Review session learnings from the build. If any practical discoveries emerged (unexpected behavior, workarounds, integration gotchas, performance findings), prompt the user:
+      ```
+      question: "Capture any of these as field notes?"
+      options: ["Yes — I'll specify which", "No learnings worth capturing", "Auto-capture all"]
+      ```
+      Only flag obvious, reusable learnings — don't prompt for every mini-debrief. Store approved field notes:
+      ```bash
+      source /home/martineserios/.claude/scripts/cf-env.sh
+      cd "$HOME" && $CF memory store \
+        -k "field-note:{project}:{slug}" \
+        -v '{"observation": "...", "context": "{task-id}", "date": "YYYY-MM-DD"}' \
+        --namespace field-notes \
+        --tags "client:{project},source:build" \
+        --upsert 2>/dev/null || true
+      ```
+      If ruflo unavailable, append to the relevant doc's Field Notes section (if it has one) or to project auto memory.
+
+   b. **Assumption verification**: If the build touched code related to tracked assumptions (check docs with `assumptions:` frontmatter whose `claim` overlaps with modified files/topics), update `last_verified` date to today in the relevant doc's frontmatter. Only update assumptions the build actually exercised — don't blanket-refresh.
+
+   c. **Changelog update**: If the build changed behavior documented in a reasoning doc (reflections, ADRs, architecture docs), append a changelog entry to that doc:
+      ```markdown
+      ## Changelog
+      - YYYY-MM-DD: {what changed} ({task-id}, {commit hash})
+      ```
+      If the doc has no Changelog section, add one at the end.
+
+   d. **Reindex**: After any doc updates (field notes, assumption verification, changelog), trigger ruflo reindex for affected files:
+      ```bash
+      source /home/martineserios/.claude/scripts/cf-env.sh
+      cd "$HOME" && $CF memory store \
+        -k "reindex:{project}:{doc-slug}" \
+        -v '{"updated": "YYYY-MM-DD", "reason": "build-close", "task": "{task-id}"}' \
+        --namespace knowledge \
+        --upsert 2>/dev/null || true
+      ```
+      If no docs were updated, skip reindex silently.
+
+5. **Update feature spec** (feature, greenfield, migration only):
    - Set status to `shipped`
    - Add learnings from retrospective
 
-5. **Generate feature documentation** (strategy-aware):
+6. **Generate feature documentation** (strategy-aware):
 
    **Which docs to generate:**
 
@@ -562,16 +619,16 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
 
    **Shipped without docs means not shipped.**
 
-6. **Update task** (if entered via `/brana:backlog start`):
+7. **Update task** (if entered via `/brana:backlog start`):
    - Set status → `completed`
    - Set completed date
    - Add notes from retrospective
 
-7. **GitHub sync** (if `github_sync.enabled` in `~/.claude/tasks-config.json`):
+8. **GitHub sync** (if `github_sync.enabled` in `~/.claude/tasks-config.json`):
    - If task has `github_issue`: run `system/scripts/gh-sync.sh close {issue-number}`.
    - If sync fails: warn "GitHub issue not closed. Close manually: gh issue close #{issue-number}" — do NOT block CLOSE.
 
-8. **Pre-merge doc check** (feature, greenfield, migration only):
+9. **Pre-merge doc check** (feature, greenfield, migration only):
    - Run: `git diff --name-only main...HEAD | grep -E '(docs/architecture/features/|docs/guide/features/)'`
    - **If no doc files in diff:** warn clearly:
      ```
@@ -579,19 +636,19 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
      "Shipped without docs means not shipped."
      Generate docs now? (yes / skip — I'll add them later)
      ```
-     If user says yes: loop back to step 4 (doc generation).
+     If user says yes: loop back to step 6 (doc generation).
      If user says skip: proceed to merge (soft enforcement, not a hard block).
    - **If doc files present:** proceed silently.
    - **Bug fix / refactor branches:** skip this check entirely.
 
-8. **Merge** — present the command, do NOT auto-execute:
+10. **Merge** — present the command, do NOT auto-execute:
    ```bash
    git checkout main
    git merge --no-ff feat/{branch-name} -m "{type}: {description}"
    git branch -d feat/{branch-name}
    ```
 
-9. **Report:**
+11. **Report:**
    ```markdown
    ## Build Complete: {title}
 
@@ -608,6 +665,9 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
 
    ### Docs updated
    - {list of doc changes}
+
+   ### Knowledge maintained
+   - {field notes captured, assumptions verified, changelogs updated}
    ```
 
 ---
