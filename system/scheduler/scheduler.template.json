@@ -93,6 +93,17 @@
       "timeoutSeconds": 120,
       "captureOutput": true,
       "_comment": "ADR-015: weekly backup of claude-flow patterns and decisions to git"
+    },
+    "index-assumptions": {
+      "type": "command",
+      "command": "./system/scripts/index-assumptions.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Sun *-*-* 03:10:00",
+      "enabled": true,
+      "maxRetries": 1,
+      "timeoutSeconds": 300,
+      "captureOutput": true,
+      "_comment": "ADR-021: weekly index of assumptions, field notes, and ADR decisions into ruflo"
     }
   }
 }

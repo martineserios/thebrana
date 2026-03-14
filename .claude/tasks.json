@@ -11430,7 +11430,7 @@
         "ruflo",
         "indexing"
       ],
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-051",
@@ -11444,11 +11444,11 @@
       "branch": null,
       "github_issue": null,
       "created": "2026-03-14",
-      "started": null,
-      "completed": null,
-      "notes": null,
+      "started": "2026-03-14",
+      "completed": "2026-03-14",
+      "notes": "Created index-assumptions.sh — indexes assumptions (from tables + YAML frontmatter), field notes (from ## Field Notes sections), and ADR decisions into ruflo namespaces: assumptions, field-notes, decisions. Added scheduler job (Sun 03:10). Parsing tests pass. Ruflo not installed on dev machine — live verification deferred.",
       "context": null,
-      "strategy": null,
+      "strategy": "feature",
       "build_step": null
     },
     {
@@ -11582,7 +11582,7 @@
         "docs",
         "user-guide"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "stream": "roadmap",
       "type": "task",
       "parent": "ms-051",
@@ -11597,12 +11597,12 @@
       "branch": null,
       "github_issue": null,
       "created": "2026-03-14",
-      "started": null,
+      "started": "2026-03-14",
       "completed": null,
       "notes": null,
       "context": null,
-      "strategy": null,
-      "build_step": null
+      "strategy": "feature",
+      "build_step": "build"
     },
     {
       "id": "t-454",
