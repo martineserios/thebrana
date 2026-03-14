@@ -1,7 +1,7 @@
 # Feature: Brana CLI — Standalone Terminal Interface
 
 **Date:** 2026-03-14
-**Status:** specifying
+**Status:** shipped
 **Task:** t-428
 **ADR:** ADR-022
 
@@ -171,15 +171,19 @@ Tasks changed since last commit:
 ```
 system/cli/
 ├── __init__.py
-├── main.py          # root app: version, doctor
-├── config.py        # paths, JSON loading, project detection
-├── theme.py         # theme loading from themes.json, Rich styling
+├── main.py          # root app: version, doctor, --version flag
+├── config.py        # paths, JSON loading, project detection, classify_task()
+├── theme.py         # theme loading from themes.json, Rich styling (cached)
 ├── themes.json      # canonical icon/style definitions (single source of truth)
-├── tasks.py         # brana tasks {11 subcommands}
-└── sched.py         # brana sched {9 subcommands}
+├── backlog.py       # brana backlog {11 subcommands} + Rust accelerator
+├── ops.py           # brana ops {11 subcommands}
+├── aliases.sh       # shell aliases + Rust pipeline functions
+└── rust/
+    ├── Cargo.toml   # brana-query + brana-fmt binaries
+    ├── src/main.rs  # fast JSON filter (12ms, 34x faster than Python)
+    └── src/fmt.rs   # themed ANSI line renderer
 pyproject.toml       # entry point
-tests/
-└── test_cli.py      # core utility tests (theme loading, task filtering, classification)
+tests/test_cli.py    # 46 tests (unit + e2e smoke)
 ```
 
 ## Challenger findings
@@ -196,3 +200,46 @@ Reviewed 2026-03-14. Key changes incorporated:
 8. **`tasks graph`** gets `--depth N` flag for large trees.
 9. **`brana doctor`** includes duplicate ID check.
 10. **Shell completions** — free via typer, added to v1 deliverables.
+
+## System Integration Analysis
+
+Analysis of where the CLI replaces, complements, or enables new patterns across the brana system.
+Full guide: [docs/guide/cli.md](../guide/cli.md)
+
+### Replaces (inefficient patterns → CLI)
+
+| Current pattern | Location | CLI replacement | Impact |
+|----------------|----------|-----------------|--------|
+| jq task queries | session-start.sh:128-152 | `brana-query` (Rust) | 34x faster, 20 lines saved |
+| Task filtering logic in SKILL.md prose | backlog/SKILL.md:238-241 | `brana backlog query` | Single source of truth |
+| Manual scheduler.json reading | scheduler/SKILL.md | `brana ops status/health` | Structured output |
+| `systemctl --user` calls in scripts | hooks, skills | `brana ops run/enable/disable` | Job name validation |
+| `sync-state.sh push` in scheduler | scheduler.json | `brana ops sync` | Unified interface |
+| `index-knowledge.sh` in scheduler | scheduler.json | `brana ops reindex` | Same |
+| Venture detection (duplicated in 2 hooks) | session-start*.sh | `brana doctor` | Deduplication |
+| Git diff + grep for drift detection | close/SKILL.md:182-207 | `brana ops drift` | Single command |
+| `gh-sync.sh` calls (7 places) | backlog/SKILL.md | `brana ops sync` (future) | Unified sync |
+| Task validation schema | post-tasks-validate.sh:34-64 | `brana doctor` (IDs) | Built-in |
+| Task rollup logic | post-tasks-validate.sh:66-111 | Future: `brana backlog rollup` | 40 lines saved |
+| Session metrics computation | session-end.sh:44-97 | Future: `brana ops metrics` | 45 lines saved |
+
+### Complements (same view, different context)
+
+| Brana component | CLI role |
+|----------------|---------|
+| `/brana:backlog status` | `bs` — same view without opening Claude Code |
+| `/brana:backlog next` | `bn` — quick terminal check |
+| `/brana:build` classify | `bf` (focus) — pre-decision daily pick |
+| `/brana:close` drift | `bod` (ops drift) — standalone check |
+| `/brana:review` health | `boh` (ops health) — scheduler subset |
+| Session-start hook | `bd` (doctor) — manual health check anytime |
+
+### Enables (new workflows)
+
+1. **Morning routine:** `bf` → pick task → open Claude Code → `/brana:backlog start`
+2. **Between-session checks:** `bo` + `boh` — scheduler healthy?
+3. **Pipeline scripting:** `bfq --count --tag scheduler` in cron/CI
+4. **Stale task hygiene:** `bstale --days 30` weekly
+5. **Pre-commit review:** `bdiff` before committing tasks.json
+6. **Dependency planning:** `bb` + `bgraph ph-001` for architecture conversations
+7. **Cross-client overview:** `bs --all` from any terminal
