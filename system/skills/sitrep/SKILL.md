@@ -3,7 +3,7 @@ name: sitrep
 description: "Situational awareness — where am I, what was I doing, what's left, what should I do next. Context recovery after compression, confusion, or mid-session reorientation."
 argument-hint: ""
 group: core
-model: sonnet
+model: haiku
 allowed-tools:
   - Bash
   - Read
