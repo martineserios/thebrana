@@ -1781,3 +1781,27 @@ EOF
 - **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
 # Auto Memory — thebrana
 | thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+
+### Session babd9d91-cdaf-4484-bede-deb12b1e1e05 (2026-03-15T17:03:35Z)
+- Events: 221 (213 ok, 2 fail)
+- Corrections: 5 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.21 fix=0.50 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: # Compare old vs new orphan count
+uv run python3 -c "
+import json
+old = json.load(open('/home/martineserios/enter_thebrana/thebrana-docs-t-069/docs/spec-graph.json'))
+new = json.load(open('/tmp/spec-graph-new.json'))
+print(f'Old: {old[\"_meta\"][\"orphan_count\"]} orphans / {old[\"_meta\"][\"node_count\"]} nodes')
+print(f'New: {new[\"_meta\"][\"orphan_count\"]} orphans / {new[\"_meta\"][\"node_count\"]} nodes')
+print(f'Orphan reduction: {old[\"_meta\"][\"orphan_count\"]} → {new[\"_meta\"][\"orphan_count\"]}')
+print(f'Edge increase: {old[\"_meta\"][\"edge_count\"]} → {new[\"_meta\"][\"edge_count\"]}')
+",# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/MEMORY.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/project_system-architecture-current.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/session-handoff.md,/home/martineserios/enter_thebrana/thebrana-chore-doc-consolidation/docs/architecture/agents.md,/home/martineserios/enter_thebrana/thebrana-chore-doc-consolidation/docs/architecture/overview.md,/home/martineserios/enter_thebrana/thebrana-chore-doc-consolidation/docs/architecture/skills.md,/home/martineserios/enter_thebrana/thebrana-chore-doc-consolidation/docs/guide/getting-started.md,/home/martineserios/enter_thebrana/thebrana-docs-t-069/docs/guide/philosophy.md
