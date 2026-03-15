@@ -49,13 +49,19 @@ tasks.json is a rich task system (23 fields, DAG dependencies, build_step tracki
 - Hook runs in background (`nohup &`) — never blocks the session
 - 42 unit tests (`tests/hooks/test_task_sync.py`)
 
+### Shipped in v2 (t-475, 2026-03-15)
+- `brana backlog sync [--dry-run] [--force] [--parallel N]` — bulk CLI command, parallel via `std::thread::scope` + `gh api` subprocesses
+- Zero new Cargo deps, binary stays 1.3MB
+- Dedup via GitHub Search API before creation (replaces local map for bulk sync)
+- Per-task write-back to tasks.json (Ctrl+C safe)
+- Idempotent close (checks state before patching)
+- Rate limit retry (sleeps 5s on 429/secondary rate)
+
 ### Designed but not shipped (from original spec)
-- `/brana:backlog sync` bulk command — replaced by hook-based incremental sync
-- `system/scripts/gh-sync.sh` helper script — replaced by `task-sync.py`
+- `system/scripts/gh-sync.sh` helper script — replaced by `task-sync.py` (incremental) and `sync.rs` (bulk)
 - Per-project `.claude/tasks-config.json` — replaced by global `~/.claude/task-sync-config.json`
 - One-shot context pull (issue comments → task context at pick time) — not implemented
 - Label drift detection and prune-labels command — not implemented
-- Dedup via GitHub search before creation — uses local map instead
 
 ### Out of scope (v1)
 - Continuous bidirectional sync (no webhooks)
@@ -190,10 +196,15 @@ Labels auto-created via `gh label create --force` on each sync. No `priority:` o
 | `.claude/task-sync-hashes.json` | **Generated** — task field hashes for change detection (per-project) |
 | `tests/hooks/test_task_sync.py` | **New** — 42 pytest tests |
 
+### Added in v2 (t-475)
+| File | Change |
+|------|--------|
+| `system/cli/rust/src/sync.rs` | **New** — parallel bulk sync (Rust, ~550 LOC) |
+| `system/cli/rust/src/cli.rs` | **Edit** — added `BacklogCmd::Sync` variant (+14 LOC) |
+
 ### Planned but not created
 | File | Original plan | Why not |
 |------|--------------|---------|
-| `system/scripts/gh-sync.sh` | Bash helper with subcommands | Replaced by Python implementation |
 | `docs/guide/workflows/github-sync.md` | User guide | Not yet written |
 | `docs/reference/configuration.md` update | Config resolution change | Config approach changed |
 
