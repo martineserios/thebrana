@@ -1,7 +1,7 @@
 ---
 name: build
 description: "Build anything — features, bug fixes, refactors, spikes, migrations, investigations. Auto-detects strategy from description, integrates with /brana:backlog, enforces TDD. The unified development command."
-argument-hint: "[description or task context]"
+argument-hint: "[plan] [description or task ID]"
 group: execution
 depends_on:
   - backlog
@@ -18,8 +18,6 @@ allowed-tools:
   - WebSearch
   - WebFetch
   - AskUserQuestion
-  - EnterPlanMode
-  - ExitPlanMode
 ---
 
 # Build
@@ -31,9 +29,75 @@ The unified development command. One entry point for all work types: features, b
 ```
 /brana:build "description"              — start from a description
 /brana:build                            — ask what to build
+/brana:build plan "description"         — decompose work into a task tree (phase/milestone/task/subtask)
+/brana:build plan <id>                  — decompose an existing task into subtasks
 ```
 
 Also entered via `/brana:backlog start <id>` for code tasks — see Task Integration below.
+
+---
+
+## Plan Mode (`/brana:build plan`)
+
+When invoked with `plan` as the first argument, `/brana:build` skips the normal CLASSIFY → BUILD loop and instead **decomposes work into a persisted task tree**. This gives you control and visibility over long or multi-session work.
+
+### What it does
+
+1. **Identify the scope** — from description or existing task ID
+2. **Decompose** into the task hierarchy: phase → milestone → task → subtask (use whatever levels fit the scope)
+3. **Persist** via `brana backlog add` CLI — every node in the tree becomes a real task with dependencies
+4. **Present** the tree for approval before persisting
+
+### Hierarchy rules
+
+| Type | Prefix | When to use |
+|------|--------|-------------|
+| `phase` | `ph-` | Large initiatives spanning weeks (e.g., "Phase 3: Hook system") |
+| `milestone` | `ms-` | Checkpoints within a phase, deliverable in days |
+| `task` | `t-` | Atomic work units, one branch each |
+| `subtask` | `st-` | Steps within a task, too small for their own branch |
+
+**Right-size the decomposition:** A 3-file bug fix doesn't need phases. A new subsystem does. Use the minimum hierarchy depth that gives useful visibility.
+
+### Flow
+
+1. **Analyze scope** — read task metadata (if ID given) or parse description
+2. **Research if needed** — quick codebase scan to understand what's involved (files, dependencies, blast radius)
+3. **Draft tree** — present as a table:
+   ```
+   ## Task Tree: {title}
+
+   | ID | Type | Subject | Parent | Blocked by | Effort |
+   |----|------|---------|--------|------------|--------|
+   | ph-N | phase | Phase name | — | — | L |
+   | ms-N | milestone | Milestone name | ph-N | — | M |
+   | t-N | task | Task name | ms-N | — | S |
+   | t-N+1 | task | Next task | ms-N | t-N | S |
+   ```
+4. **Get approval** via AskUserQuestion:
+   ```
+   question: "Task tree ready. Persist it?"
+   options: ["Approve", "Adjust", "Cancel"]
+   ```
+5. **Persist** — create all tasks via CLI in dependency order:
+   ```bash
+   brana backlog add --json '{"subject":"...","type":"phase","stream":"roadmap",...}'
+   brana backlog add --json '{"subject":"...","type":"milestone","parent":"ph-N",...}'
+   brana backlog add --json '{"subject":"...","type":"task","parent":"ms-N","blocked_by":["t-N"],...}'
+   ```
+6. **Report** — show the persisted tree with assigned IDs
+
+### Decomposing an existing task
+
+When given a task ID (`/brana:build plan t-123`):
+- Read the task via `brana backlog get t-123`
+- The existing task becomes the parent (or is promoted to milestone/phase if appropriate)
+- Subtasks inherit the parent's stream and tags
+- Set the parent's `build_step` to `plan`
+
+### Integration with normal build
+
+After planning, the user can start any task with `/brana:backlog start <id>` which enters the normal build loop (CLASSIFY → SPECIFY → BUILD → CLOSE). The plan provides the roadmap; the build loop executes each piece.
 
 ---
 
@@ -149,10 +213,9 @@ At any point during the build, the user can say "this is actually a {type}" and 
 
 ## Step 2: PROCESS PLAN
 
-**Mandatory for Medium/Large builds.** After CLASSIFY confirms the strategy, enter plan mode and present the full step sequence before executing any step.
+**Mandatory for Medium/Large builds.** After CLASSIFY confirms the strategy, present the step sequence and get approval before executing.
 
-1. **Enter plan mode** — call `EnterPlanMode`.
-2. **Present the strategy's step sequence** as a numbered plan:
+1. **Present the strategy's step sequence** as a numbered plan:
    ```
    ## Build Plan: {task subject}
    Strategy: {detected strategy}
@@ -165,11 +228,15 @@ At any point during the build, the user can say "this is actually a {type}" and 
    4. CLOSE — validate, retrospective, docs, merge
    ```
    Adapt the steps to the detected strategy (bug fix uses REPRODUCE → DIAGNOSE → FIX → CLOSE, etc.).
-3. **Call `ExitPlanMode`** — this prompts the user to approve or adjust the plan.
-4. **If the user adjusts**, incorporate changes and re-enter plan mode if needed.
-5. **Proceed to the first step** of the approved strategy.
+2. **Get approval** via AskUserQuestion:
+   ```
+   question: "Build plan above. Proceed?"
+   options: ["Approve", "Adjust", "Cancel"]
+   ```
+3. **If the user adjusts**, incorporate changes and re-present.
+4. **Proceed to the first step** of the approved strategy.
 
-For **Trivial/Small** builds: skip plan mode, proceed directly. State the steps inline: "This is small — I'll SPECIFY (light) → BUILD → CLOSE."
+For **Trivial/Small** builds: skip the approval gate, proceed directly. State the steps inline: "This is small — I'll SPECIFY (light) → BUILD → CLOSE."
 
 ---
 
@@ -180,8 +247,6 @@ SPECIFY → PLAN → BUILD → CLOSE
 ```
 
 ### SPECIFY (interactive, open-ended)
-
-**Plan mode:** Enter plan mode for the research loop (read-only exploration). Exit plan mode before writing the feature spec.
 
 The user controls the pace. Stay in the research→discuss loop until the user says to move on.
 
@@ -381,8 +446,6 @@ REPRODUCE → DIAGNOSE → FIX → CLOSE
 
 ### DIAGNOSE
 
-**Plan mode:** Enter plan mode for diagnosis (read-only analysis). Exit plan mode before presenting the fix proposal.
-
 1. **Read the code path** — trace from symptom to root cause.
 2. **Identify root cause** — not just the symptom, the underlying reason.
 3. **Present diagnosis** to user:
@@ -552,8 +615,6 @@ No branch. No commits. Read-only. May lead to a build.
 3. **Form hypotheses** — list possible causes, ordered by likelihood.
 
 ### INVESTIGATE
-
-**Plan mode:** Enter plan mode for the entire investigation (read-only analysis). Exit plan mode before the REPORT step.
 
 1. **Test hypotheses one by one:**
    - Read code paths
