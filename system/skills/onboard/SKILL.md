@@ -1,6 +1,7 @@
 ---
 name: onboard
 description: "Scan and diagnose a project — tech stack, structure, stage, gaps, patterns. Works for code and venture clients. Auto-detects project type. Use when entering an unfamiliar project for the first time."
+argument-hint: "[project-path]"
 group: execution
 allowed-tools:
   - Bash

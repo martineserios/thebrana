@@ -1,6 +1,7 @@
 ---
 name: memory
 description: "Knowledge system operations — recall patterns, cross-pollinate across clients, review knowledge health, audit docs for contradictions. Subcommands: recall, pollinate, review, review --audit. Use for pattern queries, cross-client transfer, monthly knowledge audits, or contradiction detection."
+argument-hint: "[recall|pollinate|review|review --audit] [query]"
 group: learning
 allowed-tools:
   - Bash

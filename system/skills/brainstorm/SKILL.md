@@ -1,6 +1,7 @@
 ---
 name: brainstorm
 description: "Interactive idea maturation — explore, research, shape raw ideas into actionable plans. Use when you have a rough idea and want to think it through."
+argument-hint: "[idea or topic]"
 group: thinking
 allowed-tools:
   - Read

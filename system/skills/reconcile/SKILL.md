@@ -1,6 +1,7 @@
 ---
 name: reconcile
 description: "Detect drift between spec docs and system/ implementation, plan fixes, apply after approval. Use after /brana:maintain-specs changes or periodically to sync specs with implementation."
+argument-hint: "[scope]"
 group: brana
 allowed-tools:
   - Bash

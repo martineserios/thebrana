@@ -1,6 +1,7 @@
 ---
 name: scheduler
 description: Scheduled jobs.
+argument-hint: "[status|logs|enable|disable|run|validate|deploy|teardown] [job]"
 group: utility
 allowed-tools:
   - Bash

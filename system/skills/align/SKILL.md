@@ -1,6 +1,7 @@
 ---
 name: align
 description: "Actively align a project with brana practices — assess gaps, plan fixes, implement structure, verify. Works for code and venture clients. Auto-detects type. Use when setting up a new project or realigning an existing one."
+argument-hint: "[project-path]"
 group: execution
 depends_on:
   - onboard
