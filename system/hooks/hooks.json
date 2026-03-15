@@ -34,6 +34,18 @@
         ]
       }
     ],
+    "TaskCompleted": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/step-completed.sh",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
     "SessionEnd": [
       {
         "matcher": "",

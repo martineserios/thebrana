@@ -285,6 +285,16 @@ if [ -f "$SETTINGS_FILE" ] && command -v jq &>/dev/null; then
                         "timeout": 5000
                     }]
                 }
+            ],
+            "TaskCompleted": [
+                {
+                    "matcher": "",
+                    "hooks": [{
+                        "type": "command",
+                        "command": ($hooks_dir + "/step-completed.sh"),
+                        "timeout": 5000
+                    }]
+                }
             ]
         }')
 
