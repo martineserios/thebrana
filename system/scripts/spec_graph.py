@@ -328,6 +328,38 @@ def build_graph(
                 if src not in nodes[ref]["referenced_by"]:
                     nodes[ref]["referenced_by"].append(src)
 
+    # Doc routing pass — classify docs by path prefix and build reverse index
+    # For each impl_file, find which guide/arch/ref docs reference it
+    impl_to_guide: dict[str, list[str]] = {}
+    impl_to_arch: dict[str, list[str]] = {}
+    impl_to_ref: dict[str, list[str]] = {}
+
+    for doc_key, data in nodes.items():
+        for impl_file in data["impl_files"]:
+            if doc_key.startswith("docs/guide/"):
+                impl_to_guide.setdefault(impl_file, []).append(doc_key)
+            elif doc_key.startswith("docs/architecture/"):
+                impl_to_arch.setdefault(impl_file, []).append(doc_key)
+            elif doc_key.startswith("docs/reference/"):
+                impl_to_ref.setdefault(impl_file, []).append(doc_key)
+
+    # Assign routing fields to each node based on shared impl_files
+    for doc_key, data in nodes.items():
+        guide_set: set[str] = set()
+        arch_set: set[str] = set()
+        ref_set: set[str] = set()
+        for impl_file in data["impl_files"]:
+            guide_set.update(impl_to_guide.get(impl_file, []))
+            arch_set.update(impl_to_arch.get(impl_file, []))
+            ref_set.update(impl_to_ref.get(impl_file, []))
+        # Don't include self-references
+        guide_set.discard(doc_key)
+        arch_set.discard(doc_key)
+        ref_set.discard(doc_key)
+        data["guide_files"] = sorted(guide_set)
+        data["arch_files"] = sorted(arch_set)
+        data["ref_files"] = sorted(ref_set)
+
     # Dedup typed edges (same from/to/type)
     seen_edges: set[tuple[str, str, str]] = set()
     deduped_typed: list[dict[str, str]] = []

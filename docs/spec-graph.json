@@ -1,11 +1,11 @@
 {
   "_meta": {
-    "generated": "2026-03-14T13:35:22Z",
-    "node_count": 173,
-    "edge_count": 534,
-    "impl_ref_count": 195,
-    "orphan_count": 75,
-    "typed_edge_count": 18
+    "generated": "2026-03-15T16:33:02Z",
+    "node_count": 182,
+    "edge_count": 549,
+    "impl_ref_count": 209,
+    "orphan_count": 80,
+    "typed_edge_count": 0
   },
   "nodes": {
     "docs/00-user-practices.md": {
@@ -25,7 +25,10 @@
         "docs/reflections/32-lifecycle.md",
         "docs/reflections/31-assurance.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/15-self-development-workflow.md": {
       "references": [
@@ -45,7 +48,10 @@
         "system/skills/memory/SKILL.md`",
         "system/commands/pattern-confidence.md`",
         "system/agents/system-reviewer.md`"
-      ]
+      ],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/17-implementation-roadmap.md": {
       "references": [
@@ -79,7 +85,14 @@
       "impl_files": [
         "system/skill-catalog.yaml`",
         "system/settings.json`"
-      ]
+      ],
+      "guide_files": [],
+      "arch_files": [
+        "docs/architecture/extending.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": []
     },
     "docs/18-lean-roadmap.md": {
       "references": [
@@ -116,6 +129,31 @@
         "system/skills/project-onboard/SKILL.md`",
         "system/skills/`",
         "system/`"
+      ],
+      "guide_files": [
+        "docs/guide/configuration.md",
+        "docs/guide/getting-started.md",
+        "docs/guide/philosophy.md",
+        "docs/guide/upgrading.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/acquire-skills-guide.md",
+        "docs/architecture/features/cascade-throttle.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/overview.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/configuration.md",
+        "docs/reference/scripts.md",
+        "docs/reference/skills.md"
       ]
     },
     "docs/19-pm-system-design.md": {
@@ -132,7 +170,10 @@
         "docs/dimensions/20-anthropic-blog-findings.md",
         "docs/dimensions/34-venture-operating-system.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/24-roadmap-corrections.audit-2026-03-02.md": {
       "references": [
@@ -141,7 +182,10 @@
       "referenced_by": [],
       "impl_files": [
         "system/skills/"
-      ]
+      ],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/24-roadmap-corrections.md": {
       "references": [
@@ -203,6 +247,34 @@
         "system/scripts/gh-sync.sh`",
         "system/hooks/task-sync.sh`",
         "system/skills/meta-template/SKILL.md`"
+      ],
+      "guide_files": [
+        "docs/guide/concepts.md",
+        "docs/guide/configuration.md",
+        "docs/guide/getting-started.md",
+        "docs/guide/philosophy.md",
+        "docs/guide/upgrading.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/acquire-skills-guide.md",
+        "docs/architecture/features/github-issues-sync.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/features/test-lint-feedback-hook.md",
+        "docs/architecture/overview.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/commands.md",
+        "docs/reference/configuration.md",
+        "docs/reference/scripts.md",
+        "docs/reference/skills.md"
       ]
     },
     "docs/25-self-documentation.md": {
@@ -237,7 +309,13 @@
       ],
       "impl_files": [
         "system/hooks/session-start.sh`"
-      ]
+      ],
+      "guide_files": [],
+      "arch_files": [
+        "docs/architecture/features/test-lint-feedback-hook.md",
+        "docs/architecture/system-documentation-map.md"
+      ],
+      "ref_files": []
     },
     "docs/30-backlog.md": {
       "references": [
@@ -261,7 +339,10 @@
       "referenced_by": [],
       "impl_files": [
         "system/agents/"
-      ]
+      ],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/39-architecture-redesign.md": {
       "references": [
@@ -281,6 +362,29 @@
         "system/commands/`",
         "system/`",
         "system/scripts/index-knowledge.sh`"
+      ],
+      "guide_files": [
+        "docs/guide/concepts.md",
+        "docs/guide/configuration.md",
+        "docs/guide/getting-started.md",
+        "docs/guide/philosophy.md",
+        "docs/guide/upgrading.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/overview.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/commands.md",
+        "docs/reference/scripts.md",
+        "docs/reference/skills.md"
       ]
     },
     "docs/README.md": {
@@ -364,7 +468,10 @@
         "content/ideas.md"
       ],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/agents.md": {
       "references": [
@@ -373,6 +480,15 @@
       "referenced_by": [],
       "impl_files": [
         "system/agents/`"
+      ],
+      "guide_files": [
+        "docs/guide/concepts.md"
+      ],
+      "arch_files": [
+        "docs/architecture/plugin-structure.md"
+      ],
+      "ref_files": [
+        "docs/reference/agents.md"
       ]
     },
     "docs/architecture/building-methodology.md": {
@@ -383,7 +499,10 @@
         "docs/reflections/31-assurance.md"
       ],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md": {
       "references": [
@@ -396,6 +515,21 @@
         "system/hooks/`",
         "system/rules/`",
         "system/config/`"
+      ],
+      "guide_files": [
+        "docs/guide/concepts.md"
+      ],
+      "arch_files": [
+        "docs/architecture/features/acquire-skills-guide.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/posttooluse-workaround.md",
+        "docs/architecture/system-documentation-map.md"
+      ],
+      "ref_files": [
+        "docs/reference/configuration.md",
+        "docs/reference/rules.md",
+        "docs/reference/skills.md"
       ]
     },
     "docs/architecture/decisions/ADR-002-scheduler-thin-layer-over-systemd.md": {
@@ -404,34 +538,50 @@
         "docs/architecture/dimensions/05-claude-flow-v3-analysis.md"
       ],
       "referenced_by": [
+        "docs/reflections/ARCHITECTURE.md",
         "docs/reflections/14-mastermind-architecture.md",
         "docs/architecture/features/scheduler.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md": {
       "references": [
         "docs/architecture/19-pm-system-design.md"
       ],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/decisions/ADR-004-session-handoff-self-learning-loop.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md": {
       "references": [],
       "referenced_by": [
         "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md": {
       "references": [
@@ -443,6 +593,26 @@
       "referenced_by": [],
       "impl_files": [
         "system/`"
+      ],
+      "guide_files": [
+        "docs/guide/configuration.md",
+        "docs/guide/getting-started.md",
+        "docs/guide/philosophy.md",
+        "docs/guide/upgrading.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/overview.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/scripts.md",
+        "docs/reference/skills.md"
       ]
     },
     "docs/architecture/decisions/ADR-007-verify-counts-deploy-hook.md": {
@@ -450,12 +620,18 @@
       "referenced_by": [],
       "impl_files": [
         "system/scripts/verify-counts.sh`"
-      ]
+      ],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/decisions/ADR-008-smart-tasks-add-suggest-only.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/decisions/ADR-009-test-lint-feedback-hook.md": {
       "references": [
@@ -464,7 +640,10 @@
         "docs/architecture/features/test-lint-feedback-hook.md"
       ],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/decisions/ADR-010-pr-review-agent.md": {
       "references": [
@@ -474,18 +653,28 @@
         "ADR-009-test-lint-feedback-hook.md"
       ],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/decisions/ADR-011-skills-bundling.md": {
       "references": [
         "docs/.claude/tasks.json",
         "docs/deploy.sh"
       ],
-      "referenced_by": [],
+      "referenced_by": [
+        "docs/reflections/ARCHITECTURE.md"
+      ],
       "impl_files": [
         "system/scripts/`",
         "docs/system/skills/knowledge/SKILL.md",
         "system/skills/knowledge/SKILL.md"
+      ],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": [
+        "docs/reference/scripts.md"
       ]
     },
     "docs/architecture/decisions/ADR-012-acquire-skills.md": {
@@ -496,6 +685,14 @@
       "impl_files": [
         "system/skills/acquired/`",
         "system/skills/acquired/<name>/`"
+      ],
+      "guide_files": [],
+      "arch_files": [
+        "docs/architecture/features/acquire-skills.md",
+        "docs/architecture/skills.md"
+      ],
+      "ref_files": [
+        "docs/reference/skills.md"
       ]
     },
     "docs/architecture/decisions/ADR-013-event-log.md": {
@@ -503,7 +700,10 @@
       "referenced_by": [
         "docs/architecture/features/event-log.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/decisions/ADR-014-plugin-management-skill.md": {
       "references": [],
@@ -511,6 +711,27 @@
       "impl_files": [
         "system/`",
         "system/.claude-plugin/plugin.json`"
+      ],
+      "guide_files": [
+        "docs/guide/configuration.md",
+        "docs/guide/getting-started.md",
+        "docs/guide/philosophy.md",
+        "docs/guide/upgrading.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/overview.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/configuration.md",
+        "docs/reference/scripts.md",
+        "docs/reference/skills.md"
       ]
     },
     "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md": {
@@ -526,7 +747,10 @@
         "system/state/patterns-export.json`",
         "system/scripts/import-patterns.sh`",
         "system/scripts/sync-state.sh`"
-      ]
+      ],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/decisions/ADR-016-spec-dependency-graph.md": {
       "references": [
@@ -538,7 +762,12 @@
       "impl_files": [
         "system/scripts/spec_graph.py`",
         "system/skills/build`"
-      ]
+      ],
+      "guide_files": [],
+      "arch_files": [
+        "docs/architecture/knowledge-system-extending.md"
+      ],
+      "ref_files": []
     },
     "docs/architecture/decisions/ADR-017-decision-log.md": {
       "references": [],
@@ -548,15 +777,24 @@
       ],
       "impl_files": [
         "system/state/decisions/`"
+      ],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": [
+        "docs/reference/scripts.md"
       ]
     },
     "docs/architecture/decisions/ADR-018-dynamic-model-routing.md": {
       "references": [],
       "referenced_by": [
         "docs/reflections/08-diagnosis.md",
+        "docs/reflections/ARCHITECTURE.md",
         "docs/reflections/14-mastermind-architecture.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/decisions/ADR-019-brana-chat-sessions.md": {
       "references": [
@@ -564,10 +802,14 @@
       ],
       "referenced_by": [
         "docs/reflections/08-diagnosis.md",
+        "docs/reflections/ARCHITECTURE.md",
         "docs/reflections/29-venture-management-reflection.md",
         "docs/reflections/14-mastermind-architecture.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md": {
       "references": [
@@ -575,7 +817,10 @@
         "docs/architecture/features/knowledge-architecture-v2.md"
       ],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/decisions/ADR-022-brana-cli.md": {
       "references": [],
@@ -583,14 +828,35 @@
       "impl_files": [
         "system/cli/aliases.sh`",
         "system/cli/themes.json`"
-      ]
+      ],
+      "guide_files": [
+        "docs/guide/cli.md"
+      ],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/architecture/decisions/ADR-023-rust-cli-dispatcher.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/extending-agents.md": {
       "references": [],
       "referenced_by": [],
       "impl_files": [
         "system/CLAUDE.md`"
-      ]
+      ],
+      "guide_files": [],
+      "arch_files": [
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": []
     },
     "docs/architecture/extending-hooks.md": {
       "references": [
@@ -600,12 +866,30 @@
       "impl_files": [
         "system/hooks/hooks.json`",
         "system/hooks/my-hook.sh`"
+      ],
+      "guide_files": [
+        "docs/guide/configuration.md"
+      ],
+      "arch_files": [
+        "docs/architecture/extending.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/hooks.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/posttooluse-workaround.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/hooks.md"
       ]
     },
     "docs/architecture/extending-skills.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/extending.md": {
       "references": [],
@@ -618,6 +902,29 @@
         "system/settings.json`",
         "system/agents/my-agent.md`",
         "system/rules/delegation-routing.md`"
+      ],
+      "guide_files": [
+        "docs/guide/configuration.md",
+        "docs/guide/getting-started.md",
+        "docs/guide/philosophy.md",
+        "docs/guide/upgrading.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/extending-hooks.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/features/research-stream.md",
+        "docs/architecture/features/skill-utilization-tracking.md",
+        "docs/architecture/overview.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/scripts.md",
+        "docs/reference/skills.md"
       ]
     },
     "docs/architecture/features/acquire-skills-guide.md": {
@@ -628,6 +935,15 @@
       "referenced_by": [],
       "impl_files": [
         "system/skills/`"
+      ],
+      "guide_files": [],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+        "docs/architecture/plugin-structure.md"
+      ],
+      "ref_files": [
+        "docs/reference/configuration.md",
+        "docs/reference/skills.md"
       ]
     },
     "docs/architecture/features/acquire-skills.md": {
@@ -636,17 +952,33 @@
       "impl_files": [
         "system/skills/acquired/`",
         "system/skills/acquired/<name>/`"
+      ],
+      "guide_files": [],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-012-acquire-skills.md",
+        "docs/architecture/skills.md"
+      ],
+      "ref_files": [
+        "docs/reference/skills.md"
       ]
     },
     "docs/architecture/features/agentdb-v3-upgrade-evaluation.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/brana-cli.md": {
-      "references": [],
+      "references": [
+        "docs/architecture/guide/cli.md"
+      ],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/build-close-auto-docs.md": {
       "references": [],
@@ -656,12 +988,18 @@
         "system/skills/build/SKILL.md`",
         "system/skills/build/templates/tech-doc.md`",
         "system/skills/build/templates/user-guide.md`"
-      ]
+      ],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/build-loop-redesign.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/cascade-throttle.md": {
       "references": [
@@ -672,7 +1010,21 @@
       "impl_files": [
         "system/hooks/post-tool-use-failure.sh`",
         "system/hooks/pre-tool-use.sh`"
-      ]
+      ],
+      "guide_files": [],
+      "arch_files": [
+        "docs/architecture/features/test-lint-feedback-hook.md",
+        "docs/architecture/system-documentation-map.md"
+      ],
+      "ref_files": []
+    },
+    "docs/architecture/features/cli-composable-tool.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/context-budget-real-limits.md": {
       "references": [
@@ -680,14 +1032,20 @@
         "docs/architecture/reflections/08-diagnosis.md"
       ],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/event-log.md": {
       "references": [
         "docs/architecture/decisions/ADR-013-event-log.md"
       ],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/github-issues-sync.md": {
       "references": [],
@@ -695,8 +1053,13 @@
       "impl_files": [
         "system/hooks/task-sync.sh`",
         "system/scripts/gh-sync.sh`",
-        "system/hooks/task-sync.py`"
-      ]
+        "system/hooks/task-sync.py`",
+        "system/cli/rust/src/sync.rs`",
+        "system/cli/rust/src/cli.rs`"
+      ],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/knowledge-architecture-v2.md": {
       "references": [
@@ -707,7 +1070,10 @@
       ],
       "impl_files": [
         "system/scripts/second-phase-check.sh`"
-      ]
+      ],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/linkedin-content-pipeline/brief.md": {
       "references": [
@@ -719,7 +1085,10 @@
         "product-insights.md"
       ],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/linkedin-content-pipeline/challenge-2026-03-03.md": {
       "references": [
@@ -727,7 +1096,10 @@
         "docs/dimensions/43-linkedin-personal-brand-strategy.md"
       ],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/linkedin-content-pipeline/implementation.md": {
       "references": [
@@ -737,42 +1109,66 @@
         "product-insights.md"
       ],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/linkedin-content-pipeline/nlm-visual-test/prompt.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/linkedin-content-pipeline/nlm-visual-test/style-1-sketch.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/linkedin-content-pipeline/nlm-visual-test/style-2-blueprint.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/linkedin-content-pipeline/nlm-visual-test/style-3-minimalist.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/linkedin-content-pipeline/nlm-visual-test/style-4-darkmode.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/linkedin-content-pipeline/nlm-visual-test/style-5-organic.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/linkedin-content-pipeline/nlm-visual-test/system-content.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/linkedin-content-pipeline/product-insights.md": {
       "references": [
@@ -782,14 +1178,20 @@
         "brief.md"
       ],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/linkedin-content-pipeline/profile-update-guide.md": {
       "references": [
         "brief.md"
       ],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/linkedin-content-pipeline/research-positioning-2026-03-03.md": {
       "references": [
@@ -797,24 +1199,44 @@
         "brief.md"
       ],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/linkedin-content-pipeline/voice-tone-guide.md": {
       "references": [
         "brief.md"
       ],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/architecture/features/living-docs.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/neix-ai-consulting-proposal.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/personal-bot-oci-deploy.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/plugin-packaging.md": {
       "references": [],
@@ -828,12 +1250,44 @@
         "system/rules",
         "system/CLAUDE.md",
         "system/hooks/`"
+      ],
+      "guide_files": [
+        "docs/guide/concepts.md",
+        "docs/guide/configuration.md",
+        "docs/guide/getting-started.md",
+        "docs/guide/philosophy.md",
+        "docs/guide/upgrading.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/extending-agents.md",
+        "docs/architecture/extending-hooks.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/research-stream.md",
+        "docs/architecture/features/skill-utilization-tracking.md",
+        "docs/architecture/hooks.md",
+        "docs/architecture/overview.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/posttooluse-workaround.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/hooks.md",
+        "docs/reference/scripts.md",
+        "docs/reference/skills.md"
       ]
     },
     "docs/architecture/features/project-metadata.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/research-stream.md": {
       "references": [],
@@ -842,12 +1296,27 @@
         "system/rules/task-convention.md`",
         "system/skills/backlog/SKILL.md`",
         "system/rules/delegation-routing.md`"
-      ]
+      ],
+      "guide_files": [
+        "docs/guide/workflows/model-routing.md"
+      ],
+      "arch_files": [
+        "docs/architecture/extending.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/features/skill-utilization-tracking.md",
+        "docs/architecture/features/tasks-portfolio.md",
+        "docs/architecture/features/tasks-theme-system.md",
+        "docs/architecture/features/tasks-wide-mode.md"
+      ],
+      "ref_files": []
     },
     "docs/architecture/features/scheduler-hardening.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/scheduler.md": {
       "references": [
@@ -859,7 +1328,10 @@
       "referenced_by": [],
       "impl_files": [
         "system/scheduler/`"
-      ]
+      ],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/skill-utilization-tracking.md": {
       "references": [
@@ -869,45 +1341,91 @@
       "impl_files": [
         "system/rules/delegation-routing.md`",
         "system/hooks/post-tool-use.sh`"
-      ]
+      ],
+      "guide_files": [],
+      "arch_files": [
+        "docs/architecture/extending.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/features/research-stream.md",
+        "docs/architecture/features/test-lint-feedback-hook.md",
+        "docs/architecture/posttooluse-workaround.md",
+        "docs/architecture/system-documentation-map.md"
+      ],
+      "ref_files": []
     },
     "docs/architecture/features/smart-tasks-add.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/staleness-and-memory-pipeline.md": {
       "references": [
         "docs/architecture/25-self-documentation.md"
       ],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/task-management-system.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/tasks-portfolio.md": {
       "references": [],
       "referenced_by": [],
       "impl_files": [
         "system/skills/backlog/SKILL.md`"
-      ]
+      ],
+      "guide_files": [
+        "docs/guide/workflows/model-routing.md"
+      ],
+      "arch_files": [
+        "docs/architecture/features/research-stream.md",
+        "docs/architecture/features/tasks-theme-system.md",
+        "docs/architecture/features/tasks-wide-mode.md"
+      ],
+      "ref_files": []
     },
     "docs/architecture/features/tasks-theme-system.md": {
       "references": [],
       "referenced_by": [],
       "impl_files": [
         "system/skills/backlog/SKILL.md`"
-      ]
+      ],
+      "guide_files": [
+        "docs/guide/workflows/model-routing.md"
+      ],
+      "arch_files": [
+        "docs/architecture/features/research-stream.md",
+        "docs/architecture/features/tasks-portfolio.md",
+        "docs/architecture/features/tasks-wide-mode.md"
+      ],
+      "ref_files": []
     },
     "docs/architecture/features/tasks-wide-mode.md": {
       "references": [],
       "referenced_by": [],
       "impl_files": [
         "system/skills/backlog/SKILL.md`"
-      ]
+      ],
+      "guide_files": [
+        "docs/guide/workflows/model-routing.md"
+      ],
+      "arch_files": [
+        "docs/architecture/features/research-stream.md",
+        "docs/architecture/features/tasks-portfolio.md",
+        "docs/architecture/features/tasks-theme-system.md"
+      ],
+      "ref_files": []
     },
     "docs/architecture/features/test-lint-feedback-hook.md": {
       "references": [
@@ -921,7 +1439,15 @@
         "system/hooks/post-tool-use-failure.sh`",
         "system/hooks/session-end.sh`",
         "system/hooks/session-start.sh`"
-      ]
+      ],
+      "guide_files": [],
+      "arch_files": [
+        "docs/architecture/features/cascade-throttle.md",
+        "docs/architecture/features/skill-utilization-tracking.md",
+        "docs/architecture/posttooluse-workaround.md",
+        "docs/architecture/system-documentation-map.md"
+      ],
+      "ref_files": []
     },
     "docs/architecture/hooks.md": {
       "references": [
@@ -931,6 +1457,40 @@
       "referenced_by": [],
       "impl_files": [
         "system/hooks/hooks.json`"
+      ],
+      "guide_files": [
+        "docs/guide/configuration.md"
+      ],
+      "arch_files": [
+        "docs/architecture/extending-hooks.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/posttooluse-workaround.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/hooks.md"
+      ]
+    },
+    "docs/architecture/knowledge-system-extending.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [
+        "system/scripts/spec_graph.py`",
+        "system/skills/close/SKILL.md`",
+        "system/skills/research/SKILL.md`",
+        "system/scripts/index-assumptions.sh`",
+        "system/scripts/spec_graph.py"
+      ],
+      "guide_files": [
+        "docs/guide/workflows/spec-graph.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-016-spec-dependency-graph.md"
+      ],
+      "ref_files": [
+        "docs/reference/scripts.md"
       ]
     },
     "docs/architecture/overview.md": {
@@ -943,6 +1503,26 @@
       "referenced_by": [],
       "impl_files": [
         "system/`"
+      ],
+      "guide_files": [
+        "docs/guide/configuration.md",
+        "docs/guide/getting-started.md",
+        "docs/guide/philosophy.md",
+        "docs/guide/upgrading.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/scripts.md",
+        "docs/reference/skills.md"
       ]
     },
     "docs/architecture/plugin-structure.md": {
@@ -958,6 +1538,38 @@
         "system/`",
         "system/hooks/hooks.json`",
         "system/hooks/lib/`"
+      ],
+      "guide_files": [
+        "docs/guide/concepts.md",
+        "docs/guide/configuration.md",
+        "docs/guide/getting-started.md",
+        "docs/guide/philosophy.md",
+        "docs/guide/upgrading.md"
+      ],
+      "arch_files": [
+        "docs/architecture/agents.md",
+        "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/extending-agents.md",
+        "docs/architecture/extending-hooks.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/acquire-skills-guide.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/hooks.md",
+        "docs/architecture/overview.md",
+        "docs/architecture/posttooluse-workaround.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/agents.md",
+        "docs/reference/commands.md",
+        "docs/reference/configuration.md",
+        "docs/reference/hooks.md",
+        "docs/reference/scripts.md",
+        "docs/reference/skills.md"
       ]
     },
     "docs/architecture/posttooluse-workaround.md": {
@@ -967,6 +1579,24 @@
         "system/hooks/`",
         "system/hooks/hooks.json`",
         "system/hooks/post-tool-use.sh`"
+      ],
+      "guide_files": [
+        "docs/guide/concepts.md",
+        "docs/guide/configuration.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+        "docs/architecture/extending-hooks.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/features/skill-utilization-tracking.md",
+        "docs/architecture/features/test-lint-feedback-hook.md",
+        "docs/architecture/hooks.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/hooks.md"
       ]
     },
     "docs/architecture/skills.md": {
@@ -980,6 +1610,30 @@
         "system/skills/acquired/`",
         "system/commands/`",
         "system/skills/acquired/<name>/SKILL.md`"
+      ],
+      "guide_files": [
+        "docs/guide/concepts.md",
+        "docs/guide/configuration.md",
+        "docs/guide/getting-started.md",
+        "docs/guide/philosophy.md",
+        "docs/guide/upgrading.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+        "docs/architecture/decisions/ADR-012-acquire-skills.md",
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/acquire-skills.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/overview.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/commands.md",
+        "docs/reference/scripts.md",
+        "docs/reference/skills.md"
       ]
     },
     "docs/architecture/system-documentation-map.md": {
@@ -1005,6 +1659,38 @@
         "system/hooks/session-start-venture.sh`",
         "system/hooks/session-end.sh`",
         "system/hooks/lib/`"
+      ],
+      "guide_files": [
+        "docs/guide/concepts.md",
+        "docs/guide/configuration.md",
+        "docs/guide/getting-started.md",
+        "docs/guide/philosophy.md",
+        "docs/guide/upgrading.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/extending-agents.md",
+        "docs/architecture/extending-hooks.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/cascade-throttle.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/features/skill-utilization-tracking.md",
+        "docs/architecture/features/test-lint-feedback-hook.md",
+        "docs/architecture/hooks.md",
+        "docs/architecture/overview.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/posttooluse-workaround.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/configuration.md",
+        "docs/reference/hooks.md",
+        "docs/reference/rules.md",
+        "docs/reference/scripts.md",
+        "docs/reference/skills.md"
       ]
     },
     "docs/architecture/testing-validation.md": {
@@ -1016,6 +1702,33 @@
         "system/`",
         "system/hooks/hooks.json`",
         "system/commands/`"
+      ],
+      "guide_files": [
+        "docs/guide/concepts.md",
+        "docs/guide/configuration.md",
+        "docs/guide/getting-started.md",
+        "docs/guide/philosophy.md",
+        "docs/guide/upgrading.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/extending-agents.md",
+        "docs/architecture/extending-hooks.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/hooks.md",
+        "docs/architecture/overview.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/posttooluse-workaround.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/system-documentation-map.md"
+      ],
+      "ref_files": [
+        "docs/reference/commands.md",
+        "docs/reference/hooks.md",
+        "docs/reference/scripts.md",
+        "docs/reference/skills.md"
       ]
     },
     "docs/archive/reflections/14-mastermind-architecture.md": {
@@ -1044,11 +1757,36 @@
         "docs/archive/architecture/decisions/ADR-017-decision-log.md",
         "brana-knowledge/dimensions/45-turboflow-agent-orchestration.md"
       ],
-      "referenced_by": [],
+      "referenced_by": [
+        "docs/reflections/component-index.md",
+        "docs/reflections/ARCHITECTURE.md"
+      ],
       "impl_files": [
         "system/`",
         "system/scripts/decisions.py`",
         "system/state/decisions/`"
+      ],
+      "guide_files": [
+        "docs/guide/configuration.md",
+        "docs/guide/getting-started.md",
+        "docs/guide/philosophy.md",
+        "docs/guide/upgrading.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/decisions/ADR-017-decision-log.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/overview.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/scripts.md",
+        "docs/reference/skills.md"
       ]
     },
     "docs/backlog-urls.md": {
@@ -1056,41 +1794,62 @@
         "30-backlog.md"
       ],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/content/ideas.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/content/lens.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/01-brana-system-analysis.md": {
       "references": [],
       "referenced_by": [
         "docs/reflections/08-diagnosis.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/02-nexeye-skill-selection.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/03-pm-framework.md": {
       "references": [],
       "referenced_by": [
         "docs/reflections/29-venture-management-reflection.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/04-claude-4.6-capabilities.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/05-claude-flow-v3-analysis.md": {
       "references": [
@@ -1098,12 +1857,18 @@
         "06-claude-flow-internals.md"
       ],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/06-claude-flow-internals.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/07-claude-flow-plus-claude-4.6.md": {
       "references": [
@@ -1112,7 +1877,10 @@
       "referenced_by": [
         "docs/dimensions/05-claude-flow-v3-analysis.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/09-claude-code-native-features.md": {
       "references": [
@@ -1122,7 +1890,10 @@
         "docs/reflections/08-diagnosis.md",
         "docs/dimensions/35-context-engineering-principles.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/10-statusline-research.md": {
       "references": [
@@ -1132,7 +1903,10 @@
         "docs/reflections/08-diagnosis.md",
         "docs/dimensions/27-project-alignment-methodology.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/11-ecosystem-skills-plugins.md": {
       "references": [
@@ -1144,7 +1918,10 @@
         "docs/dimensions/27-project-alignment-methodology.md",
         "docs/dimensions/12-skill-selector.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/12-skill-selector.md": {
       "references": [
@@ -1159,7 +1936,10 @@
         "docs/dimensions/13-challenger-agent.md",
         "docs/dimensions/16-knowledge-health.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/13-challenger-agent.md": {
       "references": [
@@ -1172,7 +1952,10 @@
       "referenced_by": [
         "docs/reflections/08-diagnosis.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/16-knowledge-health.md": {
       "references": [
@@ -1186,7 +1969,10 @@
         "docs/dimensions/35-context-engineering-principles.md",
         "docs/dimensions/12-skill-selector.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/20-anthropic-blog-findings.md": {
       "references": [
@@ -1205,7 +1991,10 @@
       "referenced_by": [
         "docs/reflections/08-diagnosis.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/21-anthropic-engineering-deep-dive.md": {
       "references": [],
@@ -1214,7 +2003,10 @@
         "docs/dimensions/13-challenger-agent.md",
         "docs/dimensions/20-anthropic-blog-findings.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/22-testing.md": {
       "references": [
@@ -1226,7 +2018,10 @@
         "docs/reflections/31-assurance.md",
         "docs/dimensions/27-project-alignment-methodology.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/23-evaluation.md": {
       "references": [
@@ -1237,14 +2032,20 @@
       "referenced_by": [
         "docs/reflections/08-diagnosis.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/26-git-branching-strategies.md": {
       "references": [],
       "referenced_by": [
         "docs/reflections/08-diagnosis.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/27-project-alignment-methodology.md": {
       "references": [
@@ -1262,7 +2063,10 @@
         "docs/archive/reflections/14-mastermind-architecture.md",
         "docs/dimensions/10-statusline-research.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/28-startup-smb-management.md": {
       "references": [],
@@ -1270,7 +2074,10 @@
         "docs/reflections/08-diagnosis.md",
         "docs/reflections/29-venture-management-reflection.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/33-research-methodology.md": {
       "references": [
@@ -1288,7 +2095,10 @@
         "docs/reflections/08-diagnosis.md",
         "docs/dimensions/35-context-engineering-principles.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/34-venture-operating-system.md": {
       "references": [
@@ -1305,7 +2115,10 @@
         "docs/reflections/29-venture-management-reflection.md",
         "docs/dimensions/11-ecosystem-skills-plugins.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/35-context-engineering-principles.md": {
       "references": [
@@ -1320,12 +2133,18 @@
         "docs/reflections/08-diagnosis.md",
         "docs/reflections/31-assurance.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/36-claw-ecosystem-chat-interface.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/37-ruvnet-development-practices.md": {
       "references": [
@@ -1336,7 +2155,10 @@
       "referenced_by": [],
       "impl_files": [
         "system/skills/"
-      ]
+      ],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/38-design-thinking.md": {
       "references": [
@@ -1346,35 +2168,50 @@
       "referenced_by": [
         "docs/reflections/08-diagnosis.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/39-kapso-ai-platform.md": {
       "references": [],
       "referenced_by": [
         "docs/architecture/decisions/ADR-019-brana-chat-sessions.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/40-product-discovery-literature.md": {
       "references": [],
       "referenced_by": [
         "docs/architecture/features/linkedin-content-pipeline/product-insights.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/41-growth-metrics-market-strategy-literature.md": {
       "references": [],
       "referenced_by": [
         "docs/architecture/features/linkedin-content-pipeline/product-insights.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/42-product-operations-literature.md": {
       "references": [],
       "referenced_by": [
         "docs/architecture/features/linkedin-content-pipeline/product-insights.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/43-linkedin-personal-brand-strategy.md": {
       "references": [
@@ -1387,17 +2224,26 @@
         "docs/architecture/features/linkedin-content-pipeline/brief.md",
         "docs/architecture/features/linkedin-content-pipeline/challenge-2026-03-03.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/44-systems-thinking-nature.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/45-turboflow-agent-orchestration.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/INDEX.md": {
       "references": [
@@ -1440,32 +2286,50 @@
         "smb-marketing-channels.md"
       ],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/client-retention-engagement.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/knowledge-architecture.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/meta-whatsapp-template-classification.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/meta-whatsapp-templates.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/dimensions/smb-marketing-channels.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/google-sheets-mcp-setup.md": {
       "references": [
@@ -1474,12 +2338,35 @@
         "skill-catalog.md"
       ],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/guide/cli.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [
+        "system/cli/themes.json`",
+        "system/scheduler/scheduler.template.json`",
+        "system/cli/rust/Cargo.toml`",
+        "system/cli/rust"
+      ],
+      "guide_files": [],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-022-brana-cli.md"
+      ],
+      "ref_files": [
+        "docs/reference/configuration.md"
+      ]
     },
     "docs/guide/commands/index.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/guide/concepts.md": {
       "references": [],
@@ -1489,6 +2376,22 @@
         "system/rules/`",
         "system/agents/`",
         "system/commands/`"
+      ],
+      "guide_files": [],
+      "arch_files": [
+        "docs/architecture/agents.md",
+        "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/posttooluse-workaround.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/agents.md",
+        "docs/reference/commands.md",
+        "docs/reference/rules.md"
       ]
     },
     "docs/guide/configuration.md": {
@@ -1500,12 +2403,40 @@
         "system/`",
         "system/.claude-plugin/plugin.json`",
         "system/hooks/hooks.json`"
+      ],
+      "guide_files": [
+        "docs/guide/getting-started.md",
+        "docs/guide/philosophy.md",
+        "docs/guide/upgrading.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/extending-hooks.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/hooks.md",
+        "docs/architecture/overview.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/posttooluse-workaround.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/configuration.md",
+        "docs/reference/hooks.md",
+        "docs/reference/scripts.md",
+        "docs/reference/skills.md"
       ]
     },
     "docs/guide/features/build-close-auto-docs.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/guide/getting-started.md": {
       "references": [
@@ -1519,6 +2450,67 @@
       "referenced_by": [],
       "impl_files": [
         "system/`"
+      ],
+      "guide_files": [
+        "docs/guide/configuration.md",
+        "docs/guide/philosophy.md",
+        "docs/guide/upgrading.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/overview.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/scripts.md",
+        "docs/reference/skills.md"
+      ]
+    },
+    "docs/guide/knowledge-system.md": {
+      "references": [
+        "path.md",
+        "getting-started.md",
+        "concepts.md",
+        "commands/",
+        "configuration.md"
+      ],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/guide/philosophy.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [
+        "system/`"
+      ],
+      "guide_files": [
+        "docs/guide/configuration.md",
+        "docs/guide/getting-started.md",
+        "docs/guide/upgrading.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/overview.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/scripts.md",
+        "docs/reference/skills.md"
       ]
     },
     "docs/guide/scheduler.md": {
@@ -1526,65 +2518,120 @@
         "troubleshooting.md"
       ],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/guide/troubleshooting.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/guide/upgrading.md": {
       "references": [],
       "referenced_by": [],
       "impl_files": [
         "system/`"
+      ],
+      "guide_files": [
+        "docs/guide/configuration.md",
+        "docs/guide/getting-started.md",
+        "docs/guide/philosophy.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/overview.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/scripts.md",
+        "docs/reference/skills.md"
       ]
     },
     "docs/guide/workflows/build.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/guide/workflows/capture.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/guide/workflows/decision-log.md": {
       "references": [],
       "referenced_by": [],
       "impl_files": [
         "system/state/decisions/archive/`"
-      ]
+      ],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/guide/workflows/github-sync.md": {
       "references": [],
       "referenced_by": [],
       "impl_files": [
         "system/scripts/gh-sync.sh"
-      ]
+      ],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/guide/workflows/learn.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/guide/workflows/model-routing.md": {
       "references": [],
       "referenced_by": [],
       "impl_files": [
         "system/skills/backlog/SKILL.md`"
-      ]
+      ],
+      "guide_files": [],
+      "arch_files": [
+        "docs/architecture/features/research-stream.md",
+        "docs/architecture/features/tasks-portfolio.md",
+        "docs/architecture/features/tasks-theme-system.md",
+        "docs/architecture/features/tasks-wide-mode.md"
+      ],
+      "ref_files": []
     },
     "docs/guide/workflows/research.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/guide/workflows/session.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/guide/workflows/spec-graph.md": {
       "references": [
@@ -1595,32 +2642,54 @@
       ],
       "impl_files": [
         "system/scripts/spec_graph.py"
+      ],
+      "guide_files": [],
+      "arch_files": [
+        "docs/architecture/knowledge-system-extending.md"
+      ],
+      "ref_files": [
+        "docs/reference/scripts.md"
       ]
     },
     "docs/guide/workflows/venture.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/personal/abdaal-productivity-research.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/personal/bradley-ppv-research.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/personal/forte-para-basb-research.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/personal/health-data-research.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/personal/miessler-telos-research.md": {
       "references": [
@@ -1628,27 +2697,42 @@
         "docs/research/miessler-pai-comparison.md"
       ],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/personal/personal-os-design.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/personal/personality-frameworks-research.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/personal/philosophical-frameworks-research.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/personal/relationship-memory-research.md": {
       "references": [],
       "referenced_by": [],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/reference/agents.md": {
       "references": [],
@@ -1657,7 +2741,15 @@
       ],
       "impl_files": [
         "system/agents/`"
-      ]
+      ],
+      "guide_files": [
+        "docs/guide/concepts.md"
+      ],
+      "arch_files": [
+        "docs/architecture/agents.md",
+        "docs/architecture/plugin-structure.md"
+      ],
+      "ref_files": []
     },
     "docs/reference/commands.md": {
       "references": [],
@@ -1666,7 +2758,16 @@
       ],
       "impl_files": [
         "system/commands/`"
-      ]
+      ],
+      "guide_files": [
+        "docs/guide/concepts.md"
+      ],
+      "arch_files": [
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": []
     },
     "docs/reference/configuration.md": {
       "references": [],
@@ -1675,6 +2776,20 @@
         "system/scheduler/scheduler.template.json`",
         "system/.claude-plugin/plugin.json`",
         "system/skills/`"
+      ],
+      "guide_files": [
+        "docs/guide/cli.md",
+        "docs/guide/configuration.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/features/acquire-skills-guide.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/system-documentation-map.md"
+      ],
+      "ref_files": [
+        "docs/reference/skills.md"
       ]
     },
     "docs/reference/hooks.md": {
@@ -1684,7 +2799,20 @@
       ],
       "impl_files": [
         "system/hooks/hooks.json`"
-      ]
+      ],
+      "guide_files": [
+        "docs/guide/configuration.md"
+      ],
+      "arch_files": [
+        "docs/architecture/extending-hooks.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/hooks.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/posttooluse-workaround.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": []
     },
     "docs/reference/rules.md": {
       "references": [
@@ -1695,7 +2823,15 @@
       "impl_files": [
         "system/rules/`",
         "system/rules/"
-      ]
+      ],
+      "guide_files": [
+        "docs/guide/concepts.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+        "docs/architecture/system-documentation-map.md"
+      ],
+      "ref_files": []
     },
     "docs/reference/scripts.md": {
       "references": [
@@ -1711,6 +2847,30 @@
         "system/`",
         "system/scripts/decisions.py",
         "system/state/decisions/`"
+      ],
+      "guide_files": [
+        "docs/guide/configuration.md",
+        "docs/guide/getting-started.md",
+        "docs/guide/philosophy.md",
+        "docs/guide/upgrading.md",
+        "docs/guide/workflows/spec-graph.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+        "docs/architecture/decisions/ADR-011-skills-bundling.md",
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/decisions/ADR-017-decision-log.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/knowledge-system-extending.md",
+        "docs/architecture/overview.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/skills.md"
       ]
     },
     "docs/reference/skills.md": {
@@ -1722,6 +2882,31 @@
         "system/skills/`",
         "system/`",
         "system/skills/acquired/`"
+      ],
+      "guide_files": [
+        "docs/guide/configuration.md",
+        "docs/guide/getting-started.md",
+        "docs/guide/philosophy.md",
+        "docs/guide/upgrading.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+        "docs/architecture/decisions/ADR-012-acquire-skills.md",
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/acquire-skills-guide.md",
+        "docs/architecture/features/acquire-skills.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/overview.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/configuration.md",
+        "docs/reference/scripts.md"
       ]
     },
     "docs/reflections/08-diagnosis.md": {
@@ -1774,6 +2959,16 @@
       ],
       "impl_files": [
         "system/skills/`"
+      ],
+      "guide_files": [],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+        "docs/architecture/features/acquire-skills-guide.md",
+        "docs/architecture/plugin-structure.md"
+      ],
+      "ref_files": [
+        "docs/reference/configuration.md",
+        "docs/reference/skills.md"
       ]
     },
     "docs/reflections/14-mastermind-architecture.md": {
@@ -1820,6 +3015,28 @@
         "system/`",
         "system/scripts/decisions.py`",
         "system/state/decisions/`"
+      ],
+      "guide_files": [
+        "docs/guide/configuration.md",
+        "docs/guide/getting-started.md",
+        "docs/guide/philosophy.md",
+        "docs/guide/upgrading.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/decisions/ADR-017-decision-log.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/overview.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/scripts.md",
+        "docs/reference/skills.md"
       ]
     },
     "docs/reflections/29-venture-management-reflection.md": {
@@ -1848,7 +3065,10 @@
       "referenced_by": [
         "docs/dimensions/34-venture-operating-system.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/reflections/31-assurance.md": {
       "references": [
@@ -1879,6 +3099,32 @@
         "system/`",
         "system/state/`",
         "system/state/patterns-export.json`"
+      ],
+      "guide_files": [
+        "docs/guide/configuration.md",
+        "docs/guide/getting-started.md",
+        "docs/guide/philosophy.md",
+        "docs/guide/upgrading.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
+        "docs/architecture/extending-hooks.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/hooks.md",
+        "docs/architecture/overview.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/posttooluse-workaround.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/hooks.md",
+        "docs/reference/scripts.md",
+        "docs/reference/skills.md"
       ]
     },
     "docs/reflections/32-lifecycle.md": {
@@ -1913,6 +3159,95 @@
         "system/`",
         "system/rules/tactical-context.md`",
         "system/state/decisions/`"
+      ],
+      "guide_files": [
+        "docs/guide/configuration.md",
+        "docs/guide/getting-started.md",
+        "docs/guide/philosophy.md",
+        "docs/guide/upgrading.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/decisions/ADR-017-decision-log.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/overview.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/scripts.md",
+        "docs/reference/skills.md"
+      ]
+    },
+    "docs/reflections/ARCHITECTURE.md": {
+      "references": [
+        "docs/archive/reflections/14-mastermind-architecture.md",
+        "component-index.md",
+        "docs/architecture/decisions/ADR-019-brana-chat-sessions.md",
+        "docs/architecture/decisions/ADR-011-skills-bundling.md",
+        "docs/architecture/decisions/ADR-018-dynamic-model-routing.md",
+        "docs/architecture/decisions/ADR-002-scheduler-thin-layer-over-systemd.md",
+        "brana-knowledge/dimensions/35-context-engineering-principles.md"
+      ],
+      "referenced_by": [],
+      "impl_files": [
+        "system/`"
+      ],
+      "guide_files": [
+        "docs/guide/configuration.md",
+        "docs/guide/getting-started.md",
+        "docs/guide/philosophy.md",
+        "docs/guide/upgrading.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/overview.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/scripts.md",
+        "docs/reference/skills.md"
+      ]
+    },
+    "docs/reflections/component-index.md": {
+      "references": [
+        "ARCHITECTURE.md",
+        "docs/archive/reflections/14-mastermind-architecture.md"
+      ],
+      "referenced_by": [],
+      "impl_files": [
+        "system/`"
+      ],
+      "guide_files": [
+        "docs/guide/configuration.md",
+        "docs/guide/getting-started.md",
+        "docs/guide/philosophy.md",
+        "docs/guide/upgrading.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/overview.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/scripts.md",
+        "docs/reference/skills.md"
       ]
     },
     "docs/research/miessler-pai-comparison.md": {
@@ -1920,7 +3255,10 @@
       "referenced_by": [
         "docs/personal/miessler-telos-research.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/research/miessler-pai-deep-dive.md": {
       "references": [
@@ -1929,13 +3267,37 @@
       "referenced_by": [
         "docs/personal/miessler-telos-research.md"
       ],
-      "impl_files": []
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/research/t-407-claude-systems-marketplace.md": {
       "references": [],
       "referenced_by": [],
       "impl_files": [
         "system/`"
+      ],
+      "guide_files": [
+        "docs/guide/configuration.md",
+        "docs/guide/getting-started.md",
+        "docs/guide/philosophy.md",
+        "docs/guide/upgrading.md"
+      ],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/overview.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/skills.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/scripts.md",
+        "docs/reference/skills.md"
       ]
     },
     "docs/skills-system.md": {
@@ -1943,27 +3305,15 @@
       "referenced_by": [],
       "impl_files": [
         "system/scripts/`"
+      ],
+      "guide_files": [],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-011-skills-bundling.md"
+      ],
+      "ref_files": [
+        "docs/reference/scripts.md"
       ]
     }
   },
-  "typed_edges": [
-    {"from": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md", "to": "assumption:ruflo-enhancement-not-dependency", "type": "assumes"},
-    {"from": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md", "to": "assumption:160-nodes-wont-hit-500-in-6mo", "type": "assumes"},
-    {"from": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md", "to": "assumption:brana-knowledge-stays-separate-repo", "type": "assumes"},
-    {"from": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md", "to": "assumption:claude-consistently-applies-ontology", "type": "assumes"},
-    {"from": "docs/architecture/decisions/ADR-016-spec-dependency-graph.md", "to": "assumption:160-nodes-wont-hit-500-in-6mo", "type": "assumes"},
-    {"from": "docs/architecture/features/knowledge-architecture-v2.md", "to": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md", "type": "enriches"},
-    {"from": "system/scripts/spec_graph.py", "to": "docs/architecture/decisions/ADR-016-spec-dependency-graph.md", "type": "implements"},
-    {"from": "system/skills/build/SKILL.md", "to": "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md", "type": "implements"},
-    {"from": "system/skills/reconcile/SKILL.md", "to": "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md", "type": "implements"},
-    {"from": "docs/dimensions/22-testing.md", "to": "docs/architecture/decisions/ADR-009-test-lint-feedback-hook.md", "type": "informs"},
-    {"from": "docs/dimensions/27-project-alignment-methodology.md", "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md", "type": "informs"},
-    {"from": "docs/dimensions/35-context-engineering-principles.md", "to": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md", "type": "informs"},
-    {"from": "docs/dimensions/knowledge-architecture.md", "to": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md", "type": "informs"},
-    {"from": "docs/reflections/14-mastermind-architecture.md", "to": "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md", "type": "informs"},
-    {"from": "docs/reflections/31-assurance.md", "to": "docs/architecture/decisions/ADR-009-test-lint-feedback-hook.md", "type": "informs"},
-    {"from": "docs/reflections/32-lifecycle.md", "to": "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md", "type": "informs"},
-    {"from": "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md", "to": "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md", "type": "supersedes"},
-    {"from": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md", "to": "docs/17-implementation-roadmap.md", "type": "supersedes"}
-  ]
+  "typed_edges": []
 }
