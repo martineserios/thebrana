@@ -9,6 +9,8 @@
 | PreToolUse | `Write|Edit` | `pre-tool-use.sh` | 5000ms |
 | PreToolUse | `Bash` | `worktree-gate.sh` | 5000ms |
 | SessionStart | `` | `session-start.sh` | 10000ms |
+| SubagentStart | `` | `subagent-context.sh` | 5000ms |
+| TaskCompleted | `` | `step-completed.sh` | 5000ms |
 | SessionEnd | `` | `session-end.sh` | 10000ms |
 
 ## Hook Scripts
@@ -52,6 +54,14 @@ No strict mode — hooks must always return valid JSON.
 ### `session-start.sh`
 
 No strict mode — hooks must always return valid JSON.
+
+### `step-completed.sh`
+
+No strict mode — hooks must never fail and block the session.
+
+### `subagent-context.sh`
+
+No strict mode — hooks must never fail and block the session.
 
 ### `task-completed.sh`
 

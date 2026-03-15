@@ -217,6 +217,20 @@ Reads YAML frontmatter from `system/skills/*/SKILL.md`, `system/agents/*.md`, `s
 
 ---
 
+## cc-changelog-check.sh
+
+| Field | Value |
+|-------|-------|
+| **Purpose** | Detect CC version changes and write a review report |
+| **Usage** | `./system/scripts/cc-changelog-check.sh` (or via scheduler weekly) |
+| **Dependencies** | npm (for `npm view @anthropic-ai/claude-code version`), curl |
+
+Checks the npm registry for the latest `@anthropic-ai/claude-code` version. Compares against cached version in `~/.claude/cc-version-cache`. If changed, writes `~/.claude/cc-changelog-report.md` with old/new version and action steps. Session-start hook surfaces the report.
+
+Scheduled weekly (Mon 10:00) via `~/.claude/scheduler/scheduler.json` → `cc-changelog-review`.
+
+---
+
 ## backup-knowledge.sh
 
 | Field | Value |
