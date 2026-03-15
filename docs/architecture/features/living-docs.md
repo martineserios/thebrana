@@ -1,7 +1,7 @@
 # Feature: Living Documentation System
 
 **Date:** 2026-03-15
-**Status:** specifying
+**Status:** shipped
 **Task:** t-476
 
 ## Problem
