@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://github.com/martineserios/thebrana/tree/main/docs/guide
+    about: Check the user guide before opening an issue
