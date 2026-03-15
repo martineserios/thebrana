@@ -111,16 +111,13 @@ Run through this checklist to confirm everything is working:
 
 | Command | What it does |
 |---------|-------------|
-| `/brana:build` | Build anything -- 7 strategies for different work types |
-| `/brana:close` | End session -- extract learnings, write handoff |
+| `/brana:build` | Build anything -- features, fixes, refactors |
 | `/brana:backlog` | Manage tasks -- plan, track, navigate |
-| `/brana:log` | Capture events -- calls, meetings, ideas, links |
-| `/brana:research` | Research a topic -- recursive discovery |
-| `/brana:memory` | Query the knowledge system |
+| `/brana:close` | End session -- extract learnings, write handoff |
 | `/brana:onboard` | Diagnose a new project |
-| `/brana:align` | Set up project structure |
-| `/brana:review` | Business health -- weekly, monthly, or ad-hoc |
-| `/brana:challenge` | Adversarial review of a plan or decision |
+| `/brana:docs` | Update living documentation |
+
+See [full command reference](commands/) for all skills.
 
 ## Working across projects
 
