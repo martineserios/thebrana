@@ -1,10 +1,10 @@
 {
   "_meta": {
-    "generated": "2026-03-15T16:33:02Z",
-    "node_count": 182,
+    "generated": "2026-03-15T17:45:38Z",
+    "node_count": 184,
     "edge_count": 549,
-    "impl_ref_count": 209,
-    "orphan_count": 80,
+    "impl_ref_count": 217,
+    "orphan_count": 82,
     "typed_edge_count": 0
   },
   "nodes": {
@@ -146,12 +146,12 @@
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/overview.md",
         "docs/architecture/plugin-structure.md",
-        "docs/architecture/skills.md",
         "docs/architecture/system-documentation-map.md",
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
         "docs/reference/configuration.md",
+        "docs/reference/rules.md",
         "docs/reference/scripts.md",
         "docs/reference/skills.md"
       ]
@@ -383,8 +383,7 @@
       ],
       "ref_files": [
         "docs/reference/commands.md",
-        "docs/reference/scripts.md",
-        "docs/reference/skills.md"
+        "docs/reference/scripts.md"
       ]
     },
     "docs/README.md": {
@@ -478,18 +477,10 @@
         "docs/reference/agents.md"
       ],
       "referenced_by": [],
-      "impl_files": [
-        "system/agents/`"
-      ],
-      "guide_files": [
-        "docs/guide/concepts.md"
-      ],
-      "arch_files": [
-        "docs/architecture/plugin-structure.md"
-      ],
-      "ref_files": [
-        "docs/reference/agents.md"
-      ]
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/building-methodology.md": {
       "references": [
@@ -606,13 +597,11 @@
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/overview.md",
         "docs/architecture/plugin-structure.md",
-        "docs/architecture/skills.md",
         "docs/architecture/system-documentation-map.md",
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
-        "docs/reference/scripts.md",
-        "docs/reference/skills.md"
+        "docs/reference/scripts.md"
       ]
     },
     "docs/architecture/decisions/ADR-007-verify-counts-deploy-hook.md": {
@@ -688,12 +677,9 @@
       ],
       "guide_files": [],
       "arch_files": [
-        "docs/architecture/features/acquire-skills.md",
-        "docs/architecture/skills.md"
+        "docs/architecture/features/acquire-skills.md"
       ],
-      "ref_files": [
-        "docs/reference/skills.md"
-      ]
+      "ref_files": []
     },
     "docs/architecture/decisions/ADR-013-event-log.md": {
       "references": [],
@@ -724,14 +710,12 @@
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/overview.md",
         "docs/architecture/plugin-structure.md",
-        "docs/architecture/skills.md",
         "docs/architecture/system-documentation-map.md",
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
         "docs/reference/configuration.md",
-        "docs/reference/scripts.md",
-        "docs/reference/skills.md"
+        "docs/reference/scripts.md"
       ]
     },
     "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md": {
@@ -880,7 +864,7 @@
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
-        "docs/reference/hooks.md"
+        "docs/reference/scripts.md"
       ]
     },
     "docs/architecture/extending-skills.md": {
@@ -918,13 +902,12 @@
         "docs/architecture/features/skill-utilization-tracking.md",
         "docs/architecture/overview.md",
         "docs/architecture/plugin-structure.md",
-        "docs/architecture/skills.md",
         "docs/architecture/system-documentation-map.md",
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
-        "docs/reference/scripts.md",
-        "docs/reference/skills.md"
+        "docs/reference/rules.md",
+        "docs/reference/scripts.md"
       ]
     },
     "docs/architecture/features/acquire-skills-guide.md": {
@@ -955,12 +938,9 @@
       ],
       "guide_files": [],
       "arch_files": [
-        "docs/architecture/decisions/ADR-012-acquire-skills.md",
-        "docs/architecture/skills.md"
+        "docs/architecture/decisions/ADR-012-acquire-skills.md"
       ],
-      "ref_files": [
-        "docs/reference/skills.md"
-      ]
+      "ref_files": []
     },
     "docs/architecture/features/agentdb-v3-upgrade-evaluation.md": {
       "references": [],
@@ -1271,14 +1251,12 @@
         "docs/architecture/overview.md",
         "docs/architecture/plugin-structure.md",
         "docs/architecture/posttooluse-workaround.md",
-        "docs/architecture/skills.md",
         "docs/architecture/system-documentation-map.md",
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
-        "docs/reference/hooks.md",
-        "docs/reference/scripts.md",
-        "docs/reference/skills.md"
+        "docs/reference/rules.md",
+        "docs/reference/scripts.md"
       ]
     },
     "docs/architecture/features/project-metadata.md": {
@@ -1308,7 +1286,9 @@
         "docs/architecture/features/tasks-theme-system.md",
         "docs/architecture/features/tasks-wide-mode.md"
       ],
-      "ref_files": []
+      "ref_files": [
+        "docs/reference/rules.md"
+      ]
     },
     "docs/architecture/features/scheduler-hardening.md": {
       "references": [],
@@ -1351,7 +1331,9 @@
         "docs/architecture/posttooluse-workaround.md",
         "docs/architecture/system-documentation-map.md"
       ],
-      "ref_files": []
+      "ref_files": [
+        "docs/reference/rules.md"
+      ]
     },
     "docs/architecture/features/smart-tasks-add.md": {
       "references": [],
@@ -1449,6 +1431,14 @@
       ],
       "ref_files": []
     },
+    "docs/architecture/features/user-journey-gap-analysis.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
     "docs/architecture/hooks.md": {
       "references": [
         "docs/reference/hooks.md",
@@ -1470,7 +1460,7 @@
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
-        "docs/reference/hooks.md"
+        "docs/reference/scripts.md"
       ]
     },
     "docs/architecture/knowledge-system-extending.md": {
@@ -1498,6 +1488,7 @@
         "skills.md",
         "hooks.md",
         "agents.md",
+        "docs/guide/getting-started.md",
         "extending.md"
       ],
       "referenced_by": [],
@@ -1516,13 +1507,11 @@
         "docs/architecture/extending.md",
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/plugin-structure.md",
-        "docs/architecture/skills.md",
         "docs/architecture/system-documentation-map.md",
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
-        "docs/reference/scripts.md",
-        "docs/reference/skills.md"
+        "docs/reference/scripts.md"
       ]
     },
     "docs/architecture/plugin-structure.md": {
@@ -1547,7 +1536,6 @@
         "docs/guide/upgrading.md"
       ],
       "arch_files": [
-        "docs/architecture/agents.md",
         "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
         "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
         "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
@@ -1567,7 +1555,6 @@
         "docs/reference/agents.md",
         "docs/reference/commands.md",
         "docs/reference/configuration.md",
-        "docs/reference/hooks.md",
         "docs/reference/scripts.md",
         "docs/reference/skills.md"
       ]
@@ -1596,7 +1583,7 @@
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
-        "docs/reference/hooks.md"
+        "docs/reference/scripts.md"
       ]
     },
     "docs/architecture/skills.md": {
@@ -1606,34 +1593,18 @@
       ],
       "referenced_by": [],
       "impl_files": [
-        "system/`",
-        "system/skills/acquired/`",
-        "system/commands/`",
-        "system/skills/acquired/<name>/SKILL.md`"
+        "system/commands/`"
       ],
       "guide_files": [
-        "docs/guide/concepts.md",
-        "docs/guide/configuration.md",
-        "docs/guide/getting-started.md",
-        "docs/guide/philosophy.md",
-        "docs/guide/upgrading.md"
+        "docs/guide/concepts.md"
       ],
       "arch_files": [
-        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
-        "docs/architecture/decisions/ADR-012-acquire-skills.md",
-        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
-        "docs/architecture/extending.md",
-        "docs/architecture/features/acquire-skills.md",
-        "docs/architecture/features/plugin-packaging.md",
-        "docs/architecture/overview.md",
         "docs/architecture/plugin-structure.md",
-        "docs/architecture/system-documentation-map.md",
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
         "docs/reference/commands.md",
-        "docs/reference/scripts.md",
-        "docs/reference/skills.md"
+        "docs/reference/scripts.md"
       ]
     },
     "docs/architecture/system-documentation-map.md": {
@@ -1682,15 +1653,12 @@
         "docs/architecture/overview.md",
         "docs/architecture/plugin-structure.md",
         "docs/architecture/posttooluse-workaround.md",
-        "docs/architecture/skills.md",
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
         "docs/reference/configuration.md",
-        "docs/reference/hooks.md",
         "docs/reference/rules.md",
-        "docs/reference/scripts.md",
-        "docs/reference/skills.md"
+        "docs/reference/scripts.md"
       ]
     },
     "docs/architecture/testing-validation.md": {
@@ -1726,9 +1694,7 @@
       ],
       "ref_files": [
         "docs/reference/commands.md",
-        "docs/reference/hooks.md",
-        "docs/reference/scripts.md",
-        "docs/reference/skills.md"
+        "docs/reference/scripts.md"
       ]
     },
     "docs/archive/reflections/14-mastermind-architecture.md": {
@@ -1780,13 +1746,11 @@
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/overview.md",
         "docs/architecture/plugin-structure.md",
-        "docs/architecture/skills.md",
         "docs/architecture/system-documentation-map.md",
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
-        "docs/reference/scripts.md",
-        "docs/reference/skills.md"
+        "docs/reference/scripts.md"
       ]
     },
     "docs/backlog-urls.md": {
@@ -2379,7 +2343,6 @@
       ],
       "guide_files": [],
       "arch_files": [
-        "docs/architecture/agents.md",
         "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/plugin-structure.md",
@@ -2391,7 +2354,8 @@
       "ref_files": [
         "docs/reference/agents.md",
         "docs/reference/commands.md",
-        "docs/reference/rules.md"
+        "docs/reference/rules.md",
+        "docs/reference/scripts.md"
       ]
     },
     "docs/guide/configuration.md": {
@@ -2419,15 +2383,12 @@
         "docs/architecture/overview.md",
         "docs/architecture/plugin-structure.md",
         "docs/architecture/posttooluse-workaround.md",
-        "docs/architecture/skills.md",
         "docs/architecture/system-documentation-map.md",
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
         "docs/reference/configuration.md",
-        "docs/reference/hooks.md",
-        "docs/reference/scripts.md",
-        "docs/reference/skills.md"
+        "docs/reference/scripts.md"
       ]
     },
     "docs/guide/features/build-close-auto-docs.md": {
@@ -2440,14 +2401,16 @@
     },
     "docs/guide/getting-started.md": {
       "references": [
+        "commands/",
         "configuration.md",
         "scheduler.md",
         "troubleshooting.md",
         "upgrading.md",
-        "concepts.md",
-        "commands/"
+        "concepts.md"
       ],
-      "referenced_by": [],
+      "referenced_by": [
+        "docs/architecture/overview.md"
+      ],
       "impl_files": [
         "system/`"
       ],
@@ -2463,13 +2426,11 @@
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/overview.md",
         "docs/architecture/plugin-structure.md",
-        "docs/architecture/skills.md",
         "docs/architecture/system-documentation-map.md",
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
-        "docs/reference/scripts.md",
-        "docs/reference/skills.md"
+        "docs/reference/scripts.md"
       ]
     },
     "docs/guide/knowledge-system.md": {
@@ -2504,13 +2465,11 @@
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/overview.md",
         "docs/architecture/plugin-structure.md",
-        "docs/architecture/skills.md",
         "docs/architecture/system-documentation-map.md",
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
-        "docs/reference/scripts.md",
-        "docs/reference/skills.md"
+        "docs/reference/scripts.md"
       ]
     },
     "docs/guide/scheduler.md": {
@@ -2549,13 +2508,11 @@
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/overview.md",
         "docs/architecture/plugin-structure.md",
-        "docs/architecture/skills.md",
         "docs/architecture/system-documentation-map.md",
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
-        "docs/reference/scripts.md",
-        "docs/reference/skills.md"
+        "docs/reference/scripts.md"
       ]
     },
     "docs/guide/workflows/build.md": {
@@ -2659,6 +2616,14 @@
       "arch_files": [],
       "ref_files": []
     },
+    "docs/ideas/distribution-strategy.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
     "docs/personal/abdaal-productivity-research.md": {
       "references": [],
       "referenced_by": [],
@@ -2746,7 +2711,6 @@
         "docs/guide/concepts.md"
       ],
       "arch_files": [
-        "docs/architecture/agents.md",
         "docs/architecture/plugin-structure.md"
       ],
       "ref_files": []
@@ -2767,7 +2731,9 @@
         "docs/architecture/skills.md",
         "docs/architecture/testing-validation.md"
       ],
-      "ref_files": []
+      "ref_files": [
+        "docs/reference/scripts.md"
+      ]
     },
     "docs/reference/configuration.md": {
       "references": [],
@@ -2797,38 +2763,41 @@
       "referenced_by": [
         "docs/architecture/hooks.md"
       ],
-      "impl_files": [
-        "system/hooks/hooks.json`"
-      ],
-      "guide_files": [
-        "docs/guide/configuration.md"
-      ],
-      "arch_files": [
-        "docs/architecture/extending-hooks.md",
-        "docs/architecture/features/plugin-packaging.md",
-        "docs/architecture/hooks.md",
-        "docs/architecture/plugin-structure.md",
-        "docs/architecture/posttooluse-workaround.md",
-        "docs/architecture/system-documentation-map.md",
-        "docs/architecture/testing-validation.md"
-      ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
       "ref_files": []
     },
     "docs/reference/rules.md": {
       "references": [
-        "relative-path.md",
-        "docs/docs/reflections/14-mastermind-architecture.md"
+        "relative-path.md"
       ],
       "referenced_by": [],
       "impl_files": [
         "system/rules/`",
-        "system/rules/"
+        "system/rules/context-budget.md`",
+        "system/rules/delegation-routing.md`",
+        "system/rules/doc-linking.md`",
+        "system/rules/git-discipline.md`",
+        "system/rules/memory-framework.md`",
+        "system/rules/pm-awareness.md`",
+        "system/rules/research-discipline.md`",
+        "system/rules/sdd-tdd.md`",
+        "system/rules/self-improvement.md`",
+        "system/rules/tactical-context.md`",
+        "system/rules/task-convention.md`",
+        "system/rules/universal-quality.md`",
+        "system/rules/work-preferences.md`"
       ],
       "guide_files": [
         "docs/guide/concepts.md"
       ],
       "arch_files": [
         "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+        "docs/architecture/extending.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/features/research-stream.md",
+        "docs/architecture/features/skill-utilization-tracking.md",
         "docs/architecture/system-documentation-map.md"
       ],
       "ref_files": []
@@ -2846,9 +2815,13 @@
         "system/scripts/spec_graph.py",
         "system/`",
         "system/scripts/decisions.py",
-        "system/state/decisions/`"
+        "system/state/decisions/`",
+        "system/scripts/generate-reference.py",
+        "system/hooks/hooks.json`",
+        "system/commands/`"
       ],
       "guide_files": [
+        "docs/guide/concepts.md",
         "docs/guide/configuration.md",
         "docs/guide/getting-started.md",
         "docs/guide/philosophy.md",
@@ -2860,17 +2833,20 @@
         "docs/architecture/decisions/ADR-011-skills-bundling.md",
         "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
         "docs/architecture/decisions/ADR-017-decision-log.md",
+        "docs/architecture/extending-hooks.md",
         "docs/architecture/extending.md",
         "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/hooks.md",
         "docs/architecture/knowledge-system-extending.md",
         "docs/architecture/overview.md",
         "docs/architecture/plugin-structure.md",
+        "docs/architecture/posttooluse-workaround.md",
         "docs/architecture/skills.md",
         "docs/architecture/system-documentation-map.md",
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
-        "docs/reference/skills.md"
+        "docs/reference/commands.md"
       ]
     },
     "docs/reference/skills.md": {
@@ -2879,34 +2855,16 @@
         "docs/architecture/skills.md"
       ],
       "impl_files": [
-        "system/skills/`",
-        "system/`",
-        "system/skills/acquired/`"
+        "system/skills/`"
       ],
-      "guide_files": [
-        "docs/guide/configuration.md",
-        "docs/guide/getting-started.md",
-        "docs/guide/philosophy.md",
-        "docs/guide/upgrading.md"
-      ],
+      "guide_files": [],
       "arch_files": [
         "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
-        "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
-        "docs/architecture/decisions/ADR-012-acquire-skills.md",
-        "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
-        "docs/architecture/extending.md",
         "docs/architecture/features/acquire-skills-guide.md",
-        "docs/architecture/features/acquire-skills.md",
-        "docs/architecture/features/plugin-packaging.md",
-        "docs/architecture/overview.md",
-        "docs/architecture/plugin-structure.md",
-        "docs/architecture/skills.md",
-        "docs/architecture/system-documentation-map.md",
-        "docs/architecture/testing-validation.md"
+        "docs/architecture/plugin-structure.md"
       ],
       "ref_files": [
-        "docs/reference/configuration.md",
-        "docs/reference/scripts.md"
+        "docs/reference/configuration.md"
       ]
     },
     "docs/reflections/08-diagnosis.md": {
@@ -3030,13 +2988,11 @@
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/overview.md",
         "docs/architecture/plugin-structure.md",
-        "docs/architecture/skills.md",
         "docs/architecture/system-documentation-map.md",
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
-        "docs/reference/scripts.md",
-        "docs/reference/skills.md"
+        "docs/reference/scripts.md"
       ]
     },
     "docs/reflections/29-venture-management-reflection.md": {
@@ -3117,14 +3073,11 @@
         "docs/architecture/overview.md",
         "docs/architecture/plugin-structure.md",
         "docs/architecture/posttooluse-workaround.md",
-        "docs/architecture/skills.md",
         "docs/architecture/system-documentation-map.md",
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
-        "docs/reference/hooks.md",
-        "docs/reference/scripts.md",
-        "docs/reference/skills.md"
+        "docs/reference/scripts.md"
       ]
     },
     "docs/reflections/32-lifecycle.md": {
@@ -3174,13 +3127,12 @@
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/overview.md",
         "docs/architecture/plugin-structure.md",
-        "docs/architecture/skills.md",
         "docs/architecture/system-documentation-map.md",
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
-        "docs/reference/scripts.md",
-        "docs/reference/skills.md"
+        "docs/reference/rules.md",
+        "docs/reference/scripts.md"
       ]
     },
     "docs/reflections/ARCHITECTURE.md": {
@@ -3210,13 +3162,11 @@
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/overview.md",
         "docs/architecture/plugin-structure.md",
-        "docs/architecture/skills.md",
         "docs/architecture/system-documentation-map.md",
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
-        "docs/reference/scripts.md",
-        "docs/reference/skills.md"
+        "docs/reference/scripts.md"
       ]
     },
     "docs/reflections/component-index.md": {
@@ -3241,13 +3191,11 @@
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/overview.md",
         "docs/architecture/plugin-structure.md",
-        "docs/architecture/skills.md",
         "docs/architecture/system-documentation-map.md",
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
-        "docs/reference/scripts.md",
-        "docs/reference/skills.md"
+        "docs/reference/scripts.md"
       ]
     },
     "docs/research/miessler-pai-comparison.md": {
@@ -3291,13 +3239,11 @@
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/overview.md",
         "docs/architecture/plugin-structure.md",
-        "docs/architecture/skills.md",
         "docs/architecture/system-documentation-map.md",
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
-        "docs/reference/scripts.md",
-        "docs/reference/skills.md"
+        "docs/reference/scripts.md"
       ]
     },
     "docs/skills-system.md": {
