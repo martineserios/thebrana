@@ -150,6 +150,12 @@ You don't need to worry about releases. When your PR is merged to `main`:
 4. A git tag and GitHub Release are created
 5. Users get the update on their next `/plugin update brana`
 
+## Finding work
+
+1. Browse [issues](https://github.com/martineserios/thebrana/issues) tagged [`good first issue`](https://github.com/martineserios/thebrana/labels/good%20first%20issue) -- these are scoped, well-described, and reviewed within 48h
+2. Check [`help wanted`](https://github.com/martineserios/thebrana/labels/help%20wanted) for larger items where input is welcome
+3. Have an idea? Open an issue using the **feature request** template first -- alignment before code saves everyone time
+
 ## Becoming a contributor
 
 1. Open an issue or comment on an existing one expressing interest
@@ -181,9 +187,13 @@ gh api repos/martineserios/thebrana/branches/main/protection \
 EOF
 ```
 
+## Recognition
+
+When your first PR is merged, add yourself to the Contributors section in [README.md](README.md).
+
 ## Questions?
 
-Open an issue or start a discussion. We're happy to help.
+Open an issue using the **question** template, or start a discussion. We're happy to help.
 
 ## License
 

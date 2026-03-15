@@ -151,6 +151,15 @@ v1.0.0 | [Changelog](#changelog)
 | v0.2.0 | Hook system (session start/end, spec-first gate) |
 | v0.1.0 | Skills, rules, deploy scripts |
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, branch naming, and PR process. Issues tagged [`good first issue`](https://github.com/martineserios/thebrana/labels/good%20first%20issue) are a great starting point.
+
+### Contributors
+
+<!-- Add yourself here when your first PR is merged -->
+- [Martin Eserios](https://github.com/martineserios) -- creator, maintainer
+
 ## Security
 
 See [SECURITY.md](SECURITY.md).
