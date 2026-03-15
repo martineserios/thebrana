@@ -53,6 +53,10 @@ No strict mode — hooks must always return valid JSON.
 
 No strict mode — hooks must always return valid JSON.
 
+### `task-completed.sh`
+
+No strict mode — hooks must never fail and block the session.
+
 ### `task-sync.sh`
 
 Brana PostToolUse hook — sync tasks.json changes to GitHub Issues + Projects.
