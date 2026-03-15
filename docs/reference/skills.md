@@ -2,7 +2,7 @@
 
 # Skill Reference
 
-**27 skills** loaded from `system/skills/`.
+**29 skills** loaded from `system/skills/`.
 
 ## Index
 
@@ -16,6 +16,7 @@
 | `/brana:challenge` | learning | Dual-model adversarial review. Opus subagent stress-tests reasoning; Gemini stre |
 | `/brana:client-retire` | execution | Archive a client's patterns and mark them as historical. Use when retiring a cli |
 | `/brana:close` | session | End a session — extract learnings, write handoff note, store patterns, detect do |
+| `/brana:docs` | core | Generate and update living documentation — tech docs, user guides, philosophy ov |
 | `/brana:export-pdf` | utility | Convert a markdown file to PDF using mdpdf. Use when exporting proposals, SOPs,  |
 | `/brana:financial-model` | venture | Revenue projections, scenario analysis, P&L template, unit economics, and cash f |
 | `/brana:gsheets` | utility | Google Sheets via MCP — read, write, create, list, share spreadsheets. Use when  |
@@ -34,6 +35,7 @@
 | `/brana:retrospective` | learning | Store a learning or pattern in the knowledge system. Use after notable discoveri |
 | `/brana:review` | venture | Business review — weekly health check, monthly close + plan, or ad-hoc growth au |
 | `/brana:scheduler` | utility | Scheduled jobs. |
+| `/brana:sitrep` | core | Situational awareness — where am I, what was I doing, what's left, what should I |
 | `/brana:venture-phase` | venture | Plan and execute a business milestone — product launch, hiring, fundraise, expan |
 
 ## brana
@@ -87,6 +89,23 @@ Capture events — links, calls, meetings, ideas, observations — into a search
 Extract post ideas from recent work through positioning lens
 
 **Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
+
+
+## core
+
+### `/brana:docs`
+
+Generate and update living documentation — tech docs, user guides, philosophy overview. Composable building block for CLOSE and other skills.
+
+**Arguments:** `guide|tech|overview|all [task-id]`
+
+**Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, Agent, AskUserQuestion
+
+### `/brana:sitrep`
+
+Situational awareness — where am I, what was I doing, what's left, what should I do next. Context recovery after compression, confusion, or mid-session reorientation.
+
+**Allowed tools:** Bash, Read, Glob, Grep, Task, AskUserQuestion
 
 
 ## execution
@@ -250,7 +269,7 @@ Revenue projections, scenario analysis, P&L template, unit economics, and cash f
 
 Sales pipeline tracking — leads, deals, conversions, follow-ups. Stage-aware CRM that works with markdown or MCP integrations. Use when tracking leads, updating deals, or reviewing pipeline health.
 
-**Allowed tools:** Read, Write, Glob, Grep, Bash, AskUserQuestion
+**Allowed tools:** Read, Write, Glob, Grep, Bash, Task, AskUserQuestion
 
 ### `/brana:proposal`
 

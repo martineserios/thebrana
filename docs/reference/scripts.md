@@ -112,7 +112,7 @@ Default skills directory: `../skills` relative to the script.
 | **Usage** | `uv run python3 system/scripts/spec_graph.py generate [--output PATH]` |
 | **Dependencies** | Python 3 (stdlib only) |
 
-Parses all markdown files in `docs/` and `docs/dimensions/` (symlink), extracts cross-reference links and `system/` file mentions, and outputs a JSON dependency graph.
+Parses all markdown files in `docs/`, including subdirectories `dimensions/`, `research/`, `guide/`, and `architecture/` (symlinks followed explicitly). Extracts cross-reference links, `system/` file mentions, and typed relationship edges.
 
 ### Subcommands
 
@@ -124,11 +124,19 @@ Parses all markdown files in `docs/` and `docs/dimensions/` (symlink), extracts 
 
 | Flag | Required | Default | Description |
 |------|----------|---------|-------------|
-| `--output` | No | `docs/spec-graph.json` | Output file path |
+| `--output` / `-o` | No | `docs/spec-graph.json` | Output file path |
 
 ### Output
 
-JSON with `_meta` (stats) and `nodes` (per-doc references, referenced_by, impl_files). See [spec-graph workflow guide](../guide/workflows/spec-graph.md) for schema details.
+JSON with three top-level keys:
+
+| Key | Description |
+|-----|-------------|
+| `_meta` | Stats: `node_count`, `edge_count`, `impl_ref_count`, `orphan_count`, `typed_edge_count` |
+| `nodes` | Per-doc: `references`, `referenced_by`, `impl_files`, `guide_files`, `arch_files`, `ref_files` |
+| `typed_edges` | Relationship edges: `{from, to, type}` where type is assumes/implements/informs/enriches/supersedes |
+
+See [spec-graph workflow guide](../guide/workflows/spec-graph.md) for full schema and query examples.
 
 ---
 
@@ -187,6 +195,25 @@ Append-only JSONL decision log stored in `system/state/decisions/`.
 |----------|-------------|
 | `BRANA_SESSION_ID` | Session identifier for file naming |
 | `BRANA_DECISIONS_DIR` | Override state directory path (testing) |
+
+---
+
+## generate-reference.py
+
+| Field | Value |
+|-------|-------|
+| **Purpose** | Generate `docs/reference/` files deterministically from source metadata |
+| **Usage** | `uv run python3 system/scripts/generate-reference.py [--output-dir PATH] [--check]` |
+| **Dependencies** | Python 3 (stdlib only) |
+
+Reads YAML frontmatter from `system/skills/*/SKILL.md`, `system/agents/*.md`, `system/hooks/hooks.json` + `*.sh`, `system/rules/*.md`, and `system/commands/`. Generates five reference files: `skills.md`, `agents.md`, `hooks.md`, `rules.md`, `commands.md`.
+
+### Arguments
+
+| Flag | Required | Default | Description |
+|------|----------|---------|-------------|
+| `--output-dir` | No | `docs/reference/` | Output directory |
+| `--check` | No | false | Exit 1 if any file would change (CI gate) |
 
 ---
 

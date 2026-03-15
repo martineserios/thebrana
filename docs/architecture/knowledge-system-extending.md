@@ -33,15 +33,22 @@ The typed edge extractor in `system/scripts/spec_graph.py` uses a frozen set of 
 
 ```python
 # system/scripts/spec_graph.py, line ~58
-_RELATIONSHIP_TYPES = frozenset({"assumes", "implements", "informs", "enriches", "supersedes", "measures"})
+# Current types (add yours to both the set and the regex):
+_RELATIONSHIP_TYPES = frozenset({"assumes", "implements", "informs", "enriches", "supersedes"})
 ```
 
 Update the regex on the next line to include the new type:
 
 ```python
 _TYPED_LINK_RE = re.compile(
-    r"\[([^\]]+)\s+(assumes|implements|informs|enriches|supersedes|measures)\]\(([^)]+)\)"
+    r"\[([^\]]+)\s+(assumes|implements|informs|enriches|supersedes)\]\(([^)]+)\)"
 )
+```
+
+**Note:** The example below shows adding `measures` — replace with your actual type name:
+
+```python
+_RELATIONSHIP_TYPES = frozenset({"assumes", "implements", "informs", "enriches", "supersedes", "measures"})
 ```
 
 ### Add test coverage
@@ -338,6 +345,18 @@ For each match, it resolves the target path relative to the source file and emit
 ```
 
 Edges are collected into `spec-graph.json` under `typed_edges`, deduplicated by (from, to, type), and sorted by type.
+
+### Node routing fields
+
+Each node in `spec-graph.json` also carries doc-layer routing fields, auto-populated by `spec_graph.py`:
+
+| Field | Description |
+|-------|-------------|
+| `guide_files` | Guide docs (`docs/guide/`) sharing impl_files with this node |
+| `arch_files` | Architecture docs (`docs/architecture/`) sharing impl_files with this node |
+| `ref_files` | Reference docs (`docs/reference/`) sharing impl_files with this node |
+
+These fields power `/brana:docs` — when code changes, the graph tells which docs may need updating. The routing is computed via a reverse index on shared `impl_files`, not manual mapping.
 
 ### Adding a new relationship type
 
