@@ -731,32 +731,14 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    - Set status to `shipped`
    - Add learnings from retrospective
 
-6. **Generate feature documentation** (strategy-aware):
+6. **Generate feature documentation** via `/brana:docs`:
 
-   **Which docs to generate:**
+   Invoke the living documentation skill:
+   ```
+   Skill(skill="brana:docs", args="all {task-id}")
+   ```
 
-   | Strategy | Tech Doc | User Guide |
-   |----------|----------|------------|
-   | feature | yes | yes |
-   | greenfield | yes | yes |
-   | migration | yes | yes |
-   | refactor | only if architecture changed | no |
-   | bug-fix | no | no |
-
-   **Tech doc** — write `docs/architecture/features/{feature-slug}.md`:
-   - Use template from `system/skills/build/templates/tech-doc.md`
-   - Fill from: build context, design decisions made in SPECIFY/PLAN, code written in BUILD
-   - Key: capture WHY decisions were made, not just WHAT was built
-
-   **User guide** — write `docs/guide/features/{feature-slug}.md`:
-   - Use template from `system/skills/build/templates/user-guide.md`
-   - Fill from: user-facing behavior, commands, configuration, examples
-   - Key: write for someone who's never seen the codebase — copy-pasteable examples
-
-   **Also update existing docs if affected:**
-   - If new command/skill: add to `docs/guide/commands/index.md` — read the file, find the right workflow group table, insert a row with `| /brana:{name} | {description from skill frontmatter} |`. If no group fits, add to "Utilities".
-   - If workflow changed: update relevant `docs/guide/workflows/*.md`
-   - If existing feature docs reference changed files: update them (check `docs/architecture/features/` Key Files tables)
+   `/brana:docs all` handles strategy-aware generation (tech doc, user guide, shared doc updates, philosophy overview) and spec-graph routing. See the [docs skill](../docs/SKILL.md) for full details.
 
    **Shipped without docs means not shipped.**
 
@@ -777,7 +759,7 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
      "Shipped without docs means not shipped."
      Generate docs now? (yes / skip — I'll add them later)
      ```
-     If user says yes: loop back to step 6 (doc generation).
+     If user says yes: invoke `Skill(skill="brana:docs", args="all {task-id}")`.
      If user says skip: proceed to merge (soft enforcement, not a hard block).
    - **If doc files present:** proceed silently.
    - **Bug fix / refactor branches:** skip this check entirely.

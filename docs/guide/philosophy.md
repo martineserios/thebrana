@@ -1,58 +1,59 @@
 # Philosophy
 
-## Software development is a learning system
+Brana is a system that makes AI development partners better over time. Not a framework to learn — an environment that learns with you.
 
-Most tools treat development as a sequence of tasks: pick a ticket, write the code, ship it. Brana treats it differently. Software development is a learning system — every session teaches something, every failure contains a pattern, and every problem solved in one project can shorten the next one.
+## Core Principles
 
-This is the thesis behind brana. Not a smarter AI, not a better autocomplete. A system that learns continuously and retains what it learns.
+### Infrastructure over prompts
 
-## The problem with prompts
+Prompts drift, get forgotten, lose context. Infrastructure persists: hooks enforce rules without asking, skills encode workflows without re-explaining, rules shape behavior without repeating. When something matters enough to say twice, it should be a hook or a rule — not a prompt you copy-paste.
 
-Most people who use AI for development rely on prompts. They write careful instructions, paste context, guide the model through each step. It works — until the next session, when they start over.
+### Composability over monoliths
 
-The problem is that prompts are stateless. Nothing carries forward. The AI doesn't remember that you prefer TypeScript strict mode, that the staging environment behaves differently than production, or that the third approach to the auth bug finally worked. Every session is day one.
+Every capability is a building block. Skills invoke other skills. Commands pipe into commands. Agents delegate to agents. The CLI is a composable tool, not a monolithic app. If a new capability can't be used by other capabilities, it's not ready.
 
-Brana's answer is not better prompts. It is better infrastructure.
+### Learn from everything
 
-## How the system works
+Every session produces learnings worth storing. A bug fix reveals a pattern. A research spike answers a question. A failed approach narrows the search space. The system captures these — not as logs to scroll past, but as indexed knowledge that informs future work.
 
-Three components do the real work:
+### Cross-pollination
 
-**Rules** are behavioral directives loaded every session. Not suggestions — enforced defaults. `git-discipline.md` says every change starts on a branch, without exception. `sdd-tdd.md` says write the spec before the code, write the test before the implementation. These conventions exist in most engineering teams but drift over time. In brana, they don't drift because the AI reads them fresh on every session start.
+Solutions from one project inform others. A WhatsApp template formula discovered for one client becomes reusable knowledge. An infrastructure evaluation becomes a reference for future decisions. Knowledge flows across projects, weighted by confidence and relevance.
 
-**Hooks** are the event-driven enforcement layer. The PreToolUse hook fires before every file edit. On a feature branch in a project with ADRs, it blocks implementation files until a spec or test exists on that branch — not as a reminder, as a gate. The SessionStart hook recalls stored patterns from memory before any work begins. The SessionEnd hook extracts learnings when the session closes and stores them for next time. Hooks turn conventions into infrastructure.
+### Test-first, always
 
-**The spec graph** connects specs to code. Dimension docs (deep research) feed into reflection docs (cross-cutting synthesis), which feed into roadmap docs (implementation plans). When a dimension doc changes, `/brana:maintain-specs` cascades the change forward. When implementation diverges from specs, `/brana:reconcile` detects it. The system knows when things are out of sync and flags it — rather than letting drift accumulate silently.
+The test is the spec. Write it before the code. See it fail. Then implement. This isn't ceremony — it's the shortest path to knowing whether something works. When a test seems wrong, investigate the code before weakening the assertion.
 
-## What the system produces
+## Design Decisions That Matter
 
-Over time, these components compound.
+### Two layers: plugin + identity
 
-An AI that only prompts might catch that you prefer a specific pattern for error handling — in this session. Brana stores that preference as a rule or a learned pattern, and it applies it in the next session without being reminded. After a month of working across three projects, the memory holds hundreds of patterns: what worked, what failed, which approach to avoid on which stack.
+The plugin (`system/`) is the toolkit — skills, hooks, agents. The identity layer (`~/.claude/`) is who the AI is — rules, memory, scripts. They deploy separately. You can update the toolkit without changing identity, or tune identity without touching the toolkit.
 
-The cross-client memory is the part that surprises people. A solution discovered while debugging a Supabase auth issue on one project gets stored with tags. Six weeks later on a different project, when a similar pattern emerges, the SessionStart hook surfaces the earlier solution before any work begins. The compound effect is real: new projects bootstrap faster because solved problems stay solved.
+### Spec-driven development
 
-The cascade throttle is a concrete example of how failure translates to structure. After three consecutive failures editing the same file, the hook injects a warning: "This file has failed repeatedly. Stop and reassess." Not a block — a signal to step back instead of patching forward. The `self-improvement` rule says the same thing: on failure, stop and reassess from scratch. The hook enforces it mechanically even when the model might otherwise push forward.
+Design docs aren't documentation — they're executable specifications. Changes cascade: dimension docs feed reflections, reflections feed the roadmap, the roadmap feeds implementation. When specs drift from code, `/brana:reconcile` detects it. The spec graph (`docs/spec-graph.json`) maps every document to the code it governs.
 
-## Why infrastructure over prompts
+### Confidence-weighted knowledge
 
-The gap between a good AI session and a consistently good AI system is enforcement. Rules help — but rules in markdown files get ignored when the model is in flow or under pressure. Hooks don't get ignored. They fire on every relevant event, deterministically, regardless of what else is happening in the session.
+Not all memories are equal. Fresh research gets low confidence (0.3) and a TTL. Patterns that survive multiple builds get promoted (0.6+). Battle-tested knowledge that's been verified across projects gets high confidence. The system prefers high-confidence, recent patterns over stale or unverified ones.
 
-This is the core design choice: move discipline from convention (AI might follow it) to enforcement (AI cannot bypass it).
+### Skills as the unit of capability
 
-The enforcement hierarchy reflects this explicitly. Rules achieve roughly 80% compliance. Skills structured workflows get 85-95%. PreToolUse hooks approach 100% — the AI cannot write to an implementation file before the spec exists if the hook blocks it.
+Every repeatable workflow is a skill. Skills have frontmatter (name, description, allowed tools), a SKILL.md that defines behavior, and a namespace (`/brana:*`). Skills compose — `/brana:build` invokes `/brana:docs`, which invokes templates. New capabilities embed as steps in existing skills, not standalone commands nobody remembers.
 
-The goal is not to constrain the AI. The goal is to make good practices the path of least resistance, so the human doesn't have to remember to enforce them.
+## How It All Connects
 
-## What this is not
+```
+User request
+  → Rules shape behavior (always active, no invocation needed)
+  → Skills encode workflows (invoked explicitly or by other skills)
+  → Agents handle specialized tasks (auto-delegated based on context)
+  → Hooks enforce constraints (block bad actions before they happen)
+  → Knowledge system provides context (patterns, research, field notes)
+  → Task system tracks progress (backlog, build steps, dependencies)
+```
 
-Brana is not an attempt to replace engineering judgment. The challenger agent adversarially reviews plans, but it presents findings — not decisions. The memory system surfaces patterns, but the developer chooses what to apply. The hooks enforce discipline, but they operate on clearly defined structural conditions, not on the substance of the code.
+The build loop is the heartbeat: CLASSIFY what you're doing, SPECIFY what it should look like, PLAN how to get there, BUILD it with tests, CLOSE by documenting and reflecting. Each step stores knowledge. Each future build benefits from past builds.
 
-The system acts as a partner that remembers, transfers knowledge, and protects its own quality. The engineering decisions remain with the engineer.
-
----
-
-**Next steps:**
-- [Getting Started](getting-started.md) — install and run your first session
-- [Concepts](concepts.md) — vocabulary for rules, hooks, agents, and skills
-- [Architecture](../reflections/ARCHITECTURE.md) — how the three layers compose
+Documentation isn't a separate activity — it's a build artifact. Tech docs, user guides, and this philosophy document are generated and updated as part of the build loop, not as an afterthought.
