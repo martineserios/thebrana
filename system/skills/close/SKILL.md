@@ -288,21 +288,29 @@ Then backup:
 
 ### Step 10: Memory review
 
-Read the project's auto memory (`MEMORY.md`) and audit each entry:
+Audit every entry in MEMORY.md using the **pre-add gate** from `~/.claude/rules/memory-framework.md`.
 
 1. **Read** `~/.claude/projects/{project-slug}/memory/MEMORY.md`
-2. **For each entry**, classify:
-   - **Keep** — still relevant to this project, not yet implemented
-   - **Delete** — client-specific (belongs in that client's memory), outdated, or the described feature/fix has been implemented
-   - **Feature idea** — the entry describes a gap, wish, or improvement that could become a task
-3. **Delete stale entries** — remove lines that are no longer relevant
-4. **Extract feature ideas** — for each feature idea found:
-   - Search existing tasks: `brana backlog query --search "keyword" --count`
-   - If already exists (count > 0): delete the memory entry (it's tracked)
-   - If new: `brana backlog add --json '{"subject":"...","stream":"...","type":"task"}'` then delete the memory entry
-5. **Report** feature ideas extracted and entries cleaned in the session report
+2. **For each entry**, classify using the full gate:
 
-**Skip if:** session was read-only, or MEMORY.md has fewer than 10 entries.
+   | Classification | Action |
+   |---------------|--------|
+   | **Directive** ("always", "never", "must", "should") | Move to `rules/*.md` |
+   | **Convention** (architecture, stack, domain terms) | Move to `CLAUDE.md` |
+   | **Automation** (should trigger on events) | Flag for hook creation |
+   | **Recipe** (multi-step reusable workflow) | Flag for skill creation |
+   | **Log entry** (event that happened) | Move to `/brana:log` |
+   | **Derivable** (obtainable via command or file read) | Delete |
+   | **Historical** (completed, no future value) | Delete |
+   | **Not project-specific** (applies across all projects) | Move to global `~/.claude/rules/` |
+   | **Feature idea** (gap, wish, improvement) | Create task via `brana backlog add`, then delete |
+   | **True memory** (external API, pointers, non-derivable context) | Keep |
+
+3. **Execute moves** — for directives and conventions, create/update the target file and delete from MEMORY.md
+4. **Feature ideas** — search existing tasks first: `brana backlog search "keyword"`. If duplicate, just delete. If new, `brana backlog add --json '{"subject":"...","stream":"...","type":"task"}'`
+5. **Report** — entries moved, deleted, kept, and feature ideas extracted
+
+**Skip if:** session was read-only, or MEMORY.md has fewer than 5 entries.
 
 ### Step 11: Report
 
