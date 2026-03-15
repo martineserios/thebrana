@@ -9,7 +9,7 @@ All brana commands, grouped by workflow.
 | `/brana:build [description]` | Build anything — auto-detects strategy (feature, bug fix, refactor, spike, migration, investigation, greenfield) |
 | `/brana:close` | End session — extract learnings, write handoff, store patterns |
 | `/brana:challenge` | Adversarial review of a plan or architecture decision |
-| `/brana:docs [subcommand]` | Generate and update living documentation (tech, guide, overview, all) |
+| `/brana:docs [guide\|tech\|overview\|all] [task-id]` | Generate and update living documentation — composable building block for CLOSE and other skills |
 | `/brana:reconcile` | Detect and fix spec-vs-implementation drift |
 
 ## Task Management

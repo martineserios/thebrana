@@ -45,6 +45,7 @@ The `/brana:build` command handles all development work -- features, bug fixes, 
 | `/brana:backlog start` | Enters build via task selection |
 | `/brana:challenge` | Reviews spec during SPECIFY (context-isolated via fork) |
 | `/brana:retrospective` | Stores learnings at CLOSE |
+| `/brana:docs` | Invoked by CLOSE — generates tech doc, user guide, and shared doc updates |
 | `/brana:close` | Session-level close (build's CLOSE is per-task) |
 
 ## Key rules
