@@ -11,6 +11,18 @@ Run the full spec repo correction cycle: apply pending errata first (so reflecti
 
 This does NOT include `/refresh-knowledge` (web search for external updates). Run that separately first if dimension docs might be stale relative to the outside world.
 
+## Step Registry
+
+On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
+
+Register these steps: ERRATA, RE-EVALUATE, DEEPEN, DOC25, MEMORY, BACKLOG, LOG, STORE, BACKUP, GRAPH.
+
+### Resume After Compression
+
+If context was compressed:
+1. Call `TaskList` — find CC Tasks matching `/brana:maintain-specs — {STEP}`
+2. The `in_progress` task is your current step — resume from there
+
 ## Step 1: Apply errata
 
 Run `/brana:apply-errata`. Apply known fixes first so that reflection docs start from a corrected baseline before cross-checking. It handles the full layer-aware cycle: classify → dimension fixes → gate check → reflection fixes → gate check → roadmap fixes → update doc 24.

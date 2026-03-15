@@ -8,6 +8,7 @@ allowed-tools:
   - Glob
   - Grep
   - Bash
+  - Task
   - AskUserQuestion
 ---
 
@@ -22,6 +23,18 @@ Track leads, deals, conversions, and follow-ups. A stage-aware CRM that works wi
 - Logging an interaction (call, email, demo, meeting)
 - Marking a deal as closed (won or lost)
 - Reviewing pipeline health before a weekly review or monthly close
+
+## Step Registry
+
+On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
+
+Register these steps: DETECT, LOAD, ACTION, REPORT.
+
+### Resume After Compression
+
+If context was compressed:
+1. Call `TaskList` — find CC Tasks matching `/brana:pipeline — {STEP}`
+2. The `in_progress` task is your current step — resume from there
 
 ---
 

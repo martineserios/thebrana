@@ -29,6 +29,18 @@ When writing or reviewing Respond.io agent prompts, designing multi-agent flows,
 - `/brana:respondio-prompts review` — review existing prompts against best practices
 - `/brana:respondio-prompts design handoff flow` — design multi-agent routing
 
+## Step Registry
+
+On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
+
+Register these steps: ORIENT, AUDIT, WRITE, VALIDATE.
+
+### Resume After Compression
+
+If context was compressed:
+1. Call `TaskList` — find CC Tasks matching `/brana:respondio-prompts — {STEP}`
+2. The `in_progress` task is your current step — resume from there
+
 ## Process
 
 ```
