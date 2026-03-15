@@ -225,201 +225,27 @@ Interactive phase planning. Builds the hierarchy conversationally.
 
 High-level progress view with aggregation. Use `--all` for cross-client task-level drill-down.
 
+**Delegate entirely to CLI. Do not read tasks.json or compute anything manually.**
+
 ### Steps
 
-1. **Resolve active theme** (see Display Themes)
-2. **Detect project** or show summary portfolio if omitted
-3. **Read tasks.json** (for summary: read from each client's project paths in tasks-portfolio.json)
-4. **Compute per-phase:** total tasks, completed, in_progress, blocked
-5. **Compute per-stream:** roadmap progress, bug count, tech-debt count, research triage counts (new/reviewed/applied)
-6. **If `--wide`**, render using **wide-mode template** (see Display Themes > Wide mode). Otherwise render using task-line template with tree connectors:
+1. Run `brana backlog status` — outputs themed project status (progress bar, counts)
+2. Run `brana backlog stats` — outputs JSON aggregate stats (by_status, by_stream, by_priority, by_type)
+3. Run `brana backlog next` — outputs themed next-up list (top 3 by priority)
+4. Present the CLI output directly to the user. Do not reformat or recompute.
 
-```
-{project} — {active-phase-subject}
+### Cross-client view (`--all`)
 
-  Roadmap
-  ├── {phase-subject}                  {bar} {done}/{total}
-  │   ├── {milestone-subject}          {bar} {done}/{total}
-  │   └── {milestone-subject}          {bar} {done}/{total}
-  │
-  ├── Bugs
-  │   ├── {bug-subject}                {bar} {done}/{total}
-  │   └── {bug-subject}                done
-  │
-  └── Tech Debt
-      └── {item}                       pending
+Run `brana backlog status --all` — CLI handles portfolio aggregation, theming, and rendering.
 
-  Research                              5 new · 2 reviewed · 1 applied
-  ├── → t-105 GraphRAG evaluation           pending [knowledge-graphs]
-  └── ...(+62 more)
+For JSON output (when you need to process data): `brana backlog status --all --json`
 
-  Tags: scheduler(4) research(3) quick-win(2)
-```
+### Additional detail (optional, only if user asks)
 
-Progress bars use active theme fill/empty characters.
-Tag summary line at bottom: shows all tags with counts across active tasks (non-completed). Omit line if no tasks have tags.
-For in-progress tasks with a `build_step` field, show the step inline: `← t-008 Implement JWT [BUILD]`.
-
-### Summary view (no project argument)
-
-Render using task-line template icons. Emoji theme adds health dots and project emoji prefix.
-
-```
-classic/minimal:
-palco       Phase 2: API Foundation    ████░░░░ 60%   2 bugs
-tinyhomes   Phase 1: Validation        ██░░░░░░ 25%
-somos       Cold Lead Flow             ████████ done
-
-emoji:
-📊 Portfolio
-
-🟡 palco       Phase 2: API Foundation    ████░░░░ 60%   2 bugs
-🟡 tinyhomes   Phase 1: Validation        ██░░░░░░ 25%
-🟢 somos       Cold Lead Flow             ████████ done
-```
-
-Health dots (emoji only): 🟢 all done, 🟡 has active/pending work, 🔴 has blocked tasks.
-
-Read client/project paths from `~/.claude/tasks-portfolio.json`. Schema: `{ clients: [{ slug, projects: [{ slug, path, type?, stage?, tech_stack?, created? }] }] }`. Legacy flat `{ projects: [...] }` also supported. Paths use `~/` prefix — resolve to `$HOME` before reading. For each project, read `{path}/.claude/tasks.json` if it exists. Project metadata (`type`, `stage`, `tech_stack`) is available from the registry for display in views.
-
-### Cross-client task view (`--all`)
-
-Shows individual tasks you can work on across all registered clients. Complements the summary view (progress bars) with a task-level drill-down. Accepts `--unified` for priority-sorted flat list, `--wide` for tabular output.
-
-#### Steps
-
-1. **Resolve active theme** (see Display Themes)
-2. **Read `~/.claude/tasks-portfolio.json`** — get client list
-3. **Resolve paths** — replace `~/` with `$HOME`
-4. **For each client**, iterate its projects array. For each project, read `{path}/.claude/tasks.json`
-   - If file doesn't exist: skip silently
-   - **Normalize JSON**: if root is a bare array `[{...}]`, treat as the tasks list. If root is an object with `.tasks`, use that.
-   - **Legacy schema**: if root has `.projects` instead of `.clients`, treat each entry as a single-project client (slug = project slug)
-   - **Project metadata**: each project entry may have `type`, `stage`, `tech_stack`, `created` — use for display (e.g., type badge, stage indicator)
-5. **Classify each task** (type: task or subtask only — skip phases and milestones):
-   - `in_progress`: status is `in_progress`
-   - `pending`: status is `pending` AND all `blocked_by` IDs have status `completed`
-   - `blocked`: status is `pending` AND any `blocked_by` ID is not `completed`
-   - `parked`: tags array contains `"parked"` (shown with `[parked]` flag)
-   - `completed`: status is `completed`
-6. **Sort within each client**: in_progress → pending → blocked → last 3 completed (by `completed` date descending)
-7. **Compute summary**: total actionable tasks, client count, pending count, in_progress count
-8. **If `--wide`**, render using **wide-mode template** (see Display Themes > Wide mode) — flat table grouped by project. Otherwise render using task-line template — by-project or unified view.
-
-#### By-project view (default)
-
-Render task lines using active theme icons.
-
-**Project header logic:**
-- **Single-project client**: show client slug only (e.g., `nexeye`)
-- **Multi-project client**: show `client/project` (e.g., `nexeye/eyedetect`, `nexeye/lens-api`)
-- **Project type badge** (optional, emoji theme only): append type after header — `[code]`, `[venture]`, `[hybrid]`
-
-Example in **classic** (single-project clients — current state):
-
-```
-Portfolio — 17 tasks across 4 clients (14 pending, 3 in progress)
-
-  nexeye
-    ← t-003 First production deploy                    in_progress
-    → t-016 Fix inference-worker-2 overlay failure      pending
-    · t-017 Fix staging deploy                          blocked by t-003
-    ✓ t-015 Configure GitHub Actions CI                 completed 2026-02-18
-    ✓ t-014 Fix DNS resolution                          completed 2026-02-17
-    ✓ t-013 Set up Docker Swarm                         completed 2026-02-16
-
-  palco
-    ← t-003 V2→V3 cutover                              in_progress
-    → t-004 Review metrics Google Sheet                 pending
-    → t-011 Run Supabase migration                      pending
-    ✓ t-010 Build V3 trigger endpoint                   completed 2026-02-15
-    ✓ t-009 Migrate campaign schema                     completed 2026-02-14
-    ✓ t-008 Add rate limiting                           completed 2026-02-13
-
-  somos
-    → t-001 Fill kb-indicaciones-consulta-virtual-bsas  pending
-    → t-002 Fill kb-indicaciones-consulta-virtual-eng   pending
-    ...(+7 more pending)
-    (no recent completions)
-
-  tinyhomes — all done (3 tasks)
-```
-
-Example in **classic** (multi-project client):
-
-```
-  nexeye/eyedetect
-    ← t-003 First production deploy                    in_progress
-    → t-016 Fix inference-worker-2 overlay failure      pending
-
-  nexeye/lens-api
-    → t-001 Set up FastAPI scaffold                     pending
-    → t-002 Define OpenAPI schema                       pending
-```
-
-Same view in **emoji** — note boxed header, health dots, themed icons, type badge:
-
-```
-╭──────────────────────────────────────────────────────╮
-│  📊 Portfolio — 17 tasks · 4 clients                 │
-│  🔨 3 in progress · 🔲 14 pending                    │
-╰──────────────────────────────────────────────────────╯
-
-  🟡 nexeye [hybrid]
-    🔨 t-003 First production deploy                    in_progress
-    🔲 t-016 Fix inference-worker-2 overlay failure      pending
-    🔒 t-017 Fix staging deploy                          ⛓ t-003
-    ✅ t-015 Configure GitHub Actions CI                 completed 2026-02-18
-    ✅ t-014 Fix DNS resolution                          completed 2026-02-17
-    ✅ t-013 Set up Docker Swarm                         completed 2026-02-16
-
-  🟡 palco [hybrid]
-    🔨 t-003 V2→V3 cutover                              in_progress
-    🔲 t-004 Review metrics Google Sheet                 pending
-    🔲 t-011 Run Supabase migration                      pending
-    ✅ t-010 Build V3 trigger endpoint                   completed 2026-02-15
-    ✅ t-009 Migrate campaign schema                     completed 2026-02-14
-    ✅ t-008 Add rate limiting                           completed 2026-02-13
-
-  🟡 somos [venture]
-    🔲 t-001 Fill kb-indicaciones-consulta-virtual-bsas  pending
-    🔲 t-002 Fill kb-indicaciones-consulta-virtual-eng   pending
-    ...(+7 more pending)
-    (no recent completions)
-
-  🟢 tinyhomes — all done (3 tasks)
-```
-
-Parked tasks show inline: `{blocked-icon} ms-007 Wire AgentDB [parked]  blocked (upstream)`.
-Clients with no tasks.json are omitted. All-completed clients show as a collapsed line.
-When a project has more than 5 pending tasks, show the first 3 then `...(+N more pending)`.
-
-#### Unified priority view (`--unified`)
-
-Render using task-line template icons. **Client prefix**: use `client/project` when the client has multiple projects, otherwise just client slug.
-
-Example in **classic**:
-
-```
-Portfolio — priority view (17 tasks across 4 clients)
-
-  1. ← nexeye  t-003 First production deploy            in_progress  P1
-  2. ← palco   t-003 V2→V3 cutover                      in_progress  P1
-  3. → palco   t-004 Review metrics Google Sheet         pending
-  4. → palco   t-011 Run Supabase migration              pending
-  5. → somos   t-001 Fill kb-indicaciones-virtual-bsas   pending
-  6. → somos   t-002 Fill kb-indicaciones-virtual-eng    pending
-  ...
-```
-
-Multi-project example:
-```
-  1. ← nexeye/eyedetect  t-003 First production deploy  in_progress  P1
-  2. → nexeye/lens-api    t-001 Set up scaffold           pending
-```
-
-Sort order: P0 > P1 > P2 > null. Ties broken by: in_progress first, then pending, then `order` field.
-Blocked and completed tasks are excluded from the unified view (only actionable tasks).
+- Blocked chains: `brana backlog blocked`
+- Stream breakdown: already in `brana backlog stats` output
+- Phase tree: `brana backlog roadmap`
+- Specific phase subtree: `brana backlog tree <phase-id>`
 
 ---
 
@@ -427,40 +253,15 @@ Blocked and completed tasks are excluded from the unified view (only actionable 
 
 Full tree view — every level expanded.
 
+**Delegate entirely to CLI. Do not read tasks.json or build trees manually.**
+
 ### Steps
 
-1. **Resolve active theme** (see Display Themes)
-2. Read tasks.json
-3. Build tree from parent references
-4. **If `--wide`**, render using **wide-mode template** (see Display Themes > Wide mode) with phase/milestone section headers. Otherwise render using task-line template with tree connectors:
+1. Run `brana backlog roadmap` — outputs themed full tree (phases -> milestones -> tasks with icons, progress bars, blocked indicators)
+2. Present the CLI output directly to the user. Do not reformat.
 
-```
-{project} Roadmap
-
-  ph-001 Phase 1: Setup                            ████████ done
-  ├── ms-001 Dev Environment                       ████████ done
-  │   ├── ✓ t-001 Install dependencies
-  │   └── ✓ t-002 Configure linting
-  │
-  ph-002 Phase 2: API Foundation                   ████░░░░ 3/8
-  ├── ms-003 Auth System                           ██░░░░░░ 1/3
-  │   ├── ✓ t-007 Design auth flow
-  │   ├── → t-008 Implement JWT middleware [auth, quick-win]  next
-  │   └── · t-009 Write auth tests                 blocked by t-008
-  └── ms-004 Database Setup                        ░░░░░░░░ 0/3
-      ├── · t-010 Design schema                    blocked by ms-003
-      ├── · t-011 Write migrations                 blocked by t-010
-      └── · t-012 Seed dev data [scheduler]        blocked by t-011
-
-  Bugs
-  └── ms-005 Auth token expiry                     ██░░░░░░ 1/3
-      ├── ✓ t-013 Investigate root cause
-      ├── ← t-014 Fix token refresh
-      └── · t-015 Add regression test              blocked by t-014
-```
-
-Icons come from the active theme's task-line template. Example above uses classic.
-Tags shown inline as `[tag1, tag2]` after subject — only when tags array is non-empty.
+For JSON output: `brana backlog roadmap --json`
+For a subtree: `brana backlog tree <phase-or-milestone-id>`
 
 ---
 
@@ -468,27 +269,16 @@ Tags shown inline as `[tag1, tag2]` after subject — only when tags array is no
 
 Find the highest-priority unblocked task.
 
+**Delegate entirely to CLI.**
+
 ### Steps
 
-1. **Resolve active theme** (see Display Themes)
-2. Read tasks.json
-3. Filter: status=pending, blocked_by all completed, type=task|subtask
-4. If `--tag X` provided, additionally filter to tasks containing tag X. If `--stream X` provided, additionally filter to tasks in that stream.
-5. Sort by: priority (P0 first) -> order -> created date
-6. **If `--wide`**, render top 3 using **wide-mode template** (all columns). Otherwise render using task-line template — show top 3 candidates with tags inline:
+1. Run `brana backlog next` — outputs themed top-3 list sorted by priority
+2. Present the CLI output directly.
 
-```
-Next up:
-  1. → t-008 Implement JWT middleware [auth, quick-win]  P1  S  roadmap
-  2. → t-014 Fix token refresh                           P1  M  bugs
-  3. → t-020 Update API docs [docs]                      P2  S  docs
-
-Start one? (number or "1" to begin)
-```
-
-Icons come from active theme (example above uses classic `→`).
-Optional `--tag` narrows candidates: `/brana:backlog next --tag scheduler`
-Optional `--stream` narrows by stream: `/brana:backlog next --stream research`
+Optional filters (pass through to CLI):
+- By tag: `brana backlog next --tag scheduler`
+- By stream: `brana backlog next --stream research`
 
 ---
 
