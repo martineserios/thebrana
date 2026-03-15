@@ -1737,3 +1737,47 @@ EOF
 # Auto Memory — thebrana
 | thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
 ,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/MEMORY.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/session-handoff.md,/home/martineserios/enter_thebrana/thebrana-feat-t475-gh-sync/system/cli/rust/src/cli.rs,/home/martineserios/enter_thebrana/thebrana-feat-t475-gh-sync/system/cli/rust/src/sync.rs,/home/martineserios/enter_thebrana/thebrana/docs/architecture/features/github-issues-sync.md,brana backlog set t-475 build_step build 2>/dev/null; echo "exit: $?",brana backlog set t-475 status completed 2>/dev/null && brana backlog set t-475 completed 2026-03-15 2>/dev/null && brana backlog set t-475 build_step close 2>/dev/null,cat /tmp/brana-session-04bbd807-6ebc-4baf-9104-44ecd4a31b33.jsonl 2>/dev/null | head -30
+
+### Session 0a58acc8-9afa-421f-be71-5f724339804c (2026-03-15T16:15:16Z)
+- Events: 86 (77 ok, 7 fail)
+- Corrections: 1 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.08 fix=0.14 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: "$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null; echo "exit:$?",# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/MEMORY.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/session-handoff.md,/home/martineserios/enter_thebrana/thebrana/docs/architecture/features/brana-cli.md,/home/martineserios/enter_thebrana/thebrana/docs/architecture/features/github-issues-sync.md,/home/martineserios/enter_thebrana/thebrana/system/commands/maintain-specs.md,/home/martineserios/enter_thebrana/thebrana/system/skills/backlog/SKILL.md,/home/martineserios/enter_thebrana/thebrana/system/skills/notebooklm-source/SKILL.md,/home/martineserios/enter_thebrana/thebrana/system/skills/pipeline/SKILL.md
+
+### Session 7c55358d-9c6d-4218-9ea5-ff292d6857c8 (2026-03-15T16:44:34Z)
+- Events: 46 (45 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: "$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null || true,# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/MEMORY.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/event-log.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/project_harness-engineering.md,/home/martineserios/enter_thebrana/thebrana/docs/architecture/features/linkedin-content-pipeline/brief.md,MEMORY_DIR="$HOME/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory" && cat "$MEMORY_DIR/session-handoff.md" 2>/dev/null | tail -5,brana backlog add --json '{"subject":"Bootstrap.sh → proper installer (curl-pipe or package manager)","description":"Replace bootstrap.sh with a single-command installer. Options: curl|sh one-liner, brew tap, or npm global install. Must handle identity layer deployment + plugin registration.","stream":"roadmap","type":"task","parent":"t-496","tags":["distribution","dx"],"effort":"M","execution":"code"}' 2>&1,brana backlog add --json '{"subject":"Brana Distribution & Contribution Pipeline","description":"No clear install → use → update → contribute pipeline for external users. Solve deployment, plugin publishing, distribution channels, and contributor onboarding as a cohesive story.","stream":"roadmap","type":"milestone","tags":["distribution","dx","open-source"],"effort":"L","execution":"code"}' 2>&1,brana backlog add --json '{"subject":"Contributor onboarding (CONTRIBUTING.md, dev setup, PR workflow)","description":"Write CONTRIBUTING.md, document dev setup (plugin-dir, bootstrap, tests), define PR review process. Make it easy for someone new to submit their first PR.","stream":"roadmap","type":"task","parent":"t-496","tags":["open-source","dx","docs"],"effort":"S","execution":"code"}' 2>&1
+
+### Session 10bd3421-2d0d-4444-b352-5d9aab493083 (2026-03-15T16:44:43Z)
+- Events: 1 (0 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |

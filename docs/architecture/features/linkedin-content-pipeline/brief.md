@@ -511,3 +511,9 @@ Generic, no positioning, no systems lens, no proof. Full replacement decided (se
 ## Pending decisions (tracked as tasks)
 
 - t-174: Voice/tone guide — write 3-5 example posts defining natural voice
+
+## Field Notes
+
+### 2026-03-15: Harness Engineering = brana's positioning vocabulary
+Harness Engineering (coined by Unmesh Gundecha, validated by OpenAI/Fowler/Anthropic) maps 1:1 to brana components: skills=tools, hooks=feedback loops, rules=constraints, agents=delegation, memory=context engineering. Strong content angle for Pillars 2/3/4. Potential positioning pivot if audience resonates.
+Source: t-502 research, session 2026-03-15
