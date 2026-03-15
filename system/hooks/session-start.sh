@@ -375,6 +375,15 @@ if [ -n "$CF_WARNING" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
 }[Hook warning] $CF_WARNING"
 fi
+# CC changelog report (weekly check)
+CC_REPORT="$HOME/.claude/cc-changelog-report.md"
+if [ -f "$CC_REPORT" ]; then
+    CC_SUMMARY=$(head -5 "$CC_REPORT" | tail -3 2>/dev/null) || CC_SUMMARY=""
+    if [ -n "$CC_SUMMARY" ]; then
+        OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}[CC changelog] New changes detected. Review: ~/.claude/cc-changelog-report.md"
+    fi
+fi
 
 if [ -n "$OUTPUT_PARTS" ]; then
     ESCAPED=$(echo "$OUTPUT_PARTS" | jq -Rs '.' 2>/dev/null) || ESCAPED='""'
