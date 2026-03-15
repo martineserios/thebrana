@@ -16,10 +16,79 @@
 mod tasks;
 mod themes;
 
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::process::Command;
+
+// ── ValueEnum types for parse-time validation ──────────────────────────
+
+#[derive(Clone, ValueEnum)]
+enum TaskStatus {
+    Pending,
+    #[value(name = "in_progress")]
+    InProgress,
+    Completed,
+    Cancelled,
+}
+
+#[derive(Clone, ValueEnum)]
+enum TaskStream {
+    Roadmap,
+    Bugs,
+    #[value(name = "tech-debt")]
+    TechDebt,
+    Docs,
+    Experiments,
+    Research,
+    Personal,
+}
+
+#[derive(Clone, ValueEnum)]
+enum TaskPriority {
+    #[value(name = "P0")]
+    P0,
+    #[value(name = "P1")]
+    P1,
+    #[value(name = "P2")]
+    P2,
+    #[value(name = "P3")]
+    P3,
+}
+
+#[derive(Clone, ValueEnum)]
+enum TaskEffort {
+    #[value(name = "S")]
+    S,
+    #[value(name = "M")]
+    M,
+    #[value(name = "L")]
+    L,
+    #[value(name = "XL")]
+    Xl,
+}
+
+#[derive(Clone, ValueEnum)]
+enum TaskType {
+    Task,
+    Subtask,
+    Phase,
+    Milestone,
+}
+
+#[derive(Clone, ValueEnum)]
+enum BurndownPeriod {
+    Day,
+    Week,
+    Month,
+}
+
+// Convert ValueEnums to the string form used in tasks.json
+fn ve_str<T: ValueEnum>(v: &Option<T>) -> Option<String> {
+    v.as_ref().map(|val| {
+        val.to_possible_value().unwrap().get_name().to_string()
+    })
+}
 
 #[derive(Parser)]
 #[command(name = "brana", version, about = "Brana system CLI — fast standalone interface")]
@@ -47,6 +116,8 @@ enum Commands {
         /// Path to tasks.json
         file: PathBuf,
     },
+    /// List portfolio client/project paths from tasks-portfolio.json
+    Portfolio,
     /// Show version
     Version,
 }
@@ -57,22 +128,22 @@ enum BacklogCmd {
     Next {
         #[arg(long)]
         tag: Option<String>,
-        #[arg(long)]
-        stream: Option<String>,
+        #[arg(long, value_enum)]
+        stream: Option<TaskStream>,
     },
     /// Filter tasks (AND logic)
     Query {
         /// Tag filter (comma-separated for AND: "dx,cli")
         #[arg(short, long)]
         tag: Option<String>,
-        #[arg(short, long)]
-        status: Option<String>,
-        #[arg(long)]
-        stream: Option<String>,
-        #[arg(short, long)]
-        priority: Option<String>,
-        #[arg(short, long)]
-        effort: Option<String>,
+        #[arg(short, long, value_enum)]
+        status: Option<TaskStatus>,
+        #[arg(long, value_enum)]
+        stream: Option<TaskStream>,
+        #[arg(short, long, value_enum)]
+        priority: Option<TaskPriority>,
+        #[arg(short, long, value_enum)]
+        effort: Option<TaskEffort>,
         #[arg(long)]
         search: Option<String>,
         #[arg(long)]
@@ -80,8 +151,8 @@ enum BacklogCmd {
         #[arg(long, default_value = "json")]
         output: String,
         /// Filter by type (task, subtask, phase, milestone)
-        #[arg(long = "type")]
-        task_type: Option<String>,
+        #[arg(long = "type", value_enum)]
+        task_type: Option<TaskType>,
         /// Filter by parent ID
         #[arg(long)]
         parent: Option<String>,
@@ -119,8 +190,8 @@ enum BacklogCmd {
     Diff,
     /// Created vs completed over time
     Burndown {
-        #[arg(long, default_value = "week")]
-        period: String,
+        #[arg(long, value_enum, default_value = "week")]
+        period: BurndownPeriod,
     },
     /// Auto-complete parents whose children are all done
     Rollup {
@@ -285,12 +356,13 @@ fn main() {
         Commands::Version => cmd_version(),
         Commands::Doctor => cmd_doctor(&theme),
         Commands::Validate { file } => cmd_validate(&file),
+        Commands::Portfolio => cmd_portfolio(),
         Commands::Backlog { cmd } => match cmd {
-            BacklogCmd::Next { tag, stream } => cmd_next(&theme, tag, stream),
+            BacklogCmd::Next { tag, stream } => cmd_next(&theme, tag, ve_str(&stream)),
             BacklogCmd::Query {
                 tag, status, stream, priority, effort, search, count, output,
                 task_type, parent, branch,
-            } => cmd_query(tag, status, stream, priority, effort, search, count, output, &theme, task_type, parent, branch),
+            } => cmd_query(tag, ve_str(&status), ve_str(&stream), ve_str(&priority), ve_str(&effort), search, count, output, &theme, ve_str(&task_type), parent, branch),
             BacklogCmd::Focus => cmd_focus(&theme),
             BacklogCmd::Search { text } => cmd_search(&text, &theme),
             BacklogCmd::Status { all, json } => cmd_status(&theme, all, json),
@@ -298,7 +370,7 @@ fn main() {
             BacklogCmd::Stale { days } => cmd_stale(days, &theme),
             BacklogCmd::Context { task_id } => cmd_context(&task_id, &theme),
             BacklogCmd::Diff => cmd_diff(&theme),
-            BacklogCmd::Burndown { period } => cmd_burndown(&period, &theme),
+            BacklogCmd::Burndown { period } => cmd_burndown(&period.to_possible_value().unwrap().get_name().to_string(), &theme),
             BacklogCmd::Rollup { file, dry_run } => cmd_rollup(file, dry_run),
             BacklogCmd::Set { task_id, field, value, append, file } => cmd_set(&task_id, &field, &value, append, file),
             BacklogCmd::Add { json, file } => cmd_add(&json, file),
@@ -323,6 +395,53 @@ fn main() {
             OpsCmd::Metrics { session_file } => cmd_ops_metrics(&session_file),
         },
     }
+}
+
+// ── portfolio command ───────────────────────────────────────────────────
+
+fn cmd_portfolio() {
+    let home = std::env::var("HOME").unwrap_or_default();
+    let portfolio_path = PathBuf::from(&home).join(".claude/tasks-portfolio.json");
+    let content = match std::fs::read_to_string(&portfolio_path) {
+        Ok(c) => c,
+        Err(_) => { eprintln!("tasks-portfolio.json not found"); std::process::exit(1); }
+    };
+    let portfolio: serde_json::Value = match serde_json::from_str(&content) {
+        Ok(v) => v,
+        Err(e) => { eprintln!("invalid portfolio JSON: {e}"); std::process::exit(1); }
+    };
+
+    // Support both { clients: [...] } and { projects: [...] } schemas
+    let clients = if let Some(clients) = portfolio["clients"].as_array() {
+        clients.clone()
+    } else if let Some(projects) = portfolio["projects"].as_array() {
+        projects.iter().map(|p| {
+            let slug = p["slug"].as_str().or_else(|| p["name"].as_str()).unwrap_or("unknown");
+            serde_json::json!({"slug": slug, "projects": [p]})
+        }).collect()
+    } else {
+        eprintln!("portfolio has no clients or projects array");
+        std::process::exit(1);
+    };
+
+    let mut entries = Vec::new();
+    for client in &clients {
+        let client_slug = client["slug"].as_str().unwrap_or("unknown");
+        let projects = client["projects"].as_array().cloned().unwrap_or_default();
+        for proj in &projects {
+            let proj_slug = proj["slug"].as_str().unwrap_or(client_slug);
+            let path_str = proj["path"].as_str().unwrap_or("");
+            let resolved = path_str.replace("~/", &format!("{home}/"));
+            let tasks_path = PathBuf::from(&resolved).join(".claude/tasks.json");
+            entries.push(serde_json::json!({
+                "client": client_slug,
+                "project": proj_slug,
+                "path": resolved,
+                "has_tasks": tasks_path.exists(),
+            }));
+        }
+    }
+    println!("{}", serde_json::to_string(&entries).unwrap());
 }
 
 // ── backlog commands ────────────────────────────────────────────────────
