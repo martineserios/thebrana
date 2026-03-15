@@ -1,6 +1,7 @@
 ---
 name: backlog
 description: "Manage the backlog — plan, track, navigate phases and streams. Use when planning phases, viewing roadmaps, or restructuring work."
+argument-hint: "[status|add|start|done|next|roadmap|plan|triage|tags|context|theme|sync] [args]"
 group: brana
 allowed-tools:
   - Read

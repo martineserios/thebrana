@@ -1,6 +1,7 @@
 ---
 name: meta-template
 description: "Write Meta WhatsApp templates optimized for Utility classification — empirically validated formula, safe elements, kill lines, appeal texts. Use when creating or reviewing WhatsApp Business templates for any project."
+argument-hint: "[write|review] [template-name]"
 allowed-tools:
   - Read
   - Write

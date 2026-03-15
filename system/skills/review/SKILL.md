@@ -1,6 +1,7 @@
 ---
 name: review
 description: "Business review — weekly health check, monthly close + plan, or ad-hoc growth audit. Subcommands: weekly, monthly, check. Use for periodic business reviews or when metrics need assessment."
+argument-hint: "[weekly|monthly|check]"
 group: venture
 depends_on:
   - pipeline

@@ -1,6 +1,7 @@
 ---
 name: build
 description: "Build anything — features, bug fixes, refactors, spikes, migrations, investigations. Auto-detects strategy from description, integrates with /brana:backlog, enforces TDD. The unified development command."
+argument-hint: "[description or task context]"
 group: execution
 depends_on:
   - backlog

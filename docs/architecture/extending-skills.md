@@ -10,6 +10,7 @@ Every skill lives at `system/skills/{name}/SKILL.md`. The directory name **is** 
 ---
 name: my-skill
 description: "One-line description — what it does and when to use it."
+argument-hint: "[subcommand|option] [args]"
 group: execution
 depends_on:
   - backlog
@@ -37,6 +38,7 @@ Read relevant files...
 |-------|----------|-------------|
 | `name` | Yes | Must match the directory name exactly. `validate.sh` checks this. |
 | `description` | Yes | One-line description. Shows in help text and skill discovery. Loaded every session (counts toward context budget). |
+| `argument-hint` | No | Static hint shown in CC autocomplete dropdown. Use `[option1\|option2]` for subcommands, `[free-text]` for open input. Every skill that accepts arguments should have this. |
 | `group` | No | Organizational group: `execution`, `session`, `learning`, `business`, `integration`. Used for catalog grouping, not runtime behavior. |
 | `depends_on` | No | List of other skill names this skill references. `validate.sh` checks that all listed skills exist. |
 | `context` | No | Set to `fork` to run the skill in a forked context (separate from main conversation). |
