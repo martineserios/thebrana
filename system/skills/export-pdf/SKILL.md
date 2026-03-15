@@ -3,7 +3,7 @@ name: export-pdf
 description: "Convert a markdown file to PDF using mdpdf. Use when exporting proposals, SOPs, or any markdown document to PDF."
 argument-hint: "[file.md]"
 group: utility
-model: sonnet
+model: haiku
 allowed-tools:
   - Bash
   - Read
