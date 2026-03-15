@@ -383,11 +383,17 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
    - Titles are imperative: "Implement X", "Add Y"
    - Dependencies are explicit
 
-3. **Check GitHub Issues:**
+3. **Persist tasks** (size-gated):
+
+   **Medium/Large builds:** Persist subtasks via CLI — same mechanism as `/brana:build plan` mode.
+   The spec from SPECIFY provides the decomposition context (no interactive prompts needed).
    ```bash
-   gh repo view --json hasIssuesEnabled 2>/dev/null
+   # Create subtasks under the current task
+   brana backlog add --json '{"subject":"...","type":"subtask","parent":"{task-id}","blocked_by":[...]}'
    ```
-   If available, create a tracking issue + sub-issues. Otherwise, create tasks.json entries.
+   Each subtask gets an ID, deps, and survives across sessions.
+
+   **Trivial/Small builds:** Keep tasks inline in the conversation. No backlog persistence — the build completes in one session anyway.
 
 4. **Present the plan** for approval. Use AskUserQuestion:
    ```
@@ -404,19 +410,41 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
    git checkout -b feat/{task-id}-{slug}
    ```
 
-2. **For each task** (in dependency order):
-   a. **State what you'll change** — which files, why, how it maps to acceptance criteria
-   b. **Write failing test** — the acceptance criteria become test assertions
-   c. **Implement** — make the test pass
-   d. **Verify** — run tests, lint, compare before/after
-   e. **Commit** — `feat(scope): description`
-   f. **Mini-debrief:**
+2. **Create CC Tasks for subtask tracking** (Medium/Large builds only):
+   For each subtask from PLAN, create a CC Task for compression resilience:
+   ```
+   TaskCreate:
+     subject: "/brana:build -- BUILD/subtask: {subtask subject}"
+     description: "{acceptance criteria}"
+     addBlockedBy: [previous subtask CC Task ID]
+   ```
+   **Naming convention:** Always prefix with `/brana:build -- BUILD/subtask:` so the
+   resume-after-compression protocol can distinguish these from build step-level CC Tasks
+   (`/brana:build -- PLAN`, `-- BUILD`, etc.).
+
+   **Authority split:**
+   - **CC Tasks** = session-scoped progress. Survives context compression within a session.
+   - **tasks.json** (via CLI) = persistent state. Survives across sessions.
+   - On subtask completion: update BOTH (CC Task → completed, `brana backlog set {id} status completed`).
+   - On conflict: tasks.json wins (it's the durable record).
+
+   **Trivial/Small builds:** Skip CC Tasks. Progress tracked inline in conversation.
+
+3. **For each task** (in dependency order):
+   a. **Mark CC Task in_progress** (if created): `TaskUpdate: status → in_progress`
+   b. **State what you'll change** — which files, why, how it maps to acceptance criteria
+   c. **Write failing test** — the acceptance criteria become test assertions
+   d. **Implement** — make the test pass
+   e. **Verify** — run tests, lint, compare before/after
+   f. **Commit** — `feat(scope): description`
+   g. **Mark CC Task completed** + update tasks.json: `brana backlog set {subtask-id} status completed`
+   h. **Mini-debrief:**
       - What surprised?
       - Spec mismatch? (feature spec says X, reality requires Y)
       - Reusable pattern?
       - Store significant findings in ruflo
 
-3. **At natural breakpoints** (every 2-3 tasks), ask:
+4. **At natural breakpoints** (every 2-3 tasks), ask:
    ```
    question: "Continue to next task, or review/adjust?"
    options: ["Continue", "Review", "Adjust plan"]
@@ -940,7 +968,11 @@ Claude proposes the size. User can override: "this is bigger than it looks" or "
 
 If context was compressed and you've lost track of progress:
 
-1. Call `TaskList` — find CC Tasks matching `/brana:build — {STEP}`
-2. The `in_progress` task is your current step — resume from there
-3. If no `in_progress` step, find the first `pending` step with all blockers `completed`
-4. Use the task description and `build_step` field in tasks.json for additional context
+1. Call `TaskList` — find all CC Tasks matching `/brana:build`
+2. **Filter by level:**
+   - **Step-level** tasks match `/brana:build -- {STEP}` (CLASSIFY, SPECIFY, PLAN, BUILD, CLOSE)
+   - **Subtask-level** tasks match `/brana:build -- BUILD/subtask: {name}`
+3. Find the `in_progress` step-level task — that's your current build step
+4. If in BUILD step: find the `in_progress` subtask — that's your current subtask
+5. If no `in_progress` at either level, find the first `pending` with all blockers `completed`
+6. Use the task description and `build_step` field in tasks.json for additional context
