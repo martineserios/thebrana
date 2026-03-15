@@ -42,6 +42,24 @@ A guided workflow. Claude does the heavy lifting (reading, reformatting, validat
 
 ---
 
+## Step Registry
+
+On entry, create a CC Task step registry for the chosen recipe. Follow the [guided-execution protocol](../_shared/guided-execution.md).
+
+**Per-recipe steps:**
+- `prepare`: VALIDATE, REFORMAT, WRITE
+- `curate`: PLAN, PREPARE-ALL, PACKAGE, UPLOAD
+- `synthesis`: QUERY, COMPILE, WRITE
+- `audio-prompt`: ANALYZE, GENERATE
+- `batch`: SCAN, VALIDATE-ALL, PREPARE-ALL
+- `validate`: SCORE (single step — skip registry)
+
+### Resume After Compression
+
+If context was compressed:
+1. Call `TaskList` — find CC Tasks matching `/brana:notebooklm-source — {STEP}`
+2. The `in_progress` task is your current step — resume from there
+
 ## Step labels
 
 Throughout every recipe:
