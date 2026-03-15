@@ -313,7 +313,11 @@ Begin work on a specific task. For code tasks, enters the `/brana:build` loop.
    - If task has `github_issue`: run `system/scripts/gh-sync.sh pull-context {issue-number}`. If comments returned, replace `## GitHub Comments` section in task's `context` field.
    - If sync fails (exit code 1 or 2): warn "GitHub sync failed. Task started locally." — do NOT block start.
 8. **Report:** "Started t-008 'Implement JWT middleware' as **feature**. Branch: feat/t-008-jwt-middleware."
-9. **For code tasks:** proceed directly into `/brana:build` — no separate invocation needed
+9. **For code tasks:** invoke `/brana:build` immediately using the Skill tool:
+   ```
+   Skill(skill="brana:build", args="{task-id}")
+   ```
+   This is mandatory — do NOT stop after the report. The build loop takes over from CLASSIFY onward.
 
 ### Branch creation
 
