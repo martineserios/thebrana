@@ -266,6 +266,14 @@ if [ -f "$SETTINGS_FILE" ] && command -v jq &>/dev/null; then
                         "command": ($hooks_dir + "/post-pr-review.sh"),
                         "timeout": 5000
                     }]
+                },
+                {
+                    "matcher": "Bash",
+                    "hooks": [{
+                        "type": "command",
+                        "command": ($hooks_dir + "/task-completed.sh"),
+                        "timeout": 8000
+                    }]
                 }
             ],
             "PostToolUseFailure": [
