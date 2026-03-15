@@ -13,6 +13,7 @@
 //!   brana ops sync --auto-commit
 //!   brana doctor
 
+mod sync;
 mod tasks;
 mod themes;
 
@@ -260,6 +261,18 @@ enum BacklogCmd {
         #[arg(long)]
         json: bool,
     },
+    /// Sync tasks with GitHub Issues (parallel, via gh api)
+    Sync {
+        /// Show what would happen without making changes
+        #[arg(long)]
+        dry_run: bool,
+        /// Force re-sync even if github_issue is already set
+        #[arg(long)]
+        force: bool,
+        /// Max parallel GitHub API calls (1-20)
+        #[arg(long, default_value = "10")]
+        parallel: usize,
+    },
 }
 
 #[derive(Subcommand)]
@@ -379,6 +392,7 @@ fn main() {
             BacklogCmd::Tags { filter, any, output } => cmd_tags(filter, any, output, &theme),
             BacklogCmd::Roadmap { json } => cmd_roadmap(json, &theme),
             BacklogCmd::Tree { root_id, json } => cmd_tree(&root_id, json, &theme),
+            BacklogCmd::Sync { dry_run, force, parallel } => sync::cmd_sync(dry_run, force, parallel),
         },
         Commands::Ops { cmd } => match cmd {
             OpsCmd::Status => cmd_ops_status(&theme),
