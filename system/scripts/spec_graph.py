@@ -226,8 +226,25 @@ def _resolve_path(
         # Can't resolve — skip
         return None
 
-    # Already repo-root-relative (no leading ./ or ../)
+    # No leading ./ or ../ — could be repo-root-relative or source-relative.
+    # Try repo-root first; if no file exists, resolve relative to source.
     if not target.startswith("."):
+        if (repo_root / target).exists():
+            return target
+        # Try relative to source file's parent
+        source_dir = source_path.parent
+        candidate = source_dir / target
+        parts: list[str] = []
+        for part in candidate.parts:
+            if part == "..":
+                if parts:
+                    parts.pop()
+            elif part != ".":
+                parts.append(part)
+        resolved_str = "/".join(parts) if parts else None
+        if resolved_str and (repo_root / resolved_str).exists():
+            return resolved_str
+        # Fall back to original (might be a cross-repo or future file)
         return target
 
     # Relative path — resolve from source file's parent
@@ -304,6 +321,30 @@ def build_graph(
 
     md_file_map = collect_markdown_files(docs_dir, repo_root)
 
+    # Deduplicate dimension docs: if docs/dimensions/ is a symlink to
+    # brana-knowledge/dimensions/, keep only the docs/dimensions/ key
+    # to avoid orphan shadow nodes.
+    dim_keys_to_remove: list[str] = []
+    if dimensions_real is not None:
+        try:
+            bk_rel = dimensions_real.relative_to(repo_root.resolve())
+            bk_prefix = str(bk_rel) + "/"
+            doc_dim_prefix = "docs/dimensions/"
+            for key in list(md_file_map.keys()):
+                if key.startswith(bk_prefix):
+                    # Check if a docs/dimensions/ equivalent exists
+                    doc_key = doc_dim_prefix + key[len(bk_prefix):]
+                    if doc_key in md_file_map:
+                        dim_keys_to_remove.append(key)
+                    else:
+                        # Rename to docs/dimensions/ canonical form
+                        md_file_map[doc_key] = md_file_map[key]
+                        dim_keys_to_remove.append(key)
+            for k in dim_keys_to_remove:
+                del md_file_map[k]
+        except ValueError:
+            pass  # dimensions_real not under repo_root — skip dedup
+
     nodes: dict[str, dict[str, list[str]]] = {}
     all_typed_edges: list[dict[str, str]] = []
 
@@ -327,6 +368,86 @@ def build_graph(
             if ref in nodes:
                 if src not in nodes[ref]["referenced_by"]:
                     nodes[ref]["referenced_by"].append(src)
+
+    # ---------------------------------------------------------------
+    # Doc-layer fields: guide_files, arch_files, ref_files
+    # Convention-based detection + reverse cross-reference parsing
+    # ---------------------------------------------------------------
+    for key, data in nodes.items():
+        data["guide_files"] = []
+        data["arch_files"] = []
+        data["ref_files"] = []
+
+    # Convention: map system/ impl files to their doc-layer counterparts
+    _DOC_LAYER_CONVENTIONS: list[tuple[str, str, list[tuple[str, str]]]] = [
+        # (impl_pattern_prefix, match_field, [(doc_layer, doc_path), ...])
+    ]
+
+    # Build convention map from impl_files across all nodes
+    for key, data in nodes.items():
+        for impl in data.get("impl_files", []):
+            # Skills: system/skills/X/ → guide/workflows/X.md + architecture/skills.md + reference/skills.md
+            m = re.match(r"system/skills/([^/]+)/", impl)
+            if m:
+                skill_name = m.group(1)
+                if skill_name.startswith("_"):
+                    continue
+                guide_path = f"docs/guide/workflows/{skill_name}.md"
+                if guide_path not in data["guide_files"]:
+                    data["guide_files"].append(guide_path)
+                for arch in ["docs/architecture/skills.md"]:
+                    if arch not in data["arch_files"]:
+                        data["arch_files"].append(arch)
+                for ref in ["docs/reference/skills.md"]:
+                    if ref not in data["ref_files"]:
+                        data["ref_files"].append(ref)
+
+            # Hooks: system/hooks/*.sh → architecture/hooks.md + reference/hooks.md
+            if impl.startswith("system/hooks/") and impl.endswith(".sh"):
+                for arch in ["docs/architecture/hooks.md"]:
+                    if arch not in data["arch_files"]:
+                        data["arch_files"].append(arch)
+                for ref in ["docs/reference/hooks.md"]:
+                    if ref not in data["ref_files"]:
+                        data["ref_files"].append(ref)
+
+            # Agents: system/agents/*.md → architecture/agents.md + reference/agents.md
+            if impl.startswith("system/agents/"):
+                for arch in ["docs/architecture/agents.md"]:
+                    if arch not in data["arch_files"]:
+                        data["arch_files"].append(arch)
+                for ref in ["docs/reference/agents.md"]:
+                    if ref not in data["ref_files"]:
+                        data["ref_files"].append(ref)
+
+            # Rules: system/rules/*.md → reference/rules.md
+            if impl.startswith("system/rules/"):
+                for ref in ["docs/reference/rules.md"]:
+                    if ref not in data["ref_files"]:
+                        data["ref_files"].append(ref)
+
+            # Commands: system/commands/*.md → reference/commands.md
+            if impl.startswith("system/commands/"):
+                for ref in ["docs/reference/commands.md"]:
+                    if ref not in data["ref_files"]:
+                        data["ref_files"].append(ref)
+
+    # Reverse pass: guide/arch/ref docs that reference other nodes get added
+    # as guide_files/arch_files/ref_files on those target nodes
+    for key, data in nodes.items():
+        layer = None
+        if key.startswith("docs/guide/"):
+            layer = "guide_files"
+        elif key.startswith("docs/architecture/"):
+            layer = "arch_files"
+        elif key.startswith("docs/reference/"):
+            layer = "ref_files"
+        if layer is None:
+            continue
+        # This doc references other nodes — add itself as a layer file on targets
+        for ref in data["references"]:
+            if ref in nodes and key not in nodes[ref][layer]:
+                nodes[ref][layer].append(key)
 
     # Dedup typed edges (same from/to/type)
     seen_edges: set[tuple[str, str, str]] = set()

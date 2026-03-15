@@ -789,7 +789,21 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    git branch -d feat/{branch-name}
    ```
 
-11. **Report:**
+11. **Update living docs** (post-merge, on main):
+   Invoke `/brana:docs all` to update system-level documentation:
+   - `reference` — regenerate catalogs from frontmatter (deterministic)
+   - `marketplace` — sync plugin marketplace metadata (counts, version)
+   - `guide` — update affected user guide docs (from spec-graph `guide_files`)
+   - `tech` — update affected architecture docs (from spec-graph `arch_files`)
+   - `overview` — refresh philosophy.md (only if core behavior changed)
+
+   For **existing shared docs**: show a diff preview before committing.
+   For **new per-feature docs**: auto-commit (already handled in step 6).
+   Commit on main: `docs: update living docs after {task-id}`
+
+   Skip silently if no spec-graph hits (not every build touches documented systems).
+
+12. **Report:**
    ```markdown
    ## Build Complete: {title}
 
