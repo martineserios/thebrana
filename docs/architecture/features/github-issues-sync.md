@@ -239,3 +239,9 @@ Labels auto-created via `gh label create --force` on each sync. No `priority:` o
 - Context field append-only growth → **fixed**: replace (not append) existing `## GitHub Comments` section.
 - Phases/milestones scope unclear → all task types get issues. Phases close when auto-rollup marks them completed.
 - Existing 12 issues migration → validation step only (issues already exist). `sync --dry-run` verifies links.
+
+## Field Notes
+
+### 2026-03-15: sync.rs has 802 lines with no test coverage
+The Rust bulk sync module (`system/cli/rust/src/sync.rs`) handles parallel GitHub API calls, issue creation/closure, label management, and hash-based change detection — all without tests. Priority test targets: hash computation determinism, sync direction logic (create vs close), and error aggregation across parallel threads.
+Source: session 2026-03-15, t-475 debrief

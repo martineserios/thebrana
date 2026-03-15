@@ -243,3 +243,13 @@ Full guide: [docs/guide/cli.md](../guide/cli.md)
 5. **Pre-commit review:** `bdiff` before committing tasks.json
 6. **Dependency planning:** `bb` + `bgraph ph-001` for architecture conversations
 7. **Cross-client overview:** `bs --all` from any terminal
+
+## Field Notes
+
+### 2026-03-15: CLI binary must be rebuilt after adding subcommands
+After adding `brana backlog sync` in Rust source, running the command gave "unrecognized subcommand" because the installed binary was stale. `cargo build --release` fixes it (binary is symlinked, no copy needed). Consider adding a source-vs-binary staleness check.
+Source: session 2026-03-15, t-475
+
+### 2026-03-15: Batch skill metadata addition works cleanly as single chore commit
+Added `argument-hint` field to 22 SKILL.md files in one batch commit + extending-skills doc update. Pattern: when adding a new metadata field to skills, do it as a dedicated chore branch touching all skills at once rather than incrementally.
+Source: session 2026-03-15, chore(skills)

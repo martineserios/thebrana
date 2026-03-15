@@ -288,3 +288,21 @@
 
 **Next:**
 - (auto-generated — run /session-handoff for full close)
+
+## 2026-03-15 — auto-captured (session-end hook)
+
+**Accomplished:**
+- c9af494 chore(skills): add argument-hint to 22 skills
+- 7941d6c chore(skills): add argument-hint to 22 skills + extending-skills doc
+- 2d4e985 refactor(cli): ValueEnum type safety + portfolio list (t-469)
+- 01d6e0e refactor(cli): add ValueEnum type safety + brana portfolio list
+- 22f2e81 fix(backlog): delegate status/roadmap/next to CLI
+
+**State:**
+- Branch: main
+- Events: 165 (139 ok, 16 fail, 9 corrections, 0 cascades, 0 prs)
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.53 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+
+**Next:**
+- (auto-generated — run /session-handoff for full close)
