@@ -39,7 +39,7 @@ No command needed -- just start working.
 The `session-end.sh` hook responds immediately, then forks heavy processing:
 
 - Reads accumulated session events from `/tmp/brana-session-{id}.jsonl`
-- Computes flywheel metrics: correction_rate, auto_fix_rate, test_write_rate, cascade_rate, test_pass_rate, lint_pass_rate
+- Computes 7 flywheel metrics: correction_rate, auto_fix_rate, test_write_rate, cascade_rate, test_pass_rate, lint_pass_rate, delegation_count
 - Stores session summary to ruflo memory
 - Auto-generates minimal handoff if not written today
 - Cleans up temp files

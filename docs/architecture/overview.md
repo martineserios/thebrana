@@ -138,11 +138,13 @@ Session Start → Recall patterns
 
 **Corrections** are the primary learning signal. When Claude edits a file it recently created, the post-tool-use hook detects this as a correction — something went wrong the first time. These accumulate across sessions and surface patterns like "always check X before Y."
 
-**Flywheel metrics** (computed at session end):
+**Flywheel metrics** (7, computed at session end):
 - `correction_rate` — fraction of writes that needed correction
 - `auto_fix_rate` — corrections resolved without user intervention
 - `test_write_rate` — fraction of implementation files with accompanying tests
 - `cascade_rate` — how often changes propagate across files
+- `test_pass_rate` — fraction of test runs that pass
+- `lint_pass_rate` — fraction of lint runs that pass
 - `delegation_count` — how many tasks were delegated to agents
 
 ## Memory System
