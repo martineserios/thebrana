@@ -320,8 +320,33 @@ enum OpsCmd {
 }
 
 fn find_tasks_file() -> Option<PathBuf> {
-    // Try git root first
-    let root = Command::new("git")
+    // In worktrees, --show-toplevel returns the worktree root (which has its own
+    // copy of tasks.json). Use --git-common-dir to find the main repo's .git dir,
+    // then resolve to the main repo's .claude/tasks.json so all worktrees share
+    // one authoritative file.
+    let common_root = Command::new("git")
+        .args(["rev-parse", "--git-common-dir"])
+        .output()
+        .ok()
+        .and_then(|o| {
+            if o.status.success() {
+                let common_git = PathBuf::from(String::from_utf8_lossy(&o.stdout).trim().to_string());
+                // --git-common-dir returns the .git directory; parent is the repo root
+                common_git.parent().map(|p| p.to_path_buf())
+            } else {
+                None
+            }
+        });
+
+    if let Some(root) = &common_root {
+        let f = root.join(".claude/tasks.json");
+        if f.exists() {
+            return Some(f);
+        }
+    }
+
+    // Fallback: try worktree root (for repos where .claude/ only exists in worktree)
+    let toplevel = Command::new("git")
         .args(["rev-parse", "--show-toplevel"])
         .output()
         .ok()
@@ -333,7 +358,7 @@ fn find_tasks_file() -> Option<PathBuf> {
             }
         });
 
-    if let Some(root) = &root {
+    if let Some(root) = &toplevel {
         let f = root.join(".claude/tasks.json");
         if f.exists() {
             return Some(f);
