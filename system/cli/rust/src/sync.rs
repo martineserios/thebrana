@@ -660,6 +660,28 @@ fn check_gh_auth() -> Result<(), String> {
 }
 
 fn find_tasks_file() -> Option<PathBuf> {
+    // Prefer git common dir so worktrees share the main repo's tasks.json
+    let common_root = Command::new("git")
+        .args(["rev-parse", "--git-common-dir"])
+        .output()
+        .ok()
+        .and_then(|o| {
+            if o.status.success() {
+                let common_git = PathBuf::from(String::from_utf8_lossy(&o.stdout).trim().to_string());
+                common_git.parent().map(|p| p.to_path_buf())
+            } else {
+                None
+            }
+        });
+
+    if let Some(root) = &common_root {
+        let f = root.join(".claude/tasks.json");
+        if f.exists() {
+            return Some(f);
+        }
+    }
+
+    // Fallback: worktree root
     let root = Command::new("git")
         .args(["rev-parse", "--show-toplevel"])
         .output()
