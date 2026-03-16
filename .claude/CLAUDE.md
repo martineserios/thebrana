@@ -86,9 +86,9 @@ claude --plugin-dir ./system
 | `./bootstrap.sh` | Deploy identity layer (CLAUDE.md, rules, scripts) to `~/.claude/` |
 | `./bootstrap.sh --check` | Show what bootstrap would change without applying |
 | `./validate.sh` | Pre-deploy checks (frontmatter, budget, secrets) |
-| `./export-knowledge.sh` | Export native memory + ReasoningBank |
+| `./export-knowledge.sh` | Export native memory + ruflo memory |
 
-### Build & Development
+### Build & Development (Skills)
 
 | Command | Purpose |
 |---------|---------|
@@ -97,11 +97,16 @@ claude --plugin-dir ./system
 | `/brana:backlog` | Manage tasks — plan, track, navigate work |
 | `/brana:challenge` | Adversarial review of a plan or decision |
 | `/brana:reconcile` | Detect spec-vs-implementation drift, plan fixes, apply after approval |
-| `/brana:maintain-specs` | Cascade spec changes: dimension → reflection → roadmap |
 | `/brana:research` | Research a topic, doc, or creator — recursive discovery. `--refresh` for batch dimension updates |
 | `/brana:onboard` | Scan and diagnose a project (code, venture, or hybrid) |
 | `/brana:align` | Implement project structure based on /brana:onboard findings |
 | `/brana:review` | Business health — weekly (default), monthly, or ad-hoc check |
+
+### Agent Commands
+
+| Command | Purpose |
+|---------|---------|
+| `/brana:maintain-specs` | Cascade spec changes: dimension → reflection → roadmap (lives in `system/commands/`, not a skill) |
 
 ## Specs Reference
 
