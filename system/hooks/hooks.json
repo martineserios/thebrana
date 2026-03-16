@@ -12,6 +12,16 @@
         ]
       },
       {
+        "matcher": "EnterPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/plan-mode-gate.sh",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {

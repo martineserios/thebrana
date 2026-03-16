@@ -1,7 +1,7 @@
 ---
 name: build
 description: "Build anything — features, bug fixes, refactors, spikes, migrations, investigations. Auto-detects strategy from description, integrates with /brana:backlog, enforces TDD. The unified development command."
-argument-hint: "[plan] [description or task ID]"
+argument-hint: "[decompose] [description or task ID]"
 group: execution
 depends_on:
   - backlog
@@ -29,17 +29,17 @@ The unified development command. One entry point for all work types: features, b
 ```
 /brana:build "description"              — start from a description
 /brana:build                            — ask what to build
-/brana:build plan "description"         — decompose work into a task tree (phase/milestone/task/subtask)
-/brana:build plan <id>                  — decompose an existing task into subtasks
+/brana:build decompose "description"    — decompose work into a task tree (phase/milestone/task/subtask)
+/brana:build decompose <id>            — decompose an existing task into subtasks
 ```
 
 Also entered via `/brana:backlog start <id>` for code tasks — see Task Integration below.
 
 ---
 
-## Plan Mode (`/brana:build plan`)
+## Decompose Mode (`/brana:build decompose`)
 
-When invoked with `plan` as the first argument, `/brana:build` skips the normal CLASSIFY → BUILD loop and instead **decomposes work into a persisted task tree**. This gives you control and visibility over long or multi-session work.
+When invoked with `decompose` as the first argument, `/brana:build` skips the normal CLASSIFY → BUILD loop and instead **decomposes work into a persisted task tree**. This gives you control and visibility over long or multi-session work.
 
 ### What it does
 
@@ -89,11 +89,11 @@ When invoked with `plan` as the first argument, `/brana:build` skips the normal 
 
 ### Decomposing an existing task
 
-When given a task ID (`/brana:build plan t-123`):
+When given a task ID (`/brana:build decompose t-123`):
 - Read the task via `brana backlog get t-123`
 - The existing task becomes the parent (or is promoted to milestone/phase if appropriate)
 - Subtasks inherit the parent's stream and tags
-- Set the parent's `build_step` to `plan`
+- Set the parent's `build_step` to `decompose`
 
 ### Integration with normal build
 
@@ -120,7 +120,7 @@ Commands:
 - **Write:** `brana backlog set <id> <field> <value>`, `brana backlog add --json '{...}'`
 - **Browse:** `brana backlog stats`, `brana backlog tags`, `brana backlog roadmap`
 
-This applies to EVERY step — CLASSIFY, SPECIFY, PLAN, BUILD, CLOSE. No exceptions.
+This applies to EVERY step — CLASSIFY, SPECIFY, DECOMPOSE, BUILD, CLOSE. No exceptions.
 
 ---
 
@@ -160,7 +160,7 @@ Create a CC Task step registry. Follow the [guided-execution protocol](../_share
 
 Register these steps as CC Tasks (adapt based on detected strategy after CLASSIFY):
 
-- **Feature/Greenfield/Migration:** CLASSIFY, SPECIFY, PLAN, BUILD, CLOSE
+- **Feature/Greenfield/Migration:** CLASSIFY, SPECIFY, DECOMPOSE, BUILD, CLOSE
 - **Bug fix:** CLASSIFY, REPRODUCE, DIAGNOSE, FIX, CLOSE
 - **Refactor:** CLASSIFY, SPECIFY, VERIFY-COVERAGE, BUILD, CLOSE
 - **Investigation:** CLASSIFY, SYMPTOMS, INVESTIGATE, REPORT
@@ -211,26 +211,26 @@ At any point during the build, the user can say "this is actually a {type}" and 
 
 ---
 
-## Step 2: PROCESS PLAN
+## Step 2: APPROVE
 
-**Mandatory for Medium/Large builds.** After CLASSIFY confirms the strategy, present the step sequence and get approval before executing.
+**Mandatory for Medium/Large builds.** After CLASSIFY confirms the strategy, present the step sequence and get approval before executing. **Do NOT use CC plan mode (EnterPlanMode) — use AskUserQuestion for approval.**
 
-1. **Present the strategy's step sequence** as a numbered plan:
+1. **Present the strategy's step sequence** inline:
    ```
-   ## Build Plan: {task subject}
+   ## Build Steps: {task subject}
    Strategy: {detected strategy}
    Size: {sizing}
 
    Steps:
    1. SPECIFY — research loop, draft feature spec
-   2. PLAN — break spec into ordered tasks
+   2. DECOMPOSE — break spec into ordered tasks
    3. BUILD — TDD loop per task
    4. CLOSE — validate, retrospective, docs, merge
    ```
    Adapt the steps to the detected strategy (bug fix uses REPRODUCE → DIAGNOSE → FIX → CLOSE, etc.).
 2. **Get approval** via AskUserQuestion:
    ```
-   question: "Build plan above. Proceed?"
+   question: "Build steps above. Proceed?"
    options: ["Approve", "Adjust", "Cancel"]
    ```
 3. **If the user adjusts**, incorporate changes and re-present.
@@ -243,7 +243,7 @@ For **Trivial/Small** builds: skip the approval gate, proceed directly. State th
 ## Strategy: FEATURE
 
 ```
-SPECIFY → PLAN → BUILD → CLOSE
+SPECIFY → DECOMPOSE → BUILD → CLOSE
 ```
 
 ### SPECIFY (interactive, open-ended)
@@ -350,11 +350,11 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
 
 5. **Present spec to user** for approval. Wait for confirmation before proceeding.
 
-6. Update spec status to `planning`.
+6. Update spec status to `decomposing`.
 
-### PLAN
+### DECOMPOSE
 
-0. **Assumption check** (after strategy confirmed, before planning):
+0. **Assumption check** (after strategy confirmed, before decomposing):
    Scan docs related to the task's tags and description for tracked assumptions. Read frontmatter `assumptions:` sections from relevant docs (dimension docs, ADRs, reasoning docs).
 
    ```bash
@@ -395,7 +395,7 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
 
 3. **Persist tasks** (size-gated):
 
-   **Medium/Large builds:** Persist subtasks via CLI — same mechanism as `/brana:build plan` mode.
+   **Medium/Large builds:** Persist subtasks via CLI — same mechanism as `/brana:build decompose` mode.
    The spec from SPECIFY provides the decomposition context (no interactive prompts needed).
    ```bash
    # Create subtasks under the current task
@@ -421,7 +421,7 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
    ```
 
 2. **Create CC Tasks for subtask tracking** (Medium/Large builds only):
-   For each subtask from PLAN, create a CC Task for compression resilience:
+   For each subtask from DECOMPOSE, create a CC Task for compression resilience:
    ```
    TaskCreate:
      subject: "/brana:build -- BUILD/subtask: {subtask subject}"
@@ -430,7 +430,7 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
    ```
    **Naming convention:** Always prefix with `/brana:build -- BUILD/subtask:` so the
    resume-after-compression protocol can distinguish these from build step-level CC Tasks
-   (`/brana:build -- PLAN`, `-- BUILD`, etc.).
+   (`/brana:build -- DECOMPOSE`, `-- BUILD`, etc.).
 
    **Authority split:**
    - **CC Tasks** = session-scoped progress. Survives context compression within a session.
@@ -457,7 +457,7 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
 4. **At natural breakpoints** (every 2-3 tasks), ask:
    ```
    question: "Continue to next task, or review/adjust?"
-   options: ["Continue", "Review", "Adjust plan"]
+   options: ["Continue", "Review", "Adjust tasks"]
    ```
 
 ### CLOSE
@@ -513,7 +513,7 @@ See CLOSE section below. Bug fixes skip the feature spec update (no spec was cre
 ## Strategy: GREENFIELD
 
 ```
-ONBOARD → SPECIFY → PLAN → BUILD → CLOSE
+ONBOARD → SPECIFY → DECOMPOSE → BUILD → CLOSE
 ```
 
 ### ONBOARD
@@ -532,7 +532,7 @@ ONBOARD → SPECIFY → PLAN → BUILD → CLOSE
 5. **First commit:** `chore: project scaffold`
 6. **Register in portfolio** if not already in `tasks-portfolio.json`.
 
-Then proceed to SPECIFY → PLAN → BUILD → CLOSE for the first feature/MVP.
+Then proceed to SPECIFY → DECOMPOSE → BUILD → CLOSE for the first feature/MVP.
 
 ---
 
@@ -617,7 +617,7 @@ No branch. No spec. No tasks.json entry. No docs. Just learn.
 ## Strategy: MIGRATION
 
 ```
-SPECIFY → PLAN → BUILD (careful) → CLOSE
+SPECIFY → DECOMPOSE → BUILD (careful) → CLOSE
 ```
 
 Same as Feature strategy, with these differences:
@@ -889,9 +889,9 @@ brana backlog set <id> started 2026-03-14
 brana backlog set <id> strategy feature
 brana backlog set <id> build_step classify
 
-# SPECIFY → PLAN → BUILD (update build_step as loop progresses)
+# SPECIFY → DECOMPOSE → BUILD (update build_step as loop progresses)
 brana backlog set <id> build_step specify
-brana backlog set <id> build_step plan
+brana backlog set <id> build_step decompose
 brana backlog set <id> build_step build
 brana backlog set <id> branch "feat/t-123-slug"
 
@@ -929,9 +929,9 @@ When `/brana:build` is invoked WITHOUT `/brana:backlog start`:
 
 The strategy adapts not just by type but by size. These heuristics determine how much of each step to do:
 
-| Size | Signal | SPECIFY depth | PLAN detail |
-|------|--------|--------------|-------------|
-| **Trivial** | 1 file, obvious fix | Skip SPECIFY | No plan |
+| Size | Signal | SPECIFY depth | DECOMPOSE detail |
+|------|--------|--------------|-------------------|
+| **Trivial** | 1 file, obvious fix | Skip SPECIFY | No decomposition |
 | **Small** | 1-3 files, scope clear | Light (no research) | Inline — no separate step |
 | **Medium** | 4+ files, design needed | Full research loop | Full task breakdown |
 | **Large** | New skill/system, unknown scope | Deep research + challenger | Full + dependencies |
@@ -962,7 +962,7 @@ If context was compressed and you've lost track of progress:
 
 1. Call `TaskList` — find all CC Tasks matching `/brana:build`
 2. **Filter by level:**
-   - **Step-level** tasks match `/brana:build -- {STEP}` (CLASSIFY, SPECIFY, PLAN, BUILD, CLOSE)
+   - **Step-level** tasks match `/brana:build -- {STEP}` (CLASSIFY, SPECIFY, DECOMPOSE, BUILD, CLOSE)
    - **Subtask-level** tasks match `/brana:build -- BUILD/subtask: {name}`
 3. Find the `in_progress` step-level task — that's your current build step
 4. If in BUILD step: find the `in_progress` subtask — that's your current subtask
