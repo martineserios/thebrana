@@ -365,10 +365,16 @@ pub fn save_tasks(path: &Path, val: &Value) -> Result<(), String> {
 }
 
 /// Load tasks as raw serde_json::Value (preserves all fields for mutation).
+/// Normalizes bare JSON arrays into `{tasks: [...]}` so callers can always use `val["tasks"]`.
 pub fn load_raw(path: &Path) -> Result<Value, String> {
     let content = std::fs::read_to_string(path)
         .map_err(|e| format!("{}: {e}", path.display()))?;
-    serde_json::from_str(content.trim()).map_err(|e| format!("invalid JSON: {e}"))
+    let val: Value = serde_json::from_str(content.trim()).map_err(|e| format!("invalid JSON: {e}"))?;
+    if val.is_array() {
+        Ok(serde_json::json!({"tasks": val}))
+    } else {
+        Ok(val)
+    }
 }
 
 /// Find the next available task ID (highest numeric suffix + 1).
