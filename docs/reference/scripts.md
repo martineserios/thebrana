@@ -47,7 +47,7 @@ Attempts to store via `ruflo memory store`. If ruflo is unavailable or the store
 | **Purpose** | Index brana-knowledge dimension docs into ruflo memory for semantic search |
 | **Usage** | `index-knowledge.sh` (all), `index-knowledge.sh file.md` (specific), `index-knowledge.sh --changed` (git-changed only) |
 | **Dependencies** | ruflo with real embeddings (not hash-fallback), `@xenova/transformers` |
-| **Status** | Deprecated -- canonical copy at `system/skills/knowledge/index-knowledge.sh`. Kept for backward compatibility (post-commit hook, scheduler). |
+| **Status** | Active — canonical location is `system/scripts/index-knowledge.sh` |
 
 Splits each dimension doc by `##` headings. Each section becomes a memory entry:
 
@@ -75,7 +75,7 @@ Validates that ruflo produces real ONNX embeddings (not hash-fallback, which pro
 | **Purpose** | Generate `dimensions/INDEX.md` from dimension doc headers |
 | **Usage** | `generate-index.sh [knowledge-dir]` |
 | **Dependencies** | None |
-| **Status** | Deprecated -- canonical copy at `system/skills/knowledge/generate-index.sh`. Kept for backward compatibility. |
+| **Status** | Active — canonical location is `system/scripts/generate-index.sh` |
 
 Scans all `.md` files in the dimensions directory (excluding INDEX.md itself). For each doc, extracts:
 - Title from first `#` line

@@ -2,7 +2,7 @@
 
 # Rules Reference
 
-**13 rules** in `system/rules/`.
+**14 rules** in `system/rules/`.
 
 | File | Title | Summary |
 |------|-------|--------|
@@ -11,6 +11,7 @@
 | `doc-linking.md` | Doc Linking | Use `[doc NN](relative-path.md)` — never bare "doc NN". Relative paths from source file. Dimensions ... |
 | `git-discipline.md` | Git Discipline | ## One rule |
 | `memory-framework.md` | Memory Framework | Two types of persistent files, two rules. |
+| `parallel-bash.md` | Parallel Bash Resilience | Claude Code cancels all sibling Bash tool calls when one exits non-zero. Guard independent parallel ... |
 | `pm-awareness.md` | PM Awareness | - Before planning significant work, check if a PM repo or GitHub Issues exist for the current projec... |
 | `research-discipline.md` | Research Discipline | When starting research on any topic: |
 | `sdd-tdd.md` | Test-First Development | ## Before implementation |
@@ -53,6 +54,13 @@ Use `[doc NN](relative-path.md)` — never bare "doc NN". Relative paths from so
 **File:** `system/rules/memory-framework.md`
 
 Two types of persistent files, two rules.
+
+
+## Parallel Bash Resilience
+
+**File:** `system/rules/parallel-bash.md`
+
+Claude Code cancels all sibling Bash tool calls when one exits non-zero. Guard independent parallel commands:
 
 
 ## PM Awareness
