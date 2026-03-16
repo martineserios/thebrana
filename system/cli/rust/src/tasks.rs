@@ -1500,4 +1500,95 @@ mod tests {
         ];
         assert!(validate_task_runnable(&tasks[0], &tasks).is_ok());
     }
+
+    // ── t-528: load_raw normalization ─────────────────────────────────
+
+    #[test]
+    fn test_load_raw_object_format() {
+        let dir = std::env::temp_dir().join("brana-test-load-raw-obj");
+        std::fs::create_dir_all(&dir).ok();
+        let path = dir.join("tasks.json");
+        std::fs::write(&path, r#"{"project":"test","tasks":[{"id":"t-1"}]}"#).unwrap();
+        let val = load_raw(&path).unwrap();
+        assert!(val["tasks"].is_array());
+        assert_eq!(val["tasks"][0]["id"], "t-1");
+        assert_eq!(val["project"], "test");
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn test_load_raw_bare_array() {
+        let dir = std::env::temp_dir().join("brana-test-load-raw-arr");
+        std::fs::create_dir_all(&dir).ok();
+        let path = dir.join("tasks.json");
+        std::fs::write(&path, r#"[{"id":"st-001","status":"pending"},{"id":"ms-001","status":"pending"}]"#).unwrap();
+        let val = load_raw(&path).unwrap();
+        assert!(val["tasks"].is_array());
+        let arr = val["tasks"].as_array().unwrap();
+        assert_eq!(arr.len(), 2);
+        assert_eq!(arr[0]["id"], "st-001");
+        assert_eq!(arr[1]["id"], "ms-001");
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn test_load_raw_empty_array() {
+        let dir = std::env::temp_dir().join("brana-test-load-raw-empty");
+        std::fs::create_dir_all(&dir).ok();
+        let path = dir.join("tasks.json");
+        std::fs::write(&path, "[]").unwrap();
+        let val = load_raw(&path).unwrap();
+        assert!(val["tasks"].is_array());
+        assert_eq!(val["tasks"].as_array().unwrap().len(), 0);
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn test_load_raw_invalid_json() {
+        let dir = std::env::temp_dir().join("brana-test-load-raw-bad");
+        std::fs::create_dir_all(&dir).ok();
+        let path = dir.join("tasks.json");
+        std::fs::write(&path, "not json").unwrap();
+        assert!(load_raw(&path).is_err());
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    // ── complexity_score edge cases ──────────────────────────────────
+
+    #[test]
+    fn test_complexity_score_max_components() {
+        // All 5 components at max: 0.3 + 0.2 + 0.2 + 0.1 + 0.1 = 0.9
+        let task = json!({
+            "description": std::iter::repeat("word ").take(200).collect::<String>(),
+            "blocked_by": ["t-1","t-2","t-3","t-4","t-5"],
+            "stream": "roadmap",
+            "tags": ["architecture"],
+            "effort": "XL"
+        });
+        let score = complexity_score(&task);
+        assert!((score - 0.9).abs() < 0.01, "max components should score ~0.9, got {score}");
+        assert!(score <= 1.0, "score should never exceed 1.0");
+    }
+
+    #[test]
+    fn test_complexity_score_empty_task() {
+        let task = json!({});
+        let score = complexity_score(&task);
+        assert_eq!(score, 0.0);
+    }
+
+    #[test]
+    fn test_complexity_score_roadmap_only() {
+        let task = json!({"stream": "roadmap", "blocked_by": [], "tags": [], "effort": "S"});
+        let score = complexity_score(&task);
+        assert!((score - 0.2).abs() < f64::EPSILON, "roadmap-only should be 0.2, got {score}");
+    }
+
+    #[test]
+    fn test_recommended_model_boundary() {
+        assert_eq!(recommended_model(0.0), "haiku");
+        assert_eq!(recommended_model(0.3), "sonnet");
+        assert_eq!(recommended_model(0.7), "sonnet");
+        assert_eq!(recommended_model(0.700001), "opus");
+    }
 }

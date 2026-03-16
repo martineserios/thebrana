@@ -1,10 +1,10 @@
 {
   "_meta": {
-    "generated": "2026-03-15T17:45:38Z",
-    "node_count": 184,
-    "edge_count": 549,
-    "impl_ref_count": 217,
-    "orphan_count": 82,
+    "generated": "2026-03-16T16:51:10Z",
+    "node_count": 191,
+    "edge_count": 547,
+    "impl_ref_count": 230,
+    "orphan_count": 88,
     "typed_edge_count": 0
   },
   "nodes": {
@@ -246,7 +246,8 @@
         "system/commands/`",
         "system/scripts/gh-sync.sh`",
         "system/hooks/task-sync.sh`",
-        "system/skills/meta-template/SKILL.md`"
+        "system/skills/meta-template/SKILL.md`",
+        "system/commands/"
       ],
       "guide_files": [
         "docs/guide/concepts.md",
@@ -261,6 +262,7 @@
         "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
         "docs/architecture/extending.md",
         "docs/architecture/features/acquire-skills-guide.md",
+        "docs/architecture/features/cc-hook-leverage.md",
         "docs/architecture/features/github-issues-sync.md",
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/features/test-lint-feedback-hook.md",
@@ -312,6 +314,7 @@
       ],
       "guide_files": [],
       "arch_files": [
+        "docs/architecture/features/cc-hook-leverage.md",
         "docs/architecture/features/test-lint-feedback-hook.md",
         "docs/architecture/system-documentation-map.md"
       ],
@@ -856,6 +859,7 @@
       ],
       "arch_files": [
         "docs/architecture/extending.md",
+        "docs/architecture/features/cc-hook-leverage.md",
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/hooks.md",
         "docs/architecture/plugin-structure.md",
@@ -998,6 +1002,35 @@
       ],
       "ref_files": []
     },
+    "docs/architecture/features/cc-hook-leverage.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [
+        "system/hooks/task-completed.sh`",
+        "system/hooks/step-completed.sh`",
+        "system/hooks/subagent-context.sh`",
+        "system/hooks/hooks.json`",
+        "system/scripts/cc-changelog-check.sh`",
+        "system/hooks/session-start.sh`"
+      ],
+      "guide_files": [
+        "docs/guide/configuration.md",
+        "docs/guide/features/cc-changelog-check.md"
+      ],
+      "arch_files": [
+        "docs/architecture/extending-hooks.md",
+        "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/features/test-lint-feedback-hook.md",
+        "docs/architecture/hooks.md",
+        "docs/architecture/plugin-structure.md",
+        "docs/architecture/posttooluse-workaround.md",
+        "docs/architecture/system-documentation-map.md",
+        "docs/architecture/testing-validation.md"
+      ],
+      "ref_files": [
+        "docs/reference/scripts.md"
+      ]
+    },
     "docs/architecture/features/cli-composable-tool.md": {
       "references": [],
       "referenced_by": [],
@@ -1038,7 +1071,9 @@
         "system/cli/rust/src/cli.rs`"
       ],
       "guide_files": [],
-      "arch_files": [],
+      "arch_files": [
+        "docs/architecture/features/mission-control-cli.md"
+      ],
       "ref_files": []
     },
     "docs/architecture/features/knowledge-architecture-v2.md": {
@@ -1202,6 +1237,22 @@
       "arch_files": [],
       "ref_files": []
     },
+    "docs/architecture/features/mission-control-cli.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [
+        "system/cli/rust/src/tasks.rs`",
+        "system/cli/rust/src/cli.rs`",
+        "system/cli/rust/Cargo.toml`"
+      ],
+      "guide_files": [
+        "docs/guide/cli.md"
+      ],
+      "arch_files": [
+        "docs/architecture/features/github-issues-sync.md"
+      ],
+      "ref_files": []
+    },
     "docs/architecture/features/neix-ai-consulting-proposal.md": {
       "references": [],
       "referenced_by": [],
@@ -1245,6 +1296,7 @@
         "docs/architecture/extending-agents.md",
         "docs/architecture/extending-hooks.md",
         "docs/architecture/extending.md",
+        "docs/architecture/features/cc-hook-leverage.md",
         "docs/architecture/features/research-stream.md",
         "docs/architecture/features/skill-utilization-tracking.md",
         "docs/architecture/hooks.md",
@@ -1425,6 +1477,7 @@
       "guide_files": [],
       "arch_files": [
         "docs/architecture/features/cascade-throttle.md",
+        "docs/architecture/features/cc-hook-leverage.md",
         "docs/architecture/features/skill-utilization-tracking.md",
         "docs/architecture/posttooluse-workaround.md",
         "docs/architecture/system-documentation-map.md"
@@ -1453,6 +1506,7 @@
       ],
       "arch_files": [
         "docs/architecture/extending-hooks.md",
+        "docs/architecture/features/cc-hook-leverage.md",
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/plugin-structure.md",
         "docs/architecture/posttooluse-workaround.md",
@@ -1543,6 +1597,7 @@
         "docs/architecture/extending-hooks.md",
         "docs/architecture/extending.md",
         "docs/architecture/features/acquire-skills-guide.md",
+        "docs/architecture/features/cc-hook-leverage.md",
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/hooks.md",
         "docs/architecture/overview.md",
@@ -1574,6 +1629,7 @@
       "arch_files": [
         "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
         "docs/architecture/extending-hooks.md",
+        "docs/architecture/features/cc-hook-leverage.md",
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/features/skill-utilization-tracking.md",
         "docs/architecture/features/test-lint-feedback-hook.md",
@@ -1646,6 +1702,7 @@
         "docs/architecture/extending-hooks.md",
         "docs/architecture/extending.md",
         "docs/architecture/features/cascade-throttle.md",
+        "docs/architecture/features/cc-hook-leverage.md",
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/features/skill-utilization-tracking.md",
         "docs/architecture/features/test-lint-feedback-hook.md",
@@ -1684,6 +1741,7 @@
         "docs/architecture/extending-agents.md",
         "docs/architecture/extending-hooks.md",
         "docs/architecture/extending.md",
+        "docs/architecture/features/cc-hook-leverage.md",
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/hooks.md",
         "docs/architecture/overview.md",
@@ -2244,10 +2302,7 @@
         "43-linkedin-personal-brand-strategy.md",
         "44-systems-thinking-nature.md",
         "45-turboflow-agent-orchestration.md",
-        "client-retention-engagement.md",
-        "meta-whatsapp-template-classification.md",
-        "meta-whatsapp-templates.md",
-        "smb-marketing-channels.md"
+        "client-retention-engagement.md"
       ],
       "referenced_by": [],
       "impl_files": [],
@@ -2295,6 +2350,14 @@
       "arch_files": [],
       "ref_files": []
     },
+    "docs/dimensions/software-engineering-patterns.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
     "docs/google-sheets-mcp-setup.md": {
       "references": [
         "venture-guide.md",
@@ -2318,7 +2381,8 @@
       ],
       "guide_files": [],
       "arch_files": [
-        "docs/architecture/decisions/ADR-022-brana-cli.md"
+        "docs/architecture/decisions/ADR-022-brana-cli.md",
+        "docs/architecture/features/mission-control-cli.md"
       ],
       "ref_files": [
         "docs/reference/configuration.md"
@@ -2378,6 +2442,7 @@
         "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
         "docs/architecture/extending-hooks.md",
         "docs/architecture/extending.md",
+        "docs/architecture/features/cc-hook-leverage.md",
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/hooks.md",
         "docs/architecture/overview.md",
@@ -2398,6 +2463,20 @@
       "guide_files": [],
       "arch_files": [],
       "ref_files": []
+    },
+    "docs/guide/features/cc-changelog-check.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [
+        "system/scripts/cc-changelog-check.sh`"
+      ],
+      "guide_files": [],
+      "arch_files": [
+        "docs/architecture/features/cc-hook-leverage.md"
+      ],
+      "ref_files": [
+        "docs/reference/scripts.md"
+      ]
     },
     "docs/guide/getting-started.md": {
       "references": [
@@ -2616,7 +2695,25 @@
       "arch_files": [],
       "ref_files": []
     },
+    "docs/ideas/agent-observability-learning.md": {
+      "references": [
+        "docs/architecture/features/chat-agents-monitoring.md"
+      ],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
     "docs/ideas/distribution-strategy.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/ideas/mission-control.md": {
       "references": [],
       "referenced_by": [],
       "impl_files": [],
@@ -2818,11 +2915,13 @@
         "system/state/decisions/`",
         "system/scripts/generate-reference.py",
         "system/hooks/hooks.json`",
-        "system/commands/`"
+        "system/commands/`",
+        "system/scripts/cc-changelog-check.sh`"
       ],
       "guide_files": [
         "docs/guide/concepts.md",
         "docs/guide/configuration.md",
+        "docs/guide/features/cc-changelog-check.md",
         "docs/guide/getting-started.md",
         "docs/guide/philosophy.md",
         "docs/guide/upgrading.md",
@@ -2835,6 +2934,7 @@
         "docs/architecture/decisions/ADR-017-decision-log.md",
         "docs/architecture/extending-hooks.md",
         "docs/architecture/extending.md",
+        "docs/architecture/features/cc-hook-leverage.md",
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/hooks.md",
         "docs/architecture/knowledge-system-extending.md",
@@ -3068,6 +3168,7 @@
         "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
         "docs/architecture/extending-hooks.md",
         "docs/architecture/extending.md",
+        "docs/architecture/features/cc-hook-leverage.md",
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/hooks.md",
         "docs/architecture/overview.md",
@@ -3109,17 +3210,20 @@
         "docs/dimensions/34-venture-operating-system.md"
       ],
       "impl_files": [
+        "system/hooks/`",
         "system/`",
         "system/rules/tactical-context.md`",
         "system/state/decisions/`"
       ],
       "guide_files": [
+        "docs/guide/concepts.md",
         "docs/guide/configuration.md",
         "docs/guide/getting-started.md",
         "docs/guide/philosophy.md",
         "docs/guide/upgrading.md"
       ],
       "arch_files": [
+        "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
         "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
         "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
         "docs/architecture/decisions/ADR-017-decision-log.md",
@@ -3127,6 +3231,7 @@
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/overview.md",
         "docs/architecture/plugin-structure.md",
+        "docs/architecture/posttooluse-workaround.md",
         "docs/architecture/system-documentation-map.md",
         "docs/architecture/testing-validation.md"
       ],
@@ -3215,6 +3320,14 @@
       "referenced_by": [
         "docs/personal/miessler-telos-research.md"
       ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/research/multi-agent-orchestration-investigation.md": {
+      "references": [],
+      "referenced_by": [],
       "impl_files": [],
       "guide_files": [],
       "arch_files": [],
