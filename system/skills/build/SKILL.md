@@ -325,6 +325,11 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
    ## Design
    {technical approach — components, files, patterns}
 
+   ## Documentation Plan
+   - [ ] **User guide** — `docs/guide/features/{slug}.md`: {what users need — behavior, commands, config, examples}
+   - [ ] **Tech doc** — `docs/architecture/features/{slug}.md`: {what contributors need — design rationale, extending, key files}
+   - [ ] **Existing docs to update** — {list any affected workflow/command/feature docs}
+
    ## Challenger findings
    {auto-populated after challenger review}
    ```
@@ -382,6 +387,11 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
    - Each task is small enough for one commit
    - Titles are imperative: "Implement X", "Add Y"
    - Dependencies are explicit
+   - **Include documentation tasks** — for feature/greenfield/migration strategies, the task breakdown MUST include:
+     - A user guide task (`docs/guide/features/{slug}.md`)
+     - A tech doc task (`docs/architecture/features/{slug}.md`)
+     - Tasks to update any existing docs affected by the feature
+   - Doc tasks should depend on the implementation tasks they document
 
 3. **Persist tasks** (size-gated):
 
