@@ -788,6 +788,75 @@ pub fn new_agent_entry(
     })
 }
 
+/// Compute model routing score for a task (0.0–1.0).
+/// Higher score = more complex = needs stronger model.
+pub fn complexity_score(task: &Value) -> f64 {
+    let mut score = 0.0;
+
+    // Description length
+    let desc_words = task["description"].as_str().unwrap_or("").split_whitespace().count();
+    score += (desc_words as f64 / 100.0).min(0.3);
+
+    // Dependency count
+    let deps = task["blocked_by"].as_array().map(|a| a.len()).unwrap_or(0);
+    score += (deps as f64 * 0.1).min(0.2);
+
+    // Stream type
+    if task["stream"].as_str() == Some("roadmap") {
+        score += 0.2;
+    }
+
+    // Architecture tag
+    if let Some(tags) = task["tags"].as_array() {
+        if tags.iter().any(|t| t.as_str() == Some("architecture")) {
+            score += 0.1;
+        }
+    }
+
+    // Effort estimate
+    match task["effort"].as_str() {
+        Some("L") | Some("XL") => score += 0.1,
+        _ => {}
+    }
+
+    score.min(1.0)
+}
+
+/// Recommend model based on complexity score.
+pub fn recommended_model(score: f64) -> &'static str {
+    if score < 0.3 { "haiku" }
+    else if score <= 0.7 { "sonnet" }
+    else { "opus" }
+}
+
+/// Build queue candidates: unblocked pending tasks sorted by priority with model recommendations.
+pub fn queue_candidates(tasks: &[Value], max: usize) -> Vec<Value> {
+    let mut pending_refs: Vec<&Value> = tasks.iter()
+        .filter(|t| {
+            let status = t["status"].as_str().unwrap_or("");
+            let ttype = t["type"].as_str().unwrap_or("task");
+            status == "pending" && (ttype == "task" || ttype == "subtask")
+        })
+        .filter(|t| validate_task_runnable(t, tasks).is_ok())
+        .collect();
+
+    sort_by_priority(&mut pending_refs);
+
+    pending_refs.into_iter().take(max).map(|t| {
+        let score = complexity_score(&t);
+        let model = recommended_model(score);
+        serde_json::json!({
+            "id": t["id"],
+            "subject": t["subject"],
+            "priority": t["priority"],
+            "effort": t["effort"],
+            "stream": t["stream"],
+            "score": (score * 100.0).round() / 100.0,
+            "model": model,
+        })
+    }).collect()
+}
+
 /// Check if running inside a tmux session.
 pub fn is_in_tmux() -> bool {
     std::env::var("TMUX").is_ok()
@@ -1252,7 +1321,82 @@ mod tests {
         assert!(output.contains("12345"));
     }
 
-    // ── Wave 6: brana run helpers ────────────────────────────────────────
+    // ── Wave 6: queue + model routing ─────────────────────────────────
+
+    #[test]
+    fn test_complexity_score_minimal() {
+        let task = json!({"description": "fix typo", "blocked_by": [], "stream": "bugs", "tags": [], "effort": "S"});
+        let score = complexity_score(&task);
+        assert!(score < 0.3, "minimal task should score < 0.3, got {score}");
+    }
+
+    #[test]
+    fn test_complexity_score_complex() {
+        let task = json!({
+            "description": "Implement the full authentication system with JWT tokens, refresh rotation, middleware integration, session management, and database schema changes for the user auth table",
+            "blocked_by": ["t-001", "t-002"],
+            "stream": "roadmap",
+            "tags": ["architecture"],
+            "effort": "XL"
+        });
+        let score = complexity_score(&task);
+        assert!(score > 0.7, "complex task should score > 0.7, got {score}");
+    }
+
+    #[test]
+    fn test_recommended_model_haiku() {
+        assert_eq!(recommended_model(0.1), "haiku");
+        assert_eq!(recommended_model(0.29), "haiku");
+    }
+
+    #[test]
+    fn test_recommended_model_sonnet() {
+        assert_eq!(recommended_model(0.3), "sonnet");
+        assert_eq!(recommended_model(0.5), "sonnet");
+        assert_eq!(recommended_model(0.7), "sonnet");
+    }
+
+    #[test]
+    fn test_recommended_model_opus() {
+        assert_eq!(recommended_model(0.71), "opus");
+        assert_eq!(recommended_model(1.0), "opus");
+    }
+
+    #[test]
+    fn test_queue_candidates_basic() {
+        let tasks = vec![
+            json!({"id": "t-001", "status": "pending", "type": "task", "subject": "First", "priority": "P1", "effort": "S", "stream": "bugs", "blocked_by": [], "tags": [], "description": "fix"}),
+            json!({"id": "t-002", "status": "pending", "type": "task", "subject": "Second", "priority": "P2", "effort": "M", "stream": "roadmap", "blocked_by": [], "tags": [], "description": "build feature"}),
+            json!({"id": "t-003", "status": "completed", "type": "task", "subject": "Done", "priority": "P0", "effort": "S", "stream": "bugs", "blocked_by": [], "tags": [], "description": "done"}),
+        ];
+        let q = queue_candidates(&tasks, 5);
+        assert_eq!(q.len(), 2); // only pending
+        assert_eq!(q[0]["id"], "t-001"); // P1 before P2
+    }
+
+    #[test]
+    fn test_queue_candidates_respects_max() {
+        let tasks = vec![
+            json!({"id": "t-001", "status": "pending", "type": "task", "subject": "A", "priority": "P1", "blocked_by": [], "tags": [], "description": "", "stream": "roadmap", "effort": null}),
+            json!({"id": "t-002", "status": "pending", "type": "task", "subject": "B", "priority": "P2", "blocked_by": [], "tags": [], "description": "", "stream": "roadmap", "effort": null}),
+            json!({"id": "t-003", "status": "pending", "type": "task", "subject": "C", "priority": "P3", "blocked_by": [], "tags": [], "description": "", "stream": "roadmap", "effort": null}),
+        ];
+        let q = queue_candidates(&tasks, 2);
+        assert_eq!(q.len(), 2);
+    }
+
+    #[test]
+    fn test_queue_candidates_skips_blocked() {
+        let tasks = vec![
+            json!({"id": "t-001", "status": "pending", "type": "task", "subject": "Blocked", "priority": "P1", "blocked_by": ["t-002"], "tags": [], "description": "", "stream": "roadmap", "effort": null}),
+            json!({"id": "t-002", "status": "pending", "type": "task", "subject": "Blocker", "priority": "P2", "blocked_by": [], "tags": [], "description": "", "stream": "roadmap", "effort": null}),
+        ];
+        let q = queue_candidates(&tasks, 5);
+        assert_eq!(q.len(), 1);
+        assert_eq!(q[0]["id"], "t-002"); // only unblocked
+    }
+
+    // ── Wave 7: brana run helpers ────────────────────────────────────────
 
     #[test]
     fn test_branch_for_roadmap_task() {

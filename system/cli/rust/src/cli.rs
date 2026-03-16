@@ -127,6 +127,15 @@ enum Commands {
         #[arg(long)]
         spawn: bool,
     },
+    /// Show next unblocked tasks with model recommendations, optionally auto-spawn
+    Queue {
+        /// Max tasks to show (default 5)
+        #[arg(long, default_value = "5")]
+        max: usize,
+        /// Auto-spawn agents on all candidates (requires tmux)
+        #[arg(long)]
+        auto: bool,
+    },
     /// List or manage active agents
     Agents {
         #[command(subcommand)]
@@ -418,6 +427,7 @@ fn main() {
         Commands::Validate { file } => cmd_validate(&file),
         Commands::Portfolio => cmd_portfolio(),
         Commands::Run { task_id, spawn } => cmd_run(&task_id, spawn),
+        Commands::Queue { max, auto } => cmd_queue(max, auto),
         Commands::Agents { cmd } => match cmd {
             None => cmd_agents(),
             Some(AgentsCmd::Kill { agent_id }) => cmd_agents_kill(&agent_id),
@@ -1681,6 +1691,70 @@ fn cmd_agents_kill(agent_id: &str) {
         "killed": agent_id,
         "task_reset": task_id
     }));
+}
+
+fn cmd_queue(max: usize, auto: bool) {
+    let tf = find_tasks_file().unwrap_or_else(|| {
+        eprintln!("{}", serde_json::json!({"ok": false, "error": "tasks.json not found"}));
+        std::process::exit(1);
+    });
+    let data = tasks::load_tasks(&tf).unwrap_or_else(|e| {
+        eprintln!("{}", serde_json::json!({"ok": false, "error": e}));
+        std::process::exit(1);
+    });
+
+    let candidates = tasks::queue_candidates(&data.tasks, max);
+
+    if candidates.is_empty() {
+        println!("No unblocked tasks in queue.");
+        return;
+    }
+
+    if auto {
+        if !tasks::is_in_tmux() {
+            eprintln!("{}", serde_json::json!({
+                "ok": false, "error": "tmux required for --auto. Run without --auto to see candidates."
+            }));
+            std::process::exit(1);
+        }
+        // Spawn each candidate
+        for c in &candidates {
+            let id = c["id"].as_str().unwrap_or("");
+            eprintln!("Spawning {id}...");
+            let result = Command::new(std::env::current_exe().unwrap())
+                .args(["run", id, "--spawn"])
+                .output();
+            match result {
+                Ok(o) => {
+                    let out = String::from_utf8_lossy(&o.stdout);
+                    let err = String::from_utf8_lossy(&o.stderr);
+                    if o.status.success() {
+                        println!("{out}");
+                    } else {
+                        eprintln!("  Failed: {err}");
+                    }
+                }
+                Err(e) => eprintln!("  Error: {e}"),
+            }
+        }
+    } else {
+        // Display candidates as table
+        println!("{:<10} {:<35} {:<5} {:<5} {:<10} {:<6} {:<7}",
+            "ID", "SUBJECT", "PRI", "EFF", "STREAM", "SCORE", "MODEL");
+        for c in &candidates {
+            let id = c["id"].as_str().unwrap_or("?");
+            let subject = c["subject"].as_str().unwrap_or("?");
+            let subject_short = if subject.len() > 33 { &subject[..33] } else { subject };
+            let pri = c["priority"].as_str().unwrap_or("—");
+            let eff = c["effort"].as_str().unwrap_or("—");
+            let stream = c["stream"].as_str().unwrap_or("—");
+            let score = c["score"].as_f64().unwrap_or(0.0);
+            let model = c["model"].as_str().unwrap_or("?");
+            println!("{:<10} {:<35} {:<5} {:<5} {:<10} {:<6.2} {:<7}",
+                id, subject_short, pri, eff, stream, score, model);
+        }
+        println!("\nRun with --auto to spawn agents on all, or: brana run <ID> --spawn");
+    }
 }
 
 fn cmd_version() {
