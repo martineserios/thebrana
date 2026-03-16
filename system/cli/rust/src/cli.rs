@@ -849,7 +849,9 @@ fn cmd_add(json_str: &str, file: Option<PathBuf>) {
 
     let subject = new_task["subject"].as_str().unwrap_or("untitled").to_string();
 
-    val["tasks"].as_array_mut().unwrap().push(new_task);
+    val["tasks"].as_array_mut()
+        .unwrap_or_else(|| { eprintln!("{{\"ok\":false,\"error\":\"tasks.json has no tasks array\"}}"); std::process::exit(1); })
+        .push(new_task);
     tasks::save_tasks(&tf, &val).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
     println!("{}", serde_json::json!({"ok": true, "id": id, "subject": subject}));
 }
