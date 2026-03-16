@@ -64,6 +64,15 @@ fn delegate_python(args: &[&str]) {
 - **Negative:** Rust compilation step required. Mitigation: binary is committed or installed once via `cargo build --release`.
 - **Risk:** Classification logic could drift between Rust and Python. Mitigation: shared test fixtures validate both produce identical results.
 
+## Task file discovery
+
+`find_tasks_file()` in `cli.rs` and `sync.rs` resolves `tasks.json` using a two-step strategy:
+
+1. **Primary:** `git rev-parse --git-common-dir` → parent dir → `.claude/tasks.json`. This ensures all worktrees share the main repo's authoritative tasks.json.
+2. **Fallback:** `git rev-parse --show-toplevel` → `.claude/tasks.json`. Used when git-common-dir doesn't resolve or the file doesn't exist at the common root.
+
+This matches the pattern used by `task-id-lock.sh` for flock (shared across worktrees via `$GIT_COMMON_DIR`).
+
 ## File structure
 
 ```
