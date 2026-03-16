@@ -34,7 +34,7 @@ The `/brana:build` command handles all development work -- features, bug fixes, 
 `/brana:build` works deeply with `/brana:backlog`:
 
 - `/brana:backlog start <id>` auto-classifies the work type and enters `/brana:build`
-- During build, the task's `build_step` field tracks progress (specify/plan/build/close)
+- During build, the task's `build_step` field tracks progress (specify/decompose/build/close)
 - CLOSE auto-completes the task and updates tasks.json
 - Task tags and description seed the research phase
 

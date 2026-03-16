@@ -137,7 +137,7 @@ For teams: ULWork repo with Issues as system of record, TASKLIST.md as dashboard
 | Skills as encoded expertise | 67 skills with SKILL.md | /brana:* skills with SKILL.md |
 | Hook-driven automation | 17 hooks across lifecycle | PreToolUse, SessionStart, Stop |
 | Memory tiers | Session -> Work -> Learning | Auto memory -> ruflo -> brana-knowledge |
-| Phase-based execution | OBSERVE->THINK->PLAN->BUILD->EXECUTE->VERIFY->LEARN | classify->specify->plan->build->verify->close |
+| Phase-based execution | OBSERVE->THINK->PLAN->BUILD->EXECUTE->VERIFY->LEARN | classify->specify->decompose->build->verify->close |
 | GitHub as backbone | Issues + TASKLIST.md | tasks.json + branches + PRs |
 
 ### Differences

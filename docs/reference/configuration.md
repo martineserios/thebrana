@@ -76,7 +76,7 @@ Per-project task backlog. Located at `{project}/.claude/tasks.json`.
 | `notes` | string | No | -- | Completion notes |
 | `context` | string | No | -- | Additional context (null default) |
 | `strategy` | string | No | `feature`, `bug-fix`, `refactor`, `spike`, `migration`, `investigation`, `greenfield` | Auto-classified, user-confirmed |
-| `build_step` | string | No | `specify`, `plan`, `build`, `close` | Position in /brana:build loop |
+| `build_step` | string | No | `specify`, `decompose`, `build`, `close` | Position in /brana:build loop |
 
 ### ID conventions
 

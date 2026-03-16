@@ -55,7 +55,7 @@ DDD enforcement has three aspects:
 
 **Adopted tool:** TDD-Guard — PreToolUse hooks that block implementation writes without failing tests. Covers Jest, Vitest, pytest, Go, Rust. Increased compliance from ~20% (CLAUDE.md alone) to ~84%.
 
-External dependency — installed per-project, not built by brana. Recommended during `/brana:onboard`.
+Brana's own PreToolUse enforcement hook implements the TDD gate: on `feat/*` branches, it intercepts `Write|Edit` calls to implementation files and blocks them unless a spec or test file exists on the branch. This is not an external dependency — it ships as part of the brana plugin in `system/hooks/`.
 
 ### Multi-Agent Context Isolation (Future)
 

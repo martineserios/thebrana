@@ -14,7 +14,7 @@ Beyond the build flow, the full 42-skill surface has redundancies: `/pickup` dup
 
 > Do not modify after acceptance.
 
-**Context:** Research on efficient development workflows (Shape Up, SDD paper arXiv:2602.00180, Addy Osmani's LLM workflow, GitHub Spec Kit, Martin Fowler's SDD analysis, inner/outer loop patterns) shows that effective AI-assisted development follows a 4-step inner loop: specify → plan → build → close. Brana's current build flow maps to this but with unnecessary fragmentation across 7 commands.
+**Context:** Research on efficient development workflows (Shape Up, SDD paper arXiv:2602.00180, Addy Osmani's LLM workflow, GitHub Spec Kit, Martin Fowler's SDD analysis, inner/outer loop patterns) shows that effective AI-assisted development follows a 4-step inner loop: specify → decompose → build → close. Brana's current build flow maps to this but with unnecessary fragmentation across 7 commands.
 
 Challenger review (Opus adversarial) identified:
 - C1: Retiring back-propagate ignores 6 proven count-drift incidents → resolved by eliminating hardcoded counts from docs (fix the root cause, not the symptom) and keeping validate.sh as a structural linter

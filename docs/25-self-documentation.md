@@ -489,7 +489,7 @@ Commands for building and reviewing.
 
 | Command | Purpose | When to use |
 |---|---|---|
-| `/brana:build` | Unified dev command — auto-detects strategy (feature, bug fix, refactor, spike, migration, investigation, greenfield). Build loop: specify → plan → build → close | **When building anything** — integrates with `/brana:backlog start` |
+| `/brana:build` | Unified dev command — auto-detects strategy (feature, bug fix, refactor, spike, migration, investigation, greenfield). Build loop: specify → decompose → build → close | **When building anything** — integrates with `/brana:backlog start` |
 | `/brana:close` | Extract errata, learnings, patterns from a session. Write handoff note, detect doc drift | **End of session** — or when switching projects |
 | `/brana:challenge` | Spawn an Opus subagent to stress-test a plan or decision. Empty invocation self-challenges the last answer | **Before committing to a big decision**, or after any answer to stress-test it |
 | `/brana:backlog` | Plan, track, and execute tasks — hierarchy (phase > milestone > task), streams, tags, context, branch integration, agent execution via subagents | **When planning phases, viewing roadmaps, or executing task waves** — 16 subcommands including `plan`, `status`, `start`, `execute`, `tags`, `context`, `theme`, `triage`, `sync` |
@@ -586,7 +586,7 @@ The active complement to `/brana:onboard`. Runs a 28-item checklist, identifies 
 /brana:build [description]   (any feature, bug fix, refactor, spike, etc.)
 /brana:challenge [plan]      (adversarial review — or empty to self-challenge last answer)
 ```
-`/brana:build` is the unified dev command. It auto-detects strategy (feature, bug fix, refactor, spike, migration, investigation, greenfield) and guides work through 4 phases: specify → plan → build → close. Spawns scout, memory-curator, challenger, and debrief-analyst agents at appropriate stages. Creates feature briefs in `docs/features/`, ADRs when `docs/decisions/` exists. `/brana:challenge` is surgical — provide a plan to stress-test, or invoke empty to self-challenge the last answer.
+`/brana:build` is the unified dev command. It auto-detects strategy (feature, bug fix, refactor, spike, migration, investigation, greenfield) and guides work through 4 phases: specify → decompose → build → close. Spawns scout, memory-curator, challenger, and debrief-analyst agents at appropriate stages. Creates feature briefs in `docs/features/`, ADRs when `docs/decisions/` exists. `/brana:challenge` is surgical — provide a plan to stress-test, or invoke empty to self-challenge the last answer.
 
 Example — stress-testing a migration plan:
 ```

@@ -21,7 +21,7 @@ Glossary of brana terms.
 | **Task** | A unit of work (`t-NNN`). Has status, tags, stream, priority. |
 | **Stream** | Category of work: `roadmap`, `bugs`, `tech-debt`, `docs`, `experiments`, `research`. |
 | **Strategy** | How `/brana:build` approaches the work: `feature`, `bug-fix`, `refactor`, `spike`, `migration`, `investigation`, `greenfield`. |
-| **Build step** | Current position in the build loop: `classify`, `specify`, `plan`, `build`, `close`. |
+| **Build step** | Current position in the build loop: `classify`, `specify`, `decompose`, `build`, `close`. |
 
 ## Knowledge system
 
