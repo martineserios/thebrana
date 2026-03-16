@@ -45,6 +45,16 @@ else
     source "$HOME/.claude/scripts/cf-env.sh"
 fi
 
+# ── /tmp space check ───────────────────────────────────────
+# CC sandbox (/tmp/claude-*) grows unbounded and can fill tmpfs.
+# Warn early so the user can act before all shell commands fail.
+TMP_WARNING=""
+TMP_USE_PCT=$(df /tmp 2>/dev/null | awk 'NR==2 {gsub(/%/,"",$5); print $5}') || true
+if [ -n "$TMP_USE_PCT" ] && [ "$TMP_USE_PCT" -ge 80 ] 2>/dev/null; then
+    TMP_AVAIL=$(df -h /tmp 2>/dev/null | awk 'NR==2 {print $4}') || TMP_AVAIL="unknown"
+    TMP_WARNING="⚠ /tmp is ${TMP_USE_PCT}% full (${TMP_AVAIL} free). CC sandbox files may fill it — clean stale sessions manually if needed: du -sh /tmp/claude-* | sort -rh"
+fi
+
 # ══════════════════════════════════════════════════════════
 # PHASE 1: Launch slow operations in parallel
 # ══════════════════════════════════════════════════════════
@@ -374,6 +384,10 @@ fi
 if [ -n "$CF_WARNING" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
 }[Hook warning] $CF_WARNING"
+fi
+if [ -n "$TMP_WARNING" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}[Disk] $TMP_WARNING"
 fi
 # CC changelog report (weekly check)
 CC_REPORT="$HOME/.claude/cc-changelog-report.md"
