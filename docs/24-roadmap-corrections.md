@@ -1544,3 +1544,25 @@ Respond.io action prompts have a hard 1,000-char limit. Agent 3's Assign action 
 | 5 | index-knowledge.sh | Stale | Binary lookup searched only `claude-flow` | Applied — dual-name resolution |
 | 6 | marketplace.json | Stale | Feature says "claude-flow integration" | Applied — updated to "ruflo integration" |
 | 7 | check-agentdb-integration.sh | Stale | Heavy "claude-flow" refs throughout | Deferred — parked (ms-007), will be rewritten if unparked |
+
+### Reconcile Run — 2026-03-16
+
+**Trigger:** manual `/brana:reconcile` after accumulated drift (mission control CLI, SWE research, bug fixes)
+**Drift found:** 10 findings across 5 areas (CLI doc, lifecycle spec, terminology, CLAUDE.md, metrics/hooks)
+**Applied:** 10 auto-fixes in 5 commits
+**Deferred:** 0
+
+| # | Area | Type | Finding | Resolution |
+|---|------|------|---------|-----------|
+| 1 | CLI feature doc | Stale | Says Python/typer impl; actual is Rust | Applied — full doc rewrite to describe Rust CLI |
+| 2 | CLI feature doc | Stale | Says `brana tasks`/`sched`; actual is `backlog`/`ops` | Applied — namespace updated throughout |
+| 3 | CLI feature doc | Stale | Says "read-only for tasks"; actual has set/add/rollup/sync writes | Applied — constraints section rewritten |
+| 4 | Doc 32 lifecycle | Stale | TDD-Guard described as "external dependency"; it's brana's own PreToolUse hook | Applied — rewritten to describe actual enforcement |
+| 5 | 15 spec docs | Stale | "ReasoningBank" terminology; actual is "ruflo memory" | Applied — bulk rename across 15 docs |
+| 6 | CLAUDE.md | Incomplete | maintain-specs listed as skill; it's a command (system/commands/) | Applied — moved to "Agent Commands" section |
+| 7 | CLI feature doc | Missing | `graph` subcommand never built; `tree` exists | Applied — removed graph, noted tree as replacement |
+| 8 | 7 docs | Stale | build_step says "plan"; actual is "decompose" | Applied — updated to "decompose" across 7 docs |
+| 9 | overview.md, session.md, hooks.md | Stale | Flywheel metric counts incomplete (5-6 listed; actual 7) | Applied — added missing test_pass_rate, lint_pass_rate, delegation_count |
+| 10 | session-start-venture.sh | Extra | Orphaned hook — not in hooks.json, session-start.sh handles venture detection | Applied — removed |
+
+**Notes:** Broad reconcile after multi-session drift. CLI feature doc required a full rewrite (Rust replaced Python before v1 shipped but doc was never updated). The PLAN→DECOMPOSE rename from t-505 hadn't propagated to reference docs. ReasoningBank→ruflo memory was a leftover from the ruflo rename that missed these 15 docs.
