@@ -119,6 +119,11 @@ enum Commands {
     },
     /// List portfolio client/project paths from tasks-portfolio.json
     Portfolio,
+    /// Run a task: create worktree, print claude command, set in_progress
+    Run {
+        /// Task ID (e.g., t-525)
+        task_id: String,
+    },
     /// Show version
     Version,
 }
@@ -395,6 +400,7 @@ fn main() {
         Commands::Doctor => cmd_doctor(&theme),
         Commands::Validate { file } => cmd_validate(&file),
         Commands::Portfolio => cmd_portfolio(),
+        Commands::Run { task_id } => cmd_run(&task_id),
         Commands::Backlog { cmd } => match cmd {
             BacklogCmd::Next { tag, stream } => cmd_next(&theme, tag, ve_str(&stream)),
             BacklogCmd::Query {
@@ -1401,6 +1407,117 @@ fn cmd_doctor(theme: &themes::Theme) {
 }
 
 // ── version ─────────────────────────────────────────────────────────────
+
+fn cmd_run(task_id: &str) {
+    // Load tasks
+    let tf = find_tasks_file().unwrap_or_else(|| {
+        eprintln!("{}", serde_json::json!({"ok": false, "error": "tasks.json not found"}));
+        std::process::exit(1);
+    });
+    let mut val = tasks::load_raw(&tf).unwrap_or_else(|e| {
+        eprintln!("{}", serde_json::json!({"ok": false, "error": e}));
+        std::process::exit(1);
+    });
+    let data = tasks::load_tasks(&tf).unwrap_or_else(|e| {
+        eprintln!("{}", serde_json::json!({"ok": false, "error": e}));
+        std::process::exit(1);
+    });
+
+    // Find task
+    let task = data.tasks.iter().find(|t| t["id"].as_str() == Some(task_id));
+    let task = match task {
+        Some(t) => t,
+        None => {
+            eprintln!("{}", serde_json::json!({"ok": false, "error": format!("task {task_id} not found")}));
+            std::process::exit(1);
+        }
+    };
+
+    // Validate runnable
+    match tasks::validate_task_runnable(task, &data.tasks) {
+        Ok(()) => {}
+        Err(e) => {
+            // Special case: already in_progress — print info instead of error
+            if e.contains("already in_progress") {
+                let branch = task["branch"].as_str().unwrap_or("unknown");
+                println!("{}", serde_json::json!({
+                    "ok": true, "id": task_id, "status": "already_running", "branch": branch
+                }));
+                return;
+            }
+            eprintln!("{}", serde_json::json!({"ok": false, "error": e}));
+            std::process::exit(1);
+        }
+    }
+
+    // Compute branch + worktree path
+    let branch = tasks::branch_for_task(task);
+    let repo_root = find_project_root().unwrap_or_else(|| {
+        eprintln!("{}", serde_json::json!({"ok": false, "error": "not in a git repo"}));
+        std::process::exit(1);
+    });
+    let repo_name = repo_root.file_name().unwrap().to_str().unwrap();
+    let worktree_rel = tasks::worktree_path_for_task(task, repo_name);
+    let worktree_abs = repo_root.parent().unwrap().join(&worktree_rel[3..]); // skip ../
+
+    // Create git worktree
+    let wt_out = Command::new("git")
+        .args(["worktree", "add", &worktree_rel, "-b", &branch])
+        .current_dir(&repo_root)
+        .output();
+    match wt_out {
+        Ok(o) if o.status.success() => {}
+        Ok(o) => {
+            let err = String::from_utf8_lossy(&o.stderr);
+            if err.contains("already exists") {
+                // Branch exists — try attaching worktree without -b
+                let wt2 = Command::new("git")
+                    .args(["worktree", "add", &worktree_rel, &branch])
+                    .current_dir(&repo_root)
+                    .output();
+                match wt2 {
+                    Ok(o2) if o2.status.success() => {}
+                    _ => {
+                        eprintln!("{}", serde_json::json!({"ok": false, "error": format!("worktree failed: {err}")}));
+                        std::process::exit(1);
+                    }
+                }
+            } else {
+                eprintln!("{}", serde_json::json!({"ok": false, "error": format!("worktree failed: {err}")}));
+                std::process::exit(1);
+            }
+        }
+        Err(e) => {
+            eprintln!("{}", serde_json::json!({"ok": false, "error": format!("git error: {e}")}));
+            std::process::exit(1);
+        }
+    }
+
+    // Update task fields
+    let idx = val["tasks"]
+        .as_array()
+        .and_then(|arr| arr.iter().position(|t| t["id"].as_str() == Some(task_id)));
+    if let Some(idx) = idx {
+        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        val["tasks"][idx]["status"] = serde_json::json!("in_progress");
+        val["tasks"][idx]["started"] = serde_json::json!(today);
+        val["tasks"][idx]["branch"] = serde_json::json!(branch);
+        tasks::save_tasks(&tf, &val).unwrap_or_else(|e| {
+            eprintln!("{}", serde_json::json!({"ok": false, "error": e}));
+            std::process::exit(1);
+        });
+    }
+
+    // Print result
+    let cmd = format!("cd {} && claude", worktree_abs.display());
+    println!("{}", serde_json::json!({
+        "ok": true,
+        "id": task_id,
+        "branch": branch,
+        "worktree": worktree_rel,
+        "command": cmd
+    }));
+}
 
 fn cmd_version() {
     println!("brana-cli {} (Rust)", env!("CARGO_PKG_VERSION"));

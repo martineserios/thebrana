@@ -658,6 +658,74 @@ pub fn portfolio_status() -> Result<Vec<Value>, String> {
     Ok(results)
 }
 
+// ── Run command helpers (pure, testable) ─────────────────────────────
+
+/// Compute the git branch name for a task based on stream + id + subject.
+pub fn branch_for_task(task: &Value) -> String {
+    let stream = task["stream"].as_str().unwrap_or("roadmap");
+    let prefix = match stream {
+        "bugs" => "fix",
+        "tech-debt" => "refactor",
+        "docs" => "docs",
+        "experiments" => "experiment",
+        "research" => "research",
+        _ => "feat",
+    };
+    let id = task["id"].as_str().unwrap_or("t-000");
+    let subject = task["subject"].as_str().unwrap_or("task");
+    let slug: String = subject
+        .to_lowercase()
+        .chars()
+        .map(|c| if c.is_alphanumeric() { c } else { '-' })
+        .collect::<String>()
+        .split('-')
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join("-");
+    let slug = if slug.len() > 40 { &slug[..40] } else { &slug };
+    format!("{prefix}/{id}-{slug}")
+}
+
+/// Compute the worktree directory path for a task.
+pub fn worktree_path_for_task(task: &Value, repo_name: &str) -> String {
+    let stream = task["stream"].as_str().unwrap_or("roadmap");
+    let prefix = match stream {
+        "bugs" => "fix",
+        "tech-debt" => "refactor",
+        "docs" => "docs",
+        "experiments" => "experiment",
+        "research" => "research",
+        _ => "feat",
+    };
+    let id = task["id"].as_str().unwrap_or("t-000");
+    format!("../{repo_name}-{prefix}/{id}")
+}
+
+/// Validate that a task can be run: must be pending and not blocked.
+pub fn validate_task_runnable(task: &Value, all: &[Value]) -> Result<(), String> {
+    let id = task["id"].as_str().unwrap_or("?");
+    let status = task["status"].as_str().unwrap_or("");
+    if status == "in_progress" {
+        return Err(format!("{id} already in_progress"));
+    }
+    if status != "pending" {
+        return Err(format!("{id} is {status}, not pending"));
+    }
+    if let Some(deps) = task["blocked_by"].as_array() {
+        for dep in deps {
+            if let Some(dep_id) = dep.as_str() {
+                if let Some(bt) = all.iter().find(|t| t["id"].as_str() == Some(dep_id)) {
+                    if bt["status"].as_str() != Some("completed") {
+                        let bs = bt["status"].as_str().unwrap_or("?");
+                        return Err(format!("{id} blocked by {dep_id} ({bs})"));
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1005,5 +1073,104 @@ mod tests {
             .collect();
         assert_eq!(filtered.len(), 1);
         assert_eq!(filtered[0]["id"], "t-004");
+    }
+
+    // ── Wave 5: brana run helpers ────────────────────────────────────────
+
+    #[test]
+    fn test_branch_for_roadmap_task() {
+        let task = json!({"id": "t-001", "stream": "roadmap", "subject": "My Task Name"});
+        assert_eq!(branch_for_task(&task), "feat/t-001-my-task-name");
+    }
+
+    #[test]
+    fn test_branch_for_bug_task() {
+        let task = json!({"id": "t-002", "stream": "bugs", "subject": "Crash on login"});
+        assert_eq!(branch_for_task(&task), "fix/t-002-crash-on-login");
+    }
+
+    #[test]
+    fn test_branch_for_research_task() {
+        let task = json!({"id": "t-003", "stream": "research", "subject": "Evaluate Options"});
+        assert_eq!(branch_for_task(&task), "research/t-003-evaluate-options");
+    }
+
+    #[test]
+    fn test_branch_for_tech_debt_task() {
+        let task = json!({"id": "t-010", "stream": "tech-debt", "subject": "Clean up imports"});
+        assert_eq!(branch_for_task(&task), "refactor/t-010-clean-up-imports");
+    }
+
+    #[test]
+    fn test_branch_for_long_subject() {
+        let task = json!({"id": "t-004", "stream": "roadmap", "subject": "This is a very long task subject that should be truncated to forty characters"});
+        let branch = branch_for_task(&task);
+        // slug part (after "feat/t-004-") should be truncated
+        let slug = branch.strip_prefix("feat/t-004-").unwrap();
+        assert!(slug.len() <= 40);
+    }
+
+    #[test]
+    fn test_branch_for_special_chars() {
+        let task = json!({"id": "t-005", "stream": "roadmap", "subject": "What's the deal? (100% done!)"});
+        let branch = branch_for_task(&task);
+        assert_eq!(branch, "feat/t-005-what-s-the-deal-100-done");
+    }
+
+    #[test]
+    fn test_worktree_path_feat() {
+        let task = json!({"id": "t-001", "stream": "roadmap"});
+        assert_eq!(worktree_path_for_task(&task, "thebrana"), "../thebrana-feat/t-001");
+    }
+
+    #[test]
+    fn test_worktree_path_fix() {
+        let task = json!({"id": "t-002", "stream": "bugs"});
+        assert_eq!(worktree_path_for_task(&task, "myproject"), "../myproject-fix/t-002");
+    }
+
+    #[test]
+    fn test_validate_pending_unblocked() {
+        let tasks = vec![
+            json!({"id": "t-001", "status": "pending", "blocked_by": []}),
+        ];
+        assert!(validate_task_runnable(&tasks[0], &tasks).is_ok());
+    }
+
+    #[test]
+    fn test_validate_already_running() {
+        let tasks = vec![
+            json!({"id": "t-001", "status": "in_progress", "blocked_by": []}),
+        ];
+        let err = validate_task_runnable(&tasks[0], &tasks).unwrap_err();
+        assert!(err.contains("already in_progress"));
+    }
+
+    #[test]
+    fn test_validate_completed() {
+        let tasks = vec![
+            json!({"id": "t-001", "status": "completed", "blocked_by": []}),
+        ];
+        let err = validate_task_runnable(&tasks[0], &tasks).unwrap_err();
+        assert!(err.contains("is completed, not pending"));
+    }
+
+    #[test]
+    fn test_validate_blocked() {
+        let tasks = vec![
+            json!({"id": "t-001", "status": "pending", "blocked_by": ["t-002"]}),
+            json!({"id": "t-002", "status": "pending", "blocked_by": []}),
+        ];
+        let err = validate_task_runnable(&tasks[0], &tasks).unwrap_err();
+        assert!(err.contains("blocked by t-002"));
+    }
+
+    #[test]
+    fn test_validate_blocked_all_completed() {
+        let tasks = vec![
+            json!({"id": "t-001", "status": "pending", "blocked_by": ["t-002"]}),
+            json!({"id": "t-002", "status": "completed", "blocked_by": []}),
+        ];
+        assert!(validate_task_runnable(&tasks[0], &tasks).is_ok());
     }
 }
