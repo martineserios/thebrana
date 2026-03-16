@@ -21,20 +21,20 @@ The `/brana:build` command handles all development work -- features, bug fixes, 
 
 | Type | When | Flow |
 |------|------|------|
-| **Feature** | New capability | SPECIFY -> PLAN -> BUILD -> CLOSE |
+| **Feature** | New capability | SPECIFY -> DECOMPOSE -> BUILD -> CLOSE |
 | **Bug fix** | Something's broken | REPRODUCE -> DIAGNOSE -> FIX -> CLOSE |
 | **Refactor** | Same behavior, better code | SPECIFY (light) -> VERIFY COVERAGE -> BUILD -> CLOSE |
 | **Spike** | Need to learn something | QUESTION -> EXPERIMENT -> ANSWER |
-| **Migration** | Moving/upgrading systems | SPECIFY -> PLAN -> BUILD (careful) -> CLOSE |
+| **Migration** | Moving/upgrading systems | SPECIFY -> DECOMPOSE -> BUILD (careful) -> CLOSE |
 | **Investigation** | Something weird happening | SYMPTOMS -> INVESTIGATE -> REPORT |
-| **Greenfield** | New project from scratch | ONBOARD -> SPECIFY -> PLAN -> BUILD -> CLOSE |
+| **Greenfield** | New project from scratch | ONBOARD -> SPECIFY -> DECOMPOSE -> BUILD -> CLOSE |
 
 ## Task integration
 
 `/brana:build` works deeply with `/brana:backlog`:
 
 - `/brana:backlog start <id>` auto-classifies the work type and enters `/brana:build`
-- During build, the task's `build_step` field tracks progress (specify/plan/build/close)
+- During build, the task's `build_step` field tracks progress (specify/decompose/build/close)
 - CLOSE auto-completes the task and updates tasks.json
 - Task tags and description seed the research phase
 

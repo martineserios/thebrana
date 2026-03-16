@@ -8,7 +8,7 @@ research: brana-knowledge/dimensions/knowledge-architecture.md
 
 # Knowledge Architecture v2 — Feature Brief
 
-Implementation spec for ADR-021. This is the SPECIFY output — to be challenged in PLAN, then broken into tasks for BUILD.
+Implementation spec for ADR-021. This is the SPECIFY output — to be challenged in DECOMPOSE, then broken into tasks for BUILD.
 
 ## Architecture Overview
 
@@ -125,7 +125,7 @@ relationship_types:
 
 | Command | Knowledge Actions (automatic) |
 |---|---|
-| `/brana:build` | Phase 0 internal search. Assumption check in PLAN. Field notes + verify + changelog + reindex on CLOSE |
+| `/brana:build` | Phase 0 internal search. Assumption check in DECOMPOSE. Field notes + verify + changelog + reindex on CLOSE |
 | `/brana:research` | Phase 0 internal first. Findings → field notes. Contradictions → flag assumptions |
 | `/brana:close` | Field notes → docs. Changelogs updated. Assumptions verified. Reindex |
 | `/brana:backlog` | Assumption staleness in priority. Field notes in task context |

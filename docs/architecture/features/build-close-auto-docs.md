@@ -18,7 +18,7 @@ Features were shipping without documentation — knowledge stayed trapped in cod
 
 ## Code Flow
 
-1. **Entry:** Documentation is front-loaded in two places: (a) SPECIFY feature spec includes a Documentation Plan section, (b) PLAN step mandates doc tasks in the task breakdown. CLOSE generates the actual doc content.
+1. **Entry:** Documentation is front-loaded in two places: (a) SPECIFY feature spec includes a Documentation Plan section, (b) DECOMPOSE step mandates doc tasks in the task breakdown. CLOSE generates the actual doc content.
 2. **Pre-merge check (step 9):** For feature/greenfield/migration branches, checks if `docs/architecture/features/` or `docs/guide/features/` files exist in the branch diff. If missing, prompts user and can invoke `/brana:docs all` to generate them.
 3. **Post-merge living docs (step 11):** Invokes `/brana:docs all` on main to update system-level docs — reference catalogs, marketplace metadata, guide pages, architecture docs, and philosophy overview. Uses spec-graph to determine which docs are affected.
 4. **Output:** Up to 2 per-feature docs (tech doc + user guide) plus any affected living docs.

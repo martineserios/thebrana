@@ -63,12 +63,12 @@ One command: `/brana:build "description"`
 
 | Strategy | Steps | Trigger |
 |----------|-------|---------|
-| Feature | SPECIFY → PLAN → BUILD → CLOSE | Default, stream: roadmap |
+| Feature | SPECIFY → DECOMPOSE → BUILD → CLOSE | Default, stream: roadmap |
 | Bug fix | REPRODUCE → DIAGNOSE → FIX → CLOSE | "fix/broken/crash/bug", stream: bugs |
-| Greenfield | ONBOARD → SPECIFY → PLAN → BUILD → CLOSE | "start/new/create project" |
+| Greenfield | ONBOARD → SPECIFY → DECOMPOSE → BUILD → CLOSE | "start/new/create project" |
 | Refactor | SPECIFY (light) → VERIFY COVERAGE → BUILD → CLOSE | "refactor/clean/restructure", stream: tech-debt |
 | Spike | QUESTION → EXPERIMENT → ANSWER | "can we/test if/try/spike", stream: experiments |
-| Migration | SPECIFY → PLAN → BUILD (parallel) → CLOSE | "migrate/switch/move/upgrade" |
+| Migration | SPECIFY → DECOMPOSE → BUILD (parallel) → CLOSE | "migrate/switch/move/upgrade" |
 | Investigation | SYMPTOMS → INVESTIGATE → REPORT | "why/investigate/understand", stream: research |
 
 **SPECIFY** (interactive, open-ended — feature, greenfield, migration, refactor):
@@ -81,7 +81,7 @@ One command: `/brana:build "description"`
 - Challenger review: spawned as separate agent (context isolation preserved)
 - Findings that survive into final spec promoted to confidence: 0.6 (permanent)
 
-**PLAN** (feature, greenfield, migration):
+**DECOMPOSE** (feature, greenfield, migration):
 - Break spec into ordered tasks with acceptance criteria
 - **Include documentation tasks** — user guide, tech doc, and existing-doc updates are mandatory in the task breakdown (not deferred to CLOSE)
 - GitHub Issues if available, otherwise tasks.json entries
