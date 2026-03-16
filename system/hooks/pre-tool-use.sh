@@ -76,13 +76,14 @@ fi
 GIT_ROOT=$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null) || pass_through
 [ -z "$GIT_ROOT" ] && pass_through
 
-# Step 5: Opt-in check — does docs/decisions/ exist?
-[ ! -d "$GIT_ROOT/docs/decisions" ] && pass_through
+# Step 5: Opt-in check — does a decisions directory exist?
+# Support both layouts: docs/decisions/ and docs/architecture/decisions/
+[ ! -d "$GIT_ROOT/docs/decisions" ] && [ ! -d "$GIT_ROOT/docs/architecture/decisions" ] && pass_through
 
-# Step 6: Branch check — only enforce on feat/* branches
+# Step 6: Branch check — enforce on feat/*, fix/*, refactor/* branches
 BRANCH=$(git -C "$GIT_ROOT" branch --show-current 2>/dev/null) || pass_through
 case "$BRANCH" in
-    feat/*) ;;
+    feat/*|fix/*|refactor/*) ;;
     *) pass_through ;;
 esac
 
@@ -151,4 +152,4 @@ SPEC_FILES_TRIMMED=$(echo "$SPEC_FILES" | tr -d '[:space:]')
 [ -n "$SPEC_FILES_TRIMMED" ] && pass_through
 
 # Step 11: Block — no spec activity found
-deny "Spec-first: create an ADR (/decide) or write tests before implementation on feat/* branches. This project has docs/decisions/ — enforcement is active."
+deny "Spec-first: write tests before implementation on feat/fix/refactor branches. No spec or test activity found on this branch yet."
