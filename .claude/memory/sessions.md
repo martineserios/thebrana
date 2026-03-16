@@ -1805,3 +1805,328 @@ print(f'Edge increase: {old[\"_meta\"][\"edge_count\"]} → {new[\"_meta\"][\"ed
 # Auto Memory — thebrana
 | thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
 ,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/MEMORY.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/project_system-architecture-current.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/session-handoff.md,/home/martineserios/enter_thebrana/thebrana-chore-doc-consolidation/docs/architecture/agents.md,/home/martineserios/enter_thebrana/thebrana-chore-doc-consolidation/docs/architecture/overview.md,/home/martineserios/enter_thebrana/thebrana-chore-doc-consolidation/docs/architecture/skills.md,/home/martineserios/enter_thebrana/thebrana-chore-doc-consolidation/docs/guide/getting-started.md,/home/martineserios/enter_thebrana/thebrana-docs-t-069/docs/guide/philosophy.md
+
+### Session 9ea8cdac-d7af-4fbe-bf6c-bbb31a441654 (2026-03-15T17:52:49Z)
+- Events: 115 (110 ok, 0 fail)
+- Corrections: 4 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.31 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: "$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null || true,# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/MEMORY.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/session-handoff.md,/home/martineserios/enter_thebrana/thebrana/.github/ISSUE_TEMPLATE/config.yml,/home/martineserios/enter_thebrana/thebrana/.github/ISSUE_TEMPLATE/question.md,/home/martineserios/enter_thebrana/thebrana/CONTRIBUTING.md,/home/martineserios/enter_thebrana/thebrana/README.md,/home/martineserios/enter_thebrana/thebrana/docs/architecture/features/user-journey-gap-analysis.md,/home/martineserios/enter_thebrana/thebrana/docs/ideas/distribution-strategy.md
+
+### Session 1b00e631-7b6f-4ed4-8d0b-c9af243be956 (2026-03-15T17:55:50Z)
+- Events: 204 (194 ok, 2 fail)
+- Corrections: 7 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.17 fix=0.50 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: # Cancel cut tasks
+brana backlog set t-508 status cancelled && brana backlog set t-508 notes --append "Challenger: solves non-problem. Shell hooks are fast enough. Daemon adds complexity." && \
+brana backlog set t-511 status cancelled && brana backlog set t-511 notes --append "Challenger: noise on every prompt. Session-start + rules already inject context." && \
+brana backlog set t-514 status cancelled && brana backlog set t-514 notes --append "Challenger: security anti-pattern. Manual approval is a feature for solo dev." && \
+brana backlog set t-516 status cancelled && brana backlog set t-516 notes --append "Challenger: no problem exists. Convention followed organically.",# Check if there's an RSS feed or API
+curl -sI "https://code.claude.com/docs/en/changelog" 2>/dev/null | head -5
+# Also check npm for version info
+npm view @anthropic-ai/claude-code version 2>/dev/null || echo "NO_NPM",# Drift detection — graph-aware
+for f in $(git diff --name-only HEAD~10..HEAD 2>/dev/null | grep -E '^system/'); do
+  jq --arg f "$f" '.nodes | to_entries[] | select(.value.impl_files | index($f)) | .key' docs/spec-graph.json 2>/dev/null
+done | sort -u | head -10,# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+,# Tag deferred tasks
+brana backlog set t-509 notes --append "Challenger: defer until CC plugin PostToolUse bug (#24529) confirmed fixed." && \
+brana backlog set t-509 tags +deferred && \
+brana backlog set t-517 notes --append "Challenger: needs non-advancement conditions. Risk of skipping spec-first gates. Defer." && \
+brana backlog set t-517 tags +deferred && \
+# Convert t-512 to manual/scheduler
+brana backlog set t-512 notes --append "Challenger: convert to scheduler entry, not backlog task.",$HOME/.claude/scripts/backup-knowledge.sh 2>/dev/null || true,./system/scripts/cc-changelog-check.sh 2>&1,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/MEMORY.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/feedback_brana-cli-always-available.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/session-handoff.md
+
+### Session e9a8c960-c54e-4c03-a8d9-41eea7faf0c6 (2026-03-16T11:33:58Z)
+- Events: 1 (0 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+
+### Session 94438847-a525-4374-9710-baac7b93b698 (2026-03-16T13:56:34Z)
+- Events: 78 (61 ok, 3 fail)
+- Corrections: 13 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.76 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: /home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/event-log.md,/home/martineserios/prediktive-prep/study-guide.md,brana backlog add "Audit skills/commands/agents for optimal model assignment" --stream tech-debt --tags "optimization,models,cost" --description "Review all skills, commands, and agents to identify where specific model assignments (haiku/sonnet/opus) would improve cost/quality tradeoffs. Check: which tasks can run on haiku without quality loss, which need opus for reasoning, where sonnet is the sweet spot. Cover: agent definitions, skill SKILL.md frontmatter, subagent spawning in skills.",brana backlog add --help 2>&1 | head -30,brana backlog add --json '{"subject":"Audit skills/commands/agents for optimal model assignment","stream":"tech-debt","type":"task","tags":["optimization","models","cost"],"description":"Review all skills, commands, and agents to identify where specific model assignments (haiku/sonnet/opus) would improve cost/quality tradeoffs. Check: which tasks can run on haiku without quality loss, which need opus for reasoning, where sonnet is the sweet spot. Cover: agent definitions, skill SKILL.md frontmatter, subagent spawning in skills."}',code /home/martineserios/prediktive-prep/study-guide.md,date +"%H:%M",file /home/martineserios/enter_thebrana/brana-knowledge/ruvector.db,find /home/martineserios -maxdepth 3 -type d -iname "*personal*" 2>/dev/null,find /home/martineserios/enter_thebrana/clients/proyecto_anita -name "*.md" -type f | head -20
+
+### Session 749d4551-f937-4407-9dc9-258e4f961f27 (2026-03-16T14:36:34Z)
+- Events: 120 (108 ok, 8 fail)
+- Corrections: 3 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.16 fix=0.12 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+,/home/martineserios/.claude/plans/logical-inventing-donut.md,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog add --json '{"subject":"CLI backlog next: add --limit N flag (default 5, currently hardcoded to 3)","stream":"tech-debt","type":"task","effort":"S","tags":["cli","dx"],"description":"brana backlog next currently hardcodes showing 3 results. Add a --limit N flag defaulting to 5 so the LLM (or user) can request more or fewer. The skill and LLM handle when to ask for more — the CLI just needs the flexibility."}',/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog add --json '{"subject":"Proactive /tmp cleanup — CC sandbox fills tmpfs until all shell commands fail","stream":"bugs","type":"task","effort":"S","tags":["reliability","hooks","dx"],"description":"Claude Code /tmp/claude-1000/ grows unbounded during sessions and fills the 7.5G tmpfs mount. When /tmp hits 100%, ALL shell commands fail silently (exit 134) — CLI, git, Python, even echo. Root cause: CC sandbox layer accumulation. This has happened 3+ times. Fix: (1) session-start hook checks df /tmp and warns if >80%, (2) session-end hook cleans stale CC temp files older than 24h, (3) consider a scheduled cron job for /tmp hygiene. Relates to t-458 (detection) but this is about prevention.","context":"2026-03-16: Hit this again during t-461 close. /tmp/claude-1000/ was 7.5G. All brana CLI commands failed with exit 134. User had to manually clear /tmp before CLI worked again. Third occurrence — previous ones noted in MEMORY.md."}',/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get t-438,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get t-458,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get t-458 --field description,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get t-461,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get t-466,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get t-526
+
+### Session cd465e9b-b89d-4c7f-ab19-57b24bee8636 (2026-03-16T15:02:21Z)
+- Events: 68 (62 ok, 4 fail)
+- Corrections: 1 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.25 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: "$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null; echo "exit: $?",# Check graph structure to understand how impl_files are stored
+jq '.nodes | to_entries[0:2] | .[].value | keys' docs/spec-graph.json 2>/dev/null,# Check which docs reference these system files via impl_files
+jq '.nodes | to_entries[] | select(.value.impl_files | length > 0) | {key: .key, impl: .value.impl_files}' docs/spec-graph.json 2>/dev/null | head -40,# Match with trailing backtick tolerance
+for f in "session-start" "worktree-gate" "parallel-bash" "skills/backlog" "skills/build" "skills/close" "skills/sitrep"; do
+  result=$(jq --arg f "$f" '[.nodes | to_entries[] | select(.value.impl_files | any(contains($f))) | .key] | unique[]' docs/spec-graph.json 2>/dev/null)
+  if [ -n "$result" ]; then
+    echo "$f -> $result"
+  fi
+done,# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+,# Test 1: Normal non-git command — should pass through
+echo '{"tool_name":"Bash","tool_input":{"command":"ls -la"},"cwd":"/tmp","session_id":"test-123"}' | bash /home/martineserios/enter_thebrana/thebrana-fix-t-458/system/hooks/worktree-gate.sh,# Test 2: git commit with normal /tmp — should pass through
+echo '{"tool_name":"Bash","tool_input":{"command":"git commit -m \"test\""},"cwd":"/home/martineserios/enter_thebrana/thebrana","session_id":"test-123"}' | bash /home/martineserios/enter_thebrana/thebrana-fix-t-458/system/hooks/worktree-gate.sh,# Test 3: Cross-session warning — create a session log, stage a file NOT in it
+# Setup: create a fake session log with one known file
+mkdir -p /tmp/test-cross-session && cd /tmp/test-cross-session && git init -q
+echo '{"ts":1,"tool":"Write","detail":"/tmp/test-cross-session/known-file.txt"}' > /tmp/brana-session-cross-test-456.jsonl
+echo "hello" > known-file.txt
+echo "foreign" > foreign-file.txt
+git add known-file.txt foreign-file.txt
+echo '{"tool_name":"Bash","tool_input":{"command":"git commit -m test"},"cwd":"/tmp/test-cross-session","session_id":"cross-test-456"}' | bash /home/martineserios/enter_thebrana/thebrana-fix-t-458/system/hooks/worktree-gate.sh
+# Cleanup
+rm -rf /tmp/test-cross-session /tmp/brana-session-cross-test-456.jsonl,# Test 4: Verify known file is NOT in the warning (only foreign-file.txt was warned)
+# Already confirmed above — foreign-file.txt warned, known-file.txt not mentioned. ✓
+
+# Test 5: git checkout -b still works (worktree gate)
+echo '{"tool_name":"Bash","tool_input":{"command":"git checkout -b feat/test"},"cwd":"/home/martineserios/enter_thebrana/thebrana","session_id":"test-123"}' | bash /home/martineserios/enter_thebrana/thebrana-fix-t-458/system/hooks/worktree-gate.sh,/home/martineserios/.claude/plans/logical-inventing-donut.md
+
+### Session 98aa2bbb-8039-43ed-83a8-3a5cd88ab43c (2026-03-16T15:10:42Z)
+- Events: 15 (11 ok, 2 fail)
+- Corrections: 1 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.33 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+,/home/martineserios/enter_thebrana/thebrana-chore/reconcile-20260316-2/docs/architecture/features/build-close-auto-docs.md,/home/martineserios/enter_thebrana/thebrana-chore/reconcile-20260316-2/docs/reference/hooks.md,brana backlog next 2>/dev/null || echo "CLI unavailable",cd /home/martineserios/enter_thebrana/thebrana-chore/reconcile-20260316-2 && git add docs/reference/hooks.md docs/architecture/features/build-close-auto-docs.md && git commit -m "$(cat <<'EOF'
+chore(reconcile): sync 2 spec docs with session changes
+
+- hooks.md: expand worktree-gate.sh (3 gates), add session-start.sh phases
+- build-close-auto-docs.md: fix CLOSE step references to match /brana:docs all
+EOF
+)",cd /home/martineserios/enter_thebrana/thebrana-chore/reconcile-20260316-2 && git diff --stat,git branch --show-current,git branch -D chore/reconcile-20260316-2 && git worktree add ../thebrana-chore-reconcile-20260316-2 -b chore/reconcile-20260316-2,git merge --no-ff chore/reconcile-20260316-2 -m "chore(reconcile): sync 2 spec docs with session changes",git status --short && echo "---" && git log --oneline -5
+
+### Session 7d6db330-f5c8-4512-b856-815b8d184338 (2026-03-16T15:43:05Z)
+- Events: 41 (39 ok, 1 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Write,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+,/home/martineserios/.claude/plans/streamed-seeking-sunset.md,brana backlog get t-422,brana backlog get t-422 --output json,brana backlog query --tag chat-agents --output json 2>/dev/null || echo "Tag not found or no tasks",brana backlog set t-422 branch research/t-422-monitoring-logging,brana backlog set t-422 build_step classify,brana backlog set t-422 build_step symptoms,brana backlog set t-422 started 2026-03-16,brana backlog set t-422 status in_progress
+
+### Session 32dc6a4d-b3eb-4391-9583-ba58d5ceed07 (2026-03-16T15:55:46Z)
+- Events: 59 (56 ok, 1 fail)
+- Corrections: 1 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.08 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: "$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null || true; echo "BACKUP_DONE",# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get t-063 t-525 t-528 t-505 t-422 2>/dev/null | head -30,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/session-handoff.md,/home/martineserios/enter_thebrana/brana-knowledge/dimensions/software-engineering-patterns.md,/home/martineserios/enter_thebrana/thebrana/system/scripts/generate-index.sh 2>/dev/null || echo "INDEX_SCRIPT_FAILED",/tmp/research-swe-best-practices-1.md,/tmp/research-swe-best-practices-2.md,/tmp/research-swe-best-practices-3.md,/tmp/research-swe-best-practices-4.md
+
+### Session 64085e5c-0eda-469d-824c-561c558ff729 (2026-03-16T16:14:50Z)
+- Events: 118 (80 ok, 4 fail)
+- Corrections: 30 | Test writes: 3 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.59 fix=0.00 test=0.06 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: "$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null || echo "Backup skipped (script unavailable)",# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+,/home/martineserios/.claude/plans/polymorphic-enchanting-whale.md,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get t-505 2>&1,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog query --status pending --stream tech-debt --output json 2>&1 | head -80,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "enforce build loop" 2>&1,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "plan mode SDD TDD test-first" 2>&1,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "tdd" 2>&1 && echo "---" && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "test first" 2>&1 && echo "---" && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "plan mode" 2>&1,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set t-442 context --append "2026-03-16: Recurred during t-525 mission-control build. Claude entered implementation without tests, used CC plan mode instead of /brana:backlog plan. Same pattern as t-428. Needs stronger enforcement — rule/feedback alone insufficient, consider PreToolUse hook gate." 2>&1,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set t-505 build_step build 2>&1
+
+### Session 071b9752-0904-443a-9fe0-24e4d0531875 (2026-03-16T16:17:33Z)
+- Events: 57 (48 ok, 4 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,TaskCompleted,Write,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+,/brana:reconcile — DIFF,/brana:reconcile — ORIENT,/brana:reconcile — SCAN-IMPL,/brana:reconcile — SCAN-SPECS,/home/martineserios/.claude/plans/linked-dazzling-corbato.md,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana --help 2>&1 | head -40,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog --help 2>&1,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana ops --help 2>&1,brana backlog get t-063 t-528 t-505 t-422 2>/dev/null || (brana backlog get t-063 && brana backlog get t-528 && brana backlog get t-505 && brana backlog get t-422)
+
+### Session fb187e4a-918c-493e-9e74-0bcb3f875fa8 (2026-03-16T16:18:34Z)
+- Events: 179 (140 ok, 18 fail)
+- Corrections: 11 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 9 pass, 0 fail (rate=1.00) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.34 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: "$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null; echo "backup: $?",# Cancel remaining tasks (t-096 already cancelled above)
+for id in t-097 t-106 t-109 t-152 t-065 t-504 t-331; do
+  /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set "$id" status cancelled 2>&1
+done,# Checkout the conflicting file from main's current state to allow merge
+git checkout -- system/cli/rust/src/tasks.rs && git stash push -m "session state" -- .claude/memory/.needs-backprop .claude/memory/session-handoff.md .claude/memory/sessions.md .claude/tasks.json docs/spec-graph.json system/state/event-log.md && git merge --no-ff feat/t-525-mission-control -m "feat(cli): brana queue with model routing — Mission Control Phase 3 (#1016)" && git stash pop,# Close the 6 GitHub issues from cancelled tasks, referencing the merge
+for issue in 67 76 79 119 50 161; do
+  gh issue close "$issue" --repo martineserios/thebrana --comment "Merged into t-525 (Multi-Agent Orchestration — Research & Development). Consolidating scattered research tasks into a single stream." 2>&1
+  echo "---"
+done,# Happy path test
+/home/martineserios/enter_thebrana/thebrana-feat-t-525/system/cli/rust/target/release/brana run t-063 2>&1; echo "EXIT: $?",# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+,# Remove all old Claude session dirs except current (fb187e4a)
+for dir in /tmp/claude-1000/-home-martineserios-enter-thebrana-thebrana/*/; do
+  session=$(basename "$dir")
+  if [ "$session" != "fb187e4a-918c-493e-9e74-0bcb3f875fa8" ]; then
+    rm -rf "$dir"
+    echo "Removed: $session"
+  fi
+done
+# Also clean other project sessions
+rm -rf /tmp/claude-1000/-home-martineserios-enter-thebrana-clients-proyecto-anita/
+rm -rf /tmp/claude-1000/-home-martineserios-enter-thebrana-personal/
+echo "---"
+df -h /tmp,# Test --spawn without tmux (should error gracefully)
+TMUX_BACKUP="$TMUX"
+unset TMUX
+/home/martineserios/enter_thebrana/thebrana-feat-t-525/system/cli/rust/target/release/brana run t-063 --spawn 2>&1; echo "EXIT: $?"
+export TMUX="$TMUX_BACKUP",# Test brana agents (should be empty)
+/home/martineserios/enter_thebrana/thebrana-feat-t-525/system/cli/rust/target/release/brana agents 2>&1,# Test error case: already in_progress task
+/home/martineserios/enter_thebrana/thebrana-feat-t-525/system/cli/rust/target/release/brana run t-525 2>&1; echo "EXIT: $?"
+
+### Session e7d7b116-4b55-4589-b319-e29ca5409fad (2026-03-16T16:39:47Z)
+- Events: 45 (40 ok, 2 fail)
+- Corrections: 2 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.11 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+,/home/martineserios/enter_thebrana/thebrana-chore-reconcile-20260316/.claude/CLAUDE.md,/home/martineserios/enter_thebrana/thebrana-chore-reconcile-20260316/docs/15-self-development-workflow.md,/home/martineserios/enter_thebrana/thebrana-chore-reconcile-20260316/docs/24-roadmap-corrections.md,/home/martineserios/enter_thebrana/thebrana-chore-reconcile-20260316/docs/25-self-documentation.md,/home/martineserios/enter_thebrana/thebrana-chore-reconcile-20260316/docs/architecture/features/brana-cli.md,/home/martineserios/enter_thebrana/thebrana-chore-reconcile-20260316/docs/architecture/features/build-loop-redesign.md,/home/martineserios/enter_thebrana/thebrana-chore-reconcile-20260316/docs/architecture/hooks.md,/home/martineserios/enter_thebrana/thebrana-chore-reconcile-20260316/docs/architecture/overview.md,/home/martineserios/enter_thebrana/thebrana-chore-reconcile-20260316/docs/guide/concepts.md
+
+### Session a8dbe7bc-b9c4-456d-8b22-81c8576af639 (2026-03-16T16:50:48Z)
+- Events: 49 (45 ok, 3 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 1 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.33 deleg=0 prs=0
+- Tools: Bash,Write,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog add --help 2>/dev/null | head -30,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog add --json '{
+  "subject": "Agent observability & learning extraction system",
+  "description": "Build a learning feedback loop: structured extraction templates mine session data for patterns, findings accumulate in decision log + ruflo, recurring patterns get promoted to rules/hooks/tasks through human curation. See docs/ideas/agent-observability-learning.md for full design.",
+  "stream": "roadmap",
+  "type": "milestone",
+  "effort": "L",
+  "tags": ["observability", "learning", "monitoring"]
+}' 2>/dev/null,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog add \
+  "Agent observability & learning extraction system" \
+  --description "Build a learning feedback loop: structured extraction templates mine session data for patterns, findings accumulate in decision log + ruflo, recurring patterns get promoted to rules/hooks/tasks through human curation. See docs/ideas/agent-observability-learning.md for full design." \
+  --stream roadmap \
+  --type milestone \
+  --effort L \
+  --tags "observability,learning,monitoring" \
+  2>/dev/null,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog add \
+  --subject "Agent observability & learning extraction system" \
+  --description "Build a learning feedback loop: structured extraction templates mine session data for patterns, findings accumulate in decision log + ruflo, recurring patterns get promoted to rules/hooks/tasks through human curation. See docs/ideas/agent-observability-learning.md for full design." \
+  --stream roadmap \
+  --type milestone \
+  --effort L \
+  --tags "observability,learning,monitoring" \
+  2>/dev/null,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get t-286 2>/dev/null,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get t-422 2>/dev/null || echo "CLI unavailable",/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "learning extraction" 2>/dev/null | head -5,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "observability" 2>/dev/null | head -5,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set t-286 parent t-534 2>/dev/null && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set t-534 context "2026-03-16: Brainstormed in session. Key decisions: Option C (learning extraction only for v1), structured templates, dual storage (decision log + ruflo), finding lifecycle with human-curated rule promotion. Related: t-286 (close enhancement), t-422 (operational monitoring report)." 2>/dev/null
+
+### Session 71484877-659a-445e-b5e5-a700f7ac07fc (2026-03-16T16:51:07Z)
+- Events: 3 (2 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get t-286 2>/dev/null | head -30,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get t-534 2>/dev/null | head -30
+
+### Session f59f62d3-a2dd-457a-9c68-8b63da53364e (2026-03-16T16:51:36Z)
+- Events: 112 (91 ok, 17 fail)
+- Corrections: 2 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 1 pass, 1 fail (rate=0.50) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.17 fix=0.06 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: "$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null; echo "exit: $?",# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog add --json '{"subject":"test","stream":"roadmap","type":"task"}' 2>&1,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get st-001 --field status 2>&1; echo "---"; /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set st-001 notes "test-t528" 2>&1,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get st-501 2>&1,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get t-528,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog query --type subtask --output json 2>&1 | head -c 500,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog query --type subtask --output json 2>&1 | uv run python3 -c "import sys,json; tasks=json.load(sys.stdin); print([t['id'] for t in tasks[:5]])",/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog query --type subtask 2>&1 | head -5,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "backlog set" 2>&1; echo "---"; /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "backlog add" 2>&1; echo "---"; /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "panic" 2>&1; echo "---"; /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "st-NNN" 2>&1; echo "---"; /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog query --stream bugs --tag cli --output json 2>&1

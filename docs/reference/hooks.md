@@ -87,3 +87,9 @@ PreToolUse hook on Bash tool calls with three gates:
 - **Gate A2: Cross-session file warning** — on `git commit`, reads the session JSONL log to find files this session wrote (Write/Edit), compares against staged files, and warns (does not block) if staged files weren't touched by this session. Catches leftovers from concurrent sessions on other branches.
 - **Gate B: Worktree enforcement** — denies `git checkout -b` / `git switch -c` when the working tree is dirty or other worktrees are active. Suggests `git worktree add` instead.
 
+## Field Notes
+
+### 2026-03-16: /tmp exhaustion cascades into total CLI failure
+A single 7.5GB runaway agent transcript (`b1catbvgq.output` in `/tmp/claude-1000/`) filled /tmp to 100%. All CLI commands (brana, git, cargo) died with exit 134 and empty output — no error message. Session-start.sh now warns at 80%, pre-commit blocks at 95%. Symptom: exit 134 = check disk space first.
+Source: t-525 session
+

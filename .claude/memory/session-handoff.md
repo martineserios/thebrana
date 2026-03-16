@@ -306,3 +306,21 @@
 
 **Next:**
 - (auto-generated — run /session-handoff for full close)
+
+## 2026-03-16 — auto-captured (session-end hook)
+
+**Accomplished:**
+- 64df6c1 fix(rules): parallel Bash resilience rule (#1002)
+- 52d38d5 fix(rules): add parallel Bash resilience rule
+- 5c24cc2 fix(build): documentation phases in feature spec template and PLAN (#996)
+- d40d145 fix(build): add documentation phases to feature spec template and PLAN
+- 6c7e0c0 fix(backlog): cross-reference scan in /brana:backlog plan (#833)
+
+**State:**
+- Branch: main
+- Events: 78 (61 ok, 3 fail, 13 corrections, 0 cascades, 0 prs)
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.76 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+
+**Next:**
+- (auto-generated — run /session-handoff for full close)
