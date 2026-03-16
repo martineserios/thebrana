@@ -54,6 +54,6 @@ User request
   → Task system tracks progress (backlog, build steps, dependencies)
 ```
 
-The build loop is the heartbeat: CLASSIFY what you're doing, SPECIFY what it should look like, PLAN how to get there, BUILD it with tests, CLOSE by documenting and reflecting. Each step stores knowledge. Each future build benefits from past builds.
+The build loop is the heartbeat: CLASSIFY what you're doing, SPECIFY what it should look like, DECOMPOSE how to get there, BUILD it with tests, CLOSE by documenting and reflecting. Each step stores knowledge. Each future build benefits from past builds.
 
 Documentation isn't a separate activity — it's a build artifact. Tech docs, user guides, and this philosophy document are generated and updated as part of the build loop, not as an afterthought.

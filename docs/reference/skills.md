@@ -68,7 +68,7 @@ Detect drift between spec docs and system/ implementation, plan fixes, apply aft
 
 **Arguments:** `[scope]`
 
-**Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, Task, AskUserQuestion, EnterPlanMode, ExitPlanMode
+**Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, Task, AskUserQuestion
 
 
 ## capture
@@ -118,7 +118,7 @@ Actively align a project with brana practices — assess gaps, plan fixes, imple
 
 **Depends on:** `/brana:onboard`
 
-**Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Task, EnterPlanMode, ExitPlanMode
+**Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Task
 
 ### `/brana:build`
 
@@ -171,7 +171,7 @@ Research a topic, doc, or creator — check sources, follow references recursive
 
 **Arguments:** `[topic|doc-number|creator:name|--refresh] [scope]`
 
-**Allowed tools:** Read, Glob, Grep, Bash, Write, WebSearch, WebFetch, Task, mcp__notebooklm__ask_question, mcp__notebooklm__list_notebooks, mcp__notebooklm__select_notebook, mcp__notebooklm__search_notebooks, mcp__notebooklm__get_health, AskUserQuestion, EnterPlanMode, ExitPlanMode
+**Allowed tools:** Read, Glob, Grep, Bash, Write, WebSearch, WebFetch, Task, mcp__notebooklm__ask_question, mcp__notebooklm__list_notebooks, mcp__notebooklm__select_notebook, mcp__notebooklm__search_notebooks, mcp__notebooklm__get_health, AskUserQuestion
 
 ### `/brana:retrospective`
 

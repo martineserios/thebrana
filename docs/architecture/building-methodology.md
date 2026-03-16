@@ -143,7 +143,7 @@ A typical feature from start to finish:
 
 # 3. Build (inside /brana:build)
 # SPECIFY: ADR via /decide, domain model if needed
-# PLAN: break into steps, identify risks
+# DECOMPOSE: break into steps, identify risks
 # BUILD: TDD — failing test → implementation → green
 # CLOSE: debrief, update specs, merge
 

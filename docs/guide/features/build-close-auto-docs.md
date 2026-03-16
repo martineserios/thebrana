@@ -6,7 +6,7 @@ Every time you build a feature with `/brana:build`, the CLOSE step automatically
 
 ```
 /brana:build "my new feature"
-# ... SPECIFY → PLAN → BUILD → CLOSE
+# ... SPECIFY → DECOMPOSE → BUILD → CLOSE
 # At CLOSE, brana auto-generates:
 #   docs/architecture/features/my-new-feature.md  (tech doc)
 #   docs/guide/features/my-new-feature.md          (user guide)
