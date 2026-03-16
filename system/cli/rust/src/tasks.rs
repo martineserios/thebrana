@@ -726,6 +726,98 @@ pub fn validate_task_runnable(task: &Value, all: &[Value]) -> Result<(), String>
     Ok(())
 }
 
+// ── Agent management (agents.json) ───────────────────────────────────
+
+/// Load agents from agents.json. Returns empty vec if file doesn't exist.
+pub fn load_agents(path: &Path) -> Vec<Value> {
+    match std::fs::read_to_string(path) {
+        Ok(content) => {
+            let content = content.trim();
+            if content.is_empty() { return vec![]; }
+            serde_json::from_str(content).unwrap_or_default()
+        }
+        Err(_) => vec![],
+    }
+}
+
+/// Save agents to agents.json.
+pub fn save_agents(path: &Path, agents: &[Value]) -> Result<(), String> {
+    let json = serde_json::to_string_pretty(agents)
+        .map_err(|e| format!("serialize error: {e}"))?;
+    std::fs::write(path, json).map_err(|e| format!("{}: {e}", path.display()))
+}
+
+/// Check if a PID is alive by testing /proc/{pid}/status.
+pub fn is_pid_alive(pid: u32) -> bool {
+    Path::new(&format!("/proc/{pid}")).exists()
+}
+
+/// Remove dead agents from the list. Returns (alive, removed_count).
+pub fn prune_dead_agents(agents: Vec<Value>) -> (Vec<Value>, usize) {
+    let before = agents.len();
+    let alive: Vec<Value> = agents
+        .into_iter()
+        .filter(|a| {
+            a["pid"].as_u64()
+                .map(|pid| is_pid_alive(pid as u32))
+                .unwrap_or(false)
+        })
+        .collect();
+    let removed = before - alive.len();
+    (alive, removed)
+}
+
+/// Create an agent entry for agents.json.
+pub fn new_agent_entry(
+    task_id: &str,
+    pid: u32,
+    tmux_target: &str,
+    worktree: &str,
+    branch: &str,
+) -> Value {
+    let id = format!("agent-{}", chrono::Local::now().format("%H%M%S"));
+    serde_json::json!({
+        "id": id,
+        "task_id": task_id,
+        "pid": pid,
+        "tmux_target": tmux_target,
+        "worktree": worktree,
+        "branch": branch,
+        "started": chrono::Local::now().format("%Y-%m-%dT%H:%M:%SZ").to_string(),
+        "status": "active"
+    })
+}
+
+/// Check if running inside a tmux session.
+pub fn is_in_tmux() -> bool {
+    std::env::var("TMUX").is_ok()
+}
+
+/// Format agents as a table string for CLI output.
+pub fn format_agents_table(agents: &[Value]) -> String {
+    if agents.is_empty() {
+        return "No active agents.".to_string();
+    }
+    let mut lines = vec![format!(
+        "{:<12} {:<10} {:<8} {:<30} {:<20}",
+        "ID", "TASK", "PID", "BRANCH", "STARTED"
+    )];
+    for a in agents {
+        let id = a["id"].as_str().unwrap_or("?");
+        let task = a["task_id"].as_str().unwrap_or("?");
+        let pid = a["pid"].as_u64().unwrap_or(0);
+        let branch = a["branch"].as_str().unwrap_or("?");
+        let branch_short = if branch.len() > 28 { &branch[..28] } else { branch };
+        let started = a["started"].as_str().unwrap_or("?");
+        let started_short = if started.len() > 18 { &started[..18] } else { started };
+        lines.push(format!(
+            "{:<12} {:<10} {:<8} {:<30} {:<20}",
+            id, task, pid, branch_short, started_short
+        ));
+    }
+    lines.join("\n")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1075,7 +1167,92 @@ mod tests {
         assert_eq!(filtered[0]["id"], "t-004");
     }
 
-    // ── Wave 5: brana run helpers ────────────────────────────────────────
+    // ── Wave 5: agent management ─────────────────────────────────────────
+
+    #[test]
+    fn test_load_agents_empty_file() {
+        let dir = std::env::temp_dir().join("brana-test-agents-empty");
+        std::fs::create_dir_all(&dir).ok();
+        let path = dir.join("agents.json");
+        std::fs::write(&path, "").unwrap();
+        let agents = load_agents(&path);
+        assert!(agents.is_empty());
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn test_load_agents_missing_file() {
+        let path = std::path::PathBuf::from("/tmp/nonexistent-agents-xyz.json");
+        let agents = load_agents(&path);
+        assert!(agents.is_empty());
+    }
+
+    #[test]
+    fn test_save_and_load_agents() {
+        let dir = std::env::temp_dir().join("brana-test-agents-roundtrip");
+        std::fs::create_dir_all(&dir).ok();
+        let path = dir.join("agents.json");
+        let agents = vec![json!({"id": "agent-001", "task_id": "t-063", "pid": 12345})];
+        save_agents(&path, &agents).unwrap();
+        let loaded = load_agents(&path);
+        assert_eq!(loaded.len(), 1);
+        assert_eq!(loaded[0]["task_id"], "t-063");
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn test_is_pid_alive_self() {
+        // Our own PID should be alive
+        let pid = std::process::id();
+        assert!(is_pid_alive(pid));
+    }
+
+    #[test]
+    fn test_is_pid_alive_bogus() {
+        // PID 99999999 should not exist
+        assert!(!is_pid_alive(99999999));
+    }
+
+    #[test]
+    fn test_prune_dead_agents() {
+        let agents = vec![
+            json!({"id": "a1", "pid": std::process::id()}), // alive (self)
+            json!({"id": "a2", "pid": 99999999}),           // dead
+        ];
+        let (alive, removed) = prune_dead_agents(agents);
+        assert_eq!(alive.len(), 1);
+        assert_eq!(alive[0]["id"], "a1");
+        assert_eq!(removed, 1);
+    }
+
+    #[test]
+    fn test_new_agent_entry() {
+        let entry = new_agent_entry("t-063", 12345, "brana:t-063", "../thebrana-docs/t-063", "docs/t-063-slug");
+        assert_eq!(entry["task_id"], "t-063");
+        assert_eq!(entry["pid"], 12345);
+        assert_eq!(entry["tmux_target"], "brana:t-063");
+        assert_eq!(entry["status"], "active");
+    }
+
+    #[test]
+    fn test_format_agents_table_empty() {
+        let output = format_agents_table(&[]);
+        assert_eq!(output, "No active agents.");
+    }
+
+    #[test]
+    fn test_format_agents_table_with_agents() {
+        let agents = vec![json!({
+            "id": "agent-001", "task_id": "t-063", "pid": 12345,
+            "branch": "docs/t-063-slug", "started": "2026-03-16T13:00:00Z"
+        })];
+        let output = format_agents_table(&agents);
+        assert!(output.contains("agent-001"));
+        assert!(output.contains("t-063"));
+        assert!(output.contains("12345"));
+    }
+
+    // ── Wave 6: brana run helpers ────────────────────────────────────────
 
     #[test]
     fn test_branch_for_roadmap_task() {
