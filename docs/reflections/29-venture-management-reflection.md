@@ -51,11 +51,11 @@ These existing skills work for business projects without modification:
 | `/brana:retrospective` | "Store a learning" is universal. Problem → solution → confidence → tags. Same for "customer churn spike" as for "race condition in auth." |
 | `/brana:memory recall` | Querying past learnings works identically. Tag vocabulary expands (add `stage:`, `domain:`) but the mechanism is unchanged. |
 | `/brana:memory pollinate` | Cross-project pattern transfer is actually *more* valuable when spanning code + business — patterns from building CI/CD pipelines inform how to build operational workflows. |
-| `/brana:memory review` | ReasoningBank health check is domain-agnostic. Confidence levels, staleness, promotion — all apply. |
+| `/brana:memory review` | ruflo memory health check is domain-agnostic. Confidence levels, staleness, promotion — all apply. |
 | `/brana:challenge` | Adversarial review of a business plan is at least as valuable as challenging a technical architecture. Same four flavors (pre-mortem, simplicity, assumption, adversarial). |
 | `/brana:close` | Session close — extracting errata/learnings/issues, writing handoff notes, storing patterns. The classification (spec mismatch, process learning, issue) applies to business findings too. ADR-style decisions are captured via the build loop. |
 
-**Implication:** 6 of the current skills need zero changes for venture work. The knowledge system (ReasoningBank, auto memory, confidence-weighted recall, promotion/demotion) is fully domain-agnostic.
+**Implication:** 6 of the current skills need zero changes for venture work. The knowledge system (ruflo memory, auto memory, confidence-weighted recall, promotion/demotion) is fully domain-agnostic.
 
 ---
 
@@ -124,14 +124,14 @@ Code projects have test suites and CI/CD. Business projects have metrics — but
 Same `~/.claude/skills/` directory as code skills. Rationale:
 - Claude Code discovers skills by scanning one directory — separate directories require custom loader logic
 - Cross-pollination between code and business skills is a feature (a pattern from CI/CD pipeline design informs operational workflow design)
-- ReasoningBank is already shared across all skills — namespace separation happens via tags, not directories
+- ruflo memory is already shared across all skills — namespace separation happens via tags, not directories
 - The user switches between code and business projects in the same Claude Code session
 
 ### Memory Architecture Extension
 
 Current namespaces: `patterns`, `decisions`, `alignment`
 
-**Add:** `business` namespace for business-specific patterns (stage transitions, framework effectiveness, milestone outcomes, metric trends). The tagging system below extends the architecture defined in [14-mastermind-architecture.md](./14-mastermind-architecture.md) (R2) — same ReasoningBank, same confidence model, different tag vocabulary.
+**Add:** `business` namespace for business-specific patterns (stage transitions, framework effectiveness, milestone outcomes, metric trends). The tagging system below extends the architecture defined in [14-mastermind-architecture.md](./14-mastermind-architecture.md) (R2) — same ruflo memory, same confidence model, different tag vocabulary.
 
 **Tag vocabulary extension:**
 
@@ -150,7 +150,7 @@ Existing tags (`project:`, `tech:`, `type:`, `outcome:`) continue to work. Busin
 Venture skills produce distributed artifacts across sessions: growth-check snapshots, monthly financials, pipeline deals, event logs, and task portfolios. These live in project repos and ruflo memory — losing either means losing operational continuity.
 
 `sync-state.sh` ([ADR-015](../architecture/decisions/ADR-015-state-sync.md)) handles transfer:
-- `push` persists session state (MEMORY.md, tasks.json, ReasoningBank entries) to project repos
+- `push` persists session state (MEMORY.md, tasks.json, ruflo memory entries) to project repos
 - `pull` restores state on a new machine
 - `export`/`import` handles ruflo patterns separately (embedding-dependent)
 
@@ -170,7 +170,7 @@ New machine recovery: `sync-state.sh pull && sync-state.sh import`. Team onboard
 1. Discovery interview → stage classification
 2. Scan existing structure (docs, SOPs, metrics, decisions)
 3. Data completeness audit — if external data stores exist (Google Sheets, CRMs, databases), assess each table for row count, missing columns, empty fields. Empty tables with correct headers are "partial" not "present." Common gaps: client acquisition channel, cash flow reconstruction, COGS for internal production, referrer attribution, stock reconciliation.
-4. Pattern recall (ReasoningBank query for stage + domain)
+4. Pattern recall (ruflo memory query for stage + domain)
 5. Framework recommendation based on stage (from [doc 28](../dimensions/28-startup-smb-management.md) research)
 6. Gap report with prioritized next steps (includes data completeness matrix alongside structural gaps)
 
@@ -228,7 +228,7 @@ Each follows the same loop: plan → recall → execute (with mini-debriefs) →
 **Mode:** Active (creates docs/sops/SOP-NNN-slug.md)
 **When to use:** Whenever a repeatable process needs documenting
 
-**Design:** Mirrors ADR creation in structure — auto-increment numbering, slug generation, template application, ReasoningBank storage. But the template is SOP-specific:
+**Design:** Mirrors ADR creation in structure — auto-increment numbering, slug generation, template application, ruflo memory storage. But the template is SOP-specific:
 
 ```
 Purpose → Owner → Trigger → Prerequisites → Steps (with decision points)
@@ -257,13 +257,13 @@ degradation modes) → Metrics → Version → Review Date
 
 **Business model adaptation:** Metric frameworks must adapt to the business model type, not just the stage. Standard SaaS metrics (MRR, churn rate, DAU/MAU, net revenue retention) misdiagnose non-subscription businesses — a cycle-based service with 95% "churn" may be healthy if recompra (repeat purchase) rate is strong. Non-SaaS metrics include: recompra rate (clients with 2+ purchases / total), average order value, revenue per client, channel attribution, top-client concentration, referrer contribution. See lesson #20 in [24-roadmap-corrections.md](../24-roadmap-corrections.md).
 
-**ReasoningBank integration:** Store each check as a snapshot. Over time, build a metrics trajectory that surfaces trends across sessions.
+**ruflo memory integration:** Store each check as a snapshot. Over time, build a metrics trajectory that surfaces trends across sessions.
 
 ---
 
 ## Cross-Domain Learning: The Differentiator
 
-The most powerful aspect of this architecture is that business and code patterns live in the **same ReasoningBank**. This enables:
+The most powerful aspect of this architecture is that business and code patterns live in the **same ruflo memory**. This enables:
 
 | From Code | To Business | Example |
 |-----------|-------------|---------|
@@ -283,7 +283,7 @@ And vice versa:
 | Meeting cadence discipline | Async communication discipline | "Not every sync needs a meeting; some need a doc" → handbook-first culture |
 | Hiring for Unique Ability | Team composition for complementary skills | "Hire specialists for your gaps" → "Assign tasks to the right agent type" |
 
-This cross-pollination is what `/brana:memory pollinate` already does — but with business patterns in the ReasoningBank, it becomes dramatically more valuable. The pattern transfer architecture relies on R2's tagging system ([14-mastermind-architecture.md](./14-mastermind-architecture.md)) — `transferable: true` + technology-agnostic tags enable cross-domain recall.
+This cross-pollination is what `/brana:memory pollinate` already does — but with business patterns in the ruflo memory, it becomes dramatically more valuable. The pattern transfer architecture relies on R2's tagging system ([14-mastermind-architecture.md](./14-mastermind-architecture.md)) — `transferable: true` + technology-agnostic tags enable cross-domain recall.
 
 ---
 
@@ -329,7 +329,7 @@ The **genome vs connectome** distinction is critical for businesses too:
 [Doc 15](../15-self-development-workflow.md)'s genome/connectome separation maps to business operational maturity:
 
 - **Genome (business systems):** SOPs, playbooks, job descriptions, onboarding checklists, interview rubrics — the documented, repeatable parts. These are the business equivalent of config files and deploy scripts. They can be "deployed" to any new hire or team.
-- **Connectome (learned knowledge):** Market intelligence, customer behavior patterns, competitive landscape insights, supplier relationships — the accumulated wisdom. This is the business equivalent of the ReasoningBank.
+- **Connectome (learned knowledge):** Market intelligence, customer behavior patterns, competitive landscape insights, supplier relationships — the accumulated wisdom. This is the business equivalent of the ruflo memory.
 
 Additional transfers:
 - **Deploy pipeline** → **Process rollout.** New SOPs should roll out like code deploys: test in a small team first, verify it works, then expand. Don't deploy a new sales process to the entire team on Monday morning.
@@ -426,20 +426,20 @@ This reflection doc will be enriched over time as the venture skills are used an
 - Built 7 new daily/weekly/monthly skills (`/morning`, `/weekly-review`, `/brana:pipeline`, `/brana:financial-model`, `/experiment`, `/content-plan`, `/monthly-close`) plus `/monthly-plan` for forward-looking synthesis
 - Google Sheets MCP integration guide published, `/brana:gsheets` skill deployed for direct Sheets operations
 - Deployed 3 agents: `daily-ops` (Haiku), `metrics-collector` (Haiku), `pipeline-tracker` (Haiku)
-- Deployed 2 hooks: `session-start-venture` (venture detection + daily-ops nudge + weekly-review staleness), `post-sale` (deal closure detection + ReasoningBank snapshot)
+- Deployed 2 hooks: `session-start-venture` (venture detection + daily-ops nudge + weekly-review staleness), `post-sale` (deal closure detection + ruflo memory snapshot)
 - `weekly-reminder` absorbed into `session-start-venture` (Claude Code hooks don't support cron)
 - GitHub Issues integration added to `/weekly-review`, `/experiment`, `/morning`
 
 ### Phase 2: Learning Accumulation
 - Artifact lifecycle follows [32-lifecycle.md](./32-lifecycle.md) (R4) patterns — SOPs have review dates, OKRs have quarterly cycles, metric snapshots accumulate into trend data
 - Use venture skills on real business projects
-- Accumulate patterns in ReasoningBank
+- Accumulate patterns in ruflo memory
 - Run `/debrief` and `/brana:retrospective` after business sessions
 - Identify which frameworks actually work at which stages (evidence-based, not theoretical)
 - **First fieldwork (2026-02-15):** psilea (cycle-product, validation stage) revealed 10 generic patterns. Four skills updated: `/growth-check` (non-SaaS metrics, adapted AARRR, channel attribution, revenue risk signals), `/monthly-close` (external data sources, cash flow reconstruction, AR/AP, COGS check), `/venture-onboard` (data completeness audit), `/venture-align` (V5 referrer tracking). Key learning: one real-project session improved skills more than three spec-driven reconcile passes (lesson #42 in [doc 24](../24-roadmap-corrections.md))
 
 ### Phase 3: Cross-Pollination
-- Patterns flow between code and business projects via ReasoningBank
+- Patterns flow between code and business projects via ruflo memory
 - `/brana:memory pollinate` surfaces insights like "your CI/CD rollback pattern maps to your SOP fallback procedure"
 - Document which cross-domain transfers are high-confidence (proven) vs quarantined (unproven)
 
@@ -540,7 +540,7 @@ Always-on (not a framework, a habit):
 | Growth | **Lightweight dashboard** (Notion, payment processor dashboard + Sheets) | Volume makes manual entry painful. Automate pulls from payment/analytics/CRM |
 | Scale | **Dedicated tools** (ChartMogul, Baremetrics, or full BI stack) | Need real-time dashboards, team-visible metrics, historical trends |
 
-**For `/growth-check`:** Manual input through conversation. Ask the user for current values during each check. Store snapshots in ReasoningBank. Over time, stored snapshots create trend data. No integrations needed — the conversation IS the data entry. The graduation from manual tracking to tooling mirrors the lifecycle progression in [32-lifecycle.md](./32-lifecycle.md) (R4) — start manual, graduate when manual hurts.
+**For `/growth-check`:** Manual input through conversation. Ask the user for current values during each check. Store snapshots in ruflo memory. Over time, stored snapshots create trend data. No integrations needed — the conversation IS the data entry. The graduation from manual tracking to tooling mirrors the lifecycle progression in [32-lifecycle.md](./32-lifecycle.md) (R4) — start manual, graduate when manual hurts.
 
 **The anti-pattern:** Don't spend 2 weeks building a metrics dashboard before having 10 customers. That's premature scaling of tooling. Track 3-5 numbers in a spreadsheet. When the update feels like a chore (not a 2-minute task), upgrade.
 
@@ -555,7 +555,7 @@ Always-on (not a framework, a habit):
 - Decision records: context → decision → consequences, readable in 2 minutes
 - Health reports: green/yellow/red, one paragraph per metric, recommended actions
 
-**Artifact validation:** Each skill's output should be verifiable — [31-assurance.md](./31-assurance.md) (R3) defines the structural and behavioral assurance framework. For venture skills, "structural" means template compliance (does the SOP have all required sections?), "behavioral" means round-trip verification (is the artifact stored and recallable from ReasoningBank?).
+**Artifact validation:** Each skill's output should be verifiable — [31-assurance.md](./31-assurance.md) (R3) defines the structural and behavioral assurance framework. For venture skills, "structural" means template compliance (does the SOP have all required sections?), "behavioral" means round-trip verification (is the artifact stored and recallable from ruflo memory?).
 
 **Principle 2: Explicit handoff.** Skill output should end with who needs to do what with this artifact:
 - "Share this SOP with [team member] for review"

@@ -25,7 +25,7 @@ A PM component for a solo developer managing 3-5 projects simultaneously, integr
 |---|---|---|
 | **PARA categories** | Project/Area distinction separates finite work from ongoing responsibility | Already done in brana v1 (01_Projects vs 02_Areas). Keep the distinction but drop rigid folder hierarchy in favor of tags/metadata. |
 | **Intermediate Packets** | Discrete, reusable work units (ADRs, runbooks, templates, code patterns) | Already done with feature folders and ADRs. This is the strongest overlap with existing practice. |
-| **Slow Burns** | Background accumulation of research/ideas for future projects | Maps to ReasoningBank pattern accumulation. The learning loop IS a slow burn engine. |
+| **Slow Burns** | Background accumulation of research/ideas for future projects | Maps to ruflo memory pattern accumulation. The learning loop IS a slow burn engine. |
 | **Just-in-time organization** | Organize as a byproduct of work, not as a ritual | The v1 PM system has too much upfront ceremony. Reduce template overhead. |
 | **CODE workflow** (Capture→Organize→Distill→Express) | The pipeline from raw input to actionable output | Capture = issue creation. Organize = labels + milestones. Distill = feature spec (only for large work). Express = code + PR. |
 
@@ -443,7 +443,7 @@ The PM component is a **plugin**, not core:
 
 - **Loads when:** A project has `docs/decisions/` or is linked to the GitHub Project
 - **Doesn't load when:** Quick scripts, experiments, one-off repos
-- **Connects to learning loop:** PM decisions (ADRs) are pattern-worthy. The Stop hook can extract "decision X was made because Y" and store it in ReasoningBank.
+- **Connects to learning loop:** PM decisions (ADRs) are pattern-worthy. The Stop hook can extract "decision X was made because Y" and store it in ruflo memory.
 - **Connects to challenger:** `/brana:challenge` on plan mode can check "does this plan align with the current milestone's scope?"
 - **Context budget:** PM skills load on demand (zero cost until invoked). CONTEXT.md is small (~500 bytes). PM awareness rule is one small file.
 

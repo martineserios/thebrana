@@ -13,7 +13,7 @@ THE GENOME (system code)                THE CONNECTOME (learned knowledge)
 ─────────────────────────               ─────────────────────────────────
 How the brain works                     What the brain knows
 
-~/.claude/CLAUDE.md                     ~/.swarm/memory.db (ReasoningBank)
+~/.claude/CLAUDE.md                     ~/.swarm/memory.db (ruflo)
 ~/.claude/skills/*.md                   ~/.claude/memory/MEMORY.md
 ~/.claude/agents/*.md                   ~/.claude/memory/portfolio.md
 ~/.claude/commands/*.md                 ~/.claude/memory/retired/
@@ -84,7 +84,7 @@ The mastermind system is software. Give it its own project, its own repo, its ow
 │   │
 │   ├── deploy.sh                         ← Deploy system/ → ~/.claude/ (with safety checks)
 │   ├── rollback.sh                       ← Revert ~/.claude/ to last tagged version
-│   ├── backup-knowledge.sh               ← Snapshot ReasoningBank + auto memory
+│   ├── backup-knowledge.sh               ← Snapshot ruflo memory + auto memory
 │   │
 │   ├── BACKLOG.md                        ← Features, bugs, experiments for the system itself
 │   ├── CHANGELOG.md                      ← History of system changes
@@ -178,7 +178,7 @@ echo "Deployed $(git describe --tags) to ~/.claude/"
 
 ## The Knowledge Backup Strategy
 
-ReasoningBank is SQLite — simple, reliable, easy to backup:
+ruflo memory is SQLite — simple, reliable, easy to backup:
 
 ```bash
 # backup-knowledge.sh
@@ -186,7 +186,7 @@ ReasoningBank is SQLite — simple, reliable, easy to backup:
 BACKUP_DIR="$HOME/.swarm/backups"
 DATE=$(date +%Y%m%d_%H%M%S)
 
-# Backup ReasoningBank
+# Backup ruflo memory
 mkdir -p "$BACKUP_DIR"
 sqlite3 ~/.swarm/memory.db ".backup '$BACKUP_DIR/memory_$DATE.db'"
 
@@ -206,7 +206,7 @@ echo "Knowledge backed up: $BACKUP_DIR/memory_$DATE.db"
 
 **What about git for knowledge?**
 
-Auto memory files (`.md`) can live in a separate knowledge repo or just be backed up. ReasoningBank (`memory.db`) is a binary — git won't handle it well. SQLite backups + a retention policy is simpler and more reliable.
+Auto memory files (`.md`) can live in a separate knowledge repo or just be backed up. ruflo memory (`memory.db`) is a binary — git won't handle it well. SQLite backups + a retention policy is simpler and more reliable.
 
 ---
 
@@ -274,7 +274,7 @@ claude --plugin-dir ~/projects/brana/system
 # - Look for errors
 ```
 
-This launches Claude Code with your modified system but against a throwaway project. ReasoningBank is read but not written (unless you explicitly test learning). Production `~/.claude/` is untouched.
+This launches Claude Code with your modified system but against a throwaway project. ruflo memory is read but not written (unless you explicitly test learning). Production `~/.claude/` is untouched.
 
 ### Level 4: A/B Testing (For Bigger Changes)
 
@@ -286,7 +286,7 @@ Week 2: Deploy version B (candidate). Note same metrics.
 Compare: Did pattern recall improve? Did sessions feel smoother? Any regressions?
 ```
 
-The mastermind itself can track this — store observations about its own performance in ReasoningBank tagged `domain: brana-system`.
+The mastermind itself can track this — store observations about its own performance in ruflo memory tagged `domain: brana-system`.
 
 ---
 
@@ -309,7 +309,7 @@ that control YOUR OWN behavior across all clients.
 4. **Context budget is sacred.** Always-loaded content must stay under 15KB.
    Check with tests/validate-context-budget.sh after any change.
 5. **Knowledge store is read-only during system development.**
-   Don't modify ReasoningBank while changing the system that writes to it.
+   Don't modify ruflo memory while changing the system that writes to it.
 
 ## Before Any Change
 
@@ -347,7 +347,7 @@ Use the same SPARC phases from [doc 03](dimensions/03-pm-framework.md), adapted 
 **Specification:**
 ```markdown
 ## Feature: /pattern-confidence
-Show confidence distribution of patterns in ReasoningBank.
+Show confidence distribution of patterns in ruflo memory.
 Helps identify which knowledge areas are strong (high confidence,
 many uses) vs weak (low confidence, single use).
 
@@ -359,7 +359,7 @@ Acceptance criteria:
 
 **Pseudocode:**
 ```markdown
-1. Query ReasoningBank for all patterns
+1. Query ruflo memory for all patterns
 2. Group by confidence brackets: 0-0.3 (weak), 0.3-0.7 (moderate), 0.7-1.0 (strong)
 3. Cross-reference with usage_count and success rate
 4. Format as readable report
@@ -373,7 +373,7 @@ Acceptance criteria:
 - No hook changes needed
 
 **Refinement:**
-- Test with current ReasoningBank in isolated session
+- Test with current ruflo memory in isolated session
 - Adjust output format based on real data
 - Add to CHANGELOG.md
 
@@ -405,7 +405,7 @@ Acceptance criteria:
 ## Done
 - [x] v0.1.0: Initial system — CLAUDE.md, 5 skills, 3 agents, 3 rules
 - [x] v0.2.0: Added deploy.sh and validation scripts
-- [x] v0.2.1: Fixed: SessionStart hook was crashing on empty ReasoningBank
+- [x] v0.2.1: Fixed: SessionStart hook was crashing on empty ruflo memory
 ```
 
 ---
@@ -416,22 +416,22 @@ Acceptance criteria:
 
 | Failure Mode | What Happens | Prevention | Recovery |
 |---|---|---|---|
-| **Broken SessionStart hook** | Every session starts broken. Can't query ReasoningBank. | Hook must `exit 0` on error — degrade, don't block. Try/catch wrapper. | Rollback settings.json to last good version. Knowledge untouched. |
+| **Broken SessionStart hook** | Every session starts broken. Can't query ruflo memory. | Hook must `exit 0` on error — degrade, don't block. Try/catch wrapper. | Rollback settings.json to last good version. Knowledge untouched. |
 | **Corrupted CLAUDE.md** | Identity is garbled or empty. Claude behaves erratically. | Validation script checks CLAUDE.md isn't empty, has required sections. | Rollback symlink to last tagged commit. |
 | **Context explosion** | Too much always-loaded content. Eats token budget. Slow, expensive. | Budget validation script blocks deploy if >15KB. | Remove newest rule/skill, re-deploy. |
-| **ReasoningBank corruption** | All cross-client memory lost. | Daily backups. Backup before every deploy. | Restore from latest backup. Gap is at most 1 day. |
+| **ruflo memory corruption** | All cross-client memory lost. | Daily backups. Backup before every deploy. | Restore from latest backup. Gap is at most 1 day. |
 | **Infinite hook loop** | Hook triggers action that triggers hook again. | Environment variable guard: `BRANA_HOOK_RUNNING=1`. Check before executing. | Kill session. Remove hook. Deploy without it. |
 
 ### The Self-Healing Hook
 
-A lightweight check that runs at SessionStart BEFORE any ReasoningBank queries:
+A lightweight check that runs at SessionStart BEFORE any ruflo memory queries:
 
 ```
 SessionStart hook (first in chain):
   1. Does ~/.claude/CLAUDE.md exist and have content?
      → No? Restore from brana repo symlink.
   2. Does ~/.swarm/memory.db exist?
-     → No? Log warning, skip ReasoningBank queries, continue without memory.
+     → No? Log warning, skip ruflo memory queries, continue without memory.
   3. Are all skill files valid?
      → No? Log which ones are broken, disable them for this session.
   4. Is context budget within limits?
@@ -451,19 +451,19 @@ The system learns how to maintain itself:
 ```
 Month 1: You manually edit skills, manually test, manually deploy.
   └─ It works but it's tedious.
-  └─ ReasoningBank stores: "When I changed the hook config, I forgot to
+  └─ ruflo memory stores: "When I changed the hook config, I forgot to
      validate first. Tests caught a syntax error."
 
 Month 2: You develop a /self-test skill.
   └─ Pattern recalled: "Always validate before deploy."
   └─ The skill automates what you were doing manually.
-  └─ ReasoningBank stores: "The self-test skill caught 3 issues that
+  └─ ruflo memory stores: "The self-test skill caught 3 issues that
      would have broken production."
 
 Month 3: You add a pre-deploy hook that runs validation automatically.
   └─ Pattern recalled: "Self-test is useful but I keep forgetting to run it."
   └─ Now it's impossible to deploy without validation.
-  └─ ReasoningBank stores: "Automated validation prevented a deployment
+  └─ ruflo memory stores: "Automated validation prevented a deployment
      of a skill with broken YAML frontmatter."
 
 Month 6: The system suggests improvements to itself.
@@ -518,7 +518,7 @@ brana.git                               FAST RHYTHM
 └── CHANGELOG.md                        Explicit version history.
 
 ~/.swarm/memory.db                      SLOW RHYTHM
-└── ReasoningBank                       Changes every session. Organic growth.
+└── ruflo memory                       Changes every session. Organic growth.
     Backed up daily.                    Never rolled back. Only appended.
     Pruned occasionally.                Survives all system changes.
 
@@ -559,7 +559,7 @@ The real axis is **blast radius** — how many projects break if this change is 
 | Critical | Full SPARC + staged rollout over 1 week | Branch + validate + A/B test + deploy |
 | Nuclear | Full SPARC + knowledge backup + staged rollout + manual verification of first 3 sessions | Full SPARC + backup + staged rollout |
 
-**Exception: learning loop changes are ALWAYS heavyweight.** The damage they cause is invisible — bad patterns entering ReasoningBank look normal until they surface as wrong advice weeks later. You can't test for "will this produce subtly wrong learnings over 50 sessions." That requires slow rollout and observation. See [16-knowledge-health.md](dimensions/16-knowledge-health.md) for the full analysis of knowledge poisoning and the immune system design.
+**Exception: learning loop changes are ALWAYS heavyweight.** The damage they cause is invisible — bad patterns entering ruflo memory look normal until they surface as wrong advice weeks later. You can't test for "will this produce subtly wrong learnings over 50 sessions." That requires slow rollout and observation. See [16-knowledge-health.md](dimensions/16-knowledge-health.md) for the full analysis of knowledge poisoning and the immune system design.
 
 ---
 
@@ -596,13 +596,13 @@ This isn't the same agent reviewing itself — it's the same model with differen
 | Heavyweight | Reviewer agent + you read the diff. Human eyes on hooks and identity. |
 | Nuclear | Reviewer agent + you + let it bake for a week before trusting it. |
 
-Reviews get stored in ReasoningBank tagged `domain: brana-system`. Over time, the reviewer gets better because it recalls "last time someone changed a hook, the issue was X."
+Reviews get stored in ruflo memory tagged `domain: brana-system`. Over time, the reviewer gets better because it recalls "last time someone changed a hook, the issue was X."
 
 ---
 
 ## Knowledge Migrations
 
-ReasoningBank patterns are unstructured JSON blobs with tags — not a rigid schema. So "migrations" are really **data transformations**: bulk operations on the pattern store.
+ruflo memory patterns are unstructured JSON blobs with tags — not a rigid schema. So "migrations" are really **data transformations**: bulk operations on the pattern store.
 
 Typical migrations:
 - Rename tags: `"auth"` → `"authentication"` across all patterns
@@ -643,7 +643,7 @@ Options ranked by complexity:
 
 ### Option A: Don't Sync — Pick a Primary Machine
 
-One machine is the brain. Laptop sessions don't contribute to or benefit from ReasoningBank.
+One machine is the brain. Laptop sessions don't contribute to or benefit from ruflo memory.
 
 **Works when:** 90%+ of your work happens on one machine.
 **Breaks when:** You travel for a week and a week of learnings is lost.
@@ -710,7 +710,7 @@ The meta-signal: **when you're fighting the system more than using it, it's time
 
 The knowledge is the asset, not the system. If genome/connectome are separated from day one, a rewrite is survivable:
 
-1. **Export** — Dump ReasoningBank to JSON. Copy all auto memory files, portfolio, retired projects.
+1. **Export** — Dump ruflo memory to JSON. Copy all auto memory files, portfolio, retired projects.
 2. **Build v3** — New CLAUDE.md, new skills, new hooks. Start from first principles.
 3. **Import** — Load patterns into v3's knowledge store. The brain loses its wiring but keeps its memories.
 4. **Validate** — Query patterns for known problems. Verify cross-pollination still works.
@@ -780,7 +780,7 @@ Questions from the initial brainstorm, now answered:
 4. **How to handle partially correct patterns?** A pattern that's 80% right and 20% wrong. Can't delete (80% is valuable) or keep as-is (20% causes damage). Need a refinement mechanism, not just accept/reject.
 
 ### Meta
-5. **Should the system track its own metrics automatically?** A ReasoningBank domain `brana-system` storing patterns about system maintenance. Over time, a "how to maintain me" knowledge base. The cost is extra patterns; the benefit is the system learning from its own maintenance history.
+5. **Should the system track its own metrics automatically?** A ruflo memory domain `brana-system` storing patterns about system maintenance. Over time, a "how to maintain me" knowledge base. The cost is extra patterns; the benefit is the system learning from its own maintenance history.
 
 ---
 
@@ -794,7 +794,7 @@ Questions from the initial brainstorm, now answered:
 
 **Tools:**
 - Claude Code CLI — new plugin/skill management features, deploy workflow changes
-- ruflo — CLI updates, hook system changes, ReasoningBank API changes
+- ruflo — CLI updates, hook system changes, ruflo memory API changes
 - Syncthing — version updates, conflict resolution improvements (multi-machine sync)
 - BATS — test framework updates for bash hook testing
 

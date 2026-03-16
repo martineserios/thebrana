@@ -9,7 +9,7 @@ Brana's knowledge artifacts are scattered across multiple locations and formats:
 
 | Location | What | Format | Size |
 |----------|------|--------|------|
-| `~/.swarm/memory.db` | ReasoningBank (178 entries) | SQLite | 852K |
+| `~/.swarm/memory.db` | ruflo memory (178 entries) | SQLite | 852K |
 | `~/.swarm/hnsw.index` | Vector index (stale, Feb 10) | Binary HNSW | 560K |
 | `~/.swarm/memory.rvf` | RVF vectors (partial, Feb 22) | RVF binary | 69K |
 | `~/.swarm/*.json` | Migration artifacts, ID mappings | JSON | 375K |

@@ -39,7 +39,7 @@ R1 triages every dimension doc → R2 composes the architecture → R3 validates
 ### 4. Work Journal & Crash Recovery
 **Why keep:** Long sessions crash. Having automatic session state persistence and recovery options is valuable.
 
-**For v2:** Simplify the file structure (fewer, larger journal files instead of hundreds of small ones). Consider using ReasoningBank for state persistence instead of custom JSON.
+**For v2:** Simplify the file structure (fewer, larger journal files instead of hundreds of small ones). Consider using ruflo memory for state persistence instead of custom JSON.
 
 ### 5. Hook Lifecycle
 **Why keep:** SessionStart, PreToolUse, PostToolUse, SessionEnd - the event model is sound. Hooks enable extensibility without modifying core instructions.
@@ -119,7 +119,7 @@ CLAUDE.md instructions ("never push to main") combined with git hooks handle bra
 
 ## Claude-Flow Features Worth Adopting
 
-### 1. ReasoningBank (Persistent Pattern Memory)
+### 1. ruflo memory (Persistent Pattern Memory)
 **Why adopt:** Cross-session learning is the single biggest gap in native Claude Code. Patterns stored in SQLite with all-MiniLM-L6-v2 384-dim embeddings (local ONNX, no API cost) enable the system to remember what worked.
 
 **Implementation priority:** High. This is the #1 value-add over native capabilities.
@@ -160,7 +160,7 @@ CLAUDE.md instructions ("never push to main") combined with git hooks handle bra
 ### 3. SONA Self-Learning (For Now)
 **Why skip initially:** Promising but unproven at scale. Requires 100+ task executions before providing value. The learning curve is steep and failure modes are poorly documented.
 
-**Revisit when:** ReasoningBank is established and you want automated pattern optimization.
+**Revisit when:** ruflo memory is established and you want automated pattern optimization.
 
 ### 4. Full 170+ MCP Tool Surface
 **Why skip:** Most tools are unused in any given session. Adding all of them creates noise and increases complexity. Use only what's needed.
@@ -184,7 +184,7 @@ Findings from docs [22-testing.md](../../../brana-knowledge/dimensions/22-testin
 
 ### New Input for Open Questions
 
-**ReasoningBank from day one or later?** (question #7) — Eval-driven development methodology (Anthropic, Vercel, Obra) says: write the eval before the feature. Build a 20-task recall eval suite FIRST, then add ReasoningBank. If recall precision < 50%, the feature isn't ready. This gives a concrete decision framework rather than debating timing.
+**ruflo memory from day one or later?** (question #7) — Eval-driven development methodology (Anthropic, Vercel, Obra) says: write the eval before the feature. Build a 20-task recall eval suite FIRST, then add ruflo memory. If recall precision < 50%, the feature isn't ready. This gives a concrete decision framework rather than debating timing.
 
 **Infrastructure noise.** Anthropic found up to 6 percentage point score differences from infrastructure configuration alone (same model, same prompts). Any quality measurement of keep/drop decisions must account for this variance.
 
@@ -300,7 +300,7 @@ Every dimension doc triaged for brana v2. [Docs 01](../dimensions/01-brana-syste
 
 Architectural questions that were open during initial design but have been resolved through research and implementation.
 
-2. **ReasoningBank confidence decay?** → Yes. Monthly decay function: unused patterns lose 0.05/month, failed patterns lose 0.2, below 0.2 gets auto-archived. Decay is not deletion — archived patterns are restorable. See [16-knowledge-health.md](../../../brana-knowledge/dimensions/16-knowledge-health.md).
+2. **ruflo memory confidence decay?** → Yes. Monthly decay function: unused patterns lose 0.05/month, failed patterns lose 0.2, below 0.2 gets auto-archived. Decay is not deletion — archived patterns are restorable. See [16-knowledge-health.md](../../../brana-knowledge/dimensions/16-knowledge-health.md).
 
 4. **How much of this can be native-only?** → ruflo (now Ruflo) is an enhancement layer, not a hard dependency. The plugin + bootstrap architecture functions independently; ruflo adds semantic memory search and cross-session pattern recall. Degrade gracefully: fall back to auto-memory (plain markdown) when ruflo is unavailable. See [17-implementation-roadmap.md](../17-implementation-roadmap.md).
 
@@ -308,7 +308,7 @@ Architectural questions that were open during initial design but have been resol
 
 6. **ADRs vs inline comments?** → Neither in pure form. Keep decisions in existing documents but extract a decision index — a generated list of key decisions with links to source sections. See [25-self-documentation.md](../25-self-documentation.md).
 
-12. **Native Agent Teams or ruflo swarms?** → Hybrid. Native Agent Teams for execution coordination, ruflo ReasoningBank for cross-session memory. First concrete pattern: multi-agent TDD with context isolation (see [14-mastermind-architecture.md](./14-mastermind-architecture.md), [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md), [11-ecosystem-skills-plugins.md](../../../brana-knowledge/dimensions/11-ecosystem-skills-plugins.md)).
+12. **Native Agent Teams or ruflo swarms?** → Hybrid. Native Agent Teams for execution coordination, ruflo ruflo memory for cross-session memory. First concrete pattern: multi-agent TDD with context isolation (see [14-mastermind-architecture.md](./14-mastermind-architecture.md), [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md), [11-ecosystem-skills-plugins.md](../../../brana-knowledge/dimensions/11-ecosystem-skills-plugins.md)).
 
 ---
 
@@ -325,14 +325,14 @@ Architectural questions that were open during initial design but have been resol
 6. **ADRs vs inline comments?** Architecture decisions could be tracked in code comments or CLAUDE.md instead of separate files.
 
 ### Claude-Flow Integration
-7. **ReasoningBank from day one or add later?** Starting with it means learning the tooling upfront. Adding later means retrofitting.
+7. **ruflo memory from day one or add later?** Starting with it means learning the tooling upfront. Adding later means retrofitting.
 8. **Which MCP tools are essential?** Of 170+ tools, which 10-15 provide 80% of the value?
 9. **How to handle ruflo alpha instability?** Pin versions? Vendor specific modules? Wait for stable release?
 
 ### Agent Strategy
 10. **How many agent types?** Current brana has 76 (too many). What's the right number? 10? 15? 20?
 11. **Should agents have persistent identities?** Named agents with memory vs anonymous workers spawned per task.
-12. ~~**Native Agent Teams or ruflo swarms for coordination?**~~ → Resolved: hybrid. Native Agent Teams for execution coordination, ruflo ReasoningBank for cross-session memory. First concrete pattern: multi-agent TDD with context isolation (see [14-mastermind-architecture.md](./14-mastermind-architecture.md) "Project Enforcement", [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md) "Multi-Agent TDD", [11-ecosystem-skills-plugins.md](../../../brana-knowledge/dimensions/11-ecosystem-skills-plugins.md) section 5).
+12. ~~**Native Agent Teams or ruflo swarms for coordination?**~~ → Resolved: hybrid. Native Agent Teams for execution coordination, ruflo ruflo memory for cross-session memory. First concrete pattern: multi-agent TDD with context isolation (see [14-mastermind-architecture.md](./14-mastermind-architecture.md) "Project Enforcement", [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md) "Multi-Agent TDD", [11-ecosystem-skills-plugins.md](../../../brana-knowledge/dimensions/11-ecosystem-skills-plugins.md) section 5).
 
 ### Cost Optimization
 13. ~~**Is model routing worth the complexity?**~~ → Resolved: **yes — implemented via [ADR-018](../architecture/decisions/ADR-018-dynamic-model-routing.md).** Per-message complexity scoring (0.0–1.0) overrides static agent assignments at runtime. Static agent roster (Haiku for 8 fast agents, Sonnet for pr-reviewer, Opus for challenger/debrief-analyst) remains as the default; ADR-018 adds dynamic routing on top. Extended to multi-channel via [ADR-019](../architecture/decisions/ADR-019-brana-chat-sessions.md) tiered model routing.
