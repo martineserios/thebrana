@@ -52,7 +52,7 @@ Hooks fire on Claude Code lifecycle events. Three are registered in the plugin `
 | `post-plan-challenge.sh` | PostToolUse | ExitPlanMode | Plan review | Nudges challenger agent for adversarial review after plan finalization. |
 | `post-pr-review.sh` | PostToolUse | Bash (`gh pr create`) | PR review | Nudges pr-reviewer agent for automated code review. |
 | `post-sale.sh` | PostToolUse | Write\|Edit on pipeline files | Deal tracking | Detects deal closures, snapshots to memory. |
-| `session-start.sh` | SessionStart | Every session | Context injection | Recalls patterns from ruflo, injects task context, detects venture projects, checks for pending learnings. |
+| `session-start.sh` | SessionStart | Every session | Context injection | Recalls patterns from ruflo, injects task context, detects venture projects, checks for pending learnings, warns if /tmp >80% full. |
 | `session-end.sh` | SessionEnd | Every session | Metrics persistence | Computes flywheel metrics, stores session summary to ruflo and auto memory. Responds instantly, forks heavy work to background. |
 
 ### Plugin hooks.json vs settings.json

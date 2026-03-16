@@ -18,8 +18,8 @@ Features were shipping without documentation — knowledge stayed trapped in cod
 
 ## Code Flow
 
-1. **Entry:** /brana:build reaches CLOSE step after BUILD completes
-2. **Core:** CLOSE step 4 checks strategy → selects which templates to fill → generates docs from build context
+1. **Entry:** Documentation is front-loaded in two places: (a) SPECIFY feature spec includes a Documentation Plan section, (b) PLAN step mandates doc tasks in the task breakdown. CLOSE generates the actual doc content.
+2. **Core:** CLOSE step 6 checks strategy → selects which templates to fill → generates docs from build context
 3. **Output:** up to 2 files written per feature build
 
 ### Key Files

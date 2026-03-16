@@ -240,7 +240,7 @@ The brana ecosystem lives in two repositories. `cd` into thebrana to activate th
 When you `cd ~/enter_thebrana/thebrana && claude`:
 
 1. **Global identity** — `~/.claude/CLAUDE.md` ("I am a mastermind. I accumulate knowledge across clients.")
-2. **Global rules** — `~/.claude/rules/*` (13 rules: quality, self-improvement, git, SDD/TDD, memory framework, context budget, doc-linking, task convention, delegation routing, PM awareness, research discipline, work preferences, tactical context)
+2. **Global rules** — `~/.claude/rules/*` (14 rules: quality, self-improvement, git, SDD/TDD, memory framework, context budget, doc-linking, task convention, delegation routing, PM awareness, research discipline, work preferences, tactical context, parallel Bash resilience)
 3. **Global auto memory** — `~/.claude/memory/MEMORY.md` (first 200 lines, cross-client observations)
 4. **Local CLAUDE.md** — `thebrana/.claude/CLAUDE.md` ("You are the architect+operator. Here's the document structure and system layout.")
 5. **Local rules** — `thebrana/.claude/rules/*` (project-specific, if any)

@@ -77,12 +77,13 @@ One command: `/brana:build "description"`
 - Scout agents run web research in parallel while discussing
 - Auto-store findings in ruflo (confidence: 0.3, ttl: 30d — ages out if not promoted)
 - User signal ("draft it", "ready", "let's spec this") moves to draft
-- At draft: auto-suggest dimension doc updates, write feature spec
+- At draft: auto-suggest dimension doc updates, write feature spec (includes Documentation Plan section with user guide, tech doc, and existing-docs-to-update checkboxes)
 - Challenger review: spawned as separate agent (context isolation preserved)
 - Findings that survive into final spec promoted to confidence: 0.6 (permanent)
 
 **PLAN** (feature, greenfield, migration):
 - Break spec into ordered tasks with acceptance criteria
+- **Include documentation tasks** — user guide, tech doc, and existing-doc updates are mandatory in the task breakdown (not deferred to CLOSE)
 - GitHub Issues if available, otherwise tasks.json entries
 - Identify dependencies
 
