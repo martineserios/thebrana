@@ -55,6 +55,14 @@ No strict mode — hooks must always return valid JSON.
 
 No strict mode — hooks must always return valid JSON.
 
+5-phase SessionStart hook that bootstraps every session:
+
+1. **Parallel launch** — fires slow operations concurrently (ruflo memory search, correction patterns, spec-graph staleness check, decision log HIGH findings), each with individual timeouts
+2. **Fast local checks** (while parallel jobs run) — task context injection (brana-query or jq fallback), self-learning loop (reads `.needs-backprop` flag from previous session, detects pending learnings), venture project detection (auto-delegates to daily-ops agent)
+3. **Collect parallel results** — waits up to 5s combined, kills stragglers, reads temp files
+4. **Assemble JSON response** — combines recalled patterns, task summary, corrections, loop context, venture context, spec staleness, decision findings, /tmp warnings, CC changelog into `additionalContext`
+5. **Background fork** — logs session data to JSONL, runs `sync-state.sh push` (ADR-015)
+
 ### `step-completed.sh`
 
 No strict mode — hooks must never fail and block the session.
@@ -73,5 +81,9 @@ Brana PostToolUse hook — sync tasks.json changes to GitHub Issues + Projects.
 
 ### `worktree-gate.sh`
 
-PreToolUse: Worktree Enforcement Gate
+PreToolUse hook on Bash tool calls with three gates:
+
+- **Gate A1: Pre-commit disk check** — blocks `git commit` when `/tmp` is >95% full. Prevents silent ENOSPC failures (exit 134, no error message). Session-start warns at 80%; this is the last-resort safety net.
+- **Gate A2: Cross-session file warning** — on `git commit`, reads the session JSONL log to find files this session wrote (Write/Edit), compares against staged files, and warns (does not block) if staged files weren't touched by this session. Catches leftovers from concurrent sessions on other branches.
+- **Gate B: Worktree enforcement** — denies `git checkout -b` / `git switch -c` when the working tree is dirty or other worktrees are active. Suggests `git worktree add` instead.
 
