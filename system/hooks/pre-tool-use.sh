@@ -120,8 +120,8 @@ if [ -f "$TASKS_FILE" ]; then
     fi
 
     case "$BUILD_STEP" in
-        specify|plan)
-            deny "Build step is '$BUILD_STEP' — complete the spec/plan before writing implementation code. Run /brana:build to advance to BUILD step."
+        specify|decompose)
+            deny "Build step is '$BUILD_STEP' — complete the spec/decomposition before writing implementation code. Run /brana:build to advance to BUILD step."
             ;;
     esac
     # build, close, or empty/null → proceed to spec activity check

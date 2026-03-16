@@ -3,7 +3,7 @@
 #
 # Validates:
 #   1. build_step=specify → denies implementation writes
-#   2. build_step=plan → denies implementation writes
+#   2. build_step=decompose → denies implementation writes
 #   3. build_step=build → allows implementation writes (with spec activity)
 #   4. build_step=close → allows implementation writes
 #   5. No matching task → falls through to spec activity check
@@ -84,9 +84,9 @@ TASKS
 
 echo "=== build_step gate tests ==="
 
-# Gate denies: specify and plan
+# Gate denies: specify and decompose
 assert_decision "specify blocks implementation writes" "deny" "specify" "$TMPDIR/src/main.rs"
-assert_decision "plan blocks implementation writes" "deny" "plan" "$TMPDIR/src/main.rs"
+assert_decision "decompose blocks implementation writes" "deny" "decompose" "$TMPDIR/src/main.rs"
 
 # Gate allows: build and close
 assert_decision "build allows implementation writes" "allow" "build" "$TMPDIR/src/main.rs"
@@ -95,7 +95,7 @@ assert_decision "close allows implementation writes" "allow" "close" "$TMPDIR/sr
 # Spec/doc writes always pass regardless of build_step
 assert_decision "specify allows doc writes" "allow" "specify" "$TMPDIR/docs/decisions/ADR-003.md"
 assert_decision "specify allows test writes" "allow" "specify" "$TMPDIR/tests/test_main.py"
-assert_decision "plan allows markdown writes" "allow" "plan" "$TMPDIR/README.md"
+assert_decision "decompose allows markdown writes" "allow" "decompose" "$TMPDIR/README.md"
 
 echo ""
 echo "=== No matching task (empty build_step) ==="
