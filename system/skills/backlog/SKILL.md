@@ -209,10 +209,29 @@ Interactive phase planning. Builds the hierarchy conversationally.
    - If no: create milestone only, tasks deferred
 7. **Ask about dependencies:** "Any tasks that block others?"
 8. **Propose the full tree** formatted as a roadmap view
-9. **Offer bulk tags:** "Tag all tasks in this phase? (comma-separated, or skip)" — applies tags to every task in the phase
-10. **Wait for approval** — user can adjust before writing
-11. **Write tasks.json** — one Write for the entire batch
-12. **Report:** show the tree with IDs and tags for reference
+9. **Cross-reference scan** — before finalizing, check the broader backlog for overlap:
+   - Collect all subjects and tags from the proposed new tasks in this phase
+   - Search existing pending tasks via CLI:
+     ```bash
+     brana backlog search "{subject keywords}"    # per proposed task
+     brana backlog query --tag "{tag1},{tag2}"     # for each unique tag in the phase
+     ```
+   - Match by **subject keyword overlap** (significant words from proposed task subjects appear in existing task subjects)
+   - Match by **tag overlap** (2+ shared tags between a proposed task and an existing task)
+   - **If overlaps found**, present via AskUserQuestion (multiSelect: true):
+     ```
+     question: "Found existing tasks that overlap with proposed phase tasks:"
+     options:
+       - "Link {new-subject} → blocked_by {existing-id} {existing-subject} (tag overlap: {shared})"
+       - "Merge {new-subject} into {existing-id} (duplicate)"
+       - "No relation — keep all as-is"
+     ```
+   - **If no overlaps found**, skip silently
+   - **Never auto-link or auto-merge** — always ask the user
+10. **Offer bulk tags:** "Tag all tasks in this phase? (comma-separated, or skip)" — applies tags to every task in the phase
+11. **Wait for approval** — user can adjust before writing
+12. **Write tasks.json** — one Write for the entire batch
+13. **Report:** show the tree with IDs and tags for reference
 
 ### Defaults
 - Stream: roadmap (unless user specifies otherwise)
