@@ -26,7 +26,7 @@ ruflo provides what would take months to build from scratch:
 
 | Capability | What ruflo Gives You | Alternative Without It |
 |---|---|---|
-| **Cross-project memory** | ReasoningBank — SQLite-backed, tagged, queryable | Build your own or use flat files |
+| **Cross-project memory** | ruflo memory — SQLite-backed, tagged, queryable | Build your own or use flat files |
 | **Self-learning** | SONA — trajectory tracking, MoE routing, anti-catastrophic-forgetting | Nothing. This doesn't exist natively. |
 | **Vector intelligence** | RuVector — HNSW indexing, flash attention, pattern similarity | External vector DB or naive string matching |
 | **Token routing** | WASM transforms (<1ms) → Haiku → Sonnet → Opus routing | Manual model selection or single-model everything |
@@ -72,7 +72,7 @@ Never `@latest` in production. Test new versions in staging before upgrading.
 recall_patterns() {
   result=$(cd "$HOME" && npx ruflo@$CLAUDE_FLOW_VERSION memory search --query "$1" 2>/dev/null)
   if [ $? -ne 0 ]; then
-    echo "⚠ ReasoningBank unavailable. Working without memory."
+    echo "⚠ ruflo memory unavailable. Working without memory."
     return 0  # Degrade, never crash
   fi
   echo "$result"
@@ -95,7 +95,7 @@ npm install -g ruflo@$NEW_VERSION
 # 3. Run smoke tests
 cd "$HOME" && npx ruflo@$NEW_VERSION memory search --query "test" > /dev/null 2>&1
 if [ $? -ne 0 ]; then
-  echo "FAIL: New version can't query ReasoningBank. Keeping old version."
+  echo "FAIL: New version can't query ruflo memory. Keeping old version."
   npm install -g ruflo@$CLAUDE_FLOW_VERSION
   exit 1
 fi
@@ -106,7 +106,7 @@ echo "Upgraded to ruflo@$NEW_VERSION"
 
 ### Two-Layer Memory Architecture
 
-Don't treat native auto memory as a "degraded fallback." Design it as **Layer 0** — the foundation that's always there. ReasoningBank is **Layer 1** — the intelligence enhancement on top.
+Don't treat native auto memory as a "degraded fallback." Design it as **Layer 0** — the foundation that's always there. ruflo memory is **Layer 1** — the intelligence enhancement on top.
 
 ```
 Layer 0 — Native Auto Memory (always available, zero dependency)
@@ -116,18 +116,18 @@ Layer 0 — Native Auto Memory (always available, zero dependency)
   ~/.claude/projects/<proj>/memory/   ← Per-project auto memory
   ~/.claude/agent-memory/<agent>/     ← Subagent persistent memory (memory: user)
 
-Layer 1 — ReasoningBank (when ruflo available)
+Layer 1 — ruflo memory (when ruflo available)
   ~/.swarm/memory.db                  ← Vector-indexed, tagged, queryable
   HNSW similarity search              ← Find semantically related patterns
   Confidence scoring                  ← Track what works vs what doesn't
   Automated decay                     ← Stale patterns fade naturally
 ```
 
-**Normal mode:** Layer 1 enriches Layer 0. SessionStart queries ReasoningBank AND reads auto memory. Both contribute context.
+**Normal mode:** Layer 1 enriches Layer 0. SessionStart queries ruflo memory AND reads auto memory. Both contribute context.
 
-**Degraded mode (ruflo unavailable):** Layer 0 carries the load alone. The system is less intelligent but has access to everything you explicitly wrote to auto memory files. Learnings go to `~/.claude/memory/pending-learnings.md` and flush to ReasoningBank when it's back.
+**Degraded mode (ruflo unavailable):** Layer 0 carries the load alone. The system is less intelligent but has access to everything you explicitly wrote to auto memory files. Learnings go to `~/.claude/memory/pending-learnings.md` and flush to ruflo memory when it's back.
 
-**Key design rule:** Anything critical enough to survive ruflo outage should ALSO be written to Layer 0. The SessionEnd hook writes to both layers. Universal high-confidence patterns get appended to MEMORY.md, not just stored in ReasoningBank.
+**Key design rule:** Anything critical enough to survive ruflo outage should ALSO be written to Layer 0. The SessionEnd hook writes to both layers. Universal high-confidence patterns get appended to MEMORY.md, not just stored in ruflo memory.
 
 ### SONA Fallback Plan
 
@@ -159,7 +159,7 @@ Plan B cost:
 
 ## Phase 0: The Skeleton (Week 1-2)
 
-**Goal:** A working project structure with ruflo installed, ReasoningBank initialized, and a knowledge export escape hatch. No intelligence yet — just the bones and the safety net.
+**Goal:** A working project structure with ruflo installed, ruflo memory initialized, and a knowledge export escape hatch. No intelligence yet — just the bones and the safety net.
 
 **Bootstrap note:** This phase builds the safety rails while having no safety rails. You're doing manual brain surgery. Every file you create here will later be managed by the system it defines. Accept this — there's no way around it. The validation scripts are the first safety you build, so build them first and use them on everything that follows.
 
@@ -191,7 +191,7 @@ Plan B cost:
 │
 ├── deploy.sh                            ← Symlink-based deploy
 ├── rollback.sh                          ← Tag-based rollback
-├── backup-knowledge.sh                  ← ReasoningBank + memory backup
+├── backup-knowledge.sh                  ← ruflo memory + memory backup
 ├── export-knowledge.sh                  ← Portable JSON export (escape hatch)
 ├── BACKLOG.md
 ├── CHANGELOG.md
@@ -206,7 +206,7 @@ Plan B cost:
 # Install and pin
 npm install -g ruflo@2.5.0-alpha.130
 
-# Initialize ReasoningBank
+# Initialize ruflo memory
 npx ruflo init
 # Creates ~/.swarm/memory.db (empty)
 # Creates ~/.swarm/config.yaml
@@ -232,7 +232,7 @@ EXPORT_DIR="$1"
 [ -z "$EXPORT_DIR" ] && EXPORT_DIR="./knowledge-export-$(date +%Y%m%d)"
 mkdir -p "$EXPORT_DIR"
 
-# Export ReasoningBank to JSON (if available)
+# Export ruflo memory to JSON (if available)
 if [ -f ~/.swarm/memory.db ]; then
   sqlite3 ~/.swarm/memory.db "SELECT json_object(
     'id', id, 'type', type, 'domain', domain,
@@ -270,7 +270,7 @@ Start minimal:
 - [x] `cd ~/projects/brana && claude` loads the system identity
 - [x] `deploy.sh` successfully symlinks to `~/.claude/`
 - [x] `rollback.sh` restores previous version
-- [x] `backup-knowledge.sh` creates ReasoningBank snapshot
+- [x] `backup-knowledge.sh` creates ruflo memory snapshot
 - [x] `export-knowledge.sh` produces portable JSON + markdown
 - [x] All validation scripts pass
 - [x] ruflo CLI responds to basic commands
@@ -321,7 +321,7 @@ From the [11-ecosystem-skills-plugins.md](dimensions/11-ecosystem-skills-plugins
 | Command | Purpose |
 |---------|---------|
 | `/what-do-i-know` | Query all memory for a topic |
-| `/teach-me` | Manually inject a pattern into ReasoningBank |
+| `/teach-me` | Manually inject a pattern into ruflo memory |
 | `/portfolio` | Show all clients + cross-client insights |
 
 ### Skill Catalog (Tier 2)
@@ -361,7 +361,7 @@ After Phase 1:
 **Functional:**
 - [x] All 6 skills manually invokable and working
 - [x] `/brana:memory recall` returns results from manually-inserted test patterns
-- [x] `/brana:retrospective` successfully stores patterns in ReasoningBank
+- [x] `/brana:retrospective` successfully stores patterns in ruflo memory
 - [x] All plugins installed and functional
 - [x] System reviewer agent catches at least one test issue
 - [x] `/brana:challenge` skill spawns Sonnet subagent and returns actionable feedback
@@ -392,7 +392,7 @@ Wire these into `system/settings.json` per the design in [14-mastermind-architec
 Trigger: Every session start
 Action:
   1. Detect current project (pwd, git remote)
-  2. Query ReasoningBank for:
+  2. Query ruflo memory for:
      a. Patterns tagged with this project
      b. Patterns from similar tech stacks
      c. Universal high-confidence patterns (>0.8)
@@ -409,7 +409,7 @@ Trigger: Session termination (fires once — NOT Stop, which fires every respons
 Action:
   1. Analyze session: problems solved, approaches tried
   2. Extract patterns (problem→solution, failures, architecture decisions)
-  3. Store in ReasoningBank with:
+  3. Store in ruflo memory with:
      - domain: project name
      - tags: technologies, problem types
      - confidence: 0.5 (quarantine — per doc 16)
@@ -438,7 +438,7 @@ PostToolUseFailure (SEPARATE event — needs its own hook config):
   Trigger: Write|Edit|Bash — fires on FAILURE
   Action:
     - Record what didn't work (anti-patterns are often more valuable than successes)
-    - Store as type: "failure" in ReasoningBank
+    - Store as type: "failure" in ruflo memory
   Fallback: Skip entirely if ruflo unavailable
 ```
 
@@ -463,7 +463,7 @@ Several hook capabilities discovered during the doc research that improve the le
 ```
 Test sequence:
   1. Start a session in a test project
-  2. Verify SessionStart hook fires and queries ReasoningBank
+  2. Verify SessionStart hook fires and queries ruflo memory
   3. Solve a problem, make tests pass
   4. End session
   5. Verify SessionEnd hook extracted and stored patterns
@@ -496,7 +496,7 @@ This alone prevents the worst failure mode — bad patterns cross-pollinating be
 When ruflo is unavailable, learnings go to `~/.claude/memory/pending-learnings.md`:
 
 ```markdown
-## Pending Learnings (will sync to ReasoningBank when available)
+## Pending Learnings (will sync to ruflo memory when available)
 
 ### 2026-02-10 — project-alpha
 - **Problem:** Supabase RLS not applying to server routes
@@ -505,20 +505,20 @@ When ruflo is unavailable, learnings go to `~/.claude/memory/pending-learnings.m
 - **Tags:** supabase, auth, rls, server-side
 ```
 
-A daily cron or next-SessionStart can flush pending learnings to ReasoningBank.
+A daily cron or next-SessionStart can flush pending learnings to ruflo memory.
 
 ### Exit Criteria
 
 **Functional:**
 - [x] SessionStart hook fires and injects relevant context
-- [x] SessionEnd hook extracts patterns and stores them (ReasoningBank + Layer 0)
+- [x] SessionEnd hook extracts patterns and stores them (ruflo memory + Layer 0)
 - [x] PostToolUse hook captures learning-worthy moments
 - [x] All hooks degrade gracefully when ruflo is unavailable
 - [x] No infinite hook loops (environment guard works)
 - [x] Full recall→learn→recall cycle verified end-to-end
-- [x] Markdown fallback works when ReasoningBank is down
+- [x] Markdown fallback works when ruflo memory is down
 - [x] Quarantine operational: new patterns enter with 0.5 confidence, transferable: false
-- [x] Challenge outcomes stored in ReasoningBank (type: "challenge", with flavor and outcome)
+- [x] Challenge outcomes stored in ruflo memory (type: "challenge", with flavor and outcome)
 
 **Value (the real test):**
 - [x] After 10+ sessions across 2+ projects, review recalled patterns. What percentage were actually useful? Target: >50% relevance. If below, the tagging strategy or recall query needs tuning before Phase 3.
@@ -539,7 +539,7 @@ A daily cron or next-SessionStart can flush pending learnings to ReasoningBank.
 
 From [06-claude-flow-internals.md](dimensions/06-claude-flow-internals.md): SONA (Self-Organizing Neural Architecture) provides trajectory tracking, MoE (Mixture of Experts) routing, and EWC++ catastrophic forgetting prevention.
 
-**When to activate:** After ~50-100 patterns have accumulated in ReasoningBank. Before that, there isn't enough data for SONA to find meaningful trajectories.
+**When to activate:** After ~50-100 patterns have accumulated in ruflo memory. Before that, there isn't enough data for SONA to find meaningful trajectories.
 
 ```
 Pre-SONA (Phase 0-2):
@@ -553,7 +553,7 @@ Post-SONA (Phase 3+):
 ```
 
 **Activation steps (with evaluation gate):**
-1. Verify 50+ patterns exist in ReasoningBank
+1. Verify 50+ patterns exist in ruflo memory
 2. Enable SONA in `~/.swarm/config.yaml`
 3. Run initial training: `npx ruflo neural train`
 4. **Evaluation gate (1 week):**
@@ -780,7 +780,7 @@ Compare:
   - User satisfaction signals (tests passing, session flow)
 ```
 
-Store A/B results in ReasoningBank tagged `domain: brana-system`.
+Store A/B results in ruflo memory tagged `domain: brana-system`.
 
 ### System Health Dashboard
 
@@ -819,13 +819,13 @@ The system doesn't challenge everything — it challenges where the data says ch
 
 ### Smart Skill Suggestion on Onboard (from [doc 12](dimensions/12-skill-selector.md)/13)
 
-`/project-onboard` now leverages the skill catalog and ReasoningBank effectiveness data:
+`/project-onboard` now leverages the skill catalog and ruflo memory effectiveness data:
 
 ```
 /project-onboard
   → Detects: Django project, PostgreSQL, Redis
   → Catalog match: django-migrations (vetted, used 5 times, 90% success)
-  → ReasoningBank: "django-migrations was effective in project-beta"
+  → ruflo memory: "django-migrations was effective in project-beta"
   → "This is a Django project. Recommended catalog skills:
      - django-migrations (proven in 2 projects)
      No Redis-specific skill in catalog — consider /skill-discover."
@@ -838,7 +838,7 @@ This is the earned automation — the system has enough data to make smart sugge
 The adversarial reviewer agent from Phase 1 now has accumulated review patterns:
 
 ```
-ReasoningBank query: domain=brana-system, type=review
+ruflo memory query: domain=brana-system, type=review
   → "Last time someone changed a hook, the issue was missing error handling"
   → "Identity changes tend to have subtle effects that show up 3-4 sessions later"
   → "Context budget violations correlate with adding rules, not skills"
@@ -898,7 +898,7 @@ Weeks 2-4       Phase 1: Foundation (scaffolding — don't over-polish)
 Weeks 4-6       Phase 2: Learning Loop (★ quality focus here)
                 ├─ 3 hooks (SessionStart, SessionEnd, PostToolUse)
                 ├─ Early quarantine (immune system Layer 1)
-                ├─ Two-layer memory (Layer 0 native + Layer 1 ReasoningBank)
+                ├─ Two-layer memory (Layer 0 native + Layer 1 ruflo memory)
                 ├─ Accumulation phase: target 50+ patterns
                 └─ Tag: v0.3.0
 
@@ -967,7 +967,7 @@ Phases are sequential but overlap is fine — you can start building Phase 2 hoo
 | **1** | `memory search`, `memory store` | Skills work manually, just slower. |
 | **2** | Hook lifecycle integration, pre/post task hooks | Learning loop stops. Fall back to manual `/brana:retrospective`. |
 | **3** | SONA, `neural train`, WASM transforms | **Evaluation gate catches this.** If SONA fails, Plan B: tag-based recall, no vector similarity, still functional. |
-| **4** | ReasoningBank queries, stats, bulk operations | Immune system degrades. Manual audits still possible. |
+| **4** | ruflo memory queries, stats, bulk operations | Immune system degrades. Manual audits still possible. |
 | **5** | Full stack + self-referential patterns | Self-improvement pauses. System still functional. |
 
 **The key insight:** each phase's dependency on ruflo is additive. If a feature breaks, you lose the enhancement from that phase but everything below it still works. Phase 0 with no ruflo = plain Claude Code with good organization. That's the floor, not a disaster.

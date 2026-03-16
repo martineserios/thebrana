@@ -25,7 +25,7 @@ The system has three distinct layers, each with its own persistence and scope:
 │  Lives at: ~/.claude/                       │
 ├─────────────────────────────────────────────┤
 │  INTELLIGENCE — What do I know?             │
-│  ReasoningBank, BM25 hybrid search,         │
+│  ruflo memory, BM25 hybrid search,         │
 │  cross-client patterns, learned failures   │
 │  Lives at: ~/.swarm/memory.db               │
 │  Single SQLite DB, not git-tracked,         │
@@ -38,7 +38,7 @@ The system has three distinct layers, each with its own persistence and scope:
 └─────────────────────────────────────────────┘
 ```
 
-Claude Code's native hierarchy handles layers 1 and 3 — `~/.claude/CLAUDE.md` is always loaded (the mastermind), and `project/.claude/CLAUDE.md` layers on top when you're in a project. Ruflo's ReasoningBank fills layer 2 — the cross-client memory that native Claude Code can't do.
+Claude Code's native hierarchy handles layers 1 and 3 — `~/.claude/CLAUDE.md` is always loaded (the mastermind), and `project/.claude/CLAUDE.md` layers on top when you're in a project. Ruflo's ruflo memory fills layer 2 — the cross-client memory that native Claude Code can't do.
 
 The hooks are the glue connecting all three.
 
@@ -64,8 +64,8 @@ Available on demand (via brana plugin):
   8. ~/projects/alpha/.claude/skills/* ← Project-specific skills
 
 Triggered by hooks:
-  9. SessionStart → queries ReasoningBank for project-relevant patterns
-  10. SessionEnd → extracts learnings, stores in ReasoningBank
+  9. SessionStart → queries ruflo memory for project-relevant patterns
+  10. SessionEnd → extracts learnings, stores in ruflo memory
 ```
 
 You don't configure anything when switching projects. You just `cd` and the layers compose naturally through Claude Code's native instruction hierarchy.
@@ -126,7 +126,7 @@ Two enforcement behaviors on every Edit/Write:
 ### SessionStart — Recall
 
 The moment the single brain activates:
-1. Query ReasoningBank for project-tagged patterns
+1. Query ruflo memory for project-tagged patterns
 2. Priority recall: high-confidence correction patterns (>= 0.8) surfaced first
 3. Fallback: grep native auto memory if ruflo unavailable
 4. Inject task context from tasks.json
@@ -141,7 +141,7 @@ Compound metrics computed from session JSONL:
 - cascade_rate (lower = better error handling)
 - test/lint pass rates
 
-Stored in ReasoningBank patterns + metrics namespaces. Fallback to Layer 0 files if ruflo unavailable.
+Stored in ruflo memory patterns + metrics namespaces. Fallback to Layer 0 files if ruflo unavailable.
 
 ### PostToolUse + PostToolUseFailure — Observation
 
@@ -171,7 +171,7 @@ Skills can run headless via `claude -p "Execute /skill-name"` — the scheduler 
 
 ---
 
-## The ReasoningBank: Cross-Client Memory
+## The ruflo memory: Cross-Client Memory
 
 > **Alpha caveat:** ruflo is alpha. Every call must be wrapped in error handling with fallback to Layer 0 (auto memory files).
 
@@ -241,7 +241,7 @@ Plain Claude Code gives project-specific context and auto memory. This system ad
 
 | Capability | How |
 |-----------|-----|
-| Cross-project pattern memory | ReasoningBank |
+| Cross-project pattern memory | ruflo memory |
 | Confidence-weighted recall | Proven patterns rank higher |
 | Failure memory | What didn't work is stored |
 | Progressive mastery | Compounds over time |

@@ -25,7 +25,7 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 7 | Context budget calc incomplete | **Low** | code-fix | Agent desc added to validate.sh |
 | 8 | Roadmap docs missing [doc 00](00-user-practices.md) / user feedback loop | **Low** | applied (2026-02-10) | Already in both docs (17 line 327, 18 line 103) — missed during earlier review |
 | 9 | ruflo hooks recall/learn don't exist in v3 | **High** | applied (2026-02-10) | All 7 files fixed to memory API |
-| 10 | [Doc 14](reflections/14-mastermind-architecture.md) doesn't acknowledge ReasoningBank alpha risk | **Medium** | applied (2026-02-10) | Blockquote caveat added |
+| 10 | [Doc 14](reflections/14-mastermind-architecture.md) doesn't acknowledge ruflo memory alpha risk | **Medium** | applied (2026-02-10) | Blockquote caveat added |
 | 11 | [Doc 14](reflections/14-mastermind-architecture.md) doesn't scope MCP tool surface | **Medium** | applied (2026-02-10) | Scope note in Context7 entry |
 | 12 | [Doc 14](reflections/14-mastermind-architecture.md) background learning assumes daemon reliability | **Low** | applied (2026-02-10) | Note in open question #8 |
 | 13 | `grep -c` + `|| echo 0` double output under `set -e` | **Medium** | code-fix | session-end.sh fixed, test covers it |
@@ -35,7 +35,7 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 17 | `memory search` preview truncates stored JSON values | **Medium** | code-fix | Tests use `memory retrieve` instead of search for verification |
 | 18 | `memory retrieve` requires `--namespace` flag | **Low** | informational | Positional arg form also broken; must use `-k KEY --namespace NS` |
 | 19 | [Doc 14](reflections/14-mastermind-architecture.md) conflates Context7 MCP with ruflo scoping | **Medium** | applied (2026-02-10) | Split into two separate table rows |
-| 20 | [Doc 08](reflections/08-diagnosis.md) doesn't mention native subagent `memory:` field | **Low** | informational | ReasoningBank still justified for semantic search; native `memory:` is simpler fallback |
+| 20 | [Doc 08](reflections/08-diagnosis.md) doesn't mention native subagent `memory:` field | **Low** | informational | ruflo memory still justified for semantic search; native `memory:` is simpler fallback |
 | 21 | [Doc 14](reflections/14-mastermind-architecture.md) doesn't reference [doc 07](dimensions/07-claude-flow-plus-claude-4.6.md) or mention v3.1 Agent Teams hooks | **Medium** | applied (2026-02-10) | Team-level hooks section + [doc 07](dimensions/07-claude-flow-plus-claude-4.6.md) cross-ref added |
 | 22 | [Doc 08](reflections/08-diagnosis.md) "essential hooks" list missing development discipline enforcement | **Medium** | applied (2026-02-10) | Added to essential list + PreToolUse caveat note |
 | 23 | [Doc 08](reflections/08-diagnosis.md) open question #12 answered by [docs 11](dimensions/11-ecosystem-skills-plugins.md), 14, 22 | **Low** | applied (2026-02-10) | Resolved with hybrid answer + cross-refs |
@@ -43,7 +43,7 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 25 | ruflo sql.js dependency missing after upgrade | **Medium** | code-fix (2026-02-12) | Root cause: npx creates separate package cache. Fixed: direct binary in .mcp.json + deploy.sh auto-install |
 | 26 | ruflo alpha.34 breaks `-q` flag for `memory search` | **High** | code-fix (2026-02-12) | Global `-Q`/`--quiet` shadows `-q`. All 15 files fixed to `--query`. |
 | 27 | [Doc 14](reflections/14-mastermind-architecture.md) skill templates use `npx ruflo` anti-pattern | **Medium** | applied (2026-02-12) | Replaced with `$CF` + binary discovery preamble |
-| 28 | [Doc 14](reflections/14-mastermind-architecture.md) ReasoningBank caveat missing sql.js post-install step | **Medium** | applied (2026-02-12) | sql.js install command added to caveat |
+| 28 | [Doc 14](reflections/14-mastermind-architecture.md) ruflo memory caveat missing sql.js post-install step | **Medium** | applied (2026-02-12) | sql.js install command added to caveat |
 | 29 | `session-end.sh` fallback writes to global path instead of project-scoped | **Medium** | code-fix (2026-02-12) | Fallback `pending-learnings.md` now in `$LAYER0_DIR/` |
 | 30 | enter/README.md document count off by one (32 vs 33) | **Low** | code-fix (2026-02-12) | Corrected to 34 when adding [doc 33](dimensions/33-research-methodology.md) |
 | 31 | [Doc 08](reflections/08-diagnosis.md) missing triage entry for [doc 33](dimensions/33-research-methodology.md) | **Low** | applied (2026-02-12) | Cascade from [doc 33](dimensions/33-research-methodology.md) creation — triage verdict added |
@@ -114,7 +114,7 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 94 | [Doc 32](reflections/32-lifecycle.md) `/usage-stats` doesn't exist, `deploy.sh` deprecated, `/morning` retired | **Medium** | applied (2026-03-11) | Token usage row rewritten. Deploy pipeline updated to plugin + bootstrap.sh. `/morning` → `/brana:review`. |
 | 95 | [Doc 08](reflections/08-diagnosis.md) `/refresh-knowledge` referenced as live skill (retired) | **High** | applied (2026-03-13) | Doc 33 triage: `/refresh-knowledge` → `--refresh` flag |
 | 96 | [Doc 08](reflections/08-diagnosis.md) ADR-019 not reflected in doc 36 triage | **High** | applied (2026-03-13) | Doc 36 triage rewritten: ADR-019 consumption, ZeroClaw deferred, Kapso as adapter |
-| 97 | [Doc 14](reflections/14-mastermind-architecture.md) 2 stale "claude-flow" name refs (lines 34, 876) | **Medium** | applied (2026-03-13) | "Claude-flow's ReasoningBank" → "Ruflo's", heading renamed |
+| 97 | [Doc 14](reflections/14-mastermind-architecture.md) 2 stale "claude-flow" name refs (lines 34, 876) | **Medium** | applied (2026-03-13) | "Claude-flow's ruflo memory" → "Ruflo's", heading renamed |
 | 98 | [Doc 14](reflections/14-mastermind-architecture.md) ADR-019 not referenced — architecture doc ignores major accepted ADR | **High** | applied (2026-03-13) | Blockquote callout added after Three Layers diagram with ADR-019 + ADR-018 summary |
 | 99 | [Doc 31](reflections/31-assurance.md) validate.sh Check 14 (spec-graph coverage) not documented | **Medium** | applied (2026-03-13) | Check 14 bullet added to Configuration Validity |
 | 100 | [Doc 31](reflections/31-assurance.md) hook config references settings.json as primary (pre-plugin) | **Medium** | applied (2026-03-13) | Updated to hooks.json (primary) + settings.json (bootstrap fallback) |
@@ -332,19 +332,19 @@ TOTAL=$((TOTAL + AGENT_LINES))
 
 ---
 
-## Error 10: [Doc 14](reflections/14-mastermind-architecture.md) Doesn't Acknowledge ReasoningBank Alpha Risk
+## Error 10: [Doc 14](reflections/14-mastermind-architecture.md) Doesn't Acknowledge ruflo memory Alpha Risk
 
 **Severity:** Medium — doesn't block current work but affects implementation trust decisions
 
 **Source:** [Doc 05](dimensions/05-claude-flow-v3-analysis.md) (ruflo v3 analysis) vs [Doc 14](reflections/14-mastermind-architecture.md) (mastermind architecture)
 
-**Gap:** [Doc 05](dimensions/05-claude-flow-v3-analysis.md) explicitly classifies SONA/ReasoningBank as alpha status (line 178-181) and recommends "Wait for Stability" before relying on SONA self-learning. [Doc 14](reflections/14-mastermind-architecture.md) builds the entire intelligence layer on ReasoningBank as a stable dependency without acknowledging this known limitation or proposing degraded-mode strategies inline.
+**Gap:** [Doc 05](dimensions/05-claude-flow-v3-analysis.md) explicitly classifies SONA/ruflo memory as alpha status (line 178-181) and recommends "Wait for Stability" before relying on SONA self-learning. [Doc 14](reflections/14-mastermind-architecture.md) builds the entire intelligence layer on ruflo memory as a stable dependency without acknowledging this known limitation or proposing degraded-mode strategies inline.
 
-**Impact:** An implementer following [doc 14](reflections/14-mastermind-architecture.md) alone would treat ReasoningBank as production-ready, missing the need for: error handling wrappers around every call, graceful degradation to Layer 0 (auto memory), and acceptance that early phases will have unreliable learning.
+**Impact:** An implementer following [doc 14](reflections/14-mastermind-architecture.md) alone would treat ruflo memory as production-ready, missing the need for: error handling wrappers around every call, graceful degradation to Layer 0 (auto memory), and acceptance that early phases will have unreliable learning.
 
-**Fix:** [Doc 14](reflections/14-mastermind-architecture.md) should note in the ReasoningBank sections that ruflo is alpha and all calls must be wrapped with fallback to Layer 0. [Doc 14](reflections/14-mastermind-architecture.md) already has "Resolved Questions" noting "Accept the alpha risk" — but this caveat needs to be visible at the point of use, not just in a Q&A section.
+**Fix:** [Doc 14](reflections/14-mastermind-architecture.md) should note in the ruflo memory sections that ruflo is alpha and all calls must be wrapped with fallback to Layer 0. [Doc 14](reflections/14-mastermind-architecture.md) already has "Resolved Questions" noting "Accept the alpha risk" — but this caveat needs to be visible at the point of use, not just in a Q&A section.
 
-**Docs to update:** 14 (inline caveat near ReasoningBank references)
+**Docs to update:** 14 (inline caveat near ruflo memory references)
 
 ---
 
@@ -500,11 +500,11 @@ Context7 is an Upstash MCP server for fetching real-time, version-specific libra
 
 **Severity:** Low — informational, doesn't change the architecture
 
-**Discovery:** [Doc 09](dimensions/09-claude-code-native-features.md) (lines 464-487, 739, 1175) documents a native `memory:` field on custom subagents with three scopes (`user`, `project`, `local`). [Doc 09](dimensions/09-claude-code-native-features.md) even maps: "ReasoningBank (ruflo) → Subagent `memory: user` field."
+**Discovery:** [Doc 09](dimensions/09-claude-code-native-features.md) (lines 464-487, 739, 1175) documents a native `memory:` field on custom subagents with three scopes (`user`, `project`, `local`). [Doc 09](dimensions/09-claude-code-native-features.md) even maps: "ruflo memory → Subagent `memory: user` field."
 
-[Doc 08](reflections/08-diagnosis.md) recommends ReasoningBank as "#1 value-add" (line 108) without mentioning this native alternative exists.
+[Doc 08](reflections/08-diagnosis.md) recommends ruflo memory as "#1 value-add" (line 108) without mentioning this native alternative exists.
 
-**Impact:** Low — ReasoningBank provides semantic search with SHA-512 embeddings, tags, namespaces, and cross-client queries that native `memory:` doesn't offer. The recommendation is still valid. But [doc 08](reflections/08-diagnosis.md) should acknowledge native `memory:` as a simpler fallback (which is what the implementation already does as Layer 0).
+**Impact:** Low — ruflo memory provides semantic search with SHA-512 embeddings, tags, namespaces, and cross-client queries that native `memory:` doesn't offer. The recommendation is still valid. But [doc 08](reflections/08-diagnosis.md) should acknowledge native `memory:` as a simpler fallback (which is what the implementation already does as Layer 0).
 
 **No fix needed** — the implementation handles this correctly. Logged for awareness.
 
@@ -558,7 +558,7 @@ This is now answered:
 - [Doc 22](dimensions/22-testing.md) "Multi-Agent TDD" provides the first concrete team pattern: separate test-writer and implementer agents with tool-scoped isolation
 - [Doc 11](dimensions/11-ecosystem-skills-plugins.md) section 5 catalogs the multi-agent context isolation pattern as "worth borrowing"
 
-**Fix:** Move question #12 from "Open Questions" to "Resolved Questions" with the answer: hybrid — native Agent Teams for execution coordination, ruflo ReasoningBank for cross-session memory. First concrete pattern: multi-agent TDD (see [docs 14](reflections/14-mastermind-architecture.md), 22).
+**Fix:** Move question #12 from "Open Questions" to "Resolved Questions" with the answer: hybrid — native Agent Teams for execution coordination, ruflo ruflo memory for cross-session memory. First concrete pattern: multi-agent TDD (see [docs 14](reflections/14-mastermind-architecture.md), 22).
 
 **Docs to update:** 08 (open questions section)
 
@@ -583,13 +583,13 @@ frontmatter=$(awk 'NR==1 && /^---$/{in_fm=1; next} in_fm && /^---$/{exit} in_fm{
 
 ## Error 25: ruflo sql.js Dependency Missing After Upgrade
 
-**Severity:** Medium — ReasoningBank completely non-functional
+**Severity:** Medium — ruflo memory completely non-functional
 
 **Discovery:** Both MCP (`mcp__ruflo__memory_store`) and CLI (`ruflo memory store`) fail with: "Cannot find package 'sql.js' imported from .../memory-initializer.js". sql.js is dynamically imported (19+ call sites in `memory-initializer.js`) but never declared in any `package.json`. Every `npm install -g ruflo` leaves it missing.
 
 **Root cause (discovered 2026-02-12):** When `.mcp.json` uses `npx ruflo@version`, npx creates a **separate** package cache (`~/.npm/_npx/{hash}/`) from the global install (`~/.nvm/.../lib/node_modules/claude-flow/`). sql.js must be installed in **both** locations independently. Fixing one leaves the other broken.
 
-**Impact:** All ReasoningBank operations fail. The system falls back to Layer 0 (auto memory files), which works but loses semantic search, tagging, and cross-client queries.
+**Impact:** All ruflo memory operations fail. The system falls back to Layer 0 (auto memory files), which works but loses semantic search, tagging, and cross-client queries.
 
 **Fix (root):** Eliminate the dual-path problem entirely:
 1. Point `.mcp.json` to the global binary directly (not npx): `"command": "/home/.../.nvm/versions/node/v20.19.0/bin/claude-flow"`
@@ -641,13 +641,13 @@ $CF memory search --query "client:$PROJECT" --format json
 
 ---
 
-## Error 28: [Doc 14](reflections/14-mastermind-architecture.md) ReasoningBank Caveat Missing sql.js Post-Install Step
+## Error 28: [Doc 14](reflections/14-mastermind-architecture.md) ruflo memory Caveat Missing sql.js Post-Install Step
 
-**Severity:** Medium — ReasoningBank silently non-functional after upgrade
+**Severity:** Medium — ruflo memory silently non-functional after upgrade
 
-**Discovery:** `/brana:maintain-specs` cycle found [doc 14](reflections/14-mastermind-architecture.md) line 215 says "pin your version and run `memory init --force` after upgrades" but omits the sql.js installation step. An implementer would upgrade, run `memory init --force`, and still have a broken ReasoningBank because sql.js was never declared as a dependency.
+**Discovery:** `/brana:maintain-specs` cycle found [doc 14](reflections/14-mastermind-architecture.md) line 215 says "pin your version and run `memory init --force` after upgrades" but omits the sql.js installation step. An implementer would upgrade, run `memory init --force`, and still have a broken ruflo memory because sql.js was never declared as a dependency.
 
-**Impact:** All memory store/search operations fail silently. Layer 0 fallback masks the failure — the system appears to work but ReasoningBank provides zero value.
+**Impact:** All memory store/search operations fail silently. Layer 0 fallback masks the failure — the system appears to work but ruflo memory provides zero value.
 
 **Fix:** Add sql.js install command to the alpha caveat.
 
@@ -717,7 +717,7 @@ $CF memory search --query "client:$PROJECT" --format json
 
 **Severity:** High — external skills can override safety rules undetected
 
-**Discovery:** /brana:maintain-specs re-evaluate-reflections (2026-02-15). [Doc 16](dimensions/16-knowledge-health.md) identifies Vector 8: "When a skill is installed from an external source, its SKILL.md content becomes part of Claude's instructions. A malicious or poorly written skill could override safety rules." [Doc 31](reflections/31-assurance.md) covers pattern quarantine (knowledge entering ReasoningBank) but has zero assurance for skill instruction quarantine (instructions entering the context).
+**Discovery:** /brana:maintain-specs re-evaluate-reflections (2026-02-15). [Doc 16](dimensions/16-knowledge-health.md) identifies Vector 8: "When a skill is installed from an external source, its SKILL.md content becomes part of Claude's instructions. A malicious or poorly written skill could override safety rules." [Doc 31](reflections/31-assurance.md) covers pattern quarantine (knowledge entering ruflo memory) but has zero assurance for skill instruction quarantine (instructions entering the context).
 
 **Fix:** Add "Skill Instruction Quarantine" section to [doc 31](reflections/31-assurance.md) after quarantine behavior tests. Verify external skills enter quarantine before deployment, SKILL.md content doesn't override CLAUDE.md or rules, conflicts are flagged. Reference [doc 12](dimensions/12-skill-selector.md)'s three-tier trust model.
 
@@ -868,7 +868,7 @@ The reflection layer redesign (docs 31, 32) removed ~160 lines from [doc 14](ref
 6. Errors #5 and #6 are informational — documented here for reference during implementation
 7. **Add [doc 00](00-user-practices.md) reference** to Phase 1 setup in [docs 17](17-implementation-roadmap.md) and 18 — mention graduation pathway as Phase 2+ design intent (error #8)
 8. ~~**Replace all `hooks recall`/`hooks learn`** with `memory search`/`memory store` (error #9)~~ — **applied 2026-02-10** (docs 14, 17, 18; implementation code applied earlier)
-9. ~~**Add alpha risk caveat** to [doc 14](reflections/14-mastermind-architecture.md) ReasoningBank sections (error #10)~~ — **applied 2026-02-10** (blockquote above ReasoningBank schema)
+9. ~~**Add alpha risk caveat** to [doc 14](reflections/14-mastermind-architecture.md) ruflo memory sections (error #10)~~ — **applied 2026-02-10** (blockquote above ruflo memory schema)
 10. ~~**Scope MCP tool surface** in [doc 14](reflections/14-mastermind-architecture.md) plugin recommendations (error #11)~~ — **applied 2026-02-10** (note in Context7 MCP table entry)
 11. ~~**Note daemon dependency** on [doc 14](reflections/14-mastermind-architecture.md) background learning ideas (error #12)~~ — **applied 2026-02-10** (note in open question #8)
 12. ~~**Add development discipline enforcement** to [doc 08](reflections/08-diagnosis.md)'s essential hooks list (error #22)~~ — **applied 2026-02-10** (essential list + PreToolUse note)
@@ -1196,7 +1196,7 @@ Phase 4's 8 work items in [doc 18](18-lean-roadmap.md) were detailed enough (fil
 
 ### 15. Graceful degradation is not optional — it's the feature
 
-When ReasoningBank broke (sql.js missing), every operation that tried to store or recall patterns failed. But the system kept working: skills were created, deployed, tested, and documented using Layer 0 (auto memory files). The two-layer architecture from [doc 17](17-implementation-roadmap.md) — "anything critical enough to survive ruflo outage should ALSO be written to Layer 0" — proved exactly right. **Rule: always implement the degraded path first. The enhanced path (ReasoningBank, SONA, etc.) is a bonus. If the floor (Layer 0) works, the system survives anything.**
+When ruflo memory broke (sql.js missing), every operation that tried to store or recall patterns failed. But the system kept working: skills were created, deployed, tested, and documented using Layer 0 (auto memory files). The two-layer architecture from [doc 17](17-implementation-roadmap.md) — "anything critical enough to survive ruflo outage should ALSO be written to Layer 0" — proved exactly right. **Rule: always implement the degraded path first. The enhanced path (ruflo memory, SONA, etc.) is a bonus. If the floor (Layer 0) works, the system survives anything.**
 
 ### 16. Alpha tool upgrades must be followed by smoke tests
 
@@ -1212,7 +1212,7 @@ Upgrading ruflo from alpha.28 to alpha.34 silently broke `memory search` — the
 
 ### 19. Pain-driven development needs real usage data
 
-After completing v0.5.0 (all 5 lean phases), `/build-phase lean` correctly identified zero pain signals — [doc 00](00-user-practices.md) had no usage entries, ReasoningBank had only build-learnings, no real-project patterns existed. Building more would have been building in anticipation, not in response. **Rule: after completing a roadmap's structured phases, stop building and start using. Pain-driven mode requires accumulated friction from real work. Without it, you're guessing at what to build next.**
+After completing v0.5.0 (all 5 lean phases), `/build-phase lean` correctly identified zero pain signals — [doc 00](00-user-practices.md) had no usage entries, ruflo memory had only build-learnings, no real-project patterns existed. Building more would have been building in anticipation, not in response. **Rule: after completing a roadmap's structured phases, stop building and start using. Pain-driven mode requires accumulated friction from real work. Without it, you're guessing at what to build next.**
 
 ### 20. Metric frameworks must adapt to the business model
 

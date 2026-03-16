@@ -67,7 +67,7 @@ When using Agent Teams: isolate agents by discipline.
 
 ### Connection to the Learning Loop
 
-ADRs are pattern-worthy — `/brana:retrospective` extracts "decision X was made because Y" and stores it in ReasoningBank. Domain models (future) would feed the same loop. The enforcement hooks themselves are pure git-based, no ruflo dependency. Learning happens through the skill layer (`/brana:retrospective`, `/brana:memory recall`).
+ADRs are pattern-worthy — `/brana:retrospective` extracts "decision X was made because Y" and stores it in ruflo memory. Domain models (future) would feed the same loop. The enforcement hooks themselves are pure git-based, no ruflo dependency. Learning happens through the skill layer (`/brana:retrospective`, `/brana:memory recall`).
 
 ---
 
@@ -115,7 +115,7 @@ The mastermind's own `.claude/` files are simultaneously configuration and docum
 
 **Staleness applies to configs too.** A skill that references ruflo v3.1 commands when v3.3 changed the API is a stale config. The same layer-aware staleness thresholds (30/90/180 days) and dependency-triggered reviews from [25-self-documentation.md](../25-self-documentation.md) apply. When ruflo releases a new version, review all skills that call its commands.
 
-**Documentation locality applies to configs too.** Per [doc 25](../25-self-documentation.md) Mechanism 7: the ReasoningBank schema is the source of truth in [doc 14](14-mastermind-architecture.md). Implementation code references it by doc ID ("per spec 14"), never duplicates it. MEMORY.md summaries are a lossy cache — agents should follow links for the actual schema.
+**Documentation locality applies to configs too.** Per [doc 25](../25-self-documentation.md) Mechanism 7: the ruflo memory schema is the source of truth in [doc 14](14-mastermind-architecture.md). Implementation code references it by doc ID ("per spec 14"), never duplicates it. MEMORY.md summaries are a lossy cache — agents should follow links for the actual schema.
 
 ---
 
@@ -146,7 +146,7 @@ From [15-self-development-workflow.md](../15-self-development-workflow.md) — t
 | Source registry | Per source cadence (weekly–quarterly) | `/brana:research registry` — trust tier health, overdue checks, yield tracking. See [33-research-methodology.md](../../../brana-knowledge/dimensions/33-research-methodology.md) |
 | Pattern curation | After each session with notable learnings | `/brana:retrospective` — the engine that builds knowledge trust |
 | Cross-project transfer | When starting work in a different project | `/brana:memory pollinate` — checks for applicable patterns |
-| Knowledge backup | Before ruflo upgrades | `backup-knowledge.sh` — snapshot ReasoningBank + auto memory |
+| Knowledge backup | Before ruflo upgrades | `backup-knowledge.sh` — snapshot ruflo memory + auto memory |
 
 ### The Spec Repo
 
@@ -232,8 +232,8 @@ The close→maintain-specs loop is what keeps specs alive. Without it, specs dri
 1. **Implementation findings → `/brana:maintain-specs`** — when building reveals a spec error or gap, maintain-specs cascades the fix through dimension → reflection → roadmap. This is the **document layer**: correcting what the system says.
 2. **Event capture → `/brana:log`** — links, calls, meetings, ideas, observations are captured into a searchable append-only log. This is the **observation layer**: recording what happened so it can be triaged later (e.g. promoted to a task or referenced in a review).
 3. **Tactical advice → task `context` field** — `system/rules/tactical-context.md` guides appending session advice to related tasks by keyword/tag matching. This is the **execution layer**: enriching the next session that picks up the same task.
-4. **Reusable patterns → `/brana:retrospective`** — extracts durable patterns into ruflo memory (ReasoningBank) with confidence tracking. This is the **knowledge layer**: building institutional memory that outlives any single task or spec.
-5. **Session decisions → `system/state/decisions/` ([ADR-017](../architecture/decisions/ADR-017-decision-log.md))** — agents write decisions, findings, concerns, errors, and cost events to append-only JSONL files during the session. session-end.sh writes a summary entry; session-start injects the previous session's HIGH findings as context. This is the **continuity layer**: cross-session signal that's git-tracked and doesn't require ReasoningBank.
+4. **Reusable patterns → `/brana:retrospective`** — extracts durable patterns into ruflo memory with confidence tracking. This is the **knowledge layer**: building institutional memory that outlives any single task or spec.
+5. **Session decisions → `system/state/decisions/` ([ADR-017](../architecture/decisions/ADR-017-decision-log.md))** — agents write decisions, findings, concerns, errors, and cost events to append-only JSONL files during the session. session-end.sh writes a summary entry; session-start injects the previous session's HIGH findings as context. This is the **continuity layer**: cross-session signal that's git-tracked and doesn't require ruflo.
 
 ---
 
@@ -252,11 +252,11 @@ The mastermind architecture describes a system that learns from code sessions. B
 ## Open Questions
 
 ### Lifecycle
-3. **When does the brain get too big?** 500 patterns is manageable. 5,000? At some point you need pruning, archival, or hierarchical summarization. A fourth option from Beads (TurboFlow): structural decomposition — instead of one ReasoningBank that grows unbounded, shard into per-concern JSONL files (decisions, errors, patterns, cross-pollination). Each file stays bounded by domain size, not system age. Trade-off: no semantic search across shards vs no monolithic growth. Worth revisiting if ReasoningBank hits 2,000+ patterns and precision@k degrades. See [45-turboflow-agent-orchestration.md](../../../brana-knowledge/dimensions/45-turboflow-agent-orchestration.md).
+3. **When does the brain get too big?** 500 patterns is manageable. 5,000? At some point you need pruning, archival, or hierarchical summarization. A fourth option from Beads (TurboFlow): structural decomposition — instead of one ruflo memory that grows unbounded, shard into per-concern JSONL files (decisions, errors, patterns, cross-pollination). Each file stays bounded by domain size, not system age. Trade-off: no semantic search across shards vs no monolithic growth. Worth revisiting if ruflo memory hits 2,000+ patterns and precision@k degrades. See [45-turboflow-agent-orchestration.md](../../../brana-knowledge/dimensions/45-turboflow-agent-orchestration.md).
 
 8. **Background learning ("the night shift")?** Background workers that re-analyze old sessions with new knowledge, extracting patterns you missed in real-time. **Note:** Blocked by ruflo daemon stability — see [05-claude-flow-v3-analysis.md](../../../brana-knowledge/dimensions/05-claude-flow-v3-analysis.md). Revisit after daemon reliability is confirmed.
 
-10. **Apprentice mode for new projects?** When starting a new project, aggressively query ReasoningBank for anything remotely relevant, building up project-specific knowledge fast. Then dial back as the project matures.
+10. **Apprentice mode for new projects?** When starting a new project, aggressively query ruflo memory for anything remotely relevant, building up project-specific knowledge fast. Then dial back as the project matures.
 
 ---
 

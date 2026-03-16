@@ -145,7 +145,7 @@ Calendar-based "quarterly review" cycles are too infrequent and disconnected fro
 | Markdown structure | markdownlint-cli2 | Heading hierarchy, list style, formatting inconsistency |
 | Internal links | lychee (local only) | Broken links when files are renamed or deleted |
 | Cross-references | Custom script | "doc 99" references to nonexistent files |
-| Terminology | Vale + custom style | "reasoning bank" instead of "ReasoningBank" |
+| Terminology | Vale + custom style | "reasoning bank" instead of "ruflo memory" |
 
 ### PR-Time Analysis
 
@@ -179,8 +179,8 @@ Built from the frontmatter `depends_on` / `depended_by` fields. A script parses 
 ```yaml
 # Enforce consistent terms
 swap:
-  reasoning bank: ReasoningBank
-  Reasoning Bank: ReasoningBank
+  reasoning bank: ruflo memory
+  Reasoning Bank: ruflo memory
   claude flow: ruflo
   Claude Flow: ruflo
   sona: SONA
@@ -410,7 +410,7 @@ A decision index that extracts key decisions from all docs into a navigable list
 | Decision | Made In | Status |
 |---|---|---|
 | Drop custom skill routing — Claude 4.6 reasons about skills directly | [doc 08](./08-diagnosis.md) | accepted |
-| ReasoningBank is the #1 value-add over native capabilities | [doc 08](./08-diagnosis.md) | accepted |
+| ruflo memory is the #1 value-add over native capabilities | [doc 08](./08-diagnosis.md) | accepted |
 | Three trust tiers for skills: local, catalog, discovery | [doc 12](./12-skill-selector.md) | accepted |
 | Quarantine over deletion for bad patterns | [doc 16](./16-knowledge-health.md) | accepted |
 | Three critical hooks: SessionStart, SessionEnd, PostToolUse | [doc 14](./14-mastermind-architecture.md) | accepted (corrected in doc 24) |
@@ -480,7 +480,7 @@ Commands for the learning loop. These operate on the pattern memory (ruflo DB).
 | `/brana:onboard` | Scan and diagnose a project (code, venture, or hybrid) — structure, stage, gaps, patterns | **First session on a new project** — auto-detects project type |
 | `/brana:align` | Active alignment pipeline: assess gaps → plan → implement structure → verify → document | **After `/brana:onboard`** identifies gaps, or when setting up a new project |
 | `/brana:client-retire` | Archive a project's patterns, keep transferable ones active | **Once per project** — when a project is done |
-| `/brana:memory review` | Monthly ReasoningBank health check: stats, staleness, promotion candidates | **Monthly** or when curious about knowledge health |
+| `/brana:memory review` | Monthly ruflo memory health check: stats, staleness, promotion candidates | **Monthly** or when curious about knowledge health |
 | `/brana:close` | Session end: debrief-analyst → store learnings as quarantined patterns → doc drift heuristic → handoff note → ruflo store | **Session end** — auto-detects what happened from git activity |
 
 ### Implementation & Quality
@@ -936,7 +936,7 @@ FORWARD PROPAGATION (specs → implementation)
   │
   ├── Step 6: Log to doc 24 — reconcile run entry with findings table
   │
-  ├── Step 7: Store in ReasoningBank — run metadata for future recall
+  ├── Step 7: Store in ruflo memory — run metadata for future recall
   │
   └── Step 8: Report — no auto-merge or auto-deploy
 
@@ -964,7 +964,7 @@ Commands that should suggest /brana:maintain-specs:
 
 CROSS-POLLINATION (the differentiator)
 ══════════════════════════════════════
-Code and business patterns live in the same ReasoningBank.
+Code and business patterns live in the same ruflo memory.
 /brana:memory pollinate surfaces insights across both domains.
 /brana:retrospective stores learnings from any session type.
 ```

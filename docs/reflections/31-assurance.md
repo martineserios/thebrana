@@ -44,10 +44,10 @@ From [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md) Layer 0 
 
 ### Knowledge Store Integrity
 
-- **ReasoningBank accessible** — `memory search --query "test"` returns without error (catches sql.js missing, schema drift, DB corruption)
+- **ruflo memory accessible** — `memory search --query "test"` returns without error (catches sql.js missing, schema drift, DB corruption)
 - **Round-trip verification** — store a test entry, retrieve it, verify content matches. This is the minimum viable health check for the intelligence layer
 - **Namespace isolation** — patterns stored in namespace `patterns` don't leak into namespace `decisions`
-- **Agent-level namespace isolation (when parallel agents write)** — if multiple agents write to the vector store simultaneously, verify embeddings from agent A cannot be retrieved by a query scoped to agent B's namespace. Currently N/A (only main-context writes to ReasoningBank). Activate this check before introducing any parallel-write agent pattern. Reference: [45-turboflow-agent-orchestration.md](../../../brana-knowledge/dimensions/45-turboflow-agent-orchestration.md) schema namespacing pattern
+- **Agent-level namespace isolation (when parallel agents write)** — if multiple agents write to the vector store simultaneously, verify embeddings from agent A cannot be retrieved by a query scoped to agent B's namespace. Currently N/A (only main-context writes to ruflo memory). Activate this check before introducing any parallel-write agent pattern. Reference: [45-turboflow-agent-orchestration.md](../../../brana-knowledge/dimensions/45-turboflow-agent-orchestration.md) schema namespacing pattern
 
 ### Enforcement Gate Verification
 
@@ -115,14 +115,14 @@ From [23-evaluation.md](../../../brana-knowledge/dimensions/23-evaluation.md) an
 - Scott Spence demonstrated 84% with forced eval hooks
 - CLAUDE.md achieves 100% pass rate vs 53% for skill invocation
 
-**What to test:** When a user invokes `/brana:memory recall topic`, does the skill execute? When SessionStart fires, does it actually query ReasoningBank? These are activation checks, not quality checks.
+**What to test:** When a user invokes `/brana:memory recall topic`, does the skill execute? When SessionStart fires, does it actually query ruflo memory? These are activation checks, not quality checks.
 
 ### Hook Lifecycle
 
 Every hook in the system must be tested with realistic inputs:
 
-- **SessionStart** — receives session context JSON on stdin, queries ReasoningBank, returns patterns as `additionalContext`
-- **SessionEnd** — receives session summary, extracts patterns, stores in ReasoningBank
+- **SessionStart** — receives session context JSON on stdin, queries ruflo memory, returns patterns as `additionalContext`
+- **SessionEnd** — receives session summary, extracts patterns, stores in ruflo memory
 - **PostToolUse** — receives tool result, notices learning-worthy moments
 - **PreToolUse** — receives tool request, enforces discipline gate
 
@@ -146,9 +146,9 @@ Test suite: `tests/scripts/test-sync-state.sh` (15 tests covering all subcommand
 
 Does the system produce *good* results? This requires judgment — human or model-based.
 
-### RAG Metrics for ReasoningBank Recall
+### RAG Metrics for ruflo memory Recall
 
-The ReasoningBank is fundamentally a retrieval system — same evaluation framework as RAG applies:
+The ruflo memory is fundamentally a retrieval system — same evaluation framework as RAG applies:
 
 | Metric | What It Measures | Target |
 |--------|-----------------|--------|
@@ -187,7 +187,7 @@ Start with 20-50 eval tasks drawn from real sessions (Anthropic methodology). Us
 ### The Anti-Pattern: Bad Evals Mask Real Capability
 
 CORE-Bench showed performance jumping from 42% to 95% just by fixing broken eval harnesses. Before concluding the brain doesn't work, verify the eval infrastructure:
-- Is the query reaching ReasoningBank correctly?
+- Is the query reaching ruflo memory correctly?
 - Is the recall format what the SessionStart hook expects?
 - Are you grading the right thing (outcome, not process)?
 
@@ -240,7 +240,7 @@ The architecture reflection ([14-mastermind-architecture.md](./14-mastermind-arc
 | R2 Claim | R3 Verification |
 |----------|-----------------|
 | Three-layer architecture (Identity, Intelligence, Context) composes correctly | Structural: context budget check, hook config validation |
-| ReasoningBank enables cross-client learning | Behavioral: round-trip test. Outcome: cross-pollination accuracy |
+| ruflo memory enables cross-client learning | Behavioral: round-trip test. Outcome: cross-pollination accuracy |
 | Quarantine prevents bad pattern spread | Behavioral: quarantine transition tests |
 | Hooks drive the learning loop | Behavioral: hook lifecycle tests with realistic inputs |
 | Skills provide the workflow | Behavioral: skill activation rate. Outcome: skill usefulness (LLM-as-judge) |

@@ -18,7 +18,7 @@ The system has three distinct layers, each with its own persistence and scope:
 │  Lives at: ~/.claude/                       │
 ├─────────────────────────────────────────────┤
 │  INTELLIGENCE — What do I know?             │
-│  ReasoningBank, BM25 hybrid search,         │
+│  ruflo memory, BM25 hybrid search,         │
 │  cross-client patterns, learned failures   │
 │  Lives at: ~/.swarm/memory.db               │
 │  Single SQLite DB, not git-tracked,         │
@@ -31,7 +31,7 @@ The system has three distinct layers, each with its own persistence and scope:
 └─────────────────────────────────────────────┘
 ```
 
-Claude Code's native hierarchy handles layers 1 and 3 — `~/.claude/CLAUDE.md` is always loaded (the mastermind), and `project/.claude/CLAUDE.md` layers on top when you're in a project. Ruflo's ReasoningBank fills layer 2 — the cross-client memory that native Claude Code can't do.
+Claude Code's native hierarchy handles layers 1 and 3 — `~/.claude/CLAUDE.md` is always loaded (the mastermind), and `project/.claude/CLAUDE.md` layers on top when you're in a project. Ruflo's ruflo memory fills layer 2 — the cross-client memory that native Claude Code can't do.
 
 The hooks are the glue connecting all three.
 
@@ -118,7 +118,7 @@ thebrana/system/                              PLUGIN (loaded by Claude Code)
 └── scheduler/                                ← Scheduled jobs (brana-scheduler)
 
 ~/.swarm/                                     CLAUDE-FLOW INTELLIGENCE
-├── memory.db                                 ← ReasoningBank (ALL projects, tagged by domain)
+├── memory.db                                 ← ruflo memory (ALL projects, tagged by domain)
 └── hnsw.index                                ← HNSW vector index for semantic search
 
 ~/projects/
@@ -164,8 +164,8 @@ Available on demand (via brana plugin):
   9. Other installed plugins           ← pr-review-toolkit, security-guidance, etc.
 
 Triggered by hooks (via brana plugin):
-  10. SessionStart → queries ReasoningBank for alpha-relevant patterns
-  11. SessionEnd → extracts learnings, stores in ReasoningBank
+  10. SessionStart → queries ruflo memory for alpha-relevant patterns
+  11. SessionEnd → extracts learnings, stores in ruflo memory
 ```
 
 You don't configure anything when switching projects. You just `cd` and the layers compose naturally through Claude Code's native instruction hierarchy.
@@ -288,7 +288,7 @@ Two enforcement behaviors: SDD gate (blocks) and cascade throttle (warns). Both 
 ```
 On every session start:
   1. Detect current project from git root
-  2. Query ReasoningBank for project-tagged patterns
+  2. Query ruflo memory for project-tagged patterns
   3. Priority recall: search for high-confidence correction patterns
      (confidence >= 0.8) from this project — surface them first so
      proven fixes are available early if similar errors arise
@@ -322,7 +322,7 @@ On every session end:
      - test_pass_rate = test_passes / (test_passes + test_fails) — "N/A" if no tests ran
      - lint_pass_rate = lint_passes / (lint_passes + lint_fails) — "N/A" if no lints ran
      - delegation_count = Task tool invocations
-  4. Store session summary in ReasoningBank (patterns namespace)
+  4. Store session summary in ruflo memory (patterns namespace)
   5. Store flywheel metrics separately (metrics namespace) for trending
   6. Write to Layer 0: sessions.md, pending-learnings.md (if CF fails)
   7. Auto-generate minimal handoff note if /brana:close wasn't called
@@ -383,7 +383,7 @@ When using Agent Teams, two additional Claude Code events extend the learning lo
 - **TeammateIdle** — fires when a teammate goes idle. ruflo v3.1's `teammate-idle` hook can auto-assign pending tasks from the shared task list.
 - **TaskCompleted** — fires when a task is marked complete. ruflo v3.1's `task-completed` hook trains patterns from successful tasks (requires `--task-id`).
 
-These are optional extensions to the 3-hook core above. They matter when teammates work independently — without them, only the lead's session contributes to the learning loop. With them, every teammate's completions feed the ReasoningBank.
+These are optional extensions to the 3-hook core above. They matter when teammates work independently — without them, only the lead's session contributes to the learning loop. With them, every teammate's completions feed the ruflo memory.
 
 > **v3.1 analysis:** See [07-claude-flow-plus-claude-4.6.md](../../../brana-knowledge/dimensions/07-claude-flow-plus-claude-4.6.md) "v3.1 Update" section for what's shipped vs planned, AutoMemoryBridge architecture, and adoption strategy.
 
@@ -426,9 +426,9 @@ Skills can run headless via `claude -p "Execute /skill-name"` — the scheduler 
 
 ---
 
-## The ReasoningBank Schema (Cross-Client Brain)
+## The ruflo memory Schema (Cross-Client Brain)
 
-> **Alpha caveat:** ruflo (which hosts ReasoningBank) is alpha software. Every call must be wrapped in error handling with fallback to Layer 0 (auto memory files at `~/.claude/projects/*/memory/`). Schema may change between versions — pin your version and run `memory init --force` after upgrades. **After every install/upgrade**, also install the missing sql.js dependency: `npm install sql.js --prefix $(dirname $(which ruflo))/..` (not declared in package.json but dynamically imported at 19+ sites — see errata #25). See [05-claude-flow-v3-analysis.md](../../../brana-knowledge/dimensions/05-claude-flow-v3-analysis.md) for the full stability assessment.
+> **Alpha caveat:** ruflo (which hosts ruflo memory) is alpha software. Every call must be wrapped in error handling with fallback to Layer 0 (auto memory files at `~/.claude/projects/*/memory/`). Schema may change between versions — pin your version and run `memory init --force` after upgrades. **After every install/upgrade**, also install the missing sql.js dependency: `npm install sql.js --prefix $(dirname $(which ruflo))/..` (not declared in package.json but dynamically imported at 19+ sites — see errata #25). See [05-claude-flow-v3-analysis.md](../../../brana-knowledge/dimensions/05-claude-flow-v3-analysis.md) for the full stability assessment.
 
 Each pattern stored with rich metadata:
 
@@ -488,12 +488,12 @@ You accumulate knowledge, patterns, and judgment over time.
    A pattern that worked 5 times with passing tests > a pattern
    you tried once.
 
-5. **Know what you don't know.** If ReasoningBank has no patterns
+5. **Know what you don't know.** If ruflo memory has no patterns
    for a problem, say so. Don't hallucinate past experience.
 
 ## Before Starting Work
 
-- Query ReasoningBank for relevant patterns (use /brana:memory recall)
+- Query ruflo memory for relevant patterns (use /brana:memory recall)
 - Review project-specific CLAUDE.md for current architecture
 - Check auto memory for recent session context
 
@@ -519,7 +519,7 @@ You accumulate knowledge, patterns, and judgment over time.
 ```markdown
 ---
 name: memory
-description: Query the cross-client ReasoningBank for patterns relevant to the
+description: Query the cross-client ruflo memory for patterns relevant to the
   current task. Use before starting complex work to leverage past experience.
 allowed-tools: [Bash, Read, AskUserQuestion]
 ---
@@ -550,7 +550,7 @@ allowed-tools: [Bash, Read, AskUserQuestion]
 Search for cross-client patterns:
 
 1. Identify the core problem type: auth? performance? data modeling? error handling? testing?
-2. Query ReasoningBank with technology-agnostic terms:
+2. Query ruflo memory with technology-agnostic terms:
    ruflo memory search --query "$ARGUMENTS"
 3. For each pattern from a DIFFERENT project:
    - Explain the original context (project, tech stack, problem)
@@ -608,7 +608,7 @@ allowed-tools: [Bash, Read, Write, AskUserQuestion]
 This project is being archived. Extract everything valuable:
 
 1. Read the project's CLAUDE.md, rules/, and auto memory
-2. Query ReasoningBank for ALL patterns tagged with this project
+2. Query ruflo memory for ALL patterns tagged with this project
 3. For each pattern, evaluate:
    - Is this transferable? → Promote to universal tags
    - Is this project-specific? → Archive but keep accessible
@@ -733,7 +733,7 @@ Month 3: The mastermind has 500+ patterns across 5 projects.
 | **security-guidance** (Anthropic) | Universal safety net across all clients |
 | **commit-commands** (Anthropic) | Consistent git workflow everywhere |
 | **Context7 MCP** (Upstash) | Real-time library docs — the mastermind always has current knowledge. Fetches version-specific documentation on demand, preventing stale training-data errors. |
-| **ruflo MCP** | Cross-project memory via ReasoningBank. **Scope:** use only the memory commands (`memory search`, `memory store`, `memory init`) from ruflo's 170+ MCP tool surface — skip the rest unless a specific need arises. **Note:** AgentDB (the graph DB backend) is stalled — last npm publish Jan 2, 2026. The fallback strategy (ruflo embeddings CLI + SQLite) is the primary path forward. See [05-claude-flow-v3-analysis.md](../../../brana-knowledge/dimensions/05-claude-flow-v3-analysis.md) and [39-architecture-redesign.md](../39-architecture-redesign.md) section 7.5. |
+| **ruflo MCP** | Cross-project memory via ruflo memory. **Scope:** use only the memory commands (`memory search`, `memory store`, `memory init`) from ruflo's 170+ MCP tool surface — skip the rest unless a specific need arises. **Note:** AgentDB (the graph DB backend) is stalled — last npm publish Jan 2, 2026. The fallback strategy (ruflo embeddings CLI + SQLite) is the primary path forward. See [05-claude-flow-v3-analysis.md](../../../brana-knowledge/dimensions/05-claude-flow-v3-analysis.md) and [39-architecture-redesign.md](../39-architecture-redesign.md) section 7.5. |
 | **LSP plugins** for your languages | Type intelligence at zero cost, per-project |
 | **claude-md-management** (Anthropic) | Keeps each project's CLAUDE.md healthy |
 
@@ -751,7 +751,7 @@ Month 3: The mastermind has 500+ patterns across 5 projects.
 | What | Role in the System |
 |------|-------------------|
 | **hookify** (Anthropic) | Create per-project hooks easily without manual JSON |
-| **Custom SessionStart/SessionEnd hooks** | The glue — ReasoningBank queries on start, learning extraction on session end |
+| **Custom SessionStart/SessionEnd hooks** | The glue — ruflo memory queries on start, learning extraction on session end |
 | **CC Notify** (community) | Know when long cross-client background tasks finish |
 
 ---
@@ -790,7 +790,7 @@ This system adds:
 
 | Capability | How |
 |-----------|-----|
-| **Cross-project pattern memory** | ReasoningBank — what you learned in project A is available in project B |
+| **Cross-project pattern memory** | ruflo memory — what you learned in project A is available in project B |
 | **Confidence-weighted recall** | Patterns that worked 5 times rank higher than one-time solutions |
 | **Failure memory** | What DIDN'T work is stored and recalled to prevent repeating mistakes |
 | **Progressive mastery** | The system gets better at every domain it touches, compounding over time |
@@ -879,7 +879,7 @@ The **single system for anything actionable**: things to research, build, fix, e
 
 ### Ruflo Memory — Patterns and Context
 
-The **system for things that inform work**, not things that ARE work. Stored in ruflo's ReasoningBank (`.swarm/memory.db`) or auto memory files (`~/.claude/projects/*/memory/`).
+The **system for things that inform work**, not things that ARE work. Stored in ruflo's ruflo memory (`.swarm/memory.db`) or auto memory files (`~/.claude/projects/*/memory/`).
 
 **Parallel-write limitation:** MEMORY.md (single file) is not safe for concurrent agent writes — last write wins. This is acceptable for the current pattern (one main session + read-only subagents). The Beads-equivalent pattern is already implemented: `system/scripts/decisions.py` writes to git-tracked JSONL files at `system/state/decisions/` ([ADR-017](../architecture/decisions/ADR-017-decision-log.md)). These are append-only, per-session, and git-naturally mergeable. The broader parallel-agent-writes use case for `tasks.json` remains deferred.
 

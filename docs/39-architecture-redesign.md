@@ -307,7 +307,7 @@ brana-knowledge is a backup vault:
 brana-knowledge/
 ├── memory/        ← auto-memory snapshots
 ├── projects/      ← per-project MEMORY.md exports
-├── swarm/         ← ReasoningBank exports
+├── swarm/         ← ruflo memory exports
 ├── backup.sh
 └── restore.sh
 ```
@@ -406,7 +406,7 @@ first-principles analysis. Independent of brana — works without it.
 - dimensions/  — One doc per topic. Research → analyze → synthesize → decide.
 - reflections/ — Cross-cutting. Connect dimensions. Challenge assumptions.
 - sources.yaml — Tracked sources with trust tiers and freshness.
-- backup/     — System knowledge exports (brana auto-memory, ReasoningBank).
+- backup/     — System knowledge exports (brana auto-memory, ruflo memory).
 
 ## Conventions
 - All knowledge base content in English. Projects use their own language.

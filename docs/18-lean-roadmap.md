@@ -32,7 +32,7 @@ Everything dropped here can be added later. Nothing in this plan prevents gradua
 
 | [Doc 17](17-implementation-roadmap.md) Feature | Why It's Dropped | When to Add It Back |
 |---|---|---|
-| **SONA as a milestone** | Tag-based `memory search` works for <1000 patterns. SONA's neural features (MoE, EWC++, trajectory tracking) are for scale we won't hit in 6 months. | When tag-based recall fails you — you search for something you know is in ReasoningBank and it doesn't surface. That's the signal. |
+| **SONA as a milestone** | Tag-based `memory search` works for <1000 patterns. SONA's neural features (MoE, EWC++, trajectory tracking) are for scale we won't hit in 6 months. | When tag-based recall fails you — you search for something you know is in ruflo memory and it doesn't surface. That's the signal. |
 | **Token routing tiers** | On Max5 subscription, you pay per message block, not per token. Routing Haiku vs Sonnet vs Opus saves nothing. | If you switch to API billing. |
 | **5-layer immune system** | Layers 2-5 (dual-track confidence, transferability gates, decay function, contradiction detection) are statistical machinery for a dataset of <500 patterns. | When you have 500+ patterns AND quarantine alone isn't catching bad ones. |
 | **A/B testing framework** | Week-over-week controlled comparison is academic rigor for a system you're the only user of. You'll know if something is better. | Never, probably. Just try things and revert if worse. |
@@ -48,8 +48,8 @@ Everything dropped here can be added later. Nothing in this plan prevents gradua
 
 | Feature | Why It Survives |
 |---|---|
-| **ruflo + ReasoningBank** | The whole point. Tag-based recall, `memory store`, `memory search`. |
-| **Two-layer memory** | Layer 0 (native auto memory) + Layer 1 (ReasoningBank). Keeps working if ruflo breaks. Near-zero cost. |
+| **ruflo + ruflo memory** | The whole point. Tag-based recall, `memory store`, `memory search`. |
+| **Two-layer memory** | Layer 0 (native auto memory) + Layer 1 (ruflo memory). Keeps working if ruflo breaks. Near-zero cost. |
 | **Four hooks** | SessionStart (recall), SessionEnd (learn), PreToolUse (enforce spec/test gate). PostToolUse (notice) planned but constrained by CC plugin bug #24529 — bootstrap fallback only. The learning loop IS the product. |
 | **Quarantine** | New patterns enter at 0.5 confidence, transferable: false. 3 successes to promote. One mechanism, biggest impact. |
 | **6 core skills** | memory, retrospective, project-onboard, client-retire, challenge. The user interface. |
@@ -61,7 +61,7 @@ Everything dropped here can be added later. Nothing in this plan prevents gradua
 
 ## Phase 1: Working Skeleton (Weeks 1-3)
 
-**Goal:** ruflo installed, ReasoningBank initialized, 6 skills working, export escape hatch in place. You can use the system.
+**Goal:** ruflo installed, ruflo memory initialized, 6 skills working, export escape hatch in place. You can use the system.
 
 ### What You Build
 
@@ -137,7 +137,7 @@ Build all 6 in week 1-2. Keep them simple:
 
 | Skill | What It Does | ruflo Command |
 |---|---|---|
-| `/brana:memory recall` | Query ReasoningBank for current context | `memory search -q` |
+| `/brana:memory recall` | Query ruflo memory for current context | `memory search -q` |
 | `/brana:retrospective` | Manually store a learning | `memory store -k -v --namespace --tags` |
 | `/project-onboard` | Bootstrap a new project + recall portfolio knowledge | `memory search -q` |
 | `/brana:memory pollinate` | Pull patterns from other clients | `memory search -q` |
@@ -186,7 +186,7 @@ Wire into `system/settings.json`. See [09-claude-code-native-features.md](dimens
 Trigger: Every session start
 Action:
   1. Detect current project
-  2. Query ReasoningBank: project-tagged + tech-matched + high-confidence universal
+  2. Query ruflo memory: project-tagged + tech-matched + high-confidence universal
   3. Inject context summary
 Fallback: Skip if ruflo unavailable
 ```
@@ -197,7 +197,7 @@ Fallback: Skip if ruflo unavailable
 Trigger: Session termination (fires once — NOT Stop, which fires every response)
 Action:
   1. Extract patterns (problem→solution, failures, decisions)
-  2. Store in ReasoningBank:
+  2. Store in ruflo memory:
      - tags: project, technologies, problem types
      - confidence: 0.5 (quarantined)
      - transferable: false
@@ -237,7 +237,7 @@ This prevents the worst failure mode — bad patterns spreading across clients b
 
 ```
 1. Start session in test project
-2. SessionStart fires, queries ReasoningBank
+2. SessionStart fires, queries ruflo memory
 3. Solve a problem, end session
 4. SessionEnd hook stores pattern
 5. New session in same project → pattern recalled
@@ -287,7 +287,7 @@ This phase is intentionally loose. By week 6, you'll know what's actually broken
 - Add tech-stack tags to project onboarding
 
 **Challenge improvements:**
-- Store challenge outcomes in ReasoningBank (which challenges caught real issues?)
+- Store challenge outcomes in ruflo memory (which challenges caught real issues?)
 - Adjust when you invoke `/brana:challenge` based on experience, not automation
 
 **Skill catalog (lightweight):**
@@ -296,7 +296,7 @@ This phase is intentionally loose. By week 6, you'll know what's actually broken
 
 **Monthly manual review:**
 - Not automated `/knowledge-audit` — just you, once a month:
-  - How many patterns in ReasoningBank?
+  - How many patterns in ruflo memory?
   - Any that seem wrong? Demote or convert to anti-pattern.
   - Any that are stale? Lower confidence manually.
   - Any contradictions? Resolve them.
@@ -319,7 +319,7 @@ This phase is intentionally loose. By week 6, you'll know what's actually broken
 
 **Goal:** The mastermind enforces spec-driven and test-driven development in managed clients. Not suggestions in CLAUDE.md (~80% compliance) — deterministic enforcement via PreToolUse hooks (~100%). See [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md) "Project Enforcement" section for the architectural design.
 
-**Prerequisite:** Phase 3 complete (v0.3.0). The learning loop must work before enforcement layers on top — ADRs feed into ReasoningBank via `/brana:retrospective`.
+**Prerequisite:** Phase 3 complete (v0.3.0). The learning loop must work before enforcement layers on top — ADRs feed into ruflo memory via `/brana:retrospective`.
 
 ### Why This Phase Exists
 
@@ -384,7 +384,7 @@ Replace `NNN` with the zero-padded number, `Title` with the original title, `YYY
 
 7. **Pre-populate context.** If the conversation so far contains relevant discussion (architecture debate, options weighed, trade-offs discussed), summarize it into the Context section. Don't leave it as a placeholder if there's usable context.
 
-8. **Store in ReasoningBank.** Use the standard binary discovery pattern:
+8. **Store in ruflo memory.** Use the standard binary discovery pattern:
 ```bash
 CF=""
 for candidate in "$HOME"/.nvm/versions/node/*/bin/claude-flow; do
@@ -632,7 +632,7 @@ Add entry for `/decide`:
 
 - [ ] `/decide test-feature` creates `docs/decisions/ADR-001-test-feature.md` with correct template
 - [ ] `/decide` auto-increments (second ADR gets 002)
-- [ ] `/decide` stores decision in ReasoningBank (or fallback)
+- [ ] `/decide` stores decision in ruflo memory (or fallback)
 - [ ] PreToolUse hook blocks Write on `feat/*` branch in project with `docs/decisions/` and no spec activity
 - [ ] PreToolUse hook allows Write on spec/test files always
 - [ ] PreToolUse hook passes through on `fix/*`, `docs/*`, `main` branches
@@ -668,7 +668,7 @@ Add entry for `/decide`:
 - [ ] `/project-align` works on greenfield (new) and brownfield (existing) projects
 - [ ] Discovery interview personalizes scaffolding (not generic templates)
 - [ ] Alignment report shows before/after state
-- [ ] Alignment results stored in ReasoningBank
+- [ ] Alignment results stored in ruflo memory
 - [ ] `portfolio.md` updated by alignment
 - [ ] Works on at least 2 real projects
 - [ ] Tag: `v0.5.0`
@@ -705,12 +705,12 @@ This isn't a phase — it's a menu. Add items when you feel the pain, not on a s
 |---|---|---|
 | "Tag search isn't finding patterns I know exist" | Activate SONA: `neural train`, switch to vector similarity | Phase 3: SONA activation |
 | "Stale patterns keep resurfacing" | Add monthly decay function (confidence -= 0.05 for unused patterns) | Phase 4: Layer 4 |
-| "Contradicting patterns in ReasoningBank" | Add contradiction check on pattern storage | Phase 4: Layer 5 |
+| "Contradicting patterns in ruflo memory" | Add contradiction check on pattern storage | Phase 4: Layer 5 |
 | ~~"I want automatic challenges on big plans"~~ | ~~Add PostToolUse hook on ExitPlanMode → spawns Sonnet~~ **Done** — `post-plan-challenge.sh` nudges challenger agent on ExitPlanMode | Phase 5: Auto-challenge |
 | "Onboarding a new project should suggest skills" | Enhance `/project-onboard` with tech detection + catalog lookup | Phase 5: Smart onboard |
 | "The system should suggest its own improvements" | Add self-referential pattern queries (domain: brana-system) | Phase 5: Self-improvement |
 | "I need to migrate patterns to a new schema" | Build migration script when the schema actually changes | Phase 5: Knowledge migrations |
-| "Recall is slow / ReasoningBank is big" | Activate HNSW indexing, consider quantization | Phase 3: Vector intelligence |
+| "Recall is slow / ruflo memory is big" | Activate HNSW indexing, consider quantization | Phase 3: Vector intelligence |
 | "I'm distributing skills to others" | Add checksums and version pinning to skill catalog | Phase 3: Skill catalog |
 
 **The principle:** you'll know when you need it because something will hurt. Right now, nothing hurts because the system doesn't exist yet. Build the minimum, use it hard, add complexity in response to real friction.
@@ -721,7 +721,7 @@ This isn't a phase — it's a menu. Add items when you feel the pain, not on a s
 
 ```
 Weeks 1-3       Phase 1: Working Skeleton
-                ├─ ruflo + ReasoningBank + 6 skills + plugins
+                ├─ ruflo + ruflo memory + 6 skills + plugins
                 ├─ export escape hatch
                 ├─ deploy.sh (cp -r, not ceremony)
                 └─ Tag: v0.1.0
@@ -729,7 +729,7 @@ Weeks 1-3       Phase 1: Working Skeleton
 Weeks 3-6       Phase 2: Learning Loop
                 ├─ 3 hooks (recall, learn, notice)
                 ├─ Quarantine (the one immune layer)
-                ├─ Two-layer memory (native + ReasoningBank)
+                ├─ Two-layer memory (native + ruflo memory)
                 └─ Tag: v0.2.0
 
 Weeks 6-12      Phase 3: Refinement
@@ -821,13 +821,13 @@ This roadmap is designed as the on-ramp to [doc 17](17-implementation-roadmap.md
 
 ### Why It Composes Without Rework
 
-**Same data, same schema.** Both roadmaps use ReasoningBank's pattern storage (SQLite + JSON blobs). [Doc 18](18-lean-roadmap.md) stores patterns with tags, confidence, and transferable flags. [Doc 17](17-implementation-roadmap.md)'s additional features (dual-track confidence, decay timestamps, contradiction references) are extra fields on the same JSON. When you add them, existing patterns get sensible defaults — no migration needed.
+**Same data, same schema.** Both roadmaps use ruflo memory's pattern storage (SQLite + JSON blobs). [Doc 18](18-lean-roadmap.md) stores patterns with tags, confidence, and transferable flags. [Doc 17](17-implementation-roadmap.md)'s additional features (dual-track confidence, decay timestamps, contradiction references) are extra fields on the same JSON. When you add them, existing patterns get sensible defaults — no migration needed.
 
 **Same hooks, richer logic.** Both use the same three hooks (SessionStart, SessionEnd, PostToolUse) wired to the same triggers. [Doc 17](17-implementation-roadmap.md) adds more logic inside them (failure attribution, auto-challenge on ExitPlanMode). You enhance the hook scripts — you don't replace them.
 
 **Same skills, more skills.** Both start with the same 6 core skills. [Doc 17](17-implementation-roadmap.md) adds `/skill-discover`, `/skill-install`, `/knowledge-audit`, `/system-health`. These are new files in `system/skills/`, not changes to existing ones.
 
-**SONA reads existing data.** When you activate `neural train`, it indexes the patterns already in ReasoningBank. It doesn't need patterns stored in a special format — it works on what's there.
+**SONA reads existing data.** When you activate `neural train`, it indexes the patterns already in ruflo memory. It doesn't need patterns stored in a special format — it works on what's there.
 
 ### Compatibility Matrix
 
@@ -890,7 +890,7 @@ Each step is independent. You can do Phase 4 (immune system) without Phase 3 (SO
 
 ### What You'll Never Need to Redo
 
-- **Patterns stored during lean phases** — they're in ReasoningBank with tags, confidence, timestamps. Every [doc 17](17-implementation-roadmap.md) feature reads this data.
+- **Patterns stored during lean phases** — they're in ruflo memory with tags, confidence, timestamps. Every [doc 17](17-implementation-roadmap.md) feature reads this data.
 - **Hook wiring** — same triggers, same settings.json structure. You add logic, not replace it.
 - **Skills** — same files, same frontmatter format. You add new ones and enhance existing ones.
 - **Export escape hatch** — works the same at every scale. The Phase 5 enrichments just export more fields.
