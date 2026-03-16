@@ -294,7 +294,7 @@ Key findings from the SPECIFY research loop:
 
 **SDD paper (arXiv 2602.00180, Jan 2026):** Three levels — spec-first, spec-anchored, spec-as-source. Brana targets spec-first for features, with the frozen Decision Record providing spec-anchored archival.
 
-**Addy Osmani (LLM workflow, 2026):** Spec.md first, break into sequential prompt plans, execute one by one. "Treat AI as a pair programmer that needs clear direction." Validates the SPECIFY → PLAN → BUILD approach.
+**Addy Osmani (LLM workflow, 2026):** Spec.md first, break into sequential prompt plans, execute one by one. "Treat AI as a pair programmer that needs clear direction." Validates the SPECIFY → DECOMPOSE → BUILD approach.
 
 **Martin Fowler (SDD analysis, Aug 2025):** SDD works well for larger features and greenfield but is overhead for small fixes. AI still drifts from specs mid-stream. Validates adaptive sizing — bug fixes skip SPECIFY.
 
