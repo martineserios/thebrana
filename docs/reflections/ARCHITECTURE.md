@@ -53,7 +53,7 @@ When you `cd ~/projects/alpha && claude`:
 ```
 Loaded automatically:
   1. ~/.claude/CLAUDE.md              ← Identity layer
-  2. ~/.claude/rules/*                ← Universal rules (13)
+  2. ~/.claude/rules/*                ← Universal rules (14)
   3. ~/.claude/memory/MEMORY.md       ← Cross-project auto memory (first 200 lines)
   4. ~/projects/alpha/.claude/CLAUDE.md  ← Project identity
   5. ~/projects/alpha/.claude/rules/* ← Project-specific rules

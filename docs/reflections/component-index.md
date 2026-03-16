@@ -18,7 +18,7 @@ system/
 ├── .claude-plugin/plugin.json    ← Plugin manifest
 ├── skills/                       ← /brana:* slash commands
 ├── agents/                       ← 11 specialized sub-agents
-├── hooks/                        ← Event hooks (PreToolUse, SessionStart, SessionEnd)
+├── hooks/                        ← Event hooks (PreToolUse, SessionStart, SessionEnd, SubagentStart, TaskCompleted)
 ├── commands/                     ← Agent commands (maintain-specs, apply-errata, etc.)
 └── CLAUDE.md                     ← Mastermind identity
 ```
@@ -28,7 +28,7 @@ system/
 ```
 ~/.claude/                        ← Deployed via bootstrap.sh
 ├── CLAUDE.md                     ← Global identity
-├── rules/                        ← 13 behavioral rules
+├── rules/                        ← 14 behavioral rules
 ├── scripts/                      ← Helper scripts (cf-env, memory-store, index-knowledge)
 ├── memory/MEMORY.md              ← Auto memory (first 200 lines always in context)
 ├── statusline.sh                 ← Status bar
@@ -72,6 +72,20 @@ See `system/skills/*/SKILL.md` for full skill definitions.
 | /brana:financial-model | Business | Revenue projections |
 | /brana:log | Operations | Event capture (links, calls, ideas) |
 | /brana:plugin | System | Manage Claude Code plugins |
+| /brana:sitrep | Operations | Context recovery after compression |
+| /brana:docs | Documentation | Generate and update living docs |
+| /brana:brainstorm | Planning | Interactive idea maturation |
+| /brana:harvest | Content | Extract post ideas from recent work |
+| /brana:retrospective | Learning | Store learnings and patterns |
+| /brana:scheduler | System | Manage scheduled jobs |
+| /brana:export-pdf | Utility | Convert markdown to PDF |
+| /brana:gsheets | Integration | Google Sheets via MCP |
+| /brana:respondio-prompts | Integration | Respond.io AI agent prompts |
+| /brana:meta-template | Integration | Meta WhatsApp template writing |
+| /brana:notebooklm-source | Integration | Prepare sources for NotebookLM |
+| /brana:proposal | Business | Generate client proposals |
+| /brana:client-retire | Lifecycle | Archive client patterns |
+| /brana:acquire-skills | Setup | Find and install skills for tech gaps |
 
 ## Hook Inventory
 
@@ -87,6 +101,11 @@ See `system/skills/*/SKILL.md` for full skill definitions.
 | post-plan-challenge.sh | PostToolUse | Challenger nudge |
 | post-tasks-validate.sh | PostToolUse | Schema validation + auto-rollup |
 | post-sale.sh | PostToolUse | Deal closure detection |
+| worktree-gate.sh | PreToolUse | Enforce worktree usage on dirty repos |
+| plan-mode-gate.sh | PreToolUse | Gate EnterPlanMode access |
+| subagent-context.sh | SubagentStart | Inject context into subagents |
+| step-completed.sh | TaskCompleted | Build step completion tracking |
+| task-completed.sh | TaskCompleted | Task completion handling |
 
 ## Recommended Plugins
 

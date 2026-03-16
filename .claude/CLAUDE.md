@@ -112,7 +112,7 @@ claude --plugin-dir ./system
 
 | Topic | Doc |
 |-------|-----|
-| Architecture (layers, hooks, skills) | [14-mastermind-architecture.md](../docs/reflections/14-mastermind-architecture.md) |
+| Architecture (layers, hooks, skills) | [ARCHITECTURE.md](../docs/reflections/ARCHITECTURE.md) |
 | Lifecycle (DDD → SDD → TDD workflow) | [32-lifecycle.md](../docs/reflections/32-lifecycle.md) |
 | Testing and assurance | [31-assurance.md](../docs/reflections/31-assurance.md) |
 | Quality tooling (validation, linting) | [22-testing.md](~/enter_thebrana/brana-knowledge/dimensions/22-testing.md) |
