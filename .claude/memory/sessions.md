@@ -2231,3 +2231,193 @@ EOF
 # Auto Memory — thebrana
 | thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
 ,brana backlog add --json '{"subject":"Build observatory: track sources, people, and projects across platforms into brana-knowledge","description":"Full observatory system for tracking external content sources (changelogs, blog posts, Substacks, living docs, release pages), the people and projects behind them, and auto-feeding findings into brana-knowledge dimensions. Components: source registry (URLs, feeds, people, projects), scheduled fetcher (cron + diff), knowledge indexer (new findings → dimension docs or new dimensions), people/project tracker (who is doing what, cross-reference with portfolio). Integrates with existing scheduler infrastructure.","stream":"roadmap","type":"task","tags":["scheduler","knowledge","observatory","workflow"],"effort":"XL","blocked_by":["t-472"],"execution":"code"}',brana backlog add --json '{"subject":"Extract reference people from logs + LinkedIn MCP — map network for positioning and engagement","description":"Mine brana event logs for LinkedIn URLs already encountered. Extract unique people, deduplicate, build a reference people registry. Use LinkedIn MCP to enrich profiles (headline, about, activity, audience). Produce: (1) reference map for voice/style/niche refinement (feeds ms-016 positioning), (2) seed list for t-268 target creators. Approach: grep logs for linkedin.com/in/ URLs → deduplicate → linkedin MCP get_profile → structured output.","stream":"personal","type":"task","parent":"ms-016","tags":["content","linkedin","network","observatory"],"effort":"M","execution":"code"}',brana backlog get t-268,brana backlog get t-471,brana backlog get t-472,brana backlog query --stream research --output json 2>/dev/null | head -40,brana backlog roadmap,brana backlog search "LinkedIn" 2>/dev/null | head -30; echo "---"; brana backlog search "creators" 2>/dev/null | head -20; echo "---"; brana backlog search "engagement" 2>/dev/null | head -20,brana backlog search "changelog" 2>/dev/null; echo "---"; brana backlog search "track" 2>/dev/null; echo "---"; brana backlog search "subscribe" 2>/dev/null; echo "---"; brana backlog search "monitor" 2>/dev/null; echo "---"; brana backlog tags --filter "research" --output json 2>/dev/null | head -20
+
+### Session f8309ba6-4de5-418b-bff8-3e6e1a0541fa (2026-03-17T14:27:38Z)
+- Events: 111 (101 ok, 7 fail)
+- Corrections: 2 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.67 fix=0.14 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,session-start
+- Files: # Check reference doc counts
+grep -n "skills" docs/reference/skills.md 2>/dev/null | head -3
+grep -n "agents" docs/reference/agents.md 2>/dev/null | head -3
+grep -n "commands" docs/reference/commands.md 2>/dev/null | head -3
+grep -n "rules" docs/reference/rules.md 2>/dev/null | head -3,# Check specific test files claimed in specs
+echo "=== cascade throttle test ==="
+ls tests/hooks/test-cascade-throttle.sh 2>/dev/null || echo "MISSING"
+
+echo "=== task sync test ==="
+ls tests/hooks/test_task_sync.py 2>/dev/null || echo "MISSING"
+
+echo "=== build close docs test ==="
+ls tests/skills/test_build_close_docs.sh 2>/dev/null || echo "MISSING"
+
+echo "=== sync state test ==="
+ls tests/scripts/test-sync-state.sh 2>/dev/null || echo "MISSING"
+
+echo "=== CLI sync.rs ==="
+ls system/cli/rust/src/sync.rs 2>/dev/null || echo "MISSING"
+
+echo "=== component-index count claim ==="
+grep -n "14 rules" docs/reflections/component-index.md 2>/dev/null | head -2
+
+echo "=== skills reference count ==="
+grep "29 skills" docs/reference/skills.md,# First revert the registry from the bad enrichment run (fields came back empty)
+uv run --with pyyaml python3 -c "
+import yaml
+with open('$HOME/enter_thebrana/brana-knowledge/references/people-registry.yaml') as f:
+    data = yaml.safe_load(f)
+
+# Check how many got marked enriched with empty data
+bad = [p for p in data['profiles'] if p.get('enriched') and not p.get('headline')]
+print(f'Profiles falsely marked enriched: {len(bad)}')
+for p in bad:
+    print(f'  {p[\"slug\"]}')
+
+# Reset them
+for p in data['profiles']:
+    if p.get('enriched') and not p.get('headline'):
+        p['enriched'] = False
+        for k in ['name', 'headline', 'location', 'about', 'experience_count', 'skills_count']:
+            p.pop(k, None)
+
+data['meta']['enrichment_status'] = 'pending'
+data['meta'].pop('last_enriched', None)
+
+with open('$HOME/enter_thebrana/brana-knowledge/references/people-registry.yaml', 'w') as f:
+    yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False, width=120)
+print('Registry cleaned.')
+",# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+,# Store learnings in auto memory since they're cross-project applicable
+MEMORY_DIR="$HOME/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory"
+
+cat >> "$MEMORY_DIR/MEMORY.md" << 'EOF'
+
+## LinkedIn MCP (linkedin-scraper-mcp)
+
+- **Tool name**: `get_person_profile` (NOT `scrape_linkedin_profile`). Param: `linkedin_username` (slug, not URL). Optional `sections`: experience, education, interests, honors, languages, contact_info, posts.
+- **Returns raw text**, not structured JSON. Each section is a text blob — needs LLM parsing.
+- **Rate limit**: ~8 calls with 3-5s delays triggers 24h block. Use 30-60s delays between profiles.
+- **MCP stdio batch pattern**: Can initialize + call tools programmatically via stdin/stdout pipe (Python subprocess) for batch operations outside Claude Code session context.
+EOF
+echo "done",# Try a single profile with a 30-second pre-wait
+echo "Waiting 30s for rate limit cooldown..."
+sleep 30
+
+echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}
+{"jsonrpc":"2.0","method":"notifications/initialized"}
+{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"get_person_profile","arguments":{"linkedin_username":"simonwillison"}}}' | timeout 60 uvx linkedin-scraper-mcp --transport stdio 2>/dev/null | tail -1 | uv run python3 -c "
+import sys, json
+line = sys.stdin.read().strip()
+if line:
+    data = json.loads(line)
+    content = data.get('result', {}).get('content', [{}])
+    text = content[0].get('text', '') if content else ''
+    print(text[:1000])
+else:
+    print('no response')
+",# Verify specific claims that differ between spec and impl
+echo "=== Skills count ==="
+ls -d system/skills/*/SKILL.md 2>/dev/null | wc -l
+
+echo "=== Commands count ==="
+ls system/commands/*.md 2>/dev/null | wc -l
+
+echo "=== init-project command ==="
+ls system/commands/init-project* 2>/dev/null || echo "MISSING"
+
+echo "=== Build templates ==="
+ls system/skills/build/templates/ 2>/dev/null || echo "MISSING"
+
+echo "=== State files ==="
+ls system/state/ 2>/dev/null
+
+echo "=== verify-counts.sh ==="
+ls system/scripts/verify-counts.sh 2>/dev/null || echo "MISSING"
+
+echo "=== export-patterns.sh ==="
+ls system/scripts/export-patterns.sh 2>/dev/null || echo "MISSING"
+
+echo "=== import-patterns.sh ==="
+ls system/scripts/import-patterns.sh 2>/dev/null || echo "MISSING"
+
+echo "=== Scheduler files ==="
+ls system/scheduler/ 2>/dev/null || echo "MISSING"
+
+echo "=== Tests dir ==="
+ls tests/ 2>/dev/null || echo "MISSING"
+
+echo "=== gh-sync.sh ==="
+ls system/scripts/gh-sync.sh 2>/dev/null || echo "MISSING",# Write drift marker
+MEMORY_DIR="$HOME/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory"
+echo "2026-03-17 system/hooks/pre-tool-use.sh,system/skills/meta-verification/SKILL.md,.claude/CLAUDE.md" > "$MEMORY_DIR/.needs-backprop"
+
+# Backup
+"$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null || true
+echo "close complete",/home/martineserios/enter_thebrana/thebrana/docs/reference/skills.md,MEMORY_DIR="$HOME/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory"
+
+cat >> "$MEMORY_DIR/session-handoff.md" << 'EOF'
+
+## 2026-03-17 — LinkedIn people registry + MCP enrichment
+
+**Accomplished:**
+- t-539 (completed): Extracted 212 LinkedIn profiles from brana logs → `brana-knowledge/references/people-registry.yaml`. Categories: 33 ai-tech, 14 research-ref, 9 client-contact, 14 personal-network, 98 recurring, 43 uncategorized.
+- t-540 (deferred): LinkedIn MCP auth works, but rate-limited after ~8 calls. Enrichment script ready at `/tmp/t540-enrich.py`. Task back to pending with notes.
+
+**Learnings:**
+- LinkedIn MCP tool is `get_person_profile` (not `scrape_linkedin_profile`), takes username slug not URL
+- Returns raw text per section, needs LLM parsing
+- Rate limit: ~8 calls at 3-5s delay → 24h block. Need 30-60s delays.
+- MCP stdio pipe pattern works for batch operations
+
+**State:**
+- Branch: main
+- brana-knowledge: 1 new commit (people-registry.yaml)
+- Tests: N/A (investigation tasks)
+
+**Doc drift:**
+- system/hooks/pre-tool-use.sh, system/skills/meta-verification/SKILL.md (from prior sessions, not this one)
+
+**Next:**
+- Retry t-540 enrichment tomorrow (rate limit cooldown). Use 30-60s delays. Extract all sections.
+- 98 recurring + 43 uncategorized profiles need manual review
+- st-001 (rewrite headline), t-247 (Q2 OKRs), st-004 (verify LinkedIn) are next P0 tasks
+
+**Blockers:**
+- t-540 blocked on LinkedIn rate limit (retry ~2026-03-18)
+EOF
+echo "done"
+
+### Session 02cc25f4-6ff7-4560-af0a-2bb180b215e2 (2026-03-17T14:44:27Z)
+- Events: 1 (0 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+
+### Session 281d1d96-1e26-47a8-9ea8-2f9e211ff0ce (2026-03-17T14:44:38Z)
+- Events: 1 (0 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |

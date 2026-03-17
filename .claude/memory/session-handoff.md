@@ -324,3 +324,17 @@
 
 **Next:**
 - (auto-generated — run /session-handoff for full close)
+
+## 2026-03-17 — auto-captured (session-end hook)
+
+**Accomplished:**
+- 3610169 fix(reconcile): sync skills reference + accumulated state files
+
+**State:**
+- Branch: main
+- Events: 111 (101 ok, 7 fail, 2 corrections, 0 cascades, 0 prs)
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.67 fix=0.14 test=0.00 casc=0.00 deleg=0 prs=0
+
+**Next:**
+- (auto-generated — run /session-handoff for full close)
