@@ -2,7 +2,7 @@
 
 # Skill Reference
 
-**29 skills** loaded from `system/skills/`.
+**30 skills** loaded from `system/skills/`.
 
 ## Index
 
@@ -24,6 +24,7 @@
 | `/brana:log` | capture | Capture events — links, calls, meetings, ideas, observations — into a searchable |
 | `/brana:memory` | learning | Knowledge system operations — recall patterns, cross-pollinate across clients, r |
 | `/brana:meta-template` | — | Write Meta WhatsApp templates optimized for Utility classification — empirically |
+| `/brana:meta-verification` | — | Meta Business Verification — full recipe for verifying a business on Meta Busine |
 | `/brana:notebooklm-source` | tools | Guided workflow to prepare and format sources for NotebookLM. Claude reads, refo |
 | `/brana:onboard` | execution | Scan and diagnose a project — tech stack, structure, stage, gaps, patterns. Work |
 | `/brana:pipeline` | venture | Sales pipeline tracking — leads, deals, conversions, follow-ups. Stage-aware CRM |
@@ -222,6 +223,14 @@ Write Meta WhatsApp templates optimized for Utility classification — empirical
 **Arguments:** `[write|review] [template-name]`
 
 **Allowed tools:** Read, Write, Edit, Glob, Grep, Task, AskUserQuestion
+
+### `/brana:meta-verification`
+
+Meta Business Verification — full recipe for verifying a business on Meta Business Manager for WABA access. Covers prerequisites, document submission, post-approval steps, and account hygiene. Cross-pollinated from somos_mirada.
+
+**Arguments:** `[check|submit|audit] [phase]`
+
+**Allowed tools:** Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, WebFetch, WebSearch
 
 
 ## utility

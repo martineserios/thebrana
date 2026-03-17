@@ -2130,3 +2130,104 @@ export TMUX="$TMUX_BACKUP",# Test brana agents (should be empty)
 # Auto Memory — thebrana
 | thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
 ,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog add --json '{"subject":"test","stream":"roadmap","type":"task"}' 2>&1,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get st-001 --field status 2>&1; echo "---"; /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set st-001 notes "test-t528" 2>&1,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get st-501 2>&1,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get t-528,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog query --type subtask --output json 2>&1 | head -c 500,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog query --type subtask --output json 2>&1 | uv run python3 -c "import sys,json; tasks=json.load(sys.stdin); print([t['id'] for t in tasks[:5]])",/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog query --type subtask 2>&1 | head -5,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "backlog set" 2>&1; echo "---"; /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "backlog add" 2>&1; echo "---"; /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "panic" 2>&1; echo "---"; /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "st-NNN" 2>&1; echo "---"; /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog query --stream bugs --tag cli --output json 2>&1
+
+### Session 9dc3c200-ef5e-406d-9e58-9218a319bb33 (2026-03-16T17:06:17Z)
+- Events: 45 (32 ok, 7 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,TaskCompleted,Write,post-plan-challenge,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+,/brana:reconcile — DIFF,/brana:reconcile — ORIENT,/brana:reconcile — SCAN-IMPL,/brana:reconcile — SCAN-SPECS,/home/martineserios/.claude/plans/tranquil-toasting-gem.md,ExitPlanMode detected, nudging challenger,brana backlog get t-525,brana backlog query --status in_progress,cat /home/martineserios/enter_thebrana/thebrana/.claude/projects/-home-martineserios-enter-thebrana-thebrana/9dc3c200-ef5e-406d-9e58-9218a319bb33/tool-results/toolu_012hEorDZ557ufiBRyXm8o7M.txt
+
+### Session a0d5723a-f187-469f-8e92-a1f515ed9276 (2026-03-16T17:22:14Z)
+- Events: 80 (76 ok, 2 fail)
+- Corrections: 1 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.20 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,session-start
+- Files: # Check worktree path and branch
+git -C /home/martineserios/enter_thebrana/thebrana-fix-t-442 branch --show-current && git -C /home/martineserios/enter_thebrana/thebrana-fix-t-442 rev-parse --show-toplevel,# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+,# Test 1: Should pass through — we're on main (not feat/fix/refactor)
+echo '{"session_id":"test","tool_name":"Write","tool_input":{"file_path":"/home/martineserios/enter_thebrana/thebrana/src/main.rs"},"cwd":"/home/martineserios/enter_thebrana/thebrana"}' | bash /home/martineserios/enter_thebrana/thebrana/system/hooks/pre-tool-use.sh,# Test 2: Should deny — on fix/* branch with no spec/test activity
+echo '{"session_id":"test","tool_name":"Write","tool_input":{"file_path":"/home/martineserios/enter_thebrana/thebrana/system/hooks/pre-tool-use.sh"},"cwd":"../thebrana-fix-t-442"}' | bash /home/martineserios/enter_thebrana/thebrana/system/hooks/pre-tool-use.sh,# Test: fix/* branch, writing a doc — should pass through
+echo '{"session_id":"test","tool_name":"Write","tool_input":{"file_path":"/home/martineserios/enter_thebrana/thebrana-fix-t-442/docs/something.md"},"cwd":"/home/martineserios/enter_thebrana/thebrana-fix-t-442"}' | bash /home/martineserios/enter_thebrana/thebrana/system/hooks/pre-tool-use.sh,# Test: fix/* branch, writing a test file — should pass through
+echo '{"session_id":"test","tool_name":"Write","tool_input":{"file_path":"/home/martineserios/enter_thebrana/thebrana-fix-t-442/tests/hook_test.sh"},"cwd":"/home/martineserios/enter_thebrana/thebrana-fix-t-442"}' | bash /home/martineserios/enter_thebrana/thebrana/system/hooks/pre-tool-use.sh,# Test: fix/* branch, writing to an impl file, no spec/test activity
+echo '{"session_id":"test","tool_name":"Write","tool_input":{"file_path":"/home/martineserios/enter_thebrana/thebrana-fix-t-442/system/hooks/pre-tool-use.sh"},"cwd":"/home/martineserios/enter_thebrana/thebrana-fix-t-442"}' | bash /home/martineserios/enter_thebrana/thebrana/system/hooks/pre-tool-use.sh,# Test: non-Write tool — should pass through
+echo '{"session_id":"test","tool_name":"Bash","tool_input":{"command":"ls"},"cwd":"/home/martineserios/enter_thebrana/thebrana-fix-t-442"}' | bash /home/martineserios/enter_thebrana/thebrana/system/hooks/pre-tool-use.sh,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/MEMORY.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/session-handoff.md
+
+### Session d8565963-511e-467c-9d9e-fe30ff3fab84 (2026-03-16T17:27:31Z)
+- Events: 22 (17 ok, 0 fail)
+- Corrections: 4 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.50 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+,/home/martineserios/enter_thebrana/thebrana-reconcile-drift/.claude/CLAUDE.md,/home/martineserios/enter_thebrana/thebrana-reconcile-drift/docs/reference/scripts.md,/home/martineserios/enter_thebrana/thebrana-reconcile-drift/docs/reflections/ARCHITECTURE.md,/home/martineserios/enter_thebrana/thebrana-reconcile-drift/docs/reflections/component-index.md,cd /home/martineserios/enter_thebrana/thebrana-reconcile-drift && git add -A && git status,cd /home/martineserios/enter_thebrana/thebrana-reconcile-drift && git commit -m "$(cat <<'EOF'
+fix(reconcile): sync 10 drift items from 2026-03-16 session
+
+Reference docs: regenerated hooks.md, skills.md, rules.md via
+generate-reference.py (removes session-start-venture.sh, adds
+plan-mode-gate.sh and 4 other missing hooks).
+
+component-index.md: rule count 13→14, added 14 missing skills,
+added 5 missing hooks, updated plugin event list.
+
+ARCHITECTURE.md: rule count 13→14.
+
+CLAUDE.md: specs reference updated from archived doc 14 to
+ARCHITECTURE.md.
+
+scripts.md: removed false canonical-copy claims for
+index-knowledge.sh and generate-index.sh (system/skills/knowledge/
+doesn't exist — system/scripts/ is canonical).
+EOF
+)",cd /home/martineserios/enter_thebrana/thebrana-reconcile-drift && grep -rn "session-start-venture" docs/ 2>/dev/null; echo "---"; grep -rn "13 behavioral rules" docs/ .claude/ 2>/dev/null; echo "---"; ls system/skills/ | grep -v _shared | grep -v acquired | wc -l,cd /home/martineserios/enter_thebrana/thebrana-reconcile-drift && uv run python3 system/scripts/generate-reference.py --check 2>&1,cd /home/martineserios/enter_thebrana/thebrana-reconcile-drift && uv run python3 system/scripts/generate-reference.py 2>&1
+
+### Session 8530e7fa-6127-4a0a-a41b-fd00cf592d25 (2026-03-17T12:38:08Z)
+- Events: 82 (63 ok, 0 fail)
+- Corrections: 1 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.06 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,TaskCompleted,Write,session-start
+- Files: "$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null || true,# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+,/brana:close — DRIFT,/brana:close — ERRATA,/brana:close — EXTRACT,/brana:close — FIELD-NOTES,/brana:close — GATE,/brana:close — GATHER,/brana:close — HANDOFF,/brana:close — METADATA
+
+### Session 49a5b459-68e5-43d1-9669-02e621aeac8b (2026-03-17T13:15:49Z)
+- Events: 12 (11 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+,brana backlog add --json '{"subject":"Build observatory: track sources, people, and projects across platforms into brana-knowledge","description":"Full observatory system for tracking external content sources (changelogs, blog posts, Substacks, living docs, release pages), the people and projects behind them, and auto-feeding findings into brana-knowledge dimensions. Components: source registry (URLs, feeds, people, projects), scheduled fetcher (cron + diff), knowledge indexer (new findings → dimension docs or new dimensions), people/project tracker (who is doing what, cross-reference with portfolio). Integrates with existing scheduler infrastructure.","stream":"roadmap","type":"task","tags":["scheduler","knowledge","observatory","workflow"],"effort":"XL","blocked_by":["t-472"],"execution":"code"}',brana backlog add --json '{"subject":"Extract reference people from logs + LinkedIn MCP — map network for positioning and engagement","description":"Mine brana event logs for LinkedIn URLs already encountered. Extract unique people, deduplicate, build a reference people registry. Use LinkedIn MCP to enrich profiles (headline, about, activity, audience). Produce: (1) reference map for voice/style/niche refinement (feeds ms-016 positioning), (2) seed list for t-268 target creators. Approach: grep logs for linkedin.com/in/ URLs → deduplicate → linkedin MCP get_profile → structured output.","stream":"personal","type":"task","parent":"ms-016","tags":["content","linkedin","network","observatory"],"effort":"M","execution":"code"}',brana backlog get t-268,brana backlog get t-471,brana backlog get t-472,brana backlog query --stream research --output json 2>/dev/null | head -40,brana backlog roadmap,brana backlog search "LinkedIn" 2>/dev/null | head -30; echo "---"; brana backlog search "creators" 2>/dev/null | head -20; echo "---"; brana backlog search "engagement" 2>/dev/null | head -20,brana backlog search "changelog" 2>/dev/null; echo "---"; brana backlog search "track" 2>/dev/null; echo "---"; brana backlog search "subscribe" 2>/dev/null; echo "---"; brana backlog search "monitor" 2>/dev/null; echo "---"; brana backlog tags --filter "research" --output json 2>/dev/null | head -20

@@ -8,7 +8,8 @@
 | Railway.com platform evaluation (PaaS pricing, limits, regions) | `nexeye_eyedetect/docs/infrastructure/railway-platform-evaluation.md` | any client evaluating PaaS hosting |
 | Client retention & engagement systems (flywheel, welcome kits, QR portals, referral reframing) | `brana-knowledge/dimensions/client-retention-engagement.md` | tinyhomes, any recurring-client service |
 | SMB marketing channels & content strategy (GEO, WhatsApp, landing pages, SEO, B2B2C, regulated products) | `brana-knowledge/dimensions/smb-marketing-channels.md` | somos_mirada, proyecto_anita, tinyhomes, any SMB |
-| Kapso AI platform (CLI, Builder SDK, agents, flows, functions, MCP, TypeScript SDK) | `brana-knowledge/dimensions/39-kapso-ai-platform.md` | proyecto_anita, somos_mirada, any WhatsApp automation client |
+| Kapso AI platform (CLI, Builder SDK, agents, flows, functions, MCP, TypeScript SDK) | `brana-knowledge/dimensions/39-kapso-ai-platform.md` | proyecto_anita, somos_mirada, brapsoclaw, any WhatsApp automation client |
+| NanoClaw/ZeroClaw/Claw ecosystem (architecture, Docker isolation, Agent SDK) | `brana-knowledge/dimensions/36-claw-ecosystem-chat-interface.md` | brapsoclaw, any chat agent project |
 
 ## Clients
 
@@ -39,6 +40,12 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Projects:** proyecto_anita (`clients/proyecto_anita`)
 - **Remote:** `https://github.com/martineserios/proyecto-anita.git`
 - **Details:** `.claude/CLAUDE.md`, `docs/decisions/`
+
+### martineserios (personal)
+- **Type:** Personal open-source projects
+- **Projects:** brapsoclaw (`clients/martineserios/brapsoclaw`)
+- **Remote:** `https://github.com/martineserios/brapsoclaw`
+- **Details:** `.claude/CLAUDE.md` — NanoClaw fork on Kapso (official WhatsApp Business API)
 
 ### tinyhomes
 - **Type:** Marketplace — alojamientos alternativos

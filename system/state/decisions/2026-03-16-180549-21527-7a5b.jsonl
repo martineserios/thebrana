@@ -1,0 +1,1 @@
+{"ts": "2026-03-16T18:05:49.731407+00:00", "agent": "scout", "type": "finding", "content": "gokapso/claude-code-whatsapp: 600-900 LOC, split Express+E2B architecture. NanoClaw Baileys confined to 3 files (150-200 LOC swap). Anthropic recommends Docker containers over E2B. WhatsApp prompt injection is lethal trifecta risk.", "severity": "HIGH", "refs": ["36", "39", "ADR-019"]}
