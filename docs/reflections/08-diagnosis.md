@@ -285,8 +285,8 @@ Every dimension doc triaged for brana v2. [Docs 01](../dimensions/01-brana-syste
 ### [Doc 42](../../../brana-knowledge/dimensions/42-product-operations-literature.md) — Product Operations
 **Verdict: Keep.** SOPs, process design, operational scaling, team structure. Source for R5 operational maturity assessment in `/brana:onboard` venture mode.
 
-### [Doc 43](../../../brana-knowledge/dimensions/43-linkedin-personal-brand-strategy.md) — LinkedIn Personal Brand Strategy
-**Verdict: Keep.** Content strategy, positioning, audience building for professional presence. Source for thebrana's own LinkedIn content pipeline (ph-005). Not directly used by R2-R5 architecture but informs brand-as-system patterns.
+### Doc 43 — LinkedIn Personal Brand Strategy
+**Verdict: Moved.** Migrated to standalone linkedin project at `~/enter_thebrana/linkedin/research/linkedin-personal-brand-strategy.md`. Not a cross-client knowledge pattern — it's personal brand strategy.
 
 ### [Doc 44](../../../brana-knowledge/dimensions/44-systems-thinking-nature.md) — Systems Thinking & Nature
 **Verdict: Keep.** Natural systems as models for engineered systems — feedback loops, emergence, resilience patterns, biomimicry. Deepest abstraction layer — grounds the "everything is a system" philosophy that brana is built on.
