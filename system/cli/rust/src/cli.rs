@@ -16,6 +16,7 @@
 mod sync;
 mod tasks;
 mod themes;
+mod transcribe;
 
 use clap::{Parser, Subcommand, ValueEnum};
 use std::collections::{HashMap, HashSet};
@@ -143,6 +144,14 @@ enum Commands {
     },
     /// Show version
     Version,
+    /// Transcribe audio file to text (whisper, local, pure Rust)
+    Transcribe {
+        /// Path to audio file (.wav, .mp3, .ogg, .m4a)
+        file: PathBuf,
+        /// Model size: tiny, base, small (default: base)
+        #[arg(long, default_value = "base")]
+        model: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -423,6 +432,7 @@ fn main() {
 
     match cli.command {
         Commands::Version => cmd_version(),
+        Commands::Transcribe { file, model } => cmd_transcribe(&file, &model),
         Commands::Doctor => cmd_doctor(&theme),
         Commands::Validate { file } => cmd_validate(&file),
         Commands::Portfolio => cmd_portfolio(),
@@ -1761,6 +1771,23 @@ fn cmd_queue(max: usize, auto: bool) {
 
 fn cmd_version() {
     println!("brana-cli {} (Rust)", env!("CARGO_PKG_VERSION"));
+}
+
+fn cmd_transcribe(file: &PathBuf, model: &str) {
+    let model_size: transcribe::ModelSize = match model.parse() {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("Error: {e}");
+            std::process::exit(1);
+        }
+    };
+    match transcribe::transcribe(file.as_path(), &model_size) {
+        Ok(text) => println!("{text}"),
+        Err(e) => {
+            eprintln!("Error: {e:#}");
+            std::process::exit(1);
+        }
+    }
 }
 
 // ── helpers ─────────────────────────────────────────────────────────────
