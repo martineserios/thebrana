@@ -2421,3 +2421,137 @@ echo "done"
 - **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
 # Auto Memory — thebrana
 | thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+
+### Session 247dd22a-42d2-456c-98b0-f4af334394ed (2026-03-17T15:22:28Z)
+- Events: 76 (63 ok, 2 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,TaskCompleted,Write,session-start
+- Files: # Copy untracked files from main to worktree
+cp -r ~/enter_thebrana/personal/.claude ~/enter_thebrana/personal-chore-infra/
+cp ~/enter_thebrana/personal/.mcp.json ~/enter_thebrana/personal-chore-infra/
+cp ~/enter_thebrana/personal/journal/2026-03-11.md ~/enter_thebrana/personal-chore-infra/journal/
+cp ~/enter_thebrana/personal/journal/2026-03-14.md ~/enter_thebrana/personal-chore-infra/journal/
+cp ~/enter_thebrana/personal/main.py ~/enter_thebrana/personal-chore-infra/
+cp -r ~/enter_thebrana/personal/prediktive-prep ~/enter_thebrana/personal-chore-infra/,# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+,/brana:close — DRIFT,/brana:close — ERRATA,/brana:close — EXTRACT,/brana:close — FIELD-NOTES,/brana:close — GATE,/brana:close — GATHER,/brana:close — HANDOFF,/brana:close — METADATA
+
+### Session 31709f2e-3e7f-4de9-a684-9ffac5fd2c4c (2026-03-18T11:33:38Z)
+- Events: 1 (0 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+
+### Session 59b761da-7a40-45c4-91b1-44b89c091dd4 (2026-03-18T12:49:52Z)
+- Events: 126 (122 ok, 2 fail)
+- Corrections: 1 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.11 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog query --status completed --parent ph-009 --output json 2>/dev/null | head -5,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog roadmap,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog status --project personal,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog tree ph-009 --json 2>/dev/null | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+def extract(tasks):
+    for t in tasks:
+        print(f\"{t['id']}|{t['status']}|{t.get('subject','')[:60]}\")
+        if 'children' in t:
+            extract(t['children'])
+extract(data.get('children', data) if isinstance(data, dict) else data)
+" 2>/dev/null || echo "fallback needed",/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog tree ph-011 --json 2>/dev/null | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+def extract(tasks):
+    for t in tasks:
+        print(f\"{t['id']}|{t['status']}|{t.get('subject','')[:60]}\")
+        if 'children' in t:
+            extract(t['children'])
+extract(data.get('children', data) if isinstance(data, dict) else data)
+" 2>/dev/null || echo "fallback needed",/home/martineserios/enter_thebrana/personal-feat-t-34-deploy/deploy/README.md,/home/martineserios/enter_thebrana/personal-feat-t-34-deploy/deploy/deploy.sh,/home/martineserios/enter_thebrana/personal-feat-t-34-deploy/deploy/logs.sh,/home/martineserios/enter_thebrana/personal-feat-t-34-deploy/deploy/personal-bot.service
+
+### Session 2b808c71-9756-4d85-bae4-7c8df0a51d07 (2026-03-18T17:53:21Z)
+- Events: 11 (10 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Write,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,/home/martineserios/enter_thebrana/thebrana/inbox/Casanovas - Analisis y Estrategia Apelacion.md,/home/martineserios/enter_thebrana/thebrana/inbox/Casanovas - Challenge Report.md,/home/martineserios/enter_thebrana/thebrana/inbox/Casanovas - Recurso de Apelacion (Corregido).md,/home/martineserios/enter_thebrana/thebrana/inbox/Casanovas - Recurso de Apelacion.md,cd /home/martineserios/enter_thebrana/thebrana && uv run python3 system/scripts/decisions.py log challenger concern "Casanovas Appeal: conflict of interest with Cereales del Sur unaddressed - central weakness" --severity "critical" 2>/dev/null || true,cd /home/martineserios/enter_thebrana/thebrana/inbox && libreoffice --headless --convert-to txt "Casanovas. Descargo ALyC Final .doc" "Casanovas. Memorial ALyC Final.doc" "Casanovas. Memorial Directores Final.doc" "Casanovas. Descargo Director IV.doc" --outdir /tmp/casanovas/ 2>&1,cd /home/martineserios/enter_thebrana/thebrana/inbox && pandoc "Casanovas - Challenge Report.md" -o "Casanovas - Challenge Report.docx" && pandoc "Casanovas - Recurso de Apelacion (Corregido).md" -o "Casanovas - Recurso de Apelacion (Corregido).docx" && ls -la "Casanovas - Challenge Report.docx" "Casanovas - Recurso de Apelacion (Corregido).docx",pandoc "Casanovas - Analisis y Estrategia Apelacion.md" -o "Casanovas - Analisis y Estrategia Apelacion.docx" && pandoc "Casanovas - Recurso de Apelacion.md" -o "Casanovas - Recurso de Apelacion.docx" && ls -la *.docx,which antiword catdoc textutil libreoffice 2>/dev/null || echo "checking available converters"
+
+### Session 0fd3a503-dd14-4a83-b4af-b2e8e2918374 (2026-03-18T17:59:08Z)
+- Events: 2 (1 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,find /home/martineserios/enter_thebrana/clients/tinyhomes -type f -name "*.md" | head -20
+
+### Session 36cec6b0-07d0-4caf-a765-9b8ff865d3ef (2026-03-18T18:07:10Z)
+- Events: 17 (14 ok, 2 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog query --status blocked --output json --project anita | jq -r '.[] | "\(.id) \(.subject) [blocked by: \(.blocked_by // [] | join(", "))]"' 2>/dev/null || /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog query --status blocked --output json --project anita,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog query --status pending --output json --project anita | jq -r '.[] | "\(.id) \(.subject) [\(.tags // [] | join(", "))] \(.priority // "—")"' 2>/dev/null || /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog query --status pending --output json --project anita,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog roadmap --project anita,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog status,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog status --all,cd ~/enter_thebrana/clients/proyecto_anita && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog add --json '{"subject":"Fix PDB metrics Google Sheet — not populating (Palco works fine)","stream":"bugs","type":"task","tags":["metrics","pdb","sheets"],"effort":"S","context":"2026-03-18: User verified metrics sheet — Palco tenant populating correctly, PDB tenant not. Launched PDB today."}',cd ~/enter_thebrana/clients/proyecto_anita && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog roadmap,cd ~/enter_thebrana/clients/proyecto_anita && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog rollup,cd ~/enter_thebrana/clients/proyecto_anita && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "metrics" 2>/dev/null | grep -i "pdb\|sheet\|writer\|106"
+
+### Session 8ccbc0a0-78d2-42b5-b03b-ca67259e0480 (2026-03-18T18:34:01Z)
+- Events: 46 (26 ok, 2 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,TaskCompleted,Write,session-start
+- Files: "$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null; echo "exit: $?",# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/MEMORY.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/project_brana-naming.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/session-handoff.md,/home/martineserios/enter_thebrana/brana-knowledge/dimensions/brana-etymology-naming.md,/tmp/research-brana-meaning-1-spanish.md,/tmp/research-brana-meaning-2-physics.md,/tmp/research-brana-meaning-3-brain.md,/tmp/research-brana-meaning-4-cultural.md

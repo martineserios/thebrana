@@ -472,15 +472,214 @@ Decision: Keep full design as target. Start with 30-day practice. Build only wha
 
 ---
 
-## Open Design Work
+## Part XI: Workflow Catalog
 
-- [ ] Pick morning alarm time window
+Ten workflows derived from the research. These are **designs, not tasks** — nothing gets built until the practice earns it (see Gated Build Order below).
+
+### W1. Weekly Review Ritual
+**Source:** Stoicism (Seneca evening review) + Bradley PPV (alignment zone) + Forte CODE (express step)
+
+The keystone workflow. Everything feeds in (journal, captures, reading), everything flows out (synthesis, questions, themes).
+
+**Behavior:**
+1. Read this week's `journal/*.md` entries
+2. Surface recurring themes by frequency (words, topics, emotions)
+3. Present: "These themes kept showing up: X, Y, Z"
+4. Pick ONE thread to deepen through reading, ONE to write about
+5. Bradley alignment check: "Is what you spent time on connected to what you say matters?"
+6. Append to `review/weekly-log.md`: date, themes, chosen threads, 7 binary ritual checkmarks
+7. Create `synthesis/{week}-{theme}.md` skeleton
+
+**Implementation:** `/brana:review-personal` skill. Trigger: Sunday reminder via bot + available as skill anytime.
+
+**Prerequisite:** 4+ journal entries per week for 4 consecutive weeks.
+
+### W2. Morning Ritual Enhancement
+**Source:** Stoicism (morning preparation) + Atomic Habits (cue-routine-reward)
+
+The bot already sends prompts. This closes the loop.
+
+**Behavior:**
+- Echo yesterday's intention before today's prompt: "Yesterday you said: ___. How did it go?"
+- Deepen mode references actual journal content: "Yesterday you wrote about X. What don't you understand about it?"
+- Optional evening micro-check (1 message): "One word for today?" — Seneca's review at minimum friction
+
+**Implementation:** `bot.py` enhancement. Small — maybe 20-30 lines.
+
+**Prerequisite:** Consistent morning prompt replies (15+ in 21 days).
+
+### W3. Identity Docs as Guided Conversations
+**Source:** Miessler Telos (problem chain) + Narrative Identity + Schwartz Values
+
+Identity docs can't be written by Claude alone — they require your input. But the conversation can be guided.
+
+**Behavior:**
+- Interactive session walks through Telos exercise: problems → mission → values → beliefs → narrative
+- Uses the 30-minute self-knowledge exercise from personality research as entry point
+- Persists answers to `identity/*.md` as you go
+- Quarterly trigger: revisit `narrative.md` based on what changed
+
+**Implementation:** `/brana:think identity` subcommand or standalone guided session.
+
+**Prerequisite:** 30+ journal entries. Identity themes should be EXTRACTED from what you've already written, not declared in the abstract.
+
+### W4. Kindle/Reading Integration
+**Source:** Forte Progressive Summarization + design doc Flow 3
+
+**Behavior:**
+- Bot detects shared text with book-like patterns (quotes, page references) → routes to `reading/{source}.md`
+- Prompts: "What do you think about this?" — your reaction is the extraction, not the highlight
+- Weekly review surfaces reading themes alongside journal themes
+
+**Implementation:** `bot.py` pattern detection + routing. Maybe 40 lines.
+
+**Prerequisite:** You're actually reading and want to capture highlights. Don't build before the pull exists.
+
+### W5. Synthesis → Expression Pipeline
+**Source:** Forte CODE Express + design doc Flow 6
+
+**Behavior:**
+- Scans `synthesis/` for theme clusters
+- Flags when 3+ synthesis pieces orbit one theme: "Ready to draft?"
+- Compiles related pieces into `writing/drafts/{theme}.md`
+- For LinkedIn-ready pieces, reshapes through `/brana:harvest` content lens
+
+**Implementation:** Extension of `/brana:harvest` (already exists for LinkedIn).
+
+**Prerequisite:** 10+ synthesis files. Themes must emerge, not be assigned.
+
+### W6. Question Engine
+**Source:** design doc + Newport Deep Work
+
+**Behavior:**
+- Weekly review naturally surfaces questions ("I keep writing about X but don't understand Y")
+- Capture to `questions/active.md` with origin context
+- Active question scopes `/brana:research`: "Find sources that address: {question}"
+- Reading extractions tag back to the question they're exploring
+- When answered → move to `resolved.md` with conclusion
+
+**Implementation:** Light — mostly convention + weekly review integration.
+
+**Prerequisite:** Questions emerge organically from the practice. Never force them.
+
+### W7. Connection Finder
+**Source:** Ikigai (range over depth) + Forte progressive summarization
+
+**Behavior:**
+- Scans `journal/`, `synthesis/`, `reading/` for semantic overlaps across time
+- Surfaces: "You wrote about X three weeks ago and Y this week — they might connect"
+- Uses keyword overlap or embeddings
+
+**Implementation:** Part of weekly review or standalone `/brana:think connections`.
+
+**Prerequisite:** 3+ months of journal + synthesis. Needs volume for meaningful connections.
+
+### W8. Book Thread Tracker
+**Source:** design doc Part II (how the book emerges)
+
+**Behavior:**
+- After months of synthesis, scan for dominant themes (5+ pieces each)
+- Auto-populate `writing/book/threads.md` with theme clusters, linked to source synthesis files
+- Table of contents emerges organically
+
+**Implementation:** Script or skill that reads synthesis/ and clusters.
+
+**Prerequisite:** 6+ months of synthesis writing. This is the longest-horizon workflow.
+
+### W9. Energy-Aware Scheduling
+**Source:** Abdaal (energy > time) + health research
+
+**Behavior:**
+- If health tracking adopted (single wearable → 5 metrics), weekly review includes energy pattern
+- "Your best journal entries happen on mornings after 7+ hours sleep"
+- Adjust bot prompt timing based on actual wake patterns
+
+**Implementation:** Health data integration + bot scheduling adjustment.
+
+**Prerequisite:** Wearable device + 30 days of data. Low priority until practice is solid.
+
+### W10. Relationship Memory
+**Source:** Dunbar layers + Ferrazzi 80/20 pinging
+
+**Behavior:**
+- File-based people registry (`people/{name}.md`)
+- Dunbar layer assignment (inner 5, close 15, good 50)
+- Bot captures after conversations: "Just talked to X about Y"
+- Periodic nudge: "Haven't connected with {inner-5-person} in 3 weeks"
+
+**Implementation:** New directory + bot integration + scheduled nudges.
+
+**Prerequisite:** Social practice established. Build when you feel the pull, not before.
+
+---
+
+## Part XII: Gated Build Order
+
+Nothing gets built until its gate clears. Gates are sequential — each requires proof before advancing.
+
+| Gate | Action | Proof to advance |
+|------|--------|-----------------|
+| **Gate 0** | Use the bot as-is. Reply to morning prompts. Optionally add evening nudge (5 lines in bot.py). | 15+ journal entries in 21 days |
+| **Gate 1** | Manual weekly review: calendar reminder, text editor, 15 min. Extract identity themes from existing entries. | 4 consecutive weekly reviews with actual output in `review/weekly-log.md` |
+| **Gate 2** | Build W1 (`/brana:review-personal`). It has data to work with and a proven habit to automate. | Skill used 4+ times with real output |
+| **Gate 3** | Build W2 (morning enhancement) + W3 (identity docs from journal themes). | Identity docs written, morning reply rate stable |
+| **Gate 4** | Build W4-W6 as the practice demands. Only what solves real friction. | Organic pull — you're doing the behavior manually and it's annoying |
+| **Gate 5** | W7-W10. Long-horizon. Months away. | Volume exists (50+ synthesis files, 3+ months data) |
+
+**Rules:**
+- Workflows live here as designs. They enter `tasks.json` only when their gate clears.
+- Clearing a gate = the behavior exists FIRST, the tool follows.
+- If a gate stalls for 30+ days, reconsider the workflow — maybe the behavior isn't wanted.
+
+---
+
+## Part XIII: Open Design Work
+
+- [x] Pick morning alarm time window → 8 AM Buenos Aires
 - [ ] Pick weekly review day (Sunday proposed)
-- [ ] Start Phase 0
-- [ ] Build minimal Telegram bot (Phase 0 companion)
+- [x] Start Phase 0 → bot deployed, prompts running
+- [x] Build minimal Telegram bot → `bot.py` on Oracle Cloud
 - [ ] Share bookshelf → refine domains of thought
 - [ ] Book framework deeper definition
-- [ ] Identity files: mission.md, values.md, beliefs.md, models.md, narrative.md
-- [ ] Phase 0 retrospective (after 30 days)
-- [ ] Brana skill design: `/brana:think` (Phase 2)
-- [ ] Brana skill design: `/brana:review-personal` (Phase 2)
+- [ ] Identity files (deferred to Gate 3 — extract from journal, don't declare)
+- [ ] Phase 0 retrospective (after Gate 0 clears)
+- [ ] Brana skill design: `/brana:think` (Gate 3)
+- [ ] Brana skill design: `/brana:review-personal` (Gate 2)
+- [ ] Decide operating frameworks for Q2: pick 2 from the 9 researched (recommended: Atomic Habits + Stoicism)
+- [ ] Define ghost-completion prevention: tasks with `type: recurring` require 3+ uses before `completed`
+
+---
+
+## Part XIV: Challenge Log
+
+### 2026-03-11 — Simplicity Challenge (Opus)
+
+**Verdict: RECONSIDER → adopted as Phase 0**
+
+Critical findings accepted:
+- System depends on bot that doesn't exist → start without bot (or minimal bot)
+- Six workflows for someone who gets overwhelmed → start with one workflow
+
+Warnings accepted:
+- Graduation pattern may be a publishing pipeline → reframed as "maturation cycle" (ideas sit at any stage indefinitely)
+- Weekly review does too much → simplified for Phase 0
+- Active questions driving reading may be backwards → let them emerge organically
+
+Decision: Keep full design as target. Start with 30-day practice. Build only what solves real friction.
+
+### 2026-03-17 — Simplicity Challenge (Opus)
+
+**Verdict: RECONSIDER → adopted as Gated Build Order**
+
+Critical findings accepted:
+- Practice doesn't exist yet (2 entries in 6 days) — automating nothing
+- Weekly review has nothing to review — build it after journal volume exists
+- 52% ghost completion rate is the real problem — building more workflows feeds the pattern
+
+Warnings accepted:
+- Four Tier 1 items fragments attention → sequential gates instead
+- Identity docs premature → extract from journal themes, don't declare in abstract
+- Nine frameworks is six too many → pick 2 operating frameworks per quarter
+- Kindle integration solves a problem that doesn't exist yet
+
+Decision: Capture all 10 workflows as designs in the doc. Gate their build behind behavioral proof. Nothing enters tasks.json until its gate clears. The framework shapes as you iterate — the practice leads, the tooling follows.

@@ -1,10 +1,10 @@
 {
   "_meta": {
-    "generated": "2026-03-17T14:44:29Z",
-    "node_count": 191,
-    "edge_count": 547,
+    "generated": "2026-03-18T18:34:03Z",
+    "node_count": 192,
+    "edge_count": 548,
     "impl_ref_count": 231,
-    "orphan_count": 88,
+    "orphan_count": 89,
     "typed_edge_count": 0
   },
   "nodes": {
@@ -2302,8 +2302,17 @@
         "43-linkedin-personal-brand-strategy.md",
         "44-systems-thinking-nature.md",
         "45-turboflow-agent-orchestration.md",
+        "brana-etymology-naming.md",
         "client-retention-engagement.md"
       ],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/brana-etymology-naming.md": {
+      "references": [],
       "referenced_by": [],
       "impl_files": [],
       "guide_files": [],

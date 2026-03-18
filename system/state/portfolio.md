@@ -41,7 +41,13 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Remote:** `https://github.com/martineserios/proyecto-anita.git`
 - **Details:** `.claude/CLAUDE.md`, `docs/decisions/`
 
-### martineserios (personal)
+### personal
+- **Type:** Personal OS — thinking practice, identity work, journaling, goals
+- **Location:** `~/enter_thebrana/personal/`
+- **Details:** `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated from thebrana 2026-03-17)
+- **Infra:** Telegram bot on Oracle Cloud Free Tier, LinkedIn MCP
+
+### martineserios (open-source)
 - **Type:** Personal open-source projects
 - **Projects:** brapsoclaw (`clients/martineserios/brapsoclaw`)
 - **Remote:** `https://github.com/martineserios/brapsoclaw`

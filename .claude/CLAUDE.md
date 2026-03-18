@@ -102,6 +102,12 @@ claude --plugin-dir ./system
 | `/brana:align` | Implement project structure based on /brana:onboard findings |
 | `/brana:review` | Business health — weekly (default), monthly, or ad-hoc check |
 
+### CLI Tools
+
+| Command | Purpose |
+|---------|---------|
+| `brana transcribe <file> [--model base\|tiny\|small]` | Transcribe audio (wav, mp3, ogg, m4a) to text via whisper.cpp. Auto-detects language. |
+
 ### Agent Commands
 
 | Command | Purpose |
