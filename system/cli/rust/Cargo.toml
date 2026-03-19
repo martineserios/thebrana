@@ -27,6 +27,8 @@ ureq = "3"
 imap = "2"
 mailparse = "0.15"
 native-tls = "0.2"
+keyring = "3"
+rpassword = "7"
 
 [dev-dependencies]
 serial_test = "3.4.0"

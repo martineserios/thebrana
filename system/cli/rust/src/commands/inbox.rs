@@ -26,28 +26,49 @@ pub struct Account {
     pub name: String,
     pub imap_host: String,
     pub imap_port: u16,
-    pub user_env: String,
-    pub password_env: String,
+    pub user: String,
+    /// Fallback env var for password (used if keyring unavailable)
+    #[serde(default)]
+    pub password_env: Option<String>,
     pub label: String,
     pub enabled: bool,
     pub subscriptions: Vec<Subscription>,
 }
 
+const KEYRING_SERVICE: &str = "brana-inbox";
+
 impl Default for InboxConfig {
     fn default() -> Self {
         Self {
-            accounts: vec![Account {
-                name: "default".into(),
-                imap_host: "imap.gmail.com".into(),
-                imap_port: 993,
-                user_env: "BRANA_GMAIL_USER".into(),
-                password_env: "BRANA_GMAIL_APP_PASSWORD".into(),
-                label: "Newsletters".into(),
-                enabled: true,
-                subscriptions: Vec::new(),
-            }],
+            accounts: Vec::new(),
         }
     }
+}
+
+/// Retrieve password: try keyring first, fall back to env var.
+fn get_password(account: &Account) -> Result<String> {
+    // Try system keyring
+    match keyring::Entry::new(KEYRING_SERVICE, &account.user) {
+        Ok(entry) => match entry.get_password() {
+            Ok(pw) => return Ok(pw),
+            Err(_) => {} // fall through to env var
+        },
+        Err(_) => {} // keyring unavailable, fall through
+    }
+
+    // Fallback: env var
+    if let Some(ref env_name) = account.password_env {
+        if let Ok(pw) = std::env::var(env_name) {
+            return Ok(pw);
+        }
+    }
+
+    anyhow::bail!(
+        "no password for '{}'. Run `brana inbox set-password {}` or set env var {}",
+        account.name,
+        account.name,
+        account.password_env.as_deref().unwrap_or("(none configured)")
+    )
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -145,7 +166,8 @@ pub fn cmd_inbox(cmd: InboxCmd) {
         InboxCmd::Poll { label, account } => cmd_poll(label.as_deref(), account.as_deref()),
         InboxCmd::Remove { name } => cmd_remove(&name),
         InboxCmd::Status => cmd_status(),
-        InboxCmd::AddAccount { name, user_env, pass_env, label } => cmd_add_account(&name, &user_env, &pass_env, &label),
+        InboxCmd::AddAccount { name, user, label } => cmd_add_account(&name, &user, &label),
+        InboxCmd::SetPassword { name } => cmd_set_password(&name),
     };
     if let Err(e) = result {
         eprintln!("error: {e:#}");
@@ -163,7 +185,7 @@ fn find_account_mut<'a>(config: &'a mut InboxConfig, name: Option<&str>) -> Resu
     }
 }
 
-fn cmd_add_account(name: &str, user_env: &str, pass_env: &str, label: &str) -> Result<()> {
+fn cmd_add_account(name: &str, user: &str, label: &str) -> Result<()> {
     let mut config = load_config();
     if config.accounts.iter().any(|a| a.name == name) {
         anyhow::bail!("account '{name}' already exists");
@@ -172,14 +194,48 @@ fn cmd_add_account(name: &str, user_env: &str, pass_env: &str, label: &str) -> R
         name: name.to_string(),
         imap_host: "imap.gmail.com".into(),
         imap_port: 993,
-        user_env: user_env.to_string(),
-        password_env: pass_env.to_string(),
+        user: user.to_string(),
+        password_env: None,
         label: label.to_string(),
         enabled: true,
         subscriptions: Vec::new(),
     });
     save_config(&config)?;
-    println!("{{\"ok\":true,\"account\":\"{name}\",\"user_env\":\"{user_env}\",\"pass_env\":\"{pass_env}\"}}");
+
+    // Prompt for password immediately
+    eprintln!("Account '{name}' added. Now store the App Password in your system keyring.");
+    match store_password_interactive(user) {
+        Ok(()) => eprintln!("Password stored in system keyring."),
+        Err(e) => eprintln!("Keyring unavailable ({e:#}). Set env var or run `brana inbox set-password {name}` later."),
+    }
+
+    println!("{{\"ok\":true,\"account\":\"{name}\",\"user\":\"{user}\"}}");
+    Ok(())
+}
+
+fn cmd_set_password(name: &str) -> Result<()> {
+    let config = load_config();
+    let acct = config.accounts.iter().find(|a| a.name == name)
+        .with_context(|| format!("account '{name}' not found"))?;
+
+    store_password_interactive(&acct.user)?;
+    println!("{{\"ok\":true,\"account\":\"{name}\",\"stored\":\"keyring\"}}");
+    Ok(())
+}
+
+fn store_password_interactive(user: &str) -> Result<()> {
+    eprintln!("Enter App Password for {user}: ");
+    let password = rpassword::read_password()
+        .context("reading password from terminal")?;
+    let password = password.trim();
+    if password.is_empty() {
+        anyhow::bail!("empty password");
+    }
+
+    let entry = keyring::Entry::new(KEYRING_SERVICE, user)
+        .context("creating keyring entry")?;
+    entry.set_password(password)
+        .context("storing password in system keyring")?;
     Ok(())
 }
 
@@ -302,11 +358,9 @@ fn poll_account(acct: &Account, label_override: Option<&str>) -> Result<serde_js
     let mut state = load_state(&acct.name);
     let label = label_override.unwrap_or(&acct.label);
 
-    // Read credentials from env
-    let user = std::env::var(&acct.user_env)
-        .with_context(|| format!("set {} env var with your Gmail address", acct.user_env))?;
-    let password = std::env::var(&acct.password_env)
-        .with_context(|| format!("set {} env var with your Gmail App Password", acct.password_env))?;
+    // Read credentials: keyring first, env var fallback
+    let user = &acct.user;
+    let password = get_password(acct)?;
 
     // Connect via IMAP over TLS
     let tls = native_tls::TlsConnector::builder().build()
@@ -317,7 +371,7 @@ fn poll_account(acct: &Account, label_override: Option<&str>) -> Result<serde_js
         &tls,
     ).context("connecting to IMAP server")?;
 
-    let mut session = client.login(&user, &password)
+    let mut session = client.login(user, &password)
         .map_err(|e| anyhow::anyhow!("IMAP login failed for {}: {}", acct.name, e.0))?;
 
     // Select the label/folder
@@ -429,18 +483,23 @@ mod tests {
         tmp
     }
 
+    fn make_test_account(name: &str) -> Account {
+        Account {
+            name: name.into(),
+            imap_host: "imap.gmail.com".into(),
+            imap_port: 993,
+            user: format!("{name}@gmail.com"),
+            password_env: None,
+            label: "Newsletters".into(),
+            enabled: true,
+            subscriptions: Vec::new(),
+        }
+    }
+
     #[test]
     fn test_inbox_config_default() {
         let config = InboxConfig::default();
-        assert_eq!(config.accounts.len(), 1);
-        let acct = &config.accounts[0];
-        assert_eq!(acct.name, "default");
-        assert_eq!(acct.imap_host, "imap.gmail.com");
-        assert_eq!(acct.imap_port, 993);
-        assert_eq!(acct.user_env, "BRANA_GMAIL_USER");
-        assert_eq!(acct.password_env, "BRANA_GMAIL_APP_PASSWORD");
-        assert_eq!(acct.label, "Newsletters");
-        assert!(acct.subscriptions.is_empty());
+        assert!(config.accounts.is_empty());
     }
 
     #[test]
@@ -448,7 +507,10 @@ mod tests {
     fn test_subscription_crud() {
         let _tmp = with_temp_home();
 
-        // Default has one account with empty subs
+        // Start with one account
+        let mut config = InboxConfig { accounts: vec![make_test_account("default")] };
+        save_config(&config).unwrap();
+
         let config = load_config();
         assert!(config.accounts[0].subscriptions.is_empty());
 
@@ -479,24 +541,19 @@ mod tests {
     fn test_multi_account_config() {
         let _tmp = with_temp_home();
 
-        let mut config = load_config();
-        config.accounts.push(Account {
-            name: "work".into(),
-            imap_host: "imap.gmail.com".into(),
-            imap_port: 993,
-            user_env: "BRANA_WORK_USER".into(),
-            password_env: "BRANA_WORK_PASS".into(),
-            label: "Newsletters".into(),
-            enabled: true,
-            subscriptions: vec![],
-        });
+        let config = InboxConfig {
+            accounts: vec![
+                make_test_account("personal"),
+                make_test_account("work"),
+            ],
+        };
         save_config(&config).unwrap();
 
         let loaded = load_config();
         assert_eq!(loaded.accounts.len(), 2);
-        assert_eq!(loaded.accounts[0].name, "default");
+        assert_eq!(loaded.accounts[0].name, "personal");
         assert_eq!(loaded.accounts[1].name, "work");
-        assert_eq!(loaded.accounts[1].user_env, "BRANA_WORK_USER");
+        assert_eq!(loaded.accounts[1].user, "work@gmail.com");
     }
 
     #[test]
@@ -621,7 +678,7 @@ mod tests {
     fn test_config_preserves_imap_settings() {
         let _tmp = with_temp_home();
 
-        let mut config = InboxConfig::default();
+        let mut config = InboxConfig { accounts: vec![make_test_account("default")] };
         config.accounts[0].label = "CustomLabel".into();
         config.accounts[0].subscriptions.push(Subscription {
             name: "test".into(),

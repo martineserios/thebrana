@@ -454,14 +454,16 @@ pub enum InboxCmd {
     AddAccount {
         /// Account name (e.g., "personal", "work")
         name: String,
-        /// Env var name for Gmail user (e.g., BRANA_WORK_USER)
+        /// Gmail address for this account
         #[arg(long)]
-        user_env: String,
-        /// Env var name for App Password (e.g., BRANA_WORK_PASS)
-        #[arg(long)]
-        pass_env: String,
+        user: String,
         /// Gmail label to poll (default: Newsletters)
         #[arg(long, default_value = "Newsletters")]
         label: String,
+    },
+    /// Store or update App Password in system keyring
+    SetPassword {
+        /// Account name
+        name: String,
     },
 }
