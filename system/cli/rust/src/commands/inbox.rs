@@ -326,11 +326,13 @@ fn extract_header(headers: &str, name: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use std::env;
 
+    /// Must be used with #[serial] — env::set_var is process-global.
     fn with_temp_home() -> tempfile::TempDir {
         let tmp = tempfile::tempdir().unwrap();
-        // SAFETY: tests run with --test-threads=1 or isolated temp dirs
+        // SAFETY: all callers are #[serial], so no concurrent env mutation
         unsafe { env::set_var("HOME", tmp.path()) };
         tmp
     }
@@ -347,6 +349,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_subscription_crud() {
         let _tmp = with_temp_home();
 
@@ -378,6 +381,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_inbox_state_roundtrip() {
         let _tmp = with_temp_home();
 
@@ -395,6 +399,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_inbox_state_missing_returns_default() {
         let _tmp = with_temp_home();
         let state = load_state();
@@ -479,6 +484,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_config_preserves_imap_settings() {
         let _tmp = with_temp_home();
 
