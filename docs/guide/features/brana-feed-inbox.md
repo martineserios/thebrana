@@ -48,11 +48,12 @@ brana inbox poll
 
 | Command | Options | Description |
 |---------|---------|-------------|
-| `inbox add <name>` | `--from EMAIL`, `--frequency daily\|weekly\|monthly` | Register a subscription |
-| `inbox list` | — | Show all subscriptions |
-| `inbox poll` | `--label LABEL` | Poll Gmail (default label: `Newsletters`) |
-| `inbox remove <name>` | — | Remove a subscription |
-| `inbox status` | — | Show arrival stats |
+| `inbox add-account <name>` | `--user-env VAR`, `--pass-env VAR`, `--label LABEL` | Add a Gmail account |
+| `inbox add <name>` | `--from EMAIL`, `--frequency daily\|weekly\|monthly`, `--account NAME` | Register a subscription (on first account if `--account` omitted) |
+| `inbox list` | — | Show all accounts and subscriptions |
+| `inbox poll` | `--label LABEL`, `--account NAME` | Poll all enabled accounts (or one with `--account`) |
+| `inbox remove <name>` | — | Remove a subscription from any account |
+| `inbox status` | — | Show per-account arrival stats |
 
 ## Examples
 
@@ -93,18 +94,52 @@ brana ops enable inbox-poll   # daily at 09:00
 | GitHub releases | `https://github.com/{owner}/{repo}/releases.atom` |
 | Reddit | `https://reddit.com/r/{sub}/.rss` |
 
-## Setup: Gmail App Password
+## Setup: Gmail Accounts
 
-`brana inbox` requires a Gmail App Password (not your regular password):
+`brana inbox` supports multiple Gmail accounts. Each needs an App Password.
+
+### Step 1: Create App Passwords
+
+For each Gmail account (personal, workspace, etc.):
 
 1. Go to [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
 2. Select "Mail" and your device
 3. Copy the 16-character password
-4. Set env vars:
-   ```bash
-   export BRANA_GMAIL_USER=you@gmail.com
-   export BRANA_GMAIL_APP_PASSWORD="..."  # placeholder
-   ```
+
+### Step 2: Set env vars
+
+Add to `~/.zshrc` (one pair per account):
+
+```bash
+# Personal Gmail
+export BRANA_GMAIL_USER=you@gmail.com
+export BRANA_GMAIL_PASS="..."  # placeholder
+
+# Work Gmail
+export BRANA_WORK_USER=you@company.com
+export BRANA_WORK_PASS="..."  # placeholder
+```
+
+### Step 3: Register accounts
+
+```bash
+brana inbox add-account personal --user-env BRANA_GMAIL_USER --pass-env BRANA_GMAIL_PASS
+brana inbox add-account work --user-env BRANA_WORK_USER --pass-env BRANA_WORK_PASS --label "Work Newsletters"
+```
+
+### Step 4: Add subscriptions per account
+
+```bash
+brana inbox add stratechery --from "ben@stratechery.com" --account personal
+brana inbox add company-digest --from "digest@company.com" --account work
+```
+
+### Step 5: Poll all accounts
+
+```bash
+brana inbox poll              # polls all enabled accounts
+brana inbox poll --account work   # poll only work
+```
 
 Works with both individual Gmail and Google Workspace accounts.
 
@@ -113,9 +148,9 @@ Works with both individual Gmail and Google Workspace accounts.
 | Path | Purpose |
 |------|---------|
 | `~/.claude/scheduler/feeds.json` | Feed registry |
-| `~/.claude/scheduler/inbox.json` | Inbox config + subscriptions |
+| `~/.claude/scheduler/inbox.json` | Inbox config (accounts + subscriptions) |
 | `~/.claude/scheduler/state/{name}.json` | Per-feed poll state (ETag, last entries) |
-| `~/.claude/scheduler/state/inbox.json` | Inbox poll state (last UID) |
+| `~/.claude/scheduler/state/inbox-{account}.json` | Per-account inbox poll state (last UID) |
 | `~/.claude/scheduler/feed-log.jsonl` | Feed entry log |
 | `~/.claude/scheduler/inbox-log.jsonl` | Email log |
 

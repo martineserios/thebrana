@@ -29,6 +29,7 @@ mailparse = "0.15"
 native-tls = "0.2"
 
 [dev-dependencies]
+serial_test = "3.4.0"
 tempfile = "3"
 
 [profile.release]

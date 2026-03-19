@@ -350,12 +350,14 @@ fn poll_one(feed: &FeedEntry) -> Result<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use std::env;
 
     /// Helper: set HOME to a temp dir for test isolation, returns the temp dir.
+    /// Must be used with #[serial] — env::set_var is process-global.
     fn with_temp_home() -> tempfile::TempDir {
         let tmp = tempfile::tempdir().unwrap();
-        // SAFETY: tests run with --test-threads=1 or isolated temp dirs
+        // SAFETY: all callers are #[serial], so no concurrent env mutation
         unsafe { env::set_var("HOME", tmp.path()) };
         tmp
     }
@@ -376,6 +378,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_feed_crud_add_list_remove() {
         let _tmp = with_temp_home();
 
@@ -406,6 +409,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_feed_state_roundtrip() {
         let _tmp = with_temp_home();
 
@@ -425,6 +429,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_feed_state_missing_returns_default() {
         let _tmp = with_temp_home();
         let state = load_state("nonexistent");
@@ -452,6 +457,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_duplicate_feed_detection() {
         let _tmp = with_temp_home();
 
@@ -468,6 +474,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_feed_config_path_uses_home() {
         let _tmp = with_temp_home();
         let path = feeds_config_path();
@@ -475,6 +482,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_atomic_state_write() {
         let _tmp = with_temp_home();
 

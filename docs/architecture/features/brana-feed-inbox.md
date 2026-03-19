@@ -83,26 +83,33 @@ Pure Rust implementation. No Python, no async runtime. New deps: `feed-rs` (RSS 
 
 | Subcommand | Purpose |
 |------------|---------|
-| `brana inbox poll [--label LABEL]` | Check Gmail for new newsletter emails (default label: `Newsletters`) |
-| `brana inbox list` | Show registered newsletter subscriptions |
-| `brana inbox add "Name" --from "sender@example.com"` | Register a subscription |
+| `brana inbox add-account <name> --user-env VAR --pass-env VAR` | Add a Gmail account |
+| `brana inbox add "Name" --from "sender@example.com" [--account NAME]` | Register a subscription |
+| `brana inbox list` | Show all accounts and subscriptions |
+| `brana inbox poll [--account NAME] [--label LABEL]` | Poll all enabled accounts (or one) |
 | `brana inbox remove <name>` | Remove a subscription |
-| `brana inbox status` | Show arrival stats (expected vs actual per subscription) |
+| `brana inbox status` | Show per-account arrival stats |
 
-**Config:** `~/.claude/scheduler/inbox.json`
+**Config:** `~/.claude/scheduler/inbox.json` (multi-account)
 ```json
 {
-  "imap_host": "imap.gmail.com",
-  "imap_port": 993,
-  "user_env": "BRANA_GMAIL_USER",
-  "password_env": "BRANA_GMAIL_APP_PASSWORD",
-  "label": "Newsletters",
-  "subscriptions": [
+  "accounts": [
     {
-      "name": "stratechery",
-      "from": "ben@stratechery.com",
-      "frequency": "weekly",
-      "enabled": true
+      "name": "personal",
+      "imap_host": "imap.gmail.com",
+      "imap_port": 993,
+      "user_env": "BRANA_GMAIL_USER",
+      "password_env": "BRANA_GMAIL_PASS",
+      "label": "Newsletters",
+      "enabled": true,
+      "subscriptions": [
+        {
+          "name": "stratechery",
+          "from": "ben@stratechery.com",
+          "frequency": "weekly",
+          "enabled": true
+        }
+      ]
     }
   ]
 }
@@ -117,7 +124,7 @@ Pure Rust implementation. No Python, no async runtime. New deps: `feed-rs` (RSS 
 6. Log to `~/.claude/scheduler/inbox-log.jsonl`
 7. Mark as SEEN (don't delete)
 
-**State:** `~/.claude/scheduler/state/inbox.json`
+**State (per-account):** `~/.claude/scheduler/state/inbox-{account}.json`
 ```json
 {
   "last_poll": "2026-03-19T16:00:00Z",
