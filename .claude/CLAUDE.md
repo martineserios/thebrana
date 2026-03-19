@@ -42,6 +42,10 @@ brana-knowledge/dimensions/       ← knowledge docs (separate repo)
 
 R1(08 Triage) → R2(14 Architecture) → R3(31 Assurance) / R4(32 Lifecycle) → R5(29 Venture)
 
+## Inbox
+
+`inbox/` is a processing drop folder (gitignored). Drop files here for Claude to process: audio for transcription, docs for analysis, PDFs for review, data for import. Organized by topic subfolder. Files are transient — process and delete or move to permanent storage. Every client/project should have its own `inbox/`.
+
 ## System Architecture
 
 ```

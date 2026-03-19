@@ -12,6 +12,9 @@
 .mcp.json
 ruvector.db
 
+# Processing inbox — drop files here for Claude to process (transcriptions, docs, etc.)
+inbox/
+
 # Python virtual environment
 .venv/
 __pycache__/
