@@ -9,10 +9,11 @@ Monitor RSS/Atom feeds and manage Gmail newsletter subscriptions from the CLI. F
 brana feed add https://simonwillison.net/atom/everything/ --name simon-willison
 brana feed poll simon-willison
 
-# Register a newsletter subscription and poll Gmail
+# Add a Gmail account (prompts for App Password, stores in OS keyring)
+brana inbox add-account personal --user you@gmail.com
+
+# Register a newsletter subscription and poll
 brana inbox add stratechery --from "ben@stratechery.com" --frequency weekly
-export BRANA_GMAIL_USER=you@gmail.com
-export BRANA_GMAIL_APP_PASSWORD="..."  # placeholder
 brana inbox poll
 ```
 
@@ -106,42 +107,36 @@ For each Gmail account (personal, workspace, etc.):
 2. Select "Mail" and your device
 3. Copy the 16-character password
 
-### Step 2: Set env vars
-
-Add to `~/.zshrc` (one pair per account):
+### Step 2: Register accounts (passwords stored in OS keyring)
 
 ```bash
-# Personal Gmail
-export BRANA_GMAIL_USER=you@gmail.com
-export BRANA_GMAIL_PASS="..."  # placeholder
-
-# Work Gmail
-export BRANA_WORK_USER=you@company.com
-export BRANA_WORK_PASS="..."  # placeholder
+# Prompts for App Password securely (no echo, stored in system keyring)
+brana inbox add-account personal --user you@gmail.com
+brana inbox add-account work --user you@company.com --label "Work Newsletters"
 ```
 
-### Step 3: Register accounts
+Passwords are stored in your OS keyring (GNOME Keyring, macOS Keychain, or Windows Credential Manager). Never in plaintext files or env vars.
 
+To update a password later:
 ```bash
-brana inbox add-account personal --user-env BRANA_GMAIL_USER --pass-env BRANA_GMAIL_PASS
-brana inbox add-account work --user-env BRANA_WORK_USER --pass-env BRANA_WORK_PASS --label "Work Newsletters"
+brana inbox set-password personal
 ```
 
-### Step 4: Add subscriptions per account
+### Step 3: Add subscriptions per account
 
 ```bash
 brana inbox add stratechery --from "ben@stratechery.com" --account personal
 brana inbox add company-digest --from "digest@company.com" --account work
 ```
 
-### Step 5: Poll all accounts
+### Step 4: Poll all accounts
 
 ```bash
 brana inbox poll              # polls all enabled accounts
 brana inbox poll --account work   # poll only work
 ```
 
-Works with both individual Gmail and Google Workspace accounts.
+Works with individual Gmail and Google Workspace accounts, on Linux, macOS, and Windows.
 
 ## Files
 
@@ -158,8 +153,8 @@ Works with both individual Gmail and Google Workspace accounts.
 
 | Symptom | Fix |
 |---------|-----|
-| `error: set BRANA_GMAIL_USER env var` | Export `BRANA_GMAIL_USER` and `BRANA_GMAIL_APP_PASSWORD` |
-| `IMAP login failed` | Verify App Password is correct. Regular passwords don't work. |
+| `no password for 'personal'` | Run `brana inbox set-password personal` to store in keyring |
+| `IMAP login failed` | Verify App Password is correct. Regular passwords don't work. Run `brana inbox set-password <account>` to re-enter. |
 | `selecting mailbox 'Newsletters'` | Create the label in Gmail first, or use `--label "Other Label"` |
 | Feed poll returns 0 but entries exist | First poll caches all entries. Second poll detects new ones. |
 | Build fails: `pkg-config could not be found` | Set `OPENSSL_DIR=/usr OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu OPENSSL_INCLUDE_DIR=/usr/include/openssl` |

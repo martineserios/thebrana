@@ -30,7 +30,7 @@ Pure Rust implementation. No Python, no async runtime. New deps: `feed-rs` (RSS 
 - Pure Rust — no Python, no async (tokio), keep binary lean
 - Gmail only for email (user's accounts are all Google individual or Workspace)
 - IMAP + App Password — no OAuth flow, no token refresh complexity
-- Credentials via env vars only (`BRANA_GMAIL_USER`, `BRANA_GMAIL_APP_PASSWORD`)
+- Credentials via OS keyring (`keyring` crate) — GNOME Keyring / macOS Keychain / Windows Credential Manager. Env var fallback for headless/CI.
 - Follow existing CLI patterns: clap derive, anyhow errors, themed output
 - Each feed = a scheduler job entry (no separate registry abstraction)
 
@@ -181,6 +181,8 @@ system/cli/rust/
 | `imap` | IMAP client | ~50KB |
 | `mailparse` | MIME email parsing | ~30KB |
 | `native-tls` | TLS for IMAP (ureq uses rustls) | shared with system |
+| `keyring` | OS-native secret storage (Linux/macOS/Windows) | ~20KB |
+| `rpassword` | Secure terminal password input (no echo) | ~5KB |
 
 ### Key patterns
 
@@ -224,7 +226,7 @@ OPENSSL_DIR=/usr OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu \
 
 - **Binary size +3.4MB** (1.4→4.8MB) — mostly TLS. Acceptable but notable.
 - **imap crate v2** — v3 is alpha-only. Has future-incompat warning on imap-proto.
-- **No OAuth** — Gmail App Password only. Works for individual + Workspace but requires manual setup.
+- **No OAuth** — Gmail App Password only. Stored in OS keyring. Works for individual + Workspace but requires manual App Password creation.
 - **No full-text content extraction** — inbox poll reads headers only, not email body.
 - **No themed output** — feed/inbox commands output raw JSON. Themed rendering deferred.
 - **OPENSSL env vars needed** for builds without pkg-config.

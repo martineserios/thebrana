@@ -109,7 +109,7 @@ claude --plugin-dir ./system
 | `brana transcribe <file> [--model base\|tiny\|small]` | Transcribe audio (wav, mp3, ogg, m4a) to text via whisper.cpp. Auto-detects language. |
 | `brana files list\|status\|add\|pull\|push` | Track large files via manifest (.brana-files.json). SHA-256 verified, R2/HTTP remotes. |
 | `brana feed add\|list\|poll\|remove\|status` | RSS/Atom feed polling. Covers Substack, Medium, blogs, YouTube, GitHub releases. HTTP conditional requests (ETag). |
-| `brana inbox add\|list\|poll\|remove\|status` | Gmail newsletter management via IMAP. Subscription registry + UNSEEN polling. Requires `BRANA_GMAIL_USER` + `BRANA_GMAIL_APP_PASSWORD`. |
+| `brana inbox add-account\|add\|list\|poll\|remove\|status\|set-password` | Gmail newsletter management via IMAP. Multi-account, OS keyring credentials. |
 
 ### Agent Commands
 
