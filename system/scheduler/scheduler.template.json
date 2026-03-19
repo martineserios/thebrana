@@ -116,6 +116,26 @@
       "timeoutSeconds": 60,
       "captureOutput": true,
       "_comment": "ADR-021: weekly check for time-gated second-phase tasks (soak gates, maturity triggers)"
+    },
+    "feed-poll": {
+      "type": "command",
+      "command": "brana feed poll --all",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 08:00,12:00,18:00:00",
+      "enabled": false,
+      "timeoutSeconds": 120,
+      "captureOutput": true,
+      "_comment": "t-585: poll all registered RSS/Atom feeds 3x daily. Enable after adding feeds with brana feed add."
+    },
+    "inbox-poll": {
+      "type": "command",
+      "command": "brana inbox poll",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 09:00:00",
+      "enabled": false,
+      "timeoutSeconds": 60,
+      "captureOutput": true,
+      "_comment": "t-585: poll Gmail for new newsletter emails. Requires BRANA_GMAIL_USER + BRANA_GMAIL_APP_PASSWORD env vars."
     }
   }
 }
