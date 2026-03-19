@@ -28,6 +28,9 @@ imap = "2"
 mailparse = "0.15"
 native-tls = "0.2"
 
+[dev-dependencies]
+tempfile = "3"
+
 [profile.release]
 opt-level = "z"
 lto = true

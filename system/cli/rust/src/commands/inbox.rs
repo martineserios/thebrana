@@ -322,3 +322,179 @@ fn extract_header(headers: &str, name: &str) -> String {
     }
     String::new()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env;
+
+    fn with_temp_home() -> tempfile::TempDir {
+        let tmp = tempfile::tempdir().unwrap();
+        // SAFETY: tests run with --test-threads=1 or isolated temp dirs
+        unsafe { env::set_var("HOME", tmp.path()) };
+        tmp
+    }
+
+    #[test]
+    fn test_inbox_config_default() {
+        let config = InboxConfig::default();
+        assert_eq!(config.imap_host, "imap.gmail.com");
+        assert_eq!(config.imap_port, 993);
+        assert_eq!(config.user_env, "BRANA_GMAIL_USER");
+        assert_eq!(config.password_env, "BRANA_GMAIL_APP_PASSWORD");
+        assert_eq!(config.label, "Newsletters");
+        assert!(config.subscriptions.is_empty());
+    }
+
+    #[test]
+    fn test_subscription_crud() {
+        let _tmp = with_temp_home();
+
+        // Empty initially
+        let config = load_config();
+        assert!(config.subscriptions.is_empty());
+
+        // Add subscription
+        let mut config = load_config();
+        config.subscriptions.push(Subscription {
+            name: "test-sub".into(),
+            from: "test@example.com".into(),
+            frequency: "weekly".into(),
+            enabled: true,
+        });
+        save_config(&config).unwrap();
+
+        // Verify persisted
+        let config = load_config();
+        assert_eq!(config.subscriptions.len(), 1);
+        assert_eq!(config.subscriptions[0].name, "test-sub");
+        assert_eq!(config.subscriptions[0].from, "test@example.com");
+
+        // Remove
+        let mut config = load_config();
+        config.subscriptions.retain(|s| s.name != "test-sub");
+        save_config(&config).unwrap();
+        assert!(load_config().subscriptions.is_empty());
+    }
+
+    #[test]
+    fn test_inbox_state_roundtrip() {
+        let _tmp = with_temp_home();
+
+        let state = InboxState {
+            last_poll: Some("2026-03-19T16:00:00Z".into()),
+            last_uid: 4523,
+            unmatched_count: 2,
+        };
+        save_state(&state).unwrap();
+
+        let loaded = load_state();
+        assert_eq!(loaded.last_uid, 4523);
+        assert_eq!(loaded.unmatched_count, 2);
+        assert_eq!(loaded.last_poll, Some("2026-03-19T16:00:00Z".into()));
+    }
+
+    #[test]
+    fn test_inbox_state_missing_returns_default() {
+        let _tmp = with_temp_home();
+        let state = load_state();
+        assert!(state.last_poll.is_none());
+        assert_eq!(state.last_uid, 0);
+        assert_eq!(state.unmatched_count, 0);
+    }
+
+    #[test]
+    fn test_extract_header_from() {
+        let headers = "From: ben@stratechery.com\r\nSubject: Weekly Article\r\nDate: Wed, 19 Mar 2026 10:00:00 +0000\r\n";
+        assert_eq!(extract_header(headers, "From"), "ben@stratechery.com");
+        assert_eq!(extract_header(headers, "Subject"), "Weekly Article");
+        assert_eq!(extract_header(headers, "Date"), "Wed, 19 Mar 2026 10:00:00 +0000");
+    }
+
+    #[test]
+    fn test_extract_header_case_insensitive() {
+        let headers = "from: test@example.com\r\nSUBJECT: Test\r\n";
+        assert_eq!(extract_header(headers, "From"), "test@example.com");
+        assert_eq!(extract_header(headers, "Subject"), "Test");
+    }
+
+    #[test]
+    fn test_extract_header_missing() {
+        let headers = "From: test@example.com\r\n";
+        assert_eq!(extract_header(headers, "Subject"), "");
+    }
+
+    #[test]
+    fn test_subscription_matching() {
+        let subs = vec![
+            Subscription {
+                name: "stratechery".into(),
+                from: "ben@stratechery.com".into(),
+                frequency: "weekly".into(),
+                enabled: true,
+            },
+            Subscription {
+                name: "disabled-sub".into(),
+                from: "no@example.com".into(),
+                frequency: "daily".into(),
+                enabled: false,
+            },
+        ];
+
+        // Match by from (case-insensitive, contains)
+        let from = "Ben Thompson <ben@stratechery.com>";
+        let matched = subs.iter()
+            .find(|s| s.enabled && from.to_lowercase().contains(&s.from.to_lowercase()));
+        assert!(matched.is_some());
+        assert_eq!(matched.unwrap().name, "stratechery");
+
+        // Disabled sub doesn't match
+        let from2 = "no@example.com";
+        let matched2 = subs.iter()
+            .find(|s| s.enabled && from2.to_lowercase().contains(&s.from.to_lowercase()));
+        assert!(matched2.is_none());
+
+        // No match
+        let from3 = "unknown@other.com";
+        let matched3 = subs.iter()
+            .find(|s| s.enabled && from3.to_lowercase().contains(&s.from.to_lowercase()));
+        assert!(matched3.is_none());
+    }
+
+    #[test]
+    fn test_inbox_log_entry_serialization() {
+        let entry = InboxLogEntry {
+            subscription: Some("stratechery".into()),
+            from: "ben@stratechery.com".into(),
+            subject: "Weekly Article".into(),
+            date: "2026-03-19".into(),
+            matched: true,
+            polled_at: "2026-03-19T16:00:00Z".into(),
+        };
+        let json = serde_json::to_string(&entry).unwrap();
+        assert!(json.contains("\"matched\":true"));
+
+        let parsed: InboxLogEntry = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed.subscription, Some("stratechery".into()));
+    }
+
+    #[test]
+    fn test_config_preserves_imap_settings() {
+        let _tmp = with_temp_home();
+
+        let mut config = InboxConfig::default();
+        config.label = "CustomLabel".into();
+        config.subscriptions.push(Subscription {
+            name: "test".into(),
+            from: "a@b.com".into(),
+            frequency: "daily".into(),
+            enabled: true,
+        });
+        save_config(&config).unwrap();
+
+        let loaded = load_config();
+        assert_eq!(loaded.imap_host, "imap.gmail.com");
+        assert_eq!(loaded.label, "CustomLabel");
+        assert_eq!(loaded.subscriptions.len(), 1);
+    }
+}

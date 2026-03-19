@@ -131,6 +131,7 @@ dependencies = [
  "native-tls",
  "serde",
  "serde_json",
+ "tempfile",
  "ureq",
 ]
 

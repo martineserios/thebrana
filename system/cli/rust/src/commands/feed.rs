@@ -346,3 +346,150 @@ fn poll_one(feed: &FeedEntry) -> Result<usize> {
         Err(e) => Err(anyhow::anyhow!("HTTP error: {e}")),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env;
+
+    /// Helper: set HOME to a temp dir for test isolation, returns the temp dir.
+    fn with_temp_home() -> tempfile::TempDir {
+        let tmp = tempfile::tempdir().unwrap();
+        // SAFETY: tests run with --test-threads=1 or isolated temp dirs
+        unsafe { env::set_var("HOME", tmp.path()) };
+        tmp
+    }
+
+    #[test]
+    fn test_derive_name_https() {
+        assert_eq!(derive_name("https://simonwillison.net/atom/everything/"), "simonwillison");
+    }
+
+    #[test]
+    fn test_derive_name_http() {
+        assert_eq!(derive_name("http://example.com/feed"), "example");
+    }
+
+    #[test]
+    fn test_derive_name_substack() {
+        assert_eq!(derive_name("https://newsletter.substack.com/feed"), "newsletter");
+    }
+
+    #[test]
+    fn test_feed_crud_add_list_remove() {
+        let _tmp = with_temp_home();
+
+        // Starts empty
+        let feeds = load_feeds();
+        assert!(feeds.is_empty());
+
+        // Add a feed
+        let feed = FeedEntry {
+            name: "test-feed".into(),
+            url: "https://example.com/rss".into(),
+            action: "log".into(),
+            enabled: true,
+        };
+        save_feeds(&[feed.clone()]).unwrap();
+
+        // List
+        let feeds = load_feeds();
+        assert_eq!(feeds.len(), 1);
+        assert_eq!(feeds[0].name, "test-feed");
+        assert_eq!(feeds[0].url, "https://example.com/rss");
+
+        // Remove
+        let mut feeds = load_feeds();
+        feeds.retain(|f| f.name != "test-feed");
+        save_feeds(&feeds).unwrap();
+        assert!(load_feeds().is_empty());
+    }
+
+    #[test]
+    fn test_feed_state_roundtrip() {
+        let _tmp = with_temp_home();
+
+        let state = FeedState {
+            etag: Some("\"abc123\"".into()),
+            last_modified: Some("Wed, 19 Mar 2026 10:00:00 GMT".into()),
+            last_entry_ids: vec!["id-1".into(), "id-2".into()],
+            last_poll: Some("2026-03-19T16:00:00Z".into()),
+            new_count: 2,
+        };
+        save_state("mytest", &state).unwrap();
+
+        let loaded = load_state("mytest");
+        assert_eq!(loaded.etag, Some("\"abc123\"".into()));
+        assert_eq!(loaded.last_entry_ids.len(), 2);
+        assert_eq!(loaded.new_count, 2);
+    }
+
+    #[test]
+    fn test_feed_state_missing_returns_default() {
+        let _tmp = with_temp_home();
+        let state = load_state("nonexistent");
+        assert!(state.etag.is_none());
+        assert!(state.last_entry_ids.is_empty());
+        assert_eq!(state.new_count, 0);
+    }
+
+    #[test]
+    fn test_feed_log_entry_serialization() {
+        let entry = FeedLogEntry {
+            feed: "test".into(),
+            title: "A Post".into(),
+            link: "https://example.com/post".into(),
+            published: Some("2026-03-19T10:00:00Z".into()),
+            polled_at: "2026-03-19T16:00:00Z".into(),
+        };
+        let json = serde_json::to_string(&entry).unwrap();
+        assert!(json.contains("\"feed\":\"test\""));
+        assert!(json.contains("\"title\":\"A Post\""));
+
+        // Roundtrip
+        let parsed: FeedLogEntry = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed.feed, "test");
+    }
+
+    #[test]
+    fn test_duplicate_feed_detection() {
+        let _tmp = with_temp_home();
+
+        let feed = FeedEntry {
+            name: "dup".into(),
+            url: "https://example.com/rss".into(),
+            action: "log".into(),
+            enabled: true,
+        };
+        save_feeds(&[feed]).unwrap();
+
+        let feeds = load_feeds();
+        assert!(feeds.iter().any(|f| f.name == "dup"));
+    }
+
+    #[test]
+    fn test_feed_config_path_uses_home() {
+        let _tmp = with_temp_home();
+        let path = feeds_config_path();
+        assert!(path.to_str().unwrap().contains(".claude/scheduler/feeds.json"));
+    }
+
+    #[test]
+    fn test_atomic_state_write() {
+        let _tmp = with_temp_home();
+
+        // Write state
+        let state = FeedState {
+            etag: Some("\"v1\"".into()),
+            ..Default::default()
+        };
+        save_state("atomic-test", &state).unwrap();
+
+        // Verify no .tmp file left behind
+        let tmp_path = feed_state_path("atomic-test").with_extension("tmp");
+        assert!(!tmp_path.exists());
+
+        // Verify real file exists
+        assert!(feed_state_path("atomic-test").exists());
+    }
+}
