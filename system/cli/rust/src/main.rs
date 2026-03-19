@@ -1,191 +1,74 @@
-//! brana-query — fast JSON task filter
+//! brana — fast standalone CLI dispatcher
 //!
-//! Reads tasks.json from stdin or file, filters by tag/status/stream/priority/effort/text,
-//! outputs filtered results as JSON. Called by Python CLI for hot-path filtering.
-//!
-//! Usage:
-//!   brana-query --file .claude/tasks.json --tag scheduler --status pending
-//!   cat .claude/tasks.json | brana-query --tag auth --stream roadmap
-//!   brana-query --file .claude/tasks.json --search "JWT middleware"
-//!   brana-query --file .claude/tasks.json --count --tag scheduler
+//! Single static binary. 12ms startup. No Python dependency.
+//! Handles high-frequency commands natively in Rust.
+//! Delegates complex ops to existing shell scripts.
 
-use clap::Parser;
-use serde::Deserialize;
-use serde_json::Value;
-use std::collections::HashSet;
-use std::io::{self, Read};
-use std::path::PathBuf;
+mod cli;
+mod commands;
+mod sync;
+mod tasks;
+mod themes;
+mod transcribe;
+mod util;
 
-#[derive(Parser)]
-#[command(name = "brana-query", about = "Fast JSON task filter for brana CLI")]
-struct Args {
-    /// Path to tasks.json (reads stdin if omitted)
-    #[arg(short, long)]
-    file: Option<PathBuf>,
-
-    /// Filter by tag
-    #[arg(short, long)]
-    tag: Option<String>,
-
-    /// Filter by classified status: done|active|pending|blocked|parked
-    #[arg(short, long)]
-    status: Option<String>,
-
-    /// Filter by stream
-    #[arg(long)]
-    stream: Option<String>,
-
-    /// Filter by priority: P0|P1|P2|P3
-    #[arg(short, long)]
-    priority: Option<String>,
-
-    /// Filter by effort: S|M|L|XL
-    #[arg(short, long)]
-    effort: Option<String>,
-
-    /// Free-text search across subject, description, context, notes
-    #[arg(long)]
-    search: Option<String>,
-
-    /// Task types to include (comma-separated, default: task,subtask)
-    #[arg(long, default_value = "task,subtask")]
-    types: String,
-
-    /// Output: json (default) or ids (one per line)
-    #[arg(long, default_value = "json")]
-    output: String,
-
-    /// Output count only
-    #[arg(long)]
-    count: bool,
-}
-
-#[derive(Deserialize)]
-struct TasksFile {
-    #[serde(default)]
-    tasks: Vec<Value>,
-}
-
-fn classify(task: &Value, all: &[Value]) -> &'static str {
-    match task["status"].as_str().unwrap_or("") {
-        "completed" | "cancelled" => "done",
-        "in_progress" => "active",
-        _ => {
-            if let Some(deps) = task["blocked_by"].as_array() {
-                if !deps.is_empty() {
-                    let done_ids: HashSet<&str> = all
-                        .iter()
-                        .filter(|t| matches!(t["status"].as_str(), Some("completed" | "cancelled")))
-                        .filter_map(|t| t["id"].as_str())
-                        .collect();
-                    if !deps.iter().all(|d| done_ids.contains(d.as_str().unwrap_or(""))) {
-                        return "blocked";
-                    }
-                }
-            }
-            if task["tags"]
-                .as_array()
-                .map_or(false, |t| t.iter().any(|v| v.as_str() == Some("parked")))
-            {
-                return "parked";
-            }
-            "pending"
-        }
-    }
-}
-
-fn text_match(task: &Value, needle: &str) -> bool {
-    let n = needle.to_lowercase();
-    ["subject", "description", "context", "notes"]
-        .iter()
-        .any(|f| {
-            task[f]
-                .as_str()
-                .map_or(false, |v| v.to_lowercase().contains(&n))
-        })
-}
+use clap::{Parser, ValueEnum};
+use cli::*;
 
 fn main() {
-    let args = Args::parse();
-    let types: Vec<&str> = args.types.split(',').collect();
+    let args = Cli::parse();
+    let theme_name = themes::load_theme_name();
+    let theme = themes::Theme::load(&theme_name);
 
-    let input = match &args.file {
-        Some(p) => std::fs::read_to_string(p).unwrap_or_else(|e| {
-            eprintln!("Error: {}: {}", p.display(), e);
-            std::process::exit(1);
-        }),
-        None => {
-            let mut buf = String::new();
-            io::stdin().read_to_string(&mut buf).unwrap_or_else(|e| {
-                eprintln!("Error reading stdin: {}", e);
-                std::process::exit(1);
-            });
-            buf
-        }
-    };
-
-    let tasks: Vec<Value> = serde_json::from_str::<TasksFile>(&input)
-        .map(|tf| tf.tasks)
-        .or_else(|_| serde_json::from_str::<Vec<Value>>(&input))
-        .unwrap_or_else(|_| {
-            eprintln!("Error: invalid JSON");
-            std::process::exit(1);
-        });
-
-    let results: Vec<&Value> = tasks
-        .iter()
-        .filter(|t| {
-            let tt = t["type"].as_str().unwrap_or("task");
-            if !types.contains(&tt) {
-                return false;
-            }
-            if let Some(ref s) = args.status {
-                if classify(t, &tasks) != s.as_str() {
-                    return false;
-                }
-            }
-            if let Some(ref tag) = args.tag {
-                let tags: Vec<&str> = t["tags"]
-                    .as_array()
-                    .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
-                    .unwrap_or_default();
-                if !tags.contains(&tag.as_str()) {
-                    return false;
-                }
-            }
-            if let Some(ref s) = args.stream {
-                if t["stream"].as_str().unwrap_or("") != s.as_str() {
-                    return false;
-                }
-            }
-            if let Some(ref p) = args.priority {
-                if t["priority"].as_str().unwrap_or("") != p.as_str() {
-                    return false;
-                }
-            }
-            if let Some(ref e) = args.effort {
-                if t["effort"].as_str().unwrap_or("") != e.as_str() {
-                    return false;
-                }
-            }
-            if let Some(ref q) = args.search {
-                if !text_match(t, q) {
-                    return false;
-                }
-            }
-            true
-        })
-        .collect();
-
-    if args.count {
-        println!("{}", results.len());
-    } else if args.output == "ids" {
-        for t in &results {
-            if let Some(id) = t["id"].as_str() {
-                println!("{}", id);
-            }
-        }
-    } else {
-        println!("{}", serde_json::to_string(&results).unwrap());
+    match args.command {
+        Commands::Version => commands::misc::cmd_version(),
+        Commands::Transcribe { file, model } => commands::misc::cmd_transcribe(&file, &model),
+        Commands::Doctor => commands::doctor::cmd_doctor(&theme),
+        Commands::Validate { file } => commands::misc::cmd_validate(&file),
+        Commands::Portfolio => commands::misc::cmd_portfolio(),
+        Commands::Run { task_id, spawn } => commands::run::cmd_run(&task_id, spawn),
+        Commands::Queue { max, auto } => commands::run::cmd_queue(max, auto),
+        Commands::Agents { cmd } => match cmd {
+            None => commands::run::cmd_agents(),
+            Some(AgentsCmd::Kill { agent_id }) => commands::run::cmd_agents_kill(&agent_id),
+        },
+        Commands::Backlog { cmd } => match cmd {
+            BacklogCmd::Next { tag, stream } => commands::backlog::cmd_next(&theme, tag, ve_str(&stream)),
+            BacklogCmd::Query {
+                tag, status, stream, priority, effort, search, count, output,
+                task_type, parent, branch,
+            } => commands::backlog::cmd_query(tag, ve_str(&status), ve_str(&stream), ve_str(&priority), ve_str(&effort), search, count, output, &theme, ve_str(&task_type), parent, branch),
+            BacklogCmd::Focus => commands::backlog::cmd_focus(&theme),
+            BacklogCmd::Search { text } => commands::backlog::cmd_search(&text, &theme),
+            BacklogCmd::Status { all, json } => commands::backlog::cmd_status(&theme, all, json),
+            BacklogCmd::Blocked => commands::backlog::cmd_blocked(&theme),
+            BacklogCmd::Stale { days } => commands::backlog::cmd_stale(days, &theme),
+            BacklogCmd::Context { task_id } => commands::backlog::cmd_context(&task_id, &theme),
+            BacklogCmd::Diff => commands::backlog::cmd_diff(&theme),
+            BacklogCmd::Burndown { period } => commands::backlog::cmd_burndown(&period.to_possible_value().unwrap().get_name().to_string(), &theme),
+            BacklogCmd::Rollup { file, dry_run } => commands::backlog::cmd_rollup(file, dry_run),
+            BacklogCmd::Set { task_id, field, value, append, file } => commands::backlog::cmd_set(&task_id, &field, &value, append, file),
+            BacklogCmd::Add { json, file } => commands::backlog::cmd_add(&json, file),
+            BacklogCmd::Get { task_id, field } => commands::backlog::cmd_get(&task_id, field),
+            BacklogCmd::Stats => commands::backlog::cmd_stats(),
+            BacklogCmd::Tags { filter, any, output } => commands::backlog::cmd_tags(filter, any, output, &theme),
+            BacklogCmd::Roadmap { json } => commands::backlog::cmd_roadmap(json, &theme),
+            BacklogCmd::Tree { root_id, json } => commands::backlog::cmd_tree(&root_id, json, &theme),
+            BacklogCmd::Sync { dry_run, force, parallel } => sync::cmd_sync(dry_run, force, parallel),
+        },
+        Commands::Ops { cmd } => match cmd {
+            OpsCmd::Status => commands::ops::cmd_ops_status(&theme),
+            OpsCmd::Health => commands::ops::cmd_ops_health(&theme),
+            OpsCmd::Collisions => commands::ops::cmd_ops_collisions(&theme),
+            OpsCmd::Drift => commands::ops::cmd_ops_drift(&theme),
+            OpsCmd::Logs { job_name, tail } => commands::ops::cmd_ops_logs(&job_name, tail),
+            OpsCmd::History { job_name, last } => commands::ops::cmd_ops_history(&job_name, last, &theme),
+            OpsCmd::Run { job_name } => commands::ops::cmd_ops_run(&job_name),
+            OpsCmd::Enable { job_name } => commands::ops::cmd_ops_toggle(&job_name, true),
+            OpsCmd::Disable { job_name } => commands::ops::cmd_ops_toggle(&job_name, false),
+            OpsCmd::Sync { auto_commit, direction } => commands::ops::cmd_ops_sync(&direction, auto_commit),
+            OpsCmd::Reindex => commands::ops::cmd_ops_reindex(),
+            OpsCmd::Metrics { session_file } => commands::ops::cmd_ops_metrics(&session_file),
+        },
     }
 }

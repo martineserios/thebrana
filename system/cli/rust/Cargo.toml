@@ -6,11 +6,11 @@ description = "Brana CLI — fast standalone terminal interface"
 
 [[bin]]
 name = "brana"
-path = "src/cli.rs"
+path = "src/main.rs"
 
 [[bin]]
 name = "brana-query"
-path = "src/main.rs"
+path = "src/query.rs"
 
 [[bin]]
 name = "brana-fmt"
