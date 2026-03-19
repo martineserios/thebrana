@@ -1,10 +1,10 @@
 //! brana inbox — Gmail newsletter subscription management via IMAP.
 //!
-//! Config: ~/.claude/scheduler/inbox.json
-//! State:  ~/.claude/scheduler/state/inbox.json
+//! Config: ~/.claude/scheduler/inbox.json (multi-account)
+//! State:  ~/.claude/scheduler/state/inbox-{account}.json
 //! Log:    ~/.claude/scheduler/inbox-log.jsonl
 //!
-//! Credentials via env vars: BRANA_GMAIL_USER, BRANA_GMAIL_APP_PASSWORD
+//! Credentials via env vars per account (e.g., BRANA_GMAIL_USER, BRANA_GMAIL_APP_PASSWORD)
 
 use crate::cli::InboxCmd;
 use anyhow::{Context, Result};
@@ -18,23 +18,34 @@ use std::path::PathBuf;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InboxConfig {
+    pub accounts: Vec<Account>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Account {
+    pub name: String,
     pub imap_host: String,
     pub imap_port: u16,
     pub user_env: String,
     pub password_env: String,
     pub label: String,
+    pub enabled: bool,
     pub subscriptions: Vec<Subscription>,
 }
 
 impl Default for InboxConfig {
     fn default() -> Self {
         Self {
-            imap_host: "imap.gmail.com".into(),
-            imap_port: 993,
-            user_env: "BRANA_GMAIL_USER".into(),
-            password_env: "BRANA_GMAIL_APP_PASSWORD".into(),
-            label: "Newsletters".into(),
-            subscriptions: Vec::new(),
+            accounts: vec![Account {
+                name: "default".into(),
+                imap_host: "imap.gmail.com".into(),
+                imap_port: 993,
+                user_env: "BRANA_GMAIL_USER".into(),
+                password_env: "BRANA_GMAIL_APP_PASSWORD".into(),
+                label: "Newsletters".into(),
+                enabled: true,
+                subscriptions: Vec::new(),
+            }],
         }
     }
 }
@@ -74,8 +85,8 @@ fn inbox_config_path() -> PathBuf {
     dirs_home().join(".claude/scheduler/inbox.json")
 }
 
-fn inbox_state_path() -> PathBuf {
-    dirs_home().join(".claude/scheduler/state/inbox.json")
+fn inbox_state_path(account: &str) -> PathBuf {
+    dirs_home().join(format!(".claude/scheduler/state/inbox-{account}.json"))
 }
 
 fn inbox_log_path() -> PathBuf {
@@ -107,17 +118,17 @@ fn save_config(config: &InboxConfig) -> Result<()> {
     Ok(())
 }
 
-fn load_state() -> InboxState {
-    let path = inbox_state_path();
+fn load_state(account: &str) -> InboxState {
+    let path = inbox_state_path(account);
     match fs::read_to_string(&path) {
         Ok(data) => serde_json::from_str(&data).unwrap_or_default(),
         Err(_) => InboxState::default(),
     }
 }
 
-fn save_state(state: &InboxState) -> Result<()> {
+fn save_state(account: &str, state: &InboxState) -> Result<()> {
     ensure_state_dir();
-    let path = inbox_state_path();
+    let path = inbox_state_path(account);
     let tmp = path.with_extension("tmp");
     let json = serde_json::to_string_pretty(state)?;
     fs::write(&tmp, &json)?;
@@ -129,11 +140,12 @@ fn save_state(state: &InboxState) -> Result<()> {
 
 pub fn cmd_inbox(cmd: InboxCmd) {
     let result = match cmd {
-        InboxCmd::Add { name, from, frequency } => cmd_add(&name, &from, &frequency),
+        InboxCmd::Add { name, from, frequency, account } => cmd_add(&name, &from, &frequency, account.as_deref()),
         InboxCmd::List => cmd_list(),
-        InboxCmd::Poll { label } => cmd_poll(&label),
+        InboxCmd::Poll { label, account } => cmd_poll(label.as_deref(), account.as_deref()),
         InboxCmd::Remove { name } => cmd_remove(&name),
         InboxCmd::Status => cmd_status(),
+        InboxCmd::AddAccount { name, user_env, pass_env, label } => cmd_add_account(&name, &user_env, &pass_env, &label),
     };
     if let Err(e) = result {
         eprintln!("error: {e:#}");
@@ -141,42 +153,87 @@ pub fn cmd_inbox(cmd: InboxCmd) {
     }
 }
 
-fn cmd_add(name: &str, from: &str, frequency: &str) -> Result<()> {
+fn find_account_mut<'a>(config: &'a mut InboxConfig, name: Option<&str>) -> Result<&'a mut Account> {
+    match name {
+        Some(n) => config.accounts.iter_mut()
+            .find(|a| a.name == n)
+            .with_context(|| format!("account '{n}' not found")),
+        None => config.accounts.first_mut()
+            .context("no accounts configured — run `brana inbox add-account` first"),
+    }
+}
+
+fn cmd_add_account(name: &str, user_env: &str, pass_env: &str, label: &str) -> Result<()> {
+    let mut config = load_config();
+    if config.accounts.iter().any(|a| a.name == name) {
+        anyhow::bail!("account '{name}' already exists");
+    }
+    config.accounts.push(Account {
+        name: name.to_string(),
+        imap_host: "imap.gmail.com".into(),
+        imap_port: 993,
+        user_env: user_env.to_string(),
+        password_env: pass_env.to_string(),
+        label: label.to_string(),
+        enabled: true,
+        subscriptions: Vec::new(),
+    });
+    save_config(&config)?;
+    println!("{{\"ok\":true,\"account\":\"{name}\",\"user_env\":\"{user_env}\",\"pass_env\":\"{pass_env}\"}}");
+    Ok(())
+}
+
+fn cmd_add(name: &str, from: &str, frequency: &str, account: Option<&str>) -> Result<()> {
     let valid = ["daily", "weekly", "monthly"];
     if !valid.contains(&frequency) {
         anyhow::bail!("frequency must be daily, weekly, or monthly — got '{frequency}'");
     }
 
     let mut config = load_config();
-    if config.subscriptions.iter().any(|s| s.name == name) {
+
+    // Check across all accounts for duplicate
+    if config.accounts.iter().any(|a| a.subscriptions.iter().any(|s| s.name == name)) {
         anyhow::bail!("subscription '{name}' already exists");
     }
 
-    config.subscriptions.push(Subscription {
+    let acct = find_account_mut(&mut config, account)?;
+    acct.subscriptions.push(Subscription {
         name: name.to_string(),
         from: from.to_string(),
         frequency: frequency.to_string(),
         enabled: true,
     });
+    let acct_name = acct.name.clone();
     save_config(&config)?;
 
-    println!("{{\"ok\":true,\"name\":\"{name}\",\"from\":\"{from}\",\"frequency\":\"{frequency}\"}}");
+    println!("{{\"ok\":true,\"name\":\"{name}\",\"from\":\"{from}\",\"frequency\":\"{frequency}\",\"account\":\"{acct_name}\"}}");
     Ok(())
 }
 
 fn cmd_list() -> Result<()> {
     let config = load_config();
-    let json = serde_json::to_string_pretty(&config.subscriptions)?;
-    println!("{json}");
+    let result: Vec<_> = config.accounts.iter().map(|a| {
+        serde_json::json!({
+            "account": a.name,
+            "enabled": a.enabled,
+            "label": a.label,
+            "subscriptions": a.subscriptions,
+        })
+    }).collect();
+    println!("{}", serde_json::to_string_pretty(&result)?);
     Ok(())
 }
 
 fn cmd_remove(name: &str) -> Result<()> {
     let mut config = load_config();
-    let before = config.subscriptions.len();
-    config.subscriptions.retain(|s| s.name != name);
-    if config.subscriptions.len() == before {
-        anyhow::bail!("subscription '{name}' not found");
+    let mut found = false;
+    for acct in &mut config.accounts {
+        let before = acct.subscriptions.len();
+        acct.subscriptions.retain(|s| s.name != name);
+        if acct.subscriptions.len() < before { found = true; }
+    }
+    if !found {
+        anyhow::bail!("subscription '{name}' not found in any account");
     }
     save_config(&config)?;
     println!("{{\"ok\":true,\"removed\":\"{name}\"}}");
@@ -185,53 +242,89 @@ fn cmd_remove(name: &str) -> Result<()> {
 
 fn cmd_status() -> Result<()> {
     let config = load_config();
-    let state = load_state();
-    let result = serde_json::json!({
-        "subscriptions": config.subscriptions.len(),
-        "last_poll": state.last_poll,
-        "last_uid": state.last_uid,
-        "unmatched_count": state.unmatched_count,
-        "details": config.subscriptions.iter().map(|s| {
-            serde_json::json!({
-                "name": s.name,
-                "from": s.from,
-                "frequency": s.frequency,
-                "enabled": s.enabled,
-            })
-        }).collect::<Vec<_>>(),
-    });
-    println!("{}", serde_json::to_string_pretty(&result)?);
+    let mut results = Vec::new();
+    for acct in &config.accounts {
+        let state = load_state(&acct.name);
+        results.push(serde_json::json!({
+            "account": acct.name,
+            "enabled": acct.enabled,
+            "subscriptions": acct.subscriptions.len(),
+            "last_poll": state.last_poll,
+            "last_uid": state.last_uid,
+            "unmatched_count": state.unmatched_count,
+            "details": acct.subscriptions.iter().map(|s| {
+                serde_json::json!({
+                    "name": s.name,
+                    "from": s.from,
+                    "frequency": s.frequency,
+                    "enabled": s.enabled,
+                })
+            }).collect::<Vec<_>>(),
+        }));
+    }
+    println!("{}", serde_json::to_string_pretty(&results)?);
     Ok(())
 }
 
-fn cmd_poll(label: &str) -> Result<()> {
+fn cmd_poll(label_override: Option<&str>, account_filter: Option<&str>) -> Result<()> {
     let config = load_config();
-    let mut state = load_state();
+    let targets: Vec<&Account> = match account_filter {
+        Some(name) => {
+            let acct = config.accounts.iter().find(|a| a.name == name)
+                .with_context(|| format!("account '{name}' not found"))?;
+            vec![acct]
+        }
+        None => config.accounts.iter().filter(|a| a.enabled).collect(),
+    };
+
+    let mut all_results = Vec::new();
+    for acct in targets {
+        match poll_account(acct, label_override) {
+            Ok(result) => all_results.push(result),
+            Err(e) => {
+                all_results.push(serde_json::json!({
+                    "account": acct.name,
+                    "new_emails": 0,
+                    "matched": 0,
+                    "unmatched": 0,
+                    "status": "error",
+                    "error": format!("{e:#}"),
+                }));
+            }
+        }
+    }
+
+    println!("{}", serde_json::to_string_pretty(&all_results)?);
+    Ok(())
+}
+
+fn poll_account(acct: &Account, label_override: Option<&str>) -> Result<serde_json::Value> {
+    let mut state = load_state(&acct.name);
+    let label = label_override.unwrap_or(&acct.label);
 
     // Read credentials from env
-    let user = std::env::var(&config.user_env)
-        .with_context(|| format!("set {} env var with your Gmail address", config.user_env))?;
-    let password = std::env::var(&config.password_env)
-        .with_context(|| format!("set {} env var with your Gmail App Password", config.password_env))?;
+    let user = std::env::var(&acct.user_env)
+        .with_context(|| format!("set {} env var with your Gmail address", acct.user_env))?;
+    let password = std::env::var(&acct.password_env)
+        .with_context(|| format!("set {} env var with your Gmail App Password", acct.password_env))?;
 
     // Connect via IMAP over TLS
     let tls = native_tls::TlsConnector::builder().build()
         .context("building TLS connector")?;
     let client = imap::connect(
-        (&*config.imap_host, config.imap_port),
-        &config.imap_host,
+        (&*acct.imap_host, acct.imap_port),
+        &acct.imap_host,
         &tls,
     ).context("connecting to IMAP server")?;
 
     let mut session = client.login(&user, &password)
-        .map_err(|e| anyhow::anyhow!("IMAP login failed: {}", e.0))?;
+        .map_err(|e| anyhow::anyhow!("IMAP login failed for {}: {}", acct.name, e.0))?;
 
     // Select the label/folder
     let mailbox_name = format!("[Gmail]/{label}");
-    // Try the Gmail-style label first, fall back to plain label name
     let _mailbox = session.select(&mailbox_name)
         .or_else(|_| session.select(label))
-        .with_context(|| format!("selecting mailbox '{label}' (also tried '{mailbox_name}')"))?;
+        .with_context(|| format!("selecting mailbox '{label}' on account '{}'", acct.name))?;
 
     // Search for unseen messages
     let uids = session.uid_search("UNSEEN")
@@ -240,10 +333,11 @@ fn cmd_poll(label: &str) -> Result<()> {
     if uids.is_empty() {
         state.last_poll = Some(Utc::now().to_rfc3339());
         state.unmatched_count = 0;
-        save_state(&state)?;
+        save_state(&acct.name, &state)?;
         session.logout().ok();
-        println!("{{\"new_emails\":0,\"matched\":0,\"unmatched\":0}}");
-        return Ok(());
+        return Ok(serde_json::json!({
+            "account": acct.name, "new_emails": 0, "matched": 0, "unmatched": 0, "status": "ok"
+        }));
     }
 
     // Fetch headers for unseen messages
@@ -265,14 +359,12 @@ fn cmd_poll(label: &str) -> Result<()> {
         let subject = extract_header(&header_str, "Subject");
         let date = extract_header(&header_str, "Date");
 
-        // Match against subscriptions
-        let sub_match = config.subscriptions.iter()
+        let sub_match = acct.subscriptions.iter()
             .find(|s| s.enabled && from.to_lowercase().contains(&s.from.to_lowercase()));
 
         let is_matched = sub_match.is_some();
         if is_matched { matched += 1; } else { unmatched += 1; }
 
-        // Log entry
         let log_entry = InboxLogEntry {
             subscription: sub_match.map(|s| s.name.clone()),
             from: from.clone(),
@@ -291,7 +383,6 @@ fn cmd_poll(label: &str) -> Result<()> {
             }
         }
 
-        // Track highest UID
         if let Some(uid) = msg.uid {
             if uid > state.last_uid {
                 state.last_uid = uid;
@@ -301,15 +392,16 @@ fn cmd_poll(label: &str) -> Result<()> {
 
     state.last_poll = Some(Utc::now().to_rfc3339());
     state.unmatched_count = unmatched;
-    save_state(&state)?;
+    save_state(&acct.name, &state)?;
     session.logout().ok();
 
-    println!("{}", serde_json::to_string_pretty(&serde_json::json!({
+    Ok(serde_json::json!({
+        "account": acct.name,
         "new_emails": uids.len(),
         "matched": matched,
         "unmatched": unmatched,
-    }))?);
-    Ok(())
+        "status": "ok",
+    }))
 }
 
 /// Extract a header value from raw header text.
@@ -338,25 +430,28 @@ mod tests {
     #[test]
     fn test_inbox_config_default() {
         let config = InboxConfig::default();
-        assert_eq!(config.imap_host, "imap.gmail.com");
-        assert_eq!(config.imap_port, 993);
-        assert_eq!(config.user_env, "BRANA_GMAIL_USER");
-        assert_eq!(config.password_env, "BRANA_GMAIL_APP_PASSWORD");
-        assert_eq!(config.label, "Newsletters");
-        assert!(config.subscriptions.is_empty());
+        assert_eq!(config.accounts.len(), 1);
+        let acct = &config.accounts[0];
+        assert_eq!(acct.name, "default");
+        assert_eq!(acct.imap_host, "imap.gmail.com");
+        assert_eq!(acct.imap_port, 993);
+        assert_eq!(acct.user_env, "BRANA_GMAIL_USER");
+        assert_eq!(acct.password_env, "BRANA_GMAIL_APP_PASSWORD");
+        assert_eq!(acct.label, "Newsletters");
+        assert!(acct.subscriptions.is_empty());
     }
 
     #[test]
     fn test_subscription_crud() {
         let _tmp = with_temp_home();
 
-        // Empty initially
+        // Default has one account with empty subs
         let config = load_config();
-        assert!(config.subscriptions.is_empty());
+        assert!(config.accounts[0].subscriptions.is_empty());
 
-        // Add subscription
+        // Add subscription to first account
         let mut config = load_config();
-        config.subscriptions.push(Subscription {
+        config.accounts[0].subscriptions.push(Subscription {
             name: "test-sub".into(),
             from: "test@example.com".into(),
             frequency: "weekly".into(),
@@ -366,15 +461,39 @@ mod tests {
 
         // Verify persisted
         let config = load_config();
-        assert_eq!(config.subscriptions.len(), 1);
-        assert_eq!(config.subscriptions[0].name, "test-sub");
-        assert_eq!(config.subscriptions[0].from, "test@example.com");
+        assert_eq!(config.accounts[0].subscriptions.len(), 1);
+        assert_eq!(config.accounts[0].subscriptions[0].name, "test-sub");
+        assert_eq!(config.accounts[0].subscriptions[0].from, "test@example.com");
 
         // Remove
         let mut config = load_config();
-        config.subscriptions.retain(|s| s.name != "test-sub");
+        config.accounts[0].subscriptions.retain(|s| s.name != "test-sub");
         save_config(&config).unwrap();
-        assert!(load_config().subscriptions.is_empty());
+        assert!(load_config().accounts[0].subscriptions.is_empty());
+    }
+
+    #[test]
+    fn test_multi_account_config() {
+        let _tmp = with_temp_home();
+
+        let mut config = load_config();
+        config.accounts.push(Account {
+            name: "work".into(),
+            imap_host: "imap.gmail.com".into(),
+            imap_port: 993,
+            user_env: "BRANA_WORK_USER".into(),
+            password_env: "BRANA_WORK_PASS".into(),
+            label: "Newsletters".into(),
+            enabled: true,
+            subscriptions: vec![],
+        });
+        save_config(&config).unwrap();
+
+        let loaded = load_config();
+        assert_eq!(loaded.accounts.len(), 2);
+        assert_eq!(loaded.accounts[0].name, "default");
+        assert_eq!(loaded.accounts[1].name, "work");
+        assert_eq!(loaded.accounts[1].user_env, "BRANA_WORK_USER");
     }
 
     #[test]
@@ -386,18 +505,31 @@ mod tests {
             last_uid: 4523,
             unmatched_count: 2,
         };
-        save_state(&state).unwrap();
+        save_state("default", &state).unwrap();
 
-        let loaded = load_state();
+        let loaded = load_state("default");
         assert_eq!(loaded.last_uid, 4523);
         assert_eq!(loaded.unmatched_count, 2);
         assert_eq!(loaded.last_poll, Some("2026-03-19T16:00:00Z".into()));
     }
 
     #[test]
+    fn test_per_account_state_isolation() {
+        let _tmp = with_temp_home();
+
+        let state1 = InboxState { last_poll: None, last_uid: 100, unmatched_count: 0 };
+        let state2 = InboxState { last_poll: None, last_uid: 200, unmatched_count: 3 };
+        save_state("personal", &state1).unwrap();
+        save_state("work", &state2).unwrap();
+
+        assert_eq!(load_state("personal").last_uid, 100);
+        assert_eq!(load_state("work").last_uid, 200);
+    }
+
+    #[test]
     fn test_inbox_state_missing_returns_default() {
         let _tmp = with_temp_home();
-        let state = load_state();
+        let state = load_state("nonexistent");
         assert!(state.last_poll.is_none());
         assert_eq!(state.last_uid, 0);
         assert_eq!(state.unmatched_count, 0);
@@ -483,8 +615,8 @@ mod tests {
         let _tmp = with_temp_home();
 
         let mut config = InboxConfig::default();
-        config.label = "CustomLabel".into();
-        config.subscriptions.push(Subscription {
+        config.accounts[0].label = "CustomLabel".into();
+        config.accounts[0].subscriptions.push(Subscription {
             name: "test".into(),
             from: "a@b.com".into(),
             frequency: "daily".into(),
@@ -493,8 +625,8 @@ mod tests {
         save_config(&config).unwrap();
 
         let loaded = load_config();
-        assert_eq!(loaded.imap_host, "imap.gmail.com");
-        assert_eq!(loaded.label, "CustomLabel");
-        assert_eq!(loaded.subscriptions.len(), 1);
+        assert_eq!(loaded.accounts[0].imap_host, "imap.gmail.com");
+        assert_eq!(loaded.accounts[0].label, "CustomLabel");
+        assert_eq!(loaded.accounts[0].subscriptions.len(), 1);
     }
 }

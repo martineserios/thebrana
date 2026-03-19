@@ -428,14 +428,20 @@ pub enum InboxCmd {
         /// Expected frequency: daily, weekly, monthly
         #[arg(long, default_value = "weekly")]
         frequency: String,
+        /// Account name (default: first account)
+        #[arg(long)]
+        account: Option<String>,
     },
     /// List registered newsletter subscriptions
     List,
     /// Poll Gmail for new newsletter emails
     Poll {
-        /// Gmail label/folder to check (default: Newsletters)
-        #[arg(long, default_value = "Newsletters")]
-        label: String,
+        /// Gmail label/folder to check (overrides account label)
+        #[arg(long)]
+        label: Option<String>,
+        /// Poll only this account (default: all enabled)
+        #[arg(long)]
+        account: Option<String>,
     },
     /// Remove a newsletter subscription
     Remove {
@@ -444,4 +450,18 @@ pub enum InboxCmd {
     },
     /// Show arrival stats (expected vs actual per subscription)
     Status,
+    /// Add a Gmail account
+    AddAccount {
+        /// Account name (e.g., "personal", "work")
+        name: String,
+        /// Env var name for Gmail user (e.g., BRANA_WORK_USER)
+        #[arg(long)]
+        user_env: String,
+        /// Env var name for App Password (e.g., BRANA_WORK_PASS)
+        #[arg(long)]
+        pass_env: String,
+        /// Gmail label to poll (default: Newsletters)
+        #[arg(long, default_value = "Newsletters")]
+        label: String,
+    },
 }
