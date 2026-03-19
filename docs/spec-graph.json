@@ -1,9 +1,9 @@
 {
   "_meta": {
-    "generated": "2026-03-19T01:33:50Z",
+    "generated": "2026-03-19T13:09:26Z",
     "node_count": 179,
     "edge_count": 527,
-    "impl_ref_count": 232,
+    "impl_ref_count": 234,
     "orphan_count": 86,
     "typed_edge_count": 0
   },
@@ -959,7 +959,10 @@
         "docs/architecture/guide/cli.md"
       ],
       "referenced_by": [],
-      "impl_files": [],
+      "impl_files": [
+        "system/cli/rust/src/files.rs",
+        "system/cli/rust/src/commands/files.rs"
+      ],
       "guide_files": [],
       "arch_files": [],
       "ref_files": []
@@ -1117,11 +1120,11 @@
       "impl_files": [
         "system/cli/rust/src/tasks.rs`",
         "system/cli/rust/src/cli.rs`",
+        "system/cli/rust/src/commands/run.rs`",
+        "system/cli/rust/src/main.rs`",
         "system/cli/rust/Cargo.toml`"
       ],
-      "guide_files": [
-        "docs/guide/cli.md"
-      ],
+      "guide_files": [],
       "arch_files": [
         "docs/architecture/features/github-issues-sync.md"
       ],
@@ -2246,18 +2249,13 @@
       "referenced_by": [],
       "impl_files": [
         "system/cli/themes.json`",
-        "system/scheduler/scheduler.template.json`",
-        "system/cli/rust/Cargo.toml`",
         "system/cli/rust"
       ],
       "guide_files": [],
       "arch_files": [
-        "docs/architecture/decisions/ADR-022-brana-cli.md",
-        "docs/architecture/features/mission-control-cli.md"
+        "docs/architecture/decisions/ADR-022-brana-cli.md"
       ],
-      "ref_files": [
-        "docs/reference/configuration.md"
-      ]
+      "ref_files": []
     },
     "docs/guide/commands/index.md": {
       "references": [],
@@ -2712,7 +2710,6 @@
         "system/skills/`"
       ],
       "guide_files": [
-        "docs/guide/cli.md",
         "docs/guide/configuration.md"
       ],
       "arch_files": [

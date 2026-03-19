@@ -15,7 +15,7 @@ No way to check task status, scheduler health, or system state from a terminal w
 
 **Context:** t-424 spike evaluated CLI frameworks. Python (typer+rich) was initially selected, but t-427 spike revealed that a Rust implementation provided faster startup (~12ms vs ~200ms), smaller deployment (single binary), and better long-term maintainability. Rust was adopted before v1 shipped.
 
-**Decision:** Build `brana` CLI as a Rust binary, deeply integrated with `/brana:backlog` theme system and data model. Two command groups: `backlog` (task management) and `ops` (scheduler/system operations), plus top-level utilities (doctor, validate, portfolio, run, queue, agents, version). Both read and write operations are supported — writes include `set`, `add`, `rollup`, and `sync`.
+**Decision:** Build `brana` CLI as a Rust binary, deeply integrated with `/brana:backlog` theme system and data model. Three command groups: `backlog` (task management), `ops` (scheduler/system operations), and `files` (large file tracking via `.brana-files.json`), plus top-level utilities (doctor, validate, portfolio, run, queue, agents, version). Both read and write operations are supported — writes include `set`, `add`, `rollup`, `sync`, and all `files` mutations.
 
 **Consequences:** Terminal-native access, consistent themed output, fast startup, single-binary deployment, shell completions.
 
@@ -73,7 +73,19 @@ No way to check task status, scheduler health, or system state from a terminal w
 | `reindex` | — | Reindex knowledge (wraps index-knowledge.sh) | **Write** |
 | `metrics` | — | Compute session metrics from JSONL event file | Read |
 
-### `brana` top-level — 7 subcommands
+### `brana files` — 5 subcommands
+
+| Command | Args | Description | Read/Write |
+|---------|------|-------------|------------|
+| `list` | — | List all tracked large files from `.brana-files.json` | Read |
+| `status` | — | Show ok/missing/modified state of tracked files | Read |
+| `add` | `<name> <path> [--url U] [--r2-key K]` | Register a file with SHA-256 hash | **Write** |
+| `pull` | — | Download missing/modified files from remote URLs | **Write** |
+| `push` | `[--remote R]` | Upload tracked files to R2 via rclone | **Write** |
+
+Implementation: [system/cli/rust/src/files.rs](../../../system/cli/rust/src/files.rs) (data model, manifest I/O, SHA-256 verification), [system/cli/rust/src/commands/files.rs](../../../system/cli/rust/src/commands/files.rs) (CLI handlers).
+
+### `brana` top-level — 8 subcommands
 
 | Command | Description |
 |---------|-------------|
@@ -83,6 +95,7 @@ No way to check task status, scheduler health, or system state from a terminal w
 | `run` | Run a task: create worktree, print claude command, set in_progress |
 | `queue` | Show next unblocked tasks with model recommendations, optionally auto-spawn |
 | `agents` | List or manage active agents |
+| `files` | Large file tracking via `.brana-files.json` manifest (SHA-256, HTTP/R2 remotes) |
 | `version` | Show brana system version, plugin version, ruflo version |
 
 ## Research
@@ -192,8 +205,23 @@ system/cli/
 ├── rust/
 │   ├── Cargo.toml   # brana binary
 │   ├── src/
-│   │   ├── main.rs  # entry point
-│   │   └── cli.rs   # all subcommands (backlog, ops, root)
+│   │   ├── main.rs        # entry point
+│   │   ├── cli.rs         # arg parsing (clap derive)
+│   │   ├── files.rs       # large file manifest model + SHA-256 verification
+│   │   ├── tasks.rs       # task data model
+│   │   ├── query.rs       # task query/filter engine
+│   │   ├── fmt.rs         # themed output formatting
+│   │   ├── themes.rs      # theme loading
+│   │   ├── sync.rs        # GitHub Issues sync
+│   │   ├── util.rs        # shared utilities
+│   │   └── commands/
+│   │       ├── mod.rs     # command module registry
+│   │       ├── backlog.rs # brana backlog subcommands
+│   │       ├── files.rs   # brana files subcommands (list, status, add, pull, push)
+│   │       ├── ops.rs     # brana ops subcommands
+│   │       ├── run.rs     # brana run
+│   │       ├── doctor.rs  # brana doctor
+│   │       └── misc.rs    # portfolio, queue, agents, version, validate
 │   └── target/release/brana  # compiled binary
 ├── themes.json      # canonical icon/style definitions (single source of truth)
 └── aliases.sh       # shell aliases + pipeline functions
