@@ -45,7 +45,12 @@ impl std::str::FromStr for ModelSize {
 }
 
 /// Get the model file path, downloading if needed.
+/// Checks .brana-files.json manifest first, falls back to HuggingFace.
 fn ensure_model(size: &ModelSize) -> Result<PathBuf> {
+    if let Some(path) = try_manifest_model(size) {
+        return Ok(path);
+    }
+
     let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
     let dir = PathBuf::from(home).join(".cache").join("whisper-models");
     std::fs::create_dir_all(&dir)?;
@@ -67,6 +72,44 @@ fn ensure_model(size: &ModelSize) -> Result<PathBuf> {
         bail!("failed to download model from {url}");
     }
     Ok(model_path)
+}
+
+fn try_manifest_model(size: &ModelSize) -> Option<PathBuf> {
+    use crate::files;
+    use crate::util::find_project_root;
+
+    let root = find_project_root()?;
+    let manifest = files::Manifest::load(&root).ok()?;
+    let model_name = size.ggml_filename();
+
+    for (_name, entry) in &manifest.files {
+        if entry.path.contains(model_name) {
+            let full_path = if Path::new(&entry.path).is_absolute() {
+                PathBuf::from(&entry.path)
+            } else {
+                root.join(&entry.path)
+            };
+
+            if full_path.exists() {
+                if let Ok(hash) = files::file_sha256(&full_path) {
+                    if hash == entry.sha256 {
+                        eprintln!("Using manifest-tracked model: {}", entry.path);
+                        return Some(full_path);
+                    }
+                }
+            } else if let Some(url) = &entry.url {
+                eprintln!("Downloading tracked model: {}", entry.path);
+                if files::download_file(url, &full_path).is_ok() {
+                    if let Ok(hash) = files::file_sha256(&full_path) {
+                        if hash == entry.sha256 {
+                            return Some(full_path);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    None
 }
 
 /// Convert audio to WAV 16kHz mono if needed (whisper-cli needs wav for some formats).

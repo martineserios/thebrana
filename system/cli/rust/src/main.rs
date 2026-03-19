@@ -6,6 +6,7 @@
 
 mod cli;
 mod commands;
+mod files;
 mod sync;
 mod tasks;
 mod themes;
@@ -23,6 +24,7 @@ fn main() {
     match args.command {
         Commands::Version => commands::misc::cmd_version(),
         Commands::Transcribe { file, model } => commands::misc::cmd_transcribe(&file, &model),
+        Commands::Files { cmd } => commands::files::cmd_files(cmd),
         Commands::Doctor => commands::doctor::cmd_doctor(&theme),
         Commands::Validate { file } => commands::misc::cmd_validate(&file),
         Commands::Portfolio => commands::misc::cmd_portfolio(),
