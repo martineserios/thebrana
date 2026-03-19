@@ -538,6 +538,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_multi_account_config() {
         let _tmp = with_temp_home();
 
