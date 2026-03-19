@@ -33,7 +33,7 @@ Managing 5+ projects across terminal screens requires constant manual switching.
 - Creates git worktree + branch from task metadata
 - Sets task: status=in_progress, started=today, branch
 - Prints the claude command to run
-- Pure logic in tasks.rs with 13 unit tests
+- Pure logic in tasks.rs with 81 unit tests (74 task + 7 file-tracking)
 
 ### Phase 1 — `brana run <task-id> --spawn`
 - Spawns claude in a new tmux window

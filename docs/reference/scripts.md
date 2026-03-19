@@ -231,6 +231,66 @@ Scheduled weekly (Mon 10:00) via `~/.claude/scheduler/scheduler.json` → `cc-ch
 
 ---
 
+## gh-sync.sh
+
+| Field | Value |
+|-------|-------|
+| **Purpose** | Sync tasks.json with GitHub Issues via `gh` CLI |
+| **Usage** | `gh-sync.sh <subcommand> [args]` |
+| **Dependencies** | `gh` CLI, `jq` |
+
+Subcommands: `create <task-id> <tasks-json>`, `close <issue-number>`, `update <task-id> <tasks-json>`, `pull-context <issue-number>`. Used by the PostToolUse hook (`task-sync.sh`) and by `brana backlog sync` (Rust CLI).
+
+---
+
+## index-assumptions.sh
+
+| Field | Value |
+|-------|-------|
+| **Purpose** | Index assumptions and field notes from docs into ruflo memory |
+| **Usage** | `index-assumptions.sh` |
+| **Dependencies** | ruflo with embeddings |
+
+Creates/populates three namespaces (ADR-021): `assumptions` (tracked claims from ADR frontmatter), `field-notes` (learnings from doc Field Notes sections), `decisions` (ADR summaries).
+
+---
+
+## second-phase-check.sh
+
+| Field | Value |
+|-------|-------|
+| **Purpose** | Weekly check for time-gated second-phase tasks (ADR-021) |
+| **Usage** | `second-phase-check.sh [--dry-run]` |
+| **Dependencies** | `jq`, tasks.json |
+
+Reads tasks tagged "second-phase" or with soak gates. When a trigger condition is met, sets priority to P2 and updates context. Scheduled weekly (Mon 09:10).
+
+---
+
+## sync-state.sh
+
+| Field | Value |
+|-------|-------|
+| **Purpose** | Unified brana state sync (ADR-015) |
+| **Usage** | `sync-state.sh <push|pull|export|import> [--auto-commit]` |
+| **Dependencies** | ruflo (for export/import), git |
+
+Subcommands: `push` (cache → repos), `pull` (repos → cache), `export` (ruflo → repo JSON), `import` (repo JSON → ruflo). Used by session-start hook and daily scheduler.
+
+---
+
+## task-id-lock.sh
+
+| Field | Value |
+|-------|-------|
+| **Purpose** | Prevent task ID collisions across parallel worktree sessions |
+| **Usage** | `task-id-lock.sh next-id <repo-path> <prefix>` |
+| **Dependencies** | `flock` |
+
+Uses `flock` on a shared lock file in `$GIT_COMMON_DIR` (shared across all worktrees). Returns the next available ID number. Called by the CLI when creating tasks.
+
+---
+
 ## backup-knowledge.sh
 
 | Field | Value |
