@@ -1566,3 +1566,19 @@ Respond.io action prompts have a hard 1,000-char limit. Agent 3's Assign action 
 | 10 | session-start-venture.sh | Extra | Orphaned hook — not in hooks.json, session-start.sh handles venture detection | Applied — removed |
 
 **Notes:** Broad reconcile after multi-session drift. CLI feature doc required a full rewrite (Rust replaced Python before v1 shipped but doc was never updated). The PLAN→DECOMPOSE rename from t-505 hadn't propagated to reference docs. ReasoningBank→ruflo memory was a leftover from the ruflo rename that missed these 15 docs.
+
+### Reconcile Run — 2026-03-19
+
+**Trigger:** periodic (post t-568 CLI refactor + t-574 file tracking)
+**Drift found:** 4 findings across 4 areas
+**Applied:** 2 auto-fixes
+**Deferred:** 2 (historical roadmap cleanup, spec_graph.py parser bug)
+
+| # | Area | Type | Finding | Resolution |
+|---|------|------|---------|-----------|
+| 1 | CLI feature doc | Stale | mission-control-cli.md claims 13 unit tests; actual is 81 | Applied — updated count |
+| 2 | Reference docs | Missing | scripts.md missing 5 scripts (gh-sync.sh, index-assumptions.sh, second-phase-check.sh, sync-state.sh, task-id-lock.sh) | Applied — added entries |
+| 3 | Roadmap doc 17 | Stale | References old skill names (project-onboard, cross-pollinate, pattern-recall, personal-check), system-reviewer agent, skill-catalog.yaml | Deferred — historical roadmap, marked done |
+| 4 | spec-graph.json | Stale | impl_files have trailing backticks from markdown parsing | Deferred — bug in spec_graph.py, not docs |
+
+**Notes:** Light reconcile — most CLI drift was already caught by the 2026-03-18 reconcile (3a98670). Remaining drift is minor: a stale test count and undocumented scripts.
