@@ -1,0 +1,1 @@
+{"ts": "2026-03-19T00:32:57.816184+00:00", "agent": "challenger", "type": "concern", "content": "automation-hub: scheduler jobs are coupled to local filesystem \u2014 migration requires full env replication, not just config", "severity": "CRITICAL", "refs": ["t-61"]}

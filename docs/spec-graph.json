@@ -1,10 +1,10 @@
 {
   "_meta": {
-    "generated": "2026-03-18T18:34:03Z",
-    "node_count": 192,
-    "edge_count": 548,
-    "impl_ref_count": 231,
-    "orphan_count": 89,
+    "generated": "2026-03-19T01:33:50Z",
+    "node_count": 179,
+    "edge_count": 527,
+    "impl_ref_count": 232,
+    "orphan_count": 86,
     "typed_edge_count": 0
   },
   "nodes": {
@@ -1090,138 +1090,12 @@
       "arch_files": [],
       "ref_files": []
     },
-    "docs/architecture/features/linkedin-content-pipeline/brief.md": {
-      "references": [
-        "docs/.claude/tasks.json",
-        "docs/dimensions/43-linkedin-personal-brand-strategy.md",
-        "research-positioning-2026-03-03.md",
-        "challenge-2026-03-03.md",
-        "implementation.md",
-        "product-insights.md"
-      ],
-      "referenced_by": [],
-      "impl_files": [],
-      "guide_files": [],
-      "arch_files": [],
-      "ref_files": []
-    },
-    "docs/architecture/features/linkedin-content-pipeline/challenge-2026-03-03.md": {
-      "references": [
-        "brief.md",
-        "docs/dimensions/43-linkedin-personal-brand-strategy.md"
-      ],
-      "referenced_by": [],
-      "impl_files": [],
-      "guide_files": [],
-      "arch_files": [],
-      "ref_files": []
-    },
-    "docs/architecture/features/linkedin-content-pipeline/implementation.md": {
+    "docs/architecture/features/linkedin-content-implementation.md": {
       "references": [
         "brief.md",
         "challenge-2026-03-03.md",
         "research-positioning-2026-03-03.md",
         "product-insights.md"
-      ],
-      "referenced_by": [],
-      "impl_files": [],
-      "guide_files": [],
-      "arch_files": [],
-      "ref_files": []
-    },
-    "docs/architecture/features/linkedin-content-pipeline/nlm-visual-test/prompt.md": {
-      "references": [],
-      "referenced_by": [],
-      "impl_files": [],
-      "guide_files": [],
-      "arch_files": [],
-      "ref_files": []
-    },
-    "docs/architecture/features/linkedin-content-pipeline/nlm-visual-test/style-1-sketch.md": {
-      "references": [],
-      "referenced_by": [],
-      "impl_files": [],
-      "guide_files": [],
-      "arch_files": [],
-      "ref_files": []
-    },
-    "docs/architecture/features/linkedin-content-pipeline/nlm-visual-test/style-2-blueprint.md": {
-      "references": [],
-      "referenced_by": [],
-      "impl_files": [],
-      "guide_files": [],
-      "arch_files": [],
-      "ref_files": []
-    },
-    "docs/architecture/features/linkedin-content-pipeline/nlm-visual-test/style-3-minimalist.md": {
-      "references": [],
-      "referenced_by": [],
-      "impl_files": [],
-      "guide_files": [],
-      "arch_files": [],
-      "ref_files": []
-    },
-    "docs/architecture/features/linkedin-content-pipeline/nlm-visual-test/style-4-darkmode.md": {
-      "references": [],
-      "referenced_by": [],
-      "impl_files": [],
-      "guide_files": [],
-      "arch_files": [],
-      "ref_files": []
-    },
-    "docs/architecture/features/linkedin-content-pipeline/nlm-visual-test/style-5-organic.md": {
-      "references": [],
-      "referenced_by": [],
-      "impl_files": [],
-      "guide_files": [],
-      "arch_files": [],
-      "ref_files": []
-    },
-    "docs/architecture/features/linkedin-content-pipeline/nlm-visual-test/system-content.md": {
-      "references": [],
-      "referenced_by": [],
-      "impl_files": [],
-      "guide_files": [],
-      "arch_files": [],
-      "ref_files": []
-    },
-    "docs/architecture/features/linkedin-content-pipeline/product-insights.md": {
-      "references": [
-        "docs/dimensions/40-product-discovery-literature.md",
-        "docs/dimensions/41-growth-metrics-market-strategy-literature.md",
-        "docs/dimensions/42-product-operations-literature.md",
-        "brief.md"
-      ],
-      "referenced_by": [],
-      "impl_files": [],
-      "guide_files": [],
-      "arch_files": [],
-      "ref_files": []
-    },
-    "docs/architecture/features/linkedin-content-pipeline/profile-update-guide.md": {
-      "references": [
-        "brief.md"
-      ],
-      "referenced_by": [],
-      "impl_files": [],
-      "guide_files": [],
-      "arch_files": [],
-      "ref_files": []
-    },
-    "docs/architecture/features/linkedin-content-pipeline/research-positioning-2026-03-03.md": {
-      "references": [
-        "docs/.claude/tasks.json",
-        "brief.md"
-      ],
-      "referenced_by": [],
-      "impl_files": [],
-      "guide_files": [],
-      "arch_files": [],
-      "ref_files": []
-    },
-    "docs/architecture/features/linkedin-content-pipeline/voice-tone-guide.md": {
-      "references": [
-        "brief.md"
       ],
       "referenced_by": [],
       "impl_files": [],
@@ -2207,9 +2081,7 @@
     },
     "docs/dimensions/40-product-discovery-literature.md": {
       "references": [],
-      "referenced_by": [
-        "docs/architecture/features/linkedin-content-pipeline/product-insights.md"
-      ],
+      "referenced_by": [],
       "impl_files": [],
       "guide_files": [],
       "arch_files": [],
@@ -2217,9 +2089,7 @@
     },
     "docs/dimensions/41-growth-metrics-market-strategy-literature.md": {
       "references": [],
-      "referenced_by": [
-        "docs/architecture/features/linkedin-content-pipeline/product-insights.md"
-      ],
+      "referenced_by": [],
       "impl_files": [],
       "guide_files": [],
       "arch_files": [],
@@ -2227,25 +2097,7 @@
     },
     "docs/dimensions/42-product-operations-literature.md": {
       "references": [],
-      "referenced_by": [
-        "docs/architecture/features/linkedin-content-pipeline/product-insights.md"
-      ],
-      "impl_files": [],
-      "guide_files": [],
-      "arch_files": [],
-      "ref_files": []
-    },
-    "docs/dimensions/43-linkedin-personal-brand-strategy.md": {
-      "references": [
-        "thebrana/.claude/tasks.json",
-        "05-claude-flow-v3-analysis.md",
-        "06-claude-flow-internals.md",
-        "37-ruvnet-development-practices.md"
-      ],
-      "referenced_by": [
-        "docs/architecture/features/linkedin-content-pipeline/brief.md",
-        "docs/architecture/features/linkedin-content-pipeline/challenge-2026-03-03.md"
-      ],
+      "referenced_by": [],
       "impl_files": [],
       "guide_files": [],
       "arch_files": [],
@@ -2299,10 +2151,10 @@
         "40-product-discovery-literature.md",
         "41-growth-metrics-market-strategy-literature.md",
         "42-product-operations-literature.md",
-        "43-linkedin-personal-brand-strategy.md",
         "44-systems-thinking-nature.md",
         "45-turboflow-agent-orchestration.md",
         "brana-etymology-naming.md",
+        "cli-builder-rust-bash-devops.md",
         "client-retention-engagement.md"
       ],
       "referenced_by": [],
@@ -2315,6 +2167,16 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/cli-builder-rust-bash-devops.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [
+        "system/cli/rust/`"
+      ],
       "guide_files": [],
       "arch_files": [],
       "ref_files": []
@@ -3014,7 +2876,6 @@
         "brana-knowledge/dimensions/40-product-discovery-literature.md",
         "brana-knowledge/dimensions/41-growth-metrics-market-strategy-literature.md",
         "brana-knowledge/dimensions/42-product-operations-literature.md",
-        "brana-knowledge/dimensions/43-linkedin-personal-brand-strategy.md",
         "brana-knowledge/dimensions/44-systems-thinking-nature.md",
         "brana-knowledge/dimensions/45-turboflow-agent-orchestration.md",
         "brana-knowledge/dimensions/16-knowledge-health.md",

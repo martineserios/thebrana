@@ -107,6 +107,7 @@ claude --plugin-dir ./system
 | Command | Purpose |
 |---------|---------|
 | `brana transcribe <file> [--model base\|tiny\|small]` | Transcribe audio (wav, mp3, ogg, m4a) to text via whisper.cpp. Auto-detects language. |
+| `brana files list\|status\|add\|pull\|push` | Track large files via manifest (.brana-files.json). SHA-256 verified, R2/HTTP remotes. |
 
 ### Agent Commands
 

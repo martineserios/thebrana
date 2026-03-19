@@ -2555,3 +2555,182 @@ extract(data.get('children', data) if isinstance(data, dict) else data)
 | thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
 | personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
 ,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/MEMORY.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/project_brana-naming.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/session-handoff.md,/home/martineserios/enter_thebrana/brana-knowledge/dimensions/brana-etymology-naming.md,/tmp/research-brana-meaning-1-spanish.md,/tmp/research-brana-meaning-2-physics.md,/tmp/research-brana-meaning-3-brain.md,/tmp/research-brana-meaning-4-cultural.md
+
+### Session 2c89454c-4158-467c-8672-abf4694e617f (2026-03-18T20:46:51Z)
+- Events: 176 (150 ok, 16 fail)
+- Corrections: 9 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.26 fix=0.25 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: "$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null || echo "Backup script not available",# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get t-080 2>/dev/null,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog query --status in_progress --output json 2>/dev/null | head -30,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog query --tag "audio" --output json 2>/dev/null,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "audio transcript" 2>/dev/null; echo "---"; /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "speech" 2>/dev/null; echo "---"; /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog query --tag "audio" --count 2>/dev/null,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "inbox" 2>/dev/null,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set t-080 build_step classify 2>/dev/null,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set t-080 build_step decompose 2>/dev/null,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set t-080 build_step specify 2>/dev/null
+
+### Session 47ff109c-88c2-490e-8899-b15baf7cbd73 (2026-03-18T21:47:50Z)
+- Events: 25 (22 ok, 1 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,session-start,session-start-venture
+- Files: ## Personal Life OS (v1, shipped 2026-02-20)
+- **Location:** `~/enter_thebrana/personal/` — separate git repo, no remote
+- **Skill:** `/personal-check` — read-only focus card (tasks, life areas, journal freshness)
+- **Integrations:** `/morning` Step 3d (personal tasks), `/weekly-review` Step 1c (life area ratings)
+- **All conditional** on `personal/` existing — no breakage if absent
+- Competitive advantage: hiperpersonalización (DIM), prolijidad ("misma molienda"), conoce alcances y límites, deriva a terapeutas
+- Key finding: NO direct competitor in AR offers protocol + personalization + therapist integration. Psilea's white space is confirmed.
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog next,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog roadmap,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set ms-001 status cancelled && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set ms-002 status cancelled && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set ms-003 status cancelled && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set ms-004 status cancelled && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set ph-001 status cancelled,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set t-001 status cancelled && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set t-002 status cancelled && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set t-003 status cancelled && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set t-004 status cancelled && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set t-005 status cancelled && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set t-006 status cancelled && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set t-007 status cancelled,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set t-008 status cancelled && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set t-009 status cancelled && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set t-010 status cancelled && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set t-011 status cancelled && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set t-012 status cancelled && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set t-013 status cancelled,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog tree ms-002 --json,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog tree ph-001 --json,CLI=/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana
+
+# Check ms-010 children
+$CLI backlog query --parent ms-010 --output json | python3 -c "
+import json,sys
+tasks = json.load(sys.stdin)
+for t in tasks:
+    print(f\"{t['id']}  {t['status']:12s}  {t['subject']}\")
+",CLI=/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana
+
+# Check what ID was actually created
+$CLI backlog get t-58
+
+### Session cb6c6b64-823c-4b0c-a1bb-311749a8f660 (2026-03-18T21:51:59Z)
+- Events: 132 (123 ok, 2 fail)
+- Corrections: 0 | Test writes: 2 | Cascades: 0 | PR creates: 0
+- Tests: 4 pass, 0 fail (rate=1.00) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.50 test=0.22 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog status,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog status --all,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-clients-nexeye-eyedetect/memory/event-log.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/session-handoff.md,/home/martineserios/enter_thebrana/clients/nexeye-feat-t-078/supabase/migrations/20260318000000_email_notification_log.sql,/home/martineserios/enter_thebrana/clients/nexeye-feat-t-078/tests/unit/test_email_notification_log.py,/home/martineserios/enter_thebrana/clients/proyecto_anita/docs/deployment/new-tenant-guide.md,/home/martineserios/enter_thebrana/clients/proyecto_anita/docs/deployment/production-topology.md,/home/martineserios/enter_thebrana/clients/proyecto_anita/docs/deployment/quick-start-multitenant.md
+
+### Session 587b38de-fcfe-4b83-b7e9-cf7b169c7b3a (2026-03-18T21:54:47Z)
+- Events: 50 (41 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,TaskCompleted,session-start
+- Files: "$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null; echo "backup exit: $?",# Audit & Clean tasks (parent: t-552)
+brana backlog add --json '{"subject":"Move domain skills to corresponding projects (respondio-prompts, meta-template, meta-verification, financial-model, pipeline, venture-phase, proposal)","stream":"roadmap","type":"task","parent":"t-552","tags":["distribution","skills","cleanup"],"effort":"M"}' && \
+brana backlog add --json '{"subject":"Fix personal path leaks in 7 files (export-pdf, harvest, close, build, research + 2 hooks)","stream":"roadmap","type":"task","parent":"t-552","tags":["distribution","cleanup"],"effort":"S"}' && \
+brana backlog add --json '{"subject":"Clean client names from skill examples (log, retrospective, backlog)","stream":"roadmap","type":"task","parent":"t-552","tags":["distribution","cleanup"],"effort":"S"}' && \
+brana backlog add --json '{"subject":"Full repo grep for personal/client leaks (paths, names, secrets)","stream":"roadmap","type":"task","parent":"t-552","tags":["distribution","security","cleanup"],"effort":"M"}',# Create milestones
+brana backlog add --json '{"subject":"Audit & Clean","stream":"roadmap","type":"milestone","parent":"t-551","tags":["distribution","open-source"]}' && \
+brana backlog add --json '{"subject":"Package for Release","stream":"roadmap","type":"milestone","parent":"t-551","tags":["distribution","open-source"]}' && \
+brana backlog add --json '{"subject":"Launch","stream":"roadmap","type":"milestone","parent":"t-551","tags":["distribution","open-source"]}',# Dependencies: Package blocked by Audit tasks
+brana backlog set t-560 blocked_by +t-555 && \
+brana backlog set t-560 blocked_by +t-556 && \
+brana backlog set t-560 blocked_by +t-557 && \
+brana backlog set t-560 blocked_by +t-558 && \
+brana backlog set t-562 blocked_by +t-558 && \
+brana backlog set t-563 blocked_by +t-558 && \
+# Tag + release blocked by all package tasks
+brana backlog set t-565 blocked_by +t-559 && \
+brana backlog set t-565 blocked_by +t-560 && \
+brana backlog set t-565 blocked_by +t-561 && \
+brana backlog set t-565 blocked_by +t-562 && \
+brana backlog set t-565 blocked_by +t-563 && \
+# Launch blocked by release
+brana backlog set t-566 blocked_by +t-565 && \
+brana backlog set t-567 blocked_by +t-566 && \
+# Landing page blocked by audit
+brana backlog set t-564 blocked_by +t-558,# Launch tasks (parent: t-554)
+brana backlog add --json '{"subject":"First LinkedIn post — brana announcement","stream":"roadmap","type":"task","parent":"t-554","tags":["distribution","linkedin","content"],"effort":"S"}' && \
+brana backlog add --json '{"subject":"Link launch to content strategy (t-163, t-165)","stream":"roadmap","type":"task","parent":"t-554","tags":["distribution","linkedin","content"],"effort":"S"}',# Link existing distribution tasks — t-499 (versioning) is now covered by t-565, t-501 (installer) is post-launch
+# t-058 (research distribution channels) and t-498 (plugin registry) are post-launch
+brana backlog set t-499 blocked_by +t-565 && \
+brana backlog set t-498 blocked_by +t-565,# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,# Package for Release tasks (parent: t-553)
+brana backlog add --json '{"subject":"MIT LICENSE file","stream":"roadmap","type":"task","parent":"t-553","tags":["distribution","open-source"],"effort":"S"}' && \
+brana backlog add --json '{"subject":"Public README.md — story, install, what is included, quick start","stream":"roadmap","type":"task","parent":"t-553","tags":["distribution","docs","open-source"],"effort":"M"}' && \
+brana backlog add --json '{"subject":"CONTRIBUTING.md — how to contribute, code style, PR process","stream":"roadmap","type":"task","parent":"t-553","tags":["distribution","docs","open-source"],"effort":"S"}' && \
+brana backlog add --json '{"subject":"User guide — workflows, best practices, tips, useful commands, sitrep, day-to-day usage","stream":"roadmap","type":"task","parent":"t-553","tags":["distribution","docs","open-source"],"effort":"L","description":"Comprehensive user-facing docs: how to use brana day-to-day, best practices for skills, tips for getting the most out of it, key commands reference, how sitrep keeps you oriented, common workflows (build loop, close, backlog). Should be the go-to resource for new users."}' && \
+brana backlog add --json '{"subject":"Technical docs — architecture, extending brana, writing skills/hooks/agents","stream":"roadmap","type":"task","parent":"t-553","tags":["distribution","docs","open-source"],"effort":"L","description":"Developer-facing docs: system architecture, how to write custom skills, hooks, agents, rules. How the plugin system works, how bootstrap.sh works, CLI reference."}' && \
+brana backlog add --json '{"subject":"Landing page with NotebookLM graphics","stream":"roadmap","type":"task","parent":"t-553","tags":["distribution","open-source","content"],"effort":"M"}' && \
+brana backlog add --json '{"subject":"Tag v1.0.0 + GitHub release","stream":"roadmap","type":"task","parent":"t-553","tags":["distribution","open-source"],"effort":"S"}',/brana:close — DRIFT,/brana:close — EXTRACT
+
+### Session bc0aa334-05f4-4320-9a91-916a7bfd8969 (2026-03-18T22:27:58Z)
+- Events: 115 (94 ok, 2 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,TaskCompleted,Write,session-start,session-start-venture
+- Files: # Create the linkedin project directory structure
+mkdir -p ~/enter_thebrana/linkedin/{strategy,research,profile,visual-tests,content/drafts,.claude},# t-52: Remove dim doc 43
+rm /home/martineserios/enter_thebrana/brana-knowledge/dimensions/43-linkedin-personal-brand-strategy.md
+echo "t-52 done. Verifying..."
+ls /home/martineserios/enter_thebrana/brana-knowledge/dimensions/43-* 2>/dev/null || echo "43 removed",## Personal Life OS (v1, shipped 2026-02-20)
+- **Location:** `~/enter_thebrana/personal/` — separate git repo, no remote
+- **Skill:** `/personal-check` — read-only focus card (tasks, life areas, journal freshness)
+- **Integrations:** `/morning` Step 3d (personal tasks), `/weekly-review` Step 1c (life area ratings)
+- **All conditional** on `personal/` existing — no breakage if absent
+- Competitive advantage: hiperpersonalización (DIM), prolijidad ("misma molienda"), conoce alcances y límites, deriva a terapeutas
+- Key finding: NO direct competitor in AR offers protocol + personalization + therapist integration. Psilea's white space is confirmed.
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,/brana:backlog plan — DEPS,/brana:backlog plan — DETECT,/brana:backlog plan — MILESTONES,/brana:backlog plan — PROPOSE,/brana:backlog plan — READ,/brana:backlog plan — TASKS,/brana:backlog plan — WRITE
+
+### Session 3647b9bd-19c3-43d2-a5b1-053ed9282f6e (2026-03-19T00:06:56Z)
+- Events: 7 (6 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/session-handoff.md,cd /home/martineserios/enter_thebrana/clients/somos_mirada && brana backlog add --json '{"subject":"Reinstalar WABA en Respond.io con coexistence (WhatsApp scan + reconexión)","description":"Reinstalar el escaneo de WhatsApp en Respond.io, reconectar WABA y configurar coexistence en la plataforma.","stream":"bugs","type":"task","tags":["respond-io","waba","meta-hygiene"],"effort":"S","execution":"external"}',cd /home/martineserios/enter_thebrana/clients/somos_mirada && brana backlog search "whatsapp" 2>/dev/null; echo "---"; brana backlog search "respond" 2>/dev/null; echo "---"; brana backlog search "WABA" 2>/dev/null,git branch --show-current,git diff --stat HEAD~5..HEAD 2>/dev/null,git log --oneline --since="6 hours ago" 2>/dev/null
+
+### Session ef2ab9f6-fb89-42c3-9b72-9da9f58e5c1e (2026-03-19T00:26:43Z)
+- Events: 10 (9 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,brana backlog get t-540 2>/dev/null,brana backlog query --tag "linkedin" --output json 2>/dev/null | head -40,brana backlog search "linkedin" 2>/dev/null | head -30,brana backlog search "profile" 2>/dev/null | head -20,brana backlog search "scraping" 2>/dev/null | head -20,brana backlog set t-540 context --append "2026-03-18: Rate limit research findings — MCP server has NO built-in rate limiting. LinkedIn safe threshold: 50-100 profiles/day, ~6/hr conservative. Previous 8-call block likely velocity-triggered. New strategy: 5 profiles/session, 45-90s randomized delays, 2-3min pause every 3 profiles, split section scraping into 2 passes. 24h cooldown still active from 2026-03-17 session." 2>/dev/null,brana backlog set t-540 status in_progress 2>/dev/null && brana backlog set t-540 started 2026-03-18 2>/dev/null,brana backlog set t-540 status pending 2>/dev/null && brana backlog set t-540 notes --append "2026-03-18: Rate limit still active from 2026-03-17 session. Parked. Retry tomorrow with improved strategy (5 profiles, 45-90s jitter, 2-pass sections)." 2>/dev/null,sleep 35 && echo "ready"
+
+### Session 1688da22-3545-42ad-82f3-f71f62b9b8c3 (2026-03-19T01:33:49Z)
+- Events: 97 (91 ok, 1 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=1.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,TaskCompleted,Write,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,/home/martineserios/.claude/plans/temporal-booping-fog.md,/home/martineserios/enter_thebrana/brana-knowledge/dimensions/cli-builder-rust-bash-devops.md,/home/martineserios/enter_thebrana/thebrana-refactor-t-568/system/cli/rust/src/cli.rs,/home/martineserios/enter_thebrana/thebrana-refactor-t-568/system/cli/rust/src/commands/backlog.rs,/home/martineserios/enter_thebrana/thebrana-refactor-t-568/system/cli/rust/src/commands/doctor.rs,/home/martineserios/enter_thebrana/thebrana-refactor-t-568/system/cli/rust/src/commands/ops.rs,/home/martineserios/enter_thebrana/thebrana-refactor-t-568/system/cli/rust/src/commands/portfolio.rs,/home/martineserios/enter_thebrana/thebrana-refactor-t-568/system/cli/rust/src/commands/run.rs,/home/martineserios/enter_thebrana/thebrana-refactor-t-568/system/cli/rust/src/commands/validate.rs

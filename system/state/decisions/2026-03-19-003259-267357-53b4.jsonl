@@ -1,0 +1,1 @@
+{"ts": "2026-03-19T00:32:59.614379+00:00", "agent": "challenger", "type": "concern", "content": "automation-hub: Persistent=true + rescheduling may solve the core problem without any migration", "severity": "WARNING", "refs": ["t-61"]}

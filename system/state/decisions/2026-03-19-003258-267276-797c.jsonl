@@ -1,0 +1,1 @@
+{"ts": "2026-03-19T00:32:58.648056+00:00", "agent": "challenger", "type": "concern", "content": "automation-hub: skill-type jobs need claude CLI headless on ARM \u2014 no documented path exists", "severity": "CRITICAL", "refs": ["t-61"]}

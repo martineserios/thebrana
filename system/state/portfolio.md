@@ -41,6 +41,12 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Remote:** `https://github.com/martineserios/proyecto-anita.git`
 - **Details:** `.claude/CLAUDE.md`, `docs/decisions/`
 
+### linkedin
+- **Type:** Personal brand — content pipeline, profile, network, consulting funnel
+- **Location:** `~/enter_thebrana/linkedin/`
+- **Details:** `CLAUDE.md`, `.claude/tasks.json`
+- **Current Phase:** Phase A — 30-day manual validation
+
 ### personal
 - **Type:** Personal OS — thinking practice, identity work, journaling, goals
 - **Location:** `~/enter_thebrana/personal/`

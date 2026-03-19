@@ -1,0 +1,1 @@
+{"ts": "2026-03-19T02:05:26.687096+00:00", "agent": "challenger", "type": "concern", "content": "automation-hub: pre-push hook is accident guard not security boundary \u2014 git push --no-verify bypasses it", "severity": "WARNING", "refs": ["t-61"]}

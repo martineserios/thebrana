@@ -1,0 +1,1 @@
+{"ts": "2026-03-19T02:05:25.886508+00:00", "agent": "challenger", "type": "concern", "content": "automation-hub: secrets bootstrap chicken-and-egg \u2014 PAT needed to clone repos but lives on the box. Store in password manager", "severity": "WARNING", "refs": ["t-61"]}

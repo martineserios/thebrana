@@ -338,3 +338,19 @@
 
 **Next:**
 - (auto-generated — run /session-handoff for full close)
+
+## 2026-03-18 — auto-captured (session-end hook)
+
+**Accomplished:**
+- 97d0344 chore: session close — t-080 subtasks, CLI docs, accumulated state
+- 6c69bd4 feat(cli): add brana transcribe subcommand (t-080)
+- 8b4bd4f feat(cli): add brana transcribe subcommand
+
+**State:**
+- Branch: main
+- Events: 176 (150 ok, 16 fail, 9 corrections, 0 cascades, 0 prs)
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.26 fix=0.25 test=0.00 casc=0.00 deleg=0 prs=0
+
+**Next:**
+- (auto-generated — run /session-handoff for full close)
