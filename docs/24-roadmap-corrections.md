@@ -1586,7 +1586,7 @@ Respond.io action prompts have a hard 1,000-char limit. Agent 3's Assign action 
 ## Error 75: TDD hook gate accepts spec-only, does not enforce test-first
 
 **Severity:** Medium — process gap
-**Status:** pending
+**Status:** applied (2026-03-19)
 
 **Discovery:** Close debrief (2026-03-19). On `feat/t-585-brana-feed-inbox`, implementation was committed (feed.rs, inbox.rs) before tests. The PreToolUse hook allowed this because the feature spec doc satisfied the "spec or test exists" gate. User manually corrected: "you should have done it before. TDD."
 

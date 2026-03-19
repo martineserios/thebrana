@@ -51,12 +51,15 @@ From [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md) Layer 0 
 
 ### Enforcement Gate Verification
 
-The PreToolUse hook claims to enforce spec-before-code discipline. Verify structurally:
+The PreToolUse hook enforces **spec-before-impl**, not test-before-impl. A spec doc satisfies the gate — tests are not required. TDD (test before code) remains a discipline rule in `sdd-tdd.md`, not a hard gate. (Error 75, 2026-03-19: implementation committed before tests on feat/t-585 because spec doc satisfied the hook.)
+
+Verify structurally:
 
 - Hook exists in `system/hooks/hooks.json` (plugin) or `settings.json` (bootstrap fallback) under `PreToolUse`
 - Script is executable and passes `bash -n` syntax check
 - On a `feat/*` branch in an opted-in project (has `docs/decisions/`), the hook blocks `Write|Edit` when no spec/test activity exists
 - On non-feat branches or non-opted-in projects, the hook passes through
+- **Known gap:** the gate accepts spec-only (docs/ changes). A future tightening (t-603) may require test files before implementation files on feat/* branches
 
 ### Adversarial Input Validation
 

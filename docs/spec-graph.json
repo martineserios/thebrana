@@ -1,10 +1,10 @@
 {
   "_meta": {
-    "generated": "2026-03-19T16:15:43Z",
-    "node_count": 180,
+    "generated": "2026-03-19T19:05:21Z",
+    "node_count": 183,
     "edge_count": 528,
     "impl_ref_count": 234,
-    "orphan_count": 86,
+    "orphan_count": 89,
     "typed_edge_count": 0
   },
   "nodes": {
@@ -831,6 +831,14 @@
       "arch_files": [],
       "ref_files": []
     },
+    "docs/architecture/decisions/ADR-024-content-polling-keyring-credentials.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
     "docs/architecture/extending-agents.md": {
       "references": [],
       "referenced_by": [],
@@ -964,6 +972,14 @@
         "system/cli/rust/src/files.rs",
         "system/cli/rust/src/commands/files.rs"
       ],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/architecture/features/brana-feed-inbox.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
       "guide_files": [],
       "arch_files": [],
       "ref_files": []
@@ -2337,6 +2353,14 @@
         "docs/reference/configuration.md",
         "docs/reference/scripts.md"
       ]
+    },
+    "docs/guide/features/brana-feed-inbox.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/guide/features/build-close-auto-docs.md": {
       "references": [],
