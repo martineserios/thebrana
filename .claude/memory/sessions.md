@@ -2734,3 +2734,179 @@ ls /home/martineserios/enter_thebrana/brana-knowledge/dimensions/43-* 2>/dev/nul
 | thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
 | personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
 ,/home/martineserios/.claude/plans/temporal-booping-fog.md,/home/martineserios/enter_thebrana/brana-knowledge/dimensions/cli-builder-rust-bash-devops.md,/home/martineserios/enter_thebrana/thebrana-refactor-t-568/system/cli/rust/src/cli.rs,/home/martineserios/enter_thebrana/thebrana-refactor-t-568/system/cli/rust/src/commands/backlog.rs,/home/martineserios/enter_thebrana/thebrana-refactor-t-568/system/cli/rust/src/commands/doctor.rs,/home/martineserios/enter_thebrana/thebrana-refactor-t-568/system/cli/rust/src/commands/ops.rs,/home/martineserios/enter_thebrana/thebrana-refactor-t-568/system/cli/rust/src/commands/portfolio.rs,/home/martineserios/enter_thebrana/thebrana-refactor-t-568/system/cli/rust/src/commands/run.rs,/home/martineserios/enter_thebrana/thebrana-refactor-t-568/system/cli/rust/src/commands/validate.rs
+
+### Session ea99c33e-94b0-409b-95e5-b9be8983fb08 (2026-03-19T11:00:58Z)
+- Events: 1 (0 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+
+### Session 7db8dbba-7c6e-48f1-8248-2bbac8038eb2 (2026-03-19T13:09:38Z)
+- Events: 121 (103 ok, 3 fail)
+- Corrections: 8 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 6 pass, 1 fail (rate=0.86) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.33 fix=0.33 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog add --json '{"subject":"Large file tracking: manifest + R2 download system","stream":"roadmap","type":"task","tags":["infra","dx","cloud"],"priority":"P2","effort":"M","execution":"code","description":"Build lightweight large file tracking: .brana-files.json manifest, download-models.sh script, Cloudflare R2 remote storage. Integrate with brana transcribe for cloud deployment. Spike t-062 validated this approach over DVC/git-lfs.","context":"2026-03-18: Spike t-062 concluded — custom manifest + R2 beats DVC (overkill) and git-lfs (GitHub lock-in, egress fees). R2 free tier covers all needs (10GB, zero egress). ~2h implementation."}',/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog add --json '{"subject":"Oracle Cloud infra for brana transcriber: IAM, compute, object storage","stream":"roadmap","type":"task","tags":["infra","cloud","oracle","transcribe"],"priority":"P2","effort":"M","execution":"external","description":"Set up Oracle Cloud infrastructure for running brana transcribe in the cloud. IAM policies, compute instance (free tier ARM), object storage for whisper models. Integrate with .brana-files.json manifest for model delivery. Context: personal repo already has Telegram bot on Oracle Cloud Free Tier.","context":"2026-03-18: Created during t-574 build. User wants to run the transcriber in the cloud. Oracle free tier already in use for personal Telegram bot."}',/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog add --json '{"subject":"Repo hygiene: fix .gitignore across portfolio (target/, .venv/, node_modules/)","stream":"tech-debt","type":"task","tags":["infra","hygiene"],"priority":"P2","effort":"S","execution":"code","description":"Multiple repos have committed build artifacts and dependencies: thebrana target/ (464MB), nexeye .venv+node_modules+.terraform (~1.5GB), proyecto_anita .venv (~100MB). Add proper .gitignore rules and remove tracked artifacts from git history (git rm --cached or git filter-repo).","context":"2026-03-18: Discovered during t-062 spike. Critical repos: thebrana (target/), nexeye_eyedetect (.venv, node_modules, .terraform), proyecto_anita (.venv)."}',/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get t-062,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get t-574,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "dvc large file",/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "git lfs",/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "gitignore" && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "cleanup" && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "R2",/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "large file" && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "dvc" && /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "data version"
+
+### Session 283272b3-8a3e-4603-94ee-69063549a668 (2026-03-19T13:28:30Z)
+- Events: 7 (6 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,brana backlog next,brana backlog query --status in_progress,git branch --show-current && git status --porcelain | head -10,git log --oneline -5,git worktree list 2>/dev/null,ls -la inbox/ 2>/dev/null | head -20 && cat system/state/decisions/2026-03-19-130940-435828-3f96.jsonl 2>/dev/null | head -10
+
+### Session 646d1afd-273e-47d4-b358-37c64e941e44 (2026-03-19T13:34:04Z)
+- Events: 142 (117 ok, 1 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 4 pass, 0 fail (rate=1.00) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=1.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,TaskCompleted,Write,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,/brana:close — DRIFT,/brana:close — ERRATA,/brana:close — EXTRACT,/brana:close — FIELD-NOTES,/brana:close — GATE,/brana:close — GATHER,/brana:close — HANDOFF,/brana:close — METADATA,/brana:close — PATTERNS
+
+### Session c7948de4-73dd-4135-8fef-84f705b2a5b6 (2026-03-19T13:36:49Z)
+- Events: 31 (27 ok, 1 fail)
+- Corrections: 2 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.40 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog add --json '{"subject":"Add spec-graph node for files.rs module (brana files subcommand)","description":"The files subcommand (t-574) shipped but spec-graph.json has no node for the files.rs module or its edges. Add node + connect to CLI parent node.","stream":"tech-debt","type":"task","tags":["spec-graph","cli","docs"],"priority":"low","effort":"small"}',/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog add --json '{"subject":"Smarter orphan classification in spec_graph.py — distinguish leaf vs structural orphans","description":"Current orphan count (86) is misleading. Most are legitimately standalone (personal research, knowledge dimensions, guide pages). Improve spec_graph.py to classify nodes by role (leaf, operational, reference) and only report structural orphans (feature docs/ADRs missing backlinks, ~10-15). Optional: batch-link the ~30 feature/ADR orphans to parent reflections.","stream":"tech-debt","type":"task","tags":["spec-graph","dx","docs"],"priority":"low","effort":"small"}',/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get t-582,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "files.rs" 2>/dev/null | head -20,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "orphan" 2>/dev/null,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "spec-graph" 2>/dev/null | head -20,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set t-582 build_step build,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set t-582 build_step close,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog set t-582 build_step specify
+
+### Session f57d82b1-b7f5-4109-9051-0e41a156ee8d (2026-03-19T15:22:13Z)
+- Events: 1 (0 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+
+### Session cabb0a41-856c-4501-b2ac-a280e626fca7 (2026-03-19T15:22:36Z)
+- Events: 1 (0 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+
+### Session 0c659b80-2cf9-474f-8a20-52f6ddeeef71 (2026-03-19T16:05:57Z)
+- Events: 6 (5 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,# Show all 16 ANSI palette colors so user can see which ones are hard to read
+echo "=== Standard colors (0-7) ==="
+for i in {0..7}; do printf "\e[48;5;${i}m  %3d  \e[0m " "$i"; done
+echo ""
+echo "=== Bright colors (8-15) ==="
+for i in {8..15}; do printf "\e[48;5;${i}m  %3d  \e[0m " "$i"; done
+echo ""
+echo ""
+echo "=== Foreground text test ==="
+echo -e "\e[30mColor 0 (black)\e[0m"
+echo -e "\e[31mColor 1 (red)\e[0m"
+echo -e "\e[32mColor 2 (green)\e[0m"
+echo -e "\e[33mColor 3 (yellow)\e[0m"
+echo -e "\e[34mColor 4 (blue)\e[0m"
+echo -e "\e[35mColor 5 (magenta/purple)\e[0m"
+echo -e "\e[36mColor 6 (cyan)\e[0m"
+echo -e "\e[37mColor 7 (white)\e[0m"
+echo -e "\e[90mColor 8 (bright black/gray)\e[0m"
+echo -e "\e[91mColor 9 (bright red)\e[0m"
+echo -e "\e[92mColor 10 (bright green)\e[0m"
+echo -e "\e[93mColor 11 (bright yellow)\e[0m"
+echo -e "\e[94mColor 12 (bright blue)\e[0m"
+echo -e "\e[95mColor 13 (bright magenta)\e[0m"
+echo -e "\e[96mColor 14 (bright cyan)\e[0m"
+echo -e "\e[97mColor 15 (bright white)\e[0m"
+echo ""
+echo -e "\e[2;35mDim magenta (dim + color 5)\e[0m"
+echo -e "\e[2;95mDim bright magenta (dim + color 13)\e[0m"
+echo -e "\e[2;34mDim blue (dim + color 4)\e[0m"
+echo -e "\e[2;94mDim bright blue (dim + color 12)\e[0m",cat ~/.claude/settings.json 2>/dev/null | grep -i theme; cat ~/.claude/settings.local.json 2>/dev/null | grep -i theme; echo "---"; cat ~/.claude/settings.json 2>/dev/null,claude config list 2>/dev/null || echo "no config list"; claude config get theme 2>/dev/null || echo "no theme set",echo "$XDG_CURRENT_DESKTOP"; which gnome-terminal kitty alacritty wezterm konsole xfce4-terminal 2>/dev/null; pgrep -a 'gnome-terminal|kitty|alacritty|wezterm|konsole|xfce4-terminal|tilix' 2>/dev/null | head -5,echo "TERM=$TERM"; echo "TERM_PROGRAM=${TERM_PROGRAM:-not set}"; echo "COLORTERM=${COLORTERM:-not set}"; ps -o comm= -p $(ps -o ppid= -p $$) 2>/dev/null || echo "parent process unknown"
+
+### Session 4f867801-2814-4299-8bb1-507ddbe34643 (2026-03-19T16:15:41Z)
+- Events: 26 (14 ok, 1 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,TaskCompleted,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,# Read current palette, replace bright black (index 8) with a more visible gray
+PROFILE="b1dcc9dd-5262-4d8d-a863-c897e6d979b9"
+BASE="/org/gnome/terminal/legacy/profiles:/:${PROFILE}"
+
+dconf write "${BASE}/palette" "['rgb(22,27,34)', 'rgb(255,123,114)', 'rgb(63,185,80)', 'rgb(210,153,34)', 'rgb(88,166,255)', 'rgb(188,140,255)', 'rgb(57,197,207)', 'rgb(177,186,196)', 'rgb(110,118,129)', 'rgb(255,166,158)', 'rgb(86,211,100)', 'rgb(230,187,72)', 'rgb(121,192,255)', 'rgb(210,178,255)', 'rgb(86,222,230)', 'rgb(240,246,252)']"
+
+echo "Bright black: rgb(48,54,61) → rgb(110,118,129)",/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/session-handoff.md,DRIFT — detect doc drift,ERRATA — write errata entries,EXTRACT — classify findings,FIELD-NOTES — capture practical discoveries,GATE — assess session activity,GATHER — collect evidence,HANDOFF — write handoff note

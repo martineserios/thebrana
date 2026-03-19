@@ -1582,3 +1582,16 @@ Respond.io action prompts have a hard 1,000-char limit. Agent 3's Assign action 
 | 4 | spec-graph.json | Stale | impl_files have trailing backticks from markdown parsing | Deferred — bug in spec_graph.py, not docs |
 
 **Notes:** Light reconcile — most CLI drift was already caught by the 2026-03-18 reconcile (3a98670). Remaining drift is minor: a stale test count and undocumented scripts.
+
+## Error 75: TDD hook gate accepts spec-only, does not enforce test-first
+
+**Severity:** Medium — process gap
+**Status:** pending
+
+**Discovery:** Close debrief (2026-03-19). On `feat/t-585-brana-feed-inbox`, implementation was committed (feed.rs, inbox.rs) before tests. The PreToolUse hook allowed this because the feature spec doc satisfied the "spec or test exists" gate. User manually corrected: "you should have done it before. TDD."
+
+**Files affected:**
+- `~/.claude/rules/sdd-tdd.md` — states test-first, but hook enforces spec-or-test
+- `docs/reflections/31-assurance.md` — describes the enforcement mechanism
+
+**Proposed fix:** Clarify in sdd-tdd.md that the hook enforces spec-before-impl (not test-before-impl), and TDD remains a discipline rule. Alternatively, tighten the hook to require test files (not just spec docs) before implementation file writes on feat/* branches.

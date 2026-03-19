@@ -1,0 +1,1 @@
+{"ts": "2026-03-19T18:03:12.058850+00:00", "agent": "main", "type": "decision", "content": "Built t-585 (feature): brana feed (RSS/Atom polling) + brana inbox (Gmail IMAP) CLI subcommands in pure Rust", "refs": ["t-585"]}

@@ -1,8 +1,8 @@
 {
   "_meta": {
-    "generated": "2026-03-19T13:09:26Z",
-    "node_count": 179,
-    "edge_count": 527,
+    "generated": "2026-03-19T16:15:43Z",
+    "node_count": 180,
+    "edge_count": 528,
     "impl_ref_count": 234,
     "orphan_count": 86,
     "typed_edge_count": 0
@@ -791,7 +791,8 @@
         "docs/reflections/08-diagnosis.md",
         "docs/reflections/ARCHITECTURE.md",
         "docs/reflections/29-venture-management-reflection.md",
-        "docs/reflections/14-mastermind-architecture.md"
+        "docs/reflections/14-mastermind-architecture.md",
+        "docs/architecture/features/chat-agents-monitoring.md"
       ],
       "impl_files": [],
       "guide_files": [],
@@ -1033,6 +1034,18 @@
       "ref_files": [
         "docs/reference/scripts.md"
       ]
+    },
+    "docs/architecture/features/chat-agents-monitoring.md": {
+      "references": [
+        "docs/architecture/decisions/ADR-019-brana-chat-sessions.md"
+      ],
+      "referenced_by": [
+        "docs/ideas/agent-observability-learning.md"
+      ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/architecture/features/cli-composable-tool.md": {
       "references": [],
