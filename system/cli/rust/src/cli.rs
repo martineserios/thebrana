@@ -133,6 +133,40 @@ pub enum Commands {
         #[arg(long, default_value = "base")]
         model: String,
     },
+    /// Manage tracked large files (models, assets, datasets)
+    Files {
+        #[command(subcommand)]
+        cmd: FilesCmd,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum FilesCmd {
+    /// List all tracked files
+    List,
+    /// Show status of tracked files (ok/missing/modified)
+    Status,
+    /// Register a file in the manifest
+    Add {
+        /// Logical name for the file (e.g., "whisper-base")
+        name: String,
+        /// Path to the file
+        path: PathBuf,
+        /// Remote download URL
+        #[arg(long)]
+        url: Option<String>,
+        /// R2 key for push/pull
+        #[arg(long)]
+        r2_key: Option<String>,
+    },
+    /// Download missing/modified files from their remote sources
+    Pull,
+    /// Push tracked files to R2 remote storage
+    Push {
+        /// rclone remote name (default: "brana-r2")
+        #[arg(long, default_value = "brana-r2")]
+        remote: String,
+    },
 }
 
 #[derive(Subcommand)]
