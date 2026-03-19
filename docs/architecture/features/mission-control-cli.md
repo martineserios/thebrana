@@ -1,7 +1,7 @@
 # Feature: Mission Control CLI
 
 **Date:** 2026-03-16
-**Status:** building
+**Status:** shipped
 **Task:** t-525
 
 ## Problem
@@ -66,8 +66,10 @@ Managing 5+ projects across terminal screens requires constant manual switching.
 | File | Purpose |
 |------|---------|
 | `system/cli/rust/src/tasks.rs` | Pure logic: branch_for_task, worktree_path_for_task, validate_task_runnable, agents.json I/O |
-| `system/cli/rust/src/cli.rs` | CLI wiring: cmd_run, cmd_agents, cmd_agents_kill |
-| `system/cli/rust/Cargo.toml` | Dependencies (may need sysinfo for PID checks) |
+| `system/cli/rust/src/cli.rs` | Clap derive structs for all commands |
+| `system/cli/rust/src/commands/run.rs` | Command handlers: cmd_run, cmd_queue, cmd_agents, cmd_agents_kill |
+| `system/cli/rust/src/main.rs` | Dispatcher routing all commands |
+| `system/cli/rust/Cargo.toml` | Dependencies (serde, clap, chrono, anyhow) |
 | `~/.claude/agents.json` | Agent state cache (PID, task, tmux target, timestamps) |
 
 ### agents.json Schema
