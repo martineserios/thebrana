@@ -1,7 +1,7 @@
 # Feature: brana feed + brana inbox CLI subcommands
 
 **Date:** 2026-03-19
-**Status:** specifying
+**Status:** shipped
 **Task:** t-585
 
 ## Problem
@@ -183,10 +183,49 @@ system/cli/rust/
 - **Error handling** via anyhow (consistent with rest of CLI)
 - **No daemon** — poll is a one-shot command, scheduler fires it
 
+## Code Flow
+
+### brana feed poll
+
+1. **Entry:** `main.rs` → `Commands::Feed` → `commands::feed::cmd_feed(FeedCmd::Poll)`
+2. **Core:** `cmd_poll()` iterates enabled feeds → `poll_one()` per feed:
+   - HTTP GET via `ureq` with conditional headers (`If-None-Match`, `If-Modified-Since`)
+   - Parse response with `feed_rs::parser::parse()`
+   - Diff entry IDs against `last_entry_ids` in state
+3. **Output:** New entries → action handler (`log` appends to JSONL, `task` shells out to `brana backlog add`). State updated atomically.
+
+### brana inbox poll
+
+1. **Entry:** `main.rs` → `Commands::Inbox` → `commands::inbox::cmd_inbox(InboxCmd::Poll)`
+2. **Core:** `cmd_poll()`:
+   - Read creds from env vars → `imap::connect()` TLS → `login()` → `select()` label
+   - `uid_search("UNSEEN")` → `uid_fetch()` headers → match `From` against subscriptions
+3. **Output:** Matched/unmatched logged to JSONL. State updated with last UID.
+
+## Testing
+
+```bash
+cd system/cli/rust
+OPENSSL_DIR=/usr OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu \
+  OPENSSL_INCLUDE_DIR=/usr/include/openssl \
+  cargo test -- --test-threads=1
+```
+
+20 tests across feed + inbox: config CRUD, state roundtrip, derive_name, header extraction, subscription matching, log serialization, atomic writes.
+
+## Known Limitations
+
+- **Binary size +3.4MB** (1.4→4.8MB) — mostly TLS. Acceptable but notable.
+- **imap crate v2** — v3 is alpha-only. Has future-incompat warning on imap-proto.
+- **No OAuth** — Gmail App Password only. Works for individual + Workspace but requires manual setup.
+- **No full-text content extraction** — inbox poll reads headers only, not email body.
+- **No themed output** — feed/inbox commands output raw JSON. Themed rendering deferred.
+- **OPENSSL env vars needed** for builds without pkg-config.
+
 ## Documentation Plan
 
-- [ ] **User guide** — `docs/guide/features/brana-feed-inbox.md`: commands, setup (Gmail App Password), examples
-- [ ] **Tech doc** — `docs/architecture/features/brana-feed-inbox.md` (this file, updated at CLOSE)
+- [x] **User guide** — `docs/guide/features/brana-feed-inbox.md`
+- [x] **Tech doc** — `docs/architecture/features/brana-feed-inbox.md` (this file)
 - [ ] **Existing docs to update** — `docs/guide/scheduler.md` (new jobs), brana CLI reference in CLAUDE.md
 
 ## Challenger findings
