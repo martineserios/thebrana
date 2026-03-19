@@ -1,7 +1,7 @@
 # ADR-022: Brana CLI — Standalone Terminal Interface
 
 **Date:** 2026-03-14
-**Status:** accepted
+**Status:** superseded (implementation diverged — see What Changed)
 **Related:** ADR-003 (agent execution), t-424 (spike), t-426 (scheduler viz), t-427 (Rust evaluation), t-428 (implementation)
 
 ## Context
@@ -95,3 +95,16 @@ system/cli/
 pyproject.toml       # entry point
 tests/test_cli.py    # 34+ tests
 ```
+
+## What Changed (2026-03-14 → 2026-03-18)
+
+The original decision chose Python (typer + rich) as the CLI surface with Rust deferred. During implementation, the full CLI was built in Rust instead:
+
+- **2026-03-14:** Rust CLI replaced Python entirely (t-428). Single binary, 12ms startup. The "Rust deferred" note in the original decision was superseded by performance results.
+- **2026-03-16:** Added mission control commands: `run`, `queue`, `agents` (t-525).
+- **2026-03-18:** Modular refactor (t-568): `cli.rs` split into `cli.rs` (clap structs) + `commands/` (handlers) + `util.rs` (helpers).
+- **2026-03-18:** Added `brana files` subcommand for large file tracking (t-574).
+
+**Current command surface:** 11 root commands, 19 backlog subcommands, 12 ops subcommands, 5 files subcommands. See `docs/guide/cli.md` for the authoritative reference.
+
+**Current architecture:** Pure Rust. No Python dependency. Modules: `main.rs`, `cli.rs`, `commands/`, `tasks.rs`, `files.rs`, `transcribe.rs`, `sync.rs`, `themes.rs`, `util.rs`.
