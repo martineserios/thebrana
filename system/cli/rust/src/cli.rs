@@ -138,6 +138,16 @@ pub enum Commands {
         #[command(subcommand)]
         cmd: FilesCmd,
     },
+    /// RSS/Atom feed polling and monitoring
+    Feed {
+        #[command(subcommand)]
+        cmd: FeedCmd,
+    },
+    /// Gmail newsletter subscription management (IMAP)
+    Inbox {
+        #[command(subcommand)]
+        cmd: InboxCmd,
+    },
 }
 
 #[derive(Subcommand)]
@@ -372,4 +382,66 @@ pub enum OpsCmd {
         /// Path to session JSONL file
         session_file: PathBuf,
     },
+}
+
+#[derive(Subcommand)]
+pub enum FeedCmd {
+    /// Register an RSS/Atom feed to monitor
+    Add {
+        /// Feed URL
+        url: String,
+        /// Human-readable name (derived from URL if omitted)
+        #[arg(long)]
+        name: Option<String>,
+        /// Action on new entries: log (default) or task
+        #[arg(long, default_value = "log")]
+        action: String,
+    },
+    /// List all registered feeds
+    List,
+    /// Poll one or all feeds for new entries
+    Poll {
+        /// Feed name to poll (omit for all)
+        name: Option<String>,
+        /// Poll all feeds
+        #[arg(long)]
+        all: bool,
+    },
+    /// Remove a registered feed
+    Remove {
+        /// Feed name
+        name: String,
+    },
+    /// Show last poll results per feed
+    Status,
+}
+
+#[derive(Subcommand)]
+pub enum InboxCmd {
+    /// Register a newsletter subscription
+    Add {
+        /// Subscription name (e.g., "stratechery")
+        name: String,
+        /// Sender email address to match
+        #[arg(long)]
+        from: String,
+        /// Expected frequency: daily, weekly, monthly
+        #[arg(long, default_value = "weekly")]
+        frequency: String,
+    },
+    /// List registered newsletter subscriptions
+    List,
+    /// Poll Gmail for new newsletter emails
+    Poll {
+        /// Gmail label/folder to check (default: Newsletters)
+        #[arg(long, default_value = "Newsletters")]
+        label: String,
+    },
+    /// Remove a newsletter subscription
+    Remove {
+        /// Subscription name
+        name: String,
+    },
+    /// Show arrival stats (expected vs actual per subscription)
+    Status,
 }

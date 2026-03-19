@@ -72,5 +72,7 @@ fn main() {
             OpsCmd::Reindex => commands::ops::cmd_ops_reindex(),
             OpsCmd::Metrics { session_file } => commands::ops::cmd_ops_metrics(&session_file),
         },
+        Commands::Feed { cmd } => commands::feed::cmd_feed(cmd),
+        Commands::Inbox { cmd } => commands::inbox::cmd_inbox(cmd),
     }
 }
