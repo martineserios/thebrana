@@ -22,8 +22,7 @@ esac
 
 # Locate Rust CLI binary
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BRANA="${SCRIPT_DIR}/../cli/rust/target/release/brana"
-[ ! -x "$BRANA" ] && BRANA="${CLAUDE_PLUGIN_ROOT:-}/cli/rust/target/release/brana"
+source "${SCRIPT_DIR}/lib/resolve-brana.sh"
 USE_RUST=false
 [ -x "$BRANA" ] && USE_RUST=true
 

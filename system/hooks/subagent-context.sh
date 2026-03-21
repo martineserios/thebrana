@@ -16,8 +16,7 @@ AGENT_TYPE=$(echo "$INPUT" | jq -r '.agent_type // empty' 2>/dev/null) || true
 
 # Locate brana CLI
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BRANA="${SCRIPT_DIR}/../cli/rust/target/release/brana"
-[ ! -x "$BRANA" ] && BRANA="$(command -v brana 2>/dev/null)" || true
+source "${SCRIPT_DIR}/lib/resolve-brana.sh"
 [ ! -x "${BRANA:-}" ] && { echo '{"continue": true}'; exit 0; }
 
 # Find active task (in_progress with build_step set = actively building)

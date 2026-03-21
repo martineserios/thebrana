@@ -60,8 +60,7 @@ TASKS_FILE="$GIT_ROOT/.claude/tasks.json"
 
 # Try brana CLI first (fast), fall back to jq
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BRANA="${SCRIPT_DIR}/../cli/rust/target/release/brana"
-[ ! -x "$BRANA" ] && BRANA="${CLAUDE_PLUGIN_ROOT:-}/cli/rust/target/release/brana"
+source "${SCRIPT_DIR}/lib/resolve-brana.sh"
 
 BUILD_STEP=""
 if [ -x "$BRANA" ]; then
