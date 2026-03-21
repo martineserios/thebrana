@@ -16,6 +16,8 @@ allowed-tools:
   - AskUserQuestion
   - WebFetch
   - WebSearch
+status: stable
+growth_stage: evergreen
 ---
 
 # Meta Business Verification

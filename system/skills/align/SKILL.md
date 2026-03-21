@@ -20,6 +20,8 @@ allowed-tools:
   - Task
   - EnterPlanMode
   - ExitPlanMode
+status: stable
+growth_stage: evergreen
 ---
 
 # Align — Active Project Alignment

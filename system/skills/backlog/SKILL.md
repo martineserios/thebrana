@@ -15,6 +15,8 @@ allowed-tools:
   - Bash
   - AskUserQuestion
   - Task
+status: stable
+growth_stage: evergreen
 ---
 
 # Backlog

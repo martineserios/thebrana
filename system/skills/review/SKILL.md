@@ -17,6 +17,8 @@ allowed-tools:
   - Grep
   - Bash
   - AskUserQuestion
+status: stable
+growth_stage: evergreen
 ---
 
 # Review — Business Health

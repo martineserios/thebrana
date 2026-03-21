@@ -22,6 +22,8 @@ allowed-tools:
   - WebSearch
   - WebFetch
   - AskUserQuestion
+status: stable
+growth_stage: evergreen
 ---
 
 # Build

@@ -13,6 +13,8 @@ allowed-tools:
   - Glob
   - Grep
   - AskUserQuestion
+status: stable
+growth_stage: evergreen
 ---
 
 # Memory

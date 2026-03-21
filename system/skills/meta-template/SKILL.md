@@ -14,6 +14,8 @@ allowed-tools:
   - Grep
   - Task
   - AskUserQuestion
+status: stable
+growth_stage: evergreen
 ---
 
 # Meta WhatsApp Template Writer

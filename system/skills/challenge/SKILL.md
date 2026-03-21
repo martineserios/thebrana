@@ -18,6 +18,8 @@ allowed-tools:
   - AskUserQuestion
 disable-model-invocation: true
 context: fork
+status: stable
+growth_stage: evergreen
 ---
 
 # Challenge

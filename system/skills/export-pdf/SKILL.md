@@ -13,6 +13,8 @@ allowed-tools:
   - Read
   - Glob
   - AskUserQuestion
+status: stable
+growth_stage: evergreen
 ---
 
 # Export PDF — Markdown to PDF Converter

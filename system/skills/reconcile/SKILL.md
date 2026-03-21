@@ -18,6 +18,8 @@ allowed-tools:
   - AskUserQuestion
   - EnterPlanMode
   - ExitPlanMode
+status: stable
+growth_stage: evergreen
 ---
 
 # Reconcile

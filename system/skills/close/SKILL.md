@@ -17,6 +17,8 @@ allowed-tools:
   - AskUserQuestion
   - Agent
   - Task
+status: stable
+growth_stage: evergreen
 ---
 
 # Close — Session End
