@@ -19,6 +19,7 @@ path = "src/fmt.rs"
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+serde_yaml = "0.9"
 clap = { version = "4", features = ["derive"] }
 chrono = "0.4"
 anyhow = "1"
