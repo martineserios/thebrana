@@ -43,8 +43,8 @@ echo '{"continue": true}'
     TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || TIMESTAMP="unknown"
 
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    BRANA_CLI="${SCRIPT_DIR}/../cli/rust/target/release/brana"
-    [ ! -x "$BRANA_CLI" ] && BRANA_CLI="${CLAUDE_PLUGIN_ROOT:-}/cli/rust/target/release/brana"
+    source "${SCRIPT_DIR}/lib/resolve-brana.sh"
+    BRANA_CLI="$BRANA"
 
     if [ -x "$BRANA_CLI" ]; then
         # Fast path: Rust binary computes all metrics in one call

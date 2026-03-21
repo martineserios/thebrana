@@ -45,6 +45,28 @@ else
     source "$HOME/.claude/scripts/cf-env.sh"
 fi
 
+# ── Sync brana binary to PLUGIN_DATA ─────────────────────────
+# PLUGIN_DATA survives plugin updates. Copy the binary there so hooks
+# always find it, even after a plugin cache wipe.
+if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
+    mkdir -p "$CLAUDE_PLUGIN_DATA" 2>/dev/null || true
+    SRC_BIN="${CLAUDE_PLUGIN_ROOT:-${SCRIPT_DIR}/..}/cli/rust/target/release/brana"
+    DST_BIN="${CLAUDE_PLUGIN_DATA}/brana"
+    if [ -x "$SRC_BIN" ]; then
+        if [ ! -x "$DST_BIN" ] || [ "$SRC_BIN" -nt "$DST_BIN" ]; then
+            cp "$SRC_BIN" "$DST_BIN" 2>/dev/null || true
+        fi
+    fi
+    # Also sync brana-query if it exists
+    SRC_Q="${CLAUDE_PLUGIN_ROOT:-${SCRIPT_DIR}/..}/cli/rust/target/release/brana-query"
+    DST_Q="${CLAUDE_PLUGIN_DATA}/brana-query"
+    if [ -x "$SRC_Q" ]; then
+        if [ ! -x "$DST_Q" ] || [ "$SRC_Q" -nt "$DST_Q" ]; then
+            cp "$SRC_Q" "$DST_Q" 2>/dev/null || true
+        fi
+    fi
+fi
+
 # ── /tmp space check ───────────────────────────────────────
 # CC sandbox (/tmp/claude-*) grows unbounded and can fill tmpfs.
 # Warn early so the user can act before all shell commands fail.
@@ -136,7 +158,10 @@ fi
 
 if [ -n "$TASKS_FILE" ] && [ -f "$TASKS_FILE" ]; then
     # Use brana-query (Rust, 34x faster) if available, fall back to jq
-    BRANA_QUERY="${CLAUDE_PLUGIN_ROOT:-$GIT_ROOT/system}/cli/rust/target/release/brana-query"
+    # Resolution: PLUGIN_DATA > PLUGIN_ROOT > repo
+    BRANA_QUERY=""
+    [ -x "${CLAUDE_PLUGIN_DATA:-}/brana-query" ] && BRANA_QUERY="${CLAUDE_PLUGIN_DATA}/brana-query"
+    [ -z "$BRANA_QUERY" ] && BRANA_QUERY="${CLAUDE_PLUGIN_ROOT:-$GIT_ROOT/system}/cli/rust/target/release/brana-query"
     if [ -x "$BRANA_QUERY" ]; then
         PROJ=$(jq -r '.project // "unknown"' "$TASKS_FILE" 2>/dev/null)
         TOTAL=$("$BRANA_QUERY" --file "$TASKS_FILE" --count 2>/dev/null) || TOTAL=0

@@ -33,8 +33,7 @@ TASK_IDS=$(echo "$COMMAND" | grep -oE 'brana\s+backlog\s+set\s+(\S+)\s+status\s+
 
 # Locate brana CLI
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BRANA="${SCRIPT_DIR}/../cli/rust/target/release/brana"
-[ ! -x "$BRANA" ] && BRANA="$(command -v brana 2>/dev/null)" || true
+source "${SCRIPT_DIR}/lib/resolve-brana.sh"
 [ ! -x "${BRANA:-}" ] && { echo '{"continue": true}'; exit 0; }
 
 MESSAGES=""
