@@ -93,7 +93,7 @@ Three strategies from Anthropic's research, all applicable:
 
 | Strategy | Best For | Brana Mapping |
 |----------|----------|---------------|
-| **Compaction** | Long back-and-forth sessions | `/compact` command + PreCompact hook |
+| **Compaction** | Long back-and-forth sessions | `/compact` command (built-in, no hook — CC doesn't expose a PreCompact event) |
 | **Structured Note-Taking** | Iterative development with milestones | SessionEnd hook + auto memory + CONTEXT.md |
 | **Sub-Agent Architectures** | Parallel exploration | Scout agent + `context: fork` skills |
 
