@@ -1595,3 +1595,23 @@ Respond.io action prompts have a hard 1,000-char limit. Agent 3's Assign action 
 - `docs/reflections/31-assurance.md` — describes the enforcement mechanism
 
 **Proposed fix:** Clarify in sdd-tdd.md that the hook enforces spec-before-impl (not test-before-impl), and TDD remains a discipline rule. Alternatively, tighten the hook to require test files (not just spec docs) before implementation file writes on feat/* branches.
+
+### Reconcile Run — 2026-03-21
+
+**Trigger:** manual (post rules budget trimming + periodic check)
+**Drift found:** 15 findings across 4 areas
+**Applied:** 12 auto-fixes
+**Deferred:** 3 (spec doc updates — require maintain-specs cycle)
+
+| # | Area | Type | Finding | Resolution |
+|---|------|------|---------|-----------|
+| 1 | Rules | Stale | 5 system/rules/ files had old verbose versions vs trimmed ~/.claude/rules/ | Applied — synced trimmed versions to system/rules/ |
+| 2 | Rules | Missing | brana-cli.md and inbox-convention.md not in system/rules/ (would be deleted on bootstrap) | Applied — added to system/rules/ |
+| 3 | CLAUDE.md | Incomplete | Commands table listed 9 skills; 18 unlisted | Applied — added all 30 skills in 3 category tables |
+| 4 | CLAUDE.md | Stale | "Agent Commands" section only listed maintain-specs | Applied — renamed to "Spec Maintenance Commands", added all 4 |
+| 5 | Skills | Incomplete | 0/30 skills had status/growth_stage fields (32-lifecycle.md requires them) | Applied — added status:stable, growth_stage:evergreen to all 30 |
+| 6 | Specs | Stale | 18-lean-roadmap.md references retired /decide skill | Deferred — requires maintain-specs |
+| 7 | Specs | Stale | 31-assurance.md references tests/scripts/test-sync-state.sh (doesn't exist) | Deferred — requires maintain-specs |
+| 8 | Specs | Stale | 32-lifecycle.md mentions PreCompact hook (CC doesn't support it) | Deferred — requires maintain-specs |
+
+**Notes:** Critical finding was rules sync drift — trimming ~/.claude/rules/ without updating system/rules/ would have been overwritten on next bootstrap.sh run. All agent model assignments verified correct. Hooks verified correct (PostToolUse intentionally in settings.json per CC bug #24529).
