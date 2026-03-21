@@ -446,13 +446,14 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
 
 3. **For each task** (in dependency order):
    a. **Mark CC Task in_progress** (if created): `TaskUpdate: status → in_progress`
-   b. **State what you'll change** — which files, why, how it maps to acceptance criteria
-   c. **Write failing test** — the acceptance criteria become test assertions
-   d. **Implement** — make the test pass
-   e. **Verify** — run tests, lint, compare before/after
-   f. **Commit** — `feat(scope): description`
-   g. **Mark CC Task completed** + update tasks.json: `brana backlog set {subtask-id} status completed`
-   h. **Mini-debrief:**
+   b. **Skill check** (Medium/Large builds only): run `brana skills suggest --query "<subtask subject and key terms>"`. If a match scores > 0.3, mention it: "Skill available: /brana:{name} ({reason}). Use it?" If the user says yes, invoke the skill for this subtask. If no match, proceed without mentioning.
+   c. **State what you'll change** — which files, why, how it maps to acceptance criteria
+   d. **Write failing test** — the acceptance criteria become test assertions
+   e. **Implement** — make the test pass
+   f. **Verify** — run tests, lint, compare before/after
+   g. **Commit** — `feat(scope): description`
+   h. **Mark CC Task completed** + update tasks.json: `brana backlog set {subtask-id} status completed`
+   i. **Mini-debrief:**
       - What surprised?
       - Spec mismatch? (feature spec says X, reality requires Y)
       - Reusable pattern?
