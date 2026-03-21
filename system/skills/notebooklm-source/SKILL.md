@@ -24,6 +24,8 @@ allowed-tools:
   - mcp__notebooklm__get_library_stats
   - mcp__notebooklm__setup_auth
   - AskUserQuestion
+status: stable
+growth_stage: evergreen
 ---
 
 # NotebookLM Source Preparation

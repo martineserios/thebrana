@@ -16,6 +16,8 @@ allowed-tools:
   - Grep
   - Agent
   - AskUserQuestion
+status: stable
+growth_stage: evergreen
 ---
 
 # Living Documentation

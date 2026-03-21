@@ -99,12 +99,43 @@ claude --plugin-dir ./system
 | `/brana:build` | Build anything — auto-detects strategy (feature, bug fix, refactor, spike, migration, investigation, greenfield) |
 | `/brana:close` | End session — extract learnings, write handoff, store patterns |
 | `/brana:backlog` | Manage tasks — plan, track, navigate work |
+| `/brana:sitrep` | Situational awareness — where am I, what's next, context recovery |
 | `/brana:challenge` | Adversarial review of a plan or decision |
 | `/brana:reconcile` | Detect spec-vs-implementation drift, plan fixes, apply after approval |
 | `/brana:research` | Research a topic, doc, or creator — recursive discovery. `--refresh` for batch dimension updates |
 | `/brana:onboard` | Scan and diagnose a project (code, venture, or hybrid) |
 | `/brana:align` | Implement project structure based on /brana:onboard findings |
+| `/brana:docs` | Generate and update tech docs, user guides, philosophy overview |
+| `/brana:memory` | Knowledge ops — recall, cross-pollinate, review health, audit |
+| `/brana:retrospective` | Store a learning or pattern in the knowledge system |
+| `/brana:brainstorm` | Interactive idea maturation — explore, research, shape into plans |
+
+### Business & Venture (Skills)
+
+| Command | Purpose |
+|---------|---------|
 | `/brana:review` | Business health — weekly (default), monthly, or ad-hoc check |
+| `/brana:pipeline` | Sales pipeline tracking — leads, deals, conversions, follow-ups |
+| `/brana:financial-model` | Revenue projections, scenario analysis, unit economics |
+| `/brana:venture-phase` | Plan and execute a business milestone (launch, hiring, fundraise) |
+| `/brana:proposal` | Generate a client proposal — interview-driven, structured markdown |
+| `/brana:client-retire` | Archive a client's patterns and knowledge when retiring |
+| `/brana:harvest` | Extract post ideas from recent work through positioning lens |
+
+### Domain Tools (Skills)
+
+| Command | Purpose |
+|---------|---------|
+| `/brana:gsheets` | Google Sheets via MCP — read, write, create, list, share |
+| `/brana:log` | Capture events (links, calls, meetings, ideas) into searchable log |
+| `/brana:scheduler` | Manage scheduled jobs |
+| `/brana:export-pdf` | Convert markdown to PDF via mdpdf |
+| `/brana:meta-template` | Write Meta WhatsApp templates optimized for Utility classification |
+| `/brana:meta-verification` | Meta Business Verification recipe for WABA access |
+| `/brana:respondio-prompts` | Respond.io AI agent prompt engineering |
+| `/brana:notebooklm-source` | Prepare and format sources for NotebookLM |
+| `/brana:plugin` | Manage Claude Code plugins — install, update, remove |
+| `/brana:acquire-skills` | Find and install skills for project tech gaps |
 
 ### CLI Tools
 
@@ -115,11 +146,16 @@ claude --plugin-dir ./system
 | `brana feed add\|list\|poll\|remove\|status` | RSS/Atom feed polling. Covers Substack, Medium, blogs, YouTube, GitHub releases. HTTP conditional requests (ETag). |
 | `brana inbox add-account\|add\|list\|poll\|remove\|status\|set-password` | Gmail newsletter management via IMAP. Multi-account, OS keyring credentials. |
 
-### Agent Commands
+### Spec Maintenance Commands
+
+Commands live in `system/commands/`, not skills — invoked by agents or manually.
 
 | Command | Purpose |
 |---------|---------|
-| `/brana:maintain-specs` | Cascade spec changes: dimension → reflection → roadmap (lives in `system/commands/`, not a skill) |
+| `/brana:maintain-specs` | Full spec correction cycle: errata → reflections → synthesis → hygiene |
+| `/brana:apply-errata` | Apply pending errata from doc 24 through layer hierarchy |
+| `/brana:re-evaluate-reflections` | Cross-check reflections against dimensions for gaps |
+| `/brana:repo-cleanup` | Commit accumulated spec doc changes in logical batches |
 
 ## Specs Reference
 

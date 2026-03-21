@@ -21,6 +21,8 @@ allowed-tools:
   - Task
   - mcp__context7__resolve-library-id
   - mcp__context7__query-docs
+status: stable
+growth_stage: evergreen
 ---
 
 # Brainstorm

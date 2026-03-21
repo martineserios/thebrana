@@ -16,6 +16,8 @@ allowed-tools:
   - WebFetch
   - AskUserQuestion
   - Agent
+status: stable
+growth_stage: evergreen
 ---
 
 # Acquire Skills

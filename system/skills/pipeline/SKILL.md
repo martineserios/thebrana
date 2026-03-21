@@ -14,6 +14,8 @@ allowed-tools:
   - Bash
   - Task
   - AskUserQuestion
+status: stable
+growth_stage: evergreen
 ---
 
 # Pipeline — Sales Pipeline Tracker

@@ -15,6 +15,8 @@ allowed-tools:
   - Grep
   - AskUserQuestion
   - Task
+status: stable
+growth_stage: evergreen
 ---
 
 # Proposal — Client Proposal Generator

@@ -15,6 +15,8 @@ allowed-tools:
   - Write
   - AskUserQuestion
   - Task
+status: stable
+growth_stage: evergreen
 ---
 
 # Onboard — Project Discovery

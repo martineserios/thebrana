@@ -7,6 +7,8 @@ task_strategies: [feature, spike]
 stream_affinity: [roadmap, research]
 argument-hint: "[list|read|write|create|summary|share] [args]"
 group: utility
+status: stable
+growth_stage: evergreen
 ---
 
 # Google Sheets — MCP Operations

@@ -11,25 +11,10 @@ Before writing or editing implementation code, answer: what test would verify th
 
 Never weaken a test assertion without investigating the code. The test is right until proven otherwise.
 
-## Enhanced enforcement (projects with `docs/decisions/`)
+## Enhanced enforcement (projects with decisions directory)
 
-Projects with `docs/decisions/` activate stricter enforcement:
+Projects with `docs/decisions/` or `docs/architecture/decisions/` activate stricter enforcement:
 
-- **ADR before implementation.** Use `/decide <title>` on `feat/*` branches. The PreToolUse hook blocks implementation files until a spec or test exists on the branch.
-- **Feature branches require spec/test activity first.** Commits touching `docs/`, `test/`, `tests/`, or `*.test.*`/`*.spec.*` satisfy this.
-
-Projects without `docs/decisions/` don't get hook enforcement, but the testing discipline above still applies.
-
-## Example: spec-first on a feat branch
-
-```
-# 1. Create branch and ADR
-git worktree add ../repo-feat-auth -b feat/t-015-jwt-auth
-/decide JWT authentication strategy   → docs/decisions/ADR-005-jwt-auth.md
-
-# 2. Write failing test
-tests/auth.test.ts                     → expect(verifyToken(expired)).toBe(false)
-
-# 3. Now implement (PreToolUse hook allows it)
-src/auth.ts                            → export function verifyToken(token: string): boolean { ... }
-```
+- **Spec/test before implementation.** PreToolUse hook blocks implementation file writes on `feat/*`, `fix/*`, `refactor/*` branches until a spec or test exists.
+- **Spec activity that satisfies the gate:** commits/changes touching `docs/`, `test/`, `tests/`, `__tests__/`, or `*.test.*`/`*.spec.*` files.
+- **Hook enforces spec-before-impl, not test-before-impl.** A spec doc alone satisfies the gate. TDD (test before code) is a discipline rule — when the gate passes via spec-only, still write the failing test before implementation. (Error 75, 2026-03-19)
