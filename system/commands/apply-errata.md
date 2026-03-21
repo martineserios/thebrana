@@ -1,6 +1,7 @@
 ---
 name: apply-errata
 description: "Apply pending errata from doc 24 through the layer hierarchy: dimension, reflection, roadmap — with gate checks between layers"
+effort: high
 ---
 
 # Apply Errata

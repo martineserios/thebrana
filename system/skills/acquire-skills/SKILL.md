@@ -1,6 +1,7 @@
 ---
 name: acquire-skills
 description: "Find and install skills for project tech gaps. For new or unfamiliar tech."
+effort: low
 group: brana
 allowed-tools:
   - Read

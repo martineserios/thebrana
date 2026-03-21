@@ -1,6 +1,7 @@
 ---
 name: harvest
 description: "Extract post ideas from recent work through positioning lens"
+effort: medium
 group: content
 allowed-tools:
   - Bash

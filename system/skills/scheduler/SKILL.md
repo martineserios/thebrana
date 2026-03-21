@@ -1,6 +1,7 @@
 ---
 name: scheduler
 description: Scheduled jobs.
+effort: low
 argument-hint: "[status|logs|enable|disable|run|validate|deploy|teardown] [job]"
 group: utility
 allowed-tools:

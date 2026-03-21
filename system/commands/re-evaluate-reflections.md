@@ -1,6 +1,7 @@
 ---
 name: re-evaluate-reflections
 description: "Cross-check reflection docs against dimension docs to find gaps, contradictions, and missed findings"
+effort: high
 ---
 
 # Re-Evaluate Reflections

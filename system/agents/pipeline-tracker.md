@@ -2,6 +2,7 @@
 name: pipeline-tracker
 description: "Pipeline status — deal stages, overdue follow-ups, conversion trends. Use when pipeline or deal-related work is happening. Not for: broad metrics aggregation, daily priorities, venture diagnostics."
 model: haiku
+effort: low
 tools:
   - Bash
   - Read

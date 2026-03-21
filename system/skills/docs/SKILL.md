@@ -1,6 +1,7 @@
 ---
 name: docs
 description: "Generate and update living documentation — tech docs, user guides, philosophy overview. Composable building block for CLOSE and other skills."
+effort: medium
 argument-hint: "guide|tech|overview|all [task-id]"
 group: core
 allowed-tools:

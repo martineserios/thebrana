@@ -1,6 +1,7 @@
 ---
 name: plugin
 description: "Manage Claude Code plugins — add marketplaces, install, update, remove, list plugins."
+effort: low
 argument-hint: "[list|install|remove|update|sync] [name]"
 group: brana
 allowed-tools:

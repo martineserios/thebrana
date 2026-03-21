@@ -1,6 +1,7 @@
 ---
 name: repo-cleanup
 description: "Commit accumulated spec doc changes: survey, group by logical batch, branch, commit, merge"
+effort: low
 ---
 
 # Repo Cleanup
