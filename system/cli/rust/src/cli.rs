@@ -148,6 +148,31 @@ pub enum Commands {
         #[command(subcommand)]
         cmd: InboxCmd,
     },
+    /// Skill discovery and routing
+    Skills {
+        #[command(subcommand)]
+        cmd: SkillsCmd,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum SkillsCmd {
+    /// Recommend skills for a task based on context matching
+    Suggest {
+        /// Task ID (e.g., t-123) — reads metadata for matching
+        #[arg(long)]
+        task: Option<String>,
+        /// Free-text query (alternative to --task)
+        #[arg(long)]
+        query: Option<String>,
+    },
+    /// Search local skills by keyword
+    Search {
+        /// Search terms
+        query: String,
+    },
+    /// List all local skills with metadata
+    List,
 }
 
 #[derive(Subcommand)]

@@ -74,5 +74,12 @@ fn main() {
         },
         Commands::Feed { cmd } => commands::feed::cmd_feed(cmd),
         Commands::Inbox { cmd } => commands::inbox::cmd_inbox(cmd),
+        Commands::Skills { cmd } => match cmd {
+            SkillsCmd::Suggest { task, query } => {
+                commands::skills::cmd_suggest(task.as_deref(), query.as_deref())
+            }
+            SkillsCmd::Search { query } => commands::skills::cmd_search(&query),
+            SkillsCmd::List => commands::skills::cmd_list(),
+        },
     }
 }
