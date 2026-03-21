@@ -2,6 +2,7 @@
 name: pr-reviewer
 description: "Review PR diffs for code quality, bugs, and style issues. Auto-triggered on PR creation. Not for: implementation, file editing, test writing."
 model: sonnet
+effort: medium
 tools:
   - Read
   - Glob

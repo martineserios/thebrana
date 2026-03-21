@@ -2,6 +2,7 @@
 name: daily-ops
 description: "Daily venture focus card — health snapshot, pending actions, experiments. Use at session start on a venture project. Not for: deep metrics analysis, pipeline management, project alignment checks."
 model: haiku
+effort: low
 tools:
   - Bash
   - Read

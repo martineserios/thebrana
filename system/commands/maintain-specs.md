@@ -1,6 +1,7 @@
 ---
 name: maintain-specs
 description: "Run the full spec repo correction cycle: apply errata, re-evaluate reflections, deepen synthesis, and check doc hygiene"
+effort: high
 ---
 
 # Maintain Specs

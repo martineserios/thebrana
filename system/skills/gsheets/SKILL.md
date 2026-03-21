@@ -1,6 +1,7 @@
 ---
 name: gsheets
 description: "Google Sheets via MCP — read, write, create, list, share spreadsheets. Use when reading, writing, or managing Google Sheets data."
+effort: low
 argument-hint: "[list|read|write|create|summary|share] [args]"
 group: utility
 ---

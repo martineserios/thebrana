@@ -1,6 +1,7 @@
 ---
 name: proposal
 description: "Generate a client proposal — interview-driven, structured markdown with cost breakdown and timeline. Use when preparing a service proposal for a client."
+effort: high
 argument-hint: "[client-name]"
 group: venture
 allowed-tools:
