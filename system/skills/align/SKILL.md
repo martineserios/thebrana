@@ -2,6 +2,9 @@
 name: align
 description: "Actively align a project with brana practices — assess gaps, plan fixes, implement structure, verify. Works for code and venture clients. Auto-detects type. Use when setting up a new project or realigning an existing one."
 effort: medium
+keywords: [alignment, structure, conventions, gaps, brana-practices]
+task_strategies: [refactor, greenfield]
+stream_affinity: [roadmap, tech-debt]
 argument-hint: "[project-path]"
 group: execution
 depends_on:

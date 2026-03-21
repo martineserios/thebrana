@@ -2,6 +2,9 @@
 name: close
 description: "End a session — extract learnings, write handoff note, store patterns, detect doc drift. Absorbs /session-handoff close mode and /debrief. Use when ending a work session or when the user says done/bye/closing."
 effort: high
+keywords: [session, handoff, debrief, learnings, errata, drift]
+task_strategies: [feature, bug-fix, refactor]
+stream_affinity: [roadmap, tech-debt]
 argument-hint: "[focus-hint]"
 group: session
 allowed-tools:

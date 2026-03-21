@@ -2,6 +2,9 @@
 name: retrospective
 description: Store a learning or pattern in the knowledge system. Use after notable discoveries, unexpected issues, successful workarounds, or when a reusable pattern emerges.
 effort: low
+keywords: [learning, pattern, discovery, workaround, knowledge]
+task_strategies: [feature, bug-fix, refactor, spike]
+stream_affinity: [roadmap, tech-debt, research]
 argument-hint: "[learning text]"
 group: learning
 model: sonnet

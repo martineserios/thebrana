@@ -2,6 +2,9 @@
 name: onboard
 description: "Scan and diagnose a project — tech stack, structure, stage, gaps, patterns. Works for code and venture clients. Auto-detects project type. Use when entering an unfamiliar project for the first time."
 effort: medium
+keywords: [scan, diagnose, project, structure, tech-stack, gaps]
+task_strategies: [investigation, greenfield]
+stream_affinity: [roadmap]
 argument-hint: "[project-path]"
 group: execution
 allowed-tools:

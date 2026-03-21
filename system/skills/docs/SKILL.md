@@ -2,6 +2,9 @@
 name: docs
 description: "Generate and update living documentation — tech docs, user guides, philosophy overview. Composable building block for CLOSE and other skills."
 effort: medium
+keywords: [documentation, tech-doc, user-guide, living-docs, architecture]
+task_strategies: [feature, refactor, greenfield, migration]
+stream_affinity: [docs, roadmap]
 argument-hint: "guide|tech|overview|all [task-id]"
 group: core
 allowed-tools:

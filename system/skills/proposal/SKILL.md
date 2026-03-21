@@ -2,6 +2,9 @@
 name: proposal
 description: "Generate a client proposal — interview-driven, structured markdown with cost breakdown and timeline. Use when preparing a service proposal for a client."
 effort: high
+keywords: [proposal, client, pricing, timeline, cost, scope, deliverables]
+task_strategies: [feature]
+stream_affinity: [roadmap]
 argument-hint: "[client-name]"
 group: venture
 allowed-tools:

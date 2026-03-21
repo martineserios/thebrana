@@ -2,6 +2,9 @@
 name: review
 description: "Business review — weekly health check, monthly close + plan, or ad-hoc growth audit. Subcommands: weekly, monthly, check. Use for periodic business reviews or when metrics need assessment."
 effort: high
+keywords: [business, metrics, weekly, monthly, health, growth, revenue]
+task_strategies: [investigation]
+stream_affinity: [roadmap, research]
 argument-hint: "[weekly|monthly|check]"
 group: venture
 depends_on:

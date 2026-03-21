@@ -2,6 +2,9 @@
 name: reconcile
 description: "Detect drift between spec docs and system/ implementation, plan fixes, apply after approval. Use after /brana:maintain-specs changes or periodically to sync specs with implementation."
 effort: high
+keywords: [drift, specs, implementation, sync, mismatch, system]
+task_strategies: [refactor]
+stream_affinity: [tech-debt, docs]
 argument-hint: "[scope]"
 group: brana
 allowed-tools:

@@ -2,6 +2,9 @@
 name: client-retire
 description: "Archive a client's patterns and mark them as historical. Use when retiring a client or archiving its knowledge for future reference."
 effort: low
+keywords: [archive, retire, client, historical, cleanup]
+task_strategies: [migration]
+stream_affinity: [roadmap]
 argument-hint: "[client-slug]"
 group: execution
 allowed-tools:
