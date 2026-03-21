@@ -326,17 +326,34 @@ Begin work on a specific task. For code tasks, enters the `/brana:build` loop.
      - Default → strategy: `feature`
    - **Confirm with user:** "Start t-008 as **feature**? [feature / bug-fix / refactor / spike / other]"
    - Write the confirmed `strategy` field to the task
-5. **Determine execution mode:**
+5. **Skill suggestion** (after strategy confirmed):
+   ```bash
+   brana skills suggest --task <id>
+   ```
+   - If results with score > 0.3: present via AskUserQuestion:
+     ```
+     question: "Skills that may help with this task:"
+     options: one per match ("/brana:{name} — {reason}") + "Skip — none needed"
+     ```
+   - If no results (all < 0.3): check silently, don't mention.
+   - If gap AND task is `code` execution: offer external search:
+     ```
+     question: "No local skill matches this task context. Search external sources?"
+     options: ["Search externally", "Skip"]
+     ```
+     If yes: run `/brana:acquire-skills <task keywords>`.
+   - Selected skill names noted in task context for the build loop.
+6. **Determine execution mode:**
    - `code`: check git status clean → create branch `{prefix}{id}-{slug}` → set status + started date + branch field → **enter `/brana:build` with the task's strategy** (build_step: classify)
    - `external`: set status + started date, show task description
    - `manual`: set status + started date, show checklist from description
-6. **Write tasks.json** (status: in_progress, started: today, strategy: confirmed)
-7. **GitHub sync** (if `github_sync.enabled` in `~/.claude/tasks-config.json`):
+7. **Write tasks.json** (status: in_progress, started: today, strategy: confirmed)
+8. **GitHub sync** (if `github_sync.enabled` in `~/.claude/tasks-config.json`):
    - If task has no `github_issue`: run `system/scripts/gh-sync.sh create {task-id} {tasks-json-path}`. Read issue number from stdout, write to task's `github_issue` field.
    - If task has `github_issue`: run `system/scripts/gh-sync.sh pull-context {issue-number}`. If comments returned, replace `## GitHub Comments` section in task's `context` field.
    - If sync fails (exit code 1 or 2): warn "GitHub sync failed. Task started locally." — do NOT block start.
-8. **Report:** "Started t-008 'Implement JWT middleware' as **feature**. Branch: feat/t-008-jwt-middleware."
-9. **For code tasks:** invoke `/brana:build` immediately using the Skill tool:
+9. **Report:** "Started t-008 'Implement JWT middleware' as **feature**. Branch: feat/t-008-jwt-middleware."
+10. **For code tasks:** invoke `/brana:build` immediately using the Skill tool:
    ```
    Skill(skill="brana:build", args="{task-id}")
    ```
