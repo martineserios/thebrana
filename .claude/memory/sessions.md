@@ -2910,3 +2910,142 @@ BASE="/org/gnome/terminal/legacy/profiles:/:${PROFILE}"
 dconf write "${BASE}/palette" "['rgb(22,27,34)', 'rgb(255,123,114)', 'rgb(63,185,80)', 'rgb(210,153,34)', 'rgb(88,166,255)', 'rgb(188,140,255)', 'rgb(57,197,207)', 'rgb(177,186,196)', 'rgb(110,118,129)', 'rgb(255,166,158)', 'rgb(86,211,100)', 'rgb(230,187,72)', 'rgb(121,192,255)', 'rgb(210,178,255)', 'rgb(86,222,230)', 'rgb(240,246,252)']"
 
 echo "Bright black: rgb(48,54,61) → rgb(110,118,129)",/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/session-handoff.md,DRIFT — detect doc drift,ERRATA — write errata entries,EXTRACT — classify findings,FIELD-NOTES — capture practical discoveries,GATE — assess session activity,GATHER — collect evidence,HANDOFF — write handoff note
+
+### Session 9c03c901-89b3-4c18-b903-284d765e3c5f (2026-03-19T19:41:28Z)
+- Events: 233 (201 ok, 4 fail)
+- Corrections: 21 | Test writes: 0 | Cascades: 2 | PR creates: 0
+- Tests: 6 pass, 0 fail (rate=1.00) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.30 fix=0.25 test=0.00 casc=0.50 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/session-handoff.md,/home/martineserios/.claude/rules/brana-cli.md,/home/martineserios/.claude/rules/inbox-convention.md,/home/martineserios/.claude/rules/sdd-tdd.md,/home/martineserios/enter_thebrana/thebrana-feat-t-585/system/cli/rust/Cargo.toml,/home/martineserios/enter_thebrana/thebrana-feat-t-585/system/cli/rust/src/cli.rs,/home/martineserios/enter_thebrana/thebrana-feat-t-585/system/cli/rust/src/commands/feed.rs,/home/martineserios/enter_thebrana/thebrana-feat-t-585/system/cli/rust/src/commands/inbox.rs,/home/martineserios/enter_thebrana/thebrana-feat-t-585/system/cli/rust/src/commands/mod.rs
+
+### Session ef8a3e17-4c1c-410d-8720-4d6ddf5370c2 (2026-03-19T19:43:56Z)
+- Events: 239 (156 ok, 7 fail)
+- Corrections: 67 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.57 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,TaskCompleted,Write,session-start,session-start-venture
+- Files: - **Never have agents fetch URLs** for classification — LinkedIn/web pages bloat context (14/14 agents hit limits in previous attempt)
+- **Section-aware parsing:** non-LinkedIn sections restart numbering (GH-1, Art-1, Tool-1), so Python scripts must track current section to disambiguate rows
+# Memory — linkedin
+- **Research task consolidation:** For related research URLs (e.g., 8 LinkedIn posts about multi-agent orchestration), create one umbrella task with all URLs in context instead of one task per URL. Merged t-096/097/106/109/152/065/504/331 → t-525. Research builds on itself when consolidated; fragments when scattered.
+## LinkedIn MCP (linkedin-scraper-mcp)
+- **Tool name**: `get_person_profile` (NOT `scrape_linkedin_profile`). Param: `linkedin_username` (slug, not URL). Optional `sections`: experience, education, interests, honors, languages, contact_info, posts.
+,/brana:close — EXTRACT,/brana:close — GATE,/brana:close — GATHER,/brana:close — HANDOFF,/brana:close — REPORT,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-linkedin/memory/MEMORY.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-linkedin/memory/feedback_es_jargon.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-linkedin/memory/feedback_skills_sources.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-linkedin/memory/feedback_tone_objective.md
+
+### Session 2cdb8f79-8224-4e39-967a-78730ec23ba8 (2026-03-19T19:44:26Z)
+- Events: 106 (87 ok, 1 fail)
+- Corrections: 10 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 6 pass, 0 fail (rate=1.00) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.56 fix=1.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,# P1 tasks
+brana backlog set t-598 priority P1 && \
+brana backlog set t-601 priority P1 && \
+brana backlog set t-527 priority P1 && \
+brana backlog set t-543 priority P1,# P2 tasks - batch 1
+brana backlog set t-599 priority P2 && \
+brana backlog set t-600 priority P2 && \
+brana backlog set t-602 priority P2 && \
+brana backlog set t-573 priority P2 && \
+brana backlog set t-456 priority P2 && \
+brana backlog set t-468 priority P2 && \
+brana backlog set t-522 priority P2 && \
+brana backlog set t-541 priority P2 && \
+brana backlog set t-467 priority P2 && \
+brana backlog set t-536 priority P2 && \
+brana backlog set t-550 priority P2 && \
+brana backlog set t-597 priority P2,# P2 tasks - batch 2
+brana backlog set t-540 priority P2 && \
+brana backlog set t-455 priority P2 && \
+brana backlog set t-501 priority P2 && \
+brana backlog set t-518 priority P2 && \
+brana backlog set t-519 priority P2 && \
+brana backlog set t-520 priority P2 && \
+brana backlog set t-521 priority P2 && \
+brana backlog set t-555 priority P2 && \
+brana backlog set t-556 priority P2 && \
+brana backlog set t-557 priority P2 && \
+brana backlog set t-558 priority P2 && \
+brana backlog set t-559 priority P2 && \
+brana backlog set t-561 priority P2,# P3 tasks - all remaining without priority
+brana backlog set t-394 priority P3 && \
+brana backlog set t-395 priority P3 && \
+brana backlog set t-459 priority P3 && \
+brana backlog set t-432 priority P3 && \
+brana backlog set t-462 priority P3 && \
+brana backlog set t-465 priority P3 && \
+brana backlog set t-471 priority P3 && \
+brana backlog set t-509 priority P3 && \
+brana backlog set t-523 priority P3 && \
+brana backlog set t-393 priority P3 && \
+brana backlog set t-413 priority P3 && \
+brana backlog set t-414 priority P3 && \
+brana backlog set t-415 priority P3 && \
+brana backlog set t-416 priority P3 && \
+brana backlog set t-417 priority P3 && \
+brana backlog set t-418 priority P3 && \
+brana backlog set t-419 priority P3 && \
+brana backlog set t-420 priority P3 && \
+brana backlog set t-421 priority P3,# P3 tasks - batch 2
+brana backlog set t-517 priority P3 && \
+brana backlog set t-538 priority P3 && \
+brana backlog set t-426 priority P3 && \
+brana backlog set t-433 priority P3 && \
+brana backlog set t-439 priority P3 && \
+brana backlog set t-440 priority P3 && \
+brana backlog set t-441 priority P3 && \
+brana backlog set t-434 priority P3 && \
+brana backlog set t-435 priority P3 && \
+brana backlog set t-436 priority P3 && \
+brana backlog set t-493 priority P3 && \
+brana backlog set t-533 priority P3 && \
+brana backlog set t-542 priority P3,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/MEMORY.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/event-log.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/feedback_rust-ecosystem-gotchas.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/feedback_tdd-no-exceptions.md
+
+### Session bf6d3356-b6a9-4f2a-a2fe-ab7d01524236 (2026-03-21T02:42:11Z)
+- Events: 32 (29 ok, 2 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,brana backlog query --status active --output json 2>/dev/null | python3 -c "import json,sys; tasks=json.load(sys.stdin); [print(f'{t[\"id\"]:8} {t[\"subject\"]} [{t.get(\"stream\",\"\")}]') for t in tasks]",brana backlog query --status active 2>/dev/null,brana backlog query --status done --output json 2>/dev/null | jq -r '.[0:5] | .[] | "\(.id): \(.subject)"' 2>/dev/null,brana backlog query --status in_progress 2>/dev/null || brana backlog status 2>/dev/null,brana backlog query --status pending | wc -l,brana backlog query --stream roadmap 2>/dev/null | head -30,brana backlog roadmap 2>/dev/null | head -60,brana backlog roadmap 2>/dev/null | tail -100,brana backlog stale
+
+### Session c937d697-9fba-4a39-a744-889c35440d08 (2026-03-21T12:48:16Z)
+- Events: 4 (3 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog add --json '{"subject":"Fix session continuity — persistent memory vs temporal handoff separation","description":"Sessions start cold despite handoff notes, memory files, and sitrep. Root causes: (1) sitrep is mechanical (git state, no intent/momentum), (2) handoff notes go stale fast, (3) memory is fragmented across too many files mixing durable knowledge with temporal state, (4) no narrative thread across sessions. Key insight: memory should be a persistent knowledge space, not temporal. Session handoff belongs in sessions.md (already exists). Fix: separate durable memory from session state, add narrative/momentum tracking, make sitrep capture intent not just git status.","stream":"tech-debt","type":"task","tags":["dx","session-continuity","memory","critical"],"priority":"P1"}' 2>/dev/null,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "context recovery" 2>/dev/null; /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "session state" 2>/dev/null,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "session continuity" 2>/dev/null; /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "session handoff" 2>/dev/null; /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "session connection" 2>/dev/null
