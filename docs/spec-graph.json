@@ -1,10 +1,10 @@
 {
   "_meta": {
-    "generated": "2026-03-19T19:05:21Z",
-    "node_count": 183,
+    "generated": "2026-03-21T12:48:19Z",
+    "node_count": 187,
     "edge_count": 528,
-    "impl_ref_count": 234,
-    "orphan_count": 89,
+    "impl_ref_count": 239,
+    "orphan_count": 93,
     "typed_edge_count": 0
   },
   "nodes": {
@@ -835,6 +835,16 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/architecture/decisions/ADR-025-skill-lifecycle-manager.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [
+        "system/skills/.sources.json`"
+      ],
       "guide_files": [],
       "arch_files": [],
       "ref_files": []
@@ -2611,6 +2621,14 @@
       "arch_files": [],
       "ref_files": []
     },
+    "docs/ideas/cc-feature-adoption-v2.1.76-81.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
     "docs/ideas/distribution-strategy.md": {
       "references": [],
       "referenced_by": [],
@@ -2619,10 +2637,32 @@
       "arch_files": [],
       "ref_files": []
     },
+    "docs/ideas/dynamic-skill-routing.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [
+        "system/mcp/skill-registry/`"
+      ],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
     "docs/ideas/mission-control.md": {
       "references": [],
       "referenced_by": [],
       "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/ideas/skill-lifecycle-manager.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [
+        "system/skills/",
+        "system/skills/acquired/",
+        "system/cli/rust/"
+      ],
       "guide_files": [],
       "arch_files": [],
       "ref_files": []

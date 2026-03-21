@@ -372,3 +372,21 @@
 
 **Next:**
 - (auto-generated — run /session-handoff for full close)
+
+## 2026-03-21 — auto-captured (session-end hook)
+
+**Accomplished:**
+- 3455f4c feat(skills): integrate skill suggestions into backlog start + build (t-611)
+- 7e85668 feat(skills): integrate skill suggestions into backlog start + build (t-611)
+- 1f84aa9 feat(cli): add brana skills suggest/search/list subcommands (t-610)
+- 1e4cffe feat(cli): add brana skills suggest/search/list subcommands (t-610)
+- 0e5dd39 refactor(skills): enrich frontmatter with keywords, strategies, streams (t-609)
+
+**State:**
+- Branch: main
+- Events: 4 (3 ok, 0 fail, 0 corrections, 0 cascades, 0 prs)
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+
+**Next:**
+- (auto-generated — run /session-handoff for full close)
