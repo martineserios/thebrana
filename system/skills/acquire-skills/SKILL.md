@@ -2,6 +2,9 @@
 name: acquire-skills
 description: "Find and install skills for project tech gaps. For new or unfamiliar tech."
 effort: low
+keywords: [skills, marketplace, install, gap, discovery, external]
+task_strategies: [feature, spike]
+stream_affinity: [roadmap, tech-debt]
 group: brana
 allowed-tools:
   - Read

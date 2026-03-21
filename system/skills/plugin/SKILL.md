@@ -2,6 +2,9 @@
 name: plugin
 description: "Manage Claude Code plugins — add marketplaces, install, update, remove, list plugins."
 effort: low
+keywords: [plugin, marketplace, install, update, remove, distribution]
+task_strategies: [feature, spike]
+stream_affinity: [roadmap, tech-debt]
 argument-hint: "[list|install|remove|update|sync] [name]"
 group: brana
 allowed-tools:

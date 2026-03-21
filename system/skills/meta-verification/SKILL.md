@@ -2,6 +2,9 @@
 name: meta-verification
 description: "Meta Business Verification — full recipe for verifying a business on Meta Business Manager for WABA access. Covers prerequisites, document submission, post-approval steps, and account hygiene. Cross-pollinated from somos_mirada."
 effort: medium
+keywords: [meta, business-manager, verification, waba, compliance, documents]
+task_strategies: [feature]
+stream_affinity: [roadmap]
 argument-hint: "[check|submit|audit] [phase]"
 allowed-tools:
   - Read

@@ -2,6 +2,9 @@
 name: sitrep
 description: "Situational awareness — where am I, what was I doing, what's left, what should I do next. Context recovery after compression, confusion, or mid-session reorientation."
 effort: low
+keywords: [status, context, recovery, orientation, compression, where-am-i]
+task_strategies: [investigation]
+stream_affinity: [roadmap, tech-debt]
 argument-hint: ""
 group: core
 model: haiku

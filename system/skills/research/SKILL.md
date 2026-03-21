@@ -2,6 +2,9 @@
 name: research
 description: "Research a topic, doc, or creator — check sources, follow references recursively, produce findings. Use when starting deep research on a topic, creator, or external source."
 effort: high
+keywords: [research, topic, creator, sources, references, deep-dive, comparison]
+task_strategies: [spike, investigation]
+stream_affinity: [research]
 argument-hint: "[topic|doc-number|creator:name|--refresh] [scope]"
 group: learning
 context: fork

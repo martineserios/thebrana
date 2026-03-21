@@ -2,6 +2,9 @@
 name: export-pdf
 description: "Convert a markdown file to PDF using mdpdf. Use when exporting proposals, SOPs, or any markdown document to PDF."
 effort: low
+keywords: [pdf, export, markdown, document, proposal, sop]
+task_strategies: [feature]
+stream_affinity: [docs]
 argument-hint: "[file.md]"
 group: utility
 model: haiku

@@ -2,6 +2,9 @@
 name: build
 description: "Build anything — features, bug fixes, refactors, spikes, migrations, investigations. Auto-detects strategy from description, integrates with /brana:backlog, enforces TDD. The unified development command."
 effort: high
+keywords: [development, implementation, tdd, feature, bug-fix, refactor, coding]
+task_strategies: [feature, bug-fix, refactor, spike, greenfield, migration, investigation]
+stream_affinity: [roadmap, bugs, tech-debt, experiments]
 argument-hint: "[decompose] [description or task ID]"
 group: execution
 depends_on:

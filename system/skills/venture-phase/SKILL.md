@@ -2,6 +2,9 @@
 name: venture-phase
 description: "Plan and execute a business milestone — product launch, hiring, fundraise, expansion, or custom — with learning loops. Use when executing a business milestone (launch, hiring, fundraise, expansion)."
 effort: high
+keywords: [launch, hiring, fundraise, expansion, milestone, business]
+task_strategies: [feature]
+stream_affinity: [roadmap]
 argument-hint: "[launch|hiring|fundraise|expansion|process|custom]"
 group: venture
 allowed-tools:

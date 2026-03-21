@@ -2,6 +2,9 @@
 name: financial-model
 description: "Revenue projections, scenario analysis, P&L template, unit economics, and cash flow analysis. Stage-aware financial modeling for founders. Use for fundraise prep, quarterly planning, or building a business case."
 effort: high
+keywords: [revenue, projections, p-and-l, unit-economics, cash-flow, scenario, fundraise]
+task_strategies: [feature, spike]
+stream_affinity: [roadmap, research]
 group: venture
 allowed-tools:
   - Read

@@ -2,6 +2,9 @@
 name: harvest
 description: "Extract post ideas from recent work through positioning lens"
 effort: medium
+keywords: [content, linkedin, posts, ideas, positioning, writing]
+task_strategies: [feature]
+stream_affinity: [roadmap, research]
 group: content
 allowed-tools:
   - Bash

@@ -2,6 +2,9 @@
 name: challenge
 description: "Dual-model adversarial review. Opus subagent stress-tests reasoning; Gemini stress-tests against documented knowledge. Use when a significant decision, plan, or architecture needs adversarial review."
 effort: max
+keywords: [adversarial, review, stress-test, pre-mortem, simplicity, assumptions]
+task_strategies: [feature, refactor, migration, greenfield]
+stream_affinity: [roadmap, tech-debt]
 argument-hint: "[target description]"
 group: learning
 allowed-tools:

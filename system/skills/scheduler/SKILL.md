@@ -2,6 +2,9 @@
 name: scheduler
 description: Scheduled jobs.
 effort: low
+keywords: [cron, schedule, jobs, systemd, timer, recurring]
+task_strategies: [feature, bug-fix]
+stream_affinity: [roadmap, tech-debt]
 argument-hint: "[status|logs|enable|disable|run|validate|deploy|teardown] [job]"
 group: utility
 allowed-tools:

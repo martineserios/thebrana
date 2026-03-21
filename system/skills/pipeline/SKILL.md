@@ -2,6 +2,9 @@
 name: pipeline
 description: "Sales pipeline tracking — leads, deals, conversions, follow-ups. Stage-aware CRM that works with markdown or MCP integrations. Use when tracking leads, updating deals, or reviewing pipeline health."
 effort: medium
+keywords: [sales, leads, deals, crm, conversion, follow-up, funnel]
+task_strategies: [feature]
+stream_affinity: [roadmap]
 group: venture
 allowed-tools:
   - Read
