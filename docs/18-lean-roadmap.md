@@ -329,9 +329,11 @@ Research (doc 11 section 5, [doc 09](dimensions/09-claude-code-native-features.m
 - TDD-Guard (external) pushed TDD compliance from ~20% to ~84% via PreToolUse hooks
 - The mastermind can enforce **spec-before-code** the same way — pure git checks, no ruflo dependency
 
-### WI-1: `/decide` Skill — ADR Creation
+### WI-1: `/decide` Skill — ADR Creation *(Retired 2026-03-15)*
 
-**File:** `system/skills/decide/SKILL.md`
+> **Status: Retired.** The `/decide` skill was implemented (commit b668f2e) then intentionally retired in the skill consolidation (commit f2571bd). ADR creation is now handled inline by `/brana:build` SPECIFY step, which creates ADRs as part of the standard build loop. The PreToolUse spec-before-code enforcement (the lasting contribution of this WI) remains active.
+
+**File:** ~~`system/skills/decide/SKILL.md`~~ (removed)
 
 **Frontmatter:**
 ```yaml
