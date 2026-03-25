@@ -85,6 +85,9 @@ dimension_classes:
     - 43  # LinkedIn Personal Brand Strategy
     - 44  # Systems Thinking & Natural Systems
     - 45  # TurboFlow Agent Orchestration
+    - 46  # Claude Code Harness Ecosystem
+    - 47  # Ontology Engineering
+    - 48  # Knowledge Graphs
     - knowledge-architecture  # Knowledge Architecture for AI Systems
 
   snapshot:
