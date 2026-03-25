@@ -68,6 +68,8 @@ All brana commands, grouped by workflow.
 | `/brana:review` | Weekly health check (default) |
 | `/brana:review monthly` | Monthly close + forward plan |
 | `/brana:review check` | Ad-hoc AARRR funnel audit |
+| `/brana:review routing` | Model routing calibration |
+| `/brana:review harness` | Harness simplification check (quarterly) |
 | `/brana:pipeline` | Sales pipeline tracking |
 | `/brana:venture-phase [type]` | Execute a business milestone |
 | `/brana:financial-model` | Revenue projections and scenario analysis |

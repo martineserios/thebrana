@@ -32,6 +32,8 @@ Parse `$ARGUMENTS`:
 - `/brana:review` or `/brana:review weekly` — weekly cadence review (default)
 - `/brana:review monthly` or `/brana:review --monthly` — monthly close + forward plan
 - `/brana:review check` or `/brana:review --check` — ad-hoc AARRR funnel audit
+- `/brana:review routing` — model routing calibration (needs 30+ cost entries)
+- `/brana:review harness` — harness simplification check (quarterly or post-model-upgrade)
 
 ---
 
@@ -197,6 +199,73 @@ Suggested: haiku < {X} < sonnet < {Y} < opus (based on {N} data points)
 6. **Don't auto-adjust thresholds.** Present recommendations, let the user decide.
 
 This sub-report is appended to `/brana:review weekly` or `/brana:review check` output when enough data exists. It can also be invoked directly via `/brana:review routing`.
+
+---
+
+## /brana:review harness
+
+Harness simplification check — every component encodes assumptions about model limitations. Re-evaluate after model upgrades to strip components that are no longer needed. Based on Anthropic's harness design principle: "strip components as models improve."
+
+### Steps
+
+1. **Inventory enforcement components** — scan the harness:
+   ```bash
+   # Hooks with gates/enforcement
+   ls system/hooks/*.sh
+   # Rules
+   ls ~/.claude/rules/*.md 2>/dev/null
+   # Profile tier settings
+   echo "BRANA_HOOK_PROFILE=${BRANA_HOOK_PROFILE:-standard}"
+   ```
+
+2. **Classify each by assumption** — for each enforcement component, identify the model limitation it encodes:
+
+   | Component | Assumption | Category |
+   |-----------|-----------|----------|
+   | `pre-tool-use.sh` (spec gate) | "Model won't follow TDD without enforcement" | Discipline |
+   | `worktree-gate.sh` | "Model creates branches in dirty repos" | Safety |
+   | `guard-explore.sh` | "Model reads without searching first" | Efficiency |
+   | `context-budget rule (55%)` | "Context quality degrades past 55%" | Context |
+   | `sdd-tdd rule` | "Model skips tests without explicit rule" | Discipline |
+   | `git-discipline rule` | "Model commits to main without rule" | Safety |
+   | Hook profile tiers | "Some hooks aren't needed in all contexts" | Optimization |
+
+3. **Test assumptions against current model** — for each component:
+   - Check guard-explore logs: `/tmp/brana-explore-*.log` (if available)
+   - Check session flywheel metrics (correction_rate, test_write_rate) from ruflo
+   - Review recent session handoffs for discipline violations
+   - Note which model is in use (Opus 4.6 vs Sonnet 4.6 vs Haiku)
+
+4. **Traffic-light each component:**
+   - **Keep (green):** assumption still valid, enforcement prevents real failures
+   - **Relax (yellow):** model improved, enforcement could be softened (e.g., warning instead of block)
+   - **Remove (red):** model handles this natively, enforcement adds friction with no benefit
+
+5. **Present report:**
+
+   ```markdown
+   ## Harness Simplification Check — YYYY-MM-DD
+
+   **Model:** {current model}
+   **Profile:** {current BRANA_HOOK_PROFILE}
+   **Components audited:** {N}
+
+   ### Assessment
+
+   | Component | Assumption | Verdict | Evidence |
+   |-----------|-----------|---------|----------|
+   | spec gate | TDD needs enforcement | Keep | correction_rate still >15% |
+   | worktree-gate | Dirty repo branching | Relax | 0 violations in 30 days |
+   | guard-explore | Blind reads | TBD | Logging started {date}, review {date+7d} |
+   | context-budget 55% | Quality degrades early | Relax | Opus 4.6 1M context, 55% may be too conservative |
+
+   ### Recommended actions
+   - {component}: {action} — {rationale}
+   ```
+
+6. **Don't auto-remove.** Present recommendations, let the user decide. Removing enforcement is a one-way door — only do it with evidence.
+
+This check runs quarterly, or after a major model upgrade. It can be appended to `/brana:review monthly` output or invoked directly via `/brana:review harness`.
 
 ---
 
