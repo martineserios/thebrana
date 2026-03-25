@@ -1,6 +1,6 @@
 ---
 name: acquire-skills
-description: "Find and install skills for project tech gaps. For new or unfamiliar tech."
+description: "Find and install skills for project tech gaps. Use when entering a project with unfamiliar tech or when no local skill matches a task context."
 effort: low
 keywords: [skills, marketplace, install, gap, discovery, external]
 task_strategies: [feature, spike]

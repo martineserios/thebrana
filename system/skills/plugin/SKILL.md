@@ -1,6 +1,6 @@
 ---
 name: plugin
-description: "Manage Claude Code plugins — add marketplaces, install, update, remove, list plugins."
+description: "Manage Claude Code plugins — add marketplaces, install, update, remove, list plugins. Use when installing new plugins, checking plugin status, or managing the plugin registry."
 effort: low
 keywords: [plugin, marketplace, install, update, remove, distribution]
 task_strategies: [feature, spike]
