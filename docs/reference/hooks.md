@@ -64,6 +64,8 @@ No strict mode — hooks must never fail and block the session.
 
 No strict mode — hooks must never fail and block the session.
 
+Injects up to 4 context signals into every spawned subagent: active task (id, subject, strategy, build_step, tags), current git branch, active plan title, and last 3 decisions from the decision log. Total injection stays under ~500 tokens. Returns clean `{"continue": true}` when no task is active.
+
 ### `task-completed.sh`
 
 No strict mode — hooks must never fail and block the session.

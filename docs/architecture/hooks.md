@@ -40,6 +40,10 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | Hook | Event | Matcher | Purpose |
 |------|-------|---------|---------|
 | `pre-tool-use.sh` | PreToolUse | `Write\|Edit` | Spec-before-code gate + cascade throttle |
+| `plan-mode-gate.sh` | PreToolUse | `EnterPlanMode` | Enforce plan mode for non-trivial builds |
+| `worktree-gate.sh` | PreToolUse | `Bash` | Block `git checkout -b` when untracked files exist |
+| `subagent-context.sh` | SubagentStart | `""` (all) | Inject active task + branch + plan + recent decisions into spawned agents |
+| `step-completed.sh` | TaskCompleted | `""` (all) | Track CC Task completions for guided execution |
 | `session-start.sh` | SessionStart | `""` (all) | Pattern recall, task context, venture detection |
 | `session-end.sh` | SessionEnd | `""` (all) | Flywheel metrics, session summary, handoff |
 
@@ -59,6 +63,21 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | Hook | Status |
 |------|--------|
 | `session-start-venture.sh` | Logic absorbed into `session-start.sh`. Kept for reference. |
+
+## Subagent context injection
+
+`subagent-context.sh` fires on every `SubagentStart` event. Every scout, explorer, and delegated agent automatically receives context about the current work state — no manual briefing needed.
+
+**What gets injected** (via `additionalContext`, capped at ~500 tokens):
+
+| Data | Source | When included |
+|------|--------|---------------|
+| Active task (id, subject, strategy, build_step, tags) | `brana backlog query --status in_progress` | Always (if a task is active) |
+| Current git branch | `git branch --show-current` | Always (if in a git repo) |
+| Active plan title | First `*.md` in `~/.claude/plans/` | Only during plan mode |
+| Last 3 decisions | `system/state/decisions/*.jsonl` (most recent) | Only if decision log exists |
+
+If no in_progress task exists, the hook returns `{"continue": true}` with no injection — subagents start clean.
 
 ## Design principles
 
