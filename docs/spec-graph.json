@@ -1,9 +1,9 @@
 {
   "_meta": {
-    "generated": "2026-03-21T12:48:19Z",
-    "node_count": 187,
-    "edge_count": 528,
-    "impl_ref_count": 239,
+    "generated": "2026-03-25T16:37:58Z",
+    "node_count": 190,
+    "edge_count": 538,
+    "impl_ref_count": 240,
     "orphan_count": 93,
     "typed_edge_count": 0
   },
@@ -123,7 +123,7 @@
       ],
       "impl_files": [
         "system/settings.json`",
-        "system/skills/decide/SKILL.md`",
+        "system/skills/decide/SKILL.md`~~",
         "system/rules/sdd-tdd.md`",
         "system/hooks/pre-tool-use.sh`",
         "system/skills/project-onboard/SKILL.md`",
@@ -247,7 +247,8 @@
         "system/scripts/gh-sync.sh`",
         "system/hooks/task-sync.sh`",
         "system/skills/meta-template/SKILL.md`",
-        "system/commands/"
+        "system/commands/",
+        "system/rules/"
       ],
       "guide_files": [
         "docs/guide/concepts.md",
@@ -2155,6 +2156,43 @@
     },
     "docs/dimensions/45-turboflow-agent-orchestration.md": {
       "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/46-cc-harness-ecosystem.md": {
+      "references": [
+        "21-anthropic-engineering-deep-dive.md",
+        "35-context-engineering-principles.md",
+        "09-claude-code-native-features.md",
+        "45-turboflow-agent-orchestration.md"
+      ],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/47-ontology-engineering-ai-systems.md": {
+      "references": [
+        "knowledge-architecture.md",
+        "46-cc-harness-ecosystem.md"
+      ],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/48-knowledge-graph-architecture.md": {
+      "references": [
+        "47-ontology-engineering-ai-systems.md",
+        "46-cc-harness-ecosystem.md",
+        "45-turboflow-agent-orchestration.md",
+        "knowledge-architecture.md"
+      ],
       "referenced_by": [],
       "impl_files": [],
       "guide_files": [],

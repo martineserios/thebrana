@@ -64,7 +64,10 @@ The binary is at `system/cli/rust/target/release/brana` (from git root) or
 | Append to text | `brana backlog set <id> context --append "note"` |
 | Add/remove tag | `brana backlog set <id> tags +newtag` / `tags -oldtag` |
 | Add blocked_by | `brana backlog set <id> blocked_by +t-100` |
-| Create task | `brana backlog add --json '{"subject":"...","stream":"...","type":"task"}'` |
+| Create task (JSON) | `brana backlog add --json '{"subject":"...","stream":"...","type":"task"}'` |
+| Create task (shorthand) | `brana backlog add --subject "..." --stream roadmap --type task --tags "a,b" --effort S` |
+| Create task (from file) | `brana backlog add --json @/tmp/task.json` |
+| Create task (stdin) | `echo '{"subject":"..."}' \| brana backlog add --json -` |
 | Rollup parents | `brana backlog rollup` |
 
 ### Rules

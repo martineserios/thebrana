@@ -3049,3 +3049,66 @@ brana backlog set t-542 priority P3,/home/martineserios/.claude/projects/-home-m
 | thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
 | personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
 ,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog add --json '{"subject":"Fix session continuity — persistent memory vs temporal handoff separation","description":"Sessions start cold despite handoff notes, memory files, and sitrep. Root causes: (1) sitrep is mechanical (git state, no intent/momentum), (2) handoff notes go stale fast, (3) memory is fragmented across too many files mixing durable knowledge with temporal state, (4) no narrative thread across sessions. Key insight: memory should be a persistent knowledge space, not temporal. Session handoff belongs in sessions.md (already exists). Fix: separate durable memory from session state, add narrative/momentum tracking, make sitrep capture intent not just git status.","stream":"tech-debt","type":"task","tags":["dx","session-continuity","memory","critical"],"priority":"P1"}' 2>/dev/null,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "context recovery" 2>/dev/null; /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "session state" 2>/dev/null,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "session continuity" 2>/dev/null; /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "session handoff" 2>/dev/null; /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog search "session connection" 2>/dev/null
+
+### Session 64cb43cb-0476-495c-8324-b83ee439c6c5 (2026-03-21T12:54:50Z)
+- Events: 180 (159 ok, 2 fail)
+- Corrections: 7 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 6 pass, 0 fail (rate=1.00) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.27 fix=0.50 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,TaskCompleted,Write,session-start
+- Files: "$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null || echo "Backup skipped",# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog add --json '{"subject":"Add StopFailure hook for API error logging","description":"Write stopfailure-logger.sh: log API errors (rate_limit, auth, billing, server_error, max_output_tokens) to ~/.claude/logs/stopfailure-errors.jsonl. Add Telegram alert for auth/billing errors. Register in plugin hooks.json with matchers per error type. Complements existing post-tool-use-failure.sh (tool errors) with API-level coverage. Fire-and-forget — no decision control.","stream":"tech-debt","type":"task","tags":["cc-features","hooks","reliability"],"priority":"P1","effort":"S","execution":"code"}' 2>/dev/null,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog add --json '{"subject":"Add effort frontmatter to all skills","description":"Sweep 20+ skills and add effort: low/medium/high/max to frontmatter. Mapping: low (log, gsheets, export-pdf, repo-cleanup, plugin, scheduler, sitrep), medium (backlog, onboard, align, pipeline, harvest, memory), high (build, close, review, research, brainstorm, maintain-specs, reconcile, proposal, financial-model, venture-phase), max (challenge). Haiku ignores effort — only Sonnet/Opus benefit. Subagents need explicit effort (no inheritance).","stream":"tech-debt","type":"task","tags":["cc-features","skills","dx"],"priority":"P1","effort":"S","execution":"code"}' 2>/dev/null,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog add --json '{"subject":"Dynamic skill routing in /brana:build — context-aware skill discovery and invocation","description":"During BUILD, analyze the task context (tech stack, tags, description, file types) and dynamically search for the best available skills to handle each step. Instead of hardcoded skill references, the build loop should: (1) scan installed skills + marketplace for matching capabilities, (2) rank by relevance to current task, (3) invoke on demand. Example: building a WhatsApp feature auto-discovers /brana:meta-template and /brana:respondio-prompts. Building a financial model auto-invokes /brana:financial-model. New skills installed via /acquire-skills become immediately available to future builds without updating /brana:build code.","stream":"roadmap","type":"task","tags":["skills","build","dx","architecture"],"effort":"L","execution":"code"}' 2>/dev/null,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog add --json '{"subject":"Migrate brana binary to PLUGIN_DATA for update persistence","description":"Move CLI binary compilation from PLUGIN_ROOT to ${CLAUDE_PLUGIN_DATA}. SessionStart hook diffs Cargo.toml → recompile only on change → skip on subsequent runs. Binary survives plugin updates. Works in dev mode (--plugin-dir) and installed mode. Remove manual cp workaround from MEMORY.md. ADR-015 (state in ~/.claude/) is about config — build artifacts are different.","stream":"tech-debt","type":"task","tags":["cc-features","plugin-suite","cli","dx"],"priority":"P1","effort":"M","execution":"code"}' 2>/dev/null,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get t-471 2>/dev/null,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get t-550 2>/dev/null | jq '{id,subject,description,status,tags}'; echo "==="; /home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get t-058 2>/dev/null | jq '{id,subject,description,status,tags}',/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get t-605 2>/dev/null,/home/martineserios/.claude/plugins/cache/brana/brana/1.0.0/cli/rust/target/release/brana backlog get t-606 2>/dev/null
+
+### Session 894d028a-ac75-47a1-a9a6-334131177b15 (2026-03-21T12:59:07Z)
+- Events: 1 (0 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+
+### Session 645c6a38-0a19-4703-a915-5dd1d4b232d2 (2026-03-21T13:53:24Z)
+- Events: 130 (96 ok, 3 fail)
+- Corrections: 1 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.07 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,TaskCompleted,Write,post-plan-challenge,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,/brana:close — DRIFT,/brana:close — ERRATA,/brana:close — EXTRACT,/brana:close — FIELD-NOTES,/brana:close — GATE,/brana:close — GATHER,/brana:close — HANDOFF,/brana:close — METADATA,/brana:close — PATTERNS
+
+### Session e8452ecb-f59e-49f0-b17a-da6999c42ad4 (2026-03-25T16:37:56Z)
+- Events: 240 (196 ok, 17 fail)
+- Corrections: 11 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.32 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,TaskCompleted,Write,session-start
+- Files: "$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null || true; echo "Backup done",# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,/brana:brainstorm — DISCUSS,/brana:brainstorm — EXPAND,/brana:brainstorm — OUTPUT,/brana:brainstorm — SEED,/brana:brainstorm — SHAPE,/brana:close — DRIFT,/brana:close — ERRATA,/brana:close — EXTRACT

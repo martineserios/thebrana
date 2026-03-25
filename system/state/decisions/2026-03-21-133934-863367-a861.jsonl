@@ -1,0 +1,1 @@
+{"ts": "2026-03-21T13:39:34.851106+00:00", "agent": "maintain-specs", "type": "action", "content": "Fixed 3 stale spec references: retired /decide skill in doc 18, phantom test-sync-state.sh in doc 31, PreCompact hook in doc 32", "severity": "MEDIUM"}

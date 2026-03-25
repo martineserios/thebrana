@@ -390,3 +390,20 @@
 
 **Next:**
 - (auto-generated — run /session-handoff for full close)
+
+## 2026-03-25 — auto-captured (session-end hook)
+
+**Accomplished:**
+- 446a0e3 chore(skills): audit skill trigger descriptions (t-625)
+- 3cd85c4 chore(skills): audit and fix 4 vague skill trigger descriptions (t-625)
+- 75d7ad1 fix(cli): backlog add shorthand flags + @file/stdin input (t-617)
+- d809ba5 fix(cli): backlog add supports shorthand flags + @file/stdin input
+
+**State:**
+- Branch: main
+- Events: 240 (196 ok, 17 fail, 11 corrections, 0 cascades, 0 prs)
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.32 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+
+**Next:**
+- (auto-generated — run /session-handoff for full close)
