@@ -136,6 +136,7 @@ claude --plugin-dir ./system
 | `/brana:notebooklm-source` | Prepare and format sources for NotebookLM |
 | `/brana:plugin` | Manage Claude Code plugins — install, update, remove |
 | `/brana:acquire-skills` | Find and install skills for project tech gaps |
+| `/brana:audit` | Security scan — secrets, hook permissions, MCP count, dangerous settings |
 
 ### CLI Tools
 

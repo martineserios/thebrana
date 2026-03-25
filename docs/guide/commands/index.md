@@ -54,6 +54,7 @@ All brana commands, grouped by workflow.
 | `/brana:onboard` | Scan and diagnose a project (code, venture, or hybrid) |
 | `/brana:align` | Implement project structure based on /brana:onboard findings |
 | `/brana:acquire-skills` | Find and install skills for tech gaps |
+| `/brana:audit` | Security scan — secrets, hook permissions, MCP count, dangerous settings |
 
 ## Spec Maintenance
 
