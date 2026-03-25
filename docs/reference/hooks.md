@@ -9,6 +9,7 @@
 | PreToolUse | `Write|Edit` | `pre-tool-use.sh` | 5000ms |
 | PreToolUse | `EnterPlanMode` | `plan-mode-gate.sh` | 5000ms |
 | PreToolUse | `Bash` | `worktree-gate.sh` | 5000ms |
+| PreToolUse | `Read\|Grep\|Glob` | `guard-explore.sh` | 5000ms |
 | SessionStart | `` | `session-start.sh` | 10000ms |
 | SubagentStart | `` | `subagent-context.sh` | 5000ms |
 | TaskCompleted | `` | `step-completed.sh` | 5000ms |
@@ -59,6 +60,12 @@ No strict mode — hooks must always return valid JSON.
 ### `step-completed.sh`
 
 No strict mode — hooks must never fail and block the session.
+
+### `guard-explore.sh`
+
+No strict mode — hooks must never fail and block the session.
+
+Observes Read/Grep/Glob patterns. Tracks search history (Grep/Glob) in `/tmp/brana-search-{SESSION_ID}.log`. When a Read targets implementation files (`src/`, `lib/`, `system/cli/`, `system/scripts/`) without a prior search, logs to `/tmp/brana-explore-{SESSION_ID}.log`. Currently logging only — no blocking. Whitelists: `*.md`, configs, tests, docs, skills, hooks, agents.
 
 ### `subagent-context.sh`
 

@@ -30,6 +30,16 @@
             "timeout": 5000
           }
         ]
+      },
+      {
+        "matcher": "Read|Grep|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-explore.sh",
+            "timeout": 5000
+          }
+        ]
       }
     ],
     "SessionStart": [

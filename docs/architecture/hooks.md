@@ -42,6 +42,7 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | `pre-tool-use.sh` | PreToolUse | `Write\|Edit` | Spec-before-code gate + cascade throttle |
 | `plan-mode-gate.sh` | PreToolUse | `EnterPlanMode` | Enforce plan mode for non-trivial builds |
 | `worktree-gate.sh` | PreToolUse | `Bash` | Block `git checkout -b` when untracked files exist |
+| `guard-explore.sh` | PreToolUse | `Read\|Grep\|Glob` | Log reads without prior search (logging only, no blocking) |
 | `subagent-context.sh` | SubagentStart | `""` (all) | Inject active task + branch + plan + recent decisions into spawned agents |
 | `step-completed.sh` | TaskCompleted | `""` (all) | Track CC Task completions for guided execution |
 | `session-start.sh` | SessionStart | `""` (all) | Pattern recall, task context, venture detection |
@@ -63,6 +64,19 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | Hook | Status |
 |------|--------|
 | `session-start-venture.sh` | Logic absorbed into `session-start.sh`. Kept for reference. |
+
+## Guard-explore (read pattern observability)
+
+`guard-explore.sh` fires on every `Read`, `Grep`, and `Glob` call. It tracks whether agents search before reading implementation files — a quality signal from Agentic Scripts research (80% tool call reduction with search-first patterns).
+
+**Current mode: logging only.** No blocking. After 1 week of data collection, enforcement can be enabled.
+
+**How it works:**
+1. **Grep/Glob calls** — recorded to `/tmp/brana-search-{SESSION_ID}.log`
+2. **Read calls on impl files** (`src/`, `lib/`, `system/cli/`, `system/scripts/`) — checks if any search preceded it. If not, logs to `/tmp/brana-explore-{SESSION_ID}.log`
+3. **Whitelisted files** always pass through: `*.md`, configs (`*.json`, `*.yaml`, `*.toml`), test files, `docs/`, `.claude/`, `system/skills/`, `system/hooks/`
+
+**Analyzing results:** After a week, review `/tmp/brana-explore-*.log` files to see how often reads happen without searches. High counts indicate search-first enforcement would reduce wasted tool calls.
 
 ## Subagent context injection
 
