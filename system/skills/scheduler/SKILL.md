@@ -1,6 +1,6 @@
 ---
 name: scheduler
-description: Scheduled jobs.
+description: "Manage scheduled jobs — create, update, list, or run scheduled remote agents (triggers) that execute on a cron schedule. Use when setting up recurring tasks, checking job status, or managing automation."
 effort: low
 keywords: [cron, schedule, jobs, systemd, timer, recurring]
 task_strategies: [feature, bug-fix]

@@ -1,6 +1,6 @@
 ---
 name: harvest
-description: "Extract post ideas from recent work through positioning lens"
+description: "Extract post ideas from recent work through positioning lens. Use when you have completed builds, research, or client work and want to turn learnings into LinkedIn content."
 effort: medium
 keywords: [content, linkedin, posts, ideas, positioning, writing]
 task_strategies: [feature]
