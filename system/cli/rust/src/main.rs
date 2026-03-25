@@ -50,7 +50,8 @@ fn main() {
             BacklogCmd::Burndown { period } => commands::backlog::cmd_burndown(&period.to_possible_value().unwrap().get_name().to_string(), &theme),
             BacklogCmd::Rollup { file, dry_run } => commands::backlog::cmd_rollup(file, dry_run),
             BacklogCmd::Set { task_id, field, value, append, file } => commands::backlog::cmd_set(&task_id, &field, &value, append, file),
-            BacklogCmd::Add { json, file } => commands::backlog::cmd_add(&json, file),
+            BacklogCmd::Add { json, subject, stream, task_type, tags, description, effort, parent, file } =>
+                commands::backlog::cmd_add(json, subject, stream, task_type, tags, description, effort, parent, file),
             BacklogCmd::Get { task_id, field } => commands::backlog::cmd_get(&task_id, field),
             BacklogCmd::Stats => commands::backlog::cmd_stats(),
             BacklogCmd::Tags { filter, any, output } => commands::backlog::cmd_tags(filter, any, output, &theme),

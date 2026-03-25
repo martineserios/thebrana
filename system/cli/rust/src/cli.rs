@@ -306,11 +306,32 @@ pub enum BacklogCmd {
         #[arg(long)]
         file: Option<PathBuf>,
     },
-    /// Add a new task from JSON
+    /// Add a new task from JSON or shorthand flags
     Add {
-        /// Task JSON (subject, stream, type required; id auto-assigned)
+        /// Task JSON (subject, stream, type required; id auto-assigned). Use @filepath to read from file, - to read from stdin.
         #[arg(long)]
-        json: String,
+        json: Option<String>,
+        /// Task subject (shorthand, used when --json is omitted)
+        #[arg(long)]
+        subject: Option<String>,
+        /// Stream: roadmap, bugs, tech-debt, docs, experiments, research
+        #[arg(long)]
+        stream: Option<String>,
+        /// Task type: phase, milestone, task, subtask
+        #[arg(long = "type")]
+        task_type: Option<String>,
+        /// Comma-separated tags
+        #[arg(long)]
+        tags: Option<String>,
+        /// Description
+        #[arg(long)]
+        description: Option<String>,
+        /// Effort: S, M, L, XL
+        #[arg(long)]
+        effort: Option<String>,
+        /// Parent task ID
+        #[arg(long)]
+        parent: Option<String>,
         /// Path to tasks.json (auto-detected if omitted)
         #[arg(long)]
         file: Option<PathBuf>,

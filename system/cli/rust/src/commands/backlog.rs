@@ -304,11 +304,60 @@ pub fn cmd_set(task_id: &str, field: &str, value: &str, append: bool, file: Opti
     }
 }
 
-pub fn cmd_add(json_str: &str, file: Option<PathBuf>) {
+pub fn cmd_add(
+    json: Option<String>,
+    subject: Option<String>,
+    stream: Option<String>,
+    task_type: Option<String>,
+    tags: Option<String>,
+    description: Option<String>,
+    effort: Option<String>,
+    parent: Option<String>,
+    file: Option<PathBuf>,
+) {
     let tf = file.unwrap_or_else(|| find_tasks_file().unwrap_or_else(|| { eprintln!("tasks.json not found"); std::process::exit(1); }));
     let mut val = tasks::load_raw(&tf).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
 
-    let mut new_task: serde_json::Value = serde_json::from_str(json_str)
+    // Resolve JSON from: --json inline, @file, stdin (-), or shorthand flags
+    let json_string = if let Some(j) = json {
+        if j == "-" {
+            // Read from stdin
+            use std::io::Read;
+            let mut buf = String::new();
+            std::io::stdin().read_to_string(&mut buf).unwrap_or_else(|e| {
+                eprintln!("{{\"ok\":false,\"error\":\"failed to read stdin: {e}\"}}");
+                std::process::exit(1);
+            });
+            buf
+        } else if let Some(path) = j.strip_prefix('@') {
+            // Read from file
+            std::fs::read_to_string(path).unwrap_or_else(|e| {
+                eprintln!("{{\"ok\":false,\"error\":\"failed to read {path}: {e}\"}}");
+                std::process::exit(1);
+            })
+        } else {
+            j
+        }
+    } else if let Some(ref subj) = subject {
+        // Build JSON from shorthand flags
+        let mut obj = serde_json::Map::new();
+        obj.insert("subject".into(), serde_json::Value::String(subj.clone()));
+        if let Some(ref s) = stream { obj.insert("stream".into(), serde_json::Value::String(s.clone())); }
+        obj.insert("type".into(), serde_json::Value::String(task_type.unwrap_or_else(|| "task".into())));
+        if let Some(ref t) = tags {
+            let tag_arr: Vec<serde_json::Value> = t.split(',').map(|s| serde_json::Value::String(s.trim().to_string())).collect();
+            obj.insert("tags".into(), serde_json::Value::Array(tag_arr));
+        }
+        if let Some(ref d) = description { obj.insert("description".into(), serde_json::Value::String(d.clone())); }
+        if let Some(ref e) = effort { obj.insert("effort".into(), serde_json::Value::String(e.clone())); }
+        if let Some(ref p) = parent { obj.insert("parent".into(), serde_json::Value::String(p.clone())); }
+        serde_json::to_string(&obj).unwrap()
+    } else {
+        eprintln!("{{\"ok\":false,\"error\":\"provide --json or --subject\"}}");
+        std::process::exit(1);
+    };
+
+    let mut new_task: serde_json::Value = serde_json::from_str(&json_string)
         .unwrap_or_else(|e| { eprintln!("{{\"ok\":false,\"error\":\"invalid JSON: {e}\"}}"); std::process::exit(1); });
 
     let tasks_arr = val["tasks"].as_array().cloned().unwrap_or_default();
