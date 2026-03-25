@@ -65,6 +65,29 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 |------|--------|
 | `session-start-venture.sh` | Logic absorbed into `session-start.sh`. Kept for reference. |
 
+## Hook profiles
+
+Hooks support tiered execution via the `BRANA_HOOK_PROFILE` environment variable. This allows running lighter hook sets in contexts where speed matters more than full enforcement.
+
+| Tier | What runs | Use case |
+|------|-----------|----------|
+| `minimal` | Nothing (all profiled hooks skip) | Fast CI runs, debugging hook issues |
+| `standard` | `pre-tool-use.sh`, `worktree-gate.sh` | Default — production behavior, backward compatible |
+| `strict` | All standard + `guard-explore.sh` | Observation mode — collects read pattern data |
+
+**Default:** `standard` (no env var needed, no behavior change from pre-profile state).
+
+**Set it:** `export BRANA_HOOK_PROFILE=strict` in your shell, or add to `~/.claude/settings.json` env section.
+
+**Library:** `system/hooks/lib/profile.sh` provides `hook_should_run <tier>`. Any hook can source it:
+
+```bash
+source "${SCRIPT_DIR}/lib/profile.sh" 2>/dev/null || true
+hook_should_run "standard" || { pass_through; exit 0; }
+```
+
+Only 3 hooks use profiles today. Hooks without profile gates (session-start, session-end, subagent-context, etc.) always run regardless of tier.
+
 ## Guard-explore (read pattern observability)
 
 `guard-explore.sh` fires on every `Read`, `Grep`, and `Glob` call. It tracks whether agents search before reading implementation files — a quality signal from Agentic Scripts research (80% tool call reduction with search-first patterns).

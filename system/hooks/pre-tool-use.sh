@@ -5,6 +5,14 @@
 # Ensure valid CWD (may be in deleted worktree)
 cd /tmp 2>/dev/null || true
 
+# Profile gate: standard tier (skipped in minimal mode)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib/profile.sh" 2>/dev/null || true
+if ! hook_should_run "standard" 2>/dev/null; then
+    echo '{"continue": true}'
+    exit 0
+fi
+
 # PreToolUse: Spec-Before-Code Enforcement
 #
 # Blocks Write|Edit on implementation files when:

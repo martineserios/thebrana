@@ -20,6 +20,14 @@
 
 cd /tmp 2>/dev/null || true
 
+# Profile gate: strict tier (only runs when BRANA_HOOK_PROFILE=strict)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib/profile.sh" 2>/dev/null || true
+if ! hook_should_run "strict" 2>/dev/null; then
+    echo '{"continue": true}'
+    exit 0
+fi
+
 INPUT=$(cat) || true
 
 pass_through() {

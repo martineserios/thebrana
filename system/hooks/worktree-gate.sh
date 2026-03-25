@@ -8,6 +8,14 @@
 #
 # Always passes through non-Bash tools, non-git commands, and non-git dirs.
 
+# Profile gate: standard tier (skipped in minimal mode)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib/profile.sh" 2>/dev/null || true
+if ! hook_should_run "standard" 2>/dev/null; then
+    echo '{"continue": true}'
+    exit 0
+fi
+
 INPUT=$(cat)
 
 # Helper: pass through
