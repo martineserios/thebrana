@@ -127,7 +127,7 @@ Three enforcement behaviors:
 
 ### Hook Profiles
 
-Hooks support tiered execution via `BRANA_HOOK_PROFILE` (minimal / standard / strict). Default is standard — no behavior change. Strict adds observability hooks (guard-explore). Minimal disables all profiled hooks. See [hooks architecture](../architecture/hooks.md#hook-profiles).
+Hooks support tiered execution via `BRANA_HOOK_PROFILE` (minimal / standard / strict). Default is standard — no behavior change. Strict adds observability hooks (guard-explore). Minimal disables all profiled hooks. Each tier also maps to a CC effort level via `get_profile_effort()` (strict→low, standard→high, minimal→max), exported as `BRANA_EFFORT_LEVEL` at session start. See [hooks architecture](../architecture/hooks.md#hook-profiles).
 
 ### SessionStart — Recall
 
