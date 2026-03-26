@@ -144,7 +144,14 @@ for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
             ;;
         command)
             COMMAND=$(echo "$JOB" | jq -r '.command')
+            COMMAND_FALLBACK=$(echo "$JOB" | jq -r '.command_fallback // empty')
             timeout "$TIMEOUT_SECS" bash -c "$COMMAND" >> "$LOGFILE" 2>&1 || EXIT_CODE=$?
+            # Fall back to alternate command on 127 (command not found)
+            if [ "$EXIT_CODE" -eq 127 ] && [ -n "$COMMAND_FALLBACK" ]; then
+                echo "Primary command not found, using fallback: $COMMAND_FALLBACK" >> "$LOGFILE"
+                EXIT_CODE=0
+                timeout "$TIMEOUT_SECS" bash -c "$COMMAND_FALLBACK" >> "$LOGFILE" 2>&1 || EXIT_CODE=$?
+            fi
             ;;
         *)
             echo "ERROR: Unknown job type: $JOB_TYPE" >> "$LOGFILE"
