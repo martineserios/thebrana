@@ -117,11 +117,17 @@ Five hook types connect the layers. Three handle learning (SessionStart, Session
 
 ### PreToolUse — Enforcement
 
-Two enforcement behaviors on every Edit/Write:
+Three enforcement behaviors:
 
-1. **SDD gate** — On `feat/*` branches in projects with `docs/decisions/`, blocks implementation files until spec/test activity exists on the branch. Deterministic enforcement where convention fails.
+1. **SDD gate** (Write|Edit) — On `feat/*` branches in projects with `docs/decisions/`, blocks implementation files until spec/test activity exists on the branch. Deterministic enforcement where convention fails.
 
-2. **Cascade throttle** — After 3+ consecutive failures on the same target, injects an advisory warning: "This file has failed repeatedly. Stop and reassess." Does not block — warns.
+2. **Cascade throttle** (Write|Edit) — After 3+ consecutive failures on the same target, injects an advisory warning: "This file has failed repeatedly. Stop and reassess." Does not block — warns.
+
+3. **Guard-explore** (Read|Grep|Glob) — Observes whether agents search before reading implementation files. Currently logging only (no blocking). Data collection for search-first enforcement evaluation. Strict profile only.
+
+### Hook Profiles
+
+Hooks support tiered execution via `BRANA_HOOK_PROFILE` (minimal / standard / strict). Default is standard — no behavior change. Strict adds observability hooks (guard-explore). Minimal disables all profiled hooks. See [hooks architecture](../architecture/hooks.md#hook-profiles).
 
 ### SessionStart — Recall
 

@@ -14,8 +14,10 @@ Expand brana's use of CC hook events from 5 to 8+, adding native TaskCompleted, 
 - **Two task managers, two hooks** — CC Tasks (step registry) and brana backlog are separate systems. `step-completed.sh` handles CC Task completions, `task-completed.sh` handles brana backlog completions. They don't overlap.
 - **Challenger reduced scope from 11 to 4** — of 11 proposed tasks, challenger cut 4 (HTTP daemon, UserPromptSubmit, PermissionRequest, WorktreeCreate), deferred 2 (contextModifier, step auto-advance), and a spike cancelled 1 (PreCompact/PostCompact). Net: 3 shipped + 1 from prior work.
 - **Model routing via frontmatter, not code** — per-skill `model:` field is a one-line frontmatter change, not a code feature. CC handles the contextModifier automatically.
-- **SubagentStart injection uses brana CLI** — hook calls `brana backlog query --status in_progress` to find the active task, then injects metadata as additionalContext. Agents receive it transparently.
+- **SubagentStart injection uses brana CLI** — hook calls `brana backlog query --status in_progress` to find the active task, then injects up to 4 context signals: active task metadata, current git branch, active plan title, and last 3 decisions. Agents receive it transparently.
 - **PreCompact/PostCompact spiked and cancelled** — spike showed all critical state (build_step, task metadata, git state) is already persisted to disk. Compaction only loses conversation context, which sitrep recovers.
+- **Guard-explore added (2026-03-25)** — PreToolUse hook on Read|Grep|Glob. Logs reads-without-search on implementation files. Runs only in `strict` hook profile. See [hooks architecture](../../architecture/hooks.md#guard-explore-read-pattern-observability).
+- **Hook profiles added (2026-03-25)** — `BRANA_HOOK_PROFILE` env var tiers hook execution: minimal (none), standard (default, SDD gate + worktree gate), strict (adds guard-explore). See [hooks architecture](../../architecture/hooks.md#hook-profiles).
 
 ## Code Flow
 
