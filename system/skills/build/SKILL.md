@@ -453,9 +453,16 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
    d. **Write failing test** — the acceptance criteria become test assertions
    e. **Implement** — make the test pass
    f. **Verify** — run tests, lint, compare before/after
-   g. **Commit** — `feat(scope): description`
-   h. **Mark CC Task completed** + update tasks.json: `brana backlog set {subtask-id} status completed`
-   i. **Mini-debrief:**
+   g. **Probe boundaries** (after green tests) — explicitly test what should NOT work:
+      - Invalid inputs: nulls, empty strings, out-of-range values, wrong types
+      - Edge cases: zero, max int, empty collections, concurrent access
+      - Error paths: missing files, network failures, permission denied
+      - Spec negatives: behaviors the spec says must be rejected
+      Write at least 2 boundary tests per subtask. If any reveal a bug, fix before committing.
+      Skip for trivial changes (config, docs, markup).
+   h. **Commit** — `feat(scope): description`
+   i. **Mark CC Task completed** + update tasks.json: `brana backlog set {subtask-id} status completed`
+   j. **Mini-debrief:**
       - What surprised?
       - Spec mismatch? (feature spec says X, reality requires Y)
       - Reusable pattern?
