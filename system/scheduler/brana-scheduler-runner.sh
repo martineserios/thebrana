@@ -70,17 +70,17 @@ DEFAULTS_TIMEOUT=$(jq -r '.defaults.timeoutSeconds // 300' "$CONFIG")
 DEFAULTS_RETRIES=$(jq -r '.defaults.maxRetries // 0' "$CONFIG")
 DEFAULTS_BACKOFF=$(jq -r '.defaults.retryBackoffSec // 30' "$CONFIG")
 
-MODEL=$(echo "$JOB" | jq -r --arg def "$DEFAULTS_MODEL" '.model // $def')
-ALLOWED_TOOLS=$(echo "$JOB" | jq -r --arg def "$DEFAULTS_TOOLS" '.allowedTools // $def')
-LOG_RETENTION=$(echo "$JOB" | jq -r --arg def "$DEFAULTS_RETENTION" '.logRetention // $def')
-TIMEOUT_SECS=$(echo "$JOB" | jq -r --arg def "$DEFAULTS_TIMEOUT" '.timeoutSeconds // $def')
-MAX_RETRIES=$(echo "$JOB" | jq -r --arg def "$DEFAULTS_RETRIES" '.maxRetries // $def')
-RETRY_BACKOFF=$(echo "$JOB" | jq -r --arg def "$DEFAULTS_BACKOFF" '.retryBackoffSec // $def')
+MODEL=$(echo "$JOB" | jq -r --arg dflt "$DEFAULTS_MODEL" '.model // $dflt')
+ALLOWED_TOOLS=$(echo "$JOB" | jq -r --arg dflt "$DEFAULTS_TOOLS" '.allowedTools // $dflt')
+LOG_RETENTION=$(echo "$JOB" | jq -r --arg dflt "$DEFAULTS_RETENTION" '.logRetention // $dflt')
+TIMEOUT_SECS=$(echo "$JOB" | jq -r --arg dflt "$DEFAULTS_TIMEOUT" '.timeoutSeconds // $dflt')
+MAX_RETRIES=$(echo "$JOB" | jq -r --arg dflt "$DEFAULTS_RETRIES" '.maxRetries // $dflt')
+RETRY_BACKOFF=$(echo "$JOB" | jq -r --arg dflt "$DEFAULTS_BACKOFF" '.retryBackoffSec // $dflt')
 
 # captureOutput: store run summary in ruflo memory (default true)
 # Use has() pattern — jq '//' treats false as falsy
 DEFAULTS_CAPTURE=$(jq -r 'if .defaults | has("captureOutput") then .defaults.captureOutput else true end' "$CONFIG")
-CAPTURE_OUTPUT=$(echo "$JOB" | jq -r --arg def "$DEFAULTS_CAPTURE" 'if has("captureOutput") then .captureOutput else $def end')
+CAPTURE_OUTPUT=$(echo "$JOB" | jq -r --arg dflt "$DEFAULTS_CAPTURE" 'if has("captureOutput") then .captureOutput else $dflt end')
 
 # Set up logging
 JOB_LOG_DIR="$LOG_BASE/$JOB_NAME"
