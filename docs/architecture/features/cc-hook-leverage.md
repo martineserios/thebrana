@@ -17,7 +17,7 @@ Expand brana's use of CC hook events from 5 to 8+, adding native TaskCompleted, 
 - **SubagentStart injection uses brana CLI** — hook calls `brana backlog query --status in_progress` to find the active task, then injects up to 4 context signals: active task metadata, current git branch, active plan title, and last 3 decisions. Agents receive it transparently.
 - **PreCompact/PostCompact spiked and cancelled** — spike showed all critical state (build_step, task metadata, git state) is already persisted to disk. Compaction only loses conversation context, which sitrep recovers.
 - **Guard-explore added (2026-03-25)** — PreToolUse hook on Read|Grep|Glob. Logs reads-without-search on implementation files. Runs only in `strict` hook profile. See [hooks architecture](../../architecture/hooks.md#guard-explore-read-pattern-observability).
-- **Hook profiles added (2026-03-25)** — `BRANA_HOOK_PROFILE` env var tiers hook execution: minimal (none), standard (default, SDD gate + worktree gate), strict (adds guard-explore). See [hooks architecture](../../architecture/hooks.md#hook-profiles).
+- **Hook profiles added (2026-03-25)** — `BRANA_HOOK_PROFILE` env var tiers hook execution: minimal (none), standard (default, SDD gate + worktree gate), strict (adds guard-explore). Each tier maps to a CC effort level (strict→low, standard→high, minimal→max) via `get_profile_effort()`, exported as `BRANA_EFFORT_LEVEL` at session start. See [hooks architecture](../../architecture/hooks.md#hook-profiles).
 
 ## Code Flow
 

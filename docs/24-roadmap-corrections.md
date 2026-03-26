@@ -1615,3 +1615,17 @@ Respond.io action prompts have a hard 1,000-char limit. Agent 3's Assign action 
 | 8 | Specs | Stale | 32-lifecycle.md mentions PreCompact hook (CC doesn't support it) | Deferred — requires maintain-specs |
 
 **Notes:** Critical finding was rules sync drift — trimming ~/.claude/rules/ without updating system/rules/ would have been overwritten on next bootstrap.sh run. All agent model assignments verified correct. Hooks verified correct (PostToolUse intentionally in settings.json per CC bug #24529).
+
+### Reconcile Run — 2026-03-26
+
+**Trigger:** post-implementation (t-642, t-643, t-647 — harness P2 batch)
+**Drift found:** 2 findings across 2 areas
+**Applied:** 2 auto-fixes
+**Deferred:** 0
+
+| # | Area | Type | Finding | Resolution |
+|---|------|------|---------|-----------|
+| 1 | Reflections | Stale | ARCHITECTURE.md hook profiles section missing effort level mapping (t-642) | Applied — added effort level sentence |
+| 2 | Features | Stale | cc-hook-leverage.md hook profiles entry missing effort level feature (t-642) | Applied — appended effort level clause |
+
+**Notes:** Targeted reconcile scoping 6 changed system files. hooks.md was already updated during t-642 implementation. No drift in build step docs (32-lifecycle.md describes high-level cycle, not substeps). No docs referenced the old pr-reviewer/brainstorm/memory phrasing.
