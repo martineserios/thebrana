@@ -69,17 +69,19 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 
 Hooks support tiered execution via the `BRANA_HOOK_PROFILE` environment variable. This allows running lighter hook sets in contexts where speed matters more than full enforcement.
 
-| Tier | What runs | Use case |
-|------|-----------|----------|
-| `minimal` | Nothing (all profiled hooks skip) | Fast CI runs, debugging hook issues |
-| `standard` | `pre-tool-use.sh`, `worktree-gate.sh` | Default — production behavior, backward compatible |
-| `strict` | All standard + `guard-explore.sh` | Observation mode — collects read pattern data |
+| Tier | What runs | Effort level | Use case |
+|------|-----------|-------------|----------|
+| `minimal` | Nothing (all profiled hooks skip) | `max` | Fast CI runs, debugging hook issues |
+| `standard` | `pre-tool-use.sh`, `worktree-gate.sh` | `high` | Default — production behavior, backward compatible |
+| `strict` | All standard + `guard-explore.sh` | `low` | Observation mode — collects read pattern data |
 
 **Default:** `standard` (no env var needed, no behavior change from pre-profile state).
 
 **Set it:** `export BRANA_HOOK_PROFILE=strict` in your shell, or add to `~/.claude/settings.json` env section.
 
-**Library:** `system/hooks/lib/profile.sh` provides `hook_should_run <tier>`. Any hook can source it:
+**Effort level:** Each tier maps to a CC effort level via `get_profile_effort()`. Exported as `BRANA_EFFORT_LEVEL` at session start. Agents override via frontmatter `effort:` field; users override with `/effort`. Direct override: `export BRANA_EFFORT_LEVEL=medium`.
+
+**Library:** `system/hooks/lib/profile.sh` provides `hook_should_run <tier>` and `get_profile_effort`. Any hook can source it:
 
 ```bash
 source "${SCRIPT_DIR}/lib/profile.sh" 2>/dev/null || true
