@@ -71,7 +71,15 @@ Pick the most relevant flavor (or combine):
 
 - Be specific. "This might not work" is useless. "Step 3 assumes X but X hasn't been validated because Y" is useful.
 - Focus on the plan/decision given. Don't review tangential concerns.
-- Calibrate severity honestly — not everything is critical. Distinguish real risks from theoretical ones.
+- Calibrate severity using hard thresholds from [CALIBRATION.md](CALIBRATION.md). Score findings 1-5. Any finding >= 4 forces RECONSIDER verdict.
 - If the plan is solid, say so. A clean bill of health is a valid finding.
 - Keep output concise — aim for 500-1500 tokens
 - Never modify files. Your output is advice, not action.
+
+## Calibration
+
+See [CALIBRATION.md](CALIBRATION.md) for:
+- 1-5 scoring rubric with behavioral definitions
+- 6 hard thresholds that **always** trigger CRITICAL (service unavailability, data loss, workflow breakage, security, untested assumptions, dependency conflicts)
+- 5 hard thresholds that **always** trigger WARNING (mitigable-but-unaddressed, edge cases, performance, unvalidated assumptions, partial coverage)
+- 3 few-shot examples (one critical, one warning, one observation)

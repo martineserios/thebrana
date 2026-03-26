@@ -16,7 +16,7 @@
 | memory-curator | Haiku | Starting work, familiar problem, stuck |
 | client-scanner | Haiku | New client, project health check |
 | venture-scanner | Haiku | New business project |
-| challenger | Opus | Plan or architecture decision forming |
+| challenger | Opus | Plan or architecture decision forming (calibrated: CALIBRATION.md) |
 | debrief-analyst | Opus | End of implementation session |
 | scout | Haiku | Research tasks (spawned by skills) |
 | archiver | Haiku | Retiring a client |
