@@ -254,6 +254,10 @@ def extract_json_report(text: str) -> dict | None:
 
 def run_evaluator(spec_path: str, work_dir: str, model: str) -> dict:
     """Run the evaluator agent loop."""
+    import os
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        print("Error: ANTHROPIC_API_KEY not set. Export it before running.", file=sys.stderr)
+        sys.exit(1)
     client = anthropic.Anthropic()
     work_dir_path = Path(work_dir).resolve()
 
