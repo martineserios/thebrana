@@ -1,10 +1,10 @@
 {
   "_meta": {
-    "generated": "2026-03-25T16:37:58Z",
+    "generated": "2026-03-26T12:58:26Z",
     "node_count": 190,
-    "edge_count": 538,
-    "impl_ref_count": 240,
-    "orphan_count": 93,
+    "edge_count": 540,
+    "impl_ref_count": 247,
+    "orphan_count": 92,
     "typed_edge_count": 0
   },
   "nodes": {
@@ -144,6 +144,7 @@
         "docs/architecture/features/acquire-skills-guide.md",
         "docs/architecture/features/cascade-throttle.md",
         "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/hooks.md",
         "docs/architecture/overview.md",
         "docs/architecture/plugin-structure.md",
         "docs/architecture/system-documentation-map.md",
@@ -267,6 +268,7 @@
         "docs/architecture/features/github-issues-sync.md",
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/features/test-lint-feedback-hook.md",
+        "docs/architecture/hooks.md",
         "docs/architecture/overview.md",
         "docs/architecture/plugin-structure.md",
         "docs/architecture/skills.md",
@@ -517,6 +519,7 @@
       "arch_files": [
         "docs/architecture/features/acquire-skills-guide.md",
         "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/hooks.md",
         "docs/architecture/plugin-structure.md",
         "docs/architecture/posttooluse-workaround.md",
         "docs/architecture/system-documentation-map.md"
@@ -665,8 +668,11 @@
         "system/skills/knowledge/SKILL.md"
       ],
       "guide_files": [],
-      "arch_files": [],
+      "arch_files": [
+        "docs/architecture/hooks.md"
+      ],
       "ref_files": [
+        "docs/reference/hooks.md",
         "docs/reference/scripts.md"
       ]
     },
@@ -946,6 +952,7 @@
       "guide_files": [],
       "arch_files": [
         "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+        "docs/architecture/hooks.md",
         "docs/architecture/plugin-structure.md"
       ],
       "ref_files": [
@@ -1034,7 +1041,9 @@
       "ref_files": []
     },
     "docs/architecture/features/cc-hook-leverage.md": {
-      "references": [],
+      "references": [
+        "docs/architecture/hooks.md"
+      ],
       "referenced_by": [],
       "impl_files": [
         "system/hooks/task-completed.sh`",
@@ -1414,15 +1423,27 @@
         "docs/reference/hooks.md",
         "posttooluse-workaround.md"
       ],
-      "referenced_by": [],
+      "referenced_by": [
+        "docs/reflections/ARCHITECTURE.md",
+        "docs/architecture/features/cc-hook-leverage.md"
+      ],
       "impl_files": [
-        "system/hooks/hooks.json`"
+        "system/hooks/hooks.json`",
+        "system/hooks/lib/profile.sh`",
+        "system/cli/`",
+        "system/scripts/`",
+        "system/skills/`",
+        "system/hooks/`"
       ],
       "guide_files": [
+        "docs/guide/concepts.md",
         "docs/guide/configuration.md"
       ],
       "arch_files": [
+        "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+        "docs/architecture/decisions/ADR-011-skills-bundling.md",
         "docs/architecture/extending-hooks.md",
+        "docs/architecture/features/acquire-skills-guide.md",
         "docs/architecture/features/cc-hook-leverage.md",
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/plugin-structure.md",
@@ -1431,7 +1452,10 @@
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
-        "docs/reference/scripts.md"
+        "docs/reference/configuration.md",
+        "docs/reference/hooks.md",
+        "docs/reference/scripts.md",
+        "docs/reference/skills.md"
       ]
     },
     "docs/architecture/knowledge-system-extending.md": {
@@ -2355,6 +2379,7 @@
       "arch_files": [
         "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
         "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/hooks.md",
         "docs/architecture/plugin-structure.md",
         "docs/architecture/posttooluse-workaround.md",
         "docs/architecture/skills.md",
@@ -2831,6 +2856,7 @@
         "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
         "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
         "docs/architecture/features/acquire-skills-guide.md",
+        "docs/architecture/hooks.md",
         "docs/architecture/plugin-structure.md",
         "docs/architecture/system-documentation-map.md"
       ],
@@ -2843,10 +2869,18 @@
       "referenced_by": [
         "docs/architecture/hooks.md"
       ],
-      "impl_files": [],
+      "impl_files": [
+        "system/cli/`",
+        "system/scripts/`"
+      ],
       "guide_files": [],
-      "arch_files": [],
-      "ref_files": []
+      "arch_files": [
+        "docs/architecture/decisions/ADR-011-skills-bundling.md",
+        "docs/architecture/hooks.md"
+      ],
+      "ref_files": [
+        "docs/reference/scripts.md"
+      ]
     },
     "docs/reference/rules.md": {
       "references": [
@@ -2930,7 +2964,8 @@
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
-        "docs/reference/commands.md"
+        "docs/reference/commands.md",
+        "docs/reference/hooks.md"
       ]
     },
     "docs/reference/skills.md": {
@@ -2945,6 +2980,7 @@
       "arch_files": [
         "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
         "docs/architecture/features/acquire-skills-guide.md",
+        "docs/architecture/hooks.md",
         "docs/architecture/plugin-structure.md"
       ],
       "ref_files": [
@@ -3005,6 +3041,7 @@
       "arch_files": [
         "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
         "docs/architecture/features/acquire-skills-guide.md",
+        "docs/architecture/hooks.md",
         "docs/architecture/plugin-structure.md"
       ],
       "ref_files": [
@@ -3212,6 +3249,7 @@
         "docs/architecture/decisions/ADR-017-decision-log.md",
         "docs/architecture/extending.md",
         "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/hooks.md",
         "docs/architecture/overview.md",
         "docs/architecture/plugin-structure.md",
         "docs/architecture/posttooluse-workaround.md",
@@ -3230,6 +3268,7 @@
         "docs/architecture/decisions/ADR-019-brana-chat-sessions.md",
         "docs/architecture/decisions/ADR-011-skills-bundling.md",
         "docs/architecture/decisions/ADR-018-dynamic-model-routing.md",
+        "docs/architecture/hooks.md",
         "docs/architecture/decisions/ADR-002-scheduler-thin-layer-over-systemd.md",
         "brana-knowledge/dimensions/35-context-engineering-principles.md"
       ],
@@ -3350,9 +3389,11 @@
       ],
       "guide_files": [],
       "arch_files": [
-        "docs/architecture/decisions/ADR-011-skills-bundling.md"
+        "docs/architecture/decisions/ADR-011-skills-bundling.md",
+        "docs/architecture/hooks.md"
       ],
       "ref_files": [
+        "docs/reference/hooks.md",
         "docs/reference/scripts.md"
       ]
     }

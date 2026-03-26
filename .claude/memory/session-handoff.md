@@ -407,3 +407,19 @@
 
 **Next:**
 - (auto-generated — run /session-handoff for full close)
+
+## 2026-03-26 — auto-captured (session-end hook)
+
+**Accomplished:**
+- 2480b1b docs(reconcile): sync ARCHITECTURE.md + cc-hook-leverage with guard-explore and hook profiles
+- dc54e66 content(harvest): 8 post ideas from harness engineering work, expire 7 oldest seeds
+- 3d4af19 feat(agents): add challenger calibration — severity rubric, hard thresholds, 3 few-shot examples
+
+**State:**
+- Branch: main
+- Events: 267 (219 ok, 7 fail, 21 corrections, 1 cascades, 0 prs)
+- Tests: 5 pass, 0 fail (rate=1.00) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.30 fix=0.14 test=0.00 casc=0.14 deleg=0 prs=0
+
+**Next:**
+- (auto-generated — run /session-handoff for full close)

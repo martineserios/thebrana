@@ -3112,3 +3112,158 @@ brana backlog set t-542 priority P3,/home/martineserios/.claude/projects/-home-m
 | thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
 | personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
 ,/brana:brainstorm — DISCUSS,/brana:brainstorm — EXPAND,/brana:brainstorm — OUTPUT,/brana:brainstorm — SEED,/brana:brainstorm — SHAPE,/brana:close — DRIFT,/brana:close — ERRATA,/brana:close — EXTRACT
+
+### Session a40e1d9d-dd92-4d95-a2e0-f2754565fb48 (2026-03-26T12:58:24Z)
+- Events: 267 (219 ok, 7 fail)
+- Corrections: 21 | Test writes: 0 | Cascades: 1 | PR creates: 0
+- Tests: 5 pass, 0 fail (rate=1.00) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.30 fix=0.14 test=0.00 casc=0.14 deleg=0 prs=0
+- Tools: Bash,Edit,TaskCompleted,Write,session-start
+- Files: # 1. Challenger calibration — few-shot examples + hard thresholds
+brana backlog add --json '{"subject":"Add few-shot calibration examples to challenger agent","stream":"roadmap","type":"task","parent":"t-633","tags":["harness-engineering","agents","quality"],"effort":"S","context":"Anthropic Engineering found evaluator accuracy improves dramatically with: 1) concrete gradable criteria (not subjective), 2) few-shot calibration examples with detailed score breakdowns, 3) hard score thresholds (below X = fail with specific feedback), 4) emphasis on domains where model naturally underperforms. Current challenger has no calibration. Add 3-5 examples to system/agents/challenger/ showing expected input/output quality. Source: anthropic.com/engineering/harness-design-long-running-apps"}'
+
+echo "==="
+
+# 2. Harness simplification review — periodic audit in /brana:review
+brana backlog add --json '{"subject":"Add harness simplification check to /brana:review","stream":"roadmap","type":"task","parent":"t-633","tags":["harness-engineering","review","maintenance"],"effort":"S","context":"Anthropic principle: Every harness component encodes assumptions about model limitations. Re-evaluate after model upgrades to strip components. They removed sprint decomposition when Opus 4.6 showed better long-context coherence. For brana: add a /brana:review check section that asks — which hooks, gates, or workarounds exist because of model limitations that may no longer apply? Candidates: TDD gate on feat/ branches (does Opus follow TDD without enforcement?), worktree-gate (still needed?), context-budget 55% threshold (still right with 1M context?). Source: anthropic.com/engineering/harness-design-long-running-apps"}',# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,# Milestone 1: Quick Wins
+brana backlog add --json '{
+  "subject": "Quick wins — zero risk, immediate value",
+  "type": "milestone",
+  "stream": "roadmap",
+  "parent": "t-623",
+  "tags": ["harness-engineering"]
+}',# Milestone 2: Hook Engineering
+brana backlog add --json '{
+  "subject": "Hook engineering — incremental risk",
+  "type": "milestone",
+  "stream": "roadmap",
+  "parent": "t-623",
+  "tags": ["harness-engineering", "hooks"]
+}' && \
+# Task 5: guard-explore (logging)
+brana backlog add --json '{
+  "subject": "guard-explore hook — logging only, observe read patterns for 1 week",
+  "type": "task",
+  "stream": "roadmap",
+  "parent": "t-629",
+  "effort": "M",
+  "tags": ["hooks", "context-engineering", "harness-engineering"],
+  "blocked_by": ["t-625"],
+  "context": "PreToolUse hook matching Read tool. Logs when agents read implementation files without prior Grep/Glob search. Does NOT block — observe only. Whitelist: CLAUDE.md, package.json, Cargo.toml, *.md, configs, tests. Gate only src/, lib/ dirs. Track search history in /tmp/brana-search-$SESSION_ID.log. Escape hatch: user-directed reads bypass. After 1 week data, decide on enforcement. Agentic Scripts measured 80% tool call reduction. Source: dim 46 §2.2."
+}' && \
+# Task 6: Hook profile library
+brana backlog add --json '{
+  "subject": "Hook profile library (lib/profile.sh) — 3 hooks only",
+  "type": "task",
+  "stream": "roadmap",
+  "parent": "t-629",
+  "effort": "M",
+  "tags": ["hooks", "dx", "harness-engineering"],
+  "context": "Create system/hooks/lib/profile.sh with hook_should_run() function checking BRANA_HOOK_PROFILE env var (minimal/standard/strict). Add to 3 hooks only: pre-tool-use.sh (standard), worktree-gate.sh (standard), guard-explore.sh (strict). Default=standard (backward compatible). Minimal should still enforce write gate. Document tiers in docs/architecture/hooks.md. Challenger advised against touching all 16 scripts — scope to 3. Source: ECC ECC_HOOK_PROFILE pattern, dim 46 §6.4."
+}' && \
+# Task 7: Thinking token cap spike
+brana backlog add --json '{
+  "subject": "Spike: verify if CC exposes thinking token limit setting",
+  "type": "task",
+  "stream": "experiments",
+  "parent": "t-629",
+  "effort": "S",
+  "tags": ["token-optimization", "harness-engineering"],
+  "context": "Challenger flagged: config mechanism unvalidated. Check CC docs for maxThinkingTokens, MAX_THINKING_TOKENS, or similar. Check claude --help and settings schema. If exists: test at 10K on Haiku agents for 2 days. If not: kill this item. ECC claims 70% savings but doesnt quantify degradation. Dim 46 §5 lists as open question. Source: ECC token optimization docs."
+}',# Milestone 3: Strategic
+brana backlog add --json '{
+  "subject": "Strategic — brainstorm before building",
+  "type": "milestone",
+  "stream": "roadmap",
+  "parent": "t-623",
+  "tags": ["harness-engineering"],
+  "blocked_by": ["t-624"]
+}' && \
+# Task 8: Content harvest
+brana backlog add --json '{
+  "subject": "Content harvest from dims 46/47/48 via /brana:harvest",
+  "type": "task",
+  "stream": "roadmap",
+  "parent": "t-633",
+  "effort": "S",
+  "tags": ["content", "linkedin", "harness-engineering"],
+  "blocked_by": ["t-625", "t-626"],
+  "context": "713 lines across 3 dims = 10-15 post ideas. Build first (quick wins), then harvest from experience. Post ideas already visible: 50-token trigger rule, CC skills being ignored, 60% cost reduction, ontology as moat, GraphRAG data modeling failures. Prerequisite: practice the patterns before writing about them."
+}' && \
+# Task 9: Progressive disclosure memory
+brana backlog add --json '{
+  "subject": "Design spike: progressive disclosure for MEMORY.md (Claude-Mem pattern)",
+  "type": "task",
+  "stream": "experiments",
+  "parent": "t-633",
+  "effort": "M",
+  "tags": ["memory", "context-engineering", "harness-engineering"],
+  "context": "Replace full MEMORY.md loading with 50-100 token indexes that expand on demand. Claude-Mem achieves 10x savings this way. Design question: can MEMORY.md become a pure index (one-liners) with content in linked files? Individual memory files already exist. Test by trimming MEMORY.md to index-only for one session and checking if Claude accesses linked files when needed. Source: dim 46 §2.5 Claude-Mem pattern."
+}' && \
+# Task 10: Security scanning
+brana backlog add --json '{
+  "subject": "Build /brana:audit skill — lightweight security scanning (5 checks)",
+  "type": "task",
+  "stream": "roadmap",
+  "parent": "t-633",
+  "effort": "M",
+  "tags": ["security", "skills", "harness-engineering"],
+  "context": "AgentShield-lite: 5 initial checks (not 100). 1) Secrets in CLAUDE.md/rules (regex for API keys, tokens, passwords — 14 patterns from AgentShield). 2) Hook scripts with chmod on non-hook files. 3) MCP server count >10 warning (token tax). 4) settings.json skipDangerousModePermissionPrompt flag. 5) Unencrypted .env files. Client differentiator. Source: dim 46 §2.6 AgentShield, ECC 1282 tests."
+}',# Task 1: Skill trigger audit
+brana backlog add --json '{
+  "subject": "Audit all 34 skill trigger descriptions (50-token rule)",
+  "type": "task",
+  "stream": "roadmap",
+  "parent": "t-624",
+  "effort": "S",
+  "tags": ["skills", "dx", "harness-engineering"],
+  "context": "Dixit insight: Claude reads only the ~50-token frontmatter description for routing. Pattern: [Verb] — [mechanism]. [Integration]. [When to use]. Sample of 5 shows excellent quality, 29 unaudited. Focus on skills sharing trigger space (research vs memory, build vs backlog, close vs sitrep). Source: dim 46 §2.3."
+}' && \
+# Task 2: RTK install
+brana backlog add --json '{
+  "subject": "Install RTK and measure token savings on command output",
+  "type": "task",
+  "stream": "roadmap",
+  "parent": "t-624",
+  "effort": "S",
+  "tags": ["token-optimization", "cli", "harness-engineering"],
+  "context": "RTK: github.com/rtk-ai/rtk (13K stars, Rust single binary). 34 TOML-based filters compress git/cargo/npm output 60-90%. <10ms overhead. Must use settings.json for hook (CC bug #24529, plugin PostToolUse hooks dont fire). Measure with rtk gain after session. Consider ContextZip fork later if gaps found. Source: dev.to/ji_ai article."
+}' && \
+# Task 3: Ontology cleanup
+brana backlog add --json '{
+  "subject": "Add dims 46/47/48 to brana-ontology.yaml dimension_classes",
+  "type": "task",
+  "stream": "roadmap",
+  "parent": "t-624",
+  "effort": "S",
+  "tags": ["ontology", "harness-engineering"],
+  "context": "brana-ontology.yaml already exists at docs/brana-ontology.yaml (105 lines). Challenger caught that original plan proposed creating it from scratch. Just add new dims: 46 (snapshot), 47 (maintain), 48 (maintain). Run validate.sh after."
+}' && \
+# Task 4: Enhance subagent context
+brana backlog add --json '{
+  "subject": "Enhance subagent-context.sh with branch, plan summary, last 3 decisions",
+  "type": "task",
+  "stream": "roadmap",
+  "parent": "t-624",
+  "effort": "S",
+  "tags": ["hooks", "context-engineering", "harness-engineering"],
+  "context": "Replaces original rehydrate hook idea — challenger found subagent-context.sh already exists and injects task context. Enhance with: git branch --show-current, active plan file summary, last 3 entries from system/state/decisions/. Hard cap at 500 tokens total injection. Source: Claude-Mem progressive disclosure pattern + Agentic Scripts rehydrate.sh."
+}',# Update t-628 context with Anthropic file-based handoff validation
+brana backlog set t-628 context --append "2026-03-25: Anthropic Engineering validates file-based agent handoff pattern (structured files for inter-agent communication). Our subagent-context.sh is exactly this. Article also recommends context resets > compaction for Sonnet — enriching handoff data becomes more important."
+
+# Update t-630 context with evaluator separation insight
+brana backlog set t-630 context --append "2026-03-25: Anthropic's 3-agent harness finding: 'generators cannot reliably self-evaluate.' guard-explore is a quality gate that separates build from verification — same principle. Start with logging to calibrate, like Anthropic's evaluator tuning iterations."
+
+# Update t-635 context with context anxiety finding
+brana backlog set t-635 context --append "2026-03-25: Anthropic found Sonnet 4.5 exhibits 'context anxiety' — premature task wrapping as tokens approach limit. Context resets with structured handoffs outperformed compaction. Opus 4.6 reduced this. Progressive disclosure addresses the same problem from the memory side. Test: does MEMORY.md as pure index + on-demand expansion reduce compaction frequency?"
+
+# Update t-636 context with Anthropic's harness simplification principle  
+brana backlog set t-636 context --append "2026-03-25: Anthropic: 'Every harness component encodes assumptions about model limitations. Re-evaluate after model upgrades.' /brana:audit should include a harness simplification check — which hooks/gates are still needed with current models?",./validate.sh 2>&1 | grep -A 5 "dimension_classes\|freshness",./validate.sh 2>&1 | head -50,./validate.sh 2>&1 | tail -50
