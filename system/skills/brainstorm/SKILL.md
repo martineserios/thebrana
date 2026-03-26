@@ -172,7 +172,7 @@ Based on the discussion so far, either:
 - "What would {audience} say about this?"
 - "If you had to cut one thing, what goes?"
 
-**B) Widen the lens** — if the idea is solid, explore adjacent territory:
+**B) Widen the lens** — if the idea survived all challenges without contradiction, explore adjacent territory:
 - "Who else has tried something like this? What happened?"
 - "What's the version of this that's 10x simpler?"
 - "What would make this a must-have instead of a nice-to-have?"
@@ -205,7 +205,7 @@ the next question.
 - **React to their answers.** Reference what they said. "You mentioned X — that changes things because..."
 - **Escalate, don't repeat.** Each round goes deeper than the last. Never re-ask the same challenge.
 - **Name your role.** Say "Playing devil's advocate here..." or "Pushing back on this..." so the user knows you're challenging, not disagreeing.
-- **Celebrate good thinking.** When the user gives a strong defense, say so. "That's a solid answer — it holds up because..."
+- **Acknowledge strong defenses.** When the user addresses the specific objection with evidence or logic, say so: "That answers the [specific concern] — it holds up because [reason]."
 - **Research mid-discussion.** If the user mentions a competitor, tool, or reference you don't know, search for it immediately and bring findings into the next question.
 
 ### Phase 4 — Shape
@@ -315,7 +315,7 @@ Task: {t-NNN if created, or "none"}
 - **Don't monologue.** If you've written more than 2 paragraphs without asking a question, stop and ask.
 - **Don't over-research.** 1-2 web searches per concept, not 10. The goal is grounding, not exhaustive review.
 - **Don't force convergence.** If the user wants to keep exploring, let them. The shape phase waits.
-- **Don't skip the challenge.** Even if the idea seems solid, present at least 2 counterarguments.
+- **Don't skip the challenge.** Even if no obvious flaws exist, present at least 2 counterarguments (market risk, execution complexity, alternative approaches).
 - **Don't create tasks without asking.** The idea doc is always written. The task is always offered, never auto-created.
 - **Step registry.** Follow the [guided-execution protocol](../_shared/guided-execution.md). Register steps on entry, update as each completes.
 

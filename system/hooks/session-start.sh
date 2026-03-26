@@ -25,13 +25,18 @@ fi
 GIT_ROOT=$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null || echo "$CWD")
 PROJECT=$(basename "$GIT_ROOT")
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source profile library for effort level
+source "$SCRIPT_DIR/lib/profile.sh" 2>/dev/null || true
+
 # Write env vars for downstream hooks if CLAUDE_ENV_FILE exists
 if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
     echo "BRANA_PROJECT=$PROJECT" >> "$CLAUDE_ENV_FILE"
     echo "BRANA_SESSION_ID=$SESSION_ID" >> "$CLAUDE_ENV_FILE"
+    EFFORT=$(get_profile_effort 2>/dev/null || echo "high")
+    echo "BRANA_EFFORT_LEVEL=$EFFORT" >> "$CLAUDE_ENV_FILE"
 fi
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ── Temp files for parallel results ───────────────────────
 TMPDIR_SS="/tmp/brana-ss-${SESSION_ID}"
