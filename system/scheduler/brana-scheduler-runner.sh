@@ -202,9 +202,9 @@ write_status "$STATUS_LABEL" "$EXIT_CODE" "$ATTEMPT"
 
 # Store run summary in ruflo memory (graceful degradation)
 if [ "$CAPTURE_OUTPUT" = "true" ]; then
-    source "$HOME/.claude/scripts/cf-env.sh"
+    source "$HOME/.claude/scripts/cf-env.sh" 2>/dev/null || true
 
-    if [ -n "$CF" ]; then
+    if [ -n "${CF:-}" ]; then
         RUN_DATE=$(date +%Y-%m-%d)
         MEMORY_KEY="sched:${JOB_NAME}:${RUN_DATE}"
         SAFE_SUMMARY=$(echo "$JOB_SUMMARY" | tr -d '"' | tr '\n' ' ' | cut -c1-500)
