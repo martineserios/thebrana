@@ -3267,3 +3267,69 @@ brana backlog set t-635 context --append "2026-03-25: Anthropic found Sonnet 4.5
 
 # Update t-636 context with Anthropic's harness simplification principle  
 brana backlog set t-636 context --append "2026-03-25: Anthropic: 'Every harness component encodes assumptions about model limitations. Re-evaluate after model upgrades.' /brana:audit should include a harness simplification check — which hooks/gates are still needed with current models?",./validate.sh 2>&1 | grep -A 5 "dimension_classes\|freshness",./validate.sh 2>&1 | head -50,./validate.sh 2>&1 | tail -50
+
+### Session c144d3f9-8d3b-4e7c-a566-58af7430fb71 (2026-03-26T14:47:01Z)
+- Events: 128 (87 ok, 2 fail)
+- Corrections: 31 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.51 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,TaskCompleted,Write,session-start,session-start-venture
+- Files: - **Never have agents fetch URLs** for classification — LinkedIn/web pages bloat context (14/14 agents hit limits in previous attempt)
+- **Section-aware parsing:** non-LinkedIn sections restart numbering (GH-1, Art-1, Tool-1), so Python scripts must track current section to disambiguate rows
+# Memory — linkedin
+- **Research task consolidation:** For related research URLs (e.g., 8 LinkedIn posts about multi-agent orchestration), create one umbrella task with all URLs in context instead of one task per URL. Merged t-096/097/106/109/152/065/504/331 → t-525. Research builds on itself when consolidated; fragments when scattered.
+## LinkedIn MCP (linkedin-scraper-mcp)
+- **Tool name**: `get_person_profile` (NOT `scrape_linkedin_profile`). Param: `linkedin_username` (slug, not URL). Optional `sections`: experience, education, interests, honors, languages, contact_info, posts.
+,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-linkedin/memory/MEMORY.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-linkedin/memory/feedback_canonical_first.md,/home/martineserios/.claude/projects/-home-martineserios-enter-thebrana-linkedin/memory/session-handoff.md,/home/martineserios/.nvm/versions/node/v20.19.0/bin/npx mdpdf "profile/resume.md" --style="profile/pdf-style.css",/home/martineserios/.nvm/versions/node/v20.19.0/bin/npx mdpdf "profile/resume.md" --style="profile/pdf-style.css" && xdg-open /home/martineserios/enter_thebrana/linkedin/profile/resume.pdf,/home/martineserios/enter_thebrana/linkedin/CLAUDE.md,/home/martineserios/enter_thebrana/linkedin/profile/canonical.md,/home/martineserios/enter_thebrana/linkedin/profile/linkedin.md,/home/martineserios/enter_thebrana/linkedin/profile/resume.md
+
+### Session 896802b6-79f9-4372-9e3e-264df4bc6b5b (2026-03-26T20:19:13Z)
+- Events: 143 (127 ok, 6 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,TaskCompleted,Write,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,/brana:brainstorm — DISCUSS,/brana:brainstorm — EXPAND,/brana:brainstorm — OUTPUT,/brana:brainstorm — SEED,/brana:brainstorm — SHAPE,/brana:close — EXTRACT,/brana:close — GATE,/brana:close — GATHER,/brana:close — HANDOFF
+
+### Session 5ae5e06b-35de-4d93-bb8a-8d298151daa8 (2026-03-26T20:21:17Z)
+- Events: 12 (10 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,session-start,session-start-venture
+- Files: - **Never have agents fetch URLs** for classification — LinkedIn/web pages bloat context (14/14 agents hit limits in previous attempt)
+- **Section-aware parsing:** non-LinkedIn sections restart numbering (GH-1, Art-1, Tool-1), so Python scripts must track current section to disambiguate rows
+# Memory — linkedin
+- **Research task consolidation:** For related research URLs (e.g., 8 LinkedIn posts about multi-agent orchestration), create one umbrella task with all URLs in context instead of one task per URL. Merged t-096/097/106/109/152/065/504/331 → t-525. Research builds on itself when consolidated; fragments when scattered.
+## LinkedIn MCP (linkedin-scraper-mcp)
+- **Tool name**: `get_person_profile` (NOT `scrape_linkedin_profile`). Param: `linkedin_username` (slug, not URL). Optional `sections`: experience, education, interests, honors, languages, contact_info, posts.
+,Venture project detected. Auto-delegating to daily-ops agent for morning check.
+No weekly review found. Consider running /brana:review weekly.,brana backlog query --status in_progress 2>/dev/null | head -20 || echo "No in_progress tasks",find docs -type f 2>/dev/null | head -5 || echo "No docs found",git add .claude/memory/ docs/spec-graph.json && git commit -m "$(cat <<'EOF'
+chore: add brana session memory and spec graph
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+EOF
+)" && git status,rtk git branch --show-current && rtk git status --porcelain | head -10 && echo "---" && git log --oneline -5 && echo "---" && git stash list 2>/dev/null | head -3 || true,rtk git diff,rtk git log --oneline -5,rtk git status,rtk git worktree list 2>/dev/null || echo "No worktrees"
+
+### Session 4c4f984f-8f9e-4611-8321-e1dccc26e2a8 (2026-03-26T20:42:11Z)
+- Events: 2 (1 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,brana backlog set t-651 tags +harness-engineering && brana backlog set t-651 tags +competitor && brana backlog set t-651 tags +claude-code && brana backlog set t-651 tags +framework
