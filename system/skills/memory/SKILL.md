@@ -114,7 +114,7 @@ source "$HOME/.claude/scripts/cf-env.sh"
 
 3. **Flag items:** promotion candidates (3+ recalls, still quarantined), staleness candidates, suspect patterns.
 
-4. **Suggest actions** — present options, let user decide. "Knowledge base looks healthy" is valid.
+4. **Suggest actions** — present options, let user decide. If no promotion/demotion/staleness candidates exist and all metrics are within thresholds (quarantine < 30%, staleness < 20%, proven > 50%), report "No action needed" with the numbers.
 
 5. **Backup** if changes made:
    ```bash
