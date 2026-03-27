@@ -26,7 +26,7 @@ Single-user brana operator managing multiple clients (enter, thebrana, palco, so
 
 ### Config file
 - `~/.claude/scheduler.json` — job definitions (JSON, parseable with jq — consistent with brana's bash+jq toolchain)
-- Each job: name, type (skill | command), project path, cron expression, enabled flag, allowedTools, model, timeout
+- Each job: name, type (skill | command), project path, cron expression, enabled flag, allowedTools, model, timeout, command_fallback (optional — alternate command when primary exits 127)
 - Ships with example jobs, no preset bundles (let real usage patterns emerge first)
 
 ### Deploy tool (`brana-scheduler` — bash script)
@@ -248,6 +248,7 @@ thebrana/system/skills/scheduler/
    - skill: timeout $TIMEOUT claude -p "Execute the $SKILL skill for this project" \
             --model $MODEL --allowedTools "$TOOLS" >> "$LOGFILE" 2>&1
    - command: timeout $TIMEOUT eval "$COMMAND" >> "$LOGFILE" 2>&1
+     If exit 127 and command_fallback defined: retry with fallback command
 8. Capture exit code (124 = timeout, distinguish from job failure)
 9. Prune logs: keep last $RETENTION, delete older
 10. Release lock, exit with job's exit code

@@ -108,6 +108,7 @@ The scheduler config lives at `~/.claude/scheduler/scheduler.json`. Bootstrap cr
 | `maxRetries` | no | Override default retry count |
 | `retryBackoffSec` | no | Override default backoff |
 | `captureOutput` | no | Override default memory capture |
+| `command_fallback` | no | Alternate command when primary exits 127 (not found). Command-type jobs only. |
 
 ### Schedule syntax
 
@@ -254,7 +255,7 @@ The scheduler requires:
 - **systemd** with user session support (`systemctl --user`)
 - **loginctl linger** enabled for your user (`sudo loginctl enable-linger $USER`) -- without this, timers stop when you log out
 - **flock** (from util-linux) for job locking
-- **jq** for config parsing
+- **jq** for config parsing (note: avoid jq reserved words like `def`, `if`, `then`, `else`, `reduce` as `--arg` variable names — they fail on jq 1.6)
 - **claude CLI** (only for skill-type jobs)
 
 Run `brana-scheduler validate` to check all prerequisites.

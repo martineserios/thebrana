@@ -1,1 +1,1 @@
-2026-03-26 .claude/CLAUDE.md,docs/guide/commands/index.md,system/agents/CALIBRATION.md,system/agents/challenger.md,system/hooks/guard-explore.sh,system/hooks/hooks.json,system/hooks/lib/profile.sh,system/hooks/pre-tool-use.sh,system/hooks/subagent-context.sh,system/hooks/worktree-gate.sh,system/skills/audit/SKILL.md,system/skills/review/SKILL.md,
+2026-03-27 system/agents/pr-reviewer.md,system/hooks/lib/profile.sh,system/hooks/session-start.sh,system/skills/brainstorm/SKILL.md,system/skills/build/SKILL.md,system/skills/memory/SKILL.md,

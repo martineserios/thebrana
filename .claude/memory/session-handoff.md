@@ -423,3 +423,17 @@
 
 **Next:**
 - (auto-generated — run /session-handoff for full close)
+
+## 2026-03-27 — auto-captured (session-end hook)
+
+**Accomplished:**
+- 289eda5 chore: session state — t-671/t-672/t-673 completed, errata 76-77, field notes
+
+**State:**
+- Branch: main
+- Events: 147 (131 ok, 8 fail, 7 corrections, 0 cascades, 0 prs)
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.58 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+
+**Next:**
+- (auto-generated — run /session-handoff for full close)
