@@ -1,10 +1,10 @@
 {
   "_meta": {
-    "generated": "2026-03-26T20:42:13Z",
-    "node_count": 191,
+    "generated": "2026-03-27T12:32:57Z",
+    "node_count": 192,
     "edge_count": 540,
-    "impl_ref_count": 248,
-    "orphan_count": 93,
+    "impl_ref_count": 250,
+    "orphan_count": 94,
     "typed_edge_count": 0
   },
   "nodes": {
@@ -249,7 +249,8 @@
         "system/hooks/task-sync.sh`",
         "system/skills/meta-template/SKILL.md`",
         "system/commands/",
-        "system/rules/"
+        "system/rules/",
+        "system/scheduler/brana-scheduler-runner.sh`"
       ],
       "guide_files": [
         "docs/guide/concepts.md",
@@ -2194,7 +2195,9 @@
         "45-turboflow-agent-orchestration.md"
       ],
       "referenced_by": [],
-      "impl_files": [],
+      "impl_files": [
+        "system/MCP/memory"
+      ],
       "guide_files": [],
       "arch_files": [],
       "ref_files": []
@@ -2716,6 +2719,14 @@
       "impl_files": [
         "system/mcp/skill-registry/`"
       ],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/ideas/enforcement-vs-injection.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
       "guide_files": [],
       "arch_files": [],
       "ref_files": []

@@ -3333,3 +3333,85 @@ EOF
 | thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
 | personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
 ,brana backlog set t-651 tags +harness-engineering && brana backlog set t-651 tags +competitor && brana backlog set t-651 tags +claude-code && brana backlog set t-651 tags +framework
+
+### Session 8657162b-9529-412c-bc6b-851f7d74a342 (2026-03-26T20:58:04Z)
+- Events: 123 (92 ok, 9 fail)
+- Corrections: 3 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.25 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,TaskCompleted,session-start
+- Files: "$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null || echo "Backup skipped",# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,/brana:close — DRIFT,/brana:close — ERRATA,/brana:close — EXTRACT,/brana:close — FIELD-NOTES,/brana:close — GATE,/brana:close — GATHER,/brana:close — HANDOFF,/brana:close — METADATA
+
+### Session c1912f51-a913-436a-8e0e-bcc5971f6097 (2026-03-27T11:02:12Z)
+- Events: 5 (2 ok, 2 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,brana backlog blocked | head -10,brana backlog next,brana backlog stats && echo "---" && brana backlog next --limit 5,brana backlog stats --json
+
+### Session 9253b246-1694-457b-921b-ff63ab8ed5b5 (2026-03-27T12:32:54Z)
+- Events: 147 (131 ok, 8 fail)
+- Corrections: 7 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.58 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,Write,session-start
+- Files: # 5 adoption tasks
+brana backlog add --json '{"subject":"Add --depth flag to /brana:research (quick|standard|deep)","type":"task","stream":"roadmap","parent":"t-674","tags":["harness-engineering","research","dx"],"effort":"S","priority":"P2","description":"Adaptive research depth from SuperClaude. Controls hop count: quick=1, standard=2-3, deep=3-5. Formalizes existing behavior with explicit UX control."}' && \
+brana backlog add --json '{"subject":"Formalize Four Questions close gate in /brana:build","type":"task","stream":"roadmap","parent":"t-674","tags":["harness-engineering","build-loop","quality"],"effort":"S","priority":"P2","description":"CLOSE step checklist: (1) tests pass with actual output, (2) all requirements addressed, (3) assumptions documented, (4) evidence provided. Inspired by SuperClaude SelfCheckProtocol but enforced, not self-reported."}' && \
+brana backlog add --json '{"subject":"Hallucination detection hook — flag complete without test changes","type":"task","stream":"roadmap","parent":"t-674","tags":["harness-engineering","hooks","quality"],"effort":"M","priority":"P2","description":"PostToolUse hook: when a commit message contains fix/complete/done but no test files were modified in the same commit, warn. Catches false completion claims."}' && \
+brana backlog add --json '{"subject":"Structured mistake doc template for /brana:retrospective","type":"task","stream":"roadmap","parent":"t-674","tags":["harness-engineering","learning-loop"],"effort":"S","priority":"P3","description":"Template for docs/mistakes/feature-date.md: What Happened, Root Cause, Why Missed, Fix Applied, Prevention Checklist, Lesson Learned. Inspired by SuperClaude ReflexionPattern mistake docs."}' && \
+brana backlog add --json '{"subject":"Error recurrence tracking in ruflo memory","type":"task","stream":"roadmap","parent":"t-674","tags":["harness-engineering","memory","observability"],"effort":"S","priority":"P3","description":"Track error hash frequency in ruflo. When same error signature appears 3+ times across sessions, escalate to rule/hook candidate. Counter field on memory entries."}',# Backup
+"$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null || true,# Check drift — did we modify system files?
+git diff --name-only HEAD~5..HEAD 2>/dev/null | grep -E '(skills/|agents/|hooks/|rules/|commands/|CLAUDE\.md|settings\.json)' && echo "---UNSTAGED SYSTEM---" && git diff --name-only 2>/dev/null | grep -E '(skills/|agents/|hooks/|rules/|commands/|CLAUDE\.md|settings\.json|spec-graph)',# Check what tasks were touched this session
+brana backlog query --status completed --output json 2>/dev/null | uv run python3 -c "
+import sys,json
+tasks = json.load(sys.stdin)
+today = [t for t in tasks if t.get('completed','') >= '2026-03-26']
+for t in today:
+    print(f\"{t['id']}  {t['subject']}  completed:{t.get('completed','')}\")" 2>/dev/null | head -20,# Fix tag syntax - use +val for adding tags
+brana backlog set t-651 tags +harness-engineering +competitor && \
+brana backlog set t-655 priority P2 && brana backlog set t-655 tags +harness-engineering +philosophy && \
+brana backlog set t-654 priority P2 && brana backlog set t-654 tags +architecture +hooks +resources && \
+brana backlog set t-650 priority P3 && brana backlog set t-650 tags +computer-use +embodiment && \
+brana backlog set t-652 priority P3 && brana backlog set t-652 tags +open-source && \
+brana backlog set t-653 priority P3 && brana backlog set t-653 tags +releases +agent-features,# Fix type to phase
+brana backlog set t-656 id ph-013,# Get the final result message from each agent
+for agent_id in adc59a786f1828491 ae0c910dc33aa453a a0dc95b2aeaf9ae54 a630f732669532aa8 afe5cd3ff1a4aeb68 a3a3770603a782fd0; do
+  echo "=== $agent_id ==="
+  grep '"type":"result"' "/tmp/claude-1000/-home-martineserios-enter-thebrana-thebrana/9253b246-1694-457b-921b-ff63ab8ed5b5/tasks/${agent_id}.output" 2>/dev/null | tail -1 | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('result','N/A')[:500])" 2>/dev/null || echo "(no result yet)"
+  echo
+done,# MS-1 tasks: Onboarding UX
+brana backlog add --json '{"subject":"Spike: evaluate install friction — bootstrap vs one-liner vs pipx vs cargo","type":"task","stream":"experiments","parent":"t-657","tags":["harness-engineering","dx","spike"],"description":"Compare current bootstrap.sh with pipx-style install, plugin-only, brew tap, cargo install. Measure friction points, context cost, portability. Decide best path."}' && \
+brana backlog add --json '{"subject":"Build one-command install experience","type":"task","stream":"roadmap","parent":"t-657","tags":["harness-engineering","dx"],"description":"Implement the install path validated by the spike. Goal: single command from zero to working brana."}' && \
+brana backlog add --json '{"subject":"Build doctor/health-check command","type":"task","stream":"roadmap","parent":"t-657","tags":["harness-engineering","dx"],"description":"Validate install: check plugin loaded, hooks firing, CLI binary present, memory accessible. Like superclaude doctor."}',# MS-1: Onboarding UX
+brana backlog add --json '{"subject":"Onboarding UX","type":"milestone","stream":"roadmap","parent":"t-656","tags":["harness-engineering","superclaude-learnings","dx"]}' && \
+# MS-2: Confidence Gating
+brana backlog add --json '{"subject":"Build Loop Confidence Gating","type":"milestone","stream":"roadmap","parent":"t-656","tags":["harness-engineering","superclaude-learnings","build-loop"]}' && \
+# MS-3: Command Discovery
+brana backlog add --json '{"subject":"Command Discovery","type":"milestone","stream":"roadmap","parent":"t-656","tags":["harness-engineering","superclaude-learnings","dx"]}' && \
+# MS-4: Ecosystem Positioning
+brana backlog add --json '{"subject":"Ecosystem Positioning","type":"milestone","stream":"roadmap","parent":"t-656","tags":["harness-engineering","superclaude-learnings","content"]}',# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |

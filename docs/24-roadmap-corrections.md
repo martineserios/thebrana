@@ -1633,7 +1633,7 @@ Respond.io action prompts have a hard 1,000-char limit. Agent 3's Assign action 
 ## Error 76: Scheduler docs missing `command_fallback` field
 
 **Severity:** Low — documentation gap
-**Status:** pending
+**Status:** applied (2026-03-27)
 
 **Discovery:** Close debrief (2026-03-26). While fixing Oracle VM scheduler failures (t-672), implemented `command_fallback` in `brana-scheduler-runner.sh` — when primary command exits 127, runner retries with the fallback. `scheduler.template.json` already uses this field for `reindex-knowledge` and `sync-state`, but scheduler docs don't document it.
 
