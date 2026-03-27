@@ -83,7 +83,7 @@
       "enabled": true,
       "timeoutSeconds": 60,
       "captureOutput": true,
-      "_comment": "ADR-015: daily safety net — sync operational state from cache to repos. Interactive: brana ops sync. Falls back to script if Rust binary not built."
+      "_comment": "ADR-015: daily safety net \u2014 sync operational state from cache to repos. Interactive: brana ops sync. Falls back to script if Rust binary not built."
     },
     "export-patterns": {
       "type": "command",
@@ -144,10 +144,10 @@
       "schedule": "Sun *-*-* 22:00:00",
       "model": "sonnet",
       "allowedTools": "Read,Glob,Grep,Bash",
-      "enabled": false,
+      "enabled": true,
       "timeoutSeconds": 600,
       "captureOutput": true,
-      "_comment": "t-680: weekly content harvest — scans all project handoffs, git logs, ADRs, tasks. Writes seeds to docs/content/ideas.md. Runs after reindex-knowledge. Enable when harvest --auto is implemented."
+      "_comment": "t-680: weekly content harvest \u2014 scans all project handoffs, git logs, ADRs, tasks. Writes seeds to docs/content/ideas.md. Runs after reindex-knowledge. Enable when harvest --auto is implemented."
     }
   }
 }
