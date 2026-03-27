@@ -20,15 +20,16 @@ growth_stage: evergreen
 
 # Harvest
 
-Extract content ideas from recent work artifacts, filter through the positioning lens, and save human-picked seeds.
+Extract content ideas from recent work artifacts, filter through the positioning lens, and save seeds.
 
 ## Usage
 
-`/brana:harvest [window]`
+`/brana:harvest [window] [--auto]`
 
 - Default: `7d` (last 7 days)
 - Accepts: `3d`, `7d`, `14d`, `30d`, `session`
 - `session` = current session's handoff only
+- `--auto` = skip human gate, write all lens-passing seeds directly (for scheduled runs)
 
 ## Procedure
 
@@ -36,12 +37,13 @@ Extract content ideas from recent work artifacts, filter through the positioning
 
 Read `docs/content/lens.md`. If missing, abort with: "No lens file found. Create docs/content/lens.md first."
 
-### Step 2 — Determine window
+### Step 2 — Determine window and mode
 
 Parse `$ARGUMENTS`:
 - If empty → default to `7d`
 - If `session` → scope to current session handoff only
 - Otherwise parse `Nd` format → compute `--since` date
+- If `--auto` present → set AUTO_MODE=true (skip Step 5 human gate)
 
 Compute the cutoff date:
 ```
@@ -50,30 +52,64 @@ SINCE_DATE = today minus N days (format: YYYY-MM-DD)
 
 ### Step 3 — Gather artifacts
 
-Collect from 5 sources within the window. Read-only — never modify sources.
+Collect from sources within the window. Read-only — never modify sources.
 
-**3a. Commits**
+#### 3a. Cross-project session handoffs (primary source)
+
+Glob all project handoffs:
 ```bash
-git log --oneline --since="$SINCE_DATE"
+ls ~/.claude/projects/*/memory/session-handoff.md 2>/dev/null
 ```
 
-**3b. Session handoff**
+For each handoff found, extract entries within date range — look for date headers, "Accomplished" and "Learnings" sections. Tag each finding with the project name (derived from directory slug).
 
-Read `~/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/session-handoff.md`. Extract entries within date range — look for date headers, "Accomplished" and "Learnings" sections.
+#### 3b. Cross-project git logs
 
-**3c. ADRs (new or modified)**
+Read `~/.claude/memory/portfolio.md` to get repo paths for each client. For each repo that exists:
 ```bash
-git log --since="$SINCE_DATE" --name-only --diff-filter=AM -- "docs/architecture/decisions/"
+git -C "$REPO_PATH" log --oneline --since="$SINCE_DATE" 2>/dev/null
+```
+
+#### 3c. Cross-project ADRs (new or modified)
+
+For each repo from portfolio.md, check both common ADR locations:
+```bash
+git -C "$REPO_PATH" log --since="$SINCE_DATE" --name-only --diff-filter=AM -- "docs/decisions/" "docs/architecture/decisions/" 2>/dev/null
 ```
 Read each ADR found.
 
-**3d. Event log**
+#### 3d. Cross-project completed tasks
 
-Read `system/state/event-log.md`. Extract entries within date range.
+For each repo from portfolio.md, check for tasks.json:
+```bash
+cat "$REPO_PATH/.claude/tasks.json" 2>/dev/null
+```
+Find tasks where `completed` falls within the window.
 
-**3e. Completed tasks**
+#### 3e. Thebrana-specific sources
 
-Read `.claude/tasks.json`. Find tasks where `completed` falls within the window. Note their subject, description, and notes.
+These only apply when scanning the thebrana repo:
+- Event log: `system/state/event-log.md` — entries within date range
+- Errata: `docs/24-roadmap-corrections.md` — new entries within date range
+
+#### 3f. Evergreen fallback
+
+If Steps 3a-3e produced **zero notable artifacts** (nothing fresh this week):
+
+1. Scan ruflo patterns with high confidence:
+   ```bash
+   source "$HOME/.claude/scripts/cf-env.sh" 2>/dev/null
+   $CF memory search --query "pattern transferable" --namespace patterns --limit 10 2>/dev/null
+   ```
+   Fallback (no ruflo): grep `~/.claude/projects/*/memory/MEMORY.md` for pattern entries.
+
+2. Scan errata doc for content-worthy entries never used as seeds:
+   ```bash
+   grep -c "\[seed\]" docs/content/ideas.md  # count existing seeds
+   ```
+   Read `docs/24-roadmap-corrections.md`, find entries with status `applied` that don't appear as sources in `ideas.md`.
+
+3. Tag all evergreen candidates with `[evergreen]` in the angle field so the user knows these aren't fresh.
 
 ### Step 4 — Apply lens
 
@@ -89,28 +125,30 @@ Group candidates by pillar.
 
 ### Step 5 — Present candidates
 
-Use AskUserQuestion to show the candidates:
+**If AUTO_MODE:** Skip to Step 6 with all lens-passing candidates selected.
+
+**If interactive (default):** Use AskUserQuestion to show the candidates:
 
 ```
 ## Harvest: [SINCE_DATE] → today
 
 ### Case Study
-- [ ] [hook] — source: commit abc1234, ADR-017
-- [ ] [hook] — source: session 2026-03-10
+- [ ] [hook] — source: commit abc1234, ADR-017 (project: somos_mirada)
+- [ ] [hook] — source: session 2026-03-10 (project: nexeye)
 
 ### How-To
-- [ ] [hook] — source: completed task t-350
+- [ ] [hook] — source: completed task t-350 (project: thebrana)
 
 ### Contrarian
-- [ ] [hook] — source: event log entry
+- [ ] [hook] — source: event log entry (project: thebrana)
 
 ### Build-in-Public
-- [ ] [hook] — source: ADR-018, 5 commits
+- [ ] [hook] — source: ADR-018, 5 commits (project: thebrana)
 
 Pick which ideas to save (comma-separated numbers, or "none"):
 ```
 
-Present as a numbered list. User picks by number. No auto-saving.
+Present as a numbered list. User picks by number. No auto-saving in interactive mode.
 
 ### Step 6 — Write ideas
 
@@ -122,12 +160,14 @@ Read `docs/content/ideas.md` first. Then append selected ideas under today's dat
 ### [seed] Hook title
 - **Angle:** What makes this a story
 - **Pillar:** Case Study
-- **Sources:** commit abc1234, ADR-017, session 2026-03-10
+- **Components:** "The silent bottleneck"
+- **Sources:** commit abc1234, ADR-017, session 2026-03-10 (somos_mirada)
 ```
 
 **Cap enforcement:** Count active `[seed]` entries in the file. If adding new seeds would exceed 10:
 - Mark oldest `[seed]` entries as `[expired]` until count is at or below 10
-- Notify user which seeds expired
+- In auto mode: log which seeds expired
+- In interactive mode: notify user which seeds expired
 
 Report what was saved.
 
@@ -135,7 +175,9 @@ Report what was saved.
 
 - **Read-only on all sources.** Only writes to `docs/content/ideas.md`.
 - **No lens = no harvest.** Abort if `docs/content/lens.md` doesn't exist.
-- **Human picks the ideas.** Never auto-save. AskUserQuestion is the gate.
+- **Interactive mode: human picks.** AskUserQuestion is the gate.
+- **Auto mode: lens is the gate.** All lens-passing candidates are saved directly.
 - **Ideas only.** No draft writing — that's future `/brana:content-draft` territory.
-- **Graceful without ruflo.** All sources are local files and git.
+- **Graceful without ruflo.** All sources are local files and git. Ruflo is optional enhancement.
 - **Skip noise.** Merge commits, doc formatting, chore tasks, WIP commits — filter out.
+- **Cross-project by default.** Always scan all projects via handoff glob + portfolio.md.
