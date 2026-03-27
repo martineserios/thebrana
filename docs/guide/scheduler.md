@@ -259,6 +259,16 @@ The scheduler requires:
 
 Run `brana-scheduler validate` to check all prerequisites.
 
+## Field Notes
+
+### 2026-03-26: `set -u` and optional dependency sourcing
+Scripts using `set -u` that source optional dependency loaders (e.g., `cf-env.sh`) must guard with `source file.sh 2>/dev/null || true` and use `${VAR:-}` instead of `$VAR`. Otherwise, missing ruflo on headless servers crashes the runner before the job even executes.
+Source: t-672 Oracle VM scheduler fix
+
+### 2026-03-26: `command_fallback` for missing binaries
+When the Rust CLI binary isn't built (e.g., Oracle VM), the runner retries with `command_fallback` from `scheduler.json` on exit 127 (command not found). Add fallback shell scripts for any job that uses the Rust binary as primary command.
+Source: t-672 Oracle VM scheduler fix
+
 ## Troubleshooting
 
 See [Troubleshooting](troubleshooting.md) for common scheduler issues including flock failures, permission problems, and timer debugging.

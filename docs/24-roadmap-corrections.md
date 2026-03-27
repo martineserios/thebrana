@@ -1629,3 +1629,30 @@ Respond.io action prompts have a hard 1,000-char limit. Agent 3's Assign action 
 | 2 | Features | Stale | cc-hook-leverage.md hook profiles entry missing effort level feature (t-642) | Applied — appended effort level clause |
 
 **Notes:** Targeted reconcile scoping 6 changed system files. hooks.md was already updated during t-642 implementation. No drift in build step docs (32-lifecycle.md describes high-level cycle, not substeps). No docs referenced the old pr-reviewer/brainstorm/memory phrasing.
+
+## Error 76: Scheduler docs missing `command_fallback` field
+
+**Severity:** Low — documentation gap
+**Status:** pending
+
+**Discovery:** Close debrief (2026-03-26). While fixing Oracle VM scheduler failures (t-672), implemented `command_fallback` in `brana-scheduler-runner.sh` — when primary command exits 127, runner retries with the fallback. `scheduler.template.json` already uses this field for `reindex-knowledge` and `sync-state`, but scheduler docs don't document it.
+
+**Files affected:**
+- `docs/architecture/features/scheduler.md` — Job fields table missing `command_fallback`
+- `docs/guide/scheduler.md` — Job fields table missing `command_fallback`
+
+**Proposed fix:** Add to Job fields: "`command_fallback` (optional): alternate command when primary exits 127 (command not found). Only for command-type jobs."
+
+## Error 77: Scheduler docs omit jq reserved keyword constraint
+
+**Severity:** Low — documentation gap
+**Status:** code-fix (2026-03-26)
+
+**Discovery:** Oracle VM debugging (2026-03-26). All 6 scheduled jobs on Oracle failed since March 22 because `brana-scheduler-runner.sh` used `$def` as a jq `--arg` name. `def` is a reserved keyword in jq 1.6 (Ubuntu 22.04 default). Local machine has jq 1.8.1 where this works. Fix: renamed to `$dflt`.
+
+**Files affected:**
+- `system/scheduler/brana-scheduler-runner.sh` — fixed (t-671)
+- `docs/guide/scheduler.md` — prerequisites list "jq" with no version note
+- `docs/architecture/features/scheduler.md` — says "Bash + jq toolchain" with no constraint
+
+**Proposed fix:** Add jq note to prerequisites: "avoid reserved words (`def`, `if`, `then`, `else`, `reduce`) as `--arg` variable names — they fail on jq 1.6."
