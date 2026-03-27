@@ -46,6 +46,36 @@ Named building blocks — used naturally in posts, never defined:
 - **"The bridge"** — the piece connecting a digital system to a non-digital process
 - **"The correction loop"** — where the system learns from its own failures
 
+## Systems Vocabulary
+
+Systems concepts from real theory, used naturally in posts. Never explained, never taught — the vocabulary appears through the work. Over time, readers absorb the lens through accumulation. Reference: [dim 44](../../brana-knowledge/dimensions/44-systems-thinking-nature.md), [software-engineering-patterns](../../brana-knowledge/dimensions/software-engineering-patterns.md).
+
+### Patterns (what you recognize in builds)
+
+| Pattern | What it is | Example in your work |
+|---------|-----------|---------------------|
+| **Feedback loop** | Output becomes input — positive (amplifying) or negative (correcting) | Errata system: failures feed corrections feed better specs |
+| **Stocks and flows** | Accumulation + rates of change | Token budget: context fills (flow in), compresses (flow out), quality degrades as stock grows |
+| **Delays** | Time gap between action and effect | Deploy → delivery confirmation → traffic migration (each step has a delay) |
+| **Emergence** | Macro behavior from micro interactions | 37 skills + 10 agents produce capabilities none was designed for |
+| **Leverage points** | Where small changes produce large effects | Changing the lens.md file changes what 12 weeks of content look like |
+| **Adaptive cycle** | Growth → conservation → release → reorganization | A project's arc: build fast → stabilize → break when scale demands → rebuild |
+| **Resilience** | Absorb disturbance, retain function | Evergreen fallback: pipeline produces content even when no sessions close |
+| **Isomorphism** | Same structure in different domains | Flood prediction pipeline ↔ patient flow system ↔ WhatsApp campaign delivery |
+| **Quorum sensing** | Commit only after threshold support accumulates | Phase A: 12 posts before building automation. Don't commit to the tool until evidence accumulates. |
+| **Stigmergy** | Coordinate through environment, not direct communication | Git commits, handoff notes, errata — agents coordinate through artifacts, not messages |
+
+### How harvest uses this
+
+During Step 4 (Apply lens), for each artifact:
+1. Run the normal dual test + pillar match + anti-topic check
+2. **Then ask: does this artifact illustrate a systems pattern?**
+   - If yes → note the pattern in the seed. Use it in the hook or angle.
+   - If no → the seed stands on its own. Not every post needs a systems angle.
+3. **Cross-domain check:** does the same pattern appear in a different project? If so, that's a "same pattern, different skin" post — one of the strongest content angles.
+
+**Goal:** ~50% of seeds should have a systems connection. Not forced — discovered. The systems lens is how you naturally see things; harvest just makes it explicit.
+
 ## Signature
 
 - **EN:** "I see systems. I ship them."

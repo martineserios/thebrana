@@ -119,7 +119,11 @@ For each notable artifact (skip trivial commits, chore tasks, doc formatting):
 2. **Dual test:** Would a founder care? Would a CTO care? Neither → skip.
 3. **Anti-topic check:** Does it drift toward no-code/wrapper/generic territory? → Skip or note a reframe.
 4. **Component match:** Does it touch a named component from the shelf? Note it.
-5. **Angle:** What makes this a story? Draft a one-line hook.
+5. **Systems pattern match:** Read the Systems Vocabulary section in `docs/content/lens.md`. Does this artifact illustrate a systems pattern (feedback loop, stocks/flows, delays, emergence, leverage point, adaptive cycle, resilience, isomorphism, quorum sensing, stigmergy)? If yes, note the pattern — use it in the hook or angle. If no, the seed stands on its own.
+6. **Cross-domain check:** Does the same pattern appear in a different project within this harvest window? If so, flag it as a "same pattern, different skin" candidate — strongest content angle.
+7. **Angle:** What makes this a story? Draft a one-line hook. If a systems pattern was identified, weave it into the hook naturally (never explain the term, just use it).
+
+**Target:** ~50% of seeds should have a systems connection. Not forced — discovered.
 
 Group candidates by pillar.
 
@@ -161,6 +165,7 @@ Read `docs/content/ideas.md` first. Then append selected ideas under today's dat
 - **Angle:** What makes this a story
 - **Pillar:** Case Study
 - **Components:** "The silent bottleneck"
+- **Systems:** feedback loop — output feeds back as input (omit if no pattern found)
 - **Sources:** commit abc1234, ADR-017, session 2026-03-10 (somos_mirada)
 ```
 
