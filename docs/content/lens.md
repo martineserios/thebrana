@@ -48,7 +48,12 @@ Named building blocks — used naturally in posts, never defined:
 
 ## Systems Vocabulary
 
-Systems concepts from real theory, used naturally in posts. Never explained, never taught — the vocabulary appears through the work. Over time, readers absorb the lens through accumulation. Reference: [dim 44](../../brana-knowledge/dimensions/44-systems-thinking-nature.md), [software-engineering-patterns](../../brana-knowledge/dimensions/software-engineering-patterns.md).
+Systems concepts from real theory and original observations, used naturally in posts. Never explained, never taught — the vocabulary appears through the work. Over time, readers absorb the lens through accumulation.
+
+References:
+- [dim 44 — classical systems thinking](../../brana-knowledge/dimensions/44-systems-thinking-nature.md)
+- [dim 49 — agent-era patterns (original)](../../brana-knowledge/dimensions/49-agent-era-systems-patterns.md)
+- [software-engineering-patterns](../../brana-knowledge/dimensions/software-engineering-patterns.md)
 
 ### Patterns (what you recognize in builds)
 
@@ -64,6 +69,18 @@ Systems concepts from real theory, used naturally in posts. Never explained, nev
 | **Isomorphism** | Same structure in different domains | Flood prediction pipeline ↔ patient flow system ↔ WhatsApp campaign delivery |
 | **Quorum sensing** | Commit only after threshold support accumulates | Phase A: 12 posts before building automation. Don't commit to the tool until evidence accumulates. |
 | **Stigmergy** | Coordinate through environment, not direct communication | Git commits, handoff notes, errata — agents coordinate through artifacts, not messages |
+
+**Agent-era patterns (original — [dim 49](../../brana-knowledge/dimensions/49-agent-era-systems-patterns.md)):**
+
+| Pattern | What it is | Example in your work |
+|---------|-----------|---------------------|
+| **Assumption decay** | A component built for a weaker model silently becomes dead weight | SuperClaude's 32% context overhead, harness review |
+| **Artifact coordination** | Agents coordinate through designed artifacts, not messages | close → handoff → harvest → ideas → daily-ops (no agent talks to another) |
+| **Context rot** | Gradual quality degradation as context fills — no cliff, no alert | Context-budget rule (55/70/85%), RTK's reason for existing |
+| **The observation window** | Log behavior before enforcing rules. Sensor before actuator. | guard-explore: log-only week 1, enforce only after data |
+| **The removable gate** | Human decision point designed from day one to be optional | harvest --auto flag, progressive automation |
+| **Pattern bleed** | Solution shapes from one project appear in another via shared memory | Retry pattern from anita → scheduler in thebrana |
+| **The capability horizon** | Moving boundary between model-native and system-enforced | JSON validation hook that stopped catching anything after Claude 4.6 |
 
 ### How harvest uses this
 
