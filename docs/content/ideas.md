@@ -69,24 +69,28 @@
 - **Angle:** RTK (Rust Token Killer) rewrites command output before it enters context. 34 TOML filters, <10ms overhead, 57.6% savings measured on first session. The silent bottleneck: every `git status` was eating 80% more tokens than needed. One PreToolUse hook fixed it.
 - **Pillar:** Case Study
 - **Components:** "The silent bottleneck"
+- **Systems:** stocks and flows — context window is a stock, tokens flow in, RTK reduces the inflow rate. Also: leverage point (#6 information flows — filtering what the system sees changes everything)
 - **Sources:** t-626, `rtk gain` baseline (57.6%), RTK repo (github.com/rtk-ai/rtk), dim 46
 
 ### [seed] The 50-token trigger that controls which AI skill fires
 - **Angle:** Claude Code reads ONLY the frontmatter description at startup to decide which skill to invoke. 50 tokens. That's the routing budget. Audited 34 skills — 5 had vague triggers that confused routing. The fix: verb-first, when-to-use, disambiguation. Routing architecture as a design discipline.
 - **Pillar:** How-To
 - **Components:** "The human gate"
+- **Systems:** leverage point (#6 information flows) — 50 tokens of description determine which of 34 skills fires. Smallest input, largest behavioral change.
 - **Sources:** t-625, ADR-025, dim 46 §2.1 (Dixit insight)
 
 ### [seed] How to calibrate your AI agent's judgment with 3 examples
 - **Angle:** Anthropic's Bloom research: evaluators need few-shot examples and hard thresholds. Applied it to our challenger agent: 6 critical triggers, 5 warning triggers, 1-5 scoring rubric. Before calibration: subjective severity. After: any finding >= 4 forces RECONSIDER verdict. Three examples is all it took.
 - **Pillar:** How-To
 - **Components:** "The correction loop"
+- **Systems:** negative feedback loop — calibration creates a balancing mechanism that prevents the challenger from over- or under-flagging. Three examples = the minimum viable regulator.
 - **Sources:** t-637, Anthropic Bloom, CALIBRATION.md, dim 46 §6.3
 
 ### [seed] Strip your harness, don't grow it
 - **Angle:** Anthropic's harness design article: "Every component encodes assumptions about model limitations. Re-evaluate after upgrades." Most builders add tools. Few ask: which tools are now redundant? Built a quarterly `/brana:review harness` check that traffic-lights every enforcement component. The contrarian move: subtract.
 - **Pillar:** Contrarian
 - **Components:** "The correction loop"
+- **Systems:** adaptive cycle — conservation phase accumulates complexity (tools, rules, hooks). Release phase strips what's no longer needed. Most builders never enter release.
 - **Sources:** t-638, Anthropic harness design article, /brana:review harness
 
 ### [seed] 5 security checks every Claude Code power user should run
@@ -103,6 +107,7 @@
 - **Angle:** Anthropic Engineering published their harness design patterns. Mapped every finding against my existing system: 3-agent pattern validates our challenger, context anxiety confirms our context-budget rule, harness simplification principle became a new review check. Primary source → 4 task context updates + 2 new tasks in one session.
 - **Pillar:** Build-in-Public
 - **Components:** "The correction loop", "The memory layer"
+- **Systems:** isomorphism — Anthropic's patterns and brana's patterns evolved independently to the same structures. Same system, different domains.
 - **Sources:** dim 46, Anthropic harness design article, t-637/t-638
 
 ### [expired] I built a hook that watches my AI read files
@@ -116,21 +121,25 @@
 - **Angle:** Built a WhatsApp campaign deploy pipeline that seeds real contacts from a Google Sheet, triggers messages, then polls the Kapso API for delivery confirmation before auto-migrating traffic. Three deploys, zero manual gates after the first. The bridge: connecting deployment to actual message delivery.
 - **Pillar:** Case Study
 - **Components:** "The bridge"
+- **Systems:** delays — each step (seed → trigger → confirm → migrate) has a time gap. The pipeline makes the delays explicit and waits for each. Most deploys ignore the delay between "sent" and "delivered."
 - **Sources:** proyecto_anita session 2026-03-21, deploy-multitenant.sh, smoke_test_confirm.py, 668 tests passing
 
 ### [seed] AI handles logistics, humans handle trust
 - **Angle:** Planned unit economics for an AI training business (anit.ia). 4 Standard clients/mo = $4K/founder target. But the biggest open question isn't pricing — it's who the buyer is. 3 pilots will reveal the persona. You can model the economics perfectly and still not know who writes the check. AI handles the logistics. Humans handle the trust.
 - **Pillar:** Contrarian
+- **Systems:** quorum sensing — don't commit to the persona until 3 pilots accumulate evidence. The system waits for a threshold before acting, like a bee colony choosing a nest site.
 - **Sources:** proyecto_anita/anit.ia session 2026-03-26, docs/features/capacitaciones-ia/
 
 ### [seed] A 22K-star framework puts prompts where I put specs
 - **Angle:** SuperClaude: 22K stars, beautiful README, 32% context overhead (Issue #299). Their approach: inject system prompts that ask Claude to be better. My approach: specs that make it impossible to be worse. One is theater. One is architecture. The difference shows up in Issue #299.
 - **Pillar:** Contrarian
 - **Components:** "The correction loop"
+- **Systems:** leverage point (#5 rules vs #12 parameters) — SuperClaude adjusts parameters (prompts). Specs change the rules the system operates under. Higher leverage, same cost.
 - **Sources:** thebrana session 2026-03-26, t-651, dim 46 §6.2.1, SuperClaude repo
 
 ### [seed] One file eliminated 4 contradictions in my LinkedIn profile
 - **Angle:** Built a canonical-first architecture for my professional profile: one source of truth (canonical.md), every channel (LinkedIn, resume, website) is a thin formatting layer. First audit found 4 contradictions between channels. The memory layer: when your data has a single source, drift becomes impossible.
 - **Pillar:** How-To
 - **Components:** "The memory layer"
+- **Systems:** stocks and flows — facts flow from canonical (stock) to channels (outputs). Without a single stock, each channel accumulates its own version. Drift is a flow problem, not a data problem.
 - **Sources:** linkedin session 2026-03-25, profile/canonical.md, profile/linkedin.md
