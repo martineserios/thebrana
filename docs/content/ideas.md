@@ -52,12 +52,12 @@
 - **Components:** "The human gate"
 - **Sources:** Ronald Mego LinkedIn post (t-211), MCP governance patterns
 
-### [seed] We're still building software like it's 2015
+### [expired] We're still building software like it's 2015
 - **Angle:** The paradigm shift most teams resist: AI-native development isn't "add AI to your workflow" — it's rethinking the workflow from scratch. Waterfall → agile was painful. Agile → AI-native will be worse. The teams that adapt aren't the ones with the best models.
 - **Pillar:** Contrarian
 - **Sources:** Robert Kelly LinkedIn post (t-189), AI-native development patterns
 
-### [seed] Open-source AI agents are eating the enterprise stack
+### [expired] Open-source AI agents are eating the enterprise stack
 - **Angle:** OpenClaw and similar frameworks: open-source agent architectures that rival enterprise tools. The correction loop: open-source agents learn faster because failures are visible. Why the next wave of AI infrastructure will be built in the open.
 - **Pillar:** Contrarian
 - **Components:** "The correction loop"
@@ -94,7 +94,7 @@
 - **Pillar:** How-To
 - **Sources:** t-636, /brana:audit skill, dim 46 §2.6 AgentShield
 
-### [seed] Your AI agent's memory is already fine at 464 tokens
+### [expired] Your AI agent's memory is already fine at 464 tokens
 - **Angle:** Ran a design spike on "progressive disclosure memory." Finding: MEMORY.md is 116 lines, 464 tokens, well under Claude Code's 200-line auto-load limit. The system already uses progressive disclosure — heavy content is in linked files loaded on demand. The optimization everyone reaches for is already built in. Stop optimizing what isn't broken.
 - **Pillar:** Contrarian
 - **Sources:** t-635 spike, memory-framework.md, CC auto-memory docs
@@ -105,7 +105,32 @@
 - **Components:** "The correction loop", "The memory layer"
 - **Sources:** dim 46, Anthropic harness design article, t-637/t-638
 
-### [seed] I built a hook that watches my AI read files
+### [expired] I built a hook that watches my AI read files
 - **Angle:** guard-explore: a PreToolUse hook that logs when AI reads implementation files without searching first. Week 1: logging only. Agentic Scripts measured 80% tool call reduction with search-first patterns. Raw data incoming — will know in 7 days if enforcement is justified. Building observability before policy.
 - **Pillar:** Build-in-Public
 - **Sources:** t-630, guard-explore.sh, dim 46 §2.2 (Agentic Scripts)
+
+## 2026-03-27
+
+### [seed] My deploy script confirms delivery before going live
+- **Angle:** Built a WhatsApp campaign deploy pipeline that seeds real contacts from a Google Sheet, triggers messages, then polls the Kapso API for delivery confirmation before auto-migrating traffic. Three deploys, zero manual gates after the first. The bridge: connecting deployment to actual message delivery.
+- **Pillar:** Case Study
+- **Components:** "The bridge"
+- **Sources:** proyecto_anita session 2026-03-21, deploy-multitenant.sh, smoke_test_confirm.py, 668 tests passing
+
+### [seed] AI handles logistics, humans handle trust
+- **Angle:** Planned unit economics for an AI training business (anit.ia). 4 Standard clients/mo = $4K/founder target. But the biggest open question isn't pricing — it's who the buyer is. 3 pilots will reveal the persona. You can model the economics perfectly and still not know who writes the check. AI handles the logistics. Humans handle the trust.
+- **Pillar:** Contrarian
+- **Sources:** proyecto_anita/anit.ia session 2026-03-26, docs/features/capacitaciones-ia/
+
+### [seed] A 22K-star framework puts prompts where I put specs
+- **Angle:** SuperClaude: 22K stars, beautiful README, 32% context overhead (Issue #299). Their approach: inject system prompts that ask Claude to be better. My approach: specs that make it impossible to be worse. One is theater. One is architecture. The difference shows up in Issue #299.
+- **Pillar:** Contrarian
+- **Components:** "The correction loop"
+- **Sources:** thebrana session 2026-03-26, t-651, dim 46 §6.2.1, SuperClaude repo
+
+### [seed] One file eliminated 4 contradictions in my LinkedIn profile
+- **Angle:** Built a canonical-first architecture for my professional profile: one source of truth (canonical.md), every channel (LinkedIn, resume, website) is a thin formatting layer. First audit found 4 contradictions between channels. The memory layer: when your data has a single source, drift becomes impossible.
+- **Pillar:** How-To
+- **Components:** "The memory layer"
+- **Sources:** linkedin session 2026-03-25, profile/canonical.md, profile/linkedin.md
