@@ -48,5 +48,5 @@ Named building blocks — used naturally in posts, never defined:
 
 ## Signature
 
-- **EN:** "Everything is a system. Map it."
-- **ES:** "Todo es un sistema. Mapealo."
+- **EN:** "I see systems. I ship them."
+- **ES:** "Veo sistemas. Los llevo a produccion."

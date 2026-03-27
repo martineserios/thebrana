@@ -82,6 +82,24 @@ If found:
 
 Fallback: grep `~/.claude/projects/*/memory/MEMORY.md` for recent metric mentions.
 
+## Step 6: Content candidates (Mondays only)
+
+Check if today is Monday:
+```bash
+date +%u  # 1 = Monday
+```
+
+If Monday:
+1. Read `~/enter_thebrana/thebrana/docs/content/ideas.md`
+2. Count `[seed]` entries with dates from the last 7 days
+3. If fresh seeds exist:
+   - List top 5 by pillar balance (prefer underweight pillars)
+   - Count seeds per pillar, compare against targets (CS 35%, HT 25%, CT 20%, BiP 20%)
+   - Flag any pillar >10% off target
+4. If no fresh seeds: note "No fresh seeds — check /brana:harvest"
+
+If not Monday: skip this step entirely.
+
 ## Output format
 
 ```
@@ -108,6 +126,15 @@ Fallback: grep `~/.claude/projects/*/memory/MEMORY.md` for recent metric mention
 ### Active Experiments
 - {experiment name}: {status} — {days remaining or result}
 (or "No active experiments")
+
+### Content Candidates (Mondays only)
+{N} seeds this week:
+1. "{hook}" — {Pillar} (source: {project})
+2. "{hook}" — {Pillar} (source: {project})
+3. "{hook}" — {Pillar} (source: {project})
+
+Pillar balance: CS {n}% | HT {n}% | CT {n}% | BiP {n}%
+{warning if any pillar >10% off target}
 ```
 
 ## Rules
@@ -117,3 +144,4 @@ Fallback: grep `~/.claude/projects/*/memory/MEMORY.md` for recent metric mention
 - Keep output concise — aim for 500-1000 tokens
 - Prioritize actionable items over informational ones
 - If this doesn't appear to be a venture project, say so and stop
+- Content section only on Mondays — skip entirely on other days
