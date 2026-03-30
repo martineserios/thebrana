@@ -6,6 +6,7 @@ keywords: [meta, business-manager, verification, waba, compliance, documents]
 task_strategies: [feature]
 stream_affinity: [roadmap]
 argument-hint: "[check|submit|audit] [phase]"
+group: domain
 allowed-tools:
   - Read
   - Write

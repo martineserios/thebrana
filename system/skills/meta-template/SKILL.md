@@ -6,6 +6,7 @@ keywords: [whatsapp, meta, template, messaging, waba, utility, business-api]
 task_strategies: [feature, spike]
 stream_affinity: [roadmap, research]
 argument-hint: "[write|review] [template-name]"
+group: domain
 allowed-tools:
   - Read
   - Write

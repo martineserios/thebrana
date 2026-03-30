@@ -7,6 +7,10 @@ task_strategies: [feature, spike]
 stream_affinity: [roadmap, research]
 argument-hint: "[list|read|write|create|summary|share] [args]"
 group: utility
+allowed-tools:
+  - Read
+  - Bash
+  - AskUserQuestion
 status: stable
 growth_stage: evergreen
 ---
