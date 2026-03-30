@@ -138,6 +138,77 @@ INPUT=$(jq -n --arg sid "$SESSION_ID-nongit" --arg cwd "/tmp" '{session_id: $sid
 OUTPUT=$(run_hook "$INPUT")
 assert_valid_json "non-git dir → valid JSON" "$OUTPUT"
 
+# ── Test 8: Handoff extraction pipeline ──
+echo ""
+echo "Test 8: handoff extraction sed/grep pipeline"
+
+# Create a known handoff entry and pipe through the same extraction logic
+HANDOFF_RAW="## 2026-03-30 (3) — Test session
+
+**Accomplished:**
+- Built feature X
+- Fixed bug Y
+
+**Learnings:**
+- Something useful
+
+**State:**
+- Branch: main
+
+**Doc drift:** None
+
+**Next:**
+- Do thing A
+- Do thing B
+- Do thing C
+
+**Blockers:** None"
+
+HO_HEADING=$(echo "$HANDOFF_RAW" | head -1 | sed 's/^## //')
+assert_outcome "heading extraction" "2026-03-30 (3) — Test session" "$HO_HEADING"
+
+HO_NEXT=$(echo "$HANDOFF_RAW" | sed -n '/^\*\*Next:\*\*/,/^\*\*[A-Z]/p' | grep -v '^\*\*' | sed 's/^- //' | head -5) || true
+assert_contains "next items extracted" "$HO_NEXT" "Do thing A"
+assert_contains "next items multi-line" "$HO_NEXT" "Do thing C"
+
+HO_BLOCKERS=$(echo "$HANDOFF_RAW" | sed -n '/^\*\*Blockers:\*\*/,/^\*\*[A-Z]/p' | grep -v '^\*\*' | head -3) || true
+# "None" blockers should be filtered
+if echo "$HO_BLOCKERS" | grep -qi "^none$"; then
+    PASS=$((PASS + 1))
+    echo "  PASS: 'None' blockers detected for suppression"
+else
+    # Blockers was empty (also acceptable — means sed didn't match)
+    if [ -z "$HO_BLOCKERS" ]; then
+        PASS=$((PASS + 1))
+        echo "  PASS: blockers empty (no content after heading)"
+    else
+        FAIL=$((FAIL + 1))
+        echo "  FAIL: unexpected blockers content: '$HO_BLOCKERS'"
+    fi
+fi
+
+# Test with real blockers
+HANDOFF_WITH_BLOCKERS="## 2026-03-30 — Blocked session
+
+**Next:**
+- Fix the thing
+
+**Blockers:**
+- Waiting on API access
+- Need credentials"
+
+HO_BLOCKERS2=$(echo "$HANDOFF_WITH_BLOCKERS" | sed -n '/^\*\*Blockers:\*\*/,/^\*\*[A-Z]/p' | grep -v '^\*\*' | head -3) || true
+assert_contains "real blockers extracted" "$HO_BLOCKERS2" "Waiting on API access"
+
+# Test handoff context assembly
+HANDOFF_CONTEXT="Last session: $HO_HEADING"
+if [ -n "$HO_NEXT" ]; then
+    HANDOFF_CONTEXT="$HANDOFF_CONTEXT
+Next: $HO_NEXT"
+fi
+assert_contains "assembled context has heading" "$HANDOFF_CONTEXT" "Last session: 2026-03-30"
+assert_contains "assembled context has next" "$HANDOFF_CONTEXT" "Next:"
+
 # ── Cleanup ──
 rm -f "/tmp/brana-session-${SESSION_ID}.jsonl" "/tmp/brana-session-${SESSION_ID}-timing.jsonl" "/tmp/brana-session-${SESSION_ID}-nongit.jsonl"
 

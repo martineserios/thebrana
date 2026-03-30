@@ -146,6 +146,7 @@ claude --plugin-dir ./system
 | `brana files list\|status\|add\|pull\|push` | Track large files via manifest (.brana-files.json). SHA-256 verified, R2/HTTP remotes. |
 | `brana feed add\|list\|poll\|remove\|status` | RSS/Atom feed polling. Covers Substack, Medium, blogs, YouTube, GitHub releases. HTTP conditional requests (ETag). |
 | `brana inbox add-account\|add\|list\|poll\|remove\|status\|set-password` | Gmail newsletter management via IMAP. Multi-account, OS keyring credentials. |
+| `brana handoff last\|list\|path` | Session handoff notes — read latest entry, list entries, resolve file path. Used by sitrep and session-start hook. |
 
 ### Spec Maintenance Commands
 
