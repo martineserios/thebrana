@@ -7,100 +7,75 @@
     "timeoutSeconds": 300
   },
   "jobs": {
-    "staleness-report": {
+    "sync-state": {
       "type": "command",
-      "command": "./scripts/staleness-report.sh",
+      "command": "./system/cli/rust/target/release/brana ops sync --auto-commit",
+      "command_fallback": "./system/scripts/sync-state.sh push --auto-commit",
       "project": "~/enter_thebrana/thebrana",
-      "schedule": "Mon *-*-* 09:00:00",
-      "enabled": false,
-      "_comment": "Weekly staleness check on spec docs (enable after scripts/ exist)"
-    },
-    "link-check": {
-      "type": "command",
-      "command": "lychee --config .lychee.toml *.md",
-      "project": "~/enter_thebrana/thebrana",
-      "schedule": "Mon *-*-* 09:00:00",
-      "enabled": false,
-      "_comment": "Weekly dead link check (enable after lychee is installed)"
-    },
-    "knowledge-review": {
-      "type": "skill",
-      "skill": "/brana:memory review",
-      "project": "~/enter_thebrana/thebrana",
-      "schedule": "*-*-01 10:00:00",
-      "model": "sonnet",
-      "allowedTools": "Read,Glob,Grep,WebSearch,WebFetch",
-      "enabled": false,
-      "_comment": "Monthly knowledge health check"
-    },
-    "morning-check": {
-      "type": "skill",
-      "skill": "/brana:daily-ops",
-      "project": "~/enter_thebrana/thebrana",
-      "schedule": "Mon..Fri *-*-* 08:00:00",
-      "model": "haiku",
-      "enabled": false,
-      "_comment": "Daily morning focus card (set project to your active venture)"
-    },
-    "weekly-review": {
-      "type": "skill",
-      "skill": "/brana:review",
-      "project": "~/enter_thebrana/thebrana",
-      "schedule": "Fri *-*-* 17:00:00",
-      "model": "sonnet",
-      "enabled": false,
-      "_comment": "Friday weekly portfolio review"
+      "schedule": "*-*-* 08:00:00",
+      "enabled": true,
+      "timeoutSeconds": 60,
+      "captureOutput": true,
+      "_comment": "ADR-015: daily safety net — sync operational state from cache to repos."
     },
     "agentdb-watch": {
       "type": "command",
       "command": "./system/scheduler/check-agentdb-integration.sh",
       "project": "~/enter_thebrana/thebrana",
-      "schedule": "*-*-* 09:02:00",
+      "schedule": "*-*-* 08:06:00",
       "enabled": true,
       "maxRetries": 1,
       "retryBackoffSec": 60,
       "captureOutput": true,
-      "_comment": "Daily check: has claude-flow + AgentDB integration shipped? (parked ms-007)"
+      "_comment": "Daily check: has AgentDB integration shipped?"
+    },
+    "staleness-report": {
+      "type": "command",
+      "command": "./scripts/staleness-report.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Mon *-*-* 08:12:00",
+      "enabled": true,
+      "_comment": "Weekly staleness check on spec docs"
+    },
+    "cc-changelog-review": {
+      "type": "command",
+      "command": "./system/scripts/cc-changelog-check.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Mon *-*-* 08:18:00",
+      "enabled": true,
+      "maxRetries": 1,
+      "timeoutSeconds": 60,
+      "captureOutput": true,
+      "_comment": "Weekly CC changelog diff — writes ~/.claude/cc-changelog-report.md if changes found (t-512)"
     },
     "reindex-knowledge": {
       "type": "command",
       "command": "./system/cli/rust/target/release/brana ops reindex",
       "command_fallback": "./system/scripts/index-knowledge.sh",
       "project": "~/enter_thebrana/thebrana",
-      "schedule": "Sun *-*-* 03:00:00",
+      "schedule": "Sun *-*-* 08:24:00",
       "enabled": true,
       "maxRetries": 1,
       "timeoutSeconds": 600,
       "captureOutput": true,
-      "_comment": "Weekly full reindex of brana-knowledge dimension docs into ruflo memory. Interactive: brana ops reindex. Falls back to script if Rust binary not built."
-    },
-    "sync-state": {
-      "type": "command",
-      "command": "./system/cli/rust/target/release/brana ops sync --auto-commit",
-      "command_fallback": "./system/scripts/sync-state.sh push --auto-commit",
-      "project": "~/enter_thebrana/thebrana",
-      "schedule": "*-*-* 09:00:00",
-      "enabled": true,
-      "timeoutSeconds": 60,
-      "captureOutput": true,
-      "_comment": "ADR-015: daily safety net \u2014 sync operational state from cache to repos. Interactive: brana ops sync. Falls back to script if Rust binary not built."
+      "_comment": "Weekly full reindex of brana-knowledge dimension docs into ruflo memory."
     },
     "export-patterns": {
       "type": "command",
       "command": "./system/scripts/sync-state.sh export --auto-commit",
       "project": "~/enter_thebrana/thebrana",
-      "schedule": "Sun *-*-* 03:05:00",
+      "schedule": "Sun *-*-* 08:30:00",
       "enabled": true,
       "maxRetries": 1,
       "timeoutSeconds": 120,
       "captureOutput": true,
-      "_comment": "ADR-015: weekly backup of claude-flow patterns and decisions to git"
+      "_comment": "ADR-015: weekly backup of ruflo patterns and decisions to git"
     },
     "index-assumptions": {
       "type": "command",
       "command": "./system/scripts/index-assumptions.sh",
       "project": "~/enter_thebrana/thebrana",
-      "schedule": "Sun *-*-* 03:10:00",
+      "schedule": "Sun *-*-* 08:36:00",
       "enabled": true,
       "maxRetries": 1,
       "timeoutSeconds": 300,
@@ -111,31 +86,47 @@
       "type": "command",
       "command": "./system/scripts/second-phase-check.sh",
       "project": "~/enter_thebrana/thebrana",
-      "schedule": "Mon *-*-* 09:10:00",
+      "schedule": "Mon *-*-* 08:42:00",
       "enabled": true,
       "timeoutSeconds": 60,
       "captureOutput": true,
-      "_comment": "ADR-021: weekly check for time-gated second-phase tasks (soak gates, maturity triggers)"
+      "_comment": "ADR-021: weekly check for time-gated second-phase tasks"
     },
-    "feed-poll": {
-      "type": "command",
-      "command": "brana feed poll --all",
+    "knowledge-review": {
+      "type": "skill",
+      "skill": "/brana:memory review",
       "project": "~/enter_thebrana/thebrana",
-      "schedule": "*-*-* 08:00,12:00,18:00:00",
-      "enabled": false,
-      "timeoutSeconds": 120,
-      "captureOutput": true,
-      "_comment": "t-585: poll all registered RSS/Atom feeds 3x daily. Enable after adding feeds with brana feed add."
+      "schedule": "*-*-01 10:00:00",
+      "model": "sonnet",
+      "allowedTools": "Read,Glob,Grep,WebSearch,WebFetch",
+      "enabled": true,
+      "_comment": "Monthly knowledge health check"
     },
-    "inbox-poll": {
-      "type": "command",
-      "command": "brana inbox poll",
+    "weekly-review": {
+      "type": "skill",
+      "skill": "/brana:review",
       "project": "~/enter_thebrana/thebrana",
-      "schedule": "*-*-* 09:00:00",
+      "schedule": "Fri *-*-* 17:00:00",
+      "model": "sonnet",
+      "enabled": true,
+      "_comment": "Friday weekly portfolio review"
+    },
+    "morning-check": {
+      "type": "skill",
+      "skill": "/brana:daily-ops",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Mon..Fri *-*-* 08:48:00",
+      "model": "haiku",
       "enabled": false,
-      "timeoutSeconds": 60,
-      "captureOutput": true,
-      "_comment": "t-585: poll Gmail for new newsletter emails. Requires BRANA_GMAIL_USER + BRANA_GMAIL_APP_PASSWORD env vars."
+      "_comment": "Daily morning focus card — disabled locally (runs on Oracle for Telegram). Enable only on venture projects."
+    },
+    "link-check": {
+      "type": "command",
+      "command": "lychee --config .lychee.toml *.md",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Mon *-*-* 09:00:00",
+      "enabled": false,
+      "_comment": "Weekly dead link check (enable after lychee is installed)"
     },
     "content-harvest": {
       "type": "skill",
@@ -147,7 +138,27 @@
       "enabled": true,
       "timeoutSeconds": 600,
       "captureOutput": true,
-      "_comment": "t-680: weekly content harvest \u2014 scans all project handoffs, git logs, ADRs, tasks. Writes seeds to docs/content/ideas.md. Runs after reindex-knowledge. Enable when harvest --auto is implemented."
+      "_comment": "t-680: weekly content harvest — scans all project handoffs, git logs, ADRs, tasks."
+    },
+    "feed-poll": {
+      "type": "command",
+      "command": "brana feed poll --all",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 08:00,12:00,18:00:00",
+      "enabled": false,
+      "timeoutSeconds": 120,
+      "captureOutput": true,
+      "_comment": "t-585: poll all registered RSS/Atom feeds 3x daily."
+    },
+    "inbox-poll": {
+      "type": "command",
+      "command": "brana inbox poll",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 09:00:00",
+      "enabled": false,
+      "timeoutSeconds": 60,
+      "captureOutput": true,
+      "_comment": "t-585: poll Gmail for new newsletter emails."
     }
   }
 }
