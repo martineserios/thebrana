@@ -3415,3 +3415,50 @@ brana backlog add --json '{"subject":"Ecosystem Positioning","type":"milestone",
 # Auto Memory — thebrana
 | thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
 | personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+
+### Session e07f01ea-a0ab-4c2b-94fe-1cd4dca987c6 (2026-03-27T12:44:44Z)
+- Events: 169 (140 ok, 5 fail)
+- Corrections: 3 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.18 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,TaskCompleted,Write,session-start
+- Files: "$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null; echo "exit: $?",# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,/brana:maintain-specs — BACKLOG,/brana:maintain-specs — BACKUP,/brana:maintain-specs — DEEPEN,/brana:maintain-specs — DOC25,/brana:maintain-specs — ERRATA,/brana:maintain-specs — GRAPH,/brana:maintain-specs — LOG,/brana:maintain-specs — MEMORY
+
+### Session 9b7d1f21-b1d5-42f4-8667-93ded8fffcd0 (2026-03-27T20:47:10Z)
+- Events: 27 (25 ok, 1 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,brana backlog blocked 2>/dev/null | head -30,brana backlog query --json 2>/dev/null | jq 'group_by(.stream) | map({stream: .[0].stream, total: length, by_status: (group_by(.status) | map({status: .[0].status, count: length}) | sort_by(.status) | from_entries)}) | sort_by(.stream)' 2>/dev/null,brana backlog query --status in_progress 2>/dev/null,brana backlog query --status in_progress 2>/dev/null | head -50,brana backlog query --stream research --status in_progress 2>/dev/null; brana backlog query --stream personal --status in_progress 2>/dev/null,brana backlog query --stream roadmap --status in_progress 2>/dev/null,brana backlog stale --days 30 2>/dev/null | head -40,brana backlog stats 2>/dev/null,brana backlog stats 2>/dev/null || echo "CLI unavailable"
+
+### Session c6966466-7fff-4b09-b3b0-b6e3c45f08ec (2026-03-30T11:09:12Z)
+- Events: 1 (0 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |

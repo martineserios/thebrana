@@ -437,3 +437,18 @@
 
 **Next:**
 - (auto-generated — run /session-handoff for full close)
+
+## 2026-03-30 — auto-captured (session-end hook)
+
+**Accomplished:**
+- 104a066 sync: export ruflo patterns and decisions
+- 41f028c sync: push operational state to repos
+
+**State:**
+- Branch: main
+- Events: 1 (0 ok, 0 fail, 0 corrections, 0 cascades, 0 prs)
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+
+**Next:**
+- (auto-generated — run /session-handoff for full close)
