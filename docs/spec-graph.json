@@ -1,10 +1,10 @@
 {
   "_meta": {
-    "generated": "2026-03-30T11:09:14Z",
-    "node_count": 148,
-    "edge_count": 423,
-    "impl_ref_count": 247,
-    "orphan_count": 77,
+    "generated": "2026-03-30T14:16:36Z",
+    "node_count": 195,
+    "edge_count": 547,
+    "impl_ref_count": 252,
+    "orphan_count": 95,
     "typed_edge_count": 0
   },
   "nodes": {
@@ -40,7 +40,9 @@
         "docs/17-implementation-roadmap.md",
         "docs/reflections/08-diagnosis.md",
         "docs/reflections/29-venture-management-reflection.md",
-        "docs/reflections/32-lifecycle.md"
+        "docs/reflections/32-lifecycle.md",
+        "docs/dimensions/13-challenger-agent.md",
+        "docs/dimensions/16-knowledge-health.md"
       ],
       "impl_files": [
         "system/skills/memory/SKILL.md`",
@@ -75,7 +77,10 @@
         "docs/18-lean-roadmap.md",
         "docs/19-pm-system-design.md",
         "docs/reflections/08-diagnosis.md",
-        "docs/reflections/29-venture-management-reflection.md"
+        "docs/reflections/29-venture-management-reflection.md",
+        "docs/dimensions/13-challenger-agent.md",
+        "docs/dimensions/20-anthropic-blog-findings.md",
+        "docs/dimensions/12-skill-selector.md"
       ],
       "impl_files": [
         "system/skill-catalog.yaml`",
@@ -111,7 +116,10 @@
         "docs/19-pm-system-design.md"
       ],
       "referenced_by": [
-        "docs/19-pm-system-design.md"
+        "docs/19-pm-system-design.md",
+        "docs/dimensions/20-anthropic-blog-findings.md",
+        "docs/dimensions/27-project-alignment-methodology.md",
+        "docs/dimensions/33-research-methodology.md"
       ],
       "impl_files": [
         "system/settings.json`",
@@ -159,7 +167,9 @@
       "referenced_by": [
         "docs/18-lean-roadmap.md",
         "docs/reflections/08-diagnosis.md",
-        "docs/reflections/29-venture-management-reflection.md"
+        "docs/reflections/29-venture-management-reflection.md",
+        "docs/dimensions/20-anthropic-blog-findings.md",
+        "docs/dimensions/34-venture-operating-system.md"
       ],
       "impl_files": [],
       "guide_files": [],
@@ -218,7 +228,8 @@
         "docs/00-user-practices.md",
         "docs/17-implementation-roadmap.md",
         "docs/reflections/29-venture-management-reflection.md",
-        "docs/reflections/32-lifecycle.md"
+        "docs/reflections/32-lifecycle.md",
+        "docs/dimensions/27-project-alignment-methodology.md"
       ],
       "impl_files": [
         "system/skills/",
@@ -239,7 +250,9 @@
         "system/skills/meta-template/SKILL.md`",
         "system/commands/",
         "system/rules/",
-        "system/scheduler/brana-scheduler-runner.sh`"
+        "system/scheduler/brana-scheduler-runner.sh`",
+        "system/scheduler/brana-scheduler-runner.sh\\`",
+        "system/scheduler/brana-scheduler-runner.sh"
       ],
       "guide_files": [
         "docs/guide/concepts.md",
@@ -298,7 +311,9 @@
         "docs/17-implementation-roadmap.md",
         "docs/reflections/08-diagnosis.md",
         "docs/reflections/14-mastermind-architecture.md",
-        "docs/reflections/32-lifecycle.md"
+        "docs/reflections/32-lifecycle.md",
+        "docs/dimensions/27-project-alignment-methodology.md",
+        "docs/dimensions/33-research-methodology.md"
       ],
       "impl_files": [
         "system/hooks/session-start.sh`"
@@ -779,7 +794,9 @@
       "ref_files": []
     },
     "docs/architecture/decisions/ADR-019-brana-chat-sessions.md": {
-      "references": [],
+      "references": [
+        "docs/dimensions/39-kapso-ai-platform.md"
+      ],
       "referenced_by": [
         "docs/reflections/08-diagnosis.md",
         "docs/reflections/ARCHITECTURE.md",
@@ -1698,6 +1715,7 @@
         "docs/archive/decisions/ADR-002-tasks-as-data-layer.md",
         "docs/archive/decisions/ADR-003-agent-driven-task-execution.md",
         "docs/archive/25-self-documentation.md",
+        "docs/dimensions/27-project-alignment-methodology.md",
         "docs/archive/reflections/32-lifecycle.md",
         "brana-knowledge/dimensions/11-ecosystem-skills-plugins.md",
         "brana-knowledge/dimensions/21-anthropic-engineering-deep-dive.md",
@@ -1756,6 +1774,580 @@
       "ref_files": []
     },
     "docs/content/lens.md": {
+      "references": [
+        "brana-knowledge/dimensions/44-systems-thinking-nature.md",
+        "brana-knowledge/dimensions/49-agent-era-systems-patterns.md",
+        "brana-knowledge/dimensions/software-engineering-patterns.md"
+      ],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/01-brana-system-analysis.md": {
+      "references": [],
+      "referenced_by": [
+        "docs/reflections/08-diagnosis.md"
+      ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/02-nexeye-skill-selection.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/03-pm-framework.md": {
+      "references": [],
+      "referenced_by": [
+        "docs/reflections/29-venture-management-reflection.md"
+      ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/04-claude-4.6-capabilities.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/05-claude-flow-v3-analysis.md": {
+      "references": [
+        "docs/dimensions/07-claude-flow-plus-claude-4.6.md",
+        "06-claude-flow-internals.md"
+      ],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/06-claude-flow-internals.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/07-claude-flow-plus-claude-4.6.md": {
+      "references": [
+        "docs/reflections/14-mastermind-architecture.md"
+      ],
+      "referenced_by": [
+        "docs/dimensions/05-claude-flow-v3-analysis.md"
+      ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/09-claude-code-native-features.md": {
+      "references": [
+        "docs/reflections/14-mastermind-architecture.md"
+      ],
+      "referenced_by": [
+        "docs/reflections/08-diagnosis.md",
+        "docs/dimensions/35-context-engineering-principles.md"
+      ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/10-statusline-research.md": {
+      "references": [
+        "docs/dimensions/27-project-alignment-methodology.md"
+      ],
+      "referenced_by": [
+        "docs/reflections/08-diagnosis.md",
+        "docs/dimensions/27-project-alignment-methodology.md"
+      ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/11-ecosystem-skills-plugins.md": {
+      "references": [
+        "05-claude-flow-v3-analysis.md",
+        "22-testing.md",
+        "docs/dimensions/34-venture-operating-system.md"
+      ],
+      "referenced_by": [
+        "docs/dimensions/27-project-alignment-methodology.md",
+        "docs/dimensions/12-skill-selector.md"
+      ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/12-skill-selector.md": {
+      "references": [
+        "docs/reflections/14-mastermind-architecture.md",
+        "16-knowledge-health.md",
+        "docs/dimensions/11-ecosystem-skills-plugins.md",
+        "docs/dimensions/16-knowledge-health.md",
+        "docs/17-implementation-roadmap.md"
+      ],
+      "referenced_by": [
+        "docs/reflections/08-diagnosis.md",
+        "docs/dimensions/13-challenger-agent.md",
+        "docs/dimensions/16-knowledge-health.md"
+      ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/13-challenger-agent.md": {
+      "references": [
+        "docs/15-self-development-workflow.md",
+        "docs/dimensions/21-anthropic-engineering-deep-dive.md",
+        "docs/dimensions/12-skill-selector.md",
+        "docs/dimensions/16-knowledge-health.md",
+        "docs/17-implementation-roadmap.md"
+      ],
+      "referenced_by": [
+        "docs/reflections/08-diagnosis.md"
+      ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/16-knowledge-health.md": {
+      "references": [
+        "docs/15-self-development-workflow.md",
+        "docs/dimensions/12-skill-selector.md"
+      ],
+      "referenced_by": [
+        "docs/reflections/08-diagnosis.md",
+        "docs/reflections/29-venture-management-reflection.md",
+        "docs/dimensions/13-challenger-agent.md",
+        "docs/dimensions/35-context-engineering-principles.md",
+        "docs/dimensions/12-skill-selector.md"
+      ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/20-anthropic-blog-findings.md": {
+      "references": [
+        "docs/dimensions/21-anthropic-engineering-deep-dive.md",
+        "21-anthropic-engineering-deep-dive.md",
+        "docs/18-lean-roadmap.md",
+        "16-knowledge-health.md",
+        "09-claude-code-native-features.md",
+        "docs/19-pm-system-design.md",
+        "13-challenger-agent.md",
+        "docs/reflections/14-mastermind-architecture.md",
+        "docs/17-implementation-roadmap.md",
+        "05-claude-flow-v3-analysis.md",
+        "07-claude-flow-plus-claude-4.6.md"
+      ],
+      "referenced_by": [
+        "docs/reflections/08-diagnosis.md"
+      ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/21-anthropic-engineering-deep-dive.md": {
+      "references": [],
+      "referenced_by": [
+        "docs/reflections/08-diagnosis.md",
+        "docs/dimensions/13-challenger-agent.md",
+        "docs/dimensions/20-anthropic-blog-findings.md"
+      ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/22-testing.md": {
+      "references": [
+        "23-evaluation.md"
+      ],
+      "referenced_by": [
+        "docs/reflections/08-diagnosis.md",
+        "docs/reflections/29-venture-management-reflection.md",
+        "docs/reflections/31-assurance.md",
+        "docs/dimensions/27-project-alignment-methodology.md"
+      ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/23-evaluation.md": {
+      "references": [
+        "22-testing.md",
+        "16-knowledge-health.md",
+        "13-challenger-agent.md"
+      ],
+      "referenced_by": [
+        "docs/reflections/08-diagnosis.md"
+      ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/26-git-branching-strategies.md": {
+      "references": [],
+      "referenced_by": [
+        "docs/reflections/08-diagnosis.md"
+      ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/27-project-alignment-methodology.md": {
+      "references": [
+        "docs/24-roadmap-corrections.md",
+        "docs/dimensions/10-statusline-research.md",
+        "docs/reflections/14-mastermind-architecture.md",
+        "docs/18-lean-roadmap.md",
+        "docs/dimensions/11-ecosystem-skills-plugins.md",
+        "docs/dimensions/22-testing.md",
+        "docs/25-self-documentation.md"
+      ],
+      "referenced_by": [
+        "docs/reflections/08-diagnosis.md",
+        "docs/reflections/14-mastermind-architecture.md",
+        "docs/archive/reflections/14-mastermind-architecture.md",
+        "docs/dimensions/10-statusline-research.md"
+      ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/28-startup-smb-management.md": {
+      "references": [],
+      "referenced_by": [
+        "docs/reflections/08-diagnosis.md",
+        "docs/reflections/29-venture-management-reflection.md"
+      ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/33-research-methodology.md": {
+      "references": [
+        "21-anthropic-engineering-deep-dive.md",
+        "05-claude-flow-v3-analysis.md",
+        "23-evaluation.md",
+        "20-anthropic-blog-findings.md",
+        "11-ecosystem-skills-plugins.md",
+        "22-testing.md",
+        "16-knowledge-health.md",
+        "docs/18-lean-roadmap.md",
+        "docs/25-self-documentation.md"
+      ],
+      "referenced_by": [
+        "docs/reflections/08-diagnosis.md",
+        "docs/dimensions/35-context-engineering-principles.md"
+      ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/34-venture-operating-system.md": {
+      "references": [
+        "28-startup-smb-management.md",
+        "docs/19-pm-system-design.md",
+        "docs/reflections/29-venture-management-reflection.md",
+        "11-ecosystem-skills-plugins.md",
+        "docs/reflections/14-mastermind-architecture.md",
+        "docs/reflections/32-lifecycle.md",
+        "33-research-methodology.md"
+      ],
+      "referenced_by": [
+        "docs/reflections/08-diagnosis.md",
+        "docs/reflections/29-venture-management-reflection.md",
+        "docs/dimensions/11-ecosystem-skills-plugins.md"
+      ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/35-context-engineering-principles.md": {
+      "references": [
+        "docs/dimensions/09-claude-code-native-features.md",
+        "docs/reflections/14-mastermind-architecture.md",
+        "09-claude-code-native-features.md",
+        "docs/reflections/32-lifecycle.md",
+        "docs/dimensions/16-knowledge-health.md",
+        "docs/dimensions/33-research-methodology.md"
+      ],
+      "referenced_by": [
+        "docs/reflections/08-diagnosis.md",
+        "docs/reflections/31-assurance.md"
+      ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/36-claw-ecosystem-chat-interface.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/37-ruvnet-development-practices.md": {
+      "references": [
+        "22-testing.md",
+        "23-evaluation.md",
+        "docs/reflections/31-assurance.md"
+      ],
+      "referenced_by": [],
+      "impl_files": [
+        "system/skills/"
+      ],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/38-design-thinking.md": {
+      "references": [
+        "28-startup-smb-management.md",
+        "34-venture-operating-system.md"
+      ],
+      "referenced_by": [
+        "docs/reflections/08-diagnosis.md"
+      ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/39-kapso-ai-platform.md": {
+      "references": [],
+      "referenced_by": [
+        "docs/architecture/decisions/ADR-019-brana-chat-sessions.md"
+      ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/40-product-discovery-literature.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/41-growth-metrics-market-strategy-literature.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/42-product-operations-literature.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/44-systems-thinking-nature.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/45-turboflow-agent-orchestration.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/46-cc-harness-ecosystem.md": {
+      "references": [
+        "21-anthropic-engineering-deep-dive.md",
+        "35-context-engineering-principles.md",
+        "09-claude-code-native-features.md",
+        "45-turboflow-agent-orchestration.md"
+      ],
+      "referenced_by": [],
+      "impl_files": [
+        "system/MCP/memory"
+      ],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/47-ontology-engineering-ai-systems.md": {
+      "references": [
+        "knowledge-architecture.md",
+        "46-cc-harness-ecosystem.md"
+      ],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/48-knowledge-graph-architecture.md": {
+      "references": [
+        "47-ontology-engineering-ai-systems.md",
+        "46-cc-harness-ecosystem.md",
+        "45-turboflow-agent-orchestration.md",
+        "knowledge-architecture.md"
+      ],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/49-agent-era-systems-patterns.md": {
+      "references": [
+        "44-systems-thinking-nature.md",
+        "46-cc-harness-ecosystem.md",
+        "software-engineering-patterns.md",
+        "thebrana/docs/content/lens.md"
+      ],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/INDEX.md": {
+      "references": [
+        "01-brana-system-analysis.md",
+        "02-nexeye-skill-selection.md",
+        "03-pm-framework.md",
+        "04-claude-4.6-capabilities.md",
+        "05-claude-flow-v3-analysis.md",
+        "06-claude-flow-internals.md",
+        "07-claude-flow-plus-claude-4.6.md",
+        "09-claude-code-native-features.md",
+        "10-statusline-research.md",
+        "11-ecosystem-skills-plugins.md",
+        "12-skill-selector.md",
+        "13-challenger-agent.md",
+        "16-knowledge-health.md",
+        "20-anthropic-blog-findings.md",
+        "21-anthropic-engineering-deep-dive.md",
+        "22-testing.md",
+        "23-evaluation.md",
+        "26-git-branching-strategies.md",
+        "27-project-alignment-methodology.md",
+        "28-startup-smb-management.md",
+        "33-research-methodology.md",
+        "34-venture-operating-system.md",
+        "35-context-engineering-principles.md",
+        "36-claw-ecosystem-chat-interface.md",
+        "37-ruvnet-development-practices.md",
+        "38-design-thinking.md",
+        "39-kapso-ai-platform.md",
+        "40-product-discovery-literature.md",
+        "41-growth-metrics-market-strategy-literature.md",
+        "42-product-operations-literature.md",
+        "44-systems-thinking-nature.md",
+        "45-turboflow-agent-orchestration.md",
+        "brana-etymology-naming.md",
+        "cli-builder-rust-bash-devops.md",
+        "client-retention-engagement.md"
+      ],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/brana-etymology-naming.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/cli-builder-rust-bash-devops.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [
+        "system/cli/rust/`"
+      ],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/client-retention-engagement.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/knowledge-architecture.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/meta-whatsapp-template-classification.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/meta-whatsapp-templates.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/smb-marketing-channels.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/dimensions/software-engineering-patterns.md": {
       "references": [],
       "referenced_by": [],
       "impl_files": [],
@@ -2125,6 +2717,22 @@
       "ref_files": []
     },
     "docs/ideas/cc-feature-adoption-v2.1.76-81.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/ideas/cloud-scheduler-provider-abstraction.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/ideas/construction-budget-automation.md": {
       "references": [],
       "referenced_by": [],
       "impl_files": [],
@@ -2513,6 +3121,7 @@
         "docs/decisions/ADR-002-tasks-as-data-layer.md",
         "docs/decisions/ADR-003-agent-driven-task-execution.md",
         "docs/25-self-documentation.md",
+        "docs/dimensions/27-project-alignment-methodology.md",
         "docs/reflections/32-lifecycle.md",
         "brana-knowledge/dimensions/11-ecosystem-skills-plugins.md",
         "brana-knowledge/dimensions/21-anthropic-engineering-deep-dive.md",
@@ -2527,7 +3136,14 @@
         "docs/reflections/08-diagnosis.md",
         "docs/reflections/29-venture-management-reflection.md",
         "docs/reflections/32-lifecycle.md",
-        "docs/reflections/31-assurance.md"
+        "docs/reflections/31-assurance.md",
+        "docs/dimensions/20-anthropic-blog-findings.md",
+        "docs/dimensions/27-project-alignment-methodology.md",
+        "docs/dimensions/09-claude-code-native-features.md",
+        "docs/dimensions/35-context-engineering-principles.md",
+        "docs/dimensions/07-claude-flow-plus-claude-4.6.md",
+        "docs/dimensions/34-venture-operating-system.md",
+        "docs/dimensions/12-skill-selector.md"
       ],
       "impl_files": [
         "system/`",
@@ -2578,7 +3194,9 @@
         "docs/reflections/08-diagnosis.md",
         "brana-knowledge/dimensions/27-project-alignment-methodology.md"
       ],
-      "referenced_by": [],
+      "referenced_by": [
+        "docs/dimensions/34-venture-operating-system.md"
+      ],
       "impl_files": [],
       "guide_files": [],
       "arch_files": [],
@@ -2605,7 +3223,8 @@
         "docs/architecture/building-methodology.md",
         "docs/reflections/29-venture-management-reflection.md",
         "docs/reflections/14-mastermind-architecture.md",
-        "docs/reflections/32-lifecycle.md"
+        "docs/reflections/32-lifecycle.md",
+        "docs/dimensions/37-ruvnet-development-practices.md"
       ],
       "impl_files": [
         "system/hooks/hooks.json`",
@@ -2662,7 +3281,9 @@
         "docs/architecture/building-methodology.md",
         "docs/reflections/29-venture-management-reflection.md",
         "docs/reflections/14-mastermind-architecture.md",
-        "docs/reflections/31-assurance.md"
+        "docs/reflections/31-assurance.md",
+        "docs/dimensions/35-context-engineering-principles.md",
+        "docs/dimensions/34-venture-operating-system.md"
       ],
       "impl_files": [
         "system/hooks/`",
