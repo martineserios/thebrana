@@ -119,6 +119,70 @@ For each skill with a `depends_on` field:
 - Every listed dependency has a corresponding `system/skills/{dep}/` directory
 - Catches typos and references to deleted skills
 
+### Checks A-D: Semantic Skill Validation
+
+Beyond structural checks (1-12), `validate.sh` includes semantic checks that analyze skill *content* for consistency. Run them standalone with `--semantic` or as part of the full suite.
+
+```bash
+./validate.sh --semantic    # run only semantic checks
+./validate.sh               # full run includes semantic checks
+```
+
+#### Check A: Allowed-Tools Consistency
+
+Compares tool references in the skill body against the `allowed-tools:` frontmatter list.
+
+- **FAIL:** Tool referenced in body (backtick-wrapped, label pattern, or function-call pattern) but missing from `allowed-tools`
+- **WARN:** Tool listed in `allowed-tools` but never referenced in body (dead permission)
+
+Detection uses strict patterns to avoid false positives: `` `ToolName` ``, `ToolName:`, `ToolName(`, `"ToolName"`. Bare prose mentions (e.g., "Read the docs") are not matched.
+
+#### Check B: File Path References
+
+Resolves markdown link paths (`[text](path)`) relative to the skill directory.
+
+- **FAIL:** Referenced file does not exist
+
+Filters applied:
+- Code blocks (` ``` `) are stripped to avoid matching placeholder paths in examples
+- Known placeholder paths (`path`, `path.md`, `url`, `relative-path.md`) are skipped
+- Cross-repo paths (`../../`) are resolved via the workspace root
+
+#### Check C: Frontmatter Schema Validation
+
+Enforces required fields and valid enum values.
+
+**Required fields:** `name`, `description`, `group`, `allowed-tools`, `status`
+
+**Valid enums:**
+
+| Field | Valid values |
+|-------|-------------|
+| `status` | stable, experimental, seed, deprecated |
+| `growth_stage` | evergreen, prototype, seed |
+| `group` | execution, session, learning, business, integration, content, brana, utility, thinking, venture, core, domain, capture, tools |
+
+#### Check D: Step Registry Consistency
+
+For skills referencing the [guided-execution protocol](../../system/skills/_shared/guided-execution.md):
+
+- Extracts registered step names from the "Register these steps:" line
+- Checks each step name appears (case-insensitive substring) in at least one section header
+- **WARN:** Registered step with no matching section header
+
+Only checks the registered→section direction. Unregistered sections are not flagged (too noisy — many skills have supplementary sections).
+
+### Test Suite
+
+Semantic checks have their own fixture-based test suite:
+
+```bash
+./test-semantic-checks.sh    # 20 tests using 7 fixture skills
+./test.sh semantic           # run via test runner
+```
+
+The test suite creates temporary skills with known issues and verifies each check detects them correctly.
+
 ## Pre-Deploy Validation Workflow
 
 Before committing changes to the system:
