@@ -63,7 +63,7 @@ fn main() {
             BacklogCmd::Sync { dry_run, force, parallel } => sync::cmd_sync(dry_run, force, parallel),
         },
         Commands::Ops { cmd } => match cmd {
-            OpsCmd::Status => commands::ops::cmd_ops_status(&theme),
+            OpsCmd::Status { all } => commands::ops::cmd_ops_status(&theme, all),
             OpsCmd::Health => commands::ops::cmd_ops_health(&theme),
             OpsCmd::Collisions => commands::ops::cmd_ops_collisions(&theme),
             OpsCmd::Drift => commands::ops::cmd_ops_drift(&theme),

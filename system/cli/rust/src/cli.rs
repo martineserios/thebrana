@@ -419,7 +419,11 @@ pub enum BacklogCmd {
 #[derive(Subcommand)]
 pub enum OpsCmd {
     /// Dashboard: all jobs, last run, health
-    Status,
+    Status {
+        /// Include remote environments (Oracle VM via SSH)
+        #[arg(long)]
+        all: bool,
+    },
     /// Aggregate health check
     Health,
     /// Detect schedule collisions

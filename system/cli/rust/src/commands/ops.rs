@@ -9,12 +9,31 @@ use crate::util::{find_project_root, home, load_scheduler, load_status};
 
 // ── ops commands ────────────────────────────────────────────────────────
 
-pub fn cmd_ops_status(theme: &themes::Theme) {
-    let sched = load_scheduler();
-    let status = load_status();
+pub fn cmd_ops_status(theme: &themes::Theme, all: bool) {
+    print_env_status(theme, "local", &load_scheduler(), &load_status());
+
+    if all {
+        match fetch_remote_status("oracle-hub") {
+            Ok((remote_sched, remote_status)) => {
+                print_env_status(theme, "oracle", &remote_sched, &remote_status);
+            }
+            Err(e) => {
+                println!("{}  {} oracle: {}{}\n",
+                    themes::ansi("red"), theme.icon("blocked"), e, themes::RESET);
+            }
+        }
+    }
+}
+
+fn print_env_status(
+    theme: &themes::Theme,
+    env_name: &str,
+    sched: &HashMap<String, serde_json::Value>,
+    status: &HashMap<String, serde_json::Value>,
+) {
     let jobs = sched.get("jobs").and_then(|v| v.as_object()).cloned().unwrap_or_default();
 
-    println!("\n{}Scheduler{}", themes::ansi(theme.color("header")), themes::RESET);
+    println!("\n{}Scheduler [{}]{}", themes::ansi(theme.color("header")), env_name, themes::RESET);
     for (name, cfg) in jobs.iter() {
         let enabled = cfg["enabled"].as_bool().unwrap_or(true);
         let job_st = status.get(name).and_then(|v| v["status"].as_str()).unwrap_or("—");
@@ -29,6 +48,31 @@ pub fn cmd_ops_status(theme: &themes::Theme) {
         println!("{col}  {ic} {name:<24} {schedule:<24} {job_st:<10} {short_ts}{disabled}{}", themes::RESET);
     }
     println!();
+}
+
+fn fetch_remote_status(host: &str) -> Result<(HashMap<String, serde_json::Value>, HashMap<String, serde_json::Value>), String> {
+    let output = Command::new("ssh")
+        .args(["-o", "ConnectTimeout=5", "-o", "BatchMode=yes", host,
+            "cat ~/.claude/scheduler/scheduler.json 2>/dev/null; echo '---SEPARATOR---'; cat ~/.claude/scheduler/last-status.json 2>/dev/null"])
+        .output()
+        .map_err(|e| format!("SSH failed: {e}"))?;
+
+    if !output.status.success() {
+        return Err(format!("unreachable (SSH exit {})", output.status.code().unwrap_or(-1)));
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let parts: Vec<&str> = stdout.splitn(2, "---SEPARATOR---").collect();
+    if parts.len() < 2 {
+        return Err("unexpected output format".into());
+    }
+
+    let sched: HashMap<String, serde_json::Value> = serde_json::from_str(parts[0].trim())
+        .map_err(|e| format!("parse scheduler.json: {e}"))?;
+    let status: HashMap<String, serde_json::Value> = serde_json::from_str(parts[1].trim())
+        .unwrap_or_default();
+
+    Ok((sched, status))
 }
 
 pub fn cmd_ops_health(theme: &themes::Theme) {
