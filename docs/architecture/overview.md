@@ -224,3 +224,17 @@ For installation, setup, and first session instructions, see [Getting Started](.
 | [Hooks Explained](hooks.md) | Hooks — trigger, behavior, output |
 | [Agent Roster](agents.md) | Agents — model, tools, auto-delegation triggers |
 | [Extending Brana](extending.md) | How to add skills, rules, hooks, and agents |
+
+## Field Notes
+
+### 2026-03-27: Bulk-write for 5+ sequential section edits
+Sequential Edit calls on structured markdown (e.g., enriching 10 seed entries in ideas.md) causes cascading failures — 12 corrections in one session. Each edit shifts content for the next. For 5+ sequential edits in one file, use Write (full rewrite) or a bulk-edit script. The context-budget 5+ edit rule applies within a single file too.
+Source: close debrief, session 2026-03-27
+
+### 2026-03-27: Patchright vs Playwright browser paths
+MCP tools using patchright (patched playwright fork, e.g., linkedin-scraper-mcp) store browsers at custom paths (`~/.linkedin-mcp/patchright-browsers/`), not the standard playwright location. `npx playwright install chromium` won't fix them. Set `PLAYWRIGHT_BROWSERS_PATH` to the MCP's expected path before running `patchright install chromium`. Check the MCP error log for the expected path.
+Source: LinkedIn MCP fix, session 2026-03-27
+
+### 2026-03-27: Platform identity slugs diverge
+GitHub username (`martineserios`) ≠ LinkedIn slug (`martinrios`). Never assume one handle works across platforms. Maintain explicit slug-per-platform mappings in portfolio.md.
+Source: LinkedIn MCP profile lookup failure, session 2026-03-27
