@@ -115,12 +115,10 @@ claude --plugin-dir ./system
 | Command | Purpose |
 |---------|---------|
 | `/brana:review` | Business health — weekly (default), monthly, or ad-hoc check |
-| `/brana:pipeline` | Sales pipeline tracking — leads, deals, conversions, follow-ups |
-| `/brana:financial-model` | Revenue projections, scenario analysis, unit economics |
-| `/brana:venture-phase` | Plan and execute a business milestone (launch, hiring, fundraise) |
-| `/brana:proposal` | Generate a client proposal — interview-driven, structured markdown |
 | `/brana:client-retire` | Archive a client's patterns and knowledge when retiring |
 | `/brana:harvest` | Extract post ideas from recent work through positioning lens |
+
+> **Moved to client projects:** pipeline, financial-model, venture-phase, proposal → brana-knowledge. meta-template, meta-verification, respondio-prompts → somos_mirada (+ copies to anita, brapsoclaw).
 
 ### Domain Tools (Skills)
 
@@ -130,9 +128,6 @@ claude --plugin-dir ./system
 | `/brana:log` | Capture events (links, calls, meetings, ideas) into searchable log |
 | `/brana:scheduler` | Manage scheduled jobs |
 | `/brana:export-pdf` | Convert markdown to PDF via mdpdf |
-| `/brana:meta-template` | Write Meta WhatsApp templates optimized for Utility classification |
-| `/brana:meta-verification` | Meta Business Verification recipe for WABA access |
-| `/brana:respondio-prompts` | Respond.io AI agent prompt engineering |
 | `/brana:notebooklm-source` | Prepare and format sources for NotebookLM |
 | `/brana:plugin` | Manage Claude Code plugins — install, update, remove |
 | `/brana:acquire-skills` | Find and install skills for project tech gaps |
