@@ -22,16 +22,12 @@ set -euo pipefail
 KNOWLEDGE_DIR="${BRANA_KNOWLEDGE_DIR:-$HOME/enter_thebrana/brana-knowledge/dimensions}"
 
 # Load ruflo (formerly claude-flow)
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
-CF=""
-for name in ruflo claude-flow; do
-    for candidate in "$HOME"/.nvm/versions/node/*/bin/$name; do
-        [ -x "$candidate" ] && CF="$candidate" && break 2
-    done
-done
-[ -z "$CF" ] && command -v ruflo &>/dev/null && CF="ruflo"
-[ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ -f "$SCRIPT_DIR/cf-env.sh" ]; then
+    source "$SCRIPT_DIR/cf-env.sh"
+elif [ -f "$HOME/.claude/scripts/cf-env.sh" ]; then
+    source "$HOME/.claude/scripts/cf-env.sh"
+fi
 
 if [ -z "$CF" ]; then
     echo "ERROR: ruflo not found. Cannot index." >&2
