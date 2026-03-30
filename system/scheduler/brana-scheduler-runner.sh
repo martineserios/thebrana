@@ -115,8 +115,8 @@ for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
     exec 9>"$LOCKFILE"
     if ! flock -n 9; then
         echo "SKIPPED: Another scheduled job is running in $PROJECT_SLUG" >> "$LOGFILE"
-        write_status "SKIPPED" 75
-        exit 75  # EX_TEMPFAIL — no retry on lock conflict
+        write_status "SKIPPED" 0
+        exit 0  # Graceful skip — not a failure (prevents systemd OnFailure)
     fi
 
     if [ "$ATTEMPT" -gt 1 ]; then
@@ -207,7 +207,7 @@ fi
 # Write status for statusline and notifications
 write_status "$STATUS_LABEL" "$EXIT_CODE" "$ATTEMPT"
 
-# Store run summary in ruflo memory (graceful degradation)
+# Store run summary in ruflo memory (backgrounded to avoid blocking systemd timeout)
 if [ "$CAPTURE_OUTPUT" = "true" ]; then
     source "$HOME/.claude/scripts/cf-env.sh" 2>/dev/null || true
 
@@ -222,11 +222,13 @@ if [ "$CAPTURE_OUTPUT" = "true" ]; then
             '{job: $job, status: $status, exit_code: $exit_code, attempts: $attempts, timestamp: $ts, summary: $summary}')
         MEMORY_TAGS="job:${JOB_NAME},status:${STATUS_LABEL},type:scheduler-run"
 
-        (cd "$HOME" && "$CF" memory store --upsert \
+        # Background with timeout — don't let ruflo store block the runner exit
+        (cd "$HOME" && timeout 30 "$CF" memory store --upsert \
             -k "$MEMORY_KEY" \
             -v "$MEMORY_VALUE" \
             --namespace scheduler-runs \
-            --tags "$MEMORY_TAGS") 2>/dev/null || true
+            --tags "$MEMORY_TAGS" 2>/dev/null || true) &
+        disown
     fi
 fi
 
