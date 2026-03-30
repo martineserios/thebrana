@@ -1,3 +1,8 @@
+---
+globs: ["inbox/**"]
+alwaysApply: false
+---
+
 # Inbox Convention
 
 `inbox/` is a gitignored drop zone for files needing processing (audio, PDFs, data, screenshots). Organized by topic subfolder. Files are transient — process, then delete or move.
