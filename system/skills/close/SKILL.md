@@ -294,7 +294,7 @@ Then backup:
 
 ### Step 10: Memory review
 
-Audit every entry in MEMORY.md using the **pre-add gate** from `~/.claude/rules/memory-framework.md`.
+Audit every entry in MEMORY.md using the **"Where to store what"** classification table from `self-improvement.md`.
 
 1. **Read** `~/.claude/projects/{project-slug}/memory/MEMORY.md`
 2. **For each entry**, classify using the full gate:

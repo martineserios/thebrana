@@ -10,9 +10,7 @@
 | `delegation-routing.md` | Delegation Routing | ## Auto-Delegate to Agents |
 | `doc-linking.md` | Doc Linking | Use `[doc NN](relative-path.md)` — never bare "doc NN". Relative paths from source file. Dimensions ... |
 | `git-discipline.md` | Git Discipline | ## One rule |
-| `memory-framework.md` | Memory Framework | Two types of persistent files, two rules. |
 | `parallel-bash.md` | Parallel Bash Resilience | Claude Code cancels all sibling Bash tool calls when one exits non-zero. Guard independent parallel ... |
-| `pm-awareness.md` | PM Awareness | - Before planning significant work, check if a PM repo or GitHub Issues exist for the current projec... |
 | `research-discipline.md` | Research Discipline | When starting research on any topic: |
 | `sdd-tdd.md` | Test-First Development | ## Before implementation |
 | `self-improvement.md` | Self-Improvement | Automatic learning. Runs every session without invocation. Skills go deeper when invoked — this ensu... |
@@ -49,25 +47,11 @@ Use `[doc NN](relative-path.md)` — never bare "doc NN". Relative paths from so
 ## One rule
 
 
-## Memory Framework
-
-**File:** `system/rules/memory-framework.md`
-
-Two types of persistent files, two rules.
-
-
 ## Parallel Bash Resilience
 
 **File:** `system/rules/parallel-bash.md`
 
 Claude Code cancels all sibling Bash tool calls when one exits non-zero. Guard independent parallel commands:
-
-
-## PM Awareness
-
-**File:** `system/rules/pm-awareness.md`
-
-- Before planning significant work, check if a PM repo or GitHub Issues exist for the current project - Check for relevant open issues before starting new work — avoid duplicating effort - Link commit
 
 
 ## Research Discipline

@@ -21,3 +21,14 @@ Task t-030 (stream: docs)    → branch: docs/t-030-api-contracts
 ```
 
 Code tasks: `/brana:backlog start` enters `/brana:build`. Done: `/brana:build` CLOSE step. `/brana:backlog done` for manual/external only.
+
+## Issue tracking
+
+- Check GitHub Issues before starting new work — avoid duplicating effort
+- Link commits: `fixes #N`, `relates to #N`
+- Don't create issues unless asked — check existing ones first
+
+```
+Example: user says "add rate limiting" → gh issue list --search "rate limit"
+→ found #42 → commit: "feat(api): add rate limiting (fixes #42)"
+```
