@@ -284,19 +284,29 @@ Save to `docs/ideas/{slug}.md` (create `docs/ideas/` if it doesn't exist):
 {action items from Phase 4}
 ```
 
-**5b. Offer backlog task**
+**5b. Plan the backlog**
 
 ```
 AskUserQuestion:
-  question: "Create a backlog task from this idea?"
-  header: "Task"
+  question: "Plan this idea into the backlog?"
+  header: "Backlog"
   options:
-    - "Yes — add to backlog"       → create task via /brana:backlog add flow
+    - "Yes — plan phases & tasks"  → invoke /brana:backlog plan with the idea as input
     - "Not yet — just save the doc"
-    - "Yes, as a research task"    → create with stream: research
+    - "Quick add (flat task only)"  → fallback: single task via brana backlog add
 ```
 
-If yes: create the task with:
+**If "Yes — plan phases & tasks"** (default, recommended):
+Invoke `/brana:backlog plan` via the Skill tool immediately:
+```
+Skill(skill="brana:backlog", args="plan \"{idea title}\"")
+```
+The plan skill will interactively create the full phase/milestone/task hierarchy
+using the brainstorm's phased rollout as input. This is the **mandatory default** —
+a brainstormed idea with phases and next steps deserves structured planning, not a flat task.
+
+**If "Quick add (flat task only)"** (escape hatch for trivial ideas):
+Create a single task via `brana backlog add` with:
 - Subject from idea title
 - Description from problem + solution
 - Context linking to the idea doc
@@ -307,7 +317,7 @@ If yes: create the task with:
 
 ```
 Saved: docs/ideas/{slug}.md
-Task: {t-NNN if created, or "none"}
+Backlog: {phase ID + task count if planned, or t-NNN if quick-added, or "none"}
 ```
 
 ## Anti-patterns
