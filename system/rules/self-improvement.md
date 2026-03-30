@@ -8,3 +8,18 @@ Automatic learning. Runs every session without invocation. Skills go deeper when
 - **On failure**: stop. Reassess from scratch, don't patch forward. Say so if the new approach differs from the plan.
 - **On non-trivial work**: before presenting, ask "is there a more elegant way?" Skip for simple fixes.
 - **On repeated patterns**: same workaround recurring across sessions → propose a rule, hook, or convention change.
+
+```
+Example — on correction:
+
+  User: "don't mock the database in integration tests"
+  Capture immediately:
+    feedback_no-db-mocks.md → "Integration tests hit real DB, not mocks.
+    Why: mock/prod divergence masked a broken migration.
+    How: any test in tests/integration/ uses real DB connection."
+
+Example — on repeated pattern:
+
+  Session 3: manually set OPENSSL_LIB_DIR before cargo build (third time)
+  → Propose: add to CLAUDE.md project conventions or create a build hook
+```

@@ -7,3 +7,11 @@
 - **Type safety**: prefer typed approaches where the language supports it.
 - **Code review mindset**: write code as if someone else will maintain it tomorrow.
 - **Test assertion discipline**: investigate code before weakening assertions. Explain why the expectation was wrong.
+
+```
+Example — test assertion discipline:
+
+  Test expects 200, actual 201.
+  WRONG: change assertion to 201
+  RIGHT: check if endpoint SHOULD return 200 or 201 → fix code OR test
+```

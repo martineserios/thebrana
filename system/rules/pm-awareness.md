@@ -5,3 +5,9 @@
 - Link commits to issues when applicable (`fixes #N`, `relates to #N`)
 - For multi-session tasks, update issue comments with progress
 - Don't create issues unless asked — check existing ones first
+
+```
+Example: user says "add rate limiting" → gh issue list --search "rate limit"
+→ found #42 → commit: "feat(api): add rate limiting (fixes #42)"
+  NOT: create new issue #55 duplicating #42
+```

@@ -7,7 +7,7 @@
 - **70-85%:** `/compact` before the next expensive operation
 - **>85%:** delegate to a fresh subagent, don't attempt in main context
 
-Context accuracy degrades gradually as the window fills (context rot), not at a cliff. Earlier intervention = better output quality.
+Context rot is a gradient, not a cliff. Earlier intervention = better output.
 
 ## Expensive operations
 
@@ -15,6 +15,13 @@ Context accuracy degrades gradually as the window fills (context rot), not at a 
 - 5+ file edits: write a Python script (`/tmp/bulk-edit.py`) instead of individual Read+Edit.
 - Scouts: write to temp files, return 2-line summaries. Read temp files one at a time.
 - MCP servers: 4-17K tokens each. Prefer skills or sub-agents.
+
+```
+Example — at 62% (yellow zone):
+  WRONG: Read 800-line file to find one setting → RIGHT: Grep, read 20 lines
+  WRONG: WebFetch docs page for an API sig       → RIGHT: WebSearch (1K vs 80K)
+  WRONG: 3 scouts for one question                → RIGHT: 1 scout, then decide
+```
 
 ## Edit precision
 
