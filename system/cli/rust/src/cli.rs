@@ -372,6 +372,36 @@ pub enum BacklogCmd {
         #[arg(long)]
         json: bool,
     },
+    /// Delete a task by ID (removes from blocked_by of other tasks)
+    Delete {
+        /// Task ID (e.g. t-034)
+        task_id: String,
+        /// Also delete all children (tasks with parent == this ID)
+        #[arg(long)]
+        cascade: bool,
+        /// Path to tasks.json (auto-detected if omitted)
+        #[arg(long)]
+        file: Option<PathBuf>,
+    },
+    /// Move a task to a new parent
+    Move {
+        /// Task ID (e.g. t-034)
+        task_id: String,
+        /// New parent ID (or "null" to make root-level)
+        #[arg(long)]
+        parent: String,
+        /// Path to tasks.json (auto-detected if omitted)
+        #[arg(long)]
+        file: Option<PathBuf>,
+    },
+    /// Archive completed phases (move to tasks-archive.json)
+    Archive {
+        /// Phase ID to archive (omit to list archivable phases)
+        phase_id: Option<String>,
+        /// Path to tasks.json (auto-detected if omitted)
+        #[arg(long)]
+        file: Option<PathBuf>,
+    },
     /// Sync tasks with GitHub Issues (parallel, via gh api)
     Sync {
         /// Show what would happen without making changes
