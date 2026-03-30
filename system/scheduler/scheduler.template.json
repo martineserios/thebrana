@@ -140,6 +140,16 @@
       "captureOutput": true,
       "_comment": "t-680: weekly content harvest — scans all project handoffs, git logs, ADRs, tasks."
     },
+    "daily-digest": {
+      "type": "command",
+      "command": "./system/scheduler/brana-scheduler-digest.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 09:30:00",
+      "enabled": false,
+      "timeoutSeconds": 30,
+      "captureOutput": false,
+      "_comment": "t-688: daily Telegram digest summarizing all scheduler runs. Enable on Oracle only (requires ~/.hub-secrets)."
+    },
     "feed-poll": {
       "type": "command",
       "command": "brana feed poll --all",
