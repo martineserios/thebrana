@@ -3462,3 +3462,118 @@ brana backlog add --json '{"subject":"Ecosystem Positioning","type":"milestone",
 # Auto Memory — thebrana
 | thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
 | personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+
+### Session 3f427d04-4dfd-44f6-aa90-90c639b598a6 (2026-03-30T13:46:44Z)
+- Events: 1 (0 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+
+### Session 432ee1ca-116f-4927-8bd1-a0b3f3838735 (2026-03-30T13:46:49Z)
+- Events: 1 (0 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+
+### Session e226911b-6e42-480b-b17a-4fad609a7dfb (2026-03-30T13:55:33Z)
+- Events: 1 (0 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+
+### Session f5b91ba1-2560-4d87-b310-0c71e4045fab (2026-03-30T13:56:04Z)
+- Events: 1 (0 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+
+### Session ece8e14c-6a0c-4fab-89ee-5caf3e3dceac (2026-03-30T14:06:03Z)
+- Events: 205 (183 ok, 10 fail)
+- Corrections: 1 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.08 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,TaskCompleted,Write,session-start
+- Files: # Check Oracle VM scheduler status
+ssh oracle-hub 'cat ~/.claude/scheduler/last-status.json 2>/dev/null; echo "---"; systemctl --user list-timers --all 2>/dev/null | grep brana; echo "---"; ls ~/.claude/scheduler/locks/ 2>/dev/null' 2>&1,# Check: runner's captureOutput ruflo store is what hangs after the job completes
+ssh oracle-hub 'which ruflo 2>/dev/null; which claude-flow 2>/dev/null; rtk ls ~/.local/bin/ruflo ~/.local/bin/claude-flow 2>/dev/null' 2>&1,# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,# Task 1: Fix false-positive Telegram
+brana backlog add --json '{"subject":"Fix false-positive Telegram alerts on Oracle — background ruflo store + notify guard","stream":"bugs","type":"task","parent":"t-682","tags":["scheduler","oracle","telegram"],"effort":"S","description":"Root cause: captureOutput ruflo store runs after job SUCCESS, npx ruflo memory store hangs past systemd TimeoutStartSec, systemd kills process and fires OnFailure. Fix: (1) background the ruflo store call with & and its own timeout so runner exits immediately, (2) add status check in notify script — read last-status.json, skip Telegram if runner recorded SUCCESS."}' 2>&1,# Task 2: Stagger local schedules
+brana backlog add --json '{"subject":"Stagger local scheduler jobs by 5+ min to eliminate lock contention","stream":"bugs","type":"task","parent":"t-682","tags":["scheduler"],"effort":"S","description":"Jobs at 08:00/09:00/09:02 collide on thebrana.lock (flock). Stagger: sync-state 08:00, agentdb-watch 08:06, staleness-report Mon 08:12, cc-changelog-review Mon 08:18, reindex-knowledge Sun 08:24, export-patterns Sun 08:30, knowledge-review 1st 10:00, weekly-review Fri 17:00. Redeploy timers via brana-scheduler deploy."}' 2>&1,# Task 3: Disable morning-check locally
+brana backlog add --json '{"subject":"Disable morning-check locally, keep on Oracle for Telegram daily-ops","stream":"bugs","type":"task","parent":"t-682","tags":["scheduler"],"effort":"S","description":"morning-check runs /brana:daily-ops on thebrana which is not a venture project — does nothing useful. Disable in local scheduler.json. Oracle keeps it enabled where claude CLI runs it for Telegram bot integration."}' 2>&1,# Task 4: Install ruflo on Oracle
+brana backlog add --json '{"subject":"Install ruflo globally on Oracle VM + re-enable 3 ruflo-dependent jobs","stream":"bugs","type":"task","parent":"t-682","tags":["scheduler","oracle","ruflo"],"effort":"S","description":"npx ruflo startup delay causes timeouts. npm install -g ruflo on Oracle. Then re-enable reindex-knowledge, export-patterns, index-assumptions in Oracle scheduler.json. Verify each runs manually."}' 2>&1,# Task 5: Unified CLI status
+brana backlog add --json '{"subject":"Enhance brana ops status to show local + Oracle in one view","stream":"roadmap","type":"task","parent":"t-682","tags":["scheduler","dx","observability"],"effort":"M","description":"brana ops status currently shows local only. Add --all flag that SSHs to Oracle, reads last-status.json + timer list, merges with local data, renders unified table. Columns: job, env (local/oracle), last-run, status, next-run. Graceful degradation if SSH fails (show local + warn)."}' 2>&1,# Task 6: Telegram daily digest
+brana backlog add --json '{"subject":"Telegram daily digest — single message summarizing all scheduler runs","stream":"roadmap","type":"task","parent":"t-682","tags":["scheduler","telegram","observability"],"effort":"S","description":"Replace per-failure Telegram alerts with a single daily digest. Run at end of scheduler window (e.g., 09:30). Read last-status.json from both local and Oracle, format one message: ✓ 7 passed, ✗ 1 failed (reindex-knowledge: ruflo timeout), ⊘ 2 skipped. Only send if any failures/skips. Silence on all-green days optional (configurable)."}' 2>&1,# Task 7: Deploy to Oracle
+brana backlog add --json '{"subject":"Deploy scheduler fixes to Oracle VM — scripts + systemd units + ruflo","stream":"bugs","type":"task","parent":"t-682","tags":["scheduler","oracle","deploy"],"effort":"S","description":"scp updated brana-scheduler-runner.sh, brana-scheduler-notify.sh, scheduler.json to Oracle. Redeploy systemd units. Verify all jobs run cleanly for 48h."}' 2>&1
+
+### Session d015474e-ab71-4f03-a5f6-506be77ade07 (2026-03-30T14:09:30Z)
+- Events: 1 (0 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+
+### Session e2c6eebe-6016-4cb6-8932-c6f3a3e60e94 (2026-03-30T14:16:34Z)
+- Events: 1 (0 ok, 0 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: session-start
+- Files: # Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
