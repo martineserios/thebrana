@@ -72,7 +72,7 @@
 - **Systems:** stocks and flows — context window is a stock, tokens flow in, RTK reduces the inflow rate. Also: leverage point (#6 information flows — filtering what the system sees changes everything)
 - **Sources:** t-626, `rtk gain` baseline (57.6%), RTK repo (github.com/rtk-ai/rtk), dim 46
 
-### [seed] The 50-token trigger that controls which AI skill fires
+### [picked] The 50-token trigger that controls which AI skill fires
 - **Angle:** Claude Code reads ONLY the frontmatter description at startup to decide which skill to invoke. 50 tokens. That's the routing budget. Audited 34 skills — 5 had vague triggers that confused routing. The fix: verb-first, when-to-use, disambiguation. Routing architecture as a design discipline.
 - **Pillar:** How-To
 - **Components:** "The human gate"
@@ -137,9 +137,3 @@
 - **Systems:** leverage point (#5 rules vs #12 parameters) — SuperClaude adjusts parameters (prompts). Specs change the rules the system operates under. Higher leverage, same cost.
 - **Sources:** thebrana session 2026-03-26, t-651, dim 46 §6.2.1, SuperClaude repo
 
-### [seed] One file eliminated 4 contradictions in my LinkedIn profile
-- **Angle:** Built a canonical-first architecture for my professional profile: one source of truth (canonical.md), every channel (LinkedIn, resume, website) is a thin formatting layer. First audit found 4 contradictions between channels. The memory layer: when your data has a single source, drift becomes impossible.
-- **Pillar:** How-To
-- **Components:** "The memory layer"
-- **Systems:** stocks and flows — facts flow from canonical (stock) to channels (outputs). Without a single stock, each channel accumulates its own version. Drift is a flow problem, not a data problem.
-- **Sources:** linkedin session 2026-03-25, profile/canonical.md, profile/linkedin.md

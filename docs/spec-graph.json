@@ -1,8 +1,8 @@
 {
   "_meta": {
-    "generated": "2026-03-30T14:36:52Z",
-    "node_count": 196,
-    "edge_count": 547,
+    "generated": "2026-03-30T20:22:28Z",
+    "node_count": 198,
+    "edge_count": 549,
     "impl_ref_count": 252,
     "orphan_count": 96,
     "typed_edge_count": 0
@@ -1663,14 +1663,18 @@
       ]
     },
     "docs/architecture/testing-validation.md": {
-      "references": [],
+      "references": [
+        "path"
+      ],
       "referenced_by": [],
       "impl_files": [
         "system/settings.json`",
         "system/CLAUDE.md`",
         "system/`",
         "system/hooks/hooks.json`",
-        "system/commands/`"
+        "system/commands/`",
+        "system/skills/_shared/guided-execution.md",
+        "system/skills/X/`"
       ],
       "guide_files": [
         "docs/guide/concepts.md",
@@ -2740,6 +2744,14 @@
       "arch_files": [],
       "ref_files": []
     },
+    "docs/ideas/content-skill-seed-to-post.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
     "docs/ideas/distribution-strategy.md": {
       "references": [],
       "referenced_by": [],
@@ -2790,6 +2802,16 @@
         "system/skills/acquired/",
         "system/cli/rust/"
       ],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/ideas/skill-semantic-validation.md": {
+      "references": [
+        "relative/path.md"
+      ],
+      "referenced_by": [],
+      "impl_files": [],
       "guide_files": [],
       "arch_files": [],
       "ref_files": []
@@ -2957,9 +2979,7 @@
         "system/rules/delegation-routing.md`",
         "system/rules/doc-linking.md`",
         "system/rules/git-discipline.md`",
-        "system/rules/memory-framework.md`",
         "system/rules/parallel-bash.md`",
-        "system/rules/pm-awareness.md`",
         "system/rules/research-discipline.md`",
         "system/rules/sdd-tdd.md`",
         "system/rules/self-improvement.md`",

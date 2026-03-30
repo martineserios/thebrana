@@ -297,3 +297,17 @@ cat /tmp/brana-session-*.jsonl | jq .
 ```
 
 This file is created by `post-tool-use.sh` and consumed by `session-end.sh` to compute flywheel metrics.
+
+## Field Notes
+
+### 2026-03-30: Fixture-based test design scales for bash validation
+Create temporary fixture objects (skills, hooks, etc.) with known issues in a test script. 7 fixtures with 20 tests caught all Check A-D edge cases before live deployment. Pattern: temp dir per run, one fixture per failure mode, assert on FAIL/WARN/PASS output strings.
+Source: t-747/748/749/750
+
+### 2026-03-30: Strict tool name matching avoids prose false positives
+Tool names like `Read`, `Write`, `Edit` are common English words. Only match backtick-wrapped (`` `Read` ``), colon-suffixed (`Read:`), paren-suffixed (`Read(`), or quoted (`"Read"`) patterns. Never bare word boundaries.
+Source: t-747 (Check A implementation)
+
+### 2026-03-30: Cross-repo relative paths need precise level counting
+From `system/skills/X/` to workspace root is 4 levels up (`../../../../`). Common mistake: off by 1-2 levels. Always verify by resolving from the source file's actual directory, not from repo root.
+Source: t-751 (harvest fix)
