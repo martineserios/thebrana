@@ -231,6 +231,31 @@ else
     fi
 fi
 
+# ── Session handoff (previous session continuity) ─────────
+HANDOFF_CONTEXT=""
+BRANA_BIN=""
+[ -x "${CLAUDE_PLUGIN_DATA:-}/brana" ] && BRANA_BIN="${CLAUDE_PLUGIN_DATA}/brana"
+[ -z "$BRANA_BIN" ] && [ -x "${CLAUDE_PLUGIN_ROOT:-$GIT_ROOT/system}/cli/rust/target/release/brana" ] && BRANA_BIN="${CLAUDE_PLUGIN_ROOT:-$GIT_ROOT/system}/cli/rust/target/release/brana"
+[ -z "$BRANA_BIN" ] && BRANA_BIN=$(command -v brana 2>/dev/null) || true
+
+if [ -n "$BRANA_BIN" ]; then
+    HANDOFF_RAW=$("$BRANA_BIN" handoff last 2>/dev/null) || true
+    if [ -n "$HANDOFF_RAW" ]; then
+        HO_HEADING=$(echo "$HANDOFF_RAW" | head -1 | sed 's/^## //')
+        HO_NEXT=$(echo "$HANDOFF_RAW" | sed -n '/^\*\*Next:\*\*/,/^\*\*[A-Z]/p' | grep -v '^\*\*' | sed 's/^- //' | head -5) || true
+        HO_BLOCKERS=$(echo "$HANDOFF_RAW" | sed -n '/^\*\*Blockers:\*\*/,/^\*\*[A-Z]/p' | grep -v '^\*\*' | head -3) || true
+        HANDOFF_CONTEXT="Last session: $HO_HEADING"
+        if [ -n "$HO_NEXT" ]; then
+            HANDOFF_CONTEXT="$HANDOFF_CONTEXT
+Next: $HO_NEXT"
+        fi
+        if [ -n "$HO_BLOCKERS" ] && ! echo "$HO_BLOCKERS" | grep -qi "^none$"; then
+            HANDOFF_CONTEXT="$HANDOFF_CONTEXT
+Blockers: $HO_BLOCKERS"
+        fi
+    fi
+fi
+
 # ── Self-learning loop: check flags from previous session ──
 LOOP_CONTEXT=""
 LAYER0_DIR=""
@@ -390,6 +415,10 @@ fi
 if [ -n "$TASK_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
 }$TASK_CONTEXT"
+fi
+if [ -n "$HANDOFF_CONTEXT" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}[Session handoff] $HANDOFF_CONTEXT"
 fi
 if [ -n "$CORRECTION_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
