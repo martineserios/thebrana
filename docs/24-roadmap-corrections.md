@@ -1656,3 +1656,15 @@ Respond.io action prompts have a hard 1,000-char limit. Agent 3's Assign action 
 - `docs/architecture/features/scheduler.md` — says "Bash + jq toolchain" with no constraint
 
 **Proposed fix:** Add jq note to prerequisites: "avoid reserved words (`def`, `if`, `then`, `else`, `reduce`) as `--arg` variable names — they fail on jq 1.6."
+
+## Error 78: spec-graph.json paths have trailing backticks
+
+**Severity:** Low — data quality issue
+**Status:** code-fix (2026-03-27)
+
+**Discovery:** Close debrief (2026-03-27). The spec-graph generator appends a backtick before the closing quote on 226 impl_files/guide_files/arch_files paths. Example: `"system/scheduler/brana-scheduler-runner.sh\`"` instead of `"system/scheduler/brana-scheduler-runner.sh"`.
+
+**Files affected:**
+- `docs/spec-graph.json` — 226 occurrences of trailing backtick in path strings
+
+**Fix applied:** `sed -i 's/\`"/"/g' docs/spec-graph.json`. Root cause is in the spec-graph generator script (likely a markdown-to-JSON extraction that doesn't strip backticks from inline code spans).
