@@ -548,6 +548,231 @@ pub fn cmd_burndown(period: &str, _theme: &themes::Theme) {
 
 // ── rollup ───────────────────────────────────────────────────────────────
 
+pub fn cmd_delete(task_id: &str, cascade: bool, file: Option<PathBuf>) {
+    let tf = file.unwrap_or_else(|| find_tasks_file().unwrap_or_else(|| { eprintln!("tasks.json not found"); std::process::exit(1); }));
+    let mut val = tasks::load_raw(&tf).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+
+    let arr = val["tasks"].as_array().cloned().unwrap_or_default();
+
+    // Verify the task exists
+    if !arr.iter().any(|t| t["id"].as_str() == Some(task_id)) {
+        eprintln!("{{\"ok\":false,\"error\":\"task {task_id} not found\"}}");
+        std::process::exit(1);
+    }
+
+    // Collect IDs to delete
+    let mut to_delete: std::collections::HashSet<String> = std::collections::HashSet::new();
+    to_delete.insert(task_id.to_string());
+
+    // Check for children
+    let children: Vec<String> = arr.iter()
+        .filter(|t| t["parent"].as_str() == Some(task_id))
+        .filter_map(|t| t["id"].as_str().map(String::from))
+        .collect();
+
+    if !children.is_empty() && !cascade {
+        eprintln!("{{\"ok\":false,\"error\":\"task {task_id} has {} children ({}). Use --cascade to delete them too.\"}}", children.len(), children.join(", "));
+        std::process::exit(1);
+    }
+
+    if cascade {
+        // Recursively find all descendants
+        let mut queue = vec![task_id.to_string()];
+        while let Some(parent_id) = queue.pop() {
+            for t in &arr {
+                if t["parent"].as_str() == Some(&parent_id) {
+                    if let Some(id) = t["id"].as_str() {
+                        if to_delete.insert(id.to_string()) {
+                            queue.push(id.to_string());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let removed_count = to_delete.len();
+
+    // Remove tasks and clean up blocked_by references
+    let tasks_arr = val["tasks"].as_array_mut().unwrap();
+    tasks_arr.retain(|t| {
+        t["id"].as_str().map_or(true, |id| !to_delete.contains(id))
+    });
+
+    // Remove deleted IDs from blocked_by arrays of remaining tasks
+    for task in tasks_arr.iter_mut() {
+        if let Some(deps) = task["blocked_by"].as_array_mut() {
+            deps.retain(|d| {
+                d.as_str().map_or(true, |id| !to_delete.contains(id))
+            });
+        }
+    }
+
+    tasks::save_tasks(&tf, &val).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+    println!("{}", serde_json::json!({"ok": true, "id": task_id, "action": "deleted", "cascade_removed": removed_count - 1}));
+}
+
+pub fn cmd_move(task_id: &str, new_parent: &str, file: Option<PathBuf>) {
+    let tf = file.unwrap_or_else(|| find_tasks_file().unwrap_or_else(|| { eprintln!("tasks.json not found"); std::process::exit(1); }));
+    let mut val = tasks::load_raw(&tf).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+
+    let arr = val["tasks"].as_array().cloned().unwrap_or_default();
+
+    // Find the task
+    let idx = arr.iter().position(|t| t["id"].as_str() == Some(task_id));
+    let idx = match idx {
+        Some(i) => i,
+        None => { eprintln!("{{\"ok\":false,\"error\":\"task {task_id} not found\"}}"); std::process::exit(1); }
+    };
+
+    let old_parent = arr[idx]["parent"].as_str().map(String::from);
+
+    // Validate new parent
+    let new_parent_val = if new_parent == "null" {
+        serde_json::Value::Null
+    } else {
+        // Verify parent exists
+        if !arr.iter().any(|t| t["id"].as_str() == Some(new_parent)) {
+            eprintln!("{{\"ok\":false,\"error\":\"parent {new_parent} not found\"}}");
+            std::process::exit(1);
+        }
+        // Prevent circular: new parent can't be a descendant of task_id
+        let mut queue = vec![task_id.to_string()];
+        let mut descendants: std::collections::HashSet<String> = std::collections::HashSet::new();
+        while let Some(pid) = queue.pop() {
+            for t in &arr {
+                if t["parent"].as_str() == Some(&pid) {
+                    if let Some(id) = t["id"].as_str() {
+                        if descendants.insert(id.to_string()) {
+                            queue.push(id.to_string());
+                        }
+                    }
+                }
+            }
+        }
+        if descendants.contains(new_parent) {
+            eprintln!("{{\"ok\":false,\"error\":\"circular: {new_parent} is a descendant of {task_id}\"}}");
+            std::process::exit(1);
+        }
+        serde_json::Value::String(new_parent.to_string())
+    };
+
+    val["tasks"][idx]["parent"] = new_parent_val;
+    tasks::save_tasks(&tf, &val).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+    println!("{}", serde_json::json!({
+        "ok": true,
+        "id": task_id,
+        "field": "parent",
+        "from": old_parent,
+        "to": if new_parent == "null" { serde_json::Value::Null } else { serde_json::Value::String(new_parent.to_string()) }
+    }));
+}
+
+pub fn cmd_archive(phase_id: Option<String>, file: Option<PathBuf>) {
+    let tf = file.unwrap_or_else(|| find_tasks_file().unwrap_or_else(|| { eprintln!("tasks.json not found"); std::process::exit(1); }));
+    let mut val = tasks::load_raw(&tf).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+
+    let arr = val["tasks"].as_array().cloned().unwrap_or_default();
+
+    // Find completed phases
+    let completed_phases: Vec<&serde_json::Value> = arr.iter()
+        .filter(|t| t["type"].as_str() == Some("phase"))
+        .filter(|t| t["status"].as_str() == Some("completed"))
+        .collect();
+
+    if phase_id.is_none() {
+        // List mode: show archivable phases
+        if completed_phases.is_empty() {
+            println!("{{\"ok\":true,\"archivable\":[]}}");
+        } else {
+            let ids: Vec<serde_json::Value> = completed_phases.iter().map(|p| {
+                serde_json::json!({
+                    "id": p["id"],
+                    "subject": p["subject"],
+                })
+            }).collect();
+            println!("{}", serde_json::json!({"ok": true, "archivable": ids}));
+        }
+        return;
+    }
+
+    let pid = phase_id.unwrap();
+
+    // Verify it's a completed phase
+    let phase = arr.iter().find(|t| t["id"].as_str() == Some(pid.as_str()));
+    let phase = match phase {
+        Some(p) => p,
+        None => { eprintln!("{{\"ok\":false,\"error\":\"task {pid} not found\"}}"); std::process::exit(1); }
+    };
+    if phase["type"].as_str() != Some("phase") {
+        eprintln!("{{\"ok\":false,\"error\":\"{pid} is not a phase\"}}");
+        std::process::exit(1);
+    }
+    if phase["status"].as_str() != Some("completed") {
+        eprintln!("{{\"ok\":false,\"error\":\"{pid} is not completed\"}}");
+        std::process::exit(1);
+    }
+
+    // Collect all descendants of this phase
+    let mut to_archive: std::collections::HashSet<String> = std::collections::HashSet::new();
+    to_archive.insert(pid.clone());
+    let mut queue = vec![pid.clone()];
+    while let Some(parent_id) = queue.pop() {
+        for t in &arr {
+            if t["parent"].as_str() == Some(&parent_id) {
+                if let Some(id) = t["id"].as_str() {
+                    if to_archive.insert(id.to_string()) {
+                        queue.push(id.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    // Extract tasks to archive
+    let archived: Vec<serde_json::Value> = arr.iter()
+        .filter(|t| t["id"].as_str().map_or(false, |id| to_archive.contains(id)))
+        .cloned()
+        .collect();
+    let archived_count = archived.len();
+
+    // Load or create archive file
+    let archive_path = tf.with_file_name("tasks-archive.json");
+    let mut archive_val = if archive_path.exists() {
+        tasks::load_raw(&archive_path).unwrap_or_else(|_| serde_json::json!({"tasks": []}))
+    } else {
+        serde_json::json!({"tasks": []})
+    };
+
+    // Append to archive
+    let archive_arr = archive_val["tasks"].as_array_mut()
+        .unwrap_or_else(|| { eprintln!("{{\"ok\":false,\"error\":\"invalid archive file\"}}"); std::process::exit(1); });
+    archive_arr.extend(archived);
+
+    // Remove from active tasks
+    let tasks_arr = val["tasks"].as_array_mut().unwrap();
+    tasks_arr.retain(|t| {
+        t["id"].as_str().map_or(true, |id| !to_archive.contains(id))
+    });
+
+    // Clean up blocked_by references
+    for task in tasks_arr.iter_mut() {
+        if let Some(deps) = task["blocked_by"].as_array_mut() {
+            deps.retain(|d| {
+                d.as_str().map_or(true, |id| !to_archive.contains(id))
+            });
+        }
+    }
+
+    let remaining = tasks_arr.len();
+
+    // Save both files
+    tasks::save_tasks(&tf, &val).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+    tasks::save_tasks(&archive_path, &archive_val).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+
+    println!("{}", serde_json::json!({"ok": true, "archived": archived_count, "remaining": remaining}));
+}
+
 pub fn cmd_rollup(file: Option<PathBuf>, dry_run: bool) {
     let tf = file.unwrap_or_else(|| {
         find_tasks_file().unwrap_or_else(|| {

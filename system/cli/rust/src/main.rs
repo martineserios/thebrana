@@ -57,6 +57,9 @@ fn main() {
             BacklogCmd::Tags { filter, any, output } => commands::backlog::cmd_tags(filter, any, output, &theme),
             BacklogCmd::Roadmap { json } => commands::backlog::cmd_roadmap(json, &theme),
             BacklogCmd::Tree { root_id, json } => commands::backlog::cmd_tree(&root_id, json, &theme),
+            BacklogCmd::Delete { task_id, cascade, file } => commands::backlog::cmd_delete(&task_id, cascade, file),
+            BacklogCmd::Move { task_id, parent, file } => commands::backlog::cmd_move(&task_id, &parent, file),
+            BacklogCmd::Archive { phase_id, file } => commands::backlog::cmd_archive(phase_id, file),
             BacklogCmd::Sync { dry_run, force, parallel } => sync::cmd_sync(dry_run, force, parallel),
         },
         Commands::Ops { cmd } => match cmd {
