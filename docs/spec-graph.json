@@ -1,10 +1,10 @@
 {
   "_meta": {
-    "generated": "2026-03-30T14:16:36Z",
-    "node_count": 195,
+    "generated": "2026-03-30T14:36:52Z",
+    "node_count": 196,
     "edge_count": 547,
     "impl_ref_count": 252,
-    "orphan_count": 95,
+    "orphan_count": 96,
     "typed_edge_count": 0
   },
   "nodes": {
@@ -2767,6 +2767,14 @@
       "ref_files": []
     },
     "docs/ideas/mission-control.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/ideas/session-aware-loop-integration.md": {
       "references": [],
       "referenced_by": [],
       "impl_files": [],

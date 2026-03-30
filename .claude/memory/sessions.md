@@ -3577,3 +3577,42 @@ brana backlog add --json '{"subject":"Deploy scheduler fixes to Oracle VM — sc
 # Auto Memory — thebrana
 | thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
 | personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+
+### Session a91e3db5-e1bc-452f-96f4-8c0bca1a5440 (2026-03-30T14:36:51Z)
+- Events: 115 (96 ok, 4 fail)
+- Corrections: 0 | Test writes: 0 | Cascades: 0 | PR creates: 0
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.00 fix=0.00 test=0.00 casc=0.00 deleg=0 prs=0
+- Tools: Bash,Edit,TaskCompleted,Write,session-start
+- Files: "$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null || true; echo "backup done",# Fix blocked_by for t-725 and t-726 (depend on t-724)
+brana backlog set t-725 blocked_by +t-724 && brana backlog set t-726 blocked_by +t-724 && \
+# Phase 2 tasks (parent: t-721)
+brana backlog add --json '{"subject":"Write /brana:watch SKILL.md — ad-hoc watch spawner with presets","type":"task","stream":"roadmap","tags":["session-loops","scheduler","dx"],"parent":"t-721","effort":"M","blocked_by":["t-724"]}' && \
+brana backlog add --json '{"subject":"Brana-aware presets: test, commit, drift, task-sync watchers","type":"task","stream":"roadmap","tags":["session-loops","scheduler","dx"],"parent":"t-721","effort":"S"}' && \
+brana backlog add --json '{"subject":"Active watch dashboard — list/cancel running session loops","type":"task","stream":"roadmap","tags":["session-loops","scheduler","dx"],"parent":"t-721","effort":"S"}',# Fix blocked_by for t-728 and t-729 (depend on t-727)
+brana backlog set t-728 blocked_by +t-727 && brana backlog set t-729 blocked_by +t-727 && \
+# Phase 3 tasks (parent: t-722)
+brana backlog add --json '{"subject":"Design skill loop-request protocol (frontmatter spec)","type":"task","stream":"roadmap","tags":["session-loops","scheduler","dx"],"parent":"t-722","effort":"M","blocked_by":["t-727"]}' && \
+brana backlog add --json '{"subject":"Wire /brana:build + /brana:review loop auto-spawn","type":"task","stream":"roadmap","tags":["session-loops","scheduler","dx"],"parent":"t-722","effort":"M"}',# Fix milestone 1
+brana backlog set t-720 subject "Phase 1: Config + Session Hooks" && brana backlog set t-720 type milestone && brana backlog set t-720 tags "session-loops,scheduler,dx" && brana backlog set t-720 parent t-719 && \
+# Fix milestone 2
+brana backlog set t-721 subject "Phase 2: /brana:watch Skill" && brana backlog set t-721 type milestone && brana backlog set t-721 tags "session-loops,scheduler,dx" && brana backlog set t-721 parent t-719 && \
+# Fix milestone 3
+brana backlog set t-722 subject "Phase 3: Skill Embedding (deferred)" && brana backlog set t-722 type milestone && brana backlog set t-722 tags "session-loops,scheduler,dx" && brana backlog set t-722 parent t-719,# Memory — enter_thebrana/enter
+- **Spec docs**: `/home/martineserios/enter_thebrana/thebrana/docs/` — reflections in `docs/reflections/`, roadmaps in `docs/`, dimension docs in `brana-knowledge/dimensions/`
+- **Implementation**: `/home/martineserios/enter_thebrana/thebrana/` — `system/` deploys to `~/.claude/`
+- **Knowledge base**: `/home/martineserios/enter_thebrana/brana-knowledge/` — dimension docs, research sources, backups. 27 docs indexed with semantic retrieval.
+- **35 skills** deployed in thebrana/system/skills/ (all with "Use when..." triggers). Pre-commit hook in thebrana.
+# Auto Memory — thebrana
+| thebrana | `.` (this repo) | `CLAUDE.md`, `system/` |
+| personal | `~/enter_thebrana/personal/` | `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated 2026-03-17) |
+,# Milestone 1: Config + Session Hooks
+brana backlog add --subject "Phase 1: Config + Session Hooks" --stream roadmap --type milestone --tags "session-loops,scheduler,dx" --json '{"parent":"t-719"}' && \
+# Milestone 2: /brana:watch Skill
+brana backlog add --subject "Phase 2: /brana:watch Skill" --stream roadmap --type milestone --tags "session-loops,scheduler,dx" --json '{"parent":"t-719"}' && \
+# Milestone 3: Skill Embedding (deferred)
+brana backlog add --subject "Phase 3: Skill Embedding (deferred)" --stream roadmap --type milestone --tags "session-loops,scheduler,dx" --json '{"parent":"t-719"}',# Phase 1 tasks (parent: t-720)
+brana backlog add --json '{"subject":"Design session-loops.json schema + validation","type":"task","stream":"roadmap","tags":["session-loops","scheduler","dx"],"parent":"t-720","effort":"S"}' && \
+brana backlog add --json '{"subject":"Extend session-start.sh — read config, spawn loops via CronCreate","type":"task","stream":"roadmap","tags":["session-loops","scheduler","dx"],"parent":"t-720","effort":"M","blocked_by":["t-705"]}' && \
+brana backlog add --json '{"subject":"Extend session-end.sh — cleanup active loops via CronDelete","type":"task","stream":"roadmap","tags":["session-loops","scheduler","dx"],"parent":"t-720","effort":"S"}' && \
+brana backlog add --json '{"subject":"Ship 2-3 default presets (uncommitted changes, test watcher, task sync)","type":"task","stream":"roadmap","tags":["session-loops","scheduler","dx"],"parent":"t-720","effort":"S"}',/brana:brainstorm — DISCUSS,/brana:brainstorm — EXPAND,/brana:brainstorm — OUTPUT
