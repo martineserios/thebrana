@@ -339,6 +339,26 @@ Audit every entry in MEMORY.md using the **pre-add gate** from `~/.claude/rules/
 - {if features extracted: "New tasks from memory: {list of task IDs}"}
 ```
 
+After presenting the report, **offer to create tasks from actionable follow-ups**.
+
+Collect all follow-up items that are actionable (not just informational). Filter out items that already have tasks (e.g., "New tasks from memory" items were already created in Step 10). Present the remaining via AskUserQuestion (multiSelect: true):
+
+```
+AskUserQuestion:
+  question: "Create tasks from these follow-ups?"
+  header: "Follow-ups"
+  multiSelect: true
+  options:
+    - one per actionable follow-up: "{follow-up description}" → creates a task via brana backlog add
+    - "Skip all"
+```
+
+For each selected follow-up:
+- Run `brana backlog add --json '{"subject":"{follow-up}","stream":"tech-debt","type":"task","tags":["{relevant tags}"],"effort":"S"}'`
+- Report the created task ID inline
+
+**Skip the offer if:** no actionable follow-ups exist (all items are informational or already have tasks).
+
 ---
 
 ## Rules
