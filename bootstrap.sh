@@ -3,8 +3,8 @@ set -euo pipefail
 
 # bootstrap.sh — Deploy brana identity layer to ~/.claude/
 #
-# The brana plugin (system/) handles: skills, agents, hooks, commands
-# This script handles: CLAUDE.md, rules, scripts, scheduler, claude-flow
+# The brana plugin (system/) handles: skills, agents, hooks, commands, rules
+# This script handles: CLAUDE.md, scripts, scheduler, claude-flow
 #
 # Usage:
 #   ./bootstrap.sh                Full sync (idempotent, safe to re-run)
@@ -192,8 +192,17 @@ for stale_dir in skills commands agents; do
 done
 
 # --- Step 2: Rules ---
-echo "Rules:"
-sync_dir "$SYSTEM_DIR/rules" "$TARGET_DIR/rules" "rules/"
+# Rules are loaded by the plugin (system/rules/). Bootstrap no longer copies them
+# to ~/.claude/rules/ to avoid double-loading and divergence. (t-760, 2026-03-30)
+echo "Rules: loaded by plugin (skipping bootstrap copy)"
+if [ -d "$TARGET_DIR/rules" ] && ! $CHECK_ONLY; then
+    rule_count=$(ls "$TARGET_DIR/rules"/*.md 2>/dev/null | wc -l)
+    if [ "$rule_count" -gt 0 ]; then
+        echo "  Cleaning stale bootstrap rules ($rule_count files)..."
+        rm -f "$TARGET_DIR/rules"/*.md
+        rmdir "$TARGET_DIR/rules" 2>/dev/null || true
+    fi
+fi
 
 # --- Step 3: Scripts ---
 echo "Scripts:"
