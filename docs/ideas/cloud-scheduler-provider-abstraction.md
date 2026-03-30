@@ -80,6 +80,12 @@ No auto-failover needed. Most missed local jobs just run next cycle (`Persistent
 - Remote MCP ruflo access: migrate remaining local jobs to cloud
 - Multi-provider support: add alternative cloud providers beyond Anthropic
 
+## Field Notes
+
+### 2026-03-30: Manual tasks → haiku triggers for automated monitoring
+Manual/external monitoring tasks (e.g., "monitor token consumption for 1 week") can be fully automated with lightweight cloud triggers using haiku model. The trigger self-reports daily and auto-generates a summary after N days. Pattern: convert `execution: manual` observation tasks into cheap recurring triggers that produce their own deliverables.
+Source: t-701 automation, session 2026-03-30
+
 ## Next steps
 
 1. Run `/web-setup` to connect GitHub (prerequisite for everything)
