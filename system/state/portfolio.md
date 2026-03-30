@@ -44,6 +44,7 @@ For detailed facts, read each client's own docs. This is a routing index only.
 ### linkedin
 - **Type:** Personal brand — content pipeline, profile, network, consulting funnel
 - **Location:** `~/enter_thebrana/linkedin/`
+- **LinkedIn slug:** `martinrios` (URL: linkedin.com/in/martinrios)
 - **Details:** `CLAUDE.md`, `.claude/tasks.json`
 - **Current Phase:** Phase A — 30-day manual validation
 
