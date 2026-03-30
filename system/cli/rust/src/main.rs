@@ -85,5 +85,11 @@ fn main() {
             SkillsCmd::Search { query } => commands::skills::cmd_search(&query),
             SkillsCmd::List => commands::skills::cmd_list(),
         },
+        Commands::Handoff { cmd } => match cmd {
+            None | Some(HandoffCmd::Last { n: 1 }) => commands::handoff::cmd_handoff_last(1),
+            Some(HandoffCmd::Last { n }) => commands::handoff::cmd_handoff_last(n),
+            Some(HandoffCmd::List) => commands::handoff::cmd_handoff_list(),
+            Some(HandoffCmd::Path) => commands::handoff::cmd_handoff_path(),
+        },
     }
 }

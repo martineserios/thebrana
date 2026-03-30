@@ -2,6 +2,7 @@ pub mod backlog;
 pub mod doctor;
 pub mod feed;
 pub mod files;
+pub mod handoff;
 pub mod inbox;
 pub mod misc;
 pub mod ops;

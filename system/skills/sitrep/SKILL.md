@@ -78,10 +78,10 @@ For each in_progress task, extract:
 ### 4. Session handoff (last entry)
 
 ```bash
-HANDOFF=$(find ~/.claude/projects/ -maxdepth 3 -name "session-handoff.md" -path "*$(basename $(git rev-parse --show-toplevel 2>/dev/null))*" 2>/dev/null | head -1)
+brana handoff last
 ```
 
-Read the last `## YYYY-MM-DD` section. Extract:
+Extract from the output:
 - **Accomplished** → what was already done
 - **Next** → planned follow-ups
 - **Blockers** → anything stalling progress

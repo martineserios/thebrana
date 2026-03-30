@@ -153,6 +153,25 @@ pub enum Commands {
         #[command(subcommand)]
         cmd: SkillsCmd,
     },
+    /// Session handoff notes — read, list, or locate
+    Handoff {
+        #[command(subcommand)]
+        cmd: Option<HandoffCmd>,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum HandoffCmd {
+    /// Show the latest handoff entry (default)
+    Last {
+        /// Number of entries to show (default 1)
+        #[arg(short, long, default_value = "1")]
+        n: usize,
+    },
+    /// List all entry headings
+    List,
+    /// Print the resolved handoff file path
+    Path,
 }
 
 #[derive(Subcommand)]
