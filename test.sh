@@ -5,9 +5,10 @@ set -euo pipefail
 # Runs all test layers in order. Stops on first failure unless --all is passed.
 #
 # Layers:
-#   0. validate.sh    — static checks (YAML, JSON, syntax, secrets, sizes)
-#   1. test-hooks.sh  — hook smoke test (pipe fake JSON, check exit 0)
-#   2. test-memory.sh — memory round-trip (store → search → verify)
+#   0. validate.sh              — static checks (YAML, JSON, syntax, secrets, sizes)
+#   1. test-semantic-checks.sh  — semantic skill validation (allowed-tools, paths, schema, steps)
+#   2. test-hooks.sh            — hook smoke test (pipe fake JSON, check exit 0)
+#   3. test-memory.sh           — memory round-trip (store → search → verify)
 #
 # Usage:
 #   ./test.sh          — run all, stop on first failure
@@ -15,6 +16,7 @@ set -euo pipefail
 #   ./test.sh hooks    — run only hook smoke test
 #   ./test.sh memory   — run only memory round-trip
 #   ./test.sh validate — run only static validation
+#   ./test.sh semantic — run only semantic skill checks
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STOP_ON_FAIL=true
@@ -24,9 +26,10 @@ for arg in "$@"; do
     case "$arg" in
         --all)     STOP_ON_FAIL=false ;;
         validate)  RUN_LAYER="validate" ;;
+        semantic)  RUN_LAYER="semantic" ;;
         hooks)     RUN_LAYER="hooks" ;;
         memory)    RUN_LAYER="memory" ;;
-        *)         echo "Usage: $0 [--all] [validate|hooks|memory]"; exit 1 ;;
+        *)         echo "Usage: $0 [--all] [validate|hooks|memory|semantic]"; exit 1 ;;
     esac
 done
 
@@ -56,6 +59,11 @@ echo "=== Brana Test Suite ==="
 
 if [ -z "$RUN_LAYER" ] || [ "$RUN_LAYER" = "validate" ]; then
     run_layer "Static Validation" "$SCRIPT_DIR/validate.sh" || true
+    [ -n "$RUN_LAYER" ] && exit $TOTAL_ERRORS
+fi
+
+if [ -z "$RUN_LAYER" ] || [ "$RUN_LAYER" = "semantic" ]; then
+    run_layer "Semantic Skill Checks" "$SCRIPT_DIR/test-semantic-checks.sh" || true
     [ -n "$RUN_LAYER" ] && exit $TOTAL_ERRORS
 fi
 

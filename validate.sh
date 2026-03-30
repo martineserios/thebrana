@@ -12,12 +12,14 @@ WARNINGS=0
 # Flags
 RUN_ASSUMPTIONS_ONLY=false
 RUN_SCALE_TRIGGERS=false
+RUN_SEMANTIC_ONLY=false
 GRACE_DAYS=7
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --assumptions-only) RUN_ASSUMPTIONS_ONLY=true; shift ;;
         --scale-triggers) RUN_SCALE_TRIGGERS=true; shift ;;
+        --semantic) RUN_SEMANTIC_ONLY=true; shift ;;
         --grace-days) GRACE_DAYS="$2"; shift 2 ;;
         *) echo "Unknown flag: $1"; exit 1 ;;
     esac
@@ -32,14 +34,15 @@ pass() { echo "  PASS: $1"; }
 
 # ── Checks 1-14: Core validation ─────────────────────────────────────────
 # Skip when running subset flags
-if ! $RUN_ASSUMPTIONS_ONLY && ! $RUN_SCALE_TRIGGERS; then
+if ! $RUN_ASSUMPTIONS_ONLY && ! $RUN_SCALE_TRIGGERS && ! $RUN_SEMANTIC_ONLY; then
 
 # Check 1: Skill YAML frontmatter
 echo "Checking skill frontmatter..."
 for skill_dir in "$SYSTEM_DIR"/skills/*/; do
     skill_name=$(basename "$skill_dir")
-    # Skip acquired/ — it contains marketplace skills with their own subdirectories
+    # Skip non-skill directories
     [ "$skill_name" = "acquired" ] && continue
+    [ "$skill_name" = "_shared" ] && continue
     skill_file="$skill_dir/SKILL.md"
 
     if [ ! -f "$skill_file" ]; then
@@ -505,6 +508,97 @@ echo ""
 
 # end of checks 1-14 conditional
 fi
+
+# ── Checks A-D: Semantic skill validation ──────────────────────────────────
+# Run when: no flags (full run) OR --semantic
+if ! $RUN_ASSUMPTIONS_ONLY && ! $RUN_SCALE_TRIGGERS || $RUN_SEMANTIC_ONLY; then
+
+# Source semantic check functions
+source "$SCRIPT_DIR/semantic-checks.sh"
+
+echo "Check A: Skill allowed-tools consistency..."
+for skill_dir in "$SYSTEM_DIR"/skills/*/; do
+    skill_name=$(basename "$skill_dir")
+    [ "$skill_name" = "acquired" ] && continue
+    [ "$skill_name" = "_shared" ] && continue
+    skill_file="$skill_dir/SKILL.md"
+    [ -f "$skill_file" ] || continue
+
+    output=$(check_allowed_tools_consistency "$skill_file" 2>&1) || true
+    if [ -n "$output" ]; then
+        while IFS= read -r line; do
+            if echo "$line" | grep -q "FAIL:"; then
+                fail "$(echo "$line" | sed 's/^  FAIL: //')"
+            elif echo "$line" | grep -q "WARN:"; then
+                warn "$(echo "$line" | sed 's/^  WARN: //')"
+            fi
+        done <<< "$output"
+    fi
+done
+pass "Skill allowed-tools consistency checked"
+echo ""
+
+echo "Check B: Skill file path references..."
+for skill_dir in "$SYSTEM_DIR"/skills/*/; do
+    skill_name=$(basename "$skill_dir")
+    [ "$skill_name" = "acquired" ] && continue
+    [ "$skill_name" = "_shared" ] && continue
+    skill_file="$skill_dir/SKILL.md"
+    [ -f "$skill_file" ] || continue
+
+    output=$(check_file_path_references "$skill_file" 2>&1) || true
+    if [ -n "$output" ]; then
+        while IFS= read -r line; do
+            if echo "$line" | grep -q "FAIL:"; then
+                fail "$(echo "$line" | sed 's/^  FAIL: //')"
+            fi
+        done <<< "$output"
+    fi
+done
+pass "Skill file path references checked"
+echo ""
+
+echo "Check C: Skill frontmatter schema validation..."
+for skill_dir in "$SYSTEM_DIR"/skills/*/; do
+    skill_name=$(basename "$skill_dir")
+    [ "$skill_name" = "acquired" ] && continue
+    [ "$skill_name" = "_shared" ] && continue
+    skill_file="$skill_dir/SKILL.md"
+    [ -f "$skill_file" ] || continue
+
+    output=$(check_frontmatter_schema "$skill_file" 2>&1) || true
+    if [ -n "$output" ]; then
+        while IFS= read -r line; do
+            if echo "$line" | grep -q "FAIL:"; then
+                fail "$(echo "$line" | sed 's/^  FAIL: //')"
+            fi
+        done <<< "$output"
+    fi
+done
+pass "Skill frontmatter schema checked"
+echo ""
+
+echo "Check D: Skill step registry consistency..."
+for skill_dir in "$SYSTEM_DIR"/skills/*/; do
+    skill_name=$(basename "$skill_dir")
+    [ "$skill_name" = "acquired" ] && continue
+    [ "$skill_name" = "_shared" ] && continue
+    skill_file="$skill_dir/SKILL.md"
+    [ -f "$skill_file" ] || continue
+
+    output=$(check_step_registry "$skill_file" 2>&1) || true
+    if [ -n "$output" ]; then
+        while IFS= read -r line; do
+            if echo "$line" | grep -q "WARN:"; then
+                warn "$(echo "$line" | sed 's/^  WARN: //')"
+            fi
+        done <<< "$output"
+    fi
+done
+pass "Skill step registry consistency checked"
+echo ""
+
+fi  # end of semantic checks conditional
 
 # ── Checks 15-18: Knowledge architecture fitness functions ───────────────
 # Run when: no flags (full run) OR --assumptions-only
