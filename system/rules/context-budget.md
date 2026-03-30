@@ -3,7 +3,7 @@
 ## Thresholds
 
 - **<55% context:** proceed normally
-- **55-70% (yellow zone):** prefer summaries over full file reads, avoid loading new large files, consider delegating next steps to subagent
+- **55-70% (yellow zone):** prefer summaries over full file reads, avoid loading new large files, consider delegating next steps to subagent. **Read `/tmp/brana-context-*.md`** for session context instead of re-querying memory/ruflo/handoff.
 - **70-85%:** `/compact` before the next expensive operation
 - **>85%:** delegate to a fresh subagent, don't attempt in main context
 

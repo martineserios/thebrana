@@ -458,6 +458,20 @@ if [ -f "$CC_REPORT" ]; then
     fi
 fi
 
+# ── Write context readback file (survives context compression) ──
+CONTEXT_FILE="/tmp/brana-context-${SESSION_ID}.md"
+{
+    echo "# Session Context"
+    echo ""
+    echo "**Session:** $SESSION_ID"
+    echo "**Project:** $PROJECT"
+    echo "**Date:** $(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date +%Y-%m-%d)"
+    echo ""
+    if [ -n "$OUTPUT_PARTS" ]; then
+        echo "$OUTPUT_PARTS"
+    fi
+} > "$CONTEXT_FILE" 2>/dev/null || true
+
 if [ -n "$OUTPUT_PARTS" ]; then
     ESCAPED=$(echo "$OUTPUT_PARTS" | jq -Rs '.' 2>/dev/null) || ESCAPED='""'
     echo "{\"continue\": true, \"additionalContext\": $ESCAPED}"

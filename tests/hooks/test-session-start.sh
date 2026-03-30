@@ -209,7 +209,47 @@ fi
 assert_contains "assembled context has heading" "$HANDOFF_CONTEXT" "Last session: 2026-03-30"
 assert_contains "assembled context has next" "$HANDOFF_CONTEXT" "Next:"
 
+# ── Test 9: Context readback file written ──
+echo ""
+echo "Test 9: context readback file"
+CONTEXT_FILE="/tmp/brana-context-${SESSION_ID}.md"
+if [ -f "$CONTEXT_FILE" ]; then
+    PASS=$((PASS + 1))
+    echo "  PASS: context file exists at $CONTEXT_FILE"
+else
+    FAIL=$((FAIL + 1))
+    echo "  FAIL: context file not written at $CONTEXT_FILE"
+fi
+
+# ── Test 10: Context file contains session heading ──
+echo ""
+echo "Test 10: context file content"
+if [ -f "$CONTEXT_FILE" ]; then
+    assert_contains "context file has session ID" "$(cat "$CONTEXT_FILE")" "$SESSION_ID"
+    assert_contains "context file has heading" "$(cat "$CONTEXT_FILE")" "# Session Context"
+else
+    FAIL=$((FAIL + 2))
+    echo "  FAIL: context file missing — cannot check content"
+    echo "  FAIL: context file missing — cannot check heading"
+fi
+
+# ── Test 11: Context file survives after hook completes (not in trap cleanup) ──
+echo ""
+echo "Test 11: context file survives trap"
+TMPDIR_CHECK="/tmp/brana-ss-${SESSION_ID}"
+if [ ! -d "$TMPDIR_CHECK" ] && [ -f "$CONTEXT_FILE" ]; then
+    PASS=$((PASS + 1))
+    echo "  PASS: temp dir cleaned, context file survived"
+elif [ -f "$CONTEXT_FILE" ]; then
+    PASS=$((PASS + 1))
+    echo "  PASS: context file survived (temp dir also present — acceptable)"
+else
+    FAIL=$((FAIL + 1))
+    echo "  FAIL: context file did not survive hook execution"
+fi
+
 # ── Cleanup ──
+rm -f "$CONTEXT_FILE"
 rm -f "/tmp/brana-session-${SESSION_ID}.jsonl" "/tmp/brana-session-${SESSION_ID}-timing.jsonl" "/tmp/brana-session-${SESSION_ID}-nongit.jsonl"
 
 echo ""
