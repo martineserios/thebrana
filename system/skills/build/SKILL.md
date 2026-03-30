@@ -365,7 +365,7 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
 
    ```bash
    # Search ruflo for assumptions related to task tags
-   source /home/martineserios/.claude/scripts/cf-env.sh
+   source "$HOME/.claude/scripts/cf-env.sh"
    cd "$HOME" && $CF memory search --query "{task tags + description keywords}" --namespace assumptions --format json 2>/dev/null || true
    ```
 
@@ -749,7 +749,7 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
       ```
       Only flag obvious, reusable learnings — don't prompt for every mini-debrief. Store approved field notes:
       ```bash
-      source /home/martineserios/.claude/scripts/cf-env.sh
+      source "$HOME/.claude/scripts/cf-env.sh"
       cd "$HOME" && $CF memory store \
         -k "field-note:{project}:{slug}" \
         -v '{"observation": "...", "context": "{task-id}", "date": "YYYY-MM-DD"}' \
@@ -770,7 +770,7 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
 
    d. **Reindex**: After any doc updates (field notes, assumption verification, changelog), trigger ruflo reindex for affected files:
       ```bash
-      source /home/martineserios/.claude/scripts/cf-env.sh
+      source "$HOME/.claude/scripts/cf-env.sh"
       cd "$HOME" && $CF memory store \
         -k "reindex:{project}:{doc-slug}" \
         -v '{"updated": "YYYY-MM-DD", "reason": "build-close", "task": "{task-id}"}' \

@@ -112,7 +112,7 @@ For each **errata** finding:
 For each learning from Step 3, store via ruflo:
 
 ```bash
-source /home/martineserios/.claude/scripts/cf-env.sh
+source "$HOME/.claude/scripts/cf-env.sh"
 
 cd "$HOME" && $CF memory store \
   -k "pattern:{PROJECT}:{short-title}" \
@@ -160,7 +160,7 @@ Review the learnings extracted in Step 3 for **practical discoveries** — gotch
 
 4. **For "Archive" responses** — store in ruflo only:
    ```bash
-   source /home/martineserios/.claude/scripts/cf-env.sh
+   source "$HOME/.claude/scripts/cf-env.sh"
 
    cd "$HOME" && $CF memory store \
      -k "field-note:{PROJECT}:{YYYY-MM-DD}:{short-slug}" \
@@ -175,7 +175,7 @@ Review the learnings extracted in Step 3 for **practical discoveries** — gotch
 
 6. **Reindex affected docs** — after all field notes are appended, trigger ruflo reindex for each modified doc:
    ```bash
-   source /home/martineserios/.claude/scripts/cf-env.sh
+   source "$HOME/.claude/scripts/cf-env.sh"
 
    cd "$HOME" && $CF memory store \
      -k "knowledge:{doc-relative-path}" \
@@ -273,7 +273,7 @@ Find `session-handoff.md` in `~/.claude/projects/` for the current project. Appe
 ### Step 9: Store session metadata
 
 ```bash
-source /home/martineserios/.claude/scripts/cf-env.sh
+source "$HOME/.claude/scripts/cf-env.sh"
 
 cd "$HOME" && $CF memory store \
   -k "session:{PROJECT}:{YYYY-MM-DD}" \

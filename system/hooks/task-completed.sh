@@ -71,7 +71,7 @@ for TASK_ID in $TASK_IDS; do
     if [ -n "$SUBJECT" ]; then
         DECISIONS_PY="${SCRIPT_DIR}/../scripts/decisions.py"
         if [ -f "$DECISIONS_PY" ]; then
-            /home/martineserios/.local/bin/uv run python3 "$DECISIONS_PY" \
+            uv run python3 "$DECISIONS_PY" \
                 log main decision \
                 "Completed ${TASK_ID} (${STRATEGY:-unknown}): ${SUBJECT}" \
                 --refs "$TASK_ID" >> /tmp/brana-decisions.log 2>&1 &

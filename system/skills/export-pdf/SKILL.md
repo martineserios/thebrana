@@ -53,13 +53,13 @@ If found, tell the user and use it with `--style={path}`. If not found, proceed 
 ### 4. Run mdpdf
 
 ```bash
-/home/martineserios/.nvm/versions/node/v20.19.0/bin/mdpdf "{source_file}" --style="{css_path}"
+mdpdf "{source_file}" --style="{css_path}"
 ```
 
 If no CSS was found, omit the `--style` flag:
 
 ```bash
-/home/martineserios/.nvm/versions/node/v20.19.0/bin/mdpdf "{source_file}"
+mdpdf "{source_file}"
 ```
 
 The output PDF is placed in the same directory as the source, with `.pdf` extension.

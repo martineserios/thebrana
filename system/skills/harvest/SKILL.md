@@ -137,8 +137,8 @@ Group candidates by pillar.
 ## Harvest: [SINCE_DATE] → today
 
 ### Case Study
-- [ ] [hook] — source: commit abc1234, ADR-017 (project: somos_mirada)
-- [ ] [hook] — source: session 2026-03-10 (project: nexeye)
+- [ ] [hook] — source: commit abc1234, ADR-017 (project: acme_corp)
+- [ ] [hook] — source: session 2026-03-10 (project: my_project)
 
 ### How-To
 - [ ] [hook] — source: completed task t-350 (project: thebrana)
@@ -166,7 +166,7 @@ Read `docs/content/ideas.md` first. Then append selected ideas under today's dat
 - **Pillar:** Case Study
 - **Components:** "The silent bottleneck"
 - **Systems:** feedback loop — output feeds back as input (omit if no pattern found)
-- **Sources:** commit abc1234, ADR-017, session 2026-03-10 (somos_mirada)
+- **Sources:** commit abc1234, ADR-017, session 2026-03-10 (acme_corp)
 ```
 
 **Cap enforcement:** Count active `[seed]` entries in the file. If adding new seeds would exceed 10:

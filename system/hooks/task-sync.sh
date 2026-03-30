@@ -53,7 +53,7 @@ fi
 # Run sync in background (non-blocking)
 SYNC_SCRIPT="$(dirname "$0")/task-sync.py"
 if [ -f "$SYNC_SCRIPT" ]; then
-    nohup /home/martineserios/.local/bin/uv run python3 "$SYNC_SCRIPT" \
+    nohup uv run python3 "$SYNC_SCRIPT" \
         "$PROJECT_SLUG" "$FILE_PATH" "$CONFIG" \
         >> "/tmp/brana-task-sync.log" 2>&1 &
 fi

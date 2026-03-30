@@ -77,7 +77,7 @@ ORACLE_SUMMARY=$(collect_env_summary "oracle" "$ORACLE_STATUS" "$ORACLE_CONFIG")
 # ── Laptop (remote via SSH) ───────────────────────────────────────────
 
 LAPTOP_SUMMARY=""
-LAPTOP_SSH_OUTPUT=$(ssh -o ConnectTimeout=5 -o BatchMode=yes martineserios-laptop \
+LAPTOP_SSH_OUTPUT=$(ssh -o ConnectTimeout=5 -o BatchMode=yes "$LAPTOP_HOST" \
     'cat ~/.claude/scheduler/last-status.json 2>/dev/null; echo "---SEP---"; cat ~/.claude/scheduler/scheduler.json 2>/dev/null' 2>/dev/null) || true
 
 if [ -n "$LAPTOP_SSH_OUTPUT" ] && echo "$LAPTOP_SSH_OUTPUT" | grep -q "---SEP---"; then

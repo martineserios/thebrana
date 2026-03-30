@@ -78,7 +78,7 @@ source "$HOME/.claude/scripts/cf-env.sh"
 ### Tag Vocabulary
 
 Use these prefixes consistently:
-- `project:` — project name (e.g., `project:nexeye`, `project:brana`)
+- `project:` — project name (e.g., `project:my_project`, `project:brana`)
 - `tech:` — technology (e.g., `tech:supabase`, `tech:nextjs`, `tech:python`)
 - `type:` — problem category (e.g., `type:auth`, `type:deployment`, `type:testing`)
 - `outcome:` — `outcome:success`, `outcome:failure`, or `outcome:partial`

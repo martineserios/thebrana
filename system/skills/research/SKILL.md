@@ -75,7 +75,7 @@ Register these steps: LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, DEEP-DI
    **Step A — Query ruflo namespaces** (if available):
 
    ```bash
-   source /home/martineserios/.claude/scripts/cf-env.sh
+   source "$HOME/.claude/scripts/cf-env.sh"
    cd "$HOME" && $CF memory search --query "$TOPIC" --namespace knowledge --limit 10 2>/dev/null
    cd "$HOME" && $CF memory search --query "$TOPIC" --namespace assumptions --limit 10 2>/dev/null
    cd "$HOME" && $CF memory search --query "$TOPIC" --namespace field-notes --limit 10 2>/dev/null

@@ -1,6 +1,6 @@
 ---
 name: meta-verification
-description: "Meta Business Verification — full recipe for verifying a business on Meta Business Manager for WABA access. Covers prerequisites, document submission, post-approval steps, and account hygiene. Cross-pollinated from somos_mirada."
+description: "Meta Business Verification — full recipe for verifying a business on Meta Business Manager for WABA access. Covers prerequisites, document submission, post-approval steps, and account hygiene. Cross-pollinated from real client engagements."
 effort: medium
 keywords: [meta, business-manager, verification, waba, compliance, documents]
 task_strategies: [feature]
@@ -25,7 +25,7 @@ growth_stage: evergreen
 
 End-to-end recipe for verifying a business on Meta Business Manager. Covers the full lifecycle: prerequisites, document preparation, submission, post-approval steps, WABA setup, and ongoing account hygiene.
 
-Based on battle-tested execution with somos_mirada (2026-02) and nexeye (2026-03).
+Based on battle-tested execution across multiple client engagements.
 
 ## When to use
 
@@ -421,11 +421,11 @@ Use this for auditing an existing BM (`/brana:meta-verification audit`).
 1. **Walk through all 27 items** — ask user to confirm each.
 2. **Score:** X/27 items passing.
 3. **Generate remediation plan** — prioritized list of fixes.
-4. **Estimate effort** per fix (from somos_mirada hourly benchmarks).
+4. **Estimate effort** per fix (from real-world hourly benchmarks).
 
 ---
 
-## Timeline Estimates (from somos_mirada)
+## Timeline Estimates (from real engagements)
 
 | Phase | Active hours | Calendar time | Notes |
 |-------|-------------|---------------|-------|
