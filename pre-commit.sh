@@ -76,7 +76,28 @@ for f in $STAGED; do
     fi
 done
 
-# Check 6: Context budget (always run if any always-loaded file is staged)
+# Check 6: Semantic checks on staged SKILL.md files (checks A-D from semantic-checks.sh)
+SEMANTIC_CHECKS="$REPO_ROOT/semantic-checks.sh"
+if [ -f "$SEMANTIC_CHECKS" ]; then
+    source "$SEMANTIC_CHECKS"
+    for f in $STAGED; do
+        case "$f" in system/skills/*/SKILL.md)
+            skill_file="$REPO_ROOT/$f"
+            for check_fn in check_allowed_tools_consistency check_file_path_references check_frontmatter_schema check_step_registry; do
+                output=$($check_fn "$skill_file" 2>&1) || true
+                if [ -n "$output" ]; then
+                    while IFS= read -r line; do
+                        if echo "$line" | grep -q "FAIL:"; then
+                            fail "$(echo "$line" | sed 's/^  FAIL: //')"
+                        fi
+                    done <<< "$output"
+                fi
+            done
+        ;; esac
+    done
+fi
+
+# Check 7: Context budget (always run if any always-loaded file is staged)
 BUDGET_FILES="system/CLAUDE.md system/rules/ system/skills/ system/agents/"
 NEEDS_BUDGET=false
 for f in $STAGED; do
