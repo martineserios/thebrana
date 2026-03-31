@@ -1697,3 +1697,19 @@ Respond.io action prompts have a hard 1,000-char limit. Agent 3's Assign action 
 | 1 | reference/hooks.md | Stale | Missing tdd-gate.sh (t-601) and subagent-tracker.sh (t-197) from plugin hooks table | Applied — added 3 rows to table + 2 script sections |
 | 2 | reference/scripts.md | Incomplete | verify-counts.sh (t-541) not documented | Applied — added entry |
 | 3 | backlog t-791 | False positive | "default limit 3→5" already correct in SKILL.md | Closed — no change needed |
+
+### Reconcile Run — 2026-03-31
+
+**Trigger:** post unified-session-state implementation (t-794 phase)
+**Drift found:** 6 findings across 5 areas
+**Applied:** 4 auto-fixes
+**Deferred:** 2 (ruflo-dependent, cosmetic)
+
+| # | Area | Type | Finding | Resolution |
+|---|------|------|---------|-----------|
+| 1 | CLAUDE.md | Stale | CLI Tools table listed `brana handoff` as primary, `brana session` not listed | Applied — added session entry, marked handoff as legacy alias |
+| 2 | session-start.sh + CLI | Incomplete | `mark_consumed()` existed as Rust fn but wasn't wired as CLI subcommand; hook piped to /dev/null | Applied — wired `brana session mark-consumed`, updated hook |
+| 3 | session-end.sh | Bug | awk missing `-F'\t'` for @tsv tab-delimited input | Applied — added `-F'\t'` |
+| 4 | unified-session-state.md | Stale | Design doc still marked `status: idea` after full implementation | Applied — marked `status: implemented` |
+| 5 | session-start.sh | Incomplete | Correction pattern recall requires ruflo (confidence >= 0.8) | Deferred — blocked by t-810 (ruflo audit) |
+| 6 | close/SKILL.md | Stale reference | Step 9 references `brana ops metrics` but close delegates to session-end | Deferred — cosmetic, low priority |
