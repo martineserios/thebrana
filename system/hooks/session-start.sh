@@ -256,7 +256,7 @@ if [ -n "$BRANA_BIN" ]; then
     HANDOFF_RAW=$("$BRANA_BIN" handoff last 2>/dev/null) || true
     if [ -n "$HANDOFF_RAW" ]; then
         HO_HEADING=$(echo "$HANDOFF_RAW" | head -1 | sed 's/^## //')
-        HO_NEXT=$(echo "$HANDOFF_RAW" | sed -n '/^\*\*Next:\*\*/,/^\*\*[A-Z]/p' | grep -v '^\*\*' | sed 's/^- //' | head -5) || true
+        HO_NEXT=$(echo "$HANDOFF_RAW" | sed -n '/^\*\*Next[^*]*\*\*/,/^\*\*[A-Za-z]/p' | grep -v '^\*\*' | sed 's/^- //' | head -10) || true
         HO_BLOCKERS=$(echo "$HANDOFF_RAW" | sed -n '/^\*\*Blockers:\*\*/,/^\*\*[A-Z]/p' | grep -v '^\*\*' | head -3) || true
         HANDOFF_CONTEXT="Last session: $HO_HEADING"
         if [ -n "$HO_NEXT" ]; then
