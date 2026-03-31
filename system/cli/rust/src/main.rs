@@ -86,10 +86,14 @@ fn main() {
             SkillsCmd::List => commands::skills::cmd_list(),
         },
         Commands::Handoff { cmd } => match cmd {
-            None | Some(HandoffCmd::Last { n: 1 }) => commands::handoff::cmd_handoff_last(1),
-            Some(HandoffCmd::Last { n }) => commands::handoff::cmd_handoff_last(n),
-            Some(HandoffCmd::List) => commands::handoff::cmd_handoff_list(),
-            Some(HandoffCmd::Path) => commands::handoff::cmd_handoff_path(),
+            // Aliases: handoff → session (structured JSON preferred, markdown fallback)
+            None | Some(HandoffCmd::Last { n: 1 }) => commands::session::cmd_session_read(false),
+            Some(HandoffCmd::Last { n }) => {
+                // handoff last -n N → show N history entries
+                commands::session::cmd_session_history(n)
+            },
+            Some(HandoffCmd::List) => commands::session::cmd_session_history(10),
+            Some(HandoffCmd::Path) => commands::session::cmd_session_path(),
         },
         Commands::Session { cmd } => match cmd {
             SessionCmd::Write { file, minimal } => commands::session::cmd_session_write(file, minimal),

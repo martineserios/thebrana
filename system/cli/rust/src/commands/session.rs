@@ -459,18 +459,18 @@ pub fn cmd_session_write(file: Option<PathBuf>, minimal: bool) {
 pub fn cmd_session_read(json_output: bool) {
     let root = require_project_root();
 
-    let state = match read_state(&root) {
-        Some(s) => s,
-        None => {
-            eprintln!("No session state found. Run close or `brana session write` first.");
-            std::process::exit(1);
+    match read_state(&root) {
+        Some(state) => {
+            if json_output {
+                println!("{}", serde_json::to_string_pretty(&state).unwrap());
+            } else {
+                print!("{}", render_text(&state));
+            }
         }
-    };
-
-    if json_output {
-        println!("{}", serde_json::to_string_pretty(&state).unwrap());
-    } else {
-        print!("{}", render_text(&state));
+        None => {
+            // Fallback: try legacy markdown handoff
+            handoff::cmd_handoff_last(1);
+        }
     }
 }
 
@@ -480,8 +480,9 @@ pub fn cmd_session_history(limit: usize) {
     let entries = read_history(&root, limit);
 
     if entries.is_empty() {
-        eprintln!("No session history found.");
-        std::process::exit(1);
+        // Fallback: try legacy markdown handoff list
+        handoff::cmd_handoff_list();
+        return;
     }
 
     for (i, entry) in entries.iter().enumerate() {

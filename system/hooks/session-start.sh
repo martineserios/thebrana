@@ -253,25 +253,96 @@ BRANA_BIN=""
 [ -z "$BRANA_BIN" ] && BRANA_BIN=$(command -v brana 2>/dev/null) || true
 
 if [ -n "$BRANA_BIN" ]; then
-    HANDOFF_RAW=$("$BRANA_BIN" handoff last 2>/dev/null) || true
-    if [ -n "$HANDOFF_RAW" ]; then
-        HO_HEADING=$(echo "$HANDOFF_RAW" | head -1 | sed 's/^## //')
-        HO_NEXT=$(echo "$HANDOFF_RAW" | sed -n '/^\*\*Next[^*]*\*\*/,/^\*\*[A-Za-z]/p' | grep -v '^\*\*' | sed 's/^- //' | head -10) || true
-        HO_BLOCKERS=$(echo "$HANDOFF_RAW" | sed -n '/^\*\*Blockers:\*\*/,/^\*\*[A-Z]/p' | grep -v '^\*\*' | head -3) || true
-        HANDOFF_CONTEXT="Last session: $HO_HEADING"
+    # Try structured JSON first (new session-state.json)
+    SESSION_JSON=$("$BRANA_BIN" session read --json 2>/dev/null) || SESSION_JSON=""
+    if [ -n "$SESSION_JSON" ]; then
+        HO_LABEL=$(echo "$SESSION_JSON" | jq -r '.session_label // empty' 2>/dev/null) || true
+        HO_DATE=$(echo "$SESSION_JSON" | jq -r '.written_at // empty' 2>/dev/null | cut -dT -f1) || true
+        HO_BRANCH=$(echo "$SESSION_JSON" | jq -r '.branch // empty' 2>/dev/null) || true
+        HO_NEXT=$(echo "$SESSION_JSON" | jq -r '.next[]? | "[\(.category)] \(.text)" + (if .task_id then " (\(.task_id))" else "" end)' 2>/dev/null | head -10) || true
+        HO_BLOCKERS=$(echo "$SESSION_JSON" | jq -r '.blockers[]? | .text + (if .task_id then " (\(.task_id))" else "" end)' 2>/dev/null | head -3) || true
+
+        HANDOFF_CONTEXT="Last session: ${HO_DATE:+$HO_DATE — }${HO_LABEL:-unlabeled}${HO_BRANCH:+ [$HO_BRANCH]}"
         if [ -n "$HO_NEXT" ]; then
             HANDOFF_CONTEXT="$HANDOFF_CONTEXT
 Next: $HO_NEXT"
         fi
-        if [ -n "$HO_BLOCKERS" ] && ! echo "$HO_BLOCKERS" | grep -qi "^none$"; then
+        if [ -n "$HO_BLOCKERS" ]; then
             HANDOFF_CONTEXT="$HANDOFF_CONTEXT
 Blockers: $HO_BLOCKERS"
+        fi
+
+        # Mark consumed (optimistic write-first)
+        "$BRANA_BIN" session read --json 2>/dev/null | jq -c '.consumed_at = now | todate' > /dev/null 2>&1 || true
+    else
+        # Fallback: try legacy markdown handoff
+        HANDOFF_RAW=$("$BRANA_BIN" handoff last 2>/dev/null) || true
+        if [ -n "$HANDOFF_RAW" ]; then
+            HO_HEADING=$(echo "$HANDOFF_RAW" | head -1 | sed 's/^## //')
+            HO_NEXT=$(echo "$HANDOFF_RAW" | sed -n '/^\*\*Next[^*]*\*\*/,/^\*\*[A-Za-z]/p' | grep -v '^\*\*' | sed 's/^- //' | head -10) || true
+            HO_BLOCKERS=$(echo "$HANDOFF_RAW" | sed -n '/^\*\*Blockers:\*\*/,/^\*\*[A-Z]/p' | grep -v '^\*\*' | head -3) || true
+            HANDOFF_CONTEXT="Last session: $HO_HEADING"
+            if [ -n "$HO_NEXT" ]; then
+                HANDOFF_CONTEXT="$HANDOFF_CONTEXT
+Next: $HO_NEXT"
+            fi
+            if [ -n "$HO_BLOCKERS" ] && ! echo "$HO_BLOCKERS" | grep -qi "^none$"; then
+                HANDOFF_CONTEXT="$HANDOFF_CONTEXT
+Blockers: $HO_BLOCKERS"
+            fi
         fi
     fi
 fi
 
 # ── Self-learning loop: check flags from previous session ──
 LOOP_CONTEXT=""
+
+# Read backprop + doc_drift from structured session state (replaces .needs-backprop flag)
+if [ -n "$BRANA_BIN" ] && [ -n "$SESSION_JSON" ]; then
+    BP_NEEDED=$(echo "$SESSION_JSON" | jq -r '.backprop.needed // false' 2>/dev/null) || BP_NEEDED="false"
+    if [ "$BP_NEEDED" = "true" ]; then
+        BP_FILES=$(echo "$SESSION_JSON" | jq -r '.backprop.files[]?' 2>/dev/null | paste -sd ',' || true)
+        LOOP_CONTEXT="[Previous session] System files changed ($BP_FILES). Consider running /brana:reconcile to sync specs."
+    fi
+    DD_DETECTED=$(echo "$SESSION_JSON" | jq -r '.doc_drift.detected // false' 2>/dev/null) || DD_DETECTED="false"
+    if [ "$DD_DETECTED" = "true" ]; then
+        DD_DOCS=$(echo "$SESSION_JSON" | jq -r '.doc_drift.stale_docs[]?' 2>/dev/null | paste -sd ', ' || true)
+        LOOP_CONTEXT="${LOOP_CONTEXT:+$LOOP_CONTEXT
+}[Stale docs] These docs may need updating: $DD_DOCS. Review or run /brana:reconcile."
+    fi
+fi
+
+# Fallback: check .needs-backprop flag file (legacy, during migration)
+if [ -z "$SESSION_JSON" ]; then
+    LAYER0_DIR=""
+    for projdir in "$HOME"/.claude/projects/*/; do
+        if [ -d "${projdir}memory" ]; then
+            if grep -qi "$PROJECT" "${projdir}memory/MEMORY.md" 2>/dev/null; then
+                LAYER0_DIR="${projdir}memory"
+                break
+            fi
+        fi
+    done
+
+    if [ -n "$LAYER0_DIR" ]; then
+        BACKPROP_FLAG="$LAYER0_DIR/.needs-backprop"
+        if [ -f "$BACKPROP_FLAG" ]; then
+            DRIFT_INFO=$(cat "$BACKPROP_FLAG" 2>/dev/null) || true
+            DOCS_STALE=$(echo "$DRIFT_INFO" | grep "^docs-stale:" | sed 's/^docs-stale: //' || true)
+            SYS_DRIFT=$(echo "$DRIFT_INFO" | grep -v "^docs-stale:" || true)
+            if [ -n "$SYS_DRIFT" ]; then
+                LOOP_CONTEXT="[Previous session] System files changed ($SYS_DRIFT). Consider running /brana:reconcile to sync specs."
+            fi
+            if [ -n "$DOCS_STALE" ]; then
+                LOOP_CONTEXT="$LOOP_CONTEXT
+[Stale feature docs] These docs may need updating: $DOCS_STALE. Review or run /brana:reconcile."
+            fi
+            rm -f "$BACKPROP_FLAG"
+        fi
+    fi
+fi
+
+# Check pending learnings (still uses auto memory dir)
 LAYER0_DIR=""
 for projdir in "$HOME"/.claude/projects/*/; do
     if [ -d "${projdir}memory" ]; then
@@ -281,29 +352,11 @@ for projdir in "$HOME"/.claude/projects/*/; do
         fi
     fi
 done
-
-if [ -n "$LAYER0_DIR" ]; then
-    BACKPROP_FLAG="$LAYER0_DIR/.needs-backprop"
-    if [ -f "$BACKPROP_FLAG" ]; then
-        DRIFT_INFO=$(cat "$BACKPROP_FLAG" 2>/dev/null) || true
-        DOCS_STALE=$(echo "$DRIFT_INFO" | grep "^docs-stale:" | sed 's/^docs-stale: //' || true)
-        SYS_DRIFT=$(echo "$DRIFT_INFO" | grep -v "^docs-stale:" || true)
-        if [ -n "$SYS_DRIFT" ]; then
-            LOOP_CONTEXT="[Previous session] System files changed ($SYS_DRIFT). Consider running /brana:reconcile to sync specs."
-        fi
-        if [ -n "$DOCS_STALE" ]; then
-            LOOP_CONTEXT="$LOOP_CONTEXT
-[Stale feature docs] These docs may need updating: $DOCS_STALE. Review or run /brana:reconcile."
-        fi
-        rm -f "$BACKPROP_FLAG"
-    fi
-
-    if [ -f "$LAYER0_DIR/pending-learnings.md" ]; then
-        PENDING_COUNT=$(grep -c '^## Session' "$LAYER0_DIR/pending-learnings.md" 2>/dev/null) || PENDING_COUNT=0
-        if [ "$PENDING_COUNT" -gt 0 ]; then
-            LOOP_CONTEXT="${LOOP_CONTEXT:+$LOOP_CONTEXT
+if [ -n "$LAYER0_DIR" ] && [ -f "$LAYER0_DIR/pending-learnings.md" ]; then
+    PENDING_COUNT=$(grep -c '^## Session' "$LAYER0_DIR/pending-learnings.md" 2>/dev/null) || PENDING_COUNT=0
+    if [ "$PENDING_COUNT" -gt 0 ]; then
+        LOOP_CONTEXT="${LOOP_CONTEXT:+$LOOP_CONTEXT
 }[Pending learnings] $PENDING_COUNT unprocessed session(s) in pending-learnings.md. Consider running /debrief."
-        fi
     fi
 fi
 
