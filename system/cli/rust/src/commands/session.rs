@@ -603,10 +603,10 @@ fn convert_handoff_entry(entry: &handoff::HandoffEntry) -> SessionState {
 
     SessionState {
         version: 1,
-        written_at,
+        written_at: written_at.clone(),
         branch,
         session_label: Some(label),
-        consumed_at: Some("migrated".into()),
+        consumed_at: Some(written_at),
         accomplished,
         learnings,
         next,
@@ -1093,7 +1093,7 @@ mod tests {
         assert_eq!(state.next[0].text, "Implement migrate command");
         assert_eq!(state.next[0].category, NextCategory::FollowUp);
         assert!(state.blockers.is_empty()); // "None" filtered out
-        assert_eq!(state.consumed_at, Some("migrated".into()));
+        assert_eq!(state.consumed_at, Some(state.written_at.clone()));
     }
 
     #[test]
