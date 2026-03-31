@@ -255,49 +255,41 @@ echo '{"continue": true}'
         fi
     fi
 
-    # Self-learning loop: auto-generate minimal handoff if not written today
-    if [ -n "$LAYER0_DIR" ]; then
-        HANDOFF="$LAYER0_DIR/session-handoff.md"
+    # Safety net: write minimal session state via CLI if close didn't run today
+    SESSION_STATE_PATH=$("$BRANA_CLI" session path 2>/dev/null) || SESSION_STATE_PATH=""
+    ALREADY_WRITTEN=false
+    if [ -n "$SESSION_STATE_PATH" ] && [ -f "$SESSION_STATE_PATH" ]; then
+        WRITTEN_AT=$(jq -r '.written_at // ""' "$SESSION_STATE_PATH" 2>/dev/null) || WRITTEN_AT=""
         TODAY=$(date +%Y-%m-%d)
-        if [ -f "$HANDOFF" ] && ! grep -q "## $TODAY" "$HANDOFF" 2>/dev/null; then
-            COMMITS=$(git -C "$GIT_ROOT" log --oneline --since="8 hours ago" 2>/dev/null | head -5) || COMMITS=""
-            BRANCH=$(git -C "$GIT_ROOT" branch --show-current 2>/dev/null) || BRANCH="unknown"
-            if [ -n "$COMMITS" ]; then
-                {
-                    echo ""
-                    echo "## $TODAY — auto-captured (session-end hook)"
-                    echo ""
-                    echo "**Accomplished:**"
-                    echo "$COMMITS" | while read -r line; do echo "- $line"; done
-                    echo ""
-                    echo "**State:**"
-                    echo "- Branch: $BRANCH"
-                    echo "- Events: $TOTAL ($SUCCESSES ok, $FAILURES fail, $CORRECTIONS corrections, $CASCADES cascades, $PR_CREATES prs)"
-                    echo "- Tests: $TEST_PASSES pass, $TEST_FAILS fail (rate=$TEST_PASS_RATE) | Lint: $LINT_PASSES pass, $LINT_FAILS fail (rate=$LINT_PASS_RATE)"
-                    echo "- Flywheel: corr=$CORRECTION_RATE fix=$AUTO_FIX_RATE test=$TEST_WRITE_RATE casc=$CASCADE_RATE deleg=$DELEGATIONS prs=$PR_CREATES"
-                    echo ""
-                    echo "**Next:**"
-                    echo "- (auto-generated — run /session-handoff for full close)"
-                } >> "$HANDOFF"
-            fi
+        if echo "$WRITTEN_AT" | grep -q "$TODAY" 2>/dev/null; then
+            ALREADY_WRITTEN=true
         fi
+    fi
 
-        # Rotate handoff: keep last 10 entries, archive older ones (t-614)
-        if [ -f "$HANDOFF" ]; then
-            ENTRY_COUNT=$(grep -c '^## ' "$HANDOFF" 2>/dev/null) || ENTRY_COUNT=0
-            if [ "$ENTRY_COUNT" -gt 10 ]; then
-                KEEP_FROM=$(grep -n '^## ' "$HANDOFF" | tail -10 | head -1 | cut -d: -f1)
-                if [ -n "$KEEP_FROM" ] && [ "$KEEP_FROM" -gt 1 ]; then
-                    # Archive older entries
-                    ARCHIVE="$LAYER0_DIR/session-handoff-archive.md"
-                    head -n "$((KEEP_FROM - 1))" "$HANDOFF" >> "$ARCHIVE"
-                    # Keep header + last 10 entries
-                    HEADER=$(head -1 "$HANDOFF")
-                    tail -n "+$KEEP_FROM" "$HANDOFF" > "$HANDOFF.tmp"
-                    { echo "$HEADER"; echo ""; cat "$HANDOFF.tmp"; } > "$HANDOFF"
-                    rm -f "$HANDOFF.tmp"
-                fi
-            fi
+    if [ "$ALREADY_WRITTEN" = false ] && [ -x "$BRANA_CLI" ]; then
+        # Build minimal JSON with computed metrics from this session
+        MINIMAL_JSON=$(jq -n -c \
+            --argjson version 1 \
+            --arg written_at "$TIMESTAMP" \
+            --arg branch "$(git -C "$GIT_ROOT" branch --show-current 2>/dev/null || echo '')" \
+            --arg session_label "auto-captured (session-end hook)" \
+            --argjson events "${TOTAL:-0}" \
+            --argjson corrections "${CORRECTIONS:-0}" \
+            --argjson test_writes "${TEST_WRITES:-0}" \
+            --arg correction_rate "${CORRECTION_RATE:-0.00}" \
+            --arg test_write_rate "${TEST_WRITE_RATE:-0.00}" \
+            --arg cascade_rate "${CASCADE_RATE:-0.00}" \
+            --argjson delegations "${DELEGATIONS:-0}" \
+            '{version: $version, written_at: $written_at, branch: (if $branch == "" then null else $branch end), session_label: $session_label, metrics: {events: $events, corrections: $corrections, test_writes: $test_writes, correction_rate: ($correction_rate | tonumber), test_write_rate: ($test_write_rate | tonumber), cascade_rate: ($cascade_rate | tonumber), delegation_count: $delegations}}' 2>/dev/null) || MINIMAL_JSON=""
+
+        if [ -n "$MINIMAL_JSON" ]; then
+            TMPFILE="/tmp/session-end-minimal-$$.json"
+            echo "$MINIMAL_JSON" > "$TMPFILE"
+            "$BRANA_CLI" session write --file "$TMPFILE" 2>/dev/null || true
+            rm -f "$TMPFILE"
+        else
+            # Fallback: --minimal flag (branch + timestamp only, no metrics)
+            "$BRANA_CLI" session write --minimal 2>/dev/null || true
         fi
     fi
 

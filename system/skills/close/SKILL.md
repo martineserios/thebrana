@@ -250,12 +250,11 @@ jq --arg f "system/skills/build/SKILL.md" '.nodes | to_entries[] | select(.value
 
 Include the affected doc list in the drift report instead of just "system files changed." If the graph doesn't exist, fall back to the generic message.
 
-- **If matches found:** flag in handoff note and write a marker file:
-  ```bash
-  MEMORY_DIR=$(find ~/.claude/projects/ -maxdepth 2 -name "MEMORY.md" -path "*$(basename $(git rev-parse --show-toplevel))*" -exec dirname {} \; 2>/dev/null | head -1)
-  [ -n "$MEMORY_DIR" ] && echo "$(date +%Y-%m-%d) $(git diff --name-only HEAD~10..HEAD 2>/dev/null | grep -E '(skills/|agents/|hooks/|rules/|commands/)' | tr '\n' ',')" > "$MEMORY_DIR/.needs-backprop"
-  ```
-- **If no matches:** skip silently
+Collect drift results for the session state JSON (Step 9):
+- **backprop.files**: system files that changed this session
+- **doc_drift.stale_docs**: docs affected by those changes (from spec-graph)
+
+**Do NOT write `.needs-backprop` flag file.** The `backprop` field in session-state.json replaces it.
 
 #### Feature doc staleness check
 
@@ -271,49 +270,88 @@ After detecting system-level drift, also check if session changes affect existin
    - If any changed implementation file appears in a feature doc's Key Files or is referenced by path, that doc is **potentially stale**
 
 3. **Report stale docs:**
-   - List them in the handoff note under a `**Stale feature docs:**` section
-   - Append to `.needs-backprop` marker: `docs-stale: {doc1.md}, {doc2.md}`
+   - Add stale feature docs to the `doc_drift.stale_docs` list in the session JSON
    - Offer via AskUserQuestion: "Stale feature docs detected: {list}. Run /brana:reconcile now?"
      Options: ["Yes — run reconcile", "Skip — defer to next session"]
-     If yes: invoke `Skill(skill="brana:reconcile")`. If no: log to handoff note only.
+     If yes: invoke `Skill(skill="brana:reconcile")`. If no: include in session state only.
 
 4. **Skip if:** no feature docs exist yet, or no implementation files changed
 
-### Step 9: Write handoff note
+### Step 9: Write session state via CLI
 
-Find `session-handoff.md` in `~/.claude/projects/` for the current project. Append:
+Build a JSON object from all evidence gathered in previous steps, write it to a temp file, and call `brana session write`. The LLM never writes session files directly — the CLI validates the schema and handles atomic writes + history archival.
 
-```markdown
-## YYYY-MM-DD — <brief label>
+**Build the JSON payload:**
 
-**Accomplished:**
-- {from git log + conversation context}
-
-**Learnings:**
-- {from Step 3 classified findings}
-
-**State:**
-- Branch: {current branch}
-- Key files touched: {from git diff --stat}
-- Tests: passing / failing / N/A
-
-**Doc drift:**
-- {system files changed, or "None"}
-
-**Next:**
-- {follow-up actions, deferred items}
-- {if errata found: "Run /brana:maintain-specs"}
-- {if doc drift: "Consider updating specs"}
-
-**Blockers:**
-- ... (or "None")
+```json
+{
+  "version": 1,
+  "written_at": "",
+  "session_label": "<brief label from conversation context>",
+  "accomplished": ["<from git log + conversation>"],
+  "learnings": ["<from Step 3 classified findings>"],
+  "next": [
+    {"text": "<follow-up action>", "task_id": "t-NNN or null", "category": "follow-up|maintenance|suggestion"}
+  ],
+  "blockers": [
+    {"text": "<blocker description>", "task_id": "t-NNN or null"}
+  ],
+  "backprop": {
+    "needed": true,
+    "files": ["<system files changed, from Step 8>"]
+  },
+  "doc_drift": {
+    "detected": true,
+    "stale_docs": ["<docs affected, from Step 8>"]
+  },
+  "state": {
+    "key_files": ["<from git diff --stat>"],
+    "test_status": {"passing": 0, "failing": 0}
+  },
+  "metrics": {
+    "events": 0, "corrections": 0, "test_writes": 0,
+    "correction_rate": 0.0, "test_write_rate": 0.0,
+    "cascade_rate": 0.0, "delegation_count": 0
+  }
+}
 ```
 
-**Rules for the handoff file:**
-- Always append — never delete or overwrite previous sections
-- Same date, multiple sessions: use `## YYYY-MM-DD (2) — label`
-- Keep each section concise — 15 lines max
-- Trim old sections if file exceeds ~200 lines: collapse entries older than 30 days into an `## Archive (before YYYY-MM-DD)` summary
+**Populate the `metrics` field** from the session JSONL telemetry:
+```bash
+SESSION_FILE="/tmp/brana-session-${SESSION_ID}.jsonl"
+if [ -f "$SESSION_FILE" ]; then
+    brana ops metrics "$SESSION_FILE"
+fi
+```
+Use the output to fill events, corrections, test_writes, correction_rate, test_write_rate, cascade_rate, delegation_count. If the session file doesn't exist or metrics fail, omit the metrics field (it's optional).
+
+**Write via CLI:**
+
+```bash
+# Write JSON to temp file (avoids shell escaping issues)
+cat > /tmp/session-close-$$.json << 'JSON'
+{ ... the payload above ... }
+JSON
+
+# CLI validates schema, archives previous state, writes atomically
+brana session write --file /tmp/session-close-$$.json
+
+# Clean up
+rm -f /tmp/session-close-$$.json
+```
+
+The CLI auto-fills `written_at` (if empty) and `branch` (from git). `consumed_at` is set to null — the next session-start marks it consumed.
+
+**`next` category values** (validated enum):
+- `follow-up` — action items from this session
+- `maintenance` — routine tasks (run maintain-specs, reconcile, etc.)
+- `suggestion` — non-urgent ideas worth considering
+
+**Rules:**
+- Write to temp file first, never pass JSON inline via shell arguments
+- If `brana session write` fails, log error and continue — the session-end hook will capture a minimal fallback
+- Do NOT write to `session-handoff.md` — it's deprecated (read-only archive)
+- Do NOT write `.needs-backprop` — absorbed into the backprop field
 
 ### Step 10: Store session metadata
 
