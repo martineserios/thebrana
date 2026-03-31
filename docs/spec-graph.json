@@ -1,9 +1,9 @@
 {
   "_meta": {
-    "generated": "2026-03-31T14:19:32Z",
+    "generated": "2026-03-31T19:07:36Z",
     "node_count": 200,
     "edge_count": 549,
-    "impl_ref_count": 252,
+    "impl_ref_count": 247,
     "orphan_count": 98,
     "typed_edge_count": 0
   },
@@ -45,9 +45,9 @@
         "docs/dimensions/16-knowledge-health.md"
       ],
       "impl_files": [
-        "system/skills/memory/SKILL.md`",
-        "system/commands/pattern-confidence.md`",
-        "system/agents/system-reviewer.md`"
+        "system/skills/memory/SKILL.md",
+        "system/commands/pattern-confidence.md",
+        "system/agents/system-reviewer.md"
       ],
       "guide_files": [],
       "arch_files": [],
@@ -83,8 +83,8 @@
         "docs/dimensions/12-skill-selector.md"
       ],
       "impl_files": [
-        "system/skill-catalog.yaml`",
-        "system/settings.json`"
+        "system/skill-catalog.yaml",
+        "system/settings.json"
       ],
       "guide_files": [],
       "arch_files": [
@@ -122,13 +122,13 @@
         "docs/dimensions/33-research-methodology.md"
       ],
       "impl_files": [
-        "system/settings.json`",
+        "system/settings.json",
         "system/skills/decide/SKILL.md`~~",
-        "system/rules/sdd-tdd.md`",
-        "system/hooks/pre-tool-use.sh`",
-        "system/skills/project-onboard/SKILL.md`",
-        "system/skills/`",
-        "system/`"
+        "system/rules/sdd-tdd.md",
+        "system/hooks/pre-tool-use.sh",
+        "system/skills/project-onboard/SKILL.md",
+        "system/skills/",
+        "system/"
       ],
       "guide_files": [
         "docs/guide/configuration.md",
@@ -185,8 +185,16 @@
         "system/skills/"
       ],
       "guide_files": [],
-      "arch_files": [],
-      "ref_files": []
+      "arch_files": [
+        "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+        "docs/architecture/features/acquire-skills-guide.md",
+        "docs/architecture/hooks.md",
+        "docs/architecture/plugin-structure.md"
+      ],
+      "ref_files": [
+        "docs/reference/configuration.md",
+        "docs/reference/skills.md"
+      ]
     },
     "docs/24-roadmap-corrections.md": {
       "references": [
@@ -233,33 +241,31 @@
       ],
       "impl_files": [
         "system/skills/",
-        "system/`",
-        "system/skills/`",
-        "system/hooks/session-start.sh`",
-        "system/hooks/session-end.sh`",
-        "system/skills/pattern-recall/SKILL.md`",
-        "system/skills/retrospective/SKILL.md`",
-        "system/skills/cross-pollinate/SKILL.md`",
-        "system/skills/project-onboard/SKILL.md`",
-        "system/skills/client-retire/SKILL.md`",
-        "system/skills/personal-check/SKILL.md`",
-        "system/scripts/skill-graph.sh`",
-        "system/commands/`",
-        "system/scripts/gh-sync.sh`",
-        "system/hooks/task-sync.sh`",
-        "system/skills/meta-template/SKILL.md`",
+        "system/",
+        "system/hooks/session-start.sh",
+        "system/hooks/session-end.sh",
+        "system/skills/pattern-recall/SKILL.md",
+        "system/skills/retrospective/SKILL.md",
+        "system/skills/cross-pollinate/SKILL.md",
+        "system/skills/project-onboard/SKILL.md",
+        "system/skills/client-retire/SKILL.md",
+        "system/skills/personal-check/SKILL.md",
+        "system/scripts/skill-graph.sh",
         "system/commands/",
+        "system/scripts/gh-sync.sh",
+        "system/hooks/task-sync.sh",
+        "system/skills/meta-template/SKILL.md",
         "system/rules/",
-        "system/scheduler/brana-scheduler-runner.sh`",
-        "system/scheduler/brana-scheduler-runner.sh\\`",
-        "system/scheduler/brana-scheduler-runner.sh"
+        "system/scheduler/brana-scheduler-runner.sh",
+        "system/scheduler/brana-scheduler-runner.sh\\"
       ],
       "guide_files": [
         "docs/guide/concepts.md",
         "docs/guide/configuration.md",
         "docs/guide/getting-started.md",
         "docs/guide/philosophy.md",
-        "docs/guide/upgrading.md"
+        "docs/guide/upgrading.md",
+        "docs/guide/workflows/github-sync.md"
       ],
       "arch_files": [
         "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
@@ -281,6 +287,7 @@
       "ref_files": [
         "docs/reference/commands.md",
         "docs/reference/configuration.md",
+        "docs/reference/rules.md",
         "docs/reference/scripts.md",
         "docs/reference/skills.md"
       ]
@@ -316,7 +323,7 @@
         "docs/dimensions/33-research-methodology.md"
       ],
       "impl_files": [
-        "system/hooks/session-start.sh`"
+        "system/hooks/session-start.sh"
       ],
       "guide_files": [],
       "arch_files": [
@@ -349,9 +356,15 @@
       "impl_files": [
         "system/agents/"
       ],
-      "guide_files": [],
-      "arch_files": [],
-      "ref_files": []
+      "guide_files": [
+        "docs/guide/concepts.md"
+      ],
+      "arch_files": [
+        "docs/architecture/plugin-structure.md"
+      ],
+      "ref_files": [
+        "docs/reference/agents.md"
+      ]
     },
     "docs/39-architecture-redesign.md": {
       "references": [
@@ -368,9 +381,9 @@
         "docs/reflections/14-mastermind-architecture.md"
       ],
       "impl_files": [
-        "system/commands/`",
-        "system/`",
-        "system/scripts/index-knowledge.sh`"
+        "system/commands/",
+        "system/",
+        "system/scripts/index-knowledge.sh"
       ],
       "guide_files": [
         "docs/guide/concepts.md",
@@ -511,10 +524,10 @@
       ],
       "referenced_by": [],
       "impl_files": [
-        "system/skills/`",
-        "system/hooks/`",
-        "system/rules/`",
-        "system/config/`"
+        "system/skills/",
+        "system/hooks/",
+        "system/rules/",
+        "system/config/"
       ],
       "guide_files": [
         "docs/guide/concepts.md"
@@ -593,7 +606,7 @@
       ],
       "referenced_by": [],
       "impl_files": [
-        "system/`"
+        "system/"
       ],
       "guide_files": [
         "docs/guide/configuration.md",
@@ -618,7 +631,7 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/scripts/verify-counts.sh`"
+        "system/scripts/verify-counts.sh"
       ],
       "guide_files": [],
       "arch_files": [],
@@ -666,7 +679,7 @@
         "docs/reflections/ARCHITECTURE.md"
       ],
       "impl_files": [
-        "system/scripts/`",
+        "system/scripts/",
         "docs/system/skills/knowledge/SKILL.md",
         "system/skills/knowledge/SKILL.md"
       ],
@@ -684,8 +697,8 @@
         "docs/architecture/features/acquire-skills-guide.md"
       ],
       "impl_files": [
-        "system/skills/acquired/`",
-        "system/skills/acquired/<name>/`"
+        "system/skills/acquired/",
+        "system/skills/acquired/<name>/"
       ],
       "guide_files": [],
       "arch_files": [
@@ -707,8 +720,8 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/`",
-        "system/.claude-plugin/plugin.json`"
+        "system/",
+        "system/.claude-plugin/plugin.json"
       ],
       "guide_files": [
         "docs/guide/configuration.md",
@@ -734,15 +747,15 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/state/portfolio.md`",
-        "system/state/`",
-        "system/state/event-log.md`",
-        "system/state/tasks-portfolio.json`",
-        "system/state/tasks-config.json`",
-        "system/scripts/export-patterns.sh`",
-        "system/state/patterns-export.json`",
-        "system/scripts/import-patterns.sh`",
-        "system/scripts/sync-state.sh`"
+        "system/state/portfolio.md",
+        "system/state/",
+        "system/state/event-log.md",
+        "system/state/tasks-portfolio.json",
+        "system/state/tasks-config.json",
+        "system/scripts/export-patterns.sh",
+        "system/state/patterns-export.json",
+        "system/scripts/import-patterns.sh",
+        "system/scripts/sync-state.sh"
       ],
       "guide_files": [],
       "arch_files": [],
@@ -756,14 +769,18 @@
         "docs/reflections/31-assurance.md"
       ],
       "impl_files": [
-        "system/scripts/spec_graph.py`",
-        "system/skills/build`"
+        "system/scripts/spec_graph.py",
+        "system/skills/build"
       ],
-      "guide_files": [],
+      "guide_files": [
+        "docs/guide/workflows/spec-graph.md"
+      ],
       "arch_files": [
         "docs/architecture/knowledge-system-extending.md"
       ],
-      "ref_files": []
+      "ref_files": [
+        "docs/reference/scripts.md"
+      ]
     },
     "docs/architecture/decisions/ADR-017-decision-log.md": {
       "references": [],
@@ -772,7 +789,7 @@
         "docs/reflections/32-lifecycle.md"
       ],
       "impl_files": [
-        "system/state/decisions/`"
+        "system/state/decisions/"
       ],
       "guide_files": [],
       "arch_files": [],
@@ -823,8 +840,8 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/cli/aliases.sh`",
-        "system/cli/themes.json`"
+        "system/cli/aliases.sh",
+        "system/cli/themes.json"
       ],
       "guide_files": [
         "docs/guide/cli.md"
@@ -852,7 +869,7 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/skills/.sources.json`"
+        "system/skills/.sources.json"
       ],
       "guide_files": [],
       "arch_files": [],
@@ -862,7 +879,7 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/CLAUDE.md`"
+        "system/CLAUDE.md"
       ],
       "guide_files": [],
       "arch_files": [
@@ -879,8 +896,8 @@
       ],
       "referenced_by": [],
       "impl_files": [
-        "system/hooks/hooks.json`",
-        "system/hooks/my-hook.sh`"
+        "system/hooks/hooks.json",
+        "system/hooks/my-hook.sh"
       ],
       "guide_files": [
         "docs/guide/configuration.md"
@@ -911,13 +928,13 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/`",
-        "system/skills/my-skill/SKILL.md`",
-        "system/rules/my-rule.md`",
-        "system/hooks/my-hook.sh`",
-        "system/settings.json`",
-        "system/agents/my-agent.md`",
-        "system/rules/delegation-routing.md`"
+        "system/",
+        "system/skills/my-skill/SKILL.md",
+        "system/rules/my-rule.md",
+        "system/hooks/my-hook.sh",
+        "system/settings.json",
+        "system/agents/my-agent.md",
+        "system/rules/delegation-routing.md"
       ],
       "guide_files": [
         "docs/guide/configuration.md",
@@ -949,7 +966,7 @@
       ],
       "referenced_by": [],
       "impl_files": [
-        "system/skills/`"
+        "system/skills/"
       ],
       "guide_files": [],
       "arch_files": [
@@ -966,8 +983,8 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/skills/acquired/`",
-        "system/skills/acquired/<name>/`"
+        "system/skills/acquired/",
+        "system/skills/acquired/<name>/"
       ],
       "guide_files": [],
       "arch_files": [
@@ -1008,10 +1025,10 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/skills/build/templates/`",
-        "system/skills/build/SKILL.md`",
-        "system/skills/build/templates/tech-doc.md`",
-        "system/skills/build/templates/user-guide.md`"
+        "system/skills/build/templates/",
+        "system/skills/build/SKILL.md",
+        "system/skills/build/templates/tech-doc.md",
+        "system/skills/build/templates/user-guide.md"
       ],
       "guide_files": [],
       "arch_files": [],
@@ -1032,8 +1049,8 @@
       ],
       "referenced_by": [],
       "impl_files": [
-        "system/hooks/post-tool-use-failure.sh`",
-        "system/hooks/pre-tool-use.sh`"
+        "system/hooks/post-tool-use-failure.sh",
+        "system/hooks/pre-tool-use.sh"
       ],
       "guide_files": [],
       "arch_files": [
@@ -1048,12 +1065,12 @@
       ],
       "referenced_by": [],
       "impl_files": [
-        "system/hooks/task-completed.sh`",
-        "system/hooks/step-completed.sh`",
-        "system/hooks/subagent-context.sh`",
-        "system/hooks/hooks.json`",
-        "system/scripts/cc-changelog-check.sh`",
-        "system/hooks/session-start.sh`"
+        "system/hooks/task-completed.sh",
+        "system/hooks/step-completed.sh",
+        "system/hooks/subagent-context.sh",
+        "system/hooks/hooks.json",
+        "system/scripts/cc-changelog-check.sh",
+        "system/hooks/session-start.sh"
       ],
       "guide_files": [
         "docs/guide/configuration.md",
@@ -1118,13 +1135,15 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/hooks/task-sync.sh`",
-        "system/scripts/gh-sync.sh`",
-        "system/hooks/task-sync.py`",
-        "system/cli/rust/src/sync.rs`",
-        "system/cli/rust/src/cli.rs`"
+        "system/hooks/task-sync.sh",
+        "system/scripts/gh-sync.sh",
+        "system/hooks/task-sync.py",
+        "system/cli/rust/src/sync.rs",
+        "system/cli/rust/src/cli.rs"
       ],
-      "guide_files": [],
+      "guide_files": [
+        "docs/guide/workflows/github-sync.md"
+      ],
       "arch_files": [
         "docs/architecture/features/mission-control-cli.md"
       ],
@@ -1138,7 +1157,7 @@
         "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md"
       ],
       "impl_files": [
-        "system/scripts/second-phase-check.sh`"
+        "system/scripts/second-phase-check.sh"
       ],
       "guide_files": [],
       "arch_files": [],
@@ -1169,11 +1188,11 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/cli/rust/src/tasks.rs`",
-        "system/cli/rust/src/cli.rs`",
-        "system/cli/rust/src/commands/run.rs`",
-        "system/cli/rust/src/main.rs`",
-        "system/cli/rust/Cargo.toml`"
+        "system/cli/rust/src/tasks.rs",
+        "system/cli/rust/src/cli.rs",
+        "system/cli/rust/src/commands/run.rs",
+        "system/cli/rust/src/main.rs",
+        "system/cli/rust/Cargo.toml"
       ],
       "guide_files": [],
       "arch_files": [
@@ -1201,14 +1220,13 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/`",
-        "system/settings.json`",
-        "system/hooks/hooks.json`",
-        "system/rules/delegation-routing.md`",
-        "system/CLAUDE.md`",
-        "system/rules",
+        "system/",
+        "system/settings.json",
+        "system/hooks/hooks.json",
+        "system/rules/delegation-routing.md",
         "system/CLAUDE.md",
-        "system/hooks/`"
+        "system/rules",
+        "system/hooks/"
       ],
       "guide_files": [
         "docs/guide/concepts.md",
@@ -1251,9 +1269,9 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/rules/task-convention.md`",
-        "system/skills/backlog/SKILL.md`",
-        "system/rules/delegation-routing.md`"
+        "system/rules/task-convention.md",
+        "system/skills/backlog/SKILL.md",
+        "system/rules/delegation-routing.md"
       ],
       "guide_files": [
         "docs/guide/workflows/model-routing.md"
@@ -1287,7 +1305,7 @@
       ],
       "referenced_by": [],
       "impl_files": [
-        "system/scheduler/`"
+        "system/scheduler/"
       ],
       "guide_files": [],
       "arch_files": [],
@@ -1299,8 +1317,8 @@
       ],
       "referenced_by": [],
       "impl_files": [
-        "system/rules/delegation-routing.md`",
-        "system/hooks/post-tool-use.sh`"
+        "system/rules/delegation-routing.md",
+        "system/hooks/post-tool-use.sh"
       ],
       "guide_files": [],
       "arch_files": [
@@ -1361,7 +1379,7 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/skills/backlog/SKILL.md`"
+        "system/skills/backlog/SKILL.md"
       ],
       "guide_files": [
         "docs/guide/workflows/model-routing.md"
@@ -1377,7 +1395,7 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/skills/backlog/SKILL.md`"
+        "system/skills/backlog/SKILL.md"
       ],
       "guide_files": [
         "docs/guide/workflows/model-routing.md"
@@ -1393,7 +1411,7 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/skills/backlog/SKILL.md`"
+        "system/skills/backlog/SKILL.md"
       ],
       "guide_files": [
         "docs/guide/workflows/model-routing.md"
@@ -1413,10 +1431,10 @@
         "docs/architecture/decisions/ADR-009-test-lint-feedback-hook.md"
       ],
       "impl_files": [
-        "system/hooks/post-tool-use.sh`",
-        "system/hooks/post-tool-use-failure.sh`",
-        "system/hooks/session-end.sh`",
-        "system/hooks/session-start.sh`"
+        "system/hooks/post-tool-use.sh",
+        "system/hooks/post-tool-use-failure.sh",
+        "system/hooks/session-end.sh",
+        "system/hooks/session-start.sh"
       ],
       "guide_files": [],
       "arch_files": [
@@ -1446,12 +1464,12 @@
         "docs/architecture/features/cc-hook-leverage.md"
       ],
       "impl_files": [
-        "system/hooks/hooks.json`",
-        "system/hooks/lib/profile.sh`",
-        "system/cli/`",
-        "system/scripts/`",
-        "system/skills/`",
-        "system/hooks/`"
+        "system/hooks/hooks.json",
+        "system/hooks/lib/profile.sh",
+        "system/cli/",
+        "system/scripts/",
+        "system/skills/",
+        "system/hooks/"
       ],
       "guide_files": [
         "docs/guide/concepts.md",
@@ -1479,11 +1497,10 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/scripts/spec_graph.py`",
-        "system/skills/close/SKILL.md`",
-        "system/skills/research/SKILL.md`",
-        "system/scripts/index-assumptions.sh`",
-        "system/scripts/spec_graph.py"
+        "system/scripts/spec_graph.py",
+        "system/skills/close/SKILL.md",
+        "system/skills/research/SKILL.md",
+        "system/scripts/index-assumptions.sh"
       ],
       "guide_files": [
         "docs/guide/workflows/spec-graph.md"
@@ -1505,7 +1522,7 @@
       ],
       "referenced_by": [],
       "impl_files": [
-        "system/`"
+        "system/"
       ],
       "guide_files": [
         "docs/guide/configuration.md",
@@ -1530,15 +1547,15 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/.claude-plugin/plugin.json`",
-        "system/skills/`",
-        "system/hooks/`",
-        "system/agents/`",
-        "system/commands/`",
-        "system/CLAUDE.md`",
-        "system/`",
-        "system/hooks/hooks.json`",
-        "system/hooks/lib/`"
+        "system/.claude-plugin/plugin.json",
+        "system/skills/",
+        "system/hooks/",
+        "system/agents/",
+        "system/commands/",
+        "system/CLAUDE.md",
+        "system/",
+        "system/hooks/hooks.json",
+        "system/hooks/lib/"
       ],
       "guide_files": [
         "docs/guide/concepts.md",
@@ -1576,9 +1593,9 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/hooks/`",
-        "system/hooks/hooks.json`",
-        "system/hooks/post-tool-use.sh`"
+        "system/hooks/",
+        "system/hooks/hooks.json",
+        "system/hooks/post-tool-use.sh"
       ],
       "guide_files": [
         "docs/guide/concepts.md",
@@ -1607,7 +1624,7 @@
       ],
       "referenced_by": [],
       "impl_files": [
-        "system/commands/`"
+        "system/commands/"
       ],
       "guide_files": [
         "docs/guide/concepts.md"
@@ -1627,23 +1644,23 @@
       ],
       "referenced_by": [],
       "impl_files": [
-        "system/rules/`",
-        "system/`",
-        "system/.claude-plugin/plugin.json`",
-        "system/CLAUDE.md`",
-        "system/hooks/hooks.json`",
-        "system/statusline.sh`",
-        "system/hooks/pre-tool-use.sh`",
-        "system/hooks/post-tool-use.sh`",
-        "system/hooks/post-tool-use-failure.sh`",
-        "system/hooks/post-tasks-validate.sh`",
-        "system/hooks/post-plan-challenge.sh`",
-        "system/hooks/post-pr-review.sh`",
-        "system/hooks/post-sale.sh`",
-        "system/hooks/session-start.sh`",
-        "system/hooks/session-start-venture.sh`",
-        "system/hooks/session-end.sh`",
-        "system/hooks/lib/`"
+        "system/rules/",
+        "system/",
+        "system/.claude-plugin/plugin.json",
+        "system/CLAUDE.md",
+        "system/hooks/hooks.json",
+        "system/statusline.sh",
+        "system/hooks/pre-tool-use.sh",
+        "system/hooks/post-tool-use.sh",
+        "system/hooks/post-tool-use-failure.sh",
+        "system/hooks/post-tasks-validate.sh",
+        "system/hooks/post-plan-challenge.sh",
+        "system/hooks/post-pr-review.sh",
+        "system/hooks/post-sale.sh",
+        "system/hooks/session-start.sh",
+        "system/hooks/session-start-venture.sh",
+        "system/hooks/session-end.sh",
+        "system/hooks/lib/"
       ],
       "guide_files": [
         "docs/guide/concepts.md",
@@ -1682,13 +1699,13 @@
       ],
       "referenced_by": [],
       "impl_files": [
-        "system/settings.json`",
-        "system/CLAUDE.md`",
-        "system/`",
-        "system/hooks/hooks.json`",
-        "system/commands/`",
+        "system/settings.json",
+        "system/CLAUDE.md",
+        "system/",
+        "system/hooks/hooks.json",
+        "system/commands/",
         "system/skills/_shared/guided-execution.md",
-        "system/skills/X/`"
+        "system/skills/X/"
       ],
       "guide_files": [
         "docs/guide/concepts.md",
@@ -1748,9 +1765,9 @@
         "docs/reflections/ARCHITECTURE.md"
       ],
       "impl_files": [
-        "system/`",
-        "system/scripts/decisions.py`",
-        "system/state/decisions/`"
+        "system/",
+        "system/scripts/decisions.py",
+        "system/state/decisions/"
       ],
       "guide_files": [
         "docs/guide/configuration.md",
@@ -2145,8 +2162,16 @@
         "system/skills/"
       ],
       "guide_files": [],
-      "arch_files": [],
-      "ref_files": []
+      "arch_files": [
+        "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+        "docs/architecture/features/acquire-skills-guide.md",
+        "docs/architecture/hooks.md",
+        "docs/architecture/plugin-structure.md"
+      ],
+      "ref_files": [
+        "docs/reference/configuration.md",
+        "docs/reference/skills.md"
+      ]
     },
     "docs/dimensions/38-design-thinking.md": {
       "references": [
@@ -2319,7 +2344,7 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/cli/rust/`"
+        "system/cli/rust/"
       ],
       "guide_files": [],
       "arch_files": [],
@@ -2389,7 +2414,7 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/cli/themes.json`",
+        "system/cli/themes.json",
         "system/cli/rust"
       ],
       "guide_files": [],
@@ -2410,10 +2435,10 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/hooks/`",
-        "system/rules/`",
-        "system/agents/`",
-        "system/commands/`"
+        "system/hooks/",
+        "system/rules/",
+        "system/agents/",
+        "system/commands/"
       ],
       "guide_files": [],
       "arch_files": [
@@ -2439,9 +2464,9 @@
       ],
       "referenced_by": [],
       "impl_files": [
-        "system/`",
-        "system/.claude-plugin/plugin.json`",
-        "system/hooks/hooks.json`"
+        "system/",
+        "system/.claude-plugin/plugin.json",
+        "system/hooks/hooks.json"
       ],
       "guide_files": [
         "docs/guide/getting-started.md",
@@ -2487,7 +2512,7 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/scripts/cc-changelog-check.sh`"
+        "system/scripts/cc-changelog-check.sh"
       ],
       "guide_files": [],
       "arch_files": [
@@ -2510,7 +2535,7 @@
         "docs/architecture/overview.md"
       ],
       "impl_files": [
-        "system/`"
+        "system/"
       ],
       "guide_files": [
         "docs/guide/configuration.md",
@@ -2549,7 +2574,7 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/`"
+        "system/"
       ],
       "guide_files": [
         "docs/guide/configuration.md",
@@ -2592,7 +2617,7 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/`"
+        "system/"
       ],
       "guide_files": [
         "docs/guide/configuration.md",
@@ -2633,7 +2658,7 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/state/decisions/archive/`"
+        "system/state/decisions/archive/"
       ],
       "guide_files": [],
       "arch_files": [],
@@ -2646,7 +2671,9 @@
         "system/scripts/gh-sync.sh"
       ],
       "guide_files": [],
-      "arch_files": [],
+      "arch_files": [
+        "docs/architecture/features/github-issues-sync.md"
+      ],
       "ref_files": []
     },
     "docs/guide/workflows/learn.md": {
@@ -2661,7 +2688,7 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/skills/backlog/SKILL.md`"
+        "system/skills/backlog/SKILL.md"
       ],
       "guide_files": [],
       "arch_files": [
@@ -2700,6 +2727,7 @@
       ],
       "guide_files": [],
       "arch_files": [
+        "docs/architecture/decisions/ADR-016-spec-dependency-graph.md",
         "docs/architecture/knowledge-system-extending.md"
       ],
       "ref_files": [
@@ -2718,7 +2746,7 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/scripts/evaluator-spike.py`"
+        "system/scripts/evaluator-spike.py"
       ],
       "guide_files": [],
       "arch_files": [],
@@ -2778,7 +2806,7 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/mcp/skill-registry/`"
+        "system/mcp/skill-registry/"
       ],
       "guide_files": [],
       "arch_files": [],
@@ -2817,8 +2845,18 @@
         "system/cli/rust/"
       ],
       "guide_files": [],
-      "arch_files": [],
-      "ref_files": []
+      "arch_files": [
+        "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+        "docs/architecture/decisions/ADR-012-acquire-skills.md",
+        "docs/architecture/features/acquire-skills-guide.md",
+        "docs/architecture/features/acquire-skills.md",
+        "docs/architecture/hooks.md",
+        "docs/architecture/plugin-structure.md"
+      ],
+      "ref_files": [
+        "docs/reference/configuration.md",
+        "docs/reference/skills.md"
+      ]
     },
     "docs/ideas/skill-semantic-validation.md": {
       "references": [
@@ -2911,7 +2949,7 @@
         "docs/architecture/agents.md"
       ],
       "impl_files": [
-        "system/agents/`"
+        "system/agents/"
       ],
       "guide_files": [
         "docs/guide/concepts.md"
@@ -2927,7 +2965,7 @@
         "docs/architecture/skills.md"
       ],
       "impl_files": [
-        "system/commands/`"
+        "system/commands/"
       ],
       "guide_files": [
         "docs/guide/concepts.md"
@@ -2945,9 +2983,9 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/scheduler/scheduler.template.json`",
-        "system/.claude-plugin/plugin.json`",
-        "system/skills/`"
+        "system/scheduler/scheduler.template.json",
+        "system/.claude-plugin/plugin.json",
+        "system/skills/"
       ],
       "guide_files": [
         "docs/guide/configuration.md"
@@ -2980,21 +3018,21 @@
       ],
       "referenced_by": [],
       "impl_files": [
-        "system/rules/`",
-        "system/rules/brana-cli.md`",
-        "system/rules/context-budget.md`",
-        "system/rules/delegation-routing.md`",
-        "system/rules/doc-linking.md`",
-        "system/rules/git-discipline.md`",
-        "system/rules/inbox-convention.md`",
-        "system/rules/parallel-bash.md`",
-        "system/rules/research-discipline.md`",
-        "system/rules/sdd-tdd.md`",
-        "system/rules/self-improvement.md`",
-        "system/rules/tactical-context.md`",
-        "system/rules/task-convention.md`",
-        "system/rules/universal-quality.md`",
-        "system/rules/work-preferences.md`"
+        "system/rules/",
+        "system/rules/brana-cli.md",
+        "system/rules/context-budget.md",
+        "system/rules/delegation-routing.md",
+        "system/rules/doc-linking.md",
+        "system/rules/git-discipline.md",
+        "system/rules/inbox-convention.md",
+        "system/rules/parallel-bash.md",
+        "system/rules/research-discipline.md",
+        "system/rules/sdd-tdd.md",
+        "system/rules/self-improvement.md",
+        "system/rules/tactical-context.md",
+        "system/rules/task-convention.md",
+        "system/rules/universal-quality.md",
+        "system/rules/work-preferences.md"
       ],
       "guide_files": [
         "docs/guide/concepts.md"
@@ -3015,18 +3053,18 @@
       ],
       "referenced_by": [],
       "impl_files": [
-        "system/scripts/`",
-        "system/hooks/lib/cf-env.sh`",
-        "system/scripts/index-knowledge.sh`",
-        "system/scripts/generate-index.sh`",
+        "system/scripts/",
+        "system/hooks/lib/cf-env.sh",
+        "system/scripts/index-knowledge.sh",
+        "system/scripts/generate-index.sh",
         "system/scripts/spec_graph.py",
-        "system/`",
+        "system/",
         "system/scripts/decisions.py",
-        "system/state/decisions/`",
+        "system/state/decisions/",
         "system/scripts/generate-reference.py",
-        "system/hooks/hooks.json`",
-        "system/commands/`",
-        "system/scripts/cc-changelog-check.sh`"
+        "system/hooks/hooks.json",
+        "system/commands/",
+        "system/scripts/cc-changelog-check.sh"
       ],
       "guide_files": [
         "docs/guide/concepts.md",
@@ -3041,6 +3079,7 @@
         "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
         "docs/architecture/decisions/ADR-011-skills-bundling.md",
         "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+        "docs/architecture/decisions/ADR-016-spec-dependency-graph.md",
         "docs/architecture/decisions/ADR-017-decision-log.md",
         "docs/architecture/extending-hooks.md",
         "docs/architecture/extending.md",
@@ -3065,7 +3104,7 @@
         "docs/architecture/skills.md"
       ],
       "impl_files": [
-        "system/skills/`"
+        "system/skills/"
       ],
       "guide_files": [],
       "arch_files": [
@@ -3126,7 +3165,7 @@
         "docs/reflections/31-assurance.md"
       ],
       "impl_files": [
-        "system/skills/`"
+        "system/skills/"
       ],
       "guide_files": [],
       "arch_files": [
@@ -3181,9 +3220,9 @@
         "docs/dimensions/12-skill-selector.md"
       ],
       "impl_files": [
-        "system/`",
-        "system/scripts/decisions.py`",
-        "system/state/decisions/`"
+        "system/",
+        "system/scripts/decisions.py",
+        "system/state/decisions/"
       ],
       "guide_files": [
         "docs/guide/configuration.md",
@@ -3262,10 +3301,10 @@
         "docs/dimensions/37-ruvnet-development-practices.md"
       ],
       "impl_files": [
-        "system/hooks/hooks.json`",
-        "system/`",
-        "system/state/`",
-        "system/state/patterns-export.json`"
+        "system/hooks/hooks.json",
+        "system/",
+        "system/state/",
+        "system/state/patterns-export.json"
       ],
       "guide_files": [
         "docs/guide/configuration.md",
@@ -3321,10 +3360,10 @@
         "docs/dimensions/34-venture-operating-system.md"
       ],
       "impl_files": [
-        "system/hooks/`",
-        "system/`",
-        "system/rules/tactical-context.md`",
-        "system/state/decisions/`"
+        "system/hooks/",
+        "system/",
+        "system/rules/tactical-context.md",
+        "system/state/decisions/"
       ],
       "guide_files": [
         "docs/guide/concepts.md",
@@ -3365,7 +3404,7 @@
       ],
       "referenced_by": [],
       "impl_files": [
-        "system/`"
+        "system/"
       ],
       "guide_files": [
         "docs/guide/configuration.md",
@@ -3394,7 +3433,7 @@
       ],
       "referenced_by": [],
       "impl_files": [
-        "system/`"
+        "system/"
       ],
       "guide_files": [
         "docs/guide/configuration.md",
@@ -3450,7 +3489,7 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/`"
+        "system/"
       ],
       "guide_files": [
         "docs/guide/configuration.md",
@@ -3476,7 +3515,7 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/scripts/`"
+        "system/scripts/"
       ],
       "guide_files": [],
       "arch_files": [
