@@ -273,7 +273,7 @@ Blockers: $HO_BLOCKERS"
         fi
 
         # Mark consumed (optimistic write-first)
-        "$BRANA_BIN" session read --json 2>/dev/null | jq -c '.consumed_at = now | todate' > /dev/null 2>&1 || true
+        "$BRANA_BIN" session mark-consumed 2>/dev/null || true
     else
         # Fallback: try legacy markdown handoff
         HANDOFF_RAW=$("$BRANA_BIN" handoff last 2>/dev/null) || true

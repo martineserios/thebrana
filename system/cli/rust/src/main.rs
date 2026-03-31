@@ -101,6 +101,13 @@ fn main() {
             SessionCmd::History { limit } => commands::session::cmd_session_history(limit),
             SessionCmd::Path => commands::session::cmd_session_path(),
             SessionCmd::Migrate => commands::session::cmd_session_migrate(),
+            SessionCmd::MarkConsumed => {
+                let root = commands::session::require_project_root();
+                if let Err(e) = commands::session::mark_consumed(&root) {
+                    eprintln!("mark-consumed: {e}");
+                    std::process::exit(1);
+                }
+            }
         },
     }
 }

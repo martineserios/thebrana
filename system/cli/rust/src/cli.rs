@@ -206,6 +206,8 @@ pub enum SessionCmd {
     Path,
     /// One-time migration: parse session-handoff.md → bootstrap JSON
     Migrate,
+    /// Mark current session state as consumed (set consumed_at to now)
+    MarkConsumed,
 }
 
 #[derive(Subcommand)]

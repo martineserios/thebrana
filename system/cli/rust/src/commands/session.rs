@@ -381,7 +381,7 @@ pub fn render_text(state: &SessionState) -> String {
 
 // ── CLI Commands ────────────────────────────────────────────────────────
 
-fn require_project_root() -> PathBuf {
+pub fn require_project_root() -> PathBuf {
     match crate::util::find_project_root() {
         Some(r) => r,
         None => {
