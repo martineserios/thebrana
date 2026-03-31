@@ -7,4 +7,5 @@ pub mod inbox;
 pub mod misc;
 pub mod ops;
 pub mod run;
+pub mod session;
 pub mod skills;
