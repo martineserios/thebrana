@@ -25,6 +25,8 @@ chrono = "0.4"
 anyhow = "1"
 feed-rs = "2"
 ureq = "3"
+# NOTE: imap v3 is alpha with breaking changes. Pin to v2.x until stable.
+# Track: https://github.com/jonhoo/rust-imap/releases
 imap = "2"
 mailparse = "0.15"
 native-tls = "0.2"
