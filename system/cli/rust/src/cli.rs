@@ -158,6 +158,11 @@ pub enum Commands {
         #[command(subcommand)]
         cmd: Option<HandoffCmd>,
     },
+    /// Unified session state management
+    Session {
+        #[command(subcommand)]
+        cmd: SessionCmd,
+    },
 }
 
 #[derive(Subcommand)]
@@ -171,6 +176,33 @@ pub enum HandoffCmd {
     /// List all entry headings
     List,
     /// Print the resolved handoff file path
+    Path,
+}
+
+#[derive(Subcommand)]
+pub enum SessionCmd {
+    /// Write session state from a JSON file (validate, archive, atomic write)
+    Write {
+        /// Path to JSON file with session state
+        #[arg(long)]
+        file: Option<PathBuf>,
+        /// Auto-capture minimal state (session-end safety net)
+        #[arg(long)]
+        minimal: bool,
+    },
+    /// Read latest session state
+    Read {
+        /// Output raw JSON instead of human-readable text
+        #[arg(long)]
+        json: bool,
+    },
+    /// List past sessions from history
+    History {
+        /// Max entries to show (default 10)
+        #[arg(long, default_value = "10")]
+        limit: usize,
+    },
+    /// Print the session-state.json path
     Path,
 }
 

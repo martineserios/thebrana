@@ -379,6 +379,132 @@ pub fn render_text(state: &SessionState) -> String {
     out
 }
 
+// ── CLI Commands ────────────────────────────────────────────────────────
+
+fn require_project_root() -> PathBuf {
+    match crate::util::find_project_root() {
+        Some(r) => r,
+        None => {
+            eprintln!("Not in a git repository");
+            std::process::exit(1);
+        }
+    }
+}
+
+/// Get the current git branch name.
+fn current_branch() -> Option<String> {
+    std::process::Command::new("git")
+        .args(["branch", "--show-current"])
+        .output()
+        .ok()
+        .and_then(|o| {
+            if o.status.success() {
+                let b = String::from_utf8_lossy(&o.stdout).trim().to_string();
+                if b.is_empty() { None } else { Some(b) }
+            } else {
+                None
+            }
+        })
+}
+
+/// `brana session write --file <path>` or `brana session write --minimal`
+pub fn cmd_session_write(file: Option<PathBuf>, minimal: bool) {
+    let root = require_project_root();
+
+    let state = if minimal {
+        SessionState::minimal(current_branch())
+    } else if let Some(ref path) = file {
+        let content = match fs::read_to_string(path) {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("error reading {}: {e}", path.display());
+                std::process::exit(1);
+            }
+        };
+        match serde_json::from_str::<SessionState>(&content) {
+            Ok(mut s) => {
+                // Auto-fill fields
+                if s.written_at.is_empty() {
+                    s.written_at = Utc::now().to_rfc3339();
+                }
+                if s.branch.is_none() {
+                    s.branch = current_branch();
+                }
+                s.consumed_at = None;
+                s
+            }
+            Err(e) => {
+                eprintln!("error parsing session state JSON: {e}");
+                std::process::exit(1);
+            }
+        }
+    } else {
+        eprintln!("either --file or --minimal is required");
+        std::process::exit(1);
+    };
+
+    match write_state(&root, &state) {
+        Ok(()) => {
+            let path = session_state_path(&root);
+            println!("{{\"ok\":true,\"path\":\"{}\"}}", path.display());
+        }
+        Err(e) => {
+            eprintln!("error writing session state: {e:#}");
+            std::process::exit(1);
+        }
+    }
+}
+
+/// `brana session read [--json]`
+pub fn cmd_session_read(json_output: bool) {
+    let root = require_project_root();
+
+    let state = match read_state(&root) {
+        Some(s) => s,
+        None => {
+            eprintln!("No session state found. Run close or `brana session write` first.");
+            std::process::exit(1);
+        }
+    };
+
+    if json_output {
+        println!("{}", serde_json::to_string_pretty(&state).unwrap());
+    } else {
+        print!("{}", render_text(&state));
+    }
+}
+
+/// `brana session history [--limit N]`
+pub fn cmd_session_history(limit: usize) {
+    let root = require_project_root();
+    let entries = read_history(&root, limit);
+
+    if entries.is_empty() {
+        eprintln!("No session history found.");
+        std::process::exit(1);
+    }
+
+    for (i, entry) in entries.iter().enumerate() {
+        if i > 0 {
+            println!("\n---\n");
+        }
+        let label = entry.session_label.as_deref().unwrap_or("(unlabeled)");
+        let branch = entry.branch.as_deref().unwrap_or("(no branch)");
+        println!("{} — {} [{}]", entry.written_at, label, branch);
+        if !entry.accomplished.is_empty() {
+            for a in &entry.accomplished {
+                println!("  - {a}");
+            }
+        }
+    }
+}
+
+/// `brana session path`
+pub fn cmd_session_path() {
+    let root = require_project_root();
+    println!("{}", session_state_path(&root).display());
+}
+
 // ── Tests ───────────────────────────────────────────────────────────────
 
 #[cfg(test)]

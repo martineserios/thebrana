@@ -91,5 +91,11 @@ fn main() {
             Some(HandoffCmd::List) => commands::handoff::cmd_handoff_list(),
             Some(HandoffCmd::Path) => commands::handoff::cmd_handoff_path(),
         },
+        Commands::Session { cmd } => match cmd {
+            SessionCmd::Write { file, minimal } => commands::session::cmd_session_write(file, minimal),
+            SessionCmd::Read { json } => commands::session::cmd_session_read(json),
+            SessionCmd::History { limit } => commands::session::cmd_session_history(limit),
+            SessionCmd::Path => commands::session::cmd_session_path(),
+        },
     }
 }
