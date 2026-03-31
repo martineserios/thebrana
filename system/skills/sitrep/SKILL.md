@@ -75,16 +75,20 @@ For each in_progress task, extract:
 - `id`, `subject`, `strategy`, `build_step`, `branch`
 - `build_step` tells you exactly where in the /brana:build loop you are
 
-### 4. Session handoff (last entry)
+### 4. Session state (previous session)
 
 ```bash
-brana handoff last
+brana session read --json
 ```
 
-Extract from the output:
-- **Accomplished** → what was already done
-- **Next** → planned follow-ups
-- **Blockers** → anything stalling progress
+If JSON is available, extract structured fields directly:
+- **accomplished** → what was already done (array of strings)
+- **next** → planned follow-ups (array of `{text, task_id, category}`)
+- **blockers** → anything stalling progress (array of `{text, task_id}`)
+- **consumed_at** → if non-null, this state was already loaded by session-start (don't re-present)
+- **metrics** → session flywheel metrics (events, corrections, test writes)
+
+If `brana session read --json` returns nothing, fall back to `brana handoff last` (legacy markdown).
 
 ### 5. Conversation scan
 
@@ -112,8 +116,8 @@ Present a structured snapshot — concise, actionable:
 
 **Recent:** {last 2-3 commits, one line each}
 
-**Session handoff says next:**
-- {from handoff Next section}
+**Previous session next:**
+- {from session state next[] array, with [category] prefix}
 
 **Next action:** {single clear sentence — what to do RIGHT NOW}
 ```
@@ -125,7 +129,7 @@ Determine the single most important next action:
 1. **If CC Task is `in_progress`:** "Resume {step} of /brana:{skill}."
 2. **If build_step is set on active task:** "Continue {build_step} step of /brana:build for {task-id}."
 3. **If uncommitted changes exist:** "Commit or stash {N} uncommitted files before proceeding."
-4. **If no active task but handoff has Next:** "Pick up from handoff: {first next item}."
+4. **If no active task but session state has next[]:** "Pick up from previous session: {first next item}."
 5. **If nothing active:** "No active work. Run `brana backlog next` to pick a task."
 
 ---
