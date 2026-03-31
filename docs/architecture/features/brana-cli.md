@@ -286,6 +286,22 @@ Full guide: [docs/guide/cli.md](../guide/cli.md)
 6. **Dependency planning:** `bb` + `btree ph-001` for architecture conversations
 7. **Cross-client overview:** `bs --all` from any terminal
 
+## Binary Size Budget
+
+Current release build: **4.9 MB** (2026-03-31, `opt-level="z"` + LTO + strip + panic=abort).
+
+| Dependency | Approx. contribution | Role |
+|------------|---------------------|------|
+| clap | ~600 KB | Arg parsing + completions |
+| serde + serde_json | ~300 KB | JSON serialization |
+| ureq + native-tls | ~800 KB | HTTP + TLS (feed/files) |
+| imap + mailparse + native-tls | ~400 KB | Email inbox polling |
+| chrono | ~200 KB | Date/time formatting |
+| feed-rs | ~300 KB | RSS/Atom parsing |
+| keyring + rpassword | ~150 KB | Credential storage |
+
+**Soft cap: 15 MB release build.** Before adding a dependency, check `cargo bloat --release --crates`. Prefer subprocess calls over heavy async runtimes (see challenger findings on t-475).
+
 ## Field Notes
 
 ### 2026-03-15: CLI binary must be rebuilt after adding subcommands
