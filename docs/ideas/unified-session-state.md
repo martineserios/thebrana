@@ -1,6 +1,6 @@
 # Unified Session State
 
-> Brainstormed 2026-03-31. Status: idea.
+> Brainstormed 2026-03-31. Status: **implemented** (t-794 phase, commits 928a598..679e28f).
 
 ## Problem
 
