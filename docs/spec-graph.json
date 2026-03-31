@@ -1,10 +1,10 @@
 {
   "_meta": {
-    "generated": "2026-03-31T19:44:46Z",
-    "node_count": 200,
+    "generated": "2026-03-31T21:28:21Z",
+    "node_count": 201,
     "edge_count": 549,
     "impl_ref_count": 248,
-    "orphan_count": 98,
+    "orphan_count": 99,
     "typed_edge_count": 0
   },
   "nodes": {
@@ -2862,6 +2862,14 @@
       "references": [
         "relative/path.md"
       ],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/ideas/unified-session-state.md": {
+      "references": [],
       "referenced_by": [],
       "impl_files": [],
       "guide_files": [],
