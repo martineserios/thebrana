@@ -506,6 +506,155 @@ pub fn cmd_session_path() {
     println!("{}", session_state_path(&root).display());
 }
 
+/// `brana session migrate` — one-time migration from session-handoff.md
+pub fn cmd_session_migrate() {
+    let root = require_project_root();
+    let handoff_path = handoff::resolve_handoff_path(&root);
+
+    let content = match fs::read_to_string(&handoff_path) {
+        Ok(c) => c,
+        Err(_) => {
+            eprintln!("No session-handoff.md found at {}", handoff_path.display());
+            std::process::exit(1);
+        }
+    };
+
+    let entries = handoff::parse_entries(&content);
+    if entries.is_empty() {
+        eprintln!("No entries found in session-handoff.md");
+        std::process::exit(1);
+    }
+
+    // Check if already migrated
+    let history = read_history(&root, 1);
+    if !history.is_empty() {
+        eprintln!("session-history.jsonl already has entries. Skipping migration to avoid duplicates.");
+        eprintln!("Delete session-history.jsonl first if you want to re-migrate.");
+        std::process::exit(1);
+    }
+
+    let mut migrated = 0;
+    let total = entries.len();
+
+    // Process entries in reverse order (oldest first → newest last)
+    // so the JSONL and final state are in the right order
+    for entry in entries.iter().rev() {
+        let state = convert_handoff_entry(entry);
+        match write_state(&root, &state) {
+            Ok(()) => migrated += 1,
+            Err(e) => {
+                eprintln!("warning: failed to write entry '{}': {e}", entry.heading);
+            }
+        }
+    }
+
+    println!(
+        "{{\"ok\":true,\"migrated\":{migrated},\"total\":{total},\"history\":\"{}\"}}",
+        session_history_path(&root).display()
+    );
+}
+
+/// Best-effort conversion of a markdown handoff entry to SessionState.
+fn convert_handoff_entry(entry: &handoff::HandoffEntry) -> SessionState {
+    let body = &entry.body;
+
+    // Extract date from heading (format: "YYYY-MM-DD — label" or "YYYY-MM-DD (N) — label")
+    let date = entry.heading.split(' ').next().unwrap_or("").to_string();
+    let label = entry.heading
+        .splitn(2, " — ")
+        .nth(1)
+        .or_else(|| entry.heading.splitn(2, " - ").nth(1))
+        .unwrap_or(&entry.heading)
+        .to_string();
+
+    // Build written_at from date
+    let written_at = if date.len() == 10 {
+        format!("{date}T00:00:00Z")
+    } else {
+        Utc::now().to_rfc3339()
+    };
+
+    // Extract sections by bold headers
+    let accomplished = extract_section_items(body, "Accomplished");
+    let learnings = extract_section_items(body, "Learnings");
+    let next_raw = extract_section_items(body, "Next");
+    let blocker_raw = extract_section_items(body, "Blockers");
+
+    // Extract branch from State section
+    let branch = extract_field(body, "Branch");
+
+    // Convert next items
+    let next: Vec<NextItem> = next_raw
+        .into_iter()
+        .filter(|s| !s.is_empty())
+        .map(|text| NextItem {
+            text,
+            task_id: None,
+            category: NextCategory::FollowUp,
+        })
+        .collect();
+
+    // Convert blockers
+    let blockers: Vec<Blocker> = blocker_raw
+        .into_iter()
+        .filter(|s| !s.is_empty() && s.to_lowercase() != "none")
+        .map(|text| Blocker { text, task_id: None })
+        .collect();
+
+    SessionState {
+        version: 1,
+        written_at,
+        branch,
+        session_label: Some(label),
+        consumed_at: Some("migrated".into()),
+        accomplished,
+        learnings,
+        next,
+        blockers,
+        backprop: None,
+        doc_drift: None,
+        state: None,
+        metrics: None,
+    }
+}
+
+/// Extract bullet items from a **Header:** section in markdown.
+fn extract_section_items(body: &str, header: &str) -> Vec<String> {
+    let mut in_section = false;
+    let mut items = Vec::new();
+
+    for line in body.lines() {
+        if line.contains(&format!("**{header}")) && line.contains("**") {
+            in_section = true;
+            continue;
+        }
+        if in_section {
+            if line.starts_with("**") || line.starts_with("### ") {
+                break; // next section
+            }
+            let trimmed = line.trim().trim_start_matches("- ").trim();
+            if !trimmed.is_empty() {
+                items.push(trimmed.to_string());
+            }
+        }
+    }
+    items
+}
+
+/// Extract a single field value like "- Branch: main" from a section.
+fn extract_field(body: &str, field: &str) -> Option<String> {
+    for line in body.lines() {
+        let trimmed = line.trim().trim_start_matches("- ");
+        if let Some(rest) = trimmed.strip_prefix(&format!("{field}: ")) {
+            let val = rest.trim().to_string();
+            if !val.is_empty() {
+                return Some(val);
+            }
+        }
+    }
+    None
+}
+
 // ── Tests ───────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -880,5 +1029,81 @@ mod tests {
         let entries = read_history(root, 100);
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].written_at, "2026-03-31T20:15:00Z");
+    }
+
+    // ── Migration tests ─────────────────────────────────────────────
+
+    #[test]
+    fn test_extract_section_items() {
+        let body = "**Accomplished:**\n- Built session structs\n- Wired CLI\n\n**Learnings:**\n- TDD first\n";
+        let items = extract_section_items(body, "Accomplished");
+        assert_eq!(items, vec!["Built session structs", "Wired CLI"]);
+        let learnings = extract_section_items(body, "Learnings");
+        assert_eq!(learnings, vec!["TDD first"]);
+    }
+
+    #[test]
+    fn test_extract_section_items_empty() {
+        let body = "**Accomplished:**\n\n**Next:**\n- Do stuff\n";
+        let items = extract_section_items(body, "Accomplished");
+        assert!(items.is_empty());
+    }
+
+    #[test]
+    fn test_extract_field() {
+        let body = "**State:**\n- Branch: feat/t-123\n- Tests: 25 passing\n";
+        assert_eq!(extract_field(body, "Branch"), Some("feat/t-123".into()));
+        assert_eq!(extract_field(body, "Tests"), Some("25 passing".into()));
+        assert_eq!(extract_field(body, "Missing"), None);
+    }
+
+    #[test]
+    fn test_convert_handoff_entry() {
+        let entry = handoff::HandoffEntry {
+            heading: "2026-03-31 — unified session state".into(),
+            body: "\
+**Accomplished:**
+- Built session structs
+- Wired CLI commands
+
+**Learnings:**
+- TDD first
+
+**State:**
+- Branch: feat/t-798
+- Tests: 25 passing
+
+**Next:**
+- Implement migrate command
+- Update sitrep
+
+**Blockers:**
+- None"
+                .into(),
+        };
+
+        let state = convert_handoff_entry(&entry);
+        assert_eq!(state.version, 1);
+        assert_eq!(state.written_at, "2026-03-31T00:00:00Z");
+        assert_eq!(state.session_label, Some("unified session state".into()));
+        assert_eq!(state.branch, Some("feat/t-798".into()));
+        assert_eq!(state.accomplished.len(), 2);
+        assert_eq!(state.learnings, vec!["TDD first"]);
+        assert_eq!(state.next.len(), 2);
+        assert_eq!(state.next[0].text, "Implement migrate command");
+        assert_eq!(state.next[0].category, NextCategory::FollowUp);
+        assert!(state.blockers.is_empty()); // "None" filtered out
+        assert_eq!(state.consumed_at, Some("migrated".into()));
+    }
+
+    #[test]
+    fn test_convert_handoff_entry_no_label() {
+        let entry = handoff::HandoffEntry {
+            heading: "2026-03-30".into(),
+            body: "**Accomplished:**\n- Did stuff\n".into(),
+        };
+        let state = convert_handoff_entry(&entry);
+        assert_eq!(state.session_label, Some("2026-03-30".into()));
+        assert_eq!(state.written_at, "2026-03-30T00:00:00Z");
     }
 }

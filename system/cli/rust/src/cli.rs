@@ -204,6 +204,8 @@ pub enum SessionCmd {
     },
     /// Print the session-state.json path
     Path,
+    /// One-time migration: parse session-handoff.md → bootstrap JSON
+    Migrate,
 }
 
 #[derive(Subcommand)]

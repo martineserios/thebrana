@@ -100,6 +100,7 @@ fn main() {
             SessionCmd::Read { json } => commands::session::cmd_session_read(json),
             SessionCmd::History { limit } => commands::session::cmd_session_history(limit),
             SessionCmd::Path => commands::session::cmd_session_path(),
+            SessionCmd::Migrate => commands::session::cmd_session_migrate(),
         },
     }
 }
