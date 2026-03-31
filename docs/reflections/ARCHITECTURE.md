@@ -308,3 +308,9 @@ No shadow backlogs. Skills propose backlog items in reports. Users decide what g
 - Added temporal metadata (last_verified, status, maturity)
 - Added explicit assumptions table
 - Added changelog section (ADR-021 format)
+
+## Field Notes
+
+### 2026-03-31: Reconcile after multi-branch milestones catches real bugs
+After merging 8 feature branches for unified session state (t-794), `/brana:reconcile` found 2 actual bugs: an unwired CLI subcommand (mark-consumed existed as Rust fn but had no CLI dispatch) and a missing awk `-F'\t'` for tab-delimited input. Unit tests (30 passing) missed both because they tested functions, not integration. Run reconcile after merging 3+ branches before marking a milestone complete.
+Source: session 2026-03-31, /brana:reconcile

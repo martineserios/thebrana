@@ -311,3 +311,7 @@ Source: session 2026-03-15, t-475
 ### 2026-03-15: Batch skill metadata addition works cleanly as single chore commit
 Added `argument-hint` field to 22 SKILL.md files in one batch commit + extending-skills doc update. Pattern: when adding a new metadata field to skills, do it as a dedicated chore branch touching all skills at once rather than incrementally.
 Source: session 2026-03-15, chore(skills)
+
+### 2026-03-31: CLI wiring is a 3-step chain — missing any step = silent failure
+Adding a CLI-callable function requires: (1) implement the function in `commands/*.rs`, (2) add the enum variant to `cli.rs`, (3) match the variant in `main.rs`. `mark_consumed()` had step 1 + unit tests but steps 2-3 were missing — the function existed but was unreachable from the binary. Always test binary dispatch (`brana <cmd> --help`), not just unit tests.
+Source: session 2026-03-31, reconcile finding #2
