@@ -403,3 +403,7 @@ cd thebrana && ./bootstrap.sh
 8. Clean up garbage (108 backups, pending-learnings.md, move meta-whatsapp)
 9. Test new machine recovery procedure end-to-end
 10. Monitor CC plugin releases for #24529 fix and new capabilities
+
+## Changelog
+
+- 2026-03-31: t-614 reduced repo sync scope. `sessions.md`, `session-handoff.md`, and `MEMORY-snapshot.md` no longer copied to `.claude/memory/` in repo — they stay in auto memory only. `sync-state.sh snapshot` subcommand removed. Companion file sync limited to `event-log.md`. Handoff rotation added (keep last 10 entries). Rationale: `sessions.md` was 390KB of telemetry noise in git, `MEMORY-snapshot.md` was redundant (MEMORY.md always loaded by CC), and duplicated handoff files drifted apart.

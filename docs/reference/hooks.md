@@ -58,6 +58,11 @@ No strict mode — hooks must always return valid JSON.
 
 No strict mode — hooks must always return valid JSON.
 
+Computes flywheel metrics, appends telemetry to auto memory `sessions.md`, auto-generates
+minimal handoff if `/brana:close` wasn't run. Rotates handoff to keep last 10 entries
+(archives older to `session-handoff-archive.md`). Syncs only `.needs-backprop` flag to
+repo `.claude/memory/`. Session state (sessions.md, handoff) stays in auto memory only.
+
 ### `session-start.sh`
 
 No strict mode — hooks must always return valid JSON.

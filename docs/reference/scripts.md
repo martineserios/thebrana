@@ -275,7 +275,7 @@ Reads tasks tagged "second-phase" or with soak gates. When a trigger condition i
 | **Usage** | `sync-state.sh <push|pull|export|import> [--auto-commit]` |
 | **Dependencies** | ruflo (for export/import), git |
 
-Subcommands: `push` (cache → repos), `pull` (repos → cache), `export` (ruflo → repo JSON), `import` (repo JSON → ruflo). Used by session-start hook and daily scheduler.
+Subcommands: `push` (cache → repos), `pull` (repos → cache), `export` (ruflo → repo JSON), `import` (repo JSON → ruflo). Used by session-start hook and daily scheduler. The `snapshot` subcommand was removed in t-614 — MEMORY.md is always loaded by CC, so repo snapshots are redundant. Companion file sync now limited to `event-log.md`; session state (sessions.md, handoff) stays in auto memory.
 
 ---
 
