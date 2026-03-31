@@ -17,6 +17,8 @@ allowed-tools:
   - AskUserQuestion
   - Agent
   - Task
+  - TaskList
+  - Skill
 status: stable
 growth_stage: evergreen
 ---
@@ -36,7 +38,7 @@ End a work session. Extracts what was learned, writes a handoff note for the nex
 
 On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
 
-Register these steps: GATE, GATHER, EXTRACT, ERRATA, PATTERNS, FIELD-NOTES, DRIFT, HANDOFF, METADATA, REPORT.
+Register these steps: GATE, GATHER, EXTRACT, ERRATA, PATTERNS, FIELD-NOTES, IDEATE, DRIFT, HANDOFF, METADATA, MEMORY-REVIEW, REPORT.
 
 ## Steps
 
@@ -52,7 +54,7 @@ git log --oneline --since="6 hours ago" 2>/dev/null
 **If both empty** (no commits, no changes in 6 hours):
 - Write a minimal handoff entry: `## YYYY-MM-DD — read-only session`
 - Add only a **Next:** section from conversation context
-- Skip to Step 8 (Write handoff note)
+- Skip to Step 9 (Write handoff note)
 
 ### Step 2: Gather evidence
 
@@ -188,7 +190,48 @@ Review the learnings extracted in Step 3 for **practical discoveries** — gotch
 
 **Track field note count** for the session report in Step 10: `{N} kept, {M} archived, {P} skipped`.
 
-### Step 7: Detect doc drift
+### Step 7: Feature ideation
+
+Scan the session for feature ideas — new CLI commands, hook improvements, skill enhancements, system architecture changes, rule additions, scheduler jobs, or agent behaviors that came up during the work but weren't implemented.
+
+**Skip if:** session was read-only (no commits), or no feature ideas surfaced.
+
+1. **Mine ideas from session context:**
+   - Review conversation for phrases like "it would be nice if", "we should add", "this could be a hook/skill/command", unresolved pain points, manual steps that could be automated
+   - Check git diffs for TODO/FIXME/HACK comments added this session
+   - Each idea gets a one-line description and a component tag
+
+2. **Classify by component:**
+
+   | Component | Examples |
+   |-----------|---------|
+   | `cli` | New subcommand, flag, output format |
+   | `hook` | New gate, validation, auto-trigger |
+   | `skill` | New workflow, skill enhancement |
+   | `agent` | New agent type, delegation change |
+   | `rule` | New behavioral rule, rule refinement |
+   | `scheduler` | New scheduled job, cron change |
+
+3. **Offer for backlog addition** via AskUserQuestion (multiSelect):
+   ```
+   AskUserQuestion:
+     question: "Add these feature ideas to the backlog?"
+     header: "Feature ideas from this session"
+     multiSelect: true
+     options:
+       - "[component] brief description" — one per idea
+       - "Skip all"
+   ```
+
+4. **For each selected idea**, add via CLI:
+   ```bash
+   brana backlog add --json '{"subject":"[component] description","stream":"roadmap","type":"task","tags":["ideation","component"],"effort":"S"}'
+   ```
+   Report created task IDs inline.
+
+**Track ideation count** for the session report: `{N} ideas found, {M} added to backlog`.
+
+### Step 8: Detect doc drift
 
 Check if system files were modified this session:
 
@@ -236,7 +279,7 @@ After detecting system-level drift, also check if session changes affect existin
 
 4. **Skip if:** no feature docs exist yet, or no implementation files changed
 
-### Step 8: Write handoff note
+### Step 9: Write handoff note
 
 Find `session-handoff.md` in `~/.claude/projects/` for the current project. Append:
 
@@ -272,7 +315,7 @@ Find `session-handoff.md` in `~/.claude/projects/` for the current project. Appe
 - Keep each section concise — 15 lines max
 - Trim old sections if file exceeds ~200 lines: collapse entries older than 30 days into an `## Archive (before YYYY-MM-DD)` summary
 
-### Step 9: Store session metadata
+### Step 10: Store session metadata
 
 ```bash
 source "$HOME/.claude/scripts/cf-env.sh"
@@ -294,7 +337,7 @@ Then backup:
 "$HOME/.claude/scripts/backup-knowledge.sh" 2>/dev/null || true
 ```
 
-### Step 10: Memory review
+### Step 11: Memory review
 
 Audit every entry in MEMORY.md using the **"Where to store what"** classification table from `self-improvement.md`.
 
@@ -320,7 +363,7 @@ Audit every entry in MEMORY.md using the **"Where to store what"** classificatio
 
 **Skip if:** session was read-only, or MEMORY.md has fewer than 5 entries.
 
-### Step 11: Report
+### Step 12: Report
 
 ```markdown
 ## Session Close
@@ -329,6 +372,7 @@ Audit every entry in MEMORY.md using the **"Where to store what"** classificatio
 **Learnings extracted:** {N} ({errata} errata, {learnings} learnings, {issues} issues)
 **Field notes:** {N kept} kept, {M archived} archived, {P skipped} skipped
 **Patterns stored:** {N}
+**Feature ideation:** {N ideas found}, {M added to backlog}
 **Memory reviewed:** {N entries deleted}, {M feature ideas extracted}
 **Doc drift detected:** {yes/no}
 **Handoff note updated:** {path}
@@ -339,11 +383,12 @@ Audit every entry in MEMORY.md using the **"Where to store what"** classificatio
 - {if issues: "Issues logged for next session"}
 - {if field notes kept: "Docs updated with field notes: {list of docs}"}
 - {if features extracted: "New tasks from memory: {list of task IDs}"}
+- {if ideation added: "Feature ideas added: {list of task IDs}"}
 ```
 
 After presenting the report, **offer to create tasks from actionable follow-ups**.
 
-Collect all follow-up items that are actionable (not just informational). Filter out items that already have tasks (e.g., "New tasks from memory" items were already created in Step 10). Present the remaining via AskUserQuestion (multiSelect: true):
+Collect all follow-up items that are actionable (not just informational). Filter out items that already have tasks (e.g., "New tasks from memory" items were already created in Step 11, ideation items in Step 7). Present the remaining via AskUserQuestion (multiSelect: true):
 
 ```
 AskUserQuestion:
