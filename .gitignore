@@ -18,4 +18,11 @@ inbox/
 # Python virtual environment
 .venv/
 __pycache__/
+*.pyc
 .pytest_cache/
+
+# Rust build artifacts
+target/
+
+# Node.js
+node_modules/
