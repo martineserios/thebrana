@@ -358,6 +358,17 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
 
 6. Update spec status to `decomposing`.
 
+### Gate: SPECIFY → DECOMPOSE (Medium/Large only)
+
+Before entering DECOMPOSE, verify the spec exists:
+- Check that `docs/architecture/features/{slug}.md` or `docs/features/{slug}.md` was written
+- **If missing:** hard block. Do not proceed.
+  ```
+  question: "No feature spec found. DECOMPOSE requires a spec. What to do?"
+  options: ["Write spec now", "Skip gate — reason required"]
+  ```
+  If "Skip gate": require a reason via free text. Log to task notes: `brana backlog set {id} notes --append "SPECIFY→DECOMPOSE gate skipped: {reason}"`.
+
 ### DECOMPOSE
 
 0. **Assumption check** (after strategy confirmed, before decomposing):
@@ -419,6 +430,18 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
 
 5. Update spec status to `building`.
 
+### Gate: DECOMPOSE → BUILD (Medium/Large only)
+
+Before entering BUILD, verify the task breakdown includes test tasks:
+- At least one subtask must mention "test" in its subject or description
+- The Documentation Plan from the spec must have entries
+- **If either missing:** hard block.
+  ```
+  question: "BUILD gate: {missing items}. Fix before proceeding?"
+  options: ["Add missing items now", "Skip gate — reason required"]
+  ```
+  If "Skip gate": require a reason. Log: `brana backlog set {id} notes --append "DECOMPOSE→BUILD gate skipped: {reason}"`.
+
 ### BUILD
 
 1. **Create branch** (if not already on one):
@@ -473,6 +496,23 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
    question: "Continue to next task, or review/adjust?"
    options: ["Continue", "Review", "Adjust tasks"]
    ```
+
+### Gate: BUILD → CLOSE (Medium/Large feature/greenfield/migration only)
+
+Before entering CLOSE, verify all mandatory artifacts exist on the branch:
+1. **Tests:** `git diff --name-only main...HEAD` must include test files (`*test*`, `*spec*`, `tests/`, `__tests__/`)
+2. **Docs:** at least one doc file in the diff (`docs/`)
+3. **All subtasks completed:** no `in_progress` or `pending` subtasks remain
+
+Check each, collect failures, then gate:
+```
+question: "BUILD→CLOSE gate. Missing: {list of failures}. Fix before closing?"
+options: ["Fix now", "Skip gate — reason required"]
+```
+If all pass, proceed silently. If "Skip gate": require reason. Log: `brana backlog set {id} notes --append "BUILD→CLOSE gate skipped: {reason}"`.
+
+Bug fix and refactor strategies: skip doc check (only require tests).
+Spike and investigation: skip this gate entirely.
 
 ### CLOSE
 
@@ -952,12 +992,12 @@ When `/brana:build` is invoked WITHOUT `/brana:backlog start`:
 
 The strategy adapts not just by type but by size. These heuristics determine how much of each step to do:
 
-| Size | Signal | SPECIFY depth | DECOMPOSE detail |
-|------|--------|--------------|-------------------|
-| **Trivial** | 1 file, obvious fix | Skip SPECIFY | No decomposition |
-| **Small** | 1-3 files, scope clear | Light (no research) | Inline — no separate step |
-| **Medium** | 4+ files, design needed | Full research loop | Full task breakdown |
-| **Large** | New skill/system, unknown scope | Deep research + challenger | Full + dependencies |
+| Size | Signal | SPECIFY depth | DECOMPOSE detail | Enforcement gates |
+|------|--------|--------------|-------------------|-------------------|
+| **Trivial** | 1 file, obvious fix | Skip SPECIFY | No decomposition | None |
+| **Small** | 1-3 files, scope clear | Light (no research) | Inline — no separate step | None |
+| **Medium** | 4+ files, design needed | Full research loop | Full task breakdown | Hard gates at transitions |
+| **Large** | New skill/system, unknown scope | Deep research + challenger | Full + dependencies | Hard gates at transitions |
 
 Claude proposes the size. User can override: "this is bigger than it looks" or "just do it, it's simple."
 
