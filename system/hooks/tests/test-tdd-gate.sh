@@ -119,6 +119,124 @@ echo -e 'fn foo() {}\n#[cfg(test)]\nmod tests { #[test] fn t() {} }' > "$CRATE8/
 assert_allows "Rust impl on feat/ with #[cfg(test)] → allow" \
     "$(make_input Edit "$CRATE8/src/lib.rs" "$CRATE8")"
 
+# === Python tests ===
+
+# Helper: setup a Python project
+setup_python() {
+    local dir="$1"
+    mkdir -p "$dir/src"
+    git -C "$dir" init -q 2>/dev/null
+    echo '[project]' > "$dir/pyproject.toml"
+    echo 'def main(): pass' > "$dir/src/app.py"
+    git -C "$dir" add -A && git -C "$dir" commit -q -m "init" 2>/dev/null
+}
+
+# --- Test 9: Python impl on feat/ with NO tests → deny ---
+PY1="$TMPDIR/py1"
+setup_python "$PY1"
+git -C "$PY1" checkout -q -b feat/t-800-py
+assert_denies "Python impl on feat/ with no tests → deny" \
+    "$(make_input Edit "$PY1/src/app.py" "$PY1")"
+
+# --- Test 10: Python impl on feat/ WITH test file → allow ---
+PY2="$TMPDIR/py2"
+setup_python "$PY2"
+git -C "$PY2" checkout -q -b feat/t-801-py
+echo 'def test_main(): pass' > "$PY2/src/test_app.py"
+assert_allows "Python impl on feat/ with test_*.py → allow" \
+    "$(make_input Edit "$PY2/src/app.py" "$PY2")"
+
+# --- Test 11: Python test file itself → allow ---
+PY3="$TMPDIR/py3"
+setup_python "$PY3"
+git -C "$PY3" checkout -q -b feat/t-802-py
+assert_allows "Writing a Python test file passes through" \
+    "$(make_input Write "$PY3/src/test_app.py" "$PY3")"
+
+# === JS/TS tests ===
+
+setup_js() {
+    local dir="$1"
+    mkdir -p "$dir/src"
+    git -C "$dir" init -q 2>/dev/null
+    echo '{"name":"test"}' > "$dir/package.json"
+    echo 'export default {}' > "$dir/src/index.ts"
+    git -C "$dir" add -A && git -C "$dir" commit -q -m "init" 2>/dev/null
+}
+
+# --- Test 12: TS impl on feat/ with NO tests → deny ---
+JS1="$TMPDIR/js1"
+setup_js "$JS1"
+git -C "$JS1" checkout -q -b feat/t-900-ts
+assert_denies "TS impl on feat/ with no tests → deny" \
+    "$(make_input Edit "$JS1/src/index.ts" "$JS1")"
+
+# --- Test 13: TS impl on feat/ WITH .test.ts → allow ---
+JS2="$TMPDIR/js2"
+setup_js "$JS2"
+git -C "$JS2" checkout -q -b feat/t-901-ts
+echo 'test("works", () => {})' > "$JS2/src/index.test.ts"
+assert_allows "TS impl on feat/ with .test.ts → allow" \
+    "$(make_input Edit "$JS2/src/index.ts" "$JS2")"
+
+# --- Test 14: Writing a .spec.js file → allow ---
+JS3="$TMPDIR/js3"
+setup_js "$JS3"
+git -C "$JS3" checkout -q -b feat/t-902-js
+assert_allows "Writing a .spec.js test file passes through" \
+    "$(make_input Write "$JS3/src/app.spec.js" "$JS3")"
+
+# === Shell tests ===
+
+setup_shell() {
+    local dir="$1"
+    mkdir -p "$dir"
+    git -C "$dir" init -q 2>/dev/null
+    echo '#!/bin/bash' > "$dir/deploy.sh"
+    git -C "$dir" add -A && git -C "$dir" commit -q -m "init" 2>/dev/null
+}
+
+# --- Test 15: Shell script on feat/ with NO tests → deny ---
+SH1="$TMPDIR/sh1"
+setup_shell "$SH1"
+git -C "$SH1" checkout -q -b feat/t-1000-sh
+assert_denies "Shell script on feat/ with no tests → deny" \
+    "$(make_input Edit "$SH1/deploy.sh" "$SH1")"
+
+# --- Test 16: Shell script on feat/ WITH test file → allow ---
+SH2="$TMPDIR/sh2"
+setup_shell "$SH2"
+git -C "$SH2" checkout -q -b feat/t-1001-sh
+echo '#!/bin/bash' > "$SH2/test-deploy.sh"
+assert_allows "Shell script on feat/ with test-*.sh → allow" \
+    "$(make_input Edit "$SH2/deploy.sh" "$SH2")"
+
+# === Go tests ===
+
+setup_go() {
+    local dir="$1"
+    mkdir -p "$dir"
+    git -C "$dir" init -q 2>/dev/null
+    echo 'module example.com/test' > "$dir/go.mod"
+    echo 'package main' > "$dir/main.go"
+    git -C "$dir" add -A && git -C "$dir" commit -q -m "init" 2>/dev/null
+}
+
+# --- Test 17: Go impl on feat/ with NO tests → deny ---
+GO1="$TMPDIR/go1"
+setup_go "$GO1"
+git -C "$GO1" checkout -q -b feat/t-1100-go
+assert_denies "Go impl on feat/ with no tests → deny" \
+    "$(make_input Edit "$GO1/main.go" "$GO1")"
+
+# --- Test 18: Go impl on feat/ WITH _test.go → allow ---
+GO2="$TMPDIR/go2"
+setup_go "$GO2"
+git -C "$GO2" checkout -q -b feat/t-1101-go
+echo 'package main' > "$GO2/main_test.go"
+assert_allows "Go impl on feat/ with _test.go → allow" \
+    "$(make_input Edit "$GO2/main.go" "$GO2")"
+
 # --- Summary ---
 echo ""
 echo "Results: $PASS passed, $FAIL failed"

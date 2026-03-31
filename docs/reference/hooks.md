@@ -89,19 +89,26 @@ Brana PostToolUse hook — sync tasks.json changes to GitHub Issues + Projects.
 
 ### `tdd-gate.sh`
 
-PreToolUse: TDD Enforcement Gate for Rust implementation files.
+PreToolUse: TDD Enforcement Gate for implementation files.
 
-**Trigger:** `Write|Edit` on `feat/*` or `fix/*` branches targeting `.rs` files.
+**Trigger:** `Write|Edit` on `feat/*` or `fix/*` branches targeting implementation files.
 
-**What it blocks:** Writing to Rust implementation files when no test exists in the
-same crate (nearest ancestor with `Cargo.toml`).
+**Supported languages:** Rust (`.rs`), Python (`.py`), JS/TS (`.js/.ts/.jsx/.tsx`),
+Shell (`.sh`), Go (`.go`).
 
-**How to satisfy the gate:**
-- Create a test file (`*_test.rs`, `test_*.rs`, or files under `tests/`)
-- Add a `#[cfg(test)]` module to any `.rs` file in the crate's `src/`
+**What it blocks:** Writing implementation files when no test file exists in the same
+project root (nearest ancestor with a manifest: `Cargo.toml`, `pyproject.toml`,
+`package.json`, `go.mod`, or git root for shell).
 
-**Always allowed:** test files themselves, non-Rust files, non-`feat`/`fix` branches,
-non-git repos, projects without `Cargo.toml`.
+**How to satisfy the gate (per language):**
+- **Rust:** `*_test.rs`, `test_*.rs`, `tests/` dir, or `#[cfg(test)]` module
+- **Python:** `test_*.py`, `*_test.py`, `tests/` dir, or `__tests__/`
+- **JS/TS:** `*.test.*`, `*.spec.*`, `__tests__/` dir, or `tests/`
+- **Shell:** `test-*.sh`, `*-test.sh`, or `tests/` dir
+- **Go:** `*_test.go`
+
+**Always allowed:** test files themselves, unsupported languages, non-`feat`/`fix`
+branches, non-git repos, projects without a manifest file.
 
 ### `worktree-gate.sh`
 
