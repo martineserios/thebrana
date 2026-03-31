@@ -33,11 +33,10 @@ REPO_PATHS=(
 )
 
 # Companion files synced per-project
+# Note: sessions.md, session-handoff.md, MEMORY-snapshot.md removed (t-614)
+# These stay in auto memory only — no repo copies needed
 COMPANION_FILES=(
-    "sessions.md"
-    "session-handoff.md"
     "event-log.md"
-    "MEMORY-snapshot.md"
 )
 
 # ── Helpers ────────────────────────────────────────────────
@@ -339,33 +338,6 @@ cmd_import() {
     log "import complete: $imported entries restored, $failed failed"
 }
 
-# ── snapshot: MEMORY.md for a specific project ─────────────
-
-cmd_snapshot() {
-    local project_dir="${1:-}"
-    if [ -z "$project_dir" ]; then
-        log "snapshot requires a project directory argument"
-        return 1
-    fi
-
-    local project_name
-    project_name=$(basename "$project_dir")
-
-    local cc_dir
-    cc_dir=$(find_cc_memory_dir "$project_name" 2>/dev/null) || true
-
-    if [ -z "$cc_dir" ] || [ ! -f "$cc_dir/MEMORY.md" ]; then
-        log "snapshot skipped — no MEMORY.md found for $project_name"
-        return 0
-    fi
-
-    local repo_memory="$project_dir/.claude/memory"
-    mkdir -p "$repo_memory"
-
-    if sync_file "$cc_dir/MEMORY.md" "$repo_memory/MEMORY-snapshot.md"; then
-        log "snapshot: MEMORY.md → $repo_memory/MEMORY-snapshot.md"
-    fi
-}
 
 # ── auto-commit helper ─────────────────────────────────────
 
@@ -412,15 +384,13 @@ case "${1:-help}" in
     pull)   shift; cmd_pull "$@" ;;
     export) shift; cmd_export "$@" ;;
     import) shift; cmd_import "$@" ;;
-    snapshot) shift; cmd_snapshot "$@" ;;
     help|--help|-h)
-        echo "Usage: sync-state.sh <push|pull|export|import|snapshot> [options]"
+        echo "Usage: sync-state.sh <push|pull|export|import> [options]"
         echo ""
         echo "  push [--auto-commit]    Cache → repos (operational state + companion files)"
         echo "  pull                    Repos → cache (new machine restore)"
         echo "  export [--auto-commit]  Claude-flow patterns+decisions → repo JSON"
         echo "  import                  Repo JSON → ruflo patterns+decisions"
-        echo "  snapshot <project-dir>  MEMORY.md snapshot for a project"
         ;;
     *)
         echo "Unknown command: $1" >&2

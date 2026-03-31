@@ -281,26 +281,40 @@ echo '{"continue": true}'
                 } >> "$HANDOFF"
             fi
         fi
+
+        # Rotate handoff: keep last 10 entries, archive older ones (t-614)
+        if [ -f "$HANDOFF" ]; then
+            ENTRY_COUNT=$(grep -c '^## ' "$HANDOFF" 2>/dev/null) || ENTRY_COUNT=0
+            if [ "$ENTRY_COUNT" -gt 10 ]; then
+                KEEP_FROM=$(grep -n '^## ' "$HANDOFF" | tail -10 | head -1 | cut -d: -f1)
+                if [ -n "$KEEP_FROM" ] && [ "$KEEP_FROM" -gt 1 ]; then
+                    # Archive older entries
+                    ARCHIVE="$LAYER0_DIR/session-handoff-archive.md"
+                    head -n "$((KEEP_FROM - 1))" "$HANDOFF" >> "$ARCHIVE"
+                    # Keep header + last 10 entries
+                    HEADER=$(head -1 "$HANDOFF")
+                    tail -n "+$KEEP_FROM" "$HANDOFF" > "$HANDOFF.tmp"
+                    { echo "$HEADER"; echo ""; cat "$HANDOFF.tmp"; } > "$HANDOFF"
+                    rm -f "$HANDOFF.tmp"
+                fi
+            fi
+        fi
     fi
 
-    # ADR-015: snapshot MEMORY.md and sync companion files to project repo
+    # Sync .needs-backprop flag to repo + push global operational state
+    # Note: sessions.md, session-handoff.md, MEMORY-snapshot.md no longer synced to repo (t-614)
     SYNC_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../scripts/sync-state.sh"
     if [ -x "$SYNC_SCRIPT" ] && [ -n "$GIT_ROOT" ] && [ -d "$GIT_ROOT" ]; then
-        # Snapshot MEMORY.md for this project
-        "$SYNC_SCRIPT" snapshot "$GIT_ROOT" 2>/dev/null || true
-
-        # Sync companion files (sessions.md, handoff.md) for this project
+        # Only sync .needs-backprop flag (session state stays in auto memory)
         if [ -n "$LAYER0_DIR" ]; then
             REPO_MEMORY="$GIT_ROOT/.claude/memory"
             mkdir -p "$REPO_MEMORY" 2>/dev/null || true
-            for f in sessions.md session-handoff.md .needs-backprop; do
-                if [ -f "$LAYER0_DIR/$f" ]; then
-                    cp "$LAYER0_DIR/$f" "$REPO_MEMORY/$f" 2>/dev/null || true
-                fi
-            done
+            if [ -f "$LAYER0_DIR/.needs-backprop" ]; then
+                cp "$LAYER0_DIR/.needs-backprop" "$REPO_MEMORY/.needs-backprop" 2>/dev/null || true
+            fi
         fi
 
-        # ADR-015: push global operational state (event-log, portfolio) to thebrana repo
+        # Push global operational state (event-log, portfolio) to thebrana repo
         "$SYNC_SCRIPT" push 2>/dev/null || true
     fi
 
