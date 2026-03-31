@@ -1668,3 +1668,19 @@ Respond.io action prompts have a hard 1,000-char limit. Agent 3's Assign action 
 - `docs/spec-graph.json` — 226 occurrences of trailing backtick in path strings
 
 **Fix applied:** `sed -i 's/\`"/"/g' docs/spec-graph.json`. Root cause is in the spec-graph generator script (likely a markdown-to-JSON extraction that doesn't strip backticks from inline code spans).
+
+---
+
+### Reconcile Run — 2026-03-31
+
+**Trigger:** manual (t-786)
+**Drift found:** 4 findings across 4 files
+**Applied:** 4 auto-fixes
+**Deferred:** 0
+
+| # | Area | Type | Finding | Resolution |
+|---|------|------|---------|-----------|
+| 1 | spec-graph.json | Stale | `system/skills/meta-template/SKILL.md` in impl_files (skill moved to client repos) | Applied — removed entry |
+| 2 | reference/skills.md | Stale | Listed 30 skills including 7 moved ones | Applied — regenerated via generate-reference.py (now 24) |
+| 3 | guide/commands/index.md | Stale | 6 moved skills listed as available commands | Applied — removed entries, added client-local footnote |
+| 4 | guide/workflows/venture.md | Stale | Claimed pipeline/financial-model/venture-phase/proposal as global tools | Applied — added client-local disclaimer |
