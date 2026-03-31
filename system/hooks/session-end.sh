@@ -247,13 +247,8 @@ echo '{"continue": true}'
         } >> "$LAYER0_DIR/sessions.md"
     fi
 
-    # Self-learning loop: detect system file changes for next session
-    if [ -n "$LAYER0_DIR" ]; then
-        DRIFT_FILES=$(git -C "$GIT_ROOT" diff --name-only HEAD~10..HEAD 2>/dev/null | grep -E '(skills/|agents/|hooks/|rules/|commands/|CLAUDE\.md|settings\.json|deploy\.sh)' | tr '\n' ',' || true)
-        if [ -n "$DRIFT_FILES" ]; then
-            echo "$(date +%Y-%m-%d) $DRIFT_FILES" > "$LAYER0_DIR/.needs-backprop"
-        fi
-    fi
+    # NOTE: .needs-backprop flag file is deprecated — backprop field in
+    # session-state.json replaces it (written by close skill via brana session write).
 
     # Safety net: write minimal session state via CLI if close didn't run today
     SESSION_STATE_PATH=$("$BRANA_CLI" session path 2>/dev/null) || SESSION_STATE_PATH=""
@@ -293,20 +288,9 @@ echo '{"continue": true}'
         fi
     fi
 
-    # Sync .needs-backprop flag to repo + push global operational state
-    # Note: sessions.md, session-handoff.md, MEMORY-snapshot.md no longer synced to repo (t-614)
+    # Push global operational state (event-log, portfolio) to thebrana repo
     SYNC_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../scripts/sync-state.sh"
     if [ -x "$SYNC_SCRIPT" ] && [ -n "$GIT_ROOT" ] && [ -d "$GIT_ROOT" ]; then
-        # Only sync .needs-backprop flag (session state stays in auto memory)
-        if [ -n "$LAYER0_DIR" ]; then
-            REPO_MEMORY="$GIT_ROOT/.claude/memory"
-            mkdir -p "$REPO_MEMORY" 2>/dev/null || true
-            if [ -f "$LAYER0_DIR/.needs-backprop" ]; then
-                cp "$LAYER0_DIR/.needs-backprop" "$REPO_MEMORY/.needs-backprop" 2>/dev/null || true
-            fi
-        fi
-
-        # Push global operational state (event-log, portfolio) to thebrana repo
         "$SYNC_SCRIPT" push 2>/dev/null || true
     fi
 
