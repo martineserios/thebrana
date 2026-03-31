@@ -1,7 +1,7 @@
 #!/bin/bash
 # ─── Claude Code Statusline ─────────────────────────────
-# Normal:  🧠 Model │ 📂 project │ 🌿 branch │ 📝 +156 -23 │ [⚡ │ 📋 N]
-# At 70%+: 🧠 Model │ 📂 project │ 🌿 branch │ ⚠ CTX 70% │ 📝 +156 -23
+# 🧠 Model │ 📂 project │ 🌿 branch │ CTX NN% │ 📝 +156 -23 │ [⚡ │ 📋 N]
+# CTX color: green <55%, yellow 55-69%, orange 70-84%, red 85%+
 
 INPUT=$(cat)
 
@@ -24,20 +24,30 @@ Cw='\033[97m' Cy='\033[36m' Cg='\033[32m'
 Cr='\033[31m' Cm='\033[35m' Co='\033[33m'
 S="${D}│${R}"
 
-# ── Context pressure (hidden below 70%) ─────────────────
-if   (( CTX_PCT >= 95 )); then CTX_ALERT="${Cr}${B}🔴 CTX ${CTX_PCT}%${R}"
-elif (( CTX_PCT >= 85 )); then CTX_ALERT="${Cr}⚠ CTX ${CTX_PCT}%${R}"
-elif (( CTX_PCT >= 70 )); then CTX_ALERT="${Co}⚠ CTX ${CTX_PCT}%${R}"
-else CTX_ALERT=""; fi
+# ── Project name: git repo root > directory basename ─────
+PROJ_NAME=""
+GIT_ROOT=$(cd "$CWD" 2>/dev/null && git rev-parse --show-toplevel 2>/dev/null)
+if [ -n "$GIT_ROOT" ]; then
+  PROJ_NAME=$(basename "$GIT_ROOT")
+else
+  PROJ_NAME=$(basename "$PROJECT")
+fi
+
+# ── Context indicator (always visible, color-coded) ──────
+if   (( CTX_PCT >= 95 )); then CTX_SHOW="${Cr}${B}🔴 CTX ${CTX_PCT}%${R}"
+elif (( CTX_PCT >= 85 )); then CTX_SHOW="${Cr}⚠ CTX ${CTX_PCT}%${R}"
+elif (( CTX_PCT >= 70 )); then CTX_SHOW="${Co}⚠ CTX ${CTX_PCT}%${R}"
+elif (( CTX_PCT >= 55 )); then CTX_SHOW="${Co}CTX ${CTX_PCT}%${R}"
+else                            CTX_SHOW="${D}CTX ${CTX_PCT}%${R}"; fi
 
 # ── Git branch ───────────────────────────────────────────
 BRANCH=$(cd "$CWD" 2>/dev/null && git branch --show-current 2>/dev/null)
 
 # ── Output ──────────────────────────────────────────────
 printf '%b' "🧠 ${B}${Cw}${MODEL}${R}"
-printf '%b' " $S 📂 ${Cy}$(basename "$PROJECT")${R}"
+printf '%b' " $S 📂 ${Cy}${PROJ_NAME}${R}"
 [ -n "$BRANCH" ] && printf '%b' " $S 🌿 ${Co}${BRANCH}${R}"
-[ -n "$CTX_ALERT" ] && printf '%b' " $S ${CTX_ALERT}"
+printf '%b' " $S ${CTX_SHOW}"
 printf '%b' " $S 📝 ${Cg}+${LA}${R} ${Cr}-${LD}${R}"
 # Claude-flow metrics (only when active)
 FD="$CWD/.claude-flow"
