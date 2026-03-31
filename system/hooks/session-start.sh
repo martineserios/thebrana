@@ -151,6 +151,20 @@ fi
 # PHASE 2: Fast local checks (while parallel jobs run)
 # ══════════════════════════════════════════════════════════
 
+# ── Config drift detection ─────────────────────────────
+DRIFT_CONTEXT=""
+DRIFT_SCRIPT="$SCRIPT_DIR/config-drift.sh"
+if [ -f "$DRIFT_SCRIPT" ]; then
+    DRIFT_JSON=$(bash "$DRIFT_SCRIPT" </dev/null 2>/dev/null) || true
+    DRIFT_STATUS=$(echo "$DRIFT_JSON" | jq -r '.status // empty' 2>/dev/null) || true
+    if [ "$DRIFT_STATUS" = "drifted" ]; then
+        DRIFT_COUNT=$(echo "$DRIFT_JSON" | jq -r '.count' 2>/dev/null) || DRIFT_COUNT=0
+        DRIFT_FILES=$(echo "$DRIFT_JSON" | jq -r '.drifted[] | "\(.type): \(.file)"' 2>/dev/null | head -10) || DRIFT_FILES=""
+        DRIFT_CONTEXT="Config drift detected ($DRIFT_COUNT files). Re-run bootstrap.sh to sync:
+$DRIFT_FILES"
+    fi
+fi
+
 # ── Task context injection ──────────────────────────────
 TASK_CONTEXT=""
 TASKS_FILE=""
@@ -456,6 +470,10 @@ if [ -f "$CC_REPORT" ]; then
         OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
 }[CC changelog] New changes detected. Review: ~/.claude/cc-changelog-report.md"
     fi
+fi
+if [ -n "$DRIFT_CONTEXT" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}[Config drift] $DRIFT_CONTEXT"
 fi
 
 # ── Write context readback file (survives context compression) ──
