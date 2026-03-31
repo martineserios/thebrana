@@ -2,14 +2,15 @@
 
 # Skill Reference
 
-**30 skills** loaded from `system/skills/`.
+**24 skills** loaded from `system/skills/`.
 
 ## Index
 
 | Skill | Group | Description |
 |-------|-------|-------------|
-| `/brana:acquire-skills` | brana | Find and install skills for project tech gaps. For new or unfamiliar tech. |
+| `/brana:acquire-skills` | brana | Find and install skills for project tech gaps. Use when entering a project with  |
 | `/brana:align` | execution | Actively align a project with brana practices — assess gaps, plan fixes, impleme |
+| `/brana:audit` | brana | Security scan — secrets in CLAUDE.md, hook permissions, MCP count, dangerous set |
 | `/brana:backlog` | brana | Manage the backlog — plan, track, navigate phases and streams. Use when planning |
 | `/brana:brainstorm` | thinking | Interactive idea maturation — explore, research, shape raw ideas into actionable |
 | `/brana:build` | execution | Build anything — features, bug fixes, refactors, spikes, migrations, investigati |
@@ -18,34 +19,33 @@
 | `/brana:close` | session | End a session — extract learnings, write handoff note, store patterns, detect do |
 | `/brana:docs` | core | Generate and update living documentation — tech docs, user guides, philosophy ov |
 | `/brana:export-pdf` | utility | Convert a markdown file to PDF using mdpdf. Use when exporting proposals, SOPs,  |
-| `/brana:financial-model` | venture | Revenue projections, scenario analysis, P&L template, unit economics, and cash f |
 | `/brana:gsheets` | utility | Google Sheets via MCP — read, write, create, list, share spreadsheets. Use when  |
-| `/brana:harvest` | content | Extract post ideas from recent work through positioning lens |
+| `/brana:harvest` | content | Extract post ideas from recent work through positioning lens. Use when you have  |
 | `/brana:log` | capture | Capture events — links, calls, meetings, ideas, observations — into a searchable |
 | `/brana:memory` | learning | Knowledge system operations — recall patterns, cross-pollinate across clients, r |
-| `/brana:meta-template` | — | Write Meta WhatsApp templates optimized for Utility classification — empirically |
-| `/brana:meta-verification` | — | Meta Business Verification — full recipe for verifying a business on Meta Busine |
 | `/brana:notebooklm-source` | tools | Guided workflow to prepare and format sources for NotebookLM. Claude reads, refo |
 | `/brana:onboard` | execution | Scan and diagnose a project — tech stack, structure, stage, gaps, patterns. Work |
-| `/brana:pipeline` | venture | Sales pipeline tracking — leads, deals, conversions, follow-ups. Stage-aware CRM |
 | `/brana:plugin` | brana | Manage Claude Code plugins — add marketplaces, install, update, remove, list plu |
-| `/brana:proposal` | venture | Generate a client proposal — interview-driven, structured markdown with cost bre |
 | `/brana:reconcile` | brana | Detect drift between spec docs and system/ implementation, plan fixes, apply aft |
 | `/brana:research` | learning | Research a topic, doc, or creator — check sources, follow references recursively |
-| `/brana:respondio-prompts` | utility | Respond.io AI agent prompt engineering — write instructions, actions, KB files,  |
 | `/brana:retrospective` | learning | Store a learning or pattern in the knowledge system. Use after notable discoveri |
 | `/brana:review` | venture | Business review — weekly health check, monthly close + plan, or ad-hoc growth au |
-| `/brana:scheduler` | utility | Scheduled jobs. |
+| `/brana:scheduler` | utility | Manage scheduled jobs — create, update, list, or run scheduled remote agents (tr |
 | `/brana:sitrep` | core | Situational awareness — where am I, what was I doing, what's left, what should I |
-| `/brana:venture-phase` | venture | Plan and execute a business milestone — product launch, hiring, fundraise, expan |
 
 ## brana
 
 ### `/brana:acquire-skills`
 
-Find and install skills for project tech gaps. For new or unfamiliar tech.
+Find and install skills for project tech gaps. Use when entering a project with unfamiliar tech or when no local skill matches a task context.
 
 **Allowed tools:** Read, Write, Bash, Glob, Grep, WebSearch, WebFetch, AskUserQuestion, Agent
+
+### `/brana:audit`
+
+Security scan — secrets in CLAUDE.md, hook permissions, MCP count, dangerous settings, unencrypted .env. 5 checks, fast, zero dependencies. Run periodically or before sharing config.
+
+**Allowed tools:** Read, Glob, Grep, Bash, AskUserQuestion
 
 ### `/brana:backlog`
 
@@ -57,7 +57,7 @@ Manage the backlog — plan, track, navigate phases and streams. Use when planni
 
 ### `/brana:plugin`
 
-Manage Claude Code plugins — add marketplaces, install, update, remove, list plugins.
+Manage Claude Code plugins — add marketplaces, install, update, remove, list plugins. Use when installing new plugins, checking plugin status, or managing the plugin registry.
 
 **Arguments:** `[list|install|remove|update|sync] [name]`
 
@@ -87,7 +87,7 @@ Capture events — links, calls, meetings, ideas, observations — into a search
 
 ### `/brana:harvest`
 
-Extract post ideas from recent work through positioning lens
+Extract post ideas from recent work through positioning lens. Use when you have completed builds, research, or client work and want to turn learnings into LinkedIn content.
 
 **Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 
@@ -214,25 +214,6 @@ Guided workflow to prepare and format sources for NotebookLM. Claude reads, refo
 **Allowed tools:** Read, Write, Edit, Glob, Grep, Bash, Task, mcp__notebooklm__ask_question, mcp__notebooklm__add_notebook, mcp__notebooklm__list_notebooks, mcp__notebooklm__select_notebook, mcp__notebooklm__get_notebook, mcp__notebooklm__search_notebooks, mcp__notebooklm__get_health, mcp__notebooklm__get_library_stats, mcp__notebooklm__setup_auth, AskUserQuestion
 
 
-## ungrouped
-
-### `/brana:meta-template`
-
-Write Meta WhatsApp templates optimized for Utility classification — empirically validated formula, safe elements, kill lines, appeal texts. Use when creating or reviewing WhatsApp Business templates for any project.
-
-**Arguments:** `[write|review] [template-name]`
-
-**Allowed tools:** Read, Write, Edit, Glob, Grep, Task, AskUserQuestion
-
-### `/brana:meta-verification`
-
-Meta Business Verification — full recipe for verifying a business on Meta Business Manager for WABA access. Covers prerequisites, document submission, post-approval steps, and account hygiene. Cross-pollinated from somos_mirada.
-
-**Arguments:** `[check|submit|audit] [phase]`
-
-**Allowed tools:** Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, WebFetch, WebSearch
-
-
 ## utility
 
 ### `/brana:export-pdf`
@@ -249,17 +230,11 @@ Google Sheets via MCP — read, write, create, list, share spreadsheets. Use whe
 
 **Arguments:** `[list|read|write|create|summary|share] [args]`
 
-### `/brana:respondio-prompts`
-
-Respond.io AI agent prompt engineering — write instructions, actions, KB files, and multi-agent architectures within platform constraints. Use when writing or reviewing Respond.io agent prompts, designing multi-agent handoff flows, or creating knowledge bases.
-
-**Arguments:** `[write|review] [agent-name]`
-
-**Allowed tools:** Read, Write, Edit, Glob, Grep, Task, WebSearch, WebFetch, AskUserQuestion
+**Allowed tools:** Read, Bash, AskUserQuestion
 
 ### `/brana:scheduler`
 
-Scheduled jobs.
+Manage scheduled jobs — create, update, list, or run scheduled remote agents (triggers) that execute on a cron schedule. Use when setting up recurring tasks, checking job status, or managing automation.
 
 **Arguments:** `[status|logs|enable|disable|run|validate|deploy|teardown] [job]`
 
@@ -267,26 +242,6 @@ Scheduled jobs.
 
 
 ## venture
-
-### `/brana:financial-model`
-
-Revenue projections, scenario analysis, P&L template, unit economics, and cash flow analysis. Stage-aware financial modeling for founders. Use for fundraise prep, quarterly planning, or building a business case.
-
-**Allowed tools:** Read, Write, Glob, Grep, Bash, AskUserQuestion
-
-### `/brana:pipeline`
-
-Sales pipeline tracking — leads, deals, conversions, follow-ups. Stage-aware CRM that works with markdown or MCP integrations. Use when tracking leads, updating deals, or reviewing pipeline health.
-
-**Allowed tools:** Read, Write, Glob, Grep, Bash, Task, AskUserQuestion
-
-### `/brana:proposal`
-
-Generate a client proposal — interview-driven, structured markdown with cost breakdown and timeline. Use when preparing a service proposal for a client.
-
-**Arguments:** `[client-name]`
-
-**Allowed tools:** Bash, Read, Write, Glob, Grep, AskUserQuestion, Task
 
 ### `/brana:review`
 
@@ -297,12 +252,4 @@ Business review — weekly health check, monthly close + plan, or ad-hoc growth 
 **Depends on:** `/brana:pipeline`, `/brana:financial-model`
 
 **Allowed tools:** Read, Write, Glob, Grep, Bash, AskUserQuestion
-
-### `/brana:venture-phase`
-
-Plan and execute a business milestone — product launch, hiring, fundraise, expansion, or custom — with learning loops. Use when executing a business milestone (launch, hiring, fundraise, expansion).
-
-**Arguments:** `[launch|hiring|fundraise|expansion|process|custom]`
-
-**Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, Task, AskUserQuestion
 

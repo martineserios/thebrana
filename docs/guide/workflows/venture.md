@@ -1,6 +1,8 @@
 # Venture Management
 
-Brana includes tools for managing business projects -- stage-appropriate frameworks, metrics, reviews, pipeline tracking, financial modeling, and proposals.
+Brana includes tools for managing business projects -- stage-appropriate frameworks, metrics, and reviews.
+
+> **Note:** Pipeline, financial-model, venture-phase, and proposal are now **client-local skills** in brana-knowledge. The sections below document their usage when installed in a client project.
 
 ## Getting started with a business project
 

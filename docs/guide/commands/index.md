@@ -71,10 +71,7 @@ All brana commands, grouped by workflow.
 | `/brana:review check` | Ad-hoc AARRR funnel audit |
 | `/brana:review routing` | Model routing calibration |
 | `/brana:review harness` | Harness simplification check (quarterly) |
-| `/brana:pipeline` | Sales pipeline tracking |
-| `/brana:venture-phase [type]` | Execute a business milestone |
-| `/brana:financial-model` | Revenue projections and scenario analysis |
-| `/brana:proposal` | Generate a client proposal |
+| `/brana:harvest` | Extract post ideas from recent work |
 
 ## Utilities
 
@@ -83,7 +80,7 @@ All brana commands, grouped by workflow.
 | `/brana:export-pdf` | Convert markdown to PDF |
 | `/brana:gsheets` | Google Sheets operations |
 | `/brana:notebooklm-source` | Prepare sources for NotebookLM |
-| `/brana:respondio-prompts` | Respond.io AI agent prompts |
-| `/brana:meta-template` | WhatsApp template optimization |
 | `/brana:scheduler` | Scheduled jobs |
 | `/brana:client-retire` | Archive a project |
+
+> **Client-local skills** (not available in thebrana core): pipeline, financial-model, venture-phase, proposal → brana-knowledge. meta-template, meta-verification, respondio-prompts → somos_mirada (+ copies to anita, brapsoclaw).

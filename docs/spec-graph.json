@@ -247,7 +247,6 @@
         "system/commands/`",
         "system/scripts/gh-sync.sh`",
         "system/hooks/task-sync.sh`",
-        "system/skills/meta-template/SKILL.md`",
         "system/commands/",
         "system/rules/",
         "system/scheduler/brana-scheduler-runner.sh`",

@@ -6,18 +6,27 @@
 
 | File | Title | Summary |
 |------|-------|--------|
+| `brana-cli.md` | Brana CLI | **Always prefer CLI over raw file access.** Never Read/Write/Edit `.claude/tasks.json` directly. |
 | `context-budget.md` | Context Budget | ## Thresholds |
-| `delegation-routing.md` | Delegation Routing | ## Auto-Delegate to Agents |
+| `delegation-routing.md` | Delegation Routing | Delegate to agents WITHOUT being asked when context matches (see CLAUDE.md agents table). Invoke ski... |
 | `doc-linking.md` | Doc Linking | Use `[doc NN](relative-path.md)` — never bare "doc NN". Relative paths from source file. Dimensions ... |
 | `git-discipline.md` | Git Discipline | ## One rule |
+| `inbox-convention.md` | Inbox Convention | `inbox/` is a gitignored drop zone for files needing processing (audio, PDFs, data, screenshots). Or... |
 | `parallel-bash.md` | Parallel Bash Resilience | Claude Code cancels all sibling Bash tool calls when one exits non-zero. Guard independent parallel ... |
 | `research-discipline.md` | Research Discipline | When starting research on any topic: |
 | `sdd-tdd.md` | Test-First Development | ## Before implementation |
-| `self-improvement.md` | Self-Improvement | Automatic learning. Runs every session without invocation. Skills go deeper when invoked — this ensu... |
-| `tactical-context.md` | Tactical Context | ## When giving task-relevant advice |
+| `self-improvement.md` | Self-Improvement | Automatic learning. Runs every session without invocation. |
+| `tactical-context.md` | Tactical Context | After giving actionable advice related to a task (workaround, constraint, deadline, dependency, "do ... |
 | `task-convention.md` | Task Convention | ## Before branching |
 | `universal-quality.md` | Quality Standards | - **Test before committing**: run relevant tests before any commit. If no test suite exists, at leas... |
 | `work-preferences.md` | Work Preferences | ## Parallelism |
+
+## Brana CLI
+
+**File:** `system/rules/brana-cli.md`
+
+**Always prefer CLI over raw file access.** Never Read/Write/Edit `.claude/tasks.json` directly.
+
 
 ## Context Budget
 
@@ -30,7 +39,7 @@
 
 **File:** `system/rules/delegation-routing.md`
 
-## Auto-Delegate to Agents
+Delegate to agents WITHOUT being asked when context matches (see CLAUDE.md agents table). Invoke skills directly — don't suggest them. If user declines, don't repeat.
 
 
 ## Doc Linking
@@ -45,6 +54,13 @@ Use `[doc NN](relative-path.md)` — never bare "doc NN". Relative paths from so
 **File:** `system/rules/git-discipline.md`
 
 ## One rule
+
+
+## Inbox Convention
+
+**File:** `system/rules/inbox-convention.md`
+
+`inbox/` is a gitignored drop zone for files needing processing (audio, PDFs, data, screenshots). Organized by topic subfolder. Files are transient — process, then delete or move.
 
 
 ## Parallel Bash Resilience
@@ -72,14 +88,14 @@ When starting research on any topic:
 
 **File:** `system/rules/self-improvement.md`
 
-Automatic learning. Runs every session without invocation. Skills go deeper when invoked — this ensures nothing is lost when they aren't.
+Automatic learning. Runs every session without invocation.
 
 
 ## Tactical Context
 
 **File:** `system/rules/tactical-context.md`
 
-## When giving task-relevant advice
+After giving actionable advice related to a task (workaround, constraint, deadline, dependency, "do X and Y together"), persist it to the task's `context` field via `brana backlog set <id> context --a
 
 
 ## Task Convention

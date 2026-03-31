@@ -9,13 +9,18 @@
 | PreToolUse | `Write|Edit` | `pre-tool-use.sh` | 5000ms |
 | PreToolUse | `EnterPlanMode` | `plan-mode-gate.sh` | 5000ms |
 | PreToolUse | `Bash` | `worktree-gate.sh` | 5000ms |
-| PreToolUse | `Read\|Grep\|Glob` | `guard-explore.sh` | 5000ms |
+| PreToolUse | `Read|Grep|Glob` | `guard-explore.sh` | 5000ms |
 | SessionStart | `` | `session-start.sh` | 10000ms |
 | SubagentStart | `` | `subagent-context.sh` | 5000ms |
 | TaskCompleted | `` | `step-completed.sh` | 5000ms |
 | SessionEnd | `` | `session-end.sh` | 10000ms |
+| StopFailure | `` | `stopfailure-logger.sh` | 5000ms |
 
 ## Hook Scripts
+
+### `guard-explore.sh`
+
+No strict mode — hooks must never fail and block the session.
 
 ### `plan-mode-gate.sh`
 
@@ -61,17 +66,13 @@ No strict mode — hooks must always return valid JSON.
 
 No strict mode — hooks must never fail and block the session.
 
-### `guard-explore.sh`
+### `stopfailure-logger.sh`
 
-No strict mode — hooks must never fail and block the session.
-
-Observes Read/Grep/Glob patterns. Tracks search history (Grep/Glob) in `/tmp/brana-search-{SESSION_ID}.log`. When a Read targets implementation files (`src/`, `lib/`, `system/cli/`, `system/scripts/`) without a prior search, logs to `/tmp/brana-explore-{SESSION_ID}.log`. Currently logging only — no blocking. Whitelists: `*.md`, configs, tests, docs, skills, hooks, agents.
+No strict mode — failure hooks must never fail themselves.
 
 ### `subagent-context.sh`
 
 No strict mode — hooks must never fail and block the session.
-
-Injects up to 4 context signals into every spawned subagent: active task (id, subject, strategy, build_step, tags), current git branch, active plan title, and last 3 decisions from the decision log. Total injection stays under ~500 tokens. Returns clean `{"continue": true}` when no task is active.
 
 ### `task-completed.sh`
 

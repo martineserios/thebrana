@@ -2,10 +2,11 @@
 
 # Agent Reference
 
-**11 agents** defined in `system/agents/`.
+**12 agents** defined in `system/agents/`.
 
 | Agent | Model | Description |
 |-------|-------|-------------|
+| challenger-calibration | inherit | Severity scoring guide with few-shot examples and hard thresholds for the challe |
 | archiver | haiku | Archive project patterns and knowledge when retiring. Categorize as transferable |
 | challenger | opus | Adversarially review a plan, architecture decision, or approach. Stress-test bef |
 | client-scanner | haiku | Scan client project structure, detect tech stack, check brana alignment. Use whe |
@@ -17,6 +18,13 @@
 | pr-reviewer | sonnet | Review PR diffs for code quality, bugs, and style issues. Auto-triggered on PR c |
 | scout | haiku | Fast research for codebase exploration and web search. Use when finding files, s |
 | venture-scanner | haiku | Diagnose a business project — classify stage, recommend frameworks, identify gap |
+
+## challenger-calibration
+
+Severity scoring guide with few-shot examples and hard thresholds for the challenger agent.
+
+**Model:** inherits from parent
+
 
 ## archiver
 
@@ -130,7 +138,7 @@ Fast research for codebase exploration and web search. Use when finding files, s
 
 ## venture-scanner
 
-Diagnose a business project — classify stage, recommend frameworks, identify gaps. Use when first encountering a business project or for business health audits. Not for: tech stack assessment, daily operations, metrics collection.
+Diagnose a business project — classify stage, recommend frameworks, identify gaps. Use when first encountering a business project or for health audits. Not for: tech stack assessment, daily operations, metrics collection.
 
 **Model:** haiku
 
