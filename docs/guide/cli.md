@@ -6,8 +6,9 @@
 ## Quick Start
 
 ```bash
-# Build
-cd ~/enter_thebrana/thebrana/system/cli/rust && cargo build --release
+# Build (requires OpenSSL headers — no pkg-config on this system)
+cd ~/enter_thebrana/thebrana/system/cli/rust
+OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu OPENSSL_INCLUDE_DIR=/usr/include/openssl cargo build --release
 
 # Symlink (one time)
 ln -sf $(pwd)/target/release/brana ~/.local/bin/brana
