@@ -230,7 +230,9 @@ After detecting system-level drift, also check if session changes affect existin
 3. **Report stale docs:**
    - List them in the handoff note under a `**Stale feature docs:**` section
    - Append to `.needs-backprop` marker: `docs-stale: {doc1.md}, {doc2.md}`
-   - Suggest: "Review these docs next session or run `/brana:reconcile`"
+   - Offer via AskUserQuestion: "Stale feature docs detected: {list}. Run /brana:reconcile now?"
+     Options: ["Yes — run reconcile", "Skip — defer to next session"]
+     If yes: invoke `Skill(skill="brana:reconcile")`. If no: log to handoff note only.
 
 4. **Skip if:** no feature docs exist yet, or no implementation files changed
 

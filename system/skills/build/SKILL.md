@@ -823,7 +823,16 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    git branch -d feat/{branch-name}
    ```
 
-11. **Update living docs** (post-merge, on main):
+11. **Reconcile check** (post-merge, before docs):
+   If `docs/spec-graph.json` exists, check whether merged files appear in any spec-graph node's `impl_files`. If matches found, offer to run `/brana:reconcile`:
+   ```
+   question: "Merged files touch spec-documented systems: {list}. Run reconcile?"
+   options: ["Yes — run /brana:reconcile", "Skip — I'll reconcile later"]
+   ```
+   If the user says yes, invoke `Skill(skill="brana:reconcile")`.
+   If no spec-graph hits, skip silently.
+
+12. **Update living docs** (post-merge, on main):
    Invoke `/brana:docs all` to update system-level documentation:
    - `reference` — regenerate catalogs from frontmatter (deterministic)
    - `marketplace` — sync plugin marketplace metadata (counts, version)
@@ -837,7 +846,7 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
 
    Skip silently if no spec-graph hits (not every build touches documented systems).
 
-12. **Report:**
+13. **Report:**
    ```markdown
    ## Build Complete: {title}
 
