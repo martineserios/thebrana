@@ -452,3 +452,17 @@
 
 **Next:**
 - (auto-generated — run /session-handoff for full close)
+
+## 2026-03-31 — auto-captured (session-end hook)
+
+**Accomplished:**
+- 0cf5d98 chore(backlog): add research milestones t-768/769/770 with 14 subtasks + maintenance stream
+
+**State:**
+- Branch: main
+- Events: 80 (68 ok, 3 fail, 1 corrections, 0 cascades, 0 prs)
+- Tests: 0 pass, 0 fail (rate=N/A) | Lint: 0 pass, 0 fail (rate=N/A)
+- Flywheel: corr=0.10 fix=0.00 test=0.10 casc=0.00 deleg=0 prs=0
+
+**Next:**
+- (auto-generated — run /session-handoff for full close)

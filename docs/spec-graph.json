@@ -1,10 +1,10 @@
 {
   "_meta": {
-    "generated": "2026-03-30T20:22:28Z",
-    "node_count": 198,
+    "generated": "2026-03-31T14:19:32Z",
+    "node_count": 200,
     "edge_count": 549,
     "impl_ref_count": 252,
-    "orphan_count": 96,
+    "orphan_count": 98,
     "typed_edge_count": 0
   },
   "nodes": {
@@ -247,6 +247,7 @@
         "system/commands/`",
         "system/scripts/gh-sync.sh`",
         "system/hooks/task-sync.sh`",
+        "system/skills/meta-template/SKILL.md`",
         "system/commands/",
         "system/rules/",
         "system/scheduler/brana-scheduler-runner.sh`",
@@ -674,7 +675,6 @@
         "docs/architecture/hooks.md"
       ],
       "ref_files": [
-        "docs/reference/hooks.md",
         "docs/reference/scripts.md"
       ]
     },
@@ -1333,6 +1333,22 @@
       "arch_files": [],
       "ref_files": []
     },
+    "docs/architecture/features/t-527-next-limit.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/architecture/features/t-601-tdd-gate.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
     "docs/architecture/features/task-management-system.md": {
       "references": [],
       "referenced_by": [],
@@ -1455,7 +1471,6 @@
       ],
       "ref_files": [
         "docs/reference/configuration.md",
-        "docs/reference/hooks.md",
         "docs/reference/scripts.md",
         "docs/reference/skills.md"
       ]
@@ -2954,18 +2969,10 @@
       "referenced_by": [
         "docs/architecture/hooks.md"
       ],
-      "impl_files": [
-        "system/cli/`",
-        "system/scripts/`"
-      ],
+      "impl_files": [],
       "guide_files": [],
-      "arch_files": [
-        "docs/architecture/decisions/ADR-011-skills-bundling.md",
-        "docs/architecture/hooks.md"
-      ],
-      "ref_files": [
-        "docs/reference/scripts.md"
-      ]
+      "arch_files": [],
+      "ref_files": []
     },
     "docs/reference/rules.md": {
       "references": [
@@ -2974,10 +2981,12 @@
       "referenced_by": [],
       "impl_files": [
         "system/rules/`",
+        "system/rules/brana-cli.md`",
         "system/rules/context-budget.md`",
         "system/rules/delegation-routing.md`",
         "system/rules/doc-linking.md`",
         "system/rules/git-discipline.md`",
+        "system/rules/inbox-convention.md`",
         "system/rules/parallel-bash.md`",
         "system/rules/research-discipline.md`",
         "system/rules/sdd-tdd.md`",
@@ -3047,8 +3056,7 @@
         "docs/architecture/testing-validation.md"
       ],
       "ref_files": [
-        "docs/reference/commands.md",
-        "docs/reference/hooks.md"
+        "docs/reference/commands.md"
       ]
     },
     "docs/reference/skills.md": {
@@ -3476,7 +3484,6 @@
         "docs/architecture/hooks.md"
       ],
       "ref_files": [
-        "docs/reference/hooks.md",
         "docs/reference/scripts.md"
       ]
     }
