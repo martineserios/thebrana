@@ -101,7 +101,7 @@ REL_PATH="${FILE_PATH#"$GIT_ROOT/"}"
 
 case "$REL_PATH" in
     docs/*) pass_through ;;
-    test/*|tests/*|__tests__/*) pass_through ;;
+    test/*|tests/*|__tests__/*|*/test/*|*/tests/*|*/__tests__/*) pass_through ;;
     *.test.*|*.spec.*) pass_through ;;
     *.md) pass_through ;;
 esac
@@ -144,15 +144,15 @@ SPEC_FILES=""
 
 # Committed changes on this branch
 SPEC_FILES="$SPEC_FILES$(git -C "$GIT_ROOT" diff --name-only "$MERGE_BASE"..HEAD -- \
-    'docs/' 'test/' 'tests/' '__tests__/' '*.test.*' '*.spec.*' 2>/dev/null || true)"
+    'docs/' 'test/' 'tests/' '__tests__/' '**/test/' '**/tests/' '**/__tests__/' '*.test.*' '*.spec.*' 2>/dev/null || true)"
 
 # Staged changes
 SPEC_FILES="$SPEC_FILES$(git -C "$GIT_ROOT" diff --cached --name-only -- \
-    'docs/' 'test/' 'tests/' '__tests__/' '*.test.*' '*.spec.*' 2>/dev/null || true)"
+    'docs/' 'test/' 'tests/' '__tests__/' '**/test/' '**/tests/' '**/__tests__/' '*.test.*' '*.spec.*' 2>/dev/null || true)"
 
 # Unstaged changes
 SPEC_FILES="$SPEC_FILES$(git -C "$GIT_ROOT" diff --name-only -- \
-    'docs/' 'test/' 'tests/' '__tests__/' '*.test.*' '*.spec.*' 2>/dev/null || true)"
+    'docs/' 'test/' 'tests/' '__tests__/' '**/test/' '**/tests/' '**/__tests__/' '*.test.*' '*.spec.*' 2>/dev/null || true)"
 
 # Step 10: Decision
 SPEC_FILES_TRIMMED=$(echo "$SPEC_FILES" | tr -d '[:space:]')
