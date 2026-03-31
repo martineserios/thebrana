@@ -87,6 +87,22 @@ No strict mode — hooks must never fail and block the session.
 
 Brana PostToolUse hook — sync tasks.json changes to GitHub Issues + Projects.
 
+### `tdd-gate.sh`
+
+PreToolUse: TDD Enforcement Gate for Rust implementation files.
+
+**Trigger:** `Write|Edit` on `feat/*` or `fix/*` branches targeting `.rs` files.
+
+**What it blocks:** Writing to Rust implementation files when no test exists in the
+same crate (nearest ancestor with `Cargo.toml`).
+
+**How to satisfy the gate:**
+- Create a test file (`*_test.rs`, `test_*.rs`, or files under `tests/`)
+- Add a `#[cfg(test)]` module to any `.rs` file in the crate's `src/`
+
+**Always allowed:** test files themselves, non-Rust files, non-`feat`/`fix` branches,
+non-git repos, projects without `Cargo.toml`.
+
 ### `worktree-gate.sh`
 
 PreToolUse: Worktree Enforcement Gate + Commit Safety

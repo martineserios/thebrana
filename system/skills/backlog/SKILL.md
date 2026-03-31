@@ -260,7 +260,7 @@ High-level progress view with aggregation. Use `--all` for cross-client task-lev
 
 1. Run `brana backlog status` — outputs themed project status (progress bar, counts)
 2. Run `brana backlog stats` — outputs JSON aggregate stats (by_status, by_stream, by_priority, by_type)
-3. Run `brana backlog next` — outputs themed next-up list (top 3 by priority)
+3. Run `brana backlog next` — outputs themed next-up list (top 5 by priority)
 4. Present the CLI output directly to the user. Do not reformat or recompute.
 
 ### Cross-client view (`--all`)
@@ -302,7 +302,7 @@ Find the highest-priority unblocked task.
 
 ### Steps
 
-1. Run `brana backlog next` — outputs themed top-3 list sorted by priority
+1. Run `brana backlog next` — outputs themed top-5 list sorted by priority
 2. Present the CLI output directly.
 
 Optional filters (pass through to CLI):
