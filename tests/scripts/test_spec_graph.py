@@ -372,6 +372,26 @@ Example: `[ADR-019 assumes](path.md)` instead of bare links.
 
 
 # ---------------------------------------------------------------------------
+# 18. Trailing backticks stripped from impl_files paths
+# ---------------------------------------------------------------------------
+
+def test_trailing_backtick_stripped_from_impl_files(repo: Path) -> None:
+    """Inline code like `system/hooks/session-end.sh` should not leave a
+    trailing backtick on the extracted path."""
+    content = """\
+See `system/hooks/session-end.sh` for details.
+Also `system/skills/build/SKILL.md` is relevant.
+Plain system/hooks/pre-commit.sh mention.
+"""
+    _, impls = spec_graph.extract_links(content, Path("docs/s.md"), repo)
+    for path in impls:
+        assert not path.endswith("`"), f"Trailing backtick in impl_file: {path!r}"
+    assert "system/hooks/session-end.sh" in impls
+    assert "system/skills/build/SKILL.md" in impls
+    assert "system/hooks/pre-commit.sh" in impls
+
+
+# ---------------------------------------------------------------------------
 # Integration: end-to-end generate via CLI
 # ---------------------------------------------------------------------------
 
