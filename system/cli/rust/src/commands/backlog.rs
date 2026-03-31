@@ -8,16 +8,33 @@ use crate::util::{delegate_python, find_tasks_file};
 
 // ── backlog commands ────────────────────────────────────────────────────
 
-pub fn cmd_next(theme: &themes::Theme, tag: Option<String>, stream: Option<String>) {
+pub fn cmd_next(
+    theme: &themes::Theme, tag: Option<String>, stream: Option<String>,
+    limit: usize, priority: Option<String>, task_type: Option<String>,
+    effort: Option<String>, parent: Option<String>,
+) {
     let tf = find_tasks_file().unwrap_or_else(|| { eprintln!("tasks.json not found"); std::process::exit(1); });
     let data = tasks::load_tasks(&tf).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+
+    let types: Vec<&str> = if let Some(ref tp) = task_type {
+        tp.split(',').collect()
+    } else {
+        vec!["task", "subtask"]
+    };
+
     let mut candidates = tasks::filter_tasks(
         &data.tasks, &data.tasks,
-        tag.as_deref(), Some("pending"), stream.as_deref(), None, None, None,
-        &["task", "subtask"],
+        tag.as_deref(), Some("pending"), stream.as_deref(),
+        priority.as_deref(), effort.as_deref(), None,
+        &types,
     );
+
+    if let Some(ref pid) = parent {
+        candidates.retain(|t| t["parent"].as_str() == Some(pid.as_str()));
+    }
+
     tasks::sort_by_priority(&mut candidates);
-    let top: Vec<_> = candidates.into_iter().take(3).collect();
+    let top: Vec<_> = candidates.into_iter().take(limit).collect();
 
     if top.is_empty() {
         println!("\n  No unblocked tasks found.\n");

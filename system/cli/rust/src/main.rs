@@ -35,7 +35,7 @@ fn main() {
             Some(AgentsCmd::Kill { agent_id }) => commands::run::cmd_agents_kill(&agent_id),
         },
         Commands::Backlog { cmd } => match cmd {
-            BacklogCmd::Next { tag, stream } => commands::backlog::cmd_next(&theme, tag, ve_str(&stream)),
+            BacklogCmd::Next { tag, stream, limit, priority, task_type, effort, parent } => commands::backlog::cmd_next(&theme, tag, ve_str(&stream), limit, ve_str(&priority), ve_str(&task_type), ve_str(&effort), parent),
             BacklogCmd::Query {
                 tag, status, stream, priority, effort, search, count, output,
                 task_type, parent, branch,

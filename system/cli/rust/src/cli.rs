@@ -240,6 +240,19 @@ pub enum BacklogCmd {
         tag: Option<String>,
         #[arg(long, value_enum)]
         stream: Option<TaskStream>,
+        /// Max results to show (default 5)
+        #[arg(long, default_value = "5")]
+        limit: usize,
+        #[arg(long, value_enum)]
+        priority: Option<TaskPriority>,
+        /// Filter by type (task, subtask, phase, milestone)
+        #[arg(long = "type", value_enum)]
+        task_type: Option<TaskType>,
+        #[arg(long, value_enum)]
+        effort: Option<TaskEffort>,
+        /// Filter by parent ID
+        #[arg(long)]
+        parent: Option<String>,
     },
     /// Filter tasks (AND logic)
     Query {
