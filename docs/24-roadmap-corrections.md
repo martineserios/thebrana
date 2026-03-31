@@ -1684,3 +1684,16 @@ Respond.io action prompts have a hard 1,000-char limit. Agent 3's Assign action 
 | 2 | reference/skills.md | Stale | Listed 30 skills including 7 moved ones | Applied — regenerated via generate-reference.py (now 24) |
 | 3 | guide/commands/index.md | Stale | 6 moved skills listed as available commands | Applied — removed entries, added client-local footnote |
 | 4 | guide/workflows/venture.md | Stale | Claimed pipeline/financial-model/venture-phase/proposal as global tools | Applied — added client-local disclaimer |
+
+### Reconcile Run — 2026-03-31
+
+**Trigger:** post wave-1 tech-debt execution (t-543, t-527, t-601)
+**Drift found:** 3 findings across 2 areas
+**Applied:** 3 auto-fixes
+**Deferred:** 0
+
+| # | Area | Type | Finding | Resolution |
+|---|------|------|---------|-----------|
+| 1 | reference/hooks.md | Stale | Missing tdd-gate.sh (t-601) and subagent-tracker.sh (t-197) from plugin hooks table | Applied — added 3 rows to table + 2 script sections |
+| 2 | reference/scripts.md | Incomplete | verify-counts.sh (t-541) not documented | Applied — added entry |
+| 3 | backlog t-791 | False positive | "default limit 3→5" already correct in SKILL.md | Closed — no change needed |
