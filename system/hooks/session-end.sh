@@ -96,7 +96,7 @@ echo '{"continue": true}'
         if [ "$FAILURES" -gt 0 ]; then CASCADE_RATE=$(awk "BEGIN {printf \"%.2f\", $CASCADES / $FAILURES}"); else CASCADE_RATE="0.00"; fi
         AUTO_FIX_RATE="0.00"
         if [ "$FAILURES" -gt 0 ]; then
-            AUTO_FIXES=$(jq -r '[.outcome, .detail] | @tsv' "$SESSION_FILE" 2>/dev/null | awk '
+            AUTO_FIXES=$(jq -r '[.outcome, .detail] | @tsv' "$SESSION_FILE" 2>/dev/null | awk -F'\t' '
                 BEGIN { fixes=0 }
                 /^failure\t/ { prev_fail[$2]=1 } /^test-fail\t/ { prev_fail[$2]=1 } /^lint-fail\t/ { prev_fail[$2]=1 }
                 /^success\t/ { if ($2 in prev_fail) { fixes++; delete prev_fail[$2] } }
