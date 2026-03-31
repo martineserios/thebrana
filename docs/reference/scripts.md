@@ -300,3 +300,15 @@ Uses `flock` on a shared lock file in `$GIT_COMMON_DIR` (shared across all workt
 | **Dependencies** | `~/enter_thebrana/brana-knowledge/backup.sh` (skips silently if not found) |
 
 Thin wrapper that executes the brana-knowledge repo's own `backup.sh` script if it exists and is executable. Used by `/brana:maintain-specs` Step 8. No output or error if the script is absent.
+
+---
+
+## verify-counts.sh
+
+| Field | Value |
+|-------|-------|
+| **Purpose** | Validate hardcoded counts in docs against actual filesystem |
+| **Usage** | `verify-counts.sh` |
+| **Dependencies** | None |
+
+Compares numeric claims in documentation files (e.g., "14 rules", "24 skills") against actual file counts in `system/`. Reports mismatches with expected vs actual values. Used by `validate.sh` and as a standalone check after doc or system changes.

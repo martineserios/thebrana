@@ -7,11 +7,14 @@
 | Event | Matcher | Script | Timeout |
 |-------|---------|--------|--------|
 | PreToolUse | `Write|Edit` | `pre-tool-use.sh` | 5000ms |
+| PreToolUse | `Write|Edit` | `tdd-gate.sh` | 5000ms |
 | PreToolUse | `EnterPlanMode` | `plan-mode-gate.sh` | 5000ms |
 | PreToolUse | `Bash` | `worktree-gate.sh` | 5000ms |
 | PreToolUse | `Read|Grep|Glob` | `guard-explore.sh` | 5000ms |
 | SessionStart | `` | `session-start.sh` | 10000ms |
 | SubagentStart | `` | `subagent-context.sh` | 5000ms |
+| SubagentStart | `` | `subagent-tracker.sh` | 5000ms |
+| SubagentStop | `` | `subagent-tracker.sh` | 5000ms |
 | TaskCompleted | `` | `step-completed.sh` | 5000ms |
 | SessionEnd | `` | `session-end.sh` | 10000ms |
 | StopFailure | `` | `stopfailure-logger.sh` | 5000ms |
@@ -78,6 +81,21 @@ No strict mode — failure hooks must never fail themselves.
 ### `subagent-context.sh`
 
 No strict mode — hooks must never fail and block the session.
+
+### `subagent-tracker.sh`
+
+No strict mode — hooks must never fail and block the session.
+
+Tracks subagent lifecycle (SubagentStart + SubagentStop). Logs spawn/completion events
+to `system/state/subagent-log.jsonl` for session metrics and delegation analysis.
+
+### `config-drift.sh`
+
+No strict mode — hooks must never fail and block the session.
+
+Utility script invoked by `session-start.sh` (not wired directly in hooks.json).
+Detects staleness in `.claude/` configuration files by comparing timestamps against
+known good state. Warns when config may have drifted from system/ source of truth.
 
 ### `task-completed.sh`
 
