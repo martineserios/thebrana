@@ -4,16 +4,12 @@
       "command": "/home/martineserios/enter_thebrana/thebrana/system/scripts/ruflo-mcp.sh",
       "args": ["mcp", "start"],
       "env": {
-        "CLAUDE_FLOW_TOOL_GROUPS": "memory"
+        "CLAUDE_FLOW_TOOL_GROUPS": "memory,agentdb,embeddings,hooks"
       }
     },
     "context7": {
       "command": "npx",
       "args": ["@upstash/context7-mcp@latest"]
-    },
-    "linkedin": {
-      "command": "uvx",
-      "args": ["linkedin-scraper-mcp"]
     }
   }
 }

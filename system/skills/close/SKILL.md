@@ -119,7 +119,7 @@ source "$HOME/.claude/scripts/cf-env.sh"
 cd "$HOME" && $CF memory store \
   -k "pattern:{PROJECT}:{short-title}" \
   -v '{"problem": "...", "solution": "...", "confidence": 0.5, "transferable": false, "correction_weight": 0}' \
-  --namespace patterns \
+  --namespace pattern \
   --tags "client:{PROJECT},type:{CATEGORY},outcome:{OUTCOME}" \
   --upsert
 ```
@@ -361,7 +361,7 @@ source "$HOME/.claude/scripts/cf-env.sh"
 cd "$HOME" && $CF memory store \
   -k "session:{PROJECT}:{YYYY-MM-DD}" \
   -v '{"type": "session-close", "date": "{YYYY-MM-DD}", "commits": N, "learnings": N, "errata": N, "drift": true|false}' \
-  --namespace patterns \
+  --namespace pattern \
   --tags "client:{PROJECT},type:session-close" \
   --upsert
 ```

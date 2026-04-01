@@ -140,7 +140,7 @@ source "$HOME/.claude/scripts/cf-env.sh"
    cd $HOME && $CF memory store \
      -k "challenge:{PROJECT}:{short-topic}" \
      -v '{"flavor": "pre-mortem|simplicity|assumption|adversarial", "target": "what was challenged", "findings": "key concerns raised", "decision": "accepted|rejected|partial", "confidence": 0.5, "transferable": false, "recall_count": 0}' \
-     --namespace patterns \
+     --namespace pattern \
      --tags "client:PROJECT,type:challenge,outcome:accepted|rejected|partial,confidence:quarantine"
    ```
 

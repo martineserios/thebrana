@@ -233,7 +233,7 @@ cmd_export() {
 
     # Export patterns namespace
     local patterns_json
-    patterns_json=$(timeout 30 $CF memory search --query "" --namespace patterns --format json 2>/dev/null) || patterns_json="[]"
+    patterns_json=$(timeout 30 $CF memory search --query "" --namespace pattern --format json 2>/dev/null) || patterns_json="[]"
 
     # Export decisions namespace
     local decisions_json
@@ -249,14 +249,14 @@ cmd_export() {
             exported_at: $exported_at,
             cf_version: $cf_version,
             namespaces: {
-                patterns: $patterns,
+                pattern: $patterns,
                 decisions: $decisions
             }
         }' > "$tmp_file" 2>/dev/null
 
     if [ -f "$tmp_file" ]; then
         local patterns_count decisions_count
-        patterns_count=$(jq '.namespaces.patterns | length' "$tmp_file" 2>/dev/null) || patterns_count=0
+        patterns_count=$(jq '.namespaces.pattern | length' "$tmp_file" 2>/dev/null) || patterns_count=0
         decisions_count=$(jq '.namespaces.decisions | length' "$tmp_file" 2>/dev/null) || decisions_count=0
 
         if [ ! -f "$export_file" ] || ! cmp -s "$tmp_file" "$export_file"; then
@@ -302,16 +302,16 @@ cmd_import() {
 
     # Import patterns
     local count
-    count=$(jq '.namespaces.patterns | length' "$export_file" 2>/dev/null) || count=0
+    count=$(jq '.namespaces.pattern | length' "$export_file" 2>/dev/null) || count=0
     for i in $(seq 0 $((count - 1))); do
         local key value tags
-        key=$(jq -r ".namespaces.patterns[$i].key // empty" "$export_file" 2>/dev/null) || continue
-        value=$(jq -c ".namespaces.patterns[$i].value // empty" "$export_file" 2>/dev/null) || continue
-        tags=$(jq -r ".namespaces.patterns[$i].tags // empty" "$export_file" 2>/dev/null) || tags=""
+        key=$(jq -r ".namespaces.pattern[$i].key // empty" "$export_file" 2>/dev/null) || continue
+        value=$(jq -c ".namespaces.pattern[$i].value // empty" "$export_file" 2>/dev/null) || continue
+        tags=$(jq -r ".namespaces.pattern[$i].tags // empty" "$export_file" 2>/dev/null) || tags=""
 
         [ -z "$key" ] && continue
 
-        if timeout 5 $CF memory store --upsert -k "$key" -v "$value" --namespace patterns --tags "$tags" 2>/dev/null; then
+        if timeout 5 $CF memory store --upsert -k "$key" -v "$value" --namespace pattern --tags "$tags" 2>/dev/null; then
             ((imported++))
         else
             ((failed++))

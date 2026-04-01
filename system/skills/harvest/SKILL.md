@@ -99,7 +99,7 @@ If Steps 3a-3e produced **zero notable artifacts** (nothing fresh this week):
 1. Scan ruflo patterns with high confidence:
    ```bash
    source "$HOME/.claude/scripts/cf-env.sh" 2>/dev/null
-   $CF memory search --query "pattern transferable" --namespace patterns --limit 10 2>/dev/null
+   $CF memory search --query "pattern transferable" --namespace pattern --limit 10 2>/dev/null
    ```
    Fallback (no ruflo): grep `~/.claude/projects/*/memory/MEMORY.md` for pattern entries.
 

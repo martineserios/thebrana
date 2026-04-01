@@ -12,16 +12,22 @@ depends_on:
   - challenge
   - retrospective
 allowed-tools:
+  - Agent
+  - AskUserQuestion
   - Bash
-  - Read
-  - Write
   - Edit
+  - EnterPlanMode
   - Glob
   - Grep
+  - Read
+  - Skill
   - Task
-  - WebSearch
+  - TaskCreate
+  - TaskList
+  - TaskUpdate
   - WebFetch
-  - AskUserQuestion
+  - WebSearch
+  - Write
 status: stable
 growth_stage: evergreen
 ---
@@ -653,7 +659,7 @@ No branch. No spec. No tasks.json entry. No docs. Just learn.
    cd "$HOME" && $CF memory store \
      -k "spike:{project}:{slug}" \
      -v '{"question": "...", "answer": "...", "conclusion": "yes|no|partial"}' \
-     --namespace patterns \
+     --namespace pattern \
      --tags "type:spike,project:{project}" \
      --upsert
    ```
@@ -729,7 +735,7 @@ No branch. No commits. Read-only. May lead to a build.
    cd "$HOME" && $CF memory store \
      -k "investigation:{project}:{slug}" \
      -v '{"symptoms": "...", "root_cause": "...", "recommendation": "..."}' \
-     --namespace patterns \
+     --namespace pattern \
      --tags "type:investigation,project:{project}" \
      --upsert
    ```
@@ -774,7 +780,7 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
      cd "$HOME" && $CF memory store \
        -k "pattern:{project}:{slug}" \
        -v '{"problem": "...", "solution": "...", "confidence": 0.5}' \
-       --namespace patterns \
+       --namespace pattern \
        --tags "client:{project},type:build-learning" \
        --upsert
      ```

@@ -8,16 +8,18 @@ stream_affinity: [tech-debt, docs]
 argument-hint: "[scope]"
 group: brana
 allowed-tools:
-  - Bash
-  - Read
-  - Write
-  - Edit
-  - Glob
-  - Grep
-  - Task
   - AskUserQuestion
+  - Bash
+  - Edit
   - EnterPlanMode
   - ExitPlanMode
+  - Glob
+  - Grep
+  - Read
+  - Skill
+  - Task
+  - TaskList
+  - Write
 status: stable
 growth_stage: evergreen
 ---
@@ -255,7 +257,7 @@ source "$HOME/.claude/scripts/cf-env.sh"
 cd "$HOME" && $CF memory store \
   -k "reconcile:brana:$(date +%Y%m%d)" \
   -v "{\"type\": \"reconcile\", \"date\": \"$(date +%Y-%m-%d)\", \"drift_found\": N, \"applied\": N, \"deferred\": N, \"areas\": [\"skills\", \"hooks\", ...]}" \
-  --namespace patterns \
+  --namespace pattern \
   --tags "client:brana,type:reconcile" \
   --upsert
 ```

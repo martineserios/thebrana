@@ -111,7 +111,7 @@ fi
 # Job 2: claude-flow correction patterns
 if [ -n "$CF" ]; then
     (
-        CP_OUTPUT=$(timeout 4 $CF memory search --query "client:$PROJECT type:correction" --namespace patterns --format json 2>&1); CP_EXIT=$?
+        CP_OUTPUT=$(timeout 4 $CF memory search --query "client:$PROJECT type:correction" --namespace pattern --format json 2>&1); CP_EXIT=$?
         if [ $CP_EXIT -eq 0 ] && [ -n "$CP_OUTPUT" ]; then
             CP_LINES=$(echo "$CP_OUTPUT" | jq -r '.[] | select(.value | fromjson? | .confidence >= 0.8) | (.key + ": " + (.value | fromjson? | .solution // "unknown"))' 2>/dev/null | head -3) || CP_LINES=""
             echo "$CP_LINES" > "$TMPDIR_SS/corrections"

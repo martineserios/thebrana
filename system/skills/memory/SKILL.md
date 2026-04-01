@@ -8,11 +8,12 @@ stream_affinity: [research, tech-debt]
 argument-hint: "[recall|pollinate|review|review --audit] [query]"
 group: learning
 allowed-tools:
+  - Agent
+  - AskUserQuestion
   - Bash
-  - Read
   - Glob
   - Grep
-  - AskUserQuestion
+  - Read
 status: stable
 growth_stage: evergreen
 ---
@@ -86,8 +87,8 @@ source "$HOME/.claude/scripts/cf-env.sh"
 ## review — Monthly Knowledge Health Audit
 
 1. **Gather stats** from ReasoningBank:
-   - Run `cd $HOME && $CF memory list --namespace patterns --limit 100`
-   - For each pattern (skip `test:*`), retrieve: `cd $HOME && $CF memory retrieve -k "KEY" --namespace patterns --format json`
+   - Run `cd $HOME && $CF memory list --namespace pattern --limit 100`
+   - For each pattern (skip `test:*`), retrieve: `cd $HOME && $CF memory retrieve -k "KEY" --namespace pattern --format json`
    - Parse: `confidence`, `transferable`, `recall_count`, `project`
 
 2. **Compute health metrics:**

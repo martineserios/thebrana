@@ -35,7 +35,7 @@ growth_stage: evergreen
    ```bash
 source "$HOME/.claude/scripts/cf-env.sh"
 ```
-   Store via `cd $HOME && $CF memory store -k "pattern:{PROJECT}:{short-title}" -v '{"problem": "...", "solution": "...", "confidence": 0.5, "transferable": false}' --namespace patterns --tags "client:NAME,tech:TECH,type:CATEGORY,outcome:success|failure|partial"`
+   Store via `cd $HOME && $CF memory store -k "pattern:{PROJECT}:{short-title}" -v '{"problem": "...", "solution": "...", "confidence": 0.5, "transferable": false}' --namespace pattern --tags "client:NAME,tech:TECH,type:CATEGORY,outcome:success|failure|partial"`
 
 4. **Fallback path (ruflo unavailable):**
    Append to `~/.claude/projects/{project-hash}/memory/MEMORY.md` in a structured format:
