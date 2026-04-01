@@ -18,31 +18,31 @@ Brana treats ruflo as an optional CLI tool. It uses 6 of 218 MCP tools, stores f
 
 | Context | Transport | What it accesses |
 |---------|-----------|-----------------|
-| Skills + agents | **MCP direct** (`mcp__ruflo__*`) | All controllers: hierarchical-store/recall, session-start/end, context-synthesize, trajectory, feedback, batch |
+| Skills + agents | **MCP direct** (`mcp__ruflo__*`) | Durable: `memory_store/search`, `hooks_intelligence_pattern-search/store`, `session-end`, `hive-mind_memory`, `claims_*`, `embeddings_compare` |
 | Hooks (shell) | **CLI** (`$CF memory store/search`) | Basic memory ops only. Hooks stay fast, no MCP. |
-| Rust CLI | **Local only** — no ruflo wrapper | Backlog (tasks.json), transcription (whisper), files, feeds, inbox, batch indexing |
+| Rust CLI | **Local only** — no ruflo wrapper | Backlog (tasks.json), transcription (whisper), files, feeds, inbox |
 
 ### What moves out of the CLI
 
-`brana session write/read/history` → **replaced by direct MCP calls from skills.**
+`brana session write` stays as **primary** (local, crash-safe). Ruflo gets a **secondary
+copy** for searchability. Session history becomes semantically searchable.
 
-| Old (CLI intermediary) | New (MCP direct) |
-|----------------------|-----------------|
-| Close → `brana session write` → `$CF memory store` | Close → `hierarchical-store(tier: "episodic")` + `session-end` |
-| Sitrep → `brana session read --json` | Sitrep → `hierarchical-recall(tier: "working")` + `hooks_intelligence_pattern-search` |
-| Session-start hook → `brana session read --json` | Hook: `$CF memory search --namespace session` (basic). First skill call: `session-start` via MCP (rich, ReflexionMemory replay) |
-| Session-end hook → `brana session write --minimal` | Hook: `$CF memory store --namespace session` (basic fallback) |
+| Old (CLI only) | New (CLI primary + MCP secondary) |
+|---------------|----------------------------------|
+| Close → `brana session write` | Close → `brana session write` (keep) + `memory_store(namespace: "session")` (searchable mirror) + `hive-mind_memory(status: "closed")` + `claims_release` |
+| Sitrep → `brana session read --json` | Sitrep → `brana session read --json` (keep) + `hooks_intelligence_pattern-search` (memory context) |
+| Session-start hook → `brana session read --json` | Hook: same as today (keep). No new MCP calls — stale claim cleanup only. |
+| Session-end hook → `brana session write --minimal` | Hook: same + `$CF memory store --namespace session` (backup) + file claim cleanup |
 | `brana session history` (linear browse) | `memory_search(namespace: "session", query: "topic")` (semantic search) |
 
 ### What stays in the CLI (local-only tools)
 
 ```
-brana backlog   — tasks.json management (local file, no ruflo)
+brana backlog    — tasks.json management (local file, no ruflo)
 brana transcribe — whisper audio transcription (local binary)
-brana files     — large file tracking + R2 remotes (local manifest)
-brana feed      — RSS/Atom polling (local HTTP)
-brana inbox     — Gmail IMAP polling (local IMAP)
-brana learn index — mechanical batch indexing (calls $CF for bulk writes)
+brana files      — large file tracking + R2 remotes (local manifest)
+brana feed       — RSS/Atom polling (local HTTP)
+brana inbox      — Gmail IMAP polling (local IMAP)
 ```
 
 ### Graceful degradation
@@ -56,27 +56,32 @@ If ruflo is completely down: hooks write to `pending-learnings.md`, skills work 
 ```
 JUDGMENT LAYER (Skills / LLM)
   What to learn, what's transferable, what to recall.
-  Calls mcp__ruflo__* directly — all 15+ controllers.
-  Examples: hierarchical-store, context-synthesize,
-  session-end, trajectory-start, pattern-search.
+  Calls mcp__ruflo__* directly — durable tools only.
+  Examples: memory_store/search, hooks_intelligence_pattern-search,
+  session-end, hive-mind_memory, claims_release, embeddings_compare.
 
 HOOK LAYER (Shell scripts)
-  Session start/end, PostToolUse recording.
+  Session start/end, PostToolUse recording, file claim management.
   Calls $CF (ruflo CLI) for basic memory ops.
-  Writes flag files for deferred MCP calls.
+  Fast (<200ms), no MCP, no flag files.
 
 MECHANICAL LAYER (Rust CLI)
   Local-only tools: backlog, transcription, files, feeds, inbox.
-  Batch indexing via $CF for bulk knowledge writes.
-  No ruflo wrapper — those concerns live in skills now.
+  No ruflo wrapper — ruflo ops live in skills now.
 
 RUFLO (Infrastructure)
   MCP server + SQLite + HNSW + ONNX embeddings.
   15 active AgentDB controllers (v3.5.48 + ESM patch).
   Storage: ~/.swarm/memory.db
+  Note: hierarchical-store/recall ephemeral (t-823). Use memory_store.
 ```
 
 ## Knowledge Tier Model
+
+> **TARGET STATE — depends on t-823 (ruflo exports HierarchicalMemory).**
+> Current implementation: tier classification via tags on `memory_store`, manual promotion,
+> no automatic decay or TTL. See #7 Approach C for current approach.
+> When `hierarchical-store` becomes durable, this model activates fully.
 
 Ruflo's `agentdb_hierarchical-store` provides 3 memory tiers:
 
@@ -168,22 +173,29 @@ All values clamped to [0.0, 1.0].
 
 ## DDD → SDD → TDD Chain (ruflo-enriched)
 
-The full quality enforcement chain with ruflo at every step. Each gate learns from enforcement — feeding pass/fail back to ruflo to improve future predictions.
+> **Revised 2026-04-01:** Tool references updated to use only durable tools.
+> `agentdb_hierarchical-recall` → `memory_search` with tier tag filter.
+> `agentdb_pattern-search` → `hooks_intelligence_pattern-search`.
+> `agentdb_context-synthesize` → `memory_search(namespace: "all")`.
+> `agentdb_feedback` → deferred (no-op upstream, tracked in t-823).
+> Gate learning loop is aspirational — depends on feedback + trajectory working.
+
+The full quality enforcement chain with ruflo at every step.
 
 ### DDD Gate (Domain-Driven — before SPECIFY)
 
-Checks if domain knowledge exists in ruflo's semantic tier before allowing feature work.
+Checks if domain knowledge exists before allowing feature work.
 
-**Scope:** Only fires for strategy=feature/greenfield/migration AND effort >= M. Bug fixes, refactors, spikes, and small tasks skip entirely.
+**Scope:** Only fires for strategy=feature/greenfield/migration AND effort >= M.
 
 **Flow:**
-1. Query `agentdb_hierarchical-recall(tier=semantic, query="{task tags}")`
+1. Query `memory_search(namespace: "knowledge", query: "{task tags}")` + post-filter on `tier:semantic` tag
 2. If results: PASS silently, inject top 3 into context
 3. If no results: ASK user (not block):
    - "Run /brana:research first" (recommended for L/XL)
    - "Proceed — I know this domain" (logs override)
    - "Skip — domain irrelevant" (passes silently)
-4. Track overrides: 5+ successful builds after override → ruflo learns "this domain doesn't need DDD". 3+ failures after override → ruflo warns "DDD overrides on this domain correlate with rework."
+4. Track overrides via `memory_store(namespace: "pattern", tags: ["type:gate-override"])`. Manual review via `/brana:memory review`.
 
 ### SDD Gate (Spec-Driven — before BUILD)
 
@@ -193,29 +205,31 @@ Checks if a feature spec exists (file or ruflo entry) before allowing implementa
 
 **Flow:**
 1. Check file: `docs/architecture/features/{task-slug}.md`
-2. If no file: query `agentdb_pattern-search(query="spec:{task-id}")`
+2. If no file: query `hooks_intelligence_pattern-search(query: "spec:{task-id}")`
 3. If neither: ASK user — write spec or override with reason
 4. If spec exists: inject summary into context
 
-**Ruflo enrichment at SPECIFY:** `memory_search` for past patterns, `agentdb_context-synthesize` for draft from knowledge, `agentdb_pattern-search` for similar past specs.
+**Ruflo enrichment at SPECIFY:** `memory_search(namespace: "all")` for past patterns, `hooks_intelligence_pattern-search` for similar past specs.
 
 ### TDD Gate (Test-Driven — before implementation)
 
-Existing `tdd-gate.sh` + ruflo learning.
+Existing `tdd-gate.sh` + ruflo learning (when available).
 
 **Scope:** All strategies on feat/* branches (unchanged).
 
-**New with ruflo:**
-- After test pass/fail: `agentdb_feedback(success, context)`
+**Future (after t-823/t-824):**
+- After test pass/fail: `agentdb_feedback(success, context)` — currently no-op upstream
 - Over time: ruflo predicts which task types tend to fail TDD and suggests test strategies
 
-### Gate Learning Loop
+### Gate Learning Loop (aspirational — depends on t-823/t-824)
 
-All three gates feed ruflo. Over sessions, enforcement adapts:
+When feedback + trajectory tracking become functional:
 - Domains that never need DDD → gate auto-skips
 - Task types that always pass SDD → gate relaxes
 - Test patterns that correlate with success → ruflo suggests at TDD gate
 - Override patterns that correlate with failure → ruflo escalates
+
+Until then, gate overrides are tracked as patterns for manual review.
 
 ## Enrichment Matrix
 
@@ -240,6 +254,10 @@ Full matrix (all components × all groups) documented in brainstorm conversation
 
 ### Two modes of parallel execution
 
+> **Note:** CC Agent subprocesses CANNOT call ruflo MCP (different process, no MCP
+> connection). The orchestrator (main CC context) does all ruflo coordination.
+> Agents are "dumb workers" — they code/research, orchestrator manages state.
+
 **Mode 1: Build execution (code tasks)**
 Orchestrator spawns subagents in worktrees. Each agent gets a self-contained protocol:
 1. ORIENT → read spec + files
@@ -247,24 +265,24 @@ Orchestrator spawns subagents in worktrees. Each agent gets a self-contained pro
 3. IMPLEMENT → make test pass (edit only claimed files)
 4. VERIFY → run tests (max 2 retries)
 5. COMMIT → git commit
-6. REPORT → hive-mind broadcast + claims release
+6. REPORT → stdout (orchestrator reads result, updates hive-mind + releases claims)
 
-No user interaction. Claims prevent file conflicts. Hive-mind broadcasts completion. 10-min timeout per agent.
+No user interaction. Worktree isolation prevents file conflicts. Orchestrator updates
+hive-mind and releases claims after each agent completes. 10-min timeout per agent.
 
 **Mode 2: Discussion/analysis (research, review, brainstorm)**
 Spawn agents with different PROFILES to analyze a topic from multiple angles simultaneously:
 
 ```
 /brana:research "JWT auth patterns":
-  → mcp__ruflo__hive-mind_init(topology="mesh")  // peer-to-peer, no queen
-  → Spawn 3 agents:
+  → Orchestrator spawns 3 CC agents (parallel):
     Agent A (profile: security-auditor): "Analyze JWT security risks"
     Agent B (profile: architect): "Evaluate JWT architecture patterns"
     Agent C (profile: researcher): "Find latest JWT best practices 2026"
-  → All work in parallel, share findings via hive-mind_memory
-  → Each broadcasts key findings when done
-  → Orchestrator synthesizes: reads all broadcasts + shared memory
-  → Presents unified research with attributed perspectives
+  → All work in parallel, return findings via stdout
+  → Orchestrator reads all results
+  → Orchestrator writes shared findings to hive-mind_memory
+  → Orchestrator synthesizes: unified research with attributed perspectives
 ```
 
 This applies to:
@@ -338,7 +356,7 @@ Phase 0 — Internal Search (replace 4 CLI calls with 2 MCP calls):
 - Phase 15 (Store leads): replace `$CF memory store` with
   `agentdb_hierarchical-store(key, value, tier: "episodic")` — leads are warm, not permanent
 - Add `mcp__ruflo__memory_search`, `mcp__ruflo__agentdb_hierarchical-recall`,
-  `mcp__ruflo__embeddings_compare`, `mcp__ruflo__agentdb_hierarchical-store` to allowed-tools
+  `mcp__ruflo__embeddings_compare` to allowed-tools
 
 **Fallback:** If MCP unavailable, fall back to current 4x CLI search.
 
@@ -527,6 +545,9 @@ Morning session: /brana:sitrep
 
 **Not for:** file conflict prevention (worktrees handle that).
 **For:** preventing two sessions from working on the same task.
+**Caveat:** Claims are TRANSIENT (in-memory, lost on MCP restart). Task duplication is
+possible after restart. Worktree isolation is the real safety net. Claims are best-effort
+convenience, not a guarantee.
 
 ```
 Terminal 1a: brana backlog start t-200
@@ -1078,51 +1099,68 @@ The recurring constraint: hooks run in shell, MCP tools only work in LLM context
 | #6 execute | LLM (skill) | Direct MCP calls — no gap |
 | #7 index | Shell (script) | Hybrid: shell parses → skill/CLI ingests |
 | #8 pre-tool-use | Shell (hook) | File-based locks, sync with ruflo at session boundaries |
-| #9 session-start | Shell (hook) | Deferred flag → first skill call does MCP |
-| #10 close | LLM (skill) + Shell (hook) | Skill does MCP directly, hook does `$CF` fallback |
+| #9 session-start | Shell (hook) | No new MCP — hook stays as-is, stale claim cleanup only |
+| #10 close | LLM (skill) + Shell (hook) | Skill does 3 MCP calls, hook does `$CF` fallback |
 
-**Pattern:** Skills call MCP directly — no CLI intermediary. Hooks use `$CF` (shell, no choice). Hybrid components (#7, #10) split mechanical work (shell) from intelligent work (MCP).
+**Pattern:** Skills call MCP directly — no CLI intermediary. Hooks use `$CF` (shell, no
+choice). #7 is pure shell. #9 adds nothing new to hook. #10 is the primary MCP integration point.
 
 ### hooks_intelligence as the working pattern layer
 
 > Discovered 2026-04-01: ruflo's `hooks_intelligence_*` tools bypass the broken agentdb
 > bridge and provide a working pattern search, trajectory tracking, and SONA learning.
-> Use these wherever the enrichment matrix originally specified `agentdb_pattern-search`.
 
-| agentdb tool (broken/limited) | hooks_intelligence equivalent (works) |
-|------------------------------|--------------------------------------|
-| `agentdb_pattern-search` | `hooks_intelligence_pattern-search` — HNSW+BM25 hybrid, 26ms |
-| `agentdb_pattern-store` | `hooks_intelligence_pattern-store` — HNSW-indexed |
-| (no equivalent) | `hooks_intelligence_trajectory-start/step/end` — SONA learning |
-| (no equivalent) | `hooks_intelligence_attention` — MoE/Flash/Hyperbolic similarity |
-| (no equivalent) | `hooks_intelligence_learn` — force SONA cycle with EWC++ |
-| (no equivalent) | `hooks_intelligence_stats` — learning health dashboard |
+| agentdb tool (broken/limited) | hooks_intelligence equivalent | Status |
+|------------------------------|------------------------------|--------|
+| `agentdb_pattern-search` | `hooks_intelligence_pattern-search` | **Works** — HNSW+BM25, 26ms, durable |
+| `agentdb_pattern-store` | `hooks_intelligence_pattern-store` | **DEGRADED** — bridge-fallback, not HNSW-indexed. Use `memory_store(ns:pattern)` instead. |
+| (no equivalent) | `hooks_intelligence_trajectory-start/step/end` | **Works** — but deferred (t-824, needs session-begin mechanism) |
+| (no equivalent) | `hooks_intelligence_attention` | **Works** — MoE/Flash/Hyperbolic similarity. Untapped potential. |
+| (no equivalent) | `hooks_intelligence_learn` | **Works** — force SONA cycle. Untapped potential. |
+| (no equivalent) | `hooks_intelligence_stats` | **Works** — learning health dashboard. Untapped potential. |
 
-Use `hooks_intelligence_*` for pattern operations. Use `agentdb_*` for hierarchical tiers,
-session management, batch, and causal edges.
+**Primary use:** `hooks_intelligence_pattern-search` for all pattern recall (replaces broken
+`agentdb_pattern-search`). For pattern storage, use `memory_store(namespace: "pattern")`
+(durable, HNSW-indexed) not `hooks_intelligence_pattern-store` (bridge-fallback).
 
-### Tool budget per enrichment (updated 2026-04-01 — MCP direct, hooks_intelligence discovery)
+### Untapped hooks_intelligence potential
 
-| # | MCP tools (skill calls directly) | Shell fallback ($CF) | Added to |
-|---|--------------------------------|---------------------|----------|
-| 4 | memory_search(ns:all), hierarchical-recall, embeddings_compare, hierarchical-store | 4x $CF memory search | research skill |
-| 5 | hooks_intelligence_pattern-search (Phase 1), hierarchical-recall (Phase 2) | skip | sitrep skill |
-| 6 | hive-mind_init/shutdown, claims_claim/status, agent_spawn | — | backlog skill |
-| 7 | hierarchical-store, embeddings_compare, hooks_intelligence_pattern-store | $CF memory store loop | index skill wrapper |
-| 8 | (none — file-based locks) | — | pre-tool-use hook |
-| 9 | session-start, hierarchical-recall, hooks_intelligence_trajectory-start | $CF memory search | session-start (hook=shell, first skill=MCP) |
-| 10 | session-end, hierarchical-store, hooks_intelligence_trajectory-end | $CF memory store | close skill (MCP) + session-end hook (shell fallback) |
+Three working tools not yet wired into any enrichment:
 
-### Implementation order (revised from phased rollout)
+| Tool | Where it could add value | Priority |
+|------|------------------------|----------|
+| `hooks_intelligence_stats` | `/brana:review` weekly — SONA trajectory count, patterns learned, MoE routing stats, EWC consolidation count. One call, rich dashboard. | P2 (easy win) |
+| `hooks_intelligence_learn` | `/brana:close` — force SONA consolidation after storing learnings. Immediate pattern extraction rather than waiting for automatic cycle. | P3 (after t-824) |
+| `hooks_intelligence_attention` | `/brana:research` Phase 2 triage — MoE/Flash similarity may catch contradictions that cosine `embeddings_compare` misses. Worth evaluating. | P4 (experimental) |
 
-Priority based on value/effort ratio:
+### Tool budget per enrichment (reconciled 2026-04-01 — durable tools only)
 
-1. **#9 + #10 (session loop)** — P2 effort, foundational. Every session starts learning and ends consolidating. All other enrichments benefit from trajectory tracking.
-2. **#4 (research)** — P2 effort. Research is the most memory-intensive skill. Context-synthesize immediately improves recall quality.
-3. **#5 (sitrep)** — P1 effort (just add 1 tool call). Quick win, high visibility.
-4. **#7 (index-knowledge)** — P3 effort. Requires CLI changes + hybrid pipeline. But enables tiered recall for everything else.
-5. **#8 (pre-tool-use claims)** — P2 effort. File-based approach is simple. Real value only when running parallel sessions.
-6. **#6 (execute orchestration)** — P7 effort. Most complex, most dependencies. Implement last.
+| # | MCP tools (durable, skill calls directly) | Shell fallback ($CF) | Added to |
+|---|------------------------------------------|---------------------|----------|
+| 4 | `memory_search(ns:all)`, `embeddings_compare` | 4x `$CF memory search` | research skill |
+| 5 | `hooks_intelligence_pattern-search` | skip | sitrep skill |
+| 6 | `hive-mind_memory` (transient), `claims_claim/release` (transient), `hooks_model-route`, `agent_spawn` | — | backlog + build + sitrep |
+| 7 | (none — shell script + `$CF memory store` with tier tags) | `$CF memory store --upsert` | index-knowledge.sh |
+| 8 | (none — file-based locks in /tmp/brana-claims/) | — | pre-tool-use hook |
+| 9 | (none — hook stays as-is) | `$CF memory search` | session-start hook |
+| 10 | `memory_store(ns:session)`, `hive-mind_memory`, `claims_release` | `$CF memory store` | close skill + session-end hook |
+
+**Note:** `hierarchical-store/recall` removed from all enrichments (ephemeral — t-823).
+`hooks_intelligence_pattern-store` removed (bridge-fallback, not HNSW-indexed).
+`agentdb_session-start` removed from #9 (redundant). Trajectory tracking deferred (t-824).
+
+~~Implementation order removed — superseded by Phased Rollout section below.~~
+
+### MCP call budget per session type
+
+| Session type | MCP calls (approx) | Breakdown |
+|-------------|-------------------|-----------|
+| Light (quick fix, sitrep only) | 1-2 | sitrep: 1 pattern-search |
+| Typical (research + build + close) | 8-12 | research: 2-3, sitrep: 1, build hive-mind: 2-3, close: 3 |
+| Heavy (phase execute, parallel builds) | 20-30 | per-subtask hive-mind writes + claims + model-route |
+
+All MCP calls are non-blocking (skill waits for result but user isn't blocked).
+Hook-phase calls are zero MCP (all `$CF`). MCP failures are non-fatal (graceful degradation).
 
 ---
 
@@ -1218,7 +1256,8 @@ This ensures: if ruflo dies completely, MEMORY.md has the most critical rules. E
 | Tool | Durable? | Backend | Use for persistent data? |
 |------|----------|---------|------------------------|
 | `memory_store` / `memory_search` | **YES** | SQLite `memory_entries` + HNSW | **YES** — primary storage |
-| `hooks_intelligence_pattern-store/search` | **YES** | Same SQLite via HNSW | **YES** — pattern operations |
+| `hooks_intelligence_pattern-search` | **YES** | SQLite via HNSW, 26ms | **YES** — pattern search (verified) |
+| `hooks_intelligence_pattern-store` | **DEGRADED** | Bridge-fallback, not HNSW-indexed | **NO** — use `memory_store(ns:pattern)` instead |
 | `embeddings_compare` | N/A | Stateless | **YES** — dedup utility |
 | `session-start` / `session-end` | **YES** | Bridge fallback → `memory_store` | **YES** — via fallback |
 | `causal-edge` | **YES** | Bridge fallback → `memory_store` | **YES** — via fallback |
@@ -1227,10 +1266,19 @@ This ensures: if ruflo dies completely, MEMORY.md has the most critical rules. E
 | `context-synthesize` | **NO** | Reads from hierarchical (ephemeral) | **NO** — returns empty after restart |
 | `agentdb_batch` (for knowledge) | **NO** | Writes to `episodes` table, not `memory_entries` | **NO** — wrong table |
 | `agentdb_consolidate` | **NO** | Operates on empty stub | **NO** — no-op |
+| `hive-mind_memory/broadcast` | **TRANSIENT** | In-memory, lost on MCP restart | **Best-effort only** — session announcements, not persistent state |
+| `claims_claim/release/list/board` | **TRANSIENT** | In-memory, lost on MCP restart | **Best-effort only** — task locks reset on restart. Worktree isolation is the real safety net. |
+| `hooks_model-route` | N/A | Stateless (returns routing decision) | **YES** — no persistence needed |
+| `agent_spawn/list` | **TRANSIENT** | In-memory agent registry | **Best-effort only** — analytics, not critical path |
+| `coordination_orchestrate` | **TRANSIENT** | In-memory strategy object | **Best-effort only** — workflow formalization |
+| `hooks_intelligence_stats` | N/A | Reads from SONA state | **YES** — read-only, useful for /brana:review |
+| `hooks_intelligence_learn` | N/A | Forces SONA cycle | **YES** — triggers consolidation on demand |
+| `hooks_intelligence_attention` | N/A | Stateless computation | **YES** — MoE/Flash similarity, could enhance research triage |
 
 **Rule: Only use durable tools for persistent data. Use `memory_store` with namespace + tags
-for organization. Use `hooks_intelligence_pattern-store` for pattern operations. Tier
-classification goes in tags (`tier:semantic`), not in `hierarchical-store`.**
+for organization. Use `hooks_intelligence_pattern-search` for pattern recall. Tier
+classification goes in tags (`tier:semantic`), not in `hierarchical-store`. Transient tools
+(hive-mind, claims) are for cross-session awareness — not for data that must survive restarts.**
 
 **Impact on enrichment matrix:**
 - #5 (sitrep): `hierarchical-recall` → use `hooks_intelligence_pattern-search` instead (already revised)
@@ -1248,10 +1296,10 @@ classification goes in tags (`tier:semantic`), not in `hierarchical-store`.**
 
 1. ~~Should spec-graph.json edges migrate entirely to ruflo causal_edges, or coexist?~~ **Answered:** Coexist initially. spec-graph.json is consumed by maintain-specs (shell context). Causal edges are for knowledge relationships (MCP context). Migrate spec-graph edges to ruflo causal_edges when maintain-specs becomes a skill (currently a command).
 2. ~~Should `brana learn` be new Rust CLI subcommands, or extend existing `brana ops`?~~ **Answered:** New `brana learn` subcommand group. `ops` is operational health. `learn` is knowledge operations: `brana learn index`, `brana learn consolidate`, `brana learn export`. Keeps concerns separate.
-3. ~~Which enrichment matrix combinations to implement first?~~ **Answered:** #9+#10 (session loop) → #4 (research) → #5 (sitrep) → #7 (index) → #8 (claims) → #6 (execute). See "Implementation order" in cross-cutting observations.
+3. ~~Which enrichment matrix combinations to implement first?~~ **Answered:** See Phased Rollout below (authoritative ordering).
 4. How to handle ruflo version upgrades (pin? test before update? migration path?)
-5. **New:** Should `agentdb_session-start` be called from a deferred flag (Option B) or should we add CLI support for it? Deferred flag is simpler but adds a "first skill call" delay.
-6. **New:** `agentdb_batch` doesn't accept a tier parameter. How do we handle tiered batch indexing? Key-prefix encoding (`knowledge:semantic:...`) is the current proposal — does ruflo's `hierarchical-recall` respect key prefixes, or does it need actual tier metadata?
+5. ~~Should `agentdb_session-start` be called from a deferred flag?~~ **Answered:** Dropped entirely. Redundant with `$CF memory search` in hook. See #9 revision.
+6. ~~`agentdb_batch` tier parameter?~~ **Moot:** `agentdb_batch` is non-durable (episodes table). Tiers are tags on `memory_store`. Revisit when batch becomes durable (t-823).
 
 ---
 
