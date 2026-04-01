@@ -758,47 +758,32 @@ task-sync, portfolio.md format. Single-project clients just don't use the field.
 > writes to episodes table not memory_entries. Neither usable for knowledge indexing.
 > Final: Approach C — upgrade the battle-tested shell script, add dedup as periodic job.
 
-**Problem now:** `index-knowledge.sh` stores 436 sections from 45 dimension docs. Flat
-namespace, no tier classification, no dedup, no orphan cleanup, only indexes one doc category.
+**Problem (solved):** `index-knowledge.sh` was calling `ruflo memory store` per section — serialized, ~2-3h for 1200+ entries.
 
-**What changes (Approach C):**
+**What shipped (2026-04-01):**
+
+Two-phase pipeline replaces per-section CLI calls:
 
 ```
-index-knowledge.sh (upgraded, still shell, still $0):
+index-knowledge.sh (shell — Phase 1):
+  1. Parses 7 doc categories by ## headings
+  2. Classifies tier/type from filepath
+  3. Outputs JSONL to temp file
 
-  1. EXPAND to 7 doc categories:
-     brana-knowledge/dimensions/*.md     → 45 docs, ~436 sections
-     docs/architecture/*.md              → ~5 docs, ~30 sections
-     docs/reflections/*.md               → ~5 docs, ~40 sections
-     docs/architecture/decisions/*.md    → ~15 docs, ~30 sections
-     docs/architecture/features/*.md     → ~10 docs, ~20 sections
-     docs/ideas/*.md                     → ~5 docs, ~20 sections
-     docs/research/*.md                  → ~3 docs, ~15 sections
-     Total: ~590 sections (vs current 436)
+bulk-index.mjs (Node.js — Phase 2):
+  1. Reads JSONL
+  2. Batch-generates 384-dim ONNX embeddings (batches of 20)
+  3. Writes directly to ~/.swarm/memory.db via SQLite transactions
+  4. --cleanup flag removes orphan entries
 
-  2. CLASSIFY tier by path:
-     case "$filepath" in
-       */dimensions/*|*/architecture/*|*/reflections/*|*/decisions/*) tier="semantic" ;;
-       */features/*) tier="episodic" ;;  # could be promoted to semantic when shipped
-       */ideas/*) tier="working" ;;
-       */research/*) tier="episodic" ;;
-       *) tier="episodic" ;;
-     esac
-
-  3. STORE with tier as tag (not key prefix — keeps existing key scheme):
-     $CF memory store \
-       -k "knowledge:dimension:${doc_slug}:${section_slug}" \
-       -v "$value" \
-       --namespace knowledge \
-       --tags "source:brana-knowledge,type:dimension,doc:${filename},tier:${tier}" \
-       --upsert
-
-  4. ORPHAN CLEANUP (new):
-     List all knowledge:* keys in ruflo.
-     Compare against actual ## sections on disk.
-     Delete entries for removed/renamed sections.
-     (Runs only on full reindex, not incremental)
+Performance: 1247 sections in 88s (vs 2-3h with CLI)
 ```
+
+CLI: `brana knowledge reindex` / `brana knowledge reindex --changed` / `brana knowledge status`.
+
+Ruflo path resolved dynamically (npm root, node execPath, which ruflo). No hardcoded nvm paths.
+
+Upstream: ruvnet/ruflo#1494 filed for native `memory_batch` MCP tool — would eliminate the direct SQLite workaround.
 
 **Dedup (separate periodic `claude -p` job, not on indexing hot path):**
 
@@ -1142,7 +1127,7 @@ Three working tools not yet wired into any enrichment:
 | 4 | `memory_search(ns:all)`, `embeddings_compare` | 4x `$CF memory search` | research skill |
 | 5 | `hooks_intelligence_pattern-search` | skip | sitrep skill |
 | 6 | `hive-mind_memory` (transient), `claims_claim/release` (transient), `hooks_model-route`, `agent_spawn` | — | backlog + build + sitrep |
-| 7 | (none — shell script + `$CF memory store` with tier tags) | `$CF memory store --upsert` | index-knowledge.sh |
+| 7 | (none — two-phase: shell → JSONL → `bulk-index.mjs` direct SQLite) | direct SQLite write | index-knowledge.sh + bulk-index.mjs |
 | 8 | (none — file-based locks in /tmp/brana-claims/) | — | pre-tool-use hook |
 | 9 | (none — hook stays as-is) | `$CF memory search` | session-start hook |
 | 10 | `memory_store(ns:session)`, `hive-mind_memory`, `claims_release` | `$CF memory store` | close skill + session-end hook |
@@ -1185,7 +1170,7 @@ Hook-phase calls are zero MCP (all `$CF`). MCP failures are non-fatal (graceful 
 ### Failure Mode 3: DB corrupt
 - `brana ops health` detects (entry count mismatch vs last backup)
 - Restore from `brana-knowledge/backup/swarm/`
-- Re-run `index-knowledge.sh` to rebuild from source docs
+- Re-run `brana knowledge reindex` to rebuild from source docs
 
 ### Dual-Write Strategy
 

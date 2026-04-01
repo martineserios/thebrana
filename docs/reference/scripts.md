@@ -46,25 +46,71 @@ Attempts to store via `ruflo memory store`. If ruflo is unavailable or the store
 |-------|-------|
 | **Purpose** | Index brana-knowledge dimension docs into ruflo memory for semantic search |
 | **Usage** | `index-knowledge.sh` (all), `index-knowledge.sh file.md` (specific), `index-knowledge.sh --changed` (git-changed only) |
-| **Dependencies** | ruflo with real embeddings (not hash-fallback), `@xenova/transformers` |
+| **Dependencies** | Node.js, `bulk-index.mjs`, ruflo's `better-sqlite3` + `@xenova/transformers` |
 | **Status** | Active — canonical location is `system/scripts/index-knowledge.sh` |
 
-Splits each dimension doc by `##` headings. Each section becomes a memory entry:
+Two-phase pipeline:
 
-- **Key:** `knowledge:dimension:{doc-slug}:{section-slug}`
+1. **Phase 1 (shell):** Parses markdown by `##` headings, classifies tier/type from file path, outputs JSONL to a temp file
+2. **Phase 2 (Node.js):** `bulk-index.mjs` reads JSONL, batch-generates 384-dim ONNX embeddings, writes directly to SQLite (`~/.swarm/memory.db`)
+
+Each section becomes a memory entry:
+
+- **Key:** `knowledge:{type}:{doc-slug}:{section-slug}`
 - **Namespace:** `knowledge`
-- **Tags:** `source:brana-knowledge,type:dimension,doc:{filename}`
+- **Tags:** `[source:{repo}, type:{type}, doc:{filename}, tier:{tier}]` (JSON array)
 - **Value:** Section content, truncated to 2000 characters
 
-Validates that ruflo produces real ONNX embeddings (not hash-fallback, which produces 768-dim instead of 384-dim vectors).
+Falls back to legacy per-section `ruflo memory store` if `bulk-index.mjs` is missing.
 
 ### Modes
 
 | Mode | Trigger | Use case |
 |------|---------|----------|
-| `index-knowledge.sh` | No args | Full reindex of all dimension docs |
+| `index-knowledge.sh` | No args | Full reindex of all 7 categories + orphan cleanup |
 | `index-knowledge.sh file1.md` | Filename args | Index specific files |
 | `index-knowledge.sh --changed` | `--changed` flag | Index only git-changed files (for post-commit hook) |
+
+### Doc Categories (7)
+
+| Directory | Type | Tier |
+|-----------|------|------|
+| `brana-knowledge/dimensions/` | dimension | semantic |
+| `docs/architecture/decisions/` | decision | semantic |
+| `docs/architecture/features/` | feature | episodic |
+| `docs/architecture/` | architecture | semantic |
+| `docs/reflections/` | reflection | semantic |
+| `docs/ideas/` | idea | working |
+| `docs/research/` | research | episodic |
+
+---
+
+## bulk-index.mjs
+
+| Field | Value |
+|-------|-------|
+| **Purpose** | Batch embed + store knowledge sections directly to SQLite (Phase 2 of indexing pipeline) |
+| **Usage** | `node bulk-index.mjs [--cleanup] [path/to/sections.jsonl]` |
+| **Dependencies** | ruflo's `better-sqlite3`, `@xenova/transformers` (resolved dynamically) |
+| **Status** | Active — canonical location is `system/scripts/bulk-index.mjs` |
+
+Reads JSONL (one entry per line with `key`, `value`, `tags`), generates 384-dim embeddings in batches of 20, writes to `memory_entries` table via SQLite transactions. ~100x faster than per-section CLI calls.
+
+Dynamically resolves ruflo's `node_modules` via 3 strategies: `npm root -g`, `process.execPath` prefix, `which ruflo` symlink.
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--cleanup` | off | Remove orphan knowledge entries not in this run |
+| `[path]` | `/tmp/knowledge-sections.jsonl` | JSONL file to read |
+
+### CLI wrapper
+
+| Command | Effect |
+|---------|--------|
+| `brana knowledge reindex` | Full reindex (all 7 categories + orphan cleanup) |
+| `brana knowledge reindex --changed` | Git-changed files only |
+| `brana knowledge reindex file.md` | Specific file(s) |
+| `brana knowledge status` | Show entry count + last indexed timestamp |
 
 ---
 

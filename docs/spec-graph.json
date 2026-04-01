@@ -383,7 +383,8 @@
       "impl_files": [
         "system/commands/",
         "system/",
-        "system/scripts/index-knowledge.sh"
+        "system/scripts/index-knowledge.sh",
+        "system/scripts/bulk-index.mjs"
       ],
       "guide_files": [
         "docs/guide/concepts.md",
@@ -3158,7 +3159,9 @@
         "system/scripts/generate-reference.py",
         "system/hooks/hooks.json",
         "system/commands/",
-        "system/scripts/cc-changelog-check.sh"
+        "system/scripts/cc-changelog-check.sh",
+        "system/scripts/bulk-index.mjs",
+        "system/cli/rust/src/commands/knowledge.rs"
       ],
       "guide_files": [
         "docs/guide/concepts.md",

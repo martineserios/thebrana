@@ -650,7 +650,7 @@ Separated from Phase 1 because these are logic rewrites, not path substitutions.
 Validate the full loop before investing in content. Write 1-2 dimension docs AND the indexing pipeline in the same session. If retrieval doesn't work, knowledge base is just another file graveyard.
 
 - [x] Seed dimension docs — 26 docs already in place from Phase 1 redistribution (enter dimension docs → brana-knowledge/dimensions/)
-- [x] Indexing pipeline — `system/scripts/index-knowledge.sh`: parses by ## sections, stores in ruflo memory with 384-dim ONNX embeddings. 26 docs → 317 sections → 315 stored (2 encoding errors in [doc 09](dimensions/09-claude-code-native-features.md))
+- [x] Indexing pipeline — two-phase: `index-knowledge.sh` (shell, parses ## sections + classifies tiers → JSONL) → `bulk-index.mjs` (Node.js, batch ONNX embeddings + direct SQLite write). 7 doc categories, 1247 sections in 88s. CLI: `brana knowledge reindex`. See [scripts reference](reference/scripts.md).
 - [x] Memory-curator agent updated — searches knowledge namespace, surfaces dimension doc findings alongside patterns
 - [x] **End-to-end test PASSED:** "git worktree workflow" → [doc 26](dimensions/26-git-branching-strategies.md) at 0.63, "testing claude code hooks" → [doc 09](dimensions/09-claude-code-native-features.md) at 0.59, "design thinking" → [doc 38](dimensions/38-design-thinking.md) at 0.53. Cross-doc discrimination works.
 - [x] Test passes — retrieval validated, proceed to Phase 4
