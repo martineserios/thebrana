@@ -102,6 +102,7 @@ echo ""
 TOTAL=0
 STORED=0
 ERRORS=0
+output=""
 
 for skill_file in "${SKILL_FILES[@]}"; do
     name=$(parse_fm "name" < "$skill_file")
@@ -133,12 +134,14 @@ for skill_file in "${SKILL_FILES[@]}"; do
 
     key="skill:${name}"
 
-    if cd "$HOME" && $CF memory store \
+    output=$(cd "$HOME" && timeout 15 $CF memory store \
         -k "$key" \
         -v "$embed_text" \
         --namespace skills \
         --tags "$tags" \
-        --upsert 2>&1 | grep -q "stored successfully"; then
+        --upsert 2>&1) || true
+
+    if echo "$output" | grep -q "stored successfully"; then
         STORED=$((STORED + 1))
         echo "  + $name [$group, $effort]"
     else

@@ -50,7 +50,7 @@ if [ -z "$CF" ]; then
 fi
 
 # Verify we get real embeddings, not hash-fallback
-MODEL_CHECK=$($CF embeddings generate --text "test" 2>&1 || true)
+MODEL_CHECK=$(timeout 30 $CF embeddings generate --text "test" 2>&1 || true)
 if echo "$MODEL_CHECK" | grep -q "hash-fallback"; then
     echo "ERROR: ruflo using hash-fallback embeddings (useless). Install @xenova/transformers." >&2
     exit 1
@@ -155,12 +155,15 @@ STORED_KEYS=()
 
 store_section() {
     local key="$1" value="$2" tags="$3"
-    if cd "$HOME" && $CF memory store \
+    local output
+    output=$(cd "$HOME" && timeout 15 $CF memory store \
         -k "$key" \
         -v "$value" \
         --namespace knowledge \
         --tags "$tags" \
-        --upsert 2>&1 | grep -q "stored successfully"; then
+        --upsert 2>&1) || true
+
+    if echo "$output" | grep -q "stored successfully"; then
         TOTAL_STORED=$((TOTAL_STORED + 1))
         STORED_KEYS+=("$key")
     else

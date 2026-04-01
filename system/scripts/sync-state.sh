@@ -205,7 +205,37 @@ cmd_pull() {
     log "pull complete — cache restored from repos"
 }
 
-# ── export: claude-flow → repo ─────────────────────────────
+# ── export: ruflo → repo ──────────────────────────────────
+
+# Paginate all entries from a ruflo namespace via CLI memory list.
+# Outputs a JSON array to stdout.
+ruflo_list_all() {
+    local ns="$1"
+    local limit=100
+    local offset=0
+    local all_entries="[]"
+
+    while true; do
+        local page
+        page=$(timeout 30 $CF memory list --namespace "$ns" --limit "$limit" --offset "$offset" --format json 2>/dev/null) || break
+
+        # Extract entries array from response
+        local entries
+        entries=$(echo "$page" | jq -c '.entries // []' 2>/dev/null) || break
+
+        local count
+        count=$(echo "$entries" | jq 'length' 2>/dev/null) || count=0
+
+        if [ "$count" -eq 0 ]; then
+            break
+        fi
+
+        all_entries=$(jq -s '.[0] + .[1]' <(echo "$all_entries") <(echo "$entries") 2>/dev/null) || break
+        offset=$((offset + limit))
+    done
+
+    echo "$all_entries"
+}
 
 cmd_export() {
     local auto_commit=false
@@ -231,41 +261,42 @@ cmd_export() {
     local tmp_file="/tmp/brana-patterns-export-$$.json"
     local changed=false
 
-    # Export patterns namespace
-    local patterns_json
-    patterns_json=$(timeout 30 $CF memory search --query "" --namespace pattern --format json 2>/dev/null) || patterns_json="[]"
+    # Export all namespaces via paginated list
+    local NAMESPACES=("pattern" "decisions" "knowledge" "skills")
+    local ns_json="{}"
 
-    # Export decisions namespace
-    local decisions_json
-    decisions_json=$(timeout 30 $CF memory search --query "" --namespace decisions --format json 2>/dev/null) || decisions_json="[]"
+    for ns in "${NAMESPACES[@]}"; do
+        local entries
+        entries=$(ruflo_list_all "$ns")
+        ns_json=$(echo "$ns_json" | jq --arg ns "$ns" --argjson entries "$entries" '.[$ns] = $entries' 2>/dev/null) || true
+    done
 
-    # Combine into a single export file
+    # Build final export
     jq -n \
         --arg exported_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
         --arg cf_version "$($CF --version 2>/dev/null || echo unknown)" \
-        --argjson patterns "$patterns_json" \
-        --argjson decisions "$decisions_json" \
+        --argjson namespaces "$ns_json" \
         '{
             exported_at: $exported_at,
             cf_version: $cf_version,
-            namespaces: {
-                pattern: $patterns,
-                decisions: $decisions
-            }
+            namespaces: $namespaces
         }' > "$tmp_file" 2>/dev/null
 
     if [ -f "$tmp_file" ]; then
-        local patterns_count decisions_count
-        patterns_count=$(jq '.namespaces.pattern | length' "$tmp_file" 2>/dev/null) || patterns_count=0
-        decisions_count=$(jq '.namespaces.decisions | length' "$tmp_file" 2>/dev/null) || decisions_count=0
+        local total=0
+        for ns in "${NAMESPACES[@]}"; do
+            local c
+            c=$(jq --arg ns "$ns" '.namespaces[$ns] | length' "$tmp_file" 2>/dev/null) || c=0
+            total=$((total + c))
+        done
 
         if [ ! -f "$export_file" ] || ! cmp -s "$tmp_file" "$export_file"; then
             mv "$tmp_file" "$export_file"
             changed=true
-            log "exported: $patterns_count patterns, $decisions_count decisions"
+            log "exported: $total entries across ${#NAMESPACES[@]} namespaces"
         else
             rm -f "$tmp_file"
-            log "export unchanged ($patterns_count patterns, $decisions_count decisions)"
+            log "export unchanged ($total entries)"
         fi
     else
         log "export failed — could not generate JSON"
@@ -273,11 +304,11 @@ cmd_export() {
     fi
 
     if [ "$changed" = true ] && [ "$auto_commit" = true ]; then
-        auto_commit_state "sync: export ruflo patterns and decisions"
+        auto_commit_state "sync: export ruflo memory"
     fi
 }
 
-# ── import: repo → claude-flow ─────────────────────────────
+# ── import: repo → ruflo ──────────────────────────────────
 
 cmd_import() {
     local export_file="$STATE_DIR/patterns-export.json"
@@ -300,42 +331,44 @@ cmd_import() {
 
     local imported=0 failed=0
 
-    # Import patterns
-    local count
-    count=$(jq '.namespaces.pattern | length' "$export_file" 2>/dev/null) || count=0
-    for i in $(seq 0 $((count - 1))); do
-        local key value tags
-        key=$(jq -r ".namespaces.pattern[$i].key // empty" "$export_file" 2>/dev/null) || continue
-        value=$(jq -c ".namespaces.pattern[$i].value // empty" "$export_file" 2>/dev/null) || continue
-        tags=$(jq -r ".namespaces.pattern[$i].tags // empty" "$export_file" 2>/dev/null) || tags=""
+    # Get all namespace names from export file
+    local namespaces
+    namespaces=$(jq -r '.namespaces | keys[]' "$export_file" 2>/dev/null) || namespaces=""
 
-        [ -z "$key" ] && continue
+    for ns in $namespaces; do
+        local count
+        count=$(jq --arg ns "$ns" '.namespaces[$ns] | length' "$export_file" 2>/dev/null) || count=0
+        log "importing $count entries from namespace: $ns"
 
-        if timeout 5 $CF memory store --upsert -k "$key" -v "$value" --namespace pattern --tags "$tags" 2>/dev/null; then
-            ((imported++))
-        else
-            ((failed++))
-        fi
-    done
+        for i in $(seq 0 $((count - 1))); do
+            local key value tags
+            key=$(jq -r --arg ns "$ns" ".namespaces[\$ns][$i].key // empty" "$export_file" 2>/dev/null) || continue
+            value=$(jq -c --arg ns "$ns" ".namespaces[\$ns][$i].content // .namespaces[\$ns][$i].value // empty" "$export_file" 2>/dev/null) || continue
+            tags=$(jq -r --arg ns "$ns" ".namespaces[\$ns][$i].tags // empty" "$export_file" 2>/dev/null) || tags=""
 
-    # Import decisions
-    count=$(jq '.namespaces.decisions | length' "$export_file" 2>/dev/null) || count=0
-    for i in $(seq 0 $((count - 1))); do
-        local key value tags
-        key=$(jq -r ".namespaces.decisions[$i].key // empty" "$export_file" 2>/dev/null) || continue
-        value=$(jq -c ".namespaces.decisions[$i].value // empty" "$export_file" 2>/dev/null) || continue
-        tags=$(jq -r ".namespaces.decisions[$i].tags // empty" "$export_file" 2>/dev/null) || tags=""
+            [ -z "$key" ] && continue
 
-        [ -z "$key" ] && continue
-
-        if timeout 5 $CF memory store --upsert -k "$key" -v "$value" --namespace decisions --tags "$tags" 2>/dev/null; then
-            ((imported++))
-        else
-            ((failed++))
-        fi
+            if cd "$HOME" && timeout 5 $CF memory store --upsert -k "$key" -v "$value" --namespace "$ns" --tags "$tags" 2>/dev/null; then
+                ((imported++)) || true
+            else
+                ((failed++)) || true
+            fi
+        done
     done
 
     log "import complete: $imported entries restored, $failed failed"
+}
+
+# ── restore: binary backup → memory.db ────────────────────
+
+cmd_restore() {
+    local backup_script="$SCRIPT_DIR/backup-memory.sh"
+    if [ -f "$backup_script" ]; then
+        exec "$backup_script" --restore "$@"
+    else
+        log "error — backup-memory.sh not found at $backup_script"
+        return 1
+    fi
 }
 
 
@@ -380,17 +413,19 @@ auto_commit_state() {
 # ── Main ───────────────────────────────────────────────────
 
 case "${1:-help}" in
-    push)   shift; cmd_push "$@" ;;
-    pull)   shift; cmd_pull "$@" ;;
-    export) shift; cmd_export "$@" ;;
-    import) shift; cmd_import "$@" ;;
+    push)    shift; cmd_push "$@" ;;
+    pull)    shift; cmd_pull "$@" ;;
+    export)  shift; cmd_export "$@" ;;
+    import)  shift; cmd_import "$@" ;;
+    restore) shift; cmd_restore "$@" ;;
     help|--help|-h)
-        echo "Usage: sync-state.sh <push|pull|export|import> [options]"
+        echo "Usage: sync-state.sh <push|pull|export|import|restore> [options]"
         echo ""
-        echo "  push [--auto-commit]    Cache → repos (operational state + companion files)"
-        echo "  pull                    Repos → cache (new machine restore)"
-        echo "  export [--auto-commit]  Claude-flow patterns+decisions → repo JSON"
-        echo "  import                  Repo JSON → ruflo patterns+decisions"
+        echo "  push [--auto-commit]              Cache → repos (operational state)"
+        echo "  pull                              Repos → cache (new machine restore)"
+        echo "  export [--auto-commit]            Ruflo memory → repo JSON (all namespaces)"
+        echo "  import                            Repo JSON → ruflo memory"
+        echo "  restore [--date YYYYMMDD]         Restore memory.db from binary backup"
         ;;
     *)
         echo "Unknown command: $1" >&2

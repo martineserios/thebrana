@@ -61,6 +61,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [posttooluse-workaround.md](architecture/posttooluse-workaround.md) | CC bug #24529 workaround details |
 | [building-methodology.md](architecture/building-methodology.md) | How brana is built (DDD/SDD/TDD) |
 | [system-documentation-map.md](architecture/system-documentation-map.md) | Documentation structure map |
+| [memory-backup.md](architecture/memory-backup.md) | Memory backup, recovery, and reindex procedures |
 
 ### Extending brana
 

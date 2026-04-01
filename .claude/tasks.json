@@ -22590,6 +22590,33 @@
         "audit"
       ],
       "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": null,
+      "created": "2026-04-01",
+      "description": "Ruflo CLI memory store spawns a new Node.js process per call (~15s overhead, process hangs). Batch script (ruflo-batch-store.mjs) exists but can't share DB with running MCP server. Current workaround: timeout 15 wrapper in index scripts + overnight scheduler. Fix options: (1) upstream PR for CLI exit, (2) fix mcp exec value passing bug, (3) direct SQLite bulk insert.",
+      "effort": "M",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-844",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": "bug-fix",
+      "subject": "Fix ruflo indexing performance: CLI hangs, ~15s per entry",
+      "tags": [
+        "ruflo",
+        "performance",
+        "indexing",
+        "cli"
+      ]
     }
   ],
   "version": "1"
