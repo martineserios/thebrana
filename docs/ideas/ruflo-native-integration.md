@@ -1,10 +1,12 @@
 # Ruflo Native Integration
 
-> Brainstormed 2026-03-31. Status: idea (in progress).
+> Brainstormed 2026-03-31. Status: active — P0-P3 done, P1-P2 ready next.
 
 ## Problem
 
-Brana treats ruflo as an optional CLI tool. It uses 6 of 218 MCP tools, stores flat key-value entries while 33 advanced tables sit empty. The MCP server pointed to a stale 42-entry database while the CLI had 1,006 entries. Ruflo's learning engine — trajectories, causal graphs, pattern confidence, agent orchestration, ReflexionMemory — is completely untapped.
+Brana treated ruflo as an optional CLI tool. It used 6 of 218 MCP tools, stored flat key-value entries while 33 advanced tables sat empty. The MCP server pointed to a stale 42-entry database while the CLI had 1,006 entries. Ruflo's learning engine — trajectories, causal graphs, pattern confidence, agent orchestration, ReflexionMemory — was completely untapped.
+
+> **Update 2026-04-01:** P0 (MCP fix), P0.1 (durability test), P0.2 (CLI DB path fix), P3 (close skill MCP port) are done. Close skill now uses 5 MCP tools with CLI fallback. SQLite persistence verified. All hooks use correct `~/.swarm/memory.db`.
 
 ## Core Decision
 
@@ -1292,12 +1294,24 @@ classification goes in tags (`tier:semantic`), not in `hierarchical-store`. Tran
 
 ---
 
+## Related: Skill Auto-Router
+
+See [skill-auto-router.md](skill-auto-router.md) — downstream idea that uses ruflo's
+`memory_store/search` (Layer 1) + `hooks_route` (pre-filter) + marketplace discovery
+to auto-route tasks to the best skill. Depends on ruflo durability (P0, done) and skill
+index in ruflo memory. Supersedes t-608 (dynamic-skill-routing.md).
+
+Key ruflo tools: `memory_store(ns: "skills")`, `memory_search(ns: "skills")`,
+`hooks_route`, `hooks_model-route`, `memory_search(ns: "all")` for cross-client.
+
+---
+
 ## Open Questions
 
 1. ~~Should spec-graph.json edges migrate entirely to ruflo causal_edges, or coexist?~~ **Answered:** Coexist initially. spec-graph.json is consumed by maintain-specs (shell context). Causal edges are for knowledge relationships (MCP context). Migrate spec-graph edges to ruflo causal_edges when maintain-specs becomes a skill (currently a command).
 2. ~~Should `brana learn` be new Rust CLI subcommands, or extend existing `brana ops`?~~ **Answered:** New `brana learn` subcommand group. `ops` is operational health. `learn` is knowledge operations: `brana learn index`, `brana learn consolidate`, `brana learn export`. Keeps concerns separate.
 3. ~~Which enrichment matrix combinations to implement first?~~ **Answered:** See Phased Rollout below (authoritative ordering).
-4. How to handle ruflo version upgrades (pin? test before update? migration path?)
+4. ~~How to handle ruflo version upgrades (pin? test before update? migration path?)~~ **Partially answered:** 3 patches applied to node_modules (ESM require fix, searchPatterns API, batch session_id). These break on `npm install -g ruflo`. Pin current version until upstream fixes land (ruvnet/ruflo#1492). Before upgrading: re-run durability smoke test (store→restart→recall) and verify patched APIs still work.
 5. ~~Should `agentdb_session-start` be called from a deferred flag?~~ **Answered:** Dropped entirely. Redundant with `$CF memory search` in hook. See #9 revision.
 6. ~~`agentdb_batch` tier parameter?~~ **Moot:** `agentdb_batch` is non-durable (episodes table). Tiers are tags on `memory_store`. Revisit when batch becomes durable (t-823).
 
@@ -1313,9 +1327,11 @@ classification goes in tags (`tier:semantic`), not in `hierarchical-store`. Tran
 | Phase | What | Enrichment # | Effort | Status |
 |-------|------|-------------|--------|--------|
 | P0 | Fix MCP server (wrapper script, correct DB, ESM patch) | — | S | ✅ Done |
+| P0.1 | Durability smoke test (store→restart→recall) | — | XS | ✅ Done (2026-04-01) |
+| P0.2 | Fix CLI DB path (hooks use wrong .swarm/memory.db) | — | XS | ✅ Done (2026-04-01) |
 | P1 | Index-knowledge upgrade: 7 doc categories, tier tags, orphan cleanup | #7 | S | Ready |
 | P2 | Sitrep: add `hooks_intelligence_pattern-search` as Source 6 | #5 | S | Ready |
-| P3 | Session loop: `session-start/end` (bridge fallback) + trajectory tracking | #9, #10 | M | Ready |
+| P3 | Session loop: close gains 3 MCP calls + session-start stale claim cleanup | #9, #10 | M | ✅ Done (2026-04-01) — close skill ported |
 | P4 | Research adopts MCP: `memory_search(ns:all)` + dedup via `embeddings_compare` | #4 | M | Ready |
 | P5 | Task claims: `claims_claim/release` for task-level locking across sessions | #6B | S | Ready |
 | P6 | Hive-mind: cross-session blackboard for build progress + plan tracking | #6A | M | Ready |
@@ -1334,3 +1350,12 @@ classification goes in tags (`tier:semantic`), not in `hierarchical-store`. Tran
 ### 2026-04-01: Test tool durability before building
 `hierarchical-store` appeared functional (controller enabled, success responses) but data was ephemeral — lost on MCP restart. Rule: always test store→restart→recall before designing architecture around any ruflo tool.
 Source: ruflo integration brainstorm session
+
+### 2026-04-01: Durability smoke test passed
+Wrote `durability-test:smoke:2026-04-01` via MCP `memory_store` (384-dim embedding, sql.js+HNSW). Killed all ruflo MCP processes. Recalled via CLI from `~/.swarm/memory.db` — 0.65 similarity, 35ms. **SQLite persistence confirmed.**
+Bonus finding: CLI vs MCP hit different DBs when CWD differs. MCP wrapper does `cd ~` (correct). Hooks didn't — fixed by adding `cd "$HOME" &&` before `$CF` calls.
+Source: ruflo integration session 2
+
+### 2026-04-01: Close skill ported to MCP (P3)
+Added 3 additive MCP calls to `/brana:close`: `memory_store(ns:session)` for searchable session mirror, `hive-mind_memory` for cross-session announcement, `claims_release` for task unlocking. All best-effort with CLI fallback. Steps 5/6/10 also gained MCP-preferred paths.
+Source: ruflo integration session 2

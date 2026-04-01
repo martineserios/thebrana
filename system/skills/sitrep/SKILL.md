@@ -15,6 +15,8 @@ allowed-tools:
   - Grep
   - Task
   - AskUserQuestion
+  - mcp__ruflo__hooks_intelligence_pattern-search
+  - mcp__ruflo__hive-mind_memory
 status: stable
 growth_stage: evergreen
 ---
@@ -96,6 +98,50 @@ Review the last few conversation turns for:
 - Last skill invoked (e.g., `/brana:build`, `/brana:close`)
 - Last user instruction that hasn't been completed
 - Any "do X next" or "after that, Y" signals
+
+### Source 6 — Memory context (ruflo)
+
+Query ruflo for confidence-scored patterns related to current work:
+
+```
+mcp__ruflo__hooks_intelligence_pattern-search(
+  query: "{TASK_SUBJECT} {BRANCH}",
+  topK: 3,
+  minConfidence: 0.3,
+  namespace: "pattern"
+)
+```
+
+**Output rules:**
+- Suppress results below 0.25 similarity
+- If all results below threshold, omit this section entirely
+- Use plain-language labels: "from past sessions" not "[episodic]"
+- If a correction pattern matches current task, surface it explicitly
+
+```markdown
+**Memory context:**
+- {pattern description, confidence: 0.35} — from past sessions
+- Note: past correction on this topic — {correction}
+```
+
+**Fallback:** If MCP unavailable, skip Source 6 entirely. Sitrep works as today — local-only.
+
+### Source 7 — Cross-session awareness (hive-mind)
+
+Check if other sessions are active:
+```
+mcp__ruflo__hive-mind_memory(
+  action: "list"
+)
+```
+Filter for keys matching `client:*:build:*` or `client:*:session:*`.
+
+**Output:** If active sessions found:
+```markdown
+**Active sessions:**
+- {project}: building {task} on {branch} — {status}
+```
+If no active sessions or MCP unavailable, omit this section.
 
 ---
 

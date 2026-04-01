@@ -92,7 +92,7 @@ PIDS=""
 # Job 1: ruflo memory search (patterns)
 if [ -n "$CF" ]; then
     (
-        CF_OUTPUT=$(timeout 4 $CF memory search --query "client:$PROJECT" --format json 2>&1) || true
+        CF_OUTPUT=$(cd "$HOME" && timeout 4 $CF memory search --query "client:$PROJECT" --format json 2>&1) || true
         CF_EXIT=$?
         CONTEXT=$(echo "$CF_OUTPUT" | grep -v '^\[' || true)
         if [ $CF_EXIT -eq 124 ]; then
@@ -111,7 +111,7 @@ fi
 # Job 2: claude-flow correction patterns
 if [ -n "$CF" ]; then
     (
-        CP_OUTPUT=$(timeout 4 $CF memory search --query "client:$PROJECT type:correction" --namespace pattern --format json 2>&1); CP_EXIT=$?
+        CP_OUTPUT=$(cd "$HOME" && timeout 4 $CF memory search --query "client:$PROJECT type:correction" --namespace pattern --format json 2>&1); CP_EXIT=$?
         if [ $CP_EXIT -eq 0 ] && [ -n "$CP_OUTPUT" ]; then
             CP_LINES=$(echo "$CP_OUTPUT" | jq -r '.[] | select(.value | fromjson? | .confidence >= 0.8) | (.key + ": " + (.value | fromjson? | .solution // "unknown"))' 2>/dev/null | head -3) || CP_LINES=""
             echo "$CP_LINES" > "$TMPDIR_SS/corrections"
@@ -150,6 +150,11 @@ fi
 # ══════════════════════════════════════════════════════════
 # PHASE 2: Fast local checks (while parallel jobs run)
 # ══════════════════════════════════════════════════════════
+
+# ── Stale file claim cleanup ─────────────────────────────
+find /tmp/brana-claims -name "ts" -mmin +60 2>/dev/null | while read f; do
+    rm -rf "$(dirname "$f")"
+done
 
 # ── Config drift detection ─────────────────────────────
 DRIFT_CONTEXT=""
@@ -575,6 +580,12 @@ fi
             --arg outcome "venture-detected" \
             --arg detail "$VENTURE_CONTEXT" \
             '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail}' >> "$SESSION_FILE" 2>/dev/null || true
+    fi
+
+    # Index skills into ruflo memory (only changed since last run)
+    INDEX_SKILLS="$SCRIPT_DIR/../scripts/index-skills.sh"
+    if [ -x "$INDEX_SKILLS" ]; then
+        "$INDEX_SKILLS" --changed 2>/dev/null || true
     fi
 
     # ADR-015: sync operational state from cache to repos (push)

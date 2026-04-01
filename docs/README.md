@@ -94,6 +94,12 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-016](architecture/decisions/ADR-016-spec-dependency-graph.md) | Spec dependency graph |
 | [ADR-017](architecture/decisions/ADR-017-decision-log.md) | JSONL decision log |
 | [ADR-018](architecture/decisions/ADR-018-dynamic-model-routing.md) | Dynamic model routing |
+| [ADR-021](architecture/decisions/ADR-021-knowledge-architecture-v2.md) | Knowledge architecture v2 |
+| [ADR-022](architecture/decisions/ADR-022-brana-cli.md) | Brana CLI (Rust) |
+| [ADR-023](architecture/decisions/ADR-023-rust-cli-dispatcher.md) | Rust CLI dispatcher |
+| [ADR-024](architecture/decisions/ADR-024-content-polling-keyring-credentials.md) | Content polling with keyring credentials |
+| [ADR-025](architecture/decisions/ADR-025-skill-lifecycle-manager.md) | Skill lifecycle manager |
+| [ADR-026](architecture/decisions/ADR-026-ruflo-mcp-backbone.md) | Ruflo MCP as backbone (CLI fallback) |
 
 ### Feature briefs (docs/architecture/features/)
 
@@ -119,6 +125,16 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [context-budget-real-limits.md](architecture/features/context-budget-real-limits.md) | Context budget real-world limits |
 | [acquire-skills-guide.md](architecture/features/acquire-skills-guide.md) | Acquire skills implementation guide |
 | [agentdb-v3-upgrade-evaluation.md](architecture/features/agentdb-v3-upgrade-evaluation.md) | AgentDB v3 upgrade evaluation |
+| [skill-routing-in-backlog-start.md](architecture/features/skill-routing-in-backlog-start.md) | Semantic skill suggestion at task start (ADR-026, t-833) |
+
+## Ideas (docs/ideas/)
+
+Exploratory design notes and integration proposals. Not committed to the roadmap.
+
+| File | Contents |
+|------|----------|
+| [ruflo-native-integration.md](ideas/ruflo-native-integration.md) | Ruflo native integration — controller status, upstream blockers, upgrade path |
+| [skill-auto-router.md](ideas/skill-auto-router.md) | Skill auto-routing with ruflo HNSW + marketplace discovery |
 
 ## Content (docs/content/)
 

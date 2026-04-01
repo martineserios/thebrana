@@ -96,6 +96,7 @@ claude --plugin-dir ./system
 
 | Command | Purpose |
 |---------|---------|
+| `/brana:do` | Route freeform text to the best skill — semantic matching via ruflo, alias for backlog start |
 | `/brana:build` | Build anything — auto-detects strategy (feature, bug fix, refactor, spike, migration, investigation, greenfield) |
 | `/brana:close` | End session — extract learnings, write handoff, store patterns |
 | `/brana:backlog` | Manage tasks — plan, track, navigate work |

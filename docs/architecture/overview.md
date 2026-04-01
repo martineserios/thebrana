@@ -39,6 +39,10 @@ Three layers, each with its own persistence:
 
 **Context** is the per-project `.claude/` directory — project-specific `CLAUDE.md`, `tasks.json`, and auto memory.
 
+## Memory & Learning (MCP-as-Backbone)
+
+Ruflo MCP is the backbone for cross-session intelligence. Skills, hooks, and agents all route through MCP tools rather than CLI wrappers when ruflo is available. Key namespaces: `session` (handoffs, metrics), `pattern` (learnings), `knowledge` (315+ dimension sections), `skills` (utilization data). The hive-mind and claims subsystems enable multi-agent coordination and task locking. When ruflo is unavailable, the system degrades to native auto memory — functional but without cross-client search or agent coordination.
+
 ## The Deploy Model (v1.0)
 
 Brana uses a **two-layer deployment**: a plugin (loaded by Claude Code) and an identity layer (deployed via `bootstrap.sh`). Each layer has a distinct role and lifecycle.

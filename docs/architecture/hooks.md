@@ -118,6 +118,14 @@ Only 3 hooks use profiles today. Hooks without profile gates (session-start, ses
 
 If no in_progress task exists, the hook returns `{"continue": true}` with no injection — subagents start clean.
 
+## Ruflo wiring in hooks
+
+As of 2026-04-01, three hook scripts integrate with ruflo MCP via `cf-env.sh`:
+
+- **`session-start.sh`** — Phase 2 runs stale file claim cleanup (`claims_release` for expired locks). Phase 5 launches `index-skills.sh --changed` in background. All `$CF` calls are preceded by `cd "$HOME"` to avoid CWD issues with npx resolution.
+- **`session-end.sh`** — Same `cd "$HOME"` guard before `$CF` calls for metrics flush and session summary storage.
+- **`cf-env.sh`** — Now exports a `cf_run()` wrapper function that handles `cd "$HOME"`, timeout, and error swallowing in one call. Hook scripts use `cf_run <args>` instead of raw `$CF` invocations.
+
 ## Design principles
 
 **Spec-first enforcement** -- `pre-tool-use.sh` is the strongest feedback mechanism (a "Stop hook"). A PERMISSION DENY cannot be ignored. Projects opt in by having `docs/decisions/`.

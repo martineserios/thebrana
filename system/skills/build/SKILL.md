@@ -28,6 +28,7 @@ allowed-tools:
   - WebFetch
   - WebSearch
   - Write
+  - mcp__ruflo__hive-mind_memory
 status: stable
 growth_stage: evergreen
 ---
@@ -449,6 +450,25 @@ Before entering BUILD, verify the task breakdown includes test tasks:
   If "Skip gate": require a reason. Log: `brana backlog set {id} notes --append "DECOMPOSE→BUILD gate skipped: {reason}"`.
 
 ### BUILD
+
+**Hive-mind announce (best-effort):**
+At build start, announce what you're working on:
+```
+mcp__ruflo__hive-mind_memory(
+  action: "set",
+  key: "client:{PROJECT}:build:{TASK_ID}",
+  value: {"status": "in-progress", "branch": "{BRANCH}", "task": "{SUBJECT}", "started": "{ISO_TIMESTAMP}"}
+)
+```
+At build end (success or failure), update status:
+```
+mcp__ruflo__hive-mind_memory(
+  action: "set",
+  key: "client:{PROJECT}:build:{TASK_ID}",
+  value: {"status": "done|failed", "branch": "{BRANCH}", "task": "{SUBJECT}", "completed": "{ISO_TIMESTAMP}"}
+)
+```
+If MCP unavailable, skip silently. Hive-mind is transient awareness, not critical path.
 
 1. **Create branch** (if not already on one):
    ```bash

@@ -20,6 +20,21 @@
 set -euo pipefail
 
 KNOWLEDGE_DIR="${BRANA_KNOWLEDGE_DIR:-$HOME/enter_thebrana/brana-knowledge/dimensions}"
+THEBRANA_DIR="${BRANA_THEBRANA_DIR:-$HOME/enter_thebrana/thebrana}"
+
+# 7 doc categories with tier classification
+# Format: "directory:type:tier"
+# IMPORTANT: more specific paths MUST come before their parent paths
+# (decisions/ and features/ before architecture/)
+DOC_CATEGORIES=(
+    "$KNOWLEDGE_DIR:dimension:semantic"
+    "$THEBRANA_DIR/docs/architecture/decisions:decision:semantic"
+    "$THEBRANA_DIR/docs/architecture/features:feature:episodic"
+    "$THEBRANA_DIR/docs/architecture:architecture:semantic"
+    "$THEBRANA_DIR/docs/reflections:reflection:semantic"
+    "$THEBRANA_DIR/docs/ideas:idea:working"
+    "$THEBRANA_DIR/docs/research:research:episodic"
+)
 
 # Load ruflo (formerly claude-flow)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -41,14 +56,60 @@ if echo "$MODEL_CHECK" | grep -q "hash-fallback"; then
     exit 1
 fi
 
+# Classify tier from filepath
+classify_tier() {
+    local filepath="$1"
+    for cat in "${DOC_CATEGORIES[@]}"; do
+        local dir="${cat%%:*}"
+        local rest="${cat#*:}"
+        local tier="${rest#*:}"
+        if [[ "$filepath" == "$dir"/* ]]; then
+            echo "$tier"
+            return
+        fi
+    done
+    echo "episodic"  # default
+}
+
+# Classify type from filepath
+classify_type() {
+    local filepath="$1"
+    for cat in "${DOC_CATEGORIES[@]}"; do
+        local dir="${cat%%:*}"
+        local rest="${cat#*:}"
+        local type="${rest%%:*}"
+        if [[ "$filepath" == "$dir"/* ]]; then
+            echo "$type"
+            return
+        fi
+    done
+    echo "unknown"
+}
+
+# Determine source tag from filepath
+classify_source() {
+    local filepath="$1"
+    if [[ "$filepath" == *"brana-knowledge"* ]]; then
+        echo "source:brana-knowledge"
+    else
+        echo "source:thebrana"
+    fi
+}
+
 # Determine which files to index
 FILES=()
+ORPHAN_CLEANUP=false
 if [ "${1:-}" = "--changed" ]; then
     # Git-changed files only (for post-commit hook)
-    cd "$KNOWLEDGE_DIR"
-    while IFS= read -r f; do
-        [ -f "$f" ] && FILES+=("$KNOWLEDGE_DIR/$f")
-    done < <(git diff --name-only HEAD~1 HEAD -- . 2>/dev/null | grep '\.md$' || true)
+    # Check both repos for changes
+    for cat in "${DOC_CATEGORIES[@]}"; do
+        local_dir="${cat%%:*}"
+        [ -d "$local_dir" ] || continue
+        cd "$local_dir"
+        while IFS= read -r f; do
+            [ -f "$local_dir/$f" ] && FILES+=("$local_dir/$f")
+        done < <(git diff --name-only HEAD~1 HEAD -- . 2>/dev/null | grep '\.md$' || true)
+    done
     if [ ${#FILES[@]} -eq 0 ]; then
         echo "No changed markdown files to index."
         exit 0
@@ -65,9 +126,14 @@ elif [ $# -gt 0 ]; then
         fi
     done
 else
-    # All dimension docs
-    for f in "$KNOWLEDGE_DIR"/*.md; do
-        [ -f "$f" ] && FILES+=("$f")
+    # All docs from all 7 categories (full reindex)
+    ORPHAN_CLEANUP=true
+    for cat in "${DOC_CATEGORIES[@]}"; do
+        local_dir="${cat%%:*}"
+        [ -d "$local_dir" ] || continue
+        for f in "$local_dir"/*.md; do
+            [ -f "$f" ] && FILES+=("$f")
+        done
     done
 fi
 
@@ -84,11 +150,37 @@ TOTAL_SECTIONS=0
 TOTAL_STORED=0
 ERRORS=0
 
+# Track all keys we store (for orphan cleanup)
+STORED_KEYS=()
+
+store_section() {
+    local key="$1" value="$2" tags="$3"
+    if cd "$HOME" && $CF memory store \
+        -k "$key" \
+        -v "$value" \
+        --namespace knowledge \
+        --tags "$tags" \
+        --upsert 2>&1 | grep -q "stored successfully"; then
+        TOTAL_STORED=$((TOTAL_STORED + 1))
+        STORED_KEYS+=("$key")
+    else
+        ERRORS=$((ERRORS + 1))
+        echo "  WARN: Failed to store $key" >&2
+    fi
+    TOTAL_SECTIONS=$((TOTAL_SECTIONS + 1))
+}
+
 for filepath in "${FILES[@]}"; do
     filename=$(basename "$filepath")
     doc_slug="${filename%.md}"
+    doc_type=$(classify_type "$filepath")
+    doc_tier=$(classify_tier "$filepath")
+    doc_source=$(classify_source "$filepath")
 
-    echo "Indexing: $filename"
+    echo "Indexing: $filename [$doc_type, tier:$doc_tier]"
+
+    # Build tags string
+    TAGS="${doc_source},type:${doc_type},doc:${filename},tier:${doc_tier}"
 
     # Parse sections by ## headers
     current_section=""
@@ -100,23 +192,11 @@ for filepath in "${FILES[@]}"; do
             # New section found — store the previous one if it has content
             if [ -n "$current_section" ] && [ -n "$current_title" ]; then
                 section_slug=$(echo "$current_title" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//' | head -c 60)
-                key="knowledge:dimension:${doc_slug}:${section_slug}"
+                key="knowledge:${doc_type}:${doc_slug}:${section_slug}"
 
                 # Truncate to ~2000 chars to keep embeddings focused
                 value="${current_section:0:2000}"
-
-                if cd "$HOME" && $CF memory store \
-                    -k "$key" \
-                    -v "$value" \
-                    --namespace knowledge \
-                    --tags "source:brana-knowledge,type:dimension,doc:${filename}" \
-                    --upsert 2>&1 | grep -q "stored successfully"; then
-                    TOTAL_STORED=$((TOTAL_STORED + 1))
-                else
-                    ERRORS=$((ERRORS + 1))
-                    echo "  WARN: Failed to store $key" >&2
-                fi
-                TOTAL_SECTIONS=$((TOTAL_SECTIONS + 1))
+                store_section "$key" "$value" "$TAGS"
             fi
 
             # Start new section
@@ -134,24 +214,39 @@ for filepath in "${FILES[@]}"; do
     # Store the last section
     if [ -n "$current_section" ] && [ -n "$current_title" ]; then
         section_slug=$(echo "$current_title" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//' | head -c 60)
-        key="knowledge:dimension:${doc_slug}:${section_slug}"
+        key="knowledge:${doc_type}:${doc_slug}:${section_slug}"
         value="${current_section:0:2000}"
-
-        if cd "$HOME" && $CF memory store \
-            -k "$key" \
-            -v "$value" \
-            --namespace knowledge \
-            --tags "source:brana-knowledge,type:dimension,doc:${filename}" \
-            --upsert 2>&1 | grep -q "stored successfully"; then
-            TOTAL_STORED=$((TOTAL_STORED + 1))
-        else
-            ERRORS=$((ERRORS + 1))
-        fi
-        TOTAL_SECTIONS=$((TOTAL_SECTIONS + 1))
+        store_section "$key" "$value" "$TAGS"
     fi
 
     echo "  → $section_count sections"
 done
+
+# ── Orphan cleanup (full reindex only) ──────────────────
+ORPHANS_REMOVED=0
+if [ "$ORPHAN_CLEANUP" = true ] && [ ${#STORED_KEYS[@]} -gt 0 ]; then
+    echo ""
+    echo "Checking for orphan entries..."
+    # List all knowledge:* keys in ruflo
+    EXISTING_KEYS=$(cd "$HOME" && $CF memory list --namespace knowledge --format json 2>/dev/null | jq -r '.[].key' 2>/dev/null || true)
+    if [ -n "$EXISTING_KEYS" ]; then
+        while IFS= read -r existing_key; do
+            # Check if this key was stored in this run
+            found=false
+            for stored_key in "${STORED_KEYS[@]}"; do
+                if [ "$existing_key" = "$stored_key" ]; then
+                    found=true
+                    break
+                fi
+            done
+            if [ "$found" = false ]; then
+                if cd "$HOME" && $CF memory delete -k "$existing_key" --namespace knowledge 2>/dev/null; then
+                    ORPHANS_REMOVED=$((ORPHANS_REMOVED + 1))
+                fi
+            fi
+        done <<< "$EXISTING_KEYS"
+    fi
+fi
 
 echo ""
 echo "=== Index Complete ==="
@@ -159,6 +254,9 @@ echo "Files:    ${#FILES[@]}"
 echo "Sections: $TOTAL_SECTIONS"
 echo "Stored:   $TOTAL_STORED"
 echo "Errors:   $ERRORS"
+if [ "$ORPHAN_CLEANUP" = true ]; then
+    echo "Orphans:  $ORPHANS_REMOVED removed"
+fi
 
 # Tolerate up to 5% error rate (e.g. 2/432 = transient ruflo failures)
 if [ $TOTAL_SECTIONS -gt 0 ]; then

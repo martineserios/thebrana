@@ -22,8 +22,12 @@ allowed-tools:
   - mcp__notebooklm__select_notebook
   - mcp__notebooklm__search_notebooks
   - mcp__notebooklm__get_health
+  - mcp__ruflo__memory_search
+  - mcp__ruflo__embeddings_compare
+  - mcp__ruflo__memory_store
   - AskUserQuestion
   - EnterPlanMode
+  - TaskList
   - ExitPlanMode
 status: stable
 growth_stage: evergreen
@@ -72,7 +76,23 @@ Register these steps: LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, DEEP-DI
 
    Before reaching out to the web, search what the system already knows. Internal docs may have already decided vocabulary, constraints, or conclusions about the topic. External research should deepen what docs sketched, validate assumptions, find implementations, and discover what docs couldn't know.
 
-   **Step A — Query ruflo namespaces** (if available):
+   **Step A — Cross-namespace semantic search (ruflo MCP, preferred):**
+
+   ```
+   mcp__ruflo__memory_search(
+     query: "{TOPIC} {TAGS}",
+     namespace: "all",
+     limit: 15,
+     threshold: 0.4
+   )
+   ```
+
+   Returns results tagged with source namespace (knowledge, patterns, field-notes, decisions).
+   Group by provenance: decisions carry authority, assumptions are speculative, field-notes are observational.
+
+   **If > 10 results with similarity > 0.7:** narrow Phase 1 web search to gaps only.
+
+   **Step A fallback (CLI):** If MCP unavailable, fall back to 4x CLI search:
 
    ```bash
    source "$HOME/.claude/scripts/cf-env.sh"
@@ -82,7 +102,7 @@ Register these steps: LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, DEEP-DI
    cd "$HOME" && $CF memory search --query "$TOPIC" --namespace decisions --limit 10 2>/dev/null
    ```
 
-   **Step B — Fallback if ruflo unavailable** (any of the above fail or return nothing):
+   **Step B — Fallback if ruflo entirely unavailable** (MCP and CLI both fail or return nothing):
 
    - Grep project docs (`docs/`, `system/`, `brana-knowledge/dimensions/`) for the topic keywords
    - Read `~/.claude/projects/*/memory/MEMORY.md` for relevant patterns
@@ -175,6 +195,18 @@ Register these steps: LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, DEEP-DI
    - Extract HIGH-priority URLs that need deep reading
    - Summarize the file's findings in 3-5 lines, then move to the next file
    - After all files processed, compile a shortlist of HIGH-priority URLs (max 6)
+
+   **Dedup check (before deep dive):**
+   For each finding from Phase 1, compare against top internal result from Phase 0:
+   ```
+   mcp__ruflo__embeddings_compare(
+     text1: "{finding summary}",
+     text2: "{top memory_search result}"
+   )
+   ```
+   If similarity > 0.92, mark finding as "already known" and skip deep dive.
+   Threshold 0.92 per challenger review — 0.85 risks suppressing contradictions.
+   **Fallback:** If MCP unavailable, skip dedup and proceed to deep dive for all HIGH findings.
    - **When `--nlm` prior details exist**, cross-check NLM claims against scout findings:
      - `[CONFIRMED]` — web finding corroborates NLM claim (higher confidence)
      - `[CONTRADICTS-NLM]` — web finding disagrees with NLM claim (NLM may be wrong, investigate)
@@ -275,8 +307,19 @@ Register these steps: LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, DEEP-DI
    ```
 
 15. **Create leads for unfollowed threads.** For references that were not recursed into (budget exhausted, low priority):
-    - Store as leads in ruflo memory (namespace: `research-leads`) if available
-    - Otherwise, list them in the report under "Leads Created" for manual tracking
+
+    **Via MCP (preferred):**
+    ```
+    mcp__ruflo__memory_store(
+      key: "research:{TOPIC}:{finding-slug}",
+      value: "{finding summary}",
+      namespace: "research-leads",
+      tags: ["type:research-finding", "client:{PROJECT}", "tier:episodic", "status:queued"],
+      upsert: true
+    )
+    ```
+    **Fallback (CLI):** `$CF memory store` with the same key/namespace/tags.
+    - If both unavailable, list them in the report under "Leads Created" for manual tracking
 
 16. **Propose registry updates.** List all changes to `research-sources.yaml`:
     - New sources to add (with full schema)

@@ -122,6 +122,35 @@ or:
 Searching via: web (install `npx skills` for better results)
 ```
 
+### Step 3b: Classify source trust tier
+
+Each search result is classified by its source into a trust tier. The tier determines
+install behavior (step 5) and tool access for the installed skill.
+
+| Source | Trust tier | Install behavior | Tool access |
+|--------|-----------|-----------------|-------------|
+| `github.com/anthropics/*` | **Trusted** | Auto-install with confirmation | Full (all tools) |
+| `skills.sh` official section, `trailofbits/*` | **Verified** | Install with review prompt | Default set |
+| Other GitHub repos, npm packages | **Community** | Quarantine — install with read-only tools | Read, Glob, Grep only |
+| Unknown URL, no source info | **Blocked** | Reject — user must add source first | N/A |
+
+**Classification logic:**
+```
+if source URL contains "github.com/anthropics" → trusted
+elif source marked "official" on skills.sh OR author in verified-authors list → verified
+elif source is a GitHub repo or npm package → community
+else → blocked (skip candidate, warn user)
+```
+
+**Verified authors list** (extend as trust is established):
+`anthropics`, `trailofbits`, `vercel-labs`, `slavingia`
+
+Display the trust tier next to each candidate in step 4:
+```
+  1. @anthropics/skills/cloudflare [TRUSTED]
+  2. @secondsky/cloudflare-deploy [COMMUNITY — quarantine]
+```
+
 ### Step 4: Evaluate and present
 
 For each candidate, if possible fetch the SKILL.md content:
@@ -132,6 +161,7 @@ For each candidate, if possible fetch the SKILL.md content:
 - Empty or under 100 characters
 - Contains `rm -rf`, `sudo`, `curl | sh`, `eval(`, or similar dangerous patterns
 - No description or purpose statement
+- **Blocked** trust tier (unknown source — reject entirely)
 
 Present grouped by gap:
 
@@ -159,7 +189,7 @@ Use **AskUserQuestion** (multiSelect: true):
 - question: "Which skills to install?"
 - options: one per candidate + "Skip all"
 
-### Step 5: Install
+### Step 5: Install (trust-tier-aware)
 
 For each selected skill:
 
@@ -167,7 +197,22 @@ For each selected skill:
 - CLI: `npx skills add <package> --dir /tmp/skill-staging/` then read the file
 - Web: already fetched in Step 4, use that content
 
-**2. Save to system/skills/acquired/:**
+**2. Apply trust-tier restrictions before saving:**
+
+| Trust tier | Action |
+|-----------|--------|
+| **Trusted** | Install as-is. Full allowed-tools preserved. |
+| **Verified** | Install. Keep existing allowed-tools but warn if `Bash` is unrestricted. |
+| **Community** | Quarantine: rewrite `allowed-tools` to read-only set (`Read`, `Glob`, `Grep`, `AskUserQuestion`). Add `quarantine: true` to frontmatter. User can promote later via `/brana:audit`. |
+| **Blocked** | Should not reach here (rejected in step 4). |
+
+For quarantine installs, inform user:
+```
+Installed in quarantine mode (read-only tools).
+Run /brana:audit to review and promote to full access.
+```
+
+**3. Save to system/skills/acquired/:**
 
 ```bash
 mkdir -p system/skills/acquired/<skill-name>/
@@ -175,7 +220,7 @@ mkdir -p system/skills/acquired/<skill-name>/
 
 Write SKILL.md to `system/skills/acquired/<skill-name>/SKILL.md`.
 
-**3. Activate immediately:**
+**4. Activate immediately:**
 
 ```bash
 mkdir -p ~/.claude/skills/<skill-name>/

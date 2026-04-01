@@ -6,7 +6,7 @@
 
 | Group | Purpose | Examples |
 |-------|---------|---------|
-| **brana** | Core system management | backlog, reconcile, plugin |
+| **brana** | Core system management | backlog, reconcile, plugin, do |
 | **execution** | Development lifecycle | build, onboard, align |
 | **learning** | Knowledge acquisition | challenge, research, memory |
 | **venture** | Business operations | review, pipeline, proposal |
@@ -71,6 +71,33 @@ Commands in `system/commands/` orchestrate multi-step spec workflows. They are a
 
 See [Command Reference](../reference/commands.md) for details.
 
+## MCP Tool Integration
+
+Several skills now use ruflo MCP calls as their preferred data path (2026-04-01):
+
+| Skill | MCP usage |
+|-------|-----------|
+| **close** | Step 9b: 3 MCP calls — `memory_store` (ns:session), `hive-mind_memory`, `claims_release`. Steps 5, 6, 10 prefer MCP paths over CLI fallbacks. |
+| **sitrep** | Source 6: `hooks_intelligence_pattern-search` for recent patterns. Source 7: `hive-mind_memory list` for active swarm context. |
+| **research** | Phase 0: `memory_search` (ns:all) for prior findings. Phase 2: `embeddings_compare` for dedup against existing knowledge. |
+| **build** | `hive-mind` announce at strategy start and build completion for multi-agent coordination. |
+| **backlog** | `claims_claim`/`claims_release` at task start/done. Step 5: `memory_search` (ns:skills) for semantic skill suggestion — configurable thresholds (suggest >0.5, mention >0.3, gap <0.3 triggers marketplace). CLI `brana skills suggest` as fallback. See ADR-026, feature brief `skill-routing-in-backlog-start.md`. |
+
+When ruflo is unavailable, every skill degrades gracefully to CLI or native memory fallbacks.
+
 ## Acquired Skills
 
 Skills installed from external marketplaces via `/brana:acquire-skills` live in `system/skills/acquired/{name}/SKILL.md`. They follow the same anatomy but are tracked separately for update management.
+
+### Source-Tiered Trust Model (ADR-026)
+
+External skills are classified by source into trust tiers that determine install behavior:
+
+| Source | Tier | Install | Tool access |
+|--------|------|---------|-------------|
+| `anthropics/*` | Trusted | Auto with confirm | Full |
+| `skills.sh` official, `trailofbits/*` | Verified | Review prompt | Default set |
+| Other GitHub/npm | Community | Quarantine | Read, Glob, Grep only |
+| Unknown | Blocked | Rejected | N/A |
+
+Community skills install with `quarantine: true` in frontmatter and read-only tools. `/brana:audit` includes an incoming skill scan that checks acquired skills for dangerous allowed-tools, credential path references, suspicious MCP tool requests, and missing frontmatter.

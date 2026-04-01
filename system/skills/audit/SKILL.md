@@ -1,6 +1,6 @@
 ---
 name: audit
-description: "Security scan — secrets in CLAUDE.md, hook permissions, MCP count, dangerous settings, unencrypted .env. 5 checks, fast, zero dependencies. Run periodically or before sharing config."
+description: "Security scan — secrets in CLAUDE.md, hook permissions, MCP count, dangerous settings, unencrypted .env, acquired skill safety. 6 checks, fast, zero dependencies. Run periodically or before sharing config."
 effort: low
 keywords: [security, audit, secrets, hooks, permissions, mcp]
 task_strategies: [investigation]
@@ -18,12 +18,12 @@ growth_stage: seed
 
 # Audit — Security Scanner
 
-5-check lightweight security scanner for brana harness configurations. Catches secrets, permission issues, and token tax before they cause problems.
+6-check lightweight security scanner for brana harness configurations. Catches secrets, permission issues, token tax, and unsafe acquired skills before they cause problems.
 
 ## Usage
 
 ```
-/brana:audit              — run all 5 checks on current project
+/brana:audit              — run all 6 checks on current project
 /brana:audit --global     — also scan ~/.claude/ global config
 ```
 
@@ -124,6 +124,83 @@ find . -name "credentials.json" -o -name "service-account*.json" -o -name "*.pem
 - Any credential file exists AND is not gitignored
 - `.env` files contain actual values (not just variable names)
 
+### Check 6: Incoming skill scan
+
+Scan `system/skills/acquired/*/SKILL.md` for third-party or incoming skills and flag safety concerns.
+
+**Discovery:**
+
+```bash
+# Find all acquired skills
+ls -d system/skills/acquired/*/SKILL.md 2>/dev/null
+```
+
+For each acquired skill found, run four sub-checks:
+
+**6a — Dangerous Bash access (CRITICAL)**
+
+Scan the skill's SKILL.md (frontmatter + body) for dangerous tool grants:
+
+| Pattern | Severity | Why |
+|---------|----------|-----|
+| `Bash` with no command restriction | CRITICAL | Unrestricted shell — can do anything |
+| `Bash(rm:*)` | CRITICAL | Arbitrary file deletion |
+| `Bash(curl:*)` | CRITICAL | Arbitrary network access / exfiltration |
+| `Bash(eval:*)` | CRITICAL | Arbitrary code execution |
+
+Flag if `allowed-tools` contains bare `Bash` (not scoped like `Bash(git:*)`) or any of the dangerous patterns above.
+
+**6b — Credential path references (WARNING)**
+
+Grep the full SKILL.md content for references to sensitive paths or tokens:
+
+```
+~/.claude/settings.json
+~/.env
+credentials
+secret
+token
+\.pem
+\.key
+```
+
+Flag each match with the line number and surrounding context (redact any actual values).
+
+**6c — Unknown MCP tool requests (WARNING)**
+
+Scan `allowed-tools` for any `mcp__*` tool references. Compare against the known-safe list:
+
+```
+mcp__ruflo__memory_*
+mcp__ruflo__agentdb_*
+mcp__google-sheets__*
+mcp__context7__*
+```
+
+Flag any `mcp__` tool that does not match a known-safe prefix.
+
+**6d — Missing frontmatter (WARNING)**
+
+Check that the YAML frontmatter contains these required fields:
+- `name`
+- `description`
+- `allowed-tools`
+
+Flag each missing field. A skill with no `allowed-tools` declaration is especially suspect — it may inherit broad defaults.
+
+**Report per skill:**
+
+```
+skill-name/
+  [CRITICAL] Unrestricted Bash access in allowed-tools
+  [CRITICAL] Bash(curl:*) — arbitrary network access
+  [WARNING]  References ~/.claude/settings.json on line 42
+  [WARNING]  Missing frontmatter field: description
+  [OK]       No unknown MCP tools
+```
+
+If `system/skills/acquired/` does not exist or is empty, report "No acquired skills found — check passed."
+
 ## Report
 
 ```markdown
@@ -136,6 +213,7 @@ find . -name "credentials.json" -o -name "service-account*.json" -o -name "*.pem
 | 3 | MCP token tax | {green/yellow/red} | {N servers, ~NK tokens} |
 | 4 | Dangerous settings | {pass/warn} | {summary} |
 | 5 | Unencrypted creds | {pass/N findings} | {summary} |
+| 6 | Incoming skill scan | {pass/N findings} | {summary} |
 
 ### Details
 {per-finding details with file:line and remediation}
@@ -147,7 +225,7 @@ find . -name "credentials.json" -o -name "service-account*.json" -o -name "*.pem
 ## Rules
 
 1. **Never print secrets.** Redact to first 4 chars + `***`. Report the pattern and location, not the value.
-2. **5 checks only.** Don't scope-creep. Add new checks as explicit expansions.
+2. **6 checks only.** Don't scope-creep. Add new checks as explicit expansions.
 3. **No auto-fix.** Report findings, let the user decide what to do.
 4. **Fast.** All checks should complete in under 30 seconds. No network calls.
 5. **Run periodically.** Recommend running before sharing configs, after adding MCP servers, or monthly.

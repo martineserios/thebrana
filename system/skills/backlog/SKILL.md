@@ -10,11 +10,16 @@ group: brana
 allowed-tools:
   - Read
   - Write
+  - Edit
   - Glob
   - Grep
   - Bash
   - AskUserQuestion
   - Task
+  - mcp__ruflo__memory_search
+  - mcp__ruflo__claims_claim
+  - mcp__ruflo__claims_release
+  - mcp__ruflo__claims_list
 status: stable
 growth_stage: evergreen
 ---
@@ -332,27 +337,75 @@ Begin work on a specific task. For code tasks, enters the `/brana:build` loop.
    - **Confirm with user:** "Start t-008 as **feature**? [feature / bug-fix / refactor / spike / other]"
    - Write the confirmed `strategy` field to the task
 5. **Skill suggestion** (after strategy confirmed):
+
+   Read `skill_routing` from `~/.claude/tasks-config.json` (defaults: `suggest_threshold: 0.5`, `mention_threshold: 0.3`, `enabled: true`). If `enabled: false`, skip step 5.
+
+   **5a.** Build query from task metadata: `"{subject} {tags joined} {strategy}"`
+
+   **5b.** Try MCP (primary — semantic matching via HNSW, namespace "skills"):
+   ```
+   mcp__ruflo__memory_search(
+     query: "{query from 5a}",
+     namespace: "skills",
+     limit: 5,
+     threshold: 0.3
+   )
+   ```
+
+   **5c.** If MCP unavailable, fall back to CLI:
    ```bash
    brana skills suggest --task <id>
    ```
-   - If results with score > 0.3: present via AskUserQuestion:
+
+   **5d.** Present results based on confidence:
+
+   - **Top result > suggest_threshold (default 0.5):**
      ```
-     question: "Skills that may help with this task:"
-     options: one per match ("/brana:{name} — {reason}") + "Skip — none needed"
+     AskUserQuestion:
+       question: "Suggested skill for this task:"
+       header: "Skill"
+       options:
+         - "/brana:{top_name} (score: {score})" (Recommended)
+         - "/brana:{second_name} (score: {score})" (if available)
+         - "Skip — none needed"
      ```
-   - If no results (all < 0.3): check silently, don't mention.
-   - If gap AND task is `code` execution: offer external search:
+
+   - **Top result between mention_threshold and suggest_threshold (0.3–0.5):**
+     Mention inline: "Possible match: /brana:{name} ({score})" — no AskUserQuestion, no blocking.
+
+   - **All results < mention_threshold (0.3):**
+     Only if task execution is `code` (skip for external/manual tasks), offer marketplace search:
      ```
-     question: "No local skill matches this task context. Search external sources?"
-     options: ["Search externally", "Skip"]
+     AskUserQuestion:
+       question: "No local skill matches this task. Search externally?"
+       header: "Gap"
+       options:
+         - "Search externally"
+         - "Skip"
      ```
-     If yes: run `/brana:acquire-skills <task keywords>`.
-   - Selected skill names noted in task context for the build loop.
+     If user selects "Search externally":
+     ```
+     Skill(skill="brana:acquire-skills", args="{subject keywords}")
+     ```
+     The acquire-skills skill handles marketplace search, evaluation, and installation.
+
+   - **No results (ruflo down + CLI fails):**
+     Skip silently. Don't block task start.
+
+   **5e.** If user selects a skill, note it in the task's `context` field for the build loop.
 6. **Determine execution mode:**
    - `code`: check git status clean → create branch `{prefix}{id}-{slug}` → set status + started date + branch field → **enter `/brana:build` with the task's strategy** (build_step: classify)
    - `external`: set status + started date, show task description
    - `manual`: set status + started date, show checklist from description
 7. **Write tasks.json** (status: in_progress, started: today, strategy: confirmed)
+7b. **Task claim (best-effort):**
+   ```
+   mcp__ruflo__claims_claim(
+     issueId: "task:{id}",
+     claimant: "session:{SESSION_ID}"
+   )
+   ```
+   If MCP unavailable or claim fails, continue — claims are advisory, not blocking.
 8. **GitHub sync** (if `github_sync.enabled` in `~/.claude/tasks-config.json`):
    - If task has no `github_issue`: run `system/scripts/gh-sync.sh create {task-id} {tasks-json-path}`. Read issue number from stdout, write to task's `github_issue` field.
    - If task has `github_issue`: run `system/scripts/gh-sync.sh pull-context {issue-number}`. If comments returned, replace `## GitHub Comments` section in task's `context` field.
@@ -413,6 +466,14 @@ Complete the current task. For code tasks that went through `/brana:build`, the 
      ```
      If user selects any doc option, generate using templates at `system/skills/build/templates/tech-doc.md` and/or `system/skills/build/templates/user-guide.md`. Output to `docs/architecture/features/{task-slug}.md` and/or `docs/guide/features/{task-slug}.md`.
 6. **Update task:** status → completed, completed → today's date, clear build_step
+6b. **Release task claim (best-effort):**
+   ```
+   mcp__ruflo__claims_release(
+     issueId: "task:{id}",
+     claimant: "session:{SESSION_ID}"
+   )
+   ```
+   If MCP unavailable, skip silently.
 7. **Write tasks.json** — hook handles rollup + validation
 8. **GitHub sync** (if `github_sync.enabled` in `~/.claude/tasks-config.json`):
    - If task has `github_issue`: run `system/scripts/gh-sync.sh close {issue-number}`.

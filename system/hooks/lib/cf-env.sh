@@ -13,3 +13,8 @@ done
 [ -z "$CF" ] && command -v claude-flow &>/dev/null && CF="claude-flow"
 [ -z "$CF" ] && command -v npx &>/dev/null && CF="npx ruflo"
 export CF
+
+# Wrapper: always run ruflo from $HOME so it uses ~/.swarm/memory.db
+cf_run() {
+    (cd "$HOME" && $CF "$@")
+}

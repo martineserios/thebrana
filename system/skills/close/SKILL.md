@@ -19,6 +19,11 @@ allowed-tools:
   - Task
   - TaskList
   - Skill
+  - mcp__ruflo__memory_store
+  - mcp__ruflo__memory_search
+  - mcp__ruflo__hive-mind_memory
+  - mcp__ruflo__claims_release
+  - mcp__ruflo__claims_list
 status: stable
 growth_stage: evergreen
 ---
@@ -38,7 +43,7 @@ End a work session. Extracts what was learned, writes a handoff note for the nex
 
 On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
 
-Register these steps: GATE, GATHER, EXTRACT, ERRATA, PATTERNS, FIELD-NOTES, IDEATE, DRIFT, HANDOFF, METADATA, MEMORY-REVIEW, REPORT.
+Register these steps: GATE, GATHER, EXTRACT, ERRATA, PATTERNS, FIELD-NOTES, IDEATE, DRIFT, HANDOFF, RUFLO-SYNC, METADATA, MEMORY-REVIEW, REPORT.
 
 ## Steps
 
@@ -111,7 +116,21 @@ For each **errata** finding:
 
 ### Step 5: Store learnings as patterns
 
-For each learning from Step 3, store via ruflo:
+For each learning from Step 3, store via ruflo MCP (preferred) or CLI (fallback):
+
+**Via MCP (preferred — durable, HNSW-indexed):**
+
+```
+mcp__ruflo__memory_store(
+  key: "pattern:{PROJECT}:{short-title}",
+  value: '{"problem": "...", "solution": "...", "confidence": 0.5, "transferable": false, "correction_weight": 0}',
+  namespace: "pattern",
+  tags: ["client:{PROJECT}", "type:{CATEGORY}", "outcome:{OUTCOME}", "tier:episodic"],
+  upsert: true
+)
+```
+
+**Fallback (CLI):**
 
 ```bash
 source "$HOME/.claude/scripts/cf-env.sh"
@@ -124,7 +143,7 @@ cd "$HOME" && $CF memory store \
   --upsert
 ```
 
-If ruflo is unavailable, append to the project's auto memory `MEMORY.md` under `~/.claude/projects/`.
+If both MCP and CLI are unavailable, append to the project's auto memory `MEMORY.md` under `~/.claude/projects/`.
 
 **Skip if:** session was read-only (no commits), or debrief returned no learnings.
 
@@ -161,6 +180,19 @@ Review the learnings extracted in Step 3 for **practical discoveries** — gotch
      If archiving: move the oldest 5 entries to ruflo (`namespace: field-notes`, tag `archived`) and remove them from the doc.
 
 4. **For "Archive" responses** — store in ruflo only:
+
+   **Via MCP (preferred):**
+   ```
+   mcp__ruflo__memory_store(
+     key: "field-note:{PROJECT}:{YYYY-MM-DD}:{short-slug}",
+     value: '{"note": "...", "source_doc": "...", "session": "YYYY-MM-DD", "action": "archived"}',
+     namespace: "field-notes",
+     tags: ["client:{PROJECT}", "type:field-note", "status:archived", "tier:episodic"],
+     upsert: true
+   )
+   ```
+
+   **Fallback (CLI):**
    ```bash
    source "$HOME/.claude/scripts/cf-env.sh"
 
@@ -171,11 +203,24 @@ Review the learnings extracted in Step 3 for **practical discoveries** — gotch
      --tags "client:{PROJECT},type:field-note,status:archived" \
      --upsert
    ```
-   If ruflo unavailable, append to MEMORY.md under `## Field Notes (Archived)`.
+   If both unavailable, append to MEMORY.md under `## Field Notes (Archived)`.
 
 5. **For "Skip" responses** — discard silently.
 
 6. **Reindex affected docs** — after all field notes are appended, trigger ruflo reindex for each modified doc:
+
+   **Via MCP (preferred):**
+   ```
+   mcp__ruflo__memory_store(
+     key: "knowledge:{doc-relative-path}",
+     value: "<full doc content>",
+     namespace: "knowledge",
+     tags: ["type:dimension", "reindexed:{YYYY-MM-DD}"],
+     upsert: true
+   )
+   ```
+
+   **Fallback (CLI):**
    ```bash
    source "$HOME/.claude/scripts/cf-env.sh"
 
@@ -186,7 +231,7 @@ Review the learnings extracted in Step 3 for **practical discoveries** — gotch
      --tags "type:dimension,reindexed:$(date +%Y-%m-%d)" \
      --upsert
    ```
-   If ruflo unavailable, skip reindex silently.
+   If both unavailable, skip reindex silently.
 
 **Track field note count** for the session report in Step 10: `{N} kept, {M} archived, {P} skipped`.
 
@@ -353,7 +398,71 @@ The CLI auto-fills `written_at` (if empty) and `branch` (from git). `consumed_at
 - Do NOT write to `session-handoff.md` — it's deprecated (read-only archive)
 - Do NOT write `.needs-backprop` — absorbed into the backprop field
 
+### Step 9b: Ruflo MCP — session mirror + cross-session signals
+
+> Additive — all 3 calls are best-effort. If MCP is unavailable, skip silently.
+> Local session state (Step 9) is the primary record. This step adds searchability and cross-session awareness.
+
+**Call 1: Session state to ruflo (searchable mirror)**
+
+```
+mcp__ruflo__memory_store(
+  key: "session:{PROJECT}:{YYYY-MM-DD}T{HH:MM}",
+  value: "<JSON string of the same payload written in Step 9>",
+  namespace: "session",
+  tags: ["client:{PROJECT}", "branch:{BRANCH}", "tier:episodic"],
+  upsert: true
+)
+```
+
+This makes session history semantically searchable: `memory_search(namespace: "session", query: "JWT auth")` finds past sessions by topic.
+
+**Call 2: Cross-session close announcement (transient)**
+
+```
+mcp__ruflo__hive-mind_memory(
+  action: "set",
+  key: "client:{PROJECT}:session:closed:{YYYY-MM-DD}",
+  value: {"status": "closed", "summary": "<1-line session label>", "next": ["<top 3 next items>"], "closed_at": "<ISO timestamp>"}
+)
+```
+
+Other terminals see the session ended + what's next via `/brana:sitrep`. Transient (in-memory, lost on MCP restart) — OK for session announcements.
+
+**Call 3: Task claim release (guarded)**
+
+Only if an active task was being worked on this session:
+
+```
+# First check if any claims exist for this session
+mcp__ruflo__claims_list(status: "active")
+# Filter for claims matching current session ID
+# For each matching claim:
+mcp__ruflo__claims_release(
+  issueId: "task:{active_task_id}",
+  claimant: "session:{SESSION_ID}"
+)
+```
+
+If no task was claimed, skip. If `claims_list` fails (MCP down), skip silently.
+
+**Fallback:** If any MCP call fails, log the failure and continue. The CLI-based session state from Step 9 is the authoritative record. MCP failures are non-fatal.
+
 ### Step 10: Store session metadata
+
+**Via MCP (preferred):**
+
+```
+mcp__ruflo__memory_store(
+  key: "session-meta:{PROJECT}:{YYYY-MM-DD}",
+  value: '{"type": "session-close", "date": "{YYYY-MM-DD}", "commits": N, "learnings": N, "errata": N, "drift": true|false}',
+  namespace: "pattern",
+  tags: ["client:{PROJECT}", "type:session-close"],
+  upsert: true
+)
+```
+
+**Fallback (CLI):**
 
 ```bash
 source "$HOME/.claude/scripts/cf-env.sh"
@@ -366,7 +475,7 @@ cd "$HOME" && $CF memory store \
   --upsert
 ```
 
-If ruflo unavailable, skip — the handoff note is the fallback.
+If both MCP and CLI are unavailable, skip — the handoff note is the fallback.
 
 Then backup:
 
