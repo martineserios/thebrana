@@ -163,6 +163,26 @@ pub enum Commands {
         #[command(subcommand)]
         cmd: SessionCmd,
     },
+    /// Knowledge base management — reindex, status
+    Knowledge {
+        #[command(subcommand)]
+        cmd: KnowledgeCmd,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum KnowledgeCmd {
+    /// Reindex knowledge base into ruflo memory
+    Reindex {
+        /// Only index git-changed files (for post-commit hook)
+        #[arg(long)]
+        changed: bool,
+        /// Specific files to index (default: all 7 categories)
+        #[arg(trailing_var_arg = true)]
+        files: Vec<PathBuf>,
+    },
+    /// Show knowledge index status (entry count, last indexed)
+    Status,
 }
 
 #[derive(Subcommand)]

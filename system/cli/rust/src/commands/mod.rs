@@ -4,6 +4,7 @@ pub mod feed;
 pub mod files;
 pub mod handoff;
 pub mod inbox;
+pub mod knowledge;
 pub mod misc;
 pub mod ops;
 pub mod run;

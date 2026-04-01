@@ -109,5 +109,9 @@ fn main() {
                 }
             }
         },
+        Commands::Knowledge { cmd } => match cmd {
+            KnowledgeCmd::Reindex { changed, files } => commands::knowledge::cmd_reindex(changed, files),
+            KnowledgeCmd::Status => commands::knowledge::cmd_status(),
+        },
     }
 }
