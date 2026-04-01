@@ -285,3 +285,11 @@ The mastermind architecture describes a system that learns from code sessions. B
 | 5 | agusvg | ia driven development lyfecicle | [article](https://agusvg.substack.com/p/ia-driven-development-lyfecicle?r=5bzedx) | — |
 | 6 | lorenzopadoan | How I fixed autonomous coding | [article](https://open.substack.com/pub/lorenzopadoan/p/how-i-fixed-autonomous-coding) | Post-execution hook pattern: examine output for completion signals before session exit. Deterministic re-prompting with accumulated context. Completion signal vocabulary for stopping/starting loops. Instruction quality is the bottleneck, not tool capability. Fresh angle: post-session hook could complement brana's debrief-analyst. |
 
+---
+
+## Field Notes
+
+### 2026-04-01: Shell for mechanical work, LLM for intelligence
+index-knowledge.sh (173 lines, $0, 0.015s/doc) beats LLM parsing ($tokens, 10s/doc) for mechanical markdown splitting. Shell handles regex and path classification. LLM adds value only for dedup, cross-refs, and content-based classification.
+Source: ruflo integration brainstorm session
+

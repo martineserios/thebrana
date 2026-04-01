@@ -1326,3 +1326,11 @@ classification goes in tags (`tier:semantic`), not in `hierarchical-store`. Tran
 | P10 | Tiered storage: migrate tier tags → real `hierarchical-store` tiers | #7, #9, #10 | M | After t-823 |
 | P11 | Context synthesis: `context-synthesize` for research + sitrep | #4, #5 | S | After t-823 |
 | P12 | Consolidation: NightlyLearner auto-promotion + decay + dedup | #10 | M | After t-823 |
+
+---
+
+## Field Notes
+
+### 2026-04-01: Test tool durability before building
+`hierarchical-store` appeared functional (controller enabled, success responses) but data was ephemeral — lost on MCP restart. Rule: always test store→restart→recall before designing architecture around any ruflo tool.
+Source: ruflo integration brainstorm session

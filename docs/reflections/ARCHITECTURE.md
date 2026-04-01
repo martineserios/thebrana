@@ -314,3 +314,7 @@ No shadow backlogs. Skills propose backlog items in reports. Users decide what g
 ### 2026-03-31: Reconcile after multi-branch milestones catches real bugs
 After merging 8 feature branches for unified session state (t-794), `/brana:reconcile` found 2 actual bugs: an unwired CLI subcommand (mark-consumed existed as Rust fn but had no CLI dispatch) and a missing awk `-F'\t'` for tab-delimited input. Unit tests (30 passing) missed both because they tested functions, not integration. Run reconcile after merging 3+ branches before marking a milestone complete.
 Source: session 2026-03-31, /brana:reconcile
+
+### 2026-04-01: additionalContext is informational, not imperative
+Hook `additionalContext` JSON field is treated by the LLM as informational context, not commands to execute. Tested: imperative instructions ("call X before first task") were ignored in `--system-prompt` mode. For deferred MCP calls, use lazy init from skills instead.
+Source: ruflo integration brainstorm session
