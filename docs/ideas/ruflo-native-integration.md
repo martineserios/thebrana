@@ -902,175 +902,82 @@ find /tmp/brana-claims -name "ts" -mmin +60 2>/dev/null | \
 
 ---
 
-### #9: session-start × trajectory tracking + pattern recall
+### #9: session-start — keep existing + stale claim cleanup
 
-> **Revised 2026-04-01** after durability matrix discovery.
-> Original: `agentdb_session-start` + `hierarchical-recall`. Both are ephemeral/bridge-fallback.
-> Revised: keep existing `$CF memory search` in hook (works, durable). Add trajectory tracking
-> via `hooks_intelligence_trajectory-start` (deferred to first skill call). Add hive-mind
-> announcement for cross-session awareness.
+> **Revised 2026-04-01** after challenger review + additionalContext imperative test.
+> Original: deferred flag file → first skill calls trajectory-start + hive-mind + session-start.
+> Challenger found: additionalContext imperatives unreliable (tested — LLM treats system
+> context as informational, not commands). `agentdb_session-start` redundant with existing
+> `$CF memory search`. Trajectory tracking works as start+end pair in close (#10).
+> Final: change almost nothing. The hook already works.
 
-**Problem now:** Session-start hook runs 2 parallel `$CF memory search` calls (patterns +
-corrections) and injects results as `additionalContext`. Works fine. But no trajectory
-tracking (SONA can't learn from sessions), no cross-session awareness (other terminals
-don't know this session started), no hive-mind integration.
+**What stays (existing hook, no changes):**
 
-**What stays (hook, shell context — already working):**
+| Job | What | How |
+|-----|------|-----|
+| Job 1 | Pattern recall | `$CF memory search --namespace pattern` (durable, 4s timeout) |
+| Job 2 | Correction patterns | `$CF memory search --namespace pattern type:correction` |
+| Session state | Last session context | `$CF memory search --namespace session --limit 1` (fallback: `brana session read --json`) |
+| Config drift | Detect stale configs | `config-drift.sh` |
+| Task context | Active task injection | `tasks.json` query |
 
-```bash
-# Job 1: Pattern recall (KEEP — $CF is durable, 4s timeout)
-$CF memory search --query "client:$PROJECT" --namespace pattern --format json
-
-# Job 2: Correction patterns (KEEP)
-$CF memory search --query "client:$PROJECT type:correction" --namespace pattern --format json
-
-# Session state recall (KEEP — now reads from ruflo via $CF)
-$CF memory search --query "session:$PROJECT" --namespace session --limit 1 --format json
-# Fallback: brana session read --json (local file)
-```
-
-**What's new (deferred to first skill call — MCP context):**
-
-The hook sets a flag. The first skill invocation (sitrep, build, anything) checks it and
-does the MCP calls:
+**What's new (XS effort):**
 
 ```bash
-# session-start.sh — add at end of hook:
-echo '{"session_id": "'$SESSION_ID'", "project": "'$PROJECT'", "branch": "'$BRANCH'"}' \
-  > /tmp/brana-session-start-$SESSION_ID.json
-```
-
-```
-First skill invocation detects flag → calls:
-
-  1. hooks_intelligence_trajectory-start(
-       task: "session:$PROJECT:$BRANCH",
-       agent: "brana:$PROJECT"
-     )
-     → Initializes SONA trajectory for this session
-     → Every subsequent tool call can be recorded as a trajectory step
-     → session-end/close calls trajectory-end to trigger learning
-
-  2. hive-mind_memory(action: "set",
-       key: "client:$PROJECT:session:$SESSION_ID",
-       value: { status: "active", branch: "$BRANCH", started: "now" }
-     )
-     → Other sessions see this via sitrep
-
-  3. agentdb_session-start(
-       sessionId: "$SESSION_ID",
-       context: "project:$PROJECT branch:$BRANCH"
-     )
-     → Bridge-fallback: searches memory_entries for past session patterns
-     → restoredPatterns: patterns from past sessions on this project
-
-  Delete flag file after all 3 calls succeed.
-```
-
-**Why deferred flag (not in hook):**
-1. Hooks must be fast (<200ms) — MCP calls add 500ms+
-2. MCP tools only available in LLM context (skills), not shell
-3. Trajectory ID needs to persist into conversation context
-
-**Hive-mind cross-session awareness:**
-When session starts, other terminals running `/brana:sitrep` see:
-```
-**Active sessions:**
-- somos (terminal 1): session active on feat/t-200, started 5 min ago
-```
-
-**Stale claim cleanup (from #8):**
-```bash
-# session-start.sh — detect stale file claims
+# session-start.sh — add stale file claim cleanup (from #8)
 find /tmp/brana-claims -name "ts" -mmin +60 2>/dev/null | while read f; do
   rm -rf "$(dirname "$f")"
 done
 ```
 
-**Wiring changes:**
-- `session-start.sh`: add flag file write + stale claim cleanup (S)
-- Skills preamble (rule or first-call check): detect flag, call 3 MCP tools (S)
-- Store trajectory ID in conversation context for later use by close/session-end
+**What moved to other enrichments:**
 
-**Fallback:** If MCP unavailable, flag file persists. Next session tries again. Session
-works fine without trajectory tracking — it's additive, not gating.
+| Feature | Moved to | Reason |
+|---------|----------|--------|
+| Trajectory start | **#10 close** | Start+end together works (verified: SONA learns, EWC consolidates, confidence assigned). No need for session-long trajectory — session summary is the learning unit. |
+| Hive-mind announce | **Lazy init** — sitrep or build creates it on first run | additionalContext imperatives don't work (tested). Flag file + preamble overengineered for 1 call. |
+| `agentdb_session-start` | **Dropped** | Redundant with `$CF memory search` the hook already does. Bridge-fallback returns same data. |
 
-**Effort:** S (hook change) + S (skill preamble) = S total.
+**Why not add MCP calls to session-start:**
+1. Hook is shell — can't call MCP
+2. `$CF` CLI doesn't return trajectory IDs (returns general status instead)
+3. additionalContext imperatives unreliable (tested: system context ≠ commands to execute)
+4. Flag file + skill preamble = overengineered for 1-2 calls across 15+ skills
+5. Lazy init from sitrep/build/close is simpler and just as effective
+
+**Effort:** XS — one `find` command for stale claim cleanup. Everything else stays or moves to #10.
 
 ---
 
-### #10: close × session-end + trajectory learning + hive-mind
+### #10: close × session state to ruflo + hive-mind + claims release
 
-> **Revised 2026-04-01** after durability matrix discovery.
-> Original: `hierarchical-store` for learnings + NightlyLearner consolidation.
-> `hierarchical-store` is ephemeral — data lost on restart. NightlyLearner operates on
-> empty stub. Revised: use durable tools only (`memory_store`, `hooks_intelligence_*`,
-> bridge-fallback `session-end/feedback/causal-edge`).
+> **Revised 2026-04-01** after challenger review (verdict: PROCEED WITH CHANGES).
+> Original: trajectory start+end, dual-write patterns, replace brana session write.
+> Challenger found: (C1) zero-step trajectory is pattern-store with overhead — dropped.
+> (C2) Replacing local session state removes crash safety — keep local as primary.
+> (W2) hooks_intelligence_pattern-store falls to bridge-fallback, not HNSW-indexed — dropped.
+> Final: 3 additive MCP calls, keep everything that works, don't replace anything.
 
-**Problem now:** Close skill stores patterns via `$CF memory store` (works, durable). But no
-trajectory tracking, no cross-session signaling, no session quality recording. The
-session-end hook stores a summary + flywheel metrics but doesn't trigger learning.
+**Problem now:** Close skill stores patterns and session state. Works fine. But no
+cross-session signaling, no task unlocking, no searchable session history.
 
-**What the close skill gains (MCP direct — all durable tools):**
+**What stays unchanged:**
+
+| Step | What | How |
+|------|------|-----|
+| Debrief | Extract learnings | Debrief-analyst agent (unchanged) |
+| Patterns | Store learnings | `$CF memory store --namespace pattern` (primary, durable, HNSW-indexed) |
+| Field notes | Archive observations | `$CF memory store --namespace field-notes` (unchanged) |
+| Session state | Write local state | `brana session write` (primary, local, crash-safe, always works) |
+| MEMORY.md | Critical patterns | Dual-write for confidence >= 0.8 (unchanged) |
+| Session-end hook | Flywheel metrics | `$CF memory store` (crash-safe fallback) |
+
+**What close gains (3 MCP calls, all additive):**
 
 ```
-CLOSE SKILL — Step 5 (Store learnings) — ENHANCED:
+CLOSE SKILL — Step 7 (Session wrap) — 3 NEW CALLS:
 
-  For each learning extracted by debrief-analyst:
-
-    # Store pattern via hooks_intelligence (HNSW-indexed, durable)
-    mcp__ruflo__hooks_intelligence_pattern-store(
-      pattern: '{"problem":"...","solution":"...","confidence":0.5,
-                "transferable":false}',
-      type: "session-learning",
-      confidence: 0.5
-    )
-    → Stored in pattern namespace, HNSW-indexed, searchable via
-      hooks_intelligence_pattern-search
-
-    # ALSO store via memory_store for backward compatibility + tag-based filtering
-    mcp__ruflo__memory_store(
-      key: "pattern:{PROJECT}:{short-title}",
-      value: '{"problem":"...","solution":"...","confidence":0.5}',
-      namespace: "pattern",
-      tags: ["client:{PROJECT}", "type:session-learning", "tier:episodic"]
-    )
-
-    # Record causal edge: task → learning (durable via bridge-fallback)
-    mcp__ruflo__agentdb_causal-edge(
-      sourceId: "{task-id}",
-      targetId: "pattern:{PROJECT}:{short-title}",
-      relation: "produced",
-      weight: 0.7
-    )
-
-CLOSE SKILL — Step 7 (Session wrap) — ENHANCED:
-
-  # End SONA trajectory (started at session-start #9)
-  mcp__ruflo__hooks_intelligence_trajectory-end(
-    trajectoryId: "{trajectory_id from session-start}",
-    success: {overall_success},
-    feedback: "{session_label}: {correction_rate}, {test_writes}"
-  )
-  → Triggers SONA learning with EWC++ consolidation
-  → Patterns learned from this session's trajectory
-
-  # End session in agentdb (durable via bridge-fallback → memory_store)
-  mcp__ruflo__agentdb_session-end(
-    sessionId: "$SESSION_ID",
-    summary: "{session_label}: {accomplished_summary}",
-    tasksCompleted: {count}
-  )
-
-  # Record session quality (durable via bridge-fallback)
-  mcp__ruflo__agentdb_feedback(
-    taskId: "session:$SESSION_ID",
-    success: {overall_success},
-    quality: {1.0 - correction_rate},
-    agent: "brana:$PROJECT"
-  )
-
-  # Store session state in ruflo (replaces brana session write)
+  # 1. Session state to ruflo (SECONDARY — for searchability, not replacement)
   mcp__ruflo__memory_store(
     key: "session:{PROJECT}:{timestamp}",
     value: "{accomplished, learnings, next, metrics — full session state JSON}",
@@ -1078,63 +985,83 @@ CLOSE SKILL — Step 7 (Session wrap) — ENHANCED:
     tags: ["client:{PROJECT}", "branch:{BRANCH}"],
     upsert: true
   )
+  → Makes session history semantically searchable across sessions
+  → brana session write (local JSON) remains primary read path
+  → This is the searchable mirror for: memory_search(namespace: "session", query: "JWT auth")
 
-  # Signal other sessions via hive-mind
+  # 2. Cross-session close announcement (best-effort, transient)
   mcp__ruflo__hive-mind_memory(
     action: "set",
     key: "client:{PROJECT}:session:{SESSION_ID}",
     value: { status: "closed", summary: "...", next: [...] }
   )
+  → Other terminals see session ended + what's next
+  → Transient (in-memory, lost on MCP restart) — OK for session announcements
 
-  # Release task claims (#6B)
-  mcp__ruflo__claims_release(issueId: "task:{active_task}", claimant: "session:{s}")
+  # 3. Task claim release (guarded — only if task was claimed)
+  if active_task exists:
+    mcp__ruflo__claims_release(
+      issueId: "task:{active_task}",
+      claimant: "session:{SESSION_ID}"
+    )
+  → Unlocks task for other sessions
+  → No-op if no task was claimed (guarded)
 ```
 
-**What the session-end HOOK does (shell, $CF fallback):**
+**What was dropped (with reasons):**
 
-The hook runs AFTER the close skill (or if close didn't run — crash, timeout):
+| Feature | Reason dropped | Future path |
+|---------|---------------|-------------|
+| Trajectory start+end | 0-step trajectory = pattern-store with overhead. SONA learns from intermediate steps, not from a summary string at the end. | Re-add when session-long trajectories are possible — needs a mechanism to start at session begin. See note below. |
+| `hooks_intelligence_pattern-store` | Falls to bridge-fallback, not HNSW-indexed (`hnswIndexed: false`). `$CF memory store --namespace pattern` is more reliable. | Re-add when ruflo's ReasoningBank controller works end-to-end. |
+| `agentdb_causal-edge` | Optional — works via bridge-fallback but no consumer queries edges yet. | Add when knowledge graph queries have a consumer (e.g., maintain-specs via MCP). |
+| `agentdb_feedback` | Optional — works via bridge-fallback but no learning loop consumes it. | Add when model routing learning loop exists (#6C). |
+| `agentdb_session-end` | Bridge-fallback → same as `memory_store`. Redundant. | Add when NightlyLearner consolidation works (t-823). |
+| Replace `brana session write` | Removing local write removes crash safety. Ruflo dependency for session state is a regression. | Local stays primary. Ruflo is the searchable secondary. |
+
+> **Future: session-long trajectory tracking.**
+> SONA trajectories are valuable when they span a session: trajectory-start at begin,
+> trajectory-step per accomplishment, trajectory-end at close. This requires starting
+> the trajectory at session begin — currently blocked because:
+> - Shell hooks can't call MCP (trajectory-start needs MCP)
+> - `$CF` CLI doesn't return trajectory IDs
+> - additionalContext imperatives are unreliable (tested)
+>
+> Possible future mechanisms:
+> - CC plugin PostToolUse hook (runs in LLM context, could start trajectory on first tool call)
+> - ruflo CLI adds `trajectory start --format json` that returns trajectoryId
+> - CC adds a "first interaction" hook type that runs in LLM context
+>
+> Track: when any of these become available, re-enable trajectory-start in #9 and
+> trajectory-end in #10. SONA will then learn from real session trajectories.
+
+**Session-end hook additions (shell, crash-safe fallback):**
 
 ```bash
-# session-end.sh — keep everything it does today, add:
+# session-end.sh — add to existing hook:
 
-# 1. Session summary to ruflo (basic, in case close skill didn't run)
+# 1. Session state to ruflo (backup, in case close skill didn't run)
 $CF memory store -k "session:$PROJECT:$(date +%s)" \
   -v "$SUMMARY_JSON" --namespace session \
   --tags "client:$PROJECT,type:session-summary" --upsert
 
-# 2. File claim cleanup
+# 2. File claim cleanup (#8)
 find /tmp/brana-claims -name "owner" -exec grep -l "$SESSION_ID" {} \; 2>/dev/null | \
   while read f; do rm -rf "$(dirname "$f")"; done
-
-# 3. Hive-mind update (if $CF supports it — otherwise skip)
-# Currently $CF doesn't expose hive-mind. This is best-effort.
 ```
 
-**What NightlyLearner WOULD do (deferred to t-823):**
-
-When ruflo exports `HierarchicalMemory` and `MemoryConsolidation`:
-- Promote high-confidence episodic patterns to semantic tier
-- Decay stale patterns (confidence *= 0.95/week)
-- Archive patterns with confidence < 0.2
-- Compress old trajectories (>30 days → summary)
-
-Until then, patterns accumulate with flat confidence. Manual review via `/brana:memory review`
-catches stale patterns. SONA trajectory-end provides some learning even without NightlyLearner.
-
-**Dual-write maintained:**
-- MEMORY.md: critical patterns only (confidence >= 0.8, directive/convention)
-- ruflo `memory_store`: all patterns (searchable, tagged with tier)
-- `hooks_intelligence_pattern-store`: all patterns (HNSW-indexed for fast recall)
-- `/brana:close` Step 5 reviews: "is this in ruflo? still needed in MEMORY.md?"
+**Source of truth hierarchy:**
+1. **Session state read:** `brana session read --json` (local, fast, always works)
+2. **Session state search:** `memory_search(namespace: "session")` (cross-session, semantic)
+3. **Pattern read:** `memory_search(namespace: "pattern")` (HNSW-indexed)
+4. **Pattern search:** `hooks_intelligence_pattern-search` (HNSW+BM25 hybrid, reads same store)
 
 **Wiring changes:**
-- Close skill: add 6 MCP tools to allowed-tools (`hooks_intelligence_trajectory-end`,
-  `hooks_intelligence_pattern-store`, `agentdb_session-end`, `agentdb_feedback`,
-  `agentdb_causal-edge`, `hive-mind_memory`). Plus `memory_store`, `claims_release`.
-- Session-end hook: add session state to ruflo, file claim cleanup.
-- Remove `brana session write` from close — replaced by `memory_store(namespace: "session")`.
+- Close skill: add 3 MCP tools to allowed-tools (`memory_store`, `hive-mind_memory`,
+  `claims_release`). Fold into existing Step 7 (session wrap).
+- Session-end hook: add session state backup + file claim cleanup.
 
-**Effort:** M (close skill changes + session-end hook + 8 MCP tools).
+**Effort:** S (was M — reduced by dropping trajectory, dual-write, and state replacement).
 
 ---
 
