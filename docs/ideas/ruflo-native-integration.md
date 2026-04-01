@@ -8,35 +8,71 @@ Brana treats ruflo as an optional CLI tool. It uses 6 of 218 MCP tools, stores f
 
 ## Core Decision
 
-**MCP as primary transport, CLI as fallback for hooks.**
+**MCP is the backbone. Skills call ruflo MCP directly. CLI is for local-only tools.**
 
-Reason: The advanced ruflo features (agentdb, trajectories, hooks intelligence, workflows, hive-mind, claims) are only accessible via MCP tools. The CLI only exposes basic `memory` operations. Skills and agents run in LLM context where MCP tools are native. Hooks run in shell context where CLI is the only option.
+> Revised 2026-04-01 after verifying 15 agentdb controllers active. The CLI intermediary
+> pattern (`skill → brana CLI → $CF → ruflo`) made sense when ruflo had 6 basic ops. With
+> 15 controllers offering hierarchical tiers, context synthesis, trajectory tracking,
+> consolidation, batch, and feedback, piping through a CLI wrapper loses all the richness.
+> Skills have native MCP access — use it.
 
-| Context | Transport | Access |
-|---------|-----------|--------|
-| Skills + agents | MCP (`mcp__ruflo__*`) | All 218 tools |
-| Hooks (shell) | CLI (`$CF memory store/search`) | 6 basic memory ops |
-| Rust CLI (`brana learn`) | CLI (`$CF`) | Wraps mechanical operations |
+| Context | Transport | What it accesses |
+|---------|-----------|-----------------|
+| Skills + agents | **MCP direct** (`mcp__ruflo__*`) | All controllers: hierarchical-store/recall, session-start/end, context-synthesize, trajectory, feedback, batch |
+| Hooks (shell) | **CLI** (`$CF memory store/search`) | Basic memory ops only. Hooks stay fast, no MCP. |
+| Rust CLI | **Local only** — no ruflo wrapper | Backlog (tasks.json), transcription (whisper), files, feeds, inbox, batch indexing |
+
+### What moves out of the CLI
+
+`brana session write/read/history` → **replaced by direct MCP calls from skills.**
+
+| Old (CLI intermediary) | New (MCP direct) |
+|----------------------|-----------------|
+| Close → `brana session write` → `$CF memory store` | Close → `hierarchical-store(tier: "episodic")` + `session-end` |
+| Sitrep → `brana session read --json` | Sitrep → `hierarchical-recall(tier: "working")` + `hooks_intelligence_pattern-search` |
+| Session-start hook → `brana session read --json` | Hook: `$CF memory search --namespace session` (basic). First skill call: `session-start` via MCP (rich, ReflexionMemory replay) |
+| Session-end hook → `brana session write --minimal` | Hook: `$CF memory store --namespace session` (basic fallback) |
+| `brana session history` (linear browse) | `memory_search(namespace: "session", query: "topic")` (semantic search) |
+
+### What stays in the CLI (local-only tools)
+
+```
+brana backlog   — tasks.json management (local file, no ruflo)
+brana transcribe — whisper audio transcription (local binary)
+brana files     — large file tracking + R2 remotes (local manifest)
+brana feed      — RSS/Atom polling (local HTTP)
+brana inbox     — Gmail IMAP polling (local IMAP)
+brana learn index — mechanical batch indexing (calls $CF for bulk writes)
+```
+
+### Graceful degradation
+
+Skills: try MCP → fall back to `$CF` via Bash → fall back to MEMORY.md.
+Hooks: always use `$CF` (shell context, can't call MCP).
+If ruflo is completely down: hooks write to `pending-learnings.md`, skills work without memory.
 
 ## Architecture Layers
 
 ```
 JUDGMENT LAYER (Skills / LLM)
   What to learn, what's transferable, what to recall.
-  Calls mcp__ruflo__* directly.
-
-MECHANICAL LAYER (Rust CLI)
-  Confidence math, trajectory recording, consolidation,
-  decay, knowledge indexing.
-  Calls ruflo CLI ($CF) from shell context.
+  Calls mcp__ruflo__* directly — all 15+ controllers.
+  Examples: hierarchical-store, context-synthesize,
+  session-end, trajectory-start, pattern-search.
 
 HOOK LAYER (Shell scripts)
   Session start/end, PostToolUse recording.
-  Calls brana CLI (which calls ruflo CLI).
+  Calls $CF (ruflo CLI) for basic memory ops.
+  Writes flag files for deferred MCP calls.
+
+MECHANICAL LAYER (Rust CLI)
+  Local-only tools: backlog, transcription, files, feeds, inbox.
+  Batch indexing via $CF for bulk knowledge writes.
+  No ruflo wrapper — those concerns live in skills now.
 
 RUFLO (Infrastructure)
-  MCP server (218 tools) + SQLite + HNSW +
-  ONNX embeddings + AgentDB controllers.
+  MCP server + SQLite + HNSW + ONNX embeddings.
+  15 active AgentDB controllers (v3.5.48 + ESM patch).
   Storage: ~/.swarm/memory.db
 ```
 
@@ -313,231 +349,474 @@ just the tool calls in Phase 0.
 
 ---
 
-### #5: sitrep × agentdb hierarchical-recall
+### #5: sitrep × hooks intelligence pattern-search (+ hierarchical-recall after #9+#10)
 
-**Problem now:** Sitrep reads from 5 local sources (TaskList, git, backlog CLI, session JSON, conversation). It has zero memory context — can't surface "you were debugging X last week" or "pattern Y from client Z might apply here." It's a status dump, not contextual awareness.
+> **Revised 2026-04-01** after challenger review (verdict: PROCEED WITH CHANGES).
+> Original plan: 3 hierarchical-recall calls. Challenger found 2 of 3 return empty today.
+> Discovery: `hooks_intelligence_pattern-search` is the working pattern search (bypasses
+> broken `agentdb_pattern-search`). Redesigned to ship 1 call now, add tiers later.
 
-**With ruflo MCP:**
+**Problem now:** Sitrep reads from 5 local sources (TaskList, git, backlog CLI, session JSON, conversation). Zero memory context — can't surface "you were debugging X last week" or "pattern Y from client Z might apply here." It's a status dump, not contextual awareness.
+
+**Session state also changes:** Sitrep Source 4 currently calls `brana session read --json` (local file). Per the architecture revision (MCP as backbone), this becomes a direct `memory_search(namespace: "session")` call — semantically searchable, not file-dependent.
+
+**Phase 1 — Ship now (1 MCP call):**
 
 ```
-Source 6 — Memory Context (new, parallel with existing 5):
+Source 6 — Memory Context:
 
-  Call 1: mcp__ruflo__agentdb_hierarchical-recall(
+  mcp__ruflo__hooks_intelligence_pattern-search(
+    query: "{TASK_SUBJECT} {BRANCH}",
+    topK: 3,
+    minConfidence: 0.3,
+    namespace: "pattern"
+  )
+  → Confidence-scored patterns from HNSW vector search
+  → Returns results from 476 existing entries
+  → 26ms warm, ~500ms cold (ONNX model load)
+```
+
+**Output rules (per challenger):**
+- Suppress results below 0.25 similarity
+- If all results below threshold, omit Memory Context section entirely
+- Use plain-language labels: "from past sessions" not "[episodic]"
+- If a correction pattern matches current task, surface it explicitly
+
+```markdown
+**Memory context:**
+- {pattern description, confidence: 0.35} — from past sessions
+- Note: past correction on this topic — {correction}
+```
+
+**Phase 2 — Ship after #9+#10 populate tiers (add 1 more call):**
+
+```
+  mcp__ruflo__agentdb_hierarchical-recall(
     query: "{BRANCH} {TASK_SUBJECT}",
     tier: "working",
     topK: 3
   )
-  → Hot session patterns from current/recent sessions
-
-  Call 2: mcp__ruflo__agentdb_hierarchical-recall(
-    query: "{TASK_SUBJECT} {TASK_TAGS}",
-    tier: "episodic",
-    topK: 3
-  )
-  → Warm patterns from past sessions on similar work
-
-  Call 3 (only if no active task): mcp__ruflo__agentdb_hierarchical-recall(
-    query: "{PROJECT_NAME} recent work",
-    tier: "episodic",
-    topK: 5
-  )
-  → What was happening in this project recently?
+  → Hot patterns from current/recent sessions (only useful after close writes to tiers)
 ```
 
-**Data flow:**
-- Working tier results → append to "Active context:" section (hot state)
-- Episodic tier results → append to "Related patterns:" section (only if confidence > 0.5)
-- Cross-client matches → note as "Similar pattern from {other_client}" (transferable only)
+Output gains: `- {pattern} — from this session`
 
-**Wiring changes to `system/skills/sitrep/SKILL.md`:**
-- Add Source 6 block after Source 5, in parallel with Sources 1-5
-- Output template gets new section:
+**Learning health:** Moved to `/brana:memory review` per challenger — not actionable in sitrep.
 
-```markdown
-**Memory context:**
-- [working] {hot pattern from current session}
-- [episodic] {warm pattern, confidence: 0.7} — from {date}
-- [cross-client] {transferable pattern from other project}
-```
+**Wiring changes:**
+- Phase 1: add `mcp__ruflo__hooks_intelligence_pattern-search` to sitrep allowed-tools. 1 tool, 1 call.
+- Phase 2: add `mcp__ruflo__agentdb_hierarchical-recall` after #9+#10 land.
+- Source 4: replace `brana session read --json` with `memory_search(namespace: "session", limit: 1)` (semantic, ruflo-native).
 
-- Next action logic gains new rule: "If episodic tier surfaces a correction pattern relevant to current task, mention it: 'Note: past correction on this topic — {pattern}.'"
-- Add `mcp__ruflo__agentdb_hierarchical-recall` to allowed-tools
+**Fallback:** If MCP unavailable, skip Source 6 entirely. Source 4 falls back to `brana session read --json` (local file). Sitrep works as today — local-only.
 
-**Fallback:** If MCP unavailable, skip Source 6 entirely. Sitrep works as today — local-only.
-
-**Key constraint:** Sitrep is read-only and fast. Memory calls must not add >2s latency. 3 parallel calls with topK=3-5 should stay under 500ms given HNSW indexing.
+**Effort:** S (Phase 1). M (Phase 2 — depends on #9+#10).
 
 ---
 
-### #6: backlog execute × agent spawn + hive-mind
+### #6: ruflo orchestration layer — hive-mind, claims, agent registry, coordination
 
-**Problem now:** Backlog execute spawns CC Agent tools with string prompts. No coordination between agents — they can stomp files, duplicate work, or miss dependencies. Model routing is a simple cost log, not intelligent selection. No shared state during execution.
+> **Revised 2026-04-01** after challenger review (verdict: RECONSIDER) + workflow context.
+> Original plan: ruflo as parallel-agent coordinator within one session.
+> Challenger found: CC agents can't call MCP, hive-mind is write-only, claims aren't file locks.
+> Reframe: ruflo as **multi-session awareness + task concurrency + agent analytics + workflow orchestration**.
 
-**With ruflo MCP:**
+**Workflow context:** User runs one terminal per client (no IDE). Multiple terminals open
+simultaneously across different projects (somos, anita, thebrana). Sometimes two parallel
+sessions on the same client. Tasks range from small fixes to large multi-subtask builds
+broken down via `brana backlog plan` (phase → milestone → task → subtask).
+
+#### 6A: Hive-mind → Cross-session blackboard
+
+**Not for:** parallel agents within one session (they can't call MCP).
+**For:** awareness between multiple Claude Code sessions — same client or cross-client.
+
+**How it works:** All sessions share one hive-mind through the MCP server (ruflo-mcp.sh
+sets cwd to `~`, so `~/.claude-flow/hive-mind/` is shared). Per-client isolation via key
+prefixes (`client:somos:*`).
+
+**Level 1: Same-client session awareness**
 
 ```
-ORCHESTRATION FLOW (execute a phase with N tasks):
+Terminal 1a: /brana:build t-200 (large task, 5 subtasks)
+  → hive-mind_memory(set, "client:somos:build:t-200", {
+      session: "session-A",
+      status: "in-progress",
+      branch: "feat/t-200-auth-middleware",
+      subtasks_total: 5,
+      subtasks_done: 0,
+      current_subtask: "t-200a",
+      files_touched: ["src/auth.rs", "src/middleware.rs"],
+      started: "2026-04-01T14:00:00Z"
+    })
 
-  Step 1 — Init coordination:
-    mcp__ruflo__hive-mind_init(
-      topology: "hierarchical",  // queen orchestrates workers
-      queenId: "orchestrator"
-    )
+Terminal 1b (parallel session, same client): /brana:sitrep
+  → hive-mind_memory(list) → filter "client:somos:*"
+  → "Session A is building t-200 (auth middleware) — subtask 1/5
+     Editing: src/auth.rs, src/middleware.rs
+     → Pick a different task, or wait for A to finish"
 
-  Step 2 — Build DAG waves from blocked_by graph:
-    Wave 0: tasks with no blockers
-    Wave 1: tasks blocked only by Wave 0
-    ... etc
+Terminal 1b: brana backlog next
+  → hive-mind_memory(get, "client:somos:build:t-200") → t-200 in progress
+  → Skips t-200, skips t-202 (blocked by t-200), picks t-201
 
-  Step 3 — For each wave (sequential):
-    For each task in wave (parallel):
-
-      a. Claim files:
-         mcp__ruflo__claims_claim(
-           issueId: "{task-id}",
-           claimant: "agent:{task-id}:worker",
-           context: "Files: {file_list from spec}"
-         )
-
-      b. Spawn agent:
-         mcp__ruflo__agent_spawn(
-           agentType: "builder",
-           task: "{task subject + description}",
-           model: "inherit",  // or let ruflo route
-           config: {
-             worktree: true,
-             protocol: "orient-test-implement-verify-commit-report",
-             claimed_files: ["{file_list}"],
-             timeout_ms: 600000
-           }
-         )
-         → Note: actual execution still via CC Agent tool (ruflo agent_spawn
-           provides model routing + registration, not CC subprocess spawning)
-
-      c. CC Agent tool call (actual execution):
-         Agent(
-           prompt: "...",  // includes claimed files, spec, protocol
-           isolation: "worktree",
-           mode: "bypassPermissions"
-         )
-
-    Wait for all agents in wave to complete.
-
-    d. For each completed agent:
-       mcp__ruflo__claims_status(
-         issueId: "{task-id}",
-         status: "completed"
-       )
-       mcp__ruflo__agentdb_feedback(
-         taskId: "{task-id}",
-         success: {true/false},
-         quality: {0-1 based on test pass rate},
-         agent: "builder:{task-id}"
-       )
-
-  Step 4 — Merge worktrees (sequential, by wave order)
-
-  Step 5 — Teardown:
-    mcp__ruflo__hive-mind_shutdown()
+Subtask done in 1a:
+  → hive-mind_memory(set, ..., { subtasks_done: 1, current_subtask: "t-200b" })
+  → Terminal 1b sitrep now shows: "Session A: t-200 — 1/5 subtasks done"
 ```
 
-**Key insight:** `agent_spawn` handles MODEL ROUTING and REGISTRATION (which agent is doing what). Actual code execution still goes through CC's `Agent` tool — ruflo doesn't spawn Claude Code subprocesses. The value is:
-1. **Claims** prevent file conflicts between parallel agents
-2. **Hive-mind** provides a shared memory blackboard during execution
-3. **Feedback** records which task types succeed/fail for future routing
-4. **Agent_spawn** routes to optimal model (haiku for simple, sonnet for moderate, opus for complex)
+**Level 2: Cross-client awareness**
 
-**Wiring changes:**
-- `system/skills/backlog/SKILL.md` execute section: add orchestration flow above
-- New file: `system/skills/backlog/execute-protocol.md` — the self-contained agent protocol (ORIENT→TEST→IMPLEMENT→VERIFY→COMMIT→REPORT)
-- Add all claims, hive-mind, agent, and feedback tools to allowed-tools
-- Keep existing single-agent fallback for tasks without specs or when ruflo unavailable
+```
+Any terminal: /brana:sitrep
+  → hive-mind_memory(list) → filter all "client:*:build:*" keys
+  → **Active sessions:**
+    - somos (terminal 1): building t-200 auth middleware — 2/5 subtasks, 45 min active
+    - anita (terminal 2): researching WhatsApp templates — 3 sources found
+    - thebrana (terminal 3): this session (ruflo integration brainstorm)
+```
 
-**Fallback:** If MCP unavailable, current behavior: spawn CC Agents without coordination. Log a warning.
+**Level 3: Build plan progress (backlog plan integration)**
 
-**Phase dependency:** Requires P7 (hive-mind, claims, agent orchestration). This is the most complex enrichment — implement last.
+`brana backlog plan` breaks work into phases/milestones/tasks. Hive-mind tracks the plan:
+
+```
+hive-mind_memory(set, "plan:somos:ph-010", {
+  total_tasks: 4,
+  completed: 0,
+  in_progress: {"t-200": "session-A"},
+  blocked: ["t-202", "t-203"],
+  available: ["t-201"],
+  updated: "2026-04-01T14:30:00Z"
+})
+
+Terminal 1b: brana backlog next → reads plan → picks t-201 (available, unclaimed)
+Both sessions finish → plan auto-updates → t-202 unblocks
+```
+
+**Level 4: Scheduled jobs + handoff**
+
+```
+Oracle cron (reindex-knowledge, 03:00):
+  → hive-mind_memory(set, "job:reindex", {status: "done", sections: 436, at: "03:00"})
+
+Morning session: /brana:sitrep
+  → "Knowledge reindex ran at 03:00, indexed 436 sections"
+
+/brana:close in terminal 1:
+  → hive-mind_broadcast("somos session closed. t-200 at 3/5 subtasks. Next: t-200d, t-200e.")
+  → Next session-start on somos picks this up
+```
+
+**Brana consumers:**
+
+| Consumer | Operation | What it enables |
+|----------|----------|----------------|
+| `/brana:build` start | `memory(set, "client:{c}:build:{task}", {...})` | Announce what you're working on |
+| `/brana:build` subtask done | `memory(set, ...)` update progress | Live progress tracking |
+| `/brana:build` end | `memory(set, status: "done")` + `broadcast(...)` | Signal completion |
+| `/brana:close` | `broadcast("session closed. state: ...")` | Handoff to next session |
+| `/brana:sitrep` | `memory(list)` filter `client:*` | Cross-session + cross-client view |
+| `brana backlog next` | `memory(get, "plan:{phase}")` | Skip claimed/blocked tasks |
+| `brana backlog start` | `memory(set, ...)` | Announce task start |
+| Session-start hook | `memory(list)` check for active/stale | Resume + stale cleanup |
+| Oracle scheduler | `memory(set, "job:{name}", {...})` | Job status visible to sessions |
+| `/brana:review` | `memory(list)` all clients | Portfolio-wide session overview |
+
+#### 6B: Claims → Task-level locking
+
+**Not for:** file conflict prevention (worktrees handle that).
+**For:** preventing two sessions from working on the same task.
+
+```
+Terminal 1a: brana backlog start t-200
+  → claims_claim("task:t-200", "session:A", context: "auth middleware, est 30 min")
+  → ✓ Claimed. Branch created, build starts.
+
+Terminal 1b: brana backlog start t-200
+  → claims_claim("task:t-200", "session:B") → DENIED
+  → hive-mind_memory(get, "client:somos:build:t-200")
+  → "t-200 claimed by session A (2/5 subtasks done, 15 min in). Try t-201?"
+
+Session A crashes (no /brana:close):
+  → Next session-start: claims_list(status: "active")
+  → "Stale claim on t-200 from session A (45 min old, no heartbeat)"
+  → Prompt user: release + resume, or leave claimed?
+```
+
+**Claims + hive-mind together:** Claims is the lock (can I work on this?), hive-mind is the
+context (what's happening?). `brana backlog start` does both: claim the task + announce in
+hive-mind. `brana backlog next` checks both: skip claimed + skip in-progress.
+
+**Phase-level claims:** Claim a whole phase so another session doesn't start executing it:
+```
+claims_claim("phase:ph-010", "session:A", context: "executing 4 tasks")
+```
+
+**Brana consumers:**
+
+| Consumer | Operation |
+|----------|----------|
+| `brana backlog start` | `claims_claim("task:{id}", "session:{s}")` |
+| `brana backlog next` | `claims_list(status: "active")` → filter out claimed |
+| `/brana:build` end | `claims_release("task:{id}", "session:{s}")` |
+| `/brana:close` | `claims_list(claimant: "session:{s}")` → release all |
+| Session-start hook | `claims_list(status: "active")` → detect stale (>1h, no heartbeat) |
+| `/brana:sitrep` | `claims_board()` → show claimed tasks |
+
+#### 6C: agent_spawn → Agent analytics registry
+
+**Not for:** spawning CC subprocesses (CC Agent tool does that).
+**For:** tracking agent execution history for cost analysis and model routing improvement.
+
+```
+/brana:build spawns subagents:
+  agent_spawn("scout", task: "research JWT patterns", model: "haiku")    → registered
+  agent_spawn("builder", task: "implement auth middleware", model: "sonnet") → registered
+  → CC Agent(...) does the actual work
+
+After agent completes:
+  hooks_intelligence_trajectory-step(action: "scout:JWT", quality: 0.9)
+  hooks_intelligence_trajectory-step(action: "builder:auth", quality: 0.7)
+
+/brana:review weekly:
+  → agent_list() → "23 agents this week. Haiku scouts: 85% success.
+     Sonnet builders: 92%. Model routing saved ~$12 vs all-opus.
+     2 haiku tasks needed sonnet retry — flag for routing adjustment."
+```
+
+**Brana consumers:**
+
+| Consumer | Operation |
+|----------|----------|
+| `/brana:build` (subagent spawn) | `agent_spawn(type, task, model)` before `Agent(...)` |
+| `/brana:research` (scout spawn) | `agent_spawn("scout", task, model)` |
+| `/brana:challenge` (opus spawn) | `agent_spawn("challenger", task, "opus")` |
+| After agent completes | `trajectory-step(action, quality)` |
+| `/brana:review` | `agent_list()` → cost/success analytics |
+| Model routing improvement | Compare routed model vs actual outcome over time |
+
+#### 6D: coordination_orchestrate → Skill pipeline formalization
+
+**Not for:** coordinating CC Agent subprocesses.
+**For:** defining multi-step skill workflows as resumable, trackable pipelines.
+
+```
+/brana:maintain-specs (currently: sequential script, no tracking):
+  coordination_orchestrate(
+    task: "maintain-specs",
+    strategy: "pipeline",
+    agents: ["errata", "reflections", "synthesis", "hygiene"]
+  )
+  → Each step tracked. If step 2 fails, resume from step 2 next time.
+
+/brana:review monthly (currently: manual sequence):
+  coordination_orchestrate(
+    task: "monthly-review",
+    strategy: "parallel",
+    agents: ["metrics-collector", "pipeline-tracker"]
+  )
+  → Then sequential merge into report.
+
+/brana:build execute phase (DAG execution):
+  coordination_orchestrate(
+    task: "phase:ph-010",
+    strategy: "parallel",
+    agents: ["t-200", "t-201"]  // independent tasks in wave
+  )
+  → Formalized wave execution with status per task.
+```
+
+**Brana consumers:**
+
+| Consumer | Strategy | What it formalizes |
+|----------|----------|-------------------|
+| `/brana:maintain-specs` | pipeline | errata → reflections → synthesis → hygiene |
+| `/brana:review monthly` | parallel → merge | metrics + pipeline + financials → report |
+| `/brana:build` phase execute | parallel (DAG waves) | wave-by-wave task execution |
+| `/brana:research` multi-scout | parallel | N scouts on different aspects → synthesize |
+
+#### Build execution (revised from original)
+
+The original orchestration flow (hive-mind as agent coordinator) is replaced. For build
+execution, the ruflo value is **model routing + trajectory tracking + task claims**, not
+agent-to-agent coordination:
+
+```
+/brana:build execute phase ph-010:
+
+  Step 1 — Claim phase:
+    claims_claim("phase:ph-010", "session:{s}")
+    hive-mind_memory(set, "plan:somos:ph-010", {status: "executing", ...})
+
+  Step 2 — Build DAG waves from blocked_by graph (unchanged)
+
+  Step 3 — For each wave, for each task:
+    a. hooks_model-route(task: "{subject}") → haiku/sonnet/opus
+    b. claims_claim("task:{id}", "session:{s}")
+    c. agent_spawn(type: "builder", task, model) → analytics registry
+    d. hive-mind_memory(set, "client:{c}:build:{task}", {status: "in-progress"})
+    e. Agent(prompt, isolation: "worktree") → actual execution
+    f. On complete: claims_release + hive-mind update + trajectory-step
+
+  Step 4 — Merge worktrees (unchanged)
+  Step 5 — claims_release("phase:ph-010") + hive-mind update + trajectory-end
+
+Parallel session sees progress via hive-mind. Can't duplicate work via claims.
+```
+
+**Effort:** L (largest enrichment — 4 subsystems).
+**Dependencies:** #9+#10 (session loop, trajectory tracking).
+**Implementation:** P9 — last. Re-evaluate after P1-P4 deliver real usage data.
+
+**What NOT to build:**
+- No consensus voting between agents (overkill, agents are dumb workers)
+- No agent-to-agent communication mid-execution (orchestrator manages)
+- No auto-merge worktrees (orchestrator merges, user reviews)
+- No retry logic inside agents (orchestrator re-spawns on failure)
 
 ---
 
-### #7: index-knowledge × agentdb hierarchical-store + batch
+### Project scope within clients
 
-**Problem now:** `index-knowledge.sh` stores every `##` section as a flat `memory_store` in the `knowledge` namespace. No tiers — a dimension doc section (curated, permanent) and a field note (transient) get the same treatment. No dedup — re-indexing stores duplicates. No cross-references between related sections.
+> Discussed 2026-04-01. Challenger reviewed hard-isolation approach (separate directories per
+> project) — found 3 critical code-level blockers (CLI resolves tasks.json from git root,
+> session state scopes to git root, task-sync slug derivation breaks). Rejected in favor of
+> soft isolation via scope field.
 
-**With ruflo MCP:**
+**Approach: `project` field on tasks (Path B — soft isolation)**
 
-```
-TIERED INDEXING (replace index-knowledge.sh inner loop):
+One field, one filter flag. No structural changes to CLI resolution, session state, hooks,
+or task-sync. Single tasks.json per client. Optional — clients without projects work as today.
 
-  For each document:
-    1. Parse sections (## headers)
-    2. Classify source type → tier:
-       - brana-knowledge/dimensions/*.md → semantic (permanent, curated)
-       - docs/architecture/*.md → semantic (permanent, specs)
-       - docs/ideas/*.md → working (24h, speculative)
-       - docs/research/*.md → episodic (90 days, findings)
-       - Field notes (## Field Notes sections) → episodic
-
-    3. For each section, dedup check:
-       mcp__ruflo__embeddings_compare(
-         text1: "{section_content}",
-         text2: "{closest_existing_entry_value}"
-       )
-       → If similarity > 0.95: SKIP (duplicate)
-       → If similarity 0.80-0.95: UPDATE existing entry (evolved content)
-       → If similarity < 0.80: INSERT new entry
-
-    4. Batch write (up to 500 per call):
-       mcp__ruflo__agentdb_batch(
-         operation: "insert",  // or "update"
-         entries: [
-           { key: "knowledge:{tier}:{doc_slug}:{section_slug}",
-             value: "{section_content}" }
-         ]
-       )
-       Note: agentdb_batch doesn't accept tier — so we encode tier in key prefix
-       and use agentdb_hierarchical-store for individual writes when tier matters.
-
-    5. Cross-references (new capability):
-       For each internal link ([[doc#section]] or explicit cross-ref):
-       mcp__ruflo__agentdb_causal-edge(
-         sourceId: "knowledge:{source_doc}:{source_section}",
-         targetId: "knowledge:{target_doc}:{target_section}",
-         relation: "references",
-         weight: 0.8
-       )
+```json
+{
+  "id": "t-200",
+  "subject": "Auth middleware",
+  "project": "ai-agent",
+  "stream": "roadmap",
+  "type": "task",
+  "parent": "ms-050"
+}
 ```
 
-**Batch vs individual trade-off:**
-- `agentdb_batch` is fast (500/call) but doesn't support tier assignment
-- `agentdb_hierarchical-store` supports tiers but is 1-by-1
-- **Decision:** Use `agentdb_batch` for bulk insert/update (speed). Then a second pass with `agentdb_hierarchical-store` for tier promotion of semantic entries. Or: encode tier in key prefix (`knowledge:semantic:...`) and handle tier logic in recall queries.
+**CLI changes (S effort):**
+- `brana backlog next --project ai-agent` → filter by project
+- `brana backlog query --project ai-agent` → filter by project
+- `brana backlog roadmap --project ai-agent` → show only that project's tree
+- `brana backlog stats --group-by project` → stats per project
+- `brana backlog plan --project ai-agent "description"` → set project on phase + children
+- `brana backlog add --project ai-agent ...` → set project on new task
+- No `--project` flag → shows all projects (current behavior, backward compatible)
 
-**Key prefix convention:**
-```
-knowledge:semantic:{doc_slug}:{section_slug}  — dimension docs, ADRs, shipped specs
-knowledge:episodic:{doc_slug}:{section_slug}  — research, field notes, in-progress specs
-knowledge:working:{doc_slug}:{section_slug}   — idea docs, brainstorms
-```
-
-**Wiring changes:**
-- Rewrite `system/scripts/index-knowledge.sh` to call MCP tools (requires the script to run in a context with MCP access — either via a skill wrapper or by adding MCP CLI support)
-- **Problem:** Shell scripts can't call MCP tools directly. Options:
-  1. Keep as shell script, use CLI (`$CF`) for batch operations (CLI doesn't support batch/hierarchical-store)
-  2. Rewrite as skill step (LLM does the indexing via MCP calls)
-  3. Add `brana learn index` CLI subcommand that wraps MCP batch operations
-  4. **Best option:** Hybrid — shell script parses docs and outputs JSONL, then a skill step ingests via MCP batch. Parsing is mechanical (shell), storage is intelligent (MCP).
-
-**Implementation plan:**
-```
-index-knowledge.sh (parser) → /tmp/knowledge-index.jsonl
-  ↓
-brana learn index --from /tmp/knowledge-index.jsonl (Rust CLI)
-  ↓
-  For each entry: $CF memory store ... (current)
-  OR (future): MCP batch via skill invocation
+**Phases inherit project:**
+```json
+{ "id": "ph-010", "subject": "Conversation engine", "project": "ai-agent", "type": "phase" }
 ```
 
-**Fallback:** Current flat `memory_store` per section. Works, just less intelligent.
+**Ruflo integration — project in tags/keys:**
+- Hive-mind: `client:somos:project:ai-agent:build:t-200`
+- Claims: `task:somos:ai-agent:t-200`
+- Memory store tags: `client:somos,project:ai-agent`
+- Pattern recall: `memory_search` returns all client patterns; post-filter by project tag
+  when scoped, or show all for cross-pollination
+
+**What doesn't change:** tasks.json location, git repo structure, session state, hooks,
+task-sync, portfolio.md format. Single-project clients just don't use the field.
+
+---
+
+### #7: index-knowledge — upgraded shell script + dedup skill
+
+> **Revised 2026-04-01** after 2 challenger reviews.
+> Original: LLM-based `/brana:index` skill replaces shell script entirely.
+> Challenger C3: shell parsing costs $0 and is 1000x faster for mechanical section splitting.
+> Challenger C1/C2: `hierarchical-store` is ephemeral (in-memory stub), `agentdb_batch`
+> writes to episodes table not memory_entries. Neither usable for knowledge indexing.
+> Final: Approach C — upgrade the battle-tested shell script, add dedup as periodic job.
+
+**Problem now:** `index-knowledge.sh` stores 436 sections from 45 dimension docs. Flat
+namespace, no tier classification, no dedup, no orphan cleanup, only indexes one doc category.
+
+**What changes (Approach C):**
+
+```
+index-knowledge.sh (upgraded, still shell, still $0):
+
+  1. EXPAND to 7 doc categories:
+     brana-knowledge/dimensions/*.md     → 45 docs, ~436 sections
+     docs/architecture/*.md              → ~5 docs, ~30 sections
+     docs/reflections/*.md               → ~5 docs, ~40 sections
+     docs/architecture/decisions/*.md    → ~15 docs, ~30 sections
+     docs/architecture/features/*.md     → ~10 docs, ~20 sections
+     docs/ideas/*.md                     → ~5 docs, ~20 sections
+     docs/research/*.md                  → ~3 docs, ~15 sections
+     Total: ~590 sections (vs current 436)
+
+  2. CLASSIFY tier by path:
+     case "$filepath" in
+       */dimensions/*|*/architecture/*|*/reflections/*|*/decisions/*) tier="semantic" ;;
+       */features/*) tier="episodic" ;;  # could be promoted to semantic when shipped
+       */ideas/*) tier="working" ;;
+       */research/*) tier="episodic" ;;
+       *) tier="episodic" ;;
+     esac
+
+  3. STORE with tier as tag (not key prefix — keeps existing key scheme):
+     $CF memory store \
+       -k "knowledge:dimension:${doc_slug}:${section_slug}" \
+       -v "$value" \
+       --namespace knowledge \
+       --tags "source:brana-knowledge,type:dimension,doc:${filename},tier:${tier}" \
+       --upsert
+
+  4. ORPHAN CLEANUP (new):
+     List all knowledge:* keys in ruflo.
+     Compare against actual ## sections on disk.
+     Delete entries for removed/renamed sections.
+     (Runs only on full reindex, not incremental)
+```
+
+**Dedup (separate periodic `claude -p` job, not on indexing hot path):**
+
+```json
+{
+  "name": "knowledge-dedup",
+  "schedule": "monthly 1st 04:00",
+  "type": "skill",
+  "prompt": "Search ruflo memory namespace 'knowledge'. For each pair of entries,
+    call embeddings_compare. Flag pairs with >0.95 similarity. Report duplicates.
+    Do not delete — just report for review.",
+  "model": "haiku",
+  "allowedTools": "mcp__ruflo__memory_search,mcp__ruflo__memory_list,mcp__ruflo__embeddings_compare",
+  "timeout": 300
+}
+```
+
+**Cross-references (deferred to t-823):**
+
+`causal-edge` works via bridge-fallback (durable — writes to `memory_entries`). But cross-ref
+extraction from `[[links]]` requires content parsing. Add when knowledge graph queries have
+a consumer (currently nothing queries edges).
+
+**What does NOT change:**
+- Key scheme: `knowledge:dimension:{doc_slug}:{section_slug}` (same as today)
+- Namespace: `knowledge` (same)
+- `--upsert` idempotency (same)
+- 5% error tolerance (same)
+- Triggers: post-commit hook, weekly scheduler, manual (same)
+
+**What `hierarchical-store` WOULD have enabled (deferred to t-823):**
+- Real tier metadata (not just tags) → tier-specific recall queries
+- Automatic promotion (episodic → semantic after confidence threshold)
+- TTL-based expiry (working tier → 24h auto-purge)
+- NightlyLearner consolidation across tiers
+
+All of this becomes available when ruflo exports `HierarchicalMemory`. Until then, tiers
+are advisory tags that consumers can filter on: `memory_search(namespace: "knowledge")` +
+post-filter on `tier:semantic` tag.
+
+**Effort:** S (shell script upgrade + scheduler config). Dedup job: S (separate).
 
 ---
 
@@ -779,21 +1058,39 @@ The recurring constraint: hooks run in shell, MCP tools only work in LLM context
 | #7 index | Shell (script) | Hybrid: shell parses → skill/CLI ingests |
 | #8 pre-tool-use | Shell (hook) | File-based locks, sync with ruflo at session boundaries |
 | #9 session-start | Shell (hook) | Deferred flag → first skill call does MCP |
-| #10 close | LLM (skill) + Shell (hook) | Skill does MCP, hook does CLI fallback |
+| #10 close | LLM (skill) + Shell (hook) | Skill does MCP directly, hook does `$CF` fallback |
 
-**Pattern:** Skills (#4, #5, #6) get full MCP access natively. Hooks (#8, #9) need bridging strategies (file flags, lock files). Hybrid components (#7, #10) split mechanical work (shell) from intelligent work (MCP).
+**Pattern:** Skills call MCP directly — no CLI intermediary. Hooks use `$CF` (shell, no choice). Hybrid components (#7, #10) split mechanical work (shell) from intelligent work (MCP).
 
-### Tool budget per enrichment (updated 2026-04-01 — working tools only)
+### hooks_intelligence as the working pattern layer
 
-| # | Tools (works now) | Deferred (upstream-blocked) | Added to |
-|---|-------------------|---------------------------|----------|
-| 4 | memory_search, hierarchical-recall, embeddings_compare, hierarchical-store | context-synthesize, pattern-search | research skill |
-| 5 | hierarchical-recall | pattern-search | sitrep skill |
-| 6 | hive-mind_init/shutdown, claims_claim/status, agent_spawn | feedback | backlog skill |
-| 7 | hierarchical-store, embeddings_compare | batch, causal-edge | index script + skill wrapper |
-| 8 | (none — file-based) | — | pre-tool-use hook |
-| 9 | session-start, hierarchical-recall | — | session-start hook/skill |
-| 10 | session-end, hierarchical-store | causal-edge, feedback | close skill + session-end hook |
+> Discovered 2026-04-01: ruflo's `hooks_intelligence_*` tools bypass the broken agentdb
+> bridge and provide a working pattern search, trajectory tracking, and SONA learning.
+> Use these wherever the enrichment matrix originally specified `agentdb_pattern-search`.
+
+| agentdb tool (broken/limited) | hooks_intelligence equivalent (works) |
+|------------------------------|--------------------------------------|
+| `agentdb_pattern-search` | `hooks_intelligence_pattern-search` — HNSW+BM25 hybrid, 26ms |
+| `agentdb_pattern-store` | `hooks_intelligence_pattern-store` — HNSW-indexed |
+| (no equivalent) | `hooks_intelligence_trajectory-start/step/end` — SONA learning |
+| (no equivalent) | `hooks_intelligence_attention` — MoE/Flash/Hyperbolic similarity |
+| (no equivalent) | `hooks_intelligence_learn` — force SONA cycle with EWC++ |
+| (no equivalent) | `hooks_intelligence_stats` — learning health dashboard |
+
+Use `hooks_intelligence_*` for pattern operations. Use `agentdb_*` for hierarchical tiers,
+session management, batch, and causal edges.
+
+### Tool budget per enrichment (updated 2026-04-01 — MCP direct, hooks_intelligence discovery)
+
+| # | MCP tools (skill calls directly) | Shell fallback ($CF) | Added to |
+|---|--------------------------------|---------------------|----------|
+| 4 | memory_search(ns:all), hierarchical-recall, embeddings_compare, hierarchical-store | 4x $CF memory search | research skill |
+| 5 | hooks_intelligence_pattern-search (Phase 1), hierarchical-recall (Phase 2) | skip | sitrep skill |
+| 6 | hive-mind_init/shutdown, claims_claim/status, agent_spawn | — | backlog skill |
+| 7 | hierarchical-store, embeddings_compare, hooks_intelligence_pattern-store | $CF memory store loop | index skill wrapper |
+| 8 | (none — file-based locks) | — | pre-tool-use hook |
+| 9 | session-start, hierarchical-recall, hooks_intelligence_trajectory-start | $CF memory search | session-start (hook=shell, first skill=MCP) |
+| 10 | session-end, hierarchical-store, hooks_intelligence_trajectory-end | $CF memory store | close skill (MCP) + session-end hook (shell fallback) |
 
 ### Implementation order (revised from phased rollout)
 
@@ -890,6 +1187,42 @@ This ensures: if ruflo dies completely, MEMORY.md has the most critical rules. E
 
 ---
 
+## CRITICAL: Tool Durability Matrix (verified 2026-04-01)
+
+> `hierarchical-store` writes to an in-memory stub that vanishes on MCP restart.
+> `HierarchicalMemory` and `MemoryConsolidation` are NOT exported from agentdb's index.js.
+> The controller-registry falls back to `createTieredMemoryStub()` — a `Map` with keyword
+> matching, no SQLite, no embeddings. Tracked: ruvnet/ruflo#1492, brana t-823.
+
+| Tool | Durable? | Backend | Use for persistent data? |
+|------|----------|---------|------------------------|
+| `memory_store` / `memory_search` | **YES** | SQLite `memory_entries` + HNSW | **YES** — primary storage |
+| `hooks_intelligence_pattern-store/search` | **YES** | Same SQLite via HNSW | **YES** — pattern operations |
+| `embeddings_compare` | N/A | Stateless | **YES** — dedup utility |
+| `session-start` / `session-end` | **YES** | Bridge fallback → `memory_store` | **YES** — via fallback |
+| `causal-edge` | **YES** | Bridge fallback → `memory_store` | **YES** — via fallback |
+| `feedback` | **YES** | Bridge fallback → `memory_store` | **YES** — via fallback |
+| `hierarchical-store` / `hierarchical-recall` | **NO** | In-memory Map, lost on restart | **NO** — do not use |
+| `context-synthesize` | **NO** | Reads from hierarchical (ephemeral) | **NO** — returns empty after restart |
+| `agentdb_batch` (for knowledge) | **NO** | Writes to `episodes` table, not `memory_entries` | **NO** — wrong table |
+| `agentdb_consolidate` | **NO** | Operates on empty stub | **NO** — no-op |
+
+**Rule: Only use durable tools for persistent data. Use `memory_store` with namespace + tags
+for organization. Use `hooks_intelligence_pattern-store` for pattern operations. Tier
+classification goes in tags (`tier:semantic`), not in `hierarchical-store`.**
+
+**Impact on enrichment matrix:**
+- #5 (sitrep): `hierarchical-recall` → use `hooks_intelligence_pattern-search` instead (already revised)
+- #7 (index): `hierarchical-store` → use `memory_store` with tier tags (Approach C)
+- #9 (session-start): `session-start` works (bridge fallback). No `hierarchical-recall` for tier-specific recall.
+- #10 (close): `hierarchical-store` for learnings → use `memory_store` with tier tags. `session-end` works (bridge fallback).
+- #4 (research): `hierarchical-store` for leads → use `memory_store` with tier tags.
+
+**When to re-check (t-823):** After ruflo upgrade, test: `hierarchical-store` → restart MCP →
+`hierarchical-recall`. If data persists, re-enable hierarchical tiers across all enrichments.
+
+---
+
 ## Open Questions
 
 1. ~~Should spec-graph.json edges migrate entirely to ruflo causal_edges, or coexist?~~ **Answered:** Coexist initially. spec-graph.json is consumed by maintain-specs (shell context). Causal edges are for knowledge relationships (MCP context). Migrate spec-graph edges to ruflo causal_edges when maintain-specs becomes a skill (currently a command).
@@ -901,17 +1234,26 @@ This ensures: if ruflo dies completely, MEMORY.md has the most critical rules. E
 
 ---
 
-## Phased Rollout (revised)
+## Phased Rollout (revised 2026-04-01 — durability-aware)
 
-| Phase | What | Enrichment # | Effort | Dependencies |
-|-------|------|-------------|--------|--------------|
-| P0 | Fix MCP server (wrapper script, correct DB) | — | S | ✅ Done |
-| P1 | Session loop: agentdb session-start/end in close + session hooks | #9, #10 | M | P0 |
-| P2 | Research adopts MCP: context-synthesize + pattern-search | #4 | M | P0 |
-| P3 | Sitrep gains memory context: hierarchical-recall | #5 | S | P0 |
-| P4 | `brana learn` CLI subcommands (index, consolidate, export) | #7 (partial) | M | P0 |
-| P5 | Tiered knowledge indexing: hierarchical-store + batch + dedup | #7 (full) | M | P4 |
-| P6 | Causal graph: causal-edge for doc cross-refs + task→learning links | #7, #10 | M | P5 |
-| P7 | File claims for pre-tool-use: local lock files + ruflo sync | #8 | S | P1 |
-| P8 | Cross-client pollination: tier-aware recall with transferable filter | — | M | P5 |
-| P9 | Execute orchestration: hive-mind + claims + agent spawn + feedback | #6 | L | P7, P8 |
+> Updated after discovering `hierarchical-store` is ephemeral. All phases now use only
+> durable tools: `memory_store/search`, `hooks_intelligence_pattern-store/search`,
+> `embeddings_compare`, bridge-fallback tools (session-end, causal-edge, feedback).
+> Phases marked "after t-823" depend on ruflo exporting `HierarchicalMemory`.
+
+| Phase | What | Enrichment # | Effort | Status |
+|-------|------|-------------|--------|--------|
+| P0 | Fix MCP server (wrapper script, correct DB, ESM patch) | — | S | ✅ Done |
+| P1 | Index-knowledge upgrade: 7 doc categories, tier tags, orphan cleanup | #7 | S | Ready |
+| P2 | Sitrep: add `hooks_intelligence_pattern-search` as Source 6 | #5 | S | Ready |
+| P3 | Session loop: `session-start/end` (bridge fallback) + trajectory tracking | #9, #10 | M | Ready |
+| P4 | Research adopts MCP: `memory_search(ns:all)` + dedup via `embeddings_compare` | #4 | M | Ready |
+| P5 | Task claims: `claims_claim/release` for task-level locking across sessions | #6B | S | Ready |
+| P6 | Hive-mind: cross-session blackboard for build progress + plan tracking | #6A | M | Ready |
+| P7 | Model routing: `hooks_model-route` in build execute | #6C | S | Ready |
+| P8 | Agent analytics: `agent_spawn` registry + trajectory tracking per subagent | #6C | S | After P3 |
+| P9 | Coordination: `coordination_orchestrate` for skill pipeline formalization | #6D | M | After P3 |
+| — | **After t-823 (ruflo exports HierarchicalMemory):** | | | |
+| P10 | Tiered storage: migrate tier tags → real `hierarchical-store` tiers | #7, #9, #10 | M | After t-823 |
+| P11 | Context synthesis: `context-synthesize` for research + sitrep | #4, #5 | S | After t-823 |
+| P12 | Consolidation: NightlyLearner auto-promotion + decay + dedup | #10 | M | After t-823 |
