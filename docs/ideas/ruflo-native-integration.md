@@ -127,7 +127,7 @@ Cross-references between docs stored as `agentdb_causal-edge` (replaces spec-gra
 
 Dedup: `embeddings_compare` before storing — skip if > 0.95 similarity match exists.
 
-Batch writes: `agentdb_batch` for bulk indexing (up to 500 per call).
+Batch writes: ~~`agentdb_batch` for bulk indexing (up to 500 per call)~~ — **WRONG.** `agentdb_batch` writes to `episodes` table, not `memory_entries`. No batch MCP tool exists for `memory_entries`. **Actual approach:** Direct SQLite bulk insert using ruflo's own Node.js deps (better-sqlite3 + @xenova/transformers). 1,247 sections in 88s. See `/tmp/bulk-index.mjs` pattern. For incremental updates (1-5 files), MCP `memory_store` is fine.
 
 ## Confidence Math
 

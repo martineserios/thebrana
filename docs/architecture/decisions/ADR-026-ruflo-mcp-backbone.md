@@ -75,7 +75,7 @@ Based on empirical testing (store-kill-recall, response inspection, source code 
 |------|-------------|----------------|
 | `hierarchical-store` / `hierarchical-recall` | In-memory Map stub, NOT exported from agentdb index.js | ruvnet/ruflo#1492 |
 | `context-synthesize` | Stub, returns empty | ruvnet/ruflo#1492 |
-| `agentdb_batch` | Wrong table reference | ruvnet/ruflo#1492 |
+| `agentdb_batch` | Writes to `episodes` table, not `memory_entries` — unusable for knowledge indexing. Workaround: direct SQLite bulk insert via `bulk-index.mjs` using ruflo's own deps. | ruvnet/ruflo#1492 |
 | `agentdb_semantic-route` | Non-functional | ruvnet/ruflo#1492 |
 
 ### Degraded

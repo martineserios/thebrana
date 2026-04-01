@@ -1,10 +1,10 @@
 {
   "_meta": {
-    "generated": "2026-04-01T20:18:38Z",
-    "node_count": 205,
-    "edge_count": 559,
-    "impl_ref_count": 253,
-    "orphan_count": 102,
+    "generated": "2026-04-01T21:43:22Z",
+    "node_count": 206,
+    "edge_count": 560,
+    "impl_ref_count": 256,
+    "orphan_count": 103,
     "typed_edge_count": 0
   },
   "nodes": {
@@ -442,6 +442,7 @@
         "architecture/posttooluse-workaround.md",
         "architecture/building-methodology.md",
         "architecture/system-documentation-map.md",
+        "architecture/memory-backup.md",
         "architecture/extending.md",
         "architecture/extending-skills.md",
         "architecture/extending-hooks.md",
@@ -767,7 +768,9 @@
         "system/scripts/sync-state.sh"
       ],
       "guide_files": [],
-      "arch_files": [],
+      "arch_files": [
+        "docs/architecture/memory-backup.md"
+      ],
       "ref_files": []
     },
     "docs/architecture/decisions/ADR-016-spec-dependency-graph.md": {
@@ -1549,6 +1552,20 @@
       "ref_files": [
         "docs/reference/scripts.md"
       ]
+    },
+    "docs/architecture/memory-backup.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [
+        "system/scripts/backup-memory.sh",
+        "system/scripts/sync-state.sh",
+        "system/state/patterns-export.json"
+      ],
+      "guide_files": [],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md"
+      ],
+      "ref_files": []
     },
     "docs/architecture/overview.md": {
       "references": [
@@ -3398,6 +3415,7 @@
         "docs/architecture/features/cc-hook-leverage.md",
         "docs/architecture/features/plugin-packaging.md",
         "docs/architecture/hooks.md",
+        "docs/architecture/memory-backup.md",
         "docs/architecture/overview.md",
         "docs/architecture/plugin-structure.md",
         "docs/architecture/posttooluse-workaround.md",
