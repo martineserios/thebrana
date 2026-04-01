@@ -1,6 +1,8 @@
-# Runtime state (claude-flow)
+# Runtime state (ruflo / agentdb)
 .swarm/
 .claude/memory.db
+agentdb.rvf*
+system/state/decisions/
 
 # Local Claude Code config
 .claude/settings.json
