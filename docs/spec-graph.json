@@ -1,10 +1,10 @@
 {
   "_meta": {
-    "generated": "2026-03-31T22:41:02Z",
-    "node_count": 201,
-    "edge_count": 549,
-    "impl_ref_count": 248,
-    "orphan_count": 99,
+    "generated": "2026-04-01T20:18:38Z",
+    "node_count": 205,
+    "edge_count": 559,
+    "impl_ref_count": 253,
+    "orphan_count": 102,
     "typed_edge_count": 0
   },
   "nodes": {
@@ -465,6 +465,12 @@
         "architecture/decisions/ADR-016-spec-dependency-graph.md",
         "architecture/decisions/ADR-017-decision-log.md",
         "architecture/decisions/ADR-018-dynamic-model-routing.md",
+        "architecture/decisions/ADR-021-knowledge-architecture-v2.md",
+        "architecture/decisions/ADR-022-brana-cli.md",
+        "architecture/decisions/ADR-023-rust-cli-dispatcher.md",
+        "architecture/decisions/ADR-024-content-polling-keyring-credentials.md",
+        "architecture/decisions/ADR-025-skill-lifecycle-manager.md",
+        "architecture/decisions/ADR-026-ruflo-mcp-backbone.md",
         "architecture/features/build-loop-redesign.md",
         "architecture/features/task-management-system.md",
         "architecture/features/event-log.md",
@@ -485,6 +491,9 @@
         "architecture/features/context-budget-real-limits.md",
         "architecture/features/acquire-skills-guide.md",
         "architecture/features/agentdb-v3-upgrade-evaluation.md",
+        "architecture/features/skill-routing-in-backlog-start.md",
+        "ideas/ruflo-native-integration.md",
+        "ideas/skill-auto-router.md",
         "content/lens.md",
         "content/ideas.md"
       ],
@@ -871,6 +880,14 @@
       "impl_files": [
         "system/skills/.sources.json"
       ],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/architecture/decisions/ADR-026-ruflo-mcp-backbone.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
       "guide_files": [],
       "arch_files": [],
       "ref_files": []
@@ -1279,6 +1296,7 @@
       "arch_files": [
         "docs/architecture/extending.md",
         "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/features/skill-routing-in-backlog-start.md",
         "docs/architecture/features/skill-utilization-tracking.md",
         "docs/architecture/features/tasks-portfolio.md",
         "docs/architecture/features/tasks-theme-system.md",
@@ -1309,6 +1327,23 @@
       ],
       "guide_files": [],
       "arch_files": [],
+      "ref_files": []
+    },
+    "docs/architecture/features/skill-routing-in-backlog-start.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [
+        "system/skills/backlog/SKILL.md"
+      ],
+      "guide_files": [
+        "docs/guide/workflows/model-routing.md"
+      ],
+      "arch_files": [
+        "docs/architecture/features/research-stream.md",
+        "docs/architecture/features/tasks-portfolio.md",
+        "docs/architecture/features/tasks-theme-system.md",
+        "docs/architecture/features/tasks-wide-mode.md"
+      ],
       "ref_files": []
     },
     "docs/architecture/features/skill-utilization-tracking.md": {
@@ -1386,6 +1421,7 @@
       ],
       "arch_files": [
         "docs/architecture/features/research-stream.md",
+        "docs/architecture/features/skill-routing-in-backlog-start.md",
         "docs/architecture/features/tasks-theme-system.md",
         "docs/architecture/features/tasks-wide-mode.md"
       ],
@@ -1402,6 +1438,7 @@
       ],
       "arch_files": [
         "docs/architecture/features/research-stream.md",
+        "docs/architecture/features/skill-routing-in-backlog-start.md",
         "docs/architecture/features/tasks-portfolio.md",
         "docs/architecture/features/tasks-wide-mode.md"
       ],
@@ -1418,6 +1455,7 @@
       ],
       "arch_files": [
         "docs/architecture/features/research-stream.md",
+        "docs/architecture/features/skill-routing-in-backlog-start.md",
         "docs/architecture/features/tasks-portfolio.md",
         "docs/architecture/features/tasks-theme-system.md"
       ],
@@ -2693,6 +2731,7 @@
       "guide_files": [],
       "arch_files": [
         "docs/architecture/features/research-stream.md",
+        "docs/architecture/features/skill-routing-in-backlog-start.md",
         "docs/architecture/features/tasks-portfolio.md",
         "docs/architecture/features/tasks-theme-system.md",
         "docs/architecture/features/tasks-wide-mode.md"
@@ -2828,7 +2867,35 @@
       "arch_files": [],
       "ref_files": []
     },
+    "docs/ideas/ruflo-native-integration.md": {
+      "references": [
+        "skill-auto-router.md"
+      ],
+      "referenced_by": [],
+      "impl_files": [
+        "system/hooks/pre-tool-use.sh",
+        "system/hooks/session-end.sh",
+        "system/hooks/session-start.sh",
+        "system/hooks/lib/file-claims.sh"
+      ],
+      "guide_files": [],
+      "arch_files": [
+        "docs/architecture/features/cascade-throttle.md",
+        "docs/architecture/features/cc-hook-leverage.md",
+        "docs/architecture/features/test-lint-feedback-hook.md",
+        "docs/architecture/system-documentation-map.md"
+      ],
+      "ref_files": []
+    },
     "docs/ideas/session-aware-loop-integration.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/ideas/skill-auto-router.md": {
       "references": [],
       "referenced_by": [],
       "impl_files": [],

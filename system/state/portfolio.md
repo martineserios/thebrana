@@ -60,6 +60,16 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Remote:** `https://github.com/martineserios/brapsoclaw`
 - **Details:** `.claude/CLAUDE.md` — NanoClaw fork on Kapso (official WhatsApp Business API)
 
+### prof_man
+- **Type:** Code product — trading indicators & algo trading
+- **Domain:** Trading (TradingView indicators now, Python bots + alert-to-execution later)
+- **Stack:** Pine Script (TradingView) → Python (ccxt, exchange APIs) later
+- **Projects:** prof_man (`clients/prof_man`)
+- **Remote:** `https://github.com/martineserios/prof_man`
+- **Client:** External (not personal venture)
+- **Status:** Starting — 2026-04-01
+- **Goal:** Personal trading edge for the client; build indicators, eventually automate
+
 ### tinyhomes
 - **Type:** Marketplace — alojamientos alternativos
 - **Projects:** tinyhomes (`clients/tinyhomes`)
