@@ -61,20 +61,41 @@ echo "Test 2: Dynamic ruflo resolution"
 # Should use execPath, npm root -g, or which ruflo to find the path
 assert_contains "uses dynamic resolution" "resolve" "$SCRIPT_CONTENT"
 
-# ── Test 3: ruflo is actually findable on this system ──
+# ── Test 3: ruflo is findable via at least one resolution strategy ──
 echo "Test 3: ruflo is installed and findable"
-RUFLO_PATH=$(which ruflo 2>/dev/null || echo "")
-assert "ruflo binary exists" "true" "$([ -n "$RUFLO_PATH" ] && echo true || echo false)"
+# Load nvm if available (needed in non-interactive shells)
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" 2>/dev/null || true
 
-# If ruflo exists, verify its node_modules has the deps we need
+# Try the same strategies as bulk-index.mjs
+RUFLO_PATH=""
+# Strategy 1: npm root -g
+NPM_ROOT=$(npm root -g 2>/dev/null || echo "")
+[ -n "$NPM_ROOT" ] && [ -d "$NPM_ROOT/ruflo/node_modules" ] && RUFLO_PATH="$NPM_ROOT/ruflo/node_modules"
+# Strategy 2: node execPath prefix
+if [ -z "$RUFLO_PATH" ]; then
+    NODE_BIN=$(command -v node 2>/dev/null || echo "")
+    if [ -n "$NODE_BIN" ]; then
+        NODE_DIR=$(dirname "$(dirname "$NODE_BIN")")
+        [ -d "$NODE_DIR/lib/node_modules/ruflo/node_modules" ] && RUFLO_PATH="$NODE_DIR/lib/node_modules/ruflo/node_modules"
+    fi
+fi
+# Strategy 3: which ruflo → follow symlink
+if [ -z "$RUFLO_PATH" ]; then
+    RUFLO_BIN=$(command -v ruflo 2>/dev/null || echo "")
+    if [ -n "$RUFLO_BIN" ]; then
+        REAL_RUFLO=$(readlink -f "$RUFLO_BIN" 2>/dev/null || echo "$RUFLO_BIN")
+        CAND=$(dirname "$(dirname "$REAL_RUFLO")")/node_modules
+        [ -d "$CAND" ] && RUFLO_PATH="$CAND"
+    fi
+fi
+
+assert "ruflo findable via at least one strategy" "true" "$([ -n "$RUFLO_PATH" ] && echo true || echo false)"
+
 if [ -n "$RUFLO_PATH" ]; then
-    # Follow symlinks to get real path
-    REAL_RUFLO=$(readlink -f "$RUFLO_PATH" 2>/dev/null || realpath "$RUFLO_PATH" 2>/dev/null || echo "$RUFLO_PATH")
-    RUFLO_DIR=$(dirname "$(dirname "$REAL_RUFLO")")
-
-    echo "Test 4: ruflo deps exist at resolved path"
-    assert "better-sqlite3 exists" "true" "$([ -d "$RUFLO_DIR/node_modules/better-sqlite3" ] && echo true || echo false)"
-    assert "@xenova/transformers exists" "true" "$([ -d "$RUFLO_DIR/node_modules/@xenova" ] && echo true || echo false)"
+    echo "Test 4: ruflo deps exist at resolved path ($RUFLO_PATH)"
+    assert "better-sqlite3 exists" "true" "$([ -d "$RUFLO_PATH/better-sqlite3" ] && echo true || echo false)"
+    assert "@xenova/transformers exists" "true" "$([ -d "$RUFLO_PATH/@xenova" ] && echo true || echo false)"
 fi
 
 echo ""

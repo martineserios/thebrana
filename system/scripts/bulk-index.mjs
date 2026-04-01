@@ -11,9 +11,10 @@
 //   {"key":"knowledge:dimension:doc:section","value":"...","tags":["source:brana-knowledge","type:dimension"]}
 
 import { createRequire } from 'module';
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import { existsSync, readFileSync } from 'fs';
+import { dirname, join } from 'path';
 import { homedir } from 'os';
+import { execSync } from 'child_process';
 
 // Parse args
 let jsonlPath = '/tmp/knowledge-sections.jsonl';
@@ -27,8 +28,32 @@ for (const arg of process.argv.slice(2)) {
   }
 }
 
-// Use ruflo's installed modules
-const rufloBase = join(homedir(), '.nvm/versions/node/v20.19.0/lib/node_modules/ruflo/node_modules');
+// Dynamically resolve ruflo's node_modules (no hardcoded nvm paths)
+function resolveRufloBase() {
+  // Try 1: npm global root + ruflo
+  try {
+    const globalRoot = execSync('npm root -g', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+    const candidate = join(globalRoot, 'ruflo', 'node_modules');
+    if (existsSync(candidate)) return candidate;
+  } catch {}
+  // Try 2: resolve from node's own prefix (works with nvm, volta, fnm)
+  try {
+    const nodeDir = dirname(dirname(process.execPath));
+    const candidate = join(nodeDir, 'lib', 'node_modules', 'ruflo', 'node_modules');
+    if (existsSync(candidate)) return candidate;
+  } catch {}
+  // Try 3: which ruflo → follow symlink to package dir
+  try {
+    const rufloPath = execSync('which ruflo', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+    const realPath = execSync(`readlink -f "${rufloPath}"`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+    const candidate = join(dirname(dirname(realPath)), 'node_modules');
+    if (existsSync(candidate)) return candidate;
+  } catch {}
+  console.error('ERROR: Cannot find ruflo installation. Install with: npm install -g ruflo');
+  process.exit(1);
+}
+
+const rufloBase = resolveRufloBase();
 const require = createRequire(rufloBase + '/');
 
 const Database = require('better-sqlite3');
