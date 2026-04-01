@@ -1,26 +1,26 @@
 #!/usr/bin/env bash
 # Index brana-knowledge dimension docs into ruflo memory for semantic search.
 #
-# DEPRECATED: This script is now bundled with the knowledge skill.
-# Canonical location: system/skills/knowledge/index-knowledge.sh
-# Deployed to: $HOME/.claude/skills/knowledge/index-knowledge.sh
-# This copy is kept for backward compatibility (brana-knowledge post-commit hook, scheduler).
+# Two-phase pipeline:
+#   Phase 1 (shell): Parse markdown by ## headers, classify tier/type → JSONL
+#   Phase 2 (node):  bulk-index.mjs reads JSONL → batch embed + direct SQLite write
 #
 # Usage:
-#   index-knowledge.sh              # Index all dimension docs
+#   index-knowledge.sh              # Index all dimension docs (full reindex + orphan cleanup)
 #   index-knowledge.sh file1.md     # Index specific file(s)
 #   index-knowledge.sh --changed    # Index only git-changed files (for post-commit hook)
 #
 # Each doc is split by ## headings. Each section becomes a memory entry with:
-#   Key:       knowledge:dimension:{doc-slug}:{section-slug}
+#   Key:       knowledge:{type}:{doc-slug}:{section-slug}
 #   Namespace: knowledge
-#   Tags:      source:brana-knowledge,type:dimension,doc:{filename}
-#   Value:     Section content (auto-embedded by ruflo memory store)
+#   Tags:      source:{repo},type:{type},doc:{filename},tier:{tier}
 
 set -euo pipefail
 
 KNOWLEDGE_DIR="${BRANA_KNOWLEDGE_DIR:-$HOME/enter_thebrana/brana-knowledge/dimensions}"
 THEBRANA_DIR="${BRANA_THEBRANA_DIR:-$HOME/enter_thebrana/thebrana}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BULK_INDEXER="$SCRIPT_DIR/bulk-index.mjs"
 
 # 7 doc categories with tier classification
 # Format: "directory:type:tier"
@@ -35,26 +35,6 @@ DOC_CATEGORIES=(
     "$THEBRANA_DIR/docs/ideas:idea:working"
     "$THEBRANA_DIR/docs/research:research:episodic"
 )
-
-# Load ruflo (formerly claude-flow)
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-if [ -f "$SCRIPT_DIR/cf-env.sh" ]; then
-    source "$SCRIPT_DIR/cf-env.sh"
-elif [ -f "$HOME/.claude/scripts/cf-env.sh" ]; then
-    source "$HOME/.claude/scripts/cf-env.sh"
-fi
-
-if [ -z "$CF" ]; then
-    echo "ERROR: ruflo not found. Cannot index." >&2
-    exit 1
-fi
-
-# Verify we get real embeddings, not hash-fallback
-MODEL_CHECK=$(timeout 30 $CF embeddings generate --text "test" 2>&1 || true)
-if echo "$MODEL_CHECK" | grep -q "hash-fallback"; then
-    echo "ERROR: ruflo using hash-fallback embeddings (useless). Install @xenova/transformers." >&2
-    exit 1
-fi
 
 # Classify tier from filepath
 classify_tier() {
@@ -96,12 +76,11 @@ classify_source() {
     fi
 }
 
-# Determine which files to index
+# ── Determine which files to index ──────────────────────────
 FILES=()
 ORPHAN_CLEANUP=false
 if [ "${1:-}" = "--changed" ]; then
     # Git-changed files only (for post-commit hook)
-    # Check both repos for changes
     for cat in "${DOC_CATEGORIES[@]}"; do
         local_dir="${cat%%:*}"
         [ -d "$local_dir" ] || continue
@@ -146,32 +125,12 @@ echo "=== Index Knowledge Base ==="
 echo "Files: ${#FILES[@]}"
 echo ""
 
+# ── Phase 1: Parse markdown → JSONL ────────────────────────
+JSONL_FILE=$(mktemp /tmp/knowledge-sections-XXXXXX.jsonl)
+trap "rm -f $JSONL_FILE" EXIT
+
 TOTAL_SECTIONS=0
-TOTAL_STORED=0
-ERRORS=0
-
-# Track all keys we store (for orphan cleanup)
-STORED_KEYS=()
-
-store_section() {
-    local key="$1" value="$2" tags="$3"
-    local output
-    output=$(cd "$HOME" && timeout 15 $CF memory store \
-        -k "$key" \
-        -v "$value" \
-        --namespace knowledge \
-        --tags "$tags" \
-        --upsert 2>&1) || true
-
-    if echo "$output" | grep -q "stored successfully"; then
-        TOTAL_STORED=$((TOTAL_STORED + 1))
-        STORED_KEYS+=("$key")
-    else
-        ERRORS=$((ERRORS + 1))
-        echo "  WARN: Failed to store $key" >&2
-    fi
-    TOTAL_SECTIONS=$((TOTAL_SECTIONS + 1))
-}
+TOTAL_FILES=0
 
 for filepath in "${FILES[@]}"; do
     filename=$(basename "$filepath")
@@ -180,10 +139,10 @@ for filepath in "${FILES[@]}"; do
     doc_tier=$(classify_tier "$filepath")
     doc_source=$(classify_source "$filepath")
 
-    echo "Indexing: $filename [$doc_type, tier:$doc_tier]"
+    echo "Parsing: $filename [$doc_type, tier:$doc_tier]"
 
-    # Build tags string
-    TAGS="${doc_source},type:${doc_type},doc:${filename},tier:${doc_tier}"
+    # Build tags as JSON array
+    TAGS_JSON="[\"${doc_source}\",\"type:${doc_type}\",\"doc:${filename}\",\"tier:${doc_tier}\"]"
 
     # Parse sections by ## headers
     current_section=""
@@ -192,82 +151,116 @@ for filepath in "${FILES[@]}"; do
 
     while IFS= read -r line; do
         if [[ "$line" =~ ^##[[:space:]]+(.*) ]]; then
-            # New section found — store the previous one if it has content
+            # New section found — emit the previous one
             if [ -n "$current_section" ] && [ -n "$current_title" ]; then
                 section_slug=$(echo "$current_title" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//' | head -c 60)
                 key="knowledge:${doc_type}:${doc_slug}:${section_slug}"
-
                 # Truncate to ~2000 chars to keep embeddings focused
                 value="${current_section:0:2000}"
-                store_section "$key" "$value" "$TAGS"
+                # Escape for JSON (newlines, quotes, backslashes)
+                value=$(printf '%s' "$value" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()),end='')")
+                echo "{\"key\":\"$key\",\"value\":$value,\"tags\":$TAGS_JSON}" >> "$JSONL_FILE"
+                section_count=$((section_count + 1))
             fi
-
-            # Start new section
             current_title="${BASH_REMATCH[1]}"
             current_section=""
-            section_count=$((section_count + 1))
         else
-            # Accumulate content (skip frontmatter and empty leading lines)
             if [ -n "$current_title" ]; then
                 current_section+="$line"$'\n'
             fi
         fi
     done < "$filepath"
 
-    # Store the last section
+    # Emit the last section
     if [ -n "$current_section" ] && [ -n "$current_title" ]; then
         section_slug=$(echo "$current_title" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//' | head -c 60)
         key="knowledge:${doc_type}:${doc_slug}:${section_slug}"
         value="${current_section:0:2000}"
-        store_section "$key" "$value" "$TAGS"
+        value=$(printf '%s' "$value" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()),end='')")
+        echo "{\"key\":\"$key\",\"value\":$value,\"tags\":$TAGS_JSON}" >> "$JSONL_FILE"
+        section_count=$((section_count + 1))
     fi
 
+    TOTAL_SECTIONS=$((TOTAL_SECTIONS + section_count))
+    TOTAL_FILES=$((TOTAL_FILES + 1))
     echo "  → $section_count sections"
 done
 
-# ── Orphan cleanup (full reindex only) ──────────────────
-ORPHANS_REMOVED=0
-if [ "$ORPHAN_CLEANUP" = true ] && [ ${#STORED_KEYS[@]} -gt 0 ]; then
-    echo ""
-    echo "Checking for orphan entries..."
-    # List all knowledge:* keys in ruflo
-    EXISTING_KEYS=$(cd "$HOME" && $CF memory list --namespace knowledge --format json 2>/dev/null | jq -r '.[].key' 2>/dev/null || true)
-    if [ -n "$EXISTING_KEYS" ]; then
-        while IFS= read -r existing_key; do
-            # Check if this key was stored in this run
-            found=false
-            for stored_key in "${STORED_KEYS[@]}"; do
-                if [ "$existing_key" = "$stored_key" ]; then
-                    found=true
-                    break
-                fi
-            done
-            if [ "$found" = false ]; then
-                if cd "$HOME" && $CF memory delete -k "$existing_key" --namespace knowledge 2>/dev/null; then
-                    ORPHANS_REMOVED=$((ORPHANS_REMOVED + 1))
-                fi
-            fi
-        done <<< "$EXISTING_KEYS"
+echo ""
+echo "Phase 1 complete: $TOTAL_SECTIONS sections from $TOTAL_FILES files → $JSONL_FILE"
+
+if [ $TOTAL_SECTIONS -eq 0 ]; then
+    echo "No sections to index."
+    exit 0
+fi
+
+# ── Phase 2: Bulk embed + store via Node.js ─────────────────
+
+# Check bulk indexer exists
+if [ ! -f "$BULK_INDEXER" ]; then
+    echo "ERROR: bulk-index.mjs not found at $BULK_INDEXER" >&2
+    echo "Falling back to legacy per-section storage..." >&2
+    # Legacy fallback: load ruflo and store one-by-one
+    if [ -f "$SCRIPT_DIR/cf-env.sh" ]; then
+        source "$SCRIPT_DIR/cf-env.sh"
+    elif [ -f "$HOME/.claude/scripts/cf-env.sh" ]; then
+        source "$HOME/.claude/scripts/cf-env.sh"
+    fi
+    if [ -z "${CF:-}" ]; then
+        echo "ERROR: ruflo not found. Cannot index." >&2
+        exit 1
+    fi
+    STORED=0
+    ERRORS=0
+    while IFS= read -r line; do
+        key=$(echo "$line" | python3 -c "import sys,json; print(json.load(sys.stdin)['key'])")
+        value=$(echo "$line" | python3 -c "import sys,json; print(json.load(sys.stdin)['value'])")
+        tags=$(echo "$line" | python3 -c "import sys,json; print(','.join(json.load(sys.stdin)['tags']))")
+        output=$(cd "$HOME" && timeout 15 $CF memory store -k "$key" -v "$value" --namespace knowledge --tags "$tags" --upsert 2>&1) || true
+        if echo "$output" | grep -q "stored successfully"; then
+            STORED=$((STORED + 1))
+        else
+            ERRORS=$((ERRORS + 1))
+        fi
+    done < "$JSONL_FILE"
+    echo "=== Legacy Index Complete ==="
+    echo "Stored: $STORED  Errors: $ERRORS"
+    exit 0
+fi
+
+# Resolve node (prefer nvm)
+NODE="${NODE:-}"
+if [ -z "$NODE" ]; then
+    export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+    [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh" --no-use 2>/dev/null
+    NODE=$(command -v node 2>/dev/null || echo "")
+    if [ -z "$NODE" ] && [ -d "$NVM_DIR/versions" ]; then
+        NODE=$(find "$NVM_DIR/versions" -name node -type f | sort -V | tail -1)
     fi
 fi
 
-echo ""
-echo "=== Index Complete ==="
-echo "Files:    ${#FILES[@]}"
-echo "Sections: $TOTAL_SECTIONS"
-echo "Stored:   $TOTAL_STORED"
-echo "Errors:   $ERRORS"
-if [ "$ORPHAN_CLEANUP" = true ]; then
-    echo "Orphans:  $ORPHANS_REMOVED removed"
+if [ -z "$NODE" ]; then
+    echo "ERROR: node not found. Cannot run bulk-index.mjs." >&2
+    exit 1
 fi
 
-# Tolerate up to 5% error rate (e.g. 2/432 = transient ruflo failures)
-if [ $TOTAL_SECTIONS -gt 0 ]; then
-    ERROR_PCT=$((ERRORS * 100 / TOTAL_SECTIONS))
-    if [ $ERROR_PCT -ge 5 ]; then
+echo ""
+echo "Phase 2: Bulk indexing via $BULK_INDEXER"
+
+CLEANUP_FLAG=""
+if [ "$ORPHAN_CLEANUP" = true ]; then
+    CLEANUP_FLAG="--cleanup"
+fi
+
+BULK_OUTPUT=$($NODE "$BULK_INDEXER" $CLEANUP_FLAG "$JSONL_FILE" 2>&1)
+echo "$BULK_OUTPUT"
+
+# Tolerate up to 5% error rate from bulk indexer output
+BULK_ERRORS=$(echo "$BULK_OUTPUT" | grep -oP 'Errors:\s+\K\d+' || echo "0")
+if [ "$TOTAL_SECTIONS" -gt 0 ] && [ "$BULK_ERRORS" -gt 0 ]; then
+    ERROR_PCT=$((BULK_ERRORS * 100 / TOTAL_SECTIONS))
+    if [ "$ERROR_PCT" -ge 5 ]; then
         echo "Error rate ${ERROR_PCT}% exceeds 5% threshold"
         exit 1
-    elif [ $ERRORS -gt 0 ]; then
-        echo "Error rate ${ERROR_PCT}% within tolerance (${ERRORS}/${TOTAL_SECTIONS})"
     fi
 fi
