@@ -238,6 +238,20 @@ The `~/.claude-flow/embeddings.json` file pins the model to `all-MiniLM-L6-v2` (
 ./system/scripts/index-knowledge.sh
 ```
 
+### index-knowledge.sh fails at Phase 2 (bulk-index)
+
+**Symptom:** Phase 1 parses sections successfully, but Phase 2 errors with `Cannot find ruflo installation`.
+
+**Cause:** The script resolved `/usr/bin/node` (system node) instead of nvm's node where ruflo is installed. This happens when nvm is sourced with `--no-use`, which loads nvm functions but doesn't activate the default node version.
+
+**Fix:** Ensure `index-knowledge.sh` sources nvm without `--no-use` so that `command -v node` resolves to nvm's node. The script's node resolution block should activate nvm fully:
+
+```bash
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+    source "$NVM_DIR/nvm.sh" 2>/dev/null
+fi
+```
+
 ### cf-env.sh sourcing fails in hooks
 
 **Symptom:** Hook scripts fail with `source: not found` or `HOME: unbound variable`.
