@@ -301,6 +301,47 @@ Creates/populates three namespaces (ADR-021): `assumptions` (tracked claims from
 
 ---
 
+## index-patterns.sh
+
+| Field | Value |
+|-------|-------|
+| **Purpose** | Index pattern files (feedback_*.md, project_*.md) from all project memory dirs into ruflo memory for semantic search |
+| **Usage** | `index-patterns.sh` (all), `index-patterns.sh --project thebrana` (specific project), `index-patterns.sh file1.md` (specific files) |
+| **Dependencies** | Node.js, `bulk-index.mjs`, ruflo's `better-sqlite3` + `@xenova/transformers` |
+| **Status** | Active — canonical location is `system/scripts/index-patterns.sh` |
+
+Two-phase pipeline (reuses `bulk-index.mjs`):
+
+1. **Phase 1 (shell):** Parses frontmatter + body from `~/.claude/projects/*/memory/` files, outputs JSONL
+2. **Phase 2 (Node.js):** `bulk-index.mjs` batch-embeds and writes to SQLite
+
+Each file becomes one memory entry:
+
+- **Key:** `pattern:{type}:{slug}`
+- **Namespace:** `pattern`
+- **Tags:** `[source:auto-memory, type:{type}, project:{project}]`
+
+---
+
+## index-skills.sh
+
+| Field | Value |
+|-------|-------|
+| **Purpose** | Index brana skill frontmatter into ruflo memory for semantic skill routing |
+| **Usage** | `index-skills.sh` (all), `index-skills.sh --changed` (only skills with newer mtime) |
+| **Dependencies** | ruflo CLI |
+| **Status** | Active — canonical location is `system/scripts/index-skills.sh` |
+
+Reads SKILL.md frontmatter (name, description, keywords, task_strategies, stream_affinity, group, effort) for each skill and stores as a memory entry. Skills are discoverable via `memory_search(namespace: "skills")`.
+
+- **Key:** `skill:{name}`
+- **Namespace:** `skills`
+- **Tags:** `[source:brana, group:{group}, strategy:{each strategy}]`
+
+Uses mtime marker (`/tmp/brana-skills-index-mtime`) for `--changed` mode to avoid reindexing unchanged skills.
+
+---
+
 ## second-phase-check.sh
 
 | Field | Value |
