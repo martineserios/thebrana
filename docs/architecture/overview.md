@@ -199,20 +199,22 @@ See [agents.md](agents.md) for the full roster.
 
 ## Rules
 
-12 always-loaded behavioral directives that shape how Claude operates:
+14 always-loaded behavioral directives that shape how Claude operates:
 
 | Rule | Purpose |
 |------|---------|
+| `brana-cli` | Use brana CLI for all task operations — never read tasks.json directly |
 | `context-budget` | Context window management — thresholds and expensive-op avoidance |
 | `delegation-routing` | Auto-delegate to agents, suggest skills when triggers match |
 | `doc-linking` | Use relative-path markdown links, never bare "doc NN" |
 | `git-discipline` | Branching, worktrees, conventional commits, `--no-ff` merges |
-| `memory-framework` | CLAUDE.md vs MEMORY.md separation — facts vs rules |
-| `pm-awareness` | Check issues before work, link commits, track progress |
+| `inbox-convention` | Inbox processing rules (scoped to `inbox/**`) |
+| `parallel-bash` | Parallel Bash resilience — safe concurrent shell patterns |
 | `research-discipline` | Read project docs before web research |
 | `sdd-tdd` | Test-first development, spec-before-code enforcement |
 | `self-improvement` | Auto-learn from corrections, failures, and sessions |
-| `task-convention` | Task schema, branch mapping, status lifecycle |
+| `tactical-context` | Tactical context management for session awareness |
+| `task-convention` | Task schema, branch mapping, status lifecycle, PM awareness |
 | `universal-quality` | Test before commit, no secrets, type safety |
 | `work-preferences` | Parallelism, simplicity, autonomous execution |
 

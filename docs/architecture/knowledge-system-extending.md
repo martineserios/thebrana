@@ -248,7 +248,7 @@ Ruflo namespaces partition memory entries by purpose. The indexer at `system/scr
 | `field-notes` | `index-assumptions.sh` + `/close` | `field-note:{doc-slug}:{title-slug}` | Practical learnings |
 | `decisions` | `index-assumptions.sh` | `decision:{adr-slug}` | ADR summaries |
 | `knowledge` | `index-knowledge.sh` | `knowledge:{doc-path}` | Full dimension doc sections |
-| `patterns` | `/close` Step 5 | `pattern:{project}:{title}` | Reusable session learnings |
+| `pattern` | `/close` Step 5 | `pattern:{project}:{title}` | Reusable session learnings |
 | `specs` | manual | varies | Specification patterns |
 
 ### Key naming convention

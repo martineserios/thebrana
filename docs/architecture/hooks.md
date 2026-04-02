@@ -40,13 +40,16 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | Hook | Event | Matcher | Purpose |
 |------|-------|---------|---------|
 | `pre-tool-use.sh` | PreToolUse | `Write\|Edit` | Spec-before-code gate + cascade throttle |
+| `tdd-gate.sh` | PreToolUse | `Write\|Edit` | TDD enforcement — blocks impl writes without test files |
 | `plan-mode-gate.sh` | PreToolUse | `EnterPlanMode` | Enforce plan mode for non-trivial builds |
 | `worktree-gate.sh` | PreToolUse | `Bash` | Block `git checkout -b` when untracked files exist |
 | `guard-explore.sh` | PreToolUse | `Read\|Grep\|Glob` | Log reads without prior search (logging only, no blocking) |
 | `subagent-context.sh` | SubagentStart | `""` (all) | Inject active task + branch + plan + recent decisions into spawned agents |
+| `subagent-tracker.sh` | SubagentStart+SubagentStop | `""` (all) | Track agent spawns and completions to session JSONL |
 | `step-completed.sh` | TaskCompleted | `""` (all) | Track CC Task completions for guided execution |
 | `session-start.sh` | SessionStart | `""` (all) | Pattern recall, task context, venture detection |
 | `session-end.sh` | SessionEnd | `""` (all) | Flywheel metrics, session summary, handoff |
+| `stopfailure-logger.sh` | StopFailure | `""` (all) | Log API errors (rate limit, auth, billing) to JSONL |
 
 ### Bootstrap hooks (settings.json)
 

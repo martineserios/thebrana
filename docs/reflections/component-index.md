@@ -57,55 +57,56 @@ See `system/skills/*/SKILL.md` for full skill definitions.
 
 | Skill | Category | Purpose |
 |-------|----------|---------|
-| /brana:build | Development | Unified dev command — 7 strategies |
-| /brana:close | Development | Session end — learnings, handoff |
-| /brana:backlog | Planning | Task management across phases/streams |
-| /brana:onboard | Setup | Scan and diagnose a project |
+| /brana:acquire-skills | Setup | Find and install skills for tech gaps |
 | /brana:align | Setup | Implement project structure |
-| /brana:review | Business | Weekly/monthly health checks |
-| /brana:research | Knowledge | Topic research + dimension refresh |
-| /brana:memory | Knowledge | Recall, pollinate, review, audit |
-| /brana:reconcile | Maintenance | Detect spec-vs-implementation drift |
-| /brana:challenge | Quality | Adversarial plan/decision review |
-| /brana:pipeline | Business | Sales pipeline tracking |
-| /brana:venture-phase | Business | Business milestone execution |
-| /brana:financial-model | Business | Revenue projections |
-| /brana:log | Operations | Event capture (links, calls, ideas) |
-| /brana:plugin | System | Manage Claude Code plugins |
-| /brana:sitrep | Operations | Context recovery after compression |
-| /brana:docs | Documentation | Generate and update living docs |
+| /brana:audit | System | Security scan — secrets, hooks, MCP, settings |
+| /brana:backlog | Planning | Task management across phases/streams |
 | /brana:brainstorm | Planning | Interactive idea maturation |
-| /brana:harvest | Content | Extract post ideas from recent work |
-| /brana:retrospective | Learning | Store learnings and patterns |
-| /brana:scheduler | System | Manage scheduled jobs |
+| /brana:build | Development | Unified dev command — 7 strategies |
+| /brana:challenge | Quality | Adversarial plan/decision review |
+| /brana:client-retire | Lifecycle | Archive client patterns |
+| /brana:close | Development | Session end — learnings, handoff |
+| /brana:do | Routing | Route freeform text to best skill |
+| /brana:docs | Documentation | Generate and update living docs |
 | /brana:export-pdf | Utility | Convert markdown to PDF |
 | /brana:gsheets | Integration | Google Sheets via MCP |
-| /brana:respondio-prompts | Integration | Respond.io AI agent prompts |
-| /brana:meta-template | Integration | Meta WhatsApp template writing |
+| /brana:harvest | Content | Extract post ideas from recent work |
+| /brana:log | Operations | Event capture (links, calls, ideas) |
+| /brana:memory | Knowledge | Recall, pollinate, review, audit |
 | /brana:notebooklm-source | Integration | Prepare sources for NotebookLM |
-| /brana:proposal | Business | Generate client proposals |
-| /brana:client-retire | Lifecycle | Archive client patterns |
-| /brana:acquire-skills | Setup | Find and install skills for tech gaps |
+| /brana:onboard | Setup | Scan and diagnose a project |
+| /brana:plugin | System | Manage Claude Code plugins |
+| /brana:reconcile | Maintenance | Detect spec-vs-implementation drift |
+| /brana:research | Knowledge | Topic research + dimension refresh |
+| /brana:retrospective | Learning | Store learnings and patterns |
+| /brana:review | Business | Weekly/monthly health checks |
+| /brana:scheduler | System | Manage scheduled jobs |
+| /brana:sitrep | Operations | Context recovery after compression |
 
 ## Hook Inventory
 
 | Hook | Event | Purpose |
 |------|-------|---------|
 | pre-tool-use.sh | PreToolUse | SDD gate + cascade throttle |
+| tdd-gate.sh | PreToolUse | TDD enforcement — blocks impl writes without tests |
+| plan-mode-gate.sh | PreToolUse | Gate EnterPlanMode access |
+| worktree-gate.sh | PreToolUse | Enforce worktree usage on dirty repos |
+| guard-explore.sh | PreToolUse | Log reads without prior search (logging only) |
 | session-start.sh | SessionStart | Pattern recall + task context |
 | session-end.sh | SessionEnd | Flywheel metrics + learning flush |
+| subagent-context.sh | SubagentStart | Inject context into subagents |
+| subagent-tracker.sh | SubagentStart+SubagentStop | Track agent spawns/completions |
+| step-completed.sh | TaskCompleted | Build step completion tracking |
+| stopfailure-logger.sh | StopFailure | Log API errors to JSONL |
 | post-tool-use.sh | PostToolUse | Log successes, detect corrections |
-| post-tool-use-failure.sh | PostToolUseFailure | Error categorization |
-| task-sync.sh | PostToolUse | tasks.json → GitHub Issues sync |
-| post-pr-review.sh | PostToolUse | PR reviewer nudge |
+| post-tool-use-failure.sh | PostToolUseFailure | Error categorization + cascade detection |
 | post-plan-challenge.sh | PostToolUse | Challenger nudge |
+| post-pr-review.sh | PostToolUse | PR reviewer nudge |
 | post-tasks-validate.sh | PostToolUse | Schema validation + auto-rollup |
 | post-sale.sh | PostToolUse | Deal closure detection |
-| worktree-gate.sh | PreToolUse | Enforce worktree usage on dirty repos |
-| plan-mode-gate.sh | PreToolUse | Gate EnterPlanMode access |
-| subagent-context.sh | SubagentStart | Inject context into subagents |
-| step-completed.sh | TaskCompleted | Build step completion tracking |
+| task-sync.sh | PostToolUse | tasks.json → GitHub Issues sync |
 | task-completed.sh | TaskCompleted | Task completion handling |
+| config-drift.sh | (utility) | Compare system/ source vs deployed ~/.claude/ |
 
 ## Recommended Plugins
 

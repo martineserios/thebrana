@@ -41,28 +41,36 @@ brana-knowledge/dimensions/           KNOWLEDGE REPO (separate)
 
 ### Hook-Based Enforcement
 
-Hooks fire on Claude Code lifecycle events. Three are registered in the plugin `hooks.json`; the rest run via `settings.json` (installed by bootstrap.sh, because CC v2.1.x doesn't dispatch PostToolUse from plugins).
+Hooks fire on Claude Code lifecycle events. Plugin `hooks.json` registers PreToolUse, SessionStart, SessionEnd, SubagentStart, SubagentStop, TaskCompleted, and StopFailure. PostToolUse/PostToolUseFailure hooks run via `settings.json` (installed by bootstrap.sh, because CC v2.1.x doesn't dispatch PostToolUse from plugins).
 
 | Hook | Event | Trigger | Enforces | Action |
 |------|-------|---------|----------|--------|
 | `pre-tool-use.sh` | PreToolUse | Write\|Edit | **Spec-first gate** | DENY if: project has `docs/decisions/`, branch is `feat/*`, no spec/test activity on branch yet. Always allows docs/test/spec files. |
+| `tdd-gate.sh` | PreToolUse | Write\|Edit | **TDD gate** | Blocks implementation file writes on feat/fix branches when no test file exists. |
+| `plan-mode-gate.sh` | PreToolUse | EnterPlanMode | Build flow | Blocks EnterPlanMode when active /brana:build session exists. |
+| `worktree-gate.sh` | PreToolUse | Bash | Git safety | Denies `git checkout -b` when dirty, blocks commit when /tmp >95% full. |
+| `guard-explore.sh` | PreToolUse | Read\|Grep\|Glob | Read logging | Logs reads without prior search (logging only, no blocking). |
+| `session-start.sh` | SessionStart | Every session | Context injection | Recalls patterns from ruflo, injects task context, detects venture projects, checks for pending learnings, warns if /tmp >80% full. |
+| `session-end.sh` | SessionEnd | Every session | Metrics persistence | Computes flywheel metrics, stores session summary to ruflo and auto memory. Responds instantly, forks heavy work to background. |
+| `subagent-context.sh` | SubagentStart | Agent spawn | Context injection | Injects active task, branch, plan, recent decisions into spawned agents. |
+| `subagent-tracker.sh` | SubagentStart+SubagentStop | Agent lifecycle | Observability | Tracks agent spawns and completions to session JSONL. |
+| `step-completed.sh` | TaskCompleted | CC Task done | Build tracking | Tracks CC Task completions for guided execution protocol. |
+| `stopfailure-logger.sh` | StopFailure | API error | Error logging | Logs rate limit, auth, billing errors to JSONL. |
 | `post-tool-use.sh` | PostToolUse | Write\|Edit\|Bash | Correction tracking | Detects corrections (re-edits), test-file writes, test/lint passes, PR creates. Clears cascade flags on success. |
 | `post-tool-use-failure.sh` | PostToolUseFailure | Write\|Edit\|Bash | **Cascade detection** | After 3+ consecutive failures on same target, writes flag file. `pre-tool-use.sh` reads flag and injects "stop and reassess" nudge. |
 | `post-tasks-validate.sh` | PostToolUse | Write\|Edit on `*/tasks.json` | Task schema | Validates JSON, checks required fields, auto-rollup of parent task status. |
 | `post-plan-challenge.sh` | PostToolUse | ExitPlanMode | Plan review | Nudges challenger agent for adversarial review after plan finalization. |
 | `post-pr-review.sh` | PostToolUse | Bash (`gh pr create`) | PR review | Nudges pr-reviewer agent for automated code review. |
 | `post-sale.sh` | PostToolUse | Write\|Edit on pipeline files | Deal tracking | Detects deal closures, snapshots to memory. |
-| `session-start.sh` | SessionStart | Every session | Context injection | Recalls patterns from ruflo, injects task context, detects venture projects, checks for pending learnings, warns if /tmp >80% full. |
-| `session-end.sh` | SessionEnd | Every session | Metrics persistence | Computes flywheel metrics, stores session summary to ruflo and auto memory. Responds instantly, forks heavy work to background. |
+| `task-sync.sh` | PostToolUse | tasks.json changes | GitHub sync | Syncs tasks.json to GitHub Issues + Projects. |
+| `task-completed.sh` | TaskCompleted | Brana task done | Task pipeline | Parent rollup, close GitHub issue, log to decision log. |
+| `config-drift.sh` | (utility) | Manual | Drift detection | Compares system/ source vs deployed ~/.claude/ files. |
 
 ### Plugin hooks.json vs settings.json
 
-Only three events work from plugin `hooks.json` (CC v2.1.x limitation):
-- **PreToolUse** — `pre-tool-use.sh`
-- **SessionStart** — `session-start.sh`
-- **SessionEnd** — `session-end.sh`
+Plugin `hooks.json` handles: PreToolUse (5 hooks), SessionStart, SessionEnd, SubagentStart (2), SubagentStop, TaskCompleted, StopFailure.
 
-All PostToolUse/PostToolUseFailure hooks must be installed via `bootstrap.sh` into `~/.claude/settings.json` with absolute paths.
+PostToolUse/PostToolUseFailure hooks plus `task-sync.sh` and `task-completed.sh` must be installed via `bootstrap.sh` into `~/.claude/settings.json` with absolute paths.
 
 ### Rule-Based Enforcement
 

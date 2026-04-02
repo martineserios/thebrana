@@ -80,6 +80,32 @@ Manage binary assets, models, and datasets via `.brana-files.json` manifest.
 | `brana files pull` | Download missing/modified files from remote URLs |
 | `brana files push [--remote brana-r2]` | Upload tracked files to R2 via rclone |
 
+### `brana feed` — RSS/Atom Feed Polling
+
+Monitor blogs, Substacks, YouTube channels, and GitHub releases via RSS/Atom feeds with HTTP conditional requests (ETag).
+
+| Command | Description |
+|---------|-------------|
+| `brana feed add <url> [--name N]` | Subscribe to a feed |
+| `brana feed list` | List subscribed feeds |
+| `brana feed poll [--all]` | Fetch new entries from feeds |
+| `brana feed remove <name>` | Unsubscribe from a feed |
+| `brana feed status` | Show feed health (last poll, entry count) |
+
+### `brana inbox` — Gmail Newsletter Management
+
+Multi-account Gmail via IMAP with OS keyring credential storage.
+
+| Command | Description |
+|---------|-------------|
+| `brana inbox add-account <email>` | Register a Gmail account |
+| `brana inbox set-password <email>` | Set/update app password in OS keyring |
+| `brana inbox add <email> <label>` | Subscribe to a label/folder |
+| `brana inbox list` | List subscribed accounts and labels |
+| `brana inbox poll [--all]` | Fetch new messages |
+| `brana inbox remove <email>` | Remove an account |
+| `brana inbox status` | Show inbox health (last poll, message count) |
+
 ### `brana` Root Commands
 
 | Command | Alias | Description |
