@@ -1738,3 +1738,21 @@ The backlog SKILL.md spec uses `session:{SESSION_ID}` as the claimant format for
 | 5 | Knowledge (knowledge-system-extending.md) | Stale | Namespace `patterns` (plural) → `pattern` (singular), migrated 2026-04-01 | Applied — fixed namespace |
 | 6 | Hooks (system-documentation-map.md) | Stale | Hook table listed ~9 hooks, missing 11 newer ones; `session-start-venture.sh` listed as active (absorbed) | Applied — rewrote full hook table |
 | 7 | CLI (cli.md) | Missing | `brana feed` and `brana inbox` subcommands undocumented | Applied — added both sections |
+
+### Reconcile Run — 2026-04-02 (post maintain-specs)
+
+**Trigger:** post-maintain-specs (errata #75-76 applied)
+**Drift found:** 5 findings across 3 areas (+ 3 deferred)
+**Applied:** 5 auto-fixes
+**Deferred:** 3
+
+| # | Area | Type | Finding | Resolution |
+|---|------|------|---------|-----------|
+| 1 | spec-graph | Stale | `system/skills/decide/SKILL.md` had backtick/tilde artifacts from strikethrough markup | Applied — added `~\\` to rstrip in spec_graph.py |
+| 2 | spec-graph | Stale | `system/scheduler/brana-scheduler-runner.sh\\` duplicate with trailing backslash | Applied — same rstrip fix, regen removed duplicate |
+| 3 | docs/reference | Missing | `scripts.md` missing `index-patterns.sh` and `index-skills.sh` entries | Applied — added both script docs |
+| 4 | CLAUDE.md | Missing | `init-project` command undocumented in spec maintenance table | Applied — added to table |
+| 5 | CLAUDE.md | Incomplete | System architecture diagram missing cli/, scheduler/, scripts/, state/ dirs | Applied — updated diagram |
+| 6 | hooks | Missing | `task-sync.sh` not wired in hooks.json or settings.json despite MEMORY.md claim | Deferred — needs investigation |
+| 7 | docs/reference | Missing | `scripts.md` documents 9 of 22 scripts (13 undocumented) | Deferred — large doc update, beyond reconcile scope |
+| 8 | pyproject.toml | Stale | Version 0.1.0 vs plugin.json 1.0.0 | Deferred — different artifacts, may be intentional |
