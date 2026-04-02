@@ -23738,6 +23738,61 @@
         "ruflo"
       ],
       "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": null,
+      "created": "2026-04-02",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-885",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "tech-debt",
+      "subject": "Reconcile explore-agent prompts: add dual-wiring + Rust CLI awareness",
+      "tags": [
+        "skill",
+        "reconcile",
+        "dx"
+      ],
+      "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": null,
+      "created": "2026-04-02",
+      "description": null,
+      "effort": "M",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-886",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "tech-debt",
+      "subject": "Complete docs/reference/scripts.md — document remaining 11 of 22 scripts",
+      "tags": [
+        "docs",
+        "reference"
+      ],
+      "type": "task"
     }
   ],
   "version": "1"
