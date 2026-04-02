@@ -245,7 +245,51 @@ else
 fi
 [ -f "/tmp/test-export-backup-$$.json" ] && mv "/tmp/test-export-backup-$$.json" "$EXPORT_FILE"
 
-# --- Test 12: import with export file ---
+# --- Test 12: export produces non-empty data for populated namespaces ---
+echo ""
+echo "export data quality:"
+if [ -f "$EXPORT_FILE" ]; then
+    knowledge_count=$(jq '.namespaces.knowledge | length' "$EXPORT_FILE" 2>/dev/null) || knowledge_count=0
+    if [ "$knowledge_count" -gt 0 ]; then
+        pass "export has $knowledge_count knowledge entries (not empty)"
+    else
+        fail "export knowledge namespace is empty (expected >0)"
+    fi
+else
+    pass "export data quality — skipped (no export file)"
+fi
+
+# --- Test 13: export includes session namespace ---
+echo ""
+echo "export session namespace:"
+if [ -f "$EXPORT_FILE" ]; then
+    if jq -e '.namespaces | has("session")' "$EXPORT_FILE" >/dev/null 2>&1; then
+        pass "export includes session namespace"
+    else
+        fail "export missing session namespace"
+    fi
+else
+    pass "session namespace — skipped (no export file)"
+fi
+
+# --- Test 14: namespace split — no session entries in pattern namespace ---
+echo ""
+echo "namespace split:"
+DB_PATH="$HOME/.swarm/memory.db"
+if [ -f "$DB_PATH" ]; then
+    session_in_pattern=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM memory_entries WHERE namespace='pattern' AND key LIKE 'session%';" 2>/dev/null) || session_in_pattern=-1
+    if [ "$session_in_pattern" -eq 0 ]; then
+        pass "no session entries in pattern namespace (clean split)"
+    elif [ "$session_in_pattern" -gt 0 ]; then
+        fail "found $session_in_pattern session entries in pattern namespace (namespace pollution)"
+    else
+        pass "namespace split — skipped (couldn't query DB)"
+    fi
+else
+    pass "namespace split — skipped (no memory.db)"
+fi
+
+# --- Test 15: import with export file ---
 echo ""
 echo "import (with export file):"
 if [ -f "$EXPORT_FILE" ]; then

@@ -211,6 +211,19 @@ cmd_pull() {
 # Outputs a JSON array to stdout.
 ruflo_list_all() {
     local ns="$1"
+
+    # Primary: direct SQLite query (reliable — CLI memory list is broken post-patch-wipe)
+    local db_path="$HOME/.swarm/memory.db"
+    if [ -f "$db_path" ]; then
+        local result
+        result=$(sqlite3 "$db_path" "SELECT json_group_array(json_object('key', key, 'content', content, 'namespace', namespace, 'tags', tags, 'created_at', created_at, 'updated_at', updated_at)) FROM memory_entries WHERE namespace='$ns' AND status='active';" 2>/dev/null) || result="[]"
+        if [ "$result" != "[]" ] && [ -n "$result" ]; then
+            echo "$result"
+            return
+        fi
+    fi
+
+    # Fallback: CLI paginated list (may return empty due to wiped patches)
     local limit=100
     local offset=0
     local all_entries="[]"
@@ -219,7 +232,6 @@ ruflo_list_all() {
         local page
         page=$(timeout 30 $CF memory list --namespace "$ns" --limit "$limit" --offset "$offset" --format json 2>/dev/null) || break
 
-        # Extract entries array from response
         local entries
         entries=$(echo "$page" | jq -c '.entries // []' 2>/dev/null) || break
 
@@ -252,35 +264,54 @@ cmd_export() {
         source "$HOME/.claude/scripts/cf-env.sh"
     fi
 
-    if [ -z "${CF:-}" ]; then
-        log "export skipped — ruflo not available"
-        return 1
-    fi
-
     local export_file="$STATE_DIR/patterns-export.json"
     local tmp_file="/tmp/brana-patterns-export-$$.json"
     local changed=false
+    local db_path="$HOME/.swarm/memory.db"
 
-    # Export all namespaces via paginated list
-    local NAMESPACES=("pattern" "decisions" "knowledge" "skills")
-    local ns_json="{}"
+    # Check: need either ruflo CLI or direct SQLite access
+    if [ -z "${CF:-}" ] && [ ! -f "$db_path" ]; then
+        log "export skipped — neither ruflo CLI nor memory.db available"
+        return 1
+    fi
+
+    # Export all namespaces — direct SQLite per namespace (avoids broken CLI memory list)
+    local NAMESPACES=("pattern" "session" "decisions" "knowledge" "skills")
+
+    # Build namespace JSON files individually to avoid shell variable size limits
+    local ns_dir="/tmp/brana-export-ns-$$"
+    mkdir -p "$ns_dir"
 
     for ns in "${NAMESPACES[@]}"; do
-        local entries
-        entries=$(ruflo_list_all "$ns")
-        ns_json=$(echo "$ns_json" | jq --arg ns "$ns" --argjson entries "$entries" '.[$ns] = $entries' 2>/dev/null) || true
+        ruflo_list_all "$ns" > "$ns_dir/$ns.json"
     done
 
-    # Build final export
+    # Assemble final export from individual namespace files
+    local cf_ver
+    cf_ver="${CF:+$($CF --version 2>/dev/null || echo unknown)}"
+    cf_ver="${cf_ver:-unknown}"
+
     jq -n \
         --arg exported_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-        --arg cf_version "$($CF --version 2>/dev/null || echo unknown)" \
-        --argjson namespaces "$ns_json" \
+        --arg cf_version "$cf_ver" \
+        --slurpfile pattern "$ns_dir/pattern.json" \
+        --slurpfile session "$ns_dir/session.json" \
+        --slurpfile decisions "$ns_dir/decisions.json" \
+        --slurpfile knowledge "$ns_dir/knowledge.json" \
+        --slurpfile skills "$ns_dir/skills.json" \
         '{
             exported_at: $exported_at,
             cf_version: $cf_version,
-            namespaces: $namespaces
+            namespaces: {
+                pattern: $pattern[0],
+                session: $session[0],
+                decisions: $decisions[0],
+                knowledge: $knowledge[0],
+                skills: $skills[0]
+            }
         }' > "$tmp_file" 2>/dev/null
+
+    rm -rf "$ns_dir"
 
     if [ -f "$tmp_file" ]; then
         local total=0

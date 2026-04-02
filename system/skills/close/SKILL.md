@@ -456,7 +456,7 @@ If no task was claimed, skip. If `claims_list` fails (MCP down), skip silently.
 mcp__ruflo__memory_store(
   key: "session-meta:{PROJECT}:{YYYY-MM-DD}",
   value: '{"type": "session-close", "date": "{YYYY-MM-DD}", "commits": N, "learnings": N, "errata": N, "drift": true|false}',
-  namespace: "pattern",
+  namespace: "session",
   tags: ["client:{PROJECT}", "type:session-close"],
   upsert: true
 )
@@ -470,7 +470,7 @@ source "$HOME/.claude/scripts/cf-env.sh"
 cd "$HOME" && $CF memory store \
   -k "session:{PROJECT}:{YYYY-MM-DD}" \
   -v '{"type": "session-close", "date": "{YYYY-MM-DD}", "commits": N, "learnings": N, "errata": N, "drift": true|false}' \
-  --namespace pattern \
+  --namespace session \
   --tags "client:{PROJECT},type:session-close" \
   --upsert
 ```

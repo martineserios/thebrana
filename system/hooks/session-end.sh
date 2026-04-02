@@ -161,7 +161,7 @@ echo '{"continue": true}'
             OUTCOME="success"
         fi
         TAGS="client:$PROJECT,type:session-summary,outcome:$OUTCOME,confidence:quarantine"
-        CF_ERR=$(cd "$HOME" && timeout 5 $CF memory store -k "$KEY" -v "$VALUE" --namespace pattern --tags "$TAGS" 2>&1) || true
+        CF_ERR=$(cd "$HOME" && timeout 5 $CF memory store -k "$KEY" -v "$VALUE" --namespace session --tags "$TAGS" 2>&1) || true
         CF_EXIT=$?
         if [ $CF_EXIT -eq 0 ]; then
             STORED_L1=true

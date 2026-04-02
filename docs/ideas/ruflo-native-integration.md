@@ -1,12 +1,14 @@
 # Ruflo Native Integration
 
-> Brainstormed 2026-03-31. Status: active — P0-P3 done, P1-P2 ready next.
+> Brainstormed 2026-03-31. Status: active — P0-P3 + P1 done. Pattern resilience gap identified 2026-04-01 (see [resilient-pattern-store.md](resilient-pattern-store.md)).
 
 ## Problem
 
 Brana treated ruflo as an optional CLI tool. It used 6 of 218 MCP tools, stored flat key-value entries while 33 advanced tables sat empty. The MCP server pointed to a stale 42-entry database while the CLI had 1,006 entries. Ruflo's learning engine — trajectories, causal graphs, pattern confidence, agent orchestration, ReflexionMemory — was completely untapped.
 
-> **Update 2026-04-01:** P0 (MCP fix), P0.1 (durability test), P0.2 (CLI DB path fix), P3 (close skill MCP port) are done. Close skill now uses 5 MCP tools with CLI fallback. SQLite persistence verified. All hooks use correct `~/.swarm/memory.db`.
+> **Update 2026-04-01:** P0 (MCP fix), P0.1 (durability test), P0.2 (CLI DB path fix), P1 (index-knowledge two-phase pipeline), P3 (close skill MCP port) are done. Close skill now uses 5 MCP tools with CLI fallback. SQLite persistence verified. All hooks use correct `~/.swarm/memory.db`.
+>
+> **Update 2026-04-01 (late):** Brainstorm revealed pattern store resilience gap. DB corruption (2026-03-31) wiped all patterns — backup chain was never deployed. Only 3 real patterns survive. Dual-write strategy inverted: git is now primary, ruflo is search index. See [resilient-pattern-store.md](resilient-pattern-store.md).
 
 ## Core Decision
 
@@ -392,8 +394,10 @@ Source 6 — Memory Context:
     namespace: "pattern"
   )
   → Confidence-scored patterns from HNSW vector search
-  → Returns results from 476 existing entries
+  → Returns results from pattern namespace entries
   → 26ms warm, ~500ms cold (ONNX model load)
+  → Note: as of 2026-04-01, only 9 entries in pattern namespace
+    (3 real patterns, 6 session context — see namespace pollution note)
 ```
 
 **Output rules (per challenger):**
@@ -1169,19 +1173,32 @@ Hook-phase calls are zero MCP (all `$CF`). MCP failures are non-fatal (graceful 
 
 ### Failure Mode 3: DB corrupt
 - `brana ops health` detects (entry count mismatch vs last backup)
-- Restore from `brana-knowledge/backup/swarm/`
-- Re-run `brana knowledge reindex` to rebuild from source docs
+- ~~Restore from `brana-knowledge/backup/swarm/`~~ — **BROKEN:** `~/.swarm/backups/` was never created. Daily binary rotation never deployed.
+- Re-run `brana knowledge reindex` to rebuild knowledge namespace from source docs (1244 entries — this works)
+- **No recovery mechanism for patterns.** `patterns-export.json` exports empty arrays (verified 2026-04-01). The 2026-03-31 corruption wiped all accumulated patterns with no recovery path.
+- **Fix:** See [resilient-pattern-store.md](resilient-pattern-store.md) — hybrid dual-write architecture makes git the durable source of truth, ruflo the search index. Pattern reindexer rebuilds from git-native memory files.
 
 ### Dual-Write Strategy
 
-Ruflo gets everything. MEMORY.md gets only the critical subset:
-- Pattern MUST have confidence >= 0.8
-- AND tagged as directive or convention
-- AND not derivable from code/git
-- In practice: ~5-10 entries (MEMORY.md stays under 200 lines)
-- memory-review step in /brana:close audits: "is this in ruflo? still needed in MEMORY.md?"
+> **Revised 2026-04-01** after resilient-pattern-store brainstorm. The 2026-03-31 corruption
+> proved the original model wrong: "Ruflo gets everything, MEMORY.md gets critical subset"
+> meant patterns were lost when ruflo died. Inverted: git is primary, ruflo is search index.
 
-This ensures: if ruflo dies completely, MEMORY.md has the most critical rules. Everything else is recoverable from git (docs) or rebuilt (re-index).
+**New model: Git-primary, ruflo-secondary.**
+- Git (Layer 0 markdown files in `~/.claude/projects/*/memory/`) is the durable source of truth
+- Ruflo (MCP `memory_store`) is the instant semantic search index
+- Session-end hook writes to both: structured frontmatter markdown + ruflo MCP
+- Pattern reindexer rebuilds ruflo from git memory files on demand
+- Knowledge already follows this model (git docs → bulk-index.mjs → ruflo). Patterns now match.
+
+**MEMORY.md curation unchanged:**
+- Patterns with confidence >= 0.8 AND tagged as directive/convention go to MEMORY.md index
+- Individual pattern files (`feedback_*.md`, `project_*.md`) are the full store
+- MEMORY.md stays under 200 lines (index only)
+
+**Recovery guarantee:** If ruflo dies completely, run pattern reindexer → 100% recovery from git-native files (~100 files across 8 projects).
+
+See [resilient-pattern-store.md](resilient-pattern-store.md) for full architecture.
 
 ---
 
@@ -1296,7 +1313,7 @@ Key ruflo tools: `memory_store(ns: "skills")`, `memory_search(ns: "skills")`,
 1. ~~Should spec-graph.json edges migrate entirely to ruflo causal_edges, or coexist?~~ **Answered:** Coexist initially. spec-graph.json is consumed by maintain-specs (shell context). Causal edges are for knowledge relationships (MCP context). Migrate spec-graph edges to ruflo causal_edges when maintain-specs becomes a skill (currently a command).
 2. ~~Should `brana learn` be new Rust CLI subcommands, or extend existing `brana ops`?~~ **Answered:** New `brana learn` subcommand group. `ops` is operational health. `learn` is knowledge operations: `brana learn index`, `brana learn consolidate`, `brana learn export`. Keeps concerns separate.
 3. ~~Which enrichment matrix combinations to implement first?~~ **Answered:** See Phased Rollout below (authoritative ordering).
-4. ~~How to handle ruflo version upgrades (pin? test before update? migration path?)~~ **Partially answered:** 3 patches applied to node_modules (ESM require fix, searchPatterns API, batch session_id). These break on `npm install -g ruflo`. Pin current version until upstream fixes land (ruvnet/ruflo#1492). Before upgrading: re-run durability smoke test (store→restart→recall) and verify patched APIs still work.
+4. ~~How to handle ruflo version upgrades (pin? test before update? migration path?)~~ **Partially answered:** 3 patches were applied to node_modules (ESM require fix, searchPatterns API, batch session_id). **These were wiped by a later `npm install -g ruflo`** (confirmed in MEMORY.md). Currently NOT applied. Pin current version until upstream fixes land (ruvnet/ruflo#1492). Before upgrading: re-run durability smoke test (store→restart→recall) and verify patched APIs still work.
 5. ~~Should `agentdb_session-start` be called from a deferred flag?~~ **Answered:** Dropped entirely. Redundant with `$CF memory search` in hook. See #9 revision.
 6. ~~`agentdb_batch` tier parameter?~~ **Moot:** `agentdb_batch` is non-durable (episodes table). Tiers are tags on `memory_store`. Revisit when batch becomes durable (t-823).
 
@@ -1314,7 +1331,7 @@ Key ruflo tools: `memory_store(ns: "skills")`, `memory_search(ns: "skills")`,
 | P0 | Fix MCP server (wrapper script, correct DB, ESM patch) | — | S | ✅ Done |
 | P0.1 | Durability smoke test (store→restart→recall) | — | XS | ✅ Done (2026-04-01) |
 | P0.2 | Fix CLI DB path (hooks use wrong .swarm/memory.db) | — | XS | ✅ Done (2026-04-01) |
-| P1 | Index-knowledge upgrade: 7 doc categories, tier tags, orphan cleanup | #7 | S | Ready |
+| P1 | Index-knowledge upgrade: 7 doc categories, tier tags, orphan cleanup | #7 | S | ✅ Done (2026-04-01) — two-phase pipeline shipped |
 | P2 | Sitrep: add `hooks_intelligence_pattern-search` as Source 6 | #5 | S | Ready |
 | P3 | Session loop: close gains 3 MCP calls + session-start stale claim cleanup | #9, #10 | M | ✅ Done (2026-04-01) — close skill ported |
 | P4 | Research adopts MCP: `memory_search(ns:all)` + dedup via `embeddings_compare` | #4 | M | Ready |
@@ -1340,6 +1357,17 @@ Source: ruflo integration brainstorm session
 Wrote `durability-test:smoke:2026-04-01` via MCP `memory_store` (384-dim embedding, sql.js+HNSW). Killed all ruflo MCP processes. Recalled via CLI from `~/.swarm/memory.db` — 0.65 similarity, 35ms. **SQLite persistence confirmed.**
 Bonus finding: CLI vs MCP hit different DBs when CWD differs. MCP wrapper does `cd ~` (correct). Hooks didn't — fixed by adding `cd "$HOME" &&` before `$CF` calls.
 Source: ruflo integration session 2
+
+### 2026-04-01: Pattern store resilience brainstorm
+DB corruption 2026-03-31 wiped all accumulated patterns. Investigation found:
+- Only 9 entries in pattern namespace (3 real patterns, 6 session context) — all from 2026-04-01
+- `patterns-export.json` exported empty arrays — backup chain never worked
+- `~/.swarm/backups/` never created — binary backup never deployed
+- **Namespace pollution:** session-end hook stores session context (`session:*` keys) in `pattern` namespace. Close skill stores to `session` namespace. Two components, two namespaces for same concept.
+- **Fix:** Separate session context → `session` namespace, reusable patterns → `pattern` namespace.
+- Layer 0 (MEMORY.md, git-backed, 32 curated files for thebrana alone) survived perfectly.
+- Decision: hybrid dual-write — git is primary, ruflo is search index. See [resilient-pattern-store.md](resilient-pattern-store.md).
+Source: resilient-pattern-store brainstorm session
 
 ### 2026-04-01: Close skill ported to MCP (P3)
 Added 3 additive MCP calls to `/brana:close`: `memory_store(ns:session)` for searchable session mirror, `hive-mind_memory` for cross-session announcement, `claims_release` for task unlocking. All best-effort with CLI fallback. Steps 5/6/10 also gained MCP-preferred paths.
