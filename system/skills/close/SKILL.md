@@ -143,7 +143,37 @@ cd "$HOME" && $CF memory store \
   --upsert
 ```
 
-If both MCP and CLI are unavailable, append to the project's auto memory `MEMORY.md` under `~/.claude/projects/`.
+If both MCP and CLI are unavailable, the git file (below) is the sole durable copy.
+
+**Step 5b: Write pattern as git-durable file (always — regardless of MCP/CLI success)**
+
+For each learning, also write an individual frontmatter markdown file to the project's
+auto memory directory (`~/.claude/projects/{project-dir}/memory/`). This makes git the
+durable source of truth and enables the pattern indexer to rebuild ruflo from files.
+
+**Slug:** derive from `{short-title}` — lowercase, hyphens, no special chars.
+**Category prefix:** `feedback_` for corrections/gotchas, `project_` for architectural state.
+
+```markdown
+---
+name: {short-title}
+description: {one-line problem summary — used for index matching}
+type: {feedback or project}
+---
+
+**Problem:** {problem}
+**Solution:** {solution}
+**Confidence:** {0.5 for new, higher if validated}
+**Transferable:** {true if applicable across clients}
+```
+
+Write via the Write tool to `~/.claude/projects/{project-dir}/memory/{prefix}_{slug}.md`.
+
+If the file already exists (pattern was previously saved), **update it** via Edit — don't
+create duplicates. Use Glob to check: `Glob("~/.claude/projects/*/memory/*{slug}*")`.
+
+After writing the file, add a one-line pointer to the project's `MEMORY.md` if one doesn't
+exist for this pattern. Follow the existing MEMORY.md format.
 
 **Skip if:** session was read-only (no commits), or debrief returned no learnings.
 

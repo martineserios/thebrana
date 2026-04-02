@@ -120,7 +120,8 @@ Writes per-namespace JSON to temp files, assembles with `jq --slurpfile` to avoi
 | `system/scripts/sync-state.sh` | SQLite fallback for `ruflo_list_all`, add `session` namespace to export list, restructure `cmd_export` to use temp files | ✅ Done |
 | `docs/ideas/resilient-pattern-store.md` | New idea doc | ✅ Done |
 | `docs/ideas/ruflo-native-integration.md` | 7 corrections (status, counts, dual-write strategy, failure mode, patches, field note) | ✅ Done |
-| `system/hooks/session-end.sh` | Structure git write as frontmatter markdown | Pending (t-852) |
+| `system/skills/close/SKILL.md` | Step 5b: write each pattern as individual frontmatter .md file | ✅ Done (t-852) |
+| `system/scripts/index-assumptions.sh` | Add missing `timeout 15` wrapper to `$CF memory store` | ✅ Done (t-852) |
 | `system/scripts/index-knowledge.sh` | Extend to crawl memory files | Pending (t-853) |
 | `system/scripts/bulk-index.mjs` | Support pattern namespace source | Pending (t-853) |
 

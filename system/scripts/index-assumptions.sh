@@ -64,7 +64,7 @@ ERRORS=0
 
 store_entry() {
     local key="$1" value="$2" namespace="$3" tags="$4"
-    if cd "$HOME" && $CF memory store \
+    if cd "$HOME" && timeout 15 $CF memory store \
         -k "$key" \
         -v "${value:0:2000}" \
         --namespace "$namespace" \
