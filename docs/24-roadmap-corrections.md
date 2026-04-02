@@ -1713,3 +1713,20 @@ Respond.io action prompts have a hard 1,000-char limit. Agent 3's Assign action 
 | 4 | unified-session-state.md | Stale | Design doc still marked `status: idea` after full implementation | Applied — marked `status: implemented` |
 | 5 | session-start.sh | Incomplete | Correction pattern recall requires ruflo (confidence >= 0.8) | Deferred — blocked by t-810 (ruflo audit) |
 | 6 | close/SKILL.md | Stale reference | Step 9 references `brana ops metrics` but close delegates to session-end | Deferred — cosmetic, low priority |
+
+### Reconcile Run — 2026-04-02
+
+**Trigger:** manual (post resilient pattern store t-848/t-849)
+**Drift found:** 7 findings across 6 areas
+**Applied:** 7 auto-fixes
+**Deferred:** 0
+
+| # | Area | Type | Finding | Resolution |
+|---|------|------|---------|-----------|
+| 1 | Rules (overview.md) | Stale | Rule count 12→14, listed `memory-framework` + `pm-awareness` (merged in t-761) | Applied — updated count and table |
+| 2 | Hooks (hooks.md) | Missing | 3 hooks missing from plugin table: `tdd-gate.sh`, `subagent-tracker.sh`, `stopfailure-logger.sh` | Applied — added to table |
+| 3 | Skills (component-index.md) | Stale | 6 moved skills still listed (pipeline, venture-phase, financial-model, respondio-prompts, meta-template, proposal); 2 missing (do, audit) | Applied — removed 6, added 2 |
+| 4 | Hooks (component-index.md) | Missing | 5 hooks missing: `tdd-gate.sh`, `guard-explore.sh`, `subagent-tracker.sh`, `stopfailure-logger.sh`, `config-drift.sh` | Applied — added to inventory |
+| 5 | Knowledge (knowledge-system-extending.md) | Stale | Namespace `patterns` (plural) → `pattern` (singular), migrated 2026-04-01 | Applied — fixed namespace |
+| 6 | Hooks (system-documentation-map.md) | Stale | Hook table listed ~9 hooks, missing 11 newer ones; `session-start-venture.sh` listed as active (absorbed) | Applied — rewrote full hook table |
+| 7 | CLI (cli.md) | Missing | `brana feed` and `brana inbox` subcommands undocumented | Applied — added both sections |
