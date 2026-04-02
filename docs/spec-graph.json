@@ -1,8 +1,8 @@
 {
   "_meta": {
-    "generated": "2026-04-02T15:50:57Z",
-    "node_count": 209,
-    "edge_count": 567,
+    "generated": "2026-04-02T17:51:44Z",
+    "node_count": 210,
+    "edge_count": 568,
     "impl_ref_count": 265,
     "orphan_count": 102,
     "typed_edge_count": 0
@@ -2857,8 +2857,18 @@
       "arch_files": [],
       "ref_files": []
     },
-    "docs/ideas/ai-native-education.md": {
+    "docs/ideas/ai-native-education/framework.md": {
       "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/ideas/ai-native-education/poc.md": {
+      "references": [
+        "ai-native-education.md"
+      ],
       "referenced_by": [],
       "impl_files": [],
       "guide_files": [],

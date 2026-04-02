@@ -402,7 +402,7 @@ Begin work on a specific task. For code tasks, enters the `/brana:build` loop.
    ```
    mcp__ruflo__claims_claim(
      issueId: "task:{id}",
-     claimant: "session:{SESSION_ID}"
+     claimant: "agent:{SESSION_ID}:session"
    )
    ```
    If MCP unavailable or claim fails, continue — claims are advisory, not blocking.
@@ -470,7 +470,7 @@ Complete the current task. For code tasks that went through `/brana:build`, the 
    ```
    mcp__ruflo__claims_release(
      issueId: "task:{id}",
-     claimant: "session:{SESSION_ID}"
+     claimant: "agent:{SESSION_ID}:session"
    )
    ```
    If MCP unavailable, skip silently.
