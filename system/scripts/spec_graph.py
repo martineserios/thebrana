@@ -136,9 +136,12 @@ def extract_links(
                 continue
             if _has_glob(raw_match):
                 continue
-            # Clean trailing punctuation
-            cleaned = raw_match.rstrip(".,;:!?\"'`")
-            impl_files.append(cleaned)
+            # Clean trailing punctuation and markdown artifacts
+            cleaned = raw_match.rstrip(".,;:!?\"'`~\\")
+            # Strip strikethrough wrappers (~~path~~)
+            cleaned = cleaned.removeprefix("~~").removesuffix("~~")
+            if cleaned:
+                impl_files.append(cleaned)
 
     return _dedup_list(references), _dedup_list(impl_files)
 
