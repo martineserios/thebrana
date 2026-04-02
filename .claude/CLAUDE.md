@@ -55,6 +55,10 @@ system/                               Plugin (loaded by Claude Code)
 ├── commands/                         ← agent commands
 ├── hooks/hooks.json + *.sh           ← event hooks
 ├── agents/                           ← specialized agents
+├── cli/                              ← Rust CLI (brana binary) + Python wrapper
+├── scripts/                          ← helper scripts (indexing, graphs, sync)
+├── scheduler/                        ← scheduled job configs + runner
+├── state/                            ← persistent state (decisions, patterns)
 └── CLAUDE.md                         ← mastermind identity
 
 bootstrap.sh                          Identity layer → ~/.claude/
@@ -155,6 +159,7 @@ Commands live in `system/commands/`, not skills — invoked by agents or manuall
 | `/brana:apply-errata` | Apply pending errata from doc 24 through layer hierarchy |
 | `/brana:re-evaluate-reflections` | Cross-check reflections against dimensions for gaps |
 | `/brana:repo-cleanup` | Commit accumulated spec doc changes in logical batches |
+| `init-project` | Initialize a new project with CLAUDE.md template (shell script) |
 
 ## Specs Reference
 
