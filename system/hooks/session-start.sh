@@ -60,6 +60,8 @@ if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
     if [ -x "$SRC_BIN" ]; then
         if [ ! -x "$DST_BIN" ] || [ "$SRC_BIN" -nt "$DST_BIN" ]; then
             cp "$SRC_BIN" "$DST_BIN" 2>/dev/null || true
+            # Invalidate skills mtime marker — plugin updated, skills may have changed
+            rm -f /tmp/brana-skills-index-mtime 2>/dev/null || true
         fi
     fi
     # Also sync brana-query if it exists

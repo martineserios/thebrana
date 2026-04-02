@@ -603,5 +603,7 @@ else
     echo "  - Cache at: $PLUGINS_DIR/cache/brana/brana/$PLUGIN_VERSION"
     echo "  - Dev override: claude --plugin-dir ./system"
     echo ""
+    # Invalidate skills mtime marker so next session does a full reindex
+    rm -f /tmp/brana-skills-index-mtime 2>/dev/null || true
     echo "Start a new Claude Code session to activate."
 fi
