@@ -1,8 +1,8 @@
 {
   "_meta": {
-    "generated": "2026-04-01T21:43:22Z",
+    "generated": "2026-04-01T23:24:36Z",
     "node_count": 206,
-    "edge_count": 560,
+    "edge_count": 561,
     "impl_ref_count": 256,
     "orphan_count": 103,
     "typed_edge_count": 0
@@ -372,8 +372,9 @@
         "reflections/14-mastermind-architecture.md",
         "25-self-documentation.md",
         "00-user-practices.md",
-        "dimensions/09-claude-code-native-features.md",
+        "reference/scripts.md",
         "dimensions/26-git-branching-strategies.md",
+        "dimensions/09-claude-code-native-features.md",
         "dimensions/38-design-thinking.md"
       ],
       "referenced_by": [
@@ -382,9 +383,7 @@
       ],
       "impl_files": [
         "system/commands/",
-        "system/",
-        "system/scripts/index-knowledge.sh",
-        "system/scripts/bulk-index.mjs"
+        "system/"
       ],
       "guide_files": [
         "docs/guide/concepts.md",
@@ -3151,6 +3150,7 @@
         "system/scripts/",
         "system/hooks/lib/cf-env.sh",
         "system/scripts/index-knowledge.sh",
+        "system/scripts/bulk-index.mjs",
         "system/scripts/generate-index.sh",
         "system/scripts/spec_graph.py",
         "system/",
@@ -3159,9 +3159,7 @@
         "system/scripts/generate-reference.py",
         "system/hooks/hooks.json",
         "system/commands/",
-        "system/scripts/cc-changelog-check.sh",
-        "system/scripts/bulk-index.mjs",
-        "system/cli/rust/src/commands/knowledge.rs"
+        "system/scripts/cc-changelog-check.sh"
       ],
       "guide_files": [
         "docs/guide/concepts.md",
