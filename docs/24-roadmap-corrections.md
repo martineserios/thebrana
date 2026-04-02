@@ -1456,6 +1456,14 @@ A detailed plan specified exactly which handoff_context values to add to each ag
 
 Respond.io action prompts have a hard 1,000-char limit. Agent 3's Assign action hit 981/1000 after adding 4 new Cierre routing paths — leaving only 19 chars of headroom. The char limit wasn't part of the original plan's verification checklist; it was added as a parallel verification step during execution. At 98% utilization, any future edit to that action prompt will need to shorten existing text before adding new content. **Rule: when editing Respond.io action prompts, check char count immediately after editing — don't defer to a final audit. Include per-action char counts in the commit message or PR description so future editors know the budget state. Flag any action above 900 chars as "tight budget" in comments.**
 
+### 75. nvm `--no-use` breaks node resolution in pipeline scripts
+
+`index-knowledge.sh` sourced nvm with `--no-use` to avoid activating node, then used `command -v node` which found `/usr/bin/node` (system node without ruflo). `bulk-index.mjs` has 3-strategy dynamic ruflo resolution, but all 3 strategies depend on `process.execPath` or the system PATH — both pointed to the wrong node. The fix: source nvm without `--no-use` so that nvm's node is activated. **Rule: in pipeline scripts that depend on globally-installed npm packages (like ruflo), always activate nvm fully. The `--no-use` flag is for interactive shells where you want lazy loading — scripts need the correct node immediately.**
+
+### 76. claims_claim requires strict claimant format
+
+The backlog SKILL.md spec uses `session:{SESSION_ID}` as the claimant format for `claims_claim`. This format is rejected — the API requires `agent:agentId:agentType` or `human:userId:name`. Task claiming silently fails because the spec says "if claim fails, continue — claims are advisory." **Rule: update the backlog skill spec to use `agent:{SESSION_ID}:session` format, or document the correct format in the claims section.**
+
 ---
 
 ## Reconcile Runs
