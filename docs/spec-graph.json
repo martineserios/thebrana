@@ -1,10 +1,10 @@
 {
   "_meta": {
-    "generated": "2026-04-01T23:24:36Z",
-    "node_count": 206,
-    "edge_count": 561,
-    "impl_ref_count": 256,
-    "orphan_count": 103,
+    "generated": "2026-04-02T15:50:57Z",
+    "node_count": 209,
+    "edge_count": 567,
+    "impl_ref_count": 265,
+    "orphan_count": 102,
     "typed_edge_count": 0
   },
   "nodes": {
@@ -755,7 +755,9 @@
     },
     "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md": {
       "references": [],
-      "referenced_by": [],
+      "referenced_by": [
+        "docs/ideas/resilient-pattern-store.md"
+      ],
       "impl_files": [
         "system/state/portfolio.md",
         "system/state/",
@@ -769,6 +771,7 @@
       ],
       "guide_files": [],
       "arch_files": [
+        "docs/architecture/features/resilient-pattern-store.md",
         "docs/architecture/memory-backup.md"
       ],
       "ref_files": []
@@ -889,7 +892,10 @@
     },
     "docs/architecture/decisions/ADR-026-ruflo-mcp-backbone.md": {
       "references": [],
-      "referenced_by": [],
+      "referenced_by": [
+        "docs/ideas/resilient-pattern-store.md",
+        "docs/architecture/features/resilient-pattern-store.md"
+      ],
       "impl_files": [],
       "guide_files": [],
       "arch_files": [],
@@ -1165,7 +1171,8 @@
         "docs/guide/workflows/github-sync.md"
       ],
       "arch_files": [
-        "docs/architecture/features/mission-control-cli.md"
+        "docs/architecture/features/mission-control-cli.md",
+        "docs/architecture/features/resilient-pattern-store.md"
       ],
       "ref_files": []
     },
@@ -1216,7 +1223,8 @@
       ],
       "guide_files": [],
       "arch_files": [
-        "docs/architecture/features/github-issues-sync.md"
+        "docs/architecture/features/github-issues-sync.md",
+        "docs/architecture/features/resilient-pattern-store.md"
       ],
       "ref_files": []
     },
@@ -1307,6 +1315,35 @@
       ],
       "ref_files": [
         "docs/reference/rules.md"
+      ]
+    },
+    "docs/architecture/features/resilient-pattern-store.md": {
+      "references": [
+        "docs/ideas/resilient-pattern-store.md",
+        "docs/architecture/decisions/ADR-026-ruflo-mcp-backbone.md"
+      ],
+      "referenced_by": [],
+      "impl_files": [
+        "system/hooks/session-end.sh:164",
+        "system/skills/close/SKILL.md:459",
+        "system/scripts/sync-state.sh",
+        "system/skills/close/SKILL.md",
+        "system/scripts/index-assumptions.sh",
+        "system/scripts/index-patterns.sh",
+        "system/scripts/bulk-index.mjs",
+        "system/cli/rust/src/cli.rs",
+        "system/cli/rust/src/commands/knowledge.rs"
+      ],
+      "guide_files": [],
+      "arch_files": [
+        "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
+        "docs/architecture/features/github-issues-sync.md",
+        "docs/architecture/features/mission-control-cli.md",
+        "docs/architecture/knowledge-system-extending.md",
+        "docs/architecture/memory-backup.md"
+      ],
+      "ref_files": [
+        "docs/reference/scripts.md"
       ]
     },
     "docs/architecture/features/scheduler-hardening.md": {
@@ -1547,7 +1584,8 @@
         "docs/guide/workflows/spec-graph.md"
       ],
       "arch_files": [
-        "docs/architecture/decisions/ADR-016-spec-dependency-graph.md"
+        "docs/architecture/decisions/ADR-016-spec-dependency-graph.md",
+        "docs/architecture/features/resilient-pattern-store.md"
       ],
       "ref_files": [
         "docs/reference/scripts.md"
@@ -1563,7 +1601,8 @@
       ],
       "guide_files": [],
       "arch_files": [
-        "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md"
+        "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
+        "docs/architecture/features/resilient-pattern-store.md"
       ],
       "ref_files": []
     },
@@ -2818,6 +2857,14 @@
       "arch_files": [],
       "ref_files": []
     },
+    "docs/ideas/ai-native-education.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
     "docs/ideas/cc-feature-adoption-v2.1.76-81.md": {
       "references": [],
       "referenced_by": [],
@@ -2884,8 +2931,23 @@
       "arch_files": [],
       "ref_files": []
     },
+    "docs/ideas/resilient-pattern-store.md": {
+      "references": [
+        "ruflo-native-integration.md",
+        "docs/architecture/decisions/ADR-026-ruflo-mcp-backbone.md",
+        "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md"
+      ],
+      "referenced_by": [
+        "docs/architecture/features/resilient-pattern-store.md"
+      ],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
     "docs/ideas/ruflo-native-integration.md": {
       "references": [
+        "resilient-pattern-store.md",
         "skill-auto-router.md"
       ],
       "referenced_by": [],
@@ -3180,6 +3242,7 @@
         "docs/architecture/extending.md",
         "docs/architecture/features/cc-hook-leverage.md",
         "docs/architecture/features/plugin-packaging.md",
+        "docs/architecture/features/resilient-pattern-store.md",
         "docs/architecture/hooks.md",
         "docs/architecture/knowledge-system-extending.md",
         "docs/architecture/overview.md",

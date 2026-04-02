@@ -23050,6 +23050,62 @@
         "namespace"
       ],
       "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": null,
+      "created": "2026-04-02",
+      "description": null,
+      "effort": "M",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-860",
+      "notes": "From brainstorm: docs/ideas/ai-native-education.md. Compare existing problem-based and alternative education models to position the AI-native framework. Key question: what already exists and how does this differ?",
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "research",
+      "subject": "Research alternative schools (Montessori, Waldorf, PBL) for AI-native education positioning",
+      "tags": [
+        "brainstorm",
+        "education",
+        "research"
+      ],
+      "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": null,
+      "created": "2026-04-02",
+      "description": null,
+      "effort": "M",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-861",
+      "notes": "From brainstorm: docs/ideas/ai-native-education.md. Design a concrete test: pick a real-world problem, define the weekly structure (encounter, explore with AI, create, defend, reflect), define what success looks like, identify a willing participant.",
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "roadmap",
+      "subject": "Design proof-of-concept for AI-native education: one problem, one week, one student",
+      "tags": [
+        "brainstorm",
+        "education",
+        "poc"
+      ],
+      "type": "task"
     }
   ],
   "version": "1"
