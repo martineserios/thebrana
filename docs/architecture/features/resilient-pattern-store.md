@@ -122,8 +122,10 @@ Writes per-namespace JSON to temp files, assembles with `jq --slurpfile` to avoi
 | `docs/ideas/ruflo-native-integration.md` | 7 corrections (status, counts, dual-write strategy, failure mode, patches, field note) | ✅ Done |
 | `system/skills/close/SKILL.md` | Step 5b: write each pattern as individual frontmatter .md file | ✅ Done (t-852) |
 | `system/scripts/index-assumptions.sh` | Add missing `timeout 15` wrapper to `$CF memory store` | ✅ Done (t-852) |
-| `system/scripts/index-knowledge.sh` | Extend to crawl memory files | Pending (t-853) |
-| `system/scripts/bulk-index.mjs` | Support pattern namespace source | Pending (t-853) |
+| `system/scripts/index-patterns.sh` | New: Phase 1 shell parser for memory files → JSONL | ✅ Done (t-853) |
+| `system/scripts/bulk-index.mjs` | Namespace from JSONL (`s.namespace \|\| 'knowledge'`), namespace-aware orphan cleanup | ✅ Done (t-853) |
+| `system/cli/rust/src/cli.rs` | `--patterns` flag on `brana knowledge reindex` | ✅ Done (t-853) |
+| `system/cli/rust/src/commands/knowledge.rs` | `cmd_reindex_patterns()` handler | ✅ Done (t-853) |
 
 ## Data Migration
 

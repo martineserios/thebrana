@@ -41,6 +41,38 @@ pub fn cmd_reindex(changed: bool, files: Vec<PathBuf>) {
     }
 }
 
+pub fn cmd_reindex_patterns(files: Vec<PathBuf>) {
+    let root = find_project_root().unwrap_or_else(|| {
+        eprintln!("Not in git repo");
+        std::process::exit(1);
+    });
+    let script = root.join("system/scripts/index-patterns.sh");
+    if !script.exists() {
+        eprintln!("index-patterns.sh not found at {}", script.display());
+        std::process::exit(1);
+    }
+
+    let mut cmd = Command::new("bash");
+    cmd.arg(&script).current_dir(&root);
+
+    for f in &files {
+        cmd.arg(f);
+    }
+
+    println!("\n  Running index-patterns.sh...");
+    match cmd.status() {
+        Ok(s) if s.success() => println!("  \x1b[32mDone.\x1b[0m\n"),
+        Ok(s) => {
+            eprintln!("  \x1b[31mFailed (exit {}).\x1b[0m", s.code().unwrap_or(-1));
+            std::process::exit(1);
+        }
+        Err(e) => {
+            eprintln!("  \x1b[31mFailed: {e}\x1b[0m");
+            std::process::exit(1);
+        }
+    }
+}
+
 pub fn cmd_status() {
     let db_path = home().join(".swarm/memory.db");
 

@@ -9,6 +9,8 @@
 //
 // JSONL format (one per line):
 //   {"key":"knowledge:dimension:doc:section","value":"...","tags":["source:brana-knowledge","type:dimension"]}
+//   {"key":"pattern:feedback:slug","value":"...","namespace":"pattern","tags":["type:feedback"]}
+// If namespace is omitted, defaults to "knowledge".
 
 import { createRequire } from 'module';
 import { existsSync, readFileSync } from 'fs';
@@ -119,7 +121,7 @@ for (let i = 0; i < sections.length; i += BATCH_SIZE) {
         insert.run({
           id: genId(),
           key: s.key,
-          namespace: 'knowledge',
+          namespace: s.namespace || 'knowledge',
           content: s.value,
           type: 'semantic',
           embedding: JSON.stringify(embeddingArray),
@@ -146,26 +148,31 @@ for (let i = 0; i < sections.length; i += BATCH_SIZE) {
 
 console.log('\n');
 
-// Orphan cleanup — remove knowledge entries not in this run
+// Orphan cleanup — remove entries in indexed namespaces not in this run
 let orphansRemoved = 0;
 if (orphanCleanup && storedKeys.size > 0) {
-  console.log('Checking for orphan entries...');
-  const existing = db.prepare(
-    `SELECT key FROM memory_entries WHERE namespace = 'knowledge' AND status = 'active'`
-  ).all();
+  // Determine which namespaces were indexed in this run
+  const indexedNamespaces = new Set(sections.map(s => s.namespace || 'knowledge'));
+  console.log(`Checking for orphan entries in: ${[...indexedNamespaces].join(', ')}...`);
 
-  const deleteStmt = db.prepare(
-    `DELETE FROM memory_entries WHERE key = ? AND namespace = 'knowledge'`
-  );
-  const cleanupTx = db.transaction(() => {
-    for (const row of existing) {
-      if (!storedKeys.has(row.key)) {
-        deleteStmt.run(row.key);
-        orphansRemoved++;
+  for (const ns of indexedNamespaces) {
+    const existing = db.prepare(
+      `SELECT key FROM memory_entries WHERE namespace = ? AND status = 'active'`
+    ).all(ns);
+
+    const deleteStmt = db.prepare(
+      `DELETE FROM memory_entries WHERE key = ? AND namespace = ?`
+    );
+    const cleanupTx = db.transaction(() => {
+      for (const row of existing) {
+        if (!storedKeys.has(row.key)) {
+          deleteStmt.run(row.key, ns);
+          orphansRemoved++;
+        }
       }
-    }
-  });
-  cleanupTx();
+    });
+    cleanupTx();
+  }
   console.log(`Orphans removed: ${orphansRemoved}`);
 }
 

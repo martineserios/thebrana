@@ -177,6 +177,9 @@ pub enum KnowledgeCmd {
         /// Only index git-changed files (for post-commit hook)
         #[arg(long)]
         changed: bool,
+        /// Index pattern files from auto-memory dirs instead of knowledge docs
+        #[arg(long)]
+        patterns: bool,
         /// Specific files to index (default: all 7 categories)
         #[arg(trailing_var_arg = true)]
         files: Vec<PathBuf>,
