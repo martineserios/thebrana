@@ -232,7 +232,9 @@ fi
 NODE="${NODE:-}"
 if [ -z "$NODE" ]; then
     export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
-    [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh" --no-use 2>/dev/null
+    if [ -s "$NVM_DIR/nvm.sh" ]; then
+        source "$NVM_DIR/nvm.sh" 2>/dev/null
+    fi
     NODE=$(command -v node 2>/dev/null || echo "")
     if [ -z "$NODE" ] && [ -d "$NVM_DIR/versions" ]; then
         NODE=$(find "$NVM_DIR/versions" -name node -type f | sort -V | tail -1)
