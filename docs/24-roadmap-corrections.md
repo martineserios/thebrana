@@ -1756,3 +1756,16 @@ The backlog SKILL.md spec uses `session:{SESSION_ID}` as the claimant format for
 | 6 | hooks | Missing | `task-sync.sh` not wired in hooks.json or settings.json despite MEMORY.md claim | Deferred — needs investigation |
 | 7 | docs/reference | Missing | `scripts.md` documents 9 of 22 scripts (13 undocumented) | Deferred — large doc update, beyond reconcile scope |
 | 8 | pyproject.toml | Stale | Version 0.1.0 vs plugin.json 1.0.0 | Deferred — different artifacts, may be intentional |
+
+### Reconcile Run — 2026-04-02 (post-close, t-882/883)
+
+**Trigger:** post-close (skills reindex CLI changes)
+**Drift found:** 3 findings across 2 areas
+**Applied:** 3 auto-fixes
+**Deferred:** 0
+
+| # | Area | Type | Finding | Resolution |
+|---|------|------|---------|-----------|
+| 1 | docs/guide/cli.md | Missing | `brana skills` subcommand group undocumented | Applied — added skills section |
+| 2 | docs/guide/cli.md | Missing | `brana knowledge` subcommand group undocumented | Applied — added knowledge section |
+| 3 | .claude/CLAUDE.md | Missing | CLI Tools table missing `brana skills` and `brana knowledge` | Applied — added 2 rows |
