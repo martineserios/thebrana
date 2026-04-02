@@ -288,6 +288,46 @@ pub fn cmd_list() {
     println!("{json}");
 }
 
+/// `brana skills reindex [--changed]`
+pub fn cmd_reindex(changed: bool) {
+    let root = crate::util::find_project_root().unwrap_or_else(|| {
+        eprintln!("Not in git repo");
+        std::process::exit(1);
+    });
+    let script = root.join("system/scripts/index-skills.sh");
+    if !script.exists() {
+        eprintln!("index-skills.sh not found at {}", script.display());
+        std::process::exit(1);
+    }
+
+    // When not --changed, delete the mtime marker to force full reindex
+    if !changed {
+        let mtime_file = std::path::Path::new("/tmp/brana-skills-index-mtime");
+        if mtime_file.exists() {
+            let _ = fs::remove_file(mtime_file);
+        }
+    }
+
+    let mut cmd = std::process::Command::new("bash");
+    cmd.arg(&script).current_dir(&root);
+    if changed {
+        cmd.arg("--changed");
+    }
+
+    println!("\n  Running index-skills.sh...");
+    match cmd.status() {
+        Ok(s) if s.success() => println!("  \x1b[32mDone.\x1b[0m\n"),
+        Ok(s) => {
+            eprintln!("  \x1b[31mFailed (exit {}).\x1b[0m", s.code().unwrap_or(-1));
+            std::process::exit(1);
+        }
+        Err(e) => {
+            eprintln!("  \x1b[31mFailed: {e}\x1b[0m");
+            std::process::exit(1);
+        }
+    }
+}
+
 /// Build a TaskContext from a task ID by reading tasks.json.
 fn build_context_from_task(task_id: &str) -> Result<TaskContext> {
     let tasks_path = crate::util::find_tasks_file()

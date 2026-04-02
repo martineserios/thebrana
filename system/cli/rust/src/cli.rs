@@ -251,6 +251,12 @@ pub enum SkillsCmd {
     },
     /// List all local skills with metadata
     List,
+    /// Reindex skills into ruflo memory for semantic routing
+    Reindex {
+        /// Only reindex skills modified since last run
+        #[arg(long)]
+        changed: bool,
+    },
 }
 
 #[derive(Subcommand)]

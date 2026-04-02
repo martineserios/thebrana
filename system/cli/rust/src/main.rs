@@ -84,6 +84,7 @@ fn main() {
             }
             SkillsCmd::Search { query } => commands::skills::cmd_search(&query),
             SkillsCmd::List => commands::skills::cmd_list(),
+            SkillsCmd::Reindex { changed } => commands::skills::cmd_reindex(changed),
         },
         Commands::Handoff { cmd } => match cmd {
             // Aliases: handoff → session (structured JSON preferred, markdown fallback)
