@@ -106,6 +106,26 @@ Multi-account Gmail via IMAP with OS keyring credential storage.
 | `brana inbox remove <email>` | Remove an account |
 | `brana inbox status` | Show inbox health (last poll, message count) |
 
+### `brana skills` — Skill Discovery & Indexing
+
+| Command | Description |
+|---------|-------------|
+| `brana skills suggest --task <id>` | Recommend skills for a task based on context matching (ADR-025) |
+| `brana skills suggest --query <text>` | Recommend skills for a free-text query |
+| `brana skills search <query>` | Search local skills by keyword (name, description, keywords) |
+| `brana skills list` | List all local skills with metadata (JSON) |
+| `brana skills reindex` | Force full reindex of skills into ruflo memory (deletes mtime marker) |
+| `brana skills reindex --changed` | Only reindex skills modified since last run |
+
+### `brana knowledge` — Knowledge Base Indexing
+
+| Command | Description |
+|---------|-------------|
+| `brana knowledge reindex` | Full reindex of all 7 doc categories + orphan cleanup |
+| `brana knowledge reindex --changed` | Index only git-changed files (for post-commit hook) |
+| `brana knowledge reindex --patterns` | Reindex pattern files from project memory dirs |
+| `brana knowledge status` | Show entry count + last indexed timestamp |
+
 ### `brana` Root Commands
 
 | Command | Alias | Description |
