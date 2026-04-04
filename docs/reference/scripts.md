@@ -399,3 +399,59 @@ Thin wrapper that executes the brana-knowledge repo's own `backup.sh` script if 
 | **Dependencies** | None |
 
 Compares numeric claims in documentation files (e.g., "14 rules", "24 skills") against actual file counts in `system/`. Reports mismatches with expected vs actual values. Used by `validate.sh` and as a standalone check after doc or system changes.
+
+---
+
+## backup-memory.sh
+
+| Field | Value |
+|-------|-------|
+| **Purpose** | Rotating binary backup of ruflo memory database |
+| **Usage** | `backup-memory.sh` (backup), `backup-memory.sh --restore [--date YYYYMMDD]` (restore), `backup-memory.sh --list` (list backups) |
+| **Dependencies** | None (auto-detects DB path) |
+| **Status** | Active — scheduled daily at 07:00 UTC via brana-scheduler (before sync-state push) |
+
+Auto-detects the ruflo DB path (`~/.swarm/memory.db` > `~/.claude-flow/memory.db`). Copies the database to a dated backup file in `backups/` under the same directory. Keeps the last 7 dated copies. Skips 0-byte source files to avoid overwriting good backups with empty data.
+
+### Subcommands
+
+| Subcommand | Description |
+|------------|-------------|
+| *(default)* | Create a dated binary backup of the memory database |
+| `--restore` | Restore the latest non-zero backup (or a specific date with `--date YYYYMMDD`) |
+| `--list` | List available backups with sizes and dates |
+
+---
+
+## ruflo-batch-store.mjs
+
+| Field | Value |
+|-------|-------|
+| **Purpose** | Fast batch `memory_store` via MCP stdio protocol |
+| **Usage** | `cat entries.json \| node ruflo-batch-store.mjs` |
+| **Dependencies** | Node.js, ruflo MCP server |
+| **Status** | Active — canonical location is `system/scripts/ruflo-batch-store.mjs` |
+
+Reads a JSON array of memory entries from stdin and stores each via a single long-lived ruflo MCP process using JSON-RPC over stdio. ~30ms per entry vs ~15s per CLI call.
+
+### Input format
+
+JSON array on stdin:
+
+```json
+[{"key": "k", "value": "v", "namespace": "ns", "tags": ["t1"], "upsert": true}, ...]
+```
+
+Each entry requires `key`, `value`, and `namespace`. Optional fields: `tags` (string array), `upsert` (boolean, default false).
+
+---
+
+## ruflo-mcp.sh
+
+| Field | Value |
+|-------|-------|
+| **Purpose** | CWD wrapper to ensure ruflo MCP server finds its database |
+| **Usage** | Configured as the MCP server command in Claude Code settings |
+| **Dependencies** | ruflo (Node.js install) |
+
+Changes to `$HOME` before executing ruflo, so the MCP server reads `~/.swarm/memory.db` instead of looking for `.swarm/` relative to whatever working directory Claude Code launches from. Passes all arguments through to the ruflo binary.
