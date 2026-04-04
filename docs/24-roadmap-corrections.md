@@ -1753,7 +1753,7 @@ The backlog SKILL.md spec uses `session:{SESSION_ID}` as the claimant format for
 | 3 | docs/reference | Missing | `scripts.md` missing `index-patterns.sh` and `index-skills.sh` entries | Applied — added both script docs |
 | 4 | CLAUDE.md | Missing | `init-project` command undocumented in spec maintenance table | Applied — added to table |
 | 5 | CLAUDE.md | Incomplete | System architecture diagram missing cli/, scheduler/, scripts/, state/ dirs | Applied — updated diagram |
-| 6 | hooks | Missing | `task-sync.sh` not wired in hooks.json or settings.json despite MEMORY.md claim | Deferred — needs investigation |
+| 6 | hooks | Missing | `task-sync.sh` not wired in hooks.json or settings.json despite MEMORY.md claim | Resolved — dead code removed 2026-04-04, superseded by `task-completed.sh` + CLI sync |
 | 7 | docs/reference | Missing | `scripts.md` documents 9 of 22 scripts (13 undocumented) | Deferred — large doc update, beyond reconcile scope |
 | 8 | pyproject.toml | Stale | Version 0.1.0 vs plugin.json 1.0.0 | Deferred — different artifacts, may be intentional |
 

@@ -104,8 +104,7 @@ See `system/skills/*/SKILL.md` for full skill definitions.
 | post-pr-review.sh | PostToolUse | PR reviewer nudge |
 | post-tasks-validate.sh | PostToolUse | Schema validation + auto-rollup |
 | post-sale.sh | PostToolUse | Deal closure detection |
-| task-sync.sh | PostToolUse | tasks.json → GitHub Issues sync |
-| task-completed.sh | TaskCompleted | Task completion handling |
+| task-completed.sh | PostToolUse (Bash) | Task completion + GitHub Issues sync |
 | config-drift.sh | (utility) | Compare system/ source vs deployed ~/.claude/ |
 
 ## Recommended Plugins

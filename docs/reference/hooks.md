@@ -101,10 +101,6 @@ known good state. Warns when config may have drifted from system/ source of trut
 
 No strict mode — hooks must never fail and block the session.
 
-### `task-sync.sh`
-
-Brana PostToolUse hook — sync tasks.json changes to GitHub Issues + Projects.
-
 ### `tdd-gate.sh`
 
 PreToolUse: TDD Enforcement Gate for implementation files.

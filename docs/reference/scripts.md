@@ -285,7 +285,7 @@ Scheduled weekly (Mon 10:00) via `~/.claude/scheduler/scheduler.json` → `cc-ch
 | **Usage** | `gh-sync.sh <subcommand> [args]` |
 | **Dependencies** | `gh` CLI, `jq` |
 
-Subcommands: `create <task-id> <tasks-json>`, `close <issue-number>`, `update <task-id> <tasks-json>`, `pull-context <issue-number>`. Used by the PostToolUse hook (`task-sync.sh`) and by `brana backlog sync` (Rust CLI).
+Subcommands: `create <task-id> <tasks-json>`, `close <issue-number>`, `update <task-id> <tasks-json>`, `pull-context <issue-number>`. Used by `task-completed.sh` (PostToolUse hook) and by `brana backlog sync` (Rust CLI).
 
 ---
 

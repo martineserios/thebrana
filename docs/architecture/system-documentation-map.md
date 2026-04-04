@@ -62,15 +62,14 @@ Hooks fire on Claude Code lifecycle events. Plugin `hooks.json` registers PreToo
 | `post-plan-challenge.sh` | PostToolUse | ExitPlanMode | Plan review | Nudges challenger agent for adversarial review after plan finalization. |
 | `post-pr-review.sh` | PostToolUse | Bash (`gh pr create`) | PR review | Nudges pr-reviewer agent for automated code review. |
 | `post-sale.sh` | PostToolUse | Write\|Edit on pipeline files | Deal tracking | Detects deal closures, snapshots to memory. |
-| `task-sync.sh` | PostToolUse | tasks.json changes | GitHub sync | Syncs tasks.json to GitHub Issues + Projects. |
-| `task-completed.sh` | TaskCompleted | Brana task done | Task pipeline | Parent rollup, close GitHub issue, log to decision log. |
+| `task-completed.sh` | PostToolUse (Bash) | Brana task done | Task pipeline | Parent rollup, close GitHub issue, log to decision log. |
 | `config-drift.sh` | (utility) | Manual | Drift detection | Compares system/ source vs deployed ~/.claude/ files. |
 
 ### Plugin hooks.json vs settings.json
 
 Plugin `hooks.json` handles: PreToolUse (5 hooks), SessionStart, SessionEnd, SubagentStart (2), SubagentStop, TaskCompleted, StopFailure.
 
-PostToolUse/PostToolUseFailure hooks plus `task-sync.sh` and `task-completed.sh` must be installed via `bootstrap.sh` into `~/.claude/settings.json` with absolute paths.
+PostToolUse/PostToolUseFailure hooks plus `task-completed.sh` must be installed via `bootstrap.sh` into `~/.claude/settings.json` with absolute paths.
 
 ### Rule-Based Enforcement
 

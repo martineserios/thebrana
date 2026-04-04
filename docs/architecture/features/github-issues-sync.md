@@ -36,8 +36,8 @@ tasks.json is a rich task system (23 fields, DAG dependencies, build_step tracki
 ## Scope (v1) — what shipped
 
 ### Shipped
-- PostToolUse hook (`system/hooks/task-sync.sh` + `task-sync.py`) fires on any Write/Edit to `*/.claude/tasks.json`
-- Incremental sync: detects new tasks and changed tasks (via hash of status|priority|effort|subject)
+- ~~PostToolUse hook (`task-sync.sh` + `task-sync.py`) — removed: superseded by `task-completed.sh` + CLI sync~~
+- `task-completed.sh` PostToolUse hook fires on `brana backlog set ... status completed` — closes GitHub issue, runs parent rollup
 - Cross-repo sync for all 4 clients via global `~/.claude/task-sync-config.json`
 - Stream-based filtering: only `roadmap`, `tech-debt`, `bugs` stream tasks sync
 - Label mapping: `stream:{stream}`, `tag:{tag}` — phases/milestones get `enhancement`
@@ -47,7 +47,7 @@ tasks.json is a rich task system (23 fields, DAG dependencies, build_step tracki
 - Completed/cancelled tasks auto-closed with appropriate reason
 - State files: `.claude/task-issue-map.json` (task→issue mapping), `.claude/task-sync-hashes.json` (change detection)
 - Hook runs in background (`nohup &`) — never blocks the session
-- 42 unit tests (`tests/hooks/test_task_sync.py`)
+- ~~42 unit tests (`tests/hooks/test_task_sync.py`) — removed with task-sync.sh~~
 
 ### Shipped in v2 (t-475, 2026-03-15)
 - `brana backlog sync [--dry-run] [--force] [--parallel N]` — bulk CLI command, parallel via `std::thread::scope` + `gh api` subprocesses
@@ -58,7 +58,7 @@ tasks.json is a rich task system (23 fields, DAG dependencies, build_step tracki
 - Rate limit retry (sleeps 5s on 429/secondary rate)
 
 ### Designed but not shipped (from original spec)
-- `system/scripts/gh-sync.sh` helper script — replaced by `task-sync.py` (incremental) and `sync.rs` (bulk)
+- `system/scripts/gh-sync.sh` helper script — used by `task-completed.sh` for issue close; bulk sync via `sync.rs`
 - Per-project `.claude/tasks-config.json` — replaced by global `~/.claude/task-sync-config.json`
 - One-shot context pull (issue comments → task context at pick time) — not implemented
 - Label drift detection and prune-labels command — not implemented
@@ -114,22 +114,12 @@ Project slug is auto-detected from the tasks.json file path: `dirname(dirname(fi
 
 **Note:** The original spec proposed per-project `.claude/tasks-config.json` with theme config merged in. The shipped version separates concerns: theme config stays in tasks-config.json, sync config lives in its own global file.
 
-### Sync trigger (as shipped)
+### Sync trigger (current)
 
-The PostToolUse hook fires on every Write/Edit to `*/.claude/tasks.json`:
+**v1 incremental hook (`task-sync.sh` + `task-sync.py`) was removed** — it fired on Write/Edit to tasks.json, but since all task mutations moved to the Rust CLI, the hook never triggered. Replaced by:
 
-1. `task-sync.sh` (bash gate) filters for Write/Edit to `.claude/tasks.json` files only
-2. Detects project slug from file path
-3. Checks if project is in `~/.claude/task-sync-config.json`
-4. Launches `task-sync.py` in background via `nohup &`
-
-`task-sync.py` handles all sync logic:
-- Loads tasks, filters by `keep_streams`
-- Compares against `task-issue-map.json` (new tasks) and `task-sync-hashes.json` (changed tasks)
-- Creates new issues: `gh issue create` with labels, add to project, set fields
-- Updates changed issues: edit title/body/labels, close/reopen based on status, update project fields
-- Saves updated map and hashes after each operation
-- 0.5s delay between API calls for rate limiting
+1. `task-completed.sh` (PostToolUse on Bash) — detects `brana backlog set <id> status completed`, calls `gh-sync.sh close` to close the linked GitHub issue
+2. `brana backlog sync` (Rust CLI, v2) — bulk parallel sync for creation, updates, and drift correction
 
 ### Sync operations
 
@@ -189,12 +179,12 @@ Labels auto-created via `gh label create --force` on each sync. No `priority:` o
 
 | File | Change |
 |------|--------|
-| `system/hooks/task-sync.sh` | **New** — PostToolUse gate script (bash, 61 LOC) |
-| `system/hooks/task-sync.py` | **New** — sync logic (Python, 355 LOC) |
+| `system/hooks/task-sync.sh` | **Removed** — superseded by `task-completed.sh` + CLI sync |
+| `system/hooks/task-sync.py` | **Removed** — superseded by `task-completed.sh` + CLI sync |
 | `~/.claude/task-sync-config.json` | **New** — global config (owner, projects, keep_streams) |
 | `.claude/task-issue-map.json` | **Generated** — task ID → issue number mapping (per-project) |
 | `.claude/task-sync-hashes.json` | **Generated** — task field hashes for change detection (per-project) |
-| `tests/hooks/test_task_sync.py` | **New** — 42 pytest tests |
+| `tests/hooks/test_task_sync.py` | **Removed** — tests for removed hook |
 
 ### Added in v2 (t-475)
 | File | Change |
