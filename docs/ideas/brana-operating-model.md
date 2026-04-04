@@ -98,7 +98,9 @@ Plus `/brana:onboard` for exploring new codebases.
 
 **Close integration:** `/brana:close` auto-detects brana system file changes → triggers `--scope consistency,propagation` automatically.
 
-**Retires:** `/brana:audit`, `/brana:reconcile`, `/brana:maintain-specs`.
+**Implementation path:** Phase B3 expands `/brana:reconcile` with consistency + propagation + security checks. `/brana:maintain` as a unified mega-skill is deferred until /reconcile proves insufficient.
+
+**Retires:** `/brana:audit`, `/brana:maintain-specs` (absorbed into expanded /reconcile).
 
 ### 6. GROW
 
@@ -147,10 +149,18 @@ Embedded in all thinking-jobs. Steps 1-5 run per-skill. Step 6 on a weekly sched
 
 All other skills stay untouched.
 
+> Note: `/brana:close` gets EXTRACT-only as a Phase A stepping stone (no LOAD — runs at session end, not start). The 4 skills above get the full loop starting Phase B+C.
+
+The auto-learning loop generalizes what `/brana:close` already does (gather evidence → extract findings → store patterns) to all thinking skills. /close's debrief workflow is the prototype for EXTRACT.
+
 ### Step 1: LOAD
+
+**LOAD v1 (Phase B):** ruflo semantic search only.
+**LOAD v2 (after Phase D2):** ruflo search + graph edge traversal (depends_on, informs). Requires `brana graph` CLI.
 
 - Build query: `"{project} {task.subject} {task.tags} {user_input}"`
 - Primary: `memory_search(query, namespace: "all", limit: 5, threshold: 0.4)`
+- v2 addition: follow typed edges from matched docs (one hop: depends_on, informs)
 - Fallback: tag-based grep across dimensions + reflections
 - Budget: 30K tokens max (configurable per skill)
 
@@ -160,7 +170,7 @@ Unchanged — skills execute as today.
 
 ### Step 3: EXTRACT
 
-At skill end, LLM identifies: facts learned, decisions made, patterns observed.
+At skill end, LLM identifies: facts learned, decisions made, patterns observed. EXTRACT enhances /close's existing debrief-analyst agent prompt with ontology-aware classification (entity types as vocabulary). Not a parallel system — an upgrade to what exists.
 
 ### Step 4: EVALUATE (Tiered Quality Gate)
 
@@ -173,8 +183,8 @@ At skill end, LLM identifies: facts learned, decisions made, patterns observed.
 | Size | Gate | Speed | Cost |
 |------|------|-------|------|
 | SMALL | None — auto-persist | Instant | Zero |
-| MEDIUM | Inline eval (dedup, consistency, scope, source) | ~5s | ~2K tokens |
-| LARGE | Challenger agent (Opus) + human | ~30s + human | ~10K tokens |
+| MEDIUM | Inline eval (dedup, consistency, scope, source). Dedup checks ruflo AND backlog tasks ("overlaps with t-XXX?"). | ~5s | ~2K tokens |
+| LARGE | Invokes `/brana:challenge` (existing skill, shared infrastructure). Opus adversarial review + human approval. | ~30s + human | ~10K tokens |
 
 ### Step 5: PERSIST
 
@@ -194,7 +204,9 @@ Three targets, continuous (stale warnings during LOAD) + weekly scan:
 
 **Event log bloat:** >90 day entries → archive with pre-archive digest (themes + counts).
 
-**Ruflo noise:** Old/low-confidence entries → soft decay (lower ranking) → hard decay at 180 days (prompted delete). Tracked in `decay-tracker.json`.
+**Ruflo noise:** Old/low-confidence entries → soft decay (lower ranking) → hard decay at 180 days (prompted delete). Tracked via session state metrics aggregation (no separate decay-tracker.json — same data serves measurement framework and DECAY).
+
+DECAY is implemented as the knowledge domain of expanded /reconcile. Not a separate system — same scan, same weekly cadence.
 
 ---
 
@@ -209,7 +221,8 @@ Three targets, continuous (stale warnings during LOAD) + weekly scan:
 │  ARCHIVAL MEMORY (searched on demand — loaded by skills)│
 │  brana-knowledge/dimensions/ + docs/reflections/        │
 │  + ruflo memory entries (1364 entries, 5 namespaces)    │
-│  Searched via ruflo or grep. Top 3-5 docs loaded.       │
+│  Searched via ruflo MCP-first (42ms/entry, t-894).      │
+│  Direct SQLite as emergency fallback. Top 3-5 loaded.   │
 ├─────────────────────────────────────────────────────────┤
 │  EXTERNAL (fetched when needed — not cached)            │
 │  Web search, GitHub repos, API docs, MCP tools          │
@@ -232,6 +245,8 @@ BUILD can trigger UNDERSTAND (diagnosis needed for a bug)
 UNDERSTAND can trigger BUILD (spike/prototype helps understanding)
 GROW can trigger UNDERSTAND (market research needed)
 DECIDE can trigger UNDERSTAND (triaging requires investigation)
+SHIP triggers DECIDE (task completion, GitHub issues closed)
+SHIP triggers GROW (client notification, deploy communication)
 ```
 
 The auto-learning loop runs at **every level** — outer job and inner sub-flows both produce knowledge.
@@ -250,15 +265,19 @@ Skills auto-detect strategy via 3-level escalation. All logic in skill markdown 
 | **2. LLM classify** | Prompt template classifies from context | ~25-30% |
 | **3. Ask user** | AskUserQuestion with options | ~5-10% |
 
+> Design note: The strategy routing mechanism (signal → LLM → ask) is shared across /build and /research. Implement once as a reusable function parameterized per skill's strategy set.
+
 ### Mid-Workflow Rerouting
 
 Gate checks at each step: can't reproduce → investigate. Root cause found → back to build. Scope grew → reroute to feature.
 
-### Router Self-Learning
+### Router Self-Learning (Deferred)
 
 1. Log every routing decision to ruflo (`namespace: "routing"`)
 2. Weekly: detect reroute patterns ("4/6 security bugs rerouted → promote to Level 1 rule")
 3. After 10+ consistent reroutes, suggest new Level 1 signal rule
+
+> Note: Self-learning is deferred (Phase D evidence-gated). Phase D5 implements levels 1+2 only. Self-learning activates when reroute data justifies the infrastructure.
 
 ---
 
@@ -376,6 +395,8 @@ Appended to session state JSON during /close:
 
 30-day review: `brana session history --json | jq '[.[].extract_metrics]'`
 
+The same session state metrics serve DECAY: aggregate ontology_metrics across sessions to identify zero-usage types and untouched docs. No separate decay-tracker.json needed.
+
 ### Ratchet Gate
 
 If month 1 metrics don't hit targets → fix EXTRACT, don't add LOAD.
@@ -412,6 +433,7 @@ Reordered after challenger review: highest-pain items first, evidence gates betw
 | **B1** | Add LOAD to 4 thinking skills (ruflo search + graph edges) | 2 days |
 | **B2** | Ontology v1.5 (5 types + 3 relationships in frontmatter) | 1 day |
 | **B3** | Retire /audit + /maintain-specs, fold into /reconcile | 1 day |
+| **B4** | Wire /close → /reconcile auto-trigger on brana system file changes | 0.5 day |
 
 **Gate:** EXTRACT accuracy >60% AND doc-update rate >50%.
 
@@ -448,7 +470,7 @@ Reordered after challenger review: highest-pain items first, evidence gates betw
 
 ### Approach: Ontology First → Graph Emerges
 
-1. **Ontology spec** (`docs/brana-ontology.yaml`) defines the semantic structure: 15 entity types, 11 relationships, 6 axioms
+1. **Ontology spec** (`docs/brana-ontology.yaml`) defines the semantic structure: 15 entity types, 11 relationships, 6 axioms. All 15 types shipped initially; usage tracked via session state metrics. Types with zero usage after 30 days demoted from active graph processing (YAML retains all as documentation).
 2. **Frontmatter annotations** on docs declare typed relationships (depends_on, informs, applies_to, etc.)
 3. **Computed graph** from frontmatter → extends spec-graph.json with typed edges. Built by script/hook.
 4. **LOAD step** follows graph edges for smarter knowledge loading (not just vector similarity)
@@ -519,7 +541,7 @@ Target: `brana graph` Rust CLI subcommand (replaces spec_graph.py). Reads ontolo
 ### Creators to Follow
 See `memory/reference_ontology-kg-creators.md`: Lindenberg, Seale, Jorgenson, Vanderseypen, Kamau, Zaveckas.
 
-## 12. Full Interaction Map
+## 13. Full Interaction Map
 
 How ontology, ruflo, memory, knowledge base, and the auto-learning loop interact:
 
@@ -577,7 +599,7 @@ decay-tracker   ◄── LOAD (bump access)  ──► DECAY (identify stale)
 
 **In one sentence:** The ontology defines the vocabulary, ruflo provides the search, frontmatter stores the relationships, spec-graph computes the full picture, the auto-learning loop keeps it all flowing, and DECAY prevents drowning in accumulation.
 
-## Supersedes
+## 14. Supersedes
 
 This operating model consolidates and supersedes the following earlier idea docs:
 
