@@ -335,23 +335,116 @@ TDD → test files                           (does it work correctly)
 
 ---
 
-## 10. Phased Rollout
+## 10. Measurement Framework (Ratchet-Gated)
 
-| Phase | What | Effort |
-|-------|------|--------|
-| **1: LOAD** | Add `knowledge_load()` to 4 thinking skills | 1-2 days |
-| **2: EXTRACT + EVALUATE** | Tiered evaluation gate at skill end | 2-3 days |
-| **3: PERSIST** | Auto SMALL, prompt MEDIUM/LARGE | 1-2 days |
-| **4: DECAY** | Weekly health scan + prompted cleanup | 1-2 days |
-| **5: MAINTAIN unify** | Absorb audit + reconcile + maintain-specs | 2-3 days |
-| **6: SHIP** | New skill with 6 generic steps | 2-3 days |
-| **7: UNDERSTAND strategies** | Add evaluate, learn, investigate to /research | 2-3 days |
-| **8: Smart router** | 3-level routing + self-learning | 1-2 days |
-| **9: Doc enforcement** | Scoped hook + ADR lifecycle | 1-2 days |
+Each phase only ships if the previous phase's metrics hit targets. No evidence = no expansion.
+
+### Primary Metric: Doc-Update Rate
+
+```
+BEFORE: 28% of behavioral commits include doc updates
+Month 1 target: >50%
+Month 3 target: >70%
+Measurement: git log analysis (same method as the 72% diagnosis)
+```
+
+### Per-Step Metrics
+
+| Metric | What it measures | Target | How to collect |
+|--------|-----------------|--------|---------------|
+| **Doc-update rate** | % behavioral commits with docs | >50% (m1), >70% (m3) | `git log` analysis |
+| **EXTRACT accuracy (precision)** | % of suggestions that match real changes | >70% | Compare EXTRACT output vs `git diff` |
+| **EXTRACT accuracy (recall)** | % of real changes that EXTRACT caught | >60% | Compare EXTRACT output vs `git diff` |
+| **Accept rate** | % of suggestions user accepted | >40% | Track in session state JSON |
+| **Skip rate** | % of suggestions user skipped | <60% | Track in session state JSON |
+| **Close duration** | Time added to /close by EXTRACT | <2x current | Track in session state JSON |
+| **Ontology type usage** | Which entity types are loaded/extracted/persisted | >0 in 30 days | Track in session state JSON |
+| **Relationship usage** | Which relationship types are traversed/written | >0 in 30 days | Track in session state JSON |
+
+### Collection
+
+Appended to session state JSON during /close:
+```json
+"extract_metrics": {
+  "behavioral_files_changed": 5,
+  "findings_proposed": 3,
+  "findings_accepted": 2,
+  "findings_skipped": 1,
+  "close_duration_seconds": 180
+}
+```
+
+30-day review: `brana session history --json | jq '[.[].extract_metrics]'`
+
+### Ratchet Gate
+
+If month 1 metrics don't hit targets → fix EXTRACT, don't add LOAD.
+If EXTRACT accuracy <50% → the LLM prompt needs improvement, not more steps.
+If skip rate >80% → suggestions aren't useful, not a discipline problem.
+
+### Challenger Critique (2026-04-04)
+
+Opus adversarial review found 3 critical issues:
+1. Full loop is too ambitious for a 72%-failure system → graduated monthly rollout
+2. Ontology v2 (15 types) contradicts cited sources → start with 5 types
+3. Rollout puts doc enforcement last → reorder to pain-first
+
+Full challenge report stored in decision log. Verdict: PROCEED WITH CHANGES.
+
+## 11. Phased Rollout (Revised — Pain-First, Evidence-Gated)
+
+Reordered after challenger review: highest-pain items first, evidence gates between phases.
+
+### Phase A: Foundation (Month 1)
+
+| Step | What | Effort |
+|------|------|--------|
+| **A1** | EXTRACT-only in /close (diff-based doc update prompting) | 1-2 days |
+| **A2** | Doc-enforcement hook (behavioral files on feat/fix branches) | 1 day |
+| **A3** | 6-job taxonomy as CLAUDE.md reorganization | 1 hour |
+
+**Gate:** After 30 days, measure doc-update rate. If <50%, fix A1/A2 before proceeding.
+
+### Phase B: Knowledge Loading (Month 2, if Gate A passes)
+
+| Step | What | Effort |
+|------|------|--------|
+| **B1** | Add LOAD to 4 thinking skills (ruflo search + graph edges) | 2 days |
+| **B2** | Ontology v1.5 (5 types + 3 relationships in frontmatter) | 1 day |
+| **B3** | Retire /audit + /maintain-specs, fold into /reconcile | 1 day |
+
+**Gate:** EXTRACT accuracy >60% AND doc-update rate >50%.
+
+### Phase C: Full Loop (Month 3, if Gate B passes)
+
+| Step | What | Effort |
+|------|------|--------|
+| **C1** | Move EXTRACT into thinking skills (per-skill, not just /close) | 1-2 days |
+| **C2** | Add EVALUATE (tiered gate: SMALL/MEDIUM/LARGE) | 1-2 days |
+| **C3** | PERSIST routing (auto SMALL, prompt MEDIUM/LARGE) | 1 day |
+
+**Gate:** Accept rate >40%, skip rate <60%.
+
+### Phase D: Maturity (Month 4+, if Gate C passes)
+
+| Step | What | Effort |
+|------|------|--------|
+| **D1** | DECAY (weekly scan, staleness marking, archive) | 1-2 days |
+| **D2** | `brana graph` Rust CLI (ontology-aware, replaces spec_graph.py) | 2-3 days |
+| **D3** | UNDERSTAND strategies (evaluate, learn, investigate) | 2-3 days |
+| **D4** | SHIP skill (6 generic steps) | 2-3 days |
+| **D5** | Smart router (levels 1+2 only, no self-learning) | 1-2 days |
+
+### Deferred (gated on Phase D evidence)
+
+- Full ontology v2 (15 types) — add when workflow demands
+- Smart router self-learning — add when reroute data justifies
+- Obsidian as human interface — add when graph visualization is a real need
+- Unified /maintain mega-skill — add if /reconcile expansion proves insufficient
 
 ---
 
-## 11. Ontology + Knowledge Graph
+## 12. Ontology + Knowledge Graph
 
 ### Approach: Ontology First → Graph Emerges
 
