@@ -1,10 +1,10 @@
 {
   "_meta": {
-    "generated": "2026-04-02T20:09:13Z",
-    "node_count": 210,
+    "generated": "2026-04-04T14:14:51Z",
+    "node_count": 211,
     "edge_count": 568,
-    "impl_ref_count": 267,
-    "orphan_count": 102,
+    "impl_ref_count": 268,
+    "orphan_count": 103,
     "typed_edge_count": 0
   },
   "nodes": {
@@ -1161,8 +1161,8 @@
       "references": [],
       "referenced_by": [],
       "impl_files": [
-        "system/hooks/task-sync.sh",
         "system/scripts/gh-sync.sh",
+        "system/hooks/task-sync.sh",
         "system/hooks/task-sync.py",
         "system/cli/rust/src/sync.rs",
         "system/cli/rust/src/cli.rs"
@@ -2933,6 +2933,14 @@
       "arch_files": [],
       "ref_files": []
     },
+    "docs/ideas/knowledge-aware-skills.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
     "docs/ideas/mission-control.md": {
       "references": [],
       "referenced_by": [],
@@ -3233,7 +3241,8 @@
         "system/commands/",
         "system/scripts/cc-changelog-check.sh",
         "system/scripts/index-patterns.sh",
-        "system/scripts/index-skills.sh"
+        "system/scripts/index-skills.sh",
+        "system/scripts/ruflo-batch-store.mjs"
       ],
       "guide_files": [
         "docs/guide/concepts.md",
