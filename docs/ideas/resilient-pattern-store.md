@@ -1,5 +1,7 @@
 # Resilient Pattern Store — Hybrid Dual-Write
 
+> **Superseded by [Brana Operating Model](brana-operating-model.md).** This doc is preserved for historical context.
+
 > Brainstormed 2026-04-01. Status: idea.
 
 ## Problem

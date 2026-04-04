@@ -426,6 +426,79 @@ Target: `brana graph` Rust CLI subcommand (replaces spec_graph.py). Reads ontolo
 ### Creators to Follow
 See `memory/reference_ontology-kg-creators.md`: Lindenberg, Seale, Jorgenson, Vanderseypen, Kamau, Zaveckas.
 
+## 12. Full Interaction Map
+
+How ontology, ruflo, memory, knowledge base, and the auto-learning loop interact:
+
+```
+LOAD (skill start)
+  ├── ruflo memory_search(namespace: "all") → top 5 by similarity
+  ├── spec-graph.json → follow typed edges (depends_on, informs)
+  ├── MEMORY.md → already in context (core memory)
+  └── Stale check: frontmatter staleness → warn user
+       ▼
+WORK (skill executes with enriched context)
+       ▼
+EXTRACT (skill end)
+  └── Ontology entity types = vocabulary for classification
+      "Is this a Pattern? ADR? FieldNote? Assumption?"
+       ▼
+EVALUATE (tiered)
+  ├── ruflo memory_search → novelty check (dedup)
+  ├── Ontology axioms → contradicts? supersedes? transferable?
+  └── Tier: SMALL (auto) / MEDIUM (inline) / LARGE (challenger)
+       ▼
+PERSIST (route by type)
+  ├── Pattern → ruflo memory_store(namespace: pattern) + memory/ file
+  ├── FieldNote → append to dimension doc + ruflo(namespace: field-notes)
+  ├── ADR → docs/architecture/decisions/ADR-NNN.md
+  ├── Dimension update → brana-knowledge/dimensions/
+  ├── Tags/URLs/context → auto (SMALL, no prompt)
+  │
+  ALSO:
+  ├── Write frontmatter relationships (produced_by, applies_to, etc.)
+  ├── ruflo memory_store → indexed with embedding for future LOAD
+  └── Post-commit hook → spec-graph recomputes → new edges appear
+       ▼
+(weekly)
+DECAY
+  ├── Stale dimensions → spec-graph orphans + ruflo access tracking
+  ├── Event log bloat → archive with digest
+  ├── Ruflo noise → soft decay (lower ranking) → hard decay (180d, prompted)
+  └── Graph health → orphan nodes, contradiction checks, supersession chains
+```
+
+### Data Flow
+
+```
+Component           WRITES TO              READS FROM
+─────────           ────────               ──────────
+Markdown files  ◄── PERSIST (findings)  ──► LOAD (Read tool)
+Frontmatter     ◄── PERSIST (relations) ──► spec-graph builder
+spec-graph.json ◄── post-commit hook    ──► LOAD, MAINTAIN, DECAY
+ruflo           ◄── PERSIST, DECAY      ──► LOAD, EVALUATE, EXTRACT
+brana-ontology  ◄── rarely changed      ──► EXTRACT, EVALUATE, PERSIST
+MEMORY.md       ◄── /close, manual      ──► always in context (CC)
+decay-tracker   ◄── LOAD (bump access)  ──► DECAY (identify stale)
+```
+
+**In one sentence:** The ontology defines the vocabulary, ruflo provides the search, frontmatter stores the relationships, spec-graph computes the full picture, the auto-learning loop keeps it all flowing, and DECAY prevents drowning in accumulation.
+
+## Supersedes
+
+This operating model consolidates and supersedes the following earlier idea docs:
+
+| Superseded doc | Covered by section |
+|---------------|-------------------|
+| `agent-observability-learning.md` | Auto-learning loop (EXTRACT step) |
+| `dynamic-skill-routing.md` | Smart Router (section 5) |
+| `skill-auto-router.md` | Smart Router (section 5) |
+| `enforcement-vs-injection.md` | Documentation Discipline (section 6) |
+| `resilient-pattern-store.md` | Memory Hierarchy (section 3) + MCP-first ruflo |
+| `session-aware-loop-integration.md` | Auto-learning loop embedded in all thinking-skills |
+
+Note: `ruflo-native-integration.md` remains active — it covers ruflo controller details and upstream issues beyond the operating model's scope.
+
 ## Related
 
 - Ontology: `docs/brana-ontology.yaml`

@@ -1,5 +1,7 @@
 # Session-Aware Loop Integration for Brana
 
+> **Superseded by [Brana Operating Model](brana-operating-model.md).** This doc is preserved for historical context.
+
 > Brainstormed 2026-03-30. Status: idea.
 
 ## Problem

@@ -1,5 +1,7 @@
 # Skill Auto-Router
 
+> **Superseded by [Brana Operating Model](brana-operating-model.md).** This doc is preserved for historical context.
+
 > Brainstormed 2026-04-01. Status: idea. Supersedes dynamic-skill-routing.md (t-608).
 > Challenger review 2026-04-01: RECONSIDER → revised to dual-path (CLI fast + HNSW smart).
 > Simplification pass 2026-04-01: merged to single entry point, single routing path, 2+1 phases.

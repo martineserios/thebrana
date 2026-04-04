@@ -1,5 +1,7 @@
 # Dynamic Skill Routing — Investigation Report (t-608)
 
+> **Superseded by [Brana Operating Model](brana-operating-model.md).** This doc is preserved for historical context.
+
 > Investigated 2026-03-21. Status: recommendation ready.
 
 ## Question
