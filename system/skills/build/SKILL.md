@@ -19,6 +19,8 @@ allowed-tools:
   - Glob
   - Grep
   - Task
+  - EnterPlanMode
+  - ExitPlanMode
   - WebSearch
   - WebFetch
   - AskUserQuestion
@@ -217,9 +219,26 @@ At any point during the build, the user can say "this is actually a {type}" and 
 
 ---
 
+## Step 1b: PLAN MODE (SPECIFY/DECOMPOSE)
+
+**For Medium/Large builds:** Enter plan mode for SPECIFY and DECOMPOSE steps. These are read-only analysis phases where plan mode's structured output helps produce better specs and task breakdowns.
+
+```
+EnterPlanMode  ← before SPECIFY starts
+  SPECIFY      ← read-only research, analysis, spec drafting
+  DECOMPOSE    ← break spec into tasks, dependency analysis
+ExitPlanMode   ← before APPROVE (user needs to interact)
+```
+
+**For Trivial/Small builds:** Skip plan mode. Proceed inline.
+
+**Plan-mode gate:** The `plan-mode-gate.sh` hook allows plan mode during CLASSIFY/SPECIFY/DECOMPOSE/APPROVE but blocks it during BUILD/CLOSE to prevent conflicts with the build step registry.
+
+---
+
 ## Step 2: APPROVE
 
-**Mandatory for Medium/Large builds.** After CLASSIFY confirms the strategy, present the step sequence and get approval before executing. **Do NOT use CC plan mode (EnterPlanMode) — use AskUserQuestion for approval.**
+**Mandatory for Medium/Large builds.** After SPECIFY and DECOMPOSE produce a structured plan, exit plan mode and get approval via AskUserQuestion.
 
 1. **Present the strategy's step sequence** inline:
    ```

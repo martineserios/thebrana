@@ -15,6 +15,8 @@ allowed-tools:
   - Glob
   - Grep
   - Task
+  - EnterPlanMode
+  - ExitPlanMode
   - AskUserQuestion
 status: stable
 growth_stage: evergreen
@@ -44,6 +46,17 @@ When executing a specific business milestone: product launch, hiring round, fund
 On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
 
 Register these steps: ORIENT, PLAN, RECALL, EXECUTE, VALIDATE, DEBRIEF, REPORT.
+
+## Plan Mode
+
+Enter plan mode for the context-gathering phases (ORIENT, RECALL). These read existing docs, metrics, and memory without writing anything.
+
+```
+EnterPlanMode  ← before ORIENT
+  ORIENT       ← identify milestone, detect stage, read context
+  RECALL       ← search memory for relevant patterns
+ExitPlanMode   ← before PLAN (interactive, needs user input)
+```
 
 ---
 

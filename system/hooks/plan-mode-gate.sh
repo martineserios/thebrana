@@ -6,12 +6,12 @@ cd /tmp 2>/dev/null || true
 
 # PreToolUse: Plan Mode Gate
 #
-# Blocks EnterPlanMode when an active /brana:build session exists
-# (any task on the current branch with a non-null build_step).
+# Blocks EnterPlanMode when /brana:build is in an execution phase (BUILD/CLOSE).
+# Allows plan mode during read-only analysis phases (CLASSIFY/SPECIFY/DECOMPOSE/APPROVE).
 #
-# Rationale: /brana:build manages its own approval flow via AskUserQuestion
-# and CC Tasks. CC plan mode conflicts with this — it locks the session into
-# read-only mode and bypasses the build step registry.
+# Rationale: Plan mode is valuable for SPECIFY and DECOMPOSE — they're read-only
+# analysis where structured planning output helps. But during BUILD, plan mode
+# conflicts with the build step registry and locks the session read-only.
 #
 # Graceful degradation: any failure → pass through (allow).
 
@@ -74,8 +74,12 @@ if [ -z "$BUILD_STEP" ]; then
         "$TASKS_FILE" 2>/dev/null) || BUILD_STEP=""
 fi
 
-# Step 6: If build_step is set (any value), deny EnterPlanMode
+# Step 6: Allow plan mode during read-only phases, block during execution phases
+# Pre-BUILD phases (CLASSIFY, SPECIFY, DECOMPOSE, APPROVE) benefit from plan mode.
+# BUILD and CLOSE phases conflict with the step registry and need write access.
 case "$BUILD_STEP" in
     ""|null) pass_through ;;
-    *) deny "/brana:build is active (step: $BUILD_STEP). Use the build skill's approval flow (AskUserQuestion) instead of CC plan mode. Plan mode conflicts with the build step registry." ;;
+    CLASSIFY|SPECIFY|DECOMPOSE|APPROVE) pass_through ;;
+    BUILD|CLOSE) deny "/brana:build is in execution phase (step: $BUILD_STEP). Plan mode conflicts with the build step registry during BUILD/CLOSE. Use AskUserQuestion for approval instead." ;;
+    *) deny "/brana:build is active (step: $BUILD_STEP). Exit the build step or complete it before entering plan mode." ;;
 esac

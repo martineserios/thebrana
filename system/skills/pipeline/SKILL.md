@@ -12,7 +12,7 @@ allowed-tools:
   - Glob
   - Grep
   - Bash
-  - Task
+  - TodoWrite
   - AskUserQuestion
 status: stable
 growth_stage: evergreen
@@ -30,17 +30,19 @@ Track leads, deals, conversions, and follow-ups. A stage-aware CRM that works wi
 - Marking a deal as closed (won or lost)
 - Reviewing pipeline health before a weekly review or monthly close
 
-## Step Registry
+## Progress Tracking
 
-On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
+On entry, create a TodoWrite checklist for the 4 steps. This is a lightweight workflow — TodoWrite provides sufficient progress visibility without the overhead of persistent Tasks API.
 
-Register these steps: DETECT, LOAD, ACTION, REPORT.
+```
+TodoWrite:
+  - "Detect venture stage" (pending)
+  - "Load pipeline data" (pending)
+  - "Execute pipeline action" (pending)
+  - "Generate pipeline report" (pending)
+```
 
-### Resume After Compression
-
-If context was compressed:
-1. Call `TaskList` — find CC Tasks matching `/brana:pipeline — {STEP}`
-2. The `in_progress` task is your current step — resume from there
+Mark each step `in_progress` → `completed` as you work through them.
 
 ---
 

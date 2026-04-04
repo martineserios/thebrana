@@ -15,6 +15,8 @@ allowed-tools:
   - Bash
   - AskUserQuestion
   - Task
+  - EnterPlanMode
+  - ExitPlanMode
 status: stable
 growth_stage: evergreen
 ---
@@ -192,6 +194,22 @@ For the `plan` and `execute` subcommands, create a CC Task step registry on entr
 
 **plan steps:** DETECT, READ, MILESTONES, TASKS, DEPS, PROPOSE, WRITE
 **execute steps:** READ, FILTER, WAVES, CONFIRM, EXECUTE, WRITEBACK, REPORT
+
+### Plan Mode (plan subcommand only)
+
+Enter plan mode for the analysis phases of `brana backlog plan`. Steps 1-5 (DETECT through DEPS) are read-only — they scan existing tasks, detect the project, and analyze dependencies before proposing anything.
+
+```
+EnterPlanMode  ← before DETECT
+  DETECT       ← identify project
+  READ         ← load existing tasks.json
+  MILESTONES   ← structure milestones (analysis)
+  TASKS        ← break down into tasks (analysis)
+  DEPS         ← dependency analysis
+ExitPlanMode   ← before PROPOSE (interactive, needs user approval)
+```
+
+The `execute` subcommand does NOT use plan mode — it's inherently an execution workflow.
 
 ### Resume After Compression
 

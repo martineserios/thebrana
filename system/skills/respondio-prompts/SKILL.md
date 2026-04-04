@@ -13,7 +13,7 @@ allowed-tools:
   - Edit
   - Glob
   - Grep
-  - Task
+  - TodoWrite
   - WebSearch
   - WebFetch
   - AskUserQuestion
@@ -35,17 +35,19 @@ When writing or reviewing Respond.io agent prompts, designing multi-agent flows,
 - `/brana:respondio-prompts review` — review existing prompts against best practices
 - `/brana:respondio-prompts design handoff flow` — design multi-agent routing
 
-## Step Registry
+## Progress Tracking
 
-On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
+On entry, create a TodoWrite checklist for the 4 phases. This is a single-session workflow — TodoWrite provides sufficient progress visibility without persistent Tasks API overhead.
 
-Register these steps: ORIENT, AUDIT, WRITE, VALIDATE.
+```
+TodoWrite:
+  - "Orient — detect agent context and classify task" (pending)
+  - "Audit — check against platform constraints" (pending)
+  - "Write/Fix — produce or rewrite prompts" (pending)
+  - "Validate — character limits, field names, action chains" (pending)
+```
 
-### Resume After Compression
-
-If context was compressed:
-1. Call `TaskList` — find CC Tasks matching `/brana:respondio-prompts — {STEP}`
-2. The `in_progress` task is your current step — resume from there
+Mark each phase `in_progress` → `completed` as you work through them.
 
 ## Process
 

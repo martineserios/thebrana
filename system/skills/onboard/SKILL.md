@@ -15,6 +15,8 @@ allowed-tools:
   - Write
   - AskUserQuestion
   - Task
+  - EnterPlanMode
+  - ExitPlanMode
 status: stable
 growth_stage: evergreen
 ---
@@ -34,6 +36,19 @@ First session on a new project, when taking over an existing project, or as a pe
 On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
 
 Register these steps: DETECT, SCAN, RECALL, GAPS, REPORT.
+
+## Plan Mode
+
+Enter plan mode for the entire workflow. Onboard is a diagnostic skill — it reads and analyzes but never creates project files (that's `/brana:align`'s job). The only write is the final REPORT output.
+
+```
+EnterPlanMode  ← on entry
+  DETECT       ← classify project type
+  SCAN         ← read structure, stack, health
+  RECALL       ← search memory for relevant patterns
+  GAPS         ← identify missing pieces
+ExitPlanMode   ← before REPORT (writes the diagnostic output)
+```
 
 ---
 

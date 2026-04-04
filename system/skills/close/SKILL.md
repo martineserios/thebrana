@@ -17,6 +17,8 @@ allowed-tools:
   - AskUserQuestion
   - Agent
   - Task
+  - EnterPlanMode
+  - ExitPlanMode
 status: stable
 growth_stage: evergreen
 ---
@@ -37,6 +39,18 @@ End a work session. Extracts what was learned, writes a handoff note for the nex
 On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
 
 Register these steps: GATE, GATHER, EXTRACT, ERRATA, PATTERNS, FIELD-NOTES, DRIFT, HANDOFF, METADATA, REPORT.
+
+## Plan Mode
+
+Enter plan mode for the read-only analysis phases (GATE, GATHER, EXTRACT). These collect evidence from git, conversation, and agents without writing anything.
+
+```
+EnterPlanMode  ← before GATE
+  GATE         ← assess what happened
+  GATHER       ← collect evidence from git/conversation
+  EXTRACT      ← classify findings via debrief-analyst
+ExitPlanMode   ← before ERRATA (first write step)
+```
 
 ## Steps
 
