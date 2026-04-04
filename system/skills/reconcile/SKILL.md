@@ -142,11 +142,17 @@ Scan `system/` and related implementation files, area by area:
 | **Hooks** | `system/hooks/*.sh` — what each hook does, what it calls |
 | **Rules** | `system/rules/*.md` — rule names, content, directives |
 | **Agents** | `system/agents/*.md` — agent names, models, descriptions |
-| **Config** | `system/settings.json` — hook wiring, feature flags |
+| **Config** | `system/settings.json` + `~/.claude/settings.json` — hook wiring (split: plugin vs bootstrap), feature flags |
 | **CLAUDE.md** | `system/CLAUDE.md` — identity, agents table, principles, portfolio |
 | **Deploy** | `deploy.sh` — deployment steps, dependency handling |
 
 For each file, extract the same kind of concrete claims: "skill build-phase exists with description '...'" , "hook session-start.sh calls memory search", etc.
+
+**Implementation awareness notes** (prevents false positives):
+
+- **Hook dual-wiring:** Hooks are split between `system/hooks/hooks.json` (plugin: PreToolUse, SessionStart, SessionEnd, SubagentStart, SubagentStop, TaskCompleted, StopFailure) and `~/.claude/settings.json` (bootstrap: PostToolUse, PostToolUseFailure — CC bug #24529 workaround). When verifying hook claims, check BOTH locations. A PostToolUse hook in settings.json is NOT missing from hooks.json — it's intentionally there.
+- **Rust CLI:** The `brana` CLI is a compiled Rust binary at `system/cli/rust/`. Subcommands (backlog, session, handoff, skills, knowledge, transcribe, files, feed, inbox) are Rust code, not shell scripts. Don't flag CLI subcommands as "unimplemented" because there's no matching `.sh` file.
+- **Plugin binary sync:** The brana binary is auto-synced to `${CLAUDE_PLUGIN_DATA}/brana` via SessionStart hook. Scripts resolve it via `system/hooks/lib/resolve-brana.sh`.
 
 ### Step 3: Diff — identify drift
 
