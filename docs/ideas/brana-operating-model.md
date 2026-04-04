@@ -351,8 +351,84 @@ TDD → test files                           (does it work correctly)
 
 ---
 
+## 11. Ontology + Knowledge Graph
+
+### Approach: Ontology First → Graph Emerges
+
+1. **Ontology spec** (`docs/brana-ontology.yaml`) defines the semantic structure: 15 entity types, 11 relationships, 6 axioms
+2. **Frontmatter annotations** on docs declare typed relationships (depends_on, informs, applies_to, etc.)
+3. **Computed graph** from frontmatter → extends spec-graph.json with typed edges. Built by script/hook.
+4. **LOAD step** follows graph edges for smarter knowledge loading (not just vector similarity)
+
+### Two Interfaces, Same Files
+
+```
+Obsidian (human interface)          Claude Code + ruflo (machine interface)
+├── Graph view (typed edges)        ├── LOAD (semantic search + graph traversal)
+├── Dataview (query frontmatter)    ├── PERSIST (write markdown + frontmatter)
+├── Breadcrumbs (navigation)        ├── MAINTAIN (consistency checks)
+└── Visual gap detection            └── DECAY (staleness + noise)
+         │                                    │
+         └────── same markdown files ─────────┘
+                  (git repo = vault)
+```
+
+No Obsidian MCP needed — they share the filesystem. Git syncs both views.
+
+### Key Obsidian Plugins
+- **Dataview** — query frontmatter as structured data
+- **Graph Link Types** — colored typed edges in graph view
+- **Wikilink-types** — type relationships inline, auto-syncs to frontmatter
+- **Breadcrumbs** — hierarchical navigation
+
+### How the Ontology Powers the Auto-Learning Loop
+
+| Loop Step | Ontology role |
+|-----------|-------------|
+| **LOAD** | Follows typed edges (informs, depends_on) to load relevant docs — not just similarity |
+| **EXTRACT** | Entity types provide vocabulary for classifying findings (Pattern? ADR? FieldNote?) |
+| **EVALUATE** | Axioms power the quality gate (contradicts → flag, supersedes → auto-status) |
+| **PERSIST** | Entity types determine WHERE to store (Pattern → ruflo, ADR → decisions/, FieldNote → dimension). ALSO writes new frontmatter relationships (produced_by, applies_to). |
+| **DECAY** | Graph-aware pruning: orphan nodes (no edges), stale nodes (last_verified), contradiction detection |
+
+### How Each Job Uses Ontology Relationships
+
+| Job | Key relationships used |
+|-----|----------------------|
+| **DECIDE** | `blocked_by`, `depends_on` (transitive) — surface hidden blockers |
+| **UNDERSTAND** | `informs` (auto-load relevant dims), `contradicts` (flag conflicting research) |
+| **BUILD** | `implements` (link code to specs), `decided_by` (load justifying ADR) |
+| **SHIP** | `produced_by` (changelog from graph edges, not git log parsing) |
+| **MAINTAIN** | `implements` (check links valid), `supersedes` (check chains complete), orphan detection |
+| **GROW** | `applies_to` (cross-client patterns → content ideas, cross-pollination) |
+
+### Three Layers (Schema → Data → Graph)
+
+```
+ONTOLOGY (stable schema — rarely changes)
+  docs/brana-ontology.yaml: 15 types, 11 relationships, 6 axioms
+
+FRONTMATTER (instance data — grows every session via PERSIST)
+  Each markdown file's YAML: typed relationships (depends_on, informs, etc.)
+
+GRAPH (computed — auto-recomputes on commit, never manually edited)
+  docs/spec-graph.json: typed nodes + typed edges + axiom-derived edges
+```
+
+The ontology grows from use: PERSIST writes frontmatter → graph recomputes → LOAD follows new edges next session.
+
+### spec-graph.json Upgrade Path
+
+Current: 211 nodes (all untyped), 568 untyped edges, 103 orphans (49%), zero typed edges.
+
+Target: `brana graph` Rust CLI subcommand (replaces spec_graph.py). Reads ontology YAML + doc frontmatter + markdown links. Writes typed nodes + typed edges + axiom-computed edges. Subcommands: build, orphans, query, path, stats, validate.
+
+### Creators to Follow
+See `memory/reference_ontology-kg-creators.md`: Lindenberg, Seale, Jorgenson, Vanderseypen, Kamau, Zaveckas.
+
 ## Related
 
+- Ontology: `docs/brana-ontology.yaml`
 - Patterns: `brana-knowledge/dimensions/49-auto-learning-patterns.md`
 - Complexity audit: `memory/feedback_complexity-audit.md`
 - Lifecycle spec: `docs/reflections/32-lifecycle.md`

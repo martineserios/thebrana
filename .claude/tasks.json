@@ -24010,6 +24010,33 @@
         "ruflo",
         "dx"
       ]
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": null,
+      "created": "2026-04-04",
+      "description": "Build brana graph CLI subcommand (Rust). Replaces spec_graph.py with ontology-aware graph builder.\n\nSubcommands: build (full + --changed), orphans, query <node>, path <a> <b>, stats, validate (axioms).\n\nReads: brana-ontology.yaml (entity types + relationships + axioms) + doc frontmatter (typed relationships) + markdown links (existing references).\nWrites: spec-graph.json with typed nodes + typed edges + computed axiom edges.\n\nAlso absorbs decisions.py and generate-reference.py long-term (consolidate all 3 Python scripts into Rust CLI).\n\nContext: 211 nodes, 568 untyped edges, 103 orphans (49%), zero typed edges currently. Ontology v2 defined (15 types, 11 relationships, 6 axioms). This is the infrastructure for the LOAD step (auto-learning loop) to follow graph edges for smarter knowledge loading.",
+      "effort": "L",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-895",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "cancelled",
+      "strategy": null,
+      "tags": [
+        "architecture",
+        "cli",
+        "ontology",
+        "knowledge-graph",
+        "rust"
+      ]
     }
   ],
   "version": "1"

@@ -1,34 +1,138 @@
-# Brana Knowledge Ontology — Minimal Viable (v1)
+# Brana Knowledge Ontology — v2
 #
-# ADR-021: 5 entity types + 5 relationship types.
-# Extend when ambiguity causes misclassification (see t-433).
+# Evolved from v1 (ADR-021: 5+5) based on operating model research (2026-04-04).
+# 15 entity types, 11 relationships, 6 axioms.
+# Ontology-first approach: this spec defines the semantic structure.
+# Graph is computed from doc frontmatter + this spec.
 #
-# Usage: typed links in reasoning docs use these types.
-#   Example: [ADR-019 assumes](path.md) instead of bare [doc NN](path.md)
-#   validate.sh Check 18 enforces typed links in reasoning docs.
+# Sources: Seale (minimal viable graph), Jorgenson (DOS framework),
+# Lindenberg (3-layer ontology), Vanderseypen (dynamic schema).
+#
+# v1 maintained dimension_classes (maintain vs snapshot) — preserved below.
+# validate.sh Check 18 enforces typed links using these types.
+
+# ─────────────────────────────────────────────
+# ENTITY TYPES (what exists)
+# ─────────────────────────────────────────────
 
 entity_types:
-  - name: Document
-    description: Any knowledge artifact (dimension, reflection, ADR, guide)
-    examples: [dimension doc, ADR, ARCHITECTURE.md, LIFECYCLE.md]
+
+  # === KNOWLEDGE LAYER ===
+
+  - name: Dimension
+    description: Deep research on a domain topic. The ontology layer.
+    location: brana-knowledge/dimensions/
+    parent: Document  # v1 compatibility
+    attributes: [title, status, maturity, last_verified, applies_to]
+
+  - name: Reflection
+    description: Cross-cutting synthesis across dimensions. The logic layer.
+    location: docs/reflections/
+    parent: Document
+    attributes: [title, status, maturity, dag_position]
+
+  - name: ADR
+    description: Architecture Decision Record. The SDD artifact.
+    location: docs/architecture/decisions/
+    parent: Document
+    attributes: [title, status, date, superseded_by]
+
+  - name: Idea
+    description: Brainstormed concept, not yet committed.
+    location: docs/ideas/
+    parent: Document
+    attributes: [title, status]
+
+  - name: FeatureDoc
+    description: Technical or user-facing documentation for a feature.
+    location: docs/architecture/features/ + docs/guide/features/
+    parent: Document
+    attributes: [title, doc_type, feature_slug]
+
+  - name: ResearchDoc
+    description: Output of /brana:research sessions.
+    location: docs/research/
+    parent: Document
+    attributes: [title, date, strategy]
 
   - name: Assumption
-    description: Explicit tracked claim that may become invalid
-    examples: ["ruflo is enhancement, not hard dependency", "160 nodes won't hit 500 in 6 months"]
+    description: Explicit tracked claim that may become invalid.
+    parent: null  # from v1
+    attributes: [claim, status, confidence, last_checked]
 
   - name: FieldNote
-    description: Practical learning captured during work sessions
-    examples: ["Docker encrypted overlay fails on Hetzner", "gh CLI --jq piped output fails in sandbox"]
+    description: Practical learning captured during work sessions.
+    parent: null  # from v1
+    attributes: [note, source_doc, session_date, action]
 
-  - name: Component
-    description: Implemented system element (skill, hook, agent, rule, script)
-    examples: [/brana:build, PreToolUse hook, challenger agent, sdd-tdd rule]
+  # === SYSTEM LAYER ===
+
+  - name: Skill
+    description: Workflow definition for a type of work.
+    location: system/skills/
+    parent: Component  # v1 compatibility
+    attributes: [name, job, strategies, thinking]
+
+  - name: Agent
+    description: Focused worker spawned for bounded tasks.
+    location: system/agents/
+    parent: Component
+    attributes: [name, model, trigger]
+
+  - name: Hook
+    description: Event-driven automation.
+    location: system/hooks/
+    parent: Component
+    attributes: [name, event, enforcement]
+
+  - name: Rule
+    description: Behavioral constraint loaded into context.
+    location: system/rules/
+    parent: Component
+    attributes: [name, scope]
+
+  - name: Command
+    description: Reusable operation, no user interaction.
+    location: system/commands/
+    parent: Component
+    attributes: [name]
+
+  # === OPERATIONAL LAYER ===
+
+  - name: Client
+    description: A project/business in the portfolio.
+    location: ~/enter_thebrana/clients/
+    attributes: [name, type, status]
 
   - name: Task
-    description: Backlog item tracked in tasks.json
-    examples: [t-444, ms-051, ph-001]
+    description: A unit of work in the backlog.
+    location: .claude/tasks.json
+    attributes: [id, subject, stream, status, priority]
+
+  - name: Pattern
+    description: A reusable learning stored in ruflo.
+    location: ruflo (namespace pattern)
+    attributes: [problem, solution, confidence, transferable]
+
+  - name: Session
+    description: A work session record.
+    location: ruflo (namespace session) + session-state.json
+    attributes: [date, label, accomplished, learnings]
+
+# v1 abstract types (preserved for backward compatibility with validate.sh)
+abstract_types:
+  - name: Document
+    subtypes: [Dimension, Reflection, ADR, Idea, FeatureDoc, ResearchDoc]
+  - name: Component
+    subtypes: [Skill, Agent, Hook, Rule, Command]
+
+# ─────────────────────────────────────────────
+# RELATIONSHIPS (how things connect)
+# ─────────────────────────────────────────────
 
 relationship_types:
+
+  # From v1 (preserved)
   - name: assumes
     from: [Document]
     to: [Assumption]
@@ -40,9 +144,9 @@ relationship_types:
     description: Code/config that realizes a documented decision
 
   - name: informs
-    from: [Document]
-    to: [Document]
-    description: Research or knowledge that shaped a decision or design
+    from: [Document, Pattern]
+    to: [Document, Component]
+    description: Knowledge that shaped a decision or behavior
 
   - name: enriches
     from: [FieldNote]
@@ -50,16 +154,61 @@ relationship_types:
     description: Practical learning that adds depth to a document
 
   - name: supersedes
-    from: [Document]
-    to: [Document]
-    description: Newer document replaces an older one
+    from: [Document, ADR]
+    to: [Document, ADR]
+    description: Newer artifact replaces an older one
 
-# Dimension classification
-#
-# "maintain" = actively evolving topic, staleness enforcement applies
-# "snapshot" = point-in-time research, timestamped, no enforcement
-#
+  # New in v2
+  - name: depends_on
+    from: [Document, Component, Task]
+    to: [Document, Component, Task]
+    description: A requires B to be understood/completed first
+    transitive: true
+
+  - name: synthesizes
+    from: [Reflection]
+    to: [Dimension]
+    description: Reflection cross-cuts and synthesizes multiple dimensions
+
+  - name: applies_to
+    from: [Document, Pattern, Component]
+    to: [Client]
+    description: Knowledge or capability relevant to this client
+
+  - name: produced_by
+    from: [Pattern, Document, ADR, Idea]
+    to: [Session, Skill]
+    description: Knowledge artifact created during this activity
+
+  - name: decided_by
+    from: [Component]
+    to: [ADR]
+    description: System component justified by this architecture decision
+
+  - name: contradicts
+    from: [Document, Pattern]
+    to: [Document, Pattern]
+    description: Conflicting claims — needs resolution
+
+# ─────────────────────────────────────────────
+# AXIOMS (rules the system can enforce)
+# ─────────────────────────────────────────────
+
+axioms:
+  - if supersedes(new, old) then status(old) = "superseded"
+  - if contradicts(A, B) then flag_for_review(A, B)
+  - if depends_on(A, B) and depends_on(B, C) then depends_on(A, C)
+  - if status(Dimension) = "stale" and LOAD(Dimension) then warn("stale")
+  - if produced_by(Pattern, Session) and confidence(Pattern) < 0.3 then tier = "episodic"
+  - if applies_to(Pattern, Client_A) and applies_to(Pattern, Client_B) then transferable(Pattern) = true
+
+# ─────────────────────────────────────────────
+# DIMENSION CLASSIFICATION (from v1)
+# ─────────────────────────────────────────────
+# "maintain" = actively evolving, staleness enforcement applies
+# "snapshot" = point-in-time, timestamped, no enforcement
 # validate.sh only checks freshness on "maintain" dimensions.
+
 dimension_classes:
   maintain:
     - 01  # Brana System Analysis
@@ -88,6 +237,7 @@ dimension_classes:
     - 46  # Claude Code Harness Ecosystem
     - 47  # Ontology Engineering
     - 48  # Knowledge Graphs
+    - 49  # Auto-Learning Patterns
     - knowledge-architecture  # Knowledge Architecture for AI Systems
 
   snapshot:
