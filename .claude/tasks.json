@@ -1,5 +1,5 @@
 {
-  "last_modified": "2026-04-05T12:31:15.489849",
+  "last_modified": "2026-04-05T12:31:51.801359",
   "project": "thebrana",
   "tasks": [
     {
@@ -20001,7 +20001,7 @@
       "id": "t-751",
       "type": "task",
       "subject": "Update docs/README.md and architecture docs for new workspace structure",
-      "description": "Add ph-cli-arch phase to docs/README.md. Update docs/architecture/ with new workspace layout (brana-core, brana-cli, brana-mcp). Reference ADR-026. Update CLAUDE.md system architecture section when implementation lands.",
+      "description": "Use /brana:docs to generate and update architecture docs for the new workspace structure (brana-core, brana-cli, brana-mcp). Should cover: docs/README.md update, docs/architecture/ workspace layout, reference ADR-026, and update CLAUDE.md system architecture section when implementation lands. Let the skill handle structure and formatting.",
       "parent": "ph-cli-arch",
       "tags": [
         "docs",
@@ -20020,7 +20020,7 @@
       "started": null,
       "completed": null,
       "context": null,
-      "notes": null,
+      "notes": "Use /brana:docs skill \u2014 do not write docs manually.",
       "github_issue": null,
       "order": 0
     }
