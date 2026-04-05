@@ -30,6 +30,7 @@ allowed-tools:
   - Write
   - mcp__ruflo__hive-mind_memory
   - mcp__ruflo__memory_search
+  - mcp__ruflo__memory_store
 status: stable
 growth_stage: evergreen
 ---
@@ -199,11 +200,11 @@ Create a CC Task step registry. Follow the [guided-execution protocol](../_share
 
 Register these steps as CC Tasks (adapt based on detected strategy after CLASSIFY):
 
-- **Feature/Greenfield/Migration:** LOAD, CLASSIFY, SPECIFY, DECOMPOSE, BUILD, CLOSE
-- **Bug fix:** LOAD, CLASSIFY, REPRODUCE, DIAGNOSE, FIX, CLOSE
-- **Refactor:** LOAD, CLASSIFY, SPECIFY, VERIFY-COVERAGE, BUILD, CLOSE
-- **Investigation:** LOAD, CLASSIFY, SYMPTOMS, INVESTIGATE, REPORT
-- **Spike:** LOAD, CLASSIFY, QUESTION, EXPERIMENT, ANSWER
+- **Feature/Greenfield/Migration:** LOAD, CLASSIFY, SPECIFY, DECOMPOSE, BUILD, EXTRACT, EVALUATE, PERSIST, CLOSE
+- **Bug fix:** LOAD, CLASSIFY, REPRODUCE, DIAGNOSE, FIX, EXTRACT, EVALUATE, PERSIST, CLOSE
+- **Refactor:** LOAD, CLASSIFY, SPECIFY, VERIFY-COVERAGE, BUILD, EXTRACT, EVALUATE, PERSIST, CLOSE
+- **Investigation:** LOAD, CLASSIFY, SYMPTOMS, INVESTIGATE, EXTRACT, EVALUATE, PERSIST, REPORT
+- **Spike:** LOAD, CLASSIFY, QUESTION, EXPERIMENT, EXTRACT, EVALUATE, PERSIST, ANSWER
 
 Since strategy isn't known yet, create the CLASSIFY task first. After CLASSIFY confirms the strategy, create the remaining steps.
 
@@ -791,6 +792,72 @@ No branch. No commits. Read-only. May lead to a build.
    options: ["Yes — start /brana:build fix", "No — just log"]
    ```
    If yes: enter BUG FIX strategy with investigation findings as context.
+
+---
+
+## Shared: Auto-Learning (EXTRACT → EVALUATE → PERSIST)
+
+Runs after main build work, before CLOSE (or before REPORT/ANSWER for investigation/spike). All strategies execute these steps.
+
+### EXTRACT
+
+Identify what was learned during the build.
+
+1. **Diff review** — run `git diff --stat` (or `git diff --stat main...HEAD` on a branch) to see what changed.
+2. **Process review** — reflect on the build: what worked, what didn't, what was surprising, what took longer than expected.
+3. **Classify findings** using ontology types:
+   | Type | When to use |
+   |------|-------------|
+   | **Pattern** | Reusable solution, workaround, or approach |
+   | **ADR** | Architectural decision made during implementation |
+   | **FieldNote** | Practical discovery, gotcha, dependency behavior |
+   | **Dimension** | New topic area or significant expansion of existing knowledge |
+4. **Build-specific signals** — look for: architectural decisions made under pressure, dependency behaviors discovered empirically, error paths that weren't documented, performance characteristics observed.
+
+### EVALUATE
+
+Score each finding on a 0-10 scale across three dimensions:
+
+| Size | Scope | Novelty | Gate |
+|------|-------|---------|------|
+| **SMALL** (0-1) | This task only | Already known | Auto-persist |
+| **MEDIUM** (2-4) | This project | New twist on existing topic | Inline dedup check via ruflo |
+| **LARGE** (5+) | Cross-project | New topic or contradicts existing knowledge | User review, suggest challenger |
+
+**Dedup check** (MEDIUM and LARGE findings):
+```
+mcp__ruflo__memory_search(
+  query: "{finding summary}",
+  namespace: "all",
+  limit: 3
+)
+```
+If a similar entry exists with confidence > 0.7, skip persistence (already captured). Otherwise proceed to PERSIST.
+
+### PERSIST
+
+Route each finding by type:
+
+| Type | Destination | Auto/Prompted |
+|------|------------|---------------|
+| **Pattern** | `mcp__ruflo__memory_store(namespace: "pattern")` + append to relevant memory file | SMALL: auto, MEDIUM+: prompted |
+| **ADR** | Draft in `docs/architecture/decisions/` | Always prompted |
+| **FieldNote** | Append to relevant doc's Field Notes section | Prompted |
+| **Tags/context** | Task context via `brana backlog set {id} context --append "{finding}"` | Auto |
+
+**Pattern persistence format:**
+```
+mcp__ruflo__memory_store(
+  key: "pattern:{project}:{finding-slug}",
+  value: "{\"problem\": \"...\", \"solution\": \"...\", \"confidence\": 0.5, \"source_task\": \"{task-id}\"}",
+  namespace: "pattern",
+  tags: ["client:{project}", "type:{ontology-type}", "strategy:{build-strategy}"]
+)
+```
+
+If ruflo unavailable, fall back to appending to project auto memory (`~/.claude/projects/*/memory/`).
+
+**Graceful degradation:** If no findings worth persisting (trivial build, nothing surprising), skip EVALUATE and PERSIST silently. Don't force learnings where none exist.
 
 ---
 

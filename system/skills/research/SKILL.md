@@ -56,7 +56,7 @@ Flags:
 
 On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
 
-Register these steps: LOAD, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, DEEP-DIVE, CROSS-REF, REPORT.
+Register these steps: LOAD, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, DEEP-DIVE, CROSS-REF, REPORT, EXTRACT, EVALUATE, PERSIST.
 
 **Plan mode:** Enter plan mode for INTERNAL-SEARCH, WIDE-SCAN, and TRIAGE (Phases 0-2). Exit plan mode before DEEP-DIVE (Phase 3) which may involve writing temp files.
 
@@ -377,6 +377,68 @@ Register these steps: LOAD, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, D
     - After writing, commit in brana-knowledge (the post-commit hook auto-reindexes for retrieval).
     - After writing, regenerate INDEX.md: `~/enter_thebrana/thebrana/system/scripts/generate-index.sh`
     - **Skip this step** if findings are minor (LOW severity only) or if the user declines.
+
+19. **Step EXTRACT — Identify what was learned.** At research end, distill findings into typed knowledge units.
+
+    1. Compare initial research question against findings — what was answered, what remains open
+    2. Classify each finding:
+       - **New facts** about the topic (not previously documented)
+       - **Contradictions** to existing knowledge (flag for resolution)
+       - **Patterns** across multiple sources (reusable insights)
+       - **Gaps** identified (leads for future research)
+    3. Assign ontology type to each:
+       - **Dimension** — new or updated topic doc in brana-knowledge
+       - **Pattern** — reusable insight applicable beyond this research
+       - **FieldNote** — practical gotcha or implementation detail
+       - **ADR** — architectural decision implied by research findings
+    4. Flag sources not yet in `brana-knowledge/research-sources.yaml` for addition
+
+20. **Step EVALUATE — Score and gate each finding.**
+
+    Score each extracted finding (0-10) and apply the gate:
+
+    | Size | Scope | Novelty | Gate |
+    |------|-------|---------|------|
+    | SMALL (0-1) | Single fact, URL, tag | Already documented | Auto-persist |
+    | MEDIUM (2-4) | Dimension doc update | New on existing topic | Dedup via ruflo, present to user |
+    | LARGE (5+) | New dimension, contradicts existing | Brand new topic area | User review, suggest challenger for contradictions |
+
+    **Dedup check (MEDIUM+ only):**
+    ```
+    mcp__ruflo__memory_search(
+      query: "{finding summary}",
+      namespace: "all",
+      limit: 3
+    )
+    ```
+    If top result similarity > 0.92, mark as "already stored" and skip persist. Otherwise proceed.
+
+    **Fallback:** If ruflo unavailable, present all MEDIUM+ findings to user without dedup.
+
+21. **Step PERSIST — Route findings to storage.**
+
+    | Type | Destination | Auto/Prompted |
+    |------|------------|---------------|
+    | Dimension update | Append to existing doc in `brana-knowledge/dimensions/` | Prompted |
+    | New dimension | Create new doc in `brana-knowledge/dimensions/` | Always prompted (LARGE) |
+    | Pattern | ruflo `namespace: "pattern"` + memory file | SMALL: auto, MEDIUM+: prompted |
+    | Source | Append to `brana-knowledge/research-sources.yaml` | Auto |
+    | FieldNote | Append to relevant doc `## Field Notes` section | Prompted |
+
+    **Pattern persist (auto for SMALL):**
+    ```
+    mcp__ruflo__memory_store(
+      key: "pattern:research:{topic}:{slug}",
+      value: "{pattern description}",
+      namespace: "pattern",
+      tags: ["type:pattern", "source:research", "topic:{topic}"],
+      upsert: true
+    )
+    ```
+
+    **Source persist (auto):** Append new sources to `research-sources.yaml` with `trust: unvalidated`, today's date as `last_checked`.
+
+    **Fallback:** If ruflo unavailable, write patterns to `~/.claude/projects/*/memory/` as markdown entries. List all persisted items in the report footer.
 
 ## Research Archetypes
 

@@ -18,6 +18,7 @@ allowed-tools:
   - Bash
   - AskUserQuestion
   - mcp__ruflo__memory_search
+  - mcp__ruflo__memory_store
 status: stable
 growth_stage: evergreen
 ---
@@ -25,6 +26,10 @@ growth_stage: evergreen
 # Review — Business Health
 
 Unified business review skill. Replaces `/weekly-review`, `/monthly-close`, `/monthly-plan`, and `/growth-check`.
+
+On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
+
+Register these steps: LOAD, REVIEW (subcommand-specific), EXTRACT, EVALUATE, PERSIST.
 
 ## Step 0 — LOAD
 
@@ -292,6 +297,59 @@ Harness simplification check — every component encodes assumptions about model
 6. **Don't auto-remove.** Present recommendations, let the user decide. Removing enforcement is a one-way door — only do it with evidence.
 
 This check runs quarterly, or after a major model upgrade. It can be appended to `/brana:review monthly` output or invoked directly via `/brana:review harness`.
+
+---
+
+## Step E — EXTRACT
+
+At review end, identify what was learned during the business health check:
+
+1. Review findings from the completed review — what changed since last review, what metrics surprised, what decisions were implied by the data
+2. Classify each finding using ontology entity types:
+   - **Pattern** — recurring business pattern (e.g., "revenue dips in week 3 of month")
+   - **FieldNote** — market or client observation (e.g., "client X churned after pricing change")
+   - **Dimension** — topic worth researching deeper (e.g., "marketplace unit economics need a knowledge doc")
+3. Review-specific: flag metrics that contradict previous assumptions or stored trends
+4. Skip if review surfaced no new information beyond existing tracked metrics
+
+## Step F — EVALUATE
+
+Score each finding (0-10) on two axes:
+
+| Axis | SMALL (0-1) | MEDIUM (2-4) | LARGE (5+) |
+|------|------------|-------------|------------|
+| **Scope** | Single metric, event log entry | Business pattern, client insight | Strategic shift, cross-client pattern |
+| **Novelty** | Already tracked | New trend on known topic | Contradicts existing strategy |
+
+**Gate by size:**
+- **SMALL:** Auto-persist (no prompt). Metric snapshots, event log entries.
+- **MEDIUM:** Inline eval — dedup via `mcp__ruflo__memory_search(query: "{finding summary}", namespace: "all", limit: 3)`. If similar exists, skip or merge. Present remaining to user via AskUserQuestion.
+- **LARGE:** Present to user with recommendation via AskUserQuestion. For strategic shifts or cross-client patterns, suggest `/brana:challenge` review.
+
+## Step G — PERSIST
+
+Route each accepted finding by type:
+
+| Type | Destination | Auto/Prompted |
+|------|------------|---------------|
+| Pattern | `mcp__ruflo__memory_store(namespace: "pattern")` + memory file (tag: `transferable: true` for cross-client) | SMALL: auto, MEDIUM+: prompted |
+| Strategic insight | `mcp__ruflo__memory_store(namespace: "business")` | Prompted |
+| FieldNote | Append to relevant dimension doc `## Field Notes` | Prompted |
+| Event | Event log via `/brana:log` | Auto |
+| Metric | Session state JSON via `brana session write` | Auto |
+
+For ruflo stores, use:
+```
+mcp__ruflo__memory_store(
+  key: "pattern:{PROJECT}:{slug}",
+  value: '{"finding": "...", "source": "review", "confidence": 0.6}',
+  namespace: "pattern",
+  tags: ["client:{PROJECT}", "source:review"],
+  upsert: true
+)
+```
+
+If ruflo unavailable, write to `~/.claude/projects/{project}/memory/` as markdown file.
 
 ---
 

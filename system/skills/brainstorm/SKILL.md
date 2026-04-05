@@ -24,6 +24,7 @@ allowed-tools:
   - mcp__context7__resolve-library-id
   - mcp__context7__query-docs
   - mcp__ruflo__memory_search
+  - mcp__ruflo__memory_store
 status: stable
 growth_stage: evergreen
 ---
@@ -52,7 +53,7 @@ research what exists, challenge assumptions, and shape it into something concret
 
 On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
 
-Register these steps: LOAD, SEED, EXPAND, DISCUSS, SHAPE, OUTPUT.
+Register these steps: LOAD, SEED, EXPAND, DISCUSS, SHAPE, OUTPUT, EXTRACT, EVALUATE, PERSIST.
 
 ## Procedure
 
@@ -345,6 +346,57 @@ Create a single task via `brana backlog add` with:
 Saved: docs/ideas/{slug}.md
 Backlog: {phase ID + task count if planned, or t-NNN if quick-added, or "none"}
 ```
+
+### Step 6 — EXTRACT
+
+At skill end, identify what was learned during the brainstorm session:
+
+1. Review the brainstorm output — what facts were learned, what decisions were made, what patterns observed
+2. Classify each finding using ontology entity types as vocabulary:
+   - **Pattern** — reusable solution or approach
+   - **ADR** — architecture decision that was made or implied
+   - **Dimension** — new topic area worth a knowledge doc
+   - **FieldNote** — practical gotcha or surprise
+3. Skip if brainstorm was purely exploratory with no concrete findings
+
+### Step 7 — EVALUATE
+
+Score each finding (0-10) on two axes:
+
+| Axis | SMALL (0-1) | MEDIUM (2-4) | LARGE (5+) |
+|------|------------|-------------|------------|
+| **Scope** | This brainstorm only | This project | Multiple projects/clients |
+| **Novelty** | Already known | New on existing topic | New topic or contradicts existing |
+
+**Gate by size:**
+- **SMALL:** Auto-persist (no prompt). Tags, URLs, task context.
+- **MEDIUM:** Inline eval — check for duplicates via `mcp__ruflo__memory_search(query: "{finding summary}", namespace: "all", limit: 3)`. If similar exists, skip or merge. Present remaining to user via AskUserQuestion.
+- **LARGE:** Present to user with recommendation via AskUserQuestion. For ADRs or cross-client patterns, suggest `/brana:challenge` review.
+
+### Step 8 — PERSIST
+
+Route each accepted finding by type:
+
+| Type | Destination | Auto/Prompted |
+|------|------------|---------------|
+| Pattern | `mcp__ruflo__memory_store(namespace: "pattern")` + memory file | SMALL: auto, MEDIUM+: prompted |
+| ADR | Draft in `docs/architecture/decisions/` | Always prompted |
+| Dimension | Note for `brana-knowledge/dimensions/` | Always prompted |
+| FieldNote | Append to relevant dimension doc `## Field Notes` | MEDIUM: prompted |
+| Tags/URLs/context | Task context field | Auto |
+
+For ruflo stores, use:
+```
+mcp__ruflo__memory_store(
+  key: "pattern:{PROJECT}:{slug}",
+  value: '{"finding": "...", "source": "brainstorm", "confidence": 0.5}',
+  namespace: "pattern",
+  tags: ["client:{PROJECT}", "source:brainstorm"],
+  upsert: true
+)
+```
+
+If ruflo unavailable, write to `~/.claude/projects/{project}/memory/` as markdown file.
 
 ## Anti-patterns
 
