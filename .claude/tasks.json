@@ -1,5 +1,5 @@
 {
-  "last_modified": "2026-04-05T12:29:36.843980",
+  "last_modified": "2026-04-05T12:31:15.489849",
   "project": "thebrana",
   "tasks": [
     {
@@ -19590,7 +19590,9 @@
       ],
       "effort": "M",
       "priority": "P0",
-      "blocked_by": [],
+      "blocked_by": [
+        "t-750"
+      ],
       "type": "task",
       "status": "pending",
       "stream": "roadmap",
@@ -19931,6 +19933,87 @@
       "type": "task",
       "status": "pending",
       "stream": "roadmap",
+      "execution": "code",
+      "branch": null,
+      "created": "2026-04-05",
+      "started": null,
+      "completed": null,
+      "context": null,
+      "notes": null,
+      "github_issue": null,
+      "order": 0
+    },
+    {
+      "id": "t-749",
+      "type": "task",
+      "subject": "DDD: Domain model for brana-core bounded contexts",
+      "description": "Create docs/domain/MODEL-001-brana-core.md defining bounded contexts (tasks, feeds, inbox, files, scheduler, sync, decisions, spec_graph, reference), ubiquitous language glossary, aggregate roots, and domain events. This is the source of truth for module boundaries in brana-core.",
+      "parent": "ph-cli-arch",
+      "tags": [
+        "cli",
+        "ddd",
+        "architecture"
+      ],
+      "effort": "M",
+      "priority": "P0",
+      "blocked_by": [],
+      "stream": "roadmap",
+      "status": "pending",
+      "execution": "code",
+      "branch": null,
+      "created": "2026-04-05",
+      "started": null,
+      "completed": null,
+      "context": null,
+      "notes": null,
+      "github_issue": null,
+      "order": 0
+    },
+    {
+      "id": "t-750",
+      "type": "task",
+      "subject": "SDD: ADR-026 full Rust + MCP architecture decision",
+      "description": "Formalize the architecture decision as docs/architecture/decisions/ADR-026-full-rust-mcp-architecture.md. Context, decision, consequences format. References domain model (t-749) and idea doc (docs/ideas/brana-cli-mcp-layer.md). This is the SDD gate for implementation.",
+      "parent": "ph-cli-arch",
+      "tags": [
+        "cli",
+        "sdd",
+        "architecture"
+      ],
+      "effort": "S",
+      "priority": "P0",
+      "blocked_by": [
+        "t-749"
+      ],
+      "stream": "roadmap",
+      "status": "pending",
+      "execution": "code",
+      "branch": null,
+      "created": "2026-04-05",
+      "started": null,
+      "completed": null,
+      "context": null,
+      "notes": null,
+      "github_issue": null,
+      "order": 0
+    },
+    {
+      "id": "t-751",
+      "type": "task",
+      "subject": "Update docs/README.md and architecture docs for new workspace structure",
+      "description": "Add ph-cli-arch phase to docs/README.md. Update docs/architecture/ with new workspace layout (brana-core, brana-cli, brana-mcp). Reference ADR-026. Update CLAUDE.md system architecture section when implementation lands.",
+      "parent": "ph-cli-arch",
+      "tags": [
+        "docs",
+        "architecture"
+      ],
+      "effort": "S",
+      "priority": "P1",
+      "blocked_by": [
+        "t-750"
+      ],
+      "stream": "docs",
+      "status": "pending",
       "execution": "code",
       "branch": null,
       "created": "2026-04-05",
