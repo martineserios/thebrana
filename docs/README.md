@@ -101,6 +101,12 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-024](architecture/decisions/ADR-024-content-polling-keyring-credentials.md) | Content polling with keyring credentials |
 | [ADR-025](architecture/decisions/ADR-025-skill-lifecycle-manager.md) | Skill lifecycle manager |
 | [ADR-026](architecture/decisions/ADR-026-ruflo-mcp-backbone.md) | Ruflo MCP as backbone (CLI fallback) |
+| [ADR-027](architecture/decisions/ADR-027-auto-learning-loop.md) | Auto-learning loop |
+| [ADR-028](architecture/decisions/ADR-028-ontology-v2.md) | Ontology v2 |
+| [ADR-029](architecture/decisions/ADR-029-six-job-taxonomy.md) | 6-job taxonomy |
+| [ADR-030](architecture/decisions/ADR-030-maintenance-unification.md) | Maintenance unification |
+| [ADR-031](architecture/decisions/ADR-031-doc-enforcement-hook.md) | Doc-enforcement hook |
+| [ADR-032](architecture/decisions/ADR-032-smart-router.md) | Smart router |
 
 ### Feature briefs (docs/architecture/features/)
 
@@ -127,6 +133,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [acquire-skills-guide.md](architecture/features/acquire-skills-guide.md) | Acquire skills implementation guide |
 | [agentdb-v3-upgrade-evaluation.md](architecture/features/agentdb-v3-upgrade-evaluation.md) | AgentDB v3 upgrade evaluation |
 | [skill-routing-in-backlog-start.md](architecture/features/skill-routing-in-backlog-start.md) | Semantic skill suggestion at task start (ADR-026, t-833) |
+| [operating-model.md](architecture/features/operating-model.md) | Operating model: auto-learning loop, 6-job taxonomy, unified maintenance, knowledge graph |
 
 ## Ideas (docs/ideas/)
 

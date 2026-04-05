@@ -94,8 +94,8 @@ claude --plugin-dir ./system
 | DECIDE | "What should I work on?" | `/brana:backlog`, `/brana:brainstorm` |
 | UNDERSTAND | "What do I need to know?" | `/brana:research`, `/brana:onboard` |
 | BUILD | "Make the thing" | `/brana:build` |
-| SHIP | "Get it to users" | `./bootstrap.sh`, `./validate.sh` |
-| MAINTAIN | "Keep it healthy" | `/brana:reconcile`, `/brana:audit` |
+| SHIP | "Get it to users" | `/brana:ship`, `./bootstrap.sh`, `./validate.sh` |
+| MAINTAIN | "Keep it healthy" | `/brana:reconcile` |
 | GROW | "Build the business" | `/brana:review`, `/brana:harvest` |
 
 ### DECIDE
@@ -122,7 +122,7 @@ claude --plugin-dir ./system
 | Command | Purpose |
 |---------|---------|
 | `/brana:build` | Build anything — auto-detects strategy (feature, bug fix, refactor, spike, migration, investigation, greenfield) |
-| `/brana:reconcile` | Detect spec-vs-implementation drift, plan fixes, apply after approval |
+| `/brana:reconcile` | Detect drift across 4 domains (consistency, security, propagation, knowledge), plan fixes, apply after approval |
 | `/brana:docs` | Generate and update tech docs, user guides, philosophy overview |
 | `/brana:align` | Implement project structure based on /brana:onboard findings |
 
@@ -130,6 +130,7 @@ claude --plugin-dir ./system
 
 | Command | Purpose |
 |---------|---------|
+| `/brana:ship` | Ship a build — pre-flight, deploy, document, verify, monitor |
 | `./bootstrap.sh` | Deploy identity layer (CLAUDE.md, rules, scripts) to `~/.claude/` |
 | `./bootstrap.sh --check` | Show what bootstrap would change without applying |
 | `./validate.sh` | Pre-deploy checks (frontmatter, budget, secrets) |
@@ -139,8 +140,7 @@ claude --plugin-dir ./system
 
 | Command | Purpose |
 |---------|---------|
-| `/brana:reconcile` | Consistency + propagation checks |
-| `/brana:audit` | Security scan — secrets, hook permissions, MCP count, dangerous settings |
+| `/brana:reconcile` | 4-domain drift detection (consistency, security, propagation, knowledge) |
 | `/brana:maintain-specs` | Full spec correction cycle: errata → reflections → synthesis → hygiene |
 | `/brana:apply-errata` | Apply pending errata from doc 24 through layer hierarchy |
 | `/brana:re-evaluate-reflections` | Cross-check reflections against dimensions for gaps |
@@ -184,6 +184,7 @@ claude --plugin-dir ./system
 | `brana handoff last\|list\|path` | Legacy alias for `brana session`. Falls back to markdown if no JSON state exists. |
 | `brana skills suggest\|search\|list\|reindex` | Skill discovery and semantic routing. `reindex` indexes skills into ruflo memory for MCP-based skill matching. |
 | `brana knowledge reindex\|status` | Knowledge base indexing. Indexes dimension/reflection/feature docs into ruflo memory. `--patterns` for memory files. |
+| `brana graph build\|orphans\|query\|path\|stats\|validate` | Knowledge graph operations — ontology-aware, replaces spec_graph.py |
 
 ## Specs Reference
 
