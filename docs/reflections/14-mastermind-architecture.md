@@ -1,3 +1,12 @@
+---
+depends_on:
+  - docs/reflections/08-diagnosis.md
+informs:
+  - docs/reflections/31-assurance.md
+  - docs/reflections/32-lifecycle.md
+  - docs/reflections/ARCHITECTURE.md
+---
+
 # 14 - Mastermind Architecture: Single Brain, All Projects
 
 How to run a single Claude Code instance with ruflo that accumulates knowledge across every project while maintaining project-specific context. The "single evolving brain" system.

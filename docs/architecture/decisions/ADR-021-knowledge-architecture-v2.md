@@ -3,6 +3,10 @@ title: "ADR-021: Knowledge Architecture v2 — Axiomatic Reflection with Tempora
 status: accepted
 date: 2026-03-14
 decision_makers: [martin]
+informs:
+  - docs/architecture/decisions/ADR-028-ontology-v2.md
+  - docs/brana-ontology.yaml
+  - docs/reflections/ARCHITECTURE.md
 ---
 
 # ADR-021: Knowledge Architecture v2

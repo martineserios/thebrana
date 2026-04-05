@@ -1,3 +1,11 @@
+---
+depends_on:
+  - docs/architecture/features/operating-model.md
+informs:
+  - docs/architecture/decisions/ADR-032-smart-router.md
+  - docs/architecture/decisions/ADR-030-maintenance-unification.md
+---
+
 # ADR-029: 6-Job Taxonomy
 
 **Date:** 2026-04-04

@@ -1,3 +1,11 @@
+# ---
+# depends_on:
+#   - docs/architecture/decisions/ADR-028-ontology-v2.md
+#   - docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md
+# informs:
+#   - docs/spec-graph.json
+# ---
+
 # Brana Knowledge Ontology — v1.5 (Measurement-Gated)
 #
 # Schema definition for the brana knowledge system.

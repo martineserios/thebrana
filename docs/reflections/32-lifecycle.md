@@ -2,6 +2,10 @@
 last_verified: 2026-03-14
 status: active
 maturity: evergreen
+depends_on:
+  - docs/reflections/ARCHITECTURE.md
+  - docs/reflections/31-assurance.md
+  - docs/reflections/08-diagnosis.md
 ---
 
 # 32 - Lifecycle: How Does It Evolve?

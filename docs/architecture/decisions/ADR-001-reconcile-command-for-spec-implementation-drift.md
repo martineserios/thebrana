@@ -1,3 +1,9 @@
+---
+informs:
+  - docs/architecture/decisions/ADR-030-maintenance-unification.md
+  - docs/architecture/decisions/ADR-016-spec-dependency-graph.md
+---
+
 # ADR-001: Reconcile command for spec-to-implementation drift remediation
 
 **Date:** 2026-02-13

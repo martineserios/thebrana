@@ -1,3 +1,13 @@
+---
+depends_on:
+  - docs/architecture/features/operating-model.md
+  - docs/architecture/decisions/ADR-028-ontology-v2.md
+informs:
+  - docs/architecture/decisions/ADR-030-maintenance-unification.md
+  - docs/architecture/decisions/ADR-031-doc-enforcement-hook.md
+  - docs/architecture/decisions/ADR-032-smart-router.md
+---
+
 # ADR-027: Auto-Learning Loop (6-Step Lifecycle)
 
 **Date:** 2026-04-04

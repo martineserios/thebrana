@@ -2,7 +2,14 @@
 last_verified: 2026-03-14
 status: active
 maturity: evergreen
-supersedes: 14-mastermind-architecture.md
+supersedes:
+  - docs/reflections/14-mastermind-architecture.md
+depends_on:
+  - docs/reflections/08-diagnosis.md
+informs:
+  - docs/reflections/31-assurance.md
+  - docs/reflections/32-lifecycle.md
+  - docs/reflections/component-index.md
 ---
 
 # Architecture: Single Brain, All Projects

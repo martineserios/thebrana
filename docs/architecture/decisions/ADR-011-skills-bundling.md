@@ -1,3 +1,8 @@
+---
+informs:
+  - docs/reflections/ARCHITECTURE.md
+---
+
 # ADR-011: Skills Bundling — Ship Scripts Alongside SKILL.md
 
 **Date:** 2026-03-03

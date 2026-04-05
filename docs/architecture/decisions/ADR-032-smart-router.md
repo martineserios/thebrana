@@ -1,3 +1,10 @@
+---
+depends_on:
+  - docs/architecture/features/operating-model.md
+  - docs/architecture/decisions/ADR-029-six-job-taxonomy.md
+  - docs/architecture/decisions/ADR-027-auto-learning-loop.md
+---
+
 # ADR-032: Smart Router (Shared Strategy Detection)
 
 **Date:** 2026-04-04

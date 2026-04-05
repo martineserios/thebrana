@@ -1,3 +1,9 @@
+---
+informs:
+  - docs/reflections/31-assurance.md
+  - docs/reflections/ARCHITECTURE.md
+---
+
 # ADR-009: Test/Lint Feedback Hook in PostToolUse Chain
 
 **Date:** 2026-03-03

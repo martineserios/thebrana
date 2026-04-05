@@ -1,3 +1,11 @@
+---
+depends_on:
+  - docs/architecture/features/operating-model.md
+  - docs/architecture/decisions/ADR-027-auto-learning-loop.md
+informs:
+  - docs/reflections/31-assurance.md
+---
+
 # ADR-031: Doc-Enforcement Hook (Scoped Hard Block)
 
 **Date:** 2026-04-04

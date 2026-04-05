@@ -1,3 +1,13 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md
+  - docs/architecture/features/operating-model.md
+informs:
+  - docs/brana-ontology.yaml
+  - docs/architecture/decisions/ADR-027-auto-learning-loop.md
+  - docs/architecture/decisions/ADR-030-maintenance-unification.md
+---
+
 # ADR-028: Ontology v2 (Measurement-Gated)
 
 **Date:** 2026-04-04

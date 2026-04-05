@@ -1,3 +1,11 @@
+---
+informs:
+  - docs/reflections/ARCHITECTURE.md
+  - docs/reflections/31-assurance.md
+  - docs/reflections/32-lifecycle.md
+  - docs/reflections/29-venture-management-reflection.md
+---
+
 # 08 - Diagnosis: Keep, Drop, Defer
 
 What to preserve, eliminate, and postpone for brana v2. R1 in the reflection DAG — the triage operation that feeds all downstream reflections.

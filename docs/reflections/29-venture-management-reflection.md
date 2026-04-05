@@ -2,6 +2,9 @@
 last_verified: 2026-03-14
 status: active
 maturity: evergreen
+depends_on:
+  - docs/reflections/ARCHITECTURE.md
+  - docs/reflections/08-diagnosis.md
 ---
 
 # 29 - Venture Management: From Code Projects to Any Project

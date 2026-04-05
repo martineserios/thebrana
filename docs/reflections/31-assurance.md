@@ -2,6 +2,10 @@
 last_verified: 2026-03-14
 status: active
 maturity: evergreen
+depends_on:
+  - docs/reflections/ARCHITECTURE.md
+informs:
+  - docs/reflections/32-lifecycle.md
 ---
 
 # 31 - Assurance: Does It Work?

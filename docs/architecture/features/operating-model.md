@@ -1,3 +1,13 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-027-auto-learning-loop.md
+  - docs/architecture/decisions/ADR-028-ontology-v2.md
+  - docs/architecture/decisions/ADR-029-six-job-taxonomy.md
+  - docs/architecture/decisions/ADR-030-maintenance-unification.md
+  - docs/architecture/decisions/ADR-031-doc-enforcement-hook.md
+  - docs/architecture/decisions/ADR-032-smart-router.md
+---
+
 # Operating Model — Technical Documentation
 
 ## Overview
