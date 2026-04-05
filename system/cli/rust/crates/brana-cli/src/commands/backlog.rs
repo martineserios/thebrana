@@ -6,7 +6,7 @@ use anyhow::Context;
 
 use crate::tasks;
 use crate::themes;
-use crate::util::{delegate_python, find_tasks_file};
+use crate::util::find_tasks_file;
 
 // ── backlog commands ────────────────────────────────────────────────────
 
@@ -562,12 +562,74 @@ fn render_tree_node(node: &serde_json::Value, theme: &themes::Theme, depth: usiz
     }
 }
 
-pub fn cmd_diff(_theme: &themes::Theme) {
-    delegate_python(&["backlog", "diff"]);
+pub fn cmd_diff(theme: &themes::Theme) -> anyhow::Result<()> {
+    let tf = find_tasks_file().context("tasks.json not found")?;
+    let root = crate::util::find_project_root().context("Not in git repo")?;
+    let rel = tf.strip_prefix(&root).unwrap_or(&tf);
+
+    let output = std::process::Command::new("git")
+        .args(["show", &format!("HEAD:{}", rel.display())])
+        .current_dir(&root)
+        .output();
+
+    let prev_tasks = match output {
+        Ok(o) if o.status.success() => {
+            let content = String::from_utf8_lossy(&o.stdout);
+            serde_json::from_str::<serde_json::Value>(&content)
+                .ok()
+                .and_then(|v| v["tasks"].as_array().cloned())
+                .unwrap_or_default()
+        }
+        _ => vec![],
+    };
+
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+    let prev_ids: std::collections::HashSet<&str> = prev_tasks.iter().filter_map(|t| t["id"].as_str()).collect();
+    let curr_ids: std::collections::HashSet<&str> = data.tasks.iter().filter_map(|t| t["id"].as_str()).collect();
+
+    let added: Vec<_> = curr_ids.difference(&prev_ids).collect();
+    let removed: Vec<_> = prev_ids.difference(&curr_ids).collect();
+
+    println!("\n{}Task diff (vs last commit){}", themes::ansi(theme.color("header")), themes::RESET);
+    if added.is_empty() && removed.is_empty() {
+        println!("  No structural changes (IDs match).\n");
+    } else {
+        for id in &added {
+            if let Some(t) = data.tasks.iter().find(|t| t["id"].as_str() == Some(id)) {
+                println!("{}  + {} {}{}", themes::ansi("green"), id, t["subject"].as_str().unwrap_or(""), themes::RESET);
+            }
+        }
+        for id in &removed {
+            println!("{}  - {}{}", themes::ansi("red"), id, themes::RESET);
+        }
+        println!();
+    }
+    Ok(())
 }
 
-pub fn cmd_burndown(period: &str, _theme: &themes::Theme) {
-    delegate_python(&["backlog", "burndown", "--period", period]);
+pub fn cmd_burndown(period: &str, theme: &themes::Theme) -> anyhow::Result<()> {
+    let tf = find_tasks_file().context("tasks.json not found")?;
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+    let result = tasks::burndown(&data.tasks, period);
+
+    let label = if period == "month" { "Last 30 days" } else { "Last 7 days" };
+    let created = result["created"].as_u64().unwrap_or(0);
+    let completed = result["completed"].as_u64().unwrap_or(0);
+    let delta = result["delta"].as_i64().unwrap_or(0);
+    let direction = result["direction"].as_str().unwrap_or("stable");
+
+    let (arrow, color) = match direction {
+        "shrinking" => ("↓", "green"),
+        "growing" => ("↑", "red"),
+        _ => ("=", "yellow"),
+    };
+
+    println!("\n{}Burndown — {label}{}", themes::ansi(theme.color("header")), themes::RESET);
+    println!("  Created:   {created}");
+    println!("  Completed: {completed}");
+    println!("{}  Net:       {delta} {arrow}{}", themes::ansi(color), themes::RESET);
+    println!();
+    Ok(())
 }
 
 // ── rollup ───────────────────────────────────────────────────────────────

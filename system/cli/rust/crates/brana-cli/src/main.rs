@@ -55,8 +55,8 @@ fn main() {
             BacklogCmd::Blocked => run_or_exit(commands::backlog::cmd_blocked(&theme)),
             BacklogCmd::Stale { days } => run_or_exit(commands::backlog::cmd_stale(days, &theme)),
             BacklogCmd::Context { task_id } => run_or_exit(commands::backlog::cmd_context(&task_id, &theme)),
-            BacklogCmd::Diff => commands::backlog::cmd_diff(&theme),
-            BacklogCmd::Burndown { period } => commands::backlog::cmd_burndown(&period.to_possible_value().unwrap().get_name().to_string(), &theme),
+            BacklogCmd::Diff => run_or_exit(commands::backlog::cmd_diff(&theme)),
+            BacklogCmd::Burndown { period } => run_or_exit(commands::backlog::cmd_burndown(&period.to_possible_value().unwrap().get_name().to_string(), &theme)),
             BacklogCmd::Rollup { file, dry_run } => run_or_exit(commands::backlog::cmd_rollup(file, dry_run)),
             BacklogCmd::Set { task_id, field, value, append, file } => run_or_exit(commands::backlog::cmd_set(&task_id, &field, &value, append, file)),
             BacklogCmd::Add { json, subject, stream, task_type, tags, description, effort, parent, file } =>
