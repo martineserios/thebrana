@@ -196,6 +196,104 @@ pub fn focus_score(task: &Value) -> f64 {
     pri + staleness - effort - blocked_depth
 }
 
+/// Compute burndown: created vs completed counts over a time period.
+///
+/// Returns a JSON object with created_count, completed_count, delta, and period info.
+pub fn burndown(tasks: &[Value], period: &str) -> Value {
+    let now = chrono::Local::now().date_naive();
+    let days = match period {
+        "month" => 30,
+        _ => 7, // default: week
+    };
+    let cutoff = (now - chrono::Duration::days(days)).format("%Y-%m-%d").to_string();
+
+    let created_count = tasks.iter()
+        .filter(|t| matches!(t["type"].as_str(), Some("task" | "subtask")))
+        .filter(|t| t["created"].as_str().unwrap_or("") >= cutoff.as_str())
+        .count();
+
+    let completed_count = tasks.iter()
+        .filter(|t| matches!(t["type"].as_str(), Some("task" | "subtask")))
+        .filter(|t| t["completed"].as_str().unwrap_or("") >= cutoff.as_str())
+        .count();
+
+    let delta = completed_count as i64 - created_count as i64;
+
+    serde_json::json!({
+        "period": period,
+        "days": days,
+        "cutoff": cutoff,
+        "created": created_count,
+        "completed": completed_count,
+        "delta": delta,
+        "direction": if delta > 0 { "shrinking" } else if delta < 0 { "growing" } else { "stable" },
+    })
+}
+
+/// Walk the blocked-by dependency chain for a task with cycle detection.
+///
+/// Returns a list of (depth, task) pairs representing the blocking tree.
+/// Only includes blockers that are not yet done.
+pub fn blocked_chain<'a>(
+    task_id: &str,
+    all: &'a [Value],
+    depth: usize,
+    visited: &mut HashSet<String>,
+) -> Vec<(usize, &'a Value)> {
+    if visited.contains(task_id) {
+        return vec![]; // cycle detected
+    }
+    visited.insert(task_id.to_string());
+
+    let task = match all.iter().find(|t| t["id"].as_str() == Some(task_id)) {
+        Some(t) => t,
+        None => return vec![],
+    };
+
+    let mut chain = vec![(depth, task)];
+
+    if let Some(deps) = task["blocked_by"].as_array() {
+        for dep in deps {
+            if let Some(dep_id) = dep.as_str() {
+                let blocker = all.iter().find(|t| t["id"].as_str() == Some(dep_id));
+                if let Some(b) = blocker {
+                    if classify(b, all) != "done" {
+                        chain.extend(blocked_chain(dep_id, all, depth + 1, visited));
+                    }
+                }
+            }
+        }
+    }
+
+    chain
+}
+
+/// Find tasks that have been pending longer than the given threshold.
+///
+/// Returns tasks sorted by created date (oldest first).
+pub fn stale_tasks<'a>(tasks: &'a [Value], all: &'a [Value], threshold_days: i64) -> Vec<&'a Value> {
+    let cutoff = (chrono::Local::now().date_naive() - chrono::Duration::days(threshold_days))
+        .format("%Y-%m-%d")
+        .to_string();
+
+    let mut stale: Vec<&Value> = tasks.iter()
+        .filter(|t| matches!(t["type"].as_str(), Some("task" | "subtask")))
+        .filter(|t| classify(t, all) == "pending")
+        .filter(|t| {
+            let created = t["created"].as_str().unwrap_or("9999-99-99");
+            created < cutoff.as_str()
+        })
+        .collect();
+
+    stale.sort_by(|a, b| {
+        let da = a["created"].as_str().unwrap_or("");
+        let db = b["created"].as_str().unwrap_or("");
+        da.cmp(db)
+    });
+
+    stale
+}
+
 /// Find duplicate task IDs.
 pub fn find_duplicate_ids(tasks: &[Value]) -> Vec<String> {
     let mut seen = HashSet::new();
@@ -1590,5 +1688,109 @@ mod tests {
         assert_eq!(recommended_model(0.3), "sonnet");
         assert_eq!(recommended_model(0.7), "sonnet");
         assert_eq!(recommended_model(0.700001), "opus");
+    }
+
+    // ── burndown tests ──────────────────────────────────────────────
+
+    #[test]
+    fn test_burndown_week() {
+        let today = chrono::Local::now().date_naive().format("%Y-%m-%d").to_string();
+        let old = "2020-01-01";
+        let tasks = vec![
+            json!({"id": "t-1", "type": "task", "created": today, "completed": null}),
+            json!({"id": "t-2", "type": "task", "created": old, "completed": today}),
+            json!({"id": "t-3", "type": "phase", "created": today, "completed": today}), // excluded
+        ];
+        let result = burndown(&tasks, "week");
+        assert_eq!(result["created"], 1); // only t-1 (t-3 is phase)
+        assert_eq!(result["completed"], 1); // only t-2 (t-3 is phase)
+        assert_eq!(result["delta"], 0);
+        assert_eq!(result["direction"], "stable");
+    }
+
+    #[test]
+    fn test_burndown_shrinking() {
+        let today = chrono::Local::now().date_naive().format("%Y-%m-%d").to_string();
+        let tasks = vec![
+            json!({"id": "t-1", "type": "task", "created": "2020-01-01", "completed": &today}),
+            json!({"id": "t-2", "type": "task", "created": "2020-01-02", "completed": &today}),
+        ];
+        let result = burndown(&tasks, "week");
+        assert_eq!(result["created"], 0);
+        assert_eq!(result["completed"], 2);
+        assert_eq!(result["direction"], "shrinking");
+    }
+
+    // ── blocked_chain tests ─────────────────────────────────────────
+
+    #[test]
+    fn test_blocked_chain_simple() {
+        let tasks = vec![
+            json!({"id": "t-1", "status": "pending", "blocked_by": ["t-2"]}),
+            json!({"id": "t-2", "status": "pending", "blocked_by": []}),
+        ];
+        let mut visited = HashSet::new();
+        let chain = blocked_chain("t-1", &tasks, 0, &mut visited);
+        assert_eq!(chain.len(), 2);
+        assert_eq!(chain[0].0, 0); // depth 0: t-1
+        assert_eq!(chain[1].0, 1); // depth 1: t-2
+    }
+
+    #[test]
+    fn test_blocked_chain_cycle_detection() {
+        let tasks = vec![
+            json!({"id": "t-1", "status": "pending", "blocked_by": ["t-2"]}),
+            json!({"id": "t-2", "status": "pending", "blocked_by": ["t-1"]}),
+        ];
+        let mut visited = HashSet::new();
+        let chain = blocked_chain("t-1", &tasks, 0, &mut visited);
+        // Should not infinite loop — cycle detected
+        assert_eq!(chain.len(), 2); // t-1 at depth 0, t-2 at depth 1, then stops
+    }
+
+    #[test]
+    fn test_blocked_chain_skips_done() {
+        let tasks = vec![
+            json!({"id": "t-1", "status": "pending", "blocked_by": ["t-2"]}),
+            json!({"id": "t-2", "status": "completed", "blocked_by": []}),
+        ];
+        let mut visited = HashSet::new();
+        let chain = blocked_chain("t-1", &tasks, 0, &mut visited);
+        assert_eq!(chain.len(), 1); // only t-1, t-2 is done so not traversed
+    }
+
+    // ── stale_tasks tests ───────────────────────────────────────────
+
+    #[test]
+    fn test_stale_tasks_finds_old() {
+        let tasks = vec![
+            json!({"id": "t-1", "type": "task", "status": "pending", "created": "2020-01-01", "blocked_by": []}),
+            json!({"id": "t-2", "type": "task", "status": "pending", "created": "2099-01-01", "blocked_by": []}),
+            json!({"id": "t-3", "type": "task", "status": "completed", "created": "2020-01-01", "blocked_by": []}),
+        ];
+        let stale = stale_tasks(&tasks, &tasks, 14);
+        assert_eq!(stale.len(), 1);
+        assert_eq!(stale[0]["id"], "t-1");
+    }
+
+    #[test]
+    fn test_stale_tasks_excludes_phases() {
+        let tasks = vec![
+            json!({"id": "ph-1", "type": "phase", "status": "pending", "created": "2020-01-01", "blocked_by": []}),
+        ];
+        let stale = stale_tasks(&tasks, &tasks, 14);
+        assert_eq!(stale.len(), 0);
+    }
+
+    #[test]
+    fn test_stale_tasks_sorted_oldest_first() {
+        let tasks = vec![
+            json!({"id": "t-1", "type": "task", "status": "pending", "created": "2021-06-01", "blocked_by": []}),
+            json!({"id": "t-2", "type": "task", "status": "pending", "created": "2020-01-01", "blocked_by": []}),
+        ];
+        let stale = stale_tasks(&tasks, &tasks, 14);
+        assert_eq!(stale.len(), 2);
+        assert_eq!(stale[0]["id"], "t-2"); // oldest first
+        assert_eq!(stale[1]["id"], "t-1");
     }
 }

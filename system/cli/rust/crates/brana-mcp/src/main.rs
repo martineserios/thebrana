@@ -16,6 +16,8 @@ async fn main() -> anyhow::Result<()> {
         .tool("backlog_add", tools::backlog_add::build())
         .tool("backlog_search", tools::backlog_search::build())
         .tool("backlog_stats", tools::backlog_stats::build())
+        .tool("backlog_burndown", tools::backlog_burndown::build())
+        .tool("backlog_stale", tools::backlog_stale::build())
         .build()?;
 
     server.run_stdio().await?;
