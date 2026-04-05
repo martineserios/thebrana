@@ -45,8 +45,8 @@ Hooks fire on Claude Code lifecycle events. Plugin `hooks.json` registers PreToo
 
 | Hook | Event | Trigger | Enforces | Action |
 |------|-------|---------|----------|--------|
-| `pre-tool-use.sh` | PreToolUse | Write\|Edit | **Spec-first gate** | DENY if: project has `docs/decisions/`, branch is `feat/*`, no spec/test activity on branch yet. Always allows docs/test/spec files. |
-| `tdd-gate.sh` | PreToolUse | Write\|Edit | **TDD gate** | Blocks implementation file writes on feat/fix branches when no test file exists. |
+| `pre-tool-use.sh` | PreToolUse | Write\|Edit | **Spec-first gate** | DENY if: project has `docs/decisions/`, no spec/test activity on branch yet. Fires on all branches (feat/fix filter removed per ADR-031 revision 2026-04-04). Always allows docs/test/spec files. |
+| `tdd-gate.sh` | PreToolUse | Write\|Edit | **TDD gate** | Blocks implementation file writes on all branches when no test file exists (feat/fix filter removed per ADR-031 revision 2026-04-04). |
 | `plan-mode-gate.sh` | PreToolUse | EnterPlanMode | Build flow | Blocks EnterPlanMode when active /brana:build session exists. |
 | `worktree-gate.sh` | PreToolUse | Bash | Git safety | Denies `git checkout -b` when dirty, blocks commit when /tmp >95% full. |
 | `guard-explore.sh` | PreToolUse | Read\|Grep\|Glob | Read logging | Logs reads without prior search (logging only, no blocking). |
@@ -77,7 +77,7 @@ Rules are always-loaded markdown directives in `system/rules/`. They shape behav
 
 | Rule | What it enforces |
 |------|-----------------|
-| `sdd-tdd.md` | Test-first: write the test before implementation. Bug fix = failing test first. Enhanced on `feat/*` with `docs/decisions/`. |
+| `sdd-tdd.md` | Test-first: write the test before implementation. Bug fix = failing test first. Enhanced on all branches with `docs/decisions/` (ADR-031). |
 | `git-discipline.md` | Every change on a branch. Worktrees over checkout. `--no-ff` merges. Conventional commits. |
 | `task-convention.md` | Read `tasks.json` before branching. Branch naming from stream. Status lifecycle. |
 | `context-budget.md` | Thresholds: <55% normal, 55-70% yellow, 70-85% compact, >85% delegate. Expensive-op awareness. |
@@ -203,7 +203,7 @@ Located at `thebrana/docs/architecture/`:
 ```
 User action
   │
-  ├─ Write/Edit on feat/* branch
+  ├─ Write/Edit on any branch (gates fire on all branches per ADR-031)
   │   └─ pre-tool-use.sh → DENY if no spec/test activity
   │       └─ enforces: sdd-tdd.md rule
   │

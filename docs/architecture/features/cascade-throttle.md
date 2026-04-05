@@ -158,7 +158,7 @@ Run: `bash tests/hooks/test-cascade-throttle.sh`
 ```
 post-tool-use-failure.sh          pre-tool-use.sh
   |                                  |
-  +-- counts consecutive failures    +-- checks spec-first gate (feat/* branches)
+  +-- counts consecutive failures    +-- checks spec-first gate (all branches; ADR-031)
   +-- writes cascade flag   -------> +-- checks cascade flag
   +-- logs to JSONL                  +-- injects additionalContext if either triggers
                                      +-- returns continue:true or deny

@@ -61,9 +61,9 @@ Verify structurally:
 
 - Hook exists in `system/hooks/hooks.json` (plugin) or `settings.json` (bootstrap fallback) under `PreToolUse`
 - Script is executable and passes `bash -n` syntax check
-- On a `feat/*` branch in an opted-in project (has `docs/decisions/`), the hook blocks `Write|Edit` when no spec/test activity exists
-- On non-feat branches or non-opted-in projects, the hook passes through
-- **Known gap:** the gate accepts spec-only (docs/ changes). A future tightening (t-603) may require test files before implementation files on feat/* branches
+- On any branch in an opted-in project (has `docs/decisions/`), the hook blocks `Write|Edit` when no spec/test activity exists (feat/fix filter removed per ADR-031 revision 2026-04-04; main-guard.sh now blocks behavioral commits on main)
+- On non-opted-in projects (no `docs/decisions/`), the hook passes through
+- **Known gap:** the gate accepts spec-only (docs/ changes). A future tightening (t-603) may require test files before implementation files
 
 ### Adversarial Input Validation
 

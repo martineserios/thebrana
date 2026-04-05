@@ -114,7 +114,7 @@ The result: Claude starts the session already knowing what project you're in, wh
 
 During work, hooks monitor tool usage:
 
-- **pre-tool-use.sh** — The spec-first gate. On `feat/*` branches in projects with `docs/decisions/`, blocks implementation file writes until spec or test activity exists on the branch.
+- **pre-tool-use.sh** — The spec-first gate. On all branches in projects with `docs/decisions/`, blocks implementation file writes until spec or test activity exists on the branch (feat/fix filter removed per ADR-031 revision 2026-04-04; main-guard.sh blocks behavioral commits on main).
 - **post-tool-use.sh** — Logs significant tool successes. Detects corrections (edits to recently-created files) and test-file creation.
 - **post-tool-use-failure.sh** — Logs tool failures with error categorization for cascade detection.
 - **post-tasks-validate.sh** — Validates `tasks.json` schema and auto-rolls-up parent task status when subtasks complete.

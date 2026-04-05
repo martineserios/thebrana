@@ -48,7 +48,7 @@ Challenger review (Opus adversarial) identified:
 
 ## Constraints
 
-- Must preserve TDD enforcement (PreToolUse hook on feat/* branches)
+- Must preserve TDD enforcement (PreToolUse hook on all branches; feat/fix filter removed per ADR-031 revision 2026-04-04)
 - Must preserve git discipline (branching, worktrees, --no-ff)
 - Must work without ruflo (graceful degradation to auto memory)
 - Must not break existing projects that reference current skill names

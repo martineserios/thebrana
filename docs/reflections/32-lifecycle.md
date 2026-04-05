@@ -47,19 +47,19 @@ DDD enforcement has three aspects:
 
 ### Spec-Before-Code (SDD)
 
-**The rule:** On `feat/*` branches, implementation code cannot be written until a spec (ADR or test) exists.
+**The rule:** On all branches, implementation code cannot be written until a spec (ADR or test) exists (feat/fix filter removed per ADR-031 revision 2026-04-04).
 
 **Opt-in:** Enforcement activates when `docs/decisions/` exists. No directory = no enforcement.
 
 **ADR creation** uses Michael Nygard's lightweight format (Context, Decision, Consequences) in `docs/decisions/ADR-NNN-title.md`. Currently manual or via `/brana:build` SDD step — a dedicated `/brana:decide` skill is planned but not yet implemented.
 
-**The PreToolUse hook** intercepts `Write|Edit` calls on `feat/*` branches. See [14-mastermind-architecture.md](./14-mastermind-architecture.md) for the enforcement gate design; [31-assurance.md](./31-assurance.md) for how to verify it works.
+**The PreToolUse hook** intercepts `Write|Edit` calls on all branches (feat/fix filter removed per ADR-031 revision 2026-04-04). See [14-mastermind-architecture.md](./14-mastermind-architecture.md) for the enforcement gate design; [31-assurance.md](./31-assurance.md) for how to verify it works.
 
 ### Test-Before-Code (TDD)
 
 **Adopted tool:** TDD-Guard — PreToolUse hooks that block implementation writes without failing tests. Covers Jest, Vitest, pytest, Go, Rust. Increased compliance from ~20% (CLAUDE.md alone) to ~84%.
 
-Brana's own PreToolUse enforcement hook implements the TDD gate: on `feat/*` branches, it intercepts `Write|Edit` calls to implementation files and blocks them unless a spec or test file exists on the branch. This is not an external dependency — it ships as part of the brana plugin in `system/hooks/`.
+Brana's own PreToolUse enforcement hook implements the TDD gate: on all branches, it intercepts `Write|Edit` calls to implementation files and blocks them unless a spec or test file exists on the branch (feat/fix filter removed per ADR-031 revision 2026-04-04). This is not an external dependency — it ships as part of the brana plugin in `system/hooks/`.
 
 ### Multi-Agent Context Isolation (Future)
 

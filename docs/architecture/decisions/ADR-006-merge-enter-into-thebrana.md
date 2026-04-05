@@ -72,7 +72,7 @@ thebrana/
 
 **Branch conventions replace repo boundary:**
 - `docs/*` branches: spec work (no `system/` edits)
-- `feat/*` branches: implementation (must also touch `docs/` or explicitly skip)
+- `feat/*` branches: implementation (must also touch `docs/` or explicitly skip). Gates (spec-first, TDD) fire on all branches — not just feat/fix (ADR-031 revision 2026-04-04); main-guard.sh blocks behavioral commits on main
 - Pre-commit hook enforces this, with a tripwire: 3 consecutive skips → mandatory
 
 ### 2. Evolve brana-knowledge into active knowledge base

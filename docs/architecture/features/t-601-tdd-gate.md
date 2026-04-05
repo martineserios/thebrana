@@ -12,6 +12,6 @@ PreToolUse hook that blocks .rs impl file writes on feat/fix branches until a te
 
 ## Gate Logic
 - Trigger: Edit/Write on `*.rs` (excluding test files)
-- Branch: feat/* or fix/* only
+- Branch: all (feat/fix filter removed per ADR-031 revision 2026-04-04)
 - Check: any `*_test.rs`, `test_*.rs`, `tests/` dir, or `#[cfg(test)]` in the crate
 - Block if no test found, allow otherwise

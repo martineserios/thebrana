@@ -147,6 +147,7 @@ claude --plugin-dir ./system
 | `/brana:repo-cleanup` | Commit accumulated spec doc changes in logical batches |
 
 > Spec maintenance commands live in `system/commands/`, not skills — invoked by agents or manually.
+> **Enforcement hooks:** `tdd-gate.sh` (tests), `doc-gate.sh` (docs), `main-guard.sh` (branch discipline) — all fire on every branch.
 
 ### GROW
 
