@@ -309,11 +309,11 @@ Audit every entry in MEMORY.md using the **pre-add gate** from `~/.claude/rules/
    | **Derivable** (obtainable via command or file read) | Delete |
    | **Historical** (completed, no future value) | Delete |
    | **Not project-specific** (applies across all projects) | Move to global `~/.claude/rules/` |
-   | **Feature idea** (gap, wish, improvement) | Create task via `brana backlog add`, then delete |
+   | **Feature idea** (gap, wish, improvement) | Create task via `backlog_add()` (MCP) or `brana backlog add`, then delete |
    | **True memory** (external API, pointers, non-derivable context) | Keep |
 
 3. **Execute moves** — for directives and conventions, create/update the target file and delete from MEMORY.md
-4. **Feature ideas** — search existing tasks first: `brana backlog search "keyword"`. If duplicate, just delete. If new, `brana backlog add --json '{"subject":"...","stream":"...","type":"task"}'`
+4. **Feature ideas** — search existing tasks first: `backlog_search(query: "keyword")` (MCP) or `brana backlog search "keyword"`. If duplicate, just delete. If new, `backlog_add(subject: "...", stream: "...", task_type: "task")` (MCP) or `brana backlog add --json '{"subject":"...","stream":"...","type":"task"}'`
 5. **Report** — entries moved, deleted, kept, and feature ideas extracted
 
 **Skip if:** session was read-only, or MEMORY.md has fewer than 5 entries.

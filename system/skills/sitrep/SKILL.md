@@ -67,6 +67,7 @@ Extract:
 
 ### 3. Active backlog task
 
+Prefer MCP: `backlog_query(status: "in_progress")`. Fallback:
 ```bash
 brana backlog query --status in_progress
 ```
@@ -126,7 +127,7 @@ Determine the single most important next action:
 2. **If build_step is set on active task:** "Continue {build_step} step of /brana:build for {task-id}."
 3. **If uncommitted changes exist:** "Commit or stash {N} uncommitted files before proceeding."
 4. **If no active task but handoff has Next:** "Pick up from handoff: {first next item}."
-5. **If nothing active:** "No active work. Run `brana backlog next` to pick a task."
+5. **If nothing active:** "No active work. Run `backlog_focus()` (MCP) or `brana backlog next` to pick a task."
 
 ---
 

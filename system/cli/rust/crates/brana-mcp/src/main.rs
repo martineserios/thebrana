@@ -17,6 +17,7 @@ async fn main() -> anyhow::Result<()> {
         .tool("backlog_search", tools::backlog_search::build())
         .tool("backlog_stats", tools::backlog_stats::build())
         .tool("backlog_burndown", tools::backlog_burndown::build())
+        .tool("backlog_focus", tools::backlog_focus::build())
         .tool("backlog_stale", tools::backlog_stale::build())
         .build()?;
 

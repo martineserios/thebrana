@@ -170,6 +170,7 @@ Exposed via `.mcp.json`. Skills should prefer these over CLI — structured JSON
 | `backlog_search` | Free-text search across all task fields |
 | `backlog_stats` | Aggregate stats by status, stream, priority, type |
 | `backlog_burndown` | Created vs completed over week/month |
+| `backlog_focus` | Top tasks ranked by priority + staleness + effort + blocking |
 | `backlog_stale` | Find tasks pending longer than threshold |
 
 ### Spec Maintenance Commands

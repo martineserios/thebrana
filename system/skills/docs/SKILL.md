@@ -49,7 +49,7 @@ Generate or update a technical architecture doc for a feature.
 ### Input sources
 
 Gather context from (in priority order):
-1. **Task metadata** (if task-id provided): `brana backlog get {task-id}` — subject, description, context, strategy, tags
+1. **Task metadata** (if task-id provided): `backlog_get(task_id: "{task-id}")` (MCP) or `brana backlog get {task-id}` — subject, description, context, strategy, tags
 2. **Git diff**: `git diff main...HEAD --stat` — what files changed
 3. **Feature spec**: check `docs/architecture/features/` for existing spec matching the task slug
 4. **Design decisions**: from task context field and any ADRs created during the build
@@ -184,7 +184,8 @@ Orchestrate all doc generation for a completed feature. This is what CLOSE invok
 
 1. **Determine strategy** from task metadata:
    ```bash
-   brana backlog get {task-id} --field strategy
+   backlog_get(task_id: "{task-id}", field: "strategy")  # MCP preferred
+   brana backlog get {task-id} --field strategy           # CLI fallback
    ```
 
 2. **Strategy-aware generation:**
