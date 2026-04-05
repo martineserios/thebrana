@@ -1,206 +1,191 @@
-# Brana Knowledge Ontology — v2
+# Brana Knowledge Ontology — v1.5 (Measurement-Gated)
 #
-# Evolved from v1 (ADR-021: 5+5) based on operating model research (2026-04-04).
-# 15 entity types, 11 relationships, 6 axioms.
-# Ontology-first approach: this spec defines the semantic structure.
-# Graph is computed from doc frontmatter + this spec.
+# Schema definition for the brana knowledge system.
+# Per ADR-028: 3-layer architecture (schema -> frontmatter -> graph).
 #
-# Sources: Seale (minimal viable graph), Jorgenson (DOS framework),
-# Lindenberg (3-layer ontology), Vanderseypen (dynamic schema).
+# Phase A ships 5 active types + 3 relationships.
+# Remaining types/relationships are documented but deferred until
+# usage metrics justify activation (30-day zero-usage demotion rule).
 #
-# v1 maintained dimension_classes (maintain vs snapshot) — preserved below.
+# Sources: Lindenberg (3-layer ontology), Seale (minimal viable graph),
+# Jorgenson (DOS framework), Vanderseypen (dynamic schema).
+#
 # validate.sh Check 18 enforces typed links using these types.
+# dimension_classes preserved from v1 for staleness enforcement.
 
 # ─────────────────────────────────────────────
-# ENTITY TYPES (what exists)
+# TYPES (what exists in the knowledge system)
 # ─────────────────────────────────────────────
 
-entity_types:
+types:
 
-  # === KNOWLEDGE LAYER ===
+  # --- Active (Phase A) ---
 
   - name: Dimension
-    description: Deep research on a domain topic. The ontology layer.
+    description: Deep research doc on a domain topic.
     location: brana-knowledge/dimensions/
-    parent: Document  # v1 compatibility
-    attributes: [title, status, maturity, last_verified, applies_to]
+    status: active
 
   - name: Reflection
-    description: Cross-cutting synthesis across dimensions. The logic layer.
+    description: Cross-cutting synthesis across dimensions.
     location: docs/reflections/
-    parent: Document
-    attributes: [title, status, maturity, dag_position]
+    status: active
 
   - name: ADR
-    description: Architecture Decision Record. The SDD artifact.
+    description: Architecture Decision Record.
     location: docs/architecture/decisions/
-    parent: Document
-    attributes: [title, status, date, superseded_by]
+    status: active
 
-  - name: Idea
-    description: Brainstormed concept, not yet committed.
-    location: docs/ideas/
-    parent: Document
-    attributes: [title, status]
+  - name: Pattern
+    description: Reusable solution stored in ruflo memory and memory files.
+    location: ruflo (namespace pattern) + ~/.claude/memory/
+    status: active
 
-  - name: FeatureDoc
-    description: Technical or user-facing documentation for a feature.
-    location: docs/architecture/features/ + docs/guide/features/
-    parent: Document
-    attributes: [title, doc_type, feature_slug]
+  - name: Roadmap
+    description: Implementation plan.
+    location: docs/
+    status: active
 
-  - name: ResearchDoc
-    description: Output of /brana:research sessions.
-    location: docs/research/
-    parent: Document
-    attributes: [title, date, strategy]
-
-  - name: Assumption
-    description: Explicit tracked claim that may become invalid.
-    parent: null  # from v1
-    attributes: [claim, status, confidence, last_checked]
+  # --- Deferred (documented, not processed until usage data justifies) ---
 
   - name: FieldNote
     description: Practical learning captured during work sessions.
-    parent: null  # from v1
-    attributes: [note, source_doc, session_date, action]
+    status: deferred
 
-  # === SYSTEM LAYER ===
+  - name: Assumption
+    description: Explicit tracked claim that may become invalid.
+    status: deferred
+
+  - name: Constraint
+    description: Hard boundary that limits design choices.
+    status: deferred
+
+  - name: Experiment
+    description: Time-boxed test of a hypothesis.
+    status: deferred
+
+  - name: Task
+    description: Unit of work in the backlog.
+    location: .claude/tasks.json
+    status: deferred
+
+  - name: Milestone
+    description: Significant deliverable or checkpoint.
+    status: deferred
+
+  - name: Phase
+    description: Group of related tasks toward a milestone.
+    status: deferred
 
   - name: Skill
     description: Workflow definition for a type of work.
     location: system/skills/
-    parent: Component  # v1 compatibility
-    attributes: [name, job, strategies, thinking]
-
-  - name: Agent
-    description: Focused worker spawned for bounded tasks.
-    location: system/agents/
-    parent: Component
-    attributes: [name, model, trigger]
+    status: deferred
 
   - name: Hook
     description: Event-driven automation.
     location: system/hooks/
-    parent: Component
-    attributes: [name, event, enforcement]
+    status: deferred
 
   - name: Rule
     description: Behavioral constraint loaded into context.
     location: system/rules/
-    parent: Component
-    attributes: [name, scope]
-
-  - name: Command
-    description: Reusable operation, no user interaction.
-    location: system/commands/
-    parent: Component
-    attributes: [name]
-
-  # === OPERATIONAL LAYER ===
-
-  - name: Client
-    description: A project/business in the portfolio.
-    location: ~/enter_thebrana/clients/
-    attributes: [name, type, status]
-
-  - name: Task
-    description: A unit of work in the backlog.
-    location: .claude/tasks.json
-    attributes: [id, subject, stream, status, priority]
-
-  - name: Pattern
-    description: A reusable learning stored in ruflo.
-    location: ruflo (namespace pattern)
-    attributes: [problem, solution, confidence, transferable]
-
-  - name: Session
-    description: A work session record.
-    location: ruflo (namespace session) + session-state.json
-    attributes: [date, label, accomplished, learnings]
-
-# v1 abstract types (preserved for backward compatibility with validate.sh)
-abstract_types:
-  - name: Document
-    subtypes: [Dimension, Reflection, ADR, Idea, FeatureDoc, ResearchDoc]
-  - name: Component
-    subtypes: [Skill, Agent, Hook, Rule, Command]
+    status: deferred
 
 # ─────────────────────────────────────────────
 # RELATIONSHIPS (how things connect)
 # ─────────────────────────────────────────────
 
-relationship_types:
+relationships:
 
-  # From v1 (preserved)
-  - name: assumes
-    from: [Document]
-    to: [Assumption]
-    description: Document relies on this assumption being true
+  # --- Active (Phase A) ---
 
-  - name: implements
-    from: [Component]
-    to: [Document]
-    description: Code/config that realizes a documented decision
+  - name: depends_on
+    description: A requires B to be understood or completed first.
+    properties:
+      transitive: true
+    status: active
 
   - name: informs
-    from: [Document, Pattern]
-    to: [Document, Component]
-    description: Knowledge that shaped a decision or behavior
-
-  - name: enriches
-    from: [FieldNote]
-    to: [Document]
-    description: Practical learning that adds depth to a document
+    description: A provides context that shaped B.
+    properties:
+      transitive: false
+    status: active
 
   - name: supersedes
-    from: [Document, ADR]
-    to: [Document, ADR]
-    description: Newer artifact replaces an older one
+    description: A replaces B. Chain must be complete (no gaps).
+    properties:
+      transitive: false
+      chain_complete: true
+    status: active
 
-  # New in v2
-  - name: depends_on
-    from: [Document, Component, Task]
-    to: [Document, Component, Task]
-    description: A requires B to be understood/completed first
-    transitive: true
-
-  - name: synthesizes
-    from: [Reflection]
-    to: [Dimension]
-    description: Reflection cross-cuts and synthesizes multiple dimensions
-
-  - name: applies_to
-    from: [Document, Pattern, Component]
-    to: [Client]
-    description: Knowledge or capability relevant to this client
-
-  - name: produced_by
-    from: [Pattern, Document, ADR, Idea]
-    to: [Session, Skill]
-    description: Knowledge artifact created during this activity
-
-  - name: decided_by
-    from: [Component]
-    to: [ADR]
-    description: System component justified by this architecture decision
+  # --- Deferred (documented, not processed until usage data justifies) ---
 
   - name: contradicts
-    from: [Document, Pattern]
-    to: [Document, Pattern]
-    description: Conflicting claims — needs resolution
+    description: Conflicting claims between A and B. Triggers LARGE evaluation.
+    properties:
+      symmetric: true
+    status: deferred
+
+  - name: implements
+    description: Code or config that realizes a documented decision.
+    status: deferred
+
+  - name: applies_to
+    description: Knowledge or capability relevant to a specific client.
+    status: deferred
+
+  - name: produced_by
+    description: Artifact created during a session or by a skill.
+    status: deferred
+
+  - name: decided_by
+    description: System component justified by an architecture decision.
+    status: deferred
+
+  - name: blocked_by
+    description: A cannot proceed until B is resolved.
+    properties:
+      transitive: true
+    status: deferred
+
+  - name: tested_by
+    description: A is validated by B (test, experiment, or metric).
+    status: deferred
+
+  - name: triggered_by
+    description: A is activated in response to B (event-driven).
+    status: deferred
 
 # ─────────────────────────────────────────────
 # AXIOMS (rules the system can enforce)
 # ─────────────────────────────────────────────
 
 axioms:
-  - if supersedes(new, old) then status(old) = "superseded"
-  - if contradicts(A, B) then flag_for_review(A, B)
-  - if depends_on(A, B) and depends_on(B, C) then depends_on(A, C)
-  - if status(Dimension) = "stale" and LOAD(Dimension) then warn("stale")
-  - if produced_by(Pattern, Session) and confidence(Pattern) < 0.3 then tier = "episodic"
-  - if applies_to(Pattern, Client_A) and applies_to(Pattern, Client_B) then transferable(Pattern) = true
+
+  - id: transitivity
+    rule: depends_on is transitive
+    formal: "if depends_on(A, B) and depends_on(B, C) then depends_on(A, C)"
+
+  - id: supersession_chain
+    rule: supersedes must form complete chains (no gaps)
+    formal: "if supersedes(A, B) then status(B) = superseded"
+
+  - id: contradiction_flag
+    rule: contradicts triggers LARGE evaluation gate
+    formal: "if contradicts(A, B) then flag_for_review(A, B, tier=LARGE)"
+
+  - id: single_source
+    rule: Each fact has exactly one authoritative source
+    formal: "for each fact F, exactly one node is authoritative"
+
+  - id: staleness
+    rule: Nodes older than 90 days with no search hits get stale warning
+    formal: "if age(N) > 90d and search_hits(N) = 0 then warn(N, stale)"
+
+  - id: orphan_detection
+    rule: Nodes with zero edges are flagged for review
+    formal: "if degree(N) = 0 then flag_for_review(N, orphan)"
 
 # ─────────────────────────────────────────────
 # DIMENSION CLASSIFICATION (from v1)

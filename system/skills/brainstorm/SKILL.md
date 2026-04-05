@@ -19,8 +19,11 @@ allowed-tools:
   - WebFetch
   - AskUserQuestion
   - Task
+  - TaskList
+  - Skill
   - mcp__context7__resolve-library-id
   - mcp__context7__query-docs
+  - mcp__ruflo__memory_search
 status: stable
 growth_stage: evergreen
 ---
@@ -49,9 +52,32 @@ research what exists, challenge assumptions, and shape it into something concret
 
 On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
 
-Register these steps: SEED, EXPAND, DISCUSS, SHAPE, OUTPUT.
+Register these steps: LOAD, SEED, EXPAND, DISCUSS, SHAPE, OUTPUT.
 
 ## Procedure
+
+### Step 0 — LOAD
+
+Pull relevant knowledge into context before the brainstorm begins. Budget: 30K tokens max.
+
+1. **Build query** from available context: `"{project} {task.subject} {task.tags joined} {user_input}"`
+2. **Primary — ruflo MCP:**
+   ```
+   mcp__ruflo__memory_search(
+     query: "{query}",
+     namespace: "all",
+     limit: 5,
+     threshold: 0.4
+   )
+   ```
+   Focus on: dimension docs, idea docs (`docs/ideas/`), and recent research findings.
+3. **Fallback — tag-based grep** (if MCP unavailable):
+   ```bash
+   grep -rl "{keywords}" ~/enter_thebrana/brana-knowledge/dimensions/ --include="*.md" | head -5
+   grep -rl "{keywords}" docs/reflections/ docs/ideas/ --include="*.md" | head -5
+   ```
+   Read the top 3 matching files (first 80 lines each).
+4. **Summarize loaded knowledge** as a brief context preamble (2-5 bullets). Do not show raw results — synthesize what's relevant to the seed idea.
 
 ### Phase 1 — Seed
 

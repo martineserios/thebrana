@@ -29,6 +29,7 @@ allowed-tools:
   - WebSearch
   - Write
   - mcp__ruflo__hive-mind_memory
+  - mcp__ruflo__memory_search
 status: stable
 growth_stage: evergreen
 ---
@@ -137,7 +138,32 @@ This applies to EVERY step — CLASSIFY, SPECIFY, DECOMPOSE, BUILD, CLOSE. No ex
 
 ---
 
-## Step 0: CROSS-REFERENCE
+## Step 0: LOAD
+
+Pull relevant architecture and decision knowledge into context before building. Budget: 30K tokens max.
+
+1. **Build query** from available context: `"{project} {task.subject} {task.tags joined} {user_input}"`
+2. **Primary — ruflo MCP:**
+   ```
+   mcp__ruflo__memory_search(
+     query: "{query}",
+     namespace: "all",
+     limit: 5,
+     threshold: 0.4
+   )
+   ```
+   Focus on: architecture docs, feature briefs (`docs/architecture/features/`), and ADRs (`docs/architecture/decisions/`).
+3. **Fallback — tag-based grep** (if MCP unavailable):
+   ```bash
+   grep -rl "{keywords}" ~/enter_thebrana/brana-knowledge/dimensions/ --include="*.md" | head -5
+   grep -rl "{keywords}" docs/architecture/ docs/reflections/ --include="*.md" | head -5
+   ```
+   Read the top 3 matching files (first 80 lines each).
+4. **Summarize loaded knowledge** as a brief context preamble (2-5 bullets). Do not show raw results — synthesize what's relevant to the build task (prior decisions, related architecture, known constraints).
+
+---
+
+## Step 0a: CROSS-REFERENCE
 
 Before anything else, check if this work already exists or relates to existing work.
 
@@ -173,11 +199,11 @@ Create a CC Task step registry. Follow the [guided-execution protocol](../_share
 
 Register these steps as CC Tasks (adapt based on detected strategy after CLASSIFY):
 
-- **Feature/Greenfield/Migration:** CLASSIFY, SPECIFY, DECOMPOSE, BUILD, CLOSE
-- **Bug fix:** CLASSIFY, REPRODUCE, DIAGNOSE, FIX, CLOSE
-- **Refactor:** CLASSIFY, SPECIFY, VERIFY-COVERAGE, BUILD, CLOSE
-- **Investigation:** CLASSIFY, SYMPTOMS, INVESTIGATE, REPORT
-- **Spike:** CLASSIFY, QUESTION, EXPERIMENT, ANSWER
+- **Feature/Greenfield/Migration:** LOAD, CLASSIFY, SPECIFY, DECOMPOSE, BUILD, CLOSE
+- **Bug fix:** LOAD, CLASSIFY, REPRODUCE, DIAGNOSE, FIX, CLOSE
+- **Refactor:** LOAD, CLASSIFY, SPECIFY, VERIFY-COVERAGE, BUILD, CLOSE
+- **Investigation:** LOAD, CLASSIFY, SYMPTOMS, INVESTIGATE, REPORT
+- **Spike:** LOAD, CLASSIFY, QUESTION, EXPERIMENT, ANSWER
 
 Since strategy isn't known yet, create the CLASSIFY task first. After CLASSIFY confirms the strategy, create the remaining steps.
 

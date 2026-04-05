@@ -56,11 +56,32 @@ Flags:
 
 On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
 
-Register these steps: LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, DEEP-DIVE, CROSS-REF, REPORT.
+Register these steps: LOAD, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, DEEP-DIVE, CROSS-REF, REPORT.
 
 **Plan mode:** Enter plan mode for INTERNAL-SEARCH, WIDE-SCAN, and TRIAGE (Phases 0-2). Exit plan mode before DEEP-DIVE (Phase 3) which may involve writing temp files.
 
 ## Procedure
+
+0. **Step 0 — LOAD.** Pull relevant existing knowledge into context before researching. Budget: 30K tokens max.
+
+   1. **Build query** from available context: `"{project} {task.subject} {task.tags joined} {user_input}"`
+   2. **Primary — ruflo MCP:**
+      ```
+      mcp__ruflo__memory_search(
+        query: "{query}",
+        namespace: "all",
+        limit: 5,
+        threshold: 0.4
+      )
+      ```
+      Focus on: existing dimension docs, `research-sources.yaml` entries, and prior research findings.
+   3. **Fallback — tag-based grep** (if MCP unavailable):
+      ```bash
+      grep -rl "{keywords}" ~/enter_thebrana/brana-knowledge/dimensions/ --include="*.md" | head -5
+      grep -rl "{keywords}" ~/enter_thebrana/brana-knowledge/research-sources.yaml | head -1
+      ```
+      Read the top 3 matching dimension files (first 80 lines each).
+   4. **Summarize loaded knowledge** as a brief context preamble (2-5 bullets). Note what's already documented so research targets gaps, not redundant ground.
 
 1. **Load the source registry.** Read `research-sources.yaml` from brana-knowledge (`~/enter_thebrana/brana-knowledge/research-sources.yaml`). If it doesn't exist, warn the user and fall back to freeform web search.
 

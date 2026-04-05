@@ -418,6 +418,23 @@ After detecting system-level drift, also check if session changes affect existin
 
 4. **Skip if:** no feature docs exist yet, or no implementation files changed
 
+#### Auto-trigger /reconcile
+
+If system files were changed this session AND the project is brana (git root basename is "thebrana"):
+
+1. Check if behavioral files include any of: `system/skills/`, `system/hooks/`, `system/agents/`, `system/commands/`, `system/cli/`, `**/rules/`
+2. If yes, auto-invoke reconcile:
+   ```
+   Skill(skill="brana:reconcile", args="--scope consistency,propagation")
+   ```
+3. Record in session state: `"auto_reconcile": {"triggered": true, "scope": "consistency,propagation", "reason": "system files changed"}`
+4. If reconcile finds issues, include them in the session report (Step 12)
+
+**Skip if:**
+- No system files changed this session
+- Not in thebrana project (other projects don't have /reconcile)
+- User already ran /reconcile manually this session (check conversation context)
+
 ### Step 9: Write session state via CLI
 
 Build a JSON object from all evidence gathered in previous steps, write it to a temp file, and call `brana session write`. The LLM never writes session files directly — the CLI validates the schema and handles atomic writes + history archival.
@@ -444,6 +461,12 @@ Build a JSON object from all evidence gathered in previous steps, write it to a 
   "doc_drift": {
     "detected": true,
     "stale_docs": ["<docs affected, from Step 8>"]
+  },
+  "auto_reconcile": {
+    "triggered": false,
+    "scope": null,
+    "reason": null,
+    "issues_found": 0
   },
   "state": {
     "key_files": ["<from git diff --stat>"],
@@ -620,6 +643,7 @@ Audit every entry in MEMORY.md using the **"Where to store what"** classificatio
 **Feature ideation:** {N ideas found}, {M added to backlog}
 **Memory reviewed:** {N entries deleted}, {M feature ideas extracted}
 **Doc drift detected:** {yes/no}
+**Auto-reconcile:** {triggered (N issues) / skipped}
 **Handoff note updated:** {path}
 
 ### Follow-up

@@ -1,11 +1,11 @@
 ---
 name: reconcile
-description: "Detect drift between spec docs and system/ implementation, plan fixes, apply after approval. Use after /brana:maintain-specs changes or periodically to sync specs with implementation."
+description: "Unified maintenance command — detect drift (consistency), run security checks, cascade spec propagation, and knowledge hygiene. Scoped via --scope flag. Default: consistency."
 effort: high
-keywords: [drift, specs, implementation, sync, mismatch, system]
-task_strategies: [refactor]
+keywords: [drift, specs, implementation, sync, mismatch, system, security, audit, propagation, maintain, knowledge]
+task_strategies: [refactor, investigation]
 stream_affinity: [tech-debt, docs]
-argument-hint: "[scope]"
+argument-hint: "[--scope consistency|security|propagation|knowledge|all]"
 group: brana
 allowed-tools:
   - AskUserQuestion
@@ -26,21 +26,38 @@ growth_stage: evergreen
 
 # Reconcile
 
-Compare spec docs (what should be built) against `system/` (what is built). Identify drift, present a remediation plan, apply after approval. Log findings to doc 24.
+Unified maintenance command for the brana system. Four domains, one entry point.
 
-This is the missing arrow: **specs → existing implementation**. The other commands cover:
-- `/build-phase` — specs → new implementation (greenfield)
-- `/back-propagate` — implementation → specs (reverse sync)
-- `/brana:maintain-specs` — specs → specs (cascade within docs)
+| Domain | Scope flag | What it checks |
+|--------|-----------|---------------|
+| **Consistency** | `--scope consistency` | Spec docs vs `system/` implementation drift (default) |
+| **Security** | `--scope security` | Secrets, permissions, MCP tax, dangerous settings, credential files, acquired skill safety |
+| **Propagation** | `--scope propagation` | Pending errata cascade, reflection gaps, spec-graph consistency |
+| **Knowledge** | `--scope knowledge` | Reserved for DECAY integration (Phase D) |
 
-`/brana:reconcile` closes the loop: specs evolve, and the built system catches up.
+`--scope all` runs every domain sequentially.
+
+**Replaces:** `/brana:audit` (merged into security domain), invokes `/brana:maintain-specs` commands (propagation domain).
+
+## Usage
+
+```
+/brana:reconcile                          — consistency (default, backward compatible)
+/brana:reconcile --scope security         — security checks only
+/brana:reconcile --scope propagation      — spec cascade + graph checks
+/brana:reconcile --scope knowledge        — knowledge hygiene (stub)
+/brana:reconcile --scope all              — run all domains
+```
+
+Parse `--scope` from `$ARGUMENTS`. If no `--scope` flag is present, default to `consistency`.
 
 ## When to use
 
-- After `/brana:maintain-specs` cascades changes that affect implementation
-- After manually editing specs that describe thebrana behavior
-- Periodically, to check for accumulated drift
-- Before a new `/build-phase`, to ensure the current system matches current specs
+- **consistency** — After `/brana:maintain-specs` cascades changes that affect implementation, after manually editing specs, periodically, or before a new `/build-phase`
+- **security** — Before sharing config, after adding MCP servers, after installing acquired skills, or monthly
+- **propagation** — After dimension doc edits, when errata accumulate, or as part of a full maintenance cycle
+- **knowledge** — (Phase D) After bulk indexing, when ruflo memory is suspected stale
+- **all** — Full system health check
 
 ## Architecture
 
@@ -63,15 +80,33 @@ Most reconcile work is **intra-repo** (docs/ → system/). Dimension docs in bra
 
 On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
 
-Register these steps: ORIENT, SCAN-SPECS, SCAN-IMPL, DIFF, PRESENT, APPLY, LOG, REPORT.
+Register steps based on scope:
 
-**Plan mode:** Enter plan mode for SCAN-SPECS, SCAN-IMPL, and DIFF (Steps 1-3). These are read-only analysis. Exit plan mode before PRESENT (Step 4).
+- **consistency:** ORIENT, ROUTE, SCAN-SPECS, SCAN-IMPL, DIFF, PRESENT, APPLY, LOG, REPORT
+- **security:** ORIENT, ROUTE, SEC-SCAN, SEC-REPORT
+- **propagation:** ORIENT, ROUTE, PROP-SCAN, PROP-APPLY, PROP-REPORT
+- **knowledge:** ORIENT, ROUTE, KNOW-STUB
+- **all:** ORIENT, ROUTE, then all domain steps sequentially
+
+**Plan mode:** Enter plan mode for scanning steps (SCAN-SPECS, SCAN-IMPL, DIFF, SEC-SCAN, PROP-SCAN). Exit plan mode before presenting results.
 
 ## Process
 
-### Step 0: Orient
+### Step 0: Orient + Route
 
-#### 0a: Locate paths
+#### 0a: Route by scope
+
+Parse `--scope` from `$ARGUMENTS`. Default: `consistency`.
+
+| Scope | Jump to |
+|-------|---------|
+| `consistency` | Step 1 (Scan specs) |
+| `security` | Security Domain |
+| `propagation` | Propagation Domain |
+| `knowledge` | Knowledge Domain (stub) |
+| `all` | Run consistency → security → propagation → knowledge sequentially |
+
+#### 0b: Locate paths
 
 ```bash
 THEBRANA="$HOME/enter_thebrana/thebrana"
@@ -309,6 +344,121 @@ cd ~/enter_thebrana/thebrana && ./deploy.sh
 ```
 
 **Do not auto-merge or auto-deploy.** Present the commands and let the user decide.
+
+---
+
+## Security Domain (`--scope security`)
+
+6 checks absorbed from `/brana:audit`. Fast, zero dependencies.
+
+### SEC-1: Secrets in config files
+
+Scan CLAUDE.md, rules/, skill frontmatter, hook scripts, agent definitions for leaked secrets.
+
+**Patterns** (14 regexes):
+```
+(sk|pk|api|key|token|secret|password|credential|auth)[-_]?[A-Za-z0-9]{16,}
+(ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36,}
+AKIA[0-9A-Z]{16}
+(xox[bpas]-[A-Za-z0-9-]{10,})
+(sk-[A-Za-z0-9]{20,})
+Bearer\s+[A-Za-z0-9\-._~+/]+=*
+Basic\s+[A-Za-z0-9+/]+=+
+-----BEGIN (RSA |EC |DSA )?PRIVATE KEY-----
+(postgres|mysql|mongodb)://[^\s]+:[^\s]+@
+(ANTHROPIC|OPENAI|STRIPE|GITHUB|AWS)_[A-Z_]*KEY[=:]\s*\S+
+```
+
+**Files:** `CLAUDE.md`, `.claude/CLAUDE.md`, `~/.claude/CLAUDE.md` (if --global), `~/.claude/rules/*.md`, `system/skills/*/SKILL.md`, `system/hooks/*.sh`, `system/agents/*.md`.
+
+Report: file, line number, pattern matched. Redact values (first 4 chars + `***`).
+
+### SEC-2: Hook permission escalation
+
+```bash
+grep -rn "chmod\|chown\|setfacl" system/hooks/*.sh
+```
+
+Flag: `chmod +x` outside `system/hooks/`, `chmod 777` anywhere, `chown` to root.
+
+### SEC-3: MCP server count (token tax)
+
+Count MCP servers in settings.json. Each adds 4-17K tokens/session. Flag if >5 servers active.
+
+### SEC-4: Dangerous settings
+
+Check `settings.json` for: `bypassPermissions: true`, `dangerouslyDisableSandbox: true`, `allowedTools: ["*"]`. Flag each with severity.
+
+### SEC-5: Unencrypted credential files
+
+```bash
+find . -name ".env" -o -name "credentials.json" -o -name "*.pem" -o -name "*.key" 2>/dev/null
+```
+
+Flag any found outside `.gitignore`.
+
+### SEC-6: Acquired skill safety
+
+Scan `system/skills/` for skills not in the core set (compare against git-tracked skill list). For acquired skills, check: allowed-tools list for dangerous tools (Bash with no constraints), external URLs in skill body, hook registration.
+
+### SEC-REPORT
+
+Present findings grouped by severity (CRITICAL / WARNING / INFO). No auto-fix — security issues require human judgment.
+
+---
+
+## Propagation Domain (`--scope propagation`)
+
+Cascade pending errata through the spec layer hierarchy. Invokes existing commands as building blocks.
+
+### PROP-1: Check pending errata
+
+Read `docs/24-roadmap-corrections.md`. Count entries with `status: pending`. If zero, skip propagation.
+
+### PROP-2: Apply errata cascade
+
+Invoke the apply-errata command flow:
+
+```
+Skill(skill="brana:apply-errata")
+```
+
+This cascades: dimension → reflection → roadmap, with gate checks between layers.
+
+### PROP-3: Re-evaluate reflections
+
+Invoke re-evaluate-reflections:
+
+```
+Skill(skill="brana:re-evaluate-reflections")
+```
+
+Cross-checks reflection docs against dimension docs for gaps, contradictions, missed findings.
+
+### PROP-4: Spec-graph consistency
+
+If `docs/spec-graph.json` exists:
+1. Run `uv run python3 system/scripts/spec_graph.py` to regenerate
+2. Compare output with existing graph
+3. Flag new orphan nodes, broken edges, missing docs
+
+### PROP-REPORT
+
+Summary: errata applied, reflections updated, graph changes. Commit all propagation changes as one logical group.
+
+---
+
+## Knowledge Domain (`--scope knowledge`)
+
+> **Stub — reserved for Phase D (DECAY integration).** No checks implemented yet.
+
+When implemented, will cover:
+- Stale dimensions (>90 days + no search hits)
+- Event log bloat (>90 day entries → archive with digest)
+- Ruflo noise (old/low-confidence entries → soft decay)
+- Orphan docs (no graph edges)
+
+---
 
 ## Rules
 

@@ -17,6 +17,7 @@ allowed-tools:
   - Grep
   - Bash
   - AskUserQuestion
+  - mcp__ruflo__memory_search
 status: stable
 growth_stage: evergreen
 ---
@@ -24,6 +25,31 @@ growth_stage: evergreen
 # Review — Business Health
 
 Unified business review skill. Replaces `/weekly-review`, `/monthly-close`, `/monthly-plan`, and `/growth-check`.
+
+## Step 0 — LOAD
+
+Pull relevant business context into memory before the review. Budget: 30K tokens max.
+
+1. **Build query** from available context: `"{project} {task.subject} {task.tags joined} {user_input}"`
+2. **Primary — ruflo MCP:**
+   ```
+   mcp__ruflo__memory_search(
+     query: "{query} metrics revenue health pipeline",
+     namespace: "all",
+     limit: 5,
+     threshold: 0.4
+   )
+   ```
+   Focus on: prior review snapshots (namespace: business), pipeline state, event log entries, and health metrics.
+3. **Fallback — tag-based grep** (if MCP unavailable):
+   ```bash
+   grep -rl "{keywords}" docs/reviews/ --include="*.md" | head -5
+   grep -rl "{keywords}" ~/enter_thebrana/brana-knowledge/dimensions/ --include="*.md" | head -3
+   ```
+   Read the most recent review file and top 2 matching dimension files (first 80 lines each).
+4. **Summarize loaded knowledge** as a brief context preamble (2-5 bullets). Surface prior trends, last review's bottleneck, and pipeline status so the review builds on history.
+
+---
 
 ## Subcommand routing
 
