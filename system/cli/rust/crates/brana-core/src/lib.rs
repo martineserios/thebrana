@@ -5,5 +5,6 @@
 
 pub mod files;
 pub mod scheduler;
+pub mod sync;
 pub mod tasks;
 pub mod util;
