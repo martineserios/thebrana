@@ -20074,6 +20074,32 @@
       "order": 0,
       "github_issue": null,
       "execution": "code"
+    },
+    {
+      "id": "t-754",
+      "subject": "Add skill-registry tools to brana-mcp (t-608b implementation)",
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "tags": [
+        "mcp",
+        "skills",
+        "architecture"
+      ],
+      "description": "t-608 (investigation) recommended a skill-registry MCP server. Now that brana-mcp exists, implement skill discovery tools directly in the existing server instead of a separate binary. Tools: skill_search(query, strategy?, stream?) → ranked skills, skill_get(name) → full metadata, skill_suggest(task_context) → recommendations, skill_list(group?, effort?) → filtered list. Requires frontmatter enrichment of SKILL.md files (strategy, stream_affinity fields). See docs/ideas/dynamic-skill-routing.md for full design.",
+      "effort": "M",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-04-05",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
     }
   ],
   "version": "1"
