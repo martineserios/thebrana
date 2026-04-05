@@ -20049,6 +20049,31 @@
       "order": 0,
       "github_issue": null,
       "execution": "code"
+    },
+    {
+      "id": "t-753",
+      "subject": "Extend /brana:docs skill to support architecture-wide updates",
+      "status": "pending",
+      "stream": "tech-debt",
+      "type": "task",
+      "tags": [
+        "docs",
+        "skills"
+      ],
+      "description": "The /brana:docs skill only supports feature-specific docs (tech, guide, overview). It lacks a subcommand for broad architecture updates — e.g. after a workspace restructure, adding new ADRs to README.md, updating CLAUDE.md system architecture diagrams, referencing new domain models. Add a subcommand like /brana:docs architecture that scans for new ADRs, domain models, idea docs, and updates docs/README.md + CLAUDE.md system architecture section accordingly. Triggered by: ADR creation, workspace restructure, new domain model, major refactor.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-04-05",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
     }
   ],
   "version": "1"
