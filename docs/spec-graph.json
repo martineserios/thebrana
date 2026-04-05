@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-05T01:21:42Z",
+  "generated": "2026-04-05T02:20:51Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -463,7 +463,6 @@
       "title": "ADR-016: Spec Dependency Graph",
       "type": "ADR",
       "impl_files": [
-        "system/scripts/spec_graph.py",
         "system/skills/build"
       ]
     },
@@ -720,6 +719,16 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/architecture/features/operating-model.md": {
+      "title": "Operating Model — Technical Documentation",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/cli/rust/src/commands/graph.rs",
+        "system/skills/ship/SKILL.md",
+        "system/skills/_shared/smart-router.md",
+        "system/hooks/doc-gate.sh"
+      ]
+    },
     "docs/architecture/features/personal-bot-oci-deploy.md": {
       "title": "Oracle Cloud Free Tier — Personal Bot Deployment",
       "type": "Roadmap",
@@ -855,6 +864,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/architecture/glossary.md": {
+      "title": "Domain Glossary — Operating Model",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/architecture/hooks.md": {
       "title": "Hooks Architecture",
       "type": "Roadmap",
@@ -871,7 +885,7 @@
       "title": "Extending the Knowledge System",
       "type": "Roadmap",
       "impl_files": [
-        "system/scripts/spec_graph.py",
+        "system/cli/src/graph.rs",
         "system/skills/close/SKILL.md",
         "system/skills/research/SKILL.md",
         "system/scripts/index-assumptions.sh",
@@ -1364,9 +1378,7 @@
     "docs/guide/workflows/spec-graph.md": {
       "title": "Spec Dependency Graph",
       "type": "Roadmap",
-      "impl_files": [
-        "system/scripts/spec_graph.py"
-      ]
+      "impl_files": []
     },
     "docs/guide/workflows/venture.md": {
       "title": "Venture Management",
@@ -1591,8 +1603,8 @@
         "system/scripts/index-knowledge.sh",
         "system/scripts/bulk-index.mjs",
         "system/scripts/generate-index.sh",
-        "system/scripts/spec_graph.py",
         "system/",
+        "system/scripts/spec_graph.py",
         "system/scripts/decisions.py",
         "system/state/decisions/",
         "system/scripts/generate-reference.py",
@@ -3349,6 +3361,42 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-027-auto-learning-loop.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-028-ontology-v2.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-030-maintenance-unification.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-032-smart-router.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/extending-agents.md",
       "type": "references",
       "computed": false
@@ -3410,6 +3458,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/features/event-log.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/operating-model.md",
       "type": "references",
       "computed": false
     },
@@ -5902,18 +5956,12 @@
       "to": "miessler-pai-comparison.md",
       "type": "references",
       "computed": false
-    },
-    {
-      "from": "docs/reflections/ARCHITECTURE.md",
-      "to": "14-mastermind-architecture.md",
-      "type": "supersedes",
-      "computed": false
     }
   ],
   "stats": {
-    "nodes": 264,
-    "edges": 702,
-    "typed_edges": 11,
-    "orphans": 118
+    "nodes": 266,
+    "edges": 708,
+    "typed_edges": 10,
+    "orphans": 120
   }
 }
