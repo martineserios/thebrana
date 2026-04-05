@@ -222,10 +222,113 @@ fn skill_dirs() -> Vec<PathBuf> {
     ]
 }
 
+/// Build a query string from TaskContext for ruflo semantic search.
+fn build_query_string(ctx: &TaskContext) -> String {
+    let mut parts: Vec<String> = Vec::new();
+    parts.extend(ctx.description_words.iter().cloned());
+    parts.extend(ctx.tags.iter().cloned());
+    if let Some(ref s) = ctx.strategy {
+        parts.push(s.clone());
+    }
+    if let Some(ref s) = ctx.stream {
+        parts.push(s.clone());
+    }
+    parts.join(" ")
+}
+
+/// Resolve the ruflo/claude-flow binary path.
+fn which_ruflo() -> Option<String> {
+    for name in ["ruflo", "claude-flow"] {
+        if let Ok(output) = std::process::Command::new("which").arg(name).output() {
+            if output.status.success() {
+                let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                if !path.is_empty() {
+                    return Some(path);
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Parse ruflo memory search output into SkillMatch entries.
+fn parse_ruflo_results(text: &str) -> Option<Vec<SkillMatch>> {
+    let val: serde_json::Value = serde_json::from_str(text).ok()?;
+    let entries = val.as_array()?;
+    let matches: Vec<SkillMatch> = entries
+        .iter()
+        .filter_map(|e| {
+            let key = e["key"].as_str()?;
+            let name = key.strip_prefix("skill:")?.to_string();
+            let score = e["score"].as_f64().unwrap_or(0.0);
+            Some(SkillMatch {
+                name,
+                score,
+                reason: "ruflo semantic".to_string(),
+            })
+        })
+        .collect();
+    if matches.is_empty() {
+        None
+    } else {
+        Some(matches)
+    }
+}
+
+/// Try ruflo semantic search for skill suggestions.
+/// Returns None if ruflo is unavailable or returns no results.
+/// Uses a 15-second timeout because ruflo CLI can hang after completion.
+fn try_ruflo_suggest(query: &str) -> Option<Vec<SkillMatch>> {
+    // Resolve ruflo binary: check CF env var, then search PATH
+    let cf = std::env::var("CF")
+        .ok()
+        .filter(|s| !s.is_empty())
+        .or_else(which_ruflo)?;
+
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".into());
+
+    // Spawn the ruflo process (don't use .output() — need timeout control)
+    let mut child = std::process::Command::new(&cf)
+        .args([
+            "memory", "search", "-q", query, "--namespace", "skills", "--limit", "5",
+        ])
+        .env("HOME", &home)
+        .current_dir(&home)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .ok()?;
+
+    // Wait with 15-second timeout (ruflo hangs after completion — known issue)
+    let timeout = std::time::Duration::from_secs(15);
+    let start = std::time::Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                if !status.success() {
+                    return None;
+                }
+                break;
+            }
+            Ok(None) => {
+                if start.elapsed() > timeout {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return None;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+            Err(_) => return None,
+        }
+    }
+
+    let output = child.wait_with_output().ok()?;
+    let text = String::from_utf8_lossy(&output.stdout);
+    parse_ruflo_results(&text)
+}
+
 /// `brana skills suggest --task <id>` or `--query <text>`
 pub fn cmd_suggest(task_id: Option<&str>, query: Option<&str>) {
-    let skills = scan_skills(&skill_dirs());
-
     let ctx = if let Some(tid) = task_id {
         // Read task metadata via backlog get
         match build_context_from_task(tid) {
@@ -247,6 +350,22 @@ pub fn cmd_suggest(task_id: Option<&str>, query: Option<&str>) {
         std::process::exit(1);
     };
 
+    // Build query string for ruflo semantic search
+    let query_str = build_query_string(&ctx);
+
+    // Try ruflo semantic search first (HNSW vectors, better than keyword matching)
+    if !query_str.is_empty() {
+        if let Some(ruflo_matches) = try_ruflo_suggest(&query_str) {
+            if !ruflo_matches.is_empty() {
+                let json = serde_json::to_string_pretty(&ruflo_matches).unwrap_or_default();
+                println!("{json}");
+                return;
+            }
+        }
+    }
+
+    // Fallback: local keyword/tag scoring
+    let skills = scan_skills(&skill_dirs());
     let matches = suggest(&skills, &ctx, 3);
     let json = serde_json::to_string_pretty(&matches).unwrap_or_default();
     println!("{json}");
@@ -521,6 +640,91 @@ stream_affinity: [roadmap]
         let skills = sample_skills();
         let results = search(&skills, "kubernetes helm");
         assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_build_query_string_full_context() {
+        let ctx = TaskContext {
+            description_words: ["deploy", "production"].iter().map(|s| s.to_string()).collect(),
+            tags: ["infra", "ci"].iter().map(|s| s.to_string()).collect(),
+            strategy: Some("feature".into()),
+            stream: Some("roadmap".into()),
+        };
+        let q = build_query_string(&ctx);
+        // All parts should be present (order may vary due to HashSet)
+        assert!(q.contains("deploy"));
+        assert!(q.contains("production"));
+        assert!(q.contains("infra"));
+        assert!(q.contains("ci"));
+        assert!(q.contains("feature"));
+        assert!(q.contains("roadmap"));
+    }
+
+    #[test]
+    fn test_build_query_string_minimal_context() {
+        let ctx = TaskContext {
+            description_words: ["test"].iter().map(|s| s.to_string()).collect(),
+            tags: HashSet::new(),
+            strategy: None,
+            stream: None,
+        };
+        let q = build_query_string(&ctx);
+        assert_eq!(q, "test");
+    }
+
+    #[test]
+    fn test_build_query_string_empty_context() {
+        let ctx = TaskContext {
+            description_words: HashSet::new(),
+            tags: HashSet::new(),
+            strategy: None,
+            stream: None,
+        };
+        let q = build_query_string(&ctx);
+        assert_eq!(q, "");
+    }
+
+    #[test]
+    fn test_parse_ruflo_results_valid() {
+        let json = r#"[
+            {"key": "skill:build", "value": "Build anything", "score": 0.92},
+            {"key": "skill:research", "value": "Research topics", "score": 0.78},
+            {"key": "not-a-skill", "value": "ignored", "score": 0.5}
+        ]"#;
+        let results = parse_ruflo_results(json).expect("should parse");
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0].name, "build");
+        assert!((results[0].score - 0.92).abs() < f64::EPSILON);
+        assert_eq!(results[0].reason, "ruflo semantic");
+        assert_eq!(results[1].name, "research");
+    }
+
+    #[test]
+    fn test_parse_ruflo_results_no_skills() {
+        let json = r#"[{"key": "pattern:something", "value": "not a skill", "score": 0.9}]"#;
+        let result = parse_ruflo_results(json);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_parse_ruflo_results_empty_array() {
+        let result = parse_ruflo_results("[]");
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_parse_ruflo_results_invalid_json() {
+        let result = parse_ruflo_results("not json at all");
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_parse_ruflo_results_missing_score() {
+        let json = r#"[{"key": "skill:close", "value": "End session"}]"#;
+        let results = parse_ruflo_results(json).expect("should parse");
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "close");
+        assert!((results[0].score - 0.0).abs() < f64::EPSILON);
     }
 
     #[test]
