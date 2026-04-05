@@ -1,3 +1,7 @@
+---
+depends_on:
+  - dimensions/34-venture-operating-system.md
+---
 # Feature: NEIX AI Consulting — One-Pager & Benefit Unit Model
 
 **Date:** 2026-02-25

@@ -1,3 +1,7 @@
+---
+depends_on:
+  - docs/architecture/features/scheduler.md
+---
 # Oracle Cloud Free Tier — Personal Bot Deployment
 
 ## Context

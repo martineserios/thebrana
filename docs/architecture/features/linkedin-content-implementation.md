@@ -1,3 +1,7 @@
+---
+depends_on:
+  - dimensions/28-startup-smb-management.md
+---
 # LinkedIn Content Pipeline — Implementation Design
 
 **Date:** 2026-03-03

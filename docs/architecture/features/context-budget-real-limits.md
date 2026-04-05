@@ -1,3 +1,9 @@
+---
+informs:
+  - docs/reflections/ARCHITECTURE.md
+depends_on:
+  - dimensions/35-context-engineering-principles.md
+---
 # Feature: Context Budget Real Limits
 
 **Date:** 2026-02-20
