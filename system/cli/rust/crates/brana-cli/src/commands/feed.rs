@@ -116,17 +116,13 @@ fn derive_name(url: &str) -> String {
 
 // ── Commands ────────────────────────────────────────────────────────────
 
-pub fn cmd_feed(cmd: FeedCmd) {
-    let result = match cmd {
+pub fn cmd_feed(cmd: FeedCmd) -> Result<()> {
+    match cmd {
         FeedCmd::Add { url, name, action } => cmd_add(&url, name, &action),
         FeedCmd::List => cmd_list(),
         FeedCmd::Poll { name, all } => cmd_poll(name, all),
         FeedCmd::Remove { name } => cmd_remove(&name),
         FeedCmd::Status => cmd_status(),
-    };
-    if let Err(e) = result {
-        eprintln!("error: {e:#}");
-        std::process::exit(1);
     }
 }
 

@@ -3,6 +3,7 @@
 //! Zero new dependencies — uses `std::thread::scope` for parallelism
 //! and `gh api` for all GitHub API calls (auth handled by `gh`).
 
+use anyhow::Context;
 use crate::tasks;
 use serde_json::Value;
 use std::path::{Path, PathBuf};
@@ -40,43 +41,21 @@ struct SyncResult {
 
 // ── Entry point ────────────────────────────────────────────────
 
-pub fn cmd_sync(dry_run: bool, force: bool, parallel: usize) {
-    let tasks_file = match find_tasks_file() {
-        Some(p) => p,
-        None => {
-            eprintln!("error: tasks.json not found");
-            std::process::exit(1);
-        }
-    };
+pub fn cmd_sync(dry_run: bool, force: bool, parallel: usize) -> anyhow::Result<()> {
+    let tasks_file = find_tasks_file()
+        .context("tasks.json not found")?;
 
-    let config = match load_sync_config() {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("error: {e}");
-            std::process::exit(1);
-        }
-    };
+    let config = load_sync_config()
+        .map_err(|e| anyhow::anyhow!(e))?;
 
-    if let Err(e) = check_gh_auth() {
-        eprintln!("error: {e}");
-        std::process::exit(2);
-    }
+    check_gh_auth()
+        .map_err(|e| anyhow::anyhow!(e))?;
 
-    let data = match tasks::load_raw(&tasks_file) {
-        Ok(d) => d,
-        Err(e) => {
-            eprintln!("error: {e}");
-            std::process::exit(1);
-        }
-    };
+    let data = tasks::load_raw(&tasks_file)
+        .map_err(|e| anyhow::anyhow!(e))?;
 
-    let all_tasks = match data["tasks"].as_array() {
-        Some(t) => t,
-        None => {
-            eprintln!("error: tasks is not an array");
-            std::process::exit(1);
-        }
-    };
+    let all_tasks = data["tasks"].as_array()
+        .context("tasks is not an array")?;
 
     let plan = plan_sync(all_tasks, &config, force);
 
@@ -98,12 +77,12 @@ pub fn cmd_sync(dry_run: bool, force: bool, parallel: usize) {
                 item.issue_number.unwrap_or(0)
             );
         }
-        return;
+        return Ok(());
     }
 
     if plan.creates.is_empty() && plan.closes.is_empty() {
         eprintln!("[sync] nothing to do");
-        return;
+        return Ok(());
     }
 
     let parallel = parallel.clamp(1, 20);
@@ -146,6 +125,7 @@ pub fn cmd_sync(dry_run: bool, force: bool, parallel: usize) {
     {
         eprintln!("[sync]   error: {e}");
     }
+    Ok(())
 }
 
 // ── Planning ───────────────────────────────────────────────────

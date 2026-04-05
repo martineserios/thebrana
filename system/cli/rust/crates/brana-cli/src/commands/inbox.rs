@@ -159,8 +159,8 @@ fn save_state(account: &str, state: &InboxState) -> Result<()> {
 
 // ── Commands ────────────────────────────────────────────────────────────
 
-pub fn cmd_inbox(cmd: InboxCmd) {
-    let result = match cmd {
+pub fn cmd_inbox(cmd: InboxCmd) -> Result<()> {
+    match cmd {
         InboxCmd::Add { name, from, frequency, account } => cmd_add(&name, &from, &frequency, account.as_deref()),
         InboxCmd::List => cmd_list(),
         InboxCmd::Poll { label, account } => cmd_poll(label.as_deref(), account.as_deref()),
@@ -168,10 +168,6 @@ pub fn cmd_inbox(cmd: InboxCmd) {
         InboxCmd::Status => cmd_status(),
         InboxCmd::AddAccount { name, user, label } => cmd_add_account(&name, &user, &label),
         InboxCmd::SetPassword { name } => cmd_set_password(&name),
-    };
-    if let Err(e) = result {
-        eprintln!("error: {e:#}");
-        std::process::exit(1);
     }
 }
 

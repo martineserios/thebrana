@@ -4,12 +4,13 @@ use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::process::Command;
 
+use anyhow::{bail, Context};
 use crate::themes;
 use crate::util::{find_project_root, home, load_scheduler, load_status};
 
 // ── ops commands ────────────────────────────────────────────────────────
 
-pub fn cmd_ops_status(theme: &themes::Theme, all: bool) {
+pub fn cmd_ops_status(theme: &themes::Theme, all: bool) -> anyhow::Result<()> {
     print_env_status(theme, "local", &load_scheduler(), &load_status());
 
     if all {
@@ -23,6 +24,7 @@ pub fn cmd_ops_status(theme: &themes::Theme, all: bool) {
             }
         }
     }
+    Ok(())
 }
 
 fn print_env_status(
@@ -75,7 +77,7 @@ fn fetch_remote_status(host: &str) -> Result<(HashMap<String, serde_json::Value>
     Ok((sched, status))
 }
 
-pub fn cmd_ops_health(theme: &themes::Theme) {
+pub fn cmd_ops_health(theme: &themes::Theme) -> anyhow::Result<()> {
     let sched = load_scheduler();
     let status = load_status();
     let jobs = sched.get("jobs").and_then(|v| v.as_object()).cloned().unwrap_or_default();
@@ -113,9 +115,10 @@ pub fn cmd_ops_health(theme: &themes::Theme) {
     }
     let enabled = jobs.values().filter(|v| v["enabled"].as_bool().unwrap_or(true)).count();
     println!("\n  {enabled} enabled, {} disabled, {} total\n", jobs.len() - enabled, jobs.len());
+    Ok(())
 }
 
-pub fn cmd_ops_collisions(theme: &themes::Theme) {
+pub fn cmd_ops_collisions(theme: &themes::Theme) -> anyhow::Result<()> {
     let sched = load_scheduler();
     let jobs = sched.get("jobs").and_then(|v| v.as_object()).cloned().unwrap_or_default();
     let collisions = find_collisions(&jobs);
@@ -128,10 +131,11 @@ pub fn cmd_ops_collisions(theme: &themes::Theme) {
         }
         println!();
     }
+    Ok(())
 }
 
-pub fn cmd_ops_drift(theme: &themes::Theme) {
-    let root = find_project_root().unwrap_or_else(|| { eprintln!("Not in git repo"); std::process::exit(1); });
+pub fn cmd_ops_drift(theme: &themes::Theme) -> anyhow::Result<()> {
+    let root = find_project_root().context("Not in git repo")?;
     let template_path = root.join("system/scheduler/scheduler.template.json");
     let live = load_scheduler();
     let template: HashMap<String, serde_json::Value> = std::fs::read_to_string(&template_path)
@@ -167,14 +171,15 @@ pub fn cmd_ops_drift(theme: &themes::Theme) {
         for d in &drifts { println!("  {d}"); }
         println!();
     }
+    Ok(())
 }
 
-pub fn cmd_ops_logs(job_name: &str, tail: usize) {
+pub fn cmd_ops_logs(job_name: &str, tail: usize) -> anyhow::Result<()> {
     let log_dir = home().join(format!(".claude/scheduler/logs/{job_name}"));
     if !log_dir.exists() {
-        eprintln!("No logs for '{job_name}'."); std::process::exit(1);
+        bail!("No logs for '{job_name}'.");
     }
-    let mut logs: Vec<_> = std::fs::read_dir(&log_dir).unwrap()
+    let mut logs: Vec<_> = std::fs::read_dir(&log_dir).context("reading log directory")?
         .filter_map(|e| e.ok())
         .filter(|e| e.path().extension().map_or(false, |x| x == "log"))
         .collect();
@@ -191,12 +196,13 @@ pub fn cmd_ops_logs(job_name: &str, tail: usize) {
         }
         println!();
     }
+    Ok(())
 }
 
-pub fn cmd_ops_history(job_name: &str, last: usize, theme: &themes::Theme) {
+pub fn cmd_ops_history(job_name: &str, last: usize, theme: &themes::Theme) -> anyhow::Result<()> {
     let log_dir = home().join(format!(".claude/scheduler/logs/{job_name}"));
-    if !log_dir.exists() { eprintln!("No history for '{job_name}'."); std::process::exit(1); }
-    let mut logs: Vec<_> = std::fs::read_dir(&log_dir).unwrap()
+    if !log_dir.exists() { bail!("No history for '{job_name}'."); }
+    let mut logs: Vec<_> = std::fs::read_dir(&log_dir).context("reading log directory")?
         .filter_map(|e| e.ok())
         .filter(|e| e.path().extension().map_or(false, |x| x == "log"))
         .collect();
@@ -215,28 +221,30 @@ pub fn cmd_ops_history(job_name: &str, last: usize, theme: &themes::Theme) {
         println!("{}{ic} {date}  {st}{}", themes::ansi(col), themes::RESET);
     }
     println!();
+    Ok(())
 }
 
-pub fn cmd_ops_run(job_name: &str) {
-    validate_job_name(job_name);
+pub fn cmd_ops_run(job_name: &str) -> anyhow::Result<()> {
+    validate_job_name(job_name)?;
     let unit = format!("brana-sched-{job_name}.service");
     println!("\n  Starting {unit}...");
     let status = Command::new("systemctl").args(["--user", "start", &unit]).status();
     match status {
         Ok(s) if s.success() => println!("  \x1b[32mTriggered. Check: brana ops logs {job_name}\x1b[0m\n"),
-        _ => { eprintln!("  \x1b[31mFailed to start {unit}\x1b[0m"); std::process::exit(1); }
+        _ => bail!("Failed to start {unit}"),
     }
+    Ok(())
 }
 
-pub fn cmd_ops_toggle(job_name: &str, enabled: bool) {
-    validate_job_name(job_name);
+pub fn cmd_ops_toggle(job_name: &str, enabled: bool) -> anyhow::Result<()> {
+    validate_job_name(job_name)?;
     let config_path = home().join(".claude/scheduler/scheduler.json");
     let mut sched = load_scheduler();
     if let Some(jobs) = sched.get_mut("jobs").and_then(|v| v.as_object_mut()) {
         if let Some(job) = jobs.get_mut(job_name) {
             job["enabled"] = serde_json::Value::Bool(enabled);
         } else {
-            eprintln!("Job '{job_name}' not found."); std::process::exit(1);
+            bail!("Job '{job_name}' not found.");
         }
     }
     std::fs::write(&config_path, serde_json::to_string_pretty(&sched).unwrap() + "\n").ok();
@@ -249,12 +257,13 @@ pub fn cmd_ops_toggle(job_name: &str, enabled: bool) {
     if Command::new("systemctl").args(["--user", cmd, &timer]).status().is_ok() {
         println!("  {col}Timer {cmd}ed.{}\n", themes::RESET);
     }
+    Ok(())
 }
 
-pub fn cmd_ops_sync(direction: &str, auto_commit: bool) {
-    let root = find_project_root().unwrap_or_else(|| { eprintln!("Not in git repo"); std::process::exit(1); });
+pub fn cmd_ops_sync(direction: &str, auto_commit: bool) -> anyhow::Result<()> {
+    let root = find_project_root().context("Not in git repo")?;
     let script = root.join("system/scripts/sync-state.sh");
-    if !script.exists() { eprintln!("sync-state.sh not found"); std::process::exit(1); }
+    if !script.exists() { bail!("sync-state.sh not found"); }
 
     let mut cmd = Command::new("bash");
     cmd.arg(&script).arg(direction).current_dir(&root);
@@ -263,25 +272,27 @@ pub fn cmd_ops_sync(direction: &str, auto_commit: bool) {
     println!("\n  Running sync-state.sh {direction}...");
     match cmd.status() {
         Ok(s) if s.success() => println!("  \x1b[32mDone.\x1b[0m\n"),
-        _ => { eprintln!("  \x1b[31mFailed.\x1b[0m"); std::process::exit(1); }
+        _ => bail!("sync-state.sh {direction} failed"),
     }
+    Ok(())
 }
 
-pub fn cmd_ops_reindex() {
-    let root = find_project_root().unwrap_or_else(|| { eprintln!("Not in git repo"); std::process::exit(1); });
+pub fn cmd_ops_reindex() -> anyhow::Result<()> {
+    let root = find_project_root().context("Not in git repo")?;
     let script = root.join("system/scripts/index-knowledge.sh");
-    if !script.exists() { eprintln!("index-knowledge.sh not found"); std::process::exit(1); }
+    if !script.exists() { bail!("index-knowledge.sh not found"); }
 
     println!("\n  Running index-knowledge.sh...");
     match Command::new("bash").arg(&script).current_dir(&root).status() {
         Ok(s) if s.success() => println!("  \x1b[32mDone.\x1b[0m\n"),
-        _ => { eprintln!("  \x1b[31mFailed.\x1b[0m"); std::process::exit(1); }
+        _ => bail!("index-knowledge.sh failed"),
     }
+    Ok(())
 }
 
 // ── ops metrics ──────────────────────────────────────────────────────────
 
-pub fn cmd_ops_metrics(session_file: &PathBuf) {
+pub fn cmd_ops_metrics(session_file: &PathBuf) -> anyhow::Result<()> {
     let content = std::fs::read_to_string(session_file).unwrap_or_default();
     let events: Vec<serde_json::Value> = content
         .lines()
@@ -361,6 +372,7 @@ pub fn cmd_ops_metrics(session_file: &PathBuf) {
     });
 
     println!("{}", serde_json::to_string(&output).unwrap());
+    Ok(())
 }
 
 // ── helpers ─────────────────────────────────────────────────────────────
@@ -382,9 +394,9 @@ fn find_collisions(jobs: &serde_json::Map<String, serde_json::Value>) -> Vec<(St
         .collect()
 }
 
-fn validate_job_name(name: &str) {
+fn validate_job_name(name: &str) -> anyhow::Result<()> {
     if !name.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_') {
-        eprintln!("Invalid job name '{name}'. Use alphanumeric, hyphens, underscores.");
-        std::process::exit(1);
+        bail!("Invalid job name '{name}'. Use alphanumeric, hyphens, underscores.");
     }
+    Ok(())
 }

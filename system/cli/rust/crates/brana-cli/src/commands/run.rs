@@ -2,29 +2,24 @@
 
 use std::process::Command;
 
+use anyhow::{bail, Context};
+
 use crate::tasks;
 use crate::util::{find_project_root, find_tasks_file, home};
 
-pub fn cmd_run(task_id: &str, spawn: bool) {
-    let tf = find_tasks_file().unwrap_or_else(|| {
-        eprintln!("{}", serde_json::json!({"ok": false, "error": "tasks.json not found"}));
-        std::process::exit(1);
-    });
-    let mut val = tasks::load_raw(&tf).unwrap_or_else(|e| {
-        eprintln!("{}", serde_json::json!({"ok": false, "error": e}));
-        std::process::exit(1);
-    });
-    let data = tasks::load_tasks(&tf).unwrap_or_else(|e| {
-        eprintln!("{}", serde_json::json!({"ok": false, "error": e}));
-        std::process::exit(1);
-    });
+pub fn cmd_run(task_id: &str, spawn: bool) -> anyhow::Result<()> {
+    let tf = find_tasks_file()
+        .context(serde_json::json!({"ok": false, "error": "tasks.json not found"}).to_string())?;
+    let mut val = tasks::load_raw(&tf)
+        .map_err(|e| anyhow::anyhow!("{}", serde_json::json!({"ok": false, "error": e})))?;
+    let data = tasks::load_tasks(&tf)
+        .map_err(|e| anyhow::anyhow!("{}", serde_json::json!({"ok": false, "error": e})))?;
 
     let task = data.tasks.iter().find(|t| t["id"].as_str() == Some(task_id));
     let task = match task {
         Some(t) => t,
         None => {
-            eprintln!("{}", serde_json::json!({"ok": false, "error": format!("task {task_id} not found")}));
-            std::process::exit(1);
+            bail!("{}", serde_json::json!({"ok": false, "error": format!("task {task_id} not found")}));
         }
     };
 
@@ -36,18 +31,15 @@ pub fn cmd_run(task_id: &str, spawn: bool) {
                 println!("{}", serde_json::json!({
                     "ok": true, "id": task_id, "status": "already_running", "branch": branch
                 }));
-                return;
+                return Ok(());
             }
-            eprintln!("{}", serde_json::json!({"ok": false, "error": e}));
-            std::process::exit(1);
+            bail!("{}", serde_json::json!({"ok": false, "error": e}));
         }
     }
 
     let branch = tasks::branch_for_task(task);
-    let repo_root = find_project_root().unwrap_or_else(|| {
-        eprintln!("{}", serde_json::json!({"ok": false, "error": "not in a git repo"}));
-        std::process::exit(1);
-    });
+    let repo_root = find_project_root()
+        .context(serde_json::json!({"ok": false, "error": "not in a git repo"}).to_string())?;
     let repo_name = repo_root.file_name().unwrap().to_str().unwrap();
     let worktree_rel = tasks::worktree_path_for_task(task, repo_name);
     let worktree_abs = repo_root.parent().unwrap().join(&worktree_rel[3..]);
@@ -69,18 +61,15 @@ pub fn cmd_run(task_id: &str, spawn: bool) {
                 match wt2 {
                     Ok(o2) if o2.status.success() => {}
                     _ => {
-                        eprintln!("{}", serde_json::json!({"ok": false, "error": format!("worktree failed: {err}")}));
-                        std::process::exit(1);
+                        bail!("{}", serde_json::json!({"ok": false, "error": format!("worktree failed: {err}")}));
                     }
                 }
             } else {
-                eprintln!("{}", serde_json::json!({"ok": false, "error": format!("worktree failed: {err}")}));
-                std::process::exit(1);
+                bail!("{}", serde_json::json!({"ok": false, "error": format!("worktree failed: {err}")}));
             }
         }
         Err(e) => {
-            eprintln!("{}", serde_json::json!({"ok": false, "error": format!("git error: {e}")}));
-            std::process::exit(1);
+            bail!("{}", serde_json::json!({"ok": false, "error": format!("git error: {e}")}));
         }
     }
 
@@ -93,20 +82,17 @@ pub fn cmd_run(task_id: &str, spawn: bool) {
         val["tasks"][idx]["status"] = serde_json::json!("in_progress");
         val["tasks"][idx]["started"] = serde_json::json!(today);
         val["tasks"][idx]["branch"] = serde_json::json!(branch);
-        tasks::save_tasks(&tf, &val).unwrap_or_else(|e| {
-            eprintln!("{}", serde_json::json!({"ok": false, "error": e}));
-            std::process::exit(1);
-        });
+        tasks::save_tasks(&tf, &val)
+            .map_err(|e| anyhow::anyhow!("{}", serde_json::json!({"ok": false, "error": e})))?;
     }
 
     // Spawn in tmux if requested
     if spawn {
         if !tasks::is_in_tmux() {
-            eprintln!("{}", serde_json::json!({
+            bail!("{}", serde_json::json!({
                 "ok": false,
                 "error": "tmux required for --spawn. Run without --spawn to get the command."
             }));
-            std::process::exit(1);
         }
 
         let tmux_target = format!("t-{}", task_id.strip_prefix("t-").unwrap_or(task_id));
@@ -146,12 +132,10 @@ pub fn cmd_run(task_id: &str, spawn: bool) {
             }
             Ok(o) => {
                 let err = String::from_utf8_lossy(&o.stderr);
-                eprintln!("{}", serde_json::json!({"ok": false, "error": format!("tmux spawn failed: {err}")}));
-                std::process::exit(1);
+                bail!("{}", serde_json::json!({"ok": false, "error": format!("tmux spawn failed: {err}")}));
             }
             Err(e) => {
-                eprintln!("{}", serde_json::json!({"ok": false, "error": format!("tmux error: {e}")}));
-                std::process::exit(1);
+                bail!("{}", serde_json::json!({"ok": false, "error": format!("tmux error: {e}")}));
             }
         }
     } else {
@@ -164,9 +148,10 @@ pub fn cmd_run(task_id: &str, spawn: bool) {
             "command": cmd
         }));
     }
+    Ok(())
 }
 
-pub fn cmd_agents() {
+pub fn cmd_agents() -> anyhow::Result<()> {
     let agents_path = home().join(".claude/agents.json");
     let agents = tasks::load_agents(&agents_path);
     let (alive, removed) = tasks::prune_dead_agents(agents);
@@ -177,16 +162,17 @@ pub fn cmd_agents() {
 
     if alive.is_empty() {
         println!("No active agents.");
-        return;
+        return Ok(());
     }
 
     println!("{}", tasks::format_agents_table(&alive));
     if removed > 0 {
         eprintln!("({removed} dead agent(s) pruned)");
     }
+    Ok(())
 }
 
-pub fn cmd_agents_kill(agent_id: &str) {
+pub fn cmd_agents_kill(agent_id: &str) -> anyhow::Result<()> {
     let agents_path = home().join(".claude/agents.json");
     let agents = tasks::load_agents(&agents_path);
 
@@ -194,8 +180,7 @@ pub fn cmd_agents_kill(agent_id: &str) {
     let agent = match agent {
         Some(a) => a.clone(),
         None => {
-            eprintln!("{}", serde_json::json!({"ok": false, "error": format!("agent {agent_id} not found")}));
-            std::process::exit(1);
+            bail!("{}", serde_json::json!({"ok": false, "error": format!("agent {agent_id} not found")}));
         }
     };
 
@@ -246,31 +231,27 @@ pub fn cmd_agents_kill(agent_id: &str) {
         "killed": agent_id,
         "task_reset": task_id
     }));
+    Ok(())
 }
 
-pub fn cmd_queue(max: usize, auto: bool) {
-    let tf = find_tasks_file().unwrap_or_else(|| {
-        eprintln!("{}", serde_json::json!({"ok": false, "error": "tasks.json not found"}));
-        std::process::exit(1);
-    });
-    let data = tasks::load_tasks(&tf).unwrap_or_else(|e| {
-        eprintln!("{}", serde_json::json!({"ok": false, "error": e}));
-        std::process::exit(1);
-    });
+pub fn cmd_queue(max: usize, auto: bool) -> anyhow::Result<()> {
+    let tf = find_tasks_file()
+        .context(serde_json::json!({"ok": false, "error": "tasks.json not found"}).to_string())?;
+    let data = tasks::load_tasks(&tf)
+        .map_err(|e| anyhow::anyhow!("{}", serde_json::json!({"ok": false, "error": e})))?;
 
     let candidates = tasks::queue_candidates(&data.tasks, max);
 
     if candidates.is_empty() {
         println!("No unblocked tasks in queue.");
-        return;
+        return Ok(());
     }
 
     if auto {
         if !tasks::is_in_tmux() {
-            eprintln!("{}", serde_json::json!({
+            bail!("{}", serde_json::json!({
                 "ok": false, "error": "tmux required for --auto. Run without --auto to see candidates."
             }));
-            std::process::exit(1);
         }
         for c in &candidates {
             let id = c["id"].as_str().unwrap_or("");
@@ -308,4 +289,5 @@ pub fn cmd_queue(max: usize, auto: bool) {
         }
         println!("\nRun with --auto to spawn agents on all, or: brana run <ID> --spawn");
     }
+    Ok(())
 }

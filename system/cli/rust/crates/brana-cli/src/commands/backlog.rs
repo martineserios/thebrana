@@ -2,15 +2,17 @@
 
 use std::path::PathBuf;
 
+use anyhow::Context;
+
 use crate::tasks;
 use crate::themes;
 use crate::util::{delegate_python, find_tasks_file};
 
 // ── backlog commands ────────────────────────────────────────────────────
 
-pub fn cmd_next(theme: &themes::Theme, tag: Option<String>, stream: Option<String>) {
-    let tf = find_tasks_file().unwrap_or_else(|| { eprintln!("tasks.json not found"); std::process::exit(1); });
-    let data = tasks::load_tasks(&tf).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+pub fn cmd_next(theme: &themes::Theme, tag: Option<String>, stream: Option<String>) -> anyhow::Result<()> {
+    let tf = find_tasks_file().context("tasks.json not found")?;
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
     let mut candidates = tasks::filter_tasks(
         &data.tasks, &data.tasks,
         tag.as_deref(), Some("pending"), stream.as_deref(), None, None, None,
@@ -21,7 +23,7 @@ pub fn cmd_next(theme: &themes::Theme, tag: Option<String>, stream: Option<Strin
 
     if top.is_empty() {
         println!("\n  No unblocked tasks found.\n");
-        return;
+        return Ok(());
     }
 
     println!("\n{}Next up{}", themes::ansi(theme.color("header")), themes::RESET);
@@ -39,6 +41,7 @@ pub fn cmd_next(theme: &themes::Theme, tag: Option<String>, stream: Option<Strin
         println!("{}{line}{}", themes::ansi(theme.color("pending")), themes::RESET);
     }
     println!();
+    Ok(())
 }
 
 pub fn cmd_query(
@@ -46,9 +49,9 @@ pub fn cmd_query(
     priority: Option<String>, effort: Option<String>, search: Option<String>,
     count: bool, output: String, theme: &themes::Theme,
     task_type: Option<String>, parent: Option<String>, branch: Option<String>,
-) {
-    let tf = find_tasks_file().unwrap_or_else(|| { eprintln!("tasks.json not found"); std::process::exit(1); });
-    let data = tasks::load_tasks(&tf).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+) -> anyhow::Result<()> {
+    let tf = find_tasks_file().context("tasks.json not found")?;
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     // Determine type filter
     let types: Vec<&str> = if let Some(ref tp) = task_type {
@@ -102,11 +105,12 @@ pub fn cmd_query(
     } else {
         println!("{}", serde_json::to_string(&results).unwrap());
     }
+    Ok(())
 }
 
-pub fn cmd_focus(theme: &themes::Theme) {
-    let tf = find_tasks_file().unwrap_or_else(|| { eprintln!("tasks.json not found"); std::process::exit(1); });
-    let data = tasks::load_tasks(&tf).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+pub fn cmd_focus(theme: &themes::Theme) -> anyhow::Result<()> {
+    let tf = find_tasks_file().context("tasks.json not found")?;
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     let mut scored: Vec<_> = data.tasks.iter()
         .filter(|t| t["type"].as_str().unwrap_or("task") == "task" || t["type"].as_str() == Some("subtask"))
@@ -118,7 +122,7 @@ pub fn cmd_focus(theme: &themes::Theme) {
 
     if top.is_empty() {
         println!("\n  No actionable tasks.\n");
-        return;
+        return Ok(());
     }
 
     println!("\n{}Focus — today's pick{}", themes::ansi(theme.color("header")), themes::RESET);
@@ -135,18 +139,19 @@ pub fn cmd_focus(theme: &themes::Theme) {
         );
     }
     println!();
+    Ok(())
 }
 
-pub fn cmd_search(text: &str, theme: &themes::Theme) {
-    let tf = find_tasks_file().unwrap_or_else(|| { eprintln!("tasks.json not found"); std::process::exit(1); });
-    let data = tasks::load_tasks(&tf).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+pub fn cmd_search(text: &str, theme: &themes::Theme) -> anyhow::Result<()> {
+    let tf = find_tasks_file().context("tasks.json not found")?;
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
     let results = tasks::filter_tasks(
         &data.tasks, &data.tasks,
         None, None, None, None, None, Some(text), &["task", "subtask"],
     );
     if results.is_empty() {
         println!("\n  No tasks match \"{text}\".\n");
-        return;
+        return Ok(());
     }
     println!("\n{}Search: \"{text}\"{}", themes::ansi(theme.color("header")), themes::RESET);
     for t in &results {
@@ -154,36 +159,33 @@ pub fn cmd_search(text: &str, theme: &themes::Theme) {
         println!("  {}", themes::render_task_line(t, st, theme, true));
     }
     println!("\n  {} tasks\n", results.len());
+    Ok(())
 }
 
-pub fn cmd_status(theme: &themes::Theme, all: bool, json_out: bool) {
+pub fn cmd_status(theme: &themes::Theme, all: bool, json_out: bool) -> anyhow::Result<()> {
     if all {
-        match tasks::portfolio_status() {
-            Ok(results) => {
-                if json_out {
-                    println!("{}", serde_json::to_string(&results).unwrap());
-                } else {
-                    println!("\n{}Portfolio{}", themes::ansi(theme.color("header")), themes::RESET);
-                    for p in &results {
-                        let client = p["client"].as_str().unwrap_or("?");
-                        let total = p["total"].as_u64().unwrap_or(0) as usize;
-                        let done = p["done"].as_u64().unwrap_or(0) as usize;
-                        let active = p["active"].as_u64().unwrap_or(0) as usize;
-                        let blocked = p["blocked"].as_u64().unwrap_or(0) as usize;
-                        println!("  {}{}{} {} {done}/{total} done, {active} active, {blocked} blocked",
-                            themes::ansi(theme.color("header")), client, themes::RESET,
-                            theme.bar(done, total, 8));
-                    }
-                    println!();
-                }
+        let results = tasks::portfolio_status().map_err(|e| anyhow::anyhow!("{e}"))?;
+        if json_out {
+            println!("{}", serde_json::to_string(&results).unwrap());
+        } else {
+            println!("\n{}Portfolio{}", themes::ansi(theme.color("header")), themes::RESET);
+            for p in &results {
+                let client = p["client"].as_str().unwrap_or("?");
+                let total = p["total"].as_u64().unwrap_or(0) as usize;
+                let done = p["done"].as_u64().unwrap_or(0) as usize;
+                let active = p["active"].as_u64().unwrap_or(0) as usize;
+                let blocked = p["blocked"].as_u64().unwrap_or(0) as usize;
+                println!("  {}{}{} {} {done}/{total} done, {active} active, {blocked} blocked",
+                    themes::ansi(theme.color("header")), client, themes::RESET,
+                    theme.bar(done, total, 8));
             }
-            Err(e) => { eprintln!("{e}"); std::process::exit(1); }
+            println!();
         }
-        return;
+        return Ok(());
     }
 
-    let tf = find_tasks_file().unwrap_or_else(|| { eprintln!("tasks.json not found"); std::process::exit(1); });
-    let data = tasks::load_tasks(&tf).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+    let tf = find_tasks_file().context("tasks.json not found")?;
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     let task_items: Vec<_> = data.tasks.iter()
         .filter(|t| matches!(t["type"].as_str(), Some("task" | "subtask")))
@@ -204,29 +206,31 @@ pub fn cmd_status(theme: &themes::Theme, all: bool, json_out: bool) {
         println!("  {} {done}/{total} done, {active} active, {blocked} blocked\n",
             theme.bar(done, total, 8));
     }
+    Ok(())
 }
 
-pub fn cmd_blocked(theme: &themes::Theme) {
-    let tf = find_tasks_file().unwrap_or_else(|| { eprintln!("tasks.json not found"); std::process::exit(1); });
-    let data = tasks::load_tasks(&tf).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+pub fn cmd_blocked(theme: &themes::Theme) -> anyhow::Result<()> {
+    let tf = find_tasks_file().context("tasks.json not found")?;
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
     let blocked: Vec<_> = data.tasks.iter()
         .filter(|t| matches!(t["type"].as_str(), Some("task" | "subtask")))
         .filter(|t| tasks::classify(t, &data.tasks) == "blocked")
         .collect();
     if blocked.is_empty() {
         println!("\n  No blocked tasks.\n");
-        return;
+        return Ok(());
     }
     println!("\n{}Blocked chains{}", themes::ansi(theme.color("header")), themes::RESET);
     for t in &blocked {
         println!("  {}", themes::render_task_line(t, "blocked", theme, true));
     }
     println!();
+    Ok(())
 }
 
-pub fn cmd_stale(days: i64, theme: &themes::Theme) {
-    let tf = find_tasks_file().unwrap_or_else(|| { eprintln!("tasks.json not found"); std::process::exit(1); });
-    let data = tasks::load_tasks(&tf).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+pub fn cmd_stale(days: i64, theme: &themes::Theme) -> anyhow::Result<()> {
+    let tf = find_tasks_file().context("tasks.json not found")?;
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
     let cutoff = (chrono::Local::now() - chrono::Duration::days(days))
         .format("%Y-%m-%d").to_string();
 
@@ -238,7 +242,7 @@ pub fn cmd_stale(days: i64, theme: &themes::Theme) {
 
     if stale.is_empty() {
         println!("\n  No tasks pending > {days} days.\n");
-        return;
+        return Ok(());
     }
     println!("\n{}Stale tasks (>{days} days){}", themes::ansi(theme.color("header")), themes::RESET);
     for t in &stale {
@@ -250,13 +254,14 @@ pub fn cmd_stale(days: i64, theme: &themes::Theme) {
         println!("  {} ({age}d)", themes::render_task_line(t, st, theme, true));
     }
     println!("\n  {} stale tasks\n", stale.len());
+    Ok(())
 }
 
-pub fn cmd_context(task_id: &str, theme: &themes::Theme) {
-    let tf = find_tasks_file().unwrap_or_else(|| { eprintln!("tasks.json not found"); std::process::exit(1); });
-    let data = tasks::load_tasks(&tf).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
-    let task = data.tasks.iter().find(|t| t["id"].as_str() == Some(task_id));
-    let task = task.unwrap_or_else(|| { eprintln!("Task {task_id} not found."); std::process::exit(1); });
+pub fn cmd_context(task_id: &str, theme: &themes::Theme) -> anyhow::Result<()> {
+    let tf = find_tasks_file().context("tasks.json not found")?;
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+    let task = data.tasks.iter().find(|t| t["id"].as_str() == Some(task_id))
+        .ok_or_else(|| anyhow::anyhow!("Task {task_id} not found."))?;
 
     let st = tasks::classify(task, &data.tasks);
     println!("\n{}{task_id} {}{}", themes::ansi(theme.color("header")),
@@ -275,31 +280,36 @@ pub fn cmd_context(task_id: &str, theme: &themes::Theme) {
         }
     }
     println!();
+    Ok(())
 }
 
 // ── write commands ──────────────────────────────────────────────────────
 
-pub fn cmd_set(task_id: &str, field: &str, value: &str, append: bool, file: Option<PathBuf>) {
-    let tf = file.unwrap_or_else(|| find_tasks_file().unwrap_or_else(|| { eprintln!("tasks.json not found"); std::process::exit(1); }));
-    let mut val = tasks::load_raw(&tf).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+pub fn cmd_set(task_id: &str, field: &str, value: &str, append: bool, file: Option<PathBuf>) -> anyhow::Result<()> {
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    let mut val = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     let idx = val["tasks"].as_array()
-        .and_then(|arr| arr.iter().position(|t| t["id"].as_str() == Some(task_id)));
-    let idx = match idx {
-        Some(i) => i,
-        None => { eprintln!("{{\"ok\":false,\"error\":\"task {task_id} not found\"}}"); std::process::exit(1); }
-    };
+        .and_then(|arr| arr.iter().position(|t| t["id"].as_str() == Some(task_id)))
+        .ok_or_else(|| {
+            eprintln!("{{\"ok\":false,\"error\":\"task {task_id} not found\"}}");
+            anyhow::anyhow!("task {task_id} not found")
+        })?;
 
     let task = &mut val["tasks"][idx];
     match tasks::set_field(task, field, value, append) {
         Ok(()) => {
             let actual = val["tasks"][idx][field].clone();
-            tasks::save_tasks(&tf, &val).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+            tasks::save_tasks(&tf, &val).map_err(|e| anyhow::anyhow!("{e}"))?;
             println!("{}", serde_json::json!({"ok": true, "id": task_id, "field": field, "value": actual}));
+            Ok(())
         }
         Err(e) => {
             eprintln!("{{\"ok\":false,\"error\":{}}}", serde_json::to_string(&e).unwrap());
-            std::process::exit(1);
+            Err(anyhow::anyhow!("set field failed: {e}"))
         }
     }
 }
@@ -314,9 +324,12 @@ pub fn cmd_add(
     effort: Option<String>,
     parent: Option<String>,
     file: Option<PathBuf>,
-) {
-    let tf = file.unwrap_or_else(|| find_tasks_file().unwrap_or_else(|| { eprintln!("tasks.json not found"); std::process::exit(1); }));
-    let mut val = tasks::load_raw(&tf).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+) -> anyhow::Result<()> {
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    let mut val = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     // Resolve JSON from: --json inline, @file, stdin (-), or shorthand flags
     let json_string = if let Some(j) = json {
@@ -324,17 +337,17 @@ pub fn cmd_add(
             // Read from stdin
             use std::io::Read;
             let mut buf = String::new();
-            std::io::stdin().read_to_string(&mut buf).unwrap_or_else(|e| {
+            std::io::stdin().read_to_string(&mut buf).map_err(|e| {
                 eprintln!("{{\"ok\":false,\"error\":\"failed to read stdin: {e}\"}}");
-                std::process::exit(1);
-            });
+                anyhow::anyhow!("failed to read stdin: {e}")
+            })?;
             buf
         } else if let Some(path) = j.strip_prefix('@') {
             // Read from file
-            std::fs::read_to_string(path).unwrap_or_else(|e| {
+            std::fs::read_to_string(path).map_err(|e| {
                 eprintln!("{{\"ok\":false,\"error\":\"failed to read {path}: {e}\"}}");
-                std::process::exit(1);
-            })
+                anyhow::anyhow!("failed to read {path}: {e}")
+            })?
         } else {
             j
         }
@@ -354,11 +367,13 @@ pub fn cmd_add(
         serde_json::to_string(&obj).unwrap()
     } else {
         eprintln!("{{\"ok\":false,\"error\":\"provide --json or --subject\"}}");
-        std::process::exit(1);
+        anyhow::bail!("provide --json or --subject");
     };
 
-    let mut new_task: serde_json::Value = serde_json::from_str(&json_string)
-        .unwrap_or_else(|e| { eprintln!("{{\"ok\":false,\"error\":\"invalid JSON: {e}\"}}"); std::process::exit(1); });
+    let mut new_task: serde_json::Value = serde_json::from_str(&json_string).map_err(|e| {
+        eprintln!("{{\"ok\":false,\"error\":\"invalid JSON: {e}\"}}");
+        anyhow::anyhow!("invalid JSON: {e}")
+    })?;
 
     let tasks_arr = val["tasks"].as_array().cloned().unwrap_or_default();
     let id = tasks::next_id(&tasks_arr);
@@ -383,35 +398,41 @@ pub fn cmd_add(
     let subject = new_task["subject"].as_str().unwrap_or("untitled").to_string();
 
     val["tasks"].as_array_mut()
-        .unwrap_or_else(|| { eprintln!("{{\"ok\":false,\"error\":\"tasks.json has no tasks array\"}}"); std::process::exit(1); })
+        .ok_or_else(|| {
+            eprintln!("{{\"ok\":false,\"error\":\"tasks.json has no tasks array\"}}");
+            anyhow::anyhow!("tasks.json has no tasks array")
+        })?
         .push(new_task);
-    tasks::save_tasks(&tf, &val).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+    tasks::save_tasks(&tf, &val).map_err(|e| anyhow::anyhow!("{e}"))?;
     println!("{}", serde_json::json!({"ok": true, "id": id, "subject": subject}));
+    Ok(())
 }
 
-pub fn cmd_get(task_id: &str, field: Option<String>) {
-    let tf = find_tasks_file().unwrap_or_else(|| { eprintln!("tasks.json not found"); std::process::exit(1); });
-    let data = tasks::load_tasks(&tf).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
-    let task = data.tasks.iter().find(|t| t["id"].as_str() == Some(task_id));
-    let task = task.unwrap_or_else(|| { eprintln!("task {task_id} not found"); std::process::exit(1); });
+pub fn cmd_get(task_id: &str, field: Option<String>) -> anyhow::Result<()> {
+    let tf = find_tasks_file().context("tasks.json not found")?;
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+    let task = data.tasks.iter().find(|t| t["id"].as_str() == Some(task_id))
+        .ok_or_else(|| anyhow::anyhow!("task {task_id} not found"))?;
 
     if let Some(f) = field {
         println!("{}", serde_json::to_string(&task[f.as_str()]).unwrap());
     } else {
         println!("{}", serde_json::to_string_pretty(task).unwrap());
     }
+    Ok(())
 }
 
-pub fn cmd_stats() {
-    let tf = find_tasks_file().unwrap_or_else(|| { eprintln!("tasks.json not found"); std::process::exit(1); });
-    let data = tasks::load_tasks(&tf).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+pub fn cmd_stats() -> anyhow::Result<()> {
+    let tf = find_tasks_file().context("tasks.json not found")?;
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
     let stats = tasks::compute_stats(&data.tasks, &data.tasks);
     println!("{}", serde_json::to_string(&stats).unwrap());
+    Ok(())
 }
 
-pub fn cmd_tags(filter: Option<String>, any: Option<String>, output: String, theme: &themes::Theme) {
-    let tf = find_tasks_file().unwrap_or_else(|| { eprintln!("tasks.json not found"); std::process::exit(1); });
-    let data = tasks::load_tasks(&tf).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+pub fn cmd_tags(filter: Option<String>, any: Option<String>, output: String, theme: &themes::Theme) -> anyhow::Result<()> {
+    let tf = find_tasks_file().context("tasks.json not found")?;
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     // Filter mode
     if filter.is_some() || any.is_some() {
@@ -445,7 +466,7 @@ pub fn cmd_tags(filter: Option<String>, any: Option<String>, output: String, the
             }
             println!("\n  {} tasks\n", results.len());
         }
-        return;
+        return Ok(());
     }
 
     // Inventory mode
@@ -470,11 +491,12 @@ pub fn cmd_tags(filter: Option<String>, any: Option<String>, output: String, the
         }
         println!();
     }
+    Ok(())
 }
 
-pub fn cmd_roadmap(json_out: bool, theme: &themes::Theme) {
-    let tf = find_tasks_file().unwrap_or_else(|| { eprintln!("tasks.json not found"); std::process::exit(1); });
-    let data = tasks::load_tasks(&tf).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+pub fn cmd_roadmap(json_out: bool, theme: &themes::Theme) -> anyhow::Result<()> {
+    let tf = find_tasks_file().context("tasks.json not found")?;
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
     let tree = tasks::build_tree(&data.tasks, &data.tasks);
 
     if json_out {
@@ -486,11 +508,12 @@ pub fn cmd_roadmap(json_out: bool, theme: &themes::Theme) {
         }
         println!();
     }
+    Ok(())
 }
 
-pub fn cmd_tree(root_id: &str, json_out: bool, theme: &themes::Theme) {
-    let tf = find_tasks_file().unwrap_or_else(|| { eprintln!("tasks.json not found"); std::process::exit(1); });
-    let data = tasks::load_tasks(&tf).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+pub fn cmd_tree(root_id: &str, json_out: bool, theme: &themes::Theme) -> anyhow::Result<()> {
+    let tf = find_tasks_file().context("tasks.json not found")?;
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     match tasks::subtree(&data.tasks, &data.tasks, root_id) {
         Some(tree) => {
@@ -500,8 +523,9 @@ pub fn cmd_tree(root_id: &str, json_out: bool, theme: &themes::Theme) {
                 render_tree_node(&tree, theme, 0);
                 println!();
             }
+            Ok(())
         }
-        None => { eprintln!("task {root_id} not found"); std::process::exit(1); }
+        None => anyhow::bail!("task {root_id} not found"),
     }
 }
 
@@ -675,49 +699,60 @@ pub fn list_archivable(val: &serde_json::Value) -> Vec<serde_json::Value> {
 
 // ── CLI wrappers (thin, handle I/O + exit) ──────────────────────────────
 
-pub fn cmd_delete(task_id: &str, cascade: bool, file: Option<PathBuf>) {
-    let tf = file.unwrap_or_else(|| find_tasks_file().unwrap_or_else(|| { eprintln!("tasks.json not found"); std::process::exit(1); }));
-    let mut val = tasks::load_raw(&tf).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+pub fn cmd_delete(task_id: &str, cascade: bool, file: Option<PathBuf>) -> anyhow::Result<()> {
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    let mut val = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     match delete_task(&mut val, task_id, cascade) {
         Ok(removed_count) => {
-            tasks::save_tasks(&tf, &val).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+            tasks::save_tasks(&tf, &val).map_err(|e| anyhow::anyhow!("{e}"))?;
             println!("{}", serde_json::json!({"ok": true, "id": task_id, "action": "deleted", "cascade_removed": removed_count - 1}));
+            Ok(())
         }
         Err(e) => {
             eprintln!("{{\"ok\":false,\"error\":{}}}", serde_json::to_string(&e).unwrap());
-            std::process::exit(1);
+            Err(anyhow::anyhow!("{e}"))
         }
     }
 }
 
-pub fn cmd_move(task_id: &str, new_parent: &str, file: Option<PathBuf>) {
-    let tf = file.unwrap_or_else(|| find_tasks_file().unwrap_or_else(|| { eprintln!("tasks.json not found"); std::process::exit(1); }));
-    let mut val = tasks::load_raw(&tf).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+pub fn cmd_move(task_id: &str, new_parent: &str, file: Option<PathBuf>) -> anyhow::Result<()> {
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    let mut val = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     match move_task(&mut val, task_id, new_parent) {
         Ok(old_parent) => {
-            tasks::save_tasks(&tf, &val).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+            tasks::save_tasks(&tf, &val).map_err(|e| anyhow::anyhow!("{e}"))?;
             println!("{}", serde_json::json!({
                 "ok": true, "id": task_id, "field": "parent", "from": old_parent,
                 "to": if new_parent == "null" { serde_json::Value::Null } else { serde_json::Value::String(new_parent.to_string()) }
             }));
+            Ok(())
         }
         Err(e) => {
             eprintln!("{{\"ok\":false,\"error\":{}}}", serde_json::to_string(&e).unwrap());
-            std::process::exit(1);
+            Err(anyhow::anyhow!("{e}"))
         }
     }
 }
 
-pub fn cmd_archive(phase_id: Option<String>, file: Option<PathBuf>) {
-    let tf = file.unwrap_or_else(|| find_tasks_file().unwrap_or_else(|| { eprintln!("tasks.json not found"); std::process::exit(1); }));
-    let mut val = tasks::load_raw(&tf).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+pub fn cmd_archive(phase_id: Option<String>, file: Option<PathBuf>) -> anyhow::Result<()> {
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    let mut val = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     if phase_id.is_none() {
         let archivable = list_archivable(&val);
         println!("{}", serde_json::json!({"ok": true, "archivable": archivable}));
-        return;
+        return Ok(());
     }
 
     let pid = phase_id.unwrap();
@@ -732,13 +767,14 @@ pub fn cmd_archive(phase_id: Option<String>, file: Option<PathBuf>) {
             archive_val["tasks"].as_array_mut().unwrap().extend(archived);
 
             let remaining = val["tasks"].as_array().map_or(0, |a| a.len());
-            tasks::save_tasks(&tf, &val).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
-            tasks::save_tasks(&archive_path, &archive_val).unwrap_or_else(|e| { eprintln!("{e}"); std::process::exit(1); });
+            tasks::save_tasks(&tf, &val).map_err(|e| anyhow::anyhow!("{e}"))?;
+            tasks::save_tasks(&archive_path, &archive_val).map_err(|e| anyhow::anyhow!("{e}"))?;
             println!("{}", serde_json::json!({"ok": true, "archived": archived_count, "remaining": remaining}));
+            Ok(())
         }
         Err(e) => {
             eprintln!("{{\"ok\":false,\"error\":{}}}", serde_json::to_string(&e).unwrap());
-            std::process::exit(1);
+            Err(anyhow::anyhow!("{e}"))
         }
     }
 }
@@ -935,13 +971,11 @@ mod tests {
     }
 }
 
-pub fn cmd_rollup(file: Option<PathBuf>, dry_run: bool) {
-    let tf = file.unwrap_or_else(|| {
-        find_tasks_file().unwrap_or_else(|| {
-            eprintln!("tasks.json not found");
-            std::process::exit(1);
-        })
-    });
+pub fn cmd_rollup(file: Option<PathBuf>, dry_run: bool) -> anyhow::Result<()> {
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
     match tasks::perform_rollup(&tf, dry_run) {
         Ok(ids) if ids.is_empty() => {
             // No rollup needed — silent exit
@@ -952,8 +986,8 @@ pub fn cmd_rollup(file: Option<PathBuf>, dry_run: bool) {
             println!("{{\"rollup\":{json_ids},\"action\":\"{action}\"}}");
         }
         Err(e) => {
-            eprintln!("rollup failed: {e}");
-            std::process::exit(1);
+            anyhow::bail!("rollup failed: {e}");
         }
     }
+    Ok(())
 }

@@ -223,18 +223,13 @@ fn skill_dirs() -> Vec<PathBuf> {
 }
 
 /// `brana skills suggest --task <id>` or `--query <text>`
-pub fn cmd_suggest(task_id: Option<&str>, query: Option<&str>) {
+pub fn cmd_suggest(task_id: Option<&str>, query: Option<&str>) -> Result<()> {
     let skills = scan_skills(&skill_dirs());
 
     let ctx = if let Some(tid) = task_id {
         // Read task metadata via backlog get
-        match build_context_from_task(tid) {
-            Ok(c) => c,
-            Err(e) => {
-                eprintln!("Error reading task {tid}: {e}");
-                std::process::exit(1);
-            }
-        }
+        build_context_from_task(tid)
+            .with_context(|| format!("reading task {tid}"))?
     } else if let Some(q) = query {
         TaskContext {
             description_words: q.split_whitespace().map(|w| w.to_lowercase()).collect(),
@@ -243,25 +238,26 @@ pub fn cmd_suggest(task_id: Option<&str>, query: Option<&str>) {
             stream: None,
         }
     } else {
-        eprintln!("Provide --task <id> or --query <text>");
-        std::process::exit(1);
+        anyhow::bail!("Provide --task <id> or --query <text>");
     };
 
     let matches = suggest(&skills, &ctx, 3);
     let json = serde_json::to_string_pretty(&matches).unwrap_or_default();
     println!("{json}");
+    Ok(())
 }
 
 /// `brana skills search <query>`
-pub fn cmd_search(query: &str) {
+pub fn cmd_search(query: &str) -> Result<()> {
     let skills = scan_skills(&skill_dirs());
     let results = search(&skills, query);
     let json = serde_json::to_string_pretty(&results).unwrap_or_default();
     println!("{json}");
+    Ok(())
 }
 
 /// `brana skills list`
-pub fn cmd_list() {
+pub fn cmd_list() -> Result<()> {
     let skills = scan_skills(&skill_dirs());
 
     #[derive(Serialize)]
@@ -286,6 +282,7 @@ pub fn cmd_list() {
 
     let json = serde_json::to_string_pretty(&infos).unwrap_or_default();
     println!("{json}");
+    Ok(())
 }
 
 /// Build a TaskContext from a task ID by reading tasks.json.
