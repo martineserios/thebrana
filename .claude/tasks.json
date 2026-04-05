@@ -25277,6 +25277,35 @@
         "validation"
       ],
       "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "Problem surfaced in this session: 15 tasks created in batch with zero context. Had to go back and add context to all 15. Memory rule added (feedback_tasks-need-rich-context.md) but memory is advisory, not enforcement. Options: 1) PostToolUse hook on Bash matching brana backlog add — check if context field is null in the response. 2) CLI validation: brana backlog add refuses to create M+ tasks without --context. 3) Skill-level: /backlog add step 9 (confirmation) blocks if context is empty for M+ effort. Option 3 is cheapest (skill prompt change). Option 2 is strongest (CLI enforces regardless of caller).",
+      "created": "2026-04-05",
+      "description": "Tasks created without context field are useless in future sessions. Need enforcement: either a PostToolUse hook that checks brana backlog add output and warns if context is empty, or a CLI-level --require-context flag, or a validation in the backlog skill add step that blocks confirmation without context for M+ effort tasks.",
+      "effort": "M",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-939",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P1",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "roadmap",
+      "subject": "Enforce rich context on task creation — validation hook or CLI gate",
+      "tags": [
+        "dx",
+        "backlog",
+        "enforcement",
+        "hooks"
+      ],
+      "type": "task"
     }
   ],
   "version": "1"
