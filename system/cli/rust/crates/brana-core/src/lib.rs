@@ -4,5 +4,6 @@
 //! `brana-mcp` (MCP server). It has no CLI framework or protocol dependencies.
 
 pub mod files;
+pub mod scheduler;
 pub mod tasks;
 pub mod util;

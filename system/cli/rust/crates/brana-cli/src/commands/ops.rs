@@ -94,40 +94,39 @@ pub fn cmd_ops_health(theme: &themes::Theme) -> anyhow::Result<()> {
         }
     }
 
-    let collisions = find_collisions(&jobs);
+    let report = brana_core::scheduler::check_health(&jobs, &status);
 
     println!("\n{}Scheduler health{}", themes::ansi(theme.color("header")), themes::RESET);
-    if failures.is_empty() {
+    if report.failures.is_empty() {
         println!("{}  {} No failures{}", themes::ansi("green"), theme.icon("done"), themes::RESET);
     } else {
-        println!("{}  {} Failures: {}{}", themes::ansi("red"), theme.icon("blocked"), failures.join(", "), themes::RESET);
+        println!("{}  {} Failures: {}{}", themes::ansi("red"), theme.icon("blocked"), report.failures.join(", "), themes::RESET);
     }
-    if !skipped.is_empty() {
-        println!("{}  {} Skipped: {}{}", themes::ansi("yellow"), theme.icon("pending"), skipped.join(", "), themes::RESET);
+    if !report.skipped.is_empty() {
+        println!("{}  {} Skipped: {}{}", themes::ansi("yellow"), theme.icon("pending"), report.skipped.join(", "), themes::RESET);
     }
-    if collisions.is_empty() {
+    if report.collisions.is_empty() {
         println!("{}  {} No schedule collisions{}", themes::ansi("green"), theme.icon("done"), themes::RESET);
     } else {
         println!("{}  {} Schedule collisions:{}", themes::ansi("red"), theme.icon("blocked"), themes::RESET);
-        for (sched, proj, names) in &collisions {
-            println!("      {sched} on {proj}: {}", names.join(", "));
+        for c in &report.collisions {
+            println!("      {} on {}: {}", c.schedule, c.project, c.jobs.join(", "));
         }
     }
-    let enabled = jobs.values().filter(|v| v["enabled"].as_bool().unwrap_or(true)).count();
-    println!("\n  {enabled} enabled, {} disabled, {} total\n", jobs.len() - enabled, jobs.len());
+    println!("\n  {} enabled, {} disabled, {} total\n", report.enabled_count, report.disabled_count, report.total_count);
     Ok(())
 }
 
 pub fn cmd_ops_collisions(theme: &themes::Theme) -> anyhow::Result<()> {
     let sched = load_scheduler();
     let jobs = sched.get("jobs").and_then(|v| v.as_object()).cloned().unwrap_or_default();
-    let collisions = find_collisions(&jobs);
+    let collisions = brana_core::scheduler::find_collisions(&jobs);
     if collisions.is_empty() {
         println!("\n  {}{}  No schedule collisions.{}\n", themes::ansi("green"), theme.icon("done"), themes::RESET);
     } else {
         println!("\n{}Schedule collisions{}", themes::ansi(theme.color("header")), themes::RESET);
-        for (sched, proj, names) in &collisions {
-            println!("{}  {} {sched} on {proj}: {}{}", themes::ansi("red"), theme.icon("blocked"), names.join(", "), themes::RESET);
+        for c in &collisions {
+            println!("{}  {} {} on {}: {}{}", themes::ansi("red"), theme.icon("blocked"), c.schedule, c.project, c.jobs.join(", "), themes::RESET);
         }
         println!();
     }
@@ -146,29 +145,20 @@ pub fn cmd_ops_drift(theme: &themes::Theme) -> anyhow::Result<()> {
     let tmpl_jobs = template.get("jobs").and_then(|v| v.as_object()).cloned().unwrap_or_default();
     let live_jobs = live.get("jobs").and_then(|v| v.as_object()).cloned().unwrap_or_default();
 
-    let mut drifts = vec![];
-    let all_names: std::collections::BTreeSet<_> = tmpl_jobs.keys().chain(live_jobs.keys()).collect();
-    for name in all_names {
-        if !tmpl_jobs.contains_key(name) {
-            drifts.push(format!("{}+ {name}: in live but not in template{}", themes::ansi("yellow"), themes::RESET));
-        } else if !live_jobs.contains_key(name) {
-            drifts.push(format!("{}- {name}: in template but not in live{}", themes::ansi("red"), themes::RESET));
-        } else {
-            for field in &["schedule", "enabled", "command", "project", "type"] {
-                let tv = &tmpl_jobs[name][field];
-                let lv = &live_jobs[name][field];
-                if tv != lv {
-                    drifts.push(format!("{}~ {name}.{field}: template={tv} live={lv}{}", themes::ansi("yellow"), themes::RESET));
-                }
-            }
-        }
-    }
+    let drifts = brana_core::scheduler::detect_drift(&tmpl_jobs, &live_jobs);
 
     if drifts.is_empty() {
         println!("\n  {}{}  No drift — live matches template.{}\n", themes::ansi("green"), theme.icon("done"), themes::RESET);
     } else {
         println!("\n{}Config drift (template vs live){}", themes::ansi(theme.color("header")), themes::RESET);
-        for d in &drifts { println!("  {d}"); }
+        for d in &drifts {
+            let line = match d.kind {
+                brana_core::scheduler::DriftKind::Added => format!("{}+ {}: in live but not in template{}", themes::ansi("yellow"), d.job_name, themes::RESET),
+                brana_core::scheduler::DriftKind::Removed => format!("{}- {}: in template but not in live{}", themes::ansi("red"), d.job_name, themes::RESET),
+                brana_core::scheduler::DriftKind::Changed => format!("{}~ {}.{}: template={} live={}{}", themes::ansi("yellow"), d.job_name, d.field.as_deref().unwrap_or("?"), d.template_value.as_deref().unwrap_or("?"), d.live_value.as_deref().unwrap_or("?"), themes::RESET),
+            };
+            println!("  {line}");
+        }
         println!();
     }
     Ok(())
@@ -377,26 +367,7 @@ pub fn cmd_ops_metrics(session_file: &PathBuf) -> anyhow::Result<()> {
 
 // ── helpers ─────────────────────────────────────────────────────────────
 
-fn find_collisions(jobs: &serde_json::Map<String, serde_json::Value>) -> Vec<(String, String, Vec<String>)> {
-    let mut groups: HashMap<(String, String), Vec<String>> = HashMap::new();
-    for (name, cfg) in jobs {
-        if !cfg["enabled"].as_bool().unwrap_or(true) { continue; }
-        let key = (
-            cfg["schedule"].as_str().unwrap_or("").to_string(),
-            std::path::Path::new(cfg["project"].as_str().unwrap_or(""))
-                .file_name().unwrap_or_default().to_string_lossy().to_string(),
-        );
-        groups.entry(key).or_default().push(name.clone());
-    }
-    groups.into_iter()
-        .filter(|(_, v)| v.len() > 1)
-        .map(|((s, p), v)| (s, p, v))
-        .collect()
-}
-
 fn validate_job_name(name: &str) -> anyhow::Result<()> {
-    if !name.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_') {
-        bail!("Invalid job name '{name}'. Use alphanumeric, hyphens, underscores.");
-    }
-    Ok(())
+    brana_core::scheduler::validate_job_name(name)
+        .map_err(|e| anyhow::anyhow!("{e}"))
 }
