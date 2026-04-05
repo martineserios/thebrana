@@ -1,5 +1,5 @@
 {
-  "last_modified": "2026-04-05T13:29:00.997136",
+  "last_modified": "2026-04-05T13:41:37.932426",
   "project": "thebrana",
   "tasks": [
     {
@@ -19788,15 +19788,15 @@
         "t-742"
       ],
       "type": "task",
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "execution": "code",
       "branch": null,
       "created": "2026-04-05",
-      "started": null,
-      "completed": null,
+      "started": "2026-04-05",
+      "completed": "2026-04-05",
       "context": null,
-      "notes": null,
+      "notes": "Updated /brana:build and /brana:backlog SKILL.md to prefer MCP tools (backlog_query, backlog_get, backlog_set, backlog_add, backlog_search, backlog_stats) with CLI fallback. MCP-first tables added, rules updated.",
       "github_issue": null,
       "order": 0
     },

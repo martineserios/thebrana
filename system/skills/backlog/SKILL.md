@@ -33,11 +33,27 @@ language guided by the task-convention rule — no skill invocation needed.
 
 ## CLI Integration — MANDATORY
 
-**NEVER read or write tasks.json directly.** Use the `brana` CLI via the Bash tool for ALL task operations.
-The binary is at `system/cli/rust/target/release/brana` (from git root) or
-`${CLAUDE_PLUGIN_ROOT}/cli/rust/target/release/brana`.
+**NEVER read or write tasks.json directly.**
 
-### Read operations
+**Prefer MCP tools** (brana server) when available — structured JSON, 65% fewer tokens:
+
+### MCP tools (preferred)
+
+| Operation | MCP tool |
+|-----------|---------|
+| Get task | `backlog_get(task_id: "t-123")` |
+| Get field | `backlog_get(task_id: "t-123", field: "status")` |
+| Query tasks | `backlog_query(status: "pending", stream: "bugs")` |
+| Multi-tag AND | `backlog_query(tag: "dx,cli")` |
+| Filter by parent | `backlog_query(parent: "ph-001", task_type: "task")` |
+| Search | `backlog_search(query: "enforcement")` |
+| Aggregate stats | `backlog_stats()` |
+| Set field | `backlog_set(task_id: "t-123", field: "status", value: "in_progress")` |
+| Add/remove tag | `backlog_set(task_id: "t-123", field: "tags", value: "+newtag")` |
+| Append text | `backlog_set(task_id: "t-123", field: "context", value: "note", append: true)` |
+| Create task | `backlog_add(subject: "...", stream: "roadmap", task_type: "task")` |
+
+### CLI fallback (when MCP unavailable)
 
 | Operation | CLI command |
 |-----------|------------|
@@ -72,12 +88,13 @@ The binary is at `system/cli/rust/target/release/brana` (from git root) or
 
 ### Rules
 
-1. **Every "Read tasks.json" instruction below → call the corresponding CLI command.**
-2. **Every "Write tasks.json" instruction below → call `brana backlog set` or `brana backlog add`.**
-3. For batch creates (plan command), call `brana backlog add` once per task.
-4. All CLI commands return JSON on stdout. Parse with `jq` if needed.
-5. All writes are atomic — no need to read-modify-write.
-6. CLI auto-detects tasks.json from git root. No path argument needed.
+1. **Prefer MCP tools** (`backlog_query`, `backlog_get`, `backlog_set`, `backlog_add`, `backlog_search`, `backlog_stats`) when available. Fall back to CLI if MCP server is not running.
+2. **Every "Read tasks.json" instruction below → call MCP tool or CLI command.**
+3. **Every "Write tasks.json" instruction below → call `backlog_set`/`backlog_add` (MCP) or `brana backlog set`/`brana backlog add` (CLI).**
+4. For batch creates (plan command), call `backlog_add` once per task.
+5. All operations return JSON. MCP returns structured data natively; CLI returns JSON on stdout.
+6. All writes are atomic — no need to read-modify-write.
+7. Both MCP and CLI auto-detect tasks.json from git root.
 
 ## Display Themes
 

@@ -107,21 +107,16 @@ After planning, the user can start any task with `/brana:backlog start <id>` whi
 
 ---
 
-## CLI Integration — MANDATORY
+## Task Operations — MANDATORY
 
-**NEVER read or write tasks.json directly.** No `cat tasks.json`, no `uv run python` parsing, no `Read` tool on tasks.json. Use `brana backlog` CLI commands via Bash for ALL task operations:
+**NEVER read or write tasks.json directly.** No `cat tasks.json`, no `uv run python` parsing, no `Read` tool on tasks.json.
 
-```bash
-# ✗ WRONG — reads 435KB into context, wastes tokens
-cat .claude/tasks.json | uv run python -c "..."
+**Prefer MCP tools** (brana server) when available — they return structured JSON with 65% fewer tokens than CLI:
+- **Read:** `backlog_get(task_id)`, `backlog_query(status, tag, stream, ...)`, `backlog_search(query)`
+- **Write:** `backlog_set(task_id, field, value)`, `backlog_add(subject, stream, ...)`
+- **Browse:** `backlog_stats()`
 
-# ✓ RIGHT — 11ms, 0 context tokens
-brana backlog get t-069
-brana backlog query --status pending --stream roadmap
-brana backlog search "enforcement"
-```
-
-Commands:
+**Fallback to CLI** via Bash if MCP tools are unavailable:
 - **Read:** `brana backlog get <id>`, `brana backlog query --status pending`, `brana backlog search "keyword"`, `brana backlog next`
 - **Write:** `brana backlog set <id> <field> <value>`, `brana backlog add --json '{...}'`
 - **Browse:** `brana backlog stats`, `brana backlog tags`, `brana backlog roadmap`
