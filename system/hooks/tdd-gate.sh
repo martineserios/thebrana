@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # TDD Enforcement Gate — PreToolUse hook for Write|Edit
 #
-# Blocks implementation file writes on feat/*/fix/* branches
+# Blocks implementation file writes on any branch
 # when no test file exists in the same project root.
 #
 # Supported: Rust, Python, JS/TS, Shell, Go
@@ -114,12 +114,7 @@ esac
 GIT_ROOT=$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null) || pass_through
 [ -z "$GIT_ROOT" ] && pass_through
 
-# Step 7: Branch check — only enforce on feat/* and fix/*
-BRANCH=$(git -C "$GIT_ROOT" branch --show-current 2>/dev/null) || pass_through
-case "$BRANCH" in
-    feat/*|fix/*) ;;
-    *) pass_through ;;
-esac
+# Step 7: (Branch filter removed — gates fire on all branches per ADR-031 revision)
 
 # Step 8: Find project root (nearest ancestor with a manifest file)
 PROJECT_ROOT=""

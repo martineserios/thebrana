@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
-# Documentation Enforcement Gate — PreToolUse hook for Bash (git commit)
+# Main Branch Guard — PreToolUse hook for Bash (git commit)
 #
-# Blocks git commit on any branch when behavioral files
-# (skills, hooks, agents, commands, cli, rules) are staged but no
-# documentation file is staged alongside them.
+# Blocks commits on main/master when behavioral files are staged.
+# Forces work onto feat/*/fix/* branches for proper gate enforcement.
 #
-# Always allows: non-git-commit bash commands,
-# commits with --no-doc-check flag, commits that include doc files.
+# Always allows: non-behavioral commits on main (docs, config, chore),
+# commits with --force-main flag, non-git-commit commands.
 
 # Ensure valid CWD
 cd /tmp 2>/dev/null || true
@@ -42,17 +41,15 @@ DENY_JSON
     exit 0
 }
 
-# Step 1: Parse input
+# Step 1: Parse input — only act on Bash tool
 TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null) || pass_through
-CWD=$(echo "$INPUT" | jq -r '.cwd // empty' 2>/dev/null) || pass_through
-
-# Step 2: Only act on Bash tool
 case "$TOOL_NAME" in
     Bash) ;;
     *) pass_through ;;
 esac
 
-# Step 3: Extract command — only fire on git commit
+# Step 2: Extract command — only fire on git commit
+CWD=$(echo "$INPUT" | jq -r '.cwd // empty' 2>/dev/null) || pass_through
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null) || pass_through
 [ -z "$COMMAND" ] && pass_through
 case "$COMMAND" in
@@ -60,22 +57,25 @@ case "$COMMAND" in
     *) pass_through ;;
 esac
 
-# Step 4: Escape hatch — --no-doc-check in commit message
+# Step 3: Escape hatch — --force-main in commit message
 case "$COMMAND" in
-    *"--no-doc-check"*) pass_through ;;
+    *"--force-main"*) pass_through ;;
 esac
 
-# Step 5: Find git root
+# Step 4: Find git root and check branch
 GIT_ROOT=$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null) || pass_through
 [ -z "$GIT_ROOT" ] && pass_through
 
-# Step 6: (Branch filter removed — gates fire on all branches per ADR-031 revision)
+BRANCH=$(git -C "$GIT_ROOT" branch --show-current 2>/dev/null) || pass_through
+case "$BRANCH" in
+    main|master) ;;
+    *) pass_through ;;  # Not on main — let other gates handle it
+esac
 
-# Step 7: Check staged files for behavioral and doc patterns
+# Step 5: Check staged files for behavioral patterns
 STAGED=$(git -C "$GIT_ROOT" diff --cached --name-only 2>/dev/null) || pass_through
 [ -z "$STAGED" ] && pass_through
 
-# Collect behavioral files
 BEHAVIORAL_FILES=""
 while IFS= read -r file; do
     case "$file" in
@@ -89,23 +89,8 @@ while IFS= read -r file; do
     esac
 done <<< "$STAGED"
 
-# No behavioral files staged — pass through
+# No behavioral files — allow commit on main (docs, config, chore are fine)
 [ -z "$BEHAVIORAL_FILES" ] && pass_through
 
-# Check for doc files
-HAS_DOCS=false
-while IFS= read -r file; do
-    case "$file" in
-        docs/architecture/*|docs/guide/*|docs/reference/*|*CLAUDE.md)
-            HAS_DOCS=true
-            break
-            ;;
-    esac
-done <<< "$STAGED"
-
-# Step 8: Decision
-if [ "$HAS_DOCS" = true ]; then
-    pass_through
-else
-    deny "Doc gate: behavioral files staged without documentation. Files: $BEHAVIORAL_FILES. Add a doc update (docs/architecture/, docs/guide/, CLAUDE.md) or use --no-doc-check to bypass."
-fi
+# Step 6: Deny — behavioral files on main
+deny "Main guard: behavioral files should be committed on a feature branch, not main. Files: $BEHAVIORAL_FILES. Create a branch first: git checkout -b feat/your-feature. Use --force-main to bypass."

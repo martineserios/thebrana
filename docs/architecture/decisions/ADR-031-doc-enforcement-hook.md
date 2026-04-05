@@ -41,10 +41,11 @@ system/CLAUDE.md
 
 PreToolUse on Bash tool, matching `git commit` commands. The hook:
 
-1. Checks current branch — only fires on `feat/*` and `fix/*` branches
-2. Runs `git diff --cached --name-only` to get staged files
-3. If any behavioral file is staged AND no documentation file is staged → **deny with message**
-4. If no behavioral files staged → **allow** (non-behavioral commits pass freely)
+1. Runs `git diff --cached --name-only` to get staged files
+2. If any behavioral file is staged AND no documentation file is staged → **deny with message**
+3. If no behavioral files staged → **allow** (non-behavioral commits pass freely)
+
+> **Revision (2026-04-04):** Branch filter removed. Gates fire on ALL branches including main. Original feat/fix scoping left a loophole where 100% of main-branch behavioral commits bypassed enforcement.
 
 ### Escape Hatch
 
@@ -63,14 +64,22 @@ The hook is insurance, not the primary solution. It catches the cases where auto
 
 Modeled after `tdd-gate.sh`:
 - Same hook type (PreToolUse deny)
-- Same branch scoping (feat/fix only)
+- No branch scoping (fires everywhere — revised from feat/fix only)
 - Same escape pattern (flag in commit message)
 - Lives at `system/hooks/doc-gate.sh`
 
+### Main Branch Guard (Belt + Suspenders)
+
+Separate hook (`main-guard.sh`) blocks behavioral commits on main entirely — forces `git checkout -b feat/...` first. Escape hatch: `--force-main` in commit message.
+
+This creates two layers:
+1. **main-guard** prevents behavioral work on main (forces branches)
+2. **doc-gate + tdd-gate** enforce docs and tests on every branch (including main as fallback)
+
 ## Consequences
 
-- Commits on feat/fix branches require docs when behavioral files change
-- Main branch is unaffected (most current work happens on main — this changes gradually)
+- ALL commits require docs when behavioral files change (no branch exception)
+- Main branch additionally blocks behavioral commits entirely (forces feature branches)
 - Combined with auto-learning, targets the 72% → <30% within month 1
 - Escape hatch prevents hard blocks on urgent fixes
 - Hook fires less as auto-learning matures
