@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-05T02:20:51Z",
+  "generated": "2026-04-05T02:29:44Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1710,6 +1710,144 @@
   },
   "edges": [
     {
+      "from": "brana-knowledge/dimensions/05-claude-flow-v3-analysis.md",
+      "to": "brana-knowledge/dimensions/04-claude-4.6-capabilities.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/06-claude-flow-internals.md",
+      "to": "brana-knowledge/dimensions/04-claude-4.6-capabilities.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "brana-knowledge/dimensions/06-claude-flow-internals.md",
+      "to": "brana-knowledge/dimensions/05-claude-flow-v3-analysis.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/07-claude-flow-plus-claude-4.6.md",
+      "to": "brana-knowledge/dimensions/04-claude-4.6-capabilities.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/07-claude-flow-plus-claude-4.6.md",
+      "to": "brana-knowledge/dimensions/05-claude-flow-v3-analysis.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/07-claude-flow-plus-claude-4.6.md",
+      "to": "brana-knowledge/dimensions/06-claude-flow-internals.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/12-skill-selector.md",
+      "to": "brana-knowledge/dimensions/11-ecosystem-skills-plugins.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/21-anthropic-engineering-deep-dive.md",
+      "to": "brana-knowledge/dimensions/20-anthropic-blog-findings.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/23-evaluation.md",
+      "to": "brana-knowledge/dimensions/22-testing.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/27-project-alignment-methodology.md",
+      "to": "brana-knowledge/dimensions/03-pm-framework.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/34-venture-operating-system.md",
+      "to": "brana-knowledge/dimensions/28-startup-smb-management.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/35-context-engineering-principles.md",
+      "to": "dimensions/09-claude-code-native-features.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/36-claw-ecosystem-chat-interface.md",
+      "to": "dimensions/39-kapso-ai-platform.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/40-product-discovery-literature.md",
+      "to": "dimensions/38-design-thinking.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/41-growth-metrics-market-strategy-literature.md",
+      "to": "dimensions/40-product-discovery-literature.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/42-product-operations-literature.md",
+      "to": "dimensions/40-product-discovery-literature.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/45-turboflow-agent-orchestration.md",
+      "to": "dimensions/05-claude-flow-v3-analysis.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/46-cc-harness-ecosystem.md",
+      "to": "dimensions/09-claude-code-native-features.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/46-cc-harness-ecosystem.md",
+      "to": "dimensions/11-ecosystem-skills-plugins.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/48-knowledge-graph-architecture.md",
+      "to": "dimensions/47-ontology-engineering-ai-systems.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/49-agent-era-systems-patterns.md",
+      "to": "dimensions/44-systems-thinking-nature.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/49-auto-learning-patterns.md",
+      "to": "dimensions/16-knowledge-health.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/49-auto-learning-patterns.md",
+      "to": "dimensions/35-context-engineering-principles.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
       "from": "brana-knowledge/dimensions/knowledge-architecture.md",
       "to": "brana-knowledge/dimensions/22-testing.md",
       "type": "depends_on",
@@ -1723,9 +1861,21 @@
     },
     {
       "from": "brana-knowledge/dimensions/knowledge-architecture.md",
+      "to": "dimensions/09-claude-code-native-features.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "brana-knowledge/dimensions/knowledge-architecture.md",
       "to": "docs/archive/reflections/14-mastermind-architecture.md",
       "type": "depends_on",
       "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/knowledge-architecture.md",
+      "to": "docs/reflections/08-diagnosis.md",
+      "type": "depends_on",
+      "computed": true
     },
     {
       "from": "brana-knowledge/dimensions/knowledge-architecture.md",
@@ -1740,6 +1890,1524 @@
       "computed": false
     },
     {
+      "from": "brana-knowledge/dimensions/knowledge-architecture.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "brana-knowledge/dimensions/smb-marketing-channels.md",
+      "to": "dimensions/client-retention-engagement.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+      "to": "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-008-smart-tasks-add-suggest-only.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-010-pr-review-agent.md",
+      "to": "docs/architecture/decisions/ADR-009-test-lint-feedback-hook.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+      "to": "docs/architecture/decisions/ADR-012-acquire-skills.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
+      "to": "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
+      "to": "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
+      "to": "docs/architecture/decisions/ADR-012-acquire-skills.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
+      "to": "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-016-spec-dependency-graph.md",
+      "to": "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-017-decision-log.md",
+      "to": "docs/architecture/decisions/ADR-004-session-handoff-self-learning-loop.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-017-decision-log.md",
+      "to": "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-017-decision-log.md",
+      "to": "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-017-decision-log.md",
+      "to": "docs/architecture/decisions/ADR-012-acquire-skills.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-017-decision-log.md",
+      "to": "docs/architecture/decisions/ADR-013-event-log.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-017-decision-log.md",
+      "to": "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-017-decision-log.md",
+      "to": "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-018-dynamic-model-routing.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-018-dynamic-model-routing.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-018-dynamic-model-routing.md",
+      "to": "docs/architecture/decisions/ADR-004-session-handoff-self-learning-loop.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-018-dynamic-model-routing.md",
+      "to": "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-018-dynamic-model-routing.md",
+      "to": "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-018-dynamic-model-routing.md",
+      "to": "docs/architecture/decisions/ADR-012-acquire-skills.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-018-dynamic-model-routing.md",
+      "to": "docs/architecture/decisions/ADR-013-event-log.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-018-dynamic-model-routing.md",
+      "to": "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-018-dynamic-model-routing.md",
+      "to": "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-018-dynamic-model-routing.md",
+      "to": "docs/architecture/decisions/ADR-017-decision-log.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-019-brana-chat-sessions.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-019-brana-chat-sessions.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-019-brana-chat-sessions.md",
+      "to": "docs/architecture/decisions/ADR-004-session-handoff-self-learning-loop.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-019-brana-chat-sessions.md",
+      "to": "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-019-brana-chat-sessions.md",
+      "to": "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-019-brana-chat-sessions.md",
+      "to": "docs/architecture/decisions/ADR-012-acquire-skills.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-019-brana-chat-sessions.md",
+      "to": "docs/architecture/decisions/ADR-013-event-log.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-019-brana-chat-sessions.md",
+      "to": "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-019-brana-chat-sessions.md",
+      "to": "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-019-brana-chat-sessions.md",
+      "to": "docs/architecture/decisions/ADR-017-decision-log.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-019-brana-chat-sessions.md",
+      "to": "docs/architecture/decisions/ADR-018-dynamic-model-routing.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-022-brana-cli.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-022-brana-cli.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-023-rust-cli-dispatcher.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-023-rust-cli-dispatcher.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-023-rust-cli-dispatcher.md",
+      "to": "docs/architecture/decisions/ADR-022-brana-cli.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-024-content-polling-keyring-credentials.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-024-content-polling-keyring-credentials.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-024-content-polling-keyring-credentials.md",
+      "to": "docs/architecture/decisions/ADR-022-brana-cli.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-024-content-polling-keyring-credentials.md",
+      "to": "docs/architecture/decisions/ADR-023-rust-cli-dispatcher.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-025-skill-lifecycle-manager.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-025-skill-lifecycle-manager.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-025-skill-lifecycle-manager.md",
+      "to": "docs/architecture/decisions/ADR-012-acquire-skills.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-025-skill-lifecycle-manager.md",
+      "to": "docs/architecture/decisions/ADR-022-brana-cli.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-025-skill-lifecycle-manager.md",
+      "to": "docs/architecture/decisions/ADR-023-rust-cli-dispatcher.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-026-ruflo-mcp-backbone.md",
+      "to": "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "to": "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "to": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "to": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "to": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "to": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "to": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "to": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "to": "docs/architecture/decisions/ADR-032-smart-router.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "to": "docs/architecture/features/operating-model.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "to": "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "to": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "to": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "to": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "to": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "to": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "to": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "to": "docs/architecture/decisions/ADR-032-smart-router.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "to": "docs/architecture/features/operating-model.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "to": "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "to": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "to": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "to": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "to": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "to": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "to": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "to": "docs/architecture/decisions/ADR-032-smart-router.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "to": "docs/architecture/features/operating-model.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "to": "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "to": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "to": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "to": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "to": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "to": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "to": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "to": "docs/architecture/decisions/ADR-032-smart-router.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "to": "docs/architecture/features/operating-model.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "to": "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "to": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "to": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "to": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "to": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "to": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "to": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "to": "docs/architecture/decisions/ADR-032-smart-router.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "to": "docs/architecture/features/operating-model.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-032-smart-router.md",
+      "to": "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-032-smart-router.md",
+      "to": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-032-smart-router.md",
+      "to": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-032-smart-router.md",
+      "to": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-032-smart-router.md",
+      "to": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-032-smart-router.md",
+      "to": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-032-smart-router.md",
+      "to": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-032-smart-router.md",
+      "to": "docs/architecture/decisions/ADR-032-smart-router.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-032-smart-router.md",
+      "to": "docs/architecture/features/operating-model.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/acquire-skills-guide.md",
+      "to": "docs/architecture/decisions/ADR-012-acquire-skills.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/acquire-skills-guide.md",
+      "to": "docs/architecture/features/acquire-skills.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/acquire-skills.md",
+      "to": "docs/architecture/decisions/ADR-012-acquire-skills.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/agentdb-v3-upgrade-evaluation.md",
+      "to": "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/brana-cli.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/brana-cli.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/brana-cli.md",
+      "to": "docs/architecture/decisions/ADR-022-brana-cli.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/brana-cli.md",
+      "to": "docs/architecture/decisions/ADR-023-rust-cli-dispatcher.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/brana-feed-inbox.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/brana-feed-inbox.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/brana-feed-inbox.md",
+      "to": "docs/architecture/decisions/ADR-022-brana-cli.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/brana-feed-inbox.md",
+      "to": "docs/architecture/decisions/ADR-023-rust-cli-dispatcher.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/brana-feed-inbox.md",
+      "to": "docs/architecture/decisions/ADR-024-content-polling-keyring-credentials.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/brana-feed-inbox.md",
+      "to": "docs/architecture/features/brana-cli.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/build-close-auto-docs.md",
+      "to": "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/build-close-auto-docs.md",
+      "to": "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/build-close-auto-docs.md",
+      "to": "docs/architecture/features/build-loop-redesign.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/build-loop-redesign.md",
+      "to": "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/build-loop-redesign.md",
+      "to": "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/cascade-throttle.md",
+      "to": "docs/architecture/decisions/ADR-009-test-lint-feedback-hook.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/cascade-throttle.md",
+      "to": "docs/architecture/features/test-lint-feedback-hook.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/cc-hook-leverage.md",
+      "to": "docs/architecture/decisions/ADR-009-test-lint-feedback-hook.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/cc-hook-leverage.md",
+      "to": "docs/architecture/features/test-lint-feedback-hook.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/chat-agents-monitoring.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/chat-agents-monitoring.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/chat-agents-monitoring.md",
+      "to": "docs/architecture/decisions/ADR-004-session-handoff-self-learning-loop.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/chat-agents-monitoring.md",
+      "to": "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/chat-agents-monitoring.md",
+      "to": "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/chat-agents-monitoring.md",
+      "to": "docs/architecture/decisions/ADR-012-acquire-skills.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/chat-agents-monitoring.md",
+      "to": "docs/architecture/decisions/ADR-013-event-log.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/chat-agents-monitoring.md",
+      "to": "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/chat-agents-monitoring.md",
+      "to": "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/chat-agents-monitoring.md",
+      "to": "docs/architecture/decisions/ADR-017-decision-log.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/chat-agents-monitoring.md",
+      "to": "docs/architecture/decisions/ADR-018-dynamic-model-routing.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/chat-agents-monitoring.md",
+      "to": "docs/architecture/decisions/ADR-019-brana-chat-sessions.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/cli-composable-tool.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/cli-composable-tool.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/cli-composable-tool.md",
+      "to": "docs/architecture/decisions/ADR-022-brana-cli.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/cli-composable-tool.md",
+      "to": "docs/architecture/decisions/ADR-023-rust-cli-dispatcher.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/cli-composable-tool.md",
+      "to": "docs/architecture/features/brana-cli.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/cli-composable-tool.md",
+      "to": "docs/architecture/features/task-management-system.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/event-log.md",
+      "to": "docs/architecture/decisions/ADR-013-event-log.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/github-issues-sync.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/github-issues-sync.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/github-issues-sync.md",
+      "to": "docs/architecture/features/task-management-system.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/living-docs.md",
+      "to": "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/living-docs.md",
+      "to": "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/living-docs.md",
+      "to": "docs/architecture/features/build-close-auto-docs.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/living-docs.md",
+      "to": "docs/architecture/features/build-loop-redesign.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/mission-control-cli.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/mission-control-cli.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/mission-control-cli.md",
+      "to": "docs/architecture/decisions/ADR-022-brana-cli.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/mission-control-cli.md",
+      "to": "docs/architecture/decisions/ADR-023-rust-cli-dispatcher.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/mission-control-cli.md",
+      "to": "docs/architecture/features/brana-cli.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/mission-control-cli.md",
+      "to": "docs/architecture/features/task-management-system.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/operating-model.md",
+      "to": "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/operating-model.md",
+      "to": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/operating-model.md",
+      "to": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/operating-model.md",
+      "to": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/operating-model.md",
+      "to": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/operating-model.md",
+      "to": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/operating-model.md",
+      "to": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/operating-model.md",
+      "to": "docs/architecture/decisions/ADR-032-smart-router.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/operating-model.md",
+      "to": "docs/architecture/features/operating-model.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/plugin-packaging.md",
+      "to": "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/plugin-packaging.md",
+      "to": "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/plugin-packaging.md",
+      "to": "docs/architecture/decisions/ADR-012-acquire-skills.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/plugin-packaging.md",
+      "to": "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/plugin-packaging.md",
+      "to": "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/project-metadata.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/project-metadata.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/project-metadata.md",
+      "to": "docs/architecture/features/task-management-system.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/project-metadata.md",
+      "to": "docs/architecture/features/tasks-portfolio.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/research-stream.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/research-stream.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/research-stream.md",
+      "to": "docs/architecture/features/task-management-system.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/resilient-pattern-store.md",
+      "to": "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/resilient-pattern-store.md",
+      "to": "docs/architecture/decisions/ADR-026-ruflo-mcp-backbone.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/scheduler-hardening.md",
+      "to": "docs/architecture/decisions/ADR-002-scheduler-thin-layer-over-systemd.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/scheduler-hardening.md",
+      "to": "docs/architecture/features/scheduler.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/scheduler.md",
+      "to": "docs/architecture/decisions/ADR-002-scheduler-thin-layer-over-systemd.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/skill-routing-in-backlog-start.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/skill-routing-in-backlog-start.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/skill-routing-in-backlog-start.md",
+      "to": "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/skill-routing-in-backlog-start.md",
+      "to": "docs/architecture/decisions/ADR-026-ruflo-mcp-backbone.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/skill-routing-in-backlog-start.md",
+      "to": "docs/architecture/features/task-management-system.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/skill-utilization-tracking.md",
+      "to": "docs/architecture/decisions/ADR-009-test-lint-feedback-hook.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/skill-utilization-tracking.md",
+      "to": "docs/architecture/features/test-lint-feedback-hook.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/smart-tasks-add.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/smart-tasks-add.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/smart-tasks-add.md",
+      "to": "docs/architecture/decisions/ADR-008-smart-tasks-add-suggest-only.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/smart-tasks-add.md",
+      "to": "docs/architecture/features/task-management-system.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/staleness-and-memory-pipeline.md",
+      "to": "docs/architecture/decisions/ADR-002-scheduler-thin-layer-over-systemd.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/staleness-and-memory-pipeline.md",
+      "to": "docs/architecture/features/scheduler.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/t-527-next-limit.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/t-527-next-limit.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/t-527-next-limit.md",
+      "to": "docs/architecture/decisions/ADR-022-brana-cli.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/t-527-next-limit.md",
+      "to": "docs/architecture/decisions/ADR-023-rust-cli-dispatcher.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/t-527-next-limit.md",
+      "to": "docs/architecture/features/brana-cli.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/t-527-next-limit.md",
+      "to": "docs/architecture/features/cli-composable-tool.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/t-527-next-limit.md",
+      "to": "docs/architecture/features/task-management-system.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/t-601-tdd-gate.md",
+      "to": "docs/architecture/decisions/ADR-009-test-lint-feedback-hook.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/task-management-system.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/task-management-system.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/tasks-portfolio.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/tasks-portfolio.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/tasks-portfolio.md",
+      "to": "docs/architecture/features/task-management-system.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/tasks-theme-system.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/tasks-theme-system.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/tasks-theme-system.md",
+      "to": "docs/architecture/features/task-management-system.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/tasks-wide-mode.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/tasks-wide-mode.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/tasks-wide-mode.md",
+      "to": "docs/architecture/features/task-management-system.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/tasks-wide-mode.md",
+      "to": "docs/architecture/features/tasks-theme-system.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/test-lint-feedback-hook.md",
+      "to": "docs/architecture/decisions/ADR-009-test-lint-feedback-hook.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/user-journey-gap-analysis.md",
+      "to": "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/user-journey-gap-analysis.md",
+      "to": "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/user-journey-gap-analysis.md",
+      "to": "docs/architecture/decisions/ADR-012-acquire-skills.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/user-journey-gap-analysis.md",
+      "to": "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/user-journey-gap-analysis.md",
+      "to": "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/user-journey-gap-analysis.md",
+      "to": "docs/architecture/features/plugin-packaging.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/05-claude-flow-v3-analysis.md",
+      "to": "brana-knowledge/dimensions/04-claude-4.6-capabilities.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/06-claude-flow-internals.md",
+      "to": "brana-knowledge/dimensions/04-claude-4.6-capabilities.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/dimensions/06-claude-flow-internals.md",
+      "to": "brana-knowledge/dimensions/05-claude-flow-v3-analysis.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/07-claude-flow-plus-claude-4.6.md",
+      "to": "brana-knowledge/dimensions/04-claude-4.6-capabilities.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/07-claude-flow-plus-claude-4.6.md",
+      "to": "brana-knowledge/dimensions/05-claude-flow-v3-analysis.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/07-claude-flow-plus-claude-4.6.md",
+      "to": "brana-knowledge/dimensions/06-claude-flow-internals.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/12-skill-selector.md",
+      "to": "brana-knowledge/dimensions/11-ecosystem-skills-plugins.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/21-anthropic-engineering-deep-dive.md",
+      "to": "brana-knowledge/dimensions/20-anthropic-blog-findings.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/23-evaluation.md",
+      "to": "brana-knowledge/dimensions/22-testing.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/27-project-alignment-methodology.md",
+      "to": "brana-knowledge/dimensions/03-pm-framework.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/34-venture-operating-system.md",
+      "to": "brana-knowledge/dimensions/28-startup-smb-management.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/35-context-engineering-principles.md",
+      "to": "dimensions/09-claude-code-native-features.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/36-claw-ecosystem-chat-interface.md",
+      "to": "dimensions/39-kapso-ai-platform.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/40-product-discovery-literature.md",
+      "to": "dimensions/38-design-thinking.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/41-growth-metrics-market-strategy-literature.md",
+      "to": "dimensions/40-product-discovery-literature.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/42-product-operations-literature.md",
+      "to": "dimensions/40-product-discovery-literature.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/45-turboflow-agent-orchestration.md",
+      "to": "dimensions/05-claude-flow-v3-analysis.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/46-cc-harness-ecosystem.md",
+      "to": "dimensions/09-claude-code-native-features.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/46-cc-harness-ecosystem.md",
+      "to": "dimensions/11-ecosystem-skills-plugins.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/48-knowledge-graph-architecture.md",
+      "to": "dimensions/47-ontology-engineering-ai-systems.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/49-agent-era-systems-patterns.md",
+      "to": "dimensions/44-systems-thinking-nature.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/49-auto-learning-patterns.md",
+      "to": "dimensions/16-knowledge-health.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/49-auto-learning-patterns.md",
+      "to": "dimensions/35-context-engineering-principles.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
       "from": "docs/dimensions/knowledge-architecture.md",
       "to": "brana-knowledge/dimensions/22-testing.md",
       "type": "depends_on",
@@ -1753,9 +3421,21 @@
     },
     {
       "from": "docs/dimensions/knowledge-architecture.md",
+      "to": "dimensions/09-claude-code-native-features.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/dimensions/knowledge-architecture.md",
       "to": "docs/archive/reflections/14-mastermind-architecture.md",
       "type": "depends_on",
       "computed": false
+    },
+    {
+      "from": "docs/dimensions/knowledge-architecture.md",
+      "to": "docs/reflections/08-diagnosis.md",
+      "type": "depends_on",
+      "computed": true
     },
     {
       "from": "docs/dimensions/knowledge-architecture.md",
@@ -1767,6 +3447,1110 @@
       "from": "docs/dimensions/knowledge-architecture.md",
       "to": "docs/reflections/32-lifecycle.md",
       "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/knowledge-architecture.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/dimensions/smb-marketing-channels.md",
+      "to": "dimensions/client-retention-engagement.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/14-mastermind-architecture.md",
+      "to": "docs/reflections/08-diagnosis.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/29-venture-management-reflection.md",
+      "to": "docs/reflections/08-diagnosis.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/29-venture-management-reflection.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/31-assurance.md",
+      "to": "docs/reflections/08-diagnosis.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/reflections/31-assurance.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/32-lifecycle.md",
+      "to": "docs/reflections/08-diagnosis.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/32-lifecycle.md",
+      "to": "docs/reflections/31-assurance.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/32-lifecycle.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/ARCHITECTURE.md",
+      "to": "docs/reflections/08-diagnosis.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/component-index.md",
+      "to": "docs/reflections/08-diagnosis.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/reflections/component-index.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/01-brana-system-analysis.md",
+      "to": "docs/reflections/14-mastermind-architecture.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/01-brana-system-analysis.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/02-nexeye-skill-selection.md",
+      "to": "brana-knowledge/dimensions/12-skill-selector.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/03-pm-framework.md",
+      "to": "brana-knowledge/dimensions/27-project-alignment-methodology.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/04-claude-4.6-capabilities.md",
+      "to": "brana-knowledge/dimensions/07-claude-flow-plus-claude-4.6.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/04-claude-4.6-capabilities.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/05-claude-flow-v3-analysis.md",
+      "to": "brana-knowledge/dimensions/07-claude-flow-plus-claude-4.6.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/06-claude-flow-internals.md",
+      "to": "brana-knowledge/dimensions/07-claude-flow-plus-claude-4.6.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/09-claude-code-native-features.md",
+      "to": "docs/reflections/14-mastermind-architecture.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/09-claude-code-native-features.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/11-ecosystem-skills-plugins.md",
+      "to": "brana-knowledge/dimensions/12-skill-selector.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/11-ecosystem-skills-plugins.md",
+      "to": "docs/architecture/decisions/ADR-012-acquire-skills.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/12-skill-selector.md",
+      "to": "docs/architecture/decisions/ADR-012-acquire-skills.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/13-challenger-agent.md",
+      "to": "docs/reflections/31-assurance.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/16-knowledge-health.md",
+      "to": "docs/reflections/31-assurance.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/20-anthropic-blog-findings.md",
+      "to": "brana-knowledge/dimensions/21-anthropic-engineering-deep-dive.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/21-anthropic-engineering-deep-dive.md",
+      "to": "docs/reflections/31-assurance.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/21-anthropic-engineering-deep-dive.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/22-testing.md",
+      "to": "brana-knowledge/dimensions/23-evaluation.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/22-testing.md",
+      "to": "docs/reflections/31-assurance.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/23-evaluation.md",
+      "to": "docs/reflections/31-assurance.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/26-git-branching-strategies.md",
+      "to": "docs/reflections/32-lifecycle.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/27-project-alignment-methodology.md",
+      "to": "docs/reflections/32-lifecycle.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/28-startup-smb-management.md",
+      "to": "brana-knowledge/dimensions/34-venture-operating-system.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/28-startup-smb-management.md",
+      "to": "docs/reflections/29-venture-management-reflection.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/33-research-methodology.md",
+      "to": "brana-knowledge/dimensions/16-knowledge-health.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/34-venture-operating-system.md",
+      "to": "docs/reflections/29-venture-management-reflection.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/35-context-engineering-principles.md",
+      "to": "docs/ideas/operating-model.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/35-context-engineering-principles.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/37-ruvnet-development-practices.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/38-design-thinking.md",
+      "to": "dimensions/27-project-alignment-methodology.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/38-design-thinking.md",
+      "to": "dimensions/40-product-discovery-literature.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/39-kapso-ai-platform.md",
+      "to": "dimensions/36-claw-ecosystem-chat-interface.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/40-product-discovery-literature.md",
+      "to": "dimensions/41-growth-metrics-market-strategy-literature.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/40-product-discovery-literature.md",
+      "to": "dimensions/42-product-operations-literature.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/41-growth-metrics-market-strategy-literature.md",
+      "to": "dimensions/34-venture-operating-system.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/44-systems-thinking-nature.md",
+      "to": "dimensions/49-agent-era-systems-patterns.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/45-turboflow-agent-orchestration.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/46-cc-harness-ecosystem.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/48-knowledge-graph-architecture.md",
+      "to": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/49-agent-era-systems-patterns.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/49-auto-learning-patterns.md",
+      "to": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/49-auto-learning-patterns.md",
+      "to": "docs/ideas/knowledge-aware-skills.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/brana-etymology-naming.md",
+      "to": "dimensions/01-brana-system-analysis.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/cli-builder-rust-bash-devops.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/client-retention-engagement.md",
+      "to": "dimensions/smb-marketing-channels.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/software-engineering-patterns.md",
+      "to": "dimensions/22-testing.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/software-engineering-patterns.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+      "to": "docs/architecture/decisions/ADR-016-spec-dependency-graph.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+      "to": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-002-scheduler-thin-layer-over-systemd.md",
+      "to": "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "to": "docs/architecture/decisions/ADR-008-smart-tasks-add-suggest-only.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "to": "docs/architecture/decisions/ADR-022-brana-cli.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "to": "docs/architecture/decisions/ADR-018-dynamic-model-routing.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "to": "docs/architecture/decisions/ADR-019-brana-chat-sessions.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "to": "docs/architecture/decisions/ADR-022-brana-cli.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-004-session-handoff-self-learning-loop.md",
+      "to": "docs/architecture/decisions/ADR-017-decision-log.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-004-session-handoff-self-learning-loop.md",
+      "to": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md",
+      "to": "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md",
+      "to": "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md",
+      "to": "docs/architecture/decisions/ADR-026-ruflo-mcp-backbone.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+      "to": "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-007-verify-counts-deploy-hook.md",
+      "to": "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-009-test-lint-feedback-hook.md",
+      "to": "docs/reflections/31-assurance.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-009-test-lint-feedback-hook.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-011-skills-bundling.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-012-acquire-skills.md",
+      "to": "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-012-acquire-skills.md",
+      "to": "docs/architecture/decisions/ADR-025-skill-lifecycle-manager.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-013-event-log.md",
+      "to": "docs/architecture/decisions/ADR-017-decision-log.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-014-plugin-management-skill.md",
+      "to": "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-016-spec-dependency-graph.md",
+      "to": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-016-spec-dependency-graph.md",
+      "to": "docs/reflections/31-assurance.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-017-decision-log.md",
+      "to": "docs/architecture/decisions/ADR-018-dynamic-model-routing.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-018-dynamic-model-routing.md",
+      "to": "docs/architecture/decisions/ADR-019-brana-chat-sessions.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md",
+      "to": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md",
+      "to": "docs/brana-ontology.yaml",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-022-brana-cli.md",
+      "to": "docs/architecture/decisions/ADR-023-rust-cli-dispatcher.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-022-brana-cli.md",
+      "to": "docs/architecture/decisions/ADR-025-skill-lifecycle-manager.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-023-rust-cli-dispatcher.md",
+      "to": "docs/architecture/decisions/ADR-024-content-polling-keyring-credentials.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-023-rust-cli-dispatcher.md",
+      "to": "docs/architecture/decisions/ADR-025-skill-lifecycle-manager.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "to": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "to": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "to": "docs/architecture/decisions/ADR-032-smart-router.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "to": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "to": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "to": "docs/brana-ontology.yaml",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "to": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "to": "docs/architecture/decisions/ADR-032-smart-router.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "to": "docs/reflections/31-assurance.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/acquire-skills.md",
+      "to": "docs/architecture/features/acquire-skills-guide.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/agentdb-v3-upgrade-evaluation.md",
+      "to": "docs/architecture/features/resilient-pattern-store.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/brana-cli.md",
+      "to": "docs/architecture/features/brana-feed-inbox.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/brana-cli.md",
+      "to": "docs/architecture/features/cli-composable-tool.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/brana-cli.md",
+      "to": "docs/architecture/features/mission-control-cli.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/build-close-auto-docs.md",
+      "to": "docs/architecture/features/living-docs.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/build-loop-redesign.md",
+      "to": "docs/architecture/features/build-close-auto-docs.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/cc-hook-leverage.md",
+      "to": "docs/architecture/features/skill-utilization-tracking.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/scheduler.md",
+      "to": "docs/architecture/features/scheduler-hardening.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/scheduler.md",
+      "to": "docs/architecture/features/staleness-and-memory-pipeline.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/skill-routing-in-backlog-start.md",
+      "to": "docs/architecture/features/acquire-skills.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/task-management-system.md",
+      "to": "docs/architecture/features/cli-composable-tool.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/task-management-system.md",
+      "to": "docs/architecture/features/github-issues-sync.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/task-management-system.md",
+      "to": "docs/architecture/features/research-stream.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/task-management-system.md",
+      "to": "docs/architecture/features/smart-tasks-add.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/task-management-system.md",
+      "to": "docs/architecture/features/tasks-portfolio.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/tasks-portfolio.md",
+      "to": "docs/architecture/features/project-metadata.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/tasks-theme-system.md",
+      "to": "docs/architecture/features/tasks-wide-mode.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/test-lint-feedback-hook.md",
+      "to": "docs/architecture/features/cascade-throttle.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/test-lint-feedback-hook.md",
+      "to": "docs/architecture/features/cc-hook-leverage.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/test-lint-feedback-hook.md",
+      "to": "docs/architecture/features/skill-utilization-tracking.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/01-brana-system-analysis.md",
+      "to": "docs/reflections/14-mastermind-architecture.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/01-brana-system-analysis.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/02-nexeye-skill-selection.md",
+      "to": "brana-knowledge/dimensions/12-skill-selector.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/03-pm-framework.md",
+      "to": "brana-knowledge/dimensions/27-project-alignment-methodology.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/04-claude-4.6-capabilities.md",
+      "to": "brana-knowledge/dimensions/07-claude-flow-plus-claude-4.6.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/04-claude-4.6-capabilities.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/05-claude-flow-v3-analysis.md",
+      "to": "brana-knowledge/dimensions/07-claude-flow-plus-claude-4.6.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/06-claude-flow-internals.md",
+      "to": "brana-knowledge/dimensions/07-claude-flow-plus-claude-4.6.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/09-claude-code-native-features.md",
+      "to": "docs/reflections/14-mastermind-architecture.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/09-claude-code-native-features.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/11-ecosystem-skills-plugins.md",
+      "to": "brana-knowledge/dimensions/12-skill-selector.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/11-ecosystem-skills-plugins.md",
+      "to": "docs/architecture/decisions/ADR-012-acquire-skills.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/12-skill-selector.md",
+      "to": "docs/architecture/decisions/ADR-012-acquire-skills.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/13-challenger-agent.md",
+      "to": "docs/reflections/31-assurance.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/16-knowledge-health.md",
+      "to": "docs/reflections/31-assurance.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/20-anthropic-blog-findings.md",
+      "to": "brana-knowledge/dimensions/21-anthropic-engineering-deep-dive.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/21-anthropic-engineering-deep-dive.md",
+      "to": "docs/reflections/31-assurance.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/21-anthropic-engineering-deep-dive.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/22-testing.md",
+      "to": "brana-knowledge/dimensions/23-evaluation.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/22-testing.md",
+      "to": "docs/reflections/31-assurance.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/23-evaluation.md",
+      "to": "docs/reflections/31-assurance.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/26-git-branching-strategies.md",
+      "to": "docs/reflections/32-lifecycle.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/27-project-alignment-methodology.md",
+      "to": "docs/reflections/32-lifecycle.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/28-startup-smb-management.md",
+      "to": "brana-knowledge/dimensions/34-venture-operating-system.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/28-startup-smb-management.md",
+      "to": "docs/reflections/29-venture-management-reflection.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/33-research-methodology.md",
+      "to": "brana-knowledge/dimensions/16-knowledge-health.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/34-venture-operating-system.md",
+      "to": "docs/reflections/29-venture-management-reflection.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/35-context-engineering-principles.md",
+      "to": "docs/ideas/operating-model.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/35-context-engineering-principles.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/37-ruvnet-development-practices.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/38-design-thinking.md",
+      "to": "dimensions/27-project-alignment-methodology.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/38-design-thinking.md",
+      "to": "dimensions/40-product-discovery-literature.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/39-kapso-ai-platform.md",
+      "to": "dimensions/36-claw-ecosystem-chat-interface.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/40-product-discovery-literature.md",
+      "to": "dimensions/41-growth-metrics-market-strategy-literature.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/40-product-discovery-literature.md",
+      "to": "dimensions/42-product-operations-literature.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/41-growth-metrics-market-strategy-literature.md",
+      "to": "dimensions/34-venture-operating-system.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/44-systems-thinking-nature.md",
+      "to": "dimensions/49-agent-era-systems-patterns.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/45-turboflow-agent-orchestration.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/46-cc-harness-ecosystem.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/48-knowledge-graph-architecture.md",
+      "to": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/49-agent-era-systems-patterns.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/49-auto-learning-patterns.md",
+      "to": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/49-auto-learning-patterns.md",
+      "to": "docs/ideas/knowledge-aware-skills.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/brana-etymology-naming.md",
+      "to": "dimensions/01-brana-system-analysis.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/cli-builder-rust-bash-devops.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/client-retention-engagement.md",
+      "to": "dimensions/smb-marketing-channels.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/software-engineering-patterns.md",
+      "to": "dimensions/22-testing.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/software-engineering-patterns.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
+      "to": "docs/reflections/29-venture-management-reflection.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
+      "to": "docs/reflections/31-assurance.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
+      "to": "docs/reflections/32-lifecycle.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/14-mastermind-architecture.md",
+      "to": "docs/reflections/31-assurance.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/14-mastermind-architecture.md",
+      "to": "docs/reflections/32-lifecycle.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/14-mastermind-architecture.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/31-assurance.md",
+      "to": "docs/reflections/32-lifecycle.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/ARCHITECTURE.md",
+      "to": "docs/reflections/31-assurance.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/ARCHITECTURE.md",
+      "to": "docs/reflections/32-lifecycle.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/ARCHITECTURE.md",
+      "to": "docs/reflections/component-index.md",
+      "type": "informs",
       "computed": false
     },
     {
@@ -5956,12 +8740,42 @@
       "to": "miessler-pai-comparison.md",
       "type": "references",
       "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/meta-whatsapp-templates.md",
+      "to": "dimensions/meta-whatsapp-template-classification.md",
+      "type": "supersedes",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+      "to": "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md",
+      "type": "supersedes",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-026-ruflo-mcp-backbone.md",
+      "to": "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md",
+      "type": "supersedes",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/meta-whatsapp-templates.md",
+      "to": "dimensions/meta-whatsapp-template-classification.md",
+      "type": "supersedes",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/ARCHITECTURE.md",
+      "to": "docs/reflections/14-mastermind-architecture.md",
+      "type": "supersedes",
+      "computed": false
     }
   ],
   "stats": {
     "nodes": 266,
-    "edges": 708,
-    "typed_edges": 10,
-    "orphans": 120
+    "edges": 1177,
+    "typed_edges": 479,
+    "orphans": 54
   }
 }

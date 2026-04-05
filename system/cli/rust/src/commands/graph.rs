@@ -206,12 +206,19 @@ fn parse_frontmatter(content: &str) -> HashMap<String, Vec<String>> {
 
     let rel_keys = ["depends_on", "informs", "supersedes", "contradicts", "implements", "blocked_by"];
 
+    let mut current_key: Option<String> = None;
+
     for line in fm_block.lines() {
-        let line = line.trim();
+        let trimmed = line.trim();
+
+        // Check if this line starts a new relationship key
+        let mut matched_key = false;
         for key in &rel_keys {
-            if let Some(rest) = line.strip_prefix(&format!("{key}:")) {
+            if let Some(rest) = trimmed.strip_prefix(&format!("{key}:")) {
                 let rest = rest.trim();
-                // Parse YAML inline list: [a, b, c] or single value
+                current_key = Some(key.to_string());
+                matched_key = true;
+                // Parse YAML inline list: [a, b, c] or single value on same line
                 if rest.starts_with('[') {
                     let inner = rest.trim_start_matches('[').trim_end_matches(']');
                     for item in inner.split(',') {
@@ -222,10 +229,29 @@ fn parse_frontmatter(content: &str) -> HashMap<String, Vec<String>> {
                                 .push(item.to_string());
                         }
                     }
+                    current_key = None; // inline list complete
                 } else if !rest.is_empty() {
                     rels.entry(key.to_string())
                         .or_default()
                         .push(rest.trim_matches('"').trim_matches('\'').to_string());
+                    current_key = None; // single value complete
+                }
+                // else: empty value means YAML list follows (- item lines)
+                break;
+            }
+        }
+
+        // Parse YAML list items: "  - value"
+        if !matched_key {
+            if let Some(ref key) = current_key {
+                if let Some(item) = trimmed.strip_prefix("- ") {
+                    let item = item.trim().trim_matches('"').trim_matches('\'').trim();
+                    if !item.is_empty() {
+                        rels.entry(key.clone()).or_default().push(item.to_string());
+                    }
+                } else if !trimmed.is_empty() && !trimmed.starts_with('#') {
+                    // Non-list, non-empty line — end of current key's list
+                    current_key = None;
                 }
             }
         }
