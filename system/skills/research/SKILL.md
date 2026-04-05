@@ -2,10 +2,10 @@
 name: research
 description: "Research a topic, doc, or creator — check sources, follow references recursively, produce findings. Use when starting deep research on a topic, creator, or external source."
 effort: high
-keywords: [research, topic, creator, sources, references, deep-dive, comparison]
+keywords: [research, topic, creator, sources, references, deep-dive, comparison, evaluate, compare, learn, investigate, debug]
 task_strategies: [spike, investigation]
 stream_affinity: [research]
-argument-hint: "[topic|doc-number|creator:name|--refresh] [scope]"
+argument-hint: "[topic|doc-number|creator:name|--refresh] [scope] [--strategy research|evaluate|learn|investigate]"
 group: learning
 context: fork
 allowed-tools:
@@ -39,7 +39,18 @@ The atomic research primitive. Takes a topic, doc number, creator, or lead. Chec
 
 ## Usage
 
-`/brana:research [target] [--nlm] [--refresh [scope]]`
+`/brana:research [target] [--nlm] [--refresh [scope]] [--strategy research|evaluate|learn|investigate]`
+
+### Strategies
+
+The skill auto-detects strategy from your phrasing (or you can pass `--strategy` explicitly):
+
+- **research** (default) — "What is X?" — produces dimension doc updates
+- **evaluate** — "Should we use X or Y?" / "X vs Y" — produces an ADR (decision record)
+- **learn** — "I'm starting with X" / "New to X" — produces dimension doc + gotchas + learning path
+- **investigate** — "Why is X broken?" / "X is failing" — produces root cause + fix + gotcha
+
+All strategies share the same research flow (source finding, reading, synthesizing). The difference is the output format.
 
 Target options:
 - A topic (e.g., `/brana:research context engineering`) — find and check sources related to this topic
@@ -56,7 +67,7 @@ Flags:
 
 On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
 
-Register these steps: LOAD, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, DEEP-DIVE, CROSS-REF, REPORT, EXTRACT, EVALUATE, PERSIST.
+Register these steps: LOAD, ROUTE, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, DEEP-DIVE, CROSS-REF, REPORT, EXTRACT, EVALUATE, PERSIST.
 
 **Plan mode:** Enter plan mode for INTERNAL-SEARCH, WIDE-SCAN, and TRIAGE (Phases 0-2). Exit plan mode before DEEP-DIVE (Phase 3) which may involve writing temp files.
 
@@ -83,9 +94,46 @@ Register these steps: LOAD, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, D
       Read the top 3 matching dimension files (first 80 lines each).
    4. **Summarize loaded knowledge** as a brief context preamble (2-5 bullets). Note what's already documented so research targets gaps, not redundant ground.
 
-1. **Load the source registry.** Read `research-sources.yaml` from brana-knowledge (`~/enter_thebrana/brana-knowledge/research-sources.yaml`). If it doesn't exist, warn the user and fall back to freeform web search.
+1. **Step ROUTE — Determine research strategy.** Classify the request into one of 4 strategies. The strategy determines the output format; the core research flow (source finding, reading, synthesizing) is shared.
 
-2. **Determine target type.** Parse `$ARGUMENTS`:
+   | Strategy | Trigger | Output |
+   |----------|---------|--------|
+   | **research** (default) | "What is X?" | Dimension doc update/creation |
+   | **evaluate** | "Should we use X or Y?" | ADR (decision record) |
+   | **learn** | "I'm starting with X tech" | Dimension doc + gotchas + learning path |
+   | **investigate** | "Why is X broken?" | Root cause + fix recommendation |
+
+   **Smart router (3-level):**
+
+   **Level 1 — Signal match.** Check `$ARGUMENTS` for keyword patterns:
+   - `--strategy <name>` → use explicit strategy
+   - Contains "or" / "vs" / "versus" / "compare" / "should we" / "which" → **evaluate**
+   - Contains "learn" / "starting with" / "new to" / "getting started" / "how to use" → **learn**
+   - Contains "broken" / "why" / "failing" / "debug" / "error" / "not working" / "fix" → **investigate**
+   - No match → proceed to Level 2
+
+   **Level 2 — LLM classification.** If no signal match, classify from context:
+   ```
+   Given this research request: "{$ARGUMENTS}"
+   Classify as exactly one of: research, evaluate, learn, investigate.
+   - research: general knowledge gathering ("what is X", "how does X work", topic exploration)
+   - evaluate: comparing options to make a decision ("X vs Y", "should we use X")
+   - learn: onboarding to a new technology ("I need to learn X", "getting started with X")
+   - investigate: debugging or root-cause analysis ("X is broken", "why does X fail")
+   Reply with ONLY the strategy name.
+   ```
+
+   **Level 3 — Ask user.** If still ambiguous (e.g., request could be research or evaluate):
+   ```
+   AskUserQuestion: "What's your goal with this research?"
+   Options: ["Research — learn what X is", "Evaluate — decide between options", "Learn — onboard to new tech", "Investigate — debug a problem"]
+   ```
+
+   Set `$STRATEGY` (default: `research`). Log: "Strategy: {$STRATEGY}. Proceeding with shared research flow."
+
+2. **Load the source registry.** Read `research-sources.yaml` from brana-knowledge (`~/enter_thebrana/brana-knowledge/research-sources.yaml`). If it doesn't exist, warn the user and fall back to freeform web search.
+
+3. **Determine target type.** Parse `$ARGUMENTS`:
    - If `--refresh` flag is present → batch refresh mode (see "Batch Refresh Mode" below)
    - If it's a number → doc mode (research updates for that doc)
    - If it starts with `creator:` → creator mode (check that creator's channels)
@@ -93,7 +141,7 @@ Register these steps: LOAD, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, D
    - If it's `registry` → registry health mode (analyze the YAML)
    - Otherwise → topic mode (search for the topic across registry sources)
 
-3. **Phase 0 — Internal Search (always runs before any web research).**
+4. **Phase 0 — Internal Search (always runs before any web research).**
 
    Before reaching out to the web, search what the system already knows. Internal docs may have already decided vocabulary, constraints, or conclusions about the topic. External research should deepen what docs sketched, validate assumptions, find implementations, and discover what docs couldn't know.
 
@@ -151,7 +199,7 @@ Register these steps: LOAD, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, D
 
    **CLAUDE:** If internal search finds substantial prior knowledge, summarize it before proceeding: "Internal docs cover [topics]. Researching externally to [deepen/validate/discover gaps]."
 
-4. **Phase 0b — NotebookLM detail extraction (only when `--nlm` flag is present).**
+5. **Phase 0b — NotebookLM detail extraction (only when `--nlm` flag is present).**
 
    **CLAUDE:** Check if NotebookLM MCP is available and authenticated:
    ```
@@ -191,14 +239,14 @@ Register these steps: LOAD, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, D
 
    Write prior details to `/tmp/research-{target}-nlm-prior.md`. Include in the triage context so web findings are compared against existing knowledge.
 
-5. **Select relevant sources.** Based on target type:
+6. **Select relevant sources.** Based on target type:
    - **Doc mode**: filter registry sources where `relevance` includes the doc number
    - **Creator mode**: find the creator entry, use all their channels
    - **Topic mode**: search source names/descriptions for topic keywords, plus run web searches
    - **Leads mode**: read leads from `mcp__claude-flow__memory_search` (namespace: `research-leads`, tags: `status:queued`)
-   - **Registry mode**: skip to step 13
+   - **Registry mode**: skip to step 14
 
-6. **Phase 1 — Wide Scan (metadata only, no WebFetch).** Launch parallel scouts to scan sources. Each scout:
+7. **Phase 1 — Wide Scan (metadata only, no WebFetch).** Launch parallel scouts to scan sources. Each scout:
    - Uses `WebSearch` ONLY — titles, snippets, URLs. **Never WebFetch in Phase 1.**
    - Returns ALL findings as structured text in the agent result (scouts cannot write files)
    - **Main context writes** each scout's findings to `/tmp/research-{target}-{N}.md` after receiving the result
@@ -210,7 +258,7 @@ Register these steps: LOAD, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, D
    - **When internal context exists (Phase 0)**: include in scout prompts: "Internal docs say the following about this topic: [summary from Phase 0 internal]. Tag findings that confirm internal decisions as [CONFIRMED-INTERNAL], findings that contradict as [CONTRADICTS-INTERNAL], and findings that answer open questions as [ANSWERS-INTERNAL]."
    - **When `--nlm` prior details exist**: include in scout prompts: "Compare findings against these claims from NotebookLM: [summary from Phase 0b]. Tag confirmations as [CONFIRMED], contradictions as [CONTRADICTS-NLM]."
 
-7. **Phase 2 — Triage (main context reads temp files incrementally).** For each temp file from Phase 1:
+8. **Phase 2 — Triage (main context reads temp files incrementally).** For each temp file from Phase 1:
    - Read ONE temp file at a time (never all at once)
    - Classify each finding: HIGH (doc conclusion wrong, key claim outdated), MEDIUM (needs update), LOW (minor addition)
    - Extract HIGH-priority URLs that need deep reading
@@ -233,21 +281,21 @@ Register these steps: LOAD, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, D
      - `[CONTRADICTS-NLM]` — web finding disagrees with NLM claim (NLM may be wrong, investigate)
      - `[NLM-ONLY]` — NLM claim with no web corroboration (flag in report, do not treat as ground truth). This catches Gemini's hallucination pattern: confidently stating specific details that no other source confirms.
 
-8. **Phase 3 — Deep Dive (targeted WebFetch, max 3 scouts).** For HIGH-priority URLs from Phase 2:
+9. **Phase 3 — Deep Dive (targeted WebFetch, max 3 scouts).** For HIGH-priority URLs from Phase 2:
    - Launch max 3 scouts, each gets max 2 WebFetch calls
    - Each scout returns ALL deep findings as structured text in the agent result
    - **Main context writes** each scout's findings to `/tmp/research-{target}-deep-{N}.md` after receiving the result
    - Main context reads deep findings incrementally (same as Phase 2)
    - Note any creators or sources cited that are NOT in the registry
 
-9. **Recurse on new references (max 2 hops, max 3 scouts).** For new sources/creators found in Phase 3:
+10. **Recurse on new references (max 2 hops, max 3 scouts).** For new sources/creators found in Phase 3:
    - Check if already in registry → if yes, note and skip
    - Launch scouts with the same return-inline protocol (WebSearch only, return findings in agent result)
    - Maximum 3 additional scouts (not 10)
    - Maximum 2 hops deep from the original source
    - Stop recursing when: max depth reached, finding priority drops below MEDIUM, or source already in registry
 
-10. **Log HIGH findings to decision log.** Before presenting the report, persist HIGH-severity findings:
+11. **Log HIGH findings to decision log.** Before presenting the report, persist HIGH-severity findings:
 
    ```bash
    uv run python3 system/scripts/decisions.py log scout finding "{finding title}: {detail}" \
@@ -256,7 +304,7 @@ Register these steps: LOAD, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, D
 
    This preserves research findings across sessions (session-start.sh reads HIGH findings). Only log HIGH — MEDIUM/LOW stay in the report only.
 
-11. **Cross-reference findings against internal decisions.** For each finding from Phases 1-3, compare against the internal context from Phase 0:
+12. **Cross-reference findings against internal decisions.** For each finding from Phases 1-3, compare against the internal context from Phase 0:
 
    - **Confirms**: Finding corroborates an internal decision or assumption. Tag `[CONFIRMED-INTERNAL]`. Higher confidence.
    - **Extends**: Finding adds new information that deepens an internal decision without contradicting it. Tag `[EXTENDS]`.
@@ -269,18 +317,18 @@ Register these steps: LOAD, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, D
 
    **CLAUDE:** If any contradictions are found, present them prominently before the main findings list. The user must decide whether to update the internal doc or dismiss the external finding.
 
-12. **Connect findings to docs.** For each finding, identify:
+13. **Connect findings to docs.** For each finding, identify:
    - Which dimension doc(s) it affects
    - Which section within the doc
    - Severity: HIGH (doc conclusion wrong or key claim outdated), MEDIUM (needs update), LOW (minor addition)
 
-13. **Registry health report** (for `registry` mode or appended to other modes):
+14. **Registry health report** (for `registry` mode or appended to other modes):
     - Trust tier distribution (how many proven/promising/unvalidated/demoted)
     - Sources overdue for check (last_checked + cadence < today)
     - Creators with no recent findings (potential demote candidates)
     - Sources with high yield (potential cadence upgrade candidates)
 
-14. **Report findings.** Present structured output:
+15. **Report findings.** Present structured output based on `$STRATEGY` (see "Strategy-Specific Output" below for evaluate/learn/investigate formats; the default research format follows):
 
    ```
    ## Research: [target]
@@ -327,7 +375,108 @@ Register these steps: LOAD, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, D
    - Promote/demote: [source] from [tier] to [tier] — reason
    ```
 
-15. **Create leads for unfollowed threads.** For references that were not recursed into (budget exhausted, low priority):
+### Strategy-Specific Output
+
+When `$STRATEGY` is not `research` (the default), replace step 15's report format with the strategy-specific format below. The shared research flow (steps 2-13) runs identically — only the output structure changes.
+
+#### Strategy: evaluate
+
+Compare N options to produce a decision. Output is always an ADR.
+
+```
+## Evaluation: [option A] vs [option B] [vs ...]
+**Date:** YYYY-MM-DD | **Strategy:** evaluate
+**Decision:** [recommended option] (or "no clear winner — see trade-offs")
+
+### Criteria
+| Criterion | Weight | Option A | Option B | ... |
+|-----------|--------|----------|----------|-----|
+| ...       | ...    | ...      | ...      | ... |
+
+### Per-Option Analysis
+#### Option A
+- Strengths: ...
+- Weaknesses: ...
+- Evidence: [source](url)
+
+#### Option B
+...
+
+### Recommendation
+[1-3 sentences: which option, why, under what conditions]
+
+### Draft ADR
+Write a draft ADR to `docs/architecture/decisions/ADR-NNN-{slug}.md` using the project's ADR template.
+Status: proposed. Present for user approval before writing.
+```
+
+#### Strategy: learn
+
+Onboard to a new technology. Output is a dimension doc with learning-specific sections.
+
+```
+## Learn: [technology]
+**Date:** YYYY-MM-DD | **Strategy:** learn
+
+### What It Is
+[2-3 sentence overview — what the technology does and why it exists]
+
+### Key Concepts
+- **Concept A**: [1-line explanation]
+- **Concept B**: ...
+
+### Getting Started
+1. Install: `command`
+2. Configure: ...
+3. First use: ...
+
+### Gotchas
+- **Gotcha 1**: [what goes wrong] — **Fix**: [how to avoid/resolve]
+- **Gotcha 2**: ...
+
+### Learning Path
+1. [Resource](url) — [why this first] (estimated time)
+2. [Resource](url) — [what it builds on] (estimated time)
+3. ...
+```
+
+Output: propose a new or updated dimension doc in `brana-knowledge/dimensions/` with `## Gotchas` and `## Learning Path` sections included. Present for user approval.
+
+#### Strategy: investigate
+
+Debug a problem. Structure follows reproduce-hypothesize-test-fix.
+
+```
+## Investigation: [problem description]
+**Date:** YYYY-MM-DD | **Strategy:** investigate
+**Status:** [root cause found | hypothesis only | inconclusive]
+
+### Reproduction
+- Steps to reproduce: ...
+- Environment: ...
+- Frequency: [always | intermittent | once]
+
+### Hypotheses
+1. **[Hypothesis A]** — [reasoning] — **Result:** [confirmed | ruled out | untested]
+2. **[Hypothesis B]** — ...
+
+### Root Cause
+[What actually causes the problem. If inconclusive, state best hypothesis and what evidence is missing.]
+
+### Fix Recommendation
+- **Immediate fix**: [what to do now]
+- **Proper fix**: [what to do long-term, if different]
+- **Prevention**: [how to avoid recurrence]
+
+### Gotcha
+> **[technology/area]: [short title]** — [1-2 sentence gotcha for future reference]
+```
+
+Output: root cause + fix recommendation. Optionally append a FieldNote (`## Field Notes` or `## Gotchas` section) to the relevant dimension doc. Present for user approval.
+
+---
+
+16. **Create leads for unfollowed threads.** For references that were not recursed into (budget exhausted, low priority):
 
     **Via MCP (preferred):**
     ```
@@ -342,7 +491,7 @@ Register these steps: LOAD, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, D
     **Fallback (CLI):** `$CF memory store` with the same key/namespace/tags.
     - If both unavailable, list them in the report under "Leads Created" for manual tracking
 
-16. **Propose registry updates.** List all changes to `research-sources.yaml`:
+17. **Propose registry updates.** List all changes to `research-sources.yaml`:
     - New sources to add (with full schema)
     - `last_checked` date updates
     - `version_observed` + `date_observed` updates (when version changed)
@@ -350,7 +499,7 @@ Register these steps: LOAD, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, D
     - Trust tier promotions/demotions (with reasoning)
     - Do NOT modify the YAML directly — present proposals for user approval
 
-17. **Prepare NotebookLM source (only when `--nlm` flag is present).**
+18. **Prepare NotebookLM source (only when `--nlm` flag is present).**
 
     **CLAUDE:** Format the research findings as a NotebookLM-optimized Markdown file following the `/brana:notebooklm-source` template:
     - Executive summary (2-3 sentences: topic, date, key takeaway)
@@ -371,14 +520,14 @@ Register these steps: LOAD, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, D
 
     If prior knowledge was used from Phase 0, note which findings are **new** vs **confirmations** vs **contradictions** of existing notebook content. This helps the user decide whether to replace an old source or add alongside it.
 
-18. **Write to knowledge base (user approval required).** If findings are significant enough to warrant a new dimension doc or major update to an existing one:
+19. **Write to knowledge base (user approval required).** If findings are significant enough to warrant a new dimension doc or major update to an existing one:
     - For a **new topic**: propose creating a new dimension doc in `~/enter_thebrana/brana-knowledge/dimensions/{topic-slug}.md`. Use topic-based filename (not numbered). Present the proposed doc structure and get user approval before writing.
     - For an **existing doc update**: propose specific edits to the relevant dimension doc. Present the changes and get user approval.
     - After writing, commit in brana-knowledge (the post-commit hook auto-reindexes for retrieval).
     - After writing, regenerate INDEX.md: `~/enter_thebrana/thebrana/system/scripts/generate-index.sh`
     - **Skip this step** if findings are minor (LOW severity only) or if the user declines.
 
-19. **Step EXTRACT — Identify what was learned.** At research end, distill findings into typed knowledge units.
+20. **Step EXTRACT — Identify what was learned.** At research end, distill findings into typed knowledge units.
 
     1. Compare initial research question against findings — what was answered, what remains open
     2. Classify each finding:
@@ -393,7 +542,7 @@ Register these steps: LOAD, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, D
        - **ADR** — architectural decision implied by research findings
     4. Flag sources not yet in `brana-knowledge/research-sources.yaml` for addition
 
-20. **Step EVALUATE — Score and gate each finding.**
+21. **Step EVALUATE — Score and gate each finding.**
 
     Score each extracted finding (0-10) and apply the gate:
 
@@ -415,7 +564,7 @@ Register these steps: LOAD, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TRIAGE, D
 
     **Fallback:** If ruflo unavailable, present all MEDIUM+ findings to user without dedup.
 
-21. **Step PERSIST — Route findings to storage.**
+22. **Step PERSIST — Route findings to storage.**
 
     | Type | Destination | Auto/Prompted |
     |------|------------|---------------|
