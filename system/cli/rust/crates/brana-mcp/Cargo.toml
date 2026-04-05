@@ -17,3 +17,6 @@ chrono.workspace = true
 pmcp.workspace = true
 tokio.workspace = true
 schemars.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
