@@ -90,48 +90,70 @@ pub fn scan_skills(dirs: &[PathBuf]) -> Vec<SkillMeta> {
     skills
 }
 
-/// Score a skill against task context per ADR-025.
+/// Score a skill against task context.
 ///
-/// score = (keyword_overlap × 0.4) + (tag_overlap × 0.3)
-///       + (strategy_match × 0.2) + (stream_match × 0.1)
+/// Improved scoring: exact keyword match + description substring match + name match.
+/// score = (keyword_match × 0.3) + (description_match × 0.2) + (name_match × 0.1)
+///       + (tag_overlap × 0.2) + (strategy_match × 0.1) + (stream_match × 0.1)
 pub fn score_skill(skill: &SkillMeta, ctx: &TaskContext) -> (f64, String) {
     let mut reasons = Vec::new();
 
-    // Keyword overlap: task description words ∩ skill keywords
     let skill_kw: HashSet<&str> = skill.keywords.iter().map(|s| s.as_str()).collect();
-    let kw_overlap = if skill_kw.is_empty() {
+
+    // 1. Keyword match: task description words ∩ skill keywords (normalized by match count, not skill size)
+    let kw_matches: Vec<&str> = ctx
+        .description_words
+        .iter()
+        .filter(|w| skill_kw.contains(w.as_str()))
+        .map(|s| s.as_str())
+        .collect();
+    let kw_score = if kw_matches.is_empty() {
         0.0
     } else {
-        let matches: Vec<&str> = ctx
-            .description_words
-            .iter()
-            .filter(|w| skill_kw.contains(w.as_str()))
-            .map(|s| s.as_str())
-            .collect();
-        if !matches.is_empty() {
-            reasons.push(format!("keywords: {}", matches.join(", ")));
-        }
-        matches.len() as f64 / skill_kw.len() as f64
+        reasons.push(format!("keywords: {}", kw_matches.join(", ")));
+        // Score by number of matches (capped at 1.0), not ratio to skill keywords
+        (kw_matches.len() as f64 / 3.0).min(1.0)
     };
 
-    // Tag overlap: task tags ∩ skill keywords
-    let tag_overlap = if skill_kw.is_empty() {
+    // 2. Description match: task words found in skill description (fuzzy)
+    let desc_lower = skill.description.as_deref().unwrap_or("").to_lowercase();
+    let desc_matches: Vec<&str> = ctx
+        .description_words
+        .iter()
+        .filter(|w| w.len() > 3 && desc_lower.contains(w.as_str()))
+        .map(|s| s.as_str())
+        .collect();
+    let desc_score = if desc_matches.is_empty() {
         0.0
     } else {
-        let matches: Vec<&str> = ctx
-            .tags
-            .iter()
-            .filter(|t| skill_kw.contains(t.as_str()))
-            .map(|s| s.as_str())
-            .collect();
-        if !matches.is_empty() {
-            reasons.push(format!("tags: {}", matches.join(", ")));
-        }
-        matches.len() as f64 / skill_kw.len() as f64
+        reasons.push(format!("description: {}", desc_matches.join(", ")));
+        (desc_matches.len() as f64 / 3.0).min(1.0)
     };
 
-    // Strategy match
-    let strategy_match = match &ctx.strategy {
+    // 3. Name match: skill name appears in task description
+    let name_score = if ctx.description_words.contains(&skill.name) {
+        reasons.push(format!("name: {}", skill.name));
+        1.0
+    } else {
+        0.0
+    };
+
+    // 4. Tag overlap: task tags ∩ skill keywords
+    let tag_matches: Vec<&str> = ctx
+        .tags
+        .iter()
+        .filter(|t| skill_kw.contains(t.as_str()))
+        .map(|s| s.as_str())
+        .collect();
+    let tag_score = if tag_matches.is_empty() {
+        0.0
+    } else {
+        reasons.push(format!("tags: {}", tag_matches.join(", ")));
+        (tag_matches.len() as f64 / 2.0).min(1.0)
+    };
+
+    // 5. Strategy match
+    let strategy_score = match &ctx.strategy {
         Some(s) if skill.task_strategies.iter().any(|ts| ts == s) => {
             reasons.push(format!("strategy: {s}"));
             1.0
@@ -139,8 +161,8 @@ pub fn score_skill(skill: &SkillMeta, ctx: &TaskContext) -> (f64, String) {
         _ => 0.0,
     };
 
-    // Stream match
-    let stream_match = match &ctx.stream {
+    // 6. Stream match
+    let stream_score = match &ctx.stream {
         Some(s) if skill.stream_affinity.iter().any(|sa| sa == s) => {
             reasons.push(format!("stream: {s}"));
             1.0
@@ -148,7 +170,8 @@ pub fn score_skill(skill: &SkillMeta, ctx: &TaskContext) -> (f64, String) {
         _ => 0.0,
     };
 
-    let score = (kw_overlap * 0.4) + (tag_overlap * 0.3) + (strategy_match * 0.2) + (stream_match * 0.1);
+    let score = (kw_score * 0.3) + (desc_score * 0.2) + (name_score * 0.1)
+        + (tag_score * 0.2) + (strategy_score * 0.1) + (stream_score * 0.1);
     let reason = if reasons.is_empty() {
         "no match".to_string()
     } else {
@@ -237,7 +260,39 @@ fn build_query_string(ctx: &TaskContext) -> String {
 }
 
 /// Resolve the ruflo/claude-flow binary path.
+/// Checks: $CF env → cf-env.sh → nvm global bins → PATH.
 fn which_ruflo() -> Option<String> {
+    // 1. Try sourcing cf-env.sh (sets $CF)
+    let home = std::env::var("HOME").unwrap_or_default();
+    let cf_env = format!("{home}/.claude/scripts/cf-env.sh");
+    if std::path::Path::new(&cf_env).exists() {
+        if let Ok(output) = std::process::Command::new("bash")
+            .args(["-c", &format!("source '{cf_env}' 2>/dev/null && echo \"$CF\"")])
+            .output()
+        {
+            if output.status.success() {
+                let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                if !path.is_empty() && std::path::Path::new(&path).exists() {
+                    return Some(path);
+                }
+            }
+        }
+    }
+
+    // 2. Try common nvm global bin locations
+    let nvm_dir = std::env::var("NVM_DIR").unwrap_or_else(|_| format!("{home}/.nvm"));
+    if let Ok(entries) = std::fs::read_dir(format!("{nvm_dir}/versions/node")) {
+        for entry in entries.flatten() {
+            for name in ["ruflo", "claude-flow"] {
+                let bin = entry.path().join("bin").join(name);
+                if bin.exists() {
+                    return Some(bin.to_string_lossy().to_string());
+                }
+            }
+        }
+    }
+
+    // 3. Try PATH (works when not in nvm)
     for name in ["ruflo", "claude-flow"] {
         if let Ok(output) = std::process::Command::new("which").arg(name).output() {
             if output.status.success() {
