@@ -1,0 +1,23 @@
+[package]
+name = "brana-core"
+description = "Brana core library — task management, feeds, inbox, files, and more"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+chrono.workspace = true
+anyhow.workspace = true
+ureq.workspace = true
+feed-rs.workspace = true
+imap.workspace = true
+mailparse.workspace = true
+native-tls.workspace = true
+keyring.workspace = true
+rpassword.workspace = true
+
+[dev-dependencies]
+serial_test.workspace = true
+tempfile.workspace = true

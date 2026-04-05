@@ -1,0 +1,38 @@
+[package]
+name = "brana-cli"
+description = "Brana CLI — fast standalone terminal interface"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "brana"
+path = "src/main.rs"
+
+[[bin]]
+name = "brana-query"
+path = "src/query.rs"
+
+[[bin]]
+name = "brana-fmt"
+path = "src/fmt.rs"
+
+[dependencies]
+brana-core = { path = "../brana-core" }
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+clap.workspace = true
+chrono.workspace = true
+anyhow.workspace = true
+# These stay in CLI until command handlers are refactored to use brana-core (t-737, t-738)
+ureq.workspace = true
+feed-rs.workspace = true
+imap.workspace = true
+mailparse.workspace = true
+native-tls.workspace = true
+keyring.workspace = true
+rpassword.workspace = true
+
+[dev-dependencies]
+serial_test.workspace = true
+tempfile.workspace = true

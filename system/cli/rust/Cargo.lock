@@ -119,10 +119,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "843867be96c8daad0d758b57df9392b6d8d271134fce549de6ce169ff98a92af"
 
 [[package]]
-name = "brana"
-version = "0.1.0"
+name = "brana-cli"
+version = "0.2.0"
 dependencies = [
  "anyhow",
+ "brana-core",
  "chrono",
  "clap",
  "feed-rs",
@@ -137,6 +138,36 @@ dependencies = [
  "serial_test",
  "tempfile",
  "ureq",
+]
+
+[[package]]
+name = "brana-core"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "feed-rs",
+ "imap",
+ "keyring",
+ "mailparse",
+ "native-tls",
+ "rpassword",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "serial_test",
+ "tempfile",
+ "ureq",
+]
+
+[[package]]
+name = "brana-mcp"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "brana-core",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

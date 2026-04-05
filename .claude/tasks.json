@@ -1,5 +1,5 @@
 {
-  "last_modified": "2026-04-05T12:51:31.532445",
+  "last_modified": "2026-04-05T12:54:38.268352",
   "project": "thebrana",
   "tasks": [
     {
@@ -19594,15 +19594,15 @@
         "t-750"
       ],
       "type": "task",
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "execution": "code",
       "branch": null,
       "created": "2026-04-05",
-      "started": null,
-      "completed": null,
+      "started": "2026-04-05",
+      "completed": "2026-04-05",
       "context": null,
-      "notes": null,
+      "notes": "Cargo workspace created: brana-core, brana-cli, brana-mcp. All 3 crates compile. Old src/ archived. Workspace deps inherited. CLI binaries (brana, brana-query, brana-fmt) work from brana-cli crate.",
       "github_issue": null,
       "order": 0
     },

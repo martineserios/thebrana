@@ -1,0 +1,16 @@
+[package]
+name = "brana-mcp"
+description = "Brana MCP server — exposes backlog and tools via Model Context Protocol"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "brana-mcp"
+path = "src/main.rs"
+
+[dependencies]
+brana-core = { path = "../brana-core" }
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+# pmcp and tokio will be added when implementing t-741
