@@ -49,20 +49,30 @@ R1(08 Triage) → R2(14 Architecture) → R3(31 Assurance) / R4(32 Lifecycle) �
 ## System Architecture
 
 ```
-system/                               Plugin (loaded by Claude Code)
-├── .claude-plugin/plugin.json        ← plugin manifest
-├── skills/                           ← /brana:* slash commands
-├── commands/                         ← agent commands
-├── hooks/hooks.json + *.sh           ← event hooks
-├── agents/                           ← specialized agents
-└── CLAUDE.md                         ← mastermind identity
+system/                                  Plugin (loaded by Claude Code)
+├── .claude-plugin/plugin.json           ← plugin manifest
+├── skills/                              ← /brana:* slash commands
+├── commands/                            ← agent commands
+├── hooks/hooks.json + *.sh              ← event hooks
+├── agents/                              ← specialized agents
+├── CLAUDE.md                            ← mastermind identity
+└── cli/rust/                            ← Cargo workspace (ADR-026)
+    └── crates/
+        ├── brana-core/                  ← shared business logic library
+        │   ├── tasks.rs                 ← task lifecycle, filtering, scoring
+        │   ├── files.rs                 ← content-addressed file tracking
+        │   ├── scheduler.rs             ← job health, collisions, drift
+        │   ├── sync.rs                  ← task↔GitHub sync planning
+        │   └── util.rs                  ← path discovery, config loading
+        ├── brana-cli/                   ← terminal interface (clap + themes)
+        └── brana-mcp/                   ← MCP server (pmcp + stdio)
 
-bootstrap.sh                          Identity layer → ~/.claude/
-├── CLAUDE.md                         ← global identity
-├── rules/                            ← behavioral rules
-├── scripts/                          ← helper scripts
-├── statusline.sh                     ← status bar
-└── scheduler/                        ← scheduled jobs
+bootstrap.sh                             Identity layer → ~/.claude/
+├── CLAUDE.md                            ← global identity
+├── rules/                               ← behavioral rules
+├── scripts/                             ← helper scripts
+├── statusline.sh                        ← status bar
+└── scheduler/                           ← scheduled jobs
 ```
 
 Version: v1.0.0
@@ -146,6 +156,21 @@ claude --plugin-dir ./system
 | `brana files list\|status\|add\|pull\|push` | Track large files via manifest (.brana-files.json). SHA-256 verified, R2/HTTP remotes. |
 | `brana feed add\|list\|poll\|remove\|status` | RSS/Atom feed polling. Covers Substack, Medium, blogs, YouTube, GitHub releases. HTTP conditional requests (ETag). |
 | `brana inbox add-account\|add\|list\|poll\|remove\|status\|set-password` | Gmail newsletter management via IMAP. Multi-account, OS keyring credentials. |
+
+### MCP Tools (brana-mcp server)
+
+Exposed via `.mcp.json`. Skills should prefer these over CLI — structured JSON, 65% fewer tokens.
+
+| Tool | Purpose |
+|------|---------|
+| `backlog_query` | Filter tasks by tag, status, stream, priority, effort, type, parent |
+| `backlog_get` | Get single task by ID, optionally a specific field |
+| `backlog_set` | Set field on task (status, priority, tags +/-, context, notes) |
+| `backlog_add` | Create new task with auto-assigned ID |
+| `backlog_search` | Free-text search across all task fields |
+| `backlog_stats` | Aggregate stats by status, stream, priority, type |
+| `backlog_burndown` | Created vs completed over week/month |
+| `backlog_stale` | Find tasks pending longer than threshold |
 
 ### Spec Maintenance Commands
 

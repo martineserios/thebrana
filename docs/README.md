@@ -29,6 +29,7 @@ User-facing documentation. Start here.
 | [upgrading.md](guide/upgrading.md) | Version upgrade procedures |
 | [concepts.md](guide/concepts.md) | Key terms: skills, rules, hooks, agents, identity layer |
 | [commands/index.md](guide/commands/index.md) | Quick command reference |
+| [python-to-rust-migration.md](guide/python-to-rust-migration.md) | Python→Rust migration guide: 10 concept comparisons with brana examples |
 
 ### Workflow guides (docs/guide/workflows/)
 
@@ -94,6 +95,19 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-016](architecture/decisions/ADR-016-spec-dependency-graph.md) | Spec dependency graph |
 | [ADR-017](architecture/decisions/ADR-017-decision-log.md) | JSONL decision log |
 | [ADR-018](architecture/decisions/ADR-018-dynamic-model-routing.md) | Dynamic model routing |
+| [ADR-019](architecture/decisions/ADR-019-brana-chat-sessions.md) | Brana chat sessions |
+| [ADR-021](architecture/decisions/ADR-021-knowledge-architecture-v2.md) | Knowledge architecture v2 |
+| [ADR-022](architecture/decisions/ADR-022-brana-cli.md) | Brana CLI (Python typer) |
+| [ADR-023](architecture/decisions/ADR-023-rust-cli-dispatcher.md) | Rust CLI dispatcher |
+| [ADR-024](architecture/decisions/ADR-024-content-polling-keyring-credentials.md) | Content polling with keyring credentials |
+| [ADR-025](architecture/decisions/ADR-025-skill-lifecycle-manager.md) | Skill lifecycle manager |
+| [ADR-026](architecture/decisions/ADR-026-full-rust-mcp-architecture.md) | **Full Rust + MCP architecture** (Cargo workspace, pmcp, Python elimination) |
+
+### Domain model (docs/domain/)
+
+| File | Contents |
+|------|----------|
+| [MODEL-001-brana-core.md](domain/MODEL-001-brana-core.md) | 9 bounded contexts, ubiquitous language, domain events for brana-core |
 
 ### Feature briefs (docs/architecture/features/)
 
