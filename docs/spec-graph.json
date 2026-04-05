@@ -1,10 +1,10 @@
 {
   "_meta": {
-    "generated": "2026-04-04T14:14:51Z",
-    "node_count": 211,
-    "edge_count": 568,
+    "generated": "2026-04-05T00:34:22Z",
+    "node_count": 212,
+    "edge_count": 574,
     "impl_ref_count": 268,
-    "orphan_count": 103,
+    "orphan_count": 100,
     "typed_edge_count": 0
   },
   "nodes": {
@@ -2382,6 +2382,14 @@
       "arch_files": [],
       "ref_files": []
     },
+    "docs/dimensions/49-auto-learning-patterns.md": {
+      "references": [],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
     "docs/dimensions/INDEX.md": {
       "references": [
         "01-brana-system-analysis.md",
@@ -2849,6 +2857,7 @@
     },
     "docs/ideas/agent-observability-learning.md": {
       "references": [
+        "brana-operating-model.md",
         "docs/architecture/features/chat-agents-monitoring.md"
       ],
       "referenced_by": [],
@@ -2869,6 +2878,14 @@
       "references": [
         "ai-native-education.md"
       ],
+      "referenced_by": [],
+      "impl_files": [],
+      "guide_files": [],
+      "arch_files": [],
+      "ref_files": []
+    },
+    "docs/ideas/brana-operating-model.md": {
+      "references": [],
       "referenced_by": [],
       "impl_files": [],
       "guide_files": [],
@@ -2916,7 +2933,9 @@
       "ref_files": []
     },
     "docs/ideas/dynamic-skill-routing.md": {
-      "references": [],
+      "references": [
+        "brana-operating-model.md"
+      ],
       "referenced_by": [],
       "impl_files": [
         "system/mcp/skill-registry/"
@@ -2926,15 +2945,9 @@
       "ref_files": []
     },
     "docs/ideas/enforcement-vs-injection.md": {
-      "references": [],
-      "referenced_by": [],
-      "impl_files": [],
-      "guide_files": [],
-      "arch_files": [],
-      "ref_files": []
-    },
-    "docs/ideas/knowledge-aware-skills.md": {
-      "references": [],
+      "references": [
+        "brana-operating-model.md"
+      ],
       "referenced_by": [],
       "impl_files": [],
       "guide_files": [],
@@ -2951,6 +2964,7 @@
     },
     "docs/ideas/resilient-pattern-store.md": {
       "references": [
+        "brana-operating-model.md",
         "ruflo-native-integration.md",
         "docs/architecture/decisions/ADR-026-ruflo-mcp-backbone.md",
         "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md"
@@ -2985,7 +2999,9 @@
       "ref_files": []
     },
     "docs/ideas/session-aware-loop-integration.md": {
-      "references": [],
+      "references": [
+        "brana-operating-model.md"
+      ],
       "referenced_by": [],
       "impl_files": [],
       "guide_files": [],
@@ -2993,7 +3009,9 @@
       "ref_files": []
     },
     "docs/ideas/skill-auto-router.md": {
-      "references": [],
+      "references": [
+        "brana-operating-model.md"
+      ],
       "referenced_by": [],
       "impl_files": [],
       "guide_files": [],

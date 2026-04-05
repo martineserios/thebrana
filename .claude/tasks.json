@@ -24055,7 +24055,7 @@
       "parent": null,
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "done",
       "strategy": null,
       "subject": "ADR-027: Auto-learning loop (6-step lifecycle)",
       "tags": [
@@ -24081,7 +24081,7 @@
       "parent": null,
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "done",
       "strategy": null,
       "subject": "ADR-028: Ontology v2 (15 types, measurement-gated)",
       "tags": [
@@ -24107,7 +24107,7 @@
       "parent": null,
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "done",
       "strategy": null,
       "subject": "ADR-029: 6-job taxonomy",
       "tags": [
@@ -24133,7 +24133,7 @@
       "parent": null,
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "done",
       "strategy": null,
       "subject": "ADR-030: Maintenance unification (expand /reconcile)",
       "tags": [
@@ -24160,7 +24160,7 @@
       "parent": null,
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "done",
       "strategy": null,
       "subject": "ADR-031: Doc-enforcement hook (scoped hard block)",
       "tags": [
@@ -24187,7 +24187,7 @@
       "parent": null,
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "done",
       "strategy": null,
       "subject": "ADR-032: Smart router (shared strategy detection)",
       "tags": [
