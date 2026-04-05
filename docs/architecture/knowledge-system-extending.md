@@ -27,42 +27,19 @@ Append to `relationship_types`:
     description: Quantitative signal about a system element
 ```
 
-### Update spec_graph.py
+### Update brana graph build
 
-The typed edge extractor in `system/scripts/spec_graph.py` uses a frozen set of relationship names. Add yours:
+The typed edge extractor in `brana graph build` (Rust CLI) uses a set of relationship names. To add a new type, update the relationship type list in the CLI source code (`system/cli/src/graph.rs`). The CLI recognizes typed links in markdown with the pattern:
 
-```python
-# system/scripts/spec_graph.py, line ~58
-# Current types (add yours to both the set and the regex):
-_RELATIONSHIP_TYPES = frozenset({"assumes", "implements", "informs", "enriches", "supersedes"})
+```
+[Label relationship-type](path/to/target.md)
 ```
 
-Update the regex on the next line to include the new type:
-
-```python
-_TYPED_LINK_RE = re.compile(
-    r"\[([^\]]+)\s+(assumes|implements|informs|enriches|supersedes)\]\(([^)]+)\)"
-)
-```
-
-**Note:** The example below shows adding `measures` — replace with your actual type name:
-
-```python
-_RELATIONSHIP_TYPES = frozenset({"assumes", "implements", "informs", "enriches", "supersedes", "measures"})
-```
+Current types: `assumes`, `implements`, `informs`, `enriches`, `supersedes`. Add your new type to the set.
 
 ### Add test coverage
 
-Create a test that parses a doc with your new typed link and verifies `extract_typed_edges()` returns the correct edge. The existing test at `tests/test_spec_graph.py` (if present) or inline:
-
-```python
-from system.scripts.spec_graph import extract_typed_edges
-from pathlib import Path
-
-content = '[CPU usage measures](system/hooks/pre-tool-use.sh)'
-edges = extract_typed_edges(content, Path("docs/test.md"), Path("/repo"))
-assert edges[0]["type"] == "measures"
-```
+Add a test that verifies `brana graph build` recognizes your new typed link. Create a test markdown file with your typed link and verify the output JSON contains the expected edge.
 
 ### When to extend
 
@@ -328,15 +305,15 @@ Examples:
 
 The five relationship types from the ontology: `assumes`, `implements`, `informs`, `enriches`, `supersedes`.
 
-### How spec_graph.py extracts them
+### How brana graph build extracts them
 
-`extract_typed_edges()` in `system/scripts/spec_graph.py` scans each line (skipping fenced code blocks and inline code spans) with:
+`brana graph build` (Rust CLI) scans each line (skipping fenced code blocks and inline code spans) for typed link patterns matching:
 
-```python
-_TYPED_LINK_RE = re.compile(
-    r"\[([^\]]+)\s+(assumes|implements|informs|enriches|supersedes)\]\(([^)]+)\)"
-)
 ```
+[Label relationship-type](path/to/target.md)
+```
+
+where `relationship-type` is one of: `assumes`, `implements`, `informs`, `enriches`, `supersedes`.
 
 For each match, it resolves the target path relative to the source file and emits an edge:
 
@@ -348,7 +325,7 @@ Edges are collected into `spec-graph.json` under `typed_edges`, deduplicated by 
 
 ### Node routing fields
 
-Each node in `spec-graph.json` also carries doc-layer routing fields, auto-populated by `spec_graph.py`:
+Each node in `spec-graph.json` also carries doc-layer routing fields, auto-populated by `brana graph build`:
 
 | Field | Description |
 |-------|-------------|
@@ -361,9 +338,9 @@ These fields power `/brana:docs` — when code changes, the graph tells which do
 ### Adding a new relationship type
 
 1. Add it to `brana-ontology.yaml` (see section 1 above).
-2. Add the keyword to both `_RELATIONSHIP_TYPES` and `_TYPED_LINK_RE` in `spec_graph.py`.
+2. Add the keyword to the relationship type set in `brana graph build` (Rust CLI source).
 3. If the new type has validation semantics (like `assumes` triggers freshness checks), add a corresponding fitness function in `validate.sh`.
-4. Regenerate the spec graph: `uv run python system/scripts/spec_graph.py generate`.
+4. Regenerate the spec graph: `brana graph build`.
 5. Run validation: `./validate.sh` to verify graph integrity (Check 18) passes.
 
 ### Validation

@@ -452,7 +452,7 @@ Reordered after challenger review: highest-pain items first, evidence gates betw
 | Step | What | Effort |
 |------|------|--------|
 | **D1** | DECAY (weekly scan, staleness marking, archive) | 1-2 days |
-| **D2** | `brana graph` Rust CLI (ontology-aware, replaces spec_graph.py) | 2-3 days |
+| **D2** | `brana graph build` Rust CLI (ontology-aware, replaces former Python script) | 2-3 days |
 | **D3** | UNDERSTAND strategies (evaluate, learn, investigate) | 2-3 days |
 | **D4** | SHIP skill (6 generic steps) | 2-3 days |
 | **D5** | Smart router (levels 1+2 only, no self-learning) | 1-2 days |
@@ -536,7 +536,7 @@ The ontology grows from use: PERSIST writes frontmatter → graph recomputes →
 
 Current: 211 nodes (all untyped), 568 untyped edges, 103 orphans (49%), zero typed edges.
 
-Target: `brana graph` Rust CLI subcommand (replaces spec_graph.py). Reads ontology YAML + doc frontmatter + markdown links. Writes typed nodes + typed edges + axiom-computed edges. Subcommands: build, orphans, query, path, stats, validate.
+Target: `brana graph build` Rust CLI subcommand (replaces former Python script). Reads ontology YAML + doc frontmatter + markdown links. Writes typed nodes + typed edges + axiom-computed edges. Subcommands: build, orphans, query, path, stats, validate.
 
 ### Creators to Follow
 See `memory/reference_ontology-kg-creators.md`: Lindenberg, Seale, Jorgenson, Vanderseypen, Kamau, Zaveckas.

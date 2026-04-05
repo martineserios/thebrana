@@ -1,3 +1,11 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md
+informs:
+  - docs/architecture/decisions/ADR-028-ontology-v2.md
+  - docs/reflections/31-assurance.md
+---
+
 # ADR-016: Spec Dependency Graph
 
 **Date:** 2026-03-11
@@ -14,7 +22,7 @@ Brana has ~150 spec documents across docs/, docs/reflections/, docs/dimensions/ 
 
 ## Decision
 
-A pure Python script (`system/scripts/spec_graph.py`) parses all markdown docs, extracts cross-reference links and system file mentions, and outputs a JSON dependency graph to `docs/spec-graph.json`.
+The Rust CLI subcommand `brana graph build` parses all markdown docs, extracts cross-reference links and system file mentions, and outputs a JSON dependency graph to `docs/spec-graph.json`.
 
 ### Graph structure
 
@@ -51,7 +59,7 @@ Embedded property graph with Cypher queries. Rejected: ~150 nodes is trivially f
 Generate the graph via bash + jq. Rejected: regex-heavy markdown parsing in bash is brittle and unmaintainable. Python's pathlib and re modules handle this cleanly.
 
 ### Query CLI for consumers
-A `spec_graph.py query --impl-files system/skills/build` subcommand. Rejected: Claude reads JSON directly and reasons about it. A query CLI adds a tool boundary without adding capability. The JSON format is already machine-readable.
+A `brana graph query --impl-files system/skills/build` subcommand. Rejected: Claude reads JSON directly and reasons about it. A query CLI adds a tool boundary without adding capability. The JSON format is already machine-readable.
 
 ## Consequences
 

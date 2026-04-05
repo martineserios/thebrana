@@ -440,7 +440,7 @@ Cross-checks reflection docs against dimension docs for gaps, contradictions, mi
 ### PROP-4: Spec-graph consistency
 
 If `docs/spec-graph.json` exists:
-1. Run `uv run python3 system/scripts/spec_graph.py` to regenerate
+1. Run `brana graph build` to regenerate
 2. Compare output with existing graph
 3. Flag new orphan nodes, broken edges, missing docs
 

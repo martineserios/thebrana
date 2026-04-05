@@ -184,7 +184,7 @@ claude --plugin-dir ./system
 | `brana handoff last\|list\|path` | Legacy alias for `brana session`. Falls back to markdown if no JSON state exists. |
 | `brana skills suggest\|search\|list\|reindex` | Skill discovery and semantic routing. `reindex` indexes skills into ruflo memory for MCP-based skill matching. |
 | `brana knowledge reindex\|status` | Knowledge base indexing. Indexes dimension/reflection/feature docs into ruflo memory. `--patterns` for memory files. |
-| `brana graph build\|orphans\|query\|path\|stats\|validate` | Knowledge graph operations — ontology-aware, replaces spec_graph.py |
+| `brana graph build\|orphans\|query\|path\|stats\|validate` | Knowledge graph operations — ontology-aware spec dependency graph |
 
 ## Specs Reference
 

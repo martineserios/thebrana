@@ -3,13 +3,15 @@ last_verified: 2026-03-14
 status: active
 maturity: seedling
 generated: true
+depends_on:
+  - docs/reflections/ARCHITECTURE.md
 ---
 
 # Component Index
 
 > **Auto-generated inventory.** This file lists system components derivable from `system/` files. For architectural reasoning (WHY things compose this way), see [ARCHITECTURE.md](ARCHITECTURE.md).
 >
-> TODO: Auto-generate from `system/` directory structure via `spec_graph.py` (Phase 7, t-450).
+> TODO: Auto-generate from `system/` directory structure via `brana graph build` (Phase 7, t-450).
 
 ## Plugin Structure
 

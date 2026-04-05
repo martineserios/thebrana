@@ -1580,14 +1580,14 @@ The backlog SKILL.md spec uses `session:{SESSION_ID}` as the claimant format for
 **Trigger:** periodic (post t-568 CLI refactor + t-574 file tracking)
 **Drift found:** 4 findings across 4 areas
 **Applied:** 2 auto-fixes
-**Deferred:** 2 (historical roadmap cleanup, spec_graph.py parser bug)
+**Deferred:** 2 (historical roadmap cleanup, spec graph parser bug)
 
 | # | Area | Type | Finding | Resolution |
 |---|------|------|---------|-----------|
 | 1 | CLI feature doc | Stale | mission-control-cli.md claims 13 unit tests; actual is 81 | Applied — updated count |
 | 2 | Reference docs | Missing | scripts.md missing 5 scripts (gh-sync.sh, index-assumptions.sh, second-phase-check.sh, sync-state.sh, task-id-lock.sh) | Applied — added entries |
 | 3 | Roadmap doc 17 | Stale | References old skill names (project-onboard, cross-pollinate, pattern-recall, personal-check), system-reviewer agent, skill-catalog.yaml | Deferred — historical roadmap, marked done |
-| 4 | spec-graph.json | Stale | impl_files have trailing backticks from markdown parsing | Deferred — bug in spec_graph.py, not docs |
+| 4 | spec-graph.json | Stale | impl_files have trailing backticks from markdown parsing | Deferred — bug in spec graph parser (now replaced by `brana graph build`), not docs |
 
 **Notes:** Light reconcile — most CLI drift was already caught by the 2026-03-18 reconcile (3a98670). Remaining drift is minor: a stale test count and undocumented scripts.
 
@@ -1748,7 +1748,7 @@ The backlog SKILL.md spec uses `session:{SESSION_ID}` as the claimant format for
 
 | # | Area | Type | Finding | Resolution |
 |---|------|------|---------|-----------|
-| 1 | spec-graph | Stale | `system/skills/decide/SKILL.md` had backtick/tilde artifacts from strikethrough markup | Applied — added `~\\` to rstrip in spec_graph.py |
+| 1 | spec-graph | Stale | `system/skills/decide/SKILL.md` had backtick/tilde artifacts from strikethrough markup | Applied — added `~\\` to rstrip in spec graph parser (now replaced by `brana graph build`) |
 | 2 | spec-graph | Stale | `system/scheduler/brana-scheduler-runner.sh\\` duplicate with trailing backslash | Applied — same rstrip fix, regen removed duplicate |
 | 3 | docs/reference | Missing | `scripts.md` missing `index-patterns.sh` and `index-skills.sh` entries | Applied — added both script docs |
 | 4 | CLAUDE.md | Missing | `init-project` command undocumented in spec maintenance table | Applied — added to table |

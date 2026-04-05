@@ -153,10 +153,10 @@ If the script doesn't exist, skip silently — the user hasn't set up the knowle
 If any steps above modified docs (applied errata, deepened reflections, updated doc 25), regenerate the spec dependency graph so consumers stay current:
 
 ```bash
-uv run python3 system/scripts/spec_graph.py generate
+brana graph build
 ```
 
-If `spec_graph.py` doesn't exist, skip silently.
+If `brana` CLI is not available, skip silently.
 
 If no docs were modified this run → skip: "Spec graph unchanged."
 

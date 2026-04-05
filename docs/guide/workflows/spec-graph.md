@@ -21,8 +21,8 @@ The spec graph maps relationships between brana's ~150 documentation files and t
 | Content/typo fix | No |
 
 ```bash
-uv run python3 system/scripts/spec_graph.py generate
-uv run python3 system/scripts/spec_graph.py generate --output /tmp/spec-graph.json  # custom path
+brana graph build
+brana graph build --output /tmp/spec-graph.json  # custom path
 ```
 
 Output: `docs/spec-graph.json` (default)
@@ -43,7 +43,7 @@ All four fall back to full scanning if the graph doesn't exist.
 
 The session-start hook checks `_meta.generated` once per session. If older than 7 days or missing, it warns:
 
-> Spec graph is stale (generated: DATE, Nd ago). Run: uv run python3 system/scripts/spec_graph.py generate
+> Spec graph is stale (generated: DATE, Nd ago). Run: brana graph build
 
 ## JSON schema
 

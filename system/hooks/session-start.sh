@@ -130,7 +130,7 @@ if [ -f "$SPEC_GRAPH" ]; then
         if [ -n "$GENERATED" ]; then
             DAYS_OLD=$(python3 -c "from datetime import datetime,timezone; print((datetime.now(timezone.utc)-datetime.fromisoformat('$GENERATED'.replace('Z','+00:00'))).days)" 2>/dev/null || echo "0")
             if [ "$DAYS_OLD" -gt 7 ]; then
-                echo "Spec graph is stale (generated: $GENERATED, ${DAYS_OLD}d ago). Run: uv run python3 system/scripts/spec_graph.py generate" > "$TMPDIR_SS/spec-stale"
+                echo "Spec graph is stale (generated: $GENERATED, ${DAYS_OLD}d ago). Run: brana graph build" > "$TMPDIR_SS/spec-stale"
             fi
         fi
     ) &

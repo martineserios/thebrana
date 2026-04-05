@@ -295,11 +295,10 @@ echo '{"continue": true}'
     fi
 
     # Auto-regenerate spec graph if docs changed this session
-    SPEC_GRAPH_PY="$SCRIPT_DIR/../scripts/spec_graph.py"
-    if [ -f "$SPEC_GRAPH_PY" ] && [ -n "$GIT_ROOT" ]; then
+    if command -v brana &>/dev/null && [ -n "$GIT_ROOT" ]; then
         DOCS_CHANGED=$(git -C "$GIT_ROOT" diff --name-only HEAD~10..HEAD 2>/dev/null | grep -cE '\.md$' || echo "0")
         if [ "$DOCS_CHANGED" -gt 0 ]; then
-            uv run python3 "$SPEC_GRAPH_PY" generate --output "$GIT_ROOT/docs/spec-graph.json" 2>/dev/null || true
+            brana graph build --output "$GIT_ROOT/docs/spec-graph.json" 2>/dev/null || true
         fi
     fi
 

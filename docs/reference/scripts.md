@@ -150,23 +150,21 @@ Default skills directory: `../skills` relative to the script.
 
 ---
 
-## spec_graph.py
+## brana graph build (spec graph)
 
 | Field | Value |
 |-------|-------|
 | **Purpose** | Generate a JSON dependency graph of all spec documents |
-| **Usage** | `uv run python3 system/scripts/spec_graph.py generate [--output PATH]` |
-| **Dependencies** | Python 3 (stdlib only) |
+| **Usage** | `brana graph build [--output PATH]` |
+| **Dependencies** | Rust CLI (`brana` binary) |
 
-Parses all markdown files in `docs/`, including subdirectories `dimensions/`, `research/`, `guide/`, and `architecture/` (symlinks followed explicitly). Extracts cross-reference links, `system/` file mentions, and typed relationship edges.
+Parses all markdown files in `docs/`, including subdirectories `dimensions/`, `research/`, `guide/`, and `architecture/` (symlinks followed explicitly). Extracts cross-reference links, `system/` file mentions, and typed relationship edges. Replaces the former `system/scripts/spec_graph.py`.
 
 ### Subcommands
 
-| Subcommand | Description |
-|------------|-------------|
-| `generate` | Parse docs, build graph, write JSON |
+See `brana graph --help` for full subcommand list: `build`, `orphans`, `query`, `path`, `stats`, `validate`.
 
-### Arguments (generate)
+### Arguments (build)
 
 | Flag | Required | Default | Description |
 |------|----------|---------|-------------|

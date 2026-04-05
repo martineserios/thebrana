@@ -104,9 +104,9 @@ relationship_types:
 
 ### Implementation
 
-- Extend `spec_graph.py` to output typed edges (currently: references, referenced_by, impl_files)
+- `brana graph build` outputs typed edges (currently: references, referenced_by, impl_files)
 - Store in `spec-graph.json` (same format, more edge types)
-- Python BFS traversal for multi-hop queries (~160 nodes, no database needed)
+- Rust CLI traversal for multi-hop queries (~160 nodes, no database needed)
 - Ruflo namespaces: `assumptions`, `field-notes`, `decisions` (alongside existing `knowledge`, `patterns`)
 
 ### Deferred (Scale Triggers)
