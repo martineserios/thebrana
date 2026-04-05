@@ -110,6 +110,7 @@ fn main() {
                 }
             }
         },
+        Commands::Graph { cmd } => commands::graph::cmd_graph(cmd),
         Commands::Knowledge { cmd } => match cmd {
             KnowledgeCmd::Reindex { changed, patterns, files } => {
                 if patterns {

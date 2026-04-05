@@ -168,6 +168,11 @@ pub enum Commands {
         #[command(subcommand)]
         cmd: KnowledgeCmd,
     },
+    /// Knowledge graph operations (ontology-aware)
+    Graph {
+        #[command(subcommand)]
+        cmd: GraphCmd,
+    },
 }
 
 #[derive(Subcommand)]
@@ -186,6 +191,38 @@ pub enum KnowledgeCmd {
     },
     /// Show knowledge index status (entry count, last indexed)
     Status,
+}
+
+#[derive(Subcommand)]
+pub enum GraphCmd {
+    /// Build/rebuild spec-graph.json from docs + ontology
+    Build {
+        /// Output path (default: docs/spec-graph.json)
+        #[arg(long)]
+        output: Option<PathBuf>,
+    },
+    /// List orphan nodes (zero edges)
+    Orphans,
+    /// Query nodes by type or relationship
+    Query {
+        /// Filter by entity type (Dimension, ADR, etc.)
+        #[arg(long = "type")]
+        node_type: Option<String>,
+        /// Filter by relationship type (depends_on, informs, etc.)
+        #[arg(long)]
+        rel: Option<String>,
+    },
+    /// Find path between two nodes
+    Path {
+        /// Source node (exact path or fuzzy match)
+        from: String,
+        /// Target node (exact path or fuzzy match)
+        to: String,
+    },
+    /// Show graph statistics
+    Stats,
+    /// Validate graph against ontology axioms
+    Validate,
 }
 
 #[derive(Subcommand)]
