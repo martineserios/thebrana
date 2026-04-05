@@ -330,7 +330,30 @@ let gh_result = Command::new("gh").args(["api", &endpoint]).output()?;
 `brana-core`, `clap`, ANSI formatting (inline or small crate)
 
 ### brana-mcp
-`brana-core`, `rmcp`, `tokio`
+`brana-core`, `pmcp`, `tokio`
+
+## MCP SDK Decision: pmcp over rmcp
+
+**Decided 2026-04-05**: Use [paiml/rust-mcp-sdk](https://github.com/paiml/rust-mcp-sdk) (`pmcp`) instead of the official `rmcp`.
+
+**Why pmcp:**
+- Production-grade with Toyota Way quality principles (zero `unwrap()` in production)
+- Claims 16x faster than TypeScript SDK, 50x lower memory than alternatives
+- Full ecosystem: SDK + `cargo-pmcp` CLI (scaffold, dev, test, loadtest, pentest, deploy)
+- Supports all transports: stdio, HTTP/SSE, WebSocket, WASM
+- Automatic JSON schema generation via schemars
+- 27-chapter reference book + interactive course
+- Claude Code subagent (`mcp-developer.md`) for guided MCP development
+- v2.0.0 aligned with MCP Protocol v2025-03-26
+
+**Tooling installed:**
+- `~/.claude/agents/mcp-developer.md` — Claude Code subagent for MCP server building
+- `cargo-pmcp` — Full lifecycle CLI (scaffold, dev, test, deploy)
+
+**Impact on plan:**
+- t-741 (scaffold MCP crate): use `cargo pmcp new` + `cargo pmcp add server` instead of manual setup
+- Cargo.toml: depend on `pmcp` crate instead of `rmcp`
+- `#[tool]` macro syntax may differ — follow pmcp patterns
 
 ## Open questions
 
@@ -339,3 +362,4 @@ let gh_result = Command::new("gh").args(["api", &endpoint]).output()?;
 3. **Skill migration**: When MCP tools are ready, update skills to prefer MCP calls over bash. Gradual migration or big-bang?
 4. **One server or two**: Merge skill-registry (t-608b) into brana-mcp, or keep separate? Leaning merge.
 5. **brana-query and brana-fmt**: Fold into brana-cli as subcommands, or keep as separate binaries? Leaning fold — workspace makes them unnecessary.
+6. **pmcp vs rmcp integration**: Verify pmcp's `#[tool]` macro works for our use case. If any blockers, rmcp is fallback.
