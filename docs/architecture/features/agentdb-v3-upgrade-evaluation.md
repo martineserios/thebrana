@@ -1,3 +1,9 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md
+informs:
+  - docs/architecture/features/resilient-pattern-store.md
+---
 # t-022 Evaluation: AgentDB v3 + ruflo v3.5.1 Upgrade
 
 **Date:** 2026-02-27

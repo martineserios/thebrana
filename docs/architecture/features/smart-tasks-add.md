@@ -1,3 +1,8 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-008-smart-tasks-add-suggest-only.md
+  - docs/architecture/features/task-management-system.md
+---
 # Feature: Smart /brana:backlog add with dependency scan
 
 **Date:** 2026-03-03

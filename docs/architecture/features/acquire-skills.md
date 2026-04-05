@@ -1,3 +1,9 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-012-acquire-skills.md
+informs:
+  - docs/architecture/features/acquire-skills-guide.md
+---
 # Feature: Acquire Skills
 
 **Date:** 2026-03-05

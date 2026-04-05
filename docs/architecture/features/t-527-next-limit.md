@@ -1,3 +1,7 @@
+---
+depends_on:
+  - docs/architecture/features/cli-composable-tool.md
+---
 # t-527: Add --limit and filter flags to backlog next
 
 ## Problem

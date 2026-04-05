@@ -1,3 +1,8 @@
+---
+informs:
+  - docs/architecture/decisions/ADR-017-decision-log.md
+---
+
 # ADR-013: Event Log — Single-File Capture Layer
 
 **Date:** 2026-03-07

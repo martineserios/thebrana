@@ -1,3 +1,8 @@
+---
+depends_on:
+  - docs/architecture/features/build-close-auto-docs.md
+  - docs/architecture/features/build-loop-redesign.md
+---
 # Feature: Living Documentation System
 
 **Date:** 2026-03-15

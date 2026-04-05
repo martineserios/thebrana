@@ -1,3 +1,12 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md
+supersedes:
+  - docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md
+informs:
+  - docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md
+---
+
 # ADR-006: Merge enter into thebrana
 
 **Date:** 2026-02-25

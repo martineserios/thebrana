@@ -1,3 +1,11 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-009-test-lint-feedback-hook.md
+informs:
+  - docs/architecture/features/cascade-throttle.md
+  - docs/architecture/features/skill-utilization-tracking.md
+  - docs/architecture/features/cc-hook-leverage.md
+---
 # Feature: Test/Lint Feedback Hook
 
 **Task:** [t-043](../../.claude/tasks.json)

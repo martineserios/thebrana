@@ -1,3 +1,7 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-009-test-lint-feedback-hook.md
+---
 # t-601: TDD Enforcement Gate
 
 ## Problem

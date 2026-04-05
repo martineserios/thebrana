@@ -1,3 +1,7 @@
+---
+depends_on:
+  - docs/architecture/features/scheduler.md
+---
 # Feature: Scheduler Hardening (Wave 1)
 
 **Date:** 2026-02-19

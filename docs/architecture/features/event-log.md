@@ -1,3 +1,7 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-013-event-log.md
+---
 # Feature: Event Log
 
 **Date:** 2026-03-07

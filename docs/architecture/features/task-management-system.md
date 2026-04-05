@@ -1,3 +1,14 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-002-tasks-as-data-layer.md
+  - docs/architecture/decisions/ADR-003-agent-driven-task-execution.md
+informs:
+  - docs/architecture/features/cli-composable-tool.md
+  - docs/architecture/features/smart-tasks-add.md
+  - docs/architecture/features/tasks-portfolio.md
+  - docs/architecture/features/github-issues-sync.md
+  - docs/architecture/features/research-stream.md
+---
 # Feature: Task Management System
 
 **Date:** 2026-02-18

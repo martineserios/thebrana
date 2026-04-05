@@ -1,3 +1,10 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md
+supersedes:
+  - docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md
+---
+
 # ADR-026: Ruflo MCP as Backbone, CLI as Fallback
 
 **Date:** 2026-04-01

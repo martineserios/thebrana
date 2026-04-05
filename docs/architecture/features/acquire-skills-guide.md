@@ -1,3 +1,8 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-012-acquire-skills.md
+  - docs/architecture/features/acquire-skills.md
+---
 # Feature: Acquire Skills — User Guide
 
 **Task:** [t-206](../../.claude/tasks.json)

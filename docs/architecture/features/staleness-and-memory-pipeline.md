@@ -1,3 +1,7 @@
+---
+depends_on:
+  - docs/architecture/features/scheduler.md
+---
 # Feature: Staleness Report + Output-to-Memory Pipeline
 
 **Date:** 2026-02-19

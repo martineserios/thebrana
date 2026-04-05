@@ -1,3 +1,11 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-003-agent-driven-task-execution.md
+  - docs/architecture/decisions/ADR-017-decision-log.md
+informs:
+  - docs/architecture/decisions/ADR-019-brana-chat-sessions.md
+---
+
 # ADR-018: Dynamic Model Routing
 
 **Date:** 2026-03-11

@@ -1,3 +1,7 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md
+---
 # Feature: Plugin Packaging — Distribute thebrana as CC Plugin
 
 **Date:** 2026-03-08

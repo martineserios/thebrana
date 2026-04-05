@@ -1,3 +1,9 @@
+---
+depends_on:
+  - docs/architecture/features/test-lint-feedback-hook.md
+informs:
+  - docs/architecture/features/skill-utilization-tracking.md
+---
 # Feature: CC Hook Leverage — Expanded Event Coverage
 
 **Date:** 2026-03-15

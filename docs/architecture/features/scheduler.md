@@ -1,3 +1,10 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-002-scheduler-thin-layer-over-systemd.md
+informs:
+  - docs/architecture/features/scheduler-hardening.md
+  - docs/architecture/features/staleness-and-memory-pipeline.md
+---
 # Feature: Scheduler
 
 **Date:** 2026-02-18

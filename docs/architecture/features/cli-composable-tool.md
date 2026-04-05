@@ -1,3 +1,10 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-022-brana-cli.md
+  - docs/architecture/decisions/ADR-023-rust-cli-dispatcher.md
+  - docs/architecture/features/brana-cli.md
+  - docs/architecture/features/task-management-system.md
+---
 # Feature: CLI as Composable Tool
 
 **Date:** 2026-03-14

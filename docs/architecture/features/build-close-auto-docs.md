@@ -1,3 +1,9 @@
+---
+depends_on:
+  - docs/architecture/features/build-loop-redesign.md
+informs:
+  - docs/architecture/features/living-docs.md
+---
 # Feature: Auto-Generate Tech Docs + User Guide in CLOSE
 
 **Date:** 2026-03-11

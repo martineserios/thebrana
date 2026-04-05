@@ -1,3 +1,7 @@
+---
+depends_on:
+  - docs/architecture/features/tasks-portfolio.md
+---
 # Feature: Project-Level Metadata
 
 **Date:** 2026-03-09

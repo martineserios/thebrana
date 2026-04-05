@@ -1,3 +1,9 @@
+---
+informs:
+  - docs/architecture/decisions/ADR-017-decision-log.md
+  - docs/architecture/decisions/ADR-027-auto-learning-loop.md
+---
+
 # ADR-004: Session Handoff as Self-Learning Loop
 
 **Date:** 2026-02-23

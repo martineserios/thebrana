@@ -1,3 +1,10 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-012-acquire-skills.md
+informs:
+  - docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md
+---
+
 # ADR-014: Plugin Management Skill
 
 **Date:** 2026-03-10

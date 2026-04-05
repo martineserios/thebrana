@@ -1,3 +1,9 @@
+---
+depends_on:
+  - docs/architecture/features/task-management-system.md
+informs:
+  - docs/architecture/features/project-metadata.md
+---
 # Feature: /brana:backlog status --all
 
 **Date:** 2026-02-23

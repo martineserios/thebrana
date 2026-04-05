@@ -1,3 +1,8 @@
+---
+informs:
+  - docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md
+---
+
 # ADR-007: Verify Counts Deploy Hook
 
 ## Status

@@ -1,3 +1,9 @@
+---
+depends_on:
+  - docs/architecture/features/task-management-system.md
+informs:
+  - docs/architecture/features/tasks-wide-mode.md
+---
 # Feature: Themeable Task Display
 
 **Date:** 2026-02-27

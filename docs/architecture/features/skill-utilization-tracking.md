@@ -1,3 +1,7 @@
+---
+depends_on:
+  - docs/architecture/features/test-lint-feedback-hook.md
+---
 # Feature: Skill Utilization Tracking
 
 **Task:** [t-198](../../.claude/tasks.json)

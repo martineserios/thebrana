@@ -1,3 +1,7 @@
+---
+depends_on:
+  - docs/architecture/features/test-lint-feedback-hook.md
+---
 # Feature: Cascade Throttle
 
 **Task:** [t-196](../../.claude/tasks.json)

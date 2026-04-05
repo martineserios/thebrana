@@ -1,3 +1,8 @@
+---
+depends_on:
+  - docs/architecture/features/tasks-theme-system.md
+  - docs/architecture/features/task-management-system.md
+---
 # Feature: Wide Display Mode for /brana:backlog
 
 **Date:** 2026-03-03

@@ -1,3 +1,9 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md
+informs:
+  - docs/architecture/features/build-close-auto-docs.md
+---
 # Feature: Build Loop Redesign
 
 **Date:** 2026-03-07

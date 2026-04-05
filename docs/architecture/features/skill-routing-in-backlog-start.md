@@ -1,3 +1,10 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-026-ruflo-mcp-backbone.md
+  - docs/architecture/features/task-management-system.md
+informs:
+  - docs/architecture/features/acquire-skills.md
+---
 # Feature: Skill Routing in Backlog Start
 
 **Date:** 2026-04-01

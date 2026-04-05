@@ -1,3 +1,12 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-022-brana-cli.md
+  - docs/architecture/decisions/ADR-023-rust-cli-dispatcher.md
+informs:
+  - docs/architecture/features/cli-composable-tool.md
+  - docs/architecture/features/mission-control-cli.md
+  - docs/architecture/features/brana-feed-inbox.md
+---
 # Feature: Brana CLI — Standalone Terminal Interface
 
 **Date:** 2026-03-14

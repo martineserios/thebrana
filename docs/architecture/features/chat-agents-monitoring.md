@@ -1,3 +1,7 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-019-brana-chat-sessions.md
+---
 # Feature: Chat-Agents Monitoring & Logging
 
 **Date:** 2026-03-16

@@ -1,3 +1,12 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-004-session-handoff-self-learning-loop.md
+  - docs/architecture/decisions/ADR-013-event-log.md
+  - docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md
+informs:
+  - docs/architecture/decisions/ADR-018-dynamic-model-routing.md
+---
+
 # ADR-017: JSONL Decision Log
 
 **Date:** 2026-03-11

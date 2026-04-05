@@ -1,3 +1,8 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-024-content-polling-keyring-credentials.md
+  - docs/architecture/features/brana-cli.md
+---
 # Feature: brana feed + brana inbox CLI subcommands
 
 **Date:** 2026-03-19

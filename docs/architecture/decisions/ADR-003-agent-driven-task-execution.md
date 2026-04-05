@@ -1,3 +1,12 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-002-tasks-as-data-layer.md
+informs:
+  - docs/architecture/decisions/ADR-018-dynamic-model-routing.md
+  - docs/architecture/decisions/ADR-019-brana-chat-sessions.md
+  - docs/architecture/decisions/ADR-022-brana-cli.md
+---
+
 # ADR-003: Agent-Driven Task Execution
 
 **Date:** 2026-02-18

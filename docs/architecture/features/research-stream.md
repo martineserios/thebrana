@@ -1,3 +1,7 @@
+---
+depends_on:
+  - docs/architecture/features/task-management-system.md
+---
 # Feature: Research Stream in /brana:backlog
 
 ## Goal

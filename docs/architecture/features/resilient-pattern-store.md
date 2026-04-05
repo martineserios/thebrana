@@ -1,3 +1,7 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-026-ruflo-mcp-backbone.md
+---
 # Feature: Resilient Pattern Store
 
 > Status: in-progress (wave 1 complete, wave 2 pending)

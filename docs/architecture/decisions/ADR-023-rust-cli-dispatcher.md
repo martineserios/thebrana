@@ -1,3 +1,11 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-022-brana-cli.md
+informs:
+  - docs/architecture/decisions/ADR-024-content-polling-keyring-credentials.md
+  - docs/architecture/decisions/ADR-025-skill-lifecycle-manager.md
+---
+
 # ADR-023: Rust CLI Dispatcher — Single Binary Entry Point
 
 **Date:** 2026-03-14

@@ -1,3 +1,10 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md
+  - docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md
+  - docs/architecture/decisions/ADR-014-plugin-management-skill.md
+---
+
 # ADR-015: State Consolidation and Plugin-First Architecture
 
 **Date:** 2026-03-10

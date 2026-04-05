@@ -1,3 +1,7 @@
+---
+depends_on:
+  - docs/architecture/features/task-management-system.md
+---
 # Feature: GitHub Issues Sync
 
 **Date:** 2026-03-10

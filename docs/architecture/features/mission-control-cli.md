@@ -1,3 +1,8 @@
+---
+depends_on:
+  - docs/architecture/features/brana-cli.md
+  - docs/architecture/features/task-management-system.md
+---
 # Feature: Mission Control CLI
 
 **Date:** 2026-03-16

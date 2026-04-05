@@ -1,3 +1,7 @@
+---
+depends_on:
+  - docs/architecture/features/plugin-packaging.md
+---
 # User Journey Map & Gap Analysis
 
 > t-497 deliverable. Maps the end-to-end brana experience for external users.

@@ -1,3 +1,9 @@
+---
+informs:
+  - docs/architecture/decisions/ADR-014-plugin-management-skill.md
+  - docs/architecture/decisions/ADR-025-skill-lifecycle-manager.md
+---
+
 # ADR-012: Acquire Skills — Manual Skill Discovery and Installation
 
 **Date:** 2026-03-05

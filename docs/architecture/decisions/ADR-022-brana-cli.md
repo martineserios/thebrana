@@ -1,3 +1,12 @@
+---
+depends_on:
+  - docs/architecture/decisions/ADR-002-tasks-as-data-layer.md
+  - docs/architecture/decisions/ADR-003-agent-driven-task-execution.md
+informs:
+  - docs/architecture/decisions/ADR-023-rust-cli-dispatcher.md
+  - docs/architecture/decisions/ADR-025-skill-lifecycle-manager.md
+---
+
 # ADR-022: Brana CLI — Standalone Terminal Interface
 
 **Date:** 2026-03-14
