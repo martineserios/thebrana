@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-05T02:29:44Z",
+  "generated": "2026-04-05T02:37:50Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -220,7 +220,7 @@
       "impl_files": []
     },
     "brana-knowledge/dimensions/meta-whatsapp-template-classification.md": {
-      "title": "Meta WhatsApp Template Classification — Empirical Formula",
+      "title": "standalone — superseded by dimensions/meta-whatsapp-templates.md (which has supersedes: pointing here)",
       "type": "Dimension",
       "impl_files": []
     },
@@ -1219,7 +1219,7 @@
       "impl_files": []
     },
     "docs/dimensions/meta-whatsapp-template-classification.md": {
-      "title": "Meta WhatsApp Template Classification — Empirical Formula",
+      "title": "standalone — superseded by dimensions/meta-whatsapp-templates.md (which has supersedes: pointing here)",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -2790,6 +2790,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/context-budget-real-limits.md",
+      "to": "dimensions/35-context-engineering-principles.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/event-log.md",
       "to": "docs/architecture/decisions/ADR-013-event-log.md",
       "type": "depends_on",
@@ -2810,6 +2816,12 @@
     {
       "from": "docs/architecture/features/github-issues-sync.md",
       "to": "docs/architecture/features/task-management-system.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/linkedin-content-implementation.md",
+      "to": "dimensions/28-startup-smb-management.md",
       "type": "depends_on",
       "computed": false
     },
@@ -2874,6 +2886,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/neix-ai-consulting-proposal.md",
+      "to": "dimensions/34-venture-operating-system.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/operating-model.md",
       "to": "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
       "type": "depends_on",
@@ -2926,6 +2944,18 @@
       "to": "docs/architecture/features/operating-model.md",
       "type": "depends_on",
       "computed": true
+    },
+    {
+      "from": "docs/architecture/features/personal-bot-oci-deploy.md",
+      "to": "docs/architecture/decisions/ADR-002-scheduler-thin-layer-over-systemd.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/personal-bot-oci-deploy.md",
+      "to": "docs/architecture/features/scheduler.md",
+      "type": "depends_on",
+      "computed": false
     },
     {
       "from": "docs/architecture/features/plugin-packaging.md",
@@ -3786,6 +3816,12 @@
       "computed": false
     },
     {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
       "from": "brana-knowledge/dimensions/brana-etymology-naming.md",
       "to": "dimensions/01-brana-system-analysis.md",
       "type": "informs",
@@ -4122,6 +4158,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/context-budget-real-limits.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/scheduler.md",
       "to": "docs/architecture/features/scheduler-hardening.md",
       "type": "informs",
@@ -4454,6 +4496,12 @@
     {
       "from": "docs/dimensions/49-auto-learning-patterns.md",
       "to": "docs/ideas/knowledge-aware-skills.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
       "type": "informs",
       "computed": false
     },
@@ -8774,8 +8822,8 @@
   ],
   "stats": {
     "nodes": 266,
-    "edges": 1177,
-    "typed_edges": 479,
-    "orphans": 54
+    "edges": 1185,
+    "typed_edges": 487,
+    "orphans": 52
   }
 }
