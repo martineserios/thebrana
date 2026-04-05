@@ -20023,6 +20023,32 @@
       "notes": "Use /brana:docs skill — do not write docs manually.",
       "github_issue": null,
       "order": 0
+    },
+    {
+      "id": "t-752",
+      "subject": "Evaluate remaining Python scripts for Rust port (decisions.py, spec_graph.py, generate-reference.py, task-sync.py)",
+      "status": "pending",
+      "stream": "tech-debt",
+      "type": "task",
+      "tags": [
+        "cli",
+        "rust",
+        "python-elimination"
+      ],
+      "description": "4 Python scripts remain as stdlib-only standalone tools. Evaluate whether to port: decisions.py (260 lines, JSONL append), spec_graph.py (433 lines, markdown cross-refs — consider pulldown-cmark), generate-reference.py (315 lines, frontmatter → docs), task-sync.py (356 lines, hook — core::sync has planning logic, needs CLI executor). Criteria: maintenance burden, frequency of use, depyler viability. Low priority — they work fine with bare python3.",
+      "effort": "M",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-04-05",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
     }
   ],
   "version": "1"
