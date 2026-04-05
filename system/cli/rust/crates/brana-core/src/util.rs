@@ -1,9 +1,10 @@
-//! Shared helpers used across command modules.
+//! Shared helpers for path discovery and config loading.
 
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Command;
 
+/// Find the authoritative tasks.json, shared across git worktrees.
 pub fn find_tasks_file() -> Option<PathBuf> {
     // In worktrees, --show-toplevel returns the worktree root (which has its own
     // copy of tasks.json). Use --git-common-dir to find the main repo's .git dir,
@@ -16,7 +17,6 @@ pub fn find_tasks_file() -> Option<PathBuf> {
         .and_then(|o| {
             if o.status.success() {
                 let common_git = PathBuf::from(String::from_utf8_lossy(&o.stdout).trim().to_string());
-                // --git-common-dir returns the .git directory; parent is the repo root
                 common_git.parent().map(|p| p.to_path_buf())
             } else {
                 None
@@ -30,7 +30,7 @@ pub fn find_tasks_file() -> Option<PathBuf> {
         }
     }
 
-    // Fallback: try worktree root (for repos where .claude/ only exists in worktree)
+    // Fallback: try worktree root
     let toplevel = Command::new("git")
         .args(["rev-parse", "--show-toplevel"])
         .output()
@@ -52,6 +52,7 @@ pub fn find_tasks_file() -> Option<PathBuf> {
     None
 }
 
+/// Find the git repository root via `git rev-parse --show-toplevel`.
 pub fn find_project_root() -> Option<PathBuf> {
     Command::new("git")
         .args(["rev-parse", "--show-toplevel"])
@@ -66,22 +67,12 @@ pub fn find_project_root() -> Option<PathBuf> {
         })
 }
 
+/// Return the user's home directory.
 pub fn home() -> PathBuf {
     PathBuf::from(std::env::var("HOME").unwrap_or_default())
 }
 
-pub fn delegate_python(args: &[&str]) {
-    // Fall back to Python CLI for complex commands
-    let status = Command::new("uv")
-        .args(["run", "brana"])
-        .args(args)
-        .status();
-    match status {
-        Ok(s) => std::process::exit(s.code().unwrap_or(1)),
-        Err(_) => { eprintln!("Python CLI not available. Install with: uv pip install -e ."); std::process::exit(1); }
-    }
-}
-
+/// Load scheduler config from `~/.claude/scheduler/scheduler.json`.
 pub fn load_scheduler() -> HashMap<String, serde_json::Value> {
     let path = home().join(".claude/scheduler/scheduler.json");
     std::fs::read_to_string(&path).ok()
@@ -89,6 +80,7 @@ pub fn load_scheduler() -> HashMap<String, serde_json::Value> {
         .unwrap_or_default()
 }
 
+/// Load scheduler status from `~/.claude/scheduler/last-status.json`.
 pub fn load_status() -> HashMap<String, serde_json::Value> {
     let path = home().join(".claude/scheduler/last-status.json");
     let content = std::fs::read_to_string(&path).unwrap_or_default();
