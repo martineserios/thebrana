@@ -1368,6 +1368,127 @@ Body text here.
         assert!(rels.is_empty());
     }
 
+    // ── YAML list format (the format actually used in docs) ────────
+
+    #[test]
+    fn parse_frontmatter_yaml_list_single_key() {
+        let content = "---\ndepends_on:\n  - docs/ADR-027.md\n  - docs/ADR-028.md\n---\n# Doc";
+        let rels = parse_frontmatter(content);
+        assert_eq!(rels.get("depends_on").unwrap(), &vec!["docs/ADR-027.md", "docs/ADR-028.md"]);
+    }
+
+    #[test]
+    fn parse_frontmatter_yaml_list_multiple_keys() {
+        let content = r#"---
+depends_on:
+  - docs/architecture/decisions/ADR-028.md
+  - docs/architecture/features/operating-model.md
+informs:
+  - docs/architecture/decisions/ADR-030.md
+  - docs/architecture/decisions/ADR-031.md
+supersedes:
+  - docs/old-doc.md
+---
+# ADR-027: Auto-Learning Loop
+"#;
+        let rels = parse_frontmatter(content);
+        assert_eq!(rels.get("depends_on").unwrap().len(), 2);
+        assert_eq!(rels.get("informs").unwrap().len(), 2);
+        assert_eq!(rels.get("supersedes").unwrap(), &vec!["docs/old-doc.md"]);
+    }
+
+    #[test]
+    fn parse_frontmatter_yaml_list_with_other_fields() {
+        let content = r#"---
+title: My ADR
+status: accepted
+depends_on:
+  - path/a.md
+  - path/b.md
+effort: high
+informs:
+  - path/c.md
+---
+# Doc
+"#;
+        let rels = parse_frontmatter(content);
+        assert_eq!(rels.get("depends_on").unwrap(), &vec!["path/a.md", "path/b.md"]);
+        assert_eq!(rels.get("informs").unwrap(), &vec!["path/c.md"]);
+        assert!(rels.get("effort").is_none()); // not a relationship key
+    }
+
+    #[test]
+    fn parse_frontmatter_yaml_list_single_item() {
+        let content = "---\ndepends_on:\n  - only-one.md\n---\n# Doc";
+        let rels = parse_frontmatter(content);
+        assert_eq!(rels.get("depends_on").unwrap(), &vec!["only-one.md"]);
+    }
+
+    #[test]
+    fn parse_frontmatter_mixed_inline_and_list() {
+        let content = r#"---
+depends_on: [inline-a.md, inline-b.md]
+informs:
+  - list-c.md
+  - list-d.md
+---
+# Doc
+"#;
+        let rels = parse_frontmatter(content);
+        assert_eq!(rels.get("depends_on").unwrap(), &vec!["inline-a.md", "inline-b.md"]);
+        assert_eq!(rels.get("informs").unwrap(), &vec!["list-c.md", "list-d.md"]);
+    }
+
+    #[test]
+    fn parse_frontmatter_yaml_list_quoted_values() {
+        let content = "---\ndepends_on:\n  - \"quoted/path.md\"\n  - 'single-quoted.md'\n---\n# Doc";
+        let rels = parse_frontmatter(content);
+        assert_eq!(rels.get("depends_on").unwrap(), &vec!["quoted/path.md", "single-quoted.md"]);
+    }
+
+    #[test]
+    fn parse_frontmatter_yaml_list_no_indent() {
+        // Some editors produce list items without leading spaces
+        let content = "---\ndepends_on:\n- no-indent.md\n- also-no-indent.md\n---\n# Doc";
+        let rels = parse_frontmatter(content);
+        assert_eq!(rels.get("depends_on").unwrap(), &vec!["no-indent.md", "also-no-indent.md"]);
+    }
+
+    #[test]
+    fn parse_frontmatter_yaml_list_empty_then_items() {
+        // Key with empty value followed by non-list line should reset
+        let content = "---\ndepends_on:\ntitle: breaks the list\n---\n# Doc";
+        let rels = parse_frontmatter(content);
+        // depends_on should be empty since "title:" is not a list item
+        assert!(rels.get("depends_on").is_none() || rels.get("depends_on").unwrap().is_empty());
+    }
+
+    #[test]
+    fn parse_frontmatter_real_adr_format() {
+        // Exact format used in our ADRs after annotation
+        let content = r#"---
+depends_on:
+  - docs/architecture/features/operating-model.md
+  - docs/architecture/decisions/ADR-028-ontology-v2.md
+informs:
+  - docs/architecture/decisions/ADR-030-maintenance-unification.md
+  - docs/architecture/decisions/ADR-031-doc-enforcement-hook.md
+  - docs/architecture/decisions/ADR-032-smart-router.md
+---
+
+# ADR-027: Auto-Learning Loop (6-Step Lifecycle)
+
+**Date:** 2026-04-04
+**Status:** accepted
+"#;
+        let rels = parse_frontmatter(content);
+        assert_eq!(rels.get("depends_on").unwrap().len(), 2);
+        assert!(rels.get("depends_on").unwrap().contains(&"docs/architecture/features/operating-model.md".to_string()));
+        assert!(rels.get("depends_on").unwrap().contains(&"docs/architecture/decisions/ADR-028-ontology-v2.md".to_string()));
+        assert_eq!(rels.get("informs").unwrap().len(), 3);
+        assert!(rels.get("informs").unwrap().contains(&"docs/architecture/decisions/ADR-032-smart-router.md".to_string()));
+    }
+
     // ── Title extraction ───────────────────────────────────────────
 
     #[test]
