@@ -43,7 +43,7 @@ End a work session. Extracts what was learned, writes a handoff note for the nex
 
 On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
 
-Register these steps: GATE, GATHER, EXTRACT, ERRATA, PATTERNS, FIELD-NOTES, IDEATE, DRIFT, HANDOFF, RUFLO-SYNC, METADATA, MEMORY-REVIEW, REPORT.
+Register these steps: GATE, GATHER, EXTRACT, DOC-CHECK, ERRATA, PATTERNS, FIELD-NOTES, IDEATE, DRIFT, HANDOFF, RUFLO-SYNC, METADATA, MEMORY-REVIEW, REPORT.
 
 ## Steps
 
@@ -93,6 +93,72 @@ If the agent is unavailable, do a manual scan:
 | **Errata** | Spec says X, reality is Y | "Spec says `hooks recall`, actual API is `memory search`" |
 | **Learning** | Reusable insight about how to work | "DB schema drift breaks things silently" |
 | **Issue** | Something broken, not a spec mismatch | "Deploy script doesn't handle symlinks" |
+
+### Step 3b: Doc-update check
+
+Detect behavioral changes that lack corresponding documentation updates.
+
+**Skip if:** session was read-only (no commits).
+
+1. **Get files changed this session:**
+   ```bash
+   git diff --name-only HEAD~10..HEAD 2>/dev/null
+   ```
+
+2. **Classify changed files:**
+
+   | Category | Glob patterns |
+   |----------|--------------|
+   | **Behavioral** | `system/skills/**`, `system/hooks/**`, `system/agents/**`, `system/commands/**`, `system/cli/**`, `**/rules/**` |
+   | **Documentation** | `docs/architecture/**`, `docs/guide/**`, `docs/reference/**`, `*CLAUDE.md` |
+
+   Walk the changed file list and tag each matching file as `behavioral` or `documentation`. Files matching neither are ignored.
+
+3. **If behavioral files changed but NO documentation files changed**, prompt:
+
+   Build a mapping of each behavioral file to its most likely doc target. Use these heuristics:
+   - `system/skills/{name}/SKILL.md` → `docs/architecture/skills.md`
+   - `system/hooks/**` → `docs/architecture/hooks.md`
+   - `system/agents/**` → `docs/architecture/agents.md`
+   - `system/commands/**` → `docs/architecture/commands.md`
+   - `system/cli/**` → `docs/architecture/cli.md` or `docs/guide/cli-reference.md`
+   - `**/rules/**` → `docs/architecture/rules.md`
+
+   Present via AskUserQuestion:
+   ```
+   AskUserQuestion:
+     question: "Behavioral files changed without docs. Update now?"
+     header: "Doc-update check"
+     options:
+       - "Draft doc updates now"
+       - "Add to session handoff (defer)"
+       - "Skip"
+     context: |
+       Changed behavioral files:
+       - {file} → {suggested doc target}
+       ...
+   ```
+
+   **If "Draft doc updates now":**
+   - For each behavioral file, read it and draft a concise doc update suggestion
+   - Present the drafted updates for approval before writing
+   - Write approved updates via Edit
+
+   **If "Add to session handoff (defer)":**
+   - Add an entry to the session state `next` array (Step 9) with `category: "maintenance"`:
+     ```json
+     {"text": "Doc update needed: {behavioral file} → {doc target}", "task_id": null, "category": "maintenance"}
+     ```
+
+   **If "Skip":** continue to Step 4.
+
+4. **If both behavioral AND documentation files changed**, or no behavioral files changed, skip silently.
+
+5. **Track metrics** for session state (Step 9):
+   - `behavioral_files_changed`: count of behavioral files in the diff
+   - `doc_files_changed`: count of documentation files in the diff
+   - `doc_prompts_accepted`: 1 if "Draft now", 0 otherwise
+   - `doc_prompts_skipped`: 1 if "Skip", 0 otherwise
 
 ### Step 4: Write errata entries (if any)
 
@@ -386,7 +452,9 @@ Build a JSON object from all evidence gathered in previous steps, write it to a 
   "metrics": {
     "events": 0, "corrections": 0, "test_writes": 0,
     "correction_rate": 0.0, "test_write_rate": 0.0,
-    "cascade_rate": 0.0, "delegation_count": 0
+    "cascade_rate": 0.0, "delegation_count": 0,
+    "behavioral_files_changed": 0, "doc_files_changed": 0,
+    "doc_prompts_accepted": 0, "doc_prompts_skipped": 0
   }
 }
 ```
