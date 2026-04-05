@@ -34,6 +34,11 @@ rpassword = "7"
 # CLI (brana-cli only)
 clap = { version = "4", features = ["derive"] }
 
+# MCP (brana-mcp only)
+pmcp = { version = "2.1", features = ["schema-generation"] }
+tokio = { version = "1", features = ["full"] }
+schemars = "1.0"
+
 # Testing
 serial_test = "3.4.0"
 tempfile = "3"

@@ -1,5 +1,5 @@
 {
-  "last_modified": "2026-04-05T13:18:50.113185",
+  "last_modified": "2026-04-05T13:29:00.997136",
   "project": "thebrana",
   "tasks": [
     {
@@ -19707,15 +19707,15 @@
         "t-739"
       ],
       "type": "task",
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "execution": "code",
       "branch": null,
       "created": "2026-04-05",
-      "started": null,
-      "completed": null,
+      "started": "2026-04-05",
+      "completed": "2026-04-05",
       "context": null,
-      "notes": null,
+      "notes": "Presentation/logic separation already exists at the crate level: brana-core has all data operations (filter_tasks, set_field, compute_stats, etc.), CLI handlers call core then format with println!/themes. MCP server imports core directly, never touches CLI handlers. No further refactoring needed for MCP to work. CLI-internal handler cleanup deferred \u2014 not a blocker.",
       "github_issue": null,
       "order": 0
     },
@@ -19734,15 +19734,15 @@
         "t-740"
       ],
       "type": "task",
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "execution": "code",
       "branch": null,
       "created": "2026-04-05",
-      "started": null,
-      "completed": null,
+      "started": "2026-04-05",
+      "completed": "2026-04-05",
       "context": null,
-      "notes": null,
+      "notes": "brana-mcp crate scaffolded with pmcp 2.1 + tokio + schemars 1.0. ServerBuilder with stdio transport. schema-generation feature enabled.",
       "github_issue": null,
       "order": 0
     },
@@ -19761,15 +19761,15 @@
         "t-741"
       ],
       "type": "task",
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "execution": "code",
       "branch": null,
       "created": "2026-04-05",
-      "started": null,
-      "completed": null,
+      "started": "2026-04-05",
+      "completed": "2026-04-05",
       "context": null,
-      "notes": null,
+      "notes": "6 P0 MCP tools: backlog_query, backlog_get, backlog_set, backlog_add, backlog_search, backlog_stats. All call brana-core directly. TypedTool with schemars JsonSchema for auto schema generation.",
       "github_issue": null,
       "order": 0
     },

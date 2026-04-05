@@ -13,4 +13,7 @@ brana-core = { path = "../brana-core" }
 serde.workspace = true
 serde_json.workspace = true
 anyhow.workspace = true
-# pmcp and tokio will be added when implementing t-741
+chrono.workspace = true
+pmcp.workspace = true
+tokio.workspace = true
+schemars.workspace = true
