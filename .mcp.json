@@ -7,6 +7,9 @@
     "linkedin": {
       "command": "uvx",
       "args": ["linkedin-scraper-mcp"]
+    },
+    "brana": {
+      "command": "/home/user/thebrana/system/cli/rust/target/release/brana-mcp"
     }
   }
 }
