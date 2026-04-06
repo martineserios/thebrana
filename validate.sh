@@ -250,6 +250,40 @@ else
 fi
 echo ""
 
+# Check 8b: Propose-first — AskUserQuestion options should have (Recommended) on first option
+echo "Checking propose-first convention..."
+PROCEDURES_DIR="$SYSTEM_DIR/procedures"
+if [ -d "$PROCEDURES_DIR" ]; then
+    TOTAL_ASK=0
+    MISSING_REC=0
+    MISSING_FILES=""
+    for proc_file in "$PROCEDURES_DIR"/*.md; do
+        [ -f "$proc_file" ] || continue
+        proc_name=$(basename "$proc_file")
+        # Count AskUserQuestion occurrences
+        count=$(grep -c "AskUserQuestion" "$proc_file" 2>/dev/null || true)
+        if [ "$count" -gt 0 ]; then
+            TOTAL_ASK=$((TOTAL_ASK + count))
+            # Check if at least one (Recommended) exists in the file
+            rec_count=$(grep -c "(Recommended)" "$proc_file" 2>/dev/null || true)
+            if [ "$rec_count" -eq 0 ]; then
+                MISSING_REC=$((MISSING_REC + count))
+                MISSING_FILES="$MISSING_FILES $proc_name"
+            fi
+        fi
+    done
+    if [ "$TOTAL_ASK" -eq 0 ]; then
+        pass "No AskUserQuestion calls in procedures"
+    elif [ -z "$MISSING_FILES" ]; then
+        pass "All procedures with AskUserQuestion have (Recommended) ($TOTAL_ASK total)"
+    else
+        warn "Procedures with AskUserQuestion but no (Recommended):$MISSING_FILES"
+    fi
+else
+    pass "No procedures directory"
+fi
+echo ""
+
 # Check 9: Hook scripts
 echo "Checking hook scripts..."
 KNOWN_EVENTS="PreToolUse PostToolUse PreToolUseFailure PostToolUseFailure Stop Notification SubagentStop SubagentNotification SessionStart SessionPause SessionEnd"
