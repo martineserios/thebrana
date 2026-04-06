@@ -1,7 +1,7 @@
 ---
 name: challenger
 description: "Adversarially review a plan, architecture decision, or approach. Stress-test before commitment. Use when a significant decision is being made or a plan is being finalized. Not for: data collection, project diagnostics, session debrief."
-model: opus
+model: sonnet
 effort: max
 tools:
   - Read
