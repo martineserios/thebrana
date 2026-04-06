@@ -9,7 +9,7 @@
 | **brana** | Core system management | backlog, reconcile, plugin, do |
 | **execution** | Development lifecycle | build, onboard, align |
 | **learning** | Knowledge acquisition | challenge, research, memory |
-| **venture** | Business operations | review, pipeline, proposal |
+| **venture** | Business operations | review, client-retire |
 | **session** | Session lifecycle | close |
 | **capture** | Event capture | log |
 | **tools** | External integrations | notebooklm-source |
@@ -17,12 +17,12 @@
 
 ## Skill Tiering (ADR-034)
 
-Skills are split into two tiers to reduce startup context loading (~34K to ~18K tokens, 47% reduction):
+Skills are split into two tiers to reduce startup context loading (~34K to ~8K tokens):
 
 | Tier | Count | SKILL.md | Procedure location |
 |------|-------|----------|--------------------|
 | **Core** | 7 | Full (frontmatter + procedure) | Inline in SKILL.md |
-| **Extended** | 21 | Stub (frontmatter + Read instruction) | `system/procedures/{name}.md` |
+| **Extended** | 17 | Stub (frontmatter + Read instruction) | `system/procedures/{name}.md` |
 
 **Core skills** (always loaded): build, backlog, close, research, brainstorm, sitrep, do
 
