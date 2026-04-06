@@ -32,6 +32,7 @@ mailparse.workspace = true
 native-tls.workspace = true
 keyring.workspace = true
 rpassword.workspace = true
+regex-lite.workspace = true
 
 [dev-dependencies]
 serial_test.workspace = true

@@ -1,22 +1,22 @@
 {
   "mcpServers": {
     "ruflo": {
-      "command": "/home/martineserios/enter_thebrana/thebrana/system/scripts/ruflo-mcp.sh",
+      "command": "/home/martineserios/.local/bin/brana-ruflo-mcp",
       "args": ["mcp", "start"],
       "env": {
         "CLAUDE_FLOW_TOOL_GROUPS": "memory,agentdb,embeddings,hooks"
       }
     },
     "context7": {
-      "command": "npx",
-      "args": ["@upstash/context7-mcp@latest"]
+      "command": "/home/martineserios/.local/bin/brana-context7-mcp",
+      "args": []
     },
     "linkedin": {
-      "command": "uvx",
-      "args": ["linkedin-scraper-mcp"]
+      "command": "/home/martineserios/.local/bin/brana-linkedin-mcp",
+      "args": []
     },
     "brana": {
-      "command": "/home/martineserios/enter_thebrana/thebrana/system/cli/rust/target/release/brana-mcp"
+      "command": "/home/martineserios/.local/bin/brana-mcp"
     }
   }
 }

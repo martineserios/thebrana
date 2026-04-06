@@ -5,12 +5,18 @@
 # Input:  stdin JSON (session_id, cwd, hook_event_name, matcher)
 # Output: stdout JSON with additionalContext field
 #
-# Strategy: run fast local checks synchronously, launch slow operations
-# (claude-flow, python) in parallel, collect results with a combined
-# timeout, then emit JSON. Fork logging to background after response.
+# Strategy: run fast local checks synchronously, launch 1 ruflo query
+# in parallel (2s timeout), collect results, emit JSON. Fork logging
+# to background after response. Timing marks in /tmp/brana-startup-timing.log.
 
 # Ensure valid CWD
 cd /tmp 2>/dev/null || true
+
+# ── Startup timing (diagnostic) ─────────────────────────
+_TIMING_LOG="/tmp/brana-startup-timing.log"
+_ts() { date +%s%3N 2>/dev/null || echo 0; }
+_mark() { echo "[brana-diag] $1 $(_ts)" >> "$_TIMING_LOG" 2>/dev/null || true; }
+_mark "hook-start"
 
 INPUT=$(cat) || true
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null) || true
@@ -87,14 +93,15 @@ fi
 # ══════════════════════════════════════════════════════════
 # PHASE 1: Launch slow operations in parallel
 # ══════════════════════════════════════════════════════════
+_mark "phase1-start"
 
 CF_WARNING=""
 PIDS=""
 
-# Job 1: ruflo memory search (patterns)
+# Job 1: ruflo memory search (patterns + corrections in single query)
 if [ -n "$CF" ]; then
     (
-        CF_OUTPUT=$(cd "$HOME" && timeout 4 $CF memory search --query "client:$PROJECT" --format json 2>&1) || true
+        CF_OUTPUT=$(cd "$HOME" && timeout 2 $CF memory search --query "client:$PROJECT" --format json 2>&1) || true
         CF_EXIT=$?
         CONTEXT=$(echo "$CF_OUTPUT" | grep -v '^\[' || true)
         if [ $CF_EXIT -eq 124 ]; then
@@ -103,6 +110,11 @@ if [ -n "$CF" ]; then
             echo "FAILED" > "$TMPDIR_SS/cf-warning"
         fi
         echo "$CONTEXT" > "$TMPDIR_SS/cf-context"
+        # Extract corrections from same result (entries with "correction" in key or confidence >= 0.8)
+        CP_LINES=$(echo "$CF_OUTPUT" | jq -r '.[]? | select((.key // "" | test("correction"; "i")) or (.value | fromjson? | .confidence >= 0.8)) | (.key + ": " + (.value | fromjson? | .solution // "unknown"))' 2>/dev/null | head -3) || CP_LINES=""
+        if [ -n "$CP_LINES" ]; then
+            echo "$CP_LINES" > "$TMPDIR_SS/corrections"
+        fi
     ) &
     PIDS="$PIDS $!"
 else
@@ -110,48 +122,10 @@ else
     echo "" > "$TMPDIR_SS/cf-context"
 fi
 
-# Job 2: claude-flow correction patterns
-if [ -n "$CF" ]; then
-    (
-        CP_OUTPUT=$(cd "$HOME" && timeout 4 $CF memory search --query "client:$PROJECT type:correction" --namespace pattern --format json 2>&1); CP_EXIT=$?
-        if [ $CP_EXIT -eq 0 ] && [ -n "$CP_OUTPUT" ]; then
-            CP_LINES=$(echo "$CP_OUTPUT" | jq -r '.[] | select(.value | fromjson? | .confidence >= 0.8) | (.key + ": " + (.value | fromjson? | .solution // "unknown"))' 2>/dev/null | head -3) || CP_LINES=""
-            echo "$CP_LINES" > "$TMPDIR_SS/corrections"
-        fi
-    ) &
-    PIDS="$PIDS $!"
-fi
-
-# Job 3: spec graph staleness (python — slow)
-SPEC_GRAPH="$GIT_ROOT/docs/spec-graph.json"
-if [ -f "$SPEC_GRAPH" ]; then
-    (
-        GENERATED=$(python3 -c "import json,sys; print(json.load(sys.stdin).get('_meta',{}).get('generated',''))" < "$SPEC_GRAPH" 2>/dev/null || echo "")
-        if [ -n "$GENERATED" ]; then
-            DAYS_OLD=$(python3 -c "from datetime import datetime,timezone; print((datetime.now(timezone.utc)-datetime.fromisoformat('$GENERATED'.replace('Z','+00:00'))).days)" 2>/dev/null || echo "0")
-            if [ "$DAYS_OLD" -gt 7 ]; then
-                echo "Spec graph is stale (generated: $GENERATED, ${DAYS_OLD}d ago). Run: brana graph build" > "$TMPDIR_SS/spec-stale"
-            fi
-        fi
-    ) &
-    PIDS="$PIDS $!"
-fi
-
-# Job 4: decision log HIGH findings (uv run python — slow)
-DECISIONS_PY="$SCRIPT_DIR/../scripts/decisions.py"
-if [ -f "$DECISIONS_PY" ]; then
-    (
-        HIGH_FINDINGS=$(uv run python3 "$DECISIONS_PY" read --last 10 --severity HIGH 2>/dev/null || echo "")
-        if [ -n "$HIGH_FINDINGS" ]; then
-            echo "$HIGH_FINDINGS" > "$TMPDIR_SS/decisions"
-        fi
-    ) &
-    PIDS="$PIDS $!"
-fi
-
 # ══════════════════════════════════════════════════════════
 # PHASE 2: Fast local checks (while parallel jobs run)
 # ══════════════════════════════════════════════════════════
+_mark "phase2-start"
 
 # ── Stale file claim cleanup ─────────────────────────────
 find /tmp/brana-claims -name "ts" -mmin +60 2>/dev/null | while read f; do
@@ -397,18 +371,19 @@ No weekly review found. Consider running /brana:review weekly."
 fi
 
 # ══════════════════════════════════════════════════════════
-# PHASE 3: Collect parallel results (max 5s combined wait)
+# PHASE 3: Collect parallel results (max 2s combined wait)
 # ══════════════════════════════════════════════════════════
+_mark "phase3-wait-start"
 
 # Wait for all parallel jobs with a hard deadline.
-# If any job is still running after 5s, kill it and proceed with partial results.
+# If any job is still running after 2s, kill it and proceed with partial results.
 if [ -n "$PIDS" ]; then
     WAIT_START=$(date +%s%3N 2>/dev/null || echo 0)
     for pid in $PIDS; do
         # Calculate remaining budget
         NOW_MS=$(date +%s%3N 2>/dev/null || echo 0)
         ELAPSED_MS=$((NOW_MS - WAIT_START))
-        REMAINING_MS=$((5000 - ELAPSED_MS))
+        REMAINING_MS=$((2000 - ELAPSED_MS))
         if [ "$REMAINING_MS" -le 0 ]; then
             # Budget exhausted — kill remaining jobs
             kill $pid 2>/dev/null || true
@@ -432,7 +407,7 @@ fi
 if [ -f "$TMPDIR_SS/cf-warning" ]; then
     CF_WARN_TYPE=$(cat "$TMPDIR_SS/cf-warning" 2>/dev/null) || true
     if [ "$CF_WARN_TYPE" = "TIMEOUT" ]; then
-        CF_WARNING="Memory search timed out (>4s). Patterns not recalled. Try: ruflo memory search --query 'client:$PROJECT'"
+        CF_WARNING="Memory search timed out (>2s). Patterns not recalled. Try: ruflo memory search --query 'client:$PROJECT'"
     elif [ "$CF_WARN_TYPE" = "FAILED" ]; then
         CF_WARNING="Memory search failed. Try: ruflo memory search --query 'client:$PROJECT'"
     fi
@@ -463,20 +438,7 @@ if [ -z "$CONTEXT" ]; then
     fi
 fi
 
-STALE_WARNING=""
-if [ -f "$TMPDIR_SS/spec-stale" ]; then
-    STALE_WARNING=$(cat "$TMPDIR_SS/spec-stale" 2>/dev/null) || true
-fi
-
-DECISION_CONTEXT=""
-if [ -f "$TMPDIR_SS/decisions" ]; then
-    HIGH_FINDINGS=$(cat "$TMPDIR_SS/decisions" 2>/dev/null) || true
-    if [ -n "$HIGH_FINDINGS" ]; then
-        DECISION_CONTEXT="Recent HIGH findings from last session:
-$HIGH_FINDINGS"
-    fi
-fi
-
+_mark "phase3-wait-done"
 # ══════════════════════════════════════════════════════════
 # PHASE 4: Assemble and emit JSON response
 # ══════════════════════════════════════════════════════════
@@ -505,14 +467,6 @@ fi
 if [ -n "$VENTURE_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
 }[Venture] $VENTURE_CONTEXT"
-fi
-if [ -n "$STALE_WARNING" ]; then
-    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
-}[Spec graph] $STALE_WARNING"
-fi
-if [ -n "$DECISION_CONTEXT" ]; then
-    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
-}[Decision log] $DECISION_CONTEXT"
 fi
 if [ -n "$CF_WARNING" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
@@ -557,6 +511,7 @@ else
     echo '{"continue": true}'
 fi
 
+_mark "hook-end"
 # ══════════════════════════════════════════════════════════
 # PHASE 5: Fork non-essential work to background
 # ══════════════════════════════════════════════════════════

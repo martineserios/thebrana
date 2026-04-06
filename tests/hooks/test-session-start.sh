@@ -248,9 +248,75 @@ else
     echo "  FAIL: context file did not survive hook execution"
 fi
 
+# ── Test 12: Hook completes within 4s (trimmed: 1 parallel job, 2s budget) ──
+echo ""
+echo "Test 12: trimmed timing (must complete within 4000ms)"
+INPUT=$(jq -n --arg sid "$SESSION_ID-trim" --arg cwd "$(pwd)" '{session_id: $sid, cwd: $cwd}')
+RESULT=$(run_hook_timed "$INPUT")
+ELAPSED="${RESULT%%|*}"
+assert_timing "trimmed hook within 4s budget" "$ELAPSED" "4000"
+
+# ── Test 13: No Python dependency in hook ──
+echo ""
+echo "Test 13: no python3/uv calls in session-start.sh"
+PYTHON_CALLS=$(grep -cE '^\s*(python3|uv run)' "$HOOKS_DIR/session-start.sh" 2>/dev/null) || PYTHON_CALLS=0
+if [ "$PYTHON_CALLS" -eq 0 ]; then
+    PASS=$((PASS + 1))
+    echo "  PASS: no python3/uv calls in hook"
+else
+    FAIL=$((FAIL + 1))
+    echo "  FAIL: found $PYTHON_CALLS python3/uv calls — should be 0 after trim"
+fi
+
+# ── Test 14: Single ruflo parallel job (not 2+) ──
+echo ""
+echo "Test 14: single ruflo parallel job"
+# Count subshells that call $CF in Phase 1 (between PHASE 1 and PHASE 2 markers)
+RUFLO_JOBS=$(sed -n '/PHASE 1:/,/PHASE 2:/p' "$HOOKS_DIR/session-start.sh" | grep -c 'timeout.*\$CF' 2>/dev/null) || RUFLO_JOBS=0
+if [ "$RUFLO_JOBS" -eq 1 ]; then
+    PASS=$((PASS + 1))
+    echo "  PASS: exactly 1 ruflo parallel job"
+else
+    FAIL=$((FAIL + 1))
+    echo "  FAIL: expected 1 ruflo job, found $RUFLO_JOBS"
+fi
+
+# ── Test 15: Parallel wait budget is 2s (not 5s) ──
+echo ""
+echo "Test 15: parallel wait budget is 2000ms"
+BUDGET=$(grep -oP 'REMAINING_MS=\$\(\(\K\d+' "$HOOKS_DIR/session-start.sh" 2>/dev/null | head -1) || BUDGET=""
+if [ "$BUDGET" = "2000" ]; then
+    PASS=$((PASS + 1))
+    echo "  PASS: wait budget is 2000ms"
+else
+    FAIL=$((FAIL + 1))
+    echo "  FAIL: wait budget is '${BUDGET:-unknown}', expected 2000"
+fi
+
+# ── Test 16: Timing marks written to log ──
+echo ""
+echo "Test 16: timing marks in /tmp/brana-startup-timing.log"
+TIMING_LOG="/tmp/brana-startup-timing.log"
+if [ -f "$TIMING_LOG" ]; then
+    assert_contains "timing log has hook-start" "$(cat "$TIMING_LOG")" "hook-start"
+    assert_contains "timing log has hook-end" "$(cat "$TIMING_LOG")" "hook-end"
+else
+    FAIL=$((FAIL + 2))
+    echo "  FAIL: timing log not found at $TIMING_LOG"
+    echo "  FAIL: (skipped hook-end check)"
+fi
+
+# ── Test 17: Ruflo fallback when CF unavailable ──
+echo ""
+echo "Test 17: ruflo unavailable fallback"
+INPUT=$(jq -n --arg sid "$SESSION_ID-nocf" --arg cwd "/tmp" '{session_id: $sid, cwd: $cwd}')
+OUTPUT=$(CF="" bash "$HOOKS_DIR/session-start.sh" <<< "$INPUT" 2>/dev/null) || OUTPUT='{"continue":true}'
+assert_valid_json "no ruflo → valid JSON" "$OUTPUT"
+
 # ── Cleanup ──
 rm -f "$CONTEXT_FILE"
-rm -f "/tmp/brana-session-${SESSION_ID}.jsonl" "/tmp/brana-session-${SESSION_ID}-timing.jsonl" "/tmp/brana-session-${SESSION_ID}-nongit.jsonl"
+rm -f "/tmp/brana-session-${SESSION_ID}.jsonl" "/tmp/brana-session-${SESSION_ID}-timing.jsonl" "/tmp/brana-session-${SESSION_ID}-nongit.jsonl" "/tmp/brana-session-${SESSION_ID}-trim.jsonl" "/tmp/brana-session-${SESSION_ID}-nocf.jsonl"
+rm -f "/tmp/brana-context-${SESSION_ID}-trim.md" "/tmp/brana-context-${SESSION_ID}-nocf.md"
 
 echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="

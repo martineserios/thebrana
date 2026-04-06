@@ -44,7 +44,7 @@ fn main() {
             Some(AgentsCmd::Kill { agent_id }) => run_or_exit(commands::run::cmd_agents_kill(&agent_id)),
         },
         Commands::Backlog { cmd } => match cmd {
-            BacklogCmd::Next { tag, stream } => run_or_exit(commands::backlog::cmd_next(&theme, tag, ve_str(&stream))),
+            BacklogCmd::Next { tag, stream, limit, priority, task_type, effort, parent } => run_or_exit(commands::backlog::cmd_next(&theme, tag, ve_str(&stream), limit, ve_str(&priority), ve_str(&task_type), ve_str(&effort), parent)),
             BacklogCmd::Query {
                 tag, status, stream, priority, effort, search, count, output,
                 task_type, parent, branch,
@@ -93,6 +93,41 @@ fn main() {
             }
             SkillsCmd::Search { query } => run_or_exit(commands::skills::cmd_search(&query)),
             SkillsCmd::List => run_or_exit(commands::skills::cmd_list()),
+            SkillsCmd::Reindex { changed } => commands::skills::cmd_reindex(changed),
         },
+        Commands::Handoff { cmd } => match cmd {
+            Some(HandoffCmd::Last { n }) => commands::handoff::cmd_handoff_last(n),
+            None => commands::handoff::cmd_handoff_last(1),
+            Some(HandoffCmd::List) => commands::handoff::cmd_handoff_list(),
+            Some(HandoffCmd::Path) => commands::handoff::cmd_handoff_path(),
+        },
+        Commands::Session { cmd } => match cmd {
+            SessionCmd::Write { file, minimal } => commands::session::cmd_session_write(file, minimal),
+            SessionCmd::Read { json } => commands::session::cmd_session_read(json),
+            SessionCmd::History { limit } => commands::session::cmd_session_history(limit),
+            SessionCmd::Path => commands::session::cmd_session_path(),
+            SessionCmd::Migrate => commands::session::cmd_session_migrate(),
+            SessionCmd::MarkConsumed => {
+                let root = util::find_project_root().unwrap_or_else(|| {
+                    eprintln!("Not in git repo");
+                    std::process::exit(1);
+                });
+                if let Err(e) = commands::session::mark_consumed(&root) {
+                    eprintln!("{e:#}");
+                    std::process::exit(1);
+                }
+            }
+        },
+        Commands::Knowledge { cmd } => match cmd {
+            KnowledgeCmd::Reindex { changed, patterns, files } => {
+                if patterns {
+                    commands::knowledge::cmd_reindex_patterns(files);
+                } else {
+                    commands::knowledge::cmd_reindex(changed, files);
+                }
+            }
+            KnowledgeCmd::Status => commands::knowledge::cmd_status(),
+        },
+        Commands::Graph { cmd } => commands::graph::cmd_graph(cmd),
     }
 }

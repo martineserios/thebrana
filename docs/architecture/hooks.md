@@ -33,6 +33,8 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 
 **`lib/cf-env.sh`** -- Locates the `ruflo` binary. Source it to get `$CF`. Search order: nvm global install, PATH lookup, npx fallback. Used by session-start, session-end, session-start-venture, and post-sale hooks.
 
+**`lib/ruflo-mcp.sh`, `lib/context7-mcp.sh`, `lib/linkedin-mcp.sh`** -- MCP server wrapper scripts that resolve binaries dynamically at launch time instead of hardcoding paths. Used by `hooks.json` MCP server definitions.
+
 ## Hook inventory
 
 ### Plugin hooks (hooks.json)
@@ -47,7 +49,7 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | `subagent-context.sh` | SubagentStart | `""` (all) | Inject active task + branch + plan + recent decisions into spawned agents |
 | `subagent-tracker.sh` | SubagentStart+SubagentStop | `""` (all) | Track agent spawns and completions to session JSONL |
 | `step-completed.sh` | TaskCompleted | `""` (all) | Track CC Task completions for guided execution |
-| `session-start.sh` | SessionStart | `""` (all) | Pattern recall, task context, venture detection |
+| `session-start.sh` | SessionStart | `""` (all) | Pattern recall (1 parallel job, 2s budget), task context, venture detection |
 | `session-end.sh` | SessionEnd | `""` (all) | Flywheel metrics, session summary, handoff |
 | `stopfailure-logger.sh` | StopFailure | `""` (all) | Log API errors (rate limit, auth, billing) to JSONL |
 
@@ -125,7 +127,7 @@ If no in_progress task exists, the hook returns `{"continue": true}` with no inj
 
 As of 2026-04-01, three hook scripts integrate with ruflo MCP via `cf-env.sh`:
 
-- **`session-start.sh`** — Phase 2 runs stale file claim cleanup (`claims_release` for expired locks). Phase 5 launches `index-skills.sh --changed` in background. All `$CF` calls are preceded by `cd "$HOME"` to avoid CWD issues with npx resolution.
+- **`session-start.sh`** — Runs 1 parallel job (single `timeout 2` ruflo CLI query for patterns + corrections), down from 4 jobs with a 5s budget. Python dependencies (spec-graph staleness check, decisions.py) removed. Phase 5 launches `index-skills.sh --changed` in background. All `$CF` calls are preceded by `cd "$HOME"` to avoid CWD issues with npx resolution.
 - **`session-end.sh`** — Same `cd "$HOME"` guard before `$CF` calls for metrics flush and session summary storage.
 - **`cf-env.sh`** — Now exports a `cf_run()` wrapper function that handles `cd "$HOME"`, timeout, and error swallowing in one call. Hook scripts use `cf_run <args>` instead of raw `$CF` invocations.
 
