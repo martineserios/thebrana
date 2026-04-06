@@ -81,10 +81,9 @@ Version: v1.0.0
 
 ### Skill Tiering (ADR-034)
 
-Skills are split into two tiers to reduce startup context (~34K to ~18K tokens):
+All 25 skills use the universal stub pattern to reduce startup context (~34K to ~8K tokens):
 
-- **Core (7):** Full SKILL.md — build, backlog, close, research, brainstorm, sitrep, do
-- **Extended (21):** Stub SKILL.md (frontmatter + Read instruction). Procedure body in `system/procedures/{name}.md`, loaded on invoke via Read tool.
+- **Stub SKILL.md:** Frontmatter + Read instruction only. Procedure body in `system/procedures/{name}.md`, loaded on invoke via Read tool.
 
 All skills remain available as slash commands. Semantic routing via ruflo is unchanged (indexes frontmatter).
 

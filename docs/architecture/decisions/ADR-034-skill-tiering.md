@@ -1,7 +1,7 @@
-# ADR-034: Skill Tiering — Core + Extended Stubs
+# ADR-034: Skill Tiering — Universal Stubs
 
 **Date:** 2026-04-06
-**Status:** Accepted
+**Status:** Accepted (amended 2026-04-06)
 **Deciders:** Martin Rios
 
 ## Context
@@ -12,30 +12,31 @@ Only 7 skills are used daily. The other 19 are situational (weekly or less).
 
 ## Decision
 
-Split skills into two tiers:
+**Original (2026-04-06):** Split skills into core (full SKILL.md) and extended (stubs).
 
-- **Core (7 skills):** Full SKILL.md with complete procedures. Always loaded.
-  - build, backlog, close, research, brainstorm, sitrep, do
-- **Extended (19 skills):** Stub SKILL.md (frontmatter + Read instruction). Procedure body in `system/procedures/{name}.md`. Loaded on invoke via Read tool.
+**Amended (2026-04-06):** After deployment, all 25 skills use the stub pattern — including the original 7 "core" skills. Uniform treatment is simpler and works well. The core/extended distinction is removed.
+
+- **All skills (25):** Stub SKILL.md (frontmatter + Read instruction). Procedure body in `system/procedures/{name}.md`. Loaded on invoke via Read tool.
 
 Stubs preserve full frontmatter (name, description, group, keywords, allowed-tools, status) for discovery, routing, and the skill index. The procedure file path is resolved relative to the plugin root using Glob if needed.
 
 ## Consequences
 
 **Positive:**
-- Startup context reduced from ~34K to ~18K tokens (47% reduction)
-- All 26 commands remain available as slash commands
+- Startup context reduced from ~34K to ~8K tokens (76% reduction)
+- Cold start improved from 4+ minutes to 30–45 seconds
+- All 25 commands remain available as slash commands
+- Uniform stub model — no tier management, simpler mental model
 - Semantic routing via ruflo unchanged (indexes frontmatter, not body)
 - Forward-compatible with CC's future SkillSearch (#43816)
 
 **Negative:**
-- Extended skills add 1 Read round trip on invocation (~200ms)
+- All skills add 1 Read round trip on invocation (~200ms), including frequent ones
 - Stub instruction is LLM-interpreted — must test reliability
 - Path resolution from non-repo CWD requires Glob fallback
 
 **Risks:**
-- 47% reduction may not be sufficient for <30s target — measure after implementing
-- If CC fixes #14882 (frontmatter-only loading), tiering becomes unnecessary — merge stubs back
+- If CC fixes #14882 (frontmatter-only loading), stubs become unnecessary — merge procedure bodies back into SKILL.md
 
 ## References
 

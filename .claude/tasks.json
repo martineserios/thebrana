@@ -26357,6 +26357,33 @@
       "strategy": null,
       "build_step": null,
       "description": null
+    },
+    {
+      "id": "t-976",
+      "subject": "Expose session read/write as brana-mcp tools",
+      "status": "pending",
+      "stream": "tech-debt",
+      "type": "task",
+      "tags": [
+        "cli",
+        "mcp",
+        "dx",
+        "close"
+      ],
+      "description": "Close procedure currently shells out to `brana session write --file` which requires building a temp JSON file, getting the schema right (missing `written_at` caused a failure), and parsing CLI output. Backlog operations already have MCP equivalents (backlog_get, backlog_set, etc.) which are structured, token-efficient, and skip the file dance. Session ops should follow the same pattern: `session_write(payload)`, `session_read()`, `session_history()`. Would simplify close procedure and remove the temp-file workaround.",
+      "effort": "M",
+      "priority": null,
+      "parent": null,
+      "created": "2026-04-06",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
     }
   ],
   "version": "1"
