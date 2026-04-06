@@ -125,6 +125,30 @@ Pull relevant architecture, decision knowledge, and skill matches into context b
    - Score < 0.5: ignore (too weak to surface)
    - Do NOT auto-invoke the skill or block on user confirmation. LOAD is informational — the user decides whether to use it.
    - If entering via `/brana:backlog start`, skill suggestion already happened in step 5 — skip duplicate mention.
+
+4a. **JIT skill acquisition** — if NO skills results were returned (or all below 0.3) AND the task involves a specific technology (detectable from tags, description, or project files):
+   - Extract the tech keyword(s) that had no matching skill
+   - Offer acquisition via AskUserQuestion:
+     ```
+     question: "No local skill for {tech}. Search marketplace?"
+     header: "Gap"
+     options:
+       - "Search externally (Recommended)"
+       - "Skip — not needed"
+     ```
+   - If "Search externally": invoke acquire-skills as a composable function:
+     ```
+     Skill(skill="brana:acquire-skills", args="{tech keywords}")
+     ```
+     After acquire-skills completes (skill installed as stub + procedure):
+     - Read the newly installed procedure file into current context
+     - Continue the build with the skill's knowledge loaded — no restart needed
+   - If "Skip": proceed without. LOAD never blocks.
+   - **Guard rails:**
+     - Only trigger for `code` execution tasks (skip external/manual)
+     - Only trigger once per LOAD invocation (don't re-offer if user skipped)
+     - If entering via `/brana:backlog start`, this already happened in step 5 — skip
+
 5. **Summarize loaded knowledge** as a brief context preamble (2-5 bullets). Do not show raw results — synthesize what's relevant to the build task (prior decisions, related architecture, known constraints).
 
 ---
