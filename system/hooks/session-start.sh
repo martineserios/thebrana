@@ -169,14 +169,18 @@ if [ -n "$TASKS_FILE" ] && [ -f "$TASKS_FILE" ]; then
         BUGS=$("$BRANA_QUERY" --file "$TASKS_FILE" --stream bugs --status pending --count 2>/dev/null) || BUGS=0
         NEXT_ID=$("$BRANA_QUERY" --file "$TASKS_FILE" --status pending --output ids 2>/dev/null | head -1) || NEXT_ID=""
         NEXT_SUBJ=""
+        NEXT_CTX=""
         if [ -n "$NEXT_ID" ]; then
             NEXT_SUBJ=$(jq -r --arg id "$NEXT_ID" '.tasks[] | select(.id == $id) | .subject' "$TASKS_FILE" 2>/dev/null)
+            NEXT_CTX=$(jq -r --arg id "$NEXT_ID" '.tasks[] | select(.id == $id) | .context // empty' "$TASKS_FILE" 2>/dev/null)
         fi
         TASK_SUMMARY="Project: $PROJ ($DONE/$TOTAL)"
         [ "$BUGS" -gt 0 ] 2>/dev/null && TASK_SUMMARY="$TASK_SUMMARY | Bugs: $BUGS open"
         if [ -n "$NEXT_ID" ]; then
             TASK_SUMMARY="$TASK_SUMMARY
 Next unblocked: $NEXT_ID $NEXT_SUBJ (pending)"
+            [ -n "$NEXT_CTX" ] && TASK_SUMMARY="$TASK_SUMMARY
+Context: $NEXT_CTX"
         elif [ "$TOTAL" -gt 0 ] && [ "$TOTAL" = "$DONE" ]; then
             TASK_SUMMARY="$TASK_SUMMARY
 All tasks completed. Use /brana:backlog plan for next phase."

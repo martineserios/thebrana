@@ -78,7 +78,7 @@ fi
 CF_WARNING=""
 if [ -n "$CF" ]; then
     STORE_KEY="deal-closed-$(date +%Y%m%d-%H%M%S 2>/dev/null || echo unknown)"
-    CF_ERR=$(timeout 3 $CF memory store \
+    CF_ERR=$(cd "$HOME" && timeout 3 $CF memory store \
         -k "$STORE_KEY" \
         -v "$SNAPSHOT" \
         --namespace business \

@@ -32,6 +32,37 @@ fi
 
 # Write PID lock and clean up on exit
 echo $$ > "$LOCKFILE"
-trap 'rm -f "$LOCKFILE"' EXIT INT TERM
+trap 'rm -f "$LOCKFILE"' EXIT
 
-exec "$RUFLO" "$@"
+# Auto-restart on SIGTERM (CC SIGTERM bug #40207 kills healthy MCP servers).
+# Run ruflo in foreground (no exec) so the wrapper survives SIGTERM and can restart.
+# Max 5 restarts to avoid infinite loops on genuine failures.
+MAX_RESTARTS=5
+RESTART_COUNT=0
+SIGTERM_RECEIVED=false
+
+trap 'SIGTERM_RECEIVED=true' TERM
+
+while true; do
+    "$RUFLO" "$@" &
+    RUFLO_PID=$!
+    # Update lockfile with child PID so other instances detect it
+    echo "$RUFLO_PID" > "$LOCKFILE"
+    wait $RUFLO_PID 2>/dev/null
+    EXIT_CODE=$?
+
+    if [ "$SIGTERM_RECEIVED" = true ]; then
+        SIGTERM_RECEIVED=false
+        RESTART_COUNT=$((RESTART_COUNT + 1))
+        if [ "$RESTART_COUNT" -ge "$MAX_RESTARTS" ]; then
+            echo "ruflo MCP: max restarts ($MAX_RESTARTS) reached after SIGTERM, exiting" >&2
+            break
+        fi
+        echo "ruflo MCP: SIGTERM received (CC bug #40207), restarting ($RESTART_COUNT/$MAX_RESTARTS)..." >&2
+        sleep 1
+        continue
+    fi
+
+    # Normal exit or non-SIGTERM signal — don't restart
+    break
+done

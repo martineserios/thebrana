@@ -20,9 +20,9 @@ if [ -z "$KEY" ] || [ -z "$VALUE" ]; then
     exit 1
 fi
 
-# Primary: ruflo memory store
+# Primary: ruflo memory store (timeout 5s — ruflo CLI hangs after completion)
 if [ -n "$CF" ]; then
-    STORE_CMD="cd $HOME && $CF memory store -k \"$KEY\" -v '$VALUE' --namespace $NAMESPACE"
+    STORE_CMD="cd $HOME && timeout 5 $CF memory store -k \"$KEY\" -v '$VALUE' --namespace $NAMESPACE"
     [ -n "$TAGS" ] && STORE_CMD="$STORE_CMD --tags \"$TAGS\""
     eval "$STORE_CMD" 2>/dev/null && exit 0
 fi

@@ -54,7 +54,10 @@ brana backlog query --status in_progress
 
 For each in_progress task, extract:
 - `id`, `subject`, `strategy`, `build_step`, `branch`
+- `context` — tactical details appended via `brana backlog set context --append` (cross-session continuity)
 - `build_step` tells you exactly where in the /brana:build loop you are
+
+If the task has a non-empty `context` field, display it under the active task in the output. Also check top-focus tasks (from `backlog_focus` or `brana backlog next`) for context.
 
 ### 4. Session state (previous session)
 
@@ -136,6 +139,7 @@ Present a structured snapshot — concise, actionable:
 **Worktrees:** {list or "none"}
 
 **Active task:** {id} "{subject}" — strategy: {strategy}, build_step: {build_step}
+**Context:** {task context field, if present — show for in_progress and top-focus tasks}
 **Active skill:** {skill name from CC Tasks, or "none"}
   Step: {current step} ({N}/{total} complete)
 

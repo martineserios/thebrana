@@ -557,11 +557,11 @@ convenience, not a guarantee.
 
 ```
 Terminal 1a: brana backlog start t-200
-  → claims_claim("task:t-200", "session:A", context: "auth middleware, est 30 min")
+  → claims_claim("task:t-200", "agent:A:session", context: "auth middleware, est 30 min")
   → ✓ Claimed. Branch created, build starts.
 
 Terminal 1b: brana backlog start t-200
-  → claims_claim("task:t-200", "session:B") → DENIED
+  → claims_claim("task:t-200", "agent:B:session") → DENIED
   → hive-mind_memory(get, "client:somos:build:t-200")
   → "t-200 claimed by session A (2/5 subtasks done, 15 min in). Try t-201?"
 
@@ -577,17 +577,17 @@ hive-mind. `brana backlog next` checks both: skip claimed + skip in-progress.
 
 **Phase-level claims:** Claim a whole phase so another session doesn't start executing it:
 ```
-claims_claim("phase:ph-010", "session:A", context: "executing 4 tasks")
+claims_claim("phase:ph-010", "agent:A:session", context: "executing 4 tasks")
 ```
 
 **Brana consumers:**
 
 | Consumer | Operation |
 |----------|----------|
-| `brana backlog start` | `claims_claim("task:{id}", "session:{s}")` |
+| `brana backlog start` | `claims_claim("task:{id}", "agent:{s}:session")` |
 | `brana backlog next` | `claims_list(status: "active")` → filter out claimed |
-| `/brana:build` end | `claims_release("task:{id}", "session:{s}")` |
-| `/brana:close` | `claims_list(claimant: "session:{s}")` → release all |
+| `/brana:build` end | `claims_release("task:{id}", "agent:{s}:session")` |
+| `/brana:close` | `claims_list(claimant: "agent:{s}:session")` → release all |
 | Session-start hook | `claims_list(status: "active")` → detect stale (>1h, no heartbeat) |
 | `/brana:sitrep` | `claims_board()` → show claimed tasks |
 
@@ -673,14 +673,14 @@ agent-to-agent coordination:
 /brana:build execute phase ph-010:
 
   Step 1 — Claim phase:
-    claims_claim("phase:ph-010", "session:{s}")
+    claims_claim("phase:ph-010", "agent:{s}:session")
     hive-mind_memory(set, "plan:somos:ph-010", {status: "executing", ...})
 
   Step 2 — Build DAG waves from blocked_by graph (unchanged)
 
   Step 3 — For each wave, for each task:
     a. hooks_model-route(task: "{subject}") → haiku/sonnet/opus
-    b. claims_claim("task:{id}", "session:{s}")
+    b. claims_claim("task:{id}", "agent:{s}:session")
     c. agent_spawn(type: "builder", task, model) → analytics registry
     d. hive-mind_memory(set, "client:{c}:build:{task}", {status: "in-progress"})
     e. Agent(prompt, isolation: "worktree") → actual execution
