@@ -2,22 +2,20 @@
 # Wrapper: ensures ruflo MCP server reads ~/.swarm/memory.db
 # instead of .swarm/ relative to whatever CWD CC launches from.
 # Resolves ruflo from nvm or PATH — no hardcoded paths.
-# PID lock prevents concurrent instances corrupting SQLite (sql.js has no file locking).
+# Each CC session needs its own ruflo process (MCP stdio = one process per session).
+# AgentDB v3 bridge uses better-sqlite3 with WAL mode for safe concurrent access.
+# PID file is advisory (diagnostics only) — not a mutex.
 cd "$HOME"
 
-# --- PID lock: only one ruflo writer at a time ---
+# --- PID file: advisory, not blocking ---
 LOCKFILE="$HOME/.swarm/ruflo-mcp.pid"
 mkdir -p "$HOME/.swarm"
 
 if [ -f "$LOCKFILE" ]; then
     OLD_PID=$(cat "$LOCKFILE" 2>/dev/null)
     if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
-        # Another instance is alive — this session reuses it via MCP reconnect.
-        # Exit cleanly so CC doesn't spawn a duplicate writer.
-        echo "ruflo MCP already running (pid $OLD_PID), skipping duplicate" >&2
-        exit 0
+        echo "ruflo MCP: another instance (pid $OLD_PID) running — starting new session instance" >&2
     fi
-    # Stale lock — remove it
     rm -f "$LOCKFILE"
 fi
 
