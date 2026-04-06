@@ -54,13 +54,14 @@ All brana commands, grouped by workflow.
 | `/brana:onboard` | Scan and diagnose a project (code, venture, or hybrid) |
 | `/brana:align` | Implement project structure based on /brana:onboard findings |
 | `/brana:acquire-skills` | Find and install skills for tech gaps |
-| `/brana:audit` | Security scan — secrets, hook permissions, MCP count, dangerous settings |
 
-## Spec Maintenance
+## Maintenance
 
 | Command | Description |
 |---------|-------------|
-| `/brana:maintain-specs` | Cascade spec changes through doc layers |
+| `/brana:reconcile` | Detect and fix drift across 4 domains (consistency, security, propagation, knowledge) |
+| `/brana:reconcile --scope security` | Security scan — secrets, hook permissions, MCP, settings (replaces retired /brana:audit) |
+| `/brana:reconcile --scope propagation` | Cascade spec changes through doc layers (replaces retired /brana:maintain-specs) |
 
 ## Business / Venture
 

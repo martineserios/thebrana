@@ -422,7 +422,7 @@ The runner handles: config-driven retry with exponential backoff, `flock` concur
 |-------|-----------|---------|
 | Hooks | During a session, per event | SessionStart recalls patterns, SessionEnd extracts learnings |
 | Scheduler | Between sessions, on cadence | Weekly staleness check, overnight research refresh |
-| Skills | On user invocation | `/brana:maintain-specs`, `/brana:research`, `/brana:review` |
+| Skills | On user invocation | `/brana:reconcile`, `/brana:research`, `/brana:review` |
 | Agents | On auto-delegation | challenger reviews a plan, scout researches a topic |
 
 Skills can run headless via `claude -p "Execute /skill-name"` — the scheduler invokes them the same way a user would, just unattended.
@@ -652,10 +652,10 @@ Three commands form a closed maintenance loop within thebrana (specs in `docs/` 
 | Command | Direction | Purpose |
 |---------|-----------|---------|
 | `/brana:research --refresh` | external → specs | Research external updates to dimension docs |
-| `/brana:maintain-specs` | specs → specs | Cascade changes upward: dimension → reflection → roadmap |
-| `/brana:reconcile` | specs → implementation | Detect drift, fix `system/` to match current specs in `docs/` |
+| `/brana:reconcile --scope propagation` | specs → specs | Cascade changes upward: dimension → reflection → roadmap |
+| `/brana:reconcile --scope consistency` | specs → implementation | Detect drift, fix `system/` to match current specs in `docs/` |
 
-Implementation changes update docs in the same commit (no separate back-propagation step — the old `/back-propagate` was retired). When specs evolve, `/brana:maintain-specs` cascades internally and `/brana:reconcile` pushes forward to implementation. `/brana:research --refresh` feeds the loop with external updates. `/brana:build` orchestrates implementation and includes doc updates in the CLOSE step. See [25-self-documentation.md](../25-self-documentation.md) for the full command architecture.
+Implementation changes update docs in the same commit (no separate back-propagation step — the old `/back-propagate` was retired). When specs evolve, `/brana:reconcile` handles both directions: `--scope propagation` cascades internally (replaces retired `/brana:maintain-specs`), `--scope consistency` pushes forward to implementation. `/brana:research --refresh` feeds the loop with external updates. `/brana:build` orchestrates implementation and includes doc updates in the CLOSE step. See [25-self-documentation.md](../25-self-documentation.md) for the full command architecture.
 
 ---
 
@@ -923,7 +923,7 @@ Skills like `/brana:research` propose backlog items in their reports. The user d
 7. **Sensitive pattern filtering?** Some learnings contain project-specific secrets or business logic. Need a way to mark patterns as non-transferable.
 
 ### Advanced Ideas
-9a. ~~**Within-project spec navigation (partially answered).**~~ The spec-graph.json file (see [45-turboflow-agent-orchestration.md](../../../brana-knowledge/dimensions/45-turboflow-agent-orchestration.md), GitNexus pattern) precomputes doc→doc and doc→file dependencies. `/brana:maintain-specs` and `/brana:reconcile` can read this instead of walking files at query time. This is the "index-time vs query-time" pattern applied to specs. Effort: small.
+9a. ~~**Within-project spec navigation (partially answered).**~~ The spec-graph.json file (see [45-turboflow-agent-orchestration.md](../../../brana-knowledge/dimensions/45-turboflow-agent-orchestration.md), GitNexus pattern) precomputes doc→doc and doc→file dependencies. `/brana:reconcile` can read this instead of walking files at query time. This is the "index-time vs query-time" pattern applied to specs. Effort: small.
 
 9b. **Cross-project DNA matching (still open)?** Each project gets a vector embedding of its architecture. New problems are matched against the most similar project's DNA, not just tag overlap. No precedent in current tooling. Defer until cross-pollination recall quality is measured and found insufficient.
 

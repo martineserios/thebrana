@@ -48,7 +48,7 @@ Refreshes dimension docs in `brana-knowledge/dimensions/` by launching parallel 
 | Skill | How it connects |
 |-------|----------------|
 | `/brana:memory` | Stores research findings as patterns |
-| `/brana:maintain-specs` | Propagates research updates through doc layers |
+| `/brana:reconcile --scope propagation` | Propagates research updates through doc layers |
 | `/brana:notebooklm-source` | Prepares findings as NotebookLM sources |
 
 ## Tips

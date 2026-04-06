@@ -16,7 +16,7 @@ The spec graph maps relationships between brana's ~150 documentation files and t
 |-------|:-----------:|
 | Added/removed a `[text](path)` link | **Yes** |
 | Created or deleted a doc | **Yes** |
-| After `/brana:maintain-specs` | **Yes** |
+| After `/brana:reconcile --scope propagation` | **Yes** |
 | Edited content within a doc | No |
 | Content/typo fix | No |
 
@@ -33,7 +33,7 @@ Output: `docs/spec-graph.json` (default)
 
 **`/brana:build PLAN`** — identifies system/ files the feature will modify, then shows a blast radius table of all docs that reference those files.
 
-**`/brana:maintain-specs`** — when a doc changes, reads its `referenced_by` list and only re-evaluates those 1-hop neighbors instead of all 5 reflections.
+**`/brana:reconcile --scope propagation`** — when a doc changes, reads its `referenced_by` list and only re-evaluates those 1-hop neighbors instead of all 5 reflections.
 
 **`/brana:docs`** — uses `guide_files`, `arch_files`, `ref_files` to discover which docs need updating when implementation files change. Invoked by CLOSE after every build.
 
@@ -115,6 +115,6 @@ jq --arg f "system/skills/build/SKILL.md" '.nodes | to_entries[] | select(.value
 
 **Missing dimension docs** — `docs/dimensions` is a symlink to `../../brana-knowledge/dimensions`. The script walks this path explicitly because Python's `rglob` doesn't follow symlinks. If dimension docs are missing from the graph, verify the symlink: `ls -la docs/dimensions`.
 
-**Stale graph after maintain-specs** — regenerate after any run that may have added or removed links.
+**Stale graph after reconcile propagation** — regenerate after any run that may have added or removed links.
 
 **High orphan count** — orphan docs have no incoming or outgoing references. This is normal for standalone research docs. Review orphans periodically to see if they should link to other docs.

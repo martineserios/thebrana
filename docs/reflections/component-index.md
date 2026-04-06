@@ -1,5 +1,5 @@
 ---
-last_verified: 2026-03-14
+last_verified: 2026-04-06
 status: active
 maturity: seedling
 generated: true
@@ -61,7 +61,6 @@ See `system/skills/*/SKILL.md` for full skill definitions.
 |-------|----------|---------|
 | /brana:acquire-skills | Setup | Find and install skills for tech gaps |
 | /brana:align | Setup | Implement project structure |
-| /brana:audit | System | Security scan — secrets, hooks, MCP, settings |
 | /brana:backlog | Planning | Task management across phases/streams |
 | /brana:brainstorm | Planning | Interactive idea maturation |
 | /brana:build | Development | Unified dev command — 7 strategies |
@@ -73,6 +72,7 @@ See `system/skills/*/SKILL.md` for full skill definitions.
 | /brana:export-pdf | Utility | Convert markdown to PDF |
 | /brana:gsheets | Integration | Google Sheets via MCP |
 | /brana:harvest | Content | Extract post ideas from recent work |
+| /brana:ship | Deployment | Ship a build — pre-flight, deploy, verify, monitor |
 | /brana:log | Operations | Event capture (links, calls, ideas) |
 | /brana:memory | Knowledge | Recall, pollinate, review, audit |
 | /brana:notebooklm-source | Integration | Prepare sources for NotebookLM |
