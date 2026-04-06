@@ -42,10 +42,11 @@ Tech detected: next.js, prisma, postgres, tailwind, cloudflare-workers,
 
 ### Step 2: Diff — Compare against local skills
 
-Scan all SKILL.md files in `~/.claude/skills/`:
+Scan all SKILL.md files in the plugin's `system/skills/` directory:
 
 ```bash
-for d in ~/.claude/skills/*/; do
+for d in system/skills/*/; do
+    [ -f "$d/SKILL.md" ] || continue
     name=$(basename "$d")
     desc=$(head -10 "$d/SKILL.md" 2>/dev/null | grep -m1 "^description:" | sed 's/^description: *"//' | sed 's/"$//')
     echo "$name: $desc"
@@ -182,62 +183,75 @@ For each selected skill:
 |-----------|--------|
 | **Trusted** | Install as-is. Full allowed-tools preserved. |
 | **Verified** | Install. Keep existing allowed-tools but warn if `Bash` is unrestricted. |
-| **Community** | Quarantine: rewrite `allowed-tools` to read-only set (`Read`, `Glob`, `Grep`, `AskUserQuestion`). Add `quarantine: true` to frontmatter. User can promote later via `/brana:audit`. |
+| **Community** | Quarantine: rewrite `allowed-tools` to read-only set (`Read`, `Glob`, `Grep`, `AskUserQuestion`). Add `quarantine: true` to frontmatter. User can promote later via `/brana:reconcile`. |
 | **Blocked** | Should not reach here (rejected in step 4). |
 
 For quarantine installs, inform user:
 ```
 Installed in quarantine mode (read-only tools).
-Run /brana:audit to review and promote to full access.
+Run /brana:reconcile --scope security to review and promote to full access.
 ```
 
-**3. Save to system/skills/acquired/:**
+**3. Install as universal stub (per ADR-034):**
+
+Write the procedure body to `system/procedures/<skill-name>.md`:
+```bash
+# Write the full SKILL.md content as a procedure file
+Write: system/procedures/<skill-name>.md ← full skill content
+```
+
+Write a stub to `system/skills/<skill-name>/SKILL.md`:
+```yaml
+---
+name: <skill-name>
+description: "<description from source>"
+group: brana
+keywords: [<extracted keywords>]
+allowed-tools: [<per trust tier>]
+status: acquired
+source: "<source URL>"
+acquired: "<YYYY-MM-DD>"
+quarantine: <true if community tier>
+---
+
+<!-- PROCEDURE_FILE: procedures/<skill-name>.md -->
+This skill's full procedure is in a separate file for startup performance (ADR-034).
+Read and execute `system/procedures/<skill-name>.md` from the plugin root directory.
+If the path doesn't resolve, use Glob to find `**/procedures/<skill-name>.md`.
+```
+
+**Frontmatter fixup** — marketplace skills often lack these fields. Always add:
+- `group: brana` (required for plugin discovery)
+- `status: acquired` (distinguishes from native skills)
+- `allowed-tools` (per trust tier — community gets read-only set)
+- `source` and `acquired` (provenance tracking)
+
+**4. Index in ruflo (best-effort):**
 
 ```bash
-mkdir -p system/skills/acquired/<skill-name>/
+brana skills reindex
 ```
 
-Write SKILL.md to `system/skills/acquired/<skill-name>/SKILL.md`.
-
-**4. Activate immediately:**
-
-```bash
-mkdir -p ~/.claude/skills/<skill-name>/
-cp system/skills/acquired/<skill-name>/SKILL.md ~/.claude/skills/<skill-name>/SKILL.md
-```
-
-**4. Update skill-catalog.md:**
-
-Append to the `## Acquired` section of `docs/guide/skills.md`:
-
-```markdown
-### `<skill-name>` (acquired)
-{description} — Source: {source}. Acquired {YYYY-MM-DD} for {project/task context}.
-```
-
-If the `## Acquired` section doesn't exist, create it at the end of the file.
+This indexes the new skill's frontmatter into ruflo's `skills` namespace, making it discoverable by `/brana:backlog start` skill routing and `/brana:do`. If CLI unavailable, skip — next session start will reindex.
 
 ### Step 6: Report
 
 ```
 Acquired 2 skills:
 
-  + cloudflare-workers-deploy (npm, @secondsky)
-  + prisma-orm (npm, @vercel-labs)
+  + cloudflare-workers-deploy (npm, @secondsky) → system/skills/ + system/procedures/
+  + prisma-orm (npm, @vercel-labs) → system/skills/ + system/procedures/
 
   Not found (general knowledge):
     stripe, redis
 
-  Updated: docs/guide/skills.md
-  Active in: ~/.claude/skills/ (this session)
-  Persisted: system/skills/acquired/ (git tracked)
-
-  Run deploy.sh to make permanent across sessions.
+  Indexed in ruflo: yes
+  Available as: /brana:cloudflare-workers-deploy, /brana:prisma-orm
 ```
 
 ## Notes
 
-- Acquired skills are version-controlled in `system/skills/acquired/`. They survive `deploy.sh` like native skills.
+- Acquired skills follow the universal stub model (ADR-034): stub in `system/skills/`, procedure body in `system/procedures/`. Git-tracked like native skills.
 - If no marketplace CLI is installed, WebSearch finds GitHub repos with SKILL.md files. Lower quality but always works.
 - Never auto-install. Always present candidates and let the user choose.
-- If a skill turns out to be low quality after use, delete it from `system/skills/acquired/` and redeploy.
+- If a skill turns out to be low quality after use, delete the stub and procedure file.
