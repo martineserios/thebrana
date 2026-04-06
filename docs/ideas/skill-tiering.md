@@ -204,24 +204,9 @@ Current acquired skills (cargo-machete, rust-skills, mcp-builder) are reference 
 
 Fixed all 6 issues: install path updated to universal stub model (system/skills/ + system/procedures/), dead references removed (deploy.sh, docs/guide/skills.md, /brana:audit), frontmatter fixup added (group, status, allowed-tools, source, acquired), ruflo reindex after install. See `system/procedures/acquire-skills.md`.
 
-### Just-in-time skill acquisition via LOAD step
+### Just-in-time skill acquisition via LOAD step ✓ (t-979, 2026-04-06)
 
-LOAD step becomes the single entry point for skill discovery AND acquisition:
-
-```
-LOAD step (runs in every thinking skill):
-  1. ruflo search namespace:"skills" → match?
-     YES → Read matching procedure → continue
-     NO  → "No local skill for {tech}. Search marketplace?"
-           → npx skills search "{tech}" → candidates
-           → User picks one
-           → Download → save to procedures/ + stub in skills/
-           → Frontmatter fixup + ruflo index
-           → Read procedure into current context
-           → Continue working — no restart needed
-```
-
-acquire-skills becomes a **composable function called by LOAD**, not a standalone skill. The user never invokes it directly — LOAD triggers it when a gap is detected. The skill stays as a stub for direct invocation (`/brana:acquire-skills cloudflare`) but the primary path is through LOAD.
+Implemented as LOAD step 4a across all 4 thinking skills (build, research, brainstorm, review). When no skills namespace results are returned and the task involves a specific technology, LOAD offers marketplace search via `Skill(skill="brana:acquire-skills", args="{tech}")`. Installed procedure is Read into context immediately — no restart. Guard rails: only for code tasks, only once per LOAD, skip if entering from backlog start (already offered there). acquire-skills remains available as direct invocation but primary path is through LOAD.
 
 ### Unify start + do + execute ✓ (t-974, 2026-04-06)
 
@@ -297,7 +282,7 @@ Findings incorporated above:
 
 **Phase 2 — Follow-ups (separate tasks, after tiering proves out):**
 - ~~LOAD step generalization (search skills namespace)~~ ✓ t-978
-- Just-in-time skill acquisition via LOAD
+- ~~Just-in-time skill acquisition via LOAD~~ ✓ t-979
 - ~~Unify start + do + execute~~ ✓ t-974
 - Propose-first enforcement
 - Doc reindex at close time

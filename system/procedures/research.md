@@ -59,6 +59,7 @@ Register these steps: LOAD, ROUTE, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TR
       ```
       Read the top 3 matching dimension files (first 80 lines each).
    4. **Skill match handling** — if any result has `namespace: "skills"` and score >= 0.5, mention inline: "Matching skill: /brana:{name} ({score})." Informational only — don't auto-invoke or block.
+   4a. **JIT skill acquisition** — if no skills match and topic involves a specific technology, offer marketplace search via `Skill(skill="brana:acquire-skills", args="{tech}")`. Read installed procedure into context immediately. See `build.md` LOAD step 4a for full logic and guard rails.
    5. **Summarize loaded knowledge** as a brief context preamble (2-5 bullets). Note what's already documented so research targets gaps, not redundant ground.
 
 1. **Step ROUTE — Determine research strategy.** Classify the request into one of 4 strategies. The strategy determines the output format; the core research flow (source finding, reading, synthesizing) is shared.
