@@ -35,7 +35,7 @@ Specialized agents complement skills. Agents auto-delegate — no slash command 
 | memory-curator | Haiku | Starting work, familiar problem, stuck |
 | client-scanner | Haiku | New client, client health check |
 | venture-scanner | Haiku | New business project |
-| challenger | Opus | Plan or architecture decision forming |
+| challenger | Sonnet | Plan or architecture decision forming |
 | debrief-analyst | Opus | End of implementation session |
 | scout | Haiku | Research tasks (spawned by skills) |
 | archiver | Haiku | Retiring a client |

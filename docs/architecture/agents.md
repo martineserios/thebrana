@@ -7,7 +7,7 @@
 - **Agent results are inputs, not decisions.** The main context presents findings to the user. File modifications happen in main context after approval.
 - **All agents are read-only.** Every agent disallows Write, Edit, and NotebookEdit. Some have Bash for CLI commands (e.g., `gh`, `git`, `ruflo`).
 - **Auto-delegation is rule-based.** The `delegation-routing` rule (in `~/.claude/rules/`) defines triggers -- agents fire without being asked when the situation matches.
-- **Model selection by task complexity.** Haiku for fast/cheap work (8 agents), Sonnet for moderate analysis (1), Opus for deep reasoning (2).
+- **Model selection by task complexity.** Haiku for fast/cheap work (8 agents), Sonnet for moderate analysis (2), Opus for deep reasoning (1). Challenger uses Sonnet intentionally — a different model than the Opus parent context catches blind spots the originating model can't see.
 
 ## Routing Table
 
@@ -16,7 +16,7 @@
 | memory-curator | Haiku | Starting work, familiar problem, stuck |
 | client-scanner | Haiku | New client, project health check |
 | venture-scanner | Haiku | New business project |
-| challenger | Opus | Plan or architecture decision forming (calibrated: CALIBRATION.md) |
+| challenger | Sonnet | Plan or architecture decision forming (calibrated: CALIBRATION.md) |
 | debrief-analyst | Opus | End of implementation session |
 | scout | Haiku | Research tasks (spawned by skills) |
 | archiver | Haiku | Retiring a client |

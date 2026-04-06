@@ -26583,7 +26583,7 @@
     {
       "id": "t-984",
       "subject": "Evaluate challenger agent model: use a different model than the one being challenged",
-      "status": "pending",
+      "status": "completed",
       "stream": "tech-debt",
       "type": "task",
       "tags": [
@@ -26600,7 +26600,7 @@
       "blocked_by": [],
       "branch": null,
       "context": null,
-      "notes": null,
+      "notes": "Changed challenger from Opus to Sonnet. Updated: system/agents/challenger.md, system/CLAUDE.md, docs/architecture/agents.md. Rationale: adversarial reviewer should use a different model than the parent context (Opus) to surface genuinely different blind spots.",
       "order": 0,
       "github_issue": null,
       "execution": "code"
@@ -26608,7 +26608,7 @@
     {
       "id": "t-985",
       "subject": "Clean up stale /tmp/tdd-gate-* files from reverted session tracking",
-      "status": "pending",
+      "status": "completed",
       "stream": "tech-debt",
       "type": "task",
       "tags": [
@@ -26625,7 +26625,7 @@
       "blocked_by": [],
       "branch": null,
       "context": null,
-      "notes": null,
+      "notes": "Removed 1 stale /tmp/tdd-gate-* file. Session-level tracking code was already reverted in t-983, so no new files will be created. No hook/scheduled job needed.",
       "order": 0,
       "github_issue": null,
       "execution": "code"
