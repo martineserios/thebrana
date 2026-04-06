@@ -93,7 +93,7 @@ fn main() {
             }
             SkillsCmd::Search { query } => run_or_exit(commands::skills::cmd_search(&query)),
             SkillsCmd::List => run_or_exit(commands::skills::cmd_list()),
-            SkillsCmd::Reindex { changed } => commands::skills::cmd_reindex(changed),
+            SkillsCmd::Reindex { changed, force } => commands::skills::cmd_reindex(changed, force),
         },
         Commands::Handoff { cmd } => match cmd {
             Some(HandoffCmd::Last { n }) => commands::handoff::cmd_handoff_last(n),
@@ -127,6 +127,9 @@ fn main() {
                 }
             }
             KnowledgeCmd::Status => commands::knowledge::cmd_status(),
+            KnowledgeCmd::Search { query, limit, namespace, json } => {
+                run_or_exit(commands::knowledge::cmd_search(&query, limit, &namespace, json))
+            }
         },
         Commands::Graph { cmd } => commands::graph::cmd_graph(cmd),
     }

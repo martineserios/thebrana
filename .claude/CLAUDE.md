@@ -222,6 +222,7 @@ Exposed via `.mcp.json`. Skills should prefer these over CLI — structured JSON
 | `backlog_burndown` | Created vs completed over week/month |
 | `backlog_focus` | Top tasks ranked by priority + staleness + effort + blocking |
 | `backlog_stale` | Find tasks pending longer than threshold |
+| `backlog_batch` | Multi-task, multi-field updates in single read/write cycle |
 
 ## Specs Reference
 
