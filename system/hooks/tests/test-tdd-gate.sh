@@ -67,10 +67,10 @@ git -C "$CRATE1" checkout -q -b feat/t-100-test
 assert_allows "Non-Rust file passes through" \
     "$(make_input Edit "$CRATE1/README.md" "$CRATE1")"
 
-# --- Test 2: Rust file on main → allow ---
+# --- Test 2: Rust file on main with no tests → deny (branch filter removed per ADR-031) ---
 CRATE2="$TMPDIR/crate2"
 setup_crate "$CRATE2"
-assert_allows "Rust file on main branch passes through" \
+assert_denies "Rust file on main with no tests → deny" \
     "$(make_input Write "$CRATE2/src/main.rs" "$CRATE2")"
 
 # --- Test 3: Rust impl file on feat/ with NO tests → deny ---
@@ -236,6 +236,87 @@ git -C "$GO2" checkout -q -b feat/t-1101-go
 echo 'package main' > "$GO2/main_test.go"
 assert_allows "Go impl on feat/ with _test.go → allow" \
     "$(make_input Edit "$GO2/main.go" "$GO2")"
+
+# === New-file session tracking tests (t-983) ===
+# The bug: writing a NEW code file in a project that already has tests
+# passes the gate because HAS_TESTS=true at the project level.
+# Fix: new files require a test to have been written in the current session.
+
+# Clean any leftover state files
+rm -f /tmp/tdd-gate-* 2>/dev/null
+
+# --- Test 19: NEW Rust file in project WITH existing tests, NO test written this session → deny ---
+CRATE_NEW1="$TMPDIR/crate_new1"
+setup_crate "$CRATE_NEW1"
+mkdir -p "$CRATE_NEW1/tests"
+echo '#[test] fn existing() {}' > "$CRATE_NEW1/tests/existing.rs"
+NEW_RS="$CRATE_NEW1/src/new_module.rs"
+# File must NOT exist on disk — that's what makes it "new"
+rm -f /tmp/tdd-gate-* 2>/dev/null
+assert_denies "New Rust file in project with existing tests but no test written this session → deny" \
+    "$(make_input Write "$NEW_RS" "$CRATE_NEW1")"
+
+# --- Test 20: NEW Rust file AFTER writing a test file in the same session → allow ---
+CRATE_NEW2="$TMPDIR/crate_new2"
+setup_crate "$CRATE_NEW2"
+mkdir -p "$CRATE_NEW2/tests"
+echo '#[test] fn existing() {}' > "$CRATE_NEW2/tests/existing.rs"
+rm -f /tmp/tdd-gate-* 2>/dev/null
+# Simulate writing a test file first (hook records session state)
+echo "$(make_input Write "$CRATE_NEW2/tests/new_test.rs" "$CRATE_NEW2")" \
+    | BRANA_HOOK_PROFILE=standard bash "$HOOK" >/dev/null 2>&1
+NEW_RS2="$CRATE_NEW2/src/new_impl.rs"
+assert_allows "New Rust file after test written in session → allow" \
+    "$(make_input Write "$NEW_RS2" "$CRATE_NEW2")"
+
+# --- Test 21: EDIT existing Rust file in project with tests, NO test written this session → allow ---
+# Editing existing files should NOT be affected by new-file tracking
+CRATE_NEW3="$TMPDIR/crate_new3"
+setup_crate "$CRATE_NEW3"
+mkdir -p "$CRATE_NEW3/tests"
+echo '#[test] fn t() {}' > "$CRATE_NEW3/tests/integration.rs"
+rm -f /tmp/tdd-gate-* 2>/dev/null
+assert_allows "Edit existing impl (with project tests, no session test) → allow" \
+    "$(make_input Edit "$CRATE_NEW3/src/main.rs" "$CRATE_NEW3")"
+
+# --- Test 22: NEW Python file in project with existing tests, NO test written → deny ---
+PY_NEW="$TMPDIR/py_new"
+setup_python "$PY_NEW"
+mkdir -p "$PY_NEW/tests"
+echo 'def test_x(): pass' > "$PY_NEW/tests/test_existing.py"
+rm -f /tmp/tdd-gate-* 2>/dev/null
+NEW_PY="$PY_NEW/src/new_module.py"
+assert_denies "New Python file in project with existing tests but no test written → deny" \
+    "$(make_input Write "$NEW_PY" "$PY_NEW")"
+
+# --- Test 23: NEW TS file in project with existing tests, NO test written → deny ---
+JS_NEW="$TMPDIR/js_new"
+setup_js "$JS_NEW"
+echo 'test("x", () => {})' > "$JS_NEW/src/existing.test.ts"
+rm -f /tmp/tdd-gate-* 2>/dev/null
+NEW_TS="$JS_NEW/src/new_component.ts"
+assert_denies "New TS file in project with existing tests but no test written → deny" \
+    "$(make_input Write "$NEW_TS" "$JS_NEW")"
+
+# --- Test 24: State file from different project doesn't leak ---
+CRATE_A="$TMPDIR/crate_a"
+CRATE_B="$TMPDIR/crate_b"
+setup_crate "$CRATE_A"
+setup_crate "$CRATE_B"
+mkdir -p "$CRATE_A/tests" "$CRATE_B/tests"
+echo '#[test] fn t() {}' > "$CRATE_A/tests/t.rs"
+echo '#[test] fn t() {}' > "$CRATE_B/tests/t.rs"
+rm -f /tmp/tdd-gate-* 2>/dev/null
+# Write test in project A
+echo "$(make_input Write "$CRATE_A/tests/new_test.rs" "$CRATE_A")" \
+    | BRANA_HOOK_PROFILE=standard bash "$HOOK" >/dev/null 2>&1
+# Try new impl in project B — should still deny (different git root)
+NEW_B="$CRATE_B/src/new_file.rs"
+assert_denies "Test in project A doesn't unlock new files in project B → deny" \
+    "$(make_input Write "$NEW_B" "$CRATE_B")"
+
+# Clean up state files
+rm -f /tmp/tdd-gate-* 2>/dev/null
 
 # --- Summary ---
 echo ""
