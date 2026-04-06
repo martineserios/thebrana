@@ -126,16 +126,28 @@ system/
 | Plan bundles 5 changes | WARNING | Ship tiering alone first (t-964 steps 1-5). Other changes are separate follow-up phases. |
 | Bug #28660 re-injects skill catalog per tool call | INFO | Tiering reduces re-injection payload (7 full + 19 one-liners vs. 28 full). Partial mitigation. CC-side fix needed for full resolution. |
 
-## Expected results (corrected after challenger review)
+## Expected results (final — universal stubs, amended ADR-034)
 
-| Metric | Before | After |
-|--------|--------|-------|
-| Skills loaded at startup | 28 (8,392 lines, ~34K tokens) | 7 full + 19 stubs (4,491 lines, ~18K tokens) |
-| Startup context reduction | — | **47% reduction** (not 83% — corrected) |
-| Cold start | 4+ minutes | Must test — 47% reduction may or may not hit <30s |
-| Available commands | 28 | 26 (same capability) |
+| Metric | Before | After (measured) |
+|--------|--------|-----------------|
+| Skills loaded at startup | 28 (8,392 lines, ~34K tokens) | 25 stubs (762 lines, ~3K tokens) |
+| Startup context reduction | — | **91% reduction** |
+| Cold start | 4+ minutes | Working — acceptable speed |
+| Available commands | 28 | 25 (same capability, all as stubs) |
+| Procedure files | 0 | 28 in system/procedures/ |
 
-> Note: Original doc claimed 88K→15K tokens (83% reduction). Actual measurement: 34K→18K (47%). The 88K figure likely included token overhead from CC's skill catalog framing, not just raw file content. The 47% reduction is still the largest single lever available.
+### Binary search results (2026-04-06)
+
+| Skills | Lines | Startup |
+|--------|-------|---------|
+| 0 | 0 | 3-4s |
+| 3 stubs | 98 | ~5s |
+| 5 stubs | 155 | 15-20s |
+| 10 stubs | 317 | ~60s |
+| 28 stubs | 762 | 4+ min |
+| 25 stubs (current, after pruning) | ~650 | Acceptable |
+
+> Note: Startup scaling is non-linear per skill count, not per line count. CC's overhead is per-skill registration (file discovery, frontmatter parsing, tool schema, system prompt injection). The universal stub model was adopted after testing showed core/extended split (47% line reduction) was insufficient.
 
 ## Operating Model Alignment
 
