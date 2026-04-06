@@ -24243,7 +24243,7 @@
       "parent": "t-902",
       "priority": "P0",
       "started": null,
-      "status": "done",
+      "status": "completed",
       "strategy": null,
       "stream": "roadmap",
       "subject": "A1: EXTRACT-only in /close — diff-based doc update prompting",
@@ -24272,7 +24272,7 @@
       "parent": "t-902",
       "priority": "P0",
       "started": null,
-      "status": "done",
+      "status": "completed",
       "strategy": null,
       "stream": "roadmap",
       "subject": "A2: Doc-enforcement hook (doc-gate.sh)",
@@ -24301,7 +24301,7 @@
       "parent": "t-902",
       "priority": "P0",
       "started": null,
-      "status": "done",
+      "status": "completed",
       "strategy": null,
       "stream": "roadmap",
       "subject": "A3: CLAUDE.md reorganization by 6-job taxonomy",
@@ -26527,7 +26527,7 @@
     {
       "id": "t-982",
       "subject": "Investigate ruflo DB corruption — second occurrence since 2026-03-31",
-      "status": "pending",
+      "status": "completed",
       "stream": "bugs",
       "type": "task",
       "tags": [
@@ -26549,7 +26549,8 @@
       "notes": null,
       "order": 0,
       "github_issue": null,
-      "execution": "code"
+      "execution": "code",
+      "strategy": "bug-fix"
     }
   ],
   "version": "1"
