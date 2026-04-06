@@ -310,11 +310,63 @@ Optional filters (pass through to CLI):
 
 ## /brana:backlog start
 
-Begin work on a specific task. For code tasks, enters the `/brana:build` loop.
+Begin work on a task or freeform description. Accepts task IDs, phase IDs, or natural language. For code tasks, enters the `/brana:build` loop. This is the unified entry point — `/brana:do` is an alias for `start` with freeform text.
 
 ### Steps
 
-1. **Parse id** from argument, or offer candidates from /brana:backlog next
+1. **Parse argument** — detect input type:
+   - **Task/subtask ID** (matches `^(t|st)-\d+$`): look up the task directly → step 2
+   - **Phase/milestone ID** (matches `^(ph|ms)-\d+$`): look up the phase → step 1b (batch detection)
+   - **Freeform text** (anything else, or `/brana:do` invocation): → step 1a (skill routing)
+   - **No argument**: offer candidates from `/brana:backlog next`
+
+1a. **Freeform text routing** (absorbs `/brana:do` logic):
+   Search for matching skills via ruflo:
+   ```
+   mcp__ruflo__memory_search(
+     query: "{freeform text}",
+     namespace: "skills",
+     limit: 5,
+     threshold: 0.3
+   )
+   ```
+   If MCP unavailable, fall back to CLI: `brana skills suggest --query "{text}"`
+
+   Present results using the same threshold logic as step 5 (skill suggestion):
+   - Above suggest_threshold (0.5): suggest via AskUserQuestion
+   - Between thresholds (0.3–0.5): mention inline
+   - Below mention_threshold (0.3): offer marketplace search
+
+   Always include a "Create task first" option. If the user selects it:
+   - Create a task via `brana backlog add --json '{"subject": "{text}", ...}'`
+   - Continue to step 2 with the new task ID
+
+   If the user selects a skill instead:
+   - Invoke it: `Skill(skill="brana:{name}", args="{text}")`
+   - Stop here — no task flow needed
+
+1b. **Batch detection** (phase/milestone ID):
+   Query children: `brana backlog query --parent {id} --status pending`
+   Evaluate batch eligibility:
+   - **3+ unblocked tasks** AND
+   - **Average effort ≤ M** (S=1, M=2, L=3, XL=4; avg ≤ 2) AND
+   - **Dependency density < 0.3** (blocked_by edges / total tasks < 0.3)
+
+   If batch-eligible, propose:
+   ```
+   AskUserQuestion:
+     question: "Phase has {N} parallelizable tasks (avg effort: {avg}). Run as batch or interactive?"
+     header: "Mode"
+     options:
+       - "Batch — /brana:backlog execute {id} (Recommended)"
+       - "Interactive — pick one task to start"
+   ```
+   - If batch: invoke `Skill(skill="brana:backlog", args="execute {id}")` — stop here
+   - If interactive: present unblocked children for selection → continue to step 2 with chosen task
+
+   If NOT batch-eligible (fewer tasks, high deps, large effort):
+   - Present unblocked children for selection → continue to step 2
+
 2. **Read tasks.json**, find the task
 3. **Check blocked_by** — if any blocker not completed, warn and abort
 4. **Auto-classify strategy** (if not already set on the task):
