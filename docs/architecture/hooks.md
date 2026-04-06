@@ -33,7 +33,7 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 
 **`lib/cf-env.sh`** -- Locates the `ruflo` binary. Source it to get `$CF`. Search order: nvm global install, PATH lookup, npx fallback. Used by session-start, session-end, session-start-venture, and post-sale hooks.
 
-**`lib/ruflo-mcp.sh`, `lib/context7-mcp.sh`, `lib/linkedin-mcp.sh`** -- MCP server wrapper scripts that resolve binaries dynamically at launch time instead of hardcoding paths. Used by `hooks.json` MCP server definitions.
+**`lib/ruflo-mcp.sh`, `lib/context7-mcp.sh`, `lib/linkedin-mcp.sh`** -- MCP server wrapper scripts that resolve binaries dynamically at launch time instead of hardcoding paths. Used by `hooks.json` MCP server definitions. `ruflo-mcp.sh` includes a PID lock (prevents concurrent SQLite corruption) and auto-restart on SIGTERM (up to 5 retries, mitigates CC bug #40207 which kills healthy MCP servers mid-session).
 
 ## Hook inventory
 
@@ -127,8 +127,9 @@ If no in_progress task exists, the hook returns `{"continue": true}` with no inj
 
 As of 2026-04-01, three hook scripts integrate with ruflo MCP via `cf-env.sh`:
 
-- **`session-start.sh`** — Runs 1 parallel job (single `timeout 2` ruflo CLI query for patterns + corrections), down from 4 jobs with a 5s budget. Python dependencies (spec-graph staleness check, decisions.py) removed. Phase 5 launches `index-skills.sh --changed` in background. All `$CF` calls are preceded by `cd "$HOME"` to avoid CWD issues with npx resolution.
+- **`session-start.sh`** — Runs 1 parallel job (single `timeout 2` ruflo CLI query for patterns + corrections), down from 4 jobs with a 5s budget. Python dependencies (spec-graph staleness check, decisions.py) removed. Phase 5 launches `index-skills.sh --changed` in background. All `$CF` calls are preceded by `cd "$HOME"` to avoid CWD issues with npx resolution. As of 2026-04-06, also surfaces the next unblocked task's `context` field in the task summary output.
 - **`session-end.sh`** — Same `cd "$HOME"` guard before `$CF` calls for metrics flush and session summary storage.
+- **`post-sale.sh`** — Uses `cd "$HOME"` before ruflo CLI calls (fixed 2026-04-06 — previously used CWD-relative path, writing to wrong DB).
 - **`cf-env.sh`** — Now exports a `cf_run()` wrapper function that handles `cd "$HOME"`, timeout, and error swallowing in one call. Hook scripts use `cf_run <args>` instead of raw `$CF` invocations.
 
 ## Design principles
