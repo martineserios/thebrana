@@ -100,7 +100,7 @@ This applies to EVERY step — CLASSIFY, SPECIFY, DECOMPOSE, BUILD, CLOSE. No ex
 
 ## Step 0: LOAD
 
-Pull relevant architecture and decision knowledge into context before building. Budget: 30K tokens max.
+Pull relevant architecture, decision knowledge, and skill matches into context before building. Budget: 30K tokens max.
 
 1. **Build query** from available context: `"{project} {task.subject} {task.tags joined} {user_input}"`
 2. **Primary — ruflo MCP:**
@@ -108,18 +108,24 @@ Pull relevant architecture and decision knowledge into context before building. 
    mcp__ruflo__memory_search(
      query: "{query}",
      namespace: "all",
-     limit: 5,
-     threshold: 0.4
+     limit: 8,
+     threshold: 0.3
    )
    ```
-   Focus on: architecture docs, feature briefs (`docs/architecture/features/`), and ADRs (`docs/architecture/decisions/`).
+   Results span all namespaces: knowledge (dimension docs, ADRs, feature briefs), pattern (past session learnings), and **skills** (matching procedures).
 3. **Fallback — tag-based grep** (if MCP unavailable):
    ```bash
    grep -rl "{keywords}" ~/enter_thebrana/brana-knowledge/dimensions/ --include="*.md" | head -5
    grep -rl "{keywords}" docs/architecture/ docs/reflections/ --include="*.md" | head -5
    ```
    Read the top 3 matching files (first 80 lines each).
-4. **Summarize loaded knowledge** as a brief context preamble (2-5 bullets). Do not show raw results — synthesize what's relevant to the build task (prior decisions, related architecture, known constraints).
+   For skills fallback: `brana skills suggest --query "{keywords}"`
+4. **Skill match handling** — if any result has `namespace: "skills"` (or key starts with `skill:`):
+   - Score >= 0.5: mention inline: "Matching skill available: /brana:{name} ({score}). It may be useful during this build."
+   - Score < 0.5: ignore (too weak to surface)
+   - Do NOT auto-invoke the skill or block on user confirmation. LOAD is informational — the user decides whether to use it.
+   - If entering via `/brana:backlog start`, skill suggestion already happened in step 5 — skip duplicate mention.
+5. **Summarize loaded knowledge** as a brief context preamble (2-5 bullets). Do not show raw results — synthesize what's relevant to the build task (prior decisions, related architecture, known constraints).
 
 ---
 

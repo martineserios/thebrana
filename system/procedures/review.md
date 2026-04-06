@@ -28,7 +28,8 @@ Pull relevant business context into memory before the review. Budget: 30K tokens
    grep -rl "{keywords}" ~/enter_thebrana/brana-knowledge/dimensions/ --include="*.md" | head -3
    ```
    Read the most recent review file and top 2 matching dimension files (first 80 lines each).
-4. **Summarize loaded knowledge** as a brief context preamble (2-5 bullets). Surface prior trends, last review's bottleneck, and pipeline status so the review builds on history.
+4. **Skill match handling** — if any result has `namespace: "skills"` and score >= 0.5, mention inline: "Matching skill: /brana:{name} ({score})." Informational only — don't auto-invoke or block.
+5. **Summarize loaded knowledge** as a brief context preamble (2-5 bullets). Surface prior trends, last review's bottleneck, and pipeline status so the review builds on history.
 
 ---
 

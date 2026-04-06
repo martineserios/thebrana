@@ -188,9 +188,9 @@ Analyzed against the brana operating model (6 jobs + auto-learning loop):
 2. If match > 0.5: suggest the skill
 3. If no match: offer marketplace search via `/brana:acquire-skills`
 
-### Generalization: LOAD step searches skills namespace
+### Generalization: LOAD step searches skills namespace ✓ (t-978, 2026-04-06)
 
-Move skill matching from backlog start step 5 into the **shared LOAD step** (operating model). All thinking skills (build, research, brainstorm, review) already have LOAD. Adding `namespace: "skills"` to the search gives every thinking skill automatic access to matching procedures.
+Implemented across all 4 thinking skills (build, research, brainstorm, review). LOAD already uses `namespace: "all"` which includes skills. Added explicit skill match handling: results with `namespace: "skills"` and score >= 0.5 get surfaced as informational mentions. Backlog start step 5 still does the interactive skill suggestion — LOAD is passive/informational only.
 
 ### Execute agents: knowledge injection ✓ (t-973, 2026-04-06)
 
@@ -296,7 +296,7 @@ Findings incorporated above:
 9. File CC bug report with timing data (confirms #14882 on v2.1.89)
 
 **Phase 2 — Follow-ups (separate tasks, after tiering proves out):**
-- LOAD step generalization (search skills namespace)
+- ~~LOAD step generalization (search skills namespace)~~ ✓ t-978
 - Just-in-time skill acquisition via LOAD
 - ~~Unify start + do + execute~~ ✓ t-974
 - Propose-first enforcement
