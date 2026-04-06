@@ -1,6 +1,6 @@
 ---
 name: do
-description: "Route freeform text to the best skill — alias for backlog start with natural language input. Semantic skill matching via ruflo memory."
+description: "Alias for /brana:backlog start with freeform text. Routes to the best skill or creates a task. Use /brana:backlog start directly for the same behavior."
 effort: low
 keywords: [routing, freeform, skill-selection, auto-route, natural-language]
 task_strategies: [feature, bug-fix, refactor, spike, investigation]

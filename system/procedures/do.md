@@ -1,50 +1,18 @@
 
-# Do — Freeform Skill Router
+# Do — Alias for backlog start
 
-Alias for `brana backlog start` with freeform text input. Instead of specifying a task ID,
-describe what you want to do in natural language and the system routes to the best skill.
+`/brana:do` is an alias for `/brana:backlog start` with freeform text input.
 
 ## Usage
 
 `/brana:do <description>`
 
-Examples:
-- `/brana:do fix the authentication race condition`
-- `/brana:do set up monitoring for the API`
-- `/brana:do refactor the session handling module`
-
 ## How it works
 
-1. Parse `$ARGUMENTS` as freeform text
-2. Read `skill_routing` thresholds from `~/.claude/tasks-config.json` (same config as backlog start)
-3. Search for matching skills via ruflo:
-   ```
-   mcp__ruflo__memory_search(
-     query: "$ARGUMENTS",
-     namespace: "skills",
-     limit: 5,
-     threshold: 0.3
-   )
-   ```
-4. If MCP unavailable, fall back to CLI: `brana skills suggest --query "$ARGUMENTS"`
-5. Present results using the same threshold logic as `/brana:backlog start` step 5:
-   - Above suggest_threshold (0.5): suggest via AskUserQuestion
-   - Between thresholds (0.3–0.5): mention inline
-   - Below mention_threshold (0.3): offer marketplace search
-6. If user selects a skill, invoke it: `Skill(skill="brana:{name}", args="$ARGUMENTS")`
-7. If user selects "Create task first", invoke: `Skill(skill="brana:backlog", args="start \"$ARGUMENTS\"")`
+Invoke `/brana:backlog start` with the arguments treated as freeform text (step 1a of the start procedure):
 
-## Difference from backlog start
+```
+Skill(skill="brana:backlog", args="start $ARGUMENTS")
+```
 
-| | `backlog start <id>` | `/brana:do <text>` |
-|--|---------------------|-------------------|
-| Input | Task ID (structured metadata) | Freeform text |
-| Query source | Task subject + tags + strategy | Raw user text |
-| Task creation | Task exists | Optional — user can create or skip |
-| Branch | Created from task slug | Not created (unless user creates task) |
-
-## Rules
-
-- Never auto-invoke a skill without user confirmation
-- If no `$ARGUMENTS` provided, ask: "What do you want to do?"
-- Keep it fast — one MCP call, one AskUserQuestion, done
+All routing, skill matching, task creation, and batch detection logic lives in `/brana:backlog start`. See `system/procedures/backlog.md` § `/brana:backlog start` → step 1a.

@@ -232,16 +232,9 @@ LOAD step (runs in every thinking skill):
 
 acquire-skills becomes a **composable function called by LOAD**, not a standalone skill. The user never invokes it directly — LOAD triggers it when a gap is detected. The skill stays as a stub for direct invocation (`/brana:acquire-skills cloudflare`) but the primary path is through LOAD.
 
-### Unify start + do + execute
+### Unify start + do + execute ✓ (t-974, 2026-04-06)
 
-Merge `/brana:do` into `/brana:backlog start` — accept both task IDs and freeform text. One entry point for interactive work.
-
-`/brana:backlog execute` stays separate (batch autonomous), but start auto-detects when a phase is batch-eligible:
-- Phase has 3+ unblocked tasks AND avg effort <= M AND blocked_by density < 0.3
-- → Offer: "This phase has N parallelizable tasks. Run as batch (execute) or interactive?"
-- Smart router: one entry point, system evaluates the right mode
-
-Both share LOAD-step knowledge injection (ruflo search by task metadata).
+Implemented in `system/procedures/backlog.md` § `/brana:backlog start`. Step 1 now detects input type: task ID, phase ID, or freeform text. Freeform text triggers skill routing (absorbed from `/brana:do`). Phase IDs trigger batch detection (3+ unblocked, avg effort ≤ M, dep density < 0.3 → offer execute mode). `/brana:do` procedure reduced to a thin alias. Execute stays separate but is offered from start when appropriate.
 
 ## Interaction Model: Claude Proposes, User Validates
 
@@ -314,7 +307,7 @@ Findings incorporated above:
 **Phase 2 — Follow-ups (separate tasks, after tiering proves out):**
 - LOAD step generalization (search skills namespace)
 - Just-in-time skill acquisition via LOAD
-- Unify start + do + execute
+- ~~Unify start + do + execute~~ ✓ t-974
 - Propose-first enforcement
 - Doc reindex at close time
 - ~~Execute agent knowledge injection~~ ✓ t-973
