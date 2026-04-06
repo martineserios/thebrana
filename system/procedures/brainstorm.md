@@ -48,7 +48,8 @@ Pull relevant knowledge into context before the brainstorm begins. Budget: 30K t
    grep -rl "{keywords}" docs/reflections/ docs/ideas/ --include="*.md" | head -5
    ```
    Read the top 3 matching files (first 80 lines each).
-4. **Summarize loaded knowledge** as a brief context preamble (2-5 bullets). Do not show raw results — synthesize what's relevant to the seed idea.
+4. **Skill match handling** — if any result has `namespace: "skills"` and score >= 0.5, mention inline: "Matching skill: /brana:{name} ({score})." Informational only — don't auto-invoke or block.
+5. **Summarize loaded knowledge** as a brief context preamble (2-5 bullets). Do not show raw results — synthesize what's relevant to the seed idea.
 
 ### Phase 1 — Seed
 
