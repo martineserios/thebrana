@@ -406,6 +406,16 @@ If system files were changed this session AND the project is brana (git root bas
 - Not in thebrana project (other projects don't have /reconcile)
 - User already ran /reconcile manually this session (check conversation context)
 
+#### Knowledge reindex
+
+After drift detection, batch-reindex any changed docs into ruflo so the knowledge base stays current. One reindex per session replaces per-commit hooks.
+
+```bash
+brana knowledge reindex --changed 2>/dev/null || true
+```
+
+**Skip if:** no docs changed this session (git diff shows no `docs/`, `brana-knowledge/`, or `system/procedures/` changes), or ruflo is unavailable.
+
 ### Step 9: Write session state via CLI
 
 Build a JSON object from all evidence gathered in previous steps, write it to a temp file, and call `brana session write`. The LLM never writes session files directly — the CLI validates the schema and handles atomic writes + history archival.
