@@ -200,18 +200,9 @@ Implemented in `system/procedures/backlog.md` execute step 7. Before spawning ea
 
 Current acquired skills (cargo-machete, rust-skills, mcp-builder) are reference docs, not workflows. Move to brana-knowledge dimensions or procedures. Future acquired skills from marketplace go to `procedures/` as extended stubs — same tiering pattern.
 
-### /brana:acquire-skills audit (2026-04-06)
+### /brana:acquire-skills audit ✓ (t-975, 2026-04-06)
 
-Concept is sound but implementation is stale. Broken:
-- Install path: writes to `~/.claude/skills/` (dead) instead of `system/skills/acquired/`
-- References `deploy.sh` (doesn't exist) and `docs/guide/skills.md` (doesn't exist)
-- No frontmatter fixup — marketplace skills lack `group`, `status`, `allowed-tools`
-- Quarantine references `/brana:audit` (absorbed into reconcile)
-- No ruflo indexing after install — skill not searchable until next session
-
-Working: tech detection, skills.sh CLI search, trust tier classification, safety scan.
-
-Fix needed: update install path, add frontmatter fixup, index in ruflo after install, remove stale references. Should install to `system/procedures/` (extended tier) with a stub in `system/skills/`, not as a full SKILL.md in skills/acquired/.
+Fixed all 6 issues: install path updated to universal stub model (system/skills/ + system/procedures/), dead references removed (deploy.sh, docs/guide/skills.md, /brana:audit), frontmatter fixup added (group, status, allowed-tools, source, acquired), ruflo reindex after install. See `system/procedures/acquire-skills.md`.
 
 ### Just-in-time skill acquisition via LOAD step
 
