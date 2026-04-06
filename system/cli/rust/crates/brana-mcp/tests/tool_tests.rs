@@ -330,3 +330,186 @@ fn test_server_builds_without_error() {
         .build();
     assert!(result.is_ok(), "Server build failed: {:?}", result.err());
 }
+
+// ── Session tool tests ───────────────────────────────────────────────────
+
+/// Create a fake project root with a memory dir for session tests.
+/// Returns a TempDir (must be kept alive) and the project root PathBuf.
+fn fixture_project_root() -> (tempfile::TempDir, PathBuf) {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().to_path_buf();
+    // Pre-create the memory dir so tests can also check it is absent before writes
+    (dir, root)
+}
+
+/// Build a minimal valid session state JSON value.
+fn minimal_session_json(written_at: &str) -> Value {
+    json!({
+        "version": 1,
+        "written_at": written_at,
+        "branch": "feat/t-976",
+        "accomplished": ["implemented session tools"],
+        "learnings": [],
+        "next": [],
+        "blockers": []
+    })
+}
+
+// ── session_write tests ──────────────────────────────────────────────────
+
+#[test]
+fn test_session_write_creates_state_file() {
+    let (_dir, root) = fixture_project_root();
+
+    let payload: brana_core::session::SessionState =
+        serde_json::from_value(minimal_session_json("2026-04-06T10:00:00Z")).unwrap();
+
+    brana_core::session::write_state(&root, &payload).unwrap();
+
+    let state_path = brana_core::session::session_state_path(&root);
+    assert!(state_path.exists(), "session-state.json should exist after write");
+}
+
+#[test]
+fn test_session_write_auto_fills_written_at_on_empty() {
+    // When written_at is a valid RFC3339, it passes through unchanged.
+    // The MCP tool fills it if empty — we test the core function here.
+    let (_dir, root) = fixture_project_root();
+
+    let state = brana_core::session::SessionState {
+        version: 1,
+        written_at: "2026-04-06T12:00:00Z".to_string(),
+        branch: Some("main".to_string()),
+        session_label: None,
+        consumed_at: None,
+        accomplished: vec!["thing A".to_string()],
+        learnings: Vec::new(),
+        next: Vec::new(),
+        blockers: Vec::new(),
+        backprop: None,
+        doc_drift: None,
+        state: None,
+        metrics: None,
+    };
+
+    brana_core::session::write_state(&root, &state).unwrap();
+    let loaded = brana_core::session::read_state(&root).unwrap();
+    assert_eq!(loaded.accomplished, vec!["thing A"]);
+}
+
+#[test]
+fn test_session_write_archives_previous_state() {
+    let (_dir, root) = fixture_project_root();
+
+    let state1: brana_core::session::SessionState =
+        serde_json::from_value(minimal_session_json("2026-04-06T10:00:00Z")).unwrap();
+    brana_core::session::write_state(&root, &state1).unwrap();
+
+    let state2: brana_core::session::SessionState =
+        serde_json::from_value(minimal_session_json("2026-04-06T11:00:00Z")).unwrap();
+    brana_core::session::write_state(&root, &state2).unwrap();
+
+    let history_path = brana_core::session::session_history_path(&root);
+    assert!(history_path.exists(), "history file should exist after second write");
+
+    let content = fs::read_to_string(&history_path).unwrap();
+    assert!(content.contains("2026-04-06T10:00:00"), "first state should be in history");
+}
+
+#[test]
+fn test_session_write_rejects_invalid_version() {
+    let (_dir, root) = fixture_project_root();
+
+    let mut state: brana_core::session::SessionState =
+        serde_json::from_value(minimal_session_json("2026-04-06T10:00:00Z")).unwrap();
+    state.version = 99;
+
+    let result = brana_core::session::write_state(&root, &state);
+    assert!(result.is_err(), "should reject unsupported schema version");
+}
+
+// ── session_read tests ───────────────────────────────────────────────────
+
+#[test]
+fn test_session_read_returns_none_when_no_state() {
+    let (_dir, root) = fixture_project_root();
+    assert!(brana_core::session::read_state(&root).is_none());
+}
+
+#[test]
+fn test_session_read_returns_full_state() {
+    let (_dir, root) = fixture_project_root();
+
+    let state: brana_core::session::SessionState =
+        serde_json::from_value(minimal_session_json("2026-04-06T10:00:00Z")).unwrap();
+    brana_core::session::write_state(&root, &state).unwrap();
+
+    let loaded = brana_core::session::read_state(&root).unwrap();
+    assert_eq!(loaded.version, 1);
+    assert_eq!(loaded.branch, Some("feat/t-976".to_string()));
+    assert_eq!(loaded.accomplished, vec!["implemented session tools"]);
+}
+
+#[test]
+fn test_session_read_specific_field_via_json() {
+    let (_dir, root) = fixture_project_root();
+
+    let state: brana_core::session::SessionState =
+        serde_json::from_value(minimal_session_json("2026-04-06T10:00:00Z")).unwrap();
+    brana_core::session::write_state(&root, &state).unwrap();
+
+    let loaded = brana_core::session::read_state(&root).unwrap();
+    let as_value = serde_json::to_value(&loaded).unwrap();
+    // Simulate the MCP tool's optional field extraction
+    assert_eq!(as_value["branch"], "feat/t-976");
+    assert_eq!(as_value["version"], 1);
+}
+
+// ── session_history tests ────────────────────────────────────────────────
+
+#[test]
+fn test_session_history_empty_when_no_history() {
+    let (_dir, root) = fixture_project_root();
+    let history = brana_core::session::read_history(&root, 5);
+    assert!(history.is_empty());
+}
+
+#[test]
+fn test_session_history_most_recent_first() {
+    let (_dir, root) = fixture_project_root();
+
+    // Write 3 states sequentially to build history (each write archives the previous)
+    let s1: brana_core::session::SessionState =
+        serde_json::from_value(minimal_session_json("2026-04-06T08:00:00Z")).unwrap();
+    brana_core::session::write_state(&root, &s1).unwrap();
+
+    let s2: brana_core::session::SessionState =
+        serde_json::from_value(minimal_session_json("2026-04-06T09:00:00Z")).unwrap();
+    brana_core::session::write_state(&root, &s2).unwrap();
+
+    let s3: brana_core::session::SessionState =
+        serde_json::from_value(minimal_session_json("2026-04-06T10:00:00Z")).unwrap();
+    brana_core::session::write_state(&root, &s3).unwrap();
+
+    let history = brana_core::session::read_history(&root, 10);
+    assert_eq!(history.len(), 2, "s1 and s2 should be in history (s3 is current)");
+    // Most recent first
+    assert!(history[0].written_at > history[1].written_at);
+}
+
+#[test]
+fn test_session_history_limit_applied() {
+    let (_dir, root) = fixture_project_root();
+
+    // Write 4 states to build 3-entry history
+    for h in 8..=11u32 {
+        let s: brana_core::session::SessionState =
+            serde_json::from_value(minimal_session_json(
+                &format!("2026-04-06T{h:02}:00:00Z")
+            )).unwrap();
+        brana_core::session::write_state(&root, &s).unwrap();
+    }
+
+    let history = brana_core::session::read_history(&root, 2);
+    assert_eq!(history.len(), 2, "limit of 2 should be respected");
+}

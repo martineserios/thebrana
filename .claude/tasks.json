@@ -26388,7 +26388,7 @@
     {
       "id": "t-977",
       "subject": "Add batch/multi-field support to backlog_set MCP tool",
-      "status": "pending",
+      "status": "completed",
       "stream": "tech-debt",
       "type": "task",
       "tags": [
@@ -26404,12 +26404,13 @@
       "started": null,
       "completed": null,
       "blocked_by": [],
-      "branch": null,
+      "branch": "feat/t-977-backlog-set-batch",
       "context": null,
       "notes": null,
       "order": 0,
       "github_issue": null,
-      "execution": "code"
+      "execution": "code",
+      "strategy": "feature"
     },
     {
       "id": "t-978",
@@ -26551,6 +26552,83 @@
       "github_issue": null,
       "execution": "code",
       "strategy": "bug-fix"
+    },
+    {
+      "id": "t-983",
+      "subject": "Fix tdd-gate hook to enforce test-first on new code files, not just test file edits",
+      "status": "done",
+      "stream": "tech-debt",
+      "type": "task",
+      "tags": [
+        "hooks",
+        "tdd",
+        "enforcement"
+      ],
+      "description": "tdd-gate.sh only fires on Write/Edit to test files — it misses the case where new code files are created without corresponding tests. This allows SDD/TDD violations to slip through, especially after procedure-level (markdown) work where no tests exist, creating a \"no-test mode\" mindset that carries into code tasks. Fix: detect new code file creation (any language, not just Rust) and require a matching test file exists or is created in the same session. May require rethinking trigger model (PreToolUse vs PostToolUse on Write/Edit to non-test code paths).",
+      "effort": "M",
+      "priority": null,
+      "parent": null,
+      "created": "2026-04-06",
+      "started": "2026-04-06",
+      "completed": null,
+      "blocked_by": [],
+      "branch": "fix/t-983-tdd-gate-new-files",
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "strategy": "bug-fix"
+    },
+    {
+      "id": "t-984",
+      "subject": "Evaluate challenger agent model: use a different model than the one being challenged",
+      "status": "pending",
+      "stream": "tech-debt",
+      "type": "task",
+      "tags": [
+        "agents",
+        "challenger"
+      ],
+      "description": "The challenger agent currently uses Opus — the same model that creates the plans/decisions being reviewed. This undermines adversarial review since the same model has the same blind spots. Evaluate using Sonnet (or another model) as the challenger to get genuinely different reasoning. The key principle: the challenger should be a DIFFERENT model than the one that produced the idea, to surface blind spots the originating model can't see.",
+      "effort": "S",
+      "priority": null,
+      "parent": null,
+      "created": "2026-04-06",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
+    },
+    {
+      "id": "t-985",
+      "subject": "Clean up stale /tmp/tdd-gate-* files from reverted session tracking",
+      "status": "pending",
+      "stream": "tech-debt",
+      "type": "task",
+      "tags": [
+        "hooks",
+        "cleanup"
+      ],
+      "description": "The reverted session-level tdd-gate approach left state files in /tmp/tdd-gate-*. Add cleanup to session-end hook or a scheduled job to prevent accumulation.",
+      "effort": "S",
+      "priority": null,
+      "parent": null,
+      "created": "2026-04-06",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
     }
   ],
   "version": "1"

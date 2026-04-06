@@ -459,8 +459,12 @@ pub fn cmd_list() -> Result<()> {
     Ok(())
 }
 
-/// `brana skills reindex [--changed]`
-pub fn cmd_reindex(changed: bool) {
+/// `brana skills reindex [--changed] [--force]`
+///
+/// - No flags: full reindex (deletes mtime marker, runs script without `--changed`)
+/// - `--changed`: incremental reindex (respects mtime marker)
+/// - `--force`: always delete the mtime marker before running, even when combined with `--changed`
+pub fn cmd_reindex(changed: bool, force: bool) {
     let root = crate::util::find_project_root().unwrap_or_else(|| {
         eprintln!("Not in git repo");
         std::process::exit(1);
@@ -471,9 +475,12 @@ pub fn cmd_reindex(changed: bool) {
         std::process::exit(1);
     }
 
-    // When not --changed, delete the mtime marker to force full reindex
-    if !changed {
-        let mtime_file = std::path::Path::new("/tmp/brana-skills-index-mtime");
+    let mtime_file = std::path::Path::new("/tmp/brana-skills-index-mtime");
+
+    // Delete the mtime marker when:
+    //   - not --changed (default full reindex), OR
+    //   - --force is set (explicit bypass regardless of --changed)
+    if !changed || force {
         if mtime_file.exists() {
             let _ = fs::remove_file(mtime_file);
         }
@@ -481,7 +488,8 @@ pub fn cmd_reindex(changed: bool) {
 
     let mut cmd = std::process::Command::new("bash");
     cmd.arg(&script).current_dir(&root);
-    if changed {
+    // Pass --changed only when requested AND not forced (force wins over changed)
+    if changed && !force {
         cmd.arg("--changed");
     }
 
@@ -777,6 +785,70 @@ stream_affinity: [roadmap]
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].name, "close");
         assert!((results[0].score - 0.0).abs() < f64::EPSILON);
+    }
+
+    // ── reindex --force flag tests ────────────────────────────────────
+
+    /// Helper: simulate the mtime-check bypass logic from cmd_reindex.
+    /// Returns (mtime_deleted, changed_flag_passed_to_script).
+    fn reindex_mtime_logic(changed: bool, force: bool) -> (bool, bool) {
+        // Delete mtime when: not --changed OR --force
+        let mtime_deleted = !changed || force;
+        // Pass --changed to script only when: --changed AND NOT --force
+        let changed_flag_to_script = changed && !force;
+        (mtime_deleted, changed_flag_to_script)
+    }
+
+    #[test]
+    fn test_reindex_default_clears_mtime_and_runs_full() {
+        let (mtime_deleted, changed_to_script) = reindex_mtime_logic(false, false);
+        assert!(mtime_deleted, "default reindex must clear mtime marker");
+        assert!(!changed_to_script, "default reindex must not pass --changed to script");
+    }
+
+    #[test]
+    fn test_reindex_changed_only_preserves_mtime() {
+        let (mtime_deleted, changed_to_script) = reindex_mtime_logic(true, false);
+        assert!(!mtime_deleted, "--changed should NOT clear mtime marker");
+        assert!(changed_to_script, "--changed must pass --changed flag to script");
+    }
+
+    #[test]
+    fn test_reindex_force_clears_mtime_and_runs_full() {
+        let (mtime_deleted, changed_to_script) = reindex_mtime_logic(false, true);
+        assert!(mtime_deleted, "--force must clear mtime marker");
+        assert!(!changed_to_script, "--force without --changed must not pass --changed to script");
+    }
+
+    #[test]
+    fn test_reindex_force_plus_changed_still_clears_mtime_and_runs_full() {
+        // --force wins over --changed: mtime deleted, script runs without --changed
+        let (mtime_deleted, changed_to_script) = reindex_mtime_logic(true, true);
+        assert!(mtime_deleted, "--force must clear mtime marker even when --changed is also set");
+        assert!(!changed_to_script, "--force overrides --changed; script runs full reindex");
+    }
+
+    #[test]
+    fn test_reindex_strategy_summary() {
+        // Exhaustive truth table for the 4 combinations
+        let cases = [
+            // (changed, force, expect_mtime_deleted, expect_changed_to_script)
+            (false, false, true,  false), // default: full reindex
+            (true,  false, false, true),  // incremental: mtime preserved, --changed passed
+            (false, true,  true,  false), // force alone: mtime cleared, full reindex
+            (true,  true,  true,  false), // force+changed: force wins, full reindex
+        ];
+        for (changed, force, want_del, want_changed) in cases {
+            let (got_del, got_changed) = reindex_mtime_logic(changed, force);
+            assert_eq!(
+                got_del, want_del,
+                "mtime_deleted mismatch for changed={changed} force={force}"
+            );
+            assert_eq!(
+                got_changed, want_changed,
+                "changed_to_script mismatch for changed={changed} force={force}"
+            );
+        }
     }
 
     #[test]

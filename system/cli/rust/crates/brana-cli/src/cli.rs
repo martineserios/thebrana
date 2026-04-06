@@ -191,6 +191,20 @@ pub enum KnowledgeCmd {
     },
     /// Show knowledge index status (entry count, last indexed)
     Status,
+    /// Semantic search against the ruflo knowledge namespace
+    Search {
+        /// Search query
+        query: String,
+        /// Max results to return (default 10)
+        #[arg(long, default_value = "10")]
+        limit: usize,
+        /// Ruflo namespace to search (default: knowledge)
+        #[arg(long, default_value = "knowledge")]
+        namespace: String,
+        /// Output raw JSON instead of human-readable text
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -293,6 +307,9 @@ pub enum SkillsCmd {
         /// Only reindex skills modified since last run
         #[arg(long)]
         changed: bool,
+        /// Force full reindex, bypassing the mtime check even when --changed is set
+        #[arg(long)]
+        force: bool,
     },
 }
 

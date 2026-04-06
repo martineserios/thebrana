@@ -20,6 +20,9 @@ async fn main() -> anyhow::Result<()> {
         .tool("backlog_burndown", tools::backlog_burndown::build())
         .tool("backlog_focus", tools::backlog_focus::build())
         .tool("backlog_stale", tools::backlog_stale::build())
+        .tool("session_write", tools::session_write::build())
+        .tool("session_read", tools::session_read::build())
+        .tool("session_history", tools::session_history::build())
         .build()?;
 
     server.run_stdio().await?;
