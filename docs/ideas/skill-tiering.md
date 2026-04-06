@@ -250,11 +250,12 @@ Same 3-level escalation as the smart router:
 
 **Auto-detection:** Phase with 3+ unblocked tasks, avg effort <= M, low dependency density → propose execute. Otherwise → interactive.
 
-### Testing the propose-first behavior
+### Testing the propose-first behavior ✓ (t-980, 2026-04-06)
 
-1. **Static (validate.sh):** Every AskUserQuestion in SKILL.md must have `(Recommended)` on the first option. Fail if any question lacks a default recommendation.
-2. **Dynamic (close EXTRACT):** Count propose vs. ask-open-ended ratio per session. Target: >90% propose. Add as a session metric.
-3. **Dry run:** Start a task, observe if Claude proposes or asks. Manual validation during implementation.
+Implemented both enforcement mechanisms:
+1. **Static (validate.sh):** Check 8b scans all procedures for AskUserQuestion occurrences and warns if no `(Recommended)` marker exists in the file.
+2. **Dynamic (close EXTRACT):** Session metrics now include `propose_count`, `ask_open_count`, `propose_rate`. Target: > 0.90. Below-target rate generates a learning.
+3. **Dry run:** Manual — observe during normal usage.
 
 ## Challenger Review (2026-04-06, Opus)
 
@@ -284,6 +285,6 @@ Findings incorporated above:
 - ~~LOAD step generalization (search skills namespace)~~ ✓ t-978
 - ~~Just-in-time skill acquisition via LOAD~~ ✓ t-979
 - ~~Unify start + do + execute~~ ✓ t-974
-- Propose-first enforcement
+- ~~Propose-first enforcement~~ ✓ t-980
 - Doc reindex at close time
 - ~~Execute agent knowledge injection~~ ✓ t-973

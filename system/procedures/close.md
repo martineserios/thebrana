@@ -458,7 +458,8 @@ Build a JSON object from all evidence gathered in previous steps, write it to a 
     "correction_rate": 0.0, "test_write_rate": 0.0,
     "cascade_rate": 0.0, "delegation_count": 0,
     "behavioral_files_changed": 0, "doc_files_changed": 0,
-    "doc_prompts_accepted": 0, "doc_prompts_skipped": 0
+    "doc_prompts_accepted": 0, "doc_prompts_skipped": 0,
+    "propose_count": 0, "ask_open_count": 0, "propose_rate": 0.0
   }
 }
 ```
@@ -471,6 +472,12 @@ if [ -f "$SESSION_FILE" ]; then
 fi
 ```
 Use the output to fill events, corrections, test_writes, correction_rate, test_write_rate, cascade_rate, delegation_count. If the session file doesn't exist or metrics fail, omit the metrics field (it's optional).
+
+**Propose-first metrics** — count from conversation context (no telemetry file needed):
+- `propose_count`: AskUserQuestion calls where the first option had "(Recommended)" or was a clear default
+- `ask_open_count`: AskUserQuestion calls where all options were equal weight (no recommendation)
+- `propose_rate`: `propose_count / (propose_count + ask_open_count)`. Target: > 0.90.
+If propose_rate < 0.90, add a learning: "Propose-first rate below target ({rate}). Review decision points for missing defaults."
 
 **Write via CLI:**
 
