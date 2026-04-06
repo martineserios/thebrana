@@ -10,6 +10,13 @@
     "context7": {
       "command": "npx",
       "args": ["@upstash/context7-mcp@latest"]
+    },
+    "linkedin": {
+      "command": "uvx",
+      "args": ["linkedin-scraper-mcp"]
+    },
+    "brana": {
+      "command": "/home/martineserios/enter_thebrana/thebrana/system/cli/rust/target/release/brana-mcp"
     }
   }
 }

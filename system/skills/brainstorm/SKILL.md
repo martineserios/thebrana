@@ -320,7 +320,7 @@ AskUserQuestion:
   options:
     - "Yes — plan phases & tasks"  → invoke /brana:backlog plan with the idea as input
     - "Not yet — just save the doc"
-    - "Quick add (flat task only)"  → fallback: single task via brana backlog add
+    - "Quick add (flat task only)"  → single task via backlog_add() (MCP) or brana backlog add
 ```
 
 **If "Yes — plan phases & tasks"** (default, recommended):
@@ -333,7 +333,7 @@ using the brainstorm's phased rollout as input. This is the **mandatory default*
 a brainstormed idea with phases and next steps deserves structured planning, not a flat task.
 
 **If "Quick add (flat task only)"** (escape hatch for trivial ideas):
-Create a single task via `brana backlog add` with:
+Create a single task via `backlog_add()` (MCP) or `brana backlog add` with:
 - Subject from idea title
 - Description from problem + solution
 - Context linking to the idea doc

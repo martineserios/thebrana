@@ -1,0 +1,98 @@
+//! brana — fast standalone CLI dispatcher
+//!
+//! Single static binary. 12ms startup. No Python dependency.
+//! Handles high-frequency commands natively in Rust.
+//! Delegates complex ops to existing shell scripts.
+
+mod cli;
+mod commands;
+mod files;
+mod sync;
+mod tasks;
+mod themes;
+mod transcribe;
+mod util;
+
+use clap::{Parser, ValueEnum};
+use cli::*;
+
+/// Run a command that returns `anyhow::Result<()>`, printing the error and
+/// exiting with code 1 on failure.
+fn run_or_exit(result: anyhow::Result<()>) {
+    if let Err(e) = result {
+        eprintln!("{e:#}");
+        std::process::exit(1);
+    }
+}
+
+fn main() {
+    let args = Cli::parse();
+    let theme_name = themes::load_theme_name();
+    let theme = themes::Theme::load(&theme_name);
+
+    match args.command {
+        Commands::Version => run_or_exit(commands::misc::cmd_version()),
+        Commands::Transcribe { file, model } => run_or_exit(commands::misc::cmd_transcribe(&file, &model)),
+        Commands::Files { cmd } => run_or_exit(commands::files::cmd_files(cmd)),
+        Commands::Doctor => commands::doctor::cmd_doctor(&theme),
+        Commands::Validate { file } => run_or_exit(commands::misc::cmd_validate(&file)),
+        Commands::Portfolio => run_or_exit(commands::misc::cmd_portfolio()),
+        Commands::Run { task_id, spawn } => run_or_exit(commands::run::cmd_run(&task_id, spawn)),
+        Commands::Queue { max, auto } => run_or_exit(commands::run::cmd_queue(max, auto)),
+        Commands::Agents { cmd } => match cmd {
+            None => run_or_exit(commands::run::cmd_agents()),
+            Some(AgentsCmd::Kill { agent_id }) => run_or_exit(commands::run::cmd_agents_kill(&agent_id)),
+        },
+        Commands::Backlog { cmd } => match cmd {
+            BacklogCmd::Next { tag, stream } => run_or_exit(commands::backlog::cmd_next(&theme, tag, ve_str(&stream))),
+            BacklogCmd::Query {
+                tag, status, stream, priority, effort, search, count, output,
+                task_type, parent, branch,
+            } => run_or_exit(commands::backlog::cmd_query(tag, ve_str(&status), ve_str(&stream), ve_str(&priority), ve_str(&effort), search, count, output, &theme, ve_str(&task_type), parent, branch)),
+            BacklogCmd::Focus => run_or_exit(commands::backlog::cmd_focus(&theme)),
+            BacklogCmd::Search { text } => run_or_exit(commands::backlog::cmd_search(&text, &theme)),
+            BacklogCmd::Status { all, json } => run_or_exit(commands::backlog::cmd_status(&theme, all, json)),
+            BacklogCmd::Blocked => run_or_exit(commands::backlog::cmd_blocked(&theme)),
+            BacklogCmd::Stale { days } => run_or_exit(commands::backlog::cmd_stale(days, &theme)),
+            BacklogCmd::Context { task_id } => run_or_exit(commands::backlog::cmd_context(&task_id, &theme)),
+            BacklogCmd::Diff => run_or_exit(commands::backlog::cmd_diff(&theme)),
+            BacklogCmd::Burndown { period } => run_or_exit(commands::backlog::cmd_burndown(&period.to_possible_value().unwrap().get_name().to_string(), &theme)),
+            BacklogCmd::Rollup { file, dry_run } => run_or_exit(commands::backlog::cmd_rollup(file, dry_run)),
+            BacklogCmd::Set { task_id, field, value, append, file } => run_or_exit(commands::backlog::cmd_set(&task_id, &field, &value, append, file)),
+            BacklogCmd::Add { json, subject, stream, task_type, tags, description, effort, parent, file } =>
+                run_or_exit(commands::backlog::cmd_add(json, subject, stream, task_type, tags, description, effort, parent, file)),
+            BacklogCmd::Get { task_id, field } => run_or_exit(commands::backlog::cmd_get(&task_id, field)),
+            BacklogCmd::Stats => run_or_exit(commands::backlog::cmd_stats()),
+            BacklogCmd::Tags { filter, any, output } => run_or_exit(commands::backlog::cmd_tags(filter, any, output, &theme)),
+            BacklogCmd::Roadmap { json } => run_or_exit(commands::backlog::cmd_roadmap(json, &theme)),
+            BacklogCmd::Tree { root_id, json } => run_or_exit(commands::backlog::cmd_tree(&root_id, json, &theme)),
+            BacklogCmd::Delete { task_id, cascade, file } => run_or_exit(commands::backlog::cmd_delete(&task_id, cascade, file)),
+            BacklogCmd::Move { task_id, parent, file } => run_or_exit(commands::backlog::cmd_move(&task_id, &parent, file)),
+            BacklogCmd::Archive { phase_id, file } => run_or_exit(commands::backlog::cmd_archive(phase_id, file)),
+            BacklogCmd::Sync { dry_run, force, parallel } => run_or_exit(sync::cmd_sync(dry_run, force, parallel)),
+        },
+        Commands::Ops { cmd } => match cmd {
+            OpsCmd::Status { all } => run_or_exit(commands::ops::cmd_ops_status(&theme, all)),
+            OpsCmd::Health => run_or_exit(commands::ops::cmd_ops_health(&theme)),
+            OpsCmd::Collisions => run_or_exit(commands::ops::cmd_ops_collisions(&theme)),
+            OpsCmd::Drift => run_or_exit(commands::ops::cmd_ops_drift(&theme)),
+            OpsCmd::Logs { job_name, tail } => run_or_exit(commands::ops::cmd_ops_logs(&job_name, tail)),
+            OpsCmd::History { job_name, last } => run_or_exit(commands::ops::cmd_ops_history(&job_name, last, &theme)),
+            OpsCmd::Run { job_name } => run_or_exit(commands::ops::cmd_ops_run(&job_name)),
+            OpsCmd::Enable { job_name } => run_or_exit(commands::ops::cmd_ops_toggle(&job_name, true)),
+            OpsCmd::Disable { job_name } => run_or_exit(commands::ops::cmd_ops_toggle(&job_name, false)),
+            OpsCmd::Sync { auto_commit, direction } => run_or_exit(commands::ops::cmd_ops_sync(&direction, auto_commit)),
+            OpsCmd::Reindex => run_or_exit(commands::ops::cmd_ops_reindex()),
+            OpsCmd::Metrics { session_file } => run_or_exit(commands::ops::cmd_ops_metrics(&session_file)),
+        },
+        Commands::Feed { cmd } => run_or_exit(commands::feed::cmd_feed(cmd)),
+        Commands::Inbox { cmd } => run_or_exit(commands::inbox::cmd_inbox(cmd)),
+        Commands::Skills { cmd } => match cmd {
+            SkillsCmd::Suggest { task, query } => {
+                run_or_exit(commands::skills::cmd_suggest(task.as_deref(), query.as_deref()))
+            }
+            SkillsCmd::Search { query } => run_or_exit(commands::skills::cmd_search(&query)),
+            SkillsCmd::List => run_or_exit(commands::skills::cmd_list()),
+        },
+    }
+}
