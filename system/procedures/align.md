@@ -53,7 +53,7 @@ Spawn the `client-scanner` (code) or `venture-scanner` (venture) agent. If unava
 
 | Group | Items |
 |-------|-------|
-| Foundation (F1-F4) | Git, CLAUDE.md, rules, conventional commits |
+| Foundation (F1-F5) | Git, CLAUDE.md, rules, conventional commits, inbox |
 | SDD (S1-S5) | docs/decisions/, ADR, PreToolUse hook, /decide, spec-first |
 | DDD (D1-D4) | Glossary, bounded contexts, ubiquitous language, model |
 | TDD (T1-T4) | Test framework, runner, tdd-guard, coverage |
@@ -65,7 +65,7 @@ Spawn the `client-scanner` (code) or `venture-scanner` (venture) agent. If unava
 
 | Group | Items |
 |-------|-------|
-| Foundation (F1-F4) | Description, decision log, metrics, cadence |
+| Foundation (F1-F5) | Description, decision log, metrics, cadence, inbox |
 | Validation (V1-V5) | Hypothesis, MVP, experiments, burn rate, referrers |
 | Growth (G1-G5) | OKRs, SOPs, meetings, hiring, decision framework |
 | Scale (S1-S5) | Org chart, dept OKRs, automation, dashboard, onboarding |
@@ -98,6 +98,12 @@ Execute item by item. Ask for confirmation before each major step.
 **F2 — CLAUDE.md:** Create/merge `.claude/CLAUDE.md` with project description, stack, conventions, domain.
 **F3 — Rules:** Copy relevant rules from `~/.claude/rules/`. Stack-specific rules get path scoping.
 **F4 — Commits:** Document conventional commits in CLAUDE.md.
+**F5 — Inbox:** Ensure `inbox/` exists and is gitignored. Create if missing:
+```bash
+mkdir -p inbox
+# Add to .gitignore if not already present
+grep -q '^inbox/' .gitignore 2>/dev/null || echo 'inbox/' >> .gitignore
+```
 
 ### Code SDD items
 
@@ -119,6 +125,7 @@ Execute item by item. Ask for confirmation before each major step.
 **F2 — Decision log:** `mkdir -p docs/decisions`. Create ADR-001 for framework selection.
 **F3 — Metrics:** `mkdir -p docs/metrics`. Create README with stage-appropriate metric tables.
 **F4 — Cadence:** `mkdir -p docs/meetings`. Create cadence.md with stage-appropriate meeting schedule.
+**F5 — Inbox:** Ensure `inbox/` exists and is gitignored (same as code F5).
 
 ### Venture stage items
 

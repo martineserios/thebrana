@@ -245,7 +245,9 @@ Exposed via `.mcp.json`. Skills should prefer these over CLI — structured JSON
 |------|------|-------------------|
 | **thebrana** (here) | Design + Build | Research, plan, implement, deploy |
 | **brana-knowledge** | Knowledge base | General knowledge, research, backups |
-| **clients/** | Portfolio | All clients live in `~/enter_thebrana/clients/` |
+| **clients/** | Paid work | External stakeholder projects (`~/enter_thebrana/clients/`) |
+| **ventures/** | Your IP | Side projects, learning, monetizing (`~/enter_thebrana/ventures/`) |
+| **personal/** | Personal OS | Journal, goals, identity (`~/enter_thebrana/personal/`) |
 
 ## Rules
 

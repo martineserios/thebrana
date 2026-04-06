@@ -2,6 +2,13 @@
   "mcpServers": {
     "brana": {
       "command": "/home/martineserios/.local/bin/brana-mcp"
+    },
+    "ruflo": {
+      "command": "/home/martineserios/enter_thebrana/thebrana/system/scripts/ruflo-mcp.sh",
+      "args": [
+        "mcp",
+        "start"
+      ]
     }
   }
 }

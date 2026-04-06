@@ -44,7 +44,8 @@ Gather the minimum needed to create the project root.
 | display_name | "Display name?" | free text | titlecase of slug |
 | type | "Project type?" | code / venture / hybrid | code |
 | description | "One-line description?" | free text | — |
-| base_path | "Location?" | `~/enter_thebrana/clients/` (recommended) / custom path | `~/enter_thebrana/clients/` |
+| category | "Category?" | client (paid work) / venture (your IP — side project, learning, monetizing) / personal | client |
+| base_path | "Location?" | auto from category: `clients/` / `ventures/` / `personal/` (all under `~/enter_thebrana/`) / custom path | auto |
 | github | "Create GitHub remote?" | yes / no | no |
 | github_org | (only if github=yes) "GitHub org?" | martineserios / other | martineserios |
 | github_visibility | (only if github=yes) "Visibility?" | private (recommended) / public | private |
@@ -52,10 +53,21 @@ Gather the minimum needed to create the project root.
 ### Flag overrides (skip prompts)
 
 ```
-/brana:onboard new myproject --type venture --path ~/other/place --github --org myorg
+/brana:onboard new myproject --type venture --category venture --github --org myorg
+/brana:onboard new myclient --type code --category client
 ```
 
 Any flag provided skips that prompt.
+
+### Category → base_path mapping
+
+| Category | base_path |
+|----------|-----------|
+| client | `~/enter_thebrana/clients/` |
+| venture | `~/enter_thebrana/ventures/` |
+| personal | `~/enter_thebrana/personal/` |
+
+Custom `--path` overrides category mapping.
 
 ---
 
@@ -133,12 +145,15 @@ If `gh` fails (not installed, not authenticated): warn and continue. The project
 
 ### Portfolio entry
 
-Append to `~/.claude/memory/portfolio.md` under `## Clients`:
+Append to `~/.claude/memory/portfolio.md` under the matching section:
+- category=client → `## Clients (paid work — external stakeholder)`
+- category=venture → `## Ventures (your IP — side projects, learning, monetizing)`
+- category=personal → `## Personal (personal OS — not a project)`
 
 ```markdown
 ### {slug}
 - **Type:** {type} — {description}
-- **Projects:** {slug} (`clients/{slug}`)
+- **Location:** `~/enter_thebrana/{category_dir}/{slug}/`
 - **Status:** Starting — {today}
 ```
 
