@@ -51,10 +51,12 @@ R1(08 Triage) → R2(14 Architecture) → R3(31 Assurance) / R4(32 Lifecycle) �
 ```
 system/                                  Plugin (loaded by Claude Code)
 ├── .claude-plugin/plugin.json           ← plugin manifest
-├── skills/                              ← /brana:* slash commands
+├── skills/                              ← /brana:* slash commands (core: full, extended: stubs)
+├── procedures/                          ← extended skill procedure bodies (ADR-034)
 ├── commands/                            ← agent commands
 ├── hooks/hooks.json + *.sh              ← event hooks
 ├── agents/                              ← specialized agents
+├── scripts/*-mcp.sh                     ← MCP server wrappers (ADR-033)
 ├── CLAUDE.md                            ← mastermind identity
 └── cli/rust/                            ← Cargo workspace (ADR-026)
     └── crates/
@@ -76,6 +78,19 @@ bootstrap.sh                             Identity layer → ~/.claude/
 ```
 
 Version: v1.0.0
+
+### Skill Tiering (ADR-034)
+
+Skills are split into two tiers to reduce startup context (~34K to ~18K tokens):
+
+- **Core (7):** Full SKILL.md — build, backlog, close, research, brainstorm, sitrep, do
+- **Extended (21):** Stub SKILL.md (frontmatter + Read instruction). Procedure body in `system/procedures/{name}.md`, loaded on invoke via Read tool.
+
+All skills remain available as slash commands. Semantic routing via ruflo is unchanged (indexes frontmatter).
+
+### MCP Server Pinning (ADR-033)
+
+`.mcp.json` uses `${CLAUDE_PLUGIN_ROOT}/scripts/*-mcp.sh` wrapper scripts instead of `npx`/`uvx`. Each wrapper resolves the server binary dynamically (via nvm or PATH). This eliminates 15-180s registry resolution per server at session start. Wrappers: `ruflo-mcp.sh`, `context7-mcp.sh`, `linkedin-mcp.sh`.
 
 ## Installation
 
@@ -221,6 +236,8 @@ Exposed via `.mcp.json`. Skills should prefer these over CLI — structured JSON
 | Errata and corrections | [24-roadmap-corrections.md](../docs/24-roadmap-corrections.md) |
 | Alignment methodology | [27-project-alignment-methodology.md](~/enter_thebrana/brana-knowledge/dimensions/27-project-alignment-methodology.md) |
 | Architecture redesign | [39-architecture-redesign.md](../docs/39-architecture-redesign.md) |
+| MCP server pinning (wrapper scripts, no npx/uvx) | [ADR-033-pin-mcp-servers.md](../docs/architecture/decisions/ADR-033-pin-mcp-servers.md) |
+| Skill tiering (core full + extended stubs) | [ADR-034-skill-tiering.md](../docs/architecture/decisions/ADR-034-skill-tiering.md) |
 
 ## Ecosystem
 

@@ -110,6 +110,8 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-030](architecture/decisions/ADR-030-maintenance-unification.md) | Maintenance unification |
 | [ADR-031](architecture/decisions/ADR-031-doc-enforcement-hook.md) | Doc-enforcement hook |
 | [ADR-032](architecture/decisions/ADR-032-smart-router.md) | Smart router |
+| [ADR-033](architecture/decisions/ADR-033-pin-mcp-servers.md) | MCP server pinning (wrapper scripts) |
+| [ADR-034](architecture/decisions/ADR-034-skill-tiering.md) | Skill tiering — core full + extended stubs |
 
 ### Domain model (docs/domain/)
 

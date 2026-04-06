@@ -15,6 +15,21 @@
 | **tools** | External integrations | notebooklm-source |
 | **utility** | Specialized tools | scheduler, gsheets, export-pdf |
 
+## Skill Tiering (ADR-034)
+
+Skills are split into two tiers to reduce startup context loading (~34K to ~18K tokens, 47% reduction):
+
+| Tier | Count | SKILL.md | Procedure location |
+|------|-------|----------|--------------------|
+| **Core** | 7 | Full (frontmatter + procedure) | Inline in SKILL.md |
+| **Extended** | 21 | Stub (frontmatter + Read instruction) | `system/procedures/{name}.md` |
+
+**Core skills** (always loaded): build, backlog, close, research, brainstorm, sitrep, do
+
+**Extended skills** use a stub SKILL.md that preserves full frontmatter (for discovery, routing, and the skill index) but replaces the procedure body with a Read instruction pointing to `system/procedures/{name}.md`. The procedure is loaded on invoke via the Read tool (~200ms overhead).
+
+If CC fixes #14882 (frontmatter-only loading), tiering becomes unnecessary — merge stubs back.
+
 ## Skill Anatomy
 
 Every skill lives at `system/skills/{name}/SKILL.md`:
@@ -37,6 +52,12 @@ allowed-tools:
 # Skill Name
 
 Instructions for Claude when this skill is invoked...
+```
+
+For extended skills, the body is replaced with a Read instruction:
+
+```markdown
+Read the procedure file before executing: `system/procedures/{name}.md`
 ```
 
 Key fields:
