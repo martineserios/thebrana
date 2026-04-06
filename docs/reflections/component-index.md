@@ -45,7 +45,7 @@ system/
 | memory-curator | Haiku | Knowledge lifecycle |
 | client-scanner | Haiku | Project structure analysis |
 | venture-scanner | Haiku | Business project analysis |
-| challenger | Opus | Adversarial review |
+| challenger | Sonnet | Adversarial review |
 | debrief-analyst | Opus | Session learning extraction |
 | archiver | Haiku | Knowledge backup and export |
 | daily-ops | Haiku | Daily operational checks |

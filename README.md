@@ -81,7 +81,7 @@ All skills are invoked as `/brana:<name>`. See [Skill Reference](docs/reference/
 | memory-curator | Haiku | Starting work, familiar problem, stuck |
 | client-scanner | Haiku | New client, project health check |
 | venture-scanner | Haiku | New business project |
-| challenger | Opus | Plan or architecture decision forming |
+| challenger | Sonnet | Plan or architecture decision forming |
 | debrief-analyst | Opus | End of implementation session |
 | scout | Haiku | Research tasks (spawned by skills) |
 | archiver | Haiku | Retiring a client |

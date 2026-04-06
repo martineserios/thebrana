@@ -26629,6 +26629,34 @@
       "order": 0,
       "github_issue": null,
       "execution": "code"
+    },
+    {
+      "subject": "Batch-fix stale challenger Opus references across docs",
+      "stream": "tech-debt",
+      "type": "task",
+      "tags": [
+        "docs",
+        "agents",
+        "challenger"
+      ],
+      "effort": "S",
+      "description": "t-984 changed challenger from Opus to Sonnet but only updated 3 files. Debrief found 6+ docs still referencing Opus: docs/reflections/14-mastermind-architecture.md (3 refs), docs/reflections/08-diagnosis.md, docs/24-roadmap-corrections.md, docs/architecture/decisions/ADR-013-event-log.md. Historical/archive refs can stay. Active spec refs need updating.",
+      "id": "t-986",
+      "status": "pending",
+      "execution": "code",
+      "created": "2026-04-06",
+      "blocked_by": [],
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "branch": null,
+      "github_issue": null,
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": null,
+      "strategy": null,
+      "build_step": null
     }
   ],
   "version": "1"
