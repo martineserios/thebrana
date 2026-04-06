@@ -178,7 +178,7 @@ if [ -f "$BULK_INDEXER" ]; then
 else
     echo "WARN: bulk-index.mjs not found at $BULK_INDEXER"
     echo "JSONL written to: $JSONL_FILE (process manually)"
-    trap - EXIT  # don't delete the file
+    trap - EXIT
     exit 1
 fi
 
