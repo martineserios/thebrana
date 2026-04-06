@@ -235,9 +235,25 @@ Interactive phase planning. Builds the hierarchy conversationally.
    - **If no overlaps found**, skip silently
    - **Never auto-link or auto-merge** — always ask the user
 10. **Offer bulk tags:** "Tag all tasks in this phase? (comma-separated, or skip)" — applies tags to every task in the phase
-11. **Wait for approval** — user can adjust before writing
-12. **Write tasks.json** — one Write for the entire batch
-13. **Report:** show the tree with IDs and tags for reference
+11. **Gate: plan completeness** — Before approval, verify the plan includes test artifacts. Writing tests and ADRs IS planning — not a separate step after implementation.
+   - Scan proposed tasks for test-related work: subjects/descriptions containing "test", "spec", "TDD", "coverage", or tasks in a `tests/` path.
+   - Scan for decision records: subjects containing "ADR", "decision", "design doc".
+   - **If code tasks exist but no test tasks:** hard block.
+     ```
+     AskUserQuestion:
+       question: "Plan has code tasks but no test tasks. Tests are part of planning (DDD→SDD→TDD). Add test tasks?"
+       header: "TDD gate"
+       options:
+         - "Add test tasks now (Recommended)"
+         - "Skip — tests are inline with implementation (Small tasks)"
+         - "Skip — not testable (scripts, config, docs only)"
+     ```
+     If "Add test tasks now": loop back to step 6 to add test tasks before code tasks (with `blocked_by` linking code → tests).
+     If "Skip — inline": proceed (Small tasks write tests inline per BUILD step 3d).
+     If "Skip — not testable": proceed.
+12. **Wait for approval** — user can adjust before writing
+13. **Write tasks.json** — one Write for the entire batch
+14. **Report:** show the tree with IDs and tags for reference
 
 ### Defaults
 - Stream: roadmap (unless user specifies otherwise)

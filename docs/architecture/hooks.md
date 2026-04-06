@@ -42,7 +42,7 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | Hook | Event | Matcher | Purpose |
 |------|-------|---------|---------|
 | `pre-tool-use.sh` | PreToolUse | `Write\|Edit` | Spec-before-code gate + cascade throttle |
-| `tdd-gate.sh` | PreToolUse | `Write\|Edit` | TDD enforcement — blocks impl writes without test files |
+| `tdd-gate.sh` | PreToolUse | `Write\|Edit` | TDD baseline — blocks impl writes when no test exists in project. Ordering enforcement (tests before impl) lives in procedure gates, not here |
 | `plan-mode-gate.sh` | PreToolUse | `EnterPlanMode` | Enforce plan mode for non-trivial builds |
 | `worktree-gate.sh` | PreToolUse | `Bash` | Block `git checkout -b` when untracked files exist |
 | `guard-explore.sh` | PreToolUse | `Read\|Grep\|Glob` | Log reads without prior search (logging only, no blocking) |

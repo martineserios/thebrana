@@ -531,6 +531,22 @@ If MCP unavailable, skip silently. Hive-mind is transient awareness, not critica
    b. **Skill check** (Medium/Large builds only): run `brana skills suggest --query "<subtask subject and key terms>"`. If a match scores > 0.3, mention it: "Skill available: /brana:{name} ({reason}). Use it?" If the user says yes, invoke the skill for this subtask. If no match, proceed without mentioning.
    c. **State what you'll change** — which files, why, how it maps to acceptance criteria
    d. **Write failing test** — the acceptance criteria become test assertions
+   d2. **Gate: TEST → IMPLEMENT** — Before writing any implementation code, verify test files were created or modified in this subtask. Check `git diff --name-only` and `git diff --cached --name-only` for test file patterns (`*test*`, `*spec*`, `tests/`, `__tests__/`).
+      - **If test files found:** proceed to implementation.
+      - **If no test files found:** hard block.
+        ```
+        AskUserQuestion:
+          question: "No test files written yet for this subtask. Tests are part of the plan — write them before implementing. What to do?"
+          header: "TDD gate"
+          options:
+            - "Write tests now (Recommended)"
+            - "Skip — not a testable change (config, docs, markup)"
+            - "Skip — reason required"
+        ```
+        If "Write tests now": loop back to step 3d.
+        If "Skip — not testable": proceed (no log needed for config/docs/markup).
+        If "Skip — reason required": require free text, log: `brana backlog set {id} notes --append "TDD gate skipped: {reason}"`.
+      - **Skip this gate for:** spike strategy, investigation strategy, and subtasks tagged `docs` or `config`.
    e. **Implement** — make the test pass
    f. **Verify** — run tests, lint, compare before/after
    g. **Probe boundaries** (after green tests) — explicitly test what should NOT work:
@@ -604,6 +620,23 @@ REPRODUCE → DIAGNOSE → FIX → CLOSE
     The fix should: {proposed approach}"
    ```
 4. **Wait for user confirmation** or redirection.
+
+### Gate: REPRODUCE → FIX
+
+Before implementing the fix, verify a failing test was written in REPRODUCE:
+- Check `git diff --name-only` and `git diff --cached --name-only` for test file patterns.
+- **If test files found:** proceed to FIX.
+- **If no test files found:** hard block.
+  ```
+  AskUserQuestion:
+    question: "No failing test written yet. The test IS the spec — write it before fixing. What to do?"
+    header: "TDD gate"
+    options:
+      - "Write test now (Recommended)"
+      - "Skip — no test framework available"
+  ```
+  If "Write test now": loop back to REPRODUCE step 3.
+  If "Skip": log reason and proceed.
 
 ### FIX
 

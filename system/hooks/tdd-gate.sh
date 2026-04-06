@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # TDD Enforcement Gate — PreToolUse hook for Write|Edit
 #
-# Two-level enforcement:
-# 1. Project level: blocks implementation writes when NO test file exists
-#    in the project root (any branch).
-# 2. Session level: blocks CREATING new code files (Write to non-existent
-#    path) unless a test file was written first in this session.
-#    Tracked via /tmp/tdd-gate-<hash> state files, keyed by git root.
+# Project-level enforcement: blocks implementation file writes on any
+# branch when no test file exists in the same project root.
+#
+# NOTE: TDD *ordering* (tests before implementation) is enforced at the
+# procedure level (/brana:build BUILD step gate, /brana:backlog plan gate),
+# not here. Hooks are stateless — they can't enforce workflow ordering.
+# This hook catches the baseline: "no tests at all in the project."
 #
 # Supported: Rust, Python, JS/TS, Shell, Go
 # Always allows: test files, unknown languages, non-git repos.
@@ -72,62 +73,50 @@ case "$FILE_PATH" in
     *)                        pass_through ;;
 esac
 
-# Step 4.5: Find git root (moved before test detection for session state tracking)
-GIT_ROOT=$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null) || pass_through
-[ -z "$GIT_ROOT" ] && pass_through
-
-# Session state file — keyed on git root, tracks test writes per project
-STATE_FILE="/tmp/tdd-gate-$(echo "$GIT_ROOT" | md5sum | cut -c1-8)"
-
-# Helper: record test file write and pass through
-record_test_and_pass() {
-    echo "test:$FILE_PATH:$(date +%s)" >> "$STATE_FILE" 2>/dev/null
-    pass_through
-}
-
-# Clean stale state files (>12h old)
-find /tmp -maxdepth 1 -name 'tdd-gate-*' -mmin +720 -delete 2>/dev/null
-
-# Step 5: Always allow test files (and record for session tracking)
+# Step 5: Always allow test files
 case "$LANG" in
     rust)
         case "$BASENAME" in
-            *_test.rs|test_*.rs) record_test_and_pass ;;
+            *_test.rs|test_*.rs) pass_through ;;
         esac
         case "$FILE_PATH" in
-            */tests/*|*/test/*) record_test_and_pass ;;
+            */tests/*|*/test/*) pass_through ;;
         esac
         ;;
     python)
         case "$BASENAME" in
-            test_*.py|*_test.py) record_test_and_pass ;;
+            test_*.py|*_test.py) pass_through ;;
         esac
         case "$FILE_PATH" in
-            */tests/*|*/test/*|*/__tests__/*) record_test_and_pass ;;
+            */tests/*|*/test/*|*/__tests__/*) pass_through ;;
         esac
         ;;
     js|ts)
         case "$BASENAME" in
-            *.test.*|*.spec.*) record_test_and_pass ;;
+            *.test.*|*.spec.*) pass_through ;;
         esac
         case "$FILE_PATH" in
-            */__tests__/*|*/tests/*|*/test/*) record_test_and_pass ;;
+            */__tests__/*|*/tests/*|*/test/*) pass_through ;;
         esac
         ;;
     shell)
         case "$BASENAME" in
-            test-*|*-test.sh|test_*) record_test_and_pass ;;
+            test-*|*-test.sh|test_*) pass_through ;;
         esac
         case "$FILE_PATH" in
-            */tests/*|*/test/*) record_test_and_pass ;;
+            */tests/*|*/test/*) pass_through ;;
         esac
         ;;
     go)
         case "$BASENAME" in
-            *_test.go) record_test_and_pass ;;
+            *_test.go) pass_through ;;
         esac
         ;;
 esac
+
+# Step 6: Find git root
+GIT_ROOT=$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null) || pass_through
+[ -z "$GIT_ROOT" ] && pass_through
 
 # Step 7: (Branch filter removed — gates fire on all branches per ADR-031 revision)
 
@@ -198,31 +187,17 @@ if [ "$HAS_TESTS" = false ]; then
     esac
 fi
 
-# Step 9.5: Build hint string (used in both deny paths)
-case "$LANG" in
-    rust)   HINT="Create a test file (*_test.rs, test_*.rs, tests/ dir) or add a #[cfg(test)] module." ;;
-    python) HINT="Create a test file (test_*.py, *_test.py, tests/ dir, or __tests__/)." ;;
-    js|ts)  HINT="Create a test file (*.test.*, *.spec.*, __tests__/ dir, or tests/)." ;;
-    shell)  HINT="Create a test file (test-*.sh, *-test.sh, or tests/ dir)." ;;
-    go)     HINT="Create a test file (*_test.go)." ;;
-    *)      HINT="Create a test file before writing implementation code." ;;
-esac
-
 # Step 10: Decision
 if [ "$HAS_TESTS" = true ]; then
-    # Project has tests. But if this is a NEW file (Write to non-existent path),
-    # require that a test was written in this session first.
-    # Only check Write — Edit requires existing file (CC enforces this).
-    if [ "$TOOL_NAME" = "Write" ] && [ ! -f "$FILE_PATH" ]; then
-        # New file — check session state for a recent test write
-        if [ -f "$STATE_FILE" ] && grep -q "^test:" "$STATE_FILE" 2>/dev/null; then
-            pass_through
-        else
-            deny "TDD gate: write a test first. Creating NEW file ($BASENAME) but no test was written yet this session. Write or edit a test file first, then create the implementation. $HINT"
-        fi
-    else
-        pass_through
-    fi
+    pass_through
 else
+    case "$LANG" in
+        rust)   HINT="Create a test file (*_test.rs, test_*.rs, tests/ dir) or add a #[cfg(test)] module." ;;
+        python) HINT="Create a test file (test_*.py, *_test.py, tests/ dir, or __tests__/)." ;;
+        js|ts)  HINT="Create a test file (*.test.*, *.spec.*, __tests__/ dir, or tests/)." ;;
+        shell)  HINT="Create a test file (test-*.sh, *-test.sh, or tests/ dir)." ;;
+        go)     HINT="Create a test file (*_test.go)." ;;
+        *)      HINT="Create a test file before writing implementation code." ;;
+    esac
     deny "TDD gate: write a test first. No test file found in project at $PROJECT_ROOT. $HINT"
 fi
