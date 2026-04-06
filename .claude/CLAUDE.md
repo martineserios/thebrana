@@ -268,7 +268,7 @@ When the ruflo MCP server is available, use it for persistent memory:
 
 ### Knowledge Base Pipeline
 
-Two-phase pipeline indexes 7 doc categories (dimensions, architecture, reflections, decisions, features, ideas, research) into ruflo memory. Phase 1 (`index-knowledge.sh`) parses markdown by `##` headers → JSONL. Phase 2 (`bulk-index.mjs`) batch-embeds with 384-dim ONNX (all-MiniLM-L6-v2) and writes directly to SQLite. Reindexing happens:
+Two-phase pipeline indexes 7 doc categories (dimensions, architecture, reflections, decisions, features, ideas, research) into ruflo memory. Phase 1 (`index-knowledge.sh`) parses markdown by `##` headers → JSONL. Phase 2 defaults to `mcp-index.mjs` (MCP-first: 5-way parallel `memory_store`, auto-embeddings, HNSW auto-maintained) with `bulk-index.mjs` as SQLite fallback (`USE_SQLITE=1` or ruflo unavailable). Skill indexing (`index-skills.sh`) uses the same 2-phase pipeline. Pattern indexing (`index-patterns.sh`) scheduled weekly (Sun 3am). Reindexing happens:
 - **On commit** — post-commit hook in brana-knowledge reindexes changed files
 - **Weekly** — scheduled full reindex (Sunday 3am) as safety net
 - **Manual** — `brana knowledge reindex`, `brana knowledge reindex --changed`, or `brana knowledge reindex file.md`

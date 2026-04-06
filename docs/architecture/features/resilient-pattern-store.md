@@ -43,10 +43,10 @@ Disaster recovery
 
 | Namespace | Contents | Source of truth | Indexed by |
 |-----------|----------|----------------|------------|
-| `knowledge` | Dimension docs, ADRs, reflections, ideas | Git (brana-knowledge/, thebrana/docs/) | index-knowledge.sh → bulk-index.mjs |
-| `pattern` | Reusable patterns (problem/solution pairs) | Git (`~/.claude/projects/*/memory/feedback_*.md`, `project_*.md`) | pattern indexer (new, extends bulk-index.mjs) |
+| `knowledge` | Dimension docs, ADRs, reflections, ideas | Git (brana-knowledge/, thebrana/docs/) | index-knowledge.sh → mcp-index.mjs (MCP-first) or bulk-index.mjs (SQLite fallback) |
+| `pattern` | Reusable patterns (problem/solution pairs) | Git (`~/.claude/projects/*/memory/feedback_*.md`, `project_*.md`) | index-patterns.sh → bulk-index.mjs (weekly Sun 3am) |
 | `session` | Session summaries, session metadata | Git (`brana session write` JSON) + ruflo MCP (searchable mirror) | session-end.sh + close skill step 9b |
-| `skills` | Skill frontmatter for routing | Git (system/skills/*/SKILL.md) | index-skills.sh |
+| `skills` | Skill frontmatter for routing | Git (system/skills/*/SKILL.md) | index-skills.sh → bulk-index.mjs (2-phase: JSONL + batch embed) |
 | `metrics` | Flywheel metrics per session | Ruflo only (ephemeral, not critical) | session-end.sh |
 
 ### Data Flow
