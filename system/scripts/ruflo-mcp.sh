@@ -32,14 +32,17 @@ fi
 echo $$ > "$LOCKFILE"
 trap 'rm -f "$LOCKFILE"' EXIT
 
-# Auto-restart on SIGTERM (CC SIGTERM bug #40207 kills healthy MCP servers).
-# Run ruflo in foreground (no exec) so the wrapper survives SIGTERM and can restart.
-# Max 5 restarts to avoid infinite loops on genuine failures.
+# Auto-restart on SIGTERM (CC SIGTERM bug #40207) and SIGHUP (DB reload after bulk indexing).
+# Run ruflo in foreground (no exec) so the wrapper survives signals and can restart.
+# Max 5 SIGTERM restarts to avoid infinite loops on genuine failures.
+# SIGHUP restarts are unlimited — they're intentional reload requests.
 MAX_RESTARTS=5
 RESTART_COUNT=0
 SIGTERM_RECEIVED=false
+SIGHUP_RECEIVED=false
 
 trap 'SIGTERM_RECEIVED=true' TERM
+trap 'SIGHUP_RECEIVED=true; kill $RUFLO_PID 2>/dev/null' HUP
 
 while true; do
     "$RUFLO" "$@" &
@@ -48,6 +51,13 @@ while true; do
     echo "$RUFLO_PID" > "$LOCKFILE"
     wait $RUFLO_PID 2>/dev/null
     EXIT_CODE=$?
+
+    if [ "$SIGHUP_RECEIVED" = true ]; then
+        SIGHUP_RECEIVED=false
+        echo "ruflo MCP: SIGHUP received (DB reload), restarting..." >&2
+        sleep 0.5
+        continue
+    fi
 
     if [ "$SIGTERM_RECEIVED" = true ]; then
         SIGTERM_RECEIVED=false
@@ -61,6 +71,6 @@ while true; do
         continue
     fi
 
-    # Normal exit or non-SIGTERM signal — don't restart
+    # Normal exit or non-SIGTERM/SIGHUP signal — don't restart
     break
 done

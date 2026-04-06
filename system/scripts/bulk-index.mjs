@@ -183,3 +183,18 @@ console.log(`Orphans:  ${orphansRemoved}`);
 console.log(`Time:     ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
 
 db.close();
+
+// Signal ruflo MCP to reload the DB (SIGHUP → wrapper restarts ruflo with fresh data).
+// Without this, MCP serves stale in-memory copy after bulk indexing (t-988).
+const pidFile = join(homedir(), '.swarm/ruflo-mcp.pid');
+if (existsSync(pidFile)) {
+  const pid = parseInt(readFileSync(pidFile, 'utf8').trim(), 10);
+  if (pid > 0) {
+    try {
+      process.kill(pid, 'SIGHUP');
+      console.log(`Sent SIGHUP to ruflo MCP (pid ${pid}) — DB will reload.`);
+    } catch (e) {
+      console.log(`Could not signal ruflo MCP (pid ${pid}): ${e.message}`);
+    }
+  }
+}

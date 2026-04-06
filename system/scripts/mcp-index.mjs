@@ -377,6 +377,22 @@ async function main() {
   }
 
   client.close();
+
+  // Signal the session's ruflo MCP to reload DB (SIGHUP → wrapper restarts with fresh data).
+  // mcp-index.mjs spawns its own ruflo process which writes to disk, but the session MCP
+  // still has a stale in-memory copy (t-988).
+  const pidFile = join(homedir(), '.swarm/ruflo-mcp.pid');
+  if (existsSync(pidFile)) {
+    const pid = parseInt(readFileSync(pidFile, 'utf8').trim(), 10);
+    if (pid > 0) {
+      try {
+        process.kill(pid, 'SIGHUP');
+        console.log(`Sent SIGHUP to session ruflo MCP (pid ${pid}) — DB will reload.`);
+      } catch (e) {
+        console.log(`Could not signal session ruflo MCP (pid ${pid}): ${e.message}`);
+      }
+    }
+  }
 }
 
 main();
