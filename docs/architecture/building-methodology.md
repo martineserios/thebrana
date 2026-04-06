@@ -122,10 +122,10 @@ Build something → discover a gap → update dimension → re-synthesize reflec
 
 Concretely:
 - `/brana:close` extracts session learnings
-- `/brana:maintain-specs` cascades changes: dimension → reflection → roadmap
+- `/brana:reconcile --scope propagation` cascades changes: dimension → reflection → roadmap
 - Implementation that changes behavior updates docs in the same commit
 
-Without feedback, specs drift from reality with every session. The debrief → maintain-specs loop is the immune system against spec rot.
+Without feedback, specs drift from reality with every session. The debrief → reconcile loop is the immune system against spec rot.
 
 ---
 
@@ -148,7 +148,7 @@ A typical feature from start to finish:
 # CLOSE: debrief, update specs, merge
 
 # 4. Maintain
-/brana:maintain-specs                # cascade any spec changes
+/brana:reconcile --scope propagation # cascade any spec changes
 ```
 
 For bug fixes and small improvements, skip research — go straight to `/brana:build` with strategy `bug-fix` or `refactor`.
@@ -182,7 +182,7 @@ Building correctly but never updating specs. Symptoms:
 - ADRs whose "consequences" section never got validated
 - New team members reading specs that don't match the code
 
-**Fix:** Run `/brana:maintain-specs` after every implementation session that changed behavior. Make it part of the merge checklist.
+**Fix:** Run `/brana:reconcile --scope propagation` after every implementation session that changed behavior. `/brana:close` auto-triggers this when system files change.
 
 ### Over-Graduating
 
