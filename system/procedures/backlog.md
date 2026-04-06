@@ -759,10 +759,22 @@ Tasks must have `spawn` field set (see ADR-003 for schema). Tasks without `spawn
    ```
 6. **User confirms**
 7. **Execute wave-by-wave:**
+   - **Knowledge injection (per task, before spawning):**
+     Query ruflo for domain context related to the task:
+     ```
+     mcp__ruflo__memory_search(
+       query: "{task.subject} {task.tags joined by space}",
+       namespace: "knowledge",
+       limit: 3,
+       threshold: 0.4
+     )
+     ```
+     - If results found (score >= 0.4): format as a `## Knowledge context` section with one bullet per result (`- {key}: {value preview}`). Prepend to the agent prompt.
+     - If no results or ruflo unavailable: skip silently. Knowledge injection is best-effort — never blocks spawning.
    - For each task in the wave, spawn a subagent via the Task tool:
      - `subagent_type`: from `agent_config.type` (default: `"general-purpose"`)
      - `model`: from `agent_config.model` (default: haiku for research, sonnet for code)
-     - `prompt`: task subject + description + relevant context (file paths, dependencies)
+     - `prompt`: task subject + description + relevant context (file paths, dependencies) + knowledge context (from injection above, if available)
    - **Non-code tasks** (research, analysis, manual):
      - Agent produces a summary/deliverable
      - Write `agent_result` to tasks.json: `{status: "completed", summary: "...", completed_at: "..."}`

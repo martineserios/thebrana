@@ -192,12 +192,9 @@ Analyzed against the brana operating model (6 jobs + auto-learning loop):
 
 Move skill matching from backlog start step 5 into the **shared LOAD step** (operating model). All thinking skills (build, research, brainstorm, review) already have LOAD. Adding `namespace: "skills"` to the search gives every thinking skill automatic access to matching procedures.
 
-### Execute agents: knowledge injection
+### Execute agents: knowledge injection ✓ (t-973, 2026-04-06)
 
-`/brana:backlog execute` spawns agents with task prompts but no ruflo knowledge. Enhancement:
-- Before spawning each agent, `memory_search(query: task.subject + task.tags, namespace: "knowledge", limit: 3)`
-- Include top results in the agent prompt
-- Gives domain context without loading full skills (agents don't invoke skills — they do direct work)
+Implemented in `system/procedures/backlog.md` execute step 7. Before spawning each agent, `memory_search(query: task.subject + tags, namespace: "knowledge", limit: 3, threshold: 0.4)`. Results formatted as `## Knowledge context` section prepended to agent prompt. Best-effort — skips silently if ruflo unavailable.
 
 ### Acquired skills resolution
 
@@ -320,4 +317,4 @@ Findings incorporated above:
 - Unify start + do + execute
 - Propose-first enforcement
 - Doc reindex at close time
-- Execute agent knowledge injection
+- ~~Execute agent knowledge injection~~ ✓ t-973
