@@ -224,6 +224,101 @@ fn test_classify() {
     assert_eq!(brana_core::tasks::classify(&data.tasks[2], &data.tasks), "done");
 }
 
+// ── Batch set tests ─────────────────────────────────────────────────────
+
+#[test]
+fn test_batch_set_multiple_fields_single_task() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = fixture_tasks(dir.path());
+
+    let mut val = brana_core::tasks::load_raw(&path).unwrap();
+
+    // Simulate batch: set strategy + status + branch on t-001
+    {
+        let tasks = val["tasks"].as_array_mut().unwrap();
+        let task = tasks.iter_mut().find(|t| t["id"] == "t-001").unwrap();
+
+        let fields = vec![
+            ("strategy", "bug-fix"),
+            ("status", "in_progress"),
+            ("branch", "fix/t-001-login"),
+        ];
+
+        for (field, value) in &fields {
+            brana_core::tasks::set_field(task, field, value, false).unwrap();
+        }
+
+        assert_eq!(task["strategy"], "bug-fix");
+        assert_eq!(task["status"], "in_progress");
+        assert_eq!(task["branch"], "fix/t-001-login");
+    }
+
+    // Single save
+    brana_core::tasks::save_tasks(&path, &val).unwrap();
+
+    // Reload and verify persistence
+    let reloaded = brana_core::tasks::load_raw(&path).unwrap();
+    let task = reloaded["tasks"].as_array().unwrap()
+        .iter().find(|t| t["id"] == "t-001").unwrap();
+    assert_eq!(task["strategy"], "bug-fix");
+    assert_eq!(task["status"], "in_progress");
+    assert_eq!(task["branch"], "fix/t-001-login");
+}
+
+#[test]
+fn test_batch_set_multiple_tasks() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = fixture_tasks(dir.path());
+
+    let mut val = brana_core::tasks::load_raw(&path).unwrap();
+
+    // Simulate batch: complete t-001 and t-002 in one pass
+    {
+        let tasks = val["tasks"].as_array_mut().unwrap();
+
+        for task_id in &["t-001", "t-002"] {
+            let task = tasks.iter_mut().find(|t| t["id"].as_str() == Some(*task_id)).unwrap();
+            brana_core::tasks::set_field(task, "status", "completed", false).unwrap();
+            brana_core::tasks::set_field(task, "completed", "2026-04-06", false).unwrap();
+        }
+    }
+
+    // Single save
+    brana_core::tasks::save_tasks(&path, &val).unwrap();
+
+    // Reload and verify
+    let reloaded = brana_core::tasks::load_raw(&path).unwrap();
+    let tasks = reloaded["tasks"].as_array().unwrap();
+    for task_id in &["t-001", "t-002"] {
+        let task = tasks.iter().find(|t| t["id"].as_str() == Some(*task_id)).unwrap();
+        assert_eq!(task["status"], "completed", "task {} not completed", task_id);
+        assert_eq!(task["completed"], "2026-04-06");
+    }
+}
+
+#[test]
+fn test_batch_partial_failure() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = fixture_tasks(dir.path());
+
+    let mut val = brana_core::tasks::load_raw(&path).unwrap();
+
+    {
+        let tasks = val["tasks"].as_array_mut().unwrap();
+        let task = tasks.iter_mut().find(|t| t["id"] == "t-001").unwrap();
+
+        // Valid field succeeds
+        assert!(brana_core::tasks::set_field(task, "status", "completed", false).is_ok());
+        // Invalid field fails
+        assert!(brana_core::tasks::set_field(task, "nonexistent_field", "value", false).is_err());
+        // Valid field after failure still works
+        assert!(brana_core::tasks::set_field(task, "priority", "P1", false).is_ok());
+
+        assert_eq!(task["status"], "completed");
+        assert_eq!(task["priority"], "P1");
+    }
+}
+
 // ── MCP server build test ────────────────────────────────────────────────
 
 #[test]
