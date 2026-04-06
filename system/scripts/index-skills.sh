@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # Index brana skill frontmatter into ruflo memory for semantic skill routing.
 #
+# Two-phase pipeline (reuses bulk-index.mjs):
+#   Phase 1 (this script): Parse frontmatter → JSONL
+#   Phase 2 (bulk-index.mjs): Batch embed + direct SQLite write
+#
 # Usage:
-#   index-skills.sh              # Index all skills
+#   index-skills.sh              # Index all skills (+ orphan cleanup)
 #   index-skills.sh --changed    # Index only skills with newer mtime than last run
 #
 # Each skill's frontmatter (name, description, keywords, task_strategies,
@@ -20,18 +24,7 @@ SYSTEM_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SKILLS_DIR="$SYSTEM_DIR/skills"
 ACQUIRED_DIR="$SKILLS_DIR/acquired"
 MTIME_FILE="/tmp/brana-skills-index-mtime"
-
-# Load ruflo
-if [ -f "$SCRIPT_DIR/cf-env.sh" ]; then
-    source "$SCRIPT_DIR/cf-env.sh"
-elif [ -f "$HOME/.claude/scripts/cf-env.sh" ]; then
-    source "$HOME/.claude/scripts/cf-env.sh"
-fi
-
-if [ -z "$CF" ]; then
-    echo "ERROR: ruflo not found. Cannot index skills." >&2
-    exit 1
-fi
+BULK_INDEXER="$SCRIPT_DIR/bulk-index.mjs"
 
 # Parse frontmatter value from SKILL.md
 # Usage: parse_fm "field_name" < file
@@ -53,9 +46,11 @@ parse_fm_array() {
 # Determine which skills to index
 SKILL_FILES=()
 CHANGED_ONLY=false
+ORPHAN_CLEANUP=true
 
 if [ "${1:-}" = "--changed" ]; then
     CHANGED_ONLY=true
+    ORPHAN_CLEANUP=false
 fi
 
 # Collect skill files from main + acquired directories
@@ -99,10 +94,12 @@ echo "=== Index Skills ==="
 echo "Skills: ${#SKILL_FILES[@]}"
 echo ""
 
+# ── Phase 1: Parse frontmatter → JSONL ────────────────────────
+JSONL_FILE=$(mktemp /tmp/skill-entries-XXXXXX.jsonl)
+trap "rm -f $JSONL_FILE" EXIT
+
 TOTAL=0
-STORED=0
-ERRORS=0
-output=""
+SKIPPED=0
 
 for skill_file in "${SKILL_FILES[@]}"; do
     name=$(parse_fm "name" < "$skill_file")
@@ -113,49 +110,77 @@ for skill_file in "${SKILL_FILES[@]}"; do
     group=$(parse_fm "group" < "$skill_file")
     effort=$(parse_fm "effort" < "$skill_file")
 
-    [ -z "$name" ] && continue
+    [ -z "$name" ] && { SKIPPED=$((SKIPPED + 1)); continue; }
 
-    # Build embedding text: name + description + keywords + strategies
+    # Build embedding text: name + description + keywords + strategies + streams
     embed_text="$name ${description:-} ${keywords:-} ${strategies:-} ${streams:-}"
 
-    # Build tags
+    # Determine source tag
     source_tag="source:brana"
     if [[ "$skill_file" == *"/acquired/"* ]]; then
         source_tag="source:external"
     fi
-    tags="${source_tag},group:${group:-unknown}"
-    # Add each strategy as a tag
-    for s in $strategies; do
-        tags="${tags},strategy:${s}"
-    done
 
-    # Build value JSON
-    value="{\"name\":\"${name}\",\"description\":\"${description:-}\",\"keywords\":\"${keywords:-}\",\"strategies\":\"${strategies:-}\",\"streams\":\"${streams:-}\",\"group\":\"${group:-}\",\"effort\":\"${effort:-}\"}"
+    # Build tags JSON array
+    tags_json="[\"${source_tag}\",\"group:${group:-unknown}\""
+    for s in $strategies; do
+        tags_json="${tags_json},\"strategy:${s}\""
+    done
+    tags_json="${tags_json}]"
+
+    # Escape embed_text for JSON (this is what bulk-index.mjs embeds + stores as content)
+    value_escaped=$(printf '%s' "$embed_text" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()),end='')")
 
     key="skill:${name}"
 
-    output=$(cd "$HOME" && timeout 15 $CF memory store \
-        -k "$key" \
-        -v "$embed_text" \
-        --namespace skills \
-        --tags "$tags" \
-        --upsert 2>&1) || true
+    echo "{\"key\":\"$key\",\"value\":$value_escaped,\"namespace\":\"skills\",\"tags\":$tags_json}" >> "$JSONL_FILE"
 
-    if echo "$output" | grep -q "stored successfully"; then
-        STORED=$((STORED + 1))
-        echo "  + $name [$group, $effort]"
-    else
-        ERRORS=$((ERRORS + 1))
-        echo "  WARN: Failed to store $key" >&2
-    fi
+    echo "  + $name [${group:-unknown}, ${effort:-?}]"
     TOTAL=$((TOTAL + 1))
 done
 
+echo ""
+echo "Phase 1 complete: $TOTAL entries, $SKIPPED skipped"
+
+if [ "$TOTAL" -eq 0 ]; then
+    echo "Nothing to index."
+    touch "$MTIME_FILE"
+    exit 0
+fi
+
+# ── Phase 2: Bulk embed + write via bulk-index.mjs ────────────
+
+# Resolve node (prefer nvm — ruflo is installed there, not in system node)
+NODE="${NODE:-}"
+if [ -z "$NODE" ]; then
+    export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+    [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh" 2>/dev/null
+    NODE=$(command -v node 2>/dev/null || echo "")
+    # Fallback: search nvm versions dir directly
+    if [ -z "$NODE" ] && [ -d "$NVM_DIR/versions" ]; then
+        NODE=$(find "$NVM_DIR/versions" -name node -type f | sort -V | tail -1)
+    fi
+fi
+
+if [ -z "$NODE" ]; then
+    echo "ERROR: node not found. Cannot run bulk-index.mjs." >&2
+    exit 1
+fi
+
+if [ -f "$BULK_INDEXER" ]; then
+    CLEANUP_FLAG=""
+    if [ "$ORPHAN_CLEANUP" = true ]; then
+        CLEANUP_FLAG="--cleanup"
+    fi
+    echo ""
+    echo "Phase 2: Bulk indexing via $BULK_INDEXER"
+    $NODE "$BULK_INDEXER" $CLEANUP_FLAG "$JSONL_FILE"
+else
+    echo "WARN: bulk-index.mjs not found at $BULK_INDEXER"
+    echo "JSONL written to: $JSONL_FILE (process manually)"
+    trap - EXIT  # don't delete the file
+    exit 1
+fi
+
 # Update mtime marker
 touch "$MTIME_FILE"
-
-echo ""
-echo "=== Skills Index Complete ==="
-echo "Total:  $TOTAL"
-echo "Stored: $STORED"
-echo "Errors: $ERRORS"

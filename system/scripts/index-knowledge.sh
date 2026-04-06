@@ -21,6 +21,7 @@ KNOWLEDGE_DIR="${BRANA_KNOWLEDGE_DIR:-$HOME/enter_thebrana/brana-knowledge/dimen
 THEBRANA_DIR="${BRANA_THEBRANA_DIR:-$HOME/enter_thebrana/thebrana}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BULK_INDEXER="$SCRIPT_DIR/bulk-index.mjs"
+MCP_INDEXER="$SCRIPT_DIR/mcp-index.mjs"
 
 # 7 doc categories with tier classification
 # Format: "directory:type:tier"
@@ -194,39 +195,10 @@ if [ $TOTAL_SECTIONS -eq 0 ]; then
     exit 0
 fi
 
-# ── Phase 2: Bulk embed + store via Node.js ─────────────────
-
-# Check bulk indexer exists
-if [ ! -f "$BULK_INDEXER" ]; then
-    echo "ERROR: bulk-index.mjs not found at $BULK_INDEXER" >&2
-    echo "Falling back to legacy per-section storage..." >&2
-    # Legacy fallback: load ruflo and store one-by-one
-    if [ -f "$SCRIPT_DIR/cf-env.sh" ]; then
-        source "$SCRIPT_DIR/cf-env.sh"
-    elif [ -f "$HOME/.claude/scripts/cf-env.sh" ]; then
-        source "$HOME/.claude/scripts/cf-env.sh"
-    fi
-    if [ -z "${CF:-}" ]; then
-        echo "ERROR: ruflo not found. Cannot index." >&2
-        exit 1
-    fi
-    STORED=0
-    ERRORS=0
-    while IFS= read -r line; do
-        key=$(echo "$line" | python3 -c "import sys,json; print(json.load(sys.stdin)['key'])")
-        value=$(echo "$line" | python3 -c "import sys,json; print(json.load(sys.stdin)['value'])")
-        tags=$(echo "$line" | python3 -c "import sys,json; print(','.join(json.load(sys.stdin)['tags']))")
-        output=$(cd "$HOME" && timeout 15 $CF memory store -k "$key" -v "$value" --namespace knowledge --tags "$tags" --upsert 2>&1) || true
-        if echo "$output" | grep -q "stored successfully"; then
-            STORED=$((STORED + 1))
-        else
-            ERRORS=$((ERRORS + 1))
-        fi
-    done < "$JSONL_FILE"
-    echo "=== Legacy Index Complete ==="
-    echo "Stored: $STORED  Errors: $ERRORS"
-    exit 0
-fi
+# ── Phase 2: Embed + store via Node.js ──────────────────────
+# Default: MCP-first (mcp-index.mjs) — auto-embeddings, zero schema coupling.
+# Fallback: SQLite direct (bulk-index.mjs) — offline, emergency recovery.
+# Override: set USE_SQLITE=1 to force the SQLite path.
 
 # Resolve node (prefer nvm)
 NODE="${NODE:-}"
@@ -242,23 +214,76 @@ if [ -z "$NODE" ]; then
 fi
 
 if [ -z "$NODE" ]; then
-    echo "ERROR: node not found. Cannot run bulk-index.mjs." >&2
+    echo "ERROR: node not found. Cannot run indexer." >&2
     exit 1
 fi
-
-echo ""
-echo "Phase 2: Bulk indexing via $BULK_INDEXER"
 
 CLEANUP_FLAG=""
 if [ "$ORPHAN_CLEANUP" = true ]; then
     CLEANUP_FLAG="--cleanup"
 fi
 
-BULK_OUTPUT=$($NODE "$BULK_INDEXER" $CLEANUP_FLAG "$JSONL_FILE" 2>&1)
-echo "$BULK_OUTPUT"
+# Choose indexer: MCP-first unless USE_SQLITE=1 or ruflo not available or mcp-index.mjs missing
+USE_MCP=false
+if [ "${USE_SQLITE:-}" != "1" ] && [ -f "$MCP_INDEXER" ] && command -v ruflo &>/dev/null; then
+    USE_MCP=true
+fi
 
-# Tolerate up to 5% error rate from bulk indexer output
-BULK_ERRORS=$(echo "$BULK_OUTPUT" | grep -oP 'Errors:\s+\K\d+' || echo "0")
+if [ "$USE_MCP" = true ]; then
+    echo ""
+    echo "Phase 2: MCP indexing via $MCP_INDEXER"
+    INDEXER_OUTPUT=$($NODE "$MCP_INDEXER" $CLEANUP_FLAG "$JSONL_FILE" 2>&1)
+else
+    # Fallback: SQLite direct (bulk-index.mjs)
+    if [ "${USE_SQLITE:-}" = "1" ]; then
+        echo ""
+        echo "Phase 2: SQLite indexing via $BULK_INDEXER (USE_SQLITE=1)"
+    elif ! command -v ruflo &>/dev/null; then
+        echo ""
+        echo "Phase 2: SQLite indexing via $BULK_INDEXER (ruflo not found — falling back)"
+    elif [ ! -f "$MCP_INDEXER" ]; then
+        echo ""
+        echo "Phase 2: SQLite indexing via $BULK_INDEXER (mcp-index.mjs not found — falling back)"
+    fi
+
+    if [ ! -f "$BULK_INDEXER" ]; then
+        echo "ERROR: bulk-index.mjs not found at $BULK_INDEXER" >&2
+        echo "Falling back to legacy per-section storage..." >&2
+        # Legacy fallback: load ruflo CLI and store one-by-one
+        if [ -f "$SCRIPT_DIR/cf-env.sh" ]; then
+            source "$SCRIPT_DIR/cf-env.sh"
+        elif [ -f "$HOME/.claude/scripts/cf-env.sh" ]; then
+            source "$HOME/.claude/scripts/cf-env.sh"
+        fi
+        if [ -z "${CF:-}" ]; then
+            echo "ERROR: ruflo not found. Cannot index." >&2
+            exit 1
+        fi
+        STORED=0
+        ERRORS=0
+        while IFS= read -r line; do
+            key=$(echo "$line" | python3 -c "import sys,json; print(json.load(sys.stdin)['key'])")
+            value=$(echo "$line" | python3 -c "import sys,json; print(json.load(sys.stdin)['value'])")
+            tags=$(echo "$line" | python3 -c "import sys,json; print(','.join(json.load(sys.stdin)['tags']))")
+            output=$(cd "$HOME" && timeout 15 $CF memory store -k "$key" -v "$value" --namespace knowledge --tags "$tags" --upsert 2>&1) || true
+            if echo "$output" | grep -q "stored successfully"; then
+                STORED=$((STORED + 1))
+            else
+                ERRORS=$((ERRORS + 1))
+            fi
+        done < "$JSONL_FILE"
+        echo "=== Legacy Index Complete ==="
+        echo "Stored: $STORED  Errors: $ERRORS"
+        exit 0
+    fi
+
+    INDEXER_OUTPUT=$($NODE "$BULK_INDEXER" $CLEANUP_FLAG "$JSONL_FILE" 2>&1)
+fi
+
+echo "$INDEXER_OUTPUT"
+
+# Tolerate up to 5% error rate from indexer output
+BULK_ERRORS=$(echo "$INDEXER_OUTPUT" | grep -oP 'Errors:\s+\K\d+' || echo "0")
 if [ "$TOTAL_SECTIONS" -gt 0 ] && [ "$BULK_ERRORS" -gt 0 ]; then
     ERROR_PCT=$((BULK_ERRORS * 100 / TOTAL_SECTIONS))
     if [ "$ERROR_PCT" -ge 5 ]; then
