@@ -425,6 +425,67 @@ else
     echo "  — ruflo not found (Layer 0 fallback)"
 fi
 
+# --- Step 6b: MCP servers in settings.local.json ---
+# Personal infrastructure MCP servers (ruflo, context7) go in settings.local.json
+# (gitignored, per-machine). Project-specific MCP (brana) stays in .mcp.json.
+echo "MCP servers (settings.local.json):"
+SETTINGS_LOCAL="$TARGET_DIR/settings.local.json"
+
+# Build MCP servers object based on what's installed
+MCP_SERVERS="{}"
+
+# ruflo (required — core memory backbone)
+RUFLO_WRAPPER="$SYSTEM_DIR/scripts/ruflo-mcp.sh"
+if [ -x "$RUFLO_WRAPPER" ] || [ -f "$RUFLO_WRAPPER" ]; then
+    MCP_SERVERS=$(echo "$MCP_SERVERS" | jq --arg cmd "$RUFLO_WRAPPER" \
+        '.ruflo = {"command": $cmd, "args": ["mcp", "start"], "env": {"CLAUDE_FLOW_TOOL_GROUPS": "memory,agentdb,embeddings,hooks"}}')
+    echo "  + ruflo → $RUFLO_WRAPPER"
+elif [ -n "$CF_BIN" ]; then
+    MCP_SERVERS=$(echo "$MCP_SERVERS" | jq --arg cmd "$CF_BIN" \
+        '.ruflo = {"command": $cmd, "args": ["mcp", "start"], "env": {"CLAUDE_FLOW_TOOL_GROUPS": "memory,agentdb,embeddings,hooks"}}')
+    echo "  + ruflo → $CF_BIN (direct, no PID lock)"
+else
+    echo "  — ruflo (not found, skip)"
+fi
+
+# context7 (optional — library docs)
+CONTEXT7_WRAPPER="$SYSTEM_DIR/scripts/context7-mcp.sh"
+if [ -x "$CONTEXT7_WRAPPER" ] || [ -f "$CONTEXT7_WRAPPER" ]; then
+    MCP_SERVERS=$(echo "$MCP_SERVERS" | jq --arg cmd "$CONTEXT7_WRAPPER" \
+        '.context7 = {"command": $cmd, "args": []}')
+    echo "  + context7 → $CONTEXT7_WRAPPER"
+else
+    echo "  — context7 (not found, skip)"
+fi
+
+# Write settings.local.json if we have any servers
+if [ "$MCP_SERVERS" != "{}" ] && command -v jq &>/dev/null; then
+    if [ -f "$SETTINGS_LOCAL" ]; then
+        CURRENT_MCP=$(jq '.mcpServers // {}' "$SETTINGS_LOCAL" 2>/dev/null) || CURRENT_MCP="{}"
+    else
+        CURRENT_MCP="{}"
+    fi
+
+    if [ "$CURRENT_MCP" = "$MCP_SERVERS" ] 2>/dev/null; then
+        echo "  = settings.local.json mcpServers (unchanged)"
+    else
+        CHANGES=$((CHANGES + 1))
+        if $CHECK_ONLY; then
+            echo "  ~ settings.local.json mcpServers (would update)"
+        else
+            if [ -f "$SETTINGS_LOCAL" ]; then
+                jq --argjson mcp "$MCP_SERVERS" '.mcpServers = $mcp' "$SETTINGS_LOCAL" > "$SETTINGS_LOCAL.tmp" \
+                    && mv "$SETTINGS_LOCAL.tmp" "$SETTINGS_LOCAL"
+            else
+                jq -n --argjson mcp "$MCP_SERVERS" '{mcpServers: $mcp}' > "$SETTINGS_LOCAL"
+            fi
+            echo "  ~ settings.local.json mcpServers (updated)"
+        fi
+    fi
+else
+    echo "  — no MCP servers to configure"
+fi
+
 # --- Step 7: Plugin auto-registration ---
 echo "Plugin registration:"
 PLUGINS_DIR="$TARGET_DIR/plugins"
