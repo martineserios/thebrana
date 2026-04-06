@@ -13,6 +13,7 @@ async fn main() -> anyhow::Result<()> {
         .tool("backlog_query", tools::backlog_query::build())
         .tool("backlog_get", tools::backlog_get::build())
         .tool("backlog_set", tools::backlog_set::build())
+        .tool("backlog_batch", tools::backlog_batch::build())
         .tool("backlog_add", tools::backlog_add::build())
         .tool("backlog_search", tools::backlog_search::build())
         .tool("backlog_stats", tools::backlog_stats::build())
