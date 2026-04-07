@@ -19,13 +19,14 @@
 
 Skills are split into two tiers to reduce startup context loading (~34K to ~8K tokens):
 
-All 27 skills use the universal stub pattern (ADR-034 fully applied):
-
 | Tier | Count | SKILL.md | Procedure location |
 |------|-------|----------|--------------------|
-| **All (stub)** | 27 | Stub (frontmatter + Read instruction) | `system/procedures/{name}.md` |
+| **Core** | 7 | Full (frontmatter + procedure) | Inline in SKILL.md |
+| **Extended** | 20 | Stub (frontmatter + Read instruction) | `system/procedures/{name}.md` |
 
-Every SKILL.md preserves full frontmatter (for discovery, routing, and the skill index) but replaces the procedure body with a Read instruction pointing to `system/procedures/{name}.md`. The procedure is loaded on invoke via the Read tool (~200ms overhead).
+**Core skills** (always loaded): build, backlog, close, research, brainstorm, sitrep, do
+
+**Extended skills** use a stub SKILL.md that preserves full frontmatter (for discovery, routing, and the skill index) but replaces the procedure body with a Read instruction pointing to `system/procedures/{name}.md`. The procedure is loaded on invoke via the Read tool (~200ms overhead).
 
 If CC fixes #14882 (frontmatter-only loading), tiering becomes unnecessary — merge stubs back.
 
