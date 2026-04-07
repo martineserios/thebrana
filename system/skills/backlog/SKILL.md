@@ -2,6 +2,7 @@
 name: backlog
 description: "Manage the backlog — plan, track, navigate phases and streams. Use when planning phases, viewing roadmaps, or restructuring work."
 effort: medium
+model: sonnet
 keywords: [tasks, planning, roadmap, milestones, phases, tracking, priority]
 task_strategies: [feature, refactor]
 stream_affinity: [roadmap, tech-debt]

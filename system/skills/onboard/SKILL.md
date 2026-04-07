@@ -2,6 +2,7 @@
 name: onboard
 description: "Scan and diagnose a project, or scaffold a new client from scratch. Works for code and venture clients. Auto-detects project type."
 effort: medium
+model: haiku
 keywords: [scan, diagnose, project, structure, tech-stack, gaps, scaffold, new-client]
 task_strategies: [investigation, greenfield]
 stream_affinity: [roadmap]

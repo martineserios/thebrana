@@ -2,6 +2,7 @@
 name: ship
 description: "Ship a build — pre-flight checks, deploy, document, verify, monitor. 6 generic steps with project-specific implementation. Use when deploying code, publishing packages, or releasing."
 effort: medium
+model: sonnet
 keywords: [deploy, ship, release, publish, rollback, production]
 task_strategies: [feature]
 stream_affinity: [roadmap]
