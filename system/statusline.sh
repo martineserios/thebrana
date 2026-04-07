@@ -63,17 +63,57 @@ if [ -n "$TASK_FILE" ]; then
   else
     # Fallback: compute directly (cache missing or stale)
     IFS=$'\t' read -r T_PHASE T_DONE T_TOTAL T_CURRENT T_BUGS T_BUILD_STEP <<< \
-      "$(jq -r '[
-        ([.tasks[] | select(.type == "phase" and .status == "in_progress")] | first | .subject // "" | split(":") | first | ltrimstr("Phase ") // ""),
-        ([.tasks[] | select((.type == "task" or .type == "subtask") and .status == "completed")] | length),
-        ([.tasks[] | select(.type == "task" or .type == "subtask")] | length),
-        ([.tasks[] | select(.status == "in_progress" and (.type == "task" or .type == "subtask"))] | first | .subject // ""),
-        ([.tasks[] | select(.stream == "bugs" and .status != "completed" and .status != "cancelled")] | length),
-        ([.tasks[] | select(.status == "in_progress" and (.type == "task" or .type == "subtask"))] | first | .build_step // "")
-      ] | @tsv' "$TASK_FILE" 2>/dev/null)"
+      "$(jq -r '
+        def nonempty: if . == "" then "-" else . end;
+        ([.tasks[] | select(.type == "phase" and .status == "in_progress")] | first // {}) as $phase |
+        ([.tasks[] | select(.status == "in_progress" and (.type == "task" or .type == "subtask"))] | first // {}) as $active |
+        [
+          ((($phase.subject // "" | split(":") | first) // "") | ltrimstr("Phase ") | nonempty),
+          ([.tasks[] | select((.type == "task" or .type == "subtask") and .status == "completed")] | length),
+          ([.tasks[] | select(.type == "task" or .type == "subtask")] | length),
+          (($active.subject // "") | nonempty),
+          ([.tasks[] | select(.stream == "bugs" and .status != "completed" and .status != "cancelled")] | length),
+          (($active.build_step // "") | nonempty)
+        ] | @tsv' "$TASK_FILE" 2>/dev/null)"
+    # Strip placeholder dashes from jq nonempty helper
+    [ "$T_PHASE" = "-" ] && T_PHASE=""
+    [ "$T_CURRENT" = "-" ] && T_CURRENT=""
+    [ "$T_BUILD_STEP" = "-" ] && T_BUILD_STEP=""
     # Refresh cache inline
     printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$T_PHASE" "$T_DONE" "$T_TOTAL" "$T_CURRENT" "$T_BUGS" "$T_BUILD_STEP" > "$CACHE_FILE" 2>/dev/null
   fi
+fi
+
+# ── Detect current job ───────────────────────────────────
+# Priority: skill hint file > build_step > no active task
+CURRENT_JOB=""
+JOB_HINT_FILE="$HOME/.claude/statusline-job-hint"
+if [ -f "$JOB_HINT_FILE" ]; then
+  # Skill-written hint (expires after 10 min)
+  HINT_AGE=$(( $(date +%s) - $(stat -c %Y "$JOB_HINT_FILE" 2>/dev/null || echo 0) ))
+  if (( HINT_AGE < 600 )); then
+    CURRENT_JOB=$(cat "$JOB_HINT_FILE" 2>/dev/null | head -1 | tr -d '[:space:]')
+  fi
+fi
+if [ -z "$CURRENT_JOB" ]; then
+  if [ -n "${T_BUILD_STEP:-}" ]; then
+    CURRENT_JOB="BUILD"
+  elif [ -z "${T_CURRENT:-}" ]; then
+    CURRENT_JOB="DECIDE"
+  fi
+fi
+
+# ── DECIDE-mode data (next unblocked + blocked count) ────
+T_NEXT_UNBLOCKED="" T_BLOCKED_COUNT=0
+if [ "$CURRENT_JOB" = "DECIDE" ] && [ -n "$TASK_FILE" ]; then
+  IFS=$'\t' read -r T_NEXT_UNBLOCKED T_BLOCKED_COUNT <<< \
+    "$(jq -r '
+      [.tasks[] | select((.type == "task" or .type == "subtask") and .status == "pending")] as $pending |
+      [$pending[] | select((.blocked_by // []) | length == 0)] as $unblocked |
+      [($unblocked | first | .subject // ""), ($pending | length - ($unblocked | length))]
+      | @tsv' "$TASK_FILE" 2>/dev/null)"
+  T_NEXT_UNBLOCKED="${T_NEXT_UNBLOCKED:-}"
+  T_BLOCKED_COUNT="${T_BLOCKED_COUNT:-0}"
 fi
 
 # ── Collect scheduler health ─────────────────────────────
@@ -86,6 +126,14 @@ if [ -f "$SCHED_STATUS" ]; then
       ([.[] | select(.status == "FAILED" or .status == "TIMEOUT")] | length)
     ] | @tsv' "$SCHED_STATUS" 2>/dev/null)"
   S_OK=${S_OK:-0}; S_FAIL=${S_FAIL:-0}
+fi
+
+# ── Slow-cache signals (written by scheduled job) ───────
+SC_KNOWLEDGE_DAYS=0 SC_PORTFOLIO=0
+SLOW_CACHE="${BRANA_SLOW_CACHE_FILE:-$HOME/.claude/statusline-slow-cache.tsv}"
+if [ -f "$SLOW_CACHE" ]; then
+  IFS=$'\t' read -r _SC_RUFLO _SC_REINDEX _SC_STALE SC_PORTFOLIO SC_KNOWLEDGE_DAYS _SC_TS < "$SLOW_CACHE"
+  SC_KNOWLEDGE_DAYS=${SC_KNOWLEDGE_DAYS:-0}; SC_PORTFOLIO=${SC_PORTFOLIO:-0}
 fi
 
 # ── Claude-flow metrics ─────────────────────────────────
@@ -123,15 +171,36 @@ add_segment " $S 📂 ${Cy}${PROJ_NAME}${R}" 10
 # Priority 8: CTX% (always keep)
 add_segment " $S ${CTX_SHOW}" 8
 
-# Priority 7: Current task
-if [ -n "$T_CURRENT" ]; then
-  TC="${T_CURRENT:0:25}"
-  add_segment " $S → ${Cw}${TC}${R}" 7
-fi
-
-# Priority 6: Build step (attached to current task)
-if [ -n "${T_BUILD_STEP:-}" ]; then
-  add_segment " ${Cm}[${T_BUILD_STEP}]${R}" 6
+# Priority 7: Task context (job-adaptive)
+if [ "$CURRENT_JOB" = "DECIDE" ]; then
+  # DECIDE mode: show next unblocked + blocked count
+  if [ -n "$T_NEXT_UNBLOCKED" ]; then
+    NU="${T_NEXT_UNBLOCKED:0:25}"
+    add_segment " $S ${Cm}DECIDE${R} → ${Cw}${NU}${R}" 7
+  else
+    add_segment " $S ${Cm}DECIDE${R}" 7
+  fi
+  if (( T_BLOCKED_COUNT > 0 )) 2>/dev/null; then
+    add_segment " ${D}(${T_BLOCKED_COUNT} blocked)${R}" 6
+  fi
+elif [ "$CURRENT_JOB" = "BUILD" ]; then
+  # BUILD mode: current task + build step
+  if [ -n "$T_CURRENT" ]; then
+    TC="${T_CURRENT:0:25}"
+    add_segment " $S ${Cm}BUILD${R} → ${Cw}${TC}${R}" 7
+  fi
+  if [ -n "${T_BUILD_STEP:-}" ]; then
+    add_segment " ${Cm}[${T_BUILD_STEP}]${R}" 6
+  fi
+else
+  # No specific job: show current task + build step (original behavior)
+  if [ -n "$T_CURRENT" ]; then
+    TC="${T_CURRENT:0:25}"
+    add_segment " $S → ${Cw}${TC}${R}" 7
+  fi
+  if [ -n "${T_BUILD_STEP:-}" ]; then
+    add_segment " ${Cm}[${T_BUILD_STEP}]${R}" 6
+  fi
 fi
 
 # Priority 5: Bug count
@@ -142,6 +211,18 @@ fi
 # Priority 4: Phase progress
 if [ -n "$T_PHASE" ] && (( T_TOTAL > 0 )); then
   add_segment " $S 📋 ${Cy}Ph${T_PHASE}: ${T_DONE}/${T_TOTAL}${R}" 4
+fi
+
+# Priority 3: Slow-cache signals (knowledge freshness + portfolio)
+if (( SC_KNOWLEDGE_DAYS > 0 )) 2>/dev/null; then
+  if (( SC_KNOWLEDGE_DAYS >= 14 )); then
+    add_segment " $S 📚 ${Co}${SC_KNOWLEDGE_DAYS}d${R}" 3
+  else
+    add_segment " $S 📚 ${D}${SC_KNOWLEDGE_DAYS}d${R}" 3
+  fi
+fi
+if (( SC_PORTFOLIO > 0 )) 2>/dev/null; then
+  add_segment " $S 🗂 ${D}${SC_PORTFOLIO}${R}" 3
 fi
 
 # Priority 2: Lines added/removed

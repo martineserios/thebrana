@@ -173,6 +173,16 @@
       "captureOutput": true,
       "_comment": "t-585: poll all registered RSS/Atom feeds 3x daily."
     },
+    "statusline-slow-cache": {
+      "type": "command",
+      "command": "./system/scripts/statusline-slow-cache.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* *:00/5:00",
+      "enabled": true,
+      "timeoutSeconds": 30,
+      "captureOutput": true,
+      "_comment": "t-1023: write ruflo health, portfolio pulse, knowledge freshness to statusline slow-cache every 5min"
+    },
     "inbox-poll": {
       "type": "command",
       "command": "brana inbox poll",
