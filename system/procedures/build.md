@@ -180,7 +180,8 @@ Pull relevant architecture, decision knowledge, and skill matches into context b
    - **Guard rails:**
      - Only trigger for `code` execution tasks (skip external/manual)
      - Only trigger once per LOAD invocation (don't re-offer if user skipped)
-     - If entering via `/brana:backlog start`, this already happened in step 5 — skip
+     - If entering via `/brana:backlog start` AND the task's context contains `skill_gap_checked`: skip (backlog step 5 already handled it)
+     - If entering via `/brana:backlog start` but NO `skill_gap_checked` in context: run 4a anyway (safety net — step 5 may have been skipped)
 
 5. **Summarize loaded knowledge** as a brief context preamble (2-5 bullets). Do not show raw results — synthesize what's relevant to the build task (prior decisions, related architecture, known constraints).
 

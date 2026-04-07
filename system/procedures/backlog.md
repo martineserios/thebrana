@@ -433,7 +433,8 @@ Begin work on a task or freeform description. Accepts task IDs, phase IDs, or na
    - **Top result between mention_threshold and suggest_threshold (0.3–0.5):**
      Mention inline: "Possible match: /brana:{name} ({score})" — no AskUserQuestion, no blocking.
 
-   - **All results < mention_threshold (0.3):**
+   - **All results < mention_threshold (0.3) — MANDATORY acquisition offer:**
+     Do NOT skip this. Low scores mean a potential skill gap — the user must be given the choice.
      Only if task execution is `code` (skip for external/manual tasks), offer marketplace search:
      ```
      AskUserQuestion:
@@ -448,6 +449,11 @@ Begin work on a task or freeform description. Accepts task IDs, phase IDs, or na
      Skill(skill="brana:acquire-skills", args="{subject keywords}")
      ```
      The acquire-skills skill handles marketplace search, evaluation, and installation.
+
+     **After either choice**, write breadcrumb to task context:
+     ```
+     backlog_set(task_id: "<id>", field: "context", value: "skill_gap_checked: true (score < 0.3, user chose: {choice})", append: true)
+     ```
 
    - **No results (ruflo down + CLI fails):**
      Skip silently. Don't block task start.

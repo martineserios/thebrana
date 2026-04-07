@@ -1057,6 +1057,42 @@ echo ""
 
 fi  # end of checks 19-22 conditional (! $RUN_ASSUMPTIONS_ONLY)
 
+# Check 23: Skill routing contract — procedures must have acquire-skills trigger
+echo "Checking skill routing contract..."
+BACKLOG_PROC="$SYSTEM_DIR/procedures/backlog.md"
+BUILD_PROC="$SYSTEM_DIR/procedures/build.md"
+
+if [ -f "$BACKLOG_PROC" ]; then
+    # backlog.md step 5d must have MANDATORY acquisition offer
+    if grep -q "MANDATORY acquisition offer" "$BACKLOG_PROC"; then
+        pass "Check 23a: backlog.md has MANDATORY acquisition offer in step 5d"
+    else
+        fail "Check 23a: backlog.md missing MANDATORY acquisition offer — acquire-skills won't trigger on low scores"
+    fi
+
+    # backlog.md must write skill_gap_checked breadcrumb
+    if grep -q "skill_gap_checked" "$BACKLOG_PROC"; then
+        pass "Check 23b: backlog.md writes skill_gap_checked breadcrumb"
+    else
+        fail "Check 23b: backlog.md missing skill_gap_checked breadcrumb — build.md safety net won't work"
+    fi
+else
+    fail "Check 23a: backlog.md procedure not found"
+    fail "Check 23b: backlog.md procedure not found"
+fi
+
+if [ -f "$BUILD_PROC" ]; then
+    # build.md step 4a must check for skill_gap_checked (not unconditional skip)
+    if grep -q "skill_gap_checked" "$BUILD_PROC"; then
+        pass "Check 23c: build.md step 4a checks skill_gap_checked breadcrumb"
+    else
+        fail "Check 23c: build.md step 4a missing skill_gap_checked guard — no safety net if backlog step 5 skipped"
+    fi
+else
+    fail "Check 23c: build.md procedure not found"
+fi
+echo ""
+
 # Summary
 echo "=== Validation Summary ==="
 echo "Errors: $ERRORS"
