@@ -17,6 +17,9 @@ ruvector.db
 # Processing inbox — drop files here for Claude to process (transcriptions, docs, etc.)
 inbox/
 
+# Statusline cache (derived from tasks.json by post-tasks-validate hook)
+*.statusline.tsv
+
 # Python virtual environment
 .venv/
 __pycache__/
