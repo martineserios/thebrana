@@ -149,6 +149,75 @@ assert_eq "jq fallback produces 6 fields" "6" "$FALLBACK_COUNT"
 FALLBACK_STEP=$(echo "$FALLBACK_FIELDS" | cut -f6)
 assert_eq "jq fallback extracts build_step VERIFY" "VERIFY" "$FALLBACK_STEP"
 
+# ── Test 7: Cache newer than tasks.json → reads cache (fast path) ──
+echo "=== mtime: cache fresh ==="
+
+TASKS7="$TMPDIR/t7/.claude/tasks.json"
+mkdir -p "$(dirname "$TASKS7")"
+write_tasks "$TASKS7" \
+    '{"id":"ph-7","subject":"Phase G: mtime","status":"in_progress","type":"phase","stream":"roadmap"}' \
+    '{"id":"t-10","subject":"real task","status":"in_progress","type":"task","stream":"roadmap","build_step":"BUILD"}'
+
+CACHE7="${TASKS7%.json}.statusline.tsv"
+# Write sentinel values into cache
+printf 'X\t99\t100\tsentinel task\t7\tTDD\n' > "$CACHE7"
+# Ensure cache is newer than tasks.json
+touch -d "+2 seconds" "$CACHE7"
+
+STATUSLINE_INPUT=$(cat <<JSON
+{
+  "model": {"display_name": "Test"},
+  "workspace": {"current_dir": "$(dirname "$(dirname "$TASKS7")")", "project_dir": "$(dirname "$(dirname "$TASKS7")")"},
+  "context_window": {"used_percentage": 30},
+  "cost": {"total_lines_added": 10, "total_lines_removed": 5}
+}
+JSON
+)
+OUTPUT7=$(echo "$STATUSLINE_INPUT" | bash "$STATUSLINE" 2>/dev/null)
+assert_eq "cache fresh → reads sentinel value" "true" \
+    "$(echo "$OUTPUT7" | grep -q 'sentinel task' && echo true || echo false)"
+
+# ── Test 8: tasks.json newer than cache → jq fallback ──
+echo "=== mtime: cache stale ==="
+
+TASKS8="$TMPDIR/t8/.claude/tasks.json"
+mkdir -p "$(dirname "$TASKS8")"
+write_tasks "$TASKS8" \
+    '{"id":"ph-8","subject":"Phase H: stale","status":"in_progress","type":"phase","stream":"roadmap"}' \
+    '{"id":"t-11","subject":"fresh from jq","status":"in_progress","type":"task","stream":"roadmap","build_step":"SDD"}'
+
+CACHE8="${TASKS8%.json}.statusline.tsv"
+# Write stale sentinel
+printf 'X\t99\t100\tstale sentinel\t7\tTDD\n' > "$CACHE8"
+# Make tasks.json newer
+sleep 0.1
+touch "$TASKS8"
+
+STATUSLINE_INPUT8=$(cat <<JSON
+{
+  "model": {"display_name": "Test"},
+  "workspace": {"current_dir": "$(dirname "$(dirname "$TASKS8")")", "project_dir": "$(dirname "$(dirname "$TASKS8")")"},
+  "context_window": {"used_percentage": 30},
+  "cost": {"total_lines_added": 10, "total_lines_removed": 5}
+}
+JSON
+)
+OUTPUT8=$(echo "$STATUSLINE_INPUT8" | bash "$STATUSLINE" 2>/dev/null)
+assert_eq "cache stale → does NOT show stale sentinel" "false" \
+    "$(echo "$OUTPUT8" | grep -q 'stale sentinel' && echo true || echo false)"
+assert_eq "cache stale → shows jq-computed task" "true" \
+    "$(echo "$OUTPUT8" | grep -q 'fresh from jq' && echo true || echo false)"
+
+# ── Test 9: Cache refreshed after jq fallback ──
+echo "=== mtime: cache refreshed inline ==="
+
+CACHE8_CONTENT=$(cat "$CACHE8" 2>/dev/null)
+assert_eq "cache refreshed after jq fallback" "true" \
+    "$(echo "$CACHE8_CONTENT" | grep -q 'fresh from jq' && echo true || echo false)"
+# Cache mtime should now be >= tasks.json mtime
+assert_eq "refreshed cache not older than tasks.json" "false" \
+    "$([ "$TASKS8" -nt "$CACHE8" ] && echo true || echo false)"
+
 # ── Summary ─────────────────────────────────────────────
 echo ""
 echo "Results: ${PASS}/${TOTAL} passed, ${FAIL} failed"

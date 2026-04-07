@@ -69,11 +69,16 @@ for TF in "$CWD/.claude/tasks.json" "$PROJECT/.claude/tasks.json"; do
 done
 if [ -n "$TASK_FILE" ]; then
   # Read from cache (written by post-tasks-validate.sh on every tasks.json write)
+  # Staleness check: if tasks.json is newer than cache, fall back to jq and refresh
   CACHE_FILE="${TASK_FILE%.json}.statusline.tsv"
-  if [ -f "$CACHE_FILE" ]; then
+  CACHE_FRESH=false
+  if [ -f "$CACHE_FILE" ] && [ ! "$TASK_FILE" -nt "$CACHE_FILE" ]; then
+    CACHE_FRESH=true
+  fi
+  if [ "$CACHE_FRESH" = true ]; then
     IFS=$'\t' read -r T_PHASE T_DONE T_TOTAL T_CURRENT T_BUGS T_BUILD_STEP < "$CACHE_FILE"
   else
-    # Fallback: compute directly (first run before any task write)
+    # Fallback: compute directly (cache missing or stale)
     IFS=$'\t' read -r T_PHASE T_DONE T_TOTAL T_CURRENT T_BUGS T_BUILD_STEP <<< \
       "$(jq -r '[
         ([.tasks[] | select(.type == "phase" and .status == "in_progress")] | first | .subject // "" | split(":") | first | ltrimstr("Phase ") // ""),
@@ -83,6 +88,8 @@ if [ -n "$TASK_FILE" ]; then
         ([.tasks[] | select(.stream == "bugs" and .status != "completed" and .status != "cancelled")] | length),
         ([.tasks[] | select(.status == "in_progress" and (.type == "task" or .type == "subtask"))] | first | .build_step // "")
       ] | @tsv' "$TASK_FILE" 2>/dev/null)"
+    # Refresh cache inline
+    printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$T_PHASE" "$T_DONE" "$T_TOTAL" "$T_CURRENT" "$T_BUGS" "$T_BUILD_STEP" > "$CACHE_FILE" 2>/dev/null
   fi
   # Phase progress
   if [ -n "$T_PHASE" ] && (( T_TOTAL > 0 )); then
