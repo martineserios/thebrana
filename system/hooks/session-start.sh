@@ -345,6 +345,23 @@ if [ -n "$LAYER0_DIR" ] && [ -f "$LAYER0_DIR/pending-learnings.md" ]; then
     fi
 fi
 
+# ── Recurring error detection (t-679) ────────────────────
+RECURRENCE_CONTEXT=""
+RECURRENCE_FILE="$HOME/.claude/logs/error-recurrence.jsonl"
+if [ -f "$RECURRENCE_FILE" ]; then
+    # Extract unique hashes with count >= 3 (last entry per hash is authoritative)
+    # Use tac + awk to get latest entry per hash, then filter by count
+    RECURRING=$(tac "$RECURRENCE_FILE" 2>/dev/null \
+        | jq -r -c 'select(.count >= 3)' 2>/dev/null \
+        | awk -F'"hash":"' '!seen[substr($2,1,16)]++' 2>/dev/null \
+        | head -5 \
+        | jq -r '"- \(.tool) \(.error_cat): \(.detail) (x\(.count))"' 2>/dev/null) || RECURRING=""
+    if [ -n "$RECURRING" ]; then
+        RECURRENCE_CONTEXT="[Recurring errors -- rule/hook candidates]
+$RECURRING"
+    fi
+fi
+
 # ── Venture project detection (shared lib) ────────────────
 VENTURE_CONTEXT=""
 source "$SCRIPT_DIR/lib/venture.sh"
@@ -471,6 +488,10 @@ fi
 if [ -n "$VENTURE_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
 }[Venture] $VENTURE_CONTEXT"
+fi
+if [ -n "$RECURRENCE_CONTEXT" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}$RECURRENCE_CONTEXT"
 fi
 if [ -n "$CF_WARNING" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS

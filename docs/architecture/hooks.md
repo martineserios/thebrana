@@ -49,7 +49,7 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | `subagent-context.sh` | SubagentStart | `""` (all) | Inject active task + branch + plan + recent decisions into spawned agents |
 | `subagent-tracker.sh` | SubagentStart+SubagentStop | `""` (all) | Track agent spawns and completions to session JSONL |
 | `step-completed.sh` | TaskCompleted | `""` (all) | Track CC Task completions for guided execution |
-| `session-start.sh` | SessionStart | `""` (all) | Pattern recall (1 parallel job, 2s budget), task context, venture detection |
+| `session-start.sh` | SessionStart | `""` (all) | Pattern recall (1 parallel job, 2s budget), task context, venture detection, recurring error surfacing |
 | `session-end.sh` | SessionEnd | `""` (all) | Flywheel metrics, session summary, handoff |
 | `stopfailure-logger.sh` | StopFailure | `""` (all) | Log API errors (rate limit, auth, billing) to JSONL |
 
@@ -58,7 +58,7 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | Hook | Event | Matcher | Purpose |
 |------|-------|---------|---------|
 | `post-tool-use.sh` | PostToolUse | `Write\|Edit\|Bash` | Log successes, detect corrections and test writes |
-| `post-tool-use-failure.sh` | PostToolUseFailure | `Write\|Edit\|Bash` | Log failures, detect cascades (3+ consecutive) |
+| `post-tool-use-failure.sh` | PostToolUseFailure | `Write\|Edit\|Bash` | Log failures, detect cascades (3+ consecutive), track error recurrence across sessions |
 | `post-plan-challenge.sh` | PostToolUse | `ExitPlanMode` | Nudge challenger agent after plan finalization |
 | `post-tasks-validate.sh` | PostToolUse | `Write\|Edit` | Validate tasks.json schema + auto-rollup parents |
 | `post-sale.sh` | PostToolUse | `Write\|Edit` | Detect deal closures in pipeline files |
@@ -141,6 +141,8 @@ As of 2026-04-01, three hook scripts integrate with ruflo MCP via `cf-env.sh`:
 **Immediate response pattern** -- `session-end.sh` responds with `{"continue": true}` immediately, then forks heavy processing to background. CC cancels hooks during session teardown, so the response must come before any processing.
 
 **Cascade detection** -- `post-tool-use-failure.sh` tracks consecutive failures on the same target. At 3+ failures, it flags a cascade so `pre-tool-use.sh` can inject a warning on the next attempt.
+
+**Error recurrence tracking (t-679)** -- `post-tool-use-failure.sh` computes an error signature (md5 of tool_name + error_cat + first 80 chars of detail) and increments a counter in `~/.claude/logs/error-recurrence.jsonl`. When the same signature hits 3 occurrences across sessions, it stores to ruflo memory with tag `escalate:rule-candidate`. `session-start.sh` scans the recurrence file and surfaces errors with count >= 3 as "[Recurring errors -- rule/hook candidates]" in session context.
 
 **Agent nudging** -- Several hooks inject `additionalContext` that triggers auto-delegation to agents: post-plan-challenge (challenger), post-pr-review (pr-reviewer), session-start (daily-ops for venture projects).
 

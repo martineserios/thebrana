@@ -3,6 +3,7 @@
 
 # Brana PostToolUseFailure hook — log tool failures during session.
 # Wave 1 (#75): error categorization, cascade detection.
+# Wave 2 (t-679): cross-session error recurrence tracking via persistent JSONL + ruflo.
 # Input:  stdin JSON (session_id, tool_name, tool_input, cwd)
 # Output: stdout JSON (minimal — async hook)
 
@@ -87,6 +88,63 @@ if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
         --arg error_cat "$ERROR_CAT" \
         --argjson cascade "$CASCADE" \
         '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail, error_cat: $error_cat, cascade: $cascade}' >> "$SESSION_FILE" 2>/dev/null || true
+
+    # --- Cross-session error recurrence tracking (t-679) ---
+    # Signature = hash of (tool_name + error_cat + first 80 chars of detail).
+    # Counter stored in persistent JSONL; ruflo notified on escalation threshold (3+).
+    RECURRENCE_FILE="$HOME/.claude/logs/error-recurrence.jsonl"
+    mkdir -p "$HOME/.claude/logs" 2>/dev/null || true
+
+    # Build signature: tool + category + normalized first token of detail
+    SIG_DETAIL=$(echo "$DETAIL" | head -1 | cut -c1-80 | tr -d '\n' 2>/dev/null) || SIG_DETAIL=""
+    SIG_INPUT="${TOOL_NAME}:${ERROR_CAT}:${SIG_DETAIL}"
+    SIG_HASH=$(echo -n "$SIG_INPUT" | md5sum 2>/dev/null | cut -c1-16) || SIG_HASH=""
+
+    if [ -n "$SIG_HASH" ]; then
+        # Read current count for this hash (last occurrence wins)
+        PREV_COUNT=0
+        if [ -f "$RECURRENCE_FILE" ]; then
+            PREV_COUNT=$(grep "\"hash\":\"$SIG_HASH\"" "$RECURRENCE_FILE" 2>/dev/null | tail -1 | jq -r '.count // 0' 2>/dev/null) || PREV_COUNT=0
+        fi
+        NEW_COUNT=$((PREV_COUNT + 1))
+
+        # Append updated entry (readers use tail -1 per hash for latest)
+        jq -n -c \
+            --arg hash "$SIG_HASH" \
+            --argjson count "$NEW_COUNT" \
+            --argjson ts "${TS:-0}" \
+            --arg tool "${TOOL_NAME:-unknown}" \
+            --arg error_cat "$ERROR_CAT" \
+            --arg detail "${SIG_DETAIL}" \
+            --arg session "$SESSION_ID" \
+            '{hash: $hash, count: $count, ts: $ts, tool: $tool, error_cat: $error_cat, detail: $detail, session: $session}' >> "$RECURRENCE_FILE" 2>/dev/null || true
+
+        # On threshold (count == 3): store to ruflo as rule candidate (background, fire-and-forget)
+        if [ "$NEW_COUNT" -eq 3 ]; then
+            SCRIPT_DIR_F="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+            (
+                if [ -f "$SCRIPT_DIR_F/lib/cf-env.sh" ]; then
+                    source "$SCRIPT_DIR_F/lib/cf-env.sh"
+                else
+                    source "$HOME/.claude/scripts/cf-env.sh" 2>/dev/null || true
+                fi
+                if [ -n "${CF:-}" ]; then
+                    STORE_VAL=$(jq -n -c \
+                        --arg tool "${TOOL_NAME:-unknown}" \
+                        --arg error_cat "$ERROR_CAT" \
+                        --arg detail "$SIG_DETAIL" \
+                        --argjson count "$NEW_COUNT" \
+                        '{tool: $tool, error_cat: $error_cat, detail: $detail, count: $count, escalation: "rule-candidate"}')
+                    cd "$HOME" && timeout 5 $CF memory store \
+                        --key "error-recurrence:$SIG_HASH" \
+                        --namespace pattern \
+                        --tags "type:error-recurrence,escalate:rule-candidate" \
+                        --value "$STORE_VAL" 2>/dev/null || true
+                fi
+            ) &
+            disown 2>/dev/null || true
+        fi
+    fi
 
     # --- Cascade flag for PreToolUse throttle ---
     # When cascade detected on file-targeted tools, write a flag file so pre-tool-use.sh can nudge.
