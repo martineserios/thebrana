@@ -1,0 +1,129 @@
+{
+  "version": 1,
+  "defaults": {
+    "model": "haiku",
+    "allowedTools": "Read,Glob,Grep,WebSearch",
+    "logRetention": 30,
+    "timeoutSeconds": 300
+  },
+  "jobs": {
+    "backup-memory": {
+      "type": "command",
+      "command": "./system/scripts/backup-memory.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 07:00:00",
+      "enabled": true,
+      "timeoutSeconds": 30,
+      "captureOutput": true,
+      "_comment": "Daily rotating backup of ruflo memory.db (before sync-state push)"
+    },
+    "sync-state": {
+      "type": "command",
+      "command": "./system/scripts/sync-state.sh push --auto-commit",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 08:00:00",
+      "enabled": true,
+      "timeoutSeconds": 60,
+      "captureOutput": true,
+      "_comment": "ADR-015: daily safety net — sync operational state from cache to repos"
+    },
+    "agentdb-watch": {
+      "type": "command",
+      "command": "./system/scheduler/check-agentdb-integration.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 08:06:00",
+      "enabled": true,
+      "maxRetries": 1,
+      "retryBackoffSec": 60,
+      "captureOutput": true,
+      "_comment": "Daily check: has AgentDB integration shipped?"
+    },
+    "staleness-report": {
+      "type": "command",
+      "command": "./scripts/staleness-report.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Mon *-*-* 08:12:00",
+      "enabled": true,
+      "_comment": "Weekly staleness check on spec docs"
+    },
+    "cc-changelog-review": {
+      "type": "command",
+      "command": "./system/scripts/cc-changelog-check.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Mon *-*-* 08:18:00",
+      "enabled": true,
+      "maxRetries": 1,
+      "timeoutSeconds": 60,
+      "captureOutput": true,
+      "_comment": "Weekly CC changelog diff — writes ~/.claude/cc-changelog-report.md if changes found (t-512)"
+    },
+    "reindex-knowledge": {
+      "type": "command",
+      "command": "./system/scripts/index-knowledge.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Sun *-*-* 02:00:00",
+      "enabled": true,
+      "maxRetries": 1,
+      "timeoutSeconds": 10800,
+      "captureOutput": true,
+      "_comment": "Weekly full reindex — runs at 2am, ~86s via MCP-first (t-844, t-894)"
+    },
+    "reindex-patterns": {
+      "type": "command",
+      "command": "./system/scripts/index-patterns.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Sun *-*-* 03:00:00",
+      "enabled": true,
+      "timeoutSeconds": 3600,
+      "captureOutput": true,
+      "_comment": "Weekly pattern namespace reindex — runs at 3am (after knowledge reindex), ~1h max (t-857)"
+    },
+    "export-patterns": {
+      "type": "command",
+      "command": "./system/scripts/sync-state.sh export --auto-commit",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Sun *-*-* 08:30:00",
+      "enabled": true,
+      "maxRetries": 1,
+      "timeoutSeconds": 120,
+      "captureOutput": true,
+      "_comment": "ADR-015: weekly JSON export of all ruflo namespaces to git"
+    },
+    "knowledge-review": {
+      "type": "skill",
+      "skill": "/brana:memory review",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-01 10:00:00",
+      "model": "sonnet",
+      "allowedTools": "Read,Glob,Grep,WebSearch,WebFetch",
+      "enabled": true,
+      "_comment": "Monthly knowledge health check"
+    },
+    "weekly-review": {
+      "type": "skill",
+      "skill": "/brana:review",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Fri *-*-* 17:00:00",
+      "model": "sonnet",
+      "enabled": true,
+      "_comment": "Friday weekly portfolio review"
+    },
+    "morning-check": {
+      "type": "skill",
+      "skill": "/brana:daily-ops",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Mon..Fri *-*-* 08:48:00",
+      "model": "haiku",
+      "enabled": false,
+      "_comment": "Daily morning focus card — disabled locally (runs on Oracle for Telegram)"
+    },
+    "link-check": {
+      "type": "command",
+      "command": "lychee --config .lychee.toml *.md",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Mon *-*-* 09:00:00",
+      "enabled": false,
+      "_comment": "Weekly dead link check (enable after lychee is installed)"
+    }
+  }
+}

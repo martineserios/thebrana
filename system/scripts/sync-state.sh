@@ -24,12 +24,14 @@ CACHE_PATHS=(
     "$HOME/.claude/memory/portfolio.md"
     "$HOME/.claude/tasks-portfolio.json"
     "$HOME/.claude/tasks-config.json"
+    "$HOME/.claude/scheduler/scheduler.json"
 )
 REPO_PATHS=(
     "$STATE_DIR/event-log.md"
     "$STATE_DIR/portfolio.md"
     "$STATE_DIR/tasks-portfolio.json"
     "$STATE_DIR/tasks-config.json"
+    "$STATE_DIR/scheduler.json"
 )
 
 # Companion files synced per-project
