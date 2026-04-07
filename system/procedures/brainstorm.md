@@ -42,6 +42,7 @@ Pull relevant knowledge into context before the brainstorm begins. Budget: 30K t
    )
    ```
    Focus on: dimension docs, idea docs (`docs/ideas/`), and recent research findings.
+2b. **Graph edge traversal** — see `build.md` LOAD step 2b. Follow `depends_on`/`informs` edges from knowledge results. Max 3 graph-derived docs. Best-effort, never blocks.
 3. **Fallback — tag-based grep** (if MCP unavailable):
    ```bash
    grep -rl "{keywords}" ~/enter_thebrana/brana-knowledge/dimensions/ --include="*.md" | head -5
