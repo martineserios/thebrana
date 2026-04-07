@@ -487,3 +487,17 @@ Changes to `$HOME` before executing ruflo, so the MCP server reads `~/.swarm/mem
 | Current task | In-progress task exists | `-> Do the thing` |
 | Build step bracket | `build_step` is set | `[BUILD]` (magenta) |
 | Bug count | Open bugs > 0 | `bug 2` (red) |
+| Session score | Done or corrections > 0 | `S: 17✓ 2✗` (green/red) |
+
+### Session score counter
+
+`session-start.sh` resets `~/.claude/session-score.tsv` to `0\t0` on every new session. `task-completed.sh` increments the done counter when a task status changes to completed. The statusline reads this file for per-session progress.
+
+**TSV fields (2 columns, tab-separated):**
+
+| # | Field | Source |
+|---|-------|--------|
+| 1 | `done` | Tasks completed this session |
+| 2 | `corrections` | Corrections this session (wired, not yet incremented) |
+
+Override: set `BRANA_SESSION_SCORE_FILE` env var for test isolation.

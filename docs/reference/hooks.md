@@ -45,6 +45,15 @@ No strict mode — hooks must never fail and block the session.
 
 No strict mode — hooks must never fail and block the session.
 
+Triggers on `Write|Edit` to `*/tasks.json`. Three steps:
+1. **Validate** — JSON + schema via Rust CLI (fallback: jq)
+2. **Rollup** — auto-complete parent phases/milestones when all children done
+3. **Cache** — write `.statusline.tsv` (async, non-blocking) for statusline consumption
+
+### `task-completed.sh`
+
+Triggers on task completion events. Increments the session score counter (`~/.claude/session-score.tsv` done field).
+
 ### `post-tool-use-failure.sh`
 
 No strict mode — failure hooks especially must never fail themselves.
