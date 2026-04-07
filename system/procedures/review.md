@@ -22,6 +22,7 @@ Pull relevant business context into memory before the review. Budget: 30K tokens
    )
    ```
    Focus on: prior review snapshots (namespace: business), pipeline state, event log entries, and health metrics.
+2b. **Graph edge traversal** — see `build.md` LOAD step 2b. Follow `depends_on`/`informs` edges from knowledge results. Max 3 graph-derived docs. Best-effort, never blocks.
 3. **Fallback — tag-based grep** (if MCP unavailable):
    ```bash
    grep -rl "{keywords}" docs/reviews/ --include="*.md" | head -5

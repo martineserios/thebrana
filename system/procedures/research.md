@@ -52,6 +52,7 @@ Register these steps: LOAD, ROUTE, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TR
       )
       ```
       Focus on: existing dimension docs, `research-sources.yaml` entries, and prior research findings.
+   2b. **Graph edge traversal** — see `build.md` LOAD step 2b. Follow `depends_on`/`informs` edges from knowledge results. Max 3 graph-derived docs. Best-effort, never blocks.
    3. **Fallback — tag-based grep** (if MCP unavailable):
       ```bash
       grep -rl "{keywords}" ~/enter_thebrana/brana-knowledge/dimensions/ --include="*.md" | head -5

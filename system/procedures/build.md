@@ -113,6 +113,14 @@ Pull relevant architecture, decision knowledge, and skill matches into context b
    )
    ```
    Results span all namespaces: knowledge (dimension docs, ADRs, feature briefs), pattern (past session learnings), and **skills** (matching procedures).
+2b. **Graph edge traversal** (after ruflo search, if `docs/spec-graph.json` exists):
+   For each ruflo result with namespace `knowledge`:
+   - Extract the doc path from the key: `knowledge:dimension:39-kapso-ai-platform:*` → `brana-knowledge/dimensions/39-kapso-ai-platform.md`
+   - Run `brana graph query --rel depends_on` and `brana graph query --rel informs`, filter for edges where `from` or `to` matches the doc path
+   - For each 1-hop neighbor not already in ruflo results: read its first 50 lines for context
+   - **Cap:** max 3 graph-derived docs total (across all ruflo results). Prefer `depends_on` over `informs`.
+   - **Skip if:** spec-graph.json doesn't exist, no knowledge results from ruflo, or graph query returns no edges.
+   - This is best-effort enrichment — never blocks LOAD.
 3. **Fallback — tag-based grep** (if MCP unavailable):
    ```bash
    grep -rl "{keywords}" ~/enter_thebrana/brana-knowledge/dimensions/ --include="*.md" | head -5
