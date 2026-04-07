@@ -44,6 +44,9 @@ if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
     echo "BRANA_EFFORT_LEVEL=$EFFORT" >> "$CLAUDE_ENV_FILE"
 fi
 
+# ── Reset session score counter ──────────────────────────
+printf '0\t0\n' > "$HOME/.claude/session-score.tsv" 2>/dev/null || true
+
 # ── Temp files for parallel results ───────────────────────
 TMPDIR_SS="/tmp/brana-ss-${SESSION_ID}"
 mkdir -p "$TMPDIR_SS" 2>/dev/null || true

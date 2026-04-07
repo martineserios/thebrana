@@ -1,6 +1,6 @@
 #!/bin/bash
 # ─── Claude Code Statusline ─────────────────────────────
-# 🧠 Model │ 📂 project │ 🌿 branch │ CTX NN% │ 📝 +156 -23 │ [⚡ │ 📋 N]
+# 🧠 Model │ 📂 project │ 🌿 branch │ CTX NN% │ 📝 +156 -23 │ [⚡ │ 📋 N] │ S: N✓ M✗
 # CTX color: green <55%, yellow 55-69%, orange 70-84%, red 85%+
 
 INPUT=$(cat)
@@ -95,6 +95,20 @@ if [ -n "$TASK_FILE" ]; then
   # Bug count
   if (( T_BUGS > 0 )) 2>/dev/null; then
     printf '%b' " $S 🐛 ${Cr}${T_BUGS}${R}"
+  fi
+fi
+# ── Session score (tasks done / corrections this session) ──
+SS_FILE="${BRANA_SESSION_SCORE_FILE:-$HOME/.claude/session-score.tsv}"
+if [ -f "$SS_FILE" ]; then
+  IFS=$'\t' read -r SS_DONE SS_CORR < "$SS_FILE"
+  SS_DONE=${SS_DONE:-0}; SS_CORR=${SS_CORR:-0}
+  if (( SS_DONE > 0 || SS_CORR > 0 )) 2>/dev/null; then
+    printf '%b' " $S ${D}S: ${Cg}${SS_DONE}✓${R}"
+    if (( SS_CORR > 0 )) 2>/dev/null; then
+      printf '%b' " ${Cr}${SS_CORR}✗${R}"
+    else
+      printf '%b' " ${D}${SS_CORR}✗${R}"
+    fi
   fi
 fi
 # ── Scheduler health ─────────────────────────────────
