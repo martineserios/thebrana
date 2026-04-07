@@ -501,3 +501,25 @@ Changes to `$HOME` before executing ruflo, so the MCP server reads `~/.swarm/mem
 | 2 | `corrections` | Corrections this session (wired, not yet incremented) |
 
 Override: set `BRANA_SESSION_SCORE_FILE` env var for test isolation.
+
+### Width detection
+
+Statusline detects terminal width via `BRANA_STATUSLINE_COLS` env var (testing) or `tput cols` (production). When output would exceed width, segments are progressively dropped by priority:
+
+| Priority | Segment | Drop order |
+|----------|---------|------------|
+| 11 | Model | Never drop |
+| 10 | Project | Never drop |
+| 9 | Branch | Never drop |
+| 8 | CTX% | Never drop |
+| 7 | Current task | Drop 5th |
+| 6 | Build step | Drop 4th |
+| 5 | Bugs | Drop 3rd |
+| 4 | Phase progress | Drop 2nd |
+| 3 | Session score | Drop 1st |
+| 2 | Lines +/- | Drop 1st |
+| 1 | Scheduler/CF | Drop 1st |
+
+### Cache staleness
+
+If `tasks.json` is newer than the cache file (mtime comparison), the statusline falls back to direct jq computation and refreshes the cache inline. This handles manual edits or CLI writes that bypass the hook.
