@@ -453,3 +453,37 @@ Each entry requires `key`, `value`, and `namespace`. Optional fields: `tags` (st
 | **Dependencies** | ruflo (Node.js install) |
 
 Changes to `$HOME` before executing ruflo, so the MCP server reads `~/.swarm/memory.db` instead of looking for `.swarm/` relative to whatever working directory Claude Code launches from. Passes all arguments through to the ruflo binary.
+
+---
+
+## statusline.sh
+
+| Field | Value |
+|-------|-------|
+| **Purpose** | Claude Code statusline — model, project, branch, context %, lines changed, task metrics |
+| **Location** | `system/statusline.sh` |
+| **Dependencies** | jq, git |
+
+### Task metrics cache
+
+`post-tasks-validate.sh` writes a TSV cache (`.claude/tasks.statusline.tsv`) on every `tasks.json` write. The statusline reads this cache for zero-cost task display. Falls back to direct jq parsing on first run (before any task write).
+
+**TSV fields (6 columns, tab-separated):**
+
+| # | Field | Source |
+|---|-------|--------|
+| 1 | `phase_name` | First in_progress phase subject (before `:`, stripped `Phase ` prefix) |
+| 2 | `done_count` | Count of completed tasks/subtasks |
+| 3 | `total_count` | Count of all tasks/subtasks |
+| 4 | `current_subject` | Subject of first in_progress task/subtask |
+| 5 | `bug_count` | Count of open bugs |
+| 6 | `build_step` | `build_step` field of first in_progress task/subtask (e.g. `SPECIFY`, `BUILD`, `TEST`, `SHIP`) |
+
+### Segments displayed
+
+| Segment | Condition | Example |
+|---------|-----------|---------|
+| Phase progress | Phase exists and total > 0 | `Ph A: 3/7` |
+| Current task | In-progress task exists | `-> Do the thing` |
+| Build step bracket | `build_step` is set | `[BUILD]` (magenta) |
+| Bug count | Open bugs > 0 | `bug 2` (red) |

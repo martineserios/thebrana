@@ -143,7 +143,8 @@ fi
     ([.tasks[] | select((.type == "task" or .type == "subtask") and .status == "completed")] | length),
     ([.tasks[] | select(.type == "task" or .type == "subtask")] | length),
     ([.tasks[] | select(.status == "in_progress" and (.type == "task" or .type == "subtask"))] | first | .subject // ""),
-    ([.tasks[] | select(.stream == "bugs" and .status != "completed" and .status != "cancelled")] | length)
+    ([.tasks[] | select(.stream == "bugs" and .status != "completed" and .status != "cancelled")] | length),
+    ([.tasks[] | select(.status == "in_progress" and (.type == "task" or .type == "subtask"))] | first | .build_step // "")
   ] | @tsv' "$FILE_PATH" > "$CACHE_FILE" 2>/dev/null
 } &
 

@@ -71,16 +71,17 @@ if [ -n "$TASK_FILE" ]; then
   # Read from cache (written by post-tasks-validate.sh on every tasks.json write)
   CACHE_FILE="${TASK_FILE%.json}.statusline.tsv"
   if [ -f "$CACHE_FILE" ]; then
-    IFS=$'\t' read -r T_PHASE T_DONE T_TOTAL T_CURRENT T_BUGS < "$CACHE_FILE"
+    IFS=$'\t' read -r T_PHASE T_DONE T_TOTAL T_CURRENT T_BUGS T_BUILD_STEP < "$CACHE_FILE"
   else
     # Fallback: compute directly (first run before any task write)
-    IFS=$'\t' read -r T_PHASE T_DONE T_TOTAL T_CURRENT T_BUGS <<< \
+    IFS=$'\t' read -r T_PHASE T_DONE T_TOTAL T_CURRENT T_BUGS T_BUILD_STEP <<< \
       "$(jq -r '[
         ([.tasks[] | select(.type == "phase" and .status == "in_progress")] | first | .subject // "" | split(":") | first | ltrimstr("Phase ") // ""),
         ([.tasks[] | select((.type == "task" or .type == "subtask") and .status == "completed")] | length),
         ([.tasks[] | select(.type == "task" or .type == "subtask")] | length),
         ([.tasks[] | select(.status == "in_progress" and (.type == "task" or .type == "subtask"))] | first | .subject // ""),
-        ([.tasks[] | select(.stream == "bugs" and .status != "completed" and .status != "cancelled")] | length)
+        ([.tasks[] | select(.stream == "bugs" and .status != "completed" and .status != "cancelled")] | length),
+        ([.tasks[] | select(.status == "in_progress" and (.type == "task" or .type == "subtask"))] | first | .build_step // "")
       ] | @tsv' "$TASK_FILE" 2>/dev/null)"
   fi
   # Phase progress
@@ -91,6 +92,10 @@ if [ -n "$TASK_FILE" ]; then
   if [ -n "$T_CURRENT" ]; then
     TC="${T_CURRENT:0:25}"
     printf '%b' " $S → ${Cw}${TC}${R}"
+  fi
+  # Build step bracket
+  if [ -n "${T_BUILD_STEP:-}" ]; then
+    printf '%b' " ${Cm}[${T_BUILD_STEP}]${R}"
   fi
   # Bug count
   if (( T_BUGS > 0 )) 2>/dev/null; then
