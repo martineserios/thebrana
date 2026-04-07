@@ -41,6 +41,13 @@ MESSAGES=""
 for TASK_ID in $TASK_IDS; do
     [ -z "$TASK_ID" ] && continue
 
+    # ── 0. Increment session score counter ──────────────────
+    SS_FILE="$HOME/.claude/session-score.tsv"
+    if [ -f "$SS_FILE" ]; then
+        IFS=$'\t' read -r SS_DONE SS_CORR < "$SS_FILE"
+        printf '%d\t%d\n' "$(( ${SS_DONE:-0} + 1 ))" "${SS_CORR:-0}" > "$SS_FILE" 2>/dev/null || true
+    fi
+
     # ── 1. Parent rollup ──────────────────────────────────
     ROLLUP_OUT=$("$BRANA" backlog rollup 2>/dev/null) || true
     ROLLUP_IDS=$(echo "$ROLLUP_OUT" | jq -r '.rollup // [] | join(", ")' 2>/dev/null) || true
