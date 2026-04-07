@@ -13,7 +13,7 @@ One command to answer: **Where am I? What was I doing? What's left? What's next?
 
 ## Process
 
-Gather from 5 sources in parallel, then synthesize into one snapshot. No writes — this is read-only.
+Gather from 7 sources in parallel, then synthesize into one snapshot. No writes — this is read-only.
 
 ### 1. CC Tasks (active skill flow)
 
@@ -166,7 +166,7 @@ Determine the single most important next action:
 ## Rules
 
 1. **Read-only.** Never modify files, tasks, or git state. Just observe and report.
-2. **Fast.** All 5 sources gathered in parallel. No deep analysis — surface-level scan.
+2. **Fast.** All 7 sources gathered in parallel. No deep analysis — surface-level scan.
 3. **Actionable.** Always end with a concrete "Next action" — never just a status dump.
 4. **Honest.** If you can't determine something, say so: "Build step unknown — task may have been started in a prior session."
 5. **No step registry.** This is a single-step command. No CC Tasks needed for sitrep itself.
