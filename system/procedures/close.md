@@ -131,6 +131,10 @@ Detect behavioral changes that lack corresponding documentation updates.
    - `doc_prompts_accepted`: 1 if "Draft now", 0 otherwise
    - `doc_prompts_skipped`: 1 if "Skip", 0 otherwise
 
+### Steps 4-8: Run in parallel
+
+Steps 4 through 8 (ERRATA, PATTERNS, FIELD-NOTES, IDEATE, DRIFT) are independent — each reads from Step 3 output but none depends on another. Execute all five simultaneously using parallel tool calls. Do not wait for one to finish before starting the next.
+
 ### Step 4: Write errata entries (if any)
 
 For each **errata** finding:
