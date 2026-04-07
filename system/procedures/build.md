@@ -902,6 +902,15 @@ mcp__ruflo__memory_store(
 
 If ruflo unavailable, fall back to appending to project auto memory (`~/.claude/projects/*/memory/`).
 
+**Frontmatter relationships:** If PERSIST created or updated a markdown file (ADR, FieldNote, or doc), add YAML frontmatter relationships to that file:
+- `produced_by: [source-doc-path]` — the doc or task that triggered this finding
+- `applies_to: [project-or-client]` — if the finding is cross-client transferable
+- `depends_on: [related-doc-path]` — if the finding extends or refines an existing doc
+
+If the file already has frontmatter (`---` block), merge into it. If not, prepend a new block. Only add relationships that actually apply — don't force all three on every file.
+
+Post-commit hook will rebuild `spec-graph.json` — new edges appear automatically.
+
 **Graceful degradation:** If no findings worth persisting (trivial build, nothing surprising), skip EVALUATE and PERSIST silently. Don't force learnings where none exist.
 
 ---
