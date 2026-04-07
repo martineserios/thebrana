@@ -68,14 +68,21 @@ for TF in "$CWD/.claude/tasks.json" "$PROJECT/.claude/tasks.json"; do
   [ -f "$TF" ] && TASK_FILE="$TF" && break
 done
 if [ -n "$TASK_FILE" ]; then
-  IFS=$'\t' read -r T_PHASE T_DONE T_TOTAL T_CURRENT T_BUGS <<< \
-    "$(jq -r '[
-      ([.tasks[] | select(.type == "phase" and .status == "in_progress")] | first | .subject // "" | split(":") | first | ltrimstr("Phase ") // ""),
-      ([.tasks[] | select((.type == "task" or .type == "subtask") and .status == "completed")] | length),
-      ([.tasks[] | select(.type == "task" or .type == "subtask")] | length),
-      ([.tasks[] | select(.status == "in_progress" and (.type == "task" or .type == "subtask"))] | first | .subject // ""),
-      ([.tasks[] | select(.stream == "bugs" and .status != "completed" and .status != "cancelled")] | length)
-    ] | @tsv' "$TASK_FILE" 2>/dev/null)"
+  # Read from cache (written by post-tasks-validate.sh on every tasks.json write)
+  CACHE_FILE="${TASK_FILE%.json}.statusline.tsv"
+  if [ -f "$CACHE_FILE" ]; then
+    IFS=$'\t' read -r T_PHASE T_DONE T_TOTAL T_CURRENT T_BUGS < "$CACHE_FILE"
+  else
+    # Fallback: compute directly (first run before any task write)
+    IFS=$'\t' read -r T_PHASE T_DONE T_TOTAL T_CURRENT T_BUGS <<< \
+      "$(jq -r '[
+        ([.tasks[] | select(.type == "phase" and .status == "in_progress")] | first | .subject // "" | split(":") | first | ltrimstr("Phase ") // ""),
+        ([.tasks[] | select((.type == "task" or .type == "subtask") and .status == "completed")] | length),
+        ([.tasks[] | select(.type == "task" or .type == "subtask")] | length),
+        ([.tasks[] | select(.status == "in_progress" and (.type == "task" or .type == "subtask"))] | first | .subject // ""),
+        ([.tasks[] | select(.stream == "bugs" and .status != "completed" and .status != "cancelled")] | length)
+      ] | @tsv' "$TASK_FILE" 2>/dev/null)"
+  fi
   # Phase progress
   if [ -n "$T_PHASE" ] && (( T_TOTAL > 0 )); then
     printf '%b' " $S 📋 ${Cy}Ph${T_PHASE}: ${T_DONE}/${T_TOTAL}${R}"
