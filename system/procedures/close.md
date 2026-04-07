@@ -464,14 +464,7 @@ Build a JSON object from all evidence gathered in previous steps, write it to a 
 }
 ```
 
-**Populate the `metrics` field** from the session JSONL telemetry:
-```bash
-SESSION_FILE="/tmp/brana-session-${SESSION_ID}.jsonl"
-if [ -f "$SESSION_FILE" ]; then
-    brana ops metrics "$SESSION_FILE"
-fi
-```
-Use the output to fill events, corrections, test_writes, correction_rate, test_write_rate, cascade_rate, delegation_count. If the session file doesn't exist or metrics fail, omit the metrics field (it's optional).
+**Metrics field:** Leave the `metrics` object with zero defaults. The `session-end.sh` hook computes actual metrics (events, corrections, test_writes, correction_rate, test_write_rate, cascade_rate, delegation_count) from the session JSONL telemetry via `brana ops metrics` and merges them into the session state automatically. If the hook doesn't run or metrics computation fails, the zero defaults are harmless.
 
 **Propose-first metrics** — count from conversation context (no telemetry file needed):
 - `propose_count`: AskUserQuestion calls where the first option had "(Recommended)" or was a clear default
