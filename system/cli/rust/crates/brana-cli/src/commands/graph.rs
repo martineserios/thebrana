@@ -94,7 +94,7 @@ struct GraphStats {
 pub fn cmd_graph(cmd: GraphCmd) {
     match cmd {
         GraphCmd::Build { output } => cmd_build(output),
-        GraphCmd::Orphans => cmd_orphans(),
+        GraphCmd::Orphans { all } => cmd_orphans(all),
         GraphCmd::Query { node_type, rel } => cmd_query(node_type, rel),
         GraphCmd::Path { from, to } => cmd_path(&from, &to),
         GraphCmd::Stats => cmd_stats(),
@@ -711,7 +711,34 @@ fn load_graph() -> SpecGraph {
 
 // ── Orphans ──────────────────────────────────────────────────────────
 
-fn cmd_orphans() {
+/// Classify an orphan node as "structural" (missing expected backlinks) or "leaf" (expected standalone).
+///
+/// Structural orphans are docs that should be connected in the graph:
+///   - ADRs (decisions/ADR-*)
+///   - Feature briefs (features/*)
+///   - Reflections (reflections/*)
+///
+/// Leaf orphans are legitimately standalone:
+///   - Dimensions / knowledge docs
+///   - Guide pages
+///   - Research docs
+///   - Everything else
+fn is_structural_orphan(key: &str) -> bool {
+    // Structural: ADRs, feature briefs, reflections — should have backlinks
+    if key.contains("decisions/ADR-") || key.contains("decisions/adr-") {
+        return true;
+    }
+    if key.contains("features/") {
+        return true;
+    }
+    if key.contains("reflections/") {
+        return true;
+    }
+    // Everything else is leaf / expected standalone
+    false
+}
+
+fn cmd_orphans(show_all: bool) {
     let graph = load_graph();
     let mut connected: HashSet<&str> = HashSet::new();
     for e in &graph.edges {
@@ -732,13 +759,44 @@ fn cmd_orphans() {
         return;
     }
 
-    println!("\n  \x1b[1mOrphan nodes ({}):\x1b[0m\n", orphans.len());
-    for (key, node) in &orphans {
+    let structural: Vec<_> = orphans.iter().filter(|(k, _)| is_structural_orphan(k)).collect();
+    let leaf: Vec<_> = orphans.iter().filter(|(k, _)| !is_structural_orphan(k)).collect();
+
+    // Always show structural orphans
+    if structural.is_empty() {
+        println!("\n  \x1b[1mNo structural orphans found.\x1b[0m");
+    } else {
         println!(
-            "  \x1b[33m{}\x1b[0m  [{}]  {}",
-            key, node.node_type, node.title
+            "\n  \x1b[1;31mStructural orphans ({}):\x1b[0m  (ADRs, features, reflections missing backlinks)\n",
+            structural.len()
+        );
+        for (key, node) in &structural {
+            println!(
+                "  \x1b[31m{}\x1b[0m  [{}]  {}",
+                key, node.node_type, node.title
+            );
+        }
+    }
+
+    // Show leaf orphans only with --all
+    if show_all {
+        println!(
+            "\n  \x1b[1;33mLeaf orphans ({}):\x1b[0m  (expected standalone — dimensions, guides, research)\n",
+            leaf.len()
+        );
+        for (key, node) in &leaf {
+            println!(
+                "  \x1b[33m{}\x1b[0m  [{}]  {}",
+                key, node.node_type, node.title
+            );
+        }
+    } else if !leaf.is_empty() {
+        println!(
+            "\n  \x1b[2m  ({} leaf orphans hidden — use --all to show)\x1b[0m",
+            leaf.len()
         );
     }
+
     println!();
 }
 

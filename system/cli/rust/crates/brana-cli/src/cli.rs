@@ -215,8 +215,12 @@ pub enum GraphCmd {
         #[arg(long)]
         output: Option<PathBuf>,
     },
-    /// List orphan nodes (zero edges)
-    Orphans,
+    /// List orphan nodes (zero edges). Shows only structural orphans by default.
+    Orphans {
+        /// Show all orphans including expected leaf nodes (dimensions, guides, research)
+        #[arg(long)]
+        all: bool,
+    },
     /// Query nodes by type or relationship
     Query {
         /// Filter by entity type (Dimension, ADR, etc.)
