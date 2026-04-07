@@ -4,6 +4,7 @@
 
 | Topic | File | Relevant Clients |
 |-------|------|------------------|
+| Brainstorm governance gate for M+ efforts | `feedback_brainstorm_governance_gate.md` | brana (skill dev), all clients using brainstorm |
 | Meta WhatsApp template classification formula | `meta-whatsapp-templates.md` | somos_mirada, proyecto_anita, any WhatsApp client |
 | Railway.com platform evaluation (PaaS pricing, limits, regions) | `nexeye_eyedetect/docs/infrastructure/railway-platform-evaluation.md` | any client evaluating PaaS hosting |
 | Client retention & engagement systems (flywheel, welcome kits, QR portals, referral reframing) | `brana-knowledge/dimensions/client-retention-engagement.md` | tinyhomes, any recurring-client service |
