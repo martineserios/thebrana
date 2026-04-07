@@ -1,6 +1,6 @@
 #!/bin/bash
 # ─── Claude Code Statusline ─────────────────────────────
-# 🧠 Model │ 📂 project │ 🌿 branch │ CTX NN% │ 📝 +156 -23 │ [⚡ │ 📋 N] │ S: N✓ M✗
+# 🧠 Model │ 📂 project │ 🌿 branch │ CTX NN% │ 📝 +156 -23 │ [⚡ │ 📋 N]
 # CTX color: green <55%, yellow 55-69%, orange 70-84%, red 85%+
 # Width-aware: drops low-priority segments when terminal is narrow.
 
@@ -76,14 +76,6 @@ if [ -n "$TASK_FILE" ]; then
   fi
 fi
 
-# ── Collect session score ────────────────────────────────
-SS_DONE=0 SS_CORR=0
-SS_FILE="${BRANA_SESSION_SCORE_FILE:-$HOME/.claude/session-score.tsv}"
-if [ -f "$SS_FILE" ]; then
-  IFS=$'\t' read -r SS_DONE SS_CORR < "$SS_FILE"
-  SS_DONE=${SS_DONE:-0}; SS_CORR=${SS_CORR:-0}
-fi
-
 # ── Collect scheduler health ─────────────────────────────
 S_OK=0 S_FAIL=0
 SCHED_STATUS="$HOME/.claude/scheduler/last-status.json"
@@ -150,17 +142,6 @@ fi
 # Priority 4: Phase progress
 if [ -n "$T_PHASE" ] && (( T_TOTAL > 0 )); then
   add_segment " $S 📋 ${Cy}Ph${T_PHASE}: ${T_DONE}/${T_TOTAL}${R}" 4
-fi
-
-# Priority 3: Session score
-if (( SS_DONE > 0 || SS_CORR > 0 )) 2>/dev/null; then
-  SS_SEG=" $S ${D}S: ${Cg}${SS_DONE}✓${R}"
-  if (( SS_CORR > 0 )) 2>/dev/null; then
-    SS_SEG+=" ${Cr}${SS_CORR}✗${R}"
-  else
-    SS_SEG+=" ${D}${SS_CORR}✗${R}"
-  fi
-  add_segment "$SS_SEG" 3
 fi
 
 # Priority 2: Lines added/removed
