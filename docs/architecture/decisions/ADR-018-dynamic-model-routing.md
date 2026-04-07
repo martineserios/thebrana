@@ -18,7 +18,7 @@ Agent models are hardcoded in `system/agents/*.md` frontmatter and the backlog s
 
 | Agent | Current model | Always optimal? |
 |-------|:------------:|:---------------:|
-| challenger | opus | Yes |
+| challenger | sonnet | Yes |
 | debrief-analyst | opus | Sometimes overkill |
 | scout | haiku | Sometimes too weak |
 | all others | haiku | Usually fine |
