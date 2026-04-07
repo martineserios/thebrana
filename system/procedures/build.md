@@ -114,12 +114,37 @@ Pull relevant architecture, decision knowledge, and skill matches into context b
    ```
    Results span all namespaces: knowledge (dimension docs, ADRs, feature briefs), pattern (past session learnings), and **skills** (matching procedures).
 2b. **Graph edge traversal** (after ruflo search, if `docs/spec-graph.json` exists):
-   For each ruflo result with namespace `knowledge`:
-   - Extract the doc path from the key: `knowledge:dimension:39-kapso-ai-platform:*` → `brana-knowledge/dimensions/39-kapso-ai-platform.md`
-   - Run `brana graph query --rel depends_on` and `brana graph query --rel informs`, filter for edges where `from` or `to` matches the doc path
-   - For each 1-hop neighbor not already in ruflo results: read its first 50 lines for context
-   - **Cap:** max 3 graph-derived docs total (across all ruflo results). Prefer `depends_on` over `informs`.
-   - **Skip if:** spec-graph.json doesn't exist, no knowledge results from ruflo, or graph query returns no edges.
+   Collect doc paths from knowledge results. Map ruflo key → file path:
+   - `knowledge:dimension:{slug}:*` → `brana-knowledge/dimensions/{slug}.md`
+   - `knowledge:decision:{slug}:*` → `docs/architecture/decisions/{slug}.md`
+   - `knowledge:reflection:{slug}:*` → `docs/reflections/{slug}.md`
+   - `knowledge:feature:{slug}:*` → `docs/architecture/features/{slug}.md`
+
+   For each doc path, find 1-hop neighbors via inline graph query:
+   ```bash
+   uv run python3 -c "
+   import json, sys
+   with open('docs/spec-graph.json') as f:
+       g = json.load(f)
+   doc = sys.argv[1]
+   seen = set(sys.argv[2:])  # already-loaded paths from ruflo results
+   deps = [e for e in g['edges'] if (e['from']==doc or e['to']==doc) and e['type']=='depends_on']
+   infs = [e for e in g['edges'] if (e['from']==doc or e['to']==doc) and e['type']=='informs']
+   neighbors = []
+   for e in deps + infs:
+       n = e['to'] if e['from']==doc else e['from']
+       if n not in seen:
+           neighbors.append(n)
+           seen.add(n)
+       if len(neighbors) >= 3:
+           break
+   for n in neighbors:
+       print(n)
+   " "{doc_path}" "{already_loaded_1}" "{already_loaded_2}" ...
+   ```
+   For each returned neighbor: read its first 50 lines for context.
+   - **Cap:** max 3 graph-derived docs total (across all ruflo results). `depends_on` edges checked before `informs`.
+   - **Skip if:** spec-graph.json doesn't exist, no knowledge results from ruflo, or graph query returns no neighbors.
    - This is best-effort enrichment — never blocks LOAD.
 3. **Fallback — tag-based grep** (if MCP unavailable):
    ```bash
