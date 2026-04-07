@@ -1,6 +1,7 @@
 ---
 name: cargo-machete
 description: "Detect and remove unused dependencies in Rust projects using cargo-machete."
+model: haiku
 group: brana
 keywords: [rust, dependencies, cleanup, cargo]
 allowed-tools: [Bash, Read, Glob, Grep, Edit]

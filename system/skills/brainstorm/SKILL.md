@@ -2,6 +2,7 @@
 name: brainstorm
 description: "Interactive idea maturation — explore, research, shape raw ideas into actionable plans. Use when you have a rough idea and want to think it through."
 effort: high
+model: sonnet
 keywords: [idea, explore, challenge, shape, opportunity, maturation]
 task_strategies: [spike, feature]
 stream_affinity: [roadmap, research, experiments]

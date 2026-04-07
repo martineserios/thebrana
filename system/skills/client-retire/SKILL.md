@@ -2,6 +2,7 @@
 name: client-retire
 description: "Archive a client's patterns and mark them as historical. Use when retiring a client or archiving its knowledge for future reference."
 effort: low
+model: haiku
 keywords: [archive, retire, client, historical, cleanup]
 task_strategies: [migration]
 stream_affinity: [roadmap]

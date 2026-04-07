@@ -2,6 +2,7 @@
 name: do
 description: "Alias for /brana:backlog start with freeform text. Routes to the best skill or creates a task. Use /brana:backlog start directly for the same behavior."
 effort: low
+model: haiku
 keywords: [routing, freeform, skill-selection, auto-route, natural-language]
 task_strategies: [feature, bug-fix, refactor, spike, investigation]
 stream_affinity: [roadmap, tech-debt, bugs]

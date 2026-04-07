@@ -2,6 +2,7 @@
 name: acquire-skills
 description: "Find and install skills for project tech gaps. Use when entering a project with unfamiliar tech or when no local skill matches a task context."
 effort: low
+model: haiku
 keywords: [skills, marketplace, install, gap, discovery, external]
 task_strategies: [feature, spike]
 stream_affinity: [roadmap, tech-debt]
