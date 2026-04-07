@@ -460,9 +460,9 @@ Changes to `$HOME` before executing ruflo, so the MCP server reads `~/.swarm/mem
 
 | Field | Value |
 |-------|-------|
-| **Purpose** | Claude Code statusline — model, project, branch, context %, lines changed, task metrics |
+| **Purpose** | Claude Code statusline — model, project, branch, context %, task metrics, job detection, learning signals |
 | **Location** | `system/statusline.sh` |
-| **Dependencies** | jq, git |
+| **Dependencies** | jq, git, sqlite3 (optional, for slow-cache job) |
 
 ### Task metrics cache
 
@@ -479,32 +479,96 @@ Changes to `$HOME` before executing ruflo, so the MCP server reads `~/.swarm/mem
 | 5 | `bug_count` | Count of open bugs |
 | 6 | `build_step` | `build_step` field of first in_progress task/subtask (e.g. `SPECIFY`, `BUILD`, `TEST`, `SHIP`) |
 
+### Job detection
+
+Statusline infers the current job from task state:
+
+| Priority | Source | Job |
+|----------|--------|-----|
+| 1 (highest) | `~/.claude/statusline-job-hint` (fresh <10min) | Skill-written hint (e.g. `RESEARCH`) |
+| 2 | `build_step` set on active task | `BUILD` |
+| 3 | No in_progress task | `DECIDE` |
+| — | Otherwise | No specific job |
+
+**BUILD mode:** Shows `BUILD → task name [step]` — current task + build step bracket.
+**DECIDE mode:** Shows `DECIDE → next unblocked (N blocked)` — next unblocked task + blocked count (computed via jq).
+**No job:** Original behavior — `→ task name`.
+
+### Slow-cache signals
+
+A scheduled job (`system/scripts/statusline-slow-cache.sh`, every 5min) writes slow-changing signals to `~/.claude/statusline-slow-cache.tsv`. The statusline reads this file — never queries ruflo directly.
+
+**TSV fields (6 columns, tab-separated):**
+
+| # | Field | Source |
+|---|-------|--------|
+| 1 | `ruflo_count` | Total entries in ruflo memory.db |
+| 2 | `ruflo_reindex_date` | Date of most recent knowledge namespace entry |
+| 3 | `ruflo_stale` | Entries >30d old in knowledge namespace |
+| 4 | `portfolio_pending` | Pending tasks across all projects |
+| 5 | `knowledge_days` | Days since last brana-knowledge dimension doc commit |
+| 6 | `timestamp` | When cache was last written |
+
+### Learning velocity
+
+Read from the live session JSONL (`/tmp/brana-session-*.jsonl`) and memory files:
+
+| Signal | Source | Display |
+|--------|--------|---------|
+| Correction rate | `grep "correction"` on session JSONL | `🔄 2/5` (red if ≥50%) |
+| Patterns stored | Memory files modified today | `🧩 3` (green) |
+
 ### Segments displayed
 
-| Segment | Condition | Example |
-|---------|-----------|---------|
-| Phase progress | Phase exists and total > 0 | `Ph A: 3/7` |
-| Current task | In-progress task exists | `-> Do the thing` |
-| Build step bracket | `build_step` is set | `[BUILD]` (magenta) |
-| Bug count | Open bugs > 0 | `bug 2` (red) |
+| Prio | Segment | Condition | Example |
+|------|---------|-----------|---------|
+| 11 | Model | Always | `🧠 Sonnet 4.6` |
+| 10 | Project | Always | `📂 thebrana` |
+| 9 | Branch | In git repo | `🌿 main` |
+| 8 | CTX% | Always (color-coded) | `CTX 42%` |
+| 7 | Task context | Job-adaptive (see above) | `BUILD → Task [TDD]` or `DECIDE → Next (3 blocked)` |
+| 6 | Build step / blocked | BUILD or DECIDE mode | `[TDD]` or `(3 blocked)` |
+| 5 | Bugs | Open bugs > 0 | `🐛 2` (red) |
+| 4 | Phase progress | Active phase + tasks | `📋 PhA: 5/13` |
+| 3 | Knowledge freshness | From slow-cache | `📚 3d` (orange if 14d+) |
+| 3 | Portfolio | From slow-cache | `🗂 434` |
+| 3 | Knowledge decay | Stale >50% of ruflo | `⏳ 1349stale` (orange) |
+| 3 | Correction rate | Corrections > 0 this session | `🔄 2/5` (red if ≥50%) |
+| 3 | Patterns stored | Patterns written today | `🧩 3` (green) |
+| 2 | Lines changed | Always | `📝 +156 -23` |
+| 1 | Scheduler health | Jobs have run | `📅 7✓ 1✗` |
+
 ### Width detection
 
 Statusline detects terminal width via `BRANA_STATUSLINE_COLS` env var (testing) or `tput cols` (production). When output would exceed width, segments are progressively dropped by priority:
 
-| Priority | Segment | Drop order |
-|----------|---------|------------|
-| 11 | Model | Never drop |
-| 10 | Project | Never drop |
-| 9 | Branch | Never drop |
-| 8 | CTX% | Never drop |
-| 7 | Current task | Drop 5th |
-| 6 | Build step | Drop 4th |
-| 5 | Bugs | Drop 3rd |
-| 4 | Phase progress | Drop 2nd |
-| 3 | Session score | Drop 1st |
-| 2 | Lines +/- | Drop 1st |
-| 1 | Scheduler/CF | Drop 1st |
+Segments drop in ascending priority order (priority 1 drops first, 11 never drops). See the full segment table above for all priorities.
 
 ### Cache staleness
 
 If `tasks.json` is newer than the cache file (mtime comparison), the statusline falls back to direct jq computation and refreshes the cache inline. This handles manual edits or CLI writes that bypass the hook.
+
+---
+
+## statusline-slow-cache.sh
+
+| Field | Value |
+|-------|-------|
+| **Purpose** | Scheduled job that writes slow-changing signals for statusline consumption |
+| **Location** | `system/scripts/statusline-slow-cache.sh` |
+| **Schedule** | Every 5 minutes (`*-*-* *:00/5:00`) |
+| **Output** | `~/.claude/statusline-slow-cache.tsv` |
+| **Dependencies** | sqlite3 (optional), jq, git |
+
+Collects ruflo health (entry count, last reindex date, stale count), portfolio pulse (pending tasks across projects), and knowledge freshness (days since last dimension doc update). Statusline reads the TSV — never queries ruflo directly.
+
+**Env overrides (for testing):**
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `BRANA_SLOW_CACHE_FILE` | `~/.claude/statusline-slow-cache.tsv` | Output file path |
+| `BRANA_RUFLO_DB` | `~/.swarm/memory.db` | Ruflo database path |
+| `BRANA_KNOWLEDGE_DIR` | `~/enter_thebrana/brana-knowledge` | Knowledge repo path |
+| `BRANA_PORTFOLIO_DIRS` | Colon-separated project dirs | Directories to scan for tasks.json |
+
+Gracefully degrades: if ruflo DB is missing, writes 0s. If brana-knowledge is missing, writes 0 for knowledge_days.
