@@ -618,7 +618,7 @@ After agent completes:
 |----------|----------|
 | `/brana:build` (subagent spawn) | `agent_spawn(type, task, model)` before `Agent(...)` |
 | `/brana:research` (scout spawn) | `agent_spawn("scout", task, model)` |
-| `/brana:challenge` (opus spawn) | `agent_spawn("challenger", task, "opus")` |
+| `/brana:challenge` (sonnet spawn) | `agent_spawn("challenger", task, "sonnet")` |
 | After agent completes | `trajectory-step(action, quality)` |
 | `/brana:review` | `agent_list()` → cost/success analytics |
 | Model routing improvement | Compare routed model vs actual outcome over time |

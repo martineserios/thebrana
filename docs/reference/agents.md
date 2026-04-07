@@ -8,7 +8,7 @@
 |-------|-------|-------------|
 | challenger-calibration | inherit | Severity scoring guide with few-shot examples and hard thresholds for the challe |
 | archiver | haiku | Archive project patterns and knowledge when retiring. Categorize as transferable |
-| challenger | opus | Adversarially review a plan, architecture decision, or approach. Stress-test bef |
+| challenger | sonnet | Adversarially review a plan, architecture decision, or approach. Stress-test bef |
 | client-scanner | haiku | Scan client project structure, detect tech stack, check brana alignment. Use whe |
 | daily-ops | haiku | Daily venture focus card — health snapshot, pending actions, experiments. Use at |
 | debrief-analyst | opus | Extract errata, learnings, and patterns from a work session. Classify into errat |
