@@ -67,6 +67,17 @@ visible_len() {
     printf '%s' "$(strip_ansi "$1")" | wc -m
 }
 
+# Max visible length across all lines in multi-line output
+max_line_len() {
+    local max=0
+    while IFS= read -r line; do
+        local len
+        len=$(printf '%s' "$(echo "$line" | sed 's/\x1b\[[0-9;]*m//g')" | wc -m)
+        (( len > max )) && max=$len
+    done <<< "$(echo -e "$1")"
+    echo "$max"
+}
+
 write_tasks() {
     local file="$1"; shift
     cat > "$file" <<'TASKS_HEAD'
@@ -306,16 +317,14 @@ STRIPPED6_NARROW=$(strip_ansi "$OUTPUT6_NARROW")
 assert_contains "narrow: has model" "Haiku" "$STRIPPED6_NARROW"
 assert_contains "narrow: has CTX%" "CTX" "$STRIPPED6_NARROW"
 
-# Lines (priority 2) and session score (priority 3) should be dropped at 60 cols
-assert_not_contains "narrow: no lines segment" "+100" "$STRIPPED6_NARROW"
-
-LEN6_NARROW=$(visible_len "$OUTPUT6_NARROW")
+# Lines moved to line 2 — check line 1 fits
+LEN6_NARROW=$(max_line_len "$OUTPUT6_NARROW")
 TOTAL=$((TOTAL + 1))
 if (( LEN6_NARROW <= 60 )); then
-    echo "  PASS: narrow output length $LEN6_NARROW <= 60"
+    echo "  PASS: narrow max line length $LEN6_NARROW <= 60"
     PASS=$((PASS + 1))
 else
-    echo "  FAIL: narrow output length $LEN6_NARROW > 60 (overflow)"
+    echo "  FAIL: narrow max line length $LEN6_NARROW > 60 (overflow)"
     FAIL=$((FAIL + 1))
 fi
 
@@ -331,13 +340,13 @@ assert_not_contains "tiny: no lines" "+100" "$STRIPPED6_TINY"
 assert_not_contains "tiny: no session score" "S:" "$STRIPPED6_TINY"
 assert_not_contains "tiny: no phase" "PhF" "$STRIPPED6_TINY"
 
-LEN6_TINY=$(visible_len "$OUTPUT6_TINY")
+LEN6_TINY=$(max_line_len "$OUTPUT6_TINY")
 TOTAL=$((TOTAL + 1))
 if (( LEN6_TINY <= 40 )); then
-    echo "  PASS: tiny output length $LEN6_TINY <= 40"
+    echo "  PASS: tiny max line length $LEN6_TINY <= 40"
     PASS=$((PASS + 1))
 else
-    echo "  FAIL: tiny output length $LEN6_TINY > 40 (overflow)"
+    echo "  FAIL: tiny max line length $LEN6_TINY > 40 (overflow)"
     FAIL=$((FAIL + 1))
 fi
 
@@ -362,17 +371,17 @@ OUTPUT7=$(run_statusline "$DIR7" \
     BRANA_SLOW_CACHE_FILE="$SLOW7")
 STRIPPED7=$(strip_ansi "$OUTPUT7")
 
-assert_contains "slow-cache: shows knowledge freshness" "3d" "$STRIPPED7"
-assert_contains "slow-cache: shows portfolio count" "42" "$STRIPPED7"
+assert_contains "slow-cache: shows knowledge freshness" "knowledge: 3d ago" "$STRIPPED7"
+assert_contains "slow-cache: shows portfolio count" "portfolio: 42 pending" "$STRIPPED7"
 
 # Verify these are low priority — dropped at narrow width (50 cols)
 OUTPUT7_NARROW=$(run_statusline "$DIR7" \
-    BRANA_STATUSLINE_COLS=40 \
+    BRANA_STATUSLINE_COLS=18 \
     BRANA_SESSION_SCORE_FILE=/dev/null \
     BRANA_SLOW_CACHE_FILE="$SLOW7")
 STRIPPED7_NARROW=$(strip_ansi "$OUTPUT7_NARROW")
 
-assert_not_contains "slow-cache narrow: no knowledge segment" "3d" "$STRIPPED7_NARROW"
+assert_not_contains "slow-cache narrow: no knowledge segment" "knowledge:" "$STRIPPED7_NARROW"
 
 # ── Test 8: Slow-cache missing — no crash ────────────────
 echo ""
@@ -400,7 +409,7 @@ OUTPUT9=$(run_statusline "$DIR7" \
     BRANA_SLOW_CACHE_FILE="$SLOW9")
 STRIPPED9=$(strip_ansi "$OUTPUT9")
 
-assert_contains "stale knowledge: shows days" "15d" "$STRIPPED9"
+assert_contains "stale knowledge: shows days" "knowledge: 15d ago" "$STRIPPED9"
 
 # ── Test 10: Job detection — BUILD mode ──────────────────
 echo ""
@@ -530,7 +539,7 @@ OUTPUT14=$(run_statusline "$DIR14" \
 STRIPPED14=$(strip_ansi "$OUTPUT14")
 
 # Corrections: 2 corrections out of 5 edits (Edit+Write)
-assert_contains "learning: shows correction ratio" "2/5" "$STRIPPED14"
+assert_contains "learning: shows correction ratio" "corrections: 2/5" "$STRIPPED14"
 
 rm -f "$SESS14_LINK"
 
@@ -566,7 +575,7 @@ OUTPUT16=$(run_statusline "$DIR14" \
     BRANA_SLOW_CACHE_FILE="$SLOW16")
 STRIPPED16=$(strip_ansi "$OUTPUT16")
 
-assert_contains "decay: shows stale count when >50%" "600stale" "$STRIPPED16"
+assert_contains "decay: shows stale count when >50%" "stale: 600" "$STRIPPED16"
 
 # Low decay (<50% stale) — should NOT show
 SLOW16B="$TMPDIR/slow16b.tsv"

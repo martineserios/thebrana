@@ -163,175 +163,172 @@ if [ -d "$FD/tasks" ]; then
   CF_TC=$(find "$FD/tasks" -name "*.json" -type f 2>/dev/null | wc -l | tr -d ' ')
 fi
 
-# ── Build segments with priority ─────────────────────────
-# Priority 11 (highest) = model, down to 1 (lowest) = scheduler
-# Format: SEGMENTS[i] = formatted string, SEGMENT_PRIO[i] = priority number
-SEGMENTS=()
-SEGMENT_PRIO=()
+# ── Build segments per line ──────────────────────────────
+# Line 1: Core orientation (model, project, branch, CTX, task, bugs, phase)
+# Line 2: Intelligence signals (knowledge, portfolio, decay, learning, lines, scheduler)
+# Each line has its own priority-based width dropping.
 
-add_segment() {
-  SEGMENTS+=("$1")
-  SEGMENT_PRIO+=("$2")
-}
+SEGS_L1=()  PRIO_L1=()
+SEGS_L2=()  PRIO_L2=()
+
+add_l1() { SEGS_L1+=("$1"); PRIO_L1+=("$2"); }
+add_l2() { SEGS_L2+=("$1"); PRIO_L2+=("$2"); }
+
+# ── Line 1: Core orientation ────────────────────────────
 
 # Priority 11: Model (always keep)
-add_segment "🧠 ${B}${Cw}${MODEL}${R}" 11
+add_l1 "🧠 ${B}${Cw}${MODEL}${R}" 11
 
 # Priority 10: Project (always keep)
-add_segment " $S 📂 ${Cy}${PROJ_NAME}${R}" 10
+add_l1 " $S 📂 ${Cy}${PROJ_NAME}${R}" 10
 
 # Priority 9: Branch (always keep)
-[ -n "$BRANCH" ] && add_segment " $S 🌿 ${Co}${BRANCH}${R}" 9
+[ -n "$BRANCH" ] && add_l1 " $S 🌿 ${Co}${BRANCH}${R}" 9
 
 # Priority 8: CTX% (always keep)
-add_segment " $S ${CTX_SHOW}" 8
+add_l1 " $S ${CTX_SHOW}" 8
 
 # Priority 7: Task context (job-adaptive)
 if [ "$CURRENT_JOB" = "DECIDE" ]; then
-  # DECIDE mode: show next unblocked + blocked count
   if [ -n "$T_NEXT_UNBLOCKED" ]; then
     NU="${T_NEXT_UNBLOCKED:0:25}"
-    add_segment " $S ${Cm}DECIDE${R} → ${Cw}${NU}${R}" 7
+    add_l1 " $S ${Cm}DECIDE${R} → ${Cw}${NU}${R}" 7
   else
-    add_segment " $S ${Cm}DECIDE${R}" 7
+    add_l1 " $S ${Cm}DECIDE${R}" 7
   fi
   if (( T_BLOCKED_COUNT > 0 )) 2>/dev/null; then
-    add_segment " ${D}(${T_BLOCKED_COUNT} blocked)${R}" 6
+    add_l1 " ${D}(${T_BLOCKED_COUNT} blocked)${R}" 6
   fi
 elif [ "$CURRENT_JOB" = "BUILD" ]; then
-  # BUILD mode: current task + build step
   if [ -n "$T_CURRENT" ]; then
     TC="${T_CURRENT:0:25}"
-    add_segment " $S ${Cm}BUILD${R} → ${Cw}${TC}${R}" 7
+    add_l1 " $S ${Cm}BUILD${R} → ${Cw}${TC}${R}" 7
   fi
   if [ -n "${T_BUILD_STEP:-}" ]; then
-    add_segment " ${Cm}[${T_BUILD_STEP}]${R}" 6
+    add_l1 " ${Cm}[${T_BUILD_STEP}]${R}" 6
   fi
 else
-  # No specific job: show current task + build step (original behavior)
   if [ -n "$T_CURRENT" ]; then
     TC="${T_CURRENT:0:25}"
-    add_segment " $S → ${Cw}${TC}${R}" 7
+    add_l1 " $S → ${Cw}${TC}${R}" 7
   fi
   if [ -n "${T_BUILD_STEP:-}" ]; then
-    add_segment " ${Cm}[${T_BUILD_STEP}]${R}" 6
+    add_l1 " ${Cm}[${T_BUILD_STEP}]${R}" 6
   fi
 fi
 
 # Priority 5: Bug count
 if (( T_BUGS > 0 )) 2>/dev/null; then
-  add_segment " $S 🐛 ${Cr}${T_BUGS}${R}" 5
+  add_l1 " $S 🐛 ${Cr}${T_BUGS} bugs${R}" 5
 fi
 
 # Priority 4: Phase progress
 if [ -n "$T_PHASE" ] && (( T_TOTAL > 0 )); then
-  add_segment " $S 📋 ${Cy}Ph${T_PHASE}: ${T_DONE}/${T_TOTAL}${R}" 4
+  add_l1 " $S 📋 ${Cy}Ph${T_PHASE}: ${T_DONE}/${T_TOTAL}${R}" 4
 fi
 
-# Priority 3: Slow-cache signals (knowledge freshness + portfolio)
+# ── Line 2: Intelligence signals ─────────────────────────
+
+# Priority 6: Knowledge freshness
 if (( SC_KNOWLEDGE_DAYS > 0 )) 2>/dev/null; then
   if (( SC_KNOWLEDGE_DAYS >= 14 )); then
-    add_segment " $S 📚 ${Co}${SC_KNOWLEDGE_DAYS}d${R}" 3
+    add_l2 "📚 ${Co}knowledge: ${SC_KNOWLEDGE_DAYS}d ago${R}" 6
   else
-    add_segment " $S 📚 ${D}${SC_KNOWLEDGE_DAYS}d${R}" 3
+    add_l2 "📚 ${D}knowledge: ${SC_KNOWLEDGE_DAYS}d ago${R}" 6
   fi
 fi
+
+# Priority 5: Portfolio
 if (( SC_PORTFOLIO > 0 )) 2>/dev/null; then
-  add_segment " $S 🗂 ${D}${SC_PORTFOLIO}${R}" 3
+  add_l2 " $S 🗂 ${D}portfolio: ${SC_PORTFOLIO} pending${R}" 5
 fi
-# Knowledge decay: show stale entry count when >50% of ruflo entries are stale
+
+# Priority 4: Knowledge decay
 if (( SC_RUFLO_COUNT > 0 && SC_STALE > 0 )) 2>/dev/null; then
   SC_STALE_PCT=$(( SC_STALE * 100 / SC_RUFLO_COUNT ))
   if (( SC_STALE_PCT >= 50 )); then
-    add_segment " $S ⏳ ${Co}${SC_STALE}stale${R}" 3
+    add_l2 " $S ⏳ ${Co}stale: ${SC_STALE}${R}" 4
   fi
 fi
 
-# Priority 3: Learning velocity (corrections + patterns)
+# Priority 4: Learning velocity (corrections + patterns)
 if (( LV_EDITS > 0 )) 2>/dev/null && (( LV_CORRECTIONS > 0 )) 2>/dev/null; then
   LV_RATE=$(( LV_CORRECTIONS * 100 / LV_EDITS ))
   if (( LV_RATE >= 50 )); then
-    add_segment " $S 🔄 ${Cr}${LV_CORRECTIONS}/${LV_EDITS}${R}" 3
+    add_l2 " $S 🔄 ${Cr}corrections: ${LV_CORRECTIONS}/${LV_EDITS}${R}" 4
   else
-    add_segment " $S 🔄 ${D}${LV_CORRECTIONS}/${LV_EDITS}${R}" 3
+    add_l2 " $S 🔄 ${D}corrections: ${LV_CORRECTIONS}/${LV_EDITS}${R}" 4
   fi
 fi
 if (( LV_PATTERNS > 0 )) 2>/dev/null; then
-  add_segment " $S 🧩 ${Cg}${LV_PATTERNS}${R}" 3
+  add_l2 " $S 🧩 ${Cg}patterns: ${LV_PATTERNS}${R}" 4
 fi
 
-# Priority 2: Lines added/removed
-add_segment " $S 📝 ${Cg}+${LA}${R} ${Cr}-${LD}${R}" 2
+# Priority 3: Lines added/removed
+add_l2 " $S 📝 ${Cg}+${LA}${R} ${Cr}-${LD}${R}" 3
 
-# Priority 1: Scheduler health (lowest)
+# Priority 2: Scheduler health
 if (( S_FAIL > 0 )); then
-  add_segment " $S 📅 ${Cg}${S_OK}✓${R} ${Cr}${S_FAIL}✗${R}" 1
+  add_l2 " $S 📅 ${D}scheduler:${R} ${Cg}${S_OK}✓${R} ${Cr}${S_FAIL}✗${R}" 2
 elif (( S_OK > 0 )); then
-  add_segment " $S 📅 ${Cg}${S_OK}✓${R}" 1
+  add_l2 " $S 📅 ${D}scheduler:${R} ${Cg}${S_OK}✓${R}" 2
 fi
 
-# Claude-flow segments (priority 1.5 — between scheduler and lines)
-# These are rare, so give them low priority
-[ -n "$CF_STR" ] && add_segment " $S ⚡ ${Cm}${CF_STR}${R}" 1
-(( CF_AC > 0 )) 2>/dev/null && add_segment " 🤖 ${Cm}${CF_AC}${R}" 1
-(( CF_TC > 0 )) && add_segment " $S 📋 ${Cy}${CF_TC}${R}" 1
+# Priority 1: Claude-flow (rare)
+[ -n "$CF_STR" ] && add_l2 " $S ⚡ ${Cm}${CF_STR}${R}" 1
+(( CF_AC > 0 )) 2>/dev/null && add_l2 " 🤖 ${Cm}${CF_AC}${R}" 1
+(( CF_TC > 0 )) && add_l2 " $S 📋 ${Cy}${CF_TC}${R}" 1
 
 # ── Width detection + progressive dropping ───────────────
-# BRANA_STATUSLINE_COLS overrides tput (for testing). Unset = no limit.
 MAX_COLS="${BRANA_STATUSLINE_COLS:-}"
 if [ -z "$MAX_COLS" ]; then
-  # Try tput, but don't fail if unavailable
   MAX_COLS=$(tput cols 2>/dev/null || echo "")
 fi
 
-# Helper: measure visible width of a string (strip ANSI)
 _visible_len() {
   printf '%b' "$1" | sed 's/\x1b\[[0-9;]*m//g' | tr -d '\n' | wc -m
 }
 
-if [ -n "$MAX_COLS" ] && (( MAX_COLS > 0 )); then
-  # Sort segments by priority descending, then build output greedily
-  # Create index array sorted by priority (highest first)
-  SORTED_INDICES=()
-  for i in "${!SEGMENT_PRIO[@]}"; do
-    SORTED_INDICES+=("$i")
-  done
-  # Simple insertion sort by priority descending
-  for ((i = 1; i < ${#SORTED_INDICES[@]}; i++)); do
-    key=${SORTED_INDICES[$i]}
-    j=$((i - 1))
-    while (( j >= 0 )) && (( SEGMENT_PRIO[SORTED_INDICES[j]] < SEGMENT_PRIO[key] )); do
-      SORTED_INDICES[$((j + 1))]=${SORTED_INDICES[$j]}
-      j=$((j - 1))
+# Render one line with width-aware dropping
+_render_line() {
+  local -n _segs=$1
+  local -n _prios=$2
+
+  if [ ${#_segs[@]} -eq 0 ]; then return; fi
+
+  if [ -n "$MAX_COLS" ] && (( MAX_COLS > 0 )); then
+    # Sort by priority descending
+    local SORTED=()
+    for i in "${!_prios[@]}"; do SORTED+=("$i"); done
+    for ((i = 1; i < ${#SORTED[@]}; i++)); do
+      local key=${SORTED[$i]} j=$((i - 1))
+      while (( j >= 0 )) && (( _prios[SORTED[j]] < _prios[key] )); do
+        SORTED[$((j + 1))]=${SORTED[$j]}; j=$((j - 1))
+      done
+      SORTED[$((j + 1))]=$key
     done
-    SORTED_INDICES[$((j + 1))]=$key
-  done
 
-  OUTPUT=""
-  CURRENT_LEN=0
-  INCLUDED=()
-  for idx in "${SORTED_INDICES[@]}"; do
-    seg="${SEGMENTS[$idx]}"
-    seg_len=$(_visible_len "$seg")
-    if (( CURRENT_LEN + seg_len <= MAX_COLS )); then
-      INCLUDED+=("$idx")
-      CURRENT_LEN=$((CURRENT_LEN + seg_len))
-    fi
-  done
-
-  # Print in original order (not priority order)
-  for i in "${!SEGMENTS[@]}"; do
-    for inc in "${INCLUDED[@]}"; do
-      if [ "$i" = "$inc" ]; then
-        printf '%b' "${SEGMENTS[$i]}"
-        break
+    local LEN=0 INCLUDED=()
+    for idx in "${SORTED[@]}"; do
+      local seg_len=$(_visible_len "${_segs[$idx]}")
+      if (( LEN + seg_len <= MAX_COLS )); then
+        INCLUDED+=("$idx"); LEN=$((LEN + seg_len))
       fi
     done
-  done
-else
-  # No width limit — print all segments in order
-  for seg in "${SEGMENTS[@]}"; do
-    printf '%b' "$seg"
-  done
+
+    for i in "${!_segs[@]}"; do
+      for inc in "${INCLUDED[@]}"; do
+        [ "$i" = "$inc" ] && { printf '%b' "${_segs[$i]}"; break; }
+      done
+    done
+  else
+    for seg in "${_segs[@]}"; do printf '%b' "$seg"; done
+  fi
+  echo
+}
+
+_render_line SEGS_L1 PRIO_L1
+# Only print line 2 if it has segments
+if [ ${#SEGS_L2[@]} -gt 0 ]; then
+  _render_line SEGS_L2 PRIO_L2
 fi
-echo
