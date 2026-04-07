@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "golden-path-snapshot-v1",
+  "title": "Golden Path Snapshot",
+  "description": "Records a successful (or failed) skill execution for regression testing and skill validation.",
+  "type": "object",
+  "required": ["schema_version", "skill", "outcome", "steps", "captured_at"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "description": "Schema version for forward compatibility."
+    },
+    "skill": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Skill slug, e.g. 'build', 'ship', 'onboard'."
+        },
+        "version": {
+          "type": "string",
+          "description": "Skill version or commit SHA at capture time."
+        },
+        "arguments": {
+          "type": "string",
+          "description": "Raw argument string passed to the skill."
+        }
+      }
+    },
+    "outcome": {
+      "enum": ["success", "failure", "partial"],
+      "description": "Final result of the execution."
+    },
+    "captured_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the snapshot was recorded."
+    },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total wall-clock time in milliseconds (optional)."
+    },
+    "steps": {
+      "type": "array",
+      "description": "Ordered list of steps executed during the skill run.",
+      "items": {
+        "$ref": "#/$defs/step"
+      }
+    },
+    "files_read": {
+      "type": "array",
+      "description": "Absolute paths of files read during execution.",
+      "items": { "type": "string" }
+    },
+    "files_written": {
+      "type": "array",
+      "description": "Absolute paths of files created or modified during execution.",
+      "items": { "type": "string" }
+    },
+    "tasks": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "CC Task registry mutations during execution.",
+      "properties": {
+        "created": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Task IDs created (e.g. step registry entries)."
+        },
+        "completed": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Task IDs marked completed."
+        }
+      }
+    },
+    "notes": {
+      "type": "string",
+      "description": "Free-text annotation (failure reason, special conditions, etc.)."
+    }
+  },
+  "$defs": {
+    "step": {
+      "type": "object",
+      "required": ["name", "order", "outcome"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Step name from the step registry, e.g. 'CLASSIFY', 'PRE-FLIGHT'."
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Zero-based execution order."
+        },
+        "outcome": {
+          "enum": ["success", "failure", "skipped"],
+          "description": "Result of this step."
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Wall-clock time for this step in milliseconds (optional)."
+        },
+        "tool_calls": {
+          "type": "array",
+          "description": "Tool invocations during this step, in order.",
+          "items": {
+            "$ref": "#/$defs/tool_call"
+          }
+        },
+        "interactions": {
+          "type": "array",
+          "description": "AskUserQuestion interactions during this step.",
+          "items": {
+            "$ref": "#/$defs/interaction"
+          }
+        }
+      }
+    },
+    "tool_call": {
+      "type": "object",
+      "required": ["tool", "success"],
+      "additionalProperties": false,
+      "properties": {
+        "tool": {
+          "type": "string",
+          "description": "Tool name, e.g. 'Bash', 'Read', 'Edit', 'backlog_get'."
+        },
+        "params": {
+          "type": "object",
+          "description": "Key parameters (redact secrets, omit large bodies). Flat key-value only.",
+          "additionalProperties": { "type": "string" }
+        },
+        "success": {
+          "type": "boolean",
+          "description": "Whether the tool call succeeded."
+        }
+      }
+    },
+    "interaction": {
+      "type": "object",
+      "required": ["question", "selected"],
+      "additionalProperties": false,
+      "properties": {
+        "question": {
+          "type": "string",
+          "description": "The question text shown to the user."
+        },
+        "options": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Options offered (omit for free-text questions)."
+        },
+        "selected": {
+          "type": "string",
+          "description": "The option or text the user selected/entered."
+        }
+      }
+    }
+  }
+}
