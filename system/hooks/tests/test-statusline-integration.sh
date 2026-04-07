@@ -1,0 +1,347 @@
+#!/usr/bin/env bash
+# Integration tests for statusline end-to-end output.
+# Tests the full pipeline: tasks.json → post-tasks-validate.sh (cache) → statusline.sh (render).
+# Combines cache, width, and session score into realistic scenarios.
+
+set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+STATUSLINE="$SCRIPT_DIR/../../statusline.sh"
+HOOK="$SCRIPT_DIR/../post-tasks-validate.sh"
+PASS=0
+FAIL=0
+TOTAL=0
+TMPDIR=$(mktemp -d)
+
+trap 'rm -rf "$TMPDIR"' EXIT
+
+# ── Helpers ──────────────────────────────────────────────
+
+assert_eq() {
+    local desc="$1" expected="$2" actual="$3"
+    TOTAL=$((TOTAL + 1))
+    if [ "$expected" = "$actual" ]; then
+        echo "  PASS: $desc"
+        PASS=$((PASS + 1))
+    else
+        echo "  FAIL: $desc"
+        echo "    expected: $expected"
+        echo "    got:      $actual"
+        FAIL=$((FAIL + 1))
+    fi
+}
+
+assert_contains() {
+    local desc="$1" needle="$2" haystack="$3"
+    TOTAL=$((TOTAL + 1))
+    if [[ "$haystack" == *"$needle"* ]]; then
+        echo "  PASS: $desc"
+        PASS=$((PASS + 1))
+    else
+        echo "  FAIL: $desc"
+        echo "    expected to contain: $needle"
+        echo "    got: $haystack"
+        FAIL=$((FAIL + 1))
+    fi
+}
+
+assert_not_contains() {
+    local desc="$1" needle="$2" haystack="$3"
+    TOTAL=$((TOTAL + 1))
+    if [[ "$haystack" != *"$needle"* ]]; then
+        echo "  PASS: $desc"
+        PASS=$((PASS + 1))
+    else
+        echo "  FAIL: $desc"
+        echo "    expected NOT to contain: $needle"
+        echo "    got: $haystack"
+        FAIL=$((FAIL + 1))
+    fi
+}
+
+strip_ansi() {
+    echo -e "$1" | sed 's/\x1b\[[0-9;]*m//g'
+}
+
+visible_len() {
+    printf '%s' "$(strip_ansi "$1")" | wc -m
+}
+
+write_tasks() {
+    local file="$1"; shift
+    cat > "$file" <<'TASKS_HEAD'
+{
+  "version": "1.0",
+  "project": "test",
+  "last_modified": "2026-04-06T00:00:00Z",
+  "tasks": [
+TASKS_HEAD
+    local first=true
+    for task in "$@"; do
+        $first || echo "," >> "$file"
+        first=false
+        echo "$task" >> "$file"
+    done
+    echo "]}" >> "$file"
+}
+
+run_hook() {
+    local tasks_file="$1"
+    local input
+    input=$(printf '{"tool_name":"Write","tool_input":{"file_path":"%s"}}' "$tasks_file")
+    echo "$input" | bash "$HOOK" 2>/dev/null
+    sleep 0.3
+}
+
+make_statusline_input() {
+    local cwd="$1"
+    cat <<JSON
+{
+  "model": {"display_name": "Haiku"},
+  "workspace": {"current_dir": "$cwd", "project_dir": "$cwd"},
+  "context_window": {"used_percentage": 42},
+  "cost": {"total_lines_added": 100, "total_lines_removed": 20}
+}
+JSON
+}
+
+run_statusline() {
+    local cwd="$1"
+    shift
+    local env_args=("$@")
+    make_statusline_input "$cwd" | env "${env_args[@]}" bash "$STATUSLINE" 2>/dev/null
+}
+
+echo "Statusline Integration Tests"
+echo "============================="
+
+# ── Test 1: Full render with all segments ────────────────
+echo ""
+echo "--- 1. Full render with all segments ---"
+
+DIR1="$TMPDIR/int1"
+mkdir -p "$DIR1/.claude"
+cd "$DIR1" && git init -q && git commit --allow-empty -m "init" -q
+
+write_tasks "$DIR1/.claude/tasks.json" \
+    '{"id":"ph-1","subject":"Phase A: foundation","status":"in_progress","type":"phase","stream":"roadmap"}' \
+    '{"id":"t-1","subject":"Setup repo","status":"completed","type":"task","stream":"roadmap"}' \
+    '{"id":"t-2","subject":"Add statusline segments","status":"in_progress","type":"task","stream":"roadmap","build_step":"BUILD"}' \
+    '{"id":"t-3","subject":"Fix alignment bug","status":"pending","type":"task","stream":"bugs"}'
+
+SCORE1="$TMPDIR/score1.tsv"
+printf '3\t1\n' > "$SCORE1"
+
+OUTPUT1=$(make_statusline_input "$DIR1" | env \
+    BRANA_STATUSLINE_COLS=200 \
+    BRANA_SESSION_SCORE_FILE="$SCORE1" \
+    bash "$STATUSLINE" 2>/dev/null)
+STRIPPED1=$(strip_ansi "$OUTPUT1")
+
+assert_contains "full: has model" "Haiku" "$STRIPPED1"
+assert_contains "full: has project" "int1" "$STRIPPED1"
+assert_contains "full: has CTX%" "CTX 42%" "$STRIPPED1"
+assert_contains "full: has lines" "+100" "$STRIPPED1"
+assert_contains "full: has current task" "Add statusline segments" "$STRIPPED1"
+assert_contains "full: has build step" "[BUILD]" "$STRIPPED1"
+assert_contains "full: has bug count" "1" "$STRIPPED1"
+assert_contains "full: has phase progress" "PhA" "$STRIPPED1"
+assert_contains "full: has session score done" "3" "$STRIPPED1"
+
+# ── Test 2: Cache → statusline flow ─────────────────────
+echo ""
+echo "--- 2. Cache to statusline flow ---"
+
+DIR2="$TMPDIR/int2"
+mkdir -p "$DIR2/.claude"
+cd "$DIR2" && git init -q && git commit --allow-empty -m "init" -q
+
+write_tasks "$DIR2/.claude/tasks.json" \
+    '{"id":"ph-2","subject":"Phase B: cache-test","status":"in_progress","type":"phase","stream":"roadmap"}' \
+    '{"id":"t-4","subject":"Cached task name","status":"in_progress","type":"task","stream":"roadmap","build_step":"TDD"}' \
+    '{"id":"t-5","subject":"Done one","status":"completed","type":"task","stream":"roadmap"}'
+
+# Trigger hook to create cache
+run_hook "$DIR2/.claude/tasks.json"
+
+CACHE2="$DIR2/.claude/tasks.statusline.tsv"
+assert_eq "cache file created by hook" "true" "$([ -f "$CACHE2" ] && echo true || echo false)"
+
+# Verify cache is newer or equal to tasks.json (fresh)
+assert_eq "cache is fresh after hook" "false" "$([ "$DIR2/.claude/tasks.json" -nt "$CACHE2" ] && echo true || echo false)"
+
+# Run statusline — should read from cache (not jq)
+OUTPUT2=$(run_statusline "$DIR2" BRANA_STATUSLINE_COLS=200 BRANA_SESSION_SCORE_FILE=/dev/null)
+STRIPPED2=$(strip_ansi "$OUTPUT2")
+assert_contains "cache flow: has cached task" "Cached task name" "$STRIPPED2"
+assert_contains "cache flow: has build step" "[TDD]" "$STRIPPED2"
+assert_contains "cache flow: has phase" "PhB" "$STRIPPED2"
+
+# ── Test 3: Session lifecycle ────────────────────────────
+echo ""
+echo "--- 3. Session lifecycle (reset → increment → render) ---"
+
+DIR3="$TMPDIR/int3"
+mkdir -p "$DIR3/.claude"
+cd "$DIR3" && git init -q && git commit --allow-empty -m "init" -q
+
+write_tasks "$DIR3/.claude/tasks.json" \
+    '{"id":"t-6","subject":"Some task","status":"in_progress","type":"task","stream":"roadmap"}'
+
+SCORE3="$TMPDIR/score3.tsv"
+
+# Step A: session-start resets counter
+printf '0\t0\n' > "$SCORE3"
+OUTPUT3A=$(run_statusline "$DIR3" BRANA_STATUSLINE_COLS=200 BRANA_SESSION_SCORE_FILE="$SCORE3")
+assert_not_contains "lifecycle: zero score hidden" "S:" "$(strip_ansi "$OUTPUT3A")"
+
+# Step B: simulate task completions (increment done)
+printf '2\t0\n' > "$SCORE3"
+OUTPUT3B=$(run_statusline "$DIR3" BRANA_STATUSLINE_COLS=200 BRANA_SESSION_SCORE_FILE="$SCORE3")
+STRIPPED3B=$(strip_ansi "$OUTPUT3B")
+assert_contains "lifecycle: shows done=2" "2" "$STRIPPED3B"
+
+# Step C: simulate a correction
+printf '2\t1\n' > "$SCORE3"
+OUTPUT3C=$(run_statusline "$DIR3" BRANA_STATUSLINE_COLS=200 BRANA_SESSION_SCORE_FILE="$SCORE3")
+assert_contains "lifecycle: shows corrections" "1" "$(strip_ansi "$OUTPUT3C")"
+
+# ── Test 4: Staleness recovery ───────────────────────────
+echo ""
+echo "--- 4. Staleness recovery (stale cache → jq fallback → cache refresh) ---"
+
+DIR4="$TMPDIR/int4"
+mkdir -p "$DIR4/.claude"
+cd "$DIR4" && git init -q && git commit --allow-empty -m "init" -q
+
+write_tasks "$DIR4/.claude/tasks.json" \
+    '{"id":"ph-4","subject":"Phase D: stale","status":"in_progress","type":"phase","stream":"roadmap"}' \
+    '{"id":"t-7","subject":"Fresh from jq","status":"in_progress","type":"task","stream":"roadmap","build_step":"VERIFY"}'
+
+# Write stale sentinel into cache
+CACHE4="$DIR4/.claude/tasks.statusline.tsv"
+printf 'X\t99\t100\tstale sentinel\t7\tOLD\n' > "$CACHE4"
+
+# Make tasks.json newer than cache
+sleep 0.1
+touch "$DIR4/.claude/tasks.json"
+
+OUTPUT4=$(run_statusline "$DIR4" BRANA_STATUSLINE_COLS=200 BRANA_SESSION_SCORE_FILE=/dev/null)
+STRIPPED4=$(strip_ansi "$OUTPUT4")
+
+assert_not_contains "stale: does not show stale sentinel" "stale sentinel" "$STRIPPED4"
+assert_contains "stale: shows jq-computed task" "Fresh from jq" "$STRIPPED4"
+assert_contains "stale: shows jq-computed build step" "[VERIFY]" "$STRIPPED4"
+
+# Cache should be refreshed inline
+CACHE4_CONTENT=$(cat "$CACHE4" 2>/dev/null)
+assert_contains "stale: cache refreshed with fresh data" "Fresh from jq" "$CACHE4_CONTENT"
+assert_eq "stale: refreshed cache not older than tasks.json" "false" \
+    "$([ "$DIR4/.claude/tasks.json" -nt "$CACHE4" ] && echo true || echo false)"
+
+# ── Test 5: Empty/missing state ──────────────────────────
+echo ""
+echo "--- 5. Empty/missing state (no tasks, no cache, no score) ---"
+
+DIR5="$TMPDIR/int5"
+mkdir -p "$DIR5"
+cd "$DIR5" && git init -q && git commit --allow-empty -m "init" -q
+
+# No .claude/tasks.json, no cache, nonexistent score file
+OUTPUT5=$(run_statusline "$DIR5" \
+    BRANA_STATUSLINE_COLS=200 \
+    BRANA_SESSION_SCORE_FILE="$TMPDIR/nonexistent.tsv")
+STRIPPED5=$(strip_ansi "$OUTPUT5")
+
+assert_contains "empty: has model" "Haiku" "$STRIPPED5"
+assert_contains "empty: has CTX%" "CTX 42%" "$STRIPPED5"
+assert_contains "empty: has lines" "+100" "$STRIPPED5"
+assert_not_contains "empty: no phase info" "Ph" "$STRIPPED5"
+assert_not_contains "empty: no session score" "S:" "$STRIPPED5"
+assert_not_contains "empty: no build step" "[" "$STRIPPED5"
+
+# Verify no errors (exit code 0)
+EXIT5=$(make_statusline_input "$DIR5" | env \
+    BRANA_STATUSLINE_COLS=200 \
+    BRANA_SESSION_SCORE_FILE="$TMPDIR/nonexistent.tsv" \
+    bash "$STATUSLINE" >/dev/null 2>&1; echo $?)
+assert_eq "empty: exits cleanly" "0" "$EXIT5"
+
+# ── Test 6: Width + segments combined ────────────────────
+echo ""
+echo "--- 6. Width dropping with full task data ---"
+
+DIR6="$TMPDIR/int6"
+mkdir -p "$DIR6/.claude"
+cd "$DIR6" && git init -q && git commit --allow-empty -m "init" -q
+
+write_tasks "$DIR6/.claude/tasks.json" \
+    '{"id":"ph-6","subject":"Phase F: width","status":"in_progress","type":"phase","stream":"roadmap"}' \
+    '{"id":"t-8","subject":"Impl width detection","status":"completed","type":"task","stream":"roadmap"}' \
+    '{"id":"t-9","subject":"Current active task here","status":"in_progress","type":"task","stream":"roadmap","build_step":"SDD"}' \
+    '{"id":"t-10","subject":"A bug to fix","status":"pending","type":"task","stream":"bugs"}'
+
+SCORE6="$TMPDIR/score6.tsv"
+printf '4\t2\n' > "$SCORE6"
+
+# Wide: all segments present
+OUTPUT6_WIDE=$(run_statusline "$DIR6" \
+    BRANA_STATUSLINE_COLS=200 \
+    BRANA_SESSION_SCORE_FILE="$SCORE6")
+STRIPPED6_WIDE=$(strip_ansi "$OUTPUT6_WIDE")
+
+assert_contains "wide: has model" "Haiku" "$STRIPPED6_WIDE"
+assert_contains "wide: has phase" "PhF" "$STRIPPED6_WIDE"
+assert_contains "wide: has current task" "Current active task" "$STRIPPED6_WIDE"
+assert_contains "wide: has build step" "[SDD]" "$STRIPPED6_WIDE"
+assert_contains "wide: has lines" "+100" "$STRIPPED6_WIDE"
+
+# Narrow (60 cols): high-priority kept, low-priority dropped
+OUTPUT6_NARROW=$(run_statusline "$DIR6" \
+    BRANA_STATUSLINE_COLS=60 \
+    BRANA_SESSION_SCORE_FILE="$SCORE6")
+STRIPPED6_NARROW=$(strip_ansi "$OUTPUT6_NARROW")
+
+# Model + CTX must survive (highest priority)
+assert_contains "narrow: has model" "Haiku" "$STRIPPED6_NARROW"
+assert_contains "narrow: has CTX%" "CTX" "$STRIPPED6_NARROW"
+
+# Lines (priority 2) and session score (priority 3) should be dropped at 60 cols
+assert_not_contains "narrow: no lines segment" "+100" "$STRIPPED6_NARROW"
+
+LEN6_NARROW=$(visible_len "$OUTPUT6_NARROW")
+TOTAL=$((TOTAL + 1))
+if (( LEN6_NARROW <= 60 )); then
+    echo "  PASS: narrow output length $LEN6_NARROW <= 60"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL: narrow output length $LEN6_NARROW > 60 (overflow)"
+    FAIL=$((FAIL + 1))
+fi
+
+# Very narrow (40 cols): only essentials
+OUTPUT6_TINY=$(run_statusline "$DIR6" \
+    BRANA_STATUSLINE_COLS=40 \
+    BRANA_SESSION_SCORE_FILE="$SCORE6")
+STRIPPED6_TINY=$(strip_ansi "$OUTPUT6_TINY")
+
+assert_contains "tiny: has model" "Haiku" "$STRIPPED6_TINY"
+assert_contains "tiny: has CTX%" "CTX" "$STRIPPED6_TINY"
+assert_not_contains "tiny: no lines" "+100" "$STRIPPED6_TINY"
+assert_not_contains "tiny: no session score" "S:" "$STRIPPED6_TINY"
+assert_not_contains "tiny: no phase" "PhF" "$STRIPPED6_TINY"
+
+LEN6_TINY=$(visible_len "$OUTPUT6_TINY")
+TOTAL=$((TOTAL + 1))
+if (( LEN6_TINY <= 40 )); then
+    echo "  PASS: tiny output length $LEN6_TINY <= 40"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL: tiny output length $LEN6_TINY > 40 (overflow)"
+    FAIL=$((FAIL + 1))
+fi
+
+# ── Summary ──────────────────────────────────────────────
+echo ""
+echo "Results: ${PASS}/${TOTAL} passed, ${FAIL} failed"
+[ "$FAIL" -eq 0 ] && exit 0 || exit 1
