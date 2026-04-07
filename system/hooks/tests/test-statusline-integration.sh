@@ -491,6 +491,95 @@ touch -d "20 minutes ago" "$HINT13_OLD"
 assert_eq "hint file created" "RESEARCH" "$(cat "$HINT13")"
 assert_eq "old hint exists" "STALE_JOB" "$(cat "$HINT13_OLD")"
 
+# ── Test 14: Learning velocity — corrections + patterns ──
+echo ""
+echo "--- 14. Learning velocity ---"
+
+DIR14="$TMPDIR/int14"
+mkdir -p "$DIR14/.claude"
+cd "$DIR14" && git init -q && git commit --allow-empty -m "init" -q
+
+write_tasks "$DIR14/.claude/tasks.json" \
+    '{"id":"t-30","subject":"Active task","status":"in_progress","type":"task","stream":"roadmap"}'
+
+# Create a mock session JSONL with corrections
+SESS14="$TMPDIR/brana-session-test14.jsonl"
+echo '{"ts":1,"tool":"Edit","outcome":"success","detail":"a.rs"}' > "$SESS14"
+echo '{"ts":2,"tool":"Edit","outcome":"correction","detail":"a.rs"}' >> "$SESS14"
+echo '{"ts":3,"tool":"Write","outcome":"success","detail":"b.rs"}' >> "$SESS14"
+echo '{"ts":4,"tool":"Edit","outcome":"correction","detail":"b.rs"}' >> "$SESS14"
+echo '{"ts":5,"tool":"Edit","outcome":"success","detail":"c.rs"}' >> "$SESS14"
+
+# Create mock memory dir with patterns from today
+MOCK_MEM="$TMPDIR/memory14"
+mkdir -p "$MOCK_MEM"
+echo "---" > "$MOCK_MEM/MEMORY.md"
+touch -d "2 hours ago" "$MOCK_MEM/MEMORY.md"
+echo "pattern" > "$MOCK_MEM/feedback_test.md"
+echo "pattern2" > "$MOCK_MEM/project_test.md"
+
+# Symlink session file to /tmp so statusline finds it
+# (statusline looks for /tmp/brana-session-*.jsonl)
+SESS14_LINK="/tmp/brana-session-test-lv-14.jsonl"
+cp "$SESS14" "$SESS14_LINK"
+
+OUTPUT14=$(run_statusline "$DIR14" \
+    BRANA_STATUSLINE_COLS=200 \
+    BRANA_SESSION_SCORE_FILE=/dev/null \
+    BRANA_SLOW_CACHE_FILE=/dev/null)
+STRIPPED14=$(strip_ansi "$OUTPUT14")
+
+# Corrections: 2 corrections out of 5 edits (Edit+Write)
+assert_contains "learning: shows correction ratio" "2/5" "$STRIPPED14"
+
+rm -f "$SESS14_LINK"
+
+# ── Test 15: No corrections — no learning segment ───────
+echo ""
+echo "--- 15. No corrections ---"
+
+SESS15="/tmp/brana-session-test-lv-15.jsonl"
+echo '{"ts":1,"tool":"Edit","outcome":"success","detail":"a.rs"}' > "$SESS15"
+echo '{"ts":2,"tool":"Bash","outcome":"success","detail":"cargo test"}' >> "$SESS15"
+
+OUTPUT15=$(run_statusline "$DIR14" \
+    BRANA_STATUSLINE_COLS=200 \
+    BRANA_SESSION_SCORE_FILE=/dev/null \
+    BRANA_SLOW_CACHE_FILE=/dev/null)
+STRIPPED15=$(strip_ansi "$OUTPUT15")
+
+assert_not_contains "no-corrections: no correction segment" "🔄" "$STRIPPED15"
+
+rm -f "$SESS15"
+
+# ── Test 16: Knowledge decay indicator ───────────────────
+echo ""
+echo "--- 16. Knowledge decay ---"
+
+# High decay (>50% stale)
+SLOW16="$TMPDIR/slow16.tsv"
+printf '1000\t2026-03-01\t600\t10\t5\t2026-04-07T12:00:00\n' > "$SLOW16"
+
+OUTPUT16=$(run_statusline "$DIR14" \
+    BRANA_STATUSLINE_COLS=200 \
+    BRANA_SESSION_SCORE_FILE=/dev/null \
+    BRANA_SLOW_CACHE_FILE="$SLOW16")
+STRIPPED16=$(strip_ansi "$OUTPUT16")
+
+assert_contains "decay: shows stale count when >50%" "600stale" "$STRIPPED16"
+
+# Low decay (<50% stale) — should NOT show
+SLOW16B="$TMPDIR/slow16b.tsv"
+printf '1000\t2026-04-05\t100\t10\t2\t2026-04-07T12:00:00\n' > "$SLOW16B"
+
+OUTPUT16B=$(run_statusline "$DIR14" \
+    BRANA_STATUSLINE_COLS=200 \
+    BRANA_SESSION_SCORE_FILE=/dev/null \
+    BRANA_SLOW_CACHE_FILE="$SLOW16B")
+STRIPPED16B=$(strip_ansi "$OUTPUT16B")
+
+assert_not_contains "decay: hidden when <50%" "stale" "$STRIPPED16B"
+
 # ── Summary ──────────────────────────────────────────────
 echo ""
 echo "Results: ${PASS}/${TOTAL} passed, ${FAIL} failed"

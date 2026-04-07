@@ -116,6 +116,20 @@ if [ "$CURRENT_JOB" = "DECIDE" ] && [ -n "$TASK_FILE" ]; then
   T_BLOCKED_COUNT="${T_BLOCKED_COUNT:-0}"
 fi
 
+# ── Learning velocity (corrections + patterns) ──────────
+LV_CORRECTIONS=0 LV_EDITS=0 LV_PATTERNS=0
+# Find most recent session file
+SESSION_JSONL=$(ls -t /tmp/brana-session-*.jsonl 2>/dev/null | head -1)
+if [ -n "$SESSION_JSONL" ] && [ -f "$SESSION_JSONL" ]; then
+  LV_CORRECTIONS=$(grep -c '"outcome":"correction"' "$SESSION_JSONL" 2>/dev/null || echo 0)
+  LV_EDITS=$(grep -c '"tool":"Edit"\|"tool":"Write"' "$SESSION_JSONL" 2>/dev/null || echo 0)
+fi
+# Patterns stored today (memory files modified today)
+MEMORY_DIR="$HOME/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory"
+if [ -d "$MEMORY_DIR" ]; then
+  LV_PATTERNS=$(find "$MEMORY_DIR" -name "*.md" -newer "$MEMORY_DIR/MEMORY.md" -mmin -720 -type f 2>/dev/null | wc -l | tr -d ' ')
+fi
+
 # ── Collect scheduler health ─────────────────────────────
 S_OK=0 S_FAIL=0
 SCHED_STATUS="$HOME/.claude/scheduler/last-status.json"
@@ -132,8 +146,9 @@ fi
 SC_KNOWLEDGE_DAYS=0 SC_PORTFOLIO=0
 SLOW_CACHE="${BRANA_SLOW_CACHE_FILE:-$HOME/.claude/statusline-slow-cache.tsv}"
 if [ -f "$SLOW_CACHE" ]; then
-  IFS=$'\t' read -r _SC_RUFLO _SC_REINDEX _SC_STALE SC_PORTFOLIO SC_KNOWLEDGE_DAYS _SC_TS < "$SLOW_CACHE"
+  IFS=$'\t' read -r SC_RUFLO_COUNT _SC_REINDEX SC_STALE SC_PORTFOLIO SC_KNOWLEDGE_DAYS _SC_TS < "$SLOW_CACHE"
   SC_KNOWLEDGE_DAYS=${SC_KNOWLEDGE_DAYS:-0}; SC_PORTFOLIO=${SC_PORTFOLIO:-0}
+  SC_STALE=${SC_STALE:-0}; SC_RUFLO_COUNT=${SC_RUFLO_COUNT:-0}
 fi
 
 # ── Claude-flow metrics ─────────────────────────────────
@@ -223,6 +238,26 @@ if (( SC_KNOWLEDGE_DAYS > 0 )) 2>/dev/null; then
 fi
 if (( SC_PORTFOLIO > 0 )) 2>/dev/null; then
   add_segment " $S 🗂 ${D}${SC_PORTFOLIO}${R}" 3
+fi
+# Knowledge decay: show stale entry count when >50% of ruflo entries are stale
+if (( SC_RUFLO_COUNT > 0 && SC_STALE > 0 )) 2>/dev/null; then
+  SC_STALE_PCT=$(( SC_STALE * 100 / SC_RUFLO_COUNT ))
+  if (( SC_STALE_PCT >= 50 )); then
+    add_segment " $S ⏳ ${Co}${SC_STALE}stale${R}" 3
+  fi
+fi
+
+# Priority 3: Learning velocity (corrections + patterns)
+if (( LV_EDITS > 0 )) 2>/dev/null && (( LV_CORRECTIONS > 0 )) 2>/dev/null; then
+  LV_RATE=$(( LV_CORRECTIONS * 100 / LV_EDITS ))
+  if (( LV_RATE >= 50 )); then
+    add_segment " $S 🔄 ${Cr}${LV_CORRECTIONS}/${LV_EDITS}${R}" 3
+  else
+    add_segment " $S 🔄 ${D}${LV_CORRECTIONS}/${LV_EDITS}${R}" 3
+  fi
+fi
+if (( LV_PATTERNS > 0 )) 2>/dev/null; then
+  add_segment " $S 🧩 ${Cg}${LV_PATTERNS}${R}" 3
 fi
 
 # Priority 2: Lines added/removed
