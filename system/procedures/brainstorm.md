@@ -297,6 +297,24 @@ Save to `docs/ideas/{slug}.md` (create `docs/ideas/` if it doesn't exist):
 
 **5b. Plan the backlog**
 
+**GATE: Check effort level from Phase 4 SHAPE.** If effort is M+ (Small project / 1-2 weeks or higher):
+
+```
+AskUserQuestion:
+  question: "This is an M+ effort. Confirm governance tasks before backlog planning?"
+  header: "Governance Gate"
+  options:
+    - "Yes — include DDD/TDD/SDD/Docs tasks" → proceed to backlog plan
+    - "No — skip governance tasks"           → proceed to backlog plan without them
+    - "Back to SHAPE"                        → return to Phase 4 to reassess
+```
+
+This gate catches brainstorms that identified engineering disciplines in SHAPE but would
+otherwise forget to create the corresponding backlog tasks. It's the last checkpoint before
+planning commits the idea to structured execution.
+
+---
+
 ```
 AskUserQuestion:
   question: "Plan this idea into the backlog?"
