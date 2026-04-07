@@ -46,7 +46,7 @@ UNIVERSAL SKILLS (transfer as-is)
 ─────────────────────────────────
 /decide          (record decisions)
 /brana:retrospective   (store learnings)
-/debrief         (end-of-session extraction)
+/brana:close         (end-of-session extraction)
 /brana:challenge       (stress-test plans)
 /pattern-recall  (query past learnings)
 /cross-pollinate (pull from other clients)
@@ -417,7 +417,7 @@ Seven skills designed for code projects work identically for business projects:
 |-------|---------|-------------|
 | `/decide [title]` | Record decisions as ADRs | "Why did we pick this market?" — ADRs answer it in 6 months |
 | `/brana:retrospective` | Store a single learning | "Referrals convert 3x better than Instagram leads" |
-| `/debrief` | End-of-session extraction | Extracts errata, learnings, issues from current session |
+| `/brana:close` | End-of-session extraction | Extracts errata, learnings, issues from current session |
 | `/brana:challenge` | Stress-test a plan | "Should we expand to 3 cities?" — adversarial review |
 | `/pattern-recall` | Query past learnings | Starting work on any topic, encountering a familiar problem |
 | `/cross-pollinate` | Pull from other clients | CI/CD patterns → operational workflows |
@@ -469,7 +469,7 @@ Business decisions are harder to reverse than code decisions. ADRs, challenges, 
      │   (cross-client patterns and learnings)      │
      │                                               │
      │   /brana:retrospective  → stores learnings          │
-     │   /debrief        → extracts from session     │
+     │   /brana:close        → extracts from session     │
      │   /pattern-recall → retrieves patterns        │
      │   /cross-pollinate→ pulls from elsewhere      │
      │   /decide         → records decisions         │
@@ -582,7 +582,7 @@ DISCOVERY ──────→ VALIDATION ──────→ GROWTH ──�
    ← Use /brana:pipeline for sales, /experiment for testing,
      /decide for decisions, /brana:retrospective for learnings
 
-3. End of session → /debrief
+3. End of session → /brana:close
    ← Extracts learnings, stores in memory
 ```
 
@@ -613,7 +613,7 @@ This is the non-negotiable meta-practice. 30 minutes. Even a bad weekly review b
 Week 1:  /growth-check — health dashboard, identify bottleneck
 Week 2:  Work on bottleneck — /experiment if testing, /brana:venture-phase if milestone
 Week 3:  Continue execution, /sop for any new repeatable process
-Week 4:  /monthly-close → /monthly-plan → /debrief the month → /knowledge-review
+Week 4:  /monthly-close → /monthly-plan → /brana:close the month → /knowledge-review
 
 Monthly touchpoints:
 ├── /growth-check (health baseline)
@@ -641,7 +641,7 @@ During quarter:
 └── /decide for major decisions
 
 End of quarter:
-├── /debrief the quarter
+├── /brana:close the quarter
 ├── /venture-onboard to measure progress
 └── /growth-check → compare to quarter start
 ```
@@ -786,7 +786,7 @@ Every venture skill feeds a persistent learning system. This is what makes brana
 SESSION ACTIVITY
      │
      ├── /brana:retrospective  → stores individual learnings
-     ├── /debrief        → extracts session-wide findings
+     ├── /brana:close        → extracts session-wide findings
      ├── /brana:venture-phase   → mini-debriefs after each work item
      ├── /growth-check    → stores health snapshots
      ├── /experiment      → stores experiment results + learnings
@@ -843,7 +843,7 @@ Patterns from code clients inform business projects and vice versa:
 
 - **Record every sale from day one.** Financial data is the foundation. Without it, everything is blind.
 - **Run `/growth-check` consistently.** Monthly minimum. The trend matters more than any single number.
-- **End sessions with `/debrief`.** Even a 2-minute debrief is worth it.
+- **End sessions with `/brana:close`.** Even a 2-minute debrief is worth it.
 - **Use `/morning` to start sessions.** 5 minutes of orientation prevents hours of wandering.
 - **Run `/weekly-review` non-negotiably.** This is the single highest-leverage practice.
 - **Use `/decide` for hard-to-reverse decisions.** Future-you will ask "why?"
@@ -927,7 +927,7 @@ Patterns from code clients inform business projects and vice versa:
 2. /monthly-plan  → action plan for next month (forward-looking)
 3. /growth-check → health dashboard
 4. Review: actuals vs projections → adjust /brana:financial-model if needed
-5. /debrief → extract month's learnings
+5. /brana:close → extract month's learnings
 ```
 
 ### "End of quarter"
@@ -976,7 +976,7 @@ See `quick-reference.md` for the condensed one-page version.
 | `/monthly-plan` | `/monthly-plan` | Yes |
 | `/decide` | `/decide [title]` | Yes |
 | `/brana:retrospective` | `/brana:retrospective` | No |
-| `/debrief` | `/debrief` | No |
+| `/brana:close` | `/brana:close` | No |
 | `/brana:challenge` | `/brana:challenge` | No |
 | `/pattern-recall` | `/pattern-recall` | No |
 | `/cross-pollinate` | `/cross-pollinate` | No |

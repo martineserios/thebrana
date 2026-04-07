@@ -8,7 +8,7 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 - `code-fix` — fix lives in implementation code, not specs
 - `informational` — no fix needed, awareness for implementers
 
-**Workflow:** `/debrief` logs findings as `pending` → `/brana:apply-errata` processes them, marks `applied`, adds comments.
+**Workflow:** `/brana:close` logs findings as `pending` → `/brana:apply-errata` processes them, marks `applied`, adds comments.
 
 ---
 

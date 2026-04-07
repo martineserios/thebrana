@@ -341,7 +341,7 @@ if [ -n "$LAYER0_DIR" ] && [ -f "$LAYER0_DIR/pending-learnings.md" ]; then
     PENDING_COUNT=$(grep -c '^## Session' "$LAYER0_DIR/pending-learnings.md" 2>/dev/null) || PENDING_COUNT=0
     if [ "$PENDING_COUNT" -gt 0 ]; then
         LOOP_CONTEXT="${LOOP_CONTEXT:+$LOOP_CONTEXT
-}[Pending learnings] $PENDING_COUNT unprocessed session(s) in pending-learnings.md. Consider running /debrief."
+}[Pending learnings] $PENDING_COUNT unprocessed session(s) in pending-learnings.md. Consider running /brana:close to extract learnings."
     fi
 fi
 

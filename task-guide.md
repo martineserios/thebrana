@@ -338,7 +338,7 @@ Existing skills gain task awareness automatically:
 | `/weekly-review` | Tasks completed this week, progress delta, carry-over items |
 | `/build-phase` | Creates phase hierarchy, executes build loop per task |
 | `/build-feature` | Creates milestone + tasks, tracks progress |
-| `/debrief` | Reads completed tasks for session debrief context |
+| `/brana:close` | Reads completed tasks for session debrief context |
 
 ---
 

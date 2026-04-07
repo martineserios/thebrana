@@ -437,7 +437,7 @@ This reflection doc will be enriched over time as the venture skills are used an
 - Artifact lifecycle follows [32-lifecycle.md](./32-lifecycle.md) (R4) patterns — SOPs have review dates, OKRs have quarterly cycles, metric snapshots accumulate into trend data
 - Use venture skills on real business projects
 - Accumulate patterns in ruflo memory
-- Run `/debrief` and `/brana:retrospective` after business sessions
+- Run `/brana:close` and `/brana:retrospective` after business sessions
 - Identify which frameworks actually work at which stages (evidence-based, not theoretical)
 - **First fieldwork (2026-02-15):** psilea (cycle-product, validation stage) revealed 10 generic patterns. Four skills updated: `/growth-check` (non-SaaS metrics, adapted AARRR, channel attribution, revenue risk signals), `/monthly-close` (external data sources, cash flow reconstruction, AR/AP, COGS check), `/venture-onboard` (data completeness audit), `/venture-align` (V5 referrer tracking). Key learning: one real-project session improved skills more than three spec-driven reconcile passes (lesson #42 in [doc 24](../24-roadmap-corrections.md))
 
