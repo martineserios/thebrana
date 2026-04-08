@@ -79,6 +79,8 @@ repo `.claude/memory/`. Session state (sessions.md, handoff) stays in auto memor
 
 No strict mode — hooks must always return valid JSON.
 
+Emits `additionalContext` with: recalled patterns, active tasks, session handoff, correction patterns, venture signals, recurrence alerts, config drift, `[Extra-usage]` warning (t-1034, reads `~/.claude.json` for `cachedExtraUsageDisabledReason` — silence with `BRANA_1M_WARN_OFF=1`).
+
 ### `step-completed.sh`
 
 No strict mode — hooks must never fail and block the session.

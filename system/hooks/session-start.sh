@@ -135,6 +135,21 @@ find /tmp/brana-claims -name "ts" -mmin +60 2>/dev/null | while read f; do
     rm -rf "$(dirname "$f")"
 done
 
+# ── Extra-usage disabled warning (t-1034) ────────────────
+# CC caches extra-usage state in ~/.claude.json. If it's disabled,
+# 1M-context models fail around the 200k-token mark with an
+# "Extra usage is required for 1M context" API error mid-skill.
+# Brana can't toggle billing, but it can warn loudly at session start
+# so the user switches model before invoking heavy skills.
+# Silence with: BRANA_1M_WARN_OFF=1
+EU_WARNING=""
+if [ -z "${BRANA_1M_WARN_OFF:-}" ] && [ -f "$HOME/.claude.json" ]; then
+    EU_REASON=$(jq -r '.cachedExtraUsageDisabledReason // empty' "$HOME/.claude.json" 2>/dev/null) || EU_REASON=""
+    if [ -n "$EU_REASON" ]; then
+        EU_WARNING="Extra-usage disabled (${EU_REASON}). 1M-context models will fail around the 200k-token mark with an API error mid-skill. Run /model to switch to standard Opus 4.6 or Sonnet 4.6 before invoking /brana:close or other heavy skills. Silence: BRANA_1M_WARN_OFF=1"
+    fi
+fi
+
 # ── Config drift detection ─────────────────────────────
 DRIFT_CONTEXT=""
 DRIFT_SCRIPT="$SCRIPT_DIR/config-drift.sh"
@@ -516,6 +531,10 @@ fi
 if [ -n "$DRIFT_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
 }[Config drift] $DRIFT_CONTEXT"
+fi
+if [ -n "$EU_WARNING" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}[Extra-usage] $EU_WARNING"
 fi
 
 # ── Write context readback file (survives context compression) ──
