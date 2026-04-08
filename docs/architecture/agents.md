@@ -69,3 +69,9 @@ Instructions for the agent...
 ```
 
 The `model` field controls cost and capability. The `description` includes explicit "Use when" and "Not for" guidance to help with routing decisions.
+
+## Field Notes
+
+### 2026-04-08: Session JSONL telemetry is global — bucket by repo root for debrief accuracy
+A single CC session can straddle multiple project roots. Correction counts in `brana-session-*.jsonl` are global — a hot file in a sibling venture (28 corrections on `ventures/ai-native-education/`) inflated the thebrana debrief during a t-1088 session. Fix: when reading session JSONL, filter events by `file.startsWith(repo_root)` before computing `correction_rate` and `cascade_rate`. Tracked as t-1092.
+Source: t-1088 session debrief

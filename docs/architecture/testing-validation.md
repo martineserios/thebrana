@@ -311,3 +311,7 @@ Source: t-747 (Check A implementation)
 ### 2026-03-30: Cross-repo relative paths need precise level counting
 From `system/skills/X/` to workspace root is 4 levels up (`../../../../`). Common mistake: off by 1-2 levels. Always verify by resolving from the source file's actual directory, not from repo root.
 Source: t-751 (harvest fix)
+
+### 2026-04-08: Extract `_from(path)` variant from global-state helpers for testability
+A Rust helper that calls `env::current_dir()` or similar global state is untestable without chdir tricks. Pattern: extract `find_tasks_file_from(start_dir: &Path)` as the real implementation; keep `find_tasks_file()` as a thin wrapper calling `_from(current_dir?)`. Unit tests target `_from` with fixture directories — enables 9 tests where 0 were previously possible. Applied in `brana-core/util.rs` (t-1088).
+Source: t-1088
