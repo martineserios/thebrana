@@ -181,3 +181,13 @@ Bootstrap hooks use absolute paths in `~/.claude/settings.json`:
 ```
 
 Multiple hooks can register for the same event. They run sequentially; if any PreToolUse hook blocks, the tool call is denied.
+
+## Field Notes
+
+### 2026-04-08: Defensive retry loops in MCP wrappers are net-negative
+Background+restart logic added to `ruflo-mcp.sh` to survive CC's SIGTERM bug (#40207) never recovered in practice — `/mcp` was always the real recovery path. Worse, backgrounding silently broke stdin forwarding. Rule: if manual recovery is already documented, don't add an auto-retry — it creates hidden risk with no upside.
+Source: t-1083
+
+### 2026-04-08: Pre-flight warnings template for env constraints
+When a deterministic failure condition is readable from a config file (e.g., `cachedExtraUsageDisabledReason` in `~/.claude.json`), surface it at session-start with: (a) what's wrong, (b) what breaks, (c) exact fix command, (d) opt-out env var. Implemented in `session-start.sh` for 1M context + disabled extra-usage (t-1034).
+Source: t-1034

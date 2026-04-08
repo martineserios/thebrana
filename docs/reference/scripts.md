@@ -572,3 +572,9 @@ Collects ruflo health (entry count, last reindex date, stale count), portfolio p
 | `BRANA_PORTFOLIO_DIRS` | Colon-separated project dirs | Directories to scan for tasks.json |
 
 Gracefully degrades: if ruflo DB is missing, writes 0s. If brana-knowledge is missing, writes 0 for knowledge_days.
+
+## Field Notes
+
+### 2026-04-08: MCP stdio wrappers must use exec, not background+wait
+Confirmed via t-1083 bisection: even a bare `$BINARY "$@" & wait $!` without any traps breaks stdin forwarding to the child. CC's handshake JSON (sent on stdin) never reaches the server. The server starts but hangs waiting for `initialize`. Fix: all `*-mcp.sh` wrappers must end with `exec "$BINARY" "$@"`.
+Source: t-1083

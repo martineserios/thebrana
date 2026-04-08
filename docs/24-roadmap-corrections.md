@@ -128,6 +128,8 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 108 | [Doc 08](reflections/08-diagnosis.md) essential hooks list includes dropped/unimplemented items | **Medium** | applied (2026-03-13) | Essential hooks updated to actual 3 (PreToolUse, SessionStart, SessionEnd) with disposition note |
 | 109 | [Doc 18](18-lean-roadmap.md) "What Stays" lists PostToolUse as essential but omits PreToolUse — cascade from #108 | **Medium** | applied (2026-03-13) | "Three hooks" → "Four hooks" with PreToolUse added, PostToolUse constraint noted. Phase 2 PostToolUse section gets CC bug caveat |
 | 110 | [Doc 18](18-lean-roadmap.md) Phase 2 missing ADR-017 decisions layer — cascade from #102 | **Low** | informational | ADR-017 is already implemented; doc 18 is historical roadmap. No fix needed — decisions.py operates independently of the learning loop |
+| 111 | ruflo-mcp.sh background+restart loop silently broke stdin forwarding | **High** | code-fix (2026-04-08) | MCP stdio wrappers cannot background their child — piped stdin is not reliably forwarded to backgrounded processes. Fix: replaced with `exec "$RUFLO" "$@"`. Any future MCP wrapper must use exec as final call. |
+| 112 | 1M context model + disabled extra-usage silently fails mid-skill | **High** | code-fix (2026-04-08) | When extra-usage is org_level_disabled, 1M models crash around 200k tokens with no warning. Fix: session-start.sh now reads cachedExtraUsageDisabledReason from ~/.claude.json and warns at startup with model-switch instruction. |
 
 ---
 
