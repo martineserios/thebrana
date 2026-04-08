@@ -332,6 +332,91 @@ mkdir -p "$NONGIT"
 assert_continue "Non-git directory returns continue" \
     "$(make_session_input "sess-nongit" "$NONGIT")"
 
+# ── 11. Extra-usage disabled warning (t-1034) ───────────
+
+echo ""
+echo "--- Extra-usage disabled warning ---"
+
+REPO_EU="$TMPDIR/eu-proj"
+setup_repo "$REPO_EU"
+
+# Fake .claude.json with extra-usage disabled at org level
+cat > "$FAKE_HOME/.claude.json" <<'EOF'
+{
+  "cachedExtraUsageDisabledReason": "org_level_disabled",
+  "s1mAccessCache": {
+    "some-org-id": {"hasAccess": false, "hasAccessNotAsDefault": false}
+  }
+}
+EOF
+
+assert_context_contains "Extra-usage disabled triggers 1M warning" \
+    "Extra-usage" \
+    "$(make_session_input "sess-eu-disabled" "$REPO_EU")"
+
+assert_context_contains "Warning includes disabled reason" \
+    "org_level_disabled" \
+    "$(make_session_input "sess-eu-disabled2" "$REPO_EU")"
+
+assert_context_contains "Warning tells user to run /model" \
+    "/model" \
+    "$(make_session_input "sess-eu-disabled3" "$REPO_EU")"
+
+# Enabled state → no warning
+cat > "$FAKE_HOME/.claude.json" <<'EOF'
+{
+  "cachedExtraUsageDisabledReason": null
+}
+EOF
+
+TOTAL=$((TOTAL + 1))
+OUTPUT=$(run_hook "$(make_session_input "sess-eu-enabled" "$REPO_EU")")
+CTX=$(echo "$OUTPUT" | jq -r '.additionalContext // ""' 2>/dev/null)
+if ! echo "$CTX" | grep -qi "Extra-usage"; then
+    echo "  PASS: Null reason produces no warning"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL: Null reason produces no warning"
+    echo "    got: $CTX"
+    FAIL=$((FAIL + 1))
+fi
+
+# Missing .claude.json → no warning (no crash)
+rm -f "$FAKE_HOME/.claude.json"
+
+TOTAL=$((TOTAL + 1))
+OUTPUT=$(run_hook "$(make_session_input "sess-eu-missing" "$REPO_EU")")
+CTX=$(echo "$OUTPUT" | jq -r '.additionalContext // ""' 2>/dev/null)
+if echo "$OUTPUT" | jq -e '.continue == true' >/dev/null 2>&1 && ! echo "$CTX" | grep -qi "Extra-usage"; then
+    echo "  PASS: Missing .claude.json is safe (no warning, no crash)"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL: Missing .claude.json is safe"
+    echo "    got: $OUTPUT"
+    FAIL=$((FAIL + 1))
+fi
+
+# BRANA_1M_WARN_OFF=1 → no warning even when disabled
+cat > "$FAKE_HOME/.claude.json" <<'EOF'
+{
+  "cachedExtraUsageDisabledReason": "org_level_disabled"
+}
+EOF
+
+TOTAL=$((TOTAL + 1))
+OUTPUT=$(BRANA_1M_WARN_OFF=1 run_hook "$(make_session_input "sess-eu-silenced" "$REPO_EU")" "BRANA_1M_WARN_OFF=1")
+CTX=$(echo "$OUTPUT" | jq -r '.additionalContext // ""' 2>/dev/null)
+if ! echo "$CTX" | grep -qi "Extra-usage"; then
+    echo "  PASS: BRANA_1M_WARN_OFF=1 silences warning"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL: BRANA_1M_WARN_OFF=1 silences warning"
+    echo "    got: $CTX"
+    FAIL=$((FAIL + 1))
+fi
+
+rm -f "$FAKE_HOME/.claude.json"
+
 # ── Summary ─────────────────────────────────────────────
 echo ""
 echo "$PASS/$TOTAL passed"
