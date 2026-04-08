@@ -251,8 +251,19 @@ system/cli/rust/src/
 
 ## Changelog
 
+- 2026-04-08: `find_tasks_file` auto-init: creates empty `{"tasks":[]}` on first use. CWD fallback added for non-git projects (t-1090).
 - 2026-03-18: Added `brana files` subcommand (t-574). Pure Rust SHA-256, manifest tracking.
 - 2026-03-18: Modular CLI refactor (t-568). Split cli.rs into commands/ modules.
 - 2026-03-16: Added `brana run`, `brana agents`, `brana queue` (t-525). Mission control.
 - 2026-03-15: Added `brana transcribe` (t-080). Whisper.cpp integration.
 - 2026-03-14: Initial Rust CLI (t-428). Replaced Python/typer.
+
+## Field Notes
+
+### 2026-04-08: Auto-init beats error-out for project-scoped state files
+`find_tasks_file()` previously returned `None` when a project had no `.claude/tasks.json`, causing a hard CLI error. State files with a well-defined empty form (`{"tasks":[]}`) should lazy-create on first call rather than failing. Applied in `brana-core/src/util.rs`. Pattern applies to any future per-project JSON state (feeds, inbox, files manifest).
+Source: session 2026-04-08 / t-1090
+
+### 2026-04-08: Non-git projects need CWD fallback in all path helpers
+Any helper using `git rev-parse` exclusively will break on non-git project dirs. `mandawa` and `prediktive-prep` have no `.git`. Fix: terminate every path-discovery chain with `if let Ok(cwd) = std::env::current_dir()`. `find_project_root()` in `util.rs` still lacks this fallback (tracked: t-1089).
+Source: session 2026-04-08 / t-1089
