@@ -77,6 +77,13 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Type:** Side project — MercadoLibre MCP integration
 - **Location:** `~/enter_thebrana/ventures/mcp-mercadolibre/`
 
+### ai-native-education
+- **Type:** Venture — AI-native education framework & pedagogy (Feynman-AI methodology)
+- **Location:** `~/enter_thebrana/ventures/ai-native-education/`
+- **Status:** Idea → validation. Framework + Feynman integration + pilot proposal complete. PDF sent to Chacha (statistics professor) 2026-04-07.
+- **Details:** `framework.md`, `feynman-applied.md`, `propuesta-estadistica-piloto.md`, `poc.md`
+- **Next:** Wait for Chacha's feedback. Get his syllabus. Calibrate transcript evaluator.
+
 ### prediktive-prep
 - **Type:** Side project — learning/study material
 - **Location:** `~/enter_thebrana/ventures/prediktive-prep/`

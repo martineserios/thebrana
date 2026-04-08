@@ -25,7 +25,7 @@
       "enabled": true,
       "timeoutSeconds": 60,
       "captureOutput": true,
-      "_comment": "ADR-015: daily safety net — sync operational state from cache to repos"
+      "_comment": "ADR-015: daily safety net \u2014 sync operational state from cache to repos"
     },
     "agentdb-watch": {
       "type": "command",
@@ -55,7 +55,7 @@
       "maxRetries": 1,
       "timeoutSeconds": 60,
       "captureOutput": true,
-      "_comment": "Weekly CC changelog diff — writes ~/.claude/cc-changelog-report.md if changes found (t-512)"
+      "_comment": "Weekly CC changelog diff \u2014 writes ~/.claude/cc-changelog-report.md if changes found (t-512)"
     },
     "reindex-knowledge": {
       "type": "command",
@@ -66,7 +66,7 @@
       "maxRetries": 1,
       "timeoutSeconds": 10800,
       "captureOutput": true,
-      "_comment": "Weekly full reindex — runs at 2am, ~86s via MCP-first (t-844, t-894)"
+      "_comment": "Weekly full reindex \u2014 runs at 2am, ~86s via MCP-first (t-844, t-894)"
     },
     "reindex-patterns": {
       "type": "command",
@@ -76,7 +76,7 @@
       "enabled": true,
       "timeoutSeconds": 3600,
       "captureOutput": true,
-      "_comment": "Weekly pattern namespace reindex — runs at 3am (after knowledge reindex), ~1h max (t-857)"
+      "_comment": "Weekly pattern namespace reindex \u2014 runs at 3am (after knowledge reindex), ~1h max (t-857)"
     },
     "export-patterns": {
       "type": "command",
@@ -115,7 +115,7 @@
       "schedule": "Mon..Fri *-*-* 08:48:00",
       "model": "haiku",
       "enabled": false,
-      "_comment": "Daily morning focus card — disabled locally (runs on Oracle for Telegram)"
+      "_comment": "Daily morning focus card \u2014 disabled locally (runs on Oracle for Telegram)"
     },
     "link-check": {
       "type": "command",
@@ -124,6 +124,16 @@
       "schedule": "Mon *-*-* 09:00:00",
       "enabled": false,
       "_comment": "Weekly dead link check (enable after lychee is installed)"
+    },
+    "statusline-slow-cache": {
+      "type": "command",
+      "command": "./system/scripts/statusline-slow-cache.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* *:00/5:00",
+      "enabled": true,
+      "timeoutSeconds": 30,
+      "captureOutput": true,
+      "_comment": "t-1023: write ruflo health, portfolio pulse, knowledge freshness to statusline slow-cache every 5min"
     }
   }
 }
