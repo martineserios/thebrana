@@ -238,26 +238,13 @@ if (( SC_KNOWLEDGE_DAYS > 0 )) 2>/dev/null; then
   fi
 fi
 
-# Priority 5: Portfolio
-if (( SC_PORTFOLIO > 0 )) 2>/dev/null; then
-  add_l2 " $S 🗂 ${D}portfolio: ${SC_PORTFOLIO} pending${R}" 5
-fi
-
-# Priority 4: Knowledge decay
-if (( SC_RUFLO_COUNT > 0 && SC_STALE > 0 )) 2>/dev/null; then
-  SC_STALE_PCT=$(( SC_STALE * 100 / SC_RUFLO_COUNT ))
-  if (( SC_STALE_PCT >= 50 )); then
-    add_l2 " $S ⏳ ${Co}stale: ${SC_STALE}${R}" 4
-  fi
-fi
-
-# Priority 4: Learning velocity (corrections + patterns)
+# Priority 4: Learning velocity (corrections — show rate only when high)
 if (( LV_EDITS > 0 )) 2>/dev/null && (( LV_CORRECTIONS > 0 )) 2>/dev/null; then
   LV_RATE=$(( LV_CORRECTIONS * 100 / LV_EDITS ))
   if (( LV_RATE >= 50 )); then
-    add_l2 " $S 🔄 ${Cr}corrections: ${LV_CORRECTIONS}/${LV_EDITS}${R}" 4
-  else
-    add_l2 " $S 🔄 ${D}corrections: ${LV_CORRECTIONS}/${LV_EDITS}${R}" 4
+    add_l2 " $S 🔄 ${Cr}${LV_RATE}% corrections${R}" 4
+  elif (( LV_RATE >= 30 )); then
+    add_l2 " $S 🔄 ${Co}${LV_RATE}% corrections${R}" 4
   fi
 fi
 if (( LV_PATTERNS > 0 )) 2>/dev/null; then
