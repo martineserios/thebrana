@@ -485,7 +485,7 @@ else
 fi
 
 # --- Step 6b: MCP servers in settings.local.json ---
-# Personal infrastructure MCP servers (ruflo, context7) go in settings.local.json
+# Personal infrastructure MCP servers (ruflo) go in settings.local.json
 # (gitignored, per-machine). Project-specific MCP (brana) stays in .mcp.json.
 echo "MCP servers (settings.local.json):"
 SETTINGS_LOCAL="$TARGET_DIR/settings.local.json"
@@ -505,16 +505,6 @@ elif [ -n "$CF_BIN" ]; then
     echo "  + ruflo → $CF_BIN (direct, no PID lock)"
 else
     echo "  — ruflo (not found, skip)"
-fi
-
-# context7 (optional — library docs)
-CONTEXT7_WRAPPER="$SYSTEM_DIR/scripts/context7-mcp.sh"
-if [ -x "$CONTEXT7_WRAPPER" ] || [ -f "$CONTEXT7_WRAPPER" ]; then
-    MCP_SERVERS=$(echo "$MCP_SERVERS" | jq --arg cmd "$CONTEXT7_WRAPPER" \
-        '.context7 = {"command": $cmd, "args": []}')
-    echo "  + context7 → $CONTEXT7_WRAPPER"
-else
-    echo "  — context7 (not found, skip)"
 fi
 
 # Write settings.local.json if we have any servers
