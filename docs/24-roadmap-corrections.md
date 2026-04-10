@@ -1785,7 +1785,7 @@ The backlog SKILL.md spec uses `session:{SESSION_ID}` as the claimant format for
 ## Error 79: `brana transcribe` help text says "pure Rust" but dlopen's libwhisper.so.1 at runtime
 
 **Severity:** Medium
-**Status:** pending
+**Status:** applied (2026-04-10)
 **Discovery:** Close debrief (2026-04-09, legai onboard session)
 
 **Finding:** `brana transcribe --help` prints *"Transcribe audio file to text (whisper, local, pure Rust)"*. In reality the binary dynamically loads `libwhisper.so.1` (a C/C++ shared library) at runtime via dlopen. On systems where the lib is installed to a non-standard path (e.g., `~/.local/lib/`), the transcription fails immediately with:
@@ -1810,7 +1810,7 @@ The "pure Rust" claim actively misleads users into not setting up the dynamic li
 ## Error 81: `git switch -c` branch switch is ephemeral within a single Bash tool invocation
 
 **Severity:** Medium
-**Status:** pending
+**Status:** applied (2026-04-10)
 **Discovery:** Close debrief (2026-04-10, t-1075 lint-heal wiring session)
 
 **Finding:** MEMORY.md recommends `git switch -c <branch>` as the bypass when `git checkout -b` is blocked by the worktree-gate hook. The entry implies the branch switch persists normally. In reality, the Claude Code Bash tool does not preserve shell state between invocations — each Bash call runs in a fresh subshell. `git switch -c` output confirmed the switch succeeded, but the next Bash call showed `On branch main`. Feature work was staged and committed on main (4 commits: errata, test, wiring) before hooks caught it.
@@ -1826,7 +1826,7 @@ Update the memory entry to add: "Branch switches via Bash tool are invocation-sc
 ## Error 80: Venture onboarding workflow missing audio intake path
 
 **Severity:** Low
-**Status:** pending
+**Status:** applied (2026-04-10)
 **Discovery:** Close debrief (2026-04-09, legai onboard session)
 
 **Finding:** The venture onboarding workflow (`workflows/venture.md`, if it exists, or embedded in the onboard procedure) describes `/brana:onboard` as a tool for scanning an existing project. It does not document the pattern of using `inbox/` audio files as the *primary* source of venture context.
@@ -1843,3 +1843,21 @@ Add a "Voice-first intake" branch to the onboard SCAN/DISCOVER flow:
 - Consolidate transcripts → write to `inbox/transcripts-YYYY-MM-DD.md`
 - Use consolidated file as input for CLAUDE.md, ADR-001, and metrics scaffold
 
+
+---
+
+### Reconcile Run — 2026-04-10
+
+**Trigger:** manual (post-merge: t-1075 lint+heal, t-1109 skill-usage)
+**Scope:** consistency + propagation
+**Drift found:** 3 consistency findings + 3 pending errata (propagation)
+**Applied:** 5 auto-fixes
+**Deferred:** 0
+
+| # | Area | Type | Finding | Resolution |
+|---|------|------|---------|-----------|
+| 1 | docs/reference/hooks.md | Stale | Plugin Hooks table missing doc-gate.sh, main-guard.sh, no-attribution-commit.sh | Applied — regenerated via generate-reference.py |
+| 2 | docs/guide/cli.md | Missing | `brana skills usage` absent from skills table | Applied — added row |
+| 3 | cli.rs:128 | Stale | "pure Rust" claim — binary shells out to whisper-cli + dlopen's libwhisper.so.1 | Applied — updated Clap help string (errata #79) |
+| 4 | errata #81 | Stale/Applied | feedback_git-switch-c-bypasses-worktree-gate.md already had ephemeral warning | Marked applied — was already fixed in prior session |
+| 5 | errata #80 | Stale/Applied | onboard.md already had voice-first intake branch at Step 2 | Marked applied — was already fixed in prior session |
