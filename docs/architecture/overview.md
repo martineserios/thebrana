@@ -244,3 +244,11 @@ Source: LinkedIn MCP fix, session 2026-03-27
 ### 2026-03-27: Platform identity slugs diverge
 GitHub username (`martineserios`) ≠ LinkedIn slug (`martinrios`). Never assume one handle works across platforms. Maintain explicit slug-per-platform mappings in portfolio.md.
 Source: LinkedIn MCP profile lookup failure, session 2026-03-27
+
+### 2026-04-10: Verify path contracts before documenting
+Before writing any path contract in guide docs, grep the actual script for its hardcoded default. CLI tools often use absolute paths with env var overrides — not relative conventions. Documenting the wrong default sends new users into silent failures (e.g., `BRANA_KNOWLEDGE_DIR` in `index-knowledge.sh`).
+Source: t-1105 ecosystem.md, challenger review 2026-04-10
+
+### 2026-04-10: Challenge guide docs before merging, not just architecture docs
+A 97-line guide doc had 3 factual errors caught by a single challenger pass: wrong path contract, unsupported hook behavior claim, wrong MEMORY.md location. Challenger value is high on published docs — run it on guide/*.md before any merge to main.
+Source: t-1105 ecosystem.md, challenger review 2026-04-10

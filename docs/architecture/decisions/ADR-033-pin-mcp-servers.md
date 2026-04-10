@@ -63,3 +63,12 @@ A weekly scheduled job (Sunday 3am, alongside the existing knowledge reindex) up
 - ~3 days behind latest on average vs always-latest (acceptable trade-off)
 - SessionStart hook becomes lighter: fewer subprocesses, no Python dependency at boot
 - New MCP servers must be installed globally before adding to `.mcp.json` -- one extra setup step per server
+
+## Field Notes
+
+**2026-04-10 — Global `~/.claude.json` is outside the reconcile audit scope.**
+An ADR-033 violation (`uvx` in the `google-sheets` MCP entry) persisted across many sessions
+because `/brana:reconcile` and all git-based audits only scan tracked files. `~/.claude.json`
+is global and untracked. The fix was applied directly to the file — also untracked, with no
+commit evidence. **Gap:** Reconcile should explicitly check `~/.claude.json` MCP server
+definitions for `npx`/`uvx`/`npm exec` patterns alongside `.mcp.json`.

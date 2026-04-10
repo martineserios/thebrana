@@ -256,7 +256,7 @@ fn rotate_history(history_path: &Path) -> Result<()> {
         Err(_) => return Ok(()), // no history file yet
     };
 
-    let cutoff = Utc::now() - chrono::Duration::days(30);
+    let cutoff = Utc::now() - chrono::Duration::days(365);
     let mut kept = Vec::new();
 
     for line in content.lines() {
@@ -302,6 +302,145 @@ pub fn read_history(project_root: &Path, limit: usize) -> Vec<SessionState> {
     entries.reverse();
     entries.truncate(limit);
     entries
+}
+
+// ── Session insights ─────────────────────────────────────────────────────
+
+/// Friction classification for a single session.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum FrictionLabel {
+    /// Session was productive — accomplished items, low correction rate, no blockers.
+    Clean,
+    /// High correction rate or nothing accomplished despite activity.
+    Turbulent,
+    /// Session ended with active blockers.
+    Blocked,
+    /// No accomplished items and no learnings — nothing to show.
+    Abandoned,
+}
+
+impl FrictionLabel {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            FrictionLabel::Clean => "clean",
+            FrictionLabel::Turbulent => "turbulent",
+            FrictionLabel::Blocked => "blocked",
+            FrictionLabel::Abandoned => "abandoned",
+        }
+    }
+}
+
+/// Per-session row in the insights report.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SessionInsightRow {
+    pub date: String,
+    pub label: FrictionLabel,
+    pub session_label: Option<String>,
+    pub accomplished: usize,
+    pub correction_rate: f64,
+    pub blockers: usize,
+}
+
+/// Aggregate insights over a window of sessions.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InsightsSummary {
+    pub total: usize,
+    pub clean: usize,
+    pub turbulent: usize,
+    pub blocked: usize,
+    pub abandoned: usize,
+    pub avg_correction_rate: f64,
+    pub sessions: Vec<SessionInsightRow>,
+    pub suggestions: Vec<String>,
+}
+
+/// Classify a session into a friction label using metrics-only rules (no LLM).
+///
+/// Rules (in priority order):
+/// 1. `abandoned` — nothing accomplished AND no learnings
+/// 2. `blocked`   — had active blockers at close
+/// 3. `turbulent` — correction_rate > 0.35
+/// 4. `clean`     — default
+pub fn friction_label(state: &SessionState) -> FrictionLabel {
+    if state.accomplished.is_empty() && state.learnings.is_empty() {
+        return FrictionLabel::Abandoned;
+    }
+    if !state.blockers.is_empty() {
+        return FrictionLabel::Blocked;
+    }
+    if let Some(ref m) = state.metrics {
+        if m.correction_rate > 0.35 {
+            return FrictionLabel::Turbulent;
+        }
+    }
+    FrictionLabel::Clean
+}
+
+/// Compute aggregate insights over a slice of session history entries.
+pub fn compute_insights(history: &[SessionState]) -> InsightsSummary {
+    let mut clean = 0usize;
+    let mut turbulent = 0usize;
+    let mut blocked = 0usize;
+    let mut abandoned = 0usize;
+    let mut total_correction_rate = 0.0f64;
+    let mut sessions = Vec::new();
+
+    for state in history {
+        let label = friction_label(state);
+        match label {
+            FrictionLabel::Clean => clean += 1,
+            FrictionLabel::Turbulent => turbulent += 1,
+            FrictionLabel::Blocked => blocked += 1,
+            FrictionLabel::Abandoned => abandoned += 1,
+        }
+        let correction_rate = state.metrics.as_ref().map(|m| m.correction_rate).unwrap_or(0.0);
+        total_correction_rate += correction_rate;
+        sessions.push(SessionInsightRow {
+            date: state.written_at.clone(),
+            label,
+            session_label: state.session_label.clone(),
+            accomplished: state.accomplished.len(),
+            correction_rate,
+            blockers: state.blockers.len(),
+        });
+    }
+
+    let total = history.len();
+    let avg_correction_rate = if total > 0 {
+        total_correction_rate / total as f64
+    } else {
+        0.0
+    };
+
+    let mut suggestions = Vec::new();
+    if abandoned > 0 {
+        suggestions.push(format!(
+            "{abandoned} session(s) produced no output — run /brana:sitrep before starting long sessions"
+        ));
+    }
+    if turbulent > 0 {
+        let pct = (turbulent as f64 / total as f64 * 100.0).round() as u32;
+        suggestions.push(format!(
+            "{turbulent} session(s) ({pct}%) had high correction rate — spec before code reduces rework"
+        ));
+    }
+    if blocked > 0 {
+        suggestions.push(format!(
+            "{blocked} session(s) ended with active blockers — run /brana:backlog to clear stale blocked tasks"
+        ));
+    }
+
+    InsightsSummary {
+        total,
+        clean,
+        turbulent,
+        blocked,
+        abandoned,
+        avg_correction_rate,
+        sessions,
+        suggestions,
+    }
 }
 
 // ── Git helpers ─────────────────────────────────────────────────────────
@@ -448,5 +587,200 @@ mod tests {
     fn encode_path_replaces_slashes_and_underscores() {
         let path = PathBuf::from("/home/user/my_project");
         assert_eq!(encode_path(&path), "-home-user-my-project");
+    }
+
+    // ── friction_label tests ──────────────────────────────────────────────
+
+    fn make_state_with(
+        written_at: &str,
+        accomplished: Vec<&str>,
+        learnings: Vec<&str>,
+        blockers: Vec<&str>,
+        correction_rate: Option<f64>,
+    ) -> SessionState {
+        SessionState {
+            version: 1,
+            written_at: written_at.to_string(),
+            branch: None,
+            session_label: None,
+            consumed_at: None,
+            accomplished: accomplished.into_iter().map(String::from).collect(),
+            learnings: learnings.into_iter().map(String::from).collect(),
+            next: Vec::new(),
+            blockers: blockers
+                .into_iter()
+                .map(|t| Blocker { text: t.to_string(), task_id: None })
+                .collect(),
+            backprop: None,
+            doc_drift: None,
+            state: None,
+            metrics: correction_rate.map(|r| SessionMetrics {
+                events: 10,
+                corrections: 0,
+                test_writes: 0,
+                correction_rate: r,
+                test_write_rate: 0.0,
+                cascade_rate: 0.0,
+                delegation_count: 0,
+            }),
+        }
+    }
+
+    #[test]
+    fn friction_label_clean() {
+        let s = make_state_with("2026-04-06T10:00:00Z", vec!["shipped X"], vec![], vec![], None);
+        assert_eq!(friction_label(&s), FrictionLabel::Clean);
+    }
+
+    #[test]
+    fn friction_label_abandoned_nothing() {
+        let s = make_state_with("2026-04-06T10:00:00Z", vec![], vec![], vec![], None);
+        assert_eq!(friction_label(&s), FrictionLabel::Abandoned);
+    }
+
+    #[test]
+    fn friction_label_abandoned_only_if_no_learnings_either() {
+        // Has learnings but no accomplished → not abandoned
+        let s = make_state_with(
+            "2026-04-06T10:00:00Z",
+            vec![],
+            vec!["learned something"],
+            vec![],
+            None,
+        );
+        // no blockers, no high correction rate → clean
+        assert_eq!(friction_label(&s), FrictionLabel::Clean);
+    }
+
+    #[test]
+    fn friction_label_blocked() {
+        let s = make_state_with(
+            "2026-04-06T10:00:00Z",
+            vec!["did A"],
+            vec![],
+            vec!["waiting on infra"],
+            None,
+        );
+        assert_eq!(friction_label(&s), FrictionLabel::Blocked);
+    }
+
+    #[test]
+    fn friction_label_turbulent_high_correction() {
+        let s = make_state_with(
+            "2026-04-06T10:00:00Z",
+            vec!["did A"],
+            vec![],
+            vec![],
+            Some(0.40), // > 0.35 threshold
+        );
+        assert_eq!(friction_label(&s), FrictionLabel::Turbulent);
+    }
+
+    #[test]
+    fn friction_label_not_turbulent_below_threshold() {
+        let s = make_state_with(
+            "2026-04-06T10:00:00Z",
+            vec!["did A"],
+            vec![],
+            vec![],
+            Some(0.30), // below 0.35 threshold
+        );
+        assert_eq!(friction_label(&s), FrictionLabel::Clean);
+    }
+
+    #[test]
+    fn friction_label_abandoned_takes_priority_over_blocked() {
+        // Empty accomplished + empty learnings → abandoned, even if blockers present
+        let s = make_state_with("2026-04-06T10:00:00Z", vec![], vec![], vec!["thing"], None);
+        assert_eq!(friction_label(&s), FrictionLabel::Abandoned);
+    }
+
+    // ── compute_insights tests ────────────────────────────────────────────
+
+    #[test]
+    fn insights_empty_history() {
+        let summary = compute_insights(&[]);
+        assert_eq!(summary.total, 0);
+        assert_eq!(summary.avg_correction_rate, 0.0);
+        assert!(summary.suggestions.is_empty());
+        assert!(summary.sessions.is_empty());
+    }
+
+    #[test]
+    fn insights_counts_labels() {
+        let history = vec![
+            make_state_with("2026-04-06T08:00:00Z", vec!["A"], vec![], vec![], None), // clean
+            make_state_with("2026-04-06T09:00:00Z", vec![], vec![], vec![], None),    // abandoned
+            make_state_with(
+                "2026-04-06T10:00:00Z",
+                vec!["B"],
+                vec![],
+                vec!["blocker"],
+                None,
+            ), // blocked
+            make_state_with(
+                "2026-04-06T11:00:00Z",
+                vec!["C"],
+                vec![],
+                vec![],
+                Some(0.50),
+            ), // turbulent
+        ];
+        let summary = compute_insights(&history);
+        assert_eq!(summary.total, 4);
+        assert_eq!(summary.clean, 1);
+        assert_eq!(summary.abandoned, 1);
+        assert_eq!(summary.blocked, 1);
+        assert_eq!(summary.turbulent, 1);
+    }
+
+    #[test]
+    fn insights_avg_correction_rate() {
+        let history = vec![
+            make_state_with("2026-04-06T08:00:00Z", vec!["A"], vec![], vec![], Some(0.2)),
+            make_state_with("2026-04-06T09:00:00Z", vec!["B"], vec![], vec![], Some(0.4)),
+        ];
+        let summary = compute_insights(&history);
+        let expected = (0.2 + 0.4) / 2.0;
+        assert!((summary.avg_correction_rate - expected).abs() < 1e-9);
+    }
+
+    #[test]
+    fn insights_suggestions_for_abandoned() {
+        let history = vec![make_state_with(
+            "2026-04-06T08:00:00Z",
+            vec![],
+            vec![],
+            vec![],
+            None,
+        )];
+        let summary = compute_insights(&history);
+        assert!(summary.suggestions.iter().any(|s| s.contains("no output")));
+    }
+
+    #[test]
+    fn insights_suggestions_for_turbulent() {
+        let history = vec![make_state_with(
+            "2026-04-06T08:00:00Z",
+            vec!["A"],
+            vec![],
+            vec![],
+            Some(0.50),
+        )];
+        let summary = compute_insights(&history);
+        assert!(summary.suggestions.iter().any(|s| s.contains("correction rate")));
+    }
+
+    #[test]
+    fn insights_no_suggestions_for_clean() {
+        let history = vec![make_state_with(
+            "2026-04-06T08:00:00Z",
+            vec!["A"],
+            vec![],
+            vec![],
+            Some(0.10),
+        )];
+        let summary = compute_insights(&history);
+        assert!(summary.suggestions.is_empty());
     }
 }

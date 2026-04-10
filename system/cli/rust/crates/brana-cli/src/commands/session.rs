@@ -655,6 +655,184 @@ fn extract_field(body: &str, field: &str) -> Option<String> {
     None
 }
 
+// ── Session insights ────────────────────────────────────────────────────
+
+/// Friction classification for a single session.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+enum FrictionLabel {
+    Clean,
+    Turbulent,
+    Blocked,
+    Abandoned,
+}
+
+impl FrictionLabel {
+    fn as_str(&self) -> &'static str {
+        match self {
+            FrictionLabel::Clean => "clean",
+            FrictionLabel::Turbulent => "turbulent",
+            FrictionLabel::Blocked => "blocked",
+            FrictionLabel::Abandoned => "abandoned",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct SessionInsightRow {
+    date: String,
+    label: FrictionLabel,
+    session_label: Option<String>,
+    accomplished: usize,
+    correction_rate: f64,
+    blockers: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct InsightsSummary {
+    total: usize,
+    clean: usize,
+    turbulent: usize,
+    blocked: usize,
+    abandoned: usize,
+    avg_correction_rate: f64,
+    sessions: Vec<SessionInsightRow>,
+    suggestions: Vec<String>,
+}
+
+fn friction_label(state: &SessionState) -> FrictionLabel {
+    if state.accomplished.is_empty() && state.learnings.is_empty() {
+        return FrictionLabel::Abandoned;
+    }
+    if !state.blockers.is_empty() {
+        return FrictionLabel::Blocked;
+    }
+    if let Some(ref m) = state.metrics {
+        if m.correction_rate > 0.35 {
+            return FrictionLabel::Turbulent;
+        }
+    }
+    FrictionLabel::Clean
+}
+
+fn compute_insights(history: &[SessionState]) -> InsightsSummary {
+    let mut clean = 0usize;
+    let mut turbulent = 0usize;
+    let mut blocked = 0usize;
+    let mut abandoned = 0usize;
+    let mut total_correction_rate = 0.0f64;
+    let mut sessions = Vec::new();
+
+    for state in history {
+        let label = friction_label(state);
+        match label {
+            FrictionLabel::Clean => clean += 1,
+            FrictionLabel::Turbulent => turbulent += 1,
+            FrictionLabel::Blocked => blocked += 1,
+            FrictionLabel::Abandoned => abandoned += 1,
+        }
+        let correction_rate = state.metrics.as_ref().map(|m| m.correction_rate).unwrap_or(0.0);
+        total_correction_rate += correction_rate;
+        sessions.push(SessionInsightRow {
+            date: state.written_at.clone(),
+            label,
+            session_label: state.session_label.clone(),
+            accomplished: state.accomplished.len(),
+            correction_rate,
+            blockers: state.blockers.len(),
+        });
+    }
+
+    let total = history.len();
+    let avg_correction_rate =
+        if total > 0 { total_correction_rate / total as f64 } else { 0.0 };
+
+    let mut suggestions = Vec::new();
+    if abandoned > 0 {
+        suggestions.push(format!(
+            "{abandoned} session(s) produced no output — run /brana:sitrep before starting long sessions"
+        ));
+    }
+    if turbulent > 0 {
+        let pct = (turbulent as f64 / total as f64 * 100.0).round() as u32;
+        suggestions.push(format!(
+            "{turbulent} session(s) ({pct}%) had high correction rate — spec before code reduces rework"
+        ));
+    }
+    if blocked > 0 {
+        suggestions.push(format!(
+            "{blocked} session(s) ended with active blockers — run /brana:backlog to clear stale blocked tasks"
+        ));
+    }
+
+    InsightsSummary {
+        total,
+        clean,
+        turbulent,
+        blocked,
+        abandoned,
+        avg_correction_rate,
+        sessions,
+        suggestions,
+    }
+}
+
+/// `brana session insights [--limit N] [--json]`
+pub fn cmd_session_insights(limit: usize, json_output: bool) {
+    let root = require_project_root();
+    let history = read_history(&root, limit);
+
+    if history.is_empty() {
+        eprintln!("No session history found. Run /brana:close at least once to build history.");
+        std::process::exit(0);
+    }
+
+    let summary = compute_insights(&history);
+
+    if json_output {
+        println!("{}", serde_json::to_string_pretty(&summary).unwrap());
+        return;
+    }
+
+    // ── Human-readable output ──────────────────────────────────────────
+    println!("Session Insights — last {} sessions\n", summary.total);
+
+    // Aggregate
+    println!(
+        "  clean {}  turbulent {}  blocked {}  abandoned {}",
+        summary.clean, summary.turbulent, summary.blocked, summary.abandoned
+    );
+    println!(
+        "  avg correction rate: {:.0}%\n",
+        summary.avg_correction_rate * 100.0
+    );
+
+    // Per-session table
+    println!("  {:<22} {:<10} {:<5} {:>6}  Label", "Date", "Session", "Done", "CorrR");
+    println!("  {}", "-".repeat(62));
+    for row in &summary.sessions {
+        let label_str = row.session_label.as_deref().unwrap_or("—");
+        let short_label: String = label_str.chars().take(10).collect();
+        let date_short: String = row.date.chars().take(19).collect();
+        println!(
+            "  {:<22} {:<10} {:>5} {:>5.0}%  {}",
+            date_short,
+            short_label,
+            row.accomplished,
+            row.correction_rate * 100.0,
+            row.label.as_str(),
+        );
+    }
+
+    // Suggestions
+    if !summary.suggestions.is_empty() {
+        println!("\nSuggestions:");
+        for s in &summary.suggestions {
+            println!("  • {s}");
+        }
+    }
+}
+
 // ── Tests ───────────────────────────────────────────────────────────────
 
 #[cfg(test)]

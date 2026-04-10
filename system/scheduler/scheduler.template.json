@@ -53,7 +53,7 @@
       "command": "./system/cli/rust/target/release/brana ops reindex",
       "command_fallback": "./system/scripts/index-knowledge.sh",
       "project": "~/enter_thebrana/thebrana",
-      "schedule": "Sun *-*-* 08:24:00",
+      "schedule": "Sun *-*-* 12:00:00",
       "enabled": true,
       "maxRetries": 1,
       "timeoutSeconds": 600,
@@ -64,14 +64,14 @@
       "type": "skill",
       "skill": "/brana:reconcile --scope knowledge",
       "project": "~/enter_thebrana/thebrana",
-      "schedule": "Sun *-*-* 09:00:00",
+      "schedule": "Sun *-*-* 13:00:00",
       "model": "sonnet",
       "allowedTools": "Read,Glob,Grep,Bash",
       "enabled": true,
       "maxRetries": 1,
       "timeoutSeconds": 600,
       "captureOutput": true,
-      "_comment": "t-936: weekly DECAY — stale dimensions, event log bloat, ruflo noise. Runs after reindex-knowledge."
+      "_comment": "t-936/t-1102: weekly DECAY — stale dimensions, event log bloat, ruflo noise. Runs after reindex-knowledge (noon)."
     },
     "export-patterns": {
       "type": "command",

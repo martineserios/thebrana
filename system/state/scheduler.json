@@ -61,12 +61,25 @@
       "type": "command",
       "command": "./system/scripts/index-knowledge.sh",
       "project": "~/enter_thebrana/thebrana",
-      "schedule": "Sun *-*-* 02:00:00",
+      "schedule": "Sun *-*-* 12:00:00",
       "enabled": true,
       "maxRetries": 1,
       "timeoutSeconds": 10800,
       "captureOutput": true,
-      "_comment": "Weekly full reindex \u2014 runs at 2am, ~86s via MCP-first (t-844, t-894)"
+      "_comment": "Weekly full reindex \u2014 runs at noon Sun (moved from 2am: cold-boot MCP unavailable, t-1101)"
+    },
+    "knowledge-decay": {
+      "type": "skill",
+      "skill": "/brana:reconcile --scope knowledge",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Sun *-*-* 13:00:00",
+      "model": "sonnet",
+      "allowedTools": "Read,Glob,Grep,Bash",
+      "enabled": true,
+      "maxRetries": 1,
+      "timeoutSeconds": 600,
+      "captureOutput": true,
+      "_comment": "t-936/t-1102: weekly DECAY \u2014 stale dimensions, event log bloat, ruflo noise. Runs after reindex-knowledge (noon)."
     },
     "reindex-patterns": {
       "type": "command",

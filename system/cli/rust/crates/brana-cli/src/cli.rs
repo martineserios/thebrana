@@ -286,6 +286,15 @@ pub enum SessionCmd {
     Migrate,
     /// Mark current session state as consumed (set consumed_at to now)
     MarkConsumed,
+    /// Friction classifier — analyze session history for patterns
+    Insights {
+        /// Max sessions to analyse (default 30)
+        #[arg(long, default_value = "30")]
+        limit: usize,
+        /// Output raw JSON instead of human-readable table
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Subcommand)]
