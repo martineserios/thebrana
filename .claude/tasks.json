@@ -29986,7 +29986,7 @@
       "parent": "t-1103",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "subject": "Skill usage telemetry — ADR-035 candidate, evidence-based pruning",
       "tags": [
