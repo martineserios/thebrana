@@ -201,3 +201,9 @@ Turning every observation into a hook or enforcement gate. Symptoms:
 - [14-mastermind-architecture.md](../reflections/14-mastermind-architecture.md) — three-layer architecture, enforcement hierarchy
 - [31-assurance.md](../reflections/31-assurance.md) — how to verify the methodology produces results
 - [00-user-practices.md](../00-user-practices.md) — field notes that feed bottom-up pattern extraction
+
+## Field Notes
+
+### 2026-04-10: Check Rust CLI before writing Python in procedures
+Before adding a Python snippet to a skill procedure or shell script, grep `system/cli/rust/crates/brana-cli/src/commands/` for an existing subcommand. `brana session insights` (friction_label + compute_insights + 33 tests) was fully implemented but unknown — a Python snippet was written first and had to be replaced.
+Source: feat/t-1075, friction section wiring session

@@ -179,8 +179,20 @@ if [ -f "$DRIFT_SCRIPT" ]; then
     if [ "$DRIFT_STATUS" = "drifted" ]; then
         DRIFT_COUNT=$(echo "$DRIFT_JSON" | jq -r '.count' 2>/dev/null) || DRIFT_COUNT=0
         DRIFT_FILES=$(echo "$DRIFT_JSON" | jq -r '.drifted[] | "\(.type): \(.file)"' 2>/dev/null | head -10) || DRIFT_FILES=""
-        DRIFT_CONTEXT="Config drift detected ($DRIFT_COUNT files). Re-run bootstrap.sh to sync:
+        MCP_COUNT=$(echo "$DRIFT_JSON" | jq -r '.mcp_count // 0' 2>/dev/null) || MCP_COUNT=0
+        MCP_LINES=$(echo "$DRIFT_JSON" | jq -r '.mcp_violations[]? // empty' 2>/dev/null | head -5) || MCP_LINES=""
+
+        DRIFT_CONTEXT=""
+        if [ "$DRIFT_COUNT" -gt 0 ]; then
+            DRIFT_CONTEXT="Config drift detected ($DRIFT_COUNT files). Re-run bootstrap.sh to sync:
 $DRIFT_FILES"
+        fi
+        if [ "$MCP_COUNT" -gt 0 ]; then
+            MCP_MSG="[ADR-033] $MCP_COUNT npx/uvx MCP server(s) in ~/.claude.json — pin to binary paths:
+$MCP_LINES"
+            DRIFT_CONTEXT="${DRIFT_CONTEXT:+$DRIFT_CONTEXT
+}$MCP_MSG"
+        fi
     fi
 fi
 

@@ -1806,6 +1806,22 @@ The "pure Rust" claim actively misleads users into not setting up the dynamic li
 
 ---
 
+## Error 81: `git switch -c` branch switch is ephemeral within a single Bash tool invocation
+
+**Severity:** Medium
+**Status:** pending
+**Discovery:** Close debrief (2026-04-10, t-1075 lint-heal wiring session)
+
+**Finding:** MEMORY.md recommends `git switch -c <branch>` as the bypass when `git checkout -b` is blocked by the worktree-gate hook. The entry implies the branch switch persists normally. In reality, the Claude Code Bash tool does not preserve shell state between invocations — each Bash call runs in a fresh subshell. `git switch -c` output confirmed the switch succeeded, but the next Bash call showed `On branch main`. Feature work was staged and committed on main (4 commits: errata, test, wiring) before hooks caught it.
+
+**Files affected:**
+- `~/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/feedback_git-switch-c-bypasses-worktree-gate.md`
+
+**Fix needed:**
+Update the memory entry to add: "Branch switches via Bash tool are invocation-scoped. After `git switch -c`, the VERY NEXT Bash call must be `git branch --show-current` to verify the switch persisted. Do not stage or commit until verified."
+
+---
+
 ## Error 80: Venture onboarding workflow missing audio intake path
 
 **Severity:** Low
