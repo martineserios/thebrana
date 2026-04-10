@@ -195,3 +195,7 @@ Source: t-1034
 ### 2026-04-09: Canonical CC hook event names
 Full list of valid hook event names: `PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `SessionStart`, `SessionEnd`, `SubagentStart`, `SubagentStop`, `TaskCompleted`, `StopFailure`. The failure event is `PostToolUseFailure` (not `ToolError` or `PostToolFailure`). Wire failure telemetry hooks under `PostToolUseFailure` with matcher `""`.
 Source: /brana:reconcile --scope consistency, 2026-04-09
+
+### 2026-04-10: worktree-gate only intercepts `git checkout -b`, not `git switch -c`
+Both commands create branches but the hook pattern only matches `git checkout -b`. `git switch -c` is an unguarded bypass. Intentional workaround when already inside a clean worktree; unintentional gap if the goal is full branch-creation enforcement. Track: t-1120.
+Source: t-1108
