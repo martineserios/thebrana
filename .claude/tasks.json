@@ -29058,7 +29058,7 @@
       "parent": "t-1103",
       "priority": "P1",
       "started": null,
-      "status": "in_progress",
+      "status": "completed",
       "strategy": null,
       "subject": "Build scheduled brana memory consolidate (Kairos/autoDream prototype)",
       "tags": [
@@ -29167,7 +29167,7 @@
       "parent": "t-1103",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "strategy": null,
       "subject": "CC unreleased-features tracker — quarterly review cadence",
       "tags": [
@@ -29987,7 +29987,7 @@
       "parent": "t-1103",
       "priority": "P2",
       "started": null,
-      "status": "in_progress",
+      "status": "completed",
       "stream": "roadmap",
       "subject": "Skill usage telemetry — ADR-035 candidate, evidence-based pruning",
       "tags": [
@@ -30097,7 +30097,7 @@
       "parent": "t-1103",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "stream": "roadmap",
       "subject": "inbox→dimensions pipeline — Karpathy sources→wiki, LLM drafts Layer 2 docs from raw inputs",
       "tags": [
