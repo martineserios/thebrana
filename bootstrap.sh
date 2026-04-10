@@ -726,4 +726,6 @@ else
     # Invalidate skills mtime marker so next session does a full reindex
     rm -f /tmp/brana-skills-index-mtime 2>/dev/null || true
     echo "Start a new Claude Code session to activate."
+    echo ""
+    echo "Workspace layout: docs/guide/ecosystem.md"
 fi

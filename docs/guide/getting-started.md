@@ -130,6 +130,8 @@ claude                          # brana plugin loads automatically
 
 Each project can have its own `.claude/CLAUDE.md` with project-specific conventions. Brana's global rules combine with project-local rules.
 
+For a full picture of how brana's components fit together across multiple projects — the portfolio concept, the optional knowledge base, and the reference workspace layout — see [Workspace Ecosystem](ecosystem.md).
+
 ## Next steps
 
 - [Configuration](configuration.md) -- display themes, task portfolio, scheduler setup
