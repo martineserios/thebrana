@@ -185,6 +185,12 @@ Pull relevant architecture, decision knowledge, and skill matches into context b
 
 5. **Summarize loaded knowledge** as a brief context preamble (2-5 bullets). Do not show raw results — synthesize what's relevant to the build task (prior decisions, related architecture, known constraints).
 
+> **☑ Checkpoint — LOAD** (M+ builds with task_id):
+> ```bash
+> mkdir -p ~/.claude/run-state
+> printf '{"step":"LOAD","completed":"%s","task_id":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "{task_id}" >> ~/.claude/run-state/{task_id}.jsonl
+> ```
+
 ---
 
 ## Step 0a: CROSS-REFERENCE
@@ -230,6 +236,24 @@ Register these steps as CC Tasks (adapt based on detected strategy after CLASSIF
 - **Spike:** LOAD, CLASSIFY, QUESTION, EXPERIMENT, EXTRACT, EVALUATE, PERSIST, ANSWER
 
 Since strategy isn't known yet, create the CLASSIFY task first. After CLASSIFY confirms the strategy, create the remaining steps.
+
+---
+
+## Step 0c: RESUME CHECK
+
+**Size gate:** Same as 0b — skip for Trivial/Small builds.
+**Task gate:** Skip if no task ID is associated (freeform builds without a task).
+
+1. **Check for a run-state file:**
+   ```bash
+   cat ~/.claude/run-state/{task_id}.jsonl 2>/dev/null
+   ```
+2. **If file exists and non-empty:**
+   - Parse completed steps — each line is `{"step":"NAME","completed":"...","task_id":"..."}`
+   - Display: "⏩ Resuming {task_id} from checkpoint. Completed: {step1}, {step2}, ..."
+   - **Fast-forward:** skip all steps whose names appear in the completed list. Jump to the first step NOT in the file.
+   - If CC Task registry from Step 0b exists, mark skipped steps as completed via `TaskUpdate`.
+3. **If file is empty or missing:** proceed normally from Step 1.
 
 ---
 
@@ -286,6 +310,11 @@ At any point during the build, the user can say "this is actually a {type}" and 
 - If moving TO a strategy with SPECIFY: start SPECIFY from current knowledge (don't lose work)
 - If moving FROM spike to feature: the spike findings become SPECIFY context
 - If moving FROM investigation to bug fix: the report becomes REPRODUCE evidence
+
+> **☑ Checkpoint — CLASSIFY** (M+ builds with task_id):
+> ```bash
+> printf '{"step":"CLASSIFY","completed":"%s","task_id":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "{task_id}" >> ~/.claude/run-state/{task_id}.jsonl
+> ```
 
 ---
 
@@ -430,6 +459,11 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
 
 6. Update spec status to `decomposing`.
 
+> **☑ Checkpoint — SPECIFY** (M+ builds with task_id):
+> ```bash
+> printf '{"step":"SPECIFY","completed":"%s","task_id":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "{task_id}" >> ~/.claude/run-state/{task_id}.jsonl
+> ```
+
 ### Gate: SPECIFY → DECOMPOSE (Medium/Large only)
 
 Before entering DECOMPOSE, verify the spec exists:
@@ -501,6 +535,11 @@ Before entering DECOMPOSE, verify the spec exists:
    ```
 
 5. Update spec status to `building`.
+
+> **☑ Checkpoint — DECOMPOSE** (M+ builds with task_id):
+> ```bash
+> printf '{"step":"DECOMPOSE","completed":"%s","task_id":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "{task_id}" >> ~/.claude/run-state/{task_id}.jsonl
+> ```
 
 ### Gate: DECOMPOSE → BUILD (Medium/Large only)
 
@@ -604,6 +643,11 @@ If MCP unavailable, skip silently. Hive-mind is transient awareness, not critica
    options: ["Continue", "Review", "Adjust tasks"]
    ```
 
+> **☑ Checkpoint — BUILD** (M+ builds with task_id; write after all subtasks complete):
+> ```bash
+> printf '{"step":"BUILD","completed":"%s","task_id":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "{task_id}" >> ~/.claude/run-state/{task_id}.jsonl
+> ```
+
 ### Gate: BUILD → CLOSE (Medium/Large feature/greenfield/migration only)
 
 Before entering CLOSE, verify all mandatory artifacts exist on the branch:
@@ -643,6 +687,11 @@ REPRODUCE → DIAGNOSE → FIX → CLOSE
    - Confirm: "Test fails as expected. The bug is reproducible."
 4. **If no test framework exists**: document the reproduction steps, note "no test framework — manual verification."
 
+> **☑ Checkpoint — REPRODUCE** (M+ builds with task_id):
+> ```bash
+> printf '{"step":"REPRODUCE","completed":"%s","task_id":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "{task_id}" >> ~/.claude/run-state/{task_id}.jsonl
+> ```
+
 ### DIAGNOSE
 
 1. **Read the code path** — trace from symptom to root cause.
@@ -654,6 +703,11 @@ REPRODUCE → DIAGNOSE → FIX → CLOSE
     The fix should: {proposed approach}"
    ```
 4. **Wait for user confirmation** or redirection.
+
+> **☑ Checkpoint — DIAGNOSE** (M+ builds with task_id):
+> ```bash
+> printf '{"step":"DIAGNOSE","completed":"%s","task_id":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "{task_id}" >> ~/.claude/run-state/{task_id}.jsonl
+> ```
 
 ### Gate: REPRODUCE → FIX
 
@@ -681,6 +735,11 @@ Before implementing the fix, verify a failing test was written in REPRODUCE:
 2. **Implement the fix** — make the failing test pass.
 3. **Run full test suite** — no regressions.
 4. **Commit:** `fix(scope): description`
+
+> **☑ Checkpoint — FIX** (M+ builds with task_id):
+> ```bash
+> printf '{"step":"FIX","completed":"%s","task_id":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "{task_id}" >> ~/.claude/run-state/{task_id}.jsonl
+> ```
 
 ### CLOSE
 
@@ -727,6 +786,11 @@ SPECIFY (light) → VERIFY COVERAGE → BUILD → CLOSE
 3. **What must NOT change?** — the behavior contract.
 4. No feature spec needed for refactors — the tests are the spec.
 
+> **☑ Checkpoint — SPECIFY** (M+ builds with task_id):
+> ```bash
+> printf '{"step":"SPECIFY","completed":"%s","task_id":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "{task_id}" >> ~/.claude/run-state/{task_id}.jsonl
+> ```
+
 ### VERIFY COVERAGE
 
 1. **Run existing tests** — all must pass. Record baseline: "N tests pass."
@@ -734,6 +798,11 @@ SPECIFY (light) → VERIFY COVERAGE → BUILD → CLOSE
    - Write tests for current behavior FIRST
    - These tests anchor the refactor — behavior must not change
 3. **Confirm baseline:** "N tests pass before refactor. Behavior contract is locked."
+
+> **☑ Checkpoint — VERIFY-COVERAGE** (M+ builds with task_id):
+> ```bash
+> printf '{"step":"VERIFY-COVERAGE","completed":"%s","task_id":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "{task_id}" >> ~/.claude/run-state/{task_id}.jsonl
+> ```
 
 ### BUILD
 
@@ -762,12 +831,22 @@ No branch. No spec. No tasks.json entry. No docs. Just learn.
 2. **What would "yes" look like? What would "no"?**
 3. **Timebox:** "Spend max {N} minutes on this." (Ask user or default to 30)
 
+> **☑ Checkpoint — QUESTION** (M+ builds with task_id):
+> ```bash
+> printf '{"step":"QUESTION","completed":"%s","task_id":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "{task_id}" >> ~/.claude/run-state/{task_id}.jsonl
+> ```
+
 ### EXPERIMENT
 
 1. Work in `/tmp/spike-{slug}/` or a scratch directory.
 2. Quick prototype — throwaway code.
 3. No tests, no commits, no branch.
 4. Focus entirely on answering the question.
+
+> **☑ Checkpoint — EXPERIMENT** (M+ builds with task_id):
+> ```bash
+> printf '{"step":"EXPERIMENT","completed":"%s","task_id":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "{task_id}" >> ~/.claude/run-state/{task_id}.jsonl
+> ```
 
 ### ANSWER
 
@@ -830,6 +909,11 @@ No branch. No commits. Read-only. May lead to a build.
 2. **Gather evidence:** read logs, check error messages, identify reproduction steps.
 3. **Form hypotheses** — list possible causes, ordered by likelihood.
 
+> **☑ Checkpoint — SYMPTOMS** (M+ builds with task_id):
+> ```bash
+> printf '{"step":"SYMPTOMS","completed":"%s","task_id":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "{task_id}" >> ~/.claude/run-state/{task_id}.jsonl
+> ```
+
 ### INVESTIGATE
 
 1. **Test hypotheses one by one:**
@@ -839,6 +923,11 @@ No branch. No commits. Read-only. May lead to a build.
    - Compare expected vs actual behavior
 2. **Document findings as you go** — each hypothesis tested, result, next step.
 3. **No code changes** — this is read-only analysis.
+
+> **☑ Checkpoint — INVESTIGATE** (M+ builds with task_id):
+> ```bash
+> printf '{"step":"INVESTIGATE","completed":"%s","task_id":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "{task_id}" >> ~/.claude/run-state/{task_id}.jsonl
+> ```
 
 ### REPORT
 
@@ -885,6 +974,11 @@ Identify what was learned during the build.
    | **Dimension** | New topic area or significant expansion of existing knowledge |
 4. **Build-specific signals** — look for: architectural decisions made under pressure, dependency behaviors discovered empirically, error paths that weren't documented, performance characteristics observed.
 
+> **☑ Checkpoint — EXTRACT** (M+ builds with task_id):
+> ```bash
+> printf '{"step":"EXTRACT","completed":"%s","task_id":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "{task_id}" >> ~/.claude/run-state/{task_id}.jsonl
+> ```
+
 ### EVALUATE
 
 Score each finding on a 0-10 scale across three dimensions:
@@ -904,6 +998,11 @@ mcp__ruflo__memory_search(
 )
 ```
 If a similar entry exists with confidence > 0.7, skip persistence (already captured). Otherwise proceed to PERSIST.
+
+> **☑ Checkpoint — EVALUATE** (M+ builds with task_id):
+> ```bash
+> printf '{"step":"EVALUATE","completed":"%s","task_id":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "{task_id}" >> ~/.claude/run-state/{task_id}.jsonl
+> ```
 
 ### PERSIST
 
@@ -938,6 +1037,11 @@ If the file already has frontmatter (`---` block), merge into it. If not, prepen
 Post-commit hook will rebuild `spec-graph.json` — new edges appear automatically.
 
 **Graceful degradation:** If no findings worth persisting (trivial build, nothing surprising), skip EVALUATE and PERSIST silently. Don't force learnings where none exist.
+
+> **☑ Checkpoint — PERSIST** (M+ builds with task_id):
+> ```bash
+> printf '{"step":"PERSIST","completed":"%s","task_id":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "{task_id}" >> ~/.claude/run-state/{task_id}.jsonl
+> ```
 
 ---
 
@@ -1106,6 +1210,11 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    ### Knowledge maintained
    - {field notes captured, assumptions verified, changelogs updated}
    ```
+
+> **☑ Checkpoint cleanup — CLOSE:** Delete run-state on successful close (M+ builds with task_id):
+> ```bash
+> rm -f ~/.claude/run-state/{task_id}.jsonl
+> ```
 
 ---
 
