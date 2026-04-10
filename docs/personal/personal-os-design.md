@@ -542,9 +542,9 @@ Identity docs can't be written by Claude alone — they require your input. But 
 - Scans `synthesis/` for theme clusters
 - Flags when 3+ synthesis pieces orbit one theme: "Ready to draft?"
 - Compiles related pieces into `writing/drafts/{theme}.md`
-- For LinkedIn-ready pieces, reshapes through `/brana:harvest` content lens
+- For LinkedIn-ready pieces, reshapes through the content lens (see `docs/content/lens.md`; `/brana:harvest` itself now lives in `ventures/linkedin`)
 
-**Implementation:** Extension of `/brana:harvest` (already exists for LinkedIn).
+**Implementation:** Extension of `/brana:harvest` (lives in `ventures/linkedin/.claude/skills/harvest` as of 2026-04-06).
 
 **Prerequisite:** 10+ synthesis files. Themes must emerge, not be assigned.
 

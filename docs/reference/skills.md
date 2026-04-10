@@ -20,7 +20,6 @@
 | `/brana:docs` | core | Generate and update living documentation — tech docs, user guides, philosophy ov |
 | `/brana:export-pdf` | utility | Convert a markdown file to PDF using mdpdf. Use when exporting proposals, SOPs,  |
 | `/brana:gsheets` | utility | Google Sheets via MCP — read, write, create, list, share spreadsheets. Use when  |
-| `/brana:harvest` | content | Extract post ideas from recent work through positioning lens. Use when you have  |
 | `/brana:log` | capture | Capture events — links, calls, meetings, ideas, observations — into a searchable |
 | `/brana:memory` | learning | Knowledge system operations — recall patterns, cross-pollinate across clients, r |
 | `/brana:notebooklm-source` | tools | Guided workflow to prepare and format sources for NotebookLM. Claude reads, refo |
@@ -81,15 +80,6 @@ Capture events — links, calls, meetings, ideas, observations — into a search
 **Arguments:** `[event text or bulk]`
 
 **Allowed tools:** Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
-
-
-## content
-
-### `/brana:harvest`
-
-Extract post ideas from recent work through positioning lens. Use when you have completed builds, research, or client work and want to turn learnings into LinkedIn content.
-
-**Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 
 
 ## core

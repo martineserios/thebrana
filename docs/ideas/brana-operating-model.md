@@ -108,7 +108,7 @@ Plus `/brana:onboard` for exploring new codebases.
 |----------|-------|
 | Business review | `/brana:review` |
 | Client onboarding | `/brana:onboard` |
-| Content creation | `/brana:harvest` |
+| Content creation | `/brana:harvest` (venture-scoped — lives in `ventures/linkedin` as of 2026-04-06) |
 | Positioning/strategy | `/brana:brainstorm` |
 
 ### CAPTURE (utility, not a job)

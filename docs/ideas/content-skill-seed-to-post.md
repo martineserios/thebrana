@@ -4,7 +4,7 @@
 
 ## Problem
 
-The content pipeline stops at seed generation (`/brana:harvest` → `ideas.md`). From `[seed]` to published post, there's no structure — just a blank page and manual bookkeeping across multiple files.
+The content pipeline stops at seed generation (`/brana:harvest` → `ideas.md`; harvest relocated to `ventures/linkedin` 2026-04-06). From `[seed]` to published post, there's no structure — just a blank page and manual bookkeeping across multiple files.
 
 ## Proposed solution
 

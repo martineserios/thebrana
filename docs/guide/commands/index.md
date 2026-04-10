@@ -72,7 +72,6 @@ All brana commands, grouped by workflow.
 | `/brana:review check` | Ad-hoc AARRR funnel audit |
 | `/brana:review routing` | Model routing calibration |
 | `/brana:review harness` | Harness simplification check (quarterly) |
-| `/brana:harvest` | Extract post ideas from recent work |
 
 ## Utilities
 

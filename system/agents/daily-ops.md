@@ -96,7 +96,7 @@ If Monday:
    - List top 5 by pillar balance (prefer underweight pillars)
    - Count seeds per pillar, compare against targets (CS 35%, HT 25%, CT 20%, BiP 20%)
    - Flag any pillar >10% off target
-4. If no fresh seeds: note "No fresh seeds — check /brana:harvest"
+4. If no fresh seeds: note "No fresh seeds — run harvest from ventures/linkedin (skill relocated 2026-04-06)"
 
 If not Monday: skip this step entirely.
 

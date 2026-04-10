@@ -1,6 +1,6 @@
 # Content Lens
 
-Positioning filter for `/brana:harvest`. Every artifact passes through this before becoming an idea.
+Positioning filter for `/brana:harvest` (skill relocated to `ventures/linkedin/.claude/skills/harvest` 2026-04-06 — this lens doc may need to move there too). Every artifact passes through this before becoming an idea.
 
 ## Identity
 
