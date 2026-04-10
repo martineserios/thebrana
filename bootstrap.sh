@@ -327,6 +327,65 @@ else
     echo "  ! jq not found (required to install hooks to settings.json)"
 fi
 
+# --- Step 4c: CC undercover mode (no attribution in commits/PRs) ---
+# Per system/rules/git-discipline.md "Commit attribution — HARD RULE".
+# Sets CC-native attribution.commit/.pr to empty strings so the agent loop
+# never proposes adding Co-Authored-By or similar trailers.
+echo "Undercover mode (settings.json attribution):"
+if [ -f "$SETTINGS_FILE" ] && command -v jq &>/dev/null; then
+    CURRENT_ATTR=$(jq '.attribution // {}' "$SETTINGS_FILE" 2>/dev/null)
+    DESIRED_ATTR='{"commit":"","pr":""}'
+    if [ "$CURRENT_ATTR" = "$DESIRED_ATTR" ] 2>/dev/null; then
+        echo "  = settings.json attribution (already empty — undercover on)"
+    else
+        CHANGES=$((CHANGES + 1))
+        if $CHECK_ONLY; then
+            echo "  ~ settings.json attribution (would set commit='' and pr='')"
+        else
+            jq '.attribution = {"commit":"","pr":""}' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" \
+                && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+            echo "  ~ settings.json attribution (set commit='' and pr='' — undercover on)"
+        fi
+    fi
+else
+    echo "  ! settings.json or jq not available (skipping undercover mode)"
+fi
+
+# --- Step 4d: Git pre-commit hook (no-attribution backstop) ---
+# Deploys the pre-commit hook template to ~/.config/git/hooks/. Does NOT
+# automatically set core.hooksPath globally — that's an opt-in (printed below).
+# Past sessions have repeatedly violated the no-attribution rule despite the
+# soft mechanisms; this is the git-side hard backstop.
+echo "Git pre-commit hook (no-attribution backstop):"
+GIT_HOOK_SRC="$SYSTEM_DIR/scripts/git-hooks/pre-commit"
+GIT_HOOK_DIR="$HOME/.config/git/hooks"
+GIT_HOOK_DST="$GIT_HOOK_DIR/pre-commit"
+GIT_HOOK_COMMITMSG_DST="$GIT_HOOK_DIR/commit-msg"
+if [ -f "$GIT_HOOK_SRC" ]; then
+    if ! $CHECK_ONLY; then
+        mkdir -p "$GIT_HOOK_DIR"
+    fi
+    sync_file "$GIT_HOOK_SRC" "$GIT_HOOK_DST" "git/hooks/pre-commit"
+    sync_file "$GIT_HOOK_SRC" "$GIT_HOOK_COMMITMSG_DST" "git/hooks/commit-msg"
+    if ! $CHECK_ONLY; then
+        chmod +x "$GIT_HOOK_DST" "$GIT_HOOK_COMMITMSG_DST" 2>/dev/null || true
+    fi
+
+    # Check if core.hooksPath is set; if not, print activation hint
+    CURRENT_HOOKS_PATH=$(git config --global --get core.hooksPath 2>/dev/null || echo "")
+    if [ -z "$CURRENT_HOOKS_PATH" ]; then
+        echo "  ! To activate globally, run: git config --global core.hooksPath ~/.config/git/hooks"
+        echo "    (this is opt-in — bootstrap does NOT set it automatically)"
+    elif [ "$CURRENT_HOOKS_PATH" = "$GIT_HOOK_DIR" ]; then
+        echo "  = core.hooksPath already set to $GIT_HOOK_DIR (active)"
+    else
+        echo "  ! core.hooksPath is set to: $CURRENT_HOOKS_PATH (not our path — hooks NOT active)"
+        echo "    To switch, run: git config --global core.hooksPath ~/.config/git/hooks"
+    fi
+else
+    echo "  — git-hooks/pre-commit template not found in source"
+fi
+
 # --- Step 5: Scheduler ---
 echo "Scheduler:"
 SCHED_SRC="$SYSTEM_DIR/scheduler"

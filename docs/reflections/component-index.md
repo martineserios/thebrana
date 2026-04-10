@@ -71,7 +71,6 @@ See `system/skills/*/SKILL.md` for full skill definitions.
 | /brana:docs | Documentation | Generate and update living docs |
 | /brana:export-pdf | Utility | Convert markdown to PDF |
 | /brana:gsheets | Integration | Google Sheets via MCP |
-| /brana:harvest | Content | Extract post ideas from recent work |
 | /brana:ship | Deployment | Ship a build — pre-flight, deploy, verify, monitor |
 | /brana:log | Operations | Event capture (links, calls, ideas) |
 | /brana:memory | Knowledge | Recall, pollinate, review, audit |

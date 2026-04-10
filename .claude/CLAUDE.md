@@ -116,7 +116,7 @@ claude --plugin-dir ./system
 | BUILD | "Make the thing" | `/brana:build` |
 | SHIP | "Get it to users" | `/brana:ship`, `./bootstrap.sh`, `./validate.sh` |
 | MAINTAIN | "Keep it healthy" | `/brana:reconcile` |
-| GROW | "Build the business" | `/brana:review`, `/brana:harvest` |
+| GROW | "Build the business" | `/brana:review` |
 
 ### DECIDE
 
@@ -174,10 +174,9 @@ claude --plugin-dir ./system
 | Command | Purpose |
 |---------|---------|
 | `/brana:review` | Business health — weekly (default), monthly, or ad-hoc check |
-| `/brana:harvest` | Extract post ideas from recent work through positioning lens |
 | `/brana:client-retire` | Archive a client's patterns and knowledge when retiring |
 
-> **Moved to client projects:** pipeline, financial-model, venture-phase, proposal → brana-knowledge. meta-template, meta-verification, respondio-prompts → somos_mirada (+ copies to anita, brapsoclaw).
+> **Moved to client/venture projects:** pipeline, financial-model, venture-phase, proposal → brana-knowledge. meta-template, meta-verification, respondio-prompts → somos_mirada (+ copies to anita, brapsoclaw). harvest → ventures/linkedin (2026-04-06).
 
 ### Capture & Tools
 

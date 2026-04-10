@@ -137,7 +137,7 @@ The leak confirms several things brana should **keep owning**, not align away fr
 
 1. **Cross-project memory** — CC's session_memory is per-project. Brana's vault is cross-project, cross-client. The leak shows no sign of cross-project memory in CC.
 2. **Spec-driven workflow (SDD/TDD/DDD)** — zero test coverage in CC's own source. Brana's dimension/reflection/ADR/spec-graph architecture is not a CC pattern. It's brana's differentiator.
-3. **Venture/business layer** — `/brana:review`, `/brana:pipeline`, `/brana:brainstorm`, `/brana:harvest`. CC is a dev tool. Brana is a multi-client operating system.
+3. **Venture/business layer** — `/brana:review`, `/brana:pipeline`, `/brana:brainstorm`. CC is a dev tool. Brana is a multi-client operating system. (`/brana:harvest` was relocated to `ventures/linkedin` 2026-04-06.)
 4. **Knowledge graph over domain docs** — brana's `brana graph` + ontology is concept-centric. CC's memory is transcript-centric.
 5. **Structured cross-project backlog** — CC's TaskCreate/TaskGet are in-session only. Brana persists, syncs to GitHub, has streams and priorities.
 6. **"Harness with opinions" positioning** — CC is a toolbox, brana is a workflow system on top of the toolbox. The leak confirms this framing.
@@ -295,7 +295,20 @@ The experiments proposed in the D1 shape doc (E1–E4) and the cheap audit propo
 
 **Source:** Infographic titled *"How LLMs Turn Raw Research Into a Living Knowledge Base"* by Andrej Karpathy. Shared by the user 2026-04-08 11:4x. Image-only, no URL attached. Cross-references prior event log entries for Karpathy's "autoresearch" / "dream tool" pattern.
 
-**Status:** [REFERENCE ARCHITECTURE] — this is an individual researcher's knowledge-management stack, not an agent harness. Not directly comparable to brana or CC. But the shape corroborates several Cluster A findings and shifts weight on D2.
+**Status:** [CHOSEN WORKFLOW REFERENCE] — after user discussion (2026-04-08, later in session), this is not just a reference architecture for comparison. It is the **target methodology brana OS will enforce for its knowledge work (Layer 2)**. The user explicitly chose Karpathy's approach as the workflow brana should follow — "maybe not exactly, but we like his ideas and want to get the best from that."
+
+> **Correction applied 2026-04-09:** The original version of this addendum framed Karpathy as "not directly comparable" and listed "You never write the wiki" as something brana should *not* adopt. That was wrong — it conflated two layers. See the Layer 1 / Layer 2 distinction below and the in-place corrections in the sections that follow.
+
+### Layer 1 / Layer 2 — the clarifying distinction
+
+Brana has two separate knowledge layers that the original addendum collapsed into one:
+
+- **Layer 1 — Brana OS (the harness itself).** `system/CLAUDE.md`, `~/.claude/CLAUDE.md`, `~/.claude/rules/*.md`, `hooks.json`, ADRs about brana's own architecture, skill SKILL.md frontmatter, the brana CLI source, MEMORY.md "User Preferences — CRITICAL" section, scheduler config. **Human-authored. Load-bearing. Defines *how brana works*.**
+- **Layer 2 — Brana's work (what brana produces and maintains).** `brana-knowledge/dimensions/*.md`, `docs/research/*.md`, `docs/reflections/*.md`, pattern files, field notes, MEMORY.md non-critical sections, session state, dimension drafts, output artifacts (slides, PDFs, harvest posts). **LLM-authored under a methodology the user chose.**
+
+Karpathy's *"You never write the wiki. The LLM writes everything. You just steer — every answer compounds"* applies to Layer 2. It does NOT apply to Layer 1 — because if the LLM wrote Layer 1, authority would drift (the LLM would observe its own past behavior and re-pin it as rules, creating self-reinforcing hallucinations with no external grounding).
+
+Brana OS is the *kitchen*. Karpathy's methodology is the *cookbook*. The user has picked the cookbook. Brana OS enforces adherence to it. The LLM does the cooking.
 
 ### The pipeline (as depicted)
 
@@ -318,18 +331,18 @@ The experiments proposed in the D1 shape doc (E1–E4) and the cheap audit propo
 
 ### What this is (and isn't) comparable to
 
-Karpathy's diagram is a *single-operator research knowledge base*. Brana is a *multi-client operating system with spec-driven enforcement*. These are different artifacts:
+Karpathy's diagram is a *single-operator research knowledge base*. Brana is a *multi-client operating system with spec-driven enforcement*. Under the Layer 1 / Layer 2 split, Karpathy's methodology maps cleanly onto brana's Layer 2 (knowledge work) while Layer 1 (the harness itself) stays brana-specific:
 
-| Dimension | Karpathy wiki | Brana knowledge |
-|---|---|---|
-| Purpose | Compounding research artifact | Load-bearing specification (drives hooks, skills, rules) |
-| Writer | Only the LLM | LLM proposes, human approves — plus humans pin rules directly |
-| Readers | The owner (one person) | Brana's own skills + hooks + agents + the human operator |
-| Quality gate | Lint + Heal finds inconsistencies | ADRs, spec-graph, reconcile, maintain-specs, field notes |
-| Feedback loop | Q&A answers filed back | Session close writes learnings to patterns + dimensions |
-| Anti-RAG position | Explicit: "no RAG needed" | Mixed: ruflo MCP for semantic, grep for ad-hoc |
+| Dimension | Karpathy wiki | Brana Layer 1 (OS) | Brana Layer 2 (work) |
+|---|---|---|---|
+| Purpose | Compounding research | Defines how brana works | Compounding research + synthesis (same as Karpathy) |
+| Writer | LLM | Human (authored, reviewed) | **LLM** (Karpathy-style) |
+| Readers | The owner | Brana's own skills/hooks/agents + the operator | The operator + brana's skills for cross-reference |
+| Quality gate | Lint + Heal | ADRs, explicit approval, version control | Lint + Heal (scheduled) + milestone human review |
+| Feedback loop | Q&A answers filed back | N/A — Layer 1 doesn't learn, it's pinned | Session close + Q&A feedback (adopted from Karpathy) |
+| Anti-RAG position | Explicit "no RAG needed" | N/A | Trending toward markdown+grep (Cluster A thesis) |
 
-Brana is not going to adopt Karpathy's stack wholesale — the goals are different. But several pipeline elements map to brana's existing or planned components, and a few reveal gaps.
+Brana is **adopting Karpathy's methodology for Layer 2**. The parts of Karpathy's stack that don't apply are about Layer 1 (which is brana OS) and about surface-level tooling choices (Obsidian, fine-tuning, "vibe-coded CLI") that don't affect the methodology itself.
 
 ### Where Karpathy's pipeline maps to brana
 
@@ -337,9 +350,9 @@ Brana is not going to adopt Karpathy's stack wholesale — the goals are differe
 |---|---|---|
 | **Sources** (step 1) | Event log + `/brana:log` + feed/inbox ingestion | **Small gap** — brana has the inputs, but no formal "source" entity type. Feed entries, emails, URLs, and transcribed audio all land in the event log without a typed model. |
 | **raw/** (step 2) | `inbox/` directory (per-project, gitignored) | **Matches** — brana has this. `inbox/` is explicitly a drop folder for raw files awaiting processing. |
-| **WIKI** (step 3) | `brana-knowledge/dimensions/` + `docs/reflections/` + spec-graph | **Matches in shape, differs in role.** Brana's wiki is *authoritative specification*, not compounding research. Dimensions are stable. |
+| **WIKI** (step 3) | `brana-knowledge/dimensions/` + `docs/reflections/` + spec-graph | **Matches — both are Layer 2 research.** Earlier draft called dimensions "authoritative specification," which was wrong. Dimensions are research docs; ADRs and rules are the authoritative specification (Layer 1). Under the user's chosen methodology, the LLM is expected to draft and maintain dimension content. |
 | **Q&A Agent** (step 4) | `/brana:research` + `/brana:memory` + ruflo semantic search | **Matches**, though Karpathy's "no RAG" position conflicts with brana's ruflo investment (see `feedback_complexity-audit.md`). |
-| **Output** (step 5) | `/brana:docs` + `/brana:harvest` + `/brana:export-pdf` + `/brana:notebooklm-source` | **Matches** |
+| **Output** (step 5) | `/brana:docs` + `/brana:export-pdf` + `/brana:notebooklm-source` (+ `/brana:harvest` in `ventures/linkedin` for content output) | **Matches** |
 | **Feedback: Q&A → wiki** | `/brana:close` writes session learnings to patterns + field notes | **Partial** — brana's close loop captures session-scale learnings. Ad-hoc Q&A during a session does NOT feed back. **This is a real gap.** |
 | **Obsidian** | None — brana uses VS Code + CLI | **Not planned** — brana's operator writes markdown directly in an editor. No IDE frontend for the knowledge base as an independent artifact. |
 | **Lint + Heal** (scheduled) | `/brana:reconcile` + `/brana:maintain-specs` (manual) | **Gap: not scheduled, not ambient.** Both brana commands are user-triggered. Karpathy's Lint + Heal is continuous background work. |
@@ -363,54 +376,44 @@ Karpathy's version is the most concrete of the three — it describes a **determ
 
 **On the broader "anti-RAG" Cluster A thesis:** Karpathy is a fourth voice (after claude-memory-compiler, Sirchmunk, Graphify) arguing that semantic embeddings are unnecessary at personal/team scale. The weight behind "test markdown+ripgpred recall vs ruflo" (Cluster A Opportunity 1) increases. This is *not* a D-level decision in this doc, but it's relevant context for whether brana should keep investing in ruflo or migrate.
 
-### New question raised by Karpathy's framing
+### Sources → wiki pipeline (D10) — decided, shape doc pending
 
-**Q: Does brana have a "sources → wiki" pipeline, or only a "sessions → patterns" pipeline?**
+**Q: Should brana OS enforce an LLM-drafts-dimensions-from-inbox pipeline?**
+
+**A (user, 2026-04-08): Yes — this is the chosen workflow.** No longer flag-and-park. Now a real design decision with a shape doc due: `docs/ideas/inbox-to-dimensions-pipeline.md`.
 
 Current state:
-- Sessions produce learnings → `/brana:close` → `feedback_*.md` + ruflo
+- Sessions produce learnings → `/brana:close` → `feedback_*.md` + ruflo (already LLM-written — this is Layer 2)
 - URLs/emails/audio produce event log entries → manual triage → maybe a research doc → maybe a dimension
-- Dimension docs are written manually or via `/brana:research`
+- Dimension docs are written manually or via `/brana:research` (stops short of writing the final dimension)
 
-Karpathy's question is: can an LLM take a pile of raw sources (`inbox/`) and produce wiki entries (`brana-knowledge/dimensions/`) *without a human in the middle*? Brana's answer today is "no — humans approve dimension additions." Should it be?
+The previous argument against ("dimension docs are spec") was based on the Layer 1/2 conflation. Dimension docs are Layer 2. They are research that the LLM can and should draft under brana OS's enforcement rules. ADRs, CLAUDE.md, and rules — the actual specification — stay Layer 1.
 
-Arguments for yes:
-- The current manual triage is a bottleneck (URL batches accumulate, see this very session)
-- `/brana:research` already does most of the work — it just stops short of writing the final dimension
-- Pattern files are already LLM-written (via close)
-
-Arguments against:
-- Dimension docs are spec, not research — they influence hooks and skills downstream
-- Uncurated LLM writes would create drift that `/brana:reconcile` can't keep up with
-- The current MEMORY.md is already under pressure from accretion; more auto-writes compounds the problem
-
-**This is a D10 candidate** — flag-and-park, no shape doc needed yet. It's a strategic question that affects `inbox/`, `/brana:research`, `/brana:maintain-specs`, and the knowledge pipeline as a whole. Worth raising when the knowledge architecture v2 work (`docs/architecture/features/knowledge-architecture-v2.md`) comes up next.
+The remaining concern is *accretion without curation*. Karpathy's answer is Lint + Heal (scheduled). That's D2. So D10 and D2 are paired — the pipeline (D10) produces drafts, the janitor (D2) keeps them from rotting.
 
 ### What brana should NOT adopt from Karpathy
 
-- **"You never write the wiki."** Brana's CLAUDE.md, MEMORY.md, and rules are deliberately human-authored pin points. This is load-bearing for enforcement. Do not delegate rule authorship to the LLM.
+- ~~**"You never write the wiki."**~~ — **Corrected 2026-04-09.** This bullet was wrong. The *core insight* IS adopted for Layer 2 (brana's knowledge work). It does NOT apply to Layer 1 (brana OS infrastructure: CLAUDE.md, rules, hooks.json, ADRs, skill definitions, CLI source). The distinction is between the kitchen (Layer 1 — human-owned) and the cookbook (Karpathy's methodology — applied to Layer 2 by brana OS rules).
 - **Fine-tuning LLM on wiki data.** No infrastructure, no budget, unclear value for a harness tool. Park indefinitely.
 - **Obsidian as IDE.** VS Code + brana CLI is the editing stack. Obsidian would add a dependency without clear upside.
-- **"Vibe-coded CLI."** Brana's CLI is part of the enforcement layer — typed Rust with tests is correct for that role.
+- **"Vibe-coded CLI."** Brana's CLI is Layer 1 — it's part of the enforcement layer — so typed Rust with tests is correct for that role. (This is a Layer 1 choice, not a rejection of Karpathy's methodology.)
 
-### Net effect of this addendum on the decision menu
+### Net effect of this addendum on the decision menu (post-correction)
 
 | Decision | Change | Why |
 |---|---|---|
 | D1 | Unchanged | Karpathy doesn't address session state |
-| **D2** | **Reframe Option B: "minimal dedup" → "lint + heal" with expanded scope** | Karpathy's Lint + Heal box is the most concrete description of scheduled deterministic maintenance. Still Option B in shape, richer in scope. |
-| D3–D9 | Unchanged | No direct impact |
-| **D10 (new, flag-and-park)** | **Added** | Sources→wiki pipeline: should LLM write dimension docs from inbox/ without human approval? Strategic question, no shape doc yet. |
+| **D2** | **Full reframe — Karpathy Lint + Heal replaces Cathedral Kairos as the Option A lens.** No longer speculative. Option C (wait-for-CC) drops. Option D (do nothing) loses its defense. | Karpathy is a named primary source for the methodology. The decision is no longer "should brana guess at CC's unreleased Kairos?" but "at what depth does brana OS enforce the chosen Lint + Heal workflow on Layer 2?" |
+| D3–D9 | Unchanged | Layer 1 concerns, not touched by the methodology choice |
+| **D10** | **No longer flag-and-park — chosen workflow, shape doc due.** | User explicitly chose Karpathy's sources → wiki pipeline as what brana should do. Needs its own shape doc: `inbox-to-dimensions-pipeline.md`. |
 | Cross-cutting: anti-RAG thesis | Strengthened | Fourth independent voice arguing against embeddings at brana's scale |
 
-### Shape-doc edit candidate (not done yet)
+### Shape-doc edits planned (in-flight)
 
-The `memory-consolidation-kairos.md` Option B section could be renamed "Lint + Heal" and expanded with:
-- Find contradictions between pattern files (e.g., two `feedback_*.md` files giving opposite guidance)
-- Impute missing frontmatter fields (`description`, `type`, `confidence`)
-- Suggest patterns that should graduate to dimension docs
-- Surface dimension docs with no recent reference (candidates for archival)
+Per user direction 2026-04-09 ("1"):
 
-All deterministic. All archive-don't-delete. Token-cost-free. Still runs as a scheduled job on existing brana scheduler. **This is a larger scope than the original Option B** — would move effort estimate from ~4h to ~6-7h — so it's a real shape change, not just a rename.
+1. **`memory-consolidation-kairos.md`** — reframe around Karpathy Lint + Heal. Option A becomes the full methodology (deterministic baseline → LLM-augmented → web-search-enabled). Options C and D drop. Moderate-shaping edit.
+2. **`inbox-to-dimensions-pipeline.md`** — new shape doc for D10. Heavy-shaping. Options for staging, review cadence, authority transition, source-type handling, interaction with existing skills.
+3. **`feedback_layer1-vs-layer2.md`** — durable memory of the Layer 1 / Layer 2 distinction so this conflation doesn't happen again.
 
-**Not editing the shape doc yet** — waiting for user direction before touching any doc beyond this addendum.
+**Not editing code, CLI, procedures, hooks, or ADRs.** Only the three shape / feedback docs listed above, plus this correction.

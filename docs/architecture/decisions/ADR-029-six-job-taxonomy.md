@@ -32,7 +32,7 @@ Adopt a 6-job taxonomy as the organizational model for all brana activities. Aut
 | **BUILD** | "Make the thing" | `/brana:build` |
 | **SHIP** | "Get it to users" | (proposed: `/brana:ship`) |
 | **MAINTAIN** | "Keep it healthy" | `/brana:reconcile` (expanded) |
-| **GROW** | "Build the business" | `/brana:review`, `/brana:harvest` |
+| **GROW** | "Build the business" | `/brana:review`, ~~`/brana:harvest`~~ (moved to ventures/linkedin 2026-04-06) |
 
 Plus two utilities that aren't jobs:
 - **CAPTURE** — `/brana:log` (lightweight, anytime)

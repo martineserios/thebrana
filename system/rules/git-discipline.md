@@ -39,3 +39,7 @@ wip: scaffold auth tests (squash before merge)
 ## Keep branches short-lived
 
 Features: days. Fixes: hours. Docs: one session.
+
+## Commit attribution — HARD RULE
+
+**Never** add `Co-Authored-By`, `Signed-off-by`, `🤖 Generated with`, "Claude Code", "Claude AI", "Anthropic", or any AI/assistant trailer to commits or PRs. No exceptions for worktrees, parallel sessions, or auto-generated commits. Enforced by `system/hooks/no-attribution-commit.sh` + git pre-commit + CC `settings.json.attribution.commit/.pr=""`.
