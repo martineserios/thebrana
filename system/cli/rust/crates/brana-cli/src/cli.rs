@@ -324,6 +324,18 @@ pub enum SkillsCmd {
         #[arg(long)]
         force: bool,
     },
+    /// Show skill invocation counts from session history
+    Usage {
+        /// Rolling window in days (default: 30)
+        #[arg(long, default_value = "30")]
+        days: u64,
+        /// Flag skills below this count as cull candidates (default: 5)
+        #[arg(long, default_value = "5")]
+        cull_threshold: u64,
+        /// Output raw JSON instead of human-readable table
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Subcommand)]

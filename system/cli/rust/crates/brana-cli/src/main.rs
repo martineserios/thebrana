@@ -94,6 +94,9 @@ fn main() {
             SkillsCmd::Search { query } => run_or_exit(commands::skills::cmd_search(&query)),
             SkillsCmd::List => run_or_exit(commands::skills::cmd_list()),
             SkillsCmd::Reindex { changed, force } => commands::skills::cmd_reindex(changed, force),
+            SkillsCmd::Usage { days, cull_threshold, json } => {
+                run_or_exit(commands::skills::cmd_usage(days, cull_threshold, json))
+            }
         },
         Commands::Handoff { cmd } => match cmd {
             Some(HandoffCmd::Last { n }) => commands::handoff::cmd_handoff_last(n),
