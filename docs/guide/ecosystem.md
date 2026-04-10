@@ -21,7 +21,12 @@ The plugin provides what Claude can *do*. The identity layer provides how Claude
 git clone https://github.com/martineserios/brana-knowledge.git
 ```
 
-Place it adjacent to your `thebrana/` clone. The knowledge indexer (`brana knowledge reindex`) looks for it at `../brana-knowledge/` relative to the plugin root.
+The knowledge indexer (`brana knowledge reindex`) defaults to `~/enter_thebrana/brana-knowledge/dimensions`. If your clone is elsewhere, set the override before indexing:
+
+```bash
+export BRANA_KNOWLEDGE_DIR=/your/path/to/brana-knowledge/dimensions
+brana knowledge reindex
+```
 
 ## The portfolio concept
 
@@ -61,7 +66,7 @@ This is the layout used in brana's own development. It is one example — not a 
 └── personal/              ← personal OS (journaling, goals, identity work)
 ```
 
-**The key boundary:** `clients/` is for external stakeholders. `ventures/` is your own IP. `personal/` is non-work. This separation keeps brana's context clean — session-start hooks detect which "type" of project you're in and adapt accordingly.
+**The key boundary:** `clients/` is for external stakeholders. `ventures/` is your own IP. `personal/` is non-work. This separation is a mental model — it helps you and brana's portfolio entries stay organized. It does not change hook behavior; hooks route by git root, not by parent directory name.
 
 You do not need this structure. Brana works equally well with a single project directory. The structure pays off when you're running multiple active projects and want brana to route patterns correctly between them.
 
@@ -73,7 +78,7 @@ You do not need this structure. Brana works equally well with a single project d
 
 | Store | What | Where |
 |-------|------|-------|
-| **Per-project** | Tasks, session state, MEMORY.md | `{project}/.claude/` |
+| **Per-project** | Tasks, session state, MEMORY.md | `~/.claude/projects/{project-slug}/` |
 | **Global** | CLAUDE.md portfolio, rules | `~/.claude/` |
 | **Cross-project** | Patterns, knowledge, session history | ruflo `~/.swarm/memory.db` |
 
