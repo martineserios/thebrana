@@ -233,6 +233,196 @@ pub fn search(skills: &[SkillMeta], query: &str) -> Vec<SkillMatch> {
     results
 }
 
+// ── Skill usage telemetry ────────────────────────────────────────
+
+/// A skill invocation event parsed from a JSONL session file.
+#[derive(Debug, PartialEq)]
+pub struct SkillEvent {
+    pub name: String,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+}
+
+/// Per-skill usage stats for the report.
+#[derive(Debug, Serialize, PartialEq)]
+pub struct SkillUsageEntry {
+    pub name: String,
+    pub count: u64,
+    pub last_used: String,
+    pub cull: bool,
+}
+
+/// Full usage report.
+#[derive(Debug, Serialize)]
+pub struct SkillUsageReport {
+    pub window_days: u64,
+    pub total_invocations: u64,
+    pub cull_threshold: u64,
+    pub skills: Vec<SkillUsageEntry>,
+}
+
+/// Try to parse a single JSONL line as a skill invocation.
+///
+/// Returns `Some(SkillEvent)` if the line is an assistant message containing
+/// a `Skill` tool_use call with an `input.skill` field.
+pub fn parse_skill_invocation(line: &str) -> Option<SkillEvent> {
+    let val: serde_json::Value = serde_json::from_str(line).ok()?;
+    if val.get("type")?.as_str()? != "assistant" {
+        return None;
+    }
+    let ts_str = val.get("timestamp")?.as_str()?;
+    let timestamp = chrono::DateTime::parse_from_rfc3339(ts_str)
+        .ok()?
+        .with_timezone(&chrono::Utc);
+    let content = val
+        .get("message")
+        .and_then(|m| m.get("content"))
+        .and_then(|c| c.as_array())?;
+    for item in content {
+        let is_tool_use = item.get("type").and_then(|t| t.as_str()) == Some("tool_use");
+        let is_skill = item.get("name").and_then(|n| n.as_str()) == Some("Skill");
+        if is_tool_use && is_skill {
+            if let Some(skill_name) = item
+                .get("input")
+                .and_then(|i| i.get("skill"))
+                .and_then(|s| s.as_str())
+            {
+                return Some(SkillEvent {
+                    name: skill_name.to_string(),
+                    timestamp,
+                });
+            }
+        }
+    }
+    None
+}
+
+/// Scan a single JSONL file, collecting skill events within `since` window
+/// into `counts: HashMap<skill_name, (count, last_used)>`.
+pub fn scan_jsonl_file(
+    path: &std::path::Path,
+    since: chrono::DateTime<chrono::Utc>,
+    counts: &mut std::collections::HashMap<String, (u64, chrono::DateTime<chrono::Utc>)>,
+) {
+    use std::io::BufRead;
+    let Ok(file) = fs::File::open(path) else {
+        return;
+    };
+    let reader = std::io::BufReader::new(file);
+    for line in reader.lines().flatten() {
+        if let Some(event) = parse_skill_invocation(&line) {
+            if event.timestamp >= since {
+                let entry = counts
+                    .entry(event.name)
+                    .or_insert((0, event.timestamp));
+                entry.0 += 1;
+                if event.timestamp > entry.1 {
+                    entry.1 = event.timestamp;
+                }
+            }
+        }
+    }
+}
+
+fn print_usage_table(report: &SkillUsageReport) {
+    println!(
+        "Skill usage (last {} days) — {} invocations\n",
+        report.window_days, report.total_invocations
+    );
+    let name_w = report.skills.iter().map(|s| s.name.len()).max().unwrap_or(10).max(10);
+    for s in &report.skills {
+        let cull = if s.cull { "  [cull?]" } else { "" };
+        println!(
+            "  {:<width$}  {:>4}   last: {}{}",
+            s.name,
+            s.count,
+            s.last_used,
+            cull,
+            width = name_w
+        );
+    }
+    let cull_names: Vec<&str> = report
+        .skills
+        .iter()
+        .filter(|s| s.cull)
+        .map(|s| s.name.as_str())
+        .collect();
+    if !cull_names.is_empty() {
+        println!(
+            "\nCull candidates (<{} in {}d): {}",
+            report.cull_threshold,
+            report.window_days,
+            cull_names.join(", ")
+        );
+    }
+}
+
+/// `brana skills usage [--days N] [--cull-threshold N] [--json]`
+///
+/// Scans all JSONL session files under `~/.claude/projects/` and counts
+/// skill invocations in the rolling window. Flags skills below the cull
+/// threshold as candidates for removal.
+pub fn cmd_usage(days: u64, cull_threshold: u64, json_output: bool) -> Result<()> {
+    use chrono::Utc;
+    use std::collections::HashMap;
+
+    let home = std::env::var("HOME").context("HOME not set")?;
+    let projects_dir = std::path::PathBuf::from(&home).join(".claude/projects");
+
+    let since = Utc::now() - chrono::TimeDelta::days(days as i64);
+    let mut counts: HashMap<String, (u64, chrono::DateTime<Utc>)> = HashMap::new();
+
+    if let Ok(project_entries) = fs::read_dir(&projects_dir) {
+        for project_entry in project_entries.flatten() {
+            let project_path = project_entry.path();
+            if !project_path.is_dir() {
+                // .jsonl files directly in ~/.claude/projects/ (older layout)
+                if project_path.extension().is_some_and(|e| e == "jsonl") {
+                    scan_jsonl_file(&project_path, since, &mut counts);
+                }
+                continue;
+            }
+            // .jsonl files inside project subdirectory
+            if let Ok(files) = fs::read_dir(&project_path) {
+                for file_entry in files.flatten() {
+                    let path = file_entry.path();
+                    if path.extension().is_some_and(|e| e == "jsonl") {
+                        scan_jsonl_file(&path, since, &mut counts);
+                    }
+                }
+            }
+        }
+    }
+
+    let total: u64 = counts.values().map(|(c, _)| *c).sum();
+
+    let mut skills: Vec<SkillUsageEntry> = counts
+        .into_iter()
+        .map(|(name, (count, last_ts))| SkillUsageEntry {
+            cull: count < cull_threshold,
+            name,
+            count,
+            last_used: last_ts.format("%Y-%m-%d").to_string(),
+        })
+        .collect();
+
+    skills.sort_by(|a, b| b.count.cmp(&a.count).then(a.name.cmp(&b.name)));
+
+    let report = SkillUsageReport {
+        window_days: days,
+        total_invocations: total,
+        cull_threshold,
+        skills,
+    };
+
+    if json_output {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+    } else {
+        print_usage_table(&report);
+    }
+
+    Ok(())
+}
+
 // ── CLI command handlers ──────────────────────────────────────────
 
 /// Resolve skill directories from git root.
@@ -877,5 +1067,156 @@ stream_affinity: [roadmap]
         let bare_score = bare_matches.iter().find(|m| m.name == "meta-template").map(|m| m.score).unwrap_or(0.0);
         let full_score = full_matches.iter().find(|m| m.name == "meta-template").map(|m| m.score).unwrap_or(0.0);
         assert!(full_score > bare_score, "full={full_score} should be > bare={bare_score}");
+    }
+
+    // ── Skill usage telemetry tests ──────────────────────────────
+
+    fn make_skill_line(skill: &str, ts: &str, msg_type: &str, tool_name: &str) -> String {
+        serde_json::json!({
+            "type": msg_type,
+            "timestamp": ts,
+            "message": {
+                "content": [{
+                    "type": "tool_use",
+                    "name": tool_name,
+                    "input": { "skill": skill }
+                }]
+            }
+        })
+        .to_string()
+    }
+
+    #[test]
+    fn test_parse_skill_invocation_valid() {
+        let line = make_skill_line("brana:close", "2026-04-10T12:00:00Z", "assistant", "Skill");
+        let event = parse_skill_invocation(&line).unwrap();
+        assert_eq!(event.name, "brana:close");
+    }
+
+    #[test]
+    fn test_parse_skill_invocation_with_args() {
+        // args field is irrelevant — only input.skill matters
+        let line = serde_json::json!({
+            "type": "assistant",
+            "timestamp": "2026-04-10T12:00:00Z",
+            "message": {
+                "content": [{
+                    "type": "tool_use",
+                    "name": "Skill",
+                    "input": { "skill": "brana:build", "args": "t-123" }
+                }]
+            }
+        })
+        .to_string();
+        let event = parse_skill_invocation(&line).unwrap();
+        assert_eq!(event.name, "brana:build");
+    }
+
+    #[test]
+    fn test_parse_skill_invocation_wrong_type() {
+        let line = make_skill_line("brana:close", "2026-04-10T12:00:00Z", "user", "Skill");
+        assert!(parse_skill_invocation(&line).is_none());
+    }
+
+    #[test]
+    fn test_parse_skill_invocation_not_skill_tool() {
+        let line = make_skill_line("brana:close", "2026-04-10T12:00:00Z", "assistant", "Agent");
+        assert!(parse_skill_invocation(&line).is_none());
+    }
+
+    #[test]
+    fn test_parse_skill_invocation_missing_input_skill() {
+        let line = serde_json::json!({
+            "type": "assistant",
+            "timestamp": "2026-04-10T12:00:00Z",
+            "message": {
+                "content": [{
+                    "type": "tool_use",
+                    "name": "Skill",
+                    "input": {}
+                }]
+            }
+        })
+        .to_string();
+        assert!(parse_skill_invocation(&line).is_none());
+    }
+
+    #[test]
+    fn test_parse_skill_invocation_invalid_json() {
+        assert!(parse_skill_invocation("not json").is_none());
+    }
+
+    #[test]
+    fn test_parse_skill_invocation_bad_timestamp() {
+        let line = make_skill_line("brana:close", "not-a-date", "assistant", "Skill");
+        assert!(parse_skill_invocation(&line).is_none());
+    }
+
+    #[test]
+    fn test_parse_skill_invocation_multiple_tool_uses_picks_skill() {
+        // Multiple content items; only the Skill one should be picked
+        let line = serde_json::json!({
+            "type": "assistant",
+            "timestamp": "2026-04-10T12:00:00Z",
+            "message": {
+                "content": [
+                    { "type": "tool_use", "name": "Bash", "input": { "command": "ls" } },
+                    { "type": "tool_use", "name": "Skill", "input": { "skill": "brana:sitrep" } }
+                ]
+            }
+        })
+        .to_string();
+        let event = parse_skill_invocation(&line).unwrap();
+        assert_eq!(event.name, "brana:sitrep");
+    }
+
+    #[test]
+    fn test_scan_jsonl_file_counts_events() {
+        use std::io::Write;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        writeln!(f, "{}", make_skill_line("brana:close", "2026-04-10T10:00:00Z", "assistant", "Skill")).unwrap();
+        writeln!(f, "{}", make_skill_line("brana:close", "2026-04-10T11:00:00Z", "assistant", "Skill")).unwrap();
+        writeln!(f, "{}", make_skill_line("brana:build", "2026-04-10T12:00:00Z", "assistant", "Skill")).unwrap();
+        let since = chrono::DateTime::parse_from_rfc3339("2026-01-01T00:00:00Z").unwrap().with_timezone(&chrono::Utc);
+        let mut counts = std::collections::HashMap::new();
+        scan_jsonl_file(f.path(), since, &mut counts);
+        assert_eq!(counts["brana:close"].0, 2);
+        assert_eq!(counts["brana:build"].0, 1);
+    }
+
+    #[test]
+    fn test_scan_jsonl_file_respects_window() {
+        use std::io::Write;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        // One recent, one old
+        writeln!(f, "{}", make_skill_line("brana:close", "2026-04-10T10:00:00Z", "assistant", "Skill")).unwrap();
+        writeln!(f, "{}", make_skill_line("brana:close", "2024-01-01T10:00:00Z", "assistant", "Skill")).unwrap();
+        // since = 2026-01-01 — only the first event passes
+        let since = chrono::DateTime::parse_from_rfc3339("2026-01-01T00:00:00Z").unwrap().with_timezone(&chrono::Utc);
+        let mut counts = std::collections::HashMap::new();
+        scan_jsonl_file(f.path(), since, &mut counts);
+        assert_eq!(counts["brana:close"].0, 1);
+    }
+
+    #[test]
+    fn test_cull_flag_set_below_threshold() {
+        let entry = SkillUsageEntry {
+            name: "brana:docs".into(),
+            count: 3,
+            last_used: "2026-04-01".into(),
+            cull: 3 < 5,
+        };
+        assert!(entry.cull);
+    }
+
+    #[test]
+    fn test_cull_flag_not_set_at_threshold() {
+        let entry = SkillUsageEntry {
+            name: "brana:docs".into(),
+            count: 5,
+            last_used: "2026-04-01".into(),
+            cull: 5 < 5,
+        };
+        assert!(!entry.cull);
     }
 }
