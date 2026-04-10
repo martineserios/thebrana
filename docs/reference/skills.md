@@ -2,7 +2,7 @@
 
 # Skill Reference
 
-**24 skills** loaded from `system/skills/`.
+**27 skills** loaded from `system/skills/`.
 
 ## Index
 
@@ -10,26 +10,30 @@
 |-------|-------|-------------|
 | `/brana:acquire-skills` | brana | Find and install skills for project tech gaps. Use when entering a project with  |
 | `/brana:align` | execution | Actively align a project with brana practices — assess gaps, plan fixes, impleme |
-| `/brana:audit` | brana | Security scan — secrets in CLAUDE.md, hook permissions, MCP count, dangerous set |
 | `/brana:backlog` | brana | Manage the backlog — plan, track, navigate phases and streams. Use when planning |
 | `/brana:brainstorm` | thinking | Interactive idea maturation — explore, research, shape raw ideas into actionable |
 | `/brana:build` | execution | Build anything — features, bug fixes, refactors, spikes, migrations, investigati |
+| `/brana:cargo-machete` | brana | Detect and remove unused dependencies in Rust projects using cargo-machete. |
 | `/brana:challenge` | learning | Dual-model adversarial review. Opus subagent stress-tests reasoning; Gemini stre |
 | `/brana:client-retire` | execution | Archive a client's patterns and mark them as historical. Use when retiring a cli |
 | `/brana:close` | session | End a session — extract learnings, write handoff note, store patterns, detect do |
+| `/brana:do` | brana | Alias for /brana:backlog start with freeform text. Routes to the best skill or c |
 | `/brana:docs` | core | Generate and update living documentation — tech docs, user guides, philosophy ov |
 | `/brana:export-pdf` | utility | Convert a markdown file to PDF using mdpdf. Use when exporting proposals, SOPs,  |
 | `/brana:gsheets` | utility | Google Sheets via MCP — read, write, create, list, share spreadsheets. Use when  |
 | `/brana:log` | capture | Capture events — links, calls, meetings, ideas, observations — into a searchable |
+| `/brana:mcp-builder` | brana | MCP server development guide — build, test, and deploy MCP servers. |
 | `/brana:memory` | learning | Knowledge system operations — recall patterns, cross-pollinate across clients, r |
 | `/brana:notebooklm-source` | tools | Guided workflow to prepare and format sources for NotebookLM. Claude reads, refo |
-| `/brana:onboard` | execution | Scan and diagnose a project — tech stack, structure, stage, gaps, patterns. Work |
+| `/brana:onboard` | execution | Scan and diagnose a project, or scaffold a new client from scratch. Works for co |
 | `/brana:plugin` | brana | Manage Claude Code plugins — add marketplaces, install, update, remove, list plu |
-| `/brana:reconcile` | brana | Detect drift between spec docs and system/ implementation, plan fixes, apply aft |
+| `/brana:reconcile` | brana | Unified maintenance command — detect drift (consistency), run security checks, c |
 | `/brana:research` | learning | Research a topic, doc, or creator — check sources, follow references recursively |
 | `/brana:retrospective` | learning | Store a learning or pattern in the knowledge system. Use after notable discoveri |
 | `/brana:review` | venture | Business review — weekly health check, monthly close + plan, or ad-hoc growth au |
+| `/brana:rust-skills` | brana | Rust best practices — 179 rules across 14 categories for idiomatic, optimized Ru |
 | `/brana:scheduler` | utility | Manage scheduled jobs — create, update, list, or run scheduled remote agents (tr |
+| `/brana:ship` | execution | Ship a build — pre-flight checks, deploy, document, verify, monitor. 6 generic s |
 | `/brana:sitrep` | core | Situational awareness — where am I, what was I doing, what's left, what should I |
 
 ## brana
@@ -40,19 +44,29 @@ Find and install skills for project tech gaps. Use when entering a project with 
 
 **Allowed tools:** Read, Write, Bash, Glob, Grep, WebSearch, WebFetch, AskUserQuestion, Agent
 
-### `/brana:audit`
-
-Security scan — secrets in CLAUDE.md, hook permissions, MCP count, dangerous settings, unencrypted .env. 5 checks, fast, zero dependencies. Run periodically or before sharing config.
-
-**Allowed tools:** Read, Glob, Grep, Bash, AskUserQuestion
-
 ### `/brana:backlog`
 
 Manage the backlog — plan, track, navigate phases and streams. Use when planning phases, viewing roadmaps, or restructuring work.
 
 **Arguments:** `[status|add|start|done|next|roadmap|plan|triage|tags|context|theme|sync] [args]`
 
-**Allowed tools:** Read, Write, Glob, Grep, Bash, AskUserQuestion, Task
+**Allowed tools:** Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, Task, mcp__ruflo__memory_search, mcp__ruflo__claims_claim, mcp__ruflo__claims_release, mcp__ruflo__claims_list
+
+### `/brana:cargo-machete`
+
+Detect and remove unused dependencies in Rust projects using cargo-machete.
+
+### `/brana:do`
+
+Alias for /brana:backlog start with freeform text. Routes to the best skill or creates a task. Use /brana:backlog start directly for the same behavior.
+
+**Arguments:** `<description of what you want to do>`
+
+**Allowed tools:** Bash, Read, AskUserQuestion, Skill, mcp__ruflo__memory_search
+
+### `/brana:mcp-builder`
+
+MCP server development guide — build, test, and deploy MCP servers.
 
 ### `/brana:plugin`
 
@@ -64,11 +78,15 @@ Manage Claude Code plugins — add marketplaces, install, update, remove, list p
 
 ### `/brana:reconcile`
 
-Detect drift between spec docs and system/ implementation, plan fixes, apply after approval. Use after /brana:maintain-specs changes or periodically to sync specs with implementation.
+Unified maintenance command — detect drift (consistency), run security checks, cascade spec propagation, and knowledge hygiene. Scoped via --scope flag. Default: consistency.
 
-**Arguments:** `[scope]`
+**Arguments:** `[--scope consistency|security|propagation|knowledge|all]`
 
-**Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, Task, AskUserQuestion, EnterPlanMode, ExitPlanMode
+**Allowed tools:** AskUserQuestion, Bash, Edit, EnterPlanMode, ExitPlanMode, Glob, Grep, Read, Skill, Task, TaskList, Write, mcp__ruflo__memory_search, mcp__ruflo__memory_delete
+
+### `/brana:rust-skills`
+
+Rust best practices — 179 rules across 14 categories for idiomatic, optimized Rust code.
 
 
 ## capture
@@ -90,13 +108,13 @@ Generate and update living documentation — tech docs, user guides, philosophy 
 
 **Arguments:** `guide|tech|overview|all [task-id]`
 
-**Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, Agent, AskUserQuestion
+**Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, Agent, AskUserQuestion, Skill
 
 ### `/brana:sitrep`
 
 Situational awareness — where am I, what was I doing, what's left, what should I do next. Context recovery after compression, confusion, or mid-session reorientation.
 
-**Allowed tools:** Bash, Read, Glob, Grep, Task, AskUserQuestion
+**Allowed tools:** Bash, Read, Glob, Grep, Task, AskUserQuestion, mcp__ruflo__hooks_intelligence_pattern-search, mcp__ruflo__hive-mind_memory
 
 
 ## execution
@@ -119,7 +137,7 @@ Build anything — features, bug fixes, refactors, spikes, migrations, investiga
 
 **Depends on:** `/brana:backlog`, `/brana:challenge`, `/brana:retrospective`
 
-**Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, Task, WebSearch, WebFetch, AskUserQuestion
+**Allowed tools:** Agent, AskUserQuestion, Bash, Edit, EnterPlanMode, Glob, Grep, Read, Skill, Task, TaskCreate, TaskList, TaskUpdate, WebFetch, WebSearch, Write, mcp__ruflo__hive-mind_memory, mcp__ruflo__memory_search, mcp__ruflo__memory_store
 
 ### `/brana:client-retire`
 
@@ -131,11 +149,19 @@ Archive a client's patterns and mark them as historical. Use when retiring a cli
 
 ### `/brana:onboard`
 
-Scan and diagnose a project — tech stack, structure, stage, gaps, patterns. Works for code and venture clients. Auto-detects project type. Use when entering an unfamiliar project for the first time.
+Scan and diagnose a project, or scaffold a new client from scratch. Works for code and venture clients. Auto-detects project type.
 
-**Arguments:** `[project-path]`
+**Arguments:** `[new [slug] | project-path]`
 
-**Allowed tools:** Bash, Read, Glob, Grep, Write, AskUserQuestion, Task
+**Allowed tools:** Bash, Read, Glob, Grep, Write, Edit, AskUserQuestion, Task, TaskList, Skill
+
+### `/brana:ship`
+
+Ship a build — pre-flight checks, deploy, document, verify, monitor. 6 generic steps with project-specific implementation. Use when deploying code, publishing packages, or releasing.
+
+**Arguments:** `[target or task-id]`
+
+**Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Task, TaskCreate, TaskList, TaskUpdate
 
 
 ## learning
@@ -154,15 +180,15 @@ Knowledge system operations — recall patterns, cross-pollinate across clients,
 
 **Arguments:** `[recall|pollinate|review|review --audit] [query]`
 
-**Allowed tools:** Bash, Read, Glob, Grep, AskUserQuestion
+**Allowed tools:** Agent, AskUserQuestion, Bash, Glob, Grep, Read
 
 ### `/brana:research`
 
 Research a topic, doc, or creator — check sources, follow references recursively, produce findings. Use when starting deep research on a topic, creator, or external source.
 
-**Arguments:** `[topic|doc-number|creator:name|--refresh] [scope]`
+**Arguments:** `[topic|doc-number|creator:name|--refresh] [scope] [--strategy research|evaluate|learn|investigate]`
 
-**Allowed tools:** Read, Glob, Grep, Bash, Write, WebSearch, WebFetch, Task, mcp__notebooklm__ask_question, mcp__notebooklm__list_notebooks, mcp__notebooklm__select_notebook, mcp__notebooklm__search_notebooks, mcp__notebooklm__get_health, AskUserQuestion, EnterPlanMode, ExitPlanMode
+**Allowed tools:** Read, Glob, Grep, Bash, Write, WebSearch, WebFetch, Task, mcp__notebooklm__ask_question, mcp__notebooklm__list_notebooks, mcp__notebooklm__select_notebook, mcp__notebooklm__search_notebooks, mcp__notebooklm__get_health, mcp__ruflo__memory_search, mcp__ruflo__embeddings_compare, mcp__ruflo__memory_store, AskUserQuestion, EnterPlanMode, TaskList, ExitPlanMode
 
 ### `/brana:retrospective`
 
@@ -181,7 +207,7 @@ End a session — extract learnings, write handoff note, store patterns, detect 
 
 **Arguments:** `[focus-hint]`
 
-**Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Agent, Task
+**Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Agent, Task, TaskList, Skill, mcp__ruflo__memory_store, mcp__ruflo__memory_search, mcp__ruflo__hive-mind_memory, mcp__ruflo__claims_release, mcp__ruflo__claims_list
 
 
 ## thinking
@@ -192,7 +218,7 @@ Interactive idea maturation — explore, research, shape raw ideas into actionab
 
 **Arguments:** `[idea or topic]`
 
-**Allowed tools:** Read, Glob, Grep, Bash, Write, Edit, Agent, WebSearch, WebFetch, AskUserQuestion, Task, mcp__context7__resolve-library-id, mcp__context7__query-docs
+**Allowed tools:** Read, Glob, Grep, Bash, Write, Edit, Agent, WebSearch, WebFetch, AskUserQuestion, Task, TaskList, Skill, mcp__context7__resolve-library-id, mcp__context7__query-docs, mcp__ruflo__memory_search, mcp__ruflo__memory_store
 
 
 ## tools
@@ -241,5 +267,5 @@ Business review — weekly health check, monthly close + plan, or ad-hoc growth 
 
 **Depends on:** `/brana:pipeline`, `/brana:financial-model`
 
-**Allowed tools:** Read, Write, Glob, Grep, Bash, AskUserQuestion
+**Allowed tools:** Read, Write, Glob, Grep, Bash, AskUserQuestion, mcp__ruflo__memory_search, mcp__ruflo__memory_store
 

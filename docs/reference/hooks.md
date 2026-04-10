@@ -10,7 +10,17 @@
 | PreToolUse | `Write|Edit` | `tdd-gate.sh` | 5000ms |
 | PreToolUse | `EnterPlanMode` | `plan-mode-gate.sh` | 5000ms |
 | PreToolUse | `Bash` | `worktree-gate.sh` | 5000ms |
+| PreToolUse | `Bash` | `doc-gate.sh` | 5000ms |
+| PreToolUse | `Bash` | `main-guard.sh` | 5000ms |
+| PreToolUse | `Bash` | `no-attribution-commit.sh` | 3000ms |
 | PreToolUse | `Read|Grep|Glob` | `guard-explore.sh` | 5000ms |
+| PostToolUse | `` | `post-tool-use.sh` | 5000ms |
+| PostToolUse | `ExitPlanMode` | `post-plan-challenge.sh` | 5000ms |
+| PostToolUse | `Bash` | `post-pr-review.sh` | 5000ms |
+| PostToolUse | `Bash` | `task-completed.sh` | 5000ms |
+| PostToolUse | `Write|Edit` | `post-sale.sh` | 5000ms |
+| PostToolUse | `Write|Edit` | `post-tasks-validate.sh` | 5000ms |
+| PostToolUseFailure | `` | `post-tool-use-failure.sh` | 5000ms |
 | SessionStart | `` | `session-start.sh` | 10000ms |
 | SubagentStart | `` | `subagent-context.sh` | 5000ms |
 | SubagentStart | `` | `subagent-tracker.sh` | 5000ms |
@@ -21,9 +31,25 @@
 
 ## Hook Scripts
 
+### `config-drift.sh`
+
+Config drift detector — compares system/ source files vs deployed ~/.claude/ files.
+
+### `doc-gate.sh`
+
+Documentation Enforcement Gate — PreToolUse hook for Bash (git commit)
+
 ### `guard-explore.sh`
 
 No strict mode — hooks must never fail and block the session.
+
+### `main-guard.sh`
+
+Main Branch Guard — PreToolUse hook for Bash (git commit)
+
+### `no-attribution-commit.sh`
+
+no-attribution-commit.sh — PreToolUse hook for Bash
 
 ### `plan-mode-gate.sh`
 
@@ -45,15 +71,6 @@ No strict mode — hooks must never fail and block the session.
 
 No strict mode — hooks must never fail and block the session.
 
-Triggers on `Write|Edit` to `*/tasks.json`. Three steps:
-1. **Validate** — JSON + schema via Rust CLI (fallback: jq)
-2. **Rollup** — auto-complete parent phases/milestones when all children done
-3. **Cache** — write `.statusline.tsv` (async, non-blocking) for statusline consumption
-
-### `task-completed.sh`
-
-Triggers on task completion events. Increments the session score counter (`~/.claude/session-score.tsv` done field).
-
 ### `post-tool-use-failure.sh`
 
 No strict mode — failure hooks especially must never fail themselves.
@@ -70,16 +87,9 @@ No strict mode — hooks must always return valid JSON.
 
 No strict mode — hooks must always return valid JSON.
 
-Computes flywheel metrics, appends telemetry to auto memory `sessions.md`, auto-generates
-minimal handoff if `/brana:close` wasn't run. Rotates handoff to keep last 10 entries
-(archives older to `session-handoff-archive.md`). Syncs only `.needs-backprop` flag to
-repo `.claude/memory/`. Session state (sessions.md, handoff) stays in auto memory only.
-
 ### `session-start.sh`
 
 No strict mode — hooks must always return valid JSON.
-
-Emits `additionalContext` with: recalled patterns, active tasks, session handoff, correction patterns, venture signals, recurrence alerts, config drift, `[Extra-usage]` warning (t-1034, reads `~/.claude.json` for `cachedExtraUsageDisabledReason` — silence with `BRANA_1M_WARN_OFF=1`).
 
 ### `step-completed.sh`
 
@@ -97,43 +107,13 @@ No strict mode — hooks must never fail and block the session.
 
 No strict mode — hooks must never fail and block the session.
 
-Tracks subagent lifecycle (SubagentStart + SubagentStop). Logs spawn/completion events
-to `system/state/subagent-log.jsonl` for session metrics and delegation analysis.
-
-### `config-drift.sh`
-
-No strict mode — hooks must never fail and block the session.
-
-Utility script invoked by `session-start.sh` (not wired directly in hooks.json).
-Detects staleness in `.claude/` configuration files by comparing timestamps against
-known good state. Warns when config may have drifted from system/ source of truth.
-
 ### `task-completed.sh`
 
 No strict mode — hooks must never fail and block the session.
 
 ### `tdd-gate.sh`
 
-PreToolUse: TDD Enforcement Gate for implementation files.
-
-**Trigger:** `Write|Edit` on `feat/*` or `fix/*` branches targeting implementation files.
-
-**Supported languages:** Rust (`.rs`), Python (`.py`), JS/TS (`.js/.ts/.jsx/.tsx`),
-Shell (`.sh`), Go (`.go`).
-
-**What it blocks:** Writing implementation files when no test file exists in the same
-project root (nearest ancestor with a manifest: `Cargo.toml`, `pyproject.toml`,
-`package.json`, `go.mod`, or git root for shell).
-
-**How to satisfy the gate (per language):**
-- **Rust:** `*_test.rs`, `test_*.rs`, `tests/` dir, or `#[cfg(test)]` module
-- **Python:** `test_*.py`, `*_test.py`, `tests/` dir, or `__tests__/`
-- **JS/TS:** `*.test.*`, `*.spec.*`, `__tests__/` dir, or `tests/`
-- **Shell:** `test-*.sh`, `*-test.sh`, or `tests/` dir
-- **Go:** `*_test.go`
-
-**Always allowed:** test files themselves, unsupported languages, non-`feat`/`fix`
-branches, non-git repos, projects without a manifest file.
+TDD Enforcement Gate — PreToolUse hook for Write|Edit
 
 ### `worktree-gate.sh`
 
