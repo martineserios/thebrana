@@ -191,3 +191,7 @@ Source: t-1083
 ### 2026-04-08: Pre-flight warnings template for env constraints
 When a deterministic failure condition is readable from a config file (e.g., `cachedExtraUsageDisabledReason` in `~/.claude.json`), surface it at session-start with: (a) what's wrong, (b) what breaks, (c) exact fix command, (d) opt-out env var. Implemented in `session-start.sh` for 1M context + disabled extra-usage (t-1034).
 Source: t-1034
+
+### 2026-04-09: Canonical CC hook event names
+Full list of valid hook event names: `PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `SessionStart`, `SessionEnd`, `SubagentStart`, `SubagentStop`, `TaskCompleted`, `StopFailure`. The failure event is `PostToolUseFailure` (not `ToolError` or `PostToolFailure`). Wire failure telemetry hooks under `PostToolUseFailure` with matcher `""`.
+Source: /brana:reconcile --scope consistency, 2026-04-09

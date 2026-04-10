@@ -551,3 +551,15 @@ If context was compressed and you've lost track of progress:
 1. Call `TaskList` — find CC Tasks matching `/brana:reconcile — {STEP}`
 2. The `in_progress` task is your current step — resume from there
 3. Check the worktree branch for commits already applied
+
+---
+
+## Field Notes
+
+### 2026-04-09: Verify before wiring — check call chains first
+When DIFF flags a script as "exists but not in hooks.json", grep sibling hook scripts before adding a hooks.json entry: `grep -r "script-name.sh" system/hooks/`. A script absent from hooks.json may already be called internally (e.g., config-drift.sh is called by session-start.sh line 157). Absence from hooks.json is necessary-but-not-sufficient evidence of a real gap.
+Source: /brana:reconcile --scope consistency, 2026-04-09
+
+### 2026-04-09: Exclude docs/archive from scan scope
+Scan agents must exclude `docs/archive/**` and `docs/reflections/archive/**`. Stale archived content produces false positives — the archive copy of doc 14 said "13 rules" while the live doc already had "14 rules". Always include the full file path in findings so archive hits are obvious before fixes are applied.
+Source: /brana:reconcile --scope consistency, 2026-04-09
