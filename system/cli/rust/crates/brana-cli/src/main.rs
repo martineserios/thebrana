@@ -117,6 +117,9 @@ fn main() {
                     std::process::exit(1);
                 }
             }
+            SessionCmd::Insights { limit, json } => {
+                commands::session::cmd_session_insights(limit, json)
+            }
         },
         Commands::Knowledge { cmd } => match cmd {
             KnowledgeCmd::Reindex { changed, patterns, files } => {

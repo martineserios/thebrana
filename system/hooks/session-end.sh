@@ -261,6 +261,24 @@ echo '{"continue": true}'
         fi
     fi
 
+    # Patch real metrics into session-state.json when close already ran today.
+    # close writes metrics: null (zeros); session-end has the actual computed values.
+    if [ "$ALREADY_WRITTEN" = true ] && [ -n "$SESSION_STATE_PATH" ] && [ -f "$SESSION_STATE_PATH" ] && command -v jq &>/dev/null; then
+        METRICS_PATCH=$(jq -n -c \
+            --argjson events "${TOTAL:-0}" \
+            --argjson corrections "${CORRECTIONS:-0}" \
+            --argjson test_writes "${TEST_WRITES:-0}" \
+            --arg correction_rate "${CORRECTION_RATE:-0.00}" \
+            --arg test_write_rate "${TEST_WRITE_RATE:-0.00}" \
+            --arg cascade_rate "${CASCADE_RATE:-0.00}" \
+            --argjson delegations "${DELEGATIONS:-0}" \
+            '{events: $events, corrections: $corrections, test_writes: $test_writes, correction_rate: ($correction_rate | tonumber), test_write_rate: ($test_write_rate | tonumber), cascade_rate: ($cascade_rate | tonumber), delegation_count: $delegations}' 2>/dev/null) || METRICS_PATCH=""
+        if [ -n "$METRICS_PATCH" ]; then
+            jq --argjson m "$METRICS_PATCH" '.metrics = $m' "$SESSION_STATE_PATH" > "${SESSION_STATE_PATH}.tmp" 2>/dev/null && \
+                mv "${SESSION_STATE_PATH}.tmp" "$SESSION_STATE_PATH" 2>/dev/null || true
+        fi
+    fi
+
     if [ "$ALREADY_WRITTEN" = false ] && [ -x "$BRANA_CLI" ]; then
         # Build minimal JSON with computed metrics from this session
         MINIMAL_JSON=$(jq -n -c \
