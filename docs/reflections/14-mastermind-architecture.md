@@ -601,7 +601,7 @@ The `correction_weight` field (Wave 3) creates a fast track: patterns that resol
 
 ### 4. `/brana:onboard` — "I'm starting a new project"
 
-Scans and diagnoses a project — auto-detects type (code, venture, or hybrid) from project manifests and directory structure. Outputs a gap report with recommendations. Diagnostic only — no file creation. See `/brana:align` for implementing the recommendations.
+Scans and diagnoses a project — auto-detects type (code, venture, or hybrid) from project manifests and directory structure. Outputs a gap report with recommendations. For venture clients with audio in `inbox/`, offers transcription before the discovery interview and consolidates transcripts into `inbox/transcripts-YYYY-MM-DD.md` (intake prep only, not project scaffolding). No structural file creation — see `/brana:align` for implementing recommendations.
 
 ### 5. `/brana:client-retire` — "Archive this project's knowledge"
 

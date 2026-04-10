@@ -15,7 +15,7 @@ Brana includes tools for managing business projects -- stage-appropriate framewo
 | `/brana:onboard` | UNDERSTAND | Scan and diagnose a project (auto-detects venture type) |
 | `/brana:review` | GROW | Weekly/monthly health check with metrics |
 | `/brana:review check` | GROW | Ad-hoc AARRR funnel audit with traffic-light metrics |
-| `/brana:harvest` | GROW | Extract content/post ideas from recent work |
+| `/brana:harvest` | GROW | Extract content/post ideas from recent work (scoped to `ventures/linkedin/.claude/skills/harvest` as of 2026-04-06 — only available when operating inside that venture) |
 | `/brana:client-retire` | GROW | Archive a client's patterns when retiring |
 | `/brana:backlog` | DECIDE | Task management, phases, priorities (works for business tasks) |
 | `/brana:log` | CAPTURE | Quick event capture (calls, meetings, ideas, links) |
@@ -64,6 +64,20 @@ These were designed as client-local skills but are not yet implemented. They are
 Brana detects venture clients by looking for `docs/sops/`, `docs/okrs/`, `docs/metrics/`, or business keywords in CLAUDE.md. The `session-start.sh` hook auto-detects venture projects and nudges the daily-ops agent.
 
 > **Gap:** No `init-venture` command exists yet. You manually create the directory and CLAUDE.md. Add `stage: discovery` to your venture's CLAUDE.md frontmatter for stage-aware routing.
+
+### Voice-first intake (when you only have audio)
+
+If the venture dir has audio files in `inbox/` but no CLAUDE.md — common when a founder describes their idea in WhatsApp voice notes — use `brana transcribe` before running `/brana:onboard`:
+
+```bash
+# Transcribe all inbox audio
+for f in inbox/*.{ogg,mp3,m4a,wav}; do
+  [ -f "$f" ] && LD_LIBRARY_PATH=/home/martineserios/.local/lib brana transcribe "$f"
+done
+# Consolidate → use as source for CLAUDE.md + ADR-001
+```
+
+`/brana:onboard` detects this case and offers to transcribe automatically (see Field Notes in `system/procedures/onboard.md`). Every claim derived from audio must trace to a specific recording.
 
 ## Business stages
 

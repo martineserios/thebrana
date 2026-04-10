@@ -452,7 +452,7 @@ Each document should mark its key decisions with a consistent pattern (a heading
 
 ## All Commands
 
-The brana system has 25+ skills (invoked as `/brana:*`), 4 agent commands, and 11 specialized agents (scout, memory-curator, client-scanner, venture-scanner, challenger, debrief-analyst, archiver, daily-ops, metrics-collector, pipeline-tracker, pr-reviewer). Skills and agents integrate via five patterns documented in [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md).
+The brana system has 27 skills (invoked as `/brana:*`), 4 agent commands, and 11 specialized agents (scout, memory-curator, client-scanner, venture-scanner, challenger, debrief-analyst, archiver, daily-ops, metrics-collector, pipeline-tracker, pr-reviewer). Skills and agents integrate via five patterns documented in [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md).
 
 ### Spec Maintenance
 
@@ -494,7 +494,7 @@ Commands for building and reviewing.
 | `/brana:challenge` | Spawn an Opus subagent to stress-test a plan or decision. Empty invocation self-challenges the last answer | **Before committing to a big decision**, or after any answer to stress-test it |
 | `/brana:backlog` | Plan, track, and execute tasks — hierarchy (phase > milestone > task), streams, tags, context, branch integration, agent execution via subagents | **When planning phases, viewing roadmaps, or executing task waves** — 16 subcommands including `plan`, `status`, `start`, `execute`, `tags`, `context`, `theme`, `triage`, `sync` |
 | `/brana:scheduler` | Manage systemd-timer scheduled jobs — status, enable/disable, logs, manual runs | **When managing scheduled background jobs** |
-| `/brana:respondio-prompts` | Respond.io AI agent prompt engineering — write instructions, actions, KB files, multi-agent architectures within platform constraints | **When writing or reviewing Respond.io agent prompts** |
+| `/brana:respondio-prompts` *(client-local — not in system/skills/)* | Respond.io AI agent prompt engineering — write instructions, actions, KB files, multi-agent architectures within platform constraints | **When writing or reviewing Respond.io agent prompts** |
 | `/brana:export-pdf` | Convert markdown to PDF using mdpdf — consistent A4 format, clean styling | **When exporting proposals, docs, or reports to PDF** |
 | `/brana:log` | Capture events (links, calls, meetings, ideas) into append-only log. Bulk mode for WhatsApp dumps | **When something happened** — quick capture |
 | `/brana:plugin` | Manage Claude Code plugins — add marketplaces, install, update, remove, list | **When managing plugin installations** |
@@ -509,12 +509,17 @@ Commands for non-code project management. These operate on business project stru
 |---|---|---|
 | `/brana:onboard` | Diagnostic: scan and diagnose a project (auto-detects code/venture/hybrid). For ventures: stage classification, framework recommendation, gap report | **First session on a business project** |
 | `/brana:align` | Active setup: stage-appropriate templates, SOPs, OKRs, metrics, meeting cadences | **After `/brana:onboard`** identifies gaps |
-| `/brana:venture-phase` | Plan and execute a business milestone (launch, hiring, fundraise, expansion, process overhaul) | **When executing a specific business milestone** |
 | `/brana:review` | Business health — weekly (default), monthly, or ad-hoc check. Replaces separate /morning, /weekly-review, /monthly-close, /monthly-plan | **Daily/weekly/monthly** — `/brana:review check` (daily), `/brana:review` (weekly), `/brana:review monthly` |
-| `/brana:pipeline` | Sales pipeline tracking: leads, deals, conversions, follow-ups | **Ongoing** — when managing sales activity |
-| `/brana:financial-model` | Revenue projections, scenario analysis, P&L template, unit economics | **When building or updating financial projections** |
-| `/brana:proposal` | Generate a client proposal — interview-driven, structured markdown with cost breakdown | **When preparing a service proposal** |
-| `/brana:meta-template` | Write Meta WhatsApp templates optimized for Utility classification | **When creating WhatsApp Business templates** |
+
+> **Client-local skills (not in system/skills/ — installed per client as needed):**
+>
+> | Command | Purpose |
+> |---|---|
+> | `/brana:venture-phase` | Plan and execute a business milestone (launch, hiring, fundraise, expansion, process overhaul) |
+> | `/brana:pipeline` | Sales pipeline tracking: leads, deals, conversions, follow-ups |
+> | `/brana:financial-model` | Revenue projections, scenario analysis, P&L template, unit economics |
+> | `/brana:proposal` | Generate a client proposal — interview-driven, structured markdown with cost breakdown |
+> | `/brana:meta-template` | Write Meta WhatsApp templates optimized for Utility classification |
 | `/brana:notebooklm-source` | Prepare and format sources for NotebookLM upload | **When feeding research into NotebookLM** |
 | `/brana:gsheets` | Google Sheets operations via MCP: read, write, create, list, share | **When working with spreadsheet data** |
 
@@ -759,7 +764,7 @@ The active complement to `/brana:onboard`. Creates stage-appropriate templates: 
 
 ---
 
-**Executing a business milestone:**
+**Executing a business milestone** *(client-local skill — not in system/skills/)*:
 ```
 /brana:venture-phase [type]
 ```
@@ -849,7 +854,7 @@ Two orchestrators (code and business), shared learning loop. No circular follow-
 CODE PROJECTS                              BUSINESS PROJECTS
 ══════════════                             ═════════════════
 
-/brana:build [desc]                        /brana:venture-phase [type]
+/brana:build [desc]                        /brana:venture-phase [type] (client-local)
   │                                          │
   ├── SPECIFY → define scope + ADR           ├── Orient → Plan
   │   → Recall patterns                      │   → Recall

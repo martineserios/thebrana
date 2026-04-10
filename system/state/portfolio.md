@@ -84,6 +84,12 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Details:** `framework.md`, `feynman-applied.md`, `propuesta-estadistica-piloto.md`, `poc.md`
 - **Next:** Wait for Chacha's feedback. Get his syllabus. Calibrate transcript evaluator.
 
+### lexia
+- **Type:** Venture — AI-powered legal services platform
+- **Location:** `~/enter_thebrana/ventures/lexia/`
+- **Status:** Discovery — concept validated via voice notes, lawyer cofounder identified, no revenue
+- **Details:** `.claude/CLAUDE.md`, `docs/decisions/ADR-001-ai-legal-services-model.md`
+
 ### prediktive-prep
 - **Type:** Side project — learning/study material
 - **Location:** `~/enter_thebrana/ventures/prediktive-prep/`

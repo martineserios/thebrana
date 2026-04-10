@@ -249,7 +249,17 @@ Classify as: **code** (has manifests, no venture dirs), **venture** (has venture
 - Scan project structure: entry points, key directories, config files
 
 ### For venture clients (additionally)
-- Run discovery interview (skip what's obvious from docs):
+
+**Voice-first intake check (do this before the discovery interview):**
+If `inbox/` contains audio files (`*.ogg`, `*.mp3`, `*.m4a`, `*.wav`) and no `.claude/CLAUDE.md` exists, offer to transcribe before running the discovery interview:
+```bash
+for f in inbox/*.ogg inbox/*.mp3 inbox/*.m4a inbox/*.wav; do
+  [ -f "$f" ] && LD_LIBRARY_PATH=/home/martineserios/.local/lib brana transcribe "$f"
+done
+```
+Consolidate transcripts → write to `inbox/transcripts-YYYY-MM-DD.md` → use as source for CLAUDE.md, ADR-001, and metrics scaffold. Every claim in derived docs must trace to a specific audio.
+
+- Run discovery interview (skip what's obvious from docs or transcripts):
   1. What's the business? One-sentence description.
   2. What stage? Discovery / Validation / Growth / Scale. Revenue? Team size?
   3. Current tools and processes?
@@ -338,3 +348,9 @@ If context was compressed and you've lost track of progress:
 1. Call `TaskList` — find CC Tasks matching `/brana:onboard — {STEP}` (scan) or `/brana:onboard new — {STEP}` (new client)
 2. The `in_progress` task is your current step — resume from there
 3. For `new` flow: if CREATE completed but ALIGN didn't start, `cd` into the new directory and invoke `/brana:align`
+
+## Field Notes
+
+### 2026-04-09: Voice-first intake — inbox audio as the only source of context
+When a venture dir has audio files in `inbox/` and no CLAUDE.md, transcribing the audio is a fully valid (and sometimes the only) intake path. In the legai session, 5 WhatsApp `.ogg` files yielded the full CLAUDE.md, ADR-001, service table, pricing signals, and competitive context. Flow: `for f in inbox/*.ogg; do LD_LIBRARY_PATH=/home/martineserios/.local/lib brana transcribe "$f"; done` → consolidate → derive docs. Every claim must trace to a specific audio. Errata #114 filed to add this as a documented branch in the onboard procedure (t-3).
+Source: /brana:onboard legai session 2026-04-09

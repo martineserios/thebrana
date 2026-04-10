@@ -130,6 +130,11 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 110 | [Doc 18](18-lean-roadmap.md) Phase 2 missing ADR-017 decisions layer — cascade from #102 | **Low** | informational | ADR-017 is already implemented; doc 18 is historical roadmap. No fix needed — decisions.py operates independently of the learning loop |
 | 111 | ruflo-mcp.sh background+restart loop silently broke stdin forwarding | **High** | code-fix (2026-04-08) | MCP stdio wrappers cannot background their child — piped stdin is not reliably forwarded to backgrounded processes. Fix: replaced with `exec "$RUFLO" "$@"`. Any future MCP wrapper must use exec as final call. |
 | 112 | 1M context model + disabled extra-usage silently fails mid-skill | **High** | code-fix (2026-04-08) | When extra-usage is org_level_disabled, 1M models crash around 200k tokens with no warning. Fix: session-start.sh now reads cachedExtraUsageDisabledReason from ~/.claude.json and warns at startup with model-switch instruction. |
+| 113 | `brana transcribe` help text says "pure Rust" but requires libwhisper.so.1 at runtime | **Medium** | applied (2026-04-09) | cli.md table entry updated to note libwhisper.so.1 runtime dependency + Field Notes reference. Help text in brana source = code-fix (tracked t-1, t-2). |
+| 114 | Venture onboarding workflow missing audio intake path (`inbox/` → transcribe → align) | **Low** | applied (2026-04-09) | Voice-first intake block added to onboard.md SCAN Step 2 + workflows/venture.md "Getting started". Cascade: doc 14 §4 "Diagnostic only — no file creation" updated (transcript consolidation is intake prep). |
+| 115 | [Doc 25](25-self-documentation.md) skill count says "25+" but system/skills/ has 27 | **Low** | applied (2026-04-09) | Updated to "27". cargo-machete, mcp-builder, rust-skills, sitrep were present but uncounted. |
+| 116 | [Doc 25](25-self-documentation.md) lists 6 client-local skills as active in main command table | **Medium** | applied (2026-04-09) | venture-phase, pipeline, financial-model, proposal, meta-template moved to "Client-local skills" blockquote. respondio-prompts annotated inline. Workflow examples updated with "(client-local)" note. |
+| 117 | hooks.json missing 7 wired hook scripts: post-plan-challenge, post-pr-review, post-sale, post-tasks-validate, post-tool-use, post-tool-use-failure, task-completed | **Medium** | applied (2026-04-09) | All 7 wired: PostToolUse event for 5 scripts (with appropriate matchers), PostToolUseFailure for post-tool-use-failure.sh. config-drift.sh excluded — already called from session-start.sh line 157. |
 
 ---
 
@@ -1771,3 +1776,51 @@ The backlog SKILL.md spec uses `session:{SESSION_ID}` as the claimant format for
 | 1 | docs/guide/cli.md | Missing | `brana skills` subcommand group undocumented | Applied — added skills section |
 | 2 | docs/guide/cli.md | Missing | `brana knowledge` subcommand group undocumented | Applied — added knowledge section |
 | 3 | .claude/CLAUDE.md | Missing | CLI Tools table missing `brana skills` and `brana knowledge` | Applied — added 2 rows |
+
+---
+
+## Error 79: `brana transcribe` help text says "pure Rust" but dlopen's libwhisper.so.1 at runtime
+
+**Severity:** Medium
+**Status:** pending
+**Discovery:** Close debrief (2026-04-09, legai onboard session)
+
+**Finding:** `brana transcribe --help` prints *"Transcribe audio file to text (whisper, local, pure Rust)"*. In reality the binary dynamically loads `libwhisper.so.1` (a C/C++ shared library) at runtime via dlopen. On systems where the lib is installed to a non-standard path (e.g., `~/.local/lib/`), the transcription fails immediately with:
+```
+Transcription failed: whisper-cli failed: /home/martineserios/.local/bin/whisper-cli: error while loading shared libraries: libwhisper.so.1: cannot open shared object file: No such file or directory
+```
+The "pure Rust" claim actively misleads users into not setting up the dynamic library path.
+
+**Workaround discovered:** `LD_LIBRARY_PATH=/home/martineserios/.local/lib brana transcribe <file>` works reliably once the lib path is set.
+
+**Files affected:**
+- `brana` source — `transcribe.rs` Clap help string
+- `docs/guide/cli.md` — transcribe command description
+
+**Fix needed:**
+1. Change help text from "pure Rust" to "local whisper.cpp" or "requires libwhisper.so.1"
+2. Update `docs/guide/cli.md` transcribe section with the LD_LIBRARY_PATH workaround and eventual rpath fix
+3. Add a `brana doctor` smoke test: attempt a minimal transcribe invocation and report the lib-loading failure with clear remediation if it fails
+
+---
+
+## Error 80: Venture onboarding workflow missing audio intake path
+
+**Severity:** Low
+**Status:** pending
+**Discovery:** Close debrief (2026-04-09, legai onboard session)
+
+**Finding:** The venture onboarding workflow (`workflows/venture.md`, if it exists, or embedded in the onboard procedure) describes `/brana:onboard` as a tool for scanning an existing project. It does not document the pattern of using `inbox/` audio files as the *primary* source of venture context.
+
+In the legai session, the inbox contained 5 WhatsApp `.ogg` voice notes and nothing else — no CLAUDE.md, no README, no prior notes. Running `brana transcribe` on each file produced enough content to derive the CLAUDE.md, ADR-001, service table, pricing signals, and competitive context. Voice-first intake is a fully working, repeatable pattern.
+
+**Files affected:**
+- `system/procedures/onboard.md` — SCAN step 2 and DISCOVER section have no mention of transcribing inbox audio
+
+**Fix needed:**
+Add a "Voice-first intake" branch to the onboard SCAN/DISCOVER flow:
+- If `inbox/*.{ogg,mp3,m4a,wav}` exists and no CLAUDE.md → offer to transcribe
+- Shell: `for f in inbox/*.ogg; do LD_LIBRARY_PATH=... brana transcribe "$f"; done`
+- Consolidate transcripts → write to `inbox/transcripts-YYYY-MM-DD.md`
+- Use consolidated file as input for CLAUDE.md, ADR-001, and metrics scaffold
+

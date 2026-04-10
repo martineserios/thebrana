@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-05T02:37:50Z",
+  "generated": "2026-04-10T00:56:41Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -214,6 +214,11 @@
       "type": "Dimension",
       "impl_files": []
     },
+    "brana-knowledge/dimensions/feynman-methodology.md": {
+      "title": "Feynman Methodology — Learning, Teaching, and Thinking",
+      "type": "Dimension",
+      "impl_files": []
+    },
     "brana-knowledge/dimensions/knowledge-architecture.md": {
       "title": "Knowledge Architecture for AI Development Systems",
       "type": "Dimension",
@@ -307,7 +312,8 @@
         "system/skills/meta-template/SKILL.md",
         "system/rules/",
         "system/scheduler/brana-scheduler-runner.sh",
-        "system/skills/decide/SKILL.md"
+        "system/skills/decide/SKILL.md",
+        "system/procedures/onboard.md"
       ]
     },
     "docs/25-self-documentation.md": {
@@ -513,6 +519,15 @@
         "system/skills/.sources.json"
       ]
     },
+    "docs/architecture/decisions/ADR-026-full-rust-mcp-architecture.md": {
+      "title": "ADR-026: Full Rust + MCP Architecture — Cargo Workspace with pmcp",
+      "type": "ADR",
+      "impl_files": [
+        "system/__init__.py",
+        "system/hooks/task-sync.py",
+        "system/scripts/decisions.py"
+      ]
+    },
     "docs/architecture/decisions/ADR-026-ruflo-mcp-backbone.md": {
       "title": "ADR-026: Ruflo MCP as Backbone, CLI as Fallback",
       "type": "ADR",
@@ -549,6 +564,18 @@
       "title": "ADR-032: Smart Router (Shared Strategy Detection)",
       "type": "ADR",
       "impl_files": []
+    },
+    "docs/architecture/decisions/ADR-033-pin-mcp-servers.md": {
+      "title": "ADR-033: Pin MCP Servers to Pre-installed Binaries",
+      "type": "ADR",
+      "impl_files": []
+    },
+    "docs/architecture/decisions/ADR-034-skill-tiering.md": {
+      "title": "ADR-034: Skill Tiering — Universal Stubs",
+      "type": "ADR",
+      "impl_files": [
+        "system/procedures/{name"
+      ]
     },
     "docs/architecture/extending-agents.md": {
       "title": "Extending Agents",
@@ -686,6 +713,11 @@
         "system/cli/rust/src/cli.rs"
       ]
     },
+    "docs/architecture/features/golden-path-snapshot.md": {
+      "title": "Golden Path Snapshot Format",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/architecture/features/knowledge-architecture-v2.md": {
       "title": "Knowledge Architecture v2 — Feature Brief",
       "type": "Roadmap",
@@ -813,6 +845,14 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/architecture/features/statusline-test-coverage.md": {
+      "title": "Statusline Test Coverage",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/statusline.sh",
+        "system/hooks/post-tasks-validate.sh"
+      ]
+    },
     "docs/architecture/features/t-527-next-limit.md": {
       "title": "t-527: Add --limit and filter flags to backlog next",
       "type": "Roadmap",
@@ -936,6 +976,7 @@
       "title": "Skills Architecture",
       "type": "Roadmap",
       "impl_files": [
+        "system/procedures/{name",
         "system/skills/{name",
         "system/commands/",
         "system/skills/acquired/{name"
@@ -1213,6 +1254,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/dimensions/feynman-methodology.md": {
+      "title": "Feynman Methodology — Learning, Teaching, and Thinking",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/dimensions/knowledge-architecture.md": {
       "title": "Knowledge Architecture for AI Development Systems",
       "type": "Roadmap",
@@ -1237,6 +1283,15 @@
       "title": "Software Engineering Patterns, Practices & Architectures",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/domain/MODEL-001-brana-core.md": {
+      "title": "MODEL-001: brana-core Bounded Contexts",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scheduler/scheduler.template.json",
+        "system/state/decisions/{date",
+        "system/state/decisions/archive/"
+      ]
     },
     "docs/google-sheets-mcp-setup.md": {
       "title": "Google Sheets MCP Integration Guide",
@@ -1312,6 +1367,11 @@
         "system/"
       ]
     },
+    "docs/guide/python-to-rust-migration.md": {
+      "title": "Python to Rust Migration — What Changed and Why",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/guide/scheduler.md": {
       "title": "Scheduler",
       "type": "Roadmap",
@@ -1383,7 +1443,9 @@
     "docs/guide/workflows/venture.md": {
       "title": "Venture Management",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/procedures/onboard.md"
+      ]
     },
     "docs/ideas/agent-interaction-architecture.md": {
       "title": "Agent Interaction Architecture",
@@ -1397,15 +1459,23 @@
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/ai-native-education/framework.md": {
-      "title": "AI-Native Education — Learning to Think With Machines",
+    "docs/ideas/brana-cli-mcp-layer.md": {
+      "title": "Brana CLI MCP Layer — Architecture Decision",
       "type": "Roadmap",
-      "impl_files": []
-    },
-    "docs/ideas/ai-native-education/poc.md": {
-      "title": "AI-Native Education — Proof of Concept Design",
-      "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/cli/rust/",
+        "system/cli/main.py",
+        "system/cli/backlog.py",
+        "system/cli/ops.py",
+        "system/cli/config.py",
+        "system/cli/theme.py",
+        "system/cli/__init__.py",
+        "system/__init__.py",
+        "system/hooks/task-sync.py",
+        "system/scripts/decisions.py",
+        "system/scripts/generate-reference.py",
+        "system/scripts/spec_graph.py"
+      ]
     },
     "docs/ideas/brana-operating-model.md": {
       "title": "Brana Operating Model",
@@ -1449,6 +1519,16 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/ideas/fast-cold-start.md": {
+      "title": "Fast Cold Start for Brana Plugin",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/ideas/memory-consolidation-kairos.md": {
+      "title": "Memory Consolidation — Kairos/autoDream Shape",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/ideas/mission-control.md": {
       "title": "Brana Mission Control",
       "type": "Roadmap",
@@ -1474,6 +1554,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/ideas/session-memory-cc-alignment.md": {
+      "title": "Session Memory — CC Alignment Shape",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/ideas/skill-auto-router.md": {
       "title": "Skill Auto-Router",
       "type": "Roadmap",
@@ -1493,8 +1578,29 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/ideas/skill-tiering.md": {
+      "title": "Skill Tiering — Core Plugin + On-Demand Procedures",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/procedures/{name",
+        "system/procedures/",
+        "system/procedures/backlog.md",
+        "system/skills/",
+        "system/procedures/acquire-skills.md"
+      ]
+    },
+    "docs/ideas/statusline-v2-backlog-intelligence.md": {
+      "title": "Statusline v2 — Backlog-Aware Intelligence",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/ideas/unified-session-state.md": {
       "title": "Unified Session State",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/ideas/venture-playbook-product-management.md": {
+      "title": "Venture Playbook & Product Management Layer",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -1613,7 +1719,9 @@
         "system/scripts/cc-changelog-check.sh",
         "system/scripts/index-patterns.sh",
         "system/scripts/index-skills.sh",
-        "system/scripts/ruflo-batch-store.mjs"
+        "system/scripts/ruflo-batch-store.mjs",
+        "system/statusline.sh",
+        "system/scripts/statusline-slow-cache.sh"
       ]
     },
     "docs/reference/skills.md": {
@@ -1678,6 +1786,26 @@
         "system/"
       ]
     },
+    "docs/research/2026-04-08-cc-alignment-findings.md": {
+      "title": "CC Alignment Findings — Decisions Needed",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/procedures/close.md",
+        "system/procedures/sitrep.md"
+      ]
+    },
+    "docs/research/2026-04-08-claude-code-leak-analysis.md": {
+      "title": "Claude Code Source Leak — Strategic Analysis for Brana Alignment",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/research/2026-04-08-url-batch-findings.md": {
+      "title": "URL Batch Research — 2026-04-08",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/ontology.yaml"
+      ]
+    },
     "docs/research/miessler-pai-comparison.md": {
       "title": "Miessler PAI vs Brana Personal OS — Research & Comparison",
       "type": "Roadmap",
@@ -1699,6 +1827,11 @@
       "impl_files": [
         "system/"
       ]
+    },
+    "docs/reviews/token-baseline.md": {
+      "title": "Token Consumption Baseline",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/skills-system.md": {
       "title": "Skills System Guide",
@@ -3134,6 +3267,18 @@
     {
       "from": "docs/architecture/features/staleness-and-memory-pipeline.md",
       "to": "docs/architecture/features/scheduler.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/statusline-test-coverage.md",
+      "to": "system/hooks/post-tasks-validate.sh",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/statusline-test-coverage.md",
+      "to": "system/statusline.sh",
       "type": "depends_on",
       "computed": false
     },
@@ -6157,6 +6302,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-019-brana-chat-sessions.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/decisions/ADR-021-knowledge-architecture-v2.md",
       "type": "references",
       "computed": false
@@ -6182,6 +6333,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/decisions/ADR-025-skill-lifecycle-manager.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-026-full-rust-mcp-architecture.md",
       "type": "references",
       "computed": false
     },
@@ -6224,6 +6381,18 @@
     {
       "from": "docs/README.md",
       "to": "architecture/decisions/ADR-032-smart-router.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-033-pin-mcp-servers.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-034-skill-tiering.md",
       "type": "references",
       "computed": false
     },
@@ -6445,6 +6614,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "domain/MODEL-001-brana-core.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "guide/commands/index.md",
       "type": "references",
       "computed": false
@@ -6464,6 +6639,12 @@
     {
       "from": "docs/README.md",
       "to": "guide/getting-started.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "guide/python-to-rust-migration.md",
       "type": "references",
       "computed": false
     },
@@ -7938,6 +8119,12 @@
       "computed": false
     },
     {
+      "from": "docs/guide/workflows/venture.md",
+      "to": "docs/ideas/venture-playbook-product-management.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/agent-observability-learning.md",
       "to": "brana-operating-model.md",
       "type": "references",
@@ -7950,8 +8137,8 @@
       "computed": false
     },
     {
-      "from": "docs/ideas/ai-native-education/poc.md",
-      "to": "ai-native-education.md",
+      "from": "docs/ideas/brana-cli-mcp-layer.md",
+      "to": "docs/ideas/dynamic-skill-routing.md",
       "type": "references",
       "computed": false
     },
@@ -7964,6 +8151,24 @@
     {
       "from": "docs/ideas/enforcement-vs-injection.md",
       "to": "brana-operating-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/memory-consolidation-kairos.md",
+      "to": "docs/ideas/resilient-pattern-store.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/memory-consolidation-kairos.md",
+      "to": "docs/ideas/ruflo-native-integration.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/memory-consolidation-kairos.md",
+      "to": "docs/research/2026-04-08-cc-alignment-findings.md",
       "type": "references",
       "computed": false
     },
@@ -8016,6 +8221,18 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/session-memory-cc-alignment.md",
+      "to": "docs/ideas/unified-session-state.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/session-memory-cc-alignment.md",
+      "to": "docs/research/2026-04-08-cc-alignment-findings.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/skill-auto-router.md",
       "to": "brana-operating-model.md",
       "type": "references",
@@ -8024,6 +8241,12 @@
     {
       "from": "docs/ideas/skill-semantic-validation.md",
       "to": "relative/path.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/venture-playbook-product-management.md",
+      "to": "docs/guide/workflows/venture.md",
       "type": "references",
       "computed": false
     },
@@ -8784,6 +9007,36 @@
       "computed": false
     },
     {
+      "from": "docs/research/2026-04-08-cc-alignment-findings.md",
+      "to": "docs/ideas/memory-consolidation-kairos.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/2026-04-08-cc-alignment-findings.md",
+      "to": "docs/ideas/session-memory-cc-alignment.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/2026-04-08-cc-alignment-findings.md",
+      "to": "docs/research/2026-04-08-claude-code-leak-analysis.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/2026-04-08-cc-alignment-findings.md",
+      "to": "docs/research/2026-04-08-url-batch-findings.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/2026-04-08-url-batch-findings.md",
+      "to": "docs/research/2026-04-08-claude-code-leak-analysis.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/research/miessler-pai-deep-dive.md",
       "to": "miessler-pai-comparison.md",
       "type": "references",
@@ -8821,9 +9074,9 @@
     }
   ],
   "stats": {
-    "nodes": 266,
-    "edges": 1185,
-    "typed_edges": 487,
-    "orphans": 52
+    "nodes": 284,
+    "edges": 1205,
+    "typed_edges": 489,
+    "orphans": 61
   }
 }
