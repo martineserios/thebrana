@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+#
+# pre-commit — block commits with forbidden attribution trailers
+#
+# This is the git-side enforcement layer for the no-attribution rule
+# (see system/rules/git-discipline.md "Commit attribution — HARD RULE").
+#
+# It runs at git commit time, before the commit is actually created. If the
+# staged commit message contains any forbidden trailer, the commit is rejected.
+#
+# Deployed by bootstrap.sh to ~/.config/git/hooks/pre-commit. To activate
+# globally, run:
+#   git config --global core.hooksPath ~/.config/git/hooks
+#
+# Past sessions have repeatedly violated the soft rule despite explicit user
+# instruction. This hook is the final backstop.
+
+set -uo pipefail
+
+# Git pre-commit hooks are passed the commit message file as $1 when invoked
+# via commit-msg, but a real pre-commit hook needs to read the staged message
+# from .git/COMMIT_EDITMSG (which git writes before pre-commit runs).
+#
+# Note: technically the right hook for message inspection is `commit-msg`, not
+# `pre-commit`. We deploy to BOTH for belt-and-suspenders.
+
+# Resolve the commit message source
+if [ -n "${1:-}" ] && [ -f "$1" ]; then
+    msg_file="$1"
+elif [ -f ".git/COMMIT_EDITMSG" ]; then
+    msg_file=".git/COMMIT_EDITMSG"
+else
+    # No message file available — allow (we can't check)
+    exit 0
+fi
+
+# Forbidden patterns — case-insensitive substring matches
+forbidden_patterns=(
+    "Co-Authored-By"
+    "co-authored-by"
+    "Signed-off-by"
+    "🤖 Generated with"
+    "Generated with .Claude Code."
+    "Claude Code"
+    "Claude AI"
+    "claude.ai/code"
+    "anthropic.com"
+)
+
+violations=()
+for pattern in "${forbidden_patterns[@]}"; do
+    if grep -qiF "$pattern" "$msg_file" 2>/dev/null; then
+        violations+=("$pattern")
+    fi
+done
+
+if [ ${#violations[@]} -gt 0 ]; then
+    echo ""
+    echo "❌ COMMIT BLOCKED: forbidden attribution trailer(s) detected."
+    echo ""
+    echo "Found:"
+    for v in "${violations[@]}"; do
+        echo "  - $v"
+    done
+    echo ""
+    echo "Per ~/.claude/rules/git-discipline.md (Commit attribution — HARD RULE):"
+    echo "  No Co-Authored-By, Signed-off-by, AI attribution, or 'Generated with'"
+    echo "  trailers in commit messages or PR descriptions. No exceptions."
+    echo ""
+    echo "Edit the commit message and try again."
+    echo ""
+    exit 1
+fi
+
+exit 0
