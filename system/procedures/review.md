@@ -59,8 +59,47 @@ Weekly cadence review — portfolio health, zombie cleanup, metrics delta, ship 
 4. **Zombie cleanup:** identify tasks older than 30 days with no activity — present for archival or reprioritization
 5. **Metrics delta:** compare current metrics vs last week's stored values
 6. **Ship log:** `git log --oneline --since="7 days ago"` across active clients
-7. **Pipeline check:** read pipeline state (if /brana:pipeline is configured)
-8. **Store trends:**
+7. **Friction check:** read last 7 days of session history, compute friction signal:
+   ```bash
+   python3 - <<'EOF'
+   import os, sys, json
+   from datetime import datetime, timezone, timedelta
+   week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+   path = os.path.expanduser(
+       "~/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/session-history.jsonl"
+   )
+   entries = []
+   try:
+       with open(path) as f:
+           for line in f:
+               line = line.strip()
+               if not line: continue
+               e = json.loads(line)
+               ts = e.get("written_at", "")
+               if ts and datetime.fromisoformat(ts) > week_ago:
+                   entries.append(e)
+   except FileNotFoundError:
+       pass
+   metrics = [e.get("metrics", {}) for e in entries if e.get("metrics")]
+   if not metrics:
+       print(json.dumps({"sessions": 0, "corrections": 0, "avg_correction_rate": 0,
+                         "avg_test_write_rate": 0, "high_friction": []}))
+       sys.exit(0)
+   corrections = sum(m.get("corrections", 0) for m in metrics)
+   avg_cr = round(sum(m.get("correction_rate", 0) for m in metrics) / len(metrics), 2)
+   avg_twr = round(sum(m.get("test_write_rate", 0) for m in metrics) / len(metrics), 2)
+   high = [e.get("session_label", "?") for e in entries
+           if e.get("metrics", {}).get("correction_rate", 0) > 0.3]
+   print(json.dumps({"sessions": len(entries), "corrections": corrections,
+                     "avg_correction_rate": avg_cr, "avg_test_write_rate": avg_twr,
+                     "high_friction": high}))
+   EOF
+   ```
+   If `sessions < 3`, note "insufficient data — {N} sessions this week" and skip friction section in report.
+   High-friction threshold: `correction_rate > 0.3`. Flag sessions above it by label.
+
+8. **Pipeline check:** read pipeline state (if /brana:pipeline is configured)
+9. **Store trends:**
    ```bash
    source "$HOME/.claude/scripts/cf-env.sh"
    [ -n "$CF" ] && cd "$HOME" && $CF memory store \
@@ -70,8 +109,8 @@ Weekly cadence review — portfolio health, zombie cleanup, metrics delta, ship 
      --tags "client:{PROJECT},type:weekly-review" \
      --upsert
    ```
-9. **Next-week planning:** based on bottleneck identified in metrics + unblocked tasks
-10. **Write report** to `docs/reviews/weekly-YYYY-MM-DD.md`
+10. **Next-week planning:** based on bottleneck identified in metrics + unblocked tasks
+11. **Write report** to `docs/reviews/weekly-YYYY-MM-DD.md`
 
 ### Report format
 
@@ -89,6 +128,11 @@ Weekly cadence review — portfolio health, zombie cleanup, metrics delta, ship 
 
 ### Pipeline
 {deal status if applicable}
+
+### Friction
+Sessions: {N} | Corrections: {N} | Avg correction rate: {X%} | Avg test write rate: {X%}
+High-friction: {session labels, or "none"}
+{if sessions < 3: "Insufficient data this week ({N} sessions)"}
 
 ### Next Week
 1. {priority 1 — tied to bottleneck}

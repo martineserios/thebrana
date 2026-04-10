@@ -507,15 +507,6 @@ else
     echo "  — ruflo (not found, skip)"
 fi
 
-# context7 (optional — library docs)
-CONTEXT7_WRAPPER="$SYSTEM_DIR/scripts/context7-mcp.sh"
-if [ -x "$CONTEXT7_WRAPPER" ] || [ -f "$CONTEXT7_WRAPPER" ]; then
-    MCP_SERVERS=$(echo "$MCP_SERVERS" | jq --arg cmd "$CONTEXT7_WRAPPER" \
-        '.context7 = {"command": $cmd, "args": []}')
-    echo "  + context7 → $CONTEXT7_WRAPPER"
-else
-    echo "  — context7 (not found, skip)"
-fi
 
 # Write settings.local.json if we have any servers
 if [ "$MCP_SERVERS" != "{}" ] && command -v jq &>/dev/null; then
