@@ -202,7 +202,7 @@ claude --plugin-dir ./system
 | `brana inbox add-account\|add\|list\|poll\|remove\|status\|set-password` | Gmail newsletter management via IMAP. Multi-account, OS keyring credentials. |
 | `brana session read\|write\|history\|path\|migrate\|mark-consumed` | Structured session state — read/write JSON state, browse history, migrate from markdown. Used by close, sitrep, and session hooks. |
 | `brana handoff last\|list\|path` | Legacy alias for `brana session`. Falls back to markdown if no JSON state exists. |
-| `brana skills suggest\|search\|list\|reindex` | Skill discovery and semantic routing. `reindex` indexes skills into ruflo memory for MCP-based skill matching. |
+| `brana skills suggest\|search\|list\|reindex\|usage` | Skill discovery and semantic routing. `reindex` indexes skills into ruflo memory. `usage` scans JSONL telemetry for invocation counts + cull candidates. |
 | `brana knowledge reindex\|status` | Knowledge base indexing. Indexes dimension/reflection/feature docs into ruflo memory. `--patterns` for memory files. |
 | `brana graph build\|orphans\|query\|path\|stats\|validate` | Knowledge graph operations — ontology-aware spec dependency graph |
 
