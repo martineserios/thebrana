@@ -273,3 +273,9 @@ Two-phase pipeline indexes 7 doc categories (dimensions, architecture, reflectio
 - **On commit** — post-commit hook in brana-knowledge reindexes changed files
 - **Weekly** — scheduled full reindex (Sunday 3am) as safety net
 - **Manual** — `brana knowledge reindex`, `brana knowledge reindex --changed`, or `brana knowledge reindex file.md`
+
+## Field Notes
+
+### 2026-04-10: Python in procedures = missing CLI subcommand
+Every `python3 -c` in `system/procedures/` or `system/scripts/` is a gap indicator — there should be a `brana` CLI subcommand for that operation. Treat Python as a temporary placeholder, not a solution. File a task to add the CLI subcommand.
+Source: feat/t-1075, friction section wiring session
