@@ -68,3 +68,12 @@ IF the interaction is stateful (live index, persistent connection, structured JS
 - [ADR-033: Pin MCP Servers to Pre-installed Binaries](./ADR-033-pin-mcp-servers.md)
 - [docs/research/2026-04-08-url-batch-findings.md §Cluster D](../research/2026-04-08-url-batch-findings.md)
 - Source task: t-1110
+
+## Field Notes
+
+**2026-04-10 — ADR Non-Actions are session constraints, not suggestions.**
+In the same session this ADR was written, the user asked to do the exact thing the
+Non-Actions section prohibited (build a `brana gsheets` CLI). Running `/brana:challenge`
+caught the contradiction. The challenger's highest-value use case: protecting freshly-written
+decisions from the author's own recency bias. Pattern: "author recency bias" — the decision
+writer is also the most likely person to immediately override it.
