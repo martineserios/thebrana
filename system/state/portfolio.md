@@ -80,9 +80,9 @@ For detailed facts, read each client's own docs. This is a routing index only.
 ### ai-native-education
 - **Type:** Venture — AI-native education framework & pedagogy (Feynman-AI methodology)
 - **Location:** `~/enter_thebrana/ventures/ai-native-education/`
-- **Status:** Idea → validation. Framework + Feynman integration + pilot proposal complete. PDF sent to Chacha (statistics professor) 2026-04-07.
-- **Details:** `framework.md`, `feynman-applied.md`, `propuesta-estadistica-piloto.md`, `poc.md`
-- **Next:** Wait for Chacha's feedback. Get his syllabus. Calibrate transcript evaluator.
+- **Status:** Pre-pilot. Kit v0.3 completo, calibrado con encuesta de 43 alumnos. Pares obligatorios confirmados por Chacha 2026-04-10. Arranque: Clase 1 el 30 de abril 2026.
+- **Details:** `estadistica-feynman-ai/` (5 docs operativos + PDFs), `encuesta-resultados.md`
+- **Next:** Chacha arma los pares antes del 30 de abril. Clase 1: live Claude onboarding + framing Feynman-AI.
 
 ### lexia
 - **Type:** Venture — AI-powered legal services platform

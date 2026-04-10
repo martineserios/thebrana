@@ -375,5 +375,11 @@ See Decision Record for the full list. Key resolutions:
 
 - Should `/brana:build` auto-commit tasks.json changes or require explicit `/brana:backlog done`?
 - Should the feature spec format be enforced by validate.sh (check for required sections)?
-- How to handle interrupted builds — `/brana:build` started but session ended before CLOSE?
+- How to handle interrupted builds — `/brana:build` started but session ended before CLOSE? (answered by t-1108: checkpoint/resume)
 - Should mid-stream reclassification reset to step 0 or continue from current position?
+
+## Field Notes
+
+### 2026-04-10: SDD spec applies to procedure/.md files too
+The SPECIFY gate added in this feature (SPECIFY → DECOMPOSE) was violated on t-1108 (checkpoint/resume) because the change was "just markdown." Procedure files that change runtime behavior ARE features — file type doesn't determine whether a spec is needed; behavioral impact does.
+Source: t-1108
