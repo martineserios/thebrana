@@ -1,247 +1,325 @@
-# Memory Consolidation — Kairos/autoDream Shape
+# Memory Consolidation — Lint + Heal Shape
 
-> Brainstormed 2026-04-08. Status: **shape / brainstorm only — no implementation.**
-> Upstream findings: [`../research/2026-04-08-cc-alignment-findings.md`](../research/2026-04-08-cc-alignment-findings.md) §D2.
+> Brainstormed 2026-04-08. **Reframed 2026-04-09** around Karpathy's Lint + Heal methodology, after user clarified the Layer 1 / Layer 2 distinction.
+> Status: **shape / brainstorm only — no implementation.**
+> Upstream findings: [`../research/2026-04-08-cc-alignment-findings.md`](../research/2026-04-08-cc-alignment-findings.md) §D2 + second addendum.
 > Related prior work: [`resilient-pattern-store.md`](./resilient-pattern-store.md), [`ruflo-native-integration.md`](./ruflo-native-integration.md).
+> Companion shape doc: [`inbox-to-dimensions-pipeline.md`](./inbox-to-dimensions-pipeline.md) — the pipeline that feeds the knowledge base that this job cleans.
+> See also: [`feedback_layer1-vs-layer2.md`](~/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/feedback_layer1-vs-layer2.md) — the distinction that motivated the reframe.
 
 ## Problem
 
-Brana accumulates patterns, learnings, session snapshots, and field notes across sessions. Current consolidation is *manual* and *reactive*:
-- `/brana:close` writes new patterns to MEMORY.md and ruflo, but never deduplicates, merges, or prunes existing entries
+Brana accumulates Layer 2 knowledge — patterns, dimensions, research notes, field notes, session snapshots — across sessions. Current consolidation is *manual* and *reactive*:
+- `/brana:close` writes new patterns to MEMORY.md and pattern files, but never deduplicates, merges, or prunes existing entries
 - `/brana:retrospective` is user-initiated, not scheduled
+- `/brana:reconcile` and `/brana:maintain-specs` exist but are user-triggered, not ambient
 - MEMORY.md growth is monitored by a line count rule, not a content rule
-- Ruflo (the semantic memory layer) is fragile — see `feedback_complexity-audit.md`: "accretion > architecture as the real problem"
+- Ruflo (the semantic memory layer) is fragile — see `feedback_complexity-audit.md`: *"accretion > architecture as the real problem"*
 
-The leak analysis (leak doc §1.3.2, §1.3.3) reports that Anthropic has built **Kairos** (an always-on background daemon) and **autoDream** (the consolidation logic inside Kairos) — both feature-flagged off in the published build. autoDream's described job is: *"merge duplicate memories, eliminate contradictions, resolve speculations, prune memory to make stored data more suitable for action."*
+**Scope clarification (Layer 1 / Layer 2):** This job operates **only on Layer 2 content** — the LLM-authored work product. It does not touch Layer 1 (brana OS) artifacts: CLAUDE.md, rules, hooks.json, ADR decisions, skill frontmatter, CLI source, MEMORY.md "User Preferences — CRITICAL" section. Those stay pinned.
 
-This is exactly brana's accretion problem. The question is whether to build brana's version *before* Anthropic flips the flag.
+The user's chosen methodology for Layer 2 is Karpathy's **"Lint + Heal"** pattern — a scheduled, deterministic-to-LLM-augmented maintenance layer that finds inconsistencies, imputes missing info, suggests new articles, and uses web search to fill gaps. The question is not whether to build it (the user has chosen this methodology). The question is **at what depth** brana OS should enforce the Lint + Heal workflow.
 
-## What the leak actually tells us (and doesn't)
+The old framing of this doc — "should brana speculatively build toward CC's unreleased Kairos?" — is retired. Karpathy is a named primary source for the methodology; we're no longer guessing at Anthropic's flag-gated code.
 
-**[REPORTED]** — from DeepLearning.ai and Roger Wong, not from code:
-- Kairos exists
-- It's described as "always-on"
-- autoDream is the consolidation layer inside it
-- Both are flag-gated off in the published build
-- autoDream's consolidation goals: dedup, contradiction resolution, speculation resolution, pruning
+## What the methodology actually tells us
 
-**NOT VERIFIED** — no one has quoted code for any of:
-- Kairos trigger conditions (when does it run?)
-- Kairos storage format (where does it write?)
-- autoDream's actual consolidation algorithm (how does it dedup?)
-- Whether Kairos runs as a separate process, a thread, or inline
-- Whether it operates on the session_memory file, on a separate store, or on ruflo-equivalent memory
+### From Karpathy (primary — the chosen methodology)
 
-**[CONCEPTUAL]** — one community reimplementation exists (Mike W on DEV.to, Cathedral.ai). It uses:
-- 3-gate trigger: 24h since last run / 5+ new sessions / lock file advisory
-- 4 phases: Orient → Gather → Consolidate → Prune
-- Hard cap: 200 lines / 25 KB
+Karpathy's infographic names **Lint + Heal** as a support-layer box in his Living Knowledge Base pipeline. Four capabilities, all described:
 
-**Critical framing:** Cathedral's pattern is a *reconstruction*, explicitly described as "we believe this is what Kairos does." It is not the leaked code. If we build to Cathedral's spec and Anthropic ships something different, we throw work away. Everything in this shape doc that references the 3-gate / 4-phase pattern should be read as "one reasonable pattern from the community," not "what CC does."
+1. **Find inconsistent data** — surface contradictions between related notes
+2. **Impute missing info** — fill in structural gaps (missing metadata, incomplete entries)
+3. **Suggest new articles** — when a concept is referenced repeatedly but not documented, propose a new article
+4. **Web search to fill gaps** — when the existing corpus can't answer a question, search and cite
 
-## Proposed shape (four options)
+Context: *"all connected to the wiki"* — Lint + Heal reads the whole wiki and writes back into it. It runs in the support layer, below the main pipeline, ambient and scheduled.
 
-### Option A — Cathedral clone (full reimplementation)
+Karpathy's framing of the whole system: *"You never write the wiki. The LLM writes everything. You just steer — every answer compounds."* Under the Layer 1 / Layer 2 split, this applies to Layer 2 only — exactly what this job operates on.
 
-**What:** Implement the Cathedral 3-gate + 4-phase pattern as a scheduled brana job. Runs via the existing brana scheduler. Targets ruflo + MEMORY.md + pattern files in `~/.claude/projects/*/memory/`.
+### From CC (secondary — corroborating context)
 
-**Trigger:** 3-gate AND:
-- Time: `last_consolidation + 24h < now()`
-- Sessions: `count(sessions since last_consolidation) >= 5`
-- Lock: no `~/.swarm/kairos.lock` file present
+The leak analysis [REPORTED] that Anthropic has built **Kairos** (an always-on background daemon) and **autoDream** (the consolidation logic inside it). autoDream's described goals: *"merge duplicate memories, eliminate contradictions, resolve speculations, prune memory to make stored data more suitable for action."*
 
-**Phases:**
-1. **Orient** — read MEMORY.md, list all pattern files, query ruflo for top-500 recently-touched entries
-2. **Gather** — group patterns by topic similarity (embedding cluster or ripgrep-based semantic buckets)
-3. **Consolidate** — call LLM to merge duplicates, resolve contradictions, refine confidence scores
-4. **Prune** — delete low-confidence unused patterns, archive old ones to `~/.claude/memory/archive/`
+**Not verified** — no one has quoted code for any of: trigger conditions, storage format, or algorithm. Both features are flag-gated off in the published build.
 
-**Cost:**
-- ~4 hours scheduler job + lock file + gate logic
-- ~2 hours LLM consolidation prompt engineering
-- ~2 hours testing against real memory state
-- ~1 hour rollback / recovery (if consolidation breaks something, we need to restore)
-- Ongoing: token cost for nightly LLM consolidation runs
+**Implication:** CC's Kairos is a *second source* pointing at the same methodology, not the *primary* source. If it ships in a future CC release and looks different from Karpathy's framing, brana's Lint + Heal job stays valid — it was built against Karpathy, not CC.
 
-**Pros:**
-- **First-mover on the pattern.** If Anthropic's Kairos ships and looks like this, brana already has operational experience.
-- Directly addresses the "accretion > architecture" pain already identified in brana's own audit.
-- Publishable as a brana differentiator ("brana has Kairos-style consolidation *today*").
-- Creates a natural event stream for `/brana:review` to surface ("consolidated 47 entries last week").
+### From the Aum post (tertiary — pattern-level corroboration)
 
-**Cons:**
-- **Build on sand.** Cathedral's pattern is a guess. Anthropic's real Kairos might be file-level, not entry-level. Might not use 3 gates. Might not use 4 phases. We're shipping a community reconstruction as if it were a spec.
-- **High risk of throw-away work.** If the real Kairos ships and is incompatible, we either keep running two consolidation systems or throw ours out.
-- **LLM consolidation is not deterministic.** A bad merge destroys information. We need rollback semantics, which Cathedral's doc doesn't describe.
-- **Ruflo is currently fragile.** Adding nightly writes to a DB that has already corrupted twice (see MEMORY.md "Ruflo AgentDB Status") is compounding risk on an unstable layer.
-- Token cost of nightly LLM runs (TBD, but not free).
+The Aum "12 Agentic Harness Patterns" post names **Pattern 4: Dream Consolidation** with the description *"background processes clean stale memory by deduplicating, pruning, and resolving contradictions automatically during idle periods."* Three independent community sources (Karpathy, Cathedral.ai, Aum) converge on the concept. Implementation details still vary. Concept is stable.
 
-**Risk:** High. Every line of this option builds on unverified assumptions.
+### What this means for the shape
+
+The **direction** is well-supported (multiple independent sources, named primary source, clearly scoped to Layer 2). The **depth** is the open question: how much of Karpathy's four-capability list does brana OS enforce? That's what the options below resolve.
+
+## The four sub-decisions inside Lint + Heal
+
+Before comparing options, the four Karpathy capabilities each have an independent design choice. The options below are *combinations* of these sub-decisions.
+
+### SD1 — Contradiction finding
+
+**Question:** How does Lint + Heal know two Layer 2 entries contradict each other?
+
+| Approach | What it looks like | Cost | False-positive profile |
+|---|---|---|---|
+| **Deterministic (grep-based)** | Look for opposite keyword pairs, identical `name:` frontmatter across files, conflicting numeric fields (e.g., different `confidence:` values for same pattern). No LLM. | Zero token cost, fast | Misses semantic contradictions ("prefer X" vs "avoid X" in different wording); low false-positive rate on matches |
+| **LLM-semantic** | Feed clusters of related pattern files to the LLM, ask "do any of these contradict each other?" | Token cost per run, slower | Catches semantic contradictions; risk of hallucinated contradictions; non-deterministic |
+| **Hybrid** | Grep finds candidates, LLM adjudicates only on candidates | Low-to-medium token cost | Best of both; more code to write |
+
+### SD2 — Imputation
+
+**Question:** When Lint + Heal finds a Layer 2 entry with missing data, does it fill in the gap?
+
+| Scope | What it writes | Risk |
+|---|---|---|
+| **Nothing (read-only lint)** | Surface the gap in a report, human fills in | Very low |
+| **Frontmatter only** | Fill in missing `name:` / `description:` / `type:` / `confidence:` fields from content heuristics (grep first line, count words, etc.) — no LLM | Low — deterministic rules, archivable |
+| **Content** | LLM fills in missing paragraphs, examples, cross-references | Medium — LLM may invent; needs dry-run + rollback |
+
+### SD3 — Web search to fill gaps
+
+**Question:** When a Q&A over the wiki can't answer a question, does Lint + Heal search the web and add a citation-backed answer?
+
+| Scope | Behavior | Cost |
+|---|---|---|
+| **None** | Q&A returns "don't know"; human decides whether to research | Zero |
+| **Budgeted search** | Lint + Heal runs ≤N web searches per scheduled cycle, writes findings as `docs/research/auto-YYYY-MM-DD-*.md` draft files for review | Token + search API cost per run |
+
+### SD4 — New article suggestion / promotion
+
+**Question:** When Lint + Heal notices a concept referenced repeatedly but not documented, what does it do?
+
+| Response | What it produces |
+|---|---|
+| **Nothing** | Ignores the pattern |
+| **Surface only** | Reports "concept X is referenced in 7 places but has no dimension doc" in the weekly maintenance log |
+| **Draft-only** | Generates a draft dimension doc with `status: draft` frontmatter, drops in `brana-knowledge/dimensions/` (or a staging directory) for human review at milestones |
 
 ---
 
-### Option B — Minimal dedup
+## Proposed shape (four depth layers)
 
-**What:** A much smaller scheduled job that does exactly one thing: deduplicate pattern files with identical names or near-identical content. No LLM calls. Pure diff + merge.
+Each layer is a superset of the previous. L0 is the control (do nothing). L4 is Karpathy's full vision. Each layer turns on more of the sub-decisions above.
 
-**Trigger:** Weekly cron via existing brana scheduler. No 3-gate — just a simple time trigger.
+### L0 — Do nothing (control / reference point)
+
+**Purpose:** Keep as comparison baseline. Not a real option the user picks — they've already chosen Karpathy's methodology. Included so the cost/benefit of each layer is measurable.
+
+**What happens if we pick L0:** Layer 2 knowledge keeps growing manually. `/brana:close` and `/brana:retrospective` continue doing the work they do today. No scheduled maintenance.
+
+**Cost:** 0 hours, 0 tokens. Status quo.
+
+### L1 — Deterministic dedup (stepping stone)
+
+**Sub-decisions:** SD1 = none, SD2 = none, SD3 = none, SD4 = none. Just dedup.
+
+**What:** The original Option B from the previous version of this doc. Weekly scheduled job that lists all `feedback_*.md` and `project_*.md` files across auto-memory dirs, groups by name slug, archives exact duplicates.
 
 **Algorithm:**
-1. List all `feedback_*.md` and `project_*.md` files under `~/.claude/projects/*/memory/`
-2. Group by name slug (`feedback_ruflo-cwd-root-cause` → single group)
-3. For duplicates, keep the most recently modified, move others to `.claude/memory/archive/`
-4. For entries with identical front-matter `name` but different slugs, surface in a weekly report for manual review
-5. Never delete anything — always archive
+1. List all pattern files under `~/.claude/projects/*/memory/`
+2. Group by name slug (`feedback_ruflo-cwd-root-cause` → one group)
+3. For duplicates, keep the most recently modified, archive the rest to `~/.claude/memory/archive/YYYY-MM-DD/`
+4. Surface entries with identical `name:` frontmatter but different slugs in a weekly report
+5. Never delete — always archive
 
-**Cost:**
-- ~2 hours shell/rust script
-- ~1 hour scheduler registration + log wiring
-- ~1 hour test against real memory dirs
-- Ongoing: zero marginal cost (no LLM)
+**Cost:** ~3 hours (script + scheduler registration + test). Ongoing: zero.
 
-**Pros:**
-- **Boring, safe, deterministic.** No LLM guessing. No consolidation "maybe it's the same idea." Just: identical = dedup.
-- Catches the real problem (duplicate `feedback_*.md` files from repeated saves).
-- Zero token cost.
-- **Independent of whether Anthropic ships Kairos.** This is just good housekeeping.
-- Can be rolled into `/brana:reconcile --scope knowledge` as a manual trigger for paranoid operators.
+**Pros:** Boring, safe, deterministic. Zero token cost. Solves the verified duplication case. Independent of any methodology question.
 
-**Cons:**
-- **Doesn't solve the consolidation problem.** "Merge contradictions" and "resolve speculations" are out of scope. Just handles the obvious duplication case.
-- Does not provide the positioning angle ("brana has Kairos today").
-- Still leaves MEMORY.md bloat untouched unless the rule also prunes stale index entries.
+**Cons:** Doesn't do contradiction-finding, imputation, web search, or article suggestion. *Not yet Karpathy's methodology.* It's just housekeeping.
 
-**Risk:** Very low. Worst case: an archived file needs to be un-archived.
+**Risk:** Very low. Worst case: archived file needs un-archiving.
 
----
+### L2 — Deterministic Lint + Heal
 
-### Option C — Wait and mirror
+**Sub-decisions:** SD1 = grep, SD2 = frontmatter only, SD3 = none, SD4 = surface-only.
 
-**What:** Do nothing until Anthropic flips a Kairos flag. When it does, inspect the behavior, decide whether to wrap it (if it's file-based and inspectable) or reimplement (if it's internal). Meanwhile, keep a one-page tracker doc updated.
+**What:** L1 plus three deterministic capabilities. Still no LLM, still no web search.
 
-**Cost:**
-- ~30 min to create `docs/research/cc-unreleased-features-tracker.md` with Kairos row
-- ~5 min/quarter to review
-- Ongoing: zero
+**Adds on top of L1:**
+- **Grep-based contradiction detection:** look for opposite-keyword pairs, conflicting numeric fields, identical `name:` across files
+- **Frontmatter imputation:** deterministic heuristics to fill missing `name:` (from H1 of content), `description:` (from first paragraph), `type:` (from filename prefix `feedback_`/`project_`)
+- **Concept-reference surfacing:** grep for repeated concept names across the corpus; if a phrase appears ≥5 times and has no dedicated doc, add to the weekly report
 
-**Pros:**
-- **Zero risk.** Zero wasted work.
-- Stays consistent with "don't build on unverified community claims."
-- Preserves capacity for other work (D1, D3, D4 are cheaper wins).
-- If Anthropic never ships Kairos (flags stay off forever), we didn't invest.
+**Cost:** L1's ~3 hours + ~3 hours for grep patterns + frontmatter imputation + reference counter. Total ~6 hours. Ongoing: zero.
 
-**Cons:**
-- **Doesn't solve brana's accretion problem today.** MEMORY.md keeps growing. Duplicate patterns keep accumulating. Ruflo keeps fragmenting.
-- Loses the "first-mover" positioning angle.
-- Reactive, not proactive — if the user's main pain is "my memory is getting messy," this option says "not our problem yet."
+**Pros:** All deterministic — no LLM, no tokens, no hallucination risk. Starts actually implementing Karpathy's methodology (SD1-grep and SD2-frontmatter and SD4-surface). Low-risk learning loop: we see what Lint + Heal surfaces before we let the LLM act on it.
 
-**Risk:** Low. Only risk is opportunity cost.
+**Cons:** Grep-based contradiction detection misses semantic contradictions. Frontmatter imputation can't fix content gaps. Still no web search.
 
----
+**Risk:** Low. Deterministic + archive-don't-delete = safe rollback. Main risk: false positives in grep-based contradiction detection annoy the user and get the job ignored.
 
-### Option D — Layered (B now, A-or-C later)
+### L3 — LLM-augmented Lint + Heal
 
-**What:** Ship Option B (minimal dedup) *this* cycle. Create the tracker doc from Option C in parallel. Revisit Option A only after (a) Anthropic's Kairos ships and we've seen its shape, OR (b) Option B's dedup has been running for 4+ weeks and we have operational data showing it's not enough.
+**Sub-decisions:** SD1 = hybrid (grep candidates + LLM adjudication), SD2 = content (LLM fills gaps), SD3 = none, SD4 = draft-only.
 
-**Cost:** B's cost (~4 hours) + C's cost (~30 min). No A upfront.
+**What:** L2 plus LLM-adjudicated contradiction detection, LLM-drafted content imputation, and LLM-drafted article suggestions. Still no web search.
 
-**Pros:**
-- **Solves the boring, real problem (dedup) immediately with minimal risk.**
-- Keeps us informed on the speculative problem (Kairos shape) with the tracker doc.
-- Defers the high-risk build until either evidence comes in.
-- Consistent with `feedback_research-to-shape-to-build.md` — we don't build on speculation.
-- Gives a checkpoint: if after 4 weeks the dedup isn't enough, we have real data to motivate Option A.
+**Adds on top of L2:**
+- **Hybrid contradiction detection:** grep finds candidate pairs; LLM is prompted per candidate cluster to confirm "yes these contradict" or "no they're compatible because X." Dry-run mode writes the LLM's verdicts to a report for human review.
+- **LLM content imputation:** for entries with missing content sections (e.g., `feedback_*.md` files with no "How to apply" field), LLM drafts the missing section based on surrounding context. Drafts go to a staging file, not the original.
+- **LLM article suggestion:** when the reference-counter finds an undocumented concept, LLM drafts a stub dimension doc with `status: draft` frontmatter. Drops in `brana-knowledge/drafts/` (new directory) for review at milestones (via `/brana:review`).
 
-**Cons:**
-- Two-phase delivery means two sprints of attention on memory instead of one.
-- Doesn't get the "brana has Kairos today" positioning win.
-- Small risk: Option B consumes the appetite for Option A entirely (the team calls it done and never builds consolidation). If consolidation matters long-term, the minimal version can actually *delay* the real fix.
+**Cost:** L2's ~6 hours + ~4 hours for LLM prompt engineering + staging directory + draft review flow. Total ~10 hours. Ongoing: token cost per scheduled run (TBD — depends on corpus size and cadence).
 
-**Risk:** Low-medium. Same as B plus the risk of premature closure.
+**Pros:** This is the first layer that's actually "Karpathy's methodology" in any meaningful sense. LLM writes Layer 2 content under brana OS's enforcement (draft-only + staging + milestone review). Catches contradictions the grep-only layer misses. Starts using the LLM-authoring capability the user explicitly chose.
+
+**Cons:** LLM cost compounds. LLM content imputation can hallucinate. Draft staging directory forks the knowledge base until reviewed (discipline problem). Non-determinism — consecutive runs may yield different drafts.
+
+**Risk:** Medium. Requires strong dry-run + rollback semantics. Draft staging must have hard rules about what can leave staging and how.
+
+### L4 — Full Karpathy Lint + Heal
+
+**Sub-decisions:** SD1 = hybrid, SD2 = content, SD3 = budgeted web search, SD4 = draft + auto-create.
+
+**What:** L3 plus web search to fill gaps. Full Karpathy vision.
+
+**Adds on top of L3:**
+- **Budgeted web search:** during the Q&A phase of Lint + Heal, if an internal question has no answer in the corpus, LLM issues a bounded web search (≤N per cycle, configurable). Results go to `docs/research/auto-YYYY-MM-DD-*.md` draft files with citations.
+- **Auto-create drafts from search results:** when search results contain enough signal to draft a new dimension doc, create it automatically (still `status: draft`, still reviewed at milestones).
+
+**Cost:** L3's ~10 hours + ~4 hours for web search integration + budget enforcement + citation formatting. Total ~14 hours. Ongoing: token cost + search API cost.
+
+**Pros:** Complete Karpathy pipeline. Lint + Heal becomes a full research-assistant backbone. Closes the loop: raw concept → web research → draft dimension doc → review → accepted spec.
+
+**Cons:** Highest cost. Highest risk of drift (auto-created drafts compound if review cadence slips). Hardest to dry-run because web search is non-idempotent. Most complex rollback (if a bad search result poisons a draft chain, untangling takes work).
+
+**Risk:** Medium-high — not from speculation (the methodology is Karpathy's), but from operational complexity. Needs serious discipline around review cadence and draft quality gates.
 
 ---
 
 ## Comparison matrix
 
-| Dimension | A Cathedral | B Minimal | C Wait | D Layered |
-|---|---|---|---|---|
-| Effort (hours) | ~10 | ~4 | ~0.5 | ~4.5 |
-| Risk | High | Very low | Zero | Low |
-| Based on verified facts | No | Yes | N/A | Mostly (B is, A deferred) |
-| Solves today's accretion pain | Yes | Partial (dedup only) | No | Partial (dedup now) |
-| First-mover positioning | Yes | No | No | No (unless upgraded to A later) |
-| Throw-away risk if CC ships incompatible Kairos | High | Near-zero | Zero | Near-zero |
-| Addresses MEMORY.md bloat | Yes | Partial | No | Partial |
-| Addresses ruflo fragility | Makes it worse | Neutral | Neutral | Neutral |
-| Token cost | Ongoing | Zero | Zero | Zero |
+| Dimension | L0 | L1 | L2 | L3 | L4 |
+|---|---|---|---|---|---|
+| Effort (hours) | 0 | ~3 | ~6 | ~10 | ~14 |
+| Ongoing token cost | Zero | Zero | Zero | Per-run | Per-run + search API |
+| LLM involvement | None | None | None | Adjudicate + draft | Adjudicate + draft + search |
+| Deterministic rollback | N/A | Trivial | Trivial | Requires staging discipline | Requires staging + search result hygiene |
+| Implements Karpathy | No | Partial (dedup only) | Partial (3 of 4 caps, deterministic) | Most (3 of 4 caps, LLM-augmented) | Full (all 4 caps) |
+| Enforces user's chosen methodology | No | Barely | Partially | Mostly | Fully |
+| Hallucination risk | None | None | None | Medium | Medium-high |
+| Depends on `inbox-to-dimensions-pipeline.md` (D10) | No | No | Light (surfacing only) | **Yes** (draft staging overlap) | **Yes** (draft staging overlap) |
+| Throw-away risk if Karpathy methodology changes | N/A | None | None | Low (primary source is stable) | Low |
+| Blast radius if consolidation misbehaves | N/A | 1 archived file | 1 archived file + 1 wrong frontmatter | 1 bad draft (isolated in staging) | 1 bad draft + 1 bad search-backed doc |
 
-## Key design decisions (non-negotiable regardless of option)
+## Key design decisions (non-negotiable regardless of depth)
 
-1. **Never delete, only archive.** Consolidation (in any form) moves entries to `~/.claude/memory/archive/YYYY/` rather than `rm`. Recovery must be possible.
-2. **Lock file before write.** Single-writer invariant. No two consolidation jobs (or a consolidation + a session close) ever write the same file concurrently.
-3. **Dry run mode required.** `brana memory consolidate --dry-run` must show what would change without writing anything.
-4. **Rollback snapshot.** Before any consolidation run, snapshot the memory dir to `~/.claude/memory/pre-consolidate-YYYY-MM-DD/`. Retained 7 days.
-5. **Scheduler is the only entry point.** No ad-hoc invocation from inside a session (avoids "consolidate fires mid-close" race).
-6. **Build on the existing brana scheduler**, not a new daemon. Do not introduce a new process.
+1. **Layer 2 only.** This job never touches Layer 1 (brana OS). It never modifies `~/.claude/rules/`, `hooks.json`, `CLAUDE.md`, ADR decisions, skill SKILL.md frontmatter, the CLI source, or the `User Preferences — CRITICAL` section of MEMORY.md. If the implementation ever needs to touch Layer 1, that's a scope violation — stop and re-shape.
+2. **Never delete, only archive.** Any removed entry moves to `~/.claude/memory/archive/YYYY-MM-DD/` with full path preserved. Recovery must be possible by `cp` back.
+3. **Lock file before write.** Single-writer invariant. No two Lint + Heal jobs (or a Lint + Heal + a session close) ever write the same file concurrently. Lock path: `~/.swarm/lint-heal.lock` (not `kairos.lock` — rename away from Cathedral framing).
+4. **Dry run mode required.** `brana memory lint-heal --dry-run` must show everything the job *would* write without writing anything. First run in any new deployment is always dry-run.
+5. **Rollback snapshot.** Before any non-dry-run, snapshot `~/.claude/memory/` to `~/.claude/memory/pre-lint-heal-YYYY-MM-DD/`. Retained 7 days. For L3–L4, snapshot also includes `brana-knowledge/drafts/`.
+6. **Scheduler is the only entry point.** No ad-hoc invocation from inside a session (avoids "lint fires mid-close" race). Manual trigger only via `brana memory lint-heal` CLI, never from a skill procedure.
+7. **Build on the existing brana scheduler**, not a new daemon. Do not introduce a new process.
+8. **Draft staging directory is sacred (L3–L4 only).** `brana-knowledge/drafts/` is write-only from Lint + Heal. Promotion out of staging requires a human action (explicit review + edit + move via a dedicated CLI or skill). No auto-promotion.
+9. **Token budget cap (L3–L4).** Per-run cap in config. If cap hit mid-run, abort and log — do not partial-write.
+10. **Idempotent scheduling.** Missing a run must be safe. The next run catches up without duplicate work.
 
-## Risks (across all options)
+## Risks (updated for Layer-2 scope)
 
 | Risk | Applies to | Mitigation |
 |---|---|---|
-| Cathedral pattern is wrong | A, D (if upgraded) | Don't build A without first verifying against an actual Kairos release |
-| LLM consolidation destroys information | A | Dry-run + rollback snapshot + archive-don't-delete |
-| Ruflo concurrent writes corrupt DB | A | Lock file + single-writer invariant + better-sqlite3 WAL (already configured per MEMORY.md) |
-| Dedup misses semantically-equivalent-but-textually-different duplicates | B, D | Accept as out-of-scope; surface in weekly report for manual review |
-| Scheduler missed run (Oracle VM downtime, etc.) | A, B, D | Consolidation is idempotent — missing a run is safe |
-| Nightly LLM cost compounds | A | Cap spend via token budget; abort if quota hit |
-| MEMORY.md bloat doesn't get solved | B, C, D | Separate line-count rule continues to warn; revisit if threshold hit |
+| Layer 2 job accidentally touches Layer 1 file | All layers | Hard path allow-list; CLI refuses to write outside allowed paths; unit test covers rejection of Layer 1 paths |
+| Grep-based contradiction detection has false positives | L2+ | Dry-run first; surface-only mode for first N weeks; user can mark entries as "not a contradiction" in frontmatter |
+| LLM content imputation hallucinates | L3+ | Staging directory + milestone review + archive-don't-delete + dry-run mandatory |
+| LLM article-suggestion drafts accumulate faster than review cadence | L3+ | Hard cap on draft directory size (e.g., 20 drafts); if cap hit, job surfaces a "review backlog" warning and stops creating new drafts |
+| Web search returns low-quality or wrong info | L4 | Cite sources in drafts; require ≥2 source agreement for draft creation; per-run search budget cap |
+| Ruflo concurrent writes corrupt DB | L3+ (if ruflo touched) | Lock file + better-sqlite3 WAL (per MEMORY.md); but *preferred*: Lint + Heal writes to files only, lets ruflo reindex pick up changes on its own schedule |
+| Scheduler missed run (Oracle VM downtime) | All | Idempotent design; missing runs is safe |
+| Token cost compounds | L3+ | Per-run budget cap; monthly spend report surfaced in `/brana:review` |
+| User loses trust in Lint + Heal and ignores the reports | L2+ | First N weeks in surface-only mode before any writes; track report-action rate as a calibration metric |
+| Draft staging forks the knowledge base | L3+ | Hard rule: drafts never influence `/brana:research` results until promoted; staging indexed separately from accepted dimensions |
 
-## Open questions (would change the answer)
+## Open questions
 
-1. **Does the user's current memory pain come from duplication or from bloat?** If duplication: Option B solves it. If bloat: only A (or something like A) solves it.
-2. **Has ruflo corruption stabilized since the AgentDB v3 migration?** MEMORY.md says WAL mode is configured. If it's stable, Option A's ruflo-write risk is lower than it was.
-3. **Does Anthropic have a ship date for Kairos, or even a timeline?** If Kairos ships in CC 2.2, Option D's "wait 4 weeks" answer arrives naturally. If Kairos is a 2026-H2 thing, waiting is more expensive.
-4. **Is brana's positioning story currently weak enough that "first-mover on Kairos" would move a needle?** If yes, the Option A tradeoff tilts toward "ship it, even speculative." If no, Options B/D are cleaner.
-5. **Would a Cathedral-style system actually work on brana's memory shape, or is brana's memory too structured for entry-level merging?** Brana has per-topic files with frontmatter. Merging two `feedback_tdd-no-exceptions.md` files is one thing; merging two `project_*.md` files with different structures is another.
-6. **How often do actual duplicates appear?** Back-of-envelope: we can grep for duplicate `name:` frontmatter right now as a quick audit.
+**Resolved by the reframe:**
+- ~~"Does the user want consolidation at all?"~~ → Yes (user chose Karpathy methodology)
+- ~~"Build on speculation or wait for CC?"~~ → Build on Karpathy (primary source)
+- ~~"First-mover positioning value?"~~ → Not the driver; user wants the behavior regardless
+- ~~"Is the Cathedral pattern wrong?"~~ → Cathedral is out of scope; Karpathy is the primary reference
 
-## Cheap audit (to right-size the problem before deciding)
+**Still open (these affect depth choice L1 → L4):**
 
-Before picking any option, run a 15-minute audit:
+1. **Does the user's current pain come from duplication (→ L1 is enough), contradiction (→ L2+), missing content (→ L3+), or research gap filling (→ L4)?** Only the audit answers this.
+2. **How often are Layer 2 contradictions actually appearing?** Back-of-envelope audit can tell us.
+3. **Has ruflo stabilized since AgentDB v3 + WAL?** If yes, L3+ is lower-risk than it was. If no, Lint + Heal should write to files only and let ruflo reindex catch up out-of-band.
+4. **Does brana have a draft staging directory yet?** `brana-knowledge/drafts/` does not exist. L3–L4 require it. This depends on the D10 pipeline doc (`inbox-to-dimensions-pipeline.md`), which also wants a draft staging area. **The two shape docs overlap here — they should agree on one staging location and one promotion ritual.**
+5. **Is `/brana:review` the right milestone for draft review, or does Lint + Heal need its own dedicated review skill?** If the corpus grows fast enough that `/brana:review`'s weekly cadence can't keep up, a `/brana:lint-heal review` might be warranted.
+6. **What's the token budget tolerable per run?** Unknown without a real-corpus dry-run.
+7. **Do any existing brana skills (`/brana:reconcile`, `/brana:maintain-specs`) already do some of this work?** Probably partial overlap — need to audit.
+
+## Cheap audit (same as before, but now drives depth-choice not option-choice)
+
+Before picking a depth layer, run this 15-minute audit:
 
 ```
-# Count memory files by project
+# Count Layer 2 files by project
 find ~/.claude/projects/*/memory/ -name '*.md' -type f | wc -l
+find ~/enter_thebrana/brana-knowledge/dimensions/ -name '*.md' -type f | wc -l
+find ~/enter_thebrana/thebrana/docs/research/ -name '*.md' -type f | wc -l
+find ~/enter_thebrana/thebrana/docs/ideas/ -name '*.md' -type f | wc -l
 
-# Find duplicate name: frontmatter entries
+# Duplicate frontmatter name: fields
 grep -r "^name:" ~/.claude/projects/*/memory/ | sort -t: -k3 | uniq -f 2 -d
 
-# Check MEMORY.md line counts
+# MEMORY.md line counts
 wc -l ~/.claude/projects/*/memory/MEMORY.md
+
+# Missing frontmatter fields in pattern files
+for f in ~/.claude/projects/*/memory/feedback_*.md ~/.claude/projects/*/memory/project_*.md; do
+  head -10 "$f" | grep -q "^description:" || echo "NO_DESCRIPTION: $f"
+  head -10 "$f" | grep -q "^type:" || echo "NO_TYPE: $f"
+done | head -20
+
+# References to concepts that have no dimension doc (heuristic: tag density)
+grep -rh "^- \[.*\](.*\.md)" ~/enter_thebrana/brana-knowledge/dimensions/ | sort | uniq -c | sort -rn | head
 ```
 
-If the audit shows <5 duplicates across <50 total files, Option B is overkill and Option C is correct. If it shows 20+ duplicates or 500+ files, Option B is necessary and Option D becomes a serious candidate.
+**Reading the audit results:**
+- **<5 duplicates, <50 files total, frontmatter mostly complete** → L1 is enough (or even L0 — the problem isn't real yet)
+- **10–30 duplicates, 100+ files, some missing frontmatter, no contradiction signal** → L1 or L2
+- **Contradictions visible in `/brana:reconcile` output, or multiple `feedback_*.md` files saying opposite things** → L2 or L3
+- **Repeated concept references with no dimension doc (clear research gaps)** → L3 or L4
+- **Active research workflow with recurring "I can't find this in the wiki" moments** → L4
 
-This is the single cheapest thing we can do to de-risk the decision.
+Run the audit, then pick depth based on what the numbers show. **Do not pick a depth without the audit.**
 
 ## Recommendation
 
-**None — this is a shape doc, not a plan.** The option tree is on paper. The audit is the next cheap, low-regret action. The audit would tell us whether the pain is real enough to justify Option B, which in turn tells us whether Option D is worth planning.
+**None — this is still a shape doc, not a plan.** The methodology is chosen (Karpathy Lint + Heal). The depth is the open question, and the audit is the next cheap action.
 
-If the user wants a directional hint: **Option D (minimal dedup now + tracker doc) is the lowest-regret path** — it solves the verified part of the problem, stays out of the speculation zone, and preserves optionality. But that's only defensible if the audit shows real duplication. If the audit comes up empty, Option C is correct.
+If the user wants a directional hint: **L2 is the lowest-regret entry point.** It implements 3 of the 4 Karpathy capabilities in deterministic form, with zero token cost, archive-don't-delete safety, and no dependency on the D10 staging directory. It's a working instance of the user's chosen methodology without the LLM-drift risks of L3–L4. If the audit shows the problem is bigger than L2 can address, upgrade to L3 — the added sub-decisions (LLM adjudication, content imputation, draft suggestion) each have isolated rollback.
+
+**Do not pick L4 without shipping L2 first.** Operational complexity compounds — validate the scheduling, lock semantics, archive rotation, and report format on L2 before adding LLM behavior.
+
+## Dependency on D10 (inbox-to-dimensions-pipeline)
+
+L3 and L4 share a draft staging directory with the D10 pipeline. Both shape docs need to agree on:
+
+- **Staging location:** `brana-knowledge/drafts/` vs `~/.claude/memory/drafts/` vs per-project `drafts/` subdirs
+- **Draft frontmatter convention:** what `status: draft` actually means, what other metadata is required
+- **Promotion ritual:** how does a draft move from staging to accepted? A CLI command? A skill step? A hook?
+- **Review cadence:** `/brana:review` weekly? On-demand? Batched?
+
+These are addressed in `inbox-to-dimensions-pipeline.md`. **If that shape doc picks different answers, this one should update to match** — or both should raise the conflict before either is implemented.
 
 ## What is NOT in scope of this doc
 
 - Session memory format (8-section schema) — see `session-memory-cc-alignment.md` for D1
 - Ruflo infrastructure repair — see `ruflo-native-integration.md`
-- Pattern store resilience — see `resilient-pattern-store.md` (there may be overlap; worth reading before implementing either A or B)
-- MEMORY.md bloat controls — existing line-count rule handles this
+- Pattern store resilience — see `resilient-pattern-store.md`
+- The `inbox → dimensions` drafting pipeline — see `inbox-to-dimensions-pipeline.md` (sibling D10 shape doc)
+- MEMORY.md "User Preferences — CRITICAL" section (Layer 1)
+- Any Layer 1 artifact — rules, hooks, ADRs, skill frontmatter, CLI source
 - Any implementation, scheduler registration, or rollout plan
 
 ## Next concrete step (pending direction)
 
-- **If user picks Option D:** run the cheap audit first. If audit justifies it, write `docs/architecture/features/memory-dedup-minimal.md` as a scoped feature brief with the audit numbers baked in.
-- **If user picks Option A:** do NOT proceed without first verifying the Cathedral pattern against another primary source or waiting for Kairos release data. Mark the shape doc as "pending verification."
-- **If user picks Option B alone:** same as D minus the tracker-doc work.
-- **If user picks Option C:** create `docs/research/cc-unreleased-features-tracker.md` with Kairos/autoDream rows and a quarterly review trigger inside `/brana:review`.
-- **If user picks no option:** close this as "considered, deferred," leave t-1075 pending, revisit when CC 2.2 ships.
+1. **Run the cheap audit** (15 min). This tells us what depth is justified.
+2. **If user picks L1:** write `docs/architecture/features/memory-dedup-minimal.md` as a scoped feature brief with audit numbers baked in. Smallest path to value.
+3. **If user picks L2:** write `docs/architecture/features/lint-heal-deterministic.md` with the three deterministic capabilities scoped + grep patterns + report format.
+4. **If user picks L3:** write `docs/architecture/features/lint-heal-llm-augmented.md` AND coordinate with `inbox-to-dimensions-pipeline.md` on the draft staging convention. Must not ship L3 without D10's staging design locked.
+5. **If user picks L4:** same as L3 plus scope the web-search budget + citation format. Do not attempt before L3 has run for ≥4 weeks in production.
+6. **If user picks L0 (defer):** close this as "considered, deferred," flag t-1075 with "reshaped as Lint + Heal — awaiting depth pick," revisit when Layer 2 accretion pain is concrete.
