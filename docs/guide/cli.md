@@ -116,6 +116,7 @@ Multi-account Gmail via IMAP with OS keyring credential storage.
 | `brana skills list` | List all local skills with metadata (JSON) |
 | `brana skills reindex` | Force full reindex of skills into ruflo memory (deletes mtime marker) |
 | `brana skills reindex --changed` | Only reindex skills modified since last run |
+| `brana skills usage [--days N] [--cull-threshold N] [--json]` | Show skill invocation counts from JSONL telemetry; flag low-use cull candidates |
 
 ### `brana knowledge` — Knowledge Base Indexing
 

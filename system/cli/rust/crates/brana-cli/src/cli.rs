@@ -125,7 +125,7 @@ pub enum Commands {
     },
     /// Show version
     Version,
-    /// Transcribe audio file to text (whisper, local, pure Rust)
+    /// Transcribe audio file to text (whisper.cpp, local — requires libwhisper.so.1 on LD_LIBRARY_PATH)
     Transcribe {
         /// Path to audio file (.wav, .mp3, .ogg, .m4a)
         file: PathBuf,
