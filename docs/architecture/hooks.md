@@ -202,6 +202,14 @@ Source: /brana:reconcile --scope consistency, 2026-04-09
 Both commands create branches but the hook pattern only matches `git checkout -b`. `git switch -c` is an unguarded bypass. Intentional workaround when already inside a clean worktree; unintentional gap if the goal is full branch-creation enforcement. Track: t-1120.
 Source: t-1108
 
+### 2026-04-10: doc-gate blocks the entire Bash command, including pre-commit git add
+When `git add <files> && git commit -m "..."` is in a single Bash call and the PreToolUse doc-gate blocks the commit, the `git add` also never runs — the hook fires before the entire shell command executes. Pattern: always stage files in a SEPARATE Bash call, then commit in a second call. The add call never triggers doc-gate; only the commit does.
+Source: t-1109, 2026-04-10
+
+### 2026-04-10: `git checkout HEAD -- <file>` is the reliable recovery form
+After a failed `git stash pop` leaves a file in merge-conflict state, `git restore <file>` and bare `git checkout -- <file>` both fail. `git checkout HEAD -- <file>` succeeds because it explicitly names the commit. In recovery scenarios, always use the explicit HEAD form.
+Source: t-1109, 2026-04-10
+
 ### 2026-04-10: Bash tool branch switches are invocation-ephemeral
 `git switch -c <branch>` succeeds in one Bash call but subsequent calls revert to the previous branch — each invocation runs in a fresh subshell. Rule: after any branch create/switch, the VERY NEXT Bash call must be `git branch --show-current`. Do NOT stage or commit until branch is confirmed. Violated 3 times — feature work landed on main before main-guard caught it.
 Source: t-1075
@@ -213,3 +221,7 @@ Source: t-1075
 ### 2026-04-10: tasks.json stash-pop conflicts — always --theirs
 `.claude/tasks.json` is machine-generated, 5900+ lines, changes every session. It will always conflict on `git stash pop` across branches. Resolution: `git checkout --theirs .claude/tasks.json && git add .claude/tasks.json`. The stash version (from main) is always the authoritative state.
 Source: t-1075
+
+### 2026-04-10: worktree-gate fires on `git commit`, not just checkout
+`worktree-gate.sh` is registered as PreToolUse on Bash and intercepts ALL git commands — including `git commit` (pre-commit disk check + unstaged-changes guard). The "Worktree required: unstaged changes detected" message is misleading when the gate fires during a commit; it's not enforcing worktree discipline, it's checking disk space or staged state. t-1126 tracks fixing the error message.
+Source: t-1075 cleanup session 2026-04-10

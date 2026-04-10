@@ -207,3 +207,15 @@ Turning every observation into a hook or enforcement gate. Symptoms:
 ### 2026-04-10: Check Rust CLI before writing Python in procedures
 Before adding a Python snippet to a skill procedure or shell script, grep `system/cli/rust/crates/brana-cli/src/commands/` for an existing subcommand. `brana session insights` (friction_label + compute_insights + 33 tests) was fully implemented but unknown — a Python snippet was written first and had to be replaced.
 Source: feat/t-1075, friction section wiring session
+
+### 2026-04-10: `git -C /path` uses that repo's HEAD, not the caller's branch
+`git -C /repo/path commit` operates on the checked-out branch of the target repo, not whatever branch the caller's CWD has. When the main worktree is on `feat/t-1109` and you run `git -C /repo add && git -C /repo commit` from inside a subdirectory, commits land on `feat/t-1109` regardless of what the gitStatus snapshot says. Always verify with `git -C /repo branch --show-current` before staging.
+Source: feat/t-1075, cleanup session 2026-04-10
+
+### 2026-04-10: After `git apply`, count test functions to detect duplication
+`git apply` with context mismatch applies hunks on top of already-present code. In Rust: `grep -c 'fn test_' file.rs` before and after — if the count jumps by 2× the expected new tests, there's duplication. Use `--reject` to isolate the failing hunk and inspect manually.
+Source: t-1109 patch extraction, 2026-04-10
+
+### 2026-04-10: Verify cross-session commits at session start on a feature branch
+When resuming a feature branch after a context-lost session, run `git show HEAD --stat` to verify all expected implementation files are in the last commit. Prior-session uncommitted working-tree changes are unreliable — stash operations and branch switches can silently discard them. If a key file is missing from the commit, treat it as unbuilt and re-implement.
+Source: t-1109, 2026-04-10
