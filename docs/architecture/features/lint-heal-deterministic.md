@@ -206,12 +206,12 @@ Added to `system/procedures/memory.md`. Routes when argument is `audit`.
 
 | ID | Subject | Effort |
 |----|---------|--------|
-| t-1115 | Write `lint-heal.sh` | M |
-| t-1116 | Inject gate into `session-start.sh` | S |
-| t-1117 | Add scheduler entry (Sun 15:00, disabled) | XS |
-| t-1118 | Add `audit` subcommand to `procedures/memory.md` | XS |
+| t-1115 | Write `lint-heal.sh` | M | done 2026-04-10 |
+| t-1116 | Inject gate into `session-start.sh` | S | done 2026-04-10 |
+| t-1117 | Add scheduler entry (Sun 15:00, enabled after dry-run) | XS | done 2026-04-10 |
+| t-1118 | Add `audit` subcommand to `procedures/memory.md` | XS | done 2026-04-10 |
 
-t-1116, t-1117, t-1118 blocked on t-1115.
+All subtasks complete. Dry-run passed clean (0 dedup, 0 contradictions, 0 frontmatter gaps) on 2026-04-10 — scheduler job enabled.
 
 ## Implementation notes
 

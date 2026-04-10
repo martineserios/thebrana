@@ -150,6 +150,26 @@ if [ -z "${BRANA_1M_WARN_OFF:-}" ] && [ -f "$HOME/.claude.json" ]; then
     fi
 fi
 
+# ── Lint-heal gate check (t-1075) ────────────────────────
+# Gate: surface reminder if >7d since last run AND >=5 sessions since last run.
+# Always increment session_count_since_run regardless.
+LINT_HEAL_CONTEXT=""
+LINT_HEAL_STATE="$HOME/.swarm/lint-heal-state.json"
+if [ -f "$LINT_HEAL_STATE" ]; then
+    LH_LAST_RUN=$(jq -r '.last_run_ts // 0' "$LINT_HEAL_STATE" 2>/dev/null) || LH_LAST_RUN=0
+    LH_SESSION_COUNT=$(jq -r '.session_count_since_run // 0' "$LINT_HEAL_STATE" 2>/dev/null) || LH_SESSION_COUNT=0
+    NOW_S=$(date +%s 2>/dev/null || echo 0)
+    SEVEN_DAYS=604800
+    if [ "$(( NOW_S - LH_LAST_RUN ))" -ge "$SEVEN_DAYS" ] && [ "$LH_SESSION_COUNT" -ge 5 ] 2>/dev/null; then
+        DAYS_SINCE=$(( (NOW_S - LH_LAST_RUN) / 86400 ))
+        LINT_HEAL_CONTEXT="Lint+Heal due (${DAYS_SINCE}d since last run, ${LH_SESSION_COUNT} sessions). Run: brana memory lint-heal --dry-run"
+    fi
+    # Increment session counter
+    NEW_LH_COUNT=$(( LH_SESSION_COUNT + 1 ))
+    jq --argjson c "$NEW_LH_COUNT" '.session_count_since_run = $c' "$LINT_HEAL_STATE" > "${LINT_HEAL_STATE}.tmp" 2>/dev/null \
+        && mv "${LINT_HEAL_STATE}.tmp" "$LINT_HEAL_STATE" 2>/dev/null || true
+fi
+
 # ── Config drift detection ─────────────────────────────
 DRIFT_CONTEXT=""
 DRIFT_SCRIPT="$SCRIPT_DIR/config-drift.sh"
@@ -531,6 +551,10 @@ fi
 if [ -n "$DRIFT_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
 }[Config drift] $DRIFT_CONTEXT"
+fi
+if [ -n "$LINT_HEAL_CONTEXT" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}[Lint+Heal] $LINT_HEAL_CONTEXT"
 fi
 if [ -n "$EU_WARNING" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
