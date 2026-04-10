@@ -35,6 +35,8 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 
 **`lib/ruflo-mcp.sh`** -- MCP server wrapper script that resolves the ruflo binary dynamically at launch time instead of hardcoding paths. Includes a PID lock (prevents concurrent SQLite corruption) and auto-restart on SIGTERM (up to 5 retries, mitigates CC bug #40207 which kills healthy MCP servers mid-session). `brana-mcp` uses a direct binary path in `.mcp.json` — no wrapper needed.
 
+**`config-drift.sh`** -- Called by `session-start.sh` at every session start. Compares `system/` source files against deployed `~/.claude/` files (CLAUDE.md + rules/) and scans `~/.claude.json` for ADR-033 violations (npx/uvx in MCP server commands). Output JSON: `{status, count, drifted[], mcp_violations[], mcp_count}`. Any violations surface in `DRIFT_CONTEXT` at session start.
+
 ## Hook inventory
 
 ### Plugin hooks (hooks.json)
@@ -199,3 +201,15 @@ Source: /brana:reconcile --scope consistency, 2026-04-09
 ### 2026-04-10: worktree-gate only intercepts `git checkout -b`, not `git switch -c`
 Both commands create branches but the hook pattern only matches `git checkout -b`. `git switch -c` is an unguarded bypass. Intentional workaround when already inside a clean worktree; unintentional gap if the goal is full branch-creation enforcement. Track: t-1120.
 Source: t-1108
+
+### 2026-04-10: Bash tool branch switches are invocation-ephemeral
+`git switch -c <branch>` succeeds in one Bash call but subsequent calls revert to the previous branch — each invocation runs in a fresh subshell. Rule: after any branch create/switch, the VERY NEXT Bash call must be `git branch --show-current`. Do NOT stage or commit until branch is confirmed. Violated 3 times — feature work landed on main before main-guard caught it.
+Source: t-1075
+
+### 2026-04-10: main-guard + doc-gate is the strongest branch discipline combo
+Two hooks in sequence reliably catch two distinct failure modes: doc-gate catches behavioral changes without documentation, main-guard catches behavioral commits on the wrong branch. Both fired correctly this session and blocked the commit before it persisted. Keep both hooks active.
+Source: t-1075
+
+### 2026-04-10: tasks.json stash-pop conflicts — always --theirs
+`.claude/tasks.json` is machine-generated, 5900+ lines, changes every session. It will always conflict on `git stash pop` across branches. Resolution: `git checkout --theirs .claude/tasks.json && git add .claude/tasks.json`. The stash version (from main) is always the authoritative state.
+Source: t-1075

@@ -376,6 +376,20 @@ Flag any found outside `.gitignore`.
 
 Scan `system/skills/` for skills not in the core set (compare against git-tracked skill list). For acquired skills, check: allowed-tools list for dangerous tools (Bash with no constraints), external URLs in skill body, hook registration.
 
+### SEC-7: ADR-033 violations in `~/.claude.json`
+
+**Automated:** `config-drift.sh` already checks this at every session start and surfaces violations in `DRIFT_CONTEXT`. If the session-start hook reported `[ADR-033]` warnings, they will appear here.
+
+**Manual sweep:** If you want to inspect directly:
+```bash
+jq -r '
+  (.mcpServers // {} | to_entries[] | select(.value.command // "" | test("npx|uvx")) | "top: \(.key): \(.value.command)"),
+  (.projects // {} | to_entries[] | .key as $p | (.value.mcpServers // {}) | to_entries[] | select(.value.command // "" | test("npx|uvx")) | "project \($p): \(.key): \(.value.command)")
+' ~/.claude.json
+```
+
+Fix: pin each flagged server to its installed binary path (see ADR-033).
+
 ### SEC-REPORT
 
 Present findings grouped by severity (CRITICAL / WARNING / INFO). No auto-fix — security issues require human judgment.

@@ -27247,7 +27247,7 @@
     },
     {
       "blocked_by": [],
-      "branch": null,
+      "branch": "feat/t-1009-claude-intelligence-feed",
       "completed": null,
       "context": null,
       "created": "2026-04-06",
@@ -27260,8 +27260,9 @@
       "order": 0,
       "parent": null,
       "priority": "P1",
-      "started": null,
-      "status": "pending",
+      "started": "2026-04-10",
+      "status": "in_progress",
+      "strategy": "spike",
       "stream": "research",
       "subject": "Scheduled intelligence feed — keep brana current on Claude (releases, changelogs, X, forums, research)",
       "tags": [
@@ -29972,7 +29973,7 @@
     },
     {
       "blocked_by": [],
-      "branch": null,
+      "branch": "feat/t-1109-skill-usage-telemetry",
       "completed": null,
       "context": null,
       "created": "2026-04-10",
@@ -29986,7 +29987,7 @@
       "parent": "t-1103",
       "priority": "P2",
       "started": null,
-      "status": "completed",
+      "status": "in_progress",
       "stream": "roadmap",
       "subject": "Skill usage telemetry — ADR-035 candidate, evidence-based pruning",
       "tags": [
@@ -30177,7 +30178,7 @@
       "parent": "t-1075",
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "subject": "Inject lint-heal gate check into session-start.sh",
       "tags": [
@@ -30205,7 +30206,7 @@
       "parent": "t-1075",
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "subject": "Add lint-heal scheduler job to template + state JSON (Sun 15:00)",
       "tags": [
@@ -30232,7 +30233,7 @@
       "parent": "t-1075",
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "subject": "Add audit subcommand to procedures/memory.md",
       "tags": [
@@ -30316,6 +30317,61 @@
       "tags": [
         "statusbar",
         "git"
+      ],
+      "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "feat/t-1109-skill-usage-telemetry has stale cd85ad3 (Python version of review friction step). Clean version 993af37 is on feat/t-1075. Rebase to drop cd85ad3 and pick up 993af37 instead.",
+      "created": "2026-04-10",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1122",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "tech-debt",
+      "subject": "chore: rebase feat/t-1109 onto feat/t-1075 — drop stale Python review commit",
+      "tags": [
+        "git",
+        "cleanup"
+      ],
+      "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "Run: grep -rn \"python3\" system/procedures/ system/scripts/ --include=\"*.md\" --include=\"*.sh\" | grep -v test. For each hit, either wire an existing brana CLI subcommand or file a task to add it. See feedback_python-in-brana-is-cli-gap.md.",
+      "created": "2026-04-10",
+      "description": null,
+      "effort": "M",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1123",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "tech-debt",
+      "subject": "chore: audit python3 usage in procedures/scripts — file CLI gap tasks",
+      "tags": [
+        "python",
+        "cli",
+        "cleanup"
       ],
       "type": "task"
     }

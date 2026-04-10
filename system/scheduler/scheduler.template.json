@@ -73,6 +73,16 @@
       "captureOutput": true,
       "_comment": "t-936/t-1102: weekly DECAY — stale dimensions, event log bloat, ruflo noise. Runs after reindex-knowledge (noon)."
     },
+    "lint-heal": {
+      "type": "command",
+      "command": "./system/scripts/lint-heal.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Sun *-*-* 15:00:00",
+      "enabled": true,
+      "timeoutSeconds": 300,
+      "captureOutput": true,
+      "_comment": "t-1075: weekly L2 memory lint+heal — dedup, contradiction detection, frontmatter imputation. Runs after knowledge-decay (13:00). Enable only after --dry-run validation."
+    },
     "export-patterns": {
       "type": "command",
       "command": "./system/scripts/sync-state.sh export --auto-commit",

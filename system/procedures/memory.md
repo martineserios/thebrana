@@ -183,6 +183,33 @@ Traverses docs via formal `[doc NN](path)` links and flags factual contradiction
 
 ---
 
+---
+
+## audit — Surface Lint+Heal Report
+
+1. **Check report exists and is fresh.**
+   - Read `~/.claude/lint-heal-report.md`
+   - If missing: tell the user the report hasn't been generated yet. Suggest: `./system/scripts/lint-heal.sh --dry-run`
+   - If older than 7 days: warn that findings may be stale, then continue.
+
+2. **Surface the summary.**
+   - Read the `## Summary` section of the report (first 30 lines are usually enough).
+   - Show: total candidates found, breakdown by category (duplicates, contradictions, frontmatter gaps, concept refs).
+
+3. **Interactive approve-merges flow** (for duplicate and contradiction candidates only):
+   - List each HIGH/MEDIUM candidate with: source file(s), the conflict or duplication, proposed action (archive/merge/update).
+   - For each: ask user to approve, skip, or edit the proposed action using AskUserQuestion with options `["approve", "skip", "edit action"]`.
+   - Only apply approved fixes. Don't touch skipped items.
+
+4. **Apply approved fixes:**
+   - Archive: move file to `~/.claude/memory/archive/YYYY-MM-DD/` (create dir if needed).
+   - Merge: prompt user for the canonical version, then update the surviving file and archive the duplicate.
+   - Update frontmatter: write missing `name:`, `description:`, `type:` fields inferred from filename and content.
+
+5. **Write a completion summary** showing how many items were resolved vs skipped.
+
+---
+
 ## Rules
 
 - **Don't auto-modify patterns.** Review reports and suggests. The user decides.

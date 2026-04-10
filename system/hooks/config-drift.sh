@@ -90,10 +90,38 @@ if [ -d "$DEPLOY_DIR/rules" ]; then
     done
 fi
 
+# ── ADR-033: MCP pinning check on ~/.claude.json ─────────
+# Walks both top-level mcpServers and project-scoped mcpServers.
+# Flags any command containing npx or uvx.
+MCP_VIOLATIONS_JSON="[]"
+GLOBAL_JSON="$HOME/.claude.json"
+
+if [ -f "$GLOBAL_JSON" ] && command -v jq &>/dev/null; then
+    # Collect unique server names (top-level + project-scoped), deduplicated
+    VIOLATIONS=$(jq -r '
+      [
+        (.mcpServers // {} | to_entries[] |
+          select(.value.command // "" | test("npx|uvx")) |
+          "top-level:\(.key)"),
+        (.projects // {} | to_entries[] |
+          (.value.mcpServers // {}) | to_entries[] |
+          select(.value.command // "" | test("npx|uvx")) |
+          "project-scoped:\(.key)")
+      ] | unique[]
+    ' "$GLOBAL_JSON" 2>/dev/null) || VIOLATIONS=""
+
+    while IFS= read -r line; do
+        [ -z "$line" ] && continue
+        MCP_VIOLATIONS_JSON=$(echo "$MCP_VIOLATIONS_JSON" | jq -c \
+            --arg v "$line" '. + [$v]')
+    done <<< "$VIOLATIONS"
+fi
+
 # ── Build output ─────────────────────────────────────────
 COUNT=$(echo "$DRIFTED_JSON" | jq 'length' 2>/dev/null) || COUNT=0
+MCP_COUNT=$(echo "$MCP_VIOLATIONS_JSON" | jq 'length' 2>/dev/null) || MCP_COUNT=0
 
-if [ "$COUNT" -gt 0 ]; then
+if [ "$COUNT" -gt 0 ] || [ "$MCP_COUNT" -gt 0 ]; then
     STATUS="drifted"
 else
     STATUS="clean"
@@ -103,4 +131,6 @@ jq -n -c \
     --arg status "$STATUS" \
     --argjson drifted "$DRIFTED_JSON" \
     --argjson count "$COUNT" \
-    '{status: $status, count: $count, drifted: $drifted}'
+    --argjson mcp_violations "$MCP_VIOLATIONS_JSON" \
+    --argjson mcp_count "$MCP_COUNT" \
+    '{status: $status, count: $count, drifted: $drifted, mcp_violations: $mcp_violations, mcp_count: $mcp_count}'
