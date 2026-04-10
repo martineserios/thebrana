@@ -1,7 +1,9 @@
 #!/bin/bash
 # ─── Claude Code Statusline ─────────────────────────────
 # 🧠 Model │ 📂 project │ 🌿 branch │ CTX NN% │ 📝 +156 -23 │ [⚡ │ 📋 N]
-# CTX color: green <55%, yellow 55-69%, orange 70-84%, red 85%+
+# CTX shows % remaining until auto-compact (threshold: BRANA_AUTOCOMPACT_THRESHOLD, default 85).
+# Matches CC native "X% until auto-compact" footer — same number, no contradiction.
+# CTX color: dimmed >45%, yellow ≤45%, orange+⚠ ≤15%, red+⚠ at threshold.
 # Width-aware: drops low-priority segments when terminal is narrow.
 
 INPUT=$(cat)
@@ -19,6 +21,10 @@ IFS=$'\t' read -r MODEL CWD PROJECT CTX_PCT LA LD <<< \
 
 CTX_PCT=${CTX_PCT:-0}; LA=${LA:-0}; LD=${LD:-0}
 
+# ── Compute until-compact % (aligns with CC native footer) ──
+COMPACT_THRESHOLD=${BRANA_AUTOCOMPACT_THRESHOLD:-85}
+UNTIL_COMPACT=$(( COMPACT_THRESHOLD - CTX_PCT ))
+
 # ── ANSI palette ─────────────────────────────────────────
 R='\033[0m'   D='\033[2m'   B='\033[1m'
 Cw='\033[97m' Cy='\033[36m' Cg='\033[32m'
@@ -35,11 +41,13 @@ else
 fi
 
 # ── Context indicator (always visible, color-coded) ──────
-if   (( CTX_PCT >= 95 )); then CTX_SHOW="${Cr}${B}🔴 CTX ${CTX_PCT}%${R}"
-elif (( CTX_PCT >= 85 )); then CTX_SHOW="${Cr}⚠ CTX ${CTX_PCT}%${R}"
-elif (( CTX_PCT >= 70 )); then CTX_SHOW="${Co}⚠ CTX ${CTX_PCT}%${R}"
-elif (( CTX_PCT >= 55 )); then CTX_SHOW="${Co}CTX ${CTX_PCT}%${R}"
-else                            CTX_SHOW="${D}CTX ${CTX_PCT}%${R}"; fi
+# Shows used% (same metric as CC's context window).
+# When near threshold, appends "·Xc" (X% until compact) to match CC's "X% until auto-compact".
+if   (( UNTIL_COMPACT <= 0  )); then CTX_SHOW="${Cr}${B}🔴 CTX ${CTX_PCT}%${R}"
+elif (( UNTIL_COMPACT <= 15 )); then CTX_SHOW="${Cr}⚠ CTX ${CTX_PCT}% ${D}·${UNTIL_COMPACT}c${R}"
+elif (( UNTIL_COMPACT <= 30 )); then CTX_SHOW="${Co}⚠ CTX ${CTX_PCT}%${R}"
+elif (( UNTIL_COMPACT <= 45 )); then CTX_SHOW="${Co}CTX ${CTX_PCT}%${R}"
+else                                  CTX_SHOW="${D}CTX ${CTX_PCT}%${R}"; fi
 
 # ── Git branch ───────────────────────────────────────────
 BRANCH=$(cd "$CWD" 2>/dev/null && git branch --show-current 2>/dev/null)
