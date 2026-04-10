@@ -59,8 +59,14 @@ Weekly cadence review — portfolio health, zombie cleanup, metrics delta, ship 
 4. **Zombie cleanup:** identify tasks older than 30 days with no activity — present for archival or reprioritization
 5. **Metrics delta:** compare current metrics vs last week's stored values
 6. **Ship log:** `git log --oneline --since="7 days ago"` across active clients
-7. **Pipeline check:** read pipeline state (if /brana:pipeline is configured)
-8. **Store trends:**
+7. **Friction check:**
+   ```bash
+   brana session insights --limit 30 --json
+   ```
+   If `total < 3`, note "insufficient data ({N} sessions this week)" and omit the Friction section from the report.
+   Surface `turbulent` and `blocked` sessions by label. Include `suggestions` array verbatim.
+8. **Pipeline check:** read pipeline state (if /brana:pipeline is configured)
+9. **Store trends:**
    ```bash
    source "$HOME/.claude/scripts/cf-env.sh"
    [ -n "$CF" ] && cd "$HOME" && $CF memory store \
@@ -70,8 +76,8 @@ Weekly cadence review — portfolio health, zombie cleanup, metrics delta, ship 
      --tags "client:{PROJECT},type:weekly-review" \
      --upsert
    ```
-9. **Next-week planning:** based on bottleneck identified in metrics + unblocked tasks
-10. **Write report** to `docs/reviews/weekly-YYYY-MM-DD.md`
+10. **Next-week planning:** based on bottleneck identified in metrics + unblocked tasks
+11. **Write report** to `docs/reviews/weekly-YYYY-MM-DD.md`
 
 ### Report format
 
@@ -89,6 +95,12 @@ Weekly cadence review — portfolio health, zombie cleanup, metrics delta, ship 
 
 ### Pipeline
 {deal status if applicable}
+
+### Friction
+{N} sessions: {clean} clean / {turbulent} turbulent / {blocked} blocked / {abandoned} abandoned
+Avg correction rate: {X%}
+{suggestions, if any}
+{omit section if < 3 sessions this week}
 
 ### Next Week
 1. {priority 1 — tied to bottleneck}
