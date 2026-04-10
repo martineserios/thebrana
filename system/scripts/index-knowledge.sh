@@ -232,7 +232,16 @@ fi
 if [ "$USE_MCP" = true ]; then
     echo ""
     echo "Phase 2: MCP indexing via $MCP_INDEXER"
+    set +e
     INDEXER_OUTPUT=$($NODE "$MCP_INDEXER" $CLEANUP_FLAG "$JSONL_FILE" 2>&1)
+    MCP_EXIT=$?
+    set -e
+    if [ "$MCP_EXIT" -ne 0 ]; then
+        echo "WARN: MCP indexing failed (exit $MCP_EXIT) — ruflo MCP unavailable, falling back to SQLite"
+        echo ""
+        echo "Phase 2: SQLite indexing via $BULK_INDEXER (MCP fallback)"
+        INDEXER_OUTPUT=$($NODE "$BULK_INDEXER" $CLEANUP_FLAG "$JSONL_FILE" 2>&1)
+    fi
 else
     # Fallback: SQLite direct (bulk-index.mjs)
     if [ "${USE_SQLITE:-}" = "1" ]; then
