@@ -11,6 +11,7 @@ Parse `$ARGUMENTS` for the subcommand:
 - `/brana:memory pollinate [query]` — cross-client pattern transfer
 - `/brana:memory review` — monthly knowledge health audit
 - `/brana:memory review --audit [doc]` — cross-doc contradiction detection
+- `/brana:memory audit` — surface lint+heal report and approve merges
 
 If no subcommand recognized, default to **recall** with the full arguments as query. If no arguments at all, infer query from current project context.
 

@@ -89,7 +89,7 @@ All skills remain available as slash commands. Semantic routing via ruflo is unc
 
 ### MCP Server Pinning (ADR-033)
 
-`.mcp.json` uses `${CLAUDE_PLUGIN_ROOT}/scripts/*-mcp.sh` wrapper scripts instead of `npx`/`uvx`. Each wrapper resolves the server binary dynamically (via nvm or PATH). This eliminates 15-180s registry resolution per server at session start. Wrappers: `ruflo-mcp.sh`, `context7-mcp.sh`, `linkedin-mcp.sh`.
+`.mcp.json` uses `${CLAUDE_PLUGIN_ROOT}/scripts/*-mcp.sh` wrapper scripts instead of `npx`/`uvx`. Each wrapper resolves the server binary dynamically (via nvm or PATH). This eliminates 15-180s registry resolution per server at session start. Wrappers: `ruflo-mcp.sh`. (`brana-mcp` uses a direct binary path, no wrapper.)
 
 ## Installation
 

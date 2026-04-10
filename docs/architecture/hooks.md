@@ -33,7 +33,7 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 
 **`lib/cf-env.sh`** -- Locates the `ruflo` binary. Source it to get `$CF`. Search order: nvm global install, PATH lookup, npx fallback. Used by session-start, session-end, session-start-venture, and post-sale hooks.
 
-**`lib/ruflo-mcp.sh`, `lib/context7-mcp.sh`, `lib/linkedin-mcp.sh`** -- MCP server wrapper scripts that resolve binaries dynamically at launch time instead of hardcoding paths. Used by `hooks.json` MCP server definitions. `ruflo-mcp.sh` includes a PID lock (prevents concurrent SQLite corruption) and auto-restart on SIGTERM (up to 5 retries, mitigates CC bug #40207 which kills healthy MCP servers mid-session).
+**`lib/ruflo-mcp.sh`** -- MCP server wrapper script that resolves the ruflo binary dynamically at launch time instead of hardcoding paths. Includes a PID lock (prevents concurrent SQLite corruption) and auto-restart on SIGTERM (up to 5 retries, mitigates CC bug #40207 which kills healthy MCP servers mid-session). `brana-mcp` uses a direct binary path in `.mcp.json` — no wrapper needed.
 
 ## Hook inventory
 

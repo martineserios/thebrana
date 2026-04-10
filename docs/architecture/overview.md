@@ -252,3 +252,7 @@ Source: t-1105 ecosystem.md, challenger review 2026-04-10
 ### 2026-04-10: Challenge guide docs before merging, not just architecture docs
 A 97-line guide doc had 3 factual errors caught by a single challenger pass: wrong path contract, unsupported hook behavior claim, wrong MEMORY.md location. Challenger value is high on published docs — run it on guide/*.md before any merge to main.
 Source: t-1105 ecosystem.md, challenger review 2026-04-10
+
+### 2026-04-10: Fix branches must branch from main, not docs/* branches
+When `git worktree add -b fix/...` is run without an explicit base ref, the branch starts from the current HEAD — which may be a docs/* branch ahead of main. A subsequent merge to main then picks up all intervening commits (unrelated docs, bootstrap.sh, etc.). Always pass `main` explicitly: `git worktree add /tmp/wt -b fix/t-NNNN-desc main`.
+Source: t-1121 statusline fix, session 2026-04-10
