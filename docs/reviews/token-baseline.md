@@ -10,6 +10,21 @@ Tracking scheduled agent trigger costs to optimize resource usage.
 - This monitor session: haiku (minimal cost)
 - Status: establishing baseline
 
+## 2026-04-10
+- Triggers fired today: none
+- New commits from agents (24h): 0
+- New review files: none
+- This monitor session: haiku (minimal cost)
+
+---
+
+## Baseline Summary (7+ days of observation)
+- **Total trigger fires observed**: 0 across all monitors
+- **weekly-review** (Fridays): no activity (expected next: 2026-04-11)
+- **knowledge-review** (1st of month): no activity (last: 2026-04-01)
+- **token-monitor**: daily observations, haiku model, minimal cost per run
+- **Recommendation**: Continue monitoring. Triggers not yet executed; verify scheduling configuration if weekly-review and knowledge-review are expected to be active.
+
 ---
 
 ### Monitoring Setup
