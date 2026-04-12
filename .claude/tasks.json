@@ -30285,7 +30285,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "done",
       "stream": "tech-debt",
       "subject": "[hook] Close worktree-gate gap: intercept git switch -c",
       "tags": [
@@ -30449,7 +30449,7 @@
       "parent": "t-1125",
       "priority": null,
       "started": null,
-      "status": "pending",
+      "status": "done",
       "strategy": null,
       "stream": "roadmap",
       "subject": "[hook] Fix worktree-gate commit error message — show commit-specific text not checkout-b text",
