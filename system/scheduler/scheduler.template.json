@@ -193,6 +193,16 @@
       "captureOutput": true,
       "_comment": "t-1009: daily intelligence digest from feed-log.jsonl → ~/.claude/intelligence-feed-digest.md. Runs after last feed-poll (18:00)."
     },
+    "feed-ruflo-index": {
+      "type": "command",
+      "command": "./system/scripts/feed-ruflo-index.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 19:15:00",
+      "enabled": true,
+      "timeoutSeconds": 300,
+      "captureOutput": true,
+      "_comment": "t-1138: store new feed entries to ruflo memory_entries for semantic search. Runs 15min after feed-index (19:00). Entries searchable after next session start."
+    },
     "statusline-slow-cache": {
       "type": "command",
       "command": "./system/scripts/statusline-slow-cache.sh",
