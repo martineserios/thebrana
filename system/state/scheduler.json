@@ -207,6 +207,16 @@
       "timeoutSeconds": 30,
       "captureOutput": true,
       "_comment": "t-1023: write ruflo health, portfolio pulse, knowledge freshness to statusline slow-cache every 5min"
+    },
+    "knowledge-pipeline-tier1": {
+      "type": "command",
+      "command": "brana knowledge process --tier1 && brana knowledge process --tier2",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "0 3 * * *",
+      "enabled": false,
+      "timeoutSeconds": 300,
+      "captureOutput": true,
+      "_comment": "t-1136: nightly Tier 1+2 LinkedIn URL relevance filter + cluster assignment. Enable manually after dry-run passes clean. Tier 3 is manual only."
     }
   }
 }
