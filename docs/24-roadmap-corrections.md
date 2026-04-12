@@ -1979,3 +1979,19 @@ The planned split (ARCHITECTURE.md = reasoning, component-index.md = generated i
 **Files affected:** spec stub naming convention (not documented anywhere)
 
 **Fix applied:** Renamed to `knowledge_pipeline.spec.md` (dot separator). Convention: always use `{name}.spec.md` — never `{name}_spec.md`.
+
+---
+
+## Error 87: reference/hooks.md missing branch-verify.sh (auto-generated, cascade from #86)
+
+**Severity:** Low
+**Status:** pending
+**Discovery:** Cascade from errata #86 (2026-04-12)
+
+**Finding:** `docs/reference/hooks.md` is auto-generated from `hooks.json` but does not list `branch-verify.sh` despite it being registered in `system/hooks/hooks.json`. The generate-reference.py script appears to be out of sync.
+
+**Impact:** The reference doc is the canonical quick-lookup for hook scripts. Missing entries mislead contributors.
+
+**Files affected:** `docs/reference/hooks.md` — plugin hooks table; `system/scripts/generate-reference.py` (or equivalent generator)
+
+**Fix:** Regenerate `docs/reference/hooks.md` by re-running the generator script. Verify `branch-verify.sh` appears in the output.
