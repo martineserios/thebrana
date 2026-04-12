@@ -24,25 +24,28 @@ With brana: Claude remembers your corrections, follows your conventions, and get
 
 ## Quick start
 
-### 1. Install the plugin
-
-```
-/plugin marketplace add martineserios/thebrana
-/plugin install brana
-```
-
-### 2. (Optional) Deploy the identity layer
+### Install
 
 ```bash
-git clone https://github.com/martineserios/thebrana.git
-cd thebrana && ./bootstrap.sh
+curl -fsSL https://raw.githubusercontent.com/martineserios/thebrana/main/install.sh | bash
 ```
 
-### 3. Start working
+Or manually:
+
+```bash
+git clone https://github.com/martineserios/thebrana.git ~/brana
+cd ~/brana && ./bootstrap.sh
+```
+
+Restart Claude Code. The plugin loads automatically.
+
+**Custom install directory:** `BRANA_DIR=~/my-dir bash install.sh`
+
+### Start working
 
 ```
 /brana:build "add user authentication"   -- auto-detects strategy (feature, bug fix, refactor...)
-/brana:backlog start t-015                -- pick a task and enter the build loop
+/brana:backlog                            -- manage tasks
 /brana:close                             -- end session, capture learnings
 ```
 
