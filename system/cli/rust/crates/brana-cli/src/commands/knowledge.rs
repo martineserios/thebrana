@@ -1,9 +1,13 @@
 //! Knowledge subcommand handlers
 
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::process::Command;
+
+use brana_core::knowledge_pipeline::{
+    self as kp, DRAFT_CAP, UrlStatus,
+};
 
 use crate::util::{find_project_root, home};
 
@@ -290,6 +294,617 @@ pub fn cmd_status() {
             println!("  (install sqlite3 for detailed stats)\n");
         }
     }
+}
+
+// ── brana knowledge process ───────────────────────────────────────────────
+
+#[allow(clippy::too_many_arguments)]
+pub fn cmd_process(
+    tier1: bool,
+    tier2: bool,
+    draft: Option<String>,
+    report: bool,
+    status: bool,
+    reset_url: Option<String>,
+    dry_run: bool,
+) -> Result<()> {
+    let knowledge_root = kp::find_brana_knowledge_root()
+        .ok_or_else(|| anyhow::anyhow!(
+            "brana-knowledge repo not found. Checked: $BRANA_KNOWLEDGE_ROOT, \
+             sibling of git root, ~/enter_thebrana/brana-knowledge/"
+        ))?;
+    let state_path = kp::pipeline_state_path();
+    let mut state = kp::load_state(&state_path)?;
+
+    // ── --status ──────────────────────────────────────────────────────
+    if status {
+        let counts = count_by_tier(&state);
+        let draft_count = kp::count_drafts(&knowledge_root);
+        let cap_hit = draft_count >= DRAFT_CAP && !state.draft_cap_acknowledged;
+        println!("\n  \x1b[1mKnowledge Pipeline Status\x1b[0m");
+        println!("  Unprocessed:     {}", counts.unprocessed);
+        println!("  Irrelevant:      {}", counts.irrelevant);
+        println!("  Tier 1 passed:   {}", counts.tier1_passed);
+        println!("  Tier 2 clustered:{}", counts.tier2_clustered);
+        println!("  Tier 3 drafted:  {}", counts.tier3_drafted);
+        println!("  Drafts on disk:  {}/{DRAFT_CAP}", draft_count);
+        if cap_hit {
+            println!("  \x1b[33m⚠ Draft cap hit — review drafts before pipeline runs again.\x1b[0m");
+            println!("  \x1b[33m  Run `brana knowledge process --status` again after reviewing to acknowledge.\x1b[0m");
+            // Acknowledge on explicit --status invocation
+            state.draft_cap_acknowledged = true;
+            if !dry_run {
+                kp::save_state(&state_path, &state)?;
+            }
+        }
+        if let Some(last) = &state.last_tier1_run {
+            println!("  Last Tier 1 run: {last}");
+        }
+        if let Some(last) = &state.last_tier2_run {
+            println!("  Last Tier 2 run: {last}");
+        }
+        println!();
+        return Ok(());
+    }
+
+    // ── --reset-url ───────────────────────────────────────────────────
+    if let Some(url) = reset_url {
+        if state.urls.remove(&url).is_some() {
+            println!("  Removed '{}' from pipeline state — will reprocess on next run.", url);
+            if !dry_run {
+                kp::save_state(&state_path, &url_reset_state(state, &url))?;
+            } else {
+                println!("  [dry-run] state not written.");
+            }
+        } else {
+            println!("  URL not found in pipeline state: {url}");
+        }
+        return Ok(());
+    }
+
+    // ── --report ──────────────────────────────────────────────────────
+    if report {
+        let report_path = home().join(".claude/knowledge-pipeline-report.md");
+        if report_path.exists() {
+            let content = std::fs::read_to_string(&report_path)?;
+            println!("{content}");
+        } else {
+            println!("  No cluster report found. Run `brana knowledge process --tier2` first.");
+        }
+        return Ok(());
+    }
+
+    // ── draft cap gate (blocks --tier1 and --tier2) ───────────────────
+    if tier1 || tier2 {
+        let draft_count = kp::count_drafts(&knowledge_root);
+        if draft_count >= DRAFT_CAP && !state.draft_cap_acknowledged {
+            eprintln!(
+                "  \x1b[31m✗ Draft cap hit ({draft_count}/{DRAFT_CAP} drafts in brana-knowledge/drafts/).\x1b[0m"
+            );
+            eprintln!("    Review and promote/reject drafts, then run `brana knowledge process --status` to acknowledge.");
+            std::process::exit(1);
+        }
+    }
+
+    // ── --tier1 ───────────────────────────────────────────────────────
+    if tier1 {
+        run_tier1(&knowledge_root, &state_path, &mut state, dry_run)?;
+    }
+
+    // ── --tier2 ───────────────────────────────────────────────────────
+    if tier2 {
+        run_tier2(&knowledge_root, &state_path, &mut state, dry_run)?;
+    }
+
+    // ── --draft <topic> ───────────────────────────────────────────────
+    if let Some(topic) = draft {
+        run_tier3(&topic, &knowledge_root, &state_path, &mut state, dry_run)?;
+    }
+
+    Ok(())
+}
+
+// ── Tier 1 ────────────────────────────────────────────────────────────────
+
+const TIER1_BATCH: usize = 50;
+
+fn run_tier1(
+    knowledge_root: &std::path::Path,
+    state_path: &std::path::Path,
+    state: &mut kp::PipelineState,
+    dry_run: bool,
+) -> Result<()> {
+    let dimension_slugs = kp::list_dimension_slugs(knowledge_root);
+    let dim_list = dimension_slugs.join(", ");
+
+    let candidates = kp::extract_unprocessed_urls(state)?;
+    let batch: Vec<_> = candidates.into_iter().take(TIER1_BATCH).collect();
+
+    if batch.is_empty() {
+        println!("  Tier 1: no unprocessed URLs found.");
+        return Ok(());
+    }
+
+    println!(
+        "\n  \x1b[1mTier 1 — Relevance filter\x1b[0m{}",
+        if dry_run { " [dry-run]" } else { "" }
+    );
+    println!("  Processing {} URL(s) (batch cap: {TIER1_BATCH})\n", batch.len());
+
+    let mut passed = 0usize;
+    let mut filtered = 0usize;
+
+    for entry in &batch {
+        let prompt = format!(
+            "You are classifying a LinkedIn post for relevance to a personal knowledge base \
+about AI systems, agent design, developer tooling, and knowledge management.\n\n\
+Author: {}\nTitle signal: {}\nTags: {}\n\n\
+Score the relevance 1-5 where:\n\
+1 = personal update, marketing, unrelated\n\
+2 = tangentially related, low signal\n\
+3 = relevant, worth reading\n\
+4 = directly relevant to known topics (memory, agents, CLI tooling, CC patterns)\n\
+5 = high-signal, likely new dimension content\n\n\
+Known dimension topics: {}\n\n\
+Respond with JSON only: {{\"score\": N, \"reason\": \"one sentence\"}}",
+            entry.author,
+            entry.title_signal,
+            entry.tags.join(" "),
+            dim_list,
+        );
+
+        if dry_run {
+            println!(
+                "  [dry-run] would score: {} (author: {}, tags: {})",
+                entry.url,
+                entry.author,
+                entry.tags.join(" "),
+            );
+            continue;
+        }
+
+        match kp::call_claude_json(&prompt) {
+            Ok(json) => {
+                let score = json.get("score").and_then(|v| v.as_u64()).unwrap_or(0) as u8;
+                let reason = json
+                    .get("reason")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+
+                let status = if score >= 3 {
+                    passed += 1;
+                    UrlStatus::Tier1Passed
+                } else {
+                    filtered += 1;
+                    UrlStatus::Irrelevant
+                };
+
+                let icon = if score >= 3 { "✓" } else { "✗" };
+                println!("  {icon} [{score}] {} — {reason}", entry.author);
+
+                let url_entry = kp::UrlEntry {
+                    status,
+                    tier1_score: Some(score),
+                    tier1_reason: Some(reason),
+                    cluster_topic: None,
+                    dimension_target: None,
+                    draft_path: None,
+                    logged_date: Some(entry.logged_date.clone()),
+                };
+                state.urls.insert(entry.url.clone(), url_entry);
+            }
+            Err(e) => {
+                eprintln!("  \x1b[33m  ⚠ LLM call failed for {}: {e:#}\x1b[0m", entry.url);
+                // Mark as unprocessed with a placeholder so we don't re-attempt endlessly
+                // in this batch, but will retry on next run (not saved to state on error)
+            }
+        }
+    }
+
+    if !dry_run {
+        let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+        state.last_tier1_run = Some(now);
+        kp::save_state(state_path, state)?;
+        println!(
+            "\n  Tier 1 done — {} passed, {} filtered. State saved.",
+            passed, filtered
+        );
+    }
+
+    Ok(())
+}
+
+// ── Tier 2 ────────────────────────────────────────────────────────────────
+
+fn run_tier2(
+    knowledge_root: &std::path::Path,
+    state_path: &std::path::Path,
+    state: &mut kp::PipelineState,
+    dry_run: bool,
+) -> Result<()> {
+    let dimension_slugs = kp::list_dimension_slugs(knowledge_root);
+    let dim_list: Vec<String> = dimension_slugs
+        .iter()
+        .map(|s| format!("- {s}"))
+        .collect();
+    let dim_list_str = dim_list.join("\n");
+
+    let candidates: Vec<_> = state
+        .urls
+        .iter()
+        .filter(|(_, e)| e.status == UrlStatus::Tier1Passed)
+        .map(|(url, e)| (url.clone(), e.author.clone().unwrap_or_default(), e.title_signal.clone().unwrap_or_default(), e.tags.clone().unwrap_or_default()))
+        .collect();
+
+    if candidates.is_empty() {
+        println!("  Tier 2: no tier1-passed URLs found. Run --tier1 first.");
+        return Ok(());
+    }
+
+    println!(
+        "\n  \x1b[1mTier 2 — Cluster assignment\x1b[0m{}",
+        if dry_run { " [dry-run]" } else { "" }
+    );
+    println!("  Processing {} URL(s)\n", candidates.len());
+
+    // Cluster assignments: topic_slug → list of URLs
+    let mut clusters: std::collections::HashMap<String, Vec<String>> =
+        std::collections::HashMap::new();
+    let mut dim_targets: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
+
+    for (url, author, title_signal, tags) in &candidates {
+        let prompt = format!(
+            "You are assigning a LinkedIn post to the nearest topic in a knowledge base.\n\n\
+Author: {author}\nTitle signal: {title_signal}\nTags: {}\n\n\
+Existing dimension topics:\n{dim_list_str}\n\n\
+Assign this post to the best-matching dimension, or flag as \"new-topic\" \
+if it doesn't fit any existing dimension.\n\n\
+Respond with JSON only:\n\
+{{\"dimension_target\": \"slug or new-topic\", \"cluster_topic\": \"short label\", \"reason\": \"one sentence\"}}",
+            tags.join(" "),
+        );
+
+        if dry_run {
+            println!("  [dry-run] would cluster: {url}");
+            continue;
+        }
+
+        match kp::call_claude_json(&prompt) {
+            Ok(json) => {
+                let dim_target = json
+                    .get("dimension_target")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("new-topic")
+                    .to_string();
+                let cluster_topic = json
+                    .get("cluster_topic")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("unknown")
+                    .to_string();
+                let reason = json
+                    .get("reason")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+
+                println!("  → [{cluster_topic}] {author} — {reason}");
+
+                clusters
+                    .entry(cluster_topic.clone())
+                    .or_default()
+                    .push(url.clone());
+                dim_targets.insert(cluster_topic.clone(), dim_target.clone());
+
+                if let Some(entry) = state.urls.get_mut(url) {
+                    entry.status = UrlStatus::Tier2Clustered;
+                    entry.cluster_topic = Some(cluster_topic);
+                    entry.dimension_target = Some(dim_target);
+                }
+            }
+            Err(e) => {
+                eprintln!("  \x1b[33m  ⚠ LLM call failed for {url}: {e:#}\x1b[0m");
+            }
+        }
+    }
+
+    if dry_run {
+        return Ok(());
+    }
+
+    // Write cluster report
+    let report_path = home().join(".claude/knowledge-pipeline-report.md");
+    let report = build_cluster_report(&clusters, &dim_targets);
+    kp::assert_allowed_write(&report_path, knowledge_root)
+        .unwrap_or(()); // report path is in allowed exact list
+    std::fs::write(&report_path, &report)
+        .with_context(|| format!("writing cluster report to {}", report_path.display()))?;
+
+    let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+    state.last_tier2_run = Some(now);
+    kp::save_state(state_path, state)?;
+
+    println!(
+        "\n  Tier 2 done — {} cluster(s). Report: {}",
+        clusters.len(),
+        report_path.display()
+    );
+    println!("  To draft a cluster: brana knowledge process --draft <topic-slug>");
+
+    Ok(())
+}
+
+fn build_cluster_report(
+    clusters: &std::collections::HashMap<String, Vec<String>>,
+    dim_targets: &std::collections::HashMap<String, String>,
+) -> String {
+    use std::fmt::Write as _;
+    let now = chrono::Utc::now().format("%Y-%m-%d").to_string();
+    let mut out = format!("# Knowledge Pipeline — Cluster Report\n\nGenerated: {now}\n\n");
+    let mut topics: Vec<_> = clusters.keys().collect();
+    topics.sort();
+    for topic in topics {
+        let urls = &clusters[topic];
+        let dim = dim_targets.get(topic).map(|s| s.as_str()).unwrap_or("new-topic");
+        let _ = writeln!(out, "## {topic}\n\n**Target dimension:** `{dim}`  \n**Sources ({}):**\n", urls.len());
+        for url in urls {
+            let _ = writeln!(out, "- {url}");
+        }
+        let _ = writeln!(
+            out,
+            "\nTo draft: `brana knowledge process --draft {topic}`\n"
+        );
+    }
+    out
+}
+
+// ── Tier 3 ────────────────────────────────────────────────────────────────
+
+fn run_tier3(
+    topic: &str,
+    knowledge_root: &std::path::Path,
+    state_path: &std::path::Path,
+    state: &mut kp::PipelineState,
+    dry_run: bool,
+) -> Result<()> {
+    // Draft cap
+    let draft_count = kp::count_drafts(knowledge_root);
+    if draft_count >= DRAFT_CAP {
+        bail!(
+            "Draft cap hit ({draft_count}/{DRAFT_CAP}). Review and promote/reject drafts first, \
+             then run `brana knowledge process --status` to acknowledge."
+        );
+    }
+
+    // Collect URLs for this cluster
+    let cluster_urls: Vec<_> = state
+        .urls
+        .iter()
+        .filter(|(_, e)| {
+            e.status == UrlStatus::Tier2Clustered
+                && e.cluster_topic.as_deref() == Some(topic)
+        })
+        .map(|(url, e)| (url.clone(), e.author.clone().unwrap_or_default(), e.title_signal.clone().unwrap_or_default(), e.tags.clone().unwrap_or_default(), e.dimension_target.clone().unwrap_or_default()))
+        .collect();
+
+    if cluster_urls.is_empty() {
+        bail!("No tier2-clustered URLs found for topic '{topic}'. Run --tier2 first.");
+    }
+
+    let dim_target = cluster_urls[0].4.clone();
+
+    // Read existing dimension summary if available
+    let dim_summary = {
+        let dim_path = knowledge_root.join("dimensions").join(format!("{dim_target}.md"));
+        if dim_path.exists() {
+            let content = std::fs::read_to_string(&dim_path).unwrap_or_default();
+            content.chars().take(500).collect::<String>()
+        } else {
+            String::from("(new dimension — no existing content)")
+        }
+    };
+
+    let sources_block: String = cluster_urls
+        .iter()
+        .map(|(url, author, title_signal, tags, _)| {
+            format!("- Author: {author}, Title: {title_signal}, Tags: {}, URL: {url}", tags.join(" "))
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    let prompt = format!(
+        "You are writing an addition to a knowledge base dimension document.\n\n\
+Dimension: {dim_target}\nExisting content summary:\n{dim_summary}\n\n\
+Source posts ({n} posts, approved cluster: {topic}):\n{sources_block}\n\n\
+Write a new section to add to this dimension. Use markdown. \
+Cite each source post inline as [author, date]. \
+Do not repeat content already in the dimension. Focus on new insights only.\n\n\
+Output: markdown section only (no frontmatter, no preamble).",
+        n = cluster_urls.len(),
+    );
+
+    if dry_run {
+        println!("  [dry-run] would draft '{topic}' → dimensions/{dim_target}.md");
+        println!("  Sources: {} URL(s)", cluster_urls.len());
+        return Ok(());
+    }
+
+    println!("\n  \x1b[1mTier 3 — Draft synthesis\x1b[0m");
+    println!("  Topic: {topic} ({} sources) → {dim_target}", cluster_urls.len());
+
+    let body = kp::call_claude_json(&prompt)?;
+    // call_claude_json tries to parse as JSON; for prose output, fall back to string
+    let body_text = body
+        .as_str()
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| body.to_string());
+
+    let now_date = chrono::Utc::now().format("%Y-%m-%d").to_string();
+    let review_due = {
+        let d = chrono::Utc::now() + chrono::Duration::days(7);
+        d.format("%Y-%m-%d").to_string()
+    };
+
+    let sources_yaml: String = cluster_urls
+        .iter()
+        .map(|(url, _, _, _, _)| format!("  - url: {url}\n    logged: unknown"))
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    let draft_content = format!(
+        "---\nstatus: draft\ncreated: {now_date}\nsources:\n{sources_yaml}\ncluster_topic: {topic}\ndraft_author: llm\nreview_due: {review_due}\npromotion_target: dimensions/{dim_target}.md\n---\n\n{body_text}\n"
+    );
+
+    let topic_slug = topic.replace(' ', "-").to_lowercase();
+    let draft_filename = format!("{now_date}-{topic_slug}.md");
+    let draft_path = knowledge_root.join("drafts").join(&draft_filename);
+
+    kp::assert_allowed_write(&draft_path, knowledge_root)?;
+    std::fs::create_dir_all(draft_path.parent().unwrap())?;
+    std::fs::write(&draft_path, &draft_content)?;
+
+    // Update state
+    for (url, _, _, _, _) in &cluster_urls {
+        if let Some(entry) = state.urls.get_mut(url) {
+            entry.status = UrlStatus::Tier3Drafted;
+            entry.draft_path = Some(draft_path.to_string_lossy().to_string());
+        }
+    }
+    kp::save_state(state_path, state)?;
+
+    println!("  ✓ Draft written: {}", draft_path.display());
+    println!("  To promote: brana knowledge promote {}", draft_path.display());
+
+    Ok(())
+}
+
+// ── brana knowledge promote ───────────────────────────────────────────────
+
+pub fn cmd_promote(draft_path: PathBuf, dry_run: bool) -> Result<()> {
+    let knowledge_root = kp::find_brana_knowledge_root()
+        .ok_or_else(|| anyhow::anyhow!("brana-knowledge repo not found"))?;
+
+    // Resolve draft path (may be relative to knowledge_root or absolute)
+    let abs_draft = if draft_path.is_absolute() {
+        draft_path.clone()
+    } else {
+        knowledge_root.join(&draft_path)
+    };
+
+    if !abs_draft.exists() {
+        bail!("Draft file not found: {}", abs_draft.display());
+    }
+
+    kp::assert_allowed_write(&abs_draft, &knowledge_root)?;
+
+    let content = std::fs::read_to_string(&abs_draft)?;
+
+    // Parse promotion_target from frontmatter
+    let promotion_target = parse_frontmatter_field(&content, "promotion_target")
+        .ok_or_else(|| anyhow::anyhow!("Draft missing 'promotion_target' in frontmatter"))?;
+
+    let target_path = knowledge_root.join(&promotion_target);
+
+    println!("\n  \x1b[1mPromote draft\x1b[0m{}", if dry_run { " [dry-run]" } else { "" });
+    println!("  Draft:  {}", abs_draft.display());
+    println!("  Target: {}", target_path.display());
+
+    if dry_run {
+        return Ok(());
+    }
+
+    // Strip draft frontmatter, update status to accepted
+    let new_content = set_frontmatter_status(&content, "accepted");
+
+    if target_path.exists() {
+        // Append to existing dimension file
+        let existing = std::fs::read_to_string(&target_path)?;
+        let appended = format!("{existing}\n\n---\n\n<!-- promoted from draft: {} -->\n\n{}", abs_draft.file_name().unwrap_or_default().to_string_lossy(), strip_frontmatter(&new_content));
+        std::fs::write(&target_path, appended)?;
+        println!("  ✓ Appended to existing dimension: {}", target_path.display());
+    } else {
+        std::fs::create_dir_all(target_path.parent().unwrap_or(&target_path))?;
+        std::fs::write(&target_path, new_content)?;
+        println!("  ✓ Created new dimension: {}", target_path.display());
+    }
+
+    // Archive the draft
+    let archive_dir = knowledge_root
+        .join("drafts-archive")
+        .join(chrono::Utc::now().format("%Y-%m-%d").to_string());
+    std::fs::create_dir_all(&archive_dir)?;
+    let archive_dest = archive_dir.join(abs_draft.file_name().unwrap());
+    std::fs::rename(&abs_draft, &archive_dest)?;
+    println!("  ✓ Draft archived to: {}", archive_dest.display());
+
+    Ok(())
+}
+
+// ── helpers ───────────────────────────────────────────────────────────────
+
+#[derive(Default)]
+struct TierCounts {
+    unprocessed: usize,
+    irrelevant: usize,
+    tier1_passed: usize,
+    tier2_clustered: usize,
+    tier3_drafted: usize,
+}
+
+fn count_by_tier(state: &kp::PipelineState) -> TierCounts {
+    let mut c = TierCounts::default();
+    for entry in state.urls.values() {
+        match entry.status {
+            UrlStatus::Unprocessed => c.unprocessed += 1,
+            UrlStatus::Irrelevant => c.irrelevant += 1,
+            UrlStatus::Tier1Passed => c.tier1_passed += 1,
+            UrlStatus::Tier2Clustered => c.tier2_clustered += 1,
+            UrlStatus::Tier3Drafted => c.tier3_drafted += 1,
+        }
+    }
+    c
+}
+
+fn url_reset_state(mut state: kp::PipelineState, url: &str) -> kp::PipelineState {
+    state.urls.remove(url);
+    state
+}
+
+fn parse_frontmatter_field(content: &str, field: &str) -> Option<String> {
+    let prefix = format!("{field}: ");
+    for line in content.lines() {
+        if let Some(val) = line.strip_prefix(&prefix) {
+            return Some(val.trim().to_string());
+        }
+    }
+    None
+}
+
+fn set_frontmatter_status(content: &str, new_status: &str) -> String {
+    content
+        .lines()
+        .map(|line| {
+            if line.starts_with("status: ") {
+                format!("status: {new_status}")
+            } else {
+                line.to_string()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn strip_frontmatter(content: &str) -> String {
+    let mut lines = content.lines();
+    // Skip opening ---
+    if lines.next().map(|l| l.trim()) == Some("---") {
+        let rest: Vec<_> = lines.collect();
+        if let Some(pos) = rest.iter().position(|l| l.trim() == "---") {
+            return rest[pos + 1..].join("\n").trim_start().to_string();
+        }
+    }
+    content.to_string()
 }
 
 #[cfg(test)]

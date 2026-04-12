@@ -263,6 +263,72 @@ pub fn find_event_log_files() -> Vec<PathBuf> {
     find_event_log_files_in(&home().join(".claude/projects"))
 }
 
+/// Resolve the `brana-knowledge` repo root.
+///
+/// Resolution order:
+/// 1. `$BRANA_KNOWLEDGE_ROOT` env var
+/// 2. Sibling of the thebrana git repo root (`../brana-knowledge/` relative to repo root)
+/// 3. `~/enter_thebrana/brana-knowledge/`
+pub fn find_brana_knowledge_root() -> Option<PathBuf> {
+    if let Ok(v) = std::env::var("BRANA_KNOWLEDGE_ROOT") {
+        let p = PathBuf::from(v);
+        if p.exists() {
+            return Some(p);
+        }
+    }
+
+    // Try sibling of git repo root
+    if let Ok(out) = std::process::Command::new("git")
+        .args(["rev-parse", "--show-toplevel"])
+        .output()
+    {
+        if out.status.success() {
+            let repo = PathBuf::from(String::from_utf8_lossy(&out.stdout).trim().to_string());
+            if let Some(parent) = repo.parent() {
+                let sibling = parent.join("brana-knowledge");
+                if sibling.exists() {
+                    return Some(sibling);
+                }
+            }
+        }
+    }
+
+    // Fallback: well-known path
+    let fallback = home().join("enter_thebrana/brana-knowledge");
+    if fallback.exists() {
+        return Some(fallback);
+    }
+
+    None
+}
+
+/// List dimension topic slugs from `{brana_knowledge_root}/dimensions/*.md`.
+/// Used to populate the Tier 1/2 LLM prompts.
+pub fn list_dimension_slugs(brana_knowledge_root: &Path) -> Vec<String> {
+    let dim_dir = brana_knowledge_root.join("dimensions");
+    if !dim_dir.exists() {
+        return Vec::new();
+    }
+    let Ok(entries) = std::fs::read_dir(&dim_dir) else {
+        return Vec::new();
+    };
+    let mut slugs: Vec<String> = entries
+        .flatten()
+        .filter_map(|e| {
+            let p = e.path();
+            if p.extension().and_then(|x| x.to_str()) == Some("md") {
+                p.file_stem()
+                    .and_then(|s| s.to_str())
+                    .map(|s| s.to_string())
+            } else {
+                None
+            }
+        })
+        .collect();
+    slugs.sort();
+    slugs
+}
+
 /// Extract all unprocessed LinkedIn URL entries from all event logs.
 pub fn extract_unprocessed_urls(state: &PipelineState) -> Result<Vec<UrlEventEntry>> {
     let known: std::collections::HashSet<String> = state.urls.keys().cloned().collect();

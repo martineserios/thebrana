@@ -205,6 +205,38 @@ pub enum KnowledgeCmd {
         #[arg(long)]
         json: bool,
     },
+    /// Run the inbox→dimensions pipeline (Tier 1/2/3 processing)
+    Process {
+        /// Tier 1: score unprocessed LinkedIn URLs for relevance (batch ≤50)
+        #[arg(long)]
+        tier1: bool,
+        /// Tier 2: assign tier1-passed URLs to dimension clusters, produce report
+        #[arg(long)]
+        tier2: bool,
+        /// Tier 3: synthesise an approved cluster into a draft dimension doc
+        #[arg(long)]
+        draft: Option<String>,
+        /// Print the current cluster report
+        #[arg(long)]
+        report: bool,
+        /// Show pipeline state summary (counts by tier, draft cap status)
+        #[arg(long)]
+        status: bool,
+        /// Remove a URL from the processed index so it re-enters the pipeline
+        #[arg(long)]
+        reset_url: Option<String>,
+        /// Print planned actions without writing anything
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Promote a draft dimension doc to accepted (moves to dimensions/, updates frontmatter)
+    Promote {
+        /// Path to the draft file (relative to brana-knowledge/ or absolute)
+        draft_path: PathBuf,
+        /// Print planned actions without writing anything
+        #[arg(long)]
+        dry_run: bool,
+    },
 }
 
 #[derive(Subcommand)]
