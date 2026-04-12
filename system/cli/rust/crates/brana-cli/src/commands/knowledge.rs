@@ -1048,4 +1048,169 @@ mod tests {
         // Score should be formatted with 2 decimal places
         assert!(out.contains("[0.12]"), "score should be 2 decimal places, got: {out}");
     }
+
+    // ── parse_frontmatter_field ──────────────────────────────────────────
+
+    #[test]
+    fn test_parse_frontmatter_field_present() {
+        let content = "---\nstatus: draft\ncluster_topic: agent-memory\n---\nbody";
+        assert_eq!(
+            parse_frontmatter_field(content, "cluster_topic"),
+            Some("agent-memory".to_string())
+        );
+    }
+
+    #[test]
+    fn test_parse_frontmatter_field_missing_returns_none() {
+        let content = "---\nstatus: draft\n---\nbody";
+        assert_eq!(parse_frontmatter_field(content, "promotion_target"), None);
+    }
+
+    #[test]
+    fn test_parse_frontmatter_field_trims_whitespace() {
+        let content = "promotion_target:   dimensions/21-memory.md  ";
+        assert_eq!(
+            parse_frontmatter_field(content, "promotion_target"),
+            Some("dimensions/21-memory.md".to_string())
+        );
+    }
+
+    // ── set_frontmatter_status ───────────────────────────────────────────
+
+    #[test]
+    fn test_set_frontmatter_status_replaces_status_line() {
+        let content = "---\nstatus: draft\ncreated: 2026-04-12\n---\nbody";
+        let result = set_frontmatter_status(content, "accepted");
+        assert!(result.contains("status: accepted"));
+        assert!(!result.contains("status: draft"));
+    }
+
+    #[test]
+    fn test_set_frontmatter_status_leaves_other_lines_unchanged() {
+        let content = "---\nstatus: draft\ncreated: 2026-04-12\n---\nbody";
+        let result = set_frontmatter_status(content, "accepted");
+        assert!(result.contains("created: 2026-04-12"));
+        assert!(result.contains("body"));
+    }
+
+    #[test]
+    fn test_set_frontmatter_status_no_status_line_unchanged() {
+        let content = "---\ncreated: 2026-04-12\n---\nbody";
+        let result = set_frontmatter_status(content, "accepted");
+        assert!(!result.contains("status:"));
+        assert!(result.contains("created: 2026-04-12"));
+    }
+
+    // ── strip_frontmatter ────────────────────────────────────────────────
+
+    #[test]
+    fn test_strip_frontmatter_removes_yaml_block() {
+        let content = "---\nstatus: draft\n---\n\n# Body\n\ncontent here";
+        assert_eq!(strip_frontmatter(content), "# Body\n\ncontent here");
+    }
+
+    #[test]
+    fn test_strip_frontmatter_no_frontmatter_returns_unchanged() {
+        let content = "# Just a doc\n\nno frontmatter";
+        assert_eq!(strip_frontmatter(content), "# Just a doc\n\nno frontmatter");
+    }
+
+    #[test]
+    fn test_strip_frontmatter_unclosed_returns_unchanged() {
+        let content = "---\nstatus: draft\n\n# Body";
+        // no closing ---, returns original
+        assert_eq!(strip_frontmatter(content), "---\nstatus: draft\n\n# Body");
+    }
+
+    // ── count_by_tier ────────────────────────────────────────────────────
+
+    fn make_entry(status: UrlStatus) -> kp::UrlEntry {
+        kp::UrlEntry {
+            status,
+            tier1_score: None,
+            tier1_reason: None,
+            cluster_topic: None,
+            dimension_target: None,
+            draft_path: None,
+            logged_date: None,
+            author: None,
+            title_signal: None,
+            tags: vec![],
+        }
+    }
+
+    #[test]
+    fn test_count_by_tier_empty_state() {
+        let state = kp::PipelineState::default();
+        let counts = count_by_tier(&state);
+        assert_eq!(counts.unprocessed, 0);
+        assert_eq!(counts.tier1_passed, 0);
+    }
+
+    #[test]
+    fn test_count_by_tier_mixed_statuses() {
+        let mut state = kp::PipelineState::default();
+        state.urls.insert("u1".into(), make_entry(UrlStatus::Unprocessed));
+        state.urls.insert("u2".into(), make_entry(UrlStatus::Unprocessed));
+        state.urls.insert("u3".into(), make_entry(UrlStatus::Tier1Passed));
+        state.urls.insert("u4".into(), make_entry(UrlStatus::Irrelevant));
+        state.urls.insert("u5".into(), make_entry(UrlStatus::Tier2Clustered));
+        state.urls.insert("u6".into(), make_entry(UrlStatus::Tier3Drafted));
+        let counts = count_by_tier(&state);
+        assert_eq!(counts.unprocessed, 2);
+        assert_eq!(counts.irrelevant, 1);
+        assert_eq!(counts.tier1_passed, 1);
+        assert_eq!(counts.tier2_clustered, 1);
+        assert_eq!(counts.tier3_drafted, 1);
+    }
+
+    // ── url_reset_state ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_url_reset_state_removes_url() {
+        let mut state = kp::PipelineState::default();
+        state.urls.insert("https://example.com".into(), make_entry(UrlStatus::Tier1Passed));
+        let new_state = url_reset_state(state, "https://example.com");
+        assert!(!new_state.urls.contains_key("https://example.com"));
+    }
+
+    #[test]
+    fn test_url_reset_state_missing_url_is_noop() {
+        let mut state = kp::PipelineState::default();
+        state.urls.insert("https://kept.com".into(), make_entry(UrlStatus::Tier1Passed));
+        let new_state = url_reset_state(state, "https://gone.com");
+        assert!(new_state.urls.contains_key("https://kept.com"));
+        assert_eq!(new_state.urls.len(), 1);
+    }
+
+    // ── build_cluster_report ─────────────────────────────────────────────
+
+    #[test]
+    fn test_build_cluster_report_contains_topic_and_target() {
+        let mut clusters = std::collections::HashMap::new();
+        clusters.insert("agent-memory".to_string(), vec!["https://linkedin.com/u1".to_string()]);
+        let mut dim_targets = std::collections::HashMap::new();
+        dim_targets.insert("agent-memory".to_string(), "21-memory-patterns".to_string());
+        let report = build_cluster_report(&clusters, &dim_targets);
+        assert!(report.contains("## agent-memory"));
+        assert!(report.contains("21-memory-patterns"));
+        assert!(report.contains("https://linkedin.com/u1"));
+    }
+
+    #[test]
+    fn test_build_cluster_report_empty_returns_header() {
+        let clusters = std::collections::HashMap::new();
+        let dim_targets = std::collections::HashMap::new();
+        let report = build_cluster_report(&clusters, &dim_targets);
+        assert!(report.contains("# Knowledge Pipeline"));
+    }
+
+    #[test]
+    fn test_build_cluster_report_includes_draft_command() {
+        let mut clusters = std::collections::HashMap::new();
+        clusters.insert("cli-tooling".to_string(), vec!["https://linkedin.com/u2".to_string()]);
+        let dim_targets = std::collections::HashMap::new();
+        let report = build_cluster_report(&clusters, &dim_targets);
+        assert!(report.contains("brana knowledge process --draft cli-tooling"));
+    }
 }
