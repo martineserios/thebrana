@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-12T18:24:28Z",
+  "generated": "2026-04-12T18:43:54Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -737,6 +737,16 @@
       "title": "Golden Path Snapshot Format",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/architecture/features/inbox-to-dimensions-pipeline.md": {
+      "title": "Feature: Inbox → Dimensions Pipeline — Tiered Research",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/cli/rust/crates/brana-cli/src/knowledge.rs",
+        "system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs",
+        "system/scheduler/scheduler.template.json",
+        "system/state/scheduler.json"
+      ]
     },
     "docs/architecture/features/knowledge-architecture-v2.md": {
       "title": "Knowledge Architecture v2 — Feature Brief",
@@ -3028,6 +3038,24 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/inbox-to-dimensions-pipeline.md",
+      "to": "docs/ideas/inbox-to-dimensions-pipeline.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/inbox-to-dimensions-pipeline.md",
+      "to": "docs/ideas/memory-consolidation-kairos.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/inbox-to-dimensions-pipeline.md",
+      "to": "docs/research/2026-04-08-cc-alignment-findings.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/linkedin-content-implementation.md",
       "to": "dimensions/28-startup-smb-management.md",
       "type": "depends_on",
@@ -4391,6 +4419,18 @@
     },
     {
       "from": "docs/architecture/features/context-budget-real-limits.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/inbox-to-dimensions-pipeline.md",
+      "to": "brana-knowledge/dimensions/ (output target)",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/inbox-to-dimensions-pipeline.md",
       "to": "docs/reflections/ARCHITECTURE.md",
       "type": "informs",
       "computed": false
@@ -9203,9 +9243,9 @@
     }
   ],
   "stats": {
-    "nodes": 292,
-    "edges": 1217,
-    "typed_edges": 495,
+    "nodes": 293,
+    "edges": 1222,
+    "typed_edges": 500,
     "orphans": 64
   }
 }
