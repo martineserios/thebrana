@@ -151,6 +151,7 @@ From [15-self-development-workflow.md](../15-self-development-workflow.md) — t
 | Pattern curation | After each session with notable learnings | `/brana:retrospective` — the engine that builds knowledge trust |
 | Cross-project transfer | When starting work in a different project | `/brana:memory pollinate` — checks for applicable patterns |
 | Knowledge backup | Before ruflo upgrades | `backup-knowledge.sh` — snapshot ruflo memory + auto memory |
+| Inbox ingestion | Nightly (automated) + weekly manual gate | `brana knowledge process --tier1` (relevance filter, 50 URLs/batch) → `--tier2` (cluster assignment) → `--draft <topic>` (synthesis, manual gate). Nightly scheduler job: `knowledge-pipeline-tier1`. **Caution:** `--dry-run` skips LLM calls — always run `--sample 3` smoke test before enabling the nightly job to exercise the full call path |
 
 ### The Spec Repo
 
