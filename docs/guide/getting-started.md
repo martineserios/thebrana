@@ -23,18 +23,22 @@ Node.js is required for ruflo (the memory layer). jq is required by bootstrap, s
 
 ## Installation
 
-Brana has two layers. The **plugin** provides skills, hooks, and agents. The **identity layer** provides global rules, scripts, and scheduler. You need the plugin; the identity layer is optional but recommended.
+Brana has two layers. The **plugin** provides skills, hooks, and agents. The **identity layer** provides global rules, scripts, and scheduler. Both deploy via a single command.
 
-### Path 1: Marketplace install (recommended)
+### Path 1: One-command install (recommended)
 
-Open Claude Code and run:
-
-```
-/plugin marketplace add martineserios/thebrana
-/plugin install brana
+```bash
+curl -fsSL https://raw.githubusercontent.com/martineserios/thebrana/main/install.sh | bash
 ```
 
-This registers the brana marketplace and installs the plugin. Skills, hooks, and agents load automatically in every session.
+Or manually:
+
+```bash
+git clone https://github.com/martineserios/thebrana.git ~/brana
+cd ~/brana && ./bootstrap.sh
+```
+
+Restart Claude Code. The plugin loads automatically — no `/plugin` commands needed.
 
 ### Path 2: Dev mode (contributors)
 

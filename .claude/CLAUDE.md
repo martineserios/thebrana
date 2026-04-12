@@ -94,15 +94,13 @@ All skills remain available as slash commands. Semantic routing via ruflo is unc
 ## Installation
 
 ```bash
-# Dev mode (recommended for contributors)
+# One-command install (recommended)
+curl -fsSL https://raw.githubusercontent.com/martineserios/thebrana/main/install.sh | bash
+# or: git clone ... && ./bootstrap.sh
+# bootstrap.sh registers plugin directly via installed_plugins.json — no /plugin commands needed
+
+# Dev mode (contributors)
 claude --plugin-dir ./system
-
-# Install from GitHub
-/plugin marketplace add martineserios/thebrana
-/plugin install brana
-
-# Identity layer (CLAUDE.md, rules, scripts — run once)
-./bootstrap.sh
 ```
 
 ## Commands
@@ -293,3 +291,15 @@ Source: t-1131 session 2026-04-12
 ### 2026-04-12: cargo build --release stale incremental cache after large changes
 `cargo check` passes but `cargo build --release` fails with type errors on first attempt after significant code additions. Second attempt succeeds because the incremental cache self-heals. Reliable fix: `cargo clean -p <crate-name> && cargo build --release`. Or set `CARGO_INCREMENTAL=0` for release builds.
 Source: t-1131 session 2026-04-12
+
+### 2026-04-12: CC plugin registration is filesystem-level, not UI-gated
+`bootstrap.sh` step 7d writes `~/.claude/plugins/installed_plugins.json` and snapshots `system/` to the plugin cache directly. The `/plugin marketplace add` and `/plugin install` CC commands are UI sugar over the same JSON file — they are not required. Any installer that writes `installed_plugins.json` achieves full plugin registration without entering a CC session. Apply to any future CC plugin distribution work.
+Source: t-501 session 2026-04-12
+
+### 2026-04-12: Compounding loop framing beats feature enumeration for README positioning
+When comparing brana to PAI, SuperClaude, skill-kit, CCCBot — all lead with feature lists. The differentiator is behavioral accumulation over time (corrections persist, patterns compound, confidence grows). Before/after framing ("stateless Claude" vs "compounding brana") landed better than counting skills/rules/agents. Lead with the compounding loop narrative, not breadth.
+Source: t-560 README + distribution brainstorm 2026-04-12
+
+### 2026-04-12: Prefer git worktree add over git stash + git switch -c
+Worktree gate blocks `git switch -c` when unstaged changes exist. Using `git worktree add ../repo-feat/branch -b branch` instead of stash+switch avoids both the gate and the tasks.json stash-pop conflict pattern. Worktrees fully isolate the merge path. Preferred flow: stash specific files if needed → worktree add → work → merge --no-ff → worktree remove.
+Source: t-501 session 2026-04-12
