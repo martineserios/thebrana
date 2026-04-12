@@ -30615,7 +30615,7 @@
       "parent": "t-1113",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "done",
       "stream": "roadmap",
       "subject": "brana-cli: brana knowledge process --tier1 — relevance filter (LLM scores URLs 1-5)",
       "tags": [
@@ -30643,7 +30643,7 @@
       "parent": "t-1113",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "done",
       "stream": "roadmap",
       "subject": "brana-cli: brana knowledge process --tier2 — cluster assignment + cluster report",
       "tags": [
@@ -30671,7 +30671,7 @@
       "parent": "t-1113",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "done",
       "stream": "roadmap",
       "subject": "brana-cli: brana knowledge process --draft <topic> — Tier 3 draft synthesis",
       "tags": [
@@ -30699,7 +30699,7 @@
       "parent": "t-1113",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "done",
       "stream": "roadmap",
       "subject": "brana-cli: brana knowledge promote <draft-path> — promotion ritual",
       "tags": [
@@ -30726,7 +30726,7 @@
       "parent": "t-1113",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "done",
       "stream": "roadmap",
       "subject": "knowledge pipeline: scheduler entry + first dry-run validation",
       "tags": [
@@ -30998,7 +30998,7 @@
       "parent": "t-1113",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "done",
       "stream": "roadmap",
       "subject": "brana-cli: brana knowledge process --status and --reset-url flags",
       "tags": [
