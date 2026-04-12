@@ -4,14 +4,23 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-v1.0.33+-purple)
 
-A Claude Code plugin that turns it into a systematic development partner -- skills, rules, hooks, and agents so Claude learns from every session, follows engineering discipline, and works consistently across all your projects.
+Claude Code alone is powerful but stateless. Every session starts cold — no memory of past corrections, no enforced practices, no accumulated context.
+
+Brana adds the layer that makes it compound: a plugin for Claude Code that learns from every session, enforces engineering discipline automatically, and gets more useful the longer you use it.
 
 ## What you get
 
-- **25 skills** -- slash commands for building, researching, reviewing, managing tasks, and running a business
+- **25+ skills** -- slash commands for building, researching, reviewing, managing tasks, and more
 - **12 rules** -- git discipline, test-first, context budget, research methodology -- always active
 - **10 hooks** -- automatic behaviors: pattern recall, spec-before-code gate, learning capture, cascade detection
-- **11 agents** -- specialized sub-agents that auto-fire for code review, adversarial challenge, research, business ops
+- **11 agents** -- specialized sub-agents that auto-fire for code review, adversarial challenge, research, and more
+
+### The compounding loop
+
+Each session, brana captures what went wrong and what worked. Next session, those patterns surface automatically before you start. Corrections don't repeat. Patterns proven across 3+ sessions get promoted and recalled with higher confidence than new ones.
+
+Without brana: Claude resets every session.
+With brana: Claude remembers your corrections, follows your conventions, and gets harder to fool over time.
 
 ## Quick start
 
@@ -51,26 +60,22 @@ Hooks capture corrections, test writes, and failure cascades. `/brana:close` ext
 
 `/brana:challenge` runs an Opus-powered adversarial review with four flavors: pre-mortem, simplicity challenge, assumption buster, adversarial user. Auto-triggers after plan mode.
 
-### Full business toolkit
+### Enforcement, not reminders
 
-`/brana:review` (weekly/monthly health checks), `/brana:pipeline` (deal tracking), `/brana:financial-model` (projections + scenarios), `/brana:venture-phase` (milestone execution), `/brana:proposal` (client proposals in Spanish).
-
-### Spec-before-code enforcement
-
-The PreToolUse hook blocks implementation writes on `feat/*` branches until a spec or test exists. Projects opt in by having a `docs/decisions/` directory.
+Rules are active constraints, not suggestions. The PreToolUse hook blocks implementation writes on `feat/*` branches until a spec or test exists. The worktree gate prevents accidental commits to `main`. The doc gate blocks commits that change behavior without updating docs. You can't skip the fundamentals because they aren't optional.
 
 ## Skills
 
-| Group | Skills |
-|-------|--------|
-| **Core** | `backlog`, `reconcile`, `acquire-skills`, `plugin` |
-| **Execution** | `build`, `onboard`, `align`, `client-retire` |
-| **Learning** | `challenge`, `research`, `memory`, `retrospective` |
-| **Venture** | `review`, `venture-phase`, `pipeline`, `financial-model`, `proposal` |
-| **Session** | `close` |
-| **Capture** | `log` |
-| **Tools** | `notebooklm-source` |
-| **Utility** | `scheduler`, `export-pdf`, `gsheets`, `respondio-prompts`, `meta-template` |
+Organized by job:
+
+| Job | Skills |
+|-----|--------|
+| **DECIDE** | `backlog`, `brainstorm`, `sitrep`, `challenge` |
+| **UNDERSTAND** | `research`, `onboard`, `memory`, `notebooklm-source` |
+| **BUILD** | `build`, `align`, `docs`, `reconcile` |
+| **SHIP** | `ship`, `review`, `client-retire` |
+| **CAPTURE** | `close`, `retrospective`, `log`, `gsheets`, `export-pdf` |
+| **Tools** | `acquire-skills`, `plugin`, `scheduler`, `rust-skills`, `mcp-builder` |
 
 All skills are invoked as `/brana:<name>`. See [Skill Reference](docs/reference/skills.md) for full details.
 
@@ -103,7 +108,16 @@ All agents are read-only. See [Agent Reference](docs/reference/agents.md) for fu
 
 ## How it works
 
-Brana has two layers:
+Brana is structured as four layers:
+
+| Layer | What it is | Examples |
+|-------|-----------|---------|
+| **Commands** | Skills invoked as `/brana:*` slash commands | `build`, `backlog`, `research`, `close` |
+| **Specialists** | Agents that auto-fire for specific work types | challenger, pr-reviewer, debrief-analyst |
+| **Fabric** | Hooks enforcing rules automatically | spec gate, worktree guard, learning capture |
+| **Memory** | Cross-session pattern storage and recall | corrections, proven patterns, session state |
+
+Physically, these live in two places:
 
 ```
 Plugin (loaded by Claude Code)              Identity layer (~/.claude/)
@@ -113,9 +127,9 @@ Plugin (loaded by Claude Code)              Identity layer (~/.claude/)
 +-- commands/  -> agent commands            +-- scheduler/ -> scheduled jobs
 ```
 
-The **plugin** is the toolkit -- what Claude can do. Loads via Claude Code's plugin system.
+The **plugin** is the toolkit — what Claude can do. Loads via Claude Code's plugin system.
 
-The **identity layer** is the foundation -- how Claude thinks. Deploys once via `bootstrap.sh`.
+The **identity layer** is the foundation — how Claude thinks. Deploys once via `bootstrap.sh`.
 
 ## Dev mode
 
