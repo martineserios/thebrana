@@ -203,6 +203,8 @@ Each level is harder to set up but more reliable. The system should start manual
 
 **`brana session insights` surfaces graduation candidates.** The friction telemetry subcommand (`brana session insights`, Apr 2026) scans `~/.claude/projects/*.jsonl` for recurring tool failures and hook blocks, clusters them by command pattern, and produces a ranked list of recurrence counts. Wired into `/brana:review weekly` as a "recurring friction" section. This closes the observation gap in the graduation pathway: instead of relying on the user to notice repeated pain signals, the system surfaces them automatically. A pattern appearing 3+ times in the friction report is a direct signal to escalate to the next graduation level.
 
+**`brana skills usage` surfaces cull candidates.** The skill invocation telemetry subcommand (`brana skills usage [--days N] [--cull-threshold N]`, Apr 2026) scans JSONL session logs for per-skill invocation counts and flags skills below the threshold as cull candidates. This closes the other end of the skill lifecycle: not just when to graduate a practice upward, but when to retire a skill that has become obsolete or superseded. Together, `session insights` and `skills usage` give the graduation pathway bidirectional observability — graduate what's painful to keep doing manually, cull what's no longer being done at all.
+
 ### Git Workflow as Lifecycle Tool
 
 From [26-git-branching-strategies.md](../../../brana-knowledge/dimensions/26-git-branching-strategies.md) — GitHub Flow as the development lifecycle:
