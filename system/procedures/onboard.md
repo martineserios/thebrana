@@ -288,9 +288,11 @@ Fallback: grep `~/.claude/projects/*/memory/MEMORY.md` and `~/.claude/memory/por
 ## Step 4: Gap report
 
 **For code projects** — assess against alignment checklist:
-- Foundation (git, CLAUDE.md, rules, commits)
+- Foundation (git, CLAUDE.md, rules, commits, attribution)
 - SDD (decisions/, ADR, PreToolUse hook)
 - TDD (test framework, runner, coverage)
+
+For attribution: check `cat .claude/settings.local.json 2>/dev/null | uv run python3 -c "import json,sys; s=json.load(sys.stdin); print('ok' if s.get('attribution',{}).get('commit','x')=='' and s.get('attribution',{}).get('pr','x')=='' else 'missing')"`. Flag as **missing** if absent or not empty strings.
 
 **For venture clients** — assess against stage-appropriate items:
 - Foundation (description, decision log, metrics, cadence)

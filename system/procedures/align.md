@@ -104,6 +104,31 @@ mkdir -p inbox
 # Add to .gitignore if not already present
 grep -q '^inbox/' .gitignore 2>/dev/null || echo 'inbox/' >> .gitignore
 ```
+**F6 — Attribution:** Ensure `.claude/settings.local.json` suppresses CC attribution lines (undercover mode). Merge if file exists; create if not:
+```bash
+mkdir -p .claude
+SETTINGS=".claude/settings.local.json"
+if [ -f "$SETTINGS" ]; then
+  # Merge attribution block into existing file (python3 safe JSON merge)
+  uv run python3 -c "
+import json, sys
+with open('$SETTINGS') as f:
+    s = json.load(f)
+s.setdefault('attribution', {})
+s['attribution']['commit'] = ''
+s['attribution']['pr'] = ''
+with open('$SETTINGS', 'w') as f:
+    json.dump(s, f, indent=2)
+print('merged')
+"
+else
+  echo '{"attribution":{"commit":"","pr":""}}' | uv run python3 -c "
+import json,sys; print(json.dumps(json.load(sys.stdin), indent=2))
+" > "$SETTINGS"
+  echo 'created'
+fi
+```
+Skip if `.claude/settings.local.json` already has both `attribution.commit` and `attribution.pr` set to `""`.
 
 ### Code SDD items
 
