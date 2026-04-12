@@ -30097,7 +30097,7 @@
       "parent": "t-1103",
       "priority": "P2",
       "started": null,
-      "status": "in_progress",
+      "status": "done",
       "stream": "roadmap",
       "subject": "inbox→dimensions pipeline — Karpathy sources→wiki, LLM drafts Layer 2 docs from raw inputs",
       "tags": [
@@ -30752,7 +30752,7 @@
       "parent": "t-1113",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "done",
       "stream": "roadmap",
       "subject": "/brana:review integration — surface draft count + cluster report link weekly",
       "tags": [
