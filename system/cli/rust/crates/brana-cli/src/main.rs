@@ -136,6 +136,14 @@ fn main() {
             KnowledgeCmd::Search { query, limit, namespace, json } => {
                 run_or_exit(commands::knowledge::cmd_search(&query, limit, &namespace, json))
             }
+            KnowledgeCmd::Process { tier1, tier2, draft, report, status, reset_url, dry_run } => {
+                run_or_exit(commands::knowledge::cmd_process(
+                    tier1, tier2, draft, report, status, reset_url, dry_run,
+                ))
+            }
+            KnowledgeCmd::Promote { draft_path, dry_run } => {
+                run_or_exit(commands::knowledge::cmd_promote(draft_path, dry_run))
+            }
         },
         Commands::Graph { cmd } => commands::graph::cmd_graph(cmd),
     }

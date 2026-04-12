@@ -491,6 +491,9 @@ Respond with JSON only: {{\"score\": N, \"reason\": \"one sentence\"}}",
                     dimension_target: None,
                     draft_path: None,
                     logged_date: Some(entry.logged_date.clone()),
+                    author: Some(entry.author.clone()),
+                    title_signal: Some(entry.title_signal.clone()),
+                    tags: entry.tags.clone(),
                 };
                 state.urls.insert(entry.url.clone(), url_entry);
             }
@@ -534,7 +537,12 @@ fn run_tier2(
         .urls
         .iter()
         .filter(|(_, e)| e.status == UrlStatus::Tier1Passed)
-        .map(|(url, e)| (url.clone(), e.author.clone().unwrap_or_default(), e.title_signal.clone().unwrap_or_default(), e.tags.clone().unwrap_or_default()))
+        .map(|(url, e)| (
+            url.clone(),
+            e.author.clone().unwrap_or_default(),
+            e.title_signal.clone().unwrap_or_default(),
+            e.tags.clone(),
+        ))
         .collect();
 
     if candidates.is_empty() {
@@ -685,7 +693,13 @@ fn run_tier3(
             e.status == UrlStatus::Tier2Clustered
                 && e.cluster_topic.as_deref() == Some(topic)
         })
-        .map(|(url, e)| (url.clone(), e.author.clone().unwrap_or_default(), e.title_signal.clone().unwrap_or_default(), e.tags.clone().unwrap_or_default(), e.dimension_target.clone().unwrap_or_default()))
+        .map(|(url, e)| (
+            url.clone(),
+            e.author.clone().unwrap_or_default(),
+            e.title_signal.clone().unwrap_or_default(),
+            e.tags.clone(),
+            e.dimension_target.clone().unwrap_or_default(),
+        ))
         .collect();
 
     if cluster_urls.is_empty() {

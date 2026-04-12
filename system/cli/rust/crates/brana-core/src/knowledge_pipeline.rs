@@ -55,6 +55,15 @@ pub struct UrlEntry {
     /// ISO date the URL was logged in the event log (YYYY-MM-DD).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub logged_date: Option<String>,
+    /// Author slug extracted from the LinkedIn URL path.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub author: Option<String>,
+    /// Human-readable title signal extracted from the LinkedIn URL path.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title_signal: Option<String>,
+    /// Hashtags captured at event log time.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<String>,
 }
 
 impl UrlEntry {
@@ -67,6 +76,9 @@ impl UrlEntry {
             dimension_target: None,
             draft_path: None,
             logged_date,
+            author: None,
+            title_signal: None,
+            tags: Vec::new(),
         }
     }
 }
