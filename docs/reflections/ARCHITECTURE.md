@@ -145,14 +145,13 @@ The moment the single brain activates:
 
 ### SessionEnd — Learning Extraction
 
-Compound metrics computed from session JSONL:
-- correction_rate (lower = better planning)
-- auto_fix_rate (higher = better recovery)
-- test_write_rate (higher = better TDD)
-- cascade_rate (lower = better error handling)
-- test/lint pass rates
+`session-end.sh` is an orchestrator that forks three focused sub-scripts in parallel:
 
-Stored in ruflo memory patterns + metrics namespaces. Fallback to Layer 0 files if ruflo unavailable.
+- **`session-end-metrics.sh`** — Extracts compound metrics from session JSONL: `correction_rate` (lower = better planning), `auto_fix_rate` (higher = better recovery), `test_write_rate` (higher = better TDD), `cascade_rate` (lower = better error handling), test/lint pass rates
+- **`session-end-persist.sh`** — Stores metrics and session summary to ruflo memory (patterns + metrics namespaces). Fallback to Layer 0 auto-memory files if ruflo unavailable
+- **`session-end-drift.sh`** — Pushes sync-state, regenerates spec graph, appends decisions log entry
+
+The split keeps each concern independently testable and isolates failures: a ruflo outage doesn't prevent drift sync, and a spec graph error doesn't block metric storage.
 
 ### PostToolUse + PostToolUseFailure — Observation
 

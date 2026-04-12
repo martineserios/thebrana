@@ -1995,3 +1995,21 @@ The planned split (ARCHITECTURE.md = reasoning, component-index.md = generated i
 **Files affected:** `docs/reference/hooks.md` — plugin hooks table; `system/scripts/generate-reference.py` (or equivalent generator)
 
 **Fix:** Regenerate `docs/reference/hooks.md` by re-running the generator script. Verify `branch-verify.sh` appears in the output.
+
+---
+
+## Error 88: ARCHITECTURE.md session-end description doesn't reflect orchestrator pattern (cascade from #86)
+
+**Severity:** Low
+**Status:** applied (2026-04-12)
+**Discovery:** Gate check cascade from errata #86 (2026-04-12)
+
+**Finding:** `docs/reflections/ARCHITECTURE.md` SessionEnd section described session-end as a simple metric compute + store. After the hooks.md fix (#86), the correct model is an orchestrator forking 3 sub-scripts (metrics, persist, drift). The reflection's description was stale.
+
+**Impact:** Implementers reading the reflection would build a monolithic session-end handler instead of the correct 3-script orchestration pattern.
+
+**Files affected:** `docs/reflections/ARCHITECTURE.md` — "SessionEnd — Learning Extraction" section
+
+**Fix applied:** Replaced bullet-point metric list with explicit 3-sub-script description and rationale for the split.
+
+**Comments:** ARCHITECTURE.md SessionEnd section updated to reflect metrics + persist + drift orchestration.
