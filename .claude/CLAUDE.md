@@ -285,3 +285,11 @@ Source: feat/t-1075, friction section wiring session
 ### 2026-04-12: Config drift source_only alerts for rules/ are false positives
 `bootstrap.sh` intentionally skips copying `system/rules/` to `~/.claude/` — rules are loaded by the Claude Code plugin at runtime. The config-drift detector doesn't know this and flags them as missing. Filter out `source_only` entries under `rules/` when reviewing drift alerts; they are expected. Real drift = scripts, hooks, agents, skills.
 Source: maintenance session 2026-04-12
+
+### 2026-04-12: Stale worktrees post-merge have untracked files from prior work
+After a `--no-ff` merge, the worktree stays checked out at its last commit. Untracked files in the worktree look like active WIP but may be superseded by the merged version. Before debugging untracked files in a worktree, run `git show <merge-commit>:<path>` to confirm the committed version differs. Always run `git worktree remove <path>` immediately after merging. t-1147 tracks sitrep detection.
+Source: t-1131 session 2026-04-12
+
+### 2026-04-12: cargo build --release stale incremental cache after large changes
+`cargo check` passes but `cargo build --release` fails with type errors on first attempt after significant code additions. Second attempt succeeds because the incremental cache self-heals. Reliable fix: `cargo clean -p <crate-name> && cargo build --release`. Or set `CARGO_INCREMENTAL=0` for release builds.
+Source: t-1131 session 2026-04-12

@@ -1,9 +1,7 @@
 ---
-last_verified: 2026-03-14
+last_verified: 2026-04-12
 status: active
 maturity: evergreen
-supersedes:
-  - docs/reflections/14-mastermind-architecture.md
 depends_on:
   - docs/reflections/08-diagnosis.md
 informs:
@@ -16,7 +14,7 @@ informs:
 
 How a single Claude Code instance with ruflo accumulates knowledge across every project while maintaining project-specific context. The "single evolving brain" system.
 
-> **Supersedes:** [14-mastermind-architecture.md](../archive/reflections/14-mastermind-architecture.md) (archived 2026-03-14). This doc contains the reasoning; inventory (directory trees, agent roster, skill catalog) is auto-generated in [component-index.md](component-index.md).
+> **Relationship to doc 14:** This doc and [14-mastermind-architecture.md](14-mastermind-architecture.md) are complementary, not redundant. This doc is the concise reasoning layer (WHY things compose this way). Doc 14 is the detailed synthesis (directory trees, hook descriptions, agent roster, scheduler architecture) that receives errata corrections and validate.sh audits. The planned split into ARCHITECTURE.md (reasoning) + component-index.md (generated inventory) + archived doc 14 is not yet complete — `component-index.md` remains a stub. Until the split is done, treat both as active. Errata #84.
 
 ---
 

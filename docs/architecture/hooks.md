@@ -46,7 +46,7 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | `pre-tool-use.sh` | PreToolUse | `Write\|Edit` | Spec-before-code gate + cascade throttle |
 | `tdd-gate.sh` | PreToolUse | `Write\|Edit` | TDD baseline — blocks impl writes when no test exists in project. Ordering enforcement (tests before impl) lives in procedure gates, not here |
 | `plan-mode-gate.sh` | PreToolUse | `EnterPlanMode` | Enforce plan mode for non-trivial builds |
-| `worktree-gate.sh` | PreToolUse | `Bash` | Block `git checkout -b` when untracked files exist |
+| `worktree-gate.sh` | PreToolUse | `Bash` | Gate A: block `git checkout -b` / `git switch -c` when dirty or worktrees active. Gate B: block `git commit` when /tmp >95% full; warn on cross-session staged files |
 | `guard-explore.sh` | PreToolUse | `Read\|Grep\|Glob` | Log reads without prior search (logging only, no blocking) |
 | `subagent-context.sh` | SubagentStart | `""` (all) | Inject active task + branch + plan + recent decisions into spawned agents |
 | `subagent-tracker.sh` | SubagentStart+SubagentStop | `""` (all) | Track agent spawns and completions to session JSONL |
@@ -198,9 +198,9 @@ Source: t-1034
 Full list of valid hook event names: `PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `SessionStart`, `SessionEnd`, `SubagentStart`, `SubagentStop`, `TaskCompleted`, `StopFailure`. The failure event is `PostToolUseFailure` (not `ToolError` or `PostToolFailure`). Wire failure telemetry hooks under `PostToolUseFailure` with matcher `""`.
 Source: /brana:reconcile --scope consistency, 2026-04-09
 
-### 2026-04-10: worktree-gate only intercepts `git checkout -b`, not `git switch -c`
-Both commands create branches but the hook pattern only matches `git checkout -b`. `git switch -c` is an unguarded bypass. Intentional workaround when already inside a clean worktree; unintentional gap if the goal is full branch-creation enforcement. Track: t-1120.
-Source: t-1108
+### 2026-04-12: worktree-gate now handles both `git checkout -b` and `git switch -c` (t-1120/t-1126)
+Both commands create branches and are intercepted. Fix: strip quoted string args from command before detection (`CMD_UNQUOTED` via sed) to prevent false positives (e.g., `brana backlog add --json '{"description":"fix git switch -c"}'` no longer triggers the gate). Error messages now cite the actual command used (`git switch -c` errors say `git switch -c`, not `git checkout -b`). 10/10 tests pass. Hook JSON path for deny: `.hookSpecificOutput.permissionDecision` (not `.permissionDecision`).
+Source: t-1120, t-1126 (2026-04-12)
 
 ### 2026-04-12: nvm PATH glob for scheduler scripts
 Non-interactive shells (systemd, cron) don't source nvm, so `node` and `ruflo` binaries are missing from PATH. Sourcing full `nvm.sh` is slow and fragile. Reliable fix — 3 lines at top of any scheduler script needing node/ruflo:
@@ -232,9 +232,9 @@ Source: t-1075
 `.claude/tasks.json` is machine-generated, 5900+ lines, changes every session. It will always conflict on `git stash pop` across branches. Resolution: `git checkout --theirs .claude/tasks.json && git add .claude/tasks.json`. The stash version (from main) is always the authoritative state.
 Source: t-1075
 
-### 2026-04-10: worktree-gate fires on `git commit`, not just checkout
-`worktree-gate.sh` is registered as PreToolUse on Bash and intercepts ALL git commands — including `git commit` (pre-commit disk check + unstaged-changes guard). The "Worktree required: unstaged changes detected" message is misleading when the gate fires during a commit; it's not enforcing worktree discipline, it's checking disk space or staged state. t-1126 tracks fixing the error message.
-Source: t-1075 cleanup session 2026-04-10
+### 2026-04-10: worktree-gate has two gates, not one
+`worktree-gate.sh` intercepts ALL git commands via PreToolUse on Bash. Gate A (branch enforcement) fires on `git checkout -b` / `git switch -c` and blocks when dirty or worktrees active. Gate B (commit safety) fires on `git commit`: blocks if /tmp >95% full (prevents silent ENOSPC), warns if staged files weren't written in this session (cross-session displaced file detection). These are distinct concerns sharing one hook to minimize hook overhead. Error messages identify which gate fired.
+Source: t-1075, t-1120, t-1126 (2026-04-12)
 
 ### 2026-04-12: Session handoff next[] items can be stale
 Session state is written at close and read at session start — hours or days may pass. Items like "9 stale stashes" or "N pending X" reflect state at write time, not now. Always verify counts before acting (e.g., `git stash list`, `brana backlog query --status pending`). Don't assume handoff claims are current.
