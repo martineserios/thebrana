@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-12T20:49:48Z",
+  "generated": "2026-04-12T23:58:46Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -314,7 +314,10 @@
         "system/scheduler/brana-scheduler-runner.sh",
         "system/skills/decide/SKILL.md",
         "system/procedures/onboard.md",
-        "system/scheduler/scheduler.template.json"
+        "system/scheduler/scheduler.template.json",
+        "system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs",
+        "system/hooks/hooks.json",
+        "system/scripts/generate-reference.py"
       ]
     },
     "docs/25-self-documentation.md": {
