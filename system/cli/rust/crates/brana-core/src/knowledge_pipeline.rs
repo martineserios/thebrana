@@ -1,0 +1,720 @@
+//! Knowledge pipeline — state management, URL extraction, allow-list enforcement,
+//! and `claude` CLI shell-out for Tier 1/2/3 LLM calls.
+//!
+//! Implements the inbox→dimensions pipeline spec:
+//! `docs/architecture/features/inbox-to-dimensions-pipeline.md`
+//!
+//! # Content sourcing (v1)
+//! LinkedIn posts are behind a login wall. v1 uses event-log signals only:
+//! author slug + title signal from the URL path + hashtags the user added at
+//! capture time. No HTTP fetches. Full content fetch is deferred to v2 (t-1144).
+//!
+//! # LLM calls
+//! Shells out to the `claude` CLI binary (`--print --output-format json`).
+//! No Anthropic API key required. Binary resolved via `resolve_claude_binary()`.
+
+use anyhow::{Context, Result, bail};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+
+use crate::util::home;
+
+// ── State types ──────────────────────────────────────────────────────────────
+
+/// Processing status of a single URL through the pipeline tiers.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum UrlStatus {
+    /// Not yet processed by Tier 1.
+    Unprocessed,
+    /// Tier 1 scored < 3 — not relevant to known dimensions.
+    Irrelevant,
+    /// Tier 1 scored ≥ 3 — queued for Tier 2 cluster assignment.
+    Tier1Passed,
+    /// Tier 2 assigned to a dimension cluster.
+    Tier2Clustered,
+    /// Tier 3 synthesised into a draft file.
+    Tier3Drafted,
+}
+
+/// Per-URL entry in the pipeline state.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UrlEntry {
+    pub status: UrlStatus,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tier1_score: Option<u8>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tier1_reason: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cluster_topic: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dimension_target: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub draft_path: Option<String>,
+    /// ISO date the URL was logged in the event log (YYYY-MM-DD).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub logged_date: Option<String>,
+}
+
+impl UrlEntry {
+    pub fn new_unprocessed(logged_date: Option<String>) -> Self {
+        Self {
+            status: UrlStatus::Unprocessed,
+            tier1_score: None,
+            tier1_reason: None,
+            cluster_topic: None,
+            dimension_target: None,
+            draft_path: None,
+            logged_date,
+        }
+    }
+}
+
+/// Top-level pipeline state — serialised to `~/.swarm/knowledge-pipeline-state.json`.
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct PipelineState {
+    #[serde(default)]
+    pub last_tier1_run: Option<String>,
+    #[serde(default)]
+    pub last_tier2_run: Option<String>,
+    /// Whether the hard draft cap (10) has been acknowledged by the user.
+    #[serde(default)]
+    pub draft_cap_acknowledged: bool,
+    /// Map of URL → entry.
+    #[serde(default)]
+    pub urls: HashMap<String, UrlEntry>,
+}
+
+// ── State file path ──────────────────────────────────────────────────────────
+
+/// Canonical state file path: `~/.swarm/knowledge-pipeline-state.json`.
+pub fn pipeline_state_path() -> PathBuf {
+    home().join(".swarm/knowledge-pipeline-state.json")
+}
+
+// ── State R/W ────────────────────────────────────────────────────────────────
+
+/// Load pipeline state from disk. Returns an empty state if the file does not exist.
+pub fn load_state(path: &Path) -> Result<PipelineState> {
+    if !path.exists() {
+        return Ok(PipelineState::default());
+    }
+    let raw = std::fs::read_to_string(path)
+        .with_context(|| format!("reading pipeline state from {}", path.display()))?;
+    let state: PipelineState = serde_json::from_str(&raw)
+        .with_context(|| format!("parsing pipeline state from {}", path.display()))?;
+    Ok(state)
+}
+
+/// Save pipeline state to disk atomically (write to `.tmp`, then rename).
+pub fn save_state(path: &Path, state: &PipelineState) -> Result<()> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .with_context(|| format!("creating state dir {}", parent.display()))?;
+    }
+    let json = serde_json::to_string_pretty(state)?;
+    let tmp = path.with_extension("tmp");
+    std::fs::write(&tmp, &json)
+        .with_context(|| format!("writing temp state to {}", tmp.display()))?;
+    std::fs::rename(&tmp, path)
+        .with_context(|| format!("renaming {} → {}", tmp.display(), path.display()))?;
+    Ok(())
+}
+
+// ── Event log URL extraction ─────────────────────────────────────────────────
+
+/// Signals extracted from a single event-log line for a LinkedIn URL.
+#[derive(Debug, Clone, PartialEq)]
+pub struct UrlEventEntry {
+    pub url: String,
+    /// Author slug from the URL path (e.g. `walid-boulanouar`).
+    pub author: String,
+    /// Title signal from the URL path slug (e.g. `everyone using claude code`).
+    pub title_signal: String,
+    /// Hashtags the user added when logging (e.g. `["claude-code", "cost"]`).
+    pub tags: Vec<String>,
+    /// ISO date the URL was logged (YYYY-MM-DD).
+    pub logged_date: String,
+}
+
+/// Parse author and title_signal out of a `linkedin.com/posts/{slug}` URL path.
+///
+/// Expected slug patterns:
+/// - `{author}_{title-words}-share-{id}-{code}`
+/// - `{author}_{title-words}-ugcPost-{id}-{code}`
+/// - `{author}_{title-words}-activity-{id}-{code}`
+/// - `{author}_{title-words}-pulse-{id}-{code}`
+///
+/// Returns `None` if the URL does not match the expected structure.
+pub fn parse_linkedin_url(url: &str) -> Option<(String, String)> {
+    let posts_prefix = "linkedin.com/posts/";
+    let slug_start = url.find(posts_prefix)? + posts_prefix.len();
+    let slug = &url[slug_start..];
+    let slug = slug.split('?').next().unwrap_or(slug);
+    let slug = slug.split('#').next().unwrap_or(slug);
+    let slug = slug.trim_end_matches('/');
+
+    let (author_raw, rest) = slug.split_once('_')?;
+    let title_raw = strip_linkedin_suffix(rest).unwrap_or(rest);
+
+    let author = author_raw.to_string();
+    let title_signal = title_raw.replace('-', " ");
+
+    if author.is_empty() || title_signal.is_empty() {
+        return None;
+    }
+    Some((author, title_signal))
+}
+
+/// Strip the trailing identifier suffix from a LinkedIn post slug's title portion.
+fn strip_linkedin_suffix(rest: &str) -> Option<&str> {
+    for marker in &["-share-", "-ugcPost-", "-activity-", "-pulse-"] {
+        if let Some(pos) = rest.rfind(marker) {
+            return Some(&rest[..pos]);
+        }
+    }
+    None
+}
+
+/// Extract `#tag` strings from a log line (strips the `#` prefix, lowercased).
+pub fn extract_tags_from_line(line: &str) -> Vec<String> {
+    line.split_whitespace()
+        .filter(|w| w.starts_with('#') && w.len() > 1)
+        .map(|w| w.trim_start_matches('#').to_lowercase())
+        .collect()
+}
+
+/// Parse all LinkedIn URL entries from a single event-log file's content.
+///
+/// The event log format uses `## YYYY-MM-DD` date headers and lines like:
+/// `- HH:MM — https://www.linkedin.com/posts/... #tag1 #tag2`
+pub fn parse_event_log(
+    content: &str,
+    known_urls: &std::collections::HashSet<String>,
+) -> Vec<UrlEventEntry> {
+    let mut entries = Vec::new();
+    let mut current_date = String::from("unknown");
+
+    for line in content.lines() {
+        let line = line.trim();
+
+        // Track date headers: `## 2026-04-08`
+        if line.starts_with("## 20") {
+            let date_part = line.trim_start_matches('#').trim();
+            current_date = date_part
+                .split_whitespace()
+                .next()
+                .unwrap_or(date_part)
+                .to_string();
+            continue;
+        }
+
+        if !line.contains("linkedin.com/posts/") {
+            continue;
+        }
+
+        let url = match line.split_whitespace().find(|t| t.starts_with("https://")) {
+            Some(u) => u.trim_end_matches(')').trim_end_matches(',').to_string(),
+            None => continue,
+        };
+
+        if known_urls.contains(&url) {
+            continue;
+        }
+
+        let (author, title_signal) = match parse_linkedin_url(&url) {
+            Some(pair) => pair,
+            None => continue,
+        };
+
+        let tags = extract_tags_from_line(line);
+
+        entries.push(UrlEventEntry {
+            url,
+            author,
+            title_signal,
+            tags,
+            logged_date: current_date.clone(),
+        });
+    }
+
+    entries
+}
+
+/// Collect event-log files from `{projects_dir}/*/memory/event-log.md`.
+pub fn find_event_log_files_in(projects_dir: &Path) -> Vec<PathBuf> {
+    let mut logs = Vec::new();
+    let Ok(entries) = std::fs::read_dir(projects_dir) else {
+        return logs;
+    };
+    for entry in entries.flatten() {
+        let log = entry.path().join("memory/event-log.md");
+        if log.exists() {
+            logs.push(log);
+        }
+    }
+    logs.sort();
+    logs
+}
+
+/// Collect event-log files from `~/.claude/projects/*/memory/event-log.md`.
+pub fn find_event_log_files() -> Vec<PathBuf> {
+    find_event_log_files_in(&home().join(".claude/projects"))
+}
+
+/// Extract all unprocessed LinkedIn URL entries from all event logs.
+pub fn extract_unprocessed_urls(state: &PipelineState) -> Result<Vec<UrlEventEntry>> {
+    let known: std::collections::HashSet<String> = state.urls.keys().cloned().collect();
+    let mut all = Vec::new();
+    for log_path in find_event_log_files() {
+        let content = std::fs::read_to_string(&log_path)
+            .with_context(|| format!("reading event log {}", log_path.display()))?;
+        all.extend(parse_event_log(&content, &known));
+    }
+    Ok(all)
+}
+
+// ── Path allow-list ──────────────────────────────────────────────────────────
+
+/// Returns `true` if `path` is within the pipeline's allowed write paths.
+///
+/// Allowed:
+/// - `{brana_knowledge_root}/drafts/**`
+/// - `{brana_knowledge_root}/drafts-archive/**`
+/// - `~/.swarm/knowledge-pipeline-state.json` (and `.tmp`)
+/// - `~/.swarm/knowledge-pipeline.lock`
+/// - `~/.claude/knowledge-pipeline-report.md`
+pub fn is_allowed_write_path(path: &Path, brana_knowledge_root: &Path) -> bool {
+    let h = home();
+
+    let allowed_prefixes = [
+        brana_knowledge_root.join("drafts"),
+        brana_knowledge_root.join("drafts-archive"),
+    ];
+    let allowed_exact = [
+        h.join(".swarm/knowledge-pipeline-state.json"),
+        h.join(".swarm/knowledge-pipeline-state.tmp"),
+        h.join(".swarm/knowledge-pipeline.lock"),
+        h.join(".claude/knowledge-pipeline-report.md"),
+    ];
+
+    for prefix in &allowed_prefixes {
+        if path.starts_with(prefix) {
+            return true;
+        }
+    }
+    for exact in &allowed_exact {
+        if path == exact {
+            return true;
+        }
+    }
+    false
+}
+
+/// Assert that a write target is allowed. Returns `Err` with a clear message if not.
+pub fn assert_allowed_write(path: &Path, brana_knowledge_root: &Path) -> Result<()> {
+    if !is_allowed_write_path(path, brana_knowledge_root) {
+        bail!(
+            "Layer-1 protection: write to '{}' is outside the pipeline's allowed paths. \
+             The pipeline only writes to brana-knowledge/drafts/, drafts-archive/, \
+             and ~/.swarm/knowledge-pipeline-*.",
+            path.display()
+        );
+    }
+    Ok(())
+}
+
+// ── Draft cap ────────────────────────────────────────────────────────────────
+
+pub const DRAFT_CAP: usize = 10;
+
+/// Count `.md` draft files in `{brana_knowledge_root}/drafts/`.
+pub fn count_drafts(brana_knowledge_root: &Path) -> usize {
+    let drafts_dir = brana_knowledge_root.join("drafts");
+    if !drafts_dir.exists() {
+        return 0;
+    }
+    std::fs::read_dir(&drafts_dir)
+        .map(|entries| {
+            entries
+                .flatten()
+                .filter(|e| {
+                    e.path()
+                        .extension()
+                        .and_then(|x| x.to_str())
+                        .map(|x| x == "md")
+                        .unwrap_or(false)
+                })
+                .count()
+        })
+        .unwrap_or(0)
+}
+
+// ── Claude CLI shell-out (t-1145 spike) ──────────────────────────────────────
+
+/// Resolve the `claude` CLI binary path.
+///
+/// Resolution order:
+/// 1. `$CLAUDE_PLUGIN_DATA/claude`
+/// 2. `~/.local/bin/claude`
+/// 3. `PATH` (via `which claude`)
+pub fn resolve_claude_binary() -> Option<PathBuf> {
+    if let Ok(plugin_data) = std::env::var("CLAUDE_PLUGIN_DATA") {
+        let p = PathBuf::from(&plugin_data).join("claude");
+        if p.exists() {
+            return Some(p);
+        }
+    }
+
+    let local_bin = home().join(".local/bin/claude");
+    if local_bin.exists() {
+        return Some(local_bin);
+    }
+
+    if let Ok(out) = std::process::Command::new("which").arg("claude").output() {
+        if out.status.success() {
+            let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            if !path.is_empty() {
+                return Some(PathBuf::from(path));
+            }
+        }
+    }
+
+    None
+}
+
+/// Call the `claude` CLI with `--print --output-format json` and return the
+/// parsed JSON response value. Timeout: 60 seconds.
+///
+/// The model is expected to respond with JSON only (as instructed in the prompt).
+/// The CLI wraps the response in `{"type":"result","result":"...","cost_usd":...}`;
+/// this function unwraps it and parses the inner JSON.
+pub fn call_claude_json(prompt: &str) -> Result<serde_json::Value> {
+    let binary = resolve_claude_binary().ok_or_else(|| {
+        anyhow::anyhow!(
+            "claude CLI binary not found. Checked: $CLAUDE_PLUGIN_DATA/claude, \
+             ~/.local/bin/claude, PATH. Install Claude Code first."
+        )
+    })?;
+
+    let mut child = std::process::Command::new(&binary)
+        .args(["--print", "--output-format", "json", prompt])
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .with_context(|| format!("spawning claude binary at {}", binary.display()))?;
+
+    let timeout = std::time::Duration::from_secs(60);
+    let start = std::time::Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) => {
+                if start.elapsed() > timeout {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    bail!("claude CLI timed out after 60s");
+                }
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+            Err(e) => bail!("claude wait error: {e}"),
+        }
+    }
+
+    let output = child.wait_with_output()?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        bail!("claude CLI exited non-zero: {stderr}");
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let raw: serde_json::Value = serde_json::from_str(stdout.trim())
+        .with_context(|| format!("parsing claude JSON output: {stdout}"))?;
+
+    // Unwrap the CLI envelope: {"type":"result","result":"<model text>","cost_usd":...}
+    if let Some(result_text) = raw.get("result").and_then(|v| v.as_str()) {
+        let inner: serde_json::Value = serde_json::from_str(result_text.trim())
+            .with_context(|| format!("parsing model JSON response: {result_text}"))?;
+        return Ok(inner);
+    }
+
+    Ok(raw)
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Tests
+// ═════════════════════════════════════════════════════════════════════════════
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashSet;
+    use tempfile::TempDir;
+
+    // ── parse_linkedin_url ────────────────────────────────────────────
+
+    #[test]
+    fn test_parse_standard_share_url() {
+        let url = "https://www.linkedin.com/posts/walid-boulanouar_everyone-using-claude-code-is-paying-for-share-7437448165403852801-F5RX";
+        let (author, title) = parse_linkedin_url(url).expect("should parse");
+        assert_eq!(author, "walid-boulanouar");
+        assert_eq!(title, "everyone using claude code is paying for");
+    }
+
+    #[test]
+    fn test_parse_ugcpost_url() {
+        let url = "https://www.linkedin.com/posts/prateekkarnal_a-self-improving-system-in-one-repo-is-impressive-ugcPost-7437898224763375616-Abzi";
+        let (author, title) = parse_linkedin_url(url).expect("should parse");
+        assert_eq!(author, "prateekkarnal");
+        assert_eq!(title, "a self improving system in one repo is impressive");
+    }
+
+    #[test]
+    fn test_parse_url_with_query_string() {
+        let url = "https://www.linkedin.com/posts/foo_bar-baz-share-123-XY?tracking=true";
+        let (author, title) = parse_linkedin_url(url).expect("should parse");
+        assert_eq!(author, "foo");
+        assert_eq!(title, "bar baz");
+    }
+
+    #[test]
+    fn test_parse_non_linkedin_url_returns_none() {
+        assert!(parse_linkedin_url("https://github.com/foo/bar").is_none());
+        assert!(parse_linkedin_url("https://www.linkedin.com/in/martinrios").is_none());
+    }
+
+    #[test]
+    fn test_parse_linkedin_pulse_url() {
+        let url = "https://www.linkedin.com/posts/unmeshgundecha_harness-engineering-domain2-pulse-7437241299629481985-Nig0";
+        let (author, title) = parse_linkedin_url(url).expect("should parse");
+        assert_eq!(author, "unmeshgundecha");
+        assert_eq!(title, "harness engineering domain2");
+    }
+
+    // ── extract_tags_from_line ────────────────────────────────────────
+
+    #[test]
+    fn test_extract_single_tag() {
+        let tags = extract_tags_from_line("- 21:14 — https://... #claude-code");
+        assert_eq!(tags, vec!["claude-code"]);
+    }
+
+    #[test]
+    fn test_extract_multiple_tags() {
+        let tags = extract_tags_from_line("- 09:00 — https://... #agents #memory #knowledge");
+        assert_eq!(tags, vec!["agents", "memory", "knowledge"]);
+    }
+
+    #[test]
+    fn test_extract_no_tags() {
+        let tags = extract_tags_from_line("- 09:00 — https://...");
+        assert!(tags.is_empty());
+    }
+
+    #[test]
+    fn test_extract_tags_lowercased() {
+        let tags = extract_tags_from_line("line #Claude-Code #AI");
+        assert_eq!(tags, vec!["claude-code", "ai"]);
+    }
+
+    // ── parse_event_log ───────────────────────────────────────────────
+
+    #[test]
+    fn test_parse_event_log_basic() {
+        let content = r#"
+## 2026-04-08
+
+- 21:14 — https://www.linkedin.com/posts/walid-boulanouar_everyone-using-claude-code-is-paying-for-share-7437448165403852801-F5RX #claude-code #cost
+- 22:51 — https://www.linkedin.com/posts/elirangeffen_opensource-claudecode-ai-share-7437542416074727424-DFJh #open-source
+"#;
+        let known = HashSet::new();
+        let entries = parse_event_log(content, &known);
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].author, "walid-boulanouar");
+        assert_eq!(entries[0].logged_date, "2026-04-08");
+        assert_eq!(entries[0].tags, vec!["claude-code", "cost"]);
+        assert_eq!(entries[1].author, "elirangeffen");
+    }
+
+    #[test]
+    fn test_parse_event_log_skips_known_urls() {
+        let content = r#"
+## 2026-04-08
+- 21:14 — https://www.linkedin.com/posts/foo_bar-baz-share-123-XX #tag
+"#;
+        let mut known = HashSet::new();
+        known.insert("https://www.linkedin.com/posts/foo_bar-baz-share-123-XX".to_string());
+        let entries = parse_event_log(content, &known);
+        assert!(entries.is_empty());
+    }
+
+    #[test]
+    fn test_parse_event_log_skips_non_linkedin() {
+        let content = r#"
+## 2026-04-08
+- 09:00 — https://github.com/anthropics/claude-code #tools
+- 10:00 — https://www.linkedin.com/posts/foo_bar-share-999-XX #agents
+"#;
+        let known = HashSet::new();
+        let entries = parse_event_log(content, &known);
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].author, "foo");
+    }
+
+    #[test]
+    fn test_parse_event_log_date_carried_forward() {
+        let content = r#"
+## 2026-03-15
+
+- 08:00 — https://www.linkedin.com/posts/alice_topic-a-share-1-XA #a
+
+## 2026-03-16
+
+- 09:00 — https://www.linkedin.com/posts/bob_topic-b-share-2-XB #b
+"#;
+        let known = HashSet::new();
+        let entries = parse_event_log(content, &known);
+        assert_eq!(entries[0].logged_date, "2026-03-15");
+        assert_eq!(entries[1].logged_date, "2026-03-16");
+    }
+
+    // ── state R/W ─────────────────────────────────────────────────────
+
+    #[test]
+    fn test_state_roundtrip() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("state.json");
+        let mut state = PipelineState::default();
+        state.urls.insert(
+            "https://www.linkedin.com/posts/foo_bar-share-1-XX".to_string(),
+            UrlEntry::new_unprocessed(Some("2026-04-08".to_string())),
+        );
+        save_state(&path, &state).expect("save should succeed");
+        let loaded = load_state(&path).expect("load should succeed");
+        assert_eq!(loaded.urls.len(), 1);
+        assert!(loaded
+            .urls
+            .contains_key("https://www.linkedin.com/posts/foo_bar-share-1-XX"));
+    }
+
+    #[test]
+    fn test_load_state_missing_file_returns_default() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("nonexistent.json");
+        let state = load_state(&path).expect("should return default");
+        assert!(state.urls.is_empty());
+        assert!(!state.draft_cap_acknowledged);
+    }
+
+    #[test]
+    fn test_save_state_creates_parent_dirs() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("deep/nested/state.json");
+        let state = PipelineState::default();
+        save_state(&path, &state).expect("should create dirs and save");
+        assert!(path.exists());
+    }
+
+    // ── is_allowed_write_path ─────────────────────────────────────────
+
+    #[test]
+    fn test_allow_list_permits_drafts_dir() {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path().to_path_buf();
+        let draft = root.join("drafts/2026-04-12-agent-memory.md");
+        assert!(is_allowed_write_path(&draft, &root));
+    }
+
+    #[test]
+    fn test_allow_list_permits_drafts_archive() {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path().to_path_buf();
+        let archived = root.join("drafts-archive/2026-04-12/old-draft.md");
+        assert!(is_allowed_write_path(&archived, &root));
+    }
+
+    #[test]
+    fn test_allow_list_rejects_layer1_paths() {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path().to_path_buf();
+        let bad_paths = [
+            PathBuf::from("/home/martineserios/.claude/CLAUDE.md"),
+            PathBuf::from("/home/martineserios/.claude/rules/git-discipline.md"),
+            root.join("dimensions/21-memory-patterns.md"),
+        ];
+        for p in &bad_paths {
+            assert!(
+                !is_allowed_write_path(p, &root),
+                "should be rejected: {}",
+                p.display()
+            );
+        }
+    }
+
+    #[test]
+    fn test_assert_allowed_write_err_mentions_layer1() {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path().to_path_buf();
+        let layer1 = PathBuf::from("/home/martineserios/.claude/CLAUDE.md");
+        let err = assert_allowed_write(&layer1, &root).unwrap_err().to_string();
+        assert!(err.contains("Layer-1 protection"));
+    }
+
+    // ── find_event_log_files_in ───────────────────────────────────────
+
+    #[test]
+    fn test_find_event_log_files_finds_logs() {
+        let dir = TempDir::new().unwrap();
+        for proj in &["proj-a", "proj-b"] {
+            let mem = dir.path().join(proj).join("memory");
+            std::fs::create_dir_all(&mem).unwrap();
+            std::fs::write(mem.join("event-log.md"), "## 2026-04-01\n").unwrap();
+        }
+        std::fs::create_dir_all(dir.path().join("proj-c/memory")).unwrap();
+        let logs = find_event_log_files_in(dir.path());
+        assert_eq!(logs.len(), 2);
+    }
+
+    #[test]
+    fn test_find_event_log_files_missing_dir_returns_empty() {
+        let logs = find_event_log_files_in(Path::new("/tmp/nonexistent-projects-xyz"));
+        assert!(logs.is_empty());
+    }
+
+    // ── count_drafts ──────────────────────────────────────────────────
+
+    #[test]
+    fn test_count_drafts_empty_dir() {
+        let dir = TempDir::new().unwrap();
+        std::fs::create_dir(dir.path().join("drafts")).unwrap();
+        assert_eq!(count_drafts(dir.path()), 0);
+    }
+
+    #[test]
+    fn test_count_drafts_counts_md_files_only() {
+        let dir = TempDir::new().unwrap();
+        let drafts = dir.path().join("drafts");
+        std::fs::create_dir(&drafts).unwrap();
+        std::fs::write(drafts.join("draft-a.md"), "# A").unwrap();
+        std::fs::write(drafts.join("draft-b.md"), "# B").unwrap();
+        std::fs::write(drafts.join(".gitkeep"), "").unwrap();
+        assert_eq!(count_drafts(dir.path()), 2);
+    }
+
+    #[test]
+    fn test_count_drafts_missing_dir_returns_zero() {
+        let dir = TempDir::new().unwrap();
+        assert_eq!(count_drafts(dir.path()), 0);
+    }
+
+    // ── resolve_claude_binary ─────────────────────────────────────────
+
+    #[test]
+    fn test_resolve_claude_binary_does_not_panic() {
+        if let Some(path) = resolve_claude_binary() {
+            assert!(path.is_absolute());
+        }
+        // None is acceptable in CI environments without claude installed
+    }
+}
