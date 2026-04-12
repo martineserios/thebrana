@@ -47,12 +47,13 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | `tdd-gate.sh` | PreToolUse | `Write\|Edit` | TDD baseline — blocks impl writes when no test exists in project. Ordering enforcement (tests before impl) lives in procedure gates, not here |
 | `plan-mode-gate.sh` | PreToolUse | `EnterPlanMode` | Enforce plan mode for non-trivial builds |
 | `worktree-gate.sh` | PreToolUse | `Bash` | Gate A: block `git checkout -b` / `git switch -c` when dirty or worktrees active. Gate B: block `git commit` when /tmp >95% full; warn on cross-session staged files |
+| `branch-verify.sh` | PreToolUse | `Bash` | Block `git add` of behavioral files when on main/master. Extracts `git -C <path>` from command to check target repo's branch (worktree-aware). Escape hatch: `# --force-main` comment |
 | `guard-explore.sh` | PreToolUse | `Read\|Grep\|Glob` | Log reads without prior search (logging only, no blocking) |
 | `subagent-context.sh` | SubagentStart | `""` (all) | Inject active task + branch + plan + recent decisions into spawned agents |
 | `subagent-tracker.sh` | SubagentStart+SubagentStop | `""` (all) | Track agent spawns and completions to session JSONL |
 | `step-completed.sh` | TaskCompleted | `""` (all) | Track CC Task completions for guided execution |
 | `session-start.sh` | SessionStart | `""` (all) | Pattern recall (1 parallel job, 2s budget), task context, venture detection, recurring error surfacing |
-| `session-end.sh` | SessionEnd | `""` (all) | Flywheel metrics, session summary, handoff |
+| `session-end.sh` | SessionEnd | `""` (all) | Orchestrator — forks 3 sub-scripts: `session-end-metrics.sh` (flywheel metrics), `session-end-persist.sh` (ruflo + auto-memory), `session-end-drift.sh` (sync-state, spec graph, decisions log) |
 | `stopfailure-logger.sh` | StopFailure | `""` (all) | Log API errors (rate limit, auth, billing) to JSONL |
 
 ### Bootstrap hooks (settings.json)
