@@ -45,9 +45,11 @@ DEPLOY_DIR="${BRANA_DEPLOY_DIR:-$HOME/.claude}"
 
 DRIFTED_JSON="[]"
 
-# Compare a single file. Args: relative_path
+# Compare a single file. Args: relative_path [skip_source_only]
+# skip_source_only: "true" suppresses source_only alerts (e.g. rules/ are plugin-served, not deployed by bootstrap.sh)
 check_file() {
     local rel="$1"
+    local skip_source_only="${2:-false}"
     local src="$SOURCE_DIR/$rel"
     local dst="$DEPLOY_DIR/$rel"
 
@@ -58,9 +60,11 @@ check_file() {
                 '. + [{"file": $file, "type": "modified"}]')
         fi
     elif [ -f "$src" ] && [ ! -f "$dst" ]; then
-        DRIFTED_JSON=$(echo "$DRIFTED_JSON" | jq -c \
-            --arg file "$rel" \
-            '. + [{"file": $file, "type": "source_only"}]')
+        if [ "$skip_source_only" != "true" ]; then
+            DRIFTED_JSON=$(echo "$DRIFTED_JSON" | jq -c \
+                --arg file "$rel" \
+                '. + [{"file": $file, "type": "source_only"}]')
+        fi
     elif [ ! -f "$src" ] && [ -f "$dst" ]; then
         DRIFTED_JSON=$(echo "$DRIFTED_JSON" | jq -c \
             --arg file "$rel" \
@@ -72,10 +76,13 @@ check_file() {
 check_file "CLAUDE.md"
 
 # Check all rules from source
+# rules/ are plugin-served — bootstrap.sh intentionally does NOT deploy them to ~/.claude/.
+# Suppress source_only alerts (pass "true") to avoid false positives.
+# deploy_only and modified alerts still fire (anomalies worth knowing).
 if [ -d "$SOURCE_DIR/rules" ]; then
     for f in "$SOURCE_DIR/rules/"*.md; do
         [ -f "$f" ] || continue
-        check_file "rules/$(basename "$f")"
+        check_file "rules/$(basename "$f")" "true"
     done
 fi
 

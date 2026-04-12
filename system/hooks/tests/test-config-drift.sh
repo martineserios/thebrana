@@ -74,22 +74,22 @@ assert_json_count "modified file → 1 drifted" "$RESULT" '.drifted | length' '1
 assert_json_eq "modified file → type=modified" "$RESULT" '.drifted[0].type' 'modified'
 assert_json_eq "modified file → correct name" "$RESULT" '.drifted[0].file' 'CLAUDE.md'
 
-# --- Test 3: Source-only file (exists in source, not deployed) ---
+# --- Test 3: Source-only rule — suppressed (plugin-served, bootstrap.sh doesn't deploy rules/) ---
 echo ""
-echo "Test 3: Source-only rule"
+echo "Test 3: Source-only rule is suppressed (rules/ are plugin-served)"
 SRC3="$TMPDIR/src3"
 DEPLOY3="$TMPDIR/deploy3"
 mkdir -p "$SRC3/rules" "$DEPLOY3/rules"
 echo "# Identity" > "$SRC3/CLAUDE.md"
 echo "# Identity" > "$DEPLOY3/CLAUDE.md"
 echo "# Rule A" > "$SRC3/rules/a.md"
-echo "# Rule B" > "$SRC3/rules/b.md"
+echo "# Rule B" > "$SRC3/rules/b.md"  # exists in source only
 echo "# Rule A" > "$DEPLOY3/rules/a.md"
 
 RESULT=$(BRANA_SOURCE_DIR="$SRC3" BRANA_DEPLOY_DIR="$DEPLOY3" bash "$HOOK" </dev/null 2>/dev/null)
-assert_json_eq "source-only → drifted" "$RESULT" '.status' 'drifted'
-assert_json_eq "source-only → type=source_only" "$RESULT" '.drifted[0].type' 'source_only'
-assert_json_eq "source-only → correct name" "$RESULT" '.drifted[0].file' 'rules/b.md'
+# rules/ source_only is suppressed — should be clean (no CLAUDE.md drift)
+assert_json_eq "source-only rule suppressed → clean status" "$RESULT" '.status' 'clean'
+assert_json_count "source-only rule suppressed → 0 drifted" "$RESULT" '.drifted | length' '0'
 
 # --- Test 4: Deploy-only file (exists in deployed, not in source — stale) ---
 echo ""
@@ -108,26 +108,27 @@ assert_json_eq "deploy-only → drifted" "$RESULT" '.status' 'drifted'
 assert_json_eq "deploy-only → type=deploy_only" "$RESULT" '.drifted[0].type' 'deploy_only'
 assert_json_eq "deploy-only → correct name" "$RESULT" '.drifted[0].file' 'rules/stale.md'
 
-# --- Test 5: Multiple drift types combined ---
+# --- Test 5: Combined drift — rules/ source_only suppressed, deploy_only still reported ---
 echo ""
-echo "Test 5: Combined drift (modified + source_only + deploy_only)"
+echo "Test 5: Combined drift (modified CLAUDE.md + rules/source_only suppressed + rules/deploy_only shown)"
 SRC5="$TMPDIR/src5"
 DEPLOY5="$TMPDIR/deploy5"
 mkdir -p "$SRC5/rules" "$DEPLOY5/rules"
 echo "# NEW" > "$SRC5/CLAUDE.md"
 echo "# OLD" > "$DEPLOY5/CLAUDE.md"
-echo "# New rule" > "$SRC5/rules/new.md"
-echo "# Stale" > "$DEPLOY5/rules/stale.md"
+echo "# New rule" > "$SRC5/rules/new.md"  # source_only — suppressed
+echo "# Stale" > "$DEPLOY5/rules/stale.md"  # deploy_only — still reported
 echo "# Same" > "$SRC5/rules/same.md"
 echo "# Same" > "$DEPLOY5/rules/same.md"
 
 RESULT=$(BRANA_SOURCE_DIR="$SRC5" BRANA_DEPLOY_DIR="$DEPLOY5" bash "$HOOK" </dev/null 2>/dev/null)
 assert_json_eq "combined → drifted" "$RESULT" '.status' 'drifted'
-assert_json_count "combined → 3 drifted" "$RESULT" '.drifted | length' '3'
+# 2 items: CLAUDE.md modified + rules/stale.md deploy_only (NOT rules/new.md source_only)
+assert_json_count "combined → 2 drifted (source_only suppressed)" "$RESULT" '.drifted | length' '2'
 
-# --- Test 6: Missing deploy dir → all source_only ---
+# --- Test 6: Missing deploy dir → CLAUDE.md source_only shown, rules/ source_only suppressed ---
 echo ""
-echo "Test 6: Missing deploy dir"
+echo "Test 6: Missing deploy dir — CLAUDE.md shown, rules/ suppressed"
 SRC6="$TMPDIR/src6"
 DEPLOY6="$TMPDIR/deploy6-nonexistent"
 mkdir -p "$SRC6/rules"
@@ -135,8 +136,41 @@ echo "# Identity" > "$SRC6/CLAUDE.md"
 echo "# Rule" > "$SRC6/rules/a.md"
 
 RESULT=$(BRANA_SOURCE_DIR="$SRC6" BRANA_DEPLOY_DIR="$DEPLOY6" bash "$HOOK" </dev/null 2>/dev/null)
-assert_json_eq "missing deploy → drifted" "$RESULT" '.status' 'drifted'
-assert_json_count "missing deploy → 2 source_only" "$RESULT" '.drifted | length' '2'
+assert_json_eq "missing deploy → drifted (CLAUDE.md source_only)" "$RESULT" '.status' 'drifted'
+# rules/a.md source_only suppressed — only CLAUDE.md reported
+assert_json_count "missing deploy → 1 source_only (rules/ suppressed)" "$RESULT" '.drifted | length' '1'
+assert_json_eq "missing deploy → CLAUDE.md is the drifted file" "$RESULT" '.drifted[0].file' 'CLAUDE.md'
+
+# --- Test 7: rules/ deploy_only still reported (no over-suppression) ---
+echo ""
+echo "Test 7: rules/ deploy_only still reported"
+SRC7="$TMPDIR/src7"
+DEPLOY7="$TMPDIR/deploy7"
+mkdir -p "$SRC7/rules" "$DEPLOY7/rules"
+echo "# Identity" > "$SRC7/CLAUDE.md"
+echo "# Identity" > "$DEPLOY7/CLAUDE.md"
+echo "# Stale rule" > "$DEPLOY7/rules/stale.md"  # deploy_only — should still be reported
+
+RESULT=$(BRANA_SOURCE_DIR="$SRC7" BRANA_DEPLOY_DIR="$DEPLOY7" bash "$HOOK" </dev/null 2>/dev/null)
+assert_json_eq "deploy-only rule → drifted" "$RESULT" '.status' 'drifted'
+assert_json_count "deploy-only rule → 1 drifted" "$RESULT" '.drifted | length' '1'
+assert_json_eq "deploy-only rule → type=deploy_only" "$RESULT" '.drifted[0].type' 'deploy_only'
+
+# --- Test 8: rules/ modified (both exist, different) still reported ---
+echo ""
+echo "Test 8: rules/ modified still reported"
+SRC8="$TMPDIR/src8"
+DEPLOY8="$TMPDIR/deploy8"
+mkdir -p "$SRC8/rules" "$DEPLOY8/rules"
+echo "# Identity" > "$SRC8/CLAUDE.md"
+echo "# Identity" > "$DEPLOY8/CLAUDE.md"
+echo "# Rule v2" > "$SRC8/rules/a.md"
+echo "# Rule v1" > "$DEPLOY8/rules/a.md"
+
+RESULT=$(BRANA_SOURCE_DIR="$SRC8" BRANA_DEPLOY_DIR="$DEPLOY8" bash "$HOOK" </dev/null 2>/dev/null)
+assert_json_eq "modified rule → drifted" "$RESULT" '.status' 'drifted'
+assert_json_count "modified rule → 1 drifted" "$RESULT" '.drifted | length' '1'
+assert_json_eq "modified rule → type=modified" "$RESULT" '.drifted[0].type' 'modified'
 
 # --- Summary ---
 echo ""
