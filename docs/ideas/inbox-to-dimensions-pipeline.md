@@ -394,19 +394,78 @@ comm -23 /tmp/logged-urls.txt /tmp/task-urls.txt | wc -l  # URLs in log but not 
 awk '/^## 2026/{date=$2} /https:\/\//{print date}' ~/.claude/projects/*/memory/event-log.md | sort | uniq -c | tail -30
 ```
 
+## Revised shape — tiered pipeline (post-challenge, 2026-04-10)
+
+> Supersedes Options 1-4 above. Options 1-4 remain for historical context — they document the decision path that led here.
+> Two challenge rounds surfaced that Options 1-4 conflated complexity (routing, source-type lanes, full automation) with scope. The tiered model simplifies by making the pipeline stages explicit and deferring novelty to v2.
+
+### Architecture
+
+```
+Event log (LinkedIn URLs)
+    ↓  [Scheduler — batch 50/run]
+Tier 1 — Relevance filter
+    LLM scores URL (title + first paragraph) against known dimensions
+    score < 3  → mark irrelevant in event log, skip
+    score ≥ 3  → advance to Tier 2
+    ↓
+Tier 2 — Cluster assignment
+    LLM reads full content, assigns to nearest dimension or flags "new topic"
+    Produces: weekly cluster report (dimension → list of URLs + confidence)
+    ↓  [manual trigger — user approves clusters via /brana:review]
+Tier 3 — Draft synthesis
+    LLM synthesizes approved cluster into draft dimension addition
+    Output: brana-knowledge/drafts/YYYY-MM-DD-{topic}.md
+```
+
+### Four locked decisions
+
+| Decision | v1 | v2 |
+|---|---|---|
+| **Ruflo feedback loop** | Dropped — full re-eval each run | Domain+author composite key → auto-skip reruns |
+| **Tier 1 entry point** | Scheduler only, batch cap 50 URLs/run | Same |
+| **Tier 2→Tier 3 trigger** | Manual — user approves cluster report | Auto for high-confidence/known dimensions |
+| **Architectural home** | `brana knowledge process` CLI subcommand | Same, additional flags |
+
+### Why these decisions
+
+- **Ruflo dropped from v1:** The feedback loop is the load-bearing novelty but sits on fragile infrastructure (CWD mismatch, SIGTERM bug, pattern-search broken). Deferring makes v1 testable in isolation. v2 adds the loop after one full cycle validates the pipeline works.
+- **Scheduler, not hook:** KDD-7 — pipeline never runs inside a session. Hook-on-log fires synchronously. Manual CLI contradicts Karpathy's "LLM writes everything."
+- **Batch cap 50:** 269-URL backlog at 50/run = 6 scheduler runs to drain, not one giant batch.
+- **Manual Tier 2→3:** LLM confidence scores on this corpus are unvalidated. One full manual cycle (user reviews cluster report, approves, sees draft quality) calibrates whether auto-trigger is safe. This is the Option 2 pattern from the original comparison matrix.
+- **CLI subcommand:** Single execution model (scheduler invokes it identically to manual invocation), testable in isolation, fits brana's existing scheduled job pattern. `/brana:research` stays interactive/on-demand; `brana knowledge process` is the batch pipeline.
+
+### Draft frontmatter (SD-B — locked)
+
+```yaml
+---
+status: draft                          # draft | accepted | rejected | deferred | merged
+created: 2026-04-10
+sources:
+  - url: https://...
+    logged: 2026-04-08 12:34
+  - url: https://...
+    logged: 2026-04-08 12:35
+cluster_topic: agent-memory
+draft_author: llm
+review_due: 2026-04-17                 # 7 days after creation
+promotion_target: dimensions/agent-memory.md   # or: new-dimension
+---
+```
+
+`cluster_confidence` omitted from v1 (not calibrated). Added in v2 after manual cycle validates scores.
+
+### Staging directory (SD-A — locked)
+
+`brana-knowledge/drafts/` — git-tracked, separate from accepted dimensions. Spec-graph, `/brana:research`, and ruflo index all exclude this directory. Lint+Heal (D2) reaps stale drafts; pipeline creates them. Archive → `brana-knowledge/drafts-archive/YYYY-MM-DD/`.
+
+### Hard cap
+
+Draft count > 10 → next `/brana:review` is non-optional before pipeline runs again. (Shape doc had 20; challenger lowered to 10 — at 12-15 URLs/day, 3 missed weekly reviews produce 30-50 drafts, recreating the original triage problem.)
+
 ## Recommendation
 
-**None — shape doc, not a plan.** The option tree is on paper. The sub-decisions need user input. The audit numbers point at LinkedIn automation as the highest-leverage target.
-
-If the user wants a directional hint: **Option 4 (Hybrid), starting with LinkedIn URLs only in the automated lane.** Rationale:
-- Matches the audit (LinkedIn is 91% of volume)
-- Preserves manual flow for sources where human context matters (audio, `brana-knowledge/inbox/` file drops)
-- Lowest risk of contaminating the knowledge base with low-quality drafts
-- Can expand lanes as the automated lane proves itself
-
-**Do not pick Option 1 without first running the pipeline against LinkedIn only as a prototype.** Full automation across all source types is the target, not the starting point.
-
-**Do not pick Option 3 alone** — it contradicts the user's explicit choice of Karpathy's methodology.
+**Tiered pipeline, v1 scoped to LinkedIn URLs.** Four decisions locked above. Write the feature brief next.
 
 ## Dependency on D2 (Lint + Heal)
 
@@ -436,13 +495,10 @@ These are addressed in `memory-consolidation-kairos.md` — if that doc picks in
 - `/brana:harvest` (venture-scoped, `ventures/linkedin`) and `/brana:review` internal changes beyond the review-drafts integration
 - Any implementation, skill file, CLI subcommand, scheduler entry, or spec-graph schema change
 
-## Next concrete step (pending direction)
+## Next concrete step
 
-1. **Complete the audit.** Run the three remaining audit commands (brana-knowledge/inbox contents, log-vs-task URL diff, event log growth rate). 10 minutes.
-2. **Pick an option.** With the audit numbers, pick 1 / 2 / 3 / 4 (or reject all).
-3. **Resolve sub-decisions SD-A (staging location) and SD-B (frontmatter convention) FIRST** — these are shared with D2's Lint + Heal and need to match across both shape docs.
-4. **Scope a feature brief.** If the user picks an option, write `docs/architecture/features/inbox-to-dimensions-pipeline.md` with chosen option marked, sub-decisions locked, audit numbers baked in, and scope narrowed to "LinkedIn URLs only" for v1.
-5. **Coordinate with D2** on staging location and promotion ritual before either feature brief is accepted.
-6. **Do not edit code, CLI, or procedures.** Only the feature brief and any remaining shape refinements.
+> Audit complete (2026-04-10). Options evaluated and challenged (2 rounds). Sub-decisions SD-A and SD-B locked. Tiered model chosen.
 
-**If user picks no option:** close as "considered, deferred," re-raise when `knowledge-architecture-v2.md` feature brief comes up. Keep t-1074 / t-1075 / etc. pending.
+1. **Write feature brief** — `docs/architecture/features/inbox-to-dimensions-pipeline.md`. Include: tiered architecture, 4 locked decisions, draft frontmatter schema, CLI subcommand spec (`brana knowledge process`), scheduler config, acceptance criteria, test plan. Effort S (2h).
+2. **Coordinate SD-A/SD-B with D2** — verify `memory-consolidation-kairos.md` agrees on `brana-knowledge/drafts/` location and promotion ritual before either feature brief is accepted.
+3. **Do not edit code, CLI, or procedures** until feature brief is accepted.

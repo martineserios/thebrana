@@ -138,6 +138,36 @@
       "enabled": false,
       "_comment": "Weekly dead link check (enable after lychee is installed)"
     },
+    "lint-heal": {
+      "type": "command",
+      "command": "./system/scripts/lint-heal.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Sun *-*-* 15:00:00",
+      "enabled": true,
+      "timeoutSeconds": 300,
+      "captureOutput": true,
+      "_comment": "t-1075: weekly L2 memory lint+heal — dedup, contradiction detection, frontmatter imputation. Runs after knowledge-decay (13:00)."
+    },
+    "index-assumptions": {
+      "type": "command",
+      "command": "./system/scripts/index-assumptions.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Sun *-*-* 08:36:00",
+      "enabled": true,
+      "maxRetries": 1,
+      "timeoutSeconds": 300,
+      "captureOutput": true
+    },
+    "second-phase-review": {
+      "type": "command",
+      "command": "./system/scripts/second-phase-check.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Mon *-*-* 08:42:00",
+      "enabled": true,
+      "timeoutSeconds": 60,
+      "captureOutput": true,
+      "_comment": "ADR-021: weekly check for time-gated second-phase tasks"
+    },
     "statusline-slow-cache": {
       "type": "command",
       "command": "./system/scripts/statusline-slow-cache.sh",
