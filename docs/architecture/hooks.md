@@ -202,6 +202,16 @@ Source: /brana:reconcile --scope consistency, 2026-04-09
 Both commands create branches but the hook pattern only matches `git checkout -b`. `git switch -c` is an unguarded bypass. Intentional workaround when already inside a clean worktree; unintentional gap if the goal is full branch-creation enforcement. Track: t-1120.
 Source: t-1108
 
+### 2026-04-12: nvm PATH glob for scheduler scripts
+Non-interactive shells (systemd, cron) don't source nvm, so `node` and `ruflo` binaries are missing from PATH. Sourcing full `nvm.sh` is slow and fragile. Reliable fix — 3 lines at top of any scheduler script needing node/ruflo:
+```bash
+for _nvm_bin in "$HOME"/.nvm/versions/node/*/bin; do
+    [ -x "$_nvm_bin/node" ] && export PATH="$_nvm_bin:$PATH" && break
+done
+```
+Validated in `system/scripts/feed-ruflo-index.sh` (t-1138).
+Source: t-1138
+
 ### 2026-04-10: doc-gate blocks the entire Bash command, including pre-commit git add
 When `git add <files> && git commit -m "..."` is in a single Bash call and the PreToolUse doc-gate blocks the commit, the `git add` also never runs — the hook fires before the entire shell command executes. Pattern: always stage files in a SEPARATE Bash call, then commit in a second call. The add call never triggers doc-gate; only the commit does.
 Source: t-1109, 2026-04-10

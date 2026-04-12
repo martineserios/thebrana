@@ -175,14 +175,51 @@ Tier 2 does NOT run on a scheduler — it runs after Tier 1 completes (same
 scheduler invocation, sequential: `--tier1 && --tier2`). This keeps cluster
 state consistent within a single run.
 
+## Content sourcing — locked (2026-04-12)
+
+**Option (a): event log text only. No HTTP fetch.**
+
+LinkedIn post URLs are behind a login wall — unauthenticated fetch returns a login
+redirect. v1 uses signals already present in the event log entry:
+
+```
+- 21:14 — https://www.linkedin.com/posts/walid-boulanouar_everyone-using-claude-code-is-paying-for-share-... #claude-code #cost
+```
+
+Extracted fields:
+- **author**: URL path segment before first `_` (`walid-boulanouar`)
+- **title_signal**: URL path segment between first `_` and `-share-` or `-ugcPost-`, hyphens → spaces
+- **tags**: hashtags the user added at capture time (`#claude-code #cost`)
+
+This is sufficient for relevance scoring (Tier 1) and cluster assignment (Tier 2).
+Full content fetch deferred to v2 (t-1144) pending a LinkedIn auth strategy.
+
+## LLM call mechanism — locked (2026-04-12)
+
+**Shell out to `claude` CLI. No Anthropic API key.**
+
+```rust
+std::process::Command::new(resolve_claude_binary())
+    .args(["--print", "--output-format", "json", prompt_text])
+    .output()
+```
+
+Binary resolution order (same pattern as `resolve-brana.sh`):
+1. `$CLAUDE_PLUGIN_DATA/claude`
+2. `~/.local/bin/claude`
+3. `PATH`
+
+Cron-safe: explicit path resolution, no shell PATH dependency.
+
 ## Tier 1 LLM prompt (spec)
 
 ```
 You are classifying a LinkedIn post for relevance to a personal knowledge base
 about AI systems, agent design, developer tooling, and knowledge management.
 
-Post title: {title}
-Post excerpt (first 200 chars): {excerpt}
+Author: {author}
+Title signal: {title_signal}
+Tags: {tags}
 
 Score the relevance 1-5 where:
 1 = personal update, marketing, unrelated
@@ -201,7 +238,9 @@ Respond with JSON only: {"score": N, "reason": "one sentence"}
 ```
 You are assigning a LinkedIn post to the nearest topic in a knowledge base.
 
-Post content: {full_content}
+Author: {author}
+Title signal: {title_signal}
+Tags: {tags}
 
 Existing dimension topics:
 {dimension_list_with_slugs}

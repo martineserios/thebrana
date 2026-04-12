@@ -1863,3 +1863,42 @@ Add a "Voice-first intake" branch to the onboard SCAN/DISCOVER flow:
 | 3 | cli.rs:128 | Stale | "pure Rust" claim — binary shells out to whisper-cli + dlopen's libwhisper.so.1 | Applied — updated Clap help string (errata #79) |
 | 4 | errata #81 | Stale/Applied | feedback_git-switch-c-bypasses-worktree-gate.md already had ephemeral warning | Marked applied — was already fixed in prior session |
 | 5 | errata #80 | Stale/Applied | onboard.md already had voice-first intake branch at Step 2 | Marked applied — was already fixed in prior session |
+
+---
+
+## Error 82: systemd OnCalendar multi-time format with comma-separated full time specs
+
+**Severity:** Medium
+**Status:** code-fix
+**Discovery:** Close debrief (2026-04-12, t-1009 intelligence feed)
+
+**Finding:** `scheduler.template.json` had `"schedule": "*-*-* 08:00,12:00,18:00:00"` for the `feed-poll` job. This is invalid systemd OnCalendar syntax. The comma separates hour values, not full `HH:MM:SS` specs — having a colon after the comma creates an illegal structure.
+
+```
+*-*-* 08:00,12:00,18:00:00  ← INVALID (comma after full time spec)
+*-*-* 08,12,18:00:00        ← VALID (comma between hour values)
+```
+
+**Impact:** The `feed-poll` timer would never fire. `brana-scheduler deploy` exits with error code 1 after the problematic job without clear error messaging.
+
+**Files affected:** `system/scheduler/scheduler.template.json`
+
+**Fix applied:** Corrected format in commit `8258875`. Template and live `~/.claude/scheduler/scheduler.json` both updated.
+
+---
+
+## Error 83: mcp-index.mjs entries not searchable via memory_search in same session
+
+**Severity:** Low
+**Status:** informational
+**Discovery:** Close debrief (2026-04-12, t-1138 feed-ruflo-index)
+
+**Finding:** The `project_bulk-index-pattern.md` memory note states "memory_search still works because it falls back to SQLite-based vector comparison." This is true for `bulk-index.mjs` (direct SQLite with embeddings), but NOT for `mcp-index.mjs` (MCP `memory_store`).
+
+Entries stored via `mcp-index.mjs` land in `memory_entries` immediately (confirmed via sqlite3), but ruflo's in-memory HNSW index is stale — it was built at startup and doesn't include entries added during the session. The SQLite fallback only applies when embeddings are present in the DB row; MCP-stored entries may have a different embedding storage path.
+
+**Impact:** Any pipeline that stores via mcp-index.mjs then queries via memory_search in the same session will return 0 results. Affected: feed-ruflo-index.sh (stores 354 entries, but they're only searchable after next session start).
+
+**Files affected:** `project_bulk-index-pattern.md` (updated), MEMORY.md ruflo section
+
+**Fix applied:** Updated `project_bulk-index-pattern.md` to document the distinction. No code change needed — behavior is correct, documentation was incomplete.
