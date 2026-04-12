@@ -60,11 +60,18 @@ TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null) || pass_thr
 CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null) || pass_through
 [ -n "$CMD" ] || pass_through
 
-# Detect command type
+# Detect command type.
+# Strip single- and double-quoted strings first to avoid false positives from
+# commands like: brana backlog add --json '{"description":"fix git switch -c"}'
+# The quoted content is not an actual git invocation.
+CMD_UNQUOTED=$(echo "$CMD" | sed "s/'[^']*'//g; s/\"[^\"]*\"//g")
 IS_CHECKOUT=false
 IS_COMMIT=false
-echo "$CMD" | grep -qE '(git\s+checkout\s+.*-b\s|git\s+switch\s+.*-c\s|git\s+checkout\s+.*-b$|git\s+switch\s+.*-c$)' && IS_CHECKOUT=true
-echo "$CMD" | grep -qE 'git\s+commit' && IS_COMMIT=true
+echo "$CMD_UNQUOTED" | grep -qE '(git\s+checkout\s+.*-b\s|git\s+switch\s+.*-c\s|git\s+checkout\s+.*-b$|git\s+switch\s+.*-c$)' && IS_CHECKOUT=true
+echo "$CMD_UNQUOTED" | grep -qE 'git\s+commit' && IS_COMMIT=true
+# Track which branch-creation command was actually used (for error messages)
+IS_SWITCH_C=false
+echo "$CMD_UNQUOTED" | grep -qE '(git\s+switch\s+.*-c\s|git\s+switch\s+.*-c$)' && IS_SWITCH_C=true
 
 # Neither checkout nor commit — nothing to guard
 [ "$IS_CHECKOUT" = true ] || [ "$IS_COMMIT" = true ] || pass_through
@@ -155,11 +162,14 @@ WORKTREE_COUNT=$(git -C "$GIT_ROOT" worktree list --porcelain 2>/dev/null | grep
 BRANCH_NAME=$(echo "$CMD" | grep -oP '(checkout\s+-b|switch\s+-c)\s+\K\S+' 2>/dev/null || echo "branch-name")
 
 # Step 8: Decide
+USED_CMD="git checkout -b"
+[ "$IS_SWITCH_C" = "true" ] && USED_CMD="git switch -c"
+
 if [ -n "$DIRTY" ]; then
-    deny "Worktree required: $DIRTY detected. Use \`git worktree add ../<repo>-${BRANCH_NAME} -b ${BRANCH_NAME}\` or \`claude --worktree ${BRANCH_NAME}\` instead of \`git checkout -b\`. See git-discipline rule."
+    deny "Worktree required: $DIRTY detected. Use \`git worktree add ../<repo>-${BRANCH_NAME} -b ${BRANCH_NAME}\` or \`claude --worktree ${BRANCH_NAME}\` instead of \`${USED_CMD}\`. See git-discipline rule."
 elif [ "$WORKTREE_COUNT" -gt 1 ]; then
     WT_LIST=$(git -C "$GIT_ROOT" worktree list --porcelain 2>/dev/null | grep '^worktree ' | sed 's/^worktree /  /' | head -5)
-    deny "Worktree required: ${WORKTREE_COUNT} worktrees already active on this repo. Use \`git worktree add ../<repo>-${BRANCH_NAME} -b ${BRANCH_NAME}\` instead of checkout to avoid conflicts. Active worktrees:\n${WT_LIST}"
+    deny "Worktree required: ${WORKTREE_COUNT} worktrees already active on this repo. Use \`git worktree add ../<repo>-${BRANCH_NAME} -b ${BRANCH_NAME}\` instead of \`${USED_CMD}\` to avoid conflicts. Active worktrees:\n${WT_LIST}"
 fi
 
 # Clean state, no other worktrees — allow
