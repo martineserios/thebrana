@@ -177,11 +177,21 @@
       "type": "command",
       "command": "brana feed poll --all",
       "project": "~/enter_thebrana/thebrana",
-      "schedule": "*-*-* 08:00,12:00,18:00:00",
-      "enabled": false,
+      "schedule": "*-*-* 08,12,18:00:00",
+      "enabled": true,
       "timeoutSeconds": 120,
       "captureOutput": true,
-      "_comment": "t-585: poll all registered RSS/Atom feeds 3x daily."
+      "_comment": "t-1009: poll all registered RSS/Atom feeds 3x daily. Appends new entries to feed-log.jsonl."
+    },
+    "feed-index": {
+      "type": "command",
+      "command": "./system/scripts/feed-index.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 19:00:00",
+      "enabled": true,
+      "timeoutSeconds": 60,
+      "captureOutput": true,
+      "_comment": "t-1009: daily intelligence digest from feed-log.jsonl → ~/.claude/intelligence-feed-digest.md. Runs after last feed-poll (18:00)."
     },
     "statusline-slow-cache": {
       "type": "command",

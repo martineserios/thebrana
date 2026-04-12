@@ -560,6 +560,13 @@ if [ -f "$CC_REPORT" ]; then
 }[CC changelog] New changes detected. Review: ~/.claude/cc-changelog-report.md"
     fi
 fi
+# Intelligence feed digest (daily feed-index job)
+FEED_DIGEST="$HOME/.claude/intelligence-feed-digest.md"
+if [ -f "$FEED_DIGEST" ]; then
+    FEED_COUNT=$(grep -c '^[0-9]\{4\}' "$FEED_DIGEST" 2>/dev/null) || FEED_COUNT="?"
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}[Intelligence feed] $FEED_COUNT new items. Review: ~/.claude/intelligence-feed-digest.md"
+fi
 if [ -n "$DRIFT_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
 }[Config drift] $DRIFT_CONTEXT"
