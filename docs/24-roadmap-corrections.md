@@ -1906,7 +1906,7 @@ Entries stored via `mcp-index.mjs` land in `memory_entries` immediately (confirm
 
 ---
 
-## Error 84: ARCHITECTURE.md Claims to Supersede Doc 14 but Both Are Actively Maintained
+## Error 85: ARCHITECTURE.md Claims to Supersede Doc 14 but Both Are Actively Maintained
 
 **Severity:** Low
 **Status:** applied (2026-04-12) — removed supersedes claim from ARCHITECTURE.md, added complementary relationship note

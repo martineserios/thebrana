@@ -146,6 +146,20 @@ Every hook in the system must be tested with realistic inputs:
 
 From lesson #6 (doc 24): `bash -n` catches syntax but not logic. Test hooks by piping real JSON and verifying side effects.
 
+**PreToolUse deny response schema.** When a PreToolUse hook returns a deny decision, the correct jq path is `.hookSpecificOutput.permissionDecision` (not top-level `.permissionDecision`) and `.hookSpecificOutput.permissionDecisionReason` (not `.message`). Hook tests that check `.permissionDecision == "deny"` at the top level will always report false — the field doesn't exist there. The deny envelope:
+```json
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny",
+    "permissionDecisionReason": "..."
+  }
+}
+```
+Discovered during worktree-gate test suite (t-1120). Any hook test that asserts deny behavior must use the correct path or it will silently pass on all inputs.
+
+**Sub-script decomposition for independent testability.** Long hooks (250+ lines with multiple distinct concerns) can be decomposed into concern-specific sub-scripts with env file handoff. Pattern: `session-end.sh` (336 lines, 3 concerns) → orchestrator (thin, ~90 lines, responds immediately) + `session-end-metrics.sh` (extract counts from JSONL) + `session-end-persist.sh` (ruflo + L0 storage) + `session-end-drift.sh` (git sync + graph rebuild). Each sub-script has its own unit test suite with fixture inputs. Benefits: isolated failures don't corrupt earlier phases; each concern can be tested and iterated independently; the orchestrator is stable and rarely touched. Use env file handoff (orchestrator writes to `$METRICS_ENV_FILE`, sub-scripts source it) to pass state across process boundaries without argument lists. Sub-scripts always exit 0 — the orchestrator ignores their return codes.
+
 ### State Sync (ADR-015)
 
 Operational state lives in `~/.claude/` (fast cache) but must be recoverable from git. The `sync-state.sh` script bridges these worlds with five subcommands. Behavioral tests:

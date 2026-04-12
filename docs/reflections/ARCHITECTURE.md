@@ -14,7 +14,7 @@ informs:
 
 How a single Claude Code instance with ruflo accumulates knowledge across every project while maintaining project-specific context. The "single evolving brain" system.
 
-> **Relationship to doc 14:** This doc and [14-mastermind-architecture.md](14-mastermind-architecture.md) are complementary, not redundant. This doc is the concise reasoning layer (WHY things compose this way). Doc 14 is the detailed synthesis (directory trees, hook descriptions, agent roster, scheduler architecture) that receives errata corrections and validate.sh audits. The planned split into ARCHITECTURE.md (reasoning) + component-index.md (generated inventory) + archived doc 14 is not yet complete — `component-index.md` remains a stub. Until the split is done, treat both as active. Errata #84.
+> **Relationship to doc 14:** This doc and [14-mastermind-architecture.md](14-mastermind-architecture.md) are complementary, not redundant. This doc is the concise reasoning layer (WHY things compose this way). Doc 14 is the detailed synthesis (directory trees, hook descriptions, agent roster, scheduler architecture) that receives errata corrections and validate.sh audits. The planned split into ARCHITECTURE.md (reasoning) + component-index.md (generated inventory) + archived doc 14 is not yet complete — `component-index.md` remains a stub. Until the split is done, treat both as active. Errata #85.
 
 ---
 

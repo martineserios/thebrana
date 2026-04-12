@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-12T18:43:54Z",
+  "generated": "2026-04-12T20:49:48Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -313,7 +313,8 @@
         "system/rules/",
         "system/scheduler/brana-scheduler-runner.sh",
         "system/skills/decide/SKILL.md",
-        "system/procedures/onboard.md"
+        "system/procedures/onboard.md",
+        "system/scheduler/scheduler.template.json"
       ]
     },
     "docs/25-self-documentation.md": {
@@ -960,7 +961,8 @@
         "system/cli/",
         "system/scripts/",
         "system/skills/",
-        "system/hooks/"
+        "system/hooks/",
+        "system/scripts/feed-ruflo-index.sh"
       ]
     },
     "docs/architecture/knowledge-system-extending.md": {
@@ -5919,6 +5921,12 @@
     },
     {
       "from": "docs/24-roadmap-corrections.md",
+      "to": "archive/reflections/14-mastermind-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/24-roadmap-corrections.md",
       "to": "brana-knowledge/dimensions/11-ecosystem-skills-plugins.md",
       "type": "references",
       "computed": false
@@ -9117,6 +9125,12 @@
     },
     {
       "from": "docs/reflections/ARCHITECTURE.md",
+      "to": "14-mastermind-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/ARCHITECTURE.md",
       "to": "brana-knowledge/dimensions/35-context-engineering-principles.md",
       "type": "references",
       "computed": false
@@ -9154,12 +9168,6 @@
     {
       "from": "docs/reflections/ARCHITECTURE.md",
       "to": "docs/architecture/hooks.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/reflections/ARCHITECTURE.md",
-      "to": "docs/archive/reflections/14-mastermind-architecture.md",
       "type": "references",
       "computed": false
     },
@@ -9234,18 +9242,12 @@
       "to": "dimensions/meta-whatsapp-template-classification.md",
       "type": "supersedes",
       "computed": false
-    },
-    {
-      "from": "docs/reflections/ARCHITECTURE.md",
-      "to": "docs/reflections/14-mastermind-architecture.md",
-      "type": "supersedes",
-      "computed": false
     }
   ],
   "stats": {
     "nodes": 293,
     "edges": 1222,
-    "typed_edges": 500,
+    "typed_edges": 499,
     "orphans": 64
   }
 }
