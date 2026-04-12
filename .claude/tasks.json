@@ -30533,7 +30533,7 @@
       "parent": null,
       "priority": null,
       "started": null,
-      "status": "pending",
+      "status": "done",
       "strategy": null,
       "stream": "tech-debt",
       "subject": "[hook] warn when commit message mentions file not in staged diff",
