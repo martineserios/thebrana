@@ -31756,6 +31756,34 @@
       "order": 0,
       "github_issue": null,
       "execution": "code"
+    },
+    {
+      "subject": "Regenerate reference/hooks.md — missing branch-verify.sh (errata #87)",
+      "stream": "tech-debt",
+      "type": "task",
+      "tags": [
+        "hooks",
+        "docs",
+        "code-gen"
+      ],
+      "effort": "XS",
+      "context": "docs/reference/hooks.md is auto-generated but missing branch-verify.sh despite it being in hooks.json. Errata #87 in doc 24. Re-run generate-reference.py (or equivalent) and verify branch-verify.sh appears in output.",
+      "id": "t-1175",
+      "status": "pending",
+      "execution": "code",
+      "created": "2026-04-12",
+      "blocked_by": [],
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "branch": null,
+      "github_issue": null,
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "strategy": null,
+      "build_step": null,
+      "description": null
     }
   ],
   "version": "1"
