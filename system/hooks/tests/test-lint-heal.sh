@@ -406,6 +406,42 @@ REPORT13_CONTENT=$(cat "$REPORT13" 2>/dev/null || echo "")
 assert_not_contains "T13: documented concept NOT surfaced" \
     "documented-concept" "$REPORT13_CONTENT"
 
+# T18: contradiction stopwords — "commands", "production", "directly", "thebrana"
+#      should NOT appear as contradiction candidates even with ≥2 files on each side
+T18_DIR=$(mktemp -d "$TMPDIR_ROOT/.claude/projects/XXXXXX")
+mkdir -p "$T18_DIR/clients/p/memory"
+for word in commands production directly thebrana; do
+    for i in 1 2; do
+        cat > "$T18_DIR/clients/p/memory/feedback_sw_pos_${word}${i}.md" <<EOF
+---
+name: sw-pos-${word}-${i}
+type: feedback
+---
+Always use ${word} in this context.
+EOF
+        cat > "$T18_DIR/clients/p/memory/feedback_sw_neg_${word}${i}.md" <<EOF
+---
+name: sw-neg-${word}-${i}
+type: feedback
+---
+Never use ${word} in this context.
+EOF
+    done
+done
+
+HOME="$TMPDIR_ROOT" \
+    LINT_HEAL_MEMORY_ROOT="$T18_DIR" \
+    bash "$LINT_HEAL" 2>&1 || true
+
+REPORT18="$TMPDIR_ROOT/.claude/lint-heal-report.md"
+REPORT18_CONTENT=$(cat "$REPORT18" 2>/dev/null || echo "")
+for word in commands production directly thebrana; do
+    assert_not_contains "T18: stopword '$word' not flagged as contradiction" \
+        "**${word}**" "$REPORT18_CONTENT"
+done
+assert_contains "T18: no contradiction candidates after stopword filtering" \
+    "No candidates" "$REPORT18_CONTENT"
+
 # ──────────────────────────────────────────────────────────────
 echo ""
 echo "── Safety invariants ────────────────────────────────────"

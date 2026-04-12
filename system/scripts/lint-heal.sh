@@ -319,12 +319,14 @@ pass_contradiction() {
             if echo "$line" | grep -qiE "\b(prefer|always use)\b"; then
                 local slug
                 slug=$(_extract_concept_slug "$line")
+                echo "$slug" | grep -qE "^(${CONTRADICTION_STOPWORDS})$" && slug=""
                 [[ -n "$slug" ]] && printf '%s\t%s\n' "$slug" "$f" >> "$pos_file"
             fi
             # Negative keywords
             if echo "$line" | grep -qiE "\b(avoid|never use)\b"; then
                 local slug
                 slug=$(_extract_concept_slug "$line")
+                echo "$slug" | grep -qE "^(${CONTRADICTION_STOPWORDS})$" && slug=""
                 [[ -n "$slug" ]] && printf '%s\t%s\n' "$slug" "$f" >> "$neg_file"
             fi
         done < "$f"
@@ -473,6 +475,10 @@ pass_imputation() {
 normalize_slug() {
     echo "$1" | sed 's/^feedback_//; s/^project_//; s/^reference_//; s/_/-/g' | tr '[:upper:]' '[:lower:]'
 }
+
+# Stopwords for Pass 2 (contradiction detection): generic terms that produce false positives.
+# These appear in many diverse feedback files without representing a real contradiction.
+CONTRADICTION_STOPWORDS="production|directly|thebrana|commands"
 
 CONCEPT_STOPWORDS="linkedin|category|martineserios|follow-up|session-start|architecture|reconcile|maintenance|detected|description|research|claude-code|projects|knowledge|feedback|available|completed|following|implement|important|parameter|configure|existing|expected|function|generate|identify|increase|multiple|possible|previous|provides|required|response|separate|specific|strategy|template|variable|whatever|whenever|wherever|workflow"
 
