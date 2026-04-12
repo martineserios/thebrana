@@ -203,7 +203,9 @@ claude --plugin-dir ./system
 | `brana session read\|write\|history\|path\|migrate\|mark-consumed\|insights` | Structured session state — read/write JSON state, browse history, migrate from markdown. `insights` scans JSONL telemetry for recurring friction patterns (tool failures, hook blocks) — surfaces in `/brana:review` weekly friction section. |
 | `brana handoff last\|list\|path` | Legacy alias for `brana session`. Falls back to markdown if no JSON state exists. |
 | `brana skills suggest\|search\|list\|reindex\|usage` | Skill discovery and semantic routing. `reindex` indexes skills into ruflo memory. `usage` scans JSONL telemetry for invocation counts + cull candidates. |
-| `brana knowledge reindex\|status` | Knowledge base indexing. Indexes dimension/reflection/feature docs into ruflo memory. `--patterns` for memory files. |
+| `brana knowledge reindex\|status\|search` | Knowledge base indexing. Indexes dimension/reflection/feature docs into ruflo memory. `--patterns` for memory files. |
+| `brana knowledge process --tier1\|--tier2\|--draft <topic>\|--status\|--reset-url\|--dry-run` | Inbox→dimensions pipeline. Tier 1: relevance filter (batch 50). Tier 2: cluster assignment + report. Tier 3: draft synthesis (manual gate). |
+| `brana knowledge promote <draft-path>` | Promote a draft to `dimensions/`, archive the draft. |
 | `brana graph build\|orphans\|query\|path\|stats\|validate` | Knowledge graph operations — ontology-aware spec dependency graph |
 
 ### MCP Tools (brana-mcp server)
