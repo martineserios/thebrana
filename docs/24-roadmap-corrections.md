@@ -17,6 +17,7 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | # | Error | Severity | Status | Comments |
 |---|---|---|---|---|
 | 1 | Settings merge bug in deploy.sh | **High** | code-fix | Fixed in deploy.sh additive merge |
+| 87 | call_claude_json assumed model always returns raw JSON | **Low** | code-fix | strip_code_fences() added; 12/50 tier1 failures fixed (commit 0c116dd) |
 | 84 | Spec-first gate requires dot separator in spec filenames | **Low** | code-fix | `knowledge_pipeline_spec.md` rejected; rename to `knowledge_pipeline.spec.md` fixed it |
 | 2 | Stop vs SessionEnd mismatch | **High** | applied (2026-02-10) | [Docs 08](reflections/08-diagnosis.md), 14, 17, 18 updated |
 | 3 | Hook format not specified | **Medium** | informational | Roadmaps cross-ref [doc 09](dimensions/09-claude-code-native-features.md) |
@@ -1931,10 +1932,26 @@ The planned split (ARCHITECTURE.md = reasoning, component-index.md = generated i
 
 ---
 
+## Error 87: call_claude_json assumed model always returns raw JSON from --output-format json
+
+**Severity:** Low
+**Status:** code-fix
+**Discovery:** Close debrief (2026-04-12, t-1152 knowledge pipeline tier1 live run)
+
+**Finding:** `call_claude_json()` in `knowledge_pipeline.rs` parsed `result_text.trim()` directly with `serde_json::from_str`. The Claude CLI's `--output-format json` structures the outer envelope, but the model's `result` field still contains markdown code fences (`\`\`\`json...\`\`\``) ~24% of the time. This caused 12/50 parse failures in the first live tier1 run.
+
+**Impact:** 12 URLs silently failed tier1 scoring in the first live `brana knowledge process --tier1` run (2026-04-12). They appeared as `⚠ LLM call failed` warnings but were not counted — pipeline reported 23 passed / 13 filtered without the 12 failures being visible in the summary.
+
+**Files affected:** `system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs` — `call_claude_json()` at line ~515.
+
+**Fix applied:** Added `strip_code_fences()` helper (line 524) that strips ` \`\`\`json ` / ` \`\`\` ` prefix/suffix before parsing. 5 tests cover all cases. Commit `0c116dd`, merged `27b24cb`.
+
+---
+
 ## Error 86: hooks.md missing branch-verify worktree behavior
 
 **Severity:** Low
-**Status:** pending
+**Status:** applied (2026-04-12)
 **Discovery:** Close debrief (2026-04-12, branch-verify-worktree-fix)
 
 **Finding:** `docs/architecture/hooks.md` describes `branch-verify.sh` as "Staging behavioral files on main/master" with no mention of `-C` path extraction or worktree support. As of commit `7c4526b`, the hook extracts `git -C <path>` from the command and checks that repo's branch instead of the session CWD. The doc description is now stale.
@@ -1944,6 +1961,8 @@ The planned split (ARCHITECTURE.md = reasoning, component-index.md = generated i
 **Files affected:** `docs/architecture/hooks.md` — hook inventory table description (line ~49) + field note already added (2026-04-12).
 
 **Fix:** Update the hook inventory table entry for `branch-verify.sh` to mention `-C` path extraction and worktree awareness.
+
+**Comments:** Added `branch-verify.sh` row to plugin hooks inventory table with worktree-aware description. Also updated `session-end.sh` row to reflect orchestrator → 3 sub-scripts pattern.
 
 ---
 

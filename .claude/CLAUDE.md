@@ -307,3 +307,23 @@ Source: t-501 session 2026-04-12
 ### 2026-04-12: Verify handoff items before starting work
 2 of 4 handoff items this session (ADR-033, tier-1 dry-run) were already done in a prior session. Budget 1-2 minutes per item to verify it's still real: check git log, grep config, or run the command with --dry-run. Mark done items immediately. Prevents full investigation of completed work.
 Source: t-1147 session 2026-04-12
+
+### 2026-04-12: LLM JSON output needs code-fence stripping even with --output-format json
+`claude -p --output-format json` structures the CLI envelope, but the `result` field can still contain markdown code fences (` ```json...``` `) ~24% of the time. `serde_json::from_str` fails silently on fenced JSON. Always strip ` ```json ` / ` ``` ` prefix/suffix before parsing any LLM `result` field. See `knowledge_pipeline.rs:strip_code_fences()`.
+Source: t-1152, first live tier1 run 2026-04-12
+
+### 2026-04-12: Dry-run does not cover external call paths (LLM, APIs)
+`brana knowledge process --tier1 --dry-run` passed 50/50 but live run had 12/50 parse failures. The dry-run skips the Claude CLI call entirely — it only validates URL parsing and allow-list logic. Before enabling a scheduler job for any pipeline that calls an LLM or API, run a `--sample 3` smoke test (or equivalent) to exercise the full call path.
+Source: t-1152, knowledge pipeline session 2026-04-12
+
+### 2026-04-12: jq -Rs '.' is NOT a safe drop-in for Python json.dumps()
+`jq`'s encoding of control characters (`\u0000`–`\u001f`) differs by version and locale. Python's `json.dumps()` guarantees RFC 8259 escaping. Before replacing any Python JSON one-liner with jq in an indexing pipeline, test byte-for-byte against real data (control chars, backticks, NUL). If outputs differ, use `uv run python3 -c` prefix instead. Gates t-1166/t-1167/t-1168/t-1169.
+Source: Python cleanup planning + challenger review 2026-04-12
+
+### 2026-04-12: Hook-wired scripts = HIGH priority migration, not deferrable
+Invocation frequency multiplies migration urgency. A script called in hooks that fire on every session end and every task completion is a hot path. Before classifying any Python→Rust migration as "not urgent," grep callers: `grep -r "script-name" system/hooks/`. Hook caller = high frequency = HIGH priority. Applied: decisions.py reclassified P1 (t-1164).
+Source: Python cleanup planning + challenger review 2026-04-12
+
+### 2026-04-12: Grep for runtime imports before deleting Python migration targets
+Spike files can have hidden runtime imports. `evaluator-spike.py` imported `from decisions import log_entry` (lines 332–361) despite appearing dead. Pattern: `grep -r "from {script_stem} import\|import {script_stem}" system/` before deleting any script being ported to CLI. Migrate all importers first.
+Source: Python cleanup planning + challenger review 2026-04-12
