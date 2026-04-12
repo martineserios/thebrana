@@ -158,6 +158,38 @@
       "captureOutput": true,
       "_comment": "t-1009: daily intelligence digest — feed-log.jsonl → ~/.claude/intelligence-feed-digest.md"
     },
+    "content-harvest": {
+      "type": "skill",
+      "skill": "/brana:harvest 7d --auto",
+      "project": "~/enter_thebrana/ventures/linkedin",
+      "schedule": "Sun *-*-* 22:00:00",
+      "model": "sonnet",
+      "allowedTools": "Read,Glob,Grep,Bash",
+      "enabled": true,
+      "timeoutSeconds": 600,
+      "captureOutput": true,
+      "_comment": "t-680: weekly content harvest. Moved to ventures/linkedin 2026-04-06 after harvest skill relocation."
+    },
+    "daily-digest": {
+      "type": "command",
+      "command": "./system/scheduler/brana-scheduler-digest.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 09:30:00",
+      "enabled": false,
+      "timeoutSeconds": 30,
+      "captureOutput": false,
+      "_comment": "t-688: daily Telegram digest summarizing all scheduler runs. Enable on Oracle only (requires ~/.hub-secrets)."
+    },
+    "inbox-poll": {
+      "type": "command",
+      "command": "brana inbox poll",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 09:00:00",
+      "enabled": false,
+      "timeoutSeconds": 60,
+      "captureOutput": true,
+      "_comment": "t-585: poll Gmail for new newsletter emails."
+    },
     "lint-heal": {
       "type": "command",
       "command": "./system/scripts/lint-heal.sh",
