@@ -213,7 +213,7 @@ Each layer is a superset of the previous. L0 is the control (do nothing). L4 is 
 5. **Rollback snapshot.** Before any non-dry-run, snapshot `~/.claude/memory/` to `~/.claude/memory/pre-lint-heal-YYYY-MM-DD/`. Retained 7 days. For L3–L4, snapshot also includes `brana-knowledge/drafts/`.
 6. **Scheduler is the only entry point.** No ad-hoc invocation from inside a session (avoids "lint fires mid-close" race). Manual trigger only via `brana memory lint-heal` CLI, never from a skill procedure.
 7. **Build on the existing brana scheduler**, not a new daemon. Do not introduce a new process.
-8. **Draft staging directory is sacred (L3–L4 only).** `brana-knowledge/drafts/` is write-only from Lint + Heal. Promotion out of staging requires a human action (explicit review + edit + move via a dedicated CLI or skill). No auto-promotion.
+8. **Draft staging directory is shared (L3–L4 only).** `brana-knowledge/drafts/` is written by two producers: **D10 inbox-to-dimensions pipeline creates drafts** (source URLs → dimension additions); **Lint + Heal creates stub article suggestions** (undocumented concept → stub draft). Both producers are read by `/brana:review`. Promotion requires a human action (`brana knowledge promote <path>`). No auto-promotion from either producer. Hard cap: **10 drafts** across both producers (locked 2026-04-12, post-challenge); if cap hit, both producers halt until user acknowledges via `brana knowledge process --status`.
 9. **Token budget cap (L3–L4).** Per-run cap in config. If cap hit mid-run, abort and log — do not partial-write.
 10. **Idempotent scheduling.** Missing a run must be safe. The next run catches up without duplicate work.
 
@@ -224,7 +224,7 @@ Each layer is a superset of the previous. L0 is the control (do nothing). L4 is 
 | Layer 2 job accidentally touches Layer 1 file | All layers | Hard path allow-list; CLI refuses to write outside allowed paths; unit test covers rejection of Layer 1 paths |
 | Grep-based contradiction detection has false positives | L2+ | Dry-run first; surface-only mode for first N weeks; user can mark entries as "not a contradiction" in frontmatter |
 | LLM content imputation hallucinates | L3+ | Staging directory + milestone review + archive-don't-delete + dry-run mandatory |
-| LLM article-suggestion drafts accumulate faster than review cadence | L3+ | Hard cap on draft directory size (e.g., 20 drafts); if cap hit, job surfaces a "review backlog" warning and stops creating new drafts |
+| LLM article-suggestion drafts accumulate faster than review cadence | L3+ | Hard cap: **10 drafts** across all producers (D10 pipeline + Lint+Heal); if cap hit, both halt with warning. Cap lowered from 20 (challenger finding: at 12-15 URLs/day, 3 missed reviews → 30-50 drafts, recreating the triage problem). |
 | Web search returns low-quality or wrong info | L4 | Cite sources in drafts; require ≥2 source agreement for draft creation; per-run search budget cap |
 | Ruflo concurrent writes corrupt DB | L3+ (if ruflo touched) | Lock file + better-sqlite3 WAL (per MEMORY.md); but *preferred*: Lint + Heal writes to files only, lets ruflo reindex pick up changes on its own schedule |
 | Scheduler missed run (Oracle VM downtime) | All | Idempotent design; missing runs is safe |
