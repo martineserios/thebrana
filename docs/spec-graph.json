@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-10T00:56:41Z",
+  "generated": "2026-04-10T22:42:17Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -320,7 +320,8 @@
       "title": "25 - Self-Documentation: Keeping the Spec Repo Alive",
       "type": "Roadmap",
       "impl_files": [
-        "system/hooks/session-start.sh"
+        "system/hooks/session-start.sh",
+        "system/skills/"
       ]
     },
     "docs/30-backlog.md": {
@@ -353,7 +354,9 @@
     "docs/architecture/building-methodology.md": {
       "title": "Building Methodology: First-Principles Development for AI Tooling",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/cli/rust/crates/brana-cli/src/commands/"
+      ]
     },
     "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md": {
       "title": "ADR-001: Reconcile command for spec-to-implementation drift remediation",
@@ -577,6 +580,16 @@
         "system/procedures/{name"
       ]
     },
+    "docs/architecture/decisions/ADR-035-skill-usage-telemetry.md": {
+      "title": "ADR-035: Skill Usage Telemetry — `brana skills usage`",
+      "type": "ADR",
+      "impl_files": []
+    },
+    "docs/architecture/decisions/ADR-036-mcp-or-cli-decision-rule.md": {
+      "title": "ADR-036: MCP-or-CLI Decision Rule",
+      "type": "ADR",
+      "impl_files": []
+    },
     "docs/architecture/extending-agents.md": {
       "title": "Extending Agents",
       "type": "Roadmap",
@@ -687,6 +700,13 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/architecture/features/checkpoint-resume.md": {
+      "title": "Feature: Checkpoint/Resume for Skill Procedures",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/procedures/build.md"
+      ]
+    },
     "docs/architecture/features/cli-composable-tool.md": {
       "title": "Feature: CLI as Composable Tool",
       "type": "Roadmap",
@@ -729,6 +749,17 @@
       "title": "LinkedIn Content Pipeline — Implementation Design",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/architecture/features/lint-heal-deterministic.md": {
+      "title": "Feature: Lint+Heal L2 — Deterministic Memory Consolidation",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/procedures/memory.md",
+        "system/scripts/lint-heal.sh",
+        "system/hooks/session-start.sh",
+        "system/scheduler/scheduler.template.json",
+        "system/state/scheduler.json"
+      ]
     },
     "docs/architecture/features/living-docs.md": {
       "title": "Feature: Living Documentation System",
@@ -914,6 +945,7 @@
       "type": "Roadmap",
       "impl_files": [
         "system/hooks/hooks.json",
+        "system/",
         "system/hooks/lib/profile.sh",
         "system/cli/",
         "system/scripts/",
@@ -1331,6 +1363,11 @@
         "system/hooks/hooks.json"
       ]
     },
+    "docs/guide/ecosystem.md": {
+      "title": "Brana Workspace Ecosystem",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/guide/features/brana-feed-inbox.md": {
       "title": "brana feed + brana inbox",
       "type": "Roadmap",
@@ -1347,6 +1384,11 @@
       "impl_files": [
         "system/scripts/cc-changelog-check.sh"
       ]
+    },
+    "docs/guide/features/checkpoint-resume.md": {
+      "title": "Checkpoint/Resume for Long Builds",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/guide/getting-started.md": {
       "title": "Getting Started",
@@ -1524,8 +1566,13 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/ideas/inbox-to-dimensions-pipeline.md": {
+      "title": "Inbox → Dimensions Pipeline — Shape",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/ideas/memory-consolidation-kairos.md": {
-      "title": "Memory Consolidation — Kairos/autoDream Shape",
+      "title": "Memory Consolidation — Lint + Heal Shape",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -1675,9 +1722,7 @@
     "docs/reference/hooks.md": {
       "title": "Hook Reference",
       "type": "Roadmap",
-      "impl_files": [
-        "system/state/subagent-log.jsonl"
-      ]
+      "impl_files": []
     },
     "docs/reference/rules.md": {
       "title": "Rules Reference",
@@ -1791,7 +1836,8 @@
       "type": "Roadmap",
       "impl_files": [
         "system/procedures/close.md",
-        "system/procedures/sitrep.md"
+        "system/procedures/sitrep.md",
+        "system/CLAUDE.md"
       ]
     },
     "docs/research/2026-04-08-claude-code-leak-analysis.md": {
@@ -1805,6 +1851,11 @@
       "impl_files": [
         "system/ontology.yaml"
       ]
+    },
+    "docs/research/cc-unreleased-features-tracker.md": {
+      "title": "CC Unreleased Features Tracker",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/research/miessler-pai-comparison.md": {
       "title": "Miessler PAI vs Brana Personal OS — Research & Comparison",
@@ -2887,6 +2938,24 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/checkpoint-resume.md",
+      "to": "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/checkpoint-resume.md",
+      "to": "docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/checkpoint-resume.md",
+      "to": "docs/architecture/features/build-loop-redesign.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/cli-composable-tool.md",
       "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
       "type": "depends_on",
@@ -2955,6 +3024,18 @@
     {
       "from": "docs/architecture/features/linkedin-content-implementation.md",
       "to": "dimensions/28-startup-smb-management.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/lint-heal-deterministic.md",
+      "to": "docs/ideas/memory-consolidation-kairos.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/lint-heal-deterministic.md",
+      "to": "docs/research/2026-04-08-cc-alignment-findings.md",
       "type": "depends_on",
       "computed": false
     },
@@ -4305,6 +4386,12 @@
     {
       "from": "docs/architecture/features/context-budget-real-limits.md",
       "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/lint-heal-deterministic.md",
+      "to": "docs/ideas/inbox-to-dimensions-pipeline.md",
       "type": "informs",
       "computed": false
     },
@@ -6937,6 +7024,18 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-036-mcp-or-cli-decision-rule.md",
+      "to": "docs/architecture/decisions/ADR-033-pin-mcp-servers.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-036-mcp-or-cli-decision-rule.md",
+      "to": "docs/architecture/research/2026-04-08-url-batch-findings.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/extending-hooks.md",
       "to": "posttooluse-workaround.md",
       "type": "references",
@@ -8060,6 +8159,12 @@
     },
     {
       "from": "docs/guide/getting-started.md",
+      "to": "ecosystem.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/getting-started.md",
       "to": "scheduler.md",
       "type": "references",
       "computed": false
@@ -8151,6 +8256,24 @@
     {
       "from": "docs/ideas/enforcement-vs-injection.md",
       "to": "brana-operating-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/inbox-to-dimensions-pipeline.md",
+      "to": "docs/ideas/memory-consolidation-kairos.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/inbox-to-dimensions-pipeline.md",
+      "to": "docs/research/2026-04-08-cc-alignment-findings.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/memory-consolidation-kairos.md",
+      "to": "docs/ideas/inbox-to-dimensions-pipeline.md",
       "type": "references",
       "computed": false
     },
@@ -9074,9 +9197,9 @@
     }
   ],
   "stats": {
-    "nodes": 284,
-    "edges": 1205,
-    "typed_edges": 489,
-    "orphans": 61
+    "nodes": 292,
+    "edges": 1217,
+    "typed_edges": 495,
+    "orphans": 64
   }
 }
