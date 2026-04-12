@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
 # No strict mode — hooks must always return valid JSON.
 
-# Brana SessionEnd hook — flush accumulated session events to persistent storage.
-# Wave 1 (#75): compound metrics (correction rate, test coverage, cascade count).
-# Wave 4 (#75): flywheel metrics (correction_rate, auto_fix_rate, test_write_rate, cascade_rate, delegation_count).
+# Brana SessionEnd hook — orchestrator.
+# Responds immediately, forks background processing to 3 sub-scripts:
+#   session-end-metrics.sh  → compute flywheel metrics from JSONL log
+#   session-end-persist.sh  → store to ruflo (L1) + auto-memory (L0)
+#   session-end-drift.sh    → sync-state push + spec graph + decisions log
+#
 # Input:  stdin JSON (session_id, cwd, hook_event_name, matcher)
 # Output: stdout JSON with continue: true
-#
-# Strategy: respond immediately, fork heavy processing to background.
-# CC cancels hooks during session teardown — we must return before that.
 
-# Ensure valid CWD
 cd /tmp 2>/dev/null || true
 
 INPUT=$(cat) || true
@@ -22,192 +21,74 @@ if [ -z "${SESSION_ID:-}" ] || [ -z "${CWD:-}" ]; then
     exit 0
 fi
 
-# Respond immediately — all processing happens in background
+# Respond immediately — all processing in background
 echo '{"continue": true}'
 
-# Fork heavy work to background so the hook exits fast
 (
-    # Derive project name
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    source "${SCRIPT_DIR}/lib/resolve-brana.sh"
+    BRANA_CLI="$BRANA"
+
     GIT_ROOT=$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null || echo "$CWD")
     PROJECT=$(basename "$GIT_ROOT")
-
     SESSION_FILE="/tmp/brana-session-${SESSION_ID}.jsonl"
+    TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || TIMESTAMP="unknown"
 
-    # If no events accumulated, nothing to flush
+    # If no events accumulated, nothing to process
     if [ ! -f "$SESSION_FILE" ] || [ ! -s "$SESSION_FILE" ]; then
         rm -f "$SESSION_FILE"
         exit 0
     fi
 
-    # Summarize accumulated events — use Rust CLI if available, fall back to grep/jq/awk
-    TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || TIMESTAMP="unknown"
+    # ── Phase 1: Compute metrics ──────────────────────────────
+    METRICS_ENV_FILE=$(mktemp /tmp/brana-metrics-XXXXXX.env)
+    SESSION_FILE="$SESSION_FILE" \
+    BRANA_CLI="$BRANA_CLI" \
+    METRICS_ENV_FILE="$METRICS_ENV_FILE" \
+        bash "${SCRIPT_DIR}/session-end-metrics.sh" 2>/dev/null || true
 
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    source "${SCRIPT_DIR}/lib/resolve-brana.sh"
-    BRANA_CLI="$BRANA"
+    # Load computed metrics into this shell
+    [ -f "$METRICS_ENV_FILE" ] && source "$METRICS_ENV_FILE" 2>/dev/null || true
+    rm -f "$METRICS_ENV_FILE"
 
-    if [ -x "$BRANA_CLI" ]; then
-        # Fast path: Rust binary computes all metrics in one call
-        METRICS_JSON=$("$BRANA_CLI" ops metrics "$SESSION_FILE" 2>/dev/null) || METRICS_JSON=""
-        if [ -n "$METRICS_JSON" ]; then
-            TOTAL=$(echo "$METRICS_JSON" | jq -r '.events // 0') || TOTAL=0
-            SUCCESSES=$(echo "$METRICS_JSON" | jq -r '.successes // 0') || SUCCESSES=0
-            FAILURES=$(echo "$METRICS_JSON" | jq -r '.failures // 0') || FAILURES=0
-            CORRECTIONS=$(echo "$METRICS_JSON" | jq -r '.corrections // 0') || CORRECTIONS=0
-            TEST_WRITES=$(echo "$METRICS_JSON" | jq -r '.test_writes // 0') || TEST_WRITES=0
-            CASCADES=$(echo "$METRICS_JSON" | jq -r '.cascades // 0') || CASCADES=0
-            PR_CREATES=$(echo "$METRICS_JSON" | jq -r '.pr_creates // 0') || PR_CREATES=0
-            TEST_PASSES=$(echo "$METRICS_JSON" | jq -r '.test_passes // 0') || TEST_PASSES=0
-            TEST_FAILS=$(echo "$METRICS_JSON" | jq -r '.test_fails // 0') || TEST_FAILS=0
-            LINT_PASSES=$(echo "$METRICS_JSON" | jq -r '.lint_passes // 0') || LINT_PASSES=0
-            LINT_FAILS=$(echo "$METRICS_JSON" | jq -r '.lint_fails // 0') || LINT_FAILS=0
-            EDITS=$(echo "$METRICS_JSON" | jq -r '.edits // 0') || EDITS=0
-            DELEGATIONS=$(echo "$METRICS_JSON" | jq -r '.delegations // 0') || DELEGATIONS=0
-            TOOLS=$(echo "$METRICS_JSON" | jq -r '.tools // "unknown"') || TOOLS="unknown"
-            FILES=$(echo "$METRICS_JSON" | jq -r '.files // ""') || FILES=""
-            CORRECTION_RATE=$(echo "$METRICS_JSON" | jq -r '.flywheel.correction_rate // "0.00"') || CORRECTION_RATE="0.00"
-            AUTO_FIX_RATE=$(echo "$METRICS_JSON" | jq -r '.flywheel.auto_fix_rate // "0.00"') || AUTO_FIX_RATE="0.00"
-            TEST_WRITE_RATE=$(echo "$METRICS_JSON" | jq -r '.flywheel.test_write_rate // "0.00"') || TEST_WRITE_RATE="0.00"
-            CASCADE_RATE=$(echo "$METRICS_JSON" | jq -r '.flywheel.cascade_rate // "0.00"') || CASCADE_RATE="0.00"
-            TEST_PASS_RATE=$(echo "$METRICS_JSON" | jq -r '.flywheel.test_pass_rate // "N/A"') || TEST_PASS_RATE="N/A"
-            LINT_PASS_RATE=$(echo "$METRICS_JSON" | jq -r '.flywheel.lint_pass_rate // "N/A"') || LINT_PASS_RATE="N/A"
-        fi
-    fi
+    # Defaults if metrics script failed
+    TOTAL="${TOTAL:-0}"; SUCCESSES="${SUCCESSES:-0}"; FAILURES="${FAILURES:-0}"
+    CORRECTIONS="${CORRECTIONS:-0}"; TEST_WRITES="${TEST_WRITES:-0}"
+    CASCADES="${CASCADES:-0}"; PR_CREATES="${PR_CREATES:-0}"
+    TEST_PASSES="${TEST_PASSES:-0}"; TEST_FAILS="${TEST_FAILS:-0}"
+    LINT_PASSES="${LINT_PASSES:-0}"; LINT_FAILS="${LINT_FAILS:-0}"
+    EDITS="${EDITS:-0}"; DELEGATIONS="${DELEGATIONS:-0}"
+    TOOLS="${TOOLS:-unknown}"; FILES="${FILES:-}"
+    CORRECTION_RATE="${CORRECTION_RATE:-0.00}"; AUTO_FIX_RATE="${AUTO_FIX_RATE:-0.00}"
+    TEST_WRITE_RATE="${TEST_WRITE_RATE:-0.00}"; CASCADE_RATE="${CASCADE_RATE:-0.00}"
+    TEST_PASS_RATE="${TEST_PASS_RATE:-N/A}"; LINT_PASS_RATE="${LINT_PASS_RATE:-N/A}"
 
-    # Fallback: grep/jq/awk (if Rust CLI unavailable or failed)
-    if [ -z "$METRICS_JSON" ] || [ "$METRICS_JSON" = "" ]; then
-        TOTAL=$(wc -l < "$SESSION_FILE" 2>/dev/null) || TOTAL=0
-        SUCCESSES=$(grep -c '"outcome":"success"' "$SESSION_FILE" 2>/dev/null) || SUCCESSES=0
-        FAILURES=$(jq -r 'select(.outcome == "failure" or .outcome == "test-fail" or .outcome == "lint-fail") | .outcome' "$SESSION_FILE" 2>/dev/null | wc -l) || FAILURES=0
-        TOOLS=$(jq -r '.tool' "$SESSION_FILE" 2>/dev/null | sort -u | paste -sd ',' || echo "unknown")
-        FILES=$(jq -r '.detail // empty' "$SESSION_FILE" 2>/dev/null | sort -u | head -10 | paste -sd ',' || echo "")
-        CORRECTIONS=$(grep -c '"outcome":"correction"' "$SESSION_FILE" 2>/dev/null) || CORRECTIONS=0
-        TEST_WRITES=$(grep -c '"outcome":"test-write"' "$SESSION_FILE" 2>/dev/null) || TEST_WRITES=0
-        CASCADES=$(grep -c '"cascade":true' "$SESSION_FILE" 2>/dev/null) || CASCADES=0
-        PR_CREATES=$(grep -c '"outcome":"pr-create"' "$SESSION_FILE" 2>/dev/null) || PR_CREATES=0
-        TEST_PASSES=$(grep -c '"outcome":"test-pass"' "$SESSION_FILE" 2>/dev/null) || TEST_PASSES=0
-        TEST_FAILS=$(grep -c '"outcome":"test-fail"' "$SESSION_FILE" 2>/dev/null) || TEST_FAILS=0
-        LINT_PASSES=$(grep -c '"outcome":"lint-pass"' "$SESSION_FILE" 2>/dev/null) || LINT_PASSES=0
-        LINT_FAILS=$(grep -c '"outcome":"lint-fail"' "$SESSION_FILE" 2>/dev/null) || LINT_FAILS=0
-        EDITS=$(jq -r 'select(.tool == "Edit" or .tool == "Write") | .tool' "$SESSION_FILE" 2>/dev/null | wc -l) || EDITS=0
-        DELEGATIONS=$(grep -c '"tool":"Task"' "$SESSION_FILE" 2>/dev/null) || DELEGATIONS=0
-        if [ "$EDITS" -gt 0 ]; then CORRECTION_RATE=$(awk "BEGIN {printf \"%.2f\", $CORRECTIONS / $EDITS}"); else CORRECTION_RATE="0.00"; fi
-        if [ "$EDITS" -gt 0 ]; then TEST_WRITE_RATE=$(awk "BEGIN {printf \"%.2f\", $TEST_WRITES / $EDITS}"); else TEST_WRITE_RATE="0.00"; fi
-        if [ "$FAILURES" -gt 0 ]; then CASCADE_RATE=$(awk "BEGIN {printf \"%.2f\", $CASCADES / $FAILURES}"); else CASCADE_RATE="0.00"; fi
-        AUTO_FIX_RATE="0.00"
-        if [ "$FAILURES" -gt 0 ]; then
-            AUTO_FIXES=$(jq -r '[.outcome, .detail] | @tsv' "$SESSION_FILE" 2>/dev/null | awk -F'\t' '
-                BEGIN { fixes=0 }
-                /^failure\t/ { prev_fail[$2]=1 } /^test-fail\t/ { prev_fail[$2]=1 } /^lint-fail\t/ { prev_fail[$2]=1 }
-                /^success\t/ { if ($2 in prev_fail) { fixes++; delete prev_fail[$2] } }
-                /^correction\t/ { if ($2 in prev_fail) { fixes++; delete prev_fail[$2] } }
-                /^test-pass\t/ { if ($2 in prev_fail) { fixes++; delete prev_fail[$2] } }
-                /^lint-pass\t/ { if ($2 in prev_fail) { fixes++; delete prev_fail[$2] } }
-                END { print fixes }
-            ' 2>/dev/null) || AUTO_FIXES=0
-            AUTO_FIX_RATE=$(awk "BEGIN {printf \"%.2f\", $AUTO_FIXES / $FAILURES}")
-        fi
-        TEST_TOTAL=$((TEST_PASSES + TEST_FAILS)); if [ "$TEST_TOTAL" -gt 0 ]; then TEST_PASS_RATE=$(awk "BEGIN {printf \"%.2f\", $TEST_PASSES / $TEST_TOTAL}"); else TEST_PASS_RATE="N/A"; fi
-        LINT_TOTAL=$((LINT_PASSES + LINT_FAILS)); if [ "$LINT_TOTAL" -gt 0 ]; then LINT_PASS_RATE=$(awk "BEGIN {printf \"%.2f\", $LINT_PASSES / $LINT_TOTAL}"); else LINT_PASS_RATE="N/A"; fi
-    fi
-
+    # Build summary JSON for ruflo storage
     SUMMARY_JSON=$(jq -n \
-        --arg project "${PROJECT:-unknown}" \
-        --arg session "${SESSION_ID:-unknown}" \
-        --arg ts "${TIMESTAMP:-unknown}" \
-        --argjson total "${TOTAL:-0}" \
-        --argjson ok "${SUCCESSES:-0}" \
-        --argjson fail "${FAILURES:-0}" \
-        --argjson corrections "${CORRECTIONS:-0}" \
-        --argjson test_writes "${TEST_WRITES:-0}" \
-        --argjson cascades "${CASCADES:-0}" \
-        --argjson edits "${EDITS:-0}" \
-        --argjson test_passes "${TEST_PASSES:-0}" \
-        --argjson test_fails "${TEST_FAILS:-0}" \
-        --argjson lint_passes "${LINT_PASSES:-0}" \
-        --argjson lint_fails "${LINT_FAILS:-0}" \
-        --arg correction_rate "${CORRECTION_RATE:-0.00}" \
-        --arg auto_fix_rate "${AUTO_FIX_RATE:-0.00}" \
-        --arg test_write_rate "${TEST_WRITE_RATE:-0.00}" \
-        --arg cascade_rate "${CASCADE_RATE:-0.00}" \
-        --arg test_pass_rate "${TEST_PASS_RATE:-N/A}" \
-        --arg lint_pass_rate "${LINT_PASS_RATE:-N/A}" \
-        --argjson delegations "${DELEGATIONS:-0}" \
-        --argjson pr_creates "${PR_CREATES:-0}" \
-        --arg tools "${TOOLS:-unknown}" \
-        --arg files "${FILES:-}" \
-        --argjson confidence 0.5 \
-        --argjson transferable false \
-        --argjson recall_count 0 \
-        '{project: $project, session: $session, timestamp: $ts, events: $total, successes: $ok, failures: $fail, corrections: $corrections, test_writes: $test_writes, cascades: $cascades, pr_creates: $pr_creates, edits: $edits, test_passes: $test_passes, test_fails: $test_fails, lint_passes: $lint_passes, lint_fails: $lint_fails, flywheel: {correction_rate: $correction_rate, auto_fix_rate: $auto_fix_rate, test_write_rate: $test_write_rate, cascade_rate: $cascade_rate, test_pass_rate: $test_pass_rate, lint_pass_rate: $lint_pass_rate, delegations: $delegations, pr_creates: $pr_creates}, tools: $tools, files: $files, confidence: $confidence, transferable: $transferable, recall_count: $recall_count}' 2>/dev/null) || SUMMARY_JSON="{}"
+        --arg project "${PROJECT}" --arg session "${SESSION_ID}" --arg ts "${TIMESTAMP}" \
+        --argjson total "${TOTAL}" --argjson ok "${SUCCESSES}" --argjson fail "${FAILURES}" \
+        --argjson corrections "${CORRECTIONS}" --argjson test_writes "${TEST_WRITES}" \
+        --argjson cascades "${CASCADES}" --argjson edits "${EDITS}" \
+        --argjson test_passes "${TEST_PASSES}" --argjson test_fails "${TEST_FAILS}" \
+        --argjson lint_passes "${LINT_PASSES}" --argjson lint_fails "${LINT_FAILS}" \
+        --arg correction_rate "${CORRECTION_RATE}" --arg auto_fix_rate "${AUTO_FIX_RATE}" \
+        --arg test_write_rate "${TEST_WRITE_RATE}" --arg cascade_rate "${CASCADE_RATE}" \
+        --arg test_pass_rate "${TEST_PASS_RATE}" --arg lint_pass_rate "${LINT_PASS_RATE}" \
+        --argjson delegations "${DELEGATIONS}" --argjson pr_creates "${PR_CREATES}" \
+        --arg tools "${TOOLS}" --arg files "${FILES}" \
+        --argjson confidence 0.5 --argjson transferable false --argjson recall_count 0 \
+        '{project:$project,session:$session,timestamp:$ts,events:$total,successes:$ok,
+          failures:$fail,corrections:$corrections,test_writes:$test_writes,cascades:$cascades,
+          pr_creates:$pr_creates,edits:$edits,test_passes:$test_passes,test_fails:$test_fails,
+          lint_passes:$lint_passes,lint_fails:$lint_fails,
+          flywheel:{correction_rate:$correction_rate,auto_fix_rate:$auto_fix_rate,
+            test_write_rate:$test_write_rate,cascade_rate:$cascade_rate,
+            test_pass_rate:$test_pass_rate,lint_pass_rate:$lint_pass_rate,
+            delegations:$delegations,pr_creates:$pr_creates},
+          tools:$tools,files:$files,confidence:$confidence,
+          transferable:$transferable,recall_count:$recall_count}' 2>/dev/null) || SUMMARY_JSON="{}"
 
-    # Source cf-env.sh: plugin-bundled copy first, bootstrap fallback
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    if [ -f "$SCRIPT_DIR/lib/cf-env.sh" ]; then
-        source "$SCRIPT_DIR/lib/cf-env.sh"
-    else
-        source "$HOME/.claude/scripts/cf-env.sh"
-    fi
-
-    # Layer 1: try ruflo memory store
-    STORED_L1=false
-    CF_WARNING=""
-    if [ -n "$CF" ]; then
-        KEY="session:${PROJECT}:${SESSION_ID}"
-        VALUE=$(echo "$SUMMARY_JSON" | jq -c '.' 2>/dev/null) || VALUE="$SUMMARY_JSON"
-        if [ "$FAILURES" -gt 0 ]; then
-            OUTCOME="mixed"
-        else
-            OUTCOME="success"
-        fi
-        TAGS="client:$PROJECT,type:session-summary,outcome:$OUTCOME,confidence:quarantine"
-        CF_ERR=$(cd "$HOME" && timeout 5 $CF memory store -k "$KEY" -v "$VALUE" --namespace session --tags "$TAGS" 2>&1) || true
-        CF_EXIT=$?
-        if [ $CF_EXIT -eq 0 ]; then
-            STORED_L1=true
-        elif [ $CF_EXIT -eq 124 ]; then
-            CF_WARNING="Session summary store timed out (>5s). Try: ruflo memory store -k '$KEY'"
-        else
-            CF_WARNING="Session summary store failed (exit $CF_EXIT). Try: ruflo memory store -k '$KEY'"
-        fi
-        # Wave 4: store flywheel metrics as separate key for trending
-        if [ "$STORED_L1" = true ]; then
-            FW_KEY="flywheel:${PROJECT}:${SESSION_ID}"
-            FW_VALUE=$(jq -n -c \
-                --arg project "$PROJECT" \
-                --arg session "$SESSION_ID" \
-                --arg ts "$TIMESTAMP" \
-                --arg correction_rate "$CORRECTION_RATE" \
-                --arg auto_fix_rate "$AUTO_FIX_RATE" \
-                --arg test_write_rate "$TEST_WRITE_RATE" \
-                --arg cascade_rate "$CASCADE_RATE" \
-                --arg test_pass_rate "$TEST_PASS_RATE" \
-                --arg lint_pass_rate "$LINT_PASS_RATE" \
-                --argjson test_passes "${TEST_PASSES:-0}" \
-                --argjson test_fails "${TEST_FAILS:-0}" \
-                --argjson lint_passes "${LINT_PASSES:-0}" \
-                --argjson lint_fails "${LINT_FAILS:-0}" \
-                --argjson delegations "${DELEGATIONS:-0}" \
-                --argjson edits "${EDITS:-0}" \
-                --argjson failures "${FAILURES:-0}" \
-                '{project: $project, session: $session, timestamp: $ts, correction_rate: $correction_rate, auto_fix_rate: $auto_fix_rate, test_write_rate: $test_write_rate, cascade_rate: $cascade_rate, test_pass_rate: $test_pass_rate, lint_pass_rate: $lint_pass_rate, test_passes: $test_passes, test_fails: $test_fails, lint_passes: $lint_passes, lint_fails: $lint_fails, delegations: $delegations, edits: $edits, failures: $failures}' 2>/dev/null) || FW_VALUE="{}"
-            (cd "$HOME" && timeout 5 $CF memory store -k "$FW_KEY" -v "$FW_VALUE" --namespace metrics --tags "client:$PROJECT,type:flywheel" 2>/dev/null) || true
-        fi
-    else
-        CF_WARNING="ruflo not found. Session summary not persisted. Install: npm i -g ruflo"
-    fi
-
-    # Log CF warning to session file for diagnostics
-    if [ -n "$CF_WARNING" ]; then
-        jq -n -c \
-            --argjson ts "$(date +%s 2>/dev/null || echo 0)" \
-            --arg tool "session-end" \
-            --arg outcome "cf-warning" \
-            --arg detail "$CF_WARNING" \
-            '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail}' >> "$SESSION_FILE" 2>/dev/null || true
-    fi
-
-    # Layer 0: find the project's auto memory directory
+    # Resolve Layer 0 auto-memory dir
     LAYER0_DIR=""
     for projdir in "$HOME"/.claude/projects/*/; do
         if [ -d "${projdir}memory" ]; then
@@ -218,119 +99,29 @@ echo '{"continue": true}'
         fi
     done
 
-    # Layer 1 fallback: write to project auto memory (not global)
-    if [ "$STORED_L1" = false ] && [ -n "$LAYER0_DIR" ]; then
-        {
-            echo ""
-            echo "## Session $SESSION_ID ($TIMESTAMP)"
-            echo "- Project: $PROJECT"
-            echo "- Events: $TOTAL ($SUCCESSES ok, $FAILURES fail)"
-            echo "- Corrections: $CORRECTIONS | Test writes: $TEST_WRITES | Cascades: $CASCADES | PR creates: $PR_CREATES"
-            echo "- Tests: $TEST_PASSES pass, $TEST_FAILS fail (rate=$TEST_PASS_RATE) | Lint: $LINT_PASSES pass, $LINT_FAILS fail (rate=$LINT_PASS_RATE)"
-            echo "- Flywheel: corr=$CORRECTION_RATE fix=$AUTO_FIX_RATE test=$TEST_WRITE_RATE casc=$CASCADE_RATE deleg=$DELEGATIONS prs=$PR_CREATES"
-            echo "- Tools: $TOOLS"
-            if [ -n "$FILES" ]; then echo "- Files: $FILES"; fi
-        } >> "$LAYER0_DIR/pending-learnings.md"
-    fi
+    # ── Phase 2: Persist ──────────────────────────────────────
+    export PROJECT SESSION_ID TIMESTAMP SESSION_FILE GIT_ROOT
+    export TOTAL SUCCESSES FAILURES CORRECTIONS TEST_WRITES CASCADES PR_CREATES
+    export TEST_PASSES TEST_FAILS LINT_PASSES LINT_FAILS EDITS DELEGATIONS
+    export TOOLS FILES CORRECTION_RATE AUTO_FIX_RATE TEST_WRITE_RATE
+    export CASCADE_RATE TEST_PASS_RATE LINT_PASS_RATE SUMMARY_JSON
+    export LAYER0_DIR BRANA_CLI
+    STORED_L1=false; export STORED_L1
 
-    # Layer 0: always write session summary to project auto memory
-    if [ -n "$LAYER0_DIR" ]; then
-        {
-            echo ""
-            echo "### Session $SESSION_ID ($TIMESTAMP)"
-            echo "- Events: $TOTAL ($SUCCESSES ok, $FAILURES fail)"
-            echo "- Corrections: $CORRECTIONS | Test writes: $TEST_WRITES | Cascades: $CASCADES | PR creates: $PR_CREATES"
-            echo "- Tests: $TEST_PASSES pass, $TEST_FAILS fail (rate=$TEST_PASS_RATE) | Lint: $LINT_PASSES pass, $LINT_FAILS fail (rate=$LINT_PASS_RATE)"
-            echo "- Flywheel: corr=$CORRECTION_RATE fix=$AUTO_FIX_RATE test=$TEST_WRITE_RATE casc=$CASCADE_RATE deleg=$DELEGATIONS prs=$PR_CREATES"
-            echo "- Tools: $TOOLS"
-            if [ -n "$FILES" ]; then echo "- Files: $FILES"; fi
-        } >> "$LAYER0_DIR/sessions.md"
-    fi
+    bash "${SCRIPT_DIR}/session-end-persist.sh" 2>/dev/null || true
 
-    # NOTE: .needs-backprop flag file is deprecated — backprop field in
-    # session-state.json replaces it (written by close skill via brana session write).
+    # ── Phase 3: Drift / sync ─────────────────────────────────
+    SCRIPT_DIR="$SCRIPT_DIR" \
+    GIT_ROOT="$GIT_ROOT" \
+    BRANA_CLI="$BRANA_CLI" \
+    CORRECTIONS="$CORRECTIONS" \
+    TEST_WRITES="$TEST_WRITES" \
+    CASCADES="$CASCADES" \
+    EDITS="$EDITS" \
+        bash "${SCRIPT_DIR}/session-end-drift.sh" 2>/dev/null || true
 
-    # Safety net: write minimal session state via CLI if close didn't run today
-    SESSION_STATE_PATH=$("$BRANA_CLI" session path 2>/dev/null) || SESSION_STATE_PATH=""
-    ALREADY_WRITTEN=false
-    if [ -n "$SESSION_STATE_PATH" ] && [ -f "$SESSION_STATE_PATH" ]; then
-        WRITTEN_AT=$(jq -r '.written_at // ""' "$SESSION_STATE_PATH" 2>/dev/null) || WRITTEN_AT=""
-        TODAY=$(date +%Y-%m-%d)
-        if echo "$WRITTEN_AT" | grep -q "$TODAY" 2>/dev/null; then
-            ALREADY_WRITTEN=true
-        fi
-    fi
-
-    # Patch real metrics into session-state.json when close already ran today.
-    # close writes metrics: null (zeros); session-end has the actual computed values.
-    if [ "$ALREADY_WRITTEN" = true ] && [ -n "$SESSION_STATE_PATH" ] && [ -f "$SESSION_STATE_PATH" ] && command -v jq &>/dev/null; then
-        METRICS_PATCH=$(jq -n -c \
-            --argjson events "${TOTAL:-0}" \
-            --argjson corrections "${CORRECTIONS:-0}" \
-            --argjson test_writes "${TEST_WRITES:-0}" \
-            --arg correction_rate "${CORRECTION_RATE:-0.00}" \
-            --arg test_write_rate "${TEST_WRITE_RATE:-0.00}" \
-            --arg cascade_rate "${CASCADE_RATE:-0.00}" \
-            --argjson delegations "${DELEGATIONS:-0}" \
-            '{events: $events, corrections: $corrections, test_writes: $test_writes, correction_rate: ($correction_rate | tonumber), test_write_rate: ($test_write_rate | tonumber), cascade_rate: ($cascade_rate | tonumber), delegation_count: $delegations}' 2>/dev/null) || METRICS_PATCH=""
-        if [ -n "$METRICS_PATCH" ]; then
-            jq --argjson m "$METRICS_PATCH" '.metrics = $m' "$SESSION_STATE_PATH" > "${SESSION_STATE_PATH}.tmp" 2>/dev/null && \
-                mv "${SESSION_STATE_PATH}.tmp" "$SESSION_STATE_PATH" 2>/dev/null || true
-        fi
-    fi
-
-    if [ "$ALREADY_WRITTEN" = false ] && [ -x "$BRANA_CLI" ]; then
-        # Build minimal JSON with computed metrics from this session
-        MINIMAL_JSON=$(jq -n -c \
-            --argjson version 1 \
-            --arg written_at "$TIMESTAMP" \
-            --arg branch "$(git -C "$GIT_ROOT" branch --show-current 2>/dev/null || echo '')" \
-            --arg session_label "auto-captured (session-end hook)" \
-            --argjson events "${TOTAL:-0}" \
-            --argjson corrections "${CORRECTIONS:-0}" \
-            --argjson test_writes "${TEST_WRITES:-0}" \
-            --arg correction_rate "${CORRECTION_RATE:-0.00}" \
-            --arg test_write_rate "${TEST_WRITE_RATE:-0.00}" \
-            --arg cascade_rate "${CASCADE_RATE:-0.00}" \
-            --argjson delegations "${DELEGATIONS:-0}" \
-            '{version: $version, written_at: $written_at, branch: (if $branch == "" then null else $branch end), session_label: $session_label, metrics: {events: $events, corrections: $corrections, test_writes: $test_writes, correction_rate: ($correction_rate | tonumber), test_write_rate: ($test_write_rate | tonumber), cascade_rate: ($cascade_rate | tonumber), delegation_count: $delegations}}' 2>/dev/null) || MINIMAL_JSON=""
-
-        if [ -n "$MINIMAL_JSON" ]; then
-            TMPFILE="/tmp/session-end-minimal-$$.json"
-            echo "$MINIMAL_JSON" > "$TMPFILE"
-            "$BRANA_CLI" session write --file "$TMPFILE" 2>/dev/null || true
-            rm -f "$TMPFILE"
-        else
-            # Fallback: --minimal flag (branch + timestamp only, no metrics)
-            "$BRANA_CLI" session write --minimal 2>/dev/null || true
-        fi
-    fi
-
-    # Push global operational state (event-log, portfolio) to thebrana repo
-    SYNC_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../scripts/sync-state.sh"
-    if [ -x "$SYNC_SCRIPT" ] && [ -n "$GIT_ROOT" ] && [ -d "$GIT_ROOT" ]; then
-        "$SYNC_SCRIPT" push 2>/dev/null || true
-    fi
-
-    # Auto-regenerate spec graph if docs changed this session
-    if command -v brana &>/dev/null && [ -n "$GIT_ROOT" ]; then
-        DOCS_CHANGED=$(git -C "$GIT_ROOT" diff --name-only HEAD~10..HEAD 2>/dev/null | grep -cE '\.md$' || echo "0")
-        if [ "$DOCS_CHANGED" -gt 0 ]; then
-            brana graph build --output "$GIT_ROOT/docs/spec-graph.json" 2>/dev/null || true
-        fi
-    fi
-
-    # Write session summary to decision log
-    DECISIONS_PY="$SCRIPT_DIR/../scripts/decisions.py"
-    if [ -f "$DECISIONS_PY" ]; then
-        SUMMARY="Session metrics: corrections=$CORRECTIONS, test_writes=$TEST_WRITES, cascades=$CASCADES, edits=$EDITS"
-        uv run python3 "$DECISIONS_PY" log "session-end" "action" "$SUMMARY" \
-            --severity "LOW" 2>/dev/null || true
-    fi
-
-    # Clean up temp file
+    # Clean up event log
     rm -f "$SESSION_FILE"
 ) &
 
-# Detach background process — don't wait for it
 disown 2>/dev/null || true
