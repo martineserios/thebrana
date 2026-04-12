@@ -512,12 +512,22 @@ pub fn call_claude_json(prompt: &str) -> Result<serde_json::Value> {
 
     // Unwrap the CLI envelope: {"type":"result","result":"<model text>","cost_usd":...}
     if let Some(result_text) = raw.get("result").and_then(|v| v.as_str()) {
-        let inner: serde_json::Value = serde_json::from_str(result_text.trim())
+        let cleaned = strip_code_fences(result_text.trim());
+        let inner: serde_json::Value = serde_json::from_str(cleaned)
             .with_context(|| format!("parsing model JSON response: {result_text}"))?;
         return Ok(inner);
     }
 
     Ok(raw)
+}
+
+/// Strip markdown code fences from model output.
+/// Models sometimes wrap JSON in ```json ... ``` or ``` ... ``` blocks.
+fn strip_code_fences(s: &str) -> &str {
+    let s = s.strip_prefix("```json").unwrap_or(s);
+    let s = s.strip_prefix("```").unwrap_or(s);
+    let s = s.strip_suffix("```").unwrap_or(s);
+    s.trim()
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -794,5 +804,39 @@ mod tests {
             assert!(path.is_absolute());
         }
         // None is acceptable in CI environments without claude installed
+    }
+
+    // ── strip_code_fences ────────────────────────────────────────────
+
+    #[test]
+    fn test_strip_code_fences_json_fence() {
+        let input = "```json\n{\"score\": 3}\n```";
+        assert_eq!(strip_code_fences(input), "{\"score\": 3}");
+    }
+
+    #[test]
+    fn test_strip_code_fences_plain_fence() {
+        let input = "```\n{\"score\": 3}\n```";
+        assert_eq!(strip_code_fences(input), "{\"score\": 3}");
+    }
+
+    #[test]
+    fn test_strip_code_fences_no_fence_passthrough() {
+        let input = "{\"score\": 3}";
+        assert_eq!(strip_code_fences(input), "{\"score\": 3}");
+    }
+
+    #[test]
+    fn test_strip_code_fences_trims_whitespace() {
+        let input = "```json\n  {\"score\": 3}  \n```";
+        assert_eq!(strip_code_fences(input), "{\"score\": 3}");
+    }
+
+    #[test]
+    fn test_strip_code_fences_parses_to_valid_json() {
+        let input = "```json\n{\"score\": 4, \"reason\": \"relevant\"}\n```";
+        let cleaned = strip_code_fences(input);
+        let parsed: serde_json::Value = serde_json::from_str(cleaned).unwrap();
+        assert_eq!(parsed["score"], 4);
     }
 }
