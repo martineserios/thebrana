@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-10T22:42:17Z",
+  "generated": "2026-04-12T18:24:28Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1803,6 +1803,12 @@
       "impl_files": [
         "system/hooks/hooks.json",
         "system/",
+        "system/hooks/",
+        "system/skills/",
+        "system/procedures/",
+        "system/agents/",
+        "system/commands/",
+        "system/cli/",
         "system/state/",
         "system/state/patterns-export.json"
       ]
