@@ -169,15 +169,14 @@ The version in `plugin.json` is what the marketplace uses. The project-level ver
 ### Install Modes
 
 ```bash
+# One-command install — clones repo, runs bootstrap, registers plugin
+curl -fsSL https://raw.githubusercontent.com/martineserios/thebrana/main/install.sh | bash
+
 # Dev mode — loads from local source, changes take effect on restart
 claude --plugin-dir ./system
-
-# Marketplace install — downloads and caches
-/plugin marketplace add martineserios/thebrana
-/plugin install brana
 
 # Sync dev changes to installed cache
 ./bootstrap.sh --sync-plugin
 ```
 
-After marketplace install, the plugin is cached at `~/.claude/plugins/cache/brana/brana/{version}/`. Use `bootstrap.sh --sync-plugin` to push local changes to the cache during development.
+After install, the plugin is registered via `~/.claude/plugins/installed_plugins.json`. Use `bootstrap.sh --sync-plugin` to push local changes to the plugin cache during development.

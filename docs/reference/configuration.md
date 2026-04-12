@@ -294,4 +294,4 @@ Plugin manifest. Located at `system/.claude-plugin/plugin.json`.
 
 The plugin name determines the skill namespace. All skills in `system/skills/` are exposed as `/brana:<skill-name>` (e.g., `/brana:build`, `/brana:backlog`).
 
-For marketplace distribution, a `marketplace.json` file at the repo root enables: `/plugin marketplace add martineserios/thebrana` then `/plugin install brana`.
+Install writes `~/.claude/plugins/installed_plugins.json` directly — no `/plugin` commands required. See `install.sh` for the canonical install path.

@@ -147,7 +147,7 @@ thebrana/system/                              PLUGIN (loaded by Claude Code)
 ```
 
 **Installation:**
-- **Plugin:** `claude --plugin-dir ./system` (dev) or `/plugin marketplace add martineserios/thebrana` + `/plugin install brana` (users)
+- **Plugin:** `claude --plugin-dir ./system` (dev) or `curl -fsSL .../install.sh | bash` (users — writes `installed_plugins.json` directly)
 - **Identity layer:** `./bootstrap.sh` (one-time, idempotent)
 - **deploy.sh:** Deprecated (v0.7.0). Still works but will be removed in v0.8.0.
 

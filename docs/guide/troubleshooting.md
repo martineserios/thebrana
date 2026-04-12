@@ -32,11 +32,10 @@ sudo pacman -S jq
 **Fix:** Install the plugin via one of two methods:
 
 ```bash
-# Method 1: Marketplace
-/plugin marketplace add martineserios/thebrana
-/plugin install brana
+# Method 1: One-command install (registers plugin automatically)
+curl -fsSL https://raw.githubusercontent.com/martineserios/thebrana/main/install.sh | bash
 
-# Method 2: Dev mode
+# Method 2: Dev mode (from inside a cloned repo)
 claude --plugin-dir ./system
 ```
 
