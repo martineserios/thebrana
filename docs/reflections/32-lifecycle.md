@@ -171,6 +171,7 @@ From [ADR-002](../decisions/ADR-002-scheduler-thin-layer-over-systemd.md) — br
 | Job | Schedule | What it does |
 |-----|----------|-------------|
 | staleness-report | Weekly (Mon 08:00) | Layer-aware spec freshness check — flags STALE/WARN/DEP docs |
+| lint-heal | Weekly (Sun 15:00) | Knowledge consolidation — grep contradiction detection, near-duplicate ruflo entries, reference density gaps. Gate: 7+ days AND 5+ sessions since last run. Output: `~/.claude/lint-heal-report.md`. Session-start surfaces summary if report is <7 days old. |
 
 The runner stores summaries in ruflo memory (`namespace: scheduler-runs`). `/brana:review` and session-start can surface overnight results via `memory search --query "sched:"`.
 
@@ -199,6 +200,8 @@ Enforcement (encoded as a hook, runs automatically)
 Each level is harder to set up but more reliable. The system should start manual and graduate upward based on pain signals from real usage.
 
 **Evidence:** The Python tool preferences (uv + ruff, [doc 00](../00-user-practices.md) entry 2026-02-12) started as a manual practice. After confirming them across clients, they graduated to `~/.claude/rules/universal-quality.md` — now enforced by convention across all clients.
+
+**`brana session insights` surfaces graduation candidates.** The friction telemetry subcommand (`brana session insights`, Apr 2026) scans `~/.claude/projects/*.jsonl` for recurring tool failures and hook blocks, clusters them by command pattern, and produces a ranked list of recurrence counts. Wired into `/brana:review weekly` as a "recurring friction" section. This closes the observation gap in the graduation pathway: instead of relying on the user to notice repeated pain signals, the system surfaces them automatically. A pattern appearing 3+ times in the friction report is a direct signal to escalate to the next graduation level.
 
 ### Git Workflow as Lifecycle Tool
 

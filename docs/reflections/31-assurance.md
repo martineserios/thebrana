@@ -65,6 +65,17 @@ Verify structurally:
 - On non-opted-in projects (no `docs/decisions/`), the hook passes through
 - **Known gap:** the gate accepts spec-only (docs/ changes). A future tightening (t-603) may require test files before implementation files
 
+**Layered staging enforcement (as of 2026-04-12):**
+
+| Hook | Trigger | What it blocks |
+|------|---------|---------------|
+| `branch-verify.sh` | `git add` of behavioral files | Staging behavioral files (`system/hooks/`, `system/skills/`, `system/procedures/`, `system/agents/`, `system/commands/`, `system/cli/`, `.claude/rules/`) on main/master. Catches ephemeral-branch-switch displacement before files are staged. |
+| `main-guard.sh` | `git commit` | Committing staged behavioral files on main — second line of defence if staging was not caught. |
+| `tdd-gate.sh` | `Write\|Edit` | Implementation files written before test files on feat/fix branches. |
+| `pre-tool-use.sh` (spec-first) | `Write\|Edit` | Implementation written before spec doc exists on feat/fix branches. |
+
+Escape hatch for all staging/commit gates: `--force-main` anywhere in the command.
+
 ### Adversarial Input Validation
 
 Hooks process JSON input from tool calls and sessions. They must resist adversarial payloads — not just valid input:

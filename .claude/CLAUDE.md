@@ -200,7 +200,7 @@ claude --plugin-dir ./system
 | `brana files list\|status\|add\|pull\|push` | Track large files via manifest (.brana-files.json). SHA-256 verified, R2/HTTP remotes. |
 | `brana feed add\|list\|poll\|remove\|status` | RSS/Atom feed polling. Covers Substack, Medium, blogs, YouTube, GitHub releases. HTTP conditional requests (ETag). |
 | `brana inbox add-account\|add\|list\|poll\|remove\|status\|set-password` | Gmail newsletter management via IMAP. Multi-account, OS keyring credentials. |
-| `brana session read\|write\|history\|path\|migrate\|mark-consumed` | Structured session state — read/write JSON state, browse history, migrate from markdown. Used by close, sitrep, and session hooks. |
+| `brana session read\|write\|history\|path\|migrate\|mark-consumed\|insights` | Structured session state — read/write JSON state, browse history, migrate from markdown. `insights` scans JSONL telemetry for recurring friction patterns (tool failures, hook blocks) — surfaces in `/brana:review` weekly friction section. |
 | `brana handoff last\|list\|path` | Legacy alias for `brana session`. Falls back to markdown if no JSON state exists. |
 | `brana skills suggest\|search\|list\|reindex\|usage` | Skill discovery and semantic routing. `reindex` indexes skills into ruflo memory. `usage` scans JSONL telemetry for invocation counts + cull candidates. |
 | `brana knowledge reindex\|status` | Knowledge base indexing. Indexes dimension/reflection/feature docs into ruflo memory. `--patterns` for memory files. |
