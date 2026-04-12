@@ -30891,7 +30891,7 @@
       "parent": null,
       "priority": null,
       "started": null,
-      "status": "pending",
+      "status": "done",
       "strategy": null,
       "stream": "tech-debt",
       "subject": "[hooks] config-drift.sh: exclude system/rules/ from source_only alerts (plugin-served)",
@@ -31148,7 +31148,7 @@
     {
       "id": "t-1152",
       "subject": "[fix] strip markdown code fences in call_claude_json response parser",
-      "status": "pending",
+      "status": "done",
       "stream": "roadmap",
       "type": "task",
       "tags": [
@@ -31170,6 +31170,60 @@
       "order": 0,
       "github_issue": null,
       "execution": "code"
+    },
+    {
+      "subject": "Fix main-guard.sh: same -C CWD bug as branch-verify",
+      "stream": "tech-debt",
+      "priority": "P2",
+      "effort": "XS",
+      "tags": [
+        "hooks",
+        "git",
+        "worktree"
+      ],
+      "context": "main-guard.sh line 66 uses git -C \"$CWD\" rev-parse --show-toplevel to find git root, then checks that root branch. Same as branch-verify pre-fix. When git -C <worktree> commit runs, hook checks main repo branch (main) not worktree branch. Apply same sed extraction pattern from branch-verify fix (7c4526b).",
+      "id": "t-1153",
+      "status": "pending",
+      "execution": "code",
+      "created": "2026-04-12",
+      "blocked_by": [],
+      "parent": null,
+      "order": null,
+      "branch": null,
+      "github_issue": null,
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "strategy": null,
+      "build_step": null,
+      "description": null
+    },
+    {
+      "subject": "Add hook replay test for branch-verify -C path extraction",
+      "stream": "tech-debt",
+      "priority": "P3",
+      "effort": "XS",
+      "tags": [
+        "hooks",
+        "testing",
+        "branch-verify"
+      ],
+      "context": "branch-verify.sh fix (7c4526b) adds sed extraction: git -C <path> add -> check <path> repo branch. No test covers this. Add hook replay fixtures: (1) git -C /tmp/worktree add system/hooks/foo.sh on worktree feature branch -> should pass, (2) same but worktree on main -> should deny, (3) bare git add with no -C -> falls back to CWD (existing behavior). Edge cases: quoted paths with spaces, multiple -C flags.",
+      "id": "t-1154",
+      "status": "pending",
+      "execution": "code",
+      "created": "2026-04-12",
+      "blocked_by": [],
+      "parent": null,
+      "order": null,
+      "branch": null,
+      "github_issue": null,
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "strategy": null,
+      "build_step": null,
+      "description": null
     }
   ],
   "version": "1"

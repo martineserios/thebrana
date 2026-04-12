@@ -1931,6 +1931,22 @@ The planned split (ARCHITECTURE.md = reasoning, component-index.md = generated i
 
 ---
 
+## Error 86: hooks.md missing branch-verify worktree behavior
+
+**Severity:** Low
+**Status:** pending
+**Discovery:** Close debrief (2026-04-12, branch-verify-worktree-fix)
+
+**Finding:** `docs/architecture/hooks.md` describes `branch-verify.sh` as "Staging behavioral files on main/master" with no mention of `-C` path extraction or worktree support. As of commit `7c4526b`, the hook extracts `git -C <path>` from the command and checks that repo's branch instead of the session CWD. The doc description is now stale.
+
+**Impact:** Developers reading hooks.md to understand branch-verify behavior will not know it handles worktree workflows via `-C <path>`. They may add redundant `# --force-main` workarounds.
+
+**Files affected:** `docs/architecture/hooks.md` — hook inventory table description (line ~49) + field note already added (2026-04-12).
+
+**Fix:** Update the hook inventory table entry for `branch-verify.sh` to mention `-C` path extraction and worktree awareness.
+
+---
+
 ## Error 84: Spec-first gate requires dot separator in spec filenames
 
 **Severity:** Low

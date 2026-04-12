@@ -239,3 +239,7 @@ Source: t-1075, t-1120, t-1126 (2026-04-12)
 ### 2026-04-12: Session handoff next[] items can be stale
 Session state is written at close and read at session start — hours or days may pass. Items like "9 stale stashes" or "N pending X" reflect state at write time, not now. Always verify counts before acting (e.g., `git stash list`, `brana backlog query --status pending`). Don't assume handoff claims are current.
 Source: maintenance session 2026-04-12
+
+### 2026-04-12: Branch-checking hooks must follow `git -C <path>`, not session CWD
+`branch-verify.sh` was checking `CWD` (the session working directory) to determine the git root and branch. When work is done via `git -C <worktree-path> add <files>`, the session CWD is the main repo (on `main`) — the hook falsely blocked. Fix: extract the `-C <path>` argument from the git command and use it as the lookup directory, falling back to CWD only when absent. This pattern applies to any hook that inspects git branch state (`main-guard.sh` has the same bug — tracked). Escape hatch: `# --force-main` as a bash comment (hook greps the full command string, bash ignores comments).
+Source: t-1078, branch-verify-worktree-fix (2026-04-12)
