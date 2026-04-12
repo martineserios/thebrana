@@ -248,3 +248,7 @@ Source: t-1078, branch-verify-worktree-fix (2026-04-12)
 ### 2026-04-12: `cd <worktree> && git add` still triggers session-CWD hooks
 PreToolUse hooks fire before the shell command executes. Even `cd ../repo-worktree && git add file` presents the session CWD (main repo root, branch `main`) to the hook — the `cd` never runs first. The `-C <path>` extraction in `branch-verify.sh` only helps when the command literally contains `git -C <path>`, not when `cd` is used. Escape hatch: `# --force-main` comment in the Bash call.
 Source: t-1147 session 2026-04-12
+
+### 2026-04-12: Mock PATH isolation — bash + minimal tools must be in mock bin
+When testing bash scripts with a stripped PATH (to simulate missing tools), stripping PATH to just the mock dir causes "bash: command not found" when the script calls `bash <subscript>` or uses `dirname`/`pwd` for SCRIPT_DIR detection. Fix: symlink bash, dirname, and pwd from the system into the mock bin, then exclude only the specific tool being hidden. A `populate_bin <dir> [exclude...]` helper makes this reusable across tests. Rule: never strip PATH to only `$mock/bin` without first populating the tools the script needs to boot.
+Source: tests/bootstrap/test-install.sh, t-1150 2026-04-12
