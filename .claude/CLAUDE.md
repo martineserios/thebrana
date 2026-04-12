@@ -327,3 +327,7 @@ Source: Python cleanup planning + challenger review 2026-04-12
 ### 2026-04-12: Grep for runtime imports before deleting Python migration targets
 Spike files can have hidden runtime imports. `evaluator-spike.py` imported `from decisions import log_entry` (lines 332–361) despite appearing dead. Pattern: `grep -r "from {script_stem} import\|import {script_stem}" system/` before deleting any script being ported to CLI. Migrate all importers first.
 Source: Python cleanup planning + challenger review 2026-04-12
+
+### 2026-04-12: tests/bootstrap/ is the home for root-level installer tests
+The `tests/` directory is organized by category (`tests/hooks/`, `tests/scripts/`, `tests/bootstrap/`). Tests for `install.sh` and `bootstrap.sh` go in `tests/bootstrap/`, not `system/hooks/tests/`. The `system/hooks/tests/` directory is only for hook-specific test scripts. Before creating a new test file, check `tests/` subdirectories for the matching category.
+Source: t-1150 2026-04-12
