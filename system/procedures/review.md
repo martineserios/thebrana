@@ -65,7 +65,15 @@ Weekly cadence review — portfolio health, zombie cleanup, metrics delta, ship 
    ```
    If `total < 3`, note "insufficient data ({N} sessions this week)" and omit the Friction section from the report.
    Surface `turbulent` and `blocked` sessions by label. Include `suggestions` array verbatim.
-8. **Pipeline check:** read pipeline state (if /brana:pipeline is configured)
+8. **Knowledge pipeline check:**
+   ```bash
+   brana knowledge process --status
+   ```
+   Count drafts in `brana-knowledge/drafts/`. If drafts > 0:
+   - Surface count: "N draft(s) awaiting review in brana-knowledge/drafts/"
+   - Print cluster report path: `~/.claude/knowledge-pipeline-report.md`
+   - Prompt: "Promote, merge, reject, or defer each draft? Run `brana knowledge promote <path>` to promote."
+   If pipeline hasn't run (no state file / all counts zero): note "Knowledge pipeline: no runs yet — enable scheduler job `knowledge-pipeline-tier1` or run `brana knowledge process --tier1 --dry-run` to test."
 9. **Store trends:**
    ```bash
    source "$HOME/.claude/scripts/cf-env.sh"
@@ -95,6 +103,12 @@ Weekly cadence review — portfolio health, zombie cleanup, metrics delta, ship 
 
 ### Pipeline
 {deal status if applicable}
+
+### Knowledge Pipeline
+Drafts pending review: {N} (cap: 10)
+{list draft filenames if N > 0}
+Cluster report: ~/.claude/knowledge-pipeline-report.md
+{omit section if N = 0 and pipeline has run}
 
 ### Friction
 {N} sessions: {clean} clean / {turbulent} turbulent / {blocked} blocked / {abandoned} abandoned
