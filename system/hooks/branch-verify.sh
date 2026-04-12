@@ -55,9 +55,13 @@ echo "$COMMAND" | grep -qE 'git\s+add\b' || pass_through
 echo "$COMMAND" | grep -q '\-\-force-main' && pass_through
 
 # Step 4: Find git root and check branch
+# If the command uses `git -C <path>`, check that repo's branch (worktree support).
+# Otherwise fall back to CWD (the session's working directory).
 CWD=$(echo "$INPUT" | jq -r '.cwd // empty' 2>/dev/null) || pass_through
 [ -n "$CWD" ] || pass_through
-GIT_ROOT=$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null) || pass_through
+GIT_C_PATH=$(echo "$COMMAND" | sed -n 's/.*git[[:space:]]\+-C[[:space:]]\+\([^[:space:]]*\).*/\1/p')
+LOOKUP_DIR="${GIT_C_PATH:-$CWD}"
+GIT_ROOT=$(git -C "$LOOKUP_DIR" rev-parse --show-toplevel 2>/dev/null) || pass_through
 [ -n "$GIT_ROOT" ] || pass_through
 
 BRANCH=$(git -C "$GIT_ROOT" branch --show-current 2>/dev/null) || pass_through
