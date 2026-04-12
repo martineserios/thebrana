@@ -279,3 +279,7 @@ Two-phase pipeline indexes 7 doc categories (dimensions, architecture, reflectio
 ### 2026-04-10: Python in procedures = missing CLI subcommand
 Every `python3 -c` in `system/procedures/` or `system/scripts/` is a gap indicator — there should be a `brana` CLI subcommand for that operation. Treat Python as a temporary placeholder, not a solution. File a task to add the CLI subcommand.
 Source: feat/t-1075, friction section wiring session
+
+### 2026-04-12: Config drift source_only alerts for rules/ are false positives
+`bootstrap.sh` intentionally skips copying `system/rules/` to `~/.claude/` — rules are loaded by the Claude Code plugin at runtime. The config-drift detector doesn't know this and flags them as missing. Filter out `source_only` entries under `rules/` when reviewing drift alerts; they are expected. Real drift = scripts, hooks, agents, skills.
+Source: maintenance session 2026-04-12

@@ -225,3 +225,7 @@ Source: t-1075
 ### 2026-04-10: worktree-gate fires on `git commit`, not just checkout
 `worktree-gate.sh` is registered as PreToolUse on Bash and intercepts ALL git commands — including `git commit` (pre-commit disk check + unstaged-changes guard). The "Worktree required: unstaged changes detected" message is misleading when the gate fires during a commit; it's not enforcing worktree discipline, it's checking disk space or staged state. t-1126 tracks fixing the error message.
 Source: t-1075 cleanup session 2026-04-10
+
+### 2026-04-12: Session handoff next[] items can be stale
+Session state is written at close and read at session start — hours or days may pass. Items like "9 stale stashes" or "N pending X" reflect state at write time, not now. Always verify counts before acting (e.g., `git stash list`, `brana backlog query --status pending`). Don't assume handoff claims are current.
+Source: maintenance session 2026-04-12
