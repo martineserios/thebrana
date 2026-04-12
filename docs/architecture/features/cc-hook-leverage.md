@@ -60,7 +60,7 @@ Expand brana's use of CC hook events from 5 to 8+, adding native TaskCompleted, 
 | **TaskCompleted** | step-completed.sh | plugin hooks.json + bootstrap |
 | **SubagentStart** | subagent-context.sh | plugin hooks.json |
 | SessionStart | session-start.sh | plugin hooks.json |
-| SessionEnd | session-end.sh | plugin hooks.json |
+| SessionEnd | session-end.sh → session-end-metrics.sh + session-end-persist.sh + session-end-drift.sh | plugin hooks.json |
 
 ### Skill Model Routing
 

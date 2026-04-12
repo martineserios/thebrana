@@ -36,6 +36,8 @@ git branch --show-current
 git status --porcelain | head -10
 git log --oneline -5
 git stash list 2>/dev/null | head -3
+git worktree list
+git branch --merged main
 ```
 
 Extract:
@@ -43,7 +45,7 @@ Extract:
 - **Uncommitted changes** → work in progress that needs committing or stashing
 - **Recent commits** → what was just accomplished
 - **Stashes** → forgotten work-in-progress
-- **Worktrees** → parallel work streams: `git worktree list`
+- **Worktrees** → parallel work streams from `git worktree list`; cross-check each worktree's branch against `git branch --merged main`. If any worktree branch appears in the merged list, surface a warning: `⚠ Worktree <path> is on a merged branch — run \`git worktree remove <path>\` to clean up.`
 
 ### 3. Active backlog task
 
@@ -137,6 +139,7 @@ Present a structured snapshot — concise, actionable:
 **Branch:** {branch} ({task-id if extractable})
 **Uncommitted:** {N files / clean}
 **Worktrees:** {list or "none"}
+{if any worktree on merged branch: ⚠ Worktree <path> is on a merged branch — run `git worktree remove <path>` to clean up.}
 
 **Active task:** {id} "{subject}" — strategy: {strategy}, build_step: {build_step}
 **Context:** {task context field, if present — show for in_progress and top-focus tasks}
