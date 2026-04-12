@@ -175,9 +175,21 @@ if [ "$HAS_TESTS" = false ]; then
             fi
             ;;
         shell)
-            # Check for test-*.sh or *-test.sh
-            TEST_FILES=$(find "$PROJECT_ROOT" -maxdepth 3 \( -name 'test-*.sh' -o -name '*-test.sh' -o -name 'test_*.sh' \) 2>/dev/null | head -1)
-            [ -n "$TEST_FILES" ] && HAS_TESTS=true
+            # For system/hooks/ (not lib/ or tests/): require per-hook test file test-{name}.sh
+            # This prevents the "any test exists in project → pass" false-pass for hook edits.
+            case "$FILE_PATH" in
+                */system/hooks/lib/*|*/system/hooks/tests/*) pass_through ;;
+                */system/hooks/*.sh)
+                    HOOK_NAME=$(basename "$FILE_PATH" .sh)
+                    HOOK_TEST="$PROJECT_ROOT/system/hooks/tests/test-${HOOK_NAME}.sh"
+                    [ -f "$HOOK_TEST" ] && HAS_TESTS=true
+                    ;;
+                *)
+                    # Other .sh files: broad check (any test file in project)
+                    TEST_FILES=$(find "$PROJECT_ROOT" -maxdepth 3 \( -name 'test-*.sh' -o -name '*-test.sh' -o -name 'test_*.sh' \) 2>/dev/null | head -1)
+                    [ -n "$TEST_FILES" ] && HAS_TESTS=true
+                    ;;
+            esac
             ;;
         go)
             # Check for *_test.go in same directory or project root
@@ -195,7 +207,15 @@ else
         rust)   HINT="Create a test file (*_test.rs, test_*.rs, tests/ dir) or add a #[cfg(test)] module." ;;
         python) HINT="Create a test file (test_*.py, *_test.py, tests/ dir, or __tests__/)." ;;
         js|ts)  HINT="Create a test file (*.test.*, *.spec.*, __tests__/ dir, or tests/)." ;;
-        shell)  HINT="Create a test file (test-*.sh, *-test.sh, or tests/ dir)." ;;
+        shell)
+            case "$FILE_PATH" in
+                */system/hooks/*.sh)
+                    HOOK_NAME=$(basename "$FILE_PATH" .sh)
+                    HINT="Create system/hooks/tests/test-${HOOK_NAME}.sh before editing this hook."
+                    ;;
+                *)  HINT="Create a test file (test-*.sh, *-test.sh, or tests/ dir)." ;;
+            esac
+            ;;
         go)     HINT="Create a test file (*_test.go)." ;;
         *)      HINT="Create a test file before writing implementation code." ;;
     esac
