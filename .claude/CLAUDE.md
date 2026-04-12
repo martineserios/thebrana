@@ -303,3 +303,7 @@ Source: t-560 README + distribution brainstorm 2026-04-12
 ### 2026-04-12: Prefer git worktree add over git stash + git switch -c
 Worktree gate blocks `git switch -c` when unstaged changes exist. Using `git worktree add ../repo-feat/branch -b branch` instead of stash+switch avoids both the gate and the tasks.json stash-pop conflict pattern. Worktrees fully isolate the merge path. Preferred flow: stash specific files if needed → worktree add → work → merge --no-ff → worktree remove.
 Source: t-501 session 2026-04-12
+
+### 2026-04-12: Verify handoff items before starting work
+2 of 4 handoff items this session (ADR-033, tier-1 dry-run) were already done in a prior session. Budget 1-2 minutes per item to verify it's still real: check git log, grep config, or run the command with --dry-run. Mark done items immediately. Prevents full investigation of completed work.
+Source: t-1147 session 2026-04-12

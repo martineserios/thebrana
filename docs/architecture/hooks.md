@@ -243,3 +243,7 @@ Source: maintenance session 2026-04-12
 ### 2026-04-12: Branch-checking hooks must follow `git -C <path>`, not session CWD
 `branch-verify.sh` was checking `CWD` (the session working directory) to determine the git root and branch. When work is done via `git -C <worktree-path> add <files>`, the session CWD is the main repo (on `main`) — the hook falsely blocked. Fix: extract the `-C <path>` argument from the git command and use it as the lookup directory, falling back to CWD only when absent. This pattern applies to any hook that inspects git branch state (`main-guard.sh` has the same bug — tracked). Escape hatch: `# --force-main` as a bash comment (hook greps the full command string, bash ignores comments).
 Source: t-1078, branch-verify-worktree-fix (2026-04-12)
+
+### 2026-04-12: `cd <worktree> && git add` still triggers session-CWD hooks
+PreToolUse hooks fire before the shell command executes. Even `cd ../repo-worktree && git add file` presents the session CWD (main repo root, branch `main`) to the hook — the `cd` never runs first. The `-C <path>` extraction in `branch-verify.sh` only helps when the command literally contains `git -C <path>`, not when `cd` is used. Escape hatch: `# --force-main` comment in the Bash call.
+Source: t-1147 session 2026-04-12
