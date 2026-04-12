@@ -17,6 +17,7 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | # | Error | Severity | Status | Comments |
 |---|---|---|---|---|
 | 1 | Settings merge bug in deploy.sh | **High** | code-fix | Fixed in deploy.sh additive merge |
+| 84 | Spec-first gate requires dot separator in spec filenames | **Low** | code-fix | `knowledge_pipeline_spec.md` rejected; rename to `knowledge_pipeline.spec.md` fixed it |
 | 2 | Stop vs SessionEnd mismatch | **High** | applied (2026-02-10) | [Docs 08](reflections/08-diagnosis.md), 14, 17, 18 updated |
 | 3 | Hook format not specified | **Medium** | informational | Roadmaps cross-ref [doc 09](dimensions/09-claude-code-native-features.md) |
 | 4 | Event list incomplete | **Medium** | informational | PostToolUseFailure now in hooks |
@@ -1902,3 +1903,44 @@ Entries stored via `mcp-index.mjs` land in `memory_entries` immediately (confirm
 **Files affected:** `project_bulk-index-pattern.md` (updated), MEMORY.md ruflo section
 
 **Fix applied:** Updated `project_bulk-index-pattern.md` to document the distinction. No code change needed — behavior is correct, documentation was incomplete.
+
+---
+
+## Error 84: ARCHITECTURE.md Claims to Supersede Doc 14 but Both Are Actively Maintained
+
+**Severity:** Low
+**Status:** applied (2026-04-12) — removed supersedes claim from ARCHITECTURE.md, added complementary relationship note
+**Discovery:** maintain-specs RE-EVALUATE step (2026-04-12)
+
+**Finding:** `docs/reflections/ARCHITECTURE.md` frontmatter declares `supersedes: docs/reflections/14-mastermind-architecture.md` and its header says "Supersedes: [14-mastermind-architecture.md](../archive/reflections/14-mastermind-architecture.md) (archived 2026-03-14)." But `docs/reflections/14-mastermind-architecture.md` is NOT archived — it still exists in `docs/reflections/` and receives active maintenance (errata corrections applied, reconcile updates).
+
+Both docs are being maintained in parallel:
+- Doc 14: comprehensive synthesis with directory trees, hook descriptions, agent roster, scheduler architecture — receives errata corrections, is referenced by validate.sh count drift checks
+- ARCHITECTURE.md: concise reasoning layer with "WHY things compose this way" intent — updated less frequently
+- `docs/archive/reflections/14-mastermind-architecture.md`: stale snapshot (still says "ReasoningBank" and 13 rules — pre-correction)
+
+The planned split (ARCHITECTURE.md = reasoning, component-index.md = generated inventory, doc 14 = archived) was started but not completed. `component-index.md` remains a stub with a TODO for auto-generation.
+
+**Impact:** Readers of ARCHITECTURE.md are directed to an archive that doesn't match production state. Validate.sh and errata tooling operate on doc 14, not ARCHITECTURE.md. When both are read in the same session, they may contradict each other.
+
+**Fix options:**
+1. (Recommended) Remove the `supersedes` claim from ARCHITECTURE.md frontmatter; add a note that both are complementary (doc 14 = detailed inventory+reasoning, ARCHITECTURE.md = concise reasoning overview). Archive the stale snapshot at `docs/archive/reflections/14-mastermind-architecture.md` or update it.
+2. Complete the planned split: move doc 14's inventory sections into component-index.md, redirect doc 14 to ARCHITECTURE.md, then archive.
+
+**Files affected:** `docs/reflections/ARCHITECTURE.md` (frontmatter + header note), optionally `docs/archive/reflections/14-mastermind-architecture.md`
+
+---
+
+## Error 84: Spec-first gate requires dot separator in spec filenames
+
+**Severity:** Low
+**Status:** code-fix
+**Discovery:** Close debrief (2026-04-12, t-1131 knowledge_pipeline.rs)
+
+**Finding:** The spec-first gate hook (`tdd-gate.sh` or equivalent) checks for `*.spec.*` glob pattern (dot separator). Creating `knowledge_pipeline_spec.md` (underscore before `spec`) was not recognized. Gate continued blocking Write even after the spec stub was committed.
+
+**Impact:** Implementation was blocked until the file was renamed. Any future spec stubs written with `_spec` suffix will silently fail the gate check.
+
+**Files affected:** spec stub naming convention (not documented anywhere)
+
+**Fix applied:** Renamed to `knowledge_pipeline.spec.md` (dot separator). Convention: always use `{name}.spec.md` — never `{name}_spec.md`.
