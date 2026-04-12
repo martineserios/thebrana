@@ -106,7 +106,7 @@ thebrana/system/                              PLUGIN (loaded by Claude Code)
 
 ~/.claude/                                    IDENTITY LAYER (via bootstrap.sh)
 ├── CLAUDE.md                                 ← Global identity + universal principles
-├── rules/                                    ← 13 behavioral rules (always loaded)
+├── rules/                                    ← 14 behavioral rules (always loaded)
 │   ├── universal-quality.md                  ← Test before ship, no secrets in code
 │   ├── self-improvement.md                   ← Innate learning loop
 │   ├── git-discipline.md                     ← Conventional commits, worktrees, --no-ff
