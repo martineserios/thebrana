@@ -200,7 +200,8 @@ claude --plugin-dir ./system
 | `brana inbox add-account\|add\|list\|poll\|remove\|status\|set-password` | Gmail newsletter management via IMAP. Multi-account, OS keyring credentials. |
 | `brana session read\|write\|history\|path\|migrate\|mark-consumed\|insights` | Structured session state — read/write JSON state, browse history, migrate from markdown. `insights` scans JSONL telemetry for recurring friction patterns (tool failures, hook blocks) — surfaces in `/brana:review` weekly friction section. |
 | `brana handoff last\|list\|path` | Legacy alias for `brana session`. Falls back to markdown if no JSON state exists. |
-| `brana skills suggest\|search\|list\|reindex\|usage` | Skill discovery and semantic routing. `reindex` indexes skills into ruflo memory. `usage` scans JSONL telemetry for invocation counts + cull candidates. |
+| `brana skills suggest\|search\|list\|reindex\|usage\|graph` | Skill discovery and semantic routing. `reindex` indexes skills into ruflo memory. `usage` scans JSONL telemetry for invocation counts + cull candidates. `graph` emits Mermaid flowchart of skill groups and dependencies. |
+| `brana decisions log\|read\|archive` | Append-only JSONL decision log in `system/state/decisions/`. `log <agent> <type> <content>` appends entry (types: decision\|finding\|concern\|action\|error\|cost). `read` filters by type/agent/severity/last-N. `archive` moves old files. |
 | `brana knowledge reindex\|status\|search` | Knowledge base indexing. Indexes dimension/reflection/feature docs into ruflo memory. `--patterns` for memory files. |
 | `brana knowledge process --tier1\|--tier2\|--draft <topic>\|--status\|--reset-url\|--dry-run` | Inbox→dimensions pipeline. Tier 1: relevance filter (batch 50). Tier 2: cluster assignment + report. Tier 3: draft synthesis (manual gate). |
 | `brana knowledge promote <draft-path>` | Promote a draft to `dimensions/`, archive the draft. |
@@ -343,3 +344,23 @@ Source: t-1177 session 2026-04-13
 ### 2026-04-13: Wire-before-migrate for Python hook scripts
 When a Python script needs both wiring (as a hook) and migration (to CLI), keep them separate tasks. Wiring fixes the active drift problem at S effort; combining with migration inflates to M+ and delays the fix. Create the migration task immediately so it's queued, but don't block the wire on it.
 Source: t-1177 / t-1191 session 2026-04-13
+
+### 2026-04-13: Rules are lighter than hooks for behavioral gates
+For "always ask/check before X" behavioral constraints, a rule file beats a hook. Rules load once, apply everywhere, no per-event overhead. Hooks fire on every matching event — hot paths (UserPromptSubmit, PostToolUse empty matcher) add latency and risk context pollution. Session challenger killed UserPromptSubmit hook approach (score 5/5 context poisoning). Replacement: 30-line rule file.
+Source: skill-routing design session 2026-04-13
+
+### 2026-04-13: Run /brana:challenge before writing any behavioral mechanism
+Two challenger runs collapsed a multi-angle hook exploration into a 30-line rule. First run: caught context poisoning blocker. Second run: caught the feature was already partially built. Zero implementation wasted. Mandatory before: anything touching UserPromptSubmit, SessionStart, PostToolUse with empty matcher.
+Source: skill-routing design session 2026-04-13
+
+### 2026-04-13: system/rules/ → worktree pattern, not direct main commit
+system/rules/ is classified as behavioral by main-guard. Adding/modifying rules requires worktree: `git worktree add /tmp/thebrana-{branch} -b feat/{branch}` → cp → brana reference generate → commit → merge --no-ff → worktree remove. Pattern verified 3+ sessions. Fix: t-1194 (--rules-only flag).
+Source: skill-routing commit session 2026-04-13
+
+### 2026-04-13: env::set_var/remove_var require unsafe{} in Rust 2024 edition tests
+Rust 2024 edition makes `std::env::set_var` and `std::env::remove_var` unsafe (thread-unsafe). Any test that sets env vars must wrap calls in `unsafe {}`. Add a SAFETY comment explaining the test isolation assumption (e.g., single-threaded via serial_test). Applies to all brana-cli tests that use env var overrides (BRANA_DECISIONS_DIR, BRANA_SESSION_ID, etc.).
+Source: t-1164 decisions.rs test authoring 2026-04-13
+
+### 2026-04-13: #[serial] required for tests that mutate env vars
+Rust tests run in parallel by default. Tests that call `env::set_var` will race with each other — one test's `cleanup()` removes the var before another test's function under test reads it. Fix: add `use serial_test::serial` and annotate every affected test with `#[serial]`. The `serial_test` crate is already in brana-cli dev-dependencies. Pattern: set env → run → cleanup → assert (all within one serial test).
+Source: t-1164 decisions.rs test failures 2026-04-13
