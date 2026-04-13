@@ -159,7 +159,7 @@ for filepath in "${FILES[@]}"; do
                 # Truncate to ~2000 chars to keep embeddings focused
                 value="${current_section:0:2000}"
                 # Escape for JSON (newlines, quotes, backslashes)
-                value=$(printf '%s' "$value" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()),end='')")
+                value=$(printf '%s' "$value" | jq -Rs '.')
                 echo "{\"key\":\"$key\",\"value\":$value,\"tags\":$TAGS_JSON}" >> "$JSONL_FILE"
                 section_count=$((section_count + 1))
             fi
@@ -177,7 +177,7 @@ for filepath in "${FILES[@]}"; do
         section_slug=$(echo "$current_title" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//' | head -c 60)
         key="knowledge:${doc_type}:${doc_slug}:${section_slug}"
         value="${current_section:0:2000}"
-        value=$(printf '%s' "$value" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()),end='')")
+        value=$(printf '%s' "$value" | jq -Rs '.')
         echo "{\"key\":\"$key\",\"value\":$value,\"tags\":$TAGS_JSON}" >> "$JSONL_FILE"
         section_count=$((section_count + 1))
     fi
@@ -271,9 +271,9 @@ else
         STORED=0
         ERRORS=0
         while IFS= read -r line; do
-            key=$(echo "$line" | python3 -c "import sys,json; print(json.load(sys.stdin)['key'])")
-            value=$(echo "$line" | python3 -c "import sys,json; print(json.load(sys.stdin)['value'])")
-            tags=$(echo "$line" | python3 -c "import sys,json; print(','.join(json.load(sys.stdin)['tags']))")
+            key=$(echo "$line" | jq -r '.key')
+            value=$(echo "$line" | jq -r '.value')
+            tags=$(echo "$line" | jq -r '.tags | join(",")')
             output=$(cd "$HOME" && timeout 15 $CF memory store -k "$key" -v "$value" --namespace knowledge --tags "$tags" --upsert 2>&1) || true
             if echo "$output" | grep -q "stored successfully"; then
                 STORED=$((STORED + 1))
