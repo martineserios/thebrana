@@ -289,10 +289,6 @@ Source: maintenance session 2026-04-12
 After a `--no-ff` merge, the worktree stays checked out at its last commit. Untracked files in the worktree look like active WIP but may be superseded by the merged version. Before debugging untracked files in a worktree, run `git show <merge-commit>:<path>` to confirm the committed version differs. Always run `git worktree remove <path>` immediately after merging. t-1147 tracks sitrep detection.
 Source: t-1131 session 2026-04-12
 
-### 2026-04-12: cargo build --release stale incremental cache after large changes
-`cargo check` passes but `cargo build --release` fails with type errors on first attempt after significant code additions. Second attempt succeeds because the incremental cache self-heals. Reliable fix: `cargo clean -p <crate-name> && cargo build --release`. Or set `CARGO_INCREMENTAL=0` for release builds.
-Source: t-1131 session 2026-04-12
-
 ### 2026-04-12: CC plugin registration is filesystem-level, not UI-gated
 `bootstrap.sh` step 7d writes `~/.claude/plugins/installed_plugins.json` and snapshots `system/` to the plugin cache directly. The `/plugin marketplace add` and `/plugin install` CC commands are UI sugar over the same JSON file — they are not required. Any installer that writes `installed_plugins.json` achieves full plugin registration without entering a CC session. Apply to any future CC plugin distribution work.
 Source: t-501 session 2026-04-12
@@ -357,10 +353,3 @@ Source: skill-routing design session 2026-04-13
 system/rules/ is classified as behavioral by main-guard. Adding/modifying rules requires worktree: `git worktree add /tmp/thebrana-{branch} -b feat/{branch}` → cp → brana reference generate → commit → merge --no-ff → worktree remove. Pattern verified 3+ sessions. Fix: t-1194 (--rules-only flag).
 Source: skill-routing commit session 2026-04-13
 
-### 2026-04-13: env::set_var/remove_var require unsafe{} in Rust 2024 edition tests
-Rust 2024 edition makes `std::env::set_var` and `std::env::remove_var` unsafe (thread-unsafe). Any test that sets env vars must wrap calls in `unsafe {}`. Add a SAFETY comment explaining the test isolation assumption (e.g., single-threaded via serial_test). Applies to all brana-cli tests that use env var overrides (BRANA_DECISIONS_DIR, BRANA_SESSION_ID, etc.).
-Source: t-1164 decisions.rs test authoring 2026-04-13
-
-### 2026-04-13: #[serial] required for tests that mutate env vars
-Rust tests run in parallel by default. Tests that call `env::set_var` will race with each other — one test's `cleanup()` removes the var before another test's function under test reads it. Fix: add `use serial_test::serial` and annotate every affected test with `#[serial]`. The `serial_test` crate is already in brana-cli dev-dependencies. Pattern: set env → run → cleanup → assert (all within one serial test).
-Source: t-1164 decisions.rs test failures 2026-04-13
