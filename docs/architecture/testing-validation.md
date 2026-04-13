@@ -315,3 +315,7 @@ Source: t-751 (harvest fix)
 ### 2026-04-08: Extract `_from(path)` variant from global-state helpers for testability
 A Rust helper that calls `env::current_dir()` or similar global state is untestable without chdir tricks. Pattern: extract `find_tasks_file_from(start_dir: &Path)` as the real implementation; keep `find_tasks_file()` as a thin wrapper calling `_from(current_dir?)`. Unit tests target `_from` with fixture directories — enables 9 tests where 0 were previously possible. Applied in `brana-core/util.rs` (t-1088).
 Source: t-1088
+
+### 2026-04-13: Allowlist the target set, don't denylist known-large paths
+The `find -size +50k` check over all of `system/` produced false positives on Rust build artifacts (`cli/rust/target/`), runtime state (`state/`), and procedure files (`procedures/`). Each required a new exclusion clause. The durable fix is to scan only the set that should be small: `system/skills/`, `system/hooks/`, `system/agents/`, `system/rules/`, `system/commands/`. Allowlisting the target is stable; denylisting known-large paths grows indefinitely.
+Source: t-1183, 2026-04-13

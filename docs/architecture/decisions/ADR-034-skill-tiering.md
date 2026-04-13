@@ -44,3 +44,9 @@ Stubs preserve full frontmatter (name, description, group, keywords, allowed-too
 - CC bug: anthropics/claude-code#14882 (skills load full content)
 - CC bug: anthropics/claude-code#42906 (cold cache API calls)
 - Challenger review: 2026-04-06 (Sonnet, simplicity flavor)
+
+## Field Notes
+
+### 2026-04-13: Strip counts from ADRs — they drift silently
+ADR-034 originally stated "all 25 skills use the stub pattern." By 2026-04-13 the actual count was 27 (cargo-machete, mcp-builder, rust-skills added post-ADR). The count was discovered during a reconcile consistency scan — not immediately obvious. Fix: remove the count entirely. Write "all skills use the stub pattern" (decision-level) and link to `docs/reference/skills.md` (auto-generated, always current). Rule: ADRs capture decisions, not inventory state. Counts belong in generated references only.
+Source: /brana:reconcile 2026-04-13
