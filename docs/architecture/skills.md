@@ -7,8 +7,10 @@
 | Group | Purpose | Examples |
 |-------|---------|---------|
 | **brana** | Core system management | backlog, reconcile, plugin, do |
+| **core** | System foundations | docs, sitrep |
 | **execution** | Development lifecycle | build, onboard, align |
 | **learning** | Knowledge acquisition | challenge, research, memory |
+| **thinking** | Interactive ideation | brainstorm |
 | **venture** | Business operations | review, client-retire |
 | **session** | Session lifecycle | close |
 | **capture** | Event capture | log |

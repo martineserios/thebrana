@@ -14,9 +14,9 @@ Only 7 skills are used daily. The other 19 are situational (weekly or less).
 
 **Original (2026-04-06):** Split skills into core (full SKILL.md) and extended (stubs).
 
-**Amended (2026-04-06):** After deployment, all 25 skills use the stub pattern — including the original 7 "core" skills. Uniform treatment is simpler and works well. The core/extended distinction is removed.
+**Amended (2026-04-06):** After deployment, all skills use the stub pattern — including the original 7 "core" skills. Uniform treatment is simpler and works well. The core/extended distinction is removed.
 
-- **All skills (25):** Stub SKILL.md (frontmatter + Read instruction). Procedure body in `system/procedures/{name}.md`. Loaded on invoke via Read tool.
+- **All skills:** Stub SKILL.md (frontmatter + Read instruction). Procedure body in `system/procedures/{name}.md`. Loaded on invoke via Read tool.
 
 Stubs preserve full frontmatter (name, description, group, keywords, allowed-tools, status) for discovery, routing, and the skill index. The procedure file path is resolved relative to the plugin root using Glob if needed.
 

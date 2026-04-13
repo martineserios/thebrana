@@ -81,7 +81,7 @@ Version: v1.0.0
 
 ### Skill Tiering (ADR-034)
 
-All 25 skills use the universal stub pattern to reduce startup context (~34K to ~8K tokens):
+All skills use the universal stub pattern to reduce startup context (~34K to ~8K tokens). Current count in [Skill Reference](docs/reference/skills.md).
 
 - **Stub SKILL.md:** Frontmatter + Read instruction only. Procedure body in `system/procedures/{name}.md`, loaded on invoke via Read tool.
 
