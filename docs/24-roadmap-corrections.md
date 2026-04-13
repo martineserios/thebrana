@@ -150,6 +150,9 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 126 | [Doc 08](reflections/08-diagnosis.md) missing triage entry for reflection 33 (agent loop) | **Low** | applied (2026-04-13) | R6 added to DAG Orientation block (new column alongside R3/R4) and narrative line. `33-agent-loop.md` added to `informs:` frontmatter. 5th instance — add to new-reflection checklist (t-1179). |
 | 127 | `build.md` LOAD step contradicts `skill-routing.md` gate — "mention inline" vs "always ask" | **Medium** | applied (2026-04-13) | `build.md` step 4 updated to apply the `skill-routing.md` gate. LOAD is now the info source; skill-routing.md owns the AskUserQuestion confirm gate for domain skills. |
 | 128 | Budget-checking pre-commit hook not tracked in repo — threshold drift to 26624 | **Low** | applied (2026-04-13) | Budget check added to `system/scripts/git-hooks/pre-commit`. Mirrors validate.sh Check 5 logic. Threshold 28672 aligned. |
+| 129 | [Doc 14](reflections/14-mastermind-architecture.md) missing skill-routing gate description — implementer would not know domain skills require AskUserQuestion before loading | **Medium** | applied (2026-04-13) | Cascade from E127. "Skill-routing gate" paragraph added after Pattern C. Explains two-layer skill identification, AskUserQuestion gate, rule vs hook rationale, refs erratum #127. |
+| 130 | [Doc 31](reflections/31-assurance.md) enforcement gates table missing `pre-commit` budget check | **Low** | applied (2026-04-13) | Cascade from E128. Row added to layered staging enforcement table: trigger `git commit`, blocks context budget > 28672 bytes. |
+| 131 | [Doc 31](reflections/31-assurance.md) context budget ceiling stale (~24KB → ~28KB) | **Low** | applied (2026-04-13) | 8th instance of budget ceiling drift (#52–54, #56, #62, #53, #131). Updated to ~28KB (28672 bytes). Reference to `validate.sh` Check 5 and `pre-commit` budget gate added. |
 
 ---
 

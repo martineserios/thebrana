@@ -39,7 +39,7 @@ The cheapest checks. Run on every commit, block deployment if they fail.
 From [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md) Layer 0 (Static Validation):
 
 - **YAML frontmatter** — every skill, rule, and agent definition has valid frontmatter with required fields (`name`, `description`, `allowed-tools`)
-- **Context budget** — total always-loaded context (CLAUDE.md + rules + skill descriptions + agent descriptions) stays under the ~24KB ceiling. Every KB competes with working context ([21-anthropic-engineering-deep-dive.md](../../../brana-knowledge/dimensions/21-anthropic-engineering-deep-dive.md))
+- **Context budget** — total always-loaded context (CLAUDE.md + rules + skill descriptions + agent descriptions) stays under the ~28KB ceiling (28672 bytes, tracked in `validate.sh` Check 5 and enforced by the `pre-commit` budget gate). Every KB competes with working context ([21-anthropic-engineering-deep-dive.md](../../../brana-knowledge/dimensions/21-anthropic-engineering-deep-dive.md))
 - **Hook configuration** — `system/hooks/hooks.json` (plugin format, primary since v0.7.0) references scripts that exist, event names are valid, async constraints are respected. `settings.json` hooks are the bootstrap-installed fallback for PostToolUse/PostToolUseFailure only (CC v2.1.x plugin bug, issue #24529)
 - **Link integrity** — all markdown cross-references (`[doc NN](./NN-filename.md)`) resolve to real files
 - **Pre-commit validation** — `.git/hooks/pre-commit` in thebrana validates spec consistency before commit: YAML frontmatter, JSON syntax, secrets, context budget. Shift-left complement to deploy-time validation. See [35-context-engineering-principles.md](../dimensions/35-context-engineering-principles.md) for budget failure modes
@@ -73,6 +73,7 @@ Verify structurally:
 | `main-guard.sh` | `git commit` | Committing staged behavioral files on main — second line of defence if staging was not caught. |
 | `tdd-gate.sh` | `Write\|Edit` | Implementation files written before test files on feat/fix branches. |
 | `pre-tool-use.sh` (spec-first) | `Write\|Edit` | Implementation written before spec doc exists on feat/fix branches. |
+| `pre-commit` (budget check) | `git commit` | Committing when always-loaded context budget exceeds 28672 bytes — catches bloated rules, skill descriptions, or agent descriptions before they reach the repo. Source: `system/scripts/git-hooks/pre-commit`. Runs only in brana repos (`system/skills/` + `system/hooks/` present). |
 
 Escape hatch for all staging/commit gates: `--force-main` anywhere in the command.
 
