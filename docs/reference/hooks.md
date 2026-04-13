@@ -12,7 +12,9 @@
 | PreToolUse | `Bash` | `worktree-gate.sh` | 5000ms |
 | PreToolUse | `Bash` | `doc-gate.sh` | 5000ms |
 | PreToolUse | `Bash` | `main-guard.sh` | 5000ms |
+| PreToolUse | `Bash` | `branch-verify.sh` | 5000ms |
 | PreToolUse | `Bash` | `no-attribution-commit.sh` | 3000ms |
+| PreToolUse | `Bash` | `commit-msg-verify.sh` | 3000ms |
 | PreToolUse | `Read|Grep|Glob` | `guard-explore.sh` | 5000ms |
 | PostToolUse | `` | `post-tool-use.sh` | 5000ms |
 | PostToolUse | `ExitPlanMode` | `post-plan-challenge.sh` | 5000ms |
@@ -21,6 +23,7 @@
 | PostToolUse | `Write|Edit` | `post-sale.sh` | 5000ms |
 | PostToolUse | `Write|Edit` | `post-tasks-validate.sh` | 5000ms |
 | PostToolUseFailure | `` | `post-tool-use-failure.sh` | 5000ms |
+| UserPromptSubmit | `` | `preflight-model.sh` | 3000ms |
 | SessionStart | `` | `session-start.sh` | 10000ms |
 | SubagentStart | `` | `subagent-context.sh` | 5000ms |
 | SubagentStart | `` | `subagent-tracker.sh` | 5000ms |
@@ -30,6 +33,14 @@
 | StopFailure | `` | `stopfailure-logger.sh` | 5000ms |
 
 ## Hook Scripts
+
+### `branch-verify.sh`
+
+Branch Verify — PreToolUse hook for Bash (git add)
+
+### `commit-msg-verify.sh`
+
+commit-msg-verify.sh — PreToolUse hook for Bash (advisory, non-blocking)
 
 ### `config-drift.sh`
 
@@ -82,6 +93,22 @@ No strict mode — hooks must never fail and block the session.
 ### `pre-tool-use.sh`
 
 No strict mode — hooks must always return valid JSON.
+
+### `preflight-model.sh`
+
+preflight-model.sh — UserPromptSubmit hook (advisory, non-blocking)
+
+### `session-end-drift.sh`
+
+session-end-drift.sh — Post-session system sync and cleanup.
+
+### `session-end-metrics.sh`
+
+session-end-metrics.sh — Compute session metrics from JSONL event file.
+
+### `session-end-persist.sh`
+
+session-end-persist.sh — Store session summary to ruflo (L1) + auto-memory (L0).
 
 ### `session-end.sh`
 

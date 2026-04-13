@@ -142,6 +142,8 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 120 | MEMORY.md `feedback_git-switch-c-bypasses-worktree-gate.md` missing ephemeral-branch warning | **Medium** | applied (2026-04-10) | CRITICAL warning added: branch switches are Bash-invocation-scoped. Verify with `git branch --show-current` in next Bash call before staging. Errata ref in file corrected from #81 → #120. |
 | 121 | [Doc 32](reflections/32-lifecycle.md) Scheduled Automation table missing lint-heal job | **Low** | applied (2026-04-12) | `lint-heal.sh` added to scheduler at Sun 15:00 (t-1075). Table only listed staleness-report. Row added. |
 | 122 | [Doc 31](reflections/31-assurance.md) Enforcement Gate missing `branch-verify.sh` | **Low** | applied (2026-04-12) | `branch-verify.sh` added (t-1125) — blocks `git add` of behavioral files on main. Doc 31 only described main-guard (commit-time). Pre-staging gate added to verification list. |
+| e87 | `docs/reference/hooks.md` missing `branch-verify.sh` (cascade from #122) | **Low** | applied (2026-04-12) | Regenerated via `generate-reference.py`. `branch-verify.sh` PreToolUse/Bash row added. |
+| 123 | [Doc 08](reflections/08-diagnosis.md) missing triage entries for docs 46-49 (+ 49b naming conflict) | **Medium** | applied (2026-04-12) | Same pattern as #73, #77, #88. Triage added for CC Harness Ecosystem (46), Ontology Engineering (47), Knowledge Graph Architecture (48), Agent-Era Systems Patterns (49a), Auto-Learning Patterns (49b). Note: 49a/49b filename conflict flagged. |
 
 ---
 
@@ -1985,7 +1987,7 @@ The planned split (ARCHITECTURE.md = reasoning, component-index.md = generated i
 ## Error 87: reference/hooks.md missing branch-verify.sh (auto-generated, cascade from #86)
 
 **Severity:** Low
-**Status:** pending
+**Status:** applied (2026-04-12)
 **Discovery:** Cascade from errata #86 (2026-04-12)
 
 **Finding:** `docs/reference/hooks.md` is auto-generated from `hooks.json` but does not list `branch-verify.sh` despite it being registered in `system/hooks/hooks.json`. The generate-reference.py script appears to be out of sync.
@@ -1994,7 +1996,7 @@ The planned split (ARCHITECTURE.md = reasoning, component-index.md = generated i
 
 **Files affected:** `docs/reference/hooks.md` — plugin hooks table; `system/scripts/generate-reference.py` (or equivalent generator)
 
-**Fix:** Regenerate `docs/reference/hooks.md` by re-running the generator script. Verify `branch-verify.sh` appears in the output.
+**Fix applied:** Re-ran `uv run python3 system/scripts/generate-reference.py`. `branch-verify.sh` PreToolUse/Bash row now appears at position 15 and in the detail section.
 
 ---
 
