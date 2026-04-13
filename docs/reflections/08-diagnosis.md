@@ -72,7 +72,7 @@ R1 triages every dimension doc → R2 composes the architecture → R3 validates
 ### 1. 5-Phase Skill Routing Pipeline
 **Why drop:** Context Detection -> FACT Fast Match -> ruvector Semantic -> dspy Validation -> Agent Coordination is 5 phases with 3 external dependencies for what Claude 4.6 can reason about directly.
 
-**Replace with:** Put skill descriptions in `system/skills/` (loaded via plugin) and trust the model to read and apply them. Use rules directory for path-scoped guidance. If routing is needed, a single keyword-match phase is sufficient.
+**Replace with:** Put skill descriptions in `system/skills/` (loaded via plugin) and trust the model to read and apply them. Use rules directory for path-scoped guidance. If routing is needed, a single keyword-match phase is sufficient. **Implemented:** `system/rules/skill-routing.md` operationalizes this — every work session confirms workflow + domain skill layers via AskUserQuestion before invocation. Never silently route.
 
 ### 2. registry.yaml + context-loader.sh
 **Why drop:** The module registry and loader were needed when CLAUDE.md couldn't handle dynamic context. Claude Code's rules directory and native skill loading handle this now.

@@ -229,7 +229,7 @@ dimension docs → reflection docs → precise roadmap → implement → debrief
 Each cycle:
 1. **Plan** — read the roadmap, verify specs are current
 2. **Recall** — `/brana:memory recall` for relevant learned patterns
-3. **Build** — implement work items with mini-debriefs after each
+3. **Build** — implement work items with mini-debriefs after each. The `/brana:build` workflow includes a skill-routing gate (LOAD step 4) that presents workflow + domain skill options for user confirmation before any skill is loaded — never silently routes.
 4. **Test** — run `./test.sh` before merging
 5. **Close** — `/brana:close` extracts errata, learnings, and session handoff
 6. **Maintain** — `/brana:maintain-specs` propagates findings through spec layers
