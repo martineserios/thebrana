@@ -140,7 +140,7 @@ Documents are numbered but split across repos:
 
 - **brana-knowledge**: 01-07, 09-13, 16, 20-23, 26-28, 33-38, topic docs
 - **thebrana/docs**: 00, 15, 17-19, 24, 25, 30, 39
-- **thebrana/docs/reflections**: 08, 14, 29, 31, 32
+- **thebrana/docs/reflections**: 08, 14, 29, 31, 32, 33
 
 ### Reflection DAG
 
@@ -148,6 +148,7 @@ Documents are numbered but split across repos:
 R1(08 Triage) → R2(14 Architecture) → R3(31 Assurance)
                                      → R4(32 Lifecycle)
                                      → R5(29 Venture)
+                                     → R6(33 Agent Loop)
 ```
 
 ### Architecture Docs

@@ -40,7 +40,7 @@ A reflection reads multiple dimensions and synthesizes them into architectural i
 
 The reflection DAG ensures synthesis builds on synthesis:
 ```
-R1(Triage) → R2(Architecture) → R3(Assurance) / R4(Lifecycle) → R5(Venture)
+R1(Triage) → R2(Architecture) → R3(Assurance) / R4(Lifecycle) → R5(Venture) / R6(Agent Loop)
 ```
 
 ### 3. Roadmap — Actionable Plan

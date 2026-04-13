@@ -4,6 +4,7 @@ informs:
   - docs/reflections/31-assurance.md
   - docs/reflections/32-lifecycle.md
   - docs/reflections/29-venture-management-reflection.md
+  - docs/reflections/33-agent-loop.md
 ---
 
 # 08 - Diagnosis: Keep, Drop, Defer
@@ -15,15 +16,15 @@ What to preserve, eliminate, and postpone for brana v2. R1 in the reflection DAG
 ```
 R1: Triage (this doc)  →  R2: Architecture (14)
   "What matters?"            "How does it compose?"
-                                   ↓              ↓
-                             R3: Assurance (31)  R4: Lifecycle (32)
-                             "Does it work?"     "How does it evolve?"
+                                   ↓              ↓              ↓
+                             R3: Assurance (31)  R4: Lifecycle (32)  R6: Agent Loop (33)
+                             "Does it work?"     "How does it evolve?"  "How does it execute?"
 
 R5: Transfer (29) — semi-independent, cross-references R2-R4
   "What generalizes?"
 ```
 
-R1 triages every dimension doc → R2 composes the architecture → R3 validates it works → R4 tracks how it evolves → R5 identifies what transfers beyond code projects.
+R1 triages every dimension doc → R2 composes the architecture → R3 validates it works → R4 tracks how it evolves → R5 identifies what transfers beyond code projects → R6 maps how CC's runtime executes the architecture.
 
 ---
 

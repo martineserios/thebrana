@@ -40,7 +40,7 @@ brana-knowledge/dimensions/       ← knowledge docs (separate repo)
 
 ### Reflection DAG
 
-R1(08 Triage) → R2(14 Architecture) → R3(31 Assurance) / R4(32 Lifecycle) → R5(29 Venture)
+R1(08 Triage) → R2(14 Architecture) → R3(31 Assurance) / R4(32 Lifecycle) → R5(29 Venture) / R6(33 Agent Loop)
 
 ## Inbox
 

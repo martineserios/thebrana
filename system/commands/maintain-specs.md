@@ -66,7 +66,7 @@ For each reflection doc, check:
 
 **Follow the reflection DAG when improving:**
 ```
-R1 (08 Triage) → R2 (14 Architecture) → R3 (31 Assurance) / R4 (32 Lifecycle) → R5 (29 Transfer)
+R1 (08 Triage) → R2 (14 Architecture) → R3 (31 Assurance) / R4 (32 Lifecycle) → R5 (29 Transfer) / R6 (33 Agent Loop)
 ```
 Improvements cascade downward — a sharper triage decision in R1 may unlock a more precise architecture in R2.
 
