@@ -2100,3 +2100,15 @@ The planned split (ARCHITECTURE.md = reasoning, component-index.md = generated i
 **Fix applied:** Budget check added directly to `system/scripts/git-hooks/pre-commit`. Logic mirrors validate.sh Check 5 (CLAUDE.md + global rules + skill descriptions + agent descriptions). Threshold set to 28672. Runs only when `system/skills/` and `system/hooks/` directories exist (brana repos only — skip for other repos).
 
 **Status:** applied (2026-04-13)
+
+---
+
+### Reconcile Run — 2026-04-13
+
+**Trigger:** post-maintain-specs
+**Scope:** consistency
+**Drift found:** 0 findings across 7 areas
+**Applied:** 0 (nothing to fix)
+**Deferred:** 0
+
+**Outcome:** Implementation fully consistent with maintain-specs cycle changes (e127-131). Skill-routing gate, pre-commit budget check, agent roster, rules, hooks, skill descriptions, and CLAUDE.md agent table all match spec.
