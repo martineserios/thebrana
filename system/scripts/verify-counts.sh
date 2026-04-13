@@ -62,7 +62,7 @@ echo ""
 echo "Results: $PASS passed, $FAIL mismatches"
 
 if [[ $FAIL -gt 0 ]]; then
-  echo "Action: run 'uv run python system/scripts/generate-reference.py' to update docs"
+  echo "Action: run 'brana reference generate' to update docs"
   exit 1
 fi
 
