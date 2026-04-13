@@ -129,7 +129,7 @@ for skill_file in "${SKILL_FILES[@]}"; do
     tags_json="${tags_json}]"
 
     # Escape embed_text for JSON (this is what bulk-index.mjs embeds + stores as content)
-    value_escaped=$(printf '%s' "$embed_text" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()),end='')")
+    value_escaped=$(printf '%s' "$embed_text" | jq -Rs '.')
 
     key="skill:${name}"
 
