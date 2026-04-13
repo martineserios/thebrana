@@ -148,6 +148,8 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | e125 | `docs/architecture/hooks.md` plugin hooks table missing 6 hooks added since initial doc: `doc-gate.sh`, `main-guard.sh`, `no-attribution-commit.sh`, `commit-msg-verify.sh` (t-1129), `task-completed.sh`, `preflight-model.sh` (t-1085). "How hooks work" events table missing `UserPromptSubmit`, `SubagentStart/Stop`, `TaskCompleted`, `StopFailure`. Header count "10 shell scripts" stale. | **Low** | applied (2026-04-13) | Added all missing rows to plugin hooks table. Updated events table to include all 10 event types. Updated header count. Added field notes for `UserPromptSubmit` and `commit-msg-verify.sh`. |
 | 125 | Reflection DAG R6 not propagated — `.claude/CLAUDE.md`, `system/commands/maintain-specs.md`, `docs/architecture/system-documentation-map.md`, `docs/architecture/building-methodology.md` all show the 5-reflection DAG without R6(33 Agent Loop) | **Medium** | applied (2026-04-13) | `/ R6(33 Agent Loop)` appended to single-line DAG in CLAUDE.md + building-methodology.md + maintain-specs.md. Multi-line block in system-documentation-map.md extended. Reflection list 08,14,29,31,32 → +33. |
 | 126 | [Doc 08](reflections/08-diagnosis.md) missing triage entry for reflection 33 (agent loop) | **Low** | applied (2026-04-13) | R6 added to DAG Orientation block (new column alongside R3/R4) and narrative line. `33-agent-loop.md` added to `informs:` frontmatter. 5th instance — add to new-reflection checklist (t-1179). |
+| 127 | `build.md` LOAD step contradicts `skill-routing.md` gate — "mention inline" vs "always ask" | **Medium** | applied (2026-04-13) | `build.md` step 4 updated to apply the `skill-routing.md` gate. LOAD is now the info source; skill-routing.md owns the AskUserQuestion confirm gate for domain skills. |
+| 128 | Budget-checking pre-commit hook not tracked in repo — threshold drift to 26624 | **Low** | applied (2026-04-13) | Budget check added to `system/scripts/git-hooks/pre-commit`. Mirrors validate.sh Check 5 logic. Threshold 28672 aligned. |
 
 ---
 
@@ -2059,3 +2061,39 @@ The planned split (ARCHITECTURE.md = reasoning, component-index.md = generated i
 | 4 | Hooks | Extra | PostToolUse hooks dual-wired in hooks.json (dead code per CC bug #24529) + settings.json | Deferred — tracked as t-1180 |
 
 **Learning:** Volatile counts in ADRs and manually-maintained docs create ongoing maintenance burden. Count belongs in auto-generated reference only. Rule candidate: "No hardcoded skill/hook/agent counts in ADRs or living docs."
+
+---
+
+## Error 127: build.md LOAD step contradicts skill-routing.md gate
+
+**Severity:** Medium
+**Discovery:** 2026-04-13 session close debrief
+**Affected files:** `system/procedures/build.md` (step 4, skill match handling)
+
+**What the spec says:** `skill-routing.md` rule: "always ask via AskUserQuestion before loading any skill. Never silently route."
+
+**What the implementation says:** `build.md` step 4 said: "Score >= 0.5: mention inline … Do NOT auto-invoke the skill or block on user confirmation. LOAD is informational — the user decides whether to use it."
+
+**Impact:** Rule and procedure gave contradictory instructions about skill selection gate. Claude received conflicting signals: rule says "block until confirmed," procedure said "never block."
+
+**Fix applied:** `build.md` step 4 updated — score >= 0.5 now reads: "apply the `skill-routing.md` gate — use AskUserQuestion to confirm before loading the domain skill. LOAD is the information source (which skills matched); `skill-routing.md` owns the ask-before-loading gate. Never silently invoke a matched domain skill."
+
+**Status:** applied (2026-04-13)
+
+---
+
+## Error 128: Budget-checking pre-commit hook not tracked in repo
+
+**Severity:** Low
+**Discovery:** 2026-04-13 session close debrief
+**Affected files:** `system/scripts/git-hooks/pre-commit`, `.git/hooks/pre-commit` (untracked)
+
+**What the spec says:** `validate.sh` uses 28672 bytes as the context budget limit.
+
+**What the implementation says:** The budget-checking pre-commit lived only in `.git/hooks/pre-commit` (untracked). `system/scripts/git-hooks/pre-commit` only contained the no-attribution check. Budget threshold was 26624 — diverged from validate.sh's 28672.
+
+**Impact:** Budget threshold drift will resurface if someone re-installs git hooks manually. No source-of-truth for the budget check.
+
+**Fix applied:** Budget check added directly to `system/scripts/git-hooks/pre-commit`. Logic mirrors validate.sh Check 5 (CLAUDE.md + global rules + skill descriptions + agent descriptions). Threshold set to 28672. Runs only when `system/skills/` and `system/hooks/` directories exist (brana repos only — skip for other repos).
+
+**Status:** applied (2026-04-13)

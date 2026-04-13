@@ -154,10 +154,9 @@ Pull relevant architecture, decision knowledge, and skill matches into context b
    Read the top 3 matching files (first 80 lines each).
    For skills fallback: `brana skills suggest --query "{keywords}"`
 4. **Skill match handling** — if any result has `namespace: "skills"` (or key starts with `skill:`):
-   - Score >= 0.5: mention inline: "Matching skill available: /brana:{name} ({score}). It may be useful during this build."
+   - Score >= 0.5: apply the **`skill-routing.md` gate** — use AskUserQuestion to confirm before loading the domain skill. LOAD is the information source (which skills matched); `skill-routing.md` owns the ask-before-loading gate. Never silently invoke a matched domain skill.
    - Score < 0.5: ignore (too weak to surface)
-   - Do NOT auto-invoke the skill or block on user confirmation. LOAD is informational — the user decides whether to use it.
-   - If entering via `/brana:backlog start`, skill suggestion already happened in step 5 — skip duplicate mention.
+   - If entering via `/brana:backlog start`, skill suggestion already happened in step 5 — skip duplicate ask.
 
 4a. **JIT skill acquisition** — if NO skills results were returned (or all below 0.3) AND the task involves a specific technology (detectable from tags, description, or project files):
    - Extract the tech keyword(s) that had no matching skill

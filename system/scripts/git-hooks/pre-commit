@@ -72,4 +72,58 @@ if [ ${#violations[@]} -gt 0 ]; then
     exit 1
 fi
 
+# --- Context budget check (brana repos only) ---
+# Only runs when the current repo has a system/ directory with brana artifacts.
+# Threshold mirrors validate.sh Check 5: 28672 bytes.
+# Source of truth for this value: validate.sh line 168.
+
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || true)
+SYSTEM_DIR="${REPO_ROOT}/system"
+
+if [ -d "${SYSTEM_DIR}/skills" ] && [ -d "${SYSTEM_DIR}/hooks" ]; then
+    BUDGET=0
+
+    # CLAUDE.md (always loaded)
+    if [ -f "${SYSTEM_DIR}/CLAUDE.md" ]; then
+        BUDGET=$((BUDGET + $(wc -c < "${SYSTEM_DIR}/CLAUDE.md")))
+    fi
+
+    # Rules without paths: field (always loaded)
+    for rule_file in "${SYSTEM_DIR}"/rules/*.md; do
+        [ -f "$rule_file" ] || continue
+        if ! grep -q '^paths:' "$rule_file" 2>/dev/null; then
+            BUDGET=$((BUDGET + $(wc -c < "$rule_file")))
+        fi
+    done
+
+    # Skill descriptions (just the description line from frontmatter)
+    for skill_dir in "${SYSTEM_DIR}"/skills/*/; do
+        [ "$(basename "$skill_dir")" = "acquired" ] && continue
+        skill_file="${skill_dir}SKILL.md"
+        if [ -f "$skill_file" ]; then
+            BUDGET=$((BUDGET + $(grep '^description:' "$skill_file" | wc -c)))
+        fi
+    done
+
+    # Agent descriptions (loaded into context — see 24-roadmap-corrections.md error #7)
+    for agent_file in "${SYSTEM_DIR}"/agents/*.md; do
+        [ -f "$agent_file" ] || continue
+        AGENT_DESC_SIZE=$(sed -n '/^---$/,/^---$/p' "$agent_file" | grep '^description:' | wc -c)
+        BUDGET=$((BUDGET + AGENT_DESC_SIZE))
+    done
+
+    BUDGET_LIMIT=28672
+    if [ "$BUDGET" -gt "$BUDGET_LIMIT" ]; then
+        echo ""
+        echo "❌ COMMIT BLOCKED: context budget exceeded."
+        echo ""
+        echo "  Total always-loaded: ${BUDGET} bytes (limit: ${BUDGET_LIMIT} bytes)"
+        echo ""
+        echo "  Trim rules, skill descriptions, or agent descriptions to fit."
+        echo "  Run: ${REPO_ROOT}/validate.sh for a per-file breakdown."
+        echo ""
+        exit 1
+    fi
+fi
+
 exit 0
