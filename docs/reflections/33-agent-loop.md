@@ -124,3 +124,17 @@ R1 (08 Triage) → R2 (14 Architecture) → R3 (31 Assurance)
 ```
 
 R6 is the runtime dimension of R2. Where R2 describes components and layers, R6 describes how those components execute inside CC's async generator loop. R6 informs R3 (Assurance): knowing which steps hooks cover is necessary for testing hook coverage exhaustively.
+
+---
+
+## Field Notes
+
+### 2026-04-13: UserPromptSubmit hook has no context window data
+
+`UserPromptSubmit` hook input is `{ "prompt": "...", "session_id": "..." }` only. There is no `context_window.used_percentage` or any context field. Any hook-based context nudge (e.g., "suggest /brana:close when orange") is architecturally blocked — CC does not expose runtime context state to hook events. The statusline is the only pre-autocompact signal. Track CC changelog for schema additions.
+Source: t-1184, 2026-04-13
+
+### 2026-04-13: New reflection doc requires DAG propagation to 4 locations
+
+When adding a reflection doc, the DAG string must be updated in all 4 locations in the same commit: `.claude/CLAUDE.md`, `system/commands/maintain-specs.md`, `docs/architecture/system-documentation-map.md`, `docs/architecture/building-methodology.md`. Grep first: `grep -r "R5(29" docs/ system/ .claude/`. Missing this generated errata #125. Add to new-reflection checklist alongside the doc-08 triage entry.
+Source: errata #125, 2026-04-13
