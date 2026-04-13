@@ -222,6 +222,19 @@ exist for this pattern. Follow the existing MEMORY.md format.
 
 Review the learnings extracted in Step 3 for **practical discoveries** — gotchas, workarounds, environment-specific behaviors, things that surprised you. These are candidates for field notes (persistent, doc-embedded knowledge per ADR-021).
 
+**Field note target routing — apply before choosing a doc:**
+
+| If the learning is about… | Route to |
+|---|---|
+| Rust language, edition behavior, compiler errors, unsafe, test attributes | `brana-knowledge/dimensions/22-testing.md` |
+| General git/worktree patterns with no brana-specific context | Archive-only (ruflo); skip if already in MEMORY.md |
+| brana hook/skill/plugin/bootstrap/CLI mechanics, brana-specific gotchas | `.claude/CLAUDE.md` → `## Field Notes` |
+| LLM output parsing, knowledge pipeline, API behavior | `.claude/CLAUDE.md` or closest dimension doc |
+| Infra/platform gotchas (Docker, Railway, OS) | `brana-knowledge/dimensions/` (matching infrastructure dim) |
+| General Python, jq, shell patterns with no brana-specific context | `brana-knowledge/dimensions/22-testing.md` or archive |
+
+> **`.claude/CLAUDE.md` is for brana-repo-specific gotchas only.** If the learning would apply equally in any project using that language or tool — it's a dimension note, not a CLAUDE.md note.
+
 **Skip if:** session was read-only (no commits), or no learnings were extracted.
 
 **For each notable learning:**
