@@ -29087,7 +29087,7 @@
       "parent": "t-1103",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "Document CC context thresholds in brana docs, trigger close earlier",
       "tags": [
@@ -29194,7 +29194,7 @@
       "parent": "t-1103",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "Reflection doc 33 — agent loop as brana execution model",
       "tags": [
@@ -29825,7 +29825,7 @@
       "parent": "t-1104",
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "stream": "roadmap",
       "subject": "CC Alignment Program — session memory, hooks, consolidation, docs",
       "tags": [
@@ -31976,6 +31976,30 @@
         "feed",
         "architecture"
       ]
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "validate.sh check 8 runs `find $SYSTEM_DIR -type f -size +50k` without excluding the Rust build artifact directory (system/cli/rust/target/). This causes deploy.sh to abort with a false-positive failure whenever Cargo build artifacts exist. Fix: add `-not -path \"*/cli/rust/target/*\"` to the find command in validate.sh around line 244.",
+      "created": "2026-04-13",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1183",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "low",
+      "started": null,
+      "status": "completed",
+      "strategy": null,
+      "stream": "tech-debt",
+      "subject": "Fix validate.sh file-size check to exclude system/cli/rust/target/",
+      "tags": [],
+      "type": "bug"
     }
   ],
   "version": "1"

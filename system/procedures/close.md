@@ -9,6 +9,7 @@ End a work session. Extracts what was learned, writes a handoff note for the nex
 - End of a long implementation session
 - Before switching to a different project
 - Explicitly: `/brana:close`
+- Statusline hits orange (55%) on a long session — close before CC autocompacts (see [context-budget.md](../../docs/architecture/context-budget.md))
 
 ## Step Registry
 

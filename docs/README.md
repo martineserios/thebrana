@@ -63,6 +63,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [building-methodology.md](architecture/building-methodology.md) | How brana is built (DDD/SDD/TDD) |
 | [system-documentation-map.md](architecture/system-documentation-map.md) | Documentation structure map |
 | [memory-backup.md](architecture/memory-backup.md) | Memory backup, recovery, and reindex procedures |
+| [context-budget.md](architecture/context-budget.md) | CC context thresholds (autocompact constants, session memory) |
 
 ### Extending brana
 
@@ -168,7 +169,7 @@ Design specifications and research from the original enter repo, now part of the
 
 ### Reflections (docs/reflections/)
 
-Cross-cutting synthesis documents. DAG: R1(08) -> R2(14) -> R3(31) / R4(32) -> R5(29).
+Cross-cutting synthesis documents. DAG: R1(08) -> R2(14) -> R3(31) / R4(32) -> R5(29) / R6(33).
 
 | Doc | Reflection | Contents |
 |-----|-----------|----------|
@@ -177,6 +178,7 @@ Cross-cutting synthesis documents. DAG: R1(08) -> R2(14) -> R3(31) / R4(32) -> R
 | 29 | R5 Venture | Venture management reflection |
 | 31 | R3 Assurance | Verification framework |
 | 32 | R4 Lifecycle | System evolution, DDD/SDD/TDD workflow |
+| 33 | R6 Agent Loop | CC runtime execution model — hook and skill step mapping |
 
 ### Roadmap and operational docs
 
