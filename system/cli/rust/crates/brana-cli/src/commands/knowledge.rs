@@ -747,12 +747,7 @@ Output: markdown section only (no frontmatter, no preamble).",
     println!("\n  \x1b[1mTier 3 — Draft synthesis\x1b[0m");
     println!("  Topic: {topic} ({} sources) → {dim_target}", cluster_urls.len());
 
-    let body = kp::call_claude_json(&prompt)?;
-    // call_claude_json tries to parse as JSON; for prose output, fall back to string
-    let body_text = body
-        .as_str()
-        .map(|s| s.to_string())
-        .unwrap_or_else(|| body.to_string());
+    let body_text = kp::call_claude_text(&prompt)?;
 
     let now_date = chrono::Utc::now().format("%Y-%m-%d").to_string();
     let review_due = {

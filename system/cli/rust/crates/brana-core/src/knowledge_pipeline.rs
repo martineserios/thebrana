@@ -521,6 +521,59 @@ pub fn call_claude_json(prompt: &str) -> Result<serde_json::Value> {
     Ok(raw)
 }
 
+/// Call the `claude` CLI and return the raw text result (no JSON parsing of the body).
+/// Use this for prompts that produce prose/markdown, not structured JSON.
+pub fn call_claude_text(prompt: &str) -> Result<String> {
+    let binary = resolve_claude_binary().ok_or_else(|| {
+        anyhow::anyhow!(
+            "claude CLI binary not found. Checked: $CLAUDE_PLUGIN_DATA/claude, \
+             ~/.local/bin/claude, PATH. Install Claude Code first."
+        )
+    })?;
+
+    let mut child = std::process::Command::new(&binary)
+        .args(["--print", "--output-format", "json", prompt])
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .with_context(|| format!("spawning claude binary at {}", binary.display()))?;
+
+    let timeout = std::time::Duration::from_secs(60);
+    let start = std::time::Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) => {
+                if start.elapsed() > timeout {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    bail!("claude CLI timed out after 60s");
+                }
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+            Err(e) => bail!("claude wait error: {e}"),
+        }
+    }
+
+    let output = child.wait_with_output()?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        bail!("claude CLI exited non-zero: {stderr}");
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let raw: serde_json::Value = serde_json::from_str(stdout.trim())
+        .with_context(|| format!("parsing claude CLI envelope: {stdout}"))?;
+
+    let result = raw
+        .get("result")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| stdout.trim().to_string());
+
+    Ok(result)
+}
+
 /// Strip markdown code fences from model output.
 /// Models sometimes wrap JSON in ```json ... ``` or ``` ... ``` blocks.
 fn strip_code_fences(s: &str) -> &str {
@@ -838,5 +891,38 @@ mod tests {
         let cleaned = strip_code_fences(input);
         let parsed: serde_json::Value = serde_json::from_str(cleaned).unwrap();
         assert_eq!(parsed["score"], 4);
+    }
+
+    // ── call_claude_text envelope parsing ─────────────────────────────
+
+    /// call_claude_text must extract the `result` field from the CLI envelope
+    /// and return it as a plain String — without attempting JSON parsing of the body.
+    #[test]
+    fn test_call_claude_text_envelope_extraction() {
+        // Simulate what call_claude_text does with a CLI envelope containing prose.
+        let envelope = "{\"type\":\"result\",\"result\":\"## Harness Engineering\\n\\nThis is markdown prose.\",\"cost_usd\":0.001}";
+        let raw: serde_json::Value = serde_json::from_str(envelope).unwrap();
+        let result = raw
+            .get("result")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+            .unwrap_or_default();
+        assert_eq!(result, "## Harness Engineering\n\nThis is markdown prose.");
+        // Crucially: serde_json::from_str on this result would fail (it's not JSON),
+        // but call_claude_text never attempts that parse.
+        assert!(serde_json::from_str::<serde_json::Value>(&result).is_err());
+    }
+
+    #[test]
+    fn test_call_claude_text_envelope_missing_result_falls_back_to_stdout() {
+        // If the envelope has no `result` field, fall back to raw stdout.
+        let envelope = r#"{"type":"error","error":"something went wrong"}"#;
+        let raw: serde_json::Value = serde_json::from_str(envelope).unwrap();
+        let result = raw
+            .get("result")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| envelope.trim().to_string());
+        assert_eq!(result, envelope.trim());
     }
 }
