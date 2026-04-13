@@ -302,6 +302,21 @@ Every dimension doc triaged for brana v2. [Docs 01](../dimensions/01-brana-syste
 ### [Doc 45](../../../brana-knowledge/dimensions/45-turboflow-agent-orchestration.md) — TurboFlow Agent Orchestration
 **Verdict: Keep as reference.** TurboFlow v4.0 wraps Ruflo v3.5 with higher-level orchestration: Beads (git-native cross-session memory), GitNexus (codebase knowledge graphs), worktree isolation, and three-tier model routing. Validates brana's architectural choices from an external consumer perspective. Beads' JSONL-over-git approach is an alternative to brana's SQLite + embeddings strategy — worth watching for convergence patterns.
 
+### [Doc 46](../../../brana-knowledge/dimensions/46-cc-harness-ecosystem.md) — CC Harness Ecosystem
+**Verdict: Keep.** Catalogs patterns, tools, and metrics for Claude Code harnesses — five foundational primitives (CLAUDE.md, rules, hooks, skills, agents), context compaction strategies (Agentic Scripts, Claude-Mem, Context Gateway), and hook enforcement patterns. Brana is a reference implementation of these principles; this dimension provides ecosystem context and competitive benchmarking. Source for R2 architecture design and `/brana:align` diagnostic criteria.
+
+### [Doc 47](../../../brana-knowledge/dimensions/47-ontology-engineering-ai-systems.md) — Ontology Engineering for AI Systems
+**Verdict: Keep.** Formal specifications of entities, relationships, and rules that constrain AI agents into coherent behavior (vs. "vibe coding"). Covers Jorgenson DOS (Design Ontology Specs), Lindenberg's three-layer model (Language/Engine/Toolchain), and YAML-based ontology patterns. **Prerequisite for `brana-ontology.yaml`** (ADR-021) — the design reference for formalizing brana's entity/relationship model. Not yet consumed; gates ontology work.
+
+### [Doc 48](../../../brana-knowledge/dimensions/48-knowledge-graph-architecture.md) — Knowledge Graph Architecture
+**Verdict: Keep.** Production patterns for building and maintaining knowledge graphs in agent systems: two-tier extraction (semantic + structural), ontology-constrained extraction, schema patterns, and database comparison (Neo4j, KuzuDB, GraphMind, FalkorDB). Brana's `spec-graph.json` is a knowledge graph — this dimension provides data modeling discipline and production architecture guidance for extending it. Source for R2 graph architecture.
+
+### [Doc 49a](../../../brana-knowledge/dimensions/49-agent-era-systems-patterns.md) — Agent-Era Systems Patterns
+**Verdict: Keep.** Named patterns without classical analogs: Assumption Decay (dead weight from older constraints), Artifact Coordination (agents coordinate via shared artifacts, not messaging), Context Rot (gradual quality degradation as context fills), The Observation Window (log before enforcing). **Directly describes brana's operational challenges.** Context Rot motivated the 55/70/85% context-budget thresholds. `guard-explore.sh` exemplifies The Observation Window. Grounds R3 assurance methodology.
+
+### [Doc 49b](../../../brana-knowledge/dimensions/49-auto-learning-patterns.md) — Auto-Learning Patterns for Agent Harnesses
+**Verdict: Keep.** Structural patterns for harnesses that learn from use: The Ratchet (discard by default), Intent/Execution Separation, Bounded Search Space, Knowledge-From-Use (capture at moment of use), Temporal Batching, Tiered Access (promote/demote by frequency), Forgetting as Feature (pruning = learning). **Directly informs ADR-027 auto-learning loop.** Current brana defaults to "keep everything" — The Ratchet argues for inverting that. Note: filename conflict with doc 49a; should be renamed to 50 in next cleanup pass.
+
 ---
 
 ## Resolved Questions (from R2)
