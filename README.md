@@ -4,9 +4,9 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-v1.0.33+-purple)
 
-Claude Code alone is powerful but stateless. Every session starts cold — no memory of past corrections, no enforced practices, no accumulated context.
+Every Claude Code session, your model re-infers what it already knew: your stack, your naming conventions, your past decisions. This invisible per-session cost is the **knowledge retrieval tax** — and it compounds.
 
-Brana adds the layer that makes it compound: a plugin for Claude Code that learns from every session, enforces engineering discipline automatically, and gets more useful the longer you use it.
+Brana eliminates it. A plugin for Claude Code that pre-loads structured context before reasoning begins, enforces engineering discipline automatically, and gets more useful the longer you use it.
 
 ## What you get
 

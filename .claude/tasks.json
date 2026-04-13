@@ -32106,7 +32106,7 @@
     {
       "id": "t-1188",
       "subject": "Add Marques da Silva + Lindenberg to docs/research/research-sources.yaml",
-      "status": "pending",
+      "status": "completed",
       "stream": "docs",
       "type": "task",
       "tags": [
@@ -32121,7 +32121,7 @@
       "parent": null,
       "created": "2026-04-13",
       "started": null,
-      "completed": null,
+      "completed": "2026-04-13",
       "blocked_by": [],
       "branch": null,
       "context": null,
@@ -32133,7 +32133,7 @@
     {
       "id": "t-1189",
       "subject": "Update brana README to lead with knowledge retrieval tax frame",
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "type": "task",
       "tags": [
@@ -32148,7 +32148,7 @@
       "parent": null,
       "created": "2026-04-13",
       "started": null,
-      "completed": null,
+      "completed": "2026-04-13",
       "blocked_by": [],
       "branch": null,
       "context": null,
