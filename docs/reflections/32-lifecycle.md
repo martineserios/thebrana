@@ -264,7 +264,7 @@ The mastermind architecture describes a system that learns from code sessions. B
 ### Lifecycle
 3. **When does the brain get too big?** 500 patterns is manageable. 5,000? At some point you need pruning, archival, or hierarchical summarization. A fourth option from Beads (TurboFlow): structural decomposition — instead of one ruflo memory that grows unbounded, shard into per-concern JSONL files (decisions, errors, patterns, cross-pollination). Each file stays bounded by domain size, not system age. Trade-off: no semantic search across shards vs no monolithic growth. Worth revisiting if ruflo memory hits 2,000+ patterns and precision@k degrades. See [45-turboflow-agent-orchestration.md](../../../brana-knowledge/dimensions/45-turboflow-agent-orchestration.md).
 
-8. **Background learning ("the night shift")?** Background workers that re-analyze old sessions with new knowledge, extracting patterns you missed in real-time. **Note:** Blocked by ruflo daemon stability — see [05-claude-flow-v3-analysis.md](../../../brana-knowledge/dimensions/05-claude-flow-v3-analysis.md). Revisit after daemon reliability is confirmed.
+8. ~~**Background learning ("the night shift")?**~~ **Partially answered via [ADR-027](../architecture/decisions/ADR-027-auto-learning-loop.md)** (accepted 2026-04-04). Embedded 6-step EXTRACT-only loop in thinking skills — this is in-session learning, not background. True background re-analysis (old sessions + new knowledge) remains blocked by ruflo daemon stability; defer that half. Structural patterns for the learning loop: [49-auto-learning-patterns.md](../../../brana-knowledge/dimensions/49-auto-learning-patterns.md) — The Ratchet, Knowledge-From-Use, and Temporal Batching are directly applicable.
 
 10. **Apprentice mode for new projects?** When starting a new project, aggressively query ruflo memory for anything remotely relevant, building up project-specific knowledge fast. Then dial back as the project matures.
 
@@ -277,6 +277,7 @@ The mastermind architecture describes a system that learns from code sessions. B
 - [15-self-development-workflow.md](../15-self-development-workflow.md) — genome/connectome separation, deploy pipeline, testing, versioning
 - [25-self-documentation.md](../25-self-documentation.md) — staleness detection, growth stages, documentation locality
 - [16-knowledge-health.md](../../../brana-knowledge/dimensions/16-knowledge-health.md) — immune system as ongoing maintenance
+- [49-auto-learning-patterns.md](../../../brana-knowledge/dimensions/49-auto-learning-patterns.md) — structural patterns for the auto-learning loop (The Ratchet, Knowledge-From-Use, Temporal Batching)
 - [00-user-practices.md](../00-user-practices.md) — user feedback loop: graduation pathway from manual to automated
 - [26-git-branching-strategies.md](../../../brana-knowledge/dimensions/26-git-branching-strategies.md) — GitHub Flow as lifecycle tool
 - [22-testing.md](../../../brana-knowledge/dimensions/22-testing.md) — testing methodology integrated into the build cycle
