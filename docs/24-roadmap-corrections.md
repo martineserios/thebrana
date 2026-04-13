@@ -2040,3 +2040,20 @@ The planned split (ARCHITECTURE.md = reasoning, component-index.md = generated i
 | 7 | All 3 session-end sub-scripts exist and are properly forked | ✓ |
 
 **Propagation:** 1 pending errata (#87 — reference/hooks.md regeneration, code-gen, not a cascade). Spec graph current (293 nodes, 1222 edges).
+
+### Reconcile Run — 2026-04-13
+
+**Trigger:** manual (post-session maintenance)
+**Scope:** consistency
+**Drift found:** 3 findings (skills area)
+**Applied:** 3 auto-fixes
+**Deferred:** 1 (t-1180, already tracked)
+
+| # | Area | Type | Finding | Resolution |
+|---|------|------|---------|-----------|
+| 1 | Skills | Stale | ADR-034 had hardcoded count ("25 skills") — volatile counts don't belong in ADRs | Applied — removed count, decision now count-agnostic |
+| 2 | Skills | Stale | CLAUDE.md had hardcoded count ("25 skills") | Applied — removed count, linked to auto-generated reference |
+| 3 | Skills | Stale | skills.md Group Overview missing `core` and `thinking` groups | Applied — added both rows to table |
+| 4 | Hooks | Extra | PostToolUse hooks dual-wired in hooks.json (dead code per CC bug #24529) + settings.json | Deferred — tracked as t-1180 |
+
+**Learning:** Volatile counts in ADRs and manually-maintained docs create ongoing maintenance burden. Count belongs in auto-generated reference only. Rule candidate: "No hardcoded skill/hook/agent counts in ADRs or living docs."
