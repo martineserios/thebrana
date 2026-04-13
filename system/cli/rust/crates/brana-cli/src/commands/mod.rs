@@ -8,6 +8,7 @@ pub mod inbox;
 pub mod knowledge;
 pub mod misc;
 pub mod ops;
+pub mod reference;
 pub mod run;
 pub mod session;
 pub mod skills;

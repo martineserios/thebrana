@@ -146,5 +146,6 @@ fn main() {
             }
         },
         Commands::Graph { cmd } => commands::graph::cmd_graph(cmd),
+        Commands::Reference { cmd } => run_or_exit(commands::reference::cmd_reference(cmd)),
     }
 }

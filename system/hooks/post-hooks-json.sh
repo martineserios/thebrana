@@ -3,8 +3,7 @@
 
 # Reference doc regeneration hook.
 # Triggers: Write|Edit on hooks.json
-# Action: regenerate docs/reference/hooks.md from hooks.json metadata
-# Migration: tracked in t-1191 (replace with brana reference generate)
+# Action: regenerate docs/reference/ from hooks.json + frontmatter metadata
 
 cd /tmp 2>/dev/null || true
 
@@ -20,12 +19,12 @@ esac
 REPO_ROOT=$(git -C "$(dirname "$FILE_PATH")" rev-parse --show-toplevel 2>/dev/null) || true
 [ -z "$REPO_ROOT" ] && { echo '{"continue": true}'; exit 0; }
 
-SCRIPT="$REPO_ROOT/system/scripts/generate-reference.py"
-[ ! -f "$SCRIPT" ] && { echo '{"continue": true}'; exit 0; }
+BRANA=$(command -v brana 2>/dev/null) || true
+[ -z "$BRANA" ] && { echo '{"continue": true}'; exit 0; }
 
 # Run async — non-blocking, regeneration can take a moment
 {
-    cd "$REPO_ROOT" && uv run python3 "$SCRIPT" > /dev/null 2>&1
+    cd "$REPO_ROOT" && "$BRANA" reference generate > /dev/null 2>&1
 } &
 
 echo '{"continue": true}'

@@ -173,6 +173,24 @@ pub enum Commands {
         #[command(subcommand)]
         cmd: GraphCmd,
     },
+    /// Reference doc generation — generate docs/reference/ from source metadata
+    Reference {
+        #[command(subcommand)]
+        cmd: ReferenceCmd,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum ReferenceCmd {
+    /// Generate docs/reference/ from skills, agents, hooks, rules, commands frontmatter
+    Generate {
+        /// Output directory (default: docs/reference/)
+        #[arg(long)]
+        output_dir: Option<std::path::PathBuf>,
+        /// Check mode: report what would change, exit 1 if changes needed
+        #[arg(long)]
+        check: bool,
+    },
 }
 
 #[derive(Subcommand)]
