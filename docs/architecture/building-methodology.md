@@ -219,3 +219,15 @@ Source: t-1109 patch extraction, 2026-04-10
 ### 2026-04-10: Verify cross-session commits at session start on a feature branch
 When resuming a feature branch after a context-lost session, run `git show HEAD --stat` to verify all expected implementation files are in the last commit. Prior-session uncommitted working-tree changes are unreliable — stash operations and branch switches can silently discard them. If a key file is missing from the commit, treat it as unbuilt and re-implement.
 Source: t-1109, 2026-04-10
+
+### 2026-04-13: DDD/SDD/TDD — assess which apply, don't skip the assessment
+Before any file edit, state which lifecycle disciplines apply and why — even for S-effort tasks. The failure mode is skipping the assessment, not skipping a step. A 3-line procedure fix still needs: DDD (no — no domain model), SDD (maybe — is the task description enough spec?), TDD (no — doc, not code). One explicit line per discipline before the first Edit/Write call.
+Source: t-1190, 2026-04-13
+
+### 2026-04-13: /brana:docs at BUILD→CLOSE gate, not in CLOSE
+Doc generation belongs at the BUILD→CLOSE transition (immediately after tests pass), not inside CLOSE step 6. CLOSE is a safety net for missed docs, not the primary trigger. Placing it in BUILD ensures docs are generated while the implementation context is still fresh.
+Source: build.md procedure update, 2026-04-13
+
+### 2026-04-13: npx skills search broken — use npx skills find
+`npx skills search "<keyword>"` (CLI v1.5.0) outputs only the logo banner with no results. The correct interactive search command is `npx skills find "<keyword>"`. Use `npx skills add <org> --list` to enumerate skills from known orgs.
+Source: t-1190, acquire-skills session 2026-04-13

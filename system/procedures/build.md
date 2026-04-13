@@ -322,6 +322,26 @@ At any point during the build, the user can say "this is actually a {type}" and 
 
 **Mandatory for Medium/Large builds.** After CLASSIFY confirms the strategy, present the step sequence and get approval before executing. **Do NOT use CC plan mode (EnterPlanMode) — use AskUserQuestion for approval.**
 
+### Lifecycle gate (always — even S-effort)
+
+Before planning the steps, assess which disciplines apply. State the result explicitly — even if all are "no."
+
+| Discipline | Apply when | Skip when |
+|-----------|-----------|-----------|
+| **DDD** | New entity, aggregate, bounded context, or cross-context change | Correction, doc fix, single-file patch |
+| **SDD** | Behavioral decision with architectural trade-offs (ADR needed) | Pure correction where the task description IS the spec |
+| **TDD** | Code that can be tested (hooks, CLI, scripts, functions) | Docs-only, config-only, procedure files |
+
+Output one line per discipline:
+```
+DDD: skip — no domain model work
+SDD: skip — task description serves as spec (correcti on, no ADR needed)
+TDD: apply — hook code change, write failing test first
+```
+
+If SDD applies, write or reference the ADR/spec **before** the first Edit/Write call.
+If TDD applies, the BUILD step must follow red-green-refactor.
+
 1. **Present the strategy's step sequence** inline:
    ```
    ## Build Steps: {task subject}
@@ -664,6 +684,22 @@ If all pass, proceed silently. If "Skip gate": require reason. Log: `brana backl
 
 Bug fix and refactor strategies: skip doc check (only require tests).
 Spike and investigation: skip this gate entirely.
+
+### Docs — generate here, not in CLOSE
+
+Run `/brana:docs` immediately after BUILD passes, before CLOSE. CLOSE step 6 is the fallback safety net only.
+
+```
+Skill(skill="brana:docs", args="{strategy-appropriate args}")
+```
+
+| Strategy | Args |
+|----------|------|
+| Feature / Greenfield / Migration | `all {task-id}` |
+| Bug fix | `update {task-id}` |
+| Refactor | `update {task-id}` |
+
+Skip for spike and investigation strategies.
 
 ### CLOSE
 
@@ -1126,14 +1162,19 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    - Set status to `shipped`
    - Add learnings from retrospective
 
-6. **Generate feature documentation** via `/brana:docs`:
+6. **Generate documentation** via `/brana:docs`:
 
-   Invoke the living documentation skill:
-   ```
-   Skill(skill="brana:docs", args="all {task-id}")
-   ```
+   Always invoke — strategy determines scope:
 
-   `/brana:docs all` handles strategy-aware generation (tech doc, user guide, shared doc updates, philosophy overview) and spec-graph routing. See the [docs skill](../docs/SKILL.md) for full details.
+   | Strategy | Args | What gets generated |
+   |----------|------|-------------------|
+   | Feature / Greenfield / Migration | `all {task-id}` | Tech doc + user guide + shared doc updates |
+   | Bug fix | `update {task-id}` | Changelog entry + affected doc updates only |
+   | Refactor | `update {task-id}` | Changelog entry + architecture doc updates |
+
+   ```
+   Skill(skill="brana:docs", args="{args from table above}")
+   ```
 
    **Shipped without docs means not shipped.**
 

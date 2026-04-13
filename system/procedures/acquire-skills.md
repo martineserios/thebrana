@@ -77,12 +77,24 @@ If "Pick which ones": let user select from gap list.
 
 Search for each gap keyword using the first available source:
 
-**Tier 1: Vercel skills CLI** (check: `npx skills --version 2>/dev/null`)
+**Tier 1a: Vercel skills CLI** (check: `npx skills --version 2>/dev/null`)
 ```bash
-npx skills search "<keyword>" 2>/dev/null
+# Keyword search — use `find`, not `search` (search outputs logo only, no results)
+npx skills find "<keyword>" 2>/dev/null
+
+# Enumerate skills from known orgs via --list flag
+for org in anthropics vercel-labs trailofbits supabase redis fastapi; do
+  npx skills add "$org" --list 2>/dev/null
+done
 ```
 
-**Tier 2: WebSearch** (always available)
+**Tier 1b: skills.sh** (always available via WebFetch)
+```
+WebFetch: https://skills.sh
+```
+Parse the official skills directory for keyword matches. Results here are **Verified** trust tier (see Step 3b).
+
+**Tier 2: WebSearch** (fallback if Tier 1 yields no results)
 ```
 WebSearch: "SKILL.md <keyword> site:github.com claude"
 ```
@@ -90,16 +102,16 @@ WebSearch: "SKILL.md <keyword> site:github.com claude"
 For each search result, collect:
 - Skill name and author
 - Description (first 1-2 sentences)
-- Source (npm package, GitHub repo URL)
+- Source (npm package, GitHub repo URL, or skills.sh listing)
 - Install count or stars (if available)
 
 Report which search tier is active:
 ```
-Searching via: Vercel skills CLI
+Searching via: Vercel skills CLI + skills.sh
 ```
 or:
 ```
-Searching via: web (install `npx skills` for better results)
+Searching via: skills.sh + web (install `npx skills` for CLI results)
 ```
 
 ### Step 3b: Classify source trust tier
