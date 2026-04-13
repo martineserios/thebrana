@@ -72,36 +72,28 @@ if [ -z "$SUGGEST_OUTPUT" ]; then
     fail "brana skills suggest returned empty output"
 else
     # 2a. Output is valid JSON array
-    if echo "$SUGGEST_OUTPUT" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
+    if echo "$SUGGEST_OUTPUT" | jq '.' > /dev/null 2>&1; then
         pass "skill suggest returns valid JSON"
     else
         fail "skill suggest output is not valid JSON"
     fi
 
     # 2b. All scores below 0.3 for a nonsense query
-    MAX_SCORE=$(echo "$SUGGEST_OUTPUT" | python3 -c "
-import sys, json
-results = json.load(sys.stdin)
-print(max((r['score'] for r in results), default=0))
-" 2>/dev/null)
+    MAX_SCORE=$(echo "$SUGGEST_OUTPUT" | jq -r '([.[].score] | max) // 0' 2>/dev/null)
 
-    if [ -n "$MAX_SCORE" ] && python3 -c "exit(0 if float('$MAX_SCORE') < 0.3 else 1)" 2>/dev/null; then
+    if [ -n "$MAX_SCORE" ] && awk "BEGIN { exit ($MAX_SCORE < 0.3) ? 0 : 1 }"; then
         pass "all scores below 0.3 for nonsense query (max: $MAX_SCORE)"
     else
         fail "expected all scores < 0.3 for nonsense query, got max: $MAX_SCORE"
     fi
 
     # 2c. Results have required fields (name, score, reason)
-    FIELDS_OK=$(echo "$SUGGEST_OUTPUT" | python3 -c "
-import sys, json
-results = json.load(sys.stdin)
-if not results:
-    print('empty')
-elif all('name' in r and 'score' in r and 'reason' in r for r in results):
-    print('ok')
-else:
-    print('missing')
-" 2>/dev/null)
+    FIELDS_OK=$(echo "$SUGGEST_OUTPUT" | jq -r '
+      if length == 0 then "empty"
+      elif all(has("name") and has("score") and has("reason")) then "ok"
+      else "missing"
+      end
+    ' 2>/dev/null)
 
     if [ "$FIELDS_OK" = "ok" ]; then
         pass "each result has name, score, reason fields"
@@ -120,7 +112,7 @@ echo "Phase 3: Breadcrumb write/read round-trip"
 
 # Create ephemeral test task
 TASK_JSON=$(brana backlog add --subject "EPHEMERAL: skill routing e2e test" --tags "test,ephemeral" --stream tech-debt 2>/dev/null)
-TASK_ID=$(echo "$TASK_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin).get('id',''))" 2>/dev/null)
+TASK_ID=$(echo "$TASK_JSON" | jq -r '.id // ""' 2>/dev/null)
 
 if [ -z "$TASK_ID" ]; then
     fail "could not create ephemeral test task"
@@ -152,7 +144,7 @@ fi
 
 # 3d. Test the inverse — task without breadcrumb triggers safety net
 TASK2_JSON=$(brana backlog add --subject "EPHEMERAL: no-breadcrumb test" --tags "test,ephemeral" --stream tech-debt 2>/dev/null)
-TASK2_ID=$(echo "$TASK2_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin).get('id',''))" 2>/dev/null)
+TASK2_ID=$(echo "$TASK2_JSON" | jq -r '.id // ""' 2>/dev/null)
 
 if [ -n "$TASK2_ID" ]; then
     CONTEXT2=$(brana backlog get "$TASK2_ID" --field context 2>/dev/null)
