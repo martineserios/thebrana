@@ -4,7 +4,7 @@ Delegate to agents WITHOUT being asked when context matches (see CLAUDE.md agent
 
 | Trigger | Action |
 |---------|--------|
-| Work starting (feat/fix/refactor) | check `tasks.json`, then `/brana:build` |
+| Work starting (feat/fix/refactor) | check `tasks.json`, then **run skill routing** (see `skill-routing.md`) — ask which skills to load before invoking |
 | Planning new work | `/brana:backlog add` |
 | Session ending (done/bye/closing) | `/brana:close` |
 | Big decision forming | `/brana:challenge` |
@@ -21,10 +21,12 @@ Never invoke a skill AND delegate to an agent for the same trigger.
 Example — user says "let's add webhook support"
 
   1. Check tasks.json → no existing task → propose one
-  2. Trigger: "work starting" → invoke /brana:build (don't suggest it)
+  2. Trigger: "work starting" → run skill routing (see skill-routing.md):
+     Ask which skills to load → user confirms → invoke chosen skill(s)
   3. During PLAN step: challenger agent auto-fires (plan forming)
   4. User says "I'm done for today" → invoke /brana:close
 
-  WRONG: suggest "/brana:build" instead of invoking it
+  WRONG: silently invoke /brana:build without asking first
+  WRONG: suggest "/brana:build" instead of invoking after confirmation
   WRONG: fire challenger AND suggest /brana:challenge
 ```

@@ -2,7 +2,7 @@
 
 # Rules Reference
 
-**14 rules** in `system/rules/`.
+**15 rules** in `system/rules/`.
 
 | File | Title | Summary |
 |------|-------|--------|
@@ -16,6 +16,7 @@
 | `research-discipline.md` | Research Discipline | When starting research on any topic: |
 | `sdd-tdd.md` | Test-First Development | ## Before implementation |
 | `self-improvement.md` | Self-Improvement | Automatic learning. Runs every session without invocation. |
+| `skill-routing.md` | Skill Routing | Before starting any implementation, design, or research work — **always ask** which skills to load... |
 | `tactical-context.md` | Tactical Context | After giving actionable advice related to a task (workaround, constraint, deadline, dependency, "do ... |
 | `task-convention.md` | Task Convention | ## Before branching |
 | `universal-quality.md` | Quality Standards | - **Test before committing**: run relevant tests before any commit. If no test suite exists, at leas... |
@@ -89,6 +90,13 @@ When starting research on any topic:
 **File:** `system/rules/self-improvement.md`
 
 Automatic learning. Runs every session without invocation.
+
+
+## Skill Routing
+
+**File:** `system/rules/skill-routing.md`
+
+Before starting any implementation, design, or research work — **always ask** which skills to load. Never silently route. Excessive asking is correct; silent routing is not.
 
 
 ## Tactical Context
