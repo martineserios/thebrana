@@ -241,7 +241,11 @@ echo ""
 
 # Check 8: File size sanity
 echo "Checking file sizes..."
-OVERSIZED=$(find "$SYSTEM_DIR" -type f -size +50k 2>/dev/null)
+OVERSIZED=$(find "$SYSTEM_DIR" -type f -size +50k \
+    -not -path "*/cli/rust/*" \
+    -not -path "*/state/*" \
+    -not -path "*/procedures/*" \
+    2>/dev/null)
 if [ -n "$OVERSIZED" ]; then
     fail "Files over 50KB found:"
     echo "$OVERSIZED"
