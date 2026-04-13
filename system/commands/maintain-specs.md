@@ -18,6 +18,8 @@ On entry, create a CC Task step registry. Follow the [guided-execution protocol]
 
 Register these steps: ERRATA, RE-EVALUATE, DEEPEN, DOC25, MEMORY, BACKLOG, LOG, STORE, BACKUP, GRAPH.
 
+**Auto-advance:** After each non-interactive step completes, proceed immediately to the next step without pausing. Interactive steps that require a pause: BACKLOG (asks user), STORE (asks user). All other steps chain automatically.
+
 ### Resume After Compression
 
 If context was compressed:
@@ -97,7 +99,7 @@ Keep project MEMORY.md files current with the latest skill commands and project 
 
 If memory is current → report "Memory current."
 
-## Step 6: Backlog review
+## Step 6: Backlog review [INTERACTIVE — pause here]
 
 Read doc 30 (backlog). Show the user any `pending` items and ask: "Want to work on any of these?" If the user picks one, work on it. If not, move on.
 
@@ -124,7 +126,7 @@ uv run python3 system/scripts/decisions.py log maintain-specs finding \
 
 Skip if no errata were applied and no cascades occurred.
 
-## Step 8: Surface findings for storage
+## Step 8: Surface findings for storage [INTERACTIVE — pause here]
 
 Review what was discovered during this maintain-specs run. If any of these emerged, **ask the user** whether to store them in ruflo memory via `/brana:retrospective`:
 

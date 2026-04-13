@@ -177,7 +177,7 @@ Compare the "should" claims (Step 1) against the "is" claims (Step 2). Classify 
 
 **Materiality filter.** Apply the same test proven in `/brana:maintain-specs`: "Would this drift lead to wrong behavior or a wrong implementation decision?" Discard cosmetic differences, minor wording variations, and enhancement suggestions. Only surface drift that matters.
 
-### Step 4: Present drift report
+### Step 4: Present drift report [INTERACTIVE — pause here for user approval]
 
 Show the user a structured plan:
 
@@ -443,7 +443,7 @@ DECAY — weekly scan for staleness, noise, and bloat in the knowledge system (A
 
 **Step registry:** ORIENT, ROUTE, KNOW-1, KNOW-2, KNOW-3, KNOW-REPORT
 
-### KNOW-1: Stale dimensions
+### KNOW-1: Stale dimensions [INTERACTIVE if stale docs found]
 
 Identify dimension docs that are old AND unused.
 
@@ -466,7 +466,7 @@ Identify dimension docs that are old AND unused.
    Options: one per stale doc (filename + age), plus "Skip — take no action".
 6. For each selected doc, add `stale: true` to its YAML frontmatter (or report only if the doc lives in brana-knowledge and the user prefers manual edits there).
 
-### KNOW-2: Event log bloat
+### KNOW-2: Event log bloat [INTERACTIVE if >20 old entries]
 
 Trim old event log entries with a digest summary.
 
@@ -492,7 +492,7 @@ Trim old event log entries with a digest summary.
       ```
 4. If <= 20 old entries, note count in report and move on.
 
-### KNOW-3: Ruflo noise
+### KNOW-3: Ruflo noise [INTERACTIVE if hard-decay candidates found]
 
 Identify low-value pattern entries for soft or hard decay.
 
@@ -554,7 +554,7 @@ If ruflo is unavailable, append summary to `~/.claude/projects/*/memory/MEMORY.m
 - **One branch, atomic commits.** All reconcile work happens on a single worktree branch with one commit per logical fix.
 - **Plan then apply.** Always show the full drift report and get approval before making any changes.
 - **Ask for clarification whenever you need it.** If a spec claim is ambiguous, a drift finding is borderline, or the right fix is unclear — ask. Don't guess.
-- **Step registry.** Follow the [guided-execution protocol](../_shared/guided-execution.md). Register steps on entry, update as each completes.
+- **Step registry.** Follow the [guided-execution protocol](../_shared/guided-execution.md). Register steps on entry, update as each completes. **Auto-advance through all non-interactive steps** (ORIENT → SCAN-SPECS → SCAN-IMPL → DIFF without pause). Only pause at steps marked [INTERACTIVE] or final REPORT.
 
 ---
 

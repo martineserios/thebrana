@@ -31,6 +31,17 @@ For exploration-heavy steps (scanning, diagnosis, research), enter plan mode to 
 
 Plan mode is optional — only use it on steps explicitly marked as read-only in the skill.
 
+## Auto-Advance Between Steps
+
+After marking a step `completed`, **immediately proceed to the next unblocked step without pausing or yielding to the user.** Do not output "Proceeding to next step…" or similar filler — just execute it.
+
+A step is **interactive** (pause allowed) if it:
+- Calls `AskUserQuestion` to get a user decision
+- Has "Wait for user" or "approval required" in its description
+- Is the final reporting/summary step of the skill
+
+All other steps are **non-interactive** and must auto-advance. Never prompt "continue?" or end a response mid-skill at a non-interactive step. If you find yourself about to yield control without reaching an interactive step or the final report, don't — proceed immediately.
+
 ## Size Gate
 
 Skip the step registry for **Trivial** and **Small** builds (as classified by the build skill's sizing heuristics). These complete in a few minutes and don't benefit from compression resilience. The protocol adds value for **Medium** and **Large** work.
