@@ -5,7 +5,7 @@
 #   GIT_ROOT     repo root path
 #   BRANA_CLI    path to brana binary (optional)
 #   SCRIPT_DIR   directory of the calling script (for sync-state.sh resolution)
-#   CORRECTIONS TEST_WRITES CASCADES EDITS  (for decisions.py log entry)
+#   CORRECTIONS TEST_WRITES CASCADES EDITS  (for decisions log entry)
 #
 # Always exits 0 — sync/graph failures are non-fatal.
 
@@ -44,10 +44,9 @@ fi
 
 # ── Decision log ──────────────────────────────────────────────
 
-DECISIONS_PY="$SCRIPT_DIR/../scripts/decisions.py"
-if [ -f "$DECISIONS_PY" ]; then
+if [ -n "$BRANA_CLI" ] && [ -x "$BRANA_CLI" ]; then
     SUMMARY="Session metrics: corrections=$CORRECTIONS, test_writes=$TEST_WRITES, cascades=$CASCADES, edits=$EDITS"
-    uv run python3 "$DECISIONS_PY" log "session-end" "action" "$SUMMARY" \
+    "$BRANA_CLI" decisions log "session-end" "action" "$SUMMARY" \
         --severity "LOW" 2>/dev/null || true
 fi
 

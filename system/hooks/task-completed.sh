@@ -76,13 +76,9 @@ for TASK_ID in $TASK_IDS; do
     STRATEGY=$("$BRANA" backlog get "$TASK_ID" --field strategy 2>/dev/null) || true
     STRATEGY=$(echo "$STRATEGY" | tr -d '"' 2>/dev/null) || true
     if [ -n "$SUBJECT" ]; then
-        DECISIONS_PY="${SCRIPT_DIR}/../scripts/decisions.py"
-        if [ -f "$DECISIONS_PY" ]; then
-            uv run python3 "$DECISIONS_PY" \
-                log main decision \
-                "Completed ${TASK_ID} (${STRATEGY:-unknown}): ${SUBJECT}" \
-                --refs "$TASK_ID" >> /tmp/brana-decisions.log 2>&1 &
-        fi
+        "$BRANA" decisions log main decision \
+            "Completed ${TASK_ID} (${STRATEGY:-unknown}): ${SUBJECT}" \
+            --refs "$TASK_ID" >> /tmp/brana-decisions.log 2>&1 &
     fi
 done
 

@@ -1,4 +1,5 @@
 pub mod backlog;
+pub mod decisions;
 pub mod doctor;
 pub mod feed;
 pub mod files;

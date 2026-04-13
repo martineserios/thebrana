@@ -178,6 +178,11 @@ pub enum Commands {
         #[command(subcommand)]
         cmd: ReferenceCmd,
     },
+    /// Append-only JSONL decision log
+    Decisions {
+        #[command(subcommand)]
+        cmd: DecisionsCmd,
+    },
 }
 
 #[derive(Subcommand)]
@@ -190,6 +195,56 @@ pub enum ReferenceCmd {
         /// Check mode: report what would change, exit 1 if changes needed
         #[arg(long)]
         check: bool,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum DecisionsCmd {
+    /// Append an entry to the decision log
+    Log {
+        /// Agent or author name (e.g. "main", "session-end")
+        agent: String,
+        /// Entry type: decision | finding | concern | action | error | cost
+        #[arg(value_name = "TYPE")]
+        entry_type: String,
+        /// Content / message
+        content: String,
+        /// Severity level (e.g. LOW, HIGH) — stored uppercased
+        #[arg(long)]
+        severity: Option<String>,
+        /// Comma-separated refs (e.g. task IDs "t-001,t-002")
+        #[arg(long)]
+        refs: Option<String>,
+        /// Target (e.g. a file path or task ID)
+        #[arg(long)]
+        target: Option<String>,
+    },
+    /// Read and filter decision log entries
+    Read {
+        /// Show only the last N entries
+        #[arg(long)]
+        last: Option<usize>,
+        /// Filter by entry type
+        #[arg(long = "type", value_name = "TYPE")]
+        entry_type: Option<String>,
+        /// Filter by agent name
+        #[arg(long)]
+        agent: Option<String>,
+        /// Filter by severity
+        #[arg(long)]
+        severity: Option<String>,
+        /// Output as JSONL (one entry per line)
+        #[arg(long)]
+        json: bool,
+    },
+    /// Archive entries older than N days to archive/ subdirectory
+    Archive {
+        /// Days threshold (default: 30)
+        #[arg(long, default_value = "30")]
+        days: u64,
+        /// Show what would be archived without moving files
+        #[arg(long)]
+        dry_run: bool,
     },
 }
 
