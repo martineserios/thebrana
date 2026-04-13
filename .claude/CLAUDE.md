@@ -324,6 +324,10 @@ Source: Python cleanup planning + challenger review 2026-04-12
 Invocation frequency multiplies migration urgency. A script called in hooks that fire on every session end and every task completion is a hot path. Before classifying any Python→Rust migration as "not urgent," grep callers: `grep -r "script-name" system/hooks/`. Hook caller = high frequency = HIGH priority. Applied: decisions.py reclassified P1 (t-1164).
 Source: Python cleanup planning + challenger review 2026-04-12
 
+### 2026-04-12: Check binary mtime before running brana knowledge pipelines
+`brana knowledge process --tier1` and `--tier2` call the compiled binary at `~/.local/bin/brana`. If the binary is older than the source (check: `stat -c '%Y' ~/.local/bin/brana` vs `stat -c '%Y' system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs`), pipeline runs stale code silently. Always rebuild after source changes: `cd system/cli/rust && OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu OPENSSL_INCLUDE_DIR=/usr/include/openssl cargo build --release -p brana-cli`. Root cause of all-23-URL tier2 failure (2026-04-12): strip_code_fences() fix was in source 41 minutes before the binary was rebuilt.
+Source: t-1152 tier2 failure session 2026-04-12
+
 ### 2026-04-12: Grep for runtime imports before deleting Python migration targets
 Spike files can have hidden runtime imports. `evaluator-spike.py` imported `from decisions import log_entry` (lines 332–361) despite appearing dead. Pattern: `grep -r "from {script_stem} import\|import {script_stem}" system/` before deleting any script being ported to CLI. Migrate all importers first.
 Source: Python cleanup planning + challenger review 2026-04-12
