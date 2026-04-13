@@ -26,6 +26,8 @@ pub struct SkillMeta {
     pub task_strategies: Vec<String>,
     #[serde(default)]
     pub stream_affinity: Vec<String>,
+    #[serde(default)]
+    pub depends_on: Vec<String>,
 }
 
 /// A scored skill match.
@@ -733,6 +735,48 @@ fn build_context_from_task(task_id: &str) -> Result<TaskContext> {
         strategy,
         stream,
     })
+}
+
+/// `brana skills graph` — emit a Mermaid flowchart of skill groups and dependencies.
+pub fn cmd_graph() -> Result<()> {
+    let skills = scan_skills(&skill_dirs());
+
+    // Group skills and collect dependency edges
+    let mut groups: std::collections::BTreeMap<String, Vec<String>> =
+        std::collections::BTreeMap::new();
+    let mut deps: Vec<(String, String)> = Vec::new(); // (dep, skill) — dep --> skill
+
+    for skill in &skills {
+        let group = skill.group.clone().unwrap_or_else(|| "ungrouped".to_string());
+        groups.entry(group).or_default().push(skill.name.clone());
+        for dep in &skill.depends_on {
+            deps.push((dep.clone(), skill.name.clone()));
+        }
+    }
+
+    // Sort skills within each group
+    for names in groups.values_mut() {
+        names.sort();
+    }
+
+    println!("flowchart LR");
+    println!();
+
+    for (group, names) in &groups {
+        println!("    subgraph {group}");
+        for name in names {
+            println!("        {name}");
+        }
+        println!("    end");
+        println!();
+    }
+
+    deps.sort();
+    for (dep, skill) in &deps {
+        println!("    {dep} --> {skill}");
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

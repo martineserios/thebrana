@@ -97,6 +97,7 @@ fn main() {
             SkillsCmd::Usage { days, cull_threshold, json } => {
                 run_or_exit(commands::skills::cmd_usage(days, cull_threshold, json))
             }
+            SkillsCmd::Graph => run_or_exit(commands::skills::cmd_graph()),
         },
         Commands::Handoff { cmd } => match cmd {
             Some(HandoffCmd::Last { n }) => commands::handoff::cmd_handoff_last(n),

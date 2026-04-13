@@ -107,9 +107,7 @@ bindex() {
 }
 
 bgraph-skills() {
-    local root
-    root="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "Not in git repo"; return 1; }
-    bash "$root/system/scripts/skill-graph.sh" "$@"
+    brana skills graph "$@"
 }
 
 bvalidate() {

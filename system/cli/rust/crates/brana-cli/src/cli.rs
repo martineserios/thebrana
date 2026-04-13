@@ -441,6 +441,8 @@ pub enum SkillsCmd {
         #[arg(long)]
         json: bool,
     },
+    /// Emit a Mermaid flowchart of skill groups and dependencies
+    Graph,
 }
 
 #[derive(Subcommand)]
