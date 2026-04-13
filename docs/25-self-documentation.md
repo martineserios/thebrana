@@ -1004,6 +1004,7 @@ That's it. Re-evaluates, applies fixes, checks [doc 25](25-self-documentation.md
 | **Custom: impact-analysis.py** | PR dependency impact report | CI pull_request |
 | **Custom: staleness-report.sh** | Layer-aware age checking | Weekly schedule |
 | **Custom: generate-index.py** | README table + Mermaid graph | On demand / CI |
+| **Custom: generate-reference.py** | `docs/reference/` — hooks, skills, agents, rules, scripts tables (from frontmatter/hooks.json) | On demand — run after adding hooks or skills |
 | **doctoc** | Per-file table of contents | On demand |
 
 ---
