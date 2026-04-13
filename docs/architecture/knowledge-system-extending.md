@@ -124,7 +124,39 @@ fi
 
 Any `/brana:*` skill can trigger knowledge actions (field notes, assumption checks, reindex). Two patterns exist.
 
-### Pattern A: Field notes at session close (`/brana:close` Step 6)
+### Pattern A: Session learnings with dual-write (`/brana:close` Step 5 + 5b)
+
+File: `system/procedures/close.md`, Steps 5 and 5b.
+
+Session learnings use a **dual-write** model — every learning is written to two stores simultaneously:
+
+**Step 5 (ruflo MCP/CLI):** store in ruflo `pattern` namespace via `memory_store` or `brana session write`. Key format: `pattern:{project}:{slug}`.
+
+**Step 5b (git-durable file — always, regardless of MCP/CLI success):** also write a frontmatter `.md` file to `~/.claude/projects/{project-dir}/memory/{prefix}_{slug}.md`. This file is the durable source of truth — if the ruflo DB is wiped or corrupted, patterns can be rebuilt from these files.
+
+File format:
+```markdown
+---
+name: {short-title}
+description: {one-line problem summary — used for index matching}
+type: {feedback or project}
+---
+
+**Problem:** {problem}
+**Solution:** {solution}
+**Confidence:** {0.5 for new, higher if validated}
+**Transferable:** {true if applicable across clients}
+```
+
+Rules:
+- **Category prefix:** `feedback_` for corrections/gotchas, `project_` for architectural state.
+- **Dedup check:** if the file already exists (same slug), update via Edit — don't create duplicates. Use `Glob("~/.claude/projects/*/memory/*{slug}*")`.
+- **MEMORY.md pointer:** after writing the file, add a one-line pointer to `MEMORY.md` if one doesn't already exist for this pattern.
+- **Skip if:** session was read-only (no commits), or debrief returned no learnings.
+
+The dual-write ensures graceful degradation: ruflo enables semantic search, git files enable rebuild and offline access.
+
+### Pattern B: Field notes at session close (`/brana:close` Step 6)
 
 File: `system/skills/close/SKILL.md`, Step 6.
 
@@ -225,7 +257,7 @@ Ruflo namespaces partition memory entries by purpose. The indexer at `system/scr
 | `field-notes` | `index-assumptions.sh` + `/close` | `field-note:{doc-slug}:{title-slug}` | Practical learnings |
 | `decisions` | `index-assumptions.sh` | `decision:{adr-slug}` | ADR summaries |
 | `knowledge` | `index-knowledge.sh` | `knowledge:{doc-path}` | Full dimension doc sections |
-| `pattern` | `/close` Step 5 | `pattern:{project}:{title}` | Reusable session learnings |
+| `pattern` | `/close` Steps 5 + 5b | `pattern:{project}:{title}` | Reusable session learnings (dual-write: ruflo + `~/.claude/projects/*/memory/{prefix}_{slug}.md`) |
 | `specs` | manual | varies | Specification patterns |
 
 ### Key naming convention
