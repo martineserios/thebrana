@@ -126,8 +126,8 @@ for filepath in "${FILES[@]}"; do
     value="${body:0:2000}"
 
     # Escape for JSON
-    value=$(printf '%s' "$value" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()),end='')")
-    desc_escaped=$(printf '%s' "${description:-$name}" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()),end='')")
+    value=$(printf '%s' "$value" | jq -Rs '.')
+    desc_escaped=$(printf '%s' "${description:-$name}" | jq -Rs '.')
 
     # Build tags
     tags_json="[\"source:auto-memory\",\"type:${type}\",\"project:${project_short}\",\"file:${filename}\"]"
