@@ -335,3 +335,11 @@ Source: Python cleanup planning + challenger review 2026-04-12
 ### 2026-04-12: tests/bootstrap/ is the home for root-level installer tests
 The `tests/` directory is organized by category (`tests/hooks/`, `tests/scripts/`, `tests/bootstrap/`). Tests for `install.sh` and `bootstrap.sh` go in `tests/bootstrap/`, not `system/hooks/tests/`. The `system/hooks/tests/` directory is only for hook-specific test scripts. Before creating a new test file, check `tests/` subdirectories for the matching category.
 Source: t-1150 2026-04-12
+
+### 2026-04-13: Worktree copy pattern for new/untracked files
+`git stash push -- file` fails on untracked files (not in index). When branch-verify blocks `git add` on main and the file is new: `git worktree add /tmp/repo-branch -b feat/...` → `cp file /tmp/repo-branch/file` → stage + commit in worktree → `git merge --no-ff` on main → `git worktree remove`. For tracked modified files, stash → worktree → stash pop still works.
+Source: t-1177 session 2026-04-13
+
+### 2026-04-13: Wire-before-migrate for Python hook scripts
+When a Python script needs both wiring (as a hook) and migration (to CLI), keep them separate tasks. Wiring fixes the active drift problem at S effort; combining with migration inflates to M+ and delays the fix. Create the migration task immediately so it's queued, but don't block the wire on it.
+Source: t-1177 / t-1191 session 2026-04-13

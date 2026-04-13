@@ -22,6 +22,7 @@
 | PostToolUse | `Bash` | `task-completed.sh` | 5000ms |
 | PostToolUse | `Write|Edit` | `post-sale.sh` | 5000ms |
 | PostToolUse | `Write|Edit` | `post-tasks-validate.sh` | 5000ms |
+| PostToolUse | `Write|Edit` | `post-hooks-json.sh` | 10000ms |
 | PostToolUseFailure | `` | `post-tool-use-failure.sh` | 5000ms |
 | UserPromptSubmit | `` | `preflight-model.sh` | 3000ms |
 | SessionStart | `` | `session-start.sh` | 10000ms |
@@ -65,6 +66,10 @@ no-attribution-commit.sh — PreToolUse hook for Bash
 ### `plan-mode-gate.sh`
 
 No strict mode — hooks must always return valid JSON.
+
+### `post-hooks-json.sh`
+
+No strict mode — hooks must never fail and block the session.
 
 ### `post-plan-challenge.sh`
 
