@@ -2013,3 +2013,26 @@ The planned split (ARCHITECTURE.md = reasoning, component-index.md = generated i
 **Fix applied:** Replaced bullet-point metric list with explicit 3-sub-script description and rationale for the split.
 
 **Comments:** ARCHITECTURE.md SessionEnd section updated to reflect metrics + persist + drift orchestration.
+
+---
+
+### Reconcile Run — 2026-04-12
+
+**Trigger:** post-maintain-specs (errata #86/#88, R4 deepen)
+**Scope:** consistency, propagation
+**Drift found:** 0 findings
+**Applied:** 0 auto-fixes
+**Deferred:** 0
+
+**Consistency:** 7 spec claims verified against implementation — all match.
+| # | Claim | Result |
+|---|-------|--------|
+| 1 | branch-verify.sh PreToolUse/Bash, -C extraction, --force-main escape hatch | ✓ |
+| 2 | session-end.sh orchestrates 3 sub-scripts | ✓ |
+| 3 | session-end-metrics.sh: correction_rate, auto_fix_rate, test_write_rate, cascade_rate | ✓ |
+| 4 | session-end-persist.sh: ruflo L1 + auto-memory L0 fallback | ✓ |
+| 5 | session-end-drift.sh: sync-state, spec graph, decisions log | ✓ |
+| 6 | knowledge-pipeline-tier1 scheduler job enabled, 0 3 * * * | ✓ |
+| 7 | All 3 session-end sub-scripts exist and are properly forked | ✓ |
+
+**Propagation:** 1 pending errata (#87 — reference/hooks.md regeneration, code-gen, not a cascade). Spec graph current (293 nodes, 1222 edges).
