@@ -316,9 +316,9 @@ Source: t-1152, first live tier1 run 2026-04-12
 `brana knowledge process --tier1 --dry-run` passed 50/50 but live run had 12/50 parse failures. The dry-run skips the Claude CLI call entirely — it only validates URL parsing and allow-list logic. Before enabling a scheduler job for any pipeline that calls an LLM or API, run a `--sample 3` smoke test (or equivalent) to exercise the full call path.
 Source: t-1152, knowledge pipeline session 2026-04-12
 
-### 2026-04-12: jq -Rs '.' is NOT a safe drop-in for Python json.dumps()
-`jq`'s encoding of control characters (`\u0000`–`\u001f`) differs by version and locale. Python's `json.dumps()` guarantees RFC 8259 escaping. Before replacing any Python JSON one-liner with jq in an indexing pipeline, test byte-for-byte against real data (control chars, backticks, NUL). If outputs differ, use `uv run python3 -c` prefix instead. Gates t-1166/t-1167/t-1168/t-1169.
-Source: Python cleanup planning + challenger review 2026-04-12
+### 2026-04-13: jq -Rs '.' validated safe on jq 1.8.1 / Python 3.13 for brana indexing
+Validated via t-1160: control chars (0x00–0x1f), DEL, backslash, backtick, quotes, newlines all match `json.dumps()`. Only mismatch: non-BMP emoji (jq = literal UTF-8, Python = surrogate pairs) — both valid JSON, irrelevant for brana docs. Replaced 9 Python one-liners across 4 indexing scripts (t-1166–t-1169). Rule: always run this validation on a new system before using jq in pipelines.
+Source: t-1160 validation + t-1166/t-1167/t-1168/t-1169 2026-04-13
 
 ### 2026-04-12: Hook-wired scripts = HIGH priority migration, not deferrable
 Invocation frequency multiplies migration urgency. A script called in hooks that fire on every session end and every task completion is a hot path. Before classifying any Python→Rust migration as "not urgent," grep callers: `grep -r "script-name" system/hooks/`. Hook caller = high frequency = HIGH priority. Applied: decisions.py reclassified P1 (t-1164).

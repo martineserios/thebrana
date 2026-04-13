@@ -31359,7 +31359,7 @@
       "blocked_by": [],
       "branch": null,
       "completed": null,
-      "context": null,
+      "context": "jq 1.8.1 vs Python 3.13: control chars match, emoji mismatch (jq=literal UTF-8, Python=surrogate pair). Both valid JSON. Safe to replace json.dumps one-liners in indexing scripts. t-1166/67/68/69 unblocked.",
       "created": "2026-04-12",
       "description": null,
       "effort": "S",
@@ -31371,7 +31371,7 @@
       "parent": "t-1156",
       "priority": null,
       "started": null,
-      "status": "pending",
+      "status": "done",
       "stream": "tech-debt",
       "subject": "Validate jq vs Python JSON encoding on this system",
       "tags": [
@@ -31530,7 +31530,7 @@
       "parent": "t-1158",
       "priority": null,
       "started": null,
-      "status": "pending",
+      "status": "done",
       "stream": "tech-debt",
       "subject": "index-knowledge.sh — replace Python JSON one-liners",
       "tags": [
@@ -31558,7 +31558,7 @@
       "parent": "t-1158",
       "priority": null,
       "started": null,
-      "status": "pending",
+      "status": "done",
       "stream": "tech-debt",
       "subject": "index-patterns.sh — replace Python JSON one-liners",
       "tags": [
@@ -31586,7 +31586,7 @@
       "parent": "t-1158",
       "priority": null,
       "started": null,
-      "status": "pending",
+      "status": "done",
       "stream": "tech-debt",
       "subject": "index-skills.sh — replace Python JSON one-liner",
       "tags": [
@@ -31614,7 +31614,7 @@
       "parent": "t-1158",
       "priority": null,
       "started": null,
-      "status": "pending",
+      "status": "done",
       "stream": "tech-debt",
       "subject": "test-skill-routing.sh — replace Python JSON one-liners",
       "tags": [
@@ -32202,7 +32202,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "done",
       "strategy": null,
       "stream": "tech-debt",
       "subject": "Migrate generate-reference.py → brana reference generate CLI subcommand",
@@ -32212,6 +32212,34 @@
         "cli",
         "code-gen"
       ]
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": null,
+      "created": "2026-04-13",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1192",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "roadmap",
+      "subject": "[hook] extend post-hooks-json.sh to trigger on skills/agents writes for full reference regeneration",
+      "tags": [
+        "hook",
+        "code-gen",
+        "reference"
+      ],
+      "type": "task"
     }
   ],
   "version": "1"
