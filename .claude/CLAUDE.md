@@ -353,6 +353,14 @@ Source: skill-routing design session 2026-04-13
 system/rules/ is classified as behavioral by main-guard. Adding/modifying rules requires worktree: `git worktree add /tmp/thebrana-{branch} -b feat/{branch}` → cp → brana reference generate → commit → merge --no-ff → worktree remove. Pattern verified 3+ sessions. Fix: t-1194 (--rules-only flag).
 Source: skill-routing commit session 2026-04-13
 
+### 2026-04-13: Check committed doc 24 state before numbering new errata
+Before appending to `docs/24-roadmap-corrections.md`, always run: `git show HEAD:docs/24-roadmap-corrections.md | grep -E '^## E[0-9]+' | tail -5`. Working tree can have stale entries from a prior session — counting from it causes number collisions. If working tree diverges: `git checkout -- docs/24-roadmap-corrections.md` first.
+Source: maintain-specs session 2026-04-13
+
+### 2026-04-13: Never edit .git/hooks/ directly — always use system/scripts/git-hooks/
+Hooks edited directly in `.git/hooks/` are untracked: invisible to spec layer, invisible to bootstrap, silently overwritten on next `./bootstrap.sh`. Always edit `system/scripts/git-hooks/<hook>` and re-run `./bootstrap.sh` to deploy. The tracked source is the source of truth.
+Source: pre-commit budget gate session 2026-04-13
+
 ### 2026-04-13: Scope-based heuristics beat rigid routing tables in procedures
 When procedure routing depends on intent ("where does this belong?"), a single guiding question outlasts a topic lookup table. Tables require maintenance as topics evolve; a heuristic transfers. Applied: close.md Step 6 field-note routing replaced a 6-row table with "useful without this repo? → dimension doc, else → CLAUDE.md."
 Source: close.md routing session 2026-04-13

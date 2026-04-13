@@ -124,3 +124,9 @@ External skills are classified by source into trust tiers that determine install
 | Unknown | Blocked | Rejected | N/A |
 
 Community skills install with `quarantine: true` in frontmatter and read-only tools. `/brana:audit` includes an incoming skill scan that checks acquired skills for dangerous allowed-tools, credential path references, suspicious MCP tool requests, and missing frontmatter.
+
+### Installed Acquired Skills
+
+| Skill | Source | Purpose | Installed |
+|-------|--------|---------|-----------|
+| `caveman` | `JuliusBrussee/caveman` | Ultra-compressed output (~50% token reduction on brana prompts). Trigger: `/caveman`. | 2026-04-13 |
