@@ -100,20 +100,21 @@ fn find_tasks_file_from(
 }
 
 /// Find the git repository root via `git rev-parse --show-toplevel`.
+/// Find the project root directory.
+///
+/// Resolution order:
+/// 1. Git show-toplevel (inside a git repo)
+/// 2. CWD fallback for non-git projects (mandawa, prediktive-prep, etc.)
 pub fn find_project_root() -> Option<PathBuf> {
-    Command::new("git")
-        .args(["rev-parse", "--show-toplevel"])
-        .output()
-        .ok()
-        .and_then(|o| {
-            if o.status.success() {
-                Some(PathBuf::from(
-                    String::from_utf8_lossy(&o.stdout).trim().to_string(),
-                ))
-            } else {
-                None
-            }
-        })
+    find_project_root_from(git_toplevel(), std::env::current_dir().ok())
+}
+
+/// Testable variant. git_root wins; cwd is the non-git fallback.
+pub fn find_project_root_from(
+    git_root: Option<PathBuf>,
+    cwd: Option<PathBuf>,
+) -> Option<PathBuf> {
+    git_root.or(cwd)
 }
 
 /// Return the user's home directory.
@@ -143,7 +144,7 @@ pub fn load_status() -> HashMap<String, serde_json::Value> {
 
 #[cfg(test)]
 mod tests {
-    use super::find_tasks_file_from;
+    use super::{find_project_root_from, find_tasks_file_from};
     use std::fs;
     use tempfile::TempDir;
 
@@ -256,6 +257,39 @@ mod tests {
     #[test]
     fn returns_none_when_all_roots_absent() {
         let result = find_tasks_file_from(None, None, None);
+        assert_eq!(result, None);
+    }
+
+    // ── find_project_root_from ───────────────────────────────────────────────
+
+    #[test]
+    fn project_root_returns_git_root_when_available() {
+        let dir = tmp();
+        let result = find_project_root_from(Some(dir.path().to_path_buf()), None);
+        assert_eq!(result, Some(dir.path().to_path_buf()));
+    }
+
+    #[test]
+    fn project_root_falls_back_to_cwd_for_non_git_dirs() {
+        let dir = tmp();
+        let result = find_project_root_from(None, Some(dir.path().to_path_buf()));
+        assert_eq!(result, Some(dir.path().to_path_buf()));
+    }
+
+    #[test]
+    fn project_root_git_takes_precedence_over_cwd() {
+        let git_dir = tmp();
+        let cwd_dir = tmp();
+        let result = find_project_root_from(
+            Some(git_dir.path().to_path_buf()),
+            Some(cwd_dir.path().to_path_buf()),
+        );
+        assert_eq!(result, Some(git_dir.path().to_path_buf()));
+    }
+
+    #[test]
+    fn project_root_returns_none_when_both_absent() {
+        let result = find_project_root_from(None, None);
         assert_eq!(result, None);
     }
 }
