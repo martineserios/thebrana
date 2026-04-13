@@ -353,3 +353,7 @@ Source: skill-routing design session 2026-04-13
 system/rules/ is classified as behavioral by main-guard. Adding/modifying rules requires worktree: `git worktree add /tmp/thebrana-{branch} -b feat/{branch}` → cp → brana reference generate → commit → merge --no-ff → worktree remove. Pattern verified 3+ sessions. Fix: t-1194 (--rules-only flag).
 Source: skill-routing commit session 2026-04-13
 
+### 2026-04-13: Scope-based heuristics beat rigid routing tables in procedures
+When procedure routing depends on intent ("where does this belong?"), a single guiding question outlasts a topic lookup table. Tables require maintenance as topics evolve; a heuristic transfers. Applied: close.md Step 6 field-note routing replaced a 6-row table with "useful without this repo? → dimension doc, else → CLAUDE.md."
+Source: close.md routing session 2026-04-13
+
