@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-12T23:58:46Z",
+  "generated": "2026-04-13T11:45:03Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -8534,6 +8534,36 @@
     },
     {
       "from": "docs/reflections/08-diagnosis.md",
+      "to": "brana-knowledge/dimensions/46-cc-harness-ecosystem.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
+      "to": "brana-knowledge/dimensions/47-ontology-engineering-ai-systems.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
+      "to": "brana-knowledge/dimensions/48-knowledge-graph-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
+      "to": "brana-knowledge/dimensions/49-agent-era-systems-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
+      "to": "brana-knowledge/dimensions/49-auto-learning-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
       "to": "docs/00-user-practices.md",
       "type": "references",
       "computed": false
@@ -8745,6 +8775,18 @@
     {
       "from": "docs/reflections/14-mastermind-architecture.md",
       "to": "brana-knowledge/dimensions/45-turboflow-agent-orchestration.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/14-mastermind-architecture.md",
+      "to": "brana-knowledge/dimensions/48-knowledge-graph-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/14-mastermind-architecture.md",
+      "to": "brana-knowledge/dimensions/49-agent-era-systems-patterns.md",
       "type": "references",
       "computed": false
     },
@@ -9032,12 +9074,6 @@
     },
     {
       "from": "docs/reflections/32-lifecycle.md",
-      "to": "brana-knowledge/dimensions/05-claude-flow-v3-analysis.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/reflections/32-lifecycle.md",
       "to": "brana-knowledge/dimensions/16-knowledge-health.md",
       "type": "references",
       "computed": false
@@ -9074,6 +9110,12 @@
     },
     {
       "from": "docs/reflections/32-lifecycle.md",
+      "to": "brana-knowledge/dimensions/49-auto-learning-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/32-lifecycle.md",
       "to": "docs/00-user-practices.md",
       "type": "references",
       "computed": false
@@ -9099,6 +9141,12 @@
     {
       "from": "docs/reflections/32-lifecycle.md",
       "to": "docs/architecture/decisions/ADR-017-decision-log.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/32-lifecycle.md",
+      "to": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
       "type": "references",
       "computed": false
     },
@@ -9249,7 +9297,7 @@
   ],
   "stats": {
     "nodes": 293,
-    "edges": 1222,
+    "edges": 1230,
     "typed_edges": 499,
     "orphans": 64
   }
