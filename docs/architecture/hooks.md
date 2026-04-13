@@ -1,10 +1,10 @@
 # Hooks Architecture
 
-> 10 shell scripts that fire on Claude Code lifecycle events. Hooks enforce discipline, log events, and nudge agents -- all without requiring user action. For complete I/O specs, see [Hook Reference](../reference/hooks.md).
+> 25+ shell scripts that fire on Claude Code lifecycle events. Hooks enforce discipline, log events, and nudge agents -- all without requiring user action. For complete I/O specs, see [Hook Reference](../reference/hooks.md).
 
 ## How hooks work
 
-Claude Code supports five hook events:
+Claude Code supports these hook events:
 
 | Event | When it fires | Can block? |
 |-------|---------------|------------|
@@ -13,6 +13,11 @@ Claude Code supports five hook events:
 | `PreToolUse` | Before a tool call executes | Yes |
 | `PostToolUse` | After a tool call succeeds | No |
 | `PostToolUseFailure` | After a tool call fails | No |
+| `UserPromptSubmit` | Before Claude processes user input | No |
+| `SubagentStart` | When a subagent is spawned | No |
+| `SubagentStop` | When a subagent completes | No |
+| `TaskCompleted` | When a CC Task is marked complete | No |
+| `StopFailure` | On API errors (rate limit, auth, billing) | No |
 
 Hooks receive session context as JSON on stdin, return JSON on stdout. A hook can pass through (`{"continue": true}`), inject context (`additionalContext`), or block (PreToolUse only, via `permissionDecision: "deny"`).
 
@@ -47,11 +52,17 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | `tdd-gate.sh` | PreToolUse | `Write\|Edit` | TDD baseline — blocks impl writes when no test exists in project. Ordering enforcement (tests before impl) lives in procedure gates, not here |
 | `plan-mode-gate.sh` | PreToolUse | `EnterPlanMode` | Enforce plan mode for non-trivial builds |
 | `worktree-gate.sh` | PreToolUse | `Bash` | Gate A: block `git checkout -b` / `git switch -c` when dirty or worktrees active. Gate B: block `git commit` when /tmp >95% full; warn on cross-session staged files |
+| `doc-gate.sh` | PreToolUse | `Bash` | Block `git commit` on any branch when behavioral files (skills, hooks, agents, commands, cli, rules) are staged but no docs change is present. Spec-before-code enforcement. |
+| `main-guard.sh` | PreToolUse | `Bash` | Block behavioral commits on main/master. Forces work onto feat/fix/* branches for proper gate enforcement. |
 | `branch-verify.sh` | PreToolUse | `Bash` | Block `git add` of behavioral files when on main/master. Extracts `git -C <path>` from command to check target repo's branch (worktree-aware). Escape hatch: `# --force-main` comment |
+| `no-attribution-commit.sh` | PreToolUse | `Bash` | Block `git commit` and `gh pr create` calls containing forbidden attribution signatures (Co-Authored-By, Signed-off-by). Keeps commit history clean. |
+| `commit-msg-verify.sh` | PreToolUse | `Bash` | Advisory (non-blocking): warns when commit message mentions filenames not in the staged diff. Catches commit messages that describe more than what was actually staged. |
 | `guard-explore.sh` | PreToolUse | `Read\|Grep\|Glob` | Log reads without prior search (logging only, no blocking) |
 | `subagent-context.sh` | SubagentStart | `""` (all) | Inject active task + branch + plan + recent decisions into spawned agents |
 | `subagent-tracker.sh` | SubagentStart+SubagentStop | `""` (all) | Track agent spawns and completions to session JSONL |
 | `step-completed.sh` | TaskCompleted | `""` (all) | Track CC Task completions for guided execution |
+| `task-completed.sh` | PostToolUse | `Bash` | Task completion pipeline: parent task rollup, close linked GitHub issue, log to decision log. Triggers on `brana backlog set <id> status completed`. |
+| `preflight-model.sh` | UserPromptSubmit | `""` (all) | Advisory (non-blocking): warns when a heavy skill (`/brana:close`, `/brana:brainstorm`, `/brana:build`) is invoked while extra-usage is disabled. Silence: `BRANA_1M_WARN_OFF=1`. |
 | `session-start.sh` | SessionStart | `""` (all) | Pattern recall (1 parallel job, 2s budget), task context, venture detection, recurring error surfacing |
 | `session-end.sh` | SessionEnd | `""` (all) | Orchestrator — forks 3 sub-scripts: `session-end-metrics.sh` (flywheel metrics), `session-end-persist.sh` (ruflo + auto-memory), `session-end-drift.sh` (sync-state, spec graph, decisions log) |
 | `stopfailure-logger.sh` | StopFailure | `""` (all) | Log API errors (rate limit, auth, billing) to JSONL |
@@ -252,3 +263,11 @@ Source: t-1147 session 2026-04-12
 ### 2026-04-12: Mock PATH isolation — bash + minimal tools must be in mock bin
 When testing bash scripts with a stripped PATH (to simulate missing tools), stripping PATH to just the mock dir causes "bash: command not found" when the script calls `bash <subscript>` or uses `dirname`/`pwd` for SCRIPT_DIR detection. Fix: symlink bash, dirname, and pwd from the system into the mock bin, then exclude only the specific tool being hidden. A `populate_bin <dir> [exclude...]` helper makes this reusable across tests. Rule: never strip PATH to only `$mock/bin` without first populating the tools the script needs to boot.
 Source: tests/bootstrap/test-install.sh, t-1150 2026-04-12
+
+### 2026-04-13: UserPromptSubmit hooks fire before Claude processes input
+`UserPromptSubmit` is a CC hook event that fires before Claude sees the user's message — earlier than `PreToolUse` (which fires before a tool call). Input JSON: `{"prompt": "..."}`. Always returns `{"continue": true}` (cannot block). Use for: detecting which skill is being invoked before heavy work starts, pre-flight env checks, prompt-level advisory warnings. `preflight-model.sh` is the first brana `UserPromptSubmit` hook — it detects heavy skill invocations and warns if extra-usage is disabled. Register in `hooks.json` with matcher `""` (no tool matcher, fires on every user message).
+Source: t-1085, 2026-04-13
+
+### 2026-04-13: commit-msg-verify.sh — advisory commit hygiene (non-blocking)
+Warns when a git commit message mentions filenames (e.g. `fix auth.rs`) that are not in the staged diff (`git diff --cached --name-only`). This catches the common mistake of describing more than was actually staged. Implementation note: extracting filenames from `-m` commit messages requires grepping from `.tool_input.command` on stdin; use `python3 -c "import json,sys; ..."` not `printf` for JSON generation in tests (printf interprets `\n` as literal newline, breaking the JSON string). Test assertions on the "unstaged files" warning must exclude the "Staged files:" section, which legitimately contains hook filenames.
+Source: t-1129, 2026-04-13
