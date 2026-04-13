@@ -176,6 +176,18 @@
         ]
       }
     ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/preflight-model.sh",
+            "timeout": 3000
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "matcher": "",
