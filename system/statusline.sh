@@ -3,7 +3,7 @@
 # 🧠 Model │ 📂 project │ 🌿 branch │ CTX NN% │ 📝 +156 -23 │ [⚡ │ 📋 N]
 # CTX shows % remaining until auto-compact (threshold: BRANA_AUTOCOMPACT_THRESHOLD, default 85).
 # Matches CC native "X% until auto-compact" footer — same number, no contradiction.
-# CTX color: dimmed >45%, yellow ≤45%, orange+⚠ ≤15%, red+⚠ at threshold.
+# CTX color: dimmed >45%, orange ≤45%, orange+⚠ ≤30%, red+⚠ ≤15%, 🔴 at threshold.
 # Width-aware: drops low-priority segments when terminal is narrow.
 
 INPUT=$(cat)
