@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-13T11:45:03Z",
+  "generated": "2026-04-13T17:28:36Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -297,6 +297,8 @@
       "impl_files": [
         "system/skills/",
         "system/",
+        "system/commands/maintain-specs.md",
+        "system/scripts/git-hooks/pre-commit",
         "system/hooks/session-start.sh",
         "system/hooks/session-end.sh",
         "system/skills/pattern-recall/SKILL.md",
@@ -317,7 +319,9 @@
         "system/scheduler/scheduler.template.json",
         "system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs",
         "system/hooks/hooks.json",
-        "system/scripts/generate-reference.py"
+        "system/scripts/generate-reference.py",
+        "system/procedures/build.md",
+        "system/hooks/"
       ]
     },
     "docs/25-self-documentation.md": {
@@ -361,6 +365,11 @@
       "impl_files": [
         "system/cli/rust/crates/brana-cli/src/commands/"
       ]
+    },
+    "docs/architecture/context-budget.md": {
+      "title": "Context Budget",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md": {
       "title": "ADR-001: Reconcile command for spec-to-implementation drift remediation",
@@ -973,6 +982,7 @@
       "type": "Roadmap",
       "impl_files": [
         "system/cli/src/graph.rs",
+        "system/procedures/close.md",
         "system/skills/close/SKILL.md",
         "system/skills/research/SKILL.md",
         "system/scripts/index-assumptions.sh",
@@ -1063,7 +1073,11 @@
         "system/commands/",
         "system/skills/{dep",
         "system/skills/_shared/guided-execution.md",
-        "system/skills/X/"
+        "system/skills/X/",
+        "system/skills/",
+        "system/hooks/",
+        "system/agents/",
+        "system/rules/"
       ]
     },
     "docs/archive/reflections/14-mastermind-architecture.md": {
@@ -1754,6 +1768,7 @@
         "system/rules/research-discipline.md",
         "system/rules/sdd-tdd.md",
         "system/rules/self-improvement.md",
+        "system/rules/skill-routing.md",
         "system/rules/tactical-context.md",
         "system/rules/task-convention.md",
         "system/rules/universal-quality.md",
@@ -1795,7 +1810,8 @@
       "title": "08 - Diagnosis: Keep, Drop, Defer",
       "type": "Reflection",
       "impl_files": [
-        "system/skills/"
+        "system/skills/",
+        "system/rules/skill-routing.md"
       ]
     },
     "docs/reflections/14-mastermind-architecture.md": {
@@ -1803,6 +1819,7 @@
       "type": "Reflection",
       "impl_files": [
         "system/",
+        "system/rules/skill-routing.md",
         "system/scripts/decisions.py",
         "system/state/decisions/"
       ]
@@ -1817,6 +1834,7 @@
       "type": "Reflection",
       "impl_files": [
         "system/hooks/hooks.json",
+        "system/scripts/git-hooks/pre-commit",
         "system/",
         "system/hooks/",
         "system/skills/",
@@ -1836,6 +1854,13 @@
         "system/",
         "system/rules/tactical-context.md",
         "system/state/decisions/"
+      ]
+    },
+    "docs/reflections/33-agent-loop.md": {
+      "title": "33 - Agent Loop: The Runtime Execution Model",
+      "type": "Reflection",
+      "impl_files": [
+        "system/commands/maintain-specs.md"
       ]
     },
     "docs/reflections/ARCHITECTURE.md": {
@@ -1875,6 +1900,11 @@
     },
     "docs/research/cc-unreleased-features-tracker.md": {
       "title": "CC Unreleased Features Tracker",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/research/knowledge-retrieval-tax.md": {
+      "title": "Knowledge Retrieval Tax — Positioning Frame",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -3805,6 +3835,18 @@
       "computed": false
     },
     {
+      "from": "docs/reflections/33-agent-loop.md",
+      "to": "docs/reflections/08-diagnosis.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/reflections/33-agent-loop.md",
+      "to": "docs/reflections/14-mastermind-architecture.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
       "from": "docs/reflections/ARCHITECTURE.md",
       "to": "docs/reflections/08-diagnosis.md",
       "type": "depends_on",
@@ -4838,6 +4880,12 @@
     },
     {
       "from": "docs/reflections/08-diagnosis.md",
+      "to": "docs/reflections/33-agent-loop.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
       "to": "docs/reflections/ARCHITECTURE.md",
       "type": "informs",
       "computed": false
@@ -4863,6 +4911,12 @@
     {
       "from": "docs/reflections/31-assurance.md",
       "to": "docs/reflections/32-lifecycle.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/33-agent-loop.md",
+      "to": "docs/reflections/31-assurance.md",
       "type": "informs",
       "computed": false
     },
@@ -6332,6 +6386,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/context-budget.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
       "type": "references",
       "computed": false
@@ -6945,6 +7005,12 @@
     {
       "from": "docs/architecture/building-methodology.md",
       "to": "docs/reflections/32-lifecycle.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/context-budget.md",
+      "to": "docs/reflections/33-agent-loop.md",
       "type": "references",
       "computed": false
     },
@@ -9175,6 +9241,18 @@
       "computed": false
     },
     {
+      "from": "docs/reflections/33-agent-loop.md",
+      "to": "docs/architecture/context-budget.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/33-agent-loop.md",
+      "to": "docs/reflections/14-mastermind-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/reflections/ARCHITECTURE.md",
       "to": "14-mastermind-architecture.md",
       "type": "references",
@@ -9296,9 +9374,9 @@
     }
   ],
   "stats": {
-    "nodes": 293,
-    "edges": 1230,
-    "typed_edges": 499,
-    "orphans": 64
+    "nodes": 296,
+    "edges": 1238,
+    "typed_edges": 503,
+    "orphans": 65
   }
 }
