@@ -10,6 +10,7 @@ Two modes:
 - Existing CLAUDE.md has grown bloated or Claude is ignoring parts of it
 - User wants to know what belongs in CLAUDE.md vs rules/, skills/, or hooks/
 - After `/brana:onboard` surfaces that no CLAUDE.md exists
+- After `/brana:align` on brownfield projects — to clean up bloat from F2 appending.
 
 ---
 
