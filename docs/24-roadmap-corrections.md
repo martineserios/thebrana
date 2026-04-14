@@ -163,6 +163,7 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 139 | [Doc 29](reflections/29-venture-management-reflection.md) framework stacking "max 3 layers" ambiguous vs doc 34 design | **Medium** | applied (2026-04-14) | Scope clarification added: 3-layer limit applies to operating frameworks, not measurement streams; 5 streams in /brana:review is triangulation, not bloat |
 | 140 | `align.md` F2 lacks merge-safety — appends duplicate sections to existing CLAUDE.md | **Medium** | applied (2026-04-14) | Merge-safety block added to F2: grep for existing heading before append; merge under existing heading if found. |
 | 141 | `align.md` F2 CLAUDE.md template conflicts with `claudemd.md` include/exclude rules | **Low** | applied (2026-04-14) | Content constraints added to F2: reference claudemd Step 2 rules; explicitly prohibit Status/TBD contacts/verbose tables/commit type lists; 60-line target, 80-line warning. |
+| 142 | `claudemd` SKILL.md description omits align pairing; procedure "When to use" missing post-align trigger | **Low** | applied (2026-04-14) | Description updated; post-align bullet added to "When to use". Reconcile --scope consistency 2026-04-14. |
 
 ---
 
