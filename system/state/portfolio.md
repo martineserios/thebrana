@@ -26,8 +26,10 @@ For detailed facts, read each client's own docs. This is a routing index only.
 ### mya (MirÁyAhorrÁ)
 - **Type:** B2B2C hyperlocal promo platform — dietéticas/almacenes channel, AMBA
 - **Projects:** mya (`clients/mya`)
-- **Status:** Pre-build. Scoped 2026-04-14. MVP ~2 weeks.
-- **Details:** `clients/mya/docs/ideas/mvp-architecture.md` (full context for session restart)
+- **Status:** Aligned 2026-04-14. P0 kickoff next. Score: 10/20 (Standard tier).
+- **Stack:** Next.js 14 + Prisma + PostgreSQL+PostGIS + Kapso + Railway + Cloudflare R2
+- **Alignment report:** `clients/mya/.claude/alignment-report.md`
+- **Details:** `clients/mya/docs/scope-v1.md`, `clients/mya/docs/decisions/ADR-001-tech-stack.md`
 
 ### nexeye (NexeyeTech)
 - **Type:** Eye detection product
