@@ -175,6 +175,8 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 151 | [Doc 14](reflections/14-mastermind-architecture.md) missing doc 49b Ratchet + ADR-027 — doc 08 flags as "critical design inversion" | **Medium** | pending | Address The Ratchet (discard by default vs keep everything), ADR-027 auto-learning loop, Intent/Execution Separation. |
 | 152 | [Doc 14](reflections/14-mastermind-architecture.md) missing doc 47 (ADR-021 prerequisite) + 3 doc 49a patterns (Assumption Decay, Artifact Coordination, Observation Window) | **Low** | pending | Add entity/relationship formalization reference (ADR-021); note 3 agent-era patterns not yet operationalized. |
 | 153 | `docs/24-roadmap-corrections.md` sequential errata numbering has no collision prevention — parallel sessions produce duplicate IDs | **Medium** | pending | Use timestamp-based IDs (E2026-0414-1) or counter file. Two worktrees collided on E142 this session, required 2 fix commits. |
+| 154 | `docs/25-self-documentation.md:455` hardcoded skill count "27 skills" — actual is 28; counts drift silently per feedback rule | **Low** | applied (2026-04-14) | Removed count; replaced with "skills" + link to reference/skills.md. |
+| 155 | `docs/reflections/ARCHITECTURE.md:101` agent model distribution swapped: Opus(2)/Sonnet(1) should be Sonnet(2)/Opus(1) | **Low** | applied (2026-04-14) | Fixed counts: challenger+pr-reviewer=Sonnet(2), debrief-analyst=Opus(1). |
 
 ---
 
