@@ -153,6 +153,14 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 129 | [Doc 14](reflections/14-mastermind-architecture.md) missing skill-routing gate description — implementer would not know domain skills require AskUserQuestion before loading | **Medium** | applied (2026-04-13) | Cascade from E127. "Skill-routing gate" paragraph added after Pattern C. Explains two-layer skill identification, AskUserQuestion gate, rule vs hook rationale, refs erratum #127. |
 | 130 | [Doc 31](reflections/31-assurance.md) enforcement gates table missing `pre-commit` budget check | **Low** | applied (2026-04-13) | Cascade from E128. Row added to layered staging enforcement table: trigger `git commit`, blocks context budget > 28672 bytes. |
 | 131 | [Doc 31](reflections/31-assurance.md) context budget ceiling stale (~24KB → ~28KB) | **Low** | applied (2026-04-13) | 8th instance of budget ceiling drift (#52–54, #56, #62, #53, #131). Updated to ~28KB (28672 bytes). Reference to `validate.sh` Check 5 and `pre-commit` budget gate added. |
+| 132 | [Doc 08](reflections/08-diagnosis.md) missing triage for 3 unnumbered dimension docs | **Low** | pending | re-evaluate cascade 2026-04-14 — knowledge-architecture.md, software-engineering-patterns.md, cli-builder-rust-bash-devops.md untriaged |
+| 133 | [Doc 32](reflections/32-lifecycle.md) missing rejection/discard path — The Ratchet | **Medium** | pending | re-evaluate cascade 2026-04-14 — doc 49b Ratchet pattern: persist path must be harder than discard |
+| 134 | [Doc 14](reflections/14-mastermind-architecture.md) missing bounded search space constraint | **Medium** | pending | re-evaluate cascade 2026-04-14 — doc 49b Pattern 3: max 3-5 sections per semantic query to bound context use |
+| 135 | [Doc 32](reflections/32-lifecycle.md) missing CCEPL failure taxonomy | **High** | pending | re-evaluate cascade 2026-04-14 — doc 37 CCEPL: errata should route by type (info-gap→dim, fragile-pattern→reflection, misalignment→roadmap) |
+| 136 | [Doc 31](reflections/31-assurance.md) missing full overhead picture from doc 35 | **Medium** | pending | re-evaluate cascade 2026-04-14 — MCP tools 30-70K + compaction buffer 33-45K = 76-138K fixed overhead; ~28KB budget validates wrong variable |
+| 137 | [Doc 31](reflections/31-assurance.md) missing drift trend visualization | **Medium** | pending | re-evaluate cascade 2026-04-14 — doc 37: snapshot metrics insufficient; time-series trending needed for early drift detection |
+| 138 | [Doc 29](reflections/29-venture-management-reflection.md) missing dependency on doc 38 (Design Thinking) | **High** | pending | re-evaluate cascade 2026-04-14 — /venture-align and /venture-phase lack DT insertion points (empathy map, viability triangle, diverge-converge rhythm) |
+| 139 | [Doc 29](reflections/29-venture-management-reflection.md) framework stacking "max 3 layers" ambiguous vs doc 34 design | **Medium** | pending | re-evaluate cascade 2026-04-14 — "3 layer limit" applies to operating frameworks, not measurement streams; /monthly-plan feeds 5 streams legitimately |
 
 ---
 
@@ -2123,7 +2131,7 @@ The planned split (ARCHITECTURE.md = reasoning, component-index.md = generated i
 
 ---
 
-## Error 130: Doc 08 missing triage entries for 3 unnumbered dimension docs
+## Error 132: Doc 08 missing triage entries for 3 unnumbered dimension docs
 
 **Severity:** Low
 **Discovery:** 2026-04-14 — re-evaluate-reflections run (maintain-specs cycle)
@@ -2140,7 +2148,7 @@ The planned split (ARCHITECTURE.md = reasoning, component-index.md = generated i
 
 ---
 
-## Error 131: Doc 32 missing rejection/discard path from auto-learning patterns (The Ratchet)
+## Error 133: Doc 32 missing rejection/discard path from auto-learning patterns (The Ratchet)
 
 **Severity:** Medium
 **Discovery:** 2026-04-14 — re-evaluate-reflections run (maintain-specs cycle)
@@ -2158,7 +2166,7 @@ The planned split (ARCHITECTURE.md = reasoning, component-index.md = generated i
 
 ---
 
-## Error 132: Doc 14 missing bounded search space constraint from auto-learning patterns
+## Error 134: Doc 14 missing bounded search space constraint from auto-learning patterns
 
 **Severity:** Medium
 **Discovery:** 2026-04-14 — re-evaluate-reflections run (maintain-specs cycle)
@@ -2182,3 +2190,105 @@ The planned split (ARCHITECTURE.md = reasoning, component-index.md = generated i
 **Deferred:** 0
 
 **Outcome:** Implementation fully consistent with maintain-specs cycle changes (e127-131). Skill-routing gate, pre-commit budget check, agent roster, rules, hooks, skill descriptions, and CLAUDE.md agent table all match spec.
+
+---
+
+## Error 135: Doc 32 missing CCEPL failure taxonomy
+
+**Severity:** High — spec maintenance routing is ad-hoc without it
+**Discovery:** 2026-04-14 — re-evaluate-reflections run (maintain-specs cycle)
+**Affected files:** `docs/reflections/32-lifecycle.md`
+**Source:** Dimension doc 37 (ruvnet Development Practices)
+
+**Gap:** Doc 32's "Maintenance Cadences" section describes the errata lifecycle (log → apply → backpropagate) but doesn't classify failures by type. Doc 37 describes RuvNet's CCEPL taxonomy, which routes errata to the correct layer:
+
+| Failure type | What it means | Layer fix |
+|---|---|---|
+| `info-gap` | Missing or wrong facts about tools/capabilities | Dimension doc |
+| `fragile-pattern` | Architecture decision that breaks in edge cases | Reflection doc + test |
+| `misalignment` | Implementation steps that don't match the design | Roadmap/skill instructions |
+
+Without this taxonomy, errata are applied correctly only when the author happens to know which layer to fix. The taxonomy makes routing explicit and reproducible.
+
+**Suggested fix:** Add a "Failure Taxonomy" subsection to doc 32's Maintenance Cadences section documenting the three types and their layer routing. Optionally update the errata entry format in doc 24 to include a `type:` field.
+
+**Status:** pending
+
+---
+
+## Error 136: Doc 31 missing full overhead picture from doc 35
+
+**Severity:** Medium — assurance validating the wrong bottleneck
+**Discovery:** 2026-04-14 — re-evaluate-reflections run (maintain-specs cycle)
+**Affected files:** `docs/reflections/31-assurance.md`
+**Source:** Dimension doc 35 (Context Engineering Principles), "Full Overhead Picture" section
+
+**Gap:** Doc 31 (Assurance) validates the ~28KB context budget via pre-commit and `validate.sh`. It treats budget creep as the primary structural risk. But doc 35 shows brana's 28KB is only ~4% of the 200K context window — the real constraint is:
+
+- Claude Code system prompt: 5-15K tokens
+- Brana always-loaded: ~8K tokens
+- **MCP tool definitions: 30-70K tokens** (mitigated ~85% by Tool Search)
+- Compaction buffer: 33-45K tokens (reserved by runtime, invisible)
+- **Total fixed overhead: 76-138K tokens (38-69% of 200K window)**
+
+Assurance checks that optimize only for brana's 28KB rule budget may miss MCP tool proliferation as the actual pressure point.
+
+**Suggested fix:** Add a note in doc 31's Structural Assurance section: "The ~28KB context budget (validate.sh Check 5) guards rule/skill growth, but doc 35 shows MCP tool definitions (30-70K per server) are the dominant context variable. Assurance should also track MCP server count and use Tool Search to mitigate."
+
+**Status:** pending
+
+---
+
+## Error 137: Doc 31 missing drift trend visualization
+
+**Severity:** Medium — knowledge health monitoring is snapshot-only
+**Discovery:** 2026-04-14 — re-evaluate-reflections run (maintain-specs cycle)
+**Affected files:** `docs/reflections/31-assurance.md`
+**Source:** Dimension doc 37 (ruvnet Development Practices), Synthesis section
+
+**Gap:** Doc 31's knowledge health assurance section defines snapshot metrics (`/brana:memory review`: precision@k, staleness%, promotion rate, contradiction count) and describes `/brana:memory review` as the ongoing check. These are point-in-time snapshots. Doc 37 notes that drift is gradual — a system can pass all snapshot thresholds while slowly degrading over weeks. Time-series trending (promotion rate%, staleness%, precision@k as time series) is needed for early detection before failures reach the outcome layer.
+
+**Suggested fix:** Add a note: "Snapshot metrics (`/brana:memory review`) are necessary but insufficient. A drift dashboard tracking promotion%, staleness%, and precision@k as weekly time series would enable early detection. Current state: snapshots only. Deferred enhancement."
+
+**Status:** pending
+
+---
+
+## Error 138: Doc 29 missing dependency on doc 38 (Design Thinking)
+
+**Severity:** High — venture skill definitions incomplete
+**Discovery:** 2026-04-14 — re-evaluate-reflections run (maintain-specs cycle)
+**Affected files:** `docs/reflections/29-venture-management-reflection.md`
+**Source:** Dimension doc 38 (Design Thinking)
+
+**Gap:** Doc 29 defines the skill architecture for `/brana:align` (venture) and `/brana:review` (venture) but doesn't reference doc 38 (Design Thinking). Doc 38 explicitly maps DT insertion points to these skills:
+
+- `/brana:align` discovery phase → empathy map per persona, BMC as iterative prototype (2-3 alternatives, not one static canvas)
+- Venture validation → viability triangle gate (Desirable × Feasible × Viable)
+- Launch phase → empathy table, "A Day in the Life"
+- `/brana:build` and `/brana:review` → diverge-converge rhythm (generate alternatives before converging)
+
+Doc 38 also classifies these as Wave 1 (divergent ideation — shipped) vs Wave 2 (empathy mapping — pending evidence). Doc 29 has no awareness of this wave structure or the DT techniques.
+
+**Impact:** An implementer building venture skills from doc 29 alone would create a static, linear process instead of an iterative, multi-alternative design process.
+
+**Suggested fix:** Add a cross-reference to doc 38 in doc 29's skill architecture section. Clarify which DT insertions are Wave 1 (already shipped) vs Wave 2 (pending). Update `/brana:align` and `/brana:review` (venture) skill descriptions to acknowledge diverge-converge rhythm and viability triangle.
+
+**Status:** pending
+
+---
+
+## Error 139: Doc 29 framework stacking "max 3 layers" ambiguous vs doc 34 design
+
+**Severity:** Medium — clarification needed to prevent misimplementation
+**Discovery:** 2026-04-14 — re-evaluate-reflections run (maintain-specs cycle)
+**Affected files:** `docs/reflections/29-venture-management-reflection.md`
+**Source:** Dimension doc 34 (Venture Operating System)
+
+**Gap:** Doc 29 (section 2, framework stacking) states: "Maximum 3 active layers (operating system + goal system + cadence)." But doc 34's `/brana:review` (monthly) design feeds 5 parallel skill outputs: pipeline, experiments, financial, forecasts, lookback. This creates an apparent contradiction: is running 5 data streams violating the "max 3" rule?
+
+**Likely resolution:** The "max 3" limit applies to *operating systems* (pick one: EOS OR Scaling Up OR OKRs). The 5 data streams in `/brana:review` are *measurement inputs*, not competing operating systems — they're the sensing layer, not the decision-making framework.
+
+**Suggested fix:** In doc 29 section 2, clarify: "The 3-layer limit applies to operating frameworks (pick one: EOS OR Scaling Up OR OKRs), not measurement inputs. Multiple data streams (pipeline, experiments, financial, forecasts) within a single operating system are expected — they're how you sense health, not a competing framework layer."
+
+**Status:** pending
