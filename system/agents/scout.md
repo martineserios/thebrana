@@ -3,17 +3,15 @@ name: scout
 description: "Fast research for codebase exploration and web search. Use when finding files, searching code, or fetching external info. Not for: knowledge recall, project diagnostics, business analysis."
 model: haiku
 effort: low
+maxTurns: 20
+permissionMode: plan
+color: yellow
 tools:
   - Read
   - Glob
   - Grep
   - WebSearch
   - WebFetch
-disallowedTools:
-  - Edit
-  - Write
-  - Bash
-  - NotebookEdit
 ---
 
 # Scout

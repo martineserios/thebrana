@@ -3,15 +3,14 @@ name: challenger
 description: "Adversarially review a plan, architecture decision, or approach. Stress-test before commitment. Use when a significant decision is being made or a plan is being finalized. Not for: data collection, project diagnostics, session debrief."
 model: sonnet
 effort: max
+maxTurns: 10
+memory: true
+permissionMode: plan
+color: red
 tools:
   - Read
   - Glob
   - Grep
-disallowedTools:
-  - Write
-  - Edit
-  - Bash
-  - NotebookEdit
 ---
 
 # Challenger
@@ -66,6 +65,18 @@ Pick the most relevant flavor (or combine):
 {PROCEED | PROCEED WITH CHANGES | RECONSIDER}
 {One-sentence summary of the key risk}
 ```
+
+## Memory
+
+At startup, read your memory (auto-injected above if populated). Use it to:
+- Apply calibration from prior reviews — plan types that consistently pass or fail for this project
+- Recognize recurring failure modes faster
+- Weight findings based on patterns you've seen before
+
+At the end of each run, if you identified new calibration-worthy patterns, append to your MEMORY.md:
+- Plan types that consistently trigger RECONSIDER for this project
+- Known acceptable risks the user has explicitly accepted
+- Recurring assumption-busters specific to this codebase
 
 ## Rules
 

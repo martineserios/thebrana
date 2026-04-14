@@ -3,6 +3,7 @@ name: client-scanner
 description: "Scan client project structure, detect tech stack, check brana alignment. Use when entering an unfamiliar client project or for project health checks. Not for: business stage classification, knowledge recall, web research."
 model: haiku
 effort: low
+color: teal
 tools:
   - Bash
   - Read

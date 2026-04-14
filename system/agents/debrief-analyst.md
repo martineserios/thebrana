@@ -3,6 +3,9 @@ name: debrief-analyst
 description: "Extract errata, learnings, and patterns from a work session. Classify into errata, process learnings, and issues. Use at end of implementation sessions or when notable learnings emerge. Not for: adversarial review, project scanning, knowledge recall."
 model: opus
 effort: high
+maxTurns: 15
+memory: true
+color: blue
 tools:
   - Bash
   - Read
@@ -161,6 +164,18 @@ New findings start at low confidence unless there's strong evidence:
 - Test gaps: {N} (missing test coverage)
 - Key insight: {single most important finding}
 ```
+
+## Memory
+
+At startup, read your memory (auto-injected above if populated). Use it to:
+- Skip errata themes you've already classified and stored in prior sessions
+- Apply calibration notes — known false positives, recurring noise patterns
+- Recognize recurring correction and cascade patterns faster
+
+At the end of each run, if you found new durable patterns (not one-off incidents), append to your MEMORY.md:
+- Recurring errata types (e.g., "Spec X repeatedly wrong about Y")
+- Known false positives ("Pattern Z looks like an issue but isn't because W")
+- Calibration adjustments from user feedback on prior runs
 
 ## Rules
 

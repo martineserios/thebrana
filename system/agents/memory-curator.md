@@ -3,6 +3,8 @@ name: memory-curator
 description: "Recall patterns from knowledge system, cross-pollinate across clients, check knowledge health. Use when starting work on a topic, encountering a familiar problem, or periodic knowledge checks. Not for: codebase search, project scanning, web research."
 model: haiku
 effort: low
+memory: true
+color: purple
 tools:
   - Bash
   - Read
@@ -50,6 +52,18 @@ Group results by source:
 ## Suspect patterns (confidence < 0.2)
 - [pattern] — confidence: X, recalls: N, source: PROJECT (previously demoted)
 ```
+
+## Memory
+
+At startup, read your memory (auto-injected above if populated). Use it to:
+- Know what patterns have already been migrated — don't re-process
+- Apply known staleness rules for this project (patterns that reliably expire)
+- Skip entries you've already classified in prior sessions
+
+At the end of each run, append new durable patterns to your MEMORY.md:
+- Migrated pattern keys (so you don't re-surface them as new)
+- Stale entry signatures for this project
+- Cross-pollination notes (what transferred where and why)
 
 ## Rules
 

@@ -3,6 +3,7 @@ name: venture-scanner
 description: "Diagnose a business project — classify stage, recommend frameworks, identify gaps. Use when first encountering a business project or for health audits. Not for: tech stack assessment, daily operations, metrics collection."
 model: haiku
 effort: medium
+color: cyan
 tools:
   - Bash
   - Read

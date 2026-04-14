@@ -3,6 +3,7 @@ name: metrics-collector
 description: "Collect venture metrics from snapshots, experiments, pipeline, financials. Use when /brana:review runs (weekly, monthly, or check). Not for: daily focus cards, deal-level analysis, general research."
 model: haiku
 effort: low
+color: indigo
 tools:
   - Bash
   - Read

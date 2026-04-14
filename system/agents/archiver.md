@@ -3,15 +3,13 @@ name: archiver
 description: "Archive project patterns and knowledge when retiring. Categorize as transferable, historical, or deletable. Use when retiring a project or archiving knowledge. Not for: active project work, pattern recall, daily operations."
 model: haiku
 effort: low
+permissionMode: plan
+color: gray
 tools:
   - Bash
   - Read
   - Glob
   - Grep
-disallowedTools:
-  - Write
-  - Edit
-  - NotebookEdit
 ---
 
 # Archiver
