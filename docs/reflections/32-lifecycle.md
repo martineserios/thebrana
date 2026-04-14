@@ -220,6 +220,19 @@ From [26-git-branching-strategies.md](../../../brana-knowledge/dimensions/26-git
 
 The git history IS the lifecycle record. `git log --oneline --graph` tells the story of what was built and when.
 
+### Brownfield Project Pre-Build Gate
+
+Before entering the standard Build-Phase Cycle on a **brownfield project** (existing codebase, acquired repo, legacy system), run the alignment pair:
+
+1. **Align** — `/brana:align` assesses gaps against brana conventions (CLAUDE.md, rules, hooks, tasks)
+2. **Audit immediately** — `/brana:claudemd audit` deduplicates and trims the CLAUDE.md that align's F2 step just appended to. Align can produce duplicate headings and bloat; the audit resolves them before implementation begins.
+
+**Tier ceiling:** Brownfield projects plateau at ~50% Standard tier (10/20) until a code scaffold is in place. Re-run the align→audit pair after the first `create-next-app`, `cargo new`, or equivalent to re-evaluate alignment.
+
+**Greenfield projects:** skip this gate — no existing CLAUDE.md to deduplicate.
+
+See [14-mastermind-architecture.md](./14-mastermind-architecture.md) for the full alignment skill pairing rationale.
+
 ### The Build-Phase Cycle
 
 From the roadmap precision principle — the implementation loop that uses the lifecycle:

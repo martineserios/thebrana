@@ -181,6 +181,29 @@ Skills can run headless via `claude -p "Execute /skill-name"` — the scheduler 
 
 ---
 
+## Deployment Model
+
+thebrana has no `brana deploy` command. **The file system IS the deployment.**
+
+Skills, hooks, rules, and agents load from disk at session start — so the act of merging to `main` is the act of deploying. No build step, no pipeline.
+
+```
+worktree (staging) → git merge → main (deployed)
+                                      ↓
+                              SessionStart hook
+                              loads everything from disk
+```
+
+| Layer | Source | How it loads |
+|-------|--------|-------------|
+| Identity | `~/.claude/` | Installed by `./bootstrap.sh` (run once per machine) |
+| Plugin | `system/` → `~/.claude/` | Plugin dir; CC loads at session start |
+| Context | `project/.claude/` | CC loads for active project |
+
+**`./bootstrap.sh` is NOT deployment** — it installs the identity layer to `~/.claude/` on a new machine. Deployment of new skills, hooks, or rules is a plain `git merge`.
+
+---
+
 ## The ruflo memory: Cross-Client Memory
 
 > **Alpha caveat:** ruflo is alpha. Every call must be wrapped in error handling with fallback to Layer 0 (auto memory files).
