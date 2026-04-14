@@ -45,8 +45,8 @@ For each line/block, classify into one of:
 | Known gotchas, non-obvious behaviors | ✅ Yes | — |
 | Standard language conventions CC already knows | ❌ Delete | nowhere — it's noise |
 | Detailed API docs or long tutorials | ❌ Delete | link to external docs |
-| Task-specific workflows (only relevant sometimes) | ❌ Move | `system/skills/` |
-| "Always X" behavioral rules | ❌ Move | `.claude/rules/` |
+| Task-specific workflows (only relevant sometimes) | ❌ Move | `.claude/skills/` (preferred) or `.claude/commands/` (legacy) |
+| "Always X" behavioral rules | ❌ Move | `.claude/rules/` (use YAML frontmatter `paths:` to scope) |
 | Deterministic enforcement (must happen every time) | ❌ Move | hooks |
 | File-by-file codebase descriptions | ❌ Delete | let CC read the code |
 | Frequently-changing information | ❌ Delete | MEMORY.md or task context |
@@ -63,7 +63,13 @@ Report:
 - Blocks to move to hooks/
 - Estimated lines after cleanup
 
-Flag if over 300 lines (warn) or under 60 lines after cleanup (healthy target).
+Size thresholds (community-researched, 2026-04-14):
+- **< 60 lines** — healthy (HumanLayer benchmark)
+- **60–80 lines** — acceptable
+- **> 80 lines** — warn: "Claude starts ignoring parts of it" (community hard limit)
+- **> 200 lines** — critical: CC system prompt already consumes ~50 instruction slots; rules above this compete for attention budget and get dropped
+
+Note: the 300-line ceiling is a deprecated guideline. Target < 80 for reliable instruction following.
 
 ## Step 4: REPORT
 
@@ -185,21 +191,87 @@ Ask: "Write to ./CLAUDE.md?" with options: yes / yes and add to git / edit first
 
 Write only on explicit approval.
 
+## Step 5: RECOMMEND COMPANION FILES
+
+After writing, suggest the full project structure:
+
+```
+CLAUDE.md                  ← project-level (just committed, < 80 lines)
+CLAUDE.local.md            ← personal overrides (gitignored — add to .gitignore)
+.claude/
+├── rules/                 ← path-scoped rules (YAML frontmatter paths:)
+├── skills/                ← task workflows (current best practice)
+├── commands/              ← slash commands, single .md (legacy, still works)
+├── agents/                ← sub-agent definitions (forked context)
+└── hooks/                 ← lifecycle enforcement
+
+# For domain-specific context, add nested CLAUDE.md files:
+tests/CLAUDE.md            ← loaded when Claude reads from tests/
+src/db/CLAUDE.md           ← loaded when Claude reads from src/db/
+src/components/CLAUDE.md   ← etc.
+```
+
+Specifically suggest:
+- `CLAUDE.local.md` — always. One line: "Personal overrides for this project." Add to `.gitignore`. Team commits CLAUDE.md; each dev customizes their own CLAUDE.local.md without polluting shared context.
+- Nested CLAUDE.md files — only if the project has distinct domains with different conventions (e.g., different testing patterns per service).
+
 ---
 
-## Reference: The Three-Layer Pattern
-
-For anything too long for CLAUDE.md, recommend progressive disclosure:
+## Reference: The Four-Tier CLAUDE.md Hierarchy
 
 ```
-CLAUDE.md              ← identity, commands, key conventions (< 100 lines)
-  @agent_docs/         ← task-specific guides (linked, not inlined)
-    building.md
-    testing.md
-    deploying.md
-  .claude/rules/       ← behavioral directives ("always X", "never Y")
-  system/skills/       ← domain workflows (loaded on demand)
-  hooks/               ← deterministic enforcement
+~/.claude/CLAUDE.md        ← global personal identity (< 15 lines — cross-project prefs)
+CLAUDE.md                  ← project team conventions, committed to VCS (< 80 lines)
+CLAUDE.local.md            ← personal overrides, gitignored (no limit — loads last, wins)
+tests/CLAUDE.md            ← subdirectory-scoped (loaded when Claude reads from that dir)
+src/db/CLAUDE.md           ← subdirectory-scoped
 ```
 
-Surface this pattern when the user's CLAUDE.md has grown past 200 lines.
+Files concatenate in order. `CLAUDE.local.md` loads last and **wins on conflict**. This is the standard multi-user pattern: team commits `CLAUDE.md`; each dev customizes `CLAUDE.local.md` without polluting shared context.
+
+## Reference: Progressive Disclosure Architecture
+
+For anything too long for CLAUDE.md, use routing instructions, not inline content:
+
+```
+CLAUDE.md                  ← routing layer only (< 80 lines)
+  "IMPORTANT: before testing tasks, read docs/testing.md"
+  "IMPORTANT: before DB work, read src/db/CLAUDE.md"
+
+docs/testing.md            ← testing strategy (linked, not inlined)
+docs/gotchas.md            ← historical gotchas (linked)
+docs/architecture/         ← architectural decisions (linked)
+.claude/rules/             ← behavioral directives with path: scoping
+.claude/skills/            ← domain workflows (only name+desc load upfront)
+.claude/agents/            ← sub-agents with forked context windows
+hooks/                     ← deterministic enforcement
+```
+
+**Key principle:** CLAUDE.md = routing layer, not content layer. If a section could live in a linked doc, it should. Only pointers stay in CLAUDE.md.
+
+## Reference: Skills vs Commands
+
+| | `.claude/commands/` | `.claude/skills/` |
+|---|---|---|
+| Structure | Single `.md` file | Directory + `SKILL.md` + helpers |
+| Status | Legacy (still works) | **Current best practice** |
+| Auto-invocable by Claude | No | Yes (unless `disable-model-invocation: true`) |
+
+Surface this when the user has content in `.claude/commands/` — recommend migrating to `.claude/skills/`.
+
+## Reference: Path-Scoped Rules
+
+Rules in `.claude/rules/` can be scoped to specific file types or directories using YAML frontmatter:
+
+```yaml
+# .claude/rules/testing-conventions.md
+---
+paths: ["**/*.test.ts", "tests/**"]
+---
+
+When writing tests, always use describe/it blocks...
+```
+
+Rules without `paths:` apply globally. Scoped rules are more efficient — they don't consume attention budget when Claude works outside the matching path.
+
+Surface this when the user has "testing rules" or "database rules" mixed into a global CLAUDE.md.
