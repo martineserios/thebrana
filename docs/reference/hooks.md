@@ -16,6 +16,7 @@
 | PostToolUseFailure | `` | `post-tool-use-failure.sh` | 5000ms |
 | PreToolUse | `Write|Edit` | `pre-tool-use.sh` | 5000ms |
 | PreToolUse | `Write|Edit` | `tdd-gate.sh` | 5000ms |
+| PreToolUse | `Write|Edit` | `feedback-gate.sh` | 3000ms |
 | PreToolUse | `EnterPlanMode` | `plan-mode-gate.sh` | 5000ms |
 | PreToolUse | `Bash` | `worktree-gate.sh` | 5000ms |
 | PreToolUse | `Bash` | `doc-gate.sh` | 5000ms |
@@ -50,6 +51,10 @@ Config drift detector — compares system/ source files vs deployed ~/.claude/ f
 ### `doc-gate.sh`
 
 Documentation Enforcement Gate — PreToolUse hook for Bash (git commit)
+
+### `feedback-gate.sh`
+
+PreToolUse: Advisory gate on feedback_*.md writes.
 
 ### `guard-explore.sh`
 

@@ -2,26 +2,38 @@
 
 # Rules Reference
 
-**16 rules** in `system/rules/`.
+**21 rules** in `system/rules/`.
 
 | File | Title | Summary |
 |------|-------|--------|
+| `always-use-build-framework.md` | Always Use Build Framework | Always start work via `/brana:backlog start <id>` → `/brana:build`. Never skip the framework to co... |
 | `brana-cli.md` | Brana CLI | **Always prefer CLI over raw file access.** Never Read/Write/Edit `.claude/tasks.json` directly. |
 | `context-budget.md` | Context Budget | ## Thresholds |
 | `delegation-routing.md` | Delegation Routing | Delegate to agents WITHOUT being asked when context matches (see CLAUDE.md agents table). Invoke ski... |
 | `doc-linking.md` | Doc Linking | Use `[doc NN](relative-path.md)` — never bare "doc NN". Relative paths from source file. Dimension... |
 | `git-discipline.md` | Git Discipline | ## One rule |
 | `inbox-convention.md` | Inbox Convention | `inbox/` is a gitignored drop zone for files needing processing (audio, PDFs, data, screenshots). Or... |
+| `lifecycle-gate-assessment.md` | Always Assess Lifecycle Gates Before Starting | Before starting any task, assess which DDD/SDD/TDD lifecycle steps apply — even S-effort fixes. |
+| `no-phantom-dependencies.md` | Never Reference Non-Existent Docs in Skill LOAD Steps | Never build a skill whose LOAD step references a doc that doesn't exist yet. |
 | `parallel-bash.md` | Parallel Bash Resilience | Claude Code cancels all sibling Bash tool calls when one exits non-zero. Guard independent parallel ... |
 | `research-discipline.md` | Research Discipline | When starting research on any topic: |
+| `rules-over-hooks-for-gates.md` | Rules Over Hooks for Behavioral Gates | Prefer a rule file over a hook for "always do X before Y" behavioral constraints. |
 | `sdd-tdd.md` | Test-First Development | ## Before implementation |
 | `self-improvement.md` | Self-Improvement | Automatic learning. Runs every session without invocation. |
 | `skill-routing.md` | Skill Routing | Before starting any implementation, design, or research work — **always ask** which skills to load... |
 | `spec-assumptions.md` | No Silent Ambiguity Fill | If a requirement can be interpreted two ways, **ask — don't pick**. |
+| `specify-check-ids.md` | SPECIFY Phase Must Check Existing Task IDs | Before proposing a task tree in the SPECIFY phase, read tasks.json to find the next available ID. |
 | `tactical-context.md` | Tactical Context | After giving actionable advice related to a task (workaround, constraint, deadline, dependency, "do ... |
 | `task-convention.md` | Task Convention | ## Before branching |
 | `universal-quality.md` | Quality Standards | - **Test before committing**: run relevant tests before any commit. If no test suite exists, at leas... |
 | `work-preferences.md` | Work Preferences | ## Parallelism |
+
+## Always Use Build Framework
+
+**File:** `system/rules/always-use-build-framework.md`
+
+Always start work via `/brana:backlog start <id>` → `/brana:build`. Never skip the framework to code directly.
+
 
 ## Brana CLI
 
@@ -65,6 +77,20 @@ Use `[doc NN](relative-path.md)` — never bare "doc NN". Relative paths from so
 `inbox/` is a gitignored drop zone for files needing processing (audio, PDFs, data, screenshots). Organized by topic subfolder. Files are transient — process, then delete or move.
 
 
+## Always Assess Lifecycle Gates Before Starting
+
+**File:** `system/rules/lifecycle-gate-assessment.md`
+
+Before starting any task, assess which DDD/SDD/TDD lifecycle steps apply — even S-effort fixes.
+
+
+## Never Reference Non-Existent Docs in Skill LOAD Steps
+
+**File:** `system/rules/no-phantom-dependencies.md`
+
+Never build a skill whose LOAD step references a doc that doesn't exist yet.
+
+
 ## Parallel Bash Resilience
 
 **File:** `system/rules/parallel-bash.md`
@@ -77,6 +103,13 @@ Claude Code cancels all sibling Bash tool calls when one exits non-zero. Guard i
 **File:** `system/rules/research-discipline.md`
 
 When starting research on any topic:
+
+
+## Rules Over Hooks for Behavioral Gates
+
+**File:** `system/rules/rules-over-hooks-for-gates.md`
+
+Prefer a rule file over a hook for "always do X before Y" behavioral constraints.
 
 
 ## Test-First Development
@@ -105,6 +138,13 @@ Before starting any implementation, design, or research work — **always ask** 
 **File:** `system/rules/spec-assumptions.md`
 
 If a requirement can be interpreted two ways, **ask — don't pick**.
+
+
+## SPECIFY Phase Must Check Existing Task IDs
+
+**File:** `system/rules/specify-check-ids.md`
+
+Before proposing a task tree in the SPECIFY phase, read tasks.json to find the next available ID.
 
 
 ## Tactical Context

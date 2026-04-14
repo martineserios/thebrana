@@ -15,7 +15,7 @@
 | `/brana:build` | execution | Build anything — features, bug fixes, refactors, spikes, migrations, investiga |
 | `/brana:cargo-machete` | brana | Detect and remove unused dependencies in Rust projects using cargo-machete. |
 | `/brana:challenge` | learning | Dual-model adversarial review. Opus subagent stress-tests reasoning; Gemini stre |
-| `/brana:claudemd` | execution | Audit or generate a CLAUDE.md for any project. |
+| `/brana:claudemd` | execution | Audit or generate a CLAUDE.md for any project. Natural companion to /brana:align |
 | `/brana:client-retire` | execution | Archive a client's patterns and mark them as historical. Use when retiring a cli |
 | `/brana:close` | session | End a session — extract learnings, write handoff note, store patterns, detect  |
 | `/brana:do` | brana | Alias for /brana:backlog start with freeform text. Routes to the best skill or c |
@@ -148,7 +148,7 @@ Build anything — features, bug fixes, refactors, spikes, migrations, investiga
 
 ### `/brana:claudemd`
 
-Audit or generate a CLAUDE.md for any project.
+Audit or generate a CLAUDE.md for any project. Natural companion to /brana:align — run audit after align on brownfield projects.
 
 **Arguments:** `[audit [path] | generate [path]]`
 
@@ -249,13 +249,11 @@ Guided workflow to prepare and format sources for NotebookLM. Claude reads, refo
 
 ### `/brana:export-pdf`
 
-Convert a markdown file to PDF using mdpdf. Automatically pre-renders Mermaid diagrams to PNG via `mmdc` before export. Use when exporting proposals, SOPs, or any markdown document to PDF.
+Convert a markdown file to PDF using mdpdf. Use when exporting proposals, SOPs, or any markdown document to PDF.
 
 **Arguments:** `[file.md]`
 
 **Allowed tools:** Bash, Read, Glob, AskUserQuestion
-
-**Requires:** `npm install -g @mermaid-js/mermaid-cli` for Mermaid diagram rendering (gracefully skipped if absent).
 
 ### `/brana:gsheets`
 
