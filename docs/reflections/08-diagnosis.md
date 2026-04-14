@@ -318,6 +318,15 @@ Every dimension doc triaged for brana v2. [Docs 01](../dimensions/01-brana-syste
 ### [Doc 49b](../../../brana-knowledge/dimensions/49-auto-learning-patterns.md) — Auto-Learning Patterns for Agent Harnesses
 **Verdict: Keep.** Structural patterns for harnesses that learn from use: The Ratchet (discard by default), Intent/Execution Separation, Bounded Search Space, Knowledge-From-Use (capture at moment of use), Temporal Batching, Tiered Access (promote/demote by frequency), Forgetting as Feature (pruning = learning). **Directly informs ADR-027 auto-learning loop.** Current brana defaults to "keep everything" — The Ratchet argues for inverting that. Note: filename conflict with doc 49a; should be renamed to 50 in next cleanup pass.
 
+### [knowledge-architecture.md](../../../brana-knowledge/dimensions/knowledge-architecture.md) — Knowledge Architecture for AI Development Systems
+**Verdict: Keep — foundational synthesis.** Formalizes how knowledge flows between dimension docs, reflection docs, and the active ruflo memory layer. Maps retrieval patterns, indexing strategies, and knowledge lifecycle. Depends on docs 14, 22, 31, 32, 35. Feeds R2 (knowledge retrieval design) and R4 (knowledge maintenance cadences). Status: budding.
+
+### [software-engineering-patterns.md](../../../brana-knowledge/dimensions/software-engineering-patterns.md) — Software Engineering Patterns, Practices & Architectures
+**Verdict: Keep as reference.** Cross-project catalog compiled from 80+ sources and 18 essential books — architecture patterns, design principles, industry-specific guidance. Source for R2 (pattern vocabulary), R3 (architectural linters), and client project guidance. Not brana-specific — a general-purpose engineering reference that applies to every managed project.
+
+### [cli-builder-rust-bash-devops.md](../../../brana-knowledge/dimensions/cli-builder-rust-bash-devops.md) — CLI Builder: Rust + Bash + DevOps
+**Verdict: Keep as reference.** Research on building CLI tools using Rust (clap, cargo-dist) and Bash, with DevOps integration patterns. Direct input to the `brana` CLI architecture. Informs R2 for CLI tool design. Sources: skills.sh marketplace, context7, web search, internal codebase analysis.
+
 ---
 
 ## Resolved Questions (from R2)

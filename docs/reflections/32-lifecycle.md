@@ -73,6 +73,8 @@ When using Agent Teams: isolate agents by discipline.
 
 ADRs are pattern-worthy — `/brana:retrospective` extracts "decision X was made because Y" and stores it in ruflo memory. Domain models (future) would feed the same loop. The enforcement hooks themselves are pure git-based, no ruflo dependency. Learning happens through the skill layer (`/brana:retrospective`, `/brana:memory recall`).
 
+**The Ratchet: default is discard, not keep.** From [49b-auto-learning-patterns.md](../../../brana-knowledge/dimensions/49-auto-learning-patterns.md) Pattern 1 — the persist path must be harder than the discard path. Systems that default to "keep everything" drown in noise. In brana: `confidence: 0.5` quarantine is The Ratchet's first gate — patterns not recalled and promoted within 3 sessions are prune candidates, not permanent residents. `/brana:memory review` enforces The Ratchet monthly (decay ratio, knowledge utilization ratio). The graduation pathway ([doc 00](../00-user-practices.md)) is The Ratchet for practices — manual habits that don't graduate to conventions in 3+ repetitions should be dropped, not indefinitely deferred.
+
 ---
 
 ## Context Management
@@ -240,6 +242,16 @@ The close→maintain-specs loop is what keeps specs alive. Without it, specs dri
 **Five feedback paths.** Findings from implementation don't all go to the same place — each path serves a different layer:
 
 1. **Implementation findings → `/brana:maintain-specs`** — when building reveals a spec error or gap, maintain-specs cascades the fix through dimension → reflection → roadmap. This is the **document layer**: correcting what the system says.
+
+**CCEPL failure classification.** Before routing a finding into path 1 (maintain-specs), classify it by failure type — this determines which doc layer receives the fix. From [37-ruvnet-development-practices.md](../../../brana-knowledge/dimensions/37-ruvnet-development-practices.md) CCEPL methodology:
+
+| Failure type | Definition | Routes to |
+|---|---|---|
+| `info-gap` | Missing or wrong facts about tools, capabilities, external systems | Dimension doc (01-07, 09-13, 15-16, 20-23, 25-28, 33-49) |
+| `fragile-pattern` | Architecture decision or synthesis that breaks under real use | Reflection doc (08, 14, 29, 31, 32, 33) + test |
+| `misalignment` | Implementation steps that diverge from the architecture they're supposed to follow | Roadmap/skill doc (17, 18, 19) |
+
+Tagging errata entries in [doc 24](../24-roadmap-corrections.md) with their CCEPL type makes `/brana:apply-errata` routing mechanical instead of judgment-per-cycle.
 2. **Event capture → `/brana:log`** — links, calls, meetings, ideas, observations are captured into a searchable append-only log. This is the **observation layer**: recording what happened so it can be triaged later (e.g. promoted to a task or referenced in a review).
 3. **Tactical advice → task `context` field** — `system/rules/tactical-context.md` guides appending session advice to related tasks by keyword/tag matching. This is the **execution layer**: enriching the next session that picks up the same task.
 4. **Reusable patterns → `/brana:retrospective`** — extracts durable patterns into ruflo memory with confidence tracking. This is the **knowledge layer**: building institutional memory that outlives any single task or spec.
