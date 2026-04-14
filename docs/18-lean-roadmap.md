@@ -424,7 +424,7 @@ Store: `cd $HOME && $CF memory store -k "decision:{PROJECT}:{slug}" -v '{"type":
 
 This project has opted into spec-driven development:
 
-- **Create an ADR before implementing any new feature.** Use `/decide <title>` to create one in `docs/decisions/`. The PreToolUse hook will block implementation on `feat/*` branches until a spec or test exists.
+- **Create an ADR before implementing any new feature.** Use `/brana:build` — ADR creation happens in the SPECIFY step. The PreToolUse hook will block implementation on `feat/*` branches until a spec or test exists.
 - **Write tests before implementation code.** If TDD-Guard is installed, it enforces this automatically.
 - **Feature branches (`feat/*`) must have spec/test activity before implementation.** Commits touching `docs/`, `test/`, `tests/`, or `*.test.*`/`*.spec.*` files satisfy this requirement.
 
@@ -519,7 +519,7 @@ set -euo pipefail
       "hookSpecificOutput": {
         "hookEventName": "PreToolUse",
         "permissionDecision": "deny",
-        "permissionDecisionReason": "Spec-first: create an ADR (/decide) or write tests before implementation on feat/* branches. This project has docs/decisions/ — enforcement is active."
+        "permissionDecisionReason": "Spec-first: use /brana:build SPECIFY step (ADR creation) or write tests before implementation on feat/* branches. This project has docs/decisions/ — enforcement is active."
       }
     }
     ```

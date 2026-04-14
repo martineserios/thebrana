@@ -911,11 +911,18 @@ FORWARD PROPAGATION (specs → specs)
   │
   ├── Step 6: Backlog review — check doc 30 pending items
   │
-  ├── Step 7: Surface findings — ask user about storing
+  ├── Step 7: Log findings to decision log
+  │            (`brana decisions log maintain-specs action "..."`)
+  │            → skip if no errata applied and no cascades
+  │
+  ├── Step 8: Surface findings — ask user about storing
   │            notable discoveries via /brana:retrospective
   │
-  └── Step 8: Backup knowledge — run brana-knowledge backup
-               if knowledge artifacts were modified
+  ├── Step 9: Backup knowledge — run brana-knowledge backup
+  │            if knowledge artifacts were modified
+  │
+  └── Step 10: Regenerate spec graph — `brana graph build`
+               if any docs were modified this run
 
 FORWARD PROPAGATION (specs → implementation)
 ─────────────────────────────────────────────

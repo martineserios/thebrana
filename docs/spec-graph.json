@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-13T17:28:36Z",
+  "generated": "2026-04-14T12:46:59Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -321,7 +321,8 @@
         "system/hooks/hooks.json",
         "system/scripts/generate-reference.py",
         "system/procedures/build.md",
-        "system/hooks/"
+        "system/hooks/",
+        "system/cli/rust/crates/brana-cli/src/commands/knowledge.rs"
       ]
     },
     "docs/25-self-documentation.md": {
@@ -1518,6 +1519,13 @@
         "system/procedures/onboard.md"
       ]
     },
+    "docs/ideas/agent-definition-gaps.md": {
+      "title": "Agent Definition Gaps — Unused CC Frontmatter Fields",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/agents/"
+      ]
+    },
     "docs/ideas/agent-interaction-architecture.md": {
       "title": "Agent Interaction Architecture",
       "type": "Roadmap",
@@ -1529,6 +1537,19 @@
       "title": "Agent Observability & Learning Extraction",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/ideas/agent-skills-brana-enhancements.md": {
+      "title": "Brana Enhancements from addyosmani/agent-skills Analysis",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/",
+        "system/procedures/",
+        "system/skills/context-engineering/SKILL.md",
+        "system/procedures/context-engineering.md",
+        "system/skills/deprecation-and-migration/SKILL.md",
+        "system/procedures/deprecation-and-migration.md",
+        "system/agents/"
+      ]
     },
     "docs/ideas/brana-cli-mcp-layer.md": {
       "title": "Brana CLI MCP Layer — Architecture Decision",
@@ -1552,6 +1573,14 @@
       "title": "Brana Operating Model",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/ideas/build-enhancements-from-osmani.md": {
+      "title": "Build Command Enhancements — Inspired by addyosmani/agent-skills",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/procedures/build.md",
+        "system/rules/spec-assumptions.md"
+      ]
     },
     "docs/ideas/cc-feature-adoption-v2.1.76-81.md": {
       "title": "CC Feature Adoption — v2.1.76–v2.1.81",
@@ -1597,6 +1626,16 @@
     },
     "docs/ideas/inbox-to-dimensions-pipeline.md": {
       "title": "Inbox → Dimensions Pipeline — Shape",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/ideas/knowledge-insights-digest.md": {
+      "title": "Knowledge Pipeline — Research Session Digest",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/ideas/layered-input-processing.md": {
+      "title": "Layered Input Processing — Batch + Express Pipelines",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -1769,6 +1808,7 @@
         "system/rules/sdd-tdd.md",
         "system/rules/self-improvement.md",
         "system/rules/skill-routing.md",
+        "system/rules/spec-assumptions.md",
         "system/rules/tactical-context.md",
         "system/rules/task-convention.md",
         "system/rules/universal-quality.md",
@@ -8395,6 +8435,18 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/layered-input-processing.md",
+      "to": "docs/ideas/inbox-to-dimensions-pipeline.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/layered-input-processing.md",
+      "to": "docs/ideas/knowledge-insights-digest.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/memory-consolidation-kairos.md",
       "to": "docs/ideas/inbox-to-dimensions-pipeline.md",
       "type": "references",
@@ -9374,9 +9426,9 @@
     }
   ],
   "stats": {
-    "nodes": 296,
-    "edges": 1238,
+    "nodes": 301,
+    "edges": 1240,
     "typed_edges": 503,
-    "orphans": 65
+    "orphans": 68
   }
 }

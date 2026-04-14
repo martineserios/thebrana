@@ -211,6 +211,16 @@ Binary resolution order (same pattern as `resolve-brana.sh`):
 
 Cron-safe: explicit path resolution, no shell PATH dependency.
 
+### Output format differentiation
+
+Tier 1 and Tier 2 instruct the model to respond with JSON only. The Rust implementation
+parses the CLI envelope's `result` field via `call_claude_json` (strips code fences,
+calls `serde_json::from_str`).
+
+Tier 3 instructs the model to return markdown prose. It uses `call_claude_text` instead —
+`call_claude_json` would always fail on unstructured output. This distinction is critical:
+**never route a prose-returning tier through `call_claude_json`.**
+
 ## Tier 1 LLM prompt (spec)
 
 ```

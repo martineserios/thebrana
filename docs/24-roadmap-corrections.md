@@ -1643,9 +1643,9 @@ The backlog SKILL.md spec uses `session:{SESSION_ID}` as the claimant format for
 | 3 | CLAUDE.md | Incomplete | Commands table listed 9 skills; 18 unlisted | Applied — added all 30 skills in 3 category tables |
 | 4 | CLAUDE.md | Stale | "Agent Commands" section only listed maintain-specs | Applied — renamed to "Spec Maintenance Commands", added all 4 |
 | 5 | Skills | Incomplete | 0/30 skills had status/growth_stage fields (32-lifecycle.md requires them) | Applied — added status:stable, growth_stage:evergreen to all 30 |
-| 6 | Specs | Stale | 18-lean-roadmap.md references retired /decide skill | Deferred — requires maintain-specs |
-| 7 | Specs | Stale | 31-assurance.md references tests/scripts/test-sync-state.sh (doesn't exist) | Deferred — requires maintain-specs |
-| 8 | Specs | Stale | 32-lifecycle.md mentions PreCompact hook (CC doesn't support it) | Deferred — requires maintain-specs |
+| 6 | Specs | Stale | 18-lean-roadmap.md references retired /decide skill | Applied 2026-04-14 — WI-2 CLAUDE.md template + WI-3 hook message updated to /brana:build |
+| 7 | Specs | Stale | 31-assurance.md says "no dedicated tests/ dir" — tests/ exists now with test-sync-state.sh | Applied 2026-04-14 — updated to reflect tests/ subdirectory structure |
+| 8 | Specs | Stale | 32-lifecycle.md mentions PreCompact hook (CC doesn't support it) | Applied 2026-04-14 — Autopilot note corrected to state PreCompact is not hookable |
 
 **Notes:** Critical finding was rules sync drift — trimming ~/.claude/rules/ without updating system/rules/ would have been overwritten on next bootstrap.sh run. All agent model assignments verified correct. Hooks verified correct (PostToolUse intentionally in settings.json per CC bug #24529).
 
@@ -2100,6 +2100,76 @@ The planned split (ARCHITECTURE.md = reasoning, component-index.md = generated i
 **Fix applied:** Budget check added directly to `system/scripts/git-hooks/pre-commit`. Logic mirrors validate.sh Check 5 (CLAUDE.md + global rules + skill descriptions + agent descriptions). Threshold set to 28672. Runs only when `system/skills/` and `system/hooks/` directories exist (brana repos only — skip for other repos).
 
 **Status:** applied (2026-04-13)
+
+---
+
+## Error 129: Tier3 draft synthesis used call_claude_json on prose output
+
+**Severity:** High
+**Discovery:** 2026-04-13 — `brana knowledge process --draft` always failed with JSON parse error
+**Affected files:** `system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs`, `system/cli/rust/crates/brana-cli/src/commands/knowledge.rs`, `docs/architecture/features/inbox-to-dimensions-pipeline.md`
+
+**What the spec says:** Pipeline feature brief does not distinguish output format between tiers. Implies all tiers use the same LLM call path.
+
+**What the implementation says:** Tier1/2 return structured JSON — correct for `call_claude_json`. Tier3 instructs the model to return markdown prose — `call_claude_json` then calls `serde_json::from_str` on that prose, which always fails.
+
+**Impact:** `brana knowledge process --draft` was 100% broken since tier3 landed. No one could synthesize draft dimension sections.
+
+**Fix applied:** Added `call_claude_text` to `knowledge_pipeline.rs`. Wired `run_tier3()` to use it. 2 unit tests. Committed `a4cfe46`.
+
+**Doc fix needed:** `docs/architecture/features/inbox-to-dimensions-pipeline.md` — note that tier3 uses `call_claude_text`, not `call_claude_json`.
+
+**Status:** applied (2026-04-14) — code-fix 2026-04-13 (a4cfe46), doc fix 2026-04-14 (output format differentiation section added to feature brief)
+
+---
+
+## Error 130: Doc 08 missing triage entries for 3 unnumbered dimension docs
+
+**Severity:** Low
+**Discovery:** 2026-04-14 — re-evaluate-reflections run (maintain-specs cycle)
+**Affected files:** `docs/reflections/08-diagnosis.md`
+
+**Gap:** Three dimension docs added to `brana-knowledge/dimensions/` after doc 08's last triage pass have no triage entry: `knowledge-architecture.md`, `software-engineering-patterns.md`, `cli-builder-rust-bash-devops.md`. Recurring pattern (see #42, #55, #88, #123).
+
+**Suggested fix:** Add triage entries to doc 08's dimension triage section:
+- `knowledge-architecture.md` — Keep. Covers ontology and knowledge graph design patterns; informs R2 on spec structuring and reasoning path preservation. Linked to docs 47/48.
+- `software-engineering-patterns.md` — Keep as reference. Architecture pattern catalog that validates brana's modular monolith approach. Consumer of R2, not input.
+- `cli-builder-rust-bash-devops.md` — Defer. Operational implementation detail for the brana Rust CLI crate. Not a reflection input unless CLI architecture becomes a formal design decision.
+
+**Status:** pending
+
+---
+
+## Error 131: Doc 32 missing rejection/discard path from auto-learning patterns (The Ratchet)
+
+**Severity:** Medium
+**Discovery:** 2026-04-14 — re-evaluate-reflections run (maintain-specs cycle)
+**Affected files:** `docs/reflections/32-lifecycle.md`
+**Source:** Dimension doc 49b (Auto-Learning Patterns)
+
+**Gap:** Doc 49b Pattern 1 (The Ratchet) states: "The persist path must be harder than the discard path. Brana's current design inverts this — everything persists by default." Doc 32's maintenance table shows `/brana:retrospective` as the pattern capture path but has no inverse gate (rejection/discard criteria). Without a discard path, pattern quality degrades over time as low-signal entries accumulate. The pattern health metric in doc 32 cannot catch this without defined rejection criteria.
+
+**Suggested fix:** Add to doc 32's maintenance table and Connectome section:
+- Quality gate for `/brana:retrospective`: require confidence floor (e.g., ≥0.4) before persisting
+- Discard path: `/brana:memory review --prune` for low-access patterns (below threshold frequency)
+- Ratchet principle: patterns should prove their value or be removed; default is discard, not persist
+
+**Status:** pending
+
+---
+
+## Error 132: Doc 14 missing bounded search space constraint from auto-learning patterns
+
+**Severity:** Medium
+**Discovery:** 2026-04-14 — re-evaluate-reflections run (maintain-specs cycle)
+**Affected files:** `docs/reflections/14-mastermind-architecture.md`
+**Source:** Dimension doc 49b (Auto-Learning Patterns), Pattern 3
+
+**Gap:** Doc 49b Pattern 3 (Bounded Search Space) states: "bounded LOAD prevents context pollution" — skills should load at most N dimension docs (e.g., 3) per search to prevent runaway context use. Doc 14's Intelligence layer documents ruflo semantic search but places no upper bound on retrieval depth. Without an explicit cap, skills under ruflo can retrieve arbitrarily many dimension sections into context on a high-similarity query, bloating the context budget.
+
+**Suggested fix:** Add to doc 14's Intelligence layer design: "Skill search must bound retrieval — max 3-5 dimension sections per semantic query, scored by relevance. Unbounded retrieval defeats the 26KB context budget discipline documented in doc 35."
+
+**Status:** pending
 
 ---
 

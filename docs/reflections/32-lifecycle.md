@@ -103,7 +103,7 @@ Three strategies from Anthropic's research, all applicable:
 
 All three should be available. The SessionStart hook reads notes. The SessionEnd hook writes them. Sub-agents keep exploration noise out of the main context.
 
-**Context Autopilot (Feb 2026).** Claude Code now includes native context auto-management — the system automatically compacts and manages the context window without explicit user intervention. With Autopilot enabled, the three strategies above remain relevant but shift in priority: **Compaction** is partially automated (Autopilot handles routine compaction; PreCompact hooks still fire for custom summarization), **Structured Note-Taking** becomes more important (Autopilot can't preserve domain-specific structure — hooks must write notes before auto-compaction loses them), **Sub-Agent Architectures** remain unchanged (parallel exploration still benefits from context isolation regardless of Autopilot).
+**Context Autopilot (Feb 2026).** Claude Code now includes native context auto-management — the system automatically compacts and manages the context window without explicit user intervention. With Autopilot enabled, the three strategies above remain relevant but shift in priority: **Compaction** is partially automated (Autopilot handles routine compaction; CC does not expose a PreCompact event — pre-compaction hooks are not possible), **Structured Note-Taking** becomes more important (Autopilot can't preserve domain-specific structure — the SessionEnd hook must write task context, build step, and key findings to `brana backlog set context --append` and auto memory *every session*, not just on explicit `/brana:close` invocations, so compaction never loses cross-session continuity), **Sub-Agent Architectures** remain unchanged (parallel exploration still benefits from context isolation regardless of Autopilot).
 
 Additionally, the **Notification** hook type (`permission_prompt`, `idle_prompt`, `auth_success`) provides a new maintenance trigger — hooks can respond to permission prompts and idle states, enabling automated housekeeping during natural session pauses.
 
@@ -145,7 +145,7 @@ From [15-self-development-workflow.md](../15-self-development-workflow.md) — t
 
 | Component | Review Trigger | How |
 |-----------|---------------|-----|
-| Pattern health | Monthly | `/brana:memory review` — staleness, contradictions, confidence distribution |
+| Pattern health | Monthly | `/brana:memory review` — four quality signals: **retrieval precision** (are retrieved patterns actually used in sessions?), **knowledge utilization ratio** (what fraction of stored patterns informed at least one session this month?), **decay ratio** (patterns not accessed in 90 days — prune candidates), **confidence distribution** (skewed low = accumulating low-signal entries). From [49b](../../../brana-knowledge/dimensions/49-auto-learning-patterns.md) Pattern 8. |
 | Token usage | After each session or weekly | Session cost tracking via statusline — model distribution, session patterns |
 | Source registry | Per source cadence (weekly–quarterly) | `/brana:research registry` — trust tier health, overdue checks, yield tracking. See [33-research-methodology.md](../../../brana-knowledge/dimensions/33-research-methodology.md) |
 | Pattern curation | After each session with notable learnings | `/brana:retrospective` — the engine that builds knowledge trust |

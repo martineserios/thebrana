@@ -171,7 +171,7 @@ Operational state lives in `~/.claude/` (fast cache) but must be recoverable fro
 - **export/import** — round-trip ruflo patterns+decisions through a JSON intermediary (`system/state/patterns-export.json`). Graceful skip when ruflo is unavailable
 - **Scheduler safety net** — daily push (9am), weekly export (Sunday 3:05am) via systemd timers with `Persistent=true`
 
-Test coverage: root-level `test.sh` runs all test layers including sync-state verification. No dedicated `tests/` directory — test scripts live at repo root (`test-hooks.sh`, `test-memory.sh`, `test.sh`).
+Test coverage: `tests/scripts/test-sync-state.sh` covers all five subcommands. Test scripts are organized under `tests/` (subdirs: `hooks/`, `scripts/`, `skills/`, `bootstrap/`) — root-level `test.sh` runs all test layers as the entry point.
 
 ---
 
