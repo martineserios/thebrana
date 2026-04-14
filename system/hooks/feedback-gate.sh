@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# PreToolUse: Advisory gate on feedback_*.md writes.
-# Wave 1: warns, does not block. Wave 2 (t-1245b): blocking mode.
+# PreToolUse: Blocking gate on feedback_*.md writes — Wave 2.
+# Blocks write. Set BRANA_MEMORY_OVERRIDE=1 to bypass (logs to override-log.md).
 # Spec: ADR-037, memory-taxonomy-sdd.md §4
 # Run: cat payload.json | bash feedback-gate.sh
 
@@ -41,11 +41,10 @@ if [ "${BRANA_MEMORY_OVERRIDE:-}" = "1" ]; then
     pass_through
 fi
 
-# Advisory warning — continue:true, inject context
-WARNING="⚠ feedback_*.md creation detected: $(basename "$FILE_PATH")
+# Blocking response — continue:false, inject routing context
+WARNING="🚫 feedback_*.md write BLOCKED: $(basename "$FILE_PATH")
 
-The memory taxonomy routes learnings by type — not to feedback_*.md files.
-Use /brana:retrospective to classify and route correctly:
+feedback_*.md is a legacy path. Use /brana:retrospective to classify and route:
 
   Rule (always/never)    → system/rules/ draft (human gate)
   Decision (why X/Y)     → ADR stub (human gate)
@@ -53,9 +52,9 @@ Use /brana:retrospective to classify and route correctly:
   Pattern (reusable fix) → ~/.claude/memory/patterns.md
   Knowledge (domain fact) → ~/.claude/memory/knowledge-staging.md
 
-To suppress this warning: set BRANA_MEMORY_OVERRIDE=1 in your shell."
+To bypass: set BRANA_MEMORY_OVERRIDE=1 in your shell (logs to override-log.md)."
 
 ESCAPED=$(echo "$WARNING" | jq -Rs '.' 2>/dev/null) || ESCAPED='"[feedback-gate warning — jq unavailable]"'
 
-echo "{\"continue\": true, \"additionalContext\": $ESCAPED}"
+echo "{\"continue\": false, \"additionalContext\": $ESCAPED}"
 exit 0
