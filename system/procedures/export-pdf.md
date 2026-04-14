@@ -110,23 +110,22 @@ If found, tell the user and use it with `--style={path}`. If not found, proceed 
 
 ### 5. Run mdpdf
 
-Use `render_source` (from step 3) as input. If Mermaid blocks were pre-rendered, specify the output path explicitly so the PDF lands next to the original file:
+Use `render_source` (from step 3) as input.
+
+**Important:** `mdpdf --dest` is silently ignored — the output PDF always lands beside the source file (same directory, `.pdf` extension). When using a temp copy (`render_source` ≠ `{source_file}`), mdpdf writes the PDF into `$tmp_dir`. After it completes, copy manually to the original source directory:
 
 ```bash
-mdpdf "{render_source}" "{output_pdf}" --style="{css_path}"
+# Run mdpdf (output lands in same dir as render_source)
+mdpdf "{render_source}" --style="{css_path}"   # with CSS
+mdpdf "{render_source}"                        # without CSS
+
+# If Mermaid pre-render was used, copy PDF to original location
+tmp_pdf="${tmp_dir}/{source_basename_no_ext}.pdf"
+output_pdf="{source_dir}/{source_basename_no_ext}.pdf"
+cp "$tmp_pdf" "$output_pdf"
 ```
 
-If no CSS was found, omit `--style`:
-
-```bash
-mdpdf "{render_source}" "{output_pdf}"
-```
-
-If no Mermaid pre-rendering occurred (`render_source` == original file), omit the explicit output path — mdpdf places it next to the source automatically:
-
-```bash
-mdpdf "{source_file}" --style="{css_path}"
-```
+If no Mermaid pre-rendering occurred (`render_source` == `{source_file}`), no copy is needed — the PDF is already in the right place.
 
 ### 6. Report
 
