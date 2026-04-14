@@ -163,9 +163,11 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 139 | [Doc 29](reflections/29-venture-management-reflection.md) framework stacking "max 3 layers" ambiguous vs doc 34 design | **Medium** | applied (2026-04-14) | Scope clarification added: 3-layer limit applies to operating frameworks, not measurement streams; 5 streams in /brana:review is triangulation, not bloat |
 | 140 | `align.md` F2 lacks merge-safety — appends duplicate sections to existing CLAUDE.md | **Medium** | applied (2026-04-14) | Merge-safety block added to F2: grep for existing heading before append; merge under existing heading if found. |
 | 141 | `align.md` F2 CLAUDE.md template conflicts with `claudemd.md` include/exclude rules | **Low** | applied (2026-04-14) | Content constraints added to F2: reference claudemd Step 2 rules; explicitly prohibit Status/TBD contacts/verbose tables/commit type lists; 60-line target, 80-line warning. |
-| 142 | `brana backlog` has no `complete` subcommand — `brana backlog complete t-NNN` returns error | **Low** | pending | Add `brana backlog complete <id>` alias in Rust CLI, or update procedures to use `brana backlog set <id> status completed`. |
-| 143 | `branch-verify` hook scans staged file content — false positives on test files referencing behavioral paths | **Medium** | pending | Change hook to use `git diff --cached --name-only`; or add `tests/` to allowlist. |
+| 142 | `brana backlog` has no `complete` subcommand — `brana backlog complete t-NNN` returns error | **Low** | applied (2026-04-14) | Procedure fix: `status done` → `status completed` in ship.md (invalid status). CLI alias is code-fix — out of scope for spec layer. |
+| 143 | `branch-verify` hook scans staged file content — false positives on test files referencing behavioral paths | **Medium** | code-fix | Targets `system/hooks/branch-verify.sh` — implementation code, skip at spec layer. |
 | 144 | `claudemd` SKILL.md description omits align pairing; procedure "When to use" missing post-align trigger | **Low** | applied (2026-04-14) | Description updated; post-align bullet added to "When to use". Reconcile --scope consistency 2026-04-14. |
+| 145 | `branch-verify.sh` + `main-guard.sh` fail on `cd <worktree> && git add` — uses session CWD not worktree CWD | **Medium** | pending | Fix: parse `cd <path> &&` in command string to extract intended dir, or resolve from staged file paths. |
+| 146 | thebrana has no documented deploy mechanism; `brana deploy` command doesn't exist | **Low** | pending | Add one-line deploy note to thebrana CLAUDE.md. |
 
 ---
 
@@ -2339,7 +2341,7 @@ Doc 38 also classifies these as Wave 1 (divergent ideation — shipped) vs Wave 
 
 **Suggested fix:** Either (a) add `brana backlog complete <id>` as an alias in the Rust CLI, or (b) update all procedures that reference task completion to use `brana backlog set <id> status completed`.
 
-**Status:** pending
+**Status:** applied (2026-04-14) — `ship.md` corrected: `status done` → `status completed` (invalid status, only `pending`/`in_progress`/`completed`/`cancelled` accepted). Most procedures already used correct form. CLI alias remains a code-fix backlog item.
 
 ---
 
@@ -2369,3 +2371,31 @@ Doc 38 also classifies these as Wave 1 (divergent ideation — shipped) vs Wave 
 **Suggested fix:** Add "Natural companion to /brana:align — run audit after align on brownfield projects" to SKILL.md description. Add post-align bullet to "When to use" in claudemd.md.
 
 **Status:** applied (2026-04-14) — description updated; post-align bullet added.
+
+---
+
+## Error 145: `branch-verify.sh` and `main-guard.sh` fail on `cd <worktree> && git add` pattern
+
+**Severity:** Medium — requires escape hatch on every cross-repo worktree session
+**Discovery:** 2026-04-14 — close session from mya client context working on thebrana worktree
+**Affected files:** `system/hooks/branch-verify.sh`, `system/hooks/main-guard.sh`
+
+**Gap:** Both hooks resolve git root from `$CWD` (the session working directory). When the session CWD is a different repo on `main`, a `cd <worktree> && git add` command hits the hook with the wrong CWD. The hook sees the session CWD on `main`, not the worktree. The existing `-C` path extraction only handles `git -C <path>` syntax, not `cd <path> && git` syntax. Workaround: `# --force-main` escape hatch — but this creates a cascade event and friction in every cross-repo worktree session.
+
+**Suggested fix:** Parse `cd <path> && git` patterns in the command string to extract the intended working directory. Or resolve git root from the file paths being staged rather than `$CWD`. Ship fix to both hooks together.
+
+**Status:** pending
+
+---
+
+## Error 146: thebrana has no documented deployment mechanism; `brana deploy` doesn't exist
+
+**Severity:** Low — discovery friction only
+**Discovery:** 2026-04-14 — `brana deploy` returned "unrecognized subcommand"
+**Affected files:** thebrana `CLAUDE.md`, `docs/architecture/` (deployment section missing)
+
+**Gap:** thebrana deploys by merging a worktree/feature branch to main — the file system IS the deployment. There is no deploy command. First-time users will attempt `brana deploy` and find nothing.
+
+**Suggested fix:** Add to thebrana `CLAUDE.md`: "thebrana deploys by merging to main. There is no deploy command — the file system is the deployment."
+
+**Status:** pending
