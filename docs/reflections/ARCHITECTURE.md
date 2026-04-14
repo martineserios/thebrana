@@ -98,7 +98,7 @@ Skills are user-invocable workflows (`/command`). Agents auto-delegate when the 
 - Agents are safety nets, not replacements
 - Skills are the primary workflow; agents catch uninvoked skill gaps
 - Each agent has explicit "Not for..." constraints to prevent misrouting
-- Model distribution: Haiku (8 agents), Opus (2), Sonnet (1) — cost vs reasoning depth
+- Model distribution: Haiku (8 agents), Sonnet (2), Opus (1) — cost vs reasoning depth
 
 > **Dynamic model routing ([ADR-018](../architecture/decisions/ADR-018-dynamic-model-routing.md)):** Agent roster model assignments are defaults. ADR-018 adds per-message complexity scoring that can override static assignments at runtime.
 
