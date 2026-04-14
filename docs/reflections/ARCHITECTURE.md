@@ -278,10 +278,26 @@ From Anthropic's research (see [35-context-engineering-principles.md](../../bran
 | If it has... | It goes to... |
 |---|---|
 | A verb (research, build, fix) | Backlog (tasks.json) |
-| A fact, pattern, or lesson | Ruflo memory |
-| A directive (always, never) | rules/ or CLAUDE.md |
+| A learning or finding | `/brana:retrospective` → taxonomy routing (see below) |
+| A directive (always, never) | `system/rules/` — draft displayed, human places |
 
 No shadow backlogs. Skills propose backlog items in reports. Users decide what gets added.
+
+### Memory Routing Taxonomy
+
+`/brana:retrospective` classifies each learning and routes it automatically. Use it after any session.
+
+| Type | Signal | Destination | Gate |
+|------|--------|------------|------|
+| Rule | "always X" / "never Y" — no context needed | `system/rules/` draft → human places | human |
+| Decision | why-we-chose-X, explicit tradeoffs | ADR stub → human commits | human |
+| Reference | pointer to where something lives | `~/.claude/memory/portfolio.md` | auto |
+| Pattern | reusable solution to a recurring shape | `~/.claude/memory/patterns.md` (cap 50) | auto |
+| Knowledge | domain fact, model, research finding | `~/.claude/memory/knowledge-staging.md` (cap 30) | auto |
+| Session | resume-only state | native memory dir — skip retrospective | auto |
+
+Cap enforcement runs before every write. MEMORY.md is an index (≤200 lines), not a store.
+Spec: [memory-taxonomy-sdd.md](../architecture/features/memory-taxonomy-sdd.md)
 
 ---
 
