@@ -365,3 +365,27 @@ Source: pre-commit budget gate session 2026-04-13
 When procedure routing depends on intent ("where does this belong?"), a single guiding question outlasts a topic lookup table. Tables require maintenance as topics evolve; a heuristic transfers. Applied: close.md Step 6 field-note routing replaced a 6-row table with "useful without this repo? → dimension doc, else → CLAUDE.md."
 Source: close.md routing session 2026-04-13
 
+### 2026-04-13: Reindex must run after promote, not before
+`brana knowledge reindex --changed` uses an mtime watermark. If run before `brana knowledge promote` completes, no new files exist on disk yet — it correctly finds 0 changed files. Correct pipeline ordering: tier1 → tier2 → tier3 → promote → reindex. Running reindex first wastes a call and leaves the index stale.
+Source: knowledge pipeline session 2026-04-13
+
+### 2026-04-13: Tier3 returns prose, tier1/2 return JSON — use different call paths
+`call_claude_json` parses the CLI envelope's `result` field as JSON. For tier1/2 (score and cluster name), this is correct. For tier3, the prompt instructs the model to return markdown prose — `call_claude_json` will always fail with a parse error. Use `call_claude_text` for any tier that returns unstructured text. Applies to any future pipeline tier that produces markdown, not structured data.
+Source: fix/tier3-draft-prose-parsing 2026-04-13
+
+### 2026-04-13: RSS ENRICH is free — feed_rs already parses content, we just throw it away
+`brana feed poll` fetches the full RSS/Atom body and parses it with `feed_rs`. The parsed `Entry` has `summary` and `content.body` in memory. But `FeedLogEntry` only saves `title`, `link`, `published`, `polled_at` — content is discarded. Fix: add `summary: Option<String>` and `content: Option<String>` to `FeedLogEntry`, extract from `entry.summary.content` and `entry.content.body` in `poll_one`. No extra network call — the feed body is already fetched. This makes tier1 scoring for RSS items full-content quality, not metadata-only. ENRICH pattern: content enrichment belongs in the source CLI at parse time, not in the knowledge pipeline.
+Source: layered-input-processing brainstorm 2026-04-13
+
+### 2026-04-13: Intent mis-route danger is task→research, not research→task
+When building intent classification for input pipelines, the dangerous direction is task classified as research — it silently enters the knowledge pipeline, gets synthesized into a dimension draft, and never appears in triage. There is no recovery path. Research classified as task is benign (lands in triage list, user corrects it). Fix: non-URL, non-feed sources (transcripts, text logs, inbox/ file drops) must always go to triage regardless of classifier confidence. Only URL-shaped inputs and RSS/newsletter feeds have reliable enough signals to auto-route as research.
+Source: layered-input-processing brainstorm + challenger 2026-04-13
+
+### 2026-04-13: Triage queues need hard enforcement, not advisory caps
+Any triage list with an advisory cap ("show max 20") becomes a second accumulation queue — the exact problem it was designed to solve. Requirements for a triage list that doesn't rot: (1) hard write-time block at the cap (error out, don't just truncate display), (2) expiry writes status back to state file (don't just hide old items), (3) queue lives in the same state file as the pipeline (not a separate file — separate files get forgotten). Applies to any "inbox"-style queue in brana.
+Source: layered-input-processing brainstorm + challenger 2026-04-13
+
+### 2026-04-14: Context budget at 70 bytes headroom after agent field additions
+Adding memory, maxTurns, permissionMode, isolation, color to 11 agents consumed 337 bytes (28265→28602/28672). Any future agent description expansion will blow the budget. To gain room: trim existing always-loaded rules or shorten agent descriptions. Run ./validate.sh before any agent/rule changes to check remaining headroom.
+Source: feat/cc-agent-gaps 2026-04-14
+
