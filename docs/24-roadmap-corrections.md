@@ -168,6 +168,12 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 144 | `claudemd` SKILL.md description omits align pairing; procedure "When to use" missing post-align trigger | **Low** | applied (2026-04-14) | Description updated; post-align bullet added to "When to use". Reconcile --scope consistency 2026-04-14. |
 | 145 | `branch-verify.sh` + `main-guard.sh` fail on `cd <worktree> && git add` — uses session CWD not worktree CWD | **Medium** | pending | Fix: parse `cd <path> &&` in command string to extract intended dir, or resolve from staged file paths. |
 | 146 | thebrana has no documented deploy mechanism; `brana deploy` command doesn't exist | **Low** | pending | Add one-line deploy note to thebrana CLAUDE.md. |
+| 147 | [Doc 31](reflections/31-assurance.md) missing post-align CLAUDE.md quality gate in Structural Assurance | **Low** | pending | Add check: after `/brana:align` on brownfield, verify CLAUDE.md has no duplicate headings and is <60 lines. |
+| 148 | [Doc 32](reflections/32-lifecycle.md) missing brownfield pre-build gate — align→claudemd pair and ~50% tier ceiling | **Medium** | pending | Add "Brownfield Project Alignment" subsection to Build-Phase Cycle: align→claudemd audit pair, re-run after scaffold. |
+| 149 | [ARCHITECTURE.md](reflections/ARCHITECTURE.md) missing Deployment Model section — no explanation of git merge = deploy | **Low** | pending | Add "Deployment Model" subsection: worktrees = staging, merge to main = deploy, SessionStart loads changes. |
+| 150 | [Doc 14](reflections/14-mastermind-architecture.md) missing synthesis of doc 46 (CC Harness Ecosystem) — marked "Source for R2 architecture design" in doc 08 | **Medium** | pending | Add doc 46 synthesis: five primitives, context compaction strategies, hook enforcement patterns. |
+| 151 | [Doc 14](reflections/14-mastermind-architecture.md) missing doc 49b Ratchet + ADR-027 — doc 08 flags as "critical design inversion" | **Medium** | pending | Address The Ratchet (discard by default vs keep everything), ADR-027 auto-learning loop, Intent/Execution Separation. |
+| 152 | [Doc 14](reflections/14-mastermind-architecture.md) missing doc 47 (ADR-021 prerequisite) + 3 doc 49a patterns (Assumption Decay, Artifact Coordination, Observation Window) | **Low** | pending | Add entity/relationship formalization reference (ADR-021); note 3 agent-era patterns not yet operationalized. |
 
 ---
 
@@ -2397,5 +2403,89 @@ Doc 38 also classifies these as Wave 1 (divergent ideation — shipped) vs Wave 
 **Gap:** thebrana deploys by merging a worktree/feature branch to main — the file system IS the deployment. There is no deploy command. First-time users will attempt `brana deploy` and find nothing.
 
 **Suggested fix:** Add to thebrana `CLAUDE.md`: "thebrana deploys by merging to main. There is no deploy command — the file system is the deployment."
+
+**Status:** pending
+
+---
+
+## Error 147: Doc 31 missing post-align CLAUDE.md quality gate in Structural Assurance
+
+**Severity:** Low — quality gap silently passes structural checks
+**Discovery:** 2026-04-14 — maintain-specs RE-EVALUATE pass (cascade from R2 align/claudemd change)
+**Affected files:** `docs/reflections/31-assurance.md` (Structural Assurance section)
+
+**Gap:** Doc 31's Structural Assurance configuration validity checks include link integrity, context budget, and count drift — but no check for CLAUDE.md structural quality post-alignment. Since `/brana:align` on brownfield projects can produce duplicate headings and bloat, and since doc 14 now explicitly requires the align→claudemd pair, doc 31 needs a corresponding verification step. A project can pass all current R3 checks (link integrity, budget check) while still having a bloated, duplicated CLAUDE.md if the claudemd audit was skipped.
+
+**Suggested fix:** Add to doc 31, Structural Assurance → Configuration Validity: "Post-alignment CLAUDE.md quality — for projects that ran `/brana:align` within the last 3 commits, verify: no duplicate section headings, line count <60 after audit, TBD contact lists removed. This check applies to brownfield projects only (greenfield starts clean)."
+
+**Status:** pending
+
+---
+
+## Error 148: Doc 32 missing brownfield pre-build gate — align→claudemd pair and ~50% tier ceiling
+
+**Severity:** Medium — brownfield onboarding workflow is incomplete
+**Discovery:** 2026-04-14 — maintain-specs RE-EVALUATE pass (cascade from R2 align/claudemd change)
+**Affected files:** `docs/reflections/32-lifecycle.md` (Build-Phase Cycle section)
+
+**Gap:** Doc 32 describes the DDD→SDD→TDD→Code lifecycle and the Build-Phase Cycle but treats all projects uniformly. There is no mention of brownfield vs greenfield project differences, no description of the align→claudemd audit pre-build gate, and no acknowledgment that brownfield projects plateau at ~50% Standard tier (10/20) until a code scaffold exists. Teams onboarding brownfield projects will miss the critical audit step. The R2 change makes this a specific, documented workflow constraint — R4 must reflect it.
+
+**Suggested fix:** Add "Brownfield Project Alignment" subsection to doc 32 Build-Phase Cycle: (1) Run `/brana:align`, (2) immediately run `/brana:claudemd audit` to dedup F2 appends, (3) note ~50% tier ceiling until scaffold exists — re-run the pair after `create-next-app` or equivalent. Greenfield projects: skip or treat as optional.
+
+**Status:** pending
+
+---
+
+## Error 149: ARCHITECTURE.md missing Deployment Model section
+
+**Severity:** Low — first-time user confusion; deploy mechanism is undocumented
+**Discovery:** 2026-04-14 — maintain-specs RE-EVALUATE pass (cascade from E146 assessment)
+**Affected files:** `docs/reflections/ARCHITECTURE.md`
+
+**Gap:** ARCHITECTURE.md correctly does not reference a `brana deploy` command, but it also has no section explaining how thebrana changes actually go live. The deployment model (worktrees = staging, git merge to main = deploy, SessionStart hooks load from disk) is only documented in CLAUDE.md Field Notes. First-time users or contributors have no architectural reference for the deploy lifecycle.
+
+**Suggested fix:** Add "Deployment Model" subsection to ARCHITECTURE.md after "Workspace Architecture" or "Scheduled Automation": worktrees are the staging area; merge to main deploys; SessionStart hooks load changes from disk (`~/.claude/` identity layer, `project/.claude/` context layer). `./bootstrap.sh` installs the identity layer — it is not deployment of thebrana itself.
+
+**Status:** pending
+
+---
+
+## Error 150: Doc 14 missing synthesis of doc 46 (CC Harness Ecosystem) — marked "Source for R2 architecture design" in doc 08
+
+**Severity:** Medium — R2's harness architecture lacks its stated source material
+**Discovery:** 2026-04-14 — maintain-specs RE-EVALUATE pass (dim 46 vs R2 check)
+**Affected files:** `docs/reflections/14-mastermind-architecture.md`
+
+**Gap:** Doc 08 explicitly marks doc 46 (CC Harness Ecosystem) as "Source for R2 architecture design and `/brana:align` diagnostic criteria." Yet doc 14 makes zero explicit references to doc 46. The five foundational CC primitives (CLAUDE.md, rules, hooks, skills, agents), context compaction strategies (Agentic Scripts, Claude-Mem, Context Gateway), and hook enforcement patterns documented in doc 46 are not referenced or synthesized in R2's architecture narrative. This is a missing dependency that doc 08 flagged as load-bearing.
+
+**Suggested fix:** Add a reference to doc 46 in doc 14's relevant architecture sections. At minimum: cite doc 46 for the five-primitive model; reference its context compaction strategies in the context management section; note its hook enforcement patterns alongside the hook architecture description.
+
+**Status:** pending
+
+---
+
+## Error 151: Doc 14 missing doc 49b Ratchet + ADR-027 auto-learning loop
+
+**Severity:** Medium — major design inversion (discard vs keep) not surfaced in R2
+**Discovery:** 2026-04-14 — maintain-specs RE-EVALUATE pass (dim 49b vs R2 check)
+**Affected files:** `docs/reflections/14-mastermind-architecture.md`
+
+**Gap:** Doc 08 flags doc 49b (Auto-Learning Patterns) as directly informing ADR-027 and highlights The Ratchet as a "critical design inversion" — brana currently defaults to "keep everything" but doc 49b argues for "discard by default." Doc 14 references doc 49b only once (Bounded Search Space, Pattern 3 — query design). ADR-027, The Ratchet, Intent/Execution Separation, Knowledge-From-Use, Temporal Batching, Tiered Access, and Forgetting as Feature are not addressed in R2's architecture despite being directly relevant to the auto-learning loop design.
+
+**Suggested fix:** Add a section or expanded note in doc 14's knowledge architecture section: reference ADR-027, explain The Ratchet inversion (current behavior = keep, design target = discard by default), and note which of the seven auto-learning patterns are implemented vs pending.
+
+**Status:** pending
+
+---
+
+## Error 152: Doc 14 missing doc 47 synthesis (ADR-021) + 3 doc 49a patterns not operationalized
+
+**Severity:** Low — architecture gaps not yet blocking but need tracking
+**Discovery:** 2026-04-14 — maintain-specs RE-EVALUATE pass (dim 47/49a vs R2 check)
+**Affected files:** `docs/reflections/14-mastermind-architecture.md`
+
+**Gap:** Two separate issues combined at Low severity: (1) Doc 47 (Ontology Engineering for AI Systems) is marked "Prerequisite for ADR-021" in doc 08 — the entity/relationship model and ontology formalization are not referenced in doc 14. (2) Doc 49a (Agent-Era Systems Patterns) has three patterns not operationalized in R2: Assumption Decay (dead weight from older constraints), Artifact Coordination (agents coordinate via shared artifacts, not messaging), and The Observation Window (log before enforcing). Context Rot is the only 49a pattern currently in doc 14.
+
+**Suggested fix:** (1) Add an ADR-021 reference in doc 14's spec-graph or knowledge graph section, noting doc 47 as the ontology source. (2) Add a note acknowledging the three unimplemented 49a patterns as "design targets not yet operationalized" with a link to doc 49a.
 
 **Status:** pending
