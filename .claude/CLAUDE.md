@@ -15,25 +15,6 @@ Branch conventions preserve the separation:
 
 ## Document Architecture
 
-Docs are split by nature across two repos:
-
-```
-thebrana/docs/                    ← operational docs (this repo)
-├── reflections/                  ← 08, 14, 29, 31, 32 — cross-cutting synthesis
-├── 00, 15, 17-19, 24, 25, 30    ← roadmap + operational docs
-├── research/                     ← /brana:research output (comparisons, deep dives)
-├── guide/                        ← user-facing workflow guides + command reference
-├── architecture/                 ← contributor docs (overview, skills, hooks, agents, extending)
-│   ├── decisions/                ← ADRs
-│   └── features/                 ← feature briefs
-
-brana-knowledge/dimensions/       ← knowledge docs (separate repo)
-├── 01-07, 09-13, 16, 20-23      ← research in depth
-├── 26-28, 33-38                  ← research in depth
-├── client-retention, meta-whatsapp, smb-marketing ← topic docs
-└── research-sources.yaml         ← tracked external sources
-```
-
 - **Dimension** → `brana-knowledge/dimensions/` (knowledge/research)
 - **Reflection** → `docs/reflections/` (cross-cutting synthesis)
 - **Roadmap** → `docs/` (implementation plans)
@@ -48,37 +29,6 @@ R1(08 Triage) → R2(14 Architecture) → R3(31 Assurance) / R4(32 Lifecycle) �
 
 ## System Architecture
 
-```
-system/                                  Plugin (loaded by Claude Code)
-├── .claude-plugin/plugin.json           ← plugin manifest
-├── skills/                              ← /brana:* slash commands (core: full, extended: stubs)
-├── procedures/                          ← extended skill procedure bodies (ADR-034)
-├── commands/                            ← agent commands
-├── hooks/hooks.json + *.sh              ← event hooks
-├── agents/                              ← specialized agents
-├── scripts/*-mcp.sh                     ← MCP server wrappers (ADR-033)
-├── CLAUDE.md                            ← mastermind identity
-└── cli/rust/                            ← Cargo workspace (ADR-026)
-    └── crates/
-        ├── brana-core/                  ← shared business logic library
-        │   ├── tasks.rs                 ← task lifecycle, filtering, scoring
-        │   ├── files.rs                 ← content-addressed file tracking
-        │   ├── scheduler.rs             ← job health, collisions, drift
-        │   ├── sync.rs                  ← task↔GitHub sync planning
-        │   └── util.rs                  ← path discovery, config loading
-        ├── brana-cli/                   ← terminal interface (clap + themes)
-        └── brana-mcp/                   ← MCP server (pmcp + stdio)
-
-bootstrap.sh                             Identity layer → ~/.claude/
-├── CLAUDE.md                            ← global identity
-├── rules/                               ← behavioral rules
-├── scripts/                             ← helper scripts
-├── statusline.sh                        ← status bar
-└── scheduler/                           ← scheduled jobs
-```
-
-Version: v1.0.0
-
 ### Skill Tiering (ADR-034)
 
 All skills use the universal stub pattern to reduce startup context (~34K to ~8K tokens). Current count in [Skill Reference](docs/reference/skills.md).
@@ -89,19 +39,7 @@ All skills remain available as slash commands. Semantic routing via ruflo is unc
 
 ### MCP Server Pinning (ADR-033)
 
-`.mcp.json` uses `${CLAUDE_PLUGIN_ROOT}/scripts/*-mcp.sh` wrapper scripts instead of `npx`/`uvx`. Each wrapper resolves the server binary dynamically (via nvm or PATH). This eliminates 15-180s registry resolution per server at session start. Wrappers: `ruflo-mcp.sh`. (`brana-mcp` uses a direct binary path, no wrapper.)
-
-## Installation
-
-```bash
-# One-command install (recommended)
-curl -fsSL https://raw.githubusercontent.com/martineserios/thebrana/main/install.sh | bash
-# or: git clone ... && ./bootstrap.sh
-# bootstrap.sh registers plugin directly via installed_plugins.json — no /plugin commands needed
-
-# Dev mode (contributors)
-claude --plugin-dir ./system
-```
+`.mcp.json` uses `${CLAUDE_PLUGIN_ROOT}/scripts/*-mcp.sh` wrapper scripts instead of `npx`/`uvx`. Each wrapper resolves the server binary dynamically (via nvm or PATH). This eliminates 15-180s registry resolution per server at session start.
 
 ## Commands
 
@@ -167,15 +105,6 @@ claude --plugin-dir ./system
 > Spec maintenance commands live in `system/commands/`, not skills — invoked by agents or manually.
 > **Enforcement hooks:** `tdd-gate.sh` (tests), `doc-gate.sh` (docs), `main-guard.sh` (branch discipline), `branch-verify.sh` (staging on main) — all fire on every branch.
 
-### GROW
-
-| Command | Purpose |
-|---------|---------|
-| `/brana:review` | Business health — weekly (default), monthly, or ad-hoc check |
-| `/brana:client-retire` | Archive a client's patterns and knowledge when retiring |
-
-> **Moved to client/venture projects:** pipeline, financial-model, venture-phase, proposal → brana-knowledge. meta-template, meta-verification, respondio-prompts → somos_mirada (+ copies to anita, brapsoclaw). harvest → ventures/linkedin (2026-04-06).
-
 ### Capture & Tools
 
 | Command | Purpose |
@@ -190,39 +119,7 @@ claude --plugin-dir ./system
 | `/brana:acquire-skills` | Find and install skills for project tech gaps |
 | `init-project` | Initialize a new project with CLAUDE.md template (shell script) |
 
-### CLI Tools
-
-| Command | Purpose |
-|---------|---------|
-| `brana transcribe <file> [--model base\|tiny\|small]` | Transcribe audio (wav, mp3, ogg, m4a) to text via whisper.cpp. Auto-detects language. |
-| `brana files list\|status\|add\|pull\|push` | Track large files via manifest (.brana-files.json). SHA-256 verified, R2/HTTP remotes. |
-| `brana feed add\|list\|poll\|remove\|status` | RSS/Atom feed polling. Covers Substack, Medium, blogs, YouTube, GitHub releases. HTTP conditional requests (ETag). |
-| `brana inbox add-account\|add\|list\|poll\|remove\|status\|set-password` | Gmail newsletter management via IMAP. Multi-account, OS keyring credentials. |
-| `brana session read\|write\|history\|path\|migrate\|mark-consumed\|insights` | Structured session state — read/write JSON state, browse history, migrate from markdown. `insights` scans JSONL telemetry for recurring friction patterns (tool failures, hook blocks) — surfaces in `/brana:review` weekly friction section. |
-| `brana handoff last\|list\|path` | Legacy alias for `brana session`. Falls back to markdown if no JSON state exists. |
-| `brana skills suggest\|search\|list\|reindex\|usage\|graph` | Skill discovery and semantic routing. `reindex` indexes skills into ruflo memory. `usage` scans JSONL telemetry for invocation counts + cull candidates. `graph` emits Mermaid flowchart of skill groups and dependencies. |
-| `brana decisions log\|read\|archive` | Append-only JSONL decision log in `system/state/decisions/`. `log <agent> <type> <content>` appends entry (types: decision\|finding\|concern\|action\|error\|cost). `read` filters by type/agent/severity/last-N. `archive` moves old files. |
-| `brana knowledge reindex\|status\|search` | Knowledge base indexing. Indexes dimension/reflection/feature docs into ruflo memory. `--patterns` for memory files. |
-| `brana knowledge process --tier1\|--tier2\|--draft <topic>\|--status\|--reset-url\|--dry-run` | Inbox→dimensions pipeline. Tier 1: relevance filter (batch 50). Tier 2: cluster assignment + report. Tier 3: draft synthesis (manual gate). |
-| `brana knowledge promote <draft-path>` | Promote a draft to `dimensions/`, archive the draft. |
-| `brana graph build\|orphans\|query\|path\|stats\|validate` | Knowledge graph operations — ontology-aware spec dependency graph |
-
-### MCP Tools (brana-mcp server)
-
-Exposed via `.mcp.json`. Skills should prefer these over CLI — structured JSON, 65% fewer tokens.
-
-| Tool | Purpose |
-|------|---------|
-| `backlog_query` | Filter tasks by tag, status, stream, priority, effort, type, parent |
-| `backlog_get` | Get single task by ID, optionally a specific field |
-| `backlog_set` | Set field on task (status, priority, tags +/-, context, notes) |
-| `backlog_add` | Create new task with auto-assigned ID |
-| `backlog_search` | Free-text search across all task fields |
-| `backlog_stats` | Aggregate stats by status, stream, priority, type |
-| `backlog_burndown` | Created vs completed over week/month |
-| `backlog_focus` | Top tasks ranked by priority + staleness + effort + blocking |
-| `backlog_stale` | Find tasks pending longer than threshold |
-| `backlog_batch` | Multi-task, multi-field updates in single read/write cycle |
+<!-- CLI reference: brana --help | Full subcommand docs: docs/reference/ -->
 
 ## Specs Reference
 
@@ -266,126 +163,11 @@ When the ruflo MCP server is available, use it for persistent memory:
 - **Search** before starting work on a topic (`memory_search`)
 - Use namespace `specs` for specification-related patterns
 - Use namespace `decisions` for architectural decisions
-- Use namespace `knowledge` for dimension doc content — **315+ sections from 33 dimension docs are indexed with semantic embeddings**. Any `memory_search` query automatically searches knowledge base content alongside patterns.
+- Use namespace `knowledge` for dimension doc content — any `memory_search` query automatically searches knowledge base content alongside patterns.
 
-### Knowledge Base Pipeline
-
-Two-phase pipeline indexes 7 doc categories (dimensions, architecture, reflections, decisions, features, ideas, research) into ruflo memory. Phase 1 (`index-knowledge.sh`) parses markdown by `##` headers → JSONL. Phase 2 defaults to `mcp-index.mjs` (MCP-first: 5-way parallel `memory_store`, auto-embeddings, HNSW auto-maintained) with `bulk-index.mjs` as SQLite fallback (`USE_SQLITE=1` or ruflo unavailable). Skill indexing (`index-skills.sh`) uses the same 2-phase pipeline. Pattern indexing (`index-patterns.sh`) scheduled weekly (Sun 3am). Reindexing happens:
-- **On commit** — post-commit hook in brana-knowledge reindexes changed files
-- **Weekly** — scheduled full reindex (Sunday 3am) as safety net
-- **Manual** — `brana knowledge reindex`, `brana knowledge reindex --changed`, or `brana knowledge reindex file.md`
+<!-- Knowledge base pipeline details: docs/architecture/ -->
 
 ## Field Notes
 
-### 2026-04-10: Python in procedures = missing CLI subcommand
-Every `python3 -c` in `system/procedures/` or `system/scripts/` is a gap indicator — there should be a `brana` CLI subcommand for that operation. Treat Python as a temporary placeholder, not a solution. File a task to add the CLI subcommand.
-Source: feat/t-1075, friction section wiring session
-
-### 2026-04-12: Config drift source_only alerts for rules/ are false positives
-`bootstrap.sh` intentionally skips copying `system/rules/` to `~/.claude/` — rules are loaded by the Claude Code plugin at runtime. The config-drift detector doesn't know this and flags them as missing. Filter out `source_only` entries under `rules/` when reviewing drift alerts; they are expected. Real drift = scripts, hooks, agents, skills.
-Source: maintenance session 2026-04-12
-
-### 2026-04-12: Stale worktrees post-merge have untracked files from prior work
-After a `--no-ff` merge, the worktree stays checked out at its last commit. Untracked files in the worktree look like active WIP but may be superseded by the merged version. Before debugging untracked files in a worktree, run `git show <merge-commit>:<path>` to confirm the committed version differs. Always run `git worktree remove <path>` immediately after merging. t-1147 tracks sitrep detection.
-Source: t-1131 session 2026-04-12
-
-### 2026-04-12: CC plugin registration is filesystem-level, not UI-gated
-`bootstrap.sh` step 7d writes `~/.claude/plugins/installed_plugins.json` and snapshots `system/` to the plugin cache directly. The `/plugin marketplace add` and `/plugin install` CC commands are UI sugar over the same JSON file — they are not required. Any installer that writes `installed_plugins.json` achieves full plugin registration without entering a CC session. Apply to any future CC plugin distribution work.
-Source: t-501 session 2026-04-12
-
-### 2026-04-12: Compounding loop framing beats feature enumeration for README positioning
-When comparing brana to PAI, SuperClaude, skill-kit, CCCBot — all lead with feature lists. The differentiator is behavioral accumulation over time (corrections persist, patterns compound, confidence grows). Before/after framing ("stateless Claude" vs "compounding brana") landed better than counting skills/rules/agents. Lead with the compounding loop narrative, not breadth.
-Source: t-560 README + distribution brainstorm 2026-04-12
-
-### 2026-04-12: Prefer git worktree add over git stash + git switch -c
-Worktree gate blocks `git switch -c` when unstaged changes exist. Using `git worktree add ../repo-feat/branch -b branch` instead of stash+switch avoids both the gate and the tasks.json stash-pop conflict pattern. Worktrees fully isolate the merge path. Preferred flow: stash specific files if needed → worktree add → work → merge --no-ff → worktree remove.
-Source: t-501 session 2026-04-12
-
-### 2026-04-12: Verify handoff items before starting work
-2 of 4 handoff items this session (ADR-033, tier-1 dry-run) were already done in a prior session. Budget 1-2 minutes per item to verify it's still real: check git log, grep config, or run the command with --dry-run. Mark done items immediately. Prevents full investigation of completed work.
-Source: t-1147 session 2026-04-12
-
-### 2026-04-12: LLM JSON output needs code-fence stripping even with --output-format json
-`claude -p --output-format json` structures the CLI envelope, but the `result` field can still contain markdown code fences (` ```json...``` `) ~24% of the time. `serde_json::from_str` fails silently on fenced JSON. Always strip ` ```json ` / ` ``` ` prefix/suffix before parsing any LLM `result` field. See `knowledge_pipeline.rs:strip_code_fences()`.
-Source: t-1152, first live tier1 run 2026-04-12
-
-### 2026-04-12: Dry-run does not cover external call paths (LLM, APIs)
-`brana knowledge process --tier1 --dry-run` passed 50/50 but live run had 12/50 parse failures. The dry-run skips the Claude CLI call entirely — it only validates URL parsing and allow-list logic. Before enabling a scheduler job for any pipeline that calls an LLM or API, run a `--sample 3` smoke test (or equivalent) to exercise the full call path.
-Source: t-1152, knowledge pipeline session 2026-04-12
-
-### 2026-04-13: jq -Rs '.' validated safe on jq 1.8.1 / Python 3.13 for brana indexing
-Validated via t-1160: control chars (0x00–0x1f), DEL, backslash, backtick, quotes, newlines all match `json.dumps()`. Only mismatch: non-BMP emoji (jq = literal UTF-8, Python = surrogate pairs) — both valid JSON, irrelevant for brana docs. Replaced 9 Python one-liners across 4 indexing scripts (t-1166–t-1169). Rule: always run this validation on a new system before using jq in pipelines.
-Source: t-1160 validation + t-1166/t-1167/t-1168/t-1169 2026-04-13
-
-### 2026-04-12: Hook-wired scripts = HIGH priority migration, not deferrable
-Invocation frequency multiplies migration urgency. A script called in hooks that fire on every session end and every task completion is a hot path. Before classifying any Python→Rust migration as "not urgent," grep callers: `grep -r "script-name" system/hooks/`. Hook caller = high frequency = HIGH priority. Applied: decisions.py reclassified P1 (t-1164).
-Source: Python cleanup planning + challenger review 2026-04-12
-
-### 2026-04-12: Check binary mtime before running brana knowledge pipelines
-`brana knowledge process --tier1` and `--tier2` call the compiled binary at `~/.local/bin/brana`. If the binary is older than the source (check: `stat -c '%Y' ~/.local/bin/brana` vs `stat -c '%Y' system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs`), pipeline runs stale code silently. Always rebuild after source changes: `cd system/cli/rust && OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu OPENSSL_INCLUDE_DIR=/usr/include/openssl cargo build --release -p brana-cli`. Root cause of all-23-URL tier2 failure (2026-04-12): strip_code_fences() fix was in source 41 minutes before the binary was rebuilt.
-Source: t-1152 tier2 failure session 2026-04-12
-
-### 2026-04-12: Grep for runtime imports before deleting Python migration targets
-Spike files can have hidden runtime imports. `evaluator-spike.py` imported `from decisions import log_entry` (lines 332–361) despite appearing dead. Pattern: `grep -r "from {script_stem} import\|import {script_stem}" system/` before deleting any script being ported to CLI. Migrate all importers first.
-Source: Python cleanup planning + challenger review 2026-04-12
-
-### 2026-04-12: tests/bootstrap/ is the home for root-level installer tests
-The `tests/` directory is organized by category (`tests/hooks/`, `tests/scripts/`, `tests/bootstrap/`). Tests for `install.sh` and `bootstrap.sh` go in `tests/bootstrap/`, not `system/hooks/tests/`. The `system/hooks/tests/` directory is only for hook-specific test scripts. Before creating a new test file, check `tests/` subdirectories for the matching category.
-Source: t-1150 2026-04-12
-
-### 2026-04-13: Worktree copy pattern for new/untracked files
-`git stash push -- file` fails on untracked files (not in index). When branch-verify blocks `git add` on main and the file is new: `git worktree add /tmp/repo-branch -b feat/...` → `cp file /tmp/repo-branch/file` → stage + commit in worktree → `git merge --no-ff` on main → `git worktree remove`. For tracked modified files, stash → worktree → stash pop still works.
-Source: t-1177 session 2026-04-13
-
-### 2026-04-13: Wire-before-migrate for Python hook scripts
-When a Python script needs both wiring (as a hook) and migration (to CLI), keep them separate tasks. Wiring fixes the active drift problem at S effort; combining with migration inflates to M+ and delays the fix. Create the migration task immediately so it's queued, but don't block the wire on it.
-Source: t-1177 / t-1191 session 2026-04-13
-
-### 2026-04-13: Rules are lighter than hooks for behavioral gates
-For "always ask/check before X" behavioral constraints, a rule file beats a hook. Rules load once, apply everywhere, no per-event overhead. Hooks fire on every matching event — hot paths (UserPromptSubmit, PostToolUse empty matcher) add latency and risk context pollution. Session challenger killed UserPromptSubmit hook approach (score 5/5 context poisoning). Replacement: 30-line rule file.
-Source: skill-routing design session 2026-04-13
-
-### 2026-04-13: Run /brana:challenge before writing any behavioral mechanism
-Two challenger runs collapsed a multi-angle hook exploration into a 30-line rule. First run: caught context poisoning blocker. Second run: caught the feature was already partially built. Zero implementation wasted. Mandatory before: anything touching UserPromptSubmit, SessionStart, PostToolUse with empty matcher.
-Source: skill-routing design session 2026-04-13
-
-### 2026-04-13: system/rules/ → worktree pattern, not direct main commit
-system/rules/ is classified as behavioral by main-guard. Adding/modifying rules requires worktree: `git worktree add /tmp/thebrana-{branch} -b feat/{branch}` → cp → brana reference generate → commit → merge --no-ff → worktree remove. Pattern verified 3+ sessions. Fix: t-1194 (--rules-only flag).
-Source: skill-routing commit session 2026-04-13
-
-### 2026-04-13: Check committed doc 24 state before numbering new errata
-Before appending to `docs/24-roadmap-corrections.md`, always run: `git show HEAD:docs/24-roadmap-corrections.md | grep -E '^## E[0-9]+' | tail -5`. Working tree can have stale entries from a prior session — counting from it causes number collisions. If working tree diverges: `git checkout -- docs/24-roadmap-corrections.md` first.
-Source: maintain-specs session 2026-04-13
-
-### 2026-04-13: Never edit .git/hooks/ directly — always use system/scripts/git-hooks/
-Hooks edited directly in `.git/hooks/` are untracked: invisible to spec layer, invisible to bootstrap, silently overwritten on next `./bootstrap.sh`. Always edit `system/scripts/git-hooks/<hook>` and re-run `./bootstrap.sh` to deploy. The tracked source is the source of truth.
-Source: pre-commit budget gate session 2026-04-13
-
-### 2026-04-13: Scope-based heuristics beat rigid routing tables in procedures
-When procedure routing depends on intent ("where does this belong?"), a single guiding question outlasts a topic lookup table. Tables require maintenance as topics evolve; a heuristic transfers. Applied: close.md Step 6 field-note routing replaced a 6-row table with "useful without this repo? → dimension doc, else → CLAUDE.md."
-Source: close.md routing session 2026-04-13
-
-### 2026-04-13: Reindex must run after promote, not before
-`brana knowledge reindex --changed` uses an mtime watermark. If run before `brana knowledge promote` completes, no new files exist on disk yet — it correctly finds 0 changed files. Correct pipeline ordering: tier1 → tier2 → tier3 → promote → reindex. Running reindex first wastes a call and leaves the index stale.
-Source: knowledge pipeline session 2026-04-13
-
-### 2026-04-13: Tier3 returns prose, tier1/2 return JSON — use different call paths
-`call_claude_json` parses the CLI envelope's `result` field as JSON. For tier1/2 (score and cluster name), this is correct. For tier3, the prompt instructs the model to return markdown prose — `call_claude_json` will always fail with a parse error. Use `call_claude_text` for any tier that returns unstructured text. Applies to any future pipeline tier that produces markdown, not structured data.
-Source: fix/tier3-draft-prose-parsing 2026-04-13
-
-### 2026-04-13: RSS ENRICH is free — feed_rs already parses content, we just throw it away
-`brana feed poll` fetches the full RSS/Atom body and parses it with `feed_rs`. The parsed `Entry` has `summary` and `content.body` in memory. But `FeedLogEntry` only saves `title`, `link`, `published`, `polled_at` — content is discarded. Fix: add `summary: Option<String>` and `content: Option<String>` to `FeedLogEntry`, extract from `entry.summary.content` and `entry.content.body` in `poll_one`. No extra network call — the feed body is already fetched. This makes tier1 scoring for RSS items full-content quality, not metadata-only. ENRICH pattern: content enrichment belongs in the source CLI at parse time, not in the knowledge pipeline.
-Source: layered-input-processing brainstorm 2026-04-13
-
-### 2026-04-13: Intent mis-route danger is task→research, not research→task
-When building intent classification for input pipelines, the dangerous direction is task classified as research — it silently enters the knowledge pipeline, gets synthesized into a dimension draft, and never appears in triage. There is no recovery path. Research classified as task is benign (lands in triage list, user corrects it). Fix: non-URL, non-feed sources (transcripts, text logs, inbox/ file drops) must always go to triage regardless of classifier confidence. Only URL-shaped inputs and RSS/newsletter feeds have reliable enough signals to auto-route as research.
-Source: layered-input-processing brainstorm + challenger 2026-04-13
-
-### 2026-04-13: Triage queues need hard enforcement, not advisory caps
-Any triage list with an advisory cap ("show max 20") becomes a second accumulation queue — the exact problem it was designed to solve. Requirements for a triage list that doesn't rot: (1) hard write-time block at the cap (error out, don't just truncate display), (2) expiry writes status back to state file (don't just hide old items), (3) queue lives in the same state file as the pipeline (not a separate file — separate files get forgotten). Applies to any "inbox"-style queue in brana.
-Source: layered-input-processing brainstorm + challenger 2026-04-13
-
-### 2026-04-14: Context budget at 70 bytes headroom after agent field additions
-Adding memory, maxTurns, permissionMode, isolation, color to 11 agents consumed 337 bytes (28265→28602/28672). Any future agent description expansion will blow the budget. To gain room: trim existing always-loaded rules or shorten agent descriptions. Run ./validate.sh before any agent/rule changes to check remaining headroom.
-Source: feat/cc-agent-gaps 2026-04-14
-
+<!-- TODO: route to MEMORY.md → tests/bootstrap/ is home for root-level installer tests (not in MEMORY.md yet) -->
+<!-- TODO: strengthen MEMORY.md worktree entry → stale worktrees post-merge have untracked files from prior work -->
