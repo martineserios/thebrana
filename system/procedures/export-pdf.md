@@ -28,11 +28,12 @@ grep -c '```mermaid' "{source_file}"
 
 **If count > 0:**
 
-1. Check that `mmdc` is available:
+1. Resolve `mmdc` — it lives in the nvm bin dir, not on the default PATH:
    ```bash
-   which mmdc 2>/dev/null
+   mmdc_bin=$(find ~/.nvm/versions/node/*/bin/mmdc 2>/dev/null | sort -V | tail -1)
+   [[ -z "$mmdc_bin" ]] && mmdc_bin=$(which mmdc 2>/dev/null)
    ```
-   If not found, warn the user: "Mermaid blocks found but `mmdc` is not installed — they will render as raw code. Install with: `npm install -g @mermaid-js/mermaid-cli`". Set `render_source` = `{source_file}` and skip to step 4.
+   If still empty, warn the user: "Mermaid blocks found but `mmdc` is not installed — they will render as raw code. Install with: `npm install -g @mermaid-js/mermaid-cli`". Set `render_source` = `{source_file}` and skip to step 4.
 
 2. Create a temp workspace and copy the source:
    ```bash
@@ -48,14 +49,15 @@ grep -c '```mermaid' "{source_file}"
    EOF
    ```
 
-4. Extract and render each block, replacing it with an image reference:
+4. Extract and render each block, replacing it with an image reference. Pass `$mmdc_bin` as a third argument so the Python subprocess uses the resolved path:
    ```bash
-   uv run python3 - "$tmp_md" "$tmp_dir" <<'PYEOF'
+   uv run python3 - "$tmp_md" "$tmp_dir" "$mmdc_bin" <<'PYEOF'
    import re, subprocess, sys
    from pathlib import Path
 
    src = Path(sys.argv[1])
    tmp = Path(sys.argv[2])
+   mmdc_cmd = sys.argv[3]  # full path from nvm bin
    content = src.read_text()
    puppeteer_cfg = tmp / "puppeteer.json"
    pattern = re.compile(r'```mermaid\n(.*?)```', re.DOTALL)
@@ -66,7 +68,7 @@ grep -c '```mermaid' "{source_file}"
        png = tmp / f"diagram_{idx}.png"
        mmd.write_text(diagram)
        r = subprocess.run(
-           ["mmdc", "-i", str(mmd), "-o", str(png), "-p", str(puppeteer_cfg)],
+           [mmdc_cmd, "-i", str(mmd), "-o", str(png), "-p", str(puppeteer_cfg)],
            capture_output=True, text=True
        )
        if r.returncode != 0:
@@ -142,6 +144,6 @@ xdg-open "{output_pdf}" &
 
 ## Rules
 
-- Always use the full nvm path for mdpdf — it's not on the default PATH
+- Always resolve the full nvm path for both mdpdf and mmdc — neither is on the default PATH. Use `find ~/.nvm/versions/node/*/bin/{cmd} | sort -V | tail -1`.
 - Never overwrite a PDF without confirming if the user wants to replace it
 - If mdpdf fails, check that the markdown file is valid and report the error clearly
