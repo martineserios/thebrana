@@ -2,7 +2,7 @@
 
 # Rules Reference
 
-**15 rules** in `system/rules/`.
+**16 rules** in `system/rules/`.
 
 | File | Title | Summary |
 |------|-------|--------|
@@ -17,6 +17,7 @@
 | `sdd-tdd.md` | Test-First Development | ## Before implementation |
 | `self-improvement.md` | Self-Improvement | Automatic learning. Runs every session without invocation. |
 | `skill-routing.md` | Skill Routing | Before starting any implementation, design, or research work — **always ask** which skills to load... |
+| `spec-assumptions.md` | No Silent Ambiguity Fill | If a requirement can be interpreted two ways, **ask — don't pick**. |
 | `tactical-context.md` | Tactical Context | After giving actionable advice related to a task (workaround, constraint, deadline, dependency, "do ... |
 | `task-convention.md` | Task Convention | ## Before branching |
 | `universal-quality.md` | Quality Standards | - **Test before committing**: run relevant tests before any commit. If no test suite exists, at leas... |
@@ -97,6 +98,13 @@ Automatic learning. Runs every session without invocation.
 **File:** `system/rules/skill-routing.md`
 
 Before starting any implementation, design, or research work — **always ask** which skills to load. Never silently route. Excessive asking is correct; silent routing is not.
+
+
+## No Silent Ambiguity Fill
+
+**File:** `system/rules/spec-assumptions.md`
+
+If a requirement can be interpreted two ways, **ask — don't pick**.
 
 
 ## Tactical Context

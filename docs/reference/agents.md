@@ -34,8 +34,6 @@ Archive project patterns and knowledge when retiring. Categorize as transferable
 
 **Tools:** Bash, Read, Glob, Grep
 
-**Disallowed:** Write, Edit, NotebookEdit
-
 
 ## challenger
 
@@ -44,8 +42,6 @@ Adversarially review a plan, architecture decision, or approach. Stress-test bef
 **Model:** sonnet
 
 **Tools:** Read, Glob, Grep
-
-**Disallowed:** Write, Edit, Bash, NotebookEdit
 
 
 ## client-scanner
@@ -132,8 +128,6 @@ Fast research for codebase exploration and web search. Use when finding files, s
 **Model:** haiku
 
 **Tools:** Read, Glob, Grep, WebSearch, WebFetch
-
-**Disallowed:** Edit, Write, Bash, NotebookEdit
 
 
 ## venture-scanner
