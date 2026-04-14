@@ -163,7 +163,9 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 139 | [Doc 29](reflections/29-venture-management-reflection.md) framework stacking "max 3 layers" ambiguous vs doc 34 design | **Medium** | applied (2026-04-14) | Scope clarification added: 3-layer limit applies to operating frameworks, not measurement streams; 5 streams in /brana:review is triangulation, not bloat |
 | 140 | `align.md` F2 lacks merge-safety — appends duplicate sections to existing CLAUDE.md | **Medium** | applied (2026-04-14) | Merge-safety block added to F2: grep for existing heading before append; merge under existing heading if found. |
 | 141 | `align.md` F2 CLAUDE.md template conflicts with `claudemd.md` include/exclude rules | **Low** | applied (2026-04-14) | Content constraints added to F2: reference claudemd Step 2 rules; explicitly prohibit Status/TBD contacts/verbose tables/commit type lists; 60-line target, 80-line warning. |
-| 142 | `claudemd` SKILL.md description omits align pairing; procedure "When to use" missing post-align trigger | **Low** | applied (2026-04-14) | Description updated; post-align bullet added to "When to use". Reconcile --scope consistency 2026-04-14. |
+| 142 | `brana backlog` has no `complete` subcommand — `brana backlog complete t-NNN` returns error | **Low** | pending | Add `brana backlog complete <id>` alias in Rust CLI, or update procedures to use `brana backlog set <id> status completed`. |
+| 143 | `branch-verify` hook scans staged file content — false positives on test files referencing behavioral paths | **Medium** | pending | Change hook to use `git diff --cached --name-only`; or add `tests/` to allowlist. |
+| 144 | `claudemd` SKILL.md description omits align pairing; procedure "When to use" missing post-align trigger | **Low** | applied (2026-04-14) | Description updated; post-align bullet added to "When to use". Reconcile --scope consistency 2026-04-14. |
 
 ---
 
@@ -2353,3 +2355,17 @@ Doc 38 also classifies these as Wave 1 (divergent ideation — shipped) vs Wave 
 **Suggested fix:** Change the hook to use `git diff --cached --name-only` when checking which files are staged. Alternatively, add `tests/` to an allowlist so test files are never flagged regardless of content.
 
 **Status:** pending
+
+---
+
+## Error 144: `claudemd` SKILL.md description omits align pairing; procedure "When to use" missing post-align trigger
+
+**Severity:** Low — discovery friction; user doesn't know to run claudemd after align
+**Discovery:** 2026-04-14 — reconcile --scope consistency run
+**Affected files:** `system/skills/claudemd/SKILL.md`, `system/procedures/claudemd.md`
+
+**Gap:** `/brana:claudemd` is the natural companion to `/brana:align` on brownfield projects — align F2 can produce duplicate headings and bloat (verbose tables, TBD contacts). But neither the SKILL.md description nor the procedure's "When to use" section mentioned this pairing. Users had to discover it after the fact.
+
+**Suggested fix:** Add "Natural companion to /brana:align — run audit after align on brownfield projects" to SKILL.md description. Add post-align bullet to "When to use" in claudemd.md.
+
+**Status:** applied (2026-04-14) — description updated; post-align bullet added.
