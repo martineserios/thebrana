@@ -2,7 +2,7 @@
 
 # Skill Reference
 
-**27 skills** loaded from `system/skills/`.
+**28 skills** loaded from `system/skills/`.
 
 ## Index
 
@@ -15,6 +15,7 @@
 | `/brana:build` | execution | Build anything — features, bug fixes, refactors, spikes, migrations, investiga |
 | `/brana:cargo-machete` | brana | Detect and remove unused dependencies in Rust projects using cargo-machete. |
 | `/brana:challenge` | learning | Dual-model adversarial review. Opus subagent stress-tests reasoning; Gemini stre |
+| `/brana:claudemd` | execution | Audit or generate a CLAUDE.md for any project. |
 | `/brana:client-retire` | execution | Archive a client's patterns and mark them as historical. Use when retiring a cli |
 | `/brana:close` | session | End a session — extract learnings, write handoff note, store patterns, detect  |
 | `/brana:do` | brana | Alias for /brana:backlog start with freeform text. Routes to the best skill or c |
@@ -29,7 +30,7 @@
 | `/brana:plugin` | brana | Manage Claude Code plugins — add marketplaces, install, update, remove, list p |
 | `/brana:reconcile` | brana | Unified maintenance command — detect drift (consistency), run security checks, |
 | `/brana:research` | learning | Research a topic, doc, or creator — check sources, follow references recursive |
-| `/brana:retrospective` | learning | Store a learning or pattern in the knowledge system. Use after notable discoveri |
+| `/brana:retrospective` | learning | Store a learning in the memory taxonomy — classify by type (Rule/Pattern/Knowl |
 | `/brana:review` | venture | Business review — weekly health check, monthly close + plan, or ad-hoc growth  |
 | `/brana:rust-skills` | brana | Rust best practices — 179 rules across 14 categories for idiomatic, optimized  |
 | `/brana:scheduler` | utility | Manage scheduled jobs — create, update, list, or run scheduled remote agents ( |
@@ -145,6 +146,14 @@ Build anything — features, bug fixes, refactors, spikes, migrations, investiga
 
 **Allowed tools:** Agent, AskUserQuestion, Bash, Edit, EnterPlanMode, Glob, Grep, Read, Skill, Task, TaskCreate, TaskList, TaskUpdate, WebFetch, WebSearch, Write, mcp__ruflo__hive-mind_memory, mcp__ruflo__memory_search, mcp__ruflo__memory_store
 
+### `/brana:claudemd`
+
+Audit or generate a CLAUDE.md for any project.
+
+**Arguments:** `[audit [path] | generate [path]]`
+
+**Allowed tools:** Read, Glob, Grep, Write, Edit, AskUserQuestion, Bash
+
 ### `/brana:client-retire`
 
 Archive a client's patterns and mark them as historical. Use when retiring a client or archiving its knowledge for future reference.
@@ -198,7 +207,7 @@ Research a topic, doc, or creator — check sources, follow references recursive
 
 ### `/brana:retrospective`
 
-Store a learning or pattern in the knowledge system. Use after notable discoveries, unexpected issues, successful workarounds, or when a reusable pattern emerges.
+Store a learning in the memory taxonomy — classify by type (Rule/Pattern/Knowledge/Decision/Reference), then route to canonical destination (patterns.md, knowledge-staging.md, ADR stub, portfolio.md). Use after notable discoveries, unexpected issues, successful workarounds, or when a reusable pattern emerges.
 
 **Arguments:** `[learning text]`
 
@@ -240,11 +249,13 @@ Guided workflow to prepare and format sources for NotebookLM. Claude reads, refo
 
 ### `/brana:export-pdf`
 
-Convert a markdown file to PDF using mdpdf. Use when exporting proposals, SOPs, or any markdown document to PDF.
+Convert a markdown file to PDF using mdpdf. Automatically pre-renders Mermaid diagrams to PNG via `mmdc` before export. Use when exporting proposals, SOPs, or any markdown document to PDF.
 
 **Arguments:** `[file.md]`
 
 **Allowed tools:** Bash, Read, Glob, AskUserQuestion
+
+**Requires:** `npm install -g @mermaid-js/mermaid-cli` for Mermaid diagram rendering (gracefully skipped if absent).
 
 ### `/brana:gsheets`
 
