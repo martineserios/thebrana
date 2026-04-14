@@ -99,7 +99,7 @@ If the deploy command exits non-zero, report the error and skip to Step 6 (Rollb
 
 1. **Task update** — if a task ID was provided:
    ```bash
-   brana backlog set <id> status done
+   brana backlog set <id> status completed
    ```
 
 2. **Changelog** — if `CHANGELOG.md` exists, append an entry:
