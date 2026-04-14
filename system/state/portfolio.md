@@ -9,7 +9,9 @@
 | Railway.com platform evaluation (PaaS pricing, limits, regions) | `nexeye_eyedetect/docs/infrastructure/railway-platform-evaluation.md` | any client evaluating PaaS hosting |
 | Client retention & engagement systems (flywheel, welcome kits, QR portals, referral reframing) | `brana-knowledge/dimensions/client-retention-engagement.md` | tinyhomes, any recurring-client service |
 | SMB marketing channels & content strategy (GEO, WhatsApp, landing pages, SEO, B2B2C, regulated products) | `brana-knowledge/dimensions/smb-marketing-channels.md` | somos_mirada, proyecto_anita, tinyhomes, any SMB |
-| Kapso AI platform (CLI, Builder SDK, agents, flows, functions, MCP, TypeScript SDK) | `brana-knowledge/dimensions/39-kapso-ai-platform.md` | proyecto_anita, somos_mirada, brapsoclaw, any WhatsApp automation client |
+| Kapso AI platform (CLI, Builder SDK, agents, flows, functions, MCP, TypeScript SDK) | `brana-knowledge/dimensions/39-kapso-ai-platform.md` | proyecto_anita, somos_mirada, brapsoclaw, mya, any WhatsApp automation client |
+| Glide as MVP backend (Tables + UI + API eliminates Postgres/admin/auth for pilots) | `clients/mya/docs/ideas/mvp-architecture.md` | mya, any B2B2C MVP |
+| Lovable → Claude Code handoff (30 min scaffold, GitHub push, Claude wires APIs) | `clients/mya/docs/ideas/mvp-architecture.md` | mya, any frontend-heavy client |
 | NanoClaw/ZeroClaw/Claw ecosystem (architecture, Docker isolation, Agent SDK) | `brana-knowledge/dimensions/36-claw-ecosystem-chat-interface.md` | brapsoclaw, any chat agent project |
 
 ## Clients (paid work — external stakeholder)
@@ -20,6 +22,12 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Type:** AI development system (brain for Claude Code)
 - **Repos:** `enter` (architect), `thebrana` (operator), `brana-knowledge` (vault)
 - **Details:** `thebrana/CLAUDE.md`, `enter/18-menu-driven-roadmap.md`
+
+### mya (MirÁyAhorrÁ)
+- **Type:** B2B2C hyperlocal promo platform — dietéticas/almacenes channel, AMBA
+- **Projects:** mya (`clients/mya`)
+- **Status:** Pre-build. Scoped 2026-04-14. MVP ~2 weeks.
+- **Details:** `clients/mya/docs/ideas/mvp-architecture.md` (full context for session restart)
 
 ### nexeye (NexeyeTech)
 - **Type:** Eye detection product

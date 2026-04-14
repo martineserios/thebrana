@@ -322,3 +322,11 @@ Source: session 2026-03-31, /brana:reconcile
 ### 2026-04-01: additionalContext is informational, not imperative
 Hook `additionalContext` JSON field is treated by the LLM as informational context, not commands to execute. Tested: imperative instructions ("call X before first task") were ignored in `--system-prompt` mode. For deferred MCP calls, use lazy init from skills instead.
 Source: ruflo integration brainstorm session
+
+### 2026-04-14: Memory catch-all without type taxonomy causes context truncation
+`feedback_*.md` files used as a catch-all for all memory types (rules, patterns, knowledge, decisions, references, session state) accumulate to 128+ files. MEMORY.md index overflows the 200-line CC cap — 35% of memory index silently dropped per session. Fix: classify at write time into 6 types (rule/pattern/knowledge/decision/reference/session state), each routed to its canonical home. Layer 1 destinations (rules) require human confirmation gate — never auto-route LLM-generated content there.
+Source: t-1238, session 2026-04-14
+
+### 2026-04-14: Double challenger collapses architecture plan complexity
+Running /brana:challenge on a design, then again on the reshaped plan, collapsed 8 tasks → 5 without losing coverage. Effective combo: pre-mortem (what fails in 3 months?) + simplicity pass (half the complexity, same outcome?). Run both flavors on any architecture task with M+ effort before creating child tasks.
+Source: t-1238, session 2026-04-14
