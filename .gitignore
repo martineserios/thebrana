@@ -31,3 +31,4 @@ target/
 
 # Node.js
 node_modules/
+.claude/CLAUDE.local.md
