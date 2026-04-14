@@ -639,6 +639,8 @@ This project is being archived. Extract everything valuable:
 
 Active alignment pipeline — the bridge between diagnostic (`/brana:onboard`) and enforcement (PreToolUse hooks). Runs a 6-phase process: DISCOVER → ASSESS → PLAN → IMPLEMENT → VERIFY → DOCUMENT. Auto-detects project type (code or venture) and applies type-appropriate checklists. Works on both greenfield and brownfield projects. See [27-project-alignment-methodology.md](../../../brana-knowledge/dimensions/27-project-alignment-methodology.md) for the full methodology.
 
+**Natural pairing with `/brana:claudemd`:** On brownfield projects, align's F2 step appends to an existing CLAUDE.md — which can introduce duplicate headings or bloat (verbose tables, TBD contacts, commit type lists). Run `/brana:claudemd audit` immediately after `/brana:align` on any project with a pre-existing CLAUDE.md. Target: <60 lines after the pair. Pre-kickoff projects plateau at ~50% Standard tier (10/20) — remaining gaps (F3 rules, S3 hook, T1–T4, Q1–Q2) require a code scaffold and should be re-run after `create-next-app` or equivalent.
+
 ### Beyond the Six: `/brana:research` — "What's new in the world?"
 
 The six skills above manage *internal* knowledge — what you've learned, how to transfer it, how to align projects. `/brana:research` manages *external* knowledge acquisition: checking sources, following references, discovering new creators. The `--refresh` flag orchestrates batch updates across dimension docs. Source registry, trust tiers, version pinning, leads queue, and recursive discovery are formalized in [33-research-methodology.md](../../../brana-knowledge/dimensions/33-research-methodology.md).

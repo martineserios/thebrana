@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-14T12:46:59Z",
+  "generated": "2026-04-14T19:06:48Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -202,6 +202,15 @@
       "type": "Dimension",
       "impl_files": []
     },
+    "brana-knowledge/dimensions/cc-project-structure-best-practices.md": {
+      "title": "Claude Code Project Structure Best Practices",
+      "type": "Dimension",
+      "impl_files": [
+        "system/procedures/",
+        "system/",
+        "system/hooks/"
+      ]
+    },
     "brana-knowledge/dimensions/cli-builder-rust-bash-devops.md": {
       "title": "CLI Builder: Rust + Bash + DevOps",
       "type": "Dimension",
@@ -322,7 +331,9 @@
         "system/scripts/generate-reference.py",
         "system/procedures/build.md",
         "system/hooks/",
-        "system/cli/rust/crates/brana-cli/src/commands/knowledge.rs"
+        "system/cli/rust/crates/brana-cli/src/commands/knowledge.rs",
+        "system/procedures/align.md",
+        "system/procedures/claudemd.md"
       ]
     },
     "docs/25-self-documentation.md": {
@@ -604,6 +615,11 @@
       "type": "ADR",
       "impl_files": []
     },
+    "docs/architecture/decisions/ADR-037-memory-enforcement-and-migration.md": {
+      "title": "ADR-037: Memory Enforcement Hook + Incremental Migration Policy",
+      "type": "ADR",
+      "impl_files": []
+    },
     "docs/architecture/extending-agents.md": {
       "title": "Extending Agents",
       "type": "Roadmap",
@@ -787,6 +803,18 @@
     },
     "docs/architecture/features/living-docs.md": {
       "title": "Feature: Living Documentation System",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/architecture/features/memory-taxonomy-ddd.md": {
+      "title": "Memory Taxonomy — Domain Design",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/rules/"
+      ]
+    },
+    "docs/architecture/features/memory-taxonomy-sdd.md": {
+      "title": "Memory Taxonomy — Solution Design",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -1303,6 +1331,15 @@
       "title": "Brana: Etymology and Naming",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/dimensions/cc-project-structure-best-practices.md": {
+      "title": "Claude Code Project Structure Best Practices",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/procedures/",
+        "system/",
+        "system/hooks/"
+      ]
     },
     "docs/dimensions/cli-builder-rust-bash-devops.md": {
       "title": "CLI Builder: Rust + Bash + DevOps",
@@ -1907,7 +1944,8 @@
       "title": "Architecture: Single Brain, All Projects",
       "type": "Reflection",
       "impl_files": [
-        "system/"
+        "system/",
+        "system/rules/"
       ]
     },
     "docs/reflections/component-index.md": {
@@ -3834,6 +3872,12 @@
     },
     {
       "from": "docs/reflections/29-venture-management-reflection.md",
+      "to": "dimensions/38-design-thinking.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/29-venture-management-reflection.md",
       "to": "docs/reflections/08-diagnosis.md",
       "type": "depends_on",
       "computed": false
@@ -5687,6 +5731,18 @@
       "computed": false
     },
     {
+      "from": "brana-knowledge/dimensions/cc-project-structure-best-practices.md",
+      "to": "brana-knowledge/dimensions/04-claude-4.6-capabilities.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/cc-project-structure-best-practices.md",
+      "to": "brana-knowledge/dimensions/09-claude-code-native-features.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/00-user-practices.md",
       "to": "dimensions/16-knowledge-health.md",
       "type": "references",
@@ -7295,6 +7351,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/memory-taxonomy-sdd.md",
+      "to": "memory-taxonomy-ddd.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/resilient-pattern-store.md",
       "to": "docs/architecture/decisions/ADR-026-ruflo-mcp-backbone.md",
       "type": "references",
@@ -8279,6 +8341,18 @@
       "computed": false
     },
     {
+      "from": "docs/dimensions/cc-project-structure-best-practices.md",
+      "to": "docs/dimensions/04-claude-4.6-capabilities.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/cc-project-structure-best-practices.md",
+      "to": "docs/dimensions/09-claude-code-native-features.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/google-sheets-mcp-setup.md",
       "to": "dimensions/34-venture-operating-system.md",
       "type": "references",
@@ -8682,6 +8756,24 @@
     },
     {
       "from": "docs/reflections/08-diagnosis.md",
+      "to": "brana-knowledge/dimensions/cli-builder-rust-bash-devops.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
+      "to": "brana-knowledge/dimensions/knowledge-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
+      "to": "brana-knowledge/dimensions/software-engineering-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
       "to": "docs/00-user-practices.md",
       "type": "references",
       "computed": false
@@ -9078,6 +9170,12 @@
     },
     {
       "from": "docs/reflections/29-venture-management-reflection.md",
+      "to": "docs/dimensions/38-design-thinking.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/29-venture-management-reflection.md",
       "to": "docs/reflections/08-diagnosis.md",
       "type": "references",
       "computed": false
@@ -9127,6 +9225,12 @@
     {
       "from": "docs/reflections/31-assurance.md",
       "to": "brana-knowledge/dimensions/23-evaluation.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/31-assurance.md",
+      "to": "brana-knowledge/dimensions/37-ruvnet-development-practices.md",
       "type": "references",
       "computed": false
     },
@@ -9217,6 +9321,12 @@
     {
       "from": "docs/reflections/32-lifecycle.md",
       "to": "brana-knowledge/dimensions/33-research-methodology.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/32-lifecycle.md",
+      "to": "brana-knowledge/dimensions/37-ruvnet-development-practices.md",
       "type": "references",
       "computed": false
     },
@@ -9348,6 +9458,12 @@
     },
     {
       "from": "docs/reflections/ARCHITECTURE.md",
+      "to": "docs/architecture/features/memory-taxonomy-sdd.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/ARCHITECTURE.md",
       "to": "docs/architecture/hooks.md",
       "type": "references",
       "computed": false
@@ -9426,9 +9542,9 @@
     }
   ],
   "stats": {
-    "nodes": 301,
-    "edges": 1240,
-    "typed_edges": 503,
-    "orphans": 68
+    "nodes": 306,
+    "edges": 1253,
+    "typed_edges": 504,
+    "orphans": 70
   }
 }

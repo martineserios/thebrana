@@ -96,6 +96,19 @@ Execute item by item. Ask for confirmation before each major step.
 
 **F1 — Git:** Skip if `.git/` exists.
 **F2 — CLAUDE.md:** Create/merge `.claude/CLAUDE.md` with project description, stack, conventions, domain.
+
+**Merge-safety (errata #140):** Before appending any `## Section`, grep the existing file for that heading. If it already exists, merge content under it — do not create a duplicate heading. Flag conflicts to the user.
+```bash
+grep -q "^## Docs" .claude/CLAUDE.md 2>/dev/null && echo "heading exists — merge" || echo "heading missing — append"
+```
+
+**Content constraints (errata #141):** Apply `claudemd.md` Step 2 include/exclude rules when writing CLAUDE.md content. Specifically omit:
+- Frequently-changing fields (Status, Key Contacts with "TBD" values)
+- Conventions CC already knows (conventional commit type lists — just give the format + example)
+- Verbose tables when a compact inline list suffices (compress stack to one line unless >10 components)
+- File-by-file descriptions or long explanations
+
+Goal: CLAUDE.md should be <60 lines after F2. If it exceeds 80 lines, run `/brana:claudemd` audit before proceeding to VERIFY.
 **F3 — Rules:** Copy relevant rules from `~/.claude/rules/`. Stack-specific rules get path scoping.
 **F4 — Commits:** Document conventional commits in CLAUDE.md.
 **F5 — Inbox:** Ensure `inbox/` exists and is gitignored. Create if missing:
