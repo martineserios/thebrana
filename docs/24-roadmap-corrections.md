@@ -174,6 +174,7 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 150 | [Doc 14](reflections/14-mastermind-architecture.md) missing synthesis of doc 46 (CC Harness Ecosystem) — marked "Source for R2 architecture design" in doc 08 | **Medium** | pending | Add doc 46 synthesis: five primitives, context compaction strategies, hook enforcement patterns. |
 | 151 | [Doc 14](reflections/14-mastermind-architecture.md) missing doc 49b Ratchet + ADR-027 — doc 08 flags as "critical design inversion" | **Medium** | pending | Address The Ratchet (discard by default vs keep everything), ADR-027 auto-learning loop, Intent/Execution Separation. |
 | 152 | [Doc 14](reflections/14-mastermind-architecture.md) missing doc 47 (ADR-021 prerequisite) + 3 doc 49a patterns (Assumption Decay, Artifact Coordination, Observation Window) | **Low** | pending | Add entity/relationship formalization reference (ADR-021); note 3 agent-era patterns not yet operationalized. |
+| 153 | `docs/24-roadmap-corrections.md` sequential errata numbering has no collision prevention — parallel sessions produce duplicate IDs | **Medium** | pending | Use timestamp-based IDs (E2026-0414-1) or counter file. Two worktrees collided on E142 this session, required 2 fix commits. |
 
 ---
 
@@ -2487,5 +2488,19 @@ Doc 38 also classifies these as Wave 1 (divergent ideation — shipped) vs Wave 
 **Gap:** Two separate issues combined at Low severity: (1) Doc 47 (Ontology Engineering for AI Systems) is marked "Prerequisite for ADR-021" in doc 08 — the entity/relationship model and ontology formalization are not referenced in doc 14. (2) Doc 49a (Agent-Era Systems Patterns) has three patterns not operationalized in R2: Assumption Decay (dead weight from older constraints), Artifact Coordination (agents coordinate via shared artifacts, not messaging), and The Observation Window (log before enforcing). Context Rot is the only 49a pattern currently in doc 14.
 
 **Suggested fix:** (1) Add an ADR-021 reference in doc 14's spec-graph or knowledge graph section, noting doc 47 as the ontology source. (2) Add a note acknowledging the three unimplemented 49a patterns as "design targets not yet operationalized" with a link to doc 49a.
+
+**Status:** pending
+
+---
+
+## Error 153: doc 24 errata numbering has no collision prevention — parallel sessions produce duplicate IDs
+
+**Severity:** Medium — wastes 2 commits to untangle; silently corrupts errata history
+**Discovery:** 2026-04-14 — close session (debrief-analyst finding)
+**Affected files:** `docs/24-roadmap-corrections.md`, `MEMORY.md` rule `feedback_errata-numbering-vs-committed-state.md`
+
+**Gap:** The existing rule says "check committed state before appending" — but two concurrent sessions (t-1238 close and the reconcile worktree) both appended E142 for different findings before either was merged. The collision was detected and fixed manually, but required 2 extra commits to untangle. The rule is correct but insufficient — it only prevents one session from colliding with itself; it cannot prevent a worktree that branched before the errata were committed.
+
+**Suggested fix:** One of: (a) timestamp-based IDs (E2026-0414-1) instead of sequential numbers — collisions become impossible; (b) a counter file (`docs/.errata-counter`) that branches atomically read-and-increment; (c) convention: errata written in worktrees use a temp prefix (E{branch}-N) and get renumbered on merge. Option (a) is the lowest friction.
 
 **Status:** pending

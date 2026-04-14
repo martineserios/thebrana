@@ -62,3 +62,9 @@ Branch conventions preserve the separation:
 - Implementation changes update docs in the same commit (no separate back-propagation step)
 - When adding new docs, update `docs/README.md`
 - Ruflo namespaces: `specs` · `decisions` · `knowledge` (use `namespace: "all"` for cross-namespace search)
+
+## Field Notes
+
+### 2026-04-14: Errata sequential IDs unsafe under parallel sessions
+Two worktrees both wrote E142 for different findings before merging — required 2 fix commits to untangle. Sequential numbers are safe for single-threaded append but break under parallel branches. Fix tracked as E153: use timestamp-based IDs (E2026-0414-1) to make collisions structurally impossible.
+Source: close session 2026-04-14 / debrief-analyst
