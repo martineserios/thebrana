@@ -161,6 +161,8 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 137 | [Doc 31](reflections/31-assurance.md) missing drift trend visualization | **Medium** | applied (2026-04-14) | "Drift trends (time-series)" item added to /brana:memory review "What it checks" list — plot promotion rate, staleness, precision@k over consecutive monthly runs |
 | 138 | [Doc 29](reflections/29-venture-management-reflection.md) missing dependency on doc 38 (Design Thinking) | **High** | applied (2026-04-14) | Doc 38 added to frontmatter depends_on; DT insertion points table added to /brana:venture-phase section (empathy map, HMW, viability triangle) |
 | 139 | [Doc 29](reflections/29-venture-management-reflection.md) framework stacking "max 3 layers" ambiguous vs doc 34 design | **Medium** | applied (2026-04-14) | Scope clarification added: 3-layer limit applies to operating frameworks, not measurement streams; 5 streams in /brana:review is triangulation, not bloat |
+| 140 | `align.md` F2 lacks merge-safety — appends duplicate sections to existing CLAUDE.md | **Medium** | applied (2026-04-14) | Merge-safety block added to F2: grep for existing heading before append; merge under existing heading if found. |
+| 141 | `align.md` F2 CLAUDE.md template conflicts with `claudemd.md` include/exclude rules | **Low** | applied (2026-04-14) | Content constraints added to F2: reference claudemd Step 2 rules; explicitly prohibit Status/TBD contacts/verbose tables/commit type lists; 60-line target, 80-line warning. |
 
 ---
 
@@ -2278,6 +2280,34 @@ Doc 38 also classifies these as Wave 1 (divergent ideation — shipped) vs Wave 
 
 ---
 
+## Error 140: align.md F2 lacks merge-safety — appends duplicate sections to existing CLAUDE.md
+
+**Severity:** Medium — produces duplicate headings that require manual cleanup
+**Discovery:** 2026-04-14 — mya project alignment session
+**Affected files:** `system/procedures/align.md` (F2, line 98)
+
+**Gap:** `align.md` line 159 says "Never overwrite existing files — read first, merge, ask on conflict." But the F2 implementation appends new `## Section` headings without checking if the heading already exists. When run on a brownfield CLAUDE.md (mya had an existing `## Docs` section), align produced two `## Docs` headings. Required immediate `/brana:claudemd` audit to fix.
+
+**Suggested fix:** Add explicit dedup check to F2: "Before appending any `## Section`, grep the existing CLAUDE.md for that heading. If the heading exists, merge content under it instead of creating a new heading. Flag merge conflicts to the user."
+
+**Status:** pending
+
+---
+
+## Error 141: align.md F2 CLAUDE.md template conflicts with claudemd.md include/exclude rules
+
+**Severity:** Low — creates predictable cleanup overhead on every new project alignment
+**Discovery:** 2026-04-14 — mya project alignment session
+**Affected files:** `system/procedures/align.md` (F2), cross-reference to `system/procedures/claudemd.md` (Step 2 classification table)
+
+**Gap:** `align.md` F2 instructs adding "project description, stack, conventions, domain" without restricting *how*. In practice this produced: Key Contacts (CRM data, not CC context), Status field ("Pre-kickoff" — changes weekly), 13-row stack table (verbose), conventional commit type list (CC already knows this). `claudemd.md` Step 2 classifies all of these as Delete/noise. The two specs disagree on CLAUDE.md content, forcing a two-pass workflow: align inflates, claudemd deflates.
+
+**Suggested fix:** Add a reference in align.md F2: "Follow claudemd.md Step 2 include/exclude rules. Specifically: omit frequently-changing fields (status, contacts TBD), omit conventions CC already knows (commit type lists), compress stack to inline format unless >10 components." Or auto-invoke claudemd audit in VERIFY phase (align Step 4).
+
+**Status:** pending
+
+---
+
 ## Error 139: Doc 29 framework stacking "max 3 layers" ambiguous vs doc 34 design
 
 **Severity:** Medium — clarification needed to prevent misimplementation
@@ -2290,5 +2320,35 @@ Doc 38 also classifies these as Wave 1 (divergent ideation — shipped) vs Wave 
 **Likely resolution:** The "max 3" limit applies to *operating systems* (pick one: EOS OR Scaling Up OR OKRs). The 5 data streams in `/brana:review` are *measurement inputs*, not competing operating systems — they're the sensing layer, not the decision-making framework.
 
 **Suggested fix:** In doc 29 section 2, clarify: "The 3-layer limit applies to operating frameworks (pick one: EOS OR Scaling Up OR OKRs), not measurement inputs. Multiple data streams (pipeline, experiments, financial, forecasts) within a single operating system are expected — they're how you sense health, not a competing framework layer."
+
+**Status:** pending
+
+---
+
+## Error 142: `brana backlog` has no `complete` subcommand
+
+**Severity:** Low — usability gap
+**Discovery:** 2026-04-14 — t-1238 session
+**Affected files:** `system/procedures/*.md`, any procedure referencing task completion
+**Source:** Session observation — `brana backlog complete t-NNN` returned error
+
+**Gap:** The CLI has no `complete` subcommand. The correct invocation is `brana backlog set <id> status completed`. Procedures and habit assume `complete` exists as a convenience alias.
+
+**Suggested fix:** Either (a) add `brana backlog complete <id>` as an alias in the Rust CLI, or (b) update all procedures that reference task completion to use `brana backlog set <id> status completed`.
+
+**Status:** pending
+
+---
+
+## Error 143: branch-verify hook scans staged file content — false positives on test files
+
+**Severity:** Medium — recurring friction
+**Discovery:** 2026-04-14 — t-1272 commit
+**Affected files:** `system/hooks/branch-verify.sh`
+**Source:** Session observation — `tests/hooks/test-feedback-gate.sh` referenced `system/hooks/feedback-gate.sh` as a string literal; hook flagged the commit as staging behavioral files on main
+
+**Gap:** `branch-verify.sh` greps staged content (`git diff --cached`), not just staged file paths (`git diff --cached --name-only`). Any test file, doc, or comment that contains a behavioral path string triggers the false positive. The `# --force-main` escape hatch bypasses it but adds friction.
+
+**Suggested fix:** Change the hook to use `git diff --cached --name-only` when checking which files are staged. Alternatively, add `tests/` to an allowlist so test files are never flagged regardless of content.
 
 **Status:** pending

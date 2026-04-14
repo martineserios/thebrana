@@ -339,6 +339,18 @@ Source: session 2026-03-31, /brana:reconcile
 Hook `additionalContext` JSON field is treated by the LLM as informational context, not commands to execute. Tested: imperative instructions ("call X before first task") were ignored in `--system-prompt` mode. For deferred MCP calls, use lazy init from skills instead.
 Source: ruflo integration brainstorm session
 
+### 2026-04-14: branch-verify hook scans staged content, not file paths
+`branch-verify.sh` uses `git diff --cached` (full content), not `git diff --cached --name-only`. Any test file containing a `system/hooks/` or `system/rules/` path string as a literal triggers the hook — even when no behavioral file is being staged. Fix: switch to `--name-only` or add `tests/` to an allowlist. Escape hatch: `# --force-main` comment on the `git add` line.
+Source: t-1272 commit, session 2026-04-14
+
+### 2026-04-14: New rules without paths: frontmatter blow the context budget
+Rules in `system/rules/` without a `paths:` YAML field load unconditionally into every context window. Adding 5 such rules exceeded the 28KB budget gate. Fix: every new rule must include `paths:` frontmatter. Consider adding a validate.sh check.
+Source: t-1254, session 2026-04-14
+
+### 2026-04-14: MEMORY.md filename grep needs -i flag for uppercase paths
+Grepping MEMORY.md for `feedback_[a-z0-9_-]+\.md` silently misses filenames with uppercase segments (e.g., `feedback_git-checkout-HEAD-reliable-recovery.md`). Always use `grep -i` or `[a-zA-Z0-9_-]` when extracting filenames from MEMORY.md.
+Source: t-1248 triage manifest, session 2026-04-14
+
 ### 2026-04-14: Memory catch-all without type taxonomy causes context truncation
 `feedback_*.md` files used as a catch-all for all memory types (rules, patterns, knowledge, decisions, references, session state) accumulate to 128+ files. MEMORY.md index overflows the 200-line CC cap — 35% of memory index silently dropped per session. Fix: classify at write time into 6 types (rule/pattern/knowledge/decision/reference/session state), each routed to its canonical home. Layer 1 destinations (rules) require human confirmation gate — never auto-route LLM-generated content there.
 Source: t-1238, session 2026-04-14
