@@ -1,6 +1,6 @@
 ---
 name: retrospective
-description: Store a learning or pattern in the knowledge system. Use after notable discoveries, unexpected issues, successful workarounds, or when a reusable pattern emerges.
+description: Store a learning in the memory taxonomy — classify by type (Rule/Pattern/Knowledge/Decision/Reference), then route to canonical destination (patterns.md, knowledge-staging.md, ADR stub, portfolio.md). Use after notable discoveries, unexpected issues, successful workarounds, or when a reusable pattern emerges.
 effort: low
 keywords: [learning, pattern, discovery, workaround, knowledge]
 task_strategies: [feature, bug-fix, refactor, spike]

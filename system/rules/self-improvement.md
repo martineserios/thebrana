@@ -10,28 +10,16 @@ Automatic learning. Runs every session without invocation.
 
 ## Where to store what
 
-| Classification | Destination | Test |
-|---------------|-------------|------|
-| Directive ("always/never/must") | `rules/*.md` | Prescribes behavior |
-| Convention (stack, architecture) | `CLAUDE.md` | Project identity |
-| Automation (event-triggered) | `hooks/` | Should fire on tool use |
-| Recipe (multi-step workflow) | `skills/` | Reusable command |
-| Log entry (something happened) | `/brana:log` | Event record |
-| Derivable (command/file output) | Nowhere | Run the command instead |
-| **True memory** | **MEMORY.md** | External API details, pointers not in code |
+Use `/brana:retrospective` to classify and route. The taxonomy:
 
-**MEMORY.md is the last resort.** Reference, don't cache. Cached facts drift silently.
+| Type | Destination | Gate |
+|------|------------|------|
+| Rule ("always/never") | `system/rules/` draft → human places | human |
+| Decision (why X over Y) | ADR stub → human commits | human |
+| Reference (where something lives) | `~/.claude/memory/portfolio.md` | auto |
+| Pattern (reusable solution) | `~/.claude/memory/patterns.md` (cap 50) | auto |
+| Knowledge (domain fact, model) | `~/.claude/memory/knowledge-staging.md` (cap 30) | auto |
+| Session (resume-only state) | native memory dir — skip retrospective | auto |
 
-```
-Example — on correction:
-
-  User: "don't mock the database in integration tests"
-  → feedback_no-db-mocks.md in rules/ (directive)
-
-Example — where does this go?
-
-  "Always use uv, never python"   → rules/  (directive)
-  "Project uses Next.js 15"       → CLAUDE.md (convention)
-  "On PR creation, run linter"    → hooks/   (automation)
-  "Stripe webhook URL is /api/x"  → MEMORY.md (external pointer)
-```
+**Never create `feedback_*.md` files.** All learnings route through the taxonomy.
+**MEMORY.md is an index, not a store.**

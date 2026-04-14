@@ -38,7 +38,7 @@ assert() {
 assert_contains() {
     local desc="$1" needle="$2" file="$3"
     TOTAL=$((TOTAL + 1))
-    if grep -qE "$needle" "$file" 2>/dev/null; then
+    if grep -iqE "$needle" "$file" 2>/dev/null; then
         echo "  PASS: $desc"
         PASS=$((PASS + 1))
     else
@@ -52,7 +52,7 @@ assert_contains() {
 assert_not_contains() {
     local desc="$1" needle="$2" file="$3"
     TOTAL=$((TOTAL + 1))
-    if ! grep -qE "$needle" "$file" 2>/dev/null; then
+    if ! grep -iqE "$needle" "$file" 2>/dev/null; then
         echo "  PASS: $desc"
         PASS=$((PASS + 1))
     else
@@ -167,19 +167,19 @@ echo ""
 # ── Test 11: MEMORY.md line budget check ─────────────────────────────────────
 echo "Test 11: MEMORY.md budget enforcement"
 assert_contains "procedure checks MEMORY.md line count before writing" \
-    "195\|200" "$RETRO_PROC"
+    "195|200" "$RETRO_PROC"
 echo ""
 
 # ── Test 12: Fallback chain documented ───────────────────────────────────────
 echo "Test 12: Fallback chain present"
 assert_contains "procedure documents fallback when destination unavailable" \
-    "fallback\|unavailable\|down" "$RETRO_PROC"
+    "fallback|unavailable|down" "$RETRO_PROC"
 echo ""
 
 # ── Test 13: SKILL.md references classify-then-route ─────────────────────────
 echo "Test 13: SKILL.md reflects new routing"
 assert_contains "SKILL.md references taxonomy or classify" \
-    "classif\|taxonomy\|patterns\.md\|knowledge-staging" "$RETRO_SKILL"
+    "classif|taxonomy|patterns\.md|knowledge-staging" "$RETRO_SKILL"
 echo ""
 
 # ── Summary ───────────────────────────────────────────────────────────────────
