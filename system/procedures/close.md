@@ -143,7 +143,8 @@ For each **errata** finding:
 2. If found, read it for format and current error count
 3. If not found, use `~/enter_thebrana/thebrana/docs/24-roadmap-corrections.md`
 4. Append entries following the existing format:
-   - Sequential error number
+   - Timestamp-based ID: `E{YYYY-MM-DD}-{N}` where N starts at 1 for the day (e.g., `E2026-04-15-1`)
+     - Check `git show HEAD:docs/24-roadmap-corrections.md | grep "^| E{today}"` to find today's last N
    - Title, severity (High/Medium/Low), discovery, affected files, fix
 5. Add to severity summary table
 
