@@ -13,6 +13,8 @@ INPUT=$(cat) || true
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null) || true
 TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null) || true
 TOOL_INPUT=$(echo "$INPUT" | jq -r '.tool_input // "{}"' 2>/dev/null) || true
+CWD=$(echo "$INPUT" | jq -r '.cwd // empty' 2>/dev/null) || true
+REPO=$(git -C "${CWD:-.}" rev-parse --show-toplevel 2>/dev/null | xargs basename 2>/dev/null) || REPO=""
 
 if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
     TS=$(date +%s 2>/dev/null) || TS=0
@@ -78,7 +80,8 @@ if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
         --arg tool "${TOOL_NAME:-unknown}" \
         --arg outcome "$OUTCOME" \
         --arg detail "${DETAIL:-unknown}" \
-        '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail}' >> "$SESSION_FILE" 2>/dev/null || true
+        --arg repo "${REPO:-}" \
+        '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail, repo: $repo}' >> "$SESSION_FILE" 2>/dev/null || true
 fi
 
 echo '{"continue": true}'

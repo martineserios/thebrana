@@ -19,6 +19,7 @@ set -uo pipefail
 SESSION_FILE="${SESSION_FILE:-}"
 BRANA_CLI="${BRANA_CLI:-}"
 OUT="${METRICS_ENV_FILE:-}"
+PROJECT_FILTER="${PROJECT_FILTER:-}"
 
 # Default all metrics to zero
 TOTAL=0; SUCCESSES=0; FAILURES=0; CORRECTIONS=0; TEST_WRITES=0
@@ -61,6 +62,19 @@ if [ -z "$SESSION_FILE" ] || [ ! -f "$SESSION_FILE" ] || [ ! -s "$SESSION_FILE" 
     [ -n "$OUT" ] && write_env
     exit 0
 fi
+
+# Bucket events by repo root when PROJECT_FILTER is set.
+# Events with a matching repo field OR no repo field (legacy) are included.
+# Events from a different repo are excluded.
+_FILTERED_FILE=""
+if [ -n "$PROJECT_FILTER" ]; then
+    _FILTERED_FILE=$(mktemp /tmp/brana-metrics-filtered-XXXXXX.jsonl)
+    jq -c --arg p "$PROJECT_FILTER" \
+        'select((.repo == null) or (.repo == "") or (.repo == $p))' \
+        "$SESSION_FILE" > "$_FILTERED_FILE" 2>/dev/null || true
+    SESSION_FILE="$_FILTERED_FILE"
+fi
+trap '[ -n "${_FILTERED_FILE:-}" ] && rm -f "$_FILTERED_FILE"' EXIT
 
 METRICS_JSON=""
 

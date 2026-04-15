@@ -45,6 +45,7 @@ echo '{"continue": true}'
     SESSION_FILE="$SESSION_FILE" \
     BRANA_CLI="$BRANA_CLI" \
     METRICS_ENV_FILE="$METRICS_ENV_FILE" \
+    PROJECT_FILTER="$PROJECT" \
         bash "${SCRIPT_DIR}/session-end-metrics.sh" 2>/dev/null || true
 
     # Load computed metrics into this shell
