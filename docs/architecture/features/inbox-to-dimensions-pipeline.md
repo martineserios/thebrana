@@ -217,6 +217,14 @@ Tier 1 and Tier 2 instruct the model to respond with JSON only. The Rust impleme
 parses the CLI envelope's `result` field via `call_claude_json` (strips code fences,
 calls `serde_json::from_str`).
 
+**Model assignment:**
+- **Tier 1** uses `claude-haiku-4-5-20251001` (passed as `model` arg to `call_claude_json`).
+  Relevance scoring is a lightweight classification task — Haiku is sufficient and ~10× cheaper.
+- **Tier 2** uses the session default model (Sonnet). Cluster assignment requires more
+  reasoning about dimension fit.
+- **Tier 3** uses `call_claude_text` with the session default (Sonnet/Opus). Prose drafting
+  needs the highest quality.
+
 Tier 3 instructs the model to return markdown prose. It uses `call_claude_text` instead —
 `call_claude_json` would always fail on unstructured output. This distinction is critical:
 **never route a prose-returning tier through `call_claude_json`.**

@@ -17,5 +17,6 @@ Tasks: t-1131 (core), t-1145 (claude shell-out spike)
 - `assert_allowed_write(path, brana_knowledge_root)` → Result<()>
 - `count_drafts(brana_knowledge_root)` → usize
 - `resolve_claude_binary()` → Option<PathBuf>
-- `call_claude_json(prompt)` → Result<serde_json::Value>
+- `build_claude_args(prompt, model: Option<&str>)` → Vec<&str>
+- `call_claude_json(prompt, model: Option<&str>)` → Result<serde_json::Value>
 - `DRAFT_CAP: usize = 10`

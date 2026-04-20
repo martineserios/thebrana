@@ -462,13 +462,27 @@ pub fn resolve_claude_binary() -> Option<PathBuf> {
     None
 }
 
+/// Build the argument list for a `claude --print --output-format json` invocation.
+/// If `model` is `Some`, `--model <model>` is prepended before the prompt.
+pub fn build_claude_args<'a>(prompt: &'a str, model: Option<&'a str>) -> Vec<&'a str> {
+    let mut args = vec!["--print", "--output-format", "json"];
+    if let Some(m) = model {
+        args.push("--model");
+        args.push(m);
+    }
+    args.push(prompt);
+    args
+}
+
 /// Call the `claude` CLI with `--print --output-format json` and return the
 /// parsed JSON response value. Timeout: 60 seconds.
 ///
 /// The model is expected to respond with JSON only (as instructed in the prompt).
 /// The CLI wraps the response in `{"type":"result","result":"...","cost_usd":...}`;
 /// this function unwraps it and parses the inner JSON.
-pub fn call_claude_json(prompt: &str) -> Result<serde_json::Value> {
+/// Pass `model = Some("claude-haiku-4-5-20251001")` to pin the model for cost
+/// control; `None` uses the session default.
+pub fn call_claude_json(prompt: &str, model: Option<&str>) -> Result<serde_json::Value> {
     let binary = resolve_claude_binary().ok_or_else(|| {
         anyhow::anyhow!(
             "claude CLI binary not found. Checked: $CLAUDE_PLUGIN_DATA/claude, \
@@ -477,7 +491,7 @@ pub fn call_claude_json(prompt: &str) -> Result<serde_json::Value> {
     })?;
 
     let mut child = std::process::Command::new(&binary)
-        .args(["--print", "--output-format", "json", prompt])
+        .args(build_claude_args(prompt, model))
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .spawn()
@@ -592,6 +606,32 @@ mod tests {
     use super::*;
     use std::collections::HashSet;
     use tempfile::TempDir;
+
+    // ── build_claude_args ─────────────────────────────────────────────
+
+    #[test]
+    fn test_build_claude_args_with_model_includes_model_flag() {
+        let args = build_claude_args("test prompt", Some("claude-haiku-4-5-20251001"));
+        assert!(args.contains(&"--model"), "expected --model in args: {:?}", args);
+        assert!(
+            args.contains(&"claude-haiku-4-5-20251001"),
+            "expected model name in args: {:?}",
+            args
+        );
+    }
+
+    #[test]
+    fn test_build_claude_args_without_model_omits_model_flag() {
+        let args = build_claude_args("test prompt", None);
+        assert!(!args.contains(&"--model"), "expected no --model in args: {:?}", args);
+    }
+
+    #[test]
+    fn test_build_claude_args_prompt_is_last() {
+        let prompt = "my prompt";
+        let args = build_claude_args(prompt, Some("claude-haiku-4-5-20251001"));
+        assert_eq!(*args.last().unwrap(), prompt);
+    }
 
     // ── parse_linkedin_url ────────────────────────────────────────────
 

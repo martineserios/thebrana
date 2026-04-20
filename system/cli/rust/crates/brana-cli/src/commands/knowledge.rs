@@ -463,7 +463,7 @@ Respond with JSON only: {{\"score\": N, \"reason\": \"one sentence\"}}",
             continue;
         }
 
-        match kp::call_claude_json(&prompt) {
+        match kp::call_claude_json(&prompt, Some("claude-haiku-4-5-20251001")) {
             Ok(json) => {
                 let score = json.get("score").and_then(|v| v.as_u64()).unwrap_or(0) as u8;
                 let reason = json
@@ -579,7 +579,7 @@ Respond with JSON only:\n\
             continue;
         }
 
-        match kp::call_claude_json(&prompt) {
+        match kp::call_claude_json(&prompt, None) {
             Ok(json) => {
                 let dim_target = json
                     .get("dimension_target")
