@@ -2650,3 +2650,19 @@ Doc 38 also classifies these as Wave 1 (divergent ideation — shipped) vs Wave 
 **Fix applied (code-fix, 2026-04-20):** `hook_severity()` in `reference.rs` parses `"continue": false` from script body (commits 9a80ffb + c4b4280). Sentinel bypass table also added to generated output. Tests cover blocking, advisory, and sentinel cases.
 
 **Status:** code-fix
+
+---
+
+## Reconcile Run — 2026-04-20
+
+**Scope:** consistency (docs ↔ system, default)
+**Branch:** chore/reconcile-20260420
+
+**Drift items found (3):**
+1. Doc 14 challenger row — stale Gemini/NotebookLM reference (challenger.md is Sonnet-only). **Fixed.**
+2. Doc 14 CC Harness subsection — "Brana enforces" overstated; changed to "Brana's convention requires". **Fixed.**
+3. Doc 31 Observation Window paragraph — missing security CVE exception. **Fixed.**
+
+**Fixes committed:** a542191 (chore/reconcile-20260420)
+
+**Pending errata (no spec fix yet):** E2026-04-20-8, E2026-04-20-9, E2026-04-20-10
