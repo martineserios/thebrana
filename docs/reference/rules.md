@@ -2,13 +2,15 @@
 
 # Rules Reference
 
-**21 rules** in `system/rules/`.
+**23 rules** in `system/rules/`.
 
 | File | Title | Summary |
 |------|-------|--------|
 | `always-use-build-framework.md` | Always Use Build Framework | Always start work via `/brana:backlog start <id>` → `/brana:build`. Never skip the framework to co... |
+| `backlog-start-gate.md` | Backlog Start Gate | When user accepts a task-continuation suggestion ("continue with t-XXX?", "start t-XXX?"), invoke `/... |
 | `brana-cli.md` | Brana CLI | **Always prefer CLI over raw file access.** Never Read/Write/Edit `.claude/tasks.json` directly. |
 | `context-budget.md` | Context Budget | ## Thresholds |
+| `cwd-discipline.md` | CWD Discipline | Always start Claude Code from the project root (e.g., ~/enter_thebrana/thebrana/), never from a pare... |
 | `delegation-routing.md` | Delegation Routing | Delegate to agents WITHOUT being asked when context matches (see CLAUDE.md agents table). Invoke ski... |
 | `doc-linking.md` | Doc Linking | Use `[doc NN](relative-path.md)` — never bare "doc NN". Relative paths from source file. Dimension... |
 | `git-discipline.md` | Git Discipline | ## One rule |
@@ -35,6 +37,13 @@
 Always start work via `/brana:backlog start <id>` → `/brana:build`. Never skip the framework to code directly.
 
 
+## Backlog Start Gate
+
+**File:** `system/rules/backlog-start-gate.md`
+
+When user accepts a task-continuation suggestion ("continue with t-XXX?", "start t-XXX?"), invoke `/brana:backlog start <id>` via Skill tool BEFORE any implementation.
+
+
 ## Brana CLI
 
 **File:** `system/rules/brana-cli.md`
@@ -47,6 +56,13 @@ Always start work via `/brana:backlog start <id>` → `/brana:build`. Never skip
 **File:** `system/rules/context-budget.md`
 
 ## Thresholds
+
+
+## CWD Discipline
+
+**File:** `system/rules/cwd-discipline.md`
+
+Always start Claude Code from the project root (e.g., ~/enter_thebrana/thebrana/), never from a parent workspace directory like ~/enter_thebrana/.
 
 
 ## Delegation Routing

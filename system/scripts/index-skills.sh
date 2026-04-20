@@ -30,13 +30,21 @@ BULK_INDEXER="$SCRIPT_DIR/bulk-index.mjs"
 # Usage: parse_fm "field_name" < file
 parse_fm() {
     local field="$1"
-    sed -n '/^---$/,/^---$/p' | grep "^${field}:" | head -1 | sed "s/^${field}:[[:space:]]*//" | sed 's/^"//' | sed 's/"$//'
+    local raw
+    # || true: grep returns 1 when field absent; pipefail would kill the script
+    raw=$(sed -n '/^---$/,/^---$/p' | grep "^${field}:" | head -1 || true)
+    [ -z "$raw" ] && return 0
+    printf '%s\n' "$raw" | sed "s/^${field}:[[:space:]]*//" | sed 's/^"//' | sed 's/"$//'
 }
 
 # Parse frontmatter array (YAML list on one line: [a, b, c])
 parse_fm_array() {
     local field="$1"
-    sed -n '/^---$/,/^---$/p' | grep "^${field}:" | head -1 | \
+    local raw
+    # || true: grep returns 1 when field absent; pipefail would kill the script
+    raw=$(sed -n '/^---$/,/^---$/p' | grep "^${field}:" | head -1 || true)
+    [ -z "$raw" ] && return 0
+    printf '%s\n' "$raw" | \
         sed "s/^${field}:[[:space:]]*//" | \
         sed 's/^\[//' | sed 's/\]$//' | \
         sed 's/,/ /g' | sed 's/"//g' | sed "s/'//g" | \

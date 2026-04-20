@@ -13,6 +13,7 @@
 | Glide as MVP backend (Tables + UI + API eliminates Postgres/admin/auth for pilots) | `clients/mya/docs/ideas/mvp-architecture.md` | mya, any B2B2C MVP |
 | Lovable → Claude Code handoff (30 min scaffold, GitHub push, Claude wires APIs) | `clients/mya/docs/ideas/mvp-architecture.md` | mya, any frontend-heavy client |
 | NanoClaw/ZeroClaw/Claw ecosystem (architecture, Docker isolation, Agent SDK) | `brana-knowledge/dimensions/36-claw-ecosystem-chat-interface.md` | brapsoclaw, any chat agent project |
+| WhatsApp Difusiones Comerciales (Meta nativo ~2025, $0.0618/msg, sin scheduling/Excel/métricas) | `ventures/proyecto_anita/memory/event-log.md` | proyecto_anita, somos_mirada, mya, brapsoclaw |
 
 ## Clients (paid work — external stakeholder)
 
@@ -41,11 +42,6 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Projects:** somos_mirada (`clients/somos_mirada`)
 - **Details:** `features/meta-account-hygiene/proposal.md`
 
-### anita (Proyecto Anita)
-- **Type:** Multi-tenant WhatsApp campaign management platform
-- **Projects:** proyecto_anita (`clients/proyecto_anita`)
-- **Remote:** `https://github.com/martineserios/proyecto-anita.git`
-- **Details:** `.claude/CLAUDE.md`, `docs/decisions/`
 
 ### prof_man
 - **Type:** Code product — trading indicators & algo trading
@@ -62,6 +58,14 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Projects:** mandawa (`clients/mandawa`)
 
 ## Ventures (your IP — side projects, learning, monetizing)
+
+### anita (Proyecto Anita)
+- **Type:** Venture — multi-tenant WhatsApp campaign management platform (SaaS)
+- **Location:** `~/enter_thebrana/ventures/proyecto_anita`
+- **Remote:** `https://github.com/martineserios/proyecto-anita.git`
+- **Stack:** FastAPI + Supabase + Kapso + React 18 + Cloud Run
+- **Status:** Production. Tenants: Palco, PDB. New client: DGRX (onboarding 2026-04-16)
+- **Details:** `.claude/CLAUDE.md`, `docs/decisions/`, `clients/` (per-client docs)
 
 ### linkedin
 - **Type:** Client acquisition funnel — content pipeline, profile, network, consulting
@@ -95,10 +99,11 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Next:** Chacha arma los pares antes del 30 de abril. Clase 1: live Claude onboarding + framing Feynman-AI.
 
 ### lexia
-- **Type:** Venture — AI-powered legal services platform
+- **Type:** Venture — AI-powered legal services platform (Argentine corporate law)
 - **Location:** `~/enter_thebrana/ventures/lexia/`
-- **Status:** Discovery — concept validated via voice notes, lawyer cofounder identified, no revenue
-- **Details:** `.claude/CLAUDE.md`, `docs/decisions/ADR-001-ai-legal-services-model.md`
+- **Team:** Tomás Catalán Pellet (shared cofounder w/ proyecto_anita) + Trusso (lawyer, legal domain + templates) + Martín (tech/AI operator, alias "Bonnie" in meetings)
+- **Status:** Pre-launch product iteration — TCP + Trusso building for a while; Martín joined as operator. Active: product audit + template sourcing + token-cost pricing model. No revenue.
+- **Details:** `.claude/CLAUDE.md`, ADR-001 (AI model), ADR-002 (monetization path, Proposed), meeting notes 2026-04-17
 
 ### prediktive-prep
 - **Type:** Side project — learning/study material
