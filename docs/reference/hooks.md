@@ -6,14 +6,6 @@
 
 | Event | Matcher | Script | Timeout |
 |-------|---------|--------|--------|
-| PostToolUse | `` | `post-tool-use.sh` | 5000ms |
-| PostToolUse | `ExitPlanMode` | `post-plan-challenge.sh` | 5000ms |
-| PostToolUse | `Bash` | `post-pr-review.sh` | 5000ms |
-| PostToolUse | `Bash` | `task-completed.sh` | 5000ms |
-| PostToolUse | `Write|Edit` | `post-sale.sh` | 5000ms |
-| PostToolUse | `Write|Edit` | `post-tasks-validate.sh` | 5000ms |
-| PostToolUse | `Write|Edit` | `post-hooks-json.sh` | 10000ms |
-| PostToolUseFailure | `` | `post-tool-use-failure.sh` | 5000ms |
 | PreToolUse | `Write|Edit` | `pre-tool-use.sh` | 5000ms |
 | PreToolUse | `Write|Edit` | `tdd-gate.sh` | 5000ms |
 | PreToolUse | `Write|Edit` | `feedback-gate.sh` | 3000ms |
@@ -25,14 +17,23 @@
 | PreToolUse | `Bash` | `no-attribution-commit.sh` | 3000ms |
 | PreToolUse | `Bash` | `commit-msg-verify.sh` | 3000ms |
 | PreToolUse | `Read|Grep|Glob` | `guard-explore.sh` | 5000ms |
-| SessionEnd | `` | `session-end.sh` | 10000ms |
+| PostToolUse | `` | `post-tool-use.sh` | 5000ms |
+| PostToolUse | `ExitPlanMode` | `post-plan-challenge.sh` | 5000ms |
+| PostToolUse | `Bash` | `post-pr-review.sh` | 5000ms |
+| PostToolUse | `Bash` | `task-completed.sh` | 5000ms |
+| PostToolUse | `Write|Edit` | `post-sale.sh` | 5000ms |
+| PostToolUse | `Write|Edit` | `post-tasks-validate.sh` | 5000ms |
+| PostToolUse | `Write|Edit` | `post-hooks-json.sh` | 10000ms |
+| PostToolUseFailure | `` | `post-tool-use-failure.sh` | 5000ms |
+| UserPromptSubmit | `` | `preflight-model.sh` | 3000ms |
 | SessionStart | `` | `session-start.sh` | 10000ms |
-| StopFailure | `` | `stopfailure-logger.sh` | 5000ms |
 | SubagentStart | `` | `subagent-context.sh` | 5000ms |
 | SubagentStart | `` | `subagent-tracker.sh` | 5000ms |
 | SubagentStop | `` | `subagent-tracker.sh` | 5000ms |
 | TaskCompleted | `` | `step-completed.sh` | 5000ms |
-| UserPromptSubmit | `` | `preflight-model.sh` | 3000ms |
+| SessionEnd | `` | `session-end.sh` | 10000ms |
+| StopFailure | `` | `stopfailure-logger.sh` | 5000ms |
+| ConfigChange | `` | `config-change-guard.sh` | 3000ms |
 
 ## Hook Scripts
 
@@ -40,119 +41,193 @@
 
 Branch Verify — PreToolUse hook for Bash (git add)
 
+**Gate:** Advisory
+
 ### `commit-msg-verify.sh`
 
 commit-msg-verify.sh — PreToolUse hook for Bash (advisory, non-blocking)
+
+**Gate:** Advisory
+
+### `config-change-guard.sh`
+
+ConfigChange guard — audit config changes, block ANTHROPIC_BASE_URL manipulation.
+
+**Gate:** Blocking
 
 ### `config-drift.sh`
 
 Config drift detector — compares system/ source files vs deployed ~/.claude/ files.
 
+**Gate:** Advisory
+
 ### `doc-gate.sh`
 
 Documentation Enforcement Gate — PreToolUse hook for Bash (git commit)
 
+**Gate:** Advisory
+
 ### `feedback-gate.sh`
 
-PreToolUse: Advisory gate on feedback_*.md writes.
+PreToolUse: Blocking gate on feedback_*.md writes — Wave 2.
+
+**Gate:** Blocking
 
 ### `guard-explore.sh`
 
 No strict mode — hooks must never fail and block the session.
 
+**Gate:** Advisory
+
 ### `main-guard.sh`
 
 Main Branch Guard — PreToolUse hook for Bash (git commit)
+
+**Gate:** Advisory
 
 ### `no-attribution-commit.sh`
 
 no-attribution-commit.sh — PreToolUse hook for Bash
 
+**Gate:** Advisory
+
 ### `plan-mode-gate.sh`
 
 No strict mode — hooks must always return valid JSON.
+
+**Gate:** Advisory
 
 ### `post-hooks-json.sh`
 
 No strict mode — hooks must never fail and block the session.
 
+**Gate:** Advisory
+
 ### `post-plan-challenge.sh`
 
 No strict mode — hooks must never fail and block the session.
+
+**Gate:** Advisory
 
 ### `post-pr-review.sh`
 
 No strict mode — hooks must never fail and block the session.
 
+**Gate:** Advisory
+
 ### `post-sale.sh`
 
 No strict mode — hooks must never fail and block the session.
+
+**Gate:** Advisory
 
 ### `post-tasks-validate.sh`
 
 No strict mode — hooks must never fail and block the session.
 
+**Gate:** Advisory
+
 ### `post-tool-use-failure.sh`
 
 No strict mode — failure hooks especially must never fail themselves.
+
+**Gate:** Advisory
 
 ### `post-tool-use.sh`
 
 No strict mode — hooks must never fail and block the session.
 
+**Gate:** Advisory
+
 ### `pre-tool-use.sh`
 
 No strict mode — hooks must always return valid JSON.
+
+**Gate:** Advisory
 
 ### `preflight-model.sh`
 
 preflight-model.sh — UserPromptSubmit hook (advisory, non-blocking)
 
+**Gate:** Advisory
+
 ### `session-end-drift.sh`
 
 session-end-drift.sh — Post-session system sync and cleanup.
+
+**Gate:** Advisory
 
 ### `session-end-metrics.sh`
 
 session-end-metrics.sh — Compute session metrics from JSONL event file.
 
+**Gate:** Advisory
+
 ### `session-end-persist.sh`
 
 session-end-persist.sh — Store session summary to ruflo (L1) + auto-memory (L0).
+
+**Gate:** Advisory
 
 ### `session-end.sh`
 
 No strict mode — hooks must always return valid JSON.
 
+**Gate:** Advisory
+
 ### `session-start.sh`
 
 No strict mode — hooks must always return valid JSON.
+
+**Gate:** Advisory
 
 ### `step-completed.sh`
 
 No strict mode — hooks must never fail and block the session.
 
+**Gate:** Advisory
+
 ### `stopfailure-logger.sh`
 
 No strict mode — failure hooks must never fail themselves.
+
+**Gate:** Advisory
 
 ### `subagent-context.sh`
 
 No strict mode — hooks must never fail and block the session.
 
+**Gate:** Advisory
+
 ### `subagent-tracker.sh`
 
 No strict mode — hooks must never fail and block the session.
+
+**Gate:** Advisory
 
 ### `task-completed.sh`
 
 No strict mode — hooks must never fail and block the session.
 
+**Gate:** Advisory
+
 ### `tdd-gate.sh`
 
 TDD Enforcement Gate — PreToolUse hook for Write|Edit
 
+**Gate:** Advisory
+
 ### `worktree-gate.sh`
 
 PreToolUse: Worktree Enforcement Gate + Commit Safety
+
+**Gate:** Advisory
+
+## Bypass Sentinels
+
+Blocking hooks that support `/tmp/brana-*` sentinel file bypasses for procedure-authorized writes.
+
+| Hook | Sentinel | Context |
+|------|----------|--------|
+| `feedback-gate.sh` | `/tmp/brana-close-active` | Whitelist: /brana:close Step 5b writes git-durable backup files — sentinel set by procedure |
 
