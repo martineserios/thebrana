@@ -24,6 +24,15 @@ esac
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || pass_through
 [ -z "$FILE_PATH" ] && pass_through
 
+# Layer 1 guard: CLAUDE.md is human-authored, never LLM-written.
+# Unconditional — no sentinel bypass, no override bypass.
+case "$FILE_PATH" in
+    *CLAUDE.md)
+        ESCAPED=$(printf '{"continue": false, "additionalContext": "🚫 CLAUDE.md is Layer 1 (human-authored only). Add conventions via PR — /brana:close must not write here."}')
+        echo "$ESCAPED"
+        exit 0 ;;
+esac
+
 # Match: ~/.claude/projects/*/memory/feedback_*.md only
 # Pattern: any path with /memory/feedback_ that ends in .md
 case "$FILE_PATH" in
