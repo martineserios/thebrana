@@ -281,13 +281,14 @@ else
 fi
 
 # ── Session handoff (previous session continuity) ─────────
+# Suppress with: BRANA_RECAP_OFF=1
 HANDOFF_CONTEXT=""
 BRANA_BIN=""
 [ -x "${CLAUDE_PLUGIN_DATA:-}/brana" ] && BRANA_BIN="${CLAUDE_PLUGIN_DATA}/brana"
 [ -z "$BRANA_BIN" ] && [ -x "${CLAUDE_PLUGIN_ROOT:-$GIT_ROOT/system}/cli/rust/target/release/brana" ] && BRANA_BIN="${CLAUDE_PLUGIN_ROOT:-$GIT_ROOT/system}/cli/rust/target/release/brana"
 [ -z "$BRANA_BIN" ] && BRANA_BIN=$(command -v brana 2>/dev/null) || true
 
-if [ -n "$BRANA_BIN" ]; then
+if [ -z "${BRANA_RECAP_OFF:-}" ] && [ -n "$BRANA_BIN" ]; then
     # Try structured JSON first (new session-state.json)
     SESSION_JSON=$("$BRANA_BIN" session read --json 2>/dev/null) || SESSION_JSON=""
     if [ -n "$SESSION_JSON" ]; then
@@ -413,12 +414,13 @@ $RECURRING"
 fi
 
 # ── Venture project detection (shared lib) ────────────────
+# Suppress with: BRANA_RECAP_OFF=1
 VENTURE_CONTEXT=""
 source "$SCRIPT_DIR/lib/venture.sh"
 IS_VENTURE=false
 _detect_venture "$CWD" && IS_VENTURE=true
 
-if [ "$IS_VENTURE" = true ]; then
+if [ -z "${BRANA_RECAP_OFF:-}" ] && [ "$IS_VENTURE" = true ]; then
     VENTURE_CONTEXT="Venture project detected. Auto-delegating to daily-ops agent for morning check."
 
     NEWEST_REVIEW=""
