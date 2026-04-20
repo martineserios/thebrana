@@ -796,6 +796,7 @@ mod tests {
                 ],
                 task_strategies: vec!["feature".into(), "spike".into()],
                 stream_affinity: vec!["roadmap".into(), "research".into()],
+                depends_on: vec![],
             },
             SkillMeta {
                 name: "financial-model".into(),
@@ -808,6 +809,7 @@ mod tests {
                 ],
                 task_strategies: vec!["feature".into(), "spike".into()],
                 stream_affinity: vec!["roadmap".into(), "research".into()],
+                depends_on: vec![],
             },
             SkillMeta {
                 name: "build".into(),
@@ -823,6 +825,7 @@ mod tests {
                     "spike".into(), "greenfield".into(), "migration".into(), "investigation".into(),
                 ],
                 stream_affinity: vec!["roadmap".into(), "bugs".into(), "tech-debt".into(), "experiments".into()],
+                depends_on: vec![],
             },
         ]
     }

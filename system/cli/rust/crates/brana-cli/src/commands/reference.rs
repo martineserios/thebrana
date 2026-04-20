@@ -332,6 +332,8 @@ fn generate_hooks(root: &Path) -> Result<String> {
         .collect();
     sh_files.sort_by_key(|e| e.file_name());
 
+    let mut all_sentinels: Vec<(String, String, String)> = Vec::new(); // (hook, path, comment)
+
     for entry in sh_files {
         let path = entry.path();
         let name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
@@ -343,10 +345,67 @@ fn generate_hooks(root: &Path) -> Result<String> {
             .find(|l| l.starts_with('#') && l.len() > 2)
             .map(|l| l.trim_start_matches('#').trim().to_string())
             .unwrap_or_else(|| "No description.".to_string());
-        out.push_str(&format!("### `{name}`\n\n{desc}\n\n"));
+        let severity = hook_severity(&text);
+        out.push_str(&format!("### `{name}`\n\n{desc}\n\n**Gate:** {severity}\n\n"));
+
+        for (sentinel_path, comment) in hook_sentinels(&text) {
+            all_sentinels.push((name.clone(), sentinel_path, comment));
+        }
+    }
+
+    if !all_sentinels.is_empty() {
+        out.push_str("## Bypass Sentinels\n\n");
+        out.push_str("Blocking hooks that support `/tmp/brana-*` sentinel file bypasses for procedure-authorized writes.\n\n");
+        out.push_str("| Hook | Sentinel | Context |\n");
+        out.push_str("|------|----------|--------|\n");
+        for (hook, sentinel, comment) in &all_sentinels {
+            out.push_str(&format!("| `{hook}` | `{sentinel}` | {comment} |\n"));
+        }
+        out.push('\n');
     }
 
     Ok(out)
+}
+
+/// Returns "Blocking" if the script body contains a `continue: false` denial path,
+/// "Advisory" otherwise. Looks for the JSON literal produced by hook deny paths.
+fn hook_severity(text: &str) -> &'static str {
+    if text.contains(r#""continue": false"#) {
+        "Blocking"
+    } else {
+        "Advisory"
+    }
+}
+
+/// Extracts bypass sentinel entries from a hook script.
+/// Returns Vec of (sentinel_path, description) pairs. Description is taken
+/// from the nearest preceding comment line above each `/tmp/brana-` reference.
+fn hook_sentinels(text: &str) -> Vec<(String, String)> {
+    let lines: Vec<&str> = text.lines().collect();
+    let mut sentinels = Vec::new();
+
+    for (i, line) in lines.iter().enumerate() {
+        if let Some(start) = line.find("/tmp/brana-") {
+            let rest = &line[start..];
+            let end = rest
+                .find(|c: char| c.is_whitespace() || matches!(c, '\'' | '"' | ']' | ')' | ';'))
+                .unwrap_or(rest.len());
+            let path = rest[..end].to_string();
+
+            let comment = lines[..i]
+                .iter()
+                .rev()
+                .find(|l| {
+                    let t = l.trim();
+                    t.starts_with('#') && t.len() > 2
+                })
+                .map(|l| l.trim().trim_start_matches('#').trim().to_string())
+                .unwrap_or_default();
+
+            sentinels.push((path, comment));
+        }
+    }
+    sentinels
 }
 
 fn extract_title(text: &str, fallback: &str) -> String {
@@ -556,5 +615,47 @@ mod tests {
     fn test_first_paragraph_empty() {
         let p = first_paragraph("# Title\n\n");
         assert_eq!(p, "");
+    }
+
+    #[test]
+    fn test_hook_severity_blocking() {
+        let script = "#!/usr/bin/env bash\n# PreToolUse: gate\npass_through() { echo '{\"continue\": true}'; exit 0; }\necho '{\"continue\": false, \"additionalContext\": \"blocked\"}'\n";
+        assert_eq!(hook_severity(script), "Blocking");
+    }
+
+    #[test]
+    fn test_hook_severity_advisory() {
+        let script = "#!/usr/bin/env bash\n# PostToolUse: metrics logger\necho '{\"continue\": true}'\n";
+        assert_eq!(hook_severity(script), "Advisory");
+    }
+
+    #[test]
+    fn test_hook_severity_pass_through_only_is_advisory() {
+        let script = "#!/usr/bin/env bash\npass_through() { echo '{\"continue\": true}'; exit 0; }\npass_through\n";
+        assert_eq!(hook_severity(script), "Advisory");
+    }
+
+    #[test]
+    fn test_hook_sentinels_found() {
+        let script = "#!/usr/bin/env bash\n# Whitelist: close Step 5b writes backup files\nif [ -f /tmp/brana-close-active ]; then\n    pass_through\nfi\necho '{\"continue\": false}'\n";
+        let sentinels = hook_sentinels(script);
+        assert_eq!(sentinels.len(), 1);
+        assert_eq!(sentinels[0].0, "/tmp/brana-close-active");
+        assert!(sentinels[0].1.contains("close Step 5b"));
+    }
+
+    #[test]
+    fn test_hook_sentinels_none() {
+        let script = "#!/usr/bin/env bash\necho '{\"continue\": false}'\n";
+        assert!(hook_sentinels(script).is_empty());
+    }
+
+    #[test]
+    fn test_hook_sentinels_multiple() {
+        let script = "#!/usr/bin/env bash\n# Bypass for close\nif [ -f /tmp/brana-close-active ]; then pass_through; fi\n# Bypass for deploy\nif [ -f /tmp/brana-deploy-active ]; then pass_through; fi\n";
+        let sentinels = hook_sentinels(script);
+        assert_eq!(sentinels.len(), 2);
+        assert_eq!(sentinels[0].0, "/tmp/brana-close-active");
+        assert_eq!(sentinels[1].0, "/tmp/brana-deploy-active");
     }
 }
