@@ -16,6 +16,13 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 
 | # | Error | Severity | Status | Comments |
 |---|---|---|---|---|
+| E2026-04-19-1 | Tracy returns 200 with empty body for empty cart | **High** | code-fix | try-catch added to response.json() in tracy-cart-view.js and tracy-cart-batch-update.js |
+| E2026-04-19-2 | Tracy returns HTTP 400 (not 404) for invalid articleId in batch_update | **High** | code-fix | Both 400 and 404 now map to INVALID_ARTICLE_ID in tracy-cart-batch-update.js |
+| E2026-04-20-1 | vendor_table source of truth not documented in tenant-config-schema.md | **Medium** | pending | Full vendor list lived in Kapso agent knowledge_base_text — add provenance line to schema doc |
+| E2026-04-20-2 | validate.sh `((N++))` under `set -e` exits on zero counter | **High** | code-fix | fail()/warn() used `((ERRORS++))` — bash `((0))` returns exit 1 under set -e, silently truncating all checks after first warn/fail |
+| E2026-04-20-3 | hooks.json KNOWN_EVENTS missing ConfigChange and 4 other events | **Medium** | code-fix | StopFailure, SubagentStart, TaskCompleted, UserPromptSubmit, ConfigChange all absent from validate.sh event allowlist |
+| E2026-04-20-4 | main-guard.sh Step 2 pattern `*"git commit"*` never matches `git -C <path> commit` | **High** | code-fix | `-C <path>` between `git` and `commit` breaks glob match; silent bypass for all worktree-style commits |
+| E2026-04-20-5 | main-guard.sh Steps 4-5 used `$CWD` instead of `-C` target for branch/staged checks | **High** | code-fix | Even on match, hook checked wrong repo's branch and staged files; same root cause as prior branch-verify fix |
 | 1 | Settings merge bug in deploy.sh | **High** | code-fix | Fixed in deploy.sh additive merge |
 | 87 | call_claude_json assumed model always returns raw JSON | **Low** | code-fix | strip_code_fences() added; 12/50 tier1 failures fixed (commit 0c116dd) |
 | 84 | Spec-first gate requires dot separator in spec filenames | **Low** | code-fix | `knowledge_pipeline_spec.md` rejected; rename to `knowledge_pipeline.spec.md` fixed it |
@@ -2508,3 +2515,121 @@ Doc 38 also classifies these as Wave 1 (divergent ideation — shipped) vs Wave 
 **Suggested fix:** One of: (a) timestamp-based IDs (E2026-0414-1) instead of sequential numbers — collisions become impossible; (b) a counter file (`docs/.errata-counter`) that branches atomically read-and-increment; (c) convention: errata written in worktrees use a temp prefix (E{branch}-N) and get renumbered on merge. Option (a) is the lowest friction.
 
 **Status:** pending
+
+## Error 154: align skill doesn't distinguish brainstorm/research repos from structured ventures
+
+**Severity:** Low — creates noise, wastes one user correction per brainstorm repo
+**Discovery:** 2026-04-15 — /brana:align on ai-native-education (venture brainstorm repo)
+**Affected files:** `system/skills/align/procedures/align.md`, venture checklist phase
+
+**Gap:** `/brana:align` treats all `ventures/*` directories as full venture projects and applies the complete F1–F5 + Validation scaffold (decisions/, metrics/, meetings/, hypothesis.md, experiment tracking). Brainstorm/research repos (content-only, no src/, no package.json, only .md files) generate noise from F2/F3/F4 because there are no decisions to log, no metrics to track, and no meetings to schedule. User had to intervene mid-session to narrow scope to Foundation-only.
+
+**Suggested fix:** Add a repo-type detection step to DISCOVER phase: if no `src/`, no manifest files, and >80% content is `.md` → classify as `brainstorm` and auto-select Foundation-only scope (F1, F5, F6, .gitignore). Log the auto-detection to the user and offer override. Alternatively: honor a `type: brainstorm` declaration in CLAUDE.md.
+
+**Status:** pending
+
+## Error E2026-04-19-1: Tracy returns 200 with empty body for empty cart
+
+**Severity:** High — affects first-time users (empty cart is default state); silent parse crash
+**Discovery:** 2026-04-19 — smoke test t-410/t-412 against real Tracy QA
+**Affected files:** `services/kapso-functions/src/tracy-cart-view.js`, `services/kapso-functions/src/tracy-cart-batch-update.js`, `docs/agent-v4/tool-contracts.md`
+**Client:** proyecto_anita
+
+**Gap:** Both handlers assumed `response.json()` always produces valid JSON on HTTP 200. Real Tracy QA returns HTTP 200 with an empty body when the cart is empty (Palco QA tenant has no items). This caused `Unexpected end of JSON input` unhandled exception, bubbling as NETWORK_ERROR.
+
+**Fix applied (code-fix):** Wrapped `response.json()` in try-catch with `null` fallback; downstream mapping treats null as zero-state (empty items array, subtotal=0, total=0).
+
+**Suggested doc fix:** Add note to `docs/agent-v4/tool-contracts.md` under `tracy_cart_view` error codes: "Tracy returns 200 with empty body for empty cart — treat as zero-state, not an error."
+
+**Status:** code-fix
+
+---
+
+## Error E2026-04-19-2: Tracy returns HTTP 400 (not 404) for invalid articleId in batch_update
+
+**Severity:** High — agent misclassifies a common error; INVALID_ARTICLE_ID branch never fires
+**Discovery:** 2026-04-19 — smoke test t-414 sub-test A (articleId=999999999)
+**Affected files:** `services/kapso-functions/src/tracy-cart-batch-update.js`, `docs/agent-v4/tool-contracts.md`
+**Client:** proyecto_anita
+
+**Gap:** `tracy-cart-batch-update.js` mapped only HTTP 404 → `INVALID_ARTICLE_ID`. Tracy QA returned HTTP 400 for an article that doesn't exist. The 400 fell through to the generic catch-all, returning NETWORK_ERROR instead of the domain-typed error.
+
+**Fix applied (code-fix):** Changed condition from `response.status === 404` to `response.status === 400 || response.status === 404` → both map to INVALID_ARTICLE_ID.
+
+**Suggested doc fix:** Update `docs/agent-v4/tool-contracts.md` under `tracy_cart_batch_update` error table: "INVALID_ARTICLE_ID: HTTP 400 or 404 (Tracy uses 400 for unknown articleId)."
+
+**Status:** code-fix
+
+---
+
+## Error E2026-04-20-1: vendor_table source of truth not documented in tenant-config-schema.md
+
+**Severity:** Medium — next implementer or new tenant onboarding would reconstruct the vendor list from memory or miss vendors silently
+**Discovery:** 2026-04-20 — t-420 (tenants.yaml authoring); vendor table found only in `config/kapso/platform/agents/v1_anita_palco/agent.py::knowledge_base_text`
+**Affected files:** `docs/agent-v4/tenant-config-schema.md`
+**Client:** proyecto_anita
+
+**Gap:** `tenant-config-schema.md` describes `vendor_table` as a required field but does not name where the authoritative vendor list lives. The full list (19 Palco vendors + 21 PDB vendors) existed only as a CSV string literal in a legacy Kapso agent Python file — not in any config file, ADR, or referenced sheet. The CI validator checks shape but not provenance; a placeholder vendor_table passes validation.
+
+**Fix applied:** None — doc fix pending.
+
+**Suggested doc fix:** Add a "Source of truth" note under `vendor_table` in `docs/agent-v4/tenant-config-schema.md`:
+> "Extracted from legacy agent `config/kapso/platform/agents/v1_anita_palco/agent.py` (`knowledge_base_text`) during Phase 2 authoring. `config/agent-v4/tenants.yaml` is now the authoritative source. Palco vendor codes: 1–17, 97, 109, 229. PDB vendor codes: 201–228."
+
+**Status:** pending
+
+---
+
+## Error E2026-04-20-2: validate.sh `((N++))` under `set -e` exits on zero counter
+
+**Severity:** High — all checks after the first warning/failure were silently skipped. Users saw partial pass results with false assurance.
+**Discovery:** 2026-04-20 — Check 23/24 never ran despite being added. Traced to `((ERRORS++))` / `((WARNINGS++))` returning exit 1 when counter is 0 under `set -e`.
+**Affected files:** `validate.sh`
+
+**Gap:** `((0++))` returns exit code 1 in bash arithmetic context. Under `set -e` this terminates the script on the very first warn/fail call when the counter starts at zero.
+
+**Fix applied (code-fix):** Changed to `(( ERRORS++ )) || true` and `(( WARNINGS++ )) || true`.
+
+**Status:** code-fix
+
+---
+
+## Error E2026-04-20-3: hooks.json KNOWN_EVENTS missing ConfigChange and 4 other events
+
+**Severity:** Medium — any hook wiring a newer event would false-fail validate.sh Check 9.
+**Discovery:** 2026-04-20 — wiring ConfigChange for t-1232 revealed validate.sh KNOWN_EVENTS gap. Audit found 4 more: StopFailure, SubagentStart, TaskCompleted, UserPromptSubmit.
+**Affected files:** `validate.sh`, `docs/architecture/hooks.md`
+
+**Gap:** KNOWN_EVENTS never updated when CC added new hook event types.
+
+**Fix applied (code-fix):** All 5 events added to KNOWN_EVENTS. ConfigChange row added to hooks.md event table.
+
+**Status:** code-fix
+
+---
+
+## Error E2026-04-20-4: main-guard.sh Step 2 pattern never matches `git -C <path> commit`
+
+**Severity:** High — main-guard enforcement silently bypassed for all worktree-style commit commands.
+**Discovery:** 2026-04-20 — t-1153. Same bug class as prior branch-verify.sh fix.
+**Affected files:** `system/hooks/main-guard.sh`, `system/hooks/tests/test-main-guard.sh`
+
+**Gap:** Shell glob `*"git commit"*` requires `git` and `commit` to be adjacent. `git -C /path commit` has `-C /path` between them.
+
+**Fix applied (code-fix):** Added `*"git -C"*"commit"*` case to Step 2 match. Tests 8+9 added (9/9 pass).
+
+**Status:** code-fix
+
+---
+
+## Error E2026-04-20-5: main-guard.sh Steps 4-5 used `$CWD` instead of `-C` target for git checks
+
+**Severity:** High — branch and staged-file checks ran against Claude Code's CWD (portfolio parent), not the actual commit target repo.
+**Discovery:** 2026-04-20 — audit during t-1153 fix found the CWD issue that branch-verify.sh had been fixed for earlier also existed here.
+**Affected files:** `system/hooks/main-guard.sh`
+
+**Gap:** `git -C "$CWD"` uses CC's launch directory, not the `-C <path>` target. Branch check and staged-file diff returned from the wrong repo.
+
+**Fix applied (code-fix):** Extracted LOOKUP_DIR from `-C` flag via sed. Branch, GIT_ROOT, and STAGED all use LOOKUP_DIR (same pattern as branch-verify.sh).
+
+**Status:** code-fix

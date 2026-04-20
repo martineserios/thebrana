@@ -69,3 +69,11 @@ Branch conventions preserve the separation:
 ### 2026-04-14: Errata sequential IDs unsafe under parallel sessions
 Two worktrees both wrote E142 for different findings before merging — required 2 fix commits to untangle. Sequential numbers are safe for single-threaded append but break under parallel branches. Fix tracked as E153: use timestamp-based IDs (E2026-0414-1) to make collisions structurally impossible.
 Source: close session 2026-04-14 / debrief-analyst
+
+### 2026-04-20: Hook bugs come in pairs — pattern match + directory resolution
+When fixing a hook's command-pattern matcher (e.g. `*"git commit"*` never matching `git -C <path> commit`), always audit the directory-resolution code immediately after. Both branch-verify.sh and main-guard.sh had the same dual failure: wrong glob AND `git -C "$CWD"` using the portfolio parent instead of the target repo. Fix: extract LOOKUP_DIR via sed from the `-C` flag and use it for all git operations. t-1310 tracks factoring this into a shared lib.
+Source: close session 2026-04-20 / t-1153
+
+### 2026-04-20: set -e + ((N++)) silently exits on zero counter
+`((0++))` returns exit code 1 in bash arithmetic context. Under `set -e` this terminates the script on the very first `fail()` or `warn()` call when the counter starts at zero — no error message, just silent truncation. validate.sh was skipping Checks 23/24 entirely. Fix: always use `(( N++ )) || true` for counters in scripts using `set -e`.
+Source: close session 2026-04-20 / validate.sh CVE work
