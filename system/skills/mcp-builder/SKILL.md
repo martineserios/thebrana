@@ -3,6 +3,9 @@ name: mcp-builder
 description: "MCP server development guide — build, test, and deploy MCP servers."
 group: brana
 keywords: [mcp, server, development, typescript]
+task_strategies: [feature, greenfield, spike]
+stream_affinity: [roadmap, tech-debt]
+effort: high
 allowed-tools: [Bash, Read, Glob, Grep, Edit, Write]
 status: stable
 ---

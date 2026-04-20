@@ -4,6 +4,9 @@ description: "Rust best practices — 179 rules across 14 categories for idiomat
 model: haiku
 group: brana
 keywords: [rust, best-practices, code-quality, optimization]
+task_strategies: [feature, refactor, tech-debt]
+stream_affinity: [tech-debt, roadmap]
+effort: low
 allowed-tools: [Bash, Read, Glob, Grep, Edit, Write]
 status: stable
 ---
