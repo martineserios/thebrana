@@ -395,14 +395,14 @@ fn poll_account(acct: &Account, label_override: Option<&str>) -> Result<serde_js
         .map(|u| u.to_string())
         .collect::<Vec<_>>()
         .join(",");
-    let messages = session.uid_fetch(&uid_list, "BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE)]")
+    let messages = session.uid_fetch(&uid_list, "RFC822.HEADER")
         .context("fetching message headers")?;
 
     let mut matched = 0usize;
     let mut unmatched = 0usize;
 
     for msg in messages.iter() {
-        let header_bytes = msg.body().unwrap_or(b"");
+        let header_bytes = msg.header().unwrap_or(b"");
         let header_str = String::from_utf8_lossy(header_bytes);
 
         let from = extract_header(&header_str, "From");

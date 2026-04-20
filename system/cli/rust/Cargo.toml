@@ -31,7 +31,7 @@ mailparse = "0.15"
 native-tls = "0.2"
 
 # System
-keyring = "3"
+keyring = { version = "3", features = ["linux-native"] }
 rpassword = "7"
 
 # CLI (brana-cli only)
