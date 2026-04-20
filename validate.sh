@@ -28,8 +28,8 @@ done
 echo "=== Brana Validate ==="
 echo ""
 
-fail() { echo "  FAIL: $1"; ((ERRORS++)); }
-warn() { echo "  WARN: $1"; ((WARNINGS++)); }
+fail() { echo "  FAIL: $1"; (( ERRORS++ )) || true; }
+warn() { echo "  WARN: $1"; (( WARNINGS++ )) || true; }
 pass() { echo "  PASS: $1"; }
 
 # ── Checks 1-14: Core validation ─────────────────────────────────────────
@@ -1094,6 +1094,25 @@ if [ -f "$BUILD_PROC" ]; then
     fi
 else
     fail "Check 23c: build.md procedure not found"
+fi
+echo ""
+
+# Check 24 — .mcp.json entries (ADR-033: no npx/uvx, use pinned wrappers)
+echo "Checking .mcp.json entries..."
+MCP_FILE="$SCRIPT_DIR/.mcp.json"
+if [ -f "$MCP_FILE" ]; then
+  MCP_OK=true
+  while IFS= read -r entry; do
+    [ -z "$entry" ] && continue
+    if echo "$entry" | grep -qE '"command"[[:space:]]*:[[:space:]]*"(npx|uvx)'; then
+      NAME=$(echo "$entry" | jq -r '.name // "unknown"' 2>/dev/null || echo "unknown")
+      fail "Check 24: .mcp.json entry uses npx/uvx (server: $NAME) — use pinned wrapper per ADR-033"
+      MCP_OK=false
+    fi
+  done < <(jq -c '.mcpServers | to_entries[] | .value + {name: .key}' "$MCP_FILE" 2>/dev/null)
+  $MCP_OK && pass "Check 24: .mcp.json — no npx/uvx entries (ADR-033 OK)"
+else
+  warn "Check 24: .mcp.json not found at $SCRIPT_DIR/.mcp.json (skipped)"
 fi
 echo ""
 

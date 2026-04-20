@@ -92,6 +92,31 @@ if $CHECK_ONLY; then
 fi
 echo ""
 
+# --- Pre-flight: CC version check (CVE-2026-21852, CVE-2025-59536) ---
+check_cc_version() {
+  local ver
+  ver=$(claude --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+  if [ -z "$ver" ]; then
+    echo "  ! claude binary not found or version unreadable — skipping CVE check"
+    return
+  fi
+  local required_exfil="2.0.65"  # CVE-2026-21852 API key exfil via ANTHROPIC_BASE_URL (CVSS 5.3)
+  local required_rce="1.0.111"   # CVE-2025-59536 hooks RCE (CVSS 8.7)
+  local fail=0
+  if ! printf '%s\n%s\n' "$required_exfil" "$ver" | sort -V -C 2>/dev/null; then
+    echo "  ! CC $ver < $required_exfil — CVE-2026-21852 unfixed (API key exfil). Run: npm i -g @anthropic-ai/claude-code"
+    fail=1
+  fi
+  if ! printf '%s\n%s\n' "$required_rce" "$ver" | sort -V -C 2>/dev/null; then
+    echo "  ! CC $ver < $required_rce — CVE-2025-59536 unfixed (hooks RCE). Run: npm i -g @anthropic-ai/claude-code"
+    fail=1
+  fi
+  [ "$fail" -eq 1 ] && exit 1
+  echo "  + CC $ver — CVE-2026-21852 and CVE-2025-59536 OK"
+}
+check_cc_version
+echo ""
+
 mkdir -p "$TARGET_DIR"
 CHANGES=0
 
