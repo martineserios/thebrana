@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
-# Tests for PreToolUse hook: feedback_*.md creation gate (t-1272).
-# Validates advisory warning behavior (Wave 1) and blocking behavior (Wave 2).
+# Tests for PreToolUse hook: feedback_*.md creation gate (t-1272, t-1312).
+# Validates blocking behavior (Wave 2) and sentinel bypass contract.
 # Spec: docs/architecture/decisions/ADR-037-memory-enforcement-and-migration.md
 #       docs/architecture/features/memory-taxonomy-sdd.md §4
 #
-# RED until t-1245 implements the hook.
 # Run: bash tests/hooks/test-feedback-gate.sh
 
 set -euo pipefail
@@ -140,16 +139,14 @@ else
 fi
 echo ""
 
-# ── Test 2: Advisory mode does NOT block write ────────────────────────────────
-echo "Test 2: Advisory mode — write is NOT blocked (continue:true)"
+# ── Test 2: Wave 2 — write IS blocked (continue:false) ───────────────────────
+echo "Test 2: Wave 2 blocking — feedback_*.md write returns continue:false"
 if [ -f "$HOOK" ]; then
     output=$(invoke_hook "$HOME/.claude/projects/-home-user-project/memory/feedback_test.md")
-    # Hook must output JSON with "continue":true in advisory mode
-    assert_contains "output contains continue:true" '"continue"\s*:\s*true' "$output"
-    # Exit code 0 means advisory (not blocking)
+    assert_contains "output contains continue:false" '"continue"[[:space:]]*:[[:space:]]*false' "$output"
     invoke_hook "$HOME/.claude/projects/-home-user-project/memory/feedback_test.md" > /dev/null 2>&1
     exit_code=$?
-    assert_exit_code "exit code 0 in advisory mode" "0" "$exit_code"
+    assert_exit_code "exit code 0 (hook exits cleanly even when blocking)" "0" "$exit_code"
 else
     assert "hook exists (skip block test)" "exists" "missing"
     assert "hook exists (skip block test)" "exists" "missing"
@@ -220,11 +217,50 @@ assert_file_contains "ADR documents blocking behavior" "block" "$ADR"
 assert_file_contains "ADR documents cooling-off constraint" "cooling.off|cooling_off" "$ADR"
 echo ""
 
+# ── Test 10: Sentinel bypass — /tmp/brana-close-active allows write ──────────
+echo "Test 10: Sentinel bypass — /tmp/brana-close-active → continue:true"
+if [ -f "$HOOK" ]; then
+    SENTINEL=/tmp/brana-close-active
+    touch "$SENTINEL"
+    output=$(invoke_hook "$HOME/.claude/projects/-home-user-project/memory/feedback_test.md")
+    rm -f "$SENTINEL"
+    assert_contains "sentinel present → continue:true" '"continue"[[:space:]]*:[[:space:]]*true' "$output"
+    assert_not_contains "sentinel present → no block message" "BLOCKED" "$output"
+else
+    assert "hook exists (skip sentinel test)" "exists" "missing"
+    assert "hook exists (skip sentinel test)" "exists" "missing"
+fi
+echo ""
+
+# ── Test 11: No sentinel — blocking resumes after sentinel removed ────────────
+echo "Test 11: No sentinel — blocking resumes (continue:false)"
+if [ -f "$HOOK" ]; then
+    rm -f /tmp/brana-close-active
+    output=$(invoke_hook "$HOME/.claude/projects/-home-user-project/memory/feedback_test.md")
+    assert_contains "no sentinel → continue:false" '"continue"[[:space:]]*:[[:space:]]*false' "$output"
+else
+    assert "hook exists (skip no-sentinel test)" "exists" "missing"
+fi
+echo ""
+
+# ── Test 12: Sentinel does not bypass BRANA_MEMORY_OVERRIDE path ─────────────
+echo "Test 12: Both sentinel + BRANA_MEMORY_OVERRIDE → continue:true (BRANA_MEMORY_OVERRIDE wins first)"
+if [ -f "$HOOK" ]; then
+    SENTINEL=/tmp/brana-close-active
+    touch "$SENTINEL"
+    output=$(BRANA_MEMORY_OVERRIDE=1 invoke_hook "$HOME/.claude/projects/-home-user-project/memory/feedback_test.md")
+    rm -f "$SENTINEL"
+    assert_contains "override+sentinel → continue:true" '"continue"[[:space:]]*:[[:space:]]*true' "$output"
+else
+    assert "hook exists (skip override+sentinel test)" "exists" "missing"
+fi
+echo ""
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo ""
 echo "Results: $PASS passed, $FAIL failed, $TOTAL total"
 if [ "$FAIL" -gt 0 ]; then
-    echo "STATUS: RED (expected — implement t-1245 to make green)"
+    echo "STATUS: RED"
     exit 1
 else
     echo "STATUS: GREEN"

@@ -23,7 +23,7 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | E2026-04-20-3 | hooks.json KNOWN_EVENTS missing ConfigChange and 4 other events | **Medium** | code-fix | StopFailure, SubagentStart, TaskCompleted, UserPromptSubmit, ConfigChange all absent from validate.sh event allowlist |
 | E2026-04-20-4 | main-guard.sh Step 2 pattern `*"git commit"*` never matches `git -C <path> commit` | **High** | code-fix | `-C <path>` between `git` and `commit` breaks glob match; silent bypass for all worktree-style commits |
 | E2026-04-20-5 | main-guard.sh Steps 4-5 used `$CWD` instead of `-C` target for branch/staged checks | **High** | code-fix | Even on match, hook checked wrong repo's branch and staged files; same root cause as prior branch-verify fix |
-| E2026-04-20-6 | hooks.md auto-generator labels feedback-gate as "Advisory" — it is "Blocking" | **Low** | pending | Generator infers severity from header comment, not from `continue:false` logic |
+| E2026-04-20-6 | hooks.md auto-generator labels feedback-gate as "Advisory" — it is "Blocking" | **Low** | code-fix (2026-04-20) | `hook_severity()` in reference.rs now parses `continue:false` from script body; sentinel table added |
 | 1 | Settings merge bug in deploy.sh | **High** | code-fix | Fixed in deploy.sh additive merge |
 | 87 | call_claude_json assumed model always returns raw JSON | **Low** | code-fix | strip_code_fences() added; 12/50 tier1 failures fixed (commit 0c116dd) |
 | 84 | Spec-first gate requires dot separator in spec filenames | **Low** | code-fix | `knowledge_pipeline_spec.md` rejected; rename to `knowledge_pipeline.spec.md` fixed it |
@@ -2643,9 +2643,6 @@ Doc 38 also classifies these as Wave 1 (divergent ideation — shipped) vs Wave 
 
 **Gap:** The generator infers hook severity from script header comments rather than from actual `continue:false` / `continue:true` logic. feedback-gate.sh header says "Advisory gate" in one context but the hook blocks. Any hook that mislabels its header gets the wrong severity in the reference doc.
 
-**Fix:** Generator severity classifier should:
-1. Parse each hook script for `"continue": false` in the output paths
-2. Label "Blocking gate" if any path returns `continue:false`; "Advisory" only for warn-and-pass-through hooks
-3. Alternatively, add structured frontmatter to hook scripts (e.g. `# gate: blocking`) that the generator reads as the authoritative severity source
+**Fix applied (code-fix, 2026-04-20):** `hook_severity()` in `reference.rs` parses `"continue": false` from script body (commits 9a80ffb + c4b4280). Sentinel bypass table also added to generated output. Tests cover blocking, advisory, and sentinel cases.
 
-**Status:** pending
+**Status:** code-fix
