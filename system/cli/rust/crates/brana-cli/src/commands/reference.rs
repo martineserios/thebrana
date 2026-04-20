@@ -368,10 +368,9 @@ fn generate_hooks(root: &Path) -> Result<String> {
 }
 
 /// Returns "Blocking" if the script body contains a `continue: false` denial path,
-/// "Advisory" otherwise. Matches both the JSON literal form and the bash-escaped form
-/// used inside double-quoted shell strings (`\"continue\": false`).
+/// "Advisory" otherwise. Looks for the JSON literal produced by hook deny paths.
 fn hook_severity(text: &str) -> &'static str {
-    if text.contains(r#""continue": false"#) || text.contains(r#"\"continue\": false"#) {
+    if text.contains(r#""continue": false"#) {
         "Blocking"
     } else {
         "Advisory"
@@ -380,18 +379,12 @@ fn hook_severity(text: &str) -> &'static str {
 
 /// Extracts bypass sentinel entries from a hook script.
 /// Returns Vec of (sentinel_path, description) pairs. Description is taken
-/// from the nearest preceding comment line above each sentinel reference.
-/// Only matches file-existence checks (`[ -f /tmp/brana-*-active ]`) — not log
-/// file paths or other `/tmp/brana-*` uses.
+/// from the nearest preceding comment line above each `/tmp/brana-` reference.
 fn hook_sentinels(text: &str) -> Vec<(String, String)> {
     let lines: Vec<&str> = text.lines().collect();
     let mut sentinels = Vec::new();
 
     for (i, line) in lines.iter().enumerate() {
-        // Only match bypass sentinel checks: `[ -f /tmp/brana-...-active ]`
-        if !line.contains("[ -f /tmp/brana-") {
-            continue;
-        }
         if let Some(start) = line.find("/tmp/brana-") {
             let rest = &line[start..];
             let end = rest
@@ -627,13 +620,6 @@ mod tests {
     #[test]
     fn test_hook_severity_blocking() {
         let script = "#!/usr/bin/env bash\n# PreToolUse: gate\npass_through() { echo '{\"continue\": true}'; exit 0; }\necho '{\"continue\": false, \"additionalContext\": \"blocked\"}'\n";
-        assert_eq!(hook_severity(script), "Blocking");
-    }
-
-    #[test]
-    fn test_hook_severity_blocking_bash_escaped() {
-        // bash double-quoted strings use \" — hooks like feedback-gate.sh use this form
-        let script = "#!/usr/bin/env bash\necho \"{\\\"continue\\\": false, \\\"additionalContext\\\": \\\"blocked\\\"}\"\n";
         assert_eq!(hook_severity(script), "Blocking");
     }
 
