@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-14T20:02:53Z",
+  "generated": "2026-04-20T21:18:08Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -197,6 +197,11 @@
       "type": "Dimension",
       "impl_files": []
     },
+    "brana-knowledge/dimensions/alternative-education-methodologies.md": {
+      "title": "Alternative Education Methodologies",
+      "type": "Dimension",
+      "impl_files": []
+    },
     "brana-knowledge/dimensions/brana-etymology-naming.md": {
       "title": "Brana: Etymology and Naming",
       "type": "Dimension",
@@ -337,7 +342,10 @@
         "system/procedures/claudemd.md",
         "system/hooks/feedback-gate.sh",
         "system/skills/claudemd/SKILL.md",
-        "system/hooks/main-guard.sh"
+        "system/hooks/main-guard.sh",
+        "system/skills/align/procedures/align.md",
+        "system/hooks/tests/test-main-guard.sh",
+        "system/cli/rust/crates/brana-cli/src/commands/"
       ]
     },
     "docs/25-self-documentation.md": {
@@ -1338,6 +1346,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/dimensions/alternative-education-methodologies.md": {
+      "title": "Alternative Education Methodologies",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/dimensions/brana-etymology-naming.md": {
       "title": "Brana: Etymology and Naming",
       "type": "Roadmap",
@@ -1846,8 +1859,10 @@
       "impl_files": [
         "system/rules/",
         "system/rules/always-use-build-framework.md",
+        "system/rules/backlog-start-gate.md",
         "system/rules/brana-cli.md",
         "system/rules/context-budget.md",
+        "system/rules/cwd-discipline.md",
         "system/rules/delegation-routing.md",
         "system/rules/doc-linking.md",
         "system/rules/git-discipline.md",
@@ -6109,6 +6124,12 @@
     },
     {
       "from": "docs/24-roadmap-corrections.md",
+      "to": "brana-knowledge/dimensions/48-knowledge-graph-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/24-roadmap-corrections.md",
       "to": "dimensions/02-nexeye-skill-selection.md",
       "type": "references",
       "computed": false
@@ -6326,6 +6347,12 @@
     {
       "from": "docs/25-self-documentation.md",
       "to": "docs/NN-filename.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/25-self-documentation.md",
+      "to": "reference/skills.md",
       "type": "references",
       "computed": false
     },
@@ -8779,6 +8806,12 @@
     },
     {
       "from": "docs/reflections/08-diagnosis.md",
+      "to": "brana-knowledge/dimensions/cc-project-structure-best-practices.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
       "to": "brana-knowledge/dimensions/cli-builder-rust-bash-devops.md",
       "type": "references",
       "computed": false
@@ -9013,6 +9046,18 @@
     },
     {
       "from": "docs/reflections/14-mastermind-architecture.md",
+      "to": "brana-knowledge/dimensions/46-cc-harness-ecosystem.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/14-mastermind-architecture.md",
+      "to": "brana-knowledge/dimensions/47-ontology-engineering-ai-systems.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/14-mastermind-architecture.md",
       "to": "brana-knowledge/dimensions/48-knowledge-graph-architecture.md",
       "type": "references",
       "computed": false
@@ -9020,6 +9065,12 @@
     {
       "from": "docs/reflections/14-mastermind-architecture.md",
       "to": "brana-knowledge/dimensions/49-agent-era-systems-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/14-mastermind-architecture.md",
+      "to": "brana-knowledge/dimensions/49-auto-learning-patterns.md",
       "type": "references",
       "computed": false
     },
@@ -9062,6 +9113,12 @@
     {
       "from": "docs/reflections/14-mastermind-architecture.md",
       "to": "docs/architecture/decisions/ADR-019-brana-chat-sessions.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/14-mastermind-architecture.md",
+      "to": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
       "type": "references",
       "computed": false
     },
@@ -9260,6 +9317,12 @@
     {
       "from": "docs/reflections/31-assurance.md",
       "to": "brana-knowledge/dimensions/45-turboflow-agent-orchestration.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/31-assurance.md",
+      "to": "brana-knowledge/dimensions/49-agent-era-systems-patterns.md",
       "type": "references",
       "computed": false
     },
@@ -9565,9 +9628,9 @@
     }
   ],
   "stats": {
-    "nodes": 307,
-    "edges": 1254,
+    "nodes": 309,
+    "edges": 1262,
     "typed_edges": 504,
-    "orphans": 71
+    "orphans": 73
   }
 }
