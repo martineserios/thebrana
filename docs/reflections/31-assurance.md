@@ -78,6 +78,8 @@ Verify structurally:
 
 Escape hatch for all staging/commit gates: `--force-main` anywhere in the command.
 
+**New hook onboarding — Observation Window principle.** From [49a-agent-era-systems-patterns.md](../../../brana-knowledge/dimensions/49-agent-era-systems-patterns.md): every new hook should spend at least one week in advisory mode (`continue: true`) before switching to blocking (`continue: false`). This produces local data before acting on external assumptions. Assurance implication: when verifying a new hook, check that the wave progression is present — advisory → blocking is correct lifecycle; blocking from day one skips the measurement phase that justifies the enforcement.
+
 ### Adversarial Input Validation
 
 Hooks process JSON input from tool calls and sessions. They must resist adversarial payloads — not just valid input:

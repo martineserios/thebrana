@@ -327,6 +327,9 @@ Every dimension doc triaged for brana v2. [Docs 01](../dimensions/01-brana-syste
 ### [cli-builder-rust-bash-devops.md](../../../brana-knowledge/dimensions/cli-builder-rust-bash-devops.md) — CLI Builder: Rust + Bash + DevOps
 **Verdict: Keep as reference.** Research on building CLI tools using Rust (clap, cargo-dist) and Bash, with DevOps integration patterns. Direct input to the `brana` CLI architecture. Informs R2 for CLI tool design. Sources: skills.sh marketplace, context7, web search, internal codebase analysis.
 
+### [cc-project-structure-best-practices.md](../../../brana-knowledge/dimensions/cc-project-structure-best-practices.md) — Claude Code Project Structure Best Practices
+**Verdict: Keep.** Community convergence on 3-tier CLAUDE.md hierarchy (global <15 lines, project 60–80 lines, local `.claude/CLAUDE.local.md` gitignored). Core finding: CLAUDE.md is a routing layer, not a content dump. Identifies `.local.md` as an unadopted quick win in brana bootstrap. Aligns with and validates brana's existing size constraints. Informs R2 (bootstrap scaffold) and `/brana:claudemd` audit criteria. Research date: 2026-04-14.
+
 ---
 
 ## Resolved Questions (from R2)

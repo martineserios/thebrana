@@ -75,6 +75,8 @@ ADRs are pattern-worthy — `/brana:retrospective` extracts "decision X was made
 
 **The Ratchet: default is discard, not keep.** From [49b-auto-learning-patterns.md](../../../brana-knowledge/dimensions/49-auto-learning-patterns.md) Pattern 1 — the persist path must be harder than the discard path. Systems that default to "keep everything" drown in noise. In brana: `confidence: 0.5` quarantine is The Ratchet's first gate — patterns not recalled and promoted within 3 sessions are prune candidates, not permanent residents. `/brana:memory review` enforces The Ratchet monthly (decay ratio, knowledge utilization ratio). The graduation pathway ([doc 00](../00-user-practices.md)) is The Ratchet for practices — manual habits that don't graduate to conventions in 3+ repetitions should be dropped, not indefinitely deferred.
 
+**Two-Clock Architecture.** From [49b-auto-learning-patterns.md](../../../brana-knowledge/dimensions/49-auto-learning-patterns.md) Pattern 5 — capture is real-time, consolidation is batched. These are two independent clocks: the **fast clock** (per-skill: LOAD → WORK → EXTRACT → EVALUATE → PERSIST, every session) feeds raw patterns. The **slow clock** (weekly/monthly: DECAY → consolidate → promote/demote) distills them. The Ratchet lives in the fast clock's EVALUATE step. `/brana:memory review` is the slow clock's consolidator. Trying to consolidate in real-time wastes resources; trying to capture in batches loses signal at peak context richness. Current brana implements `/brana:close` as a batch-only fast clock (session-end, not per-skill) — full per-skill extraction is the next evolution toward ADR-027.
+
 ---
 
 ## Context Management
