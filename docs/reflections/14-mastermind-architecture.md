@@ -208,7 +208,7 @@ Skills are user-invocable workflows (`/command`). Agents auto-delegate when the 
 | **memory-curator** | Haiku | Knowledge lifecycle: recall, store, promote, demote | Read, Bash (ruflo) |
 | **client-scanner** | Haiku | Project structure analysis for onboarding/alignment | Read-only |
 | **venture-scanner** | Haiku | Business project analysis for venture onboarding | Read-only |
-| **challenger** | Sonnet + Gemini | Adversarial review: Sonnet adversarial analysis + Gemini doc-grounded second opinion via NotebookLM | Read-only (no Write/Edit/Bash) |
+| **challenger** | Sonnet | Adversarial review: stress-test plans and architecture decisions before commitment | Read-only (no Write/Edit/Bash) |
 | **debrief-analyst** | Opus | Session learning extraction, errata identification | Read-only |
 | **archiver** | Haiku | Knowledge backup and export | Read, Bash |
 | **daily-ops** | Haiku | Daily operational checks for venture clients | Read-only |
@@ -868,7 +868,7 @@ From [46-cc-harness-ecosystem.md](../../../brana-knowledge/dimensions/46-cc-harn
 
 - **Context compaction:** Agentic Scripts achieve 90%+ reduction via symbol indexes; Claude-Mem claims 10x via progressive disclosure; Context Gateway intercepts at the proxy level. Brana uses JIT skill loading + Tool Search (85% token reduction) + scout agent delegation. Rule: compress before expanding capacity.
 - **Hook enforcement:** The strongest harnesses use PreToolUse guard hooks (block, not advise). ECC's `ECC_HOOK_PROFILE` toggle (minimal/standard/strict) maps to brana's wave progression (advisory → blocking). Auto-compaction at 50% context (vs CC's default 95%) prevents quality degradation — brana's `context-budget.md` rule enforces at 55%.
-- **Skill trigger design is load-bearing:** Skills with 300+ line instructions are ignored at routing time — only the trigger description is read. Brana enforces trigger specificity via frontmatter; vague triggers ("use this for coding tasks") match everything and nothing. Trigger design is the load-bearing element of skill architecture.
+- **Skill trigger design is load-bearing:** Skills with 300+ line instructions are ignored at routing time — only the trigger description is read. Brana's convention requires trigger specificity in frontmatter; vague triggers ("use this for coding tasks") match everything and nothing. Trigger design is the load-bearing element of skill architecture.
 
 ### The Ratchet and ADR-027 Auto-Learning Loop
 
