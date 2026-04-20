@@ -256,6 +256,43 @@ else
 fi
 echo ""
 
+# ── Test 13: CLAUDE.md write → unconditionally blocked ───────────────────────
+echo "Test 13: CLAUDE.md write — unconditionally blocked (continue:false)"
+if [ -f "$HOOK" ]; then
+    output=$(invoke_hook "$HOME/.claude/CLAUDE.md")
+    assert_contains "CLAUDE.md → continue:false" '"continue"[[:space:]]*:[[:space:]]*false' "$output"
+    assert_contains "CLAUDE.md → Layer 1 message" "Layer 1" "$output"
+else
+    assert "hook exists (skip CLAUDE.md block test)" "exists" "missing"
+    assert "hook exists (skip CLAUDE.md block test)" "exists" "missing"
+fi
+echo ""
+
+# ── Test 14: Project CLAUDE.md write → blocked ───────────────────────────────
+echo "Test 14: Project .claude/CLAUDE.md write — blocked"
+if [ -f "$HOOK" ]; then
+    output=$(invoke_hook "$REPO_ROOT/.claude/CLAUDE.md")
+    assert_contains "project CLAUDE.md → continue:false" '"continue"[[:space:]]*:[[:space:]]*false' "$output"
+else
+    assert "hook exists (skip project CLAUDE.md test)" "exists" "missing"
+fi
+echo ""
+
+# ── Test 15: CLAUDE.md + sentinel → still blocked (unconditional, no bypass) ─
+echo "Test 15: CLAUDE.md + close sentinel → still blocked (sentinel does not bypass Layer 1)"
+if [ -f "$HOOK" ]; then
+    SENTINEL=/tmp/brana-close-active
+    touch "$SENTINEL"
+    output=$(invoke_hook "$HOME/.claude/CLAUDE.md")
+    rm -f "$SENTINEL"
+    assert_contains "CLAUDE.md + sentinel → continue:false" '"continue"[[:space:]]*:[[:space:]]*false' "$output"
+    assert_not_contains "CLAUDE.md + sentinel → no pass-through" '"continue"[[:space:]]*:[[:space:]]*true' "$output"
+else
+    assert "hook exists (skip CLAUDE.md+sentinel test)" "exists" "missing"
+    assert "hook exists (skip CLAUDE.md+sentinel test)" "exists" "missing"
+fi
+echo ""
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo ""
 echo "Results: $PASS passed, $FAIL failed, $TOTAL total"
