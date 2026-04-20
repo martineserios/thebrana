@@ -112,16 +112,16 @@ If no pending items or user declines → report "Backlog reviewed, no action."
 For each errata applied or cascade propagated during this run, log a summary entry:
 
 ```bash
-uv run python3 system/scripts/decisions.py log maintain-specs action \
-  "Applied {N} errata, {M} cascade findings across {docs list}" \
+brana decisions log --agent maintain-specs --entry-type action \
+  --content "Applied {N} errata, {M} cascade findings across {docs list}" \
   --severity "{HIGH if any HIGH errata, else MEDIUM}" 2>/dev/null || true
 ```
 
 If individual findings were HIGH severity, log them separately:
 
 ```bash
-uv run python3 system/scripts/decisions.py log maintain-specs finding \
-  "{finding summary}" --severity HIGH --refs "{affected doc numbers}" 2>/dev/null || true
+brana decisions log --agent maintain-specs --entry-type finding \
+  --content "{finding summary}" --severity HIGH --refs "{affected doc numbers}" 2>/dev/null || true
 ```
 
 Skip if no errata were applied and no cascades occurred.

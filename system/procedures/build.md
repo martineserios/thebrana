@@ -1098,8 +1098,8 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
 
 2. **Log build outcome to decision log:**
    ```bash
-   uv run python3 system/scripts/decisions.py log main decision \
-     "Built {task-id} ({strategy}): {one-line summary of what was built}" \
+   brana decisions log --agent main --entry-type decision \
+     --content "Built {task-id} ({strategy}): {one-line summary of what was built}" \
      --refs "{task-id}" 2>/dev/null || true
    ```
 

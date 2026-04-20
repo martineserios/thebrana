@@ -99,7 +99,8 @@ Dual-model adversarial review. Opus stress-tests reasoning and finds logical fla
 6. **Log findings to decision log** (before storing to memory):
 
    ```bash
-   uv run python3 system/scripts/decisions.py log challenger concern "{target}: {key finding summary}" \
+   brana decisions log --agent challenger --entry-type concern \
+     --content "{target}: {key finding summary}" \
      --severity "{highest finding severity}" \
      --refs "{task-id if applicable}" 2>/dev/null || true
    ```

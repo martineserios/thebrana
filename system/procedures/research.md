@@ -267,7 +267,8 @@ Register these steps: LOAD, ROUTE, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TR
 11. **Log HIGH findings to decision log.** Before presenting the report, persist HIGH-severity findings:
 
    ```bash
-   uv run python3 system/scripts/decisions.py log scout finding "{finding title}: {detail}" \
+   brana decisions log --agent scout --entry-type finding \
+     --content "{finding title}: {detail}" \
      --severity HIGH --refs "{affected doc numbers}" 2>/dev/null || true
    ```
 

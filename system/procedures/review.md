@@ -202,7 +202,7 @@ Calibration report for dynamic model routing. Requires 30+ `cost` entries in the
 
 1. **Read cost entries:**
    ```bash
-   uv run python3 system/scripts/decisions.py read --type cost --json
+   brana decisions read --entry-type cost --json
    ```
 2. **If fewer than 30 entries**, report: "Not enough routing data yet ({N}/30). Check again after more `/brana:backlog execute` runs."
 3. **Compute per-model stats:**
