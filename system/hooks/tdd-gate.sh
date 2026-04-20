@@ -60,6 +60,9 @@ esac
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || pass_through
 [ -z "$FILE_PATH" ] && pass_through
 
+# Early exit for documentation files — no TDD gate applies, avoids slow find commands
+case "$FILE_PATH" in *.md|*.mdx|*.markdown) pass_through ;; esac
+
 # Step 4: Detect language from extension
 BASENAME=$(basename "$FILE_PATH")
 LANG=""

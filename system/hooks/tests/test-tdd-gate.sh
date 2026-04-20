@@ -237,6 +237,17 @@ echo 'package main' > "$GO2/main_test.go"
 assert_allows "Go impl on feat/ with _test.go → allow" \
     "$(make_input Edit "$GO2/main.go" "$GO2")"
 
+# --- Test 19: .md files early exit — no TDD gate, no find commands ---
+MD_DIR="$TMPDIR/md-project"
+setup_crate "$MD_DIR"  # Rust project with no tests (would deny .rs files)
+git -C "$MD_DIR" checkout -q -b feat/t-1293-docs
+assert_allows ".md file in no-test project passes through immediately" \
+    "$(make_input Write "$MD_DIR/docs/ARCHITECTURE.md" "$MD_DIR")"
+assert_allows ".md in repo root passes through" \
+    "$(make_input Write "$MD_DIR/README.md" "$MD_DIR")"
+assert_allows "CLAUDE.md passes through" \
+    "$(make_input Edit "$MD_DIR/.claude/CLAUDE.md" "$MD_DIR")"
+
 # --- Summary ---
 echo ""
 echo "Results: $PASS passed, $FAIL failed"
