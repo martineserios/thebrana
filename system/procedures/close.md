@@ -239,12 +239,19 @@ Each file has a scope. Match the learning's scope to it:
 
 | File | Scope | Use when the learning... |
 |------|-------|--------------------------|
-| `.claude/CLAUDE.md` → `## Field Notes` | This repo | Cannot be understood outside this codebase — requires knowing brana's hooks, bootstrap, CLI layout, or conventions to be useful |
 | `brana-knowledge/dimensions/{topic}.md` | Topic/domain | Applies wherever the same tool, language, or pattern appears — useful to any project, not just this one |
 | `~/.claude/memory/feedback_*.md` | Cross-session rule | Is an actionable behavioral rule ("always X", "never Y") — already handled in Step 5; don't duplicate here |
+| `~/.claude/projects/{project}/memory/field-note_{slug}.md` | Repo-specific | Cannot be understood outside this codebase — requires knowing brana's hooks, bootstrap, CLI layout, or conventions to be useful |
 | Archive-only (ruflo, Step 5) | Ephemeral | Already captured in Step 5, or duplicates existing MEMORY.md content |
 
-**Heuristic:** Ask "Would this be useful to someone who has never seen this repo but knows the tool?" If yes → dimension doc. If no (the repo context is load-bearing) → CLAUDE.md.
+**Heuristic:** Ask "Would this be useful to someone who has never seen this repo but knows the tool?" If yes → dimension doc. If no (the repo context is load-bearing) → `field-note_{slug}.md` in auto-memory.
+
+**CLAUDE.md is Layer 1 — human-authored only. Never write to it from `/brana:close`.**
+
+When writing a `field-note_{slug}.md`, add a one-liner to MEMORY.md under `## Field Notes`:
+```
+- [YYYY-MM-DD: {slug}](field-note_{slug}.md) — one-line description
+```
 
 **Skip if:** session was read-only (no commits), or no learnings were extracted.
 
@@ -624,7 +631,7 @@ Audit every entry in MEMORY.md using the **"Where to store what"** classificatio
    | Classification | Action |
    |---------------|--------|
    | **Directive** ("always", "never", "must", "should") | Move to `rules/*.md` |
-   | **Convention** (architecture, stack, domain terms) | Move to `CLAUDE.md` |
+   | **Convention** (architecture, stack, domain terms) | Present to user via batched AskUserQuestion: "Convention found — add to CLAUDE.md manually via PR?" Show formatted text. User decides; close does not write. |
    | **Automation** (should trigger on events) | Flag for hook creation |
    | **Recipe** (multi-step reusable workflow) | Flag for skill creation |
    | **Log entry** (event that happened) | Move to `/brana:log` |
