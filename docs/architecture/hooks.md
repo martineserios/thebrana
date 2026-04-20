@@ -269,6 +269,10 @@ Source: tests/bootstrap/test-install.sh, t-1150 2026-04-12
 `UserPromptSubmit` is a CC hook event that fires before Claude sees the user's message — earlier than `PreToolUse` (which fires before a tool call). Input JSON: `{"prompt": "..."}`. Always returns `{"continue": true}` (cannot block). Use for: detecting which skill is being invoked before heavy work starts, pre-flight env checks, prompt-level advisory warnings. `preflight-model.sh` is the first brana `UserPromptSubmit` hook — it detects heavy skill invocations and warns if extra-usage is disabled. Register in `hooks.json` with matcher `""` (no tool matcher, fires on every user message).
 Source: t-1085, 2026-04-13
 
+### 2026-04-20: BRANA_RECAP_OFF — env-var opt-out for session-start hook output
+`session-start.sh` injects `HANDOFF_CONTEXT` (previous session summary) and `VENTURE_CONTEXT` (auto-delegate to daily-ops) as `additionalContext`. Both sites are now gated behind `[ -z "${BRANA_RECAP_OFF:-}" ]`. Set `"BRANA_RECAP_OFF": "1"` in `~/.claude/settings.json` env section to suppress the recap. Pattern is reusable: any noisy hook section (CC changelog, intelligence feed nudges) can be silenced the same way — pick a descriptive env var name, add the guard inline. Removing the key re-enables immediately.
+Source: 2026-04-20, feat/brana-recap-off
+
 ### 2026-04-13: commit-msg-verify.sh — advisory commit hygiene (non-blocking)
 Warns when a git commit message mentions filenames (e.g. `fix auth.rs`) that are not in the staged diff (`git diff --cached --name-only`). This catches the common mistake of describing more than was actually staged. Implementation note: extracting filenames from `-m` commit messages requires grepping from `.tool_input.command` on stdin; use `python3 -c "import json,sys; ..."` not `printf` for JSON generation in tests (printf interprets `\n` as literal newline, breaking the JSON string). Test assertions on the "unstaged files" warning must exclude the "Staged files:" section, which legitimately contains hook filenames.
 Source: t-1129, 2026-04-13

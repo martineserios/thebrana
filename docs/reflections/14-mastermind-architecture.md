@@ -862,6 +862,32 @@ Quantified relationships from Anthropic's data:
 
 **Implication for brana:** Every architectural decision should be evaluated through the lens of token efficiency. The context budget (~26KB) is the single most important constraint. Skills that produce verbose output must use `context: fork`. The scout agent should be the default for exploration, not the main context.
 
+### CC Harness Ecosystem: Design Positioning
+
+From [46-cc-harness-ecosystem.md](../../../brana-knowledge/dimensions/46-cc-harness-ecosystem.md): every CC harness composes from five primitives — CLAUDE.md/rules, skills, hooks, agents, memory. Brana aligns with this taxonomy. Key ecosystem differentiators that inform brana's design choices:
+
+- **Context compaction:** Agentic Scripts achieve 90%+ reduction via symbol indexes; Claude-Mem claims 10x via progressive disclosure; Context Gateway intercepts at the proxy level. Brana uses JIT skill loading + Tool Search (85% token reduction) + scout agent delegation. Rule: compress before expanding capacity.
+- **Hook enforcement:** The strongest harnesses use PreToolUse guard hooks (block, not advise). ECC's `ECC_HOOK_PROFILE` toggle (minimal/standard/strict) maps to brana's wave progression (advisory → blocking). Auto-compaction at 50% context (vs CC's default 95%) prevents quality degradation — brana's `context-budget.md` rule enforces at 55%.
+- **Skill trigger design is load-bearing:** Skills with 300+ line instructions are ignored at routing time — only the trigger description is read. Brana enforces trigger specificity via frontmatter; vague triggers ("use this for coding tasks") match everything and nothing. Trigger design is the load-bearing element of skill architecture.
+
+### The Ratchet and ADR-027 Auto-Learning Loop
+
+From [49b-auto-learning-patterns.md](../../../brana-knowledge/dimensions/49-auto-learning-patterns.md) Pattern 1: **default is discard, not keep.** Changes only persist if they pass a quality gate. Systems that default to "keep everything" drown in noise — brana's current design persists everything by default, inverting the ratchet principle.
+
+[ADR-027](../architecture/decisions/ADR-027-auto-learning-loop.md) formalizes the 6-step auto-learning loop: EXTRACT → EVALUATE → PERSIST → DECAY → PROMOTE → TRANSFER. The ratchet lives in the EVALUATE step — without it, EXTRACT → PERSIST is a firehose. Pattern 2 (Intent/Execution Separation): humans write WHAT to learn (dimension docs = intent); agents control HOW (skills = execution). Mixing roles produces drift.
+
+**Current gap:** `/brana:close` is a lossy batch capture at session end. Per-skill extraction at peak context richness and automated decay/promotion remain unimplemented. Tracked in the backlog.
+
+### Agent-Era Patterns: Not Yet Operationalized
+
+From [47-ontology-engineering-ai-systems.md](../../../brana-knowledge/dimensions/47-ontology-engineering-ai-systems.md): ontology engineering is the prerequisite for ADR-021 (entity/relationship formalization). Without a Design Ontology Spec, agents create inconsistent structures across sessions. Brana's current ontology is implicit — captured in frontmatter conventions, hook schemas, and task structure. ADR-021 would make it explicit: formal YAML definitions of Task, Dimension, Skill, Pattern as typed entities with defined relationships. Until then, multi-agent coordination relies on shared conventions rather than enforced contracts.
+
+Three patterns from [49a-agent-era-systems-patterns.md](../../../brana-knowledge/dimensions/49-agent-era-systems-patterns.md) that apply to brana but are not yet operationalized:
+
+- **Assumption Decay:** Hooks or rules built for an earlier Claude model become dead weight as the model improves. SuperClaude's 32% context overhead is the canonical example. `/brana:review harness` is the detection mechanism — not yet wired into a periodic audit.
+- **Artifact Coordination:** Coherent pipeline behavior from shared artifacts, not message passing. Brana already uses this pattern (`/brana:close` writes a handoff note → `/brana:daily-ops` reads it), but it is undocumented as an explicit architectural choice and untested for schema compatibility between producers and consumers.
+- **The Observation Window:** Log a behavior before enforcing it. Build the sensor before the actuator. Any new hook should spend at least one week in advisory mode (`continue: true`) before switching to blocking — producing local data before acting on ecosystem averages.
+
 ---
 
 ## Evaluating the Brain
