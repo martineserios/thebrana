@@ -47,7 +47,17 @@ NEW_COUNT=$((TOTAL_LINES - START_LINE + 1))
 # ── Extract new entries ───────────────────────────────────────────────────────
 
 sed -n "${START_LINE},${TOTAL_LINES}p" "$FEED_LOG" > "$TMP_ENTRIES"
+
+# Skip malformed JSON lines so jq calls below don't abort under set -e
+TMP_VALID=$(mktemp)
+while IFS= read -r line; do
+    [ -z "$line" ] && continue
+    echo "$line" | jq . >/dev/null 2>&1 && echo "$line" >> "$TMP_VALID" || true
+done < "$TMP_ENTRIES"
+mv "$TMP_VALID" "$TMP_ENTRIES"
+
 ENTRY_COUNT=$(wc -l < "$TMP_ENTRIES" | tr -d ' ')
+[ "$ENTRY_COUNT" -eq 0 ] && { echo "[feed-index] No valid JSON entries after filtering"; exit 0; }
 
 echo "[feed-index] Processing $ENTRY_COUNT new entries (lines $START_LINE–$TOTAL_LINES)"
 
