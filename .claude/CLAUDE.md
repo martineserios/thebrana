@@ -62,6 +62,7 @@ Branch conventions preserve the separation:
 - Implementation changes update docs in the same commit (no separate back-propagation step)
 - When adding new docs, update `docs/README.md`
 - Ruflo namespaces: `specs` · `decisions` · `knowledge` (use `namespace: "all"` for cross-namespace search)
+- After any code change, run the relevant test suite before marking the task done.
 
 ## Field Notes
 
