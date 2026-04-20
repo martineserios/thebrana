@@ -119,6 +119,25 @@ setup_repo "$REPO7" "main" "system/skills/bar.md"
 assert_pass "On main with behavioral files but --force-main passes through" \
     "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"git commit -m 'hotfix --force-main'\"},\"cwd\":\"$REPO7\"}"
 
+# --- Test 8: git -C <other-repo-main> commit with behavioral files → deny ---
+# The hook must match "git -C <path> commit" and check the -C target's branch+staged
+# files. Before fix: passes through (pattern "git commit" never matches). After fix: deny.
+REPO8="$TMPDIR/repo8-other"
+setup_repo "$REPO8" "main" "system/skills/new.md"
+assert_deny "git -C <other-repo-on-main> commit with behavioral files denied (t-1153)" \
+    "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"git -C $REPO8 commit -m 'add skill'\"},\"cwd\":\"/tmp\"}"
+
+# --- Test 9: git -C <worktree-feat> commit — worktree on feature branch → pass through ---
+REPO9="$TMPDIR/repo9"
+WT9="$TMPDIR/wt9"
+setup_repo "$REPO9" "main" "docs/init.md"
+git -C "$REPO9" worktree add "$WT9" -b feat/t-1153-feat 2>/dev/null
+mkdir -p "$WT9/system/skills"
+echo "content" > "$WT9/system/skills/new.md"
+git -C "$WT9" add system/skills/new.md
+assert_pass "git -C <worktree-feat> commit passes through (t-1153 fix)" \
+    "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"git -C $WT9 commit -m 'add skill'\"},\"cwd\":\"$REPO9\"}"
+
 # --- Summary ---
 echo ""
 echo "$PASS/$TOTAL passed"

@@ -53,7 +53,8 @@ CWD=$(echo "$INPUT" | jq -r '.cwd // empty' 2>/dev/null) || pass_through
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null) || pass_through
 [ -z "$COMMAND" ] && pass_through
 case "$COMMAND" in
-    *"git commit"*) ;;
+    *"git commit"*)       ;;   # direct: git commit -m "..."
+    *"git -C"*"commit"*)  ;;   # worktree: git -C <path> commit -m "..."
     *) pass_through ;;
 esac
 
@@ -62,18 +63,20 @@ case "$COMMAND" in
     *"--force-main"*) pass_through ;;
 esac
 
-# Step 4: Find git root and check branch
-GIT_ROOT=$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null) || pass_through
+# Step 4: Find git root — use -C path if present (worktree support, same fix as branch-verify)
+GIT_C_PATH=$(echo "$COMMAND" | sed -n 's/.*git[[:space:]]\+-C[[:space:]]\+\([^[:space:]]*\).*/\1/p')
+LOOKUP_DIR="${GIT_C_PATH:-$CWD}"
+GIT_ROOT=$(git -C "$LOOKUP_DIR" rev-parse --show-toplevel 2>/dev/null) || pass_through
 [ -z "$GIT_ROOT" ] && pass_through
 
-BRANCH=$(git -C "$GIT_ROOT" branch --show-current 2>/dev/null) || pass_through
+BRANCH=$(git -C "$LOOKUP_DIR" branch --show-current 2>/dev/null) || pass_through
 case "$BRANCH" in
     main|master) ;;
     *) pass_through ;;  # Not on main — let other gates handle it
 esac
 
-# Step 5: Check staged files for behavioral patterns
-STAGED=$(git -C "$GIT_ROOT" diff --cached --name-only 2>/dev/null) || pass_through
+# Step 5: Check staged files for behavioral patterns (use LOOKUP_DIR — worktrees have own index)
+STAGED=$(git -C "$LOOKUP_DIR" diff --cached --name-only 2>/dev/null) || pass_through
 [ -z "$STAGED" ] && pass_through
 
 BEHAVIORAL_FILES=""
