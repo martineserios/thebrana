@@ -89,3 +89,15 @@ Source: close session 2026-04-20 / hooks.md manual edit overwritten
 ### 2026-04-20: CC PreToolUse continue:false stops agent loop, not just the tool
 When a Write call is in a skill's `allowed-tools`, a PreToolUse hook returning `continue:false` does NOT prevent the write from executing — the file is still created. But the agent loop stops and Claude cannot continue. The sentinel fix is still required: with the sentinel, the hook returns `continue:true` and the loop continues normally.
 Source: close session 2026-04-20 / feedback-gate sentinel behavior observed
+
+### 2026-04-20: Merged worktrees accumulate — reap at session start not end
+`/brana:close` does not prune worktrees. Starting a session with 4 merged worktrees cost ~5 min of orientation. Sitrep now surfaces them; next step is auto-reap in close (t-1315). Until then: `git branch --merged main` + `git worktree remove` at session start.
+Source: close session 2026-04-20 / sitrep cleanup
+
+### 2026-04-20: Verify task status via git log before implementing
+`tasks.json` lags code state when `/brana:close` was skipped. Before starting any queued task: `git log --all --oneline -S '<key-symbol>'` or `git log --oneline | grep "t-NNN"`. Found t-1313/t-1314 already shipped — saved ~30 min.
+Source: close session 2026-04-20 / t-1313 pre-verification
+
+### 2026-04-20: Hook wave transition requires test audit, not just implementation
+When flipping a hook from advisory (continue:true) to blocking (continue:false), grep `tests/hooks/` for the hook name and audit every assertion. Loose text-match assertions silently pass with the wrong `continue` value — only explicit `assert_contains '"continue".*false'` catches the regression.
+Source: close session 2026-04-20 / feedback-gate t-1312
