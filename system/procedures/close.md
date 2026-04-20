@@ -193,6 +193,16 @@ For each learning, also write an individual frontmatter markdown file to the pro
 auto memory directory (`~/.claude/projects/{project-dir}/memory/`). This makes git the
 durable source of truth and enables the pattern indexer to rebuild ruflo from files.
 
+**Before writing any file in this step**, run:
+```bash
+touch /tmp/brana-close-active
+```
+This sentinel lets `feedback-gate.sh` pass through — the gate blocks ad-hoc writes but
+whitelists structured Step 5b writes. **After all Step 5b writes are done**, clean up:
+```bash
+rm -f /tmp/brana-close-active
+```
+
 **Slug:** derive from `{short-title}` — lowercase, hyphens, no special chars.
 **Category prefix:** `feedback_` for corrections/gotchas, `project_` for architectural state.
 

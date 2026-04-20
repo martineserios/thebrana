@@ -41,6 +41,11 @@ if [ "${BRANA_MEMORY_OVERRIDE:-}" = "1" ]; then
     pass_through
 fi
 
+# Whitelist: /brana:close Step 5b writes git-durable backup files — sentinel set by procedure
+if [ -f /tmp/brana-close-active ]; then
+    pass_through
+fi
+
 # Blocking response — continue:false, inject routing context
 WARNING="🚫 feedback_*.md write BLOCKED: $(basename "$FILE_PATH")
 
