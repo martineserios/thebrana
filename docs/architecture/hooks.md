@@ -18,6 +18,7 @@ Claude Code supports these hook events:
 | `SubagentStop` | When a subagent completes | No |
 | `TaskCompleted` | When a CC Task is marked complete | No |
 | `StopFailure` | On API errors (rate limit, auth, billing) | No |
+| `ConfigChange` | When a settings file is modified in-session | Yes (exit 2) |
 
 Hooks receive session context as JSON on stdin, return JSON on stdout. A hook can pass through (`{"continue": true}`), inject context (`additionalContext`), or block (PreToolUse only, via `permissionDecision: "deny"`).
 
