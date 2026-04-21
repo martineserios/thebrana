@@ -33322,7 +33322,7 @@
       "parent": null,
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "done",
       "stream": "tech-debt",
       "subject": "Add CC version check to bootstrap pre-flight (CVE-2026-21852)",
       "tags": [
@@ -33374,7 +33374,7 @@
       "parent": null,
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "done",
       "stream": "tech-debt",
       "subject": "Add .mcp.json validation to validate.sh (flag npx/uvx entries)",
       "tags": [
@@ -35660,7 +35660,7 @@
       ],
       "effort": "S",
       "id": "t-1315",
-      "status": "pending",
+      "status": "done",
       "execution": "code",
       "created": "2026-04-20",
       "blocked_by": [],
@@ -35673,8 +35673,8 @@
       "completed": null,
       "notes": null,
       "context": null,
-      "strategy": null,
-      "build_step": null,
+      "strategy": "feature",
+      "build_step": "build",
       "description": null
     },
     {
@@ -35790,7 +35790,7 @@
       "effort": "S",
       "description": "Worktree gate currently blocks with generic error when unstaged non-behavioral files (e.g. tasks.json) exist. It should detect non-behavioral unstaged changes and suggest or auto-commit them before the gate fires, to improve DX.",
       "id": "t-1320",
-      "status": "pending",
+      "status": "completed",
       "execution": "code",
       "created": "2026-04-21",
       "blocked_by": [],
@@ -35831,6 +35831,34 @@
       "order": 0,
       "github_issue": null,
       "execution": "code"
+    },
+    {
+      "subject": "[close] add pending-task reconcile step — verify pending tasks against git log at session end",
+      "stream": "tech-debt",
+      "type": "task",
+      "effort": "S",
+      "tags": [
+        "close",
+        "backlog",
+        "cleanup"
+      ],
+      "description": "Recurring pattern: tasks marked pending in tasks.json are already shipped (t-1313/t-1314 in prior session, t-1233/t-1235/t-1165/t-1232 etc. this session). Add a step to close.md (sibling of Step 11b worktree-reap) that queries pending tasks and checks git log for commits mentioning their IDs. Flags any pending task whose ID appears in a commit message as likely-done. Prompts user to mark completed or leave.",
+      "id": "t-1322",
+      "status": "pending",
+      "execution": "code",
+      "created": "2026-04-21",
+      "blocked_by": [],
+      "parent": null,
+      "order": null,
+      "priority": null,
+      "branch": null,
+      "github_issue": null,
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": null,
+      "strategy": null,
+      "build_step": null
     }
   ],
   "version": "1"
