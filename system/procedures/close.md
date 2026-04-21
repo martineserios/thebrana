@@ -14,7 +14,7 @@ End a work session. Extracts what was learned, writes a handoff note for the nex
 
 On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
 
-Register these steps: GATE, GATHER, EXTRACT, DOC-CHECK, ERRATA, PATTERNS, FIELD-NOTES, IDEATE, DRIFT, HANDOFF, RUFLO-SYNC, METADATA, MEMORY-REVIEW, REPORT.
+Register these steps: GATE, GATHER, EXTRACT, DOC-CHECK, ERRATA, PATTERNS, FIELD-NOTES, IDEATE, DRIFT, HANDOFF, RUFLO-SYNC, METADATA, MEMORY-REVIEW, WORKTREE-REAP, REPORT.
 
 ## Steps
 
@@ -662,6 +662,45 @@ Audit every entry in MEMORY.md using the **"Where to store what"** classificatio
 
 **Skip if:** session was read-only, or MEMORY.md has fewer than 5 entries.
 
+### Step 11b: Reap merged worktrees
+
+Prune worktrees whose branches are fully merged into main. Prevents orientation cost at next session start.
+
+```bash
+MAIN_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+MERGED=$(git branch --merged main 2>/dev/null | grep -v '^\*' | sed 's/^[[:space:]]*//')
+REAPED=0
+SKIPPED=0
+
+# Parse porcelain output — each stanza ends with a blank line
+WT_PATH=""
+WT_BRANCH=""
+while IFS= read -r line; do
+  case "$line" in
+    worktree\ *)  WT_PATH="${line#worktree }" ;;
+    branch\ *)    WT_BRANCH="${line#branch refs/heads/}" ;;
+    "")
+      if [ -n "$WT_PATH" ] && [ -n "$WT_BRANCH" ] && [ "$WT_PATH" != "$MAIN_ROOT" ]; then
+        if echo "$MERGED" | grep -qx "$WT_BRANCH"; then
+          if git -C "$MAIN_ROOT" worktree remove "$WT_PATH" 2>/dev/null; then
+            echo "  Reaped: $WT_PATH ($WT_BRANCH)"
+            (( REAPED++ )) || true
+          else
+            echo "  Skipped (unclean): $WT_PATH ($WT_BRANCH) — remove manually"
+            (( SKIPPED++ )) || true
+          fi
+        fi
+      fi
+      WT_PATH=""; WT_BRANCH=""
+      ;;
+  esac
+done < <(git worktree list --porcelain 2>/dev/null; echo "")
+```
+
+**Track for Step 12 report:** `{REAPED} reaped, {SKIPPED} skipped (unclean)`.
+
+**Skip if:** `git worktree list` shows only 1 entry (just the main checkout).
+
 ### Step 12: Report
 
 ```markdown
@@ -673,6 +712,7 @@ Audit every entry in MEMORY.md using the **"Where to store what"** classificatio
 **Patterns stored:** {N}
 **Feature ideation:** {N ideas found}, {M added to backlog}
 **Memory reviewed:** {N entries deleted}, {M feature ideas extracted}
+**Worktrees reaped:** {N reaped}, {M skipped (unclean)} — or "none" if only 1 worktree
 **Doc drift detected:** {yes/no}
 **Auto-reconcile:** {triggered (N issues) / skipped}
 **Handoff note updated:** {path}
