@@ -198,6 +198,51 @@ else
 fi
 
 echo ""
+echo "=== 10. Non-behavioral dirty files (tasks.json only): warn not deny ==="
+
+assert_warn() {
+    local desc="$1" input="$2" pattern="$3"
+    TOTAL=$((TOTAL + 1))
+    local result
+    result=$(echo "$input" | bash "$HOOK" 2>/dev/null) || true
+    if echo "$result" | jq -e '.continue == true' >/dev/null 2>&1 && \
+       echo "$result" | jq -r '.additionalContext // empty' 2>/dev/null | grep -qi "$pattern"; then
+        PASS=$((PASS + 1))
+        echo "  PASS: $desc"
+    else
+        FAIL=$((FAIL + 1))
+        echo "  FAIL: $desc — expected warn with '$pattern', got: $result"
+    fi
+}
+
+# Setup: only .claude/tasks.json is dirty
+mkdir -p "$TMPDIR/repo/.claude"
+echo '{"tasks":[]}' > "$TMPDIR/repo/.claude/tasks.json"
+git -C "$TMPDIR/repo" add .claude/tasks.json >/dev/null 2>&1
+git -C "$TMPDIR/repo" commit -m "add tasks.json" >/dev/null 2>&1
+echo '{"tasks":["modified"]}' > "$TMPDIR/repo/.claude/tasks.json"
+
+assert_warn "checkout -b when only tasks.json dirty → warn, not deny" \
+    "$(make_input 'git checkout -b feat/tasks-only-dirty')" \
+    "tasks.json"
+
+git -C "$TMPDIR/repo" checkout -- .claude/tasks.json >/dev/null 2>&1 || true
+
+# switch -c variant
+echo '{"tasks":["modified"]}' > "$TMPDIR/repo/.claude/tasks.json"
+assert_warn "switch -c when only tasks.json dirty → warn, not deny" \
+    "$(make_input 'git switch -c feat/switch-tasks-dirty')" \
+    "tasks.json"
+git -C "$TMPDIR/repo" checkout -- .claude/tasks.json >/dev/null 2>&1 || true
+
+# Mixed: tasks.json + a behavioral file dirty → still deny
+echo '{"tasks":["modified"]}' > "$TMPDIR/repo/.claude/tasks.json"
+echo "modified" >> "$TMPDIR/repo/file.txt"
+assert_deny "checkout -b when behavioral + tasks.json dirty → deny" \
+    "$(make_input 'git checkout -b feat/mixed-dirty')"
+git -C "$TMPDIR/repo" checkout -- .claude/tasks.json file.txt >/dev/null 2>&1 || true
+
+echo ""
 echo "=== Results ==="
 echo "$PASS/$TOTAL passed, $FAIL failed"
 [ "$FAIL" -eq 0 ] && exit 0 || exit 1

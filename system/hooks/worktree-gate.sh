@@ -166,7 +166,26 @@ USED_CMD="git checkout -b"
 [ "$IS_SWITCH_C" = "true" ] && USED_CMD="git switch -c"
 
 if [ -n "$DIRTY" ]; then
-    deny "Worktree required: $DIRTY detected. Use \`git worktree add ../<repo>-${BRANCH_NAME} -b ${BRANCH_NAME}\` or \`claude --worktree ${BRANCH_NAME}\` instead of \`${USED_CMD}\`. See git-discipline rule."
+    # If only non-behavioral state files (tasks.json) are dirty, warn instead of blocking.
+    # Branch creation carries those changes forward — no worktree needed for pure state.
+    ALL_DIRTY_FILES=$(
+        { git -C "$GIT_ROOT" diff --name-only 2>/dev/null
+          git -C "$GIT_ROOT" diff --cached --name-only 2>/dev/null; } | sort -u
+    )
+    NON_BEHAVIORAL_ONLY=true
+    while IFS= read -r dirty_file; do
+        [ -z "$dirty_file" ] && continue
+        case "$dirty_file" in
+            .claude/tasks.json) ;;
+            *) NON_BEHAVIORAL_ONLY=false; break ;;
+        esac
+    done <<< "$ALL_DIRTY_FILES"
+
+    if [ "$NON_BEHAVIORAL_ONLY" = true ] && [ -n "$ALL_DIRTY_FILES" ]; then
+        warn ".claude/tasks.json has uncommitted changes. Commit it first: \`git add .claude/tasks.json && git commit -m 'chore(tasks): update'\`. Proceeding — changes will carry forward to the new branch."
+    else
+        deny "Worktree required: $DIRTY detected. Use \`git worktree add ../<repo>-${BRANCH_NAME} -b ${BRANCH_NAME}\` or \`claude --worktree ${BRANCH_NAME}\` instead of \`${USED_CMD}\`. See git-discipline rule."
+    fi
 elif [ "$WORKTREE_COUNT" -gt 1 ]; then
     WT_LIST=$(git -C "$GIT_ROOT" worktree list --porcelain 2>/dev/null | grep '^worktree ' | sed 's/^worktree /  /' | head -5)
     deny "Worktree required: ${WORKTREE_COUNT} worktrees already active on this repo. Use \`git worktree add ../<repo>-${BRANCH_NAME} -b ${BRANCH_NAME}\` instead of \`${USED_CMD}\` to avoid conflicts. Active worktrees:\n${WT_LIST}"
