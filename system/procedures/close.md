@@ -507,6 +507,21 @@ Build a JSON object from all evidence gathered in previous steps, write it to a 
 - `propose_rate`: `propose_count / (propose_count + ask_open_count)`. Target: > 0.90.
 If propose_rate < 0.90, add a learning: "Propose-first rate below target ({rate}). Review decision points for missing defaults."
 
+**Step 9a: Persist referenced task IDs (run before writing)**
+
+For each item in `next[]` where `task_id` is non-null:
+
+1. Check existence: `backlog_get(task_id: "{id}")` (MCP) or `brana backlog get {id}` (CLI).
+2. If the task **does not exist**, create it immediately:
+   ```bash
+   brana backlog add --json '{"subject":"{text}","stream":"tech-debt","type":"task","effort":"S"}'
+   ```
+   Use the item's `text` field as the subject. Update the `task_id` field in the payload with the returned ID if it differs.
+3. If the task **already exists**, continue without creating a duplicate.
+4. If both MCP and CLI are unavailable, log a warning and proceed — missing IDs are non-fatal.
+
+This step prevents task IDs emitted during ideation or follow-up planning from being lost when session state is written without a corresponding backlog entry.
+
 **Write via CLI:**
 
 ```bash
