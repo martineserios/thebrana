@@ -35762,7 +35762,7 @@
       "description": "t-1321 was emitted in a previous session handoff next[] but never persisted to tasks.json — lost silently. Fix: /brana:close must call brana backlog add for any task referenced in next[] that doesn't already exist before writing session state.",
       "effort": "S",
       "id": "t-1319",
-      "status": "in_progress",
+      "status": "completed",
       "execution": "code",
       "created": "2026-04-20",
       "tags": [],
