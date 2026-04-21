@@ -35738,7 +35738,7 @@
       "description": "reference.rs detection code had no test for the d['hooks']['EventName'] structure. Without it the flat d['EventName'] lookup can silently regress. Add a unit test that constructs fake hooks.json with hooks.ConfigChange populated and asserts detection returns true; second test empty hooks.{} returns false.",
       "effort": "S",
       "id": "t-1318",
-      "status": "in_progress",
+      "status": "completed",
       "execution": "code",
       "created": "2026-04-20",
       "tags": [],
