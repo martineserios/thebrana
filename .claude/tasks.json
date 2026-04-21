@@ -35521,7 +35521,7 @@
       "effort": "S",
       "context": "branch-verify.sh and main-guard.sh both implement the same sed -C extraction. A third hook will miss the pattern without a shared lib. Factor into system/hooks/lib/git-helpers.sh with extract_git_c_dir() and resolve_lookup_dir(). Migrate both hooks. Add validate.sh check.",
       "id": "t-1310",
-      "status": "in_progress",
+      "status": "completed",
       "execution": "code",
       "created": "2026-04-20",
       "blocked_by": [],
