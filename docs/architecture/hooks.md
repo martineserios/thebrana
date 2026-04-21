@@ -56,7 +56,7 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | `pre-tool-use.sh` | PreToolUse | `Write\|Edit` | Spec-before-code gate + cascade throttle |
 | `tdd-gate.sh` | PreToolUse | `Write\|Edit` | TDD baseline — blocks impl writes when no test exists in project. Ordering enforcement (tests before impl) lives in procedure gates, not here |
 | `plan-mode-gate.sh` | PreToolUse | `EnterPlanMode` | Enforce plan mode for non-trivial builds |
-| `worktree-gate.sh` | PreToolUse | `Bash` | Gate A: block `git checkout -b` / `git switch -c` when dirty or worktrees active. Gate B: block `git commit` when /tmp >95% full; warn on cross-session staged files |
+| `worktree-gate.sh` | PreToolUse | `Bash` | Gate A: block `git checkout -b` / `git switch -c` when dirty or worktrees active — **exception**: if the only dirty file is `.claude/tasks.json`, emits a warn (continue:true) instead of deny (t-1320). Gate B: block `git commit` when /tmp >95% full; warn on cross-session staged files |
 | `doc-gate.sh` | PreToolUse | `Bash` | Block `git commit` on any branch when behavioral files (skills, hooks, agents, commands, cli, rules) are staged but no docs change is present. Spec-before-code enforcement. |
 | `main-guard.sh` | PreToolUse | `Bash` | Block behavioral commits on main/master. Forces work onto feat/fix/* branches for proper gate enforcement. Uses `lib/git-helpers.sh` → `resolve_lookup_dir()` for worktree-aware repo detection. |
 | `branch-verify.sh` | PreToolUse | `Bash` | Block `git add` of behavioral files when on main/master. Uses `lib/git-helpers.sh` → `resolve_lookup_dir()` to extract `git -C <path>` from the command and check the target repo's branch. Escape hatch: `# --force-main` comment. |
@@ -281,6 +281,10 @@ Source: 2026-04-20, feat/brana-recap-off
 ### 2026-04-21: Shared lib pattern for hook cross-cutting concerns (t-1310, t-1317)
 When 2+ hooks duplicate the same logic, extract into `system/hooks/lib/<name>.sh`. Source with `source "${SCRIPT_DIR}/lib/<name>.sh" 2>/dev/null || true` — the `|| true` means the hook continues with degraded behavior if the lib is missing. Two libs now live there: `git-helpers.sh` (resolves `git -C <path>` in commands to the correct lookup dir) and `layer1-paths.sh` (classifies Layer 1 files). Pattern for adding a third: write the function in `lib/`, source it, replace the inline code, add a `validate.sh` Check Nb that verifies hooks using the helper actually source the lib.
 Source: t-1310, t-1317, 2026-04-21
+
+### 2026-04-21: worktree-gate non-behavioral dirty exception (t-1320)
+When only `.claude/tasks.json` is dirty, `worktree-gate.sh` now emits a warn (continue:true with hint) instead of a deny on `git checkout -b` / `git switch -c`. The gate parses the full dirty file list and checks each against a non-behavioral allowlist (currently just `tasks.json`). Mixed dirty (behavioral + tasks.json) still denies. Pattern: classify dirty files by behavioral vs. state before deciding gate severity.
+Source: t-1320, 2026-04-21
 
 ### 2026-04-13: commit-msg-verify.sh — advisory commit hygiene (non-blocking)
 Warns when a git commit message mentions filenames (e.g. `fix auth.rs`) that are not in the staged diff (`git diff --cached --name-only`). This catches the common mistake of describing more than was actually staged. Implementation note: extracting filenames from `-m` commit messages requires grepping from `.tool_input.command` on stdin; use `python3 -c "import json,sys; ..."` not `printf` for JSON generation in tests (printf interprets `\n` as literal newline, breaking the JSON string). Test assertions on the "unstaged files" warning must exclude the "Staged files:" section, which legitimately contains hook filenames.
