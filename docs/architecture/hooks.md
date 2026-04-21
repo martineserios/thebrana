@@ -43,6 +43,10 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 
 **`config-drift.sh`** -- Called by `session-start.sh` at every session start. Compares `system/` source files against deployed `~/.claude/` files (CLAUDE.md + rules/) and scans `~/.claude.json` for ADR-033 violations (npx/uvx in MCP server commands). Output JSON: `{status, count, drifted[], mcp_violations[], mcp_count}`. Any violations surface in `DRIFT_CONTEXT` at session start.
 
+**`lib/git-helpers.sh`** -- Shared utilities for hooks that inspect git branch state. Provides `extract_git_c_dir()` (extracts the `-C <path>` argument from a git command string via sed) and `resolve_lookup_dir()` (returns the extracted path when present, falls back to CWD). Sourced by `branch-verify.sh` and `main-guard.sh`. Prevents hooks from checking the session CWD instead of the target repo when CC issues `git -C <worktree> add/commit` commands.
+
+**`lib/layer1-paths.sh`** -- Layer 1 file classification. Provides `is_layer1_file()` that returns 0 for files that must never be LLM-written (currently: any path ending in `CLAUDE.md`). Sourced by `feedback-gate.sh`. Centralizes the Layer 1 boundary so all enforcement hooks stay in sync when the definition expands.
+
 ## Hook inventory
 
 ### Plugin hooks (hooks.json)
@@ -54,8 +58,9 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | `plan-mode-gate.sh` | PreToolUse | `EnterPlanMode` | Enforce plan mode for non-trivial builds |
 | `worktree-gate.sh` | PreToolUse | `Bash` | Gate A: block `git checkout -b` / `git switch -c` when dirty or worktrees active. Gate B: block `git commit` when /tmp >95% full; warn on cross-session staged files |
 | `doc-gate.sh` | PreToolUse | `Bash` | Block `git commit` on any branch when behavioral files (skills, hooks, agents, commands, cli, rules) are staged but no docs change is present. Spec-before-code enforcement. |
-| `main-guard.sh` | PreToolUse | `Bash` | Block behavioral commits on main/master. Forces work onto feat/fix/* branches for proper gate enforcement. |
-| `branch-verify.sh` | PreToolUse | `Bash` | Block `git add` of behavioral files when on main/master. Extracts `git -C <path>` from command to check target repo's branch (worktree-aware). Escape hatch: `# --force-main` comment |
+| `main-guard.sh` | PreToolUse | `Bash` | Block behavioral commits on main/master. Forces work onto feat/fix/* branches for proper gate enforcement. Uses `lib/git-helpers.sh` → `resolve_lookup_dir()` for worktree-aware repo detection. |
+| `branch-verify.sh` | PreToolUse | `Bash` | Block `git add` of behavioral files when on main/master. Uses `lib/git-helpers.sh` → `resolve_lookup_dir()` to extract `git -C <path>` from the command and check the target repo's branch. Escape hatch: `# --force-main` comment. |
+| `feedback-gate.sh` | PreToolUse | `Write\|Edit` | Block writes to `feedback_*.md` files outside the auto-memory procedure. Layer 1 guard (via `lib/layer1-paths.sh`) blocks `CLAUDE.md` writes unconditionally. Sentinel bypass: `/tmp/brana-memory-active`. Spec: ADR-037. |
 | `no-attribution-commit.sh` | PreToolUse | `Bash` | Block `git commit` and `gh pr create` calls containing forbidden attribution signatures (Co-Authored-By, Signed-off-by). Keeps commit history clean. |
 | `commit-msg-verify.sh` | PreToolUse | `Bash` | Advisory (non-blocking): warns when commit message mentions filenames not in the staged diff. Catches commit messages that describe more than what was actually staged. |
 | `guard-explore.sh` | PreToolUse | `Read\|Grep\|Glob` | Log reads without prior search (logging only, no blocking) |
@@ -272,6 +277,10 @@ Source: t-1085, 2026-04-13
 ### 2026-04-20: BRANA_RECAP_OFF — env-var opt-out for session-start hook output
 `session-start.sh` injects `HANDOFF_CONTEXT` (previous session summary) and `VENTURE_CONTEXT` (auto-delegate to daily-ops) as `additionalContext`. Both sites are now gated behind `[ -z "${BRANA_RECAP_OFF:-}" ]`. Set `"BRANA_RECAP_OFF": "1"` in `~/.claude/settings.json` env section to suppress the recap. Pattern is reusable: any noisy hook section (CC changelog, intelligence feed nudges) can be silenced the same way — pick a descriptive env var name, add the guard inline. Removing the key re-enables immediately.
 Source: 2026-04-20, feat/brana-recap-off
+
+### 2026-04-21: Shared lib pattern for hook cross-cutting concerns (t-1310, t-1317)
+When 2+ hooks duplicate the same logic, extract into `system/hooks/lib/<name>.sh`. Source with `source "${SCRIPT_DIR}/lib/<name>.sh" 2>/dev/null || true` — the `|| true` means the hook continues with degraded behavior if the lib is missing. Two libs now live there: `git-helpers.sh` (resolves `git -C <path>` in commands to the correct lookup dir) and `layer1-paths.sh` (classifies Layer 1 files). Pattern for adding a third: write the function in `lib/`, source it, replace the inline code, add a `validate.sh` Check Nb that verifies hooks using the helper actually source the lib.
+Source: t-1310, t-1317, 2026-04-21
 
 ### 2026-04-13: commit-msg-verify.sh — advisory commit hygiene (non-blocking)
 Warns when a git commit message mentions filenames (e.g. `fix auth.rs`) that are not in the staged diff (`git diff --cached --name-only`). This catches the common mistake of describing more than was actually staged. Implementation note: extracting filenames from `-m` commit messages requires grepping from `.tool_input.command` on stdin; use `python3 -c "import json,sys; ..."` not `printf` for JSON generation in tests (printf interprets `\n` as literal newline, breaking the JSON string). Test assertions on the "unstaged files" warning must exclude the "Staged files:" section, which legitimately contains hook filenames.
