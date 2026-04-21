@@ -13,6 +13,7 @@ cd /tmp 2>/dev/null || true
 # Profile gate: standard tier
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/profile.sh" 2>/dev/null || true
+source "${SCRIPT_DIR}/lib/git-helpers.sh" 2>/dev/null || true
 if ! hook_should_run "standard" 2>/dev/null; then
     echo '{"continue": true}'
     exit 0
@@ -64,8 +65,7 @@ case "$COMMAND" in
 esac
 
 # Step 4: Find git root — use -C path if present (worktree support, same fix as branch-verify)
-GIT_C_PATH=$(echo "$COMMAND" | sed -n 's/.*git[[:space:]]\+-C[[:space:]]\+\([^[:space:]]*\).*/\1/p')
-LOOKUP_DIR="${GIT_C_PATH:-$CWD}"
+LOOKUP_DIR=$(resolve_lookup_dir "$COMMAND" "$CWD")
 GIT_ROOT=$(git -C "$LOOKUP_DIR" rev-parse --show-toplevel 2>/dev/null) || pass_through
 [ -z "$GIT_ROOT" ] && pass_through
 

@@ -14,6 +14,7 @@ cd /tmp 2>/dev/null || true
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/profile.sh" 2>/dev/null || true
+source "${SCRIPT_DIR}/lib/git-helpers.sh" 2>/dev/null || true
 if ! hook_should_run "standard" 2>/dev/null; then
     echo '{"continue": true}'
     exit 0
@@ -59,8 +60,7 @@ echo "$COMMAND" | grep -q '\-\-force-main' && pass_through
 # Otherwise fall back to CWD (the session's working directory).
 CWD=$(echo "$INPUT" | jq -r '.cwd // empty' 2>/dev/null) || pass_through
 [ -n "$CWD" ] || pass_through
-GIT_C_PATH=$(echo "$COMMAND" | sed -n 's/.*git[[:space:]]\+-C[[:space:]]\+\([^[:space:]]*\).*/\1/p')
-LOOKUP_DIR="${GIT_C_PATH:-$CWD}"
+LOOKUP_DIR=$(resolve_lookup_dir "$COMMAND" "$CWD")
 GIT_ROOT=$(git -C "$LOOKUP_DIR" rev-parse --show-toplevel 2>/dev/null) || pass_through
 [ -n "$GIT_ROOT" ] || pass_through
 

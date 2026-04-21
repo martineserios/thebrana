@@ -362,6 +362,39 @@ if [ -n "$HOOK_EVENTS" ]; then
         fi
     done
 fi
+# Check 9b: Hook shared libs (system/hooks/lib/)
+echo "Checking hook shared libs..."
+HOOK_LIB_DIR="$SYSTEM_DIR/hooks/lib"
+if [ -d "$HOOK_LIB_DIR" ]; then
+    for lib_script in "$HOOK_LIB_DIR"/*.sh; do
+        [ -f "$lib_script" ] || continue
+        lib_name=$(basename "$lib_script")
+        if ! bash -n "$lib_script" 2>/dev/null; then
+            fail "hooks/lib/$lib_name — syntax error"
+        else
+            pass "hooks/lib/$lib_name — valid script"
+        fi
+    done
+    # Verify hooks that use resolve_lookup_dir source git-helpers.sh
+    GIT_HELPERS="$HOOK_LIB_DIR/git-helpers.sh"
+    if [ -f "$GIT_HELPERS" ]; then
+        for hook_script in "$SYSTEM_DIR"/hooks/*.sh; do
+            [ -f "$hook_script" ] || continue
+            hook_name=$(basename "$hook_script")
+            if grep -q 'resolve_lookup_dir\|extract_git_c_dir' "$hook_script"; then
+                if grep -q 'git-helpers.sh' "$hook_script"; then
+                    pass "hooks/$hook_name — sources git-helpers.sh"
+                else
+                    fail "hooks/$hook_name — uses resolve_lookup_dir but does not source git-helpers.sh"
+                fi
+            fi
+        done
+    fi
+else
+    pass "No hooks/lib/ directory (optional)"
+fi
+echo ""
+
 # Check 10: Commands
 echo "Checking commands..."
 if [ -d "$SYSTEM_DIR/commands" ]; then
