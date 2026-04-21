@@ -658,4 +658,76 @@ mod tests {
         assert_eq!(sentinels[0].0, "/tmp/brana-close-active");
         assert_eq!(sentinels[1].0, "/tmp/brana-deploy-active");
     }
+
+    // ── hooks.json traversal tests (t-1318) ───────────────────────────────────
+    //
+    // hooks.json uses {"hooks": {"EventName": [...entries...]}}.
+    // These tests guard against regression to a flat {"EventName": [...]} lookup,
+    // which would silently produce no output.
+
+    fn make_hooks_root(hooks_json: &str) -> tempfile::TempDir {
+        let dir = tempfile::TempDir::new().unwrap();
+        let hooks_dir = dir.path().join("system").join("hooks");
+        fs::create_dir_all(&hooks_dir).unwrap();
+        fs::write(hooks_dir.join("hooks.json"), hooks_json).unwrap();
+        dir
+    }
+
+    #[test]
+    fn test_generate_hooks_configchange_nested_structure() {
+        // Correct nested {"hooks": {"ConfigChange": [...]}} shape must surface the event.
+        let hooks_json = r#"{
+            "hooks": {
+                "ConfigChange": [
+                    {
+                        "matcher": "*",
+                        "hooks": [{"command": "config-change-guard.sh", "timeout": 5000}]
+                    }
+                ]
+            }
+        }"#;
+        let root = make_hooks_root(hooks_json);
+        let output = generate_hooks(root.path()).unwrap();
+        assert!(
+            output.contains("ConfigChange"),
+            "nested hooks.json must surface ConfigChange event"
+        );
+        assert!(
+            output.contains("config-change-guard.sh"),
+            "nested hooks.json must surface the script name"
+        );
+    }
+
+    #[test]
+    fn test_generate_hooks_empty_hooks_object() {
+        // {"hooks": {}} — section header appears but no event rows.
+        let hooks_json = r#"{"hooks": {}}"#;
+        let root = make_hooks_root(hooks_json);
+        let output = generate_hooks(root.path()).unwrap();
+        assert!(
+            output.contains("Plugin Hooks"),
+            "section header must appear even when hooks object is empty"
+        );
+        assert!(
+            !output.contains("ConfigChange"),
+            "no event rows when hooks object is empty"
+        );
+    }
+
+    #[test]
+    fn test_generate_hooks_flat_structure_produces_no_rows() {
+        // Flat {"ConfigChange": [...]} (wrong shape) must NOT produce event rows —
+        // documents the boundary so regression to flat lookup is caught.
+        let hooks_json = r#"{
+            "ConfigChange": [
+                {"matcher": "*", "hooks": [{"command": "script.sh", "timeout": 1000}]}
+            ]
+        }"#;
+        let root = make_hooks_root(hooks_json);
+        let output = generate_hooks(root.path()).unwrap();
+        assert!(
+            !output.contains("ConfigChange"),
+            "flat hooks.json must not produce event rows (nested .hooks key required)"
+        );
+    }
 }
