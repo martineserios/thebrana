@@ -390,6 +390,21 @@ if [ -d "$HOOK_LIB_DIR" ]; then
             fi
         done
     fi
+    # Verify hooks that use is_layer1_file source layer1-paths.sh
+    LAYER1_LIB="$HOOK_LIB_DIR/layer1-paths.sh"
+    if [ -f "$LAYER1_LIB" ]; then
+        for hook_script in "$SYSTEM_DIR"/hooks/*.sh; do
+            [ -f "$hook_script" ] || continue
+            hook_name=$(basename "$hook_script")
+            if grep -q 'is_layer1_file' "$hook_script"; then
+                if grep -q 'layer1-paths.sh' "$hook_script"; then
+                    pass "hooks/$hook_name — sources layer1-paths.sh"
+                else
+                    fail "hooks/$hook_name — uses is_layer1_file but does not source layer1-paths.sh"
+                fi
+            fi
+        done
+    fi
 else
     pass "No hooks/lib/ directory (optional)"
 fi

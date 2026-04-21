@@ -7,6 +7,9 @@
 # No strict mode — hooks must always return valid JSON.
 cd /tmp 2>/dev/null || true
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib/layer1-paths.sh" 2>/dev/null || true
+
 INPUT=$(cat)
 
 pass_through() {
@@ -26,12 +29,11 @@ FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null) 
 
 # Layer 1 guard: CLAUDE.md is human-authored, never LLM-written.
 # Unconditional — no sentinel bypass, no override bypass.
-case "$FILE_PATH" in
-    *CLAUDE.md)
-        ESCAPED=$(printf '{"continue": false, "additionalContext": "🚫 CLAUDE.md is Layer 1 (human-authored only). Add conventions via PR — /brana:close must not write here."}')
-        echo "$ESCAPED"
-        exit 0 ;;
-esac
+if is_layer1_file "$FILE_PATH" 2>/dev/null; then
+    ESCAPED=$(printf '{"continue": false, "additionalContext": "🚫 CLAUDE.md is Layer 1 (human-authored only). Add conventions via PR — /brana:close must not write here."}')
+    echo "$ESCAPED"
+    exit 0
+fi
 
 # Match: ~/.claude/projects/*/memory/feedback_*.md only
 # Pattern: any path with /memory/feedback_ that ends in .md
