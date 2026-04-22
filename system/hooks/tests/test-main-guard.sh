@@ -138,6 +138,25 @@ git -C "$WT9" add system/skills/new.md
 assert_pass "git -C <worktree-feat> commit passes through (t-1153 fix)" \
     "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"git -C $WT9 commit -m 'add skill'\"},\"cwd\":\"$REPO9\"}"
 
+# ── t-1324: cd-prefix parsing for commit ─────────────────────────────────
+
+# --- Test 10: 'cd <repo-on-main> && git commit' with behavioral staged → deny
+REPO10="$TMPDIR/repo10"
+setup_repo "$REPO10" "main" "system/hooks/main-guard-test.sh"
+assert_deny "cd to repo on main + git commit + behavioral → deny (t-1324)" \
+    "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"cd $REPO10 && git commit -m 'bad'\"},\"cwd\":\"/tmp\"}"
+
+# --- Test 11: 'cd <worktree-feat> && git commit' with behavioral staged → pass
+REPO11="$TMPDIR/repo11"
+WT11="$TMPDIR/wt11"
+setup_repo "$REPO11" "main" "docs/init.md"
+git -C "$REPO11" worktree add "$WT11" -b feat/t-1324-main-guard 2>/dev/null
+mkdir -p "$WT11/system/skills"
+echo "content" > "$WT11/system/skills/new.md"
+git -C "$WT11" add system/skills/new.md
+assert_pass "cd to worktree on feature + git commit → pass (t-1324)" \
+    "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"cd $WT11 && git commit -m 'add'\"},\"cwd\":\"$REPO11\"}"
+
 # --- Summary ---
 echo ""
 echo "$PASS/$TOTAL passed"

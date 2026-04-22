@@ -43,7 +43,7 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 
 **`config-drift.sh`** -- Called by `session-start.sh` at every session start. Compares `system/` source files against deployed `~/.claude/` files (CLAUDE.md + rules/) and scans `~/.claude.json` for ADR-033 violations (npx/uvx in MCP server commands). Output JSON: `{status, count, drifted[], mcp_violations[], mcp_count}`. Any violations surface in `DRIFT_CONTEXT` at session start.
 
-**`lib/git-helpers.sh`** -- Shared utilities for hooks that inspect git branch state. Provides `extract_git_c_dir()` (extracts the `-C <path>` argument from a git command string via sed) and `resolve_lookup_dir()` (returns the extracted path when present, falls back to CWD). Sourced by `branch-verify.sh` and `main-guard.sh`. Prevents hooks from checking the session CWD instead of the target repo when CC issues `git -C <worktree> add/commit` commands.
+**`lib/git-helpers.sh`** -- Shared utilities for hooks that inspect git branch state. Provides `extract_git_c_dir()` (path from `git -C <path>`), `extract_cd_prefix_dir()` (path from a leading `cd <path> &&` / `;` / `||`), and `resolve_lookup_dir()` (3-tier lookup: `-C` > `cd` prefix > CWD). Sourced by `branch-verify.sh` and `main-guard.sh`. Prevents hooks from checking the session CWD instead of the target repo when CC issues either `git -C <worktree> …` or `cd <worktree> && git …` commands. Spec: `system/hooks/lib/git-helpers.spec.md`.
 
 **`lib/layer1-paths.sh`** -- Layer 1 file classification. Provides `is_layer1_file()` that returns 0 for files that must never be LLM-written (currently: any path ending in `CLAUDE.md`). Sourced by `feedback-gate.sh`. Centralizes the Layer 1 boundary so all enforcement hooks stay in sync when the definition expands.
 
@@ -265,6 +265,10 @@ Source: t-1078, branch-verify-worktree-fix (2026-04-12)
 ### 2026-04-12: `cd <worktree> && git add` still triggers session-CWD hooks
 PreToolUse hooks fire before the shell command executes. Even `cd ../repo-worktree && git add file` presents the session CWD (main repo root, branch `main`) to the hook — the `cd` never runs first. The `-C <path>` extraction in `branch-verify.sh` only helps when the command literally contains `git -C <path>`, not when `cd` is used. Escape hatch: `# --force-main` comment in the Bash call.
 Source: t-1147 session 2026-04-12
+
+### 2026-04-22: cd-prefix parsing closes the `cd <wt> && git …` gap (t-1324)
+`lib/git-helpers.sh::resolve_lookup_dir` now runs a 3-tier lookup: `git -C <path>` > leading `cd <path> &&` > session CWD. `extract_cd_prefix_dir` parses the first token only (sed-based, supports `&&`, `;`, `||`). `branch-verify.sh` and `main-guard.sh` consume the extended resolver without local changes — all cd-prefix behavior lives in the shared helper. Hit organically during t-1323 (filter-fix worktree); same-session validation. Covered by 4 new tests in `test-branch-verify.sh` and 2 in `test-main-guard.sh`. Out of scope: shell-quoted paths, multi-stage `cd a && cd b`, `pushd`.
+Source: t-1324, close follow-up to t-1153/t-1286/t-1316
 
 ### 2026-04-12: Mock PATH isolation — bash + minimal tools must be in mock bin
 When testing bash scripts with a stripped PATH (to simulate missing tools), stripping PATH to just the mock dir causes "bash: command not found" when the script calls `bash <subscript>` or uses `dirname`/`pwd` for SCRIPT_DIR detection. Fix: symlink bash, dirname, and pwd from the system into the mock bin, then exclude only the specific tool being hidden. A `populate_bin <dir> [exclude...]` helper makes this reusable across tests. Rule: never strip PATH to only `$mock/bin` without first populating the tools the script needs to boot.
