@@ -1068,6 +1068,70 @@ mod tests {
         assert_eq!(result[0]["id"].as_str().unwrap(), "t-002");
     }
 
+    // ── t-1323: raw-status filter contract ────────────────────────────────
+    //
+    // These tests encode the spec in tasks.spec.md: `filter_tasks` must
+    // compare the raw `task.status` field against the CLI enum input, not
+    // `classify()` output. They FAIL against the pre-fix implementation and
+    // MUST pass once the fix lands.
+
+    #[test]
+    fn test_filter_status_completed_matches_raw_field() {
+        let tasks = sample_tasks();
+        // CLI passes "completed" (enum value). Must match t-001 whose raw
+        // status is "completed". Pre-fix this returned 0 items because
+        // classify(t-001) == "done" != "completed".
+        let result = filter_tasks(&tasks, &tasks, None, Some("completed"), None, None, None, None, &["task", "subtask"]);
+        assert_eq!(result.len(), 1, "--status completed must match raw completed tasks");
+        assert_eq!(result[0]["id"].as_str().unwrap(), "t-001");
+    }
+
+    #[test]
+    fn test_filter_status_cancelled_matches_raw_field() {
+        let tasks = sample_tasks();
+        // Pre-fix: classify(t-006) == "done", "done" != "cancelled" → 0 hits.
+        let result = filter_tasks(&tasks, &tasks, None, Some("cancelled"), None, None, None, None, &["task", "subtask"]);
+        assert_eq!(result.len(), 1, "--status cancelled must match raw cancelled tasks");
+        assert_eq!(result[0]["id"].as_str().unwrap(), "t-006");
+    }
+
+    #[test]
+    fn test_filter_status_in_progress_matches_raw_field() {
+        let tasks = sample_tasks();
+        // Pre-fix: classify(t-002) == "active", "active" != "in_progress" → 0 hits.
+        let result = filter_tasks(&tasks, &tasks, None, Some("in_progress"), None, None, None, None, &["task", "subtask"]);
+        assert_eq!(result.len(), 1, "--status in_progress must match raw in_progress tasks");
+        assert_eq!(result[0]["id"].as_str().unwrap(), "t-002");
+    }
+
+    #[test]
+    fn test_filter_status_pending_includes_blocked_and_parked() {
+        let tasks = sample_tasks();
+        // Under raw-status semantics, --status pending matches every task
+        // whose raw status field is "pending" — regardless of whether it
+        // would classify as blocked or parked. Callers that want
+        // classify-based filtering (e.g. cmd_next) must apply a post-hoc
+        // filter.
+        let result = filter_tasks(&tasks, &tasks, None, Some("pending"), None, None, None, None, &["task", "subtask"]);
+        let ids: Vec<&str> = result.iter().filter_map(|t| t["id"].as_str()).collect();
+        assert_eq!(result.len(), 3, "pending includes t-003 (plain), t-004 (blocked), t-005 (parked)");
+        assert!(ids.contains(&"t-003"));
+        assert!(ids.contains(&"t-004"));
+        assert!(ids.contains(&"t-005"));
+    }
+
+    #[test]
+    fn test_filter_rejects_synthetic_classify_values() {
+        let tasks = sample_tasks();
+        // Synthetic classify values ("done", "active", "blocked", "parked")
+        // are no longer accepted — they're not in the CLI enum. Filtering
+        // by them returns zero.
+        for synthetic in &["done", "active", "blocked", "parked"] {
+            let result = filter_tasks(&tasks, &tasks, None, Some(synthetic), None, None, None, None, &["task", "subtask"]);
+            assert_eq!(result.len(), 0, "--status {synthetic} (synthetic) must return 0 matches");
+        }
+    }
+
     #[test]
     fn test_filter_excludes_phases() {
         let tasks = sample_tasks();
