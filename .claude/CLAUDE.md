@@ -101,3 +101,7 @@ Source: close session 2026-04-20 / t-1313 pre-verification
 ### 2026-04-20: Hook wave transition requires test audit, not just implementation
 When flipping a hook from advisory (continue:true) to blocking (continue:false), grep `tests/hooks/` for the hook name and audit every assertion. Loose text-match assertions silently pass with the wrong `continue` value — only explicit `assert_contains '"continue".*false'` catches the regression.
 Source: close session 2026-04-20 / feedback-gate t-1312
+
+### 2026-04-22: filter predicates — raw field match only, never classify() output
+`filter_tasks(status=...)` in `brana-core/src/tasks.rs` must compare the raw `task.status` field against the CLI `TaskStatus` enum value. It must **not** compare `classify()` output, which returns display synthetics (`done`/`active`/`blocked`/`parked`) that no user-facing enum exposes. Bug t-1323 silently contaminated every `brana backlog query --status completed|cancelled|in_progress` result with 40/96 incorrectly-matched items because `classify() != enum_input` was always true. Rule: any filter predicate compares **raw stored values**; computed/display values go in a post-hoc `retain` after the primary filter (see `cmd_next` — applies `classify(t) == "pending"` post-hoc to exclude blocked/parked).
+Source: triage session 2026-04-22 / t-1323

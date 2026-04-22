@@ -103,7 +103,12 @@ pub fn filter_tasks<'a>(
                 return false;
             }
             if let Some(s) = status {
-                if classify(t, all) != s {
+                // Compare raw task.status field against the CLI TaskStatus
+                // enum input. See tasks.spec.md — classify() is for display,
+                // not filtering. Callers wanting classify semantics (e.g.
+                // exclude blocked/parked from pending) filter post-hoc.
+                let _ = all; // kept in signature for back-compat
+                if t["status"].as_str().unwrap_or("") != s {
                     return false;
                 }
             }
@@ -1063,7 +1068,10 @@ mod tests {
     #[test]
     fn test_filter_by_status() {
         let tasks = sample_tasks();
-        let result = filter_tasks(&tasks, &tasks, None, Some("active"), None, None, None, None, &["task", "subtask"]);
+        // Raw status match — see tasks.spec.md (t-1323). Previously passed
+        // "active" (classify output); now uses "in_progress" (CLI enum / raw
+        // field value) which is the filter contract.
+        let result = filter_tasks(&tasks, &tasks, None, Some("in_progress"), None, None, None, None, &["task", "subtask"]);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0]["id"].as_str().unwrap(), "t-002");
     }

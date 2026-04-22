@@ -45,7 +45,7 @@ No way to check task status, scheduler health, or system state from a terminal w
 | Command | Args | Description | Read/Write |
 |---------|------|-------------|------------|
 | `next` | `[project]`, `--stream`, `--tag` | Next unblocked task by priority | Read |
-| `query` | `--tag`, `--status`, `--stream`, `--priority`, `--effort`, `--project` | Filter tasks with AND logic | Read |
+| `query` | `--tag`, `--status`, `--stream`, `--priority`, `--effort`, `--project` | Filter tasks with AND logic. `--status` matches the raw `task.status` field (`pending`/`in_progress`/`completed`/`cancelled`) — not the computed `classify()` display values (`done`/`active`/`blocked`/`parked`). Spec: `brana-core/src/tasks.spec.md`. | Read |
 | `focus` | `[project]` | Smart daily pick (see ranking formula below) | Read |
 | `search` | `<text>` | Free-text search across subjects, descriptions, contexts | Read |
 | `status` | `[project]`, `--all`, `--wide` | Portfolio or project status (mirrors backlog status) | Read |

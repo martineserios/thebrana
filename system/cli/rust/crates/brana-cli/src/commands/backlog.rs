@@ -31,6 +31,10 @@ pub fn cmd_next(
         &types,
     );
 
+    // filter_tasks does raw-status matching (tasks.spec.md). For "next up"
+    // we want only classify=="pending" — exclude blocked and parked.
+    candidates.retain(|t| tasks::classify(t, &data.tasks) == "pending");
+
     if let Some(ref pid) = parent {
         candidates.retain(|t| t["parent"].as_str() == Some(pid.as_str()));
     }
