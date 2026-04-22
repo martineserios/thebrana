@@ -48,6 +48,24 @@ That's it. Every edit you make to `system/` is live on the next Claude Code sess
 
 **No bootstrap.sh needed.** The identity layer is optional — it's for users who want brana's full behavioral rules and personality. As a contributor, `--plugin-dir ./system` gives you everything you need to develop and test.
 
+### Building the Rust CLI (optional)
+
+If you're editing `system/cli/rust/` (the `brana` binary, core crates, or MCP server), you need a Rust toolchain and a few system libraries:
+
+```bash
+# Debian/Ubuntu
+sudo apt-get install -y pkg-config libssl-dev
+```
+
+Then:
+
+```bash
+cd system/cli/rust && cargo test           # run the full test suite
+cargo build --release --bin brana          # produces target/release/brana
+```
+
+If `pkg-config` is missing but `libssl-dev` is installed, cargo fails to link `openssl-sys`. You can bypass temporarily with `OPENSSL_DIR=/usr OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu OPENSSL_INCLUDE_DIR=/usr/include cargo …` — but install `pkg-config` for a clean setup. Tracked as t-1327 (`brana doctor` pre-flight).
+
 ## What to work on
 
 Check [open issues](https://github.com/martineserios/thebrana/issues) for things tagged `good first issue` or `help wanted`. If you want to work on something not listed, open an issue first to discuss it.
