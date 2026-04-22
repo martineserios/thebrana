@@ -36,12 +36,25 @@ git diff --stat HEAD~10..HEAD 2>/dev/null || git diff --stat
 git reflog --no-decorate -20
 
 # Session event data (if available — from Wave 1 hooks)
-# Look for correction, cascade, and test-write events
+# Look for correction, cascade, and test-write events.
+#
+# IMPORTANT (t-1311): /tmp/brana-session-*.jsonl is GLOBAL across all repos.
+# Filter events to the current repo before analysis, otherwise findings
+# leak across projects (see feedback_cross-project-session-bucketing.md).
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
 ls /tmp/brana-session-*.jsonl 2>/dev/null && for f in /tmp/brana-session-*.jsonl; do
   echo "=== $(basename $f) ==="
-  grep -c '"outcome":"correction"' "$f" 2>/dev/null && echo "corrections found"
-  grep -c '"cascade":true' "$f" 2>/dev/null && echo "cascades found"
-  grep -c '"outcome":"test-write"' "$f" 2>/dev/null && echo "test-writes found"
+  # jq filter: only events whose repo_root or cwd matches this repo
+  if [ -n "$REPO_ROOT" ] && command -v jq >/dev/null 2>&1; then
+    FILTERED=$(jq -c --arg root "$REPO_ROOT" '. | select((.repo_root // .cwd // "") | startswith($root))' "$f" 2>/dev/null)
+    echo "$FILTERED" | grep -c '"outcome":"correction"' 2>/dev/null && echo "corrections found (this repo)"
+    echo "$FILTERED" | grep -c '"cascade":true' 2>/dev/null && echo "cascades found (this repo)"
+    echo "$FILTERED" | grep -c '"outcome":"test-write"' 2>/dev/null && echo "test-writes found (this repo)"
+  else
+    grep -c '"outcome":"correction"' "$f" 2>/dev/null && echo "corrections found (unfiltered)"
+    grep -c '"cascade":true' "$f" 2>/dev/null && echo "cascades found (unfiltered)"
+    grep -c '"outcome":"test-write"' "$f" 2>/dev/null && echo "test-writes found (unfiltered)"
+  fi
 done
 ```
 

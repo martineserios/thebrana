@@ -14,7 +14,7 @@ End a work session. Extracts what was learned, writes a handoff note for the nex
 
 On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
 
-Register these steps: GATE, GATHER, EXTRACT, DOC-CHECK, ERRATA, PATTERNS, FIELD-NOTES, IDEATE, DRIFT, HANDOFF, RUFLO-SYNC, METADATA, MEMORY-REVIEW, WORKTREE-REAP, REPORT.
+Register these steps: GATE, GATHER, EXTRACT, DOC-CHECK, ERRATA, PATTERNS, FIELD-NOTES, IDEATE, DRIFT, HANDOFF, RUFLO-SYNC, METADATA, MEMORY-REVIEW, WORKTREE-REAP, PENDING-RECONCILE, STASH-CLEANUP, REPORT.
 
 ## Steps
 
@@ -700,6 +700,75 @@ done < <(git worktree list --porcelain 2>/dev/null; echo "")
 **Track for Step 12 report:** `{REAPED} reaped, {SKIPPED} skipped (unclean)`.
 
 **Skip if:** `git worktree list` shows only 1 entry (just the main checkout).
+
+### Step 11c: Pending-task reconcile
+
+Tasks in `.claude/tasks.json` often lag code state when a previous `/brana:close` was skipped. Before writing the session report, find pending tasks whose IDs already appear in a commit message on main and prompt to mark them `completed`.
+
+```bash
+MAIN_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+PENDING_IDS=$(brana backlog query --status pending --output json 2>/dev/null \
+  | jq -r '.[].id')
+
+STALE=()
+for id in $PENDING_IDS; do
+  # Strict word-boundary grep — "t-129" must not match "t-1293"
+  if git -C "$MAIN_ROOT" log --all --oneline -E --grep "\\b$id\\b" 2>/dev/null | grep -qE '^[0-9a-f]+ (fix|feat|merge)'; then
+    STALE+=("$id")
+  fi
+done
+```
+
+**If `STALE` is non-empty (up to 10 items):** batch via AskUserQuestion (multiSelect):
+```
+"These pending tasks appear in fix/feat/merge commits. Mark done?"
+Options: ["{id} — {first-line of subject}", ...] — up to 4 per call
+```
+
+For each selected id:
+```bash
+brana backlog set "$id" status completed
+brana backlog set "$id" notes --append "Reconciled 2026-MM-DD via /brana:close: commit {hash} matched."
+```
+
+**Track for Step 12 report:** `{N} reconciled pending → done`.
+
+**Skip if:** no pending tasks match, or session was read-only.
+
+**Why:** without this, the backlog query surface (sitrep, next, focus) stays contaminated between sessions and every future triage must re-verify by hand.
+
+### Step 11d: Stale-stash cleanup
+
+Offer to drop git stashes older than 7 days that reference completed or cancelled task branches.
+
+```bash
+MAIN_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+git -C "$MAIN_ROOT" stash list --date=iso-strict 2>/dev/null \
+  | awk -v now="$(date +%s)" '
+      {
+        # Extract ISO date between parens; stashes are: stash@{N}: WIP on ... 2026-04-15T...
+        match($0, /[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:]+/)
+        if (RSTART > 0) {
+          d = substr($0, RSTART, 10)
+          cmd = "date -d \"" d "\" +%s"
+          cmd | getline ts
+          close(cmd)
+          if (now - ts > 604800) print $0
+        }
+      }'
+```
+
+**If any stashes returned:** list them, then prompt once:
+```
+AskUserQuestion: "Found N stashes older than 7 days. Drop them?"
+Options: ["Drop all", "Review each", "Skip"]
+```
+
+For "Review each": iterate per-stash with its own AskUserQuestion (batch up to 4). For "Drop all": `git stash drop stash@{N}` for each, in reverse order to preserve indices.
+
+**Track for Step 12 report:** `{N} stashes dropped`.
+
+**Skip if:** `git stash list` is empty, or no stashes are older than 7 days.
 
 ### Step 12: Report
 
