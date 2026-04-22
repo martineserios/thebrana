@@ -151,6 +151,44 @@ setup_repo "$REPO13" "main" ".claude/rules/my-rule.md"
 assert_deny "Main branch with .claude/rules/ file denies" \
     "$(make_add_input "$REPO13" ".claude/rules/my-rule.md")"
 
+# ── t-1324: cd-prefix parsing (worktree staging idiom) ───────────────────
+
+# --- Test 14: 'cd <wt> && git add behavioral' where wt on feature branch → pass
+# CWD is main repo; the cd prefix points at the worktree on the feature branch.
+# Without cd-prefix parsing the hook reads the main repo branch and falsely denies.
+REPO14_MAIN="$TMPDIR_BASE/repo14-main"
+REPO14_WT="$TMPDIR_BASE/repo14-wt"
+setup_repo "$REPO14_MAIN" "main"
+git -C "$REPO14_MAIN" worktree add -q -b feat/t-1324-test "$REPO14_WT" 2>/dev/null
+mkdir -p "$REPO14_WT/system/hooks"
+echo "content" > "$REPO14_WT/system/hooks/new-hook.sh"
+assert_pass "cd to worktree on feature branch → passes (cd-prefix wins over CWD)" \
+    "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"cd $REPO14_WT && git add system/hooks/new-hook.sh\"},\"cwd\":\"$REPO14_MAIN\"}"
+
+# --- Test 15: 'cd <wt> && git add behavioral' where wt on main → deny
+# Both CWD and cd-prefix point at main-branch dirs; behavioral file must deny.
+REPO15="$TMPDIR_BASE/repo15"
+setup_repo "$REPO15" "main" "system/hooks/bad.sh"
+assert_deny "cd to repo on main + behavioral file → denies (cd-prefix parsed as main)" \
+    "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"cd $REPO15 && git add system/hooks/bad.sh\"},\"cwd\":\"/tmp\"}"
+
+# --- Test 16: -C wins over cd-prefix
+# cd to main repo, but -C points to feature-branch worktree → should pass.
+REPO16_MAIN="$TMPDIR_BASE/repo16-main"
+REPO16_WT="$TMPDIR_BASE/repo16-wt"
+setup_repo "$REPO16_MAIN" "main"
+git -C "$REPO16_MAIN" worktree add -q -b feat/t-1324-test16 "$REPO16_WT" 2>/dev/null
+mkdir -p "$REPO16_WT/system/hooks"
+echo "content" > "$REPO16_WT/system/hooks/new-hook.sh"
+assert_pass "cd to main + git -C worktree → passes (-C wins over cd-prefix)" \
+    "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"cd $REPO16_MAIN && git -C $REPO16_WT add system/hooks/new-hook.sh\"},\"cwd\":\"/tmp\"}"
+
+# --- Test 17: No cd prefix — plain command uses CWD (regression guard)
+REPO17="$TMPDIR_BASE/repo17"
+setup_repo "$REPO17" "main" "system/hooks/regression.sh"
+assert_deny "No cd prefix on main → CWD used (regression for existing behavior)" \
+    "$(make_add_input "$REPO17" "system/hooks/regression.sh")"
+
 # --- Summary ---
 echo ""
 echo "$PASS/$TOTAL passed"
