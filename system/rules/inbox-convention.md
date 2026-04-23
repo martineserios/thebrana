@@ -1,6 +1,5 @@
 ---
-globs: ["inbox/**"]
-alwaysApply: false
+paths: ["inbox/**"]
 ---
 
 # Inbox Convention

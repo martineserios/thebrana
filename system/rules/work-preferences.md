@@ -1,3 +1,6 @@
+---
+always-load: true
+---
 # Work Preferences
 
 ## Parallelism

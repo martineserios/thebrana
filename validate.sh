@@ -72,19 +72,31 @@ for skill_dir in "$SYSTEM_DIR"/skills/*/; do
 done
 echo ""
 
-# Check 2: Rule files (frontmatter optional)
+# Check 2: Rule files — every rule must declare paths: (scoped) or
+# always-load: true (universal). Contract: system/rules/README.md (t-1285).
 echo "Checking rules..."
 for rule_file in "$SYSTEM_DIR"/rules/*.md; do
+    # Guard against empty-glob expansion (literal "*.md" when no rules exist).
+    [ -f "$rule_file" ] || continue
     rule_name=$(basename "$rule_file")
+    # README.md is the authoring contract, not a rule itself — skip.
+    [ "$rule_name" = "README.md" ] && continue
+
     if head -1 "$rule_file" | grep -q '^---$'; then
         frontmatter=$(awk 'NR==1 && /^---$/{in_fm=1; next} in_fm && /^---$/{exit} in_fm{print}' "$rule_file")
         if ! echo "$frontmatter" | python3 -c "import sys, yaml; yaml.safe_load(sys.stdin)" 2>/dev/null; then
             fail "Invalid YAML frontmatter in rules/$rule_name"
-        else
+            continue
+        fi
+        has_paths=$(echo "$frontmatter" | grep -cE '^paths:' || true)
+        has_always=$(echo "$frontmatter" | grep -cE '^always-load:[[:space:]]+true' || true)
+        if [ "$has_paths" -gt 0 ] || [ "$has_always" -gt 0 ]; then
             pass "rules/$rule_name — valid frontmatter"
+        else
+            fail "rules/$rule_name — unscoped (no paths: or always-load: true). See system/rules/README.md."
         fi
     else
-        pass "rules/$rule_name — no frontmatter (loads unconditionally)"
+        fail "rules/$rule_name — unscoped (no paths: or always-load: true). Add frontmatter per system/rules/README.md."
     fi
 done
 echo ""
@@ -134,9 +146,12 @@ if [ -f "$SYSTEM_DIR/CLAUDE.md" ]; then
     echo "  CLAUDE.md: ${SIZE} bytes"
 fi
 
-# Rules without paths: field (always loaded)
+# Rules with always-load: true (counted against the always-loaded budget).
+# Scoped rules (paths:) only load when a matching file is in the working
+# set, so they don't contribute to the baseline budget.
 for rule_file in "$SYSTEM_DIR"/rules/*.md; do
-    if ! grep -q '^paths:' "$rule_file" 2>/dev/null; then
+    [ "$(basename "$rule_file")" = "README.md" ] && continue
+    if grep -qE '^always-load:[[:space:]]+true' "$rule_file" 2>/dev/null; then
         SIZE=$(wc -c < "$rule_file")
         BUDGET=$((BUDGET + SIZE))
         echo "  $(basename "$rule_file"): ${SIZE} bytes (always loaded)"
@@ -183,11 +198,13 @@ if [ -f "$SYSTEM_DIR/CLAUDE.md" ]; then
     DIRECTIVES=$((DIRECTIVES + c))
 fi
 
-# Rule directives (unconditional only)
+# Rule directives (always-loaded only — scoped rules don't contribute
+# to the unconditional directive count)
 for rule_file in "$SYSTEM_DIR"/rules/*.md; do
     [ -f "$rule_file" ] || continue
-    # Skip path-scoped rules (they don't always load)
-    grep -q '^paths:' "$rule_file" 2>/dev/null && continue
+    [ "$(basename "$rule_file")" = "README.md" ] && continue
+    # Only count always-load: true rules — scoped rules load on demand.
+    grep -qE '^always-load:[[:space:]]+true' "$rule_file" 2>/dev/null || continue
     c=$(grep -cE "$DIRECTIVE_PATTERN" "$rule_file" || true)
     c=${c:-0}
     DIRECTIVES=$((DIRECTIVES + c))
@@ -507,7 +524,7 @@ echo "Checking for count drift in docs..."
 
 # Count actual system components
 ACTUAL_SKILLS=$(for d in "$SYSTEM_DIR"/skills/*/; do [ "$(basename "$d")" != "acquired" ] && echo 1; done | wc -l | tr -d ' ')
-ACTUAL_RULES=$(ls "$SYSTEM_DIR"/rules/*.md 2>/dev/null | wc -l | tr -d ' ')
+ACTUAL_RULES=$(ls "$SYSTEM_DIR"/rules/*.md 2>/dev/null | grep -v '/README\.md$' | wc -l | tr -d ' ')
 ACTUAL_AGENTS=$(ls "$SYSTEM_DIR"/agents/*.md 2>/dev/null | wc -l | tr -d ' ')
 
 # Scan reflection docs for hardcoded counts

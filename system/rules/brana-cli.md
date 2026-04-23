@@ -1,3 +1,6 @@
+---
+always-load: true
+---
 # Brana CLI
 
 **Always prefer CLI over raw file access.** Never Read/Write/Edit `.claude/tasks.json` directly.

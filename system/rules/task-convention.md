@@ -1,3 +1,6 @@
+---
+always-load: true
+---
 # Task Convention
 
 ## Before branching

@@ -1,3 +1,6 @@
+---
+always-load: true
+---
 # Self-Improvement
 
 Automatic learning. Runs every session without invocation.

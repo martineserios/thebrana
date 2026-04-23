@@ -1,3 +1,6 @@
+---
+always-load: true
+---
 # Quality Standards
 
 - **Test before committing**: run relevant tests before any commit. If no test suite exists, at least verify the change manually.

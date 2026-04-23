@@ -1,6 +1,5 @@
 ---
-globs: ["docs/**/*.md"]
-alwaysApply: false
+paths: ["docs/**/*.md"]
 ---
 
 # Doc Linking

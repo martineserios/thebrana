@@ -1,3 +1,6 @@
+---
+always-load: true
+---
 # No Silent Ambiguity Fill
 
 If a requirement can be interpreted two ways, **ask — don't pick**.

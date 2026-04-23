@@ -1,3 +1,6 @@
+---
+always-load: true
+---
 # Research Discipline
 
 When starting research on any topic:

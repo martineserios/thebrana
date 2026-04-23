@@ -1,3 +1,6 @@
+---
+always-load: true
+---
 # Parallel Bash Resilience
 
 Claude Code cancels all sibling Bash tool calls when one exits non-zero. Guard independent parallel commands:

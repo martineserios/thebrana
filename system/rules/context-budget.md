@@ -1,3 +1,6 @@
+---
+always-load: true
+---
 # Context Budget
 
 ## Thresholds

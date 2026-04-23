@@ -1,3 +1,6 @@
+---
+always-load: true
+---
 # Delegation Routing
 
 Delegate to agents WITHOUT being asked when context matches (see CLAUDE.md agents table). Invoke skills directly — don't suggest them. If user declines, don't repeat.

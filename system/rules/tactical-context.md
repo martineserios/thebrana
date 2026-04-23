@@ -1,3 +1,6 @@
+---
+always-load: true
+---
 # Tactical Context
 
 After giving actionable advice related to a task (workaround, constraint, deadline, dependency, "do X and Y together"), persist it to the task's `context` field via `brana backlog set <id> context --append "note"`.

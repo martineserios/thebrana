@@ -1,3 +1,6 @@
+---
+always-load: true
+---
 # Skill Routing
 
 Before starting any implementation, design, or research work — **always ask** which skills to load. Never silently route. Excessive asking is correct; silent routing is not.

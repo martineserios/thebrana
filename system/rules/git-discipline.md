@@ -1,3 +1,6 @@
+---
+always-load: true
+---
 # Git Discipline
 
 ## One rule

@@ -1,3 +1,6 @@
+---
+always-load: true
+---
 # Test-First Development
 
 ## Before implementation
