@@ -40,6 +40,21 @@ Tracking scheduled agent trigger costs to optimize resource usage.
 
 ---
 
+## 2026-04-20 to 2026-04-26
+- Triggers fired: none (7-day gap, no agent activity)
+- New commits from agents: 0
+- New review files: none
+- This monitor session: offline
+
+## 2026-04-27
+- Triggers fired today: none
+- New commits from agents (24h): 0
+- New review files: none
+- This monitor session: haiku (minimal cost)
+- Status: no agent firings observed since 2026-04-17 (weekly-review)
+
+---
+
 ### Monitoring Setup
 - **token-monitor**: runs daily to track scheduled agent activity
 - **weekly-review**: expected Friday firings
