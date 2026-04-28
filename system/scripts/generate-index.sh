@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # Generate dimensions/INDEX.md from dimension doc headers.
-# DEPRECATED: This script is now bundled with the knowledge skill.
-# Canonical location: system/skills/knowledge/generate-index.sh
-# Deployed to: $HOME/.claude/skills/knowledge/generate-index.sh
-# This copy is kept for backward compatibility (brana-knowledge post-commit hook, scheduler).
+#
+# Title resolution order, per file:
+#   1. YAML frontmatter `title:` field (if present)
+#   2. First `# ` body header
+#   3. Filename
+#
+# Section count is the number of `## ` (level-2) headers.
 #
 # Usage: generate-index.sh [knowledge-dir]
 # Default knowledge-dir: ~/enter_thebrana/brana-knowledge
@@ -19,6 +22,48 @@ if [ ! -d "$DIMENSIONS_DIR" ]; then
     exit 1
 fi
 
+# extract_title <file>
+# Echoes the document title using the resolution order described above.
+# Empty output means no title was found in the content (caller falls back to filename).
+extract_title() {
+    awk '
+        BEGIN { in_fm = 0; fm_seen_open = 0; fm_done = 0 }
+
+        # Track YAML frontmatter boundaries (--- on its own line, only at the top)
+        /^---[[:space:]]*$/ {
+            if (!fm_seen_open && NR == 1) { in_fm = 1; fm_seen_open = 1; next }
+            if (in_fm)                     { in_fm = 0; fm_done = 1;     next }
+        }
+
+        # Inside frontmatter: prefer `title:` field
+        in_fm && /^title:[[:space:]]/ {
+            sub(/^title:[[:space:]]*/, "")
+            sub(/[[:space:]]+$/, "")
+            # Strip surrounding single or double quotes
+            if ((substr($0,1,1) == "\"" && substr($0,length($0),1) == "\"") || \
+                (substr($0,1,1) == "'\''" && substr($0,length($0),1) == "'\''")) {
+                $0 = substr($0, 2, length($0) - 2)
+            }
+            print
+            exit
+        }
+
+        # Outside frontmatter (or in a file with none): first `# ` line wins
+        !in_fm && /^# / {
+            sub(/^# /, "")
+            sub(/[[:space:]]+$/, "")
+            print
+            exit
+        }
+    ' "$1" 2>/dev/null
+}
+
+# count_sections <file>
+# Echoes the number of `## ` headers in the file. Always prints a number.
+count_sections() {
+    grep -c '^## ' "$1" 2>/dev/null || true
+}
+
 # Build the index
 {
     echo "# Dimension Docs Index"
@@ -28,30 +73,41 @@ fi
     echo "| Doc | Sections | Size |"
     echo "|-----|----------|------|"
 
-    for doc in "$DIMENSIONS_DIR"/*.md; do
-        [ "$(basename "$doc")" = "INDEX.md" ] && continue
+    shopt -s nullglob
+    docs=("$DIMENSIONS_DIR"/*.md)
+    shopt -u nullglob
+
+    for doc in "${docs[@]}"; do
         filename=$(basename "$doc")
-        # Extract title from first # line
-        title=$(head -5 "$doc" | grep -m1 '^# ' | sed 's/^# //')
+        [ "$filename" = "INDEX.md" ] && continue
+
+        title=$(extract_title "$doc")
         [ -z "$title" ] && title="$filename"
-        # Count ## sections
-        sections=$(grep -c '^## ' "$doc" 2>/dev/null || echo "0")
-        # File size
-        size=$(wc -c < "$doc" | xargs)
-        if [ "$size" -gt 1048576 ]; then
-            size_fmt="$(( size / 1048576 ))MB"
-        elif [ "$size" -gt 1024 ]; then
-            size_fmt="$(( size / 1024 ))KB"
-        else
-            size_fmt="${size}B"
+
+        sections=$(count_sections "$doc")
+        : "${sections:=0}"
+
+        size=$(wc -c < "$doc" | tr -d ' ')
+        if   [ "$size" -gt 1048576 ]; then size_fmt="$(( size / 1048576 ))MB"
+        elif [ "$size" -gt 1024    ]; then size_fmt="$(( size / 1024 ))KB"
+        else                               size_fmt="${size}B"
         fi
+
         echo "| [$title]($filename) | $sections | $size_fmt |"
     done
 
+    # Total non-INDEX docs
+    total=0
+    for doc in "${docs[@]}"; do
+        [ "$(basename "$doc")" = "INDEX.md" ] || total=$((total + 1))
+    done
+
     echo ""
-    echo "**Total:** $(ls "$DIMENSIONS_DIR"/*.md 2>/dev/null | grep -v INDEX.md | wc -l) docs"
+    echo "**Total:** $total docs"
     echo ""
     echo "*Generated: $(date +%Y-%m-%d)*"
 } > "$INDEX_FILE"
 
-echo "Generated $INDEX_FILE ($(grep -c '^\|' "$INDEX_FILE" || echo 0) rows)"
+rows=$(grep -c '^| \[' "$INDEX_FILE" 2>/dev/null || true)
+: "${rows:=0}"
+echo "Generated $INDEX_FILE ($rows rows)"
