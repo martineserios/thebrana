@@ -10,10 +10,18 @@
 | Client retention & engagement systems (flywheel, welcome kits, QR portals, referral reframing) | `brana-knowledge/dimensions/client-retention-engagement.md` | tinyhomes, any recurring-client service |
 | SMB marketing channels & content strategy (GEO, WhatsApp, landing pages, SEO, B2B2C, regulated products) | `brana-knowledge/dimensions/smb-marketing-channels.md` | somos_mirada, proyecto_anita, tinyhomes, any SMB |
 | Kapso AI platform (CLI, Builder SDK, agents, flows, functions, MCP, TypeScript SDK) | `brana-knowledge/dimensions/39-kapso-ai-platform.md` | proyecto_anita, somos_mirada, brapsoclaw, mya, any WhatsApp automation client |
+| Respond.io platform (AI Agents, Workflows, Variables, MCP, HTTP Requests, plan gates) | `brana-knowledge/dimensions/50-respond-io-platform.md` | somos_mirada, any omnichannel CRM + AI automation client |
+| YCloud WhatsApp BSP (Premier partner, pricing, per-recipient API shape, Kapso contrast, Meta 2026 pricing shift) | `brana-knowledge/dimensions/52-ycloud-whatsapp-platform.md` | proyecto_anita, somos_mirada, mya, brapsoclaw, any WhatsApp BSP decision |
+| Chatwoot platform (OSS omnichannel inbox, self-hosted, 4 API layers, API Channel bridge pattern, Kapso integration paths A/B/C, Captain AI, pricing 2026) | `brana-knowledge/dimensions/51-chatwoot-platform.md` | proyecto_anita (Palco, Las Lupes, inbox-demanding tenants), any project needing self-hosted inbox vs Intercom/Zendesk/Respond.io |
+| Bigin CRM platform (Zoho's CRM-lite, OAuth Self-Client, Bulk Write API, COQL queries, custom fields, Anita integration patterns A/B/C, weak webhook retry workarounds) | `brana-knowledge/dimensions/53-bigin-crm-platform.md` | proyecto_anita (DGRX simil-CRM target, any tenant needing CRM UI on top of Anita+Kapso), mya, any Anita tenant where insight extraction writes to a managed CRM |
 | Glide as MVP backend (Tables + UI + API eliminates Postgres/admin/auth for pilots) | `clients/mya/docs/ideas/mvp-architecture.md` | mya, any B2B2C MVP |
 | Lovable → Claude Code handoff (30 min scaffold, GitHub push, Claude wires APIs) | `clients/mya/docs/ideas/mvp-architecture.md` | mya, any frontend-heavy client |
 | NanoClaw/ZeroClaw/Claw ecosystem (architecture, Docker isolation, Agent SDK) | `brana-knowledge/dimensions/36-claw-ecosystem-chat-interface.md` | brapsoclaw, any chat agent project |
 | WhatsApp Difusiones Comerciales (Meta nativo ~2025, $0.0618/msg, sin scheduling/Excel/métricas) | `ventures/proyecto_anita/memory/event-log.md` | proyecto_anita, somos_mirada, mya, brapsoclaw |
+| LLM agent test strategy patterns (tests don't make agents good · replay-based shadow · defer structural guards) | `llm-agent-test-strategy-patterns.md` | proyecto_anita (Agent v4), mya, brapsoclaw, somos_mirada, any LLM agent shipping to prod |
+| 3-repeat rule for skill codification (build skills from observed usage, not upfront design) | `feedback_3repeat_skill_codification.md` | brana (skill dev), all projects building tools/agents |
+| Reverse-eval for taste training (find flaws in flawed AI artifacts beats producing polished ones) | `feedback_reverse_eval_for_taste.md` | personal/growth, brana (PR review), any taste-driven discipline |
+| Coach mode switching — silent during baseline, Socratic during work | `feedback_coach_mode_switching.md` | personal/growth, ai-native-education, any agent combining eval + coaching |
 
 ## Clients (paid work — external stakeholder)
 
@@ -64,7 +72,7 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Location:** `~/enter_thebrana/ventures/proyecto_anita`
 - **Remote:** `https://github.com/martineserios/proyecto-anita.git`
 - **Stack:** FastAPI + Supabase + Kapso + React 18 + Cloud Run
-- **Status:** Production. Tenants: Palco, PDB. New client: DGRX (onboarding 2026-04-16)
+- **Status:** Production. Tenants: Palco + PDB (cliente amigo de validación). **Delorenzi = primer cliente oficial post-validación** (cerrado 2026-04-23, ARS 1.35M/mes × 3m, 2 ops Gualeguaychú+Paraná, target primer mensaje 2026-06-01). Otros: DGRX (onboarding 2026-04-16), Las Lupes (closed 2026-04-21, cotización pendiente)
 - **Details:** `.claude/CLAUDE.md`, `docs/decisions/`, `clients/` (per-client docs)
 
 ### linkedin
