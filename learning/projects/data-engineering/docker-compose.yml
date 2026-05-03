@@ -1,0 +1,111 @@
+# Local stack for the SenseLedger data-engineering scenarios.
+#
+# Usage:
+#   cp .env.example .env
+#   docker compose up -d
+#
+# Keep this file in sync with the scenarios. When a scenario adds a service,
+# add it here with a comment pointing to the scenario.
+
+name: senseledger-data
+
+services:
+  # ---- Streaming (scenarios 3, 4, 5) ----
+  redpanda:
+    image: redpandadata/redpanda:v24.2.7
+    container_name: senseledger-redpanda
+    command:
+      - redpanda start
+      - --smp=1
+      - --memory=1G
+      - --reserve-memory=0M
+      - --overprovisioned
+      - --node-id=0
+      - --check=false
+      - --kafka-addr=PLAINTEXT://0.0.0.0:9092,OUTSIDE://0.0.0.0:19092
+      - --advertise-kafka-addr=PLAINTEXT://redpanda:9092,OUTSIDE://localhost:19092
+      - --pandaproxy-addr=0.0.0.0:8082
+      - --advertise-pandaproxy-addr=localhost:8082
+    ports:
+      - "19092:19092"   # external kafka
+      - "9644:9644"     # admin
+      - "8082:8082"     # HTTP proxy
+    healthcheck:
+      test: ["CMD", "rpk", "cluster", "health"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  schema-registry:
+    image: redpandadata/console:v2.7.2
+    container_name: senseledger-console
+    depends_on:
+      - redpanda
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+    ports:
+      - "18081:8080"    # Redpanda Console UI
+
+  # ---- Object store (scenarios 1, 5) ----
+  minio:
+    image: minio/minio:RELEASE.2024-09-22T00-33-43Z
+    container_name: senseledger-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"     # S3 API
+      - "9001:9001"     # Console
+    volumes:
+      - minio-data:/data
+
+  # ---- Operational database (scenario 4 — source of CDC) ----
+  postgres:
+    image: postgres:16-alpine
+    container_name: senseledger-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-senseledger}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-senseledger}
+      POSTGRES_DB: ${POSTGRES_DB:-senseledger}
+    command:
+      - postgres
+      - -c
+      - wal_level=logical          # required for Debezium
+      - -c
+      - max_wal_senders=4
+      - -c
+      - max_replication_slots=4
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  # ---- Analytical database (scenario 3 sink) ----
+  timescaledb:
+    image: timescale/timescaledb:2.16.1-pg16
+    container_name: senseledger-timescale
+    environment:
+      POSTGRES_USER: ${TIMESCALE_USER:-senseledger}
+      POSTGRES_PASSWORD: ${TIMESCALE_PASSWORD:-senseledger}
+      POSTGRES_DB: ${TIMESCALE_DB:-senseledger}
+    ports:
+      - "5433:5432"
+    volumes:
+      - timescale-data:/var/lib/postgresql/data
+
+  # ---- Tracing (scenario 7) ----
+  jaeger:
+    image: jaegertracing/all-in-one:1.59
+    container_name: senseledger-jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"   # UI
+      - "4317:4317"     # OTLP gRPC
+      - "4318:4318"     # OTLP HTTP
+
+volumes:
+  minio-data:
+  postgres-data:
+  timescale-data:

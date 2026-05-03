@@ -1,0 +1,15 @@
+node_modules/
+artifacts/
+cache/
+coverage/
+coverage.json
+types/
+dist/
+.env
+.env.*.local
+gas-report.txt
+
+# Deployment artifacts — commit only testnet addresses, never mainnet.
+deployments/*
+!deployments/sepolia.json
+!deployments/localhost.json

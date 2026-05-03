@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Dev overlay: applies the base manifests unchanged except for env-specific
+# labels/annotations. Use this with `kubectl apply -k overlays/dev` on kind.
+
+resources:
+  - ../../manifests
+
+commonLabels:
+  app.kubernetes.io/environment: dev
+
+patches:
+  # Keep the ingest API at 1 replica in dev for faster iteration.
+  - target:
+      kind: Deployment
+      name: ingest-api
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1

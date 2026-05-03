@@ -1,0 +1,33 @@
+# kind cluster configuration for SenseLedger learning.
+# 1 control-plane + 2 workers, with port mappings so the ingress-nginx
+# controller (exposed as NodePort 30080 / 30443) is reachable from the host.
+#
+# Usage:
+#   kind create cluster --name senseledger --config kind-cluster.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: senseledger
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    extraPortMappings:
+      - containerPort: 30080
+        hostPort: 80
+        protocol: TCP
+      - containerPort: 30443
+        hostPort: 443
+        protocol: TCP
+  - role: worker
+  - role: worker
+# Networking: kind uses its own CNI (kindnet) by default. If you want to
+# experiment with NetworkPolicy (scenario 7), switch to Calico:
+#
+# networking:
+#   disableDefaultCNI: true
+#   podSubnet: "10.244.0.0/16"
+# …then install Calico after cluster creation.

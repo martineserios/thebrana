@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingest-api
+  annotations:
+    # ingress-nginx-specific; swap for your controller's annotations in cloud overlays.
+    nginx.ingress.kubernetes.io/proxy-body-size: "256k"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "10"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: senseledger.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ingest-api
+                port:
+                  number: 80

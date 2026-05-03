@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: senseledger
+
+commonLabels:
+  app.kubernetes.io/part-of: senseledger
+  app.kubernetes.io/managed-by: kustomize
+
+resources:
+  - 00-namespace.yaml
+  - 10-ingest-deployment.yaml
+  - 20-ingest-service.yaml
+  - 30-ingest-ingress.yaml

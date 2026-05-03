@@ -1,0 +1,103 @@
+# OpenAPI 3.1 contract for the ingest API consumed by the mobile app.
+# This is the authoritative contract — mobile and backend both generate from it.
+openapi: 3.1.0
+info:
+  title: SenseLedger Ingest API
+  version: 1.0.0
+  description: |
+    Endpoints exposed by the k8s-hosted ingest API for the mobile app.
+    Versioned under /ingest/v1. Breaking changes go to /ingest/v2.
+
+servers:
+  - url: http://senseledger.local/ingest/v1
+    description: local kind cluster
+  - url: https://ingest.senseledger.example/v1
+    description: staging cluster
+
+security:
+  - deviceToken: []
+
+components:
+  securitySchemes:
+    deviceToken:
+      type: http
+      scheme: bearer
+      bearerFormat: "JWT (device-scoped, short-lived)"
+
+  schemas:
+    Reading:
+      type: object
+      required: [event_id, device_id, sensor_type, event_time_ms, value, unit, app_version]
+      properties:
+        event_id:       { type: string, format: uuid }
+        device_id:      { type: string, description: "hashed device fingerprint" }
+        station_id:     { type: string, nullable: true }
+        sensor_type:    { type: string, enum: [sound, accel, gyro, gps, air_quality] }
+        event_time_ms:  { type: integer, format: int64 }
+        value:
+          oneOf:
+            - { type: number }
+            - { type: object, additionalProperties: true }
+        unit:           { type: string }
+        app_version:    { type: string }
+        schema_version: { type: integer, const: 1 }
+
+    ReadingBatch:
+      type: object
+      required: [readings]
+      properties:
+        readings:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items: { $ref: '#/components/schemas/Reading' }
+
+    IngestResponse:
+      type: object
+      required: [accepted, rejected]
+      properties:
+        accepted: { type: integer }
+        rejected:
+          type: array
+          items:
+            type: object
+            properties:
+              event_id: { type: string }
+              reason:   { type: string }
+
+    Health:
+      type: object
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        version: { type: string }
+
+paths:
+  /health:
+    get:
+      summary: Liveness probe
+      security: []
+      responses:
+        '200':
+          description: healthy
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Health' }
+
+  /readings:
+    post:
+      summary: Submit a batch of readings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReadingBatch' }
+      responses:
+        '202':
+          description: accepted (partial failures allowed)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IngestResponse' }
+        '400': { description: malformed request }
+        '401': { description: missing or invalid device token }
+        '413': { description: batch too large }
+        '429': { description: rate limited }

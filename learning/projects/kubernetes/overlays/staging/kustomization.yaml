@@ -1,0 +1,34 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Staging overlay: targets a managed cluster (scenario 8). Tweak the values
+# below for your actual cloud provider's ingress class, hostname, TLS, etc.
+
+resources:
+  - ../../manifests
+
+commonLabels:
+  app.kubernetes.io/environment: staging
+
+patches:
+  - target:
+      kind: Deployment
+      name: ingest-api
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: 100m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 128Mi
+
+  - target:
+      kind: Ingress
+      name: ingest-api
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: ingest.senseledger.example

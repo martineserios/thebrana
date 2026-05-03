@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingest-api
+  labels:
+    app.kubernetes.io/name: ingest-api
+    app.kubernetes.io/component: api
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+    - name: metrics
+      port: 9797
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: ingest-api

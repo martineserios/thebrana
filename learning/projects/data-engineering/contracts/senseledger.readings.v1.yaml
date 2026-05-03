@@ -1,0 +1,70 @@
+# Data contract for SenseLedger raw readings.
+# This is the boundary between the mobile app and every backend consumer.
+#
+# Rules:
+#  - Breaking changes require a new version (`senseledger.readings.v2`).
+#  - Additive changes (new optional fields) are allowed in the same version.
+#  - Any CI change to this file must be approved by the owner.
+
+name: senseledger.readings.v1
+version: 1
+owner: reading-capture
+status: active
+
+# Schema — expressed as JSON-Schema-ish for readability; the authoritative
+# definition lives in the schema registry as Avro or JSON Schema.
+schema:
+  type: record
+  fields:
+    - { name: event_id,      type: string,  doc: "uuid v7" }
+    - { name: device_id,     type: string,  doc: "hash of device fingerprint" }
+    - { name: station_id,    type: string?, doc: "optional; set once registered on-chain" }
+    - { name: sensor_type,   type: enum,    symbols: [sound, accel, gyro, gps, air_quality] }
+    - { name: event_time_ms, type: long,    doc: "epoch ms, device clock" }
+    - { name: ingest_time_ms, type: long,   doc: "epoch ms, set by ingest API" }
+    - { name: value,         type: "double | record" }
+    - { name: unit,          type: string }
+    - { name: app_version,   type: string }
+    - { name: schema_version, type: int, default: 1 }
+
+consumers:
+  - service: ingestion
+    role: producer
+  - service: stream-processing
+    role: consumer (primary)
+  - service: reward-computation
+    role: consumer (derived state only, via marts)
+  - service: wallet-bridge
+    role: consumer (via signed reward epochs only)
+
+slas:
+  freshness:
+    target: 2m
+    window: rolling-5m
+  completeness:
+    target: 99%        # of devices reporting in the expected 5-min window
+  correctness:
+    duplicates: 0       # zero (device_id, sensor_type, event_time_ms) duplicates in marts
+
+quality_checks:
+  - rule: value.in_range
+    sensor_type: sound
+    range: [0, 140]     # dB
+    on_fail: drop_and_alert
+  - rule: event_time_skew
+    max_skew: 1h
+    on_fail: drop_and_alert
+  - rule: required_fields
+    fields: [event_id, device_id, sensor_type, event_time_ms, value, unit]
+    on_fail: reject
+
+retention:
+  raw_topic: 7d
+  lake: infinite
+  operational_db: 30d
+
+breaking_change_policy: |
+  Breaking changes require:
+    1. A new version topic (v2) created in parallel.
+    2. A migration window of at least 14 days where both are written.
+    3. Consumers opt in, then v1 is frozen, then v1 is deleted.
