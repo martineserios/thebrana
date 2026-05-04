@@ -14,21 +14,45 @@ Dual-model adversarial review. Opus stress-tests reasoning and finds logical fla
    - Frame it naturally: "I see we're discussing [X]. Let me stress-test that." — not "Let me challenge my last answer."
    - If the conversation has no substantive decision context (e.g., session just started, only greetings), then ask what to target.
 
-2. **Choose challenge flavor** based on context:
+2. **Scope discovery** — before launching challengers, ask 2-4 targeted questions that could change the challenge outcome.
+
+   First, think (silently): given what's being challenged, what dimensions are non-obvious but consequential? What does Claude not know yet that would change which findings matter?
+
+   Then surface 2-4 questions via a single AskUserQuestion call. Choose from the dimensions below — pick the ones most relevant to the target. Skip generic process questions.
+
+   | Dimension | When to ask | Example option set |
+   |---|---|---|
+   | Deadline pressure | Plan or implementation work | "this week" / "this month" / "no fixed date" |
+   | Cost of being wrong | Architecture or migration | "cheap (refactor)" / "expensive (data migration)" / "catastrophic (prod incident)" |
+   | What's been tried | Recurring problem or refactor | "first attempt" / "one prior approach" / "multiple stalled attempts" |
+   | Stakeholder breadth | Anything visible externally | "just me" / "one other person" / "wider team" / "external users" |
+   | Constraints already locked | Mid-project decisions | "nothing locked yet" / specific commitments listed |
+   | Hard ceiling on scope | Sprawling proposals | "S" / "M" / "L" / "explicitly unbounded" |
+   | Gemini grounding | Brana-domain decisions | "yes — check brana docs" / "skip — no Brana docs apply" |
+
+   Use the answers to:
+   - Calibrate severity (high deadline pressure → demote long-term observations to LOW)
+   - Choose flavor in step 3 (e.g., "multiple stalled attempts" → assumption-buster, not pre-mortem)
+   - Brief the Opus challenger ("user has these constraints already locked: …")
+   - Decide whether to run Gemini (skip if user says "no Brana docs apply")
+
+   Skip step 2 entirely if: the target is trivial, the user said "no scope ambiguity" / "just challenge it", or the conversation already established these dimensions naturally.
+
+3. **Choose challenge flavor** based on context (and scope answers from step 2):
    - Architecture/design decisions → **Pre-mortem**: "Imagine this solution failed in production 3 months from now. What went wrong?"
    - Implementation plans → **Simplicity challenger**: "Can you achieve the same outcome with half the complexity?"
    - Migration/performance/estimates → **Assumption buster**: "What are you assuming that might not be true?"
    - Code/security review → **Adversarial reviewer**: Find concrete problems, security issues, performance concerns.
 
-3. **Launch both challengers in parallel:**
+4. **Launch both challengers in parallel:**
 
-   **3a. Opus challenger** — Spawn subagent using the Task tool:
+   **4a. Opus challenger** — Spawn subagent using the Task tool:
    - `model: "opus"`
    - `subagent_type: "general-purpose"`
    - Provide: the plan/approach being challenged + relevant code/files + the chosen flavor
    - Key instruction: "Be specific and actionable. Don't nitpick — focus on things that would actually cause problems or wasted effort. Suggest concrete alternatives for each concern. Rate each finding: CRITICAL (would block success), WARNING (risk but manageable), OBSERVATION (minor, for consideration)."
 
-   **3b. Gemini detail retriever** — Query NotebookLM (skip silently if unavailable):
+   **4b. Gemini detail retriever** — Query NotebookLM (skip silently if unavailable):
    - Call `mcp__notebooklm__get_health` — if not authenticated, skip 3b entirely
    - Call `mcp__notebooklm__search_notebooks` with keywords from the challenge target
    - If a relevant notebook exists, run a **two-pass retrieval**:
@@ -53,13 +77,13 @@ Dual-model adversarial review. Opus stress-tests reasoning and finds logical fla
       and file paths. If inferring beyond your sources, mark it [INFERENCE]."
      ```
 
-   **3c. Compliance check** (Claude, main context — after both 3a and 3b complete):
+   **4c. Compliance check** (Claude, main context — after both 4a and 4b complete):
    - Take the constraints retrieved by Gemini in 3b
    - Check the challenge target against each retrieved constraint
    - Flag violations as findings with source attribution
    - This is where the adversarial reasoning happens — Claude judges, Gemini retrieves
 
-4. **Merge and present findings with confidence tiers.** Combine all output into a single report. Each finding gets a confidence tier based on its source:
+5. **Merge and present findings with confidence tiers.** Combine all output into a single report. Each finding gets a confidence tier based on its source:
 
    | Source | Confidence | Why |
    |--------|-----------|-----|
@@ -94,9 +118,9 @@ Dual-model adversarial review. Opus stress-tests reasoning and finds logical fla
    PROCEED / PROCEED WITH CHANGES / RECONSIDER
    ```
 
-5. **Let the user decide** which concerns to address. Do not auto-apply changes.
+6. **Let the user decide** which concerns to address. Do not auto-apply changes.
 
-6. **Log findings to decision log** (before storing to memory):
+7. **Log findings to decision log** (before storing to memory):
 
    ```bash
    brana decisions log --agent challenger --entry-type concern \
@@ -107,7 +131,7 @@ Dual-model adversarial review. Opus stress-tests reasoning and finds logical fla
 
    Log one entry per CRITICAL or WARNING finding. OBSERVATION-level findings are not logged.
 
-7. **Store challenge outcome** in ReasoningBank after the user decides:
+8. **Store challenge outcome** in ReasoningBank after the user decides:
 
    ```bash
 source "$HOME/.claude/scripts/cf-env.sh"
