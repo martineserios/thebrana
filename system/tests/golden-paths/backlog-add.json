@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "skill": {
+    "name": "backlog",
+    "version": "v1-baseline-2026-05-04",
+    "arguments": "add"
+  },
+  "outcome": "success",
+  "captured_at": "2026-05-04T00:00:00Z",
+  "notes": "Authored baseline: single task add via shorthand flags + 4-question batch. v1 baseline — not from runtime capture.",
+  "steps": [
+    {
+      "name": "PARSE",
+      "order": 0,
+      "outcome": "success",
+      "tool_calls": [],
+      "interactions": []
+    },
+    {
+      "name": "DEDUP-CHECK",
+      "order": 1,
+      "outcome": "success",
+      "tool_calls": [
+        {
+          "tool": "backlog_search",
+          "params": { "query": "<keywords from subject>" },
+          "success": true
+        }
+      ],
+      "interactions": []
+    },
+    {
+      "name": "URL-AUTODETECT",
+      "order": 2,
+      "outcome": "skipped",
+      "tool_calls": [],
+      "interactions": []
+    },
+    {
+      "name": "QUESTION-BATCH",
+      "order": 3,
+      "outcome": "success",
+      "tool_calls": [],
+      "interactions": [
+        {
+          "question": "Stream?",
+          "options": ["roadmap", "bugs", "tech-debt", "research"],
+          "selected": "tech-debt"
+        },
+        {
+          "question": "Effort?",
+          "options": ["XS", "S", "M", "L", "XL"],
+          "selected": "S"
+        },
+        {
+          "question": "Priority?",
+          "options": ["P0", "P1", "P2", "P3", "none"],
+          "selected": "P3"
+        },
+        {
+          "question": "Tags (comma-separated)?",
+          "selected": "cli,dx"
+        }
+      ]
+    },
+    {
+      "name": "CREATE",
+      "order": 4,
+      "outcome": "success",
+      "tool_calls": [
+        {
+          "tool": "backlog_add",
+          "params": {
+            "subject": "<from parse>",
+            "stream": "tech-debt",
+            "type": "task",
+            "tags": "cli,dx",
+            "effort": "S",
+            "priority": "P3"
+          },
+          "success": true
+        }
+      ],
+      "interactions": []
+    },
+    {
+      "name": "CONFIRM",
+      "order": 5,
+      "outcome": "success",
+      "tool_calls": [
+        {
+          "tool": "Bash",
+          "params": { "command": "git add .claude/tasks.json && git commit -m 'chore(backlog): add t-NNN'" },
+          "success": true
+        }
+      ],
+      "interactions": []
+    }
+  ],
+  "files_read": [
+    ".claude/tasks.json"
+  ],
+  "files_written": [
+    ".claude/tasks.json"
+  ],
+  "tasks": {
+    "created": ["t-NNN"],
+    "completed": []
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "skill": {
+    "name": "close",
+    "version": "v1-baseline-2026-05-04",
+    "arguments": ""
+  },
+  "outcome": "success",
+  "captured_at": "2026-05-04T00:00:00Z",
+  "notes": "Authored baseline: typical session close. v1 baseline — not from runtime capture.",
+  "steps": [
+    {
+      "name": "GATHER",
+      "order": 0,
+      "outcome": "success",
+      "tool_calls": [
+        {
+          "tool": "Bash",
+          "params": { "command": "git log --oneline -10" },
+          "success": true
+        },
+        {
+          "tool": "Bash",
+          "params": { "command": "git status --porcelain" },
+          "success": true
+        },
+        {
+          "tool": "backlog_query",
+          "params": { "status": "completed", "since": "session-start" },
+          "success": true
+        }
+      ],
+      "interactions": []
+    },
+    {
+      "name": "CLASSIFY-FINDINGS",
+      "order": 1,
+      "outcome": "success",
+      "tool_calls": [],
+      "interactions": []
+    },
+    {
+      "name": "RETROSPECTIVE",
+      "order": 2,
+      "outcome": "success",
+      "tool_calls": [
+        {
+          "tool": "Write",
+          "params": { "file_path": "/tmp/session-close-XXXX.json" },
+          "success": true
+        },
+        {
+          "tool": "Bash",
+          "params": { "command": "brana session write --file /tmp/session-close-XXXX.json" },
+          "success": true
+        }
+      ],
+      "interactions": [
+        {
+          "question": "Capture any of these as field notes?",
+          "options": ["Yes — I'll specify which", "No learnings worth capturing", "Auto-capture all"],
+          "selected": "No learnings worth capturing"
+        }
+      ]
+    },
+    {
+      "name": "DOC-DRIFT-CHECK",
+      "order": 3,
+      "outcome": "success",
+      "tool_calls": [
+        {
+          "tool": "Bash",
+          "params": { "command": "git diff --name-only main...HEAD" },
+          "success": true
+        }
+      ],
+      "interactions": []
+    },
+    {
+      "name": "FOLLOW-UP-OFFER",
+      "order": 4,
+      "outcome": "success",
+      "tool_calls": [],
+      "interactions": [
+        {
+          "question": "Capture any follow-ups as backlog tasks?",
+          "options": ["Yes", "No", "Skip"],
+          "selected": "No"
+        }
+      ]
+    },
+    {
+      "name": "PERSIST",
+      "order": 5,
+      "outcome": "success",
+      "tool_calls": [
+        {
+          "tool": "Bash",
+          "params": { "command": "brana decisions log --agent main --entry-type session-close --content '...'" },
+          "success": true
+        }
+      ],
+      "interactions": []
+    }
+  ],
+  "files_read": [
+    ".claude/tasks.json"
+  ],
+  "files_written": [
+    "/tmp/session-close-XXXX.json",
+    "~/.claude/projects/<repo-hash>/memory/session-history.jsonl"
+  ],
+  "tasks": {
+    "created": [],
+    "completed": []
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "skill": {
+    "name": "build",
+    "version": "v1-baseline-2026-05-04",
+    "arguments": "t-XXX"
+  },
+  "outcome": "success",
+  "captured_at": "2026-05-04T00:00:00Z",
+  "notes": "Authored baseline: small feature strategy on a Rust task with a single subtask. Approximates the hyphen-keyword fix path (t-927). v1 baseline — not from runtime capture.",
+  "steps": [
+    {
+      "name": "LOAD",
+      "order": 0,
+      "outcome": "skipped",
+      "tool_calls": [],
+      "interactions": []
+    },
+    {
+      "name": "CROSS-REFERENCE",
+      "order": 1,
+      "outcome": "skipped",
+      "tool_calls": [],
+      "interactions": []
+    },
+    {
+      "name": "CLASSIFY",
+      "order": 2,
+      "outcome": "success",
+      "tool_calls": [
+        {
+          "tool": "backlog_get",
+          "params": { "task_id": "t-XXX", "field": "context" },
+          "success": true
+        }
+      ],
+      "interactions": [
+        {
+          "question": "Detected: feature. Correct?",
+          "options": ["feature (Recommended)", "Bug fix", "Refactor", "Spike"],
+          "selected": "feature (Recommended)"
+        }
+      ]
+    },
+    {
+      "name": "APPROVE",
+      "order": 3,
+      "outcome": "success",
+      "tool_calls": [],
+      "interactions": [
+        {
+          "question": "Build steps above. Proceed?",
+          "options": ["Approve", "Adjust", "Cancel"],
+          "selected": "Approve"
+        }
+      ]
+    },
+    {
+      "name": "SPECIFY",
+      "order": 4,
+      "outcome": "skipped",
+      "tool_calls": [],
+      "interactions": []
+    },
+    {
+      "name": "BUILD",
+      "order": 5,
+      "outcome": "success",
+      "tool_calls": [
+        {
+          "tool": "Bash",
+          "params": { "command": "git worktree add ../repo-t-XXX -b feat/t-XXX-slug main" },
+          "success": true
+        },
+        {
+          "tool": "Read",
+          "params": { "file_path": "system/cli/rust/crates/brana-cli/src/commands/skills.rs" },
+          "success": true
+        },
+        {
+          "tool": "Edit",
+          "params": { "file_path": "system/cli/rust/crates/brana-cli/src/commands/skills.rs" },
+          "success": true
+        },
+        {
+          "tool": "Bash",
+          "params": { "command": "cargo test --manifest-path system/cli/rust/Cargo.toml -p brana-cli" },
+          "success": true
+        },
+        {
+          "tool": "Bash",
+          "params": { "command": "git add . && git commit -m 'feat(...): description'" },
+          "success": true
+        }
+      ],
+      "interactions": []
+    },
+    {
+      "name": "EXTRACT",
+      "order": 6,
+      "outcome": "success",
+      "tool_calls": [
+        {
+          "tool": "Bash",
+          "params": { "command": "git diff --stat main...HEAD" },
+          "success": true
+        }
+      ],
+      "interactions": []
+    },
+    {
+      "name": "CLOSE",
+      "order": 7,
+      "outcome": "success",
+      "tool_calls": [
+        {
+          "tool": "backlog_set",
+          "params": { "task_id": "t-XXX", "field": "status", "value": "completed" },
+          "success": true
+        },
+        {
+          "tool": "Bash",
+          "params": { "command": "git merge --no-ff feat/t-XXX-slug -m 'Merge ...'" },
+          "success": true
+        },
+        {
+          "tool": "Bash",
+          "params": { "command": "git worktree remove ../repo-t-XXX && git branch -d feat/t-XXX-slug" },
+          "success": true
+        }
+      ],
+      "interactions": []
+    }
+  ],
+  "files_read": [
+    "system/cli/rust/crates/brana-cli/src/commands/skills.rs"
+  ],
+  "files_written": [
+    "system/cli/rust/crates/brana-cli/src/commands/skills.rs",
+    ".claude/tasks.json"
+  ],
+  "tasks": {
+    "created": [],
+    "completed": ["t-XXX"]
+  }
+}
