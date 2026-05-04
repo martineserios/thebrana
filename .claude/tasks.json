@@ -36253,6 +36253,36 @@
       "strategy": null,
       "build_step": null,
       "description": null
+    },
+    {
+      "subject": "[cli] Fix shadowed brana binary — npm-linked brana@1.0.0 hides ~/.local/bin/brana on PATH",
+      "type": "task",
+      "stream": "bugs",
+      "tags": [
+        "cli",
+        "bug",
+        "dx",
+        "doctor",
+        "install"
+      ],
+      "effort": "XS",
+      "priority": "P1",
+      "execution": "code",
+      "context": "Old prototype JS project at ~/brana/ (package.json: name=brana, bin=brana → src/cli/index.js) is npm-linked globally. The symlink lives at ~/.nvm/versions/node/v20.19.0/bin/brana → ~/brana. nvm bin precedes ~/.local/bin on PATH, so bare `brana session ...` resolves to the JS prototype, which has no `session` subcommand → `error: unknown command session`. Confirmed via `which brana` (returns nvm path), `~/.local/bin/brana session --help` (works), `npm ls -g brana` (shows brana@1.0.0 → ./../../../../../brana). Skills like /brana:do call bare `brana ...`; every such call hits the wrong binary. Fix applied this session: `npm rm -g brana` (removes only the nvm symlink; ~/brana/ source untouched). Followups: (1) brana doctor should detect this — check `which brana` resolves to ~/.local/bin/brana, warn otherwise; (2) decide whether to delete or rename ~/brana/ (old prototype superseded by Rust CLI in thebrana/system/cli/rust); (3) audit any other procedure invoking bare `brana` to confirm none depend on the JS prototype.",
+      "id": "t-1337",
+      "status": "completed",
+      "created": "2026-05-03",
+      "blocked_by": [],
+      "parent": null,
+      "order": null,
+      "branch": null,
+      "github_issue": null,
+      "started": null,
+      "completed": "2026-05-03",
+      "notes": "Triggered during /brana:close (procedures/close.md:534 calls bare 'brana session write'). Fix: npm rm -g brana — removed the global symlink at ~/.nvm/versions/node/v20.19.0/bin/brana → ~/brana (old JS prototype). ~/brana/ source untouched. Verified: which brana → /home/martineserios/.local/bin/brana, brana --version → 0.2.0, brana session --help works. Followups: (a) brana doctor should warn if 'which brana' != ~/.local/bin/brana (raise as separate task or fold into t-1327); (b) ~/brana/ old JS prototype can be deleted/archived — superseded by Rust CLI at thebrana/system/cli/rust.",
+      "strategy": null,
+      "build_step": null,
+      "description": null
     }
   ],
   "version": "1"
