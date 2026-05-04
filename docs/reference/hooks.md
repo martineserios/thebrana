@@ -53,7 +53,7 @@ commit-msg-verify.sh — PreToolUse hook for Bash (advisory, non-blocking)
 
 ConfigChange guard — audit config changes, block ANTHROPIC_BASE_URL manipulation.
 
-**Gate:** Blocking
+**Gate:** Advisory
 
 ### `config-drift.sh`
 
@@ -230,4 +230,30 @@ Blocking hooks that support `/tmp/brana-*` sentinel file bypasses for procedure-
 | Hook | Sentinel | Context |
 |------|----------|--------|
 | `feedback-gate.sh` | `/tmp/brana-close-active` | Whitelist: /brana:close Step 5b writes git-durable backup files — sentinel set by procedure |
+| `guard-explore.sh` | `/tmp/brana-search-${SESSION_ID}.log` | Extract tool name and file path |
+| `guard-explore.sh` | `/tmp/brana-explore-${SESSION_ID}.log` | Extract tool name and file path |
+| `post-plan-challenge.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | Log to session JSONL |
+| `post-pr-review.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | Log to session JSONL |
+| `post-sale.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | Log to session JSONL |
+| `post-tool-use-failure.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | --- Test/lint command detection (Bash only) --- |
+| `post-tool-use-failure.sh` | `/tmp/brana-cascade` | Only for Edit/Write — Bash commands aren't file-targeted, so flags would be orphaned. |
+| `post-tool-use.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | --- Test/lint command detection (Bash only) --- |
+| `post-tool-use.sh` | `/tmp/brana-cascade/${SESSION_ID}-${PATH_HASH}` | If a previously-cascading file succeeds, remove the flag to stop warning fatigue. |
+| `pre-tool-use.sh` | `/tmp/brana-cascade/${SESSION_ID}-${PATH_HASH}` | If post-tool-use-failure.sh flagged this file as cascading, inject a nudge (not a deny). |
+| `session-end-metrics.sh` | `/tmp/brana-metrics-filtered-XXXXXX.jsonl` | Events from a different repo are excluded. |
+| `session-end.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | Respond immediately — all processing in background |
+| `session-end.sh` | `/tmp/brana-metrics-XXXXXX.env` | ── Phase 1: Compute metrics ────────────────────────────── |
+| `session-start.sh` | `/tmp/brana-startup-timing.log.` | in parallel (2s timeout), collect results, emit JSON. Fork logging |
+| `session-start.sh` | `/tmp/brana-startup-timing.log` | ── Startup timing (diagnostic) ───────────────────────── |
+| `session-start.sh` | `/tmp/brana-ss-${SESSION_ID}` | ── Temp files for parallel results ─────────────────────── |
+| `session-start.sh` | `/tmp/brana-skills-index-mtime` | Invalidate skills mtime marker — plugin updated, skills may have changed |
+| `session-start.sh` | `/tmp/brana-claims` | ── Stale file claim cleanup ───────────────────────────── |
+| `session-start.sh` | `/tmp/brana-context-${SESSION_ID}.md` | ── Write context readback file (survives context compression) ── |
+| `session-start.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | ══════════════════════════════════════════════════════════ |
+| `step-completed.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | ── Log step completion to session file ────────────────── |
+| `subagent-tracker.sh` | `/tmp/brana-session-*.jsonl` | Brana SubagentStart/SubagentStop hook — track agent spawns and completions. |
+| `subagent-tracker.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | Determine event type from hook_event_name |
+| `task-completed.sh` | `/tmp/brana-task-sync.log` | Strip quotes and check for non-null |
+| `task-completed.sh` | `/tmp/brana-decisions.log` | ── 3. Log to decision log ──────────────────────────── |
+| `worktree-gate.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | then compares against staged files. Warns (not blocks) on mismatches. |
 

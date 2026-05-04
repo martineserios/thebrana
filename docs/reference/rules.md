@@ -2,10 +2,11 @@
 
 # Rules Reference
 
-**23 rules** in `system/rules/`.
+**24 rules** in `system/rules/`.
 
 | File | Title | Summary |
 |------|-------|--------|
+| `README.md` | system/rules/ — Authoring Contract | Task: t-1285. Enforced by `validate.sh` Check 2. |
 | `always-use-build-framework.md` | Always Use Build Framework | Always start work via `/brana:backlog start <id>` → `/brana:build`. Never skip the framework to co... |
 | `backlog-start-gate.md` | Backlog Start Gate | When user accepts a task-continuation suggestion ("continue with t-XXX?", "start t-XXX?"), invoke `/... |
 | `brana-cli.md` | Brana CLI | **Always prefer CLI over raw file access.** Never Read/Write/Edit `.claude/tasks.json` directly. |
@@ -29,6 +30,13 @@
 | `task-convention.md` | Task Convention | ## Before branching |
 | `universal-quality.md` | Quality Standards | - **Test before committing**: run relevant tests before any commit. If no test suite exists, at leas... |
 | `work-preferences.md` | Work Preferences | ## Parallelism |
+
+## system/rules/ — Authoring Contract
+
+**File:** `system/rules/README.md`
+
+Task: t-1285. Enforced by `validate.sh` Check 2.
+
 
 ## Always Use Build Framework
 
