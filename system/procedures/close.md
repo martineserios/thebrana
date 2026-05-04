@@ -259,14 +259,60 @@ When writing a `field-note_{slug}.md`, add a one-liner to MEMORY.md under `## Fi
 
 1. Identify the most relevant doc (dimension, reflection, ADR, or feature brief) where this learning belongs. Use the learning's topic to match — e.g., a Docker gotcha → the infrastructure dimension, a hook behavior surprise → the architecture reflection.
 
-2. Ask the user via AskUserQuestion:
+2. Ask the user via AskUserQuestion. **Five-action lifecycle** (per t-440, replaces the older Keep/Archive binary):
    ```
    "Capture as field note? '{brief summary of learning}' → {target-doc-name}"
-   Options: ["Keep (append to doc)", "Archive (store in memory only)", "Skip"]
+   Options:
+     - "Promote (integrate into doc body)"
+     - "Relate (cross-reference existing sections)"
+     - "Trigger (file research task)"
+     - "Contradict (flag assumption for review)"
+     - "Keep (append to Field Notes section)"
+     - "Archive (memory only, defer)"
+     - "Skip"
    ```
-   Batch up to 4 field notes per AskUserQuestion call.
+   Batch up to 4 field notes per AskUserQuestion call. Pick at most 4 of these 7 options per question — the most plausible ones for the specific note. "Keep" stays available as the most common path; the other actions are lighter-weight when the note doesn't fit a tail section.
 
-3. **For "Keep" responses** — append to the target doc's `## Field Notes` section:
+   **Choosing the action:**
+
+   | Action | Use when | Result |
+   |---|---|---|
+   | **Promote** | Note has matured beyond gotcha — belongs in core narrative | Integrate into doc's relevant prose section; bump SemVer minor in frontmatter |
+   | **Relate** | Note connects two existing pieces of knowledge | Add bidirectional cross-reference links; no new content |
+   | **Trigger** | Note hints at a deeper unknown that warrants research | `brana backlog add --json '{"stream":"research",...}'`; link task ID in Field Notes |
+   | **Contradict** | Note conflicts with a documented assumption | Mark assumption `disputed`, reset `last_verified` to null; surfaces in next `/brana:reconcile` |
+   | **Keep** | Note is a useful gotcha worth recording but doesn't shift the doc's structure | Append to `## Field Notes` section (default path) |
+   | **Archive** | Note is real but not yet actionable | Store in ruflo `namespace: field-notes`, no doc edit |
+   | **Skip** | Note is noise / duplicate | Discard silently |
+
+3. **For "Promote" responses** — integrate into the doc body proper (not a tail section):
+   - Locate the most relevant prose section using the note's topic
+   - Add a 1-2 sentence integration with `(promoted YYYY-MM-DD from session)` attribution
+   - Bump the doc's SemVer minor in frontmatter (`version: X.Y.0` → `X.(Y+1).0`)
+   - Skip the Keep-style append below
+
+4. **For "Relate" responses** — add bidirectional cross-references:
+   - Identify the related doc/section via the note's topic
+   - In the source doc, add: `> See also: [target-section](target-path#anchor) — {one-line relation}`
+   - In the target doc, add the reverse pointer
+   - Skip the Keep-style append below
+
+5. **For "Trigger" responses** — create a research task:
+   ```bash
+   brana backlog add --json '{"subject":"Research: {topic}","stream":"research","type":"task","tags":["follow-up","field-note-trigger"],"effort":"S","context":"Triggered from field note in {source-doc}: {note}"}'
+   ```
+   Then append a Field Notes entry that links the task ID:
+   ```
+   ### YYYY-MM-DD: [brief title] [→ research t-NNN]
+   ```
+
+6. **For "Contradict" responses** — flag the conflicting assumption:
+   - Find the assumption in the source doc's frontmatter `assumptions:` block (or in any doc the user identifies)
+   - Set its `status: disputed` and `last_verified: null`
+   - Append a Field Note prefixed `[CONTRADICTS assumption-id]` with the contradicting evidence
+   - Next `/brana:reconcile` run surfaces this for review
+
+7. **For "Keep" responses** — append to the target doc's `## Field Notes` section:
    - If the section doesn't exist, create it at the end of the doc (before any trailing `---`)
    - Format:
      ```markdown
@@ -281,7 +327,7 @@ When writing a `field-note_{slug}.md`, add a one-liner to MEMORY.md under `## Fi
      ```
      If archiving: move the oldest 5 entries to ruflo (`namespace: field-notes`, tag `archived`) and remove them from the doc.
 
-4. **For "Archive" responses** — store in ruflo only:
+8. **For "Archive" responses** — store in ruflo only:
 
    **Via MCP (preferred):**
    ```
@@ -307,9 +353,9 @@ When writing a `field-note_{slug}.md`, add a one-liner to MEMORY.md under `## Fi
    ```
    If both unavailable, append to MEMORY.md under `## Field Notes (Archived)`.
 
-5. **For "Skip" responses** — discard silently.
+9. **For "Skip" responses** — discard silently.
 
-6. **Reindex affected docs** — after all field notes are appended, trigger ruflo reindex for each modified doc:
+10. **Reindex affected docs** — after all field notes are processed, trigger ruflo reindex for each modified doc:
 
    **Via MCP (preferred):**
    ```
