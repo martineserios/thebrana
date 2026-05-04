@@ -732,55 +732,104 @@ check_assumption_freshness() {
         fi
     fi
 
-    # Look for ## Assumptions section with Last Verified or last_verified dates
-    # Extract dates from table rows or YAML-like assumption blocks
-    local dates
-    dates=$(perl -ne '
+    # Look for ## Assumptions section with Last Verified or last_verified dates.
+    # Extract per-row "tier|date" pairs (tier empty if Tier column absent or empty).
+    # See docs/architecture/features/doc-frontmatter-spec.md (t-434).
+    local rows
+    rows=$(perl -ne '
         $in_section = 1 if /^##\s+Assumptions/;
         $in_section = 0 if $in_section && /^##\s/ && !/^##\s+Assumptions/;
-        if ($in_section) {
-            # Table row: | ... | 2026-01-15 | (last column or near-last)
+        next unless $in_section;
+
+        # Detect Tier column index from the header row
+        if (/^\|\s*\#\s*\|/ && /Tier/i) {
+            @cols = split(/\|/);
+            for my $i (0..$#cols) {
+                $tier_col = $i if $cols[$i] =~ /\bTier\b/i;
+            }
+            next;
+        }
+
+        # Skip separator rows
+        next if /^\|[\s\-:]*\|/;
+
+        # Data row: extract per-row tier (if column present) and last_verified date
+        if (/^\|.*\|$/) {
+            my $date_match;
             if (/last.verified[:\s]*(\d{4}-\d{2}-\d{2})/i) {
-                print "$1\n";
+                $date_match = $1;
+            } else {
+                # Fallback: grab any YYYY-MM-DD in the row (assumed to be last_verified)
+                $date_match = $1 if /(\d{4}-\d{2}-\d{2})/;
             }
-            # YAML-style: last_verified: 2026-01-15
-            elsif (/last_verified:\s*(\d{4}-\d{2}-\d{2})/) {
-                print "$1\n";
+            next unless $date_match;
+
+            my $row_tier = "";
+            if (defined $tier_col) {
+                my @cells = split(/\|/);
+                $row_tier = $cells[$tier_col] // "";
+                $row_tier =~ s/^\s+|\s+$//g;
+                $row_tier = "" if $row_tier !~ /^(tech|architecture|methodology)$/;
             }
+            print "$row_tier|$date_match\n";
+        }
+
+        # YAML-style assumption block (no per-row tier support — uses doc default)
+        elsif (/last_verified:\s*(\d{4}-\d{2}-\d{2})/) {
+            print "|$1\n";
         }
     ' "$doc" 2>/dev/null)
 
-    [ -z "$dates" ] && return 0
+    [ -z "$rows" ] && return 0
 
-    # Read confidence_tier from frontmatter — drives the staleness threshold.
-    # See docs/architecture/features/doc-frontmatter-spec.md (t-439).
-    # Default: tech (6mo) — most conservative, matches legacy behavior.
-    local tier
-    tier=$(awk '
+    # Read doc-level confidence_tier from frontmatter (default: tech).
+    # See docs/architecture/features/doc-frontmatter-spec.md (t-439, t-434).
+    local doc_tier
+    doc_tier=$(awk '
         /^---$/ { fm = !fm; next }
         fm && /^confidence_tier:/ { gsub(/^confidence_tier:[[:space:]]*/, ""); gsub(/[[:space:]]/, ""); print; exit }
     ' "$doc" 2>/dev/null)
-    local threshold_days
-    case "$tier" in
-        architecture) threshold_days=547 ;;   # ~18 months
-        methodology)  threshold_days=1095 ;;  # ~36 months
-        tech|*)       threshold_days=182 ;;   # ~6 months (default)
-    esac
-    local threshold=$((threshold_days * 86400))
-    local tier_label="${tier:-tech (default)}"
+    [ -z "$doc_tier" ] && doc_tier="tech"
 
-    while IFS= read -r verified_date; do
+    # Threshold-by-tier helper
+    tier_threshold_days() {
+        case "$1" in
+            architecture) echo 547 ;;
+            methodology)  echo 1095 ;;
+            tech|*)       echo 182 ;;
+        esac
+    }
+
+    while IFS= read -r row; do
+        [ -z "$row" ] && continue
+        local row_tier="${row%%|*}"
+        local verified_date="${row#*|}"
         [ -z "$verified_date" ] && continue
         ASSUMPTION_CHECKED=$((ASSUMPTION_CHECKED + 1))
         local verified_epoch
         verified_epoch=$(date -d "$verified_date" +%s 2>/dev/null || echo "0")
         [ "$verified_epoch" = "0" ] && continue
+
+        # Per-row tier overrides doc-level tier when present
+        local effective_tier="${row_tier:-$doc_tier}"
+        local threshold_days
+        threshold_days=$(tier_threshold_days "$effective_tier")
+        local threshold=$((threshold_days * 86400))
+
         local staleness=$((NOW_EPOCH - verified_epoch))
         if [ "$staleness" -gt "$threshold" ]; then
+            local tier_label
+            if [ -n "$row_tier" ]; then
+                tier_label="$row_tier (per-row)"
+            elif [ -n "$doc_tier" ] && [ "$doc_tier" != "tech" ]; then
+                tier_label="$doc_tier (doc)"
+            else
+                tier_label="tech (default)"
+            fi
             warn "Stale assumption in $label — last verified $verified_date (>$threshold_days days, tier=$tier_label)"
             STALE_ASSUMPTIONS=$((STALE_ASSUMPTIONS + 1))
         fi
-    done <<< "$dates"
+    done <<< "$rows"
 }
 
 # Scan docs/
