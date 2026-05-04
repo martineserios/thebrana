@@ -468,8 +468,11 @@ pub fn cmd_session_read(json_output: bool) {
             }
         }
         None => {
-            // Fallback: try legacy markdown handoff
-            handoff::cmd_handoff_last(1);
+            // Fallback: try legacy markdown handoff (errors logged, not propagated —
+            // session::read is a best-effort display path)
+            if let Err(e) = handoff::cmd_handoff_last(1) {
+                eprintln!("{e:#}");
+            }
         }
     }
 }
@@ -480,8 +483,10 @@ pub fn cmd_session_history(limit: usize) {
     let entries = read_history(&root, limit);
 
     if entries.is_empty() {
-        // Fallback: try legacy markdown handoff list
-        handoff::cmd_handoff_list();
+        // Fallback: try legacy markdown handoff list (best-effort)
+        if let Err(e) = handoff::cmd_handoff_list() {
+            eprintln!("{e:#}");
+        }
         return;
     }
 

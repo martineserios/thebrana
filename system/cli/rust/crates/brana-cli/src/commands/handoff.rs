@@ -5,6 +5,8 @@
 
 use std::path::PathBuf;
 
+use anyhow::{anyhow, Context, Result};
+
 use crate::util;
 
 /// Encode a project root path into the CC project directory name.
@@ -100,28 +102,15 @@ pub fn parse_entries(content: &str) -> Vec<HandoffEntry> {
 
 // ── Commands ────────────────────────────────────────────────────────────
 
-pub fn cmd_handoff_last(n: usize) {
-    let root = match util::find_project_root() {
-        Some(r) => r,
-        None => {
-            eprintln!("Not in a git repository");
-            std::process::exit(1);
-        }
-    };
-
+pub fn cmd_handoff_last(n: usize) -> Result<()> {
+    let root = util::find_project_root().ok_or_else(|| anyhow!("Not in a git repository"))?;
     let path = resolve_handoff_path(&root);
-    let content = match std::fs::read_to_string(&path) {
-        Ok(c) => c,
-        Err(_) => {
-            eprintln!("No handoff file found at {}", path.display());
-            std::process::exit(1);
-        }
-    };
+    let content = std::fs::read_to_string(&path)
+        .with_context(|| format!("No handoff file found at {}", path.display()))?;
 
     let entries = parse_entries(&content);
     if entries.is_empty() {
-        eprintln!("No handoff entries found");
-        std::process::exit(1);
+        return Err(anyhow!("No handoff entries found"));
     }
 
     let count = n.min(entries.len());
@@ -132,48 +121,31 @@ pub fn cmd_handoff_last(n: usize) {
         println!("## {}\n", entry.heading);
         println!("{}", entry.body);
     }
+    Ok(())
 }
 
-pub fn cmd_handoff_list() {
-    let root = match util::find_project_root() {
-        Some(r) => r,
-        None => {
-            eprintln!("Not in a git repository");
-            std::process::exit(1);
-        }
-    };
-
+pub fn cmd_handoff_list() -> Result<()> {
+    let root = util::find_project_root().ok_or_else(|| anyhow!("Not in a git repository"))?;
     let path = resolve_handoff_path(&root);
-    let content = match std::fs::read_to_string(&path) {
-        Ok(c) => c,
-        Err(_) => {
-            eprintln!("No handoff file found at {}", path.display());
-            std::process::exit(1);
-        }
-    };
+    let content = std::fs::read_to_string(&path)
+        .with_context(|| format!("No handoff file found at {}", path.display()))?;
 
     let entries = parse_entries(&content);
     if entries.is_empty() {
-        eprintln!("No handoff entries found");
-        std::process::exit(1);
+        return Err(anyhow!("No handoff entries found"));
     }
 
     for entry in &entries {
         println!("{}", entry.heading);
     }
+    Ok(())
 }
 
-pub fn cmd_handoff_path() {
-    let root = match util::find_project_root() {
-        Some(r) => r,
-        None => {
-            eprintln!("Not in a git repository");
-            std::process::exit(1);
-        }
-    };
-
+pub fn cmd_handoff_path() -> Result<()> {
+    let root = util::find_project_root().ok_or_else(|| anyhow!("Not in a git repository"))?;
     let path = resolve_handoff_path(&root);
     println!("{}", path.display());
+    Ok(())
 }
 
 // ── Tests ───────────────────────────────────────────────────────────────

@@ -100,10 +100,10 @@ fn main() {
             SkillsCmd::Graph => run_or_exit(commands::skills::cmd_graph()),
         },
         Commands::Handoff { cmd } => match cmd {
-            Some(HandoffCmd::Last { n }) => commands::handoff::cmd_handoff_last(n),
-            None => commands::handoff::cmd_handoff_last(1),
-            Some(HandoffCmd::List) => commands::handoff::cmd_handoff_list(),
-            Some(HandoffCmd::Path) => commands::handoff::cmd_handoff_path(),
+            Some(HandoffCmd::Last { n }) => run_or_exit(commands::handoff::cmd_handoff_last(n)),
+            None => run_or_exit(commands::handoff::cmd_handoff_last(1)),
+            Some(HandoffCmd::List) => run_or_exit(commands::handoff::cmd_handoff_list()),
+            Some(HandoffCmd::Path) => run_or_exit(commands::handoff::cmd_handoff_path()),
         },
         Commands::Session { cmd } => match cmd {
             SessionCmd::Write { file, minimal } => commands::session::cmd_session_write(file, minimal),
