@@ -13,6 +13,7 @@ WARNINGS=0
 RUN_ASSUMPTIONS_ONLY=false
 RUN_SCALE_TRIGGERS=false
 RUN_SEMANTIC_ONLY=false
+RUN_GOLDEN=false
 GRACE_DAYS=7
 
 while [[ $# -gt 0 ]]; do
@@ -20,6 +21,7 @@ while [[ $# -gt 0 ]]; do
         --assumptions-only) RUN_ASSUMPTIONS_ONLY=true; shift ;;
         --scale-triggers) RUN_SCALE_TRIGGERS=true; shift ;;
         --semantic) RUN_SEMANTIC_ONLY=true; shift ;;
+        --golden) RUN_GOLDEN=true; shift ;;
         --grace-days) GRACE_DAYS="$2"; shift 2 ;;
         *) echo "Unknown flag: $1"; exit 1 ;;
     esac
@@ -1180,6 +1182,23 @@ else
   warn "Check 24: .mcp.json not found at $SCRIPT_DIR/.mcp.json (skipped)"
 fi
 echo ""
+
+# ── Optional: Golden-path drift (--golden flag) ──────────────────────────
+if $RUN_GOLDEN; then
+    echo "Check 25: Golden-path drift..."
+    if [ -x "$SCRIPT_DIR/system/scripts/golden-path-diff.sh" ]; then
+        if "$SCRIPT_DIR/system/scripts/golden-path-diff.sh" 2>&1 | sed 's/^/  /'; then
+            pass "Check 25: Golden-path drift — none"
+        else
+            # Drift in golden paths is a warning, not a hard error: snapshots may
+            # legitimately lag procedure changes. The signal is "review the diff".
+            warn "Check 25: Golden-path drift detected — see output above"
+        fi
+    else
+        warn "Check 25: golden-path-diff.sh not found at $SCRIPT_DIR/system/scripts/ (skipped)"
+    fi
+    echo ""
+fi
 
 # Summary
 echo "=== Validation Summary ==="
