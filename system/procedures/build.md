@@ -3,6 +3,19 @@
 
 The unified development command. One entry point for all work types: features, bug fixes, greenfield projects, refactors, spikes, migrations, and investigations. Auto-detects the right strategy, integrates deeply with `/brana:backlog`, and enforces TDD throughout.
 
+## Lifecycle context
+
+Build implements the brana development workflow defined in [docs/reflections/32-lifecycle.md](../../docs/reflections/32-lifecycle.md): **DDD → SDD → TDD → Code**.
+
+| Build step | Lifecycle phase | What it produces |
+|---|---|---|
+| SPECIFY | DDD (when `docs/domain/` exists) + SDD | Domain glossary updates, ADR(s), feature spec |
+| DECOMPOSE | SDD continuation | Ordered task tree with acceptance criteria |
+| BUILD | TDD | Failing test → implementation → refactor, per subtask |
+| EXTRACT/EVALUATE/PERSIST | Continuous learning | Patterns, ADRs, field notes |
+
+DDD is strategic (judgment), SDD is tactical (decisions), TDD is mechanical (red-green-refactor). DDD enforcement activates when `docs/domain/` exists in the project (same opt-in pattern as SDD's `docs/decisions/`).
+
 ## Invocation
 
 ```
@@ -327,19 +340,22 @@ Before planning the steps, assess which disciplines apply. State the result expl
 
 | Discipline | Apply when | Skip when |
 |-----------|-----------|-----------|
-| **DDD** | New entity, aggregate, bounded context, or cross-context change | Correction, doc fix, single-file patch |
-| **SDD** | Behavioral decision with architectural trade-offs (ADR needed) | Pure correction where the task description IS the spec |
-| **TDD** | Code that can be tested (hooks, CLI, scripts, functions) | Docs-only, config-only, procedure files |
+| **DDD** (Domain-Driven Design) | `docs/domain/` exists AND task introduces or refines a domain entity, aggregate, bounded context, or cross-context change | `docs/domain/` absent, or task is correction/single-file patch |
+| **SDD** (Spec-Driven Development) | Behavioral decision with architectural trade-offs (ADR needed) | Pure correction where the task description IS the spec |
+| **TDD** (Test-Driven Development) | Code that can be tested (hooks, CLI, scripts, functions) | Docs-only, config-only, procedure files |
 
 Output one line per discipline:
 ```
-DDD: skip — no domain model work
-SDD: skip — task description serves as spec (correcti on, no ADR needed)
+DDD: skip — no docs/domain/ in this project (opt-in)
+SDD: skip — task description serves as spec (correction, no ADR needed)
 TDD: apply — hook code change, write failing test first
 ```
 
+If DDD applies, read `docs/domain/glossary.md` and use the ubiquitous language consistently. Propose glossary additions for any new terms introduced by the task.
 If SDD applies, write or reference the ADR/spec **before** the first Edit/Write call.
 If TDD applies, the BUILD step must follow red-green-refactor.
+
+> See [docs/reflections/32-lifecycle.md](../../docs/reflections/32-lifecycle.md) §"The Development Workflow" for the full DDD → SDD → TDD → Code rationale.
 
 1. **Present the strategy's step sequence** inline:
    ```
@@ -379,6 +395,8 @@ The user controls the pace. Stay in the research→discuss loop until the user s
 #### Research loop
 
 **Seed from task metadata:** If attached to a task, extract research keywords from the task's `tags`, `description`, and `context` fields. These are the initial search vectors for all research tracks below.
+
+**DDD activation (opt-in):** if `docs/domain/glossary.md` exists in the project, read it before research. Use the project's ubiquitous language consistently throughout the spec — don't invent new terms when an existing one exists. If the task description introduces a term not in the glossary, propose adding it during draft signal step 1.
 
 Run research in this order — each layer adds context for the next:
 
