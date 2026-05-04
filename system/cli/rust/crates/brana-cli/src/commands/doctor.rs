@@ -319,6 +319,61 @@ pub fn check_dependencies() -> CheckResult {
     }
 }
 
+/// Check 8: `pkg-config` is on PATH — required for cargo build of brana-core
+/// (native-tls → openssl-sys → pkg-config).
+pub fn check_pkg_config() -> CheckResult {
+    let found = Command::new("which")
+        .arg("pkg-config")
+        .output()
+        .ok()
+        .map_or(false, |o| o.status.success());
+    if found {
+        CheckResult::pass("pkg-config", "on PATH")
+    } else {
+        CheckResult::fail("pkg-config", pkg_config_fail_message())
+    }
+}
+
+/// Failure-message helper for `check_pkg_config` — exposed for testability.
+fn pkg_config_fail_message() -> String {
+    "not found — required by native-tls/openssl-sys for cargo build (apt: sudo apt install pkg-config; brew: brew install pkg-config)".to_string()
+}
+
+/// Check 9: `brana` resolves to the canonical install path (`~/.local/bin/brana`).
+/// Catches PATH shadows (e.g. stale npm-link of an older JS prototype).
+pub fn check_brana_resolution(home: &Path) -> CheckResult {
+    let which_path = Command::new("which")
+        .arg("brana")
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string());
+    check_brana_resolution_from(which_path.as_deref(), home)
+}
+
+/// Inner: testable variant taking the resolved path directly.
+pub fn check_brana_resolution_from(which_path: Option<&str>, home: &Path) -> CheckResult {
+    let canonical = home.join(".local/bin/brana");
+    let canonical_str = canonical.to_string_lossy().to_string();
+    match which_path {
+        None => CheckResult::fail(
+            "Binary resolution",
+            format!("`brana` not on PATH (expected {})", canonical_str),
+        ),
+        Some(p) if p == canonical_str => CheckResult::pass(
+            "Binary resolution",
+            format!("canonical ({})", canonical_str),
+        ),
+        Some(p) => CheckResult::fail(
+            "Binary resolution",
+            format!(
+                "shadowed: resolves to {} but expected {}. Check for npm-link or stale install (e.g. `npm rm -g brana`).",
+                p, canonical_str
+            ),
+        ),
+    }
+}
+
 /// Check 7: Ruflo DB exists at `~/.swarm/memory.db` and is non-empty.
 pub fn check_ruflo_db(home: &Path) -> CheckResult {
     let db_path = home.join(".swarm/memory.db");
@@ -374,11 +429,13 @@ pub fn cmd_doctor(theme: &themes::Theme) {
 
     let checks = vec![
         check_binary(),
+        check_brana_resolution(&home),
         check_plugin(&home),
         check_hooks(&plugin_root),
         check_mcp(&project_root),
         check_rules(&plugin_root),
         check_dependencies(),
+        check_pkg_config(),
         check_ruflo_db(&home),
     ];
 
@@ -704,5 +761,55 @@ mod tests {
 
         let f = CheckResult::fail("Test", "broken");
         assert!(!f.passed);
+    }
+
+    // ── check_brana_resolution ────────────────────────────────────────────────
+
+    #[test]
+    fn test_check_brana_resolution_canonical() {
+        let tmp = TempDir::new().unwrap();
+        let canonical = tmp.path().join(".local/bin/brana");
+        let canonical_str = canonical.to_string_lossy().to_string();
+        let result = check_brana_resolution_from(Some(&canonical_str), tmp.path());
+        assert!(result.passed, "canonical path should pass; got: {:?}", result.detail);
+        assert!(result.detail.contains("canonical"));
+    }
+
+    #[test]
+    fn test_check_brana_resolution_shadowed() {
+        let tmp = TempDir::new().unwrap();
+        let shadow = "/home/u/.nvm/versions/node/v20/bin/brana";
+        let result = check_brana_resolution_from(Some(shadow), tmp.path());
+        assert!(!result.passed);
+        assert!(result.detail.contains("shadowed"));
+        assert!(result.detail.contains(shadow));
+    }
+
+    #[test]
+    fn test_check_brana_resolution_not_on_path() {
+        let tmp = TempDir::new().unwrap();
+        let result = check_brana_resolution_from(None, tmp.path());
+        assert!(!result.passed);
+        assert!(result.detail.contains("not on PATH"));
+    }
+
+    // ── check_pkg_config ──────────────────────────────────────────────────────
+
+    #[test]
+    fn test_check_pkg_config_returns_named_check() {
+        let result = check_pkg_config();
+        assert_eq!(result.name, "pkg-config");
+        // Pass/fail depends on host env; only the structure is asserted here.
+    }
+
+    #[test]
+    fn test_check_pkg_config_fail_message_includes_install_hint() {
+        // When the tool is missing, the failure detail must guide the user.
+        // We can't easily simulate "missing" without env manipulation, so
+        // test the helper that formats the failure message directly.
+        let result = pkg_config_fail_message();
+        assert!(result.contains("apt"));
+        assert!(result.contains("brew"));
+        assert!(result.contains("native-tls") || result.contains("openssl"));
     }
 }
