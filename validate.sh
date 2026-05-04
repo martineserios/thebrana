@@ -752,17 +752,32 @@ check_assumption_freshness() {
 
     [ -z "$dates" ] && return 0
 
+    # Read confidence_tier from frontmatter — drives the staleness threshold.
+    # See docs/architecture/features/doc-frontmatter-spec.md (t-439).
+    # Default: tech (6mo) — most conservative, matches legacy behavior.
+    local tier
+    tier=$(awk '
+        /^---$/ { fm = !fm; next }
+        fm && /^confidence_tier:/ { gsub(/^confidence_tier:[[:space:]]*/, ""); gsub(/[[:space:]]/, ""); print; exit }
+    ' "$doc" 2>/dev/null)
+    local threshold_days
+    case "$tier" in
+        architecture) threshold_days=547 ;;   # ~18 months
+        methodology)  threshold_days=1095 ;;  # ~36 months
+        tech|*)       threshold_days=182 ;;   # ~6 months (default)
+    esac
+    local threshold=$((threshold_days * 86400))
+    local tier_label="${tier:-tech (default)}"
+
     while IFS= read -r verified_date; do
         [ -z "$verified_date" ] && continue
         ASSUMPTION_CHECKED=$((ASSUMPTION_CHECKED + 1))
         local verified_epoch
         verified_epoch=$(date -d "$verified_date" +%s 2>/dev/null || echo "0")
         [ "$verified_epoch" = "0" ] && continue
-        # Default 6-month threshold (182 days)
-        local threshold=$((182 * 86400))
         local staleness=$((NOW_EPOCH - verified_epoch))
         if [ "$staleness" -gt "$threshold" ]; then
-            warn "Stale assumption in $label — last verified $verified_date (>6 months)"
+            warn "Stale assumption in $label — last verified $verified_date (>$threshold_days days, tier=$tier_label)"
             STALE_ASSUMPTIONS=$((STALE_ASSUMPTIONS + 1))
         fi
     done <<< "$dates"
