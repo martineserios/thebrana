@@ -381,14 +381,9 @@ pub fn render_text(state: &SessionState) -> String {
 
 // ── CLI Commands ────────────────────────────────────────────────────────
 
-pub fn require_project_root() -> PathBuf {
-    match crate::util::find_project_root() {
-        Some(r) => r,
-        None => {
-            eprintln!("Not in a git repository");
-            std::process::exit(1);
-        }
-    }
+pub fn require_project_root() -> anyhow::Result<PathBuf> {
+    crate::util::find_project_root()
+        .ok_or_else(|| anyhow::anyhow!("Not in a git repository"))
 }
 
 /// Get the current git branch name.
@@ -408,61 +403,43 @@ fn current_branch() -> Option<String> {
 }
 
 /// `brana session write --file <path>` or `brana session write --minimal`
-pub fn cmd_session_write(file: Option<PathBuf>, minimal: bool) {
-    let root = require_project_root();
+pub fn cmd_session_write(file: Option<PathBuf>, minimal: bool) -> anyhow::Result<()> {
+    use anyhow::{anyhow, Context};
+    let root = require_project_root()?;
 
     let state = if minimal {
         SessionState::minimal(current_branch())
     } else if let Some(ref path) = file {
-        let content = match fs::read_to_string(path) {
-            Ok(c) => c,
-            Err(e) => {
-                eprintln!("error reading {}: {e}", path.display());
-                std::process::exit(1);
-            }
-        };
-        match serde_json::from_str::<SessionState>(&content) {
-            Ok(mut s) => {
-                // Auto-fill fields
-                if s.written_at.is_empty() {
-                    s.written_at = Utc::now().to_rfc3339();
-                }
-                if s.branch.is_none() {
-                    s.branch = current_branch();
-                }
-                s.consumed_at = None;
-                s
-            }
-            Err(e) => {
-                eprintln!("error parsing session state JSON: {e}");
-                std::process::exit(1);
-            }
+        let content = fs::read_to_string(path)
+            .with_context(|| format!("error reading {}", path.display()))?;
+        let mut s: SessionState = serde_json::from_str(&content)
+            .context("error parsing session state JSON")?;
+        if s.written_at.is_empty() {
+            s.written_at = Utc::now().to_rfc3339();
         }
+        if s.branch.is_none() {
+            s.branch = current_branch();
+        }
+        s.consumed_at = None;
+        s
     } else {
-        eprintln!("either --file or --minimal is required");
-        std::process::exit(1);
+        return Err(anyhow!("either --file or --minimal is required"));
     };
 
-    match write_state(&root, &state) {
-        Ok(()) => {
-            let path = session_state_path(&root);
-            println!("{{\"ok\":true,\"path\":\"{}\"}}", path.display());
-        }
-        Err(e) => {
-            eprintln!("error writing session state: {e:#}");
-            std::process::exit(1);
-        }
-    }
+    write_state(&root, &state).context("error writing session state")?;
+    let path = session_state_path(&root);
+    println!("{{\"ok\":true,\"path\":\"{}\"}}", path.display());
+    Ok(())
 }
 
 /// `brana session read [--json]`
-pub fn cmd_session_read(json_output: bool) {
-    let root = require_project_root();
+pub fn cmd_session_read(json_output: bool) -> anyhow::Result<()> {
+    let root = require_project_root()?;
 
     match read_state(&root) {
         Some(state) => {
             if json_output {
-                println!("{}", serde_json::to_string_pretty(&state).unwrap());
+                println!("{}", serde_json::to_string_pretty(&state)?);
             } else {
                 print!("{}", render_text(&state));
             }
@@ -475,11 +452,12 @@ pub fn cmd_session_read(json_output: bool) {
             }
         }
     }
+    Ok(())
 }
 
 /// `brana session history [--limit N]`
-pub fn cmd_session_history(limit: usize) {
-    let root = require_project_root();
+pub fn cmd_session_history(limit: usize) -> anyhow::Result<()> {
+    let root = require_project_root()?;
     let entries = read_history(&root, limit);
 
     if entries.is_empty() {
@@ -487,7 +465,7 @@ pub fn cmd_session_history(limit: usize) {
         if let Err(e) = handoff::cmd_handoff_list() {
             eprintln!("{e:#}");
         }
-        return;
+        return Ok(());
     }
 
     for (i, entry) in entries.iter().enumerate() {
@@ -503,39 +481,36 @@ pub fn cmd_session_history(limit: usize) {
             }
         }
     }
+    Ok(())
 }
 
 /// `brana session path`
-pub fn cmd_session_path() {
-    let root = require_project_root();
+pub fn cmd_session_path() -> anyhow::Result<()> {
+    let root = require_project_root()?;
     println!("{}", session_state_path(&root).display());
+    Ok(())
 }
 
 /// `brana session migrate` — one-time migration from session-handoff.md
-pub fn cmd_session_migrate() {
-    let root = require_project_root();
+pub fn cmd_session_migrate() -> anyhow::Result<()> {
+    use anyhow::{anyhow, Context};
+    let root = require_project_root()?;
     let handoff_path = handoff::resolve_handoff_path(&root);
 
-    let content = match fs::read_to_string(&handoff_path) {
-        Ok(c) => c,
-        Err(_) => {
-            eprintln!("No session-handoff.md found at {}", handoff_path.display());
-            std::process::exit(1);
-        }
-    };
+    let content = fs::read_to_string(&handoff_path)
+        .with_context(|| format!("No session-handoff.md found at {}", handoff_path.display()))?;
 
     let entries = handoff::parse_entries(&content);
     if entries.is_empty() {
-        eprintln!("No entries found in session-handoff.md");
-        std::process::exit(1);
+        return Err(anyhow!("No entries found in session-handoff.md"));
     }
 
     // Check if already migrated
     let history = read_history(&root, 1);
     if !history.is_empty() {
-        eprintln!("session-history.jsonl already has entries. Skipping migration to avoid duplicates.");
-        eprintln!("Delete session-history.jsonl first if you want to re-migrate.");
-        std::process::exit(1);
+        return Err(anyhow!(
+            "session-history.jsonl already has entries. Skipping migration to avoid duplicates.\nDelete session-history.jsonl first if you want to re-migrate."
+        ));
     }
 
     let mut migrated = 0;
@@ -557,6 +532,7 @@ pub fn cmd_session_migrate() {
         "{{\"ok\":true,\"migrated\":{migrated},\"total\":{total},\"history\":\"{}\"}}",
         session_history_path(&root).display()
     );
+    Ok(())
 }
 
 /// Best-effort conversion of a markdown handoff entry to SessionState.
@@ -783,20 +759,20 @@ fn compute_insights(history: &[SessionState]) -> InsightsSummary {
 }
 
 /// `brana session insights [--limit N] [--json]`
-pub fn cmd_session_insights(limit: usize, json_output: bool) {
-    let root = require_project_root();
+pub fn cmd_session_insights(limit: usize, json_output: bool) -> anyhow::Result<()> {
+    let root = require_project_root()?;
     let history = read_history(&root, limit);
 
     if history.is_empty() {
         eprintln!("No session history found. Run /brana:close at least once to build history.");
-        std::process::exit(0);
+        return Ok(());
     }
 
     let summary = compute_insights(&history);
 
     if json_output {
-        println!("{}", serde_json::to_string_pretty(&summary).unwrap());
-        return;
+        println!("{}", serde_json::to_string_pretty(&summary)?);
+        return Ok(());
     }
 
     // ── Human-readable output ──────────────────────────────────────────
@@ -836,6 +812,7 @@ pub fn cmd_session_insights(limit: usize, json_output: bool) {
             println!("  • {s}");
         }
     }
+    Ok(())
 }
 
 // ── Tests ───────────────────────────────────────────────────────────────

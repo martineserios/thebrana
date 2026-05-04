@@ -106,24 +106,17 @@ fn main() {
             Some(HandoffCmd::Path) => run_or_exit(commands::handoff::cmd_handoff_path()),
         },
         Commands::Session { cmd } => match cmd {
-            SessionCmd::Write { file, minimal } => commands::session::cmd_session_write(file, minimal),
-            SessionCmd::Read { json } => commands::session::cmd_session_read(json),
-            SessionCmd::History { limit } => commands::session::cmd_session_history(limit),
-            SessionCmd::Path => commands::session::cmd_session_path(),
-            SessionCmd::Migrate => commands::session::cmd_session_migrate(),
-            SessionCmd::MarkConsumed => {
-                let root = util::find_project_root().unwrap_or_else(|| {
-                    eprintln!("Not in git repo");
-                    std::process::exit(1);
-                });
-                if let Err(e) = commands::session::mark_consumed(&root) {
-                    eprintln!("{e:#}");
-                    std::process::exit(1);
-                }
-            }
-            SessionCmd::Insights { limit, json } => {
-                commands::session::cmd_session_insights(limit, json)
-            }
+            SessionCmd::Write { file, minimal } => run_or_exit(commands::session::cmd_session_write(file, minimal)),
+            SessionCmd::Read { json } => run_or_exit(commands::session::cmd_session_read(json)),
+            SessionCmd::History { limit } => run_or_exit(commands::session::cmd_session_history(limit)),
+            SessionCmd::Path => run_or_exit(commands::session::cmd_session_path()),
+            SessionCmd::Migrate => run_or_exit(commands::session::cmd_session_migrate()),
+            SessionCmd::MarkConsumed => run_or_exit((|| -> anyhow::Result<()> {
+                let root = commands::session::require_project_root()?;
+                commands::session::mark_consumed(&root)?;
+                Ok(())
+            })()),
+            SessionCmd::Insights { limit, json } => run_or_exit(commands::session::cmd_session_insights(limit, json)),
         },
         Commands::Knowledge { cmd } => match cmd {
             KnowledgeCmd::Reindex { changed, patterns, files } => {
