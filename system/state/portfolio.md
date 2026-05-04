@@ -11,8 +11,7 @@
 | SMB marketing channels & content strategy (GEO, WhatsApp, landing pages, SEO, B2B2C, regulated products) | `brana-knowledge/dimensions/smb-marketing-channels.md` | somos_mirada, proyecto_anita, tinyhomes, any SMB |
 | Kapso AI platform (CLI, Builder SDK, agents, flows, functions, MCP, TypeScript SDK) | `brana-knowledge/dimensions/39-kapso-ai-platform.md` | proyecto_anita, somos_mirada, brapsoclaw, mya, any WhatsApp automation client |
 | Respond.io platform (AI Agents, Workflows, Variables, MCP, HTTP Requests, plan gates) | `brana-knowledge/dimensions/50-respond-io-platform.md` | somos_mirada, any omnichannel CRM + AI automation client |
-| WhatsApp BSP architecture (pricing model archetypes, per-recipient vs batch, Meta 2025–2026 pricing shifts, rate limits, support risk class) | `brana-knowledge/dimensions/whatsapp-bsp-architecture.md` | proyecto_anita, somos_mirada, mya, brapsoclaw, any WhatsApp BSP decision |
-| YCloud BSP — case study (zero-markup pricing tiers, per-recipient API, Trustpilot account-freeze risk, lead-source framing for proyecto_anita) | `brana-knowledge/dimensions/ycloud-case-study.md` | proyecto_anita, somos_mirada, mya, brapsoclaw |
+| YCloud WhatsApp BSP (Premier partner, pricing, per-recipient API shape, Kapso contrast, Meta 2026 pricing shift) | `brana-knowledge/dimensions/52-ycloud-whatsapp-platform.md` | proyecto_anita, somos_mirada, mya, brapsoclaw, any WhatsApp BSP decision |
 | Chatwoot platform (OSS omnichannel inbox, self-hosted, 4 API layers, API Channel bridge pattern, Kapso integration paths A/B/C, Captain AI, pricing 2026) | `brana-knowledge/dimensions/51-chatwoot-platform.md` | proyecto_anita (Palco, Las Lupes, inbox-demanding tenants), any project needing self-hosted inbox vs Intercom/Zendesk/Respond.io |
 | Bigin CRM platform (Zoho's CRM-lite, OAuth Self-Client, Bulk Write API, COQL queries, custom fields, Anita integration patterns A/B/C, weak webhook retry workarounds) | `brana-knowledge/dimensions/53-bigin-crm-platform.md` | proyecto_anita (DGRX simil-CRM target, any tenant needing CRM UI on top of Anita+Kapso), mya, any Anita tenant where insight extraction writes to a managed CRM |
 | Glide as MVP backend (Tables + UI + API eliminates Postgres/admin/auth for pilots) | `clients/mya/docs/ideas/mvp-architecture.md` | mya, any B2B2C MVP |
@@ -23,6 +22,10 @@
 | 3-repeat rule for skill codification (build skills from observed usage, not upfront design) | `feedback_3repeat_skill_codification.md` | brana (skill dev), all projects building tools/agents |
 | Reverse-eval for taste training (find flaws in flawed AI artifacts beats producing polished ones) | `feedback_reverse_eval_for_taste.md` | personal/growth, brana (PR review), any taste-driven discipline |
 | Coach mode switching — silent during baseline, Socratic during work | `feedback_coach_mode_switching.md` | personal/growth, ai-native-education, any agent combining eval + coaching |
+| Premature ADRs are documental debt — use Open Questions in MEMORY.md until validation/stack decisions clear | `feedback_premature_adrs_are_documental_debt.md` | brana (align skill), all clients in discovery/validation phase |
+| Contract/operations platforms — 4 data modeling patterns (mail-as-input, contract→shipment 1..N, dual state separation, requirements as table) | `brana-knowledge/dimensions/contract-operations-platforms.md` | batrade, anita, mya, somos_mirada, any client with deal+execution lifecycle or compliance gates |
+| Naviera/container tracking providers (TrackingMore default, ShipsGo fallback — pricing, webhooks, coverage, decision matrix) | `clients/batrade/docs/modelo-datos.md §5` | batrade, any client with international shipping/logistics tracking |
+| Multi-tenant SaaS — tenant typology pattern (classify by type, document at platform CLAUDE.md, don't default new tenants to original shape) | `feedback_multitenant_saas_typology.md` | proyecto_anita (Anita as platform — Palco/PDB/Delorenzi distribuidoras vs Las Lupes 4-pillar), mya, any SaaS with heterogeneous customer shapes |
 
 ## Clients (paid work — external stakeholder)
 
@@ -46,6 +49,18 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Projects:** eyedetect (`clients/nexeye_eyedetect`)
 - **Details:** `.claude/session-handoff.md`
 
+### batrade (BA Trade — The BATRADE SRL)
+- **Type:** Broker internacional de granos — intermediario buyer/seller, redacción de contratos, ejecución logística, cobro
+- **Domain:** Commodity trading (granos, oleaginosas, legumbres). 90% sellers AR, buyers worldwide. ~300 negocios activos / 60-100 cerrados/mes
+- **Location:** `~/enter_thebrana/clients/batrade/`
+- **Stack:** TBD (post-Benja, post-cotización). Modelo schema-first, stack-agnostic
+- **Status:** **Discovery** — reunión 1 con Diego+Fede el 2026-04-28 ✓. Pendiente: reunión 2 con Benja (logística senior). No cotizado aún
+- **Aligned:** 2026-04-29. Discovery-align tier 0 (11/12). Ver `.claude/alignment-report.md`
+- **Stakeholders:** Diego Lanus + Federico Lanus (dueños / decision makers), Benja (logística senior, pendiente)
+- **Foco fase 1 (Diego dixit):** "visibilidad + orden + detección de urgencias. NO automatizar todo"
+- **Tracking de navieras:** TrackingMore (default) / ShipsGo (fallback) — hipótesis pending validación. Ver `modelo-datos.md §5`
+- **Details:** `.claude/CLAUDE.md`, `docs/briefing-dominio.md`, `docs/modelo-datos.md` (v2), `docs/hallazgos-reunion-1.md`, `docs/agenda-benja.md`, `docs/decisions/ADR-001-modelo-datos-base.md` (DRAFT)
+
 ### somos (Somos Mirada)
 - **Type:** CRM + AI automation for surgical practice
 - **Projects:** somos_mirada (`clients/somos_mirada`)
@@ -66,6 +81,17 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Type:** Paid client
 - **Projects:** mandawa (`clients/mandawa`)
 
+### las_lupes (Las Lupes)
+- **Type:** Paid client — librería/papelería mayorista + e-commerce B2C
+- **Domain:** 700 mayoristas + 18K consumers Tienda Nube + 1131 contactos engagement + leads cursos. Catálogo visual complejo (Diamond Painting, stencils)
+- **Location:** `~/enter_thebrana/ventures/proyecto_anita/clients/las_lupes/` (decisión 2026-04-29: queda dentro de proyecto_anita por integración técnica con plataforma Anita, pero scaffold y rigor son full standalone-client)
+- **Stack:** Anita v3-api + Kapso + Bigin + Tienda Nube API + bridge Contabilium (vía Alberto interno Las Lupes)
+- **Status:** Cerrado 2026-04-21 · solución técnica v2 4-pillar lista · Path A confirmado 2026-04-28 · cotización TCP pendiente
+- **Tipo de tenant:** **NO es distribuidor** (Palco/PDB/Delorenzi son ese caso especial). Las Lupes valida hipótesis "Anita como plataforma" más allá del patrón distribuidor — 4 pillars (B2B Mayorista + Cart Recovery B2C + Engagement Lifecycle + Multichannel diferido) vs 1 pillar de distribuidoras
+- **Stakeholders:** Charlie (Carlos Larrain, decision maker), Lupe (operación), Alberto Ibarguren (dev interno — NO vendor), TCP (comercial Brana)
+- **Decisiones locked (2026-04-28):** T1 Path A 1 número WhatsApp + Chat Nube OFF · T2 Alberto bridge absorbe descuentos · T3 réplica inbound Chat Nube en prompt · T4 combos vía Contabilium "producto agrupado"
+- **Details:** `clients/las_lupes/.claude/CLAUDE.md`, `clients/las_lupes/solucion-tecnica.md` (v2), `clients/las_lupes/transcripts/2026-04-28-charlie-alberto-tecnico.md`, `clients/las_lupes/research/tiendanube-integration.md`
+
 ## Ventures (your IP — side projects, learning, monetizing)
 
 ### anita (Proyecto Anita)
@@ -73,7 +99,7 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Location:** `~/enter_thebrana/ventures/proyecto_anita`
 - **Remote:** `https://github.com/martineserios/proyecto-anita.git`
 - **Stack:** FastAPI + Supabase + Kapso + React 18 + Cloud Run
-- **Status:** Production. Tenants: Palco + PDB (cliente amigo de validación). **Delorenzi = primer cliente oficial post-validación** (cerrado 2026-04-23, ARS 1.35M/mes × 3m, 2 ops Gualeguaychú+Paraná, target primer mensaje 2026-06-01). Otros: DGRX (onboarding 2026-04-16), Las Lupes (closed 2026-04-21, cotización pendiente)
+- **Status:** Production. Tenants: Palco + PDB (cliente amigo de validación). **Delorenzi = primer cliente oficial post-validación** (cerrado 2026-04-23, ARS 1.35M/mes × 3m, 2 ops Gualeguaychú+Paraná, target primer mensaje 2026-06-01). Otros: DGRX (onboarding 2026-04-16), Las Lupes (solución técnica v2 cerrada 2026-04-21 · cotización TCP pendiente · deal NO cerrado)
 - **Details:** `.claude/CLAUDE.md`, `docs/decisions/`, `clients/` (per-client docs)
 
 ### linkedin
