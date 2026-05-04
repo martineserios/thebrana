@@ -92,19 +92,46 @@ pub fn scan_skills(dirs: &[PathBuf]) -> Vec<SkillMeta> {
     skills
 }
 
+/// Expand a sequence of words to include hyphen-split parts.
+/// e.g. ["bug-fix", "skill"] → {"bug-fix", "bug", "fix", "skill"}.
+/// Filters out empty parts and parts shorter than 2 chars (noise like single letters).
+pub fn expand_hyphenated<'a, I: IntoIterator<Item = &'a str>>(words: I) -> HashSet<String> {
+    let mut out: HashSet<String> = HashSet::new();
+    for w in words {
+        let lower = w.to_lowercase();
+        if w.contains('-') {
+            for part in lower.split('-') {
+                if part.len() >= 2 {
+                    out.insert(part.to_string());
+                }
+            }
+        }
+        out.insert(lower);
+    }
+    out
+}
+
 /// Score a skill against task context.
 ///
 /// Improved scoring: exact keyword match + description substring match + name match.
 /// score = (keyword_match × 0.3) + (description_match × 0.2) + (name_match × 0.1)
 ///       + (tag_overlap × 0.2) + (strategy_match × 0.1) + (stream_match × 0.1)
+///
+/// Hyphenated keywords/tags are split — "bug-fix" matches both "bug" and "fix" tokens.
 pub fn score_skill(skill: &SkillMeta, ctx: &TaskContext) -> (f64, String) {
     let mut reasons = Vec::new();
 
-    let skill_kw: HashSet<&str> = skill.keywords.iter().map(|s| s.as_str()).collect();
+    // Expand skill keywords to include hyphen-split parts so e.g.
+    // skill keyword "bug-fix" also matches task words "bug" / "fix".
+    let skill_kw: HashSet<String> = expand_hyphenated(skill.keywords.iter().map(|s| s.as_str()));
+
+    // Expand task description words for the reverse direction (task word
+    // "bug-fix" should match a skill keyword "fix").
+    let desc_expanded: HashSet<String> =
+        expand_hyphenated(ctx.description_words.iter().map(|s| s.as_str()));
 
     // 1. Keyword match: task description words ∩ skill keywords (normalized by match count, not skill size)
-    let kw_matches: Vec<&str> = ctx
-        .description_words
+    let kw_matches: Vec<&str> = desc_expanded
         .iter()
         .filter(|w| skill_kw.contains(w.as_str()))
         .map(|s| s.as_str())
@@ -132,17 +159,17 @@ pub fn score_skill(skill: &SkillMeta, ctx: &TaskContext) -> (f64, String) {
         (desc_matches.len() as f64 / 3.0).min(1.0)
     };
 
-    // 3. Name match: skill name appears in task description
-    let name_score = if ctx.description_words.contains(&skill.name) {
+    // 3. Name match: skill name appears in task description (also via hyphen-split)
+    let name_score = if desc_expanded.contains(&skill.name) {
         reasons.push(format!("name: {}", skill.name));
         1.0
     } else {
         0.0
     };
 
-    // 4. Tag overlap: task tags ∩ skill keywords
-    let tag_matches: Vec<&str> = ctx
-        .tags
+    // 4. Tag overlap: task tags ∩ skill keywords (also hyphen-split aware)
+    let tag_expanded: HashSet<String> = expand_hyphenated(ctx.tags.iter().map(|s| s.as_str()));
+    let tag_matches: Vec<&str> = tag_expanded
         .iter()
         .filter(|t| skill_kw.contains(t.as_str()))
         .map(|s| s.as_str())
@@ -1086,6 +1113,72 @@ stream_affinity: [roadmap]
                 "changed_to_script mismatch for changed={changed} force={force}"
             );
         }
+    }
+
+    #[test]
+    fn test_hyphenated_skill_keyword_matches_split_parts() {
+        let skill = SkillMeta {
+            name: "build".into(),
+            description: Some("Build framework".into()),
+            effort: None,
+            group: None,
+            keywords: vec!["bug-fix".into()],
+            task_strategies: vec![],
+            stream_affinity: vec![],
+            depends_on: vec![],
+        };
+        let ctx = TaskContext {
+            description_words: ["fix"].iter().map(|s| s.to_string()).collect(),
+            tags: HashSet::new(),
+            strategy: None,
+            stream: None,
+        };
+        let (score, reason) = score_skill(&skill, &ctx);
+        assert!(score > 0.0, "expected 'bug-fix' to split and match 'fix' (got {score}, reason={reason:?})");
+    }
+
+    #[test]
+    fn test_hyphenated_task_word_matches_skill_keyword() {
+        let skill = SkillMeta {
+            name: "build".into(),
+            description: Some("Build framework".into()),
+            effort: None,
+            group: None,
+            keywords: vec!["fix".into()],
+            task_strategies: vec![],
+            stream_affinity: vec![],
+            depends_on: vec![],
+        };
+        let ctx = TaskContext {
+            description_words: ["bug-fix"].iter().map(|s| s.to_string()).collect(),
+            tags: HashSet::new(),
+            strategy: None,
+            stream: None,
+        };
+        let (score, reason) = score_skill(&skill, &ctx);
+        assert!(score > 0.0, "expected 'bug-fix' task word to split and match 'fix' keyword (got {score}, reason={reason:?})");
+    }
+
+    #[test]
+    fn test_hyphenated_tag_matches_split_keyword() {
+        let skill = SkillMeta {
+            name: "skill-router".into(),
+            description: None,
+            effort: None,
+            group: None,
+            keywords: vec!["routing".into()],
+            task_strategies: vec![],
+            stream_affinity: vec![],
+            depends_on: vec![],
+        };
+        let ctx = TaskContext {
+            description_words: HashSet::new(),
+            tags: ["skill-routing"].iter().map(|s| s.to_string()).collect(),
+            strategy: None,
+            stream: None,
+        };
+        let (score, _reason) = score_skill(&skill, &ctx);
+        assert!(score > 0.0, "expected hyphenated tag 'skill-routing' to match keyword 'routing'");
     }
 
     #[test]
