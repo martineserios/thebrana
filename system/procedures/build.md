@@ -422,7 +422,15 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
    ```
    If approved, write the updates.
 
-2. **Write feature spec** at `docs/features/{slug}.md` (or `docs/architecture/features/{slug}.md` if the project has the restructured layout):
+2. **Extract ADR if a load-bearing decision was made.** A "load-bearing" decision is one that constrains future implementation choices — picking a stack, a data model, an interface contract, a workflow ordering. If yes:
+   - Allocate next ADR number: `ls docs/architecture/decisions/ADR-*.md | tail -1` → +1.
+   - Write to `docs/architecture/decisions/ADR-{NNN}-{slug}.md` with sections: Status, Context, Decision, Consequences, Non-Actions.
+   - Mark Status: Proposed (or Accepted if already validated).
+   - The feature spec then references the ADR by filename instead of embedding the decision body.
+
+   If no load-bearing decision: skip — the embedded "Decision Record" section in the feature spec is sufficient.
+
+3. **Write feature spec** at `docs/features/{slug}.md` (or `docs/architecture/features/{slug}.md` if the project has the restructured layout):
    ```markdown
    # Feature: {title}
 
@@ -460,13 +468,13 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
    {auto-populated after challenger review}
    ```
 
-3. **Challenger review** — spawn a separate challenger agent (context isolation):
+4. **Challenger review** — spawn a separate challenger agent (context isolation):
    ```
    Agent(subagent_type="challenger", prompt="Review this feature spec: {spec content}")
    ```
    Incorporate findings into the spec's Challenger findings section.
 
-4. **Promote research** — findings that survived into the final spec get upgraded:
+5. **Promote research** — findings that survived into the final spec get upgraded:
    ```bash
    cd "$HOME" && $CF memory store \
      -k "research:{project}:{topic}:{finding-slug}" \
@@ -474,9 +482,22 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
      --namespace knowledge --upsert
    ```
 
-5. **Present spec to user** for approval. Wait for confirmation before proceeding.
+6. **Persistence confirmation** (Medium/Large builds) — before presenting the spec, confirm all SPECIFY artifacts are persisted on disk. Use AskUserQuestion:
+   ```
+   question: "SPECIFY artifacts ready for DECOMPOSE?
+     · dim doc updates: {N updated — list paths, or 'none — research did not touch dim docs'}
+     · ADR: {ADR-NNN-slug.md, or 'none — no load-bearing decision'}
+     · feature spec: {path}"
+   options:
+     - "Confirm — proceed to user review"
+     - "Missing artifact — back to draft (specify which)"
+     - "Decision is load-bearing — extract ADR first"
+   ```
+   The "Decision is load-bearing" option loops back to step 2 to extract the ADR before continuing. This gate exists to catch the failure mode where a real architectural choice gets buried inside a feature spec and never surfaces to ADR review.
 
-6. Update spec status to `decomposing`.
+7. **Present spec to user** for approval. Wait for confirmation before proceeding.
+
+8. Update spec status to `decomposing`.
 
 > **☑ Checkpoint — SPECIFY** (M+ builds with task_id):
 > ```bash
@@ -485,14 +506,20 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
 
 ### Gate: SPECIFY → DECOMPOSE (Medium/Large only)
 
-Before entering DECOMPOSE, verify the spec exists:
-- Check that `docs/architecture/features/{slug}.md` or `docs/features/{slug}.md` was written
-- **If missing:** hard block. Do not proceed.
-  ```
-  question: "No feature spec found. DECOMPOSE requires a spec. What to do?"
-  options: ["Write spec now", "Skip gate — reason required"]
-  ```
-  If "Skip gate": require a reason via free text. Log to task notes: `brana backlog set {id} notes --append "SPECIFY→DECOMPOSE gate skipped: {reason}"`.
+Before entering DECOMPOSE, verify the SPECIFY artifact set is persisted on disk:
+
+1. **Feature spec (mandatory)** — check that `docs/architecture/features/{slug}.md` or `docs/features/{slug}.md` exists.
+2. **ADR (conditional)** — if step 2 of the Draft signal classified the decision as load-bearing, check that `docs/architecture/decisions/ADR-{NNN}-{slug}.md` exists. The feature spec must reference it by filename. If the spec embeds a populated `Decision Record` block AND no ADR file was written, treat as a load-bearing decision that escaped extraction → block.
+3. **Dimension updates (conditional)** — if step 1 of the Draft signal selected dim docs to update, check that those files have a recent commit touching them on this branch (`git diff --name-only main...HEAD | grep brana-knowledge/dimensions/`).
+
+Collect all failures, then gate:
+```
+question: "SPECIFY → DECOMPOSE gate. Missing: {list}. Fix before proceeding?"
+options: ["Fix now (loop back to Draft signal step)", "Skip gate — reason required"]
+```
+If "Skip gate": require a reason via free text. Log to task notes: `brana backlog set {id} notes --append "SPECIFY→DECOMPOSE gate skipped: {reason}"`.
+
+If all checks pass, proceed silently.
 
 ### DECOMPOSE
 
