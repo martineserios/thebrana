@@ -93,7 +93,7 @@ fn main() {
             }
             SkillsCmd::Search { query } => run_or_exit(commands::skills::cmd_search(&query)),
             SkillsCmd::List => run_or_exit(commands::skills::cmd_list()),
-            SkillsCmd::Reindex { changed, force } => commands::skills::cmd_reindex(changed, force),
+            SkillsCmd::Reindex { changed, force } => run_or_exit(commands::skills::cmd_reindex(changed, force)),
             SkillsCmd::Usage { days, cull_threshold, json } => {
                 run_or_exit(commands::skills::cmd_usage(days, cull_threshold, json))
             }
@@ -121,9 +121,9 @@ fn main() {
         Commands::Knowledge { cmd } => match cmd {
             KnowledgeCmd::Reindex { changed, patterns, files } => {
                 if patterns {
-                    commands::knowledge::cmd_reindex_patterns(files);
+                    run_or_exit(commands::knowledge::cmd_reindex_patterns(files));
                 } else {
-                    commands::knowledge::cmd_reindex(changed, files);
+                    run_or_exit(commands::knowledge::cmd_reindex(changed, files));
                 }
             }
             KnowledgeCmd::Status => commands::knowledge::cmd_status(),
@@ -139,7 +139,7 @@ fn main() {
                 run_or_exit(commands::knowledge::cmd_promote(draft_path, dry_run))
             }
         },
-        Commands::Graph { cmd } => commands::graph::cmd_graph(cmd),
+        Commands::Graph { cmd } => run_or_exit(commands::graph::cmd_graph(cmd)),
         Commands::Reference { cmd } => run_or_exit(commands::reference::cmd_reference(cmd)),
         Commands::Decisions { cmd } => run_or_exit(commands::decisions::cmd_decisions(cmd)),
     }

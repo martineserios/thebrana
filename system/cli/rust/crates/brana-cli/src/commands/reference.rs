@@ -61,7 +61,10 @@ fn cmd_generate(output_dir: Option<PathBuf>, check: bool) -> Result<()> {
     }
 
     if check && !changed.is_empty() {
-        std::process::exit(1);
+        return Err(anyhow::anyhow!(
+            "{} reference doc(s) out of date — run without --check to update",
+            changed.len()
+        ));
     }
 
     Ok(())

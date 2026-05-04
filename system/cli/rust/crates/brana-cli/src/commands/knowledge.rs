@@ -11,15 +11,12 @@ use brana_core::knowledge_pipeline::{
 
 use crate::util::{find_project_root, home};
 
-pub fn cmd_reindex(changed: bool, files: Vec<PathBuf>) {
-    let root = find_project_root().unwrap_or_else(|| {
-        eprintln!("Not in git repo");
-        std::process::exit(1);
-    });
+pub fn cmd_reindex(changed: bool, files: Vec<PathBuf>) -> Result<()> {
+    use anyhow::anyhow;
+    let root = find_project_root().ok_or_else(|| anyhow!("Not in git repo"))?;
     let script = root.join("system/scripts/index-knowledge.sh");
     if !script.exists() {
-        eprintln!("index-knowledge.sh not found at {}", script.display());
-        std::process::exit(1);
+        return Err(anyhow!("index-knowledge.sh not found at {}", script.display()));
     }
 
     let mut cmd = Command::new("bash");
@@ -34,28 +31,23 @@ pub fn cmd_reindex(changed: bool, files: Vec<PathBuf>) {
     }
 
     println!("\n  Running index-knowledge.sh...");
-    match cmd.status() {
-        Ok(s) if s.success() => println!("  \x1b[32mDone.\x1b[0m\n"),
-        Ok(s) => {
-            eprintln!("  \x1b[31mFailed (exit {}).\x1b[0m", s.code().unwrap_or(-1));
-            std::process::exit(1);
-        }
-        Err(e) => {
-            eprintln!("  \x1b[31mFailed: {e}\x1b[0m");
-            std::process::exit(1);
-        }
+    let status = cmd.status().context("running index-knowledge.sh")?;
+    if !status.success() {
+        return Err(anyhow!(
+            "index-knowledge.sh failed (exit {})",
+            status.code().unwrap_or(-1)
+        ));
     }
+    println!("  \x1b[32mDone.\x1b[0m\n");
+    Ok(())
 }
 
-pub fn cmd_reindex_patterns(files: Vec<PathBuf>) {
-    let root = find_project_root().unwrap_or_else(|| {
-        eprintln!("Not in git repo");
-        std::process::exit(1);
-    });
+pub fn cmd_reindex_patterns(files: Vec<PathBuf>) -> Result<()> {
+    use anyhow::anyhow;
+    let root = find_project_root().ok_or_else(|| anyhow!("Not in git repo"))?;
     let script = root.join("system/scripts/index-patterns.sh");
     if !script.exists() {
-        eprintln!("index-patterns.sh not found at {}", script.display());
-        std::process::exit(1);
+        return Err(anyhow!("index-patterns.sh not found at {}", script.display()));
     }
 
     let mut cmd = Command::new("bash");
@@ -66,17 +58,15 @@ pub fn cmd_reindex_patterns(files: Vec<PathBuf>) {
     }
 
     println!("\n  Running index-patterns.sh...");
-    match cmd.status() {
-        Ok(s) if s.success() => println!("  \x1b[32mDone.\x1b[0m\n"),
-        Ok(s) => {
-            eprintln!("  \x1b[31mFailed (exit {}).\x1b[0m", s.code().unwrap_or(-1));
-            std::process::exit(1);
-        }
-        Err(e) => {
-            eprintln!("  \x1b[31mFailed: {e}\x1b[0m");
-            std::process::exit(1);
-        }
+    let status = cmd.status().context("running index-patterns.sh")?;
+    if !status.success() {
+        return Err(anyhow!(
+            "index-patterns.sh failed (exit {})",
+            status.code().unwrap_or(-1)
+        ));
     }
+    println!("  \x1b[32mDone.\x1b[0m\n");
+    Ok(())
 }
 
 // ── knowledge search ─────────────────────────────────────────────────
@@ -378,11 +368,9 @@ pub fn cmd_process(
     if tier1 || tier2 {
         let draft_count = kp::count_drafts(&knowledge_root);
         if draft_count >= DRAFT_CAP && !state.draft_cap_acknowledged {
-            eprintln!(
-                "  \x1b[31m✗ Draft cap hit ({draft_count}/{DRAFT_CAP} drafts in brana-knowledge/drafts/).\x1b[0m"
+            bail!(
+                "Draft cap hit ({draft_count}/{DRAFT_CAP} drafts in brana-knowledge/drafts/). Review and promote/reject drafts, then run `brana knowledge process --status` to acknowledge."
             );
-            eprintln!("    Review and promote/reject drafts, then run `brana knowledge process --status` to acknowledge.");
-            std::process::exit(1);
         }
     }
 

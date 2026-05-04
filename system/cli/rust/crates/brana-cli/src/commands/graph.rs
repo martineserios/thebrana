@@ -91,7 +91,7 @@ struct GraphStats {
 
 // ── Entry point ──────────────────────────────────────────────────────
 
-pub fn cmd_graph(cmd: GraphCmd) {
+pub fn cmd_graph(cmd: GraphCmd) -> anyhow::Result<()> {
     match cmd {
         GraphCmd::Build { output } => cmd_build(output),
         GraphCmd::Orphans { all } => cmd_orphans(all),
@@ -104,24 +104,20 @@ pub fn cmd_graph(cmd: GraphCmd) {
 
 // ── Build ────────────────────────────────────────────────────────────
 
-fn require_root() -> PathBuf {
-    find_project_root().unwrap_or_else(|| {
-        eprintln!("Not in a git repo");
-        std::process::exit(1);
-    })
+fn require_root() -> anyhow::Result<PathBuf> {
+    find_project_root().ok_or_else(|| anyhow::anyhow!("Not in a git repo"))
 }
 
-fn cmd_build(output: Option<PathBuf>) {
-    let root = require_root();
-    let ontology = load_ontology(&root);
+fn cmd_build(output: Option<PathBuf>) -> anyhow::Result<()> {
+    use anyhow::Context;
+    let root = require_root()?;
+    let ontology = load_ontology(&root)?;
     let graph = build_graph(&root, &ontology);
 
     let out_path = output.unwrap_or_else(|| root.join("docs/spec-graph.json"));
-    let json = serde_json::to_string_pretty(&graph).expect("JSON serialize");
-    fs::write(&out_path, format!("{json}\n")).unwrap_or_else(|e| {
-        eprintln!("Failed to write {}: {e}", out_path.display());
-        std::process::exit(1);
-    });
+    let json = serde_json::to_string_pretty(&graph).context("serializing spec-graph")?;
+    fs::write(&out_path, format!("{json}\n"))
+        .with_context(|| format!("Failed to write {}", out_path.display()))?;
 
     println!(
         "spec-graph: {} nodes, {} edges ({} typed), {} orphans -> {}",
@@ -131,18 +127,15 @@ fn cmd_build(output: Option<PathBuf>) {
         graph.stats.orphans,
         out_path.display()
     );
+    Ok(())
 }
 
-fn load_ontology(root: &Path) -> Ontology {
+fn load_ontology(root: &Path) -> anyhow::Result<Ontology> {
+    use anyhow::Context;
     let path = root.join("docs/brana-ontology.yaml");
-    let content = fs::read_to_string(&path).unwrap_or_else(|e| {
-        eprintln!("Cannot read ontology at {}: {e}", path.display());
-        std::process::exit(1);
-    });
-    serde_yaml::from_str(&content).unwrap_or_else(|e| {
-        eprintln!("Cannot parse ontology YAML: {e}");
-        std::process::exit(1);
-    })
+    let content = fs::read_to_string(&path)
+        .with_context(|| format!("Cannot read ontology at {}", path.display()))?;
+    serde_yaml::from_str(&content).context("Cannot parse ontology YAML")
 }
 
 /// Classify a doc path into an ontology type name.
@@ -695,18 +688,17 @@ fn resolve_frontmatter_target(
 
 // ── Read existing graph ──────────────────────────────────────────────
 
-fn load_graph() -> SpecGraph {
-    let root = require_root();
+fn load_graph() -> anyhow::Result<SpecGraph> {
+    use anyhow::Context;
+    let root = require_root()?;
     let path = root.join("docs/spec-graph.json");
-    let content = fs::read_to_string(&path).unwrap_or_else(|e| {
-        eprintln!("Cannot read {}: {e}", path.display());
-        eprintln!("Run `brana graph build` first.");
-        std::process::exit(1);
-    });
-    serde_json::from_str(&content).unwrap_or_else(|e| {
-        eprintln!("Cannot parse spec-graph.json: {e}");
-        std::process::exit(1);
-    })
+    let content = fs::read_to_string(&path).with_context(|| {
+        format!(
+            "Cannot read {} — run `brana graph build` first",
+            path.display()
+        )
+    })?;
+    serde_json::from_str(&content).context("Cannot parse spec-graph.json")
 }
 
 // ── Orphans ──────────────────────────────────────────────────────────
@@ -738,8 +730,8 @@ fn is_structural_orphan(key: &str) -> bool {
     false
 }
 
-fn cmd_orphans(show_all: bool) {
-    let graph = load_graph();
+fn cmd_orphans(show_all: bool) -> anyhow::Result<()> {
+    let graph = load_graph()?;
     let mut connected: HashSet<&str> = HashSet::new();
     for e in &graph.edges {
         connected.insert(&e.from);
@@ -756,7 +748,7 @@ fn cmd_orphans(show_all: bool) {
 
     if orphans.is_empty() {
         println!("No orphan nodes found.");
-        return;
+        return Ok(());
     }
 
     let structural: Vec<_> = orphans.iter().filter(|(k, _)| is_structural_orphan(k)).collect();
@@ -798,12 +790,13 @@ fn cmd_orphans(show_all: bool) {
     }
 
     println!();
+    Ok(())
 }
 
 // ── Query ────────────────────────────────────────────────────────────
 
-fn cmd_query(node_type: Option<String>, rel: Option<String>) {
-    let graph = load_graph();
+fn cmd_query(node_type: Option<String>, rel: Option<String>) -> anyhow::Result<()> {
+    let graph = load_graph()?;
 
     if let Some(ref nt) = node_type {
         let nt_lower = nt.to_lowercase();
@@ -843,28 +836,22 @@ fn cmd_query(node_type: Option<String>, rel: Option<String>) {
     }
 
     if node_type.is_none() && rel.is_none() {
-        eprintln!("Provide --type and/or --rel to filter.");
-        std::process::exit(1);
+        return Err(anyhow::anyhow!("Provide --type and/or --rel to filter."));
     }
+    Ok(())
 }
 
 // ── Path (BFS) ───────────────────────────────────────────────────────
 
-fn cmd_path(from: &str, to: &str) {
-    let graph = load_graph();
+fn cmd_path(from: &str, to: &str) -> anyhow::Result<()> {
+    use anyhow::anyhow;
+    let graph = load_graph()?;
 
     // Fuzzy match node keys
-    let from_key = fuzzy_match_key(from, &graph.nodes);
-    let to_key = fuzzy_match_key(to, &graph.nodes);
-
-    let from_key = from_key.unwrap_or_else(|| {
-        eprintln!("No node matching '{from}'");
-        std::process::exit(1);
-    });
-    let to_key = to_key.unwrap_or_else(|| {
-        eprintln!("No node matching '{to}'");
-        std::process::exit(1);
-    });
+    let from_key = fuzzy_match_key(from, &graph.nodes)
+        .ok_or_else(|| anyhow!("No node matching '{from}'"))?;
+    let to_key = fuzzy_match_key(to, &graph.nodes)
+        .ok_or_else(|| anyhow!("No node matching '{to}'"))?;
 
     // Build undirected adjacency
     let mut adj: HashMap<&str, Vec<(&str, &str)>> = HashMap::new(); // node -> [(neighbor, edge_type)]
@@ -903,7 +890,7 @@ fn cmd_path(from: &str, to: &str) {
 
     if !found {
         println!("No path from '{from_key}' to '{to_key}'.");
-        return;
+        return Ok(());
     }
 
     // Reconstruct path
@@ -931,6 +918,7 @@ fn cmd_path(from: &str, to: &str) {
         }
     }
     println!();
+    Ok(())
 }
 
 fn fuzzy_match_key(query: &str, nodes: &BTreeMap<String, GraphNode>) -> Option<String> {
@@ -967,8 +955,8 @@ fn fuzzy_match_key(query: &str, nodes: &BTreeMap<String, GraphNode>) -> Option<S
 
 // ── Stats ────────────────────────────────────────────────────────────
 
-fn cmd_stats() {
-    let graph = load_graph();
+fn cmd_stats() -> anyhow::Result<()> {
+    let graph = load_graph()?;
 
     // Counts by node type
     let mut type_counts: BTreeMap<&str, usize> = BTreeMap::new();
@@ -1005,6 +993,7 @@ fn cmd_stats() {
     println!();
     println!("  Orphans: {}", graph.stats.orphans);
     println!();
+    Ok(())
 }
 
 // ── Testable helpers extracted from commands ────────────────────────
@@ -1147,10 +1136,10 @@ fn find_supersession_gaps(graph: &SpecGraph) -> Vec<(String, String)> {
 
 // ── Validate ─────────────────────────────────────────────────────────
 
-fn cmd_validate() {
-    let root = require_root();
-    let ontology = load_ontology(&root);
-    let graph = load_graph();
+fn cmd_validate() -> anyhow::Result<()> {
+    let root = require_root()?;
+    let ontology = load_ontology(&root)?;
+    let graph = load_graph()?;
     let mut issues: Vec<String> = Vec::new();
 
     // 1. Orphan detection (axiom: orphan_detection)
@@ -1255,6 +1244,7 @@ fn cmd_validate() {
     // Report
     if issues.is_empty() {
         println!("\n  \x1b[32mAll axiom checks passed.\x1b[0m\n");
+        Ok(())
     } else {
         println!(
             "\n  \x1b[1mValidation issues ({}):\x1b[0m\n",
@@ -1271,6 +1261,10 @@ fn cmd_validate() {
             println!("  \x1b[2m  {}: {}\x1b[0m", axiom.id, axiom.rule);
         }
         println!();
+        Err(anyhow::anyhow!(
+            "{} validation issue(s) found",
+            issues.len()
+        ))
     }
 }
 

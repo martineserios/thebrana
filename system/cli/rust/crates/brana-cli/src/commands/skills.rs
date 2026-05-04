@@ -683,15 +683,13 @@ pub fn cmd_list() -> Result<()> {
 /// - No flags: full reindex (deletes mtime marker, runs script without `--changed`)
 /// - `--changed`: incremental reindex (respects mtime marker)
 /// - `--force`: always delete the mtime marker before running, even when combined with `--changed`
-pub fn cmd_reindex(changed: bool, force: bool) {
-    let root = crate::util::find_project_root().unwrap_or_else(|| {
-        eprintln!("Not in git repo");
-        std::process::exit(1);
-    });
+pub fn cmd_reindex(changed: bool, force: bool) -> Result<()> {
+    use anyhow::anyhow;
+    let root = crate::util::find_project_root()
+        .ok_or_else(|| anyhow!("Not in git repo"))?;
     let script = root.join("system/scripts/index-skills.sh");
     if !script.exists() {
-        eprintln!("index-skills.sh not found at {}", script.display());
-        std::process::exit(1);
+        return Err(anyhow!("index-skills.sh not found at {}", script.display()));
     }
 
     let mtime_file = std::path::Path::new("/tmp/brana-skills-index-mtime");
@@ -713,17 +711,12 @@ pub fn cmd_reindex(changed: bool, force: bool) {
     }
 
     println!("\n  Running index-skills.sh...");
-    match cmd.status() {
-        Ok(s) if s.success() => println!("  \x1b[32mDone.\x1b[0m\n"),
-        Ok(s) => {
-            eprintln!("  \x1b[31mFailed (exit {}).\x1b[0m", s.code().unwrap_or(-1));
-            std::process::exit(1);
-        }
-        Err(e) => {
-            eprintln!("  \x1b[31mFailed: {e}\x1b[0m");
-            std::process::exit(1);
-        }
+    let status = cmd.status().context("running index-skills.sh")?;
+    if !status.success() {
+        return Err(anyhow!("index-skills.sh failed (exit {})", status.code().unwrap_or(-1)));
     }
+    println!("  \x1b[32mDone.\x1b[0m\n");
+    Ok(())
 }
 
 /// Build a TaskContext from a task ID by reading tasks.json.
