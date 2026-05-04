@@ -105,6 +105,17 @@
       "captureOutput": true,
       "_comment": "ADR-021: weekly index of assumptions, field notes, and ADR decisions into ruflo"
     },
+    "index-patterns": {
+      "type": "command",
+      "command": "./system/scripts/index-patterns.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Sun *-*-* 11:30:00",
+      "enabled": true,
+      "maxRetries": 1,
+      "timeoutSeconds": 600,
+      "captureOutput": true,
+      "_comment": "t-857: weekly index of feedback_*.md / project_*.md pattern files across all project memory dirs into ruflo. Runs after index-assumptions (08:36) and before reindex-knowledge (12:00) so fresh patterns are searchable when knowledge-decay (13:00) inspects them."
+    },
     "second-phase-review": {
       "type": "command",
       "command": "./system/scripts/second-phase-check.sh",
