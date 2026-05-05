@@ -176,17 +176,28 @@ Writers continue targeting `~/.claude/` paths. A sync step copies to git:
 
 | File | Runtime path (cache) | Git path (source of truth) | Sync trigger |
 |------|---------------------|---------------------------|-------------|
-| `event-log.md` | `~/.claude/memory/` | `thebrana/system/state/event-log.md` | session-start.sh (reverse sync) |
-| `portfolio.md` | `~/.claude/memory/` | `thebrana/system/state/portfolio.md` | session-start.sh (reverse sync) |
-| `tasks-portfolio.json` | `~/.claude/` | `thebrana/system/state/tasks-portfolio.json` | session-start.sh |
-| `tasks-config.json` | `~/.claude/` | `thebrana/system/state/tasks-config.json` | session-start.sh |
+| `event-log.md` | `~/.claude/memory/` | `thebrana/system/state/event-log.md` | session-start.sh (push: cache → repo) |
+| `portfolio.md` | `~/.claude/memory/` | `thebrana/system/state/portfolio.md` | session-start.sh (push: cache → repo, banner-protected) |
+| `tasks-portfolio.json` | `~/.claude/` | `thebrana/system/state/tasks-portfolio.json` | session-start.sh (push: cache → repo) |
+| `tasks-config.json` | `~/.claude/` | `thebrana/system/state/tasks-config.json` | session-start.sh (push: cache → repo) |
 | `meta-whatsapp-templates.md` | `~/.claude/memory/` | `brana-knowledge/dimensions/meta-whatsapp-templates.md` | One-time move |
 
 Create `thebrana/system/state/` directory for cross-client operational state.
 
-**Sync direction:** Bidirectional. On session start, the sync script:
-1. Copies `~/.claude/memory/{file}` → `thebrana/system/state/{file}` (if cache is newer)
-2. Copies `thebrana/system/state/{file}` → `~/.claude/memory/{file}` (if repo is newer — new machine scenario)
+**Sync direction:** Unidirectional per subcommand (no "newer-wins" logic).
+
+- `sync-state.sh push` — always cache → repo. Run on session-start and via the daily scheduler. The session-start hook also calls `push` so any write made during a session ends up in git.
+- `sync-state.sh pull` — always repo → cache. Run only on new-machine bootstrap (`bootstrap.sh --restore-state`).
+
+The cache is the source of truth during a live session; the repo is the source of truth across machines and after a fresh checkout. Resolving direction per subcommand instead of per-file mtime removes a class of "the wrong copy won the race" bugs that bidirectional newer-wins is prone to.
+
+**Banner protection (added 2026-05-05, t-1334):** files whose canonical
+authoring location is the repo (e.g. `portfolio.md`, the `dimensions/`
+docs) are listed in `BANNERED_FILES` inside `sync-state.sh`. On `push`,
+those files get a "derived — do not edit at the cache path" banner
+prepended via `sync_file_with_banner`, so accidental edits to the cache
+copy are visible. The banner is stripped on `pull` so the canonical repo
+copy stays clean.
 
 This avoids modifying any skill or hook write paths while ensuring git recovery.
 
