@@ -36178,7 +36178,7 @@
       "priority": "P3",
       "context": "Observed 2026-04-28 during YCloud refactor session: an Edit to system/state/portfolio.md (line 14, swapping 52-ycloud-whatsapp-platform reference to whatsapp-bsp-architecture + ycloud-case-study) was silently reverted between the Edit and a follow-up grep verification. System reminder fired in the next tool result confirming external modification. Had to re-apply the edit. Candidates for the offending writer: ruflo indexer, auto-memory hook, statusline cron, post-tool-use hook regenerating portfolio.md from another source. Investigation steps: (1) check ~/.claude hooks for any Write to system/state/portfolio.md, (2) check ruflo memory store for portfolio.md keys with reindex tags, (3) check system/scripts/ for portfolio regeneration logic, (4) audit settings.json hook config for PostToolUse handlers touching that path. If the writer is found and intentional, document it; if accidental, fix it.",
       "id": "t-1334",
-      "status": "pending",
+      "status": "completed",
       "execution": "code",
       "created": "2026-04-28",
       "blocked_by": [],
@@ -36188,7 +36188,7 @@
       "github_issue": null,
       "started": null,
       "completed": null,
-      "notes": "Pre-flight investigation: empty contexts in t-1084/t-1086/t-1092 confirmed normal — subjects are descriptive enough. Portfolio reverter still pending separate investigation; deferred to ad-hoc opportunistic queue (Wave 11).",
+      "notes": "Banner fix landed in feat/verify-docs-skill prep + fix/t-1334-portfolio-banner: sync_file_with_banner helper + BANNERED_FILES map in sync-state.sh. Repo file now marked as derived; cache (~/.claude/memory/portfolio.md) is the source going forward. Not a destructive bug — push was authorized but invisible to operators.",
       "strategy": null,
       "build_step": null,
       "description": null
