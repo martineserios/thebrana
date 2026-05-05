@@ -1363,7 +1363,41 @@ mod tests {
         let tasks = sample_tasks();
         let stats = compute_stats(&tasks, &tasks);
         assert_eq!(stats["total"], 7);
-        assert!(stats["by_status"]["done"].as_u64().unwrap() >= 2);
+
+        // by_status uses raw task.status values (matches filter_tasks predicate
+        // and CLI TaskStatus enum). t-1340.
+        assert_eq!(stats["by_status"]["pending"], 4); // t-003, t-004, t-005, ph-001
+        assert_eq!(stats["by_status"]["in_progress"], 1); // t-002
+        assert_eq!(stats["by_status"]["completed"], 1); // t-001
+        assert_eq!(stats["by_status"]["cancelled"], 1); // t-006
+        assert!(stats["by_status"].get("done").is_none()); // synthetic must not leak in
+        assert!(stats["by_status"].get("blocked").is_none());
+
+        // by_state uses synthetic classify() output for display rollups.
+        assert_eq!(stats["by_state"]["done"], 2); // t-001 + t-006
+        assert_eq!(stats["by_state"]["active"], 1); // t-002
+        assert_eq!(stats["by_state"]["blocked"], 1); // t-004 (blocked_by t-002)
+        assert_eq!(stats["by_state"]["parked"], 1); // t-005
+        assert_eq!(stats["by_state"]["pending"], 2); // t-003, ph-001
+    }
+
+    #[test]
+    fn test_compute_stats_by_stream_has_raw_and_state() {
+        let tasks = vec![
+            json!({"id": "t-1", "type": "task", "status": "pending", "stream": "x", "tags": [], "blocked_by": []}),
+            json!({"id": "t-2", "type": "task", "status": "completed", "stream": "x", "tags": [], "blocked_by": []}),
+            json!({"id": "t-3", "type": "task", "status": "pending", "stream": "x", "tags": ["parked"], "blocked_by": []}),
+        ];
+        let stats = compute_stats(&tasks, &tasks);
+        let stream_x = &stats["by_stream"]["x"];
+        assert_eq!(stream_x["total"], 3);
+        // raw counts
+        assert_eq!(stream_x["pending"], 2);
+        assert_eq!(stream_x["completed"], 1);
+        // synthetic counts
+        assert_eq!(stream_x["state"]["done"], 1);
+        assert_eq!(stream_x["state"]["pending"], 1);
+        assert_eq!(stream_x["state"]["parked"], 1);
     }
 
     // ── Wave 3: build_tree tests ────────────────────────────────────────

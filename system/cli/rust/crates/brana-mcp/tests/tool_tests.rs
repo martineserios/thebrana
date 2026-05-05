@@ -206,9 +206,16 @@ fn test_compute_stats() {
     let data = brana_core::tasks::load_tasks(&path).unwrap();
     let stats = brana_core::tasks::compute_stats(&data.tasks, &data.tasks);
 
+    // Raw status counts (matches CLI TaskStatus enum). t-1340.
     assert_eq!(stats["by_status"]["pending"], 1);
-    assert_eq!(stats["by_status"]["active"], 1);
-    assert_eq!(stats["by_status"]["done"], 1);
+    assert_eq!(stats["by_status"]["in_progress"], 1);
+    assert_eq!(stats["by_status"]["completed"], 1);
+
+    // Synthetic state counts (classify() display rollup).
+    assert_eq!(stats["by_state"]["pending"], 1);
+    assert_eq!(stats["by_state"]["active"], 1);
+    assert_eq!(stats["by_state"]["done"], 1);
+
     assert_eq!(stats["total"], 3);
 }
 
