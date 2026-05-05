@@ -4,6 +4,19 @@
 
 **29 skills** loaded from `system/skills/`.
 
+## Skill Frontmatter Reference
+
+Legal values for keys used in `system/skills/<name>/SKILL.md` frontmatter.
+Canonical source: [`docs/architecture/testing-validation.md`](../architecture/testing-validation.md).
+
+| Field | Valid values |
+|-------|--------------|
+| `status` | `stable`, `experimental`, `seed`, `deprecated` |
+| `growth_stage` | `evergreen`, `prototype`, `seed` |
+| `group` | `brana`, `capture`, `core`, `execution`, `learning`, `session`, `thinking`, `tools`, `utility`, `venture` (legacy: `business`, `content`, `domain`, `integration`) |
+
+`name` must equal the directory name. `description`, `argument-hint`, `depends_on`, and `allowed-tools` are free-form strings or string lists.
+
 ## Index
 
 | Skill | Group | Description |
