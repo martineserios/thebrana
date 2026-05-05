@@ -406,6 +406,12 @@ pub fn cmd_add(
             anyhow::bail!("{e}");
         }
     }
+    if let Some(s) = new_task["status"].as_str() {
+        if let Err(e) = tasks::validate_status(s) {
+            eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
+            anyhow::bail!("{e}");
+        }
+    }
 
     let tasks_arr = val["tasks"].as_array().cloned().unwrap_or_default();
     let id = tasks::next_id(&tasks_arr);

@@ -501,6 +501,18 @@ pub fn validate_priority(value: &str) -> Result<(), String> {
     }
 }
 
+/// Validate a status value. Accepts pending/in_progress/completed/cancelled plus "null"/""
+/// (clear). Rejects synthetic display values like "done", "active", "blocked", "parked" — those
+/// belong only in classify() output. See t-1345.
+pub fn validate_status(value: &str) -> Result<(), String> {
+    match value {
+        "pending" | "in_progress" | "completed" | "cancelled" | "null" | "" => Ok(()),
+        other => Err(format!(
+            "invalid status {other:?} — must be pending/in_progress/completed/cancelled or null"
+        )),
+    }
+}
+
 /// Set a field on a task. Handles scalars, array append (+val)/remove (-val), and --append for text.
 pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Result<(), String> {
     match field {
@@ -536,6 +548,9 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
         | "started" | "completed" | "created" | "github_issue" => {
             if field == "priority" {
                 validate_priority(value)?;
+            }
+            if field == "status" {
+                validate_status(value)?;
             }
             if value == "null" {
                 task[field] = Value::Null;
@@ -1414,6 +1429,52 @@ mod tests {
         assert_eq!(task["priority"], "P0");
         set_field(&mut task, "priority", "null", false).unwrap();
         assert!(task["priority"].is_null());
+    }
+
+    // ── t-1345: status enum validation ──────────────────────────────────
+
+    #[test]
+    fn test_validate_status_accepts_canonical() {
+        for s in &["pending", "in_progress", "completed", "cancelled"] {
+            assert!(validate_status(s).is_ok(), "{s} should be accepted");
+        }
+    }
+
+    #[test]
+    fn test_validate_status_accepts_null_and_empty() {
+        assert!(validate_status("null").is_ok());
+        assert!(validate_status("").is_ok());
+    }
+
+    #[test]
+    fn test_validate_status_rejects_synthetic() {
+        for s in &["done", "active", "blocked", "parked"] {
+            assert!(validate_status(s).is_err(), "{s} should be rejected (synthetic)");
+        }
+    }
+
+    #[test]
+    fn test_validate_status_rejects_arbitrary() {
+        for s in &["DONE", "Pending", "wip", "complete"] {
+            assert!(validate_status(s).is_err(), "{s} should be rejected");
+        }
+    }
+
+    #[test]
+    fn test_set_field_rejects_synthetic_status() {
+        let mut task = json!({"id": "t-1", "status": "pending"});
+        let err = set_field(&mut task, "status", "done", false).unwrap_err();
+        assert!(err.contains("status"), "error should mention status: {err}");
+        assert_eq!(task["status"], "pending", "task should be unchanged on error");
+    }
+
+    #[test]
+    fn test_set_field_accepts_valid_status() {
+        let mut task = json!({"id": "t-1", "status": "pending"});
+        set_field(&mut task, "status", "completed", false).unwrap();
+        assert_eq!(task["status"], "completed");
+        set_field(&mut task, "status", "cancelled", false).unwrap();
+        assert_eq!(task["status"], "cancelled");
     }
 
     // ── Wave 1: next_id tests ───────────────────────────────────────────
