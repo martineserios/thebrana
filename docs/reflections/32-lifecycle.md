@@ -2,6 +2,8 @@
 last_verified: 2026-03-14
 status: active
 maturity: evergreen
+version: 1.0.0
+confidence_tier: architecture
 depends_on:
   - docs/reflections/ARCHITECTURE.md
   - docs/reflections/31-assurance.md

@@ -1,7 +1,9 @@
 ---
 last_verified: 2026-04-13
 status: active
-maturity: active
+maturity: budding
+version: 1.0.0
+confidence_tier: architecture
 depends_on:
   - docs/reflections/14-mastermind-architecture.md
 informs:

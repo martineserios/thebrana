@@ -2,6 +2,8 @@
 last_verified: 2026-04-12
 status: active
 maturity: evergreen
+version: 1.0.0
+confidence_tier: architecture
 depends_on:
   - docs/reflections/08-diagnosis.md
 informs:
