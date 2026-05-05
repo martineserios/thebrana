@@ -615,6 +615,12 @@ pub enum BacklogCmd {
         /// Parent task ID
         #[arg(long)]
         parent: Option<String>,
+        /// Priority: P0, P1, P2, P3
+        #[arg(long)]
+        priority: Option<String>,
+        /// Rich context — why the task matters, prior decisions, constraints. Required for M+ effort per memory rule.
+        #[arg(long)]
+        context: Option<String>,
         /// Path to tasks.json (auto-detected if omitted)
         #[arg(long)]
         file: Option<PathBuf>,

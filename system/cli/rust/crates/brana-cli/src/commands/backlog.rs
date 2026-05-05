@@ -344,6 +344,8 @@ pub fn cmd_add(
     description: Option<String>,
     effort: Option<String>,
     parent: Option<String>,
+    priority: Option<String>,
+    context: Option<String>,
     file: Option<PathBuf>,
 ) -> anyhow::Result<()> {
     let tf = match file {
@@ -385,6 +387,8 @@ pub fn cmd_add(
         if let Some(ref d) = description { obj.insert("description".into(), serde_json::Value::String(d.clone())); }
         if let Some(ref e) = effort { obj.insert("effort".into(), serde_json::Value::String(e.clone())); }
         if let Some(ref p) = parent { obj.insert("parent".into(), serde_json::Value::String(p.clone())); }
+        if let Some(ref pr) = priority { obj.insert("priority".into(), serde_json::Value::String(pr.clone())); }
+        if let Some(ref c) = context { obj.insert("context".into(), serde_json::Value::String(c.clone())); }
         serde_json::to_string(&obj).unwrap()
     } else {
         eprintln!("{{\"ok\":false,\"error\":\"provide --json or --subject\"}}");

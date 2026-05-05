@@ -140,3 +140,34 @@ fn doctor_runs_without_panic() {
         .success()
         .stdout(predicate::str::contains("brana doctor"));
 }
+
+// ── Backlog: add with shorthand flags ────────────────────────────────────
+
+#[test]
+fn backlog_add_priority_and_context_flags_persist() {
+    use assert_fs::prelude::*;
+    let tmp = assert_fs::TempDir::new().unwrap();
+    let tasks = tmp.child("tasks.json");
+    tasks
+        .write_str(r#"{"version":"1","project":"smoke-test","tasks":[]}"#)
+        .unwrap();
+    brana()
+        .args([
+            "backlog", "add",
+            "--subject", "test priority+context flags",
+            "--stream", "tech-debt",
+            "--effort", "S",
+            "--priority", "P1",
+            "--context", "verifying t-1336 shorthand merge",
+            "--file",
+        ])
+        .arg(tasks.path())
+        .assert()
+        .success();
+    let written = std::fs::read_to_string(tasks.path()).unwrap();
+    let val: serde_json::Value = serde_json::from_str(&written).unwrap();
+    let added = &val["tasks"][0];
+    assert_eq!(added["priority"].as_str(), Some("P1"));
+    assert_eq!(added["context"].as_str(), Some("verifying t-1336 shorthand merge"));
+    assert_eq!(added["effort"].as_str(), Some("S"));
+}
