@@ -1263,16 +1263,31 @@ else
 fi
 echo ""
 
+# Check 26 — tasks.json status enum hygiene (t-1345)
+echo "Checking tasks.json status enum..."
+if [ -f "$TASKS_FILE" ]; then
+  BAD_STATUSES=$(jq -r '[.tasks[] | select(.status != null and (.status | test("^(pending|in_progress|completed|cancelled)$") | not)) | .status] | unique | join(",")' "$TASKS_FILE" 2>/dev/null)
+  if [ -n "$BAD_STATUSES" ]; then
+    BAD_IDS=$(jq -r '[.tasks[] | select(.status != null and (.status | test("^(pending|in_progress|completed|cancelled)$") | not)) | .id] | join(",")' "$TASKS_FILE" 2>/dev/null)
+    fail "Check 26: tasks.json has non-canonical status values: $BAD_STATUSES (tasks: $BAD_IDS) — must be pending/in_progress/completed/cancelled or null"
+  else
+    pass "Check 26: tasks.json — all statuses canonical (pending/in_progress/completed/cancelled or null)"
+  fi
+else
+  warn "Check 26: $TASKS_FILE not found (skipped)"
+fi
+echo ""
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
-    echo "Check 26: Golden-path drift..."
+    echo "Check 27: Golden-path drift..."
     if [ -x "$SCRIPT_DIR/system/scripts/golden-path-diff.sh" ]; then
         if "$SCRIPT_DIR/system/scripts/golden-path-diff.sh" 2>&1 | sed 's/^/  /'; then
-            pass "Check 26: Golden-path drift — none"
+            pass "Check 27: Golden-path drift — none"
         else
             # Drift in golden paths is a warning, not a hard error: snapshots may
             # legitimately lag procedure changes. The signal is "review the diff".
-            warn "Check 26: Golden-path drift detected — see output above"
+            warn "Check 27: Golden-path drift detected — see output above"
         fi
     else
         warn "Check 25: golden-path-diff.sh not found at $SCRIPT_DIR/system/scripts/ (skipped)"
