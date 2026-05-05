@@ -490,6 +490,12 @@ pub fn next_id(tasks: &[Value]) -> String {
     format!("t-{}", max + 1)
 }
 
+/// Validate a priority value. Accepts P0/P1/P2/P3 plus "null"/"" (clear). Rejects legacy
+/// high/medium/low and any other string. Canonical enum is P[0-3] only — see t-1344.
+pub fn validate_priority(value: &str) -> Result<(), String> {
+    todo!("t-1344: implement priority enum validation")
+}
+
 /// Set a field on a task. Handles scalars, array append (+val)/remove (-val), and --append for text.
 pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Result<(), String> {
     match field {
@@ -1354,6 +1360,52 @@ mod tests {
     fn test_set_field_unknown() {
         let mut task = json!({"id": "t-1"});
         assert!(set_field(&mut task, "nonexistent", "val", false).is_err());
+    }
+
+    // ── t-1344: priority enum validation ────────────────────────────────
+
+    #[test]
+    fn test_validate_priority_accepts_p_tier() {
+        for p in &["P0", "P1", "P2", "P3"] {
+            assert!(validate_priority(p).is_ok(), "{p} should be accepted");
+        }
+    }
+
+    #[test]
+    fn test_validate_priority_accepts_null_and_empty() {
+        assert!(validate_priority("null").is_ok());
+        assert!(validate_priority("").is_ok());
+    }
+
+    #[test]
+    fn test_validate_priority_rejects_legacy_enum() {
+        for p in &["high", "medium", "low", "High", "MEDIUM"] {
+            assert!(validate_priority(p).is_err(), "{p} should be rejected");
+        }
+    }
+
+    #[test]
+    fn test_validate_priority_rejects_arbitrary() {
+        for p in &["urgent", "P4", "p0", "0"] {
+            assert!(validate_priority(p).is_err(), "{p} should be rejected");
+        }
+    }
+
+    #[test]
+    fn test_set_field_rejects_legacy_priority() {
+        let mut task = json!({"id": "t-1", "priority": null});
+        let err = set_field(&mut task, "priority", "high", false).unwrap_err();
+        assert!(err.contains("priority"), "error should mention priority: {err}");
+        assert!(task["priority"].is_null(), "task should be unchanged on error");
+    }
+
+    #[test]
+    fn test_set_field_accepts_valid_priority() {
+        let mut task = json!({"id": "t-1", "priority": null});
+        set_field(&mut task, "priority", "P0", false).unwrap();
+        assert_eq!(task["priority"], "P0");
+        set_field(&mut task, "priority", "null", false).unwrap();
+        assert!(task["priority"].is_null());
     }
 
     // ── Wave 1: next_id tests ───────────────────────────────────────────
