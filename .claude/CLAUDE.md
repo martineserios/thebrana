@@ -29,7 +29,7 @@ Branch conventions preserve the separation:
 | UNDERSTAND | "What do I need to know?" | `/brana:research`, `/brana:onboard` |
 | BUILD | "Make the thing" | `/brana:build` |
 | SHIP | "Get it to users" | `/brana:ship`, `./bootstrap.sh`, `./validate.sh` |
-| MAINTAIN | "Keep it healthy" | `/brana:reconcile` |
+| MAINTAIN | "Keep it healthy" | `/brana:reconcile`, `/brana:verify-docs` |
 | GROW | "Build the business" | `/brana:review` |
 
 > Full command reference: [docs/reference/skills.md](../docs/reference/skills.md)

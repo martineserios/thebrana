@@ -2,7 +2,7 @@
 
 # Skill Reference
 
-**31 skills** loaded from `system/skills/`.
+**29 skills** loaded from `system/skills/`.
 
 ## Index
 
@@ -18,12 +18,10 @@
 | `/brana:claudemd` | execution | Audit or generate a CLAUDE.md for any project. Natural companion to /brana:align |
 | `/brana:client-retire` | execution | Archive a client's patterns and mark them as historical. Use when retiring a cli |
 | `/brana:close` | session | End a session — extract learnings, write handoff note, store patterns, detect  |
-| `/brana:cloud-run-basics` | brana | Manages Cloud Run services, jobs, and worker pools. Use when deploying applicati |
 | `/brana:do` | brana | Alias for /brana:backlog start with freeform text. Routes to the best skill or c |
 | `/brana:docs` | core | Generate and update living documentation — tech docs, user guides, philosophy  |
 | `/brana:export-pdf` | utility | Convert a markdown file to PDF using mdpdf. Use when exporting proposals, SOPs,  |
 | `/brana:gsheets` | utility | Google Sheets via MCP — read, write, create, list, share spreadsheets. Use whe |
-| `/brana:llm-evaluation` | brana | Implement comprehensive evaluation strategies for LLM applications using automat |
 | `/brana:log` | capture | Capture events — links, calls, meetings, ideas, observations — into a search |
 | `/brana:mcp-builder` | brana | MCP server development guide — build, test, and deploy MCP servers. |
 | `/brana:memory` | learning | Knowledge system operations — recall patterns, cross-pollinate across clients, |
@@ -38,7 +36,7 @@
 | `/brana:scheduler` | utility | Manage scheduled jobs — create, update, list, or run scheduled remote agents ( |
 | `/brana:ship` | execution | Ship a build — pre-flight checks, deploy, document, verify, monitor. 6 generic |
 | `/brana:sitrep` | core | Situational awareness — where am I, what was I doing, what's left, what should |
-| `/brana:vitest` | brana | Vitest fast unit testing framework powered by Vite with Jest-compatible API. Use |
+| `/brana:verify-docs` | brana | Periodic doc verification — runs validate.sh structural check, samples N assum |
 
 ## brana
 
@@ -62,12 +60,6 @@ Detect and remove unused dependencies in Rust projects using cargo-machete.
 
 **Allowed tools:** [Bash, Read, Glob, Grep, Edit]
 
-### `/brana:cloud-run-basics`
-
-Manages Cloud Run services, jobs, and worker pools. Use when deploying applications responding to HTTP requests, running scheduled tasks, or handling always-on pull-based background processing.
-
-**Allowed tools:** [Read, Write, Edit, Bash, Glob, Grep, Agent]
-
 ### `/brana:do`
 
 Alias for /brana:backlog start with freeform text. Routes to the best skill or creates a task. Use /brana:backlog start directly for the same behavior.
@@ -75,12 +67,6 @@ Alias for /brana:backlog start with freeform text. Routes to the best skill or c
 **Arguments:** `<description of what you want to do>`
 
 **Allowed tools:** Bash, Read, AskUserQuestion, Skill, mcp__ruflo__memory_search
-
-### `/brana:llm-evaluation`
-
-Implement comprehensive evaluation strategies for LLM applications using automated metrics, human feedback, and benchmarking. Use when testing LLM performance, measuring AI application quality, or establishing evaluation frameworks.
-
-**Allowed tools:** [Read, Glob, Grep, AskUserQuestion]
 
 ### `/brana:mcp-builder`
 
@@ -110,11 +96,13 @@ Rust best practices — 179 rules across 14 categories for idiomatic, optimized 
 
 **Allowed tools:** [Bash, Read, Glob, Grep, Edit, Write]
 
-### `/brana:vitest`
+### `/brana:verify-docs`
 
-Vitest fast unit testing framework powered by Vite with Jest-compatible API. Use when writing tests, mocking, configuring coverage, or working with test filtering and fixtures.
+Periodic doc verification — runs validate.sh structural check, samples N assumption rows for manual semantic review. No LLM. Run quarterly to collect drift evidence; if >20% drift, unblocks t-441 (LLM-assisted check).
 
-**Allowed tools:** [Read, Write, Edit, Bash, Glob, Grep, Agent]
+**Arguments:** `[--sample N] [--json] [--seed N]`
+
+**Allowed tools:** Bash, Read, AskUserQuestion
 
 
 ## capture

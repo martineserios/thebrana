@@ -41,7 +41,7 @@ assert_eq "script is executable" "true" "$([[ -x "$VERIFY" ]] && echo true || ec
 
 # 2. Default invocation exits 0 or 1 (never 2)
 echo "Test: default invocation exit code"
-"$VERIFY" >/dev/null 2>&1; ec=$?
+ec=0; "$VERIFY" >/dev/null 2>&1 || ec=$?
 assert_eq "exit 0 or 1" "true" "$( [[ $ec -eq 0 || $ec -eq 1 ]] && echo true || echo false )"
 
 # 3. Default output contains expected sections
@@ -75,15 +75,12 @@ assert_eq "same seed → same sample order" "$RUN1" "$RUN2"
 # 7. Exit 2 if validate.sh is missing — simulate by overriding path
 echo "Test: exit 2 if validate.sh missing"
 WORK=$(mktemp -d)
-cp "$VERIFY" "$WORK/verify-docs.sh"
-# Run from a fake repo with no validate.sh — expect exit 2.
-# Use BRANA_REPO_ROOT override if supported, otherwise skip.
-if grep -q 'BRANA_REPO_ROOT' "$VERIFY"; then
-  BRANA_REPO_ROOT="$WORK" "$WORK/verify-docs.sh" >/dev/null 2>&1; ec=$?
-  assert_eq "exit 2 on missing validate" "2" "$ec"
-else
-  echo "  SKIP: BRANA_REPO_ROOT override not implemented (still acceptable if exit is non-zero)"
-fi
+mkdir -p "$WORK/system/scripts" "$WORK/docs"
+cp "$VERIFY" "$WORK/system/scripts/verify-docs.sh"
+chmod +x "$WORK/system/scripts/verify-docs.sh"
+ec=0
+BRANA_REPO_ROOT="$WORK" "$WORK/system/scripts/verify-docs.sh" >/dev/null 2>&1 || ec=$?
+assert_eq "exit 2 on missing validate" "2" "$ec"
 rm -rf "$WORK"
 
 # Summary
