@@ -46,6 +46,11 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
             let tasks = val["tasks"].as_array()
                 .ok_or_else(|| pmcp::Error::validation("tasks.json has no tasks array"))?;
 
+            if let Some(p) = input.priority.as_deref() {
+                brana_core::tasks::validate_priority(p)
+                    .map_err(pmcp::Error::validation)?;
+            }
+
             let id = brana_core::tasks::next_id(tasks);
 
             let tags: Vec<serde_json::Value> = input.tags

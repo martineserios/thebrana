@@ -493,7 +493,12 @@ pub fn next_id(tasks: &[Value]) -> String {
 /// Validate a priority value. Accepts P0/P1/P2/P3 plus "null"/"" (clear). Rejects legacy
 /// high/medium/low and any other string. Canonical enum is P[0-3] only — see t-1344.
 pub fn validate_priority(value: &str) -> Result<(), String> {
-    todo!("t-1344: implement priority enum validation")
+    match value {
+        "P0" | "P1" | "P2" | "P3" | "null" | "" => Ok(()),
+        other => Err(format!(
+            "invalid priority {other:?} — must be P0/P1/P2/P3 or null"
+        )),
+    }
 }
 
 /// Set a field on a task. Handles scalars, array append (+val)/remove (-val), and --append for text.
@@ -529,6 +534,9 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
         "priority" | "effort" | "status" | "stream" | "type" | "strategy"
         | "build_step" | "execution" | "branch" | "subject" | "parent"
         | "started" | "completed" | "created" | "github_issue" => {
+            if field == "priority" {
+                validate_priority(value)?;
+            }
             if value == "null" {
                 task[field] = Value::Null;
             } else {

@@ -400,6 +400,13 @@ pub fn cmd_add(
         anyhow::anyhow!("invalid JSON: {e}")
     })?;
 
+    if let Some(p) = new_task["priority"].as_str() {
+        if let Err(e) = tasks::validate_priority(p) {
+            eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
+            anyhow::bail!("{e}");
+        }
+    }
+
     let tasks_arr = val["tasks"].as_array().cloned().unwrap_or_default();
     let id = tasks::next_id(&tasks_arr);
 
