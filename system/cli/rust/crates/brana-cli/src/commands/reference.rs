@@ -621,6 +621,25 @@ mod tests {
     }
 
     #[test]
+    fn test_skill_frontmatter_reference_lists_enums() {
+        // t-1341: surface legal group + growth_stage values in the
+        // generated skills.md so users don't have to read validate.sh
+        // or testing-validation.md to discover them.
+        let r = SKILL_FRONTMATTER_REFERENCE;
+        assert!(r.contains("growth_stage"));
+        assert!(r.contains("evergreen"));
+        assert!(r.contains("group"));
+        // sample of valid groups (canonical list in testing-validation.md)
+        assert!(r.contains("execution"));
+        assert!(r.contains("session"));
+        assert!(r.contains("learning"));
+        assert!(r.contains("brana"));
+        // status enum (used by some skills)
+        assert!(r.contains("stable"));
+        assert!(r.contains("experimental"));
+    }
+
+    #[test]
     fn test_hook_severity_blocking() {
         let script = "#!/usr/bin/env bash\n# PreToolUse: gate\npass_through() { echo '{\"continue\": true}'; exit 0; }\necho '{\"continue\": false, \"additionalContext\": \"blocked\"}'\n";
         assert_eq!(hook_severity(script), "Blocking");
