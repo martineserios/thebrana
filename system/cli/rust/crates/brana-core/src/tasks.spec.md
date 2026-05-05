@@ -1,6 +1,6 @@
 # tasks.rs — spec
 
-Task: t-1323
+Task: t-1323, t-1340
 Related memory: feedback_rust-tdd-three-commit-pattern.md, project_ruflo-agentdb-status.md
 
 ## Purpose
@@ -32,6 +32,29 @@ Callers that want classify-based semantics (e.g. "unblocked pending") must filte
 
 **Rationale:** previously `filter_tasks` compared `classify()` output against the raw CLI input. Since `classify()` returns synthetic values (`"done"`, `"active"`, `"blocked"`, `"parked"`) that the CLI enum does not expose, every `--status` filter other than `pending` silently matched nothing — and every call with valid raw `status` values (`completed`, `cancelled`, `in_progress`) returned *all* tasks as contamination. See t-1323 for the bug trail.
 
+### `compute_stats(tasks, all) -> Value`
+Aggregate counts for the `brana backlog stats` CLI and `backlog_stats` MCP tool.
+
+**Output shape:**
+```
+{
+  "total": <usize>,
+  "by_status": { <raw status> -> <count> },   // pending, in_progress, completed, cancelled
+  "by_state":  { <synthetic state> -> <count> }, // pending, active, blocked, parked, done
+  "by_stream":   { <stream> -> { "total": N, <raw status> -> N, "state": { <synthetic> -> N } } },
+  "by_priority": { <priority> -> <count> },
+  "by_type":     { <type> -> <count> }
+}
+```
+
+**Contract for `by_status`:** keys are the **raw `task.status` field**. This aligns with the `filter_tasks` predicate (and the CLI `TaskStatus` enum), so a query like `brana backlog query --status completed` returns the count promised by `stats.by_status["completed"]`.
+
+**Contract for `by_state`:** keys are the synthetic display values from `classify()` (`pending`, `active`, `blocked`, `parked`, `done`). This is the rollup view used by themed renderers and the close-session report.
+
+Tasks with no `status` field count as `unknown` in `by_status` (defensive — should never happen for well-formed tasks).
+
+**Rationale:** previously `compute_stats` only emitted `by_status` populated with `classify()` output, diverging from `filter_tasks` semantics. A user reading `stats.by_status["pending"] = 491` could not reproduce that count via `query --status pending` because the stats key was actually `pending` ∪ `blocked` ∪ `parked` minus those classified out. Splitting raw vs. synthetic into two named maps removes the ambiguity.
+
 ### `sort_by_priority`, `focus_score`, `text_match`
 Independent of the status contract. No change.
 
@@ -44,6 +67,8 @@ Independent of the status contract. No change.
 | `cmd_search` (`brana-cli/commands/backlog.rs`) | `None` | N/A |
 | `backlog_query` MCP tool (`brana-mcp/tools/backlog_query.rs`) | MCP input | Raw `task.status` match |
 | `backlog_search` MCP tool (`brana-mcp/tools/backlog_search.rs`) | `None` | N/A |
+| `cmd_stats` (`brana-cli/commands/backlog.rs`) | — | Calls `compute_stats`; output exposes raw + synthetic |
+| `backlog_stats` MCP tool (`brana-mcp/tools/backlog_stats.rs`) | — | Calls `compute_stats`; output exposes raw + synthetic |
 
 ## Non-goals
 
