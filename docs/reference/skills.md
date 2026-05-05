@@ -289,7 +289,5 @@ Business review — weekly health check, monthly close + plan, or ad-hoc growth 
 
 **Arguments:** `[weekly|monthly|check]`
 
-**Depends on:** `/brana:pipeline`, `/brana:financial-model`
-
 **Allowed tools:** Read, Write, Glob, Grep, Bash, AskUserQuestion, mcp__ruflo__memory_search, mcp__ruflo__memory_store
 

@@ -8,9 +8,6 @@ task_strategies: [investigation]
 stream_affinity: [roadmap, research]
 argument-hint: "[weekly|monthly|check]"
 group: venture
-depends_on:
-  - pipeline
-  - financial-model
 allowed-tools:
   - Read
   - Write
