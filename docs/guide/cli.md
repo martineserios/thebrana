@@ -42,7 +42,7 @@ Full read/write — set, add, rollup, sync all work from CLI.
 | `brana backlog get <id> [--field F]` | — | Full task JSON or single field |
 | `brana backlog set <id> <field> <value>` | — | Set any field (supports +tag/-tag, --append) |
 | `brana backlog add --json '{...}'` | — | Create new task from JSON |
-| `brana backlog stats` | — | Aggregate by status/stream/priority/type |
+| `brana backlog stats` | — | Aggregate by status (raw)/state (synthetic)/stream/priority/type |
 | `brana backlog tags [--filter F]` | — | Tag inventory and filtering |
 | `brana backlog roadmap [--json]` | — | Full tree: phases → milestones → tasks |
 | `brana backlog tree <id> [--json]` | — | Subtree of a phase or milestone |

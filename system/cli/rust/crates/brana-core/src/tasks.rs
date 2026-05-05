@@ -554,28 +554,52 @@ pub fn tag_inventory(tasks: &[Value], all: &[Value]) -> Vec<(String, HashMap<Str
 
 /// Compute aggregate stats by status, stream, priority, type.
 pub fn compute_stats(tasks: &[Value], all: &[Value]) -> Value {
+    // by_status: raw task.status (matches filter_tasks predicate / CLI enum).
+    // by_state:  synthetic classify() output for display rollups.
+    // See tasks.spec.md (t-1323, t-1340).
     let mut by_status: HashMap<String, usize> = HashMap::new();
-    let mut by_stream: HashMap<String, HashMap<String, usize>> = HashMap::new();
+    let mut by_state: HashMap<String, usize> = HashMap::new();
+    let mut by_stream: HashMap<String, HashMap<String, Value>> = HashMap::new();
+    let mut by_stream_state: HashMap<String, HashMap<String, usize>> = HashMap::new();
     let mut by_priority: HashMap<String, usize> = HashMap::new();
     let mut by_type: HashMap<String, usize> = HashMap::new();
 
     for t in tasks {
-        let st = classify(t, all).to_string();
+        let raw = t["status"].as_str().unwrap_or("unknown").to_string();
+        let state = classify(t, all).to_string();
         let stream = t["stream"].as_str().unwrap_or("none").to_string();
         let pri = t["priority"].as_str().unwrap_or("null").to_string();
         let tp = t["type"].as_str().unwrap_or("task").to_string();
 
-        *by_status.entry(st.clone()).or_default() += 1;
-        let stream_entry = by_stream.entry(stream).or_default();
-        *stream_entry.entry("total".into()).or_default() += 1;
-        *stream_entry.entry(st).or_default() += 1;
+        *by_status.entry(raw.clone()).or_default() += 1;
+        *by_state.entry(state.clone()).or_default() += 1;
+
+        let stream_entry = by_stream.entry(stream.clone()).or_default();
+        let total = stream_entry
+            .entry("total".into())
+            .or_insert_with(|| Value::from(0u64));
+        *total = Value::from(total.as_u64().unwrap_or(0) + 1);
+        let raw_count = stream_entry
+            .entry(raw.clone())
+            .or_insert_with(|| Value::from(0u64));
+        *raw_count = Value::from(raw_count.as_u64().unwrap_or(0) + 1);
+        *by_stream_state.entry(stream).or_default().entry(state).or_default() += 1;
+
         *by_priority.entry(pri).or_default() += 1;
         *by_type.entry(tp).or_default() += 1;
+    }
+
+    // Fold synthetic state counts into the by_stream substructure under a
+    // nested "state" key so it stays separate from the raw counts.
+    for (stream, state_counts) in by_stream_state {
+        let entry = by_stream.entry(stream).or_default();
+        entry.insert("state".into(), serde_json::to_value(state_counts).unwrap());
     }
 
     serde_json::json!({
         "total": tasks.len(),
         "by_status": by_status,
+        "by_state": by_state,
         "by_stream": by_stream,
         "by_priority": by_priority,
         "by_type": by_type,
