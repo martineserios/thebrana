@@ -830,6 +830,14 @@ mod tests {
         tmp
     }
 
+    /// A timestamp inside the rotate_history retention window (last 30 days).
+    /// Used by I/O tests that survive rotation; render/validate tests keep the
+    /// fixed fixture date in `sample_state()`. See session.spec.md (t-1343).
+    fn recent_ts(offset_days: i64) -> String {
+        let dt = Utc::now() - chrono::Duration::days(offset_days);
+        dt.format("%Y-%m-%dT%H:%M:%SZ").to_string()
+    }
+
     fn sample_state() -> SessionState {
         SessionState {
             version: 1,
@@ -1060,14 +1068,16 @@ mod tests {
         let _tmp = with_temp_home();
         let root = Path::new("/home/user/myrepo");
 
-        // Write first state
-        let state1 = sample_state();
+        // Write first state — written_at must be inside the 30-day retention
+        // window so it survives rotate_history. See session.spec.md (t-1343).
+        let mut state1 = sample_state();
+        state1.written_at = recent_ts(2);
         write_state(root, &state1).unwrap();
 
         // Write second state
         let mut state2 = sample_state();
         state2.session_label = Some("second session".into());
-        state2.written_at = "2026-03-31T21:00:00Z".into();
+        state2.written_at = recent_ts(1);
         write_state(root, &state2).unwrap();
 
         // Current state should be state2
@@ -1103,10 +1113,12 @@ mod tests {
         let _tmp = with_temp_home();
         let root = Path::new("/home/user/myrepo");
 
-        // Write 5 states (each archives the previous)
+        // Write 5 states (each archives the previous). Timestamps must stay
+        // inside the 30-day retention window. See session.spec.md (t-1343).
         for i in 0..5 {
             let mut state = sample_state();
-            state.written_at = format!("2026-03-31T{:02}:00:00Z", 10 + i);
+            // i=0 oldest (5 days back) → i=4 newest (1 day back)
+            state.written_at = recent_ts(5 - i as i64);
             state.session_label = Some(format!("session {i}"));
             write_state(root, &state).unwrap();
         }
@@ -1175,8 +1187,11 @@ mod tests {
         // Ensure parent dir
         fs::create_dir_all(history_path.parent().unwrap()).unwrap();
 
-        // Write entries: one recent, one old
-        let recent = sample_state();
+        // Write entries: one recent (inside 30-day window), one old.
+        // See session.spec.md (t-1343).
+        let mut recent = sample_state();
+        let recent_at = recent_ts(2);
+        recent.written_at = recent_at.clone();
         let mut old = sample_state();
         old.written_at = "2025-01-01T00:00:00Z".into(); // > 30 days ago
 
@@ -1188,7 +1203,7 @@ mod tests {
 
         let entries = read_history(root, 100);
         assert_eq!(entries.len(), 1);
-        assert_eq!(entries[0].written_at, "2026-03-31T20:15:00Z");
+        assert_eq!(entries[0].written_at, recent_at);
     }
 
     // ── Migration tests ─────────────────────────────────────────────
