@@ -44,13 +44,16 @@ fn main() {
             Some(AgentsCmd::Kill { agent_id }) => run_or_exit(commands::run::cmd_agents_kill(&agent_id)),
         },
         Commands::Backlog { cmd } => match cmd {
-            BacklogCmd::Next { tag, stream, limit, priority, task_type, effort, parent } => run_or_exit(commands::backlog::cmd_next(&theme, tag, ve_str(&stream), limit, ve_str(&priority), ve_str(&task_type), ve_str(&effort), parent)),
+            BacklogCmd::Next { tag, stream, limit, priority, task_type, effort, parent, json } => run_or_exit(commands::backlog::cmd_next(&theme, tag, ve_str(&stream), limit, ve_str(&priority), ve_str(&task_type), ve_str(&effort), parent, json)),
             BacklogCmd::Query {
-                tag, status, stream, priority, effort, search, count, output,
+                tag, status, stream, priority, effort, search, count, mut output, json,
                 task_type, parent, branch,
-            } => run_or_exit(commands::backlog::cmd_query(tag, ve_str(&status), ve_str(&stream), ve_str(&priority), ve_str(&effort), search, count, output, &theme, ve_str(&task_type), parent, branch)),
-            BacklogCmd::Focus => run_or_exit(commands::backlog::cmd_focus(&theme)),
-            BacklogCmd::Search { text } => run_or_exit(commands::backlog::cmd_search(&text, &theme)),
+            } => {
+                if json { output = "json".to_string(); }
+                run_or_exit(commands::backlog::cmd_query(tag, ve_str(&status), ve_str(&stream), ve_str(&priority), ve_str(&effort), search, count, output, &theme, ve_str(&task_type), parent, branch))
+            },
+            BacklogCmd::Focus { json } => run_or_exit(commands::backlog::cmd_focus(&theme, json)),
+            BacklogCmd::Search { text, json } => run_or_exit(commands::backlog::cmd_search(&text, &theme, json)),
             BacklogCmd::Status { all, json } => run_or_exit(commands::backlog::cmd_status(&theme, all, json)),
             BacklogCmd::Blocked => run_or_exit(commands::backlog::cmd_blocked(&theme)),
             BacklogCmd::Stale { days } => run_or_exit(commands::backlog::cmd_stale(days, &theme)),

@@ -141,6 +141,90 @@ fn doctor_runs_without_panic() {
         .stdout(predicate::str::contains("brana doctor"));
 }
 
+// ── Backlog: --json flag standardization (t-1335) ───────────────────────
+
+#[test]
+fn backlog_query_json_flag_accepted() {
+    // --json is a bool alias for --output json; must not fail with "unexpected argument"
+    brana()
+        .args(["backlog", "query", "--status", "pending", "--json"])
+        .assert()
+        .success()
+        .stdout(predicate::str::starts_with("[").or(predicate::str::starts_with("[")));
+}
+
+#[test]
+fn backlog_query_json_flag_outputs_json_array() {
+    let out = brana()
+        .args(["backlog", "query", "--json"])
+        .output()
+        .expect("brana should run");
+    assert!(out.status.success());
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(stdout.trim()).expect("output should be valid JSON");
+    assert!(parsed.is_array(), "expected JSON array, got: {stdout}");
+}
+
+#[test]
+fn backlog_next_json_flag_accepted() {
+    brana()
+        .args(["backlog", "next", "--json"])
+        .assert()
+        .success();
+}
+
+#[test]
+fn backlog_next_json_flag_outputs_json_array() {
+    let out = brana()
+        .args(["backlog", "next", "--json"])
+        .output()
+        .expect("brana should run");
+    assert!(out.status.success());
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(stdout.trim()).expect("output should be valid JSON");
+    assert!(parsed.is_array(), "expected JSON array, got: {stdout}");
+}
+
+#[test]
+fn backlog_focus_json_flag_accepted() {
+    brana()
+        .args(["backlog", "focus", "--json"])
+        .assert()
+        .success();
+}
+
+#[test]
+fn backlog_focus_json_flag_outputs_json_array() {
+    let out = brana()
+        .args(["backlog", "focus", "--json"])
+        .output()
+        .expect("brana should run");
+    assert!(out.status.success());
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(stdout.trim()).expect("output should be valid JSON");
+    assert!(parsed.is_array(), "expected JSON array, got: {stdout}");
+}
+
+#[test]
+fn backlog_search_json_flag_accepted() {
+    brana()
+        .args(["backlog", "search", "--json", "nonexistent-query-xyzzy"])
+        .assert()
+        .success();
+}
+
+#[test]
+fn backlog_search_json_flag_outputs_json_array() {
+    let out = brana()
+        .args(["backlog", "search", "--json", "nonexistent-query-xyzzy"])
+        .output()
+        .expect("brana should run");
+    assert!(out.status.success());
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(stdout.trim()).expect("output should be valid JSON");
+    assert!(parsed.is_array(), "expected JSON array, got: {stdout}");
+}
+
 // ── Backlog: add with shorthand flags ────────────────────────────────────
 
 #[test]

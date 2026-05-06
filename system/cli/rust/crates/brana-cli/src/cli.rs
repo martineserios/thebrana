@@ -504,6 +504,9 @@ pub enum BacklogCmd {
         /// Filter by parent ID
         #[arg(long)]
         parent: Option<String>,
+        /// Output JSON array instead of themed list
+        #[arg(long)]
+        json: bool,
     },
     /// Filter tasks (AND logic)
     Query {
@@ -522,8 +525,12 @@ pub enum BacklogCmd {
         search: Option<String>,
         #[arg(long)]
         count: bool,
+        /// Output format: json (default), ids, themed
         #[arg(long, default_value = "json")]
         output: String,
+        /// Shorthand for --output json (alias for scripting ergonomics)
+        #[arg(long)]
+        json: bool,
         /// Filter by type (task, subtask, phase, milestone)
         #[arg(long = "type", value_enum)]
         task_type: Option<TaskType>,
@@ -535,10 +542,17 @@ pub enum BacklogCmd {
         branch: Option<String>,
     },
     /// Smart daily pick
-    Focus,
+    Focus {
+        /// Output JSON array instead of themed list
+        #[arg(long)]
+        json: bool,
+    },
     /// Free-text search
     Search {
         text: String,
+        /// Output JSON array instead of themed list
+        #[arg(long)]
+        json: bool,
     },
     /// Portfolio or project status
     Status {

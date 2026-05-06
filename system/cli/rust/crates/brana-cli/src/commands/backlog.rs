@@ -13,7 +13,7 @@ use crate::util::find_tasks_file;
 pub fn cmd_next(
     theme: &themes::Theme, tag: Option<String>, stream: Option<String>,
     limit: usize, priority: Option<String>, task_type: Option<String>,
-    effort: Option<String>, parent: Option<String>,
+    effort: Option<String>, parent: Option<String>, json_out: bool,
 ) -> anyhow::Result<()> {
     let tf = find_tasks_file().context("tasks.json not found")?;
     let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
@@ -41,6 +41,11 @@ pub fn cmd_next(
 
     tasks::sort_by_priority(&mut candidates);
     let top: Vec<_> = candidates.into_iter().take(limit).collect();
+
+    if json_out {
+        println!("{}", serde_json::to_string(&top).unwrap());
+        return Ok(());
+    }
 
     if top.is_empty() {
         println!("\n  No unblocked tasks found.\n");
@@ -129,7 +134,7 @@ pub fn cmd_query(
     Ok(())
 }
 
-pub fn cmd_focus(theme: &themes::Theme) -> anyhow::Result<()> {
+pub fn cmd_focus(theme: &themes::Theme, json_out: bool) -> anyhow::Result<()> {
     let tf = find_tasks_file().context("tasks.json not found")?;
     let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
@@ -140,6 +145,12 @@ pub fn cmd_focus(theme: &themes::Theme) -> anyhow::Result<()> {
         .collect();
     scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
     let top: Vec<_> = scored.into_iter().take(3).collect();
+
+    if json_out {
+        let tasks_only: Vec<_> = top.iter().map(|(t, _)| *t).collect();
+        println!("{}", serde_json::to_string(&tasks_only).unwrap());
+        return Ok(());
+    }
 
     if top.is_empty() {
         println!("\n  No actionable tasks.\n");
@@ -163,13 +174,17 @@ pub fn cmd_focus(theme: &themes::Theme) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn cmd_search(text: &str, theme: &themes::Theme) -> anyhow::Result<()> {
+pub fn cmd_search(text: &str, theme: &themes::Theme, json_out: bool) -> anyhow::Result<()> {
     let tf = find_tasks_file().context("tasks.json not found")?;
     let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
     let results = tasks::filter_tasks(
         &data.tasks, &data.tasks,
         None, None, None, None, None, Some(text), &["task", "subtask"],
     );
+    if json_out {
+        println!("{}", serde_json::to_string(&results).unwrap());
+        return Ok(());
+    }
     if results.is_empty() {
         println!("\n  No tasks match \"{text}\".\n");
         return Ok(());
