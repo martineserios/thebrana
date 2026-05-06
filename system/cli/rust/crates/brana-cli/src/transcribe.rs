@@ -159,6 +159,7 @@ pub fn transcribe(audio_path: &Path, model_size: &ModelSize) -> Result<String> {
     // 4. Run whisper-cli
     eprintln!("Transcribing...");
     let output = Command::new(&whisper)
+        .env("LD_LIBRARY_PATH", whisper_ld_library_path())
         .args([
             "-m",
             model_path.to_str().unwrap(),
@@ -216,6 +217,22 @@ pub fn transcribe(audio_path: &Path, model_size: &ModelSize) -> Result<String> {
     }
 }
 
+/// Build LD_LIBRARY_PATH that includes ~/.local/lib for libwhisper.so.1.
+/// Prepends to any existing LD_LIBRARY_PATH so the caller's env is preserved.
+fn whisper_ld_library_path() -> String {
+    let home = std::env::var("HOME").unwrap_or_default();
+    let existing = std::env::var("LD_LIBRARY_PATH").ok();
+    whisper_ld_library_path_from(&home, existing.as_deref())
+}
+
+fn whisper_ld_library_path_from(home: &str, existing_ld: Option<&str>) -> String {
+    let local_lib = format!("{home}/.local/lib");
+    match existing_ld {
+        Some(e) if !e.is_empty() => format!("{local_lib}:{e}"),
+        _ => local_lib,
+    }
+}
+
 fn which_whisper_cli() -> Result<PathBuf> {
     // Check common locations
     for name in ["whisper-cli", "whisper"] {
@@ -242,4 +259,27 @@ fn which_whisper_cli() -> Result<PathBuf> {
          cd whisper.cpp && cmake -B build && cmake --build build\n\
          cp build/bin/whisper-cli ~/.local/bin/"
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_ld_library_path_standalone() {
+        let result = whisper_ld_library_path_from("/home/user", None);
+        assert_eq!(result, "/home/user/.local/lib");
+    }
+
+    #[test]
+    fn test_ld_library_path_standalone_empty_existing() {
+        let result = whisper_ld_library_path_from("/home/user", Some(""));
+        assert_eq!(result, "/home/user/.local/lib");
+    }
+
+    #[test]
+    fn test_ld_library_path_prepends_existing() {
+        let result = whisper_ld_library_path_from("/home/user", Some("/usr/lib:/other/lib"));
+        assert_eq!(result, "/home/user/.local/lib:/usr/lib:/other/lib");
+    }
 }
