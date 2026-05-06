@@ -38,6 +38,8 @@ pub struct FeedLogEntry {
     pub link: String,
     pub published: Option<String>,
     pub polled_at: String,
+    pub summary: Option<String>,
+    pub content: Option<String>,
 }
 
 // ── Paths ───────────────────────────────────────────────────────────────
@@ -284,6 +286,8 @@ fn poll_one(feed: &FeedEntry) -> Result<usize> {
                     .unwrap_or_default();
                 let published = entry.published
                     .map(|d| d.to_rfc3339());
+                let summary = entry.summary.as_ref().map(|s| s.content.clone());
+                let content = entry.content.as_ref().and_then(|c| c.body.clone());
 
                 match feed.action.as_str() {
                     "task" => {
@@ -309,6 +313,8 @@ fn poll_one(feed: &FeedEntry) -> Result<usize> {
                             link,
                             published,
                             polled_at: Utc::now().to_rfc3339(),
+                            summary,
+                            content,
                         };
                         if let Ok(line) = serde_json::to_string(&log_entry) {
                             let log_path = feed_log_path();
@@ -442,6 +448,8 @@ mod tests {
             link: "https://example.com/post".into(),
             published: Some("2026-03-19T10:00:00Z".into()),
             polled_at: "2026-03-19T16:00:00Z".into(),
+            summary: None,
+            content: None,
         };
         let json = serde_json::to_string(&entry).unwrap();
         assert!(json.contains("\"feed\":\"test\""));
@@ -450,6 +458,41 @@ mod tests {
         // Roundtrip
         let parsed: FeedLogEntry = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed.feed, "test");
+    }
+
+    #[test]
+    fn test_feed_log_entry_summary_content_roundtrip() {
+        // Both Some — values survive serialize/deserialize
+        let entry = FeedLogEntry {
+            feed: "feed1".into(),
+            title: "Title".into(),
+            link: "https://example.com".into(),
+            published: None,
+            polled_at: "2026-05-06T00:00:00Z".into(),
+            summary: Some("A brief summary.".into()),
+            content: Some("<p>Full content body.</p>".into()),
+        };
+        let json = serde_json::to_string(&entry).unwrap();
+        assert!(json.contains("\"summary\":\"A brief summary.\""));
+        assert!(json.contains("\"content\":\"<p>Full content body.</p>\""));
+        let parsed: FeedLogEntry = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed.summary, Some("A brief summary.".into()));
+        assert_eq!(parsed.content, Some("<p>Full content body.</p>".into()));
+
+        // Both None — absent fields remain None after roundtrip
+        let entry_none = FeedLogEntry {
+            feed: "feed2".into(),
+            title: "Title2".into(),
+            link: "https://example.com/2".into(),
+            published: None,
+            polled_at: "2026-05-06T00:00:00Z".into(),
+            summary: None,
+            content: None,
+        };
+        let json_none = serde_json::to_string(&entry_none).unwrap();
+        let parsed_none: FeedLogEntry = serde_json::from_str(&json_none).unwrap();
+        assert!(parsed_none.summary.is_none());
+        assert!(parsed_none.content.is_none());
     }
 
     #[test]
