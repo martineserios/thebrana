@@ -2693,3 +2693,27 @@ Doc 38 also classifies these as Wave 1 (divergent ideation — shipped) vs Wave 
 **Fix applied (code-fix):** Updated close.md Step 9 metrics description to say "patches them into session-state.json after the session ends (via session-end-persist.sh)" (commit ce68613).
 
 **Status:** code-fix
+
+## Error E2026-05-06-2: Ghidra headless -postScript fails silently with full path
+
+**Severity:** Medium — caused Ghidra scripts to silently fail, requiring diagnosis.
+**Discovery:** 2026-05-06 — initial Ghidra headless runs using `-postScript /full/path/script.java` produced "Failed to find source bundle containing script / The class could not be found."
+**Affected files:** `clients/crea/projects/*/docs/analysis/scripts/*.java` (usage in bash commands)
+
+**Gap:** Assumption was that `-postScript` accepts a full file path the same as `-import`. Reality: Ghidra requires the script file to be in a directory listed under `-scriptPath`, and `-postScript` must receive only the filename (no path). Full-path usage is silently ignored and produces a misleading class-not-found error.
+
+**Fix applied (code-fix):** All Ghidra headless invocations corrected to use `-scriptPath /path/to/scripts/` + `-postScript scriptname.java` (filename only).
+
+**Status:** code-fix
+
+## Error E2026-05-06-3: CODE-only string scan misses Delphi form class names in .rsrc
+
+**Severity:** Medium — produced false "not found" conclusions for form classes requiring follow-up scans.
+**Discovery:** 2026-05-06 — t-005 (LISTADOS) and t-009 (TfrmActualizacionPrecios) returned 0 functions from CODE-only Ghidra scans. Follow-up all-sections scans found strings exclusively in `.rsrc`.
+**Affected files:** `gestion-listados-shapes.md`, `planea-price-update.md` (initial versions had empty findings)
+
+**Gap:** Delphi VCL embeds form class names (TfrmFoo) in binary DFM form resources stored in the `.rsrc` PE section, not as CODE-segment string constants. Any scan that filters to executable/CODE blocks will miss all form class name strings. The v5 Borland pattern doc described `.rsrc` as the expected location for form names but the scan scripts didn't cover it.
+
+**Fix applied (code-fix):** Wrote `find_listados_allsections.java` and `find_planea_forms_allsections.java` scanning ALL initialized memory blocks. TfrmActualizacionPrecios confirmed found in CODE at `005d27bf`; LISTADOS confirmed in `.rsrc` only (DFM binary, not directly callable from CODE).
+
+**Status:** code-fix

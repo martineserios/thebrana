@@ -887,6 +887,14 @@ For each selected follow-up:
 
 ---
 
+## Field Notes
+
+### 2026-05-06: feedback-gate stops close mid-flow on Step 11 memory writes [→ t-1350]
+Step 5b documents the sentinel (`touch /tmp/brana-close-active`) for feedback_*.md writes, but Step 11 memory-review writes hit the same gate without a wrapper. Every close that writes memory files in Step 11 stalls the agent loop. Sentinel touch/rm must wrap Step 11 memory writes too.
+Source: close session 2026-05-06 / feedback-gate sentinel gap
+
+---
+
 ## Resume After Compression
 
 If context was compressed and you've lost track of progress:
