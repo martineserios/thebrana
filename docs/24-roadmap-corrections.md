@@ -2679,3 +2679,17 @@ Doc 38 also classifies these as Wave 1 (divergent ideation — shipped) vs Wave 
 **Fixes committed:** a542191 (chore/reconcile-20260420)
 
 **Pending errata (no spec fix yet):** E2026-04-20-8, E2026-04-20-9, E2026-04-20-10
+
+---
+
+## Error E2026-05-06-1: close.md metrics description referred to wrong persistence mechanism
+
+**Severity:** Low — documentation accuracy issue, no runtime impact.
+**Discovery:** 2026-05-06 — t-1349. While fixing the session-end-persist CWD drift bug, the close.md description of the `metrics` field said the session-end hook "merges brana ops metrics into session-state.json automatically." The actual mechanism is `session-end-persist.sh` patching session-state.json after the session ends.
+**Affected files:** `system/procedures/close.md`
+
+**Gap:** The description implied an in-session merge; reality is a post-session patch via `session-end-persist.sh`. Misleading when debugging why metrics fields are zeros at close time (they're filled in post-session by the hook, not by `/brana:close`).
+
+**Fix applied (code-fix):** Updated close.md Step 9 metrics description to say "patches them into session-state.json after the session ends (via session-end-persist.sh)" (commit ce68613).
+
+**Status:** code-fix
