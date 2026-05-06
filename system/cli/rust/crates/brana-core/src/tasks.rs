@@ -103,12 +103,10 @@ pub fn filter_tasks<'a>(
                 return false;
             }
             if let Some(s) = status {
-                // Compare raw task.status field against the CLI TaskStatus
-                // enum input. See tasks.spec.md — classify() is for display,
-                // not filtering. Callers wanting classify semantics (e.g.
-                // exclude blocked/parked from pending) filter post-hoc.
+                // Use raw_status: predicates compare the raw enum field, never
+                // classify() output. See tasks.spec.md / t-1340 / t-1346.
                 let _ = all; // kept in signature for back-compat
-                if t["status"].as_str().unwrap_or("") != s {
+                if raw_status(t, "") != s {
                     return false;
                 }
             }
@@ -513,6 +511,14 @@ pub fn validate_status(value: &str) -> Result<(), String> {
     }
 }
 
+/// Read the raw `status` field from a task — the canonical accessor used by
+/// filter predicates AND aggregations. **Never use `classify()` for filtering**:
+/// classify() emits synthetic display values (done/active/blocked/parked) that
+/// are not in the raw enum and silently break --status filters. See t-1340/t-1346.
+pub fn raw_status<'a>(task: &'a Value, default: &'a str) -> &'a str {
+    task["status"].as_str().unwrap_or(default)
+}
+
 /// Set a field on a task. Handles scalars, array append (+val)/remove (-val), and --append for text.
 pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Result<(), String> {
     match field {
@@ -594,7 +600,7 @@ pub fn compute_stats(tasks: &[Value], all: &[Value]) -> Value {
     let mut by_type: HashMap<String, usize> = HashMap::new();
 
     for t in tasks {
-        let raw = t["status"].as_str().unwrap_or("unknown").to_string();
+        let raw = raw_status(t, "unknown").to_string();
         let state = classify(t, all).to_string();
         let stream = t["stream"].as_str().unwrap_or("none").to_string();
         let pri = t["priority"].as_str().unwrap_or("null").to_string();
@@ -1475,6 +1481,35 @@ mod tests {
         assert_eq!(task["status"], "completed");
         set_field(&mut task, "status", "cancelled", false).unwrap();
         assert_eq!(task["status"], "cancelled");
+    }
+
+    // ── t-1346: raw_status accessor ─────────────────────────────────────
+
+    #[test]
+    fn test_raw_status_returns_field_value() {
+        let task = json!({"id": "t-1", "status": "in_progress"});
+        assert_eq!(raw_status(&task, ""), "in_progress");
+    }
+
+    #[test]
+    fn test_raw_status_uses_default_when_missing() {
+        let task = json!({"id": "t-1"});
+        assert_eq!(raw_status(&task, ""), "");
+        assert_eq!(raw_status(&task, "unknown"), "unknown");
+    }
+
+    #[test]
+    fn test_raw_status_uses_default_when_null() {
+        let task = json!({"id": "t-1", "status": null});
+        assert_eq!(raw_status(&task, "unknown"), "unknown");
+    }
+
+    #[test]
+    fn test_raw_status_does_not_synthesize() {
+        // Even if a task is "blocked" (would synthesize via classify), raw_status
+        // returns the literal stored field — never classify() output.
+        let task = json!({"id": "t-1", "status": "pending", "blocked_by": ["t-99"]});
+        assert_eq!(raw_status(&task, ""), "pending");
     }
 
     // ── Wave 1: next_id tests ───────────────────────────────────────────
