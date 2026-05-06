@@ -143,8 +143,16 @@ For each **errata** finding:
 2. If found, read it for format and current error count
 3. If not found, use `~/enter_thebrana/thebrana/docs/24-roadmap-corrections.md`
 4. Append entries following the existing format:
-   - Timestamp-based ID: `E{YYYY-MM-DD}-{N}` where N starts at 1 for the day (e.g., `E2026-04-15-1`)
-     - Check `git show HEAD:docs/24-roadmap-corrections.md | grep "^| E{today}"` to find today's last N
+   - Timestamp-based ID: `E{YYYY-MM-DD}-{N}` where N starts at 1 for the day
+   - **Always auto-read the committed state to find the next N:**
+     ```bash
+     TODAY=$(date +%Y-%m-%d)
+     LAST_N=$(git show HEAD:docs/24-roadmap-corrections.md 2>/dev/null \
+       | grep -oP "E${TODAY}-\K[0-9]+" | sort -n | tail -1)
+     NEXT_N=$(( ${LAST_N:-0} + 1 ))
+     # Use E${TODAY}-${NEXT_N} as the new errata ID
+     ```
+   - Read from committed state (`git show HEAD:...`), never working tree — prevents parallel-session collisions
    - Title, severity (High/Medium/Low), discovery, affected files, fix
 5. Add to severity summary table
 
@@ -758,8 +766,10 @@ PENDING_IDS=$(brana backlog query --status pending --output json 2>/dev/null \
 
 STALE=()
 for id in $PENDING_IDS; do
-  # Strict word-boundary grep — "t-129" must not match "t-1293"
-  if git -C "$MAIN_ROOT" log --all --oneline -E --grep "\\b$id\\b" 2>/dev/null | grep -qE '^[0-9a-f]+ (fix|feat|merge)'; then
+  # Match only fix/feat/merge commits where the ID appears in the scope prefix, not just the body.
+  # Precision > recall: "fix(t-123):" matches; "migrate t-123 to..." or "chore(tasks): add t-123" do not.
+  if git -C "$MAIN_ROOT" log --all --oneline -E --grep "\\b$id\\b" 2>/dev/null \
+    | grep -qE "^[0-9a-f]+ (fix|feat|merge)\($id\):"; then
     STALE+=("$id")
   fi
 done
