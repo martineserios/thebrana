@@ -5,9 +5,9 @@
 ## Design Principles
 
 - **Agent results are inputs, not decisions.** The main context presents findings to the user. File modifications happen in main context after approval.
-- **All agents are read-only.** Every agent disallows Write, Edit, and NotebookEdit. Some have Bash for CLI commands (e.g., `gh`, `git`, `ruflo`).
-- **Auto-delegation is rule-based.** The `delegation-routing` rule (in `~/.claude/rules/`) defines triggers -- agents fire without being asked when the situation matches.
-- **Model selection by task complexity.** Haiku for fast/cheap work (8 agents), Sonnet for moderate analysis (2), Opus for deep reasoning (1). Challenger uses Sonnet intentionally — a different model than the Opus parent context catches blind spots the originating model can't see.
+- **Most agents are read-only.** Most agents disallow Write, Edit, and NotebookEdit. Agents with `memory: true` (challenger, debrief-analyst, memory-curator, pr-reviewer) may write to `~/.claude/agent-memory/` for cross-session recall.
+- **Auto-delegation is rule-based.** The `delegation-routing` rule (in `~/.claude/rules/`) defines triggers — agents fire without being asked when the situation matches.
+- **Model selection by task complexity.** Haiku for fast/cheap work, Sonnet for moderate analysis, Opus for deep reasoning. Challenger uses Sonnet intentionally — a different model than the Opus parent context catches blind spots the originating model can't see.
 
 ## Routing Table
 
@@ -52,6 +52,11 @@ Every agent lives at `system/agents/{name}.md`:
 name: agent-name
 description: "One-line description with 'Use when' and 'Not for' guidance."
 model: haiku          # haiku | sonnet | opus
+memory: false         # true → agent can write to ~/.claude/agent-memory/
+maxTurns: 10          # optional — caps agentic loop iterations
+permissionMode: plan  # optional — plan | bypassPermissions | default
+isolation: worktree   # optional — worktree (git isolation for the agent)
+color: purple         # optional — UI color hint for the agent bubble
 tools:
   - Bash
   - Read
@@ -67,6 +72,21 @@ disallowedTools:
 
 Instructions for the agent...
 ```
+
+### Frontmatter Field Reference
+
+| Field | Type | Default | Purpose |
+|-------|------|---------|---------|
+| `name` | string | required | Agent identifier; matches filename |
+| `description` | string | required | Routing hint — include "Use when" and "Not for" |
+| `model` | enum | inherit | `haiku` · `sonnet` · `opus` |
+| `memory` | bool | false | `true` allows writes to `~/.claude/agent-memory/` for cross-session recall |
+| `maxTurns` | int | unlimited | Caps agentic loop iterations to prevent runaway agents |
+| `permissionMode` | enum | default | `plan` requires plan approval before edits; `bypassPermissions` skips prompts |
+| `isolation` | enum | none | `worktree` gives agent a clean git worktree (auto-cleaned if no changes) |
+| `color` | string | none | UI color hint for the agent bubble in Claude Code |
+| `tools` | list | all | Allowlist of tools the agent may call |
+| `disallowedTools` | list | none | Blocklist — overrides `tools` allowlist |
 
 The `model` field controls cost and capability. The `description` includes explicit "Use when" and "Not for" guidance to help with routing decisions.
 
