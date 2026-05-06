@@ -543,7 +543,7 @@ allowed-tools: [Bash, Read, AskUserQuestion]
 
 Before solving this problem, search your accumulated knowledge:
 
-**Bound the search space first.** From [49b-auto-learning-patterns.md](../../../brana-knowledge/dimensions/49-auto-learning-patterns.md) Pattern 3 — scope blindness is the main adoption barrier for retrieval. Target 3-5 specific concepts in your query rather than broad categories ("JWT validation in FastAPI hooks" not "everything about auth"). A focused query returns 3-5 high-precision results; a broad query returns 10+ low-signal results that dilute working context.
+**Bound the search space first.** From [50-auto-learning-patterns.md](../../../brana-knowledge/dimensions/50-auto-learning-patterns.md) Pattern 3 — scope blindness is the main adoption barrier for retrieval. Target 3-5 specific concepts in your query rather than broad categories ("JWT validation in FastAPI hooks" not "everything about auth"). A focused query returns 3-5 high-precision results; a broad query returns 10+ low-signal results that dilute working context.
 
 1. Run: ruflo memory search --query "$ARGUMENTS"
 2. Review returned patterns. For each:
@@ -877,7 +877,7 @@ From [46-cc-harness-ecosystem.md](../../../brana-knowledge/dimensions/46-cc-harn
 
 ### The Ratchet and ADR-027 Auto-Learning Loop
 
-From [49b-auto-learning-patterns.md](../../../brana-knowledge/dimensions/49-auto-learning-patterns.md) Pattern 1: **default is discard, not keep.** Changes only persist if they pass a quality gate. Systems that default to "keep everything" drown in noise — brana's current design persists everything by default, inverting the ratchet principle.
+From [50-auto-learning-patterns.md](../../../brana-knowledge/dimensions/50-auto-learning-patterns.md) Pattern 1: **default is discard, not keep.** Changes only persist if they pass a quality gate. Systems that default to "keep everything" drown in noise — brana's current design persists everything by default, inverting the ratchet principle.
 
 [ADR-027](../architecture/decisions/ADR-027-auto-learning-loop.md) formalizes the 6-step auto-learning loop: EXTRACT → EVALUATE → PERSIST → DECAY → PROMOTE → TRANSFER. The ratchet lives in the EVALUATE step — without it, EXTRACT → PERSIST is a firehose. Pattern 2 (Intent/Execution Separation): humans write WHAT to learn (dimension docs = intent); agents control HOW (skills = execution). Mixing roles produces drift.
 
