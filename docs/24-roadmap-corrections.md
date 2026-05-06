@@ -16,6 +16,8 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 
 | # | Error | Severity | Status | Comments |
 |---|---|---|---|---|
+| E2026-05-06-4 | `system/rules/sdd-tdd.md` missing S-sized TDD no-exception clause — rule and backlog procedure contradicted each other on S tasks | **Medium** | resolved — 2026-05-06 | Trimmed work-preferences.md example block (475 bytes freed), added S-sized no-exception clause to sdd-tdd.md. Budget: 28374/28672 (298 bytes free). |
+| E2026-05-06-brainstorm | `system/procedures/align.md` DISCOVER phase does not detect brainstorm/research repos — applies full venture scaffold to content-only repos | **Low** | applied (2026-05-06) | Added brainstorm repo detection step: no src/ + no manifests + >80% .md → Foundation-only scope (F1, F5, F6, .gitignore). Offer override. Cascade from E154 detailed section. |
 | E2026-05-02-1 | `docs/anita-v2/plan.md` §0 implied Phase 2 schema landing = pipeline working — campaign_contacts had 0 rows; pipeline dormant until Phase 6 | **Medium** | code-fix | §0 dormant-pipeline banner + risk row added (ea6cf30). "Schema present ≠ writers wired." Same failure class as ADR-013 phantom-table. Affected: `docs/anita-v2/plan.md` |
 | E2026-05-02-2 | plan.md §10 + §11 still referenced t-363 (cancelled task) after it was superseded by direct ADR-036 authoring | **Low** | code-fix | Stripped in Pass 1 (e8826f8). Plan now shows ADR-036 status + direct link. Affected: `docs/anita-v2/plan.md` §10, §11 |
 | E2026-05-02-3 | t-247 (config loader) mis-tagged P1 / Phase 1 — is a Phase 6 prerequisite; DailySender cutover blocks on it | **Low** | code-fix | Reclassified in Pass 2 refactor (1002a9d). Subject updated, parent cleared, Phase 6 task table updated. Affected: backlog t-247, `docs/anita-v2/plan.md` §7 |
@@ -2544,7 +2546,7 @@ Doc 38 also classifies these as Wave 1 (divergent ideation — shipped) vs Wave 
 
 **Suggested fix:** Add a repo-type detection step to DISCOVER phase: if no `src/`, no manifest files, and >80% content is `.md` → classify as `brainstorm` and auto-select Foundation-only scope (F1, F5, F6, .gitignore). Log the auto-detection to the user and offer override. Alternatively: honor a `type: brainstorm` declaration in CLAUDE.md.
 
-**Status:** pending
+**Status:** applied (2026-05-06) — Brainstorm detection step added to `system/procedures/align.md` Phase 0: DISCOVER. Detects no src/ + no manifests + >80% .md → Foundation-only scope with override offer. Table entry E2026-05-06-brainstorm added.
 
 ## Error E2026-04-19-1: Tracy returns 200 with empty body for empty cart
 

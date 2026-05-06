@@ -31,6 +31,26 @@ Before assessment, gather context. This shapes tier, CLAUDE.md content, and impl
 
 Same detection as `/brana:onboard`: check for manifests (code) and venture dirs/keywords (venture). Classify as code, venture, or hybrid.
 
+### Brainstorm / research repo detection (errata #154)
+
+Before applying the venture or code checklist, check for content-only repos:
+
+```bash
+total=$(find . -not -path '*/.*' -type f | wc -l)
+md=$(find . -not -path '*/.*' -name '*.md' -type f | wc -l)
+has_src=$([ -d src ] && echo 1 || echo 0)
+has_manifest=$(ls package.json Cargo.toml pyproject.toml setup.py go.mod 2>/dev/null | wc -l)
+```
+
+**Classify as `brainstorm`** if:
+- No `src/` directory AND no manifest files AND >80% of files are `.md`
+- OR `type: brainstorm` declared in `.claude/CLAUDE.md`
+
+**On brainstorm detection:** Auto-select Foundation-only scope: F1, F5, F6, .gitignore. Skip venture/code checklists entirely. Log to user:
+> "Brainstorm/research repo detected (no src/, no manifests, >80% markdown). Applying Foundation-only scope (F1, F5, F6, .gitignore). Override with 'full venture' or 'full code' to run the complete checklist."
+
+Offer override before proceeding.
+
 ### Greenfield questions
 1. What is this project? One-sentence description.
 2. Tech stack? (code) / Business model? (venture)
