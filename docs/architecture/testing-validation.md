@@ -77,6 +77,17 @@ Ensures no two skills share the same `name:` field. Duplicate names would cause 
 
 Flags any file in `system/` over 50KB. Large files indicate content that should be split or externalized.
 
+### Check 8b: Propose-First Convention
+
+Scans all `system/procedures/*.md` for `AskUserQuestion` calls and verifies the propose-first rule:
+
+- Every procedure file that contains `AskUserQuestion` must also contain at least one `(Recommended)` label on an option
+- **Pass:** all procedures with AskUserQuestion calls have a `(Recommended)` option
+- **Warn:** lists procedure filenames that have `AskUserQuestion` but no `(Recommended)` anywhere in the file
+- Skip if no `system/procedures/` directory
+
+**Common failures:** adding a new `AskUserQuestion` block without marking the default option `(Recommended)`.
+
 ### Check 9: Hook Scripts
 
 For each `system/hooks/*.sh`:
@@ -97,6 +108,17 @@ For `system/settings.json` (if present):
 
 - Hook event names are valid
 - Warns that settings.json hooks should be empty in v0.7.0+ (use hooks.json or bootstrap)
+
+### Check 9b: Hook Shared Libs
+
+Validates `system/hooks/lib/` (the shared library directory for hook scripts):
+
+- Each `hooks/lib/*.sh` passes `bash -n` syntax check
+- Source contract for `git-helpers.sh`: any hook that calls `resolve_lookup_dir` or `extract_git_c_dir` must `source` `git-helpers.sh`
+- Source contract for `layer1-paths.sh`: any hook that calls `is_layer1_file` must `source` `layer1-paths.sh`
+- Skip if no `system/hooks/lib/` directory (the shared lib is optional — older deployments may not have it)
+
+**Common failures:** adding a new helper function to `hooks/lib/` and forgetting to `source` it from the hooks that use it.
 
 ### Check 10: Commands
 
