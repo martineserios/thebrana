@@ -589,6 +589,82 @@ STRIPPED16B=$(strip_ansi "$OUTPUT16B")
 
 assert_not_contains "decay: hidden when <50%" "stale" "$STRIPPED16B"
 
+# ── Test 17: Two-line layout — line 2 emitted when segments exist ─────────
+echo ""
+echo "--- 17. Two-line layout: line 2 rendered when slow-cache segments present ---"
+
+DIR17="$TMPDIR/int17"
+mkdir -p "$DIR17/.claude"
+cd "$DIR17" && git init -q && git commit --allow-empty -m "init" -q
+
+write_tasks "$DIR17/.claude/tasks.json" \
+    '{"id":"t-40","subject":"Two-line task","status":"in_progress","type":"task","stream":"roadmap"}'
+
+SLOW17="$TMPDIR/slow17.tsv"
+printf '1500\t2026-04-05\t200\t5\t3\t2026-04-07T12:00:00\n' > "$SLOW17"
+
+OUTPUT17=$(run_statusline "$DIR17" \
+    BRANA_STATUSLINE_COLS=200 \
+    BRANA_SESSION_SCORE_FILE=/dev/null \
+    BRANA_SLOW_CACHE_FILE="$SLOW17")
+
+# Count non-empty lines in the raw output
+LINE_COUNT17=$(printf '%s' "$OUTPUT17" | grep -c '.' || true)
+TOTAL=$((TOTAL + 1))
+if (( LINE_COUNT17 >= 2 )); then
+    echo "  PASS: two-line: output has $LINE_COUNT17 lines (>= 2)"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL: two-line: expected >= 2 lines, got $LINE_COUNT17"
+    echo "    output: $OUTPUT17"
+    FAIL=$((FAIL + 1))
+fi
+
+# Line 1 has model + CTX; line 2 has knowledge:
+LINE1_17=$(printf '%s' "$(strip_ansi "$OUTPUT17")" | sed -n '1p')
+LINE2_17=$(printf '%s' "$(strip_ansi "$OUTPUT17")" | sed -n '2p')
+
+assert_contains "two-line L1: model on line 1" "Haiku" "$LINE1_17"
+assert_contains "two-line L1: CTX on line 1" "CTX" "$LINE1_17"
+assert_contains "two-line L2: knowledge on line 2" "knowledge:" "$LINE2_17"
+assert_contains "two-line L2: lines +/- on line 2" "+100" "$LINE2_17"
+
+# ── Test 18: Line 2 exists but no knowledge when no slow-cache ────────────
+echo ""
+echo "--- 18. Two-line: line 2 has lines segment but no knowledge without slow-cache ---"
+
+DIR18="$TMPDIR/int18"
+mkdir -p "$DIR18/.claude"
+cd "$DIR18" && git init -q && git commit --allow-empty -m "init" -q
+
+write_tasks "$DIR18/.claude/tasks.json" \
+    '{"id":"t-41","subject":"Single-line task","status":"in_progress","type":"task","stream":"roadmap"}'
+
+OUTPUT18=$(run_statusline "$DIR18" \
+    BRANA_STATUSLINE_COLS=200 \
+    BRANA_SESSION_SCORE_FILE=/dev/null \
+    BRANA_SLOW_CACHE_FILE="$TMPDIR/nonexistent-slow-18.tsv")
+
+# The lines (+N -N) segment always lives on line 2 — output is always two lines
+LINE_COUNT18=$(printf '%s' "$OUTPUT18" | grep -c '.' || true)
+TOTAL=$((TOTAL + 1))
+if (( LINE_COUNT18 >= 2 )); then
+    echo "  PASS: no-slow-cache: output still has $LINE_COUNT18 lines (lines segment on L2)"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL: no-slow-cache: expected >= 2 lines (lines segment always on L2), got $LINE_COUNT18"
+    echo "    output: $OUTPUT18"
+    FAIL=$((FAIL + 1))
+fi
+
+LINE1_18=$(printf '%s' "$(strip_ansi "$OUTPUT18")" | sed -n '1p')
+LINE2_18=$(printf '%s' "$(strip_ansi "$OUTPUT18")" | sed -n '2p')
+
+assert_contains "no-slow-cache L1: model on line 1" "Haiku" "$LINE1_18"
+assert_contains "no-slow-cache L1: task on line 1" "Single-line task" "$LINE1_18"
+assert_contains "no-slow-cache L2: lines segment on line 2" "+100" "$LINE2_18"
+assert_not_contains "no-slow-cache L2: no knowledge segment on line 2" "knowledge:" "$LINE2_18"
+
 # ── Summary ──────────────────────────────────────────────
 echo ""
 echo "Results: ${PASS}/${TOTAL} passed, ${FAIL} failed"
