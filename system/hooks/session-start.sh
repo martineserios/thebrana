@@ -290,7 +290,11 @@ BRANA_BIN=""
 
 if [ -z "${BRANA_RECAP_OFF:-}" ] && [ -n "$BRANA_BIN" ]; then
     # Try structured JSON first (new session-state.json)
-    SESSION_JSON=$("$BRANA_BIN" session read --json 2>/dev/null) || SESSION_JSON=""
+    # brana session read resolves project from CWD; hook starts in /tmp so
+    # we must run it from GIT_ROOT or it reads the wrong (-tmp) project.
+    SESSION_JSON=$(cd "$GIT_ROOT" 2>/dev/null && "$BRANA_BIN" session read --json 2>/dev/null) || SESSION_JSON=""
+    # Discard auto-captured stub (session-end hook fallback, no useful next[])
+    if echo "$SESSION_JSON" | grep -q '"auto-captured'; then SESSION_JSON=""; fi
     if [ -n "$SESSION_JSON" ]; then
         HO_LABEL=$(echo "$SESSION_JSON" | jq -r '.session_label // empty' 2>/dev/null) || true
         HO_DATE=$(echo "$SESSION_JSON" | jq -r '.written_at // empty' 2>/dev/null | cut -dT -f1) || true
@@ -308,8 +312,8 @@ Next: $HO_NEXT"
 Blockers: $HO_BLOCKERS"
         fi
 
-        # Mark consumed (optimistic write-first)
-        "$BRANA_BIN" session mark-consumed 2>/dev/null || true
+        # Mark consumed (optimistic write-first) — must also run from GIT_ROOT
+        (cd "$GIT_ROOT" 2>/dev/null && "$BRANA_BIN" session mark-consumed 2>/dev/null) || true
     else
         # Fallback: try legacy markdown handoff
         HANDOFF_RAW=$("$BRANA_BIN" handoff last 2>/dev/null) || true
