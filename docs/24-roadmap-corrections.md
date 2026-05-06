@@ -2738,3 +2738,17 @@ Doc 38 also classifies these as Wave 1 (divergent ideation — shipped) vs Wave 
 | 6 | ARCHITECTURE.md | Stale | "thebrana has no `brana deploy` command" — contradicts new hint command | Applied — updated sentence to acknowledge hint |
 
 **Propagation domain:** 0 pending errata — cascade skipped. Spec-graph rebuilt (356 nodes, 1471 edges, 87 orphans — no change).
+
+---
+
+### E2026-05-06-4 — sdd-tdd.md rule diverges from backlog procedure on S-sized TDD gate
+
+**Severity:** Medium — rule layer and procedure layer contradict each other; implementers who read only the rule may skip the TDD gate for S-sized tasks.
+**Discovery:** 2026-05-06 — t-1032 (TDD gate enforcement for `/brana:backlog plan`). After strengthening `system/procedures/backlog.md` step 11 to say "no exception for S-sized builds," attempted to add matching language to `system/rules/sdd-tdd.md`. The pre-commit budget gate blocked the update: always-loaded context was 28644/28672 bytes (28 bytes free), adding ~330 bytes to the rule caused overflow.
+**Affected files:** `system/rules/sdd-tdd.md` (missing S-size language), `system/procedures/backlog.md` (has the correct language in step 11)
+
+**Gap:** `sdd-tdd.md` is always-loaded (no `paths:` scope), so any addition is subject to the 28672-byte budget. The procedure file is only loaded when `/brana:build` is active — it has no budget pressure. This creates a structural split: the authoritative TDD rule lacks the S-sized clause that the procedure enforces.
+
+**Fix:** Trim `sdd-tdd.md` to create headroom (target: ≥400 bytes free), then add the S-sized no-exception clause to the rule. Tracked as follow-up to t-1032.
+
+**Status:** pending

@@ -105,3 +105,15 @@ Source: close session 2026-04-20 / feedback-gate t-1312
 ### 2026-04-22: filter predicates — raw field match only, never classify() output
 `filter_tasks(status=...)` in `brana-core/src/tasks.rs` must compare the raw `task.status` field against the CLI `TaskStatus` enum value. It must **not** compare `classify()` output, which returns display synthetics (`done`/`active`/`blocked`/`parked`) that no user-facing enum exposes. Bug t-1323 silently contaminated every `brana backlog query --status completed|cancelled|in_progress` result with 40/96 incorrectly-matched items because `classify() != enum_input` was always true. Rule: any filter predicate compares **raw stored values**; computed/display values go in a post-hoc `retain` after the primary filter (see `cmd_next` — applies `classify(t) == "pending"` post-hoc to exclude blocked/parked).
 Source: triage session 2026-04-22 / t-1323
+
+### 2026-05-06: grep -E \| is NOT alternation — bare | required in ERE
+In `grep -E` (ERE), alternation is bare `|`. Writing `\|` in ERE matches a literal pipe character. This is opposite of BRE where `\|` is alternation. Test assertions using `grep -qE "a\|b"` always fail (or behave unexpectedly). Use `grep -q "a"` and `grep -q "b"` separately, or `grep -qE "a|b"` with bare pipe.
+Source: close session 2026-05-06 / test-backlog-plan-tdd-gate.sh assertions
+
+### 2026-05-06: Full unstage = git restore --staged + git checkout
+`git checkout -- <file>` restores the working tree from HEAD but does not clear the index. If a file is staged, it remains staged. To fully discard: `git restore --staged <file> && git checkout -- <file>`, or the single combined form `git restore --source=HEAD --staged --worktree <file>`.
+Source: close session 2026-05-06 / sdd-tdd.md budget revert
+
+### 2026-05-06: Statusline line 2 always exists — assert segment content, not line existence
+The brana statusline `+N -N` lines-changed segment is added unconditionally via `add_l2` regardless of slow-cache availability. Line 2 is always emitted when there are git line changes. Knowledge freshness and corrections segments on line 2 are conditional on slow-cache. Test assertions must check what each line contains, not whether a line exists.
+Source: close session 2026-05-06 / t-1084 statusline two-line test
