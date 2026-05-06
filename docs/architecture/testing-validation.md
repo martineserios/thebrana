@@ -119,6 +119,126 @@ For each skill with a `depends_on` field:
 - Every listed dependency has a corresponding `system/skills/{dep}/` directory
 - Catches typos and references to deleted skills
 
+### Check 13: Count Drift
+
+For each `docs/reflections/*.md`:
+
+- Counts actual items in `system/`: skills (excluding `acquired/`), rules (excluding `README.md`), agents
+- Scans each doc for hardcoded count patterns: `(N skills:`, `has N agents`, `deploys N rules`, etc.
+- **Warn** when a doc count differs from actual and is within 30% of actual (distant numbers are assumed unrelated)
+- Shows `skills=N, rules=N, agents=N` in warning output
+
+**Common failures:**
+- Adding a skill/rule/agent without updating reflection docs that mention the total
+- Fix: remove hardcoded counts and link to the auto-generated reference, or write "all skills" instead of "27 skills"
+
+### Check 14: Spec-Graph Coverage
+
+Requires `docs/spec-graph.json`.
+
+- Collects all `*.md`, `*.sh`, `*.json`, `*.py` files under `system/`
+- Checks each against the `impl_files` arrays in all spec-graph nodes
+- **Warn** for each undocumented file (up to 5 listed; `…and N more` for the rest)
+- Skipped silently if `spec-graph.json` is absent
+
+### Checks 15–18: Knowledge Architecture
+
+Run in the full suite. Skipped only by `--scale-triggers`. Use `--assumptions-only` to run Check 15 in isolation.
+
+```bash
+./validate.sh --assumptions-only   # run only assumption freshness (Check 15)
+./validate.sh                      # full run includes 15-18
+```
+
+### Check 15: Assumption Freshness
+
+Scans `docs/**/*.md` and `brana-knowledge/dimensions/*.md` for `## Assumptions` sections with `last_verified` dates.
+
+- Three tiers (per-row `Tier` column overrides doc-level `confidence_tier` frontmatter when present):
+  | Tier | Max age |
+  |------|---------|
+  | `tech` (default) | 6 months |
+  | `architecture` | 18 months |
+  | `methodology` | 36 months |
+- **Warn** when a verified date exceeds the tier threshold
+- **Grace period**: docs modified within `--grace-days` (default 7 days) are skipped entirely
+
+### Check 16: Changelog Currency
+
+For docs that have a `## Changelog` section:
+
+- Compares the doc's last git commit date against the most recent date in the changelog
+- **Warn** if the doc was committed more than 24 hours after the latest changelog entry
+- Skipped for docs modified within the grace period
+
+### Check 17: Status Consistency
+
+For docs with `status: active` in YAML frontmatter:
+
+- Gets the last git modification date
+- **Warn** if no changes in 12+ months — suggests updating to `status: historic`
+
+### Check 18: Graph Integrity
+
+Requires `docs/spec-graph.json`. Two sub-checks:
+
+- **Orphaned edges**: each `typed_edges` `from`/`to` must reference a node that exists in the graph
+- **Unresolvable assumptions**: assumption slugs in `typed_edges` (prefixed `assumption:`) must fuzzy-match a `## Assumptions` row in at least one doc (≥50% term overlap)
+- Both are **Warn** (not Fail)
+- Skipped if `spec-graph.json` not found
+
+### Checks 19–22: Scale Triggers
+
+Scale triggers fire when usage crosses a threshold that activates a deferred task. Use `--scale-triggers` to run only these.
+
+```bash
+./validate.sh --scale-triggers   # run scale triggers + Checks 23-26
+./validate.sh                    # full run includes scale triggers
+```
+
+### Check 19: Graph Node Count
+
+- Counts nodes in `spec-graph.json`
+- **Warn** if `> 500` nodes — signals to evaluate AgentDB Cypher activation (see t-435)
+- Skipped if `spec-graph.json` not found
+
+### Check 20: Ruflo Entry Count
+
+- Queries `~/.claude-flow/memory.db` for total entry count
+- **Warn** if `> 10,000` entries — signals to consider knowledge pipeline temperature tiering
+- Skipped if ruflo DB or `sqlite3` unavailable
+
+### Check 21: Typed Edges Per Node
+
+- Finds the spec-graph node with the most typed edge connections
+- **Warn** if max `> 10` — signals to consider GraphRAG for dense subgraphs (see t-105)
+- Reports the hotspot node name and edge count
+
+### Check 22: Cross-Client Field Note Count
+
+- Counts `## Field Notes` bullet items across `docs/`, `brana-knowledge/dimensions/`, and `clients/*/docs`
+- **Warn** if total `> 50` — signals to consider witness chains for field note provenance (see t-436)
+
+### Checks 23–24: Contract Enforcement
+
+Always run regardless of flags (`--assumptions-only`, `--scale-triggers`, `--semantic` do not skip them).
+
+### Check 23: Skill Routing Contract
+
+Three sub-checks verifying the JIT skill acquisition flow is correctly wired. All are **Fail** (not Warn).
+
+- **23a**: `system/procedures/backlog.md` contains "MANDATORY acquisition offer" in step 5d
+- **23b**: `system/procedures/backlog.md` writes a `skill_gap_checked` breadcrumb to task context
+- **23c**: `system/procedures/build.md` step 4a reads `skill_gap_checked` as a safety net when backlog step 5 is skipped
+
+### Check 24: `.mcp.json` Entries
+
+For each server in `.mcp.json`:
+
+- **Fail** if `command` uses `npx` or `uvx` — ephemeral binaries break across environments
+- All MCP servers must use pinned wrapper scripts per ADR-033
+- **Warn** if `.mcp.json` is not found at the repo root
+
 ### Check 25: tasks.json Priority Enum Hygiene
 
 Reads `.claude/tasks.json` and fails if any task has a `priority` value outside the canonical enum.
