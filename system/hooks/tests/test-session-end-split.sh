@@ -266,6 +266,88 @@ assert_file_exists "T8: sync-state push was called" "$T8_SYNC_CALLED"
 
 # ──────────────────────────────────────────────────────────────
 echo ""
+echo "── session-end-persist.sh: CWD drift (t-1349) ──────────"
+# ──────────────────────────────────────────────────────────────
+
+# T9: persist.sh called from CWD=/tmp with GIT_ROOT=/real/project
+#     must write session-state.json to the real project path, not to /tmp.
+#     Root cause: session-end.sh does `cd /tmp`; without `cd "$GIT_ROOT"` before
+#     `brana session path`, the CLI resolves -tmp- instead of the real project.
+
+T9_PROJECT="$TMPDIR_ROOT/t9-project"
+T9_FAKE_HOME="$TMPDIR_ROOT/t9-home"
+T9_SESSION="$TMPDIR_ROOT/t9-session.jsonl"
+BRANA_REAL="/home/martineserios/.local/bin/brana"
+
+# Build a real git repo so brana session path resolves correctly from T9_PROJECT
+mkdir -p "$T9_PROJECT"
+git -C "$T9_PROJECT" init -q -b main 2>/dev/null
+git -C "$T9_PROJECT" config user.email "test@test.com"
+git -C "$T9_PROJECT" config user.name "Test"
+echo "init" > "$T9_PROJECT/init.txt"
+git -C "$T9_PROJECT" add -A && git -C "$T9_PROJECT" commit -q -m "init" 2>/dev/null
+
+# Fake home: disable ruflo (CF="") so persist.sh falls through to brana session write
+mkdir -p "$T9_FAKE_HOME/.claude/scripts"
+echo 'CF=""' > "$T9_FAKE_HOME/.claude/scripts/cf-env.sh"
+
+# Session events: 5 edits + 1 correction = correction_rate 0.20, events > 0
+for i in 1 2 3 4 5; do
+    printf '{"ts":%d,"tool":"Edit","outcome":"success","detail":"src/main.rs"}\n' $i >> "$T9_SESSION"
+done
+printf '{"ts":6,"tool":"Edit","outcome":"correction","detail":"src/main.rs"}\n' >> "$T9_SESSION"
+
+# Find the correct session-state.json path (what brana would write when CWD=T9_PROJECT)
+CORRECT_PATH=$(cd "$T9_PROJECT" && HOME="$T9_FAKE_HOME" "$BRANA_REAL" session path 2>/dev/null) || CORRECT_PATH=""
+
+if [ -z "$CORRECT_PATH" ]; then
+    TOTAL=$((TOTAL + 1))
+    echo "  SKIP: T9: brana session path unavailable — skipping CWD drift test"
+    PASS=$((PASS + 1))
+else
+    # Run persist.sh from CWD=/tmp (simulating session-end.sh's `cd /tmp`)
+    # GIT_ROOT is set to the real project, but CWD is /tmp — the bug
+    EXIT_CODE=0
+    (
+        cd /tmp
+        HOME="$T9_FAKE_HOME" \
+        GIT_ROOT="$T9_PROJECT" \
+        PROJECT="t9-project" SESSION_ID="sess-t9" \
+        TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        SESSION_FILE="$T9_SESSION" \
+        TOTAL=6 SUCCESSES=5 FAILURES=0 CORRECTIONS=1 TEST_WRITES=0 CASCADES=0 \
+        PR_CREATES=0 TEST_PASSES=0 TEST_FAILS=0 LINT_PASSES=0 LINT_FAILS=0 \
+        EDITS=6 DELEGATIONS=0 \
+        CORRECTION_RATE="0.17" AUTO_FIX_RATE="0.00" TEST_WRITE_RATE="0.00" \
+        CASCADE_RATE="0.00" TEST_PASS_RATE="N/A" LINT_PASS_RATE="N/A" \
+        SUMMARY_JSON='{}' TOOLS="Edit" FILES="src/main.rs" \
+        LAYER0_DIR="" STORED_L1="false" \
+        BRANA_CLI="$BRANA_REAL" \
+            bash "$HOOKS_DIR/session-end-persist.sh" 2>/dev/null
+    ) || EXIT_CODE=$?
+
+    TOTAL=$((TOTAL + 1))
+    if [ -f "$CORRECT_PATH" ]; then
+        EVENTS_IN_STATE=$(jq -r '.metrics.events // 0' "$CORRECT_PATH" 2>/dev/null) || EVENTS_IN_STATE=0
+        if [ "${EVENTS_IN_STATE}" -gt 0 ] 2>/dev/null; then
+            echo "  PASS: T9: persist.sh with CWD=/tmp writes metrics to correct project path (events=$EVENTS_IN_STATE)"
+            PASS=$((PASS + 1))
+        else
+            echo "  FAIL: T9: persist.sh with CWD=/tmp wrote to correct path but metrics.events=0 (expected >0)"
+            echo "    correct_path: $CORRECT_PATH"
+            echo "    content: $(jq -c '.metrics' "$CORRECT_PATH" 2>/dev/null || echo 'unreadable')"
+            FAIL=$((FAIL + 1))
+        fi
+    else
+        echo "  FAIL: T9: persist.sh did not write session-state.json to correct project path"
+        echo "    expected: $CORRECT_PATH"
+        echo "    (CWD=/tmp caused brana to write to wrong location — t-1349)"
+        FAIL=$((FAIL + 1))
+    fi
+fi
+
+# ──────────────────────────────────────────────────────────────
+echo ""
 echo "── Results ──────────────────────────────────────────────"
 echo "  Total: $TOTAL  Pass: $PASS  Fail: $FAIL"
 if [ "$FAIL" -gt 0 ]; then
