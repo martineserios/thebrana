@@ -32,7 +32,7 @@ No way to check task status, scheduler health, or system state from a terminal w
 
 ## Constraints
 
-- Task writes supported: `set` (field mutations), `add` (new tasks), `rollup` (parent auto-complete), `sync` (GitHub Issues sync)
+- Task writes supported: `set` (field mutations), `add` (new tasks), `complete` (set status completed), `rollup` (parent auto-complete), `sync` (GitHub Issues sync)
 - Scheduler writes allowed: `enable`, `disable`, `run` have no skill equivalent
 - Must render identically to `/brana:backlog` for overlapping views (status, next)
 - Theme definitions live in `themes.json` (single source of truth for both CLI and SKILL.md)
@@ -40,7 +40,7 @@ No way to check task status, scheduler health, or system state from a terminal w
 
 ## Scope
 
-### `brana backlog` — 20 subcommands
+### `brana backlog` — 21 subcommands
 
 | Command | Args | Description | Read/Write |
 |---------|------|-------------|------------|
@@ -63,6 +63,7 @@ No way to check task status, scheduler health, or system state from a terminal w
 | `roadmap` | — | Full roadmap tree (phases → milestones → tasks) | Read |
 | `tree` | `<phase-or-milestone-id>`, `--depth N` | Subtree of a phase or milestone (ASCII) | Read |
 | `sync` | — | Sync tasks with GitHub Issues (parallel, via `gh api`) | **Write** |
+| `complete` | `<id>` | Mark task as completed (alias for `set <id> status completed`) | **Write** |
 | `help` | — | Print help | — |
 
 ### `brana ops` — 12 subcommands
@@ -94,7 +95,7 @@ No way to check task status, scheduler health, or system state from a terminal w
 
 Implementation: [system/cli/rust/src/files.rs](../../../system/cli/rust/src/files.rs) (data model, manifest I/O, SHA-256 verification), [system/cli/rust/src/commands/files.rs](../../../system/cli/rust/src/commands/files.rs) (CLI handlers).
 
-### `brana` top-level — 8 subcommands
+### `brana` top-level — 9 subcommands
 
 | Command | Description |
 |---------|-------------|
@@ -106,6 +107,7 @@ Implementation: [system/cli/rust/src/files.rs](../../../system/cli/rust/src/file
 | `agents` | List or manage active agents |
 | `files` | Large file tracking via `.brana-files.json` manifest (SHA-256, HTTP/R2 remotes) |
 | `version` | Show brana system version, plugin version, ruflo version |
+| `deploy` | Print deployment workflow: merge feat branch to main (no build step, no container) |
 
 ## Research
 

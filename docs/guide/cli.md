@@ -48,6 +48,7 @@ Full read/write — set, add, rollup, sync all work from CLI.
 | `brana backlog tree <id> [--json]` | — | Subtree of a phase or milestone |
 | `brana backlog rollup [--dry-run]` | — | Auto-complete parents (all children done) |
 | `brana backlog sync [--dry-run] [--force]` | — | Sync tasks with GitHub Issues (parallel gh api) |
+| `brana backlog complete <id>` | — | Mark task completed (alias for `set <id> status completed`) |
 
 ### `brana ops` — Scheduler & System Operations
 
@@ -139,6 +140,7 @@ Multi-account Gmail via IMAP with OS keyring credential storage.
 | `brana agents [kill <id>]` | — | List or kill active agents |
 | `brana transcribe <file> [--model base]` | — | Audio to text via whisper.cpp (`libwhisper.so.1` injected automatically from `$HOME/.local/lib`) |
 | `brana version` | `bv` | Show CLI version |
+| `brana deploy` | — | Print deployment workflow (merge to main — no build step) |
 
 ## Theming
 

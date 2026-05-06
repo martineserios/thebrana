@@ -194,6 +194,8 @@ Extracted fields:
 This is sufficient for relevance scoring (Tier 1) and cluster assignment (Tier 2).
 Full content fetch deferred to v2 (t-1144) pending a LinkedIn auth strategy.
 
+**Tier 2 backfill (t-1149):** Records ingested before `author`/`title_signal` fields existed have neither field populated. Tier 2 (`run_tier2()`) auto-backfills both fields from the URL path at processing time — no re-ingestion needed. Idempotent: already-populated fields are not overwritten.
+
 ## LLM call mechanism — locked (2026-04-12)
 
 **Shell out to `claude` CLI. No Anthropic API key.**

@@ -185,7 +185,7 @@ Skills can run headless via `claude -p "Execute /skill-name"` — the scheduler 
 
 ## Deployment Model
 
-thebrana has no `brana deploy` command. **The file system IS the deployment.**
+thebrana deploys via `git merge to main`. `brana deploy` prints the deployment workflow (merge instructions, no build step). **The file system IS the deployment.**
 
 Skills, hooks, rules, and agents load from disk at session start — so the act of merging to `main` is the act of deploying. No build step, no pipeline.
 
