@@ -710,9 +710,21 @@ Audit every entry in MEMORY.md using the **"Where to store what"** classificatio
    | **Feature idea** (gap, wish, improvement) | Create task via `backlog_add()` (MCP) or `brana backlog add`, then delete |
    | **True memory** (external API, pointers, non-derivable context) | Keep |
 
-3. **Execute moves** — for directives and conventions, create/update the target file and delete from MEMORY.md
-4. **Feature ideas** — search existing tasks first: `backlog_search(query: "keyword")` (MCP) or `brana backlog search "keyword"`. If duplicate, just delete. If new, `backlog_add(subject: "...", stream: "...", task_type: "task")` (MCP) or `brana backlog add --json '{"subject":"...","stream":"...","type":"task"}'`
-5. **Report** — entries moved, deleted, kept, and feature ideas extracted
+3. **Before executing any writes**, activate the sentinel so `feedback-gate.sh` passes through:
+   ```bash
+   touch /tmp/brana-close-active
+   ```
+
+4. **Execute moves** — for directives and conventions, create/update the target file and delete from MEMORY.md
+
+5. **Feature ideas** — search existing tasks first: `backlog_search(query: "keyword")` (MCP) or `brana backlog search "keyword"`. If duplicate, just delete. If new, `backlog_add(subject: "...", stream: "...", task_type: "task")` (MCP) or `brana backlog add --json '{"subject":"...","stream":"...","type":"task"}'`
+
+6. **After all writes are complete**, clean up the sentinel:
+   ```bash
+   rm -f /tmp/brana-close-active
+   ```
+
+7. **Report** — entries moved, deleted, kept, and feature ideas extracted
 
 **Skip if:** session was read-only, or MEMORY.md has fewer than 5 entries.
 
