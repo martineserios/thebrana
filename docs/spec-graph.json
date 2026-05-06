@@ -1,5 +1,5 @@
 {
-  "generated": "2026-04-20T21:18:08Z",
+  "generated": "2026-05-06T19:45:25Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -123,13 +123,6 @@
       "type": "Dimension",
       "impl_files": []
     },
-    "brana-knowledge/dimensions/37-ruvnet-development-practices.md": {
-      "title": "37 — RuvNet Development Practices",
-      "type": "Dimension",
-      "impl_files": [
-        "system/skills/"
-      ]
-    },
     "brana-knowledge/dimensions/38-design-thinking.md": {
       "title": "38 — Design Thinking",
       "type": "Dimension",
@@ -187,8 +180,28 @@
       "type": "Dimension",
       "impl_files": []
     },
-    "brana-knowledge/dimensions/49-auto-learning-patterns.md": {
+    "brana-knowledge/dimensions/50-auto-learning-patterns.md": {
       "title": "49 — Auto-Learning Patterns for Agent Harnesses",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/50-respond-io-platform.md": {
+      "title": "50 — Respond.io Platform (refactored)",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/51-chatwoot-platform.md": {
+      "title": "51 — Chatwoot Platform (refactored)",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/53-bigin-crm-platform.md": {
+      "title": "53 — Bigin CRM Platform (refactored)",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/54-meta-whatsapp-template-api.md": {
+      "title": "Meta WhatsApp Template API — Programmatic Submission",
       "type": "Dimension",
       "impl_files": []
     },
@@ -197,8 +210,28 @@
       "type": "Dimension",
       "impl_files": []
     },
+    "brana-knowledge/dimensions/ai-coding-agent-contracts.md": {
+      "title": "AI Coding Agent Contracts",
+      "type": "Dimension",
+      "impl_files": []
+    },
     "brana-knowledge/dimensions/alternative-education-methodologies.md": {
       "title": "Alternative Education Methodologies",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/api-channel-bridge-pattern.md": {
+      "title": "API Channel Bridge Pattern",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/automated-quality-gating.md": {
+      "title": "Automated Quality Gating",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/bigin-case-study.md": {
+      "title": "Bigin CRM — Platform Case Study",
       "type": "Dimension",
       "impl_files": []
     },
@@ -216,6 +249,11 @@
         "system/hooks/"
       ]
     },
+    "brana-knowledge/dimensions/chatwoot-case-study.md": {
+      "title": "Chatwoot — Platform Case Study",
+      "type": "Dimension",
+      "impl_files": []
+    },
     "brana-knowledge/dimensions/cli-builder-rust-bash-devops.md": {
       "title": "CLI Builder: Rust + Bash + DevOps",
       "type": "Dimension",
@@ -225,6 +263,31 @@
     },
     "brana-knowledge/dimensions/client-retention-engagement.md": {
       "title": "Client Retention & Engagement Systems for Service Businesses",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/contract-operations-platforms.md": {
+      "title": "Contract / Operations Platforms — Data Modeling Patterns",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/crm-bulk-async-ingestion.md": {
+      "title": "CRM Bulk Async Ingestion Pattern",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/declarative-query-coql.md": {
+      "title": "Declarative Query Pattern (COQL / SQL-like Non-SQL APIs)",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/desktop-app-frameworks.md": {
+      "title": "Desktop App Frameworks",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/dynamic-form-flows-messaging.md": {
+      "title": "Dynamic Form Flows over Messaging Channels",
       "type": "Dimension",
       "impl_files": []
     },
@@ -238,6 +301,14 @@
       "type": "Dimension",
       "impl_files": []
     },
+    "brana-knowledge/dimensions/mcp-server-design-patterns.md": {
+      "title": "MCP Server Design Patterns",
+      "type": "Dimension",
+      "impl_files": [
+        "thebrana/system/skills/brana:mcp-builder/SKILL.md",
+        "system/skills/brana:mcp-builder/SKILL.md"
+      ]
+    },
     "brana-knowledge/dimensions/meta-whatsapp-template-classification.md": {
       "title": "standalone — superseded by dimensions/meta-whatsapp-templates.md (which has supersedes: pointing here)",
       "type": "Dimension",
@@ -248,6 +319,36 @@
       "type": "Dimension",
       "impl_files": []
     },
+    "brana-knowledge/dimensions/oauth-self-client-flow.md": {
+      "title": "OAuth 2.0 Self-Client Flow (Server-to-Server)",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/omnichannel-ai-agent-frameworks.md": {
+      "title": "Omnichannel AI Agent Frameworks",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/omnichannel-inbox-domain-model.md": {
+      "title": "Omnichannel Inbox Domain Model",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/respond-io-case-study.md": {
+      "title": "Respond.io — Platform Case Study",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/ruvnet-case-study.md": {
+      "title": "RuvNet — Case Study",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/serverless-edge-functions-platforms.md": {
+      "title": "Serverless Edge Functions on Cloudflare Workers",
+      "type": "Dimension",
+      "impl_files": []
+    },
     "brana-knowledge/dimensions/smb-marketing-channels.md": {
       "title": "SMB Marketing: Channels, Content Strategy & Lead Conversion",
       "type": "Dimension",
@@ -255,6 +356,21 @@
     },
     "brana-knowledge/dimensions/software-engineering-patterns.md": {
       "title": "Software Engineering Patterns, Practices & Architectures",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/tolaria-case-study.md": {
+      "title": "Tolaria — Case Study",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/whatsapp-bsp-architecture.md": {
+      "title": "WhatsApp BSP Architecture",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/ycloud-case-study.md": {
+      "title": "YCloud — Case Study",
       "type": "Dimension",
       "impl_files": []
     },
@@ -345,7 +461,8 @@
         "system/hooks/main-guard.sh",
         "system/skills/align/procedures/align.md",
         "system/hooks/tests/test-main-guard.sh",
-        "system/cli/rust/crates/brana-cli/src/commands/"
+        "system/cli/rust/crates/brana-cli/src/commands/",
+        "system/procedures/close.md"
       ]
     },
     "docs/25-self-documentation.md": {
@@ -498,7 +615,6 @@
         "system/state/event-log.md",
         "system/state/tasks-portfolio.json",
         "system/state/tasks-config.json",
-        "system/state/{file",
         "system/scripts/export-patterns.sh",
         "system/state/patterns-export.json",
         "system/scripts/import-patterns.sh",
@@ -756,6 +872,11 @@
     },
     "docs/architecture/features/context-budget-real-limits.md": {
       "title": "Feature: Context Budget Real Limits",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/architecture/features/doc-frontmatter-spec.md": {
+      "title": "Doc Frontmatter Specification",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -1017,12 +1138,14 @@
       "impl_files": [
         "system/hooks/hooks.json",
         "system/",
+        "system/hooks/lib/git-helpers.spec.md",
         "system/hooks/lib/profile.sh",
         "system/cli/",
         "system/scripts/",
         "system/skills/",
         "system/hooks/",
-        "system/scripts/feed-ruflo-index.sh"
+        "system/scripts/feed-ruflo-index.sh",
+        "system/hooks/lib/<name>.sh"
       ]
     },
     "docs/architecture/knowledge-system-extending.md": {
@@ -1117,9 +1240,13 @@
         "system/settings.json",
         "system/CLAUDE.md",
         "system/",
+        "system/procedures/",
         "system/hooks/hooks.json",
+        "system/hooks/lib/",
         "system/commands/",
         "system/skills/{dep",
+        "system/procedures/backlog.md",
+        "system/procedures/build.md",
         "system/skills/_shared/guided-execution.md",
         "system/skills/X/",
         "system/skills/",
@@ -1272,13 +1399,6 @@
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/dimensions/37-ruvnet-development-practices.md": {
-      "title": "37 — RuvNet Development Practices",
-      "type": "Roadmap",
-      "impl_files": [
-        "system/skills/"
-      ]
-    },
     "docs/dimensions/38-design-thinking.md": {
       "title": "38 — Design Thinking",
       "type": "Roadmap",
@@ -1336,8 +1456,28 @@
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/dimensions/49-auto-learning-patterns.md": {
+    "docs/dimensions/50-auto-learning-patterns.md": {
       "title": "49 — Auto-Learning Patterns for Agent Harnesses",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/dimensions/50-respond-io-platform.md": {
+      "title": "50 — Respond.io Platform (refactored)",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/dimensions/51-chatwoot-platform.md": {
+      "title": "51 — Chatwoot Platform (refactored)",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/dimensions/53-bigin-crm-platform.md": {
+      "title": "53 — Bigin CRM Platform (refactored)",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/dimensions/54-meta-whatsapp-template-api.md": {
+      "title": "Meta WhatsApp Template API — Programmatic Submission",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -1346,8 +1486,28 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/dimensions/ai-coding-agent-contracts.md": {
+      "title": "AI Coding Agent Contracts",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/dimensions/alternative-education-methodologies.md": {
       "title": "Alternative Education Methodologies",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/dimensions/api-channel-bridge-pattern.md": {
+      "title": "API Channel Bridge Pattern",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/dimensions/automated-quality-gating.md": {
+      "title": "Automated Quality Gating",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/dimensions/bigin-case-study.md": {
+      "title": "Bigin CRM — Platform Case Study",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -1365,6 +1525,11 @@
         "system/hooks/"
       ]
     },
+    "docs/dimensions/chatwoot-case-study.md": {
+      "title": "Chatwoot — Platform Case Study",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/dimensions/cli-builder-rust-bash-devops.md": {
       "title": "CLI Builder: Rust + Bash + DevOps",
       "type": "Roadmap",
@@ -1374,6 +1539,31 @@
     },
     "docs/dimensions/client-retention-engagement.md": {
       "title": "Client Retention & Engagement Systems for Service Businesses",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/dimensions/contract-operations-platforms.md": {
+      "title": "Contract / Operations Platforms — Data Modeling Patterns",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/dimensions/crm-bulk-async-ingestion.md": {
+      "title": "CRM Bulk Async Ingestion Pattern",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/dimensions/declarative-query-coql.md": {
+      "title": "Declarative Query Pattern (COQL / SQL-like Non-SQL APIs)",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/dimensions/desktop-app-frameworks.md": {
+      "title": "Desktop App Frameworks",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/dimensions/dynamic-form-flows-messaging.md": {
+      "title": "Dynamic Form Flows over Messaging Channels",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -1387,6 +1577,14 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/dimensions/mcp-server-design-patterns.md": {
+      "title": "MCP Server Design Patterns",
+      "type": "Roadmap",
+      "impl_files": [
+        "thebrana/system/skills/brana:mcp-builder/SKILL.md",
+        "system/skills/brana:mcp-builder/SKILL.md"
+      ]
+    },
     "docs/dimensions/meta-whatsapp-template-classification.md": {
       "title": "standalone — superseded by dimensions/meta-whatsapp-templates.md (which has supersedes: pointing here)",
       "type": "Roadmap",
@@ -1397,6 +1595,36 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/dimensions/oauth-self-client-flow.md": {
+      "title": "OAuth 2.0 Self-Client Flow (Server-to-Server)",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/dimensions/omnichannel-ai-agent-frameworks.md": {
+      "title": "Omnichannel AI Agent Frameworks",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/dimensions/omnichannel-inbox-domain-model.md": {
+      "title": "Omnichannel Inbox Domain Model",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/dimensions/respond-io-case-study.md": {
+      "title": "Respond.io — Platform Case Study",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/dimensions/ruvnet-case-study.md": {
+      "title": "RuvNet — Case Study",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/dimensions/serverless-edge-functions-platforms.md": {
+      "title": "Serverless Edge Functions on Cloudflare Workers",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/dimensions/smb-marketing-channels.md": {
       "title": "SMB Marketing: Channels, Content Strategy & Lead Conversion",
       "type": "Roadmap",
@@ -1404,6 +1632,21 @@
     },
     "docs/dimensions/software-engineering-patterns.md": {
       "title": "Software Engineering Patterns, Practices & Architectures",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/dimensions/tolaria-case-study.md": {
+      "title": "Tolaria — Case Study",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/dimensions/whatsapp-bsp-architecture.md": {
+      "title": "WhatsApp BSP Architecture",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/dimensions/ycloud-case-study.md": {
+      "title": "YCloud — Case Study",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -1858,6 +2101,7 @@
       "type": "Roadmap",
       "impl_files": [
         "system/rules/",
+        "system/rules/README.md",
         "system/rules/always-use-build-framework.md",
         "system/rules/backlog-start-gate.md",
         "system/rules/brana-cli.md",
@@ -1911,7 +2155,8 @@
       "title": "Skill Reference",
       "type": "Roadmap",
       "impl_files": [
-        "system/skills/"
+        "system/skills/",
+        "system/skills/<name>/SKILL.md"
       ]
     },
     "docs/reflections/08-diagnosis.md": {
@@ -2181,13 +2426,13 @@
       "computed": false
     },
     {
-      "from": "brana-knowledge/dimensions/49-auto-learning-patterns.md",
+      "from": "brana-knowledge/dimensions/50-auto-learning-patterns.md",
       "to": "dimensions/16-knowledge-health.md",
       "type": "depends_on",
       "computed": false
     },
     {
-      "from": "brana-knowledge/dimensions/49-auto-learning-patterns.md",
+      "from": "brana-knowledge/dimensions/50-auto-learning-patterns.md",
       "to": "dimensions/35-context-engineering-principles.md",
       "type": "depends_on",
       "computed": false
@@ -3831,13 +4076,13 @@
       "computed": false
     },
     {
-      "from": "docs/dimensions/49-auto-learning-patterns.md",
+      "from": "docs/dimensions/50-auto-learning-patterns.md",
       "to": "dimensions/16-knowledge-health.md",
       "type": "depends_on",
       "computed": false
     },
     {
-      "from": "docs/dimensions/49-auto-learning-patterns.md",
+      "from": "docs/dimensions/50-auto-learning-patterns.md",
       "to": "dimensions/35-context-engineering-principles.md",
       "type": "depends_on",
       "computed": false
@@ -4155,12 +4400,6 @@
       "computed": false
     },
     {
-      "from": "brana-knowledge/dimensions/37-ruvnet-development-practices.md",
-      "to": "docs/reflections/ARCHITECTURE.md",
-      "type": "informs",
-      "computed": false
-    },
-    {
       "from": "brana-knowledge/dimensions/38-design-thinking.md",
       "to": "dimensions/27-project-alignment-methodology.md",
       "type": "informs",
@@ -4227,26 +4466,62 @@
       "computed": false
     },
     {
-      "from": "brana-knowledge/dimensions/49-auto-learning-patterns.md",
+      "from": "brana-knowledge/dimensions/50-auto-learning-patterns.md",
       "to": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
       "type": "informs",
       "computed": false
     },
     {
-      "from": "brana-knowledge/dimensions/49-auto-learning-patterns.md",
+      "from": "brana-knowledge/dimensions/50-auto-learning-patterns.md",
       "to": "docs/ideas/knowledge-aware-skills.md",
       "type": "informs",
       "computed": false
     },
     {
-      "from": "brana-knowledge/dimensions/INDEX.md",
+      "from": "brana-knowledge/dimensions/ai-coding-agent-contracts.md",
       "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/automated-quality-gating.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/bigin-case-study.md",
+      "to": "dimensions/39-kapso-ai-platform.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/bigin-case-study.md",
+      "to": "dimensions/ycloud-case-study.md",
       "type": "informs",
       "computed": false
     },
     {
       "from": "brana-knowledge/dimensions/brana-etymology-naming.md",
       "to": "dimensions/01-brana-system-analysis.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/chatwoot-case-study.md",
+      "to": "dimensions/39-kapso-ai-platform.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/chatwoot-case-study.md",
+      "to": "dimensions/api-channel-bridge-pattern.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/chatwoot-case-study.md",
+      "to": "dimensions/omnichannel-inbox-domain-model.md",
       "type": "informs",
       "computed": false
     },
@@ -4263,6 +4538,60 @@
       "computed": false
     },
     {
+      "from": "brana-knowledge/dimensions/desktop-app-frameworks.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/dynamic-form-flows-messaging.md",
+      "to": "dimensions/omnichannel-ai-agent-frameworks.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/mcp-server-design-patterns.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/omnichannel-ai-agent-frameworks.md",
+      "to": "dimensions/39-kapso-ai-platform.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/omnichannel-ai-agent-frameworks.md",
+      "to": "dimensions/respond-io-case-study.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/omnichannel-inbox-domain-model.md",
+      "to": "dimensions/omnichannel-ai-agent-frameworks.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/omnichannel-inbox-domain-model.md",
+      "to": "dimensions/respond-io-case-study.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/respond-io-case-study.md",
+      "to": "dimensions/omnichannel-ai-agent-frameworks.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/ruvnet-case-study.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
       "from": "brana-knowledge/dimensions/software-engineering-patterns.md",
       "to": "dimensions/22-testing.md",
       "type": "informs",
@@ -4271,6 +4600,36 @@
     {
       "from": "brana-knowledge/dimensions/software-engineering-patterns.md",
       "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/whatsapp-bsp-architecture.md",
+      "to": "dimensions/39-kapso-ai-platform.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/whatsapp-bsp-architecture.md",
+      "to": "dimensions/50-respond-io-platform.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/whatsapp-bsp-architecture.md",
+      "to": "dimensions/meta-whatsapp-templates.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/whatsapp-bsp-architecture.md",
+      "to": "dimensions/smb-marketing-channels.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/ycloud-case-study.md",
+      "to": "dimensions/whatsapp-bsp-architecture.md",
       "type": "informs",
       "computed": false
     },
@@ -4587,6 +4946,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/doc-frontmatter-spec.md",
+      "to": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/inbox-to-dimensions-pipeline.md",
       "to": "brana-knowledge/dimensions/ (output target)",
       "type": "informs",
@@ -4857,12 +5222,6 @@
       "computed": false
     },
     {
-      "from": "docs/dimensions/37-ruvnet-development-practices.md",
-      "to": "docs/reflections/ARCHITECTURE.md",
-      "type": "informs",
-      "computed": false
-    },
-    {
       "from": "docs/dimensions/38-design-thinking.md",
       "to": "dimensions/27-project-alignment-methodology.md",
       "type": "informs",
@@ -4929,26 +5288,62 @@
       "computed": false
     },
     {
-      "from": "docs/dimensions/49-auto-learning-patterns.md",
+      "from": "docs/dimensions/50-auto-learning-patterns.md",
       "to": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
       "type": "informs",
       "computed": false
     },
     {
-      "from": "docs/dimensions/49-auto-learning-patterns.md",
+      "from": "docs/dimensions/50-auto-learning-patterns.md",
       "to": "docs/ideas/knowledge-aware-skills.md",
       "type": "informs",
       "computed": false
     },
     {
-      "from": "docs/dimensions/INDEX.md",
+      "from": "docs/dimensions/ai-coding-agent-contracts.md",
       "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/automated-quality-gating.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/bigin-case-study.md",
+      "to": "dimensions/39-kapso-ai-platform.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/bigin-case-study.md",
+      "to": "dimensions/ycloud-case-study.md",
       "type": "informs",
       "computed": false
     },
     {
       "from": "docs/dimensions/brana-etymology-naming.md",
       "to": "dimensions/01-brana-system-analysis.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/chatwoot-case-study.md",
+      "to": "dimensions/39-kapso-ai-platform.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/chatwoot-case-study.md",
+      "to": "dimensions/api-channel-bridge-pattern.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/chatwoot-case-study.md",
+      "to": "dimensions/omnichannel-inbox-domain-model.md",
       "type": "informs",
       "computed": false
     },
@@ -4965,6 +5360,60 @@
       "computed": false
     },
     {
+      "from": "docs/dimensions/desktop-app-frameworks.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/dynamic-form-flows-messaging.md",
+      "to": "dimensions/omnichannel-ai-agent-frameworks.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/mcp-server-design-patterns.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/omnichannel-ai-agent-frameworks.md",
+      "to": "dimensions/39-kapso-ai-platform.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/omnichannel-ai-agent-frameworks.md",
+      "to": "dimensions/respond-io-case-study.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/omnichannel-inbox-domain-model.md",
+      "to": "dimensions/omnichannel-ai-agent-frameworks.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/omnichannel-inbox-domain-model.md",
+      "to": "dimensions/respond-io-case-study.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/respond-io-case-study.md",
+      "to": "dimensions/omnichannel-ai-agent-frameworks.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/ruvnet-case-study.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
       "from": "docs/dimensions/software-engineering-patterns.md",
       "to": "dimensions/22-testing.md",
       "type": "informs",
@@ -4973,6 +5422,36 @@
     {
       "from": "docs/dimensions/software-engineering-patterns.md",
       "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/whatsapp-bsp-architecture.md",
+      "to": "dimensions/39-kapso-ai-platform.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/whatsapp-bsp-architecture.md",
+      "to": "dimensions/50-respond-io-platform.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/whatsapp-bsp-architecture.md",
+      "to": "dimensions/meta-whatsapp-templates.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/whatsapp-bsp-architecture.md",
+      "to": "dimensions/smb-marketing-channels.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/ycloud-case-study.md",
+      "to": "dimensions/whatsapp-bsp-architecture.md",
       "type": "informs",
       "computed": false
     },
@@ -5247,6 +5726,18 @@
       "computed": false
     },
     {
+      "from": "brana-knowledge/dimensions/22-testing.md",
+      "to": "ruvnet-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/22-testing.md",
+      "to": "tolaria-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "brana-knowledge/dimensions/23-evaluation.md",
       "to": "13-challenger-agent.md",
       "type": "references",
@@ -5261,6 +5752,18 @@
     {
       "from": "brana-knowledge/dimensions/23-evaluation.md",
       "to": "22-testing.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/26-git-branching-strategies.md",
+      "to": "automated-quality-gating.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/26-git-branching-strategies.md",
+      "to": "tolaria-case-study.md",
       "type": "references",
       "computed": false
     },
@@ -5439,24 +5942,6 @@
       "computed": false
     },
     {
-      "from": "brana-knowledge/dimensions/37-ruvnet-development-practices.md",
-      "to": "22-testing.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "brana-knowledge/dimensions/37-ruvnet-development-practices.md",
-      "to": "23-evaluation.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "brana-knowledge/dimensions/37-ruvnet-development-practices.md",
-      "to": "brana-knowledge/reflections/31-assurance.md",
-      "type": "references",
-      "computed": false
-    },
-    {
       "from": "brana-knowledge/dimensions/38-design-thinking.md",
       "to": "28-startup-smb-management.md",
       "type": "references",
@@ -5542,6 +6027,12 @@
     },
     {
       "from": "brana-knowledge/dimensions/49-agent-era-systems-patterns.md",
+      "to": "ruvnet-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/49-agent-era-systems-patterns.md",
       "to": "software-engineering-patterns.md",
       "type": "references",
       "computed": false
@@ -5549,6 +6040,60 @@
     {
       "from": "brana-knowledge/dimensions/49-agent-era-systems-patterns.md",
       "to": "thebrana/docs/content/lens.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/50-respond-io-platform.md",
+      "to": "omnichannel-ai-agent-frameworks.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/50-respond-io-platform.md",
+      "to": "respond-io-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/51-chatwoot-platform.md",
+      "to": "api-channel-bridge-pattern.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/51-chatwoot-platform.md",
+      "to": "chatwoot-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/51-chatwoot-platform.md",
+      "to": "omnichannel-inbox-domain-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/53-bigin-crm-platform.md",
+      "to": "bigin-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/53-bigin-crm-platform.md",
+      "to": "crm-bulk-async-ingestion.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/53-bigin-crm-platform.md",
+      "to": "declarative-query-coql.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/53-bigin-crm-platform.md",
+      "to": "oauth-self-client-flow.md",
       "type": "references",
       "computed": false
     },
@@ -5698,12 +6243,6 @@
     },
     {
       "from": "brana-knowledge/dimensions/INDEX.md",
-      "to": "37-ruvnet-development-practices.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "brana-knowledge/dimensions/INDEX.md",
       "to": "38-design-thinking.md",
       "type": "references",
       "computed": false
@@ -5746,7 +6285,79 @@
     },
     {
       "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "46-cc-harness-ecosystem.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "47-ontology-engineering-ai-systems.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "48-knowledge-graph-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "49-agent-era-systems-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "50-auto-learning-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "ai-coding-agent-contracts.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "alternative-education-methodologies.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "api-channel-bridge-pattern.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "automated-quality-gating.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "bigin-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
       "to": "brana-etymology-naming.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "cc-project-structure-best-practices.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "chatwoot-case-study.md",
       "type": "references",
       "computed": false
     },
@@ -5763,6 +6374,186 @@
       "computed": false
     },
     {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "crm-bulk-async-ingestion.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "declarative-query-coql.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "desktop-app-frameworks.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "dynamic-form-flows-messaging.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "feynman-methodology.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "knowledge-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "mcp-server-design-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "meta-whatsapp-template-classification.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "meta-whatsapp-templates.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "oauth-self-client-flow.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "omnichannel-ai-agent-frameworks.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "omnichannel-inbox-domain-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "respond-io-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "ruvnet-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "serverless-edge-functions-platforms.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "smb-marketing-channels.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "software-engineering-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "tolaria-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "whatsapp-bsp-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/INDEX.md",
+      "to": "ycloud-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/ai-coding-agent-contracts.md",
+      "to": "22-testing.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/ai-coding-agent-contracts.md",
+      "to": "49-agent-era-systems-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/ai-coding-agent-contracts.md",
+      "to": "automated-quality-gating.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/ai-coding-agent-contracts.md",
+      "to": "ruvnet-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/ai-coding-agent-contracts.md",
+      "to": "tolaria-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/automated-quality-gating.md",
+      "to": "22-testing.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/automated-quality-gating.md",
+      "to": "26-git-branching-strategies.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/automated-quality-gating.md",
+      "to": "49-agent-era-systems-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/automated-quality-gating.md",
+      "to": "ai-coding-agent-contracts.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/automated-quality-gating.md",
+      "to": "tolaria-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "brana-knowledge/dimensions/cc-project-structure-best-practices.md",
       "to": "brana-knowledge/dimensions/04-claude-4.6-capabilities.md",
       "type": "references",
@@ -5771,6 +6562,180 @@
     {
       "from": "brana-knowledge/dimensions/cc-project-structure-best-practices.md",
       "to": "brana-knowledge/dimensions/09-claude-code-native-features.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/cc-project-structure-best-practices.md",
+      "to": "ruvnet-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/desktop-app-frameworks.md",
+      "to": "mcp-server-design-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/desktop-app-frameworks.md",
+      "to": "tolaria-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/mcp-server-design-patterns.md",
+      "to": "ai-coding-agent-contracts.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/mcp-server-design-patterns.md",
+      "to": "automated-quality-gating.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/mcp-server-design-patterns.md",
+      "to": "tolaria-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/ruvnet-case-study.md",
+      "to": "22-testing.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/ruvnet-case-study.md",
+      "to": "49-agent-era-systems-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/ruvnet-case-study.md",
+      "to": "ai-coding-agent-contracts.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/ruvnet-case-study.md",
+      "to": "automated-quality-gating.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/ruvnet-case-study.md",
+      "to": "cc-project-structure-best-practices.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/ruvnet-case-study.md",
+      "to": "tolaria-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/tolaria-case-study.md",
+      "to": "22-testing.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/tolaria-case-study.md",
+      "to": "26-git-branching-strategies.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/tolaria-case-study.md",
+      "to": "ai-coding-agent-contracts.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/tolaria-case-study.md",
+      "to": "automated-quality-gating.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/tolaria-case-study.md",
+      "to": "desktop-app-frameworks.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/tolaria-case-study.md",
+      "to": "mcp-server-design-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/tolaria-case-study.md",
+      "to": "ruvnet-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/whatsapp-bsp-architecture.md",
+      "to": "39-kapso-ai-platform.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/whatsapp-bsp-architecture.md",
+      "to": "50-respond-io-platform.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/whatsapp-bsp-architecture.md",
+      "to": "meta-whatsapp-templates.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/whatsapp-bsp-architecture.md",
+      "to": "smb-marketing-channels.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/whatsapp-bsp-architecture.md",
+      "to": "ycloud-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/ycloud-case-study.md",
+      "to": "39-kapso-ai-platform.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/ycloud-case-study.md",
+      "to": "50-respond-io-platform.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/ycloud-case-study.md",
+      "to": "meta-whatsapp-templates.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/ycloud-case-study.md",
+      "to": "smb-marketing-channels.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/ycloud-case-study.md",
+      "to": "whatsapp-bsp-architecture.md",
       "type": "references",
       "computed": false
     },
@@ -7365,6 +8330,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/doc-frontmatter-spec.md",
+      "to": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/event-log.md",
       "to": "docs/architecture/decisions/ADR-013-event-log.md",
       "type": "references",
@@ -7875,6 +8846,18 @@
       "computed": false
     },
     {
+      "from": "docs/dimensions/22-testing.md",
+      "to": "ruvnet-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/22-testing.md",
+      "to": "tolaria-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/dimensions/23-evaluation.md",
       "to": "13-challenger-agent.md",
       "type": "references",
@@ -7889,6 +8872,18 @@
     {
       "from": "docs/dimensions/23-evaluation.md",
       "to": "22-testing.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/26-git-branching-strategies.md",
+      "to": "automated-quality-gating.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/26-git-branching-strategies.md",
+      "to": "tolaria-case-study.md",
       "type": "references",
       "computed": false
     },
@@ -8067,24 +9062,6 @@
       "computed": false
     },
     {
-      "from": "docs/dimensions/37-ruvnet-development-practices.md",
-      "to": "22-testing.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/dimensions/37-ruvnet-development-practices.md",
-      "to": "23-evaluation.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/dimensions/37-ruvnet-development-practices.md",
-      "to": "docs/reflections/31-assurance.md",
-      "type": "references",
-      "computed": false
-    },
-    {
       "from": "docs/dimensions/38-design-thinking.md",
       "to": "28-startup-smb-management.md",
       "type": "references",
@@ -8170,6 +9147,12 @@
     },
     {
       "from": "docs/dimensions/49-agent-era-systems-patterns.md",
+      "to": "ruvnet-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/49-agent-era-systems-patterns.md",
       "to": "software-engineering-patterns.md",
       "type": "references",
       "computed": false
@@ -8177,6 +9160,60 @@
     {
       "from": "docs/dimensions/49-agent-era-systems-patterns.md",
       "to": "thebrana/docs/content/lens.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/50-respond-io-platform.md",
+      "to": "omnichannel-ai-agent-frameworks.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/50-respond-io-platform.md",
+      "to": "respond-io-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/51-chatwoot-platform.md",
+      "to": "api-channel-bridge-pattern.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/51-chatwoot-platform.md",
+      "to": "chatwoot-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/51-chatwoot-platform.md",
+      "to": "omnichannel-inbox-domain-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/53-bigin-crm-platform.md",
+      "to": "bigin-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/53-bigin-crm-platform.md",
+      "to": "crm-bulk-async-ingestion.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/53-bigin-crm-platform.md",
+      "to": "declarative-query-coql.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/53-bigin-crm-platform.md",
+      "to": "oauth-self-client-flow.md",
       "type": "references",
       "computed": false
     },
@@ -8326,12 +9363,6 @@
     },
     {
       "from": "docs/dimensions/INDEX.md",
-      "to": "37-ruvnet-development-practices.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/dimensions/INDEX.md",
       "to": "38-design-thinking.md",
       "type": "references",
       "computed": false
@@ -8374,7 +9405,79 @@
     },
     {
       "from": "docs/dimensions/INDEX.md",
+      "to": "46-cc-harness-ecosystem.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "47-ontology-engineering-ai-systems.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "48-knowledge-graph-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "49-agent-era-systems-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "50-auto-learning-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "ai-coding-agent-contracts.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "alternative-education-methodologies.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "api-channel-bridge-pattern.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "automated-quality-gating.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "bigin-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
       "to": "brana-etymology-naming.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "cc-project-structure-best-practices.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "chatwoot-case-study.md",
       "type": "references",
       "computed": false
     },
@@ -8391,6 +9494,186 @@
       "computed": false
     },
     {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "crm-bulk-async-ingestion.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "declarative-query-coql.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "desktop-app-frameworks.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "dynamic-form-flows-messaging.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "feynman-methodology.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "knowledge-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "mcp-server-design-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "meta-whatsapp-template-classification.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "meta-whatsapp-templates.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "oauth-self-client-flow.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "omnichannel-ai-agent-frameworks.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "omnichannel-inbox-domain-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "respond-io-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "ruvnet-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "serverless-edge-functions-platforms.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "smb-marketing-channels.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "software-engineering-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "tolaria-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "whatsapp-bsp-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/INDEX.md",
+      "to": "ycloud-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/ai-coding-agent-contracts.md",
+      "to": "22-testing.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/ai-coding-agent-contracts.md",
+      "to": "49-agent-era-systems-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/ai-coding-agent-contracts.md",
+      "to": "automated-quality-gating.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/ai-coding-agent-contracts.md",
+      "to": "ruvnet-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/ai-coding-agent-contracts.md",
+      "to": "tolaria-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/automated-quality-gating.md",
+      "to": "22-testing.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/automated-quality-gating.md",
+      "to": "26-git-branching-strategies.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/automated-quality-gating.md",
+      "to": "49-agent-era-systems-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/automated-quality-gating.md",
+      "to": "ai-coding-agent-contracts.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/automated-quality-gating.md",
+      "to": "tolaria-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/dimensions/cc-project-structure-best-practices.md",
       "to": "docs/dimensions/04-claude-4.6-capabilities.md",
       "type": "references",
@@ -8399,6 +9682,180 @@
     {
       "from": "docs/dimensions/cc-project-structure-best-practices.md",
       "to": "docs/dimensions/09-claude-code-native-features.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/cc-project-structure-best-practices.md",
+      "to": "ruvnet-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/desktop-app-frameworks.md",
+      "to": "mcp-server-design-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/desktop-app-frameworks.md",
+      "to": "tolaria-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/mcp-server-design-patterns.md",
+      "to": "ai-coding-agent-contracts.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/mcp-server-design-patterns.md",
+      "to": "automated-quality-gating.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/mcp-server-design-patterns.md",
+      "to": "tolaria-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/ruvnet-case-study.md",
+      "to": "22-testing.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/ruvnet-case-study.md",
+      "to": "49-agent-era-systems-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/ruvnet-case-study.md",
+      "to": "ai-coding-agent-contracts.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/ruvnet-case-study.md",
+      "to": "automated-quality-gating.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/ruvnet-case-study.md",
+      "to": "cc-project-structure-best-practices.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/ruvnet-case-study.md",
+      "to": "tolaria-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/tolaria-case-study.md",
+      "to": "22-testing.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/tolaria-case-study.md",
+      "to": "26-git-branching-strategies.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/tolaria-case-study.md",
+      "to": "ai-coding-agent-contracts.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/tolaria-case-study.md",
+      "to": "automated-quality-gating.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/tolaria-case-study.md",
+      "to": "desktop-app-frameworks.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/tolaria-case-study.md",
+      "to": "mcp-server-design-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/tolaria-case-study.md",
+      "to": "ruvnet-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/whatsapp-bsp-architecture.md",
+      "to": "39-kapso-ai-platform.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/whatsapp-bsp-architecture.md",
+      "to": "50-respond-io-platform.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/whatsapp-bsp-architecture.md",
+      "to": "meta-whatsapp-templates.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/whatsapp-bsp-architecture.md",
+      "to": "smb-marketing-channels.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/whatsapp-bsp-architecture.md",
+      "to": "ycloud-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/ycloud-case-study.md",
+      "to": "39-kapso-ai-platform.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/ycloud-case-study.md",
+      "to": "50-respond-io-platform.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/ycloud-case-study.md",
+      "to": "meta-whatsapp-templates.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/ycloud-case-study.md",
+      "to": "smb-marketing-channels.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/ycloud-case-study.md",
+      "to": "whatsapp-bsp-architecture.md",
       "type": "references",
       "computed": false
     },
@@ -8697,6 +10154,12 @@
       "computed": false
     },
     {
+      "from": "docs/reference/skills.md",
+      "to": "docs/architecture/testing-validation.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/reflections/08-diagnosis.md",
       "to": "brana-knowledge/dimensions/11-ecosystem-skills-plugins.md",
       "type": "references",
@@ -8800,7 +10263,7 @@
     },
     {
       "from": "docs/reflections/08-diagnosis.md",
-      "to": "brana-knowledge/dimensions/49-auto-learning-patterns.md",
+      "to": "brana-knowledge/dimensions/50-auto-learning-patterns.md",
       "type": "references",
       "computed": false
     },
@@ -9070,7 +10533,7 @@
     },
     {
       "from": "docs/reflections/14-mastermind-architecture.md",
-      "to": "brana-knowledge/dimensions/49-auto-learning-patterns.md",
+      "to": "brana-knowledge/dimensions/50-auto-learning-patterns.md",
       "type": "references",
       "computed": false
     },
@@ -9424,7 +10887,7 @@
     },
     {
       "from": "docs/reflections/32-lifecycle.md",
-      "to": "brana-knowledge/dimensions/49-auto-learning-patterns.md",
+      "to": "brana-knowledge/dimensions/50-auto-learning-patterns.md",
       "type": "references",
       "computed": false
     },
@@ -9603,8 +11066,26 @@
       "computed": false
     },
     {
+      "from": "brana-knowledge/dimensions/bigin-case-study.md",
+      "to": "dimensions/53-bigin-crm-platform.md",
+      "type": "supersedes",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/chatwoot-case-study.md",
+      "to": "dimensions/51-chatwoot-platform.md",
+      "type": "supersedes",
+      "computed": false
+    },
+    {
       "from": "brana-knowledge/dimensions/meta-whatsapp-templates.md",
       "to": "dimensions/meta-whatsapp-template-classification.md",
+      "type": "supersedes",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/respond-io-case-study.md",
+      "to": "dimensions/50-respond-io-platform.md",
       "type": "supersedes",
       "computed": false
     },
@@ -9621,16 +11102,34 @@
       "computed": false
     },
     {
+      "from": "docs/dimensions/bigin-case-study.md",
+      "to": "dimensions/53-bigin-crm-platform.md",
+      "type": "supersedes",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/chatwoot-case-study.md",
+      "to": "dimensions/51-chatwoot-platform.md",
+      "type": "supersedes",
+      "computed": false
+    },
+    {
       "from": "docs/dimensions/meta-whatsapp-templates.md",
       "to": "dimensions/meta-whatsapp-template-classification.md",
+      "type": "supersedes",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/respond-io-case-study.md",
+      "to": "dimensions/50-respond-io-platform.md",
       "type": "supersedes",
       "computed": false
     }
   ],
   "stats": {
-    "nodes": 309,
-    "edges": 1262,
-    "typed_edges": 504,
-    "orphans": 73
+    "nodes": 356,
+    "edges": 1471,
+    "typed_edges": 549,
+    "orphans": 87
   }
 }
