@@ -84,6 +84,19 @@ assert "feature brief exists" "true" "$([ -f "$SPEC" ] && echo true || echo fals
 assert_contains "spec references t-833" "t-833" "$SPEC"
 assert_contains "spec references ADR-026" "ADR-026" "$SPEC"
 
+# ── Test 9: skill-routing gate rule (t-1196) ─────────────────────────────────
+echo "Test 9: skill-routing.md gate rule content"
+GATE_RULE="$REPO_ROOT/system/rules/skill-routing.md"
+assert "skill-routing.md exists" "true" "$([ -f "$GATE_RULE" ] && echo true || echo false)"
+assert_contains "gate rule: always ask" "always ask\|Always ask" "$GATE_RULE"
+assert_contains "gate rule: AskUserQuestion" "AskUserQuestion" "$GATE_RULE"
+assert_contains "gate rule: no silent routing" "silent" "$GATE_RULE"
+assert_contains "gate rule: no-double-loading" "double.load\|No double" "$GATE_RULE"
+assert_contains "gate rule: surface gaps" "acquire-skills" "$GATE_RULE"
+# Confirm it's always-loaded (no paths: guard so it applies globally)
+HAS_PATHS=$(grep -c '^paths:' "$GATE_RULE" 2>/dev/null; true)
+assert "gate rule is always-loaded (no paths: guard)" "0" "$HAS_PATHS"
+
 echo ""
 echo "=== Results: $PASS/$TOTAL passed, $FAIL failed ==="
 [ "$FAIL" -eq 0 ] && exit 0 || exit 1
