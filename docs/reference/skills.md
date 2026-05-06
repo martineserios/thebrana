@@ -2,7 +2,7 @@
 
 # Skill Reference
 
-**29 skills** loaded from `system/skills/`.
+**30 skills** loaded from `system/skills/`.
 
 ## Skill Frontmatter Reference
 
@@ -38,6 +38,7 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:log` | capture | Capture events — links, calls, meetings, ideas, observations — into a search |
 | `/brana:mcp-builder` | brana | MCP server development guide — build, test, and deploy MCP servers. |
 | `/brana:memory` | learning | Knowledge system operations — recall patterns, cross-pollinate across clients, |
+| `/brana:meta-templates` | utility | Manage Meta WhatsApp templates programmatically — submit, status, audit (drift |
 | `/brana:notebooklm-source` | tools | Guided workflow to prepare and format sources for NotebookLM. Claude reads, refo |
 | `/brana:onboard` | execution | Scan and diagnose a project, or scaffold a new client from scratch. Works for co |
 | `/brana:plugin` | brana | Manage Claude Code plugins — add marketplaces, install, update, remove, list p |
@@ -284,6 +285,14 @@ Google Sheets via MCP — read, write, create, list, share spreadsheets. Use whe
 **Arguments:** `[list|read|write|create|summary|share] [args]`
 
 **Allowed tools:** Read, Bash, AskUserQuestion
+
+### `/brana:meta-templates`
+
+Manage Meta WhatsApp templates programmatically — submit, status, audit (drift detection), pull (snapshot), appeal (paste-ready copy + Business Support Home URL). Use for any client with a WhatsApp BSP account that has ~/.config/brana/meta/<client>.env provisioned.
+
+**Arguments:** `[submit <yaml> | pull | status [--name X] | audit [--save] | appeal <name>]`
+
+**Allowed tools:** Bash, Read, Glob
 
 ### `/brana:scheduler`
 
