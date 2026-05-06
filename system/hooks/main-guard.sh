@@ -89,7 +89,7 @@ STAGED=$(git -C "$LOOKUP_DIR" diff --cached --name-only 2>/dev/null) || pass_thr
 BEHAVIORAL_FILES=""
 while IFS= read -r file; do
     case "$file" in
-        system/skills/*|system/hooks/*|system/agents/*|system/commands/*|system/cli/*|*/rules/*)
+        system/skills/*|system/hooks/*|system/agents/*|system/commands/*|system/cli/*|system/scripts/git-hooks/*|*/rules/*)
             if [ -z "$BEHAVIORAL_FILES" ]; then
                 BEHAVIORAL_FILES="$file"
             else

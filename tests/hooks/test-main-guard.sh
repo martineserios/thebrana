@@ -175,6 +175,16 @@ out=$(invoke_hook "$input")
 assert_contains "continue:true for rules+docs with --rules-only" '"continue"[[:space:]]*:[[:space:]]*true' "$out"
 echo ""
 
+# ── Test 10: git-hooks scripts are behavioral (t-1195) ───────────────────────
+echo "Test 10: system/scripts/git-hooks/* is a behavioral path"
+REPO="$TMPDIR_BASE/repo-git-hooks"
+setup_repo "$REPO" main "system/scripts/git-hooks/pre-commit"
+input=$(make_input "main" "fix: update pre-commit hook" "$REPO")
+out=$(invoke_hook "$input")
+assert_contains "git-hooks on main → denied" '"permissionDecision"[[:space:]]*:[[:space:]]*"deny"' "$out"
+assert_contains "git-hooks deny mentions feature branch" "feature branch|feat/" "$out"
+echo ""
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo "=== Results: $PASS/$TOTAL passed, $FAIL failed ==="
 [ "$FAIL" -eq 0 ] && exit 0 || exit 1
