@@ -26,6 +26,21 @@ If context was compressed:
 1. Call `TaskList` — find CC Tasks matching `/brana:maintain-specs — {STEP}`
 2. The `in_progress` task is your current step — resume from there
 
+## Startup validation
+
+Before doing anything else, confirm you are operating in the correct repository.
+
+Run:
+```bash
+[ -f docs/24-roadmap-corrections.md ]
+```
+
+If the file does not exist, **abort immediately** with this message:
+
+> Target repo validation failed: docs/24-roadmap-corrections.md not found. Are you in the thebrana repo? Run this from ~/enter_thebrana/thebrana/.
+
+Do not proceed to Step 1 until this check passes. The most common cause is running this command from the archived `enter/` repo, which has its own `docs/` tree but no doc 24.
+
 ## Step 1: Apply errata
 
 Run `/brana:apply-errata`. Apply known fixes first so that reflection docs start from a corrected baseline before cross-checking. It handles the full layer-aware cycle: classify → dimension fixes → gate check → reflection fixes → gate check → roadmap fixes → update doc 24.

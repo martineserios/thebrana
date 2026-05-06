@@ -10,6 +10,21 @@ Read doc 24 (roadmap corrections) and apply fixes following the layer hierarchy:
 
 ## How It Works
 
+### Step 0a: Validate target repo
+
+Before reading any docs, confirm you are operating in the correct repository.
+
+Run:
+```bash
+[ -f docs/24-roadmap-corrections.md ]
+```
+
+If the file does not exist, **abort immediately** with this message:
+
+> Target repo validation failed: docs/24-roadmap-corrections.md not found. Are you in the thebrana repo? Run this from ~/enter_thebrana/thebrana/.
+
+Do not proceed to Step 0 until this check passes. The most common cause is running this command from the archived `enter/` repo, which has its own `docs/` tree but no doc 24.
+
 ### Step 0: Read and classify
 
 1. Read `24-roadmap-corrections.md` to get the full error list
