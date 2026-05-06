@@ -139,7 +139,10 @@ fi
 # ── Session state via CLI ─────────────────────────────────────
 
 if [ -n "$BRANA_CLI" ] && [ -x "$BRANA_CLI" ]; then
-    SESSION_STATE_PATH=$("$BRANA_CLI" session path 2>/dev/null) || SESSION_STATE_PATH=""
+    # cd to GIT_ROOT before calling brana — session-end.sh does `cd /tmp` and
+    # brana session path/write resolve the project from CWD, not from GIT_ROOT.
+    # Without this, both commands target -tmp- instead of the real project.
+    SESSION_STATE_PATH=$(cd "${GIT_ROOT:-/tmp}" && "$BRANA_CLI" session path 2>/dev/null) || SESSION_STATE_PATH=""
     ALREADY_WRITTEN=false
     if [ -n "$SESSION_STATE_PATH" ] && [ -f "$SESSION_STATE_PATH" ]; then
         WRITTEN_AT=$(jq -r '.written_at // ""' "$SESSION_STATE_PATH" 2>/dev/null) || WRITTEN_AT=""
@@ -190,10 +193,10 @@ if [ -n "$BRANA_CLI" ] && [ -x "$BRANA_CLI" ]; then
         if [ -n "$MINIMAL_JSON" ]; then
             TMPFILE="/tmp/session-end-minimal-$$.json"
             echo "$MINIMAL_JSON" > "$TMPFILE"
-            "$BRANA_CLI" session write --file "$TMPFILE" 2>/dev/null || true
+            (cd "${GIT_ROOT:-/tmp}" && "$BRANA_CLI" session write --file "$TMPFILE" 2>/dev/null) || true
             rm -f "$TMPFILE"
         else
-            "$BRANA_CLI" session write --minimal 2>/dev/null || true
+            (cd "${GIT_ROOT:-/tmp}" && "$BRANA_CLI" session write --minimal 2>/dev/null) || true
         fi
     fi
 fi
