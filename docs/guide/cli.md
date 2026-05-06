@@ -40,8 +40,8 @@ Full read/write — set, add, rollup, sync all work from CLI.
 | `brana backlog diff` | `bdiff` | Semantic diff since last commit |
 | `brana backlog context <id>` | `bctx` | Print task context, notes, description |
 | `brana backlog get <id> [--field F]` | — | Full task JSON or single field |
-| `brana backlog set <id> <field> <value>` | — | Set any field (supports +tag/-tag, --append) |
-| `brana backlog add --json '{...}'` | — | Create new task from JSON |
+| `brana backlog set <id> <field> <value>` | — | Set any field (supports +tag/-tag, --append). `priority` and `status` are validated against canonical enums. |
+| `brana backlog add --json '{...}'` | — | Create new task from JSON. `priority` (P0–P3 or null) and `status` (pending/in_progress/completed/cancelled) are validated. |
 | `brana backlog stats` | — | Aggregate by status (raw)/state (synthetic)/stream/priority/type |
 | `brana backlog tags [--filter F]` | — | Tag inventory and filtering |
 | `brana backlog roadmap [--json]` | — | Full tree: phases → milestones → tasks |

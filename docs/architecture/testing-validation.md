@@ -119,6 +119,24 @@ For each skill with a `depends_on` field:
 - Every listed dependency has a corresponding `system/skills/{dep}/` directory
 - Catches typos and references to deleted skills
 
+### Check 25: tasks.json Priority Enum Hygiene
+
+Reads `.claude/tasks.json` and fails if any task has a `priority` value outside the canonical enum.
+
+- **PASS:** every task has `priority` in `{P0, P1, P2, P3, null}`
+- **FAIL:** legacy values (`high`, `medium`, `low`) or arbitrary strings detected — surfaces both bad values and offending task IDs
+
+Pairs with `validate_priority` in `brana_core::tasks` (wired into `set_field`, `cmd_add`, MCP `backlog_add`). The check catches drift from manual JSON edits or pre-validation legacy data.
+
+### Check 26: tasks.json Status Enum Hygiene
+
+Reads `.claude/tasks.json` and fails if any task has a `status` value outside the canonical raw enum.
+
+- **PASS:** every task has `status` in `{pending, in_progress, completed, cancelled, null}`
+- **FAIL:** synthetic display values (`done`, `active`, `blocked`, `parked`) or arbitrary strings detected — surfaces both bad values and offending IDs
+
+Pairs with `validate_status` in `brana_core::tasks`. Synthetic values come from `classify()` output and should never reach the raw `status` field. See also `raw_status()` accessor — the canonical reader for filter predicates and aggregations.
+
 ### Checks A-D: Semantic Skill Validation
 
 Beyond structural checks (1-12), `validate.sh` includes semantic checks that analyze skill *content* for consistency. Run them standalone with `--semantic` or as part of the full suite.

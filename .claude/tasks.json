@@ -36538,6 +36538,34 @@
         "followup-t-1340"
       ],
       "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "docs/architecture/testing-validation.md jumps from Check 12 to A-D semantic checks, missing 13-24 entirely. Surfaced during t-1344 close when adding Check 25/26 — those were added but the gap above them is now obvious. Walk validate.sh checks 13-24 and add concise sections matching the existing format (one ### Check N heading, 2-4 bullets, optional one-line context).",
+      "created": "2026-05-06",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1347",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "docs",
+      "subject": "[docs] Backfill testing-validation.md — Checks 13 through 24 are undocumented",
+      "tags": [
+        "docs",
+        "validate-sh",
+        "followup-t-1344"
+      ],
+      "type": "task"
     }
   ],
   "version": "1"

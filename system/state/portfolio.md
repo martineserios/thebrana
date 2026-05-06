@@ -158,3 +158,8 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Location:** `~/enter_thebrana/personal/`
 - **Details:** `CLAUDE.md`, `.claude/tasks.json` (33 tasks, migrated from thebrana 2026-03-17)
 - **Infra:** Telegram bot on Oracle Cloud Free Tier, LinkedIn MCP
+
+### crea
+- **Type:** code — Software porting/rebuild project
+- **Location:** `~/enter_thebrana/clients/crea/`
+- **Status:** Starting — 2026-05-05
