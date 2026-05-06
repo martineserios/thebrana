@@ -34,6 +34,14 @@ chmod 600 ~/.config/brana/meta/<client>.env
 
 If the file is missing, the CLI prints a config error pointing at the expected path.
 
+**Verify immediately after provisioning** — run `pull` to confirm the WABA ID and token are correct before any `submit` attempt. A wrong WABA ID surfaces as a Graph API 400 on `pull`, not on `submit`, making diagnosis much faster:
+
+```bash
+brana-meta-templates pull --client <client>
+```
+
+If `pull` returns a 400 "does not exist or missing permissions", the WABA ID is wrong — correct `META_WABA_ID` in the env file. If it returns a 401, the token is invalid or lacks permissions.
+
 ## Procedure
 
 ### 1. Parse arguments
