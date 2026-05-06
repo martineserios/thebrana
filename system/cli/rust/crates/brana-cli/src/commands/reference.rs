@@ -268,15 +268,19 @@ fn generate_agents(root: &Path) -> Result<String> {
         agents.len()
     ));
 
-    out.push_str("| Agent | Model | Description |\n");
-    out.push_str("|-------|-------|-------------|\n");
+    out.push_str("| Agent | Model | Memory | Color | Description |\n");
+    out.push_str("|-------|-------|--------|-------|-------------|\n");
     for a in &agents {
         let name = fm_str(a, "name");
         let model = fm_str(a, "model");
         let model = if model.is_empty() { "inherit" } else { model };
+        let memory = fm_str(a, "memory");
+        let memory = if memory == "true" { "yes" } else { "—" };
+        let color = fm_str(a, "color");
+        let color = if color.is_empty() { "—" } else { color };
         let desc = fm_str(a, "description");
         let desc = &desc[..desc.len().min(80)];
-        out.push_str(&format!("| {name} | {model} | {desc} |\n"));
+        out.push_str(&format!("| {name} | {model} | {memory} | {color} | {desc} |\n"));
     }
 
     for a in &agents {
@@ -295,6 +299,26 @@ fn generate_agents(root: &Path) -> Result<String> {
             model
         };
         out.push_str(&format!("**Model:** {model}\n\n"));
+        let memory = fm_str(a, "memory");
+        if memory == "true" {
+            out.push_str("**Memory:** yes — may write to `~/.claude/agent-memory/`\n\n");
+        }
+        let max_turns = fm_str(a, "maxTurns");
+        if !max_turns.is_empty() {
+            out.push_str(&format!("**Max turns:** {max_turns}\n\n"));
+        }
+        let perm_mode = fm_str(a, "permissionMode");
+        if !perm_mode.is_empty() {
+            out.push_str(&format!("**Permission mode:** {perm_mode}\n\n"));
+        }
+        let isolation = fm_str(a, "isolation");
+        if !isolation.is_empty() {
+            out.push_str(&format!("**Isolation:** {isolation}\n\n"));
+        }
+        let color = fm_str(a, "color");
+        if !color.is_empty() {
+            out.push_str(&format!("**Color:** {color}\n\n"));
+        }
         let tools = fm_list(a, "tools");
         if !tools.is_empty() {
             out.push_str(&format!("**Tools:** {}\n\n", tools.join(", ")));
