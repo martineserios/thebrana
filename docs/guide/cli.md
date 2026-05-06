@@ -137,7 +137,7 @@ Multi-account Gmail via IMAP with OS keyring credential storage.
 | `brana run <id> [--spawn]` | — | Create worktree + set in_progress, optionally spawn tmux |
 | `brana queue [--max 5] [--auto]` | — | Show next unblocked tasks with model recommendations |
 | `brana agents [kill <id>]` | — | List or kill active agents |
-| `brana transcribe <file> [--model base]` | — | Audio to text via whisper.cpp (requires `libwhisper.so.1` on library path — see Field Notes) |
+| `brana transcribe <file> [--model base]` | — | Audio to text via whisper.cpp (`libwhisper.so.1` injected automatically from `$HOME/.local/lib`) |
 | `brana version` | `bv` | Show CLI version |
 
 ## Theming
@@ -270,5 +270,5 @@ Any helper using `git rev-parse` exclusively will break on non-git project dirs.
 Source: session 2026-04-08 / t-1089
 
 ### 2026-04-09: brana transcribe requires LD_LIBRARY_PATH on user-local installs
-`brana transcribe` fails with `libwhisper.so.1: cannot open shared object file` on systems where whisper was installed to `~/.local/lib/` (not in ldconfig). The help text says "pure Rust" but the binary dlopen's a C shared library at runtime. Workaround: `LD_LIBRARY_PATH=/home/martineserios/.local/lib brana transcribe <file>`. Real fix: compile brana with rpath `$ORIGIN/../lib` (t-2). Add a `brana doctor` smoke test that detects this and prints remediation (t-1). Errata #113.
-Source: /brana:onboard legai session 2026-04-09
+**Fixed 2026-05-06 (t-1282).** `transcribe()` now injects `LD_LIBRARY_PATH=$HOME/.local/lib` directly into the whisper-cli subprocess via `Command::env()`, prepending to any existing value. No manual env var needed. Original issue: `libwhisper.so.1: cannot open shared object file` on systems where whisper was installed to `~/.local/lib/` (not in ldconfig). Errata #113.
+Source: /brana:onboard legai session 2026-04-09 / fixed t-1282 2026-05-06
