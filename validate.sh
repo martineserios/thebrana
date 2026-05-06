@@ -1278,6 +1278,27 @@ else
 fi
 echo ""
 
+# Check 27 — MCP wrapper scripts must use exec, not background+wait (t-1086)
+# Background pattern (`binary & wait`) breaks JSON-RPC stdin delivery;
+# exec is required to keep the pipe alive for MCP stdio.
+echo "Checking MCP wrapper scripts for exec pattern..."
+MCP_WRAPPERS=$(grep -rl "exec " "$SCRIPT_DIR/system/scripts/" --include="*.sh" 2>/dev/null | xargs grep -l "mcp\|ruflo\|claude-flow" 2>/dev/null || true)
+WRAPPER_OK=true
+WRAPPER_ANTI=()
+for wrapper in $MCP_WRAPPERS; do
+  # Detect background+wait anti-pattern: ampersand followed by wait on same or next line
+  if grep -qE '^\s*(ruflo|node|npx|python|uvx)[^|&]*&\s*$' "$wrapper" 2>/dev/null; then
+    WRAPPER_ANTI+=("$(basename "$wrapper")")
+    WRAPPER_OK=false
+  fi
+done
+if ! $WRAPPER_OK; then
+  fail "Check 27: MCP wrapper script(s) use background+wait anti-pattern: ${WRAPPER_ANTI[*]} — use exec instead (breaks stdin for MCP stdio)"
+else
+  pass "Check 27: MCP wrapper scripts use exec, no background+wait anti-pattern"
+fi
+echo ""
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
