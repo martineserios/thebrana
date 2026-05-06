@@ -8,6 +8,7 @@
 |-------|------|------------------|
 | Brainstorm governance gate for M+ efforts | `feedback_brainstorm_governance_gate.md` | brana (skill dev), all clients using brainstorm |
 | Meta WhatsApp template classification formula | `meta-whatsapp-templates.md` | somos_mirada, proyecto_anita, any WhatsApp client |
+| Meta WhatsApp Template API — programmatic submission (Graph v23, System User token, webhooks, appeals are UI-only) | `brana-knowledge/dimensions/54-meta-whatsapp-template-api.md` | somos_mirada (verified portfolio), proyecto_anita, mya, brapsoclaw, any WhatsApp BSP client |
 | Railway.com platform evaluation (PaaS pricing, limits, regions) | `nexeye_eyedetect/docs/infrastructure/railway-platform-evaluation.md` | any client evaluating PaaS hosting |
 | Client retention & engagement systems (flywheel, welcome kits, QR portals, referral reframing) | `brana-knowledge/dimensions/client-retention-engagement.md` | tinyhomes, any recurring-client service |
 | SMB marketing channels & content strategy (GEO, WhatsApp, landing pages, SEO, B2B2C, regulated products) | `brana-knowledge/dimensions/smb-marketing-channels.md` | somos_mirada, proyecto_anita, tinyhomes, any SMB |
@@ -16,8 +17,8 @@
 | YCloud WhatsApp BSP (Premier partner, pricing, per-recipient API shape, Kapso contrast, Meta 2026 pricing shift) | `brana-knowledge/dimensions/52-ycloud-whatsapp-platform.md` | proyecto_anita, somos_mirada, mya, brapsoclaw, any WhatsApp BSP decision |
 | Chatwoot platform (OSS omnichannel inbox, self-hosted, 4 API layers, API Channel bridge pattern, Kapso integration paths A/B/C, Captain AI, pricing 2026) | `brana-knowledge/dimensions/51-chatwoot-platform.md` | proyecto_anita (Palco, Las Lupes, inbox-demanding tenants), any project needing self-hosted inbox vs Intercom/Zendesk/Respond.io |
 | Bigin CRM platform (Zoho's CRM-lite, OAuth Self-Client, Bulk Write API, COQL queries, custom fields, Anita integration patterns A/B/C, weak webhook retry workarounds) | `brana-knowledge/dimensions/53-bigin-crm-platform.md` | proyecto_anita (DGRX simil-CRM target, any tenant needing CRM UI on top of Anita+Kapso), mya, any Anita tenant where insight extraction writes to a managed CRM |
-| Glide as MVP backend (Tables + UI + API eliminates Postgres/admin/auth for pilots) | `clients/mya/docs/ideas/mvp-architecture.md` | mya, any B2B2C MVP |
-| Lovable → Claude Code handoff (30 min scaffold, GitHub push, Claude wires APIs) | `clients/mya/docs/ideas/mvp-architecture.md` | mya, any frontend-heavy client |
+| Glide as MVP backend (Tables + UI + API eliminates Postgres/admin/auth for pilots) | `ventures/proyecto_anita/clients/mya/docs/ideas/mvp-architecture.md` | mya, any B2B2C MVP |
+| Lovable → Claude Code handoff (30 min scaffold, GitHub push, Claude wires APIs) | `ventures/proyecto_anita/clients/mya/docs/ideas/mvp-architecture.md` | mya, any frontend-heavy client |
 | NanoClaw/ZeroClaw/Claw ecosystem (architecture, Docker isolation, Agent SDK) | `brana-knowledge/dimensions/36-claw-ecosystem-chat-interface.md` | brapsoclaw, any chat agent project |
 | WhatsApp Difusiones Comerciales (Meta nativo ~2025, $0.0618/msg, sin scheduling/Excel/métricas) | `ventures/proyecto_anita/memory/event-log.md` | proyecto_anita, somos_mirada, mya, brapsoclaw |
 | LLM agent test strategy patterns (tests don't make agents good · replay-based shadow · defer structural guards) | `llm-agent-test-strategy-patterns.md` | proyecto_anita (Agent v4), mya, brapsoclaw, somos_mirada, any LLM agent shipping to prod |
@@ -40,11 +41,12 @@ For detailed facts, read each client's own docs. This is a routing index only.
 
 ### mya (MirÁyAhorrÁ)
 - **Type:** B2B2C hyperlocal promo platform — dietéticas/almacenes channel, AMBA
-- **Projects:** mya (`clients/mya`)
-- **Status:** Aligned 2026-04-14. P0 kickoff next. Score: 10/20 (Standard tier).
-- **Stack:** Next.js 14 + Prisma + PostgreSQL+PostGIS + Kapso + Railway + Cloudflare R2
-- **Alignment report:** `clients/mya/.claude/alignment-report.md`
-- **Details:** `clients/mya/docs/scope-v1.md`, `clients/mya/docs/decisions/ADR-001-tech-stack.md`
+- **Location:** `~/enter_thebrana/ventures/proyecto_anita/clients/mya/` (movido 2026-05-06, sigue convención las_lupes — tracked dentro de proyecto_anita)
+- **Status:** Proposal v2.7 listo para mandar. Pricing: $6,100 fijo piloto + addons aparte (AI Flyer Gen, Meta Business Verification, P2 Escalado) + soporte $600-1,000/mes. Calendar 6 sem, ~103h.
+- **Stack:** Next.js 14 + Lovable scaffold + Supabase (sin Auth — Retool autentica admin) + Retool + Cloudflare R2 + Kapso. Pilot sin pipeline de generación (cliente sube flyer manual PNG/PDF)
+- **Tipo de tenant:** B2B2C hyperlocal — distinto perfil que distribuidoras (Palco/PDB/Delorenzi) y que Las Lupes (4-pillar mayorista). Validar tenant typology cuando arranque P0
+- **Alignment report:** `ventures/proyecto_anita/clients/mya/.claude/alignment-report.md`
+- **Details:** `ventures/proyecto_anita/clients/mya/docs/proposal.md` (v2.7), `solucion-tecnica.md`, `quote.md`, `scope-v1.md`, `decisions/ADR-001-tech-stack.md`
 
 ### nexeye (NexeyeTech)
 - **Type:** Eye detection product
