@@ -2717,3 +2717,24 @@ Doc 38 also classifies these as Wave 1 (divergent ideation — shipped) vs Wave 
 **Fix applied (code-fix):** Wrote `find_listados_allsections.java` and `find_planea_forms_allsections.java` scanning ALL initialized memory blocks. TfrmActualizacionPrecios confirmed found in CODE at `005d27bf`; LISTADOS confirmed in `.rsrc` only (DFM binary, not directly callable from CODE).
 
 **Status:** code-fix
+
+---
+
+### Reconcile Run — 2026-05-06
+
+**Trigger:** auto (system files changed — post Wave 1 tech-debt session)
+**Scope:** consistency + propagation
+**Drift found:** 6 findings across 3 areas (CLI docs, pipeline doc, architecture reflection)
+**Applied:** 6 auto-fixes (all text/table updates)
+**Deferred:** 0
+
+| # | Area | Type | Finding | Resolution |
+|---|------|------|---------|-----------|
+| 1 | CLI guide | Missing | `brana backlog complete` not in cli.md backlog table | Applied — added row to `docs/guide/cli.md` |
+| 2 | CLI guide | Missing | `brana deploy` not in cli.md root commands | Applied — added row to `docs/guide/cli.md` |
+| 3 | brana-cli.md | Missing | `complete` alias not in scope table (count was 20, now 21) | Applied — added row + updated count |
+| 4 | brana-cli.md | Missing | `deploy` not in top-level commands (count was 8, now 9) | Applied — added row + updated count |
+| 5 | Pipeline doc | Incomplete | Tier 2 URL slug backfill (t-1149) not described | Applied — added backfill note to `inbox-to-dimensions-pipeline.md` |
+| 6 | ARCHITECTURE.md | Stale | "thebrana has no `brana deploy` command" — contradicts new hint command | Applied — updated sentence to acknowledge hint |
+
+**Propagation domain:** 0 pending errata — cascade skipped. Spec-graph rebuilt (356 nodes, 1471 edges, 87 orphans — no change).
