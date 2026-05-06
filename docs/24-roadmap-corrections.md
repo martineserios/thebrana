@@ -2749,6 +2749,6 @@ Doc 38 also classifies these as Wave 1 (divergent ideation — shipped) vs Wave 
 
 **Gap:** `sdd-tdd.md` is always-loaded (no `paths:` scope), so any addition is subject to the 28672-byte budget. The procedure file is only loaded when `/brana:build` is active — it has no budget pressure. This creates a structural split: the authoritative TDD rule lacks the S-sized clause that the procedure enforces.
 
-**Fix:** Trim `sdd-tdd.md` to create headroom (target: ≥400 bytes free), then add the S-sized no-exception clause to the rule. Tracked as follow-up to t-1032.
+**Fix:** Trimmed work-preferences.md example block (475 bytes freed), added S-sized no-exception clause to `sdd-tdd.md`. Budget: 28374/28672 (298 bytes free).
 
-**Status:** pending
+**Status:** resolved — 2026-05-06

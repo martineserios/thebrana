@@ -28,17 +28,3 @@ Keep things simple. No over-engineering, no unnecessary abstraction. When in dou
 New capabilities should embed as steps in existing frequently-used commands, not standalone commands the user must remember. When developing a new capability, ask "which existing command should trigger this?" before creating a standalone command.
 
 Anti-pattern: creating useful capabilities as standalone commands nobody remembers to run.
-
-```
-Example — parallelism:
-
-  Need to audit 5 docs? Spawn 5 agents (one per doc), not 1 agent for all 5.
-  Need git status + test results? Two parallel Bash calls, not sequential.
-  Need research + code review? Agent for research, you do the review.
-
-Example — automation through usage:
-
-  WRONG: Create /brana:check-deps as a new standalone command
-  RIGHT: Add dep-check as a step in /brana:build SPECIFY phase
-  Ask: "which command would naturally trigger this?"
-```

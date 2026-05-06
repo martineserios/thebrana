@@ -11,6 +11,7 @@ Before writing or editing implementation code, answer: what test would verify th
 - Bug fix: reproduce with a failing test before fixing.
 - Refactor: run existing tests before and after.
 - No test framework or no testable logic (config, docs, markup): state this and proceed.
+- **S-sized tasks have no TDD exception.** Size classification exempts nothing — test first regardless of scope. Small tasks may write tests inline during implementation, but the test still comes first.
 
 Never weaken a test assertion without investigating the code. The test is right until proven otherwise.
 
