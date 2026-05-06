@@ -73,6 +73,7 @@ fn main() {
             BacklogCmd::Move { task_id, parent, file } => run_or_exit(commands::backlog::cmd_move(&task_id, &parent, file)),
             BacklogCmd::Archive { phase_id, file } => run_or_exit(commands::backlog::cmd_archive(phase_id, file)),
             BacklogCmd::Sync { dry_run, force, parallel } => run_or_exit(sync::cmd_sync(dry_run, force, parallel)),
+            BacklogCmd::Complete { task_id, file } => run_or_exit(commands::backlog::cmd_set(&task_id, "status", "completed", false, file)),
         },
         Commands::Ops { cmd } => match cmd {
             OpsCmd::Status { all } => run_or_exit(commands::ops::cmd_ops_status(&theme, all)),
@@ -145,5 +146,15 @@ fn main() {
         Commands::Graph { cmd } => run_or_exit(commands::graph::cmd_graph(cmd)),
         Commands::Reference { cmd } => run_or_exit(commands::reference::cmd_reference(cmd)),
         Commands::Decisions { cmd } => run_or_exit(commands::decisions::cmd_decisions(cmd)),
+        Commands::Deploy => {
+            println!("brana deploy = merge to main");
+            println!();
+            println!("  git checkout main");
+            println!("  git merge --no-ff feat/<branch>");
+            println!("  git push origin main   # if tracking a remote");
+            println!();
+            println!("No build step. No container. The system runs locally from the branch");
+            println!("Claude Code loads — which is main.");
+        }
     }
 }

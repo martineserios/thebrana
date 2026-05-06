@@ -183,6 +183,8 @@ pub enum Commands {
         #[command(subcommand)]
         cmd: DecisionsCmd,
     },
+    /// How to deploy brana (hint — deploy = merge to main)
+    Deploy,
 }
 
 #[derive(Subcommand)]
@@ -716,6 +718,14 @@ pub enum BacklogCmd {
         /// Max parallel GitHub API calls (1-20)
         #[arg(long, default_value = "10")]
         parallel: usize,
+    },
+    /// Mark a task as completed (alias for `set <id> status completed`)
+    Complete {
+        /// Task ID (e.g. t-463)
+        task_id: String,
+        /// Path to tasks.json (auto-detected if omitted)
+        #[arg(long)]
+        file: Option<PathBuf>,
     },
 }
 

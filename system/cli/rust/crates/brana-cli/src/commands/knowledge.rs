@@ -514,6 +514,21 @@ fn run_tier2(
     state: &mut kp::PipelineState,
     dry_run: bool,
 ) -> Result<()> {
+    // Backfill author/title_signal for pre-field records (t-1149)
+    let mut backfilled = 0usize;
+    for (url, entry) in state.urls.iter_mut() {
+        if entry.author.is_none() || entry.title_signal.is_none() {
+            if let Some((author, title_signal)) = kp::parse_linkedin_url(url) {
+                if entry.author.is_none() { entry.author = Some(author); }
+                if entry.title_signal.is_none() { entry.title_signal = Some(title_signal); }
+                backfilled += 1;
+            }
+        }
+    }
+    if backfilled > 0 {
+        println!("  Backfilled author/title_signal for {backfilled} pre-field URL record(s)");
+    }
+
     let dimension_slugs = kp::list_dimension_slugs(knowledge_root);
     let dim_list: Vec<String> = dimension_slugs
         .iter()
