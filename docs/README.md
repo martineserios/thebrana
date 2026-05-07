@@ -15,6 +15,7 @@ Source of truth for every component. Read these when you need exact behavior.
 | [commands.md](reference/commands.md) | Agent commands (maintain-specs, apply-errata, etc.) |
 | [scripts.md](reference/scripts.md) | Shell scripts (bootstrap.sh, validate.sh, etc.) |
 | [configuration.md](reference/configuration.md) | Config files: plugin.json, hooks.json, settings.json, scheduler.json |
+| [brana-cli.md](reference/brana-cli.md) | brana CLI — backlog triage-stale, stale, burndown subcommands |
 
 ## docs/guide/ -- How-to guides
 
