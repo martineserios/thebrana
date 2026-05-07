@@ -581,7 +581,7 @@ Example — broad recall before starting work:
 ```
 /brana:align
 ```
-The active complement to `/brana:onboard`. Runs a 28-item checklist, identifies gaps, and creates the missing structure: CLAUDE.md, rules, docs/decisions/, test framework, domain glossary. Works in tiers (Minimal/Standard/Full) — the user picks.
+The active complement to `/brana:onboard`. Runs a 28-item checklist, identifies gaps, and creates the missing structure: CLAUDE.md, rules, docs/decisions/, test framework, domain glossary. Works in tiers (Minimal/Standard/Full) — the user picks. Phase 0 (DISCOVER) auto-detects brainstorm/research repos (no `src/`, no manifests, >80% `.md`) and restricts to Foundation-only scope — avoiding full venture scaffold on content-only repos.
 
 ---
 
