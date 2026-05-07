@@ -195,6 +195,25 @@ If the user mentions a new concept during any round, **auto-research it**
 (WebSearch, 1 query) and fold findings into the next response before asking
 the next question.
 
+#### 3b — Incremental persistence
+
+After each round (Round 1 always, Round 2+ whenever new ground was covered):
+
+1. **If `docs/ideas/{slug}.md` does not exist yet:** create it now with the frontmatter stub and the first section derived from what was just discussed.
+   ```markdown
+   ---
+   title: {Title}
+   status: idea
+   created: {date}
+   ---
+   # {Title}
+   > Brainstormed {date}. Work in progress.
+   ```
+2. **If it already exists:** append or update the relevant section (Problem, Solution, Risks, etc.) based on the current discussion.
+3. Tell the user: "Saved to `docs/ideas/{slug}.md` — continuing."
+
+The doc grows section-by-section throughout Phase 3. By the time Phase 5 runs, most content is already written. **Context compression cannot lose discussion output because it was persisted immediately.**
+
 #### Discussion behavior rules
 
 - **One question at a time.** Never stack 3 challenges — ask one, respond, ask the next.
@@ -261,9 +280,14 @@ Allow multiple refinement loops. Each loop re-presents the updated summary.
 
 When the user approves ("Looks good — save it"):
 
-**5a. Write idea doc**
+**5a. Finalize idea doc**
 
-Save to `docs/ideas/{slug}.md` (create `docs/ideas/` if it doesn't exist):
+The idea doc at `docs/ideas/{slug}.md` was built incrementally during Phase 3b. Phase 5 refines and completes it — it does not start from scratch. Open the existing file and:
+- Fill in any sections that are still placeholders
+- Replace "Work in progress" status with `idea` (or `draft` if well-formed)
+- Add the full Phase 4 shape summary if not yet present
+
+If `docs/ideas/{slug}.md` does not exist (brainstorm was short or Phase 3b was skipped), create it now at `docs/ideas/{slug}.md`:
 
 ```markdown
 # {Title}

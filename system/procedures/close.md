@@ -807,6 +807,31 @@ brana backlog set "$id" notes --append "Reconciled 2026-MM-DD via /brana:close: 
 
 **Why:** without this, the backlog query surface (sitrep, next, focus) stays contaminated between sessions and every future triage must re-verify by hand.
 
+### Step 11e: Idea doc lifecycle check
+
+When Step 11c detected a completed milestone (a parent task with completed children):
+
+1. **Scan docs/ideas/:** `find docs/ideas/ -name "*.md" 2>/dev/null`
+2. **For each idea doc**, check its `status:` frontmatter field (look for `status:` in the first 10 lines).
+3. **If status is `idea`, `draft`, or `specifying`**, and the doc title or filename shares keywords with the completed milestone subject:
+   - Prompt once per matching doc:
+     ```
+     AskUserQuestion:
+       question: "Idea doc 'docs/ideas/{slug}.md' is still marked '{status}' but milestone '{milestone}' is complete. Update status?"
+       options: ["Update to implemented", "Update to shipped", "Leave as-is", "Archive it"]
+     ```
+   - If user selects update: replace the `status:` frontmatter value and commit:
+     ```bash
+     # edit the status line in the file, then:
+     git add docs/ideas/{slug}.md
+     git commit -m "docs({slug}): update idea doc status to {new-status}"
+     ```
+   - If "Archive it": move to `docs/archive/ideas/{slug}.md` and commit.
+
+**Track for Step 12 report:** `{N} idea docs updated`.
+
+**Skip if:** docs/ideas/ does not exist or contains no .md files, or no milestone rollup was detected in Step 11c.
+
 ### Step 11d: Stale-stash cleanup
 
 Offer to drop git stashes older than 7 days that reference completed or cancelled task branches.
