@@ -28,12 +28,11 @@ grep -c '```mermaid' "{source_file}"
 
 **If count > 0:**
 
-1. Resolve `mmdc` — it lives in the nvm bin dir, not on the default PATH:
+1. Resolve `mmdc`:
    ```bash
-   mmdc_bin=$(find ~/.nvm/versions/node/*/bin/mmdc 2>/dev/null | sort -V | tail -1)
-   [[ -z "$mmdc_bin" ]] && mmdc_bin=$(which mmdc 2>/dev/null)
+   mmdc_bin=$(which mmdc 2>/dev/null)
    ```
-   If still empty, warn the user: "Mermaid blocks found but `mmdc` is not installed — they will render as raw code. Install with: `npm install -g @mermaid-js/mermaid-cli`". Set `render_source` = `{source_file}` and skip to step 4.
+   If empty, warn the user: "Mermaid blocks found but `mmdc` is not installed — they will render as raw code. Install with: `npm install -g @mermaid-js/mermaid-cli` then `ln -sf $(which mmdc) ~/.local/bin/mmdc`". Set `render_source` = `{source_file}` and skip to step 4.
 
 2. Create a temp workspace and copy the source:
    ```bash
@@ -57,7 +56,7 @@ grep -c '```mermaid' "{source_file}"
 
    src = Path(sys.argv[1])
    tmp = Path(sys.argv[2])
-   mmdc_cmd = sys.argv[3]  # full path from nvm bin
+   mmdc_cmd = sys.argv[3]  # resolved from PATH
    content = src.read_text()
    puppeteer_cfg = tmp / "puppeteer.json"
    pattern = re.compile(r'```mermaid\n(.*?)```', re.DOTALL)
@@ -144,6 +143,6 @@ xdg-open "{output_pdf}" &
 
 ## Rules
 
-- Always resolve the full nvm path for both mdpdf and mmdc — neither is on the default PATH. Use `find ~/.nvm/versions/node/*/bin/{cmd} | sort -V | tail -1`.
+- Use `which mmdc` and `which mdpdf` to resolve binaries — both are symlinked to `~/.local/bin/` and are on PATH. If `which` returns empty, report the install command.
 - Never overwrite a PDF without confirming if the user wants to replace it
 - If mdpdf fails, check that the markdown file is valid and report the error clearly
