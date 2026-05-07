@@ -22,7 +22,7 @@ pub struct Input {
     /// Task description
     pub description: Option<String>,
 
-    /// Effort: S, M, L, XL
+    /// Effort: XS, S, M, L, XL
     pub effort: Option<String>,
 
     /// Priority: P0, P1, P2, P3
@@ -30,6 +30,9 @@ pub struct Input {
 
     /// Parent task ID
     pub parent: Option<String>,
+
+    /// Context — required for effort M, L, or XL (t-939)
+    pub context: Option<String>,
 }
 
 fn default_stream() -> String { "roadmap".into() }
@@ -50,6 +53,10 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 brana_core::tasks::validate_priority(p)
                     .map_err(pmcp::Error::validation)?;
             }
+            brana_core::tasks::validate_context_for_effort(
+                input.effort.as_deref(),
+                input.context.as_deref(),
+            ).map_err(pmcp::Error::validation)?;
 
             let id = brana_core::tasks::next_id(tasks);
 
@@ -76,7 +83,7 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 "completed": null,
                 "blocked_by": [],
                 "branch": null,
-                "context": null,
+                "context": input.context,
                 "notes": null,
                 "order": 0,
                 "github_issue": null,
@@ -97,5 +104,5 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
             }))
         })
     })
-    .with_description("Add a new task to the backlog. Returns the assigned task ID.")
+    .with_description("Add a new task to the backlog. Returns the assigned task ID. Context is required for effort M, L, or XL.")
 }

@@ -428,6 +428,14 @@ pub fn cmd_add(
             anyhow::bail!("{e}");
         }
     }
+    {
+        let effort = new_task["effort"].as_str();
+        let context = new_task["context"].as_str();
+        if let Err(e) = tasks::validate_context_for_effort(effort, context) {
+            eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
+            anyhow::bail!("{e}");
+        }
+    }
 
     let tasks_arr = val["tasks"].as_array().cloned().unwrap_or_default();
     let id = tasks::next_id(&tasks_arr);

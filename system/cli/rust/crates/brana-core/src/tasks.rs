@@ -513,7 +513,20 @@ pub fn validate_status(value: &str) -> Result<(), String> {
 
 /// Validate that tasks with effort M/L/XL have a non-empty context. See t-939 and tasks.spec.md.
 pub fn validate_context_for_effort(effort: Option<&str>, context: Option<&str>) -> Result<(), String> {
-    todo!("t-939: implement context enforcement for M+ effort tasks")
+    match effort {
+        Some("M") | Some("L") | Some("XL") => {
+            let has_context = context.map(|c| !c.trim().is_empty()).unwrap_or(false);
+            if has_context {
+                Ok(())
+            } else {
+                Err(format!(
+                    "effort {:?} requires a non-empty context — add --context or include \"context\" in the JSON payload",
+                    effort.unwrap()
+                ))
+            }
+        }
+        _ => Ok(()),
+    }
 }
 
 /// Read the raw `status` field from a task — the canonical accessor used by
