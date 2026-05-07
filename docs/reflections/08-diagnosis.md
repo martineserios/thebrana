@@ -53,7 +53,7 @@ R1 triages every dimension doc → R2 composes the architecture → R3 validates
 ### 5. Hook Lifecycle
 **Why keep:** SessionStart, PreToolUse, PostToolUse, SessionEnd - the event model is sound. Hooks enable extensibility without modifying core instructions.
 
-**For v2:** Use native Claude Code hooks. Strip down to essential hooks only: PreToolUse (spec/test gate = development discipline enforcement), SessionStart (session tracking, context loading), SessionEnd (learnings capture, state sync). *(Crash recovery and branch protection were originally listed but never implemented — branch protection is handled via CLAUDE.md instructions, crash recovery deferred.)*
+**For v2:** Use native Claude Code hooks. Strip down to essential hooks only: PreToolUse (spec/test gate = development discipline enforcement), SessionStart (session tracking, context loading), SessionEnd (learnings capture, state sync). *(Crash recovery and branch protection were originally listed but never implemented — branch protection is handled via CLAUDE.md instructions, crash recovery deferred.)* **Note:** the v2 implementation expanded to 10+ hooks across these three event types (multiple PreToolUse variants for TDD gate, branch-verify, doc-gate, feedback-gate; PostToolUse for async reference generation; ConfigChange for security). R1's "essential hooks" framing is the minimal viable set — R2 ([doc 14](./14-mastermind-architecture.md) "Hook Responsibilities" section) documents the full production hook inventory.
 
 ### 6. Feature Lifecycle (SPARC Phases)
 **Why keep:** Specification -> Pseudocode -> Architecture -> Refinement -> Completion forces structured thinking. Features tracked through phases prevent skipping important steps.
