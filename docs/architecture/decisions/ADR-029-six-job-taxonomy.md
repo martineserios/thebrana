@@ -15,7 +15,7 @@ informs:
 
 ## Context
 
-Brana has 35 skills and growing. Users (and the system itself) struggle to answer "what skill do I need?" because skills are organized by implementation, not by intent. There's no organizational model mapping operator activities to higher-level jobs.
+Brana has a growing set of skills. Users (and the system itself) struggle to answer "what skill do I need?" because skills are organized by implementation, not by intent. There's no organizational model mapping operator activities to higher-level jobs. (Current skill count: see [docs/reference/skills.md](../reference/skills.md).)
 
 The operating model research found that everything a solo operator does falls into 6 jobs. This taxonomy provides the missing organizational layer: skills implement jobs, not the other way around.
 
