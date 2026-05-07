@@ -47,6 +47,7 @@ The `/brana:build` command handles all development work -- features, bug fixes, 
 | `/brana:retrospective` | Stores learnings at CLOSE |
 | `/brana:docs` | Invoked by CLOSE — generates tech doc, user guide, and shared doc updates |
 | `/brana:close` | Session-level close (build's CLOSE is per-task) |
+| `/brana:fix` | Focused bug-fix flow: REPRODUCE → DIAGNOSE → FIX → VERIFY → COMMIT. Use when you know it's a bug and want a tighter loop than `/brana:build`. |
 
 ## Key rules
 
