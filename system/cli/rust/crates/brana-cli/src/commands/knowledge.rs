@@ -508,13 +508,7 @@ Respond with JSON only: {{\"score\": N, \"reason\": \"one sentence\"}}",
 
 // ── Tier 2 ────────────────────────────────────────────────────────────────
 
-fn run_tier2(
-    knowledge_root: &std::path::Path,
-    state_path: &std::path::Path,
-    state: &mut kp::PipelineState,
-    dry_run: bool,
-) -> Result<()> {
-    // Backfill author/title_signal for pre-field records (t-1149)
+fn backfill_linkedin_fields(state: &mut kp::PipelineState) -> usize {
     let mut backfilled = 0usize;
     for (url, entry) in state.urls.iter_mut() {
         if entry.author.is_none() || entry.title_signal.is_none() {
@@ -525,6 +519,16 @@ fn run_tier2(
             }
         }
     }
+    backfilled
+}
+
+fn run_tier2(
+    knowledge_root: &std::path::Path,
+    state_path: &std::path::Path,
+    state: &mut kp::PipelineState,
+    dry_run: bool,
+) -> Result<()> {
+    let backfilled = backfill_linkedin_fields(state);
     if backfilled > 0 {
         println!("  Backfilled author/title_signal for {backfilled} pre-field URL record(s)");
     }
@@ -1210,5 +1214,42 @@ mod tests {
         let dim_targets = std::collections::HashMap::new();
         let report = build_cluster_report(&clusters, &dim_targets);
         assert!(report.contains("brana knowledge process --draft cli-tooling"));
+    }
+
+    // ── backfill_linkedin_fields ─────────────────────────────────────────
+
+    #[test]
+    fn test_backfill_linkedin_fields_populates_missing_author_and_title() {
+        let url = "https://www.linkedin.com/posts/walid-boulanouar_everyone-using-claude-code-is-paying-for-share-7437448165403852801-F5RX";
+        let mut state = kp::PipelineState::default();
+        state.urls.insert(url.to_string(), make_entry(kp::UrlStatus::Unprocessed));
+        let count = backfill_linkedin_fields(&mut state);
+        assert_eq!(count, 1);
+        let entry = &state.urls[url];
+        assert_eq!(entry.author.as_deref(), Some("walid-boulanouar"));
+        assert!(entry.title_signal.is_some());
+    }
+
+    #[test]
+    fn test_backfill_linkedin_fields_skips_non_linkedin_urls() {
+        let mut state = kp::PipelineState::default();
+        state.urls.insert("https://github.com/foo/bar".to_string(), make_entry(kp::UrlStatus::Unprocessed));
+        let count = backfill_linkedin_fields(&mut state);
+        assert_eq!(count, 0);
+        let entry = state.urls.values().next().unwrap();
+        assert!(entry.author.is_none());
+    }
+
+    #[test]
+    fn test_backfill_linkedin_fields_skips_fully_populated_entries() {
+        let url = "https://www.linkedin.com/posts/walid-boulanouar_everyone-using-claude-code-is-paying-for-share-7437448165403852801-F5RX";
+        let mut state = kp::PipelineState::default();
+        let mut entry = make_entry(kp::UrlStatus::Unprocessed);
+        entry.author = Some("already-set".to_string());
+        entry.title_signal = Some("already-set-title".to_string());
+        state.urls.insert(url.to_string(), entry);
+        let count = backfill_linkedin_fields(&mut state);
+        assert_eq!(count, 0);
+        assert_eq!(state.urls[url].author.as_deref(), Some("already-set"));
     }
 }
