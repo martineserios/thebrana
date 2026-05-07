@@ -70,6 +70,28 @@ Independent of the status contract. No change.
 | `cmd_stats` (`brana-cli/commands/backlog.rs`) | — | Calls `compute_stats`; output exposes raw + synthetic |
 | `backlog_stats` MCP tool (`brana-mcp/tools/backlog_stats.rs`) | — | Calls `compute_stats`; output exposes raw + synthetic |
 
+### `validate_context_for_effort(effort, context) -> Result<(), String>` (t-939)
+
+Gate: tasks with effort M, L, or XL **must** have a non-empty `context`.
+
+```
+effort: Option<&str>   — raw effort string from the task payload
+context: Option<&str>  — raw context string from the task payload
+```
+
+**Invariants:**
+- `None` effort → `Ok(())` (no effort set, no constraint)
+- `"XS"` | `"S"` effort → `Ok(())` (small tasks exempt)
+- `"M"` | `"L"` | `"XL"` effort + `context` is `None` or empty/whitespace → `Err`
+- `"M"` | `"L"` | `"XL"` effort + non-empty `context` → `Ok(())`
+- Unknown effort string → `Ok(())` (defensive: don't break on future enum additions)
+
+**Callers:**
+| Caller | Wire point |
+|---|---|
+| `cmd_add` (`brana-cli/commands/backlog.rs`) | After JSON parse, before defaults |
+| `backlog_add` MCP tool (`brana-mcp/tools/backlog_add.rs`) | After priority validation |
+
 ## Non-goals
 
 - Exposing synthetic `blocked`/`parked` as first-class filter values. A future `--include-blocked` or `--only-parked` flag could add that explicitly, but that's not this change.
