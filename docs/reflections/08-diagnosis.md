@@ -318,6 +318,24 @@ Every dimension doc triaged for brana v2. [Docs 01](../dimensions/01-brana-syste
 ### [Doc 50](../../../brana-knowledge/dimensions/50-auto-learning-patterns.md) — Auto-Learning Patterns for Agent Harnesses
 **Verdict: Keep.** Structural patterns for harnesses that learn from use: The Ratchet (discard by default), Intent/Execution Separation, Bounded Search Space, Knowledge-From-Use (capture at moment of use), Temporal Batching, Tiered Access (promote/demote by frequency), Forgetting as Feature (pruning = learning). **Directly informs ADR-027 auto-learning loop.** Current brana defaults to "keep everything" — The Ratchet argues for inverting that.
 
+### [Doc 50b](../../../brana-knowledge/dimensions/50-respond-io-platform.md) — Respond.io Platform Case Study
+**Verdict: Superseded — consume successor docs.** Content elemental-restructured into [dimensions/respond-io-case-study.md](../../../brana-knowledge/dimensions/respond-io-case-study.md) and [dimensions/omnichannel-ai-agent-frameworks.md](../../../brana-knowledge/dimensions/omnichannel-ai-agent-frameworks.md). R2 and R5 should reference those named-concept docs directly. The numbered stub exists for link continuity; no new synthesis needed.
+
+### [Doc 51](../../../brana-knowledge/dimensions/51-chatwoot-platform.md) — Chatwoot Platform Case Study
+**Verdict: Superseded — consume successor docs.** Content elemental-restructured into [dimensions/chatwoot-case-study.md](../../../brana-knowledge/dimensions/chatwoot-case-study.md), [dimensions/omnichannel-inbox-domain-model.md](../../../brana-knowledge/dimensions/omnichannel-inbox-domain-model.md), and [dimensions/api-channel-bridge-pattern.md](../../../brana-knowledge/dimensions/api-channel-bridge-pattern.md). R2 references those for inbox architecture decisions; R5 uses chatwoot-case-study.md for client delivery guidance.
+
+### [Doc 52](../../../brana-knowledge/dimensions/ycloud-case-study.md) — YCloud WhatsApp BSP Platform
+**Verdict: Keep for R5.** YCloud Premier Partner evaluation — pricing, per-recipient API shape, Kapso integration path, Meta 2026 pricing shift impact. Not brana-core: no brana skill, hook, or rule depends on it. Source for R5 (client delivery — WhatsApp BSP selection) and `/brana:brainstorm` sessions on WhatsApp infrastructure. Relevant clients: proyecto_anita, somos_mirada, mya, brapsoclaw.
+
+### [Doc 53](../../../brana-knowledge/dimensions/53-bigin-crm-platform.md) — Bigin CRM Platform Case Study
+**Verdict: Superseded — consume successor docs.** Content elemental-restructured into [dimensions/bigin-case-study.md](../../../brana-knowledge/dimensions/bigin-case-study.md), [dimensions/oauth-self-client-flow.md](../../../brana-knowledge/dimensions/oauth-self-client-flow.md), [dimensions/crm-bulk-async-ingestion.md](../../../brana-knowledge/dimensions/crm-bulk-async-ingestion.md), and [dimensions/declarative-query-coql.md](../../../brana-knowledge/dimensions/declarative-query-coql.md). R5 references those for CRM integration patterns; numbered stub exists for link continuity.
+
+### [Doc 54](../../../brana-knowledge/dimensions/54-meta-whatsapp-template-api.md) — Meta WhatsApp Template API — Programmatic Submission
+**Verdict: Keep for R5.** Raw API mechanics for programmatic template submission (Graph API v23.0): endpoint shapes, system-user auth, approval-status monitoring, category auto-correction, appeal limitations. **Canonical entry point is `brana-meta-templates` CLI** (skill: `/brana:meta-templates`) — read this doc only to extend the CLI or debug unusual responses. Not brana-core. Source for R5 (WhatsApp BSP client delivery). Relevant clients: somos_mirada, proyecto_anita, mya, brapsoclaw.
+
+### [Doc 55](../../../brana-knowledge/dimensions/55-vercel-platform.md) — Vercel Platform
+**Verdict: Keep for R5.** Deployment platform reference for Next.js/serverless SaaS: Fluid Compute, timeout limits (60s Hobby → 800s Pro), QStash fan-out pattern for batch sends, CI/CD zero-config, Python beta warning, Claude Code skills multiplier. Not brana-core — brana itself deploys via merge-to-main, not Vercel. Source for R5 (client deployment guidance). Relevant clients: proyecto_anita, mya, brapsoclaw, lexia, any Next.js SaaS.
+
 ### [knowledge-architecture.md](../../../brana-knowledge/dimensions/knowledge-architecture.md) — Knowledge Architecture for AI Development Systems
 **Verdict: Keep — foundational synthesis.** Formalizes how knowledge flows between dimension docs, reflection docs, and the active ruflo memory layer. Maps retrieval patterns, indexing strategies, and knowledge lifecycle. Depends on docs 14, 22, 31, 32, 35. Feeds R2 (knowledge retrieval design) and R4 (knowledge maintenance cadences). Status: budding.
 
