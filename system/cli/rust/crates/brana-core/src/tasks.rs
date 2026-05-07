@@ -511,6 +511,11 @@ pub fn validate_status(value: &str) -> Result<(), String> {
     }
 }
 
+/// Validate that tasks with effort M/L/XL have a non-empty context. See t-939 and tasks.spec.md.
+pub fn validate_context_for_effort(effort: Option<&str>, context: Option<&str>) -> Result<(), String> {
+    todo!("t-939: implement context enforcement for M+ effort tasks")
+}
+
 /// Read the raw `status` field from a task — the canonical accessor used by
 /// filter predicates AND aggregations. **Never use `classify()` for filtering**:
 /// classify() emits synthetic display values (done/active/blocked/parked) that
@@ -1464,6 +1469,52 @@ mod tests {
         for s in &["DONE", "Pending", "wip", "complete"] {
             assert!(validate_status(s).is_err(), "{s} should be rejected");
         }
+    }
+
+    // ── t-939: validate_context_for_effort ──────────────────────────────
+
+    #[test]
+    fn test_context_required_for_m_effort() {
+        assert!(validate_context_for_effort(Some("M"), None).is_err());
+    }
+
+    #[test]
+    fn test_context_required_for_l_effort() {
+        assert!(validate_context_for_effort(Some("L"), None).is_err());
+    }
+
+    #[test]
+    fn test_context_required_for_xl_effort() {
+        assert!(validate_context_for_effort(Some("XL"), None).is_err());
+    }
+
+    #[test]
+    fn test_empty_context_rejected_for_m_plus() {
+        assert!(validate_context_for_effort(Some("M"), Some("")).is_err());
+        assert!(validate_context_for_effort(Some("M"), Some("   ")).is_err());
+    }
+
+    #[test]
+    fn test_nonempty_context_accepted_for_m_plus() {
+        assert!(validate_context_for_effort(Some("M"), Some("why this matters")).is_ok());
+        assert!(validate_context_for_effort(Some("L"), Some("detailed context here")).is_ok());
+        assert!(validate_context_for_effort(Some("XL"), Some("x")).is_ok());
+    }
+
+    #[test]
+    fn test_small_efforts_exempt_from_context() {
+        assert!(validate_context_for_effort(Some("S"), None).is_ok());
+        assert!(validate_context_for_effort(Some("XS"), None).is_ok());
+    }
+
+    #[test]
+    fn test_no_effort_exempt_from_context() {
+        assert!(validate_context_for_effort(None, None).is_ok());
+    }
+
+    #[test]
+    fn test_unknown_effort_exempt_from_context() {
+        assert!(validate_context_for_effort(Some("HUGE"), None).is_ok());
     }
 
     #[test]
