@@ -32,11 +32,10 @@ Register these steps: LOAD, SEED, EXPAND, DISCUSS, SHAPE, OUTPUT, EXTRACT, EVALU
 Pull relevant knowledge into context before the brainstorm begins. Budget: 30K tokens max.
 
 1. **Build query** from available context: `"{project} {task.subject} {task.tags joined} {user_input}"`
-2. **Primary — ruflo MCP (run all three in parallel — `namespace: "all"` only returns session records):**
+2. **Primary — ruflo MCP (run both in parallel — `namespace: "all"` only returns session records; `specs` namespace is unindexed):**
    ```
-   mcp__ruflo__memory_search(query: "{query}", namespace: "knowledge", limit: 3, threshold: 0.4)
+   mcp__ruflo__memory_search(query: "{query}", namespace: "knowledge", limit: 4, threshold: 0.4)
    mcp__ruflo__memory_search(query: "{query}", namespace: "pattern",   limit: 3, threshold: 0.4)
-   mcp__ruflo__memory_search(query: "{query}", namespace: "specs",     limit: 2, threshold: 0.4)
    ```
    Merge results, rank by similarity. Focus on: dimension docs, idea docs (`docs/ideas/`), and recent research findings.
 2b. **Graph edge traversal** — see `build.md` LOAD step 2b. Follow `depends_on`/`informs` edges from knowledge results. Max 3 graph-derived docs. Best-effort, never blocks.

@@ -42,11 +42,10 @@ Register these steps: LOAD, ROUTE, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TR
 0. **Step 0 — LOAD.** Pull relevant existing knowledge into context before researching. Budget: 30K tokens max.
 
    1. **Build query** from available context: `"{project} {task.subject} {task.tags joined} {user_input}"`
-   2. **Primary — ruflo MCP (run all three in parallel — `namespace: "all"` only returns session records):**
+   2. **Primary — ruflo MCP (run both in parallel — `namespace: "all"` only returns session records; `specs` namespace is unindexed):**
       ```
-      mcp__ruflo__memory_search(query: "{query}", namespace: "knowledge", limit: 3, threshold: 0.4)
+      mcp__ruflo__memory_search(query: "{query}", namespace: "knowledge", limit: 4, threshold: 0.4)
       mcp__ruflo__memory_search(query: "{query}", namespace: "pattern",   limit: 3, threshold: 0.4)
-      mcp__ruflo__memory_search(query: "{query}", namespace: "specs",     limit: 2, threshold: 0.4)
       ```
       Merge results, rank by similarity. Focus on: existing dimension docs, `research-sources.yaml` entries, and prior research findings.
    2b. **Graph edge traversal** — see `build.md` LOAD step 2b. Follow `depends_on`/`informs` edges from knowledge results. Max 3 graph-derived docs. Best-effort, never blocks.
@@ -114,12 +113,11 @@ Register these steps: LOAD, ROUTE, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TR
    **Step A — Cross-namespace semantic search (ruflo MCP, preferred — run in parallel):**
 
    ```
-   mcp__ruflo__memory_search(query: "{TOPIC} {TAGS}", namespace: "knowledge", limit: 6, threshold: 0.4)
+   mcp__ruflo__memory_search(query: "{TOPIC} {TAGS}", namespace: "knowledge", limit: 8, threshold: 0.4)
    mcp__ruflo__memory_search(query: "{TOPIC} {TAGS}", namespace: "pattern",   limit: 5, threshold: 0.4)
-   mcp__ruflo__memory_search(query: "{TOPIC} {TAGS}", namespace: "specs",     limit: 4, threshold: 0.4)
    ```
 
-   Merge and rank by similarity. Group by provenance: specs/knowledge carry authority, patterns are validated heuristics, field-notes are observational. (`namespace: "all"` only returns session records — do not use.)
+   Merge and rank by similarity. Group by provenance: knowledge carries authority (dimension docs, ADRs, reflections all land here), patterns are validated heuristics. (`namespace: "all"` and `namespace: "specs"` only return session/empty results — do not use.)
 
    **If > 10 results with similarity > 0.7:** narrow Phase 1 web search to gaps only.
 

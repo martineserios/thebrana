@@ -116,13 +116,12 @@ This applies to EVERY step — CLASSIFY, SPECIFY, DECOMPOSE, BUILD, CLOSE. No ex
 Pull relevant architecture, decision knowledge, and skill matches into context before building. Budget: 30K tokens max.
 
 1. **Build query** from available context: `"{project} {task.subject} {task.tags joined} {user_input}"`
-2. **Primary — ruflo MCP (run all three in parallel — `namespace: "all"` only returns session records):**
+2. **Primary — ruflo MCP (run both in parallel — `namespace: "all"` only returns session records; `specs` namespace is unindexed):**
    ```
-   mcp__ruflo__memory_search(query: "{query}", namespace: "knowledge", limit: 4, threshold: 0.3)
+   mcp__ruflo__memory_search(query: "{query}", namespace: "knowledge", limit: 5, threshold: 0.3)
    mcp__ruflo__memory_search(query: "{query}", namespace: "pattern",   limit: 3, threshold: 0.3)
-   mcp__ruflo__memory_search(query: "{query}", namespace: "specs",     limit: 2, threshold: 0.3)
    ```
-   Merge results, rank by similarity. Results span: knowledge (dimension docs, ADRs, feature briefs), pattern (past session learnings), and specs (architecture decisions).
+   Merge results, rank by similarity. Results span: knowledge (dimension docs, ADRs, feature briefs, reflections — all indexed here), pattern (past session learnings).
 2b. **Graph edge traversal** (after ruflo search, if `docs/spec-graph.json` exists):
    Collect doc paths from knowledge results. Map ruflo key → file path:
    - `knowledge:dimension:{slug}:*` → `brana-knowledge/dimensions/{slug}.md`
