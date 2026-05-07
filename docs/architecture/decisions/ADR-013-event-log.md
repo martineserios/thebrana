@@ -1,6 +1,7 @@
 ---
 informs:
   - docs/architecture/decisions/ADR-017-decision-log.md
+status: accepted
 ---
 
 # ADR-013: Event Log — Single-File Capture Layer

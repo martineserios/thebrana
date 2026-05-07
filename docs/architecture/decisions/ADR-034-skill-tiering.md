@@ -1,3 +1,6 @@
+---
+status: accepted
+---
 # ADR-034: Skill Tiering — Universal Stubs
 
 **Date:** 2026-04-06

@@ -2,6 +2,7 @@
 depends_on:
   - docs/architecture/decisions/ADR-003-agent-driven-task-execution.md
   - docs/architecture/decisions/ADR-018-dynamic-model-routing.md
+status: accepted
 ---
 
 # ADR-019: Brana Chat Sessions — Channel-Agnostic Agent Interface

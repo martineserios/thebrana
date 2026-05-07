@@ -1,3 +1,6 @@
+---
+status: accepted
+---
 # ADR-033: Pin MCP Servers to Pre-installed Binaries
 
 **Date:** 2026-04-06

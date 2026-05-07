@@ -1,6 +1,7 @@
 ---
 depends_on:
   - docs/architecture/decisions/ADR-009-test-lint-feedback-hook.md
+status: accepted
 ---
 
 # ADR-010: PR Review Agent via PostToolUse Hook

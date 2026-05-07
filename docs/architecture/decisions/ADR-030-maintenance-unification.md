@@ -4,6 +4,7 @@ depends_on:
   - docs/architecture/decisions/ADR-027-auto-learning-loop.md
   - docs/architecture/decisions/ADR-029-six-job-taxonomy.md
   - docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md
+status: accepted
 ---
 
 # ADR-030: Maintenance Unification (Expand /reconcile)

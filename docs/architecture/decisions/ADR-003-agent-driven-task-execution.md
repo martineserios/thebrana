@@ -5,6 +5,7 @@ informs:
   - docs/architecture/decisions/ADR-018-dynamic-model-routing.md
   - docs/architecture/decisions/ADR-019-brana-chat-sessions.md
   - docs/architecture/decisions/ADR-022-brana-cli.md
+status: proposed
 ---
 
 # ADR-003: Agent-Driven Task Execution

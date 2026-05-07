@@ -1,3 +1,6 @@
+---
+status: accepted
+---
 # ADR-036: MCP-or-CLI Decision Rule
 
 **Date:** 2026-04-10

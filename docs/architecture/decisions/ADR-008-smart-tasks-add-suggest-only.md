@@ -1,6 +1,7 @@
 ---
 depends_on:
   - docs/architecture/decisions/ADR-002-tasks-as-data-layer.md
+status: proposed
 ---
 
 # ADR-008: Smart /brana:backlog add — suggest-only pattern

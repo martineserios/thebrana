@@ -4,6 +4,7 @@ depends_on:
   - docs/architecture/decisions/ADR-027-auto-learning-loop.md
 informs:
   - docs/reflections/31-assurance.md
+status: accepted
 ---
 
 # ADR-031: Doc-Enforcement Hook (Scoped Hard Block)

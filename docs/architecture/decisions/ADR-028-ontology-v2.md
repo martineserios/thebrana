@@ -6,6 +6,7 @@ informs:
   - docs/brana-ontology.yaml
   - docs/architecture/decisions/ADR-027-auto-learning-loop.md
   - docs/architecture/decisions/ADR-030-maintenance-unification.md
+status: accepted
 ---
 
 # ADR-028: Ontology v2 (Measurement-Gated)

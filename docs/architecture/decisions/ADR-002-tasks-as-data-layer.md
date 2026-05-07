@@ -3,6 +3,7 @@ informs:
   - docs/architecture/decisions/ADR-003-agent-driven-task-execution.md
   - docs/architecture/decisions/ADR-008-smart-tasks-add-suggest-only.md
   - docs/architecture/decisions/ADR-022-brana-cli.md
+status: proposed
 ---
 
 # ADR-002: Tasks as JSON Data Layer

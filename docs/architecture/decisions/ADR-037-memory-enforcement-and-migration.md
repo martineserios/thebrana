@@ -1,3 +1,6 @@
+---
+status: accepted
+---
 # ADR-037: Memory Enforcement Hook + Incremental Migration Policy
 
 **Status:** Accepted  

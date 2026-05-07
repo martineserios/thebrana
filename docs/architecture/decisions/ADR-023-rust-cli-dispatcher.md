@@ -4,6 +4,7 @@ depends_on:
 informs:
   - docs/architecture/decisions/ADR-024-content-polling-keyring-credentials.md
   - docs/architecture/decisions/ADR-025-skill-lifecycle-manager.md
+status: accepted
 ---
 
 # ADR-023: Rust CLI Dispatcher — Single Binary Entry Point

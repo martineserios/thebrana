@@ -3,6 +3,7 @@ depends_on:
   - docs/architecture/decisions/ADR-012-acquire-skills.md
   - docs/architecture/decisions/ADR-022-brana-cli.md
   - docs/architecture/decisions/ADR-023-rust-cli-dispatcher.md
+status: accepted
 ---
 
 # ADR-025: Skill Lifecycle Manager

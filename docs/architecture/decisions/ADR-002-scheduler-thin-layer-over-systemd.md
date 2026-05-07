@@ -1,6 +1,7 @@
 ---
 informs:
   - docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md
+status: accepted
 ---
 
 # ADR-002: Scheduler — thin layer over systemd timers

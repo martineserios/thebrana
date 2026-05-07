@@ -420,9 +420,23 @@ echo "agents: $(ls system/agents/ | wc -l)"
 
 **Materiality:** LOW — informational only. Counts drift naturally; flag matches where the number differs by more than 2. Recommended fix: replace `N skills` with `all skills` (or remove the count) and link to the auto-generated reference.
 
+### CON-2: ADR status frontmatter completeness
+
+All ADRs must have a `status:` field in their YAML frontmatter:
+
+```bash
+grep -rL "^status:" docs/architecture/decisions/ --include="*.md"
+```
+
+**Expected:** no output (0 files missing status).
+**If files returned:** each missing ADR is flagged. Fix: add `status: accepted` (or the correct value from the `**Status:**` line in the body) to the YAML frontmatter block.
+
+**Materiality:** LOW — ADRs without status are harder to query and filter programmatically. Not a functional break, but slows lifecycle management.
+
 ### CON-REPORT
 
 List each stale count: file, line, claimed value, actual value. Severity: LOW.
+List any ADRs missing status frontmatter. Severity: LOW.
 
 ---
 

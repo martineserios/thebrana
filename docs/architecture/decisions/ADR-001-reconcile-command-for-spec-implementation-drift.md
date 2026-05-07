@@ -2,6 +2,7 @@
 informs:
   - docs/architecture/decisions/ADR-030-maintenance-unification.md
   - docs/architecture/decisions/ADR-016-spec-dependency-graph.md
+status: accepted
 ---
 
 # ADR-001: Reconcile command for spec-to-implementation drift remediation

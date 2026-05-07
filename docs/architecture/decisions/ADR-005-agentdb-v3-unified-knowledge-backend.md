@@ -3,6 +3,7 @@ informs:
   - docs/architecture/decisions/ADR-006-merge-enter-into-thebrana.md
   - docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md
   - docs/architecture/decisions/ADR-026-ruflo-mcp-backbone.md
+status: accepted
 ---
 
 # ADR-005: AgentDB v3 + RVF as Unified Knowledge Backend

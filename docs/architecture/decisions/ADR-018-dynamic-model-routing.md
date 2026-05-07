@@ -4,6 +4,7 @@ depends_on:
   - docs/architecture/decisions/ADR-017-decision-log.md
 informs:
   - docs/architecture/decisions/ADR-019-brana-chat-sessions.md
+status: accepted
 ---
 
 # ADR-018: Dynamic Model Routing

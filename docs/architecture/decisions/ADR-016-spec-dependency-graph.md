@@ -4,6 +4,7 @@ depends_on:
 informs:
   - docs/architecture/decisions/ADR-028-ontology-v2.md
   - docs/reflections/31-assurance.md
+status: accepted
 ---
 
 # ADR-016: Spec Dependency Graph

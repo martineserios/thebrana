@@ -1,6 +1,7 @@
 ---
 informs:
   - docs/reflections/ARCHITECTURE.md
+status: accepted
 ---
 
 # ADR-011: Skills Bundling — Ship Scripts Alongside SKILL.md

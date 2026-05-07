@@ -2,6 +2,7 @@
 informs:
   - docs/reflections/31-assurance.md
   - docs/reflections/ARCHITECTURE.md
+status: accepted
 ---
 
 # ADR-009: Test/Lint Feedback Hook in PostToolUse Chain

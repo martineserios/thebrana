@@ -5,6 +5,7 @@ depends_on:
   - docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md
 informs:
   - docs/architecture/decisions/ADR-018-dynamic-model-routing.md
+status: accepted
 ---
 
 # ADR-017: JSONL Decision Log

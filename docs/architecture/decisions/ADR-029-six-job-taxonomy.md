@@ -4,6 +4,7 @@ depends_on:
 informs:
   - docs/architecture/decisions/ADR-032-smart-router.md
   - docs/architecture/decisions/ADR-030-maintenance-unification.md
+status: accepted
 ---
 
 # ADR-029: 6-Job Taxonomy

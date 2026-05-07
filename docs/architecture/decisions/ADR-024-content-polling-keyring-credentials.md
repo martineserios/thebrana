@@ -1,6 +1,7 @@
 ---
 depends_on:
   - docs/architecture/decisions/ADR-023-rust-cli-dispatcher.md
+status: accepted
 ---
 
 # ADR-024: Content Polling Architecture & Keyring Credentials

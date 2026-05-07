@@ -5,6 +5,7 @@ depends_on:
 informs:
   - docs/architecture/decisions/ADR-023-rust-cli-dispatcher.md
   - docs/architecture/decisions/ADR-025-skill-lifecycle-manager.md
+status: superseded
 ---
 
 # ADR-022: Brana CLI — Standalone Terminal Interface

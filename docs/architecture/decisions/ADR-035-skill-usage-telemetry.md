@@ -1,3 +1,6 @@
+---
+status: accepted
+---
 # ADR-035: Skill Usage Telemetry — `brana skills usage`
 
 **Date:** 2026-04-10

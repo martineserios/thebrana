@@ -6,6 +6,7 @@ informs:
   - docs/architecture/decisions/ADR-030-maintenance-unification.md
   - docs/architecture/decisions/ADR-031-doc-enforcement-hook.md
   - docs/architecture/decisions/ADR-032-smart-router.md
+status: accepted
 ---
 
 # ADR-027: Auto-Learning Loop (6-Step Lifecycle)
