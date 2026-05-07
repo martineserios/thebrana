@@ -6,7 +6,7 @@ model: sonnet
 keywords: [research, topic, creator, sources, references, deep-dive, comparison, evaluate, compare, learn, investigate, debug]
 task_strategies: [spike, investigation]
 stream_affinity: [research]
-argument-hint: "[topic|doc-number|creator:name|--refresh] [scope] [--strategy research|evaluate|learn|investigate]"
+argument-hint: "[topic|doc-number|creator:name|--refresh] [scope] [--strategy research|evaluate|learn|investigate] [--depth quick|standard|deep]"
 group: learning
 context: fork
 allowed-tools:

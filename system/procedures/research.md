@@ -28,6 +28,17 @@ Target options:
 Flags:
 - `--nlm` — Enhance with NotebookLM. Before web research, query relevant notebooks for prior knowledge. After research, prepare findings as a NotebookLM-optimized source file.
 - `--refresh [scope]` — Batch refresh mode (replaces `/refresh-knowledge`). Launches parallel scout agents grouped by topic to research updates for dimension docs. Scope: `all` (default), `high`, `medium`, `low`, `venture`, or a doc number. See "Batch Refresh Mode" section below.
+- `--depth quick|standard|deep` — Controls scout hop count and recursion. See depth table below.
+
+**Depth table:**
+
+| Depth | Phase 1 scouts | Phase 3 scouts | Recursion hops | When to use |
+|-------|---------------|----------------|----------------|-------------|
+| `quick` | 3 max | 1 | 0 | Spot-check, known topic, time-constrained |
+| `standard` | 5–8 (default) | 3 (default) | 2 (default) | Most research sessions |
+| `deep` | 8–12 | 5 | 3–5 | First-time research on unfamiliar domain |
+
+If `--depth` is not passed, `standard` is used. `--depth deep` combined with `--strategy investigate` is the correct pattern for persistent or multi-day bugs.
 
 ## Step Registry
 
@@ -213,7 +224,7 @@ Register these steps: LOAD, ROUTE, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TR
    - Tags findings: `[NEW]`, `[UPDATE]`, `[VERSION]`, `[CREATOR]`, or `[STALE]`
    - **Version check**: compare current version against `version_observed` in registry. If different, tag as `[VERSION]` with HIGH severity
    - **Security scout (mandatory for topic/ecosystem mode)**: one scout must search for CVEs, security advisories, and community trust signals. Tag findings `[SECURITY]`.
-   - **Budget**: max 5 scouts for topic mode, max 8 for doc/creator mode (security scout counts toward budget)
+   - **Budget**: max 5 scouts for topic mode, max 8 for doc/creator mode (security scout counts toward budget). **`--depth` override**: `quick` = max 3 scouts total; `deep` = max 12 scouts total.
    - Scout spawn prompt MUST include: "Return ALL findings as structured markdown in your response. Start with a summary line: 'X HIGH, Y MEDIUM, Z LOW findings.' Then list each finding. Do NOT use WebFetch."
    - **When internal context exists (Phase 0)**: include in scout prompts: "Internal docs say the following about this topic: [summary from Phase 0 internal]. Tag findings that confirm internal decisions as [CONFIRMED-INTERNAL], findings that contradict as [CONTRADICTS-INTERNAL], and findings that answer open questions as [ANSWERS-INTERNAL]."
    - **When `--nlm` prior details exist**: include in scout prompts: "Compare findings against these claims from NotebookLM: [summary from Phase 0b]. Tag confirmations as [CONFIRMED], contradictions as [CONTRADICTS-NLM]."
@@ -242,7 +253,7 @@ Register these steps: LOAD, ROUTE, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TR
      - `[NLM-ONLY]` — NLM claim with no web corroboration (flag in report, do not treat as ground truth). This catches Gemini's hallucination pattern: confidently stating specific details that no other source confirms.
 
 9. **Phase 3 — Deep Dive (targeted WebFetch, max 3 scouts).** For HIGH-priority URLs from Phase 2:
-   - Launch max 3 scouts, each gets max 2 WebFetch calls
+   - Launch max 3 scouts, each gets max 2 WebFetch calls. **`--depth` override**: `quick` = max 1 scout; `deep` = max 5 scouts.
    - Each scout returns ALL deep findings as structured text in the agent result
    - **Main context writes** each scout's findings to `/tmp/research-{target}-deep-{N}.md` after receiving the result
    - Main context reads deep findings incrementally (same as Phase 2)
@@ -252,7 +263,7 @@ Register these steps: LOAD, ROUTE, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TR
    - Check if already in registry → if yes, note and skip
    - Launch scouts with the same return-inline protocol (WebSearch only, return findings in agent result)
    - Maximum 3 additional scouts (not 10)
-   - Maximum 2 hops deep from the original source
+   - Maximum 2 hops deep from the original source. **`--depth` override**: `quick` = 0 hops (skip recursion); `deep` = max 5 hops.
    - Stop recursing when: max depth reached, finding priority drops below MEDIUM, or source already in registry
 
 11. **Log HIGH findings to decision log.** Before presenting the report, persist HIGH-severity findings:
@@ -562,8 +573,9 @@ When researching, select the appropriate archetype based on the target:
 - Main context orchestrates the 3-phase loop. **Main context never does WebFetch or WebSearch directly.**
 - Scouts use `subagent_type: "brana:scout"`, `run_in_background: true`
 - **Return-inline contract (mandatory):** Scouts return ALL findings as structured text in their agent result. **Scouts cannot write files** (no Bash/Write tools). Main context receives findings and writes to `/tmp/research-{target}-{N}.md` one at a time.
-- **Phase budget:** Phase 1 max 5-8 scouts (WebSearch only; one for security in topic/ecosystem mode). Phase 3 max 3 scouts (WebFetch, max 2 per scout). Recursion max 3 scouts.
-- **Total scout cap:** max 14 scouts per invocation (8 scan + 3 deep + 3 recurse)
+- **Phase budget (standard depth):** Phase 1 max 5-8 scouts (WebSearch only; one for security in topic/ecosystem mode). Phase 3 max 3 scouts (WebFetch, max 2 per scout). Recursion max 3 scouts, max 2 hops.
+- **`--depth` overrides:** `quick` = Phase 1 max 3, Phase 3 max 1, recursion 0 hops. `deep` = Phase 1 max 12, Phase 3 max 5, recursion max 5 hops.
+- **Total scout cap (standard):** max 14 scouts per invocation (8 scan + 3 deep + 3 recurse). `quick`: max 4. `deep`: max 20.
 - **Model routing for scouts:** Phase 1 scouts (metadata-only WebSearch) use `model: "haiku"`. Phase 3 scouts (deep-dive WebFetch) use `model: "sonnet"`. This optimizes cost — scan scouts do lightweight work, deep-dive scouts need stronger comprehension.
 - **Scout spawn prompt template:** Always include these lines in every scout prompt:
   ```
