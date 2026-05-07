@@ -11,6 +11,29 @@ Brana is a plugin for Claude Code that adds structure to how you work with AI. I
 
 The result: Claude remembers what it learned, follows consistent practices, and gets better at helping you over time.
 
+## Essential 5 — Start Here
+
+New to brana? Ignore the other 30+ commands for now. These 5 cover 90% of daily use:
+
+| Command | When to use |
+|---------|-------------|
+| `/brana:build` | Start any feature, bug fix, or refactor |
+| `/brana:backlog start <id>` | Pick up a specific task from your list |
+| `/brana:research` | Learn about a topic before building |
+| `/brana:close` | End a session — saves learnings, commits state |
+| `/brana:onboard <project>` | First time in an unfamiliar codebase |
+
+### Try This First
+
+Complete this 10-minute walkthrough before anything else:
+
+1. `brana backlog add "Hello world task"` — add your first task
+2. `/brana:backlog start <id>` — pick it up (replace `<id>` with the ID from step 1)
+3. `/brana:build` — let build guide you through SPECIFY → BUILD → VERIFY
+4. `/brana:close` — close the session and watch what gets saved
+
+After that, the rest of this guide will make sense.
+
 ## Prerequisites
 
 | Requirement | Minimum | Check |
