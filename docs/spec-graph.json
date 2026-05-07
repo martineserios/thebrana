@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-07T00:19:01Z",
+  "generated": "2026-05-07T00:43:32Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -10275,7 +10275,55 @@
     },
     {
       "from": "docs/reflections/08-diagnosis.md",
+      "to": "brana-knowledge/dimensions/50-respond-io-platform.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
+      "to": "brana-knowledge/dimensions/51-chatwoot-platform.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
+      "to": "brana-knowledge/dimensions/53-bigin-crm-platform.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
+      "to": "brana-knowledge/dimensions/54-meta-whatsapp-template-api.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
+      "to": "brana-knowledge/dimensions/55-vercel-platform.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
+      "to": "brana-knowledge/dimensions/api-channel-bridge-pattern.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
+      "to": "brana-knowledge/dimensions/bigin-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
       "to": "brana-knowledge/dimensions/cc-project-structure-best-practices.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
+      "to": "brana-knowledge/dimensions/chatwoot-case-study.md",
       "type": "references",
       "computed": false
     },
@@ -10287,13 +10335,55 @@
     },
     {
       "from": "docs/reflections/08-diagnosis.md",
+      "to": "brana-knowledge/dimensions/crm-bulk-async-ingestion.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
+      "to": "brana-knowledge/dimensions/declarative-query-coql.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
       "to": "brana-knowledge/dimensions/knowledge-architecture.md",
       "type": "references",
       "computed": false
     },
     {
       "from": "docs/reflections/08-diagnosis.md",
+      "to": "brana-knowledge/dimensions/oauth-self-client-flow.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
+      "to": "brana-knowledge/dimensions/omnichannel-ai-agent-frameworks.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
+      "to": "brana-knowledge/dimensions/omnichannel-inbox-domain-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
+      "to": "brana-knowledge/dimensions/respond-io-case-study.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
       "to": "brana-knowledge/dimensions/software-engineering-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/08-diagnosis.md",
+      "to": "brana-knowledge/dimensions/ycloud-case-study.md",
       "type": "references",
       "computed": false
     },
@@ -11134,8 +11224,8 @@
   ],
   "stats": {
     "nodes": 358,
-    "edges": 1470,
+    "edges": 1485,
     "typed_edges": 549,
-    "orphans": 89
+    "orphans": 83
   }
 }
