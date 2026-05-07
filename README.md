@@ -6,21 +6,23 @@
 
 Every Claude Code session, your model re-infers what it already knew: your stack, your naming conventions, your past decisions. This invisible per-session cost is the **knowledge retrieval tax** — and it compounds.
 
-Brana eliminates it. A plugin for Claude Code that pre-loads structured context before reasoning begins, enforces engineering discipline automatically, and gets more useful the longer you use it.
+Brana eliminates it. A plugin for Claude Code that accumulates your engineering conventions, corrections, and decisions — so each session starts from where the last one ended, not from zero.
 
-## What you get
-
-- **25+ skills** -- slash commands for building, researching, reviewing, managing tasks, and more
-- **12 rules** -- git discipline, test-first, context budget, research methodology -- always active
-- **10 hooks** -- automatic behaviors: pattern recall, spec-before-code gate, learning capture, cascade detection
-- **11 agents** -- specialized sub-agents that auto-fire for code review, adversarial challenge, research, and more
-
-### The compounding loop
+## The compounding loop
 
 Each session, brana captures what went wrong and what worked. Next session, those patterns surface automatically before you start. Corrections don't repeat. Patterns proven across 3+ sessions get promoted and recalled with higher confidence than new ones.
 
-Without brana: Claude resets every session.
-With brana: Claude remembers your corrections, follows your conventions, and gets harder to fool over time.
+**Without brana:** Claude resets every session — re-infers your stack, re-learns your conventions, repeats the same mistakes.  
+**With brana:** Claude remembers your corrections, follows your conventions, and gets harder to fool over time.
+
+## What's included
+
+Skills, rules, hooks, and agents that enforce the loop automatically:
+
+- **Skills** -- slash commands for building, researching, reviewing, managing tasks, and more
+- **Rules** -- git discipline, test-first, context budget, research methodology — always active
+- **Hooks** -- automatic behaviors: pattern recall, spec-before-code gate, learning capture, cascade detection
+- **Agents** -- specialized sub-agents that auto-fire for code review, adversarial challenge, research, and more
 
 ## Quick start
 
