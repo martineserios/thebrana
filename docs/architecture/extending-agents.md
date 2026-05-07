@@ -100,6 +100,7 @@ Agents run in Claude Code's sandbox. Key constraints:
 - **General-purpose agents CAN read files at arbitrary absolute paths** (cross-repo, `/tmp`, etc.)
 - **Scout/explore agents are more restricted** — they may not read outside the project directory
 - **No agent can write files** — findings go back to main context as text output
+- **Exception — agents that apply edits:** If a skill needs an agent to write code (not just report findings), add `Write` and `Edit` to `tools`. Without them, the agent can describe changes but cannot apply them — it will produce a description instead of a file edit (t-1222).
 - **Agents cannot spawn other agents** — only the main context or skills with `Agent` in allowed-tools can delegate
 
 ## Model Routing Guidelines
