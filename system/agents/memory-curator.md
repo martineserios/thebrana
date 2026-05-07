@@ -3,7 +3,9 @@ name: memory-curator
 description: "Recall patterns from knowledge system, cross-pollinate across clients, check knowledge health. Use when starting work on a topic, encountering a familiar problem, or periodic knowledge checks. Not for: codebase search, project scanning, web research."
 model: haiku
 effort: low
+maxTurns: 10
 memory: true
+permissionMode: plan
 color: purple
 tools:
   - Bash

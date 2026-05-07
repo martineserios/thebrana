@@ -3,7 +3,9 @@ name: pr-reviewer
 description: "Review PR diffs for code quality, bugs, and style issues. Auto-triggered on PR creation. Not for: implementation, file editing, test writing."
 model: sonnet
 effort: medium
+maxTurns: 15
 memory: true
+permissionMode: plan
 isolation: worktree
 color: orange
 tools:

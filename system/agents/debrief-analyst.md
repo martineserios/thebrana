@@ -5,6 +5,7 @@ model: opus
 effort: high
 maxTurns: 15
 memory: true
+permissionMode: plan
 color: blue
 tools:
   - Bash

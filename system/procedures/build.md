@@ -473,6 +473,12 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
    ## Design
    {technical approach — components, files, patterns}
 
+   ## Testing Strategy
+   - **Unit:** {pure logic, no I/O — target 70%+ of test budget}
+   - **Integration:** {cross-component or DB/file I/O — target 25%}
+   - **E2E:** {CLI smoke or UI flow — target 5%, only if behavior can't be captured lower}
+   - **Mock policy:** Real > Fake > Stub > Mock — prefer real collaborators; mock only at system boundaries (network, time, external APIs)
+
    ## Documentation Plan
    - [ ] **User guide** — `docs/guide/features/{slug}.md`: {what users need — behavior, commands, config, examples}
    - [ ] **Tech doc** — `docs/architecture/features/{slug}.md`: {what contributors need — design rationale, extending, key files}

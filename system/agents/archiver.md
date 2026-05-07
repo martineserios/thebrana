@@ -3,6 +3,8 @@ name: archiver
 description: "Archive project patterns and knowledge when retiring. Categorize as transferable, historical, or deletable. Use when retiring a project or archiving knowledge. Not for: active project work, pattern recall, daily operations."
 model: haiku
 effort: low
+maxTurns: 8
+memory: true
 permissionMode: plan
 color: gray
 tools:
