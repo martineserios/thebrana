@@ -12,16 +12,13 @@ Register these steps: LOAD, REVIEW (subcommand-specific), EXTRACT, EVALUATE, PER
 Pull relevant business context into memory before the review. Budget: 30K tokens max.
 
 1. **Build query** from available context: `"{project} {task.subject} {task.tags joined} {user_input}"`
-2. **Primary — ruflo MCP:**
+2. **Primary — ruflo MCP (run all in parallel — `namespace: "all"` only returns session records):**
    ```
-   mcp__ruflo__memory_search(
-     query: "{query} metrics revenue health pipeline",
-     namespace: "all",
-     limit: 5,
-     threshold: 0.4
-   )
+   mcp__ruflo__memory_search(query: "{query} metrics revenue health pipeline", namespace: "knowledge", limit: 2, threshold: 0.4)
+   mcp__ruflo__memory_search(query: "{query} metrics revenue health pipeline", namespace: "pattern",   limit: 2, threshold: 0.4)
+   mcp__ruflo__memory_search(query: "{query} metrics revenue health pipeline", namespace: "business",  limit: 3, threshold: 0.4)
    ```
-   Focus on: prior review snapshots (namespace: business), pipeline state, event log entries, and health metrics.
+   Merge results, rank by similarity. Focus on: prior review snapshots (namespace: business), pipeline state, event log entries, and health metrics.
 2b. **Graph edge traversal** — see `build.md` LOAD step 2b. Follow `depends_on`/`informs` edges from knowledge results. Max 3 graph-derived docs. Best-effort, never blocks.
 3. **Fallback — tag-based grep** (if MCP unavailable):
    ```bash
@@ -328,7 +325,7 @@ Score each finding (0-10) on two axes:
 
 **Gate by size:**
 - **SMALL:** Auto-persist (no prompt). Metric snapshots, event log entries.
-- **MEDIUM:** Inline eval — dedup via `mcp__ruflo__memory_search(query: "{finding summary}", namespace: "all", limit: 3)`. If similar exists, skip or merge. Present remaining to user via AskUserQuestion.
+- **MEDIUM:** Inline eval — dedup via `mcp__ruflo__memory_search(query: "{finding summary}", namespace: "knowledge", limit: 2)` and `mcp__ruflo__memory_search(query: "{finding summary}", namespace: "pattern", limit: 2)`. If top result similarity > 0.9, skip or merge. Present remaining to user via AskUserQuestion.
 - **LARGE:** Present to user with recommendation via AskUserQuestion. For strategic shifts or cross-client patterns, suggest `/brana:challenge` review.
 
 ## Step G — PERSIST

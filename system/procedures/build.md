@@ -116,16 +116,13 @@ This applies to EVERY step — CLASSIFY, SPECIFY, DECOMPOSE, BUILD, CLOSE. No ex
 Pull relevant architecture, decision knowledge, and skill matches into context before building. Budget: 30K tokens max.
 
 1. **Build query** from available context: `"{project} {task.subject} {task.tags joined} {user_input}"`
-2. **Primary — ruflo MCP:**
+2. **Primary — ruflo MCP (run all three in parallel — `namespace: "all"` only returns session records):**
    ```
-   mcp__ruflo__memory_search(
-     query: "{query}",
-     namespace: "all",
-     limit: 8,
-     threshold: 0.3
-   )
+   mcp__ruflo__memory_search(query: "{query}", namespace: "knowledge", limit: 4, threshold: 0.3)
+   mcp__ruflo__memory_search(query: "{query}", namespace: "pattern",   limit: 3, threshold: 0.3)
+   mcp__ruflo__memory_search(query: "{query}", namespace: "specs",     limit: 2, threshold: 0.3)
    ```
-   Results span all namespaces: knowledge (dimension docs, ADRs, feature briefs), pattern (past session learnings), and **skills** (matching procedures).
+   Merge results, rank by similarity. Results span: knowledge (dimension docs, ADRs, feature briefs), pattern (past session learnings), and specs (architecture decisions).
 2b. **Graph edge traversal** (after ruflo search, if `docs/spec-graph.json` exists):
    Collect doc paths from knowledge results. Map ruflo key → file path:
    - `knowledge:dimension:{slug}:*` → `brana-knowledge/dimensions/{slug}.md`
@@ -1069,15 +1066,12 @@ Score each finding on a 0-10 scale across three dimensions:
 | **MEDIUM** (2-4) | This project | New twist on existing topic | Inline dedup check via ruflo |
 | **LARGE** (5+) | Cross-project | New topic or contradicts existing knowledge | User review, suggest challenger |
 
-**Dedup check** (MEDIUM and LARGE findings):
+**Dedup check** (MEDIUM and LARGE findings — run in parallel):
 ```
-mcp__ruflo__memory_search(
-  query: "{finding summary}",
-  namespace: "all",
-  limit: 3
-)
+mcp__ruflo__memory_search(query: "{finding summary}", namespace: "knowledge", limit: 2)
+mcp__ruflo__memory_search(query: "{finding summary}", namespace: "pattern",   limit: 2)
 ```
-If a similar entry exists with confidence > 0.7, skip persistence (already captured). Otherwise proceed to PERSIST.
+If top result similarity > 0.7, skip persistence (already captured). Otherwise proceed to PERSIST.
 
 > **☑ Checkpoint — EVALUATE** (M+ builds with task_id):
 > ```bash

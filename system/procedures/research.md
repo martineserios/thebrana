@@ -42,16 +42,13 @@ Register these steps: LOAD, ROUTE, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TR
 0. **Step 0 — LOAD.** Pull relevant existing knowledge into context before researching. Budget: 30K tokens max.
 
    1. **Build query** from available context: `"{project} {task.subject} {task.tags joined} {user_input}"`
-   2. **Primary — ruflo MCP:**
+   2. **Primary — ruflo MCP (run all three in parallel — `namespace: "all"` only returns session records):**
       ```
-      mcp__ruflo__memory_search(
-        query: "{query}",
-        namespace: "all",
-        limit: 5,
-        threshold: 0.4
-      )
+      mcp__ruflo__memory_search(query: "{query}", namespace: "knowledge", limit: 3, threshold: 0.4)
+      mcp__ruflo__memory_search(query: "{query}", namespace: "pattern",   limit: 3, threshold: 0.4)
+      mcp__ruflo__memory_search(query: "{query}", namespace: "specs",     limit: 2, threshold: 0.4)
       ```
-      Focus on: existing dimension docs, `research-sources.yaml` entries, and prior research findings.
+      Merge results, rank by similarity. Focus on: existing dimension docs, `research-sources.yaml` entries, and prior research findings.
    2b. **Graph edge traversal** — see `build.md` LOAD step 2b. Follow `depends_on`/`informs` edges from knowledge results. Max 3 graph-derived docs. Best-effort, never blocks.
    3. **Fallback — tag-based grep** (if MCP unavailable):
       ```bash
@@ -114,19 +111,15 @@ Register these steps: LOAD, ROUTE, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TR
 
    Before reaching out to the web, search what the system already knows. Internal docs may have already decided vocabulary, constraints, or conclusions about the topic. External research should deepen what docs sketched, validate assumptions, find implementations, and discover what docs couldn't know.
 
-   **Step A — Cross-namespace semantic search (ruflo MCP, preferred):**
+   **Step A — Cross-namespace semantic search (ruflo MCP, preferred — run in parallel):**
 
    ```
-   mcp__ruflo__memory_search(
-     query: "{TOPIC} {TAGS}",
-     namespace: "all",
-     limit: 15,
-     threshold: 0.4
-   )
+   mcp__ruflo__memory_search(query: "{TOPIC} {TAGS}", namespace: "knowledge", limit: 6, threshold: 0.4)
+   mcp__ruflo__memory_search(query: "{TOPIC} {TAGS}", namespace: "pattern",   limit: 5, threshold: 0.4)
+   mcp__ruflo__memory_search(query: "{TOPIC} {TAGS}", namespace: "specs",     limit: 4, threshold: 0.4)
    ```
 
-   Returns results tagged with source namespace (knowledge, patterns, field-notes, decisions).
-   Group by provenance: decisions carry authority, assumptions are speculative, field-notes are observational.
+   Merge and rank by similarity. Group by provenance: specs/knowledge carry authority, patterns are validated heuristics, field-notes are observational. (`namespace: "all"` only returns session records — do not use.)
 
    **If > 10 results with similarity > 0.7:** narrow Phase 1 web search to gaps only.
 
@@ -522,13 +515,10 @@ Output: root cause + fix recommendation. Optionally append a FieldNote (`## Fiel
     | MEDIUM (2-4) | Dimension doc update | New on existing topic | Dedup via ruflo, present to user |
     | LARGE (5+) | New dimension, contradicts existing | Brand new topic area | User review, suggest challenger for contradictions |
 
-    **Dedup check (MEDIUM+ only):**
+    **Dedup check (MEDIUM+ only — run in parallel):**
     ```
-    mcp__ruflo__memory_search(
-      query: "{finding summary}",
-      namespace: "all",
-      limit: 3
-    )
+    mcp__ruflo__memory_search(query: "{finding summary}", namespace: "knowledge", limit: 2)
+    mcp__ruflo__memory_search(query: "{finding summary}", namespace: "pattern",   limit: 2)
     ```
     If top result similarity > 0.92, mark as "already stored" and skip persist. Otherwise proceed.
 
