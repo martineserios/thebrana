@@ -396,6 +396,36 @@ Present findings grouped by severity (CRITICAL / WARNING / INFO). No auto-fix â€
 
 ---
 
+## Consistency Domain (`--scope consistency`)
+
+Detect documentation drift: hardcoded counts in ADRs and living docs that no longer match the actual implementation.
+
+### CON-1: Hardcoded component counts in ADRs
+
+Grep for numeric counts of brana components in the ADR tree:
+
+```bash
+grep -rE "[0-9]+ (skills|hooks|rules|agents)" docs/architecture/decisions/ docs/reflections/ \
+  --include="*.md" | grep -v "docs/archive"
+```
+
+Cross-reference each hit against actual filesystem counts:
+
+```bash
+echo "skills: $(ls system/skills/ | wc -l)"
+echo "hooks:  $(ls system/hooks/ | wc -l)"
+echo "rules:  $(ls system/rules/ | wc -l)"
+echo "agents: $(ls system/agents/ | wc -l)"
+```
+
+**Materiality:** LOW â€” informational only. Counts drift naturally; flag matches where the number differs by more than 2. Recommended fix: replace `N skills` with `all skills` (or remove the count) and link to the auto-generated reference.
+
+### CON-REPORT
+
+List each stale count: file, line, claimed value, actual value. Severity: LOW.
+
+---
+
 ## Propagation Domain (`--scope propagation`)
 
 Cascade pending errata through the spec layer hierarchy. Invokes existing commands as building blocks.
