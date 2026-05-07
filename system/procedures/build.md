@@ -470,8 +470,17 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
    ## Research
    {key findings that informed the decision — auto-populated}
 
+   ## Assumptions
+   Surface ambiguities before drafting. If a requirement can be interpreted two ways, ask — don't pick.
+   - {assumption 1}
+
    ## Design
    {technical approach — components, files, patterns}
+
+   ## Boundaries
+   | Always | Ask First | Never |
+   |--------|-----------|-------|
+   | {what this change always does} | {what requires confirmation} | {what this change never touches} |
 
    ## Testing Strategy
    - **Unit:** {pure logic, no I/O — target 70%+ of test budget}
