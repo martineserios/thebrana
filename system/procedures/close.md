@@ -699,23 +699,25 @@ Audit every entry in MEMORY.md using the **"Where to store what"** classificatio
 
    | Classification | Action |
    |---------------|--------|
-   | **Directive** ("always", "never", "must", "should") | Move to `rules/*.md` |
+   | **Directive** ("always", "never", "must", "should") — project-specific | Write to `~/.claude/projects/{project}/memory/feedback_{slug}.md` + update MEMORY.md pointer (Step 5b format) |
+   | **Directive** — cross-project (applies beyond this repo) | Write to `~/.claude/memory/feedback_{slug}.md` + update portfolio MEMORY.md pointer |
    | **Convention** (architecture, stack, domain terms) | Present to user via batched AskUserQuestion: "Convention found — add to CLAUDE.md manually via PR?" Show formatted text. User decides; close does not write. |
-   | **Automation** (should trigger on events) | Flag for hook creation |
-   | **Recipe** (multi-step reusable workflow) | Flag for skill creation |
+   | **Automation** (should trigger on events) | Flag for hook creation — surface as AskUserQuestion, do not auto-write |
+   | **Recipe** (multi-step reusable workflow) | Flag for skill creation — surface as AskUserQuestion, do not auto-write |
    | **Log entry** (event that happened) | Move to `/brana:log` |
    | **Derivable** (obtainable via command or file read) | Delete |
    | **Historical** (completed, no future value) | Delete |
-   | **Not project-specific** (applies across all projects) | Move to global `~/.claude/rules/` |
    | **Feature idea** (gap, wish, improvement) | Create task via `backlog_add()` (MCP) or `brana backlog add`, then delete |
    | **True memory** (external API, pointers, non-derivable context) | Keep |
+
+   > **Note:** Never route to `system/rules/` or `~/.claude/rules/`. `system/rules/` is BEHAVIORAL_PATHS and requires a worktree — flag as a rule candidate for the user to create via `/brana:build` instead. `~/.claude/rules/` is cleaned by `bootstrap.sh` on every run (rules are loaded via the plugin, not the identity layer).
 
 3. **Before executing any writes**, activate the sentinel so `feedback-gate.sh` passes through:
    ```bash
    touch /tmp/brana-close-active
    ```
 
-4. **Execute moves** — for directives and conventions, create/update the target file and delete from MEMORY.md
+4. **Execute moves** — for directives, write to the appropriate memory file and delete from MEMORY.md.
 
 5. **Feature ideas** — search existing tasks first: `backlog_search(query: "keyword")` (MCP) or `brana backlog search "keyword"`. If duplicate, just delete. If new, `backlog_add(subject: "...", stream: "...", task_type: "task")` (MCP) or `brana backlog add --json '{"subject":"...","stream":"...","type":"task"}'`
 
