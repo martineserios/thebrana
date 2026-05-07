@@ -894,6 +894,31 @@ pub fn cmd_archive(phase_id: Option<String>, file: Option<PathBuf>) -> anyhow::R
     }
 }
 
+// ── triage-stale helpers ─────────────────────────────────────────────────
+
+/// Parse `git log --all --oneline` output and return unique task IDs that
+/// appear as the **scope** of a conventional commit or as the branch name in a
+/// merge commit.
+///
+/// Matches:
+/// - `<hash> <type>(t-NNN): …`  — scope IS the task ID
+/// - `<hash> merge(feat/t-NNN…): …`  — merge of a task branch
+///
+/// Does NOT match:
+/// - Casual mentions like `docs(research): … (t-NNN)` (scope ≠ task ID)
+/// - Any other position in the commit subject
+pub fn extract_task_ids_from_git_log(log: &str) -> Vec<String> {
+    todo!("extract_task_ids_from_git_log not implemented")
+}
+
+/// Cross-reference: return pending tasks whose ID appears in `shipped_ids`.
+pub fn find_shipped_pending<'a>(
+    pending: &[&'a serde_json::Value],
+    shipped_ids: &[String],
+) -> Vec<&'a serde_json::Value> {
+    todo!("find_shipped_pending not implemented")
+}
+
 // ── tests ───────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -1083,6 +1108,96 @@ mod tests {
         let result = list_archivable(&val);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0]["id"].as_str(), Some("ph-001"));
+    }
+
+    // ── extract_task_ids_from_git_log ────────────────────────────────
+
+    #[test]
+    fn test_extract_scope_is_task_id() {
+        let log = "941c44d feat(t-1032): enforce TDD gate in /brana:backlog plan\n";
+        let ids = extract_task_ids_from_git_log(log);
+        assert_eq!(ids, vec!["t-1032"]);
+    }
+
+    #[test]
+    fn test_extract_merge_commit_branch_pattern() {
+        let log = "9e9df44 merge(feat/t-1032): enforce TDD gate\n";
+        let ids = extract_task_ids_from_git_log(log);
+        assert_eq!(ids, vec!["t-1032"]);
+    }
+
+    #[test]
+    fn test_extract_fix_branch_merge() {
+        let log = "abc1234 merge(fix/t-999-some-slug): fix the thing\n";
+        let ids = extract_task_ids_from_git_log(log);
+        assert_eq!(ids, vec!["t-999"]);
+    }
+
+    #[test]
+    fn test_extract_ignores_casual_mention_in_message() {
+        // scope is 'research', t-1229 is a trailing mention only
+        let log = "bb89d37 docs(research): Batch API integration design (t-1229)\n";
+        let ids = extract_task_ids_from_git_log(log);
+        assert!(ids.is_empty(), "casual mention should not match, got: {ids:?}");
+    }
+
+    #[test]
+    fn test_extract_ignores_no_task_id() {
+        let log = "7e8822c chore(state): sync tasks.json — close session Wave 4\n";
+        let ids = extract_task_ids_from_git_log(log);
+        assert!(ids.is_empty());
+    }
+
+    #[test]
+    fn test_extract_deduplicates() {
+        let log = "aaa feat(t-100): first\nbbb merge(feat/t-100): first merge\n";
+        let ids = extract_task_ids_from_git_log(log);
+        assert_eq!(ids, vec!["t-100"]);
+    }
+
+    #[test]
+    fn test_extract_multiple_tasks() {
+        let log = "aaa feat(t-1): thing one\nbbb merge(fix/t-2-slug): thing two\nccc test(t-3): tests\n";
+        let mut ids = extract_task_ids_from_git_log(log);
+        ids.sort();
+        assert_eq!(ids, vec!["t-1", "t-2", "t-3"]);
+    }
+
+    #[test]
+    fn test_extract_refactor_type() {
+        let log = "abc refactor(t-42): restructure module\n";
+        let ids = extract_task_ids_from_git_log(log);
+        assert_eq!(ids, vec!["t-42"]);
+    }
+
+    // ── find_shipped_pending ─────────────────────────────────────────
+
+    #[test]
+    fn test_find_shipped_pending_returns_matching() {
+        let t1 = json!({"id": "t-1", "status": "pending"});
+        let t2 = json!({"id": "t-2", "status": "pending"});
+        let t3 = json!({"id": "t-3", "status": "completed"});
+        let pending = vec![&t1, &t2, &t3];
+        let shipped = vec!["t-1".to_string(), "t-3".to_string()];
+        let result = find_shipped_pending(&pending, &shipped);
+        assert_eq!(result.len(), 2);
+        assert!(result.iter().any(|t| t["id"] == "t-1"));
+        assert!(result.iter().any(|t| t["id"] == "t-3"));
+    }
+
+    #[test]
+    fn test_find_shipped_pending_no_matches() {
+        let t1 = json!({"id": "t-99", "status": "pending"});
+        let pending = vec![&t1];
+        let shipped = vec!["t-1".to_string()];
+        let result = find_shipped_pending(&pending, &shipped);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_find_shipped_pending_empty_inputs() {
+        let result = find_shipped_pending(&[], &[]);
+        assert!(result.is_empty());
     }
 }
 
