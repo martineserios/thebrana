@@ -572,6 +572,23 @@ pub enum BacklogCmd {
         #[arg(long, default_value = "14")]
         days: i64,
     },
+    /// Bulk-close pending tasks that have feat/fix commits on main
+    TriageStale {
+        /// Show matches without closing anything
+        #[arg(long)]
+        dry_run: bool,
+        /// Tasks to show per confirmation prompt
+        #[arg(long, default_value = "10")]
+        batch: usize,
+        /// Close all matches without prompting
+        #[arg(long)]
+        yes: bool,
+        /// Override repo path (default: CWD)
+        #[arg(long)]
+        git_dir: Option<std::path::PathBuf>,
+        #[arg(long)]
+        file: Option<std::path::PathBuf>,
+    },
     /// Print task context
     Context {
         task_id: String,

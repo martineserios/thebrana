@@ -1,5 +1,6 @@
 //! Backlog subcommand handlers
 
+use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
 
 use anyhow::Context;
@@ -894,6 +895,132 @@ pub fn cmd_archive(phase_id: Option<String>, file: Option<PathBuf>) -> anyhow::R
     }
 }
 
+// ── triage-stale command ──────────────────────────────────────────────────
+
+pub fn cmd_triage_stale(
+    dry_run: bool,
+    batch_size: usize,
+    yes: bool,
+    git_dir: Option<PathBuf>,
+    file: Option<PathBuf>,
+) -> anyhow::Result<()> {
+    // 1. Get git log
+    let mut cmd = std::process::Command::new("git");
+    if let Some(ref dir) = git_dir {
+        cmd.arg("-C").arg(dir);
+    }
+    let output = cmd
+        .args(["log", "--all", "--oneline"])
+        .output()
+        .context("failed to run git log")?;
+    let log = String::from_utf8_lossy(&output.stdout);
+
+    // 2. Extract shipped task IDs
+    let shipped_ids = extract_task_ids_from_git_log(&log);
+    if shipped_ids.is_empty() {
+        println!("No shipped task IDs found in git log.");
+        return Ok(());
+    }
+
+    // 3. Load pending tasks
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    let mut data = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+
+    // Collect display info and matched IDs before taking any mutable borrow.
+    // Each entry: (id, subject, stream)
+    let matched: Vec<(String, String, String)> = {
+        let all_tasks: Vec<&serde_json::Value> = data["tasks"]
+            .as_array()
+            .map(|a| a.iter().collect())
+            .unwrap_or_default();
+        let pending: Vec<&serde_json::Value> = all_tasks
+            .iter()
+            .filter(|t| t["status"].as_str() == Some("pending"))
+            .copied()
+            .collect();
+        find_shipped_pending(&pending, &shipped_ids)
+            .into_iter()
+            .map(|t| (
+                t["id"].as_str().unwrap_or("").to_string(),
+                t["subject"].as_str().unwrap_or("(no subject)").to_string(),
+                t["stream"].as_str().unwrap_or("?").to_string(),
+            ))
+            .collect()
+    };
+
+    if matched.is_empty() {
+        println!("No pending tasks found with shipped commits.");
+        return Ok(());
+    }
+
+    println!("\n{} pending tasks have commits on main:\n", matched.len());
+
+    // 5. Present in batches
+    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let mut closed = 0usize;
+    let stdin = io::stdin();
+    let mut stdout = io::stdout();
+    let total = matched.len();
+
+    for chunk in matched.chunks(batch_size) {
+        for (id, subj, stream) in chunk {
+            println!("  [{stream}] {id} — {subj}");
+        }
+        println!();
+
+        if dry_run {
+            println!("  (dry-run: would close {} tasks)", chunk.len());
+            continue;
+        }
+
+        let answer = if yes {
+            "y".to_string()
+        } else {
+            print!("  Close these {} tasks? [y/n/q]: ", chunk.len());
+            stdout.flush()?;
+            let mut line = String::new();
+            stdin.lock().read_line(&mut line)?;
+            line.trim().to_lowercase()
+        };
+
+        match answer.as_str() {
+            "y" | "yes" => {
+                for (id, _, _) in chunk {
+                    if !id.is_empty() {
+                        if let Some(task) = data["tasks"]
+                            .as_array_mut()
+                            .and_then(|arr| arr.iter_mut().find(|x| x["id"].as_str() == Some(id.as_str())))
+                        {
+                            task["status"] = serde_json::json!("completed");
+                            task["completed"] = serde_json::json!(today);
+                        }
+                        closed += 1;
+                    }
+                }
+                tasks::save_tasks(&tf, &data).map_err(|e| anyhow::anyhow!("{e}"))?;
+                println!("  ✓ closed {closed} tasks so far\n");
+            }
+            "q" | "quit" => {
+                println!("  Stopped. {closed} tasks closed.");
+                return Ok(());
+            }
+            _ => {
+                println!("  Skipped.\n");
+            }
+        }
+    }
+
+    if dry_run {
+        println!("dry-run: would close {} tasks total", total);
+    } else {
+        println!("Done. {closed} tasks closed.");
+    }
+    Ok(())
+}
+
 // ── triage-stale helpers ─────────────────────────────────────────────────
 
 /// Parse `git log --all --oneline` output and return unique task IDs that
@@ -908,15 +1035,63 @@ pub fn cmd_archive(phase_id: Option<String>, file: Option<PathBuf>) -> anyhow::R
 /// - Casual mentions like `docs(research): … (t-NNN)` (scope ≠ task ID)
 /// - Any other position in the commit subject
 pub fn extract_task_ids_from_git_log(log: &str) -> Vec<String> {
-    todo!("extract_task_ids_from_git_log not implemented")
+    let mut seen = std::collections::HashSet::new();
+    let mut ids = Vec::new();
+    for line in log.lines() {
+        // Strip leading 7-char hash + space: "<hash> <subject>"
+        let subject = line.splitn(2, ' ').nth(1).unwrap_or(line);
+        // Pattern 1: conventional commit with task ID as scope — \w+(t-NNN):
+        // e.g. "feat(t-1032):", "test(t-84):", "merge(t-5):"
+        if let Some(rest) = subject.find("(t-").map(|i| &subject[i+1..]) {
+            if let Some(end) = rest.find(')') {
+                let candidate = &rest[..end]; // "t-NNN"
+                if candidate.starts_with("t-") && candidate[2..].chars().all(|c| c.is_ascii_digit()) {
+                    let before = &subject[..subject.find("(t-").unwrap()];
+                    // Scope must directly follow a commit type word (no '/')
+                    if !before.contains('/') && before.chars().all(|c| c.is_alphanumeric() || c == ' ' || c == '-') {
+                        if seen.insert(candidate.to_string()) {
+                            ids.push(candidate.to_string());
+                        }
+                        continue;
+                    }
+                }
+            }
+        }
+        // Pattern 2: merge commit of a task branch — merge(feat/t-NNN...) or merge(fix/t-NNN...)
+        // e.g. "merge(feat/t-1032):", "merge(fix/t-999-slug):"
+        if subject.starts_with("merge(") {
+            let inner_start = "merge(".len();
+            if let Some(close) = subject.find(')') {
+                let inner = &subject[inner_start..close]; // "feat/t-1032" or "feat/t-1032-slug"
+                if let Some(t_pos) = inner.find("/t-") {
+                    let after_t = &inner[t_pos + 1..]; // "t-1032" or "t-1032-slug"
+                    // find '-' after the "t-" prefix (skip first 2 chars)
+                    let id_end = after_t[2..].find('-').map(|i| i + 2).unwrap_or(after_t.len());
+                    // Only take digits after "t-"
+                    let digits = &after_t[2..id_end];
+                    if !digits.is_empty() && digits.chars().all(|c| c.is_ascii_digit()) {
+                        let task_id = format!("t-{digits}");
+                        if seen.insert(task_id.clone()) {
+                            ids.push(task_id);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    ids
 }
 
-/// Cross-reference: return pending tasks whose ID appears in `shipped_ids`.
+/// Cross-reference: return tasks (from `pending`) whose ID appears in `shipped_ids`.
 pub fn find_shipped_pending<'a>(
     pending: &[&'a serde_json::Value],
     shipped_ids: &[String],
 ) -> Vec<&'a serde_json::Value> {
-    todo!("find_shipped_pending not implemented")
+    let shipped: std::collections::HashSet<&str> = shipped_ids.iter().map(|s| s.as_str()).collect();
+    pending.iter()
+        .filter(|t| t["id"].as_str().map(|id| shipped.contains(id)).unwrap_or(false))
+        .copied()
+        .collect()
 }
 
 // ── tests ───────────────────────────────────────────────────────────────

@@ -57,6 +57,7 @@ fn main() {
             BacklogCmd::Status { all, json } => run_or_exit(commands::backlog::cmd_status(&theme, all, json)),
             BacklogCmd::Blocked => run_or_exit(commands::backlog::cmd_blocked(&theme)),
             BacklogCmd::Stale { days } => run_or_exit(commands::backlog::cmd_stale(days, &theme)),
+            BacklogCmd::TriageStale { dry_run, batch, yes, git_dir, file } => run_or_exit(commands::backlog::cmd_triage_stale(dry_run, batch, yes, git_dir, file)),
             BacklogCmd::Context { task_id } => run_or_exit(commands::backlog::cmd_context(&task_id, &theme)),
             BacklogCmd::Diff => run_or_exit(commands::backlog::cmd_diff(&theme)),
             BacklogCmd::Burndown { period } => run_or_exit(commands::backlog::cmd_burndown(&period.to_possible_value().unwrap().get_name().to_string(), &theme)),
