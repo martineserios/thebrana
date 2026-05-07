@@ -151,7 +151,7 @@ Situational awareness — where am I, what was I doing, what's left, what should
 
 ### `/brana:align`
 
-Actively align a project with brana practices — assess gaps, plan fixes, implement structure, verify. Works for code and venture clients. Auto-detects type. Use when setting up a new project or realigning an existing one.
+Actively align a project with brana practices — assess gaps, plan fixes, implement structure, verify. Works for code, venture, and brainstorm/research repos. Auto-detects type. Use when setting up a new project or realigning an existing one.
 
 **Arguments:** `[project-path]`
 
