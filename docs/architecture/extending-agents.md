@@ -103,6 +103,19 @@ Agents run in Claude Code's sandbox. Key constraints:
 - **Exception — agents that apply edits:** If a skill needs an agent to write code (not just report findings), add `Write` and `Edit` to `tools`. Without them, the agent can describe changes but cannot apply them — it will produce a description instead of a file edit (t-1222).
 - **Agents cannot spawn other agents** — only the main context or skills with `Agent` in allowed-tools can delegate
 
+### Delegating Code Work — TDD Checklist
+
+When a skill spawns an agent to write code (not just report findings), the agent prompt **must** include explicit TDD acceptance criteria. Agents given "implement X" without a checklist produce code without tests.
+
+The shared template lives at `system/skills/_shared/delegation-tdd-checklist.md`. Include it verbatim at the end of any delegation prompt that expects implementation output:
+
+```
+Include the acceptance criteria from `system/skills/_shared/delegation-tdd-checklist.md`
+verbatim at the end of this prompt. Do not mark the subtask done until all criteria are met.
+```
+
+This rule is enforced by the Agent Delegation Rule in `system/procedures/build.md` BUILD step.
+
 ## Model Routing Guidelines
 
 The `model` field controls cost, speed, and reasoning depth:

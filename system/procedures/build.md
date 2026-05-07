@@ -674,6 +674,11 @@ If MCP unavailable, skip silently. Hive-mind is transient awareness, not critica
 
    **Trivial/Small builds:** Skip CC Tasks. Progress tracked inline in conversation.
 
+   **Agent delegation rule:** When spawning an Agent tool call for any subtask implementation, include the delegation TDD checklist in the prompt:
+   > Include the acceptance criteria from `system/skills/_shared/delegation-tdd-checklist.md` verbatim at the end of this prompt. Do not mark the subtask done until all criteria are met.
+
+   Never delegate implementation without explicit TDD acceptance criteria — agents that receive "implement X" without a checklist produce code without tests.
+
 3. **For each task** (in dependency order):
    a. **Mark CC Task in_progress** (if created): `TaskUpdate: status → in_progress`
    b. **Skill check** (Medium/Large builds only): run `brana skills suggest --query "<subtask subject and key terms>"`. If a match scores > 0.3, mention it: "Skill available: /brana:{name} ({reason}). Use it?" If the user says yes, invoke the skill for this subtask. If no match, proceed without mentioning.
@@ -739,6 +744,17 @@ If all pass, proceed silently. If "Skip gate": require reason. Log: `brana backl
 
 Bug fix and refactor strategies: skip doc check (only require tests).
 Spike and investigation: skip this gate entirely.
+
+### Four Questions Gate (all strategies except spike/investigation)
+
+Before declaring BUILD done, answer all four — out loud, in the response:
+
+1. **Tests pass with actual output?** — run the suite, state the pass count (e.g. "535/535 pass").
+2. **All requirements addressed?** — re-read the spec or task description; confirm every criterion is covered.
+3. **Assumptions documented?** — every assumption made during BUILD is recorded under `## Assumptions` in the spec.
+4. **Evidence provided?** — a test run result, screenshot, or log excerpt proves the behavior works as specified.
+
+If any answer is No, continue working. This gate is blocking, not advisory. Spike and investigation strategies skip it.
 
 ### Docs — generate here, not in CLOSE
 
