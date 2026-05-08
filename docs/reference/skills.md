@@ -2,7 +2,7 @@
 
 # Skill Reference
 
-**30 skills** loaded from `system/skills/`.
+**31 skills** loaded from `system/skills/`.
 
 ## Skill Frontmatter Reference
 
@@ -34,6 +34,7 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:do` | brana | Alias for /brana:backlog start with freeform text. Routes to the best skill or c |
 | `/brana:docs` | core | Generate and update living documentation — tech docs, user guides, philosophy  |
 | `/brana:export-pdf` | utility | Convert a markdown file to PDF using mdpdf. Use when exporting proposals, SOPs,  |
+| `/brana:fix` | execution | Structured bug fixing — reproduce (failing test), diagnose (root cause), fix ( |
 | `/brana:gsheets` | utility | Google Sheets via MCP — read, write, create, list, share spreadsheets. Use whe |
 | `/brana:log` | capture | Capture events — links, calls, meetings, ideas, observations — into a search |
 | `/brana:mcp-builder` | brana | MCP server development guide — build, test, and deploy MCP servers. |
@@ -185,6 +186,16 @@ Archive a client's patterns and mark them as historical. Use when retiring a cli
 
 **Allowed tools:** Bash, Read, Write, Glob, Grep, AskUserQuestion
 
+### `/brana:fix`
+
+Structured bug fixing — reproduce (failing test), diagnose (root cause), fix (minimal change), verify (tests pass), commit. Enforces test-first debugging. Use when a bug needs a methodical fix. Not for: greenfield features, refactors, spikes.
+
+**Arguments:** `[task-id or description of the bug]`
+
+**Depends on:** `/brana:backlog`
+
+**Allowed tools:** AskUserQuestion, Bash, Edit, Glob, Grep, Read, Write, Agent, mcp__brana__backlog_get, mcp__brana__backlog_set
+
 ### `/brana:onboard`
 
 Scan and diagnose a project, or scaffold a new client from scratch. Works for code and venture clients. Auto-detects project type.
@@ -224,7 +235,7 @@ Knowledge system operations — recall patterns, cross-pollinate across clients,
 
 Research a topic, doc, or creator — check sources, follow references recursively, produce findings. Use when starting deep research on a topic, creator, or external source.
 
-**Arguments:** `[topic|doc-number|creator:name|--refresh] [scope] [--strategy research|evaluate|learn|investigate]`
+**Arguments:** `[topic|doc-number|creator:name|--refresh] [scope] [--strategy research|evaluate|learn|investigate] [--depth quick|standard|deep]`
 
 **Allowed tools:** Read, Glob, Grep, Bash, Write, WebSearch, WebFetch, Task, mcp__notebooklm__ask_question, mcp__notebooklm__list_notebooks, mcp__notebooklm__select_notebook, mcp__notebooklm__search_notebooks, mcp__notebooklm__get_health, mcp__ruflo__memory_search, mcp__ruflo__embeddings_compare, mcp__ruflo__memory_store, AskUserQuestion, EnterPlanMode, TaskList, ExitPlanMode
 

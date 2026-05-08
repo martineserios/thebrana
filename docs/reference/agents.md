@@ -4,20 +4,20 @@
 
 **12 agents** defined in `system/agents/`.
 
-| Agent | Model | Description |
-|-------|-------|-------------|
-| challenger-calibration | inherit | Severity scoring guide with few-shot examples and hard thresholds for the challe |
-| archiver | haiku | Archive project patterns and knowledge when retiring. Categorize as transferable |
-| challenger | sonnet | Adversarially review a plan, architecture decision, or approach. Stress-test bef |
-| client-scanner | haiku | Scan client project structure, detect tech stack, check brana alignment. Use whe |
-| daily-ops | haiku | Daily venture focus card — health snapshot, pending actions, experiments. Use  |
-| debrief-analyst | opus | Extract errata, learnings, and patterns from a work session. Classify into errat |
-| memory-curator | haiku | Recall patterns from knowledge system, cross-pollinate across clients, check kno |
-| metrics-collector | haiku | Collect venture metrics from snapshots, experiments, pipeline, financials. Use w |
-| pipeline-tracker | haiku | Pipeline status — deal stages, overdue follow-ups, conversion trends. Use when |
-| pr-reviewer | sonnet | Review PR diffs for code quality, bugs, and style issues. Auto-triggered on PR c |
-| scout | haiku | Fast research for codebase exploration and web search. Use when finding files, s |
-| venture-scanner | haiku | Diagnose a business project — classify stage, recommend frameworks, identify g |
+| Agent | Model | Memory | Color | Description |
+|-------|-------|--------|-------|-------------|
+| challenger-calibration | inherit | — | — | Severity scoring guide with few-shot examples and hard thresholds for the challe |
+| archiver | haiku | yes | gray | Archive project patterns and knowledge when retiring. Categorize as transferable |
+| challenger | sonnet | yes | red | Adversarially review a plan, architecture decision, or approach. Stress-test bef |
+| client-scanner | haiku | yes | teal | Scan client project structure, detect tech stack, check brana alignment. Use whe |
+| daily-ops | haiku | yes | green | Daily venture focus card — health snapshot, pending actions, experiments. Use  |
+| debrief-analyst | opus | yes | blue | Extract errata, learnings, and patterns from a work session. Classify into errat |
+| memory-curator | haiku | yes | purple | Recall patterns from knowledge system, cross-pollinate across clients, check kno |
+| metrics-collector | haiku | yes | indigo | Collect venture metrics from snapshots, experiments, pipeline, financials. Use w |
+| pipeline-tracker | haiku | yes | amber | Pipeline status — deal stages, overdue follow-ups, conversion trends. Use when |
+| pr-reviewer | sonnet | yes | orange | Review PR diffs for code quality, bugs, and style issues. Auto-triggered on PR c |
+| scout | haiku | yes | yellow | Fast research for codebase exploration and web search. Use when finding files, s |
+| venture-scanner | haiku | yes | cyan | Diagnose a business project — classify stage, recommend frameworks, identify g |
 
 ## challenger-calibration
 
@@ -32,6 +32,14 @@ Archive project patterns and knowledge when retiring. Categorize as transferable
 
 **Model:** haiku
 
+**Memory:** yes — may write to `~/.claude/agent-memory/`
+
+**Max turns:** 8
+
+**Permission mode:** plan
+
+**Color:** gray
+
 **Tools:** Bash, Read, Glob, Grep
 
 
@@ -41,6 +49,14 @@ Adversarially review a plan, architecture decision, or approach. Stress-test bef
 
 **Model:** sonnet
 
+**Memory:** yes — may write to `~/.claude/agent-memory/`
+
+**Max turns:** 10
+
+**Permission mode:** plan
+
+**Color:** red
+
 **Tools:** Read, Glob, Grep
 
 
@@ -49,6 +65,14 @@ Adversarially review a plan, architecture decision, or approach. Stress-test bef
 Scan client project structure, detect tech stack, check brana alignment. Use when entering an unfamiliar client project or for project health checks. Not for: business stage classification, knowledge recall, web research.
 
 **Model:** haiku
+
+**Memory:** yes — may write to `~/.claude/agent-memory/`
+
+**Max turns:** 8
+
+**Permission mode:** plan
+
+**Color:** teal
 
 **Tools:** Bash, Read, Glob, Grep
 
@@ -61,6 +85,14 @@ Daily venture focus card — health snapshot, pending actions, experiments. Use 
 
 **Model:** haiku
 
+**Memory:** yes — may write to `~/.claude/agent-memory/`
+
+**Max turns:** 8
+
+**Permission mode:** plan
+
+**Color:** green
+
 **Tools:** Bash, Read, Glob, Grep
 
 **Disallowed:** Write, Edit, NotebookEdit
@@ -71,6 +103,14 @@ Daily venture focus card — health snapshot, pending actions, experiments. Use 
 Extract errata, learnings, and patterns from a work session. Classify into errata, process learnings, and issues. Use at end of implementation sessions or when notable learnings emerge. Not for: adversarial review, project scanning, knowledge recall.
 
 **Model:** opus
+
+**Memory:** yes — may write to `~/.claude/agent-memory/`
+
+**Max turns:** 15
+
+**Permission mode:** plan
+
+**Color:** blue
 
 **Tools:** Bash, Read, Glob, Grep
 
@@ -83,6 +123,14 @@ Recall patterns from knowledge system, cross-pollinate across clients, check kno
 
 **Model:** haiku
 
+**Memory:** yes — may write to `~/.claude/agent-memory/`
+
+**Max turns:** 10
+
+**Permission mode:** plan
+
+**Color:** purple
+
 **Tools:** Bash, Read, Glob, Grep
 
 **Disallowed:** Write, Edit, NotebookEdit
@@ -93,6 +141,14 @@ Recall patterns from knowledge system, cross-pollinate across clients, check kno
 Collect venture metrics from snapshots, experiments, pipeline, financials. Use when /brana:review runs (weekly, monthly, or check). Not for: daily focus cards, deal-level analysis, general research.
 
 **Model:** haiku
+
+**Memory:** yes — may write to `~/.claude/agent-memory/`
+
+**Max turns:** 8
+
+**Permission mode:** plan
+
+**Color:** indigo
 
 **Tools:** Bash, Read, Glob, Grep
 
@@ -105,6 +161,14 @@ Pipeline status — deal stages, overdue follow-ups, conversion trends. Use when
 
 **Model:** haiku
 
+**Memory:** yes — may write to `~/.claude/agent-memory/`
+
+**Max turns:** 8
+
+**Permission mode:** plan
+
+**Color:** amber
+
 **Tools:** Bash, Read, Glob, Grep
 
 **Disallowed:** Write, Edit, NotebookEdit
@@ -115,6 +179,16 @@ Pipeline status — deal stages, overdue follow-ups, conversion trends. Use when
 Review PR diffs for code quality, bugs, and style issues. Auto-triggered on PR creation. Not for: implementation, file editing, test writing.
 
 **Model:** sonnet
+
+**Memory:** yes — may write to `~/.claude/agent-memory/`
+
+**Max turns:** 15
+
+**Permission mode:** plan
+
+**Isolation:** worktree
+
+**Color:** orange
 
 **Tools:** Read, Glob, Grep, Bash
 
@@ -127,6 +201,14 @@ Fast research for codebase exploration and web search. Use when finding files, s
 
 **Model:** haiku
 
+**Memory:** yes — may write to `~/.claude/agent-memory/`
+
+**Max turns:** 20
+
+**Permission mode:** plan
+
+**Color:** yellow
+
 **Tools:** Read, Glob, Grep, WebSearch, WebFetch
 
 
@@ -135,6 +217,14 @@ Fast research for codebase exploration and web search. Use when finding files, s
 Diagnose a business project — classify stage, recommend frameworks, identify gaps. Use when first encountering a business project or for health audits. Not for: tech stack assessment, daily operations, metrics collection.
 
 **Model:** haiku
+
+**Memory:** yes — may write to `~/.claude/agent-memory/`
+
+**Max turns:** 12
+
+**Permission mode:** plan
+
+**Color:** cyan
 
 **Tools:** Bash, Read, Glob, Grep
 
