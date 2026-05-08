@@ -11,6 +11,8 @@
 | Meta WhatsApp Template API — programmatic submission (Graph v23, System User token, webhooks, appeals are UI-only) | `brana-knowledge/dimensions/54-meta-whatsapp-template-api.md` | somos_mirada (verified portfolio), proyecto_anita, mya, brapsoclaw, any WhatsApp BSP client |
 | `brana-meta-templates` CLI tool — submit/pull/status/audit/appeal for Meta templates. Skill `/brana:meta-templates`. Per-client auth at `~/.config/brana/meta/<client>.env`. Onboarding new WhatsApp BSP client: create env file with System User token + WABA id (chmod 600), then `brana-meta-templates pull --client <slug>` for baseline | `~/enter_thebrana/tools/brana-meta-templates/` (README + docs/architecture.md) | somos_mirada (active), proyecto_anita, mya, brapsoclaw, any WhatsApp BSP client |
 | Vercel platform — timeout limits, Fluid Compute, QStash fan-out pattern for batch sends, CI/CD zero-config, cost model at scale, Python beta warning, Claude Code skills multiplier | `brana-knowledge/dimensions/55-vercel-platform.md` | proyecto_anita (migration), mya, brapsoclaw, lexia, any Next.js / serverless SaaS |
+| Streaming frontend on CDN/Vercel is fully compatible with WebRTC/HLS apps — browser is the streaming client, video never routes through Vercel | `brana-knowledge/dimensions/55-vercel-platform.md §Field Notes 2026-05-08` + ruflo: `pattern:nexeye:streaming-frontend-cdn-decoupling` | nexeye, any client building video surveillance, WebRTC, HLS, or live streaming SaaS |
+| Media Gateway pattern — isolate 5-10 streaming-adjacent endpoints in a thin FastAPI on the persistent server; everything else moves to Vercel. Boundary rule: "Does this endpoint call internal Docker services?" | `brana-knowledge/dimensions/55-vercel-platform.md §Field Notes 2026-05-08` + ruflo: `pattern:nexeye:media-gateway-serverless-hybrid` | nexeye, any client with hybrid serverless + persistent server (video, WebRTC, long-running ML) |
 | QStash fan-out for serverless batch sends (Vercel Cron → QStash → chunked invocations, per-chunk retry, solves 300s timeout limit) | `brana-knowledge/dimensions/55-vercel-platform.md` | proyecto_anita (distributor platform), mya, brapsoclaw, any serverless WhatsApp sender |
 | AI-native platform selection — Claude Code skill availability is a legitimate architectural factor (compounding tooling over 2+ year build horizon) | pattern in ruflo: `pattern:brana:ai-native-platform-selection-tooling-compounding` | all clients building AI-natively with Claude Code |
 | Railway.com platform evaluation (PaaS pricing, limits, regions) | `nexeye_eyedetect/docs/infrastructure/railway-platform-evaluation.md` | any client evaluating PaaS hosting |
@@ -154,7 +156,7 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Type:** Venture — AI-powered legal services platform (Argentine corporate law)
 - **Location:** `~/enter_thebrana/ventures/lexia/`
 - **Team:** Tomás Catalán Pellet (shared cofounder w/ proyecto_anita) + Trusso (lawyer, legal domain + templates) + Martín (tech/AI operator, alias "Bonnie" in meetings)
-- **Status:** Pre-launch product iteration — TCP + Trusso building for a while; Martín joined as operator. Active: product audit + template sourcing + token-cost pricing model. No revenue.
+- **Status:** Awaiting Trusso's templates — blocked on legal template delivery. No revenue.
 - **Details:** `.claude/CLAUDE.md`, ADR-001 (AI model), ADR-002 (monetization path, Proposed), meeting notes 2026-04-17
 
 ### prediktive-prep

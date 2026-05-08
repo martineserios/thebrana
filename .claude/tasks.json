@@ -37091,7 +37091,7 @@
       "parent": null,
       "priority": null,
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "stream": "roadmap",
       "subject": "[hook] bootstrap restart sentinel — SessionStart banner for pending hook changes",
@@ -37129,6 +37129,29 @@
         "cleanup"
       ],
       "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "CC loads CLAUDE.md files from CWD up through all parent directories. Working from a deeply nested client (e.g. ventures/proyecto_anita/clients/las_lupes/) stacks: global ~/.claude/CLAUDE.md + portfolio.md + proyecto_anita CLAUDE.md + las_lupes CLAUDE.md. Risks: (1) context budget explosion at deep nesting levels — total always-loaded bytes may be excessive; (2) if las_lupes lives inside the proyecto_anita git repo, auto memory is shared (keyed to git root), mixing tenant memories; (3) no enter_thebrana root-level CLAUDE.md for cross-portfolio conventions that are not global. Need a full audit: measure byte sizes at each nesting level, verify git root boundaries for auto memory, decide if a root-level CLAUDE.md is warranted, and define a budget rule per nesting depth.",
+      "created": "2026-05-08",
+      "description": null,
+      "effort": "M",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1368",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "Audit CLAUDE.md hierarchy and context budget across project nesting levels",
+      "tags": [],
+      "type": "tech-debt"
     }
   ],
   "version": "1"
