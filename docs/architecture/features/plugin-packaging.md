@@ -259,13 +259,13 @@ Many files reference `$HOME/.claude/` paths. Some are valid (bootstrap-layer fil
 
 ## Post-Ship Errata
 
-### E1: PostToolUse/PostToolUseFailure don't fire from plugin hooks.json (2026-03-09)
+### E1: PostToolUse/PostToolUseFailure don't fire from plugin hooks.json (2026-03-09) — RESOLVED 2026-05-08
 
-CC v2.1.x does not dispatch PostToolUse or PostToolUseFailure events to plugin hooks. Root cause: `CLAUDE_PLUGIN_ROOT` environment variable not set by the hook executor (CC issue [#24529](https://github.com/anthropics/claude-code/issues/24529)). Only PreToolUse, SessionStart, and SessionEnd work from plugins.
+~~CC v2.1.x does not dispatch PostToolUse or PostToolUseFailure events to plugin hooks.~~ Fixed in CC v2.1.133.
 
-**Workaround:** `bootstrap.sh` installs PostToolUse and PostToolUseFailure hooks to `~/.claude/settings.json` with absolute paths to `system/hooks/` scripts. Plugin `hooks/hooks.json` only registers PreToolUse, SessionStart, SessionEnd.
+**Root cause (historical):** `CLAUDE_PLUGIN_ROOT` not set by hook executor (CC issue [#24529](https://github.com/anthropics/claude-code/issues/24529)). Finding: hooks must be present in `hooks.json` **at session startup** — mid-session injection is ignored.
 
-**When CC fixes #24529:** Move PostToolUse/PostToolUseFailure back to `hooks/hooks.json`, remove from `bootstrap.sh` Step 4b, update doc 14.
+**Resolution:** PostToolUse/PostToolUseFailure/TaskCompleted hooks moved back to `system/hooks/hooks.json`. `bootstrap.sh` Step 4b now removes the workaround entries from `~/.claude/settings.json`.
 
 ### E2: Stale ~/.claude/{skills,commands,agents} from deploy.sh (2026-03-09)
 

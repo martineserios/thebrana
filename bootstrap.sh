@@ -247,109 +247,29 @@ if [ -f "$SYSTEM_DIR/statusline.sh" ]; then
     fi
 fi
 
-# --- Step 4b: Install PostToolUse hooks to settings.json ---
-# CC v2.1.x doesn't reliably dispatch PostToolUse events from plugin hooks.json.
-# Workaround: install PostToolUse + PostToolUseFailure to settings.json (works reliably).
-# Plugin keeps: PreToolUse, SessionStart, SessionEnd.
-# When CC fixes plugin PostToolUse dispatch, move these back to plugin hooks.json.
-echo "PostToolUse hooks:"
+# --- Step 4b: Remove PostToolUse hooks from settings.json (cleanup) ---
+# CC v2.1.133+ dispatches PostToolUse/PostToolUseFailure from plugin hooks.json correctly.
+# These hooks now live in system/hooks/hooks.json. Remove the workaround entries.
+echo "PostToolUse hooks (cleanup):"
 SETTINGS_FILE="$TARGET_DIR/settings.json"
-HOOKS_DIR="$SYSTEM_DIR/hooks"
 if [ -f "$SETTINGS_FILE" ] && command -v jq &>/dev/null; then
-    # Build the hooks JSON using the absolute path to hook scripts
-    HOOKS_JSON=$(jq -n \
-        --arg hooks_dir "$HOOKS_DIR" \
-        '{
-            "PostToolUse": [
-                {
-                    "matcher": "Write|Edit|Bash",
-                    "hooks": [{
-                        "type": "command",
-                        "command": ($hooks_dir + "/post-tool-use.sh"),
-                        "timeout": 5000
-                    }]
-                },
-                {
-                    "matcher": "Write|Edit",
-                    "hooks": [{
-                        "type": "command",
-                        "command": ($hooks_dir + "/post-sale.sh"),
-                        "timeout": 5000
-                    }]
-                },
-                {
-                    "matcher": "ExitPlanMode",
-                    "hooks": [{
-                        "type": "command",
-                        "command": ($hooks_dir + "/post-plan-challenge.sh"),
-                        "timeout": 5000
-                    }]
-                },
-                {
-                    "matcher": "Write|Edit",
-                    "hooks": [{
-                        "type": "command",
-                        "command": ($hooks_dir + "/post-tasks-validate.sh"),
-                        "timeout": 5000
-                    }]
-                },
-                {
-                    "matcher": "Bash",
-                    "hooks": [{
-                        "type": "command",
-                        "command": ($hooks_dir + "/post-pr-review.sh"),
-                        "timeout": 5000
-                    }]
-                },
-                {
-                    "matcher": "Bash",
-                    "hooks": [{
-                        "type": "command",
-                        "command": ($hooks_dir + "/task-completed.sh"),
-                        "timeout": 8000
-                    }]
-                }
-            ],
-            "PostToolUseFailure": [
-                {
-                    "matcher": "Write|Edit|Bash",
-                    "hooks": [{
-                        "type": "command",
-                        "command": ($hooks_dir + "/post-tool-use-failure.sh"),
-                        "timeout": 5000
-                    }]
-                }
-            ],
-            "TaskCompleted": [
-                {
-                    "matcher": "",
-                    "hooks": [{
-                        "type": "command",
-                        "command": ($hooks_dir + "/step-completed.sh"),
-                        "timeout": 5000
-                    }]
-                }
-            ]
-        }')
-
-    # Merge hooks into settings.json (replaces existing hooks section)
-    CURRENT_HOOKS=$(jq '.hooks // {}' "$SETTINGS_FILE" 2>/dev/null) || CURRENT_HOOKS="{}"
-    if [ "$CURRENT_HOOKS" = "$HOOKS_JSON" ] 2>/dev/null; then
-        echo "  = settings.json hooks (unchanged)"
+    CURRENT_HOOKS=$(jq '.hooks // {}' "$SETTINGS_FILE" 2>/dev/null)
+    if [ "$CURRENT_HOOKS" = "{}" ]; then
+        echo "  = settings.json .hooks already empty"
     else
         CHANGES=$((CHANGES + 1))
         if $CHECK_ONLY; then
-            echo "  ~ settings.json hooks (would update PostToolUse + PostToolUseFailure)"
+            echo "  ~ settings.json .hooks (would remove — now served by plugin hooks.json)"
         else
-            jq --argjson hooks "$HOOKS_JSON" '.hooks = $hooks' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" \
+            jq 'del(.hooks)' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" \
                 && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
-            echo "  ~ settings.json hooks (installed PostToolUse + PostToolUseFailure)"
+            echo "  ~ settings.json .hooks removed (now served by plugin hooks.json)"
         fi
     fi
 elif [ ! -f "$SETTINGS_FILE" ]; then
-    echo "  ! settings.json not found (create one first, then re-run)"
+    echo "  = settings.json not found (nothing to clean)"
 else
-    echo "  ! jq not found (required to install hooks to settings.json)"
+    echo "  ! jq not found (cannot remove .hooks from settings.json)"
 fi
 
 # --- Step 4c: CC undercover mode (no attribution in commits/PRs) ---
