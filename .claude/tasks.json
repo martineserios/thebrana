@@ -789,7 +789,7 @@
       "parent": "ms-012",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "stream": "roadmap",
       "subject": "Script to sync all dimension docs → NotebookLM sources",
       "tags": [
@@ -14701,9 +14701,9 @@
       "blocked_by": [
         "t-558"
       ],
-      "branch": null,
+      "branch": "docs/t562-user-guide",
       "build_step": null,
-      "completed": null,
+      "completed": "2026-05-08",
       "context": null,
       "created": "2026-03-18",
       "description": "Comprehensive user-facing docs: how to use brana day-to-day, best practices for skills, tips for getting the most out of it, key commands reference, how sitrep keeps you oriented, common workflows (build loop, close, backlog). Should be the go-to resource for new users.",
@@ -14715,9 +14715,9 @@
       "order": null,
       "parent": "t-553",
       "priority": "P2",
-      "started": null,
-      "status": "pending",
-      "strategy": null,
+      "started": "2026-05-08",
+      "status": "completed",
+      "strategy": "feature",
       "stream": "roadmap",
       "subject": "User guide — workflows, best practices, tips, useful commands, sitrep, day-to-day usage",
       "tags": [

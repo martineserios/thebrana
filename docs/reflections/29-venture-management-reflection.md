@@ -228,13 +228,15 @@ New machine recovery: `sync-state.sh pull && sync-state.sh import`. Team onboard
 
 **Design Thinking insertion points.** From [38-design-thinking.md](../dimensions/38-design-thinking.md) — venture skills currently skip the divergent phase (they jump from problem statement to solution). Five specific insertion points where DT methods add value without restructuring the workflow:
 
-| Venture Skill | DT Insertion | Method |
-|---|---|---|
-| `/brana:venture-phase` (customer validation) | Before hypothesis formation | Empathy map per persona — "A Day in the Life" exercise before defining the problem |
-| `/brana:align` (discovery) | Before technical assessment | Empathy map for primary users; frame user need before evaluating tools |
-| `/brana:venture-phase` (any milestone) | Problem framing step | HMW ("How Might We") questions — force divergence before convergent solution selection |
-| Backlog creation | Item description | HMW format as the backlog item description — encodes the problem, not the solution |
-| `/brana:venture-phase` (launch) | Pre-launch viability gate | Viability triangle check: Desirable (human) × Feasible (tech) × Viable (business) — all three must pass |
+| Venture Skill | DT Insertion | Method | Wave |
+|---|---|---|---|
+| `/brana:venture-phase` (customer validation) | Before hypothesis formation | Empathy map per persona — "A Day in the Life" exercise before defining the problem | Wave 2 |
+| `/brana:align` (discovery) | Before technical assessment | Empathy map for primary users; frame user need before evaluating tools | Wave 2 |
+| `/brana:venture-phase` (any milestone) | Problem framing step | HMW ("How Might We") questions — force divergence before convergent solution selection | Wave 2 |
+| Backlog creation | Item description | HMW format as the backlog item description — encodes the problem, not the solution | Wave 2 |
+| `/brana:venture-phase` (launch) | Pre-launch viability gate | Viability triangle check: Desirable (human) × Feasible (tech) × Viable (business) — all three must pass | Wave 2 |
+
+**Wave 1 (shipped):** The diverge-converge pattern is already live in `build-feature` (3-approach divergence) and `experiment` (3+ HMW hypothesis candidates). See doc 38 §Wave 1 for the two shipped insertions and their skip clauses. **Wave 2 (venture-specific, pending Wave 1 evidence):** All five insertions above are Wave 2 candidates — promote each when the corresponding trigger fires: e.g., "a venture launch runs and missed customer grounding" → promote empathy table for `/brana:venture-phase`. Trigger conditions in doc 38 §Wave 2 table.
 
 The diverge-converge rhythm from [doc 38](../dimensions/38-design-thinking.md) maps directly onto brana's research→synthesis pattern: dimension docs are the divergent phase (explore broadly), reflection docs are the convergent phase (synthesize what matters). Making this explicit in venture skills adds structured creativity where the workflow currently only does structured analysis.
 

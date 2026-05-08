@@ -207,7 +207,7 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 | 135 | [Doc 32](reflections/32-lifecycle.md) missing CCEPL failure taxonomy | **High** | applied (2026-04-14) | CCEPL failure classification table added after Five feedback paths — info-gap/fragile-pattern/misalignment routing rules |
 | 136 | [Doc 31](reflections/31-assurance.md) missing full overhead picture from doc 35 | **Medium** | applied (2026-04-14) | "Critical caveat" added to Context budget bullet — MCP 30-70K + compaction 33-45K = 76-138K dominant overhead; 28KB validates controllable variable only |
 | 137 | [Doc 31](reflections/31-assurance.md) missing drift trend visualization | **Medium** | applied (2026-04-14) | "Drift trends (time-series)" item added to /brana:memory review "What it checks" list — plot promotion rate, staleness, precision@k over consecutive monthly runs |
-| 138 | [Doc 29](reflections/29-venture-management-reflection.md) missing dependency on doc 38 (Design Thinking) | **High** | applied (2026-04-14) | Doc 38 added to frontmatter depends_on; DT insertion points table added to /brana:venture-phase section (empathy map, HMW, viability triangle) |
+| 138 | [Doc 29](reflections/29-venture-management-reflection.md) missing dependency on doc 38 (Design Thinking) | **High** | applied (2026-05-08) | DT insertion points table added (2026-04-14); Wave 1/2 classification added 2026-05-08 — all 5 venture insertions marked Wave 2, Wave 1 shipped insertions cross-referenced, trigger conditions documented per doc 38 §Wave 2. |
 | 139 | [Doc 29](reflections/29-venture-management-reflection.md) framework stacking "max 3 layers" ambiguous vs doc 34 design | **Medium** | applied (2026-04-14) | Scope clarification added: 3-layer limit applies to operating frameworks, not measurement streams; 5 streams in /brana:review is triangulation, not bloat |
 | 140 | `align.md` F2 lacks merge-safety — appends duplicate sections to existing CLAUDE.md | **Medium** | applied (2026-04-14) | Merge-safety block added to F2: grep for existing heading before append; merge under existing heading if found. |
 | 141 | `align.md` F2 CLAUDE.md template conflicts with `claudemd.md` include/exclude rules | **Low** | applied (2026-04-14) | Content constraints added to F2: reference claudemd Step 2 rules; explicitly prohibit Status/TBD contacts/verbose tables/commit type lists; 60-line target, 80-line warning. |
@@ -2340,7 +2340,7 @@ Doc 38 also classifies these as Wave 1 (divergent ideation — shipped) vs Wave 
 
 **Suggested fix:** Add a cross-reference to doc 38 in doc 29's skill architecture section. Clarify which DT insertions are Wave 1 (already shipped) vs Wave 2 (pending). Update `/brana:align` and `/brana:review` (venture) skill descriptions to acknowledge diverge-converge rhythm and viability triangle.
 
-**Status:** pending
+**Status:** applied (2026-05-08) — DT insertion points table updated: Wave column added, all 5 venture insertions marked Wave 2; Wave 1 shipped insertions (build-feature, experiment) cross-referenced; trigger conditions for Wave 2 promotion documented. Doc 38 reference was already present in frontmatter; text now surfaces the wave structure explicitly.
 
 ---
 
