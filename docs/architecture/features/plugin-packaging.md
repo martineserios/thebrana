@@ -285,3 +285,9 @@ Users upgrading from `deploy.sh` to the plugin have stale copies of skills, comm
 3. **Reinstall:** `claude plugin uninstall brana && claude plugin install brana` — re-snapshots from current commit.
 
 **Future fix:** Add a `bootstrap.sh --sync-plugin` flag or post-merge hook that auto-syncs `system/` to the plugin cache when changes are detected.
+
+## Field Notes
+
+### 2026-05-08: Hook registration is read-once at CC session startup
+CC reads `hooks.json` (and `settings.json` hooks) once when the session starts. Modifying hook config mid-session — via bootstrap.sh, reconcile, or manual edits — is silently ignored. The fix for t-235 required a CC restart to take effect even though the hooks were already in hooks.json. Rule: always restart CC after any hook config change. Scripts that mutate hook config should print a restart reminder.
+Source: t-235 canary test / close session 2026-05-08
