@@ -196,6 +196,14 @@ $MCP_LINES"
     fi
 fi
 
+# ── Bootstrap restart sentinel ───────────────────────────
+SENTINEL_WARNING=""
+SENTINEL_FILE="/tmp/brana-bootstrap-pending-restart"
+if [ -f "$SENTINEL_FILE" ]; then
+    SENTINEL_WARNING="Previous bootstrap changed hooks — restart CC to activate."
+    rm -f "$SENTINEL_FILE" 2>/dev/null || true
+fi
+
 # ── Task context injection ──────────────────────────────
 TASK_CONTEXT=""
 TASKS_FILE=""
@@ -576,6 +584,10 @@ fi
 if [ -n "$DRIFT_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
 }[Config drift] $DRIFT_CONTEXT"
+fi
+if [ -n "$SENTINEL_WARNING" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}[Bootstrap] $SENTINEL_WARNING"
 fi
 if [ -n "$LINT_HEAL_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS

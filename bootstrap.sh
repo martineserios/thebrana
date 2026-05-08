@@ -660,6 +660,8 @@ else
     echo ""
     # Invalidate skills mtime marker so next session does a full reindex
     rm -f /tmp/brana-skills-index-mtime 2>/dev/null || true
+    # Signal session-start hook to surface the restart reminder as a banner
+    touch /tmp/brana-bootstrap-pending-restart 2>/dev/null || true
     echo "Start a new Claude Code session to activate."
     echo "  ! Hook config may have changed — restart CC for hooks to take effect."
     echo ""

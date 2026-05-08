@@ -417,6 +417,51 @@ fi
 
 rm -f "$FAKE_HOME/.claude.json"
 
+# ── 12. Bootstrap restart sentinel ─────────────────────
+
+echo ""
+echo "--- Bootstrap restart sentinel ---"
+
+REPO_SEN="$TMPDIR/sentinel-proj"
+setup_repo "$REPO_SEN"
+
+SENTINEL_FILE="/tmp/brana-bootstrap-pending-restart"
+
+# Sentinel present → banner surfaced in context
+rm -f "$SENTINEL_FILE"
+touch "$SENTINEL_FILE"
+
+assert_context_contains "Sentinel present → restart banner in context" \
+    "restart CC" \
+    "$(make_session_input "sess-sentinel-banner" "$REPO_SEN")"
+
+# Sentinel removed after hook runs
+rm -f "$SENTINEL_FILE"
+touch "$SENTINEL_FILE"
+run_hook "$(make_session_input "sess-sentinel-remove" "$REPO_SEN")" >/dev/null
+TOTAL=$((TOTAL + 1))
+if [ ! -f "$SENTINEL_FILE" ]; then
+    echo "  PASS: Sentinel file removed after hook runs"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL: Sentinel file not removed after hook runs"
+    FAIL=$((FAIL + 1))
+fi
+
+# No sentinel → no banner
+rm -f "$SENTINEL_FILE"
+TOTAL=$((TOTAL + 1))
+OUTPUT=$(run_hook "$(make_session_input "sess-no-sentinel" "$REPO_SEN")")
+CTX=$(echo "$OUTPUT" | jq -r '.additionalContext // ""' 2>/dev/null)
+if ! echo "$CTX" | grep -qi "restart CC"; then
+    echo "  PASS: No sentinel → no restart banner"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL: No sentinel → unexpected restart banner"
+    echo "    got: $CTX"
+    FAIL=$((FAIL + 1))
+fi
+
 # ── Summary ─────────────────────────────────────────────
 echo ""
 echo "$PASS/$TOTAL passed"
