@@ -37119,7 +37119,7 @@
       "parent": null,
       "priority": null,
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "stream": "tech-debt",
       "subject": "[doc] archive docs/architecture/posttooluse-workaround.md — workaround removed",
