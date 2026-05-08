@@ -161,6 +161,7 @@ For a full picture of how brana's components fit together across multiple projec
 
 ## Next steps
 
+- **[Day-to-Day Usage](day-to-day.md)** -- read this next: how a typical session works, best practices, tips
 - [Configuration](configuration.md) -- display themes, task portfolio, scheduler setup
 - [Scheduler](scheduler.md) -- recurring jobs via systemd timers
 - [Troubleshooting](troubleshooting.md) -- common issues and fixes

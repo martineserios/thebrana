@@ -6,6 +6,7 @@ All brana commands, grouped by workflow.
 
 | Command | Description |
 |---------|-------------|
+| `/brana:sitrep` | Situational awareness — where you are, what you were doing, what's next. Run at every session start. |
 | `/brana:build [description]` | Build anything — auto-detects strategy (feature, bug fix, refactor, spike, migration, investigation, greenfield) |
 | `/brana:close` | End session — extract learnings, write handoff, store patterns |
 | `/brana:challenge` | Adversarial review of a plan or architecture decision |
