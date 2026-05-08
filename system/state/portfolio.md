@@ -41,6 +41,7 @@
 | Contract/operations platforms — 4 data modeling patterns (mail-as-input, contract→shipment 1..N, dual state separation, requirements as table) | `brana-knowledge/dimensions/contract-operations-platforms.md` | batrade, anita, mya, somos_mirada, any client with deal+execution lifecycle or compliance gates |
 | Naviera/container tracking providers (TrackingMore default, ShipsGo fallback — pricing, webhooks, coverage, decision matrix) | `clients/batrade/docs/modelo-datos.md §5` | batrade, any client with international shipping/logistics tracking |
 | Multi-tenant SaaS — tenant typology pattern (classify by type, document at platform CLAUDE.md, don't default new tenants to original shape) | `feedback_multitenant_saas_typology.md` | proyecto_anita (Anita as platform — Palco/PDB/Delorenzi distribuidoras vs Las Lupes 4-pillar), mya, any SaaS with heterogeneous customer shapes |
+| Tenant → full client upgrade: when a tenant grows into a multi-project engagement, rewrite CLAUDE.md with named Programs (A/B) + scaffold per-project dirs before any new-scope work. Split prevents conflating unrelated scopes in context loading. | `proyecto_anita memory: feedback_tenant_to_client_upgrade_pattern.md` | proyecto_anita (Palco upgrade 2026-05-08), any SaaS tenant growing into a broader engagement |
 
 ## Clients (paid work — external stakeholder)
 
@@ -54,7 +55,7 @@ For detailed facts, read each client's own docs. This is a routing index only.
 ### mya (MirÁyAhorrÁ)
 - **Type:** B2B2C hyperlocal promo platform — dietéticas/almacenes channel, AMBA
 - **Location:** `~/enter_thebrana/ventures/proyecto_anita/clients/mya/` (movido 2026-05-06, sigue convención las_lupes — tracked dentro de proyecto_anita)
-- **Status:** Proposal v2.7 listo para mandar. Pricing: $6,100 fijo piloto + addons aparte (AI Flyer Gen, Meta Business Verification, P2 Escalado) + soporte $600-1,000/mes. Calendar 6 sem, ~103h.
+- **Status:** Propuesta v2.7 enviada · esperando respuesta. Pricing: $6,100 fijo piloto + addons aparte (AI Flyer Gen, Meta Business Verification, P2 Escalado) + soporte $600-1,000/mes. Calendar 6 sem, ~103h.
 - **Stack:** Next.js 14 + Lovable scaffold + Supabase (sin Auth — Retool autentica admin) + Retool + Cloudflare R2 + Kapso. Pilot sin pipeline de generación (cliente sube flyer manual PNG/PDF)
 - **Tipo de tenant:** B2B2C hyperlocal — distinto perfil que distribuidoras (Palco/PDB/Delorenzi) y que Las Lupes (4-pillar mayorista). Validar tenant typology cuando arranque P0
 - **Alignment report:** `ventures/proyecto_anita/clients/mya/.claude/alignment-report.md`
@@ -70,7 +71,7 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Domain:** Commodity trading (granos, oleaginosas, legumbres). 90% sellers AR, buyers worldwide. ~300 negocios activos / 60-100 cerrados/mes
 - **Location:** `~/enter_thebrana/clients/batrade/`
 - **Stack:** TBD (post-Benja, post-cotización). Modelo schema-first, stack-agnostic
-- **Status:** **Discovery** — reunión 1 con Diego+Fede el 2026-04-28 ✓. Pendiente: reunión 2 con Benja (logística senior). No cotizado aún
+- **Status:** Propuesta enviada · esperando respuesta. Reunión 1 con Diego+Fede 2026-04-28 ✓.
 - **Aligned:** 2026-04-29. Discovery-align tier 0 (11/12). Ver `.claude/alignment-report.md`
 - **Stakeholders:** Diego Lanus + Federico Lanus (dueños / decision makers), Benja (logística senior, pendiente)
 - **Foco fase 1 (Diego dixit):** "visibilidad + orden + detección de urgencias. NO automatizar todo"
@@ -102,9 +103,9 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Domain:** 700 mayoristas + 18K consumers Tienda Nube + 1131 contactos engagement + leads cursos. Catálogo visual complejo (Diamond Painting, stencils)
 - **Location:** `~/enter_thebrana/ventures/proyecto_anita/clients/las_lupes/` (decisión 2026-04-29: queda dentro de proyecto_anita por integración técnica con plataforma Anita, pero scaffold y rigor son full standalone-client)
 - **Stack:** Anita v3-api + Kapso + Bigin + Tienda Nube API + bridge Contabilium (vía Alberto interno Las Lupes)
-- **Status:** Cerrado 2026-04-21 · solución técnica v2 4-pillar lista · Path A confirmado 2026-04-28 · cotización TCP pendiente
+- **Status:** Propuesta enviada 2026-05-08 · esperando respuesta de Charlie. TCP no involucrado en este proyecto.
 - **Tipo de tenant:** **NO es distribuidor** (Palco/PDB/Delorenzi son ese caso especial). Las Lupes valida hipótesis "Anita como plataforma" más allá del patrón distribuidor — 4 pillars (B2B Mayorista + Cart Recovery B2C + Engagement Lifecycle + Multichannel diferido) vs 1 pillar de distribuidoras
-- **Stakeholders:** Charlie (Carlos Larrain, decision maker), Lupe (operación), Alberto Ibarguren (dev interno — NO vendor), TCP (comercial Brana)
+- **Stakeholders:** Charlie (Carlos Larrain, decision maker), Lupe (operación), Alberto Ibarguren (dev interno — NO vendor)
 - **Decisiones locked (2026-04-28):** T1 Path A 1 número WhatsApp + Chat Nube OFF · T2 Alberto bridge absorbe descuentos · T3 réplica inbound Chat Nube en prompt · T4 combos vía Contabilium "producto agrupado"
 - **Details:** `clients/las_lupes/.claude/CLAUDE.md`, `clients/las_lupes/solucion-tecnica.md` (v2), `clients/las_lupes/transcripts/2026-04-28-charlie-alberto-tecnico.md`, `clients/las_lupes/research/tiendanube-integration.md`
 
@@ -115,7 +116,7 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Location:** `~/enter_thebrana/ventures/proyecto_anita`
 - **Remote:** `https://github.com/martineserios/proyecto-anita.git`
 - **Stack:** FastAPI + Supabase + Kapso + React 18 + Cloud Run
-- **Status:** Production. Tenants: Palco + PDB (cliente amigo de validación). **Delorenzi = primer cliente oficial post-validación** (cerrado 2026-04-23, ARS 1.35M/mes × 3m, 2 ops Gualeguaychú+Paraná, target primer mensaje 2026-06-01). Otros: DGRX (onboarding 2026-04-16), Las Lupes (solución técnica v2 cerrada 2026-04-21 · cotización TCP pendiente · deal NO cerrado)
+- **Status:** Production. Tenants: Palco + PDB (cliente amigo de validación). **Delorenzi = primer cliente oficial post-validación** (cerrado 2026-04-23, ARS 1.35M/mes × 3m, 2 ops Gualeguaychú+Paraná, target primer mensaje 2026-06-01). Otros: DGRX (onboarding 2026-04-16), Las Lupes (propuesta enviada 2026-05-08 · esperando respuesta · deal NO cerrado)
 - **Details:** `.claude/CLAUDE.md`, `docs/decisions/`, `clients/` (per-client docs)
 
 ### linkedin
