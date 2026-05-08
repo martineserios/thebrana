@@ -248,8 +248,8 @@ if [ -f "$SYSTEM_DIR/statusline.sh" ]; then
 fi
 
 # --- Step 4b: Remove PostToolUse hooks from settings.json (cleanup) ---
-# CC v2.1.133+ dispatches PostToolUse/PostToolUseFailure from plugin hooks.json correctly.
-# These hooks now live in system/hooks/hooks.json. Remove the workaround entries.
+# CC reads hooks.json once at session startup — hooks must be present before the session starts.
+# These hooks now live in system/hooks/hooks.json. Remove the old workaround entries.
 echo "PostToolUse hooks (cleanup):"
 SETTINGS_FILE="$TARGET_DIR/settings.json"
 if [ -f "$SETTINGS_FILE" ] && command -v jq &>/dev/null; then
@@ -661,6 +661,7 @@ else
     # Invalidate skills mtime marker so next session does a full reindex
     rm -f /tmp/brana-skills-index-mtime 2>/dev/null || true
     echo "Start a new Claude Code session to activate."
+    echo "  ! Hook config may have changed — restart CC for hooks to take effect."
     echo ""
     echo "Workspace layout: docs/guide/ecosystem.md"
 fi

@@ -91,10 +91,10 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Projects:** prof_man (`clients/prof_man`)
 - **Remote:** `https://github.com/martineserios/prof_man`
 - **Client:** External (not personal venture)
-- **Status:** Starting — 2026-04-01
+- **Status:** On hold — 2026-05-08
 - **Goal:** Personal trading edge for the client; build indicators, eventually automate
 
-### mandawa
+### mandawa (ARCHIVED 2026-05-08)
 - **Type:** Paid client
 - **Projects:** mandawa (`clients/mandawa`)
 
@@ -177,4 +177,4 @@ For detailed facts, read each client's own docs. This is a routing index only.
 ### crea
 - **Type:** code — Software porting/rebuild project
 - **Location:** `~/enter_thebrana/clients/crea/`
-- **Status:** Starting — 2026-05-05
+- **Status:** Awaiting client answer — 2026-05-08

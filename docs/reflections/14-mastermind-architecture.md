@@ -83,7 +83,7 @@ thebrana/system/                              PLUGIN (loaded by Claude Code)
 │   ├── pipeline-tracker.md                   ← Pipeline tracking and deal analysis
 │   └── pr-reviewer.md                        ← PR diff review on gh pr create (read-only + gh CLI)
 ├── hooks/
-│   ├── hooks.json                            ← Hook registration (PreToolUse, SessionStart, SessionEnd) — plugin-compatible events only
+│   ├── hooks.json                            ← Hook registration (all events: PreToolUse, PostToolUse, PostToolUseFailure, SessionStart, SessionEnd, ConfigChange)
 │   ├── pre-tool-use.sh                       ← SDD gate + cascade throttle
 │   ├── session-start.sh                      ← Pattern recall + task context
 │   ├── session-end.sh                        ← Flywheel metrics + learning flush
@@ -101,13 +101,6 @@ thebrana/system/                              PLUGIN (loaded by Claude Code)
 │   └── repo-cleanup.md                       ← Commit accumulated spec doc changes
 ├── CLAUDE.md                                 ← Mastermind identity
 └── settings.json                             ← {} (plugin config, no hooks here)
-
-~/.claude/settings.json                           POSTTOOLUSE HOOKS (CC plugin bug workaround)
-├── PostToolUse hooks                             ← post-tool-use.sh, post-sale.sh, post-plan-challenge.sh,
-│                                                   post-tasks-validate.sh, post-pr-review.sh
-└── PostToolUseFailure hooks                      ← post-tool-use-failure.sh
-    NOTE: CC v2.1.x does not dispatch PostToolUse/PostToolUseFailure from plugin hooks.json.
-    bootstrap.sh installs these to ~/.claude/settings.json as workaround. Track CC issue #24529.
 
 ~/.claude/                                    IDENTITY LAYER (via bootstrap.sh)
 ├── CLAUDE.md                                 ← Global identity + universal principles
@@ -276,7 +269,7 @@ brana-knowledge is a separate repo because it's a library (no backlog, no tasks)
 
 Five hook types connect the layers. Three handle learning (SessionStart, SessionEnd, PostToolUse). One handles enforcement (PreToolUse). One handles error recovery (PostToolUseFailure).
 
-> **Platform note:** CC v2.1.x does not dispatch PostToolUse or PostToolUseFailure from plugin `hooks.json`. These are installed to `~/.claude/settings.json` by `bootstrap.sh` as a workaround. PreToolUse, SessionStart, and SessionEnd work from the plugin. See CC issue #24529.
+> **Platform note:** All hook types (PreToolUse, PostToolUse, PostToolUseFailure, SessionStart, SessionEnd, ConfigChange) fire from `system/hooks/hooks.json`. Hooks are read-once at CC session startup — restart CC after any hook config change. *(Prior to 2026-05-08, PostToolUse/PostToolUseFailure required a `~/.claude/settings.json` workaround — resolved, see plugin-packaging.md E1.)*
 
 ### PreToolUse — "Is this allowed right now?"
 

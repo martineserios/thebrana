@@ -56,6 +56,7 @@ Plugins handle #1 natively. #2 stays as a bootstrap script because plugins can't
 - Rules can't be distributed via plugins — bootstrap handles them
 - Namespaced skills (`/brana:build`) — no way to get short names from plugins
 - Must preserve current functionality during transition (deploy.sh stays until validated)
+- **Hook registration is read-once at CC session startup.** Modifying `hooks.json` mid-session has no effect — restart CC to pick up new hooks. Scripts that mutate hook config should print a restart reminder.
 
 ## Scope (v1)
 
@@ -261,7 +262,9 @@ Many files reference `$HOME/.claude/` paths. Some are valid (bootstrap-layer fil
 
 ### E1: PostToolUse/PostToolUseFailure don't fire from plugin hooks.json (2026-03-09) — RESOLVED 2026-05-08
 
-~~CC v2.1.x does not dispatch PostToolUse or PostToolUseFailure events to plugin hooks.~~ Fixed in CC v2.1.133.
+~~CC v2.1.x does not dispatch PostToolUse or PostToolUseFailure events to plugin hooks.~~ Resolved — not a CC version issue (see correction note).
+
+> **Correction (E2026-05-08-1):** The original resolution attributed this to CC v2.1.133. The actual invariant is that CC reads `hooks.json` once at session startup **regardless of version** — mid-session injection is always silently ignored. The fix was ensuring the hooks were registered in `hooks.json` before the session started, not a version upgrade.
 
 **Root cause (historical):** `CLAUDE_PLUGIN_ROOT` not set by hook executor (CC issue [#24529](https://github.com/anthropics/claude-code/issues/24529)). Finding: hooks must be present in `hooks.json` **at session startup** — mid-session injection is ignored.
 

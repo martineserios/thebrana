@@ -14,6 +14,7 @@
 | PostToolUse | `Write|Edit` | `post-sale.sh` | 5000ms |
 | PostToolUse | `Write|Edit` | `post-tasks-validate.sh` | 5000ms |
 | PostToolUse | `Write|Edit` | `post-hooks-json.sh` | 10000ms |
+| PostToolUse | `Write|Edit` | `memory-index-sync.sh` | 3000ms |
 | PostToolUseFailure | `` | `post-tool-use-failure.sh` | 5000ms |
 | PreToolUse | `Write|Edit` | `pre-tool-use.sh` | 5000ms |
 | PreToolUse | `Write|Edit` | `tdd-gate.sh` | 5000ms |
@@ -82,6 +83,12 @@ No strict mode — hooks must never fail and block the session.
 ### `main-guard.sh`
 
 Main Branch Guard — PreToolUse hook for Bash (git commit)
+
+**Gate:** Advisory
+
+### `memory-index-sync.sh`
+
+PostToolUse hook — sync MEMORY.md after a memory file is written.
 
 **Gate:** Advisory
 
