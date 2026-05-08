@@ -182,6 +182,17 @@
             "timeout": 10000
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/memory-index-sync.sh",
+            "timeout": 3000,
+            "async": true
+          }
+        ]
       }
     ],
     "PostToolUseFailure": [
