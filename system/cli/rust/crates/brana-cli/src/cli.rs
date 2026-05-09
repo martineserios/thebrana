@@ -185,6 +185,15 @@ pub enum Commands {
     },
     /// How to deploy brana (hint — deploy = merge to main)
     Deploy,
+    /// Signal ratings dashboard — view ratings.jsonl breakdown and recent signals
+    Ratings {
+        /// Max recent signals to show (default 10)
+        #[arg(long, default_value = "10")]
+        last: usize,
+        /// Output raw JSON instead of human-readable dashboard
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Subcommand)]

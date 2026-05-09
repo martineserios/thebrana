@@ -157,5 +157,6 @@ fn main() {
             println!("No build step. No container. The system runs locally from the branch");
             println!("Claude Code loads — which is main.");
         }
+        Commands::Ratings { last, json } => run_or_exit(commands::ratings::cmd_ratings(last, json)),
     }
 }
