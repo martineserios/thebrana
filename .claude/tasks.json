@@ -14728,9 +14728,7 @@
       "type": "task"
     },
     {
-      "blocked_by": [
-        "t-558"
-      ],
+      "blocked_by": [],
       "branch": null,
       "build_step": null,
       "completed": null,
@@ -14746,7 +14744,7 @@
       "parent": "t-553",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "strategy": null,
       "stream": "roadmap",
       "subject": "Technical docs — architecture, extending brana, writing skills/hooks/agents",
@@ -37415,7 +37413,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "in_progress",
+      "status": "completed",
       "stream": "tech-debt",
       "subject": "Add system/state/* dirty-check to /brana:close gate step",
       "tags": [
@@ -37424,6 +37422,28 @@
         "state-files"
       ],
       "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "test-session-start.sh has 1/29 failing test (Venture project case). Pre-dates t-1366 sentinel work — not introduced by this session. Failure masks future regressions. Triage: identify which assertion fails, fix the test, verify all 29 pass.",
+      "created": "2026-05-08",
+      "description": null,
+      "effort": "XS",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1379",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "triage pre-existing test failure in test-session-start.sh — Venture project case",
+      "tags": []
     }
   ],
   "version": "1"
