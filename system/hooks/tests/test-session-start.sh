@@ -40,6 +40,7 @@ run_hook() {
         CLAUDE_PLUGIN_DATA="" \
         CLAUDE_PLUGIN_ROOT="" \
         CLAUDE_ENV_FILE="${CLAUDE_ENV_FILE:-}" \
+        BRANA_RECAP_OFF="" \
         $extra_env \
         bash "$HOOK" 2>/dev/null)
     # Extract only lines that are valid JSON objects (filter background noise)
