@@ -57,7 +57,8 @@ fi
 if [ -z "$CATEGORY" ]; then
     case "$PROMPT_LOWER" in
         *"perfect"*|*"exactly right"*|*"exactly what"*|*"great job"*|*"well done"*|\
-        *"that's correct"*|*"that's right"*|*"nailed it"*|*"excellent"*|*"vamo"*)
+        *"that's correct"*|*"that's right"*|*"nailed it"*|*"excellent"*|*"vamo"*|\
+        *"dale"*|*"genial"*|*"bueno"*|*"bárbaro"*|*"barbaro"*)
             CATEGORY="positive"; SIGNAL="phrase-positive" ;;
     esac
 fi
@@ -67,7 +68,8 @@ if [ -z "$CATEGORY" ]; then
     case "$PROMPT_LOWER" in
         *"that's wrong"*|*"that is wrong"*|*"you missed"*|*"completely wrong"*|\
         *"not right"*|*"that's incorrect"*|*"you're wrong"*|*"stop doing that"*|\
-        *"don't do that"*|*"you broke"*|*"broken"*)
+        *"don't do that"*|*"you broke"*|*"broken"*|*"nada que ver"*|\
+        *"pésimo"*|*"pesimo"*)
             CATEGORY="negative"; SIGNAL="phrase-negative" ;;
     esac
 fi
