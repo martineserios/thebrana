@@ -37398,6 +37398,32 @@
         "reconcile"
       ],
       "type": "task"
+    },
+    {
+      "id": "t-1378",
+      "subject": "Add system/state/* dirty-check to /brana:close gate step",
+      "status": "pending",
+      "stream": "tech-debt",
+      "type": "task",
+      "tags": [
+        "close",
+        "gate",
+        "state-files"
+      ],
+      "description": "At Step 1 (GATE), after checking for commits, also check `git status system/state/` for uncommitted changes. If dirty, warn: \"State files have uncommitted edits — commit now before closing?\" and offer to auto-commit with `chore(state): commit state files at session close`. Pattern has occurred 3x in 5 sessions (chore(state) commits at session start are the symptom). Fix at gate time so the next session opens clean.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-05-08",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
     }
   ],
   "version": "1"
