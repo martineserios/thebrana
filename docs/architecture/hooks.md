@@ -296,3 +296,11 @@ Source: t-1320, 2026-04-21
 ### 2026-04-13: commit-msg-verify.sh — advisory commit hygiene (non-blocking)
 Warns when a git commit message mentions filenames (e.g. `fix auth.rs`) that are not in the staged diff (`git diff --cached --name-only`). This catches the common mistake of describing more than was actually staged. Implementation note: extracting filenames from `-m` commit messages requires grepping from `.tool_input.command` on stdin; use `python3 -c "import json,sys; ..."` not `printf` for JSON generation in tests (printf interprets `\n` as literal newline, breaking the JSON string). Test assertions on the "unstaged files" warning must exclude the "Staged files:" section, which legitimately contains hook filenames.
 Source: t-1129, 2026-04-13
+
+### 2026-05-09: Blocking hooks must write to stderr, not stdout
+CC only surfaces hook output to the user via **stderr** when exit code is non-zero. Stdout is the protocol/JSON channel (`{"continue":false,"stopReason":"..."}`). `no-attribution-commit.sh` was exiting 2 with the violation message on stdout — CC showed "No stderr output" to the user while silently blocking the commit. Fix: wrap all user-facing violation output in `{ echo "BLOCKED: ..."; } >&2`. Audit every hook that exits non-zero and verify it writes to stderr.
+Source: t-1380 session 2026-05-09
+
+### 2026-05-09: Use jq instead of inline python3 for hook JSON encoding
+`commit-msg-verify.sh` used `python3 -c 'import sys,json; print(json.dumps(...))'` for encoding `additionalContext`. This is fragile in non-interactive hook subprocesses (PATH differences, uv requirement). Replaced with `jq -n --arg ctx "$(printf '%b' "$WARNING")" '{"continue":true,"additionalContext":$ctx}'` with `|| echo '{"continue":true}'` fallback. Supersedes earlier advice above about using python3 in this hook.
+Source: fix/hook-stderr-output 2026-05-09
