@@ -27,6 +27,29 @@ git diff --stat HEAD~5..HEAD 2>/dev/null
 git log --oneline --since="6 hours ago" 2>/dev/null
 ```
 
+**State-file dirty check:** After the git commands above, also run:
+
+```bash
+git status --porcelain system/state/ 2>/dev/null
+```
+
+If any lines are returned (uncommitted changes in `system/state/`), warn and offer to auto-commit before proceeding:
+
+```
+AskUserQuestion:
+  question: "system/state/ has uncommitted edits. Commit now before closing?"
+  header: "State files dirty"
+  options:
+    - "Yes — auto-commit (chore(state): commit state files at session close)"
+    - "No — skip and continue"
+```
+
+If "Yes":
+```bash
+git add system/state/
+git commit -m "chore(state): commit state files at session close"
+```
+
 **If both empty** (no commits, no changes in 6 hours):
 - Write a minimal handoff entry: `## YYYY-MM-DD — read-only session`
 - Add only a **Next:** section from conversation context
