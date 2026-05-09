@@ -68,7 +68,10 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | `subagent-tracker.sh` | SubagentStart+SubagentStop | `""` (all) | Track agent spawns and completions to session JSONL |
 | `step-completed.sh` | TaskCompleted | `""` (all) | Track CC Task completions for guided execution |
 | `task-completed.sh` | PostToolUse | `Bash` | Task completion pipeline: parent task rollup, close linked GitHub issue, log to decision log. Triggers on `brana backlog set <id> status completed`. |
+| `hallucination-detect.sh` | PostToolUse | `Bash` | Advisory: warns when a commit message contains completion keywords (fix/done/complete/close/resolve) but no test files were staged. Never blocks. |
 | `preflight-model.sh` | UserPromptSubmit | `""` (all) | Advisory (non-blocking): warns when a heavy skill (`/brana:close`, `/brana:brainstorm`, `/brana:build`) is invoked while extra-usage is disabled. Silence: `BRANA_1M_WARN_OFF=1`. |
+| `context-inject.sh` | UserPromptSubmit | `""` (all) | Advisory: detects t-NNN mentions in the prompt, injects each task's subject + description + context into additionalContext. Max 3 task IDs per prompt. |
+| `signal-capture.sh` | UserPromptSubmit | `""` (all) | Advisory: detects explicit ratings (N/5, N/10, emoji) and implicit sentiment in user prompts. Writes to `~/.claude/ratings/ratings.jsonl`; dumps failure context to `FAILURES/`. |
 | `session-start.sh` | SessionStart | `""` (all) | Pattern recall (1 parallel job, 2s budget), task context, venture detection, recurring error surfacing |
 | `session-end.sh` | SessionEnd | `""` (all) | Orchestrator — forks 3 sub-scripts: `session-end-metrics.sh` (flywheel metrics), `session-end-persist.sh` (ruflo + auto-memory), `session-end-drift.sh` (sync-state, spec graph, decisions log) |
 | `stopfailure-logger.sh` | StopFailure | `""` (all) | Log API errors (rate limit, auth, billing) to JSONL |

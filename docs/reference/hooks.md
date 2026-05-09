@@ -11,6 +11,7 @@
 | PostToolUse | `ExitPlanMode` | `post-plan-challenge.sh` | 5000ms |
 | PostToolUse | `Bash` | `post-pr-review.sh` | 5000ms |
 | PostToolUse | `Bash` | `task-completed.sh` | 5000ms |
+| PostToolUse | `Bash` | `hallucination-detect.sh` | 3000ms |
 | PostToolUse | `Write|Edit` | `post-sale.sh` | 5000ms |
 | PostToolUse | `Write|Edit` | `post-tasks-validate.sh` | 5000ms |
 | PostToolUse | `Write|Edit` | `post-hooks-json.sh` | 10000ms |
@@ -35,6 +36,8 @@
 | SubagentStop | `` | `subagent-tracker.sh` | 5000ms |
 | TaskCompleted | `` | `step-completed.sh` | 5000ms |
 | UserPromptSubmit | `` | `preflight-model.sh` | 3000ms |
+| UserPromptSubmit | `` | `context-inject.sh` | 5000ms |
+| UserPromptSubmit | `` | `signal-capture.sh` | 3000ms |
 
 ## Hook Scripts
 
@@ -62,6 +65,12 @@ Config drift detector — compares system/ source files vs deployed ~/.claude/ f
 
 **Gate:** Advisory
 
+### `context-inject.sh`
+
+No strict mode — hooks must never fail and block the session.
+
+**Gate:** Advisory
+
 ### `doc-gate.sh`
 
 Documentation Enforcement Gate — PreToolUse hook for Bash (git commit)
@@ -75,6 +84,12 @@ PreToolUse: Blocking gate on feedback_*.md writes — Wave 2.
 **Gate:** Blocking
 
 ### `guard-explore.sh`
+
+No strict mode — hooks must never fail and block the session.
+
+**Gate:** Advisory
+
+### `hallucination-detect.sh`
 
 No strict mode — hooks must never fail and block the session.
 
@@ -188,6 +203,12 @@ No strict mode — hooks must always return valid JSON.
 
 **Gate:** Advisory
 
+### `signal-capture.sh`
+
+No strict mode — hooks must never fail and block the session.
+
+**Gate:** Advisory
+
 ### `step-completed.sh`
 
 No strict mode — hooks must never fail and block the session.
@@ -255,6 +276,7 @@ Blocking hooks that support `/tmp/brana-*` sentinel file bypasses for procedure-
 | `session-start.sh` | `/tmp/brana-ss-${SESSION_ID}` | ── Temp files for parallel results ─────────────────────── |
 | `session-start.sh` | `/tmp/brana-skills-index-mtime` | Invalidate skills mtime marker — plugin updated, skills may have changed |
 | `session-start.sh` | `/tmp/brana-claims` | ── Stale file claim cleanup ───────────────────────────── |
+| `session-start.sh` | `/tmp/brana-bootstrap-pending-restart` | ── Bootstrap restart sentinel ─────────────────────────── |
 | `session-start.sh` | `/tmp/brana-context-${SESSION_ID}.md` | ── Write context readback file (survives context compression) ── |
 | `session-start.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | ══════════════════════════════════════════════════════════ |
 | `step-completed.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | ── Log step completion to session file ────────────────── |
