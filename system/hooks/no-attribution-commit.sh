@@ -57,20 +57,22 @@ for pattern in "${forbidden_patterns[@]}"; do
 done
 
 if [ ${#violations[@]} -gt 0 ]; then
-    echo ""
-    echo "❌ BLOCKED: Commit/PR contains forbidden attribution trailer(s)."
-    echo ""
-    echo "Found:"
-    for v in "${violations[@]}"; do
-        echo "  - $v"
-    done
-    echo ""
-    echo "Per system/rules/git-discipline.md (Commit attribution — HARD RULE):"
-    echo "  No Co-Authored-By, Signed-off-by, AI attribution, or 'Generated with'"
-    echo "  trailers in commit messages or PR descriptions. No exceptions."
-    echo ""
-    echo "Rewrite the commit message without the trailer and try again."
-    echo ""
+    {
+        echo ""
+        echo "BLOCKED: Commit/PR contains forbidden attribution trailer(s)."
+        echo ""
+        echo "Found:"
+        for v in "${violations[@]}"; do
+            echo "  - $v"
+        done
+        echo ""
+        echo "Per system/rules/git-discipline.md (Commit attribution — HARD RULE):"
+        echo "  No Co-Authored-By, Signed-off-by, AI attribution, or 'Generated with'"
+        echo "  trailers in commit messages or PR descriptions. No exceptions."
+        echo ""
+        echo "Rewrite the commit message without the trailer and try again."
+        echo ""
+    } >&2
     exit 2
 fi
 
