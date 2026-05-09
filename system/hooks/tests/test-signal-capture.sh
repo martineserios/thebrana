@@ -114,6 +114,17 @@ assert_json_continue "thumbs down: continue true" "$OUT"
 assert_file_contains "thumbs down: logged as negative" "$RATINGS_FILE" "negative"
 
 echo ""
+echo "--- Spanish positive phrases ---"
+
+OUT=$(run_hook "{\"prompt\":\"vamoooo\",\"session_id\":\"$SESSION\"}")
+assert_json_continue "vamoooo: continue true" "$OUT"
+assert_file_contains "vamoooo: logged as positive" "$RATINGS_FILE" "positive"
+
+OUT=$(run_hook "{\"prompt\":\"vamos!\",\"session_id\":\"$SESSION\"}")
+assert_json_continue "vamos: continue true" "$OUT"
+assert_file_contains "vamos: logged as positive" "$RATINGS_FILE" "positive"
+
+echo ""
 echo "--- Ratings JSONL structure: required fields present ---"
 
 # Check the latest entry has required fields
