@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-07T00:43:32Z",
+  "generated": "2026-05-09T00:18:03Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -210,6 +210,18 @@
       "type": "Dimension",
       "impl_files": []
     },
+    "brana-knowledge/dimensions/56-ruflo-agentdb-architecture.md": {
+      "title": "Ruflo / AgentDB Architecture",
+      "type": "Dimension",
+      "impl_files": [
+        "system/scripts/index-knowledge.sh"
+      ]
+    },
+    "brana-knowledge/dimensions/57-chess-erp-api.md": {
+      "title": "Chess ERP API — Platform Knowledge",
+      "type": "Dimension",
+      "impl_files": []
+    },
     "brana-knowledge/dimensions/INDEX.md": {
       "title": "Dimension Docs Index",
       "type": "Dimension",
@@ -405,6 +417,7 @@
       "title": "18 - Lean Roadmap: The Minimum Brain That Ships",
       "type": "Roadmap",
       "impl_files": [
+        "system/hooks/hooks.json",
         "system/settings.json",
         "system/skills/decide/SKILL.md",
         "system/rules/sdd-tdd.md",
@@ -430,6 +443,7 @@
       "title": "24 — Roadmap Corrections & Errata",
       "type": "Roadmap",
       "impl_files": [
+        "system/rules/",
         "system/rules/sdd-tdd.md",
         "system/procedures/align.md",
         "system/skills/",
@@ -450,7 +464,6 @@
         "system/scripts/gh-sync.sh",
         "system/hooks/task-sync.sh",
         "system/skills/meta-template/SKILL.md",
-        "system/rules/",
         "system/scheduler/brana-scheduler-runner.sh",
         "system/skills/decide/SKILL.md",
         "system/procedures/onboard.md",
@@ -760,6 +773,8 @@
       "type": "Roadmap",
       "impl_files": [
         "system/agents/{name",
+        "system/skills/_shared/delegation-tdd-checklist.md",
+        "system/procedures/build.md",
         "system/CLAUDE.md"
       ]
     },
@@ -1005,8 +1020,7 @@
         "system/hooks/hooks.json",
         "system/rules/delegation-routing.md",
         "system/CLAUDE.md",
-        "system/rules",
-        "system/hooks/"
+        "system/rules"
       ]
     },
     "docs/architecture/features/project-metadata.md": {
@@ -1198,15 +1212,6 @@
         "system/hooks/lib/"
       ]
     },
-    "docs/architecture/posttooluse-workaround.md": {
-      "title": "PostToolUse Workaround (CC #24529)",
-      "type": "Roadmap",
-      "impl_files": [
-        "system/hooks/",
-        "system/hooks/hooks.json",
-        "system/hooks/post-tool-use.sh"
-      ]
-    },
     "docs/architecture/skills.md": {
       "title": "Skills Architecture",
       "type": "Roadmap",
@@ -1260,6 +1265,14 @@
         "system/hooks/",
         "system/agents/",
         "system/rules/"
+      ]
+    },
+    "docs/archive/posttooluse-workaround.md": {
+      "title": "PostToolUse Workaround (CC #24529) — RESOLVED",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/hooks/hooks.json",
+        "system/hooks/"
       ]
     },
     "docs/archive/reflections/14-mastermind-architecture.md": {
@@ -1493,6 +1506,18 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/dimensions/56-ruflo-agentdb-architecture.md": {
+      "title": "Ruflo / AgentDB Architecture",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/index-knowledge.sh"
+      ]
+    },
+    "docs/dimensions/57-chess-erp-api.md": {
+      "title": "Chess ERP API — Platform Knowledge",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/dimensions/INDEX.md": {
       "title": "Dimension Docs Index",
       "type": "Roadmap",
@@ -1709,6 +1734,11 @@
         "system/hooks/hooks.json"
       ]
     },
+    "docs/guide/day-to-day.md": {
+      "title": "Day-to-Day Usage",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/guide/ecosystem.md": {
       "title": "Brana Workspace Ecosystem",
       "type": "Roadmap",
@@ -1820,6 +1850,11 @@
     },
     "docs/guide/workflows/session.md": {
       "title": "Sessions",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/guide/workflows/sitrep.md": {
+      "title": "Sitrep",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -2087,6 +2122,13 @@
         "system/agents/"
       ]
     },
+    "docs/reference/brana-cli.md": {
+      "title": "brana CLI Reference",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/cli/rust/crates/brana-cli/"
+      ]
+    },
     "docs/reference/commands.md": {
       "title": "Commands Reference",
       "type": "Roadmap",
@@ -2185,6 +2227,8 @@
       "impl_files": [
         "system/",
         "system/rules/skill-routing.md",
+        "system/rules/",
+        "system/hooks/hooks.json",
         "system/scripts/decisions.py",
         "system/state/decisions/"
       ]
@@ -2265,6 +2309,20 @@
         "system/ontology.yaml"
       ]
     },
+    "docs/research/2026-05-07-batch-api-knowledge-pipeline.md": {
+      "title": "Batch API Integration — Knowledge Pipeline Tier 1",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/research/2026-05-07-loop-validation-t938.md": {
+      "title": "Auto-learning Loop Validation — t-938",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/procedures/",
+        "system/skills/brainstorm/",
+        "system/skills/research/"
+      ]
+    },
     "docs/research/cc-unreleased-features-tracker.md": {
       "title": "CC Unreleased Features Tracker",
       "type": "Roadmap",
@@ -2299,6 +2357,11 @@
     },
     "docs/reviews/token-baseline.md": {
       "title": "Token Consumption Baseline",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/reviews/weekly-2026-04-17.md": {
+      "title": "",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -8061,6 +8124,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "reference/brana-cli.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "reference/commands.md",
       "type": "references",
       "computed": false
@@ -8260,6 +8329,12 @@
     {
       "from": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md",
       "to": "path",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "to": "docs/architecture/reference/skills.md",
       "type": "references",
       "computed": false
     },
@@ -9890,6 +9965,36 @@
       "computed": false
     },
     {
+      "from": "docs/guide/day-to-day.md",
+      "to": "commands/",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/day-to-day.md",
+      "to": "troubleshooting.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/day-to-day.md",
+      "to": "workflows/build.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/day-to-day.md",
+      "to": "workflows/session.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/day-to-day.md",
+      "to": "workflows/sitrep.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/guide/getting-started.md",
       "to": "commands/",
       "type": "references",
@@ -9904,6 +10009,12 @@
     {
       "from": "docs/guide/getting-started.md",
       "to": "configuration.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/getting-started.md",
+      "to": "day-to-day.md",
       "type": "references",
       "computed": false
     },
@@ -10701,6 +10812,12 @@
     },
     {
       "from": "docs/reflections/14-mastermind-architecture.md",
+      "to": "docs/docs/reference/rules.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reflections/14-mastermind-architecture.md",
       "to": "docs/reflections/31-assurance.md",
       "type": "references",
       "computed": false
@@ -11223,9 +11340,9 @@
     }
   ],
   "stats": {
-    "nodes": 358,
-    "edges": 1485,
+    "nodes": 368,
+    "edges": 1494,
     "typed_edges": 549,
-    "orphans": 83
+    "orphans": 92
   }
 }
