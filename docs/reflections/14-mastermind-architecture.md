@@ -147,7 +147,7 @@ thebrana/system/                              PLUGIN (loaded by Claude Code)
 **Installation:**
 - **Plugin:** `claude --plugin-dir ./system` (dev) or `curl -fsSL .../install.sh | bash` (users — writes `installed_plugins.json` directly)
 - **Identity layer:** `./bootstrap.sh` (one-time, idempotent)
-- **deploy.sh:** Deprecated (v0.7.0). Still works but will be removed in v0.8.0.
+- **deploy.sh:** Removed in v0.8.0 — prints deprecation notice and exits. Use `claude --plugin-dir ./system` (plugin) or `./bootstrap.sh` (identity).
 
 ---
 

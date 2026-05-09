@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-09T00:18:03Z",
+  "generated": "2026-05-09T14:34:15Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -520,6 +520,19 @@
         "system/agents/{name"
       ]
     },
+    "docs/architecture/bootstrap.md": {
+      "title": "bootstrap.sh Reference",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/",
+        "system/CLAUDE.md",
+        "system/rules/",
+        "system/scripts/",
+        "system/statusline.sh",
+        "system/scripts/git-hooks/pre-commit",
+        "system/scripts/ruflo-mcp.sh"
+      ]
+    },
     "docs/architecture/building-methodology.md": {
       "title": "Building Methodology: First-Principles Development for AI Tooling",
       "type": "Roadmap",
@@ -767,6 +780,20 @@
       "title": "ADR-037: Memory Enforcement Hook + Incremental Migration Policy",
       "type": "ADR",
       "impl_files": []
+    },
+    "docs/architecture/developer-quickstart.md": {
+      "title": "Developer Quickstart",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/",
+        "system/skills/my-skill/SKILL.md",
+        "system/skills/",
+        "system/rules/my-rule.md",
+        "system/rules/",
+        "system/hooks/hooks.json",
+        "system/hooks/my-hook.sh",
+        "system/scripts/bootstrap-hooks.sh"
+      ]
     },
     "docs/architecture/extending-agents.md": {
       "title": "Extending Agents",
@@ -1165,7 +1192,6 @@
         "system/scripts/",
         "system/skills/",
         "system/hooks/",
-        "system/scripts/feed-ruflo-index.sh",
         "system/hooks/lib/<name>.sh"
       ]
     },
@@ -1197,6 +1223,15 @@
         "system/"
       ]
     },
+    "docs/architecture/plugin-lifecycle.md": {
+      "title": "Plugin Lifecycle",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/",
+        "system/hooks/hooks.json",
+        "system/CLAUDE.md"
+      ]
+    },
     "docs/architecture/plugin-structure.md": {
       "title": "Plugin Structure",
       "type": "Roadmap",
@@ -1210,6 +1245,15 @@
         "system/",
         "system/hooks/hooks.json",
         "system/hooks/lib/"
+      ]
+    },
+    "docs/architecture/rules-design.md": {
+      "title": "Rules Design",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/",
+        "system/procedures/",
+        "system/rules/README.md"
       ]
     },
     "docs/architecture/skills.md": {
@@ -1807,6 +1851,11 @@
         "system/"
       ]
     },
+    "docs/guide/workflows/backlog.md": {
+      "title": "Managing the Backlog",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/guide/workflows/build.md": {
       "title": "Building Things",
       "type": "Roadmap",
@@ -1817,12 +1866,22 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/guide/workflows/challenge.md": {
+      "title": "Adversarial Review",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/guide/workflows/decision-log.md": {
       "title": "Decision Log",
       "type": "Roadmap",
       "impl_files": [
         "system/state/decisions/archive/"
       ]
+    },
+    "docs/guide/workflows/fix.md": {
+      "title": "Fixing Bugs",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/guide/workflows/github-sync.md": {
       "title": "GitHub Issues Sync",
@@ -1836,12 +1895,22 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/guide/workflows/memory.md": {
+      "title": "Memory and Knowledge",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/guide/workflows/model-routing.md": {
       "title": "Dynamic Model Routing",
       "type": "Roadmap",
       "impl_files": [
         "system/skills/backlog/SKILL.md"
       ]
+    },
+    "docs/guide/workflows/reconcile.md": {
+      "title": "Reconciling Drift",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/guide/workflows/research.md": {
       "title": "Research",
@@ -7560,6 +7629,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/bootstrap.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/building-methodology.md",
       "type": "references",
       "computed": false
@@ -7782,6 +7857,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/developer-quickstart.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/extending-agents.md",
       "type": "references",
       "computed": false
@@ -7956,6 +8037,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/plugin-lifecycle.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/plugin-structure.md",
       "type": "references",
       "computed": false
@@ -7963,6 +8050,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/posttooluse-workaround.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/rules-design.md",
       "type": "references",
       "computed": false
     },
@@ -8171,6 +8264,30 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/bootstrap.md",
+      "to": "developer-quickstart.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/bootstrap.md",
+      "to": "docs/reference/scripts.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/bootstrap.md",
+      "to": "plugin-lifecycle.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/bootstrap.md",
+      "to": "plugin-structure.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/building-methodology.md",
       "to": "docs/00-user-practices.md",
       "type": "references",
@@ -8351,8 +8468,68 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/developer-quickstart.md",
+      "to": "docs/reference/hooks.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/developer-quickstart.md",
+      "to": "docs/reference/skills.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/developer-quickstart.md",
+      "to": "extending-agents.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/developer-quickstart.md",
+      "to": "extending-hooks.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/developer-quickstart.md",
+      "to": "extending-skills.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/developer-quickstart.md",
+      "to": "overview.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/developer-quickstart.md",
+      "to": "plugin-structure.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/developer-quickstart.md",
+      "to": "testing-validation.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/extending-hooks.md",
       "to": "posttooluse-workaround.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/extending.md",
+      "to": "bootstrap.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/extending.md",
+      "to": "developer-quickstart.md",
       "type": "references",
       "computed": false
     },
@@ -8551,6 +8728,54 @@
     {
       "from": "docs/architecture/overview.md",
       "to": "skills.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/plugin-lifecycle.md",
+      "to": "developer-quickstart.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/plugin-lifecycle.md",
+      "to": "docs/reflections/33-agent-loop.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/plugin-lifecycle.md",
+      "to": "extending-hooks.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/plugin-lifecycle.md",
+      "to": "overview.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/plugin-lifecycle.md",
+      "to": "plugin-structure.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/rules-design.md",
+      "to": "context-budget.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/rules-design.md",
+      "to": "docs/reference/rules.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/rules-design.md",
+      "to": "extending-hooks.md",
       "type": "references",
       "computed": false
     },
@@ -11340,9 +11565,9 @@
     }
   ],
   "stats": {
-    "nodes": 368,
-    "edges": 1494,
+    "nodes": 377,
+    "edges": 1520,
     "typed_edges": 549,
-    "orphans": 92
+    "orphans": 96
   }
 }

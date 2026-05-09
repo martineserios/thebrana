@@ -60,8 +60,11 @@ Reference them in the skill instructions. Scripts run via `~/.claude/skills/my-s
 ### 3. Validate and deploy
 
 ```bash
-./validate.sh && ./deploy.sh
+./validate.sh
+claude --plugin-dir ./system   # test local changes; or restart CC if plugin is registered
 ```
+
+Skills live in the **plugin layer** — they deploy via `claude --plugin-dir ./system`. See [bootstrap.md](bootstrap.md) for the two-layer model.
 
 `validate.sh` checks frontmatter fields, context budget, and secrets.
 
@@ -96,8 +99,11 @@ Rules sit in the context window every session. Each line costs tokens. Write opi
 ### 4. Validate and deploy
 
 ```bash
-./validate.sh && ./deploy.sh
+./validate.sh
+./bootstrap.sh   # rules deploy via identity layer
 ```
+
+Rules live in the **identity layer** — they deploy via `./bootstrap.sh`, not the plugin. See [bootstrap.md](bootstrap.md).
 
 ## Adding a Hook
 
@@ -168,8 +174,12 @@ Add to `system/settings.json` under the appropriate event:
 ### 4. Validate and deploy
 
 ```bash
-./validate.sh && ./deploy.sh
+./validate.sh
+# PreToolUse/SessionStart hooks → claude --plugin-dir ./system (plugin layer)
+# PostToolUse hooks → ./bootstrap.sh (identity layer, wires ~/.claude/settings.json)
 ```
+
+See [bootstrap.md — What bootstrap.sh Handles](bootstrap.md) for which hook events live in which layer.
 
 ## Adding an Agent
 
@@ -235,16 +245,30 @@ To make the agent fire automatically, add a trigger to `system/rules/delegation-
 ### 5. Validate and deploy
 
 ```bash
-./validate.sh && ./deploy.sh
+./validate.sh
+claude --plugin-dir ./system   # agents live in the plugin layer
 ```
 
 ## The Deploy Cycle
 
-Every change follows the same pattern:
+Brana has two deployment layers. Every change goes to one of them:
 
 ```
-Edit system/ → ./validate.sh → ./deploy.sh → New session picks it up
+Edit system/ → ./validate.sh → deploy to the right layer → restart CC
 ```
+
+| Component | Layer | Deploy command |
+|-----------|-------|---------------|
+| Skill | Plugin | `claude --plugin-dir ./system` |
+| Agent | Plugin | `claude --plugin-dir ./system` |
+| Hook (PreToolUse/SessionStart) | Plugin | `claude --plugin-dir ./system` |
+| Hook (PostToolUse) | Identity | `./bootstrap.sh` |
+| Rule | Identity | `./bootstrap.sh` |
+| CLAUDE.md / scripts | Identity | `./bootstrap.sh` |
+
+> `deploy.sh` is deprecated since v0.8.0 — it prints a deprecation notice and exits. Do not use it.
+
+See [developer-quickstart.md](developer-quickstart.md) for the full workflow and [bootstrap.md](bootstrap.md) for what each layer owns.
 
 ### validate.sh
 
@@ -253,19 +277,6 @@ Pre-deploy checks:
 - Context budget compliance (rules aren't too large)
 - No secrets in committed files
 - Hook scripts are executable
-
-### deploy.sh
-
-Copies `system/` contents to `~/.claude/`:
-1. Skills → `~/.claude/skills/`
-2. Rules → `~/.claude/rules/`
-3. Hooks → `~/.claude/hooks/`
-4. Agents → `~/.claude/agents/`
-5. Scripts → `~/.claude/scripts/`
-6. Commands → `~/.claude/commands/`
-7. Settings → `~/.claude/settings.json`
-8. CLAUDE.md → `~/.claude/CLAUDE.md`
-9. Embeddings config → `~/.claude-flow/embeddings.json`
 
 ### Testing
 
