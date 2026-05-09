@@ -14744,7 +14744,7 @@
       "parent": "t-553",
       "priority": "P2",
       "started": null,
-      "status": "in_progress",
+      "status": "completed",
       "strategy": null,
       "stream": "roadmap",
       "subject": "Technical docs — architecture, extending brana, writing skills/hooks/agents",
@@ -37440,7 +37440,7 @@
       "parent": null,
       "priority": null,
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "strategy": null,
       "subject": "triage pre-existing test failure in test-session-start.sh — Venture project case",
       "tags": []
