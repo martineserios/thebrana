@@ -59,6 +59,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [hooks.md](architecture/hooks.md) | Hooks architecture -- plugin/bootstrap split, design principles |
 | [agents.md](architecture/agents.md) | Agents architecture -- groups, routing, hook triggers |
 | [plugin-structure.md](architecture/plugin-structure.md) | Plugin packaging and manifest |
+| [plugin-lifecycle.md](architecture/plugin-lifecycle.md) | Session startup sequence, skill invocation, hook execution flow |
 | [testing-validation.md](architecture/testing-validation.md) | Testing and validation approach |
 | [posttooluse-workaround.md](architecture/posttooluse-workaround.md) | CC bug #24529 workaround details |
 | [building-methodology.md](architecture/building-methodology.md) | How brana is built (DDD/SDD/TDD) |
