@@ -57,7 +57,7 @@ fi
 if [ -z "$CATEGORY" ]; then
     case "$PROMPT_LOWER" in
         *"perfect"*|*"exactly right"*|*"exactly what"*|*"great job"*|*"well done"*|\
-        *"that's correct"*|*"that's right"*|*"nailed it"*|*"excellent"*)
+        *"that's correct"*|*"that's right"*|*"nailed it"*|*"excellent"*|*"vamo"*)
             CATEGORY="positive"; SIGNAL="phrase-positive" ;;
     esac
 fi
