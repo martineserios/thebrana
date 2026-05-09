@@ -789,7 +789,7 @@
       "parent": "ms-012",
       "priority": "P2",
       "started": null,
-      "status": "in_progress",
+      "status": "completed",
       "stream": "roadmap",
       "subject": "Script to sync all dimension docs → NotebookLM sources",
       "tags": [

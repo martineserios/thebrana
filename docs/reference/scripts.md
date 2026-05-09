@@ -575,6 +575,36 @@ Collects ruflo health (entry count, last reindex date, stale count), portfolio p
 
 Gracefully degrades: if ruflo DB is missing, writes 0s. If brana-knowledge is missing, writes 0 for knowledge_days.
 
+---
+
+## sync-notebooklm.py
+
+| Field | Value |
+|-------|-------|
+| **Purpose** | Sync brana-knowledge dimension docs to NotebookLM staging directory |
+| **Usage** | `uv run python sync-notebooklm.py [options]` |
+| **Dependencies** | Python 3.10+, uv |
+
+Hash-based sync script for keeping NotebookLM sources current with `brana-knowledge/dimensions/`. Tracks which docs have been staged via a JSON state file. On each run:
+
+- **New docs** → staged to output dir for manual upload
+- **Changed docs** (hash differs) → re-staged for update
+- **Removed docs** → flagged with deletion instructions for browser
+- **Unchanged docs** → skipped
+
+NotebookLM has no public API — staged files require manual upload in the browser. Follow the printed action list after each run.
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--dims-dir PATH` | `~/enter_thebrana/brana-knowledge/dimensions` | Dimension docs directory |
+| `--state-file PATH` | `~/enter_thebrana/brana-knowledge/.notebooklm-sync.json` | JSON state file |
+| `--output-dir PATH` | `/tmp/notebooklm-sync` | Staging directory |
+| `--dry-run` | off | Print action list without writing files |
+
+State file (`brana-knowledge/.notebooklm-sync.json`) is gitignored-by-convention — it tracks your local sync state, not a shared invariant.
+
+---
+
 ## Field Notes
 
 ### 2026-04-08: MCP stdio wrappers must use exec, not background+wait
