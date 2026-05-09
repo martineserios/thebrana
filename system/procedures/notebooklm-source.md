@@ -17,6 +17,8 @@ A guided workflow. Claude does the heavy lifting (reading, reformatting, validat
 | `validate [path]` | Score a file's NotebookLM-readiness |
 | `batch [glob]` | Validate + prepare multiple files |
 
+> **Bulk sync of all dimension docs:** use `system/scripts/sync-notebooklm.py` instead of this skill. It hash-tracks all `brana-knowledge/dimensions/*.md` docs and stages only new/changed ones for upload. Run: `uv run python system/scripts/sync-notebooklm.py`. See `docs/reference/scripts.md` for full options.
+
 ---
 
 ## Step Registry
