@@ -207,31 +207,7 @@ Multiple hooks can register for the same event. They run sequentially; if any Pr
 
 ## Field Notes
 
-### 2026-04-08: Defensive retry loops in MCP wrappers are net-negative
-Background+restart logic added to `ruflo-mcp.sh` to survive CC's SIGTERM bug (#40207) never recovered in practice — `/mcp` was always the real recovery path. Worse, backgrounding silently broke stdin forwarding. Rule: if manual recovery is already documented, don't add an auto-retry — it creates hidden risk with no upside.
-Source: t-1083
-
-### 2026-04-08: Pre-flight warnings template for env constraints
-When a deterministic failure condition is readable from a config file (e.g., `cachedExtraUsageDisabledReason` in `~/.claude.json`), surface it at session-start with: (a) what's wrong, (b) what breaks, (c) exact fix command, (d) opt-out env var. Implemented in `session-start.sh` for 1M context + disabled extra-usage (t-1034).
-Source: t-1034
-
-### 2026-04-09: Canonical CC hook event names
-Full list of valid hook event names: `PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `SessionStart`, `SessionEnd`, `SubagentStart`, `SubagentStop`, `TaskCompleted`, `StopFailure`. The failure event is `PostToolUseFailure` (not `ToolError` or `PostToolFailure`). Wire failure telemetry hooks under `PostToolUseFailure` with matcher `""`.
-Source: /brana:reconcile --scope consistency, 2026-04-09
-
-### 2026-04-12: worktree-gate now handles both `git checkout -b` and `git switch -c` (t-1120/t-1126)
-Both commands create branches and are intercepted. Fix: strip quoted string args from command before detection (`CMD_UNQUOTED` via sed) to prevent false positives (e.g., `brana backlog add --json '{"description":"fix git switch -c"}'` no longer triggers the gate). Error messages now cite the actual command used (`git switch -c` errors say `git switch -c`, not `git checkout -b`). 10/10 tests pass. Hook JSON path for deny: `.hookSpecificOutput.permissionDecision` (not `.permissionDecision`).
-Source: t-1120, t-1126 (2026-04-12)
-
-### 2026-04-12: nvm PATH glob for scheduler scripts
-Non-interactive shells (systemd, cron) don't source nvm, so `node` and `ruflo` binaries are missing from PATH. Sourcing full `nvm.sh` is slow and fragile. Reliable fix — 3 lines at top of any scheduler script needing node/ruflo:
-```bash
-for _nvm_bin in "$HOME"/.nvm/versions/node/*/bin; do
-    [ -x "$_nvm_bin/node" ] && export PATH="$_nvm_bin:$PATH" && break
-done
-```
-Validated in `system/scripts/feed-ruflo-index.sh` (t-1138).
-Source: t-1138
+> Archived 2026-05-09: 5 oldest entries (2026-04-08 × 2, 2026-04-09, 2026-04-12 nvm PATH, 2026-04-12 worktree-gate checkout/switch) moved to ruflo field-notes namespace (t-1388).
 
 ### 2026-04-10: doc-gate blocks the entire Bash command, including pre-commit git add
 When `git add <files> && git commit -m "..."` is in a single Bash call and the PreToolUse doc-gate blocks the commit, the `git add` also never runs — the hook fires before the entire shell command executes. Pattern: always stage files in a SEPARATE Bash call, then commit in a second call. The add call never triggers doc-gate; only the commit does.
@@ -308,3 +284,7 @@ Source: fix/hook-stderr-output 2026-05-09
 ### 2026-05-09: Script body edits activate immediately — only hooks.json wiring requires CC restart
 When a hook script's body is edited and the updated file is copied to the plugin cache (`~/.claude/plugins/cache/brana/brana/1.0.0/hooks/`), the new behavior fires on the very next event. No CC restart required. CC restart is only needed when `hooks.json` itself changes (event registration, matchers) — that file is parsed once at session startup. Validated: signal-capture.sh phrase addition fired immediately after cache copy, same session.
 Source: feat/ratings-spanish-phrases 2026-05-09
+
+### 2026-05-09: Append-only test fixtures make TDD red phase lie
+`test-signal-capture.sh` writes to a shared `$RATINGS_FILE`. New phrase assertions checked "does file contain 'positive'?" — passed trivially because earlier test cases had already written positive entries, even with no implementation for the new phrase. Got 49/49 green before a single line of impl existed. Fix: `rm -f "$RATINGS_FILE"` before each independent phrase assertion group. Rule: treat 100%-green-before-impl as a fixture-bleed alarm, not success. Re-run with cleared fixture or reverted impl to confirm red.
+Source: feat/t-1386 2026-05-09
