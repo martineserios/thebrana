@@ -124,6 +124,74 @@ OUT=$(run_hook "{\"prompt\":\"vamos!\",\"session_id\":\"$SESSION\"}")
 assert_json_continue "vamos: continue true" "$OUT"
 assert_file_contains "vamos: logged as positive" "$RATINGS_FILE" "positive"
 
+rm -f "$RATINGS_FILE"
+OUT=$(run_hook "{\"prompt\":\"dale!\",\"session_id\":\"$SESSION\"}")
+assert_json_continue "dale: continue true" "$OUT"
+assert_file_contains "dale: logged as positive" "$RATINGS_FILE" "positive"
+
+rm -f "$RATINGS_FILE"
+OUT=$(run_hook "{\"prompt\":\"dale ya, perfecto\",\"session_id\":\"$SESSION\"}")
+assert_json_continue "dale+perfecto: continue true" "$OUT"
+assert_file_contains "dale+perfecto: logged as positive" "$RATINGS_FILE" "positive"
+
+rm -f "$RATINGS_FILE"
+OUT=$(run_hook "{\"prompt\":\"genial!\",\"session_id\":\"$SESSION\"}")
+assert_json_continue "genial: continue true" "$OUT"
+assert_file_contains "genial: logged as positive" "$RATINGS_FILE" "positive"
+
+rm -f "$RATINGS_FILE"
+OUT=$(run_hook "{\"prompt\":\"geniales, exactamente eso\",\"session_id\":\"$SESSION\"}")
+assert_json_continue "geniales: continue true" "$OUT"
+assert_file_contains "geniales: logged as positive" "$RATINGS_FILE" "positive"
+
+rm -f "$RATINGS_FILE"
+OUT=$(run_hook "{\"prompt\":\"perfecto!\",\"session_id\":\"$SESSION\"}")
+assert_json_continue "perfecto: continue true" "$OUT"
+assert_file_contains "perfecto: logged as positive" "$RATINGS_FILE" "positive"
+
+rm -f "$RATINGS_FILE"
+OUT=$(run_hook "{\"prompt\":\"qué bueno que funcionó\",\"session_id\":\"$SESSION\"}")
+assert_json_continue "bueno: continue true" "$OUT"
+assert_file_contains "bueno: logged as positive" "$RATINGS_FILE" "positive"
+
+rm -f "$RATINGS_FILE"
+OUT=$(run_hook "{\"prompt\":\"bueno!\",\"session_id\":\"$SESSION\"}")
+assert_json_continue "bueno bare: continue true" "$OUT"
+assert_file_contains "bueno bare: logged as positive" "$RATINGS_FILE" "positive"
+
+rm -f "$RATINGS_FILE"
+OUT=$(run_hook "{\"prompt\":\"bárbaro\",\"session_id\":\"$SESSION\"}")
+assert_json_continue "bárbaro: continue true" "$OUT"
+assert_file_contains "bárbaro: logged as positive" "$RATINGS_FILE" "positive"
+
+rm -f "$RATINGS_FILE"
+OUT=$(run_hook "{\"prompt\":\"barbaro, justo lo que necesitaba\",\"session_id\":\"$SESSION\"}")
+assert_json_continue "barbaro (no accent): continue true" "$OUT"
+assert_file_contains "barbaro (no accent): logged as positive" "$RATINGS_FILE" "positive"
+
+echo ""
+echo "--- Spanish negative phrases ---"
+
+rm -f "$RATINGS_FILE"
+OUT=$(run_hook "{\"prompt\":\"nada que ver con lo que pedí\",\"session_id\":\"$SESSION\"}")
+assert_json_continue "nada que ver: continue true" "$OUT"
+assert_file_contains "nada que ver: logged as negative" "$RATINGS_FILE" "negative"
+
+rm -f "$RATINGS_FILE"
+OUT=$(run_hook "{\"prompt\":\"eso es nada que ver\",\"session_id\":\"$SESSION\"}")
+assert_json_continue "nada que ver inline: continue true" "$OUT"
+assert_file_contains "nada que ver inline: logged as negative" "$RATINGS_FILE" "negative"
+
+rm -f "$RATINGS_FILE"
+OUT=$(run_hook "{\"prompt\":\"pesimo, no sirve\",\"session_id\":\"$SESSION\"}")
+assert_json_continue "pesimo: continue true" "$OUT"
+assert_file_contains "pesimo: logged as negative" "$RATINGS_FILE" "negative"
+
+rm -f "$RATINGS_FILE"
+OUT=$(run_hook "{\"prompt\":\"pésimo resultado\",\"session_id\":\"$SESSION\"}")
+assert_json_continue "pésimo (accent): continue true" "$OUT"
+assert_file_contains "pésimo (accent): logged as negative" "$RATINGS_FILE" "negative"
+
 echo ""
 echo "--- Ratings JSONL structure: required fields present ---"
 
