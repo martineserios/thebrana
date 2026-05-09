@@ -70,6 +70,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 
 | File | Contents |
 |------|----------|
+| [developer-quickstart.md](architecture/developer-quickstart.md) | **Start here** — add your first skill/rule/hook in 10 minutes |
 | [extending.md](architecture/extending.md) | General guide to extending the system |
 | [extending-skills.md](architecture/extending-skills.md) | How to add a new skill |
 | [extending-hooks.md](architecture/extending-hooks.md) | How to add a new hook |
