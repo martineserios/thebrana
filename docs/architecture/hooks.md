@@ -304,3 +304,7 @@ Source: t-1380 session 2026-05-09
 ### 2026-05-09: Use jq instead of inline python3 for hook JSON encoding
 `commit-msg-verify.sh` used `python3 -c 'import sys,json; print(json.dumps(...))'` for encoding `additionalContext`. This is fragile in non-interactive hook subprocesses (PATH differences, uv requirement). Replaced with `jq -n --arg ctx "$(printf '%b' "$WARNING")" '{"continue":true,"additionalContext":$ctx}'` with `|| echo '{"continue":true}'` fallback. Supersedes earlier advice above about using python3 in this hook.
 Source: fix/hook-stderr-output 2026-05-09
+
+### 2026-05-09: Script body edits activate immediately — only hooks.json wiring requires CC restart
+When a hook script's body is edited and the updated file is copied to the plugin cache (`~/.claude/plugins/cache/brana/brana/1.0.0/hooks/`), the new behavior fires on the very next event. No CC restart required. CC restart is only needed when `hooks.json` itself changes (event registration, matchers) — that file is parsed once at session startup. Validated: signal-capture.sh phrase addition fired immediately after cache copy, same session.
+Source: feat/ratings-spanish-phrases 2026-05-09
