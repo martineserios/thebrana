@@ -46,7 +46,7 @@ Claude Code passes a JSON object on stdin with these fields:
 
 ### Output JSON
 
-Every hook must write valid JSON to stdout. Three response patterns:
+Every hook must write valid JSON to stdout. Four response patterns:
 
 **Pass through** — let execution proceed:
 ```json
@@ -58,7 +58,7 @@ Every hook must write valid JSON to stdout. Three response patterns:
 {"continue": true, "additionalContext": "Relevant information for Claude."}
 ```
 
-**Block** (PreToolUse only) — deny the tool call:
+**Block (PreToolUse) — permission deny format:**
 ```json
 {
   "hookSpecificOutput": {
@@ -68,6 +68,13 @@ Every hook must write valid JSON to stdout. Three response patterns:
   }
 }
 ```
+
+**Block (ConfigChange and non-tool events) — stopReason format:**
+```json
+{"continue": false, "stopReason": "Explain why execution is stopped."}
+```
+
+Use the `permissionDecision` format for PreToolUse (blocking a specific tool call). Use `stopReason` for ConfigChange and non-tool-use events where you want to halt the session. Most existing hooks use the `permissionDecision` format — prefer that for any new PreToolUse gate.
 
 ### Exit Codes
 
@@ -110,44 +117,42 @@ Hooks are registered in `system/hooks/hooks.json` with this structure:
 
 | Field | Description |
 |-------|-------------|
-| `event` (key) | The CC lifecycle event: `PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `SessionStart`, `SessionEnd` |
-| `matcher` | Pipe-separated tool names (`"Write\|Edit"`) or empty string (`""`) for all tools |
+| `event` (key) | The CC lifecycle event. See Event Types table above for all valid values. |
+| `matcher` | Pipe-separated tool names (`"Write\|Edit"`) or empty string (`""`) for all tools. Not applicable to session events — leave `""`. |
 | `type` | Always `"command"` |
 | `command` | Path to the script. Must use `${CLAUDE_PLUGIN_ROOT}` for plugin-relative resolution. |
-| `timeout` | Max execution time in milliseconds. 5,000ms for tool hooks, 10,000ms for session hooks. |
+| `timeout` | Max execution time in milliseconds. 5,000ms for tool hooks, 10,000ms for session hooks, 3,000ms for lightweight gates. |
+| `async` | Optional boolean. When `true`, CC does not wait for the hook to complete before continuing. Use for fire-and-forget work (memory indexing, telemetry) where blocking the session is unacceptable. Output and return value are ignored. |
 
 ### Event Types
 
 | Event | When | Can block? | Typical use |
 |-------|------|-----------|-------------|
-| `SessionStart` | Session begins | No | Recall patterns, set env vars, detect project type |
-| `SessionEnd` | Session ends | No | Flush events, compute metrics, write summaries |
-| `PreToolUse` | Before a tool executes | Yes (deny) | Spec-first gate, cascade throttle |
+| `SessionStart` | Session begins | No | Recall patterns, detect project type, inject startup context |
+| `SessionEnd` | Session ends | No | Flush events, compute metrics, write session summary |
+| `UserPromptSubmit` | Before each user prompt is processed | Yes | Pre-flight checks, model/env warnings |
+| `PreToolUse` | Before a tool executes | Yes (deny) | Spec-first gate, worktree guard, TDD gate |
 | `PostToolUse` | After a tool succeeds | No | Log events, detect patterns, nudge agents |
 | `PostToolUseFailure` | After a tool fails | No | Log failures, detect cascades |
+| `SubagentStart` | Before a subagent (Agent tool) begins | No | Inject subagent context, track spawns |
+| `SubagentStop` | After a subagent finishes | No | Track completion, log results |
+| `TaskCompleted` | When a CC Task is marked done | No | Step-level tracking, progress hooks |
+| `StopFailure` | When the session stops due to an error | No | Log error state, flush partial work |
+| `ConfigChange` | When CC config changes mid-session | Yes | Block unauthorized config mutations (e.g. ANTHROPIC_BASE_URL override) |
 
-Multiple hooks can register for the same event. They run sequentially. If any PreToolUse hook blocks, the tool call is denied.
+Multiple hooks can register for the same event and matcher. They run sequentially. If any PreToolUse hook blocks, the tool call is denied. `UserPromptSubmit` can also block — returning `{"continue": false}` stops the prompt from being processed.
 
 ## Plugin Hooks vs Bootstrap-Installed Hooks
 
-CC v2.1.x has a bug (issue #24529) where `PostToolUse` and `PostToolUseFailure` events are not dispatched from plugin `hooks.json`. As a workaround:
-
-- **Plugin `hooks.json`** handles: `PreToolUse`, `SessionStart`, `SessionEnd`
-- **`bootstrap.sh`** installs `PostToolUse` and `PostToolUseFailure` to `~/.claude/settings.json`
-
-When adding a new hook, check which event it uses:
+All events now work via the plugin `hooks.json` (CC #24529 was resolved — PostToolUse and PostToolUseFailure previously required bootstrap workaround). Register all new hooks in `system/hooks/hooks.json` using `${CLAUDE_PLUGIN_ROOT}` paths.
 
 | Event | Register in |
 |-------|-------------|
-| `PreToolUse` | `system/hooks/hooks.json` |
-| `SessionStart` | `system/hooks/hooks.json` |
-| `SessionEnd` | `system/hooks/hooks.json` |
-| `PostToolUse` | `bootstrap.sh` (installs to `~/.claude/settings.json`) |
-| `PostToolUseFailure` | `bootstrap.sh` (installs to `~/.claude/settings.json`) |
+| All events | `system/hooks/hooks.json` |
 
-For PostToolUse/PostToolUseFailure hooks, add the registration to the `bootstrap.sh` Step 4b section and use absolute paths (`$HOME/.claude/hooks/my-hook.sh`) instead of `${CLAUDE_PLUGIN_ROOT}`.
+`bootstrap.sh` may still install some hooks to `~/.claude/settings.json` for identity-layer needs (hooks that must run even without the plugin). Check `bootstrap.sh` if you need a hook that survives plugin reinstall.
 
-See [posttooluse-workaround.md](posttooluse-workaround.md) for full details on CC #24529.
+> **Historical note:** Before CC #24529 was fixed, PostToolUse and PostToolUseFailure required bootstrap installation. Some legacy references to this workaround may still exist in docs and scripts — they reflect past state, not current requirements. See [posttooluse-workaround.md](posttooluse-workaround.md) for the full history.
 
 ## The 10-Second Timeout Constraint
 
