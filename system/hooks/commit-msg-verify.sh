@@ -73,14 +73,15 @@ if [ ${#MISSING[@]} -eq 0 ]; then
     echo '{"continue":true}'; exit 0
 fi
 
-# Build warning message
-WARNING="WARNING: commit message mentions file(s) not in staged diff:"
+# Build warning message and output via jq (no python3 dependency)
+MISSING_LIST=""
 for f in "${MISSING[@]}"; do
-    WARNING="$WARNING\n  - $f"
+    MISSING_LIST="${MISSING_LIST}  - ${f}\n"
 done
-WARNING="$WARNING\n\nStaged files: $(echo "$STAGED" | tr '\n' ' ')"
-WARNING="$WARNING\n\nVerify: did you forget to stage these files, or should the commit message be revised?"
+STAGED_FLAT=$(echo "$STAGED" | tr '\n' ' ')
+
+WARNING="WARNING: commit message mentions file(s) not in staged diff:\n${MISSING_LIST}\nStaged files: ${STAGED_FLAT}\n\nVerify: did you forget to stage these files, or should the commit message be revised?"
 
 # Output as additionalContext (non-blocking — model sees the warning)
-printf '{"continue":true,"additionalContext":"%s"}' \
-    "$(printf '%s' "$WARNING" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read())[1:-1])')"
+jq -n --arg ctx "$(printf '%b' "$WARNING")" '{"continue":true,"additionalContext":$ctx}' 2>/dev/null \
+    || echo '{"continue":true}'
