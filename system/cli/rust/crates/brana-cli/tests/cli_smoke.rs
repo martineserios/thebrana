@@ -255,3 +255,47 @@ fn backlog_add_priority_and_context_flags_persist() {
     assert_eq!(added["context"].as_str(), Some("verifying t-1336 shorthand merge"));
     assert_eq!(added["effort"].as_str(), Some("S"));
 }
+
+// ── Ratings ──────────────────────────────────────────────────────────────
+
+#[test]
+fn ratings_help_exits_zero() {
+    brana().args(["ratings", "--help"]).assert().success();
+}
+
+#[test]
+fn ratings_json_missing_file_exits_zero() {
+    let tmp = tempfile::tempdir().unwrap();
+    brana()
+        .args(["ratings", "--json"])
+        .env("HOME", tmp.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"total\""));
+}
+
+#[test]
+fn ratings_json_fixture_shows_breakdown() {
+    let tmp = tempfile::tempdir().unwrap();
+    let ratings_dir = tmp.path().join(".claude/ratings");
+    std::fs::create_dir_all(&ratings_dir).unwrap();
+    std::fs::write(
+        ratings_dir.join("ratings.jsonl"),
+        "{\"ts\":\"2026-05-01T10:00:00Z\",\"session_id\":\"s1\",\"signal\":\"positive\",\"category\":\"positive\",\"prompt\":\"test\"}\n\
+         {\"ts\":\"2026-05-01T11:00:00Z\",\"session_id\":\"s1\",\"signal\":\"negative\",\"category\":\"negative\",\"prompt\":\"test2\"}\n",
+    )
+    .unwrap();
+    let out = brana()
+        .args(["ratings", "--json"])
+        .env("HOME", tmp.path())
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let parsed: serde_json::Value =
+        serde_json::from_str(std::str::from_utf8(&out).unwrap().trim()).unwrap();
+    assert_eq!(parsed["total"].as_u64(), Some(2));
+    assert_eq!(parsed["positive"].as_u64(), Some(1));
+    assert_eq!(parsed["negative"].as_u64(), Some(1));
+}
