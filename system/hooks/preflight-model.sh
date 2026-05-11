@@ -65,5 +65,4 @@ WARNING="$WARNING ${INVOKED_SKILL} uses extended context and will fail around th
 WARNING="$WARNING Run /model to switch to standard Opus 4.6 or Sonnet 4.6 before proceeding."
 WARNING="$WARNING Silence with: BRANA_1M_WARN_OFF=1"
 
-printf '{"continue":true,"additionalContext":"%s"}' \
-    "$(printf '%s' "$WARNING" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read())[1:-1])')"
+jq -n --arg ctx "$WARNING" '{"continue":true,"additionalContext":$ctx}'
