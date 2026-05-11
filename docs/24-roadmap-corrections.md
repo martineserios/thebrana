@@ -2793,3 +2793,19 @@ Doc 38 also classifies these as Wave 1 (divergent ideation — shipped) vs Wave 
 **Fix applied (code-fix):** Saved `feedback_no_prod_writes_without_explicit_go.md` memory rule extending dev-first discipline to all mutation tools. Cloud-run-deploy.md update is a pending spec fix (apply via `/brana:maintain-specs`).
 
 **Status:** code-fix (memory rule saved 2026-05-08; spec update pending)
+
+---
+
+### Reconcile Run — 2026-05-11
+
+**Trigger:** manual (post hook + CLI changes)
+**Scope:** consistency
+**Drift found:** 2 CON-1 findings (stale skill counts) + 1 hooks.md cap maintenance
+**Applied:** 3 auto-fixes
+**Deferred:** 0
+
+| # | Area | Type | Finding | Resolution |
+|---|------|------|---------|-----------|
+| 1 | ADR-034 | Stale | "28 skills" — actual 33 | Applied — removed count, kept context |
+| 2 | ADR-025 | Stale | "30 skills" ×2 — actual 33 | Applied — replaced with "all skills" + reference link |
+| 3 | hooks.md | Maintenance | 5 oldest field notes (2026-04-10 ×5) at 20-note cap | Applied — archived to ruflo knowledge namespace, updated archive notice |
