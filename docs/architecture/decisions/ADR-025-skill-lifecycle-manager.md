@@ -14,7 +14,7 @@ status: accepted
 
 ## Context
 
-Brana has 30 skills, 11 agents, and 4 commands. Claude Code loads all skill descriptions into context at session start (~5.6KB). During complex builds, Claude loses awareness of niche skills — it won't suggest `/brana:meta-template` for a WhatsApp task or `/brana:financial-model` for a projection unless explicitly told.
+Brana has a growing set of skills, agents, and commands (see [`docs/reference/skills.md`](../../reference/skills.md) for current counts). Claude Code loads all skill descriptions into context at session start (~5.6KB). During complex builds, Claude loses awareness of niche skills — it won't suggest `/brana:meta-template` for a WhatsApp task or `/brana:financial-model` for a projection unless explicitly told.
 
 Investigation (t-608) found: CC has no programmatic skill discovery API. ToolSearch only works for MCP tools. Skills are matched purely by Claude reading descriptions — a semantic, attention-dependent mechanism that degrades as conversation length grows.
 
@@ -184,7 +184,7 @@ Standalone MCP stdio server wrapping the CLI. Rejected because:
 
 ### B. Full 5-phase system (rejected after challenge)
 
-Original design had MCP server, scheduled polling, auto-invoke rules, SessionStart hooks, freshness tracking. Challenger showed this was 3-4x too complex for 30 skills. Scoped down to CLI + suggest-only + on-demand sources.
+Original design had MCP server, scheduled polling, auto-invoke rules, SessionStart hooks, freshness tracking. Challenger showed this was 3-4x too complex for the skill set at that time. Scoped down to CLI + suggest-only + on-demand sources.
 
 ### C. Description-only improvement (rejected)
 
