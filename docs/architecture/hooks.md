@@ -208,26 +208,7 @@ Multiple hooks can register for the same event. They run sequentially; if any Pr
 ## Field Notes
 
 > Archived 2026-05-09: 5 oldest entries (2026-04-08 × 2, 2026-04-09, 2026-04-12 nvm PATH, 2026-04-12 worktree-gate checkout/switch) moved to ruflo field-notes namespace (t-1388).
-
-### 2026-04-10: doc-gate blocks the entire Bash command, including pre-commit git add
-When `git add <files> && git commit -m "..."` is in a single Bash call and the PreToolUse doc-gate blocks the commit, the `git add` also never runs — the hook fires before the entire shell command executes. Pattern: always stage files in a SEPARATE Bash call, then commit in a second call. The add call never triggers doc-gate; only the commit does.
-Source: t-1109, 2026-04-10
-
-### 2026-04-10: `git checkout HEAD -- <file>` is the reliable recovery form
-After a failed `git stash pop` leaves a file in merge-conflict state, `git restore <file>` and bare `git checkout -- <file>` both fail. `git checkout HEAD -- <file>` succeeds because it explicitly names the commit. In recovery scenarios, always use the explicit HEAD form.
-Source: t-1109, 2026-04-10
-
-### 2026-04-10: Bash tool branch switches are invocation-ephemeral
-`git switch -c <branch>` succeeds in one Bash call but subsequent calls revert to the previous branch — each invocation runs in a fresh subshell. Rule: after any branch create/switch, the VERY NEXT Bash call must be `git branch --show-current`. Do NOT stage or commit until branch is confirmed. Violated 3 times — feature work landed on main before main-guard caught it.
-Source: t-1075
-
-### 2026-04-10: main-guard + doc-gate is the strongest branch discipline combo
-Two hooks in sequence reliably catch two distinct failure modes: doc-gate catches behavioral changes without documentation, main-guard catches behavioral commits on the wrong branch. Both fired correctly this session and blocked the commit before it persisted. Keep both hooks active.
-Source: t-1075
-
-### 2026-04-10: tasks.json stash-pop conflicts — always --theirs
-`.claude/tasks.json` is machine-generated, 5900+ lines, changes every session. It will always conflict on `git stash pop` across branches. Resolution: `git checkout --theirs .claude/tasks.json && git add .claude/tasks.json`. The stash version (from main) is always the authoritative state.
-Source: t-1075
+> Archived 2026-05-11: 5 entries (2026-04-10 × 5: doc-gate bash command, git checkout HEAD recovery, branch switches ephemeral, main-guard+doc-gate combo, tasks.json stash theirs) moved to ruflo knowledge namespace.
 
 ### 2026-04-10: worktree-gate has two gates, not one
 `worktree-gate.sh` intercepts ALL git commands via PreToolUse on Bash. Gate A (branch enforcement) fires on `git checkout -b` / `git switch -c` and blocks when dirty or worktrees active. Gate B (commit safety) fires on `git commit`: blocks if /tmp >95% full (prevents silent ENOSPC), warns if staged files weren't written in this session (cross-session displaced file detection). These are distinct concerns sharing one hook to minimize hook overhead. Error messages identify which gate fired.
