@@ -92,6 +92,10 @@ The `model` field controls cost and capability. The `description` includes expli
 
 ## Field Notes
 
+### 2026-05-11: Agent file count != functional agent count — filter by model: frontmatter
+`ls system/agents/` returns 12 files but only 11 are functional agents. `CALIBRATION.md` is a calibration doc for challenger-calibration and has no `model:` frontmatter line. Any tool or doc that counts agents by file count will overcount by 1. Correct count: `grep -l '^model:' system/agents/*.md | wc -l`. Generalizes: always filter by the defining frontmatter field, not raw file count.
+Source: reconcile consistency scan 2026-05-11
+
 ### 2026-04-08: Session JSONL telemetry is global — bucket by repo root for debrief accuracy
 A single CC session can straddle multiple project roots. Correction counts in `brana-session-*.jsonl` are global — a hot file in a sibling venture (28 corrections on `ventures/ai-native-education/`) inflated the thebrana debrief during a t-1088 session. Fix: when reading session JSONL, filter events by `file.startsWith(repo_root)` before computing `correction_rate` and `cascade_rate`. Tracked as t-1092.
 Source: t-1088 session debrief
