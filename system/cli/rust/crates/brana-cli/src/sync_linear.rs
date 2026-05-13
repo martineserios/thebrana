@@ -1,17 +1,21 @@
-//! Linear Issues sync for brana backlog.
+//! Linear sync for brana backlog — phases + milestones only.
 //!
 //! Auth:   LINEAR_API_KEY env var  OR  ~/.config/brana/linear.env (KEY=VALUE format)
 //! Config: ~/.claude/linear-sync-config.json
 //!
-//! Maps tasks → Linear Issues via tag_project_map.
-//! Stores linear_issue_id back in tasks.json for idempotency.
+//! Hierarchy:
+//!   ph-XXX (phase)     → Linear Milestone on the project
+//!   ms-XXX (milestone) → Linear Issue with milestoneId pointing to its parent phase
+//!   t-XXX  (task)      → stays in brana backlog only
+//!
+//! Stores linear_milestone_id (ph-) and linear_issue_id (ms-) back in tasks.json.
 
 use anyhow::Context;
 use crate::tasks;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 const LINEAR_API: &str = "https://api.linear.app/graphql";
 
@@ -36,21 +40,18 @@ pub fn cmd_sync_linear(dry_run: bool, force: bool, project: Option<&str>) -> any
     let api_key = load_api_key().context("LINEAR_API_KEY not found")?;
     let mut config = load_config().context("linear-sync-config.json not found or invalid")?;
 
-    // --project flag narrows to a single Linear project
     if let Some(slug) = project {
         let project_id = config
             .tag_project_map
             .get(slug)
             .cloned()
             .unwrap_or_else(|| config.default_project_id.clone());
-        // Restrict map to only that project
         config.tag_project_map.retain(|_, v| v == &project_id);
         config.default_project_id = project_id;
     }
 
     let tasks_file = find_tasks_file().context("tasks.json not found")?;
     let mut data = tasks::load_raw(&tasks_file).map_err(|e| anyhow::anyhow!(e))?;
-
     let states = fetch_workflow_states(&api_key, &config.team_id)?;
 
     let all_tasks: Vec<Value> = data["tasks"]
@@ -62,30 +63,79 @@ pub fn cmd_sync_linear(dry_run: bool, force: bool, project: Option<&str>) -> any
     let mut skipped = 0usize;
     let mut errors: Vec<String> = Vec::new();
 
-    for task in &all_tasks {
-        let id = match task["id"].as_str() {
-            Some(s) => s,
-            None => continue,
-        };
+    // ── Pass 1: ph-XXX → Linear Milestones ────────────────────
+
+    // Pre-load already-synced phase → milestone_id mappings
+    let mut phase_milestone_map: HashMap<String, String> = all_tasks
+        .iter()
+        .filter_map(|t| {
+            let id = t["id"].as_str()?;
+            let mid = t["linear_milestone_id"].as_str()?;
+            if id.starts_with("ph-") { Some((id.to_string(), mid.to_string())) } else { None }
+        })
+        .collect();
+
+    let phases: Vec<&Value> = all_tasks
+        .iter()
+        .filter(|t| t["id"].as_str().map(|id| id.starts_with("ph-")).unwrap_or(false))
+        .filter(|t| passes_filters(t, &config))
+        .collect();
+
+    for phase in &phases {
+        let id = phase["id"].as_str().unwrap();
+        let subject = phase["subject"].as_str().unwrap_or("untitled");
+
+        if phase_milestone_map.contains_key(id) && !force {
+            skipped += 1;
+            continue;
+        }
+
+        let project_id = resolve_project(phase, &config);
+
+        if dry_run {
+            eprintln!(
+                "[linear-sync] milestone + {} → project …{} — {}",
+                id,
+                &project_id[project_id.len().saturating_sub(6)..],
+                &subject.chars().take(60).collect::<String>()
+            );
+            created += 1;
+            continue;
+        }
+
+        match create_milestone(&api_key, &project_id, subject) {
+            Ok(milestone_id) => {
+                eprintln!(
+                    "[linear-sync] ✓ milestone {} → {}",
+                    id,
+                    &milestone_id[..milestone_id.len().min(8)]
+                );
+                phase_milestone_map.insert(id.to_string(), milestone_id.clone());
+                write_back_milestone_id(&mut data, id, &milestone_id);
+                let _ = tasks::save_tasks(&tasks_file, &data);
+                created += 1;
+            }
+            Err(e) => {
+                eprintln!("[linear-sync] ✗ {}: {}", id, e);
+                errors.push(format!("{}: {}", id, e));
+            }
+        }
+    }
+
+    // ── Pass 2: ms-XXX → Linear Issues ────────────────────────
+
+    let milestones: Vec<&Value> = all_tasks
+        .iter()
+        .filter(|t| t["id"].as_str().map(|id| id.starts_with("ms-")).unwrap_or(false))
+        .filter(|t| passes_filters(t, &config))
+        .collect();
+
+    for task in &milestones {
+        let id = task["id"].as_str().unwrap();
         let subject = task["subject"].as_str().unwrap_or("untitled");
         let status = task["status"].as_str().unwrap_or("pending");
-        let stream = task["stream"].as_str().unwrap_or("");
 
-        // Stream filter
-        if !config.keep_streams.is_empty()
-            && !config.keep_streams.iter().any(|s| s == stream)
-        {
-            continue;
-        }
-
-        // Status filter
-        if !config.keep_statuses.iter().any(|s| s == status) {
-            continue;
-        }
-
-        // Skip if already synced (unless --force)
-        let has_id = task["linear_issue_id"].as_str().is_some();
-        if has_id && !force {
+        if task["linear_issue_id"].as_str().is_some() && !force {
             skipped += 1;
             continue;
         }
@@ -100,12 +150,19 @@ pub fn cmd_sync_linear(dry_run: bool, force: bool, project: Option<&str>) -> any
         let title = format!("[{}] {}", id, subject);
         let description = build_description(task);
 
+        // Resolve Linear milestone from parent phase
+        let linear_milestone_id = task["parent"]
+            .as_str()
+            .and_then(|p| phase_milestone_map.get(p))
+            .cloned();
+
         if dry_run {
             eprintln!(
-                "[linear-sync] + {} → project …{} — {}",
+                "[linear-sync] + {} → project …{}{} — {}",
                 id,
                 &project_id[project_id.len().saturating_sub(6)..],
-                &subject[..subject.len().min(60)]
+                if linear_milestone_id.is_some() { " (milestone)" } else { "" },
+                &subject.chars().take(60).collect::<String>()
             );
             created += 1;
             continue;
@@ -119,6 +176,7 @@ pub fn cmd_sync_linear(dry_run: bool, force: bool, project: Option<&str>) -> any
             priority,
             &title,
             &description,
+            linear_milestone_id.as_deref(),
         ) {
             Ok(issue_id) => {
                 eprintln!(
@@ -153,6 +211,16 @@ pub fn cmd_sync_linear(dry_run: bool, force: bool, project: Option<&str>) -> any
 }
 
 // ── Helpers ────────────────────────────────────────────────────
+
+fn passes_filters(task: &Value, config: &LinearSyncConfig) -> bool {
+    let status = task["status"].as_str().unwrap_or("pending");
+    let stream = task["stream"].as_str().unwrap_or("");
+
+    if !config.keep_streams.is_empty() && !config.keep_streams.iter().any(|s| s == stream) {
+        return false;
+    }
+    config.keep_statuses.iter().any(|s| s == status)
+}
 
 fn resolve_project(task: &Value, config: &LinearSyncConfig) -> String {
     if let Some(tags) = task["tags"].as_array() {
@@ -213,19 +281,51 @@ fn write_back_id(data: &mut Value, task_id: &str, issue_id: &str) {
     }
 }
 
-// ── Linear GraphQL calls ───────────────────────────────────────
+fn write_back_milestone_id(data: &mut Value, task_id: &str, milestone_id: &str) {
+    if let Some(tasks) = data["tasks"].as_array_mut() {
+        for t in tasks.iter_mut() {
+            if t["id"].as_str() == Some(task_id) {
+                t["linear_milestone_id"] = Value::String(milestone_id.to_string());
+                break;
+            }
+        }
+    }
+}
+
+// ── Linear GraphQL calls (via curl — avoids ureq content-type issues) ─────
 
 fn gql(api_key: &str, query: &str, variables: Value) -> anyhow::Result<Value> {
     let body = json!({ "query": query, "variables": variables });
     let body_str = serde_json::to_string(&body).context("serializing request")?;
-    let resp = ureq::post(LINEAR_API)
-        .header("Authorization", api_key)
-        .header("Content-Type", "application/json")
-        .send(body_str.as_str())
-        .context("Linear API request failed")?;
 
-    let body = resp.into_body().read_to_string().context("reading Linear response")?;
-    let json: Value = serde_json::from_str(&body).context("parsing Linear response JSON")?;
+    let output = Command::new("curl")
+        .args([
+            "-s", "-X", "POST",
+            LINEAR_API,
+            "-H", &format!("Authorization: {api_key}"),
+            "-H", "Content-Type: application/json",
+            "-d", "@-",
+        ])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .and_then(|mut child| {
+            use std::io::Write;
+            if let Some(ref mut stdin) = child.stdin {
+                stdin.write_all(body_str.as_bytes())?;
+            }
+            child.wait_with_output()
+        })
+        .context("curl not found")?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        anyhow::bail!("curl error: {stderr}");
+    }
+
+    let json: Value = serde_json::from_slice(&output.stdout)
+        .context("parsing Linear response JSON")?;
 
     if let Some(errors) = json["errors"].as_array() {
         let msg = errors
@@ -240,7 +340,7 @@ fn gql(api_key: &str, query: &str, variables: Value) -> anyhow::Result<Value> {
 
 fn fetch_workflow_states(api_key: &str, team_id: &str) -> anyhow::Result<WorkflowStates> {
     let q = r#"
-        query($teamId: String!) {
+        query($teamId: ID!) {
             workflowStates(filter: { team: { id: { eq: $teamId } } }) {
                 nodes { id name type }
             }
@@ -251,7 +351,6 @@ fn fetch_workflow_states(api_key: &str, team_id: &str) -> anyhow::Result<Workflo
         .as_array()
         .context("no workflowStates nodes")?;
 
-    // Find first state of each type
     let mut todo_id = None::<String>;
     let mut in_progress_id = None::<String>;
 
@@ -271,6 +370,31 @@ fn fetch_workflow_states(api_key: &str, team_id: &str) -> anyhow::Result<Workflo
     })
 }
 
+fn create_milestone(api_key: &str, project_id: &str, name: &str) -> anyhow::Result<String> {
+    let q = r#"
+        mutation CreateProjectMilestone($input: ProjectMilestoneCreateInput!) {
+            projectMilestoneCreate(input: $input) {
+                success
+                projectMilestone { id }
+            }
+        }
+    "#;
+    let resp = gql(api_key, q, json!({
+        "input": { "projectId": project_id, "name": name }
+    }))?;
+
+    let success = resp["data"]["projectMilestoneCreate"]["success"]
+        .as_bool()
+        .unwrap_or(false);
+    if !success {
+        anyhow::bail!("projectMilestoneCreate returned success=false");
+    }
+    resp["data"]["projectMilestoneCreate"]["projectMilestone"]["id"]
+        .as_str()
+        .map(String::from)
+        .context("no projectMilestone id in response")
+}
+
 fn create_issue(
     api_key: &str,
     team_id: &str,
@@ -279,6 +403,7 @@ fn create_issue(
     priority: u8,
     title: &str,
     description: &str,
+    milestone_id: Option<&str>,
 ) -> anyhow::Result<String> {
     let q = r#"
         mutation CreateIssue($input: IssueCreateInput!) {
@@ -288,20 +413,20 @@ fn create_issue(
             }
         }
     "#;
-    let resp = gql(
-        api_key,
-        q,
-        json!({
-            "input": {
-                "teamId": team_id,
-                "projectId": project_id,
-                "stateId": state_id,
-                "priority": priority,
-                "title": title,
-                "description": description
-            }
-        }),
-    )?;
+
+    let mut input = json!({
+        "teamId": team_id,
+        "projectId": project_id,
+        "stateId": state_id,
+        "priority": priority,
+        "title": title,
+        "description": description
+    });
+    if let Some(mid) = milestone_id {
+        input["projectMilestoneId"] = Value::String(mid.to_string());
+    }
+
+    let resp = gql(api_key, q, json!({ "input": input }))?;
 
     let success = resp["data"]["issueCreate"]["success"]
         .as_bool()
@@ -323,7 +448,6 @@ fn load_api_key() -> anyhow::Result<String> {
             return Ok(key);
         }
     }
-    // Fall back to ~/.config/brana/linear.env
     let path = home_dir().join(".config/brana/linear.env");
     if path.exists() {
         let content = std::fs::read_to_string(&path)?;
