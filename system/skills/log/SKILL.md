@@ -1,6 +1,6 @@
 ---
 name: log
-description: "Capture events — links, calls, meetings, ideas, observations — into a searchable append-only log. Includes bulk mode for WhatsApp dumps and URL-to-task promotion. Use when something happened and you want to capture it quickly."
+description: "Capture events — links, calls, meetings, ideas — into an append-only log. Bulk mode for WhatsApp dumps. Use when something happened."
 effort: low
 keywords: [logging, events, capture, meetings, links, observations, whatsapp, bulk]
 task_strategies: [feature, spike]

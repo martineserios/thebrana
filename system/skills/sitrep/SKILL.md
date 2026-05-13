@@ -1,6 +1,6 @@
 ---
 name: sitrep
-description: "Situational awareness — where am I, what was I doing, what's left, what should I do next. Context recovery after compression, confusion, or mid-session reorientation."
+description: "Situational awareness — where am I, what was I doing, what's next. Context recovery after compression, confusion, or mid-session reorientation."
 effort: low
 keywords: [status, context, recovery, orientation, compression, where-am-i]
 task_strategies: [investigation]

@@ -1,6 +1,6 @@
 ---
 name: notebooklm-source
-description: "Guided workflow to prepare and format sources for NotebookLM. Claude reads, reformats, validates, and writes optimized files. User uploads them in the browser. Step-by-step recipe with clear handoff points."
+description: "Prepare and format sources for NotebookLM — Claude reads, reformats, writes files; user uploads in browser. Step-by-step with clear handoff points."
 effort: low
 model: haiku
 keywords: [notebooklm, google, source, format, upload, gemini]

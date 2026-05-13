@@ -1,6 +1,6 @@
 ---
 name: fix
-description: "Structured bug fixing — reproduce (failing test), diagnose (root cause), fix (minimal change), verify (tests pass), commit. Enforces test-first debugging. Use when a bug needs a methodical fix. Not for: greenfield features, refactors, spikes."
+description: "Structured bug fix — reproduce (failing test), diagnose, fix (minimal change), verify, commit. Enforces test-first. Use when a bug needs a methodical fix."
 effort: medium
 model: sonnet
 keywords: [bug, fix, broken, error, crash, failing, regression, debug, diagnose, reproduce, root-cause]

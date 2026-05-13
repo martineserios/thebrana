@@ -1,6 +1,6 @@
 ---
 name: align
-description: "Actively align a project with brana practices — assess gaps, plan fixes, implement structure, verify. Works for code, venture, and brainstorm/research repos. Auto-detects type. Use when setting up a new project or realigning an existing one."
+description: "Align a project to brana practices — assess gaps, plan, implement, verify. Auto-detects type. Use when setting up a new project or realigning an existing one."
 effort: medium
 model: sonnet
 keywords: [alignment, structure, conventions, gaps, brana-practices]

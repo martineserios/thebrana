@@ -1,6 +1,6 @@
 ---
 name: vitest
-description: "Vitest fast unit testing framework powered by Vite with Jest-compatible API. Use when writing tests, mocking, configuring coverage, or working with test filtering and fixtures."
+description: "Vitest unit testing — Vite-powered, Jest-compatible. Use when writing tests, mocking, configuring coverage, or working with test filtering and fixtures."
 group: brana
 keywords: [vitest, testing, vite, jest, mocking, coverage, typescript, esm, fixtures, snapshots]
 allowed-tools: [Read, Write, Edit, Bash, Glob, Grep, Agent]
