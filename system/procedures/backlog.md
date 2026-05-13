@@ -23,7 +23,7 @@ language guided by the task-convention rule — no skill invocation needed.
 |-----------|---------|
 | Get task | `backlog_get(task_id: "t-123")` |
 | Get field | `backlog_get(task_id: "t-123", field: "status")` |
-| Query tasks | `backlog_query(status: "pending", stream: "bugs")` |
+| Query tasks | `backlog_query(status: "pending", stream: "bugs")` or `backlog_query(kind: "fix")` |
 | Multi-tag AND | `backlog_query(tag: "dx,cli")` |
 | Filter by parent | `backlog_query(parent: "ph-001", task_type: "task")` |
 | Search | `backlog_search(query: "enforcement")` |
@@ -31,7 +31,7 @@ language guided by the task-convention rule — no skill invocation needed.
 | Set field | `backlog_set(task_id: "t-123", field: "status", value: "in_progress")` |
 | Add/remove tag | `backlog_set(task_id: "t-123", field: "tags", value: "+newtag")` |
 | Append text | `backlog_set(task_id: "t-123", field: "context", value: "note", append: true)` |
-| Create task | `backlog_add(subject: "...", stream: "roadmap", task_type: "task")` |
+| Create task | `backlog_add(subject: "...", kind: "feature", task_type: "task")` |
 
 ### CLI fallback (when MCP unavailable)
 
@@ -44,8 +44,9 @@ language guided by the task-convention rule — no skill invocation needed.
 | Aggregate stats | `brana backlog stats` |
 | Tag inventory | `brana backlog tags --output json` |
 | Tag filter (AND) | `brana backlog tags --filter "a,b" --output json` |
-| Next unblocked task | `brana backlog next --stream X --tag Y` |
-| Query tasks | `brana backlog query --status pending --stream bugs --output json` |
+| Next unblocked task | `brana backlog next --kind feature --tag Y` |
+| Next by stream (legacy) | `brana backlog next --stream X --tag Y` |
+| Query tasks | `brana backlog query --status pending --kind fix --output json` |
 | Multi-tag AND query | `brana backlog query --tag "dx,cli" --count` |
 | Filter by parent | `brana backlog query --parent ph-001 --type task` |
 | Get full task | `brana backlog get <id>` |
@@ -60,8 +61,9 @@ language guided by the task-convention rule — no skill invocation needed.
 | Append to text | `brana backlog set <id> context --append "note"` |
 | Add/remove tag | `brana backlog set <id> tags +newtag` / `tags -oldtag` |
 | Add blocked_by | `brana backlog set <id> blocked_by +t-100` |
-| Create task (JSON) | `brana backlog add --json '{"subject":"...","stream":"...","type":"task"}'` |
-| Create task (shorthand) | `brana backlog add --subject "..." --stream roadmap --type task --tags "a,b" --effort S` |
+| Create task (JSON) | `brana backlog add --json '{"subject":"...","kind":"feature","type":"task"}'` |
+| Create task (shorthand) | `brana backlog add --subject "..." --kind feature --type task --tags "a,b" --effort S` |
+| Create initiative | `brana backlog add --subject "..." --kind feature --type initiative` |
 | Create task (from file) | `brana backlog add --json @/tmp/task.json` |
 | Create task (stdin) | `echo '{"subject":"..."}' \| brana backlog add --json -` |
 | Rollup parents | `brana backlog rollup` |
@@ -393,11 +395,11 @@ Begin work on a task or freeform description. Accepts task IDs, phase IDs, or na
 2. **Read tasks.json**, find the task
 3. **Check blocked_by** — if any blocker not completed, warn and abort
 4. **Auto-classify strategy** (if not already set on the task):
-   - Infer from task tags, stream, and description:
-     - `stream: bugs` or tag `bug` → strategy: `bug-fix`
-     - `stream: research` → strategy: `spike`
-     - `stream: tech-debt` or tag `refactor` → strategy: `refactor`
-     - `stream: docs` → strategy: `feature` (light)
+   - Infer from task kind, tags, and description:
+     - `kind: fix` or `stream: bugs` or tag `bug` → strategy: `bug-fix`
+     - `kind: research` or `stream: research` → strategy: `spike`
+     - `kind: refactor` or `stream: tech-debt` or tag `refactor` → strategy: `refactor`
+     - `kind: docs` or `stream: docs` → strategy: `feature` (light)
      - Tag `migration` → strategy: `migration`
      - Tag `investigation` → strategy: `investigation`
      - Default → strategy: `feature`
@@ -565,13 +567,13 @@ All interactive confirmations use the **AskUserQuestion** tool for a selectable 
 
 1. **Parse description** from argument. If no description provided: scan recent conversation turns for actionable items — problems discussed, ideas proposed, improvements suggested, or work identified. Draft a subject + description from the strongest candidate and present it: "Add task: '{subject}'? [Confirm / Edit / Cancel]". If no actionable item found in conversation, ask for a description.
 2. Read tasks.json (all pending tasks, active milestones, tag vocabulary)
-3. **URL auto-detection:** if the description contains `https://`, suggest `stream: research`, auto-extract the URL to the `context` field (format: `URL: {url}`), and skip the milestone/stream prompt.
+3. **URL auto-detection:** if the description contains `https://`, suggest `kind: research`, auto-extract the URL to the `context` field (format: `URL: {url}`), and skip the kind/milestone prompt.
 4. **First question batch** — use a single AskUserQuestion with up to 4 questions:
-   - **Stream** (skip if URL auto-detected): options from active streams, recommended first. Header: "Stream"
+   - **Kind** (skip if URL auto-detected): `feature`, `fix`, `refactor`, `research`, `docs`, `design`, `ops`. Header: "Kind"
    - **Tags**: suggest tags from description keywords matched against existing vocabulary. Options: "Accept {suggested}" (recommended), "Edit", "Skip". Header: "Tags"
    - **Effort**: suggest from description complexity (S/M/L/XL). Options: each size with description. Header: "Effort"
    - **Milestone** (skip if URL auto-detected or no active milestones): options from active milestones + "None". Header: "Milestone"
-5. Auto-assign next id, set defaults. Auto-classify `strategy` from description/stream/tags (same heuristic as `/brana:backlog start`). Leave `build_step` null.
+5. Auto-assign next id, set defaults. Auto-classify `strategy` from description/kind/tags (same heuristic as `/brana:backlog start`). Leave `build_step` null.
 6. **Dependency scan** — cross-reference all pending tasks:
    - Match by **tag overlap** (2+ shared tags with the new task)
    - Match by **subject keyword** overlap (significant words from description appear in existing task subjects)

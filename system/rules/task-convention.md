@@ -11,16 +11,16 @@ always-load: true
 
 After completing: update task to `completed` with notes.
 
-Fields: id, subject, description, tags, status, stream, type, parent, priority, effort, execution, blocked_by, branch, github_issue, created, started, completed, notes, context, strategy, build_step. Types: ph-/ms-/t-/st-. Status: pending/in_progress/completed/cancelled. Streams: roadmap/bugs/tech-debt/docs/experiments/research/maintenance. Strategy: auto-classified from description.
+Fields: id, subject, description, tags, status, kind, stream (deprecated), type, parent, priority, effort, execution, blocked_by, branch, github_issue, created, started, completed, notes, context, strategy, build_step. Types: in-/ph-/ms-/t-/st-. Status: pending/in_progress/completed/cancelled. Kind (v2): feature/fix/refactor/research/docs/design/ops. Strategy: auto-classified from description.
 
 Reads: free. Writes: confirm first.
 
-Branch: roadmap=feat/, bugs=fix/, tech-debt=refactor/, docs=docs/, research=research/, maintenance=chore/. Format: `{prefix}{id}-{slug}`.
+Branch: feature=feat/, fix=fix/, refactor=refactor/, docs=docs/, research=research/, ops=chore/. Format: `{prefix}{id}-{slug}`.
 
 ```
-Task t-015 (stream: roadmap) → branch: feat/t-015-jwt-auth
-Task t-022 (stream: bugs)    → branch: fix/t-022-session-timeout
-Task t-030 (stream: docs)    → branch: docs/t-030-api-contracts
+Task t-015 (kind: feature) → branch: feat/t-015-jwt-auth
+Task t-022 (kind: fix)     → branch: fix/t-022-session-timeout
+Task t-030 (kind: docs)    → branch: docs/t-030-api-contracts
 ```
 
 Code tasks: `/brana:backlog start` enters `/brana:build`. Done: `/brana:build` CLOSE step. `/brana:backlog done` for manual/external only.
