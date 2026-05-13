@@ -262,6 +262,8 @@ exist for this pattern. Follow the existing MEMORY.md format.
 
 ### Step 6: Capture field notes
 
+> Target check: field notes go to `docs/architecture/<topic>.md`, never `docs/reference/` (auto-generated, silently overwritten — see `system/rules/field-note-routing.md`).
+
 Review the learnings extracted in Step 3 for **practical discoveries** — gotchas, workarounds, environment-specific behaviors, things that surprised you. These are candidates for field notes (persistent, doc-embedded knowledge per ADR-021).
 
 **Choosing the right target — match scope to scope:**

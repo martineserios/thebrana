@@ -578,7 +578,20 @@ else
     fi
 fi
 
-# 7d: Register in installed_plugins.json
+# 7d: Check brana binary freshness vs Rust source
+BRANA_BIN="$HOME/.local/bin/brana"
+RUST_SRC_DIR="$SYSTEM_DIR/cli/rust"
+if [ -f "$BRANA_BIN" ] && [ -d "$RUST_SRC_DIR" ]; then
+    NEWEST_SRC=$(find "$RUST_SRC_DIR" -name "*.rs" -newer "$BRANA_BIN" 2>/dev/null | head -1)
+    if [ -n "$NEWEST_SRC" ]; then
+        echo "  ! brana-cli binary may be stale (source changed since last build)"
+        echo "    Run: cd $RUST_SRC_DIR && CARGO_PROFILE_RELEASE_LTO=off cargo build --release -p brana-cli && cp target/release/brana ~/.local/bin/brana"
+    else
+        echo "  = brana-cli binary (current)"
+    fi
+fi
+
+# 7e: Register in installed_plugins.json
 # CC uses "name@marketplace" keys with array values: [{scope, installPath, version, ...}]
 INSTALLED="$PLUGINS_DIR/installed_plugins.json"
 PLUGIN_KEY="brana@brana"

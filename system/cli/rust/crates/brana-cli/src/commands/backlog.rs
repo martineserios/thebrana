@@ -146,7 +146,7 @@ pub fn cmd_query(
     Ok(())
 }
 
-pub fn cmd_focus(theme: &themes::Theme, json_out: bool) -> anyhow::Result<()> {
+pub fn cmd_focus(theme: &themes::Theme, top: usize, json_out: bool) -> anyhow::Result<()> {
     let tf = find_tasks_file().context("tasks.json not found")?;
     let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
@@ -156,7 +156,7 @@ pub fn cmd_focus(theme: &themes::Theme, json_out: bool) -> anyhow::Result<()> {
         .map(|t| (t, tasks::focus_score(t)))
         .collect();
     scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-    let top: Vec<_> = scored.into_iter().take(3).collect();
+    let top: Vec<_> = scored.into_iter().take(top).collect();
 
     if json_out {
         let tasks_only: Vec<_> = top.iter().map(|(t, _)| *t).collect();

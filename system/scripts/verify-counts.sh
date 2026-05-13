@@ -42,8 +42,8 @@ check_category() {
 # Count skills: directories in system/skills/ that contain SKILL.md (exclude _shared)
 skills_count=$(find "$REPO_ROOT/system/skills" -name "SKILL.md" -not -path "*/_shared/*" | wc -l)
 
-# Count agents: .md files in system/agents/
-agents_count=$(find "$REPO_ROOT/system/agents" -maxdepth 1 -name "*.md" | wc -l)
+# Count agents: only .md files with model: frontmatter (excludes CALIBRATION.md)
+agents_count=$(find "$REPO_ROOT/system/agents" -maxdepth 1 -name "*.md" -exec grep -l '^model:' {} \; | wc -l)
 
 # Count rules: .md files in system/rules/
 rules_count=$(find "$REPO_ROOT/system/rules" -maxdepth 1 -name "*.md" | wc -l)
