@@ -733,17 +733,23 @@ pub enum BacklogCmd {
         #[arg(long)]
         file: Option<PathBuf>,
     },
-    /// Sync tasks with GitHub Issues (parallel, via gh api)
+    /// Sync tasks with GitHub Issues or Linear (--linear flag)
     Sync {
         /// Show what would happen without making changes
         #[arg(long)]
         dry_run: bool,
-        /// Force re-sync even if github_issue is already set
+        /// Force re-sync even if issue ID is already set
         #[arg(long)]
         force: bool,
-        /// Max parallel GitHub API calls (1-20)
+        /// Max parallel GitHub API calls (1-20, ignored when --linear)
         #[arg(long, default_value = "10")]
         parallel: usize,
+        /// Sync to Linear instead of GitHub Issues
+        #[arg(long)]
+        linear: bool,
+        /// Narrow Linear sync to a single project slug (e.g. palco, dgrx)
+        #[arg(long, requires = "linear")]
+        project: Option<String>,
     },
     /// Mark a task as completed (alias for `set <id> status completed`)
     Complete {

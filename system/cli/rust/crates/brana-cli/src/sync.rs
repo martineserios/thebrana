@@ -6,12 +6,25 @@
 use anyhow::Context;
 use crate::tasks;
 use serde_json::Value;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
 
 // ── Types ──────────────────────────────────────────────────────
+
+struct ProjectFieldConfig {
+    field_id: String,
+    options: HashMap<String, String>, // brana value → GitHub option id
+}
+
+struct ProjectConfig {
+    project_id: String,
+    status: Option<ProjectFieldConfig>,
+    priority: Option<ProjectFieldConfig>,
+    effort: Option<ProjectFieldConfig>,
+}
 
 struct SyncConfig {
     owner: String,
@@ -20,6 +33,7 @@ struct SyncConfig {
     label_stream: bool,
     label_priority: bool,
     label_tags: usize,
+    project: Option<ProjectConfig>,
 }
 
 struct SyncPlan {
@@ -254,13 +268,42 @@ fn execute_creates(
                         &body,
                         &labels,
                     ) {
-                        Ok(number) => {
+                        Ok((number, node_id)) => {
                             let n = counter.fetch_add(1, Ordering::Relaxed) + 1;
-                            eprint!("\r[{n}/{total}] {} → #{}    ", item.task_id, number);
 
-                            // Write back immediately
+                            // Add to GitHub Project board (best-effort, outside mutex)
+                            if let Some(proj) = &config.project {
+                                if let Ok(item_id) = gh_add_to_project(&proj.project_id, &node_id) {
+                                    if let Some(sf) = &proj.status {
+                                        let status = task["status"].as_str().unwrap_or("pending");
+                                        if let Some(opt_id) = sf.options.get(status) {
+                                            let _ = gh_set_single_select_field(&proj.project_id, &item_id, &sf.field_id, opt_id);
+                                        }
+                                    }
+                                    if let Some(pf) = &proj.priority {
+                                        let priority = task["priority"].as_str().unwrap_or("");
+                                        if let Some(opt_id) = pf.options.get(priority) {
+                                            let _ = gh_set_single_select_field(&proj.project_id, &item_id, &pf.field_id, opt_id);
+                                        }
+                                    }
+                                    if let Some(ef) = &proj.effort {
+                                        let effort = task["effort"].as_str().unwrap_or("");
+                                        if let Some(opt_id) = ef.options.get(effort) {
+                                            let _ = gh_set_single_select_field(&proj.project_id, &item_id, &ef.field_id, opt_id);
+                                        }
+                                    }
+                                    eprint!("\r[{n}/{total}] {} → #{} + board    ", item.task_id, number);
+                                } else {
+                                    eprint!("\r[{n}/{total}] {} → #{} (no board)    ", item.task_id, number);
+                                }
+                            } else {
+                                eprint!("\r[{n}/{total}] {} → #{}    ", item.task_id, number);
+                            }
+
+                            // Write back number + node_id under mutex
                             let mut d = data.lock().unwrap();
                             set_github_issue(&mut d, &item.task_id, number);
+                            set_github_node_id(&mut d, &item.task_id, &node_id);
                             let _ = tasks::save_tasks(tasks_file, &d);
                             succeeded.fetch_add(1, Ordering::Relaxed);
                         }
@@ -346,7 +389,7 @@ fn gh_create_issue(
     title: &str,
     body: &str,
     labels: &[String],
-) -> Result<u64, String> {
+) -> Result<(u64, String), String> {
     let payload = serde_json::json!({
         "title": title,
         "body": body,
@@ -387,9 +430,61 @@ fn gh_create_issue(
 
     let resp: Value =
         serde_json::from_slice(&output.stdout).map_err(|e| format!("JSON parse: {e}"))?;
-    resp["number"]
+    let number = resp["number"]
         .as_u64()
-        .ok_or_else(|| "no issue number in response".to_string())
+        .ok_or_else(|| "no issue number in response".to_string())?;
+    let node_id = resp["node_id"]
+        .as_str()
+        .ok_or_else(|| "no node_id in response".to_string())?
+        .to_string();
+    Ok((number, node_id))
+}
+
+fn gh_graphql(query: &str) -> Result<Value, String> {
+    let output = Command::new("gh")
+        .args(["api", "graphql", "--input", "-"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .and_then(|mut child| {
+            use std::io::Write;
+            if let Some(ref mut stdin) = child.stdin {
+                stdin.write_all(query.as_bytes())?;
+            }
+            child.wait_with_output()
+        })
+        .map_err(|e| format!("gh not found: {e}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("GraphQL error: {stderr}"));
+    }
+    serde_json::from_slice(&output.stdout).map_err(|e| format!("JSON parse: {e}"))
+}
+
+fn gh_add_to_project(project_id: &str, content_id: &str) -> Result<String, String> {
+    let query = format!(
+        r#"{{"query":"mutation {{ addProjectV2ItemById(input: {{projectId: \"{project_id}\", contentId: \"{content_id}\"}}) {{ item {{ id }} }} }}"}}"#
+    );
+    let resp = gh_graphql(&query)?;
+    resp["data"]["addProjectV2ItemById"]["item"]["id"]
+        .as_str()
+        .map(String::from)
+        .ok_or_else(|| "no item id in addProjectV2ItemById response".to_string())
+}
+
+fn gh_set_single_select_field(
+    project_id: &str,
+    item_id: &str,
+    field_id: &str,
+    option_id: &str,
+) -> Result<(), String> {
+    let query = format!(
+        r#"{{"query":"mutation {{ updateProjectV2ItemFieldValue(input: {{projectId: \"{project_id}\", itemId: \"{item_id}\", fieldId: \"{field_id}\", value: {{singleSelectOptionId: \"{option_id}\"}}}}) {{ projectV2Item {{ id }} }} }}"}}"#
+    );
+    gh_graphql(&query)?;
+    Ok(())
 }
 
 fn gh_close_issue(owner: &str, repo: &str, number: u64) -> Result<(), String> {
@@ -625,6 +720,17 @@ fn set_github_issue(data: &mut Value, task_id: &str, number: u64) {
     }
 }
 
+fn set_github_node_id(data: &mut Value, task_id: &str, node_id: &str) {
+    if let Some(tasks) = data["tasks"].as_array_mut() {
+        for t in tasks.iter_mut() {
+            if t["id"].as_str() == Some(task_id) {
+                t["github_node_id"] = Value::String(node_id.to_string());
+                break;
+            }
+        }
+    }
+}
+
 fn check_gh_auth() -> Result<(), String> {
     let output = Command::new("gh")
         .args(["auth", "status"])
@@ -757,6 +863,35 @@ fn load_sync_config() -> Result<SyncConfig, String> {
             (owner, repo)
         };
 
+        // Load project config if present for this project
+        let project = if let Some(projects) = val["projects"].as_object() {
+            let current_slug = detect_project_slug();
+            current_slug.as_deref().and_then(|slug| {
+                projects.get(slug).and_then(|proj| {
+                    proj["project_id"].as_str().map(|pid| {
+                        let load_field = |key: &str| -> Option<ProjectFieldConfig> {
+                            let f = &proj["fields"][key];
+                            let field_id = f["id"].as_str()?.to_string();
+                            let options = f["options"].as_object().map(|m| {
+                                m.iter()
+                                    .filter_map(|(k, v)| v.as_str().map(|s| (k.clone(), s.to_string())))
+                                    .collect::<HashMap<String, String>>()
+                            }).unwrap_or_default();
+                            Some(ProjectFieldConfig { field_id, options })
+                        };
+                        ProjectConfig {
+                            project_id: pid.to_string(),
+                            status: load_field("status"),
+                            priority: load_field("priority"),
+                            effort: load_field("effort"),
+                        }
+                    })
+                })
+            })
+        } else {
+            None
+        };
+
         Ok(SyncConfig {
             owner: final_owner,
             repo: final_repo,
@@ -764,6 +899,7 @@ fn load_sync_config() -> Result<SyncConfig, String> {
             label_stream: true,
             label_priority: true,
             label_tags: 2,
+            project,
         })
     } else {
         // No config file — use detected repo with defaults
@@ -781,6 +917,7 @@ fn load_sync_config() -> Result<SyncConfig, String> {
             label_stream: true,
             label_priority: true,
             label_tags: 2,
+            project: None,
         })
     }
 }

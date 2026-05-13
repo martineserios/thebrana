@@ -8,6 +8,7 @@ mod cli;
 mod commands;
 mod files;
 mod sync;
+mod sync_linear;
 mod tasks;
 mod themes;
 mod transcribe;
@@ -73,7 +74,13 @@ fn main() {
             BacklogCmd::Delete { task_id, cascade, file } => run_or_exit(commands::backlog::cmd_delete(&task_id, cascade, file)),
             BacklogCmd::Move { task_id, parent, file } => run_or_exit(commands::backlog::cmd_move(&task_id, &parent, file)),
             BacklogCmd::Archive { phase_id, file } => run_or_exit(commands::backlog::cmd_archive(phase_id, file)),
-            BacklogCmd::Sync { dry_run, force, parallel } => run_or_exit(sync::cmd_sync(dry_run, force, parallel)),
+            BacklogCmd::Sync { dry_run, force, parallel, linear, project } => {
+                if linear {
+                    run_or_exit(sync_linear::cmd_sync_linear(dry_run, force, project.as_deref()))
+                } else {
+                    run_or_exit(sync::cmd_sync(dry_run, force, parallel))
+                }
+            }
             BacklogCmd::Complete { task_id, file } => run_or_exit(commands::backlog::cmd_set(&task_id, "status", "completed", false, file)),
         },
         Commands::Ops { cmd } => match cmd {
