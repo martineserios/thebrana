@@ -225,7 +225,7 @@ Dual-model adversarial review. Opus subagent stress-tests reasoning; Gemini stre
 
 ### `/brana:memory`
 
-Knowledge system operations — recall patterns, cross-pollinate across clients, review knowledge health, audit docs for contradictions. Subcommands: recall, pollinate, review, review --audit. Use for pattern queries, cross-client transfer, monthly knowledge audits, or contradiction detection.
+Knowledge system operations — recall patterns, cross-pollinate across clients, audit docs for contradictions. Subcommands: recall, pollinate, review, review --audit. Use for pattern queries, cross-client transfer, or knowledge audits.
 
 **Arguments:** `[recall|pollinate|review|review --audit] [query]`
 
@@ -241,7 +241,7 @@ Research a topic, doc, or creator — check sources, follow references recursive
 
 ### `/brana:retrospective`
 
-Store a learning in the memory taxonomy — classify by type (Rule/Pattern/Knowledge/Decision/Reference), then route to canonical destination (patterns.md, knowledge-staging.md, ADR stub, portfolio.md). Use after notable discoveries, unexpected issues, successful workarounds, or when a reusable pattern emerges.
+Store a learning in the memory taxonomy — classify by type (Rule/Pattern/Knowledge/Decision/Reference), route to canonical destination. Use after notable discoveries, unexpected issues, successful workarounds, or when a reusable pattern emerges.
 
 **Arguments:** `[learning text]`
 

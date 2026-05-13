@@ -30,8 +30,8 @@ Full read/write — set, add, rollup, sync all work from CLI.
 | Command | Alias | Description |
 |---------|-------|-------------|
 | `brana backlog status [--all] [--json]` | `bs` | Portfolio or project status overview |
-| `brana backlog next [--tag T] [--stream S]` | `bn` | Next unblocked task by priority |
-| `brana backlog query [filters...]` | `bq` | Filter tasks (AND logic): --tag, --status, --stream, --priority, --effort, --type, --parent, --branch, --search, --count, --output |
+| `brana backlog next [--kind K] [--tag T] [--stream S]` | `bn` | Next unblocked task by priority |
+| `brana backlog query [filters...]` | `bq` | Filter tasks (AND logic): --kind, --tag, --status, --stream (deprecated), --priority, --effort, --type, --parent, --branch, --search, --count, --output |
 | `brana backlog search "text"` | `bsearch` | Free-text search across all fields |
 | `brana backlog focus` | `bf` | Smart daily pick (priority x staleness - effort) |
 | `brana backlog blocked` | `bb` | Blocked dependency chains |

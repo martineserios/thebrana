@@ -33,6 +33,7 @@ Per-project task backlog. Located at `{project}/.claude/tasks.json`.
   "description": "Implement JWT auth middleware",
   "tags": ["auth", "security"],
   "status": "pending",
+  "kind": "feature",
   "stream": "roadmap",
   "type": "task",
   "parent": "ph-002",
@@ -60,8 +61,9 @@ Per-project task backlog. Located at `{project}/.claude/tasks.json`.
 | `description` | string | No | -- | Detailed description |
 | `tags` | string[] | No | -- | Categorization tags (null default) |
 | `status` | string | Yes | `pending`, `in_progress`, `completed`, `cancelled` | Current state |
-| `stream` | string | Yes | `roadmap`, `bugs`, `tech-debt`, `docs`, `experiments`, `research` | Work category |
-| `type` | string | Yes | `phase`, `milestone`, `task`, `subtask` | Hierarchy level |
+| `kind` | string | No | `feature`, `fix`, `refactor`, `research`, `docs`, `design`, `ops` | Work type (v2 — preferred over `stream`) |
+| `stream` | string | No | `roadmap`, `bugs`, `tech-debt`, `docs`, `experiments`, `research` | Legacy work category (deprecated — use `kind`) |
+| `type` | string | Yes | `initiative`, `phase`, `milestone`, `task`, `subtask` | Hierarchy level |
 | `parent` | string | No | -- | Parent task ID |
 | `order` | number | No | -- | Sort order within parent |
 | `priority` | string | No | `P0`-`P3` | Urgency (null unless user specifies) |
@@ -82,30 +84,33 @@ Per-project task backlog. Located at `{project}/.claude/tasks.json`.
 
 | Prefix | Type | Example |
 |--------|------|---------|
+| `in-` | initiative | `in-001` |
 | `ph-` | phase | `ph-001` |
 | `ms-` | milestone | `ms-005` |
 | `t-` | task | `t-015` |
 | `st-` | subtask | `st-022` |
 
-### Branch conventions by stream
+### Branch conventions by kind
 
-| Stream | Branch prefix | Example |
-|--------|--------------|---------|
-| roadmap | `feat/` | `feat/t-015-jwt-auth` |
-| bugs | `fix/` | `fix/t-022-session-timeout` |
-| tech-debt | `refactor/` | `refactor/t-030-hook-cleanup` |
+| Kind | Branch prefix | Example |
+|------|--------------|---------|
+| feature | `feat/` | `feat/t-015-jwt-auth` |
+| fix | `fix/` | `fix/t-022-session-timeout` |
+| refactor | `refactor/` | `refactor/t-030-hook-cleanup` |
 | docs | `docs/` | `docs/t-030-api-contracts` |
-| experiments | `experiment/` | `experiment/t-040-graphrag` |
 | research | `research/` | `research/t-091-graphrag-eval` |
+| design | `design/` | `design/t-040-adr-schema` |
+| ops | `ops/` | `ops/t-050-deploy-pipeline` |
 
 ### Validation (post-tasks-validate.sh)
 
 The `post-tasks-validate.sh` hook validates on every Write/Edit:
 1. Valid JSON
 2. Required top-level fields: `version`, `project`, `tasks` (array)
-3. Per-task required fields: `id`, `subject`, `status`, `type`, `stream`
+3. Per-task required fields: `id`, `subject`, `status`, `type`
 4. Status enum: `pending`, `in_progress`, `completed`, `cancelled`
-5. Type enum: `phase`, `milestone`, `task`, `subtask`
+5. Type enum: `initiative`, `phase`, `milestone`, `task`, `subtask`
+6. Kind enum (if present): `feature`, `fix`, `refactor`, `research`, `docs`, `design`, `ops`
 6. Tags must be string array if present
 7. Context must be string if present
 8. Auto-rollup: parents whose children are all completed get auto-completed
