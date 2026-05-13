@@ -13,6 +13,7 @@ use crate::util::find_tasks_file;
 
 pub fn cmd_next(
     theme: &themes::Theme, tag: Option<String>, stream: Option<String>,
+    kind: Option<String>,
     limit: usize, priority: Option<String>, task_type: Option<String>,
     effort: Option<String>, parent: Option<String>, json_out: bool,
 ) -> anyhow::Result<()> {
@@ -35,6 +36,10 @@ pub fn cmd_next(
     // filter_tasks does raw-status matching (tasks.spec.md). For "next up"
     // we want only classify=="pending" — exclude blocked and parked.
     candidates.retain(|t| tasks::classify(t, &data.tasks) == "pending");
+
+    if let Some(ref k) = kind {
+        candidates.retain(|t| t["kind"].as_str().unwrap_or("") == k.as_str());
+    }
 
     if let Some(ref pid) = parent {
         candidates.retain(|t| t["parent"].as_str() == Some(pid.as_str()));
@@ -73,6 +78,7 @@ pub fn cmd_next(
 
 pub fn cmd_query(
     tag: Option<String>, status: Option<String>, stream: Option<String>,
+    kind: Option<String>,
     priority: Option<String>, effort: Option<String>, search: Option<String>,
     count: bool, output: String, theme: &themes::Theme,
     task_type: Option<String>, parent: Option<String>, branch: Option<String>,
@@ -105,6 +111,11 @@ pub fn cmd_query(
                 .unwrap_or_default();
             tags.iter().all(|tag| task_tags.contains(tag))
         });
+    }
+
+    // Apply kind filter
+    if let Some(ref k) = kind {
+        results.retain(|t| t["kind"].as_str().unwrap_or("") == k.as_str());
     }
 
     // Apply parent filter
@@ -355,6 +366,7 @@ pub fn cmd_add(
     json: Option<String>,
     subject: Option<String>,
     stream: Option<String>,
+    kind: Option<String>,
     task_type: Option<String>,
     tags: Option<String>,
     description: Option<String>,
@@ -395,6 +407,7 @@ pub fn cmd_add(
         let mut obj = serde_json::Map::new();
         obj.insert("subject".into(), serde_json::Value::String(subj.clone()));
         if let Some(ref s) = stream { obj.insert("stream".into(), serde_json::Value::String(s.clone())); }
+        if let Some(ref k) = kind { obj.insert("kind".into(), serde_json::Value::String(k.clone())); }
         obj.insert("type".into(), serde_json::Value::String(task_type.unwrap_or_else(|| "task".into())));
         if let Some(ref t) = tags {
             let tag_arr: Vec<serde_json::Value> = t.split(',').map(|s| serde_json::Value::String(s.trim().to_string())).collect();
