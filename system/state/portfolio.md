@@ -87,6 +87,11 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Projects:** somos_mirada (`clients/somos_mirada`)
 - **Details:** `features/meta-account-hygiene/proposal.md`
 
+### unlock
+- **Type:** Code
+- **Location:** `~/enter_thebrana/clients/unlock/`
+- **Remote:** `https://github.com/martineserios/unlock`
+- **Status:** Starting — 2026-05-13
 
 ### prof_man
 - **Type:** Code product — trading indicators & algo trading
