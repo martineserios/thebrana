@@ -57,6 +57,18 @@ pub enum TaskType {
     Subtask,
     Phase,
     Milestone,
+    Initiative,
+}
+
+#[derive(Clone, ValueEnum)]
+pub enum TaskKind {
+    Feature,
+    Fix,
+    Refactor,
+    Research,
+    Docs,
+    Design,
+    Ops,
 }
 
 #[derive(Clone, ValueEnum)]
@@ -500,14 +512,18 @@ pub enum BacklogCmd {
     Next {
         #[arg(long)]
         tag: Option<String>,
+        /// Filter by stream (deprecated — use --kind)
         #[arg(long, value_enum)]
         stream: Option<TaskStream>,
+        /// Filter by work kind: feature, fix, refactor, research, docs, design, ops
+        #[arg(long, value_enum)]
+        kind: Option<TaskKind>,
         /// Max results to show (default 5)
         #[arg(long, default_value = "5")]
         limit: usize,
         #[arg(long, value_enum)]
         priority: Option<TaskPriority>,
-        /// Filter by type (task, subtask, phase, milestone)
+        /// Filter by type (task, subtask, phase, milestone, initiative)
         #[arg(long = "type", value_enum)]
         task_type: Option<TaskType>,
         #[arg(long, value_enum)]
@@ -526,8 +542,12 @@ pub enum BacklogCmd {
         tag: Option<String>,
         #[arg(short, long, value_enum)]
         status: Option<TaskStatus>,
+        /// Filter by stream (deprecated — use --kind)
         #[arg(long, value_enum)]
         stream: Option<TaskStream>,
+        /// Filter by work kind: feature, fix, refactor, research, docs, design, ops
+        #[arg(long, value_enum)]
+        kind: Option<TaskKind>,
         #[arg(short, long, value_enum)]
         priority: Option<TaskPriority>,
         #[arg(short, long, value_enum)]
@@ -542,7 +562,7 @@ pub enum BacklogCmd {
         /// Shorthand for --output json (alias for scripting ergonomics)
         #[arg(long)]
         json: bool,
-        /// Filter by type (task, subtask, phase, milestone)
+        /// Filter by type (task, subtask, phase, milestone, initiative)
         #[arg(long = "type", value_enum)]
         task_type: Option<TaskType>,
         /// Filter by parent ID
@@ -633,16 +653,19 @@ pub enum BacklogCmd {
     },
     /// Add a new task from JSON or shorthand flags
     Add {
-        /// Task JSON (subject, stream, type required; id auto-assigned). Use @filepath to read from file, - to read from stdin.
+        /// Task JSON (subject, type required; id auto-assigned). Use @filepath to read from file, - to read from stdin.
         #[arg(long)]
         json: Option<String>,
         /// Task subject (shorthand, used when --json is omitted)
         #[arg(long)]
         subject: Option<String>,
-        /// Stream: roadmap, bugs, tech-debt, docs, experiments, research
+        /// Stream: roadmap, bugs, tech-debt, docs, experiments, research (deprecated — use --kind)
         #[arg(long)]
         stream: Option<String>,
-        /// Task type: phase, milestone, task, subtask
+        /// Work kind: feature, fix, refactor, research, docs, design, ops
+        #[arg(long)]
+        kind: Option<String>,
+        /// Task type: phase, milestone, task, subtask, initiative
         #[arg(long = "type")]
         task_type: Option<String>,
         /// Comma-separated tags

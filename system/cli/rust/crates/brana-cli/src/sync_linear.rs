@@ -1,14 +1,18 @@
-//! Linear sync for brana backlog — phases + milestones only.
+//! Linear sync for brana backlog — initiatives, phases, milestones.
 //!
 //! Auth:   LINEAR_API_KEY env var  OR  ~/.config/brana/linear.env (KEY=VALUE format)
 //! Config: ~/.claude/linear-sync-config.json
 //!
-//! Hierarchy:
-//!   ph-XXX (phase)     → Linear Milestone on the project
-//!   ms-XXX (milestone) → Linear Issue with milestoneId pointing to its parent phase
-//!   t-XXX  (task)      → stays in brana backlog only
+//! Hierarchy (3-pass):
+//!   in-XXX (initiative) → Linear Initiative + initiativeToProject link
+//!   ph-XXX (phase)      → Linear ProjectMilestone on the project
+//!   ms-XXX (milestone)  → Linear Issue with projectMilestoneId pointing to parent phase
+//!   t-XXX  (task)       → stays in brana backlog only
 //!
-//! Stores linear_milestone_id (ph-) and linear_issue_id (ms-) back in tasks.json.
+//! Stored IDs:
+//!   in-XXX → linear_initiative_id
+//!   ph-XXX → linear_milestone_id
+//!   ms-XXX → linear_issue_id
 
 use anyhow::Context;
 use crate::tasks;
@@ -63,6 +67,59 @@ pub fn cmd_sync_linear(dry_run: bool, force: bool, project: Option<&str>) -> any
     let mut skipped = 0usize;
     let mut errors: Vec<String> = Vec::new();
 
+    // ── Pass 0: in-XXX → Linear Initiatives ───────────────────
+
+    let initiatives: Vec<&Value> = all_tasks
+        .iter()
+        .filter(|t| t["id"].as_str().map(|id| id.starts_with("in-")).unwrap_or(false))
+        .filter(|t| passes_status_filter(t, &config))
+        .collect();
+
+    for initiative in &initiatives {
+        let id = initiative["id"].as_str().unwrap();
+        let subject = initiative["subject"].as_str().unwrap_or("untitled");
+
+        if initiative["linear_initiative_id"].as_str().is_some() && !force {
+            skipped += 1;
+            continue;
+        }
+
+        let project_id = resolve_project(initiative, &config);
+
+        if dry_run {
+            eprintln!(
+                "[linear-sync] initiative + {} → project …{} — {}",
+                id,
+                &project_id[project_id.len().saturating_sub(6)..],
+                &subject.chars().take(60).collect::<String>()
+            );
+            created += 1;
+            continue;
+        }
+
+        let description = initiative["description"].as_str().unwrap_or("");
+        match create_initiative(&api_key, subject, description) {
+            Ok(initiative_linear_id) => {
+                eprintln!(
+                    "[linear-sync] ✓ initiative {} → {}",
+                    id,
+                    &initiative_linear_id[..initiative_linear_id.len().min(8)]
+                );
+                // Link initiative to project
+                if let Err(e) = link_initiative_to_project(&api_key, &initiative_linear_id, &project_id) {
+                    eprintln!("[linear-sync] ⚠ could not link {} to project: {}", id, e);
+                }
+                write_back_initiative_id(&mut data, id, &initiative_linear_id);
+                let _ = tasks::save_tasks(&tasks_file, &data);
+                created += 1;
+            }
+            Err(e) => {
+                eprintln!("[linear-sync] ✗ {}: {}", id, e);
+                errors.push(format!("{}: {}", id, e));
+            }
+        }
+    }
+
     // ── Pass 1: ph-XXX → Linear Milestones ────────────────────
 
     // Pre-load already-synced phase → milestone_id mappings
@@ -78,7 +135,7 @@ pub fn cmd_sync_linear(dry_run: bool, force: bool, project: Option<&str>) -> any
     let phases: Vec<&Value> = all_tasks
         .iter()
         .filter(|t| t["id"].as_str().map(|id| id.starts_with("ph-")).unwrap_or(false))
-        .filter(|t| passes_filters(t, &config))
+        .filter(|t| passes_status_filter(t, &config))
         .collect();
 
     for phase in &phases {
@@ -127,7 +184,7 @@ pub fn cmd_sync_linear(dry_run: bool, force: bool, project: Option<&str>) -> any
     let milestones: Vec<&Value> = all_tasks
         .iter()
         .filter(|t| t["id"].as_str().map(|id| id.starts_with("ms-")).unwrap_or(false))
-        .filter(|t| passes_filters(t, &config))
+        .filter(|t| passes_status_filter(t, &config))
         .collect();
 
     for task in &milestones {
@@ -212,14 +269,19 @@ pub fn cmd_sync_linear(dry_run: bool, force: bool, project: Option<&str>) -> any
 
 // ── Helpers ────────────────────────────────────────────────────
 
-fn passes_filters(task: &Value, config: &LinearSyncConfig) -> bool {
+/// Status-only filter for structural items (in-XXX, ph-XXX, ms-XXX) — no stream check.
+fn passes_status_filter(task: &Value, config: &LinearSyncConfig) -> bool {
     let status = task["status"].as_str().unwrap_or("pending");
-    let stream = task["stream"].as_str().unwrap_or("");
+    config.keep_statuses.iter().any(|s| s == status)
+}
 
+/// Full filter for regular tasks — status + stream.
+fn passes_filters(task: &Value, config: &LinearSyncConfig) -> bool {
+    let stream = task["stream"].as_str().unwrap_or("");
     if !config.keep_streams.is_empty() && !config.keep_streams.iter().any(|s| s == stream) {
         return false;
     }
-    config.keep_statuses.iter().any(|s| s == status)
+    passes_status_filter(task, config)
 }
 
 fn resolve_project(task: &Value, config: &LinearSyncConfig) -> String {
@@ -268,6 +330,17 @@ fn build_description(task: &Value) -> String {
     }
     body.push_str("\n\n---\n*Synced from brana backlog*");
     body
+}
+
+fn write_back_initiative_id(data: &mut Value, task_id: &str, initiative_id: &str) {
+    if let Some(tasks) = data["tasks"].as_array_mut() {
+        for t in tasks.iter_mut() {
+            if t["id"].as_str() == Some(task_id) {
+                t["linear_initiative_id"] = Value::String(initiative_id.to_string());
+                break;
+            }
+        }
+    }
 }
 
 fn write_back_id(data: &mut Value, task_id: &str, issue_id: &str) {
@@ -438,6 +511,52 @@ fn create_issue(
         .as_str()
         .map(String::from)
         .context("no issue id in response")
+}
+
+fn create_initiative(api_key: &str, name: &str, description: &str) -> anyhow::Result<String> {
+    let q = r#"
+        mutation CreateInitiative($input: InitiativeCreateInput!) {
+            initiativeCreate(input: $input) {
+                success
+                initiative { id }
+            }
+        }
+    "#;
+    let resp = gql(api_key, q, json!({
+        "input": { "name": name, "description": description }
+    }))?;
+
+    let success = resp["data"]["initiativeCreate"]["success"]
+        .as_bool()
+        .unwrap_or(false);
+    if !success {
+        anyhow::bail!("initiativeCreate returned success=false");
+    }
+    resp["data"]["initiativeCreate"]["initiative"]["id"]
+        .as_str()
+        .map(String::from)
+        .context("no initiative id in response")
+}
+
+fn link_initiative_to_project(api_key: &str, initiative_id: &str, project_id: &str) -> anyhow::Result<()> {
+    let q = r#"
+        mutation LinkInitiativeToProject($input: InitiativeToProjectCreateInput!) {
+            initiativeToProjectCreate(input: $input) {
+                success
+            }
+        }
+    "#;
+    let resp = gql(api_key, q, json!({
+        "input": { "initiativeId": initiative_id, "projectId": project_id }
+    }))?;
+
+    let success = resp["data"]["initiativeToProjectCreate"]["success"]
+        .as_bool()
+        .unwrap_or(false);
+    if !success {
+        anyhow::bail!("initiativeToProjectCreate returned success=false");
+    }
+    Ok(())
 }
 
 // ── Auth ───────────────────────────────────────────────────────
