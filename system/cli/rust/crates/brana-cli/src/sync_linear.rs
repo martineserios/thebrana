@@ -36,6 +36,7 @@ struct LinearSyncConfig {
 struct WorkflowStates {
     todo_id: String,
     in_progress_id: String,
+    done_id: String,
 }
 
 // ── Entry point ────────────────────────────────────────────────
@@ -252,6 +253,76 @@ pub fn cmd_sync_linear(dry_run: bool, force: bool, project: Option<&str>) -> any
         }
     }
 
+    // ── Pass 3: t-XXX → Linear Issues (tenant-tagged tasks) ────
+
+    let tenant_tasks: Vec<&Value> = all_tasks
+        .iter()
+        .filter(|t| t["id"].as_str().map(|id| id.starts_with("t-")).unwrap_or(false))
+        .filter(|t| {
+            // Only sync tasks that route to a tenant-specific project (not the default)
+            resolve_project(t, &config) != config.default_project_id
+        })
+        .filter(|t| passes_status_filter(t, &config))
+        .collect();
+
+    for task in &tenant_tasks {
+        let id = task["id"].as_str().unwrap();
+        let subject = task["subject"].as_str().unwrap_or("untitled");
+        let status = task["status"].as_str().unwrap_or("pending");
+
+        if task["linear_issue_id"].as_str().is_some() && !force {
+            skipped += 1;
+            continue;
+        }
+
+        let project_id = resolve_project(task, &config);
+        let state_id = match status {
+            "in_progress" => &states.in_progress_id,
+            "completed" | "done" if !states.done_id.is_empty() => &states.done_id,
+            _ => &states.todo_id,
+        };
+        let priority = map_priority(task["priority"].as_str());
+        let title = format!("[{}] {}", id, subject);
+        let description = build_description(task);
+
+        if dry_run {
+            eprintln!(
+                "[linear-sync] task + {} → project …{} — {}",
+                id,
+                &project_id[project_id.len().saturating_sub(6)..],
+                &subject.chars().take(60).collect::<String>()
+            );
+            created += 1;
+            continue;
+        }
+
+        match create_issue(
+            &api_key,
+            &config.team_id,
+            &project_id,
+            state_id,
+            priority,
+            &title,
+            &description,
+            None,
+        ) {
+            Ok(issue_id) => {
+                eprintln!(
+                    "[linear-sync] ✓ task {} → {}",
+                    id,
+                    &issue_id[..issue_id.len().min(8)]
+                );
+                write_back_id(&mut data, id, &issue_id);
+                let _ = tasks::save_tasks(&tasks_file, &data);
+                created += 1;
+            }
+            Err(e) => {
+                eprintln!("[linear-sync] ✗ {}: {}", id, e);
+                errors.push(format!("{}: {}", id, e));
+            }
+        }
+    }
+
     eprintln!(
         "\n[linear-sync] done — {} pushed, {} skipped, {} errors",
         created,
@@ -429,6 +500,7 @@ fn fetch_workflow_states(api_key: &str, team_id: &str) -> anyhow::Result<Workflo
 
     let mut todo_id = None::<String>;
     let mut in_progress_id = None::<String>;
+    let mut done_id = None::<String>;
 
     for node in nodes {
         let id = node["id"].as_str().unwrap_or("").to_string();
@@ -436,6 +508,7 @@ fn fetch_workflow_states(api_key: &str, team_id: &str) -> anyhow::Result<Workflo
         match state_type {
             "unstarted" if todo_id.is_none() => todo_id = Some(id),
             "started" if in_progress_id.is_none() => in_progress_id = Some(id),
+            "completed" if done_id.is_none() => done_id = Some(id),
             _ => {}
         }
     }
@@ -443,6 +516,7 @@ fn fetch_workflow_states(api_key: &str, team_id: &str) -> anyhow::Result<Workflo
     Ok(WorkflowStates {
         todo_id: todo_id.context("no 'unstarted' state found in team")?,
         in_progress_id: in_progress_id.context("no 'started' state found in team")?,
+        done_id: done_id.unwrap_or_default(),
     })
 }
 
