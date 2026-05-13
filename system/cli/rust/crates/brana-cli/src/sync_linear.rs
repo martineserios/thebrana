@@ -271,6 +271,9 @@ pub fn cmd_sync_linear(dry_run: bool, force: bool, project: Option<&str>) -> any
 
 /// Status-only filter for structural items (in-XXX, ph-XXX, ms-XXX) — no stream check.
 fn passes_status_filter(task: &Value, config: &LinearSyncConfig) -> bool {
+    if config.keep_statuses.is_empty() {
+        return true;
+    }
     let status = task["status"].as_str().unwrap_or("pending");
     config.keep_statuses.iter().any(|s| s == status)
 }
