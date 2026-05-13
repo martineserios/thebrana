@@ -574,6 +574,9 @@ pub enum BacklogCmd {
     },
     /// Smart daily pick
     Focus {
+        /// Number of tasks to show (default 3)
+        #[arg(long, default_value = "3")]
+        top: usize,
         /// Output JSON array instead of themed list
         #[arg(long)]
         json: bool,

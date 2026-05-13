@@ -53,7 +53,7 @@ fn main() {
                 if json { output = "json".to_string(); }
                 run_or_exit(commands::backlog::cmd_query(tag, ve_str(&status), ve_str(&stream), ve_str(&kind), ve_str(&priority), ve_str(&effort), search, count, output, &theme, ve_str(&task_type), parent, branch))
             },
-            BacklogCmd::Focus { json } => run_or_exit(commands::backlog::cmd_focus(&theme, json)),
+            BacklogCmd::Focus { top, json } => run_or_exit(commands::backlog::cmd_focus(&theme, top, json)),
             BacklogCmd::Search { text, json } => run_or_exit(commands::backlog::cmd_search(&text, &theme, json)),
             BacklogCmd::Status { all, json } => run_or_exit(commands::backlog::cmd_status(&theme, all, json)),
             BacklogCmd::Blocked => run_or_exit(commands::backlog::cmd_blocked(&theme)),

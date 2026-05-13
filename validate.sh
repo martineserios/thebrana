@@ -527,7 +527,7 @@ echo "Checking for count drift in docs..."
 # Count actual system components
 ACTUAL_SKILLS=$(for d in "$SYSTEM_DIR"/skills/*/; do [ "$(basename "$d")" != "acquired" ] && echo 1; done | wc -l | tr -d ' ')
 ACTUAL_RULES=$(ls "$SYSTEM_DIR"/rules/*.md 2>/dev/null | grep -v '/README\.md$' | wc -l | tr -d ' ')
-ACTUAL_AGENTS=$(ls "$SYSTEM_DIR"/agents/*.md 2>/dev/null | wc -l | tr -d ' ')
+ACTUAL_AGENTS=$(grep -rl '^model:' "$SYSTEM_DIR/agents" --include='*.md' 2>/dev/null | wc -l | tr -d ' ')
 
 # Scan reflection docs for hardcoded counts
 # Match enumeration patterns: "(N skills:", "N rules —", "N skills," that count brana components

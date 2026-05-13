@@ -415,7 +415,7 @@ Cross-reference each hit against actual filesystem counts:
 echo "skills: $(ls system/skills/ | wc -l)"
 echo "hooks:  $(ls system/hooks/ | wc -l)"
 echo "rules:  $(ls system/rules/ | wc -l)"
-echo "agents: $(ls system/agents/ | wc -l)"
+echo "agents: $(grep -l '^model:' system/agents/*.md | wc -l)"
 ```
 
 **Materiality:** LOW — informational only. Counts drift naturally; flag matches where the number differs by more than 2. Recommended fix: replace `N skills` with `all skills` (or remove the count) and link to the auto-generated reference.
@@ -613,6 +613,8 @@ If context was compressed and you've lost track of progress:
 ---
 
 ## Field Notes
+
+> Routing: always append field notes to `docs/architecture/<topic>.md`, never `docs/reference/` (auto-generated — see `system/rules/field-note-routing.md`).
 
 ### 2026-04-09: Verify before wiring — check call chains first
 When DIFF flags a script as "exists but not in hooks.json", grep sibling hook scripts before adding a hooks.json entry: `grep -r "script-name.sh" system/hooks/`. A script absent from hooks.json may already be called internally (e.g., config-drift.sh is called by session-start.sh line 157). Absence from hooks.json is necessary-but-not-sufficient evidence of a real gap.
