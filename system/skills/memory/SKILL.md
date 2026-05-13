@@ -1,6 +1,6 @@
 ---
 name: memory
-description: "Knowledge system operations — recall patterns, cross-pollinate across clients, review knowledge health, audit docs for contradictions. Subcommands: recall, pollinate, review, review --audit. Use for pattern queries, cross-client transfer, monthly knowledge audits, or contradiction detection."
+description: "Knowledge system operations — recall patterns, cross-pollinate across clients, audit docs for contradictions. Subcommands: recall, pollinate, review, review --audit. Use for pattern queries, cross-client transfer, or knowledge audits."
 effort: medium
 keywords: [knowledge, recall, patterns, cross-pollinate, audit, memory]
 task_strategies: [investigation, spike]
