@@ -1,6 +1,6 @@
 ---
 name: build
-description: "Build anything — features, bug fixes, refactors, spikes, migrations, investigations. Auto-detects strategy from description, integrates with /brana:backlog, enforces TDD. The unified development command."
+description: "Build anything — features, bug fixes, refactors, spikes, migrations. Auto-detects strategy, integrates with backlog, enforces TDD. The unified dev command."
 effort: high
 model: sonnet
 keywords: [development, implementation, tdd, feature, bug-fix, refactor, coding, fix, broken, hook, deploy, test, debug, error, crash, migrate, investigate]

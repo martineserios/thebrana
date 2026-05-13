@@ -1,6 +1,6 @@
 ---
 name: verify-docs
-description: "Periodic doc verification — runs validate.sh structural check, samples N assumption rows for manual semantic review. No LLM. Run quarterly to collect drift evidence; if >20% drift, unblocks t-441 (LLM-assisted check)."
+description: "Periodic doc verification — runs validate.sh structural check, samples assumption rows for semantic review. Run quarterly to collect drift evidence."
 effort: low
 keywords: [verify, docs, assumptions, drift, semantic, freshness, quarterly]
 task_strategies: [investigation]

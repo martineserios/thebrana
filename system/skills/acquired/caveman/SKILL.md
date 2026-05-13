@@ -1,6 +1,6 @@
 ---
 name: caveman
-description: Ultra-compressed communication mode — ~65-75% fewer tokens while preserving technical accuracy. Strips filler, hedging, articles, pleasantries. Keeps code, commits, PRs in normal language.
+description: Ultra-compressed mode — 65-75% fewer tokens, preserving technical accuracy. Strips filler, hedging, pleasantries. Code/commits stay in normal language.
 group: utility
 status: experimental
 source: https://github.com/JuliusBrussee/caveman (pinned 2026-04-13)

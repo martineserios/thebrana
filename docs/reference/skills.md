@@ -22,27 +22,27 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | Skill | Group | Description |
 |-------|-------|-------------|
 | `/brana:acquire-skills` | brana | Find and install skills for project tech gaps. Use when entering a project with  |
-| `/brana:align` | execution | Actively align a project with brana practices — assess gaps, plan fixes, imple |
+| `/brana:align` | execution | Align a project to brana practices — assess gaps, plan, implement, verify. Aut |
 | `/brana:backlog` | brana | Manage the backlog — plan, track, navigate phases and streams. Use when planni |
 | `/brana:brainstorm` | thinking | Interactive idea maturation — explore, research, shape raw ideas into actionab |
-| `/brana:build` | execution | Build anything — features, bug fixes, refactors, spikes, migrations, investiga |
+| `/brana:build` | execution | Build anything — features, bug fixes, refactors, spikes, migrations. Auto-dete |
 | `/brana:cargo-machete` | brana | Detect and remove unused dependencies in Rust projects using cargo-machete. |
-| `/brana:challenge` | learning | Dual-model adversarial review. Opus subagent stress-tests reasoning; Gemini stre |
+| `/brana:challenge` | learning | Adversarial review — Opus stress-tests reasoning, Gemini stress-tests document |
 | `/brana:claudemd` | execution | Audit or generate a CLAUDE.md for any project. Natural companion to /brana:align |
 | `/brana:client-retire` | execution | Archive a client's patterns and mark them as historical. Use when retiring a cli |
-| `/brana:close` | session | End a session — extract learnings, write handoff note, store patterns, detect  |
+| `/brana:close` | session | End a session — extract learnings, write handoff, store patterns, detect doc d |
 | `/brana:do` | brana | Alias for /brana:backlog start with freeform text. Routes to the best skill or c |
 | `/brana:docs` | core | Generate and update living documentation — tech docs, user guides, philosophy  |
 | `/brana:export-pdf` | utility | Convert a markdown file to PDF using mdpdf. Use when exporting proposals, SOPs,  |
-| `/brana:fix` | execution | Structured bug fixing — reproduce (failing test), diagnose (root cause), fix ( |
+| `/brana:fix` | execution | Structured bug fix — reproduce (failing test), diagnose, fix (minimal change), |
 | `/brana:gsheets` | utility | Google Sheets via MCP — read, write, create, list, share spreadsheets. Use whe |
-| `/brana:log` | capture | Capture events — links, calls, meetings, ideas, observations — into a search |
+| `/brana:log` | capture | Capture events — links, calls, meetings, ideas — into a searchable append-on |
 | `/brana:mcp-builder` | brana | MCP server development guide — build, test, and deploy MCP servers. |
-| `/brana:memory` | learning | Knowledge system operations — recall patterns, cross-pollinate across clients, |
-| `/brana:meta-templates` | utility | Manage Meta WhatsApp templates programmatically — submit, status, audit (drift |
-| `/brana:notebooklm-source` | tools | Guided workflow to prepare and format sources for NotebookLM. Claude reads, refo |
+| `/brana:memory` | learning | Knowledge system ops — recall patterns, cross-pollinate, audit docs. Subcomman |
+| `/brana:meta-templates` | utility | Manage Meta WhatsApp templates — submit, status, audit, pull, appeal. Use for  |
+| `/brana:notebooklm-source` | tools | Prepare and format sources for NotebookLM — Claude reads, reformats, writes fi |
 | `/brana:onboard` | execution | Scan and diagnose a project, or scaffold a new client from scratch. Works for co |
-| `/brana:plugin` | brana | Manage Claude Code plugins — add marketplaces, install, update, remove, list p |
+| `/brana:plugin` | brana | Manage Claude Code plugins — add marketplaces, install, update, remove, list.  |
 | `/brana:reconcile` | brana | Unified maintenance command — detect drift (consistency), run security checks, |
 | `/brana:research` | learning | Research a topic, doc, or creator — check sources, follow references recursive |
 | `/brana:retrospective` | learning | Store a learning in the memory taxonomy — classify by type (Rule/Pattern/Knowl |
@@ -91,7 +91,7 @@ MCP server development guide — build, test, and deploy MCP servers.
 
 ### `/brana:plugin`
 
-Manage Claude Code plugins — add marketplaces, install, update, remove, list plugins. Use when installing new plugins, checking plugin status, or managing the plugin registry.
+Manage Claude Code plugins — add marketplaces, install, update, remove, list. Use when installing plugins, checking status, or managing the registry.
 
 **Arguments:** `[list|install|remove|update|sync] [name]`
 
@@ -124,7 +124,7 @@ Periodic doc verification — runs validate.sh structural check, samples N assum
 
 ### `/brana:log`
 
-Capture events — links, calls, meetings, ideas, observations — into a searchable append-only log. Includes bulk mode for WhatsApp dumps and URL-to-task promotion. Use when something happened and you want to capture it quickly.
+Capture events — links, calls, meetings, ideas — into a searchable append-only log. Bulk mode for WhatsApp dumps. Use when something happened and you want to capture it.
 
 **Arguments:** `[event text or bulk]`
 
@@ -152,7 +152,7 @@ Situational awareness — where am I, what was I doing, what's left, what should
 
 ### `/brana:align`
 
-Actively align a project with brana practices — assess gaps, plan fixes, implement structure, verify. Works for code, venture, and brainstorm/research repos. Auto-detects type. Use when setting up a new project or realigning an existing one.
+Align a project to brana practices — assess gaps, plan, implement, verify. Auto-detects type. Use when setting up a new project or realigning an existing one.
 
 **Arguments:** `[project-path]`
 
@@ -162,7 +162,7 @@ Actively align a project with brana practices — assess gaps, plan fixes, imple
 
 ### `/brana:build`
 
-Build anything — features, bug fixes, refactors, spikes, migrations, investigations. Auto-detects strategy from description, integrates with /brana:backlog, enforces TDD. The unified development command.
+Build anything — features, bug fixes, refactors, spikes, migrations. Auto-detects strategy, integrates with backlog, enforces TDD. The unified development command.
 
 **Arguments:** `[decompose] [description or task ID]`
 
@@ -188,7 +188,7 @@ Archive a client's patterns and mark them as historical. Use when retiring a cli
 
 ### `/brana:fix`
 
-Structured bug fixing — reproduce (failing test), diagnose (root cause), fix (minimal change), verify (tests pass), commit. Enforces test-first debugging. Use when a bug needs a methodical fix. Not for: greenfield features, refactors, spikes.
+Structured bug fix — reproduce (failing test), diagnose, fix (minimal change), verify, commit. Enforces test-first. Use when a bug needs a methodical fix.
 
 **Arguments:** `[task-id or description of the bug]`
 
@@ -217,7 +217,7 @@ Ship a build — pre-flight checks, deploy, document, verify, monitor. 6 generic
 
 ### `/brana:challenge`
 
-Dual-model adversarial review. Opus subagent stress-tests reasoning; Gemini stress-tests against documented knowledge. Use when a significant decision, plan, or architecture needs adversarial review.
+Adversarial review — Opus stress-tests reasoning, Gemini stress-tests documented knowledge. Use when a plan, decision, or architecture needs stress-testing.
 
 **Arguments:** `[target description]`
 
@@ -225,7 +225,7 @@ Dual-model adversarial review. Opus subagent stress-tests reasoning; Gemini stre
 
 ### `/brana:memory`
 
-Knowledge system operations — recall patterns, cross-pollinate across clients, audit docs for contradictions. Subcommands: recall, pollinate, review, review --audit. Use for pattern queries, cross-client transfer, or knowledge audits.
+Knowledge system ops — recall patterns, cross-pollinate, audit docs. Subcommands: recall, pollinate, review. Use for pattern queries, cross-client transfer, or knowledge audits.
 
 **Arguments:** `[recall|pollinate|review|review --audit] [query]`
 
@@ -252,7 +252,7 @@ Store a learning in the memory taxonomy — classify by type (Rule/Pattern/Knowl
 
 ### `/brana:close`
 
-End a session — extract learnings, write handoff note, store patterns, detect doc drift. Absorbs /session-handoff close mode and /debrief. Use when ending a work session or when the user says done/bye/closing.
+End a session — extract learnings, write handoff, store patterns, detect doc drift. Use when ending a work session or when the user says done/bye/closing.
 
 **Arguments:** `[focus-hint]`
 
@@ -274,7 +274,7 @@ Interactive idea maturation — explore, research, shape raw ideas into actionab
 
 ### `/brana:notebooklm-source`
 
-Guided workflow to prepare and format sources for NotebookLM. Claude reads, reformats, validates, and writes optimized files. User uploads them in the browser. Step-by-step recipe with clear handoff points.
+Prepare and format sources for NotebookLM — Claude reads, reformats, writes files; user uploads in browser. Step-by-step with clear handoff points.
 
 **Allowed tools:** Read, Write, Edit, Glob, Grep, Bash, Task, mcp__notebooklm__ask_question, mcp__notebooklm__add_notebook, mcp__notebooklm__list_notebooks, mcp__notebooklm__select_notebook, mcp__notebooklm__get_notebook, mcp__notebooklm__search_notebooks, mcp__notebooklm__get_health, mcp__notebooklm__get_library_stats, mcp__notebooklm__setup_auth, AskUserQuestion
 
@@ -299,7 +299,7 @@ Google Sheets via MCP — read, write, create, list, share spreadsheets. Use whe
 
 ### `/brana:meta-templates`
 
-Manage Meta WhatsApp templates programmatically — submit, status, audit (drift detection), pull (snapshot), appeal (paste-ready copy + Business Support Home URL). Use for any client with a WhatsApp BSP account that has ~/.config/brana/meta/<client>.env provisioned.
+Manage Meta WhatsApp templates — submit, status, audit, pull, appeal. Use for any WhatsApp BSP client with ~/.config/brana/meta/<client>.env provisioned.
 
 **Arguments:** `[submit <yaml> | pull | status [--name X] | audit [--save] | appeal <name>]`
 

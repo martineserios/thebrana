@@ -1,6 +1,6 @@
 ---
 name: llm-evaluation
-description: "Implement comprehensive evaluation strategies for LLM applications using automated metrics, human feedback, and benchmarking. Use when testing LLM performance, measuring AI application quality, or establishing evaluation frameworks."
+description: "LLM evaluation — automated metrics, human feedback, benchmarking. Use when testing performance, measuring AI quality, or establishing evaluation frameworks."
 group: brana
 keywords: [llm, evaluation, eval, testing, llm-judge, a-b-testing, benchmarking, bleu, rouge, bertscore, langsmith]
 allowed-tools: [Read, Glob, Grep, AskUserQuestion]

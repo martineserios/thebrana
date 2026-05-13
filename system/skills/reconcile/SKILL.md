@@ -1,6 +1,6 @@
 ---
 name: reconcile
-description: "Unified maintenance command — detect drift (consistency), run security checks, cascade spec propagation, and knowledge hygiene. Scoped via --scope flag. Default: consistency."
+description: "Unified maintenance — detect drift, run security checks, cascade spec propagation, knowledge hygiene. Scoped via --scope flag. Default: consistency."
 effort: high
 model: sonnet
 keywords: [drift, specs, implementation, sync, mismatch, system, security, audit, propagation, maintain, knowledge]

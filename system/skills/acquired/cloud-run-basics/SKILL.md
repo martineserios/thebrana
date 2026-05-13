@@ -1,6 +1,6 @@
 ---
 name: cloud-run-basics
-description: "Manages Cloud Run services, jobs, and worker pools. Use when deploying applications responding to HTTP requests, running scheduled tasks, or handling always-on pull-based background processing."
+description: "Cloud Run expert guidance. Use when deploying services, running jobs, or managing worker pools for HTTP, scheduled tasks, or background processing."
 group: brana
 keywords: [cloud-run, gcp, deployment, docker, container, jobs, worker-pools, gcloud]
 allowed-tools: [Read, Write, Edit, Bash, Glob, Grep, Agent]

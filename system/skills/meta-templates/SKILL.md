@@ -1,6 +1,6 @@
 ---
 name: meta-templates
-description: "Manage Meta WhatsApp templates programmatically — submit, status, audit (drift detection), pull (snapshot), appeal (paste-ready copy + Business Support Home URL). Use for any client with a WhatsApp BSP account that has ~/.config/brana/meta/<client>.env provisioned."
+description: "Manage Meta WhatsApp templates — submit, status, audit, pull, appeal. Use for any WhatsApp BSP client with ~/.config/brana/meta/<client>.env provisioned."
 effort: low
 keywords: [meta, whatsapp, templates, waba, submit, audit, appeal, drift, classification, utility, marketing]
 task_strategies: [feature]
