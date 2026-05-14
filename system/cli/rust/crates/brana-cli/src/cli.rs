@@ -519,7 +519,7 @@ pub enum BacklogCmd {
         #[arg(long, value_enum)]
         kind: Option<TaskKind>,
         /// Max results to show (default 5)
-        #[arg(long, default_value = "5")]
+        #[arg(long, alias = "top", default_value = "5")]
         limit: usize,
         #[arg(long, value_enum)]
         priority: Option<TaskPriority>,
