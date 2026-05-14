@@ -12,9 +12,11 @@ cd /tmp 2>/dev/null || true
 
 INPUT=$(cat) || true
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null) || true
+SESSION_ID="${SESSION_ID:-${CLAUDE_CODE_SESSION_ID:-}}"
 TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null) || true
 TOOL_INPUT=$(echo "$INPUT" | jq -r '.tool_input // "{}"' 2>/dev/null) || true
 DURATION_MS=$(echo "$INPUT" | jq -r '.duration_ms // 0' 2>/dev/null) || DURATION_MS=0
+EFFORT_LEVEL=$(echo "$INPUT" | jq -r '.effort.level // "normal"' 2>/dev/null) || EFFORT_LEVEL="normal"
 
 if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
     TS=$(date +%s 2>/dev/null) || TS=0
@@ -122,7 +124,8 @@ if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
             '{hash: $hash, count: $count, ts: $ts, tool: $tool, error_cat: $error_cat, detail: $detail, session: $session}' >> "$RECURRENCE_FILE" 2>/dev/null || true
 
         # On threshold (count == 3): store to ruflo as rule candidate (background, fire-and-forget)
-        if [ "$NEW_COUNT" -eq 3 ]; then
+        # Skip on low effort — ruflo escalation is non-critical and adds latency.
+        if [ "$NEW_COUNT" -eq 3 ] && [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
             SCRIPT_DIR_F="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
             (
                 if [ -f "$SCRIPT_DIR_F/lib/cf-env.sh" ]; then

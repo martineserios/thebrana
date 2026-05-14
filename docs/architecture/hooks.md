@@ -109,6 +109,8 @@ Hooks support tiered execution via the `BRANA_HOOK_PROFILE` environment variable
 
 **Effort level:** Each tier maps to a CC effort level via `get_profile_effort()`. Exported as `BRANA_EFFORT_LEVEL` at session start. Agents override via frontmatter `effort:` field; users override with `/effort`. Direct override: `export BRANA_EFFORT_LEVEL=medium`.
 
+**CC-native effort.level (t-1402):** CC v2.1.133 adds `effort.level` to hook JSON input and `$CLAUDE_EFFORT` to Bash subprocess env. Both `session-start.sh` and `post-tool-use-failure.sh` now read this field (`jq -r '.effort.level // "normal"'`) and skip non-critical slow operations when effort is `"low"`: session-start skips the ruflo memory search; post-tool-use-failure skips the ruflo rule-candidate escalation. CC v2.1.132 added `CLAUDE_CODE_SESSION_ID` to Bash subprocess env — both hooks fall back to this env var if session_id is absent from JSON: `SESSION_ID="${SESSION_ID:-${CLAUDE_CODE_SESSION_ID:-}}"`. All local JSONL writes and cascade detection are unaffected by effort level.
+
 **Library:** `system/hooks/lib/profile.sh` provides `hook_should_run <tier>` and `get_profile_effort`. Any hook can source it:
 
 ```bash
