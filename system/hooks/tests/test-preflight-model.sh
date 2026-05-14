@@ -62,7 +62,7 @@ make_claude_json() {
 # Helper: make UserPromptSubmit JSON input
 make_input() {
     local prompt="$1"
-    python3 -c "import json,sys; print(json.dumps({'prompt': sys.argv[1]}))" "$prompt"
+    jq -n --arg prompt "$prompt" '{"prompt": $prompt}'
 }
 
 echo "preflight-model.sh Tests"

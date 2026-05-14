@@ -82,7 +82,7 @@ gcloud run worker-pools deploy WORKER_POOL_NAME --source .
 ## What to do if a deployment fails
 
 1. **IAM/Permission Error:** Check roles listed above.
-2. **Crash on Boot / Healthcheck failed:** `gcloud logging read "resource.labels.service_name=SERVICE_NAME" --limit=20`
+2. **Crash on Boot / Healthcheck failed:** `gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="SERVICE_NAME"' --limit=20`
 3. **Native Dependency Error (Node/Python):** Switch from `--no-build` to `--source .` (Buildpacks).
 
 ## Project-specific notes (proyecto_anita)
