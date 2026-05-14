@@ -20,7 +20,9 @@ _mark "hook-start"
 
 INPUT=$(cat) || true
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null) || true
+SESSION_ID="${SESSION_ID:-${CLAUDE_CODE_SESSION_ID:-}}"
 CWD=$(echo "$INPUT" | jq -r '.cwd // empty' 2>/dev/null) || true
+EFFORT_LEVEL=$(echo "$INPUT" | jq -r '.effort.level // "normal"' 2>/dev/null) || EFFORT_LEVEL="normal"
 
 if [ -z "${SESSION_ID:-}" ] || [ -z "${CWD:-}" ]; then
     echo '{"continue": true}'
@@ -102,7 +104,8 @@ CF_WARNING=""
 PIDS=""
 
 # Job 1: ruflo memory search (patterns + corrections in single query)
-if [ -n "$CF" ]; then
+# Skip on low effort — 2s network query is non-critical for quick tasks.
+if [ -n "$CF" ] && [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
     (
         CF_OUTPUT=$(cd "$HOME" && timeout 2 $CF memory search --query "client:$PROJECT" --format json 2>&1) || true
         CF_EXIT=$?
