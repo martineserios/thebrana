@@ -33,7 +33,7 @@ Full read/write — set, add, rollup, sync all work from CLI.
 | `brana backlog next [--kind K] [--tag T] [--stream S]` | `bn` | Next unblocked task by priority |
 | `brana backlog query [filters...]` | `bq` | Filter tasks (AND logic): --kind, --tag, --status, --stream (deprecated), --priority, --effort, --type, --parent, --branch, --search, --count, --output |
 | `brana backlog search "text"` | `bsearch` | Free-text search across all fields |
-| `brana backlog focus` | `bf` | Smart daily pick (priority x staleness - effort) |
+| `brana backlog focus [--top N]` | `bf` | Smart daily pick (priority x staleness - effort); `--top N` shows N tasks (default 3) |
 | `brana backlog blocked` | `bb` | Blocked dependency chains |
 | `brana backlog stale [--days 14]` | `bstale` | Tasks pending > N days |
 | `brana backlog burndown [--period week]` | `bburn` | Created vs completed over time |

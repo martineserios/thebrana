@@ -127,7 +127,8 @@ Registers the brana plugin with CC's plugin system so it loads automatically wit
 | **7a** | Adds brana to `~/.claude/plugins/known_marketplaces.json` |
 | **7b** | Symlinks `~/.claude/plugins/marketplaces/brana` → this repo (dev mode: local changes are live) |
 | **7c** | Snapshots `system/` to `~/.claude/plugins/cache/brana/brana/<version>/`. CC reads from this cache. |
-| **7d** | Registers in `~/.claude/plugins/installed_plugins.json` with current git SHA and version |
+| **7d** | Checks `~/.local/bin/brana` mtime vs newest `*.rs` source. Warns if binary predates source (stale binary = silent failures). |
+| **7e** | Registers in `~/.claude/plugins/installed_plugins.json` with current git SHA and version |
 
 After step 7, CC loads the plugin from the cache automatically — you don't need `--plugin-dir ./system` for normal sessions. Use `--plugin-dir ./system` when you want to test local changes before snapshotting.
 
