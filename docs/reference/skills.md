@@ -36,22 +36,22 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:export-pdf` | utility | Convert a markdown file to PDF using mdpdf. Use when exporting proposals, SOPs,  |
 | `/brana:fix` | execution | Structured bug fix — reproduce (failing test), diagnose, fix (minimal change), |
 | `/brana:gsheets` | utility | Google Sheets via MCP — read, write, create, list, share spreadsheets. Use whe |
-| `/brana:log` | capture | Capture events — links, calls, meetings, ideas — into a searchable append-on |
+| `/brana:log` | capture | Capture events — links, calls, meetings, ideas — into an append-only log. Bu |
 | `/brana:mcp-builder` | brana | MCP server development guide — build, test, and deploy MCP servers. |
-| `/brana:memory` | learning | Knowledge system ops — recall patterns, cross-pollinate, audit docs. Subcomman |
+| `/brana:memory` | learning | Knowledge system ops — recall, pollinate, audit docs. Subcommands: recall, pol |
 | `/brana:meta-templates` | utility | Manage Meta WhatsApp templates — submit, status, audit, pull, appeal. Use for  |
 | `/brana:notebooklm-source` | tools | Prepare and format sources for NotebookLM — Claude reads, reformats, writes fi |
 | `/brana:onboard` | execution | Scan and diagnose a project, or scaffold a new client from scratch. Works for co |
 | `/brana:plugin` | brana | Manage Claude Code plugins — add marketplaces, install, update, remove, list.  |
-| `/brana:reconcile` | brana | Unified maintenance command — detect drift (consistency), run security checks, |
-| `/brana:research` | learning | Research a topic, doc, or creator — check sources, follow references recursive |
-| `/brana:retrospective` | learning | Store a learning in the memory taxonomy — classify by type (Rule/Pattern/Knowl |
-| `/brana:review` | venture | Business review — weekly health check, monthly close + plan, or ad-hoc growth  |
+| `/brana:reconcile` | brana | Unified maintenance — detect drift, run security checks, cascade spec propagat |
+| `/brana:research` | learning | Research a topic, doc, or creator — check sources, follow references, produce  |
+| `/brana:retrospective` | learning | Store a learning — classify type, route to canonical destination. Use after di |
+| `/brana:review` | venture | Business review — weekly health check, monthly close, or ad-hoc audit. Subcomm |
 | `/brana:rust-skills` | brana | Rust best practices — 179 rules across 14 categories for idiomatic, optimized  |
-| `/brana:scheduler` | utility | Manage scheduled jobs — create, update, list, or run scheduled remote agents ( |
-| `/brana:ship` | execution | Ship a build — pre-flight checks, deploy, document, verify, monitor. 6 generic |
-| `/brana:sitrep` | core | Situational awareness — where am I, what was I doing, what's left, what should |
-| `/brana:verify-docs` | brana | Periodic doc verification — runs validate.sh structural check, samples N assum |
+| `/brana:scheduler` | utility | Manage scheduled jobs — create, update, list, run remote agents on cron. Use w |
+| `/brana:ship` | execution | Ship a build — pre-flight checks, deploy, document, verify, monitor. Use when  |
+| `/brana:sitrep` | core | Situational awareness — where am I, what was I doing, what's next. Context rec |
+| `/brana:verify-docs` | brana | Periodic doc verification — runs validate.sh structural check, samples assumpt |
 
 ## brana
 
@@ -99,7 +99,7 @@ Manage Claude Code plugins — add marketplaces, install, update, remove, list. 
 
 ### `/brana:reconcile`
 
-Unified maintenance command — detect drift (consistency), run security checks, cascade spec propagation, and knowledge hygiene. Scoped via --scope flag. Default: consistency.
+Unified maintenance — detect drift, run security checks, cascade spec propagation, knowledge hygiene. Scoped via --scope flag. Default: consistency.
 
 **Arguments:** `[--scope consistency|security|propagation|knowledge|all]`
 
@@ -113,7 +113,7 @@ Rust best practices — 179 rules across 14 categories for idiomatic, optimized 
 
 ### `/brana:verify-docs`
 
-Periodic doc verification — runs validate.sh structural check, samples N assumption rows for manual semantic review. No LLM. Run quarterly to collect drift evidence; if >20% drift, unblocks t-441 (LLM-assisted check).
+Periodic doc verification — runs validate.sh structural check, samples assumption rows for semantic review. Run quarterly to collect drift evidence.
 
 **Arguments:** `[--sample N] [--json] [--seed N]`
 
@@ -124,7 +124,7 @@ Periodic doc verification — runs validate.sh structural check, samples N assum
 
 ### `/brana:log`
 
-Capture events — links, calls, meetings, ideas — into a searchable append-only log. Bulk mode for WhatsApp dumps. Use when something happened and you want to capture it.
+Capture events — links, calls, meetings, ideas — into an append-only log. Bulk mode for WhatsApp dumps. Use when something happened.
 
 **Arguments:** `[event text or bulk]`
 
@@ -143,7 +143,7 @@ Generate and update living documentation — tech docs, user guides, philosophy 
 
 ### `/brana:sitrep`
 
-Situational awareness — where am I, what was I doing, what's left, what should I do next. Context recovery after compression, confusion, or mid-session reorientation.
+Situational awareness — where am I, what was I doing, what's next. Context recovery after compression, confusion, or mid-session reorientation.
 
 **Allowed tools:** Bash, Read, Glob, Grep, Task, AskUserQuestion, mcp__ruflo__hooks_intelligence_pattern-search, mcp__ruflo__hive-mind_memory
 
@@ -162,7 +162,7 @@ Align a project to brana practices — assess gaps, plan, implement, verify. Aut
 
 ### `/brana:build`
 
-Build anything — features, bug fixes, refactors, spikes, migrations. Auto-detects strategy, integrates with backlog, enforces TDD. The unified development command.
+Build anything — features, bug fixes, refactors, spikes, migrations. Auto-detects strategy, integrates with backlog, enforces TDD. The unified dev command.
 
 **Arguments:** `[decompose] [description or task ID]`
 
@@ -194,7 +194,7 @@ Structured bug fix — reproduce (failing test), diagnose, fix (minimal change),
 
 **Depends on:** `/brana:backlog`
 
-**Allowed tools:** AskUserQuestion, Bash, Edit, Glob, Grep, Read, Write, Agent, mcp__brana__backlog_get, mcp__brana__backlog_set
+**Allowed tools:** AskUserQuestion, Bash, Edit, Glob, Grep, Read, Write, Agent
 
 ### `/brana:onboard`
 
@@ -206,7 +206,7 @@ Scan and diagnose a project, or scaffold a new client from scratch. Works for co
 
 ### `/brana:ship`
 
-Ship a build — pre-flight checks, deploy, document, verify, monitor. 6 generic steps with project-specific implementation. Use when deploying code, publishing packages, or releasing.
+Ship a build — pre-flight checks, deploy, document, verify, monitor. Use when deploying code, publishing packages, or releasing.
 
 **Arguments:** `[target or task-id]`
 
@@ -225,7 +225,7 @@ Adversarial review — Opus stress-tests reasoning, Gemini stress-tests document
 
 ### `/brana:memory`
 
-Knowledge system ops — recall patterns, cross-pollinate, audit docs. Subcommands: recall, pollinate, review. Use for pattern queries, cross-client transfer, or knowledge audits.
+Knowledge system ops — recall, pollinate, audit docs. Subcommands: recall, pollinate, review. Use for pattern queries, cross-client transfer, or audits.
 
 **Arguments:** `[recall|pollinate|review|review --audit] [query]`
 
@@ -233,7 +233,7 @@ Knowledge system ops — recall patterns, cross-pollinate, audit docs. Subcomman
 
 ### `/brana:research`
 
-Research a topic, doc, or creator — check sources, follow references recursively, produce findings. Use when starting deep research on a topic, creator, or external source.
+Research a topic, doc, or creator — check sources, follow references, produce findings. Use when starting deep research on a topic or external source.
 
 **Arguments:** `[topic|doc-number|creator:name|--refresh] [scope] [--strategy research|evaluate|learn|investigate] [--depth quick|standard|deep]`
 
@@ -241,7 +241,7 @@ Research a topic, doc, or creator — check sources, follow references recursive
 
 ### `/brana:retrospective`
 
-Store a learning in the memory taxonomy — classify by type (Rule/Pattern/Knowledge/Decision/Reference), route to canonical destination. Use after notable discoveries, unexpected issues, successful workarounds, or when a reusable pattern emerges.
+Store a learning — classify type, route to canonical destination. Use after discoveries, unexpected issues, workarounds, or when a reusable pattern emerges.
 
 **Arguments:** `[learning text]`
 
@@ -307,7 +307,7 @@ Manage Meta WhatsApp templates — submit, status, audit, pull, appeal. Use for 
 
 ### `/brana:scheduler`
 
-Manage scheduled jobs — create, update, list, or run scheduled remote agents (triggers) that execute on a cron schedule. Use when setting up recurring tasks, checking job status, or managing automation.
+Manage scheduled jobs — create, update, list, run remote agents on cron. Use when setting up recurring tasks, checking job status, or managing automation.
 
 **Arguments:** `[status|logs|enable|disable|run|validate|deploy|teardown] [job]`
 
@@ -318,7 +318,7 @@ Manage scheduled jobs — create, update, list, or run scheduled remote agents (
 
 ### `/brana:review`
 
-Business review — weekly health check, monthly close + plan, or ad-hoc growth audit. Subcommands: weekly, monthly, check. Use for periodic business reviews or when metrics need assessment.
+Business review — weekly health check, monthly close, or ad-hoc audit. Subcommands: weekly, monthly, check. Use for periodic reviews or metrics assessment.
 
 **Arguments:** `[weekly|monthly|check]`
 

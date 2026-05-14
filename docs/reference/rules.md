@@ -2,7 +2,7 @@
 
 # Rules Reference
 
-**24 rules** in `system/rules/`.
+**25 rules** in `system/rules/`.
 
 | File | Title | Summary |
 |------|-------|--------|
@@ -14,6 +14,7 @@
 | `cwd-discipline.md` | CWD Discipline | Always start Claude Code from the project root (e.g., ~/enter_thebrana/thebrana/), never from a pare... |
 | `delegation-routing.md` | Delegation Routing | Delegate to agents WITHOUT being asked when context matches (see CLAUDE.md agents table). Invoke ski... |
 | `doc-linking.md` | Doc Linking | Use `[doc NN](relative-path.md)` — never bare "doc NN". Relative paths from source file. Dimension... |
+| `field-note-routing.md` | field-note-routing | — |
 | `git-discipline.md` | Git Discipline | ## One rule |
 | `inbox-convention.md` | Inbox Convention | `inbox/` is a gitignored drop zone for files needing processing (audio, PDFs, data, screenshots). Or... |
 | `lifecycle-gate-assessment.md` | Always Assess Lifecycle Gates Before Starting | Before starting any task, assess which DDD/SDD/TDD lifecycle steps apply — even S-effort fixes. |
@@ -85,6 +86,13 @@ Delegate to agents WITHOUT being asked when context matches (see CLAUDE.md agent
 **File:** `system/rules/doc-linking.md`
 
 Use `[doc NN](relative-path.md)` — never bare "doc NN". Relative paths from source file. Dimensions via `dimensions/NN-name.md`.
+
+
+## field-note-routing
+
+**File:** `system/rules/field-note-routing.md`
+
+—
 
 
 ## Git Discipline
