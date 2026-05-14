@@ -14,6 +14,7 @@ INPUT=$(cat) || true
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null) || true
 TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null) || true
 TOOL_INPUT=$(echo "$INPUT" | jq -r '.tool_input // "{}"' 2>/dev/null) || true
+DURATION_MS=$(echo "$INPUT" | jq -r '.duration_ms // 0' 2>/dev/null) || DURATION_MS=0
 
 if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
     TS=$(date +%s 2>/dev/null) || TS=0
@@ -87,7 +88,8 @@ if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
         --arg detail "${DETAIL:-unknown}" \
         --arg error_cat "$ERROR_CAT" \
         --argjson cascade "$CASCADE" \
-        '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail, error_cat: $error_cat, cascade: $cascade}' >> "$SESSION_FILE" 2>/dev/null || true
+        --argjson duration_ms "${DURATION_MS:-0}" \
+        '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail, error_cat: $error_cat, cascade: $cascade, duration_ms: $duration_ms}' >> "$SESSION_FILE" 2>/dev/null || true
 
     # --- Cross-session error recurrence tracking (t-679) ---
     # Signature = hash of (tool_name + error_cat + first 80 chars of detail).
