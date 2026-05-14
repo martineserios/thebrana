@@ -58,13 +58,11 @@ assert_continue_true() {
     fi
 }
 
-# Helper: make JSON input for Bash tool (uses python3 for correct escaping)
+# Helper: make JSON input for Bash tool
 make_input() {
     local cmd="$1" cwd="${2:-$TMPDIR/repo}"
-    python3 -c "
-import json, sys
-print(json.dumps({'tool_name': 'Bash', 'tool_input': {'command': sys.argv[1]}, 'cwd': sys.argv[2]}))
-" "$cmd" "$cwd"
+    jq -n --arg cmd "$cmd" --arg cwd "$cwd" \
+        '{"tool_name": "Bash", "tool_input": {"command": $cmd}, "cwd": $cwd}'
 }
 
 # Helper: create temp git repo with staged files
