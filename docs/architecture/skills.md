@@ -130,3 +130,9 @@ Community skills install with `quarantine: true` in frontmatter and read-only to
 | Skill | Source | Purpose | Installed |
 |-------|--------|---------|-----------|
 | `caveman` | `JuliusBrussee/caveman` | Ultra-compressed output (~50% token reduction on brana prompts). Trigger: `/caveman`. | 2026-04-13 |
+
+## Field Notes
+
+### 2026-05-14: MCP tools in allowed-tools are project-scoped — use CLI when procedure already calls it
+`allowed-tools` grants permission but not availability. MCP servers are registered per-project (`.mcp.json`). A skill loaded globally via plugin that lists a project-scoped MCP tool (e.g. `mcp__brana__backlog_set`) will silently fail in any session where that server isn't running. Root cause of 22 `backlog_set` failures: `/brana:fix` ran in `proyecto_anita` where brana-mcp wasn't registered. Fix: if the procedure already uses the CLI equivalent, don't add the MCP tool to `allowed-tools` — it adds failure surface with zero benefit.
+Source: fix/mcp-backlog-allowed-tools / close session 2026-05-14
