@@ -1299,6 +1299,22 @@ else
 fi
 echo ""
 
+# Check 28 — no bare python3 in system/hooks/ (t-1407)
+# Use jq instead of python3 in hook scripts — python3 is fragile in hook subprocesses.
+# Bare `python3` means any occurrence not preceded by `uv run`.
+echo "Checking system/hooks/ for bare python3 invocations..."
+BARE_PY3=$(grep -rn "python3" "$SCRIPT_DIR/system/hooks/" --include="*.sh" 2>/dev/null \
+    | grep -v "uv run python3" \
+    | grep -v ":[[:space:]]*#" \
+    || true)
+if [ -n "$BARE_PY3" ]; then
+    echo "$BARE_PY3" | sed 's/^/  /'
+    fail "Check 28: bare python3 found in system/hooks/ — use jq or uv run python3 instead (jq-over-python3 convention)"
+else
+    pass "Check 28: system/hooks/ — no bare python3 invocations"
+fi
+echo ""
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
