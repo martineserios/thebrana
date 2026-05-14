@@ -19,8 +19,6 @@ allowed-tools:
   - Read
   - Write
   - Agent
-  - mcp__brana__backlog_get
-  - mcp__brana__backlog_set
 status: stable
 growth_stage: evergreen
 ---
