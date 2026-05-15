@@ -47,6 +47,8 @@ while [ $# -gt 0 ]; do
     esac
 done
 
+PATTERNS_MD="${LINT_HEAL_PATTERNS_FILE:-$HOME/.claude/memory/patterns.md}"
+
 if [ ${#FILES[@]} -eq 0 ]; then
     # Scan all project memory dirs
     ORPHAN_CLEANUP=true
@@ -64,6 +66,9 @@ if [ ${#FILES[@]} -eq 0 ]; then
             [ -f "$f" ] && FILES+=("$f")
         done
     done
+
+    # Include shared patterns.md (cross-project, section-based)
+    [ -f "$PATTERNS_MD" ] && FILES+=("$PATTERNS_MD")
 fi
 
 if [ ${#FILES[@]} -eq 0 ]; then
@@ -84,6 +89,38 @@ SKIPPED=0
 
 for filepath in "${FILES[@]}"; do
     filename=$(basename "$filepath")
+
+    # ── patterns.md: section-based parsing (no frontmatter) ───────
+    # Detect by filename OR by content signature (# Pattern Store header).
+    if [ "$filename" = "patterns.md" ] || head -1 "$filepath" | grep -q '^# Pattern Store'; then
+        # Parse each ## slug section into a separate JSONL entry.
+        # Confidence field sets the key type: pattern:{confidence}:{slug}
+        # Uses awk to split on ## headers — avoids nested function scope issues.
+        while IFS='|' read -r sec_slug sec_body; do
+            [ -z "$sec_slug" ] && continue
+            conf_line=$(printf '%s' "$sec_body" | grep -i '^\*\*Confidence:\*\*' 2>/dev/null || true)
+            confidence=$(printf '%s' "$conf_line" | sed 's/\*\*Confidence:\*\*[[:space:]]*//' | tr -d '[:space:]' | head -1)
+            [ -z "$confidence" ] && confidence="quarantine"
+            key="pattern:${confidence}:${sec_slug}"
+            value=$(printf '%s' "${sec_body:0:2000}" | jq -Rs '.')
+            tags_json="[\"source:patterns-md\",\"type:pattern\",\"confidence:${confidence}\",\"file:patterns.md\"]"
+            echo "{\"key\":\"$key\",\"value\":$value,\"namespace\":\"pattern\",\"tags\":$tags_json}" >> "$JSONL_FILE"
+            TOTAL=$((TOTAL + 1))
+        done < <(awk '
+            /^## / {
+                if (slug != "") { print slug "|" body }
+                slug = substr($0, 4)
+                body = ""
+                next
+            }
+            slug != "" { body = body $0 "\n" }
+            END { if (slug != "") print slug "|" body }
+        ' "$filepath")
+
+        continue
+    fi
+
+    # ── Standard frontmatter-based parsing ────────────────────────
     slug="${filename%.md}"
 
     # Extract frontmatter
