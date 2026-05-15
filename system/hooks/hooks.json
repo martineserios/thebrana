@@ -73,6 +73,7 @@
       },
       {
         "matcher": "Bash",
+        "if": "Bash(git *)",
         "hooks": [
           {
             "type": "command",
@@ -93,6 +94,7 @@
       },
       {
         "matcher": "Bash",
+        "if": "Bash(git *)",
         "hooks": [
           {
             "type": "command",
