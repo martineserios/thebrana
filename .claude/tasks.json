@@ -39452,6 +39452,34 @@
         "client-move"
       ],
       "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "Every 3rd-party skill import hits 3 deterministic hook failures: (1) branch-verify blocks system/ on main, (2) secret-scan flags API_KEY=my-secret placeholder patterns, (3) status validator rejects status: acquired. All predictable. A new /brana:acquire-skill skill (or extension of acquired-skill procedure) should pre-sanitize: create feat/acquire-* branch, rewrite status: acquired → experimental, replace secret-shaped placeholders (API_KEY=my-secret → API_KEY=example-secret). Saves 3 commit retries per batch. Triggered by close session 2026-05-14 (4-skill import).",
+      "created": "2026-05-14",
+      "description": null,
+      "effort": "M",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1409",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "roadmap",
+      "subject": "[skill] /brana:acquire-skill — pre-sanitize checklist for third-party skill import",
+      "tags": [
+        "ideation",
+        "skill",
+        "acquired-skills"
+      ],
+      "type": "task"
     }
   ],
   "version": "1"

@@ -133,6 +133,10 @@ Community skills install with `quarantine: true` in frontmatter and read-only to
 
 ## Field Notes
 
+### 2026-05-14: system/skills/memory/ naming collision with auto-memory store
+`system/skills/memory/` (the memory skill dir) shares a path component with `~/.claude/projects/.../memory/` (the auto-memory store). At least one writer created `system/skills/memory/MEMORY.md` — a spurious auto-memory index that doesn't belong in the skill tree. Deleted as a stale artifact. Risk of recurrence: any tool that walks `system/skills/` looking for `memory/` subdirs could land here. Guard: pre-commit should reject `system/skills/**/MEMORY.md`.
+Source: sitrep investigation / close session 2026-05-14
+
 ### 2026-05-14: MCP tools in allowed-tools are project-scoped — use CLI when procedure already calls it
 `allowed-tools` grants permission but not availability. MCP servers are registered per-project (`.mcp.json`). A skill loaded globally via plugin that lists a project-scoped MCP tool (e.g. `mcp__brana__backlog_set`) will silently fail in any session where that server isn't running. Root cause of 22 `backlog_set` failures: `/brana:fix` ran in `proyecto_anita` where brana-mcp wasn't registered. Fix: if the procedure already uses the CLI equivalent, don't add the MCP tool to `allowed-tools` — it adds failure surface with zero benefit.
 Source: fix/mcp-backlog-allowed-tools / close session 2026-05-14
