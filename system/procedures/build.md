@@ -353,6 +353,22 @@ If TDD applies, the BUILD step must follow red-green-refactor.
 
 > See [docs/reflections/32-lifecycle.md](../../docs/reflections/32-lifecycle.md) §"The Development Workflow" for the full DDD → SDD → TDD → Code rationale.
 
+### Backlog lifecycle check (M+ tasks with task_id)
+
+For tasks with effort M, L, or XL that have a `task_id`, verify lifecycle artifacts are planned in the backlog before building:
+
+```bash
+brana backlog query --tag "sdd,ddd,test,tdd" | grep -i "<task-id or subject keywords>"
+# OR
+brana backlog search "<subject keywords>" | grep -E "sdd|spec|ddd|test"
+```
+
+- **DDD applies and no DDD task in backlog:** surface warning — "No DDD task found for this M+ build. Domain glossary update may be missing."
+- **SDD applies and no SDD/spec task in backlog:** surface warning — "No SDD/spec task found. Behavioral spec should be planned before implementation."
+- **TDD applies and no test task in backlog:** hard gate — mirror the plan step 11 TDD gate (AskUserQuestion before proceeding).
+- **If lifecycle tasks exist:** proceed silently.
+- **If task has no task_id or effort < M:** skip this check.
+
 1. **Present the strategy's step sequence** inline:
    ```
    ## Build Steps: {task subject}

@@ -383,3 +383,7 @@ Source: t-1238, session 2026-04-14
 ### 2026-04-14: Double challenger collapses architecture plan complexity
 Running /brana:challenge on a design, then again on the reshaped plan, collapsed 8 tasks → 5 without losing coverage. Effective combo: pre-mortem (what fails in 3 months?) + simplicity pass (half the complexity, same outcome?). Run both flavors on any architecture task with M+ effort before creating child tasks.
 Source: t-1238, session 2026-04-14
+
+### 2026-04-14: Validated M+ planning methodology (8-step)
+For architecture tasks with M+ effort, the full validated planning sequence is: (1) INVESTIGATE — freeform design session, produce taxonomy/design; (2) CHALLENGE round 1 — surfaces critical flaws; (3) RESHAPE — address all findings; (4) CHALLENGE round 2 — pre-mortem + simplicity pass; (5) ADDRESS — incorporate warnings; (6) PLAN — /brana:backlog plan with full hierarchy; (7) LIFECYCLE — DDD/SDD/tests/docs wired as tasks BEFORE every implementation task; (8) INTEGRATE — include updates to all commands/workflows affected by the change (Phase D). Steps 7 and 8 are the most commonly skipped — without them, specs ship without tests and adjacent commands drift silently. Evidence: t-1238 added 8 lifecycle tasks + full Phase D that were absent from the initial plan.
+Source: t-1238, session 2026-04-14
