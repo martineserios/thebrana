@@ -835,9 +835,7 @@
       "type": "task"
     },
     {
-      "blocked_by": [
-        "ms-011"
-      ],
+      "blocked_by": [],
       "branch": null,
       "completed": null,
       "context": "Claude prepares the custom prompt via /notebooklm-source audio-prompt, user pastes it in NotebookLM Audio Overview UI.",
@@ -39157,7 +39155,7 @@
       "parent": null,
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "bugs",
       "subject": "Read tool-fail x572 — fix detail capture and identify failing paths",
       "tags": [
