@@ -63,6 +63,7 @@ Branch conventions preserve the separation:
 - When adding new docs, update `docs/README.md`
 - Ruflo namespaces: `specs` · `decisions` · `knowledge` (use `namespace: "all"` for cross-namespace search)
 - After any code change, run the relevant test suite before marking the task done.
+- Use `.claude/CLAUDE.local.md` (gitignored) for personal/machine-specific overrides — loaded last, wins on conflict. Never commit it.
 
 ## Field Notes
 

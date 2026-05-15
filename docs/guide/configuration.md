@@ -122,6 +122,7 @@ Copies the current `system/` directory to the installed plugin cache. Use this d
 | Task portfolio | `~/.claude/tasks-portfolio.json` | Cross-project task registry |
 | Project tasks | `.claude/tasks.json` | Per-project task list |
 | Project identity | `.claude/CLAUDE.md` | Per-project conventions |
+| Local overrides | `.claude/CLAUDE.local.md` | Gitignored personal overrides (loaded last, wins on conflict) |
 
 ## Environment variables
 

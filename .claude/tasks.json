@@ -851,7 +851,7 @@
       "parent": "ms-012",
       "priority": "P2",
       "started": "2026-05-13",
-      "status": "pending",
+      "status": "cancelled",
       "stream": "roadmap",
       "subject": "Test Audio Overview from dimension docs (web UI)",
       "tags": [
@@ -35540,9 +35540,7 @@
       "task_type": "task"
     },
     {
-      "blocked_by": [
-        "t-1270"
-      ],
+      "blocked_by": [],
       "branch": null,
       "build_step": null,
       "completed": null,
@@ -35571,9 +35569,7 @@
       "task_type": "task"
     },
     {
-      "blocked_by": [
-        "t-1270"
-      ],
+      "blocked_by": [],
       "branch": null,
       "build_step": null,
       "completed": null,
@@ -38532,7 +38528,7 @@
       "parent": "t-1369",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "docs",
       "subject": "Write workflows/challenge.md — dedicated guide for /brana:challenge",
       "tags": [
@@ -38559,7 +38555,7 @@
       "parent": "t-1369",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "docs",
       "subject": "Write workflows/memory.md — dedicated guide for /brana:memory",
       "tags": [
@@ -38586,7 +38582,7 @@
       "parent": "t-1369",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "docs",
       "subject": "Write workflows/reconcile.md — dedicated guide for /brana:reconcile",
       "tags": [
