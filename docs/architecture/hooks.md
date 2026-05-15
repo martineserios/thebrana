@@ -170,7 +170,7 @@ As of 2026-04-01, three hook scripts integrate with ruflo MCP via `cf-env.sh`:
 
 **Error recurrence tracking (t-679)** -- `post-tool-use-failure.sh` computes an error signature (md5 of tool_name + error_cat + first 80 chars of detail) and increments a counter in `~/.claude/logs/error-recurrence.jsonl`. When the same signature hits 3 occurrences across sessions, it stores to ruflo memory with tag `escalate:rule-candidate`. `session-start.sh` scans the recurrence file and surfaces errors with count >= 3 as "[Recurring errors -- rule/hook candidates]" in session context.
 
-**File-targeted tool enumeration (promoted 2026-05-14)** -- The detail-extraction case statement in `post-tool-use-failure.sh` must explicitly enumerate every CC tool that takes a `file_path` input: `Read`, `Edit`, `Write`, `NotebookEdit`, `MultiEdit`. Any tool missing from the branch falls through to the `TOOL_NAME` fallback, making all its failures log `detail="<ToolName>"` — collapsing distinct failures into one indistinguishable signature bucket. This happened with `Read`: 572 failures logged as `detail="Read"` (same hash) before the fix. Rule: when adding a new file-targeted tool to CC, update the case branch. A regression test (`test-post-tool-use-failure-detail.sh`, t-1406) guards this.
+**File-targeted tool enumeration (promoted 2026-05-14, completed 2026-05-15)** -- The detail-extraction case statement in `post-tool-use-failure.sh` must explicitly enumerate every CC tool that takes a `file_path` or `notebook_path` input: `Read`, `Edit`, `Write`, `NotebookEdit`, `MultiEdit`. Any tool missing from the branch falls through to the `TOOL_NAME` fallback, making all its failures log `detail="<ToolName>"` — collapsing distinct failures into one indistinguishable signature bucket. History: `Read` was missing (572 failures, hash bc9058e8) before 4c21e36; `NotebookEdit` and `MultiEdit` were missing until 2026-05-15 (t-1397). Note: `NotebookEdit` uses `notebook_path` not `file_path` — extraction uses `.file_path // .notebook_path // empty`. Rule: when adding a new file-targeted tool to CC, update the case branch and the regression test. A regression test (`test-post-tool-use-failure-detail.sh`) guards this.
 
 **Agent nudging** -- Several hooks inject `additionalContext` that triggers auto-delegation to agents: post-plan-challenge (challenger), post-pr-review (pr-reviewer), session-start (daily-ops for venture projects).
 
@@ -286,3 +286,15 @@ Source: t-1404, session 2026-05-14
 Prior to CC v2.1.126, each `Read` tool call triggered an internal malware-assessment step. These internal calls fired `PostToolUseFailure` when they hit errors, all logging `detail="Read"` (before the file_path extraction fix). This is the most likely explanation for the 572 Read tool-fail accumulation. Now on v2.1.141, this assessment is removed. Monitor `~/.claude/logs/error-recurrence.jsonl` for 2-3 sessions: if the Read count stops growing, root cause is confirmed (t-1405). If new Read failures appear with distinct file_paths (now captured post-fix), classify by path family to find the true source.
 Source: t-1397/t-1405, CC changelog v2.1.126, session 2026-05-14
 Source: reconcile / close session 2026-05-11
+
+### 2026-05-15: Partial tool enumeration leaves silent diagnostic dark spots
+When fixing a hook that enumerates file-targeted tools (`Edit|Write|Read`), stopping at the obvious cases leaves unlisted tools (e.g. `NotebookEdit`, `MultiEdit`) falling through to the `TOOL_NAME` fallback — producing `detail="NotebookEdit"` instead of the path. The dark spot is invisible until the missing tool fires in production. Rule: any enumeration fix must grep the full CC file-targeted tool list and assert all cases are covered in the same commit. Also add a test that loops over all listed tools. Applies to any hook with a case-based dispatch on tool names.
+Source: t-1397, session 2026-05-15
+
+### 2026-05-15: NotebookEdit uses notebook_path, not file_path
+CC's `NotebookEdit` input uses `notebook_path` as the key, not `file_path`. Hooks extracting file targets from tool_input must handle both: `.file_path // .notebook_path // empty`. Same pattern likely applies to future tools with different path field names (e.g. `Glob`/`Grep` use `pattern`). Build the extraction as `jq -r '.file_path // .notebook_path // empty'` and document it in the case branch comment when adding any new file-targeted tool.
+Source: t-1397, session 2026-05-15
+
+### 2026-05-15: Worktree workflow confirmed for system/hooks/ changes — no friction
+Feature branch via worktree + merge --no-ff with regression test included worked cleanly for a protected behavioral change. The worktree-gate fires, worktree is created, changes are committed and merged, worktree is reaped. No edge cases observed. Aligns with `feedback_worktree-for-rules.md`. Continue this pattern for all `system/hooks/` and `system/skills/` behavioral changes.
+Source: t-1397, session 2026-05-15
