@@ -189,7 +189,7 @@ Hierarchy views (status, roadmap) use box-drawing characters when not in `--wide
 
 For the `plan` and `execute` subcommands, create a CC Task step registry on entry. Follow the [guided-execution protocol](../_shared/guided-execution.md). Other subcommands (status, roadmap, next, add, etc.) are single-step and don't need a registry.
 
-**plan steps:** DETECT, READ, MILESTONES, TASKS, DEPS, PROPOSE, WRITE
+**plan steps:** DETECT, READ, MILESTONES, TASKS, DEPS, PROPOSE, CHALLENGE, WRITE
 **execute steps:** READ, FILTER, WAVES, CONFIRM, EXECUTE, WRITEBACK, REPORT
 
 ### Resume After Compression
@@ -260,9 +260,22 @@ Interactive phase planning. Builds the hierarchy conversationally.
    - **If test tasks found:** proceed to step 12.
    - **If all tasks are docs/config/spec only:** gate passes automatically — no code, no test required.
 
-12. **Wait for approval** — user can adjust before writing
-13. **Write tasks.json** — one Write for the entire batch
-14. **Report:** show the tree with IDs and tags for reference
+12. **Challenge gate (M+ tasks)** — If any task in the phase has effort M, L, or XL:
+    ```
+    AskUserQuestion:
+      question: "Phase has M+ effort tasks. Run /brana:challenge before writing?"
+      header: "Challenge gate"
+      options:
+        - "Yes — challenge the plan now (Recommended)"
+        - "Skip — already challenged or S-only work"
+    ```
+    - If "Yes": invoke `/brana:challenge` on the current plan. Address all HIGH findings before proceeding. MEDIUM findings may be noted as risks in task context fields.
+    - If "Skip": proceed.
+    - **If the phase is an investigation/spike** (strategy: investigation or all tasks tagged `investigation`): recommend the **double-challenge pattern** — challenge once before planning, once after reshaping. Suggest running `/brana:challenge` again after step 8 (PROPOSE).
+
+13. **Wait for approval** — user can adjust before writing
+14. **Write tasks.json** — one Write for the entire batch
+15. **Report:** show the tree with IDs and tags for reference
 
 ### Defaults
 - Stream: roadmap (unless user specifies otherwise)
@@ -405,6 +418,8 @@ Begin work on a task or freeform description. Accepts task IDs, phase IDs, or na
      - Default → strategy: `feature`
    - **Confirm with user:** "Start t-008 as **feature**? [feature / bug-fix / refactor / spike / other]"
    - Write the confirmed `strategy` field to the task
+   - **If strategy is `investigation`:** surface the double-challenge pattern:
+     > "Investigation tasks benefit from two challenge rounds: challenge the design after shaping, then challenge the reshaped plan before writing tasks. `/brana:challenge` can be invoked at any point — recommended after step 8 (PROPOSE) and again after addressing findings."
 5. **Skill suggestion** (after strategy confirmed):
 
    Read `skill_routing` from `~/.claude/tasks-config.json` (defaults: `suggest_threshold: 0.5`, `mention_threshold: 0.3`, `enabled: true`). If `enabled: false`, skip step 5.

@@ -33,6 +33,12 @@ source "$HOME/.claude/scripts/cf-env.sh"
 3. **Fallback path (ruflo unavailable):**
    Search `~/.claude/projects/*/memory/` for relevant MEMORY.md files. Grep for keywords from the query.
 
+3a. **Local patterns.md** (always, regardless of ruflo):
+   Read `~/.claude/memory/patterns.md`. For each `## slug` section whose body matches query keywords, surface it as a pattern result with its `**Confidence:**` field. These are local-only patterns not yet indexed in ruflo.
+
+3b. **Local knowledge-staging.md** (always):
+   Read `~/.claude/memory/knowledge-staging.md`. For each `## slug` section matching the query, surface the claim and its `**Promote to:**` destination. Label clearly as "staging — not yet promoted."
+
 4. **Group results by confidence tier:**
 
    ```
@@ -95,11 +101,22 @@ source "$HOME/.claude/scripts/cf-env.sh"
    - Stored > 60 days, never recalled: N (demotion candidates)
    ```
 
-3. **Flag items:** promotion candidates (3+ recalls, still quarantined), staleness candidates, suspect patterns.
+3. **Check local stores** (patterns.md + knowledge-staging.md):
+   - Count `##` sections in `~/.claude/memory/patterns.md`. Cap: 50, warn-at: 40. Surface count + status.
+   - Count `##` sections in `~/.claude/memory/knowledge-staging.md`. Cap: 30, warn-at: 20. Surface count + status.
+   - Add to health snapshot:
+     ```
+     ### Local Stores
+     - patterns.md: N/50 entries (warn-at 40) — [OK | ⚠ Near cap | ✗ AT CAP]
+     - knowledge-staging.md: N/30 entries (warn-at 20) — [OK | ⚠ Near cap | ✗ AT CAP]
+     ```
+   - If at or above warn-at: flag as action item — list staging entries with no `**Promoted:**` date.
 
-4. **Suggest actions** — present options, let user decide. If no promotion/demotion/staleness candidates exist and all metrics are within thresholds (quarantine < 30%, staleness < 20%, proven > 50%), report "No action needed" with the numbers.
+4. **Flag items:** promotion candidates (3+ recalls, still quarantined), staleness candidates, suspect patterns, staging entries past 30 days without promotion.
 
-5. **Backup** if changes made:
+5. **Suggest actions** — present options, let user decide. If no promotion/demotion/staleness candidates exist and all metrics are within thresholds (quarantine < 30%, staleness < 20%, proven > 50%), report "No action needed" with the numbers.
+
+6. **Backup** if changes made:
    ```bash
    "$HOME/.claude/scripts/backup-knowledge.sh"
    ```
@@ -194,7 +211,7 @@ Traverses docs via formal `[doc NN](path)` links and flags factual contradiction
 
 2. **Surface the summary.**
    - Read the `## Summary` section of the report (first 30 lines are usually enough).
-   - Show: total candidates found, breakdown by category (duplicates, contradictions, frontmatter gaps, concept refs).
+   - Show: total candidates found, breakdown by category (duplicates, contradictions, frontmatter gaps, concept refs, patterns.md duplicate slugs, knowledge-staging.md cap status).
 
 3. **Interactive approve-merges flow** (for duplicate and contradiction candidates only):
    - List each HIGH/MEDIUM candidate with: source file(s), the conflict or duplication, proposed action (archive/merge/update).
