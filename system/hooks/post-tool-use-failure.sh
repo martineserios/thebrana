@@ -26,8 +26,9 @@ if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
         Bash)
             DETAIL=$(echo "$TOOL_INPUT" | jq -r '.command // empty' 2>/dev/null) || DETAIL=""
             ;;
-        Edit|Write|Read)
-            DETAIL=$(echo "$TOOL_INPUT" | jq -r '.file_path // empty' 2>/dev/null) || DETAIL=""
+        Edit|Write|Read|NotebookEdit|MultiEdit)
+            # File-targeted tools — extract the file/notebook path
+            DETAIL=$(echo "$TOOL_INPUT" | jq -r '.file_path // .notebook_path // empty' 2>/dev/null) || DETAIL=""
             ;;
         *)
             DETAIL="${TOOL_NAME:-unknown}"
