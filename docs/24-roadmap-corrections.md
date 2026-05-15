@@ -16,6 +16,7 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 
 | # | Error | Severity | Status | Comments |
 |---|---|---|---|---|
+| E2026-05-15-3 | thebrana: `brana backlog set` array-field syntax undocumented — `[]` is rejected; use `+val`/`-val`; negative values need `--` separator (`brana backlog set t-NNN blocked_by -- -t-MMM`) | **Low** | pending | Update `feedback_brana-backlog-set-positional.md` with array-field semantics |
 | E2026-05-15-2 | thebrana: `branch-verify.sh` reverse-direction parent-dir match (`case "$bpath" in ${file}|${file}/*`) flags bare dir name `system` as behavioral — false positives on `.claude/tasks.json` + `docs/ideas/*` staging; also triggers when a Bash command payload contains the substring `git add` followed by the word `system/` | **Medium** | pending | Fix: remove reverse-direction case (line 82-88) — actual blob paths from staging always include full subpath. Add regression test asserting `.claude/tasks.json` + `docs/ideas/foo.md` pass `is_behavioral()`. Track: t-1424 |
 | E2026-05-15-1 | proyecto_anita: `prompt-deploy-freshness.md` doesn't mandate pre-edit drift check — operator may edit v4.md while deployed definition.json is ahead, then push a regression | **Medium** | pending |
 | E2026-05-14-6 | proyecto_anita: ADR-039 GCP split had no expiry condition — hybrid Cloud Run + Vercel state could persist indefinitely after Phase 3, contradicting "terminal state is Vercel" | **Medium** | code-fix | Added 90-day tripwire from Phase 3 completion in ADR-039 §coordination. Agent v4 routes (`agent_contacts`, `agent_conversations`, `agent_sheets`) must migrate to Vercel within 90 days of Phase 3; failure triggers a forced decision. Affected: `docs/decisions/ADR-039-vercel-platform-migration.md` |
@@ -2831,4 +2832,21 @@ Doc 38 also classifies these as Wave 1 (divergent ideation — shipped) vs Wave 
 **Fix:** Add to `prompt-deploy-freshness.md §How to apply`: "Before editing v4.md, run the drift check first: `python3 tools/agent-v4/check_prompt_deploy_drift.py`. If deployed is ahead, sync v4.md FROM the deployed system_prompt (copy the deployed text back into v4.md) before adding new changes."
 
 **Status:** pending (spec fix via `/brana:maintain-specs`)
+
+---
+
+## Error E2026-05-15-3: `brana backlog set` array-field syntax undocumented
+
+**Severity:** Low — documentation gap; workaround is straightforward once discovered.
+**Discovery:** 2026-05-15 — triage session. Clearing `blocked_by` field with `brana backlog set t-1273 blocked_by '[]'` returned "use +val or -val for array fields". Passing `-t-1270` directly was interpreted as a flag.
+**Affected files:** `~/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/feedback_brana-backlog-set-positional.md`
+
+**Gap:** Existing documentation covers positional syntax for scalar fields but is silent on array-field semantics. Three things are undocumented: (1) array fields require `+val` to add or `-val` to remove (not bare value or `[]`); (2) passing `[]` explicitly is rejected; (3) values starting with `-` (like task IDs `-t-NNN`) require the `--` separator to avoid being parsed as flags.
+
+**Fix:** Update `feedback_brana-backlog-set-positional.md` with array-field section:
+- Array field remove: `brana backlog set <id> blocked_by -- -t-NNN`
+- Array field add: `brana backlog set <id> blocked_by +t-NNN`
+- `[]` literal is rejected — use individual `-val` removals
+
+**Status:** pending (doc update to memory file)
 
