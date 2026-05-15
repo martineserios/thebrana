@@ -66,11 +66,6 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Alignment report:** `ventures/proyecto_anita/clients/mya/.claude/alignment-report.md`
 - **Details:** `ventures/proyecto_anita/clients/mya/docs/proposal.md` (v2.7), `solucion-tecnica.md`, `quote.md`, `scope-v1.md`, `decisions/ADR-001-tech-stack.md`
 
-### nexeye (NexeyeTech)
-- **Type:** Eye detection product
-- **Projects:** eyedetect (`clients/nexeye_eyedetect`)
-- **Details:** `.claude/session-handoff.md`
-
 ### batrade (BA Trade — The BATRADE SRL)
 - **Type:** Broker internacional de granos — intermediario buyer/seller, redacción de contratos, ejecución logística, cobro
 - **Domain:** Commodity trading (granos, oleaginosas, legumbres). 90% sellers AR, buyers worldwide. ~300 negocios activos / 60-100 cerrados/mes
@@ -166,6 +161,13 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Team:** Tomás Catalán Pellet (shared cofounder w/ proyecto_anita) + Trusso (lawyer, legal domain + templates) + Martín (tech/AI operator, alias "Bonnie" in meetings)
 - **Status:** Awaiting Trusso's templates — blocked on legal template delivery. No revenue.
 - **Details:** `.claude/CLAUDE.md`, ADR-001 (AI model), ADR-002 (monetization path, Proposed), meeting notes 2026-04-17
+
+### nexeye (NexeyeTech / eyedetect)
+- **Type:** Venture — eye detection product (your own IP)
+- **Location:** `~/enter_thebrana/ventures/nexeye_eyedetect`
+- **Remote:** `https://github.com/NexeyeTech/eyedetect.git`
+- **Stack:** FastAPI + Supabase + Next.js + Docker Swarm (Hetzner) + Vercel migration in progress
+- **Details:** `.claude/session-handoff.md`, `docs/ideas/vercel-migration.md`
 
 ### prediktive-prep
 - **Type:** Side project — learning/study material

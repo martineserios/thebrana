@@ -39881,6 +39881,34 @@
         "dx"
       ],
       "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "branch-verify.sh lines 82-88 have a reverse-direction case check that matches bare dir name \"system\" against behavioral subpaths via glob system/*. Hook fires on completely unrelated commits (.claude/tasks.json + docs/ideas/*) because the is_behavioral() function returns true for \"system\" — since system/hooks starts with system/. Even worse: the hook scans the full Bash command text for the pattern git-space-add, so a brana backlog add call with the word git-add anywhere in its JSON payload ALSO triggers the hook. Fix: remove the reverse-direction case entirely (parent-dir staging is not a real attack vector; actual blobs from staging always have full paths). Also add regression test asserting .claude/tasks.json + docs/ideas/foo.md pass on main. AC: is_behavioral(\"system\") returns false; hook message includes expanded path when reverse-dir match does fire.",
+      "created": "2026-05-15",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1424",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "tech-debt",
+      "subject": "fix(branch-verify): remove reverse-direction parent-dir match causing false positives",
+      "tags": [
+        "hook",
+        "branch-verify",
+        "bug"
+      ],
+      "type": "task"
     }
   ],
   "version": "1"
