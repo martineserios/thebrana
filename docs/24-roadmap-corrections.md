@@ -16,6 +16,8 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 
 | # | Error | Severity | Status | Comments |
 |---|---|---|---|---|
+| E2026-05-15-2 | thebrana: `branch-verify.sh` reverse-direction parent-dir match (`case "$bpath" in ${file}|${file}/*`) flags bare dir name `system` as behavioral — false positives on `.claude/tasks.json` + `docs/ideas/*` staging; also triggers when a Bash command payload contains the substring `git add` followed by the word `system/` | **Medium** | pending | Fix: remove reverse-direction case (line 82-88) — actual blob paths from staging always include full subpath. Add regression test asserting `.claude/tasks.json` + `docs/ideas/foo.md` pass `is_behavioral()`. Track: t-1424 |
+| E2026-05-15-1 | proyecto_anita: `prompt-deploy-freshness.md` doesn't mandate pre-edit drift check — operator may edit v4.md while deployed definition.json is ahead, then push a regression | **Medium** | pending |
 | E2026-05-14-6 | proyecto_anita: ADR-039 GCP split had no expiry condition — hybrid Cloud Run + Vercel state could persist indefinitely after Phase 3, contradicting "terminal state is Vercel" | **Medium** | code-fix | Added 90-day tripwire from Phase 3 completion in ADR-039 §coordination. Agent v4 routes (`agent_contacts`, `agent_conversations`, `agent_sheets`) must migrate to Vercel within 90 days of Phase 3; failure triggers a forced decision. Affected: `docs/decisions/ADR-039-vercel-platform-migration.md` |
 | E2026-05-14-5 | proyecto_anita: ADR-039 Phase 2 estimate "4-6 weeks solo dev" was unrealistic — bundling Hono API rewrite + Vite→Next.js migration is 8-12 weeks; estimate compressed two orthogonal migrations into one window | **High** | code-fix | Split Phase 2 into 2a (Hono API rewrite, 2-3w) + 2b (Vite→Next.js App Router, 3-4w, separate gate). Each has independent rollback path and skill prerequisites. Affected: `docs/decisions/ADR-039-vercel-platform-migration.md`, `docs/anita-v2/plan.md` |
 | E2026-05-14-4 | proyecto_anita: ADR-039 Proposed cost framing "$43/mo < 2% ARR" was misleading — actual ARR figure used was wrong (Delorenzi ARS 1.35M/mo ≈ $1,230/mo; $43 ≈ 3.5%), and cost represents a 43× infrastructure multiplier over near-zero Cloud Run baseline | **Medium** | code-fix | Three-dimension framing applied: absolute $/mo + % of ARR + infrastructure multiplier vs status quo. Both ADR-039 and `docs/ideas/vercel-migration.md` corrected in commits 6898867 and 98b4e49. |
@@ -2815,3 +2817,18 @@ Doc 38 also classifies these as Wave 1 (divergent ideation — shipped) vs Wave 
 | 1 | ADR-034 | Stale | "28 skills" — actual 33 | Applied — removed count, kept context |
 | 2 | ADR-025 | Stale | "30 skills" ×2 — actual 33 | Applied — replaced with "all skills" + reference link |
 | 3 | hooks.md | Maintenance | 5 oldest field notes (2026-04-10 ×5) at 20-note cap | Applied — archived to ruflo knowledge namespace, updated archive notice |
+
+---
+
+## Error E2026-05-15-1: `prompt-deploy-freshness.md` missing pre-edit drift check gate
+
+**Severity:** Medium — operator may edit v4.md while deployed definition.json is ahead, then push a regression.
+**Discovery:** 2026-05-15 — S1-MVP session. definition.json already had a complete M1 + tracy_price_probe version. v4.md was edited to add M1, producing a slightly different version. If the operator had run `kapso push workflow` after the v4.md edit, the richer deployed version would have been overwritten.
+**Affected files:** `.claude/rules/prompt-deploy-freshness.md`
+
+**Gap:** The freshness rule covers "deployed is ahead → pull deployed back into v4.md." But it does NOT mandate running a drift check BEFORE starting any v4.md edit. Without a pre-edit check, an operator doesn't know which side is fresh, and may edit the stale side and then push a regression.
+
+**Fix:** Add to `prompt-deploy-freshness.md §How to apply`: "Before editing v4.md, run the drift check first: `python3 tools/agent-v4/check_prompt_deploy_drift.py`. If deployed is ahead, sync v4.md FROM the deployed system_prompt (copy the deployed text back into v4.md) before adding new changes."
+
+**Status:** pending (spec fix via `/brana:maintain-specs`)
+

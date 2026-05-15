@@ -160,6 +160,15 @@ As of 2026-04-01, three hook scripts integrate with ruflo MCP via `cf-env.sh`:
 
 ## Design principles
 
+**Enforcement vs advisory gate taxonomy (2026-05-15)** -- Every PreToolUse gate must declare its class at write time. Enforcement gates block unconditionally — bypassing them corrupts an invariant. Advisory gates reject but allow the agent loop to recover via `continueOnBlock: true`, feeding the rejection as context instead of terminating.
+
+| Class | Gates | `continueOnBlock` |
+|---|---|---|
+| **Enforcement** | `tdd-gate.sh`, `main-guard.sh`, `branch-verify.sh`, `worktree-gate.sh`, `feedback-gate.sh` (Layer 1 path) | Never — hard stop |
+| **Advisory** | `post-plan-challenge.sh`, `post-tasks-validate.sh`, `commit-msg-verify.sh`, `feedback-gate.sh` (non-Layer-1) | Yes — loop continues |
+
+Differentiator: "Does bypassing this gate corrupt an invariant that cannot be repaired in the same session?" Yes → enforcement. No → advisory. When adding a new hook, declare its class in the hook file header comment.
+
 **Spec-first enforcement** -- `pre-tool-use.sh` is the strongest feedback mechanism (a "Stop hook"). A PERMISSION DENY cannot be ignored. Projects opt in by having `docs/decisions/`.
 
 **Session event pipeline** -- PostToolUse/PostToolUseFailure hooks append JSONL events to `/tmp/brana-session-{SESSION_ID}.jsonl`. The session-end hook consumes this file, computes 7 flywheel metrics (correction_rate, auto_fix_rate, test_write_rate, cascade_rate, test_pass_rate, lint_pass_rate, delegation_count), and persists to ruflo memory.
@@ -294,6 +303,10 @@ Source: t-1397, session 2026-05-15
 ### 2026-05-15: NotebookEdit uses notebook_path, not file_path
 CC's `NotebookEdit` input uses `notebook_path` as the key, not `file_path`. Hooks extracting file targets from tool_input must handle both: `.file_path // .notebook_path // empty`. Same pattern likely applies to future tools with different path field names (e.g. `Glob`/`Grep` use `pattern`). Build the extraction as `jq -r '.file_path // .notebook_path // empty'` and document it in the case branch comment when adding any new file-targeted tool.
 Source: t-1397, session 2026-05-15
+
+### 2026-05-15: branch-verify.sh parent-dir glob fires on non-behavioral staged files [→ t-1424]
+`is_behavioral()` has a reverse-direction check: `case "$bpath" in ${file}|${file}/*)`. If `file="system"` (bare dir name, e.g. from parsing text after a `git add` substring in a Bash command payload), `system/hooks` matches the glob `system/*` and the hook denies with "Files: system". Neither `.claude/tasks.json` nor `docs/ideas/*.md` is behavioral, but staging them alongside any command text containing "git add" + "system/" triggers this. Fix in t-1424: remove the reverse-direction case. Real staging always produces full blob paths (`system/hooks/foo.sh`), never bare parent dirs.
+Source: t-1424, session 2026-05-15 (E2026-05-15-2)
 
 ### 2026-05-15: Worktree workflow confirmed for system/hooks/ changes — no friction
 Feature branch via worktree + merge --no-ff with regression test included worked cleanly for a protected behavioral change. The worktree-gate fires, worktree is created, changes are committed and merged, worktree is reaped. No edge cases observed. Aligns with `feedback_worktree-for-rules.md`. Continue this pattern for all `system/hooks/` and `system/skills/` behavioral changes.
