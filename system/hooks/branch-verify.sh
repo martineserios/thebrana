@@ -81,10 +81,6 @@ is_behavioral() {
             # File is under a behavioral path, or IS a behavioral path
             ${bpath}|${bpath}/*) return 0 ;;
         esac
-        # Directory entry covers a behavioral path (e.g. "system/" covers "system/hooks")
-        case "$bpath" in
-            ${file}|${file}/*) return 0 ;;
-        esac
     done
     return 1
 }
