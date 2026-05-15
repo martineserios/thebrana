@@ -162,12 +162,26 @@ As of 2026-04-01, three hook scripts integrate with ruflo MCP via `cf-env.sh`:
 
 **Enforcement vs advisory gate taxonomy (2026-05-15)** -- Every PreToolUse gate must declare its class at write time. Enforcement gates block unconditionally — bypassing them corrupts an invariant. Advisory gates reject but allow the agent loop to recover via `continueOnBlock: true`, feeding the rejection as context instead of terminating.
 
-| Class | Gates | `continueOnBlock` |
-|---|---|---|
-| **Enforcement** | `tdd-gate.sh`, `main-guard.sh`, `branch-verify.sh`, `worktree-gate.sh`, `feedback-gate.sh` (Layer 1 path) | Never — hard stop |
-| **Advisory** | `post-plan-challenge.sh`, `post-tasks-validate.sh`, `commit-msg-verify.sh`, `feedback-gate.sh` (non-Layer-1) | Yes — loop continues |
-
 Differentiator: "Does bypassing this gate corrupt an invariant that cannot be repaired in the same session?" Yes → enforcement. No → advisory. When adding a new hook, declare its class in the hook file header comment.
+
+**Gate classification (all PreToolUse and blocking PostToolUse hooks):**
+
+| Hook | Matcher | Class | `continueOnBlock` | Invariant / why |
+|---|---|---|---|---|
+| `pre-tool-use.sh` | Write\|Edit | **Enforcement** | Never | Spec-before-code: impl without a spec cannot be undone in the same session |
+| `tdd-gate.sh` | Write\|Edit | **Enforcement** | Never | Test-before-code: impl without a failing test violates the TDD contract |
+| `feedback-gate.sh` (Layer 1) | Write\|Edit | **Enforcement** | Never | CLAUDE.md files are human-authored load-bearing docs — LLM writes corrupt authorship |
+| `feedback-gate.sh` (non-L1) | Write\|Edit | **Advisory** | Yes | Feedback memory is LLM-writable; rejection becomes context for retry |
+| `plan-mode-gate.sh` | EnterPlanMode | **Advisory** | Yes | Planning encouragement; skipping plan mode is recoverable |
+| `worktree-gate.sh` | Bash | **Enforcement** | Never | Branch discipline: behavioral changes must go through a worktree branch |
+| `doc-gate.sh` | Bash | **Enforcement** | Never | Spec-in-same-commit: behavioral commits without docs corrupt the change record |
+| `main-guard.sh` | Bash | **Enforcement** | Never | Behavioral commits must never land on main directly |
+| `branch-verify.sh` | Bash | **Enforcement** | Never | Behavioral files must not be staged on main (caught before main-guard) |
+| `no-attribution-commit.sh` | Bash | **Enforcement** | Never | Attribution lines in commits are a hard quality rule; no safe recovery path |
+| `commit-msg-verify.sh` | Bash | **Advisory** | Yes | Commit hygiene guidance; loop continues with a formatted message suggestion |
+| `guard-explore.sh` | Read\|Grep\|Glob | **Advisory** | Yes | Search-before-read nudge; currently logging only — not yet blocking |
+| `post-plan-challenge.sh` | ExitPlanMode | **Advisory** | Yes | Challenger suggestion after plan exit; loop continues with review context |
+| `post-tasks-validate.sh` | Write\|Edit | **Advisory** | Yes | Task format validation after write; loop continues with correction context |
 
 **Spec-first enforcement** -- `pre-tool-use.sh` is the strongest feedback mechanism (a "Stop hook"). A PERMISSION DENY cannot be ignored. Projects opt in by having `docs/decisions/`.
 
