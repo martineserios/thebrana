@@ -36,7 +36,8 @@
             "args": [
               "bash",
               "${CLAUDE_PLUGIN_ROOT}/hooks/feedback-gate.sh"
-            ]
+            ],
+            "continueOnBlock": true
           }
         ]
       },
@@ -170,7 +171,8 @@
             "args": [
               "bash",
               "${CLAUDE_PLUGIN_ROOT}/hooks/post-plan-challenge.sh"
-            ]
+            ],
+            "continueOnBlock": true
           }
         ]
       },
@@ -235,7 +237,8 @@
             "args": [
               "bash",
               "${CLAUDE_PLUGIN_ROOT}/hooks/post-tasks-validate.sh"
-            ]
+            ],
+            "continueOnBlock": true
           }
         ]
       },
