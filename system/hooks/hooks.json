@@ -6,8 +6,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool-use.sh",
-            "timeout": 5000
+            "timeout": 5000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool-use.sh"
+            ]
           }
         ]
       },
@@ -16,8 +19,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/tdd-gate.sh",
-            "timeout": 5000
+            "timeout": 5000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/tdd-gate.sh"
+            ]
           }
         ]
       },
@@ -26,8 +32,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/feedback-gate.sh",
-            "timeout": 3000
+            "timeout": 3000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/feedback-gate.sh"
+            ]
           }
         ]
       },
@@ -36,8 +45,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/plan-mode-gate.sh",
-            "timeout": 5000
+            "timeout": 5000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/plan-mode-gate.sh"
+            ]
           }
         ]
       },
@@ -46,8 +58,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/worktree-gate.sh",
-            "timeout": 5000
+            "timeout": 5000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/worktree-gate.sh"
+            ]
           }
         ]
       },
@@ -56,8 +71,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/doc-gate.sh",
-            "timeout": 5000
+            "timeout": 5000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/doc-gate.sh"
+            ]
           }
         ]
       },
@@ -66,29 +84,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/main-guard.sh",
-            "timeout": 5000
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "if": "Bash(git *)",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/branch-verify.sh",
-            "timeout": 5000
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/no-attribution-commit.sh",
-            "timeout": 3000
+            "timeout": 5000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/main-guard.sh"
+            ]
           }
         ]
       },
@@ -98,8 +98,38 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/commit-msg-verify.sh",
-            "timeout": 3000
+            "timeout": 5000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/branch-verify.sh"
+            ]
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 3000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/no-attribution-commit.sh"
+            ]
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "if": "Bash(git *)",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 3000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/commit-msg-verify.sh"
+            ]
           }
         ]
       },
@@ -108,8 +138,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-explore.sh",
-            "timeout": 5000
+            "timeout": 5000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/guard-explore.sh"
+            ]
           }
         ]
       }
@@ -120,8 +153,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/post-tool-use.sh",
-            "timeout": 5000
+            "timeout": 5000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/post-tool-use.sh"
+            ]
           }
         ]
       },
@@ -130,8 +166,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/post-plan-challenge.sh",
-            "timeout": 5000
+            "timeout": 5000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/post-plan-challenge.sh"
+            ]
           }
         ]
       },
@@ -140,8 +179,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/post-pr-review.sh",
-            "timeout": 5000
+            "timeout": 5000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/post-pr-review.sh"
+            ]
           }
         ]
       },
@@ -150,8 +192,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/task-completed.sh",
-            "timeout": 5000
+            "timeout": 5000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/task-completed.sh"
+            ]
           }
         ]
       },
@@ -160,49 +205,64 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/hallucination-detect.sh",
-            "timeout": 3000
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/post-sale.sh",
-            "timeout": 5000
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/post-tasks-validate.sh",
-            "timeout": 5000
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/post-hooks-json.sh",
-            "timeout": 10000
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/memory-index-sync.sh",
             "timeout": 3000,
-            "async": true
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/hallucination-detect.sh"
+            ]
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 5000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/post-sale.sh"
+            ]
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 5000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/post-tasks-validate.sh"
+            ]
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 10000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/post-hooks-json.sh"
+            ]
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 3000,
+            "async": true,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/memory-index-sync.sh"
+            ]
           }
         ]
       }
@@ -213,8 +273,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/post-tool-use-failure.sh",
-            "timeout": 5000
+            "timeout": 5000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/post-tool-use-failure.sh"
+            ]
           }
         ]
       }
@@ -225,8 +288,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/preflight-model.sh",
-            "timeout": 3000
+            "timeout": 3000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/preflight-model.sh"
+            ]
           }
         ]
       },
@@ -235,8 +301,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/context-inject.sh",
-            "timeout": 5000
+            "timeout": 5000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/context-inject.sh"
+            ]
           }
         ]
       },
@@ -245,8 +314,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/signal-capture.sh",
-            "timeout": 3000
+            "timeout": 3000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/signal-capture.sh"
+            ]
           }
         ]
       }
@@ -257,8 +329,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh",
-            "timeout": 10000
+            "timeout": 10000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh"
+            ]
           }
         ]
       }
@@ -269,8 +344,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/subagent-context.sh",
-            "timeout": 5000
+            "timeout": 5000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/subagent-context.sh"
+            ]
           }
         ]
       },
@@ -279,8 +357,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/subagent-tracker.sh",
-            "timeout": 5000
+            "timeout": 5000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/subagent-tracker.sh"
+            ]
           }
         ]
       }
@@ -291,8 +372,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/subagent-tracker.sh",
-            "timeout": 5000
+            "timeout": 5000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/subagent-tracker.sh"
+            ]
           }
         ]
       }
@@ -303,8 +387,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/step-completed.sh",
-            "timeout": 5000
+            "timeout": 5000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/step-completed.sh"
+            ]
           }
         ]
       }
@@ -315,8 +402,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/session-end.sh",
-            "timeout": 10000
+            "timeout": 10000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/session-end.sh"
+            ]
           }
         ]
       }
@@ -327,8 +417,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stopfailure-logger.sh",
-            "timeout": 5000
+            "timeout": 5000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/stopfailure-logger.sh"
+            ]
           }
         ]
       }
@@ -339,8 +432,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/config-change-guard.sh",
-            "timeout": 3000
+            "timeout": 3000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/config-change-guard.sh"
+            ]
           }
         ]
       }
