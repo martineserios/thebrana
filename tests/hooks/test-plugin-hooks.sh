@@ -45,7 +45,7 @@ fi
 echo ""
 echo "Hook scripts:"
 
-# Extract all command values from hooks.json
+# Extract all script paths from hooks.json — handles both string-command and args[] forms
 COMMANDS=$(python3 -c "
 import json
 with open('$HOOKS_JSON') as f:
@@ -54,8 +54,9 @@ seen = set()
 for event_hooks in data.get('hooks', {}).values():
     for matcher_group in event_hooks:
         for hook in matcher_group.get('hooks', []):
-            cmd = hook.get('command', '')
-            if cmd not in seen:
+            # Support string-command form and exec-form args[]
+            cmd = hook.get('command') or (hook['args'][1] if 'args' in hook and len(hook['args']) > 1 else '')
+            if cmd and cmd not in seen:
                 seen.add(cmd)
                 print(cmd)
 ")
@@ -121,6 +122,28 @@ if python3 -c "import json; json.load(open('$PLUGIN_ROOT/.claude-plugin/plugin.j
     pass "plugin.json is valid JSON"
 else
     fail "plugin.json is not valid JSON"
+fi
+
+# --- Test 7: All hook entries use exec-form args[] (t-1413) ---
+echo ""
+echo "Exec-form migration:"
+STRING_COUNT=$(python3 -c "
+import json
+with open('$HOOKS_JSON') as f:
+    data = json.load(f)
+count = sum(
+    1 for ev in data.get('hooks', {}).values()
+    for mg in ev
+    for h in mg.get('hooks', [])
+    if 'command' in h
+)
+print(count)
+")
+
+if [ "$STRING_COUNT" -eq 0 ]; then
+    pass "all hook entries use args[] exec-form (no string command form)"
+else
+    fail "$STRING_COUNT hook entries still use string command form — must migrate to args[] (t-1413)"
 fi
 
 # --- Summary ---
