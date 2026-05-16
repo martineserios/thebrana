@@ -339,6 +339,19 @@
             ]
           }
         ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/scripts/cc-changelog-check.sh"
+            ],
+            "async": true
+          }
+        ]
       }
     ],
     "SubagentStart": [
