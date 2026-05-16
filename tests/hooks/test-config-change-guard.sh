@@ -166,6 +166,31 @@ invoke_hook "ANTHROPIC_BASE_URL" "https://evil.example.com" > /dev/null 2>&1 || 
 assert_file_contains "blocked change also logged" 'ANTHROPIC_BASE_URL|anthropic_base_url' "$AUDIT_LOG"
 echo ""
 
+# ── Test 11: ConfigChange hook wired at user level (t-1417) ──────────────────
+echo "Test 11: ConfigChange wired in ~/.claude/settings.json (user-level)"
+USER_SETTINGS="$HOME/.claude/settings.json"
+wiring_found=$(python3 -c "
+import json, sys
+try:
+    with open('$USER_SETTINGS') as f:
+        d = json.load(f)
+    hooks = d.get('hooks', {})
+    for mg in hooks.get('ConfigChange', []):
+        for h in mg.get('hooks', []):
+            path = h.get('command') or (h.get('args', ['',''])[1] if 'args' in h else '')
+            if 'config-change-guard' in path:
+                print('found')
+                sys.exit(0)
+    print('missing')
+except Exception as e:
+    print('missing')
+" 2>/dev/null)
+assert_contains \
+    "config-change-guard.sh wired to ConfigChange in ~/.claude/settings.json" \
+    "found" \
+    "$wiring_found"
+echo ""
+
 # ── Cleanup ───────────────────────────────────────────────────────────────────
 rm -rf "$TEST_LOG_DIR"
 
