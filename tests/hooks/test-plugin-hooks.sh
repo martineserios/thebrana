@@ -146,6 +146,51 @@ else
     fail "$STRING_COUNT hook entries still use string command form — must migrate to args[] (t-1413)"
 fi
 
+# --- Test 8: Gate taxonomy — advisory gates have continueOnBlock:true, enforcement gates do not ---
+echo ""
+echo "Gate taxonomy (continueOnBlock):"
+
+ADVISORY_GATES="feedback-gate.sh post-plan-challenge.sh post-tasks-validate.sh"
+ENFORCEMENT_GATES="tdd-gate.sh main-guard.sh branch-verify.sh worktree-gate.sh pre-tool-use.sh"
+
+for gate in $ADVISORY_GATES; do
+    cob=$(python3 -c "
+import json
+with open('$HOOKS_JSON') as f:
+    data = json.load(f)
+for ev in data.get('hooks', {}).values():
+    for mg in ev:
+        for h in mg.get('hooks', []):
+            path = h.get('command') or (h.get('args', ['',''])[1] if 'args' in h else '')
+            if path.split('/')[-1] == '$gate':
+                print('true' if h.get('continueOnBlock', False) else 'false')
+" 2>/dev/null | head -1)
+    if [ "$cob" = "true" ]; then
+        pass "advisory $gate has continueOnBlock:true"
+    else
+        fail "advisory $gate missing continueOnBlock:true (t-1415)"
+    fi
+done
+
+for gate in $ENFORCEMENT_GATES; do
+    cob=$(python3 -c "
+import json
+with open('$HOOKS_JSON') as f:
+    data = json.load(f)
+for ev in data.get('hooks', {}).values():
+    for mg in ev:
+        for h in mg.get('hooks', []):
+            path = h.get('command') or (h.get('args', ['',''])[1] if 'args' in h else '')
+            if path.split('/')[-1] == '$gate':
+                print('true' if h.get('continueOnBlock', False) else 'false')
+" 2>/dev/null | head -1)
+    if [ "$cob" = "false" ] || [ -z "$cob" ]; then
+        pass "enforcement $gate has no continueOnBlock (hard-stop)"
+    else
+        fail "enforcement $gate must NOT have continueOnBlock — breaks hard-stop invariant"
+    fi
+done
+
 # --- Summary ---
 echo ""
 echo "=== $PASS passed, $FAIL failed ==="
