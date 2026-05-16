@@ -191,6 +191,30 @@ for ev in data.get('hooks', {}).values():
     fi
 done
 
+# --- Test 9: cc-changelog-check.sh wired as async SessionStart hook (t-1419) ---
+echo ""
+echo "Async changelog hook (t-1419):"
+
+CHANGELOG_FOUND=$(python3 -c "
+import json
+with open('$HOOKS_JSON') as f:
+    data = json.load(f)
+for mg in data.get('hooks', {}).get('SessionStart', []):
+    for h in mg.get('hooks', []):
+        path = ' '.join(h.get('args', [])) or h.get('command', '')
+        if 'cc-changelog-check' in path:
+            is_async = h.get('async', False)
+            print('async' if is_async else 'sync')
+" 2>/dev/null | head -1)
+
+if [ "$CHANGELOG_FOUND" = "async" ]; then
+    pass "cc-changelog-check.sh wired as async SessionStart hook"
+elif [ "$CHANGELOG_FOUND" = "sync" ]; then
+    fail "cc-changelog-check.sh wired but missing async:true — will block session start"
+else
+    fail "cc-changelog-check.sh not wired as SessionStart hook (t-1419)"
+fi
+
 # --- Summary ---
 echo ""
 echo "=== $PASS passed, $FAIL failed ==="
