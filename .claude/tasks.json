@@ -39754,7 +39754,7 @@
       "parent": "t-1416",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "stream": "roadmap",
       "subject": "Wire cc-changelog-check.sh as async SessionStart hook",
