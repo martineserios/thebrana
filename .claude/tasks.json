@@ -39726,7 +39726,7 @@
       "parent": "t-1416",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "stream": "roadmap",
       "subject": "Set MCP_CONNECTION_NONBLOCKING=1 and consume CLAUDE_PROJECT_DIR in brana-mcp and ruflo",
