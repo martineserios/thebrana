@@ -39811,7 +39811,7 @@
       "parent": "t-1420",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "stream": "roadmap",
       "subject": "Document AC: convention for task context field",
