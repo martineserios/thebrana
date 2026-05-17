@@ -2850,3 +2850,27 @@ Doc 38 also classifies these as Wave 1 (divergent ideation — shipped) vs Wave 
 
 **Status:** pending (doc update to memory file)
 
+---
+
+## Error E2026-05-17-1: `MCP_CONNECTION_NONBLOCKING` interactive-mode claim contradicts feature adoption doc
+
+**Severity:** Medium — if the env var only works in headless (`-p`) mode, t-1418's central change is a no-op in interactive sessions and should be reverted or scoped.
+**Discovery:** 2026-05-17 — t-1418 implementation. `docs/ideas/fast-cold-start.md:42` states the var "only works in `-p` (headless) mode". `docs/ideas/cc-feature-adoption-v2.1.136-142.md` recommends setting it unconditionally. Both docs are in the same repo and contradict each other.
+**Affected files:** `docs/ideas/fast-cold-start.md` (line 42), `docs/ideas/cc-feature-adoption-v2.1.136-142.md`, `.mcp.json`
+
+**Fix:** Empirically verify: start CC interactively with `MCP_CONNECTION_NONBLOCKING=1` set vs. unset, time MCP connection. Then correct whichever doc is wrong and add a cross-reference. Filed as task for tracking.
+
+**Status:** pending — verification task filed
+
+---
+
+## Error E2026-05-17-2: User-level `settings.json` hook schema vs plugin `hooks.json` exec-form not documented
+
+**Severity:** Medium — future hook wiring in user settings.json will silently fail with "Expected string, but received undefined" until the implementer discovers the asymmetry by trial and error (as happened in t-1417).
+**Discovery:** 2026-05-17 — t-1417. Attempted `"args": ["bash", "script.sh"]` in `~/.claude/settings.json`. CC validation rejected it: `hooks.ConfigChange.0.hooks.0.command: Expected string, but received undefined`. The exec-form `args[]` is supported only in plugin `hooks.json`, not in user-level `settings.json`.
+**Affected files:** `docs/reference/configuration.md`, `docs/architecture/hooks.md`
+
+**Fix:** Add subsection "Hook entry schema: settings.json vs hooks.json" to both docs: settings.json requires `type: "command"` + `command: "<string>"`; exec-form `args[]` is plugin-`hooks.json`-only.
+
+**Status:** pending (doc update)
+

@@ -119,6 +119,10 @@ Source: close session 2026-05-06 / sdd-tdd.md budget revert
 The brana statusline `+N -N` lines-changed segment is added unconditionally via `add_l2` regardless of slow-cache availability. Line 2 is always emitted when there are git line changes. Knowledge freshness and corrections segments on line 2 are conditional on slow-cache. Test assertions must check what each line contains, not whether a line exists.
 Source: close session 2026-05-06 / t-1084 statusline two-line test
 
+### 2026-05-17: User-level settings.json hook schema requires "command" string, not args[]
+CC user-level `~/.claude/settings.json` validates hook entries with `command` (string) only. Attempting `"args": ["bash", "script.sh"]` returns `hooks.X.0.hooks.0.command: Expected string, but received undefined`. The exec-form `args[]` is supported only in plugin `hooks.json` files, not in user settings. Fix: use `"command": "bash /absolute/path/to/script.sh"` in settings.json. Plugin hooks.json supports both forms.
+Source: t-1417 / 2026-05-17
+
 ### 2026-05-08: Bootstrap restart sentinel — /tmp file bridges bootstrap→session-start
 `bootstrap.sh` now creates `/tmp/brana-bootstrap-pending-restart` after any hook config change. `session-start.sh` checks for it at startup, emits `[Bootstrap] Previous bootstrap changed hooks — restart CC to activate.` in `additionalContext`, then removes the file. This is a one-shot notification — cleared on the first CC start after bootstrap, regardless of whether the user acts on it. Pattern: use `/tmp/brana-*-pending-*` sentinels for any cross-invocation signaling; env vars don't work (CC hook subprocesses can't inherit CC env).
 Source: t-1366 / 2026-05-08
