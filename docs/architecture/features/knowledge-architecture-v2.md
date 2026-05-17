@@ -144,14 +144,14 @@ relationship_types:
 | 18 | Graph integrity (orphaned assumptions, broken dep edges) | Every commit |
 | 19-22 | Scale triggers (see Layer 3 deferred) | Monthly |
 
-### Commands Replaced
+### Commands Replaced (implemented Phase 12, 2026-05-17)
 
-| Kill | Replace With |
+| Killed | Replaced With |
 |---|---|
-| `/brana:apply-errata` | Per-doc changelogs |
-| `/brana:maintain-specs` | `/brana:verify-docs` (fitness checks) |
-| `/brana:re-evaluate-reflections` | Merged into verify-docs |
-| Doc 24 errata log | Per-doc changelogs + fitness functions |
+| `/brana:apply-errata` | `/brana:reconcile --scope propagation` |
+| `/brana:maintain-specs` | `/brana:reconcile --scope propagation` + `/brana:verify-docs` |
+| `/brana:re-evaluate-reflections` | Merged into `/brana:verify-docs` fitness checks |
+| Doc 24 errata log | Archived to `docs/archive/24-roadmap-corrections.md`; redirect stub at original path |
 
 ## Layer 5: Automated Cadence
 

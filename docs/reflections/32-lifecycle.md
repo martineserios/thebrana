@@ -242,7 +242,7 @@ See [14-mastermind-architecture.md](./14-mastermind-architecture.md) for the ful
 From the roadmap precision principle — the implementation loop that uses the lifecycle:
 
 ```
-dimension docs → reflection docs → precise roadmap → implement → debrief → maintain-specs
+dimension docs → reflection docs → precise roadmap → implement → debrief → reconcile
 ```
 
 Each cycle:
@@ -251,16 +251,16 @@ Each cycle:
 3. **Build** — implement work items with mini-debriefs after each. The `/brana:build` workflow includes a skill-routing gate (LOAD step 4) that presents workflow + domain skill options for user confirmation before any skill is loaded — never silently routes.
 4. **Test** — run `./test.sh` before merging
 5. **Close** — `/brana:close` extracts errata, learnings, and session handoff
-6. **Maintain** — `/brana:maintain-specs` propagates findings through spec layers
+6. **Maintain** — `/brana:reconcile --scope propagation` checks for doc drift; `/brana:verify-docs` for fitness checks
 7. **Tag** — version the release, update portfolio
 
-The close→maintain-specs loop is what keeps specs alive. Without it, specs drift from reality with every implementation session.
+The close→reconcile loop is what keeps specs alive. Without it, specs drift from reality with every implementation session.
 
 **Five feedback paths.** Findings from implementation don't all go to the same place — each path serves a different layer:
 
-1. **Implementation findings → `/brana:maintain-specs`** — when building reveals a spec error or gap, maintain-specs cascades the fix through dimension → reflection → roadmap. This is the **document layer**: correcting what the system says.
+1. **Implementation findings → `/brana:reconcile --scope propagation`** — when building reveals a spec error or gap, reconcile checks for drift through dimension → reflection → roadmap. This is the **document layer**: correcting what the system says.
 
-**CCEPL failure classification.** Before routing a finding into path 1 (maintain-specs), classify it by failure type — this determines which doc layer receives the fix. From [37-ruvnet-development-practices.md](../../../brana-knowledge/dimensions/37-ruvnet-development-practices.md) CCEPL methodology:
+**CCEPL failure classification.** Before routing a finding into path 1 (reconcile), classify it by failure type — this determines which doc layer receives the fix. From [37-ruvnet-development-practices.md](../../../brana-knowledge/dimensions/37-ruvnet-development-practices.md) CCEPL methodology:
 
 | Failure type | Definition | Routes to |
 |---|---|---|
@@ -268,7 +268,7 @@ The close→maintain-specs loop is what keeps specs alive. Without it, specs dri
 | `fragile-pattern` | Architecture decision or synthesis that breaks under real use | Reflection doc (08, 14, 29, 31, 32, 33) + test |
 | `misalignment` | Implementation steps that diverge from the architecture they're supposed to follow | Roadmap/skill doc (17, 18, 19) |
 
-Tagging errata entries in [doc 24](../24-roadmap-corrections.md) with their CCEPL type makes `/brana:apply-errata` routing mechanical instead of judgment-per-cycle.
+Tagging errata entries in [doc 24](../24-roadmap-corrections.md) with their CCEPL type makes `/brana:reconcile --scope propagation` routing mechanical instead of judgment-per-cycle.
 2. **Event capture → `/brana:log`** — links, calls, meetings, ideas, observations are captured into a searchable append-only log. This is the **observation layer**: recording what happened so it can be triaged later (e.g. promoted to a task or referenced in a review).
 3. **Tactical advice → task `context` field** — `system/rules/tactical-context.md` guides appending session advice to related tasks by keyword/tag matching. This is the **execution layer**: enriching the next session that picks up the same task.
 4. **Reusable patterns → `/brana:retrospective`** — extracts durable patterns into ruflo memory with confidence tracking. This is the **knowledge layer**: building institutional memory that outlives any single task or spec.

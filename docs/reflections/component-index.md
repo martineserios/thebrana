@@ -21,7 +21,7 @@ system/
 ├── skills/                       ← /brana:* slash commands
 ├── agents/                       ← 11 specialized sub-agents
 ├── hooks/                        ← Event hooks (PreToolUse, SessionStart, SessionEnd, SubagentStart, TaskCompleted)
-├── commands/                     ← Agent commands (maintain-specs, apply-errata, etc.)
+├── commands/                     ← Agent commands (repo-cleanup; maintain-specs/apply-errata retired Phase 12)
 └── CLAUDE.md                     ← Mastermind identity
 ```
 

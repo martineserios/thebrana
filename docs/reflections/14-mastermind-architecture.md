@@ -94,11 +94,9 @@ thebrana/system/                              PLUGIN (loaded by Claude Code)
 │   ├── post-pr-review.sh                     ← PR reviewer nudge
 │   ├── post-tool-use-failure.sh              ← Error categorization
 │   └── lib/cf-env.sh                         ← Bundled ruflo env (portable)
-├── commands/                                 ← Agent commands
-│   ├── maintain-specs.md                     ← Cascade spec changes: dimension → reflection → roadmap
-│   ├── re-evaluate-reflections.md            ← Cross-check reflections against dimensions
-│   ├── apply-errata.md                       ← Apply pending errata through layer hierarchy
+├── commands/                                 ← Agent commands (reduced post-Phase 12)
 │   └── repo-cleanup.md                       ← Commit accumulated spec doc changes
+│   (maintain-specs, re-evaluate-reflections, apply-errata retired 2026-05-17 → /brana:reconcile)
 ├── CLAUDE.md                                 ← Mastermind identity
 └── settings.json                             ← {} (plugin config, no hooks here)
 
@@ -165,7 +163,7 @@ Loaded automatically:
 
 Available on demand (via brana plugin):
   6. /brana:build, /brana:backlog, etc.  ← Skills loaded from plugin (see system/skills/)
-  7. Agent commands                    ← maintain-specs, apply-errata, etc.
+  7. Agent commands                    ← repo-cleanup (maintain-specs/apply-errata retired Phase 12)
   8. ~/projects/alpha/.claude/skills/* ← /deploy, /migrate (project-specific)
   9. Other installed plugins           ← pr-review-toolkit, security-guidance, etc.
 
@@ -957,7 +955,7 @@ Skills like `/brana:research` propose backlog items in their reports. The user d
 ### Advanced Ideas
 9a. ~~**Within-project spec navigation (partially answered).**~~ The spec-graph.json file (see [45-turboflow-agent-orchestration.md](../../../brana-knowledge/dimensions/45-turboflow-agent-orchestration.md), GitNexus pattern; production architecture patterns in [48-knowledge-graph-architecture.md](../../../brana-knowledge/dimensions/48-knowledge-graph-architecture.md)) precomputes doc→doc and doc→file dependencies. `/brana:reconcile` can read this instead of walking files at query time. This is the "index-time vs query-time" pattern applied to specs. Effort: small.
 
-   **Knowledge Graph Discipline (doc 48 synthesis — E2026-04-20-8):** Three governance constraints apply to spec-graph.json based on production knowledge graph architecture: (1) *Two-tier extraction* — node type (Concept, Entity, Rule) is extracted separately from relationship type (depends_on, validates, supersedes); conflating them produces category errors in downstream queries. (2) *Ontology-constrained validation* — before storing any new edge, both node types must exist in the ontology; reject unknown types rather than silently widening the schema. (3) *JSON-vs-DB tradeoff* — spec-graph.json is correct for read-mostly spec navigation (serialized once, read many times by reconcile/maintain-specs); migrate to SQLite if reconcile queries need filtering/joins at scale or take >2s. Current pattern justifies JSON.
+   **Knowledge Graph Discipline (doc 48 synthesis — E2026-04-20-8):** Three governance constraints apply to spec-graph.json based on production knowledge graph architecture: (1) *Two-tier extraction* — node type (Concept, Entity, Rule) is extracted separately from relationship type (depends_on, validates, supersedes); conflating them produces category errors in downstream queries. (2) *Ontology-constrained validation* — before storing any new edge, both node types must exist in the ontology; reject unknown types rather than silently widening the schema. (3) *JSON-vs-DB tradeoff* — spec-graph.json is correct for read-mostly spec navigation (serialized once, read many times by reconcile); migrate to SQLite if reconcile queries need filtering/joins at scale or take >2s. Current pattern justifies JSON.
 
 9b. **Cross-project DNA matching (still open)?** Each project gets a vector embedding of its architecture. New problems are matched against the most similar project's DNA, not just tag overlap. No precedent in current tooling. Defer until cross-pollination recall quality is measured and found insufficient.
 
