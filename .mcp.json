@@ -1,14 +1,20 @@
 {
   "mcpServers": {
     "brana": {
-      "command": "/home/martineserios/.local/bin/brana-mcp"
+      "command": "/home/martineserios/.local/bin/brana-mcp",
+      "env": {
+        "MCP_CONNECTION_NONBLOCKING": "1"
+      }
     },
     "ruflo": {
       "command": "/home/martineserios/enter_thebrana/thebrana/system/scripts/ruflo-mcp.sh",
       "args": [
         "mcp",
         "start"
-      ]
+      ],
+      "env": {
+        "MCP_CONNECTION_NONBLOCKING": "1"
+      }
     }
   }
 }
