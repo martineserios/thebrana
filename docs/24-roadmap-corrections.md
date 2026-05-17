@@ -16,6 +16,10 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 
 | # | Error | Severity | Status | Comments |
 |---|---|---|---|---|
+| E2026-05-17-6 | proyecto_anita: Supabase MCP OAuth session expires between sessions (overnight gap) — `mcp__supabase__execute_sql` returns "Unrecognized client_id" on session restart | **Low** | informational | MCP auth is scoped to the session in which `mcp__supabase__authenticate` was called. Across an overnight gap (>8h), the session expires. Workaround: fallback to Cloud Run env → service role key → Management API. No fix needed; informational for future sessions. |
+| E2026-05-17-5 | proyecto_anita: PostgREST content-range header format `0-0/N` — count is after `/`, not directly parseable with `grep -oP '\d+'` which matches `0` not `N`. Caused all 26 table row-count queries to return ERROR in initial audit script | **Medium** | code-fix | Fix: `grep -i "content-range:" | sed 's/.*\///' | tr -d '[:space:]\r'` extracts the total count after `/`. Applied in t-883 live audit script. Affects any shell script doing PostgREST count queries with `Prefer: count=exact`. |
+| E2026-05-17-4 | proyecto_anita: Supabase CLI v2.75.0 (Ubuntu apt package) doesn't support `--project-ref` flag for `supabase db push` — flag was added in v2.x.x; silent failure or command not found | **Medium** | code-fix | Fix: install v2.98.2 directly from GitHub releases to `~/.local/bin/supabase`. Command: `wget https://github.com/supabase/cli/releases/download/v2.98.2/supabase_linux_amd64.tar.gz`. Use `~/.local/bin/supabase` explicitly when apt version is stale. |
+| E2026-05-17-3 | proyecto_anita: `supabase db push` migration history drift — 12 local-only + 5 remote-only migrations not in CLI history because they were applied via Supabase Studio SQL editor, which bypasses CLI tracking | **High** | code-fix | Fix: `supabase migration repair --status applied {version}` for each local-only migration; create stub files for remote-only migrations. Full repair: 26/26 Local=Remote after t-885. Rule: any migration applied via SQL editor must be immediately followed by `supabase migration repair --status applied {version}` to prevent drift. |
 | E2026-05-15-3 | thebrana: `brana backlog set` array-field syntax undocumented — `[]` is rejected; use `+val`/`-val`; negative values need `--` separator (`brana backlog set t-NNN blocked_by -- -t-MMM`) | **Low** | pending | Update `feedback_brana-backlog-set-positional.md` with array-field semantics |
 | E2026-05-15-2 | thebrana: `branch-verify.sh` reverse-direction parent-dir match (`case "$bpath" in ${file}|${file}/*`) flags bare dir name `system` as behavioral — false positives on `.claude/tasks.json` + `docs/ideas/*` staging; also triggers when a Bash command payload contains the substring `git add` followed by the word `system/` | **Medium** | pending | Fix: remove reverse-direction case (line 82-88) — actual blob paths from staging always include full subpath. Add regression test asserting `.claude/tasks.json` + `docs/ideas/foo.md` pass `is_behavioral()`. Track: t-1424 |
 | E2026-05-15-1 | proyecto_anita: `prompt-deploy-freshness.md` doesn't mandate pre-edit drift check — operator may edit v4.md while deployed definition.json is ahead, then push a regression | **Medium** | pending |
@@ -2873,4 +2877,76 @@ Doc 38 also classifies these as Wave 1 (divergent ideation — shipped) vs Wave 
 **Fix:** Add subsection "Hook entry schema: settings.json vs hooks.json" to both docs: settings.json requires `type: "command"` + `command: "<string>"`; exec-form `args[]` is plugin-`hooks.json`-only.
 
 **Status:** pending (doc update)
+
+---
+
+## Error E2026-05-17-3: `supabase db push` migration history drift (proyecto_anita)
+
+**Severity:** High — `supabase db push` aborts or skips migrations when local and remote history diverge; any prod migration attempt fails until repaired.
+**Discovery:** 2026-05-17 — t-885 (apply Phase 9-A migration to prod). CLI output: "Remote migration versions not found in local migrations directory: [list of 5 timestamps]". Also showed 12 local migrations not tracked in remote history.
+**Affected files:** `supabase/migrations/` (17 files added/repaired in t-885), `supabase/.temp/` (implicit CLI state)
+
+**Root cause:** Migrations applied via Supabase Studio SQL editor do not write to the CLI's `supabase_migrations.schema_migrations` tracking table automatically. Each manual SQL editor apply creates a drift entry until `supabase migration repair` is run.
+
+**Fix:**
+1. For each LOCAL-ONLY migration (in repo but not in remote history): `source .env.dev && ~/.local/bin/supabase migration repair --status applied {version} --project-ref {ref}`
+2. For each REMOTE-ONLY migration (in remote history but no local file): create a stub file in `supabase/migrations/{version}_{description}.sql` with a comment describing the intent.
+3. Verify clean: `source .env.dev && ~/.local/bin/supabase migration list` — all rows should show both `Local` and `Remote`.
+
+**Rule going forward:** Any migration applied via SQL editor must be immediately followed by `supabase migration repair --status applied {version}` to prevent drift accumulation.
+
+**Status:** code-fix (t-885 fully repaired to 26/26 Local=Remote)
+
+---
+
+## Error E2026-05-17-4: Supabase CLI v2.75.0 (Ubuntu apt) lacks `--project-ref` flag (proyecto_anita)
+
+**Severity:** Medium — `supabase db push --project-ref {ref}` silently fails or errors on stale apt version; operator assumes dev push worked when it did not.
+**Discovery:** 2026-05-17 — t-885 (dev migration push). apt-installed supabase v2.75.0 returned "unknown flag: --project-ref".
+**Affected files:** n/a (tooling issue)
+
+**Fix:** Install v2.98.2 from GitHub releases to `~/.local/bin/supabase`:
+```bash
+wget -qO /tmp/supabase.tar.gz https://github.com/supabase/cli/releases/download/v2.98.2/supabase_linux_amd64.tar.gz
+tar -xzf /tmp/supabase.tar.gz -C ~/.local/bin supabase
+~/.local/bin/supabase --version  # should show 2.98.2
+```
+Use `~/.local/bin/supabase` explicitly (not bare `supabase`) to ensure the new version is used rather than `/usr/bin/supabase` from apt.
+
+**Status:** code-fix (v2.98.2 installed at `~/.local/bin/supabase` 2026-05-17)
+
+---
+
+## Error E2026-05-17-5: PostgREST content-range `0-0/N` format — count extraction (proyecto_anita)
+
+**Severity:** Medium — shell audit scripts using `grep -oP '\d+'` return `0` (the lower bound) instead of `N` (the total count), causing all table row-count queries to appear as 0 rows.
+**Discovery:** 2026-05-17 — t-883 live audit. Initial script returned ERROR/0 for all 26 tables. Root cause: `content-range: 0-0/4` format — `grep -oP '\d+'` matches `0` (first digit) not `4` (after `/`).
+**Affected files:** t-883 audit script (fixed inline)
+
+**Fix:** Extract count after `/`:
+```bash
+curl -sI "$URL/rest/v1/${table}?select=count" \
+  -H "apikey: $KEY" -H "Authorization: Bearer $KEY" -H "Prefer: count=exact" \
+  | grep -i "content-range:" | sed 's/.*\///' | tr -d '[:space:]\r'
+```
+Applies to any shell script doing PostgREST count queries with `Prefer: count=exact`. The `sed 's/.*\///'` extracts everything after the last `/`.
+
+**Status:** code-fix (t-883 audit script corrected 2026-05-17)
+
+---
+
+## Error E2026-05-17-6: Supabase MCP OAuth session expiry on session restart (proyecto_anita)
+
+**Severity:** Low — operator loses SQL execution capability via MCP between sessions; no data loss.
+**Discovery:** 2026-05-17 — t-883. After overnight gap from previous session (where MCP was authenticated), `mcp__supabase__execute_sql` returned "Unrecognized client_id". Re-authenticating via `mcp__supabase__authenticate` was blocked due to OAuth client_id mismatch.
+**Affected files:** n/a (MCP session state)
+
+**Behavior:** MCP OAuth tokens are session-scoped and expire. Sessions started >8h apart require re-authentication. The `mcp__supabase__authenticate` call may also fail if the OAuth client_id changes between CC versions.
+
+**Workaround (in order of preference):**
+1. Re-run `mcp__supabase__authenticate` + `complete_authentication` at session start
+2. Fallback: Cloud Run env → `gcloud run services describe palco-v3-api --project=palco-prod` for SUPABASE_URL + service role key via `gcloud secrets versions access`
+3. Fallback: Supabase Management API directly — `POST https://api.supabase.com/v1/projects/{ref}/database/query` with `Authorization: Bearer {PAT}`
+
+**Status:** informational (no fix needed; workarounds documented above)
 
