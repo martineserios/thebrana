@@ -9,9 +9,25 @@ use std::process::Command;
 /// Resolution order:
 /// 1. Git common-dir root (shared across all worktrees) — auto-inits if missing
 /// 2. Git show-toplevel (worktree root) — auto-inits if missing
-/// 3. CWD fallback for non-git projects — auto-inits ONLY if .claude/ already exists
+/// 3. CWD fallback — CLAUDE_PROJECT_DIR (CC-injected since v2.1.139) takes priority over process CWD
 pub fn find_tasks_file() -> Option<PathBuf> {
-    find_tasks_file_from(git_common_root(), git_toplevel(), std::env::current_dir().ok())
+    find_tasks_file_with_hint(
+        std::env::var("CLAUDE_PROJECT_DIR").ok().map(PathBuf::from),
+        git_common_root(),
+        git_toplevel(),
+        std::env::current_dir().ok(),
+    )
+}
+
+/// Testable variant. hint overrides cwd as the non-git fallback (CLAUDE_PROJECT_DIR pattern).
+fn find_tasks_file_with_hint(
+    hint: Option<PathBuf>,
+    common_root: Option<PathBuf>,
+    toplevel: Option<PathBuf>,
+    cwd: Option<PathBuf>,
+) -> Option<PathBuf> {
+    let effective_cwd = hint.filter(|p| p.is_dir()).or(cwd);
+    find_tasks_file_from(common_root, toplevel, effective_cwd)
 }
 
 fn git_common_root() -> Option<PathBuf> {
@@ -99,14 +115,28 @@ fn find_tasks_file_from(
     None
 }
 
-/// Find the git repository root via `git rev-parse --show-toplevel`.
 /// Find the project root directory.
 ///
 /// Resolution order:
-/// 1. Git show-toplevel (inside a git repo)
-/// 2. CWD fallback for non-git projects (mandawa, prediktive-prep, etc.)
+/// 1. CLAUDE_PROJECT_DIR env var (CC-injected since v2.1.139) — authoritative
+/// 2. Git show-toplevel (inside a git repo)
+/// 3. CWD fallback for non-git projects
 pub fn find_project_root() -> Option<PathBuf> {
-    find_project_root_from(git_toplevel(), std::env::current_dir().ok())
+    find_project_root_with_hint(
+        std::env::var("CLAUDE_PROJECT_DIR").ok().map(PathBuf::from),
+        git_toplevel(),
+        std::env::current_dir().ok(),
+    )
+}
+
+/// Testable variant. hint wins before git_root (CLAUDE_PROJECT_DIR pattern).
+fn find_project_root_with_hint(
+    hint: Option<PathBuf>,
+    git_root: Option<PathBuf>,
+    cwd: Option<PathBuf>,
+) -> Option<PathBuf> {
+    hint.filter(|p| p.is_dir())
+        .or_else(|| find_project_root_from(git_root, cwd))
 }
 
 /// Testable variant. git_root wins; cwd is the non-git fallback.
@@ -144,7 +174,8 @@ pub fn load_status() -> HashMap<String, serde_json::Value> {
 
 #[cfg(test)]
 mod tests {
-    use super::{find_project_root_from, find_tasks_file_from};
+    use super::{find_project_root_from, find_project_root_with_hint, find_tasks_file_from, find_tasks_file_with_hint};
+    use std::path::PathBuf;
     use std::fs;
     use tempfile::TempDir;
 
@@ -291,5 +322,74 @@ mod tests {
     fn project_root_returns_none_when_both_absent() {
         let result = find_project_root_from(None, None);
         assert_eq!(result, None);
+    }
+
+    // ── CLAUDE_PROJECT_DIR hint (t-1418) ─────────────────────────────────────
+
+    #[test]
+    fn project_root_hint_takes_priority_over_git_root() {
+        let hint_dir = tmp();
+        let git_dir = tmp();
+        let result = find_project_root_with_hint(
+            Some(hint_dir.path().to_path_buf()),
+            Some(git_dir.path().to_path_buf()),
+            None,
+        );
+        assert_eq!(result, Some(hint_dir.path().to_path_buf()));
+    }
+
+    #[test]
+    fn project_root_hint_nonexistent_dir_falls_back_to_git() {
+        let git_dir = tmp();
+        let result = find_project_root_with_hint(
+            Some(PathBuf::from("/nonexistent-brana-test-dir")),
+            Some(git_dir.path().to_path_buf()),
+            None,
+        );
+        assert_eq!(result, Some(git_dir.path().to_path_buf()));
+    }
+
+    #[test]
+    fn tasks_file_hint_used_as_cwd_fallback() {
+        let dir = tmp();
+        fs::create_dir_all(dir.path().join(".claude")).unwrap();
+        let f = dir.path().join(".claude/tasks.json");
+        fs::write(&f, b"{\"tasks\":[]}").unwrap();
+
+        let result = find_tasks_file_with_hint(Some(dir.path().to_path_buf()), None, None, None);
+        assert_eq!(result, Some(f));
+    }
+
+    #[test]
+    fn tasks_file_git_root_still_wins_over_hint() {
+        let git_dir = tmp();
+        let hint_dir = tmp();
+        let f = git_dir.path().join(".claude/tasks.json");
+        fs::create_dir_all(f.parent().unwrap()).unwrap();
+        fs::write(&f, b"{\"tasks\":[]}").unwrap();
+
+        let result = find_tasks_file_with_hint(
+            Some(hint_dir.path().to_path_buf()),
+            Some(git_dir.path().to_path_buf()),
+            None,
+            None,
+        );
+        assert_eq!(result, Some(f));
+    }
+
+    #[test]
+    fn tasks_file_hint_nonexistent_falls_back_to_cwd() {
+        let cwd_dir = tmp();
+        fs::create_dir_all(cwd_dir.path().join(".claude")).unwrap();
+        let f = cwd_dir.path().join(".claude/tasks.json");
+        fs::write(&f, b"{\"tasks\":[]}").unwrap();
+
+        let result = find_tasks_file_with_hint(
+            Some(PathBuf::from("/nonexistent-brana-test-dir")),
+            None,
+            None,
+            Some(cwd_dir.path().to_path_buf()),
+        );
+        assert_eq!(result, Some(f));
     }
 }

@@ -8,7 +8,13 @@
 # restart loops — that pattern silently broke JSON-RPC stdin delivery, so the
 # MCP handshake never completed and ruflo showed as "failed" in /mcp.
 # Restart on CC bug #40207 is handled by the user via /mcp reconnect.
-cd "$HOME"
+# Use CLAUDE_PROJECT_DIR (CC-injected since v2.1.139) for project root so ruflo's
+# own CWD heuristic resolves correctly; fall back to HOME for ~/.swarm/memory.db.
+if [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -d "${CLAUDE_PROJECT_DIR:-}" ]; then
+    cd "$CLAUDE_PROJECT_DIR"
+else
+    cd "$HOME"
+fi
 
 # Advisory PID file for diagnostics (not a mutex — AgentDB v3 uses WAL)
 LOCKFILE="$HOME/.swarm/ruflo-mcp.pid"
