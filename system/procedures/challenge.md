@@ -1,10 +1,11 @@
 
 # Challenge
 
-Dual-model adversarial review. Opus stress-tests reasoning and finds logical flaws. Gemini retrieves specific documented constraints for compliance checking. Both run independently — Opus reasons, Gemini retrieves, Claude merges and judges.
+Adversarial review with two modes. **Standard:** Opus stress-tests reasoning, Gemini retrieves documented constraints — both run independently, Claude merges and judges. **Council (`--council`):** Four parallel perspective agents (devil's advocate, optimist, pragmatist, operator) plus Gemini — Claude synthesizes across all five.
 
 1. **Gather context** about what to challenge:
    - If `$ARGUMENTS` provided, use it as the description of what to challenge.
+   - If `$ARGUMENTS` contains `--council`: strip `--council` from the target description, activate **council mode** — step 4a spawns 4 parallel perspective agents instead of one Opus agent. All other steps unchanged.
    - If no arguments: **conversation-context inference** — scan recent conversation turns (both user and assistant) to identify the most significant unchalllenged decision, plan, or proposal. Priority order:
      1. A plan or architecture decision being actively discussed
      2. A proposal the user described or asked about
@@ -44,13 +45,27 @@ Dual-model adversarial review. Opus stress-tests reasoning and finds logical fla
    - Migration/performance/estimates → **Assumption buster**: "What are you assuming that might not be true?"
    - Code/security review → **Adversarial reviewer**: Find concrete problems, security issues, performance concerns.
 
-4. **Launch both challengers in parallel:**
+4. **Launch challengers in parallel:**
 
-   **4a. Opus challenger** — Spawn subagent using the Task tool:
-   - `model: "opus"`
-   - `subagent_type: "general-purpose"`
+   **4a. Challenger(s)** — Two modes based on step 1 detection:
+
+   **Standard mode** (default, no `--council` flag):
+   Spawn one Opus subagent using the Agent tool:
+   - `model: "opus"`, `subagent_type: "general-purpose"`
    - Provide: the plan/approach being challenged + relevant code/files + the chosen flavor
    - Key instruction: "Be specific and actionable. Don't nitpick — focus on things that would actually cause problems or wasted effort. Suggest concrete alternatives for each concern. Rate each finding: CRITICAL (would block success), WARNING (risk but manageable), OBSERVATION (minor, for consideration)."
+
+   **Council mode** (`--council` flag set in step 1):
+   Spawn 4 agents in parallel using the Agent tool. Each receives a distinct role; no agent sees another's output — synthesis is step 5's job. Use `subagent_type: "brana:challenger"` for each.
+
+   | Role | Brief to include in agent prompt |
+   |------|----------------------------------|
+   | **Devil's advocate** | Find every way this could fail, backfire, or create hidden debt. Focus on worst-case scenarios and failure modes others would overlook. |
+   | **Optimist** | Find what's undervalued. What hidden advantages exist? What assumptions are overly conservative? What could go better than the plan assumes? |
+   | **Pragmatist** | Focus on what's actually buildable within the stated constraints. What scope traps exist? What will cost 10× more effort than estimated? What shortcuts are safe vs. risky? |
+   | **Operator** | You will execute this plan as Claude in a future session. What is unclear, ambiguous, or underspecified? What will cause you to make a wrong judgment call at runtime? |
+
+   For each: provide the plan/approach + chosen flavor + role brief. Key instruction: "Rate findings CRITICAL / WARNING / OBSERVATION. Be specific, no nitpicking. Suggest concrete alternatives for each concern."
 
    **4b. Gemini detail retriever** — Query NotebookLM (skip silently if unavailable):
    - Call `mcp__notebooklm__get_health` — if not authenticated, skip 3b entirely
@@ -83,16 +98,18 @@ Dual-model adversarial review. Opus stress-tests reasoning and finds logical fla
    - Flag violations as findings with source attribution
    - This is where the adversarial reasoning happens — Claude judges, Gemini retrieves
 
-5. **Merge and present findings with confidence tiers.** Combine all output into a single report. Each finding gets a confidence tier based on its source:
+5. **Merge and present findings with confidence tiers.** Await all agents (and Gemini if running) before synthesizing. Each finding gets a confidence tier based on its source:
 
    | Source | Confidence | Why |
    |--------|-----------|-----|
    | Agreement (Opus + Gemini) | **HIGH** | Two models, different architectures, same concern |
-   | Opus-only | **MEDIUM** | Strong reasoning, may lack doc grounding |
+   | Council agreement (2+ of 4 agents) | **HIGH** `[COUNCIL-AGREEMENT: N/4]` | Independent perspectives, same root concern |
+   | Opus-only / single council agent | **MEDIUM** | Strong reasoning, may lack doc grounding |
    | Gemini with source citation | **MEDIUM** `[NLM-UNVERIFIED]` | Good retrieval, but citation needs verification |
    | Gemini citing external tools/practices not in docs | **LOW** `[NLM-UNVERIFIED]` | Hallucination risk — Gemini invents plausible references |
-   | Compliance check (3c) | **HIGH** | Claude reasoning on Gemini-retrieved constraints |
+   | Compliance check (4c) | **HIGH** | Claude reasoning on Gemini-retrieved constraints |
 
+   **Standard mode report:**
    ```
    ## Challenge Report
 
@@ -106,10 +123,48 @@ Dual-model adversarial review. Opus stress-tests reasoning and finds logical fla
    - [Finding] — Source: Opus / Compliance-check — Confidence: HIGH/MEDIUM
 
    ### Observations (minor, for consideration)
-   - [Finding] — Source: Gemini `[NLM-UNVERIFIED]` — Confidence: LOW/MEDIUM
+   - [Finding] — Source: Gemini [NLM-UNVERIFIED] — Confidence: LOW/MEDIUM
 
    ### Agreement (highest confidence)
    - [Where both challengers raised the same concern]
+
+   ### Gemini Constraint Retrieval
+   - [Constraints retrieved by Gemini — available for manual verification]
+
+   ### Verdict
+   PROCEED / PROCEED WITH CHANGES / RECONSIDER
+   ```
+
+   **Council mode report** (when `--council` was set):
+
+   Dedup first: for each finding raised by 2+ agents, collapse to one entry tagged `[COUNCIL-AGREEMENT: N/4]`. These are the highest-confidence signals regardless of severity.
+
+   ```
+   ## Challenge Report (Council)
+
+   **Target:** [what was challenged]
+   **Mode:** Council — devil's advocate · optimist · pragmatist · operator
+   **Flavor:** [pre-mortem / simplicity / assumption / adversarial]
+
+   ### Critical Findings (would block success)
+   - [Finding] [COUNCIL-AGREEMENT: 3/4] — Confidence: HIGH
+   - [Finding] — Source: Devil's advocate — Confidence: MEDIUM
+
+   ### Warnings (risk but manageable)
+   - [Finding] [COUNCIL-AGREEMENT: 2/4] — Confidence: HIGH
+   - [Finding] — Source: Pragmatist — Confidence: MEDIUM
+
+   ### Observations (minor, for consideration)
+   - [Finding] — Source: Optimist — Confidence: MEDIUM
+
+   ### Perspectives Summary
+   **Devil's advocate:** [top 1-2 concerns]
+   **Optimist:** [top 1-2 undervalued aspects]
+   **Pragmatist:** [top 1-2 scope/effort risks]
+   **Operator:** [top 1-2 runtime ambiguities]
+
+   ### Cross-cutting Themes
+   - [Concern raised across 3+ perspectives, even if differently framed]
 
    ### Gemini Constraint Retrieval
    - [Constraints retrieved by Gemini — available for manual verification]
@@ -152,9 +207,13 @@ source "$HOME/.claude/scripts/cf-env.sh"
 
 - **No arguments = conversation inference.** Empty `/brana:challenge` scans the conversation for the most significant unchalllenged decision or plan — from either user or assistant. Never ask "what should I challenge?" unless the conversation truly has no decision context (session just started, only greetings).
 - **Ask for clarification on scope**, not on target. If you know WHAT to challenge but not HOW DEEP, ask.
-- **Both challengers run in parallel.** Don't wait for one to finish before starting the other. Launch Opus subagent and Gemini query at the same time.
-- **Gemini is optional.** If NotebookLM is unavailable, the challenge runs as Opus-only. Never fail the skill because Gemini is missing.
-- **Agreement = high confidence.** When both models independently flag the same issue, highlight it. Two different AI architectures agreeing on a problem is a strong signal.
+- **All challengers run in parallel.** Don't wait for one to finish before starting others. Launch all agents and Gemini simultaneously.
+- **`--council` strips before use.** Strip the flag from `$ARGUMENTS` before using the remainder as the target description. Never include `--council` in the agent brief.
+- **Council agents are isolated.** No agent in a council run sees another's output. Cross-agent synthesis is exclusively Claude's job in step 5.
+- **Council dedup rule.** When 2+ council agents raise the same root concern (even if differently worded), collapse to a single finding tagged `[COUNCIL-AGREEMENT: N/4]`. Agreement is the signal, not the phrasing.
+- **Gemini is optional.** If NotebookLM is unavailable, the challenge runs without it (standard: Opus-only; council: 4 agents only). Never fail the skill because Gemini is missing.
+- **Gemini flow is unchanged in council mode.** 4b runs in parallel with the 4 council agents. Step 5 synthesizes all results together.
+- **Agreement = high confidence.** When multiple models independently flag the same issue, highlight it. Independent architectures agreeing on a problem is a strong signal.
 - **Gemini retrieves, Claude reasons.** Never ask Gemini to "adversarially review" or "find problems" — it falls back to generic summaries. Ask it to enumerate specific constraints, then Claude checks compliance. Gemini is a detail-extraction engine, not a synthesis engine.
 - **Anchor Gemini queries to technical nouns.** Use specific terms from the plan (hook names, tool names, thresholds) as query anchors. Never start a Gemini query with broad system names — this triggers canned overview responses.
 - **Tag all Gemini-only claims.** Any finding sourced exclusively from Gemini must carry `[NLM-UNVERIFIED]`. The user decides whether to verify against source docs.
