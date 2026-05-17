@@ -12,7 +12,7 @@ informs:
 
 ## Problem
 
-Brana has 42 skills with 7 touching the build lifecycle (`/build-feature`, `/back-propagate`, `/brana:reconcile`, `/decide`, `/brana:challenge`, `/debrief`, `/brana:maintain-specs`). Users must know which to invoke and when. The 7-phase `/build-feature` is heavy for small changes. `/back-propagate` was designed for a two-repo world that no longer exists (ADR-006 merged enter into thebrana). No industry tool requires 7 phases — the effective pattern is 4 steps.
+Brana has 42 skills with 7 touching the build lifecycle (`/build-feature`, `/back-propagate`, `/brana:reconcile`, `/decide`, `/brana:challenge`, `/debrief`, `/brana:maintain-specs` [retired Phase 12]). Users must know which to invoke and when. The 7-phase `/build-feature` is heavy for small changes. `/back-propagate` was designed for a two-repo world that no longer exists (ADR-006 merged enter into thebrana). No industry tool requires 7 phases — the effective pattern is 4 steps.
 
 Beyond the build flow, the full 42-skill surface has redundancies: `/pickup` duplicates what `session-start.sh` could do, `/debrief` and `/brana:retrospective` and `/session-handoff` all store learnings, 12 venture skills serve a solo founder, and documentation exists only for developers — not for users.
 
@@ -214,7 +214,8 @@ Risks and resolutions. Auto-populated from challenger review.
 ### Command inventory (25, down from 42)
 
 **Kept:**
-`/brana:build`, `/brana:close`, `/brana:backlog`, `/brana:log`, `/brana:research`, `/brana:retrospective`, `/brana:memory`, `/brana:challenge`, `/brana:reconcile`, `/brana:maintain-specs`, `/brana:pipeline`, `/brana:review`, `/brana:venture-phase`, `/brana:financial-model`, `/brana:onboard`, `/brana:align`, `/brana:client-retire`, `/brana:proposal`, `/brana:export-pdf`, `/brana:gsheets`, `/brana:notebooklm-source`, `/brana:respondio-prompts`, `/brana:meta-template`, `/brana:scheduler`, `/brana:acquire-skills`
+`/brana:build`, `/brana:close`, `/brana:backlog`, `/brana:log`, `/brana:research`, `/brana:retrospective`, `/brana:memory`, `/brana:challenge`, `/brana:reconcile`, `/brana:pipeline`, `/brana:review`, `/brana:venture-phase`, `/brana:financial-model`, `/brana:onboard`, `/brana:align`, `/brana:client-retire`, `/brana:proposal`, `/brana:export-pdf`, `/brana:gsheets`, `/brana:notebooklm-source`, `/brana:respondio-prompts`, `/brana:meta-template`, `/brana:scheduler`, `/brana:acquire-skills`
+(Note: `/brana:maintain-specs` was in this list but was retired in Phase 12, 2026-05-17 — absorbed into `/brana:reconcile --scope propagation`)
 
 **Retired (17):**
 

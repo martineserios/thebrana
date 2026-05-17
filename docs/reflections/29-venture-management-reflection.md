@@ -469,7 +469,7 @@ This reflection doc will be enriched over time as the venture skills are used an
   - Which metrics actually predicted outcomes?
   - Which SOP templates were most useful?
   - Where did the stage classification model break down?
-- Update this reflection doc and [doc 28](../dimensions/28-startup-smb-management.md) via `/brana:maintain-specs`
+- Update this reflection doc and [doc 28](../dimensions/28-startup-smb-management.md) via `/brana:reconcile --scope propagation`
 
 ### Phase 5: Unified Project Management (Complete)
 - `/project-onboard` and `/venture-onboard` merged into `/brana:onboard` — auto-detects project type (code, venture, hybrid)

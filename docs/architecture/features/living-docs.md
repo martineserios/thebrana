@@ -25,7 +25,7 @@ Documentation drifts from implementation. The build CLOSE step generates feature
 
 **Decision:** Create `/brana:docs` as a standalone composable skill with subcommands (guide, tech, overview, all). Extend spec-graph.json with `guide_files`, `arch_files`, `ref_files` fields for routing. CLOSE invokes `/brana:docs all` as a post-build step. Philosophy doc seeds the "why".
 
-**Consequences:** Any skill/command can invoke `/brana:docs` (CLOSE, reconcile, maintain-specs, manual). Spec-graph routing replaces convention-based matching. New skills auto-add spec-graph nodes.
+**Consequences:** Any skill/command can invoke `/brana:docs` (CLOSE, reconcile, manual). Spec-graph routing replaces convention-based matching. New skills auto-add spec-graph nodes.
 
 ## Constraints
 

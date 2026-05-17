@@ -138,5 +138,5 @@ Source: t-1184, 2026-04-13
 
 ### 2026-04-13: New reflection doc requires DAG propagation to 4 locations
 
-When adding a reflection doc, the DAG string must be updated in all 4 locations in the same commit: `.claude/CLAUDE.md`, `system/commands/maintain-specs.md`, `docs/architecture/system-documentation-map.md`, `docs/architecture/building-methodology.md`. Grep first: `grep -r "R5(29" docs/ system/ .claude/`. Missing this generated errata #125. Add to new-reflection checklist alongside the doc-08 triage entry.
+When adding a reflection doc, the DAG string must be updated in 3 locations in the same commit: `.claude/CLAUDE.md`, `docs/architecture/system-documentation-map.md`, `docs/architecture/building-methodology.md`. (`system/commands/maintain-specs.md` was retired Phase 12, 2026-05-17.) Grep first: `grep -r "R5(29" docs/ system/ .claude/`. Missing this generated errata #125. Add to new-reflection checklist alongside the doc-08 triage entry.
 Source: errata #125, 2026-04-13

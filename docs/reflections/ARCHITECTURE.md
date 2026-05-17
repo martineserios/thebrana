@@ -67,7 +67,7 @@ Loaded automatically:
 
 Available on demand (via brana plugin):
   6. /brana:build, /brana:backlog, etc.  ← Skills from plugin
-  7. Agent commands                    ← maintain-specs, apply-errata, etc.
+  7. Agent commands                    ← repo-cleanup (maintain-specs/apply-errata retired Phase 12)
   8. ~/projects/alpha/.claude/skills/* ← Project-specific skills
 
 Triggered by hooks:
