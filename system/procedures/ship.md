@@ -31,6 +31,13 @@ ROLLBACK is conditional — only executed if VERIFY or MONITOR fails.
 
 ## Steps
 
+### Step 0: Goal injection
+
+Set session orientation before any checks run:
+- **If task_id known:** extract `AC:` lines from task context (same pattern as `build.md` Step 0 sub-step 0). If found, call `/goal {criteria}`.
+- **If no task_id or no `AC:` lines:** call `/goal "ship {target}: all checks pass, deployed, verified"` where `{target}` is the npm package name, task subject, or branch name.
+- Skip for `bootstrap` invocation — the goal is implicit.
+
 ### Step 1: Pre-flight — Is this safe to deploy?
 
 Run all safety checks before touching anything external.

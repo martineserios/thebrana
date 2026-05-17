@@ -52,6 +52,11 @@ Register these steps: LOAD, ROUTE, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TR
 
 0. **Step 0 — LOAD.** Pull relevant existing knowledge into context before researching. Budget: 30K tokens max.
 
+   0. **Goal injection** — set session orientation before loading knowledge:
+      - **If task_id known:** extract `AC:` lines from task context (same pattern as `build.md` Step 0 sub-step 0). If found, call `/goal {criteria}`.
+      - **If no task_id (freeform research):** call `/goal "research: {topic or question from user input}"` — the research question itself is the goal.
+      - This anchors every response to the research objective; especially valuable when context compresses mid-session.
+
    1. **Build query** from available context: `"{project} {task.subject} {task.tags joined} {user_input}"`
    2. **Primary — ruflo MCP (run both in parallel — `namespace: "all"` only returns session records; `specs` namespace is unindexed):**
       ```

@@ -18,6 +18,10 @@ Register these steps: GATE, GATHER, EXTRACT, DOC-CHECK, ERRATA, PATTERNS, FIELD-
 
 ## Steps
 
+### Step 0: Goal injection
+
+Call `/goal "session closed: errata filed, learnings stored, tasks.json committed"` at close start. Fixed goal — no task context needed. Keeps every response during a long close oriented to completion rather than drifting into new work.
+
 ### Step 1: Gate check
 
 Assess what happened this session:
