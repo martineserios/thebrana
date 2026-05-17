@@ -187,7 +187,7 @@ For each **errata** finding:
 
 | Finding | Status | Who resolves |
 |---------|--------|-------------|
-| Spec mismatch (needs doc edits) | `pending` | `/brana:maintain-specs` |
+| Spec mismatch (needs doc edits) | `pending` | `/brana:reconcile` |
 | Code bug (fixed this session) | `code-fix` | Already done |
 | Code bug (not fixed) | `pending` | Next session |
 
@@ -624,7 +624,7 @@ The CLI auto-fills `written_at` (if empty) and `branch` (from git). `consumed_at
 
 **`next` category values** (validated enum):
 - `follow-up` — action items from this session
-- `maintenance` — routine tasks (run maintain-specs, reconcile, etc.)
+- `maintenance` — routine tasks (run reconcile, verify-docs, etc.)
 - `suggestion` — non-urgent ideas worth considering
 
 **Rules:**
@@ -911,7 +911,7 @@ For "Review each": iterate per-stash with its own AskUserQuestion (batch up to 4
 **Handoff note updated:** {path}
 
 ### Follow-up
-- {if errata: "/brana:maintain-specs to propagate findings"}
+- {if errata: "/brana:reconcile --scope propagation to check for drift"}
 - {if drift: "Specs may need updating for changed system files"}
 - {if issues: "Issues logged for next session"}
 - {if field notes kept: "Docs updated with field notes: {list of docs}"}
@@ -948,7 +948,7 @@ For each selected follow-up:
 3. **Don't duplicate.** Read existing errata before adding. If already documented, skip or note confirmation.
 4. **Gate on changes.** Read-only sessions get a one-line handoff and no debrief.
 5. **Don't block on failures.** Agent fails → manual scan. Claude-flow fails → handoff note is the fallback. Backup fails → skip.
-6. **Suggest, don't execute.** Doc drift → suggest updating specs. Errata → suggest `/brana:maintain-specs`. Let the user decide when.
+6. **Suggest, don't execute.** Doc drift → suggest updating specs or running `/brana:reconcile`. Let the user decide when.
 7. **Be specific.** "The API was wrong" is useless. "Spec says `hooks recall`, actual is `memory search`" is useful.
 8. **Ask for clarification when needed.** Ambiguous findings → ask. Don't guess classifications.
 9. **Step registry.** Follow the [guided-execution protocol](../_shared/guided-execution.md). Register steps on entry, update as each completes.

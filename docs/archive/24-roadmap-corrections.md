@@ -1,10 +1,6 @@
-# 24 — Roadmap Corrections & Errata (ARCHIVED)
+# 24 — Roadmap Corrections & Errata
 
-> **This log is archived.** The cascade commands (`apply-errata`, `maintain-specs`, `re-evaluate-reflections`) that consumed this file have been removed (Phase 12, 2026-05-17).
-> The full errata history (120 entries) is preserved at [`docs/archive/24-roadmap-corrections.md`](archive/24-roadmap-corrections.md).
-> For ongoing doc drift, use `/brana:reconcile --scope propagation` or `/brana:verify-docs`.
-
----
+Errors and mismatches found during implementation. Each entry logs the finding, its impact, and the proposed fix. Status tracks resolution through the formal process.
 
 **Status values:**
 - `pending` — logged, not yet addressed
