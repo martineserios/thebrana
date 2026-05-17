@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+shopt -s nullglob
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SYSTEM_DIR="$SCRIPT_DIR/system"
