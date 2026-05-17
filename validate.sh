@@ -1315,6 +1315,24 @@ else
 fi
 echo ""
 
+# Check 29 — reference docs up to date (t-1429)
+# Catches silent drift when hooks.json schema or frontmatter sources change
+# without a corresponding regeneration of docs/reference/*.md.
+echo "Checking reference docs up to date..."
+if command -v brana >/dev/null 2>&1; then
+    REF_ERR=0
+    REF_OUT=$(brana reference generate --check 2>&1) || REF_ERR=$?
+    [ -n "$REF_OUT" ] && echo "$REF_OUT" | sed 's/^/  /'
+    if [ "$REF_ERR" -ne 0 ]; then
+        fail "Check 29: reference docs out of date — run 'brana reference generate' to update"
+    else
+        pass "Check 29: reference docs up to date"
+    fi
+else
+    warn "Check 29: brana CLI not found — skipping reference doc check"
+fi
+echo ""
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
