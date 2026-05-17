@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-09T14:34:15Z",
+  "generated": "2026-05-17T16:30:34Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -219,6 +219,11 @@
     },
     "brana-knowledge/dimensions/57-chess-erp-api.md": {
       "title": "Chess ERP API — Platform Knowledge",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/58-claude-code-changelog-2026.md": {
+      "title": "Claude Code — Changelog & Feature Audit 2026",
       "type": "Dimension",
       "impl_files": []
     },
@@ -443,11 +448,11 @@
       "title": "24 — Roadmap Corrections & Errata",
       "type": "Roadmap",
       "impl_files": [
+        "system/",
         "system/rules/",
         "system/rules/sdd-tdd.md",
         "system/procedures/align.md",
         "system/skills/",
-        "system/",
         "system/commands/maintain-specs.md",
         "system/scripts/git-hooks/pre-commit",
         "system/hooks/branch-verify.sh",
@@ -517,7 +522,8 @@
       "title": "Agents Architecture",
       "type": "Roadmap",
       "impl_files": [
-        "system/agents/{name"
+        "system/agents/{name",
+        "system/agents/"
       ]
     },
     "docs/architecture/bootstrap.md": {
@@ -1192,7 +1198,9 @@
         "system/scripts/",
         "system/skills/",
         "system/hooks/",
-        "system/hooks/lib/<name>.sh"
+        "system/hooks/lib/<name>.sh",
+        "system/hooks",
+        "system/hooks/foo.sh"
       ]
     },
     "docs/architecture/knowledge-system-extending.md": {
@@ -1263,7 +1271,10 @@
         "system/procedures/{name",
         "system/skills/{name",
         "system/commands/",
-        "system/skills/acquired/{name"
+        "system/skills/acquired/{name",
+        "system/skills/memory/",
+        "system/skills/memory/MEMORY.md",
+        "system/skills/"
       ]
     },
     "docs/architecture/system-documentation-map.md": {
@@ -1559,6 +1570,11 @@
     },
     "docs/dimensions/57-chess-erp-api.md": {
       "title": "Chess ERP API — Platform Knowledge",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/dimensions/58-claude-code-changelog-2026.md": {
+      "title": "Claude Code — Changelog & Feature Audit 2026",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -1971,6 +1987,11 @@
         "system/agents/"
       ]
     },
+    "docs/ideas/brana-backlog-v2-schema.md": {
+      "title": "brana backlog v2 schema",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/ideas/brana-cli-mcp-layer.md": {
       "title": "Brana CLI MCP Layer — Architecture Decision",
       "type": "Roadmap",
@@ -2001,6 +2022,11 @@
         "system/procedures/build.md",
         "system/rules/spec-assumptions.md"
       ]
+    },
+    "docs/ideas/cc-feature-adoption-v2.1.136-142.md": {
+      "title": "CC Feature Adoption — v2.1.136–v2.1.142",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/ideas/cc-feature-adoption-v2.1.76-81.md": {
       "title": "CC Feature Adoption — v2.1.76–v2.1.81",
@@ -2232,6 +2258,7 @@
         "system/rules/cwd-discipline.md",
         "system/rules/delegation-routing.md",
         "system/rules/doc-linking.md",
+        "system/rules/field-note-routing.md",
         "system/rules/git-discipline.md",
         "system/rules/inbox-convention.md",
         "system/rules/lifecycle-gate-assessment.md",
@@ -5697,6 +5724,12 @@
     },
     {
       "from": "brana-knowledge/dimensions/09-claude-code-native-features.md",
+      "to": "brana-knowledge/dimensions/58-claude-code-changelog-2026.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/09-claude-code-native-features.md",
       "to": "brana-knowledge/reflections/14-mastermind-architecture.md",
       "type": "references",
       "computed": false
@@ -8450,6 +8483,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-025-skill-lifecycle-manager.md",
+      "to": "docs/reference/skills.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
       "to": "docs/architecture/reference/skills.md",
       "type": "references",
@@ -8974,6 +9013,12 @@
     {
       "from": "docs/dimensions/07-claude-flow-plus-claude-4.6.md",
       "to": "docs/reflections/14-mastermind-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/09-claude-code-native-features.md",
+      "to": "docs/dimensions/58-claude-code-changelog-2026.md",
       "type": "references",
       "computed": false
     },
@@ -11565,9 +11610,9 @@
     }
   ],
   "stats": {
-    "nodes": 377,
-    "edges": 1520,
+    "nodes": 381,
+    "edges": 1523,
     "typed_edges": 549,
-    "orphans": 96
+    "orphans": 98
   }
 }
