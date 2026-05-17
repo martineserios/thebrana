@@ -25,6 +25,14 @@ Task t-030 (kind: docs)    → branch: docs/t-030-api-contracts
 
 Code tasks: `/brana:backlog start` enters `/brana:build`. Done: `/brana:build` CLOSE step. `/brana:backlog done` for manual/external only.
 
+## AC: prefix — acceptance criteria
+
+Lines in `context` starting with `AC:` are machine-readable acceptance criteria. `/brana:build` reads them to auto-generate a `/goal` string. Additive — tasks without `AC:` lines are unaffected.
+
+```
+context: "AC: all tests green\nAC: branch merged to main\nAC: tasks.json updated"
+```
+
 ## Issue tracking
 
 - Check GitHub Issues before starting new work — avoid duplicating effort
