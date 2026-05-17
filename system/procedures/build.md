@@ -280,6 +280,41 @@ Since strategy isn't known yet, create the CLASSIFY task first. After CLASSIFY c
 
 ---
 
+## Step 0d: READINESS CHECK
+
+**Task gate:** Skip if no task_id is present (freeform builds). Skip for spike and investigation strategies (strategy unknown at this point — re-run after CLASSIFY if needed; in practice, spikes and investigations rarely enter via `/brana:backlog start`).
+
+Before CLASSIFY, verify the task is in a buildable state. Read the task via `backlog_get(task_id)` (or `brana backlog get {task_id}`) and check:
+
+| Check | Severity | Signal | Remediation |
+|-------|----------|--------|-------------|
+| Description filled (>20 chars) | **Hard block** | `description` field empty or short | "Add a description to {task_id} before building: `brana backlog set {task_id} description '...'`" |
+| All blocked_by resolved | **Hard block** | any `blocked_by` entry has status != completed | "Resolve blockers first: {list of open blocked_by IDs}" |
+| Effort set | **Soft warn** | `effort` field null, AND task is M or L (infer from description length/scope) | "Consider setting effort: `brana backlog set {task_id} effort M`" |
+| AC: lines in context (M/L) | **Soft warn** | no lines starting with `AC:` in `context` field, AND effort is M or L | "No AC: lines found — add acceptance criteria for /goal injection: `brana backlog set {task_id} context 'AC: ...'`" |
+
+**Hard blocks** — collect all hard failures, then:
+```
+AskUserQuestion:
+  question: "Readiness check failed for {task_id}: {list of failures}. Fix before building?"
+  header: "Readiness"
+  options:
+    - "Fix now — I'll update the task"
+    - "Skip — reason required"
+```
+If "Fix now": wait for user, then re-read the task and re-run checks.
+If "Skip — reason required": require free text. Log: `brana backlog set {task_id} notes --append "Readiness check skipped: {reason}"`. Proceed.
+
+**Soft warns** — emit inline (no gate, no question):
+```
+⚠ {task_id}: effort not set. Consider: `brana backlog set {task_id} effort M`
+⚠ {task_id}: no AC: lines in context. /goal injection will be skipped.
+```
+
+If all checks pass (or only soft warns remain), proceed silently.
+
+---
+
 ## Step 1: CLASSIFY
 
 Mandatory. One interaction. Never skip.
