@@ -759,6 +759,30 @@ If MCP unavailable, skip silently. Hive-mind is transient awareness, not critica
 > printf '{"step":"BUILD","completed":"%s","task_id":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "{task_id}" >> ~/.claude/run-state/{task_id}.jsonl
 > ```
 
+### ISC Verify (all strategies with task_id, when isc field is set)
+
+Before the BUILD→CLOSE gate, check whether the active task has ISC (Ideal State Criteria):
+
+```bash
+brana backlog get {task_id} | jq -r '.isc[]?' 2>/dev/null
+```
+
+If the `isc` array is non-empty, verify each item as a binary pass/fail with evidence:
+
+For each criterion:
+1. State the criterion explicitly
+2. Gather evidence (run a command, read a file, check git status — whatever proves the state)
+3. Judge: **PASS** or **FAIL** with one-line evidence summary
+
+Collect results. If any criterion **FAIL**:
+```
+question: "ISC VERIFY: {N} of {total} criteria failed — {list of failed criteria}. Fix before closing?"
+options: ["Fix now", "Skip — reason required"]
+```
+If "Skip": require reason, log: `brana backlog set {id} notes --append "ISC skipped: {reason}"`.
+
+If all pass (or no isc field): proceed silently.
+
 ### Gate: BUILD → CLOSE (Medium/Large feature/greenfield/migration only)
 
 Before entering CLOSE, verify all mandatory artifacts exist on the branch:

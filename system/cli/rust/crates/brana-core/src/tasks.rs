@@ -381,6 +381,15 @@ pub fn validate_schema(path: &Path) -> Vec<String> {
             if !t["context"].is_null() && !t["context"].is_string() {
                 errors.push(format!("task {id}: context must be string"));
             }
+            if !t["isc"].is_null() {
+                if !t["isc"].is_array() {
+                    errors.push(format!("task {id}: isc must be array"));
+                } else if let Some(items) = t["isc"].as_array() {
+                    if items.iter().any(|v| !v.is_string()) {
+                        errors.push(format!("task {id}: isc items must be strings"));
+                    }
+                }
+            }
         }
     }
 
@@ -540,7 +549,11 @@ pub fn raw_status<'a>(task: &'a Value, default: &'a str) -> &'a str {
 /// Set a field on a task. Handles scalars, array append (+val)/remove (-val), and --append for text.
 pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Result<(), String> {
     match field {
-        "tags" | "blocked_by" => {
+        "tags" | "blocked_by" | "isc" => {
+            // Auto-initialize isc if absent
+            if field == "isc" && task[field].is_null() {
+                task[field] = Value::Array(vec![]);
+            }
             let arr = task[field].as_array_mut()
                 .ok_or_else(|| format!("{field} is not an array"))?;
             if let Some(stripped) = value.strip_prefix('+') {
@@ -1407,6 +1420,74 @@ mod tests {
     fn test_set_field_unknown() {
         let mut task = json!({"id": "t-1"});
         assert!(set_field(&mut task, "nonexistent", "val", false).is_err());
+    }
+
+    // ── t-252: isc field ────────────────────────────────────────────────
+
+    #[test]
+    fn test_set_field_isc_add_to_missing() {
+        // isc auto-initializes when absent
+        let mut task = json!({"id": "t-1"});
+        set_field(&mut task, "isc", "+All tests passing", false).unwrap();
+        assert_eq!(task["isc"], json!(["All tests passing"]));
+    }
+
+    #[test]
+    fn test_set_field_isc_add_multiple() {
+        let mut task = json!({"id": "t-1", "isc": []});
+        set_field(&mut task, "isc", "+All tests passing", false).unwrap();
+        set_field(&mut task, "isc", "+No credentials in git history", false).unwrap();
+        assert_eq!(task["isc"], json!(["All tests passing", "No credentials in git history"]));
+    }
+
+    #[test]
+    fn test_set_field_isc_no_duplicates() {
+        let mut task = json!({"id": "t-1", "isc": ["All tests passing"]});
+        set_field(&mut task, "isc", "+All tests passing", false).unwrap();
+        assert_eq!(task["isc"].as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn test_set_field_isc_remove() {
+        let mut task = json!({"id": "t-1", "isc": ["crit-a", "crit-b"]});
+        set_field(&mut task, "isc", "-crit-a", false).unwrap();
+        assert_eq!(task["isc"], json!(["crit-b"]));
+    }
+
+    #[test]
+    fn test_set_field_isc_bare_value_errors() {
+        let mut task = json!({"id": "t-1", "isc": []});
+        assert!(set_field(&mut task, "isc", "no-prefix", false).is_err());
+    }
+
+    #[test]
+    fn test_validate_schema_isc_valid() {
+        use tempfile::NamedTempFile;
+        use std::io::Write;
+        let mut f = NamedTempFile::new().unwrap();
+        write!(f, r#"{{"version":1,"project":"p","tasks":[{{"id":"t-1","subject":"s","status":"pending","type":"task","stream":"x","tags":[],"blocked_by":[],"isc":["All tests passing","Docs updated"]}}]}}"#).unwrap();
+        let errs = validate_schema(f.path());
+        assert!(errs.is_empty(), "unexpected errors: {errs:?}");
+    }
+
+    #[test]
+    fn test_validate_schema_isc_not_array() {
+        use tempfile::NamedTempFile;
+        use std::io::Write;
+        let mut f = NamedTempFile::new().unwrap();
+        write!(f, r#"{{"version":1,"project":"p","tasks":[{{"id":"t-1","subject":"s","status":"pending","type":"task","stream":"x","tags":[],"blocked_by":[],"isc":"not-an-array"}}]}}"#).unwrap();
+        let errs = validate_schema(f.path());
+        assert!(errs.iter().any(|e| e.contains("isc") && e.contains("array")), "expected isc error, got: {errs:?}");
+    }
+
+    #[test]
+    fn test_validate_schema_isc_non_string_item() {
+        use tempfile::NamedTempFile;
+        use std::io::Write;
+        let mut f = NamedTempFile::new().unwrap();
+        write!(f, r#"{{"version":1,"project":"p","tasks":[{{"id":"t-1","subject":"s","status":"pending","type":"task","stream":"x","tags":[],"blocked_by":[],"isc":[42,"valid"]}}]}}"#).unwrap();
+        let errs = validate_schema(f.path());
+        assert!(errs.iter().any(|e| e.contains("isc")), "expected isc error, got: {errs:?}");
     }
 
     // ── t-1344: priority enum validation ────────────────────────────────
