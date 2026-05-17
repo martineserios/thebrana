@@ -39842,7 +39842,7 @@
       "parent": "t-1420",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "stream": "roadmap",
       "subject": "Wire /goal auto-generation into /brana:build from AC: in task context",
