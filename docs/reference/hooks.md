@@ -30,6 +30,7 @@
 | PreToolUse | `Read|Grep|Glob` | `guard-explore.sh` | 5000ms |
 | SessionEnd | `` | `session-end.sh` | 10000ms |
 | SessionStart | `` | `session-start.sh` | 10000ms |
+| SessionStart | `` | `cc-changelog-check.sh` | —ms |
 | StopFailure | `` | `stopfailure-logger.sh` | 5000ms |
 | SubagentStart | `` | `subagent-context.sh` | 5000ms |
 | SubagentStart | `` | `subagent-tracker.sh` | 5000ms |
