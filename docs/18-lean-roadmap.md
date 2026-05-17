@@ -6,6 +6,22 @@ An alternative to [17-implementation-roadmap.md](./17-implementation-roadmap.md)
 
 ---
 
+## Current State (2026-05-17)
+
+All 5 phases plus Agent-Skill Symbiosis are shipped. The system is live at **v1.19.0**.
+
+| Dimension | Planned (doc written) | Actual (shipped) |
+|---|---|---|
+| **Skills** | 6 core | 32 deployed |
+| **Agents** | 1 (scout) | 11 deployed |
+| **Version scheme** | v0.x | v1.x (diverged during post-Phase 5 work) |
+| **Hooks** | 3-4 hooks | Full hook system — PreToolUse/PostToolUse/SessionStart/SessionEnd/ConfigChange + PostPlan + TDD gate |
+| **Backlog** | "your PM is elsewhere" | Brana CLI with SQLite backlog, streams, milestones, GitHub Issues sync |
+
+The phases below are **historical**. Read them for design rationale; skip them for implementation guidance.
+
+---
+
 ## Why This Document Exists
 
 [Doc 17](17-implementation-roadmap.md) is a comprehensive plan. It's also 6 phases, 5 immune system layers, SONA evaluation gates, A/B testing frameworks, token routing tiers, multi-round debate protocols, skill catalog checksums, and knowledge migration systems.
@@ -59,7 +75,7 @@ Everything dropped here can be added later. Nothing in this plan prevents gradua
 
 ---
 
-## Phase 1: Working Skeleton (Weeks 1-3)
+## ✅ Phase 1: Working Skeleton (Weeks 1-3) — Shipped
 
 **Goal:** ruflo installed, ruflo memory initialized, 6 skills working, export escape hatch in place. You can use the system.
 
@@ -172,7 +188,7 @@ Same `export-knowledge.sh` from [doc 17](17-implementation-roadmap.md). Build it
 
 ---
 
-## Phase 2: The Learning Loop (Weeks 3-6)
+## ✅ Phase 2: The Learning Loop (Weeks 3-6) — Shipped
 
 **Goal:** Automated learning. Hooks fire every session. The brain remembers. This is where the system earns its existence.
 
@@ -262,7 +278,7 @@ This prevents the worst failure mode — bad patterns spreading across clients b
 
 ---
 
-## Phase 3: Refinement (Weeks 6-12)
+## ✅ Phase 3: Refinement (Weeks 6-12) — Shipped
 
 **Goal:** Polish what works, fix what doesn't, add what's missing. NOT a feature phase — a quality phase.
 
@@ -315,7 +331,7 @@ This phase is intentionally loose. By week 6, you'll know what's actually broken
 
 ---
 
-## Phase 4: Project Enforcement (After Phase 3)
+## ✅ Phase 4: Project Enforcement (After Phase 3) — Shipped
 
 **Goal:** The mastermind enforces spec-driven and test-driven development in managed clients. Not suggestions in CLAUDE.md (~80% compliance) — deterministic enforcement via PreToolUse hooks (~100%). See [14-mastermind-architecture.md](reflections/14-mastermind-architecture.md) "Project Enforcement" section for the architectural design.
 
@@ -648,7 +664,7 @@ Add entry for `/decide`:
 
 ---
 
-## Phase 5: Project Alignment (After Phase 4)
+## ✅ Phase 5: Project Alignment (After Phase 4) — Shipped
 
 **Goal:** Active project alignment. The mastermind doesn't just enforce disciplines in projects that already have the right structure — it helps projects GET to the right structure.
 
@@ -709,72 +725,104 @@ This isn't a phase — it's a menu. Add items when you feel the pain, not on a s
 | "Stale patterns keep resurfacing" | Add monthly decay function (confidence -= 0.05 for unused patterns) | Phase 4: Layer 4 |
 | "Contradicting patterns in ruflo memory" | Add contradiction check on pattern storage | Phase 4: Layer 5 |
 | ~~"I want automatic challenges on big plans"~~ | ~~Add PostToolUse hook on ExitPlanMode → spawns Sonnet~~ **Done** — `post-plan-challenge.sh` nudges challenger agent on ExitPlanMode | Phase 5: Auto-challenge |
-| "Onboarding a new project should suggest skills" | Enhance `/project-onboard` with tech detection + catalog lookup | Phase 5: Smart onboard |
+| ~~"Onboarding a new project should suggest skills"~~ | ~~Enhance /project-onboard with tech detection + catalog lookup~~ **Done** — `/brana:acquire-skills` detects tech gaps and installs matching skills | Phase 5: Smart onboard |
+| ~~"Backlog is siloed per project"~~ | ~~No cross-project migration~~ **Done** — `brana backlog` CLI with streams, milestones; Linear sync in progress (t-1393) | — |
 | "The system should suggest its own improvements" | Add self-referential pattern queries (domain: brana-system) | Phase 5: Self-improvement |
 | "I need to migrate patterns to a new schema" | Build migration script when the schema actually changes | Phase 5: Knowledge migrations |
 | "Recall is slow / ruflo memory is big" | Activate HNSW indexing, consider quantization | Phase 3: Vector intelligence |
 | "I'm distributing skills to others" | Add checksums and version pinning to skill catalog | Phase 3: Skill catalog |
+| "Build loop has no quality gate before SHIP" | ISC field + confidence gate in /build VERIFY step (t-252, t-665) | — |
+| "Challenge is one model, not a council" | Multi-agent council debate for /brana:challenge (t-282) | — |
 
-**The principle:** you'll know when you need it because something will hurt. Right now, nothing hurts because the system doesn't exist yet. Build the minimum, use it hard, add complexity in response to real friction.
+**The principle:** you'll know when you need it because something will hurt. Build the minimum, use it hard, add complexity in response to real friction.
+
+---
+
+## Next Evolution: Build Intelligence (Post-v1.19.0)
+
+The system works. The next threshold is making it smarter — not adding features, but closing three loops that are currently open.
+
+### Loop 1: Build quality gate
+
+Right now `/brana:build` exits VERIFY without binary success criteria. There's no machine-checkable definition of done before SHIP.
+
+**t-252** — ISC (Ideal State Criteria) field in tasks.json: granular, binary, testable conditions for each task. `/build VERIFY` checks ISC before proceeding.
+**t-644** — Sprint contract in DECOMPOSE: challenger reviews acceptance criteria before BUILD starts, not after.
+**t-665** — Confidence gate in BUILD step: explicit threshold before moving from implementation to SHIP.
+
+*Signal that this is needed:* shipped code that passed tests but missed user expectation.
+
+### Loop 2: Feedback signal
+
+The learning loop captures session-level patterns. It doesn't capture the highest-signal event in a session: test red → green after a fix. That transition is the exact moment to record what the fix was.
+
+**t-467** — PostToolUse hook: detect test pass/fail transitions, capture fix pattern in ruflo memory automatically (async, non-blocking).
+
+*Signal that this is needed:* you're manually running `/brana:retrospective` after every non-trivial fix.
+
+### Loop 3: Challenge depth
+
+The challenger runs one Sonnet pass. One LLM reviewing its own outputs has a well-known blind spot: it tends to miss assumptions it shares with the original.
+
+**t-282** — Multi-agent council: 2-3 models with different prompt framings (adversarial, user-side, cost-side). Triggered for M+ efforts, on-demand otherwise.
+
+*Signal that this is needed:* challenger is passing plans that regress in practice.
+
+### Housekeeping that unblocks the above
+
+**t-455** — Kill cascade commands + archive doc 24. 2-week soak passed (soak started 2026-03-14). Clears dead code before build quality work lands on top of it.
+**t-070** — Parameterizable skills: SKILL.md config frontmatter. Needed before sprint contract and ISC can vary by project type.
+**t-1390** — `brana backlog migrate --to <repo>`: cross-project task migration without the 3-step ritual.
 
 ---
 
 ## Timeline
 
 ```
-Weeks 1-3       Phase 1: Working Skeleton
-                ├─ ruflo + ruflo memory + 6 skills + plugins
-                ├─ export escape hatch
-                ├─ deploy.sh (cp -r, not ceremony)
-                └─ Tag: v0.1.0
+✅ Phase 1 (2026-Q1)   Working Skeleton
+                        ├─ ruflo + ruflo memory + 6 → 32 skills + plugins
+                        ├─ export escape hatch, deploy.sh
+                        └─ Tags: v0.1.0 → v1.x (scheme diverged post-Phase 5)
 
-Weeks 3-6       Phase 2: Learning Loop
-                ├─ 3 hooks (recall, learn, notice)
-                ├─ Quarantine (the one immune layer)
-                ├─ Two-layer memory (native + ruflo memory)
-                └─ Tag: v0.2.0
+✅ Phase 2 (2026-Q1)   Learning Loop
+                        ├─ Hooks: SessionStart/SessionEnd/PostToolUse + PostToolUseFailure
+                        ├─ Quarantine (quarantine layer active)
+                        └─ Two-layer memory (native auto memory + ruflo)
 
-Weeks 6-12      Phase 3: Refinement
-                ├─ Tune recall, fix what's broken
-                ├─ Promotion paths, monthly manual review
-                ├─ Cross-pollination tuning
-                └─ Tag: v0.3.0
+✅ Phase 3 (2026-Q1)   Refinement
+                        ├─ Recall quality tuned, cross-pollination working
+                        └─ Manual monthly review pattern established
 
-After Phase 3   Phase 4: Project Enforcement
-                ├─ /decide skill (ADR creation, Nygard format)
-                ├─ PreToolUse spec-before-code hook
-                ├─ SDD/TDD conventions rule
-                ├─ TDD-Guard recommendation in /project-onboard
-                └─ Tag: v0.4.0
+✅ Phase 4 (2026-Q1)   Project Enforcement
+                        ├─ PreToolUse TDD gate, SDD spec-before-code hook
+                        ├─ /brana:build SPECIFY step (ADR creation)
+                        └─ main-guard, branch-verify, worktree enforcement
 
-After Phase 4   Phase 5: Project Alignment
-                ├─ /project-align skill (5-phase active pipeline)
-                ├─ 28-item alignment checklist, 3 tiers
-                ├─ Greenfield + brownfield support
-                ├─ Cross-project alignment learning
-                └─ Tag: v0.5.0
+✅ Phase 5 (2026-Q1)   Project Alignment
+                        ├─ /brana:align skill (assess → plan → implement → verify)
+                        └─ 28-item alignment checklist, greenfield + brownfield
 
-Post-Phase 5    Agent-Skill Symbiosis (completed)
-                ├─ Improved skill descriptions (Use when... triggers)
-                ├─ 9 new agents (10 total roster)
-                ├─ Delegation-routing rule (auto-delegation)
-                ├─ 4 integration patterns (A-D)
-                ├─ Venture OS: 8 daily/weekly/monthly skills, 3 venture agents,
-                │   2 venture hooks, GitHub Issues integration
-                └─ Auto-challenge hook on ExitPlanMode
+✅ Post-Phase 5        Agent-Skill Symbiosis + Venture OS
+                        ├─ 11 agents, 32 skills, 4 integration patterns
+                        ├─ Venture OS: daily-ops, metrics-collector, pipeline-tracker
+                        ├─ Brana CLI (Rust): backlog, sessions, reference, statusline
+                        └─ Auto-challenge hook on ExitPlanMode
 
-After v0.5.0    Pain-driven additions
-                └─ SONA, decay, contradiction detection,
-                    multi-agent TDD, full SDD workflow orchestration,
-                    health monitoring statusline, /project-align --check...
-                    when the pain justifies the complexity
+→  Next (2026-Q2)      Build Intelligence
+                        ├─ ISC field + confidence gate in /build (t-252, t-665)
+                        ├─ Sprint contract in DECOMPOSE (t-644)
+                        ├─ PostToolUse test-signal hook (t-467)
+                        ├─ Multi-agent challenge council (t-282)
+                        └─ Housekeeping: cascade kill (t-455), skill params (t-070)
+
+   Pain-driven          SONA, decay, contradiction detection,
+                        multi-agent TDD, self-improvement queries...
+                        when the pain justifies the complexity
 ```
 
-**Total to usable system (v0.2.0):** ~6 weeks
-**Total to refined system (v0.3.0):** ~12 weeks
-**Total to enforced system (v0.4.0):** after Phase 3 real-world validation
-**Total to aligned system (v0.5.0):** after Phase 4 real-world validation
-**Total to [doc 17](17-implementation-roadmap.md)'s full vision:** whenever reality demands it
+**Current:** v1.19.0 (live, 32 skills, 11 agents)
+**Next milestone:** Build quality loop closed (ISC + confidence gate shipped)
+**Full vision:** See [doc 17](17-implementation-roadmap.md) — upgrade when pain justifies it
 
 ---
 
