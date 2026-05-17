@@ -303,7 +303,12 @@ AskUserQuestion:
     - "Skip — reason required"
 ```
 If "Fix now": wait for user, then re-read the task and re-run checks.
-If "Skip — reason required": require free text. Log: `brana backlog set {task_id} notes --append "Readiness check skipped: {reason}"`. Proceed.
+If "Skip — reason required": require free text. Log to task notes and decision log:
+   ```bash
+   brana backlog set {task_id} notes --append "Readiness check skipped: {reason}"
+   brana decisions log main concern "Readiness check skipped for {task_id}: {reason}" --severity LOW --refs "{task_id}" 2>/dev/null || true
+   ```
+   Proceed.
 
 **Soft warns** — emit inline (no gate, no question):
 ```
