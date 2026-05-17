@@ -40018,6 +40018,34 @@
       "subject": "Fix brana reference generate: script names blank after async hook entry added",
       "tags": [],
       "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "t-1428 revealed that hooks.json schema can drift from reference.rs without detection. Adding --check run to validate.sh (similar to existing checks) would catch this at commit time. Command: brana reference generate --check. Fail if any .md would change.",
+      "created": "2026-05-17",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1429",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "tech-debt",
+      "subject": "Add brana reference generate --check to validate.sh",
+      "tags": [
+        "cli",
+        "reference",
+        "validate"
+      ],
+      "type": "task"
     }
   ],
   "version": "1"
