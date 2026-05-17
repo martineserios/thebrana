@@ -115,6 +115,21 @@ This applies to EVERY step — CLASSIFY, SPECIFY, DECOMPOSE, BUILD, CLOSE. No ex
 
 Pull relevant architecture, decision knowledge, and skill matches into context before building. Budget: 30K tokens max.
 
+0. **Goal injection** (task_id known only — skip for freeform builds):
+   Read the task's `context` field. Extract every line that starts with `AC:` (case-sensitive).
+   ```bash
+   # Via CLI (if MCP unavailable):
+   brana backlog get {task_id} | python3 -c "
+   import json, sys
+   t = json.load(sys.stdin)
+   lines = [l[3:].strip() for l in (t.get('context') or '').splitlines() if l.startswith('AC:')]
+   print('; '.join(lines))
+   "
+   ```
+   - **If AC: lines found:** call `/goal {criteria}` where `{criteria}` is the joined AC: text (semicolons between multiple criteria). This anchors every response in the session to the acceptance criteria without requiring repetition.
+   - **If no AC: lines:** proceed without `/goal` — no regression.
+   - **Skip for:** freeform builds (no task_id), spike strategy, investigation strategy.
+
 1. **Build query** from available context: `"{project} {task.subject} {task.tags joined} {user_input}"`
 2. **Primary — ruflo MCP (run both in parallel — `namespace: "all"` only returns session records; `specs` namespace is unindexed):**
    ```
@@ -1354,7 +1369,7 @@ When `/brana:backlog start <id>` invokes this skill:
    - `stream` → informs strategy detection
    - `tags` → inform research scope
    - `description` → additional context
-   - `context` → prior research, notes, links
+   - `context` → prior research, notes, links; `AC:` lines drive goal injection (Step 0 sub-step 0)
    - `blocked_by` → verified all resolved
 
 2. **Skip cross-reference** (task already identified).
