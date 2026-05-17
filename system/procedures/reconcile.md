@@ -7,12 +7,12 @@ Unified maintenance command for the brana system. Four domains, one entry point.
 |--------|-----------|---------------|
 | **Consistency** | `--scope consistency` | Spec docs vs `system/` implementation drift (default) |
 | **Security** | `--scope security` | Secrets, permissions, MCP tax, dangerous settings, credential files, acquired skill safety |
-| **Propagation** | `--scope propagation` | Pending errata cascade, reflection gaps, spec-graph consistency |
+| **Propagation** | `--scope propagation` | Doc fitness checks, reflection gaps, spec-graph consistency |
 | **Knowledge** | `--scope knowledge` | Stale dimensions, event log bloat, ruflo noise (DECAY) |
 
 `--scope all` runs every domain sequentially.
 
-**Replaces:** `/brana:audit` (merged into security domain), invokes `/brana:maintain-specs` commands (propagation domain).
+**Replaces:** `/brana:audit` (merged into security domain).
 
 ## Usage
 
@@ -28,7 +28,7 @@ Parse `--scope` from `$ARGUMENTS`. If no `--scope` flag is present, default to `
 
 ## When to use
 
-- **consistency** — After `/brana:maintain-specs` cascades changes that affect implementation, after manually editing specs, periodically, or before a new `/build-phase`
+- **consistency** — After manually editing specs, after implementation changes, periodically, or before a new `/build-phase`
 - **security** — Before sharing config, after adding MCP servers, after installing acquired skills, or monthly
 - **propagation** — After dimension doc edits, when errata accumulate, or as part of a full maintenance cycle
 - **knowledge** — After bulk indexing, when ruflo memory is suspected stale, weekly as DECAY hygiene pass
@@ -175,7 +175,7 @@ Compare the "should" claims (Step 1) against the "is" claims (Step 2). Classify 
 | **Incomplete** | Implementation exists but is missing parts the spec requires | "Hook exists but doesn't handle the fallback case spec requires" |
 | **Extra** | Implementation has something specs don't mention | Not necessarily wrong — flag for review, don't auto-remove |
 
-**Materiality filter.** Apply the same test proven in `/brana:maintain-specs`: "Would this drift lead to wrong behavior or a wrong implementation decision?" Discard cosmetic differences, minor wording variations, and enhancement suggestions. Only surface drift that matters.
+**Materiality filter.** "Would this drift lead to wrong behavior or a wrong implementation decision?" Discard cosmetic differences, minor wording variations, and enhancement suggestions. Only surface drift that matters.
 
 ### Step 4: Present drift report [INTERACTIVE — pause here for user approval]
 
@@ -243,25 +243,9 @@ For each change:
 
 **Do NOT auto-create new skills or make architectural changes.** For "Missing" drift that requires building something new, log it as a backlog item in doc 30 or flag it for `/build-phase`. The reconcile command fixes drift in existing files — it doesn't build new capabilities.
 
-### Step 6: Log to doc 24
+### Step 6: Log findings
 
-Append a reconcile entry to `docs/24-roadmap-corrections.md`:
-
-```markdown
-### Reconcile Run — [YYYY-MM-DD]
-
-**Trigger:** [manual | post-maintain-specs | periodic]
-**Drift found:** N findings across M areas
-**Applied:** N auto-fixes
-**Deferred:** N (requires manual build or /build-phase)
-
-| # | Area | Type | Finding | Resolution |
-|---|------|------|---------|-----------|
-| 1 | Skills | Stale | skill X description outdated | Applied — updated SKILL.md |
-| 2 | Hooks | Missing | fallback case not handled | Deferred — logged to doc 30 backlog |
-```
-
-Commit the doc 24 update alongside the other changes.
+Summarize findings as a git commit message. If backlog items were created, verify they appear in `brana backlog query`. No separate log file — git history is the audit trail.
 
 ### Step 7: Store in memory
 
@@ -444,31 +428,11 @@ List any ADRs missing status frontmatter. Severity: LOW.
 
 Cascade pending errata through the spec layer hierarchy. Invokes existing commands as building blocks.
 
-### PROP-1: Check pending errata
+### PROP-1: Fitness check
 
-Read `docs/24-roadmap-corrections.md`. Count entries with `status: pending`. If zero, skip propagation.
+Run `/brana:verify-docs` to check for doc drift, structural errors, and staleness. Surface any findings as candidates for manual correction.
 
-### PROP-2: Apply errata cascade
-
-Invoke the apply-errata command flow:
-
-```
-Skill(skill="brana:apply-errata")
-```
-
-This cascades: dimension → reflection → roadmap, with gate checks between layers.
-
-### PROP-3: Re-evaluate reflections
-
-Invoke re-evaluate-reflections:
-
-```
-Skill(skill="brana:re-evaluate-reflections")
-```
-
-Cross-checks reflection docs against dimension docs for gaps, contradictions, missed findings.
-
-### PROP-4: Spec-graph consistency
+### PROP-2: Spec-graph consistency
 
 If `docs/spec-graph.json` exists:
 1. Run `brana graph build` to regenerate

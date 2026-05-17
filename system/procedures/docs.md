@@ -1,7 +1,7 @@
 
 # Living Documentation
 
-Generate and update project documentation from build context. Works standalone or as a building block invoked by other skills (CLOSE, reconcile, maintain-specs).
+Generate and update project documentation from build context. Works standalone or as a building block invoked by other skills (CLOSE, reconcile).
 
 ## When to use
 

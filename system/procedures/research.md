@@ -623,7 +623,7 @@ Priority tiers:
    - Summary table with severity counts
    - Registry additions proposed, research leads queued
 6. **Clean up:** `rm -rf /tmp/refresh-results`
-7. **Propagation reminder:** if updates found, suggest running `/brana:maintain-specs`
+7. **Propagation reminder:** if updates found, suggest running `/brana:reconcile --scope propagation`
 
 ### Key rule
 

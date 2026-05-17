@@ -57,7 +57,7 @@ Branch conventions preserve the separation:
 ## Rules
 
 - **Never edit `~/.claude/` directly** — edit `system/` (plugin loads it) or re-run `./bootstrap.sh` (identity layer)
-- Changes propagate: dimension → reflection → roadmap (`/brana:maintain-specs`)
+- Changes propagate: dimension → reflection → roadmap (run `/brana:reconcile --scope propagation` to check for drift)
 - Spec changes push to implementation (`/brana:reconcile`)
 - Implementation changes update docs in the same commit (no separate back-propagation step)
 - When adding new docs, update `docs/README.md`

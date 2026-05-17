@@ -7,7 +7,7 @@ Before starting any implementation, design, or research work — **always ask** 
 
 ## Two layers for every task
 
-- **Workflow skill** — HOW to work: `build`, `research`, `align`, `reconcile`, `maintain-specs`
+- **Workflow skill** — HOW to work: `build`, `research`, `align`, `reconcile`
 - **Domain skill** — WHAT rules to follow: any installed domain skill (e.g. `rust-skills`), or `acquire-skills` if none matches
 
 | Work type | Workflow skill |
@@ -15,7 +15,7 @@ Before starting any implementation, design, or research work — **always ask** 
 | Implementation (feature, fix, refactor) | `build` |
 | Research, investigation, comparison | `research` |
 | Architecture, alignment, conventions | `align` |
-| Spec/doc maintenance | `maintain-specs` |
+| Spec/doc maintenance | `reconcile` or `verify-docs` |
 | Drift, security, sync | `reconcile` |
 
 Domain skills: run `brana skills suggest --query "<domain>"` to find installed matches. No match → offer `acquire-skills`.
