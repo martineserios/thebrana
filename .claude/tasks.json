@@ -40022,8 +40022,8 @@
     {
       "blocked_by": [],
       "branch": "feat/t-1429-reference-check-validate",
-      "build_step": "build",
-      "completed": null,
+      "build_step": null,
+      "completed": "2026-05-17",
       "context": "t-1428 revealed that hooks.json schema can drift from reference.rs without detection. Adding --check run to validate.sh (similar to existing checks) would catch this at commit time. Command: brana reference generate --check. Fail if any .md would change.",
       "created": "2026-05-17",
       "description": null,
@@ -40036,7 +40036,7 @@
       "parent": null,
       "priority": "P3",
       "started": "2026-05-17",
-      "status": "in_progress",
+      "status": "completed",
       "strategy": "feature",
       "stream": "tech-debt",
       "subject": "Add brana reference generate --check to validate.sh",
@@ -40044,6 +40044,34 @@
         "cli",
         "reference",
         "validate"
+      ],
+      "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "Session t-1429 revealed validate.sh for-loops over globs (e.g. system/agents/*.md) exit the script via set -e when no files exist — unmatched glob becomes a literal path, awk fails, script exits before reaching deep checks. shopt -s nullglob at top of validate.sh would make unmatched globs expand to nothing instead.",
+      "created": "2026-05-17",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1430",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "tech-debt",
+      "subject": "Add shopt -s nullglob to validate.sh",
+      "tags": [
+        "validate",
+        "bash",
+        "shell"
       ],
       "type": "task"
     }
