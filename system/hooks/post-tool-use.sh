@@ -38,9 +38,31 @@ if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
     esac
 
     # --- Test/lint command detection (Bash only) ---
+    TEST_PASS_COUNT=""
+    TEST_FAIL_COUNT=""
     if [ "${TOOL_NAME:-}" = "Bash" ] && [ -n "$DETAIL" ]; then
-        if echo "$DETAIL" | grep -qE '(^|\s|/)(npm\s+test|npx\s+(jest|vitest|mocha)|bun\s+test|pytest|python\s+-m\s+pytest|cargo\s+test|go\s+test|make\s+test|\.\/validate\.sh)(\s|$|;|\|)' 2>/dev/null; then
+        if echo "$DETAIL" | grep -qE '(^|\s|/)(npm\s+test|npx\s+(jest|vitest|mocha)|bun\s+test|uv\s+run\s+pytest|pytest|python\s+-m\s+pytest|cargo\s+test|go\s+test|make\s+test|\.\/validate\.sh)(\s|$|;|\|)' 2>/dev/null; then
             OUTCOME="test-pass"
+            # --- Test signal: parse tool_response for pass/fail counts ---
+            RESPONSE=$(echo "$INPUT" | jq -r '.tool_response.content // .tool_response // empty' 2>/dev/null) || RESPONSE=""
+            if [ -n "$RESPONSE" ]; then
+                # cargo test: "test result: ok. 23 passed; 0 failed"
+                if echo "$RESPONSE" | grep -q 'test result:' 2>/dev/null; then
+                    TEST_PASS_COUNT=$(echo "$RESPONSE" | grep -oE '[0-9]+ passed' | grep -oE '[0-9]+' | tail -1) || TEST_PASS_COUNT=""
+                    TEST_FAIL_COUNT=$(echo "$RESPONSE" | grep -oE '[0-9]+ failed' | grep -oE '[0-9]+' | tail -1) || TEST_FAIL_COUNT=""
+                # pytest: "N passed", "N failed" in summary line (=====...=====)
+                elif echo "$RESPONSE" | grep -qE '=+.*=+$' 2>/dev/null; then
+                    TEST_PASS_COUNT=$(echo "$RESPONSE" | grep -oE '[0-9]+ passed' | grep -oE '[0-9]+' | tail -1) || TEST_PASS_COUNT=""
+                    TEST_FAIL_COUNT=$(echo "$RESPONSE" | grep -oE '[0-9]+ failed' | grep -oE '[0-9]+' | tail -1) || TEST_FAIL_COUNT=""
+                # jest/vitest: "Tests: N passed, M total" or "N failed, M passed"
+                elif echo "$RESPONSE" | grep -qE 'Tests:' 2>/dev/null; then
+                    TEST_PASS_COUNT=$(echo "$RESPONSE" | grep 'Tests:' | grep -oE '[0-9]+ passed' | grep -oE '[0-9]+' | tail -1) || TEST_PASS_COUNT=""
+                    TEST_FAIL_COUNT=$(echo "$RESPONSE" | grep 'Tests:' | grep -oE '[0-9]+ failed' | grep -oE '[0-9]+' | tail -1) || TEST_FAIL_COUNT=""
+                fi
+                # Default test_fail to 0 when pass count was parsed (all-pass case)
+                [ -n "$TEST_PASS_COUNT" ] && [ -z "$TEST_FAIL_COUNT" ] && TEST_FAIL_COUNT="0"
+                [ "${TEST_FAIL_COUNT:-0}" -gt 0 ] 2>/dev/null && OUTCOME="test-fail" || true
+            fi
         elif echo "$DETAIL" | grep -qE '(^|\s|/)(eslint|flake8|ruff(\s+check)?|pylint|cargo\s+clippy|golangci-lint|shellcheck|biome\s+check|npm\s+run\s+lint|npx\s+eslint)(\s|$|;|\|)' 2>/dev/null; then
             OUTCOME="lint-pass"
         elif echo "$DETAIL" | grep -qE '(^|\s)gh\s+pr\s+create(\s|$)' 2>/dev/null; then
@@ -81,7 +103,12 @@ if [ -n "${SESSION_ID:-}" ] && [ -n "${TOOL_NAME:-}" ]; then
         --arg outcome "$OUTCOME" \
         --arg detail "${DETAIL:-unknown}" \
         --arg repo "${REPO:-}" \
-        '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail, repo: $repo}' >> "$SESSION_FILE" 2>/dev/null || true
+        --arg test_pass "${TEST_PASS_COUNT:-}" \
+        --arg test_fail "${TEST_FAIL_COUNT:-}" \
+        '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail, repo: $repo}
+         + (if $test_pass != "" then {test_pass: ($test_pass | tonumber)} else {} end)
+         + (if $test_fail != "" then {test_fail: ($test_fail | tonumber)} else {} end)' \
+        >> "$SESSION_FILE" 2>/dev/null || true
 fi
 
 echo '{"continue": true}'
