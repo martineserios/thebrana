@@ -634,13 +634,47 @@ If all checks pass, proceed silently.
 
    **Trivial/Small builds:** Keep tasks inline in the conversation. No backlog persistence — the build completes in one session anyway.
 
-4. **Present the plan** for approval. Use AskUserQuestion:
+4. **Sprint contract** (Medium/Large builds with task_id — skip for Trivial/Small and spike/investigation):
+
+   Builder proposes a contract: scope for this build chunk + binary success criteria. Challenger reviews. Agreed contract is written to the task before user approval.
+
+   **Draft the contract:**
+   ```
+   Sprint Contract — {task_id} — {date}
+   ══════════════════════════════════════
+   Scope: {one sentence — what will be built in this sprint}
+
+   Success criteria (ISC):
+   - {state, not action — "All tests green" not "Run tests"}
+   - {measurable end-state verifiable with a command or artifact}
+
+   Out of scope:
+   - {what is explicitly deferred}
+   ```
+
+   **Challenger review:**
+   ```
+   Agent(subagent_type="brana:challenger", prompt="Sprint contract review for {strategy} build, task {task_id}.
+   Spec summary: {2-3 sentences}
+   Contract: {contract text}
+   Check: (1) Are criteria binary testable states? (2) Scope aligned with spec? (3) Critical criteria missing? (4) Anything over-scoped? Return numbered findings or 'Contract looks good.'")
+   ```
+   If challenger raises issues, revise and re-run (max 2 iterations). Unresolved concerns after 2 iterations: surface to user before proceeding.
+
+   **Write agreed contract:**
+   ```bash
+   brana backlog set {task_id} context --append "Sprint contract {date}: Scope: {scope}. ISC: [{criteria}]"
+   brana backlog set {task_id} isc "+{criterion 1}"
+   brana backlog set {task_id} isc "+{criterion 2}"
+   ```
+
+5. **Present the plan** for approval. Use AskUserQuestion:
    ```
    question: "Task breakdown ready. Approve?"
    options: ["Approve", "Adjust", "Cancel"]
    ```
 
-5. Update spec status to `building`.
+6. Update spec status to `building`.
 
 > **☑ Checkpoint — DECOMPOSE** (M+ builds with task_id):
 > ```bash
