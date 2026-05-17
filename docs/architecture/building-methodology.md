@@ -229,6 +229,11 @@ Source: t-1190, 2026-04-13
 `/brana:build` DECOMPOSE now writes an ISC (Ideal State Criteria) array to the task and runs a challenger review before any code is written. ISC uses the Miessler PAI pattern — binary, testable success states ("All tests passing") not actions. The `brana backlog set <id> isc "+criterion"` CLI sets array items with `+`/`-` prefix (auto-initializes if null). VERIFY block at BUILD→CLOSE gate reads `task.isc` and gates on failure. For removing a criterion with a leading dash: `brana backlog set <id> isc -- "-criterion"` (standard `--` separator for leading-dash values).
 Source: t-252 + t-644, 2026-05-17
 
+### 2026-05-17: Sprint contract challenger catch — undefined thresholds before commit
+
+In t-644, the sprint contract ISC originally included "council mode auto-skipped for trivial targets." Challenger review before implementation flagged that "trivial" had no operational definition — no LOC cutoff, no domain rule, no test. Resolution: drop the auto-behavior, make `--council` the only trigger. The lesson: when an ISC criterion depends on an undefined predicate, challenger catches it at contract review (free), not at errata time (expensive). Rule: any ISC criterion that includes an adjective without a threshold ("trivial", "simple", "small") is a candidate for this failure mode.
+Source: t-644 sprint contract / t-282, 2026-05-17
+
 ### 2026-04-13: /brana:docs at BUILD→CLOSE gate, not in CLOSE
 Doc generation belongs at the BUILD→CLOSE transition (immediately after tests pass), not inside CLOSE step 6. CLOSE is a safety net for missed docs, not the primary trigger. Placing it in BUILD ensures docs are generated while the implementation context is still fresh.
 Source: build.md procedure update, 2026-04-13
