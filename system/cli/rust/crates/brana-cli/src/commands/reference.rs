@@ -371,10 +371,10 @@ fn generate_hooks(root: &Path) -> Result<String> {
                                     .trim_matches('"');
                                 let timeout = h["timeout"]
                                     .as_u64()
-                                    .map(|t| t.to_string())
+                                    .map(|t| format!("{t}ms"))
                                     .unwrap_or_else(|| "—".to_string());
                                 out.push_str(&format!(
-                                    "| {event_type} | `{matcher}` | `{script}` | {timeout}ms |\n"
+                                    "| {event_type} | `{matcher}` | `{script}` | {timeout} |\n"
                                 ));
                             }
                         }
@@ -807,6 +807,37 @@ mod tests {
         assert!(
             !output.contains("ConfigChange"),
             "flat hooks.json must not produce event rows (nested .hooks key required)"
+        );
+    }
+
+    // ── t-1428: timeout display ───────────────────────────────────────────────
+
+    #[test]
+    fn test_generate_hooks_no_timeout_shows_dash_not_dash_ms() {
+        // Async hooks without "timeout" must show "—" not "—ms".
+        let hooks_json = r#"{
+            "hooks": {
+                "SessionStart": [
+                    {
+                        "matcher": "",
+                        "hooks": [{
+                            "type": "command",
+                            "args": ["bash", "/path/to/cc-changelog-check.sh"],
+                            "async": true
+                        }]
+                    }
+                ]
+            }
+        }"#;
+        let root = make_hooks_root(hooks_json);
+        let output = generate_hooks(root.path()).unwrap();
+        assert!(
+            !output.contains("—ms"),
+            "missing timeout must not render as '—ms'; got:\n{output}"
+        );
+        assert!(
+            output.contains("| — |") || output.contains("| — |\n") || output.contains("—"),
+            "missing timeout must render as plain '—'"
         );
     }
 
