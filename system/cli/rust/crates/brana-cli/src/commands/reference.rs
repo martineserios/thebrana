@@ -351,11 +351,23 @@ fn generate_hooks(root: &Path) -> Result<String> {
                         let matcher = entry["matcher"].as_str().unwrap_or("—");
                         if let Some(hook_list) = entry["hooks"].as_array() {
                             for h in hook_list {
-                                let cmd = h["command"].as_str().unwrap_or("");
+                                // Support both "command": "path/script.sh" and
+                                // "args": ["bash", "path/script.sh"] forms.
+                                let cmd: String = h["command"]
+                                    .as_str()
+                                    .map(|s| s.to_string())
+                                    .unwrap_or_else(|| {
+                                        h["args"]
+                                            .as_array()
+                                            .and_then(|a| a.last())
+                                            .and_then(|v| v.as_str())
+                                            .unwrap_or("")
+                                            .to_string()
+                                    });
                                 let script = cmd
                                     .split('/')
                                     .next_back()
-                                    .unwrap_or(cmd)
+                                    .unwrap_or(&cmd)
                                     .trim_matches('"');
                                 let timeout = h["timeout"]
                                     .as_u64()
@@ -795,6 +807,58 @@ mod tests {
         assert!(
             !output.contains("ConfigChange"),
             "flat hooks.json must not produce event rows (nested .hooks key required)"
+        );
+    }
+
+    // ── t-1428: args[] form script name extraction ────────────────────────────
+
+    #[test]
+    fn test_generate_hooks_args_form_script_name() {
+        // Hooks using args[] (not "command" string) must surface script names.
+        let hooks_json = r#"{
+            "hooks": {
+                "PreToolUse": [
+                    {
+                        "matcher": "Write|Edit",
+                        "hooks": [{
+                            "type": "command",
+                            "timeout": 5000,
+                            "args": ["bash", "/path/to/pre-tool-use.sh"]
+                        }]
+                    }
+                ]
+            }
+        }"#;
+        let root = make_hooks_root(hooks_json);
+        let output = generate_hooks(root.path()).unwrap();
+        assert!(
+            output.contains("pre-tool-use.sh"),
+            "args-form hook must surface script name; got:\n{output}"
+        );
+    }
+
+    #[test]
+    fn test_generate_hooks_async_args_form_script_name() {
+        // Async hooks with args[] form must also surface script names.
+        let hooks_json = r#"{
+            "hooks": {
+                "SessionStart": [
+                    {
+                        "matcher": "",
+                        "hooks": [{
+                            "type": "command",
+                            "args": ["bash", "/path/to/cc-changelog-check.sh"],
+                            "async": true
+                        }]
+                    }
+                ]
+            }
+        }"#;
+        let root = make_hooks_root(hooks_json);
+        let output = generate_hooks(root.path()).unwrap();
+        assert!(
+            output.contains("cc-changelog-check.sh"),
+            "async args-form hook must surface script name; got:\n{output}"
         );
     }
 }
