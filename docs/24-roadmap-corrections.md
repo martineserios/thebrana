@@ -16,6 +16,7 @@ Errors and mismatches found during implementation. Each entry logs the finding, 
 
 | # | Error | Severity | Status | Comments |
 |---|---|---|---|---|
+| E2026-05-17-7 | proyecto_anita: Claude inferred `palco@mail.com` admin email from undocumented `{distri}@mail.com` convention — no such credential exists in Greencode docs. 10 password attempts all HTTP 401 | **Medium** | pending | Never infer credential patterns from silence; flag as unknown and escalate. |
 | E2026-05-17-6 | proyecto_anita: Supabase MCP OAuth session expires between sessions (overnight gap) — `mcp__supabase__execute_sql` returns "Unrecognized client_id" on session restart | **Low** | informational | MCP auth is scoped to the session in which `mcp__supabase__authenticate` was called. Across an overnight gap (>8h), the session expires. Workaround: fallback to Cloud Run env → service role key → Management API. No fix needed; informational for future sessions. |
 | E2026-05-17-5 | proyecto_anita: PostgREST content-range header format `0-0/N` — count is after `/`, not directly parseable with `grep -oP '\d+'` which matches `0` not `N`. Caused all 26 table row-count queries to return ERROR in initial audit script | **Medium** | code-fix | Fix: `grep -i "content-range:" | sed 's/.*\///' | tr -d '[:space:]\r'` extracts the total count after `/`. Applied in t-883 live audit script. Affects any shell script doing PostgREST count queries with `Prefer: count=exact`. |
 | E2026-05-17-4 | proyecto_anita: Supabase CLI v2.75.0 (Ubuntu apt package) doesn't support `--project-ref` flag for `supabase db push` — flag was added in v2.x.x; silent failure or command not found | **Medium** | code-fix | Fix: install v2.98.2 directly from GitHub releases to `~/.local/bin/supabase`. Command: `wget https://github.com/supabase/cli/releases/download/v2.98.2/supabase_linux_amd64.tar.gz`. Use `~/.local/bin/supabase` explicitly when apt version is stale. |
@@ -2950,3 +2951,20 @@ Applies to any shell script doing PostgREST count queries with `Prefer: count=ex
 
 **Status:** informational (no fix needed; workarounds documented above)
 
+
+---
+
+## Error E2026-05-17-7: palco@mail.com admin email invented by Claude — not a real credential (proyecto_anita)
+
+**Severity:** Medium — wasted debug cycles; risk of repeated pattern on future admin endpoint work.
+**Discovery:** 2026-05-17 — L4 checkout diagnosis session. Claude inferred a `{distribuidora}@mail.com` admin user pattern from `docs/integrations/tracy-commerce-api-v1.md`. Tried `palco@mail.com` with 10 common passwords — all HTTP 401. User explicitly corrected: "palco@admin is a creation of you."
+**Affected files:** none (no code was changed; the inference was conversational)
+
+**Root cause:** The doc mentions a `{distri}@mail.com` email as an *example* in an unrelated context. There is no documented admin email convention for Tracy QA. Ecommerce user (`masunoqapalco@mail.com`) is the only credential captured in `.env.tracy-qa`.
+
+**Fix:** Add a note to `docs/integrations/tracy-commerce-api-v1.md` Credentials section:
+> Admin/backoffice credentials for `/admin/*` endpoints are NOT documented. Ecommerce user (`masunoqapalco@mail.com`) covers `/store/*` only. For admin access, request credentials from Greencode.
+
+This errata also applies as a process rule: **when a credential is not explicitly documented, never infer a pattern and test it — surface as unknown and escalate.**
+
+**Status:** pending (doc update needed in tracy-commerce-api-v1.md)
