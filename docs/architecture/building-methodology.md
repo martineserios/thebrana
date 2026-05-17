@@ -224,6 +224,11 @@ Source: t-1109, 2026-04-10
 Before any file edit, state which lifecycle disciplines apply and why — even for S-effort tasks. The failure mode is skipping the assessment, not skipping a step. A 3-line procedure fix still needs: DDD (no — no domain model), SDD (maybe — is the task description enough spec?), TDD (no — doc, not code). One explicit line per discipline before the first Edit/Write call.
 Source: t-1190, 2026-04-13
 
+### 2026-05-17: ISC field + sprint contract in DECOMPOSE
+
+`/brana:build` DECOMPOSE now writes an ISC (Ideal State Criteria) array to the task and runs a challenger review before any code is written. ISC uses the Miessler PAI pattern — binary, testable success states ("All tests passing") not actions. The `brana backlog set <id> isc "+criterion"` CLI sets array items with `+`/`-` prefix (auto-initializes if null). VERIFY block at BUILD→CLOSE gate reads `task.isc` and gates on failure. For removing a criterion with a leading dash: `brana backlog set <id> isc -- "-criterion"` (standard `--` separator for leading-dash values).
+Source: t-252 + t-644, 2026-05-17
+
 ### 2026-04-13: /brana:docs at BUILD→CLOSE gate, not in CLOSE
 Doc generation belongs at the BUILD→CLOSE transition (immediately after tests pass), not inside CLOSE step 6. CLOSE is a safety net for missed docs, not the primary trigger. Placing it in BUILD ensures docs are generated while the implementation context is still fresh.
 Source: build.md procedure update, 2026-04-13

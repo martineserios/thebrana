@@ -217,9 +217,12 @@ Ship a build — pre-flight checks, deploy, document, verify, monitor. Use when 
 
 ### `/brana:challenge`
 
-Adversarial review — Opus stress-tests reasoning, Gemini stress-tests documented knowledge. Use when a plan, decision, or architecture needs stress-testing.
+Adversarial review — Opus stress-tests reasoning, Gemini stress-tests documented knowledge. Add `--council` for 4-perspective debate. Use when a plan, decision, or architecture needs stress-testing.
 
-**Arguments:** `[target description]`
+**Arguments:** `[target description] [--council]`
+
+- Default (no flag): single Opus challenger + Gemini constraint retrieval
+- `--council`: spawns 4 parallel agents — devil's advocate, optimist, pragmatist, operator — each isolated; Claude synthesizes with `[COUNCIL-AGREEMENT: N/4]` dedup tagging
 
 **Allowed tools:** Task, Read, Glob, Grep, mcp__notebooklm__ask_question, mcp__notebooklm__search_notebooks, mcp__notebooklm__get_health, AskUserQuestion
 
