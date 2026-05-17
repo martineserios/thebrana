@@ -40021,8 +40021,8 @@
     },
     {
       "blocked_by": [],
-      "branch": null,
-      "build_step": null,
+      "branch": "feat/t-1429-reference-check-validate",
+      "build_step": "build",
       "completed": null,
       "context": "t-1428 revealed that hooks.json schema can drift from reference.rs without detection. Adding --check run to validate.sh (similar to existing checks) would catch this at commit time. Command: brana reference generate --check. Fail if any .md would change.",
       "created": "2026-05-17",
@@ -40035,9 +40035,9 @@
       "order": null,
       "parent": null,
       "priority": "P3",
-      "started": null,
-      "status": "pending",
-      "strategy": null,
+      "started": "2026-05-17",
+      "status": "in_progress",
+      "strategy": "feature",
       "stream": "tech-debt",
       "subject": "Add brana reference generate --check to validate.sh",
       "tags": [
