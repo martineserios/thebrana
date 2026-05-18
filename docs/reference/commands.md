@@ -2,12 +2,9 @@
 
 # Commands Reference
 
-**5 commands** in `system/commands/`.
+**2 commands** in `system/commands/`.
 
 | File | Title | Description |
 |------|-------|-------------|
-| `apply-errata.md` | Apply Errata | Read doc 24 (roadmap corrections) and apply fixes following the layer hierarchy: dimension docs firs... |
 | `init-project` | Claude Code command to initialize a new project with CLAUDE.md template | set -e |
-| `maintain-specs.md` | Maintain Specs | Run the full spec repo correction cycle: apply pending errata first (so reflections start from a cor... |
-| `re-evaluate-reflections.md` | Re-Evaluate Reflections | Check whether the 5 reflection docs (08-triage, 14-architecture, 31-assurance, 32-lifecycle, 29-tran... |
 | `repo-cleanup.md` | Repo Cleanup | Commit accumulated spec doc changes that have built up across sessions. Follows GitHub Flow: branch,... |

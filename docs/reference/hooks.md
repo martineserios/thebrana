@@ -266,7 +266,7 @@ Blocking hooks that support `/tmp/brana-*` sentinel file bypasses for procedure-
 | `post-sale.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | Log to session JSONL |
 | `post-tool-use-failure.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | --- Test/lint command detection (Bash only) --- |
 | `post-tool-use-failure.sh` | `/tmp/brana-cascade` | Only for Edit/Write — Bash commands aren't file-targeted, so flags would be orphaned. |
-| `post-tool-use.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | --- Test/lint command detection (Bash only) --- |
+| `post-tool-use.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | Default test_fail to 0 when pass count was parsed (all-pass case) |
 | `post-tool-use.sh` | `/tmp/brana-cascade/${SESSION_ID}-${PATH_HASH}` | If a previously-cascading file succeeds, remove the flag to stop warning fatigue. |
 | `pre-tool-use.sh` | `/tmp/brana-cascade/${SESSION_ID}-${PATH_HASH}` | If post-tool-use-failure.sh flagged this file as cascading, inject a nudge (not a deny). |
 | `session-end-metrics.sh` | `/tmp/brana-metrics-filtered-XXXXXX.jsonl` | Events from a different repo are excluded. |
