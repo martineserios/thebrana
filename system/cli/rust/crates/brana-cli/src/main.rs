@@ -104,7 +104,7 @@ fn main() {
                 run_or_exit(commands::skills::cmd_suggest(task.as_deref(), query.as_deref()))
             }
             SkillsCmd::Search { query } => run_or_exit(commands::skills::cmd_search(&query)),
-            SkillsCmd::List => run_or_exit(commands::skills::cmd_list()),
+            SkillsCmd::List { human } => run_or_exit(commands::skills::cmd_list(human)),
             SkillsCmd::Reindex { changed, force } => run_or_exit(commands::skills::cmd_reindex(changed, force)),
             SkillsCmd::Usage { days, cull_threshold, json } => {
                 run_or_exit(commands::skills::cmd_usage(days, cull_threshold, json))
