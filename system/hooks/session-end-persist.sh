@@ -7,9 +7,11 @@
 #   TEST_PASSES TEST_FAILS LINT_PASSES LINT_FAILS EDITS DELEGATIONS
 #   CORRECTION_RATE AUTO_FIX_RATE TEST_WRITE_RATE CASCADE_RATE
 #   TEST_PASS_RATE LINT_PASS_RATE SUMMARY_JSON TOOLS FILES
-#   LAYER0_DIR   path to project auto-memory dir (may be empty)
-#   STORED_L1    "true"|"false" — set externally if ruflo already stored
-#   BRANA_CLI    path to brana binary (optional)
+#   LAYER0_DIR         path to project auto-memory dir (may be empty)
+#   STORED_L1          "true"|"false" — set externally if ruflo already stored
+#   BRANA_CLI          path to brana binary (optional)
+#   PATTERN_LEARNINGS  JSON array of learning strings → ~/.claude/memory/patterns.md
+#   KNOWLEDGE_FINDINGS JSON array of knowledge strings → ~/.claude/memory/knowledge-staging.md
 #
 # Always exits 0 — storage failures are non-fatal.
 
@@ -37,6 +39,8 @@ TOOLS="${TOOLS:-unknown}"; FILES="${FILES:-}"
 LAYER0_DIR="${LAYER0_DIR:-}"
 STORED_L1="${STORED_L1:-false}"
 BRANA_CLI="${BRANA_CLI:-}"
+PATTERN_LEARNINGS="${PATTERN_LEARNINGS:-[]}"
+KNOWLEDGE_FINDINGS="${KNOWLEDGE_FINDINGS:-[]}"
 
 # ── Layer 1: ruflo store ──────────────────────────────────────
 
@@ -108,21 +112,6 @@ fi
 # ── Layer 0: auto-memory write ────────────────────────────────
 
 if [ -n "$LAYER0_DIR" ]; then
-    # pending-learnings (when ruflo unavailable)
-    if [ "$STORED_L1" = "false" ]; then
-        {
-            echo ""
-            echo "## Session $SESSION_ID ($TIMESTAMP)"
-            echo "- Project: $PROJECT"
-            echo "- Events: $TOTAL ($SUCCESSES ok, $FAILURES fail)"
-            echo "- Corrections: $CORRECTIONS | Test writes: $TEST_WRITES | Cascades: $CASCADES | PR creates: $PR_CREATES"
-            echo "- Tests: $TEST_PASSES pass, $TEST_FAILS fail (rate=$TEST_PASS_RATE) | Lint: $LINT_PASSES pass, $LINT_FAILS fail (rate=$LINT_PASS_RATE)"
-            echo "- Flywheel: corr=$CORRECTION_RATE fix=$AUTO_FIX_RATE test=$TEST_WRITE_RATE casc=$CASCADE_RATE deleg=$DELEGATIONS prs=$PR_CREATES"
-            echo "- Tools: $TOOLS"
-            [ -n "$FILES" ] && echo "- Files: $FILES"
-        } >> "$LAYER0_DIR/pending-learnings.md" 2>/dev/null || true
-    fi
-
     # sessions.md (always)
     {
         echo ""
@@ -134,6 +123,76 @@ if [ -n "$LAYER0_DIR" ]; then
         echo "- Tools: $TOOLS"
         [ -n "$FILES" ] && echo "- Files: $FILES"
     } >> "$LAYER0_DIR/sessions.md" 2>/dev/null || true
+fi
+
+# ── Classify-then-route: patterns.md + knowledge-staging.md ──
+# Routes PATTERN_LEARNINGS and KNOWLEDGE_FINDINGS to flat taxonomy files.
+# Runs regardless of STORED_L1 — flat files are git-durable fallback.
+
+MEMORY_DIR="$HOME/.claude/memory"
+
+_slugify() {
+    echo "$1" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' '-' | sed 's/^-//;s/-$//' | cut -c1-60
+}
+
+_date_today() {
+    date +%Y-%m-%d 2>/dev/null || echo "$TIMESTAMP"
+}
+
+if command -v jq >/dev/null 2>&1; then
+    TODAY=$(_date_today)
+
+    # Patterns → ~/.claude/memory/patterns.md
+    PATTERN_COUNT=$(echo "$PATTERN_LEARNINGS" | jq 'length' 2>/dev/null) || PATTERN_COUNT=0
+    if [ "${PATTERN_COUNT:-0}" -gt 0 ]; then
+        PATTERNS_FILE="$MEMORY_DIR/patterns.md"
+        if [ ! -f "$PATTERNS_FILE" ]; then
+            mkdir -p "$MEMORY_DIR" 2>/dev/null || true
+            printf '# Pattern Store\n\n<!-- cap: 50 | warn-at: 40 | auto-pruned: oldest quarantine first -->\n' \
+                > "$PATTERNS_FILE" 2>/dev/null || true
+        fi
+        while IFS= read -r learning; do
+            [ -z "$learning" ] && continue
+            slug=$(_slugify "$learning")
+            if ! grep -q "^## $slug" "$PATTERNS_FILE" 2>/dev/null; then
+                {
+                    echo ""
+                    echo "## $slug"
+                    echo ""
+                    echo "$learning"
+                    echo "**Confidence:** quarantine"
+                    echo "**Source:** session-end auto-capture $SESSION_ID"
+                    echo "**Added:** $TODAY"
+                } >> "$PATTERNS_FILE" 2>/dev/null || true
+            fi
+        done < <(echo "$PATTERN_LEARNINGS" | jq -r '.[]' 2>/dev/null)
+    fi
+
+    # Knowledge → ~/.claude/memory/knowledge-staging.md
+    KNOWLEDGE_COUNT=$(echo "$KNOWLEDGE_FINDINGS" | jq 'length' 2>/dev/null) || KNOWLEDGE_COUNT=0
+    if [ "${KNOWLEDGE_COUNT:-0}" -gt 0 ]; then
+        KNOWLEDGE_FILE="$MEMORY_DIR/knowledge-staging.md"
+        if [ ! -f "$KNOWLEDGE_FILE" ]; then
+            mkdir -p "$MEMORY_DIR" 2>/dev/null || true
+            printf '# Knowledge Staging\n\n<!-- cap: 30 | warn-at: 20 | stale-after: 30 days -->\n' \
+                > "$KNOWLEDGE_FILE" 2>/dev/null || true
+        fi
+        while IFS= read -r finding; do
+            [ -z "$finding" ] && continue
+            slug=$(_slugify "$finding")
+            if ! grep -q "^## $slug" "$KNOWLEDGE_FILE" 2>/dev/null; then
+                {
+                    echo ""
+                    echo "## $slug"
+                    echo ""
+                    echo "**Claim:** $finding"
+                    echo "**Source:** session-end auto-capture $SESSION_ID"
+                    echo "**Confidence:** medium"
+                    echo "**Added:** $TODAY"
+                } >> "$KNOWLEDGE_FILE" 2>/dev/null || true
+            fi
+        done < <(echo "$KNOWLEDGE_FINDINGS" | jq -r '.[]' 2>/dev/null)
+    fi
 fi
 
 # ── Session state via CLI ─────────────────────────────────────
