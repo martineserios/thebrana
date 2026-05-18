@@ -481,3 +481,15 @@ Source: t-1088
 ### 2026-04-13: Allowlist the target set, don't denylist known-large paths
 The `find -size +50k` check over all of `system/` produced false positives on Rust build artifacts (`cli/rust/target/`), runtime state (`state/`), and procedure files (`procedures/`). Each required a new exclusion clause. The durable fix is to scan only the set that should be small: `system/skills/`, `system/hooks/`, `system/agents/`, `system/rules/`, `system/commands/`. Allowlisting the target is stable; denylisting known-large paths grows indefinitely.
 Source: t-1183, 2026-04-13
+
+### 2026-05-18: Count-drift plain-list pattern (Pattern 3) requires lookahead over all terminal punctuation
+`(?=[,\.])` missed "N agents)" where `)` follows — causing false negatives in plain-list format "11 skills, 11 agents, 10 hooks.". Fix: `(?=[,\.\)])` — enumerate every terminal char (comma, period, close-paren). The same completeness rule applies to any lookahead anchoring a plain-list pattern.
+Source: t-1443, 2026-05-18
+
+### 2026-05-18: `%seen` Perl hash prevents duplicate warnings in multi-pattern extraction
+When multiple Perl `while (/pattern/g)` loops can match the same line (e.g., Pattern 1 and Pattern 3 both match `(24 skills,`), each loop independently emits a match. Fix: derive a dedup key `"$.:$num:$component"` and gate every print with `unless $seen{$k}++`. The hash lives in Perl's package scope — one declaration covers all loops in the same invocation.
+Source: t-1443, 2026-05-18
+
+### 2026-05-18: Per-component threshold in count-drift detection
+A single 30% threshold suppresses stale counts when a component grows rapidly. Hooks grew from 10 to 35 — a 30% threshold would let "10 hooks" (diff=25 vs threshold=10) pass silently. Fix: per-component thresholds — 80% for hooks (high-growth), 30% for skills/rules/agents/checks (stable). Add per-component cases whenever a new high-growth component joins the scanned set.
+Source: t-1443, 2026-05-18
