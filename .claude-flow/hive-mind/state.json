@@ -18,8 +18,8 @@
       "closed_at": "2026-04-06T21:00:00Z"
     },
     "client:thebrana:session:closed:2026-05-17": "{\"status\": \"closed\", \"summary\": \"feat t-1429: Check 29 reference docs drift detection in validate.sh\", \"next\": [\"Add shopt -s nullglob to validate.sh (t-1430)\", \"Doc drift: statusline-test-coverage.md + system-documentation-map.md may be stale\"], \"closed_at\": \"2026-05-17T19:30:00Z\"}",
-    "client:thebrana:session:closed:2026-05-18": "{\"status\": \"closed\", \"summary\": \"Fix 9 session-start test failures + validate.sh errors + t-1437 (skills list argument_hint + session-start hook cleanup)\", \"next\": [\"t-1438: validate stale_docs paths in close procedure\", \"Run /brana:reconcile --scope consistency,propagation\", \"t-1439: validate.sh lint for brana CLI calls without cd GIT_ROOT\"], \"closed_at\": \"2026-05-18T01:46:00Z\"}"
+    "client:thebrana:session:closed:2026-05-18": "{\"status\":\"closed\",\"summary\":\"t-1439: brana CLI cd GIT_ROOT wrapper lint — Check 30 + 9 hook fixes\",\"next\":[\"t-1445: fix GIT_ROOT export ordering in session-end.sh\",\"t-1443: flag numeric counts in living docs\",\"t-1441: extract shared run_hook() helper\"],\"closed_at\":\"2026-05-18T00:00:00Z\"}"
   },
   "createdAt": "2026-04-06T20:37:18.323Z",
-  "updatedAt": "2026-05-18T01:49:19.369Z"
+  "updatedAt": "2026-05-18T12:54:30.241Z"
 }
