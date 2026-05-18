@@ -243,6 +243,23 @@ if [ -n "$SECRETS_FOUND" ]; then
 else
     pass "No secrets detected"
 fi
+
+# Check 6b: Key-shaped values in state/ (catches real secrets by value pattern, not name)
+# Excludes patterns-export.json (large pattern store with legitimate long strings).
+echo "Checking state/ for key-shaped values (32+ alnum chars)..."
+STATE_DIR="$SYSTEM_DIR/state"
+if [ -d "$STATE_DIR" ]; then
+    STATE_SECRETS=$(grep -rn --exclude="patterns-export.json" -E '[A-Za-z0-9]{40,}' "$STATE_DIR" 2>/dev/null \
+        | grep -v -E '(#|example|placeholder|\.gitkeep)' || true)
+    if [ -n "$STATE_SECRETS" ]; then
+        fail "Key-shaped values found in state/ (review for accidental secrets):"
+        echo "$STATE_SECRETS"
+    else
+        pass "No key-shaped values in state/"
+    fi
+else
+    pass "state/ directory absent — skipping"
+fi
 echo ""
 
 # Check 7: Duplicate skill names
