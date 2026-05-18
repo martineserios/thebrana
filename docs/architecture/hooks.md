@@ -240,26 +240,6 @@ Multiple hooks can register for the same event. They run sequentially; if any Pr
 > Archived 2026-05-09: 5 oldest entries (2026-04-08 × 2, 2026-04-09, 2026-04-12 nvm PATH, 2026-04-12 worktree-gate checkout/switch) moved to ruflo field-notes namespace (t-1388).
 > Archived 2026-05-11: 5 entries (2026-04-10 × 5: doc-gate bash command, git checkout HEAD recovery, branch switches ephemeral, main-guard+doc-gate combo, tasks.json stash theirs) moved to ruflo knowledge namespace.
 
-### 2026-04-10: worktree-gate has two gates, not one
-`worktree-gate.sh` intercepts ALL git commands via PreToolUse on Bash. Gate A (branch enforcement) fires on `git checkout -b` / `git switch -c` and blocks when dirty or worktrees active. Gate B (commit safety) fires on `git commit`: blocks if /tmp >95% full (prevents silent ENOSPC), warns if staged files weren't written in this session (cross-session displaced file detection). These are distinct concerns sharing one hook to minimize hook overhead. Error messages identify which gate fired.
-Source: t-1075, t-1120, t-1126 (2026-04-12)
-
-### 2026-04-12: Session handoff next[] items can be stale
-Session state is written at close and read at session start — hours or days may pass. Items like "9 stale stashes" or "N pending X" reflect state at write time, not now. Always verify counts before acting (e.g., `git stash list`, `brana backlog query --status pending`). Don't assume handoff claims are current.
-Source: maintenance session 2026-04-12
-
-### 2026-04-12: Branch-checking hooks must follow `git -C <path>`, not session CWD
-`branch-verify.sh` was checking `CWD` (the session working directory) to determine the git root and branch. When work is done via `git -C <worktree-path> add <files>`, the session CWD is the main repo (on `main`) — the hook falsely blocked. Fix: extract the `-C <path>` argument from the git command and use it as the lookup directory, falling back to CWD only when absent. This pattern applies to any hook that inspects git branch state (`main-guard.sh` has the same bug — tracked). Escape hatch: `# --force-main` as a bash comment (hook greps the full command string, bash ignores comments).
-Source: t-1078, branch-verify-worktree-fix (2026-04-12)
-
-### 2026-04-12: `cd <worktree> && git add` still triggers session-CWD hooks
-PreToolUse hooks fire before the shell command executes. Even `cd ../repo-worktree && git add file` presents the session CWD (main repo root, branch `main`) to the hook — the `cd` never runs first. The `-C <path>` extraction in `branch-verify.sh` only helps when the command literally contains `git -C <path>`, not when `cd` is used. Escape hatch: `# --force-main` comment in the Bash call.
-Source: t-1147 session 2026-04-12
-
-### 2026-04-22: cd-prefix parsing closes the `cd <wt> && git …` gap (t-1324)
-`lib/git-helpers.sh::resolve_lookup_dir` now runs a 3-tier lookup: `git -C <path>` > leading `cd <path> &&` > session CWD. `extract_cd_prefix_dir` parses the first token only (sed-based, supports `&&`, `;`, `||`). `branch-verify.sh` and `main-guard.sh` consume the extended resolver without local changes — all cd-prefix behavior lives in the shared helper. Hit organically during t-1323 (filter-fix worktree); same-session validation. Covered by 4 new tests in `test-branch-verify.sh` and 2 in `test-main-guard.sh`. Out of scope: shell-quoted paths, multi-stage `cd a && cd b`, `pushd`.
-Source: t-1324, close follow-up to t-1153/t-1286/t-1316
-
 ### 2026-04-12: Mock PATH isolation — bash + minimal tools must be in mock bin
 When testing bash scripts with a stripped PATH (to simulate missing tools), stripping PATH to just the mock dir causes "bash: command not found" when the script calls `bash <subscript>` or uses `dirname`/`pwd` for SCRIPT_DIR detection. Fix: symlink bash, dirname, and pwd from the system into the mock bin, then exclude only the specific tool being hidden. A `populate_bin <dir> [exclude...]` helper makes this reusable across tests. Rule: never strip PATH to only `$mock/bin` without first populating the tools the script needs to boot.
 Source: tests/bootstrap/test-install.sh, t-1150 2026-04-12
@@ -331,3 +311,7 @@ Source: t-1397, session 2026-05-15
 ### 2026-05-18: Background Phase 5 jobs write to inherited stdout — tests must extract first JSON line
 `session-start.sh` forks its background Phase 5 block (`index-skills.sh`, `sync-state.sh`) via `( ... ) & disown`. `disown` removes the job from the shell job table but does NOT close the inherited stdout file descriptor. In test contexts using bash process substitution (`OUTPUT=$(bash hook.sh <<< input)`), the background job's stdout ("No skills to index.") appends to the same capture buffer after the JSON response, making `jq .` fail. Fix for consumers: `grep '^{' | head -1 | jq ...` extracts only the first JSON line. Fix for new hook code: redirect background work to a log file — `( work ) >>/tmp/brana-bg.log 2>&1 &` — to prevent stdout pollution.
 Source: t-1434 Test 18, session 2026-05-18
+
+### 2026-05-18: brana skills list vs usage return different name formats
+`brana skills usage` returns prefixed names (`brana:close`, `brana:sitrep`). `brana skills list` returns unprefixed names (`close`, `sitrep`). Any caller cross-referencing both subcommands must strip with `slug="${skill_name#brana:}"`. The asymmetry is structural in `skills.rs` — `list` serializes from `SkillMeta.name` (bare), while `usage` surfaces from CC's invocation log (which always includes the `brana:` prefix). Until normalized, always use `brana:` prefix as the canonical form (matches CC's `/brana:close` surface) and strip when querying `list`.
+Source: t-1437, session 2026-05-18
