@@ -493,3 +493,7 @@ Source: t-1443, 2026-05-18
 ### 2026-05-18: Per-component threshold in count-drift detection
 A single 30% threshold suppresses stale counts when a component grows rapidly. Hooks grew from 10 to 35 — a 30% threshold would let "10 hooks" (diff=25 vs threshold=10) pass silently. Fix: per-component thresholds — 80% for hooks (high-growth), 30% for skills/rules/agents/checks (stable). Add per-component cases whenever a new high-growth component joins the scanned set.
 Source: t-1443, 2026-05-18
+
+### 2026-05-18: Move procedural "validate before write" guards to the CLI layer
+`close.md` instructing Claude to check `test -f` before including paths in `stale_docs` is invisible to future sessions and fails when the procedure is rushed or compressed. The durable fix is adding the guard to `write_state()` in the Rust CLI — it runs unconditionally. Rule: if a procedure says "validate X before writing", the right place is a `sanitize()` step in the write path, not just procedure text.
+Source: t-1444, 2026-05-18
