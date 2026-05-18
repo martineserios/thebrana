@@ -713,7 +713,7 @@ pub(crate) fn build_json_list(skills: &[SkillMeta]) -> Vec<SkillJsonInfo> {
     skills
         .iter()
         .map(|s| SkillJsonInfo {
-            name: s.name.clone(),
+            name: format!("brana:{}", s.name),
             description: s.description.clone().unwrap_or_default(),
             effort: s.effort.clone().unwrap_or_default(),
             group: s.group.clone().unwrap_or_default(),
@@ -1534,7 +1534,20 @@ stream_affinity: [roadmap]
         let infos = build_json_list(&skills);
         let json = serde_json::to_value(&infos).unwrap();
         let sitrep = json.as_array().unwrap().iter()
-            .find(|v| v["name"] == "sitrep").expect("sitrep entry");
+            .find(|v| v["name"] == "brana:sitrep").expect("brana:sitrep entry");
         assert!(sitrep["argument_hint"].is_null(), "sitrep argument_hint should serialize as null");
+    }
+
+    #[test]
+    fn test_json_list_names_have_brana_prefix() {
+        let skills = sample_skills_human();
+        let infos = build_json_list(&skills);
+        for info in &infos {
+            assert!(
+                info.name.starts_with("brana:"),
+                "skill name '{}' should have brana: prefix in list output",
+                info.name
+            );
+        }
     }
 }
