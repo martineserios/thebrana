@@ -699,6 +699,30 @@ pub fn format_human_table(skills: &[SkillMeta]) -> Vec<String> {
     lines
 }
 
+#[derive(Serialize)]
+pub(crate) struct SkillJsonInfo {
+    pub name: String,
+    pub description: String,
+    pub effort: String,
+    pub group: String,
+    pub keywords: Vec<String>,
+    pub argument_hint: Option<String>,
+}
+
+pub(crate) fn build_json_list(skills: &[SkillMeta]) -> Vec<SkillJsonInfo> {
+    skills
+        .iter()
+        .map(|s| SkillJsonInfo {
+            name: s.name.clone(),
+            description: s.description.clone().unwrap_or_default(),
+            effort: s.effort.clone().unwrap_or_default(),
+            group: s.group.clone().unwrap_or_default(),
+            keywords: s.keywords.clone(),
+            argument_hint: s.argument_hint.clone(),
+        })
+        .collect()
+}
+
 /// `brana skills list [--human]`
 pub fn cmd_list(human: bool) -> Result<()> {
     let skills = scan_skills(&skill_dirs());
@@ -710,26 +734,7 @@ pub fn cmd_list(human: bool) -> Result<()> {
         return Ok(());
     }
 
-    #[derive(Serialize)]
-    struct SkillInfo {
-        name: String,
-        description: String,
-        effort: String,
-        group: String,
-        keywords: Vec<String>,
-    }
-
-    let infos: Vec<SkillInfo> = skills
-        .iter()
-        .map(|s| SkillInfo {
-            name: s.name.clone(),
-            description: s.description.clone().unwrap_or_default(),
-            effort: s.effort.clone().unwrap_or_default(),
-            group: s.group.clone().unwrap_or_default(),
-            keywords: s.keywords.clone(),
-        })
-        .collect();
-
+    let infos = build_json_list(&skills);
     let json = serde_json::to_string_pretty(&infos).unwrap_or_default();
     println!("{json}");
     Ok(())
@@ -1512,5 +1517,24 @@ stream_affinity: [roadmap]
             cull: 5 < 5,
         };
         assert!(!entry.cull);
+    }
+
+    #[test]
+    fn test_json_list_includes_argument_hint() {
+        let skills = sample_skills_human();
+        let infos = build_json_list(&skills);
+        let json = serde_json::to_string(&infos).unwrap();
+        assert!(json.contains("argument_hint"), "JSON list must include argument_hint field");
+        assert!(json.contains("[decompose] [id]"), "JSON list must include the hint value for build");
+    }
+
+    #[test]
+    fn test_json_list_argument_hint_null_when_absent() {
+        let skills = sample_skills_human();
+        let infos = build_json_list(&skills);
+        let json = serde_json::to_value(&infos).unwrap();
+        let sitrep = json.as_array().unwrap().iter()
+            .find(|v| v["name"] == "sitrep").expect("sitrep entry");
+        assert!(sitrep["argument_hint"].is_null(), "sitrep argument_hint should serialize as null");
     }
 }
