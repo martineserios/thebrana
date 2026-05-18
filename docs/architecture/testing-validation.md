@@ -143,16 +143,18 @@ For each skill with a `depends_on` field:
 
 ### Check 13: Count Drift
 
-For each `docs/reflections/*.md`:
+Scans `docs/reflections/*.md` and all `docs/architecture/**/*.md` (excluding `decisions/`):
 
-- Counts actual items in `system/`: skills (excluding `acquired/`), rules (excluding `README.md`), agents
-- Scans each doc for hardcoded count patterns: `(N skills:`, `has N agents`, `deploys N rules`, etc.
-- **Warn** when a doc count differs from actual and is within 30% of actual (distant numbers are assumed unrelated)
-- Shows `skills=N, rules=N, agents=N` in warning output
+- Counts actual items in `system/`: skills (excluding `acquired/`), rules (excluding `README.md`), agents, validate checks, hooks (`.sh` files)
+- Three match patterns: (1) parenthesized `(N skills,`, (2) verb-prefixed `has N hooks`, (3) plain list `N skills, N agents.`
+- **Warn** when a doc count differs from actual and is close enough to be a stale total:
+  - `hooks`: 80% threshold — hooks grew from 10 to 35; stale totals can be far from actual
+  - All others: 30% threshold
+- Shows `skills=N, rules=N, agents=N, checks=N, hooks=N` in warning output
 
 **Common failures:**
-- Adding a skill/rule/agent without updating reflection docs that mention the total
-- Fix: remove hardcoded counts and link to the auto-generated reference, or write "all skills" instead of "27 skills"
+- Adding a skill/rule/agent/hook without updating architecture docs that mention the total
+- Fix: remove hardcoded counts and link to the auto-generated reference, or write "all hooks" instead of "10 hooks"
 
 ### Check 14: Spec-Graph Coverage
 
