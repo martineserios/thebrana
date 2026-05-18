@@ -312,6 +312,9 @@ Source: t-1397, session 2026-05-15
 `session-start.sh` forks its background Phase 5 block (`index-skills.sh`, `sync-state.sh`) via `( ... ) & disown`. `disown` removes the job from the shell job table but does NOT close the inherited stdout file descriptor. In test contexts using bash process substitution (`OUTPUT=$(bash hook.sh <<< input)`), the background job's stdout ("No skills to index.") appends to the same capture buffer after the JSON response, making `jq .` fail. Fix for consumers: `grep '^{' | head -1 | jq ...` extracts only the first JSON line. Fix for new hook code: redirect background work to a log file — `( work ) >>/tmp/brana-bg.log 2>&1 &` — to prevent stdout pollution.
 Source: t-1434 Test 18, session 2026-05-18
 
-### 2026-05-18: brana skills list vs usage return different name formats
-`brana skills usage` returns prefixed names (`brana:close`, `brana:sitrep`). `brana skills list` returns unprefixed names (`close`, `sitrep`). Any caller cross-referencing both subcommands must strip with `slug="${skill_name#brana:}"`. The asymmetry is structural in `skills.rs` — `list` serializes from `SkillMeta.name` (bare), while `usage` surfaces from CC's invocation log (which always includes the `brana:` prefix). Until normalized, always use `brana:` prefix as the canonical form (matches CC's `/brana:close` surface) and strip when querying `list`.
-Source: t-1437, session 2026-05-18
+**Hook test helpers** (`tests/hooks/_helpers.sh`) encode this distinction: `run_hook()` pipes input and merges stderr (for hooks with clean stdout); `run_hook_json()` extracts the first `{`-prefixed line with stderr suppressed (for hooks that spawn background jobs); `run_hook_timed()` is the timed JSON-extracting variant that returns `elapsed_ms|json`. Use `run_hook_json()` for `session-start.sh` and any hook that forks background work. Use `run_hook()` for all others.
+Source: t-1441, session 2026-05-18
+
+### 2026-05-18: brana skills list normalized to brana: prefix (fixed t-1440)
+~~`brana skills list` returned unprefixed names (`close`, `sitrep`) while `brana skills usage` returned prefixed names (`brana:close`).~~ Fixed by t-1440: `brana skills list` now emits `brana:`-prefixed names, aligned with CC's canonical `/brana:close` invocation surface. `brana:` prefix is the canonical form for all skill name references across `list`, `usage`, and `search`.
+Source: t-1437 (diagnosis), t-1440 (fix), session 2026-05-18

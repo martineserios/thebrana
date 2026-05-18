@@ -106,7 +106,7 @@ brana skills list [--human]
 
 ### Output modes
 
-**Default (JSON):** Array of objects with `name`, `description`, `effort`, `group`, `keywords`.
+**Default (JSON):** Array of objects with `name`, `description`, `effort`, `group`, `keywords`. `name` is `brana:`-prefixed (e.g. `"brana:close"`, `"brana:sitrep"`).
 
 **`--human`:** Fixed-width table sorted by group → name within group. Blank line between groups. Columns:
 
