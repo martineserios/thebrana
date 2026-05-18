@@ -19,8 +19,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/resolve-brana.sh"
 [ ! -x "${BRANA:-}" ] && { echo '{"continue": true}'; exit 0; }
 
+GIT_ROOT="${CLAUDE_PROJECT_DIR:-$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null)}"
+
 # Find active task (in_progress with build_step set = actively building)
-ACTIVE=$("$BRANA" backlog query --status in_progress --output json 2>/dev/null) || true
+ACTIVE=$(cd "$GIT_ROOT" && "$BRANA" backlog query --status in_progress --output json 2>/dev/null) || true
 [ -z "$ACTIVE" ] || [ "$ACTIVE" = "[]" ] && { echo '{"continue": true}'; exit 0; }
 
 # Extract first in_progress task with a build_step (the one being built)

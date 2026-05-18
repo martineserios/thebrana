@@ -32,13 +32,13 @@ if command -v brana &>/dev/null && [ -n "$GIT_ROOT" ] && [ -d "$GIT_ROOT" ]; the
     DOCS_CHANGED=$(git -C "$GIT_ROOT" diff --name-only HEAD~10..HEAD 2>/dev/null | \
         grep -cE '\.md$' || echo "0")
     if [ "$DOCS_CHANGED" -gt 0 ]; then
-        brana graph build --output "$GIT_ROOT/docs/spec-graph.json" 2>/dev/null || true
+        (cd "$GIT_ROOT" && brana graph build --output "$GIT_ROOT/docs/spec-graph.json" 2>/dev/null || true)
     fi
 elif [ -n "$BRANA_CLI" ] && [ -x "$BRANA_CLI" ] && [ -n "$GIT_ROOT" ] && [ -d "$GIT_ROOT" ]; then
     DOCS_CHANGED=$(git -C "$GIT_ROOT" diff --name-only HEAD~10..HEAD 2>/dev/null | \
         grep -cE '\.md$' || echo "0")
     if [ "$DOCS_CHANGED" -gt 0 ]; then
-        "$BRANA_CLI" graph build --output "$GIT_ROOT/docs/spec-graph.json" 2>/dev/null || true
+        (cd "$GIT_ROOT" && "$BRANA_CLI" graph build --output "$GIT_ROOT/docs/spec-graph.json" 2>/dev/null || true)
     fi
 fi
 
@@ -46,8 +46,8 @@ fi
 
 if [ -n "$BRANA_CLI" ] && [ -x "$BRANA_CLI" ]; then
     SUMMARY="Session metrics: corrections=$CORRECTIONS, test_writes=$TEST_WRITES, cascades=$CASCADES, edits=$EDITS"
-    "$BRANA_CLI" decisions log "session-end" "action" "$SUMMARY" \
-        --severity "LOW" 2>/dev/null || true
+    (cd "$GIT_ROOT" && "$BRANA_CLI" decisions log "session-end" "action" "$SUMMARY" \
+        --severity "LOW" 2>/dev/null || true)
 fi
 
 exit 0

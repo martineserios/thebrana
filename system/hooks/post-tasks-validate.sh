@@ -26,9 +26,11 @@ source "${SCRIPT_DIR}/lib/resolve-brana.sh"
 USE_RUST=false
 [ -x "$BRANA" ] && USE_RUST=true
 
+GIT_ROOT=$(git -C "$(dirname "$FILE_PATH")" rev-parse --show-toplevel 2>/dev/null) || GIT_ROOT=""
+
 # ── Step 1+2: Validate JSON + schema ─────────────────────
 if [ "$USE_RUST" = true ]; then
-    VALIDATE_OUT=$("$BRANA" validate "$FILE_PATH" 2>/dev/null) || true
+    VALIDATE_OUT=$(cd "${GIT_ROOT:-.}" && "$BRANA" validate "$FILE_PATH" 2>/dev/null) || true
     VALID=$(echo "$VALIDATE_OUT" | jq -r '.valid // empty' 2>/dev/null) || true
     if [ "$VALID" = "false" ]; then
         ERRORS=$(echo "$VALIDATE_OUT" | jq -r '.errors // "unknown error"' 2>/dev/null) || true
@@ -80,7 +82,7 @@ fi
 
 # ── Step 3: Parent rollup ──────────────────────────────
 if [ "$USE_RUST" = true ]; then
-    ROLLUP_OUT=$("$BRANA" backlog rollup --file "$FILE_PATH" 2>/dev/null) || true
+    ROLLUP_OUT=$(cd "${GIT_ROOT:-.}" && "$BRANA" backlog rollup --file "$FILE_PATH" 2>/dev/null) || true
     if [ -n "$ROLLUP_OUT" ]; then
         ROLLUP_IDS=$(echo "$ROLLUP_OUT" | jq -r '.rollup | join(",")' 2>/dev/null) || true
         if [ -n "$ROLLUP_IDS" ]; then

@@ -20,6 +20,8 @@ SESSION_FILE="${SESSION_FILE:-}"
 BRANA_CLI="${BRANA_CLI:-}"
 OUT="${METRICS_ENV_FILE:-}"
 PROJECT_FILTER="${PROJECT_FILTER:-}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HOOKS_ROOT=$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null) || HOOKS_ROOT=""
 
 # Default all metrics to zero
 TOTAL=0; SUCCESSES=0; FAILURES=0; CORRECTIONS=0; TEST_WRITES=0
@@ -80,7 +82,7 @@ METRICS_JSON=""
 
 # Fast path: Rust CLI
 if [ -n "$BRANA_CLI" ] && [ -x "$BRANA_CLI" ]; then
-    METRICS_JSON=$("$BRANA_CLI" ops metrics "$SESSION_FILE" 2>/dev/null) || METRICS_JSON=""
+    METRICS_JSON=$(cd "${HOOKS_ROOT:-.}" && "$BRANA_CLI" ops metrics "$SESSION_FILE" 2>/dev/null) || METRICS_JSON=""
     if [ -n "$METRICS_JSON" ]; then
         TOTAL=$(echo "$METRICS_JSON" | jq -r '.events // 0') || TOTAL=0
         SUCCESSES=$(echo "$METRICS_JSON" | jq -r '.successes // 0') || SUCCESSES=0

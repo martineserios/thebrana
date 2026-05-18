@@ -1334,6 +1334,29 @@ else
 fi
 echo ""
 
+# Check 30 — brana CLI calls in hooks must use cd GIT_ROOT subshell wrapper (t-1439)
+# All hooks do `cd /tmp` at startup. brana subcommands resolve the project from CWD,
+# so bare calls return empty results. Every "$BRANA*" call must be inside
+# (cd "${GIT_ROOT:-...}" && ...) or on a line with `cd` before the call.
+echo "Checking system/hooks/ for brana CLI calls without cd GIT_ROOT wrapper..."
+HOOK_DIR="$SCRIPT_DIR/system/hooks"
+UNWRAPPED_BRANA=$(
+    {
+        grep -rn '"$BRANA[^"]*" [a-z]' "$HOOK_DIR"/*.sh 2>/dev/null
+        grep -rn '^\s*brana [a-z]' "$HOOK_DIR"/*.sh 2>/dev/null
+    } | grep -v '/lib/\|/tests/' \
+      | grep -v ':[[:space:]]*#' \
+      | grep -v 'cd ["\$]' \
+    || true
+)
+if [ -n "$UNWRAPPED_BRANA" ]; then
+    echo "$UNWRAPPED_BRANA" | sed 's/^/  /'
+    fail "Check 30: brana CLI calls without cd GIT_ROOT wrapper found in system/hooks/ — wrap with (cd \"\${GIT_ROOT:-/tmp}\" && ...) (t-1439)"
+else
+    pass "Check 30: system/hooks/ — all brana CLI calls wrapped in cd GIT_ROOT"
+fi
+echo ""
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
