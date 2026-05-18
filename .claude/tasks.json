@@ -40446,7 +40446,7 @@
       "blocked_by": [],
       "branch": null,
       "build_step": null,
-      "completed": null,
+      "completed": "2026-05-18",
       "context": null,
       "created": "2026-05-18",
       "description": "Add test that close procedure discards non-existent paths from doc_drift.stale_docs before session state write. The validation guard was added in t-1438 but has no automated coverage. Ref: t-1438, debrief 2026-05-18.",
@@ -40458,8 +40458,8 @@
       "order": null,
       "parent": null,
       "priority": null,
-      "started": null,
-      "status": "pending",
+      "started": "2026-05-18",
+      "status": "completed",
       "strategy": null,
       "stream": "roadmap",
       "subject": "[close] Smoke test for stale_docs path validation",
@@ -40524,6 +40524,32 @@
         "maintenance"
       ],
       "type": "task"
+    },
+    {
+      "id": "t-1447",
+      "subject": "[test] extract run_hook() to shared tests/hooks/_helpers.sh",
+      "status": "pending",
+      "stream": "tech-debt",
+      "type": "task",
+      "tags": [
+        "tests",
+        "hooks",
+        "refactor"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": null,
+      "parent": null,
+      "created": "2026-05-18",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Hook test scripts repeat the same run_hook() invocation pattern. Extracting to a shared _helpers.sh reduces boilerplate and makes test failures easier to trace. Surfaced during t-1443 test writing.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
     }
   ],
   "version": "1"
