@@ -506,6 +506,10 @@ Source: t-1443, 2026-05-18
 When multiple Perl `while (/pattern/g)` loops can match the same line (e.g., Pattern 1 and Pattern 3 both match `(24 skills,`), each loop independently emits a match. Fix: derive a dedup key `"$.:$num:$component"` and gate every print with `unless $seen{$k}++`. The hash lives in Perl's package scope — one declaration covers all loops in the same invocation.
 Source: t-1443, 2026-05-18
 
+### 2026-05-18: `echo "$x" | grep -q` under `set -o pipefail` intermittently inverts — use `[[ == *needle* ]]`
+`grep -q` exits 0 on first match and closes the read end of the pipe. The upstream `echo` receives SIGPIPE (exit 141). Under `pipefail`, the pipeline's exit status becomes 141 (non-zero), so the surrounding `if` evaluates false — a false FAIL even when the string is present. The race triggers only when the match is near the **start** of a large output; matches at the end never trigger it, making the bug appear intermittent. Diagnostic: add `grep -cF "$needle" <<< "$haystack"` immediately before the assert — if it returns `1` but the assert fails, the pipe/mechanism is the culprit, not the data. Fix: `[[ "$haystack" == *"$needle"* ]]` for pure boolean substring checks — no pipe, no subprocess, no SIGPIPE. Reserve `echo | grep -q` for regex or multiline use cases, and append `|| true` if you need the pipe form in a pipefail script.
+Source: t-1449, 2026-05-18
+
 ### 2026-05-18: Per-component threshold in count-drift detection
 A single 30% threshold suppresses stale counts when a component grows rapidly. Hooks grew from 10 to 35 — a 30% threshold would let "10 hooks" (diff=25 vs threshold=10) pass silently. Fix: per-component thresholds — 80% for hooks (high-growth), 30% for skills/rules/agents/checks (stable). Add per-component cases whenever a new high-growth component joins the scanned set.
 Source: t-1443, 2026-05-18
