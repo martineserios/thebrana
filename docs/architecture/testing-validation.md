@@ -486,6 +486,10 @@ Source: t-747/748/749/750
 Tool names like `Read`, `Write`, `Edit` are common English words. Only match backtick-wrapped (`` `Read` ``), colon-suffixed (`Read:`), paren-suffixed (`Read(`), or quoted (`"Read"`) patterns. Never bare word boundaries.
 Source: t-747 (Check A implementation)
 
+### 2026-05-18: Checks A-D bypass --check N filter
+Checks A-D (semantic skill validation) run whenever `--assumptions-only` and `--scale-triggers` are both absent — regardless of `--check N`. Tests using `assert_contains "WARN"` against a `--check N` invocation can get false positives from Check A-D WARNs even when the target check hasn't fired yet. Fix: assert on the specific WARN content (e.g., `"Check 32"` not just `"WARN"`), or gate Checks A-D with a `should_run_semantic` helper that also respects `--check`.
+Source: t-1454 / close 2026-05-18
+
 ### 2026-03-30: Cross-repo relative paths need precise level counting
 From `system/skills/X/` to workspace root is 4 levels up (`../../../../`). Common mistake: off by 1-2 levels. Always verify by resolving from the source file's actual directory, not from repo root.
 Source: t-751 (harvest fix)
