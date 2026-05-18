@@ -42,7 +42,7 @@ Expand brana's use of CC hook events from 5 to 8+, adding native TaskCompleted, 
 | `bootstrap.sh` | Identity layer — PostToolUse hooks + TaskCompleted registered in settings.json |
 | `system/scripts/cc-changelog-check.sh` | Scheduled script — checks npm for CC version changes, writes report |
 | `system/hooks/session-start.sh` | Surfaces CC changelog report on session start |
-| `system/skills/*/SKILL.md` | 4 skills with `model:` frontmatter (sitrep, log, export-pdf → haiku; retrospective → sonnet) |
+| `system/skills/*/SKILL.md` | 27 skills with `model:` frontmatter (14 haiku, 13 sonnet) |
 
 ## API Surface
 
@@ -66,9 +66,9 @@ Expand brana's use of CC hook events from 5 to 8+, adding native TaskCompleted, 
 
 | Model | Skills |
 |-------|--------|
-| haiku | sitrep, log, export-pdf |
-| sonnet | retrospective |
-| inherit | all others (28 skills) |
+| haiku | acquire-skills, cargo-machete, client-retire, do, export-pdf, log, meta-templates, notebooklm-source, onboard, plugin, rust-skills, scheduler, sitrep, verify-docs |
+| sonnet | align, backlog, brainstorm, build, claudemd, close, docs, fix, reconcile, research, retrospective, review, ship |
+| inherit | challenge, gsheets, mcp-builder, memory |
 
 ## Testing
 
