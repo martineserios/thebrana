@@ -411,6 +411,37 @@ if [ -n "$LAYER0_DIR" ] && [ -f "$LAYER0_DIR/pending-learnings.md" ]; then
     fi
 fi
 
+# ── Session argument hints (top-6 skills by usage, t-1434) ──
+SKILL_HINTS_CONTEXT=""
+if [ -n "$BRANA_BIN" ]; then
+    TOP_SKILLS=$("$BRANA_BIN" skills usage --days 30 --json 2>/dev/null \
+        | jq -r '[.skills[].name] | .[:6] | .[]' 2>/dev/null) || TOP_SKILLS=""
+    if [ -n "$TOP_SKILLS" ]; then
+        HINT_LINES=""
+        SKILLS_BASE="${CLAUDE_PLUGIN_ROOT:-$GIT_ROOT/system}/skills"
+        while IFS= read -r skill_name; do
+            slug="${skill_name#brana:}"
+            slug="${slug#plugin:brana:}"
+            HINT=""
+            for smd in "$SKILLS_BASE/$slug/SKILL.md" \
+                       "$SKILLS_BASE/acquired/$slug/SKILL.md" \
+                       "$HOME/.claude/skills/$slug/SKILL.md"; do
+                if [ -f "$smd" ]; then
+                    raw=$(grep -m1 '^argument-hint:' "$smd" 2>/dev/null \
+                          | sed 's/^argument-hint:[[:space:]]*//' \
+                          | tr -d '"') || raw=""
+                    [ -n "$raw" ] && HINT=" $raw"
+                    break
+                fi
+            done
+            HINT_LINES="${HINT_LINES:+$HINT_LINES
+}/$skill_name$HINT"
+        done <<< "$TOP_SKILLS"
+        [ -n "$HINT_LINES" ] && SKILL_HINTS_CONTEXT="Top skills (by usage):
+$HINT_LINES"
+    fi
+fi
+
 # ── Recurring error detection (t-679) ────────────────────
 RECURRENCE_CONTEXT=""
 RECURRENCE_FILE="$HOME/.claude/logs/error-recurrence.jsonl"
@@ -539,6 +570,10 @@ fi
 if [ -n "$TASK_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
 }$TASK_CONTEXT"
+fi
+if [ -n "$SKILL_HINTS_CONTEXT" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}[Skill hints] $SKILL_HINTS_CONTEXT"
 fi
 if [ -n "$HANDOFF_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS

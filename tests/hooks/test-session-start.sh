@@ -313,6 +313,17 @@ INPUT=$(jq -n --arg sid "$SESSION_ID-nocf" --arg cwd "/tmp" '{session_id: $sid, 
 OUTPUT=$(CF="" bash "$HOOKS_DIR/session-start.sh" <<< "$INPUT" 2>/dev/null) || OUTPUT='{"continue":true}'
 assert_valid_json "no ruflo → valid JSON" "$OUTPUT"
 
+# ── Test 18: Skill hints section emitted when brana available ──
+echo ""
+echo "Test 18: skill hints appear in additionalContext"
+INPUT=$(jq -n --arg sid "$SESSION_ID-hints" --arg cwd "/home/martineserios/enter_thebrana/thebrana" '{session_id: $sid, cwd: $cwd}')
+OUTPUT=$(bash "$HOOKS_DIR/session-start.sh" <<< "$INPUT" 2>/dev/null) || OUTPUT='{"continue":true}'
+CTX=$(echo "$OUTPUT" | grep '^{' | head -1 | jq -r '.additionalContext // ""' 2>/dev/null) || CTX=""
+assert_contains "skill hints section present" "$CTX" "[Skill hints]"
+assert_contains "skill hints contains /brana:close" "$CTX" "/brana:close"
+assert_contains "skill hints contains /brana:build" "$CTX" "/brana:build"
+rm -f "/tmp/brana-session-${SESSION_ID}-hints.jsonl" "/tmp/brana-context-${SESSION_ID}-hints.md"
+
 # ── Cleanup ──
 rm -f "$CONTEXT_FILE"
 rm -f "/tmp/brana-session-${SESSION_ID}.jsonl" "/tmp/brana-session-${SESSION_ID}-timing.jsonl" "/tmp/brana-session-${SESSION_ID}-nongit.jsonl" "/tmp/brana-session-${SESSION_ID}-trim.jsonl" "/tmp/brana-session-${SESSION_ID}-nocf.jsonl"
