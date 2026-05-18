@@ -30,6 +30,7 @@ echo '{"continue": true}'
     BRANA_CLI="$BRANA"
 
     GIT_ROOT=$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null || echo "$CWD")
+    export GIT_ROOT
     PROJECT=$(basename "$GIT_ROOT")
     SESSION_FILE="/tmp/brana-session-${SESSION_ID}.jsonl"
     TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || TIMESTAMP="unknown"
