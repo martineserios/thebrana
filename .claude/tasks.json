@@ -40552,6 +40552,62 @@
         "refactor"
       ],
       "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "Surfaced at close 2026-05-18. brana skills list and skills usage are two separate calls. A --usage flag on list could show prefixed names + usage count in one output.",
+      "created": "2026-05-18",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1448",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "roadmap",
+      "subject": "[cli] brana skills list --usage: combined list+usage in one call",
+      "tags": [
+        "ideation",
+        "cli",
+        "skills"
+      ],
+      "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "Surfaced at close 2026-05-18. validate.sh runs all 30 checks. A --check N flag would let you target a specific check during debugging without waiting for the full run.",
+      "created": "2026-05-18",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1449",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "tech-debt",
+      "subject": "[validate] validate.sh --check N: run only a specific check by number",
+      "tags": [
+        "ideation",
+        "validate",
+        "dx"
+      ],
+      "type": "task"
     }
   ],
   "version": "1"
