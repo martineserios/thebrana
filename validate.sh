@@ -522,37 +522,45 @@ done
 pass "Skill dependency references checked"
 echo ""
 
-# Check 13: Count drift in reflection docs
+# Check 13: Count drift in reflection docs and architecture living docs
 echo "Checking for count drift in docs..."
 
 # Count actual system components
 ACTUAL_SKILLS=$(for d in "$SYSTEM_DIR"/skills/*/; do [ "$(basename "$d")" != "acquired" ] && echo 1; done | wc -l | tr -d ' ')
 ACTUAL_RULES=$(ls "$SYSTEM_DIR"/rules/*.md 2>/dev/null | grep -v '/README\.md$' | wc -l | tr -d ' ')
 ACTUAL_AGENTS=$(grep -rl '^model:' "$SYSTEM_DIR/agents" --include='*.md' 2>/dev/null | wc -l | tr -d ' ')
+ACTUAL_CHECKS=$(grep -c "^# Check [0-9]" "$SCRIPT_DIR/validate.sh" 2>/dev/null || echo "0")
+ACTUAL_HOOKS=$(ls "$SYSTEM_DIR"/hooks/*.sh 2>/dev/null | wc -l | tr -d ' ')
 
-# Scan reflection docs for hardcoded counts
-# Match enumeration patterns: "(N skills:", "N rules —", "N skills," that count brana components
+# Scan reflection docs AND architecture living docs (excluding decisions/) for hardcoded counts
+# Match enumeration patterns: "(N skills:", "N rules —", "N checks," etc.
 # Avoid contextual mentions like "76 agents with inconsistent metadata" or "3-5 agents"
 COUNT_DRIFT=0
-for doc in "$DOCS_DIR"/reflections/*.md; do
+while IFS= read -r doc; do
     [ -f "$doc" ] || continue
-    docname=$(basename "$doc")
+    docname=$(realpath --relative-to="$DOCS_DIR" "$doc" 2>/dev/null || basename "$doc")
 
     while IFS=: read -r linenum num component; do
         [ -z "$component" ] && continue
 
         case "$component" in
             skills) actual=$ACTUAL_SKILLS ;;
-            rules) actual=$ACTUAL_RULES ;;
+            rules)  actual=$ACTUAL_RULES ;;
             agents) actual=$ACTUAL_AGENTS ;;
+            checks) actual=$ACTUAL_CHECKS ;;
+            hooks)  actual=$ACTUAL_HOOKS ;;
             *) continue ;;
         esac
 
-        # Skip subset counts (e.g., "8 agents — fast" is a per-model count, not total)
-        # Only flag if within 30% of actual — close enough to be a stale total
+        # Skip subset counts — only flag if close enough to actual to be a stale total.
+        # hooks use 80% (grew from 10→35; old docs can be far off but still be stale totals).
+        # All other components use 30%.
         diff=$((num - actual))
         [ "$diff" -lt 0 ] && diff=$((-diff))
-        threshold=$((actual * 30 / 100))
+        case "$component" in
+            hooks) threshold=$((actual * 80 / 100)) ;;
+            *)     threshold=$((actual * 30 / 100)) ;;
+        esac
         [ "$threshold" -lt 2 ] && threshold=2
         [ "$diff" -ge "$threshold" ] && continue
 
@@ -561,18 +569,24 @@ for doc in "$DOCS_DIR"/reflections/*.md; do
             COUNT_DRIFT=$((COUNT_DRIFT + 1))
         fi
     done < <(perl -ne '
-        # Match patterns that enumerate brana system components:
-        # "(13 rules:" or "13 rules —" or "13 rules," or "13 rules)" — enumeration context
-        while (/\((\d+)\s+(skills|rules|agents)[:\s,)]/g) { print "$.:$1:$2\n" }
-        # Also match "has/have N skills" or "deploys N agents"
-        while (/(?:has|have|deploys?|includes?|contains?)\s+(\d+)\s+(skills|rules|agents)\b/g) { print "$.:$1:$2\n" }
+        # Dedup: multiple patterns may match the same line:num:component tuple.
+        my $k;
+        # Pattern 1: parenthesized enumeration — "(N skills:", "(N hooks,"
+        while (/\((\d+)\s+(skills|rules|agents|checks|hooks)[:\s,)]/g) { $k="$.:$1:$2"; print "$k\n" unless $seen{$k}++ }
+        # Pattern 2: verb-prefixed enumeration — "has N hooks", "deploys N skills"
+        while (/(?:has|have|deploys?|includes?|contains?|runs?)\s+(\d+)\s+(skills|rules|agents|checks|hooks)\b/g) { $k="$.:$1:$2"; print "$k\n" unless $seen{$k}++ }
+        # Pattern 3: plain list — "33 skills, 11 agents, 10 hooks." (no bracket or verb needed)
+        while (/\b(\d+)\s+(skills|rules|agents|checks|hooks)(?=[,\.\)])/g) { $k="$.:$1:$2"; print "$k\n" unless $seen{$k}++ }
     ' "$doc" 2>/dev/null || true)
-done
+done < <(
+    find "$DOCS_DIR/reflections" -maxdepth 1 -name "*.md"
+    find "$DOCS_DIR/architecture" -name "*.md" -not -path "*/decisions/*"
+)
 
 if [ "$COUNT_DRIFT" -eq 0 ]; then
-    pass "No count drift detected (skills=$ACTUAL_SKILLS, rules=$ACTUAL_RULES, agents=$ACTUAL_AGENTS)"
+    pass "No count drift detected (skills=$ACTUAL_SKILLS, rules=$ACTUAL_RULES, agents=$ACTUAL_AGENTS, checks=$ACTUAL_CHECKS, hooks=$ACTUAL_HOOKS)"
 else
-    echo "  Actual counts: skills=$ACTUAL_SKILLS, rules=$ACTUAL_RULES, agents=$ACTUAL_AGENTS"
+    echo "  Actual counts: skills=$ACTUAL_SKILLS, rules=$ACTUAL_RULES, agents=$ACTUAL_AGENTS, checks=$ACTUAL_CHECKS, hooks=$ACTUAL_HOOKS"
 fi
 echo ""
 
