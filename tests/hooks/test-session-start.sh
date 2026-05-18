@@ -8,7 +8,13 @@
 #
 set -euo pipefail
 
-HOOKS_DIR="$(cd "$(dirname "$0")/../../system/hooks" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+HOOKS_DIR="$(cd "$SCRIPT_DIR/../../system/hooks" && pwd)"
+HOOK="$HOOKS_DIR/session-start.sh"
+
+# shellcheck source=_helpers.sh
+source "$SCRIPT_DIR/_helpers.sh"
+
 PASS=0
 FAIL=0
 SESSION_ID="test-ss-$$"
@@ -57,27 +63,12 @@ assert_timing() {
     fi
 }
 
-run_hook() {
-    local input="$1"
-    echo "$input" | bash "$HOOKS_DIR/session-start.sh" 2>/dev/null | grep '^{' | head -1
-}
-
-run_hook_timed() {
-    local input="$1"
-    local start_ms end_ms elapsed output
-    start_ms=$(date +%s%3N 2>/dev/null || echo 0)
-    output=$(echo "$input" | bash "$HOOKS_DIR/session-start.sh" 2>/dev/null | grep '^{' | head -1)
-    end_ms=$(date +%s%3N 2>/dev/null || echo 0)
-    elapsed=$((end_ms - start_ms))
-    echo "$elapsed|$output"
-}
-
 echo "=== session-start.sh tests ==="
 echo ""
 
 # ── Test 1: Empty input returns valid JSON with continue:true ──
 echo "Test 1: empty/missing input"
-OUTPUT=$(run_hook '{}')
+OUTPUT=$(run_hook_json '{}')
 assert_valid_json "empty input → valid JSON" "$OUTPUT"
 CONTINUE=$(echo "$OUTPUT" | jq -r '.continue' 2>/dev/null) || CONTINUE=""
 assert_outcome "empty input → continue:true" "true" "$CONTINUE"
@@ -85,7 +76,7 @@ assert_outcome "empty input → continue:true" "true" "$CONTINUE"
 # ── Test 2: Missing session_id returns early ──
 echo ""
 echo "Test 2: missing session_id"
-OUTPUT=$(run_hook '{"cwd": "/tmp"}')
+OUTPUT=$(run_hook_json '{"cwd": "/tmp"}')
 assert_valid_json "missing session_id → valid JSON" "$OUTPUT"
 CONTINUE=$(echo "$OUTPUT" | jq -r '.continue' 2>/dev/null) || CONTINUE=""
 assert_outcome "missing session_id → continue:true" "true" "$CONTINUE"
@@ -94,7 +85,7 @@ assert_outcome "missing session_id → continue:true" "true" "$CONTINUE"
 echo ""
 echo "Test 3: valid input with CWD=$(pwd)"
 INPUT=$(jq -n --arg sid "$SESSION_ID" --arg cwd "$(pwd)" '{session_id: $sid, cwd: $cwd}')
-OUTPUT=$(run_hook "$INPUT")
+OUTPUT=$(run_hook_json "$INPUT")
 assert_valid_json "valid input → valid JSON" "$OUTPUT"
 CONTINUE=$(echo "$OUTPUT" | jq -r '.continue' 2>/dev/null) || CONTINUE=""
 assert_outcome "valid input → continue:true" "true" "$CONTINUE"
@@ -135,7 +126,7 @@ assert_valid_json "timed run → valid JSON" "$TIMED_OUTPUT"
 echo ""
 echo "Test 7: non-git directory"
 INPUT=$(jq -n --arg sid "$SESSION_ID-nongit" --arg cwd "/tmp" '{session_id: $sid, cwd: $cwd}')
-OUTPUT=$(run_hook "$INPUT")
+OUTPUT=$(run_hook_json "$INPUT")
 assert_valid_json "non-git dir → valid JSON" "$OUTPUT"
 
 # ── Test 8: Handoff extraction pipeline ──
