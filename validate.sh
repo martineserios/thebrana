@@ -1388,6 +1388,35 @@ else
 fi
 echo ""
 
+# Check 31 — knowledge file cap triggers (patterns.md + knowledge-staging.md)
+echo "Checking knowledge file caps..."
+MEMORY_DIR="$HOME/.claude/memory"
+PATTERNS_FILE="$MEMORY_DIR/patterns.md"
+KNOWLEDGE_STAGING_FILE="$MEMORY_DIR/knowledge-staging.md"
+
+if [ -f "$PATTERNS_FILE" ]; then
+    PATTERN_COUNT=$(grep -c '^## ' "$PATTERNS_FILE" 2>/dev/null) || PATTERN_COUNT=0
+    if [ "$PATTERN_COUNT" -ge 40 ]; then
+        warn "Check 31a: patterns.md has $PATTERN_COUNT entries (warn at 40, cap at 50) — prune quarantine entries"
+    else
+        pass "Check 31a: patterns.md entries: $PATTERN_COUNT/40 warn threshold"
+    fi
+else
+    pass "Check 31a: patterns.md not found — skipping"
+fi
+
+if [ -f "$KNOWLEDGE_STAGING_FILE" ]; then
+    KNOWLEDGE_COUNT=$(grep -c '^## ' "$KNOWLEDGE_STAGING_FILE" 2>/dev/null) || KNOWLEDGE_COUNT=0
+    if [ "$KNOWLEDGE_COUNT" -ge 20 ]; then
+        warn "Check 31b: knowledge-staging.md has $KNOWLEDGE_COUNT entries (warn at 20, cap at 30) — promote or discard stale findings"
+    else
+        pass "Check 31b: knowledge-staging.md entries: $KNOWLEDGE_COUNT/20 warn threshold"
+    fi
+else
+    pass "Check 31b: knowledge-staging.md not found — skipping"
+fi
+echo ""
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
