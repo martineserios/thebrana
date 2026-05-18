@@ -28,7 +28,7 @@ Stubs preserve full frontmatter (name, description, group, keywords, allowed-too
 **Positive:**
 - Startup context reduced from ~34K to ~8K tokens (76% reduction)
 - Cold start improved from 4+ minutes to 30–45 seconds
-- All 25 commands remain available as slash commands
+- All skills remain available as slash commands
 - Uniform stub model — no tier management, simpler mental model
 - Semantic routing via ruflo unchanged (indexes frontmatter, not body)
 - Forward-compatible with CC's future SkillSearch (#43816)

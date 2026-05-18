@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-18T11:14:17Z",
+  "generated": "2026-05-18T23:36:26Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -8893,6 +8893,18 @@
     },
     {
       "from": "docs/architecture/testing-validation.md",
+      "to": "\"$haystack\" == *\"$needle\"*.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/testing-validation.md",
+      "to": "== *needle*.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/testing-validation.md",
       "to": "path",
       "type": "references",
       "computed": false
@@ -11870,7 +11882,7 @@
   ],
   "stats": {
     "nodes": 382,
-    "edges": 1558,
+    "edges": 1560,
     "typed_edges": 549,
     "orphans": 98
   }
