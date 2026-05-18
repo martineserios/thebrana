@@ -16,6 +16,7 @@ RUN_SCALE_TRIGGERS=false
 RUN_SEMANTIC_ONLY=false
 RUN_GOLDEN=false
 GRACE_DAYS=7
+CHECK_FILTER=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -24,6 +25,9 @@ while [[ $# -gt 0 ]]; do
         --semantic) RUN_SEMANTIC_ONLY=true; shift ;;
         --golden) RUN_GOLDEN=true; shift ;;
         --grace-days) GRACE_DAYS="$2"; shift 2 ;;
+        --check)
+            if [ -z "${2:-}" ]; then echo "--check requires a check number argument"; exit 1; fi
+            CHECK_FILTER="$2"; shift 2 ;;
         *) echo "Unknown flag: $1"; exit 1 ;;
     esac
 done
@@ -35,9 +39,29 @@ fail() { echo "  FAIL: $1"; (( ERRORS++ )) || true; }
 warn() { echo "  WARN: $1"; (( WARNINGS++ )) || true; }
 pass() { echo "  PASS: $1"; }
 
+# should_run N: returns 0 (true) if CHECK_FILTER is unset or matches this check.
+# --check 5  matches "5" and "5b" (base-number prefix match).
+# --check 31 matches "31", "31a", "31b" but not "3".
+should_run() {
+    [ -z "$CHECK_FILTER" ] && return 0
+    local base="${1%%[a-z]*}"
+    [ "$base" = "$CHECK_FILTER" ]
+}
+
 # ── Checks 1-14: Core validation ─────────────────────────────────────────
-# Skip when running subset flags
-if ! $RUN_ASSUMPTIONS_ONLY && ! $RUN_SCALE_TRIGGERS && ! $RUN_SEMANTIC_ONLY; then
+# Skip when running subset flags or when --check targets a check >= 15.
+# Note: individual checks 1-14 are not separately filterable; --check N for
+# N in 1-14 runs the whole 1-14 block. The primary win is skipping checks 15+.
+_run_core=true; _run_15_18=true; _run_19_22=true
+if [ -n "$CHECK_FILTER" ]; then
+    _cf_base="${CHECK_FILTER%%[a-z]*}"
+    if [[ "$_cf_base" =~ ^[0-9]+$ ]]; then
+        if [ "$_cf_base" -gt 14 ]; then _run_core=false; fi
+        if ! { [ "$_cf_base" -ge 15 ] && [ "$_cf_base" -le 18 ]; }; then _run_15_18=false; fi
+        if ! { [ "$_cf_base" -ge 19 ] && [ "$_cf_base" -le 22 ]; }; then _run_19_22=false; fi
+    fi
+fi
+if ! $RUN_ASSUMPTIONS_ONLY && ! $RUN_SCALE_TRIGGERS && ! $RUN_SEMANTIC_ONLY && $_run_core; then
 
 # Check 1: Skill YAML frontmatter
 echo "Checking skill frontmatter..."
@@ -739,7 +763,7 @@ fi  # end of semantic checks conditional
 
 # ── Checks 15-18: Knowledge architecture fitness functions ───────────────
 # Run when: no flags (full run) OR --assumptions-only
-if ! $RUN_SCALE_TRIGGERS; then
+if ! $RUN_SCALE_TRIGGERS && $_run_15_18; then
 
 # Check 15: Assumption freshness
 echo "Check 15: Assumption freshness..."
@@ -1102,7 +1126,7 @@ fi  # end of checks 15-18 conditional (! $RUN_SCALE_TRIGGERS)
 
 # ── Checks 19-22: Scale triggers ────────────────────────────────────────
 # Run when: no flags (full run) OR --scale-triggers
-if ! $RUN_ASSUMPTIONS_ONLY; then
+if ! $RUN_ASSUMPTIONS_ONLY && $_run_19_22; then
 
 # Check 19: Graph node count
 echo "Check 19: Graph node count..."
@@ -1224,6 +1248,7 @@ echo ""
 
 fi  # end of checks 19-22 conditional (! $RUN_ASSUMPTIONS_ONLY)
 
+if should_run 23; then
 # Check 23: Skill routing contract — procedures must have acquire-skills trigger
 echo "Checking skill routing contract..."
 BACKLOG_PROC="$SYSTEM_DIR/procedures/backlog.md"
@@ -1259,7 +1284,9 @@ else
     fail "Check 23c: build.md procedure not found"
 fi
 echo ""
+fi  # should_run 23
 
+if should_run 24; then
 # Check 24 — .mcp.json entries (ADR-033: no npx/uvx, use pinned wrappers)
 echo "Checking .mcp.json entries..."
 MCP_FILE="$SCRIPT_DIR/.mcp.json"
@@ -1278,7 +1305,9 @@ else
   warn "Check 24: .mcp.json not found at $SCRIPT_DIR/.mcp.json (skipped)"
 fi
 echo ""
+fi  # should_run 24
 
+if should_run 25; then
 # Check 25 — tasks.json priority enum hygiene (t-1344)
 echo "Checking tasks.json priority enum..."
 TASKS_FILE="$SCRIPT_DIR/.claude/tasks.json"
@@ -1294,7 +1323,9 @@ else
   warn "Check 25: $TASKS_FILE not found (skipped)"
 fi
 echo ""
+fi  # should_run 25
 
+if should_run 26; then
 # Check 26 — tasks.json status enum hygiene (t-1345)
 echo "Checking tasks.json status enum..."
 if [ -f "$TASKS_FILE" ]; then
@@ -1309,7 +1340,9 @@ else
   warn "Check 26: $TASKS_FILE not found (skipped)"
 fi
 echo ""
+fi  # should_run 26
 
+if should_run 27; then
 # Check 27 — MCP wrapper scripts must use exec, not background+wait (t-1086)
 # Background pattern (`binary & wait`) breaks JSON-RPC stdin delivery;
 # exec is required to keep the pipe alive for MCP stdio.
@@ -1330,7 +1363,9 @@ else
   pass "Check 27: MCP wrapper scripts use exec, no background+wait anti-pattern"
 fi
 echo ""
+fi  # should_run 27
 
+if should_run 28; then
 # Check 28 — no bare python3 in system/hooks/ (t-1407)
 # Use jq instead of python3 in hook scripts — python3 is fragile in hook subprocesses.
 # Bare `python3` means any occurrence not preceded by `uv run`.
@@ -1346,7 +1381,9 @@ else
     pass "Check 28: system/hooks/ — no bare python3 invocations"
 fi
 echo ""
+fi  # should_run 28
 
+if should_run 29; then
 # Check 29 — reference docs up to date (t-1429)
 # Catches silent drift when hooks.json schema or frontmatter sources change
 # without a corresponding regeneration of docs/reference/*.md.
@@ -1364,7 +1401,9 @@ else
     warn "Check 29: brana CLI not found — skipping reference doc check"
 fi
 echo ""
+fi  # should_run 29
 
+if should_run 30; then
 # Check 30 — brana CLI calls in hooks must use cd GIT_ROOT subshell wrapper (t-1439)
 # All hooks do `cd /tmp` at startup. brana subcommands resolve the project from CWD,
 # so bare calls return empty results. Every "$BRANA*" call must be inside
@@ -1387,7 +1426,9 @@ else
     pass "Check 30: system/hooks/ — all brana CLI calls wrapped in cd GIT_ROOT"
 fi
 echo ""
+fi  # should_run 30
 
+if should_run 31; then
 # Check 31 — knowledge file cap triggers (patterns.md + knowledge-staging.md)
 echo "Checking knowledge file caps..."
 MEMORY_DIR="$HOME/.claude/memory"
@@ -1450,6 +1491,7 @@ else
     pass "Check 31b: knowledge-staging.md not found — skipping"
 fi
 echo ""
+fi  # should_run 31
 
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
