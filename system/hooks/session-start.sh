@@ -414,7 +414,7 @@ fi
 # ── Session argument hints (top-6 skills by usage, t-1434 / t-1437) ──
 SKILL_HINTS_CONTEXT=""
 if [ -n "$BRANA_BIN" ]; then
-    SKILLS_LIST_JSON=$("$BRANA_BIN" skills list 2>/dev/null) || SKILLS_LIST_JSON=""
+    SKILLS_LIST_JSON=$(cd "$GIT_ROOT" && "$BRANA_BIN" skills list 2>/dev/null) || SKILLS_LIST_JSON=""
     TOP_USAGE=$("$BRANA_BIN" skills usage --days 30 --json 2>/dev/null \
         | jq -r '[.skills[].name] | .[:6] | .[]' 2>/dev/null) || TOP_USAGE=""
     if [ -n "$TOP_USAGE" ] && [ -n "$SKILLS_LIST_JSON" ]; then
