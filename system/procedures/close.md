@@ -222,45 +222,48 @@ cd "$HOME" && $CF memory store \
 
 If both MCP and CLI are unavailable, the git file (below) is the sole durable copy.
 
-**Step 5b: Write pattern as git-durable file (always — regardless of MCP/CLI success)**
+**Step 5b: Append pattern to `~/.claude/memory/patterns.md` (always — regardless of MCP/CLI success)**
 
-For each learning, also write an individual frontmatter markdown file to the project's
-auto memory directory (`~/.claude/projects/{project-dir}/memory/`). This makes git the
-durable source of truth and enables the pattern indexer to rebuild ruflo from files.
+This makes patterns.md the git-durable source of truth. The pattern indexer rebuilds ruflo from this file.
 
-**Before writing any file in this step**, run:
+**Before writing**, activate the sentinel so `feedback-gate.sh` passes through:
 ```bash
 touch /tmp/brana-close-active
 ```
-This sentinel lets `feedback-gate.sh` pass through — the gate blocks ad-hoc writes but
-whitelists structured Step 5b writes. **After all Step 5b writes are done**, clean up:
+**After all Step 5b writes are done**, clean up:
 ```bash
 rm -f /tmp/brana-close-active
 ```
 
 **Slug:** derive from `{short-title}` — lowercase, hyphens, no special chars.
-**Category prefix:** `feedback_` for corrections/gotchas, `project_` for architectural state.
 
+**Dedup check** before appending:
+```bash
+grep -q "^## {slug}" ~/.claude/memory/patterns.md && echo "already exists — skip or update"
+```
+If the slug already exists, **update** the existing entry via Edit. Do not create a duplicate `## {slug}` section.
+
+**Format to append** (Write/Edit to `~/.claude/memory/patterns.md`):
 ```markdown
----
-name: {short-title}
-description: {one-line problem summary — used for index matching}
-type: {feedback or project}
----
+
+## {slug}
 
 **Problem:** {problem}
 **Solution:** {solution}
-**Confidence:** {0.5 for new, higher if validated}
-**Transferable:** {true if applicable across clients}
+**Why:** {why it matters}
+**Confidence:** quarantine
+**Source:** close {date}
+**Added:** {YYYY-MM-DD}
 ```
 
-Write via the Write tool to `~/.claude/projects/{project-dir}/memory/{prefix}_{slug}.md`.
+If `patterns.md` does not exist, create it with the header:
+```
+# Pattern Store
 
-If the file already exists (pattern was previously saved), **update it** via Edit — don't
-create duplicates. Use Glob to check: `Glob("~/.claude/projects/*/memory/*{slug}*")`.
+<!-- cap: 50 | warn-at: 40 | auto-pruned: oldest quarantine first -->
+```
 
-After writing the file, add a one-line pointer to the project's `MEMORY.md` if one doesn't
-exist for this pattern. Follow the existing MEMORY.md format.
+After writing, check the cap: if entry count (`grep -c "^## " patterns.md`) ≥ 40, warn the user to prune quarantine entries before next session.
 
 **Skip if:** session was read-only (no commits), or debrief returned no learnings.
 
@@ -276,8 +279,9 @@ Each file has a scope. Match the learning's scope to it:
 
 | File | Scope | Use when the learning... |
 |------|-------|--------------------------|
+| `~/.claude/memory/patterns.md` | Cross-session pattern | Is a corrective, behavioral, or reusable pattern — handled in Step 5b |
+| `~/.claude/memory/knowledge-staging.md` | Cross-session knowledge | Is a system insight, architecture fact, or domain finding |
 | `brana-knowledge/dimensions/{topic}.md` | Topic/domain | Applies wherever the same tool, language, or pattern appears — useful to any project, not just this one |
-| `~/.claude/memory/feedback_*.md` | Cross-session rule | Is an actionable behavioral rule ("always X", "never Y") — already handled in Step 5; don't duplicate here |
 | `~/.claude/projects/{project}/memory/field-note_{slug}.md` | Repo-specific | Cannot be understood outside this codebase — requires knowing brana's hooks, bootstrap, CLI layout, or conventions to be useful |
 | Archive-only (ruflo, Step 5) | Ephemeral | Already captured in Step 5, or duplicates existing MEMORY.md content |
 
@@ -734,8 +738,9 @@ Audit every entry in MEMORY.md using the **"Where to store what"** classificatio
 
    | Classification | Action |
    |---------------|--------|
-   | **Directive** ("always", "never", "must", "should") — project-specific | Write to `~/.claude/projects/{project}/memory/feedback_{slug}.md` + update MEMORY.md pointer (Step 5b format) |
-   | **Directive** — cross-project (applies beyond this repo) | Write to `~/.claude/memory/feedback_{slug}.md` + update portfolio MEMORY.md pointer |
+   | **Pattern** (corrective, behavioral, reusable how-to) | Append to `~/.claude/memory/patterns.md` (Step 5b format, dedup by slug) |
+   | **Knowledge** (system insight, architecture fact, domain finding) | Append to `~/.claude/memory/knowledge-staging.md` |
+   | **Rule/Directive** ("always", "never", "must", "should") | Surface via AskUserQuestion with draft preview — do NOT auto-write; human places in `system/rules/` via `/brana:build` |
    | **Convention** (architecture, stack, domain terms) | Present to user via batched AskUserQuestion: "Convention found — add to CLAUDE.md manually via PR?" Show formatted text. User decides; close does not write. |
    | **Automation** (should trigger on events) | Flag for hook creation — surface as AskUserQuestion, do not auto-write |
    | **Recipe** (multi-step reusable workflow) | Flag for skill creation — surface as AskUserQuestion, do not auto-write |
