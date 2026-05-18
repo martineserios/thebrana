@@ -4,7 +4,7 @@ The `brana` binary is the primary CLI for brana operations. Built in Rust at
 `system/cli/rust/crates/brana-cli/`. Installed to `~/.local/bin/brana` via
 `bootstrap.sh`.
 
-Top-level subcommands: `backlog`, `ops`, `doctor`, `validate`, `portfolio`,
+Top-level subcommands: `backlog`, `skills`, `ops`, `doctor`, `validate`, `portfolio`,
 `run`, `queue`, `agents`, `transcribe`, `files`, `version`.
 
 ---
@@ -86,4 +86,43 @@ Created vs completed counts over time.
 
 ```
 brana backlog burndown [--period week|month|day]
+```
+
+---
+
+## brana skills list
+
+List all installed skills (from `system/skills/` and `~/.claude/skills/`).
+
+```
+brana skills list [--human]
+```
+
+### Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--human` | false | Human-readable grouped table instead of JSON |
+
+### Output modes
+
+**Default (JSON):** Array of objects with `name`, `description`, `effort`, `group`, `keywords`.
+
+**`--human`:** Fixed-width table sorted by group → name within group. Blank line between groups. Columns:
+
+```
+GROUP  SKILL  DESCRIPTION  ARGS
+```
+
+- `DESCRIPTION` truncated to 48 chars with `…`
+- `ARGS` shows the `argument-hint` field from `SKILL.md` frontmatter, or `—` if absent
+
+### Examples
+
+```bash
+# Machine-readable (default)
+brana skills list
+
+# Grouped table for humans
+brana skills list --human
 ```
