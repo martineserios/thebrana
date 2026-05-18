@@ -327,3 +327,7 @@ Source: t-1424, session 2026-05-15 (E2026-05-15-2)
 ### 2026-05-15: Worktree workflow confirmed for system/hooks/ changes — no friction
 Feature branch via worktree + merge --no-ff with regression test included worked cleanly for a protected behavioral change. The worktree-gate fires, worktree is created, changes are committed and merged, worktree is reaped. No edge cases observed. Aligns with `feedback_worktree-for-rules.md`. Continue this pattern for all `system/hooks/` and `system/skills/` behavioral changes.
 Source: t-1397, session 2026-05-15
+
+### 2026-05-18: Background Phase 5 jobs write to inherited stdout — tests must extract first JSON line
+`session-start.sh` forks its background Phase 5 block (`index-skills.sh`, `sync-state.sh`) via `( ... ) & disown`. `disown` removes the job from the shell job table but does NOT close the inherited stdout file descriptor. In test contexts using bash process substitution (`OUTPUT=$(bash hook.sh <<< input)`), the background job's stdout ("No skills to index.") appends to the same capture buffer after the JSON response, making `jq .` fail. Fix for consumers: `grep '^{' | head -1 | jq ...` extracts only the first JSON line. Fix for new hook code: redirect background work to a log file — `( work ) >>/tmp/brana-bg.log 2>&1 &` — to prevent stdout pollution.
+Source: t-1434 Test 18, session 2026-05-18

@@ -20,6 +20,8 @@
 
 | # | Error | Severity | Status | Comments |
 |---|---|---|---|---|
+| E2026-05-17-11 | thebrana: `brana skills list --json` omits `argument_hint` field — forced session-start.sh to grep SKILL.md files directly, bypassing CLI contract | **Low** | pending | File task: include `argument_hint` in `--json` output of `brana skills list`. Consumers must use CLI, not raw filesystem reads. |
+| E2026-05-17-10 | thebrana: `/brana:close` session-state writer records `docs/architecture/cli.md` as a stale doc — that path does not exist; the real path is `docs/reference/brana-cli.md` | **Low** | pending | Session-state `doc_drift.stale_docs` entries should be validated against the filesystem before write. Until fixed: treat stale-doc entries from session state as hypotheses, not facts. |
 | E2026-05-17-9 | thebrana: `build.md` Step 12 decisions-log callsite used non-existent flags (`--agent`, `--entry-type`, `--content`) — CLI signature is positional: `brana decisions log <AGENT> <TYPE> <CONTENT>` | **Low** | code-fix | Fixed at close: corrected line 1299 to positional form `brana decisions log main decision "..." --refs "..."`. Canonical form now matches Step 0d invocation at line 309. |
 | E2026-05-17-8 | proyecto_anita: `tsc --noEmit` is a no-op in frontend-v2 (`tsconfig.json` has `"files": []`) and `vercel.json` used `vite build` directly — Vercel deployed untyped frontend code since frontend-v2 was initialized | **Medium** | code-fix | Fixed in t-717: `vercel.json` buildCommand → `npm run build`; test files excluded from `tsconfig.app.json`; all type errors resolved. |
 | E2026-05-17-7 | proyecto_anita: Claude inferred `palco@mail.com` admin email from undocumented `{distri}@mail.com` convention — no such credential exists in Greencode docs. 10 password attempts all HTTP 401 | **Medium** | pending | Never infer credential patterns from silence; flag as unknown and escalate. |
@@ -2999,3 +3001,35 @@ This errata also applies as a process rule: **when a credential is not explicitl
 **Implication:** Any project using `project references` (`tsc -b`) should always verify type gates with `tsc -b`, not `tsc --noEmit`. The `vercel.json` override must always point to `npm run build`, not the raw build tool.
 
 **Status:** code-fix (fixed in t-717, committed ff0fff3)
+
+---
+
+## Error E2026-05-17-10: `/brana:close` session-state writer records non-existent doc path
+
+**Severity:** Low
+**Discovery:** 2026-05-18 session — previous session's handoff listed `docs/architecture/cli.md` as a stale doc needing update. That path does not exist in the repo; the real CLI reference is `docs/reference/brana-cli.md`.
+**Affected files:** Session-state writer (path captured at close time); `system/procedures/close.md` Step 8 drift detection.
+
+**Root cause:** When Step 8 detects changed behavioral files and maps them to likely doc targets, the heuristic (`system/cli/**` → `docs/architecture/cli.md`) references a path that never existed. The heuristic table was written before `docs/reference/brana-cli.md` was created.
+
+**Fix:** Update the Step 8 heuristic in `system/procedures/close.md` — `system/cli/**` → `docs/reference/brana-cli.md`. Also: validate `doc_drift.stale_docs` entries against the filesystem before writing to session state.
+
+**Process rule:** Until fixed, treat session-state `doc_drift.stale_docs` entries as hypotheses — verify the path exists before acting on it.
+
+**Status:** pending
+
+---
+
+## Error E2026-05-17-11: `brana skills list --json` omits `argument_hint` field
+
+**Severity:** Low
+**Discovery:** 2026-05-18 session — t-1434 (session-start skill hints) needed `argument_hint` from skills metadata. `brana skills list --json` was the natural data source, but it only returns `name`, `description`, `effort`, `group`, `keywords`. `argument_hint` is absent.
+**Affected files:** `system/cli/rust/crates/brana-cli/src/commands/skills.rs` (`SkillInfo` struct in `cmd_list`); `system/hooks/session-start.sh` (forced to grep SKILL.md files directly as workaround).
+
+**Root cause:** The `SkillInfo` serialization struct in `cmd_list` was written before `argument-hint` was added to SKILL.md frontmatter. The field was never included.
+
+**Fix:** Add `argument_hint: String` to the `SkillInfo` struct in `skills.rs` → `cmd_list`. Populate from `s.argument_hint.clone().unwrap_or_default()`. This restores the CLI-as-composable-tool contract and lets `session-start.sh` switch from filesystem grep to `brana skills list --json`.
+
+**Related:** `system/hooks/session-start.sh` workaround (grep `SKILL.md` files) can be removed once this is fixed.
+
+**Status:** pending
