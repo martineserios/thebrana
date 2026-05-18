@@ -28,6 +28,8 @@ pub struct SkillMeta {
     pub stream_affinity: Vec<String>,
     #[serde(default)]
     pub depends_on: Vec<String>,
+    #[serde(default, rename = "argument-hint")]
+    pub argument_hint: Option<String>,
 }
 
 /// A scored skill match.
@@ -649,9 +651,64 @@ pub fn cmd_search(query: &str) -> Result<()> {
     Ok(())
 }
 
-/// `brana skills list`
-pub fn cmd_list() -> Result<()> {
+/// Format skills as a grouped human-readable table.
+/// Returns lines so the output is testable without capturing stdout.
+pub fn format_human_table(skills: &[SkillMeta]) -> Vec<String> {
+    const DESC_MAX: usize = 48;
+
+    let mut sorted = skills.to_vec();
+    sorted.sort_by(|a, b| {
+        let ga = a.group.as_deref().unwrap_or("zzz");
+        let gb = b.group.as_deref().unwrap_or("zzz");
+        ga.cmp(gb).then(a.name.cmp(&b.name))
+    });
+
+    let group_w = sorted.iter().map(|s| s.group.as_deref().unwrap_or("").len()).max().unwrap_or(5).max(5);
+    let name_w  = sorted.iter().map(|s| s.name.len()).max().unwrap_or(5).max(5);
+
+    let mut lines = Vec::new();
+    lines.push(format!(
+        "{:<gw$}  {:<nw$}  {:<dm$}  {}",
+        "GROUP", "SKILL", "DESCRIPTION", "ARGS",
+        gw = group_w, nw = name_w, dm = DESC_MAX
+    ));
+    lines.push("─".repeat(group_w + 2 + name_w + 2 + DESC_MAX + 2 + 16));
+
+    let mut last_group = String::new();
+    for s in &sorted {
+        let group = s.group.as_deref().unwrap_or("");
+        if !last_group.is_empty() && group != last_group {
+            lines.push(String::new());
+        }
+        last_group = group.to_string();
+
+        let desc = s.description.as_deref().unwrap_or("");
+        let desc_cell = if desc.len() > DESC_MAX {
+            format!("{}…", &desc[..DESC_MAX.saturating_sub(1)])
+        } else {
+            desc.to_string()
+        };
+        let args = s.argument_hint.as_deref().unwrap_or("—");
+
+        lines.push(format!(
+            "{:<gw$}  {:<nw$}  {:<dm$}  {}",
+            group, s.name, desc_cell, args,
+            gw = group_w, nw = name_w, dm = DESC_MAX
+        ));
+    }
+    lines
+}
+
+/// `brana skills list [--human]`
+pub fn cmd_list(human: bool) -> Result<()> {
     let skills = scan_skills(&skill_dirs());
+
+    if human {
+        for line in format_human_table(&skills) {
+            println!("{line}");
+        }
+        return Ok(());
+    }
 
     #[derive(Serialize)]
     struct SkillInfo {
@@ -817,6 +874,7 @@ mod tests {
                 task_strategies: vec!["feature".into(), "spike".into()],
                 stream_affinity: vec!["roadmap".into(), "research".into()],
                 depends_on: vec![],
+                argument_hint: None,
             },
             SkillMeta {
                 name: "financial-model".into(),
@@ -830,6 +888,7 @@ mod tests {
                 task_strategies: vec!["feature".into(), "spike".into()],
                 stream_affinity: vec!["roadmap".into(), "research".into()],
                 depends_on: vec![],
+                argument_hint: None,
             },
             SkillMeta {
                 name: "build".into(),
@@ -846,6 +905,7 @@ mod tests {
                 ],
                 stream_affinity: vec!["roadmap".into(), "bugs".into(), "tech-debt".into(), "experiments".into()],
                 depends_on: vec![],
+                argument_hint: None,
             },
         ]
     }
@@ -1119,6 +1179,7 @@ stream_affinity: [roadmap]
             task_strategies: vec![],
             stream_affinity: vec![],
             depends_on: vec![],
+            argument_hint: None,
         };
         let ctx = TaskContext {
             description_words: ["fix"].iter().map(|s| s.to_string()).collect(),
@@ -1141,6 +1202,7 @@ stream_affinity: [roadmap]
             task_strategies: vec![],
             stream_affinity: vec![],
             depends_on: vec![],
+            argument_hint: None,
         };
         let ctx = TaskContext {
             description_words: ["bug-fix"].iter().map(|s| s.to_string()).collect(),
@@ -1163,6 +1225,7 @@ stream_affinity: [roadmap]
             task_strategies: vec![],
             stream_affinity: vec![],
             depends_on: vec![],
+            argument_hint: None,
         };
         let ctx = TaskContext {
             description_words: HashSet::new(),
@@ -1329,6 +1392,104 @@ stream_affinity: [roadmap]
         let mut counts = std::collections::HashMap::new();
         scan_jsonl_file(f.path(), since, &mut counts);
         assert_eq!(counts["brana:close"].0, 1);
+    }
+
+    // ── format_human_table tests ─────────────────────────────────────
+
+    fn sample_skills_human() -> Vec<SkillMeta> {
+        vec![
+            SkillMeta {
+                name: "build".into(),
+                description: Some("Build anything — features, bug fixes, refactors, spikes, migrations. Auto-detects strategy.".into()),
+                effort: Some("high".into()),
+                group: Some("execution".into()),
+                keywords: vec![],
+                task_strategies: vec![],
+                stream_affinity: vec![],
+                depends_on: vec![],
+                argument_hint: Some("[decompose] [id]".into()),
+            },
+            SkillMeta {
+                name: "sitrep".into(),
+                description: Some("Situational awareness — where am I, what was I doing, what's next.".into()),
+                effort: Some("low".into()),
+                group: Some("core".into()),
+                keywords: vec![],
+                task_strategies: vec![],
+                stream_affinity: vec![],
+                depends_on: vec![],
+                argument_hint: None,
+            },
+            SkillMeta {
+                name: "close".into(),
+                description: Some("End session, extract learnings.".into()),
+                effort: Some("low".into()),
+                group: Some("core".into()),
+                keywords: vec![],
+                task_strategies: vec![],
+                stream_affinity: vec![],
+                depends_on: vec![],
+                argument_hint: None,
+            },
+        ]
+    }
+
+    #[test]
+    fn test_human_table_has_header() {
+        let lines = format_human_table(&sample_skills_human());
+        assert!(!lines.is_empty());
+        assert!(lines[0].contains("GROUP"), "first line should be header with GROUP");
+        assert!(lines[0].contains("SKILL"));
+        assert!(lines[0].contains("DESCRIPTION"));
+        assert!(lines[0].contains("ARGS"));
+    }
+
+    #[test]
+    fn test_human_table_sorted_group_then_name() {
+        let lines = format_human_table(&sample_skills_human());
+        // core group should appear before execution
+        let core_pos = lines.iter().position(|l| l.contains("sitrep") || l.contains("close")).unwrap();
+        let exec_pos = lines.iter().position(|l| l.contains("build")).unwrap();
+        assert!(core_pos < exec_pos, "core group should come before execution");
+        // within core: close before sitrep (alphabetical)
+        let close_pos = lines.iter().position(|l| l.trim_start().starts_with("core") && l.contains("close"))
+            .or_else(|| lines.iter().position(|l| l.contains("close"))).unwrap();
+        let sitrep_pos = lines.iter().position(|l| l.contains("sitrep")).unwrap();
+        assert!(close_pos < sitrep_pos, "close should sort before sitrep within core group");
+    }
+
+    #[test]
+    fn test_human_table_argument_hint_shown() {
+        let lines = format_human_table(&sample_skills_human());
+        let build_line = lines.iter().find(|l| l.contains("build")).unwrap();
+        assert!(build_line.contains("[decompose] [id]"), "argument-hint should appear in build row");
+    }
+
+    #[test]
+    fn test_human_table_no_hint_shows_dash() {
+        let lines = format_human_table(&sample_skills_human());
+        let sitrep_line = lines.iter().find(|l| l.contains("sitrep")).unwrap();
+        assert!(sitrep_line.contains('—'), "missing argument-hint should show em-dash");
+    }
+
+    #[test]
+    fn test_human_table_long_desc_truncated() {
+        let mut skills = sample_skills_human();
+        skills[0].description = Some("A".repeat(100));
+        let lines = format_human_table(&skills);
+        let build_line = lines.iter().find(|l| l.contains("build")).unwrap();
+        // The truncated description cell should not exceed desc_max + ellipsis length
+        // Just verify the line is under a reasonable bound (200 chars for safety)
+        assert!(build_line.len() < 300, "line should not be excessively long after truncation");
+        assert!(build_line.contains('…'), "truncated description should end with ellipsis");
+    }
+
+    #[test]
+    fn test_human_table_empty_skills() {
+        let lines = format_human_table(&[]);
+        // Should still emit header + separator, no panic
+        assert!(lines.len() >= 2);
+        assert!(lines[0].contains("GROUP"));
     }
 
     #[test]

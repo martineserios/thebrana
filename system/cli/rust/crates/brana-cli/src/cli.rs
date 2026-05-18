@@ -442,7 +442,11 @@ pub enum SkillsCmd {
         query: String,
     },
     /// List all local skills with metadata
-    List,
+    List {
+        /// Human-readable grouped table instead of JSON
+        #[arg(long)]
+        human: bool,
+    },
     /// Reindex skills into ruflo memory for semantic routing
     Reindex {
         /// Only reindex skills modified since last run
