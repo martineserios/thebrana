@@ -649,7 +649,7 @@ pub enum BacklogCmd {
         task_id: String,
         /// Field name (status, priority, tags, context, etc.)
         field: String,
-        /// Value (use +val/-val for array fields)
+        /// Value (use +val/-val for array fields; prefix with -- for values starting with -)
         value: String,
         /// Append to text fields instead of replacing
         #[arg(long)]

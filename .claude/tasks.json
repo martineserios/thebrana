@@ -40402,7 +40402,7 @@
       "parent": null,
       "priority": null,
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "stream": "tech-debt",
       "subject": "[hook] secondary /state/ secrets scan with key-shape regex (32+ alnum chars)",
