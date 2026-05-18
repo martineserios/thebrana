@@ -40665,8 +40665,8 @@
     },
     {
       "blocked_by": [],
-      "branch": null,
-      "build_step": null,
+      "branch": "feat/t-1452-session-end-integration-test",
+      "build_step": "build",
       "completed": null,
       "context": "Test that PATTERN_LEARNINGS flows from session-end.sh to session-end-persist.sh without the test harness setting it directly. Triggered by t-1450: classify-then-route was dead code for 6 weeks because the export list was missing the vars. An end-to-end integration test (parent calls child) would have caught this.",
       "created": "2026-05-18",
@@ -40679,9 +40679,9 @@
       "order": null,
       "parent": null,
       "priority": null,
-      "started": null,
-      "status": "pending",
-      "strategy": null,
+      "started": "2026-05-18",
+      "status": "in_progress",
+      "strategy": "feature",
       "stream": "tech-debt",
       "subject": "[hook] integration test: session-end.sh → session-end-persist.sh env var chain (no harness override)",
       "tags": [
