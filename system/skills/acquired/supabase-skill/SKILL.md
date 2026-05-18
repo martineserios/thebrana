@@ -1,6 +1,6 @@
 ---
 name: supabase-skill
-description: "Core Supabase operations — DB, Auth, Edge Functions, Realtime, Storage, RLS, CLI, MCP. Triggers on ANY Supabase task. Warns to verify against changelog before implementing."
+description: Core Supabase — DB, Auth, Realtime, Storage, RLS, Edge Functions. Triggers on ANY Supabase task.
 group: brana
 keywords: [supabase, postgres, rls, auth, realtime, storage, edge-functions, supabase-js]
 allowed-tools: [Read, Glob, Grep, Bash, WebFetch, AskUserQuestion]

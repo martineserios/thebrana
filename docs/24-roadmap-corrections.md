@@ -20,6 +20,8 @@
 
 | # | Error | Severity | Status | Comments |
 |---|---|---|---|---|
+| E2026-05-17-9 | thebrana: `build.md` Step 12 decisions-log callsite used non-existent flags (`--agent`, `--entry-type`, `--content`) — CLI signature is positional: `brana decisions log <AGENT> <TYPE> <CONTENT>` | **Low** | code-fix | Fixed at close: corrected line 1299 to positional form `brana decisions log main decision "..." --refs "..."`. Canonical form now matches Step 0d invocation at line 309. |
+| E2026-05-17-8 | proyecto_anita: `tsc --noEmit` is a no-op in frontend-v2 (`tsconfig.json` has `"files": []`) and `vercel.json` used `vite build` directly — Vercel deployed untyped frontend code since frontend-v2 was initialized | **Medium** | code-fix | Fixed in t-717: `vercel.json` buildCommand → `npm run build`; test files excluded from `tsconfig.app.json`; all type errors resolved. |
 | E2026-05-17-7 | proyecto_anita: Claude inferred `palco@mail.com` admin email from undocumented `{distri}@mail.com` convention — no such credential exists in Greencode docs. 10 password attempts all HTTP 401 | **Medium** | pending | Never infer credential patterns from silence; flag as unknown and escalate. |
 | E2026-05-17-6 | proyecto_anita: Supabase MCP OAuth session expires between sessions (overnight gap) — `mcp__supabase__execute_sql` returns "Unrecognized client_id" on session restart | **Low** | informational | MCP auth is scoped to the session in which `mcp__supabase__authenticate` was called. Across an overnight gap (>8h), the session expires. Workaround: fallback to Cloud Run env → service role key → Management API. No fix needed; informational for future sessions. |
 | E2026-05-17-5 | proyecto_anita: PostgREST content-range header format `0-0/N` — count is after `/`, not directly parseable with `grep -oP '\d+'` which matches `0` not `N`. Caused all 26 table row-count queries to return ERROR in initial audit script | **Medium** | code-fix | Fix: `grep -i "content-range:" | sed 's/.*\///' | tr -d '[:space:]\r'` extracts the total count after `/`. Applied in t-883 live audit script. Affects any shell script doing PostgREST count queries with `Prefer: count=exact`. |
@@ -2972,3 +2974,28 @@ Applies to any shell script doing PostgREST count queries with `Prefer: count=ex
 This errata also applies as a process rule: **when a credential is not explicitly documented, never infer a pattern and test it — surface as unknown and escalate.**
 
 **Status:** pending (doc update needed in tracy-commerce-api-v1.md)
+
+---
+
+## Error E2026-05-17-8: proyecto_anita: `tsc --noEmit` no-op + Vercel bypassed `tsc -b` — untyped frontend deployed since init (t-717)
+
+**Severity:** Medium — systematic type gap; any type error introduced since frontend-v2 init shipped to Vercel silently.
+**Discovery:** 2026-05-17 — t-717 session. Running `tsc --noEmit` showed 0 errors; running `tsc -b` showed 100+ errors. Root cause investigated.
+
+**Affected files:**
+- `services/frontend-v2/vercel.json` — buildCommand was `vite build`, bypassing `npm run build` (which includes `tsc -b`)
+- `services/frontend-v2/tsconfig.json` — has `"files": []`; `--noEmit` on this file compiles nothing and always exits 0
+- `services/frontend-v2/tsconfig.app.json` — actual build tsconfig used by `tsc -b` via project references
+
+**Root cause (two independent issues):**
+1. `tsconfig.json` root has `"files": []` — this is correct for project-references mode, but means `tsc --noEmit` (which reads tsconfig.json) compiles nothing and exits 0 regardless of errors.
+2. `vercel.json` had `"buildCommand": "vite build"` — bypasses the `package.json` `build` script which is `tsc -b && vite build`. Vercel deployed every push without type checking.
+
+**Fix (t-717):**
+- `vercel.json`: `"buildCommand": "vite build"` → `"npm run build"`
+- `tsconfig.app.json`: added `exclude` for `*.test.ts/*.test.tsx` (vitest types not needed in Vercel build)
+- 10 files with type errors fixed: metrics schema alignment, transition_flags discipline, null safety
+
+**Implication:** Any project using `project references` (`tsc -b`) should always verify type gates with `tsc -b`, not `tsc --noEmit`. The `vercel.json` override must always point to `npm run build`, not the raw build tool.
+
+**Status:** code-fix (fixed in t-717, committed ff0fff3)

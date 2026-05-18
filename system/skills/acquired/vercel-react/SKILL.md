@@ -1,6 +1,6 @@
 ---
 name: vercel-react
-description: React and Next.js performance optimization from Vercel Engineering — 70 rules across 8 categories (waterfalls, bundle size, server perf, re-renders). Use when writing, reviewing, or refactoring React/Next.js code.
+description: React/Next.js performance — 70 rules (waterfalls, bundle, re-renders). Use when reviewing or writing React/Next.js code.
 group: brana
 keywords: [react, nextjs, performance, bundle, server-components, optimization, vercel]
 allowed-tools: [Read, Glob, Grep, WebFetch, AskUserQuestion]

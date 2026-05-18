@@ -1,6 +1,6 @@
 ---
 name: web-design
-description: Review UI code for Web Interface Guidelines compliance. Use when asked to review UI, check accessibility, audit design, or check UX best practices. Fetches live Vercel guidelines before each review.
+description: UI review against Web Interface Guidelines. Use when asked to review UI, check accessibility, or audit design.
 group: brana
 keywords: [ux, ui, design, accessibility, web-guidelines, vercel, a11y, css, html]
 allowed-tools: [Read, Glob, Grep, WebFetch, AskUserQuestion]

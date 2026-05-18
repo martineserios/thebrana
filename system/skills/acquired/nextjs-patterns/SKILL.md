@@ -1,6 +1,6 @@
 ---
 name: nextjs-patterns
-description: Next.js 14+ App Router patterns — Server Components, Server Actions, streaming, parallel routes, caching, SSR/SSG. Use when building or migrating Next.js applications.
+description: Next.js App Router — Server Components, Actions, streaming, caching. Use when building or migrating Next.js apps.
 group: brana
 keywords: [nextjs, react, app-router, server-components, server-actions, typescript, streaming]
 allowed-tools: [Read, Glob, Grep, WebFetch, AskUserQuestion]

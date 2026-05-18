@@ -1,6 +1,6 @@
 ---
 name: supabase-postgres
-description: Postgres performance optimization — 70 rules across 8 categories (queries, connections, RLS, schema, concurrency, monitoring). Use when writing or reviewing SQL, indexes, or schema design.
+description: Postgres optimization — 70 rules (queries, indexes, RLS, concurrency). Use when writing SQL or reviewing schema.
 group: brana
 keywords: [postgres, sql, indexes, rls, schema, performance, query-optimization, supabase]
 allowed-tools: [Read, Glob, Grep, WebFetch, AskUserQuestion]

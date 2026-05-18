@@ -1,6 +1,6 @@
 ---
 name: fastapi
-description: FastAPI best practices and conventions. Use when working with FastAPI APIs and Pydantic models. Keeps code clean and up to date with latest features.
+description: FastAPI best practices + Pydantic. Use when building or reviewing FastAPI APIs.
 group: brana
 keywords: [fastapi, python, pydantic, api, async, uvicorn]
 allowed-tools: [Read, Glob, Grep, WebFetch, AskUserQuestion]
