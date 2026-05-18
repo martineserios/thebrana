@@ -411,32 +411,22 @@ if [ -n "$LAYER0_DIR" ] && [ -f "$LAYER0_DIR/pending-learnings.md" ]; then
     fi
 fi
 
-# ── Session argument hints (top-6 skills by usage, t-1434) ──
+# ── Session argument hints (top-6 skills by usage, t-1434 / t-1437) ──
 SKILL_HINTS_CONTEXT=""
 if [ -n "$BRANA_BIN" ]; then
-    TOP_SKILLS=$("$BRANA_BIN" skills usage --days 30 --json 2>/dev/null \
-        | jq -r '[.skills[].name] | .[:6] | .[]' 2>/dev/null) || TOP_SKILLS=""
-    if [ -n "$TOP_SKILLS" ]; then
+    SKILLS_LIST_JSON=$("$BRANA_BIN" skills list 2>/dev/null) || SKILLS_LIST_JSON=""
+    TOP_USAGE=$("$BRANA_BIN" skills usage --days 30 --json 2>/dev/null \
+        | jq -r '[.skills[].name] | .[:6] | .[]' 2>/dev/null) || TOP_USAGE=""
+    if [ -n "$TOP_USAGE" ] && [ -n "$SKILLS_LIST_JSON" ]; then
         HINT_LINES=""
-        SKILLS_BASE="${CLAUDE_PLUGIN_ROOT:-$GIT_ROOT/system}/skills"
         while IFS= read -r skill_name; do
             slug="${skill_name#brana:}"
             slug="${slug#plugin:brana:}"
-            HINT=""
-            for smd in "$SKILLS_BASE/$slug/SKILL.md" \
-                       "$SKILLS_BASE/acquired/$slug/SKILL.md" \
-                       "$HOME/.claude/skills/$slug/SKILL.md"; do
-                if [ -f "$smd" ]; then
-                    raw=$(grep -m1 '^argument-hint:' "$smd" 2>/dev/null \
-                          | sed 's/^argument-hint:[[:space:]]*//' \
-                          | tr -d '"') || raw=""
-                    [ -n "$raw" ] && HINT=" $raw"
-                    break
-                fi
-            done
+            hint=$(echo "$SKILLS_LIST_JSON" | jq -r --arg n "$slug" \
+                '.[] | select(.name == $n) | .argument_hint // ""' 2>/dev/null | head -1) || hint=""
             HINT_LINES="${HINT_LINES:+$HINT_LINES
-}/$skill_name$HINT"
-        done <<< "$TOP_SKILLS"
+}/$skill_name${hint:+ $hint}"
+        done <<< "$TOP_USAGE"
         [ -n "$HINT_LINES" ] && SKILL_HINTS_CONTEXT="Top skills (by usage):
 $HINT_LINES"
     fi
