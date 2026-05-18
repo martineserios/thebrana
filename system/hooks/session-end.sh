@@ -101,13 +101,26 @@ echo '{"continue": true}'
         fi
     done
 
+    # ── Auto-populate PATTERN_LEARNINGS from session state learnings[] ──────────
+    # If not already set by caller, extract learnings[] from brana session state.
+    # This makes classify-then-route automatic without callers setting the env var.
+    if [ -z "${PATTERN_LEARNINGS:-}" ] || [ "${PATTERN_LEARNINGS:-}" = "[]" ]; then
+        if [ -n "${BRANA_CLI:-}" ] && [ -x "$BRANA_CLI" ]; then
+            _raw=$(cd "${GIT_ROOT:-/tmp}" && "$BRANA_CLI" session read --json 2>/dev/null) || _raw=""
+            if [ -n "$_raw" ]; then
+                _pl=$(echo "$_raw" | jq -c '.learnings // []' 2>/dev/null) || _pl="[]"
+                [ "${_pl:-[]}" != "[]" ] && [ "${_pl:-[]}" != "null" ] && PATTERN_LEARNINGS="$_pl"
+            fi
+        fi
+    fi
+
     # ── Phase 2: Persist ──────────────────────────────────────
     export PROJECT SESSION_ID TIMESTAMP SESSION_FILE GIT_ROOT
     export TOTAL SUCCESSES FAILURES CORRECTIONS TEST_WRITES CASCADES PR_CREATES
     export TEST_PASSES TEST_FAILS LINT_PASSES LINT_FAILS EDITS DELEGATIONS
     export TOOLS FILES CORRECTION_RATE AUTO_FIX_RATE TEST_WRITE_RATE
     export CASCADE_RATE TEST_PASS_RATE LINT_PASS_RATE SUMMARY_JSON
-    export LAYER0_DIR BRANA_CLI
+    export LAYER0_DIR BRANA_CLI PATTERN_LEARNINGS KNOWLEDGE_FINDINGS
     STORED_L1=false; export STORED_L1
 
     bash "${SCRIPT_DIR}/session-end-persist.sh" 2>/dev/null || true
