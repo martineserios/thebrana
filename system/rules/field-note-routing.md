@@ -1,7 +1,7 @@
 ---
 name: field-note-routing
 description: Field notes must target docs/architecture/<topic>.md. docs/reference/ is auto-generated and silently overwritten.
-alwaysApply: false
+paths: ["docs/**", "system/**"]
 ---
 
 Field notes and manual edits must target `docs/architecture/<topic>.md`.
