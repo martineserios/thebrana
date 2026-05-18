@@ -8,6 +8,7 @@
 
 | Topic | File | Relevant Clients |
 |-------|------|------------------|
+| Supabase Edge Function has no implicit DLQ — add delivery_status field + retry policy when replacing Redis/queue pollers with DB Webhook → Edge Function | `nexeye_eyedetect memory: feedback_edge-function-no-implicit-dlq.md` | nexeye, proyecto_anita, mya, brapsoclaw, any client migrating queue workers to Edge Functions |
 | Brainstorm governance gate for M+ efforts | `feedback_brainstorm_governance_gate.md` | brana (skill dev), all clients using brainstorm |
 | Meta WhatsApp template classification formula | `meta-whatsapp-templates.md` | somos_mirada, proyecto_anita, any WhatsApp client |
 | Meta WhatsApp Template API — programmatic submission (Graph v23, System User token, webhooks, appeals are UI-only) | `brana-knowledge/dimensions/54-meta-whatsapp-template-api.md` | somos_mirada (verified portfolio), proyecto_anita, mya, brapsoclaw, any WhatsApp BSP client |
