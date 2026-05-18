@@ -189,6 +189,8 @@ Differentiator: "Does bypassing this gate corrupt an invariant that cannot be re
 
 **Immediate response pattern** -- `session-end.sh` responds with `{"continue": true}` immediately, then forks heavy processing to background. CC cancels hooks during session teardown, so the response must come before any processing.
 
+**Auto-populate PATTERN_LEARNINGS (t-1450)** -- Before calling `session-end-persist.sh`, `session-end.sh` calls `brana session read --json` and extracts `.learnings[]`. If `PATTERN_LEARNINGS` is not already set by the caller (or is `[]`), it is populated from the session state array. This makes the classify-then-route pipeline (t-1264) automatic — patterns.md is written at session end without any caller explicitly setting `PATTERN_LEARNINGS`. Pre-set values from callers are never overwritten (precedence: caller > session state). Both `PATTERN_LEARNINGS` and `KNOWLEDGE_FINDINGS` are included in the export list so `session-end-persist.sh` receives them. Previously these vars were missing from the export list, making classify-then-route dead code in production for ~6 weeks.
+
 **Cascade detection** -- `post-tool-use-failure.sh` tracks consecutive failures on the same target. At 3+ failures, it flags a cascade so `pre-tool-use.sh` can inject a warning on the next attempt.
 
 **Error recurrence tracking (t-679)** -- `post-tool-use-failure.sh` computes an error signature (md5 of tool_name + error_cat + first 80 chars of detail) and increments a counter in `~/.claude/logs/error-recurrence.jsonl`. When the same signature hits 3 occurrences across sessions, it stores to ruflo memory with tag `escalate:rule-candidate`. `session-start.sh` scans the recurrence file and surfaces errors with count >= 3 as "[Recurring errors -- rule/hook candidates]" in session context.
@@ -318,3 +320,7 @@ Source: t-1441, session 2026-05-18
 ### 2026-05-18: brana skills list normalized to brana: prefix (fixed t-1440)
 ~~`brana skills list` returned unprefixed names (`close`, `sitrep`) while `brana skills usage` returned prefixed names (`brana:close`).~~ Fixed by t-1440: `brana skills list` now emits `brana:`-prefixed names, aligned with CC's canonical `/brana:close` invocation surface. `brana:` prefix is the canonical form for all skill name references across `list`, `usage`, and `search`.
 Source: t-1437 (diagnosis), t-1440 (fix), session 2026-05-18
+
+### 2026-05-18: Hook-chain export list parity — audit parent `export` before assuming child receives vars
+When wiring a multi-stage hook chain (e.g., session-end.sh → session-end-persist.sh), the child's read logic and tests can pass while production is silent — because test harnesses set env vars directly, bypassing the parent's export. The parent's `export` list is the only thing that matters in production. Checklist: for every env var a child script reads, verify it appears in the parent's `export` list. Child-side tests that `export FOO=value` before calling the child will pass regardless. t-1264 classify-then-route was dead code for ~6 weeks because PATTERN_LEARNINGS/KNOWLEDGE_FINDINGS were missing from session-end.sh's export.
+Source: t-1450, session 2026-05-18

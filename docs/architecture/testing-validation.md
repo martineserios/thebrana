@@ -281,6 +281,22 @@ Reads `.claude/tasks.json` and fails if any task has a `status` value outside th
 
 Pairs with `validate_status` in `brana_core::tasks`. Synthetic values come from `classify()` output and should never reach the raw `status` field. See also `raw_status()` accessor — the canonical reader for filter predicates and aggregations.
 
+### Check 31: Knowledge File Cap Triggers
+
+Counts `## ` (level-2 heading) entries in `~/.claude/memory/patterns.md` and `~/.claude/memory/knowledge-staging.md`. Warns when either file approaches its cap.
+
+**Check 31a — patterns.md:**
+- **PASS:** fewer than 40 `## ` entries
+- **WARN:** 40+ entries — "prune quarantine entries" (cap: 50, warn-at: 40)
+- **SKIP:** file absent
+
+**Check 31b — knowledge-staging.md:**
+- **PASS:** fewer than 20 `## ` entries
+- **WARN:** 20+ entries — "promote or discard stale findings" (cap: 30, warn-at: 20)
+- **SKIP:** file absent
+
+Both checks use `grep -c '^## '` to count entries. Only level-2 headings (`## `) are counted; `# ` (title) and `### ` (sub-entries) are excluded. Tests: `tests/scripts/test-validate-cap-checks.sh` (11 tests reproducing count + threshold logic inline, no full validate.sh run).
+
 ### Checks A-D: Semantic Skill Validation
 
 Beyond structural checks (1-12), `validate.sh` includes semantic checks that analyze skill *content* for consistency. Run them standalone with `--semantic` or as part of the full suite.
@@ -497,3 +513,7 @@ Source: t-1443, 2026-05-18
 ### 2026-05-18: Move procedural "validate before write" guards to the CLI layer
 `close.md` instructing Claude to check `test -f` before including paths in `stale_docs` is invisible to future sessions and fails when the procedure is rushed or compressed. The durable fix is adding the guard to `write_state()` in the Rust CLI — it runs unconditionally. Rule: if a procedure says "validate X before writing", the right place is a `sanitize()` step in the write path, not just procedure text.
 Source: t-1444, 2026-05-18
+
+### 2026-05-18: Inline logic reproduction for new validate.sh checks — faster and safer than full-script tests
+New validate.sh checks can be tested by extracting just the count+threshold logic into helper functions and testing them independently, without running the full validate.sh (which is slow and has set -e traps). Pattern: `check_fn() { local file="$1"; if [ ! -f "$file" ]; then echo "skip"; return; fi; local count; count=$(grep -c '^## ' "$file"); if [ "$count" -ge "$warn_at" ]; then echo "warn:$count"; else echo "pass:$count"; fi }`. See `tests/scripts/test-validate-cap-checks.sh` (11 tests) and `test-validate-count-drift.sh` (same pattern). This is now the default for any new validate.sh check.
+Source: t-1451, session 2026-05-18
