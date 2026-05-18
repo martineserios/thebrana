@@ -1493,6 +1493,30 @@ fi
 echo ""
 fi  # should_run 31
 
+if should_run 32; then
+# Check 32 — echo|grep-q pipefail anti-pattern in tests/ and system/scripts/ (t-1454)
+# `echo "$x" | grep -q` under set -o pipefail: grep exits early on match, echo gets SIGPIPE 141,
+# pipefail returns 141, if-condition evaluates false → false negative on successful match.
+# Fix: use [[ "$x" == *"$needle"* ]] for simple contains checks, or append || true.
+echo "Checking tests/ and system/scripts/ for echo|grep-q pipefail anti-pattern..."
+PIPEFAIL_HITS=$(
+    grep -rn '|[[:space:]]*grep -q' \
+        "$SCRIPT_DIR/tests/" "$SCRIPT_DIR/system/scripts/" \
+        --include="*.sh" 2>/dev/null \
+    | grep -v ':[[:space:]]*#' \
+    | grep -v '|| true' \
+    || true
+)
+if [ -n "$PIPEFAIL_HITS" ]; then
+    HIT_COUNT=$(printf '%s\n' "$PIPEFAIL_HITS" | wc -l | tr -d ' ')
+    printf '%s\n' "$PIPEFAIL_HITS" | sed 's/^/  /'
+    warn "Check 32: $HIT_COUNT echo|grep-q pipefail anti-pattern(s) — replace with [[ == *needle* ]] (t-1454)"
+else
+    pass "Check 32: no echo|grep-q pipefail anti-pattern found in tests/ or system/scripts/"
+fi
+echo ""
+fi  # should_run 32
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
