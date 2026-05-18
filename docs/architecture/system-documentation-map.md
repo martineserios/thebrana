@@ -229,3 +229,9 @@ User action
   └─ Session end
       └─ session-end.sh → computes metrics, persists summary
 ```
+
+## Field Notes
+
+### 2026-05-18: No-counts rule extends to architecture docs
+Numeric counts in architecture living docs drift silently and require manual reconcile to catch. This doc had `validate.sh runs 12 pre-deploy checks` (actual: 29+), `event hooks (10 scripts)` (actual: 35), and `behavioral rules (12)` (actual: 25) all stale simultaneously. The no-counts rule from feedback_no-counts-in-adrs.md applies here too — write "all skills", link to the auto-generated reference, never embed a count. Architecture docs are not auto-generated, so counts are not self-healing. Task t-1443 tracks adding a validate.sh lint for this pattern.
+Source: reconcile session 2026-05-18 / consistency domain
