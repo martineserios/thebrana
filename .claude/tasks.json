@@ -40181,7 +40181,7 @@
       "parent": "t-659",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "subject": "Session-start argument hints for top-6 skills",
       "tags": [
@@ -40207,7 +40207,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "subject": "Sitrep: filter active context by tag, stream, or segment",
       "tags": [
@@ -40242,6 +40242,62 @@
         "backlog",
         "hierarchy",
         "ux"
+      ],
+      "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": null,
+      "created": "2026-05-17",
+      "description": "The SkillInfo struct in cmd_list (skills.rs) omits argument_hint. Add it to the JSON output so session-start.sh and other consumers can use CLI instead of grepping SKILL.md files directly. Fix: add argument_hint: String to SkillInfo, populate from s.argument_hint. Ref: E2026-05-17-11, t-1434.",
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1437",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "roadmap",
+      "subject": "[cli] brana skills list --json: include argument_hint field",
+      "tags": [
+        "cli",
+        "skills",
+        "dx"
+      ],
+      "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": null,
+      "created": "2026-05-17",
+      "description": "Step 8 drift heuristic maps system/cli/** to docs/architecture/cli.md which does not exist. Fix: update heuristic to docs/reference/brana-cli.md. Also validate all doc_drift.stale_docs entries against filesystem before writing session state. Ref: E2026-05-17-10.",
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1438",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "roadmap",
+      "subject": "[close] Validate stale_docs paths before session state write",
+      "tags": [
+        "close",
+        "dx",
+        "harness-engineering"
       ],
       "type": "task"
     }
