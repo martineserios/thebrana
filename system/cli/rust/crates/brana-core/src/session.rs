@@ -178,6 +178,18 @@ impl SessionState {
         Ok(())
     }
 
+    /// Strip non-existent filesystem paths from `doc_drift.stale_docs`.
+    ///
+    /// Called by `write_state()` as a safety net so procedural drift in close
+    /// doesn't pollute the next session's drift signals. Paths that don't exist
+    /// at write time are heuristic artifacts that have already been invalidated.
+    pub fn sanitize(mut self) -> Self {
+        if let Some(ref mut drift) = self.doc_drift {
+            drift.stale_docs.retain(|p| Path::new(p).exists());
+        }
+        self
+    }
+
     /// Create a minimal session state (for session-end safety net).
     pub fn minimal(branch: Option<String>) -> Self {
         Self {
@@ -210,7 +222,9 @@ pub fn read_state(project_root: &Path) -> Option<SessionState> {
 
 /// Write session state atomically (.tmp → rename).
 /// Archives the previous state to history JSONL before overwriting.
+/// Non-existent paths in `doc_drift.stale_docs` are silently stripped before write.
 pub fn write_state(project_root: &Path, state: &SessionState) -> Result<()> {
+    let state = state.clone().sanitize();
     state.validate()?;
 
     let state_path = session_state_path(project_root);
@@ -239,7 +253,7 @@ pub fn write_state(project_root: &Path, state: &SessionState) -> Result<()> {
 
     // Atomic write
     let tmp = state_path.with_extension("tmp");
-    let json = serde_json::to_string_pretty(state)?;
+    let json = serde_json::to_string_pretty(&state)?;
     fs::write(&tmp, &json)?;
     fs::rename(&tmp, &state_path)?;
 
@@ -782,5 +796,80 @@ mod tests {
         )];
         let summary = compute_insights(&history);
         assert!(summary.suggestions.is_empty());
+    }
+
+    // ── stale_docs path sanitization ─────────────────────────────────────
+
+    #[test]
+    fn stale_docs_nonexistent_paths_filtered_on_write() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        // Create a real file to include
+        let real_file = root.join("existing.md");
+        fs::write(&real_file, "content").unwrap();
+
+        let mut state = make_state("2026-05-18T10:00:00Z");
+        state.doc_drift = Some(DocDrift {
+            detected: true,
+            stale_docs: vec![
+                real_file.to_string_lossy().to_string(),
+                "/nonexistent/docs/architecture/cli.md".to_string(),
+            ],
+        });
+
+        write_state(root, &state).unwrap();
+
+        let loaded = read_state(root).unwrap();
+        let stale = &loaded.doc_drift.as_ref().unwrap().stale_docs;
+        assert_eq!(stale.len(), 1, "non-existent path should be filtered out");
+        assert!(stale[0].ends_with("existing.md"), "real path should be kept");
+    }
+
+    #[test]
+    fn stale_docs_all_nonexistent_yields_empty_vec() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        let mut state = make_state("2026-05-18T10:00:00Z");
+        state.doc_drift = Some(DocDrift {
+            detected: true,
+            stale_docs: vec![
+                "/nonexistent/path/a.md".to_string(),
+                "/nonexistent/path/b.md".to_string(),
+            ],
+        });
+
+        write_state(root, &state).unwrap();
+
+        let loaded = read_state(root).unwrap();
+        let stale = &loaded.doc_drift.as_ref().unwrap().stale_docs;
+        assert!(stale.is_empty(), "all non-existent paths should be filtered");
+    }
+
+    #[test]
+    fn stale_docs_all_existing_kept_intact() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+
+        let file_a = root.join("a.md");
+        let file_b = root.join("b.md");
+        fs::write(&file_a, "a").unwrap();
+        fs::write(&file_b, "b").unwrap();
+
+        let mut state = make_state("2026-05-18T10:00:00Z");
+        state.doc_drift = Some(DocDrift {
+            detected: true,
+            stale_docs: vec![
+                file_a.to_string_lossy().to_string(),
+                file_b.to_string_lossy().to_string(),
+            ],
+        });
+
+        write_state(root, &state).unwrap();
+
+        let loaded = read_state(root).unwrap();
+        let stale = &loaded.doc_drift.as_ref().unwrap().stale_docs;
+        assert_eq!(stale.len(), 2, "all existing paths should be preserved");
     }
 }
