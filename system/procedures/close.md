@@ -119,7 +119,7 @@ Detect behavioral changes that lack corresponding documentation updates.
    - `system/hooks/**` → `docs/architecture/hooks.md`
    - `system/agents/**` → `docs/architecture/agents.md`
    - `system/commands/**` → `docs/architecture/commands.md`
-   - `system/cli/**` → `docs/architecture/cli.md` or `docs/guide/cli-reference.md`
+   - `system/cli/**` → `docs/reference/brana-cli.md`
    - `**/rules/**` → `docs/architecture/rules.md`
 
    Present via AskUserQuestion:
@@ -483,6 +483,12 @@ Include the affected doc list in the drift report instead of just "system files 
 Collect drift results for the session state JSON (Step 9):
 - **backprop.files**: system files that changed this session
 - **doc_drift.stale_docs**: docs affected by those changes (from spec-graph)
+
+**Validate stale_docs paths before writing:** Before adding any path to `stale_docs`, verify it exists on the filesystem:
+```bash
+test -f "<path>" && echo "exists" || echo "skip"
+```
+Discard paths that don't exist — they represent stale heuristic mappings (e.g., `docs/architecture/cli.md`) or outdated spec-graph entries. A non-existent path in `stale_docs` is noise; it will produce false drift signals in the next session.
 
 **Do NOT write `.needs-backprop` flag file.** The `backprop` field in session-state.json replaces it.
 
