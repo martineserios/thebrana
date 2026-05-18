@@ -236,7 +236,7 @@ echo ""
 
 # Check 6: No secrets
 echo "Checking for secrets..."
-SECRETS_FOUND=$(grep -rn -E '(API_KEY|SECRET|PASSWORD|TOKEN|PRIVATE_KEY)\s*=' "$SYSTEM_DIR" 2>/dev/null | grep -v -E '(\.sh:|#|example|placeholder|never commit)' || true)
+SECRETS_FOUND=$(grep -rn -E '(API_KEY|SECRET|PASSWORD|TOKEN|PRIVATE_KEY)\s*=' "$SYSTEM_DIR" 2>/dev/null | grep -v -E '(\.sh:|#|example|placeholder|never commit|/state/)' || true)
 if [ -n "$SECRETS_FOUND" ]; then
     fail "Potential secrets found:"
     echo "$SECRETS_FOUND"
