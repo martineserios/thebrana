@@ -11,9 +11,9 @@ thebrana/system/                      PLUGIN (loaded by Claude Code)
 ├── .claude-plugin/plugin.json        manifest
 ├── skills/                           /brana:* slash commands
 ├── commands/                         agent commands
-├── hooks/hooks.json + *.sh           event hooks (10 scripts)
+├── hooks/hooks.json + *.sh           event hooks (35 scripts)
 ├── agents/                           specialized agents (11)
-├── rules/                            behavioral rules (12)
+├── rules/                            behavioral rules (25)
 ├── scripts/                          shared helpers
 ├── scheduler/                        scheduled jobs
 ├── statusline.sh                     status bar
@@ -92,7 +92,7 @@ Rules are always-loaded markdown directives in `system/rules/`. They shape behav
 
 ### Validation Script
 
-`validate.sh` runs 12 pre-deploy checks:
+`validate.sh` runs 29+ pre-deploy checks:
 
 | Check | What it validates |
 |-------|------------------|
@@ -162,7 +162,7 @@ Located at `thebrana/docs/architecture/`:
 | `hooks.md` | Hook details — trigger, behavior, output format |
 | `agents.md` | Agent roster — model, tools, auto-delegation triggers |
 | `extending.md` | How to add new skills, rules, hooks, agents |
-| `decisions/` | ADRs (ADR-001 through ADR-014) |
+| `decisions/` | ADRs (ADR-001 through ADR-037) |
 | `features/` | Feature briefs |
 
 ## Key File Index
