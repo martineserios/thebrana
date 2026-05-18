@@ -64,7 +64,7 @@ source "${SCRIPT_DIR}/lib/resolve-brana.sh"
 
 BUILD_STEP=""
 if [ -x "$BRANA" ]; then
-    BUILD_STEP=$("$BRANA" backlog query --status active --output json 2>/dev/null | \
+    BUILD_STEP=$(cd "$GIT_ROOT" && "$BRANA" backlog query --status active --output json 2>/dev/null | \
         jq -r --arg branch "$BRANCH" \
         '[.[] | select(.branch == $branch)] | first | .build_step // empty' 2>/dev/null) || BUILD_STEP=""
 fi

@@ -49,12 +49,10 @@ if [ "$HAS_TASKS" -eq 1 ]; then
         source "${SCRIPT_DIR}/lib/resolve-brana.sh" 2>/dev/null || true
 
         if [ -x "${BRANA:-}" ] && [ -n "${PROJECT_ROOT:-}" ]; then
-            cd "$PROJECT_ROOT" 2>/dev/null || true
-
             while IFS= read -r TASK_ID; do
                 [ -z "$TASK_ID" ] && continue
 
-                TASK_JSON=$("$BRANA" backlog get "$TASK_ID" 2>/dev/null) || continue
+                TASK_JSON=$(cd "$PROJECT_ROOT" && "$BRANA" backlog get "$TASK_ID" 2>/dev/null) || continue
                 [ -z "$TASK_JSON" ] && continue
 
                 SUBJECT=$(echo "$TASK_JSON" | jq -r '.subject // empty' 2>/dev/null) || continue

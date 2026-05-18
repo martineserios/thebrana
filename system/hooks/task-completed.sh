@@ -36,6 +36,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/resolve-brana.sh"
 [ ! -x "${BRANA:-}" ] && { echo '{"continue": true}'; exit 0; }
 
+GIT_ROOT="${CLAUDE_PROJECT_DIR:-$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null)}"
+
 MESSAGES=""
 
 for TASK_ID in $TASK_IDS; do
@@ -49,7 +51,7 @@ for TASK_ID in $TASK_IDS; do
     fi
 
     # ── 1. Parent rollup ──────────────────────────────────
-    ROLLUP_OUT=$("$BRANA" backlog rollup 2>/dev/null) || true
+    ROLLUP_OUT=$(cd "$GIT_ROOT" && "$BRANA" backlog rollup 2>/dev/null) || true
     ROLLUP_IDS=$(echo "$ROLLUP_OUT" | jq -r '.rollup // [] | join(", ")' 2>/dev/null) || true
     if [ -n "$ROLLUP_IDS" ]; then
         MESSAGES="${MESSAGES}Auto-rollup: completed parents [${ROLLUP_IDS}]. "
@@ -58,7 +60,7 @@ for TASK_ID in $TASK_IDS; do
     # ── 2. Close linked GitHub issue ──────────────────────
     CONFIG="$HOME/.claude/task-sync-config.json"
     if [ -f "$CONFIG" ]; then
-        GITHUB_ISSUE=$("$BRANA" backlog get "$TASK_ID" --field github_issue 2>/dev/null) || true
+        GITHUB_ISSUE=$(cd "$GIT_ROOT" && "$BRANA" backlog get "$TASK_ID" --field github_issue 2>/dev/null) || true
         # Strip quotes and check for non-null
         GITHUB_ISSUE=$(echo "$GITHUB_ISSUE" | tr -d '"' 2>/dev/null) || true
         if [ -n "$GITHUB_ISSUE" ] && [ "$GITHUB_ISSUE" != "null" ]; then
@@ -71,14 +73,14 @@ for TASK_ID in $TASK_IDS; do
     fi
 
     # ── 3. Log to decision log ────────────────────────────
-    SUBJECT=$("$BRANA" backlog get "$TASK_ID" --field subject 2>/dev/null) || true
+    SUBJECT=$(cd "$GIT_ROOT" && "$BRANA" backlog get "$TASK_ID" --field subject 2>/dev/null) || true
     SUBJECT=$(echo "$SUBJECT" | tr -d '"' 2>/dev/null) || true
-    STRATEGY=$("$BRANA" backlog get "$TASK_ID" --field strategy 2>/dev/null) || true
+    STRATEGY=$(cd "$GIT_ROOT" && "$BRANA" backlog get "$TASK_ID" --field strategy 2>/dev/null) || true
     STRATEGY=$(echo "$STRATEGY" | tr -d '"' 2>/dev/null) || true
     if [ -n "$SUBJECT" ]; then
-        "$BRANA" decisions log main decision \
+        (cd "$GIT_ROOT" && "$BRANA" decisions log main decision \
             "Completed ${TASK_ID} (${STRATEGY:-unknown}): ${SUBJECT}" \
-            --refs "$TASK_ID" >> /tmp/brana-decisions.log 2>&1 &
+            --refs "$TASK_ID") >> /tmp/brana-decisions.log 2>&1 &
     fi
 done
 

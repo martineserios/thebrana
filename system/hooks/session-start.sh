@@ -327,7 +327,7 @@ Blockers: $HO_BLOCKERS"
         (cd "$GIT_ROOT" 2>/dev/null && "$BRANA_BIN" session mark-consumed 2>/dev/null) || true
     else
         # Fallback: try legacy markdown handoff
-        HANDOFF_RAW=$("$BRANA_BIN" handoff last 2>/dev/null) || true
+        HANDOFF_RAW=$(cd "$GIT_ROOT" 2>/dev/null && "$BRANA_BIN" handoff last 2>/dev/null) || true
         if [ -n "$HANDOFF_RAW" ]; then
             HO_HEADING=$(echo "$HANDOFF_RAW" | head -1 | sed 's/^## //')
             HO_NEXT=$(echo "$HANDOFF_RAW" | sed -n '/^\*\*Next[^*]*\*\*/,/^\*\*[A-Za-z]/p' | grep -v '^\*\*' | sed 's/^- //' | head -10) || true
@@ -415,7 +415,7 @@ fi
 SKILL_HINTS_CONTEXT=""
 if [ -n "$BRANA_BIN" ]; then
     SKILLS_LIST_JSON=$(cd "$GIT_ROOT" && "$BRANA_BIN" skills list 2>/dev/null) || SKILLS_LIST_JSON=""
-    TOP_USAGE=$("$BRANA_BIN" skills usage --days 30 --json 2>/dev/null \
+    TOP_USAGE=$(cd "$GIT_ROOT" && "$BRANA_BIN" skills usage --days 30 --json 2>/dev/null \
         | jq -r '[.skills[].name] | .[:6] | .[]' 2>/dev/null) || TOP_USAGE=""
     if [ -n "$TOP_USAGE" ] && [ -n "$SKILLS_LIST_JSON" ]; then
         HINT_LINES=""
