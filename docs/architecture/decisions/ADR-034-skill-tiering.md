@@ -11,7 +11,7 @@ status: accepted
 
 CC loads full SKILL.md content at startup, not frontmatter-only (confirmed bug anthropics/claude-code#14882, v2.1.89). With the full skill set loaded (~34K tokens at the time of diagnosis), startup takes 4+ minutes. Diagnostic confirmed: removing skills/ makes CC start fast; all other plugin components (hooks, rules, agents, MCP) are fast.
 
-Only 7 skills are used daily. The other 19 are situational (weekly or less).
+Most skills are situational (weekly or less). A small subset is used in nearly every session. See `docs/reference/skills.md` for the current full list.
 
 ## Decision
 

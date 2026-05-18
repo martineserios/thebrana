@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-17T16:30:34Z",
+  "generated": "2026-05-18T11:14:17Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -445,7 +445,7 @@
       ]
     },
     "docs/24-roadmap-corrections.md": {
-      "title": "24 — Roadmap Corrections & Errata",
+      "title": "24 — Roadmap Corrections & Errata (ARCHIVED)",
       "type": "Roadmap",
       "impl_files": [
         "system/",
@@ -487,7 +487,8 @@
         "system/hooks/tests/test-main-guard.sh",
         "system/cli/rust/crates/brana-cli/src/commands/",
         "system/procedures/close.md",
-        "system/procedures/backlog.md"
+        "system/procedures/backlog.md",
+        "system/cli/rust/crates/brana-cli/src/commands/skills.rs"
       ]
     },
     "docs/25-self-documentation.md": {
@@ -1198,6 +1199,7 @@
         "system/scripts/",
         "system/skills/",
         "system/hooks/",
+        "system/hooks/tests/test-post-tool-use-test-signal.sh",
         "system/hooks/lib/<name>.sh",
         "system/hooks",
         "system/hooks/foo.sh"
@@ -1320,6 +1322,52 @@
         "system/hooks/",
         "system/agents/",
         "system/rules/"
+      ]
+    },
+    "docs/archive/24-roadmap-corrections.md": {
+      "title": "24 — Roadmap Corrections & Errata",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/",
+        "system/rules/",
+        "system/rules/sdd-tdd.md",
+        "system/procedures/align.md",
+        "system/skills/",
+        "system/commands/maintain-specs.md",
+        "system/scripts/git-hooks/pre-commit",
+        "system/hooks/branch-verify.sh",
+        "system/hooks/session-start.sh",
+        "system/hooks/session-end.sh",
+        "system/skills/pattern-recall/SKILL.md",
+        "system/skills/retrospective/SKILL.md",
+        "system/skills/cross-pollinate/SKILL.md",
+        "system/skills/project-onboard/SKILL.md",
+        "system/skills/client-retire/SKILL.md",
+        "system/skills/personal-check/SKILL.md",
+        "system/scripts/skill-graph.sh",
+        "system/commands/",
+        "system/scripts/gh-sync.sh",
+        "system/hooks/task-sync.sh",
+        "system/skills/meta-template/SKILL.md",
+        "system/scheduler/brana-scheduler-runner.sh",
+        "system/skills/decide/SKILL.md",
+        "system/procedures/onboard.md",
+        "system/scheduler/scheduler.template.json",
+        "system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs",
+        "system/hooks/hooks.json",
+        "system/scripts/generate-reference.py",
+        "system/procedures/build.md",
+        "system/hooks/",
+        "system/cli/rust/crates/brana-cli/src/commands/knowledge.rs",
+        "system/procedures/claudemd.md",
+        "system/hooks/feedback-gate.sh",
+        "system/skills/claudemd/SKILL.md",
+        "system/hooks/main-guard.sh",
+        "system/skills/align/procedures/align.md",
+        "system/hooks/tests/test-main-guard.sh",
+        "system/cli/rust/crates/brana-cli/src/commands/",
+        "system/procedures/close.md",
+        "system/procedures/backlog.md"
       ]
     },
     "docs/archive/posttooluse-workaround.md": {
@@ -2221,7 +2269,8 @@
       "title": "brana CLI Reference",
       "type": "Roadmap",
       "impl_files": [
-        "system/cli/rust/crates/brana-cli/"
+        "system/cli/rust/crates/brana-cli/",
+        "system/skills/"
       ]
     },
     "docs/reference/commands.md": {
@@ -7248,6 +7297,12 @@
     },
     {
       "from": "docs/24-roadmap-corrections.md",
+      "to": "archive/24-roadmap-corrections.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/24-roadmap-corrections.md",
       "to": "archive/reflections/14-mastermind-architecture.md",
       "type": "references",
       "computed": false
@@ -8839,6 +8894,210 @@
     {
       "from": "docs/architecture/testing-validation.md",
       "to": "path",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "00-user-practices.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "17-implementation-roadmap.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "18-lean-roadmap.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "24-roadmap-corrections.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "25-self-documentation.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "30-backlog.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "39-architecture-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "brana-knowledge/dimensions/11-ecosystem-skills-plugins.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "brana-knowledge/dimensions/45-turboflow-agent-orchestration.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "dimensions/02-nexeye-skill-selection.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "dimensions/04-claude-4.6-capabilities.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "dimensions/05-claude-flow-v3-analysis.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "dimensions/07-claude-flow-plus-claude-4.6.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "dimensions/09-claude-code-native-features.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "dimensions/10-statusline-research.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "dimensions/11-ecosystem-skills-plugins.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "dimensions/12-skill-selector.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "dimensions/16-knowledge-health.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "dimensions/20-anthropic-blog-findings.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "dimensions/22-testing.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "dimensions/26-git-branching-strategies.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "dimensions/28-startup-smb-management.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "dimensions/33-research-methodology.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "dimensions/34-venture-operating-system.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "dimensions/35-context-engineering-principles.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "dimensions/38-design-thinking.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "docs/archive/reflections/14-mastermind-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "reflections/08-diagnosis.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "reflections/14-mastermind-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "reflections/29-venture-management-reflection.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "reflections/31-assurance.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "reflections/32-lifecycle.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/archive/24-roadmap-corrections.md",
+      "to": "reflections/ARCHITECTURE.md",
       "type": "references",
       "computed": false
     },
@@ -11610,8 +11869,8 @@
     }
   ],
   "stats": {
-    "nodes": 381,
-    "edges": 1523,
+    "nodes": 382,
+    "edges": 1558,
     "typed_edges": 549,
     "orphans": 98
   }
