@@ -5,7 +5,7 @@ effort: low
 keywords: [status, context, recovery, orientation, compression, where-am-i]
 task_strategies: [investigation]
 stream_affinity: [roadmap, tech-debt]
-argument-hint: ""
+argument-hint: "[--tag <tag>] [--stream <stream>] [--kind <kind>] [--priority <p>]"
 group: core
 model: haiku
 allowed-tools:

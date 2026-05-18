@@ -3,6 +3,21 @@
 
 One command to answer: **Where am I? What was I doing? What's left? What's next?**
 
+## Filters (optional args)
+
+Sitrep accepts optional filter args after the skill name:
+
+| Arg | Example | Applies to |
+|-----|---------|-----------|
+| `--tag <tag>` | `sitrep --tag harness-engineering` | Source 3, Next action |
+| `--stream <stream>` | `sitrep --stream roadmap` | Source 3, Next action |
+| `--kind <kind>` | `sitrep --kind feature` | Source 3, Next action |
+| `--priority <p>` | `sitrep --priority P0` | Source 3, Next action |
+
+Multiple filters combine with AND. When any filter is active, show a **Filter:** line in the output header and scope all backlog queries to the filter. The session handoff (Source 4) and git state (Source 2) are never filtered.
+
+---
+
 ## When to use
 
 - After context compression (conversation truncated)
@@ -49,10 +64,12 @@ Extract:
 
 ### 3. Active backlog task
 
-Prefer MCP: `backlog_query(status: "in_progress")`. Fallback:
+Prefer MCP: `backlog_query(status: "in_progress", tag: <if provided>, stream: <if provided>, kind: <if provided>, priority: <if provided>)`. Fallback:
 ```bash
-brana backlog query --status in_progress
+brana backlog query --status in_progress [--tag <tag>] [--stream <stream>] [--kind <kind>] [--priority <p>]
 ```
+
+Apply any active filters to this query. If no in_progress tasks match the filter, also check for pending tasks matching the filter to surface what's next in that area.
 
 For each in_progress task, extract:
 - `id`, `subject`, `strategy`, `build_step`, `branch`
@@ -139,6 +156,7 @@ Present a structured snapshot — concise, actionable:
 **Branch:** {branch} ({task-id if extractable})
 **Uncommitted:** {N files / clean}
 **Worktrees:** {list or "none"}
+{if filter active: **Filter:** --tag <tag> | --stream <stream> | ...}
 {if any worktree on merged branch: ⚠ Worktree <path> is on a merged branch — run `git worktree remove <path>` to clean up.}
 
 **Active task:** {id} "{subject}" — strategy: {strategy}, build_step: {build_step}
@@ -162,7 +180,8 @@ Determine the single most important next action:
 2. **If build_step is set on active task:** "Continue {build_step} step of /brana:build for {task-id}."
 3. **If uncommitted changes exist:** "Commit or stash {N} uncommitted files before proceeding."
 4. **If no active task but session state has next[]:** "Pick up from previous session: {first next item}."
-5. **If nothing active:** "No active work. Run `backlog_focus()` (MCP) or `brana backlog next` to pick a task."
+5. **If filter active and pending tasks match filter:** "Next in {filter}: {task-id} '{subject}'. Run `/brana:backlog start {task-id}`."
+6. **If nothing active:** "No active work. Run `backlog_focus()` (MCP) or `brana backlog next` to pick a task."
 
 ---
 
