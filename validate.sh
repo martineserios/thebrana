@@ -1396,10 +1396,44 @@ KNOWLEDGE_STAGING_FILE="$MEMORY_DIR/knowledge-staging.md"
 
 if [ -f "$PATTERNS_FILE" ]; then
     PATTERN_COUNT=$(grep -c '^## ' "$PATTERNS_FILE" 2>/dev/null) || PATTERN_COUNT=0
-    if [ "$PATTERN_COUNT" -ge 40 ]; then
-        warn "Check 31a: patterns.md has $PATTERN_COUNT entries (warn at 40, cap at 50) — prune quarantine entries"
+    _P_WARN=40
+    _P_CAP=50
+    if [ "$PATTERN_COUNT" -ge "$_P_CAP" ]; then
+        # Auto-prune: remove oldest quarantine entries until count < cap
+        _pruned=0
+        _current="$PATTERN_COUNT"
+        while [ "$_current" -ge "$_P_CAP" ]; do
+            _oldest=$(awk '
+/^## /                  { if (slug!="" && conf=="quarantine") printf "%s|%s\n", date, slug
+                          slug=substr($0,4); date=""; conf="" }
+/^\*\*Confidence:\*\* / { conf=$NF }
+/^\*\*Added:\*\* /       { date=$NF }
+END                     { if (slug!="" && conf=="quarantine") printf "%s|%s\n", date, slug }
+' "$PATTERNS_FILE" | sort | head -1) || _oldest=""
+            if [ -z "$_oldest" ]; then
+                if [ "$_pruned" -gt 0 ]; then
+                    warn "Check 31a: patterns.md at cap ($_current/$_P_CAP) — pruned $_pruned quarantine entries but cap still hit; manual review required"
+                else
+                    warn "Check 31a: patterns.md at cap ($_current/$_P_CAP) — no quarantine entries to prune; manual review required"
+                fi
+                break
+            fi
+            _slug="${_oldest#*|}"
+            awk -v target="## $_slug" '
+BEGIN { skip=0 }
+/^## / { skip=($0==target) }
+!skip  { print }
+' "$PATTERNS_FILE" > "${PATTERNS_FILE}.tmp" && mv "${PATTERNS_FILE}.tmp" "$PATTERNS_FILE"
+            _pruned=$(( _pruned + 1 ))
+            _current=$(grep -c '^## ' "$PATTERNS_FILE" 2>/dev/null) || _current=0
+        done
+        if [ "$_current" -lt "$_P_CAP" ]; then
+            pass "Check 31a: patterns.md auto-pruned $_pruned quarantine entries → $_current/$_P_CAP"
+        fi
+    elif [ "$PATTERN_COUNT" -ge "$_P_WARN" ]; then
+        warn "Check 31a: patterns.md has $PATTERN_COUNT entries (warn at $_P_WARN, cap at $_P_CAP) — prune quarantine entries"
     else
-        pass "Check 31a: patterns.md entries: $PATTERN_COUNT/40 warn threshold"
+        pass "Check 31a: patterns.md entries: $PATTERN_COUNT/$_P_WARN warn threshold"
     fi
 else
     pass "Check 31a: patterns.md not found — skipping"
