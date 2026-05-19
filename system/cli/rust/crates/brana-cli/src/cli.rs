@@ -679,6 +679,12 @@ pub enum BacklogCmd {
         #[arg(long)]
         file: Option<PathBuf>,
     },
+    /// Set the active initiative in tasks-config.json
+    #[command(name = "set-active")]
+    SetActive {
+        /// Initiative slug (e.g. "cc-alignment", "notebooklm")
+        slug: String,
+    },
     /// Add a new task from JSON or shorthand flags
     Add {
         /// Task JSON (subject, type required; id auto-assigned). Use @filepath to read from file, - to read from stdin.

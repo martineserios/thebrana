@@ -63,13 +63,8 @@ fn main() {
             BacklogCmd::Diff => run_or_exit(commands::backlog::cmd_diff(&theme)),
             BacklogCmd::Burndown { period } => run_or_exit(commands::backlog::cmd_burndown(&period.to_possible_value().unwrap().get_name().to_string(), &theme)),
             BacklogCmd::Rollup { file, dry_run } => run_or_exit(commands::backlog::cmd_rollup(file, dry_run)),
-            BacklogCmd::Set { task_id, field, value, append, file } => {
-                if task_id == "active" {
-                    run_or_exit(commands::backlog::cmd_set_active(&field))
-                } else {
-                    run_or_exit(commands::backlog::cmd_set(&task_id, &field, &value, append, file))
-                }
-            },
+            BacklogCmd::Set { task_id, field, value, append, file } => run_or_exit(commands::backlog::cmd_set(&task_id, &field, &value, append, file)),
+            BacklogCmd::SetActive { slug } => run_or_exit(commands::backlog::cmd_set_active(&slug)),
             BacklogCmd::Add { json, subject, stream, kind, task_type, tags, description, effort, parent, priority, context, file, initiative, work_type } =>
                 run_or_exit(commands::backlog::cmd_add(json, subject, stream, kind, task_type, tags, description, effort, parent, priority, context, file, initiative, work_type)),
             BacklogCmd::Get { task_id, field } => run_or_exit(commands::backlog::cmd_get(&task_id, field)),
