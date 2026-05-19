@@ -60,9 +60,9 @@ while IFS= read -r file; do
     has_desc=false
     has_type=false
 
-    echo "$fm" | grep -q '^name:' && has_name=true
-    echo "$fm" | grep -q '^description:' && has_desc=true
-    echo "$fm" | grep -q '^type:' && has_type=true
+    if [[ "$fm" =~ (^|$'\n')name: ]];        then has_name=true; fi
+    if [[ "$fm" =~ (^|$'\n')description: ]]; then has_desc=true; fi
+    if [[ "$fm" =~ (^|$'\n')type: ]];        then has_type=true;  fi
 
     if ! $has_name || ! $has_desc || ! $has_type; then
         MISSING_FIELDS=$((MISSING_FIELDS + 1))
