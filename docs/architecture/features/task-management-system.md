@@ -136,3 +136,13 @@ Five idempotent scripts in `system/scripts/migrate/`:
 3. `remap-streams.py` — maps old stream values to new 3-value taxonomy
 4. `drop-deprecated-fields.py` — removes build_step/strategy/execution; infers work_type=ops from execution=manual
 5. `infer-work-type.py` — heuristically fills work_type from subject patterns and stream
+
+## Field Notes
+
+### 2026-05-19: filter_tasks() positional params — refactor before next schema field
+Adding `initiative` + `work_type` required updating ~10 call sites with `None, None`. The function now has 6 positional optional params. Any future schema field addition hits the same call-site tax. Refactor to `TaskFilter { stream, status, priority, types, initiative, work_type }` with `..Default::default()` before adding the 7th filter. See t-1529.
+Source: backlog-redesign session 2026-05-19
+
+### 2026-05-19: ValueEnum parity — update in same commit as core enum
+`TaskStream` collapsed 11→3 in `brana-core/src/tasks.rs` but the `#[derive(ValueEnum)]` in `brana-cli/src/cli.rs` still listed old values — silently rejecting `--stream dev` at parse time with no compile error. Rule: whenever a core Rust enum drives a CLI `ValueEnum`, find and update the derive in the same commit. Structural fix: derive `ValueEnum` directly on the core type and re-export it.
+Source: backlog-redesign session 2026-05-19

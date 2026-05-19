@@ -37086,7 +37086,7 @@
       "parent": "t-1502",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "stream": "dev",
       "subject": "Make save_tasks atomic (temp file + rename)",
       "tags": [
@@ -37095,7 +37095,9 @@
         "nextjs",
         "rust"
       ],
-      "type": "task"
+      "type": "task",
+      "strategy": "bug-fix",
+      "build_step": "reproduce"
     },
     {
       "blocked_by": [],
@@ -37686,6 +37688,94 @@
       ],
       "type": "task",
       "work_type": "implement"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "filter_tasks() now has 6 positional params. Adding initiative+work_type this session required ~10 call-site None,None updates. Next schema field will hit the same tax. Fix: TaskFilter { stream, status, priority, types, initiative, work_type } with ..Default::default(). Tracked from backlog-redesign session 2026-05-19.",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "M",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1529",
+      "initiative": "cc-alignment",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "dev",
+      "subject": "[cli] TaskFilter struct refactor — replace filter_tasks() positional args",
+      "tags": [
+        "rust",
+        "refactor",
+        "cli"
+      ],
+      "type": "task",
+      "work_type": "implement"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "Verify all brana backlog subcommands have --json flag. search was added this session. Others to check: show, list, tags, stats. Goal: every subcommand that emits structured data should have machine-readable JSON output. t-1335 standardized query/next/focus/search. Tracked from 2026-05-19 close.",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1530",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "dev",
+      "subject": "[cli] --json parity audit for brana backlog subcommands",
+      "tags": [
+        "cli",
+        "json",
+        "audit"
+      ],
+      "type": "task",
+      "work_type": "review"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "This session ran 5 idempotent Python scripts across 20 portfolio backlogs. No migration procedure doc exists yet. Draft: idempotency rule, script ordering, dry-run flag, rollback strategy, portfolio path listing. Pattern from 2026-05-19 backlog-redesign migration: extract-personal → null-to-p3 → remap-streams → drop-deprecated-fields → infer-work-type. Tracked from 2026-05-19 close.",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1531",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "ops",
+      "subject": "[docs] Write system/procedures/migrate.md — portfolio migration rules",
+      "tags": [
+        "docs",
+        "migration",
+        "procedure"
+      ],
+      "type": "task",
+      "work_type": "design"
     }
   ],
   "version": "1"
