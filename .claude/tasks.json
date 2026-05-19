@@ -41431,6 +41431,7 @@
       "priority": null,
       "started": "2026-05-19",
       "status": "completed",
+      "strategy": "feature",
       "stream": "tech-debt",
       "subject": "Harden build.md step 4a: 3-signal detection + SKILL.md keywords gate (replaces domain-mapping table)",
       "tags": [
@@ -41438,8 +41439,7 @@
         "follow-up",
         "build-procedure"
       ],
-      "type": "task",
-      "strategy": "feature"
+      "type": "task"
     },
     {
       "blocked_by": [],
@@ -41553,6 +41553,62 @@
         "build-procedure",
         "skill-gate",
         "docs"
+      ],
+      "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "Check 33 scans system/skills/acquired/ but test-validate-check33-skill-keywords.sh only creates a canary in system/skills/. Add a T4b that places the canary in system/skills/acquired/ to verify the scan path is actually exercised.",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1484",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "tech-debt",
+      "subject": "[validate] Check 33: add test coverage for acquired/ skill directory path",
+      "tags": [
+        "validate",
+        "skill-gate",
+        "test"
+      ],
+      "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "After CLOSE merge, detect which validate.sh checks correspond to the changed behavioral files (e.g., system/procedures/build.md → check 33 is about SKILL.md keywords which relates to build). Run those checks automatically as a post-merge guard. Prevents regressions from slipping through without validation.",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "M",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1485",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "roadmap",
+      "subject": "[skill] /brana:build CLOSE: auto-run validate.sh checks related to changed files after merge",
+      "tags": [
+        "build",
+        "validate",
+        "automation"
       ],
       "type": "task"
     }

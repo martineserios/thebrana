@@ -1,6 +1,6 @@
 # Build Skill Gate Hardening — Step 4a
 
-> Brainstormed 2026-05-19. Status: draft.
+> Brainstormed 2026-05-19. Status: implemented.
 
 ## Problem
 
