@@ -18,8 +18,9 @@
       "closed_at": "2026-04-06T21:00:00Z"
     },
     "client:thebrana:session:closed:2026-05-17": "{\"status\": \"closed\", \"summary\": \"feat t-1429: Check 29 reference docs drift detection in validate.sh\", \"next\": [\"Add shopt -s nullglob to validate.sh (t-1430)\", \"Doc drift: statusline-test-coverage.md + system-documentation-map.md may be stale\"], \"closed_at\": \"2026-05-17T19:30:00Z\"}",
-    "client:thebrana:session:closed:2026-05-18": "{\"status\":\"closed\",\"summary\":\"t-1450 auto-populate PATTERN_LEARNINGS + t-1451 validate.sh cap checks\",\"next\":[\"t-1452: integration test env var chain\",\"t-1453: auto-prune on cap hit\"],\"closed_at\":\"2026-05-18T20:32Z\"}"
+    "client:thebrana:session:closed:2026-05-18": "{\"status\": \"closed\", \"summary\": \"Check 32 cleanup (t-1459) + patterns-export secret sanitization fix\", \"next\": [\"t-1460: extend sanitize_export_json\", \"prune testing-validation.md field notes\"], \"closed_at\": \"2026-05-18T20:00:00Z\"}",
+    "client:thebrana:session:closed:2026-05-19": "{\"status\": \"closed\", \"summary\": \"brainstorm: session continuity — patched 4 close/sitrep pipeline leakage points; t-1461/t-1462 backlogged\", \"next\": [\"Commit close.md field notes + dirty files\", \"Implement t-1461: session write merge semantics\", \"Implement t-1462: cross-project daily view\"], \"closed_at\": \"2026-05-19T12:35:00Z\"}"
   },
   "createdAt": "2026-04-06T20:37:18.323Z",
-  "updatedAt": "2026-05-18T20:32:05.538Z"
+  "updatedAt": "2026-05-19T12:38:38.890Z"
 }

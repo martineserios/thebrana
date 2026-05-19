@@ -993,6 +993,14 @@ This ensures sitrep surfaces all follow-ups from the close report at the start o
 Step 5b documents the sentinel (`touch /tmp/brana-close-active`) for feedback_*.md writes, but Step 11 memory-review writes hit the same gate without a wrapper. Every close that writes memory files in Step 11 stalls the agent loop. Sentinel touch/rm must wrap Step 11 memory writes too.
 Source: close session 2026-05-06 / feedback-gate sentinel gap
 
+### 2026-05-19: Procedure decision points must never silently drop items
+Any branch in a procedure that lets the user "skip" an action must still write a lower-priority `next[]` entry. "Skip" means "don't act now" — not "forget this forever." Four leakage points were found in close.md (Steps 3b, 4, 8, 12) where items were silently dropped. Rule: every decision branch preserves context in `next[]`; only the priority/category changes.
+Source: close session 2026-05-19 / brainstorm session-continuity
+
+### 2026-05-19: brana session write is replace-not-merge — same-day parallel close loses data [→ t-1461]
+`brana session write` always replaces `session-state.json` unconditionally. When two sessions close on the same project the same day, the second write erases the first's `accomplished`/`next`/`learnings`. The archive (`session-history.jsonl`) captures both, but nothing reads it for continuity. Fix: merge mode when `written_at` is today, replace mode for new days (t-1461).
+Source: close session 2026-05-19 / brainstorm session-continuity
+
 ---
 
 ## Resume After Compression
