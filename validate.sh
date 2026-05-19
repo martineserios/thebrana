@@ -1518,6 +1518,37 @@ fi
 echo ""
 fi  # should_run 32
 
+if should_run 33; then
+# Check 33 — SKILL.md keywords field required for code-strategy skills (t-1482)
+# Step 4a tech-detection gate uses the keywords field to match installed skills to
+# detected tech context. Any SKILL.md whose task_strategies includes a code-work
+# strategy (feature, refactor, bug-fix, tech-debt) must declare a non-empty keywords
+# list, or the gate silently bypasses the skill match.
+echo "Checking SKILL.md keywords field for code-strategy skills..."
+MISSING_KW_COUNT=0
+for skill_dir in "$SYSTEM_DIR"/skills/*/ "$SYSTEM_DIR"/skills/acquired/*/; do
+    skill_file="$skill_dir/SKILL.md"
+    [ -f "$skill_file" ] || continue
+    strategies_line=$(grep -E '^task_strategies:' "$skill_file" 2>/dev/null || true)
+    [ -z "$strategies_line" ] && continue
+    if [[ "$strategies_line" != *feature* ]] && [[ "$strategies_line" != *refactor* ]] && \
+       [[ "$strategies_line" != *bug-fix* ]] && [[ "$strategies_line" != *tech-debt* ]]; then
+        continue
+    fi
+    kw_line=$(grep -E '^keywords:' "$skill_file" 2>/dev/null || true)
+    if [ -z "$kw_line" ] || [[ "$kw_line" =~ ^keywords:[[:space:]]*\[[[:space:]]*\] ]]; then
+        echo "  missing keywords: $(basename "$skill_dir")"
+        (( MISSING_KW_COUNT++ )) || true
+    fi
+done
+if [ "$MISSING_KW_COUNT" -gt 0 ]; then
+    fail "Check 33: $MISSING_KW_COUNT code-strategy SKILL.md file(s) missing keywords field — breaks step 4a tech-detection gate (t-1482)"
+else
+    pass "Check 33: all code-strategy SKILL.md files have keywords field"
+fi
+echo ""
+fi  # should_run 33
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
