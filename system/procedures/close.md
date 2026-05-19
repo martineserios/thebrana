@@ -112,7 +112,25 @@ Detect behavioral changes that lack corresponding documentation updates.
 
    Walk the changed file list and tag each matching file as `behavioral` or `documentation`. Files matching neither are ignored.
 
-3. **If behavioral files changed but NO documentation files changed**, prompt:
+3. **Hook script additions check (t-1490):** If any `system/hooks/*.sh` files appear in the changed file list AND `docs/architecture/hooks.md` is NOT in the changed file list, warn — even if other docs were updated:
+
+   ```bash
+   HOOK_SCRIPTS=$(git diff --name-only HEAD~10..HEAD 2>/dev/null | grep '^system/hooks/.*\.sh$')
+   HOOKS_MD_UPDATED=$(git diff --name-only HEAD~10..HEAD 2>/dev/null | grep -c 'docs/architecture/hooks\.md')
+   ```
+
+   If `HOOK_SCRIPTS` is non-empty AND `HOOKS_MD_UPDATED` is 0:
+   ```
+   ⚠ Hook script(s) added/modified without updating docs/architecture/hooks.md:
+   {list of hook .sh files}
+   Fix: update the inventory table and gate classification in docs/architecture/hooks.md.
+   ```
+   Add to `next[]` regardless of user choice:
+   ```json
+   {"text": "hooks.md update needed for: {hook scripts}", "task_id": null, "category": "maintenance"}
+   ```
+
+4. **If behavioral files changed but NO documentation files changed**, prompt:
 
    Build a mapping of each behavioral file to its most likely doc target. Use these heuristics:
    - `system/skills/{name}/SKILL.md` → `docs/architecture/skills.md`
@@ -152,11 +170,11 @@ Detect behavioral changes that lack corresponding documentation updates.
    ```json
    {"text": "Doc update skipped at close: {behavioral file} → {doc target}", "task_id": null, "category": "maintenance"}
    ```
-   Then continue to Step 4.
+   Then continue to Step 5.
 
-4. **If both behavioral AND documentation files changed**, or no behavioral files changed, skip silently.
+5. **If both behavioral AND documentation files changed**, or no behavioral files changed, skip silently.
 
-5. **Track metrics** for session state (Step 9):
+6. **Track metrics** for session state (Step 9):
    - `behavioral_files_changed`: count of behavioral files in the diff
    - `doc_files_changed`: count of documentation files in the diff
    - `doc_prompts_accepted`: 1 if "Draft now", 0 otherwise

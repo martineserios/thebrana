@@ -3,12 +3,21 @@
 #
 # Enforcement complement to the build.md step 4a advisory gate (t-1479).
 # Procedure text alone fails — this hook closes the gap.
-# Ref: feedback_layer1-hook-enforcement, CLAUDE.md field note 2026-05-19
+#
+# EXTENSIBILITY — instance #1 of the skill-gate pattern. To guard a new skill/filetype:
+#   1. Copy this file; update the file-extension filter in Step 3 and the hint in Step 7
+#   2. Register the new skill sentinel in skill-sentinel.sh Step 3 case block
+#   3. Wire both hooks in system/hooks/hooks.json
+#   4. Update inventory + gate classification in docs/architecture/hooks.md (same commit)
+#
+# SUNSET: t-608 (Skill Registry) — skill gates declared in SKILL.md metadata;
+#   this file becomes a generic guard wrapper.
 #
 # Sentinel: /tmp/brana-rust-skills-loaded-{SESSION_ID}
 #   Written by skill-sentinel.sh when Skill(brana:rust-skills) completes.
 # Bypass: /tmp/brana-rust-skills-guard-bypass (procedure-authorized override)
 #
+# Ref: feedback_layer1-hook-enforcement, CLAUDE.md field note 2026-05-19
 # Run: cat payload.json | bash rust-skills-guard.sh
 
 # No strict mode — hooks must always return valid JSON.
