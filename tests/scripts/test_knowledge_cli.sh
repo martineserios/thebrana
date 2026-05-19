@@ -23,7 +23,7 @@ assert() {
 assert_contains() {
     local desc="$1" needle="$2" haystack="$3"
     TOTAL=$((TOTAL + 1))
-    if echo "$haystack" | grep -qF -- "$needle"; then
+    if [[ "$haystack" == *"$needle"* ]]; then
         echo "  PASS: $desc"
         PASS=$((PASS + 1))
     else
@@ -52,7 +52,7 @@ assert_contains "reindex help mentions files" "file" "$REINDEX_HELP"
 echo "Test 3: knowledge status"
 STATUS_OUT=$($BRANA knowledge status 2>&1 || true)
 # Should mention knowledge entries or memory.db
-assert "status exits without crash" "true" "$(echo "$STATUS_OUT" | grep -qiE 'knowledge|entries|memory|not found' && echo true || echo false)"
+assert "status exits without crash" "true" "$(grep -qiE 'knowledge|entries|memory|not found' <<< "$STATUS_OUT" && echo true || echo false)"
 
 # ── Test 4: `brana knowledge reindex` with a specific file ──
 echo "Test 4: reindex specific file (dry check)"
@@ -71,7 +71,7 @@ MARKDOWN
 # Just check it invokes the pipeline (it will call index-knowledge.sh)
 REINDEX_OUT=$($BRANA knowledge reindex "$TMPDIR/test-doc.md" 2>&1 || true)
 # Should at least mention parsing or the file, not crash
-assert "reindex specific file runs" "true" "$(echo "$REINDEX_OUT" | grep -qiE 'index|pars|section|knowledge|error' && echo true || echo false)"
+assert "reindex specific file runs" "true" "$(grep -qiE 'index|pars|section|knowledge|error' <<< "$REINDEX_OUT" && echo true || echo false)"
 
 echo ""
 echo "=== Results: $PASS/$TOTAL passed, $FAIL failed ==="

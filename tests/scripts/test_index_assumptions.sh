@@ -65,7 +65,7 @@ else
 fi
 
 # Test: script is executable and shows help without ruflo
-if "$SCRIPT_DIR/index-assumptions.sh" "$TMPDIR/ADR-TEST-sample.md" 2>&1 | grep -q "ruflo not found"; then
+if grep -q "ruflo not found" < <("$SCRIPT_DIR/index-assumptions.sh" "$TMPDIR/ADR-TEST-sample.md" 2>&1); then
     echo "PASS: Script exits cleanly when ruflo unavailable"
 else
     echo "PASS: Script ran (ruflo available on this machine)"

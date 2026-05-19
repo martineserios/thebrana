@@ -32,7 +32,7 @@ assert_outcome() {
 
 assert_contains() {
     local label="$1" haystack="$2" needle="$3"
-    if echo "$haystack" | grep -qF "$needle"; then
+    if [[ "$haystack" == *"$needle"* ]]; then
         PASS=$((PASS + 1))
         echo "  PASS: $label"
     else
@@ -164,7 +164,7 @@ assert_contains "next items multi-line" "$HO_NEXT" "Do thing C"
 
 HO_BLOCKERS=$(echo "$HANDOFF_RAW" | sed -n '/^\*\*Blockers:\*\*/,/^\*\*[A-Z]/p' | grep -v '^\*\*' | head -3) || true
 # "None" blockers should be filtered
-if echo "$HO_BLOCKERS" | grep -qi "^none$"; then
+if grep -qi "^none$" <<< "$HO_BLOCKERS"; then
     PASS=$((PASS + 1))
     echo "  PASS: 'None' blockers detected for suppression"
 else

@@ -21,7 +21,7 @@ TOTAL=0
 assert_contains() {
     local desc="$1" needle="$2" haystack="$3"
     (( TOTAL++ )) || true
-    if echo "$haystack" | grep -qE "$needle"; then
+    if [[ "$haystack" =~ $needle ]]; then
         echo "  PASS: $desc"
         (( PASS++ )) || true
     else
@@ -35,7 +35,7 @@ assert_contains() {
 assert_not_contains() {
     local desc="$1" needle="$2" haystack="$3"
     (( TOTAL++ )) || true
-    if ! echo "$haystack" | grep -qE "$needle"; then
+    if ! [[ "$haystack" =~ $needle ]]; then
         echo "  PASS: $desc"
         (( PASS++ )) || true
     else

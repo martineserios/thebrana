@@ -56,7 +56,7 @@ assert_output_contains() {
     TOTAL=$((TOTAL + 1))
     local out
     out=$("$@" 2>/dev/null) || out=""
-    if echo "$out" | grep -q "$needle"; then
+    if [[ "$out" == *"$needle"* ]]; then
         echo "  PASS: $desc"
         PASS=$((PASS + 1))
     else

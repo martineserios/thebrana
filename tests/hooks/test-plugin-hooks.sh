@@ -65,7 +65,7 @@ while IFS= read -r cmd; do
     [ -z "$cmd" ] && continue
 
     # Test 3a: Uses ${CLAUDE_PLUGIN_ROOT}
-    if echo "$cmd" | grep -q '${CLAUDE_PLUGIN_ROOT}'; then
+    if [[ "$cmd" == *'${CLAUDE_PLUGIN_ROOT}'* ]]; then
         pass "$cmd uses \${CLAUDE_PLUGIN_ROOT}"
     else
         fail "$cmd does NOT use \${CLAUDE_PLUGIN_ROOT} — will fail at runtime"

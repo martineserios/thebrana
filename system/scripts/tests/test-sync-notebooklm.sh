@@ -42,7 +42,7 @@ assert_contains() {
     TOTAL=$((TOTAL + 1))
     local output
     output=$("$@" 2>/dev/null)
-    if echo "$output" | grep -qi "$pattern"; then
+    if grep -qi "$pattern" <<< "$output"; then
         echo "  PASS: $desc"
         PASS=$((PASS + 1))
     else
@@ -169,7 +169,7 @@ OUT1D="$TMPDIR_TEST/out1d"
 REMOVED_OUTPUT=$(run_sync "$DIMS1" "$STATE1" "$OUT1D" 2>/dev/null)
 
 TOTAL=$((TOTAL + 1))
-if echo "$REMOVED_OUTPUT" | grep -qi "delete\|remov\|02-beta"; then
+if grep -qi "delete\|remov\|02-beta" <<< "$REMOVED_OUTPUT"; then
     echo "  PASS: Removed doc 02-beta.md flagged in output"
     PASS=$((PASS + 1))
 else
@@ -200,7 +200,7 @@ make_dims "$DIMS2" "10-gamma" "11-delta"
 SUMMARY=$(run_sync "$DIMS2" "$STATE2" "$OUT2" 2>/dev/null)
 
 TOTAL=$((TOTAL + 1))
-if echo "$SUMMARY" | grep -qiE "add|new|upload"; then
+if grep -qiE "add|new|upload" <<< "$SUMMARY"; then
     echo "  PASS: Summary mentions new/upload action"
     PASS=$((PASS + 1))
 else

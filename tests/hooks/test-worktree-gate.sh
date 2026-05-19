@@ -50,7 +50,7 @@ assert_reason_contains() {
     local result reason
     result=$(echo "$input" | bash "$HOOK" 2>/dev/null) || true
     reason=$(echo "$result" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty' 2>/dev/null)
-    if echo "$reason" | grep -qi "$pattern"; then
+    if grep -qi "$pattern" <<< "$reason"; then
         PASS=$((PASS + 1))
         echo "  PASS: $desc"
     else
@@ -203,10 +203,11 @@ echo "=== 10. Non-behavioral dirty files (tasks.json only): warn not deny ==="
 assert_warn() {
     local desc="$1" input="$2" pattern="$3"
     TOTAL=$((TOTAL + 1))
-    local result
+    local result ctx
     result=$(echo "$input" | bash "$HOOK" 2>/dev/null) || true
+    ctx=$(echo "$result" | jq -r '.additionalContext // empty' 2>/dev/null)
     if echo "$result" | jq -e '.continue == true' >/dev/null 2>&1 && \
-       echo "$result" | jq -r '.additionalContext // empty' 2>/dev/null | grep -qi "$pattern"; then
+       grep -qi "$pattern" <<< "$ctx"; then
         PASS=$((PASS + 1))
         echo "  PASS: $desc"
     else

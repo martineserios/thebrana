@@ -29,7 +29,7 @@ assert() {
 assert_contains() {
     local desc="$1" needle="$2" haystack="$3"
     TOTAL=$((TOTAL + 1))
-    if echo "$haystack" | grep -qF "$needle"; then
+    if [[ "$haystack" == *"$needle"* ]]; then
         echo "  PASS: $desc"
         PASS=$((PASS + 1))
     else
@@ -184,7 +184,7 @@ assert "value truncated to ≤2000 chars" "true" "$([ "$VALUE_LEN" -le 2000 ] &&
 echo "Test 7: bulk-index.mjs accepts JSONL path arg"
 BULK_SCRIPT="$REPO_ROOT/system/scripts/bulk-index.mjs"
 assert "bulk-index.mjs exists" "true" "$([ -f "$BULK_SCRIPT" ] && echo true || echo false)"
-assert "bulk-index.mjs is executable or has node shebang" "true" "$(head -1 "$BULK_SCRIPT" | grep -q 'node' && echo true || echo false)"
+assert "bulk-index.mjs is executable or has node shebang" "true" "$([[ "$(head -1 "$BULK_SCRIPT")" == *"node"* ]] && echo true || echo false)"
 
 # ── Test 8: Empty file produces no JSONL ──
 echo "Test 8: Empty/no-section file"
