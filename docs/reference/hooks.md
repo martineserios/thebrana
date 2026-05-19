@@ -8,6 +8,7 @@
 |-------|---------|--------|--------|
 | ConfigChange | `` | `config-change-guard.sh` | 3000ms |
 | PostToolUse | `` | `post-tool-use.sh` | 5000ms |
+| PostToolUse | `Skill` | `skill-sentinel.sh` | 2000ms |
 | PostToolUse | `ExitPlanMode` | `post-plan-challenge.sh` | 5000ms |
 | PostToolUse | `Bash` | `post-pr-review.sh` | 5000ms |
 | PostToolUse | `Bash` | `task-completed.sh` | 5000ms |
@@ -28,6 +29,7 @@
 | PreToolUse | `Bash` | `no-attribution-commit.sh` | 3000ms |
 | PreToolUse | `Bash` | `commit-msg-verify.sh` | 3000ms |
 | PreToolUse | `Read|Grep|Glob` | `guard-explore.sh` | 5000ms |
+| PreToolUse | `Write|Edit` | `rust-skills-guard.sh` | 3000ms |
 | SessionEnd | `` | `session-end.sh` | 10000ms |
 | SessionStart | `` | `session-start.sh` | 10000ms |
 | SessionStart | `` | `cc-changelog-check.sh` | — |
@@ -174,6 +176,12 @@ preflight-model.sh — UserPromptSubmit hook (advisory, non-blocking)
 
 **Gate:** Advisory
 
+### `rust-skills-guard.sh`
+
+PreToolUse: block *.rs writes until brana:rust-skills is loaded this session (t-1480).
+
+**Gate:** Advisory
+
 ### `session-end-drift.sh`
 
 session-end-drift.sh — Post-session system sync and cleanup.
@@ -207,6 +215,12 @@ No strict mode — hooks must always return valid JSON.
 ### `signal-capture.sh`
 
 No strict mode — hooks must never fail and block the session.
+
+**Gate:** Advisory
+
+### `skill-sentinel.sh`
+
+PostToolUse: write skill-loaded sentinels when known gated skills complete (t-1480).
 
 **Gate:** Advisory
 
@@ -269,6 +283,11 @@ Blocking hooks that support `/tmp/brana-*` sentinel file bypasses for procedure-
 | `post-tool-use.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | Default test_fail to 0 when pass count was parsed (all-pass case) |
 | `post-tool-use.sh` | `/tmp/brana-cascade/${SESSION_ID}-${PATH_HASH}` | If a previously-cascading file succeeds, remove the flag to stop warning fatigue. |
 | `pre-tool-use.sh` | `/tmp/brana-cascade/${SESSION_ID}-${PATH_HASH}` | If post-tool-use-failure.sh flagged this file as cascading, inject a nudge (not a deny). |
+| `rust-skills-guard.sh` | `/tmp/brana-rust-skills-loaded-{SESSION_ID}` | Ref: feedback_layer1-hook-enforcement, CLAUDE.md field note 2026-05-19 |
+| `rust-skills-guard.sh` | `/tmp/brana-rust-skills-guard-bypass` | Written by skill-sentinel.sh when Skill(brana:rust-skills) completes. |
+| `rust-skills-guard.sh` | `/tmp/brana-rust-skills-guard-bypass` | Step 5: Check bypass sentinel (procedure-authorized override) |
+| `rust-skills-guard.sh` | `/tmp/brana-rust-skills-loaded-${SESSION_ID}` | Step 6: Check skill-loaded sentinel (session-scoped) |
+| `rust-skills-guard.sh` | `/tmp/brana-rust-skills-guard-bypass` | Step 7: Block — rust-skills not loaded |
 | `session-end-metrics.sh` | `/tmp/brana-metrics-filtered-XXXXXX.jsonl` | Events from a different repo are excluded. |
 | `session-end.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | Respond immediately — all processing in background |
 | `session-end.sh` | `/tmp/brana-metrics-XXXXXX.env` | ── Phase 1: Compute metrics ────────────────────────────── |
@@ -280,6 +299,8 @@ Blocking hooks that support `/tmp/brana-*` sentinel file bypasses for procedure-
 | `session-start.sh` | `/tmp/brana-bootstrap-pending-restart` | ── Bootstrap restart sentinel ─────────────────────────── |
 | `session-start.sh` | `/tmp/brana-context-${SESSION_ID}.md` | ── Write context readback file (survives context compression) ── |
 | `session-start.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | ══════════════════════════════════════════════════════════ |
+| `skill-sentinel.sh` | `/tmp/brana-rust-skills-loaded-{SESSION_ID}` | Currently gated skills: |
+| `skill-sentinel.sh` | `/tmp/brana-rust-skills-loaded-${SESSION_ID}` | Add entries here when new guard hooks are introduced. |
 | `step-completed.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | ── Log step completion to session file ────────────────── |
 | `subagent-tracker.sh` | `/tmp/brana-session-*.jsonl` | Brana SubagentStart/SubagentStop hook — track agent spawns and completions. |
 | `subagent-tracker.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | Determine event type from hook_event_name |

@@ -146,6 +146,19 @@
             ]
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 3000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/rust-skills-guard.sh"
+            ]
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -158,6 +171,19 @@
             "args": [
               "bash",
               "${CLAUDE_PLUGIN_ROOT}/hooks/post-tool-use.sh"
+            ]
+          }
+        ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 2000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/skill-sentinel.sh"
             ]
           }
         ]
