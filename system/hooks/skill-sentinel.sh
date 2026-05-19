@@ -4,8 +4,15 @@
 # Currently gated skills:
 #   brana:rust-skills → /tmp/brana-rust-skills-loaded-{SESSION_ID}
 #
-# Add entries to GATED_SKILLS map below when new skill gates are introduced.
-# Pair with a corresponding PreToolUse guard hook.
+# EXTENSIBILITY — to gate a new skill:
+#   1. Add a case entry in Step 3 below: skill_name → /tmp/brana-{slug}-loaded-{SESSION_ID}
+#   2. Create a companion PreToolUse guard hook (use rust-skills-guard.sh as template)
+#   3. Wire both in system/hooks/hooks.json
+#   4. Update inventory + gate classification in docs/architecture/hooks.md (same commit)
+#
+# SUNSET: t-608 (Skill Registry) — each skill will declare its sentinel in SKILL.md
+#   metadata; this case block becomes a thin registry-dispatch wrapper.
+#
 # Ref: feedback_layer1-hook-enforcement, CLAUDE.md field note 2026-05-19
 
 # No strict mode — hooks must always return valid JSON.
