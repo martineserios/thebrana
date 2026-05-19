@@ -537,3 +537,7 @@ Source: t-1456, session 2026-05-18
 ### 2026-05-18: Background bash tests can silently mask the TDD red phase
 When a test run is backgrounded, the implementation can land before the "red" output is read. Tests pass but the red→green transition is never witnessed. A typo'd assertion or wrong helper path in the new test would still appear green. For TDD's red phase: run tests in foreground, or read the output file explicitly before starting implementation. Reserve background for slow integration suites that don't need the red confirmation.
 Source: t-1455/t-1456, session 2026-05-18
+
+### 2026-05-18: Export sanitizer scope must be a superset of the pre-commit scanner scope
+`sanitize_export_json()` in `sync-state.sh` was introduced (t-1458) to cover `ya29.*` gcloud OAuth tokens. The pre-commit secret scanner (Check 5 in `.git/hooks/pre-commit`) catches a broader class: `(API_KEY|SECRET|PASSWORD|TOKEN|PRIVATE_KEY)\s*=`. Any pattern stored with a KAPSO_API_KEY or similar assignment in its `content` field lands in `patterns-export.json`, passes the ya29-only sanitizer, and then blocks the state commit. Fix (t-1460): extend the sanitizer regex to match Check 5's full pattern list; add a round-trip test asserting each scanner pattern is redacted before write. Rule: before merging any sanitizer, grep the gate detector for its full pattern list and mirror it.
+Source: close 2026-05-18
