@@ -469,19 +469,35 @@ pub fn perform_rollup(path: &Path, dry_run: bool) -> Result<Vec<String>, String>
     }
     val["last_modified"] = Value::String(now);
 
-    std::fs::write(
-        path,
-        serde_json::to_string_pretty(&val).unwrap() + "\n",
-    )
-    .map_err(|e| format!("write failed: {e}"))?;
+    save_tasks(path, &val).map_err(|e| format!("rollup write failed: {e}"))?;
 
     Ok(candidates)
 }
 
-/// Save a TasksFile back to disk (pretty-printed).
+/// Write `content` to `path` atomically via a PID-scoped temp file + rename.
+///
+/// The temp file is placed in the same directory as `path` so the rename
+/// stays on the same filesystem (required for POSIX atomic replace).
+/// PID scoping prevents concurrent processes from clobbering each other's
+/// temp file before the rename completes.
+fn write_atomic(path: &Path, content: &str) -> Result<(), String> {
+    let dir = path.parent().ok_or("path has no parent directory")?;
+    let file_name = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("tasks");
+    let tmp = dir.join(format!("{}.{}.tmp", file_name, std::process::id()));
+    std::fs::write(&tmp, content).map_err(|e| format!("write tmp failed: {e}"))?;
+    std::fs::rename(&tmp, path).map_err(|e| {
+        let _ = std::fs::remove_file(&tmp);
+        format!("atomic rename failed: {e}")
+    })
+}
+
+/// Save a TasksFile back to disk (pretty-printed, atomic).
 pub fn save_tasks(path: &Path, val: &Value) -> Result<(), String> {
-    std::fs::write(path, serde_json::to_string_pretty(val).unwrap() + "\n")
-        .map_err(|e| format!("write failed: {e}"))
+    let content = serde_json::to_string_pretty(val).map_err(|e| format!("serialize failed: {e}"))?;
+    write_atomic(path, &(content + "\n"))
 }
 
 /// Load tasks as raw serde_json::Value (preserves all fields for mutation).
@@ -2313,5 +2329,55 @@ mod tests {
         assert_eq!(stale.len(), 2);
         assert_eq!(stale[0]["id"], "t-2"); // oldest first
         assert_eq!(stale[1]["id"], "t-1");
+    }
+
+    // ── write_atomic ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_write_atomic_creates_file() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = dir.path().join("tasks.json");
+        write_atomic(&path, "{\"tasks\":[]}").unwrap();
+        assert!(path.exists());
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "{\"tasks\":[]}");
+    }
+
+    #[test]
+    fn test_write_atomic_no_tmp_remains() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = dir.path().join("tasks.json");
+        write_atomic(&path, "{}").unwrap();
+        let tmp_files: Vec<_> = std::fs::read_dir(dir.path())
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_name().to_string_lossy().ends_with(".tmp"))
+            .collect();
+        assert!(tmp_files.is_empty(), "tmp files left behind: {:?}", tmp_files);
+    }
+
+    #[test]
+    fn test_write_atomic_replaces_existing() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = dir.path().join("tasks.json");
+        std::fs::write(&path, "old content").unwrap();
+        write_atomic(&path, "new content").unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "new content");
+    }
+
+    #[test]
+    fn test_save_tasks_uses_atomic_write() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = dir.path().join("tasks.json");
+        let val = serde_json::json!({"version": "1", "tasks": []});
+        save_tasks(&path, &val).unwrap();
+        let on_disk: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(on_disk["tasks"], serde_json::json!([]));
+        let tmp_files: Vec<_> = std::fs::read_dir(dir.path())
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_name().to_string_lossy().ends_with(".tmp"))
+            .collect();
+        assert!(tmp_files.is_empty(), "save_tasks left tmp files: {:?}", tmp_files);
     }
 }
