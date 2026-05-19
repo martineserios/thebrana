@@ -303,6 +303,35 @@ else
     pass "import with file — skipped (no export file in state/)"
 fi
 
+# --- Test 16: sanitize_export_json redacts gcloud OAuth tokens ---
+echo ""
+echo "sanitize_export_json (t-1458):"
+TOXIC="/tmp/test-toxic-$$.json"
+CLEAN="/tmp/test-clean-$$.json"
+cat > "$TOXIC" <<'JSON'
+{"exported_at":"2026-01-01T00:00:00Z","namespaces":{"session":[{"key":"s","content":"curl -H 'Bearer ya29.a0AVvZVsojABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz' https://storage.googleapis.com/bucket"}]}}
+JSON
+cp "$TOXIC" "$CLEAN"
+
+# Source sync-state.sh to access its functions (BASH_SOURCE guard must be in place)
+fn_type=$(bash -c "source '$SYNC_SCRIPT' 2>/dev/null; type -t sanitize_export_json" 2>/dev/null) || true
+if [[ "$fn_type" == "function" ]]; then
+    bash -c "source '$SYNC_SCRIPT' 2>/dev/null; sanitize_export_json '$CLEAN'"
+    if grep -q "ya29\." "$CLEAN"; then
+        fail "ya29.* token not redacted in sanitized export"
+    else
+        pass "ya29.* gcloud token redacted by sanitize_export_json"
+    fi
+    if grep -q "<token>" "$CLEAN"; then
+        pass "placeholder <token> present after sanitization"
+    else
+        fail "no <token> placeholder after sanitization"
+    fi
+else
+    fail "sanitize_export_json function not found in sync-state.sh (t-1458 not implemented)"
+fi
+rm -f "$TOXIC" "$CLEAN"
+
 # --- Summary ---
 echo ""
 echo "=== $PASS passed, $FAIL failed ==="

@@ -349,6 +349,7 @@ cmd_export() {
     rm -rf "$ns_dir"
 
     if [ -f "$tmp_file" ]; then
+        sanitize_export_json "$tmp_file"
         local total=0
         for ns in "${NAMESPACES[@]}"; do
             local c
@@ -476,8 +477,28 @@ auto_commit_state() {
     fi
 }
 
+# ── Sanitize ──────────────────────────────────────────────
+
+# Strip token strings from a patterns-export JSON file in-place.
+# Targets gcloud OAuth 2.0 access tokens (ya29.*) and similar 40+ char
+# opaque strings embedded in URLs that trip secret-detection checks.
+sanitize_export_json() {
+    local file="$1"
+    [ -f "$file" ] || return 0
+    local tmp="${file}.sanitized.$$"
+    if jq 'walk(if type == "string" then
+        gsub("ya29\\.[A-Za-z0-9._-]+"; "<token>")
+      else . end)' "$file" > "$tmp" 2>/dev/null; then
+        mv "$tmp" "$file"
+    else
+        rm -f "$tmp"
+        log "warn: export sanitization failed — file may contain token strings"
+    fi
+}
+
 # ── Main ───────────────────────────────────────────────────
 
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 case "${1:-help}" in
     push)    shift; cmd_push "$@" ;;
     pull)    shift; cmd_pull "$@" ;;
@@ -498,3 +519,4 @@ case "${1:-help}" in
         exit 1
         ;;
 esac
+fi
