@@ -91,6 +91,34 @@ echo ""
 echo "T6: --check with no argument → exits nonzero"
 assert_exits_nonzero "T6: missing --check arg exits nonzero" bash "$VALIDATE" --check
 
+# ── T7: --check N skips Checks A-D ──────────────────────────────────────────
+echo ""
+echo "T7: --check 32 → Checks A-D absent"
+OUT7=$(bash "$VALIDATE" --check 32 2>&1) || true
+assert_not_contains "T7: Check A absent with --check 32" "Check A:" "$OUT7"
+assert_not_contains "T7: Check B absent with --check 32" "Check B:" "$OUT7"
+assert_not_contains "T7: Check C absent with --check 32" "Check C:" "$OUT7"
+assert_not_contains "T7: Check D absent with --check 32" "Check D:" "$OUT7"
+
+echo ""
+echo "T8: --check 31 → Checks A-D absent"
+OUT8=$(bash "$VALIDATE" --check 31 2>&1) || true
+assert_not_contains "T8: Check A absent with --check 31" "Check A:" "$OUT8"
+assert_not_contains "T8: Check B absent with --check 31" "Check B:" "$OUT8"
+
+# ── T9: --semantic → Checks A-D present ─────────────────────────────────────
+echo ""
+echo "T9: --semantic → Checks A-D present"
+OUT9=$(bash "$VALIDATE" --semantic 2>&1) || true
+assert_contains "T9: Check A present with --semantic" "Check A:" "$OUT9"
+assert_contains "T9: Check B present with --semantic" "Check B:" "$OUT9"
+
+# ── T10: full run → Checks A-D present ──────────────────────────────────────
+echo ""
+echo "T10: full run → Checks A-D present"
+assert_contains "T10: Check A present in full run" "Check A:" "$OUT5"
+assert_contains "T10: Check B present in full run" "Check B:" "$OUT5"
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 echo ""
 echo "Results: $PASS passed, $FAIL failed (of $TOTAL total)"
