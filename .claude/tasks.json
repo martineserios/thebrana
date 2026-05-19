@@ -37073,7 +37073,8 @@
     },
     {
       "blocked_by": [],
-      "branch": null,
+      "branch": "fix/t-1507-save-tasks-atomic",
+      "build_step": null,
       "completed": null,
       "context": "PREREQUISITE for all web layer development. tasks.rs:472 uses bare fs::write — no temp file, no rename, no advisory lock. Three concurrent writers (CC terminal + brana CLI + web UI) on 1488-task JSON = data loss risk. Fix: write to tmp path, fsync, atomic rename. Must land before MS2 development begins — corruption window is open during active development, not just after HTTP writes. See challenger round 3 finding.",
       "created": "2026-05-19",
@@ -37086,7 +37087,8 @@
       "parent": "t-1502",
       "priority": "P3",
       "started": null,
-      "status": "in_progress",
+      "status": "completed",
+      "strategy": "bug-fix",
       "stream": "dev",
       "subject": "Make save_tasks atomic (temp file + rename)",
       "tags": [
@@ -37095,9 +37097,7 @@
         "nextjs",
         "rust"
       ],
-      "type": "task",
-      "strategy": "bug-fix",
-      "build_step": "reproduce"
+      "type": "task"
     },
     {
       "blocked_by": [],
@@ -37776,6 +37776,62 @@
       ],
       "type": "task",
       "work_type": "design"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "save_agents at system/cli/rust/crates/brana-core/src/tasks.rs:978 uses bare fs::write — same data-loss risk as the fixed save_tasks. Apply write_atomic helper there too. Ref: t-1507 which fixed save_tasks.",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1532",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "dev",
+      "subject": "[cli] Extend write_atomic to save_agents",
+      "tags": [
+        "rust",
+        "atomicity",
+        "tasks"
+      ],
+      "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "brana-cli tests/memory_smoke.rs has 14 failing tests — all fail with unrecognized subcommand memory. Either implement the memory subcommand in brana-cli or delete the obsolete smoke tests. Confirmed pre-existing: same failures on main before t-1507 branch.",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1533",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "dev",
+      "subject": "[cli] Fix memory_smoke pre-existing failures (14 tests)",
+      "tags": [
+        "rust",
+        "testing",
+        "brana-cli"
+      ],
+      "type": "task"
     }
   ],
   "version": "1"

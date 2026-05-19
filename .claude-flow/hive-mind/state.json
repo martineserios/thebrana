@@ -19,12 +19,12 @@
     },
     "client:thebrana:session:closed:2026-05-17": "{\"status\": \"closed\", \"summary\": \"feat t-1429: Check 29 reference docs drift detection in validate.sh\", \"next\": [\"Add shopt -s nullglob to validate.sh (t-1430)\", \"Doc drift: statusline-test-coverage.md + system-documentation-map.md may be stale\"], \"closed_at\": \"2026-05-17T19:30:00Z\"}",
     "client:thebrana:session:closed:2026-05-18": "{\"status\": \"closed\", \"summary\": \"Check 32 cleanup (t-1459) + patterns-export secret sanitization fix\", \"next\": [\"t-1460: extend sanitize_export_json\", \"prune testing-validation.md field notes\"], \"closed_at\": \"2026-05-18T20:00:00Z\"}",
-    "client:thebrana:session:closed:2026-05-19": "{\"status\":\"closed\",\"summary\":\"backlog redesign: initiative model + schema cleanup complete (Waves 1-5)\",\"next\":[\"triage 136 null work_type tasks\",\"run reconcile E2026-05-19-11\",\"t-1529 TaskFilter struct refactor\",\"prune patterns.md\"],\"closed_at\":\"2026-05-19T20:54:00Z\"}",
+    "client:thebrana:session:closed:2026-05-19": "{\"status\": \"closed\", \"summary\": \"fix(t-1507): save_tasks atomic + knowledge-pipeline array-stream fix\", \"next\": [\"t-1508: benchmark query latency\", \"t-1509: spike transport layer\", \"t-1532: write_atomic to save_agents\"], \"closed_at\": \"2026-05-19T21:00:00Z\"}",
     "client:thebrana:build:t-1479": "{\"status\": \"done\", \"branch\": \"feat/t-1479-build-skill-gate-3signal\", \"task\": \"Harden build.md step 4a: 3-signal tech detection + SKILL.md keywords gate\", \"completed\": \"2026-05-19T00:00:00Z\"}",
     "client:thebrana:build:t-1482": "{\"status\": \"done\", \"branch\": \"feat/t-1482-validate-skill-keywords\", \"task\": \"validate.sh check 33 — keywords field in code-strategy SKILL.md\", \"completed\": \"2026-05-19T00:00:00Z\"}",
     "client:thebrana:build:t-1480": "{\"status\": \"done\", \"branch\": \"feat/t-1480-hook-rust-skills-guard\", \"task\": \"[hook] PreToolUse: block *.rs writes until brana:rust-skills loaded this session\", \"completed\": \"2026-05-19T00:00:00Z\"}",
     "client:thebrana:build:t-1507": "{\"status\": \"done\", \"branch\": \"fix/t-1507-save-tasks-atomic\", \"task\": \"Make save_tasks atomic (temp file + rename)\", \"completed\": \"2026-05-19T00:00:00Z\"}"
   },
   "createdAt": "2026-04-06T20:37:18.323Z",
-  "updatedAt": "2026-05-19T20:58:13.920Z"
+  "updatedAt": "2026-05-19T21:50:22.455Z"
 }
