@@ -134,6 +134,65 @@ fn test_search() {
     assert_eq!(results[0]["id"], "t-001");
 }
 
+// ── Wave 4B: initiative model tests ─────────────────────────────────────
+
+#[test]
+fn test_focus_score_initiative_boost() {
+    // A P2 task with initiative_boost=500 should outrank a P0 task with no boost.
+    let p2_initiative = json!({
+        "id": "t-A", "type": "task", "status": "pending",
+        "priority": "P2", "effort": "S", "blocked_by": [],
+        "initiative": "cc-alignment",
+    });
+    let p0_no_initiative = json!({
+        "id": "t-B", "type": "task", "status": "pending",
+        "priority": "P0", "effort": "S", "blocked_by": [],
+    });
+    let score_a = brana_core::tasks::focus_score(&p2_initiative, 500.0);
+    let score_b = brana_core::tasks::focus_score(&p0_no_initiative, 0.0);
+    assert!(score_a > score_b, "initiative boost must overcome P2 vs P0 gap: {score_a} vs {score_b}");
+}
+
+#[test]
+fn test_initiative_work_type_filter_roundtrip() {
+    // Tasks with initiative and work_type fields are preserved through load+filter.
+    let dir = tempfile::tempdir().unwrap();
+    let claude_dir = dir.path().join(".claude");
+    std::fs::create_dir_all(&claude_dir).unwrap();
+    let path = claude_dir.join("tasks.json");
+    std::fs::write(&path, serde_json::to_string_pretty(&json!({
+        "project": "test",
+        "tasks": [
+            {"id":"t-001","subject":"implement feature","type":"task","status":"pending",
+             "priority":"P1","effort":"S","work_type":"implement","initiative":"cc-alignment",
+             "tags":[],"blocked_by":[],"created":"2026-01-01"},
+            {"id":"t-002","subject":"research spike","type":"task","status":"pending",
+             "priority":"P2","effort":"M","work_type":"research",
+             "tags":[],"blocked_by":[],"created":"2026-01-01"},
+        ]
+    })).unwrap()).unwrap();
+
+    let data = brana_core::tasks::load_tasks(&path).unwrap();
+
+    // Filter by work_type=implement
+    let impl_tasks = brana_core::tasks::filter_tasks(
+        &data.tasks, &data.tasks,
+        None, None, None, None, None, None, &["task"], None, Some("implement"),
+    );
+    assert_eq!(impl_tasks.len(), 1);
+    assert_eq!(impl_tasks[0]["id"], "t-001");
+    assert_eq!(impl_tasks[0]["work_type"], "implement");
+    assert_eq!(impl_tasks[0]["initiative"], "cc-alignment");
+
+    // Filter by initiative=cc-alignment
+    let init_tasks = brana_core::tasks::filter_tasks(
+        &data.tasks, &data.tasks,
+        None, None, None, None, None, None, &["task"], Some("cc-alignment"), None,
+    );
+    assert_eq!(init_tasks.len(), 1);
+    assert_eq!(init_tasks[0]["id"], "t-001");
+}
+
 #[test]
 fn test_set_field() {
     let dir = tempfile::tempdir().unwrap();
