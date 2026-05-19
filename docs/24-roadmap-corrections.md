@@ -3049,3 +3049,31 @@ This errata also applies as a process rule: **when a credential is not explicitl
 **Related:** `system/hooks/session-start.sh` workaround (grep `SKILL.md` files) can be removed once this is fixed.
 
 **Status:** pending
+
+---
+
+## E2026-05-19-1 — roadmap-contact-enrichment.md references nonexistent contacts.horario column
+
+**Severity:** Medium
+**Discovery:** 2026-05-19 — platform-agent context integration planning session
+**Affected file:** `ventures/proyecto_anita/docs/ideas/roadmap-contact-enrichment.md`
+
+**Spec says:** `visit_schedule: Optional[str]` sourced from `contacts.horario` (e.g. "mañana")
+**Reality:** `horario` column does not exist in either dev (`jwzpeaidchtdibcxttcm`) or prod (`zvpzgpjlhrvouquxorya`) contacts table. Verified against `information_schema.columns`.
+
+**Fix:** Remove `visit_schedule` from the roadmap or mark as "not yet collected". Existing columns (`visita_lunes..visita_domingo`, `periodicidad`, `ruta`) are all present and 100% populated.
+**Status:** pending — roadmap doc update needed before t-971 execution
+
+---
+
+## E2026-05-19-2 — "dev" Supabase is Agent v4 SoT, "prod" Supabase is legacy — labels invert roles
+
+**Severity:** High
+**Discovery:** 2026-05-19 — confirmed via Cloud Run env vars + agent_conversations row count
+**Affected files:** `.claude/rules/supabase-cli-multiproject.md`, `.claude/rules/cloud-run-deploy.md`
+
+**Spec says (implicit):** `zvpzgpjlhrvouquxorya` (labeled "prod") = authoritative store for the live platform
+**Reality:** Agent v4 writes to `jwzpeaidchtdibcxttcm` (labeled "dev") — 107 agent_conversations. `zvpzgpjlhrvouquxorya` only serves the legacy daily-campaign Cloud Run service. Labels actively mislead.
+
+**Fix:** Add prominent banner to both rule files: "Agent v4 SoT = jwzpeaidchtdibcxttcm (labeled 'dev'). Legacy campaign SoT = zvpzgpjlhrvouquxorya (labeled 'prod'). Do not infer role from label." Long-term: align labels at GCP/Supabase level during ADR-040 org restructure.
+**Status:** pending — rule file updates needed

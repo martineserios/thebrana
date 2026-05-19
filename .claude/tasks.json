@@ -41760,7 +41760,7 @@
       "branch": null,
       "build_step": null,
       "completed": null,
-      "context": "t-1461 tracks same-day parallel close overwrite at write time. This task fixes the read side: sitrep Source 4 should also call brana session history --limit 3 and parse same-day entries for their next[] items (text parse or MCP mcp__brana__session_history), merging with the primary session read. Without this, first-of-day closes lose their next[] items permanently from sitrep visibility. Filed 2026-05-19 user report.",
+      "context": "t-1461 tracks same-day parallel close overwrite at write time. This task fixes the read side: sitrep Source 4 should also call brana session history --limit 3 and parse same-day entries for their next[] items (text parse or MCP mcp__brana__session_history), merging with the primary session read. Without this, first-of-day closes lose their next[] items permanently from sitrep visibility. Filed 2026-05-19 user report.\nThree-option analysis (2026-05-19):\n1. Fix sitrep (short-term): brana session history --limit 3, parse text output for same-day sessions, merge next[] items — no structural change to write path\n2. Fix at close (t-1461): prevent overwrite — append to multi-session-per-day format (session-state-{date}-{N}.json or similar)\n3. Both: t-1461 is structural fix; sitrep reads history as belt-and-suspenders\nOption 3 preferred. t-1491 implements option 1 (read side); t-1461 implements option 2 (write side).",
       "created": "2026-05-19",
       "description": null,
       "effort": "S",
@@ -41780,6 +41780,33 @@
         "sitrep",
         "session",
         "context-recovery"
+      ]
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "Current patterns.md design has wrong incentives: bulk-extract at close produces mixed-quality signal, quarantine entries never graduate to proven, chronological pruning removes knowledge before validation, cap creates maintenance overhead. Proposed redesign: (1) patterns.md becomes 10-entry rolling window (auto-rotated per session, no cap, no manual pruning, graceful-degradation only); (2) high-value patterns promoted explicitly to feedback_*.md → MEMORY.md (always-loaded tier) when they recur 2+ sessions (3-repeat rule); (3) ruflo query in sitrep Source 6 made more targeted (specific domain query not generic task-subject+branch). Root: value IS real but implementation wrong — MEMORY.md+feedback_*.md path is the right model, patterns.md should mirror it or be retired. Coordinate with t-608 (Skill Registry) knowledge architecture pass. Discussed 2026-05-19.\nIdea doc: docs/ideas/memory-pattern-learning-redesign.md. Brainstormed 2026-05-19 — full 4-component design (quality filter gate, per-pattern files + ruflo dual-write, recurrence promotion path, targeted sitrep recall). Implements resilient-pattern-store.md design. Phased P0→P3. No backlog tasks yet — user deferred planning.",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "M",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1492",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "roadmap",
+      "subject": "[memory] Redesign patterns.md — 10-entry rolling window, retire cap/pruning ritual, explicit MEMORY.md promotion path",
+      "tags": [
+        "memory",
+        "knowledge-architecture",
+        "tech-debt"
       ]
     }
   ],
