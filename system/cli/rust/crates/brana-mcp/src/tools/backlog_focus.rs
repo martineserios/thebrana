@@ -11,6 +11,12 @@ pub struct Input {
 
     /// Optional tag filter
     pub tag: Option<String>,
+
+    /// Override active initiative slug (defaults to tasks-config.json active_initiative)
+    pub initiative: Option<String>,
+
+    /// Filter by work_type: implement, research, design, ops, review
+    pub work_type: Option<String>,
 }
 
 fn default_top() -> usize { 3 }
@@ -23,6 +29,15 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
             let data = brana_core::tasks::load_tasks(&tf)
                 .map_err(|e| pmcp::Error::validation(e))?;
 
+            // Load active_initiative from config
+            let home = std::env::var("HOME").unwrap_or_default();
+            let cfg_path = std::path::PathBuf::from(&home).join(".claude/tasks-config.json");
+            let active: Option<String> = input.initiative.clone().or_else(|| {
+                std::fs::read_to_string(&cfg_path).ok()
+                    .and_then(|c| serde_json::from_str::<serde_json::Value>(&c).ok())
+                    .and_then(|v| v["active_initiative"].as_str().map(|s| s.to_string()))
+            });
+
             let mut scored: Vec<_> = data.tasks.iter()
                 .filter(|t| matches!(t["type"].as_str(), Some("task" | "subtask")))
                 .filter(|t| brana_core::tasks::classify(t, &data.tasks) == "pending")
@@ -33,8 +48,16 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                             .unwrap_or(false)
                     })
                 })
+                .filter(|t| {
+                    input.work_type.as_deref().map_or(true, |wt| {
+                        t["work_type"].as_str().unwrap_or("") == wt
+                    })
+                })
                 .map(|t| {
-                    let score = brana_core::tasks::focus_score(t);
+                    let boost = active.as_deref()
+                        .filter(|a| t["initiative"].as_str() == Some(a))
+                        .map_or(0.0, |_| 500.0);
+                    let score = brana_core::tasks::focus_score(t, boost);
                     (t, score)
                 })
                 .collect();
@@ -51,9 +74,10 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
 
             Ok(serde_json::json!({
                 "count": tasks.len(),
+                "active_initiative": active,
                 "tasks": tasks,
             }))
         })
     })
-    .with_description("Get top focus tasks ranked by priority + staleness + effort + blocking depth.")
+    .with_description("Get top focus tasks ranked by initiative match + priority + effort + blocking depth.")
 }

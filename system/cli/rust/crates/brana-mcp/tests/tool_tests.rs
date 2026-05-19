@@ -83,7 +83,7 @@ fn test_load_and_filter_by_status() {
 
     let pending = brana_core::tasks::filter_tasks(
         &data.tasks, &data.tasks,
-        None, Some("pending"), None, None, None, None, &["task"],
+        None, Some("pending"), None, None, None, None, &["task"], None, None,
     );
     assert_eq!(pending.len(), 1);
     assert_eq!(pending[0]["id"], "t-001");
@@ -98,7 +98,7 @@ fn test_filter_by_tag() {
 
     let auth_tasks = brana_core::tasks::filter_tasks(
         &data.tasks, &data.tasks,
-        Some("auth"), None, None, None, None, None, &["task"],
+        Some("auth"), None, None, None, None, None, &["task"], None, None,
     );
     assert_eq!(auth_tasks.len(), 1);
     assert_eq!(auth_tasks[0]["id"], "t-001");
@@ -113,7 +113,7 @@ fn test_filter_by_priority() {
 
     let p0 = brana_core::tasks::filter_tasks(
         &data.tasks, &data.tasks,
-        None, None, None, Some("P0"), None, None, &["task"],
+        None, None, None, Some("P0"), None, None, &["task"], None, None,
     );
     assert_eq!(p0.len(), 1);
     assert_eq!(p0[0]["id"], "t-001");
@@ -128,7 +128,7 @@ fn test_search() {
 
     let results = brana_core::tasks::filter_tasks(
         &data.tasks, &data.tasks,
-        None, None, None, None, None, Some("login"), &["task"],
+        None, None, None, None, None, Some("login"), &["task"], None, None,
     );
     assert_eq!(results.len(), 1);
     assert_eq!(results[0]["id"], "t-001");

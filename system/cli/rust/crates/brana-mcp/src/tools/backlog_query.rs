@@ -29,6 +29,12 @@ pub struct Input {
 
     /// Filter by parent task ID
     pub parent: Option<String>,
+
+    /// Filter by initiative slug
+    pub initiative: Option<String>,
+
+    /// Filter by work_type: implement, research, design, ops, review
+    pub work_type: Option<String>,
 }
 
 pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::pin::Pin<Box<dyn std::future::Future<Output = pmcp::Result<serde_json::Value>> + Send>> + Send + Sync> {
@@ -55,6 +61,8 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 input.effort.as_deref(),
                 input.search.as_deref(),
                 &types,
+                input.initiative.as_deref(),
+                input.work_type.as_deref(),
             );
 
             if let Some(ref tags) = tag_list {

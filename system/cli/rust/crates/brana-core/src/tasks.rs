@@ -94,6 +94,8 @@ pub fn filter_tasks<'a>(
     effort: Option<&str>,
     search: Option<&str>,
     types: &[&str],
+    initiative: Option<&str>,
+    work_type: Option<&str>,
 ) -> Vec<&'a Value> {
     tasks
         .iter()
@@ -139,6 +141,16 @@ pub fn filter_tasks<'a>(
                     return false;
                 }
             }
+            if let Some(init) = initiative {
+                if t["initiative"].as_str().unwrap_or("") != init {
+                    return false;
+                }
+            }
+            if let Some(wt) = work_type {
+                if t["work_type"].as_str().unwrap_or("") != wt {
+                    return false;
+                }
+            }
             true
         })
         .collect()
@@ -167,8 +179,12 @@ pub fn sort_by_priority(tasks: &mut [&Value]) {
     });
 }
 
-/// Focus score: priority weight + staleness - effort - blocked depth.
-pub fn focus_score(task: &Value) -> f64 {
+/// Focus score: initiative boost + priority weight - effort - blocked depth.
+///
+/// `initiative_boost` is 500.0 when the task belongs to the active initiative,
+/// 0.0 otherwise. Staleness is intentionally excluded — it rewarded neglect by
+/// floating forgotten tasks above freshly-prioritised work.
+pub fn focus_score(task: &Value, initiative_boost: f64) -> f64 {
     let pri = match task["priority"].as_str() {
         Some("P0") => 400.0,
         Some("P1") => 300.0,
@@ -176,12 +192,6 @@ pub fn focus_score(task: &Value) -> f64 {
         Some("P3") => 100.0,
         _ => 50.0,
     };
-
-    let staleness = task["created"]
-        .as_str()
-        .and_then(|d| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
-        .map(|d| (chrono::Local::now().date_naive() - d).num_days() as f64 * 2.0)
-        .unwrap_or(0.0);
 
     let effort = match task["effort"].as_str() {
         Some("S") => 10.0,
@@ -196,7 +206,7 @@ pub fn focus_score(task: &Value) -> f64 {
         .map_or(0, |a| a.len()) as f64
         * 50.0;
 
-    pri + staleness - effort - blocked_depth
+    initiative_boost + pri - effort - blocked_depth
 }
 
 /// Compute burndown: created vs completed counts over a time period.
@@ -520,6 +530,16 @@ pub fn validate_status(value: &str) -> Result<(), String> {
     }
 }
 
+/// Validate a work_type value. Accepts implement/research/design/ops/review plus "null"/"" (clear).
+pub fn validate_work_type(value: &str) -> Result<(), String> {
+    match value {
+        "implement" | "research" | "design" | "ops" | "review" | "null" | "" => Ok(()),
+        other => Err(format!(
+            "invalid work_type {other:?} — must be implement/research/design/ops/review or null"
+        )),
+    }
+}
+
 /// Validate that tasks with effort M/L/XL have a non-empty context. See t-939 and tasks.spec.md.
 pub fn validate_context_for_effort(effort: Option<&str>, context: Option<&str>) -> Result<(), String> {
     match effort {
@@ -582,12 +602,16 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
         }
         "priority" | "effort" | "status" | "stream" | "type" | "strategy"
         | "build_step" | "execution" | "branch" | "subject" | "parent"
-        | "started" | "completed" | "created" | "github_issue" => {
+        | "started" | "completed" | "created" | "github_issue"
+        | "initiative" | "work_type" => {
             if field == "priority" {
                 validate_priority(value)?;
             }
             if field == "status" {
                 validate_status(value)?;
+            }
+            if field == "work_type" {
+                validate_work_type(value)?;
             }
             if value == "null" {
                 task[field] = Value::Null;
@@ -629,6 +653,8 @@ pub fn compute_stats(tasks: &[Value], all: &[Value]) -> Value {
     let mut by_stream_state: HashMap<String, HashMap<String, usize>> = HashMap::new();
     let mut by_priority: HashMap<String, usize> = HashMap::new();
     let mut by_type: HashMap<String, usize> = HashMap::new();
+    let mut by_work_type: HashMap<String, usize> = HashMap::new();
+    let mut by_initiative: HashMap<String, usize> = HashMap::new();
 
     for t in tasks {
         let raw = raw_status(t, "unknown").to_string();
@@ -653,6 +679,13 @@ pub fn compute_stats(tasks: &[Value], all: &[Value]) -> Value {
 
         *by_priority.entry(pri).or_default() += 1;
         *by_type.entry(tp).or_default() += 1;
+
+        if let Some(wt) = t["work_type"].as_str() {
+            *by_work_type.entry(wt.to_string()).or_default() += 1;
+        }
+        if let Some(init) = t["initiative"].as_str() {
+            *by_initiative.entry(init.to_string()).or_default() += 1;
+        }
     }
 
     // Fold synthetic state counts into the by_stream substructure under a
@@ -669,6 +702,8 @@ pub fn compute_stats(tasks: &[Value], all: &[Value]) -> Value {
         "by_stream": by_stream,
         "by_priority": by_priority,
         "by_type": by_type,
+        "by_work_type": by_work_type,
+        "by_initiative": by_initiative,
     })
 }
 
@@ -1151,7 +1186,7 @@ mod tests {
     #[test]
     fn test_filter_by_tag() {
         let tasks = sample_tasks();
-        let result = filter_tasks(&tasks, &tasks, Some("scheduler"), None, None, None, None, None, &["task", "subtask"]);
+        let result = filter_tasks(&tasks, &tasks, Some("scheduler"), None, None, None, None, None, &["task", "subtask"], None, None);
         assert_eq!(result.len(), 2);
     }
 
@@ -1161,7 +1196,7 @@ mod tests {
         // Raw status match — see tasks.spec.md (t-1323). Previously passed
         // "active" (classify output); now uses "in_progress" (CLI enum / raw
         // field value) which is the filter contract.
-        let result = filter_tasks(&tasks, &tasks, None, Some("in_progress"), None, None, None, None, &["task", "subtask"]);
+        let result = filter_tasks(&tasks, &tasks, None, Some("in_progress"), None, None, None, None, &["task", "subtask"], None, None);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0]["id"].as_str().unwrap(), "t-002");
     }
@@ -1179,7 +1214,7 @@ mod tests {
         // CLI passes "completed" (enum value). Must match t-001 whose raw
         // status is "completed". Pre-fix this returned 0 items because
         // classify(t-001) == "done" != "completed".
-        let result = filter_tasks(&tasks, &tasks, None, Some("completed"), None, None, None, None, &["task", "subtask"]);
+        let result = filter_tasks(&tasks, &tasks, None, Some("completed"), None, None, None, None, &["task", "subtask"], None, None);
         assert_eq!(result.len(), 1, "--status completed must match raw completed tasks");
         assert_eq!(result[0]["id"].as_str().unwrap(), "t-001");
     }
@@ -1188,7 +1223,7 @@ mod tests {
     fn test_filter_status_cancelled_matches_raw_field() {
         let tasks = sample_tasks();
         // Pre-fix: classify(t-006) == "done", "done" != "cancelled" → 0 hits.
-        let result = filter_tasks(&tasks, &tasks, None, Some("cancelled"), None, None, None, None, &["task", "subtask"]);
+        let result = filter_tasks(&tasks, &tasks, None, Some("cancelled"), None, None, None, None, &["task", "subtask"], None, None);
         assert_eq!(result.len(), 1, "--status cancelled must match raw cancelled tasks");
         assert_eq!(result[0]["id"].as_str().unwrap(), "t-006");
     }
@@ -1197,7 +1232,7 @@ mod tests {
     fn test_filter_status_in_progress_matches_raw_field() {
         let tasks = sample_tasks();
         // Pre-fix: classify(t-002) == "active", "active" != "in_progress" → 0 hits.
-        let result = filter_tasks(&tasks, &tasks, None, Some("in_progress"), None, None, None, None, &["task", "subtask"]);
+        let result = filter_tasks(&tasks, &tasks, None, Some("in_progress"), None, None, None, None, &["task", "subtask"], None, None);
         assert_eq!(result.len(), 1, "--status in_progress must match raw in_progress tasks");
         assert_eq!(result[0]["id"].as_str().unwrap(), "t-002");
     }
@@ -1210,7 +1245,7 @@ mod tests {
         // would classify as blocked or parked. Callers that want
         // classify-based filtering (e.g. cmd_next) must apply a post-hoc
         // filter.
-        let result = filter_tasks(&tasks, &tasks, None, Some("pending"), None, None, None, None, &["task", "subtask"]);
+        let result = filter_tasks(&tasks, &tasks, None, Some("pending"), None, None, None, None, &["task", "subtask"], None, None);
         let ids: Vec<&str> = result.iter().filter_map(|t| t["id"].as_str()).collect();
         assert_eq!(result.len(), 3, "pending includes t-003 (plain), t-004 (blocked), t-005 (parked)");
         assert!(ids.contains(&"t-003"));
@@ -1225,7 +1260,7 @@ mod tests {
         // are no longer accepted — they're not in the CLI enum. Filtering
         // by them returns zero.
         for synthetic in &["done", "active", "blocked", "parked"] {
-            let result = filter_tasks(&tasks, &tasks, None, Some(synthetic), None, None, None, None, &["task", "subtask"]);
+            let result = filter_tasks(&tasks, &tasks, None, Some(synthetic), None, None, None, None, &["task", "subtask"], None, None);
             assert_eq!(result.len(), 0, "--status {synthetic} (synthetic) must return 0 matches");
         }
     }
@@ -1233,7 +1268,7 @@ mod tests {
     #[test]
     fn test_filter_excludes_phases() {
         let tasks = sample_tasks();
-        let result = filter_tasks(&tasks, &tasks, None, None, None, None, None, None, &["task", "subtask"]);
+        let result = filter_tasks(&tasks, &tasks, None, None, None, None, None, None, &["task", "subtask"], None, None);
         assert!(result.iter().all(|t| t["type"].as_str().unwrap() != "phase"));
     }
 
@@ -1263,16 +1298,71 @@ mod tests {
 
     #[test]
     fn test_focus_score_priority_matters() {
-        let p0 = json!({"priority": "P0", "effort": "S", "created": "2026-03-01", "blocked_by": []});
-        let p3 = json!({"priority": "P3", "effort": "S", "created": "2026-03-01", "blocked_by": []});
-        assert!(focus_score(&p0) > focus_score(&p3));
+        let p0 = json!({"priority": "P0", "effort": "S", "blocked_by": []});
+        let p3 = json!({"priority": "P3", "effort": "S", "blocked_by": []});
+        assert!(focus_score(&p0, 0.0) > focus_score(&p3, 0.0));
     }
 
     #[test]
     fn test_focus_score_smaller_effort_wins() {
-        let small = json!({"priority": "P2", "effort": "S", "created": "2026-03-01", "blocked_by": []});
-        let large = json!({"priority": "P2", "effort": "XL", "created": "2026-03-01", "blocked_by": []});
-        assert!(focus_score(&small) > focus_score(&large));
+        let small = json!({"priority": "P2", "effort": "S", "blocked_by": []});
+        let large = json!({"priority": "P2", "effort": "XL", "blocked_by": []});
+        assert!(focus_score(&small, 0.0) > focus_score(&large, 0.0));
+    }
+
+    #[test]
+    fn test_focus_score_initiative_boost() {
+        let boosted = json!({"priority": "P2", "effort": "S", "blocked_by": [], "initiative": "cc-alignment"});
+        let plain   = json!({"priority": "P0", "effort": "S", "blocked_by": []});
+        // P2 + 500 boost = 690 > P0 + 0 = 390
+        assert!(focus_score(&boosted, 500.0) > focus_score(&plain, 0.0));
+    }
+
+    #[test]
+    fn test_focus_score_no_staleness() {
+        // Two tasks with same priority and effort, created 100 days apart — scores must be equal.
+        // Staleness was removed; age no longer affects score.
+        let old   = json!({"priority": "P1", "effort": "M", "blocked_by": [], "created": "2020-01-01"});
+        let fresh = json!({"priority": "P1", "effort": "M", "blocked_by": [], "created": "2026-05-19"});
+        assert_eq!(focus_score(&old, 0.0), focus_score(&fresh, 0.0));
+    }
+
+    #[test]
+    fn test_filter_tasks_by_work_type() {
+        let tasks = vec![
+            json!({"id": "t-1", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "work_type": "implement"}),
+            json!({"id": "t-2", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "work_type": "research"}),
+            json!({"id": "t-3", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "work_type": "implement"}),
+        ];
+        let result = filter_tasks(&tasks, &tasks, None, None, None, None, None, None, &["task", "subtask"], None, Some("implement"));
+        assert_eq!(result.len(), 2);
+        assert!(result.iter().all(|t| t["work_type"] == "implement"));
+    }
+
+    #[test]
+    fn test_filter_tasks_by_initiative() {
+        let tasks = vec![
+            json!({"id": "t-1", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "initiative": "cc-alignment"}),
+            json!({"id": "t-2", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "initiative": "notebooklm"}),
+            json!({"id": "t-3", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "initiative": "cc-alignment"}),
+        ];
+        let result = filter_tasks(&tasks, &tasks, None, None, None, None, None, None, &["task", "subtask"], Some("cc-alignment"), None);
+        assert_eq!(result.len(), 2);
+        assert!(result.iter().all(|t| t["initiative"] == "cc-alignment"));
+    }
+
+    #[test]
+    fn test_validate_work_type_valid() {
+        for v in &["implement", "research", "design", "ops", "review", "null", ""] {
+            assert!(validate_work_type(v).is_ok(), "expected Ok for {v:?}");
+        }
+    }
+
+    #[test]
+    fn test_validate_work_type_invalid() {
+        for v in &["code", "manual", "feature", "build", "dev"] {
+            assert!(validate_work_type(v).is_err(), "expected Err for {v:?}");
+        }
     }
 
     #[test]
@@ -1761,7 +1851,7 @@ mod tests {
     #[test]
     fn test_multi_tag_filter() {
         let tasks = sample_tasks();
-        let result = filter_tasks(&tasks, &tasks, Some("scheduler"), None, None, None, None, None, &["task", "subtask"]);
+        let result = filter_tasks(&tasks, &tasks, Some("scheduler"), None, None, None, None, None, &["task", "subtask"], None, None);
         assert_eq!(result.len(), 2);
         // Filter further for "dx" — only t-004 has both
         let filtered: Vec<_> = result.into_iter()

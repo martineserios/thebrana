@@ -20,7 +20,7 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
             let results = brana_core::tasks::filter_tasks(
                 &data.tasks, &data.tasks,
                 None, None, None, None, None, Some(&input.query),
-                &["task", "subtask", "phase", "milestone"],
+                &["task", "subtask", "phase", "milestone"], None, None,
             );
 
             Ok(serde_json::json!({

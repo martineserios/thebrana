@@ -30,7 +30,7 @@ pub fn cmd_next(
         &data.tasks, &data.tasks,
         tag.as_deref(), Some("pending"), stream.as_deref(),
         priority.as_deref(), effort.as_deref(), None,
-        &types,
+        &types, None, None,
     );
 
     // filter_tasks does raw-status matching (tasks.spec.md). For "next up"
@@ -82,6 +82,7 @@ pub fn cmd_query(
     priority: Option<String>, effort: Option<String>, search: Option<String>,
     count: bool, output: String, theme: &themes::Theme,
     task_type: Option<String>, parent: Option<String>, branch: Option<String>,
+    work_type: Option<String>, initiative: Option<String>,
 ) -> anyhow::Result<()> {
     let tf = find_tasks_file().context("tasks.json not found")?;
     let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
@@ -100,7 +101,7 @@ pub fn cmd_query(
         &data.tasks, &data.tasks,
         None, status.as_deref(), stream.as_deref(),
         priority.as_deref(), effort.as_deref(), search.as_deref(),
-        &types,
+        &types, initiative.as_deref(), work_type.as_deref(),
     );
 
     // Apply multi-tag AND filter
@@ -146,42 +147,105 @@ pub fn cmd_query(
     Ok(())
 }
 
-pub fn cmd_focus(theme: &themes::Theme, top: usize, json_out: bool) -> anyhow::Result<()> {
+pub fn cmd_focus(
+    theme: &themes::Theme,
+    top: usize,
+    json_out: bool,
+    work_type: Option<&str>,
+    initiative_override: Option<&str>,
+) -> anyhow::Result<()> {
     let tf = find_tasks_file().context("tasks.json not found")?;
     let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
+    let cfg = load_tasks_config();
+    let active = initiative_override
+        .map(|s| s.to_string())
+        .or_else(|| cfg["active_initiative"].as_str().map(|s| s.to_string()));
+
     let mut scored: Vec<_> = data.tasks.iter()
-        .filter(|t| t["type"].as_str().unwrap_or("task") == "task" || t["type"].as_str() == Some("subtask"))
+        .filter(|t| matches!(t["type"].as_str().unwrap_or("task"), "task" | "subtask"))
         .filter(|t| tasks::classify(t, &data.tasks) == "pending")
-        .map(|t| (t, tasks::focus_score(t)))
+        .filter(|t| work_type.map_or(true, |wt| t["work_type"].as_str().unwrap_or("") == wt))
+        .map(|t| {
+            let boost = active.as_deref()
+                .filter(|a| t["initiative"].as_str() == Some(a))
+                .map_or(0.0, |_| 500.0);
+            (t, tasks::focus_score(t, boost))
+        })
         .collect();
     scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-    let top: Vec<_> = scored.into_iter().take(top).collect();
 
     if json_out {
-        let tasks_only: Vec<_> = top.iter().map(|(t, _)| *t).collect();
-        println!("{}", serde_json::to_string(&tasks_only).unwrap());
+        let out: Vec<_> = scored.iter().take(top).map(|(t, score)| {
+            serde_json::json!({"task": t, "focus_score": score,
+                "active_initiative": active.as_deref()})
+        }).collect();
+        println!("{}", serde_json::to_string(&out).unwrap());
         return Ok(());
     }
 
-    if top.is_empty() {
+    if scored.is_empty() {
         println!("\n  No actionable tasks.\n");
         return Ok(());
     }
 
-    println!("\n{}Focus — today's pick{}", themes::ansi(theme.color("header")), themes::RESET);
-    for (i, (t, score)) in top.iter().enumerate() {
-        let pri = t["priority"].as_str().unwrap_or("—");
-        let eff = t["effort"].as_str().unwrap_or("—");
-        println!(
-            "{}  {}. {} {}  {}  {}  {}  (score: {:.0}){}",
-            themes::ansi(theme.color("pending")),
-            i + 1, theme.icon("pending"),
-            t["id"].as_str().unwrap_or("?"),
-            t["subject"].as_str().unwrap_or(""), pri, eff, score,
-            themes::RESET,
-        );
+    if let Some(ref slug) = active {
+        // Active-initiative path: ★ tasks first, then P0/P1 overflow
+        let (initiative_tasks, overflow): (Vec<_>, Vec<_>) = scored.iter().partition(|(t, _)| {
+            t["initiative"].as_str() == Some(slug.as_str())
+        });
+        let initiative_shown = initiative_tasks.len().min(top);
+        let overflow_slots = top.saturating_sub(initiative_shown);
+        let overflow_shown: Vec<_> = overflow.iter()
+            .filter(|(t, _)| matches!(t["priority"].as_str(), Some("P0") | Some("P1")))
+            .take(overflow_slots)
+            .collect();
+
+        println!("\n{}Focus — active: {}{}", themes::ansi(theme.color("header")), slug, themes::RESET);
+        let mut rank = 1;
+        for (t, score) in initiative_tasks.iter().take(top) {
+            let pri = t["priority"].as_str().unwrap_or("—");
+            let eff = t["effort"].as_str().unwrap_or("—");
+            println!(
+                "{}  {}. ★ {} {}  {}  {}  (score: {:.0}){}",
+                themes::ansi(theme.color("pending")),
+                rank, t["id"].as_str().unwrap_or("?"),
+                t["subject"].as_str().unwrap_or(""), pri, eff, score,
+                themes::RESET,
+            );
+            rank += 1;
+        }
+        if !overflow_shown.is_empty() {
+            println!("{}  ─── overflow (P0/P1) ───{}", themes::ansi(theme.color("header")), themes::RESET);
+            for (t, score) in &overflow_shown {
+                let pri = t["priority"].as_str().unwrap_or("—");
+                let eff = t["effort"].as_str().unwrap_or("—");
+                println!(
+                    "{}  {}. {} {}  {}  {}  (score: {:.0}){}",
+                    themes::ansi(theme.color("pending")),
+                    rank, t["id"].as_str().unwrap_or("?"),
+                    t["subject"].as_str().unwrap_or(""), pri, eff, score,
+                    themes::RESET,
+                );
+                rank += 1;
+            }
+        }
+    } else {
+        // No active initiative — show top N by score
+        println!("\n{}Focus — today's pick{}", themes::ansi(theme.color("header")), themes::RESET);
+        for (rank, (t, score)) in scored.iter().take(top).enumerate() {
+            let pri = t["priority"].as_str().unwrap_or("—");
+            let eff = t["effort"].as_str().unwrap_or("—");
+            println!(
+                "{}  {}. {} {}  {}  {}  (score: {:.0}){}",
+                themes::ansi(theme.color("pending")),
+                rank + 1, t["id"].as_str().unwrap_or("?"),
+                t["subject"].as_str().unwrap_or(""), pri, eff, score,
+                themes::RESET,
+            );
+        }
     }
+
     println!();
     Ok(())
 }
@@ -191,7 +255,7 @@ pub fn cmd_search(text: &str, theme: &themes::Theme, json_out: bool) -> anyhow::
     let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
     let results = tasks::filter_tasks(
         &data.tasks, &data.tasks,
-        None, None, None, None, None, Some(text), &["task", "subtask"],
+        None, None, None, None, None, Some(text), &["task", "subtask"], None, None,
     );
     if json_out {
         println!("{}", serde_json::to_string(&results).unwrap());
@@ -331,6 +395,39 @@ pub fn cmd_context(task_id: &str, theme: &themes::Theme) -> anyhow::Result<()> {
     Ok(())
 }
 
+// ── config helpers ──────────────────────────────────────────────────────
+
+fn tasks_config_path() -> std::path::PathBuf {
+    let home = std::env::var("HOME").unwrap_or_default();
+    std::path::PathBuf::from(&home).join(".claude/tasks-config.json")
+}
+
+/// Load tasks-config.json. Returns a mutable JSON Value; missing file returns empty object.
+fn load_tasks_config() -> serde_json::Value {
+    let path = tasks_config_path();
+    std::fs::read_to_string(&path)
+        .ok()
+        .and_then(|c| serde_json::from_str(&c).ok())
+        .unwrap_or_else(|| serde_json::json!({}))
+}
+
+/// Save tasks-config.json atomically.
+fn save_tasks_config(cfg: &serde_json::Value) -> anyhow::Result<()> {
+    let path = tasks_config_path();
+    let content = serde_json::to_string_pretty(cfg).unwrap() + "\n";
+    std::fs::write(&path, content)
+        .with_context(|| format!("failed to write {}", path.display()))
+}
+
+/// Set active_initiative in tasks-config.json.
+pub fn cmd_set_active(slug: &str) -> anyhow::Result<()> {
+    let mut cfg = load_tasks_config();
+    cfg["active_initiative"] = serde_json::Value::String(slug.to_string());
+    save_tasks_config(&cfg)?;
+    println!("{}", serde_json::json!({"ok": true, "active_initiative": slug}));
+    Ok(())
+}
+
 // ── write commands ──────────────────────────────────────────────────────
 
 pub fn cmd_set(task_id: &str, field: &str, value: &str, append: bool, file: Option<PathBuf>) -> anyhow::Result<()> {
@@ -375,6 +472,8 @@ pub fn cmd_add(
     priority: Option<String>,
     context: Option<String>,
     file: Option<PathBuf>,
+    initiative: Option<String>,
+    work_type: Option<String>,
 ) -> anyhow::Result<()> {
     let tf = match file {
         Some(f) => f,
@@ -418,6 +517,8 @@ pub fn cmd_add(
         if let Some(ref p) = parent { obj.insert("parent".into(), serde_json::Value::String(p.clone())); }
         if let Some(ref pr) = priority { obj.insert("priority".into(), serde_json::Value::String(pr.clone())); }
         if let Some(ref c) = context { obj.insert("context".into(), serde_json::Value::String(c.clone())); }
+        if let Some(ref i) = initiative { obj.insert("initiative".into(), serde_json::Value::String(i.clone())); }
+        if let Some(ref wt) = work_type { obj.insert("work_type".into(), serde_json::Value::String(wt.clone())); }
         serde_json::to_string(&obj).unwrap()
     } else {
         eprintln!("{{\"ok\":false,\"error\":\"provide --json or --subject\"}}");
