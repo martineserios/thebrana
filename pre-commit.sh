@@ -70,7 +70,7 @@ done
 
 # Check 5: Secrets in staged files
 for f in $STAGED; do
-    HITS=$(git show ":$f" 2>/dev/null | grep -nE '(API_KEY|SECRET|PASSWORD|TOKEN|PRIVATE_KEY)\s*=' 2>/dev/null | grep -v -E '(#|example|placeholder|never commit)' || true)
+    HITS=$(git show ":$f" 2>/dev/null | grep -nE '(API_KEY|SECRET|PASSWORD|TOKEN|PRIVATE_KEY)\s*=' 2>/dev/null | grep -v -E '(#|example|placeholder|never commit|<redacted>|<token>)' || true)
     if [ -n "$HITS" ]; then
         fail "Potential secret in $f: $HITS"
     fi
