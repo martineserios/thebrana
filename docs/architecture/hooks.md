@@ -62,6 +62,7 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | `main-guard.sh` | PreToolUse | `Bash` | Block behavioral commits on main/master. Forces work onto feat/fix/* branches for proper gate enforcement. Uses `lib/git-helpers.sh` → `resolve_lookup_dir()` for worktree-aware repo detection. |
 | `branch-verify.sh` | PreToolUse | `Bash` | Block `git add` of behavioral files when on main/master. Uses `lib/git-helpers.sh` → `resolve_lookup_dir()` to extract `git -C <path>` from the command and check the target repo's branch. Escape hatch: `# --force-main` comment. |
 | `feedback-gate.sh` | PreToolUse | `Write\|Edit` | Block writes to `feedback_*.md` files outside the auto-memory procedure. Layer 1 guard (via `lib/layer1-paths.sh`) blocks `CLAUDE.md` writes unconditionally. Sentinel bypass: `/tmp/brana-memory-active`. Spec: ADR-037. |
+| `rust-skills-guard.sh` | PreToolUse | `Write\|Edit` | Block `*.rs` writes until `brana:rust-skills` is loaded this session. Sentinel: `/tmp/brana-rust-skills-loaded-{SESSION_ID}` (written by `skill-sentinel.sh`). Bypass: `/tmp/brana-rust-skills-guard-bypass`. Enforcement complement to build.md step 4a advisory gate. t-1480. |
 | `no-attribution-commit.sh` | PreToolUse | `Bash` | Block `git commit` and `gh pr create` calls containing forbidden attribution signatures (Co-Authored-By, Signed-off-by). Keeps commit history clean. |
 | `commit-msg-verify.sh` | PreToolUse | `Bash` | Advisory (non-blocking): warns when commit message mentions filenames not in the staged diff. Catches commit messages that describe more than what was actually staged. |
 | `guard-explore.sh` | PreToolUse | `Read\|Grep\|Glob` | Log reads without prior search (logging only, no blocking) |
@@ -70,6 +71,7 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | `step-completed.sh` | TaskCompleted | `""` (all) | Track CC Task completions for guided execution |
 | `task-completed.sh` | PostToolUse | `Bash` | Task completion pipeline: parent task rollup, close linked GitHub issue, log to decision log. Triggers on `brana backlog set <id> status completed`. |
 | `hallucination-detect.sh` | PostToolUse | `Bash` | Advisory: warns when a commit message contains completion keywords (fix/done/complete/close/resolve) but no test files were staged. Never blocks. |
+| `skill-sentinel.sh` | PostToolUse | `Skill` | Write skill-loaded sentinel `/tmp/brana-{skill}-loaded-{SESSION_ID}` when a gated skill completes. Extension point: add entries to GATED_SKILLS case block for new skill gates. Paired with `rust-skills-guard.sh`. t-1480. |
 | `preflight-model.sh` | UserPromptSubmit | `""` (all) | Advisory (non-blocking): warns when a heavy skill (`/brana:close`, `/brana:brainstorm`, `/brana:build`) is invoked while extra-usage is disabled. Silence: `BRANA_1M_WARN_OFF=1`. |
 | `context-inject.sh` | UserPromptSubmit | `""` (all) | Advisory: detects t-NNN task IDs and file paths in the prompt. Injects task subject/description/context (max 3 IDs) and file `head -20` content (max 3 paths). Absolute, relative (resolved to project root), and `~` paths supported. |
 | `signal-capture.sh` | UserPromptSubmit | `""` (all) | Advisory: detects explicit ratings (N/5, N/10, emoji) and implicit sentiment (English + Spanish phrases) in user prompts. Writes to `~/.claude/ratings/ratings.jsonl`; dumps failure context to `FAILURES/`. |
@@ -170,6 +172,7 @@ Differentiator: "Does bypassing this gate corrupt an invariant that cannot be re
 |---|---|---|---|---|
 | `pre-tool-use.sh` | Write\|Edit | **Enforcement** | Never | Spec-before-code: impl without a spec cannot be undone in the same session |
 | `tdd-gate.sh` | Write\|Edit | **Enforcement** | Never | Test-before-code: impl without a failing test violates the TDD contract |
+| `rust-skills-guard.sh` | Write\|Edit | **Enforcement** | Never | Rust-skills load-before-code: writing *.rs without domain knowledge violates quality invariant; sentinel is session-scoped |
 | `feedback-gate.sh` (Layer 1) | Write\|Edit | **Enforcement** | Never | CLAUDE.md files are human-authored load-bearing docs — LLM writes corrupt authorship |
 | `feedback-gate.sh` (non-L1) | Write\|Edit | **Advisory** | Yes | Feedback memory is LLM-writable; rejection becomes context for retry |
 | `plan-mode-gate.sh` | EnterPlanMode | **Advisory** | Yes | Planning encouragement; skipping plan mode is recoverable |

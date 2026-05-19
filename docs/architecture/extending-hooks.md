@@ -229,7 +229,7 @@ All should return valid JSON without crashing.
 
 1. Create `system/hooks/{name}.sh` following the safety conventions
 2. Make it executable: `chmod +x system/hooks/{name}.sh`
-3. Register in `system/hooks/hooks.json` (PreToolUse/SessionStart/SessionEnd) or `bootstrap.sh` (PostToolUse/PostToolUseFailure)
+3. Register in `system/hooks/hooks.json` (all events — CC #24529 resolved). Only use `bootstrap.sh` for identity-layer hooks that must survive plugin reinstall.
 4. Run `./validate.sh`
 5. Test locally with piped JSON
 6. Test in a live session with `claude --plugin-dir ./system`
