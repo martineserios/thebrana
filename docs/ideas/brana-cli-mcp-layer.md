@@ -363,3 +363,9 @@ let gh_result = Command::new("gh").args(["api", &endpoint]).output()?;
 4. **One server or two**: Merge skill-registry (t-608b) into brana-mcp, or keep separate? Leaning merge.
 5. **brana-query and brana-fmt**: Fold into brana-cli as subcommands, or keep as separate binaries? Leaning fold — workspace makes them unnecessary.
 6. **pmcp vs rmcp integration**: Verify pmcp's `#[tool]` macro works for our use case. If any blockers, rmcp is fallback.
+
+## Field Notes
+
+### 2026-05-19: brana-mcp is stdio-only — HTTP transport requires greenfield decision
+`brana-mcp` uses `server.run_stdio().await` — MCP stdio transport only. No axum, actix-web, warp, or tower in `Cargo.toml`. Any plan that assumes a "brana-mcp HTTP server" is building on a false premise. Adding HTTP requires a separate architectural decision: (A) thin axum sidecar crate (`brana-http`?) wrapping `brana-core`, or (B) Next.js API route shell-out proxy. Option `brana-mcp + axum` is pre-rejected — the stdio-only transport is not HTTP-capable. Confirmed via challenger review during brainstorm for brana backlog web UI (t-1501).
+Source: brainstorm(backlog-ui) 2026-05-19

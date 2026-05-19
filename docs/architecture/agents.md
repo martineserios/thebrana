@@ -99,3 +99,7 @@ Source: reconcile consistency scan 2026-05-11
 ### 2026-04-08: Session JSONL telemetry is global — bucket by repo root for debrief accuracy
 A single CC session can straddle multiple project roots. Correction counts in `brana-session-*.jsonl` are global — a hot file in a sibling venture (28 corrections on `ventures/ai-native-education/`) inflated the thebrana debrief during a t-1088 session. Fix: when reading session JSONL, filter events by `file.startsWith(repo_root)` before computing `correction_rate` and `cascade_rate`. Tracked as t-1092.
 Source: t-1088 session debrief
+
+### 2026-05-19: Layered challenger — three rounds for M+ architecture decisions
+A single challenger pass misses layered issues: the fixes for round-1 CRITICALs introduce new failure modes that only round 2 catches. For M+ architecture decisions, run challenger at minimum twice, ideally three times. Round 1: surface CRITICALs. Round 2: verify the proposed fixes actually hold (check code, not just the plan text). Round 3: confirm no new issues introduced. Stop when verdict is PROCEED WITH CHANGES or PROCEED — not just after the first RECONSIDER. Validated on brana backlog web UI (t-1501): R1 found stdio-only + write race; R2 found save_tasks still bare fs::write + latency gate theater; R3 confirmed fixes held and issued PROCEED WITH CHANGES.
+Source: brainstorm(backlog-ui) 2026-05-19
