@@ -17,14 +17,9 @@ pub enum TaskStatus {
 
 #[derive(Clone, ValueEnum)]
 pub enum TaskStream {
-    Roadmap,
-    Bugs,
-    #[value(name = "tech-debt")]
-    TechDebt,
-    Docs,
-    Experiments,
+    Dev,
+    Ops,
     Research,
-    Personal,
 }
 
 #[derive(Clone, ValueEnum)]
