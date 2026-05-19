@@ -72,6 +72,15 @@ pub enum TaskKind {
 }
 
 #[derive(Clone, ValueEnum)]
+pub enum TaskWorkType {
+    Implement,
+    Research,
+    Design,
+    Ops,
+    Review,
+}
+
+#[derive(Clone, ValueEnum)]
 pub enum BurndownPeriod {
     Day,
     Week,
@@ -575,6 +584,12 @@ pub enum BacklogCmd {
         /// Filter by branch field
         #[arg(long)]
         branch: Option<String>,
+        /// Filter by work type: implement, research, design, ops, review
+        #[arg(long, value_enum)]
+        work_type: Option<TaskWorkType>,
+        /// Filter by initiative slug
+        #[arg(long)]
+        initiative: Option<String>,
     },
     /// Smart daily pick
     Focus {
@@ -584,6 +599,12 @@ pub enum BacklogCmd {
         /// Output JSON array instead of themed list
         #[arg(long)]
         json: bool,
+        /// Filter by work type: implement, research, design, ops, review
+        #[arg(long, value_enum)]
+        work_type: Option<TaskWorkType>,
+        /// Override active initiative slug (defaults to tasks-config.json active_initiative)
+        #[arg(long)]
+        initiative: Option<String>,
     },
     /// Free-text search
     Search {
@@ -696,6 +717,12 @@ pub enum BacklogCmd {
         /// Path to tasks.json (auto-detected if omitted)
         #[arg(long)]
         file: Option<PathBuf>,
+        /// Initiative slug (e.g., "cc-alignment", "notebooklm")
+        #[arg(long)]
+        initiative: Option<String>,
+        /// Work type: implement, research, design, ops, review
+        #[arg(long)]
+        work_type: Option<String>,
     },
     /// Get full task JSON or a single field
     Get {

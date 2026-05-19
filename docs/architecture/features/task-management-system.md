@@ -69,3 +69,70 @@ See ADR-002 for architecture decision. Key components:
 3. /brana:backlog skill (13 subcommands: plan, status, roadmap, next, start, done, add, replan, archive, migrate, execute, tags, context)
 4. PostToolUse hook (validation + rollup — deterministic enforcement)
 5. Session start + status line integration (passive visibility)
+
+## v3 Design: Initiative Model
+
+**Context:** 1488 tasks across 20 files with no active-initiative concept, 49% null priorities, 11 overlapping streams, and a focus score that rewarded staleness over direction.
+
+### Fields added
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `initiative` | string (slug) | Optional. Groups tasks by named initiative: "cc-alignment", "notebooklm", etc. |
+| `work_type` | enum | Optional. Cognitive mode: `implement` / `research` / `design` / `ops` / `review` |
+
+### Fields removed
+
+| Field | Reason |
+|-------|--------|
+| `build_step` | Null on >95% of tasks. Intent absorbed into `context`. |
+| `strategy` | Null on >95% of tasks. Replaced by `work_type`. |
+| `execution` | Null on >95% of tasks. `execution=manual` → `work_type=ops`. |
+
+### Active initiative config
+
+`~/.claude/tasks-config.json` gains an `active_initiative` field:
+```json
+{ "active_initiative": "cc-alignment", "theme": "emoji" }
+```
+
+Set with: `brana backlog set active <slug>`
+
+### Focus score rewrite
+
+```
+OLD: priority_weight + (days_since_created × 2) − effort_penalty − (blocked_depth × 50)
+NEW: initiative_boost + priority_weight − effort_penalty − (blocked_depth × 50)
+     initiative_boost = +500 if task.initiative == active_initiative, else 0
+```
+
+Staleness removed — it was rewarding neglect over direction.
+
+### Work type definitions
+
+| Value | When to use |
+|-------|-------------|
+| `implement` | Write code, build features, fix bugs |
+| `research` | Spike, evaluate, audit, investigate |
+| `design` | Architecture, schemas, decisions |
+| `ops` | Deploy, config, setup, run, sync |
+| `review` | PR review, audit, feedback |
+
+### Stream taxonomy (11 → 3)
+
+| New | Maps from |
+|-----|-----------|
+| `dev` | roadmap, architecture, bugs, tech-debt, dx, (null) |
+| `ops` | maintenance, docs |
+| `research` | research, experiments, knowledge |
+
+`stream=personal` tasks extracted to `personal/.claude/tasks.json`.
+
+### Migration
+
+Five idempotent scripts in `system/scripts/migrate/`:
+1. `extract-personal.py` — moves `stream=personal` tasks to personal backlog
+2. `null-to-p3.py` — floors all pending null-priority tasks at P3
+3. `remap-streams.py` — maps old stream values to new 3-value taxonomy
+4. `drop-deprecated-fields.py` — removes build_step/strategy/execution; infers work_type=ops from execution=manual
+5. `infer-work-type.py` — heuristically fills work_type from subject patterns and stream
