@@ -40915,6 +40915,63 @@
         "sanitization"
       ],
       "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "When two sessions close on the same project the same day, second write erases first. Fix: read existing session-state.json before writing; if written_at is today merge arrays (accomplished/next/learnings/blockers) dedup by content; if different day replace as today. Add optional session_labels:[] field as same-day breadcrumb. Backward-compat: old entries without the field default to [session_label]. Needs ADR + TDD (merge test + replace test + dedup test). Idea doc: docs/ideas/session-continuity-multi-session.md",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "M",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1461",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "roadmap",
+      "subject": "[rust] brana session write: same-day merge semantics",
+      "tags": [
+        "session",
+        "rust",
+        "continuity"
+      ],
+      "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "New CLI subcommand: brana session today. Scans all ~/.claude/projects/*/memory/session-state.json, filters for written_at matching today, aggregates accomplished/next/blockers across all projects into unified output. Companion: /brana:sitrep --all calls this. Idea doc: docs/ideas/session-continuity-multi-session.md. Blocked_by: t-1461 (same-day merge) to ensure daily aggregation is meaningful.",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "M",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1462",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "roadmap",
+      "subject": "[rust] brana session today: cross-project daily aggregated view",
+      "tags": [
+        "session",
+        "rust",
+        "cross-project",
+        "sitrep"
+      ],
+      "type": "task"
     }
   ],
   "version": "1"

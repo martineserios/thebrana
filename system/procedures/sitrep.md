@@ -91,6 +91,11 @@ If JSON is available, extract structured fields directly:
 - **consumed_at** → if non-null, this state was already loaded by session-start (don't re-present)
 - **metrics** → session flywheel metrics (events, corrections, test writes)
 
+**Also surface these fields when non-trivial (belt-and-suspenders for items that may not have reached next[]):**
+- `backprop.needed: true` + `backprop.files` non-empty → show: "Backprop needed for: {files}"
+- `doc_drift.stale_docs` non-empty → show: "Stale docs from last session: {list}"
+- `state.test_status.failing > 0` → show: "⚠ {N} failing tests at last close"
+
 If `brana session read --json` returns nothing, fall back to `brana handoff last` (legacy markdown).
 
 ### 5. Conversation scan
@@ -168,6 +173,10 @@ Present a structured snapshot — concise, actionable:
 
 **Previous session next:**
 - {from session state next[] array, with [category] prefix}
+
+{if backprop.needed and files: **Backprop needed:** {backprop.files — comma-separated}}
+{if doc_drift.stale_docs non-empty: **Stale docs:** {list — shown even if already in next[]}}
+{if state.test_status.failing > 0: ⚠ **Failing tests at last close:** {N}}
 
 **Next action:** {single clear sentence — what to do RIGHT NOW}
 ```

@@ -148,7 +148,11 @@ Detect behavioral changes that lack corresponding documentation updates.
      {"text": "Doc update needed: {behavioral file} → {doc target}", "task_id": null, "category": "maintenance"}
      ```
 
-   **If "Skip":** continue to Step 4.
+   **If "Skip":** still add a low-priority reminder to `next[]` (never silently drop):
+   ```json
+   {"text": "Doc update skipped at close: {behavioral file} → {doc target}", "task_id": null, "category": "maintenance"}
+   ```
+   Then continue to Step 4.
 
 4. **If both behavioral AND documentation files changed**, or no behavioral files changed, skip silently.
 
@@ -190,6 +194,12 @@ For each **errata** finding:
 | Spec mismatch (needs doc edits) | `pending` | `/brana:reconcile` |
 | Code bug (fixed this session) | `code-fix` | Already done |
 | Code bug (not fixed) | `pending` | Next session |
+
+**After writing any errata**, auto-insert a reconcile reminder into the Step 9 `next[]` payload — this ensures sitrep surfaces it even if the user skips the Step 12 task offer:
+```json
+{"text": "Run /brana:reconcile --scope propagation (errata {E-IDs} filed this session)", "task_id": null, "category": "maintenance"}
+```
+Collect all E-IDs written this step into `{E-IDs}` (comma-separated). If no errata was written, skip this insert.
 
 ### Step 5: Store learnings as patterns
 
@@ -487,6 +497,11 @@ Include the affected doc list in the drift report instead of just "system files 
 Collect drift results for the session state JSON (Step 9):
 - **backprop.files**: system files that changed this session
 - **doc_drift.stale_docs**: docs affected by those changes (from spec-graph)
+
+**When `doc_drift.stale_docs` is non-empty**, also auto-insert into the Step 9 `next[]` payload so sitrep surfaces it regardless of whether the user creates a task at Step 12:
+```json
+{"text": "Update stale docs: {comma-separated stale_docs list}", "task_id": null, "category": "maintenance"}
+```
 
 **Validate stale_docs paths before writing:** Before adding any path to `stale_docs`, verify it exists on the filesystem:
 ```bash
@@ -949,6 +964,12 @@ For each selected follow-up:
 - Report the created task ID inline
 
 **Skip the offer if:** no actionable follow-ups exist (all items are informational or already have tasks).
+
+**After the AskUserQuestion**, for every follow-up item the user did NOT select for task creation, still write it to `next[]` with `task_id: null` — items must never silently disappear because the user skipped task creation:
+```json
+{"text": "{follow-up description}", "task_id": null, "category": "follow-up"}
+```
+This ensures sitrep surfaces all follow-ups from the close report at the start of the next session.
 
 ---
 
