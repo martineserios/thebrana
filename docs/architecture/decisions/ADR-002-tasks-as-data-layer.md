@@ -16,8 +16,14 @@ status: proposed
 The brana system needs project planning and task management that works across code and non-code projects, supports hierarchy (phase > milestone > task), integrates with branch strategy, and works through natural language. [Doc 19](../19-pm-system-design.md) designed a GitHub Issues-first PM system that was never built. The current pain: no structured task tracking, no planning visibility, no cross-session state.
 
 Three data layer options were evaluated:
-1. Native Claude Code Tasks — metadata doesn't query, session-scoped, insufficient for hierarchy
-2. ruflo tasks — agent coordination tool, limited types, no parent-child
+1. Native CC Task tools (TaskCreate/TaskUpdate/TaskGet/TaskList, shipped CC v2.1.16 Jan 2026) — file-based
+   persistent storage at `~/.claude/tasks/`, cross-session via `CLAUDE_CODE_TASK_LIST_ID` env var.
+   No priority field, no tags/streams, no parent-child hierarchy. Metadata stored at TaskCreate but
+   excluded from TaskGet results (issue #21356, closed not planned). Best use: in-session step tracking
+   and Agent Teams coordination. PM-grade backlog management: insufficient.
+   Note: evaluates the *new* Tasks system, not the deprecated Todos (TodoWrite/TodoRead) it replaced.
+2. ruflo tasks — agent swarm coordination primitive (queen/worker types), not PM hierarchy. No priority,
+   streams, effort, or GitHub linking. Still accurate as of ruflo v3.6 (Apr 2026).
 3. JSON file per project — full schema control, no N+1, git-tracked, zero dependencies
 
 Constraint: Claude Code subscription only, zero API calls.

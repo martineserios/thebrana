@@ -48,4 +48,4 @@ Skip the step registry for **Trivial** and **Small** builds (as classified by th
 
 ## Cleanup
 
-When the skill completes its final step, all step tasks should be `completed`. No explicit cleanup needed — CC Tasks are session-scoped.
+When the skill completes its final step, all step tasks should be `completed`. No explicit cleanup needed — CC Tasks persist in `~/.claude/tasks/` but step tasks from previous skill runs don't interfere because `TaskList` filters by the current session's task list ID.
