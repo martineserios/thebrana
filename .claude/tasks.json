@@ -13317,6 +13317,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-620",
+      "initiative": "cc-alignment",
       "kind": "research",
       "notes": null,
       "order": null,
@@ -15956,6 +15957,7 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Phase 1: Config + Session Hooks",
       "tags": [
         "session-loops",
@@ -15963,7 +15965,6 @@
         "dx"
       ],
       "type": "milestone",
-      "stream": "dev",
       "work_type": "ops"
     },
     {
@@ -15982,13 +15983,13 @@
       "priority": "P3",
       "started": null,
       "status": "cancelled",
+      "stream": "dev",
       "subject": "Phase 2: /brana:watch Skill",
       "tags": [
         "session-loops",
         "scheduler",
         "dx"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -16006,13 +16007,13 @@
       "priority": "P3",
       "started": null,
       "status": "cancelled",
+      "stream": "dev",
       "subject": "Phase 3: Skill Embedding (deferred)",
       "tags": [
         "session-loops",
         "scheduler",
         "dx"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -17361,9 +17362,9 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Research token optimization techniques for Claude Code (RTK, hook scripts)",
       "tags": [],
-      "stream": "dev",
       "work_type": "research"
     },
     {
@@ -17382,9 +17383,9 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Research Claude Code hooks patterns & auto mode",
       "tags": [],
-      "stream": "dev",
       "work_type": "research"
     },
     {
@@ -17403,9 +17404,9 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Research Claude Code best practices compilation",
       "tags": [],
-      "stream": "dev",
       "work_type": "research"
     },
     {
@@ -17424,9 +17425,9 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Research Claude Code security model",
       "tags": [],
-      "stream": "dev",
       "work_type": "research"
     },
     {
@@ -17445,9 +17446,9 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Research Claude Pulse & monitoring tools",
       "tags": [],
-      "stream": "dev",
       "work_type": "research"
     },
     {
@@ -17595,6 +17596,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-781",
+      "initiative": "cc-alignment",
       "kind": "research",
       "notes": null,
       "order": null,
@@ -19325,6 +19327,7 @@
       "priority": null,
       "started": null,
       "status": "completed",
+      "stream": "dev",
       "subject": "Fix ruflo indexing performance: CLI hangs, ~15s per entry",
       "tags": [
         "ruflo",
@@ -19332,7 +19335,6 @@
         "indexing",
         "cli"
       ],
-      "stream": "dev",
       "work_type": "implement"
     },
     {
@@ -20486,6 +20488,7 @@
       "priority": "P1",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Research: Claude Code ecosystem — April 2026 batch (63 URLs)",
       "tags": [
         "claude-code",
@@ -20495,7 +20498,6 @@
         "agent-frameworks",
         "security"
       ],
-      "stream": "dev",
       "work_type": "research"
     },
     {
@@ -20514,14 +20516,14 @@
       "priority": "P2",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Extract 12-Factor Agents checklist for brana skill validation",
       "tags": [
         "harness-engineering",
         "architecture",
         "skills",
         "dx"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -20539,13 +20541,13 @@
       "priority": "P1",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Expand /audit: PreToolUse hook enforcement + CVE pattern detection",
       "tags": [
         "security",
         "audit",
         "hooks"
       ],
-      "stream": "dev",
       "work_type": "research"
     },
     {
@@ -20564,14 +20566,14 @@
       "priority": "P2",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Document harness engineering positioning evidence (Kitaru, pauliusztin, 12FA)",
       "tags": [
         "harness-engineering",
         "positioning",
         "linkedin",
         "content"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -20583,19 +20585,20 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-891",
+      "initiative": "cc-alignment",
       "notes": null,
       "order": null,
       "parent": null,
       "priority": "P1",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Deep dive: CC architecture internals (tools, context, plugins)",
       "tags": [
         "claude-code",
         "architecture",
         "deep-dive"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -20613,13 +20616,13 @@
       "priority": "P2",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Evaluate Sirchmunk embedding-free RAG vs ruflo semantic search",
       "tags": [
         "knowledge-architecture",
         "rag",
         "evaluation"
       ],
-      "stream": "dev",
       "work_type": "research"
     },
     {
@@ -20638,13 +20641,13 @@
       "priority": "P2",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Study AnimaWorks memory consolidation — automated forgetting for brana",
       "tags": [
         "agent-memory",
         "consolidation",
         "knowledge-architecture"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -20662,6 +20665,7 @@
       "priority": "P2",
       "started": null,
       "status": "completed",
+      "stream": "dev",
       "subject": "Migrate knowledge reindex to MCP-first (replace bulk-index.mjs)",
       "tags": [
         "knowledge-architecture",
@@ -20669,7 +20673,6 @@
         "ruflo",
         "dx"
       ],
-      "stream": "dev",
       "work_type": "ops"
     },
     {
@@ -20688,14 +20691,14 @@
       "priority": null,
       "started": null,
       "status": "cancelled",
+      "stream": "dev",
       "tags": [
         "architecture",
         "cli",
         "ontology",
         "knowledge-graph",
         "rust"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -20713,13 +20716,13 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
+      "stream": "dev",
       "subject": "ADR-027: Auto-learning loop (6-step lifecycle)",
       "tags": [
         "adr",
         "auto-learning",
         "architecture"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -20737,13 +20740,13 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
+      "stream": "dev",
       "subject": "ADR-028: Ontology v2 (15 types, measurement-gated)",
       "tags": [
         "adr",
         "ontology",
         "knowledge-graph"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -20761,13 +20764,13 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
+      "stream": "dev",
       "subject": "ADR-029: 6-job taxonomy",
       "tags": [
         "adr",
         "taxonomy",
         "architecture"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -20785,14 +20788,14 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
+      "stream": "dev",
       "subject": "ADR-030: Maintenance unification (expand /reconcile)",
       "tags": [
         "adr",
         "maintain",
         "reconcile",
         "simplification"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -20810,14 +20813,14 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
+      "stream": "dev",
       "subject": "ADR-031: Doc-enforcement hook (scoped hard block)",
       "tags": [
         "adr",
         "hooks",
         "docs",
         "enforcement"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -20835,14 +20838,14 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
+      "stream": "dev",
       "subject": "ADR-032: Smart router (shared strategy detection)",
       "tags": [
         "adr",
         "router",
         "skills",
         "architecture"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -24481,9 +24484,9 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "bootstrap.sh: merge new scheduler jobs into deployed scheduler.json",
       "tags": [],
-      "stream": "dev",
       "work_type": "ops"
     },
     {
@@ -24528,6 +24531,7 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "AIConfig — agentic workflows OSS",
       "tags": [
         "aiconfig",
@@ -24535,7 +24539,6 @@
         "oss",
         "research"
       ],
-      "stream": "dev",
       "work_type": "ops"
     },
     {
@@ -24554,14 +24557,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "JohnBrophyLLM — wiki maintained by LLM",
       "tags": [
         "johnbrophyllm",
         "wiki",
         "llm",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -24579,6 +24582,7 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "MCP deletion — user deleted all MCPs, skills, CLI",
       "tags": [
         "mcp",
@@ -24586,8 +24590,7 @@
         "cli",
         "architecture",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -24605,13 +24608,13 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Context windows and RAG — bigger windows do not kill RAG",
       "tags": [
         "context-windows",
         "rag",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -24629,13 +24632,13 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Claude Code memory — user built memory system",
       "tags": [
         "claude-code",
         "memory",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -24653,14 +24656,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "claude-memory-compiler — GitHub tool for memory",
       "tags": [
         "memory-compiler",
         "claude-code",
         "github",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -24678,14 +24681,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Google multi-agent orchestration — open source",
       "tags": [
         "google",
         "multi-agent",
         "orchestration",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -24703,14 +24706,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Metadata-driven development & ontologies for agentic AI",
       "tags": [
         "metadata-driven",
         "ontology",
         "agentic-ai",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -24728,14 +24731,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "skill-kit — GitHub framework for skills",
       "tags": [
         "skill-kit",
         "github",
         "framework",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -24753,14 +24756,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Ontology modeling — 3 ways to model ontologies",
       "tags": [
         "ontology",
         "modeling",
         "semantic",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -24778,14 +24781,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Memory palace & agent memory with context engineering",
       "tags": [
         "memory-palace",
         "agent-memory",
         "context-engineering",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -24803,6 +24806,7 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Graph databases — RDF and LPG comparison",
       "tags": [
         "graph-database",
@@ -24810,8 +24814,7 @@
         "lpg",
         "database",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -24829,14 +24832,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Metadata is the new code — AI ops perspective",
       "tags": [
         "metadata",
         "ai-ops",
         "architecture",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -24854,14 +24857,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Reference catalog GitHub — metadata-driven reference system",
       "tags": [
         "reference-catalog",
         "github",
         "metadata",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -24879,13 +24882,13 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Knowledge Graph community — knowledge-graph-guys.com",
       "tags": [
         "knowledge-graph",
         "community",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -24903,14 +24906,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Semantic layer & semantic contracts for data architecture",
       "tags": [
         "semantic-layer",
         "data-architecture",
         "semantic-contracts",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -24928,13 +24931,13 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Claude Code team license — cost and workflow",
       "tags": [
         "claude-code",
         "team-license",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -24952,13 +24955,13 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Claude Code session analysis — 291 sessions in 30 days",
       "tags": [
         "claude-code",
         "session-analysis",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -24976,6 +24979,7 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "FastAPI visibility layer — monitoring and debugging",
       "tags": [
         "fastapi",
@@ -24983,7 +24987,6 @@
         "monitoring",
         "research"
       ],
-      "stream": "dev",
       "work_type": "ops"
     },
     {
@@ -25002,14 +25005,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "LinkedIn CLI tool — bcharleson/linkedincli",
       "tags": [
         "linkedin-cli",
         "github",
         "automation",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -25027,14 +25030,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "CCCBot — Claude Code automation bot",
       "tags": [
         "cccbot",
         "github",
         "automation",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -25052,13 +25055,13 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Claude Code prompt engineering — independent prompts",
       "tags": [
         "claude-code",
         "prompts",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -25076,13 +25079,13 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Claude Code GitHub issue comment — context engineering",
       "tags": [
         "claude-code",
         "github-issue",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -25100,14 +25103,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Andrej Karpathy dream tool — someone built it",
       "tags": [
         "karpathy",
         "devtools",
         "ai",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -25125,14 +25128,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Claude subscriptions — 10-30x cheaper pricing models",
       "tags": [
         "claude",
         "pricing",
         "cost-optimization",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -25150,14 +25153,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Aspens toolkit — GitHub project",
       "tags": [
         "aspens",
         "github",
         "toolkit",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -25175,14 +25178,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "AI infrastructure & context engineering with Setsero",
       "tags": [
         "ai",
         "infrastructure",
         "context-engineering",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -25200,14 +25203,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Claude Code viral compilation — most viral posts",
       "tags": [
         "claude-code",
         "viral",
         "compilation",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -25225,14 +25228,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Claude howto — visual example-driven tutorial",
       "tags": [
         "claude",
         "howto",
         "tutorial",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -25250,13 +25253,13 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "AI engineering with metadata focus",
       "tags": [
         "ai-engineering",
         "metadata",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -25274,14 +25277,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Auto-applied bot — 3 year old automation success story",
       "tags": [
         "automation",
         "bot",
         "job-application",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -25299,14 +25302,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Claude Code practical examples — Spanish content",
       "tags": [
         "claude-code",
         "examples",
         "spanish",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -25324,14 +25327,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Claude Code software engineering — Rutvay Dhami",
       "tags": [
         "claude-code",
         "software-engineering",
         "ai",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -25349,13 +25352,13 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Claude Code I write software with Codex approach",
       "tags": [
         "claude-code",
         "coding",
         "research"
       ],
-      "stream": "dev",
       "work_type": "implement"
     },
     {
@@ -25374,14 +25377,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Context engineering deep dive — advanced techniques",
       "tags": [
         "context-engineering",
         "claude-code",
         "agentic-ai",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -25399,14 +25402,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Cybersecurity threat hunting detection techniques",
       "tags": [
         "cybersecurity",
         "threat-hunting",
         "security",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -25424,14 +25427,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Agents discussion — agent automation and workflows",
       "tags": [
         "agents",
         "automation",
         "workflows",
         "research"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -25449,6 +25452,7 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Anthropic new preview announcement — Spanish content",
       "tags": [
         "anthropic",
@@ -25456,7 +25460,6 @@
         "spanish",
         "research"
       ],
-      "stream": "dev",
       "work_type": "research"
     },
     {
@@ -25475,6 +25478,7 @@
       "priority": "P2",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Decide MCP vs CLI on the fly based on operation type",
       "tags": [
         "mcp",
@@ -25482,8 +25486,7 @@
         "routing",
         "performance",
         "context-engineering"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -25501,14 +25504,14 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Align brana session state with CC 8-section schema",
       "tags": [
         "memory",
         "cc-alignment",
         "session-memory",
         "handoff"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -25526,6 +25529,7 @@
       "priority": "P1",
       "started": null,
       "status": "completed",
+      "stream": "dev",
       "subject": "Build scheduled brana memory consolidate (Kairos/autoDream prototype)",
       "tags": [
         "memory",
@@ -25535,7 +25539,6 @@
         "consolidation",
         "scheduled"
       ],
-      "stream": "dev",
       "work_type": "ops"
     },
     {
@@ -25554,14 +25557,14 @@
       "priority": "P3",
       "started": null,
       "status": "completed",
+      "stream": "dev",
       "subject": "Document CC context thresholds in brana docs, trigger close earlier",
       "tags": [
         "context-engineering",
         "cc-alignment",
         "docs",
         "thresholds"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -25579,13 +25582,13 @@
       "priority": "P2",
       "started": null,
       "status": "completed",
+      "stream": "dev",
       "subject": "Verify PreQuery/PostQuery hook availability and migrate brana hooks",
       "tags": [
         "hooks",
         "cc-alignment",
         "refactor"
       ],
-      "stream": "dev",
       "work_type": "ops"
     },
     {
@@ -25604,14 +25607,14 @@
       "priority": "P3",
       "started": null,
       "status": "completed",
+      "stream": "dev",
       "subject": "Auto-set attribution.commit/.pr on new project onboard",
       "tags": [
         "cc-alignment",
         "undercover-mode",
         "onboard",
         "settings"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -25629,6 +25632,7 @@
       "priority": "P2",
       "started": null,
       "status": "completed",
+      "stream": "dev",
       "subject": "CC unreleased-features tracker — quarterly review cadence",
       "tags": [
         "cc-alignment",
@@ -25636,7 +25640,6 @@
         "research",
         "tracker"
       ],
-      "stream": "dev",
       "work_type": "research"
     },
     {
@@ -25655,6 +25658,7 @@
       "priority": "P3",
       "started": null,
       "status": "completed",
+      "stream": "dev",
       "subject": "Reflection doc 33 — agent loop as brana execution model",
       "tags": [
         "docs",
@@ -25662,8 +25666,7 @@
         "architecture",
         "cc-alignment",
         "execution-model"
-      ],
-      "stream": "dev"
+      ]
     },
     {
       "blocked_by": [],
@@ -33220,10 +33223,10 @@
       "priority": null,
       "started": null,
       "status": "cancelled",
+      "stream": "dev",
       "subject": "test context enforcement",
       "tags": [],
-      "type": "task",
-      "stream": "dev"
+      "type": "task"
     },
     {
       "blocked_by": [],
@@ -33429,10 +33432,10 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "Audit CLAUDE.md hierarchy and context budget across project nesting levels",
       "tags": [],
       "type": "tech-debt",
-      "stream": "dev",
       "work_type": "research"
     },
     {
@@ -33725,9 +33728,9 @@
       "priority": null,
       "started": null,
       "status": "completed",
+      "stream": "dev",
       "subject": "triage pre-existing test failure in test-session-start.sh — Venture project case",
-      "tags": [],
-      "stream": "dev"
+      "tags": []
     },
     {
       "blocked_by": [],
@@ -34182,6 +34185,7 @@
       "priority": "P2",
       "started": null,
       "status": "pending",
+      "stream": "dev",
       "subject": "brana doctor: warn when skill allowed-tools lists MCP tools not in project .mcp.json",
       "tags": [
         "skills",
@@ -34189,7 +34193,6 @@
         "dx",
         "validation"
       ],
-      "stream": "dev",
       "work_type": "implement"
     },
     {
@@ -35962,6 +35965,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1465",
+      "initiative": "cc-alignment",
       "notes": "ADR-038 written. Key decisions: 7-type taxonomy supersedes 6-type from memory-taxonomy-sdd.md; dated naming for feedback_* only; brana memory write is the gateway; MEMORY.md auto-generated. Complements ADR-037 (enforcement).",
       "order": 0,
       "parent": "t-1464",
@@ -35990,6 +35994,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1466",
+      "initiative": "cc-alignment",
       "notes": null,
       "order": 0,
       "parent": "t-1464",
@@ -36045,6 +36050,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1468",
+      "initiative": "cc-alignment",
       "notes": null,
       "order": 0,
       "parent": "t-1467",
@@ -36073,6 +36079,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1469",
+      "initiative": "cc-alignment",
       "notes": null,
       "order": 0,
       "parent": "t-1467",
@@ -36127,6 +36134,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1471",
+      "initiative": "cc-alignment",
       "notes": null,
       "order": 0,
       "parent": "t-1470",
@@ -36209,6 +36217,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1474",
+      "initiative": "cc-alignment",
       "notes": null,
       "order": 0,
       "parent": "t-1473",
@@ -36320,6 +36329,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1478",
+      "initiative": "cc-alignment",
       "notes": null,
       "order": 0,
       "parent": "t-1476",
@@ -36884,797 +36894,797 @@
       "work_type": "research"
     },
     {
+      "blocked_by": [],
+      "branch": null,
+      "completed": null,
+      "context": "Research 2026-05-19 confirmed CC Tasks (v2.1.16+) are file-based and persist across sessions. Cross-session task list sharing uses CLAUDE_CODE_TASK_LIST_ID env var. For regular interactive sessions with subagents spawned via Agent(), they share the session and already see the same task list — no wiring needed. The untapped use case: headless runs (scheduler, cron, /loop) and Agent Teams scenarios where the automated agent needs to share a task list with the user's main session. Before wiring: confirm how task list IDs are generated, whether they survive across cron invocations, and whether brana's scheduler hook exposes a way to forward the ID. Source: docs/research/2026-05-19-cc-tasks-vs-ruflo-pm-evaluation.md",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "S",
+      "github_issue": null,
       "id": "t-1500",
-      "subject": "Investigate CLAUDE_CODE_TASK_LIST_ID for headless/scheduled brana runs",
+      "notes": null,
+      "order": 0,
+      "parent": null,
+      "priority": "P2",
+      "started": null,
       "status": "pending",
       "stream": "research",
-      "type": "task",
+      "subject": "Investigate CLAUDE_CODE_TASK_LIST_ID for headless/scheduled brana runs",
       "tags": [
         "cc-tasks",
         "multi-agent",
         "scheduler",
         "headless"
       ],
-      "description": null,
-      "effort": "S",
-      "priority": "P2",
-      "parent": null,
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
-      "blocked_by": [],
-      "branch": null,
-      "context": "Research 2026-05-19 confirmed CC Tasks (v2.1.16+) are file-based and persist across sessions. Cross-session task list sharing uses CLAUDE_CODE_TASK_LIST_ID env var. For regular interactive sessions with subagents spawned via Agent(), they share the session and already see the same task list — no wiring needed. The untapped use case: headless runs (scheduler, cron, /loop) and Agent Teams scenarios where the automated agent needs to share a task list with the user's main session. Before wiring: confirm how task list IDs are generated, whether they survive across cron invocations, and whether brana's scheduler hook exposes a way to forward the ID. Source: docs/research/2026-05-19-cc-tasks-vs-ruflo-pm-evaluation.md",
-      "notes": null,
-      "order": 0,
-      "github_issue": null,
+      "type": "task",
       "work_type": "research"
     },
     {
-      "id": "t-1501",
-      "subject": "Brana Backlog Web UI",
-      "status": "pending",
-      "stream": "dev",
-      "type": "phase",
-      "tags": [
-        "web-ui",
-        "brana-mcp",
-        "nextjs"
-      ],
+      "blocked_by": [],
+      "branch": null,
+      "completed": null,
+      "context": "Web UI for the brana backlog. V1: thebrana project only, local-only (localhost:3000). Architecture: tasks.json → brana-mcp HTTP → Next.js app. Hybrid layout: Kanban board + CLI-feel list view. CC stays in terminal — no chat panel in V1. Brainstorm: docs/ideas/brana-backlog-web-ui.md. Three challenge rounds passed (PROCEED WITH CHANGES). Key decisions: (a) brana-mcp is the API not CC, (b) CLI shell-outs for MS2 read-only board before committing to Rust HTTP infra, (c) save_tasks must be atomic before any web layer development, (d) ADR defines latency threshold + Kanban column field + HTTP schema + UI test toolchain.",
+      "created": "2026-05-19",
       "description": null,
       "effort": "XL",
-      "priority": "P3",
-      "parent": null,
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
-      "blocked_by": [],
-      "branch": null,
-      "context": "Web UI for the brana backlog. V1: thebrana project only, local-only (localhost:3000). Architecture: tasks.json → brana-mcp HTTP → Next.js app. Hybrid layout: Kanban board + CLI-feel list view. CC stays in terminal — no chat panel in V1. Brainstorm: docs/ideas/brana-backlog-web-ui.md. Three challenge rounds passed (PROCEED WITH CHANGES). Key decisions: (a) brana-mcp is the API not CC, (b) CLI shell-outs for MS2 read-only board before committing to Rust HTTP infra, (c) save_tasks must be atomic before any web layer development, (d) ADR defines latency threshold + Kanban column field + HTTP schema + UI test toolchain.",
-      "notes": null,
-      "order": 0,
-      "github_issue": null
-    },
-    {
-      "id": "t-1502",
-      "subject": "MS1: Foundation — ADR + Atomicity",
-      "status": "pending",
-      "stream": "dev",
-      "type": "milestone",
-      "tags": [
-        "web-ui",
-        "brana-mcp",
-        "nextjs"
-      ],
-      "description": null,
-      "effort": null,
-      "priority": "P3",
-      "parent": "t-1501",
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
-      "blocked_by": [],
-      "branch": null,
-      "context": "Exit criterion: committed ADR + recorded benchmark result. save_tasks must be atomic before MS2 work begins. ADR must define: transport layer, latency threshold (e.g. <300ms P95 = shell-out, >=300ms = HTTP sidecar), Kanban column field, HTTP response envelope schema, UI test toolchain, multi-project extension surface.",
-      "notes": null,
-      "order": 0,
-      "github_issue": null
-    },
-    {
-      "id": "t-1503",
-      "subject": "MS2: Read-only Board (CLI-backed)",
-      "status": "pending",
-      "stream": "dev",
-      "type": "milestone",
-      "tags": [
-        "web-ui",
-        "brana-mcp",
-        "nextjs"
-      ],
-      "description": null,
-      "effort": null,
-      "priority": "P3",
-      "parent": "t-1501",
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
-      "blocked_by": [],
-      "branch": null,
-      "context": "CLI shell-outs validate the UI model before committing to Rust HTTP infra. Blocked by MS1 ADR completion. Board renders brana backlog query --output json. Validates Kanban model at 1488-task volume before HTTP investment.",
-      "notes": null,
-      "order": 0,
-      "github_issue": null
-    },
-    {
-      "id": "t-1504",
-      "subject": "MS3: HTTP Transport Layer",
-      "status": "pending",
-      "stream": "dev",
-      "type": "milestone",
-      "tags": [
-        "web-ui",
-        "brana-mcp",
-        "nextjs"
-      ],
-      "description": null,
-      "effort": null,
-      "priority": "P3",
-      "parent": "t-1501",
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
-      "blocked_by": [],
-      "branch": null,
-      "context": "Greenfield Rust HTTP server per ADR decision (CLI shell-out sidecar OR axum sidecar — NOT brana-mcp+axum, pre-rejected: stdio-only). Write endpoints serialized. Wire MS2 board to HTTP only after all tests pass.",
-      "notes": null,
-      "order": 0,
-      "github_issue": null
-    },
-    {
-      "id": "t-1505",
-      "subject": "MS4: Write Operations",
-      "status": "pending",
-      "stream": "dev",
-      "type": "milestone",
-      "tags": [
-        "web-ui",
-        "brana-mcp",
-        "nextjs"
-      ],
-      "description": null,
-      "effort": null,
-      "priority": "P3",
-      "parent": "t-1501",
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
-      "blocked_by": [],
-      "branch": null,
-      "context": "Blocked by MS3 HTTP layer. All writes go through the HTTP layer with serialization. UI test toolchain per ADR decision (Playwright or Vitest+Testing Library).",
-      "notes": null,
-      "order": 0,
       "github_issue": null,
+      "id": "t-1501",
+      "notes": null,
+      "order": 0,
+      "parent": null,
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "stream": "dev",
+      "subject": "Brana Backlog Web UI",
+      "tags": [
+        "web-ui",
+        "brana-mcp",
+        "nextjs"
+      ],
+      "type": "phase"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "completed": null,
+      "context": "Exit criterion: committed ADR + recorded benchmark result. save_tasks must be atomic before MS2 work begins. ADR must define: transport layer, latency threshold (e.g. <300ms P95 = shell-out, >=300ms = HTTP sidecar), Kanban column field, HTTP response envelope schema, UI test toolchain, multi-project extension surface.",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": null,
+      "github_issue": null,
+      "id": "t-1502",
+      "notes": null,
+      "order": 0,
+      "parent": "t-1501",
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "stream": "dev",
+      "subject": "MS1: Foundation — ADR + Atomicity",
+      "tags": [
+        "web-ui",
+        "brana-mcp",
+        "nextjs"
+      ],
+      "type": "milestone"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "completed": null,
+      "context": "CLI shell-outs validate the UI model before committing to Rust HTTP infra. Blocked by MS1 ADR completion. Board renders brana backlog query --output json. Validates Kanban model at 1488-task volume before HTTP investment.",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": null,
+      "github_issue": null,
+      "id": "t-1503",
+      "notes": null,
+      "order": 0,
+      "parent": "t-1501",
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "stream": "dev",
+      "subject": "MS2: Read-only Board (CLI-backed)",
+      "tags": [
+        "web-ui",
+        "brana-mcp",
+        "nextjs"
+      ],
+      "type": "milestone"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "completed": null,
+      "context": "Greenfield Rust HTTP server per ADR decision (CLI shell-out sidecar OR axum sidecar — NOT brana-mcp+axum, pre-rejected: stdio-only). Write endpoints serialized. Wire MS2 board to HTTP only after all tests pass.",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": null,
+      "github_issue": null,
+      "id": "t-1504",
+      "notes": null,
+      "order": 0,
+      "parent": "t-1501",
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "stream": "dev",
+      "subject": "MS3: HTTP Transport Layer",
+      "tags": [
+        "web-ui",
+        "brana-mcp",
+        "nextjs"
+      ],
+      "type": "milestone"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "completed": null,
+      "context": "Blocked by MS3 HTTP layer. All writes go through the HTTP layer with serialization. UI test toolchain per ADR decision (Playwright or Vitest+Testing Library).",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": null,
+      "github_issue": null,
+      "id": "t-1505",
+      "notes": null,
+      "order": 0,
+      "parent": "t-1501",
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "stream": "dev",
+      "subject": "MS4: Write Operations",
+      "tags": [
+        "web-ui",
+        "brana-mcp",
+        "nextjs"
+      ],
+      "type": "milestone",
       "work_type": "implement"
     },
     {
-      "id": "t-1506",
-      "subject": "MS5: Docs & Polish",
-      "status": "pending",
-      "stream": "dev",
-      "type": "milestone",
-      "tags": [
-        "web-ui",
-        "brana-mcp",
-        "nextjs"
-      ],
+      "blocked_by": [],
+      "branch": null,
+      "completed": null,
+      "context": "SDD + user docs + multi-project extension surface defined in ADR (one-liner, no impl). Blocked by MS4 write operations.",
+      "created": "2026-05-19",
       "description": null,
       "effort": null,
-      "priority": "P3",
+      "github_issue": null,
+      "id": "t-1506",
+      "notes": null,
+      "order": 0,
       "parent": "t-1501",
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
-      "blocked_by": [],
-      "branch": null,
-      "context": "SDD + user docs + multi-project extension surface defined in ADR (one-liner, no impl). Blocked by MS4 write operations.",
-      "notes": null,
-      "order": 0,
-      "github_issue": null
-    },
-    {
-      "id": "t-1507",
-      "subject": "Make save_tasks atomic (temp file + rename)",
-      "status": "pending",
-      "stream": "dev",
-      "type": "task",
-      "tags": [
-        "web-ui",
-        "brana-mcp",
-        "nextjs",
-        "rust"
-      ],
-      "description": null,
-      "effort": "S",
       "priority": "P3",
-      "parent": "t-1502",
-      "created": "2026-05-19",
       "started": null,
-      "completed": null,
-      "blocked_by": [],
-      "branch": null,
-      "context": "PREREQUISITE for all web layer development. tasks.rs:472 uses bare fs::write — no temp file, no rename, no advisory lock. Three concurrent writers (CC terminal + brana CLI + web UI) on 1488-task JSON = data loss risk. Fix: write to tmp path, fsync, atomic rename. Must land before MS2 development begins — corruption window is open during active development, not just after HTTP writes. See challenger round 3 finding.",
-      "notes": null,
-      "order": 0,
-      "github_issue": null
-    },
-    {
-      "id": "t-1508",
-      "subject": "Benchmark: brana backlog query --output json at 1488-task volume",
       "status": "pending",
       "stream": "dev",
-      "type": "task",
+      "subject": "MS5: Docs & Polish",
       "tags": [
         "web-ui",
         "brana-mcp",
         "nextjs"
       ],
-      "description": null,
-      "effort": "XS",
-      "priority": "P3",
-      "parent": "t-1502",
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
-      "blocked_by": [],
-      "branch": null,
-      "context": "Run: time brana backlog query --output json | wc -c. Record P95 latency. Result feeds ADR latency threshold decision. Threshold: <300ms P95 = proceed with CLI shell-outs in MS2; >=300ms = spike HTTP sidecar first. Without a numeric threshold, the gate is theater.",
-      "notes": null,
-      "order": 0,
-      "github_issue": null
+      "type": "milestone"
     },
     {
-      "id": "t-1509",
-      "subject": "Spike: transport layer options for brana backlog web UI",
+      "blocked_by": [],
+      "branch": null,
+      "completed": null,
+      "context": "PREREQUISITE for all web layer development. tasks.rs:472 uses bare fs::write — no temp file, no rename, no advisory lock. Three concurrent writers (CC terminal + brana CLI + web UI) on 1488-task JSON = data loss risk. Fix: write to tmp path, fsync, atomic rename. Must land before MS2 development begins — corruption window is open during active development, not just after HTTP writes. See challenger round 3 finding.",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "S",
+      "github_issue": null,
+      "id": "t-1507",
+      "notes": null,
+      "order": 0,
+      "parent": "t-1502",
+      "priority": "P3",
+      "started": null,
       "status": "pending",
       "stream": "dev",
-      "type": "task",
+      "subject": "Make save_tasks atomic (temp file + rename)",
       "tags": [
         "web-ui",
         "brana-mcp",
         "nextjs",
         "rust"
       ],
-      "description": null,
-      "effort": "S",
-      "priority": "P3",
-      "parent": "t-1502",
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
+      "type": "task"
+    },
+    {
       "blocked_by": [],
       "branch": null,
-      "context": "Evaluate two options only (brana-mcp+axum pre-rejected: stdio-only transport, not HTTP-capable): (A) CLI shell-out sidecar — Next.js API routes shell out to brana CLI, return JSON. Simple, no Rust HTTP server. (B) Thin axum sidecar — new crate (brana-http?) wraps brana-core, serves HTTP. Clean but adds ~1-2 weeks Rust infra. Output: recommendation + tradeoffs for ADR decision. Feeds ADR.",
+      "completed": null,
+      "context": "Run: time brana backlog query --output json | wc -c. Record P95 latency. Result feeds ADR latency threshold decision. Threshold: <300ms P95 = proceed with CLI shell-outs in MS2; >=300ms = spike HTTP sidecar first. Without a numeric threshold, the gate is theater.",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "XS",
+      "github_issue": null,
+      "id": "t-1508",
       "notes": null,
       "order": 0,
+      "parent": "t-1502",
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "stream": "dev",
+      "subject": "Benchmark: brana backlog query --output json at 1488-task volume",
+      "tags": [
+        "web-ui",
+        "brana-mcp",
+        "nextjs"
+      ],
+      "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "completed": null,
+      "context": "Evaluate two options only (brana-mcp+axum pre-rejected: stdio-only transport, not HTTP-capable): (A) CLI shell-out sidecar — Next.js API routes shell out to brana CLI, return JSON. Simple, no Rust HTTP server. (B) Thin axum sidecar — new crate (brana-http?) wraps brana-core, serves HTTP. Clean but adds ~1-2 weeks Rust infra. Output: recommendation + tradeoffs for ADR decision. Feeds ADR.",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "S",
       "github_issue": null,
+      "id": "t-1509",
+      "notes": null,
+      "order": 0,
+      "parent": "t-1502",
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "stream": "dev",
+      "subject": "Spike: transport layer options for brana backlog web UI",
+      "tags": [
+        "web-ui",
+        "brana-mcp",
+        "nextjs",
+        "rust"
+      ],
+      "type": "task",
       "work_type": "research"
     },
     {
+      "blocked_by": [
+        "t-1508",
+        "t-1509"
+      ],
+      "branch": null,
+      "completed": null,
+      "context": "ADR must decide and document: (1) Transport layer: CLI shell-out vs axum sidecar — per spike t-1509 + benchmark t-1508. Include numeric latency threshold (e.g. <300ms P95 = shell-out proceed). (2) Kanban column field: which field drives swim lanes — status, classify() synthetic, or stream? (3) HTTP response envelope schema: must match brana backlog query --output json shape so MS2 shell-out components migrate cleanly to HTTP. (4) UI test toolchain: Playwright vs Vitest+Testing Library — with setup plan. (5) Multi-project extension surface: one-liner defining what extension points are reserved (separate tasks.json paths? project field filter?). All MS2+ work blocks on this ADR. Exit criterion for MS1: ADR committed + benchmark result recorded.",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "S",
+      "github_issue": null,
       "id": "t-1510",
-      "subject": "[DDD] ADR: brana backlog web UI — transport, atomicity, schema, toolchain",
+      "notes": null,
+      "order": 0,
+      "parent": "t-1502",
+      "priority": "P3",
+      "started": null,
       "status": "pending",
       "stream": "dev",
-      "type": "task",
+      "subject": "[DDD] ADR: brana backlog web UI — transport, atomicity, schema, toolchain",
       "tags": [
         "web-ui",
         "brana-mcp",
         "nextjs",
         "architecture"
       ],
-      "description": null,
-      "effort": "S",
-      "priority": "P3",
-      "parent": "t-1502",
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
-      "blocked_by": [
-        "t-1508",
-        "t-1509"
-      ],
-      "branch": null,
-      "context": "ADR must decide and document: (1) Transport layer: CLI shell-out vs axum sidecar — per spike t-1509 + benchmark t-1508. Include numeric latency threshold (e.g. <300ms P95 = shell-out proceed). (2) Kanban column field: which field drives swim lanes — status, classify() synthetic, or stream? (3) HTTP response envelope schema: must match brana backlog query --output json shape so MS2 shell-out components migrate cleanly to HTTP. (4) UI test toolchain: Playwright vs Vitest+Testing Library — with setup plan. (5) Multi-project extension surface: one-liner defining what extension points are reserved (separate tasks.json paths? project field filter?). All MS2+ work blocks on this ADR. Exit criterion for MS1: ADR committed + benchmark result recorded.",
-      "notes": null,
-      "order": 0,
-      "github_issue": null
+      "type": "task"
     },
     {
+      "blocked_by": [
+        "t-1510"
+      ],
+      "branch": null,
+      "completed": null,
+      "context": "Per ADR column-field decision. Design must account for: (a) blocked tasks as a sub-state of pending (not a separate column), (b) phases/milestones as a grouping dimension, (c) readability at 1488-task volume — must include filtering by stream/phase/tag. Output: wireframe + column mapping doc. Blocked by ADR t-1510.",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "S",
+      "github_issue": null,
       "id": "t-1511",
-      "subject": "Design Kanban model + wireframe (tasks.json → swim lanes)",
+      "notes": null,
+      "order": 0,
+      "parent": "t-1503",
+      "priority": "P3",
+      "started": null,
       "status": "pending",
       "stream": "dev",
-      "type": "task",
+      "subject": "Design Kanban model + wireframe (tasks.json → swim lanes)",
       "tags": [
         "web-ui",
         "brana-mcp",
         "nextjs",
         "design"
       ],
-      "description": null,
-      "effort": "S",
-      "priority": "P3",
-      "parent": "t-1503",
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
-      "blocked_by": [
-        "t-1510"
-      ],
-      "branch": null,
-      "context": "Per ADR column-field decision. Design must account for: (a) blocked tasks as a sub-state of pending (not a separate column), (b) phases/milestones as a grouping dimension, (c) readability at 1488-task volume — must include filtering by stream/phase/tag. Output: wireframe + column mapping doc. Blocked by ADR t-1510.",
-      "notes": null,
-      "order": 0,
-      "github_issue": null,
+      "type": "task",
       "work_type": "implement"
     },
     {
-      "id": "t-1512",
-      "subject": "Scaffold Next.js app (local, localhost:3000, no auth)",
-      "status": "pending",
-      "stream": "dev",
-      "type": "task",
-      "tags": [
-        "web-ui",
-        "brana-mcp",
-        "nextjs"
-      ],
-      "description": null,
-      "effort": "S",
-      "priority": "P3",
-      "parent": "t-1503",
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
       "blocked_by": [
         "t-1510"
       ],
       "branch": null,
+      "completed": null,
       "context": "Next.js App Router, TypeScript, Tailwind. Local-only — no auth, no hosting config. Live in thebrana repo under system/web/ or a separate sibling dir per ADR decision. Dev server only for V1. shadcn/ui for components. Blocked by ADR t-1510.",
-      "notes": null,
-      "order": 0,
-      "github_issue": null
-    },
-    {
-      "id": "t-1513",
-      "subject": "Kanban board component via CLI shell-out",
-      "status": "pending",
-      "stream": "dev",
-      "type": "task",
-      "tags": [
-        "web-ui",
-        "brana-mcp",
-        "nextjs"
-      ],
-      "description": null,
-      "effort": "M",
-      "priority": "P3",
-      "parent": "t-1503",
       "created": "2026-05-19",
-      "started": null,
-      "completed": null,
-      "blocked_by": [
-        "t-1511",
-        "t-1512"
-      ],
-      "branch": null,
-      "context": "Renders brana backlog output as Kanban swim lanes. Data source: Next.js API route shells out to brana backlog query --output json, returns JSON to client. Swim lanes per ADR column-field decision. Must handle blocked sub-state, phase grouping, and filtering by stream/tag. HTTP response envelope schema per ADR must be respected so migration to HTTP sidecar in MS3 is a transport swap, not a schema change. Blocked by: t-1511 (wireframe), t-1512 (scaffold).",
-      "notes": null,
-      "order": 0,
-      "github_issue": null
-    },
-    {
-      "id": "t-1514",
-      "subject": "CLI-feel list view via CLI shell-out",
-      "status": "pending",
-      "stream": "dev",
-      "type": "task",
-      "tags": [
-        "web-ui",
-        "brana-mcp",
-        "nextjs"
-      ],
       "description": null,
-      "effort": "M",
-      "priority": "P3",
-      "parent": "t-1503",
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
-      "blocked_by": [
-        "t-1511",
-        "t-1512"
-      ],
-      "branch": null,
-      "context": "Sortable, filterable task list — feels like brana backlog list but in the browser. Filters: stream, phase, tag, status, priority. Sort: priority, created, effort. Same CLI shell-out pattern as Kanban board. Blocked by: t-1511 (wireframe), t-1512 (scaffold).",
-      "notes": null,
-      "order": 0,
-      "github_issue": null
-    },
-    {
-      "id": "t-1515",
-      "subject": "[TDD] Tests: HTTP read endpoints (tasks, stats, query, search)",
-      "status": "pending",
-      "stream": "dev",
-      "type": "task",
-      "tags": [
-        "web-ui",
-        "brana-mcp",
-        "nextjs",
-        "rust",
-        "tdd"
-      ],
-      "description": null,
-      "effort": "M",
-      "priority": "P3",
-      "parent": "t-1504",
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
-      "blocked_by": [
-        "t-1510"
-      ],
-      "branch": null,
-      "context": "Write failing tests for HTTP read endpoints before implementation. Endpoints: GET /tasks (query with filters), GET /tasks/stats, GET /tasks/:id, GET /tasks/search?q=. Response envelope schema per ADR t-1510 — must match shape produced by MS2 CLI shell-outs so board migration is a transport swap only. Blocked by ADR t-1510.",
-      "notes": null,
-      "order": 0,
-      "github_issue": null
-    },
-    {
-      "id": "t-1516",
-      "subject": "[TDD] Tests: HTTP write endpoints (set, add)",
-      "status": "pending",
-      "stream": "dev",
-      "type": "task",
-      "tags": [
-        "web-ui",
-        "brana-mcp",
-        "nextjs",
-        "rust",
-        "tdd"
-      ],
-      "description": null,
-      "effort": "M",
-      "priority": "P3",
-      "parent": "t-1504",
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
-      "blocked_by": [
-        "t-1510"
-      ],
-      "branch": null,
-      "context": "Write failing tests for HTTP write endpoints before implementation. Endpoints: PATCH /tasks/:id (field set), POST /tasks (add). Must verify write serialization: concurrent write requests are queued, not raced. Tests must cover: happy path, concurrent-write ordering, invalid field rejection. Blocked by ADR t-1510. Per TDD ordering fix from challenger round 2: write tests come before board wiring AND write implementation.",
-      "notes": null,
-      "order": 0,
+      "effort": "S",
       "github_issue": null,
+      "id": "t-1512",
+      "notes": null,
+      "order": 0,
+      "parent": "t-1503",
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "stream": "dev",
+      "subject": "Scaffold Next.js app (local, localhost:3000, no auth)",
+      "tags": [
+        "web-ui",
+        "brana-mcp",
+        "nextjs"
+      ],
+      "type": "task"
+    },
+    {
+      "blocked_by": [
+        "t-1511",
+        "t-1512"
+      ],
+      "branch": null,
+      "completed": null,
+      "context": "Renders brana backlog output as Kanban swim lanes. Data source: Next.js API route shells out to brana backlog query --output json, returns JSON to client. Swim lanes per ADR column-field decision. Must handle blocked sub-state, phase grouping, and filtering by stream/tag. HTTP response envelope schema per ADR must be respected so migration to HTTP sidecar in MS3 is a transport swap, not a schema change. Blocked by: t-1511 (wireframe), t-1512 (scaffold).",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "M",
+      "github_issue": null,
+      "id": "t-1513",
+      "notes": null,
+      "order": 0,
+      "parent": "t-1503",
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "stream": "dev",
+      "subject": "Kanban board component via CLI shell-out",
+      "tags": [
+        "web-ui",
+        "brana-mcp",
+        "nextjs"
+      ],
+      "type": "task"
+    },
+    {
+      "blocked_by": [
+        "t-1511",
+        "t-1512"
+      ],
+      "branch": null,
+      "completed": null,
+      "context": "Sortable, filterable task list — feels like brana backlog list but in the browser. Filters: stream, phase, tag, status, priority. Sort: priority, created, effort. Same CLI shell-out pattern as Kanban board. Blocked by: t-1511 (wireframe), t-1512 (scaffold).",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "M",
+      "github_issue": null,
+      "id": "t-1514",
+      "notes": null,
+      "order": 0,
+      "parent": "t-1503",
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "stream": "dev",
+      "subject": "CLI-feel list view via CLI shell-out",
+      "tags": [
+        "web-ui",
+        "brana-mcp",
+        "nextjs"
+      ],
+      "type": "task"
+    },
+    {
+      "blocked_by": [
+        "t-1510"
+      ],
+      "branch": null,
+      "completed": null,
+      "context": "Write failing tests for HTTP read endpoints before implementation. Endpoints: GET /tasks (query with filters), GET /tasks/stats, GET /tasks/:id, GET /tasks/search?q=. Response envelope schema per ADR t-1510 — must match shape produced by MS2 CLI shell-outs so board migration is a transport swap only. Blocked by ADR t-1510.",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "M",
+      "github_issue": null,
+      "id": "t-1515",
+      "notes": null,
+      "order": 0,
+      "parent": "t-1504",
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "stream": "dev",
+      "subject": "[TDD] Tests: HTTP read endpoints (tasks, stats, query, search)",
+      "tags": [
+        "web-ui",
+        "brana-mcp",
+        "nextjs",
+        "rust",
+        "tdd"
+      ],
+      "type": "task"
+    },
+    {
+      "blocked_by": [
+        "t-1510"
+      ],
+      "branch": null,
+      "completed": null,
+      "context": "Write failing tests for HTTP write endpoints before implementation. Endpoints: PATCH /tasks/:id (field set), POST /tasks (add). Must verify write serialization: concurrent write requests are queued, not raced. Tests must cover: happy path, concurrent-write ordering, invalid field rejection. Blocked by ADR t-1510. Per TDD ordering fix from challenger round 2: write tests come before board wiring AND write implementation.",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "M",
+      "github_issue": null,
+      "id": "t-1516",
+      "notes": null,
+      "order": 0,
+      "parent": "t-1504",
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "stream": "dev",
+      "subject": "[TDD] Tests: HTTP write endpoints (set, add)",
+      "tags": [
+        "web-ui",
+        "brana-mcp",
+        "nextjs",
+        "rust",
+        "tdd"
+      ],
+      "type": "task",
       "work_type": "implement"
     },
     {
-      "id": "t-1517",
-      "subject": "Implement HTTP read endpoints (transport layer per ADR)",
-      "status": "pending",
-      "stream": "dev",
-      "type": "task",
-      "tags": [
-        "web-ui",
-        "brana-mcp",
-        "nextjs",
-        "rust"
-      ],
-      "description": null,
-      "effort": "M",
-      "priority": "P3",
-      "parent": "t-1504",
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
       "blocked_by": [
         "t-1515"
       ],
       "branch": null,
+      "completed": null,
       "context": "Implement per transport decision in ADR t-1510: either (A) Next.js API route shell-out sidecar or (B) thin axum HTTP crate (brana-http?) wrapping brana-core. Read endpoints: GET /tasks, /tasks/stats, /tasks/:id, /tasks/search. Response envelope schema per ADR. Blocked by: t-1515 (TDD tests must exist first).",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "M",
+      "github_issue": null,
+      "id": "t-1517",
       "notes": null,
       "order": 0,
-      "github_issue": null,
-      "work_type": "implement"
-    },
-    {
-      "id": "t-1518",
-      "subject": "Implement HTTP write endpoints + write serialization",
+      "parent": "t-1504",
+      "priority": "P3",
+      "started": null,
       "status": "pending",
       "stream": "dev",
-      "type": "task",
+      "subject": "Implement HTTP read endpoints (transport layer per ADR)",
       "tags": [
         "web-ui",
         "brana-mcp",
         "nextjs",
         "rust"
       ],
-      "description": null,
-      "effort": "M",
-      "priority": "P3",
-      "parent": "t-1504",
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
+      "type": "task",
+      "work_type": "implement"
+    },
+    {
       "blocked_by": [
         "t-1516",
         "t-1507",
         "t-1517"
       ],
       "branch": null,
+      "completed": null,
       "context": "Write endpoints: PATCH /tasks/:id, POST /tasks. Write serialization: all mutations queued through a single serialized path (tokio Mutex or request queue) to prevent last-write-wins race on tasks.json. Requires save_tasks to already be atomic (t-1507 must be complete). Blocked by: t-1516 (TDD write tests), t-1507 (atomic save_tasks), t-1517 (read impl — share server setup).",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "M",
+      "github_issue": null,
+      "id": "t-1518",
       "notes": null,
       "order": 0,
-      "github_issue": null,
-      "work_type": "implement"
-    },
-    {
-      "id": "t-1519",
-      "subject": "Wire MS2 board to HTTP (replace CLI shell-outs)",
+      "parent": "t-1504",
+      "priority": "P3",
+      "started": null,
       "status": "pending",
       "stream": "dev",
-      "type": "task",
+      "subject": "Implement HTTP write endpoints + write serialization",
       "tags": [
         "web-ui",
         "brana-mcp",
-        "nextjs"
+        "nextjs",
+        "rust"
       ],
-      "description": null,
-      "effort": "S",
-      "priority": "P3",
-      "parent": "t-1504",
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
+      "type": "task",
+      "work_type": "implement"
+    },
+    {
       "blocked_by": [
         "t-1517",
         "t-1518"
       ],
       "branch": null,
-      "context": "Replace Next.js API route shell-outs with HTTP client calls to the transport layer. Should be a transport swap only — component code unchanged because response envelope schema was locked in ADR and MS2 shell-outs produced matching shape. Blocked by: t-1517 (read impl), t-1518 (write impl). This is the last step in MS3 — all tests must pass first.",
-      "notes": null,
-      "order": 0,
-      "github_issue": null,
-      "work_type": "implement"
-    },
-    {
-      "id": "t-1520",
-      "subject": "Task status mutation via drag (HTTP write, serialized)",
-      "status": "pending",
-      "stream": "dev",
-      "type": "task",
-      "tags": [
-        "web-ui",
-        "brana-mcp",
-        "nextjs"
-      ],
-      "description": null,
-      "effort": "M",
-      "priority": "P3",
-      "parent": "t-1505",
-      "created": "2026-05-19",
-      "started": null,
       "completed": null,
-      "blocked_by": [
-        "t-1519"
-      ],
-      "branch": null,
-      "context": "Drag card across swim lane → PATCH /tasks/:id status field. Write goes through serialized HTTP write endpoint (t-1518). Optimistic UI update with rollback on error. Must handle blocked tasks (cannot drag blocked task to in_progress without unblocking first — surface warning). Blocked by: t-1519 (wire to HTTP).",
-      "notes": null,
-      "order": 0,
-      "github_issue": null,
-      "work_type": "implement"
-    },
-    {
-      "id": "t-1521",
-      "subject": "Task creation form",
-      "status": "pending",
-      "stream": "dev",
-      "type": "task",
-      "tags": [
-        "web-ui",
-        "brana-mcp",
-        "nextjs"
-      ],
+      "context": "Replace Next.js API route shell-outs with HTTP client calls to the transport layer. Should be a transport swap only — component code unchanged because response envelope schema was locked in ADR and MS2 shell-outs produced matching shape. Blocked by: t-1517 (read impl), t-1518 (write impl). This is the last step in MS3 — all tests must pass first.",
+      "created": "2026-05-19",
       "description": null,
       "effort": "S",
-      "priority": "P3",
-      "parent": "t-1505",
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
-      "blocked_by": [
-        "t-1519"
-      ],
-      "branch": null,
-      "context": "Form to create new tasks via POST /tasks. Fields: subject (required), kind, stream, effort, tags, parent (milestone selector). Maps to backlog_add schema. Blocked by: t-1519 (wire to HTTP).",
+      "github_issue": null,
+      "id": "t-1519",
       "notes": null,
       "order": 0,
-      "github_issue": null
-    },
-    {
-      "id": "t-1522",
-      "subject": "Task detail panel with inline edit",
+      "parent": "t-1504",
+      "priority": "P3",
+      "started": null,
       "status": "pending",
       "stream": "dev",
-      "type": "task",
+      "subject": "Wire MS2 board to HTTP (replace CLI shell-outs)",
       "tags": [
         "web-ui",
         "brana-mcp",
         "nextjs"
       ],
-      "description": null,
-      "effort": "M",
-      "priority": "P3",
-      "parent": "t-1505",
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
+      "type": "task",
+      "work_type": "implement"
+    },
+    {
       "blocked_by": [
         "t-1519"
       ],
       "branch": null,
-      "context": "Side panel shows full task detail on click. Inline edit: subject, context, notes, priority, effort, tags. Each edit → PATCH /tasks/:id via serialized write endpoint. Show blocked_by chain with links. Blocked by: t-1519 (wire to HTTP).",
+      "completed": null,
+      "context": "Drag card across swim lane → PATCH /tasks/:id status field. Write goes through serialized HTTP write endpoint (t-1518). Optimistic UI update with rollback on error. Must handle blocked tasks (cannot drag blocked task to in_progress without unblocking first — surface warning). Blocked by: t-1519 (wire to HTTP).",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "M",
+      "github_issue": null,
+      "id": "t-1520",
       "notes": null,
       "order": 0,
-      "github_issue": null
-    },
-    {
-      "id": "t-1523",
-      "subject": "[TDD] UI tests for write operations",
+      "parent": "t-1505",
+      "priority": "P3",
+      "started": null,
       "status": "pending",
       "stream": "dev",
+      "subject": "Task status mutation via drag (HTTP write, serialized)",
+      "tags": [
+        "web-ui",
+        "brana-mcp",
+        "nextjs"
+      ],
       "type": "task",
+      "work_type": "implement"
+    },
+    {
+      "blocked_by": [
+        "t-1519"
+      ],
+      "branch": null,
+      "completed": null,
+      "context": "Form to create new tasks via POST /tasks. Fields: subject (required), kind, stream, effort, tags, parent (milestone selector). Maps to backlog_add schema. Blocked by: t-1519 (wire to HTTP).",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "S",
+      "github_issue": null,
+      "id": "t-1521",
+      "notes": null,
+      "order": 0,
+      "parent": "t-1505",
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "stream": "dev",
+      "subject": "Task creation form",
+      "tags": [
+        "web-ui",
+        "brana-mcp",
+        "nextjs"
+      ],
+      "type": "task"
+    },
+    {
+      "blocked_by": [
+        "t-1519"
+      ],
+      "branch": null,
+      "completed": null,
+      "context": "Side panel shows full task detail on click. Inline edit: subject, context, notes, priority, effort, tags. Each edit → PATCH /tasks/:id via serialized write endpoint. Show blocked_by chain with links. Blocked by: t-1519 (wire to HTTP).",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "M",
+      "github_issue": null,
+      "id": "t-1522",
+      "notes": null,
+      "order": 0,
+      "parent": "t-1505",
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "stream": "dev",
+      "subject": "Task detail panel with inline edit",
+      "tags": [
+        "web-ui",
+        "brana-mcp",
+        "nextjs"
+      ],
+      "type": "task"
+    },
+    {
+      "blocked_by": [
+        "t-1519",
+        "t-1510"
+      ],
+      "branch": null,
+      "completed": null,
+      "context": "UI tests per toolchain decision in ADR t-1510 (Playwright or Vitest+Testing Library). Cover: drag-to-status happy path, blocked-task drag warning, task creation form submit, inline edit fields. Toolchain setup (dev dep + CI config) included in this task. Blocked by: t-1519 (wire to HTTP) and t-1510 (toolchain decision).",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "M",
+      "github_issue": null,
+      "id": "t-1523",
+      "notes": null,
+      "order": 0,
+      "parent": "t-1505",
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "stream": "dev",
+      "subject": "[TDD] UI tests for write operations",
       "tags": [
         "web-ui",
         "brana-mcp",
         "nextjs",
         "tdd"
       ],
-      "description": null,
-      "effort": "M",
-      "priority": "P3",
-      "parent": "t-1505",
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
-      "blocked_by": [
-        "t-1519",
-        "t-1510"
-      ],
-      "branch": null,
-      "context": "UI tests per toolchain decision in ADR t-1510 (Playwright or Vitest+Testing Library). Cover: drag-to-status happy path, blocked-task drag warning, task creation form submit, inline edit fields. Toolchain setup (dev dep + CI config) included in this task. Blocked by: t-1519 (wire to HTTP) and t-1510 (toolchain decision).",
-      "notes": null,
-      "order": 0,
-      "github_issue": null,
+      "type": "task",
       "work_type": "implement"
     },
     {
-      "id": "t-1524",
-      "subject": "[SDD] docs/architecture: brana backlog web layer diagram",
-      "status": "pending",
-      "stream": "ops",
-      "type": "task",
-      "tags": [
-        "web-ui",
-        "brana-mcp",
-        "nextjs",
-        "docs"
-      ],
-      "description": null,
-      "effort": "S",
-      "priority": "P3",
-      "parent": "t-1506",
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
       "blocked_by": [
         "t-1523"
       ],
       "branch": null,
+      "completed": null,
       "context": "Update docs/architecture/ with web layer diagram: tasks.json → HTTP transport → Next.js. Show write serialization path, save_tasks atomicity, CLI shell-out vs HTTP sidecar choice. Blocked by MS4 write operations (all four MS4 tasks done).",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "S",
+      "github_issue": null,
+      "id": "t-1524",
       "notes": null,
       "order": 0,
-      "github_issue": null
-    },
-    {
-      "id": "t-1525",
-      "subject": "[Docs] Generate docs/guide/features/backlog-ui.md",
+      "parent": "t-1506",
+      "priority": "P3",
+      "started": null,
       "status": "pending",
       "stream": "ops",
-      "type": "task",
+      "subject": "[SDD] docs/architecture: brana backlog web layer diagram",
       "tags": [
         "web-ui",
         "brana-mcp",
         "nextjs",
         "docs"
       ],
-      "description": null,
-      "effort": "S",
-      "priority": "P3",
-      "parent": "t-1506",
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
+      "type": "task"
+    },
+    {
       "blocked_by": [
         "t-1523"
       ],
       "branch": null,
+      "completed": null,
       "context": "User guide for the backlog web UI. Cover: how to start (npm run dev), Kanban board usage, list view filters, creating/editing tasks, known limitations (single project, local-only). Blocked by MS4 write operations.",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "S",
+      "github_issue": null,
+      "id": "t-1525",
       "notes": null,
       "order": 0,
-      "github_issue": null,
+      "parent": "t-1506",
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "stream": "ops",
+      "subject": "[Docs] Generate docs/guide/features/backlog-ui.md",
+      "tags": [
+        "web-ui",
+        "brana-mcp",
+        "nextjs",
+        "docs"
+      ],
+      "type": "task",
       "work_type": "implement"
     },
     {
+      "blocked_by": [
+        "t-1523"
+      ],
+      "branch": null,
+      "completed": null,
+      "context": "Append to ADR t-1510: one-liner defining multi-project extension surface (e.g. separate tasks.json paths per project root, or project field filter in HTTP query API). No implementation — just ensures the V1 API contract doesn't foreclose the portfolio view planned for later. Blocked by MS4 (needs V1 API shape to be final before reserving extension points).",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "XS",
+      "github_issue": null,
       "id": "t-1526",
-      "subject": "Reserve multi-project extension points in ADR (no impl)",
+      "notes": null,
+      "order": 0,
+      "parent": "t-1506",
+      "priority": "P3",
+      "started": null,
       "status": "pending",
       "stream": "ops",
-      "type": "task",
+      "subject": "Reserve multi-project extension points in ADR (no impl)",
       "tags": [
         "web-ui",
         "brana-mcp",
         "nextjs",
         "architecture"
       ],
-      "description": null,
-      "effort": "XS",
-      "priority": "P3",
-      "parent": "t-1506",
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
-      "blocked_by": [
-        "t-1523"
-      ],
-      "branch": null,
-      "context": "Append to ADR t-1510: one-liner defining multi-project extension surface (e.g. separate tasks.json paths per project root, or project field filter in HTTP query API). No implementation — just ensures the V1 API contract doesn't foreclose the portfolio view planned for later. Blocked by MS4 (needs V1 API shape to be final before reserving extension points).",
-      "notes": null,
-      "order": 0,
-      "github_issue": null
+      "type": "task"
     },
     {
+      "blocked_by": [],
+      "branch": null,
+      "completed": null,
+      "context": "ADR-002 mislabeled CC Tasks as \"session-scoped\" for ~3 months because the framing carried forward the pre-v2.1.16 mental model. The decision was correct; only the option description was stale. Mitigation: add an optional frontmatter field `evaluates_against: CC v2.1.16 / ruflo v3.5` to ADR files that compare against third-party tools. This lets /brana:reconcile detect version drift and flag ADRs for a framing review when upstream has had a major release since the ADR was written. Pairs with the [reconcile] ADR framing-decay scope task (filed same session).",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "S",
+      "github_issue": null,
       "id": "t-1527",
-      "subject": "[adr] Add evaluates_against version-pin field to ADR frontmatter",
+      "notes": null,
+      "order": 0,
+      "parent": null,
+      "priority": "P2",
+      "started": null,
       "status": "pending",
       "stream": "dev",
-      "type": "task",
+      "subject": "[adr] Add evaluates_against version-pin field to ADR frontmatter",
       "tags": [
         "adr",
         "framing-decay",
         "reconcile"
       ],
-      "description": null,
-      "effort": "S",
-      "priority": "P2",
-      "parent": null,
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
-      "blocked_by": [],
-      "branch": null,
-      "context": "ADR-002 mislabeled CC Tasks as \"session-scoped\" for ~3 months because the framing carried forward the pre-v2.1.16 mental model. The decision was correct; only the option description was stale. Mitigation: add an optional frontmatter field `evaluates_against: CC v2.1.16 / ruflo v3.5` to ADR files that compare against third-party tools. This lets /brana:reconcile detect version drift and flag ADRs for a framing review when upstream has had a major release since the ADR was written. Pairs with the [reconcile] ADR framing-decay scope task (filed same session).",
-      "notes": null,
-      "order": 0,
-      "github_issue": null,
+      "type": "task",
       "work_type": "research"
     },
     {
+      "blocked_by": [],
+      "branch": null,
+      "completed": null,
+      "context": "ADR option lists that reference named third-party tools (CC, ruflo, MCP) can silently become wrong when the upstream platform ships a replacement primitive, even when the ADR decision stays correct. The scope would: (1) grep all ADR files for named tool references (CC, ruflo, Anthropic SDK, etc.), (2) check each ADR's write date against a known version changelog (or the evaluates_against frontmatter field if present), (3) flag ADRs whose option list references a tool version that predates a major upstream release by more than N months, (4) surface as reconcile warnings requiring a targeted /brana:research run. Pairs with [adr] version-pin frontmatter task (filed same session).",
+      "created": "2026-05-19",
+      "description": null,
+      "effort": "M",
+      "github_issue": null,
       "id": "t-1528",
-      "subject": "[reconcile] Add --scope adr-framing to /brana:reconcile for periodic framing-decay checks",
+      "notes": null,
+      "order": 0,
+      "parent": null,
+      "priority": "P2",
+      "started": null,
       "status": "pending",
       "stream": "dev",
-      "type": "task",
+      "subject": "[reconcile] Add --scope adr-framing to /brana:reconcile for periodic framing-decay checks",
       "tags": [
         "adr",
         "framing-decay",
         "reconcile"
       ],
-      "description": null,
-      "effort": "M",
-      "priority": "P2",
-      "parent": null,
-      "created": "2026-05-19",
-      "started": null,
-      "completed": null,
-      "blocked_by": [],
-      "branch": null,
-      "context": "ADR option lists that reference named third-party tools (CC, ruflo, MCP) can silently become wrong when the upstream platform ships a replacement primitive, even when the ADR decision stays correct. The scope would: (1) grep all ADR files for named tool references (CC, ruflo, Anthropic SDK, etc.), (2) check each ADR's write date against a known version changelog (or the evaluates_against frontmatter field if present), (3) flag ADRs whose option list references a tool version that predates a major upstream release by more than N months, (4) surface as reconcile warnings requiring a targeted /brana:research run. Pairs with [adr] version-pin frontmatter task (filed same session).",
-      "notes": null,
-      "order": 0,
-      "github_issue": null,
+      "type": "task",
       "work_type": "implement"
     }
   ],
