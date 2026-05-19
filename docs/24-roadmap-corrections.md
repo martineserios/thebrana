@@ -20,6 +20,7 @@
 
 | # | Error | Severity | Status | Comments |
 |---|---|---|---|---|
+| E2026-05-19-10 | thebrana: ADR-002 described CC Tasks as "session-scoped" — language accurate for deprecated `TodoWrite`/`TodoRead` but not for `TaskCreate/TaskUpdate/TaskGet/TaskList` (shipped CC v2.1.16 Jan 2026, one month before ADR-002 was written). Decision (tasks.json) was correct; rationale cited a non-existent constraint. | **Low** | code-fix | Fixed in commit `102f139`: Option 1 now accurately describes new Tasks system (file-based persistent, cross-session via `CLAUDE_CODE_TASK_LIST_ID`, no priority/tags/hierarchy, metadata gap via issue #21356). `guided-execution.md:52` stale "session-scoped" claim also fixed. |
 | E2026-05-19-9 | proyecto_anita: Adding new input modality (audio) to agent prompt without explicit "treat-as-text" inheritance rule caused agent to invent process-narration for the new path ("Entendí tu audio") — same narration behavior the session was trying to suppress | **Medium** | code-fix | Fixed same session: changed audio path response to direct answer, added ❌ "Entendí tu audio" → ✅ direct response example. Rule: any new modality introduction must include "respond identically to text — do not acknowledge the modality" as an explicit inline rule. Affected: `platform/agent/config/prompt/v4.md` (audio transcription section) |
 | E2026-05-19-8 | proyecto_anita: REGLA 1 narration suppression implemented as phrase-enumeration (9 ❌ examples) — insufficient; agent generalized to novel narration variants. Turn-level structural constraint ("zero text in same turn as tool call" with 2-turn ❌ vs 1-turn ✅ pattern) was the effective fix | **Medium** | code-fix | Fixed same session: commit 5384b62 added turn-level invariant to REGLA 1. Key insight: for LLM behavior constraints relative to tool calls, encode the structural invariant (turn shape), not just forbidden phrases. Phrase enumeration is reinforcement, not the primary rule. Affected: `platform/agent/config/prompt/v4.md` REGLA 1 |
 | E2026-05-19-7 | proyecto_anita: `.claude/rules/prompt-deploy-freshness.md` had 7 stale `config/agent-v4/` path references after ADR-041 moved config to `platform/agent/config/` — rule was misrouting operators to nonexistent paths | **High** | code-fix | Fixed 2026-05-19: all path references updated to `platform/agent/config/prompt/v4.md` and `platform/agent/config/tenants.yaml`. Rule: directory-move ADRs must include a path-sweep section grepping `tools/`, `.claude/rules/`, `docs/`, `Makefile` for old paths and patching all hits in the same PR as the move. Affected: `.claude/rules/prompt-deploy-freshness.md` |
@@ -3077,3 +3078,20 @@ This errata also applies as a process rule: **when a credential is not explicitl
 
 **Fix:** Add prominent banner to both rule files: "Agent v4 SoT = jwzpeaidchtdibcxttcm (labeled 'dev'). Legacy campaign SoT = zvpzgpjlhrvouquxorya (labeled 'prod'). Do not infer role from label." Long-term: align labels at GCP/Supabase level during ADR-040 org restructure.
 **Status:** pending — rule file updates needed
+
+---
+
+## E2026-05-19-10 — ADR-002 described CC Tasks as "session-scoped" — stale framing predating CC v2.1.16
+
+**Severity:** Low
+**Discovery:** 2026-05-19 — /brana:research on "Native CC Tasks vs Ruflo Tasks for PM use cases"
+**Affected files:** `docs/architecture/decisions/ADR-002-tasks-as-data-layer.md`, `system/skills/_shared/guided-execution.md:52`
+
+**Spec says:** ADR-002 (pre-fix): "Native Claude Code Tasks — metadata doesn't query, session-scoped, insufficient for hierarchy"
+**Reality:** That language accurately described the deprecated `TodoWrite`/`TodoRead` Todos system. The replacement `TaskCreate/TaskUpdate/TaskGet/TaskList` system shipped in CC v2.1.16 (2026-01-22) — one month before ADR-002 was written (2026-02-18). The new system is file-based persistent at `~/.claude/tasks/`, cross-session via `CLAUDE_CODE_TASK_LIST_ID`. Decision (tasks.json) was correct; the rationale cited a non-existent constraint.
+
+**Fix:** Corrected in commit `102f139`: Option 1 in ADR-002 now describes the new Tasks system accurately (file-based persistent, dependency edges, no priority/tags/hierarchy, metadata gap via issue #21356 closed not-planned). `guided-execution.md:52` stale "session-scoped" claim fixed. Doc 09 §9 Task Tools added in `brana-knowledge` commit `10787c9`.
+
+**Process note:** ADR framings that compare against third-party primitives (CC, ruflo, MCP) decay when the upstream platform ships replacement systems. The decision may remain correct while the framing becomes wrong. Mitigation: pin "evaluates against CC vX.Y.Z" in ADR frontmatter; `/brana:research` can detect framing decay even when the decision stands.
+
+**Status:** code-fix
