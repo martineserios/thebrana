@@ -41416,7 +41416,7 @@
     },
     {
       "blocked_by": [],
-      "branch": null,
+      "branch": "feat/t-1479-build-skill-gate-3signal",
       "completed": null,
       "context": "DESIGN UPDATED 2026-05-19 (brainstorm docs/ideas/build-skill-gate-hardening.md).\n\nGate condition in system/procedures/build.md step 4a is 'If NO skills results returned' — satisfied by adjacent-domain ruflo hits. Hit in t-1466: memory taxonomy patterns satisfied the gate, rust-skills was never loaded, agent wrote 469 lines of Rust tests without domain skill.\n\nREFINED DESIGN (supersedes domain-mapping-table approach):\nReplace heuristic with deterministic 3-signal detection chain + tech-aware result validation.\n\nSignal 1: Task description + explicit tags → tech keywords (\"Rust\", \"[rust]\", \"async\", \".rs\")\nSignal 2: Project manifest files — Cargo.toml → Rust, pyproject.toml/uv.lock → Python, package.json+tsconfig.json → TypeScript\nSignal 3: File paths in task description/context — extract extensions → tech inference\n\nSkill matching: scan installed SKILL.md files for keywords overlap with detected tech terms. No new field needed — keywords already populated across all code-strategy skills (audit 2026-05-19: 100% coverage, caveman is the only missing-keywords skill and it's excluded by design).\n\nTech-aware ruflo check: after matching skill via keywords, check if any ruflo result key overlaps with that skill's keywords list. No overlap = mandatory ask. User skip = append 'skill-gap-warning: {skill} available but not loaded' to task context.\n\nREMOVED: sibling task tags as detection signal (too fragile, human-authored, ambiguous scope).\nREMOVED: confidence threshold change (0.3 → 0.4) — threshold serves LOAD breadth; gate uses type-relevance not confidence.\n\nSUNSET: this procedure patch is interim. Remove steps 4 and 4a entirely when Skill Registry (t-608) ships. Add SUNSET comment to build.md.\n\nErrata E2026-05-19-4. See field-note_skill-load-domain-match.md in auto-memory.",
       "created": "2026-05-19",
@@ -41429,8 +41429,8 @@
       "order": 0,
       "parent": "t-1481",
       "priority": null,
-      "started": null,
-      "status": "pending",
+      "started": "2026-05-19",
+      "status": "in_progress",
       "stream": "tech-debt",
       "subject": "Harden build.md step 4a: 3-signal detection + SKILL.md keywords gate (replaces domain-mapping table)",
       "tags": [
@@ -41438,7 +41438,8 @@
         "follow-up",
         "build-procedure"
       ],
-      "type": "task"
+      "type": "task",
+      "strategy": "feature"
     },
     {
       "blocked_by": [],
