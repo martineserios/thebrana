@@ -44,7 +44,7 @@ fi
 echo ""
 echo "help:"
 output=$(run_sync help)
-if echo "$output" | grep -q "Usage:"; then
+if [[ "$output" == *"Usage:"* ]]; then
     pass "help prints usage"
 else
     fail "help does not print usage"
@@ -63,7 +63,7 @@ fi
 echo ""
 echo "push (idempotent):"
 output=$(run_sync push)
-if echo "$output" | grep -q "push complete"; then
+if [[ "$output" == *"push complete"* ]]; then
     pass "push completes without error"
 else
     fail "push failed: $output"
@@ -73,7 +73,7 @@ fi
 echo ""
 echo "pull (files in sync):"
 output=$(run_sync pull)
-if echo "$output" | grep -q "pull complete"; then
+if [[ "$output" == *"pull complete"* ]]; then
     pass "pull completes when files are identical"
 else
     fail "pull crashes when files are identical (set -e + sync_file return 1): $output"
@@ -93,7 +93,7 @@ if [ -f "$REPO_STATE/tasks-config.json" ] && [ -f "$CACHE_CONFIG" ]; then
     echo '{"theme":"minimal","_test_marker":true}' > "$REPO_STATE/tasks-config.json"
 
     output=$(run_sync pull)
-    if echo "$output" | grep -q "synced"; then
+    if [[ "$output" == *"synced"* ]]; then
         pass "pull reports syncing changed file"
     else
         fail "pull did not report sync: $output"
@@ -118,7 +118,7 @@ fi
 echo ""
 echo "snapshot:"
 output=$(run_sync snapshot "$REPO_ROOT")
-if echo "$output" | grep -qE "(snapshot|skipped)"; then
+if [[ "$output" == *"snapshot"* || "$output" == *"skipped"* ]]; then
     pass "snapshot runs or correctly skips"
 else
     # snapshot may produce no output if MEMORY.md is already in sync
@@ -133,7 +133,7 @@ fi
 echo ""
 echo "snapshot (no arg):"
 output=$(run_sync snapshot)
-if echo "$output" | grep -q "requires"; then
+if [[ "$output" == *"requires"* ]]; then
     pass "snapshot without arg shows error"
 else
     fail "snapshot without arg should report missing argument: $output"
@@ -143,7 +143,7 @@ fi
 echo ""
 echo "export:"
 output=$(run_sync export)
-if echo "$output" | grep -qE "(exported|skipped)"; then
+if [[ "$output" == *"exported"* || "$output" == *"skipped"* ]]; then
     pass "export runs (exported or skipped if no claude-flow)"
 else
     fail "export unexpected output: $output"
@@ -216,7 +216,7 @@ if [ -f "$SNAPSHOT_DIR/MEMORY-snapshot.md" ]; then
     pass "snapshot creates MEMORY-snapshot.md"
 else
     # May not exist if no CC MEMORY.md found for this project
-    if echo "$output" | grep -q "skipped"; then
+    if [[ "$output" == *"skipped"* ]]; then
         pass "snapshot correctly skipped (no MEMORY.md for project)"
     else
         fail "snapshot did not create MEMORY-snapshot.md"
@@ -238,7 +238,7 @@ if [ -f "$EXPORT_FILE" ]; then
     mv "$EXPORT_FILE" "/tmp/test-export-backup-$$.json"
 fi
 output=$(run_sync import)
-if echo "$output" | grep -q "skipped"; then
+if [[ "$output" == *"skipped"* ]]; then
     pass "import skips gracefully when no export file"
 else
     fail "import should report missing export: $output"
@@ -294,7 +294,7 @@ echo ""
 echo "import (with export file):"
 if [ -f "$EXPORT_FILE" ]; then
     output=$(run_sync import)
-    if echo "$output" | grep -qE "(import complete|skipped)"; then
+    if [[ "$output" == *"import complete"* || "$output" == *"skipped"* ]]; then
         pass "import runs (completed or skipped if no claude-flow)"
     else
         fail "import unexpected output: $output"

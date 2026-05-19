@@ -27,7 +27,7 @@ assert() {
 assert_not_contains() {
     local desc="$1" needle="$2" haystack="$3"
     TOTAL=$((TOTAL + 1))
-    if echo "$haystack" | grep -qF -- "$needle"; then
+    if [[ "$haystack" == *"$needle"* ]]; then
         echo "  FAIL: $desc (should NOT contain '$needle')"
         FAIL=$((FAIL + 1))
     else
@@ -39,7 +39,7 @@ assert_not_contains() {
 assert_contains() {
     local desc="$1" needle="$2" haystack="$3"
     TOTAL=$((TOTAL + 1))
-    if echo "$haystack" | grep -qF -- "$needle"; then
+    if [[ "$haystack" == *"$needle"* ]]; then
         echo "  PASS: $desc"
         PASS=$((PASS + 1))
     else

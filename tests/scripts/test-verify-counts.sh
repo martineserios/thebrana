@@ -22,7 +22,7 @@ assert_eq() {
 
 assert_contains() {
   local label="$1" needle="$2" haystack="$3"
-  if echo "$haystack" | grep -qF "$needle"; then
+  if [[ "$haystack" == *"$needle"* ]]; then
     echo "  PASS: $label"
     PASS=$((PASS + 1))
   else
