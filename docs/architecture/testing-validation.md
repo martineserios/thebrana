@@ -525,3 +525,15 @@ Source: t-1444, 2026-05-18
 ### 2026-05-18: Inline logic reproduction for new validate.sh checks — faster and safer than full-script tests
 New validate.sh checks can be tested by extracting just the count+threshold logic into helper functions and testing them independently, without running the full validate.sh (which is slow and has set -e traps). Pattern: `check_fn() { local file="$1"; if [ ! -f "$file" ]; then echo "skip"; return; fi; local count; count=$(grep -c '^## ' "$file"); if [ "$count" -ge "$warn_at" ]; then echo "warn:$count"; else echo "pass:$count"; fi }`. See `tests/scripts/test-validate-cap-checks.sh` (11 tests) and `test-validate-count-drift.sh` (same pattern). This is now the default for any new validate.sh check.
 Source: t-1451, session 2026-05-18
+
+### 2026-05-18: echo|grep-q is structurally wrong in test helpers even when exit-safe
+`echo "$x" | grep -qF "$needle"` inside an `if` condition is exit-safe under `set -e` (the `if` exemption), but still wrong: creates a subshell, pipefail semantics differ by usage site (if vs. assignment vs. command), and the intent is ambiguous (fixed-string vs regex). Default: `[[ "$haystack" == *"$needle"* ]]` for fixed-string substring, `[[ "$haystack" =~ (^|$'\n')key: ]]` for anchored multiline, `[[ "$a" == *x* || "$a" == *y* ]]` for ERE alternation. Reserve `echo | grep` for actual file/stream input. Check 32 in validate.sh now enforces this across `tests/` and `system/scripts/`.
+Source: t-1455, session 2026-05-18
+
+### 2026-05-18: New filter flags must consult ALL gate variables — grep RUN_* when adding a global filter
+When adding a new "select one check" flag (`--check N`) to a script that already has category-gate variables (`RUN_ASSUMPTIONS_ONLY`, `RUN_SCALE_TRIGGERS`, `RUN_SEMANTIC_ONLY`), the filter must be wired into every gate condition, not just the ones nearest the flag definition. Checks A-D missed `CHECK_FILTER` because they had their own gate far from the `--check` parsing. Fix pattern: grep for every `RUN_*=true|false` and `if !$RUN_*` line, add the filter clause to each; or extract `_run_*=true` flags in one block and set all to `false` when the filter is numeric. Tests T7-T10 in `test-validate-check-filter.sh` lock this behavior.
+Source: t-1456, session 2026-05-18
+
+### 2026-05-18: Background bash tests can silently mask the TDD red phase
+When a test run is backgrounded, the implementation can land before the "red" output is read. Tests pass but the red→green transition is never witnessed. A typo'd assertion or wrong helper path in the new test would still appear green. For TDD's red phase: run tests in foreground, or read the output file explicitly before starting implementation. Reserve background for slow integration suites that don't need the red confirmation.
+Source: t-1455/t-1456, session 2026-05-18
