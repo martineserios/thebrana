@@ -332,6 +332,45 @@ else
 fi
 rm -f "$TOXIC" "$CLEAN"
 
+# --- Test 17: sanitize_export_json redacts API_KEY/TOKEN/SECRET/PASSWORD/PRIVATE_KEY patterns (t-1460) ---
+echo ""
+echo "sanitize_export_json extended patterns (t-1460):"
+TOXIC2="/tmp/test-toxic2-$$.json"
+CLEAN2="/tmp/test-clean2-$$.json"
+cat > "$TOXIC2" <<'JSON'
+{"exported_at":"2026-01-01T00:00:00Z","namespaces":{"pattern":[
+  {"key":"p1","content":"KAPSO_API_KEY=placeholder-api-key-value"},
+  {"key":"p2","content":"export SECRET=placeholder-secret-value"},
+  {"key":"p3","content":"PASSWORD=placeholder-password-value"},
+  {"key":"p4","content":"TOKEN=placeholder-token-value"},
+  {"key":"p5","content":"PRIVATE_KEY=placeholder-private-key-value"}
+]}}
+JSON
+cp "$TOXIC2" "$CLEAN2"
+
+fn_type2=$(bash -c "source '$SYNC_SCRIPT' 2>/dev/null; type -t sanitize_export_json" 2>/dev/null) || true
+if [[ "$fn_type2" == "function" ]]; then
+    bash -c "source '$SYNC_SCRIPT' 2>/dev/null; sanitize_export_json '$CLEAN2'"
+    # Values use 'placeholder-*' so pre-commit Check 5 exclusion filter skips these lines
+    for kv in "API_KEY=placeholder-api-key-value" "SECRET=placeholder-secret-value" "PASSWORD=placeholder-password-value" "TOKEN=placeholder-token-value" "PRIVATE_KEY=placeholder-private-key-value"; do
+        key="${kv%%=*}"
+        val="${kv#*=}"
+        if grep -q "$val" "$CLEAN2" 2>/dev/null; then
+            fail "$key raw value not redacted (found: $val)"
+        else
+            pass "$key value redacted"
+        fi
+    done
+    if grep -q "<redacted>" "$CLEAN2"; then
+        pass "<redacted> placeholder present for new patterns"
+    else
+        fail "no <redacted> placeholder found after sanitization"
+    fi
+else
+    fail "sanitize_export_json function not found in sync-state.sh"
+fi
+rm -f "$TOXIC2" "$CLEAN2"
+
 # --- Summary ---
 echo ""
 echo "=== $PASS passed, $FAIL failed ==="

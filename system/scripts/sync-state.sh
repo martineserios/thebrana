@@ -479,15 +479,17 @@ auto_commit_state() {
 
 # ── Sanitize ──────────────────────────────────────────────
 
-# Strip token strings from a patterns-export JSON file in-place.
-# Targets gcloud OAuth 2.0 access tokens (ya29.*) and similar 40+ char
-# opaque strings embedded in URLs that trip secret-detection checks.
+# Strip secret strings from a patterns-export JSON file in-place.
+# Covers: gcloud OAuth tokens (ya29.*) and key=value patterns matched by
+# pre-commit Check 5: API_KEY, SECRET, PASSWORD, TOKEN, PRIVATE_KEY.
+# Sanitizer scope must be a superset of the scanner scope or commits block.
 sanitize_export_json() {
     local file="$1"
     [ -f "$file" ] || return 0
     local tmp="${file}.sanitized.$$"
     if jq 'walk(if type == "string" then
-        gsub("ya29\\.[A-Za-z0-9._-]+"; "<token>")
+        gsub("ya29\\.[A-Za-z0-9._-]+"; "<token>") |
+        gsub("(?<prefix>(API_KEY|SECRET|PASSWORD|TOKEN|PRIVATE_KEY)\\s*=)\\S+"; .prefix + "<redacted>")
       else . end)' "$file" > "$tmp" 2>/dev/null; then
         mv "$tmp" "$file"
     else
