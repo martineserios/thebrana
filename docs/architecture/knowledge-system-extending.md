@@ -260,6 +260,10 @@ Ruflo namespaces partition memory entries by purpose. The indexer at `system/scr
 | `pattern` | `/close` Steps 5 + 5b | `pattern:{project}:{title}` | Reusable session learnings (dual-write: ruflo + `~/.claude/projects/*/memory/{prefix}_{slug}.md`) |
 | `specs` | manual | varies | Specification patterns |
 
+### Effective recall from the pattern namespace
+
+Generic queries against the `pattern` namespace (e.g., task subject + branch name) yield poor similarity scores (0.43–0.45) even when relevant patterns exist — the mismatch is vocabulary, not missing data. Replace single-query recall with 3 parallel domain-specific queries: (1) **domain query** from git status file extensions (`.sh` → "bash hook script"), (2) **problem-type query** from task kind and tags (bug-fix+hook → "hook bug failure modes"), (3) **risk query** from work type (editing close.md → "session close procedure failure modes"). Merge results by key, dedup, suppress similarity < 0.25. (promoted 2026-05-19 from session — t-1492 brainstorm)
+
 ### Key naming convention
 
 Keys follow `{namespace-singular}:{scope}:{identifier}`:
@@ -383,3 +387,9 @@ Check 18 in `validate.sh` validates graph integrity for typed edges:
 - Assumption references in typed_edges that don't match any `## Assumptions` section in docs
 
 Check 21 monitors typed edges per node as a scale trigger (threshold: 10 edges per node).
+
+## Field Notes
+
+### 2026-05-19: Pattern store quality gate — "different codebase?" filter
+The pattern namespace accumulated noise (client-specific API quirks, tenant-specific flow logic, single-project architecture details) because extraction at session close had no quality gate. The "different codebase?" question — "Would this apply if I were working on a completely different codebase with a different client?" — eliminates 60-70% of stored entries on retrospective audit. Apply this gate before any `memory_store` into the `pattern` namespace. Borderline cases pass through at lower confidence (quarantine tier); clear project-specific findings route to local field notes instead.
+Source: close session 2026-05-19 / t-1492 brainstorm
