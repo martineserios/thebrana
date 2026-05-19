@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-18T23:36:26Z",
+  "generated": "2026-05-19T15:08:16Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -448,6 +448,7 @@
       "title": "24 — Roadmap Corrections & Errata (ARCHIVED)",
       "type": "Roadmap",
       "impl_files": [
+        "system/procedures/build.md",
         "system/",
         "system/rules/",
         "system/rules/sdd-tdd.md",
@@ -476,7 +477,6 @@
         "system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs",
         "system/hooks/hooks.json",
         "system/scripts/generate-reference.py",
-        "system/procedures/build.md",
         "system/hooks/",
         "system/cli/rust/crates/brana-cli/src/commands/knowledge.rs",
         "system/procedures/claudemd.md",
@@ -785,6 +785,11 @@
     },
     "docs/architecture/decisions/ADR-037-memory-enforcement-and-migration.md": {
       "title": "ADR-037: Memory Enforcement Hook + Incremental Migration Policy",
+      "type": "ADR",
+      "impl_files": []
+    },
+    "docs/architecture/decisions/ADR-038-memory-write-gateway.md": {
+      "title": "ADR-038: Unified Memory Write Gateway — Dated Files, Routing Taxonomy, CLI Gateway, MEMORY.md Ownership",
       "type": "ADR",
       "impl_files": []
     },
@@ -1321,7 +1326,8 @@
         "system/skills/",
         "system/hooks/",
         "system/agents/",
-        "system/rules/"
+        "system/rules/",
+        "system/scripts/"
       ]
     },
     "docs/archive/24-roadmap-corrections.md": {
@@ -2071,6 +2077,14 @@
         "system/rules/spec-assumptions.md"
       ]
     },
+    "docs/ideas/build-skill-gate-hardening.md": {
+      "title": "Build Skill Gate Hardening — Step 4a",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/procedures/build.md",
+        "system/cli/rust/Cargo.toml"
+      ]
+    },
     "docs/ideas/cc-feature-adoption-v2.1.136-142.md": {
       "title": "CC Feature Adoption — v2.1.136–v2.1.142",
       "type": "Roadmap",
@@ -2095,6 +2109,13 @@
       "title": "/brana:content — Seed-to-Post Guided Workflow",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/ideas/dated-memory-files.md": {
+      "title": "Unified Knowledge Routing Gateway — `brana memory write`",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/brana-mcp/"
+      ]
     },
     "docs/ideas/distribution-strategy.md": {
       "title": "Brana Distribution Strategy",
@@ -2160,6 +2181,11 @@
     },
     "docs/ideas/session-aware-loop-integration.md": {
       "title": "Session-Aware Loop Integration for Brana",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/ideas/session-continuity-multi-session.md": {
+      "title": "Session Continuity — Multi-Session & Cross-Project",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -3350,6 +3376,18 @@
     {
       "from": "docs/architecture/decisions/ADR-032-smart-router.md",
       "to": "docs/architecture/features/operating-model.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-038-memory-write-gateway.md",
+      "to": "docs/architecture/decisions/ADR-037-memory-enforcement-and-migration.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-038-memory-write-gateway.md",
+      "to": "docs/architecture/features/memory-taxonomy-sdd.md",
       "type": "depends_on",
       "computed": false
     },
@@ -8893,7 +8931,19 @@
     },
     {
       "from": "docs/architecture/testing-validation.md",
+      "to": "\"$a\" == *x* || \"$a\" == *y*.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/testing-validation.md",
       "to": "\"$haystack\" == *\"$needle\"*.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/testing-validation.md",
+      "to": "\"$haystack\" =~ (^|$'\\n')key:.md",
       "type": "references",
       "computed": false
     },
@@ -10650,6 +10700,18 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/dated-memory-files.md",
+      "to": "docs/ideas/memory-consolidation-kairos.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/dated-memory-files.md",
+      "to": "docs/ideas/session-continuity-multi-session.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/dynamic-skill-routing.md",
       "to": "brana-operating-model.md",
       "type": "references",
@@ -10754,6 +10816,18 @@
     {
       "from": "docs/ideas/session-aware-loop-integration.md",
       "to": "brana-operating-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/session-continuity-multi-session.md",
+      "to": "docs/ideas/session-memory-cc-alignment.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/session-continuity-multi-session.md",
+      "to": "docs/ideas/unified-session-state.md",
       "type": "references",
       "computed": false
     },
@@ -11881,9 +11955,9 @@
     }
   ],
   "stats": {
-    "nodes": 382,
-    "edges": 1560,
-    "typed_edges": 549,
+    "nodes": 386,
+    "edges": 1568,
+    "typed_edges": 551,
     "orphans": 98
   }
 }
