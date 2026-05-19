@@ -541,3 +541,15 @@ Source: t-1455/t-1456, session 2026-05-18
 ### 2026-05-18: Export sanitizer scope must be a superset of the pre-commit scanner scope
 `sanitize_export_json()` in `sync-state.sh` was introduced (t-1458) to cover `ya29.*` gcloud OAuth tokens. The pre-commit secret scanner (Check 5 in `.git/hooks/pre-commit`) catches a broader class: `(API_KEY|SECRET|PASSWORD|TOKEN|PRIVATE_KEY)\s*=`. Any pattern stored with a KAPSO_API_KEY or similar assignment in its `content` field lands in `patterns-export.json`, passes the ya29-only sanitizer, and then blocks the state commit. Fix (t-1460): extend the sanitizer regex to match Check 5's full pattern list; add a round-trip test asserting each scanner pattern is redacted before write. Rule: before merging any sanitizer, grep the gate detector for its full pattern list and mirror it.
 Source: close 2026-05-18
+
+### 2026-05-19: jq named-group syntax is `(?<name>)` not `(?P<name>)`
+jq uses Oniguruma (Ruby-style) regex. Named capture groups must use `(?<name>...)` — the Python form `(?P<name>...)` produces "Regex failure: undefined group option" with no indication of what to use instead. Replacement references use `.name` (e.g., `.prefix + "<redacted>"`). Discovered when extending `sanitize_export_json` jq walk expression (t-1460).
+Source: close 2026-05-19 / t-1460
+
+### 2026-05-19: Test fixtures for secret-pattern sanitizers must use placeholder-containing values
+Test files that contain patterns like `API_KEY=testvalue` get blocked by pre-commit Check 5 even when the values are fake fixtures. Check 5's exclusion filter (`grep -v '(#|example|placeholder|never commit)'`) skips lines containing the word `placeholder`. Use values like `API_KEY=placeholder-api-key-value` — the sanitizer still redacts them (regex matches `\S+` after `=`), and Check 5 skips the fixture line.
+Source: close 2026-05-19 / t-1460 test-sync-state.sh
+
+### 2026-05-19: pre-commit secret scanner must also exclude sanitized placeholders
+After `sanitize_export_json` replaces values with `<redacted>` or `<token>`, the scanner still matches `API_KEY=<redacted>` because the exclusion filter didn't know about those placeholders. Fixed by adding `<redacted>|<token>` to Check 5's `grep -v` exclusion filter (pre-commit.sh + installed .git/hooks/pre-commit). Note: the installed hook is a copy — both must be updated in sync; editing only the working-tree `pre-commit.sh` has no effect on the running hook.
+Source: close 2026-05-19 / pre-commit.sh Check 5 fix

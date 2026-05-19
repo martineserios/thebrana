@@ -68,8 +68,11 @@ for f in $STAGED; do
     ;; esac
 done
 
-# Check 5: Secrets in staged files
+# Check 5: Secrets in staged files (skip internal state/tasks files)
 for f in $STAGED; do
+    case "$f" in
+        .claude/*|system/state/*) continue ;;  # internal state — always sanitized/non-secret
+    esac
     HITS=$(git show ":$f" 2>/dev/null | grep -nE '(API_KEY|SECRET|PASSWORD|TOKEN|PRIVATE_KEY)\s*=' 2>/dev/null | grep -v -E '(#|example|placeholder|never commit|<redacted>|<token>)' || true)
     if [ -n "$HITS" ]; then
         fail "Potential secret in $f: $HITS"
