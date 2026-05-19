@@ -57,7 +57,7 @@ if [ ${#FILES[@]} -eq 0 ]; then
 
         # Apply project filter if specified
         if [ -n "$PROJECT_FILTER" ]; then
-            if ! echo "$projdir" | grep -qi "$PROJECT_FILTER"; then
+            if ! grep -qi "$PROJECT_FILTER" <<< "$projdir"; then
                 continue
             fi
         fi
@@ -92,7 +92,7 @@ for filepath in "${FILES[@]}"; do
 
     # ── patterns.md: section-based parsing (no frontmatter) ───────
     # Detect by filename OR by content signature (# Pattern Store header).
-    if [ "$filename" = "patterns.md" ] || head -1 "$filepath" | grep -q '^# Pattern Store'; then
+    if [ "$filename" = "patterns.md" ] || [[ "$(head -1 "$filepath")" == "# Pattern Store"* ]]; then
         # Parse each ## slug section into a separate JSONL entry.
         # Confidence field sets the key type: pattern:{confidence}:{slug}
         # Uses awk to split on ## headers — avoids nested function scope issues.
@@ -124,7 +124,7 @@ for filepath in "${FILES[@]}"; do
     slug="${filename%.md}"
 
     # Extract frontmatter
-    if ! head -1 "$filepath" | grep -q '^---$'; then
+    if [[ "$(head -1 "$filepath")" != "---" ]]; then
         echo "  SKIP: $filename (no frontmatter)"
         SKIPPED=$((SKIPPED + 1))
         continue

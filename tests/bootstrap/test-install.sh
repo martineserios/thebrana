@@ -14,7 +14,7 @@ PASS=0; FAIL=0; TOTAL=0
 assert_contains() {
     local desc="$1" expected="$2" actual="$3"
     TOTAL=$((TOTAL+1))
-    if echo "$actual" | grep -qF "$expected"; then
+    if [[ "$actual" == *"$expected"* ]]; then
         echo "  PASS: $desc"; PASS=$((PASS+1))
     else
         echo "  FAIL: $desc"
@@ -27,7 +27,7 @@ assert_contains() {
 assert_not_contains() {
     local desc="$1" absent="$2" actual="$3"
     TOTAL=$((TOTAL+1))
-    if ! echo "$actual" | grep -qF "$absent"; then
+    if ! [[ "$actual" == *"$absent"* ]]; then
         echo "  PASS: $desc"; PASS=$((PASS+1))
     else
         echo "  FAIL: $desc — unexpected string found: $absent"

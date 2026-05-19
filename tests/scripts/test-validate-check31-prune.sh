@@ -33,7 +33,7 @@ assert_eq() {
 assert_contains() {
     local desc="$1" needle="$2" haystack="$3"
     TOTAL=$((TOTAL+1))
-    if echo "$haystack" | grep -qF "$needle"; then
+    if [[ "$haystack" == *"$needle"* ]]; then
         PASS=$((PASS+1)); echo "  PASS: $desc"
     else
         FAIL=$((FAIL+1)); echo "  FAIL: $desc — '$needle' not found"
@@ -43,7 +43,7 @@ assert_contains() {
 assert_not_contains() {
     local desc="$1" needle="$2" haystack="$3"
     TOTAL=$((TOTAL+1))
-    if echo "$haystack" | grep -qF "$needle"; then
+    if [[ "$haystack" == *"$needle"* ]]; then
         FAIL=$((FAIL+1)); echo "  FAIL: $desc — '$needle' unexpectedly found"
     else
         PASS=$((PASS+1)); echo "  PASS: $desc"

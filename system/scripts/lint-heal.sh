@@ -318,17 +318,17 @@ pass_contradiction() {
         [[ ! -f "$f" ]] && continue
         while IFS= read -r line; do
             # Positive keywords
-            if echo "$line" | grep -qiE "\b(prefer|always use)\b"; then
+            if grep -qiE "\b(prefer|always use)\b" <<< "$line"; then
                 local slug
                 slug=$(_extract_concept_slug "$line")
-                echo "$slug" | grep -qE "^(${CONTRADICTION_STOPWORDS})$" && slug=""
+                grep -qE "^(${CONTRADICTION_STOPWORDS})$" <<< "$slug" && slug=""
                 [[ -n "$slug" ]] && printf '%s\t%s\n' "$slug" "$f" >> "$pos_file"
             fi
             # Negative keywords
-            if echo "$line" | grep -qiE "\b(avoid|never use)\b"; then
+            if grep -qiE "\b(avoid|never use)\b" <<< "$line"; then
                 local slug
                 slug=$(_extract_concept_slug "$line")
-                echo "$slug" | grep -qE "^(${CONTRADICTION_STOPWORDS})$" && slug=""
+                grep -qE "^(${CONTRADICTION_STOPWORDS})$" <<< "$slug" && slug=""
                 [[ -n "$slug" ]] && printf '%s\t%s\n' "$slug" "$f" >> "$neg_file"
             fi
         done < "$f"

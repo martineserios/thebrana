@@ -53,7 +53,7 @@ output=$(bash "$INDEX_SCRIPT" "$TEST_FILE" 2>&1) || true
 
 # The script would have written JSONL to a temp file then tried bulk-index.mjs
 # Since we want just Phase 1, let's parse the output
-if echo "$output" | grep -q "Phase 1 complete"; then
+if [[ "$output" == *"Phase 1 complete"* ]]; then
     entries=$(echo "$output" | grep "Phase 1 complete" | grep -oP '\d+(?= entries)')
     if [ "$entries" -gt 0 ]; then
         pass "Phase 1 produced $entries entries from $(basename "$TEST_FILE")"
@@ -62,9 +62,9 @@ if echo "$output" | grep -q "Phase 1 complete"; then
     fi
 else
     # bulk-index.mjs may have run and produced output too
-    if echo "$output" | grep -q "Stored:"; then
+    if [[ "$output" == *"Stored:"* ]]; then
         pass "full pipeline ran (bulk-index.mjs available)"
-    elif echo "$output" | grep -qE "WARN.*bulk-index"; then
+    elif grep -qE "WARN.*bulk-index" <<< "$output"; then
         pass "Phase 1 completed (bulk-index.mjs not found — expected in test)"
     else
         fail "unexpected output: $(echo "$output" | head -5)"
@@ -94,7 +94,7 @@ FIXTURE_EOF
 # Run with the fixture — capture output even if bulk-index.mjs fails
 output=$(bash "$INDEX_SCRIPT" "$FIXTURE" 2>&1) || true
 
-if echo "$output" | grep -q "1 entries"; then
+if [[ "$output" == *"1 entries"* ]]; then
     pass "fixture file parsed as 1 entry"
 else
     fail "fixture parsing failed: $(echo "$output" | head -3)"
@@ -157,9 +157,9 @@ PATTERNS_EOF
 
 output=$(bash "$INDEX_SCRIPT" "$PATTERNS_FIXTURE" 2>&1) || true
 
-if echo "$output" | grep -q "2 entries"; then
+if [[ "$output" == *"2 entries"* ]]; then
     pass "patterns.md: 2 sections parsed as 2 entries"
-elif echo "$output" | grep -qE "Phase 1 complete: [1-9]"; then
+elif grep -qE "Phase 1 complete: [1-9]" <<< "$output"; then
     entries=$(echo "$output" | grep "Phase 1 complete" | grep -oP '\d+(?= entries)' || echo "0")
     pass "patterns.md: $entries sections parsed"
 else
@@ -170,11 +170,11 @@ fi
 echo ""
 output=$(bash "$INDEX_SCRIPT" "$PATTERNS_FIXTURE" 2>&1) || true
 
-if echo "$output" | grep -qE "(quarantine|proven|pattern)"; then
+if grep -qE "(quarantine|proven|pattern)" <<< "$output"; then
     pass "patterns.md entries use confidence-aware keys or labels"
 else
     # If bulk-index ran and consumed the JSONL, just check it didn't error
-    if ! echo "$output" | grep -q "ERROR"; then
+    if ! [[ "$output" == *"ERROR"* ]]; then
         pass "patterns.md pipeline ran without errors"
     else
         fail "patterns.md key format check failed"

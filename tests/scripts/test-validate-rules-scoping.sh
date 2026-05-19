@@ -44,7 +44,7 @@ assert_validate_passes_rules_check() {
     local out
     out=$(cd "$TMPROOT" && bash validate.sh 2>&1)
     # Extract just the rules-scoping portion; the scoping check must not fail.
-    if echo "$out" | grep -qE "rules/.* — unscoped \(no paths: or always-load: true\)"; then
+    if grep -qE "rules/.* — unscoped \(no paths: or always-load: true\)" <<< "$out"; then
         echo "  FAIL: $desc — expected rules scoping to pass but it reported unscoped"
         FAIL=$((FAIL + 1))
     else
@@ -58,7 +58,7 @@ assert_validate_fails_rules_check() {
     TOTAL=$((TOTAL + 1))
     local out
     out=$(cd "$TMPROOT" && bash validate.sh 2>&1)
-    if echo "$out" | grep -qE "rules/.* — unscoped \(no paths: or always-load: true\)"; then
+    if grep -qE "rules/.* — unscoped \(no paths: or always-load: true\)" <<< "$out"; then
         echo "  PASS: $desc"
         PASS=$((PASS + 1))
     else

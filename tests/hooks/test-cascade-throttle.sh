@@ -17,7 +17,7 @@ TOTAL=0
 assert_contains() {
     local label="$1" output="$2" expected="$3"
     TOTAL=$((TOTAL + 1))
-    if echo "$output" | grep -qF "$expected" 2>/dev/null; then
+    if [[ "$output" == *"$expected"* ]]; then
         echo "  PASS: $label"
         PASS=$((PASS + 1))
     else
@@ -30,7 +30,7 @@ assert_contains() {
 assert_not_contains() {
     local label="$1" output="$2" unexpected="$3"
     TOTAL=$((TOTAL + 1))
-    if echo "$output" | grep -qF "$unexpected" 2>/dev/null; then
+    if [[ "$output" == *"$unexpected"* ]]; then
         echo "  FAIL: $label — unexpected '$unexpected' found in output"
         echo "        got: $output"
         FAIL=$((FAIL + 1))

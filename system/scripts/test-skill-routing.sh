@@ -129,14 +129,14 @@ brana backlog set "$TASK_ID" context --append "skill_gap_checked: true (score < 
 # 3b. Read it back and verify
 CONTEXT=$(brana backlog get "$TASK_ID" --field context 2>/dev/null)
 
-if echo "$CONTEXT" | grep -q "skill_gap_checked: true"; then
+if [[ "$CONTEXT" == *"skill_gap_checked: true"* ]]; then
     pass "breadcrumb skill_gap_checked written and readable"
 else
     fail "breadcrumb not found in task context after write (got: $CONTEXT)"
 fi
 
 # 3c. Verify build.md safety net would skip (breadcrumb present)
-if echo "$CONTEXT" | grep -q "skill_gap_checked"; then
+if [[ "$CONTEXT" == *"skill_gap_checked"* ]]; then
     pass "build.md step 4a would skip (breadcrumb present) — correct"
 else
     fail "build.md step 4a would run unnecessarily (breadcrumb missing)"
@@ -148,7 +148,7 @@ TASK2_ID=$(echo "$TASK2_JSON" | jq -r '.id // ""' 2>/dev/null)
 
 if [ -n "$TASK2_ID" ]; then
     CONTEXT2=$(brana backlog get "$TASK2_ID" --field context 2>/dev/null)
-    if echo "$CONTEXT2" | grep -q "skill_gap_checked"; then
+    if [[ "$CONTEXT2" == *"skill_gap_checked"* ]]; then
         fail "fresh task should NOT have skill_gap_checked"
     else
         pass "fresh task has no breadcrumb — build.md safety net would fire"

@@ -275,7 +275,7 @@ else
             value=$(echo "$line" | jq -r '.value')
             tags=$(echo "$line" | jq -r '.tags | join(",")')
             output=$(cd "$HOME" && timeout 15 $CF memory store -k "$key" -v "$value" --namespace knowledge --tags "$tags" --upsert 2>&1) || true
-            if echo "$output" | grep -q "stored successfully"; then
+            if [[ "$output" == *"stored successfully"* ]]; then
                 STORED=$((STORED + 1))
             else
                 ERRORS=$((ERRORS + 1))

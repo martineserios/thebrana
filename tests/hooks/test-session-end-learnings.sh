@@ -41,7 +41,7 @@ assert_file_not_exists() {
 
 assert_contains() {
     local label="$1" haystack="$2" needle="$3"
-    if echo "$haystack" | grep -qF "$needle"; then
+    if [[ "$haystack" == *"$needle"* ]]; then
         PASS=$((PASS+1)); echo "  PASS: $label"
     else
         FAIL=$((FAIL+1)); echo "  FAIL: $label — not found: '$needle'"
@@ -50,7 +50,7 @@ assert_contains() {
 
 assert_not_contains() {
     local label="$1" haystack="$2" needle="$3"
-    if echo "$haystack" | grep -qF "$needle"; then
+    if [[ "$haystack" == *"$needle"* ]]; then
         FAIL=$((FAIL+1)); echo "  FAIL: $label — unexpectedly found: '$needle'"
     else
         PASS=$((PASS+1)); echo "  PASS: $label"

@@ -83,13 +83,13 @@ output=$(LINT_HEAL_PATTERNS_FILE="$PATTERNS_DUP" \
          LINT_HEAL_MEMORY_ROOT="$MEM_ROOT" \
          bash "$LINT_SCRIPT" --dry-run 2>&1) || true
 
-if echo "$output" | grep -q "Pass 5"; then
+if [[ "$output" == *"Pass 5"* ]]; then
     pass "Pass 5 runs"
 else
     fail "Pass 5 not found in output"
 fi
 
-if echo "$output" | grep -q "my-duplicate-slug"; then
+if [[ "$output" == *"my-duplicate-slug"* ]]; then
     pass "Pass 5 detects duplicate slug 'my-duplicate-slug'"
 else
     fail "Pass 5 did not surface duplicate slug"
@@ -120,7 +120,7 @@ output=$(LINT_HEAL_PATTERNS_FILE="$PATTERNS_CLEAN" \
          LINT_HEAL_MEMORY_ROOT="$MEM_ROOT" \
          bash "$LINT_SCRIPT" --dry-run 2>&1) || true
 
-if echo "$output" | grep -qE "Pass 5 done: 0"; then
+if [[ "$output" == *"Pass 5 done: 0"* ]]; then
     pass "Pass 5 reports 0 duplicates on clean file"
 else
     fail "Pass 5 clean file: unexpected output ($(echo "$output" | grep 'Pass 5' | head -1))"
@@ -153,13 +153,13 @@ output=$(LINT_HEAL_STAGING_FILE="$STAGING_AT_WARN" \
          LINT_HEAL_MEMORY_ROOT="$MEM_ROOT" \
          bash "$LINT_SCRIPT" --dry-run 2>&1) || true
 
-if echo "$output" | grep -q "Pass 6"; then
+if [[ "$output" == *"Pass 6"* ]]; then
     pass "Pass 6 runs"
 else
     fail "Pass 6 not found in output"
 fi
 
-if echo "$output" | grep -qE "(warn|WARNING|promote|prune)"; then
+if grep -qE "(warn|WARNING|promote|prune)" <<< "$output"; then
     pass "Pass 6 warns at warn-at threshold (20 entries)"
 else
     fail "Pass 6 did not warn at threshold — output: $(echo "$output" | grep 'Pass 6' | head -2)"
@@ -189,7 +189,7 @@ output=$(LINT_HEAL_STAGING_FILE="$STAGING_BELOW" \
          LINT_HEAL_MEMORY_ROOT="$MEM_ROOT" \
          bash "$LINT_SCRIPT" --dry-run 2>&1) || true
 
-if echo "$output" | grep -qE "Pass 6 done: 5"; then
+if [[ "$output" == *"Pass 6 done: 5"* ]]; then
     pass "Pass 6 reports 5 entries, no warning"
 else
     fail "Pass 6 below-threshold: unexpected ($(echo "$output" | grep 'Pass 6' | head -2))"
@@ -202,7 +202,7 @@ output=$(LINT_HEAL_STAGING_FILE="$MISSING_STAGING" \
          LINT_HEAL_MEMORY_ROOT="$MEM_ROOT" \
          bash "$LINT_SCRIPT" --dry-run 2>&1) || true
 
-if echo "$output" | grep -q "Pass 6"; then
+if [[ "$output" == *"Pass 6"* ]]; then
     pass "Pass 6 skips gracefully when staging file missing"
 else
     fail "Pass 6 missing file: script may have errored ($(echo "$output" | tail -3))"

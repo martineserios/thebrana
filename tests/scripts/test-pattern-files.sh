@@ -36,7 +36,7 @@ echo ""
 echo "Frontmatter presence:"
 MISSING_FM=0
 while IFS= read -r file; do
-    if ! head -1 "$file" | grep -q '^---$'; then
+    if [[ "$(head -1 "$file")" != "---" ]]; then
         MISSING_FM=$((MISSING_FM + 1))
         echo "    missing: $(basename "$file")"
     fi

@@ -40,7 +40,7 @@ run_validate() {
 assert_contains() {
     local desc="$1" pattern="$2" out="$3"
     TOTAL=$((TOTAL + 1))
-    if echo "$out" | grep -q "$pattern"; then
+    if [[ "$out" == *"$pattern"* ]]; then
         echo "  PASS: $desc"
         PASS=$((PASS + 1))
     else

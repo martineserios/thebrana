@@ -48,7 +48,7 @@ STRUCT_OUT=$(bash "$VALIDATE" --assumptions-only 2>&1) || true
 STRUCT_CHECKED=$(echo "$STRUCT_OUT" | grep -oE '\(([0-9]+) checked\)' | grep -oE '[0-9]+' | head -1)
 STRUCT_CHECKED="${STRUCT_CHECKED:-0}"
 STRUCT_STALE=$(echo "$STRUCT_OUT" | grep -cE 'Stale assumption in' || true)
-if echo "$STRUCT_OUT" | grep -q "Check 15: PASS"; then
+if [[ "$STRUCT_OUT" == *"Check 15: PASS"* ]]; then
     STRUCT_EXIT=0
 else
     STRUCT_EXIT=1
