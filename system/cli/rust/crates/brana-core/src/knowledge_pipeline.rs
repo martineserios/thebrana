@@ -474,12 +474,28 @@ pub fn build_claude_args<'a>(prompt: &'a str, model: Option<&'a str>) -> Vec<&'a
     args
 }
 
+/// Extract the model's result text from the Claude CLI JSON envelope.
+///
+/// Handles two envelope shapes emitted by `--output-format json`:
+/// - Legacy single-object: `{"type":"result","result":"<text>",...}`
+/// - Array stream (current): `[{"type":"system",...}, ..., {"type":"result","result":"<text>",...}]`
+fn extract_result_from_envelope(raw: &serde_json::Value) -> Option<String> {
+    if let Some(arr) = raw.as_array() {
+        arr.iter()
+            .find(|v| v.get("type").and_then(|t| t.as_str()) == Some("result"))
+            .and_then(|v| v.get("result").and_then(|r| r.as_str()))
+            .map(|s| s.to_string())
+    } else {
+        raw.get("result").and_then(|v| v.as_str()).map(|s| s.to_string())
+    }
+}
+
 /// Call the `claude` CLI with `--print --output-format json` and return the
 /// parsed JSON response value. Timeout: 60 seconds.
 ///
 /// The model is expected to respond with JSON only (as instructed in the prompt).
-/// The CLI wraps the response in `{"type":"result","result":"...","cost_usd":...}`;
-/// this function unwraps it and parses the inner JSON.
+/// The CLI envelope is unwrapped via `extract_result_from_envelope` (handles both
+/// legacy single-object and array-stream formats); the inner text is then JSON-parsed.
 /// Pass `model = Some("claude-haiku-4-5-20251001")` to pin the model for cost
 /// control; `None` uses the session default.
 pub fn call_claude_json(prompt: &str, model: Option<&str>) -> Result<serde_json::Value> {
@@ -524,8 +540,9 @@ pub fn call_claude_json(prompt: &str, model: Option<&str>) -> Result<serde_json:
     let raw: serde_json::Value = serde_json::from_str(stdout.trim())
         .with_context(|| format!("parsing claude JSON output: {stdout}"))?;
 
-    // Unwrap the CLI envelope: {"type":"result","result":"<model text>","cost_usd":...}
-    if let Some(result_text) = raw.get("result").and_then(|v| v.as_str()) {
+    let result_text = extract_result_from_envelope(&raw);
+
+    if let Some(result_text) = result_text {
         let cleaned = strip_code_fences(result_text.trim());
         let inner: serde_json::Value = serde_json::from_str(cleaned)
             .with_context(|| format!("parsing model JSON response: {result_text}"))?;
@@ -579,11 +596,7 @@ pub fn call_claude_text(prompt: &str) -> Result<String> {
     let raw: serde_json::Value = serde_json::from_str(stdout.trim())
         .with_context(|| format!("parsing claude CLI envelope: {stdout}"))?;
 
-    let result = raw
-        .get("result")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
-        .unwrap_or_else(|| stdout.trim().to_string());
+    let result = extract_result_from_envelope(&raw).unwrap_or_else(|| stdout.trim().to_string());
 
     Ok(result)
 }
@@ -964,5 +977,66 @@ mod tests {
             .map(|s| s.to_string())
             .unwrap_or_else(|| envelope.trim().to_string());
         assert_eq!(result, envelope.trim());
+    }
+
+    // ── extract_result_from_envelope ─────────────────────────────────
+
+    #[test]
+    fn test_extract_envelope_legacy_single_object() {
+        let env = serde_json::json!({
+            "type": "result",
+            "result": "hello from model",
+            "cost_usd": 0.001
+        });
+        assert_eq!(
+            extract_result_from_envelope(&env),
+            Some("hello from model".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_envelope_array_stream() {
+        let env = serde_json::json!([
+            {"type": "system", "subtype": "init"},
+            {"type": "assistant", "message": {"content": [{"type": "text", "text": "thinking..."}]}},
+            {"type": "result", "result": "array stream result", "cost_usd": 0.002}
+        ]);
+        assert_eq!(
+            extract_result_from_envelope(&env),
+            Some("array stream result".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_envelope_array_stream_result_not_first() {
+        let env = serde_json::json!([
+            {"type": "system"},
+            {"type": "result", "result": "found it"}
+        ]);
+        assert_eq!(
+            extract_result_from_envelope(&env),
+            Some("found it".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_envelope_no_result_returns_none() {
+        let env = serde_json::json!({"type": "error", "error": "something went wrong"});
+        assert_eq!(extract_result_from_envelope(&env), None);
+    }
+
+    #[test]
+    fn test_extract_envelope_empty_array_returns_none() {
+        let env = serde_json::json!([]);
+        assert_eq!(extract_result_from_envelope(&env), None);
+    }
+
+    #[test]
+    fn test_extract_envelope_array_without_result_type_returns_none() {
+        let env = serde_json::json!([
+            {"type": "system"},
+            {"type": "assistant", "message": {}}
+        ]);
+        assert_eq!(extract_result_from_envelope(&env), None);
     }
 }
