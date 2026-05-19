@@ -182,29 +182,52 @@ Pull relevant architecture, decision knowledge, and skill matches into context b
    - Score < 0.5: ignore (too weak to surface)
    - If entering via `/brana:backlog start`, skill suggestion already happened in step 5 — skip duplicate ask.
 
-4a. **JIT skill acquisition** — if NO skills results were returned (or all below 0.3) AND the task involves a specific technology (detectable from tags, description, or project files):
-   - Extract the tech keyword(s) that had no matching skill
-   - Offer acquisition via AskUserQuestion:
+4a. **JIT skill acquisition** — deterministic tech detection + SKILL.md keywords gate. Triggers when a domain skill is installed but its knowledge was absent from LOAD results.
+   <!-- SUNSET: Remove steps 4 and 4a entirely when Skill Registry (t-608) ships. Replace with skill_suggest(tech_context) calls. -->
+
+   **Step 1 — Tech detection** (3-signal chain; first match wins — skip 4a entirely if no signal fires):
+   - **Signal 1** — Task description + tags: scan for tech keywords (`"Rust"`, `"[rust]"`, `".rs"`, `"Cargo"`, `"Python"`, `"[python]"`, `".py"`, `"TypeScript"`, `"[typescript]"`, `".ts"`, `".tsx"`, `"Next.js"`, etc.)
+   - **Signal 2** — Project manifest files (filesystem-verifiable, most reliable):
+     - `Cargo.toml` present → Rust
+     - `pyproject.toml` or `uv.lock` present → Python
+     - `package.json` + `tsconfig.json` present → TypeScript
+   - **Signal 3** — File paths in task description/context: extract extensions from mentioned paths (`.rs` → Rust, `.py` → Python, `.ts`/`.tsx` → TypeScript)
+
+   **Step 2 — Skill match**: scan installed `SKILL.md` files for `keywords` overlap with detected tech terms. If no match: skip 4a (no skill to offer).
+
+   **Step 3 — Tech-aware LOAD check**: inspect LOAD result keys (from steps 2 and 2b above). If any key contains one of the matched skill's `keywords` → skill knowledge already in context → skip 4a. If NO key matches → skill knowledge absent → proceed to Step 4.
+
+   **Step 4 — Ask**:
+   ```
+   question: "Detected {tech} context. {skill} knowledge not loaded. Load it now?"
+   header: "Skill Gap"
+   options:
+     - "Load {skill} now (Recommended)"
+     - "Search marketplace for alternatives"
+     - "Skip"
+   ```
+   - **"Load now"**: read the matched skill's procedure file into context:
+     ```bash
+     find ~/.claude/skills system/skills -name "*.md" -path "*{skill-slug}*" | head -1 | xargs head -200
      ```
-     question: "No local skill for {tech}. Search marketplace?"
-     header: "Gap"
-     options:
-       - "Search externally (Recommended)"
-       - "Skip — not needed"
-     ```
-   - If "Search externally": invoke acquire-skills as a composable function:
+     Continue the build with the skill's knowledge loaded. No restart needed.
+   - **"Search marketplace"**: invoke acquire-skills:
      ```
      Skill(skill="brana:acquire-skills", args="{tech keywords}")
      ```
-     After acquire-skills completes (skill installed as stub + procedure):
-     - Read the newly installed procedure file into current context
-     - Continue the build with the skill's knowledge loaded — no restart needed
-   - If "Skip": proceed without. LOAD never blocks.
-   - **Guard rails:**
-     - Only trigger for `code` execution tasks (skip external/manual)
-     - Only trigger once per LOAD invocation (don't re-offer if user skipped)
-     - If entering via `/brana:backlog start` AND the task's context contains `skill_gap_checked`: skip (backlog step 5 already handled it)
-     - If entering via `/brana:backlog start` but NO `skill_gap_checked` in context: run 4a anyway (safety net — step 5 may have been skipped)
+     After completion: read the newly installed procedure file into context. Continue.
+   - **"Skip"**: proceed without. LOAD never blocks. Append to task context:
+     ```bash
+     brana backlog set {task_id} context --append "skill-gap-warning: {skill} available but not loaded (skipped $(date +%Y-%m-%d))"
+     ```
+     Auditable via `brana backlog search "skill-gap-warning"`.
+
+   **Guard rails:**
+   - Only trigger for `code` execution tasks (skip external/manual)
+   - Only trigger once per LOAD invocation (don't re-offer if user skipped)
+   - If entering via `/brana:backlog start` AND the task's context contains `skill_gap_checked`: skip (backlog step 5 already handled it)
+   - If entering via `/brana:backlog start` but NO `skill_gap_checked` in context: run 4a anyway (safety net — step 5 may have been skipped)
+   - If zero signals fire in Step 1: skip 4a entirely (no tech inferred)
 
 5. **Summarize loaded knowledge** as a brief context preamble (2-5 bullets). Do not show raw results — synthesize what's relevant to the build task (prior decisions, related architecture, known constraints).
 
