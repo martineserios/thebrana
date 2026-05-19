@@ -52,13 +52,14 @@ should_run() {
 # Skip when running subset flags or when --check targets a check >= 15.
 # Note: individual checks 1-14 are not separately filterable; --check N for
 # N in 1-14 runs the whole 1-14 block. The primary win is skipping checks 15+.
-_run_core=true; _run_15_18=true; _run_19_22=true
+_run_core=true; _run_15_18=true; _run_19_22=true; _run_semantic=true
 if [ -n "$CHECK_FILTER" ]; then
     _cf_base="${CHECK_FILTER%%[a-z]*}"
     if [[ "$_cf_base" =~ ^[0-9]+$ ]]; then
         if [ "$_cf_base" -gt 14 ]; then _run_core=false; fi
         if ! { [ "$_cf_base" -ge 15 ] && [ "$_cf_base" -le 18 ]; }; then _run_15_18=false; fi
         if ! { [ "$_cf_base" -ge 19 ] && [ "$_cf_base" -le 22 ]; }; then _run_19_22=false; fi
+        _run_semantic=false
     fi
 fi
 if ! $RUN_ASSUMPTIONS_ONLY && ! $RUN_SCALE_TRIGGERS && ! $RUN_SEMANTIC_ONLY && $_run_core; then
@@ -671,8 +672,8 @@ echo ""
 fi
 
 # ── Checks A-D: Semantic skill validation ──────────────────────────────────
-# Run when: no flags (full run) OR --semantic
-if ! $RUN_ASSUMPTIONS_ONLY && ! $RUN_SCALE_TRIGGERS || $RUN_SEMANTIC_ONLY; then
+# Run when: no flags (full run) OR --semantic. Skipped when --check N is numeric.
+if { ! $RUN_ASSUMPTIONS_ONLY && ! $RUN_SCALE_TRIGGERS && $_run_semantic; } || $RUN_SEMANTIC_ONLY; then
 
 # Source semantic check functions
 source "$SCRIPT_DIR/semantic-checks.sh"
