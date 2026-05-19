@@ -17,21 +17,45 @@ language guided by the task-convention rule — no skill invocation needed.
 
 **Prefer MCP tools** (brana server) when available — structured JSON, 65% fewer tokens:
 
+### Initiative Model (v3)
+
+Tasks have two new optional fields:
+
+| Field | Values | Purpose |
+|-------|--------|---------|
+| `initiative` | slug string (e.g. `"cc-alignment"`) | Groups tasks under a named initiative |
+| `work_type` | `implement` / `research` / `design` / `ops` / `review` | Cognitive mode — what kind of work this is |
+
+**Active initiative** is set in `~/.claude/tasks-config.json` → `active_initiative`. When set, `backlog_focus` / `brana backlog focus` shows ★-marked tasks from that initiative first, then P0/P1 overflow from others.
+
+**Stream taxonomy** (v3 — 3 values):
+
+| Value | Covers |
+|-------|--------|
+| `dev` | code, features, bugs, tech-debt, architecture |
+| `ops` | maintenance, docs, config, deploy |
+| `research` | spikes, evaluations, knowledge, experiments |
+
 ### MCP tools (preferred)
 
 | Operation | MCP tool |
 |-----------|---------|
 | Get task | `backlog_get(task_id: "t-123")` |
 | Get field | `backlog_get(task_id: "t-123", field: "status")` |
-| Query tasks | `backlog_query(status: "pending", stream: "bugs")` or `backlog_query(kind: "fix")` |
+| Query tasks | `backlog_query(status: "pending", stream: "dev")` or `backlog_query(kind: "fix")` |
+| Filter by initiative | `backlog_query(initiative: "cc-alignment")` |
+| Filter by work type | `backlog_query(work_type: "implement", status: "pending")` |
 | Multi-tag AND | `backlog_query(tag: "dx,cli")` |
 | Filter by parent | `backlog_query(parent: "ph-001", task_type: "task")` |
 | Search | `backlog_search(query: "enforcement")` |
 | Aggregate stats | `backlog_stats()` |
 | Set field | `backlog_set(task_id: "t-123", field: "status", value: "in_progress")` |
+| Set initiative | `backlog_set(task_id: "t-123", field: "initiative", value: "cc-alignment")` |
 | Add/remove tag | `backlog_set(task_id: "t-123", field: "tags", value: "+newtag")` |
 | Append text | `backlog_set(task_id: "t-123", field: "context", value: "note", append: true)` |
 | Create task | `backlog_add(subject: "...", kind: "feature", task_type: "task")` |
+| Create with initiative | `backlog_add(subject: "...", initiative: "cc-alignment", work_type: "implement")` |
+| Focus (top tasks) | `backlog_focus(top: 5)` or `backlog_focus(work_type: "research")` |
 
 ### CLI fallback (when MCP unavailable)
 
@@ -45,24 +69,33 @@ language guided by the task-convention rule — no skill invocation needed.
 | Tag inventory | `brana backlog tags --output json` |
 | Tag filter (AND) | `brana backlog tags --filter "a,b" --output json` |
 | Next unblocked task | `brana backlog next --kind feature --tag Y` |
-| Next by stream (legacy) | `brana backlog next --stream X --tag Y` |
+| Next by stream | `brana backlog next --stream dev` |
 | Query tasks | `brana backlog query --status pending --kind fix --output json` |
+| Filter by initiative | `brana backlog query --initiative cc-alignment` |
+| Filter by work type | `brana backlog query --work-type implement --status pending` |
 | Multi-tag AND query | `brana backlog query --tag "dx,cli" --count` |
 | Filter by parent | `brana backlog query --parent ph-001 --type task` |
 | Get full task | `brana backlog get <id>` |
 | Get single field | `brana backlog get <id> --field status` |
+| Focus (active initiative) | `brana backlog focus` |
+| Focus by work type | `brana backlog focus --work-type research` |
+| Focus override initiative | `brana backlog focus --initiative cc-alignment` |
 
 ### Write operations
 
 | Operation | CLI command |
 |-----------|------------|
 | Set any field | `brana backlog set <id> <field> <value>` |
+| Set initiative | `brana backlog set <id> initiative cc-alignment` |
+| Set work type | `brana backlog set <id> work_type implement` |
+| **Set active initiative** | `brana backlog set-active <slug>` |
 | Set to null | `brana backlog set <id> priority null` |
 | Append to text | `brana backlog set <id> context --append "note"` |
 | Add/remove tag | `brana backlog set <id> tags +newtag` / `tags -oldtag` |
 | Add blocked_by | `brana backlog set <id> blocked_by +t-100` |
 | Create task (JSON) | `brana backlog add --json '{"subject":"...","kind":"feature","type":"task"}'` |
 | Create task (shorthand) | `brana backlog add --subject "..." --kind feature --type task --tags "a,b" --effort S` |
+| Create with initiative | `brana backlog add --subject "..." --initiative cc-alignment --work-type implement` |
 | Create initiative | `brana backlog add --subject "..." --kind feature --type initiative` |
 | Create task (from file) | `brana backlog add --json @/tmp/task.json` |
 | Create task (stdin) | `echo '{"subject":"..."}' \| brana backlog add --json -` |
@@ -242,7 +275,7 @@ Interactive phase planning. Builds the hierarchy conversationally.
 
 11. **Gate: plan completeness** — Before approval, verify the plan includes test artifacts. Writing tests and ADRs IS planning — not a separate step after implementation. **This gate fires for every plan that contains code tasks. There is no exception for S-sized builds at the plan stage.**
 
-   **How to check:** Scan ALL proposed tasks (subjects + descriptions + tags) for test-related work: keywords "test", "spec", "TDD", "coverage", or tasks in a `tests/` path. Count separately: (a) code tasks (execution: code, stream: not docs/config), (b) test tasks.
+   **How to check:** Scan ALL proposed tasks (subjects + descriptions + tags) for test-related work: keywords "test", "spec", "TDD", "coverage", or tasks in a `tests/` path. Count separately: (a) code tasks (stream: dev, work_type: implement/design), (b) test tasks.
 
    - **If code tasks exist but NO test tasks are found:** hard block. Use AskUserQuestion — do NOT proceed to step 12 without user input:
      ```
@@ -342,7 +375,7 @@ Find the highest-priority unblocked task.
 
 Optional filters (pass through to CLI):
 - By tag: `brana backlog next --tag scheduler`
-- By stream: `brana backlog next --stream research`
+- By stream: `brana backlog next --stream dev` or `--stream research`
 
 ---
 
@@ -409,10 +442,10 @@ Begin work on a task or freeform description. Accepts task IDs, phase IDs, or na
 3. **Check blocked_by** — if any blocker not completed, warn and abort
 4. **Auto-classify strategy** (if not already set on the task):
    - Infer from task kind, tags, and description:
-     - `kind: fix` or `stream: bugs` or tag `bug` → strategy: `bug-fix`
+     - `kind: fix` or `stream: dev` or tag `bug` → strategy: `bug-fix`
      - `kind: research` or `stream: research` → strategy: `spike`
-     - `kind: refactor` or `stream: tech-debt` or tag `refactor` → strategy: `refactor`
-     - `kind: docs` or `stream: docs` → strategy: `feature` (light)
+     - `kind: refactor` or tag `refactor` → strategy: `refactor`
+     - `kind: docs` or `stream: ops` → strategy: `feature` (light)
      - Tag `migration` → strategy: `migration`
      - Tag `investigation` → strategy: `investigation`
      - Default → strategy: `feature`
@@ -600,7 +633,7 @@ All interactive confirmations use the **AskUserQuestion** tool for a selectable 
    - If no candidates found, skip silently
    - **Never auto-commit dependencies** — always ask
    - **Research cross-reference** (runs alongside dependency scan):
-     - Adding a **non-research** task → scan research stream for tag overlap → include in dependency question or separate AskUserQuestion
+     - Adding a **non-research** task → scan `stream: research` or `work_type: research` tasks for tag overlap → include in dependency question or separate AskUserQuestion
      - Adding a **research** task → scan non-research tasks for tag overlap → surface as informational note
 7. **Build-trap check** — if the description contains solution verbs ("build", "implement", "create", "add", "setup") without outcome/problem context:
    - AskUserQuestion: "This looks like a solution. What problem does it solve?" Options: user provides context via "Other" free text, or "Skip". Header: "Problem"
@@ -914,7 +947,7 @@ Before spawning an agent for a task, compute a complexity score (0.0–1.0):
 |-------|-------------------|-----|
 | `min(word_count(description) / 100, 0.3)` | Description length | 0.3 |
 | `min(len(blocked_by) * 0.1, 0.2)` | Dependency count | 0.2 |
-| `0.2` if stream is `roadmap` | Stream type | 0.2 |
+| `0.2` if stream is `dev` | Stream type | 0.2 |
 | `0.1` if `architecture` in tags | Architecture tag | 0.1 |
 | `0.1` if effort is `L` or `XL` | Effort estimate | 0.1 |
 
