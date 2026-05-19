@@ -41443,11 +41443,11 @@
     },
     {
       "blocked_by": [],
-      "branch": null,
-      "completed": null,
-      "context": "Enforcement-layer complement to the build.md step 4a hardening (see sibling task). When a Write or Edit targets a *.rs file and brana:rust-skills has not been invoked this session, the PreToolUse hook should block with a hint: \"Load brana:rust-skills first (step 4a of build.md).\" Implementation approach: (1) session-start hook writes a session-skills.txt marker when a known skill is loaded; (2) rust-guard.sh checks for rust-skills entry in that marker before passing *.rs writes; (3) sentinel pattern (/tmp/brana-rust-skills-loaded) for lightweight check. Pair with the build.md step 4a text fix. Errata E2026-05-19-4/6. Rule: procedure text alone fails — unconditional hook enforcement closes the gap (feedback_layer1-hook-enforcement).",
+      "branch": "feat/t-1480-hook-rust-skills-guard",
+      "completed": "2026-05-19",
+      "context": "Enforcement-layer complement to the build.md step 4a hardening (see sibling task). When a Write or Edit targets a *.rs file and brana:rust-skills has not been invoked this session, the PreToolUse hook should block with a hint: \"Load brana:rust-skills first (step 4a of build.md).\" Implementation approach: (1) session-start hook writes a session-skills.txt marker when a known skill is loaded; (2) rust-guard.sh checks for rust-skills entry in that marker before passing *.rs writes; (3) sentinel pattern (/tmp/brana-rust-skills-loaded) for lightweight check. Pair with the build.md step 4a text fix. Errata E2026-05-19-4/6. Rule: procedure text alone fails — unconditional hook enforcement closes the gap (feedback_layer1-hook-enforcement).\nskill_suggested: brana:rust-skills (score: 0.50) — selected by user for context on what the hook is protecting",
       "created": "2026-05-19",
-      "description": null,
+      "description": "PreToolUse enforcement gate: blocks Write/Edit on *.rs files when brana:rust-skills has not been loaded this session. Uses /tmp sentinel (/tmp/brana-rust-skills-loaded-{SESSION_ID}) set by a companion PostToolUse skill-sentinel.sh hook when Skill(brana:rust-skills) completes. Hint: \"Load brana:rust-skills first (step 4a of build.md).\" Enforcement-layer complement to the build.md step 4a advisory gate (t-1479).",
       "effort": "M",
       "execution": "code",
       "github_issue": null,
@@ -41456,8 +41456,8 @@
       "order": 0,
       "parent": null,
       "priority": null,
-      "started": null,
-      "status": "pending",
+      "started": "2026-05-19",
+      "status": "completed",
       "stream": "roadmap",
       "subject": "[hook] PreToolUse: block *.rs writes until brana:rust-skills loaded this session",
       "tags": [
@@ -41466,7 +41466,9 @@
         "rust",
         "skill-load"
       ],
-      "type": "task"
+      "type": "task",
+      "strategy": "feature",
+      "build_step": null
     },
     {
       "blocked_by": [],
