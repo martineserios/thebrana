@@ -151,3 +151,13 @@ cd system/cli/rust && cargo test 2>&1 | tail -3
 | `infer-work-type.py` | Fills null work_type via subject patterns → stream fallback → implement catch-all |
 | `assign-initiatives-thebrana.py` | Tags thebrana current-work clusters with initiative slugs (explicit IDs only) |
 | `assign-initiatives-portfolio.py` | Tags all pending/in_progress tasks per project with one initiative slug |
+
+## Field Notes
+
+### 2026-05-20: Extraction scripts don't re-stamp stream taxonomy in the destination backlog
+`extract-personal.py` moves `stream=personal` tasks to `personal/.claude/tasks.json`. `remap-streams.py` skips those tasks (correct — they were extracted). But the destination backlog receives them still carrying `stream=personal` — a retired value. Result: 114 tasks in personal/.claude/tasks.json needed a separate corrective pass. Rule: any script that moves tasks between backlogs must either (a) re-stamp taxonomy fields on the moved tasks, or (b) be followed by a remap pass on the destination.
+Source: close 2026-05-20 / E2026-05-20-1
+
+### 2026-05-20: remap-streams.py is blind to project-specific custom streams outside thebrana taxonomy
+The script maps a static "11 old values → 3 new values" table. If a project backlog carries values outside that table (e.g. `anit-ia`, `palco`, `platform`, `agent-v4` in proyecto_anita), the script silently no-ops — zero remapped, zero errors, zero signal. Corrected this session (27 tasks fixed manually). Fix: remap scripts should collect distinct stream values per backlog first, assert every value maps to a canonical target, and emit a WARNING (non-zero exit) on unknown values.
+Source: close 2026-05-20 / E2026-05-20-2

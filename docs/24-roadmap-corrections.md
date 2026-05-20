@@ -3083,6 +3083,34 @@ This errata also applies as a process rule: **when a credential is not explicitl
 
 ---
 
+## E2026-05-20-1 — migrate.md run-order omits stream re-stamp for extracted backlogs
+
+**Severity:** Medium
+**Discovery:** 2026-05-20 — personal/.claude/tasks.json had 114 tasks still carrying stream=personal after extract-personal.py ran
+**Affected files:** `system/procedures/migrate.md` (run-order + verification sections)
+
+**Spec says:** `remap-streams.py` follows `extract-personal.py` and collapses the 11-value taxonomy to 3 across all backlogs.
+**Reality:** `remap-streams.py` skips `stream=personal` tasks (correct — they're extracted). But the *destination* backlog (`personal/.claude/tasks.json`) receives those tasks still carrying `stream=personal` — a retired value. The run-order doc implied the destination was covered; it was not.
+
+**Fix:** Add rule to migrate.md §"Run order": extraction scripts must re-stamp stream taxonomy in the destination, OR remap must run on the destination backlog after extraction. Add verification step: assert zero non-canonical stream values in *every* backlog in BACKLOG_PATHS, not just the source.
+**Status:** pending — migrate.md update needed
+
+---
+
+## E2026-05-20-2 — remap-streams.py blind to project-specific custom streams outside thebrana taxonomy
+
+**Severity:** Medium
+**Discovery:** 2026-05-20 — proyecto_anita had 27 tasks with streams: anit-ia, palco, platform, agent-v4, tech, process, product — none in the thebrana 11-value vocabulary
+**Affected files:** `system/procedures/migrate.md` (worked-examples + remap rule), `system/scripts/migrate/remap-streams.py`
+
+**Spec says:** remap-streams.py maps the "11 old values → 3 new values." migrate.md frames the remap as a closed "11→3" collapse.
+**Reality:** Client projects can introduce their own stream values that were never part of the thebrana taxonomy. `remap-streams.py`'s static mapping table silently no-ops on unknown values — zero remapped, zero errors, zero signal.
+
+**Fix:** Two-part: (1) migrate.md must state remap scripts should *collect* distinct stream values per backlog first, assert every value maps to a canonical target, and fail loudly on unmapped values. (2) `remap-streams.py` should emit a WARNING for any stream value not in its mapping table, rather than silently skipping.
+**Status:** pending — migrate.md + remap-streams.py updates needed
+
+---
+
 ## E2026-05-19-10 — ADR-002 described CC Tasks as "session-scoped" — stale framing predating CC v2.1.16
 
 **Severity:** Low
