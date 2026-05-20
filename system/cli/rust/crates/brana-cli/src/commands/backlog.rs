@@ -563,6 +563,8 @@ pub fn cmd_add(
     }
     if new_task["tags"].is_null() { new_task["tags"] = serde_json::json!([]); }
     if new_task["blocked_by"].is_null() { new_task["blocked_by"] = serde_json::json!([]); }
+    // t-1544: null priority is an error state — default to P3 at write time
+    if new_task["priority"].is_null() { new_task["priority"] = serde_json::Value::String("P3".into()); }
     // Null defaults for optional fields
     for f in &["parent", "order", "priority", "effort", "branch", "github_issue",
                "started", "completed", "notes", "context", "strategy", "build_step", "description"] {
@@ -1495,6 +1497,74 @@ mod tests {
     fn test_find_shipped_pending_empty_inputs() {
         let result = find_shipped_pending(&[], &[]);
         assert!(result.is_empty());
+    }
+
+    // ── t-1544: priority default P3 at write time ────────────────────
+
+    fn empty_tasks_file() -> tempfile::NamedTempFile {
+        use std::io::Write;
+        let mut f = tempfile::NamedTempFile::new().unwrap();
+        write!(f, r#"{{"version":1,"project":"test","tasks":[]}}"#).unwrap();
+        f.flush().unwrap();
+        f
+    }
+
+    fn read_first_task(f: &tempfile::NamedTempFile) -> serde_json::Value {
+        let data: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(f.path()).unwrap()).unwrap();
+        data["tasks"][0].clone()
+    }
+
+    #[test]
+    fn cmd_add_defaults_priority_to_p3_when_absent() {
+        let f = empty_tasks_file();
+        cmd_add(
+            Some(r#"{"subject":"no priority in json"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, None, Some(f.path().to_path_buf()), None, None,
+        ).unwrap();
+        let task = read_first_task(&f);
+        assert_eq!(task["priority"].as_str(), Some("P3"),
+            "absent priority should default to P3, got: {}", task["priority"]);
+    }
+
+    #[test]
+    fn cmd_add_defaults_priority_to_p3_when_null() {
+        let f = empty_tasks_file();
+        cmd_add(
+            Some(r#"{"subject":"explicit null priority","priority":null}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, None, Some(f.path().to_path_buf()), None, None,
+        ).unwrap();
+        let task = read_first_task(&f);
+        assert_eq!(task["priority"].as_str(), Some("P3"),
+            "explicit null priority should default to P3, got: {}", task["priority"]);
+    }
+
+    #[test]
+    fn cmd_add_keeps_explicit_priority() {
+        let f = empty_tasks_file();
+        cmd_add(
+            Some(r#"{"subject":"explicit priority","priority":"P1"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, None, Some(f.path().to_path_buf()), None, None,
+        ).unwrap();
+        let task = read_first_task(&f);
+        assert_eq!(task["priority"].as_str(), Some("P1"),
+            "explicit priority should be preserved, got: {}", task["priority"]);
+    }
+
+    #[test]
+    fn cmd_add_keeps_p0_priority() {
+        let f = empty_tasks_file();
+        cmd_add(
+            Some(r#"{"subject":"urgent","priority":"P0"}"#.into()),
+            None, None, None, None, None, None, None, None,
+            None, None, Some(f.path().to_path_buf()), None, None,
+        ).unwrap();
+        let task = read_first_task(&f);
+        assert_eq!(task["priority"].as_str(), Some("P0"),
+            "P0 priority should be preserved, got: {}", task["priority"]);
     }
 }
 
