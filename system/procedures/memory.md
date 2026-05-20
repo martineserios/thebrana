@@ -33,8 +33,11 @@ source "$HOME/.claude/scripts/cf-env.sh"
 3. **Fallback path (ruflo unavailable):**
    Search `~/.claude/projects/*/memory/` for relevant MEMORY.md files. Grep for keywords from the query.
 
-3a. **Local patterns.md** (always, regardless of ruflo):
-   Read `~/.claude/memory/patterns.md`. For each `## slug` section whose body matches query keywords, surface it as a pattern result with its `**Confidence:**` field. These are local-only patterns not yet indexed in ruflo.
+3a. **Local per-pattern files** (fallback when ruflo unavailable):
+   Scan `~/.claude/projects/{project-hash}/memory/pattern_*.md`. For each file whose body
+   matches query keywords, surface it as a pattern result with its `confidence` frontmatter field.
+   These are local-only patterns not yet indexed in ruflo (git-durable, no cap).
+   Note: `~/.claude/memory/patterns.md` is retired — do not read it for new sessions.
 
 3b. **Local knowledge-staging.md** (always):
    Read `~/.claude/memory/knowledge-staging.md`. For each `## slug` section matching the query, surface the claim and its `**Promote to:**` destination. Label clearly as "staging — not yet promoted."

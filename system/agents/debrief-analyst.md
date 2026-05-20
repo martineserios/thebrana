@@ -138,12 +138,38 @@ Format:
 - Suggested test: {what test would catch regressions}
 ```
 
+## Step 2.5: Transferability filter (Process Learnings only)
+
+For each Process Learning identified in Step 2, apply this gate before classifying it as a pattern:
+
+> *"Would this learning apply if I were working on a completely different codebase with a different client?"*
+
+| Answer | Verdict | Action |
+|--------|---------|--------|
+| **Yes** — general tool behavior, process insight, cross-project technique | Pattern | Proceed to Step 3 with `confidence: 0.5` |
+| **Borderline** — possibly general but context-dependent | Pattern (borderline) | Proceed to Step 3 with `confidence: 0.4`, note "borderline transferability" |
+| **No** — client API quirk, project-specific config, one-off ERP behavior | Field note | Reroute: do NOT store as pattern. Mark for field note routing (client event log or dimension doc §Field Notes). |
+
+**Examples of No (client-specific, not patterns):**
+- Tracy ERP API quirk (`catalog_id` ≠ `article_id`) → field note
+- Chess ERP Cloud Run job split → field note
+- Kapso-specific flow logic for a particular template → field note
+
+**Examples of Yes (transferable patterns):**
+- Hook chain export list must match import list → pattern
+- Edit tool separator byte must match byte-for-byte → pattern
+- `set -e` + `((N++))` exits on zero counter → pattern
+
+Err toward inclusion for borderline cases. The hard call happens at promotion time (recurrence ≥ 3), not at extraction time.
+
 ## Step 3: Confidence quarantine
 
 New findings start at low confidence unless there's strong evidence:
 - **High confidence:** Verified across multiple sessions/projects, or backed by git evidence
 - **Medium confidence:** Observed once with clear cause-effect
 - **Low confidence:** Suspected but not fully verified — quarantine for future validation
+
+Note: Process Learnings classified as "Pattern (borderline)" in Step 2.5 use `confidence: 0.4` regardless of this scale.
 
 ## Output format
 
