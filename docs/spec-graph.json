@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-19T15:08:16Z",
+  "generated": "2026-05-20T10:15:28Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -448,6 +448,8 @@
       "title": "24 — Roadmap Corrections & Errata (ARCHIVED)",
       "type": "Roadmap",
       "impl_files": [
+        "system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs",
+        "system/procedures/backlog.md",
         "system/procedures/build.md",
         "system/",
         "system/rules/",
@@ -474,7 +476,6 @@
         "system/skills/decide/SKILL.md",
         "system/procedures/onboard.md",
         "system/scheduler/scheduler.template.json",
-        "system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs",
         "system/hooks/hooks.json",
         "system/scripts/generate-reference.py",
         "system/hooks/",
@@ -487,8 +488,8 @@
         "system/hooks/tests/test-main-guard.sh",
         "system/cli/rust/crates/brana-cli/src/commands/",
         "system/procedures/close.md",
-        "system/procedures/backlog.md",
-        "system/cli/rust/crates/brana-cli/src/commands/skills.rs"
+        "system/cli/rust/crates/brana-cli/src/commands/skills.rs",
+        "system/skills/_shared/guided-execution.md:52"
       ]
     },
     "docs/25-self-documentation.md": {
@@ -1149,7 +1150,9 @@
     "docs/architecture/features/task-management-system.md": {
       "title": "Feature: Task Management System",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/scripts/migrate/"
+      ]
     },
     "docs/architecture/features/tasks-portfolio.md": {
       "title": "Feature: /brana:backlog status --all",
@@ -2046,6 +2049,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/ideas/brana-backlog-web-ui.md": {
+      "title": "Brana Backlog Web UI",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/ideas/brana-cli-mcp-layer.md": {
       "title": "Brana CLI MCP Layer — Architecture Decision",
       "type": "Roadmap",
@@ -2156,6 +2164,11 @@
     },
     "docs/ideas/memory-consolidation-kairos.md": {
       "title": "Memory Consolidation — Lint + Heal Shape",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/ideas/memory-pattern-learning-redesign.md": {
+      "title": "Memory Architecture Redesign — Pattern Learning that Actually Works",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -2493,6 +2506,11 @@
         "system/skills/brainstorm/",
         "system/skills/research/"
       ]
+    },
+    "docs/research/2026-05-19-cc-tasks-vs-ruflo-pm-evaluation.md": {
+      "title": "Research: Native CC Tasks vs Ruflo Tasks for PM Use Cases",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/research/cc-unreleased-features-tracker.md": {
       "title": "CC Unreleased Features Tracker",
@@ -11955,9 +11973,9 @@
     }
   ],
   "stats": {
-    "nodes": 386,
+    "nodes": 389,
     "edges": 1568,
     "typed_edges": 551,
-    "orphans": 98
+    "orphans": 101
   }
 }
