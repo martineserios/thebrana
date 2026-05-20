@@ -571,7 +571,12 @@ pub fn cmd_add(
         }
     }
 
+    // t-1543: inherit initiative from parent chain if not explicitly set
+    tasks::inherit_initiative(&mut new_task, &tasks_arr);
+
     let subject = new_task["subject"].as_str().unwrap_or("untitled").to_string();
+    let task_level = new_task["level"].as_str().unwrap_or("task").to_string();
+    let has_initiative = new_task["initiative"].as_str().map(|s| !s.is_empty()).unwrap_or(false);
 
     val["tasks"].as_array_mut()
         .ok_or_else(|| {
@@ -581,6 +586,11 @@ pub fn cmd_add(
         .push(new_task);
     tasks::save_tasks(&tf, &val).map_err(|e| anyhow::anyhow!("{e}"))?;
     println!("{}", serde_json::json!({"ok": true, "id": id, "subject": subject}));
+
+    // t-1543: suggest initiative when adding phase/milestone without one
+    if matches!(task_level.as_str(), "phase" | "milestone") && !has_initiative {
+        eprintln!("  Tip: link to an initiative — `brana backlog set {id} initiative <slug>`");
+    }
     Ok(())
 }
 

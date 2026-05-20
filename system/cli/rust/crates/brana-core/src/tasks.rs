@@ -83,6 +83,35 @@ pub fn text_match(task: &Value, needle: &str) -> bool {
         })
 }
 
+/// Walk task's parent chain and inherit `initiative` from the first ancestor
+/// that has one. Does nothing if the task already has an initiative set.
+pub fn inherit_initiative(task: &mut Value, all: &[Value]) {
+    // Don't override explicit initiative
+    if task["initiative"].as_str().map(|s| !s.is_empty()).unwrap_or(false) {
+        return;
+    }
+    // Walk up parent chain
+    let mut current_id = task["parent"].as_str().map(|s| s.to_string());
+    let mut depth = 0;
+    while let Some(pid) = current_id {
+        depth += 1;
+        if depth > 10 { break; } // guard against cycles
+        let parent = all.iter().find(|t| t["id"].as_str() == Some(pid.as_str()));
+        match parent {
+            None => break,
+            Some(p) => {
+                if let Some(init) = p["initiative"].as_str() {
+                    if !init.is_empty() {
+                        task["initiative"] = Value::String(init.to_string());
+                        return;
+                    }
+                }
+                current_id = p["parent"].as_str().map(|s| s.to_string());
+            }
+        }
+    }
+}
+
 /// Filter tasks by multiple criteria (AND logic).
 pub fn filter_tasks<'a>(
     tasks: &'a [Value],
@@ -1375,6 +1404,47 @@ mod tests {
         for v in &["code", "manual", "feature", "build", "dev", "ops"] {
             assert!(validate_work_type(v).is_err(), "expected Err for {v:?}");
         }
+    }
+
+    // ── t-1543: initiative inheritance tests ────────────────────────────
+
+    #[test]
+    fn test_inherit_initiative_from_parent() {
+        let parent = json!({"id": "ph-001", "initiative": "cc-alignment", "type": "phase"});
+        let all = vec![parent.clone()];
+        let mut task = json!({"id": "t-001", "parent": "ph-001"});
+        inherit_initiative(&mut task, &all);
+        assert_eq!(task["initiative"].as_str(), Some("cc-alignment"));
+    }
+
+    #[test]
+    fn test_inherit_initiative_does_not_override_explicit() {
+        let parent = json!({"id": "ph-001", "initiative": "cc-alignment", "type": "phase"});
+        let all = vec![parent.clone()];
+        let mut task = json!({"id": "t-001", "parent": "ph-001", "initiative": "memory-arch"});
+        inherit_initiative(&mut task, &all);
+        assert_eq!(task["initiative"].as_str(), Some("memory-arch"), "explicit initiative must not be overridden");
+    }
+
+    #[test]
+    fn test_inherit_initiative_no_parent_initiative() {
+        let parent = json!({"id": "ph-001", "type": "phase"});
+        let all = vec![parent.clone()];
+        let mut task = json!({"id": "t-001", "parent": "ph-001"});
+        inherit_initiative(&mut task, &all);
+        assert!(task["initiative"].is_null() || task.get("initiative").is_none(),
+            "no inheritance when parent has no initiative");
+    }
+
+    #[test]
+    fn test_inherit_initiative_grandparent() {
+        let grandparent = json!({"id": "in-001", "initiative": "rust-cli", "type": "initiative"});
+        let parent = json!({"id": "ph-001", "parent": "in-001", "type": "phase"});
+        let all = vec![grandparent.clone(), parent.clone()];
+        let mut task = json!({"id": "t-001", "parent": "ph-001"});
+        inherit_initiative(&mut task, &all);
+        assert_eq!(task["initiative"].as_str(), Some("rust-cli"),
+            "should inherit from grandparent when parent has no initiative");
     }
 
     // ── t-1542: level field tests ────────────────────────────────────────

@@ -38645,7 +38645,7 @@
       "parent": "t-1539",
       "priority": "P1",
       "started": null,
-      "status": "in_progress",
+      "status": "completed",
       "strategy": null,
       "subject": "[schema] rename type\u2192kind (classification) + add level field (hierarchy)",
       "tags": [
@@ -38679,7 +38679,7 @@
       "parent": "t-1539",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "strategy": null,
       "subject": "[schema] scaffold initiatives: in-XXX tasks + write-time suggestion + parent inheritance",
       "tags": [
@@ -39265,6 +39265,71 @@
       "build_step": null,
       "description": null,
       "level": "task"
+    },
+    {
+      "id": "in-001",
+      "type": "initiative",
+      "level": "initiative",
+      "subject": "Backlog UI \u2014 rich task views, filtering, roadmap display",
+      "status": "in_progress",
+      "initiative": "backlog-ui",
+      "tags": [
+        "backlog",
+        "dx",
+        "cli"
+      ],
+      "blocked_by": [],
+      "created": "2026-05-20",
+      "priority": "P1"
+    },
+    {
+      "id": "in-002",
+      "type": "initiative",
+      "level": "initiative",
+      "subject": "CC Alignment \u2014 Claude Code behaviors, skills, hooks tuning",
+      "status": "in_progress",
+      "initiative": "cc-alignment",
+      "tags": [
+        "dx",
+        "hooks",
+        "skills",
+        "cc"
+      ],
+      "blocked_by": [],
+      "created": "2026-05-20",
+      "priority": "P1"
+    },
+    {
+      "id": "in-003",
+      "type": "initiative",
+      "level": "initiative",
+      "subject": "Memory Architecture \u2014 knowledge pipeline, ruflo integration, recall",
+      "status": "in_progress",
+      "initiative": "memory-arch",
+      "tags": [
+        "memory",
+        "knowledge",
+        "ruflo"
+      ],
+      "blocked_by": [],
+      "created": "2026-05-20",
+      "priority": "P1"
+    },
+    {
+      "id": "in-004",
+      "type": "initiative",
+      "level": "initiative",
+      "subject": "Rust CLI \u2014 brana CLI in Rust (brana-core + brana-cli + brana-mcp)",
+      "status": "in_progress",
+      "initiative": "rust-cli",
+      "tags": [
+        "cli",
+        "rust",
+        "mcp"
+      ],
+      "blocked_by": [],
+      "created": "2026-05-20",
+      "priority": "P1"
     }
   ],
   "version": "1"
