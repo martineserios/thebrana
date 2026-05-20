@@ -2,6 +2,7 @@
 .swarm/
 .claude/memory.db
 agentdb.rvf*
+.claude-flow/
 system/state/decisions/
 
 # Local Claude Code config
