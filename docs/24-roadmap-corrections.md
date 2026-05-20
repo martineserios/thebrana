@@ -20,6 +20,8 @@
 
 | # | Error | Severity | Status | Comments |
 |---|---|---|---|---|
+| E2026-05-20-6 | thebrana: Advisory prose errata (E2026-05-20-5) stated `feat/t-1540-drop-stream` "not safe to merge" — branch was merged anyway; `stream` re-injected via `backlog_add.rs` on main. Process gap: prose errata has no enforcement mechanism against branch merges. | **High** | pending | Fix: add pre-merge grep gate (hook or CI check) that rejects merges where the dropped field still appears in producer write paths (`*_add.rs`). Until then, any session that closes with a HIGH "not safe to merge" errata must explicitly block the merge task with `brana backlog set <merge-task> status blocked`. Track as t-1565. |
+| E2026-05-20-5 | thebrana: `feat/t-1540-drop-stream` dropped `stream` from `filter_tasks`/`validate_schema`/`set_field`/`compute_stats` in core — but `backlog_add.rs` still declares `pub stream: String` + `default_stream() -> "roadmap"`, injecting `"stream": "roadmap"` into every MCP-created task. ACTIVE REGRESSION — MCP write path re-introduces the removed field. | **High** | pending | Tracked as t-1564 (P1). Fix: drop `stream` field from `BacklogAddInput` struct + `default_stream()` + payload builder line 74. Fix `backlog_stats.rs` description. Remove `"stream"` from 4 test fixtures. Clean doc-comments in `cli.rs:726`, `tasks.rs:571,695`. DoD: `grep -rn 'stream' system/cli/rust/crates/` clean outside comments. |
 | E2026-05-19-12 | thebrana: `claude --output-format json` changed from single-object `{"result":"..."}` to array-stream envelope `[{"type":"system",...}, {"type":"result","result":"..."}]` — `call_claude_json` and `call_claude_text` in `knowledge_pipeline.rs` both used `raw.get("result")` which returns None on arrays, causing all tier1 relevance scores to default to 0 (50 wrongly-scored URLs required re-queue and re-scoring) | **High** | code-fix | Fixed in commit `b8d8ac9`: both functions now check `raw.as_array()` first, iterate to find the `type=="result"` element, then fall back to the legacy single-object shape. Rule: always handle both envelope shapes when calling `claude --output-format json`; the CLI format is not stable between minor versions. Affected: `system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs` (`call_claude_json`, `call_claude_text`). See also: `feedback_llm-json-strip-code-fences.md` (related defensive parsing pattern). |
 | E2026-05-19-11 | thebrana: `brana backlog set` requires 3 positional args (task_id, field, value) — cannot be reused for config-level singletons. `brana backlog set active cc-alignment` parses `active` as task_id and fails. Procedure and user mental model assumed `set` was overloadable. | **Low** | code-fix | Fixed in commit `f5ea35a`: dedicated `SetActive { slug }` subcommand with `#[command(name = "set-active")]` added to `BacklogCmd`. Rule: config-level singleton setters always need dedicated subcommands — never overload positional `set`. Affected: `docs/reference/brana-cli.md` (updated with `set-active` entry), `system/procedures/backlog.md` (updated with set-active table row). |
 | E2026-05-19-10 | thebrana: ADR-002 described CC Tasks as "session-scoped" — language accurate for deprecated `TodoWrite`/`TodoRead` but not for `TaskCreate/TaskUpdate/TaskGet/TaskList` (shipped CC v2.1.16 Jan 2026, one month before ADR-002 was written). Decision (tasks.json) was correct; rationale cited a non-existent constraint. | **Low** | code-fix | Fixed in commit `102f139`: Option 1 now accurately describes new Tasks system (file-based persistent, cross-session via `CLAUDE_CODE_TASK_LIST_ID`, no priority/tags/hierarchy, metadata gap via issue #21356). `guided-execution.md:52` stale "session-scoped" claim also fixed. |
@@ -3149,10 +3151,29 @@ This errata also applies as a process rule: **when a credential is not explicitl
 
 **Spec says:** t-1540 (drop stream field): `stream` removed from `tasks.rs` `filter_tasks`, `validate_schema`, `set_field`, `compute_stats`. Branch: `feat/t-1540-drop-stream`.
 
-**Reality:** The MCP `backlog_add` tool still has `default_stream()`, `pub stream: String`, and a stream payload field. `backlog_stats` description mentions "by status, stream, priority". `tool_tests.rs` has 4 test fixtures with `"stream":` keys. `backlog.rs:715` type-tier match still lists `"stream"` as a valid type. CLI and MCP surfaces are inconsistent — `backlog_add` would still accept a field the core schema has removed.
+**Reality:** ACTIVE REGRESSION — `backlog_add.rs:74` injects `"stream": input.stream` into every task payload; `BacklogAddInput` (line 13) declares `pub stream: String` with `default_stream() -> "roadmap"` (line 38). Every task created via MCP silently re-introduces `stream: "roadmap"`, undoing the 1413-task migration. Additional stale references: `backlog_stats.rs:37` description string, `tool_tests.rs` 4 fixtures (lines 23/39/56/245), `cli.rs:726` doc-comment, `tasks.rs:571` doc-comment and `:695` description string.
 
-**Fix:** Complete MCP/CLI surface sweep on `feat/t-1540-drop-stream` before merge: `grep -rn 'stream' brana-mcp/` and `grep -n '"stream"' brana-cli/` must be clean. Update test fixtures. Merge gate: zero `stream` references outside comments.
-**Status:** pending — branch not safe to merge
+Update 2026-05-20 (second debrief): t-1540 only touched `tool_tests.rs`; the two **source write path files** (`backlog_add.rs`, `backlog_stats.rs`) were NOT modified. Grep confirmed: `grep -rn stream brana-mcp/` still returns 8 hits. The errata was prematurely assumed resolved — it was not. DoD = clean `grep -rn 'stream' system/cli/rust/crates/` (modulo comment/history).
+
+**Fix:** Drop `stream` field from `BacklogAddInput` struct + `default_stream()` + payload builder (line 74). Fix `backlog_stats.rs` description. Remove `"stream"` from 4 test fixtures. Clean doc-comments in `cli.rs:726`, `tasks.rs:571,695`. Tracked as t-1561 (P1, unblocked).
+**Status:** pending — ACTIVE REGRESSION (MCP writes re-introduce dead field) — t-1564
+
+---
+
+## E2026-05-20-6 — Advisory errata prose has no merge-gate enforcement: feat/t-1540-drop-stream merged despite "not safe to merge"
+
+**Severity:** High
+**Discovery:** 2026-05-20 — debrief-analyst at second close; confirmed branch merged (77256dc) while E2026-05-20-5 explicitly stated "not safe to merge"
+**Affected files:** `system/procedures/close.md` (Step 4 — errata-filing workflow lacks merge-block instruction), any branch closed while a HIGH errata against it is pending
+
+**Spec says:** `/brana:close` Step 4 logs errata as `pending` and advises `Status: pending — branch not safe to merge`. The implication is that a branch with a HIGH pending errata would not be merged.
+
+**Reality:** The advisory status is prose only — no hook, no gate, no task dependency blocks the merge. The branch was merged (`git merge feat/t-1540-drop-stream`) without any enforcement. The errata remained `pending` in a committed doc that no merge step reads.
+
+**Fix:** Two parts:
+1. **Process rule (close.md Step 4):** When errata severity is HIGH and fix is not yet applied, create a `blocked` task for the pending cleanup work and include "branch not safe to merge" as `brana backlog set <cleanup-task> status pending`. The errata alone is advisory prose — the *task block* is the enforcement mechanism.
+2. **Future: pre-merge grep gate:** For schema-field-removal tasks, add a pre-merge check (hook or CI) that greps the dropped field name across all producer surfaces (`*_add.rs`, `*_stats.rs`) and fails if found outside comments. Tracked as t-1562.
+**Status:** pending — close.md Step 4 needs process rule + t-1565 filed for enforcement gate
 
 ---
 
