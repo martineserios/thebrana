@@ -1,6 +1,6 @@
 # Ruflo v3.6 Integration — thebrana v1.20
 
-> Brainstormed 2026-05-20. Status: idea.
+> Brainstormed 2026-05-20. Status: partial — Track C (DONE), Track D (DONE), Track B (NO-GO), Track A (pending).
 
 ## Problem
 
@@ -93,10 +93,10 @@ on v3.6.30, already past the v3.5.40 security remediation.
 1. Add `smart: true` to LOAD calls in brainstorm/build/research/review procedures
 2. Validate with before/after test (compare top-3 results with and without)
 
-### Track B — Browser Automation (spike → feature)
-1. Run `mcp__ruflo__browser_check` to validate substrate is live
-2. If healthy: write Meta template appeals feature spec (brana:meta-templates browser flow)
-3. Wire browser calls into `brana:meta-templates` appeal command
+### Track B — Browser Automation (spike → feature) — **NO-GO 2026-05-20**
+1. ~~Run `mcp__ruflo__browser_check` to validate substrate is live~~ — `browser_check` is a checkbox interaction tool, not a health check (E2026-05-20-10)
+2. Validated via t-1550: Chromium network fully blocked in CC environment (DNS + direct IP both fail)
+3. **CANCELLED** pending environment fix — see `56-ruflo-agentdb-architecture.md` §Browser Substrate for fix path
 
 ### Track C — Tool Namespace Audit
 1. Enumerate new namespaces: `daa_*`, `ruvllm_*`, extended `agentdb_*` (11 new controllers)

@@ -3212,3 +3212,19 @@ Update 2026-05-20 (second debrief): t-1540 only touched `tool_tests.rs`; the two
 **Process note:** ADR framings that compare against third-party primitives (CC, ruflo, MCP) decay when the upstream platform ships replacement systems. The decision may remain correct while the framing becomes wrong. Mitigation: pin "evaluates against CC vX.Y.Z" in ADR frontmatter; `/brana:research` can detect framing decay even when the decision stands.
 
 **Status:** code-fix
+
+---
+
+## E2026-05-20-10 — Idea doc `ruflo-v36-integration.md` Track B listed `browser_check` as substrate health check
+
+**Severity:** Low
+**Discovery:** 2026-05-20 — t-1550 browser substrate validation spike
+**Affected files:** `docs/ideas/ruflo-v36-integration.md` Track B step 1
+
+**Spec says:** Track B step 1: "Run `mcp__ruflo__browser_check` to validate substrate is live"
+
+**Reality:** `mcp__ruflo__browser_check` is a **checkbox interaction tool** — it checks/unchecks a checkbox element via a CSS `target` selector. It is not a substrate health check. The correct validation path is `browser_open` + navigate to a URL + check for connection errors. Additionally, Chromium's network stack is fully blocked in the CC environment (both DNS and direct IP), making browser automation a NO-GO regardless of tool choice.
+
+**Fix:** Dim 56 (`56-ruflo-agentdb-architecture.md`) updated with full NO-GO verdict and root cause. Idea doc Track B status updated to NO-GO.
+
+**Status:** code-fix

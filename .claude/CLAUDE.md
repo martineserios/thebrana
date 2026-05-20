@@ -61,7 +61,7 @@ Branch conventions preserve the separation:
 - Spec changes push to implementation (`/brana:reconcile`)
 - Implementation changes update docs in the same commit (no separate back-propagation step)
 - When adding new docs, update `docs/README.md`
-- Ruflo namespaces: `specs` · `decisions` · `knowledge` (use `namespace: "all"` for cross-namespace search)
+- Ruflo namespaces: query `knowledge` + `pattern` in parallel (use `namespace: "all"` only with `threshold: 0.55` in v3.6 — session records score constant 0.5 and contaminate below that). `specs` namespace is unindexed — skip.
 - After any code change, run the relevant test suite before marking the task done.
 - Use `.claude/CLAUDE.local.md` (gitignored) for personal/machine-specific overrides — loaded last, wins on conflict. Never commit it.
 

@@ -2,7 +2,7 @@
 
 # Rules Reference
 
-**25 rules** in `system/rules/`.
+**26 rules** in `system/rules/`.
 
 | File | Title | Summary |
 |------|-------|--------|
@@ -21,6 +21,7 @@
 | `no-phantom-dependencies.md` | Never Reference Non-Existent Docs in Skill LOAD Steps | Never build a skill whose LOAD step references a doc that doesn't exist yet. |
 | `parallel-bash.md` | Parallel Bash Resilience | Claude Code cancels all sibling Bash tool calls when one exits non-zero. Guard independent parallel ... |
 | `research-discipline.md` | Research Discipline | When starting research on any topic: |
+| `ruflo-stub-guard.md` | Ruflo Stub Guard | Never use these ruflo commands as authoritative signals. They return hardcoded or unimplemented outp... |
 | `rules-over-hooks-for-gates.md` | Rules Over Hooks for Behavioral Gates | Prefer a rule file over a hook for "always do X before Y" behavioral constraints. |
 | `sdd-tdd.md` | Test-First Development | ## Before implementation |
 | `self-improvement.md` | Self-Improvement | Automatic learning. Runs every session without invocation. |
@@ -135,6 +136,13 @@ Claude Code cancels all sibling Bash tool calls when one exits non-zero. Guard i
 **File:** `system/rules/research-discipline.md`
 
 When starting research on any topic:
+
+
+## Ruflo Stub Guard
+
+**File:** `system/rules/ruflo-stub-guard.md`
+
+Never use these ruflo commands as authoritative signals. They return hardcoded or unimplemented output regardless of input:
 
 
 ## Rules Over Hooks for Behavioral Gates
