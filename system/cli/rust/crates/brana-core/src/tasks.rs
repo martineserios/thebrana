@@ -1795,22 +1795,16 @@ mod tests {
     }
 
     #[test]
-    fn test_compute_stats_by_stream_has_raw_and_state() {
+    fn test_compute_stats_by_work_type() {
         let tasks = vec![
-            json!({"id": "t-1", "type": "task", "status": "pending", "stream": "x", "tags": [], "blocked_by": []}),
-            json!({"id": "t-2", "type": "task", "status": "completed", "stream": "x", "tags": [], "blocked_by": []}),
-            json!({"id": "t-3", "type": "task", "status": "pending", "stream": "x", "tags": ["parked"], "blocked_by": []}),
+            json!({"id": "t-1", "type": "task", "status": "pending", "work_type": "implement", "tags": [], "blocked_by": []}),
+            json!({"id": "t-2", "type": "task", "status": "completed", "work_type": "implement", "tags": [], "blocked_by": []}),
+            json!({"id": "t-3", "type": "task", "status": "pending", "work_type": "research", "tags": [], "blocked_by": []}),
         ];
         let stats = compute_stats(&tasks, &tasks);
-        let stream_x = &stats["by_stream"]["x"];
-        assert_eq!(stream_x["total"], 3);
-        // raw counts
-        assert_eq!(stream_x["pending"], 2);
-        assert_eq!(stream_x["completed"], 1);
-        // synthetic counts
-        assert_eq!(stream_x["state"]["done"], 1);
-        assert_eq!(stream_x["state"]["pending"], 1);
-        assert_eq!(stream_x["state"]["parked"], 1);
+        assert_eq!(stats["by_work_type"]["implement"], 2);
+        assert_eq!(stats["by_work_type"]["research"], 1);
+        assert!(stats.get("by_stream").is_none(), "by_stream must not appear in stats output");
     }
 
     // ── Wave 3: build_tree tests ────────────────────────────────────────
@@ -1958,7 +1952,8 @@ mod tests {
         let task = json!({
             "description": "Implement the full authentication system with JWT tokens, refresh rotation, middleware integration, session management, and database schema changes for the user auth table",
             "blocked_by": ["t-001", "t-002"],
-            "stream": "roadmap",
+            "kind": "feature",
+            "work_type": "implement",
             "tags": ["architecture"],
             "effort": "XL"
         });
@@ -2178,7 +2173,8 @@ mod tests {
         let task = json!({
             "description": std::iter::repeat("word ").take(200).collect::<String>(),
             "blocked_by": ["t-1","t-2","t-3","t-4","t-5"],
-            "stream": "roadmap",
+            "kind": "feature",
+            "work_type": "implement",
             "tags": ["architecture"],
             "effort": "XL"
         });
@@ -2195,10 +2191,10 @@ mod tests {
     }
 
     #[test]
-    fn test_complexity_score_roadmap_only() {
-        let task = json!({"stream": "roadmap", "blocked_by": [], "tags": [], "effort": "S"});
+    fn test_complexity_score_implement_feature_only() {
+        let task = json!({"kind": "feature", "work_type": "implement", "blocked_by": [], "tags": [], "effort": "S"});
         let score = complexity_score(&task);
-        assert!((score - 0.2).abs() < f64::EPSILON, "roadmap-only should be 0.2, got {score}");
+        assert!((score - 0.2).abs() < f64::EPSILON, "implement-feature-only should be 0.2, got {score}");
     }
 
     #[test]

@@ -16,13 +16,6 @@ pub enum TaskStatus {
 }
 
 #[derive(Clone, ValueEnum)]
-pub enum TaskStream {
-    Dev,
-    Ops,
-    Research,
-}
-
-#[derive(Clone, ValueEnum)]
 pub enum TaskPriority {
     #[value(name = "P0")]
     P0,
@@ -525,9 +518,6 @@ pub enum BacklogCmd {
     Next {
         #[arg(long)]
         tag: Option<String>,
-        /// Filter by stream (deprecated — use --kind)
-        #[arg(long, value_enum)]
-        stream: Option<TaskStream>,
         /// Filter by work kind: feature, fix, refactor, research, docs, design, ops
         #[arg(long, value_enum)]
         kind: Option<TaskKind>,
@@ -555,9 +545,6 @@ pub enum BacklogCmd {
         tag: Option<String>,
         #[arg(short, long, value_enum)]
         status: Option<TaskStatus>,
-        /// Filter by stream (deprecated — use --kind)
-        #[arg(long, value_enum)]
-        stream: Option<TaskStream>,
         /// Filter by work kind: feature, fix, refactor, research, docs, design, ops
         #[arg(long, value_enum)]
         kind: Option<TaskKind>,
@@ -693,9 +680,6 @@ pub enum BacklogCmd {
         /// Task subject (shorthand, used when --json is omitted)
         #[arg(long)]
         subject: Option<String>,
-        /// Stream: roadmap, bugs, tech-debt, docs, experiments, research (deprecated — use --kind)
-        #[arg(long)]
-        stream: Option<String>,
         /// Work kind: feature, fix, refactor, research, docs, design, ops
         #[arg(long)]
         kind: Option<String>,

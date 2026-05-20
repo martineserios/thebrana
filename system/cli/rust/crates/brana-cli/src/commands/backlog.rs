@@ -12,7 +12,7 @@ use crate::util::find_tasks_file;
 // ── backlog commands ────────────────────────────────────────────────────
 
 pub fn cmd_next(
-    theme: &themes::Theme, tag: Option<String>, stream: Option<String>,
+    theme: &themes::Theme, tag: Option<String>,
     kind: Option<String>,
     limit: usize, priority: Option<String>, task_type: Option<String>,
     effort: Option<String>, parent: Option<String>, json_out: bool,
@@ -28,7 +28,7 @@ pub fn cmd_next(
 
     let mut candidates = tasks::filter_tasks(
         &data.tasks, &data.tasks,
-        tag.as_deref(), Some("pending"), stream.as_deref(),
+        tag.as_deref(), Some("pending"),
         priority.as_deref(), effort.as_deref(), None,
         &types, None, None,
     );
@@ -62,13 +62,13 @@ pub fn cmd_next(
     for (i, t) in top.iter().enumerate() {
         let pri = t["priority"].as_str().unwrap_or("—");
         let eff = t["effort"].as_str().unwrap_or("—");
-        let st = t["stream"].as_str().unwrap_or("—");
+        let wt = t["work_type"].as_str().unwrap_or("—");
         let line = format!(
             "  {}. {} {}  {}  {}  {}  {}",
             i + 1, theme.icon("pending"),
             t["id"].as_str().unwrap_or("?"),
             t["subject"].as_str().unwrap_or(""),
-            pri, eff, st,
+            pri, eff, wt,
         );
         println!("{}{line}{}", themes::ansi(theme.color("pending")), themes::RESET);
     }
@@ -77,7 +77,7 @@ pub fn cmd_next(
 }
 
 pub fn cmd_query(
-    tag: Option<String>, status: Option<String>, stream: Option<String>,
+    tag: Option<String>, status: Option<String>,
     kind: Option<String>,
     priority: Option<String>, effort: Option<String>, search: Option<String>,
     count: bool, output: String, theme: &themes::Theme,
@@ -99,7 +99,7 @@ pub fn cmd_query(
 
     let mut results = tasks::filter_tasks(
         &data.tasks, &data.tasks,
-        None, status.as_deref(), stream.as_deref(),
+        None, status.as_deref(),
         priority.as_deref(), effort.as_deref(), search.as_deref(),
         &types, initiative.as_deref(), work_type.as_deref(),
     );
@@ -255,7 +255,7 @@ pub fn cmd_search(text: &str, theme: &themes::Theme, json_out: bool) -> anyhow::
     let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
     let results = tasks::filter_tasks(
         &data.tasks, &data.tasks,
-        None, None, None, None, None, Some(text), &["task", "subtask"], None, None,
+        None, None, None, None, Some(text), &["task", "subtask"], None, None,
     );
     if json_out {
         println!("{}", serde_json::to_string(&results).unwrap());
@@ -378,8 +378,8 @@ pub fn cmd_context(task_id: &str, theme: &themes::Theme) -> anyhow::Result<()> {
     let st = tasks::classify(task, &data.tasks);
     println!("\n{}{task_id} {}{}", themes::ansi(theme.color("header")),
         task["subject"].as_str().unwrap_or(""), themes::RESET);
-    println!("  Status: {st}  Stream: {}  Priority: {}  Effort: {}",
-        task["stream"].as_str().unwrap_or("—"),
+    println!("  Status: {st}  WorkType: {}  Priority: {}  Effort: {}",
+        task["work_type"].as_str().unwrap_or("—"),
         task["priority"].as_str().unwrap_or("—"),
         task["effort"].as_str().unwrap_or("—"));
 
@@ -462,7 +462,6 @@ pub fn cmd_set(task_id: &str, field: &str, value: &str, append: bool, file: Opti
 pub fn cmd_add(
     json: Option<String>,
     subject: Option<String>,
-    stream: Option<String>,
     kind: Option<String>,
     task_type: Option<String>,
     tags: Option<String>,
@@ -505,7 +504,6 @@ pub fn cmd_add(
         // Build JSON from shorthand flags
         let mut obj = serde_json::Map::new();
         obj.insert("subject".into(), serde_json::Value::String(subj.clone()));
-        if let Some(ref s) = stream { obj.insert("stream".into(), serde_json::Value::String(s.clone())); }
         if let Some(ref k) = kind { obj.insert("kind".into(), serde_json::Value::String(k.clone())); }
         obj.insert("type".into(), serde_json::Value::String(task_type.unwrap_or_else(|| "task".into())));
         if let Some(ref t) = tags {
@@ -1054,7 +1052,7 @@ pub fn cmd_triage_stale(
     let mut data = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     // Collect display info and matched IDs before taking any mutable borrow.
-    // Each entry: (id, subject, stream)
+    // Each entry: (id, subject, work_type)
     let matched: Vec<(String, String, String)> = {
         let all_tasks: Vec<&serde_json::Value> = data["tasks"]
             .as_array()
@@ -1070,7 +1068,7 @@ pub fn cmd_triage_stale(
             .map(|t| (
                 t["id"].as_str().unwrap_or("").to_string(),
                 t["subject"].as_str().unwrap_or("(no subject)").to_string(),
-                t["stream"].as_str().unwrap_or("?").to_string(),
+                t["work_type"].as_str().unwrap_or("?").to_string(),
             ))
             .collect()
     };
@@ -1090,8 +1088,8 @@ pub fn cmd_triage_stale(
     let total = matched.len();
 
     for chunk in matched.chunks(batch_size) {
-        for (id, subj, stream) in chunk {
-            println!("  [{stream}] {id} — {subj}");
+        for (id, subj, work_type) in chunk {
+            println!("  [{work_type}] {id} — {subj}");
         }
         println!();
 
@@ -1521,7 +1519,7 @@ mod tests {
         cmd_add(
             Some(r#"{"subject":"no priority in json"}"#.into()),
             None, None, None, None, None, None, None, None,
-            None, None, Some(f.path().to_path_buf()), None, None,
+            None, Some(f.path().to_path_buf()), None, None,
         ).unwrap();
         let task = read_first_task(&f);
         assert_eq!(task["priority"].as_str(), Some("P3"),
@@ -1534,7 +1532,7 @@ mod tests {
         cmd_add(
             Some(r#"{"subject":"explicit null priority","priority":null}"#.into()),
             None, None, None, None, None, None, None, None,
-            None, None, Some(f.path().to_path_buf()), None, None,
+            None, Some(f.path().to_path_buf()), None, None,
         ).unwrap();
         let task = read_first_task(&f);
         assert_eq!(task["priority"].as_str(), Some("P3"),
@@ -1547,7 +1545,7 @@ mod tests {
         cmd_add(
             Some(r#"{"subject":"explicit priority","priority":"P1"}"#.into()),
             None, None, None, None, None, None, None, None,
-            None, None, Some(f.path().to_path_buf()), None, None,
+            None, Some(f.path().to_path_buf()), None, None,
         ).unwrap();
         let task = read_first_task(&f);
         assert_eq!(task["priority"].as_str(), Some("P1"),
@@ -1560,7 +1558,7 @@ mod tests {
         cmd_add(
             Some(r#"{"subject":"urgent","priority":"P0"}"#.into()),
             None, None, None, None, None, None, None, None,
-            None, None, Some(f.path().to_path_buf()), None, None,
+            None, Some(f.path().to_path_buf()), None, None,
         ).unwrap();
         let task = read_first_task(&f);
         assert_eq!(task["priority"].as_str(), Some("P0"),

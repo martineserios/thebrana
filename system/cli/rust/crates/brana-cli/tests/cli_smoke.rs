@@ -239,7 +239,7 @@ fn backlog_add_priority_and_context_flags_persist() {
         .args([
             "backlog", "add",
             "--subject", "test priority+context flags",
-            "--stream", "tech-debt",
+            "--kind", "feature",
             "--effort", "S",
             "--priority", "P1",
             "--context", "verifying t-1336 shorthand merge",

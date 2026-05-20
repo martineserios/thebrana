@@ -1,11 +1,11 @@
 //! brana-query — fast JSON task filter
 //!
-//! Reads tasks.json from stdin or file, filters by tag/status/stream/priority/effort/text,
+//! Reads tasks.json from stdin or file, filters by tag/status/priority/effort/text,
 //! outputs filtered results as JSON. Called by Python CLI for hot-path filtering.
 //!
 //! Usage:
 //!   brana-query --file .claude/tasks.json --tag scheduler --status pending
-//!   cat .claude/tasks.json | brana-query --tag auth --stream roadmap
+//!   cat .claude/tasks.json | brana-query --tag auth --work-type implement
 //!   brana-query --file .claude/tasks.json --search "JWT middleware"
 //!   brana-query --file .claude/tasks.json --count --tag scheduler
 
@@ -30,10 +30,6 @@ struct Args {
     /// Filter by classified status: done|active|pending|blocked|parked
     #[arg(short, long)]
     status: Option<String>,
-
-    /// Filter by stream
-    #[arg(long)]
-    stream: Option<String>,
 
     /// Filter by priority: P0|P1|P2|P3
     #[arg(short, long)]
@@ -150,11 +146,6 @@ fn main() {
                     .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
                     .unwrap_or_default();
                 if !tags.contains(&tag.as_str()) {
-                    return false;
-                }
-            }
-            if let Some(ref s) = args.stream {
-                if t["stream"].as_str().unwrap_or("") != s.as_str() {
                     return false;
                 }
             }
