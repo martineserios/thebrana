@@ -221,3 +221,75 @@ brana skills list
 # Grouped table for humans
 brana skills list --human
 ```
+
+## brana memory write
+
+Write a memory entry routed by type and scope (ADR-038). Content containing a version claim is automatically stamped with the live tool version at write time.
+
+### Usage
+
+```bash
+brana memory write --type <type> --scope <scope> --slug <slug> --content <content>
+```
+
+### Flags
+
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--type` | yes | Memory type: `feedback`, `project`, `user`, `pattern` |
+| `--scope` | no (default: `project`) | `project` or `global` |
+| `--slug` | yes | Kebab-case identifier (stable across sessions) |
+| `--content` | yes | Memory content to write |
+
+### Version-stamp injection
+
+When `--content` contains a version-like pattern (`v` followed by a digit, e.g. `v3.5.1`) **and** mentions at least one brana ecosystem tool (`ruflo`, `brana`, or `claude`), the write path automatically appends a verified-version block:
+
+```
+---
+**Verified at write time (YYYY-MM-DD):**
+- `ruflo --version`: ruflo v3.6.30
+```
+
+The block reflects the live `--version` output at the moment of writing. If the tool is absent from PATH, the stamp notes "not found in PATH" rather than failing the write. Content without a version pattern, or with no known tool name, is written unchanged.
+
+### Routing (ADR-038)
+
+| Type | Scope | File |
+|------|-------|------|
+| `feedback` | `project` | `{project_memory}/feedback_{slug}_{ts}.md` (dated, parallel-safe) |
+| `feedback` | `global` | `~/.claude/memory/feedback_{slug}_{ts}.md` |
+| `project` | `project` | `{project_memory}/project_{slug}.md` (upsert) |
+| `user` | `global` | `~/.claude/memory/user_{slug}.md` (upsert) |
+| `pattern` | any | `~/.claude/memory/pattern_{slug}.md` (upsert) |
+
+### Examples
+
+```bash
+# Write a project memory — version claim triggers live-stamp injection
+brana memory write --type project --scope project \
+  --slug ruflo-agentdb-status \
+  --content "ruflo agentdb is currently at v3.5.1"
+# → written file will contain live ruflo --version output
+
+# Write feedback (global scope)
+brana memory write --type feedback --scope global \
+  --slug use-uv-for-python \
+  --content "always use uv run python, never python3 directly"
+```
+
+## brana memory index
+
+Regenerate `MEMORY.md` from the filesystem — picks the newest dated file per slug.
+
+### Usage
+
+```bash
+brana memory index --scope <scope>
+```
+
+### Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--scope` | `project` | `project` or `global` |
