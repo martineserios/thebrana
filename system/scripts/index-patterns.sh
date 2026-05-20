@@ -62,7 +62,7 @@ if [ ${#FILES[@]} -eq 0 ]; then
             fi
         fi
 
-        for f in "$projdir"feedback_*.md "$projdir"project_*.md; do
+        for f in "$projdir"feedback_*.md "$projdir"project_*.md "$projdir"pattern_*.md; do
             [ -f "$f" ] && FILES+=("$f")
         done
     done
@@ -134,7 +134,7 @@ for filepath in "${FILES[@]}"; do
     fm=$(sed -n '2,/^---$/p' "$filepath" | head -20)
     name=$(echo "$fm" | grep '^name:' | sed 's/^name: *//' | head -1)
     description=$(echo "$fm" | grep '^description:' | sed 's/^description: *//' | head -1)
-    type=$(echo "$fm" | grep '^type:' | sed 's/^type: *//' | tr -d '[:space:]' | head -1)
+    type=$(echo "$fm" | grep -E '^\s*type:' | sed 's/.*type: *//' | tr -d '[:space:]' | head -1)
 
     if [ -z "$name" ] || [ -z "$type" ]; then
         echo "  SKIP: $filename (missing name or type)"

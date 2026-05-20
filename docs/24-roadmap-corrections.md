@@ -3111,6 +3111,36 @@ This errata also applies as a process rule: **when a credential is not explicitl
 
 ---
 
+## E2026-05-20-3 — index-patterns.sh line 65 never globs pattern_*.md — per-pattern files write-only until fixed
+
+**Severity:** High
+**Discovery:** 2026-05-20 — debrief-analyst after t-1492 build; ADR-039 claims ruflo discoverability but indexer never indexed per-pattern files
+**Affected files:** `system/scripts/index-patterns.sh` (line 65 glob, line 137 type extraction)
+
+**Spec says:** ADR-039: "Auto-extracted patterns are discoverable via ruflo semantic search; MEMORY.md entry is added only at explicit promotion." `memory.md` fallback path §3a: "Scan `~/.claude/projects/{project-hash}/memory/pattern_*.md`. For each file whose body matches query keywords, surface it as a pattern result."
+
+**Reality:** `index-patterns.sh` line 65 scans only `feedback_*.md` and `project_*.md`. `pattern_*.md` files are never passed to Phase 1. Additionally, line 137 uses `grep '^type:'` which cannot match `  type: pattern` (indented under `metadata:`), meaning even existing `feedback_*.md` files with nested frontmatter format are silently skipped.
+
+**Fix:** Two-part, applied this session: (1) line 65: added `"$projdir"pattern_*.md` to the glob; (2) line 137: changed `grep '^type:'` to `grep -E '^\s*type:'` to handle both top-level and nested `type:` fields. `memory.md` fallback recall (§3a) still works since it greps file bodies directly — the fix only restores ruflo indexing.
+**Status:** code-fix — applied in this session's commit
+
+---
+
+## E2026-05-20-4 — ISC scope undercount: 5 residual patterns.md references missed in first commit
+
+**Severity:** Medium
+**Discovery:** 2026-05-20 — debrief-analyst sweep after t-1492 build; grep revealed 5 un-updated references in memory.md and retrospective.md
+**Affected files:** `system/procedures/memory.md` (lines 107–108, 113, ~217), `system/procedures/retrospective.md` (step 8 grep, rules section)
+
+**Spec says:** t-1492 ISC (impact scope check) enumerated 4 files to update: `debrief-analyst.md`, `retrospective.md`, `close.md`, `memory.md`. The ISC implied a complete sweep.
+
+**Reality:** First commit (f00a6c9) missed 5 references: `memory.md` health check (lines 107–108, 113) still cited `patterns.md` cap and pruning logic; `memory.md` review summary (line ~217) still cited `patterns.md` duplicate slugs; `retrospective.md` step 8 grep (lines 253–255, 259) still targeted `patterns.md`; `retrospective.md` rules still said "never overwrite — patterns.md". Required a cleanup commit (d5cd10d) to fix all 5.
+
+**Fix:** ISC discipline — before closing any refactor commit: `git grep -n "old-term"` across the full repo. One grep per retired symbol, zero misses. The 4-file scope was correct but the sweep within files was incomplete.
+**Status:** code-fix — resolved in cleanup commit d5cd10d
+
+---
+
 ## E2026-05-19-10 — ADR-002 described CC Tasks as "session-scoped" — stale framing predating CC v2.1.16
 
 **Severity:** Low
