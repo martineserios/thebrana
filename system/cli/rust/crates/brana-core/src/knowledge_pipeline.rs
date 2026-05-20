@@ -474,6 +474,29 @@ pub fn build_claude_args<'a>(prompt: &'a str, model: Option<&'a str>) -> Vec<&'a
     args
 }
 
+/// Parse raw stdout from `claude --output-format json` into a single JSON value.
+///
+/// Handles three output shapes:
+/// - Single JSON value (legacy): parsed directly
+/// - JSON array (current batch): parsed as array
+/// - NDJSON (newline-delimited): finds the last `{"type":"result",...}` line and
+///   wraps it in an array so `extract_result_from_envelope` can handle it uniformly
+fn parse_claude_stdout(stdout: &str) -> Result<serde_json::Value> {
+    let trimmed = stdout.trim();
+    if let Ok(v) = serde_json::from_str::<serde_json::Value>(trimmed) {
+        return Ok(v);
+    }
+    // NDJSON fallback: scan lines for the result entry
+    let result_entry = trimmed
+        .lines()
+        .filter_map(|line| serde_json::from_str::<serde_json::Value>(line.trim()).ok())
+        .find(|v| v.get("type").and_then(|t| t.as_str()) == Some("result"));
+    match result_entry {
+        Some(entry) => Ok(serde_json::Value::Array(vec![entry])),
+        None => anyhow::bail!("parsing claude CLI envelope: {stdout}"),
+    }
+}
+
 /// Extract the model's result text from the Claude CLI JSON envelope.
 ///
 /// Handles two envelope shapes emitted by `--output-format json`:
@@ -513,7 +536,7 @@ pub fn call_claude_json(prompt: &str, model: Option<&str>) -> Result<serde_json:
         .spawn()
         .with_context(|| format!("spawning claude binary at {}", binary.display()))?;
 
-    let timeout = std::time::Duration::from_secs(60);
+    let timeout = std::time::Duration::from_secs(180);
     let start = std::time::Instant::now();
     loop {
         match child.try_wait() {
@@ -522,7 +545,7 @@ pub fn call_claude_json(prompt: &str, model: Option<&str>) -> Result<serde_json:
                 if start.elapsed() > timeout {
                     let _ = child.kill();
                     let _ = child.wait();
-                    bail!("claude CLI timed out after 60s");
+                    bail!("claude CLI timed out after 180s");
                 }
                 std::thread::sleep(std::time::Duration::from_millis(100));
             }
@@ -537,8 +560,7 @@ pub fn call_claude_json(prompt: &str, model: Option<&str>) -> Result<serde_json:
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout);
-    let raw: serde_json::Value = serde_json::from_str(stdout.trim())
-        .with_context(|| format!("parsing claude JSON output: {stdout}"))?;
+    let raw: serde_json::Value = parse_claude_stdout(&stdout)?;
 
     let result_text = extract_result_from_envelope(&raw);
 
@@ -569,7 +591,7 @@ pub fn call_claude_text(prompt: &str) -> Result<String> {
         .spawn()
         .with_context(|| format!("spawning claude binary at {}", binary.display()))?;
 
-    let timeout = std::time::Duration::from_secs(60);
+    let timeout = std::time::Duration::from_secs(180);
     let start = std::time::Instant::now();
     loop {
         match child.try_wait() {
@@ -578,7 +600,7 @@ pub fn call_claude_text(prompt: &str) -> Result<String> {
                 if start.elapsed() > timeout {
                     let _ = child.kill();
                     let _ = child.wait();
-                    bail!("claude CLI timed out after 60s");
+                    bail!("claude CLI timed out after 180s");
                 }
                 std::thread::sleep(std::time::Duration::from_millis(100));
             }
@@ -593,8 +615,7 @@ pub fn call_claude_text(prompt: &str) -> Result<String> {
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout);
-    let raw: serde_json::Value = serde_json::from_str(stdout.trim())
-        .with_context(|| format!("parsing claude CLI envelope: {stdout}"))?;
+    let raw: serde_json::Value = parse_claude_stdout(&stdout)?;
 
     let result = extract_result_from_envelope(&raw).unwrap_or_else(|| stdout.trim().to_string());
 
