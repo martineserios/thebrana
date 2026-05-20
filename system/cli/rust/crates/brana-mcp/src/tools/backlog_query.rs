@@ -12,9 +12,6 @@ pub struct Input {
     /// Filter by status: pending, in_progress, completed, cancelled
     pub status: Option<String>,
 
-    /// Filter by stream: roadmap, bugs, tech-debt, docs, experiments, research, personal
-    pub stream: Option<String>,
-
     /// Filter by priority: P0, P1, P2, P3
     pub priority: Option<String>,
 
@@ -56,7 +53,6 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 &data.tasks, &data.tasks,
                 None,
                 input.status.as_deref(),
-                input.stream.as_deref(),
                 input.priority.as_deref(),
                 input.effort.as_deref(),
                 input.search.as_deref(),

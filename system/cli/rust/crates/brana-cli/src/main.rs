@@ -45,13 +45,13 @@ fn main() {
             Some(AgentsCmd::Kill { agent_id }) => run_or_exit(commands::run::cmd_agents_kill(&agent_id)),
         },
         Commands::Backlog { cmd } => match cmd {
-            BacklogCmd::Next { tag, stream, kind, limit, priority, task_type, effort, parent, json } => run_or_exit(commands::backlog::cmd_next(&theme, tag, ve_str(&stream), ve_str(&kind), limit, ve_str(&priority), ve_str(&task_type), ve_str(&effort), parent, json)),
+            BacklogCmd::Next { tag, kind, limit, priority, task_type, effort, parent, json } => run_or_exit(commands::backlog::cmd_next(&theme, tag, ve_str(&kind), limit, ve_str(&priority), ve_str(&task_type), ve_str(&effort), parent, json)),
             BacklogCmd::Query {
-                tag, status, stream, kind, priority, effort, search, count, mut output, json,
+                tag, status, kind, priority, effort, search, count, mut output, json,
                 task_type, parent, branch, work_type, initiative,
             } => {
                 if json { output = "json".to_string(); }
-                run_or_exit(commands::backlog::cmd_query(tag, ve_str(&status), ve_str(&stream), ve_str(&kind), ve_str(&priority), ve_str(&effort), search, count, output, &theme, ve_str(&task_type), parent, branch, ve_str(&work_type), initiative))
+                run_or_exit(commands::backlog::cmd_query(tag, ve_str(&status), ve_str(&kind), ve_str(&priority), ve_str(&effort), search, count, output, &theme, ve_str(&task_type), parent, branch, ve_str(&work_type), initiative))
             },
             BacklogCmd::Focus { top, json, work_type, initiative } => run_or_exit(commands::backlog::cmd_focus(&theme, top, json, ve_str(&work_type).as_deref(), initiative.as_deref())),
             BacklogCmd::Search { text, json } => run_or_exit(commands::backlog::cmd_search(&text, &theme, json)),
@@ -65,8 +65,8 @@ fn main() {
             BacklogCmd::Rollup { file, dry_run } => run_or_exit(commands::backlog::cmd_rollup(file, dry_run)),
             BacklogCmd::Set { task_id, field, value, append, file } => run_or_exit(commands::backlog::cmd_set(&task_id, &field, &value, append, file)),
             BacklogCmd::SetActive { slug } => run_or_exit(commands::backlog::cmd_set_active(&slug)),
-            BacklogCmd::Add { json, subject, stream, kind, task_type, tags, description, effort, parent, priority, context, file, initiative, work_type } =>
-                run_or_exit(commands::backlog::cmd_add(json, subject, stream, kind, task_type, tags, description, effort, parent, priority, context, file, initiative, work_type)),
+            BacklogCmd::Add { json, subject, kind, task_type, tags, description, effort, parent, priority, context, file, initiative, work_type } =>
+                run_or_exit(commands::backlog::cmd_add(json, subject, kind, task_type, tags, description, effort, parent, priority, context, file, initiative, work_type)),
             BacklogCmd::Get { task_id, field } => run_or_exit(commands::backlog::cmd_get(&task_id, field)),
             BacklogCmd::Stats => run_or_exit(commands::backlog::cmd_stats()),
             BacklogCmd::Tags { filter, any, output } => run_or_exit(commands::backlog::cmd_tags(filter, any, output, &theme)),
