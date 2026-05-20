@@ -243,10 +243,20 @@ Interactive phase planning. Builds the hierarchy conversationally.
 1. **Detect project** from CWD (git root -> basename) or argument
 2. **Read tasks.json** — if it doesn't exist, create with empty tasks array
 3. **If phase title provided**, use it. Otherwise ask: "What phase are you planning?"
-4. **Create the phase task** (type: phase) with next available ph-N id
+3a. **Initiative** — read `active_initiative` from `~/.claude/tasks-config.json`. If set, assign it to the phase (and all tasks will inherit via `inherit_initiative()`). If unset, ask via AskUserQuestion:
+    ```
+    question: "Assign this phase to an initiative?"
+    header: "Initiative"
+    options:
+      - "Use active: {active_initiative}" (if one is set)
+      - "Enter slug manually"
+      - "Skip — no initiative"
+    ```
+    Assign the initiative to the phase task; child milestones and tasks inherit automatically at write-time.
+4. **Create the phase task** (type: phase) with next available ph-N id; include `initiative` if set in step 3a
 5. **Ask for milestones:** "What are the key milestones in this phase?"
 6. **For each milestone**, ask: "Break down {milestone} into tasks?"
-   - If yes: ask for tasks, create with parent -> milestone id
+   - If yes: ask for tasks and their `work_type` (implement / research / design — infer from description if obvious, confirm with user), create with parent → milestone id
    - If no: create milestone only, tasks deferred
 7. **Ask about dependencies:** "Any tasks that block others?"
 8. **Propose the full tree** formatted as a roadmap view
@@ -275,7 +285,7 @@ Interactive phase planning. Builds the hierarchy conversationally.
 
 11. **Gate: plan completeness** — Before approval, verify the plan includes test artifacts. Writing tests and ADRs IS planning — not a separate step after implementation. **This gate fires for every plan that contains code tasks. There is no exception for S-sized builds at the plan stage.**
 
-   **How to check:** Scan ALL proposed tasks (subjects + descriptions + tags) for test-related work: keywords "test", "spec", "TDD", "coverage", or tasks in a `tests/` path. Count separately: (a) code tasks (stream: dev, work_type: implement/design), (b) test tasks.
+   **How to check:** Scan ALL proposed tasks (subjects + descriptions + tags) for test-related work: keywords "test", "spec", "TDD", "coverage", or tasks in a `tests/` path. Count separately: (a) code tasks (work_type: implement/design), (b) test tasks.
 
    - **If code tasks exist but NO test tasks are found:** hard block. Use AskUserQuestion — do NOT proceed to step 12 without user input:
      ```
@@ -311,7 +321,8 @@ Interactive phase planning. Builds the hierarchy conversationally.
 15. **Report:** show the tree with IDs and tags for reference
 
 ### Defaults
-- Stream: roadmap (unless user specifies otherwise)
+- `work_type`: inferred from task kind (implement → feature/fix/refactor, research → research/docs, design → design); ask if ambiguous
+- `initiative`: inherited from phase (set in step 3a); null if skipped
 - Execution: code (if project has .git), manual (otherwise)
 - Priority/effort: null (user provides later if needed)
 - Status: pending for all new tasks
