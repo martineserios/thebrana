@@ -11,3 +11,5 @@ pub mod backlog_stale;
 pub mod session_write;
 pub mod session_read;
 pub mod session_history;
+pub mod memory_write;
+pub mod memory_index;

@@ -23,6 +23,8 @@ async fn main() -> anyhow::Result<()> {
         .tool("session_write", tools::session_write::build())
         .tool("session_read", tools::session_read::build())
         .tool("session_history", tools::session_history::build())
+        .tool("memory_write", tools::memory_write::build())
+        .tool("memory_index", tools::memory_index::build())
         .build()?;
 
     server.run_stdio().await?;
