@@ -568,7 +568,7 @@ pub fn validate_status(value: &str) -> Result<(), String> {
     }
 }
 
-/// Validate a work_type value. Accepts implement/research/design/ops/review plus "null"/"" (clear).
+/// Validate a level value. Accepts initiative/phase/milestone/task/subtask plus "null"/"" (clear).
 pub fn validate_level(value: &str) -> Result<(), String> {
     match value {
         "initiative" | "phase" | "milestone" | "task" | "subtask" | "null" | "" => Ok(()),
@@ -692,7 +692,7 @@ pub fn tag_inventory(tasks: &[Value], all: &[Value]) -> Vec<(String, HashMap<Str
     result
 }
 
-/// Compute aggregate stats by status, stream, priority, type.
+/// Compute aggregate stats by status, priority, type, work_type, initiative.
 pub fn compute_stats(tasks: &[Value], all: &[Value]) -> Value {
     // by_status: raw task.status (matches filter_tasks predicate / CLI enum).
     // by_state:  synthetic classify() output for display rollups.

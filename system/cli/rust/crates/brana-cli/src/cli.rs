@@ -723,7 +723,7 @@ pub enum BacklogCmd {
         #[arg(long)]
         field: Option<String>,
     },
-    /// Aggregate stats by status, stream, priority, type
+    /// Aggregate stats by status, priority, type, work_type, initiative
     Stats,
     /// Tag inventory, filtering, and bulk management
     Tags {
