@@ -681,6 +681,13 @@ _mark "hook-end"
         "$INDEX_SKILLS" --changed 2>/dev/null || true
     fi
 
+    # ADR-038: regenerate MEMORY.md from filesystem at session start.
+    # Full regeneration catches files written by previous sessions and ensures
+    # "newest dated file wins" logic is applied across all accumulated writes.
+    if [ -n "$BRANA_BIN" ]; then
+        (cd "$GIT_ROOT" && "$BRANA_BIN" memory index --scope project 2>/dev/null) || true
+    fi
+
     # ADR-015: sync operational state from cache to repos (push)
     SYNC_SCRIPT="$SCRIPT_DIR/../scripts/sync-state.sh"
     if [ -x "$SYNC_SCRIPT" ]; then

@@ -21,6 +21,7 @@
 | PreToolUse | `Write|Edit` | `pre-tool-use.sh` | 5000ms |
 | PreToolUse | `Write|Edit` | `tdd-gate.sh` | 5000ms |
 | PreToolUse | `Write|Edit` | `feedback-gate.sh` | 3000ms |
+| PreToolUse | `Write|Edit` | `memory-write-gate.sh` | 3000ms |
 | PreToolUse | `EnterPlanMode` | `plan-mode-gate.sh` | 5000ms |
 | PreToolUse | `Bash` | `worktree-gate.sh` | 5000ms |
 | PreToolUse | `Bash` | `doc-gate.sh` | 5000ms |
@@ -107,6 +108,12 @@ Main Branch Guard — PreToolUse hook for Bash (git commit)
 ### `memory-index-sync.sh`
 
 PostToolUse hook — sync MEMORY.md after a memory file is written.
+
+**Gate:** Advisory
+
+### `memory-write-gate.sh`
+
+PreToolUse: Advisory gate on direct Write/Edit to typed memory files.
 
 **Gate:** Advisory
 
@@ -275,6 +282,9 @@ Blocking hooks that support `/tmp/brana-*` sentinel file bypasses for procedure-
 | `feedback-gate.sh` | `/tmp/brana-close-active` | Whitelist: /brana:close Step 5b writes git-durable backup files — sentinel set by procedure |
 | `guard-explore.sh` | `/tmp/brana-search-${SESSION_ID}.log` | Extract tool name and file path |
 | `guard-explore.sh` | `/tmp/brana-explore-${SESSION_ID}.log` | Extract tool name and file path |
+| `memory-write-gate.sh` | `/tmp/brana-memory-write-active` | Spec: ADR-038 §C (CLI gateway), ADR-037 §Wave2 (enforcement) |
+| `memory-write-gate.sh` | `/tmp/brana-memory-write-active` | Sentinel bypass — procedure explicitly authorized this direct write |
+| `memory-write-gate.sh` | `/tmp/brana-memory-write-active` | Derive the routing hint from the filename |
 | `post-plan-challenge.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | Log to session JSONL |
 | `post-pr-review.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | Log to session JSONL |
 | `post-sale.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | Log to session JSONL |

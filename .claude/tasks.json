@@ -36113,7 +36113,7 @@
       "parent": "t-1463",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "dev",
       "subject": "Enforcement — Hook + Session-start wiring",
       "tags": [
@@ -36140,7 +36140,7 @@
       "parent": "t-1470",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "dev",
       "subject": "PreToolUse hook — block direct Write tool calls to */memory/*.md paths",
       "tags": [
@@ -36168,7 +36168,7 @@
       "parent": "t-1470",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "dev",
       "subject": "Session-start hook wires brana memory index on session open",
       "tags": [

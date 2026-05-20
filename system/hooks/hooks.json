@@ -42,6 +42,20 @@
         ]
       },
       {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 3000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/memory-write-gate.sh"
+            ],
+            "continueOnBlock": true
+          }
+        ]
+      },
+      {
         "matcher": "EnterPlanMode",
         "hooks": [
           {
