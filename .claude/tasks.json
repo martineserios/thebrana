@@ -1241,7 +1241,8 @@
         "docs",
         "architecture"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -3597,7 +3598,8 @@
         "feedback-loop"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": null,
@@ -5268,7 +5270,8 @@
         "memory"
       ],
       "type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -7830,7 +7833,8 @@
         "nanoclaw"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -7986,7 +7990,8 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -8065,7 +8070,8 @@
         "performance"
       ],
       "type": "task",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -8093,7 +8099,8 @@
         "tooling"
       ],
       "type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -8930,7 +8937,8 @@
         "performance"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -9068,7 +9076,8 @@
         "architecture"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -9095,7 +9104,8 @@
         "skills"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -9149,7 +9159,8 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -9231,7 +9242,8 @@
         "audit"
       ],
       "type": "task",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -9370,7 +9382,8 @@
         "architecture"
       ],
       "type": "task",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -9398,7 +9411,8 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -9810,7 +9824,8 @@
         "docs",
         "living-docs"
       ],
-      "type": "milestone"
+      "type": "milestone",
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -10189,7 +10204,8 @@
         "claude-code"
       ],
       "type": "task",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -10244,7 +10260,8 @@
         "harness-engineering"
       ],
       "type": "task",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -10299,7 +10316,8 @@
         "harness-engineering"
       ],
       "type": "task",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -10633,7 +10651,8 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -10821,7 +10840,8 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -10847,7 +10867,8 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -10899,7 +10920,8 @@
         "cost"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -10928,7 +10950,8 @@
         "tui"
       ],
       "type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -10957,7 +10980,8 @@
         "web"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -11232,7 +11256,8 @@
         "cli"
       ],
       "type": "subtask",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -11260,7 +11285,8 @@
         "cli"
       ],
       "type": "subtask",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -11288,7 +11314,8 @@
         "cli"
       ],
       "type": "subtask",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -11316,7 +11343,8 @@
         "cli"
       ],
       "type": "subtask",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -11346,7 +11374,8 @@
         "cli"
       ],
       "type": "subtask",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -11374,7 +11403,8 @@
         "cli"
       ],
       "type": "subtask",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -11899,7 +11929,8 @@
         "refactor"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -11928,7 +11959,8 @@
         "error-handling"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -11958,7 +11990,8 @@
         "testing"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -11988,7 +12021,8 @@
         "distribution"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -12017,7 +12051,8 @@
         "distribution"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -12044,7 +12079,8 @@
         "performance"
       ],
       "type": "task",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -12295,7 +12331,8 @@
         "docs"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -12377,7 +12414,8 @@
         "tooling"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -12404,7 +12442,8 @@
         "inbox"
       ],
       "type": "subtask",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -12433,7 +12472,8 @@
         "inbox"
       ],
       "type": "subtask",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -12461,7 +12501,8 @@
         "feeds"
       ],
       "type": "subtask",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -12489,7 +12530,8 @@
         "feeds"
       ],
       "type": "subtask",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -12517,7 +12559,8 @@
         "feeds"
       ],
       "type": "subtask",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -12545,7 +12588,8 @@
         "inbox"
       ],
       "type": "subtask",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -12573,7 +12617,8 @@
         "inbox"
       ],
       "type": "subtask",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -12604,7 +12649,8 @@
         "inbox"
       ],
       "type": "subtask",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -12632,7 +12678,8 @@
         "feeds"
       ],
       "type": "subtask",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -12660,7 +12707,8 @@
         "inbox"
       ],
       "type": "subtask",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -12740,7 +12788,8 @@
         "testing"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -12767,7 +12816,8 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -12793,7 +12843,8 @@
         "rust"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -12821,7 +12872,8 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -12848,7 +12900,8 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -12985,7 +13038,8 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -13072,7 +13126,8 @@
         "skill-lifecycle"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -13132,7 +13187,8 @@
         "skill-lifecycle"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -13159,7 +13215,8 @@
         "skill-lifecycle",
         "adr"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "design"
     },
     {
       "blocked_by": [],
@@ -13187,7 +13244,8 @@
         "critical"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -13282,7 +13340,8 @@
         "test"
       ],
       "type": "task",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -13496,7 +13555,8 @@
         "harness-engineering"
       ],
       "type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -13741,7 +13801,8 @@
         "harness-engineering"
       ],
       "type": "task",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -14227,7 +14288,8 @@
         "memory",
         "harness-engineering"
       ],
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -14639,7 +14701,8 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -14665,7 +14728,8 @@
         "dimension-doc",
         "ecosystem"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "research"
     },
     {
       "blocked_by": [
@@ -14928,7 +14992,8 @@
         "ruflo-maturation"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -15249,7 +15314,8 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -15989,7 +16055,8 @@
         "session-loops",
         "scheduler",
         "dx"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -16013,7 +16080,8 @@
         "session-loops",
         "scheduler",
         "dx"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -17207,7 +17275,8 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -17233,7 +17302,8 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -17718,7 +17788,8 @@
         "skills",
         "cleanup"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -17796,7 +17867,8 @@
         "cleanup",
         "somos"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -17849,7 +17921,8 @@
         "dx",
         "docs"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -17875,7 +17948,9 @@
         "dx",
         "docs"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "design",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -17984,7 +18059,8 @@
         "cli"
       ],
       "type": "milestone",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -18063,7 +18139,8 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -18092,7 +18169,8 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -18121,7 +18199,8 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -18150,7 +18229,8 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -18180,7 +18260,8 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -18352,7 +18433,8 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -18724,7 +18806,8 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -19335,7 +19418,8 @@
         "indexing",
         "cli"
       ],
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -19389,7 +19473,8 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -19416,7 +19501,8 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -20362,7 +20448,8 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -20523,7 +20610,8 @@
         "architecture",
         "skills",
         "dx"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -20573,7 +20661,8 @@
         "positioning",
         "linkedin",
         "content"
-      ]
+      ],
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -20598,7 +20687,8 @@
         "claude-code",
         "architecture",
         "deep-dive"
-      ]
+      ],
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -20647,7 +20737,8 @@
         "agent-memory",
         "consolidation",
         "knowledge-architecture"
-      ]
+      ],
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -20698,7 +20789,9 @@
         "ontology",
         "knowledge-graph",
         "rust"
-      ]
+      ],
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -20722,7 +20815,8 @@
         "adr",
         "auto-learning",
         "architecture"
-      ]
+      ],
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -20746,7 +20840,8 @@
         "adr",
         "ontology",
         "knowledge-graph"
-      ]
+      ],
+      "work_type": "design"
     },
     {
       "blocked_by": [],
@@ -20770,7 +20865,8 @@
         "adr",
         "taxonomy",
         "architecture"
-      ]
+      ],
+      "work_type": "design"
     },
     {
       "blocked_by": [],
@@ -20795,7 +20891,8 @@
         "maintain",
         "reconcile",
         "simplification"
-      ]
+      ],
+      "work_type": "design"
     },
     {
       "blocked_by": [],
@@ -20820,7 +20917,8 @@
         "hooks",
         "docs",
         "enforcement"
-      ]
+      ],
+      "work_type": "design"
     },
     {
       "blocked_by": [],
@@ -20845,7 +20943,8 @@
         "router",
         "skills",
         "architecture"
-      ]
+      ],
+      "work_type": "design"
     },
     {
       "blocked_by": [],
@@ -21392,7 +21491,8 @@
         "graph"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -21509,7 +21609,8 @@
         "ruflo-maturation"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -21589,7 +21690,8 @@
         "router"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -22967,7 +23069,8 @@
         "close"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -22994,7 +23097,8 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -23554,7 +23658,8 @@
         "ideation"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -24564,7 +24669,8 @@
         "wiki",
         "llm",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -24590,7 +24696,9 @@
         "cli",
         "architecture",
         "research"
-      ]
+      ],
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -24614,7 +24722,8 @@
         "context-windows",
         "rag",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -24638,7 +24747,9 @@
         "claude-code",
         "memory",
         "research"
-      ]
+      ],
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -24663,7 +24774,8 @@
         "claude-code",
         "github",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -24688,7 +24800,8 @@
         "multi-agent",
         "orchestration",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -24713,7 +24826,8 @@
         "ontology",
         "agentic-ai",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -24738,7 +24852,8 @@
         "github",
         "framework",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -24763,7 +24878,8 @@
         "modeling",
         "semantic",
         "research"
-      ]
+      ],
+      "work_type": "design"
     },
     {
       "blocked_by": [],
@@ -24788,7 +24904,8 @@
         "agent-memory",
         "context-engineering",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -24814,7 +24931,8 @@
         "lpg",
         "database",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -24839,7 +24957,8 @@
         "ai-ops",
         "architecture",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -24864,7 +24983,8 @@
         "github",
         "metadata",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -24888,7 +25008,8 @@
         "knowledge-graph",
         "community",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -24913,7 +25034,8 @@
         "data-architecture",
         "semantic-contracts",
         "research"
-      ]
+      ],
+      "work_type": "design"
     },
     {
       "blocked_by": [],
@@ -24937,7 +25059,8 @@
         "claude-code",
         "team-license",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -24961,7 +25084,8 @@
         "claude-code",
         "session-analysis",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -25012,7 +25136,8 @@
         "github",
         "automation",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -25037,7 +25162,8 @@
         "github",
         "automation",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -25061,7 +25187,8 @@
         "claude-code",
         "prompts",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -25085,7 +25212,8 @@
         "claude-code",
         "github-issue",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -25110,7 +25238,8 @@
         "devtools",
         "ai",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -25135,7 +25264,8 @@
         "pricing",
         "cost-optimization",
         "research"
-      ]
+      ],
+      "work_type": "design"
     },
     {
       "blocked_by": [],
@@ -25160,7 +25290,8 @@
         "github",
         "toolkit",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -25185,7 +25316,8 @@
         "infrastructure",
         "context-engineering",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -25210,7 +25342,8 @@
         "viral",
         "compilation",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -25235,7 +25368,8 @@
         "howto",
         "tutorial",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -25259,7 +25393,8 @@
         "ai-engineering",
         "metadata",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -25284,7 +25419,8 @@
         "bot",
         "job-application",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -25309,7 +25445,8 @@
         "examples",
         "spanish",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -25334,7 +25471,8 @@
         "software-engineering",
         "ai",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -25384,7 +25522,8 @@
         "claude-code",
         "agentic-ai",
         "research"
-      ]
+      ],
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -25409,7 +25548,8 @@
         "threat-hunting",
         "security",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -25434,7 +25574,8 @@
         "automation",
         "workflows",
         "research"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -25486,7 +25627,9 @@
         "routing",
         "performance",
         "context-engineering"
-      ]
+      ],
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -25511,7 +25654,9 @@
         "cc-alignment",
         "session-memory",
         "handoff"
-      ]
+      ],
+      "work_type": "design",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -25539,7 +25684,8 @@
         "consolidation",
         "scheduled"
       ],
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -25564,7 +25710,8 @@
         "cc-alignment",
         "docs",
         "thresholds"
-      ]
+      ],
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -25614,7 +25761,8 @@
         "undercover-mode",
         "onboard",
         "settings"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -25666,7 +25814,8 @@
         "architecture",
         "cc-alignment",
         "execution-model"
-      ]
+      ],
+      "work_type": "design"
     },
     {
       "blocked_by": [],
@@ -25882,7 +26031,8 @@
         "tdd"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -25909,7 +26059,8 @@
         "non-git"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -25937,7 +26088,8 @@
         "testing"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -26267,7 +26419,8 @@
         "session-memory"
       ],
       "type": "phase",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -26295,7 +26448,8 @@
         "ruflo"
       ],
       "type": "phase",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -26378,7 +26532,8 @@
         "insights"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -26464,7 +26619,8 @@
         "startup"
       ],
       "type": "task",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -26602,7 +26758,8 @@
         "cc-alignment"
       ],
       "type": "subtask",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -26631,7 +26788,8 @@
         "hooks"
       ],
       "type": "subtask",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -26688,7 +26846,8 @@
         "memory"
       ],
       "type": "subtask",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -26821,7 +26980,8 @@
         "cleanup"
       ],
       "type": "task",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -26848,7 +27008,8 @@
         "hooks"
       ],
       "type": "subtask",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -26957,7 +27118,8 @@
         "testing"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -27011,7 +27173,8 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -27039,7 +27202,8 @@
         "pipeline"
       ],
       "type": "subtask",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -27068,7 +27232,8 @@
         "llm"
       ],
       "type": "subtask",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -27097,7 +27262,8 @@
         "llm"
       ],
       "type": "subtask",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -27126,7 +27292,8 @@
         "llm"
       ],
       "type": "subtask",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -27154,7 +27321,8 @@
         "pipeline"
       ],
       "type": "subtask",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -27321,7 +27489,8 @@
         "scheduler"
       ],
       "type": "task",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -27431,7 +27600,8 @@
         "llm"
       ],
       "type": "subtask",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -27459,7 +27629,8 @@
         "pipeline"
       ],
       "type": "subtask",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -27486,7 +27657,8 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -27513,7 +27685,8 @@
         "ux"
       ],
       "type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -27540,7 +27713,8 @@
         "migration"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -27700,7 +27874,8 @@
         "cli"
       ],
       "type": "phase",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -27754,7 +27929,8 @@
         "cli"
       ],
       "type": "milestone",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -27861,7 +28037,8 @@
         "rust"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -27941,7 +28118,8 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -27970,7 +28148,8 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -28171,7 +28350,8 @@
         "rust"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -28359,7 +28539,8 @@
         "automation",
         "triage",
         "doc-08"
-      ]
+      ],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -28409,7 +28590,8 @@
         "automation",
         "packing"
       ],
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -28672,7 +28854,8 @@
         "cli",
         "code-gen"
       ],
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -28725,7 +28908,8 @@
         "cleanup",
         "rust"
       ],
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -28833,7 +29017,8 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -28859,7 +29044,8 @@
         "skills"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -29245,7 +29431,8 @@
         "frontmatter"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -29272,7 +29459,8 @@
         "agents"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -29462,7 +29650,8 @@
         "ops"
       ],
       "type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -29489,7 +29678,8 @@
         "knowledge-pipeline"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -29571,7 +29761,8 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -29736,7 +29927,8 @@
         "documentation",
         "bootstrap"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -29925,7 +30117,8 @@
         "dx",
         "harness-engineering"
       ],
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -29951,7 +30144,9 @@
         "cc-alignment",
         "dx"
       ],
-      "task_type": "milestone"
+      "task_type": "milestone",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -29976,7 +30171,9 @@
         "memory",
         "dx"
       ],
-      "task_type": "task"
+      "task_type": "task",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -30003,7 +30200,9 @@
         "dx",
         "harness-engineering"
       ],
-      "task_type": "task"
+      "task_type": "task",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -30030,7 +30229,9 @@
         "memory",
         "cc-alignment"
       ],
-      "task_type": "milestone"
+      "task_type": "milestone",
+      "work_type": "design",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -30060,7 +30261,9 @@
         "cc-alignment",
         "adr"
       ],
-      "task_type": "task"
+      "task_type": "task",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -30088,7 +30291,9 @@
         "cc-alignment",
         "harness-engineering"
       ],
-      "task_type": "milestone"
+      "task_type": "milestone",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -30117,7 +30322,9 @@
         "hooks",
         "harness-engineering"
       ],
-      "task_type": "task"
+      "task_type": "task",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -30146,7 +30353,8 @@
         "recurring"
       ],
       "task_type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -30175,7 +30383,8 @@
         "migration"
       ],
       "task_type": "milestone",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -30201,7 +30410,9 @@
         "migration",
         "triage"
       ],
-      "task_type": "milestone"
+      "task_type": "milestone",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -30227,7 +30438,9 @@
         "triage",
         "agents"
       ],
-      "task_type": "task"
+      "task_type": "task",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -30253,7 +30466,9 @@
         "triage",
         "agents"
       ],
-      "task_type": "task"
+      "task_type": "task",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -30279,7 +30494,9 @@
         "triage",
         "agents"
       ],
-      "task_type": "task"
+      "task_type": "task",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -30309,7 +30526,8 @@
         "triage"
       ],
       "task_type": "task",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -30337,7 +30555,8 @@
         "migration"
       ],
       "task_type": "milestone",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -30364,7 +30583,8 @@
         "rules"
       ],
       "task_type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -30391,7 +30611,8 @@
         "patterns"
       ],
       "task_type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -30418,7 +30639,8 @@
         "knowledge"
       ],
       "task_type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -30445,7 +30667,8 @@
         "adr"
       ],
       "task_type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -30472,7 +30695,8 @@
         "reference"
       ],
       "task_type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -30499,7 +30723,9 @@
         "memory",
         "migration"
       ],
-      "task_type": "milestone"
+      "task_type": "milestone",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -30524,7 +30750,9 @@
         "memory",
         "migration"
       ],
-      "task_type": "task"
+      "task_type": "task",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -30552,7 +30780,8 @@
         "migration"
       ],
       "task_type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -30581,7 +30810,9 @@
         "dx",
         "harness-engineering"
       ],
-      "task_type": "milestone"
+      "task_type": "milestone",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -30610,7 +30841,8 @@
         "skills"
       ],
       "task_type": "task",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -30638,7 +30870,9 @@
         "hooks",
         "harness-engineering"
       ],
-      "task_type": "task"
+      "task_type": "task",
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -30665,7 +30899,8 @@
         "dx"
       ],
       "task_type": "task",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -30691,7 +30926,8 @@
         "harness-engineering"
       ],
       "task_type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -30716,7 +30952,9 @@
         "memory",
         "harness-engineering"
       ],
-      "task_type": "task"
+      "task_type": "task",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -30743,7 +30981,8 @@
         "knowledge"
       ],
       "task_type": "task",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -30769,7 +31008,9 @@
         "ddd",
         "cc-alignment"
       ],
-      "task_type": "task"
+      "task_type": "task",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -30795,7 +31036,9 @@
         "sdd",
         "cc-alignment"
       ],
-      "task_type": "task"
+      "task_type": "task",
+      "work_type": "design",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -30821,7 +31064,9 @@
         "tdd",
         "testing"
       ],
-      "task_type": "task"
+      "task_type": "task",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -30850,7 +31095,9 @@
         "testing",
         "hooks"
       ],
-      "task_type": "task"
+      "task_type": "task",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -30876,7 +31123,9 @@
         "tdd",
         "testing"
       ],
-      "task_type": "task"
+      "task_type": "task",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -30902,7 +31151,9 @@
         "tdd",
         "testing"
       ],
-      "task_type": "task"
+      "task_type": "task",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -30929,7 +31180,9 @@
         "memory",
         "docs"
       ],
-      "task_type": "task"
+      "task_type": "task",
+      "work_type": "design",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -30961,7 +31214,9 @@
         "memory",
         "docs"
       ],
-      "task_type": "task"
+      "task_type": "task",
+      "work_type": "design",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -31127,7 +31382,8 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -31154,7 +31410,8 @@
         "errata-E142"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -31263,7 +31520,8 @@
         "discoverability"
       ],
       "type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -31505,7 +31763,8 @@
         "rust",
         "struct"
       ],
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -31533,7 +31792,8 @@
         "rust",
         "io"
       ],
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -31561,7 +31821,8 @@
         "rust",
         "imap"
       ],
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -31591,7 +31852,8 @@
         "poll",
         "imap"
       ],
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -31620,7 +31882,8 @@
         "read",
         "imap"
       ],
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -31650,7 +31913,8 @@
         "archive",
         "imap"
       ],
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -31680,7 +31944,8 @@
         "mark-read",
         "imap"
       ],
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -31708,7 +31973,8 @@
         "rust",
         "search"
       ],
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -31736,7 +32002,8 @@
         "rust",
         "open"
       ],
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -31768,7 +32035,8 @@
         "rust",
         "cli"
       ],
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -31796,7 +32064,8 @@
         "rust",
         "tests"
       ],
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -31987,7 +32256,8 @@
         "generator"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -32191,7 +32461,8 @@
         "docs",
         "tech-debt"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "design"
     },
     {
       "blocked_by": [],
@@ -32246,7 +32517,8 @@
         "root-cause"
       ],
       "type": "task",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -32353,7 +32625,8 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -32543,7 +32816,8 @@
         "consistency"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -32571,7 +32845,8 @@
         "shorthand"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -32600,7 +32875,8 @@
         "install"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -32628,7 +32904,8 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -32655,7 +32932,9 @@
         "clarity",
         "procedure"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -32683,7 +32962,8 @@
         "t-1323-followup"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -32709,7 +32989,8 @@
         "skills",
         "frontmatter"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -32791,7 +33072,8 @@
         "followup-t-1340"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -32819,7 +33101,8 @@
         "followup-t-1340"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -32847,7 +33130,8 @@
         "followup-t-1340"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -32873,7 +33157,8 @@
         "validate-sh",
         "followup-t-1344"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -32899,7 +33184,8 @@
         "validate-sh",
         "followup-t-1347"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -33091,7 +33377,8 @@
         "backlog"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -33226,7 +33513,8 @@
       "stream": "dev",
       "subject": "test context enforcement",
       "tags": [],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -33656,7 +33944,8 @@
         "memory"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -33730,7 +34019,8 @@
       "status": "completed",
       "stream": "dev",
       "subject": "triage pre-existing test failure in test-session-start.sh — Venture project case",
-      "tags": []
+      "tags": [],
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -33757,7 +34047,8 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -33865,7 +34156,8 @@
         "ratings"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -34030,7 +34322,8 @@
         "ideation"
       ],
       "type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -34057,7 +34350,8 @@
         "agents"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -34112,7 +34406,8 @@
         "proyecto_anita"
       ],
       "type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -34271,7 +34566,8 @@
         "backlog"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -34323,7 +34619,8 @@
         "housekeeping"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -34478,7 +34775,8 @@
         "python",
         "lint"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -34504,7 +34802,8 @@
         "client-move"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -34529,7 +34828,8 @@
         "skill",
         "acquired-skills"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -34959,7 +35259,8 @@
         "mcp",
         "dx"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -34984,7 +35285,8 @@
         "hooks",
         "docs"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "design"
     },
     {
       "blocked_by": [],
@@ -35059,7 +35361,8 @@
         "validate"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -35136,7 +35439,9 @@
         "backlog",
         "ux"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -35161,7 +35466,9 @@
         "dx",
         "cli"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -35186,7 +35493,8 @@
         "dx",
         "hooks"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -35211,7 +35519,8 @@
         "harness-engineering",
         "sitrep"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -35236,7 +35545,8 @@
         "hierarchy",
         "ux"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -35261,7 +35571,9 @@
         "skills",
         "dx"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -35339,7 +35651,8 @@
         "skills"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -35417,7 +35730,8 @@
         "docs",
         "harness-engineering"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "design"
     },
     {
       "blocked_by": [],
@@ -35442,7 +35756,8 @@
         "test",
         "harness-engineering"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -35493,7 +35808,8 @@
         "maintenance"
       ],
       "type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -35544,7 +35860,9 @@
         "cli",
         "skills"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -35594,7 +35912,8 @@
         "harness-engineering",
         "session-end"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -35618,7 +35937,8 @@
         "validate",
         "knowledge-architecture"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -35695,7 +36015,8 @@
         "validate",
         "bash-testing"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -35745,7 +36066,8 @@
         "validate",
         "bash-testing"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -35773,7 +36095,8 @@
         "knowledge-management",
         "tooling"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "design"
     },
     {
       "blocked_by": [],
@@ -35798,7 +36121,8 @@
         "bash",
         "state"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -35875,7 +36199,8 @@
         "continuity"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -35901,7 +36226,9 @@
         "cross-project",
         "sitrep"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -35929,7 +36256,8 @@
         "harness-engineering"
       ],
       "type": "phase",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -35953,7 +36281,9 @@
         "memory",
         "architecture"
       ],
-      "type": "milestone"
+      "type": "milestone",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -36036,7 +36366,8 @@
         "rust"
       ],
       "type": "milestone",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -36120,7 +36451,9 @@
         "memory",
         "hooks"
       ],
-      "type": "milestone"
+      "type": "milestone",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -36176,7 +36509,8 @@
         "hooks"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -36195,7 +36529,7 @@
       "parent": "t-1463",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "dev",
       "subject": "MCP Surface — mcp__brana__memory_write",
       "tags": [
@@ -36203,7 +36537,8 @@
         "mcp"
       ],
       "type": "milestone",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -36223,7 +36558,7 @@
       "parent": "t-1473",
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "dev",
       "subject": "mcp__brana__memory_write MCP tool — wraps brana memory write CLI",
       "tags": [
@@ -36260,7 +36595,8 @@
         "procedures"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -36287,7 +36623,9 @@
         "docs",
         "migration"
       ],
-      "type": "milestone"
+      "type": "milestone",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -36315,7 +36653,8 @@
         "rust"
       ],
       "type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [
@@ -36343,7 +36682,8 @@
         "docs",
         "sdd"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "design"
     },
     {
       "blocked_by": [],
@@ -36396,7 +36736,8 @@
         "skill-load"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -36448,7 +36789,8 @@
         "skill-gate",
         "validate"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -36607,7 +36949,8 @@
         "hooks",
         "maintenance"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "design"
     },
     {
       "blocked_by": [],
@@ -36633,7 +36976,8 @@
         "memory"
       ],
       "type": "task",
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -36683,7 +37027,9 @@
         "sitrep",
         "session",
         "context-recovery"
-      ]
+      ],
+      "work_type": "implement",
+      "initiative": "memory-arch"
     },
     {
       "blocked_by": [],
@@ -36708,7 +37054,8 @@
         "knowledge-architecture",
         "tech-debt"
       ],
-      "work_type": "ops"
+      "work_type": "ops",
+      "initiative": "memory-arch"
     },
     {
       "blocked_by": [],
@@ -36838,7 +37185,8 @@
         "memory"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": "memory-arch"
     },
     {
       "blocked_by": [],
@@ -36864,7 +37212,8 @@
         "session"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": "memory-arch"
     },
     {
       "blocked_by": [],
@@ -36943,7 +37292,9 @@
         "brana-mcp",
         "nextjs"
       ],
-      "type": "phase"
+      "type": "phase",
+      "work_type": "implement",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [],
@@ -36968,7 +37319,9 @@
         "brana-mcp",
         "nextjs"
       ],
-      "type": "milestone"
+      "type": "milestone",
+      "work_type": "implement",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [],
@@ -36993,7 +37346,9 @@
         "brana-mcp",
         "nextjs"
       ],
-      "type": "milestone"
+      "type": "milestone",
+      "work_type": "implement",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [],
@@ -37018,7 +37373,9 @@
         "brana-mcp",
         "nextjs"
       ],
-      "type": "milestone"
+      "type": "milestone",
+      "work_type": "implement",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [],
@@ -37044,7 +37401,8 @@
         "nextjs"
       ],
       "type": "milestone",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [],
@@ -37069,7 +37427,9 @@
         "brana-mcp",
         "nextjs"
       ],
-      "type": "milestone"
+      "type": "milestone",
+      "work_type": "implement",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [],
@@ -37097,7 +37457,9 @@
         "nextjs",
         "rust"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [],
@@ -37122,7 +37484,9 @@
         "brana-mcp",
         "nextjs"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [],
@@ -37149,7 +37513,8 @@
         "rust"
       ],
       "type": "task",
-      "work_type": "research"
+      "work_type": "research",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [
@@ -37178,7 +37543,9 @@
         "nextjs",
         "architecture"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "design",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [
@@ -37207,7 +37574,8 @@
         "design"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [
@@ -37234,7 +37602,9 @@
         "brana-mcp",
         "nextjs"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [
@@ -37262,7 +37632,9 @@
         "brana-mcp",
         "nextjs"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [
@@ -37290,7 +37662,9 @@
         "brana-mcp",
         "nextjs"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [
@@ -37319,7 +37693,9 @@
         "rust",
         "tdd"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [
@@ -37349,7 +37725,8 @@
         "tdd"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [
@@ -37378,7 +37755,8 @@
         "rust"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [
@@ -37409,7 +37787,8 @@
         "rust"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [
@@ -37438,7 +37817,8 @@
         "nextjs"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [
@@ -37466,7 +37846,8 @@
         "nextjs"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [
@@ -37493,7 +37874,9 @@
         "brana-mcp",
         "nextjs"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [
@@ -37520,7 +37903,9 @@
         "brana-mcp",
         "nextjs"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [
@@ -37550,7 +37935,8 @@
         "tdd"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [
@@ -37578,7 +37964,9 @@
         "nextjs",
         "docs"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "design",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [
@@ -37607,7 +37995,8 @@
         "docs"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [
@@ -37635,7 +38024,9 @@
         "nextjs",
         "architecture"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "ops",
+      "initiative": "backlog-ui"
     },
     {
       "blocked_by": [],
@@ -37746,7 +38137,8 @@
         "audit"
       ],
       "type": "task",
-      "work_type": "review"
+      "work_type": "review",
+      "initiative": "rust-cli"
     },
     {
       "blocked_by": [],
@@ -37803,7 +38195,9 @@
         "atomicity",
         "tasks"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement",
+      "initiative": "rust-cli"
     },
     {
       "blocked_by": [],
@@ -37831,7 +38225,9 @@
         "testing",
         "brana-cli"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement",
+      "initiative": "rust-cli"
     },
     {
       "blocked_by": [],
@@ -37859,7 +38255,9 @@
         "cli",
         "ideation"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement",
+      "initiative": null
     },
     {
       "blocked_by": [],
@@ -37887,7 +38285,8 @@
         "tier2",
         "ideation"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -37914,7 +38313,8 @@
         "dx",
         "ux"
       ],
-      "type": "task"
+      "type": "task",
+      "work_type": "implement"
     }
   ],
   "version": "1"

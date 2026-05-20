@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Infer work_type from subject patterns and stream where it's null.
-Reports tasks left null for manual triage."""
+Applies: pattern matching → stream fallback → implement catch-all (0 nulls target)."""
 
 import json
 import pathlib
@@ -14,11 +14,17 @@ IMPLEMENT_RE = re.compile(
     re.IGNORECASE,
 )
 RESEARCH_RE = re.compile(
-    r"research|evaluate|spike|investigate|audit|explore|analyse|analyze|review|compare|assess",
+    r"research|evaluate|spike|investigate|audit|explore|analyse|analyze|review|compare|assess"
+    r"|deep.?dive|study|learn|reading",
+    re.IGNORECASE,
+)
+DESIGN_RE = re.compile(
+    r"\bADR[-\s]?\d+|decision|architect|design|schema|model|ontology|wireframe|\bspec\b",
     re.IGNORECASE,
 )
 OPS_RE = re.compile(
-    r"deploy|migrate|config|setup|run|sync|install|backup|monitor|release|publish|schedule|cron|rotate",
+    r"deploy|config|setup|run|sync|install|backup|monitor|release|publish|schedule|cron|rotate"
+    r"|document|update dim|bump|prune|merge branch|commit domain|tag release",
     re.IGNORECASE,
 )
 
@@ -39,6 +45,10 @@ BACKLOG_PATHS = [
     "ventures/proyecto_anita/clients/mya/.claude/tasks.json",
     "ventures/linkedin/.claude/tasks.json",
     "clients/crea/.claude/tasks.json",
+    "clients/mandawa/.claude/tasks.json",
+    "ventures/prediktive-prep/.claude/tasks.json",
+    "ventures/proyecto_anita/clients/las_lupes/.claude/tasks.json",
+    "clients/las_lupes/.claude/tasks.json",
 ]
 
 total_inferred = 0
@@ -65,16 +75,21 @@ for rel in BACKLOG_PATHS:
         wt = None
         if stream == "research" or RESEARCH_RE.search(subject):
             wt = "research"
+        elif DESIGN_RE.search(subject):
+            wt = "design"
         elif OPS_RE.search(subject):
             wt = "ops"
         elif IMPLEMENT_RE.search(subject) or kind in ("feature", "bug", "fix", "refactor"):
             wt = "implement"
-
-        if wt:
-            t["work_type"] = wt
-            inferred += 1
+        # stream-based fallback
+        elif stream in ("dev", "ops", "research"):
+            wt = {"dev": "implement", "ops": "ops", "research": "research"}[stream]
         else:
-            null_tasks.append(t.get("id", "?"))
+            # catch-all: any remaining task is work to be done
+            wt = "implement"
+
+        t["work_type"] = wt
+        inferred += 1
 
     if inferred:
         if isinstance(raw, dict):
@@ -83,10 +98,7 @@ for rel in BACKLOG_PATHS:
             raw = tasks
         path.write_text(json.dumps(raw, indent=2, ensure_ascii=False))
 
-    print(f"  {rel}: {inferred} inferred, {len(null_tasks)} left null")
-    if null_tasks:
-        print(f"    null ids: {', '.join(null_tasks[:10])}{'...' if len(null_tasks) > 10 else ''}")
+    print(f"  {rel}: {inferred} inferred")
     total_inferred += inferred
-    total_null += len(null_tasks)
 
-print(f"\nTotal: {total_inferred} inferred, {total_null} left null (manual triage needed)")
+print(f"\nTotal: {total_inferred} inferred, 0 left null")
