@@ -89,7 +89,6 @@ pub fn filter_tasks<'a>(
     all: &[Value],
     tag: Option<&str>,
     status: Option<&str>,
-    stream: Option<&str>,
     priority: Option<&str>,
     effort: Option<&str>,
     search: Option<&str>,
@@ -118,11 +117,6 @@ pub fn filter_tasks<'a>(
                     .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
                     .unwrap_or_default();
                 if !tags.contains(&tag) {
-                    return false;
-                }
-            }
-            if let Some(s) = stream {
-                if t["stream"].as_str().unwrap_or("") != s {
                     return false;
                 }
             }
@@ -376,9 +370,6 @@ pub fn validate_schema(path: &Path) -> Vec<String> {
                     errors.push(format!("task {id}: invalid type {tp}"));
                 }
             }
-            if t["stream"].is_null() {
-                errors.push(format!("task {id} missing stream"));
-            }
             if !t["tags"].is_null() {
                 if !t["tags"].is_array() {
                     errors.push(format!("task {id}: tags must be array"));
@@ -616,7 +607,7 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
             }
             Ok(())
         }
-        "priority" | "effort" | "status" | "stream" | "type" | "strategy"
+        "priority" | "effort" | "status" | "type" | "strategy"
         | "build_step" | "execution" | "branch" | "subject" | "parent"
         | "started" | "completed" | "created" | "github_issue"
         | "initiative" | "work_type" => {
@@ -665,8 +656,6 @@ pub fn compute_stats(tasks: &[Value], all: &[Value]) -> Value {
     // See tasks.spec.md (t-1323, t-1340).
     let mut by_status: HashMap<String, usize> = HashMap::new();
     let mut by_state: HashMap<String, usize> = HashMap::new();
-    let mut by_stream: HashMap<String, HashMap<String, Value>> = HashMap::new();
-    let mut by_stream_state: HashMap<String, HashMap<String, usize>> = HashMap::new();
     let mut by_priority: HashMap<String, usize> = HashMap::new();
     let mut by_type: HashMap<String, usize> = HashMap::new();
     let mut by_work_type: HashMap<String, usize> = HashMap::new();
@@ -675,24 +664,11 @@ pub fn compute_stats(tasks: &[Value], all: &[Value]) -> Value {
     for t in tasks {
         let raw = raw_status(t, "unknown").to_string();
         let state = classify(t, all).to_string();
-        let stream = t["stream"].as_str().unwrap_or("none").to_string();
         let pri = t["priority"].as_str().unwrap_or("null").to_string();
         let tp = t["type"].as_str().unwrap_or("task").to_string();
 
-        *by_status.entry(raw.clone()).or_default() += 1;
-        *by_state.entry(state.clone()).or_default() += 1;
-
-        let stream_entry = by_stream.entry(stream.clone()).or_default();
-        let total = stream_entry
-            .entry("total".into())
-            .or_insert_with(|| Value::from(0u64));
-        *total = Value::from(total.as_u64().unwrap_or(0) + 1);
-        let raw_count = stream_entry
-            .entry(raw.clone())
-            .or_insert_with(|| Value::from(0u64));
-        *raw_count = Value::from(raw_count.as_u64().unwrap_or(0) + 1);
-        *by_stream_state.entry(stream).or_default().entry(state).or_default() += 1;
-
+        *by_status.entry(raw).or_default() += 1;
+        *by_state.entry(state).or_default() += 1;
         *by_priority.entry(pri).or_default() += 1;
         *by_type.entry(tp).or_default() += 1;
 
@@ -704,18 +680,10 @@ pub fn compute_stats(tasks: &[Value], all: &[Value]) -> Value {
         }
     }
 
-    // Fold synthetic state counts into the by_stream substructure under a
-    // nested "state" key so it stays separate from the raw counts.
-    for (stream, state_counts) in by_stream_state {
-        let entry = by_stream.entry(stream).or_default();
-        entry.insert("state".into(), serde_json::to_value(state_counts).unwrap());
-    }
-
     serde_json::json!({
         "total": tasks.len(),
         "by_status": by_status,
         "by_state": by_state,
-        "by_stream": by_stream,
         "by_priority": by_priority,
         "by_type": by_type,
         "by_work_type": by_work_type,
@@ -754,10 +722,10 @@ pub fn build_tree(tasks: &[Value], all: &[Value]) -> Vec<Value> {
         .collect();
 
     if !orphans.is_empty() {
-        // Group by stream
-        let mut by_stream: HashMap<String, Vec<Value>> = HashMap::new();
+        // Group orphan tasks by work_type
+        let mut by_work_type: HashMap<String, Vec<Value>> = HashMap::new();
         for t in orphans {
-            let stream = t["stream"].as_str().unwrap_or("other").to_string();
+            let wt = t["work_type"].as_str().unwrap_or("implement").to_string();
             let st = classify(t, all);
             let mut node = serde_json::json!({
                 "id": t["id"],
@@ -768,13 +736,13 @@ pub fn build_tree(tasks: &[Value], all: &[Value]) -> Vec<Value> {
             if let Some(bs) = t["build_step"].as_str() {
                 node["build_step"] = Value::String(bs.into());
             }
-            by_stream.entry(stream).or_default().push(node);
+            by_work_type.entry(wt).or_default().push(node);
         }
-        for (stream, tasks) in by_stream {
+        for (wt, tasks) in by_work_type {
             result.push(serde_json::json!({
-                "id": stream,
-                "subject": stream,
-                "type": "stream",
+                "id": wt,
+                "subject": wt,
+                "type": "work_type",
                 "children": tasks,
             }));
         }
@@ -910,16 +878,22 @@ pub fn portfolio_status() -> Result<Vec<Value>, String> {
 
 // ── Run command helpers (pure, testable) ─────────────────────────────
 
-/// Compute the git branch name for a task based on stream + id + subject.
+/// Compute the git branch name for a task based on work_type + kind + id + subject.
 pub fn branch_for_task(task: &Value) -> String {
-    let stream = task["stream"].as_str().unwrap_or("roadmap");
-    let prefix = match stream {
-        "bugs" => "fix",
-        "tech-debt" => "refactor",
+    let kind = task["kind"].as_str().unwrap_or("");
+    let work_type = task["work_type"].as_str().unwrap_or("implement");
+    let prefix = match kind {
+        "fix" => "fix",
+        "refactor" => "refactor",
         "docs" => "docs",
-        "experiments" => "experiment",
-        "research" => "research",
-        _ => "feat",
+        _ => match work_type {
+            "research" => "research",
+            "design" => "design",
+            "infra" => "infra",
+            "chore" => "chore",
+            "review" => "review",
+            _ => "feat",
+        },
     };
     let id = task["id"].as_str().unwrap_or("t-000");
     let subject = task["subject"].as_str().unwrap_or("task");
@@ -938,14 +912,20 @@ pub fn branch_for_task(task: &Value) -> String {
 
 /// Compute the worktree directory path for a task.
 pub fn worktree_path_for_task(task: &Value, repo_name: &str) -> String {
-    let stream = task["stream"].as_str().unwrap_or("roadmap");
-    let prefix = match stream {
-        "bugs" => "fix",
-        "tech-debt" => "refactor",
+    let kind = task["kind"].as_str().unwrap_or("");
+    let work_type = task["work_type"].as_str().unwrap_or("implement");
+    let prefix = match kind {
+        "fix" => "fix",
+        "refactor" => "refactor",
         "docs" => "docs",
-        "experiments" => "experiment",
-        "research" => "research",
-        _ => "feat",
+        _ => match work_type {
+            "research" => "research",
+            "design" => "design",
+            "infra" => "infra",
+            "chore" => "chore",
+            "review" => "review",
+            _ => "feat",
+        },
     };
     let id = task["id"].as_str().unwrap_or("t-000");
     format!("../{repo_name}-{prefix}/{id}")
@@ -1051,8 +1031,10 @@ pub fn complexity_score(task: &Value) -> f64 {
     let deps = task["blocked_by"].as_array().map(|a| a.len()).unwrap_or(0);
     score += (deps as f64 * 0.1).min(0.2);
 
-    // Stream type
-    if task["stream"].as_str() == Some("roadmap") {
+    // Feature/implement work is typically more complex
+    if matches!(task["kind"].as_str(), Some("feature") | None)
+        && task["work_type"].as_str() == Some("implement")
+    {
         score += 0.2;
     }
 
@@ -1100,7 +1082,7 @@ pub fn queue_candidates(tasks: &[Value], max: usize) -> Vec<Value> {
             "subject": t["subject"],
             "priority": t["priority"],
             "effort": t["effort"],
-            "stream": t["stream"],
+            "work_type": t["work_type"],
             "score": (score * 100.0).round() / 100.0,
             "model": model,
         })
@@ -1202,7 +1184,7 @@ mod tests {
     #[test]
     fn test_filter_by_tag() {
         let tasks = sample_tasks();
-        let result = filter_tasks(&tasks, &tasks, Some("scheduler"), None, None, None, None, None, &["task", "subtask"], None, None);
+        let result = filter_tasks(&tasks, &tasks, Some("scheduler"), None, None, None, None, &["task", "subtask"], None, None);
         assert_eq!(result.len(), 2);
     }
 
@@ -1212,7 +1194,7 @@ mod tests {
         // Raw status match — see tasks.spec.md (t-1323). Previously passed
         // "active" (classify output); now uses "in_progress" (CLI enum / raw
         // field value) which is the filter contract.
-        let result = filter_tasks(&tasks, &tasks, None, Some("in_progress"), None, None, None, None, &["task", "subtask"], None, None);
+        let result = filter_tasks(&tasks, &tasks, None, Some("in_progress"), None, None, None, &["task", "subtask"], None, None);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0]["id"].as_str().unwrap(), "t-002");
     }
@@ -1230,7 +1212,7 @@ mod tests {
         // CLI passes "completed" (enum value). Must match t-001 whose raw
         // status is "completed". Pre-fix this returned 0 items because
         // classify(t-001) == "done" != "completed".
-        let result = filter_tasks(&tasks, &tasks, None, Some("completed"), None, None, None, None, &["task", "subtask"], None, None);
+        let result = filter_tasks(&tasks, &tasks, None, Some("completed"), None, None, None, &["task", "subtask"], None, None);
         assert_eq!(result.len(), 1, "--status completed must match raw completed tasks");
         assert_eq!(result[0]["id"].as_str().unwrap(), "t-001");
     }
@@ -1239,7 +1221,7 @@ mod tests {
     fn test_filter_status_cancelled_matches_raw_field() {
         let tasks = sample_tasks();
         // Pre-fix: classify(t-006) == "done", "done" != "cancelled" → 0 hits.
-        let result = filter_tasks(&tasks, &tasks, None, Some("cancelled"), None, None, None, None, &["task", "subtask"], None, None);
+        let result = filter_tasks(&tasks, &tasks, None, Some("cancelled"), None, None, None, &["task", "subtask"], None, None);
         assert_eq!(result.len(), 1, "--status cancelled must match raw cancelled tasks");
         assert_eq!(result[0]["id"].as_str().unwrap(), "t-006");
     }
@@ -1248,7 +1230,7 @@ mod tests {
     fn test_filter_status_in_progress_matches_raw_field() {
         let tasks = sample_tasks();
         // Pre-fix: classify(t-002) == "active", "active" != "in_progress" → 0 hits.
-        let result = filter_tasks(&tasks, &tasks, None, Some("in_progress"), None, None, None, None, &["task", "subtask"], None, None);
+        let result = filter_tasks(&tasks, &tasks, None, Some("in_progress"), None, None, None, &["task", "subtask"], None, None);
         assert_eq!(result.len(), 1, "--status in_progress must match raw in_progress tasks");
         assert_eq!(result[0]["id"].as_str().unwrap(), "t-002");
     }
@@ -1261,7 +1243,7 @@ mod tests {
         // would classify as blocked or parked. Callers that want
         // classify-based filtering (e.g. cmd_next) must apply a post-hoc
         // filter.
-        let result = filter_tasks(&tasks, &tasks, None, Some("pending"), None, None, None, None, &["task", "subtask"], None, None);
+        let result = filter_tasks(&tasks, &tasks, None, Some("pending"), None, None, None, &["task", "subtask"], None, None);
         let ids: Vec<&str> = result.iter().filter_map(|t| t["id"].as_str()).collect();
         assert_eq!(result.len(), 3, "pending includes t-003 (plain), t-004 (blocked), t-005 (parked)");
         assert!(ids.contains(&"t-003"));
@@ -1276,7 +1258,7 @@ mod tests {
         // are no longer accepted — they're not in the CLI enum. Filtering
         // by them returns zero.
         for synthetic in &["done", "active", "blocked", "parked"] {
-            let result = filter_tasks(&tasks, &tasks, None, Some(synthetic), None, None, None, None, &["task", "subtask"], None, None);
+            let result = filter_tasks(&tasks, &tasks, None, Some(synthetic), None, None, None, &["task", "subtask"], None, None);
             assert_eq!(result.len(), 0, "--status {synthetic} (synthetic) must return 0 matches");
         }
     }
@@ -1284,7 +1266,7 @@ mod tests {
     #[test]
     fn test_filter_excludes_phases() {
         let tasks = sample_tasks();
-        let result = filter_tasks(&tasks, &tasks, None, None, None, None, None, None, &["task", "subtask"], None, None);
+        let result = filter_tasks(&tasks, &tasks, None, None, None, None, None, &["task", "subtask"], None, None);
         assert!(result.iter().all(|t| t["type"].as_str().unwrap() != "phase"));
     }
 
@@ -1350,7 +1332,7 @@ mod tests {
             json!({"id": "t-2", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "work_type": "research"}),
             json!({"id": "t-3", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "work_type": "implement"}),
         ];
-        let result = filter_tasks(&tasks, &tasks, None, None, None, None, None, None, &["task", "subtask"], None, Some("implement"));
+        let result = filter_tasks(&tasks, &tasks, None, None, None, None, None, &["task", "subtask"], None, Some("implement"));
         assert_eq!(result.len(), 2);
         assert!(result.iter().all(|t| t["work_type"] == "implement"));
     }
@@ -1362,7 +1344,7 @@ mod tests {
             json!({"id": "t-2", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "initiative": "notebooklm"}),
             json!({"id": "t-3", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "initiative": "cc-alignment"}),
         ];
-        let result = filter_tasks(&tasks, &tasks, None, None, None, None, None, None, &["task", "subtask"], Some("cc-alignment"), None);
+        let result = filter_tasks(&tasks, &tasks, None, None, None, None, None, &["task", "subtask"], Some("cc-alignment"), None);
         assert_eq!(result.len(), 2);
         assert!(result.iter().all(|t| t["initiative"] == "cc-alignment"));
     }
@@ -1867,7 +1849,7 @@ mod tests {
     #[test]
     fn test_multi_tag_filter() {
         let tasks = sample_tasks();
-        let result = filter_tasks(&tasks, &tasks, Some("scheduler"), None, None, None, None, None, &["task", "subtask"], None, None);
+        let result = filter_tasks(&tasks, &tasks, Some("scheduler"), None, None, None, None, &["task", "subtask"], None, None);
         assert_eq!(result.len(), 2);
         // Filter further for "dx" — only t-004 has both
         let filtered: Vec<_> = result.into_iter()
@@ -2040,32 +2022,32 @@ mod tests {
     // ── Wave 7: brana run helpers ────────────────────────────────────────
 
     #[test]
-    fn test_branch_for_roadmap_task() {
-        let task = json!({"id": "t-001", "stream": "roadmap", "subject": "My Task Name"});
+    fn test_branch_for_implement_task() {
+        let task = json!({"id": "t-001", "work_type": "implement", "subject": "My Task Name"});
         assert_eq!(branch_for_task(&task), "feat/t-001-my-task-name");
     }
 
     #[test]
-    fn test_branch_for_bug_task() {
-        let task = json!({"id": "t-002", "stream": "bugs", "subject": "Crash on login"});
+    fn test_branch_for_fix_kind() {
+        let task = json!({"id": "t-002", "kind": "fix", "work_type": "implement", "subject": "Crash on login"});
         assert_eq!(branch_for_task(&task), "fix/t-002-crash-on-login");
     }
 
     #[test]
     fn test_branch_for_research_task() {
-        let task = json!({"id": "t-003", "stream": "research", "subject": "Evaluate Options"});
+        let task = json!({"id": "t-003", "work_type": "research", "subject": "Evaluate Options"});
         assert_eq!(branch_for_task(&task), "research/t-003-evaluate-options");
     }
 
     #[test]
-    fn test_branch_for_tech_debt_task() {
-        let task = json!({"id": "t-010", "stream": "tech-debt", "subject": "Clean up imports"});
+    fn test_branch_for_refactor_kind() {
+        let task = json!({"id": "t-010", "kind": "refactor", "work_type": "implement", "subject": "Clean up imports"});
         assert_eq!(branch_for_task(&task), "refactor/t-010-clean-up-imports");
     }
 
     #[test]
     fn test_branch_for_long_subject() {
-        let task = json!({"id": "t-004", "stream": "roadmap", "subject": "This is a very long task subject that should be truncated to forty characters"});
+        let task = json!({"id": "t-004", "work_type": "implement", "subject": "This is a very long task subject that should be truncated to forty characters"});
         let branch = branch_for_task(&task);
         // slug part (after "feat/t-004-") should be truncated
         let slug = branch.strip_prefix("feat/t-004-").unwrap();
@@ -2074,20 +2056,20 @@ mod tests {
 
     #[test]
     fn test_branch_for_special_chars() {
-        let task = json!({"id": "t-005", "stream": "roadmap", "subject": "What's the deal? (100% done!)"});
+        let task = json!({"id": "t-005", "work_type": "implement", "subject": "What's the deal? (100% done!)"});
         let branch = branch_for_task(&task);
         assert_eq!(branch, "feat/t-005-what-s-the-deal-100-done");
     }
 
     #[test]
     fn test_worktree_path_feat() {
-        let task = json!({"id": "t-001", "stream": "roadmap"});
+        let task = json!({"id": "t-001", "work_type": "implement"});
         assert_eq!(worktree_path_for_task(&task, "thebrana"), "../thebrana-feat/t-001");
     }
 
     #[test]
     fn test_worktree_path_fix() {
-        let task = json!({"id": "t-002", "stream": "bugs"});
+        let task = json!({"id": "t-002", "kind": "fix", "work_type": "implement"});
         assert_eq!(worktree_path_for_task(&task, "myproject"), "../myproject-fix/t-002");
     }
 
