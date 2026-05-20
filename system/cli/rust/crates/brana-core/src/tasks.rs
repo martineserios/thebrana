@@ -99,7 +99,9 @@ pub fn filter_tasks<'a>(
     tasks
         .iter()
         .filter(|t| {
-            let tt = t["type"].as_str().unwrap_or("task");
+            // level field takes priority over type for hierarchy filtering.
+            // Falls back to type when level is absent (backward compat).
+            let tt = t["level"].as_str().unwrap_or_else(|| t["type"].as_str().unwrap_or("task"));
             if !types.contains(&tt) {
                 return false;
             }
@@ -538,6 +540,15 @@ pub fn validate_status(value: &str) -> Result<(), String> {
 }
 
 /// Validate a work_type value. Accepts implement/research/design/ops/review plus "null"/"" (clear).
+pub fn validate_level(value: &str) -> Result<(), String> {
+    match value {
+        "initiative" | "phase" | "milestone" | "task" | "subtask" | "null" | "" => Ok(()),
+        other => Err(format!(
+            "invalid level {other:?} — must be initiative/phase/milestone/task/subtask or null"
+        )),
+    }
+}
+
 pub fn validate_work_type(value: &str) -> Result<(), String> {
     match value {
         "implement" | "research" | "design" | "infra" | "chore" | "review" | "null" | "" => Ok(()),
@@ -607,7 +618,7 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
             }
             Ok(())
         }
-        "priority" | "effort" | "status" | "type" | "strategy"
+        "priority" | "effort" | "status" | "type" | "level" | "strategy"
         | "build_step" | "execution" | "branch" | "subject" | "parent"
         | "started" | "completed" | "created" | "github_issue"
         | "initiative" | "work_type" => {
@@ -619,6 +630,9 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
             }
             if field == "work_type" {
                 validate_work_type(value)?;
+            }
+            if field == "level" {
+                validate_level(value)?;
             }
             if value == "null" {
                 task[field] = Value::Null;
@@ -1361,6 +1375,47 @@ mod tests {
         for v in &["code", "manual", "feature", "build", "dev", "ops"] {
             assert!(validate_work_type(v).is_err(), "expected Err for {v:?}");
         }
+    }
+
+    // ── t-1542: level field tests ────────────────────────────────────────
+
+    #[test]
+    fn test_validate_level_valid() {
+        for v in &["initiative", "phase", "milestone", "task", "subtask", "null", ""] {
+            assert!(validate_level(v).is_ok(), "expected Ok for {v:?}");
+        }
+    }
+
+    #[test]
+    fn test_validate_level_invalid() {
+        for v in &["project", "sprint", "epic", "feature", "story"] {
+            assert!(validate_level(v).is_err(), "expected Err for {v:?}");
+        }
+    }
+
+    #[test]
+    fn test_filter_tasks_uses_level_when_set() {
+        // A task with level="task" but type="phase" should match type filter "task"
+        // because level takes priority over type in filtering.
+        let tasks = vec![
+            json!({"id": "t-1", "type": "phase", "level": "task", "status": "pending", "tags": [], "blocked_by": []}),
+            json!({"id": "ph-1", "type": "phase", "level": "phase", "status": "pending", "tags": [], "blocked_by": []}),
+        ];
+        let result = filter_tasks(&tasks, &tasks, None, None, None, None, None, &["task"], None, None);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0]["id"], "t-1");
+    }
+
+    #[test]
+    fn test_filter_tasks_falls_back_to_type_when_no_level() {
+        // Without level field, type is still used for filtering.
+        let tasks = vec![
+            json!({"id": "t-1", "type": "task", "status": "pending", "tags": [], "blocked_by": []}),
+            json!({"id": "ph-1", "type": "phase", "status": "pending", "tags": [], "blocked_by": []}),
+        ];
+        let result = filter_tasks(&tasks, &tasks, None, None, None, None, None, &["task"], None, None);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0]["id"], "t-1");
     }
 
     #[test]

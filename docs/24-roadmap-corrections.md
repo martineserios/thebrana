@@ -3141,6 +3141,21 @@ This errata also applies as a process rule: **when a credential is not explicitl
 
 ---
 
+## E2026-05-20-5 — feat/t-1540-drop-stream: stream field removed from core but MCP surface and tests still reference it
+
+**Severity:** High
+**Discovery:** 2026-05-20 — debrief-analyst sweep at session close; grep across brana-mcp/ revealed lag between core and MCP layer
+**Affected files:** `system/cli/rust/crates/brana-mcp/src/tools/backlog_add.rs` (default_stream(), pub stream field, payload), `system/cli/rust/crates/brana-mcp/src/tools/backlog_stats.rs` (description text), `system/cli/rust/crates/brana-mcp/tests/tool_tests.rs` (4 stream: fixtures), `system/cli/rust/crates/brana-cli/src/commands/backlog.rs:715` (matches! type tier)
+
+**Spec says:** t-1540 (drop stream field): `stream` removed from `tasks.rs` `filter_tasks`, `validate_schema`, `set_field`, `compute_stats`. Branch: `feat/t-1540-drop-stream`.
+
+**Reality:** The MCP `backlog_add` tool still has `default_stream()`, `pub stream: String`, and a stream payload field. `backlog_stats` description mentions "by status, stream, priority". `tool_tests.rs` has 4 test fixtures with `"stream":` keys. `backlog.rs:715` type-tier match still lists `"stream"` as a valid type. CLI and MCP surfaces are inconsistent — `backlog_add` would still accept a field the core schema has removed.
+
+**Fix:** Complete MCP/CLI surface sweep on `feat/t-1540-drop-stream` before merge: `grep -rn 'stream' brana-mcp/` and `grep -n '"stream"' brana-cli/` must be clean. Update test fixtures. Merge gate: zero `stream` references outside comments.
+**Status:** pending — branch not safe to merge
+
+---
+
 ## E2026-05-19-10 — ADR-002 described CC Tasks as "session-scoped" — stale framing predating CC v2.1.16
 
 **Severity:** Low
