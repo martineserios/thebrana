@@ -20,7 +20,6 @@ fn fixture_tasks(dir: &std::path::Path) -> PathBuf {
                 "id": "t-001",
                 "subject": "Fix login bug",
                 "status": "pending",
-                "stream": "bugs",
                 "type": "task",
                 "tags": ["auth", "urgent"],
                 "priority": "P0",
@@ -36,7 +35,6 @@ fn fixture_tasks(dir: &std::path::Path) -> PathBuf {
                 "id": "t-002",
                 "subject": "Add dark mode",
                 "status": "in_progress",
-                "stream": "roadmap",
                 "type": "task",
                 "tags": ["ui"],
                 "priority": "P1",
@@ -53,7 +51,6 @@ fn fixture_tasks(dir: &std::path::Path) -> PathBuf {
                 "id": "t-003",
                 "subject": "Write API docs",
                 "status": "completed",
-                "stream": "docs",
                 "type": "task",
                 "tags": ["docs"],
                 "priority": "P2",
@@ -242,7 +239,6 @@ fn test_add_task_and_save() {
         "id": id,
         "subject": "New task",
         "status": "pending",
-        "stream": "roadmap",
         "type": "task",
         "tags": [],
         "created": "2026-04-05",
@@ -382,6 +378,22 @@ fn test_batch_partial_failure() {
 
         assert_eq!(task["status"], "completed");
         assert_eq!(task["priority"], "P1");
+    }
+}
+
+// ── Regression: stream field must not appear in task fixtures (t-1564) ──
+
+#[test]
+fn test_fixture_tasks_have_no_stream_field() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = fixture_tasks(dir.path());
+    let data = brana_core::tasks::load_tasks(&path).unwrap();
+    for task in &data.tasks {
+        assert!(
+            task.get("stream").is_none() || task["stream"] == serde_json::Value::Null,
+            "fixture task {} must not have stream field (regression: t-1564)",
+            task["id"]
+        );
     }
 }
 

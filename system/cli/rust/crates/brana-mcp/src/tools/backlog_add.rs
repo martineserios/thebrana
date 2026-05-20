@@ -8,10 +8,6 @@ pub struct Input {
     /// Task subject/title
     pub subject: String,
 
-    /// Stream: roadmap, bugs, tech-debt, docs, experiments, research, personal
-    #[serde(default = "default_stream")]
-    pub stream: String,
-
     /// Task type: task, subtask, phase, milestone
     #[serde(default = "default_type")]
     pub task_type: String,
@@ -35,7 +31,6 @@ pub struct Input {
     pub context: Option<String>,
 }
 
-fn default_stream() -> String { "roadmap".into() }
 fn default_type() -> String { "task".into() }
 
 pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::pin::Pin<Box<dyn std::future::Future<Output = pmcp::Result<serde_json::Value>> + Send>> + Send + Sync> {
@@ -71,7 +66,6 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 "id": id,
                 "subject": input.subject,
                 "status": "pending",
-                "stream": input.stream,
                 "type": input.task_type,
                 "tags": tags,
                 "description": input.description,
