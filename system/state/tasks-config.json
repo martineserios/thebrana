@@ -1,13 +1,14 @@
 {
-  "theme": "emoji",
+  "active_initiative": "cc-alignment",
   "github_sync": {
     "enabled": true,
-    "repo": null,
-    "project": null,
     "labels": {
-      "stream": true,
       "priority": true,
+      "stream": true,
       "tags": 2
-    }
-  }
+    },
+    "project": null,
+    "repo": null
+  },
+  "theme": "emoji"
 }
