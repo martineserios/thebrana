@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-20T10:15:28Z",
+  "generated": "2026-05-20T14:55:20Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -224,6 +224,11 @@
     },
     "brana-knowledge/dimensions/58-claude-code-changelog-2026.md": {
       "title": "Claude Code — Changelog & Feature Audit 2026",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/59-mobile-apps-claude-code.md": {
+      "title": "Mobile App Development with Claude Code",
       "type": "Dimension",
       "impl_files": []
     },
@@ -489,6 +494,15 @@
         "system/cli/rust/crates/brana-cli/src/commands/",
         "system/procedures/close.md",
         "system/cli/rust/crates/brana-cli/src/commands/skills.rs",
+        "system/procedures/migrate.md",
+        "system/scripts/migrate/remap-streams.py",
+        "system/scripts/index-patterns.sh",
+        "system/procedures/memory.md",
+        "system/procedures/retrospective.md",
+        "system/cli/rust/crates/brana-mcp/src/tools/backlog_add.rs",
+        "system/cli/rust/crates/brana-mcp/src/tools/backlog_stats.rs",
+        "system/cli/rust/crates/brana-mcp/tests/tool_tests.rs",
+        "system/cli/rust/crates/brana-cli/src/commands/backlog.rs:715",
         "system/skills/_shared/guided-execution.md:52"
       ]
     },
@@ -794,6 +808,11 @@
       "type": "ADR",
       "impl_files": []
     },
+    "docs/architecture/decisions/ADR-039-pattern-quality-filter-and-per-pattern-files.md": {
+      "title": "ADR-039: Pattern Quality Filter + Per-Pattern File Storage",
+      "type": "ADR",
+      "impl_files": []
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -1007,6 +1026,11 @@
       "impl_files": [
         "system/rules/"
       ]
+    },
+    "docs/architecture/features/memory-pattern-redesign.md": {
+      "title": "Feature: Memory Pattern Learning Redesign (P0)",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/architecture/features/memory-taxonomy-ddd.md": {
       "title": "Memory Taxonomy — Domain Design",
@@ -1635,6 +1659,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/dimensions/59-mobile-apps-claude-code.md": {
+      "title": "Mobile App Development with Claude Code",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/dimensions/INDEX.md": {
       "title": "Dimension Docs Index",
       "type": "Roadmap",
@@ -2191,6 +2220,11 @@
         "system/hooks/session-start.sh",
         "system/hooks/lib/file-claims.sh"
       ]
+    },
+    "docs/ideas/ruflo-v36-integration.md": {
+      "title": "Ruflo v3.6 Integration — thebrana v1.20",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/ideas/session-aware-loop-integration.md": {
       "title": "Session-Aware Loop Integration for Brana",
@@ -3410,6 +3444,24 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-039-pattern-quality-filter-and-per-pattern-files.md",
+      "to": "docs/architecture/decisions/ADR-037-memory-enforcement-and-migration.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-039-pattern-quality-filter-and-per-pattern-files.md",
+      "to": "docs/architecture/decisions/ADR-038-memory-write-gateway.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-039-pattern-quality-filter-and-per-pattern-files.md",
+      "to": "docs/architecture/features/memory-taxonomy-sdd.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/acquire-skills-guide.md",
       "to": "docs/architecture/decisions/ADR-012-acquire-skills.md",
       "type": "depends_on",
@@ -3760,6 +3812,30 @@
     {
       "from": "docs/architecture/features/living-docs.md",
       "to": "docs/architecture/features/build-loop-redesign.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/memory-pattern-redesign.md",
+      "to": "docs/architecture/decisions/ADR-037-memory-enforcement-and-migration.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/memory-pattern-redesign.md",
+      "to": "docs/architecture/decisions/ADR-038-memory-write-gateway.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/memory-pattern-redesign.md",
+      "to": "docs/architecture/decisions/ADR-039-pattern-quality-filter-and-per-pattern-files.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/memory-pattern-redesign.md",
+      "to": "docs/architecture/features/memory-taxonomy-sdd.md",
       "type": "depends_on",
       "computed": false
     },
@@ -4754,6 +4830,12 @@
       "computed": false
     },
     {
+      "from": "brana-knowledge/dimensions/59-mobile-apps-claude-code.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
       "from": "brana-knowledge/dimensions/ai-coding-agent-contracts.md",
       "to": "docs/reflections/ARCHITECTURE.md",
       "type": "informs",
@@ -5572,6 +5654,12 @@
     {
       "from": "docs/dimensions/50-auto-learning-patterns.md",
       "to": "docs/ideas/knowledge-aware-skills.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/59-mobile-apps-claude-code.md",
+      "to": "docs/reflections/ARCHITECTURE.md",
       "type": "informs",
       "computed": false
     },
@@ -8780,6 +8868,18 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/memory-pattern-redesign.md",
+      "to": "docs/architecture/decisions/ADR-039-pattern-quality-filter-and-per-pattern-files.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/memory-pattern-redesign.md",
+      "to": "file.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/memory-taxonomy-sdd.md",
       "to": "memory-taxonomy-ddd.md",
       "type": "references",
@@ -11973,9 +12073,9 @@
     }
   ],
   "stats": {
-    "nodes": 389,
-    "edges": 1568,
-    "typed_edges": 551,
-    "orphans": 101
+    "nodes": 394,
+    "edges": 1579,
+    "typed_edges": 560,
+    "orphans": 102
   }
 }
