@@ -435,6 +435,71 @@ fn memory_index_prefers_dated_file_over_plain_slug() {
     );
 }
 
+// ── Test 6: version stamp injection ──────────────────────────────────────
+
+#[test]
+fn memory_write_version_claim_with_known_tool_injects_verified_block() {
+    let home = assert_fs::TempDir::new().unwrap();
+    let project = assert_fs::TempDir::new().unwrap();
+    let content = "ruflo agentdb is currently at v3.5.1";
+
+    brana()
+        .args([
+            "memory", "write",
+            "--type", "project",
+            "--scope", "project",
+            "--slug", "ruflo-version-test",
+            "--content", content,
+        ])
+        .env("HOME", home.path())
+        .current_dir(project.path())
+        .assert()
+        .success();
+
+    let mem_dir = project_memory_dir(home.path(), project.path());
+    let path = mem_dir.join("project_ruflo-version-test.md");
+    let written = std::fs::read_to_string(&path).unwrap();
+    assert!(
+        written.contains("Verified at write time"),
+        "expected verified block in written file, got:\n{written}"
+    );
+    assert!(
+        written.contains("ruflo --version"),
+        "stamp should name the tool, got:\n{written}"
+    );
+    assert!(
+        written.starts_with(content),
+        "original content should be preserved at the start"
+    );
+}
+
+#[test]
+fn memory_write_no_version_pattern_writes_content_unchanged() {
+    let home = assert_fs::TempDir::new().unwrap();
+    let project = assert_fs::TempDir::new().unwrap();
+    let content = "ruflo is a great tool for memory management";
+
+    brana()
+        .args([
+            "memory", "write",
+            "--type", "project",
+            "--scope", "project",
+            "--slug", "ruflo-no-version",
+            "--content", content,
+        ])
+        .env("HOME", home.path())
+        .current_dir(project.path())
+        .assert()
+        .success();
+
+    let mem_dir = project_memory_dir(home.path(), project.path());
+    let written = std::fs::read_to_string(mem_dir.join("project_ruflo-no-version.md")).unwrap();
+    assert_eq!(
+        written, content,
+        "content without version pattern should be written unchanged"
+    );
+}
+
 // ── Global scope ──────────────────────────────────────────────────────────
 
 #[test]
