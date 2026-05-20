@@ -38754,7 +38754,7 @@
     {
       "id": "t-1546",
       "subject": "MS1: Tool Namespace Audit",
-      "status": "pending",
+      "status": "completed",
       "type": "milestone",
       "tags": [
         "ruflo",
@@ -38891,7 +38891,7 @@
     {
       "id": "t-1551",
       "subject": "Update dim 56 with ruflo v3.6 real/stub classification table",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "tags": [
         "ruflo",
@@ -38905,7 +38905,7 @@
       "parent": "t-1546",
       "created": "2026-05-20",
       "started": "2026-05-20",
-      "completed": null,
+      "completed": "2026-05-20",
       "blocked_by": [
         "t-1549"
       ],
@@ -39129,7 +39129,7 @@
     {
       "id": "t-1559",
       "subject": "Add stub command guard — never trust ruflo security-scan/deploy/quantization output",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "tags": [
         "ruflo",
@@ -39143,7 +39143,7 @@
       "parent": "t-1545",
       "created": "2026-05-20",
       "started": "2026-05-20",
-      "completed": null,
+      "completed": "2026-05-20",
       "blocked_by": [],
       "branch": null,
       "context": "Confirmed stubs in ruflo v3.6: (1) security-scan returns hardcoded fake vulnerability counts, (2) deploy has no real implementation, (3) memory quantization reports hardcoded 3.92x factor. Add a note to system/rules/ or relevant procedure prose: these commands must never be used as authoritative signals. See dim 56 Known Limitations #6-8. Source: issue #1482, /research session 2026-05-20.",
