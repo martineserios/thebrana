@@ -3582,6 +3582,7 @@
       "effort": "M",
       "github_issue": 134,
       "id": "t-203",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -3598,8 +3599,7 @@
         "feedback-loop"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": null,
@@ -5255,6 +5255,7 @@
       "effort": "S",
       "github_issue": 164,
       "id": "t-334",
+      "initiative": null,
       "kind": "research",
       "notes": null,
       "order": null,
@@ -5270,8 +5271,7 @@
         "memory"
       ],
       "type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -7818,6 +7818,7 @@
       "effort": "S",
       "github_issue": 979,
       "id": "t-419",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -7833,8 +7834,7 @@
         "nanoclaw"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -7975,6 +7975,7 @@
       "effort": "L",
       "github_issue": null,
       "id": "t-424",
+      "initiative": null,
       "kind": "refactor",
       "notes": "Spike complete. Decision: hybrid CLI architecture — Python (typer+rich) for main surface, Rust for hot-path binaries (brana-query, brana-fmt), bash stays for glue. Implementation moves to t-428.",
       "order": null,
@@ -7990,8 +7991,7 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -8055,6 +8055,7 @@
       "effort": "M",
       "github_issue": 985,
       "id": "t-427",
+      "initiative": null,
       "kind": "research",
       "notes": "Answered by /brana:research session 2026-03-18. Implementation tasks created from findings.",
       "order": null,
@@ -8070,8 +8071,7 @@
         "performance"
       ],
       "type": "task",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -8083,6 +8083,7 @@
       "effort": "L",
       "github_issue": 837,
       "id": "t-428",
+      "initiative": null,
       "kind": "feature",
       "notes": "Shipped via 611f9b2 (brana CLI — 22 commands across backlog, ops, and root). t-424 spike merged. CLI is the standard interface used in every session.",
       "order": null,
@@ -8099,8 +8100,7 @@
         "tooling"
       ],
       "type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -8920,6 +8920,7 @@
       "effort": "XL",
       "github_issue": null,
       "id": "t-457",
+      "initiative": null,
       "kind": "refactor",
       "notes": "Waves 1-7 complete. Rust CLI (cli.rs 939 LOC), validate/rollup/metrics commands, all hooks rewired with jq fallbacks. ADR-023. 23 Rust tests.",
       "order": null,
@@ -8937,8 +8938,7 @@
         "performance"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -9060,6 +9060,7 @@
       "effort": "L",
       "github_issue": 883,
       "id": "t-463",
+      "initiative": null,
       "kind": "refactor",
       "notes": "Wave 2 close: spec at docs/architecture/features/cli-composable-tool.md is fully implemented. All 8 new commands shipped (set, add, get, roadmap, tags, stats, status --all, tree) + all 4 query enhancements (--tag multi, --type, --parent, --branch). Procedure (system/procedures/backlog.md) has 43 explicit 'brana backlog' invocations and a line-72 anti-direct-read rule redirecting any narrative 'Read tasks.json' phrase to MCP/CLI. Spec Wave 5 ('skill rewiring') is functionally complete; cosmetic rewording of narrative steps deferred to t-1339. Performance target met: every backlog op this session was <100ms via CLI. Context cost: zero token bloat from tasks.json reads.",
       "order": null,
@@ -9076,8 +9077,7 @@
         "architecture"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -9089,6 +9089,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-464",
+      "initiative": null,
       "kind": "refactor",
       "notes": "CLI Integration sections added to backlog + build skills. Skills instruct Claude to use brana CLI commands instead of file reads/writes.",
       "order": null,
@@ -9104,8 +9105,7 @@
         "skills"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -9144,6 +9144,7 @@
       "effort": "S",
       "github_issue": 1005,
       "id": "t-466",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -9159,8 +9160,7 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -9226,6 +9226,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-469",
+      "initiative": null,
       "kind": "refactor",
       "notes": "Audit complete. 27 skills analyzed, Opus-challenged, 2/7 proposals survived: (1) ValueEnum for type safety on 6 fields, (2) brana portfolio list. Both implemented and merged.",
       "order": null,
@@ -9242,8 +9243,7 @@
         "audit"
       ],
       "type": "task",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -9366,6 +9366,7 @@
       "effort": "L",
       "github_issue": null,
       "id": "t-474",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -9382,8 +9383,7 @@
         "architecture"
       ],
       "type": "task",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -9395,6 +9395,7 @@
       "effort": "L",
       "github_issue": "1011",
       "id": "t-475",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -9411,8 +9412,7 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -10188,6 +10188,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-504",
+      "initiative": null,
       "kind": "research",
       "notes": "Two projects share the name. manaflow-ai/cmux = macOS terminal (6.5k stars). craigsc/cmux = worktree CLI. Neither competes directly with brana.",
       "order": null,
@@ -10204,8 +10205,7 @@
         "claude-code"
       ],
       "type": "task",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -10244,6 +10244,7 @@
       "effort": "M",
       "github_issue": "1013",
       "id": "t-506",
+      "initiative": null,
       "kind": "research",
       "notes": "Research complete. 21 CC hook events mapped (was using 5). 5 feature tasks created: t-507 (TaskCompleted native), t-508 (HTTP daemon), t-509 (contextModifier), t-510 (PreCompact/PostCompact), t-511 (UserPromptSubmit injection). Key sources: code.claude.com/docs/en/hooks, promptlayer.com, leehanchung.github.io, deepwiki.com.",
       "order": null,
@@ -10260,8 +10261,7 @@
         "harness-engineering"
       ],
       "type": "task",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -10300,6 +10300,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-508",
+      "initiative": null,
       "kind": "research",
       "notes": "Challenger: solves non-problem. Shell hooks are fast enough. Daemon adds complexity.",
       "order": null,
@@ -10316,8 +10317,7 @@
         "harness-engineering"
       ],
       "type": "task",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -10636,6 +10636,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-520",
+      "initiative": null,
       "kind": "feature",
       "notes": "Implemented and tested. Merged to main via feat/parallel-agent-implementations.",
       "order": null,
@@ -10651,8 +10652,7 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -10826,6 +10826,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-527",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -10840,8 +10841,7 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -10853,6 +10853,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-528",
+      "initiative": null,
       "kind": "fix",
       "notes": "Root cause: load_raw returned bare arrays as-is, so val[tasks] was Null. Fixed by normalizing to {tasks:[...]} in load_raw. Also hardened cmd_add unwrap to emit JSON error instead of panic.",
       "order": null,
@@ -10867,8 +10868,7 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -10905,6 +10905,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-530",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -10920,8 +10921,7 @@
         "cost"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -10935,6 +10935,7 @@
       "effort": "L",
       "github_issue": null,
       "id": "t-531",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -10950,8 +10951,7 @@
         "tui"
       ],
       "type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [
@@ -10965,6 +10965,7 @@
       "effort": "L",
       "github_issue": null,
       "id": "t-532",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -10980,8 +10981,7 @@
         "web"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -11242,6 +11242,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-544",
+      "initiative": null,
       "kind": "research",
       "notes": null,
       "order": null,
@@ -11256,8 +11257,7 @@
         "cli"
       ],
       "type": "subtask",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [
@@ -11271,6 +11271,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-545",
+      "initiative": null,
       "kind": "research",
       "notes": "Pivoted: symphonia audio module replaced by ffmpeg subprocess + whisper-cli",
       "order": null,
@@ -11285,8 +11286,7 @@
         "cli"
       ],
       "type": "subtask",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [
@@ -11300,6 +11300,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-546",
+      "initiative": null,
       "kind": "research",
       "notes": "Pivoted: candle whisper replaced by whisper.cpp binary (whisper-cli). 7x realtime on CPU.",
       "order": null,
@@ -11314,8 +11315,7 @@
         "cli"
       ],
       "type": "subtask",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [
@@ -11329,6 +11329,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-547",
+      "initiative": null,
       "kind": "research",
       "notes": "Model download via curl to ~/.cache/whisper-models/. ggml format.",
       "order": null,
@@ -11343,8 +11344,7 @@
         "cli"
       ],
       "type": "subtask",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [
@@ -11360,6 +11360,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-548",
+      "initiative": null,
       "kind": "research",
       "notes": null,
       "order": null,
@@ -11374,8 +11375,7 @@
         "cli"
       ],
       "type": "subtask",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [
@@ -11389,6 +11389,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-549",
+      "initiative": null,
       "kind": "research",
       "notes": "Tested with 2 WhatsApp voice notes (.ogg/opus). Auto language detection (Spanish). Clean output.",
       "order": null,
@@ -11403,8 +11404,7 @@
         "cli"
       ],
       "type": "subtask",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -11914,6 +11914,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-568",
+      "initiative": null,
       "kind": "refactor",
       "notes": "Verified Wave 2: cli.rs is now 832 lines of pure clap derive structs + ValueEnums + 1 helper (ve_str). All dispatch is in main.rs; all logic is in commands/{backlog,doctor,session,skills,ops,run,handoff,knowledge,feed,inbox,reference,decisions,files,graph,misc}.rs (16 modules). The 'split' is complete; cli.rs is at its natural irreducible size for this CLI surface.",
       "order": null,
@@ -11929,8 +11930,7 @@
         "refactor"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -11944,6 +11944,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-569",
+      "initiative": null,
       "kind": "refactor",
       "notes": "Completed via 3 commits on refactor/t-569-handoff-anyhow: handoff (14b7e2f), session (45fbb6a), graph+knowledge+skills+reference (aff829b). 39 → 1 process::exit hits across handlers. The remaining hit is the run_or_exit infrastructure in main.rs (intentional single exit point). All cmd_* functions in 6 modules return Result<()> with anyhow::Context chaining. Test baseline preserved: 263/266 (same 3 pre-existing session test failures).",
       "order": null,
@@ -11959,8 +11960,7 @@
         "error-handling"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -11975,6 +11975,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-570",
+      "initiative": null,
       "kind": "refactor",
       "notes": "Implemented in 09856eb. Wired assert_cmd 2 + predicates 3 + insta 1.40 (yaml) + assert_fs 1. Added system/cli/rust/crates/brana-cli/tests/cli_smoke.rs with 10 integration tests covering: top-level surface, backlog dispatch, validate (3 paths), doctor. All green. Pattern: helper brana() → Command::cargo_bin, one assertion per test, filesystem-isolated via TempDir.",
       "order": null,
@@ -11990,8 +11991,7 @@
         "testing"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -12005,6 +12005,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-571",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -12021,8 +12022,7 @@
         "distribution"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -12036,6 +12036,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-572",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -12051,8 +12052,7 @@
         "distribution"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -12064,6 +12064,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-573",
+      "initiative": null,
       "kind": "refactor",
       "notes": "Added panic=abort to [profile.release]. UPX evaluation: upx not installed on system (not in PATH). Would need manual install to test compression. Recommend trying upx --best on next release build.",
       "order": null,
@@ -12079,8 +12080,7 @@
         "performance"
       ],
       "type": "task",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -12316,6 +12316,7 @@
       "effort": "small",
       "github_issue": null,
       "id": "t-582",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -12331,8 +12332,7 @@
         "docs"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -12397,6 +12397,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-585",
+      "initiative": null,
       "kind": "feature",
       "notes": "Merged to main. 9 files, 2673 insertions. Binary: 4.8MB (was 1.4MB). 101 tests pass (20 new). Plugin cache updated.",
       "order": null,
@@ -12414,8 +12415,7 @@
         "tooling"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -12427,6 +12427,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-586",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -12442,8 +12443,7 @@
         "inbox"
       ],
       "type": "subtask",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -12457,6 +12457,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-587",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -12472,8 +12473,7 @@
         "inbox"
       ],
       "type": "subtask",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -12487,6 +12487,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-588",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -12501,8 +12502,7 @@
         "feeds"
       ],
       "type": "subtask",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [
@@ -12516,6 +12516,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-589",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -12530,8 +12531,7 @@
         "feeds"
       ],
       "type": "subtask",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -12545,6 +12545,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-590",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -12559,8 +12560,7 @@
         "feeds"
       ],
       "type": "subtask",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -12574,6 +12574,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-591",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -12588,8 +12589,7 @@
         "inbox"
       ],
       "type": "subtask",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -12603,6 +12603,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-592",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -12617,8 +12618,7 @@
         "inbox"
       ],
       "type": "subtask",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -12633,6 +12633,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-593",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -12649,8 +12650,7 @@
         "inbox"
       ],
       "type": "subtask",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [
@@ -12664,6 +12664,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-594",
+      "initiative": null,
       "kind": "feature",
       "notes": "Deferred — live integration test validated CRUD + poll + ETag diffing",
       "order": null,
@@ -12678,8 +12679,7 @@
         "feeds"
       ],
       "type": "subtask",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [
@@ -12693,6 +12693,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-595",
+      "initiative": null,
       "kind": "feature",
       "notes": "Deferred — IMAP poll tested manually, CRUD validated",
       "order": null,
@@ -12707,8 +12708,7 @@
         "inbox"
       ],
       "type": "subtask",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -12773,6 +12773,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-598",
+      "initiative": null,
       "kind": "refactor",
       "notes": "Added serial_test dev-dep + #[serial] to all tests using with_temp_home(). Fixed 6 flaky parallel test failures. 103 tests pass.",
       "order": null,
@@ -12788,8 +12789,7 @@
         "testing"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -12801,6 +12801,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-599",
+      "initiative": null,
       "kind": "docs",
       "notes": null,
       "order": null,
@@ -12816,8 +12817,7 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -12829,6 +12829,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-600",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -12843,8 +12844,7 @@
         "rust"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -12856,6 +12856,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-601",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -12872,8 +12873,7 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -12885,6 +12885,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-602",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -12900,8 +12901,7 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -13022,6 +13022,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-607",
+      "initiative": null,
       "kind": "refactor",
       "notes": "lib/resolve-brana.sh shared resolver. SessionStart auto-syncs to PLUGIN_DATA. 6 hooks updated. MEMORY.md manual cp workaround removed.",
       "order": null,
@@ -13038,8 +13039,7 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -13110,6 +13110,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-610",
+      "initiative": null,
       "kind": "feature",
       "notes": "3 subcommands: suggest (scored matching per ADR-025), search (full-text), list (JSON inventory). 10 tests passing. serde_yaml added. Binary rebuilt.",
       "order": null,
@@ -13126,8 +13127,7 @@
         "skill-lifecycle"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -13171,6 +13171,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-612",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -13187,8 +13188,7 @@
         "skill-lifecycle"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -13228,6 +13228,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-614",
+      "initiative": null,
       "kind": "refactor",
       "notes": "Investigation complete. Root causes: telemetry in repo (390KB), unbounded handoff, duplication with drift, dead MEMORY-snapshot. Reclassified investigation→refactor.",
       "order": null,
@@ -13244,8 +13245,7 @@
         "critical"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -13326,6 +13326,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-618",
+      "initiative": null,
       "kind": "research",
       "notes": null,
       "order": null,
@@ -13340,8 +13341,7 @@
         "test"
       ],
       "type": "task",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -13540,6 +13540,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-626",
+      "initiative": null,
       "kind": "feature",
       "notes": "RTK v0.33.1 installed via install.sh to ~/.local/bin. PreToolUse hook in settings.json rewrites Bash commands (git, ls, cargo test, etc.) to rtk equivalents. Baseline: 57.6% savings from 7 test commands. ls=84.5%, git status=80.2%. Telemetry disabled. Measure with rtk gain after next full session.",
       "order": null,
@@ -13555,8 +13556,7 @@
         "harness-engineering"
       ],
       "type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -13786,6 +13786,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-635",
+      "initiative": null,
       "kind": "research",
       "notes": "Spike complete: MEMORY.md is 116 lines (464 tokens), well under 200-line CC auto-load limit. Already uses progressive disclosure via linked files. No architecture change needed. Recommendation: move 8-10 directive entries to ~/.claude/rules/ during next /brana:close cleanup cycle.",
       "order": null,
@@ -13801,8 +13802,7 @@
         "harness-engineering"
       ],
       "type": "task",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -14273,6 +14273,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-653",
+      "initiative": null,
       "kind": "research",
       "notes": null,
       "order": null,
@@ -14288,8 +14289,7 @@
         "memory",
         "harness-engineering"
       ],
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -14686,6 +14686,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-668",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -14701,8 +14702,7 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -14976,6 +14976,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-679",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -14992,8 +14993,7 @@
         "ruflo-maturation"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -15300,6 +15300,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-691",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -15314,8 +15315,7 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -17261,6 +17261,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-765",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -17275,8 +17276,7 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -17288,6 +17288,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-766",
+      "initiative": null,
       "kind": "docs",
       "notes": null,
       "order": null,
@@ -17302,8 +17303,7 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -17934,6 +17934,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-791",
+      "initiative": null,
       "kind": "docs",
       "notes": "Already resolved — backlog SKILL.md already says 'top 5' and CLI default is 5. Verified during reconcile 2026-03-31.",
       "order": null,
@@ -17949,8 +17950,7 @@
         "docs"
       ],
       "type": "task",
-      "work_type": "design",
-      "initiative": null
+      "work_type": "design"
     },
     {
       "blocked_by": [],
@@ -18044,6 +18044,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-795",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -18059,8 +18060,7 @@
         "cli"
       ],
       "type": "milestone",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -18124,6 +18124,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-798",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -18139,8 +18140,7 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -18154,6 +18154,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-799",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -18169,8 +18170,7 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -18184,6 +18184,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-800",
+      "initiative": null,
       "kind": "feature",
       "notes": "Implemented as part of t-799 commit cee9980",
       "order": null,
@@ -18199,8 +18200,7 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -18214,6 +18214,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-801",
+      "initiative": null,
       "kind": "feature",
       "notes": "Implemented as part of t-799 commit cee9980",
       "order": null,
@@ -18229,8 +18230,7 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -18245,6 +18245,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-802",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -18260,8 +18261,7 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [
@@ -18418,6 +18418,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-808",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -18433,8 +18434,7 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -18791,6 +18791,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-822",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -18806,8 +18807,7 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -19404,6 +19404,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-844",
+      "initiative": null,
       "notes": "Resolved by MCP-first indexer rewrite (bulk-index.mjs + mcp-index.mjs). Confirmed during ruflo replan.",
       "order": null,
       "parent": null,
@@ -19418,8 +19419,7 @@
         "indexing",
         "cli"
       ],
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -19458,6 +19458,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-846",
+      "initiative": null,
       "kind": "refactor",
       "notes": "bulk-index.mjs hardcodes ~/.nvm/versions/node/v20.19.0/lib/node_modules/ruflo/node_modules as rufloBase. Should resolve dynamically via which ruflo or npm root -g.",
       "order": null,
@@ -19473,8 +19474,7 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -19486,6 +19486,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-847",
+      "initiative": null,
       "kind": "feature",
       "notes": "Implemented and tested. Merged to main via feat/parallel-agent-implementations.",
       "order": null,
@@ -19501,8 +19502,7 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -20433,6 +20433,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-882",
+      "initiative": null,
       "kind": "feature",
       "notes": "Implemented and tested. Merged to main via feat/parallel-agent-implementations.",
       "order": null,
@@ -20448,8 +20449,7 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -20776,6 +20776,7 @@
       "effort": "L",
       "github_issue": null,
       "id": "t-895",
+      "initiative": null,
       "notes": null,
       "order": null,
       "parent": null,
@@ -20790,8 +20791,7 @@
         "knowledge-graph",
         "rust"
       ],
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -21474,6 +21474,7 @@
       "effort": "L",
       "github_issue": null,
       "id": "t-920",
+      "initiative": null,
       "kind": "feature",
       "notes": "brana graph CLI exists with 6 subcommands (build, orphans, query, path, stats, validate). Closed during ruflo replan.",
       "order": null,
@@ -21491,8 +21492,7 @@
         "graph"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -21593,6 +21593,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-924",
+      "initiative": null,
       "kind": "fix",
       "notes": "Investigated 2026-04-06. Root cause: ruflo resolves DB path relative to CWD. MCP uses ~/.swarm/memory.db (ruflo-mcp.sh does cd $HOME). CLI uses $CWD/.swarm/memory.db. All shell scripts already had `cd \"$HOME\" &&` except post-sale.sh — fixed. Rust CLI skills.rs suggest already uses .current_dir(&home). Project-local .swarm/ (6 stale entries) is gitignored. No 25-entry loss found — index-skills.sh was already patched.\nFixed during earlier bug batch. Confirmed during ruflo-maturation start.",
       "order": null,
@@ -21609,8 +21610,7 @@
         "ruflo-maturation"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -21675,6 +21675,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-927",
+      "initiative": null,
       "kind": "refactor",
       "notes": "Implemented in d30ea46. Added expand_hyphenated() helper, applied to skill_kw + desc_expanded + tag_expanded. 3 new unit tests green. Smoke: brana skills suggest --query 'fix broken hook' returns build skill (was empty before).",
       "order": null,
@@ -21690,8 +21691,7 @@
         "router"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -23053,6 +23053,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-976",
+      "initiative": null,
       "kind": "refactor",
       "notes": "Implemented and tested. Merged to main via feat/parallel-agent-implementations.",
       "order": 0,
@@ -23069,8 +23070,7 @@
         "close"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -23082,6 +23082,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-977",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": 0,
@@ -23097,8 +23098,7 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -23644,6 +23644,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-998",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -23658,8 +23659,7 @@
         "ideation"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -24682,6 +24682,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-1037",
+      "initiative": null,
       "notes": null,
       "order": null,
       "parent": null,
@@ -24697,8 +24698,7 @@
         "architecture",
         "research"
       ],
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -24735,6 +24735,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-1039",
+      "initiative": null,
       "notes": null,
       "order": null,
       "parent": null,
@@ -24748,8 +24749,7 @@
         "memory",
         "research"
       ],
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -25613,6 +25613,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1073",
+      "initiative": null,
       "notes": null,
       "order": null,
       "parent": null,
@@ -25628,8 +25629,7 @@
         "performance",
         "context-engineering"
       ],
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -25641,6 +25641,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1074",
+      "initiative": null,
       "notes": "Experiment E1 run 2026-04-10 on CC v2.1.89. No .claude/session_memory found anywhere under ~/.claude/projects/. Feature is flag-gated off in production. Do nothing until the file appears on disk. Re-evaluate when CC ships Kairos/session_memory.",
       "order": null,
       "parent": "t-1103",
@@ -25655,8 +25656,7 @@
         "session-memory",
         "handoff"
       ],
-      "work_type": "design",
-      "initiative": null
+      "work_type": "design"
     },
     {
       "blocked_by": [],
@@ -25668,6 +25668,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1075",
+      "initiative": null,
       "notes": null,
       "order": null,
       "parent": "t-1103",
@@ -25684,8 +25685,7 @@
         "consolidation",
         "scheduled"
       ],
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -26016,6 +26016,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1088",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -26031,8 +26032,7 @@
         "tdd"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -26044,6 +26044,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1089",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -26059,8 +26060,7 @@
         "non-git"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -26072,6 +26072,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1090",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -26088,8 +26089,7 @@
         "testing"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -26402,6 +26402,7 @@
       "effort": "L",
       "github_issue": null,
       "id": "t-1103",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": 0,
@@ -26419,8 +26420,7 @@
         "session-memory"
       ],
       "type": "phase",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -26432,6 +26432,7 @@
       "effort": "XL",
       "github_issue": null,
       "id": "t-1104",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": 0,
@@ -26448,8 +26449,7 @@
         "ruflo"
       ],
       "type": "phase",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -26516,6 +26516,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1107",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": 0,
@@ -26532,8 +26533,7 @@
         "insights"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -26602,6 +26602,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1110",
+      "initiative": null,
       "kind": "feature",
       "notes": "ADR-036 written 2026-04-10. Decision rule: stateless → CLI, stateful → MCP. Audit: brana-mcp + ruflo KEEP. google-sheets needs ADR-033 fix (uvx → pinned binary). linkedin-mcp + context7 explicitly retired (already absent from configs). No CLI migration of google-sheets — fix the pin, not the shape.",
       "order": 0,
@@ -26619,8 +26620,7 @@
         "startup"
       ],
       "type": "task",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -26743,6 +26743,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1115",
+      "initiative": null,
       "kind": "feature",
       "notes": "Stale projects/ dirs confirmed (2026-04-10): projects/nexeye, projects/proyecto-anita, projects/proyecto_anita are old paths — moved to clients/. Dedup rule: when same name: appears under projects/ AND clients/, archive the projects/ copy. Tiebreak by mtime — archive less-recently-modified file.",
       "order": 0,
@@ -26758,8 +26759,7 @@
         "cc-alignment"
       ],
       "type": "subtask",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -26773,6 +26773,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1116",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": 0,
@@ -26788,8 +26789,7 @@
         "hooks"
       ],
       "type": "subtask",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -26831,6 +26831,7 @@
       "effort": "XS",
       "github_issue": null,
       "id": "t-1118",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": 0,
@@ -26846,8 +26847,7 @@
         "memory"
       ],
       "type": "subtask",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -26965,6 +26965,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1123",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -26980,8 +26981,7 @@
         "cleanup"
       ],
       "type": "task",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -26993,6 +26993,7 @@
       "effort": "XS",
       "github_issue": null,
       "id": "t-1124",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -27008,8 +27009,7 @@
         "hooks"
       ],
       "type": "subtask",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -27103,6 +27103,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1128",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -27118,8 +27119,7 @@
         "testing"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -27158,6 +27158,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1130",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -27173,8 +27174,7 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -27186,6 +27186,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1131",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": 0,
@@ -27202,8 +27203,7 @@
         "pipeline"
       ],
       "type": "subtask",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -27215,6 +27215,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1132",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": 0,
@@ -27232,8 +27233,7 @@
         "llm"
       ],
       "type": "subtask",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -27245,6 +27245,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1133",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": 0,
@@ -27262,8 +27263,7 @@
         "llm"
       ],
       "type": "subtask",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -27275,6 +27275,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1134",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": 0,
@@ -27292,8 +27293,7 @@
         "llm"
       ],
       "type": "subtask",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -27305,6 +27305,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1135",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": 0,
@@ -27321,8 +27322,7 @@
         "pipeline"
       ],
       "type": "subtask",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -27474,6 +27474,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1141",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -27489,8 +27490,7 @@
         "scheduler"
       ],
       "type": "task",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -27584,6 +27584,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1145",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": 0,
@@ -27600,8 +27601,7 @@
         "llm"
       ],
       "type": "subtask",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -27613,6 +27613,7 @@
       "effort": "XS",
       "github_issue": null,
       "id": "t-1146",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": 0,
@@ -27629,8 +27630,7 @@
         "pipeline"
       ],
       "type": "subtask",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -27642,6 +27642,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1147",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -27657,8 +27658,7 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -27670,6 +27670,7 @@
       "effort": "XS",
       "github_issue": null,
       "id": "t-1148",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -27685,8 +27686,7 @@
         "ux"
       ],
       "type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -27698,6 +27698,7 @@
       "effort": "XS",
       "github_issue": null,
       "id": "t-1149",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -27713,8 +27714,7 @@
         "migration"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -27859,6 +27859,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-1155",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": 0,
@@ -27874,8 +27875,7 @@
         "cli"
       ],
       "type": "phase",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -27913,6 +27913,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-1157",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": 0,
@@ -27929,8 +27930,7 @@
         "cli"
       ],
       "type": "milestone",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -28022,6 +28022,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1161",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": 0,
@@ -28037,8 +28038,7 @@
         "rust"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -28102,6 +28102,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1164",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": 0,
@@ -28118,8 +28119,7 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -28133,6 +28133,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1165",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": 0,
@@ -28148,8 +28149,7 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -28335,6 +28335,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1172",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": 0,
@@ -28350,8 +28351,7 @@
         "rust"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -28575,6 +28575,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1181",
+      "initiative": null,
       "kind": "research",
       "notes": null,
       "order": null,
@@ -28590,8 +28591,7 @@
         "automation",
         "packing"
       ],
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -28839,6 +28839,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1191",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -28854,8 +28855,7 @@
         "cli",
         "code-gen"
       ],
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -28894,6 +28894,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1193",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -28908,8 +28909,7 @@
         "cleanup",
         "rust"
       ],
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -29002,6 +29002,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1197",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -29017,8 +29018,7 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -29030,6 +29030,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1198",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -29044,8 +29045,7 @@
         "skills"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -29415,6 +29415,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1213",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": 0,
@@ -29431,8 +29432,7 @@
         "frontmatter"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -29444,6 +29444,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1214",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -29459,8 +29460,7 @@
         "agents"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -29634,6 +29634,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1221",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": 0,
@@ -29650,8 +29651,7 @@
         "ops"
       ],
       "type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -29663,6 +29663,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1222",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": 0,
@@ -29678,8 +29679,7 @@
         "knowledge-pipeline"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -29745,6 +29745,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1225",
+      "initiative": null,
       "kind": "refactor",
       "notes": "Deferred 2026-05-07: Batch API approach requires direct HTTP + ANTHROPIC_API_KEY, which is out of scope. Revisit if direct API calls become acceptable, or redirect to parallel CLI shell-outs (no cost saving, wall-clock speedup only).",
       "order": 0,
@@ -29761,8 +29762,7 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -30102,6 +30102,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1238",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30117,8 +30118,7 @@
         "dx",
         "harness-engineering"
       ],
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -30130,6 +30130,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-1239",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30145,8 +30146,7 @@
         "dx"
       ],
       "task_type": "milestone",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -30158,6 +30158,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1240",
+      "initiative": null,
       "kind": "design",
       "notes": "MEMORY.md: 312→186 lines. Moved 5 sections to topic files: cross-cutting-ops, ruflo-agentdb-status, git-workflow-detailed, session-learnings-archive, linkedin-mcp. No content lost.",
       "order": null,
@@ -30172,8 +30173,7 @@
         "dx"
       ],
       "task_type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -30185,6 +30185,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1241",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30201,8 +30202,7 @@
         "harness-engineering"
       ],
       "task_type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -30216,6 +30216,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-1242",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30230,8 +30231,7 @@
         "cc-alignment"
       ],
       "task_type": "milestone",
-      "work_type": "design",
-      "initiative": null
+      "work_type": "design"
     },
     {
       "blocked_by": [
@@ -30247,6 +30247,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1243",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30262,8 +30263,7 @@
         "adr"
       ],
       "task_type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -30277,6 +30277,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-1244",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30292,8 +30293,7 @@
         "harness-engineering"
       ],
       "task_type": "milestone",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -30308,6 +30308,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1245",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30323,8 +30324,7 @@
         "harness-engineering"
       ],
       "task_type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -30338,6 +30338,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1246",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30353,8 +30354,7 @@
         "recurring"
       ],
       "task_type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [
@@ -30368,6 +30368,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-1247",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30383,8 +30384,7 @@
         "migration"
       ],
       "task_type": "milestone",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -30396,6 +30396,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-1248",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30411,8 +30412,7 @@
         "triage"
       ],
       "task_type": "milestone",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -30424,6 +30424,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1249",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30439,8 +30440,7 @@
         "agents"
       ],
       "task_type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -30452,6 +30452,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1250",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30467,8 +30468,7 @@
         "agents"
       ],
       "task_type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -30480,6 +30480,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1251",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30495,8 +30496,7 @@
         "agents"
       ],
       "task_type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -30512,6 +30512,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1252",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30526,8 +30527,7 @@
         "triage"
       ],
       "task_type": "task",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [
@@ -30541,6 +30541,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-1253",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30555,8 +30556,7 @@
         "migration"
       ],
       "task_type": "milestone",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -30568,6 +30568,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1254",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30583,8 +30584,7 @@
         "rules"
       ],
       "task_type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -30596,6 +30596,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1255",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30611,8 +30612,7 @@
         "patterns"
       ],
       "task_type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -30624,6 +30624,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1256",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30639,8 +30640,7 @@
         "knowledge"
       ],
       "task_type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -30652,6 +30652,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1257",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30667,8 +30668,7 @@
         "adr"
       ],
       "task_type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -30680,6 +30680,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1258",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30695,8 +30696,7 @@
         "reference"
       ],
       "task_type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [
@@ -30710,6 +30710,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-1259",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30724,8 +30725,7 @@
         "migration"
       ],
       "task_type": "milestone",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -30737,6 +30737,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1260",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30751,8 +30752,7 @@
         "migration"
       ],
       "task_type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -30766,6 +30766,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1261",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30780,8 +30781,7 @@
         "migration"
       ],
       "task_type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [
@@ -30795,6 +30795,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-1262",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30811,8 +30812,7 @@
         "harness-engineering"
       ],
       "task_type": "milestone",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -30826,6 +30826,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1263",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30841,8 +30842,7 @@
         "skills"
       ],
       "task_type": "task",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [
@@ -30856,6 +30856,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1264",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30871,8 +30872,7 @@
         "harness-engineering"
       ],
       "task_type": "task",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -30884,6 +30884,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1265",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30899,8 +30900,7 @@
         "dx"
       ],
       "task_type": "task",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -30912,6 +30912,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1266",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30926,8 +30927,7 @@
         "harness-engineering"
       ],
       "task_type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -30939,6 +30939,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1267",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30953,8 +30954,7 @@
         "harness-engineering"
       ],
       "task_type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -30966,6 +30966,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1268",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -30981,8 +30982,7 @@
         "knowledge"
       ],
       "task_type": "task",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -30994,6 +30994,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1269",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -31009,8 +31010,7 @@
         "cc-alignment"
       ],
       "task_type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -31022,6 +31022,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1270",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -31037,8 +31038,7 @@
         "cc-alignment"
       ],
       "task_type": "task",
-      "work_type": "design",
-      "initiative": null
+      "work_type": "design"
     },
     {
       "blocked_by": [],
@@ -31050,6 +31050,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1271",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -31065,8 +31066,7 @@
         "testing"
       ],
       "task_type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -31080,6 +31080,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1272",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -31096,8 +31097,7 @@
         "hooks"
       ],
       "task_type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -31109,6 +31109,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1273",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -31124,8 +31125,7 @@
         "testing"
       ],
       "task_type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -31137,6 +31137,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1274",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -31152,8 +31153,7 @@
         "testing"
       ],
       "task_type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -31167,6 +31167,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1275",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -31181,8 +31182,7 @@
         "docs"
       ],
       "task_type": "task",
-      "work_type": "design",
-      "initiative": null
+      "work_type": "design"
     },
     {
       "blocked_by": [
@@ -31201,6 +31201,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1276",
+      "initiative": null,
       "kind": "design",
       "notes": null,
       "order": null,
@@ -31215,8 +31216,7 @@
         "docs"
       ],
       "task_type": "task",
-      "work_type": "design",
-      "initiative": null
+      "work_type": "design"
     },
     {
       "blocked_by": [],
@@ -31367,6 +31367,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1282",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -31382,8 +31383,7 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -31395,6 +31395,7 @@
       "effort": "XS",
       "github_issue": null,
       "id": "t-1283",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -31410,8 +31411,7 @@
         "errata-E142"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -31505,6 +31505,7 @@
       "effort": "XS",
       "github_issue": null,
       "id": "t-1287",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -31520,8 +31521,7 @@
         "discoverability"
       ],
       "type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -31749,6 +31749,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1296",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -31763,8 +31764,7 @@
         "rust",
         "struct"
       ],
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [
@@ -31778,6 +31778,7 @@
       "effort": "XS",
       "github_issue": null,
       "id": "t-1297",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -31792,8 +31793,7 @@
         "rust",
         "io"
       ],
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -31807,6 +31807,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1298",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -31821,8 +31822,7 @@
         "rust",
         "imap"
       ],
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -31837,6 +31837,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1299",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -31852,8 +31853,7 @@
         "poll",
         "imap"
       ],
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -31867,6 +31867,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1300",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -31882,8 +31883,7 @@
         "read",
         "imap"
       ],
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -31898,6 +31898,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1301",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -31913,8 +31914,7 @@
         "archive",
         "imap"
       ],
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -31929,6 +31929,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1302",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -31944,8 +31945,7 @@
         "mark-read",
         "imap"
       ],
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -31959,6 +31959,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1303",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -31973,8 +31974,7 @@
         "rust",
         "search"
       ],
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -31988,6 +31988,7 @@
       "effort": "XS",
       "github_issue": null,
       "id": "t-1304",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -32002,8 +32003,7 @@
         "rust",
         "open"
       ],
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -32021,6 +32021,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1305",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -32035,8 +32036,7 @@
         "rust",
         "cli"
       ],
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -32050,6 +32050,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1306",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -32064,8 +32065,7 @@
         "rust",
         "tests"
       ],
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -32241,6 +32241,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1313",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -32256,8 +32257,7 @@
         "generator"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -32501,6 +32501,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1323",
+      "initiative": null,
       "kind": "refactor",
       "notes": "Shipped 2026-04-22 in 1499dca (fix) after 938da05 (spec) + ad88956 (tests). Merged via --no-ff.",
       "order": null,
@@ -32517,8 +32518,7 @@
         "root-cause"
       ],
       "type": "task",
-      "work_type": "research",
-      "initiative": null
+      "work_type": "research"
     },
     {
       "blocked_by": [],
@@ -32609,6 +32609,7 @@
       "effort": "XS",
       "github_issue": null,
       "id": "t-1327",
+      "initiative": null,
       "kind": "refactor",
       "notes": "Implemented in commit b496dbf, merged via 3-way merge. Two new checks: check_pkg_config (catches missing build dep) and check_brana_resolution (catches PATH shadows like t-1337). 5 new tests + 30 total in doctor module, all green. Smoke test verified: 8/9 checks pass on dev box (existing Plugin registered issue unrelated).",
       "order": null,
@@ -32625,8 +32626,7 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -32800,6 +32800,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1335",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -32816,8 +32817,7 @@
         "consistency"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -32829,6 +32829,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1336",
+      "initiative": null,
       "kind": "refactor",
       "notes": "Shipped d15ab6d. --priority and --context added to backlog add shorthand path. Integration test in cli_smoke.rs asserts persistence. --json path unchanged (caller embeds priority/context in payload).",
       "order": null,
@@ -32845,8 +32846,7 @@
         "shorthand"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -32858,6 +32858,7 @@
       "effort": "XS",
       "github_issue": null,
       "id": "t-1337",
+      "initiative": null,
       "kind": "fix",
       "notes": "Triggered during /brana:close (procedures/close.md:534 calls bare 'brana session write'). Fix: npm rm -g brana — removed the global symlink at ~/.nvm/versions/node/v20.19.0/bin/brana → ~/brana (old JS prototype). ~/brana/ source untouched. Verified: which brana → /home/martineserios/.local/bin/brana, brana --version → 0.2.0, brana session --help works. Followups: (a) brana doctor should warn if 'which brana' != ~/.local/bin/brana (raise as separate task or fold into t-1327); (b) ~/brana/ old JS prototype can be deleted/archived — superseded by Rust CLI at thebrana/system/cli/rust.",
       "order": null,
@@ -32875,8 +32876,7 @@
         "install"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -32888,6 +32888,7 @@
       "effort": "XS",
       "github_issue": null,
       "id": "t-1338",
+      "initiative": null,
       "kind": "refactor",
       "notes": "Archived ~/brana → ~/archive/brana-js-archive on 2026-05-04. Source tree intact (incl. dirty working tree from Feb 2026). Added ARCHIVE_NOTE.md inside the archive explaining the move + warning against re-linking. Verified post-move: which brana → ~/.local/bin/brana, brana 0.2.0, npm ls -g brana → empty. Option (b) executed as recommended.",
       "order": null,
@@ -32904,8 +32905,7 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -32917,6 +32917,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1339",
+      "initiative": null,
       "kind": "docs",
       "notes": null,
       "order": null,
@@ -32933,8 +32934,7 @@
         "procedure"
       ],
       "type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -32946,6 +32946,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1340",
+      "initiative": null,
       "kind": "refactor",
       "notes": "Shipped 3-commit TDD: spec 346d5b9, tests 2452dba, impl 612b8e6. Merged via --no-ff.",
       "order": null,
@@ -32962,8 +32963,7 @@
         "t-1323-followup"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -33056,6 +33056,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1344",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -33072,8 +33073,7 @@
         "followup-t-1340"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -33085,6 +33085,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1345",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -33101,8 +33102,7 @@
         "followup-t-1340"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -33114,6 +33114,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1346",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -33130,8 +33131,7 @@
         "followup-t-1340"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -33362,6 +33362,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1355",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -33377,8 +33378,7 @@
         "backlog"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -33929,6 +33929,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1376",
+      "initiative": null,
       "kind": "docs",
       "notes": null,
       "order": 0,
@@ -33944,8 +33945,7 @@
         "memory"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -34032,6 +34032,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1380",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -34047,8 +34048,7 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -34141,6 +34141,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1384",
+      "initiative": null,
       "kind": "fix",
       "notes": null,
       "order": null,
@@ -34156,8 +34157,7 @@
         "ratings"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -34307,6 +34307,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1390",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -34322,8 +34323,7 @@
         "ideation"
       ],
       "type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -34335,6 +34335,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1391",
+      "initiative": null,
       "kind": "refactor",
       "notes": null,
       "order": null,
@@ -34350,8 +34351,7 @@
         "agents"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -34390,6 +34390,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1393",
+      "initiative": null,
       "kind": "feature",
       "notes": null,
       "order": null,
@@ -34406,8 +34407,7 @@
         "proyecto_anita"
       ],
       "type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -34552,6 +34552,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1399",
+      "initiative": null,
       "notes": null,
       "order": 0,
       "parent": null,
@@ -34566,8 +34567,7 @@
         "backlog"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -34605,6 +34605,7 @@
       "effort": "XS",
       "github_issue": null,
       "id": "t-1401",
+      "initiative": null,
       "notes": null,
       "order": 0,
       "parent": null,
@@ -34619,8 +34620,7 @@
         "housekeeping"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -34788,6 +34788,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1408",
+      "initiative": null,
       "notes": null,
       "order": 0,
       "parent": null,
@@ -34802,8 +34803,7 @@
         "client-move"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -35347,6 +35347,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1429",
+      "initiative": null,
       "notes": null,
       "order": null,
       "parent": null,
@@ -35361,8 +35362,7 @@
         "validate"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -35426,6 +35426,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1432",
+      "initiative": null,
       "notes": null,
       "order": null,
       "parent": null,
@@ -35440,8 +35441,7 @@
         "ux"
       ],
       "type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -35453,6 +35453,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1433",
+      "initiative": null,
       "notes": null,
       "order": 0,
       "parent": "t-659",
@@ -35467,8 +35468,7 @@
         "cli"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -35558,6 +35558,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1437",
+      "initiative": null,
       "notes": null,
       "order": null,
       "parent": null,
@@ -35572,8 +35573,7 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -35637,6 +35637,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1440",
+      "initiative": null,
       "notes": null,
       "order": null,
       "parent": null,
@@ -35651,8 +35652,7 @@
         "skills"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -35795,6 +35795,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1446",
+      "initiative": null,
       "notes": null,
       "order": null,
       "parent": null,
@@ -35808,8 +35809,7 @@
         "maintenance"
       ],
       "type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -35847,6 +35847,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1448",
+      "initiative": null,
       "notes": null,
       "order": null,
       "parent": null,
@@ -35861,8 +35862,7 @@
         "skills"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -36185,6 +36185,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1461",
+      "initiative": null,
       "notes": null,
       "order": null,
       "parent": null,
@@ -36199,8 +36200,7 @@
         "continuity"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -36212,6 +36212,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1462",
+      "initiative": null,
       "notes": null,
       "order": null,
       "parent": null,
@@ -36227,8 +36228,7 @@
         "sitrep"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -36240,6 +36240,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-1463",
+      "initiative": null,
       "notes": null,
       "order": 0,
       "parent": null,
@@ -36256,8 +36257,7 @@
         "harness-engineering"
       ],
       "type": "phase",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -36269,6 +36269,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-1464",
+      "initiative": null,
       "notes": null,
       "order": 0,
       "parent": "t-1463",
@@ -36282,8 +36283,7 @@
         "architecture"
       ],
       "type": "milestone",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -36353,6 +36353,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-1467",
+      "initiative": null,
       "notes": null,
       "order": 0,
       "parent": "t-1463",
@@ -36366,8 +36367,7 @@
         "rust"
       ],
       "type": "milestone",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -36439,6 +36439,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-1470",
+      "initiative": null,
       "notes": null,
       "order": 0,
       "parent": "t-1463",
@@ -36452,8 +36453,7 @@
         "hooks"
       ],
       "type": "milestone",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -36496,6 +36496,7 @@
       "effort": "XS",
       "github_issue": null,
       "id": "t-1472",
+      "initiative": null,
       "notes": null,
       "order": 0,
       "parent": "t-1470",
@@ -36509,8 +36510,7 @@
         "hooks"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -36524,6 +36524,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-1473",
+      "initiative": null,
       "notes": null,
       "order": 0,
       "parent": "t-1463",
@@ -36537,8 +36538,7 @@
         "mcp"
       ],
       "type": "milestone",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -36581,6 +36581,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1475",
+      "initiative": null,
       "notes": null,
       "order": 0,
       "parent": "t-1473",
@@ -36595,8 +36596,7 @@
         "procedures"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -36610,6 +36610,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-1476",
+      "initiative": null,
       "notes": null,
       "order": 0,
       "parent": "t-1463",
@@ -36624,8 +36625,7 @@
         "migration"
       ],
       "type": "milestone",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -36639,6 +36639,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1477",
+      "initiative": null,
       "notes": null,
       "order": 0,
       "parent": "t-1476",
@@ -36653,8 +36654,7 @@
         "rust"
       ],
       "type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [
@@ -36721,6 +36721,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1480",
+      "initiative": null,
       "notes": null,
       "order": 0,
       "parent": null,
@@ -36736,8 +36737,7 @@
         "skill-load"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -36962,6 +36962,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1489",
+      "initiative": null,
       "notes": null,
       "order": null,
       "parent": null,
@@ -36976,8 +36977,7 @@
         "memory"
       ],
       "type": "task",
-      "work_type": "ops",
-      "initiative": null
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -37015,6 +37015,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1491",
+      "initiative": "memory-arch",
       "notes": null,
       "order": null,
       "parent": null,
@@ -37028,8 +37029,7 @@
         "session",
         "context-recovery"
       ],
-      "work_type": "implement",
-      "initiative": "memory-arch"
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -37041,6 +37041,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1492",
+      "initiative": "memory-arch",
       "notes": null,
       "order": null,
       "parent": null,
@@ -37054,8 +37055,7 @@
         "knowledge-architecture",
         "tech-debt"
       ],
-      "work_type": "ops",
-      "initiative": "memory-arch"
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -37171,6 +37171,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1497",
+      "initiative": "memory-arch",
       "notes": null,
       "order": null,
       "parent": null,
@@ -37185,8 +37186,7 @@
         "memory"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": "memory-arch"
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -37198,6 +37198,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1498",
+      "initiative": "memory-arch",
       "notes": null,
       "order": null,
       "parent": null,
@@ -37212,8 +37213,7 @@
         "session"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": "memory-arch"
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -37279,6 +37279,7 @@
       "effort": "XL",
       "github_issue": null,
       "id": "t-1501",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": null,
@@ -37293,8 +37294,7 @@
         "nextjs"
       ],
       "type": "phase",
-      "work_type": "implement",
-      "initiative": "backlog-ui"
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -37306,6 +37306,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-1502",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1501",
@@ -37320,8 +37321,7 @@
         "nextjs"
       ],
       "type": "milestone",
-      "work_type": "implement",
-      "initiative": "backlog-ui"
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -37333,6 +37333,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-1503",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1501",
@@ -37347,8 +37348,7 @@
         "nextjs"
       ],
       "type": "milestone",
-      "work_type": "implement",
-      "initiative": "backlog-ui"
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -37360,6 +37360,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-1504",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1501",
@@ -37374,8 +37375,7 @@
         "nextjs"
       ],
       "type": "milestone",
-      "work_type": "implement",
-      "initiative": "backlog-ui"
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -37387,6 +37387,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-1505",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1501",
@@ -37401,8 +37402,7 @@
         "nextjs"
       ],
       "type": "milestone",
-      "work_type": "implement",
-      "initiative": "backlog-ui"
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -37414,6 +37414,7 @@
       "effort": null,
       "github_issue": null,
       "id": "t-1506",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1501",
@@ -37428,8 +37429,7 @@
         "nextjs"
       ],
       "type": "milestone",
-      "work_type": "implement",
-      "initiative": "backlog-ui"
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -37442,6 +37442,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1507",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1502",
@@ -37458,8 +37459,7 @@
         "rust"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": "backlog-ui"
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -37471,6 +37471,7 @@
       "effort": "XS",
       "github_issue": null,
       "id": "t-1508",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1502",
@@ -37485,8 +37486,7 @@
         "nextjs"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": "backlog-ui"
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -37498,6 +37498,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1509",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1502",
@@ -37513,8 +37514,7 @@
         "rust"
       ],
       "type": "task",
-      "work_type": "research",
-      "initiative": "backlog-ui"
+      "work_type": "research"
     },
     {
       "blocked_by": [
@@ -37529,6 +37529,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1510",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1502",
@@ -37544,8 +37545,7 @@
         "architecture"
       ],
       "type": "task",
-      "work_type": "design",
-      "initiative": "backlog-ui"
+      "work_type": "design"
     },
     {
       "blocked_by": [
@@ -37559,6 +37559,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1511",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1503",
@@ -37574,8 +37575,7 @@
         "design"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": "backlog-ui"
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -37589,6 +37589,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1512",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1503",
@@ -37603,8 +37604,7 @@
         "nextjs"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": "backlog-ui"
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -37619,6 +37619,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1513",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1503",
@@ -37633,8 +37634,7 @@
         "nextjs"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": "backlog-ui"
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -37649,6 +37649,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1514",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1503",
@@ -37663,8 +37664,7 @@
         "nextjs"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": "backlog-ui"
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -37678,6 +37678,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1515",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1504",
@@ -37694,8 +37695,7 @@
         "tdd"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": "backlog-ui"
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -37709,6 +37709,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1516",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1504",
@@ -37725,8 +37726,7 @@
         "tdd"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": "backlog-ui"
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -37740,6 +37740,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1517",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1504",
@@ -37755,8 +37756,7 @@
         "rust"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": "backlog-ui"
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -37772,6 +37772,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1518",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1504",
@@ -37787,8 +37788,7 @@
         "rust"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": "backlog-ui"
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -37803,6 +37803,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1519",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1504",
@@ -37817,8 +37818,7 @@
         "nextjs"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": "backlog-ui"
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -37832,6 +37832,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1520",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1505",
@@ -37846,8 +37847,7 @@
         "nextjs"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": "backlog-ui"
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -37861,6 +37861,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1521",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1505",
@@ -37875,8 +37876,7 @@
         "nextjs"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": "backlog-ui"
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -37890,6 +37890,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1522",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1505",
@@ -37904,8 +37905,7 @@
         "nextjs"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": "backlog-ui"
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -37920,6 +37920,7 @@
       "effort": "M",
       "github_issue": null,
       "id": "t-1523",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1505",
@@ -37935,8 +37936,7 @@
         "tdd"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": "backlog-ui"
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -37950,6 +37950,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1524",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1506",
@@ -37965,8 +37966,7 @@
         "docs"
       ],
       "type": "task",
-      "work_type": "design",
-      "initiative": "backlog-ui"
+      "work_type": "design"
     },
     {
       "blocked_by": [
@@ -37980,6 +37980,7 @@
       "effort": "S",
       "github_issue": null,
       "id": "t-1525",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1506",
@@ -37995,8 +37996,7 @@
         "docs"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": "backlog-ui"
+      "work_type": "implement"
     },
     {
       "blocked_by": [
@@ -38010,6 +38010,7 @@
       "effort": "XS",
       "github_issue": null,
       "id": "t-1526",
+      "initiative": "backlog-ui",
       "notes": null,
       "order": 0,
       "parent": "t-1506",
@@ -38025,8 +38026,7 @@
         "architecture"
       ],
       "type": "task",
-      "work_type": "ops",
-      "initiative": "backlog-ui"
+      "work_type": "ops"
     },
     {
       "blocked_by": [],
@@ -38122,6 +38122,7 @@
       "execution": "code",
       "github_issue": null,
       "id": "t-1530",
+      "initiative": "rust-cli",
       "notes": null,
       "order": null,
       "parent": null,
@@ -38137,8 +38138,7 @@
         "audit"
       ],
       "type": "task",
-      "work_type": "review",
-      "initiative": "rust-cli"
+      "work_type": "review"
     },
     {
       "blocked_by": [],
@@ -38157,7 +38157,7 @@
       "parent": null,
       "priority": null,
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "stream": "ops",
       "subject": "[docs] Write system/procedures/migrate.md — portfolio migration rules",
@@ -38181,6 +38181,7 @@
       "execution": "code",
       "github_issue": null,
       "id": "t-1532",
+      "initiative": "rust-cli",
       "notes": null,
       "order": null,
       "parent": null,
@@ -38196,8 +38197,7 @@
         "tasks"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": "rust-cli"
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -38211,6 +38211,7 @@
       "execution": "code",
       "github_issue": null,
       "id": "t-1533",
+      "initiative": "rust-cli",
       "notes": null,
       "order": null,
       "parent": null,
@@ -38226,8 +38227,7 @@
         "brana-cli"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": "rust-cli"
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -38241,6 +38241,7 @@
       "execution": "code",
       "github_issue": null,
       "id": "t-1534",
+      "initiative": null,
       "notes": null,
       "order": null,
       "parent": null,
@@ -38256,8 +38257,7 @@
         "ideation"
       ],
       "type": "task",
-      "work_type": "implement",
-      "initiative": null
+      "work_type": "implement"
     },
     {
       "blocked_by": [],
@@ -38305,7 +38305,7 @@
       "priority": "P2",
       "started": null,
       "status": "pending",
-      "stream": "roadmap",
+      "stream": "dev",
       "subject": "sitrep: add --initiative / --topic focus mode",
       "tags": [
         "sitrep",
