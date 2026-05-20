@@ -37046,7 +37046,7 @@
       "parent": "t-1539",
       "priority": "P1",
       "started": null,
-      "status": "in_progress",
+      "status": "completed",
       "strategy": null,
       "subject": "[schema] split work_type=ops into infra + chore",
       "tags": [
@@ -37076,7 +37076,7 @@
       "parent": "t-1539",
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "strategy": null,
       "subject": "[schema] rename type→kind (classification) + add level field (hierarchy)",
       "tags": [
