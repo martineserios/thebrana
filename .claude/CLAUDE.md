@@ -138,3 +138,7 @@ Source: t-1564 / debrief-analyst 2026-05-20
 ### 2026-05-20: Field removal — grep ALL crates fresh; errata scope ≠ grep scope
 For schema field removal, the grep scope must be all crates (`grep -rn '"<field>"' system/cli/rust/crates/`), not just the surfaces named in the errata. t-1564 named backlog_add.rs; feed.rs:298 was a sibling producer in a different command crate — same injection pattern, not in scope, not grepped again. Survived as E2026-05-20-9. 5-surface checklist (core + cli + mcp-add + mcp-stats + tests) is a minimum, not a maximum. Grep bounds the scope.
 Source: t-1564 / debrief-analyst 2026-05-20
+
+### 2026-05-20: Squash-merge is wasteful for single-commit S features — use --ff-only after rebase
+When a feature branch has exactly one commit (S effort, no WIP history worth preserving), `git merge --no-ff` produces a duplicate-message commit pair on main: the original commit + a merge commit with the same subject. Instead: `git rebase main && git merge --ff-only <branch>` — produces a single clean commit on main with no merge commit. Reserve `--no-ff` for multi-commit branches where the merge envelope documents the batch.
+Source: session debrief 2026-05-20

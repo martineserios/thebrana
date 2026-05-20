@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-20T14:55:20Z",
+  "generated": "2026-05-20T19:21:25Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -396,6 +396,11 @@
       "type": "Dimension",
       "impl_files": []
     },
+    "brana-knowledge/dimensions/whatsapp-groups-api.md": {
+      "title": "WhatsApp Groups API",
+      "type": "Dimension",
+      "impl_files": []
+    },
     "brana-knowledge/dimensions/ycloud-case-study.md": {
       "title": "YCloud — Case Study",
       "type": "Dimension",
@@ -453,6 +458,9 @@
       "title": "24 — Roadmap Corrections & Errata (ARCHIVED)",
       "type": "Roadmap",
       "impl_files": [
+        "system/cli/rust/crates/",
+        "system/procedures/",
+        "system/skills/",
         "system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs",
         "system/procedures/backlog.md",
         "system/procedures/build.md",
@@ -460,7 +468,6 @@
         "system/rules/",
         "system/rules/sdd-tdd.md",
         "system/procedures/align.md",
-        "system/skills/",
         "system/commands/maintain-specs.md",
         "system/scripts/git-hooks/pre-commit",
         "system/hooks/branch-verify.sh",
@@ -503,6 +510,9 @@
         "system/cli/rust/crates/brana-mcp/src/tools/backlog_stats.rs",
         "system/cli/rust/crates/brana-mcp/tests/tool_tests.rs",
         "system/cli/rust/crates/brana-cli/src/commands/backlog.rs:715",
+        "system/cli/rust/crates/brana-cli/src/commands/feed.rs:298",
+        "system/cli/rust/crates/brana-core/src/tasks.rs",
+        "system/cli/rust/crates/brana-core/src/sync.rs",
         "system/skills/_shared/guided-execution.md:52"
       ]
     },
@@ -1828,6 +1838,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/dimensions/whatsapp-groups-api.md": {
+      "title": "WhatsApp Groups API",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/dimensions/ycloud-case-study.md": {
       "title": "YCloud — Case Study",
       "type": "Roadmap",
@@ -2387,6 +2402,7 @@
         "system/rules/no-phantom-dependencies.md",
         "system/rules/parallel-bash.md",
         "system/rules/research-discipline.md",
+        "system/rules/ruflo-stub-guard.md",
         "system/rules/rules-over-hooks-for-gates.md",
         "system/rules/sdd-tdd.md",
         "system/rules/self-improvement.md",
@@ -4986,6 +5002,30 @@
       "computed": false
     },
     {
+      "from": "brana-knowledge/dimensions/whatsapp-groups-api.md",
+      "to": "dimensions/39-kapso-ai-platform.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/whatsapp-groups-api.md",
+      "to": "dimensions/dynamic-form-flows-messaging.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/whatsapp-groups-api.md",
+      "to": "dimensions/omnichannel-ai-agent-frameworks.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "brana-knowledge/dimensions/whatsapp-groups-api.md",
+      "to": "dimensions/whatsapp-bsp-architecture.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
       "from": "brana-knowledge/dimensions/ycloud-case-study.md",
       "to": "dimensions/whatsapp-bsp-architecture.md",
       "type": "informs",
@@ -5810,6 +5850,30 @@
     {
       "from": "docs/dimensions/whatsapp-bsp-architecture.md",
       "to": "dimensions/smb-marketing-channels.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/whatsapp-groups-api.md",
+      "to": "dimensions/39-kapso-ai-platform.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/whatsapp-groups-api.md",
+      "to": "dimensions/dynamic-form-flows-messaging.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/whatsapp-groups-api.md",
+      "to": "dimensions/omnichannel-ai-agent-frameworks.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/dimensions/whatsapp-groups-api.md",
+      "to": "dimensions/whatsapp-bsp-architecture.md",
       "type": "informs",
       "computed": false
     },
@@ -12073,9 +12137,9 @@
     }
   ],
   "stats": {
-    "nodes": 394,
-    "edges": 1579,
-    "typed_edges": 560,
+    "nodes": 396,
+    "edges": 1587,
+    "typed_edges": 568,
     "orphans": 102
   }
 }

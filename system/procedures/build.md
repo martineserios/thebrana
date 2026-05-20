@@ -73,7 +73,7 @@ When invoked with `decompose` as the first argument, `/brana:build` skips the no
    ```
 5. **Persist** — create all tasks via CLI in dependency order:
    ```bash
-   brana backlog add --json '{"subject":"...","type":"phase","stream":"roadmap",...}'
+   brana backlog add --json '{"subject":"...","type":"phase","work_type":"implement",...}'
    brana backlog add --json '{"subject":"...","type":"milestone","parent":"ph-N",...}'
    brana backlog add --json '{"subject":"...","type":"task","parent":"ms-N","blocked_by":["t-N"],...}'
    ```
@@ -1537,7 +1537,7 @@ When `/brana:build` is invoked WITHOUT `/brana:backlog start`:
 
 1. After CLASSIFY, create via CLI:
    ```bash
-   brana backlog add --json '{"subject":"{description}","stream":"{from strategy}","type":"task","strategy":"{detected}","execution":"code"}'
+   brana backlog add --json '{"subject":"{description}","work_type":"{from strategy}","type":"task","execution":"code"}'
    # Then set status + dates:
    brana backlog set t-{N} status in_progress
    brana backlog set t-{N} started YYYY-MM-DD

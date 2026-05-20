@@ -355,7 +355,7 @@ When writing a `field-note_{slug}.md`, add a one-liner to MEMORY.md under `## Fi
    |---|---|---|
    | **Promote** | Note has matured beyond gotcha — belongs in core narrative | Integrate into doc's relevant prose section; bump SemVer minor in frontmatter |
    | **Relate** | Note connects two existing pieces of knowledge | Add bidirectional cross-reference links; no new content |
-   | **Trigger** | Note hints at a deeper unknown that warrants research | `brana backlog add --json '{"stream":"research",...}'`; link task ID in Field Notes |
+   | **Trigger** | Note hints at a deeper unknown that warrants research | `brana backlog add --json '{"work_type":"research",...}'`; link task ID in Field Notes |
    | **Contradict** | Note conflicts with a documented assumption | Mark assumption `disputed`, reset `last_verified` to null; surfaces in next `/brana:reconcile` |
    | **Keep** | Note is a useful gotcha worth recording but doesn't shift the doc's structure | Append to `## Field Notes` section (default path) |
    | **Archive** | Note is real but not yet actionable | Store in ruflo `namespace: field-notes`, no doc edit |
@@ -375,7 +375,7 @@ When writing a `field-note_{slug}.md`, add a one-liner to MEMORY.md under `## Fi
 
 5. **For "Trigger" responses** — create a research task:
    ```bash
-   brana backlog add --json '{"subject":"Research: {topic}","stream":"research","type":"task","tags":["follow-up","field-note-trigger"],"effort":"S","context":"Triggered from field note in {source-doc}: {note}"}'
+   brana backlog add --json '{"subject":"Research: {topic}","work_type":"research","type":"task","tags":["follow-up","field-note-trigger"],"effort":"S","context":"Triggered from field note in {source-doc}: {note}"}'
    ```
    Then append a Field Notes entry that links the task ID:
    ```
@@ -494,7 +494,7 @@ Scan the session for feature ideas — new CLI commands, hook improvements, skil
 
 4. **For each selected idea**, add via CLI:
    ```bash
-   brana backlog add --json '{"subject":"[component] description","stream":"roadmap","type":"task","tags":["ideation","component"],"effort":"S"}'
+   brana backlog add --json '{"subject":"[component] description","work_type":"implement","type":"task","tags":["ideation","component"],"effort":"S"}'
    ```
    Report created task IDs inline.
 
@@ -647,7 +647,7 @@ For each item in `next[]` where `task_id` is non-null:
 1. Check existence: `backlog_get(task_id: "{id}")` (MCP) or `brana backlog get {id}` (CLI).
 2. If the task **does not exist**, create it immediately:
    ```bash
-   brana backlog add --json '{"subject":"{text}","stream":"tech-debt","type":"task","effort":"S"}'
+   brana backlog add --json '{"subject":"{text}","work_type":"chore","type":"task","effort":"S"}'
    ```
    Use the item's `text` field as the subject. Update the `task_id` field in the payload with the returned ID if it differs.
 3. If the task **already exists**, continue without creating a duplicate.
@@ -799,7 +799,7 @@ Audit every entry in MEMORY.md using the **"Where to store what"** classificatio
 
 4. **Execute moves** — for directives, write to the appropriate memory file and delete from MEMORY.md.
 
-5. **Feature ideas** — search existing tasks first: `backlog_search(query: "keyword")` (MCP) or `brana backlog search "keyword"`. If duplicate, just delete. If new, `backlog_add(subject: "...", stream: "...", task_type: "task")` (MCP) or `brana backlog add --json '{"subject":"...","stream":"...","type":"task"}'`
+5. **Feature ideas** — search existing tasks first: `backlog_search(query: "keyword")` (MCP) or `brana backlog search "keyword"`. If duplicate, just delete. If new, `backlog_add(subject: "...", work_type: "...", type: "task")` (MCP) or `brana backlog add --json '{"subject":"...","work_type":"...","type":"task"}'`
 
 6. **After all writes are complete**, clean up the sentinel:
    ```bash
@@ -985,7 +985,7 @@ AskUserQuestion:
 ```
 
 For each selected follow-up:
-- Run `brana backlog add --json '{"subject":"{follow-up}","stream":"tech-debt","type":"task","tags":["{relevant tags}"],"effort":"S"}'`
+- Run `brana backlog add --json '{"subject":"{follow-up}","work_type":"chore","type":"task","tags":["{relevant tags}"],"effort":"S"}'`
 - Report the created task ID inline
 
 **Skip the offer if:** no actionable follow-ups exist (all items are informational or already have tasks).
