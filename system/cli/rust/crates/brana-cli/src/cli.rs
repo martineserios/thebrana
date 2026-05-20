@@ -64,7 +64,8 @@ pub enum TaskWorkType {
     Implement,
     Research,
     Design,
-    Ops,
+    Infra,
+    Chore,
     Review,
 }
 
@@ -571,7 +572,7 @@ pub enum BacklogCmd {
         /// Filter by branch field
         #[arg(long)]
         branch: Option<String>,
-        /// Filter by work type: implement, research, design, ops, review
+        /// Filter by work type: implement, research, design, infra, chore, review
         #[arg(long, value_enum)]
         work_type: Option<TaskWorkType>,
         /// Filter by initiative slug
@@ -586,7 +587,7 @@ pub enum BacklogCmd {
         /// Output JSON array instead of themed list
         #[arg(long)]
         json: bool,
-        /// Filter by work type: implement, research, design, ops, review
+        /// Filter by work type: implement, research, design, infra, chore, review
         #[arg(long, value_enum)]
         work_type: Option<TaskWorkType>,
         /// Override active initiative slug (defaults to tasks-config.json active_initiative)
@@ -710,7 +711,7 @@ pub enum BacklogCmd {
         /// Initiative slug (e.g., "cc-alignment", "notebooklm")
         #[arg(long)]
         initiative: Option<String>,
-        /// Work type: implement, research, design, ops, review
+        /// Work type: implement, research, design, infra, chore, review
         #[arg(long)]
         work_type: Option<String>,
     },
