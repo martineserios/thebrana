@@ -39612,6 +39612,34 @@
       "order": 0,
       "github_issue": null,
       "execution": "code"
+    },
+    {
+      "id": "t-1574",
+      "subject": "sweep \"stream\" JSON injections from system/procedures/ + system/skills/ (E2026-05-20-11)",
+      "status": "pending",
+      "stream": "tech-debt",
+      "type": "task",
+      "tags": [
+        "stream",
+        "work_type",
+        "procedures",
+        "errata",
+        "tech-debt"
+      ],
+      "description": "t-1540 dropped stream from the schema but 8 \"stream\" JSON injection strings survive in close.md (lines 358, 378, 497, 650, 802, 988) and build.md (lines 76, 1540). These are literal `brana backlog add --json '{\"stream\":\"roadmap\",...}'` calls — procedures are executable producers too. CLI drops unknown fields silently, but instructions are wrong. Fix: grep -rn '\"stream\"' system/procedures/ system/skills/ → replace with work_type equivalents (research → work_type: research, roadmap/tech-debt → work_type: implement). DoD: grep returns zero schema-usage hits. Also update procedure-layer grep scope in MEMORY.md pattern field-removal-fresh-grep-all-producers.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-05-20",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
     }
   ],
   "version": "1"

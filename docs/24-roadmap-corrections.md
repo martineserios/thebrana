@@ -20,6 +20,7 @@
 
 | # | Error | Severity | Status | Comments |
 |---|---|---|---|---|
+| E2026-05-20-11 | thebrana: t-1573 fixed plan section of `backlog.md` but 8 `"stream"` JSON injections survive in `close.md` (6) and `build.md` (2) — procedure layer not swept. Same root cause as E2026-05-20-9: DoD grep scoped to `system/cli/rust/crates/` excludes the procedure/skill producer layer. | **Medium** | pending | Fix: sweep task t-1574 filed. grep `"stream"` in `system/procedures/` + `system/skills/`, replace with `work_type` equivalents. DoD: zero schema-usage hits. Pattern extended to include procedure layer as 6th producer surface. |
 | E2026-05-20-9 | thebrana: t-1564 fixed `backlog_add.rs` stream injection but `feed.rs:298` (brana feed command) still injects `"stream": "research"` into poll_one task payloads — sibling producer surface missed by the DoD grep. DoD for E2026-05-20-5 is not fully met. | **Medium** | pending | Fix: remove `"stream": "research"` from `poll_one()` JSON builder in `feed.rs:298`. Also clean remaining `stream:` keys from `tasks.rs`/`sync.rs` internal test fixtures. Track as new task. Root cause: DoD grep was not re-run at close to verify completion — grep-based DoD must be executed, not just stated. |
 | E2026-05-20-7 | brana-knowledge: `59-mobile-apps-claude-code.md` cited Expo SDK 52 / RN 0.76 / Router v4 as canonical stack (sourced from claudelab.net article) — `create-expo-app@latest` scaffolds SDK 54 / RN 0.81.5; Router v4 is SDK 52 era, SDK 53+ ships Router v5. | **Low** | code-fix | Fixed same session: updated doc lines 41+48-51 to SDK 54 / RN 0.81.5 / Router v5 with snapshot date `2026-05-20` and note that Router is not in the blank template. Rule: always verify "canonical stack" claims against `create-*@latest` output before publishing a dimension doc; include snapshot date + source on version citations. |
 | E2026-05-20-8 | proyecto_anita: prod DB trigger `add_default_contact_field_definitions` still references `company_id` column — blocks inserting the `pdb` tenant row into the `companies`/`tenants` table via any INSERT from code. Affects any new tenant onboarding until the trigger is patched. | **High** | pending | Fix: update `add_default_contact_field_definitions` trigger function body to reference `tenant_id` instead of `company_id`. Inspect with `\df add_default_contact_field_definitions` in psql on `zvpzgpjlhrvouquxorya`. Patch via Supabase SQL editor or Management API. DoD: insert test pdb row without error, then delete it. |
@@ -3228,3 +3229,21 @@ Update 2026-05-20 (second debrief): t-1540 only touched `tool_tests.rs`; the two
 **Fix:** Dim 56 (`56-ruflo-agentdb-architecture.md`) updated with full NO-GO verdict and root cause. Idea doc Track B status updated to NO-GO.
 
 **Status:** code-fix
+
+---
+
+## E2026-05-20-11 — t-1573 fixed plan section of backlog.md but 8 `"stream"` JSON injections survive in close.md and build.md
+
+**Severity:** Medium
+**Discovery:** 2026-05-20 — debrief-analyst at t-1573 close; grep `"stream"` in system/procedures/
+**Affected files:** `system/procedures/close.md` (6 hits: lines 358, 378, 497, 650, 802, 988), `system/procedures/build.md` (2 hits: lines 76, 1540)
+
+**Spec says:** t-1540 dropped `stream` from the schema; `work_type` is the single classifier. t-1573 (this session) fixed the plan section of `backlog.md`. Its commit message claims "remove stale 'stream: dev'" from the plan procedure.
+
+**Reality:** The fix was section-scoped to the 4 gaps in backlog.md's plan section. 8 `"stream": "{value}"` strings survive in other procedures — emitted as literal `brana backlog add --json '{"stream":"roadmap",...}'` commands. The CLI's permissive serde silently drops the unknown field, so no hard failure, but the procedures instruct the model to pass invalid field values. Same class as E2026-05-20-9 (feed.rs:298 sibling producer missed by DoD grep) — one layer up (procedure layer instead of code crate layer). Root cause: DoD grep scope was `system/cli/rust/crates/` only; procedures/skills are also executable producers and were not swept.
+
+**Fix:** Sweep task filed (t-1574): grep `"stream"` across `system/procedures/` + `system/skills/`, replace `"stream"` values in `backlog add --json` invocations with appropriate `work_type` equivalents (`research` → `work_type: research`, `roadmap`/`tech-debt` → `work_type: implement`). DoD: `grep -rn '"stream"' system/procedures/ system/skills/` returns zero schema-usage hits.
+
+**Process note:** Extends the 5-surface schema-removal checklist with a 6th surface: "procedure/skill layer JSON invocations." Existing patterns (`field-removal-fresh-grep-all-producers`, `grep-dod-execute-at-close`) only bound to `system/cli/rust/crates/` — procedures were structurally excluded. Pattern updated in MEMORY.md.
+
+**Status:** pending
