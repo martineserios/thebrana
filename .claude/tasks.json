@@ -992,7 +992,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "NLM source-creation workflow in /challenge and /research",
       "tags": [
         "notebooklm",
@@ -1020,7 +1020,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "MCP session history explorer — /history command",
       "tags": [
         "skills",
@@ -1073,7 +1073,7 @@
       "parent": null,
       "priority": "P2",
       "started": "2026-03-16",
-      "status": "pending",
+      "status": "completed",
       "subject": "First-principles building methodology doc",
       "tags": [
         "docs",
@@ -1099,7 +1099,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Changelog-based doc updates for dimension docs",
       "tags": [
         "docs",
@@ -1153,7 +1153,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Portable artifact management strategy",
       "tags": [
         "infra",
@@ -1206,7 +1206,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Planning workflow redesign (tasks clarity + per-project scoping)",
       "tags": [
         "skills",
@@ -1260,7 +1260,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Parameterizable skills (config frontmatter in SKILL.md)",
       "tags": [
         "skills",
@@ -1287,7 +1287,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Research Claude Code autocomplete offerings",
       "tags": [
         "research",
@@ -1313,7 +1313,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Styled CLI output for skills (ANSI, tables, box-drawing)",
       "tags": [
         "skills",
@@ -1339,7 +1339,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Frontmatter-based doc layer declaration",
       "tags": [
         "docs",
@@ -1366,7 +1366,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "E2B Firecracker sandbox evaluation",
       "tags": [
         "infra",
@@ -1393,7 +1393,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "VoltAgent awesome-agent-skills catalog review (380+)",
       "tags": [
         "research",
@@ -1420,7 +1420,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Research skill: rethink leads-to-backlog pipeline",
       "tags": [
         "research",
@@ -1447,7 +1447,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Changelog approach for complex system components",
       "tags": [
         "docs",
@@ -1473,7 +1473,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Multi-project workflow design (CWD-as-role model)",
       "tags": [
         "workflow",
@@ -1630,7 +1630,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Agentic CI/CD",
       "tags": [
         "claude-code-enhancement",
@@ -1733,7 +1733,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Claude Learning Resource",
       "tags": [
         "claude-code-enhancement"
@@ -1758,7 +1758,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Knowledge Graphs for Agents",
       "tags": [
         "knowledge-graphs",
@@ -1784,7 +1784,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "AI-Driven Development",
       "tags": [
         "claude-code-enhancement"
@@ -1809,7 +1809,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Developer Productivity",
       "tags": [
         "claude-code-enhancement"
@@ -1834,7 +1834,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Product Management + AI",
       "tags": [
         "claude-code-enhancement"
@@ -1859,7 +1859,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Agent Accountability",
       "tags": [
         "ai-agent-systems"
@@ -1884,7 +1884,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Claude Code Tooling",
       "tags": [
         "claude-code-enhancement"
@@ -1909,7 +1909,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "MCP Alternative Protocol",
       "tags": [
         "mcp-tooling",
@@ -1960,7 +1960,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "AI Operating System",
       "tags": [
         "ai-agent-systems"
@@ -1985,7 +1985,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "CLAUDE.md Engineering",
       "tags": [
         "claude-code-enhancement"
@@ -2036,7 +2036,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "CLAUDE.md Debate",
       "tags": [
         "claude-code-enhancement"
@@ -2061,7 +2061,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Spec-Driven Development",
       "tags": [
         "claude-code-enhancement",
@@ -2087,7 +2087,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Claude Code Workflow",
       "tags": [
         "claude-code-enhancement"
@@ -2163,7 +2163,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Web Agent Infrastructure",
       "tags": [
         "ai-agent-systems"
@@ -39344,13 +39344,13 @@
       ],
       "context": "Active regression on main: backlog_add.rs still has pub stream: String + default_stream() + payload injection (line 74), re-introducing stream: roadmap into every MCP-created task. Fix: drop struct field + default_stream() + payload builder. Also fix backlog_stats.rs description string, remove 4 tool_tests.rs fixtures with stream: keys, clean doc-comments in cli.rs:726 + tasks.rs:571,695. DoD: grep -rn stream system/cli/rust/crates/ clean outside comments. See E2026-05-20-5.",
       "id": "t-1564",
-      "status": "pending",
+      "status": "completed",
       "execution": "code",
       "created": "2026-05-20",
       "blocked_by": [],
       "parent": null,
       "order": null,
-      "branch": null,
+      "branch": "fix/t-1564-stream-field-cleanup",
       "github_issue": null,
       "started": null,
       "completed": null,
@@ -39399,6 +39399,89 @@
       ],
       "context": "t-1542 introduced level as the primary hierarchy field with type as a backward-compat fallback in filter_tasks (tasks.rs). All 1432 tasks now have level set post-migration. The type field is kept as a deprecated alias. Retirement steps: (1) add SUNSET comment at fallback branch in filter_tasks referencing this task ID, (2) verify all readers use level not type for hierarchy, (3) remove the fallback path in a future schema cleanup. This task is the retirement ticket referenced by the alias-retirement-needs-sunset-ticket pattern.",
       "id": "t-1566",
+      "status": "pending",
+      "execution": "code",
+      "created": "2026-05-20",
+      "blocked_by": [],
+      "parent": null,
+      "order": null,
+      "branch": null,
+      "github_issue": null,
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "strategy": null,
+      "build_step": null,
+      "description": null
+    },
+    {
+      "subject": "[skill] scaffold helper: new mobile venture from mobile-sandbox template",
+      "work_type": "dev",
+      "type": "task",
+      "tags": [
+        "ideation",
+        "mobile",
+        "skill"
+      ],
+      "effort": "M",
+      "priority": "P3",
+      "context": "Auto-scaffold a new mobile venture: git init, CLAUDE.md template with correct SDK versions, portfolio.md entry, ventures/ dir. Source: close-2026-05-20 ideation.",
+      "id": "t-1567",
+      "status": "pending",
+      "execution": "code",
+      "created": "2026-05-20",
+      "blocked_by": [],
+      "parent": null,
+      "order": null,
+      "branch": null,
+      "github_issue": null,
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "strategy": null,
+      "build_step": null,
+      "description": null
+    },
+    {
+      "subject": "[hook] env-var checklist in close for new toolchain setups",
+      "work_type": "dev",
+      "type": "task",
+      "tags": [
+        "ideation",
+        "hook",
+        "close"
+      ],
+      "effort": "S",
+      "priority": "P3",
+      "context": "When close detects a new toolchain was set up this session (Android, Docker, etc.), prompt to verify .zshrc has required env vars (ANDROID_HOME, DOCKER_HOST, etc.). Source: close-2026-05-20 ideation.",
+      "id": "t-1568",
+      "status": "pending",
+      "execution": "code",
+      "created": "2026-05-20",
+      "blocked_by": [],
+      "parent": null,
+      "order": null,
+      "branch": null,
+      "github_issue": null,
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "strategy": null,
+      "build_step": null,
+      "description": null
+    },
+    {
+      "subject": "fix(feed): remove stream field injection in poll_one() — E2026-05-20-9",
+      "type": "task",
+      "tags": [
+        "rust",
+        "schema-removal",
+        "feed"
+      ],
+      "effort": "S",
+      "priority": "P2",
+      "context": "E2026-05-20-9: feed.rs:298 poll_one() still injects stream:research in json!() builder after t-1564 removed the field from the schema. Fix: remove the stream key from the json!() builder. Also update docs/reference/configuration.md:37 (task schema example) and docs/architecture/features/brana-feed-inbox.md:79 (feed task format example) which both still reference stream.",
+      "id": "t-1569",
       "status": "pending",
       "execution": "code",
       "created": "2026-05-20",

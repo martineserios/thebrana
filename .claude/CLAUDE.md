@@ -130,3 +130,11 @@ Source: t-1366 / 2026-05-08
 ### 2026-05-19: build.md step 4a — SKILL.md `keywords` field is the tech-domain gate
 Step 4a now uses a deterministic 3-signal chain (task description/tags → project manifest files → file path extensions) to detect tech context, then matches installed skills by their SKILL.md `keywords` field. Gate fires only when no LOAD result key overlaps with the matched skill's keywords — meaning the skill knowledge was absent from LOAD despite the domain being relevant. A Rust task in a `Cargo.toml` project that produced only documentation-pattern LOAD results will now always prompt for `rust-skills`, regardless of whether ruflo returned non-empty results. If the user skips: `skill-gap-warning: {skill} available but not loaded` is appended to the task context, auditable via `brana backlog search "skill-gap-warning"`. This is an interim patch — the SUNSET comment in build.md step 4a references t-608 (Skill Registry), which replaces the entire detection chain with `skill_suggest(tech_context)` when it ships.
 Source: t-1479 + t-1483 / 2026-05-19
+
+### 2026-05-20: DoD grep for schema removals must be re-executed at close — not just stated
+Stated grep is not executed grep. t-1564 fixed backlog_add.rs stream injection per the errata scope but the DoD grep (`grep -rn '"stream"' system/cli/rust/crates/`) was not re-run before closing. Debrief-analyst found feed.rs:298 still injecting `"stream": "research"` — filed as E2026-05-20-9. Rule: for any schema-field-removal task, the final step is running the grep and reviewing every remaining hit. If hits remain: fix in-scope or file child errata before close.
+Source: t-1564 / debrief-analyst 2026-05-20
+
+### 2026-05-20: Field removal — grep ALL crates fresh; errata scope ≠ grep scope
+For schema field removal, the grep scope must be all crates (`grep -rn '"<field>"' system/cli/rust/crates/`), not just the surfaces named in the errata. t-1564 named backlog_add.rs; feed.rs:298 was a sibling producer in a different command crate — same injection pattern, not in scope, not grepped again. Survived as E2026-05-20-9. 5-surface checklist (core + cli + mcp-add + mcp-stats + tests) is a minimum, not a maximum. Grep bounds the scope.
+Source: t-1564 / debrief-analyst 2026-05-20

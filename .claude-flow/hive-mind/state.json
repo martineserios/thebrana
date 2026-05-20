@@ -25,8 +25,9 @@
     "client:thebrana:build:t-1480": "{\"status\": \"done\", \"branch\": \"feat/t-1480-hook-rust-skills-guard\", \"task\": \"[hook] PreToolUse: block *.rs writes until brana:rust-skills loaded this session\", \"completed\": \"2026-05-19T00:00:00Z\"}",
     "client:thebrana:build:t-1507": "{\"status\": \"done\", \"branch\": \"fix/t-1507-save-tasks-atomic\", \"task\": \"Make save_tasks atomic (temp file + rename)\", \"completed\": \"2026-05-19T00:00:00Z\"}",
     "client:thebrana:build:t-1492": "{\"status\": \"done\", \"branch\": \"feat/t-1492-pattern-quality-filter\", \"task\": \"[memory] Pattern quality filter + per-pattern files (P0)\", \"completed\": \"2026-05-20\"}",
-    "client:thebrana:session:closed:2026-05-20": "{\"status\":\"closed\",\"summary\":\"backlog schema migration complete: stream dropped, ops→infra+chore, level+kind fields, initiative scaffold. Active regression: stream in backlog_add.rs (t-1564 P1).\",\"next\":[\"t-1564 stream cleanup ACTIVE REGRESSION\",\"reconcile --scope propagation\",\"t-1566 type alias SUNSET comment\"],\"closed_at\":\"2026-05-20T18:00:00Z\"}"
+    "client:thebrana:session:closed:2026-05-20": "{\"status\":\"closed\",\"summary\":\"mobile-sandbox setup: research persisted, Expo SDK 54 scaffold, Android emulator live\",\"next\":[\"install expo/skills plugin\",\"reconcile E2026-05-20-7\",\"mobile scaffold helper t-1567\"],\"closed_at\":\"2026-05-20T13:45:00Z\"}",
+    "client:thebrana:session:closed:2026-05-20-micro": "{\"status\": \"closed\", \"summary\": \"micro-close: state files + 30 stale tasks reconciled\", \"next\": [\"Fix stream regression t-1564 (P1)\", \"Merge reconcile worktree\", \"SUNSET comment tasks.rs\"], \"closed_at\": \"2026-05-20T00:00:00Z\"}"
   },
   "createdAt": "2026-04-06T20:37:18.323Z",
-  "updatedAt": "2026-05-20T15:28:10.220Z"
+  "updatedAt": "2026-05-20T17:16:31.717Z"
 }
