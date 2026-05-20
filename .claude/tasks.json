@@ -37647,6 +37647,33 @@
       "strategy": null,
       "build_step": null,
       "description": null
+    },
+    {
+      "subject": "Backlog audit: reconcile 26+ stale pending tasks with commit history",
+      "stream": "dev",
+      "type": "task",
+      "tags": [
+        "backlog-hygiene",
+        "reconcile"
+      ],
+      "effort": "S",
+      "priority": "P3",
+      "context": "30+ pending tasks (t-030 through ~t-108) found in fix/feat commit scopes by close 2026-05-20 reconcile. Only 4 were handled. Run: for id in <remaining>; do git log --all -E --grep \"fix($id):\" | head -1; done to verify and bulk-complete. Remaining IDs: t-060 t-061 t-063 t-064 t-066 t-068 t-070 t-071 t-072 t-073 t-074 t-075 t-076 t-077 t-078 t-094 t-098 t-099 t-100 t-101 t-102 t-103 t-104 t-105 t-107 t-108",
+      "id": "t-1563",
+      "status": "pending",
+      "execution": "code",
+      "created": "2026-05-20",
+      "blocked_by": [],
+      "parent": null,
+      "order": null,
+      "branch": null,
+      "github_issue": null,
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "strategy": null,
+      "build_step": null,
+      "description": null
     }
   ],
   "version": "1"
