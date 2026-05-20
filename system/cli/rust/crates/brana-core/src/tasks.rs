@@ -540,9 +540,9 @@ pub fn validate_status(value: &str) -> Result<(), String> {
 /// Validate a work_type value. Accepts implement/research/design/ops/review plus "null"/"" (clear).
 pub fn validate_work_type(value: &str) -> Result<(), String> {
     match value {
-        "implement" | "research" | "design" | "ops" | "review" | "null" | "" => Ok(()),
+        "implement" | "research" | "design" | "infra" | "chore" | "review" | "null" | "" => Ok(()),
         other => Err(format!(
-            "invalid work_type {other:?} — must be implement/research/design/ops/review or null"
+            "invalid work_type {other:?} — must be implement/research/design/infra/chore/review or null"
         )),
     }
 }
@@ -1351,16 +1351,28 @@ mod tests {
 
     #[test]
     fn test_validate_work_type_valid() {
-        for v in &["implement", "research", "design", "ops", "review", "null", ""] {
+        for v in &["implement", "research", "design", "infra", "chore", "review", "null", ""] {
             assert!(validate_work_type(v).is_ok(), "expected Ok for {v:?}");
         }
     }
 
     #[test]
     fn test_validate_work_type_invalid() {
-        for v in &["code", "manual", "feature", "build", "dev"] {
+        for v in &["code", "manual", "feature", "build", "dev", "ops"] {
             assert!(validate_work_type(v).is_err(), "expected Err for {v:?}");
         }
+    }
+
+    #[test]
+    fn test_branch_for_infra_task() {
+        let task = json!({"id": "t-1", "work_type": "infra", "subject": "setup CI"});
+        assert_eq!(branch_for_task(&task), "infra/t-1-setup-ci");
+    }
+
+    #[test]
+    fn test_branch_for_chore_task() {
+        let task = json!({"id": "t-1", "work_type": "chore", "subject": "cleanup logs"});
+        assert_eq!(branch_for_task(&task), "chore/t-1-cleanup-logs");
     }
 
     #[test]
