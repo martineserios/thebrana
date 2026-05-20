@@ -35909,7 +35909,7 @@
       "completed": null,
       "context": "Extends t-1238 memory design (completed April 2026). Adds what was missing: dated file writes to prevent parallel session clobber, brana memory write CLI gateway, brana memory index for auto-generated MEMORY.md, PreToolUse enforcement, and MCP surface. Idea doc: docs/ideas/dated-memory-files.md. Complements t-1461 (session state merge semantics — different problem, different fix).",
       "created": "2026-05-19",
-      "description": null,
+      "description": "Unified Memory Write Gateway — brana memory write CLI with 7-type routing taxonomy, dated files to prevent parallel-session clobber, brana memory index for MEMORY.md auto-generation, PreToolUse enforcement, and MCP surface (mcp__brana__memory_write).",
       "effort": null,
       "github_issue": null,
       "id": "t-1463",
@@ -35918,7 +35918,7 @@
       "parent": null,
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "stream": "dev",
       "subject": "Unified Memory Write Gateway",
       "tags": [
@@ -35946,7 +35946,7 @@
       "parent": "t-1463",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "dev",
       "subject": "Foundation — ADR + Tests",
       "tags": [
@@ -36028,7 +36028,7 @@
       "parent": "t-1463",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "dev",
       "subject": "Core CLI — brana memory write + index",
       "tags": [
@@ -36056,7 +36056,7 @@
       "parent": "t-1467",
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "dev",
       "subject": "[rust] brana memory write --type feedback — dated file creation + MEMORY.md update",
       "tags": [
@@ -36085,7 +36085,7 @@
       "parent": "t-1467",
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "dev",
       "subject": "[rust] brana memory index — regenerate MEMORY.md from filesystem",
       "tags": [
@@ -37886,6 +37886,33 @@
         "knowledge-pipeline",
         "tier2",
         "ideation"
+      ],
+      "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "completed": null,
+      "context": "Right now sitrep gives a global \"where am I\" snapshot. With the new initiative model (Waves 1-5: initiative field, work_type, set-active subcommand, focus boosting), there's a natural hook to make sitrep initiative-aware.\n\nUse cases:\n- `/brana:sitrep backlog-redesign` → show active tasks in that initiative, last WIP commit touching them, open errata, next unblocked step\n- `/brana:sitrep` with active_initiative set → auto-scope to that initiative (same as focus does for task ranking)\n- `/brana:sitrep --topic` → accept an idea doc path or tag as a topic anchor, query tasks tagged/linked to it\n\nImplementation sketch:\n1. If args or active_initiative is set: `backlog_focus(initiative: X)` instead of full portfolio snapshot\n2. Pull last WIP/close commit message touching files in that initiative's scope\n3. Show open errata tagged with initiative slug (if any)\n4. Surface next unblocked task from that initiative\n\nPairs naturally with: t-series that introduced initiative model (Waves 1-5, ~2026-05-19)",
+      "created": "2026-05-20",
+      "description": "Extend /brana:sitrep so it can be scoped to an initiative, idea doc, or tag group — producing a context-recovery view for that slice of the backlog instead of the whole portfolio.",
+      "effort": "M",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1536",
+      "notes": null,
+      "order": 0,
+      "parent": null,
+      "priority": "P2",
+      "started": null,
+      "status": "pending",
+      "stream": "roadmap",
+      "subject": "sitrep: add --initiative / --topic focus mode",
+      "tags": [
+        "sitrep",
+        "initiative",
+        "dx",
+        "ux"
       ],
       "type": "task"
     }

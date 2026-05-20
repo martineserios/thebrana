@@ -118,6 +118,14 @@ fn main() {
             Some(HandoffCmd::List) => run_or_exit(commands::handoff::cmd_handoff_list()),
             Some(HandoffCmd::Path) => run_or_exit(commands::handoff::cmd_handoff_path()),
         },
+        Commands::Memory { cmd } => match cmd {
+            MemoryCmd::Write { memory_type, scope, slug, content } => {
+                run_or_exit(commands::memory::cmd_memory_write(&memory_type, &scope, &slug, &content))
+            }
+            MemoryCmd::Index { scope } => {
+                run_or_exit(commands::memory::cmd_memory_index(&scope))
+            }
+        },
         Commands::Session { cmd } => match cmd {
             SessionCmd::Write { file, minimal } => run_or_exit(commands::session::cmd_session_write(file, minimal)),
             SessionCmd::Read { json } => run_or_exit(commands::session::cmd_session_read(json)),

@@ -179,6 +179,11 @@ pub enum Commands {
         #[command(subcommand)]
         cmd: SessionCmd,
     },
+    /// Unified memory write gateway — deterministic routing by type + scope (ADR-038)
+    Memory {
+        #[command(subcommand)]
+        cmd: MemoryCmd,
+    },
     /// Knowledge base management — reindex, status
     Knowledge {
         #[command(subcommand)]
@@ -948,5 +953,30 @@ pub enum InboxCmd {
     SetPassword {
         /// Account name
         name: String,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum MemoryCmd {
+    /// Write a memory entry — routes to correct destination by type and scope (ADR-038)
+    Write {
+        /// Memory type: feedback, project, user, pattern, convention, field-note, adr
+        #[arg(long = "type")]
+        memory_type: String,
+        /// Scope: project | global | cross-project
+        #[arg(long, default_value = "project")]
+        scope: String,
+        /// Kebab-case slug (stable topic identifier, consistent across sessions)
+        #[arg(long)]
+        slug: String,
+        /// Memory content
+        #[arg(long)]
+        content: String,
+    },
+    /// Regenerate MEMORY.md from filesystem — picks newest dated file per slug
+    Index {
+        /// Scope to index: project | global
+        #[arg(long, default_value = "project")]
+        scope: String,
     },
 }
