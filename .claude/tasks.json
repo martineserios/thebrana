@@ -37832,6 +37832,62 @@
         "brana-cli"
       ],
       "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "Current shared ~/.swarm/knowledge-pipeline-state.json blocks parallel tier1 execution (race condition). Fix: partition URLs by hash bucket N, write per-partition state files, merge on completion. Triggered: bulk log session 2026-05-19, 11 sequential batches required.",
+      "created": "2026-05-20",
+      "description": null,
+      "effort": "M",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1534",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "dev",
+      "subject": "[cli] brana knowledge process --tier1 --parallel N: partitioned state for concurrent batches",
+      "tags": [
+        "knowledge-pipeline",
+        "cli",
+        "ideation"
+      ],
+      "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "Tier2 clustering last ran 2026-04-13. After bulk WhatsApp log session (2026-05-19), 311 URLs passed tier1 filtering and are pending clustering. Run: brana knowledge process --tier2, then brana knowledge process --report to review clusters before drafting.",
+      "created": "2026-05-20",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1535",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": null,
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "research",
+      "subject": "[cli] brana knowledge process --tier2: run clustering on 311 tier1-passed URLs",
+      "tags": [
+        "knowledge-pipeline",
+        "tier2",
+        "ideation"
+      ],
+      "type": "task"
     }
   ],
   "version": "1"
