@@ -250,16 +250,18 @@ Gate:   {auto | human-approved | human-display-only}
 
 After storing, check if any patterns recalled this session warrant promotion.
 
-Search patterns.md for entries with `Confidence: quarantine`:
+Search per-pattern files for low-confidence entries:
 ```bash
-grep -A6 "^## " ~/.claude/memory/patterns.md | grep -B3 "quarantine"
+grep -rl "confidence: 0\.[45]" ~/.claude/projects/{project-hash}/memory/pattern_*.md 2>/dev/null
 ```
 
 For each recalled pattern that **was useful** this session:
-- Increment mental recall count. If pattern has been recalled ≥3 sessions: promote to `Confidence: proven` in patterns.md (Edit the file entry).
+- Note the recall mentally. If a pattern has been recalled and useful ≥3 sessions: surface it for promotion.
+- Promotion path: user approves → create `feedback_{slug}.md` + add entry to MEMORY.md
+  (always-loaded tier). Update the per-pattern file frontmatter: `confidence: 0.7`.
 
 For each recalled pattern that **was harmful or misleading**:
-- Change `Confidence: quarantine` to `Confidence: suspect` as a note.
+- Update the per-pattern file frontmatter: `confidence: 0.2` (suspect).
 
 **Skip this step** if no patterns were recalled or user wants to skip.
 
@@ -277,6 +279,6 @@ For each recalled pattern that **was harmful or misleading**:
 
 - **Placement in `system/rules/` is always manual.** Display draft, instruct user. Never write there automatically.
 - **All learnings route through the taxonomy.** No catch-all files; no feedback_ prefix files.
-- **Never overwrite — always append/prepend.** patterns.md and knowledge-staging.md are append-only.
+- **Never overwrite per-pattern files.** Each pattern is its own file; knowledge-staging.md is append-only.
 - **Classify honestly.** When uncertain, prefer Pattern over Rule (lower gate = fewer blockers).
 - **Ask for clarification** if the learning is ambiguous — don't guess the type.
