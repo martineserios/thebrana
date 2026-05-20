@@ -250,9 +250,15 @@ cd "$HOME" && $CF memory store \
 
 If both MCP and CLI are unavailable, the git file (below) is the sole durable copy.
 
-**Step 5b: Append pattern to `~/.claude/memory/patterns.md` (always — regardless of MCP/CLI success)**
+**Step 5b: Write per-pattern file (always — regardless of MCP/CLI success)**
 
-This makes patterns.md the git-durable source of truth. The pattern indexer rebuilds ruflo from this file.
+This is the git-durable source of truth. Per-pattern files survive ruflo corruption and scale
+without a cap. The pattern indexer (t-1497) rebuilds ruflo from these files on demand.
+
+**Transferability check (if debrief-analyst Step 2.5 was not already applied):**
+Before writing, verify the pattern passed the "different codebase?" filter. If the debrief
+returned a finding marked as "field note" (client-specific), skip Step 5b for that finding
+and route it to Step 6 (field notes) instead.
 
 **Before writing**, activate the sentinel so `feedback-gate.sh` passes through:
 ```bash
@@ -263,37 +269,38 @@ touch /tmp/brana-close-active
 rm -f /tmp/brana-close-active
 ```
 
-**Slug:** derive from `{short-title}` — lowercase, hyphens, no special chars.
+**Slug:** derive from `{short-title}` — lowercase, hyphens, no special chars, max 40 chars.
 
-**Dedup check** before appending:
-```bash
-grep -q "^## {slug}" ~/.claude/memory/patterns.md && echo "already exists — skip or update"
+**Dedup check** before writing (ruflo similarity):
 ```
-If the slug already exists, **update** the existing entry via Edit. Do not create a duplicate `## {slug}` section.
+mcp__ruflo__memory_search(query: "{pattern problem + solution summary}", namespace: "pattern", limit: 1, threshold: 0.85)
+```
+If similarity ≥ 0.85: skip write (near-duplicate exists). Note `similar_to: {key}` in the existing pattern's file if accessible.
+If no match or MCP unavailable: proceed to write.
 
-**Format to append** (Write/Edit to `~/.claude/memory/patterns.md`):
+**Write** to `~/.claude/projects/{project-hash}/memory/pattern_{slug}_{YYYY-MM-DD}.md`:
 ```markdown
-
-## {slug}
+---
+name: {slug}
+description: {one-line summary — used to decide relevance in future sessions}
+metadata:
+  type: pattern
+  confidence: {0.5 for clear patterns | 0.4 for borderline}
+  source_task: {task-id or "close-{date}"}
+  created: {YYYY-MM-DD}
+  transferable: true
+---
 
 **Problem:** {problem}
 **Solution:** {solution}
 **Why:** {why it matters}
-**Confidence:** quarantine
-**Source:** close {date}
-**Added:** {YYYY-MM-DD}
 ```
 
-If `patterns.md` does not exist, create it with the header:
-```
-# Pattern Store
+**Do NOT append to MEMORY.md.** Auto-extracted patterns are findable via ruflo semantic search.
+MEMORY.md entries are added only at explicit human promotion (when a pattern recurs 3+ sessions).
 
-<!-- cap: 50 | warn-at: 40 | auto-pruned: oldest quarantine first -->
-```
-
-After writing, check the cap: if entry count (`grep -c "^## " patterns.md`) ≥ 40, warn the user to prune quarantine entries before next session.
-
-**Skip if:** session was read-only (no commits), or debrief returned no learnings.
+**Skip if:** session was read-only (no commits), debrief returned no learnings, or all findings
+were rerouted to field notes by the transferability filter.
 
 ### Step 6: Capture field notes
 
@@ -307,7 +314,7 @@ Each file has a scope. Match the learning's scope to it:
 
 | File | Scope | Use when the learning... |
 |------|-------|--------------------------|
-| `~/.claude/memory/patterns.md` | Cross-session pattern | Is a corrective, behavioral, or reusable pattern — handled in Step 5b |
+| `~/.claude/projects/{project}/memory/pattern_{slug}_{date}.md` | Cross-session pattern | Is a corrective, behavioral, or reusable pattern that passes the "different codebase?" filter — handled in Step 5b |
 | `~/.claude/memory/knowledge-staging.md` | Cross-session knowledge | Is a system insight, architecture fact, or domain finding |
 | `brana-knowledge/dimensions/{topic}.md` | Topic/domain | Applies wherever the same tool, language, or pattern appears — useful to any project, not just this one |
 | `~/.claude/projects/{project}/memory/field-note_{slug}.md` | Repo-specific | Cannot be understood outside this codebase — requires knowing brana's hooks, bootstrap, CLI layout, or conventions to be useful |
@@ -771,7 +778,7 @@ Audit every entry in MEMORY.md using the **"Where to store what"** classificatio
 
    | Classification | Action |
    |---------------|--------|
-   | **Pattern** (corrective, behavioral, reusable how-to) | Append to `~/.claude/memory/patterns.md` (Step 5b format, dedup by slug) |
+   | **Pattern** (corrective, behavioral, reusable how-to) | Write to `~/.claude/projects/{project}/memory/pattern_{slug}_{date}.md` (Step 5b format, dedup via ruflo) |
    | **Knowledge** (system insight, architecture fact, domain finding) | Append to `~/.claude/memory/knowledge-staging.md` |
    | **Rule/Directive** ("always", "never", "must", "should") | Surface via AskUserQuestion with draft preview — do NOT auto-write; human places in `system/rules/` via `/brana:build` |
    | **Convention** (architecture, stack, domain terms) | Present to user via batched AskUserQuestion: "Convention found — add to CLAUDE.md manually via PR?" Show formatted text. User decides; close does not write. |

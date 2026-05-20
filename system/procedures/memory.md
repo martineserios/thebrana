@@ -33,8 +33,11 @@ source "$HOME/.claude/scripts/cf-env.sh"
 3. **Fallback path (ruflo unavailable):**
    Search `~/.claude/projects/*/memory/` for relevant MEMORY.md files. Grep for keywords from the query.
 
-3a. **Local patterns.md** (always, regardless of ruflo):
-   Read `~/.claude/memory/patterns.md`. For each `## slug` section whose body matches query keywords, surface it as a pattern result with its `**Confidence:**` field. These are local-only patterns not yet indexed in ruflo.
+3a. **Local per-pattern files** (fallback when ruflo unavailable):
+   Scan `~/.claude/projects/{project-hash}/memory/pattern_*.md`. For each file whose body
+   matches query keywords, surface it as a pattern result with its `confidence` frontmatter field.
+   These are local-only patterns not yet indexed in ruflo (git-durable, no cap).
+   Note: `~/.claude/memory/patterns.md` is retired — do not read it for new sessions.
 
 3b. **Local knowledge-staging.md** (always):
    Read `~/.claude/memory/knowledge-staging.md`. For each `## slug` section matching the query, surface the claim and its `**Promote to:**` destination. Label clearly as "staging — not yet promoted."
@@ -101,13 +104,13 @@ source "$HOME/.claude/scripts/cf-env.sh"
    - Stored > 60 days, never recalled: N (demotion candidates)
    ```
 
-3. **Check local stores** (patterns.md + knowledge-staging.md):
-   - Count `##` sections in `~/.claude/memory/patterns.md`. Cap: 50, warn-at: 40. Surface count + status.
+3. **Check local stores** (per-pattern files + knowledge-staging.md):
+   - Count `pattern_*.md` files in `~/.claude/projects/{project-hash}/memory/`. No cap. Surface count.
    - Count `##` sections in `~/.claude/memory/knowledge-staging.md`. Cap: 30, warn-at: 20. Surface count + status.
    - Add to health snapshot:
      ```
      ### Local Stores
-     - patterns.md: N/50 entries (warn-at 40) — [OK | ⚠ Near cap | ✗ AT CAP]
+     - pattern_*.md files: N (no cap — per-pattern file model, ADR-039)
      - knowledge-staging.md: N/30 entries (warn-at 20) — [OK | ⚠ Near cap | ✗ AT CAP]
      ```
    - If at or above warn-at: flag as action item — list staging entries with no `**Promoted:**` date.
@@ -211,7 +214,7 @@ Traverses docs via formal `[doc NN](path)` links and flags factual contradiction
 
 2. **Surface the summary.**
    - Read the `## Summary` section of the report (first 30 lines are usually enough).
-   - Show: total candidates found, breakdown by category (duplicates, contradictions, frontmatter gaps, concept refs, patterns.md duplicate slugs, knowledge-staging.md cap status).
+   - Show: total candidates found, breakdown by category (duplicates, contradictions, frontmatter gaps, concept refs, pattern_*.md near-duplicate slugs, knowledge-staging.md cap status).
 
 3. **Interactive approve-merges flow** (for duplicate and contradiction candidates only):
    - List each HIGH/MEDIUM candidate with: source file(s), the conflict or duplication, proposed action (archive/merge/update).

@@ -47,7 +47,7 @@ Set `type`, `destination`, and `gate` (auto | human) from the table:
 | Rule | `system/rules/` — draft only, human places | human |
 | Decision | `docs/architecture/decisions/ADR-NNN-*.md` — stub, human commits | human |
 | Reference | `~/.claude/memory/portfolio.md` | auto |
-| Pattern | `~/.claude/memory/patterns.md` | auto |
+| Pattern | `~/.claude/projects/{project}/memory/pattern_{slug}_{date}.md` | auto (after transferability filter) |
 | Knowledge | `~/.claude/memory/knowledge-staging.md` | auto |
 | Session | native memory dir — skip, handled by session-end | auto |
 
@@ -72,15 +72,27 @@ Note the ambiguity in the draft so the user can override.
 
 ### Pattern draft
 
+**Before drafting**, apply the transferability filter:
+> *"Would this pattern apply if I were working on a completely different codebase with a different client?"*
+- **No** → reclassify as Knowledge or field note. Do not use the pattern destination.
+- **Borderline** → proceed with `confidence: 0.4`
+- **Yes** → proceed with `confidence: 0.5`
+
 ```markdown
-## {pattern-name-slug}
+---
+name: {pattern-name-slug}
+description: {one-line summary — used to decide relevance in future sessions, be specific}
+metadata:
+  type: pattern
+  confidence: {0.5 | 0.4 for borderline}
+  source_task: {task-id or "manual-{YYYY-MM-DD}"}
+  created: {YYYY-MM-DD}
+  transferable: true
+---
 
 **Problem:** {one sentence — the situation that triggers this pattern}
 **Solution:** {what to do, concrete enough to apply without context}
 **Why:** {evidence — past incident, test result, or principle}
-**Confidence:** quarantine
-**Source:** {task-id or YYYY-MM-DD}
-**Added:** {today}
 ```
 
 ### Knowledge draft
@@ -130,12 +142,13 @@ One-line entry for `portfolio.md`:
 
 Before writing, check destination capacity:
 
-**patterns.md:**
-```bash
-count=$(grep -c "^## " ~/.claude/memory/patterns.md 2>/dev/null || echo 0)
+**Pattern — dedup check (replaces cap):**
 ```
-- ≥40: warn "patterns.md at {N}/50 — consider pruning quarantine entries"
-- =50: block. Show 5 oldest quarantine entries. Ask user to delete ≥1 before proceeding.
+mcp__ruflo__memory_search(query: "{pattern problem + solution summary}", namespace: "pattern", limit: 1, threshold: 0.85)
+```
+- Similarity ≥ 0.85: near-duplicate exists — skip write, note the existing key.
+- No match / MCP unavailable: proceed to write.
+No cap, no pruning. Per-pattern files scale without maintenance overhead.
 
 **knowledge-staging.md:**
 ```bash
@@ -176,18 +189,18 @@ On "Approve":
 
 Write `draft` content to destination:
 
-**Pattern → `~/.claude/memory/patterns.md`:**
+**Pattern → `~/.claude/projects/{project-hash}/memory/pattern_{slug}_{YYYY-MM-DD}.md`:**
+
+Write the draft (with frontmatter) to a new per-pattern file. Use Write tool.
+Activate the sentinel first so `feedback-gate.sh` passes through:
 ```bash
-# Create file with header if absent
-if [ ! -f ~/.claude/memory/patterns.md ]; then
-  echo "# Pattern Store" > ~/.claude/memory/patterns.md
-  echo "" >> ~/.claude/memory/patterns.md
-  echo "<!-- cap: 50 | warn-at: 40 | auto-pruned: oldest quarantine first -->" >> ~/.claude/memory/patterns.md
-fi
-# Append entry (newest first = prepend after header)
-# Read file, insert after header line 1-3, write back
+touch /tmp/brana-close-active
+# ... write pattern file ...
+rm -f /tmp/brana-close-active
 ```
-Prepend the draft after the file header (3 lines), so newest entries appear first.
+
+Do NOT append to MEMORY.md. Pattern files are findable via ruflo semantic search.
+MEMORY.md entries are added only at explicit human promotion (recurrence ≥ 3 sessions).
 
 **Knowledge → `~/.claude/memory/knowledge-staging.md`:**
 ```bash
@@ -209,7 +222,7 @@ Append the one-line entry to the appropriate section. If section not found, appe
 If a destination is unavailable (file locked, dir missing, write denied):
 
 ```
-Pattern fallback:  patterns.md → MEMORY.md inline with [PATTERN] prefix
+Pattern fallback:  if project memory dir missing → write to ~/.claude/memory/pattern_{slug}_{date}.md
 Knowledge fallback: knowledge-staging.md → MEMORY.md inline with [KNOWLEDGE] prefix
 Reference fallback: portfolio.md → MEMORY.md inline
 Rule/Decision: no fallback — human-gated, display draft only
@@ -237,16 +250,18 @@ Gate:   {auto | human-approved | human-display-only}
 
 After storing, check if any patterns recalled this session warrant promotion.
 
-Search patterns.md for entries with `Confidence: quarantine`:
+Search per-pattern files for low-confidence entries:
 ```bash
-grep -A6 "^## " ~/.claude/memory/patterns.md | grep -B3 "quarantine"
+grep -rl "confidence: 0\.[45]" ~/.claude/projects/{project-hash}/memory/pattern_*.md 2>/dev/null
 ```
 
 For each recalled pattern that **was useful** this session:
-- Increment mental recall count. If pattern has been recalled ≥3 sessions: promote to `Confidence: proven` in patterns.md (Edit the file entry).
+- Note the recall mentally. If a pattern has been recalled and useful ≥3 sessions: surface it for promotion.
+- Promotion path: user approves → create `feedback_{slug}.md` + add entry to MEMORY.md
+  (always-loaded tier). Update the per-pattern file frontmatter: `confidence: 0.7`.
 
 For each recalled pattern that **was harmful or misleading**:
-- Change `Confidence: quarantine` to `Confidence: suspect` as a note.
+- Update the per-pattern file frontmatter: `confidence: 0.2` (suspect).
 
 **Skip this step** if no patterns were recalled or user wants to skip.
 
@@ -264,6 +279,6 @@ For each recalled pattern that **was harmful or misleading**:
 
 - **Placement in `system/rules/` is always manual.** Display draft, instruct user. Never write there automatically.
 - **All learnings route through the taxonomy.** No catch-all files; no feedback_ prefix files.
-- **Never overwrite — always append/prepend.** patterns.md and knowledge-staging.md are append-only.
+- **Never overwrite per-pattern files.** Each pattern is its own file; knowledge-staging.md is append-only.
 - **Classify honestly.** When uncertain, prefer Pattern over Rule (lower gate = fewer blockers).
 - **Ask for clarification** if the learning is ambiguous — don't guess the type.
