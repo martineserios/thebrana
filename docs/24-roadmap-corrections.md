@@ -20,6 +20,8 @@
 
 | # | Error | Severity | Status | Comments |
 |---|---|---|---|---|
+| E2026-05-22-4 | proyecto_anita: Supabase Auth admin PATCH `/auth/v1/admin/users/{id}` returned 404 — only path to reset password is raw SQL via Management API. | **Low** | informational | Workaround: `UPDATE auth.users SET encrypted_password = crypt('pw', gen_salt('bf')) WHERE email = 'x'` via Management API. |
+| E2026-05-22-3 | proyecto_anita: Phase 9-B rename missed frontend-v2 (41 files) — `auth.tsx` profile query + TypeScript interfaces + all Supabase calls retained `company_id`. Runtime-only failure: no type errors, no build warning. | **Medium** | code-fix | Fixed commit `958ee9d`. DoD for column rename ADRs must include `grep -r "old_col" services/frontend-v2/src/`. |
 | E2026-05-20-11 | thebrana: t-1573 fixed plan section of `backlog.md` but 8 `"stream"` JSON injections survive in `close.md` (6) and `build.md` (2) — procedure layer not swept. Same root cause as E2026-05-20-9: DoD grep scoped to `system/cli/rust/crates/` excludes the procedure/skill producer layer. | **Medium** | applied (t-1574, 2026-05-20) | Fixed: replaced stream with work_type equivalents in close.md (6) + build.md (2). DoD: `grep -rn '"stream"' system/procedures/ system/skills/` returns zero hits. |
 | E2026-05-20-9 | thebrana: t-1564 fixed `backlog_add.rs` stream injection but `feed.rs:298` (brana feed command) still injects `"stream": "research"` into poll_one task payloads — sibling producer surface missed by the DoD grep. DoD for E2026-05-20-5 is not fully met. | **Medium** | pending | Fix: remove `"stream": "research"` from `poll_one()` JSON builder in `feed.rs:298`. Also clean remaining `stream:` keys from `tasks.rs`/`sync.rs` internal test fixtures. Track as new task. Root cause: DoD grep was not re-run at close to verify completion — grep-based DoD must be executed, not just stated. |
 | E2026-05-20-7 | brana-knowledge: `59-mobile-apps-claude-code.md` cited Expo SDK 52 / RN 0.76 / Router v4 as canonical stack (sourced from claudelab.net article) — `create-expo-app@latest` scaffolds SDK 54 / RN 0.81.5; Router v4 is SDK 52 era, SDK 53+ ships Router v5. | **Low** | code-fix | Fixed same session: updated doc lines 41+48-51 to SDK 54 / RN 0.81.5 / Router v5 with snapshot date `2026-05-20` and note that Router is not in the blank template. Rule: always verify "canonical stack" claims against `create-*@latest` output before publishing a dimension doc; include snapshot date + source on version citations. |
@@ -3247,3 +3249,71 @@ Update 2026-05-20 (second debrief): t-1540 only touched `tool_tests.rs`; the two
 **Process note:** Extends the 5-surface schema-removal checklist with a 6th surface: "procedure/skill layer JSON invocations." Existing patterns (`field-removal-fresh-grep-all-producers`, `grep-dod-execute-at-close`) only bound to `system/cli/rust/crates/` — procedures were structurally excluded. Pattern updated in MEMORY.md.
 
 **Status:** pending
+
+---
+
+## E2026-05-22-1 — Phase 9-B contact audit triggers not updated with column rename
+
+**Severity:** High
+**Discovery:** 2026-05-22 — contact patch session for TCP test number; Management API UPDATE on contacts blocked by trigger error
+**Affected files:** `supabase/migrations/20260522000001_fix_contact_triggers_tenant_id.sql` (fix), `services/v3-api/app/api/v3/agent_contacts.py`
+
+**Spec says:** Phase 9-B migration (`companies` → `tenants` rename) renames `company_id` to `tenant_id` in the `companies/tenants` table and updates all contact references.
+
+**Reality:** Contact audit trigger functions `trigger_log_contact_created` and `trigger_log_contact_updated` were NOT updated as part of Phase 9-B. Both functions referenced `NEW.company_id` (renamed column) and inserted into `audit_log (company_id, ...)` (also renamed). Every PostgREST UPDATE and Management API UPDATE on the `contacts` table failed with: `column "company_id" of relation "audit_log" does not exist`. Blocked contact enrichment and the TCP test patch on dev.
+
+**Fix:** `CREATE OR REPLACE FUNCTION` for both triggers in migration `20260522000001_fix_contact_triggers_tenant_id.sql`. Applied to dev 2026-05-22. **Must apply to prod before Phase 9-B prod migration runs (2026-05-24).**
+
+**Process note:** Column rename migrations must grep PL/pgSQL trigger functions for the renamed column. Triggers compile without error at `CREATE OR REPLACE` time — the bad reference only surfaces at DML runtime. Standard migration checklist misses this surface.
+
+**Status:** code-fix (dev), pending (prod — apply before 2026-05-24)
+
+---
+
+## E2026-05-22-2 — `_try_match_by_phone` initial implementation used `.in_()` — not in test mock
+
+**Severity:** Low
+**Discovery:** 2026-05-22 — test run caught immediately; never deployed
+**Affected files:** `services/v3-api/app/api/v3/agent_contacts.py`, `services/v3-api/tests/test_agent_contacts_endpoint.py`
+
+**Spec says:** (no spec — implementation choice). Initial implementation used `sb.table("contacts").in_("phone", candidates)` to check both `+54...` and `54...` formats in one call.
+
+**Reality:** Test mock `_TableProxy` does not implement `.in_()`. `AttributeError: '_TableProxy' object has no attribute 'in_'` on first test run.
+
+**Fix:** Replaced with two sequential `.eq("phone", candidate)` calls in a loop — semantically equivalent, mock-compatible, and clearer.
+
+**Status:** code-fix
+
+---
+
+## E2026-05-22-3 — Phase 9-B rename missed frontend-v2 (41 files) + auth.tsx profile query
+
+**Severity:** Medium
+**Discovery:** 2026-05-22 — admin@palco.com login to anitia.vercel.app returned "column profiles.company_id does not exist" after Phase 9-B was applied to dev
+**Affected files:** `services/frontend-v2/src/lib/supabase/auth.tsx`, `services/frontend-v2/src/types/index.ts`, and 39 other `.ts`/`.tsx` files under `services/frontend-v2/src/`
+
+**Spec says:** Phase 9-B (ADR-036) renames `company_id` → `tenant_id` on the database layer. Frontend-v2 is a consumer of the Supabase schema and should have been included in the rename sweep.
+
+**Reality:** ADR-036 and the Phase 9-B runbook treated the rename as a DB-only operation. `services/frontend-v2/**` (41 files) retained `company_id` references including: `auth.tsx` profile query (`SELECT company_id FROM profiles`), `User` + `Contact` TypeScript interfaces, and every Supabase call using `.eq('company_id', ...)`. On dev, Phase 9-B was applied weeks before prod; the frontend was deployed against dev Supabase and broke immediately on login.
+
+**Fix:** Python replace script updated all 41 files in commit `958ee9d`. No type errors surfaced the gap — TypeScript `company_id?: string` is structurally compatible with absent columns (returns `undefined`, not a type error). The breakage was runtime-only.
+
+**Process note:** Column rename ADRs must include a frontend sweep in their Definition of Done: `grep -r "company_id" services/frontend-v2/src/`. Same failure class as E2026-05-19-10 (test assertions) and E2026-05-22-1 (PL/pgSQL triggers).
+
+**Status:** code-fix
+
+---
+
+## E2026-05-22-4 — Supabase Auth admin PATCH `/auth/v1/admin/users/{id}` not available via Management API
+
+**Severity:** Low
+**Discovery:** 2026-05-22 — attempted to reset admin@palco.com password via Supabase Management API REST endpoint
+**Affected files:** `supabase-cli-multiproject.md` (documentation gap)
+
+**Spec says:** (implicit) Supabase Management API exposes admin user management including password reset via PATCH.
+
+**Reality:** `PATCH /auth/v1/admin/users/{id}` returned 404 on this Supabase instance version. The only working path was raw SQL via Management API: `UPDATE auth.users SET encrypted_password = crypt('password', gen_salt('bf')) WHERE email = 'email'`.
+
+**Fix:** Document the SQL fallback as the canonical password-reset path in `supabase-cli-multiproject.md`.
+
+**Status:** informational
