@@ -158,7 +158,11 @@ system/cli/rust/crates/brana-mcp/src/tools/
 `agy_delegate.rs` needs updating. The skill and rules are unchanged.**
 
 ```rust
-// agy_delegate: write prompt → /tmp/, spawn agy -p, validate output, return result
+// agy_delegate: version-check → write prompt → /tmp/ → spawn agy -p → validate → return
+// Step 0: version pin — hard-error if agy version doesn't match pinned constant.
+// If `agy --version` is unavailable (closed-source, no flag), fall back to sha256 of binary.
+const AGY_PINNED_VERSION: &str = "1.0.1";  // update on each verified upgrade
+
 // Critical: stdio must be explicitly captured — never inherited from MCP's stdio pipe.
 let output = Command::new("agy")
     .arg("-p").arg(&prompt_content)
@@ -168,8 +172,17 @@ let output = Command::new("agy")
     .output()?;
 ```
 
-Hardcodes `/tmp/` output — callers cannot override. Validates output contract (non-empty,
-no error markers) before returning. Structured error on timeout or malformed output.
+Hardcodes `/tmp/` output — callers cannot override. Validates output contract before
+returning — validator spec is derived from the adversarial spike (step 1.5), not assumed.
+Known unknowns until spike runs: whether agy prints errors to stdout vs stderr, whether
+quota/auth/rate-limit failures exit 0 or non-zero, what the error string patterns look like.
+Structured error on timeout or contract violation.
+
+**Version pinning discipline:** `AGY_PINNED_VERSION` is updated manually after each agy
+upgrade — bump pin, re-run adversarial spike (C2), confirm output contract unchanged, then
+commit. If `agy --version` flag doesn't exist, pin via `sha256sum $(which agy)` stored as
+a constant instead. Version mismatch → hard error: `"agy version mismatch: expected {pin},
+got {actual} — update AGY_PINNED_VERSION in agy_delegate.rs after re-running spike"`.
 
 **Post-build verification:** after `cargo build --release`, confirm `~/.local/bin/brana-mcp`
 reflects the new build before testing MCP tools from Claude. Stale binary = "tool not found"
@@ -180,11 +193,15 @@ with no useful error message.
 | Risk | Mitigation |
 |------|-----------|
 | agy bypasses all brana hooks | Invariant: agy output → /tmp/ only. Claude applies to repo. |
+| agy interface changes silently (closed-source, no semver) | `agy --version` check at spawn; hard-error on mismatch. Re-run adversarial spike on each upgrade before bumping pin. |
 | tasks.json race (t-1507 unresolved) | agy never touches tasks.json. Claude does all brana writes. |
 | Bad agy output applied without review | MCP server validates output contract. APPLY step is always Claude. |
+| agy error output on stdout exits 0 (quota, auth, rate limit) | Adversarial spike defines error patterns empirically before MCP tool ships (see C2 below). Validator built from observed evidence. |
 | extract/persist skipped under pressure | Mandatory steps in skill — not optional. |
 | Prompt injection from raw user content | Claude constructs all prompts. No raw user string interpolation. |
 | agy writes directly to repo paths | MCP server hardcodes /tmp/ output — callers can't override. |
+| agy hangs (rate limit, transient network) | `tokio::time::timeout(120s)` in agy_delegate. Structured error: `{"error":"agy_timeout","elapsed_secs":120}`. |
+| /tmp/ accumulation (500+ files after 90 days) | `cleanup_agy_tmp()` removes prompt + output files after APPLY reads them. |
 
 ## Research Findings
 
@@ -202,11 +219,17 @@ with no useful error message.
 ## Build Order
 
 ```
-1. ✅ Spike        — agy holds format + copy-paste ready output (2026-05-22)
-2. brana-mcp tool  — add agy_delegate to existing Rust crate (~half day)
-3. /brana:gemini   — Layer C skill, full lifecycle on top of MCP (~1 day)
-4. Rules update    — delegation-routing.md + git-discipline.md + cwd-discipline.md
-5. Scheduler hook  — agy sweep template for overnight runs
+1. ✅ Spike (happy-path)  — agy holds format + copy-paste ready output (2026-05-22)
+1.5. Adversarial spike    — run agy under: no-network, malformed prompt, oversized input,
+                            quota exhaustion (if reachable). Document: exit codes, stdout
+                            patterns for each failure mode, stderr vs stdout split.
+                            Output: failure-mode spec committed to docs/architecture/features/
+                            claude-gemini-orchestration.md before step 2 starts.
+                            GATE: agy_delegate.rs validator is written from this spec — not before it.
+2. brana-mcp tool         — add agy_delegate to existing Rust crate (~half day)
+3. /brana:gemini          — Layer C skill, full lifecycle on top of MCP (~1 day)
+4. Rules update           — delegation-routing.md + git-discipline.md + cwd-discipline.md
+5. Scheduler hook         — agy sweep template for overnight runs
 ```
 
 > t-1507 (atomic tasks.json write) is NOT a prerequisite for v1. v1 is foreground-only —
@@ -218,8 +241,10 @@ with no useful error message.
 - **DDD:** ADR — "agy invocation contract and routing criteria." Decisions: Layer A vs B
   per context, routing heuristic, output file convention, /tmp/ invariant.
 - **TDD:** Tests for `agy_delegate` (happy path, timeout, malformed output, /tmp/ path
-  enforcement, stdio isolation — MCP stream must not be contaminated by agy stdout),
-  skill ROUTE check (ruflo-unavailable hard-block for ⚠️ types), PERSIST step.
+  enforcement, stdio isolation — MCP stream must not be contaminated by agy stdout,
+  version mismatch → hard error, version match → proceeds, binary-hash fallback when
+  `--version` flag absent), skill ROUTE check (ruflo-unavailable hard-block for ⚠️ types),
+  PERSIST step.
 - **SDD:** `docs/architecture/features/claude-gemini-orchestration.md` + update
   `docs/ideas/agent-interaction-architecture.md`.
 - **Docs:** Tech doc only (internal system feature). Update `delegation-routing.md` rule.
@@ -227,10 +252,14 @@ with no useful error message.
 ## Next Steps
 
 1. ✅ Spike passed (2026-05-22) — agy holds format + produces copy-paste ready output.
-2. Add `agy_delegate` tool to `brana-mcp` Rust crate. Verify `brana backlog set` CLI syntax before writing skill.
-3. Build `/brana:gemini` skill.
-4. Update rules: `delegation-routing.md`, `git-discipline.md`, `cwd-discipline.md`.
-5. Add agy sweep template to `system/scheduler/templates/`.
+2. **Adversarial spike** — run agy under failure conditions (no-network, malformed prompt,
+   oversized input, quota exhaustion). Commit observed exit codes + stdout/stderr patterns
+   as failure-mode spec. Gates step 3.
+3. Add `agy_delegate` tool to `brana-mcp` Rust crate (validator built from step 2 spec).
+   Verify `brana backlog set` CLI syntax before writing skill.
+4. Build `/brana:gemini` skill.
+5. Update rules: `delegation-routing.md`, `git-discipline.md`, `cwd-discipline.md`.
+6. Add agy sweep template to `system/scheduler/templates/`.
 
 ## Related
 
