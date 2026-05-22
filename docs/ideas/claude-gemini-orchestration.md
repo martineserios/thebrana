@@ -26,8 +26,14 @@ back through Claude into the brana system.
 
 ```
 LAYER A — Bash (today, always)
-  agy -p "..." > /tmp/agy-output-{ts}.md
+  agy -p "..." > /tmp/agy-output-{ts}.md           # quick tests, spike validation
+  agy -p "..." > system/scheduler/outputs/{ts}.md  # scheduled sweeps (survives reboot)
   Used for: quick tests, scheduled sweeps, spike validation
+
+  Scheduled sweep discipline: write to system/scheduler/outputs/ — not /tmp/.
+  /tmp/ is ephemeral; overnight output is lost on reboot before /brana:close runs.
+  During /brana:close, Claude does a batch EXTRACT pass over system/scheduler/outputs/
+  and removes processed files. Fire-and-forget preserved; learning salvaged.
 
 LAYER B — brana-mcp tools: agy_delegate (add to existing crate)
   Typed contract: task + context + output_format
@@ -72,11 +78,11 @@ All four yes → agy. Any no → Claude.
 | Task type | Why | Example |
 |-----------|-----|---------|
 | Research sweep | Atomic, read-only, Flash speed | "Summarize TrackingMore webhook docs — capabilities, rate limits, event types." |
-| Boilerplate generation | Repetitive patterns, deterministic | "Generate Rust structs for this JSON schema: {schema}" — ⚠️ requires convention context in ruflo (naming, derive macros, crate structure); generic output likely without it |
+| Boilerplate generation | Repetitive patterns, deterministic | "Generate Rust structs for this JSON schema: {schema}" — ⚠️ ENRICH at limit=10, filter for source:thebrana (naming, derive macros, crate structure); prompt if no project-specific patterns returned |
 | Doc first draft | Fast iteration, Claude polishes | "Write a first draft of this ADR from context: {context}" — ⚠️ ADR "why" section needs explicit in-session context; pass it in the task description or quality suffers |
 | Conversion/translation | Deterministic, speed matters | "Convert these TypeScript types to Python dataclasses" |
 | Batch summarization | Parallel, repetitive | "Summarize each of these 10 items. One bullet per item." |
-| Test scaffolding | Formulaic, Claude reviews | "Write unit test signatures (no impl) for these function specs" — ⚠️ requires convention context in ruflo (test module structure, assert patterns, async test attributes); generic scaffolding won't match codebase |
+| Test scaffolding | Formulaic, Claude reviews | "Write unit test signatures (no impl) for these function specs" — ⚠️ ENRICH at limit=10, filter for source:thebrana (test module structure, assert patterns, async test attributes); prompt if no project-specific patterns returned |
 | Competitive/market analysis | Research-heavy, brana-agnostic | "Compare X and Y on speed, pricing, reliability. Return scorecard." |
 
 ### Claude-native (never delegate)
@@ -100,7 +106,7 @@ All four yes → agy. Any no → Claude.
 | **Rules** | `delegation-routing.md` gets 4-question heuristic | `git-discipline.md`, `cwd-discipline.md` get agy constraints |
 | **brana CLI** | Claude calls after reading agy output | agy never calls brana CLI |
 | **tasks.json** | Never touched by agy | t-1507 required before `--bg` v2 (parallel sessions); not needed for v1 foreground-only |
-| **Scheduler** | brana-scheduler fires agy sweeps via shell script | Layer A only |
+| **Scheduler** | brana-scheduler fires agy sweeps via shell script | Layer A only. Sweeps write to `system/scheduler/outputs/` — not /tmp/. `/brana:close` batch-extracts and removes processed files. |
 | **Scripts** | feed-ruflo, index-knowledge, sweep-feedback can call agy for enrichment | output always /tmp/ first |
 | **ruflo/memory** | Claude mediates: extract from agy output → store via MCP tools | agy never writes to ruflo directly |
 | **Plugin** | `/brana:gemini` registered in plugin.json when built | |
@@ -126,7 +132,11 @@ ROUTE → ENRICH → DELEGATE → APPLY → EXTRACT → PERSIST
   Hard-block for ⚠️ task types (boilerplate, ADR draft, test scaffolding) when ruflo is
   unavailable — convention context is required; generic output would silently violate
   codebase conventions. Error: "ruflo required for convention-sensitive task — use Claude directly."
-- **ENRICH:** query ruflo (knowledge, limit=3), construct `/tmp/agy-prompt-{ts}.md` with task + context + output format + constraints.
+- **ENRICH:** query ruflo (knowledge + pattern, limit=3 default; limit=10 for ⚠️ convention-sensitive
+  types), construct `/tmp/agy-prompt-{ts}.md` with task + context + output format + constraints.
+  Pre-flight for ⚠️ types: if zero `source:thebrana` entries in ruflo results, prompt —
+  "ruflo returned only generic patterns for a convention-sensitive task — proceed anyway or
+  use Claude directly?" Generic output will likely violate codebase conventions.
 - **DELEGATE:** call `mcp__agy__delegate(task, context, output_format)`. Foreground-only in v1 — wait for result before proceeding to APPLY.
 - **APPLY:** Claude reads `/tmp/agy-output-{ts}.md`. Two outcomes:
   - **CONTEXT** (default) — output informs Claude's reasoning for the current session.
@@ -158,18 +168,25 @@ system/cli/rust/crates/brana-mcp/src/tools/
 `agy_delegate.rs` needs updating. The skill and rules are unchanged.**
 
 ```rust
-// agy_delegate: version-check → write prompt → /tmp/ → spawn agy -p → validate → return
+// agy_delegate: version-check → write prompt → /tmp/ → spawn agy (with timeout) → validate → cleanup → return
 // Step 0: version pin — hard-error if agy version doesn't match pinned constant.
 // If `agy --version` is unavailable (closed-source, no flag), fall back to sha256 of binary.
 const AGY_PINNED_VERSION: &str = "1.0.1";  // update on each verified upgrade
+const AGY_TIMEOUT_SECS: u64 = 120;         // agy --print-timeout default is 5min; 2min is our hard ceiling
 
 // Critical: stdio must be explicitly captured — never inherited from MCP's stdio pipe.
-let output = Command::new("agy")
-    .arg("-p").arg(&prompt_content)
-    .stdin(Stdio::null())    // never inherit MCP's stdin pipe
-    .stdout(Stdio::piped())  // capture; agy stdout must NOT bleed into MCP stream
-    .stderr(Stdio::piped())  // capture for structured error reporting
-    .output()?;
+// Wrapped in tokio::time::timeout — agy hang (rate limit, network) must not freeze CC session.
+let result = tokio::time::timeout(
+    Duration::from_secs(AGY_TIMEOUT_SECS),
+    Command::new("agy")
+        .arg("-p").arg(&prompt_content)
+        .stdin(Stdio::null())    // never inherit MCP's stdin pipe
+        .stdout(Stdio::piped())  // capture; agy stdout must NOT bleed into MCP stream
+        .stderr(Stdio::piped())  // capture for structured error reporting
+        .output()
+).await;
+// On timeout: return structured error {"error":"agy_timeout","elapsed_secs":120,"prompt_path":"..."}
+// Cleanup /tmp/ files in both success and timeout paths.
 ```
 
 Hardcodes `/tmp/` output — callers cannot override. Validates output contract before
@@ -177,6 +194,12 @@ returning — validator spec is derived from the adversarial spike (step 1.5), n
 Known unknowns until spike runs: whether agy prints errors to stdout vs stderr, whether
 quota/auth/rate-limit failures exit 0 or non-zero, what the error string patterns look like.
 Structured error on timeout or contract violation.
+
+**Cleanup:** both `/tmp/agy-prompt-{ts}.md` and `/tmp/agy-output-{ts}.md` are removed at
+end of `agy_delegate` after output is read and returned. Use a Rust `Drop` impl or explicit
+cleanup before return — not optional. No cleanup = 500+ orphaned files after 90 days on
+tmpfs systems. Timestamp suffix uses milliseconds (not seconds) to avoid collision on rapid
+back-to-back calls.
 
 **Version pinning discipline:** `AGY_PINNED_VERSION` is updated manually after each agy
 upgrade — bump pin, re-run adversarial spike (C2), confirm output contract unchanged, then
@@ -240,11 +263,17 @@ with no useful error message.
 
 - **DDD:** ADR — "agy invocation contract and routing criteria." Decisions: Layer A vs B
   per context, routing heuristic, output file convention, /tmp/ invariant.
-- **TDD:** Tests for `agy_delegate` (happy path, timeout, malformed output, /tmp/ path
-  enforcement, stdio isolation — MCP stream must not be contaminated by agy stdout,
-  version mismatch → hard error, version match → proceeds, binary-hash fallback when
-  `--version` flag absent), skill ROUTE check (ruflo-unavailable hard-block for ⚠️ types),
-  PERSIST step.
+- **TDD:** Tests for `agy_delegate`:
+  - happy path — valid output returned, /tmp/ files cleaned up after return
+  - timeout — agy hangs past AGY_TIMEOUT_SECS → structured `agy_timeout` error, /tmp/ cleaned
+  - malformed output — contract violation → structured error
+  - /tmp/ path enforcement — output path always under /tmp/, never repo paths
+  - stdio isolation — MCP JSON-RPC stream not contaminated by agy stdout
+  - version match → proceeds; version mismatch → hard error with upgrade message
+  - binary-hash fallback when `--version` flag absent
+  - timestamp collision — two rapid calls produce distinct filenames (millisecond suffix)
+  - Skill ROUTE check: ruflo-unavailable hard-block for ⚠️ types; zero source:thebrana results → prompt
+  - PERSIST step
 - **SDD:** `docs/architecture/features/claude-gemini-orchestration.md` + update
   `docs/ideas/agent-interaction-architecture.md`.
 - **Docs:** Tech doc only (internal system feature). Update `delegation-routing.md` rule.
