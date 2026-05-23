@@ -3318,3 +3318,35 @@ Update 2026-05-20 (second debrief): t-1540 only touched `tool_tests.rs`; the two
 **Fix:** Document the SQL fallback as the canonical password-reset path in `supabase-cli-multiproject.md`.
 
 **Status:** informational
+
+---
+
+## E2026-05-22-6 — `initiative` field not settable via backlog MCP update API
+
+**Severity:** Low
+**Discovery:** 2026-05-22 — brana-v2-compute initiative planning session, batch_set calls across 30 tasks
+**Affected files:** `system/cli/rust/crates/brana-mcp/` (backlog_set handler), `system/cli/rust/crates/brana-core/src/` (task schema MCP exposure)
+
+**Spec says:** backlog_set / backlog_batch support "status, priority, effort, tags (+/-), context, notes, and more." — `initiative` is a known task field used by t-1586..t-1607.
+
+**Reality:** `backlog_set` and `backlog_batch` both reject `initiative` with "unknown field: initiative". The field is write-once at creation time via a path not exposed in backlog_add's MCP schema. Tasks created via the current MCP API cannot have initiative set post-creation.
+
+**Fix:** Expose `initiative` in the backlog_set field allowlist in the MCP crate. Interim workaround: use tag `brana-v2-compute` for queryability; set initiative at CLI level via `brana backlog set <id> initiative <slug>` if supported.
+
+**Status:** pending
+
+---
+
+## E2026-05-22-7 — String-tagged tasks reject all MCP tag updates (legacy comma-string format)
+
+**Severity:** Low
+**Discovery:** 2026-05-22 — brana-v2-compute initiative tagging, batch_set on t-1586..t-1607
+**Affected files:** `.claude/tasks.json` (tasks with `"tags": "string"` schema), `system/cli/rust/crates/brana-mcp/` (backlog_set tag handler)
+
+**Spec says:** backlog_set tags field supports `+tag` to add and `-tag` to remove.
+
+**Reality:** Older tasks (t-1586..t-1607, created in the ruflo-integration phase) have tags stored as a comma-separated string `"ruflo,multi-agent"` rather than an array `["ruflo","multi-agent"]`. The MCP tag update handler requires array format and rejects string-format tasks with "tags: tags is not an array". Full-string replacement also fails with the same error — the handler validates the existing field type before applying any operation.
+
+**Fix:** Migrate string-tagged tasks to array format in the tasks.json data migration, or update the MCP tag handler to accept both formats (coerce string→array before applying the `+/-` operation).
+
+**Status:** pending
