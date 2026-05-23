@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-20T19:21:25Z",
+  "generated": "2026-05-23T01:39:06Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -513,7 +513,9 @@
         "system/cli/rust/crates/brana-cli/src/commands/feed.rs:298",
         "system/cli/rust/crates/brana-core/src/tasks.rs",
         "system/cli/rust/crates/brana-core/src/sync.rs",
-        "system/skills/_shared/guided-execution.md:52"
+        "system/skills/_shared/guided-execution.md:52",
+        "system/cli/rust/crates/brana-mcp/",
+        "system/cli/rust/crates/brana-core/src/"
       ]
     },
     "docs/25-self-documentation.md": {
@@ -2116,10 +2118,29 @@
         "system/scripts/spec_graph.py"
       ]
     },
+    "docs/ideas/brana-efficiency-without-power-loss.md": {
+      "title": "Brana Efficiency — Reduce Usage Without Losing Power",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/agents/debrief-analyst.md",
+        "system/procedures/close.md"
+      ]
+    },
     "docs/ideas/brana-operating-model.md": {
       "title": "Brana Operating Model",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/ideas/brana-v2-compute-model.md": {
+      "title": "brana v2 Compute Model",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/",
+        "system/agents/debrief-analyst.md",
+        "system/procedures/close.md",
+        "system/cli/rust/crates/brana-mcp/src/tools/agy_delegate.rs",
+        "system/skills/gemini/SKILL.md"
+      ]
     },
     "docs/ideas/build-enhancements-from-osmani.md": {
       "title": "Build Command Enhancements — Inspired by addyosmani/agent-skills",
@@ -2146,6 +2167,16 @@
       "title": "CC Feature Adoption — v2.1.76–v2.1.81",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/ideas/claude-gemini-orchestration.md": {
+      "title": "Claude-Gemini Orchestrator-Worker Integration",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/",
+        "system/scheduler/outputs/",
+        "system/scheduler/templates/",
+        "system/rules/delegation-routing.md"
+      ]
     },
     "docs/ideas/cloud-scheduler-provider-abstraction.md": {
       "title": "Brana Cloud Scheduler — Provider-Abstracted Job Orchestration",
@@ -12134,12 +12165,24 @@
       "to": "dimensions/50-respond-io-platform.md",
       "type": "supersedes",
       "computed": false
+    },
+    {
+      "from": "docs/ideas/brana-v2-compute-model.md",
+      "to": "docs/ideas/brana-efficiency-without-power-loss.md",
+      "type": "supersedes",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/brana-v2-compute-model.md",
+      "to": "docs/ideas/claude-gemini-orchestration.md",
+      "type": "supersedes",
+      "computed": false
     }
   ],
   "stats": {
-    "nodes": 396,
-    "edges": 1587,
-    "typed_edges": 568,
+    "nodes": 399,
+    "edges": 1589,
+    "typed_edges": 570,
     "orphans": 102
   }
 }
