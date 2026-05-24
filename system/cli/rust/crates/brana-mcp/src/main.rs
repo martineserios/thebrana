@@ -25,6 +25,7 @@ async fn main() -> anyhow::Result<()> {
         .tool("session_history", tools::session_history::build())
         .tool("memory_write", tools::memory_write::build())
         .tool("memory_index", tools::memory_index::build())
+        .tool("agy_delegate", tools::agy_delegate::build())
         .build()?;
 
     server.run_stdio().await?;
