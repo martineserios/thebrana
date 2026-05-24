@@ -621,6 +621,16 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
             if field == "isc" && task[field].is_null() {
                 task[field] = Value::Array(vec![]);
             }
+            // Coerce legacy comma-string format to array (E2026-05-22-7)
+            if let Some(s) = task[field].as_str() {
+                task[field] = Value::Array(
+                    s.split(',')
+                        .map(|t| t.trim())
+                        .filter(|t| !t.is_empty())
+                        .map(|t| Value::String(t.to_string()))
+                        .collect(),
+                );
+            }
             let arr = task[field].as_array_mut()
                 .ok_or_else(|| format!("{field} is not an array"))?;
             if let Some(stripped) = value.strip_prefix('+') {
@@ -1683,6 +1693,34 @@ mod tests {
     fn test_set_field_isc_bare_value_errors() {
         let mut task = json!({"id": "t-1", "isc": []});
         assert!(set_field(&mut task, "isc", "no-prefix", false).is_err());
+    }
+
+    // ── E2026-05-22-7: string-tagged task coercion ──────────────────────
+
+    #[test]
+    fn test_set_field_tags_string_coerce_add() {
+        let mut task = json!({"id": "t-1", "tags": "ruflo,multi-agent"});
+        set_field(&mut task, "tags", "+brana-v2-compute", false).unwrap();
+        let tags = task["tags"].as_array().expect("tags should be array after coercion");
+        assert!(tags.contains(&json!("ruflo")));
+        assert!(tags.contains(&json!("multi-agent")));
+        assert!(tags.contains(&json!("brana-v2-compute")));
+    }
+
+    #[test]
+    fn test_set_field_tags_string_coerce_remove() {
+        let mut task = json!({"id": "t-1", "tags": "ruflo,multi-agent"});
+        set_field(&mut task, "tags", "-ruflo", false).unwrap();
+        let tags = task["tags"].as_array().expect("tags should be array after coercion");
+        assert!(!tags.contains(&json!("ruflo")));
+        assert!(tags.contains(&json!("multi-agent")));
+    }
+
+    #[test]
+    fn test_set_field_tags_empty_string_coerce() {
+        let mut task = json!({"id": "t-1", "tags": ""});
+        set_field(&mut task, "tags", "+new", false).unwrap();
+        assert_eq!(task["tags"], json!(["new"]));
     }
 
     #[test]
