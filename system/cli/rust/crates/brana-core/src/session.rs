@@ -184,6 +184,8 @@ impl SessionState {
     /// doesn't pollute the next session's drift signals. Paths that don't exist
     /// at write time are heuristic artifacts that have already been invalidated.
     pub fn sanitize(mut self) -> Self {
+        // Invariant: consumed_at is set by session-start, never persisted by a write.
+        self.consumed_at = None;
         if let Some(ref mut drift) = self.doc_drift {
             drift.stale_docs.retain(|p| Path::new(p).exists());
         }
@@ -1233,5 +1235,18 @@ mod tests {
         };
         let merged = merge_states(&existing, &new);
         assert_eq!(merged.blockers.len(), 2);
+    }
+
+    #[test]
+    fn write_state_clears_consumed_at_on_different_day_write() {
+        // Simulates MCP surface: no call-site guard, state arrives with consumed_at set,
+        // written_at is in the past (different day → no same-day merge path).
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let mut state = make_state("2026-04-05T10:00:00Z");
+        state.consumed_at = Some("2026-04-05T08:00:00Z".to_string());
+        write_state(root, &state).unwrap();
+        let loaded = read_state(root).expect("state must exist after write");
+        assert!(loaded.consumed_at.is_none(), "write_state must clear consumed_at regardless of call site");
     }
 }
