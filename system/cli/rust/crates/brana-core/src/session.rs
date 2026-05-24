@@ -234,17 +234,23 @@ pub fn write_state(project_root: &Path, state: &SessionState) -> Result<()> {
         fs::create_dir_all(parent)?;
     }
 
-    // Same-day merge: if an existing state was written today, merge instead of replace
+    // Same-day + same-branch merge: union two closes from the same session context.
+    // Uses local timezone — UTC comparison misclassifies late-night closes (e.g. 23:30
+    // local = next UTC day) and prevents valid same-day merges.
+    // Branch check prevents feat-A accomplishments bleeding into main when branches are
+    // switched within the same directory on the same calendar day.
     let state_to_write = if let Some(existing) = read_state(project_root) {
         let same_day = chrono::DateTime::parse_from_rfc3339(&existing.written_at)
             .ok()
             .zip(chrono::DateTime::parse_from_rfc3339(&state.written_at).ok())
             .map(|(ex, nw)| {
-                ex.with_timezone(&Utc).date_naive() == nw.with_timezone(&Utc).date_naive()
+                ex.with_timezone(&chrono::Local).date_naive()
+                    == nw.with_timezone(&chrono::Local).date_naive()
             })
             .unwrap_or(false);
+        let same_branch = existing.branch == state.branch;
 
-        if same_day {
+        if same_day && same_branch {
             merge_states(&existing, state).sanitize()
         } else {
             state.clone().sanitize()
@@ -255,7 +261,10 @@ pub fn write_state(project_root: &Path, state: &SessionState) -> Result<()> {
 
     state_to_write.validate()?;
 
-    // Archive current state to history before overwriting
+    // Archive current state to history before overwriting.
+    // NOTE: archives the pre-merge snapshot, not the merged result — history is a
+    // changelog (state *before* each write). To reconstruct end-of-day state, read
+    // session-state.json directly; don't replay history expecting the merged output.
     if let Ok(existing_raw) = fs::read_to_string(&state_path) {
         if !existing_raw.trim().is_empty() {
             let file = fs::OpenOptions::new()
@@ -391,7 +400,13 @@ pub fn merge_states(existing: &SessionState, new: &SessionState) -> SessionState
                 test_writes,
                 correction_rate,
                 test_write_rate,
-                cascade_rate: (em.cascade_rate + nm.cascade_rate) / 2.0,
+                // Weighted average: approximate raw cascade count from rate × events,
+                // sum, then recompute — avoids naive average error when session sizes differ.
+                cascade_rate: {
+                    let cascades = (em.cascade_rate * em.events as f64).round() as u64
+                        + (nm.cascade_rate * nm.events as f64).round() as u64;
+                    if events > 0 { cascades as f64 / events as f64 } else { 0.0 }
+                },
                 delegation_count: em.delegation_count + nm.delegation_count,
             })
         }
@@ -458,6 +473,11 @@ pub fn merge_states(existing: &SessionState, new: &SessionState) -> SessionState
 }
 
 /// Set consumed_at on the current state (atomic in-place update).
+///
+/// Intentionally bypasses `write_state()` — `sanitize()` always strips `consumed_at`,
+/// so routing through it would defeat the purpose. Uses the same .tmp→rename atomic
+/// guarantee. Does NOT append to history (consumed_at is a read-side marker, not a
+/// new session write).
 pub fn mark_consumed(project_root: &Path) -> Result<()> {
     let path = session_state_path(project_root);
     let content = fs::read_to_string(&path).context("reading session-state.json")?;
@@ -1207,6 +1227,35 @@ mod tests {
         assert_eq!(m.corrections, 3);
         assert_eq!(m.test_writes, 5);
         assert_eq!(m.delegation_count, 1);
+    }
+
+    #[test]
+    fn merge_states_cascade_rate_weighted() {
+        // Session A: 100 events, cascade_rate 0.10 → ~10 cascades
+        // Session B: 10 events,  cascade_rate 0.50 → ~5 cascades
+        // Naive average: (0.10 + 0.50) / 2 = 0.30  ← wrong
+        // Weighted:      15 / 110             = 0.136 ← correct
+        let a = SessionState {
+            metrics: Some(SessionMetrics {
+                events: 100, corrections: 0, test_writes: 0,
+                correction_rate: 0.0, test_write_rate: 0.0,
+                cascade_rate: 0.10, delegation_count: 0,
+            }),
+            ..SessionState::minimal(None)
+        };
+        let b = SessionState {
+            metrics: Some(SessionMetrics {
+                events: 10, corrections: 0, test_writes: 0,
+                correction_rate: 0.0, test_write_rate: 0.0,
+                cascade_rate: 0.50, delegation_count: 0,
+            }),
+            ..SessionState::minimal(None)
+        };
+        let merged = merge_states(&a, &b);
+        let rate = merged.metrics.unwrap().cascade_rate;
+        // Should be ~0.136, not 0.30
+        assert!(rate < 0.20, "cascade_rate should be weighted by events, got {rate}");
+        assert!(rate > 0.10, "cascade_rate should be above the lower bound, got {rate}");
     }
 
     #[test]
