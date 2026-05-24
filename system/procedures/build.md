@@ -1253,7 +1253,9 @@ Score each finding on a 0-10 scale across three dimensions:
 mcp__ruflo__memory_search(query: "{finding summary}", namespace: "knowledge", limit: 2)
 mcp__ruflo__memory_search(query: "{finding summary}", namespace: "pattern",   limit: 2)
 ```
-If top result similarity > 0.7, skip persistence (already captured). Otherwise proceed to PERSIST.
+If top result similarity ≥ 0.85, skip persistence (already captured). Otherwise proceed to PERSIST.
+
+> Threshold 0.85 calibrated 2026-05-24 (t-1589): max distinct-pair similarity = 0.59, gap = 0.26.
 
 > **☑ Checkpoint — EVALUATE** (M+ builds with task_id):
 > ```bash
@@ -1272,12 +1274,21 @@ Route each finding by type:
 | **Tags/context** | Task context via `brana backlog set {id} context --append "{finding}"` | Auto |
 
 **Pattern persistence format:**
+
+Dedup gate (run before every pattern memory_store — including SMALL auto-persists):
+```
+mcp__ruflo__memory_search(query: "{finding summary}", namespace: "pattern", limit: 1, threshold: 0.85)
+```
+- **Hit (similarity ≥ 0.85):** reuse the existing key with `upsert: true` — update confidence, append source_task. Do NOT create a new entry.
+- **Miss (< 0.85) or MCP unavailable:** write new entry with a fresh key.
+
 ```
 mcp__ruflo__memory_store(
-  key: "pattern:{project}:{finding-slug}",
+  key: "pattern:{project}:{finding-slug}",   # or existing key on hit
   value: "{\"problem\": \"...\", \"solution\": \"...\", \"confidence\": 0.5, \"source_task\": \"{task-id}\"}",
   namespace: "pattern",
-  tags: ["client:{project}", "type:{ontology-type}", "strategy:{build-strategy}"]
+  tags: ["client:{project}", "type:{ontology-type}", "strategy:{build-strategy}"],
+  upsert: true
 )
 ```
 
