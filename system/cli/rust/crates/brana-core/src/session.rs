@@ -224,9 +224,6 @@ pub fn read_state(project_root: &Path) -> Option<SessionState> {
 /// Archives the previous state to history JSONL before overwriting.
 /// Non-existent paths in `doc_drift.stale_docs` are silently stripped before write.
 pub fn write_state(project_root: &Path, state: &SessionState) -> Result<()> {
-    let state = state.clone().sanitize();
-    state.validate()?;
-
     let state_path = session_state_path(project_root);
     let history_path = session_history_path(project_root);
 
@@ -235,35 +232,56 @@ pub fn write_state(project_root: &Path, state: &SessionState) -> Result<()> {
         fs::create_dir_all(parent)?;
     }
 
+    // Same-day merge: if an existing state was written today, merge instead of replace
+    let state_to_write = if let Some(existing) = read_state(project_root) {
+        let same_day = chrono::DateTime::parse_from_rfc3339(&existing.written_at)
+            .ok()
+            .zip(chrono::DateTime::parse_from_rfc3339(&state.written_at).ok())
+            .map(|(ex, nw)| {
+                ex.with_timezone(&Utc).date_naive() == nw.with_timezone(&Utc).date_naive()
+            })
+            .unwrap_or(false);
+
+        if same_day {
+            merge_states(&existing, state).sanitize()
+        } else {
+            state.clone().sanitize()
+        }
+    } else {
+        state.clone().sanitize()
+    };
+
+    state_to_write.validate()?;
+
     // Archive current state to history before overwriting
-    if let Ok(existing) = fs::read_to_string(&state_path) {
-        if !existing.trim().is_empty() {
+    if let Ok(existing_raw) = fs::read_to_string(&state_path) {
+        if !existing_raw.trim().is_empty() {
             let file = fs::OpenOptions::new()
                 .create(true)
                 .append(true)
                 .open(&history_path)
                 .context("opening session-history.jsonl")?;
             let mut w = BufWriter::new(file);
-            // Write the existing state as a single JSONL line
-            let compact =
-                serde_json::to_string(&serde_json::from_str::<serde_json::Value>(&existing)?)?;
+            let compact = serde_json::to_string(
+                &serde_json::from_str::<serde_json::Value>(&existing_raw)?,
+            )?;
             writeln!(w, "{compact}")?;
         }
     }
 
     // Atomic write
     let tmp = state_path.with_extension("tmp");
-    let json = serde_json::to_string_pretty(&state)?;
+    let json = serde_json::to_string_pretty(&state_to_write)?;
     fs::write(&tmp, &json)?;
     fs::rename(&tmp, &state_path)?;
 
-    // Rotate history (drop entries > 30 days)
+    // Rotate history (drop entries > 365 days)
     rotate_history(&history_path)?;
 
     Ok(())
 }
 
-/// Remove history entries older than 30 days.
+/// Remove history entries older than 365 days.
 fn rotate_history(history_path: &Path) -> Result<()> {
     let content = match fs::read_to_string(history_path) {
         Ok(c) => c,
@@ -296,6 +314,238 @@ fn rotate_history(history_path: &Path) -> Result<()> {
     fs::rename(&tmp, history_path)?;
 
     Ok(())
+}
+
+/// Merge two session states written on the same day.
+///
+/// Existing items come first; new items are appended when not already present.
+/// consumed_at is always cleared — session-start marks it fresh on next read.
+pub fn merge_states(existing: &SessionState, new: &SessionState) -> SessionState {
+    let mut merged = new.clone();
+
+    // accomplished: existing first, append new non-duplicates
+    let mut accomplished = existing.accomplished.clone();
+    for item in &new.accomplished {
+        if !accomplished.contains(item) {
+            accomplished.push(item.clone());
+        }
+    }
+    merged.accomplished = accomplished;
+
+    // learnings: same order-preserving dedup
+    let mut learnings = existing.learnings.clone();
+    for item in &new.learnings {
+        if !learnings.contains(item) {
+            learnings.push(item.clone());
+        }
+    }
+    merged.learnings = learnings;
+
+    // next: dedup by .text (existing wins on collision)
+    let mut next = existing.next.clone();
+    for item in &new.next {
+        if !next.iter().any(|x| x.text == item.text) {
+            next.push(item.clone());
+        }
+    }
+    merged.next = next;
+
+    // blockers: dedup by .text
+    let mut blockers = existing.blockers.clone();
+    for item in &new.blockers {
+        if !blockers.iter().any(|x| x.text == item.text) {
+            blockers.push(item.clone());
+        }
+    }
+    merged.blockers = blockers;
+
+    // session_label: combine with " | " unless one contains the other
+    merged.session_label = match (&existing.session_label, &new.session_label) {
+        (Some(el), Some(nl)) => {
+            if el == nl || el.contains(nl.as_str()) {
+                Some(el.clone())
+            } else if nl.contains(el.as_str()) {
+                Some(nl.clone())
+            } else {
+                Some(format!("{el} | {nl}"))
+            }
+        }
+        (Some(el), None) => Some(el.clone()),
+        (None, Some(nl)) => Some(nl.clone()),
+        (None, None) => None,
+    };
+
+    // metrics: sum numeric fields; rates recomputed from totals
+    merged.metrics = match (&existing.metrics, &new.metrics) {
+        (Some(em), Some(nm)) => {
+            let events = em.events + nm.events;
+            let corrections = em.corrections + nm.corrections;
+            let test_writes = em.test_writes + nm.test_writes;
+            let correction_rate = if events > 0 { corrections as f64 / events as f64 } else { 0.0 };
+            let test_write_rate = if events > 0 { test_writes as f64 / events as f64 } else { 0.0 };
+            Some(SessionMetrics {
+                events,
+                corrections,
+                test_writes,
+                correction_rate,
+                test_write_rate,
+                cascade_rate: (em.cascade_rate + nm.cascade_rate) / 2.0,
+                delegation_count: em.delegation_count + nm.delegation_count,
+            })
+        }
+        (Some(em), None) => Some(em.clone()),
+        (None, Some(nm)) => Some(nm.clone()),
+        (None, None) => None,
+    };
+
+    // state (SessionMeta): merge key_files; latest test_status wins
+    merged.state = match (&existing.state, &new.state) {
+        (Some(es), Some(ns)) => {
+            let mut key_files = es.key_files.clone();
+            for f in &ns.key_files {
+                if !key_files.contains(f) {
+                    key_files.push(f.clone());
+                }
+            }
+            Some(SessionMeta {
+                key_files,
+                test_status: ns.test_status.clone().or_else(|| es.test_status.clone()),
+            })
+        }
+        (Some(es), None) => Some(es.clone()),
+        (None, Some(ns)) => Some(ns.clone()),
+        (None, None) => None,
+    };
+
+    // backprop: OR needed; merge files
+    merged.backprop = match (&existing.backprop, &new.backprop) {
+        (Some(eb), Some(nb)) => {
+            let mut files = eb.files.clone();
+            for f in &nb.files {
+                if !files.contains(f) {
+                    files.push(f.clone());
+                }
+            }
+            Some(Backprop { needed: eb.needed || nb.needed, files })
+        }
+        (Some(eb), None) => Some(eb.clone()),
+        (None, Some(nb)) => Some(nb.clone()),
+        (None, None) => None,
+    };
+
+    // doc_drift: OR detected; merge stale_docs
+    merged.doc_drift = match (&existing.doc_drift, &new.doc_drift) {
+        (Some(ed), Some(nd)) => {
+            let mut stale_docs = ed.stale_docs.clone();
+            for d in &nd.stale_docs {
+                if !stale_docs.contains(d) {
+                    stale_docs.push(d.clone());
+                }
+            }
+            Some(DocDrift { detected: ed.detected || nd.detected, stale_docs })
+        }
+        (Some(ed), None) => Some(ed.clone()),
+        (None, Some(nd)) => Some(nd.clone()),
+        (None, None) => None,
+    };
+
+    // consumed_at: always None — session-start marks it consumed fresh
+    merged.consumed_at = None;
+
+    merged
+}
+
+/// Set consumed_at on the current state (atomic in-place update).
+pub fn mark_consumed(project_root: &Path) -> Result<()> {
+    let path = session_state_path(project_root);
+    let content = fs::read_to_string(&path).context("reading session-state.json")?;
+    let mut state: SessionState = serde_json::from_str(&content).context("parsing session-state.json")?;
+
+    state.consumed_at = Some(Utc::now().to_rfc3339());
+
+    let tmp = path.with_extension("tmp");
+    let json = serde_json::to_string_pretty(&state)?;
+    fs::write(&tmp, &json)?;
+    fs::rename(&tmp, &path)?;
+
+    Ok(())
+}
+
+/// Render session state as human-readable text (pure formatting, no I/O).
+pub fn render_text(state: &SessionState) -> String {
+    let mut out = String::new();
+
+    out.push_str(&format!("Session: {}\n", state.written_at));
+    if let Some(ref label) = state.session_label {
+        out.push_str(&format!("Label: {label}\n"));
+    }
+    if let Some(ref branch) = state.branch {
+        out.push_str(&format!("Branch: {branch}\n"));
+    }
+    if let Some(ref ts) = state.consumed_at {
+        out.push_str(&format!("Consumed: {ts}\n"));
+    }
+
+    if !state.accomplished.is_empty() {
+        out.push_str("\nAccomplished:\n");
+        for item in &state.accomplished {
+            out.push_str(&format!("  - {item}\n"));
+        }
+    }
+
+    if !state.learnings.is_empty() {
+        out.push_str("\nLearnings:\n");
+        for item in &state.learnings {
+            out.push_str(&format!("  - {item}\n"));
+        }
+    }
+
+    if !state.next.is_empty() {
+        out.push_str("\nNext:\n");
+        for item in &state.next {
+            let cat = serde_json::to_value(&item.category)
+                .ok()
+                .and_then(|v| v.as_str().map(String::from))
+                .unwrap_or_default();
+            let task = item.task_id.as_deref().unwrap_or("");
+            let suffix = if task.is_empty() {
+                format!(" [{cat}]")
+            } else {
+                format!(" [{cat}, {task}]")
+            };
+            out.push_str(&format!("  - {}{suffix}\n", item.text));
+        }
+    }
+
+    if !state.blockers.is_empty() {
+        out.push_str("\nBlockers:\n");
+        for item in &state.blockers {
+            let task = item.task_id.as_deref().map(|t| format!(" ({t})")).unwrap_or_default();
+            out.push_str(&format!("  - {}{task}\n", item.text));
+        }
+    }
+
+    if let Some(ref bp) = state.backprop {
+        if bp.needed {
+            out.push_str(&format!("\nBackprop needed: {}\n", bp.files.join(", ")));
+        }
+    }
+
+    if let Some(ref dd) = state.doc_drift {
+        if dd.detected {
+            out.push_str(&format!("\nDoc drift: {}\n", dd.stale_docs.join(", ")));
+        }
+    }
+
+    if let Some(ref m) = state.metrics {
+        out.push_str(&format!(
+            "\nMetrics: {} events, {} corrections ({:.0}%), {} test writes ({:.0}%), {} delegations\n",
+            m.events, m.corrections, m.correction_rate * 100.0,
+            m.test_writes, m.test_write_rate * 100.0, m.delegation_count
+        ));
+    }
+
+    out
 }
 
 /// Read history entries, most recent first.
@@ -871,5 +1121,117 @@ mod tests {
         let loaded = read_state(root).unwrap();
         let stale = &loaded.doc_drift.as_ref().unwrap().stale_docs;
         assert_eq!(stale.len(), 2, "all existing paths should be preserved");
+    }
+
+    // ── merge_states ─────────────────────────────────────────────────────
+
+    fn make_next(text: &str, cat: NextCategory) -> NextItem {
+        NextItem { text: text.to_string(), task_id: None, category: cat }
+    }
+
+    fn make_blocker(text: &str) -> Blocker {
+        Blocker { text: text.to_string(), task_id: None }
+    }
+
+    #[test]
+    fn merge_states_deduplicates_accomplished() {
+        let existing = SessionState {
+            accomplished: vec!["a".to_string(), "b".to_string()],
+            ..SessionState::minimal(None)
+        };
+        let new = SessionState {
+            accomplished: vec!["b".to_string(), "c".to_string()],
+            ..SessionState::minimal(None)
+        };
+        let merged = merge_states(&existing, &new);
+        assert_eq!(merged.accomplished, vec!["a", "b", "c"]);
+    }
+
+    #[test]
+    fn merge_states_deduplicates_next_by_text() {
+        let existing = SessionState {
+            next: vec![make_next("do x", NextCategory::FollowUp)],
+            ..SessionState::minimal(None)
+        };
+        let new = SessionState {
+            next: vec![
+                make_next("do x", NextCategory::Maintenance),
+                make_next("do y", NextCategory::FollowUp),
+            ],
+            ..SessionState::minimal(None)
+        };
+        let merged = merge_states(&existing, &new);
+        assert_eq!(merged.next.len(), 2);
+        assert_eq!(merged.next[0].text, "do x");
+        assert_eq!(merged.next[1].text, "do y");
+    }
+
+    #[test]
+    fn merge_states_consumed_at_always_none() {
+        let ts = "2026-05-24T10:00:00Z".to_string();
+        let existing = SessionState {
+            consumed_at: Some(ts.clone()),
+            ..SessionState::minimal(None)
+        };
+        let new = SessionState {
+            consumed_at: None,
+            ..SessionState::minimal(None)
+        };
+        let merged = merge_states(&existing, &new);
+        assert_eq!(merged.consumed_at, None, "consumed_at must always be None after merge");
+    }
+
+    #[test]
+    fn merge_states_metrics_sum() {
+        let existing = SessionState {
+            metrics: Some(SessionMetrics {
+                events: 10, corrections: 2, test_writes: 3,
+                correction_rate: 0.0, test_write_rate: 0.0,
+                cascade_rate: 0.0, delegation_count: 1,
+            }),
+            ..SessionState::minimal(None)
+        };
+        let new = SessionState {
+            metrics: Some(SessionMetrics {
+                events: 5, corrections: 1, test_writes: 2,
+                correction_rate: 0.0, test_write_rate: 0.0,
+                cascade_rate: 0.0, delegation_count: 0,
+            }),
+            ..SessionState::minimal(None)
+        };
+        let merged = merge_states(&existing, &new);
+        let m = merged.metrics.unwrap();
+        assert_eq!(m.events, 15);
+        assert_eq!(m.corrections, 3);
+        assert_eq!(m.test_writes, 5);
+        assert_eq!(m.delegation_count, 1);
+    }
+
+    #[test]
+    fn merge_states_session_label_separator() {
+        let existing = SessionState {
+            session_label: Some("Session A".to_string()),
+            ..SessionState::minimal(None)
+        };
+        let new = SessionState {
+            session_label: Some("Session B".to_string()),
+            ..SessionState::minimal(None)
+        };
+        let merged = merge_states(&existing, &new);
+        assert_eq!(merged.session_label, Some("Session A | Session B".to_string()));
+    }
+
+    #[test]
+    fn merge_states_deduplicates_blockers() {
+        let existing = SessionState {
+            blockers: vec![make_blocker("blocker 1")],
+            ..SessionState::minimal(None)
+        };
+        let new = SessionState {
+            blockers: vec![make_blocker("blocker 1"), make_blocker("blocker 2")],
+            ..SessionState::minimal(None)
+        };
+        let merged = merge_states(&existing, &new);
+        assert_eq!(merged.blockers.len(), 2);
     }
 }
