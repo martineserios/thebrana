@@ -39709,7 +39709,7 @@
       "parent": "t-1643",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "[skill] mcp-agy server — typed agy invocation layer (Layer C)",
       "tags": [
@@ -39740,7 +39740,7 @@
       "parent": "t-1643",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "[skill] /brana:gemini — agy delegation lifecycle skill (Layer B)",
       "tags": [
@@ -39933,7 +39933,7 @@
       "parent": "t-1643",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "[skill] Build /brana:gemini skill",
       "tags": [
@@ -41106,7 +41106,7 @@
       "parent": "t-1644",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "subject": "[gemini] Add ENRICH step — ruflo memory_search before agy prompt",
       "tags": [
@@ -41160,7 +41160,7 @@
       "parent": "t-1644",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "subject": "[gemini] Add PERSIST step — Claude mediates ruflo pattern_store after agy",
       "tags": [
@@ -41590,7 +41590,7 @@
       "parent": "t-1642",
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "stream": "roadmap",
       "subject": "[sdd] Create docs/architecture/features/brana-v2-compute-model.md — living spec",
       "tags": [
@@ -41616,7 +41616,7 @@
       "parent": "t-1643",
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "subject": "[spike] Adversarial agy spike — failure conditions spec",
       "tags": [
@@ -41645,7 +41645,7 @@
       "parent": "t-1643",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "subject": "[rules] Update delegation-routing.md + git-discipline.md + cwd-discipline.md with agy constraints",
       "tags": [
@@ -41729,7 +41729,7 @@
       "parent": "t-1643",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "subject": "[scheduler] agy sweep template for system/scheduler/templates/",
       "tags": [
@@ -41842,7 +41842,7 @@
       "parent": "t-1643",
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "stream": "roadmap",
       "subject": "[adr] agy invocation contract — Layer A vs B, routing heuristic, /tmp/ invariant, version pinning",
       "tags": [
