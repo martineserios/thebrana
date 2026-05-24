@@ -107,47 +107,60 @@ Review the last few conversation turns for:
 
 ### Source 6 — Memory context (ruflo)
 
-Query ruflo for confidence-scored patterns related to current work:
+Run both calls in parallel:
 
 ```
-mcp__ruflo__hooks_intelligence_pattern-search(
+# Primary: unified semantic search across all namespaces
+mcp__ruflo__memory_search_unified(
   query: "{TASK_SUBJECT} {BRANCH}",
-  topK: 3,
-  minConfidence: 0.3,
-  namespace: "pattern"
+  namespace: "pattern",
+  limit: 3
 )
+
+# Shadow: autopilot prediction (shadow mode — emit only, do not act on it yet)
+mcp__ruflo__autopilot_predict()
 ```
 
 **Output rules:**
-- Suppress results below 0.25 similarity
-- If all results below threshold, omit this section entirely
+- Suppress memory results with similarity < 0.25
+- If all results below threshold, omit the memory context block entirely
 - Use plain-language labels: "from past sessions" not "[episodic]"
 - If a correction pattern matches current task, surface it explicitly
+- Show autopilot prediction alongside sitrep's own "Next action" heuristic:
+  - Label it `**Autopilot (shadow):**` so it's visible but distinct
+  - Always act on sitrep's heuristic — autopilot is observational until Phase 3
 
 ```markdown
 **Memory context:**
-- {pattern description, confidence: 0.35} — from past sessions
+- {pattern description, similarity: 0.35} — from past sessions
 - Note: past correction on this topic — {correction}
+
+**Autopilot (shadow):** {action} (confidence: {confidence}, reason: {reason})
 ```
 
 **Fallback:** If MCP unavailable, skip Source 6 entirely. Sitrep works as today — local-only.
 
-### Source 7 — Cross-session awareness (hive-mind)
+### Source 7 — Cross-session awareness (claims_board)
 
-Check if other sessions are active:
+Check in-flight claims for active work across sessions:
 ```
-mcp__ruflo__hive-mind_memory(
-  action: "list"
-)
+mcp__ruflo__claims_board()
 ```
-Filter for keys matching `client:*:build:*` or `client:*:session:*`.
 
-**Output:** If active sessions found:
+Use `board.active` for active claims; also surface `board.stealable` if non-empty (abandoned work).
+
+**Output:** If `summary.active > 0` or `summary.stealable > 0`:
 ```markdown
-**Active sessions:**
-- {project}: building {task} on {branch} — {status}
+**In-flight claims:** {summary.active} active, {summary.stealable} stealable
+- {claim.issueId} — {claim.claimant.agentType} {claim.claimant.agentId} ({claim.status})
 ```
-If no active sessions or MCP unavailable, omit this section.
+If board is empty or MCP unavailable, omit this section.
+
+**Fallback:** If `claims_board` fails, fall back to:
+```
+mcp__ruflo__hive-mind_memory(action: "list")
+```
+Filter for keys matching `client:*:build:*` or `client:*:session:*` and display as before.
 
 ---
 
