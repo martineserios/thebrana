@@ -59,6 +59,38 @@ git commit -m "chore(state): commit state files at session close"
 - Add only a **Next:** section from conversation context
 - Skip to Step 9 (Write handoff note)
 
+**Weight classification (LIGHT vs FULL):**
+
+Classify the session depth before spawning any agent. Use `git diff --name-only` — not
+`--stat`, which outputs line counts requiring fragile extension parsing.
+
+```bash
+COMMIT_COUNT=$(git log --oneline --since="6 hours ago" 2>/dev/null | wc -l | tr -d ' ')
+CHANGED_FILES=$(git diff --name-only HEAD~"${COMMIT_COUNT:-1}"..HEAD 2>/dev/null)
+# Behavioral JSON: system/ or .claude/ JSON files, excluding tasks.json (state file)
+BEHAVIORAL_JSON=$(echo "$CHANGED_FILES" | grep -E '^(system|\.claude)/.*\.json$' \
+                 | grep -v '^\.claude/tasks\.json$')
+
+# Escape hatches take priority
+if [[ "$ARGUMENTS" == *"--light"* ]]; then CLOSE_MODE="LIGHT"
+elif [[ "$ARGUMENTS" == *"--full"* ]]; then CLOSE_MODE="FULL"
+# FULL: ≥2 commits in this session
+elif [[ "${COMMIT_COUNT:-0}" -ge 2 ]]; then CLOSE_MODE="FULL"
+# FULL: any code or behavioral config file changed
+elif echo "$CHANGED_FILES" | grep -qE '\.(rs|ts|tsx|js|jsx|py|sh|toml|yaml|yml)$'; then CLOSE_MODE="FULL"
+elif [[ -n "$BEHAVIORAL_JSON" ]]; then CLOSE_MODE="FULL"
+# LIGHT: only .md, tasks.json, state/*.json, or inbox/ changed
+else CLOSE_MODE="LIGHT"
+fi
+```
+
+Ambiguous cases (authoritative — do not infer):
+- `.sh` edit → FULL (behavioral, high-stakes)
+- `tasks.json` only → LIGHT (state file, not behavioral config)
+- `settings.json` → FULL (behavioral config — matches `^\.claude/.*\.json$`)
+
+Announce: `Close mode: $CLOSE_MODE` before proceeding to Step 2.
+
 ### Step 2: Gather evidence
 
 Collect from multiple sources:
@@ -73,16 +105,20 @@ Collect from multiple sources:
 
 ### Step 3: Extract and classify findings
 
-Spawn the `debrief-analyst` agent:
+Branch on `$CLOSE_MODE` from Step 1.
+
+**FULL mode** — spawn `debrief-analyst` (Sonnet):
 
 ```
 Agent(subagent_type="debrief-analyst", prompt="Debrief this session. Focus on: what was built, any errata or spec mismatches found, process learnings. Check git log and conversation context.")
 ```
 
-If the agent is unavailable, do a manual scan:
+**LIGHT mode** — inline scan, no agent spawn:
 1. `git log --oneline -10` — list what was committed
 2. Review conversation for: errors, workarounds, surprises
 3. Classify into the three buckets below
+
+If debrief-analyst is unavailable in FULL mode, fall back to the LIGHT inline scan.
 
 **Classification buckets:**
 
