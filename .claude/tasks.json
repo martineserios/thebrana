@@ -41870,7 +41870,7 @@
       "parent": "t-1643",
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "subject": "[tdd] agy_delegate unit tests: 8 scenarios (happy path, timeout, malformed, /tmp/, stdio isolation, version match/mismatch, timestamp collision)",
       "tags": [

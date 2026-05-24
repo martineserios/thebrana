@@ -150,6 +150,38 @@ pub struct UrlEventEntry {
     pub logged_date: String,
 }
 
+/// Derive (author, title_signal) from a non-LinkedIn URL.
+/// author  = registrable domain stripped of TLD (e.g. "github", "arxiv")
+/// title_signal = last meaningful path segments joined by spaces
+fn url_fallback_signals(url: &str) -> (String, String) {
+    // Strip scheme
+    let rest = url
+        .strip_prefix("https://")
+        .or_else(|| url.strip_prefix("http://"))
+        .unwrap_or(url);
+
+    let (host, path) = rest.split_once('/').unwrap_or((rest, ""));
+
+    // author: second-to-last host label (e.g. "github" from "github.com")
+    let author = host
+        .split('.')
+        .rev()
+        .nth(1) // skip TLD, take next label
+        .unwrap_or(host)
+        .to_string();
+
+    // title_signal: path segments, stripped of query/fragment, joined by spaces
+    let clean_path = path.split('?').next().unwrap_or("").split('#').next().unwrap_or("");
+    let title_signal = clean_path
+        .split('/')
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ");
+    let title_signal = if title_signal.is_empty() { author.clone() } else { title_signal };
+
+    (author, title_signal)
+}
+
 /// Parse author and title_signal out of a `linkedin.com/posts/{slug}` URL path.
 ///
 /// Expected slug patterns:
@@ -222,10 +254,6 @@ pub fn parse_event_log(
             continue;
         }
 
-        if !line.contains("linkedin.com/posts/") {
-            continue;
-        }
-
         let url = match line.split_whitespace().find(|t| t.starts_with("https://")) {
             Some(u) => u.trim_end_matches(')').trim_end_matches(',').to_string(),
             None => continue,
@@ -237,7 +265,7 @@ pub fn parse_event_log(
 
         let (author, title_signal) = match parse_linkedin_url(&url) {
             Some(pair) => pair,
-            None => continue,
+            None => url_fallback_signals(&url),
         };
 
         let tags = extract_tags_from_line(line);
@@ -765,7 +793,8 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_event_log_skips_non_linkedin() {
+    fn test_parse_event_log_accepts_non_linkedin() {
+        // Both URLs must be accepted — no platform filter.
         let content = r#"
 ## 2026-04-08
 - 09:00 — https://github.com/anthropics/claude-code #tools
@@ -773,8 +802,27 @@ mod tests {
 "#;
         let known = HashSet::new();
         let entries = parse_event_log(content, &known);
-        assert_eq!(entries.len(), 1);
-        assert_eq!(entries[0].author, "foo");
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[1].author, "foo"); // LinkedIn entry still parsed correctly
+    }
+
+    #[test]
+    fn test_parse_event_log_non_linkedin_fallback() {
+        // Non-LinkedIn URL gets domain as author, path slug as title_signal.
+        let content = r#"
+## 2026-05-24
+- 09:00 — https://arxiv.org/abs/2501.12345 #research
+- 10:00 — https://github.com/anthropics/claude-code #tools
+"#;
+        let known = HashSet::new();
+        let entries = parse_event_log(content, &known);
+        assert_eq!(entries.len(), 2);
+        // author should be non-empty (domain or "unknown")
+        assert!(!entries[0].author.is_empty());
+        // title_signal should be non-empty
+        assert!(!entries[0].title_signal.is_empty());
+        assert_eq!(entries[0].logged_date, "2026-05-24");
+        assert_eq!(entries[0].tags, vec!["research"]);
     }
 
     #[test]
