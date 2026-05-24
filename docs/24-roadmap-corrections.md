@@ -19,6 +19,9 @@
 ## Severity Summary
 
 | # | Error | Severity | Status | Comments |
+| E2026-05-24-6 | thebrana: `write_state` merged session states when `same_day = true` with no branch check — same-day commits on different branches caused accomplishments/learnings to bleed across branches. | **Medium** | code-fix | Fixed in `d5c2361`: added `same_branch = existing.branch == state.branch` guard; merge only when `same_day && same_branch`. Also switched date comparison from UTC to Local (chrono::Local) to respect Argentina UTC-3 timezone at day boundary. Affected: `brana-core/src/session.rs` write_state(). |
+| E2026-05-24-5 | thebrana: `write_state` enforced `consumed_at = None` only on same-day writes (via merge_states). Different-day writes called `sanitize()` which did not clear consumed_at. MCP surface had no guard — callers could persist consumed_at. | **Low** | code-fix | Fixed in `4d9774d`: moved `consumed_at = None` into `sanitize()` unconditionally. Structural enforcement now beats per-surface caller discipline. Affected: `brana-core/src/session.rs` sanitize(). |
+| E2026-05-24-4 | thebrana: `merge_states` merges `cascade_rate` as `(a + b) / 2` (simple average) — incorrect when session event counts differ; biases toward the numerically larger rate regardless of sample size. | **Low** | partial-fix | Partial fix in `d5c2361`: weighted approximation `(rate × events summed) / total_events`. Full fix requires storing `cascade_count: u32` in SessionMetrics and merging by summing counts (not averaging rates). Same issue applies to correction_rate and test_write_rate if ever stored as floats. Affected: `brana-core/src/session.rs` merge_states(). |
 | E2026-05-24-3 | proyecto_anita: E2026-05-18-1 stated "`migration repair` DOES support `--project-ref`" — confirmed false in CLI v2.99.0. Flag doesn't exist; `repair` only accepts `--db-url`, `--linked`, `--local`. E2026-05-24-2's fix prescription also incorrectly used `--project-ref`. | **Low** | code-fix | Fixed: `supabase-cli-multiproject.md` line 57 corrected (removed incorrect note). Correct repair path for dev: insert directly into `supabase_migrations.schema_migrations` via Management API (`INSERT INTO supabase_migrations.schema_migrations (version, name, statements) VALUES (...) ON CONFLICT DO NOTHING`). CLI version note: `--db-url` with remote URL times out (exit 137/OOM). Management API insert is the only reliable path. Affected: `.claude/rules/supabase-cli-multiproject.md`. |
 | E2026-05-24-2 | proyecto_anita: `supabase migration repair --linked` exited 137 (timeout/OOM) after applying migration `20260524122943_add_bsuid_to_contacts.sql` to dev (`jwzpeaidchtdibcxttcm`) via Management API. Migration is live in dev but not registered in CLI history — `migration list` will show it as LOCAL-ONLY until repaired. | **Low** | code-fix | Fixed same session via Management API direct insert into `supabase_migrations.schema_migrations`. Note: `--project-ref` flag does not exist in v2.99.0 (see E2026-05-24-3). Rule: after any Management API apply, register history via `INSERT INTO supabase_migrations.schema_migrations` through the Management API — do not rely on CLI repair for remote dev. Affected: `supabase/migrations/20260524122943_add_bsuid_to_contacts.sql`. |
 | E2026-05-24-1 | proyecto_anita: commit `501bedd` included the 1a direct `contacts.bsuid` lookup inside `_try_match_by_bsuid` — this code was supposed to be reverted (it shifts FakeSupabase occurrence indices and breaks existing tests). The working directory had the reverted version but it was never committed before the test commit `fb901db`. Tests passed against working dir (no 1a) but deployed Cloud Run dev had 1a. | **Medium** | code-fix | Fixed in `187451c`: reverted the 1a direct lookup. Cloud Run dev revision `00013-wlw` has the 1a code; next deploy will ship the correct version. Functionally equivalent (bsuid column is all-null; 1a always misses). Rule: after any "revert" of a working-directory change, always verify `git diff HEAD -- <file>` before committing the follow-up test file — a reverted-but-uncommitted implementation leaves tests and deployed code out of sync. |
@@ -3406,4 +3409,18 @@ Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Con
 
 **Fix:** Move `consumed_at = None` into `write_state` unconditionally (before the same-day branch), or into `sanitize()`. Structural enforcement beats per-surface caller discipline.
 
-**Status:** open
+**Status:** code-fix — fixed in `4d9774d`: `consumed_at = None` moved into `sanitize()`.
+
+---
+
+## E2026-05-24-6 — write_state: same-day merge triggered across branch boundaries (branch bleed)
+
+**Severity:** Medium
+**Discovery:** 2026-05-24 — challenger review of session.rs
+**Affected files:** `system/cli/rust/crates/brana-core/src/session.rs` (write_state)
+
+**Bug:** `write_state()` merged existing session state with the new state whenever `same_day = true`, with no check on branch. A sequence of: (1) commit on `feat-A`, (2) switch to `main`, (3) commit on `main` — all within the same calendar day — caused `feat-A`'s accomplishments and learnings to merge into `main`'s session state. Session history shows the pre-merge snapshot, not the merged result, so the bleed was invisible unless you noticed cross-branch content in sitrep.
+
+**Fix:** Added `same_branch = existing.branch == state.branch` guard in `write_state()`. Merge only when `same_day && same_branch`. Also switched date comparison from `chrono::Utc` to `chrono::Local` — UTC date comparison at midnight could produce the wrong calendar day in Argentina (UTC-3), triggering a same-day merge that should be a new-day write.
+
+**Status:** code-fix — fixed in `d5c2361`.
