@@ -3333,7 +3333,7 @@ Update 2026-05-20 (second debrief): t-1540 only touched `tool_tests.rs`; the two
 
 **Fix:** Expose `initiative` in the backlog_set field allowlist in the MCP crate. Interim workaround: use tag `brana-v2-compute` for queryability; set initiative at CLI level via `brana backlog set <id> initiative <slug>` if supported.
 
-**Status:** pending
+**Status:** resolved — `initiative` was already in `set_field()`'s scalar allowlist (added in t-1543, commit f38ca4d). Error at discovery time was caused by a stale MCP binary that predated t-1543. CLI and MCP both accept `initiative` with current binary. No code change needed.
 
 ---
 
@@ -3349,4 +3349,4 @@ Update 2026-05-20 (second debrief): t-1540 only touched `tool_tests.rs`; the two
 
 **Fix:** Migrate string-tagged tasks to array format in the tasks.json data migration, or update the MCP tag handler to accept both formats (coerce string→array before applying the `+/-` operation).
 
-**Status:** pending
+**Status:** resolved — `set_field()` now coerces string→array (split on ',', trim, filter empty) before calling `as_array_mut()`. Applies to tags, blocked_by, and isc. Fixed in commit 8367648. Tests: `test_set_field_tags_string_coerce_{add,remove,empty_string}`.
