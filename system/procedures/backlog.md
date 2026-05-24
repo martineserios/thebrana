@@ -534,6 +534,7 @@ Begin work on a task or freeform description. Accepts task IDs, phase IDs, or na
 7. **Write tasks.json** (status: in_progress, started: today, strategy: confirmed)
 7b. **Task claim (best-effort):**
    ```
+   # SESSION_ID = current branch name (git branch --show-current)
    mcp__ruflo__claims_claim(
      issueId: "task:{id}",
      claimant: "agent:{SESSION_ID}:session"
@@ -602,9 +603,11 @@ Complete the current task. For code tasks that went through `/brana:build`, the 
 6. **Update task:** status → completed, completed → today's date, clear build_step
 6b. **Release task claim (best-effort):**
    ```
+   # SESSION_ID = current branch name (git branch --show-current)
    mcp__ruflo__claims_release(
      issueId: "task:{id}",
-     claimant: "agent:{SESSION_ID}:session"
+     claimant: "agent:{SESSION_ID}:session",
+     reason: "task completed"
    )
    ```
    If MCP unavailable, skip silently.

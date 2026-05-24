@@ -755,17 +755,16 @@ Other terminals see the session ended + what's next via `/brana:sitrep`. Transie
 Only if an active task was being worked on this session:
 
 ```
-# First check if any claims exist for this session
-mcp__ruflo__claims_list(status: "active")
-# Filter for claims matching current session ID
-# For each matching claim:
+# SESSION_ID = current branch name (git branch --show-current)
+# claimant must match the value used at claims_claim time (backlog start step 7b)
 mcp__ruflo__claims_release(
   issueId: "task:{active_task_id}",
-  claimant: "session:{SESSION_ID}"
+  claimant: "agent:{SESSION_ID}:session",
+  reason: "session closed"
 )
 ```
 
-If no task was claimed, skip. If `claims_list` fails (MCP down), skip silently.
+If no task was claimed or `claims_release` fails (MCP down), skip silently.
 
 **Fallback:** If any MCP call fails, log the failure and continue. The CLI-based session state from Step 9 is the authoritative record. MCP failures are non-fatal.
 
