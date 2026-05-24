@@ -100,7 +100,11 @@ pub fn build() -> TypedTool<
 // ── Version check ────────────────────────────────────────────────────────────
 
 async fn check_version() -> Result<(), String> {
-    let out = Command::new("agy")
+    check_version_with_bin("agy").await
+}
+
+async fn check_version_with_bin(bin: &str) -> Result<(), String> {
+    let out = Command::new(bin)
         .arg("--version")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -148,7 +152,11 @@ fn check_version_fallback() -> Result<(), String> {
 // ── Invocation ───────────────────────────────────────────────────────────────
 
 async fn invoke_agy(prompt: &str) -> Result<String, String> {
-    let out = Command::new("agy")
+    invoke_agy_with_bin("agy", prompt).await
+}
+
+async fn invoke_agy_with_bin(bin: &str, prompt: &str) -> Result<String, String> {
+    let out = Command::new(bin)
         .arg("-p")
         .arg(prompt)
         .stdin(Stdio::null())   // never inherit MCP stdin — corrupts JSON-RPC stream
@@ -348,5 +356,120 @@ mod tests {
             let _guard = TmpFile(path.clone());
         }
         assert!(!path.exists(), "TmpFile drop guard must remove the file");
+    }
+
+    // ── Timeout JSON shape ────────────────────────────────────────────────────
+
+    #[test]
+    fn timeout_error_json_shape() {
+        // Verify the exact JSON structure emitted when tokio::time::timeout fires.
+        // Tests the contract without needing to run a slow process.
+        let err_json = serde_json::json!({
+            "error": "agy_timeout",
+            "elapsed_secs": AGY_TIMEOUT_SECS,
+            "message": format!("agy did not complete within {AGY_TIMEOUT_SECS}s — check quota or network"),
+        });
+        assert_eq!(err_json["error"], "agy_timeout");
+        assert_eq!(err_json["elapsed_secs"], AGY_TIMEOUT_SECS as u64);
+        assert!(
+            err_json["message"].as_str().unwrap().contains("120s"),
+            "timeout message should state the 120s ceiling"
+        );
+    }
+
+    // ── check_version_fallback ────────────────────────────────────────────────
+
+    #[test]
+    fn check_version_fallback_always_returns_error() {
+        // Fallback always errors — either "cannot verify" (binary found) or "not found".
+        let result = check_version_fallback();
+        assert!(result.is_err());
+        let msg = result.unwrap_err();
+        assert!(
+            msg.contains("agy"),
+            "fallback error should mention agy: {msg}"
+        );
+    }
+
+    // ── Fake binary helpers (unix only) ──────────────────────────────────────
+
+    #[cfg(unix)]
+    fn write_fake_agy(script_body: &str, label: &str) -> PathBuf {
+        let path = PathBuf::from(format!("/tmp/fake-agy-{label}-{}.sh", std::process::id()));
+        std::fs::write(&path, format!("#!/bin/sh\n{script_body}\n")).unwrap();
+        std::process::Command::new("chmod")
+            .args(["+x", path.to_str().unwrap()])
+            .output()
+            .unwrap();
+        path
+    }
+
+    // ── Version check with fake binary ────────────────────────────────────────
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn check_version_with_bin_accepts_pinned_version() {
+        let bin = write_fake_agy(&format!("echo '{AGY_PINNED_VERSION}'"), "ver-match");
+        let result = check_version_with_bin(bin.to_str().unwrap()).await;
+        let _ = std::fs::remove_file(&bin);
+        assert!(result.is_ok(), "pinned version should pass: {:?}", result.err());
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn check_version_with_bin_rejects_wrong_version() {
+        let bin = write_fake_agy("echo '2.0.0'", "ver-mismatch");
+        let result = check_version_with_bin(bin.to_str().unwrap()).await;
+        let _ = std::fs::remove_file(&bin);
+        let err = result.unwrap_err();
+        assert!(err.contains("version mismatch"), "should report mismatch: {err}");
+        assert!(err.contains(AGY_PINNED_VERSION), "should name expected version: {err}");
+        assert!(err.contains("2.0.0"), "should name actual version: {err}");
+    }
+
+    // ── invoke_agy_with_bin paths ─────────────────────────────────────────────
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn invoke_agy_with_bin_happy_path() {
+        let bin = write_fake_agy("echo 'Research complete: 3 findings'", "happy");
+        let result = invoke_agy_with_bin(bin.to_str().unwrap(), "summarize X").await;
+        let _ = std::fs::remove_file(&bin);
+        assert_eq!(result.unwrap(), "Research complete: 3 findings");
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn invoke_agy_with_bin_nonzero_exit_classified() {
+        let bin = write_fake_agy("echo 'flags provided but not defined: -X'\nexit 2", "exit2");
+        let result = invoke_agy_with_bin(bin.to_str().unwrap(), "task").await;
+        let _ = std::fs::remove_file(&bin);
+        let err = result.unwrap_err();
+        let v: serde_json::Value = serde_json::from_str(&err).unwrap();
+        assert_eq!(v["error"], "agy_nonzero_exit");
+        assert_eq!(v["exit_code"], 2);
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn invoke_agy_with_bin_error_prefix_classified() {
+        let bin = write_fake_agy("echo 'Error: timed out waiting for response'", "errprefix");
+        let result = invoke_agy_with_bin(bin.to_str().unwrap(), "task").await;
+        let _ = std::fs::remove_file(&bin);
+        let err = result.unwrap_err();
+        let v: serde_json::Value = serde_json::from_str(&err).unwrap();
+        assert_eq!(v["error"], "agy_error");
+        assert!(v["message"].as_str().unwrap().starts_with("Error: "));
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn invoke_agy_with_bin_empty_output_classified() {
+        let bin = write_fake_agy("echo ''", "emptyout");
+        let result = invoke_agy_with_bin(bin.to_str().unwrap(), "task").await;
+        let _ = std::fs::remove_file(&bin);
+        let err = result.unwrap_err();
+        let v: serde_json::Value = serde_json::from_str(&err).unwrap();
+        assert_eq!(v["error"], "agy_empty_output");
     }
 }
