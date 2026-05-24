@@ -19,6 +19,8 @@
 ## Severity Summary
 
 | # | Error | Severity | Status | Comments |
+| E2026-05-24-2 | proyecto_anita: `supabase migration repair --linked` exited 137 (timeout/OOM) after applying migration `20260524122943_add_bsuid_to_contacts.sql` to dev (`jwzpeaidchtdibcxttcm`) via Management API. Migration is live in dev but not registered in CLI history — `migration list` will show it as LOCAL-ONLY until repaired. | **Low** | pending | Fix: `source .env.dev && ~/.local/bin/supabase migration repair --status applied 20260524122943 --project-ref jwzpeaidchtdibcxttcm`. Rule: after any Management API apply that fails CLI repair, log it immediately as pending errata so the next session can fix drift before it accumulates. Affected: `supabase/migrations/20260524122943_add_bsuid_to_contacts.sql`. |
+| E2026-05-24-1 | proyecto_anita: commit `501bedd` included the 1a direct `contacts.bsuid` lookup inside `_try_match_by_bsuid` — this code was supposed to be reverted (it shifts FakeSupabase occurrence indices and breaks existing tests). The working directory had the reverted version but it was never committed before the test commit `fb901db`. Tests passed against working dir (no 1a) but deployed Cloud Run dev had 1a. | **Medium** | code-fix | Fixed in `187451c`: reverted the 1a direct lookup. Cloud Run dev revision `00013-wlw` has the 1a code; next deploy will ship the correct version. Functionally equivalent (bsuid column is all-null; 1a always misses). Rule: after any "revert" of a working-directory change, always verify `git diff HEAD -- <file>` before committing the follow-up test file — a reverted-but-uncommitted implementation leaves tests and deployed code out of sync. |
 |---|---|---|---|---|
 | E2026-05-22-5 | thebrana: MCP `backlog_add` auto-detects project from `git rev-parse --show-toplevel` of the shell CWD — not the conversational project context. When CWD is `proyecto_anita/services/frontend-v2`, all MCP backlog writes go to `proyecto_anita/.claude/tasks.json`. 22 ruflo-integration tasks were silently created in the wrong project, requiring cancel + recreation. | **Medium** | code-fix | Fix applied: use CLI with `--file /path/to/tasks.json` for cross-project ops. Rule: MCP brana tools are CWD-scoped — always verify which project's tasks.json is active before any `backlog_add` call. |
 | E2026-05-22-4 | proyecto_anita: Supabase Auth admin PATCH `/auth/v1/admin/users/{id}` returned 404 — only path to reset password is raw SQL via Management API. | **Low** | informational | Workaround: `UPDATE auth.users SET encrypted_password = crypt('pw', gen_salt('bf')) WHERE email = 'x'` via Management API. |
@@ -3350,3 +3352,25 @@ Update 2026-05-20 (second debrief): t-1540 only touched `tool_tests.rs`; the two
 **Fix:** Migrate string-tagged tasks to array format in the tasks.json data migration, or update the MCP tag handler to accept both formats (coerce string→array before applying the `+/-` operation).
 
 **Status:** resolved — `set_field()` now coerces string→array (split on ',', trim, filter empty) before calling `as_array_mut()`. Applies to tags, blocked_by, and isc. Fixed in commit 8367648. Tests: `test_set_field_tags_string_coerce_{add,remove,empty_string}`.
+
+---
+
+## E2026-05-24-1 — Close-mode classifier: `.claude/tasks.json` matched behavioral-json check
+
+**Severity:** Low
+**Discovery:** 2026-05-24 — t-1623 (weight-adaptive close) test spec writing
+**Affected files:** `system/procedures/close.md` (Step 1 weight classifier)
+
+**Spec says:** Close-mode FULL triggers when "any `.json` under `system/` or `.claude/` (behavioral config)" changes. Intent: detect configuration file changes (settings.json, hooks config) that indicate a behavioral session.
+
+**Reality:** `.claude/tasks.json` is operational state written every session. The regex `^(system|\.claude)/.*\.json$` matched it, promoting every tasks.json-only session to FULL and making LIGHT mode unreachable in practice.
+
+**Fix:** Added explicit exclusion before the behavioral-json check:
+```bash
+BEHAVIORAL_JSON=$(echo "$CHANGED_FILES" | grep -E '^(system|\.claude)/.*\.json$' \
+                 | grep -v '^\.claude/tasks\.json$')
+elif [[ -n "$BEHAVIORAL_JSON" ]]; then CLOSE_MODE="FULL"
+```
+Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Consider similar exclusions for `.claude/session-state.json` and other operational JSON files.
+
+**Status:** resolved — fixed in d0652b3 during t-1623 implementation.
