@@ -28,6 +28,8 @@ produced_by: docs/architecture/decisions/ADR-040-compute-hierarchy-claude-ruflo-
 ```
 
 Gemini output → `/tmp/` only. Claude applies via Write/Edit. See ADR-040.
+Entry point: `/brana:gemini "task"` or `/brana:gemini t-XXXX`.
+Layer A (`agy -p "..."` direct) for scheduled sweeps only.
 
 ## Skill Routing — which skill to invoke
 
@@ -42,6 +44,7 @@ Never invoke a skill AND delegate an agent for the same trigger.
 | Big decision forming | `/brana:challenge` |
 | New/unfamiliar codebase | `/brana:onboard` |
 | Research on a new topic | `/brana:research [topic]` |
+| Delegate atomic task to Gemini | `/brana:gemini "task"` or `/brana:gemini t-XXXX` |
 | Business health check | `/brana:review check` |
 | Weekly/monthly review | `/brana:review` / `/brana:review monthly` |
 | Spec changes need impl sync | `/brana:reconcile` |
