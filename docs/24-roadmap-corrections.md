@@ -3375,3 +3375,33 @@ elif [[ -n "$BEHAVIORAL_JSON" ]]; then CLOSE_MODE="FULL"
 Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Consider similar exclusions for `.claude/session-state.json` and other operational JSON files.
 
 **Status:** resolved — fixed in d0652b3 during t-1623 implementation.
+
+---
+
+## E2026-05-24-4 — merge_states: cascade_rate averaged incorrectly when session event counts differ
+
+**Severity:** Low
+**Discovery:** 2026-05-24 — debrief-analyst, t-1637 session close
+**Affected files:** `system/cli/rust/crates/brana-core/src/session.rs` (~line 392, `merge_states`)
+
+**Bug:** `merge_states` merges `SessionMetrics.cascade_rate` as `(em.cascade_rate + nm.cascade_rate) / 2.0` (simple average). `cascade_rate` is a derived ratio (`cascades / total_events`). Simple averaging is only correct when both sessions have equal event counts. When counts differ, the weighted true rate diverges from the averaged rate.
+
+**Example:** Session A: 100 events, cascade_rate=0.20. Session B: 50 events, cascade_rate=0.30. Averaged=0.25 but true rate=0.233 (30 cascades / 150 events).
+
+**Fix:** Add `cascade_count: u32` to `SessionMetrics`. Store raw count, compute `cascade_rate` at render time from totals. Merge by summing counts, not averaging rates. Same fix needed if `correction_rate` or `delegation_count` are ever converted to float ratios.
+
+**Status:** open
+
+---
+
+## E2026-05-24-5 — write_state: consumed_at not cleared on different-day MCP writes
+
+**Severity:** Low
+**Discovery:** 2026-05-24 — debrief-analyst, t-1637 session close
+**Affected files:** `system/cli/rust/crates/brana-core/src/session.rs` (write_state), `system/cli/rust/crates/brana-mcp/src/tools/session_write.rs`
+
+**Bug:** `write_state` enforces `consumed_at = None` only on same-day writes via `merge_states`. On different-day writes it calls `state.clone().sanitize()` — and `sanitize()` does not clear `consumed_at`. The CLI surface explicitly clears it before calling `write_state` (session.rs cmd_session_write ~line 46), but the MCP `session_write` tool has no such guard. A caller that passes `consumed_at` in the MCP payload on a different-day write will have it persisted.
+
+**Fix:** Move `consumed_at = None` into `write_state` unconditionally (before the same-day branch), or into `sanitize()`. Structural enforcement beats per-surface caller discipline.
+
+**Status:** open

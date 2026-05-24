@@ -142,3 +142,19 @@ Source: t-1564 / debrief-analyst 2026-05-20
 ### 2026-05-20: Squash-merge is wasteful for single-commit S features — use --ff-only after rebase
 When a feature branch has exactly one commit (S effort, no WIP history worth preserving), `git merge --no-ff` produces a duplicate-message commit pair on main: the original commit + a merge commit with the same subject. Instead: `git rebase main && git merge --ff-only <branch>` — produces a single clean commit on main with no merge commit. Reserve `--no-ff` for multi-commit branches where the merge envelope documents the batch.
 Source: session debrief 2026-05-20
+
+### 2026-05-24: Cross-crate migration — re-export at wrapper boundary for call-site continuity
+When moving a function from a thin wrapper crate (e.g. brana-cli) to a core crate (e.g. brana-core), sibling modules (e.g. main.rs) that called it via `commands::module::fn_name` will break at compile time. Fix: add `pub use brana_core::module::fn_name;` in the wrapper module as a re-export. After any cross-crate function migration, grep all sibling call sites — not just the module you refactored.
+Source: t-1637 / debrief-analyst 2026-05-24
+
+### 2026-05-24: Skill tool uses bare name, not brana: prefix
+`Skill("close")` works; `Skill("brana:close")` fails with "Unknown skill." Skills registered under the `brana` plugin namespace are invoked with the bare name in the Skill tool even though the slash-command form is `/brana:close`. When Skill tool fails, fall back to reading SKILL.md + the linked procedure file directly.
+Source: t-1637 session close 2026-05-24
+
+### 2026-05-24: Edit closing-brace anchor — use full last-test context, not bare `}` lines
+In Rust test modules, inserting content before closing `}` blocks by matching just `}\n}` hits multiple locations. Fix: use the closing assertion of the last test plus both closing braces as the `old_string` anchor — provides enough unique context for a single match. Applies to any Rust file with uniform brace patterns.
+Source: t-1637 / debrief-analyst 2026-05-24
+
+### 2026-05-24: Invariants belong in the write function, not at the call site
+When a field has a semantic invariant that must hold after every write (e.g. `consumed_at = None`), enforce it inside the write function, not by requiring every caller to set it. The CLI surface cleared `consumed_at` before calling `write_state` but the MCP surface missed it (E2026-05-24-5). Rule: invariants enforced at call sites are fragile across surfaces; enforce at the single canonical write path.
+Source: t-1637 / debrief-analyst 2026-05-24
