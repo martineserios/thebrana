@@ -11,7 +11,7 @@
 | challenger | sonnet | yes | red | Adversarially review a plan, architecture decision, or approach. Stress-test bef |
 | client-scanner | haiku | yes | teal | Scan client project structure, detect tech stack, check brana alignment. Use whe |
 | daily-ops | haiku | yes | green | Daily venture focus card — health snapshot, pending actions, experiments. Use  |
-| debrief-analyst | opus | yes | blue | Extract errata, learnings, and patterns from a work session. Classify into errat |
+| debrief-analyst | sonnet | yes | blue | Extract errata, learnings, and patterns from a work session. Classify into errat |
 | memory-curator | haiku | yes | purple | Recall patterns from knowledge system, cross-pollinate across clients, check kno |
 | metrics-collector | haiku | yes | indigo | Collect venture metrics from snapshots, experiments, pipeline, financials. Use w |
 | pipeline-tracker | haiku | yes | amber | Pipeline status — deal stages, overdue follow-ups, conversion trends. Use when |
@@ -102,7 +102,7 @@ Daily venture focus card — health snapshot, pending actions, experiments. Use 
 
 Extract errata, learnings, and patterns from a work session. Classify into errata, process learnings, and issues. Use at end of implementation sessions or when notable learnings emerge. Not for: adversarial review, project scanning, knowledge recall.
 
-**Model:** opus
+**Model:** sonnet
 
 **Memory:** yes — may write to `~/.claude/agent-memory/`
 

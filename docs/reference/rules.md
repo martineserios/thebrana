@@ -12,7 +12,7 @@
 | `brana-cli.md` | Brana CLI | **Always prefer CLI over raw file access.** Never Read/Write/Edit `.claude/tasks.json` directly. |
 | `context-budget.md` | Context Budget | ## Thresholds |
 | `cwd-discipline.md` | CWD Discipline | Always start Claude Code from the project root (e.g., ~/enter_thebrana/thebrana/), never from a pare... |
-| `delegation-routing.md` | Delegation Routing | Delegate to agents WITHOUT being asked when context matches (see CLAUDE.md agents table). Invoke ski... |
+| `delegation-routing.md` | Delegation Routing | ## Compute Routing — who runs this? (walk top-to-bottom, first match wins) |
 | `doc-linking.md` | Doc Linking | Use `[doc NN](relative-path.md)` — never bare "doc NN". Relative paths from source file. Dimension... |
 | `field-note-routing.md` | field-note-routing | — |
 | `git-discipline.md` | Git Discipline | ## One rule |
@@ -79,7 +79,7 @@ Always start Claude Code from the project root (e.g., ~/enter_thebrana/thebrana/
 
 **File:** `system/rules/delegation-routing.md`
 
-Delegate to agents WITHOUT being asked when context matches (see CLAUDE.md agents table). Invoke skills directly — don't suggest them. If user declines, don't repeat.
+## Compute Routing — who runs this? (walk top-to-bottom, first match wins)
 
 
 ## Doc Linking
