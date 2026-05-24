@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# agy-sweep.sh.template — scheduled Gemini research sweep (Layer A)
+#
+# USAGE
+#   Copy to system/scheduler/scripts/sweep-<topic>.sh
+#   Set SWEEP_NAME and PROMPT below.
+#   Add a scheduler.json entry of type "command" pointing to this script.
+#
+# OUTPUT CONTRACT
+#   Output lands in system/scheduler/outputs/<sweep-name>-<ts>.md.
+#   /brana:close does a batch EXTRACT pass over that dir and removes processed files.
+#   Never write to /tmp/ — ephemeral; lost on reboot before /brana:close runs.
+#
+# SCHEDULER.JSON EXAMPLE
+#   "research-sweep-<topic>": {
+#     "type": "command",
+#     "command": "./system/scheduler/scripts/sweep-<topic>.sh",
+#     "project": "~/enter_thebrana/thebrana",
+#     "schedule": "Sun *-*-* 02:00:00",
+#     "enabled": false,
+#     "timeoutSeconds": 180,
+#     "captureOutput": true,
+#     "_comment": "Weekly Gemini research sweep: <topic>. Writes to system/scheduler/outputs/."
+#   }
+
+set -euo pipefail
+
+# ── Configure ────────────────────────────────────────────────────────────────
+
+# Short slug used in the output filename.
+SWEEP_NAME="{{SWEEP_NAME}}"
+
+# The research prompt. Be specific and self-contained — no implicit session context.
+PROMPT="{{PROMPT}}"
+
+# ── Resolve paths ─────────────────────────────────────────────────────────────
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Outputs dir is two levels up from templates/ (templates → scheduler → system → thebrana)
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+OUTPUTS_DIR="$PROJECT_ROOT/system/scheduler/outputs"
+mkdir -p "$OUTPUTS_DIR"
+
+TS="$(date +%Y%m%dT%H%M%S)"
+OUTPUT_FILE="$OUTPUTS_DIR/${SWEEP_NAME}-${TS}.md"
+
+# ── Run sweep ─────────────────────────────────────────────────────────────────
+
+echo "# agy sweep: $SWEEP_NAME"
+echo "# Timestamp: $TS"
+echo "# Prompt: $PROMPT"
+echo ""
+
+# Invoke agy. Stdout captured to output file; stderr goes to scheduler log.
+agy -p "$PROMPT" > "$OUTPUT_FILE" 2>&1
+EXIT_CODE=$?
+
+if [ "$EXIT_CODE" -ne 0 ]; then
+    echo "ERROR: agy exited $EXIT_CODE. See $OUTPUT_FILE for details." >&2
+    exit "$EXIT_CODE"
+fi
+
+# Sanity-check output (mirrors agy_delegate.rs validate_output rules).
+OUTPUT=$(cat "$OUTPUT_FILE")
+if [ -z "${OUTPUT// /}" ]; then
+    echo "ERROR: agy produced empty output." >&2
+    rm -f "$OUTPUT_FILE"
+    exit 1
+fi
+if [[ "$OUTPUT" == Error:* ]]; then
+    echo "ERROR: agy returned an error: $(head -1 "$OUTPUT_FILE")" >&2
+    # Keep the file — /brana:close will flag it during EXTRACT.
+    exit 1
+fi
+
+echo "Sweep complete: $OUTPUT_FILE ($(wc -c < "$OUTPUT_FILE") bytes)"

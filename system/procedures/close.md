@@ -102,6 +102,15 @@ Collect from multiple sources:
    ```
 2. **Conversation context** — review for: errors hit, workarounds used, surprises, things that didn't match expectations
 3. **If `$ARGUMENTS` provided** — use as focus hint (e.g., `/brana:close hooks` focuses on hook-related findings)
+4. **Scheduler sweep outputs** — check for unprocessed agy sweep results:
+   ```bash
+   ls system/scheduler/outputs/*.md 2>/dev/null
+   ```
+   If files exist: read each, extract findings (same EXTRACT rules as Step 3), then remove:
+   ```bash
+   rm system/scheduler/outputs/<processed-file>.md
+   ```
+   Fire-and-forget sweeps write here overnight; close is the only consumer.
 
 ### Step 3: Extract and classify findings
 
