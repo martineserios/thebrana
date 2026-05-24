@@ -99,8 +99,13 @@ pub fn build() -> TypedTool<
 
 // ── Version check ────────────────────────────────────────────────────────────
 
+/// Resolve the agy binary path. `AGY_BIN` env var overrides (used in integration tests).
+fn agy_bin() -> String {
+    std::env::var("AGY_BIN").unwrap_or_else(|_| "agy".to_string())
+}
+
 async fn check_version() -> Result<(), String> {
-    check_version_with_bin("agy").await
+    check_version_with_bin(&agy_bin()).await
 }
 
 async fn check_version_with_bin(bin: &str) -> Result<(), String> {
@@ -152,7 +157,7 @@ fn check_version_fallback() -> Result<(), String> {
 // ── Invocation ───────────────────────────────────────────────────────────────
 
 async fn invoke_agy(prompt: &str) -> Result<String, String> {
-    invoke_agy_with_bin("agy", prompt).await
+    invoke_agy_with_bin(&agy_bin(), prompt).await
 }
 
 async fn invoke_agy_with_bin(bin: &str, prompt: &str) -> Result<String, String> {
