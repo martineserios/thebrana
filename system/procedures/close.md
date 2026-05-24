@@ -314,6 +314,8 @@ mcp__ruflo__memory_search(query: "{pattern problem + solution summary}", namespa
 If similarity ≥ 0.85: skip write (near-duplicate exists). Note `similar_to: {key}` in the existing pattern's file if accessible.
 If no match or MCP unavailable: proceed to write.
 
+> Threshold calibrated 2026-05-24 (t-1589): 10 real pattern pairs tested. Max distinct-pair similarity = 0.59 (memory-routing vs cli-mcp-gateway). Gap to 0.85 = 0.26. 0% false-positive rate in sample. Threshold confirmed.
+
 **Write** to `~/.claude/projects/{project-hash}/memory/pattern_{slug}_{YYYY-MM-DD}.md`:
 ```markdown
 ---
