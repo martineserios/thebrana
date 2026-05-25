@@ -42413,6 +42413,62 @@
         "plugin"
       ],
       "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": null,
+      "created": "2026-05-25",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1678",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "[browser] Fix ruflo browser_open MCP tool to read browser.cdp_port config and inject --cdp into agent-browser command",
+      "tags": [
+        "ideation",
+        "browser",
+        "ruflo"
+      ],
+      "type": "task",
+      "work_type": "implement"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": null,
+      "created": "2026-05-25",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1679",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "[infra] Add systemd user service to keep Chrome running on --remote-debugging-port=9222 across reboots",
+      "tags": [
+        "ideation",
+        "browser",
+        "infra"
+      ],
+      "type": "task",
+      "work_type": "implement"
     }
   ],
   "version": "1"

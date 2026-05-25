@@ -162,3 +162,7 @@ Source: t-1637 / debrief-analyst 2026-05-24
 ### 2026-05-24: Invariants belong in the write function, not at the call site
 When a field has a semantic invariant that must hold after every write (e.g. `consumed_at = None`), enforce it inside the write function, not by requiring every caller to set it. The CLI surface cleared `consumed_at` before calling `write_state` but the MCP surface missed it (E2026-05-24-5). Rule: invariants enforced at call sites are fragile across surfaces; enforce at the single canonical write path.
 Source: t-1637 / debrief-analyst 2026-05-24
+
+### 2026-05-25: Scheduler skill jobs spawn full CC processes — OOM guard required
+`brana-scheduler-runner.sh` runs skill-type jobs (`knowledge-decay`, `weekly-review`, `knowledge-review`) via `claude -p "$PROMPT"`, each spawning a full CC process (~350MB) plus its own ruflo MCP instance (~70MB). Before `d712f95` there was no concurrency guard — the scheduler fired unconditionally regardless of active CC sessions. On a 14GB machine with Firefox (~3GB) and 3–4 active CC sessions already open, the 5th scheduler-spawned CC triggered OOM kill and terminal crash. Fix: skill jobs now skip when `pgrep -fc "claude --plugin-dir" ≥ 2` or `MemAvailable < 3GB`. Rule: any subsystem that spawns `claude -p` must gate on session count + available RAM. Diagnostic: the scheduler log at `system/scheduler/logs/<job-name>/` is the canonical record of what ran and when — read it first when investigating scheduler-related OOM.
+Source: E2026-05-25-1 / debrief-analyst 2026-05-25
