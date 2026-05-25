@@ -41,10 +41,11 @@ sync_plugin_cache() {
     echo ""
 
     # Dry-run diff first
-    local diff_output
+    local diff_output plugin_json_diff
     diff_output=$(diff -rq "$cache_dir" "$system_dir" 2>/dev/null | grep -v ".claude-plugin" || true)
+    plugin_json_diff=$(diff "$system_dir/.claude-plugin/plugin.json" "$cache_dir/.claude-plugin/plugin.json" 2>/dev/null | head -1 || echo "differ")
 
-    if [ -z "$diff_output" ]; then
+    if [ -z "$diff_output" ] && [ -z "$plugin_json_diff" ]; then
         echo "Plugin cache is already up to date."
         exit 0
     fi
@@ -53,9 +54,12 @@ sync_plugin_cache() {
     echo "$diff_output" | while IFS= read -r line; do
         echo "  $line"
     done
+    [ -n "$plugin_json_diff" ] && echo "  .claude-plugin/plugin.json (changed)"
     echo ""
 
     rsync -av --delete --exclude='.claude-plugin' "$system_dir/" "$cache_dir/" > /dev/null
+    mkdir -p "$cache_dir/.claude-plugin"
+    cp "$system_dir/.claude-plugin/plugin.json" "$cache_dir/.claude-plugin/plugin.json"
     echo "Plugin cache synced. Restart Claude Code to activate."
 }
 
@@ -551,9 +555,10 @@ fi
 PLUGIN_VERSION=$(jq -r '.version // "0.0.0"' "$SYSTEM_DIR/.claude-plugin/plugin.json" 2>/dev/null || echo "0.0.0")
 CACHE_DIR="$PLUGINS_DIR/cache/brana/brana/$PLUGIN_VERSION"
 if [ -d "$CACHE_DIR" ]; then
-    # Check if cache is stale (compare with system/)
+    # Check if cache is stale (compare with system/ and plugin.json separately)
     CACHE_DIFF=$(diff -rq "$CACHE_DIR" "$SYSTEM_DIR" 2>/dev/null | grep -v ".claude-plugin" | head -5 || true)
-    if [ -n "$CACHE_DIFF" ]; then
+    PLUGIN_JSON_DIFF=$(diff "$SYSTEM_DIR/.claude-plugin/plugin.json" "$CACHE_DIR/.claude-plugin/plugin.json" 2>/dev/null | head -1 || echo "differ")
+    if [ -n "$CACHE_DIFF" ] || [ -n "$PLUGIN_JSON_DIFF" ]; then
         CHANGES=$((CHANGES + 1))
         if $CHECK_ONLY; then
             echo "  ~ cache/brana/brana/$PLUGIN_VERSION (would sync)"
