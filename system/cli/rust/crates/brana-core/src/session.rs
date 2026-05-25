@@ -1300,4 +1300,27 @@ mod tests {
         let loaded = read_state(root).expect("state must exist after write");
         assert!(loaded.consumed_at.is_none(), "write_state must clear consumed_at regardless of call site");
     }
+
+    #[test]
+    fn next_item_watch_roundtrip() {
+        let item = NextItem {
+            text: "monitor this".to_string(),
+            task_id: None,
+            category: NextCategory::Watch,
+        };
+        let json = serde_json::to_string(&item).unwrap();
+        assert!(json.contains("\"watch\""), "Watch variant must serialize as kebab-case 'watch'");
+        let back: NextItem = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, item, "Watch round-trip must produce identical NextItem");
+    }
+
+    #[test]
+    fn session_state_missing_written_at_deserializes() {
+        // Verifies #[serde(default)] on written_at — JSON without the field must deserialize
+        // successfully so read_state() can handle old/partial session files.
+        let json = r#"{"version":1,"accomplished":["did x"]}"#;
+        let state: SessionState = serde_json::from_str(json)
+            .expect("session state missing written_at must deserialize with serde(default)");
+        assert!(state.written_at.is_empty(), "written_at must default to empty when omitted");
+    }
 }
