@@ -747,6 +747,7 @@ The CLI auto-fills `written_at` (if empty) and `branch` (from git). `consumed_at
 - `follow-up` — action items from this session
 - `maintenance` — routine tasks (run reconcile, verify-docs, etc.)
 - `suggestion` — non-urgent ideas worth considering
+- `watch` — passive items to monitor (no immediate action required)
 
 **Rules:**
 - Write to temp file first, never pass JSON inline via shell arguments
