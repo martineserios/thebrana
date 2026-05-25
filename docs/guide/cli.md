@@ -119,10 +119,13 @@ Multi-account Gmail via IMAP with OS keyring credential storage.
 | `brana skills reindex --changed` | Only reindex skills modified since last run |
 | `brana skills usage [--days N] [--cull-threshold N] [--json]` | Show skill invocation counts from JSONL telemetry; flag low-use cull candidates |
 
-### `brana knowledge` — Knowledge Base Indexing
+### `brana knowledge` — Knowledge Base Indexing & Pipeline
 
 | Command | Description |
 |---------|-------------|
+| `brana knowledge ingest [<url>|<file>|stdin]` | Queue URLs into pipeline state (accepts direct URLs, file paths with URL lists, or piped stdin) |
+| `brana knowledge next` | Emit the single next pipeline step to run (state-aware, pure read) |
+| `brana knowledge run` | Auto-advance tier1→tier2; stops at human gates (cluster report, draft review) |
 | `brana knowledge reindex` | Full reindex of all 7 doc categories + orphan cleanup |
 | `brana knowledge reindex --changed` | Index only git-changed files (for post-commit hook) |
 | `brana knowledge reindex --patterns` | Reindex pattern files from project memory dirs |

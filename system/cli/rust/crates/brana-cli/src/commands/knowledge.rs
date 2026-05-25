@@ -452,7 +452,7 @@ Respond with JSON only: {{\"score\": N, \"reason\": \"one sentence\"}}",
             continue;
         }
 
-        match kp::call_claude_json(&prompt, Some("claude-haiku-4-5-20251001")) {
+        match kp::call_gemini_json(&prompt) {
             Ok(json) => {
                 let score = json.get("score").and_then(|v| v.as_u64()).unwrap_or(0) as u8;
                 let reason = json
@@ -585,7 +585,7 @@ Respond with JSON only:\n\
             continue;
         }
 
-        match kp::call_claude_json(&prompt, None) {
+        match kp::call_gemini_json(&prompt) {
             Ok(json) => {
                 let dim_target = json
                     .get("dimension_target")
@@ -920,6 +920,121 @@ fn strip_frontmatter(content: &str) -> String {
         }
     }
     content.to_string()
+}
+
+// ── brana knowledge run ───────────────────────────────────────────────────────
+
+/// Determine if a directive requires a human gate before execution.
+///
+/// Returns `Some(gate_message)` when the directive is a decision point that
+/// requires human review before proceeding. Returns `None` when the pipeline
+/// can auto-advance (tier1 or tier2 processing).
+pub fn run_gate_message(directive: &str) -> Option<String> {
+    if directive.contains("--report") || directive.starts_with("brana knowledge process --report") {
+        return Some(format!(
+            "Pipeline stopped — human decision required.\n\
+             Review the cluster report:\n\
+             \n\
+               brana knowledge process --report\n\
+             \n\
+             Then draft a topic:\n\
+             \n\
+               brana knowledge process --draft <topic>"
+        ));
+    }
+    if directive.contains("knowledge promote") {
+        return Some(format!(
+            "Pipeline stopped — human decision required.\n\
+             Draft ready for review. To promote:\n\
+             \n\
+               {directive}"
+        ));
+    }
+    if directive.contains("knowledge ingest") {
+        return Some(format!(
+            "Pipeline stopped — pipeline is current.\n\
+             Ingest new URLs to continue:\n\
+             \n\
+               {directive}"
+        ));
+    }
+    None
+}
+
+/// `brana knowledge run` — auto-advance tier1→tier2, stop at human gates.
+///
+/// Logic:
+/// 1. Check current state via `next_directive`.
+/// 2. If tier1 needed: run tier1, reload, check again. If tier2 now needed: run tier2.
+/// 3. If tier2 needed: run tier2 only.
+/// 4. After any automated step completes: reload state, compute next directive,
+///    emit gate message and stop.
+/// 5. If current state is already a gate (--report, promote, ingest): print gate and stop.
+pub fn cmd_run() -> Result<()> {
+    let knowledge_root = kp::find_brana_knowledge_root()
+        .ok_or_else(|| anyhow::anyhow!(
+            "brana-knowledge repo not found. Checked: $BRANA_KNOWLEDGE_ROOT, \
+             sibling of git root, ~/enter_thebrana/brana-knowledge/"
+        ))?;
+    let state_path = kp::pipeline_state_path();
+    let state = kp::load_state(&state_path)?;
+
+    let directive = next_directive(&state, &knowledge_root);
+
+    // If already at a human gate, print and stop.
+    if let Some(gate) = run_gate_message(&directive) {
+        println!("\n{gate}\n");
+        return Ok(());
+    }
+
+    // Auto-advance: tier1
+    if directive.contains("--tier1") {
+        println!("  \x1b[1mbrana knowledge run\x1b[0m — auto-advancing tier1...\n");
+        cmd_process(true, false, None, false, false, None, false)?;
+
+        // Reload and check again
+        let state2 = kp::load_state(&state_path)?;
+        let directive2 = next_directive(&state2, &knowledge_root);
+
+        if directive2.contains("--tier2") {
+            println!("\n  Auto-advancing tier2...\n");
+            cmd_process(false, true, None, false, false, None, false)?;
+
+            // Reload after tier2 and emit gate
+            let state3 = kp::load_state(&state_path)?;
+            let directive3 = next_directive(&state3, &knowledge_root);
+            let gate = run_gate_message(&directive3).unwrap_or_else(|| {
+                format!("Pipeline stopped. Next: {directive3}")
+            });
+            println!("\n{gate}\n");
+        } else {
+            // tier1 ran but tier2 not ready yet (or already at gate)
+            let gate = run_gate_message(&directive2).unwrap_or_else(|| {
+                format!("Pipeline stopped. Next: {directive2}")
+            });
+            println!("\n{gate}\n");
+        }
+        return Ok(());
+    }
+
+    // Auto-advance: tier2 only
+    if directive.contains("--tier2") {
+        println!("  \x1b[1mbrana knowledge run\x1b[0m — auto-advancing tier2...\n");
+        cmd_process(false, true, None, false, false, None, false)?;
+
+        // Reload after tier2 and emit gate
+        let state2 = kp::load_state(&state_path)?;
+        let directive2 = next_directive(&state2, &knowledge_root);
+        let gate = run_gate_message(&directive2).unwrap_or_else(|| {
+            format!("Pipeline stopped. Next: {directive2}")
+        });
+        println!("\n{gate}\n");
+        return Ok(());
+    }
+
+    // Fallback: unknown directive, just print it
+    println!("  Pipeline state: {directive}");
+    Ok(())
 }
 
 // ── brana knowledge next ──────────────────────────────────────────────────────
@@ -1442,5 +1557,43 @@ mod tests {
         let state = kp::PipelineState::default();
         let d = next_directive(&state, dir.path());
         assert!(d.starts_with("brana knowledge promote"), "got: {d}");
+    }
+
+    // ── run_gate_message ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_run_gate_report_directive_returns_gate_message() {
+        let msg = run_gate_message("brana knowledge process --report");
+        assert!(msg.is_some(), "expected a gate message for --report directive");
+        let msg = msg.unwrap();
+        assert!(msg.contains("--report"), "gate message should reference --report, got: {msg}");
+    }
+
+    #[test]
+    fn test_run_gate_promote_directive_returns_gate_message() {
+        let msg = run_gate_message("brana knowledge promote /path/to/draft.md");
+        assert!(msg.is_some(), "expected a gate message for promote directive");
+        let msg = msg.unwrap();
+        assert!(msg.contains("promote"), "gate message should reference promote, got: {msg}");
+    }
+
+    #[test]
+    fn test_run_gate_ingest_directive_returns_gate_message() {
+        let msg = run_gate_message("brana knowledge ingest <url>");
+        assert!(msg.is_some(), "expected a gate message for ingest directive");
+        let msg = msg.unwrap();
+        assert!(msg.contains("ingest"), "gate message should reference ingest, got: {msg}");
+    }
+
+    #[test]
+    fn test_run_gate_tier1_directive_returns_none() {
+        let msg = run_gate_message("brana knowledge process --tier1");
+        assert!(msg.is_none(), "tier1 should auto-advance (no gate), got: {msg:?}");
+    }
+
+    #[test]
+    fn test_run_gate_tier2_directive_returns_none() {
+        let msg = run_gate_message("brana knowledge process --tier2");
+        assert!(msg.is_none(), "tier2 should auto-advance (no gate), got: {msg:?}");
     }
 }

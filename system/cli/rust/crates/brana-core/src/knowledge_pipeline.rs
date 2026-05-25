@@ -561,6 +561,106 @@ pub fn ingest_urls(urls: &[String], source: Option<&str>, state: &mut PipelineSt
     result
 }
 
+// ── Gemini CLI shell-out (call_gemini_json — ADR-040 Tier1/Tier2 routing) ────
+
+/// Resolve the `agy` (Gemini CLI) binary path.
+///
+/// Resolution order:
+/// 1. `$AGY_BIN` env var
+/// 2. `~/.local/bin/agy`
+/// 3. `PATH` (via `which agy`)
+pub fn resolve_agy_binary() -> Option<PathBuf> {
+    if let Ok(v) = std::env::var("AGY_BIN") {
+        let p = PathBuf::from(&v);
+        if p.exists() {
+            return Some(p);
+        }
+    }
+
+    let local_bin = home().join(".local/bin/agy");
+    if local_bin.exists() {
+        return Some(local_bin);
+    }
+
+    if let Ok(out) = std::process::Command::new("which").arg("agy").output() {
+        if out.status.success() {
+            let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            if !path.is_empty() {
+                return Some(PathBuf::from(path));
+            }
+        }
+    }
+
+    None
+}
+
+/// Call the `agy` Gemini CLI with `-p "<prompt>"` and return the parsed JSON response.
+/// Timeout: 60 seconds (Gemini Flash is fast).
+///
+/// Unlike the claude CLI, agy writes plain text directly to stdout (no envelope).
+/// Stdout is parsed as JSON after stripping code fences.
+///
+/// # Stdio isolation
+/// Both stdout and stderr are piped — never inherited from the parent process.
+/// This prevents stdout bleed into any parent JSON-RPC or MCP stream.
+pub fn call_gemini_json(prompt: &str) -> Result<serde_json::Value> {
+    let binary = resolve_agy_binary().ok_or_else(|| {
+        anyhow::anyhow!(
+            "agy binary not found — install with: npm install -g agy"
+        )
+    })?;
+
+    let mut child = std::process::Command::new(&binary)
+        .arg("-p")
+        .arg(prompt)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .with_context(|| format!("spawning agy binary at {}", binary.display()))?;
+
+    let timeout = std::time::Duration::from_secs(60);
+    let start = std::time::Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) => {
+                if start.elapsed() > timeout {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    bail!("agy timed out after 60s");
+                }
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+            Err(e) => bail!("agy wait error: {e}"),
+        }
+    }
+
+    let output = child.wait_with_output()?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        bail!("agy exited non-zero (exit {}): stdout={stdout} stderr={stderr}",
+              output.status.code().unwrap_or(-1));
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let trimmed = stdout.trim();
+
+    // agy uses "Error: " prefix for user-visible errors (even on exit 0)
+    if trimmed.starts_with("Error: ") {
+        bail!("agy returned error: {trimmed}");
+    }
+    if trimmed.is_empty() {
+        bail!("agy returned empty output");
+    }
+
+    let cleaned = strip_code_fences(trimmed);
+    let parsed: serde_json::Value = serde_json::from_str(cleaned)
+        .with_context(|| format!("parsing agy JSON response: {trimmed}"))?;
+    Ok(parsed)
+}
+
 // ── Claude CLI shell-out (t-1145 spike) ──────────────────────────────────────
 
 /// Resolve the `claude` CLI binary path.
@@ -1073,6 +1173,25 @@ mod tests {
     fn test_count_drafts_missing_dir_returns_zero() {
         let dir = TempDir::new().unwrap();
         assert_eq!(count_drafts(dir.path()), 0);
+    }
+
+    // ── resolve_agy_binary / call_gemini_json ────────────────────────
+
+    #[test]
+    fn test_resolve_agy_binary_does_not_panic() {
+        // Just verify it doesn't panic — None is ok in CI without agy installed
+        let _ = resolve_agy_binary();
+    }
+
+    #[test]
+    fn test_call_gemini_json_returns_value_shape() {
+        // Test the parsing logic only (not the actual agy call).
+        // Simulate what call_gemini_json does with valid JSON output from agy.
+        let fake_output = r#"{"score": 4, "reason": "highly relevant"}"#;
+        let cleaned = strip_code_fences(fake_output.trim());
+        let parsed: serde_json::Value = serde_json::from_str(cleaned).unwrap();
+        assert_eq!(parsed["score"], 4);
+        assert!(parsed["reason"].as_str().unwrap().contains("relevant"));
     }
 
     // ── resolve_claude_binary ─────────────────────────────────────────

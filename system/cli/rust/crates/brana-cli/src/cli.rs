@@ -350,6 +350,8 @@ pub enum KnowledgeCmd {
     },
     /// Emit the single next pipeline command to run (state-aware, zero LLM calls)
     Next,
+    /// Auto-advance the pipeline: tier1→tier2, stopping at human decision points
+    Run,
 }
 
 #[derive(Subcommand)]

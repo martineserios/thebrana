@@ -293,3 +293,101 @@ brana memory index --scope <scope>
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--scope` | `project` | `project` or `global` |
+
+---
+
+## brana knowledge ingest
+
+Queue URLs into pipeline state (`pipeline-state.json`). Accepts direct URLs, file paths
+(URL lists, WhatsApp exports, any plain text), or stdin. Extracts all `https://`/`http://`
+URLs from text input. Skips duplicates already in state.
+
+### Usage
+
+```bash
+# Direct URLs
+brana knowledge ingest https://example.com https://other.com
+
+# File with URL list (or any text containing URLs)
+brana knowledge ingest inbox/dump.txt
+
+# Stdin
+cat urls.txt | brana knowledge ingest
+```
+
+### Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--source <tag>` | — | Tag all ingested URLs with a source label (e.g. `telegram`) |
+| `--dry-run` | false | Extract and report URLs without writing state |
+
+### Output
+
+```
+  brana knowledge ingest
+  3 URL(s) extracted
+
+  ✓ 2 new URL(s) queued
+  · 1 duplicate(s) skipped
+
+  Next: brana knowledge process --status
+```
+
+---
+
+## brana knowledge next
+
+Emit the single next pipeline command to run. Pure read — never modifies state.
+
+Priority order (first match wins):
+1. `unprocessed > 0` → `brana knowledge process --tier1`
+2. `tier1_passed > 0` → `brana knowledge process --tier2`
+3. drafts on disk → `brana knowledge promote <path>`
+4. `tier2_clustered > 0` (no drafts) → `brana knowledge process --report`
+5. all current → `brana knowledge ingest <url>`
+
+### Usage
+
+```bash
+brana knowledge next
+```
+
+### Examples
+
+```bash
+# Shows exactly one command to copy-paste
+$ brana knowledge next
+brana knowledge process --tier1
+
+$ brana knowledge next
+brana knowledge promote brana-knowledge/drafts/2026-05-24-agent-tooling.md
+```
+
+---
+
+## brana knowledge run
+
+Auto-advance tier1 and tier2 automatically; stops at human gates (cluster report, draft
+review). Reads `pipeline-state.json`, auto-runs scored steps, and emits the gate message
+when a judgment call is needed.
+
+### Usage
+
+```bash
+brana knowledge run
+```
+
+### Behavior
+
+- If `unprocessed > 0`: runs tier1, then checks again. If tier1 passes yield tier2-ready items, runs tier2 immediately, then stops at the cluster report gate.
+- If `tier1_passed > 0` (and no unprocessed): runs tier2 only, then stops at gate.
+- If already at a human gate: prints the gate message and exits without running anything.
+
+### Human gates (stops here)
+
+| Gate | Message |
+|------|---------|
+| Cluster report ready | `brana knowledge process --report` |
+| Draft ready for review | `brana knowledge promote <path>` |
+| Pipeline idle | `brana knowledge ingest <url>` |

@@ -9,6 +9,7 @@
 > Updated 2026-04-13: added URL index design — url-index.jsonl + pipeline-state.json, schema, canonicalization, async fetch, query CLI (§ URL Index Design).
 > Updated 2026-04-13: added workflow + UX design — brana log as single entry point (1 or N URLs, same behavior), background pipeline, brana knowledge next as status/gate surface, two manual touchpoints (§ Workflow & User Experience).
 > Updated 2026-04-13: Tier 1 scoring redesign — 4-dimension rubric, challenger-resolved: novelty gated on content_quality, evidence replaced by spot-check audit, community nullable per platform (§ URL Index Design → Tier 1 scoring).
+> Updated 2026-05-24: `brana knowledge ingest` and `brana knowledge next` shipped (t-1665, t-1666). `brana knowledge run` shipped. See `docs/guide/cli.md §brana knowledge`.
 > Challenger review 2026-04-13 (original): passed with changes — 2 score-4 findings fixed in design, step order corrected, risks table updated.
 > Challenger review 2026-04-13 (Tier 1 scoring): RECONSIDER — 2 score-4 findings resolved, threshold accepted as first guess.
 > Challenger review 2026-04-13 (URL index): RECONSIDER — 3 score-4/5 findings resolved, Option B (two files) selected.
@@ -495,9 +496,11 @@ Four-dimension scoring (topical relevance, signal density, novelty, community) w
 
 ## Workflow & User Experience (2026-04-13)
 
-### Entry point: `brana log`
+### Entry point: `brana knowledge ingest`
 
-`brana log` is the single entry point for all URL capture — one URL or many, behavior is identical.
+> **Shipped** (t-1665): `brana knowledge ingest` is the canonical URL entry point — accepts direct URLs, file paths (URL lists, WA exports, any text), or stdin. Queues extracted URLs as `Unprocessed` in `pipeline-state.json`.
+
+`brana knowledge ingest` is the source-agnostic entry point for URLs — one URL or many, behavior is identical.
 
 ```
 brana log <url>
@@ -549,6 +552,8 @@ background:
 No blocking. No waiting. The user continues with other work.
 
 ### Checking pipeline state
+
+> **Shipped** (t-1666): `brana knowledge next` reads `pipeline-state.json` and emits exactly one command (the next step to run).
 
 ```
 $ brana knowledge next
