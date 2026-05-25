@@ -53,6 +53,7 @@ pub enum NextCategory {
     FollowUp,
     Maintenance,
     Suggestion,
+    Watch,
 }
 
 /// A single next-action item.
@@ -127,6 +128,7 @@ pub struct SessionMetrics {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SessionState {
     pub version: u32,
+    #[serde(default)]
     pub written_at: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub branch: Option<String>,
