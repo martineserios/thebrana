@@ -118,6 +118,14 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-032](architecture/decisions/ADR-032-smart-router.md) | Smart router |
 | [ADR-033](architecture/decisions/ADR-033-pin-mcp-servers.md) | MCP server pinning (wrapper scripts) |
 | [ADR-034](architecture/decisions/ADR-034-skill-tiering.md) | Skill tiering — core full + extended stubs |
+| [ADR-035](architecture/decisions/ADR-035-skill-usage-telemetry.md) | Skill usage telemetry |
+| [ADR-036](architecture/decisions/ADR-036-mcp-or-cli-decision-rule.md) | MCP-or-CLI decision rule |
+| [ADR-037](architecture/decisions/ADR-037-memory-enforcement-and-migration.md) | Memory enforcement and migration |
+| [ADR-038](architecture/decisions/ADR-038-memory-write-gateway.md) | Memory write gateway |
+| [ADR-039](architecture/decisions/ADR-039-pattern-quality-filter-and-per-pattern-files.md) | Pattern quality filter and per-pattern files |
+| [ADR-040](architecture/decisions/ADR-040-compute-hierarchy-claude-ruflo-gemini.md) | brana compute hierarchy — Claude / Ruflo / Gemini |
+| [ADR-041](architecture/decisions/ADR-041-agy-invocation-contract.md) | agy invocation contract |
+| [ADR-042](architecture/decisions/ADR-042-knowledge-ingest-canonical-entry-point-gemini-routing.md) | Knowledge pipeline — `ingest` as canonical URL entry point + Gemini routing for Tier 1/2 |
 
 ### Domain model (docs/domain/)
 
