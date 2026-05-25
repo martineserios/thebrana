@@ -42469,6 +42469,31 @@
       ],
       "type": "task",
       "work_type": "implement"
+    },
+    {
+      "id": "t-1680",
+      "subject": "[scheduler] Sync template→live: deploy content-harvest + index-patterns; audit reindex-patterns vs index-patterns overlap",
+      "status": "pending",
+      "stream": "tech-debt",
+      "type": "task",
+      "tags": [
+        "scheduler",
+        "infra"
+      ],
+      "description": "Template has content-harvest (enabled:true, Sundays 22:00, LinkedIn harvest t-680) and index-patterns (enabled:true, Sundays 11:30, ruflo pattern indexing t-857) that were never synced to ~/.claude/scheduler/scheduler.json — silently not running. Also: live has reindex-patterns (not in template) that may supersede index-patterns — check for overlap before deploying. daily-digest and inbox-poll are enabled:false by design, no action needed. Steps: 1) diff reindex-patterns vs index-patterns commands, 2) if no overlap, add missing jobs to live via brana-scheduler deploy, 3) update template to include backup-memory + reindex-patterns.",
+      "effort": "S",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-05-25",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
     }
   ],
   "version": "1"
