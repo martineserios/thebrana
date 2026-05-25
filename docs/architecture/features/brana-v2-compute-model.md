@@ -90,12 +90,12 @@ ALWAYS:
 
 | Phase | Name | Status | Key Tasks |
 |-------|------|--------|-----------|
-| 0 | Efficiency quick wins | in_progress | t-1646 (weight-adaptive close), debrief-analyst → Sonnet |
+| 0 | Efficiency quick wins | ✅ done | t-1646 (weight-adaptive close), debrief-analyst → Sonnet |
 | 1 | Routing rules | ✅ done | t-1627 (delegation-routing.md baseline) |
-| 2 | Ruflo wiring | in_progress | t-1599 (hive-mind calibration) |
+| 2 | Ruflo wiring | pending | t-1599 (hive-mind calibration — not started) |
 | 3 | Gemini layer | ✅ done | t-1576 (agy_delegate MCP), t-1577/t-1584 (/brana:gemini skill) |
-| 4 | ENRICH + PERSIST | ✅ done | t-1629 (ENRICH step), t-1631 (PERSIST step) |
-| 5 | Hive-mind quorum | pending | t-1599 calibration → t-1638 ADR |
+| 4 | ENRICH + PERSIST | ✅ done | t-1629 (ENRICH), t-1631 (PERSIST), t-1634 (compounding loop validated) |
+| 5 | Hive-mind quorum | pending | t-1599 calibration → t-1638 ADR (blocked by Phase 2) |
 | 6 | Full integration | pending | t-1602 subtasks (blocked by Phase 5) |
 
 ## Ruflo–Gemini Pipeline (Phase 4)
@@ -119,8 +119,20 @@ PERSIST → ruflo pattern_store(tags: ["source:agy-delegation"])
 ## Compounding Loop
 
 Each delegation cycle makes the next one better. Gemini's validated output teaches future
-calls via ruflo. Quality should improve measurably after 3–5 delegations of the same type.
-Validation protocol in t-1634 (ENRICH-on vs ENRICH-off quality comparison).
+calls via ruflo. Quality improves measurably with ENRICH enabled.
+
+**Validation result (t-1634, 2026-05-25): PASS**
+
+| Condition | Mean score (/ 6) |
+|-----------|-----------------|
+| ENRICH-off | 3.33 |
+| ENRICH-on  | 6.0 |
+| Gap | +2.67 (threshold: +1.0) |
+
+All 3 ruflo-stored patterns surfaced as concrete, project-specific rules in every ENRICH-on
+run. ENRICH-off hit the thiserror/anyhow split from training data but consistently missed
+brana-specific patterns (MCP stdio panic hook, JoinError two-layer handling).
+See `claude-gemini-orchestration.md §Phase 4` for full protocol and scoring breakdown.
 
 ## Pending Decisions
 
