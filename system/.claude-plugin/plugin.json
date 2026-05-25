@@ -7,5 +7,7 @@
   },
   "repository": "https://github.com/martineserios/thebrana",
   "license": "MIT",
-  "keywords": ["ai", "development", "tdd", "skills", "agents", "hooks"]
+  "keywords": ["ai", "development", "tdd", "skills", "agents", "hooks"],
+  "skills": "./skills/",
+  "commands": ["./commands/repo-cleanup.md"]
 }
