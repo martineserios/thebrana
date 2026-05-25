@@ -254,6 +254,7 @@ fn convert_handoff_entry(entry: &handoff::HandoffEntry) -> SessionState {
         branch,
         session_label: Some(label),
         session_labels: Vec::new(),
+        initiative: None,
         consumed_at: Some(written_at),
         accomplished,
         learnings,
@@ -299,6 +300,61 @@ fn extract_field(body: &str, field: &str) -> Option<String> {
         }
     }
     None
+}
+
+// ── Initiative accumulator commands ─────────────────────────────────────
+
+/// `brana session initiative upsert <slug> [--completed t-1,t-2]`
+pub fn cmd_initiative_upsert(slug: &str, completed_csv: &str) -> anyhow::Result<()> {
+    use brana_core::session_initiative::upsert_initiative;
+    let root = require_project_root()?;
+    let state = read_state(&root)
+        .ok_or_else(|| anyhow::anyhow!("No session state found — run `brana session write` first"))?;
+    let completed: Vec<String> = completed_csv
+        .split(',')
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect();
+    upsert_initiative(&root, slug, &state, &completed)?;
+    println!("{{\"ok\":true,\"slug\":\"{slug}\"}}");
+    Ok(())
+}
+
+/// `brana session initiative read <slug> [--json]`
+pub fn cmd_initiative_read(slug: &str, json_output: bool) -> anyhow::Result<()> {
+    use brana_core::session_initiative::read_initiative;
+    let root = require_project_root()?;
+    let acc = read_initiative(&root, slug)
+        .ok_or_else(|| anyhow::anyhow!("No initiative accumulator found for '{slug}'"))?;
+    if json_output {
+        println!("{}", serde_json::to_string_pretty(&acc)?);
+    } else {
+        println!("Initiative: {}", acc.slug);
+        println!("Sessions:   {}", acc.sessions_count);
+        println!("Last close: {}", acc.last_closed);
+        if !acc.accomplished.is_empty() {
+            println!("\nAccomplished ({}):", acc.accomplished.len());
+            for a in &acc.accomplished { println!("  - {a}"); }
+        }
+        if !acc.next.is_empty() {
+            println!("\nNext ({}):", acc.next.len());
+            for n in &acc.next { println!("  - [{}] {}", n.category_str(), n.text); }
+        }
+        if !acc.resolved.is_empty() {
+            println!("\nResolved ({}):", acc.resolved.len());
+            for r in &acc.resolved { println!("  - {} ({})", r.text, r.resolved_at); }
+        }
+    }
+    Ok(())
+}
+
+/// `brana session initiative archive <slug>`
+pub fn cmd_initiative_archive(slug: &str) -> anyhow::Result<()> {
+    use brana_core::session_initiative::archive_initiative;
+    let root = require_project_root()?;
+    archive_initiative(&root, slug)?;
+    println!("{{\"ok\":true,\"slug\":\"{slug}\",\"action\":\"archived\"}}");
+    Ok(())
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────

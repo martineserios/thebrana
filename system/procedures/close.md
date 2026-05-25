@@ -804,6 +804,48 @@ If no task was claimed or `claims_release` fails (MCP down), skip silently.
 
 **Fallback:** If any MCP call fails, log the failure and continue. The CLI-based session state from Step 9 is the authoritative record. MCP failures are non-fatal.
 
+### Step 9c: Initiative accumulator — upsert cross-day state (ADR-044)
+
+> Skip entirely if `$CLOSE_MODE == "NANO"`.
+
+**Detect active initiative (3-tier cascade, run in order, stop at first hit):**
+
+**Tier 2a (preferred):** Query in-progress tasks for a common initiative:
+```bash
+brana backlog query --status in_progress --json 2>/dev/null \
+  | jq -r '.[].initiative // empty' | sort -u
+```
+- Exactly 1 unique non-empty slug → use it silently as `$INITIATIVE_SLUG`.
+- 0 or 2+ → fall through to Tier 2c.
+
+**Tier 2c (branch name):** Parse branch name for a slug:
+```bash
+git branch --show-current | sed 's|.*/||'
+```
+Use result if it matches a known initiative slug (non-empty, no special chars) and Tier 2a returned nothing or was ambiguous.
+
+**Tier 3 (ask):** If both tiers returned 0 or conflicting results, ask once:
+```
+AskUserQuestion(
+  question: "Which initiative does this session belong to? (skip = no initiative file)",
+  options: ["<detected slugs if any>", "Skip"]
+)
+```
+If the user skips: proceed to Step 10 without writing an initiative file.
+
+**Write accumulator:**
+```bash
+# completed_task_ids = comma-separated IDs of tasks completed this session
+# (derive from git log --oneline -20 | grep -oE 't-[0-9]+' | sort -u | tr '\n' ',')
+COMPLETED=$(git log --oneline -20 | grep -oE 't-[0-9]+' | sort -u | tr '\n' ',' | sed 's/,$//')
+
+brana session initiative upsert "$INITIATIVE_SLUG" --completed "$COMPLETED"
+```
+
+Also add `"initiative": "$INITIATIVE_SLUG"` to the Step 9 JSON payload so the session-state.json carries the slug (used by sitrep to load the accumulator).
+
+**Fallback:** If `brana session initiative upsert` fails, log and continue. Session-state.json and session-history.jsonl are the authoritative records.
+
 ### Step 10: Store session metadata
 
 **Via MCP (preferred):**

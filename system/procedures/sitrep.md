@@ -98,6 +98,21 @@ If JSON is available, extract structured fields directly:
 
 If `brana session read --json` returns nothing, fall back to `brana handoff last` (legacy markdown).
 
+**4b. Initiative accumulator (if session has initiative field):**
+
+If the session JSON includes `"initiative": "<slug>"`, load the cross-day arc:
+```bash
+brana session initiative read "$INITIATIVE_SLUG" --json
+```
+
+Surface in the sitrep output:
+- **Initiative:** `{slug}` — {sessions_count} sessions, last closed {last_closed}
+- **Arc accomplished ({N}):** first 3 items from `acc.accomplished[]`
+- **Open next ({N}):** all items from `acc.next[]` (these span multiple sessions)
+- **Recently resolved ({N}):** last 3 from `acc.resolved[]`
+
+If `brana session initiative read` returns nothing (initiative not yet seeded), skip silently.
+
 ### 5. Conversation scan
 
 Review the last few conversation turns for:

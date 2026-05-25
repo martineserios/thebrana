@@ -65,6 +65,17 @@ pub struct NextItem {
     pub category: NextCategory,
 }
 
+impl NextItem {
+    pub fn category_str(&self) -> &'static str {
+        match self.category {
+            NextCategory::FollowUp => "follow-up",
+            NextCategory::Maintenance => "maintenance",
+            NextCategory::Suggestion => "suggestion",
+            NextCategory::Watch => "watch",
+        }
+    }
+}
+
 /// A blocker item.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Blocker {
@@ -137,6 +148,9 @@ pub struct SessionState {
     /// All session labels merged into today's state (breadcrumb for multi-session days).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub session_labels: Vec<String>,
+    /// Active initiative slug at close time (used by session_initiative::upsert_initiative).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub initiative: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub consumed_at: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -205,6 +219,7 @@ impl SessionState {
             branch,
             session_label: None,
             session_labels: Vec::new(),
+            initiative: None,
             consumed_at: None,
             accomplished: Vec::new(),
             learnings: Vec::new(),
@@ -787,6 +802,7 @@ mod tests {
             branch: Some("main".to_string()),
             session_label: Some("test session".to_string()),
             session_labels: Vec::new(),
+            initiative: None,
             consumed_at: None,
             accomplished: vec!["did thing A".to_string()],
             learnings: vec!["learned X".to_string()],
@@ -913,6 +929,7 @@ mod tests {
             branch: None,
             session_label: None,
             session_labels: Vec::new(),
+            initiative: None,
             consumed_at: None,
             accomplished: accomplished.into_iter().map(String::from).collect(),
             learnings: learnings.into_iter().map(String::from).collect(),

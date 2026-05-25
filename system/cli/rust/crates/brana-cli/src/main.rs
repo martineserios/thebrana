@@ -138,6 +138,11 @@ fn main() {
                 Ok(())
             })()),
             SessionCmd::Insights { limit, json } => run_or_exit(commands::session::cmd_session_insights(limit, json)),
+            SessionCmd::Initiative { cmd } => match cmd {
+                InitiativeCmd::Upsert { slug, completed } => run_or_exit(commands::session::cmd_initiative_upsert(&slug, &completed)),
+                InitiativeCmd::Read { slug, json } => run_or_exit(commands::session::cmd_initiative_read(&slug, json)),
+                InitiativeCmd::Archive { slug } => run_or_exit(commands::session::cmd_initiative_archive(&slug)),
+            },
         },
         Commands::Knowledge { cmd } => match cmd {
             KnowledgeCmd::Reindex { changed, patterns, files } => {

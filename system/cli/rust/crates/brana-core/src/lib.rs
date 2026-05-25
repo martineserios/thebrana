@@ -8,6 +8,7 @@ pub mod knowledge_pipeline;
 pub mod memory;
 pub mod scheduler;
 pub mod session;
+pub mod session_initiative;
 pub mod sync;
 pub mod tasks;
 pub mod util;

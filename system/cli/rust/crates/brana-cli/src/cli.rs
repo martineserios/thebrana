@@ -442,6 +442,36 @@ pub enum SessionCmd {
         #[arg(long)]
         json: bool,
     },
+    /// Initiative accumulator — upsert, read, or archive cross-day initiative state
+    Initiative {
+        #[command(subcommand)]
+        cmd: InitiativeCmd,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum InitiativeCmd {
+    /// Merge current session state into the initiative accumulator
+    Upsert {
+        /// Initiative slug (e.g. "rust-cli")
+        slug: String,
+        /// Comma-separated list of task IDs completed this session (for Pass 1 pruning)
+        #[arg(long, default_value = "")]
+        completed: String,
+    },
+    /// Print the current initiative accumulator
+    Read {
+        /// Initiative slug
+        slug: String,
+        /// Output raw JSON
+        #[arg(long)]
+        json: bool,
+    },
+    /// Archive the initiative accumulator (move to archive/ with datestamp)
+    Archive {
+        /// Initiative slug
+        slug: String,
+    },
 }
 
 #[derive(Subcommand)]
