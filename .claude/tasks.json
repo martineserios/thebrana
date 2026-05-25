@@ -37655,7 +37655,7 @@
       "parent": "t-1502",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Benchmark: brana backlog query --output json at 1488-task volume",
       "tags": [
         "web-ui",
@@ -42142,7 +42142,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "call_gemini_json() in brana-core + wire into Tier1 and Tier2 scoring",
       "tags": [
@@ -42198,7 +42198,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "brana knowledge run — chained tier1→tier2 with human gates at clusters+drafts",
       "tags": [
@@ -42225,7 +42225,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "SDD: update layered-input-processing.md + CLAUDE.md + reference docs for pipeline glue",
       "tags": [
