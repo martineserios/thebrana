@@ -1549,6 +1549,33 @@ fi
 echo ""
 fi  # should_run 33
 
+if should_run 34; then
+# Check 34 — scheduler template vs live drift (t-1684)
+# Jobs added to scheduler.template.json silently don't run until synced to live.
+echo "Checking scheduler template vs live drift..."
+SCHEDULER_TEMPLATE="$SCRIPT_DIR/system/scheduler/scheduler.template.json"
+SCHEDULER_LIVE="$HOME/.claude/scheduler/scheduler.json"
+if [ ! -f "$SCHEDULER_TEMPLATE" ]; then
+    warn "Check 34: scheduler.template.json not found at $SCHEDULER_TEMPLATE — skipping"
+elif ! command -v jq &>/dev/null; then
+    warn "Check 34: jq not available — cannot compare scheduler template vs live"
+elif [ ! -f "$SCHEDULER_LIVE" ]; then
+    warn "Check 34: live scheduler not found at $SCHEDULER_LIVE — run bootstrap.sh to deploy"
+else
+    TEMPLATE_JOBS=$(jq -r '.jobs | keys | .[]' "$SCHEDULER_TEMPLATE" | sort)
+    LIVE_JOBS=$(jq -r '.jobs | keys | .[]' "$SCHEDULER_LIVE" | sort)
+    MISSING_JOBS=$(comm -23 <(echo "$TEMPLATE_JOBS") <(echo "$LIVE_JOBS"))
+    if [ -n "$MISSING_JOBS" ]; then
+        MISSING_COUNT=$(echo "$MISSING_JOBS" | wc -l | tr -d ' ')
+        while IFS= read -r job; do echo "  missing from live: $job"; done <<< "$MISSING_JOBS"
+        warn "Check 34: $MISSING_COUNT scheduler job(s) in template but missing from live — run brana scheduler sync or bootstrap.sh (t-1684)"
+    else
+        pass "Check 34: scheduler template and live file have matching job names"
+    fi
+fi
+echo ""
+fi  # should_run 34
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
