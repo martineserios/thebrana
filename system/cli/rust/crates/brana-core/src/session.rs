@@ -134,6 +134,9 @@ pub struct SessionState {
     pub branch: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub session_label: Option<String>,
+    /// All session labels merged into today's state (breadcrumb for multi-session days).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub session_labels: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub consumed_at: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -201,6 +204,7 @@ impl SessionState {
             written_at: Utc::now().to_rfc3339(),
             branch,
             session_label: None,
+            session_labels: Vec::new(),
             consumed_at: None,
             accomplished: Vec::new(),
             learnings: Vec::new(),
@@ -387,6 +391,22 @@ pub fn merge_states(existing: &SessionState, new: &SessionState) -> SessionState
         (None, Some(nl)) => Some(nl.clone()),
         (None, None) => None,
     };
+
+    // session_labels: structured breadcrumb of all labels merged into today's state.
+    // Seed from existing.session_labels (may be empty for old entries); backfill from
+    // existing.session_label if not already captured; then append new.session_label.
+    let mut labels = existing.session_labels.clone();
+    if let Some(el) = &existing.session_label {
+        if !labels.contains(el) {
+            labels.insert(0, el.clone());
+        }
+    }
+    if let Some(nl) = &new.session_label {
+        if !labels.contains(nl) {
+            labels.push(nl.clone());
+        }
+    }
+    merged.session_labels = labels;
 
     // metrics: sum numeric fields; rates recomputed from totals
     merged.metrics = match (&existing.metrics, &new.metrics) {
@@ -766,6 +786,7 @@ mod tests {
             written_at: written_at.to_string(),
             branch: Some("main".to_string()),
             session_label: Some("test session".to_string()),
+            session_labels: Vec::new(),
             consumed_at: None,
             accomplished: vec!["did thing A".to_string()],
             learnings: vec!["learned X".to_string()],
@@ -891,6 +912,7 @@ mod tests {
             written_at: written_at.to_string(),
             branch: None,
             session_label: None,
+            session_labels: Vec::new(),
             consumed_at: None,
             accomplished: accomplished.into_iter().map(String::from).collect(),
             learnings: learnings.into_iter().map(String::from).collect(),
@@ -1299,6 +1321,48 @@ mod tests {
         write_state(root, &state).unwrap();
         let loaded = read_state(root).expect("state must exist after write");
         assert!(loaded.consumed_at.is_none(), "write_state must clear consumed_at regardless of call site");
+    }
+
+    // ── session_labels ───────────────────────────────────────────────────
+
+    #[test]
+    fn session_labels_collected_on_merge() {
+        let existing = SessionState {
+            session_label: Some("Session A".to_string()),
+            ..SessionState::minimal(None)
+        };
+        let new = SessionState {
+            session_label: Some("Session B".to_string()),
+            ..SessionState::minimal(None)
+        };
+        let merged = merge_states(&existing, &new);
+        assert!(merged.session_labels.contains(&"Session A".to_string()), "Session A must appear in session_labels");
+        assert!(merged.session_labels.contains(&"Session B".to_string()), "Session B must appear in session_labels");
+        assert_eq!(merged.session_labels.len(), 2);
+    }
+
+    #[test]
+    fn session_labels_deduplicates() {
+        let a = SessionState {
+            session_label: Some("Session A".to_string()),
+            session_labels: vec!["Session A".to_string()],
+            ..SessionState::minimal(None)
+        };
+        let b = SessionState {
+            session_label: Some("Session A".to_string()),
+            ..SessionState::minimal(None)
+        };
+        let merged = merge_states(&a, &b);
+        assert_eq!(merged.session_labels.len(), 1, "duplicate label must be deduplicated");
+    }
+
+    #[test]
+    fn session_labels_backward_compat_missing_field() {
+        // Old session-state.json without session_labels field must deserialize to empty vec.
+        let json = r#"{"version":1,"written_at":"2026-05-25T10:00:00Z","session_label":"old label"}"#;
+        let state: SessionState = serde_json::from_str(json)
+            .expect("old JSON without session_labels must deserialize");
+        assert!(state.session_labels.is_empty(), "session_labels must default to empty vec when absent");
     }
 
     #[test]

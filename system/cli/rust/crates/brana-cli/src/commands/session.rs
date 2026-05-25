@@ -253,6 +253,7 @@ fn convert_handoff_entry(entry: &handoff::HandoffEntry) -> SessionState {
         written_at: written_at.clone(),
         branch,
         session_label: Some(label),
+        session_labels: Vec::new(),
         consumed_at: Some(written_at),
         accomplished,
         learnings,
