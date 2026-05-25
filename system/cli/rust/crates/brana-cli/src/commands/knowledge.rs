@@ -922,6 +922,63 @@ fn strip_frontmatter(content: &str) -> String {
     content.to_string()
 }
 
+// ── brana knowledge next ──────────────────────────────────────────────────────
+
+/// Determine the single next pipeline action given current state.
+///
+/// Priority order (first match wins):
+/// 1. `unprocessed > 0`                         → `process --tier1`
+/// 2. `tier1_passed > 0`                         → `process --tier2`
+/// 3. `drafts_on_disk > 0`                       → `promote <first-draft>`
+/// 4. `tier2_clustered > 0` (no drafts on disk)  → `process --report`
+/// 5. all current                                 → `ingest <url>`
+pub fn next_directive(state: &kp::PipelineState, knowledge_root: &std::path::Path) -> String {
+    let counts = count_by_tier(state);
+
+    if counts.unprocessed > 0 {
+        return "brana knowledge process --tier1".to_string();
+    }
+    if counts.tier1_passed > 0 {
+        return "brana knowledge process --tier2".to_string();
+    }
+    let draft_count = kp::count_drafts(knowledge_root);
+    if draft_count > 0 {
+        let drafts_dir = knowledge_root.join("drafts");
+        if let Ok(dir) = std::fs::read_dir(&drafts_dir) {
+            let mut paths: Vec<_> = dir
+                .flatten()
+                .filter(|e| {
+                    e.path().extension().and_then(|x| x.to_str()) == Some("md")
+                })
+                .map(|e| e.path())
+                .collect();
+            paths.sort();
+            if let Some(first) = paths.first() {
+                return format!("brana knowledge promote {}", first.display());
+            }
+        }
+        return "brana knowledge promote <draft-path>".to_string();
+    }
+    if counts.tier2_clustered > 0 {
+        return "brana knowledge process --report".to_string();
+    }
+    "brana knowledge ingest <url>".to_string()
+}
+
+/// `brana knowledge next` — emit the single next pipeline command to run.
+pub fn cmd_next() -> Result<()> {
+    let knowledge_root = kp::find_brana_knowledge_root()
+        .ok_or_else(|| anyhow::anyhow!(
+            "brana-knowledge repo not found. Checked: $BRANA_KNOWLEDGE_ROOT, \
+             sibling of git root, ~/enter_thebrana/brana-knowledge/"
+        ))?;
+    let state_path = kp::pipeline_state_path();
+    let state = kp::load_state(&state_path)?;
+    let directive = next_directive(&state, &knowledge_root);
+    println!("{directive}");
+    Ok(())
+}
+
 // ── brana knowledge ingest ────────────────────────────────────────────────────
 
 /// `brana knowledge ingest [sources...] [--source <tag>] [--dry-run]`
@@ -1323,5 +1380,67 @@ mod tests {
         let count = backfill_linkedin_fields(&mut state);
         assert_eq!(count, 0);
         assert_eq!(state.urls[url].author.as_deref(), Some("already-set"));
+    }
+
+    // ── next_directive ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_next_directive_empty_state_ingest() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let state = kp::PipelineState::default();
+        let d = next_directive(&state, dir.path());
+        assert!(d.starts_with("brana knowledge ingest"), "got: {d}");
+    }
+
+    #[test]
+    fn test_next_directive_unprocessed_tier1() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let mut state = kp::PipelineState::default();
+        state.urls.insert("https://example.com".into(), make_entry(kp::UrlStatus::Unprocessed));
+        let d = next_directive(&state, dir.path());
+        assert_eq!(d, "brana knowledge process --tier1");
+    }
+
+    #[test]
+    fn test_next_directive_tier1_passed_tier2() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let mut state = kp::PipelineState::default();
+        state.urls.insert("https://example.com".into(), make_entry(kp::UrlStatus::Tier1Passed));
+        let d = next_directive(&state, dir.path());
+        assert_eq!(d, "brana knowledge process --tier2");
+    }
+
+    #[test]
+    fn test_next_directive_clusters_no_drafts_report() {
+        let dir = tempfile::TempDir::new().unwrap();
+        std::fs::create_dir(dir.path().join("drafts")).unwrap();
+        let mut state = kp::PipelineState::default();
+        state.urls.insert("https://example.com".into(), make_entry(kp::UrlStatus::Tier2Clustered));
+        let d = next_directive(&state, dir.path());
+        assert_eq!(d, "brana knowledge process --report");
+    }
+
+    #[test]
+    fn test_next_directive_drafts_on_disk_promote() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let drafts = dir.path().join("drafts");
+        std::fs::create_dir(&drafts).unwrap();
+        std::fs::write(drafts.join("2026-05-24-agents.md"), "# draft").unwrap();
+        let mut state = kp::PipelineState::default();
+        state.urls.insert("https://example.com".into(), make_entry(kp::UrlStatus::Tier2Clustered));
+        let d = next_directive(&state, dir.path());
+        assert!(d.starts_with("brana knowledge promote"), "got: {d}");
+        assert!(d.contains("2026-05-24-agents.md"), "got: {d}");
+    }
+
+    #[test]
+    fn test_next_directive_drafts_only_no_clusters_promote() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let drafts = dir.path().join("drafts");
+        std::fs::create_dir(&drafts).unwrap();
+        std::fs::write(drafts.join("2026-05-01-topic.md"), "# draft").unwrap();
+        let state = kp::PipelineState::default();
+        let d = next_directive(&state, dir.path());
+        assert!(d.starts_with("brana knowledge promote"), "got: {d}");
     }
 }

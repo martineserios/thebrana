@@ -348,6 +348,8 @@ pub enum KnowledgeCmd {
         #[arg(long)]
         dry_run: bool,
     },
+    /// Emit the single next pipeline command to run (state-aware, zero LLM calls)
+    Next,
 }
 
 #[derive(Subcommand)]
