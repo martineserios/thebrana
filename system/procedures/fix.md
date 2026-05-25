@@ -23,6 +23,14 @@ TaskCreate: "/brana:fix — COMMIT"     (blocked by VERIFY)
 
 Mark each `in_progress` when starting, `completed` when done. Resume after compression by calling `TaskList` and finding the `in_progress` step.
 
+After creating the step registry, call `/goal` unless `--no-goal` was passed:
+
+```
+/goal "fix {task-id}: reproduce → diagnose → fix → verify → commit"
+```
+
+The COMMIT step is the natural terminator — self-terminate when the commit is complete.
+
 ## Procedure
 
 ### Step 1: REPRODUCE

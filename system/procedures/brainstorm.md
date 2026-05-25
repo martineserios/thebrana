@@ -68,6 +68,12 @@ AskUserQuestion:
 
 Capture the seed. Restate it back in one sentence to confirm understanding.
 
+If `--goal` was passed, derive the slug (lowercase, hyphenated from the seed) and call `/goal`:
+
+```
+/goal "brainstorm {slug}: explore → challenge → shape → save — idea doc committed at docs/ideas/{slug}.md"
+```
+
 ### Phase 2 — Expand
 
 Explore the idea space. Run these in parallel:
