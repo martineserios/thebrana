@@ -59,7 +59,7 @@ git commit -m "chore(state): commit state files at session close"
 - Add only a **Next:** section from conversation context
 - Skip to Step 9 (Write handoff note)
 
-**Weight classification (LIGHT vs FULL):**
+**Weight classification (NANO / LIGHT / FULL):**
 
 Classify the session depth before spawning any agent. Use `git diff --name-only` — not
 `--stat`, which outputs line counts requiring fragile extension parsing.
@@ -67,6 +67,7 @@ Classify the session depth before spawning any agent. Use `git diff --name-only`
 ```bash
 COMMIT_COUNT=$(git log --oneline --since="6 hours ago" 2>/dev/null | wc -l | tr -d ' ')
 CHANGED_FILES=$(git diff --name-only HEAD~"${COMMIT_COUNT:-1}"..HEAD 2>/dev/null)
+FILE_COUNT=$(echo "$CHANGED_FILES" | grep -c . || echo 0)
 # Behavioral JSON: system/ or .claude/ JSON files, excluding tasks.json (state file)
 BEHAVIORAL_JSON=$(echo "$CHANGED_FILES" | grep -E '^(system|\.claude)/.*\.json$' \
                  | grep -v '^\.claude/tasks\.json$')
@@ -74,11 +75,14 @@ BEHAVIORAL_JSON=$(echo "$CHANGED_FILES" | grep -E '^(system|\.claude)/.*\.json$'
 # Escape hatches take priority
 if [[ "$ARGUMENTS" == *"--light"* ]]; then CLOSE_MODE="LIGHT"
 elif [[ "$ARGUMENTS" == *"--full"* ]]; then CLOSE_MODE="FULL"
+elif [[ "$ARGUMENTS" == *"--nano"* ]]; then CLOSE_MODE="NANO"
 # FULL: ≥2 commits in this session
 elif [[ "${COMMIT_COUNT:-0}" -ge 2 ]]; then CLOSE_MODE="FULL"
 # FULL: any code or behavioral config file changed
 elif echo "$CHANGED_FILES" | grep -qE '\.(rs|ts|tsx|js|jsx|py|sh|toml|yaml|yml)$'; then CLOSE_MODE="FULL"
 elif [[ -n "$BEHAVIORAL_JSON" ]]; then CLOSE_MODE="FULL"
+# NANO: exactly 1 commit, ≤5 files, no code/config files, only .md / tasks.json / state files
+elif [[ "${COMMIT_COUNT:-0}" -eq 1 ]] && [[ "${FILE_COUNT:-0}" -le 5 ]]; then CLOSE_MODE="NANO"
 # LIGHT: only .md, tasks.json, state/*.json, or inbox/ changed
 else CLOSE_MODE="LIGHT"
 fi
@@ -86,8 +90,10 @@ fi
 
 Ambiguous cases (authoritative — do not infer):
 - `.sh` edit → FULL (behavioral, high-stakes)
-- `tasks.json` only → LIGHT (state file, not behavioral config)
+- `tasks.json` only → NANO (state file, single commit — write handoff and skip Steps 4-8)
 - `settings.json` → FULL (behavioral config — matches `^\.claude/.*\.json$`)
+
+**NANO mode:** write handoff note (Step 9) only. Skip Steps 3–8 entirely (no debrief agent, no errata, no patterns, no field notes, no ideation, no drift). NANO sessions have nothing worth extracting — the overhead costs more than the signal.
 
 Announce: `Close mode: $CLOSE_MODE` before proceeding to Step 2.
 
@@ -227,28 +233,46 @@ Detect behavioral changes that lack corresponding documentation updates.
 
 ### Steps 4-8: Run in parallel
 
+**Skip entirely** if `$CLOSE_MODE == "NANO"` — jump directly to Step 9.
+
 Steps 4 through 8 (ERRATA, PATTERNS, FIELD-NOTES, IDEATE, DRIFT) are independent — each reads from Step 3 output but none depends on another. Execute all five simultaneously using parallel tool calls. Do not wait for one to finish before starting the next.
 
 ### Step 4: Write errata entries (if any)
+
+**Skip entirely** if `$CLOSE_MODE == "NANO"`.
 
 For each **errata** finding:
 
 1. Find the errata doc: `Glob("**/*correction*")` or `Glob("**/*errata*")`
 2. If found, read it for format and current error count
 3. If not found, use `~/enter_thebrana/thebrana/docs/24-roadmap-corrections.md`
-4. Append entries following the existing format:
+4. **Pre-write dedup check** — before writing any entry, grep the *committed* errata file for
+   its key finding. This catches resume-after-compression where a prior close already committed
+   the same errata:
+   ```bash
+   TODAY=$(date +%Y-%m-%d)
+   # IDs already committed today
+   COMMITTED_TODAY=$(git show HEAD:docs/24-roadmap-corrections.md 2>/dev/null \
+     | grep -oP "E${TODAY}-[0-9]+")
+   # For each errata finding from Step 3, check if its core problem phrase already appears
+   # in the committed file. If yes, skip it (already filed). If no, proceed to write.
+   ALREADY_FILED=$(git show HEAD:docs/24-roadmap-corrections.md 2>/dev/null \
+     | grep -F "{key phrase from finding}" | wc -l)
+   # ALREADY_FILED > 0 → skip this finding; it was committed in a prior session or earlier close
+   ```
+   If the same session closed partially (context compression) and resumed, errata may already
+   be committed. Skip those; only write findings not already in the committed file.
+5. Append entries following the existing format:
    - Timestamp-based ID: `E{YYYY-MM-DD}-{N}` where N starts at 1 for the day
    - **Always auto-read the committed state to find the next N:**
      ```bash
-     TODAY=$(date +%Y-%m-%d)
-     LAST_N=$(git show HEAD:docs/24-roadmap-corrections.md 2>/dev/null \
-       | grep -oP "E${TODAY}-\K[0-9]+" | sort -n | tail -1)
+     LAST_N=$(echo "$COMMITTED_TODAY" | grep -oP "[0-9]+$" | sort -n | tail -1)
      NEXT_N=$(( ${LAST_N:-0} + 1 ))
      # Use E${TODAY}-${NEXT_N} as the new errata ID
      ```
    - Read from committed state (`git show HEAD:...`), never working tree — prevents parallel-session collisions
    - Title, severity (High/Medium/Low), discovery, affected files, fix
-5. Add to severity summary table
+6. Add to severity summary table
 
 **Status rules — close only logs, never resolves:**
 
@@ -819,6 +843,25 @@ Then backup:
 
 Audit every entry in MEMORY.md using the **"Where to store what"** classification table from `self-improvement.md`.
 
+**MEMORY.md overflow pre-pass** — run before classification audit:
+
+```bash
+MEM_PATH="$HOME/.claude/projects/{project-slug}/memory/MEMORY.md"
+LINE_COUNT=$(wc -l < "$MEM_PATH" 2>/dev/null || echo 0)
+```
+
+If `LINE_COUNT > 175`:
+1. Read the index. For each entry with a file link (`[Title](file.md)`), verify the file exists:
+   ```bash
+   test -f "$HOME/.claude/projects/{project-slug}/memory/{file.md}" && echo "exists" || echo "dead"
+   ```
+2. Collect all entries whose linked files are missing (dead links).
+3. If any dead-link entries found, delete them from MEMORY.md silently (no AskUserQuestion needed — dead links are always stale).
+4. Log count: `Pruned {N} dead-link entries from MEMORY.md ({LINE_COUNT} → {new_count} lines)`.
+5. If LINE_COUNT > 175 **after** pruning: report "MEMORY.md is {N} lines — approaching 200-line cap. Consider promoting entries to topic files or CLAUDE.md." Include in Step 12 report under a `⚠ MEMORY.md` line.
+
+Proceed to classification audit only after the overflow pre-pass completes.
+
 1. **Read** `~/.claude/projects/{project-slug}/memory/MEMORY.md`
 2. **For each entry**, classify using the full gate:
 
@@ -1067,6 +1110,10 @@ Source: close session 2026-05-06 / feedback-gate sentinel gap
 ### 2026-05-19: Procedure decision points must never silently drop items
 Any branch in a procedure that lets the user "skip" an action must still write a lower-priority `next[]` entry. "Skip" means "don't act now" — not "forget this forever." Four leakage points were found in close.md (Steps 3b, 4, 8, 12) where items were silently dropped. Rule: every decision branch preserves context in `next[]`; only the priority/category changes.
 Source: close session 2026-05-19 / brainstorm session-continuity
+
+### 2026-05-25: NANO mode + pre-errata dedup + MEMORY.md overflow guard
+Three improvements from brainstorm session. (1) NANO mode: sessions with exactly 1 commit and ≤5 files that are all non-code skip Steps 3-8 entirely — the overhead cost exceeded the signal value for these tiny sessions. (2) Pre-errata dedup: `git show HEAD:errata-doc` before writing catches resume-after-compression duplicates (E2026-05-25-3 was committed in a prior session's close but the resumed session tried to write it again). (3) MEMORY.md overflow: if > 175 lines, auto-prune dead-link entries before the classification audit; report remaining count if still above cap.
+Source: 2026-05-25 brainstorm + close procedure update
 
 ### 2026-05-19: brana session write is replace-not-merge — same-day parallel close loses data [→ t-1461]
 `brana session write` always replaces `session-state.json` unconditionally. When two sessions close on the same project the same day, the second write erases the first's `accomplished`/`next`/`learnings`. The archive (`session-history.jsonl`) captures both, but nothing reads it for continuity. Fix: merge mode when `written_at` is today, replace mode for new days (t-1461).
