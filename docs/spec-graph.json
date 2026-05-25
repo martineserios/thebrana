@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-25T02:17:36Z",
+  "generated": "2026-05-25T03:19:45Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -460,6 +460,7 @@
       "title": "24 — Roadmap Corrections & Errata (ARCHIVED)",
       "type": "Roadmap",
       "impl_files": [
+        "system/scheduler/brana-scheduler-runner.sh",
         "system/cli/rust/crates/",
         "system/procedures/",
         "system/skills/",
@@ -486,7 +487,6 @@
         "system/scripts/gh-sync.sh",
         "system/hooks/task-sync.sh",
         "system/skills/meta-template/SKILL.md",
-        "system/scheduler/brana-scheduler-runner.sh",
         "system/skills/decide/SKILL.md",
         "system/procedures/onboard.md",
         "system/scheduler/scheduler.template.json",
