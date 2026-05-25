@@ -282,7 +282,9 @@ Plugin manifest. Located at `system/.claude-plugin/plugin.json`.
   },
   "repository": "https://github.com/martineserios/thebrana",
   "license": "MIT",
-  "keywords": ["ai", "development", "tdd", "skills", "agents", "hooks"]
+  "keywords": ["ai", "development", "tdd", "skills", "agents", "hooks"],
+  "skills": "./skills/",
+  "commands": ["./commands/repo-cleanup.md"]
 }
 ```
 
@@ -296,7 +298,11 @@ Plugin manifest. Located at `system/.claude-plugin/plugin.json`.
 | `repository` | string | No | Source repository URL |
 | `license` | string | No | License identifier |
 | `keywords` | string[] | No | Discovery keywords |
+| `skills` | string | **Required for Skill() routing** | Path to skills directory (e.g., `"./skills/"`). Without this field, brana skills appear in the available-skills list but fail with "Unknown skill" when invoked via `Skill()`. |
+| `commands` | string[] | No | Explicit list of command markdown files to register (e.g., `["./commands/repo-cleanup.md"]`). Use for skills that live outside `skills/`. |
 
 The plugin name determines the skill namespace. All skills in `system/skills/` are exposed as `/brana:<skill-name>` (e.g., `/brana:build`, `/brana:backlog`).
 
 Install writes `~/.claude/plugins/installed_plugins.json` directly — no `/plugin` commands required. See `install.sh` for the canonical install path.
+
+> **Cache sync note:** The plugin cache at `~/.claude/plugins/cache/brana/brana/1.0.0/.claude-plugin/plugin.json` is a **real file copy** (not a symlink to source). After any `plugin.json` change, run `bootstrap.sh` (or `cp system/.claude-plugin/plugin.json ~/.claude/plugins/cache/brana/brana/1.0.0/.claude-plugin/plugin.json`) and restart Claude Code to activate.

@@ -42387,6 +42387,32 @@
       "order": 0,
       "github_issue": null,
       "execution": "code"
+    },
+    {
+      "id": "t-1677",
+      "subject": "bootstrap.sh: auto-sync .claude-plugin/plugin.json to cache after changes",
+      "status": "pending",
+      "stream": "tech-debt",
+      "type": "task",
+      "tags": [
+        "bootstrap",
+        "dx",
+        "plugin"
+      ],
+      "description": "Currently plugin cache is a real copy — editing system/.claude-plugin/plugin.json doesn't propagate. bootstrap.sh should detect plugin.json changes and auto-sync to ~/.claude/plugins/cache/brana/brana/1.0.0/.claude-plugin/plugin.json (t-1671 required manual cp).",
+      "effort": "S",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-05-24",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
     }
   ],
   "version": "1"
