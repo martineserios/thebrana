@@ -2,7 +2,7 @@
 
 # Skill Reference
 
-**31 skills** loaded from `system/skills/`.
+**32 skills** loaded from `system/skills/`.
 
 ## Skill Frontmatter Reference
 
@@ -22,36 +22,37 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | Skill | Group | Description |
 |-------|-------|-------------|
 | `/brana:acquire-skills` | brana | Find and install skills for project tech gaps. Use when entering a project with  |
-| `/brana:align` | execution | Align a project to brana practices — assess gaps, plan, implement, verify. Aut |
-| `/brana:backlog` | brana | Manage the backlog — plan, track, navigate phases and streams. Use when planni |
-| `/brana:brainstorm` | thinking | Interactive idea maturation — explore, research, shape raw ideas into actionab |
-| `/brana:build` | execution | Build anything — features, bug fixes, refactors, spikes, migrations. Auto-dete |
+| `/brana:align` | execution | Align a project to brana practices — assess gaps, plan, implement, verify. Auto- |
+| `/brana:backlog` | brana | Manage the backlog — plan, track, navigate phases and streams. Use when planning |
+| `/brana:brainstorm` | thinking | Interactive idea maturation — explore, research, shape raw ideas into actionable |
+| `/brana:build` | execution | Build anything — features, bug fixes, refactors, spikes, migrations. Auto-detect |
 | `/brana:cargo-machete` | brana | Detect and remove unused dependencies in Rust projects using cargo-machete. |
-| `/brana:challenge` | learning | Adversarial review — Opus stress-tests reasoning, Gemini stress-tests document |
+| `/brana:challenge` | learning | Adversarial review — Opus stress-tests reasoning, Gemini stress-tests documented |
 | `/brana:claudemd` | execution | Audit or generate a CLAUDE.md for any project. Natural companion to /brana:align |
 | `/brana:client-retire` | execution | Archive a client's patterns and mark them as historical. Use when retiring a cli |
-| `/brana:close` | session | End a session — extract learnings, write handoff, store patterns, detect doc d |
+| `/brana:close` | session | End a session — extract learnings, write handoff, store patterns, detect doc dri |
 | `/brana:do` | brana | Alias for /brana:backlog start with freeform text. Routes to the best skill or c |
-| `/brana:docs` | core | Generate and update living documentation — tech docs, user guides, philosophy  |
+| `/brana:docs` | core | Generate and update living documentation — tech docs, user guides, philosophy ov |
 | `/brana:export-pdf` | utility | Convert a markdown file to PDF using mdpdf. Use when exporting proposals, SOPs,  |
-| `/brana:fix` | execution | Structured bug fix — reproduce (failing test), diagnose, fix (minimal change), |
-| `/brana:gsheets` | utility | Google Sheets via MCP — read, write, create, list, share spreadsheets. Use whe |
-| `/brana:log` | capture | Capture events — links, calls, meetings, ideas — into an append-only log. Bu |
+| `/brana:fix` | execution | Structured bug fix — reproduce (failing test), diagnose, fix (minimal change), v |
+| `/brana:gemini` | execution | Delegate to agy (Gemini worker) — ROUTE→ENRICH→DELEGATE→APPLY→EXTRACT→PERSIST. U |
+| `/brana:gsheets` | utility | Google Sheets via MCP — read, write, create, list, share spreadsheets. Use when  |
+| `/brana:log` | capture | Capture events — links, calls, meetings, ideas — into an append-only log. Bulk m |
 | `/brana:mcp-builder` | brana | MCP server development guide — build, test, and deploy MCP servers. |
-| `/brana:memory` | learning | Knowledge system ops — recall, pollinate, audit docs. Subcommands: recall, pol |
-| `/brana:meta-templates` | utility | Manage Meta WhatsApp templates — submit, status, audit, pull, appeal. Use for  |
-| `/brana:notebooklm-source` | tools | Prepare and format sources for NotebookLM — Claude reads, reformats, writes fi |
+| `/brana:memory` | learning | Knowledge system ops — recall, pollinate, audit docs. Subcommands: recall, polli |
+| `/brana:meta-templates` | utility | Manage Meta WhatsApp templates — submit, status, audit, pull, appeal. Use for an |
+| `/brana:notebooklm-source` | tools | Prepare and format sources for NotebookLM — Claude reads, reformats, writes file |
 | `/brana:onboard` | execution | Scan and diagnose a project, or scaffold a new client from scratch. Works for co |
-| `/brana:plugin` | brana | Manage Claude Code plugins — add marketplaces, install, update, remove, list.  |
-| `/brana:reconcile` | brana | Unified maintenance — detect drift, run security checks, cascade spec propagat |
-| `/brana:research` | learning | Research a topic, doc, or creator — check sources, follow references, produce  |
-| `/brana:retrospective` | learning | Store a learning — classify type, route to canonical destination. Use after di |
-| `/brana:review` | venture | Business review — weekly health check, monthly close, or ad-hoc audit. Subcomm |
-| `/brana:rust-skills` | brana | Rust best practices — 179 rules across 14 categories for idiomatic, optimized  |
-| `/brana:scheduler` | utility | Manage scheduled jobs — create, update, list, run remote agents on cron. Use w |
-| `/brana:ship` | execution | Ship a build — pre-flight checks, deploy, document, verify, monitor. Use when  |
-| `/brana:sitrep` | core | Situational awareness — where am I, what was I doing, what's next. Context rec |
-| `/brana:verify-docs` | brana | Periodic doc verification — runs validate.sh structural check, samples assumpt |
+| `/brana:plugin` | brana | Manage Claude Code plugins — add marketplaces, install, update, remove, list. Us |
+| `/brana:reconcile` | brana | Unified maintenance — detect drift, run security checks, cascade spec propagatio |
+| `/brana:research` | learning | Research a topic, doc, or creator — check sources, follow references, produce fi |
+| `/brana:retrospective` | learning | Store a learning — classify type, route to canonical destination. Use after disc |
+| `/brana:review` | venture | Business review — weekly health check, monthly close, or ad-hoc audit. Subcomman |
+| `/brana:rust-skills` | brana | Rust best practices — 179 rules across 14 categories for idiomatic, optimized Ru |
+| `/brana:scheduler` | utility | Manage scheduled jobs — create, update, list, run remote agents on cron. Use whe |
+| `/brana:ship` | execution | Ship a build — pre-flight checks, deploy, document, verify, monitor. Use when de |
+| `/brana:sitrep` | core | Situational awareness — where am I, what was I doing, what's next. Context recov |
+| `/brana:verify-docs` | brana | Periodic doc verification — runs validate.sh structural check, samples assumptio |
 
 ## brana
 
@@ -197,6 +198,14 @@ Structured bug fix — reproduce (failing test), diagnose, fix (minimal change),
 **Depends on:** `/brana:backlog`
 
 **Allowed tools:** AskUserQuestion, Bash, Edit, Glob, Grep, Read, Write, Agent
+
+### `/brana:gemini`
+
+Delegate to agy (Gemini worker) — ROUTE→ENRICH→DELEGATE→APPLY→EXTRACT→PERSIST. Use for research, boilerplate, doc drafts, batch summarization.
+
+**Arguments:** `'"task description" | t-XXXX'`
+
+**Allowed tools:** Read, Write, Edit, Bash, ToolSearch, AskUserQuestion, mcp__brana__agy_delegate, mcp__brana__backlog_set, mcp__ruflo__memory_search, mcp__ruflo__memory_store
 
 ### `/brana:onboard`
 

@@ -203,7 +203,8 @@ fn generate_skills(root: &Path) -> Result<String> {
         let group = fm_str(s, "group");
         let group = if group.is_empty() { "—" } else { group };
         let desc = fm_str(s, "description");
-        let desc = &desc[..desc.len().min(80)];
+        let truncate_at = desc.char_indices().nth(80).map(|(i, _)| i).unwrap_or(desc.len());
+        let desc = &desc[..truncate_at];
         out.push_str(&format!("| `/brana:{name}` | {group} | {desc} |\n"));
     }
 
