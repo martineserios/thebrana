@@ -166,3 +166,11 @@ Source: t-1637 / debrief-analyst 2026-05-24
 ### 2026-05-25: Scheduler skill jobs spawn full CC processes — OOM guard required
 `brana-scheduler-runner.sh` runs skill-type jobs (`knowledge-decay`, `weekly-review`, `knowledge-review`) via `claude -p "$PROMPT"`, each spawning a full CC process (~350MB) plus its own ruflo MCP instance (~70MB). Before `d712f95` there was no concurrency guard — the scheduler fired unconditionally regardless of active CC sessions. On a 14GB machine with Firefox (~3GB) and 3–4 active CC sessions already open, the 5th scheduler-spawned CC triggered OOM kill and terminal crash. Fix: skill jobs now skip when `pgrep -fc "claude --plugin-dir" ≥ 2` or `MemAvailable < 3GB`. Rule: any subsystem that spawns `claude -p` must gate on session count + available RAM. Diagnostic: the scheduler log at `system/scheduler/logs/<job-name>/` is the canonical record of what ran and when — read it first when investigating scheduler-related OOM.
 Source: E2026-05-25-1 / debrief-analyst 2026-05-25
+
+### 2026-05-25: agy version pin upgrade protocol
+* The agy binary version pin (`AGY_PINNED_VERSION` in [agy_delegate.rs](file:///home/martineserios/enter_thebrana/thebrana/system/cli/rust/crates/brana-mcp/src/tools/agy_delegate.rs)) must be updated in the same commit as upgrading the agy binary.
+* This Rust MCP server (`brana-mcp`) wraps the agy CLI (Gemini Flash worker) and uses the version pin to prevent running against untested CLI versions.
+* If the pin lags behind the installed binary, every `mcp__brana__agy_delegate` call will hard-error.
+* Upgrades to the agy CLI must always pair with a corresponding update to `AGY_PINNED_VERSION` in the same commit.
+Source: operational finding / 2026-05-25
+

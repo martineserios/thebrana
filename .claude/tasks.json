@@ -42571,7 +42571,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "[tdd] session.rs regression tests — Watch round-trip + serde(default) written_at",
       "tags": [
@@ -42600,7 +42600,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "[maintenance] validate.sh check — diff scheduler.template.json vs live scheduler.json",
       "tags": [
