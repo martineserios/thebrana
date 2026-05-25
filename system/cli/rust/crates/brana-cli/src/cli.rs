@@ -336,6 +336,18 @@ pub enum KnowledgeCmd {
         #[arg(long)]
         dry_run: bool,
     },
+    /// Queue URLs from files, direct args, or stdin into the pipeline
+    Ingest {
+        /// Files (WA dump, URL list, any text) or direct https:// URLs; omit to read from stdin
+        #[arg(trailing_var_arg = true)]
+        sources: Vec<String>,
+        /// Provenance tag stored on each new URL entry (e.g. telegram)
+        #[arg(long)]
+        source: Option<String>,
+        /// Print planned actions without writing anything
+        #[arg(long)]
+        dry_run: bool,
+    },
 }
 
 #[derive(Subcommand)]

@@ -159,6 +159,9 @@ fn main() {
             KnowledgeCmd::Promote { draft_path, dry_run } => {
                 run_or_exit(commands::knowledge::cmd_promote(draft_path, dry_run))
             }
+            KnowledgeCmd::Ingest { sources, source, dry_run } => {
+                run_or_exit(commands::knowledge::cmd_ingest(sources, source, dry_run))
+            }
         },
         Commands::Graph { cmd } => run_or_exit(commands::graph::cmd_graph(cmd)),
         Commands::Reference { cmd } => run_or_exit(commands::reference::cmd_reference(cmd)),

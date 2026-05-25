@@ -8,6 +8,7 @@ use std::process::Command;
 use brana_core::knowledge_pipeline::{
     self as kp, DRAFT_CAP, UrlStatus,
 };
+use std::io::IsTerminal as _;
 
 use crate::util::{find_project_root, home};
 
@@ -475,13 +476,11 @@ Respond with JSON only: {{\"score\": N, \"reason\": \"one sentence\"}}",
                     status,
                     tier1_score: Some(score),
                     tier1_reason: Some(reason),
-                    cluster_topic: None,
-                    dimension_target: None,
-                    draft_path: None,
                     logged_date: Some(entry.logged_date.clone()),
                     author: Some(entry.author.clone()),
                     title_signal: Some(entry.title_signal.clone()),
                     tags: entry.tags.clone(),
+                    ..kp::UrlEntry::new_unprocessed(None)
                 };
                 state.urls.insert(entry.url.clone(), url_entry);
             }
@@ -923,6 +922,88 @@ fn strip_frontmatter(content: &str) -> String {
     content.to_string()
 }
 
+// ── brana knowledge ingest ────────────────────────────────────────────────────
+
+/// `brana knowledge ingest [sources...] [--source <tag>] [--dry-run]`
+///
+/// Sources may be:
+/// - Direct `https://` URLs (passed through unchanged)
+/// - File paths (content read; URLs extracted via regex)
+/// - Absent (stdin read if piped; error if terminal)
+pub fn cmd_ingest(
+    sources: Vec<String>,
+    source_tag: Option<String>,
+    dry_run: bool,
+) -> Result<()> {
+    let mut raw_text = String::new();
+    let mut direct_urls: Vec<String> = Vec::new();
+
+    if sources.is_empty() {
+        if std::io::stdin().is_terminal() {
+            anyhow::bail!(
+                "No input. Provide file paths or URLs, or pipe text: cat urls.txt | brana knowledge ingest"
+            );
+        }
+        use std::io::Read as _;
+        std::io::stdin()
+            .read_to_string(&mut raw_text)
+            .context("reading from stdin")?;
+    } else {
+        for src in &sources {
+            if src.starts_with("https://") || src.starts_with("http://") {
+                direct_urls.push(src.clone());
+            } else {
+                let path = std::path::Path::new(src);
+                if path.exists() {
+                    let content = std::fs::read_to_string(path)
+                        .with_context(|| format!("reading {}", path.display()))?;
+                    raw_text.push_str(&content);
+                    raw_text.push('\n');
+                } else {
+                    raw_text.push_str(src);
+                    raw_text.push('\n');
+                }
+            }
+        }
+    }
+
+    let mut extracted = kp::extract_urls_from_text(&raw_text);
+    for url in &direct_urls {
+        if !extracted.contains(url) {
+            extracted.push(url.clone());
+        }
+    }
+
+    if extracted.is_empty() {
+        println!("  No URLs found in input.");
+        return Ok(());
+    }
+
+    println!(
+        "\n  \x1b[1mbrana knowledge ingest\x1b[0m{}",
+        if dry_run { " [dry-run]" } else { "" }
+    );
+    println!("  {} URL(s) extracted\n", extracted.len());
+
+    let state_path = kp::pipeline_state_path();
+    let mut state = kp::load_state(&state_path)?;
+    let result = kp::ingest_urls(&extracted, source_tag.as_deref(), &mut state);
+
+    println!("  ✓ {} new URL(s) queued", result.queued);
+    if result.duplicates > 0 {
+        println!("  · {} duplicate(s) skipped", result.duplicates);
+    }
+
+    if dry_run {
+        println!("  [dry-run] state not written.");
+    } else if result.queued > 0 {
+        kp::save_state(&state_path, &state)?;
+        println!("\n  Next: brana knowledge process --status");
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1127,18 +1208,9 @@ mod tests {
     // ── count_by_tier ────────────────────────────────────────────────────
 
     fn make_entry(status: UrlStatus) -> kp::UrlEntry {
-        kp::UrlEntry {
-            status,
-            tier1_score: None,
-            tier1_reason: None,
-            cluster_topic: None,
-            dimension_target: None,
-            draft_path: None,
-            logged_date: None,
-            author: None,
-            title_signal: None,
-            tags: vec![],
-        }
+        let mut e = kp::UrlEntry::new_unprocessed(None);
+        e.status = status;
+        e
     }
 
     #[test]

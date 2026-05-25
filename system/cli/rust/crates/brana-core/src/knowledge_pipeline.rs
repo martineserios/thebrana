@@ -64,6 +64,12 @@ pub struct UrlEntry {
     /// Hashtags captured at event log time.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<String>,
+    /// Platform classification: linkedin | github | substack | arxiv | other
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub platform: Option<String>,
+    /// Provenance source tag (e.g. "telegram", "ingest", "event-log").
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
 }
 
 impl UrlEntry {
@@ -79,6 +85,8 @@ impl UrlEntry {
             author: None,
             title_signal: None,
             tags: Vec::new(),
+            platform: None,
+            source: None,
         }
     }
 }
@@ -455,6 +463,102 @@ pub fn count_drafts(brana_knowledge_root: &Path) -> usize {
                 .count()
         })
         .unwrap_or(0)
+}
+
+// ── Ingest — source-agnostic URL entry point ─────────────────────────────────
+
+/// Extract all `http(s)://` URLs from arbitrary text.
+///
+/// Terminates each URL at whitespace or `<>`. Strips trailing punctuation
+/// (`,.;:"')`). Deduplicates within the result set (first occurrence wins).
+pub fn extract_urls_from_text(text: &str) -> Vec<String> {
+    let mut urls: Vec<String> = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    let mut pos = 0;
+
+    while pos < text.len() {
+        let remaining = &text[pos..];
+        let https_off = remaining.find("https://");
+        let http_off = remaining.find("http://");
+        let start = match (https_off, http_off) {
+            (None, None) => break,
+            (Some(a), None) => a,
+            (None, Some(b)) => b,
+            (Some(a), Some(b)) => a.min(b),
+        };
+
+        let abs = pos + start;
+        let url_text = &text[abs..];
+        let end = url_text
+            .find(|c: char| c.is_whitespace() || matches!(c, '<' | '>'))
+            .unwrap_or(url_text.len());
+        let url = url_text[..end].trim_end_matches(|c: char| ",.;:\"')>".contains(c));
+
+        if !url.is_empty() && !seen.contains(url) {
+            seen.insert(url.to_string());
+            urls.push(url.to_string());
+        }
+        pos = abs + end.max(1);
+    }
+    urls
+}
+
+/// Classify a URL's platform.
+///
+/// Returns one of: `"linkedin"`, `"github"`, `"substack"`, `"arxiv"`, `"other"`.
+pub fn classify_platform(url: &str) -> &'static str {
+    if url.contains("linkedin.com") {
+        "linkedin"
+    } else if url.contains("github.com") {
+        "github"
+    } else if url.contains("substack.com") {
+        "substack"
+    } else if url.contains("arxiv.org") {
+        "arxiv"
+    } else {
+        "other"
+    }
+}
+
+/// Result of an `ingest_urls` call.
+pub struct IngestResult {
+    /// URLs newly added to pipeline state as `Unprocessed`.
+    pub queued: usize,
+    /// URLs already present in state (any status) — skipped.
+    pub duplicates: usize,
+}
+
+/// Ingest a slice of URLs into pipeline state.
+///
+/// - Deduplicates: URLs already in `state.urls` (regardless of status) are skipped.
+/// - Platform-tags each new URL via [`classify_platform`].
+/// - Derives `author` / `title_signal` from LinkedIn URL parser or fallback signals.
+/// - `source`: optional provenance tag stored on each new entry (e.g. `"telegram"`).
+pub fn ingest_urls(urls: &[String], source: Option<&str>, state: &mut PipelineState) -> IngestResult {
+    let mut result = IngestResult { queued: 0, duplicates: 0 };
+
+    for url in urls {
+        if state.urls.contains_key(url.as_str()) {
+            result.duplicates += 1;
+            continue;
+        }
+
+        let (author, title_signal) = parse_linkedin_url(url)
+            .unwrap_or_else(|| url_fallback_signals(url));
+
+        let entry = UrlEntry {
+            author: Some(author),
+            title_signal: Some(title_signal),
+            platform: Some(classify_platform(url).to_string()),
+            source: source.map(|s| s.to_string()),
+            ..UrlEntry::new_unprocessed(None)
+        };
+
+        state.urls.insert(url.clone(), entry);
+        result.queued += 1;
+    }
+
+    result
 }
 
 // ── Claude CLI shell-out (t-1145 spike) ──────────────────────────────────────
@@ -1107,5 +1211,157 @@ mod tests {
             {"type": "assistant", "message": {}}
         ]);
         assert_eq!(extract_result_from_envelope(&env), None);
+    }
+
+    // ── extract_urls_from_text ────────────────────────────────────────────
+
+    #[test]
+    fn test_extract_urls_basic() {
+        let text = "check this out https://example.com and also http://other.org/path";
+        let urls = extract_urls_from_text(text);
+        assert_eq!(urls, vec!["https://example.com", "http://other.org/path"]);
+    }
+
+    #[test]
+    fn test_extract_urls_deduplicates() {
+        let text = "https://example.com foo https://example.com bar";
+        let urls = extract_urls_from_text(text);
+        assert_eq!(urls.len(), 1);
+        assert_eq!(urls[0], "https://example.com");
+    }
+
+    #[test]
+    fn test_extract_urls_strips_trailing_punctuation() {
+        let text = "see https://example.com, and https://other.org.";
+        let urls = extract_urls_from_text(text);
+        assert_eq!(urls[0], "https://example.com");
+        assert_eq!(urls[1], "https://other.org");
+    }
+
+    #[test]
+    fn test_extract_urls_wa_dump_format() {
+        let text = "[2026-05-24, 10:31] User: interesting https://github.com/foo/bar #agents\n[2026-05-24, 10:32] User: also https://arxiv.org/abs/1234";
+        let urls = extract_urls_from_text(text);
+        assert_eq!(urls, vec!["https://github.com/foo/bar", "https://arxiv.org/abs/1234"]);
+    }
+
+    #[test]
+    fn test_extract_urls_empty_text() {
+        assert_eq!(extract_urls_from_text("no urls here"), vec![] as Vec<String>);
+    }
+
+    #[test]
+    fn test_extract_urls_preserves_query_string() {
+        let text = "https://example.com/path?q=1&foo=bar rest";
+        let urls = extract_urls_from_text(text);
+        assert_eq!(urls[0], "https://example.com/path?q=1&foo=bar");
+    }
+
+    // ── classify_platform ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_classify_platform_linkedin() {
+        assert_eq!(classify_platform("https://www.linkedin.com/posts/foo"), "linkedin");
+    }
+
+    #[test]
+    fn test_classify_platform_github() {
+        assert_eq!(classify_platform("https://github.com/foo/bar"), "github");
+    }
+
+    #[test]
+    fn test_classify_platform_substack() {
+        assert_eq!(classify_platform("https://foo.substack.com/p/article"), "substack");
+    }
+
+    #[test]
+    fn test_classify_platform_arxiv() {
+        assert_eq!(classify_platform("https://arxiv.org/abs/2401.1234"), "arxiv");
+    }
+
+    #[test]
+    fn test_classify_platform_other() {
+        assert_eq!(classify_platform("https://example.com/article"), "other");
+    }
+
+    // ── ingest_urls ───────────────────────────────────────────────────────
+
+    #[test]
+    fn test_ingest_urls_adds_to_state() {
+        let mut state = PipelineState::default();
+        let urls = vec!["https://github.com/foo/bar".to_string()];
+        let result = ingest_urls(&urls, None, &mut state);
+        assert_eq!(result.queued, 1);
+        assert_eq!(result.duplicates, 0);
+        assert!(state.urls.contains_key("https://github.com/foo/bar"));
+        assert_eq!(state.urls["https://github.com/foo/bar"].status, UrlStatus::Unprocessed);
+    }
+
+    #[test]
+    fn test_ingest_urls_skips_duplicates() {
+        let mut state = PipelineState::default();
+        let urls = vec!["https://github.com/foo/bar".to_string()];
+        ingest_urls(&urls, None, &mut state);
+        let result = ingest_urls(&urls, None, &mut state);
+        assert_eq!(result.queued, 0);
+        assert_eq!(result.duplicates, 1);
+        assert_eq!(state.urls.len(), 1);
+    }
+
+    #[test]
+    fn test_ingest_urls_platform_tagged() {
+        let mut state = PipelineState::default();
+        let urls = vec![
+            "https://github.com/foo".to_string(),
+            "https://arxiv.org/abs/123".to_string(),
+            "https://randomsite.io/article".to_string(),
+        ];
+        ingest_urls(&urls, None, &mut state);
+        assert_eq!(state.urls["https://github.com/foo"].platform.as_deref(), Some("github"));
+        assert_eq!(state.urls["https://arxiv.org/abs/123"].platform.as_deref(), Some("arxiv"));
+        assert_eq!(state.urls["https://randomsite.io/article"].platform.as_deref(), Some("other"));
+    }
+
+    #[test]
+    fn test_ingest_urls_linkedin_author_extracted() {
+        let mut state = PipelineState::default();
+        let url = "https://www.linkedin.com/posts/walid-boulanouar_everyone-using-claude-code-share-7437448165403852801-F5RX";
+        ingest_urls(&[url.to_string()], None, &mut state);
+        let entry = &state.urls[url];
+        assert_eq!(entry.author.as_deref(), Some("walid-boulanouar"));
+        assert_eq!(entry.platform.as_deref(), Some("linkedin"));
+    }
+
+    #[test]
+    fn test_ingest_urls_non_linkedin_fallback_signals() {
+        let mut state = PipelineState::default();
+        let url = "https://github.com/anthropics/claude-code";
+        ingest_urls(&[url.to_string()], None, &mut state);
+        let entry = &state.urls[url];
+        assert_eq!(entry.author.as_deref(), Some("github"));
+        assert!(entry.title_signal.is_some());
+    }
+
+    #[test]
+    fn test_ingest_urls_source_tag_stored() {
+        let mut state = PipelineState::default();
+        let urls = vec!["https://example.com".to_string()];
+        ingest_urls(&urls, Some("telegram"), &mut state);
+        assert_eq!(state.urls["https://example.com"].source.as_deref(), Some("telegram"));
+    }
+
+    #[test]
+    fn test_ingest_urls_skips_already_processed() {
+        let mut state = PipelineState::default();
+        let url = "https://example.com".to_string();
+        // Pre-populate as Tier1Passed (already through pipeline)
+        state.urls.insert(url.clone(), UrlEntry {
+            status: UrlStatus::Tier1Passed,
+            tier1_score: Some(4),
+            ..UrlEntry::new_unprocessed(None)
+        });
+        let result = ingest_urls(&[url], None, &mut state);
+        assert_eq!(result.queued, 0);
+        assert_eq!(result.duplicates, 1);
     }
 }
