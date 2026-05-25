@@ -42252,7 +42252,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "close skill not available via Skill tool — register brana:close in skill picker",
       "tags": [
@@ -42310,6 +42310,83 @@
       "subject": "research CLAUDE.md.local",
       "tags": [],
       "type": "task"
+    },
+    {
+      "id": "t-1674",
+      "subject": "run /brana:reconcile --scope propagation (errata E2026-05-24-6)",
+      "status": "pending",
+      "stream": "tech-debt",
+      "type": "task",
+      "tags": [
+        "reconcile",
+        "errata",
+        "maintenance"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-05-24",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
+    },
+    {
+      "id": "t-1675",
+      "subject": "draft knowledge clusters — 304 ready (brana knowledge process --draft)",
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "tags": [
+        "knowledge",
+        "pipeline"
+      ],
+      "description": null,
+      "effort": "M",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-05-24",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "304 clusters ready to draft. Run: brana knowledge process --draft '<cluster name>'",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
+    },
+    {
+      "id": "t-1676",
+      "subject": "/goal adoption P1: add /goal to fix.md + brainstorm.md",
+      "status": "pending",
+      "stream": "roadmap",
+      "type": "task",
+      "tags": [
+        "skills",
+        "dx",
+        "goals"
+      ],
+      "description": "fix.md: add /goal at Step 1, default-on, --no-goal escape hatch. brainstorm.md: add /goal after SEED phase, --goal opt-in.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-05-24",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
     }
   ],
   "version": "1"
