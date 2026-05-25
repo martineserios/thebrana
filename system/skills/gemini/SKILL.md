@@ -20,7 +20,7 @@ allowed-tools:
   - mcp__ruflo__memory_search
   - mcp__ruflo__memory_store
 status: stable
-growth_stage: prototype
+growth_stage: evergreen
 ---
 
 <!-- PROCEDURE_FILE: procedures/gemini.md -->

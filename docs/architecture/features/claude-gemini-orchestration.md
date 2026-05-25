@@ -27,6 +27,56 @@ LAYER C — /brana:gemini skill (full lifecycle)
   Procedure: system/procedures/gemini.md
 ```
 
+## Phase 4 — ENRICH + PERSIST (validated 2026-05-25)
+
+### ENRICH step (before DELEGATE)
+
+Before calling `agy_delegate`, the skill queries ruflo for relevant context:
+
+```
+mcp__ruflo__memory_search(query: "{task}", namespace: "knowledge", limit: 3)
+mcp__ruflo__memory_search(query: "{task}", namespace: "pattern",   limit: 3)
+```
+
+Both queries run in parallel. Results above similarity 0.3 are compiled into a context
+string (2–5 bullets) and injected into the `agy_delegate` `context` field.
+
+**Convention-sensitive hard-block:** for boilerplate generation, test scaffolding, and ADR
+drafts — if ruflo is unavailable or returns zero `source:thebrana` results, abort with:
+> "ruflo required for convention-sensitive task — use Claude directly to preserve codebase
+> conventions."
+
+Non-sensitive tasks proceed with a warning if ruflo is unavailable.
+
+### PERSIST step (after APPLY)
+
+Claude mediates all ruflo writes — agy never calls ruflo directly.
+
+After APPLY, for each finding that clears EXTRACT scoring:
+1. `mcp__ruflo__memory_store` — pattern or knowledge namespace, tagged `source:agy-delegation`
+2. `mcp__brana__backlog_set` — append findings to task context (if invoked with task ID)
+3. Session log note: "Delegated to agy: {task} → {outcome}" for `/brana:close` to capture
+
+### Compounding Loop Validation
+
+Protocol: 3× ENRICH-off (no context) → score → 3× ENRICH-on (ruflo context injected) → score.
+Pass condition: ENRICH-on mean ≥ ENRICH-off mean + 1.0 (out of 6).
+
+**Result (2026-05-25):** PASS
+
+| Condition | Mean score | Notes |
+|-----------|-----------|-------|
+| ENRICH-off | 3.33 / 6 | Hit thiserror/anyhow split from training; missed MCP stdio + JoinError patterns |
+| ENRICH-on  | 6.0 / 6  | All 3 ruflo-stored patterns surfaced as concrete rules, every run |
+| **Gap**    | **+2.67** | Threshold: +1.0 |
+
+Scoring criteria (0–2 each): convention alignment · project specificity · absence of generic filler.
+Task used: "5 concrete error-handling rules for brana-core/brana-cli/brana-mcp."
+Patterns that made the difference: `thiserror-library-anyhow-binary-split`,
+`mcp-stdio-panic-hook-stderr`, `tokio-spawn-joinerror-two-layer` (all stored this session).
+
+---
+
 ## Task Type Taxonomy
 
 ### agy-eligible
@@ -72,7 +122,7 @@ via Write/Edit tools — CC hooks fire normally on every repo change.
 
 ## Version Pinning Discipline
 
-`AGY_PINNED_VERSION = "1.0.1"` in `agy_delegate.rs`. Checked at every Layer B invocation.
+`AGY_PINNED_VERSION = "1.0.2"` in `agy_delegate.rs`. Checked at every Layer B invocation.
 Mismatch → hard error (not warning). Upgrade procedure: bump constant → re-run adversarial
 spike → confirm output contract unchanged → commit. Never bump without re-running the spike.
 
@@ -91,7 +141,7 @@ back-to-back calls. Layer A sweep files removed by `/brana:close` after EXTRACT.
 
 ## agy Version
 
-Pinned: `1.0.1`  
+Pinned: `1.0.2`  
 Binary: `~/.local/bin/agy`  
 Version flag: `agy --version` → stdout, exit 0.
 
