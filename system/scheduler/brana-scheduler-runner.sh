@@ -110,6 +110,25 @@ ATTEMPT=0
 
 cd "$PROJECT"
 
+# OOM guard: skill jobs spawn a full CC process (~400MB) + ruflo (~70MB).
+# If 2+ CC sessions are already running, defer to avoid swap pressure / OOM kills.
+# Command-type jobs are exempt — they're lightweight bash scripts.
+if [ "$JOB_TYPE" = "skill" ]; then
+    CC_COUNT=$(pgrep -fc "claude --plugin-dir" 2>/dev/null || echo 0)
+    MEM_AVAIL_KB=$(awk '/MemAvailable/ {print $2}' /proc/meminfo 2>/dev/null || echo 999999999)
+    MEM_AVAIL_GB=$(( MEM_AVAIL_KB / 1024 / 1024 ))
+    if [ "$CC_COUNT" -ge 2 ]; then
+        echo "SKIPPED: $CC_COUNT CC session(s) already running — deferring skill job to avoid OOM" >> "$LOGFILE"
+        write_status "SKIPPED" 0
+        exit 0
+    fi
+    if [ "$MEM_AVAIL_GB" -lt 3 ]; then
+        echo "SKIPPED: only ${MEM_AVAIL_GB}GB RAM available — deferring skill job to avoid OOM" >> "$LOGFILE"
+        write_status "SKIPPED" 0
+        exit 0
+    fi
+fi
+
 for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
     # Acquire project lock (non-blocking — skip if locked)
     exec 9>"$LOCKFILE"

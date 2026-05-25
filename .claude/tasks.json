@@ -42327,7 +42327,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "tech-debt",
       "subject": "run /brana:reconcile --scope propagation (errata E2026-05-24-6)",
       "tags": [

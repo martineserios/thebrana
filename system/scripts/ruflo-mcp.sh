@@ -22,13 +22,34 @@ mkdir -p "$HOME/.swarm"
 echo $$ > "$LOCKFILE"
 trap 'rm -f "$LOCKFILE"' EXIT
 
-# Try nvm default, then PATH
+# Resolution order:
+#   1. nvm default node's bin/
+#   2. any nvm-installed version that has ruflo (newest first)
+#   3. PATH
 if [ -f "$HOME/.nvm/nvm.sh" ]; then
     export NVM_DIR="$HOME/.nvm"
     . "$NVM_DIR/nvm.sh" --no-use 2>/dev/null
     RUFLO="$(nvm which default 2>/dev/null | sed 's|/node$||')/ruflo"
 fi
+if [ ! -x "${RUFLO:-}" ] && [ -d "$HOME/.nvm/versions/node" ]; then
+    # Walk installed versions newest-first; stop at first hit
+    NVM_DEFAULT_BIN="$(nvm which default 2>/dev/null | sed 's|/node$||')"
+    while IFS= read -r node_bin; do
+        candidate="${node_bin%/node}/ruflo"
+        if [ -x "$candidate" ]; then
+            RUFLO="$candidate"
+            # Warn if this is not the nvm default — ruflo needs installing there
+            actual_bin="${node_bin%/node}"
+            if [ "$actual_bin" != "$NVM_DEFAULT_BIN" ]; then
+                actual_ver="$(basename "$(dirname "$actual_bin")")"
+                default_ver="$(basename "$(dirname "$NVM_DEFAULT_BIN")")"
+                echo "[ruflo-mcp] WARN: ruflo found in nvm $actual_ver but nvm default is $default_ver — run: nvm use $actual_ver && npm install -g ruflo && nvm use default" >&2
+            fi
+            break
+        fi
+    done < <(find "$HOME/.nvm/versions/node" -name "node" -path "*/bin/node" | sort -rV)
+fi
 [ ! -x "${RUFLO:-}" ] && RUFLO="$(command -v ruflo 2>/dev/null)"
-[ ! -x "${RUFLO:-}" ] && { echo "ruflo not found" >&2; exit 1; }
+[ ! -x "${RUFLO:-}" ] && { echo "ruflo not found in nvm or PATH" >&2; exit 1; }
 
 exec "$RUFLO" "$@"
