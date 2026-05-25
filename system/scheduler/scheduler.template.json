@@ -7,10 +7,19 @@
     "timeoutSeconds": 300
   },
   "jobs": {
+    "backup-memory": {
+      "type": "command",
+      "command": "./system/scripts/backup-memory.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 07:00:00",
+      "enabled": true,
+      "timeoutSeconds": 30,
+      "captureOutput": true,
+      "_comment": "Daily rotating backup of ruflo memory.db (runs before sync-state push at 08:00)"
+    },
     "sync-state": {
       "type": "command",
-      "command": "./system/cli/rust/target/release/brana ops sync --auto-commit",
-      "command_fallback": "./system/scripts/sync-state.sh push --auto-commit",
+      "command": "./system/scripts/sync-state.sh push --auto-commit",
       "project": "~/enter_thebrana/thebrana",
       "schedule": "*-*-* 08:00:00",
       "enabled": true,
@@ -50,15 +59,14 @@
     },
     "reindex-knowledge": {
       "type": "command",
-      "command": "./system/cli/rust/target/release/brana ops reindex",
-      "command_fallback": "./system/scripts/index-knowledge.sh",
+      "command": "./system/scripts/index-knowledge.sh",
       "project": "~/enter_thebrana/thebrana",
       "schedule": "Sun *-*-* 12:00:00",
       "enabled": true,
       "maxRetries": 1,
-      "timeoutSeconds": 600,
+      "timeoutSeconds": 10800,
       "captureOutput": true,
-      "_comment": "Weekly full reindex of brana-knowledge dimension docs into ruflo memory."
+      "_comment": "Weekly full reindex of brana-knowledge dimension docs into ruflo memory. Runs at noon (moved from 2am: cold-boot MCP unavailable, t-1101)."
     },
     "knowledge-decay": {
       "type": "skill",
@@ -105,16 +113,15 @@
       "captureOutput": true,
       "_comment": "ADR-021: weekly index of assumptions, field notes, and ADR decisions into ruflo"
     },
-    "index-patterns": {
+    "reindex-patterns": {
       "type": "command",
       "command": "./system/scripts/index-patterns.sh",
       "project": "~/enter_thebrana/thebrana",
-      "schedule": "Sun *-*-* 11:30:00",
+      "schedule": "Sun *-*-* 03:00:00",
       "enabled": true,
-      "maxRetries": 1,
-      "timeoutSeconds": 600,
+      "timeoutSeconds": 3600,
       "captureOutput": true,
-      "_comment": "t-857: weekly index of feedback_*.md / project_*.md pattern files across all project memory dirs into ruflo. Runs after index-assumptions (08:36) and before reindex-knowledge (12:00) so fresh patterns are searchable when knowledge-decay (13:00) inspects them."
+      "_comment": "t-857: weekly index of feedback_*.md / project_*.md pattern files across all project memory dirs into ruflo. Runs at 03:00 Sun — well before reindex-knowledge (12:00) so fresh patterns are available for knowledge-decay (13:00)."
     },
     "second-phase-review": {
       "type": "command",
