@@ -1,6 +1,6 @@
 # Session Continuity — Multi-Session & Cross-Project
 
-> Brainstormed 2026-05-19. Updated 2026-05-25. Status: in-progress (Fix A shipped 2026-05-19; Fix B → t-1461; Fix C — initiative accumulator → backlogged).
+> Brainstormed 2026-05-19. Updated 2026-05-25. Status: **complete** (Fix A shipped 2026-05-19; Fix B / t-1461 shipped 2026-05-25; Fix C shipped 2026-05-25 — ADR-044, commit 957b0b5).
 > Related: [`unified-session-state.md`](./unified-session-state.md) (implemented t-794), [`session-memory-cc-alignment.md`](./session-memory-cc-alignment.md) (shape only)
 
 ## Problem
