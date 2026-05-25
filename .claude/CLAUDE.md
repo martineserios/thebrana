@@ -147,9 +147,13 @@ Source: session debrief 2026-05-20
 When moving a function from a thin wrapper crate (e.g. brana-cli) to a core crate (e.g. brana-core), sibling modules (e.g. main.rs) that called it via `commands::module::fn_name` will break at compile time. Fix: add `pub use brana_core::module::fn_name;` in the wrapper module as a re-export. After any cross-crate function migration, grep all sibling call sites — not just the module you refactored.
 Source: t-1637 / debrief-analyst 2026-05-24
 
-### 2026-05-24: Skill tool uses bare name, not brana: prefix
+### 2026-05-24: Skill tool uses bare name, not brana: prefix (SUPERSEDED — see 2026-05-24 fix below)
 `Skill("close")` works; `Skill("brana:close")` fails with "Unknown skill." Skills registered under the `brana` plugin namespace are invoked with the bare name in the Skill tool even though the slash-command form is `/brana:close`. When Skill tool fails, fall back to reading SKILL.md + the linked procedure file directly.
 Source: t-1637 session close 2026-05-24
+
+### 2026-05-24: plugin.json missing "skills" field — Skill() tool couldn't find brana skills (FIXED t-1671)
+Root cause: `system/.claude-plugin/plugin.json` had no `"skills"` or `"commands"` field. The available-skills system-reminder IS populated (via SKILL.md scanning), but the Skill() tool routing requires the field in plugin.json. Fix: added `"skills": "./skills/"` and `"commands": ["./commands/repo-cleanup.md"]`. Cache synced at `~/.claude/plugins/cache/brana/brana/1.0.0/.claude-plugin/plugin.json`. **Requires CC restart to activate.** After restart, invocation form is `Skill("brana:close")` (namespace-prefixed). Bare `Skill("close")` behavior unconfirmed.
+Source: t-1671 / 2026-05-24
 
 ### 2026-05-24: Edit closing-brace anchor — use full last-test context, not bare `}` lines
 In Rust test modules, inserting content before closing `}` blocks by matching just `}\n}` hits multiple locations. Fix: use the closing assertion of the last test plus both closing braces as the `old_string` anchor — provides enough unique context for a single match. Applies to any Rust file with uniform brace patterns.
