@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-23T01:39:06Z",
+  "generated": "2026-05-25T02:17:36Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -51,7 +51,9 @@
     "brana-knowledge/dimensions/11-ecosystem-skills-plugins.md": {
       "title": "11 - Claude Code Ecosystem: Templates, Skills, Plugins & Hooks",
       "type": "Dimension",
-      "impl_files": []
+      "impl_files": [
+        "system/skills/acquired/"
+      ]
     },
     "brana-knowledge/dimensions/12-skill-selector.md": {
       "title": "12 - Dynamic Skill Selection: Registry Access, Trust, and the Selector Problem",
@@ -515,7 +517,9 @@
         "system/cli/rust/crates/brana-core/src/sync.rs",
         "system/skills/_shared/guided-execution.md:52",
         "system/cli/rust/crates/brana-mcp/",
-        "system/cli/rust/crates/brana-core/src/"
+        "system/cli/rust/crates/brana-core/src/",
+        "system/cli/rust/crates/brana-core/src/session.rs",
+        "system/cli/rust/crates/brana-mcp/src/tools/session_write.rs"
       ]
     },
     "docs/25-self-documentation.md": {
@@ -825,6 +829,27 @@
       "type": "ADR",
       "impl_files": []
     },
+    "docs/architecture/decisions/ADR-040-compute-hierarchy-claude-ruflo-gemini.md": {
+      "title": "ADR-040: brana Compute Hierarchy — Claude / Ruflo / Gemini",
+      "type": "ADR",
+      "impl_files": [
+        "system/"
+      ]
+    },
+    "docs/architecture/decisions/ADR-041-agy-invocation-contract.md": {
+      "title": "ADR-041: agy Invocation Contract — Layer A vs B, Routing, /tmp/ Invariant, Version Pinning",
+      "type": "ADR",
+      "impl_files": [
+        "system/scheduler/outputs/{ts",
+        "system/scheduler/outputs/",
+        "system/"
+      ]
+    },
+    "docs/architecture/decisions/ADR-042-knowledge-ingest-canonical-entry-point-gemini-routing.md": {
+      "title": "ADR-042: Knowledge Pipeline — `ingest` as Canonical URL Entry Point + Gemini Routing for Tier 1/2",
+      "type": "ADR",
+      "impl_files": []
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -911,6 +936,17 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/architecture/features/brana-v2-compute-model.md": {
+      "title": "brana v2 Compute Model",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/cli/rust/crates/brana-mcp/src/tools/agy_delegate.rs",
+        "system/skills/gemini/SKILL.md",
+        "system/procedures/gemini.md",
+        "system/scheduler/templates/agy-sweep.sh.template",
+        "system/rules/delegation-routing.md"
+      ]
+    },
     "docs/architecture/features/build-close-auto-docs.md": {
       "title": "Feature: Auto-Generate Tech Docs + User Guide in CLOSE",
       "type": "Roadmap",
@@ -956,6 +992,14 @@
       "type": "Roadmap",
       "impl_files": [
         "system/procedures/build.md"
+      ]
+    },
+    "docs/architecture/features/claude-gemini-orchestration.md": {
+      "title": "Claude-Gemini Orchestration",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/",
+        "system/scheduler/outputs/"
       ]
     },
     "docs/architecture/features/cli-composable-tool.md": {
@@ -1495,7 +1539,9 @@
     "docs/dimensions/11-ecosystem-skills-plugins.md": {
       "title": "11 - Claude Code Ecosystem: Templates, Skills, Plugins & Hooks",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/skills/acquired/"
+      ]
     },
     "docs/dimensions/12-skill-selector.md": {
       "title": "12 - Dynamic Skill Selection: Registry Access, Trust, and the Selector Problem",
@@ -2222,6 +2268,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/ideas/goal-adoption-brana-skills.md": {
+      "title": "/goal Adoption — brana Skills",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/ideas/inbox-to-dimensions-pipeline.md": {
       "title": "Inbox → Dimensions Pipeline — Shape",
       "type": "Roadmap",
@@ -2229,6 +2280,11 @@
     },
     "docs/ideas/knowledge-insights-digest.md": {
       "title": "Knowledge Pipeline — Research Session Digest",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/ideas/knowledge-pipeline-glue.md": {
+      "title": "Knowledge Pipeline Glue",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -8184,6 +8240,54 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-035-skill-usage-telemetry.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-036-mcp-or-cli-decision-rule.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-037-memory-enforcement-and-migration.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-038-memory-write-gateway.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-039-pattern-quality-filter-and-per-pattern-files.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-040-compute-hierarchy-claude-ruflo-gemini.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-041-agy-invocation-contract.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-042-knowledge-ingest-canonical-entry-point-gemini-routing.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/developer-quickstart.md",
       "type": "references",
       "computed": false
@@ -10949,6 +11053,12 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/knowledge-pipeline-glue.md",
+      "to": "docs/ideas/layered-input-processing.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/layered-input-processing.md",
       "to": "docs/ideas/inbox-to-dimensions-pipeline.md",
       "type": "references",
@@ -12180,9 +12290,9 @@
     }
   ],
   "stats": {
-    "nodes": 399,
-    "edges": 1589,
+    "nodes": 406,
+    "edges": 1598,
     "typed_edges": 570,
-    "orphans": 102
+    "orphans": 108
   }
 }
