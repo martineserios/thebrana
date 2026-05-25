@@ -42431,7 +42431,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "[browser] Fix ruflo browser_open MCP tool to read browser.cdp_port config and inject --cdp into agent-browser command",
       "tags": [
@@ -42459,7 +42459,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "[infra] Add systemd user service to keep Chrome running on --remote-debugging-port=9222 across reboots",
       "tags": [
