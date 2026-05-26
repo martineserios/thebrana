@@ -42712,6 +42712,31 @@
       "order": 0,
       "github_issue": null,
       "execution": "code"
+    },
+    {
+      "id": "t-1689",
+      "subject": "close.md Step 12: remove Key learning from final report — store silently, don't surface to user",
+      "status": "pending",
+      "type": "task",
+      "tags": [
+        "thebrana",
+        "close",
+        "procedure"
+      ],
+      "description": "The close Step 12 final report currently includes a \"Key learning\" bullet. Learnings are already stored to CLAUDE.md and ruflo silently — they don't need to appear in the user-facing close summary. Remove or suppress the Key learning line from the Step 12 output template.",
+      "effort": "XS",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-05-26",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
     }
   ],
   "version": "1"
