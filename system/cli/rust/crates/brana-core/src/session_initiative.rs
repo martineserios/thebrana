@@ -112,6 +112,47 @@ impl InitiativeAccumulator {
 // ── I/O ──────────────────────────────────────────────────────────────────
 
 /// Read an existing initiative accumulator, if it exists.
+// ── Session-start initiative marker (written by `brana backlog start`) ───
+
+pub fn session_start_marker_path(project_root: &Path) -> PathBuf {
+    resolve_memory_dir(project_root).join("session-initiative-marker.json")
+}
+
+/// Write the initiative marker atomically. Called by `brana backlog start` when the
+/// started task has a non-null `initiative` field.
+pub fn write_initiative_marker(project_root: &Path, slug: &str, task_id: &str) -> Result<()> {
+    let path = session_start_marker_path(project_root);
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let json = serde_json::json!({
+        "initiative": slug,
+        "task_id": task_id,
+        "written_at": Utc::now().to_rfc3339()
+    });
+    let tmp = path.with_extension(format!("tmp.{}", std::process::id()));
+    std::fs::write(&tmp, serde_json::to_string_pretty(&json)?)?;
+    std::fs::rename(&tmp, &path)?;
+    Ok(())
+}
+
+/// Read the initiative slug from the marker. Returns None if the marker is absent or corrupt.
+pub fn read_initiative_marker(project_root: &Path) -> Option<String> {
+    let path = session_start_marker_path(project_root);
+    let data = std::fs::read_to_string(&path).ok()?;
+    let v: serde_json::Value = serde_json::from_str(&data).ok()?;
+    v["initiative"].as_str().map(|s| s.to_string())
+}
+
+/// Delete the initiative marker. Called by close Step 9c Tier 1 after consuming the slug.
+pub fn clear_initiative_marker(project_root: &Path) -> Result<()> {
+    let path = session_start_marker_path(project_root);
+    if path.exists() {
+        std::fs::remove_file(&path)?;
+    }
+    Ok(())
+}
+
 pub fn read_initiative(project_root: &Path, slug: &str) -> Option<InitiativeAccumulator> {
     let path = initiative_path(project_root, slug);
     std::fs::read_to_string(&path)
@@ -397,6 +438,30 @@ mod tests {
             .filter_map(|e| e.ok())
             .collect();
         assert!(!archived.is_empty(), "archive dir must contain the moved file");
+    }
+
+    #[test]
+    fn marker_write_read_roundtrip() {
+        let dir = tempdir().unwrap();
+        write_initiative_marker(dir.path(), "session-continuity", "t-1681").unwrap();
+        let slug = read_initiative_marker(dir.path());
+        assert_eq!(slug.as_deref(), Some("session-continuity"));
+    }
+
+    #[test]
+    fn marker_clear_removes_file() {
+        let dir = tempdir().unwrap();
+        write_initiative_marker(dir.path(), "rust-cli", "t-999").unwrap();
+        assert!(read_initiative_marker(dir.path()).is_some());
+        clear_initiative_marker(dir.path()).unwrap();
+        assert!(read_initiative_marker(dir.path()).is_none());
+    }
+
+    #[test]
+    fn marker_read_returns_none_when_absent() {
+        let dir = tempdir().unwrap();
+        assert!(read_initiative_marker(dir.path()).is_none());
+        clear_initiative_marker(dir.path()).unwrap(); // no-op on missing file
     }
 
     #[test]
