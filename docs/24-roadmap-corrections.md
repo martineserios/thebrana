@@ -3440,3 +3440,31 @@ Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Con
 **Fix:** Added `same_branch = existing.branch == state.branch` guard in `write_state()`. Merge only when `same_day && same_branch`. Also switched date comparison from `chrono::Utc` to `chrono::Local` — UTC date comparison at midnight could produce the wrong calendar day in Argentina (UTC-3), triggering a same-day merge that should be a new-day write.
 
 **Status:** code-fix — fixed in `d5c2361`.
+
+---
+
+## E2026-05-26-1 — load_contacts_from_sheets.py: stale nested attribute path on ClientConfig
+
+**Severity:** Low
+**Discovery:** 2026-05-26 — ph-018 PDB seed attempt
+**Affected files:** `tools/load_contacts_from_sheets.py`
+
+**Bug:** Script used `cfg.sheets.message_calendar_sheet_id` — `ClientConfig` is a flat dataclass; there is no nested `sheets` attribute. Raised `AttributeError: 'ClientConfig' object has no attribute 'sheets'` on every run.
+
+**Fix:** Changed to `cfg.message_calendar_sheet_id` (direct attribute). Fixed in `7d76c8e`. Rule: when accessing `ClientConfig` attributes, always read `services/v3-api/app/services/client_config.py` dataclass definition first — attributes are flat, never nested.
+
+**Status:** code-fix — fixed in `7d76c8e`.
+
+---
+
+## E2026-05-26-2 — clients.yaml: PDB company_id duplicates Palco's UUID (legacy shared-row artifact)
+
+**Severity:** Low
+**Discovery:** 2026-05-26 — ph-018 PDB seed investigation
+**Affected files:** `services/v3-api/config/clients.yaml`
+
+**Bug:** `clients.yaml` lists `company_id: "163f9441-7f4b-4f01-afd3-dbeb333c7af9"` for both `palco` and `pdb` tenants. Historically Palco and PDB shared one Supabase company row (PDB was a validation-only tenant). In the new platform (dev Supabase `jwzpeaidchtdibcxttcm`), PDB has its own UUID `df34b5eb-7a3f-4cfb-b149-7620852d2ffe`. Using clients.yaml `company_id` to seed contacts in dev would insert PDB contacts under Palco's tenant.
+
+**Fix (workaround):** Added `--company-id` override flag to `load_contacts_from_sheets.py` so the correct dev UUID can be passed without modifying clients.yaml. Changing clients.yaml directly would break legacy daily sends (Cloud Run still uses the shared UUID for PDB sends). The root fix — giving PDB its own UUID in clients.yaml — is deferred until the legacy v3-api Sheets path is retired.
+
+**Status:** partial-fix — workaround in `7d76c8e`. Root fix deferred to Sheets retirement.
