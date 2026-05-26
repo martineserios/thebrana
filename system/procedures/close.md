@@ -810,21 +810,37 @@ If no task was claimed or `claims_release` fails (MCP down), skip silently.
 
 **Detect active initiative (3-tier cascade, run in order, stop at first hit):**
 
-**Tier 2a (preferred):** Query in-progress tasks for a common initiative:
+**Tier 2a:** Query in-progress tasks for a common initiative:
 ```bash
 brana backlog query --status in_progress --json 2>/dev/null \
   | jq -r '.[].initiative // empty' | sort -u
 ```
-- Exactly 1 unique non-empty slug → use it silently as `$INITIATIVE_SLUG`.
+Collect non-empty results into the signal set; continue regardless.
+
+**Tier 2b:** Extract task IDs from recent commits and look up their initiative fields:
+```bash
+git log --oneline -20 \
+  | grep -oE 't-[0-9]+' | sort -u \
+  | while read id; do
+      brana backlog get "$id" --json 2>/dev/null | jq -r '.initiative // empty'
+    done \
+  | sort -u | grep -v '^$'
+```
+Add all non-empty results to the signal set. Fixes false Tier 3 prompts when all
+in_progress tasks completed before close but this session's commits reference tasks that
+carry an initiative field.
+
+**Converge 2a + 2b:** Deduplicate the signal set.
+- Exactly 1 unique non-empty slug → use it silently as `$INITIATIVE_SLUG`. Done.
 - 0 or 2+ → fall through to Tier 2c.
 
 **Tier 2c (branch name):** Parse branch name for a slug:
 ```bash
 git branch --show-current | sed 's|.*/||'
 ```
-Use result if it matches a known initiative slug (non-empty, no special chars) and Tier 2a returned nothing or was ambiguous.
+Use result if it matches a known initiative slug (non-empty, no special chars) and the 2a+2b signal set was empty. Add to signal set and re-converge: exactly 1 unique → use silently. 0 or 2+ → fall through to Tier 3.
 
-**Tier 3 (ask):** If both tiers returned 0 or conflicting results, ask once:
+**Tier 3 (ask):** If all tiers returned 0 or conflicting results, ask once:
 ```
 AskUserQuestion(
   question: "Which initiative does this session belong to? (skip = no initiative file)",

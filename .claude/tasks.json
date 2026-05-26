@@ -42653,7 +42653,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "session: implement Tier 2b initiative detection (git log → task IDs → initiative field)",
       "tags": [
         "thebrana",
