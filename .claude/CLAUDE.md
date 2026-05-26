@@ -174,3 +174,7 @@ Source: E2026-05-25-1 / debrief-analyst 2026-05-25
 * Upgrades to the agy CLI must always pair with a corresponding update to `AGY_PINNED_VERSION` in the same commit.
 Source: operational finding / 2026-05-25
 
+### 2026-05-25: Rust char-boundary-safe string slicing — use char_indices().nth(N)
+`&s[..N]` is a **byte** index, not a character index. Panics immediately on any multi-byte codepoint at or near position N (em dash `—` = 3 bytes, accented chars = 2 bytes). The correct "first N characters" bound: `s.char_indices().nth(N).map(|(i, _)| i).unwrap_or(s.len())`. Applies to any string truncation by character count. Caught on first real unicode input in session_initiative.rs learning dedup (60-char prefix key). Transferable to all Rust projects handling user text.
+Source: Fix C session_initiative.rs / debrief-analyst 2026-05-25
+
