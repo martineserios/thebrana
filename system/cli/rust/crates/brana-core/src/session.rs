@@ -1404,4 +1404,24 @@ mod tests {
             .expect("session state missing written_at must deserialize with serde(default)");
         assert!(state.written_at.is_empty(), "written_at must default to empty when omitted");
     }
+
+    #[test]
+    fn initiative_field_roundtrip() {
+        // Serialize with initiative set, deserialize, assert equality.
+        let mut state = SessionState::minimal(None);
+        state.initiative = Some("session-continuity".to_string());
+        let json = serde_json::to_string(&state).unwrap();
+        let back: SessionState = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.initiative.as_deref(), Some("session-continuity"));
+    }
+
+    #[test]
+    fn initiative_backward_compat_missing_field() {
+        // Old session-state.json without initiative field must deserialize to None.
+        // Prevents silent regression if #[serde(default)] is accidentally removed.
+        let json = r#"{"version":1,"written_at":"2026-05-25T10:00:00Z","session_label":"old label"}"#;
+        let state: SessionState = serde_json::from_str(json)
+            .expect("old JSON without initiative must deserialize");
+        assert!(state.initiative.is_none(), "initiative must default to None when absent");
+    }
 }

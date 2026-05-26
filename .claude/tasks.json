@@ -42703,7 +42703,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "session: add initiative field backward-compat round-trip test to session.rs",
       "tags": [
         "thebrana",
