@@ -86,6 +86,10 @@ pub fn cmd_run(task_id: &str, spawn: bool) -> anyhow::Result<()> {
             .map_err(|e| anyhow::anyhow!("{}", serde_json::json!({"ok": false, "error": e})))?;
     }
 
+    // Write session-initiative marker so close Step 9c Tier 1 can detect the initiative
+    // without parsing git log or querying in-progress tasks.
+    brana_core::session_initiative::maybe_write_initiative_marker(&repo_root, task_id, task).ok();
+
     // Spawn in tmux if requested
     if spawn {
         if !tasks::is_in_tmux() {

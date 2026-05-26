@@ -364,6 +364,27 @@ pub fn cmd_initiative_archive(slug: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// `brana session initiative read-marker`
+/// Prints the initiative slug from the session-start marker, or empty string if absent.
+pub fn cmd_initiative_read_marker() -> anyhow::Result<()> {
+    use brana_core::session_initiative::read_initiative_marker;
+    let root = require_project_root()?;
+    match read_initiative_marker(&root) {
+        Some(slug) => println!("{slug}"),
+        None => println!(),
+    }
+    Ok(())
+}
+
+/// `brana session initiative clear-marker`
+pub fn cmd_initiative_clear_marker() -> anyhow::Result<()> {
+    use brana_core::session_initiative::clear_initiative_marker;
+    let root = require_project_root()?;
+    clear_initiative_marker(&root)?;
+    println!("{{\"ok\":true,\"action\":\"marker-cleared\"}}");
+    Ok(())
+}
+
 // ── Tests ────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -429,6 +450,8 @@ mod tests {
                 cascade_rate: 0.0,
                 delegation_count: 3,
             }),
+            session_labels: vec![],
+            initiative: None,
         }
     }
 

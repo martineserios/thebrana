@@ -153,6 +153,21 @@ pub fn clear_initiative_marker(project_root: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Write the initiative marker if the task JSON has a non-empty `initiative` field.
+/// Called by `brana run` after setting the task to in_progress. No-op when the field is absent or null.
+pub fn maybe_write_initiative_marker(
+    project_root: &Path,
+    task_id: &str,
+    task: &serde_json::Value,
+) -> Result<()> {
+    if let Some(slug) = task["initiative"].as_str() {
+        if !slug.is_empty() {
+            write_initiative_marker(project_root, slug, task_id)?;
+        }
+    }
+    Ok(())
+}
+
 pub fn read_initiative(project_root: &Path, slug: &str) -> Option<InitiativeAccumulator> {
     let path = initiative_path(project_root, slug);
     std::fs::read_to_string(&path)
@@ -462,6 +477,30 @@ mod tests {
         let dir = tempdir().unwrap();
         assert!(read_initiative_marker(dir.path()).is_none());
         clear_initiative_marker(dir.path()).unwrap(); // no-op on missing file
+    }
+
+    #[test]
+    fn maybe_write_marker_when_initiative_present() {
+        let dir = tempdir().unwrap();
+        let task = serde_json::json!({"id": "t-999", "initiative": "rust-cli"});
+        maybe_write_initiative_marker(dir.path(), "t-999", &task).unwrap();
+        assert_eq!(read_initiative_marker(dir.path()).as_deref(), Some("rust-cli"));
+    }
+
+    #[test]
+    fn maybe_write_marker_noop_when_initiative_absent() {
+        let dir = tempdir().unwrap();
+        let task = serde_json::json!({"id": "t-999"});
+        maybe_write_initiative_marker(dir.path(), "t-999", &task).unwrap();
+        assert!(read_initiative_marker(dir.path()).is_none());
+    }
+
+    #[test]
+    fn maybe_write_marker_noop_when_initiative_null() {
+        let dir = tempdir().unwrap();
+        let task = serde_json::json!({"id": "t-999", "initiative": null});
+        maybe_write_initiative_marker(dir.path(), "t-999", &task).unwrap();
+        assert!(read_initiative_marker(dir.path()).is_none());
     }
 
     #[test]

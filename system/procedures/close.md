@@ -810,6 +810,16 @@ If no task was claimed or `claims_release` fails (MCP down), skip silently.
 
 **Detect active initiative (3-tier cascade, run in order, stop at first hit):**
 
+**Tier 1 (session-start marker):** Read the marker written by `brana run` at session start:
+```bash
+TIER1_SLUG=$(brana session initiative read-marker 2>/dev/null)
+```
+If non-empty, use it as `$INITIATIVE_SLUG` silently and skip Tier 2a/2b/2c/3. Then clear the marker:
+```bash
+brana session initiative clear-marker 2>/dev/null || true
+```
+If empty, fall through to Tier 2a.
+
 **Tier 2a:** Query in-progress tasks for a common initiative:
 ```bash
 brana backlog query --status in_progress --json 2>/dev/null \

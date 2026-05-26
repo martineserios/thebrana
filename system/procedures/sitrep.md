@@ -100,7 +100,15 @@ If `brana session read --json` returns nothing, fall back to `brana handoff last
 
 **4b. Initiative accumulator (if session has initiative field):**
 
-If the session JSON includes `"initiative": "<slug>"`, load the cross-day arc:
+Resolve `$INITIATIVE_SLUG` via two sources in order (first hit wins):
+1. **Session JSON** — `initiative` field in the session state (set by close Step 9c)
+2. **Session-start marker** (fallback, when session JSON lacks the field):
+   ```bash
+   brana session initiative read-marker 2>/dev/null
+   ```
+   Use this when the active task was started in the current session (marker written by `brana run`) but not yet closed (no session-state.json initiative field).
+
+If `$INITIATIVE_SLUG` is non-empty, load the cross-day arc:
 ```bash
 brana session initiative read "$INITIATIVE_SLUG" --json
 ```

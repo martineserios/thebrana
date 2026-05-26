@@ -142,6 +142,8 @@ fn main() {
                 InitiativeCmd::Upsert { slug, completed, resolved_texts } => run_or_exit(commands::session::cmd_initiative_upsert(&slug, &completed, &resolved_texts)),
                 InitiativeCmd::Read { slug, json } => run_or_exit(commands::session::cmd_initiative_read(&slug, json)),
                 InitiativeCmd::Archive { slug } => run_or_exit(commands::session::cmd_initiative_archive(&slug)),
+                InitiativeCmd::ReadMarker => run_or_exit(commands::session::cmd_initiative_read_marker()),
+                InitiativeCmd::ClearMarker => run_or_exit(commands::session::cmd_initiative_clear_marker()),
             },
         },
         Commands::Knowledge { cmd } => match cmd {

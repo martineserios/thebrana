@@ -475,6 +475,10 @@ pub enum InitiativeCmd {
         /// Initiative slug
         slug: String,
     },
+    /// Read the session-start initiative marker (written by `brana run`)
+    ReadMarker,
+    /// Clear the session-start initiative marker (called by close Step 9c after consuming the slug)
+    ClearMarker,
 }
 
 #[derive(Subcommand)]
