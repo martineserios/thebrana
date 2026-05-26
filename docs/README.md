@@ -126,6 +126,8 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [ADR-040](architecture/decisions/ADR-040-compute-hierarchy-claude-ruflo-gemini.md) | brana compute hierarchy — Claude / Ruflo / Gemini |
 | [ADR-041](architecture/decisions/ADR-041-agy-invocation-contract.md) | agy invocation contract |
 | [ADR-042](architecture/decisions/ADR-042-knowledge-ingest-canonical-entry-point-gemini-routing.md) | Knowledge pipeline — `ingest` as canonical URL entry point + Gemini routing for Tier 1/2 |
+| [ADR-043](architecture/decisions/ADR-043-session-labels-breadcrumb.md) | session_labels breadcrumb array for same-day multi-session merges |
+| [ADR-044](architecture/decisions/ADR-044-initiative-accumulator.md) | Initiative accumulator — cross-day session continuity per initiative |
 
 ### Domain model (docs/domain/)
 
