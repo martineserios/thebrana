@@ -391,3 +391,72 @@ brana knowledge run
 | Cluster report ready | `brana knowledge process --report` |
 | Draft ready for review | `brana knowledge promote <path>` |
 | Pipeline idle | `brana knowledge ingest <url>` |
+
+---
+
+## brana session
+
+Unified session state management. Subcommands: `write`, `read`, `history`, `path`,
+`migrate`, `mark-consumed`, `insights`, `initiative`.
+
+---
+
+## brana session initiative
+
+Initiative accumulator — merge, read, or archive cross-day initiative state. An
+initiative accumulator aggregates `accomplished[]`, `next[]`, and `resolved[]` items
+across multiple sessions that share the same initiative slug.
+
+### Subcommands
+
+#### upsert
+
+Merge current session state into the named initiative accumulator. Runs Pass 1 pruning:
+task IDs supplied via `--completed` are moved from `next[]` to `resolved[]` with a
+`"task completed"` note.
+
+```bash
+brana session initiative upsert <SLUG> [--completed <TASK_IDS>]
+```
+
+| Argument / Flag | Required | Description |
+|-----------------|----------|-------------|
+| `<SLUG>` | yes | Kebab-case initiative identifier (e.g. `"session-continuity"`) |
+| `--completed` | no | Comma-separated task IDs completed this session (default: `""`) |
+
+#### read
+
+Print the current initiative accumulator for a slug.
+
+```bash
+brana session initiative read <SLUG> [--json]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output raw JSON instead of formatted text |
+
+#### archive
+
+Archive the initiative accumulator (move to `archive/` with datestamp). Use when an
+initiative is fully complete.
+
+```bash
+brana session initiative archive <SLUG>
+```
+
+### Examples
+
+```bash
+# Upsert at close — merge this session into "session-continuity" initiative
+brana session initiative upsert session-continuity --completed t-1461,t-1683
+
+# Read initiative state (human-readable)
+brana session initiative read session-continuity
+
+# Read initiative state as JSON (used by sitrep.md §4b)
+brana session initiative read session-continuity --json
+
+# Archive when initiative is complete
+brana session initiative archive session-continuity
+```
