@@ -42678,7 +42678,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "session: Pass 2 LLM pruning — text-only next[] items reviewed at close time",
       "tags": [
         "thebrana",

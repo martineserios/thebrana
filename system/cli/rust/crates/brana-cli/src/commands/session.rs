@@ -304,9 +304,9 @@ fn extract_field(body: &str, field: &str) -> Option<String> {
 
 // ── Initiative accumulator commands ─────────────────────────────────────
 
-/// `brana session initiative upsert <slug> [--completed t-1,t-2]`
-pub fn cmd_initiative_upsert(slug: &str, completed_csv: &str) -> anyhow::Result<()> {
-    use brana_core::session_initiative::upsert_initiative;
+/// `brana session initiative upsert <slug> [--completed t-1,t-2] [--resolved-texts '[...]']`
+pub fn cmd_initiative_upsert(slug: &str, completed_csv: &str, resolved_texts_json: &str) -> anyhow::Result<()> {
+    use brana_core::session_initiative::{upsert_initiative, ResolvedTextInput};
     let root = require_project_root()?;
     let state = read_state(&root)
         .ok_or_else(|| anyhow::anyhow!("No session state found — run `brana session write` first"))?;
@@ -315,7 +315,14 @@ pub fn cmd_initiative_upsert(slug: &str, completed_csv: &str) -> anyhow::Result<
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
         .collect();
-    upsert_initiative(&root, slug, &state, &completed)?;
+    #[derive(serde::Deserialize)]
+    struct RtJson { text: String, resolution: String }
+    let resolved: Vec<ResolvedTextInput> = serde_json::from_str::<Vec<RtJson>>(resolved_texts_json)
+        .unwrap_or_default()
+        .into_iter()
+        .map(|r| ResolvedTextInput { text: r.text, resolution: r.resolution })
+        .collect();
+    upsert_initiative(&root, slug, &state, &completed, &resolved)?;
     println!("{{\"ok\":true,\"slug\":\"{slug}\"}}");
     Ok(())
 }

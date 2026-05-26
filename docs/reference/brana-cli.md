@@ -416,13 +416,14 @@ task IDs supplied via `--completed` are moved from `next[]` to `resolved[]` with
 `"task completed"` note.
 
 ```bash
-brana session initiative upsert <SLUG> [--completed <TASK_IDS>]
+brana session initiative upsert <SLUG> [--completed <TASK_IDS>] [--resolved-texts <JSON>]
 ```
 
 | Argument / Flag | Required | Description |
 |-----------------|----------|-------------|
 | `<SLUG>` | yes | Kebab-case initiative identifier (e.g. `"session-continuity"`) |
-| `--completed` | no | Comma-separated task IDs completed this session (default: `""`) |
+| `--completed` | no | Comma-separated task IDs completed this session — Pass 1 pruning (default: `""`) |
+| `--resolved-texts` | no | JSON array of Pass 2 resolved text items: `'[{"text":"...","resolution":"..."}]'` (default: `"[]"`) |
 
 #### read
 

@@ -22,6 +22,13 @@ pub fn initiative_archive_path(project_root: &Path, slug: &str, date: &str) -> P
 
 // ── Schema ───────────────────────────────────────────────────────────────
 
+/// Pass 2 LLM-resolved text item — carries the resolution note from the close procedure.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ResolvedTextInput {
+    pub text: String,
+    pub resolution: String,
+}
+
 /// An item moved out of next[] because it was completed or addressed.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ResolvedItem {
@@ -113,14 +120,16 @@ pub fn read_initiative(project_root: &Path, slug: &str) -> Option<InitiativeAccu
 }
 
 /// Merge session state into the initiative accumulator and write atomically.
-/// Creates the accumulator if it doesn't exist. Pass 1 pruning (task_id-linked
-/// completed tasks) runs at merge time. Pass 2 (LLM text-only pruning) is a
-/// procedure-level step run by close.md before calling this function.
+/// Creates the accumulator if it doesn't exist.
+/// Pass 1: task_id-linked items in `completed_task_ids` move to resolved[].
+/// Pass 2: text-only items whose text matches an entry in `resolved_texts` move to
+/// resolved[] with the provided resolution note (LLM-evaluated at close time).
 pub fn upsert_initiative(
     project_root: &Path,
     slug: &str,
     state: &SessionState,
     completed_task_ids: &[String],
+    resolved_texts: &[ResolvedTextInput],
 ) -> Result<()> {
     let mut acc = read_initiative(project_root, slug).unwrap_or_else(|| InitiativeAccumulator::new(slug));
 
@@ -147,7 +156,8 @@ pub fn upsert_initiative(
         }
     }
 
-    // Pass 1 pruning: move task_id-linked next[] items to resolved[] if task is done.
+    // Pass 1: move task_id-linked next[] items to resolved[] if task is done.
+    // Pass 2: move text-only next[] items to resolved[] if the LLM flagged them as addressed.
     let mut surviving_next: Vec<NextItem> = Vec::new();
     for item in acc.next.drain(..) {
         if let Some(ref tid) = item.task_id {
@@ -161,6 +171,15 @@ pub fn upsert_initiative(
                 });
                 continue;
             }
+        } else if let Some(rt) = resolved_texts.iter().find(|r| r.text == item.text) {
+            acc.resolved.push(ResolvedItem {
+                text: item.text,
+                task_id: None,
+                resolved_at: now.clone(),
+                resolved_by: "pass2-llm".to_string(),
+                resolution: Some(rt.resolution.clone()),
+            });
+            continue;
         }
         surviving_next.push(item);
     }
@@ -273,7 +292,7 @@ mod tests {
     fn upsert_creates_new_accumulator() {
         let dir = tempdir().unwrap();
         let state = make_session("Session A", &["shipped thing X"], vec![], &[]);
-        upsert_initiative(dir.path(), "rust-cli", &state, &[]).unwrap();
+        upsert_initiative(dir.path(), "rust-cli", &state, &[], &[]).unwrap();
 
         let acc = read_initiative(dir.path(), "rust-cli").expect("accumulator must exist after upsert");
         assert_eq!(acc.slug, "rust-cli");
@@ -287,8 +306,8 @@ mod tests {
         let dir = tempdir().unwrap();
         let s1 = make_session("Session A", &["did X"], vec![], &["learned Y"]);
         let s2 = make_session("Session B", &["did Z"], vec![], &["learned W"]);
-        upsert_initiative(dir.path(), "rust-cli", &s1, &[]).unwrap();
-        upsert_initiative(dir.path(), "rust-cli", &s2, &[]).unwrap();
+        upsert_initiative(dir.path(), "rust-cli", &s1, &[], &[]).unwrap();
+        upsert_initiative(dir.path(), "rust-cli", &s2, &[], &[]).unwrap();
 
         let acc = read_initiative(dir.path(), "rust-cli").unwrap();
         assert_eq!(acc.sessions_count, 2);
@@ -302,8 +321,8 @@ mod tests {
         let dir = tempdir().unwrap();
         let s1 = make_session("S1", &["same thing"], vec![], &[]);
         let s2 = make_session("S2", &["same thing", "new thing"], vec![], &[]);
-        upsert_initiative(dir.path(), "slug", &s1, &[]).unwrap();
-        upsert_initiative(dir.path(), "slug", &s2, &[]).unwrap();
+        upsert_initiative(dir.path(), "slug", &s1, &[], &[]).unwrap();
+        upsert_initiative(dir.path(), "slug", &s2, &[], &[]).unwrap();
 
         let acc = read_initiative(dir.path(), "slug").unwrap();
         let count = acc.accomplished.iter().filter(|a| a.as_str() == "same thing").count();
@@ -314,11 +333,11 @@ mod tests {
     fn pass1_pruning_moves_completed_tasks_to_resolved() {
         let dir = tempdir().unwrap();
         let s1 = make_session("S1", &[], vec![make_next("do the thing", Some("t-999"))], &[]);
-        upsert_initiative(dir.path(), "slug", &s1, &[]).unwrap();
+        upsert_initiative(dir.path(), "slug", &s1, &[], &[]).unwrap();
 
         // Second session: t-999 is now completed
         let s2 = make_session("S2", &[], vec![], &[]);
-        upsert_initiative(dir.path(), "slug", &s2, &["t-999".to_string()]).unwrap();
+        upsert_initiative(dir.path(), "slug", &s2, &["t-999".to_string()], &[]).unwrap();
 
         let acc = read_initiative(dir.path(), "slug").unwrap();
         assert!(acc.next.iter().all(|n| n.task_id.as_deref() != Some("t-999")), "completed task must leave next[]");
@@ -330,8 +349,8 @@ mod tests {
         let dir = tempdir().unwrap();
         let s1 = make_session("S1", &[], vec![make_next("do X", None)], &[]);
         let s2 = make_session("S2", &[], vec![make_next("do X", None), make_next("do Y", None)], &[]);
-        upsert_initiative(dir.path(), "slug", &s1, &[]).unwrap();
-        upsert_initiative(dir.path(), "slug", &s2, &[]).unwrap();
+        upsert_initiative(dir.path(), "slug", &s1, &[], &[]).unwrap();
+        upsert_initiative(dir.path(), "slug", &s2, &[], &[]).unwrap();
 
         let acc = read_initiative(dir.path(), "slug").unwrap();
         let x_count = acc.next.iter().filter(|n| n.text == "do X").count();
@@ -345,8 +364,8 @@ mod tests {
         let long = "A".repeat(80);
         let s1 = make_session("S1", &[], vec![], &[&long]);
         let s2 = make_session("S2", &[], vec![], &[&long]);
-        upsert_initiative(dir.path(), "slug", &s1, &[]).unwrap();
-        upsert_initiative(dir.path(), "slug", &s2, &[]).unwrap();
+        upsert_initiative(dir.path(), "slug", &s1, &[], &[]).unwrap();
+        upsert_initiative(dir.path(), "slug", &s2, &[], &[]).unwrap();
 
         let acc = read_initiative(dir.path(), "slug").unwrap();
         assert_eq!(acc.learnings.len(), 1, "duplicate learning by prefix must not repeat");
@@ -368,7 +387,7 @@ mod tests {
     fn archive_moves_file() {
         let dir = tempdir().unwrap();
         let state = make_session("S1", &["x"], vec![], &[]);
-        upsert_initiative(dir.path(), "slug", &state, &[]).unwrap();
+        upsert_initiative(dir.path(), "slug", &state, &[], &[]).unwrap();
         assert!(initiative_path(dir.path(), "slug").exists());
 
         archive_initiative(dir.path(), "slug").unwrap();
@@ -386,5 +405,58 @@ mod tests {
         let acc: InitiativeAccumulator = serde_json::from_str(json)
             .expect("old accumulator JSON without session_labels must deserialize");
         assert!(acc.session_labels.is_empty());
+    }
+
+    #[test]
+    fn pass2_resolved_text_moved_to_resolved() {
+        let dir = tempdir().unwrap();
+        let s1 = make_session("S1", &[], vec![make_next("run knowledge reindex", None)], &[]);
+        upsert_initiative(dir.path(), "slug", &s1, &[], &[]).unwrap();
+
+        let s2 = make_session("S2", &[], vec![], &[]);
+        let resolved = vec![ResolvedTextInput {
+            text: "run knowledge reindex".to_string(),
+            resolution: "done this session via brana knowledge reindex".to_string(),
+        }];
+        upsert_initiative(dir.path(), "slug", &s2, &[], &resolved).unwrap();
+
+        let acc = read_initiative(dir.path(), "slug").unwrap();
+        assert!(acc.next.iter().all(|n| n.text != "run knowledge reindex"), "resolved text item must leave next[]");
+        let resolved_entry = acc.resolved.iter().find(|r| r.text == "run knowledge reindex");
+        assert!(resolved_entry.is_some(), "resolved text item must appear in resolved[]");
+        assert_eq!(resolved_entry.unwrap().resolved_by, "pass2-llm");
+    }
+
+    #[test]
+    fn pass2_unresolved_text_item_carries_forward() {
+        let dir = tempdir().unwrap();
+        let s1 = make_session("S1", &[], vec![make_next("still pending work", None)], &[]);
+        upsert_initiative(dir.path(), "slug", &s1, &[], &[]).unwrap();
+
+        let s2 = make_session("S2", &[], vec![], &[]);
+        // resolved_texts does NOT include "still pending work"
+        let resolved = vec![ResolvedTextInput {
+            text: "something else".to_string(),
+            resolution: "addressed".to_string(),
+        }];
+        upsert_initiative(dir.path(), "slug", &s2, &[], &resolved).unwrap();
+
+        let acc = read_initiative(dir.path(), "slug").unwrap();
+        assert!(acc.next.iter().any(|n| n.text == "still pending work"), "unresolved text item must stay in next[]");
+    }
+
+    #[test]
+    fn pass2_empty_resolved_texts_unchanged() {
+        // Backward compat: empty &[] leaves text-only items untouched.
+        let dir = tempdir().unwrap();
+        let s1 = make_session("S1", &[], vec![make_next("carry forward", None)], &[]);
+        upsert_initiative(dir.path(), "slug", &s1, &[], &[]).unwrap();
+
+        let s2 = make_session("S2", &[], vec![], &[]);
+        upsert_initiative(dir.path(), "slug", &s2, &[], &[]).unwrap();
+
+        let acc = read_initiative(dir.path(), "slug").unwrap();
+        assert!(acc.next.iter().any(|n| n.text == "carry forward"), "text-only item must carry forward when resolved_texts is empty");
+        assert!(acc.resolved.iter().all(|r| r.text != "carry forward"), "text-only item must NOT be in resolved[] when not flagged");
     }
 }

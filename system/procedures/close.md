@@ -849,16 +849,35 @@ AskUserQuestion(
 ```
 If the user skips: proceed to Step 10 without writing an initiative file.
 
+**Pass 2 — LLM pruning of text-only next[] items (run before upsert):**
+
+Read the current accumulator's text-only `next[]` items:
+```bash
+brana session initiative read "$INITIATIVE_SLUG" --json \
+  | jq -r '.next[] | select(.task_id == null) | .text'
+```
+
+For each item, check whether this session addressed it — scan `accomplished[]` and the
+recent git log for evidence. Build a JSON array of resolved items:
+```json
+[
+  {"text": "<exact text from next[]>", "resolution": "<one-line note on how it was addressed>"}
+]
+```
+Items with no evidence of being addressed → omit (they carry forward automatically).
+If no items were addressed, pass `"[]"` as `$RESOLVED_TEXTS`.
+
 **Write accumulator:**
 ```bash
 # completed_task_ids = comma-separated IDs of tasks completed this session
-# (derive from git log --oneline -20 | grep -oE 't-[0-9]+' | sort -u | tr '\n' ',')
 COMPLETED=$(git log --oneline -20 | grep -oE 't-[0-9]+' | sort -u | tr '\n' ',' | sed 's/,$//')
 
-brana session initiative upsert "$INITIATIVE_SLUG" --completed "$COMPLETED"
+brana session initiative upsert "$INITIATIVE_SLUG" \
+  --completed "$COMPLETED" \
+  --resolved-texts "$RESOLVED_TEXTS"
 ```
 
-Also add `"initiative": "$INITIATIVE_SLUG"` to the Step 9 JSON payload so the session-state.json carries the slug (used by sitrep to load the accumulator).
+Also add `"initiative": "$INITIATIVE_SLUG"` to the Step 9 JSON payload so the session-state.json carries the slug (used by sitrep §4b to load the accumulator).
 
 **Fallback:** If `brana session initiative upsert` fails, log and continue. Session-state.json and session-history.jsonl are the authoritative records.
 

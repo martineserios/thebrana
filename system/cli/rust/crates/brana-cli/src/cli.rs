@@ -458,6 +458,9 @@ pub enum InitiativeCmd {
         /// Comma-separated list of task IDs completed this session (for Pass 1 pruning)
         #[arg(long, default_value = "")]
         completed: String,
+        /// JSON array of Pass 2 resolved text items: '[{"text":"...","resolution":"..."}]'
+        #[arg(long, default_value = "[]")]
+        resolved_texts: String,
     },
     /// Print the current initiative accumulator
     Read {

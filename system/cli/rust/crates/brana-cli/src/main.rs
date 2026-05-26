@@ -139,7 +139,7 @@ fn main() {
             })()),
             SessionCmd::Insights { limit, json } => run_or_exit(commands::session::cmd_session_insights(limit, json)),
             SessionCmd::Initiative { cmd } => match cmd {
-                InitiativeCmd::Upsert { slug, completed } => run_or_exit(commands::session::cmd_initiative_upsert(&slug, &completed)),
+                InitiativeCmd::Upsert { slug, completed, resolved_texts } => run_or_exit(commands::session::cmd_initiative_upsert(&slug, &completed, &resolved_texts)),
                 InitiativeCmd::Read { slug, json } => run_or_exit(commands::session::cmd_initiative_read(&slug, json)),
                 InitiativeCmd::Archive { slug } => run_or_exit(commands::session::cmd_initiative_archive(&slug)),
             },
