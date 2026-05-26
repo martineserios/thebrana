@@ -174,3 +174,8 @@ Version flag: `agy --version` → stdout, exit 0.
 
 - Shell metacharacters in prompt string (e.g. `; rm -rf ...`) are passed to agy verbatim when using `Command::new("agy").arg("-p").arg(prompt)` — no shell involved, no injection risk at the Rust level.
 - agy may interpret the injected text as instructions to Gemini and respond to it. Mitigation: Claude constructs all prompts; no raw user string interpolation.
+
+## Field Notes
+
+### 2026-05-25: agy artifact reference response — read from brain dir, not stdout
+For report-style tasks, agy writes the full artifact to `~/.gemini/antigravity-cli/brain/{uuid}/{file}.md` and returns a reference message via stdout (e.g. `"You can view the detailed report here: file:///home/.../.gemini/antigravity-cli/brain/{uuid}/file.md"`). The `agy_delegate` MCP tool captures this reference message as the `output` field. Read the referenced file path to get the full artifact content. This is agy's internal artifact storage — distinct from the `/tmp/` invariant, which governs brana's own prompt temp files.

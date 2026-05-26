@@ -1,6 +1,6 @@
 ---
 title: brana v2 Compute Model — Layered Execution Stack
-status: shaped
+status: in-progress
 created: 2026-05-22
 supersedes:
   - docs/ideas/brana-efficiency-without-power-loss.md
