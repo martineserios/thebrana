@@ -37682,7 +37682,7 @@
       "parent": "t-1502",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Spike: transport layer options for brana backlog web UI",
       "tags": [
         "web-ui",
@@ -42737,6 +42737,64 @@
         "procedure"
       ],
       "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": "2026-05-26",
+      "context": "Core library done (commit 8ccee59): write_initiative_marker / read_initiative_marker / clear_initiative_marker in session_initiative.rs. Two wiring points needed: (1) brana backlog start cmd — after writing task status=in_progress, if task.initiative is Some(slug) call write_initiative_marker(root, slug, task_id); (2) close.md Step 9c Tier 1 — read_initiative_marker(root) to get slug, call read_initiative(root, slug), upsert with session data, call clear_initiative_marker(root). Also update sitrep Step 4b to read marker path if session JSON lacks initiative field. TDD: integration test — start task with initiative field → marker file exists → close → marker gone + accumulator updated.",
+      "created": "2026-05-26",
+      "description": null,
+      "effort": "M",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1690",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P2",
+      "started": "2026-05-26",
+      "status": "completed",
+      "strategy": "feature",
+      "subject": "[rust] Wire initiative marker: backlog start → write, close Step 9c → read+clear",
+      "tags": [
+        "session",
+        "rust",
+        "initiative"
+      ],
+      "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "Spike t-1509 recommends Option A: CLI shell-out. Measured P95 ~40ms (17ms avg), well under 300ms threshold from t-1502 milestone. Write ADR-045 at docs/architecture/decisions/ADR-045-backlog-ui-transport.md.\n\nDecision: Next.js API routes call brana CLI via execFile (argv array, no shell interpolation). Read: brana backlog query --json / brana backlog get {id}. Write: brana backlog set / add.\n\nRejected: brana-mcp (stdio-only), axum sidecar (1-2 weeks Rust infra, no latency problem to solve).\n\nADR must include: latency evidence (17ms avg, 5-call board load 89ms), injection mitigation (execFile not exec), V1 scope (local-only, no auth), and Non-Actions (no axum sidecar, no WebSockets in V1).\n\nAC: ADR-045 file committed to docs/architecture/decisions/\nAC: Status = Accepted\nAC: Rejected alternatives section covers brana-mcp + axum sidecar\nAC: Latency evidence cited from t-1509 spike measurements",
+      "created": "2026-05-27",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1691",
+      "initiative": "backlog-ui",
+      "notes": null,
+      "order": null,
+      "parent": "t-1502",
+      "priority": "P2",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "[adr] ADR-045: backlog web UI transport — CLI shell-out vs axum sidecar",
+      "tags": [
+        "adr",
+        "web-ui",
+        "transport",
+        "nextjs",
+        "rust"
+      ],
+      "type": "task",
+      "work_type": "design"
     }
   ],
   "version": "1"
