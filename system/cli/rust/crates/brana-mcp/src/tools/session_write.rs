@@ -47,7 +47,8 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
             session::write_state(&root, &state)
                 .map_err(|e| pmcp::Error::validation(e.to_string()))?;
 
-            let state_path = session::session_state_path(&root);
+            let branch = state.branch.as_deref().unwrap_or("");
+            let state_path = session::epic_scoped_state_path(&root, branch);
             Ok(serde_json::json!({
                 "ok": true,
                 "written_at": state.written_at,

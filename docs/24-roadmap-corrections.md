@@ -3527,6 +3527,20 @@ Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Con
 
 ---
 
+## E2026-05-27-4 — session_write MCP tool reports legacy path after epic-scoped write
+
+**Severity:** Low
+**Discovery:** 2026-05-27 — debrief-analyst after t-1630 (epic-scoped session state path)
+**Affected files:** `system/cli/rust/crates/brana-mcp/src/tools/session_write.rs` (line 50)
+
+**Bug:** `write_state()` was updated (t-1630) to write to `session-state-{epic}.json` when on a conforming epic branch. The `session_write` MCP tool response still reported the path via the legacy `session::session_state_path(&root)` — always returning `session-state.json` regardless of branch. Any MCP caller inspecting the `path` field in the response would see the wrong file location on epic branches.
+
+**Fix:** Replaced `session::session_state_path(&root)` with `session::epic_scoped_state_path(&root, branch)` where `branch = state.branch.as_deref().unwrap_or("")`. Fixed inline at close.
+
+**Root pattern:** When migrating a function to a new scoped variant (e.g. `session_state_path` → `epic_scoped_state_path`), grep ALL call sites — not just the primary writer. Response path fields in MCP tools are easy to miss since they're not in the critical write path.
+
+**Status:** code-fix — fixed inline.
+
 ## E2026-05-27-3 — research.md Rules section retained stale NLM labels after Phase 0b migration
 
 **Severity:** Medium

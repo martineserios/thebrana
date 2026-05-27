@@ -42278,7 +42278,7 @@
       "parent": null,
       "priority": "P1",
       "started": null,
-      "status": "in_progress",
+      "status": "completed",
       "stream": "bugs",
       "subject": "[fix] Add spawn + agent_config fields to CLI/MCP backlog schema",
       "tags": [
