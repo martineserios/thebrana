@@ -91,6 +91,13 @@ If JSON is available, extract structured fields directly:
 - **consumed_at** → if non-null, this state was already loaded by session-start (don't re-present)
 - **metrics** → session flywheel metrics (events, corrections, test writes)
 
+**Task-ID staleness filter** — before displaying `next[]` items, suppress stale references:
+For each item where `task_id` is non-null:
+```bash
+brana backlog get {task_id} 2>/dev/null | jq -r '.status // empty'
+```
+If status is `completed` or `cancelled`, suppress the item from display. If any items were filtered, append `({N} already done — not shown)` to the "Previous session next:" block header. This prevents completed tasks from surfacing as open follow-ups across sessions.
+
 **Also surface these fields when non-trivial (belt-and-suspenders for items that may not have reached next[]):**
 - `backprop.needed: true` + `backprop.files` non-empty → show: "Backprop needed for: {files}"
 - `doc_drift.stale_docs` non-empty → show: "Stale docs from last session: {list}"
@@ -116,7 +123,7 @@ brana session initiative read "$INITIATIVE_SLUG" --json
 Surface in the sitrep output:
 - **Initiative:** `{slug}` — {sessions_count} sessions, last closed {last_closed}
 - **Arc accomplished ({N}):** first 3 items from `acc.accomplished[]`
-- **Open next ({N}):** all items from `acc.next[]` (these span multiple sessions)
+- **Open next ({N}):** items from `acc.next[]` with non-completed task_ids (apply the same task-ID staleness filter from Source 4 — suppress completed/cancelled items; these span multiple sessions)
 - **Recently resolved ({N}):** last 3 from `acc.resolved[]`
 
 If `brana session initiative read` returns nothing (initiative not yet seeded), skip silently.
@@ -207,8 +214,8 @@ Present a structured snapshot — concise, actionable:
 
 **Recent:** {last 2-3 commits, one line each}
 
-**Previous session next:**
-- {from session state next[] array, with [category] prefix}
+**Previous session next:** {if any task_id items filtered: ({N} already done — not shown)}
+- {from session state next[] array, with [category] prefix — completed/cancelled task_ids suppressed}
 
 {if backprop.needed and files: **Backprop needed:** {backprop.files — comma-separated}}
 {if doc_drift.stale_docs non-empty: **Stale docs:** {list — shown even if already in next[]}}
