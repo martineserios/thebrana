@@ -178,3 +178,7 @@ Source: operational finding / 2026-05-25
 `&s[..N]` is a **byte** index, not a character index. Panics immediately on any multi-byte codepoint at or near position N (em dash `—` = 3 bytes, accented chars = 2 bytes). The correct "first N characters" bound: `s.char_indices().nth(N).map(|(i, _)| i).unwrap_or(s.len())`. Applies to any string truncation by character count. Caught on first real unicode input in session_initiative.rs learning dedup (60-char prefix key). Transferable to all Rust projects handling user text.
 Source: Fix C session_initiative.rs / debrief-analyst 2026-05-25
 
+### 2026-05-26: Cross-crate struct extension — always run `cargo test -p brana-core -p brana-cli` together
+After adding fields to a brana-core struct (e.g. `SessionState`), single-crate tests (`cargo test -p brana-core`) pass because the test fixtures live in the same crate. The cross-crate cascade only surfaces when brana-cli tests run against the updated struct — test fixtures like `sample_state()` in `commands/session.rs` silently miss the new fields and fail with `E0063: missing fields`. Rule: any PR that adds fields to a shared struct must validate with `cargo test -p brana-core -p brana-cli` before merge.
+Source: t-1690 / 2026-05-26
+

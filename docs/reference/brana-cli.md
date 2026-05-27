@@ -446,6 +446,23 @@ initiative is fully complete.
 brana session initiative archive <SLUG>
 ```
 
+#### read-marker
+
+Read the session-start marker written by `brana run`. Outputs the initiative slug, or
+empty string if no marker exists. Used by close Step 9c Tier 1 and sitrep Step 4b.
+
+```bash
+brana session initiative read-marker
+```
+
+#### clear-marker
+
+Delete the session-start marker. Called by close Step 9c after the slug is consumed.
+
+```bash
+brana session initiative clear-marker
+```
+
 ### Examples
 
 ```bash
@@ -460,4 +477,10 @@ brana session initiative read session-continuity --json
 
 # Archive when initiative is complete
 brana session initiative archive session-continuity
+
+# Read session-start marker (written by brana run, used by close Tier 1)
+brana session initiative read-marker
+
+# Clear marker after consuming the slug at close
+brana session initiative clear-marker
 ```
