@@ -41134,7 +41134,7 @@
       "parent": "t-1626",
       "priority": "P1",
       "started": null,
-      "status": "in_progress",
+      "status": "completed",
       "stream": "roadmap",
       "subject": "write_state: regex-based epic slug extraction from branch name + stderr fallback warning",
       "tags": [
@@ -41188,7 +41188,7 @@
       "parent": "t-1626",
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "subject": "read_state: resolve session file from current branch epic slug",
       "tags": [
@@ -42278,7 +42278,7 @@
       "parent": null,
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "stream": "bugs",
       "subject": "[fix] Add spawn + agent_config fields to CLI/MCP backlog schema",
       "tags": [

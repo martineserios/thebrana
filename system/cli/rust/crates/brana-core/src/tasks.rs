@@ -657,10 +657,23 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
             }
             Ok(())
         }
+        "agent_config" | "agent_result" => {
+            if value == "null" {
+                task[field] = Value::Null;
+            } else {
+                let parsed: Value = serde_json::from_str(value)
+                    .map_err(|e| format!("{field} must be a JSON object or \"null\": {e}"))?;
+                if !parsed.is_object() {
+                    return Err(format!("{field} must be a JSON object or \"null\""));
+                }
+                task[field] = parsed;
+            }
+            Ok(())
+        }
         "priority" | "effort" | "status" | "type" | "level" | "strategy"
         | "build_step" | "execution" | "branch" | "subject" | "parent"
         | "started" | "completed" | "created" | "github_issue"
-        | "initiative" | "work_type" => {
+        | "initiative" | "work_type" | "spawn" | "spawn_strategy" => {
             if field == "priority" {
                 validate_priority(value)?;
             }
@@ -2532,5 +2545,56 @@ mod tests {
             .filter(|e| e.file_name().to_string_lossy().ends_with(".tmp"))
             .collect();
         assert!(tmp_files.is_empty(), "save_tasks left tmp files: {:?}", tmp_files);
+    }
+
+    // ── t-1672: spawn / agent_config / agent_result / spawn_strategy ─────
+
+    #[test]
+    fn test_set_field_spawn_subagent() {
+        let mut task = json!({"id": "t-1"});
+        set_field(&mut task, "spawn", "subagent", false).unwrap();
+        assert_eq!(task["spawn"], json!("subagent"));
+    }
+
+    #[test]
+    fn test_set_field_spawn_null() {
+        let mut task = json!({"id": "t-1", "spawn": "subagent"});
+        set_field(&mut task, "spawn", "null", false).unwrap();
+        assert!(task["spawn"].is_null());
+    }
+
+    #[test]
+    fn test_set_field_spawn_strategy() {
+        let mut task = json!({"id": "t-1"});
+        set_field(&mut task, "spawn_strategy", "parallel", false).unwrap();
+        assert_eq!(task["spawn_strategy"], json!("parallel"));
+    }
+
+    #[test]
+    fn test_set_field_agent_config_json_object() {
+        let mut task = json!({"id": "t-1"});
+        set_field(&mut task, "agent_config", r#"{"type":"debrief-analyst","model":"sonnet"}"#, false).unwrap();
+        assert_eq!(task["agent_config"]["type"], json!("debrief-analyst"));
+        assert_eq!(task["agent_config"]["model"], json!("sonnet"));
+    }
+
+    #[test]
+    fn test_set_field_agent_config_null() {
+        let mut task = json!({"id": "t-1", "agent_config": {"type": "scout"}});
+        set_field(&mut task, "agent_config", "null", false).unwrap();
+        assert!(task["agent_config"].is_null());
+    }
+
+    #[test]
+    fn test_set_field_agent_result_json_object() {
+        let mut task = json!({"id": "t-1"});
+        set_field(&mut task, "agent_result", r#"{"status":"done","summary":"shipped"}"#, false).unwrap();
+        assert_eq!(task["agent_result"]["status"], json!("done"));
+    }
+
+    #[test]
+    fn test_set_field_spawn_accepted_not_unknown() {
+        let mut task = json!({"id": "t-1"});
+        assert!(set_field(&mut task, "spawn", "subagent", false).is_ok());
     }
 }
