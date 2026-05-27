@@ -3468,3 +3468,31 @@ Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Con
 **Fix (workaround):** Added `--company-id` override flag to `load_contacts_from_sheets.py` so the correct dev UUID can be passed without modifying clients.yaml. Changing clients.yaml directly would break legacy daily sends (Cloud Run still uses the shared UUID for PDB sends). The root fix — giving PDB its own UUID in clients.yaml — is deferred until the legacy v3-api Sheets path is retired.
 
 **Status:** partial-fix — workaround in `7d76c8e`. Root fix deferred to Sheets retirement.
+
+---
+
+## E2026-05-26-3 — Phase 9-B: subscriptions.py renamed SP param to p_tenant_id but DB SP not updated
+
+**Severity:** High
+**Discovery:** 2026-05-26 — post-merge errata pass on Phase 9-B
+**Affected files:** `services/v3-api/app/api/v3/subscriptions.py:126`, `supabase/migrations/20260502000002_subscription_management.sql`, `supabase/migrations/20260503000001_apply_subscription_change_for_update.sql`
+
+**Bug:** The Phase 9-B global rename changed `"p_company_id"` → `"p_tenant_id"` in the Python RPC call to `apply_subscription_change`. The stored procedure itself (in migration `20260502000002` and `20260503000001`) still declares the parameter as `p_company_id uuid`. The mismatch would cause every `PATCH /v3/campaign-contacts/{campaign_id}/{contact_id}` call to fail at the DB level — PostgREST/RPC rejects unknown named parameters.
+
+**Fix:** Reverted `"p_tenant_id"` → `"p_company_id"` in `subscriptions.py` (commit `083243f`). The SP param rename requires a migration (`ALTER FUNCTION apply_subscription_change ...`) and coordinated update of both callers (v3-api Python and anita-api TypeScript). Deferred to a dedicated Phase 9-B cleanup task.
+
+**Status:** code-fix — revert applied in `083243f`. SP rename deferred.
+
+---
+
+## E2026-05-26-4 — Phase 9-B: clients-dev.yaml company_id key not renamed
+
+**Severity:** Low
+**Discovery:** 2026-05-26 — post-merge errata pass on Phase 9-B
+**Affected files:** `services/v3-api/config/clients-dev.yaml:37`
+
+**Bug:** The Phase 9-B rename script operated on code files and `clients.yaml` (production config) but missed `clients-dev.yaml` (dev config). The `ClientConfig` dataclass field was renamed to `tenant_id`, so loading dev config with `company_id:` key returns an empty `tenant_id` string — causing silent tenant resolution failures in any dev smoke test that exercises the legacy daily sender path.
+
+**Fix:** Renamed `company_id:` → `tenant_id:` in `clients-dev.yaml` and updated the comment from "company_id matches" to "tenant_id matches" (commit `083243f`).
+
+**Status:** code-fix — fixed in `083243f`.
