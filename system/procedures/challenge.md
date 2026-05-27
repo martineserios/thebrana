@@ -67,30 +67,32 @@ Adversarial review with two modes. **Standard:** Opus stress-tests reasoning, Ge
 
    For each: provide the plan/approach + chosen flavor + role brief. Key instruction: "Rate findings CRITICAL / WARNING / OBSERVATION. Be specific, no nitpicking. Suggest concrete alternatives for each concern."
 
-   **4b. Gemini detail retriever** — Query NotebookLM (skip silently if unavailable):
-   - Call `mcp__notebooklm__get_health` — if not authenticated, skip 3b entirely
-   - Call `mcp__notebooklm__search_notebooks` with keywords from the challenge target
-   - If a relevant notebook exists, run a **two-pass retrieval**:
+   **4b. Gemini detail retriever** — Query agy (Gemini Flash via brana compute). Runs by default; skip only if the user explicitly opted out in step 2 or if `mcp__brana__agy_delegate` returns an error.
+
+   Run a **two-pass retrieval** in parallel with step 4a:
 
    **Pass 1 — Constraint extraction** (Gemini's strength: detail retrieval, not reasoning):
    - Extract specific technical nouns from the challenge target (hook names, tool names, thresholds, module names). Use these as query anchors — never "the brana system" or broad abstractions.
-   - Call `mcp__notebooklm__ask_question` with:
+   - Call `mcp__brana__agy_delegate` with:
      ```
-     "List every specific constraint, threshold, requirement, and documented rule
-      from your sources that relates to [specific technical noun from the plan].
-      For each, give the exact number or rule and cite which source document.
-      If you cannot find something verbatim in your sources, say so explicitly
+     prompt: "You are reviewing the brana system. List every specific constraint,
+      threshold, requirement, and documented rule that relates to [specific technical
+      noun from the plan]. For each, give the exact number or rule and note which
+      context it comes from. If you cannot find something verbatim, say so explicitly
       rather than stating it as fact. Do not summarize — enumerate."
      ```
    - **Canned-response detection:** If the response is < 150 words, matches a generic system overview pattern, or doesn't contain any specific numbers/constraints, discard and retry once with a more specific anchor term from the plan. If retry also fails, note "Gemini returned no grounded constraints" and proceed without.
 
    **Pass 2 — Adjacent constraints** (if Pass 1 returned results):
-   - Call `mcp__notebooklm__ask_question` in the same session:
+   - Call `mcp__brana__agy_delegate`:
      ```
-     "What documented requirements, version constraints, and named dependencies
-      are adjacent to [topic from Pass 1]? Include specific thresholds, tool names,
-      and file paths. If inferring beyond your sources, mark it [INFERENCE]."
+     prompt: "You are reviewing the brana system. What documented requirements,
+      version constraints, and named dependencies are adjacent to [topic from Pass 1]?
+      Include specific thresholds, tool names, and file paths. If inferring beyond
+      documented knowledge, mark it [INFERENCE]."
      ```
+
+   **On error:** If `mcp__brana__agy_delegate` returns an error (response starts with `"Error:"`), skip 4b silently and proceed without Gemini retrieval.
 
    **4c. Compliance check** (Claude, main context — after both 4a and 4b complete):
    - Take the constraints retrieved by Gemini in 3b
@@ -105,8 +107,8 @@ Adversarial review with two modes. **Standard:** Opus stress-tests reasoning, Ge
    | Agreement (Opus + Gemini) | **HIGH** | Two models, different architectures, same concern |
    | Council agreement (2+ of 4 agents) | **HIGH** `[COUNCIL-AGREEMENT: N/4]` | Independent perspectives, same root concern |
    | Opus-only / single council agent | **MEDIUM** | Strong reasoning, may lack doc grounding |
-   | Gemini with source citation | **MEDIUM** `[NLM-UNVERIFIED]` | Good retrieval, but citation needs verification |
-   | Gemini citing external tools/practices not in docs | **LOW** `[NLM-UNVERIFIED]` | Hallucination risk — Gemini invents plausible references |
+   | Gemini with source citation | **MEDIUM** `[AGY-UNVERIFIED]` | Good retrieval, but citation needs verification |
+   | Gemini citing external tools/practices not in docs | **LOW** `[AGY-UNVERIFIED]` | Hallucination risk — Gemini invents plausible references |
    | Compliance check (4c) | **HIGH** | Claude reasoning on Gemini-retrieved constraints |
 
    **Standard mode report:**
@@ -123,7 +125,7 @@ Adversarial review with two modes. **Standard:** Opus stress-tests reasoning, Ge
    - [Finding] — Source: Opus / Compliance-check — Confidence: HIGH/MEDIUM
 
    ### Observations (minor, for consideration)
-   - [Finding] — Source: Gemini [NLM-UNVERIFIED] — Confidence: LOW/MEDIUM
+   - [Finding] — Source: Gemini [AGY-UNVERIFIED] — Confidence: LOW/MEDIUM
 
    ### Agreement (highest confidence)
    - [Where both challengers raised the same concern]
@@ -211,9 +213,9 @@ source "$HOME/.claude/scripts/cf-env.sh"
 - **`--council` strips before use.** Strip the flag from `$ARGUMENTS` before using the remainder as the target description. Never include `--council` in the agent brief.
 - **Council agents are isolated.** No agent in a council run sees another's output. Cross-agent synthesis is exclusively Claude's job in step 5.
 - **Council dedup rule.** When 2+ council agents raise the same root concern (even if differently worded), collapse to a single finding tagged `[COUNCIL-AGREEMENT: N/4]`. Agreement is the signal, not the phrasing.
-- **Gemini is optional.** If NotebookLM is unavailable, the challenge runs without it (standard: Opus-only; council: 4 agents only). Never fail the skill because Gemini is missing.
+- **Gemini runs by default.** Skip only if the user explicitly opted out in step 2 ("skip — no Brana docs apply") or if `mcp__brana__agy_delegate` returns an error. On error: proceed without Gemini (standard: Opus-only; council: 4 agents only). Never fail the skill because Gemini is unavailable.
 - **Gemini flow is unchanged in council mode.** 4b runs in parallel with the 4 council agents. Step 5 synthesizes all results together.
 - **Agreement = high confidence.** When multiple models independently flag the same issue, highlight it. Independent architectures agreeing on a problem is a strong signal.
 - **Gemini retrieves, Claude reasons.** Never ask Gemini to "adversarially review" or "find problems" — it falls back to generic summaries. Ask it to enumerate specific constraints, then Claude checks compliance. Gemini is a detail-extraction engine, not a synthesis engine.
 - **Anchor Gemini queries to technical nouns.** Use specific terms from the plan (hook names, tool names, thresholds) as query anchors. Never start a Gemini query with broad system names — this triggers canned overview responses.
-- **Tag all Gemini-only claims.** Any finding sourced exclusively from Gemini must carry `[NLM-UNVERIFIED]`. The user decides whether to verify against source docs.
+- **Tag all Gemini-only claims.** Any finding sourced exclusively from Gemini must carry `[AGY-UNVERIFIED]`. The user decides whether to verify against source docs.
