@@ -19,7 +19,10 @@
 ## Severity Summary
 
 | # | Error | Severity | Status | Comments |
-| E2026-05-27-5 | thebrana: epic-scoped session path migration (t-1630) left two test assertions using `session_state_path()` (legacy path). Tests pass today via empty-branch fallback; any real branch fixture will produce silent false-negatives. Affected: `tool_tests.rs:447`, `session.rs:549`. | **Low** | pending | Fix: use `epic_scoped_state_path(&root, branch)` as assertion anchor in both tests. |
+| E2026-05-27-8 | thebrana: `brana doctor` Check 8 fail message says "install pkg-config" as the only path — but `auto-rebuild-cli.sh` already sets `OPENSSL_LIB_DIR` + `OPENSSL_INCLUDE_DIR` as a bypass when `libssl-dev` is present but `pkg-config` is not. On sandboxed/CI systems where `apt install pkg-config` is unavailable, users have no actionable path from the doctor output. | **Low** | pending | Fix: extend `doctor.rs:338-340` fail message to include "or set OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu and OPENSSL_INCLUDE_DIR=/usr/include if libssl-dev is installed but pkg-config is absent". |
+| E2026-05-27-7 | thebrana/brana-knowledge: dim 46 references section (line 419) still says "everything-claude-code (107K stars)" after the main table at line 248 was updated to 182K. References block is the canonical citation — if exported alone, produces stale numbers. | **Low** | pending | Fix: update dim 46 references section to "(182K stars)". Affected: `brana-knowledge/dimensions/46-cc-harness-ecosystem.md`. |
+| E2026-05-27-6 | thebrana/brana-knowledge: `docs/ideas/enforcement-vs-injection.md:18` says "SuperClaude (22K stars, v4.3)" — v4.3 is wrong (stable is v4.2.0, Jan 2026). Dim 46 §6.2.1 header also says "v4.3". The inline comparison table at dim 46 line 256 is already correct (v4.2.0). | **Low** | pending | Fix: change `v4.3` → `v4.2.0` in `enforcement-vs-injection.md:18` and dim 46 §6.2.1 header + references. |
+| E2026-05-27-5 | thebrana: epic-scoped session path migration (t-1630) left two test assertions using `session_state_path()` (legacy path). Tests pass today via empty-branch fallback; any real branch fixture will produce silent false-negatives. Affected: `tool_tests.rs:447`, `session.rs:549`. | **Low** | code-fix | Fixed in `53fe21d`: updated both assertions to use `epic_scoped_state_path(&root, branch)`. Also added `#[derive(Default)]` to `SessionState` + `..Default::default()` spread in fixtures to prevent future cascade errors on field additions. |
 | E2026-05-25-10 | thebrana: `close.md` Step 9c initiative detection dropped Tier 2b (git log → grep task IDs in commits → look up `initiative` field on those tasks) during implementation. The design doc (`docs/ideas/session-continuity-multi-session.md` §Fix C) still describes Tier 2b as a real step. Close.md implemented 2a + 2c only. On sessions where all tasks complete before close (Tier 2a returns empty) and the branch is `main` or a generic name (Tier 2c can't extract a slug), Tier 3 fires unnecessarily when commit messages contain task IDs that have initiative fields. | **Low** | informational | No immediate fix required — Tier 3 prompt is a safe fallback. Fix: either implement Tier 2b in close.md (task filed) or update ideas doc to explicitly mark it deferred with task reference. |
 | E2026-05-25-9 | proyecto_anita: `admin@palco.com` Supabase password was not stored anywhere — no docs, no secrets, no seed scripts. End-to-end smoke test blocked until password was reset via Management API raw SQL (`UPDATE auth.users SET encrypted_password = crypt(...)`) per the supabase-cli-multiproject.md pattern. | **Low** | informational | Workaround used: reset to `Palco2026!` via Management API. Rule: document default dev credentials (even if ephemeral) in `.env.dev` or a secrets-registry doc. A smoke test that requires resetting prod/dev auth to proceed is a test infrastructure gap. |
 | E2026-05-25-8 | proyecto_anita: `Segments.tsx` `getFilterSummary` destructured `segment.filters` assuming `{ logic, filters }` shape — crashed with `Cannot read properties of undefined (reading 'length')` when any segment row had `filters` as `null` or `{}` (no `filters` key). Runtime crash on page load for any tenant with legacy/malformed segment data. | **Low** | code-fix | Fixed in `94b378d`: replaced `const { logic, filters } = segment.filters` with `const filters = segment.filters?.filters ?? []; const logic = segment.filters?.logic`. Rule: defensive access (`?.` + `?? []`) on any JSONB column destructure — the DB schema allows `null` and partial objects regardless of TypeScript types. |
@@ -3571,3 +3574,53 @@ Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Con
 **Fix:** Update both tests to use `epic_scoped_state_path(&root, branch)` as the assertion path, parameterized with the same branch the fixture writes with. Alternatively, document the empty-branch fallback assumption explicitly in each test's comment.
 
 **Status:** pending
+
+---
+
+## E2026-05-27-6 — Chess /ventas/ response shape completely wrong in research doc
+
+**Severity:** High
+**Discovery:** 2026-05-27 — live probe during M2 challenger review (Palco Ecosistema)
+**Affected files:** `clients/palco/projects/p1-chess-api/research/chess-api-endpoints.md` (pre-commit 3fa09c9)
+
+**Bug:** `chess-api-endpoints.md` documented the `/ventas/` response as `ventasResult.ventasDetalleList[]` with per-SKU fields (`idArticulo`, `cantidad`, `subtotal`) on each comprobante row. Live probe confirmed actual root key is `dsReporteComprobantesApi.VentasResumen[]` — header-only, `idArticulo` always `0`, no per-SKU granularity exists in this endpoint. The erroneous shape came from the Chess ERP PDF spec (which has also been wrong on date formats and param names).
+
+**Impact:** M2 mart design would have built a single `ventas_by_day` table expecting SKU columns that never populate — SKU rankings would have silently returned 0 rows after ETL. Revenue totals would have worked; all KPIs depending on SKU breakdowns would have been silently empty.
+
+**Fix:** Applied (commit 3fa09c9) — `chess-api-endpoints.md` corrected. M2 redesigned to two-table split: `ventas_cabecera_by_day` (revenue from `/ventas/`) + `ventas_by_sku` (SKU lines from `pedidos.detalles[]`). Spot sales quantified at 1.8%.
+
+**Root pattern:** Chess ERP PDF docs have been wrong on at least 3 distinct facts: date format param names, /stock/ param name (`frescura` vs `fechaStock`), and /ventas/ response shape. Rule: no mart schema without a live probe confirming actual response keys.
+
+**Status:** code-fix — fixed inline.
+
+---
+
+## E2026-05-27-7 — M1 spec had 4 stale Metabase references after ADR-PILOTO-001 was accepted
+
+**Severity:** Medium
+**Discovery:** 2026-05-27 — M1 reviewer pass during challenger review session
+**Affected files:** `clients/palco/projects/ecosistema/propuesta/modulos/01-tablero-almacen.md` (pre-commit bf42e17)
+
+**Bug:** ADR-PILOTO-001 decided Evidence.dev as the visualization stack for all M1–M8 modules. M1 was drafted before the ADR was finalized and retained 4 Metabase references (dashboard engine label, risk rows about Metabase version pins and Jimena editing dashboards, dependency line about shared Metabase instance). The spec was ready to send to TCP with the wrong technology named.
+
+**Fix:** Applied (commit bf42e17) — all 4 Metabase references replaced with Evidence.dev equivalents.
+
+**Root pattern:** When an ADR is decided mid-session that affects specs drafted earlier in that session, those specs require an immediate grep sweep before the session closes. Deferred to next session loses the context of which specs were affected.
+
+**Status:** code-fix — fixed inline.
+
+---
+
+## E2026-05-27-8 — Challenger review proposed Hono/ADR-039 for Ecosistema export — wrong program
+
+**Severity:** Medium  
+**Discovery:** 2026-05-27 — user correction during [W3] challenger finding discussion
+**Affected files:** `clients/palco/projects/ecosistema/propuesta/modulos/02-tablero-ventas.md` (pre-commit 795fdd5)
+
+**Bug:** Finding [W3] in the M2 challenger review proposed "endpoint Hono (ADR-039)" for the Excel export endpoint. Hono + ADR-039 = Programa A (Anita platform, Vercel migration). Palco Ecosistema = Programa B, Cloud Run. The local CLAUDE.md rule explicitly states "Programa A y B son programas distintos — no mezclar decisiones de stack." Cross-contaminating the stacks would have wired the M2 export to Anita's Vercel deployment.
+
+**Fix:** Applied (commit 795fdd5) — corrected to "Cloud Run Service (Python, mismo proyecto GCP que M0 chess-sync)".
+
+**Root pattern:** When two active programs (A/B) coexist in the same repo with separate stack decisions, any architectural recommendation must be prefixed with a program check. "Which program does this module belong to?" before proposing any infra choice.
+
+**Status:** code-fix — fixed inline.
