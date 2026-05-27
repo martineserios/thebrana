@@ -42813,8 +42813,8 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
-      "strategy": null,
+      "status": "completed",
+      "strategy": "feature",
       "subject": "[sitrep] validate task_id-linked next[] items — filter completed/cancelled before display",
       "tags": [
         "ideation",
