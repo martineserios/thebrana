@@ -336,7 +336,7 @@ pub fn check_pkg_config() -> CheckResult {
 
 /// Failure-message helper for `check_pkg_config` — exposed for testability.
 fn pkg_config_fail_message() -> String {
-    "not found — required by native-tls/openssl-sys for cargo build (apt: sudo apt install pkg-config; brew: brew install pkg-config)".to_string()
+    "not found — required by native-tls/openssl-sys for cargo build (apt: sudo apt install pkg-config; brew: brew install pkg-config). If pkg-config is present but OpenSSL is not found, set OPENSSL_DIR (e.g. export OPENSSL_DIR=$(openssl version -d | cut -d'\"' -f2)) or install libssl-dev (apt: sudo apt install libssl-dev; brew: brew install openssl).".to_string()
 }
 
 /// Check 9: `brana` resolves to the canonical install path (`~/.local/bin/brana`).

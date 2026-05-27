@@ -1,6 +1,6 @@
 ---
 name: memory-curator
-description: "Recall patterns from knowledge system, cross-pollinate across clients, check knowledge health. Use when starting work on a topic, encountering a familiar problem, or periodic knowledge checks. Not for: codebase search, project scanning, web research."
+description: "Recall patterns from knowledge system, cross-pollinate across clients, check knowledge health. Use when starting work on a topic or periodic checks. Not for: codebase search, project scanning."
 model: haiku
 effort: low
 maxTurns: 10

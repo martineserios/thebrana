@@ -15,7 +15,7 @@ The Claude Code harness ecosystem has forked into two architectural philosophies
 1. **Prompt injection** — load behavioral instructions into context as markdown. The model "should" follow them.
 2. **Enforcement-first** — use hooks to gate actions. The model "cannot" violate them.
 
-SuperClaude (22K stars, v4.3) represents the injection approach. Brana represents enforcement-first. The difference isn't cosmetic — it creates fundamentally different failure modes.
+SuperClaude (22K stars, v4.2.0) represents the injection approach. Brana represents enforcement-first. The difference isn't cosmetic — it creates fundamentally different failure modes.
 
 ## The Three Contrasts
 
