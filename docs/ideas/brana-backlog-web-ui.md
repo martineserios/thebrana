@@ -1,6 +1,6 @@
 ---
 title: Brana Backlog Web UI
-status: idea
+status: specifying
 created: 2026-05-19
 ---
 
