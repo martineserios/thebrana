@@ -1,6 +1,6 @@
 ---
 name: challenge
-description: "Adversarial review — Opus stress-tests reasoning, Gemini stress-tests documented knowledge. Add --council for 4-perspective debate. Use when a plan, decision, or architecture needs stress-testing."
+description: "Adversarial review — Opus stress-tests reasoning, Gemini checks knowledge. Use before plan or architecture decisions."
 effort: max
 keywords: [adversarial, review, stress-test, pre-mortem, simplicity, assumptions, council]
 task_strategies: [feature, refactor, migration, greenfield]

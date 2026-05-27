@@ -2,7 +2,7 @@
 
 # Skill Reference
 
-**32 skills** loaded from `system/skills/`.
+**33 skills** loaded from `system/skills/`.
 
 ## Skill Frontmatter Reference
 
@@ -27,10 +27,11 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:brainstorm` | thinking | Interactive idea maturation — explore, research, shape raw ideas into actionable |
 | `/brana:build` | execution | Build anything — features, bug fixes, refactors, spikes, migrations. Auto-detect |
 | `/brana:cargo-machete` | brana | Detect and remove unused dependencies in Rust projects using cargo-machete. |
-| `/brana:challenge` | learning | Adversarial review — Opus stress-tests reasoning, Gemini stress-tests documented |
+| `/brana:challenge` | learning | Adversarial review — Opus stress-tests reasoning, Gemini checks knowledge. Use b |
 | `/brana:claudemd` | execution | Audit or generate a CLAUDE.md for any project. Natural companion to /brana:align |
 | `/brana:client-retire` | execution | Archive a client's patterns and mark them as historical. Use when retiring a cli |
 | `/brana:close` | session | End a session — extract learnings, write handoff, store patterns, detect doc dri |
+| `/brana:decide` | thinking | Decision support — criteria, scenarios, patterns, recommendation. |
 | `/brana:do` | brana | Alias for /brana:backlog start with freeform text. Routes to the best skill or c |
 | `/brana:docs` | core | Generate and update living documentation — tech docs, user guides, philosophy ov |
 | `/brana:export-pdf` | utility | Convert a markdown file to PDF using mdpdf. Use when exporting proposals, SOPs,  |
@@ -228,7 +229,7 @@ Ship a build — pre-flight checks, deploy, document, verify, monitor. Use when 
 
 ### `/brana:challenge`
 
-Adversarial review — Opus stress-tests reasoning, Gemini stress-tests documented knowledge. Add --council for 4-perspective debate. Use when a plan, decision, or architecture needs stress-testing.
+Adversarial review — Opus stress-tests reasoning, Gemini checks knowledge. Use before plan or architecture decisions.
 
 **Arguments:** `[target description] [--council]`
 
@@ -279,6 +280,14 @@ Interactive idea maturation — explore, research, shape raw ideas into actionab
 **Arguments:** `[idea or topic]`
 
 **Allowed tools:** Read, Glob, Grep, Bash, Write, Edit, Agent, WebSearch, WebFetch, AskUserQuestion, Task, TaskList, Skill, mcp__context7__resolve-library-id, mcp__context7__query-docs, mcp__ruflo__memory_search, mcp__ruflo__memory_store
+
+### `/brana:decide`
+
+Decision support — criteria, scenarios, patterns, recommendation.
+
+**Arguments:** `[question or options, e.g. 'should I do A or B' / 'what to work on next']`
+
+**Allowed tools:** Bash, Read, Glob, Grep, AskUserQuestion, mcp__ruflo__memory_search_unified, mcp__ruflo__autopilot_predict
 
 
 ## tools
