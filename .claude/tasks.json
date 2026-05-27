@@ -38989,7 +38989,7 @@
       "parent": "t-1547",
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "[adr] ADR for enabling smart:true as LOAD default — write from harness findings",
       "tags": [
         "ruflo",
@@ -39019,7 +39019,7 @@
       "parent": "t-1548",
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "[adr] ADR for browser automation adoption in brana",
       "tags": [
         "ruflo",
@@ -39078,7 +39078,7 @@
       "parent": "t-1548",
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Meta template appeals automation via browser (conditional on spike go verdict)",
       "tags": [
         "ruflo",
@@ -43025,6 +43025,89 @@
         "quality"
       ],
       "work_type": "fix"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "E2026-05-27-5: both tests use session_state_path(&root) (legacy) as existence/assertion anchor. Pass today via empty-branch fallback. Fix: use epic_scoped_state_path(&root, branch) parameterized with the fixture branch. Affected: brana-mcp/tests/tool_tests.rs:447 (test_session_write_creates_state_file) and brana-cli/src/commands/session.rs:549 (test_atomic_write_no_tmp_left).",
+      "created": "2026-05-27",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1700",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "fix(tests): update epic_scoped_state_path assertions — tool_tests.rs:447 + session.rs:549",
+      "tags": [
+        "errata",
+        "t-1630-followup"
+      ],
+      "type": "task",
+      "work_type": "fix"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "E2026-05-27-5 filed 2026-05-27 — epic-scoped path migration left stale test assertions. Run reconcile to check for additional drift from t-1630 epic-scoped session path change.",
+      "created": "2026-05-27",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1701",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "chore(reconcile): /brana:reconcile --scope propagation after E2026-05-27-5",
+      "tags": [
+        "maintenance",
+        "reconcile"
+      ],
+      "type": "task",
+      "work_type": "chore"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "Check every skill (system/skills/*/SKILL.md), agent (system/agents/*.md), and command (system/commands/*.md) for their model field. Goal: (1) downgrade to claude-haiku-4-5 wherever Sonnet/Opus is used but the task is lightweight enough for Haiku (e.g. simple query, fast ops, read-only agents); (2) identify where Gemini via agy_delegate could replace or supplement Sonnet calls (e.g. research phases, knowledge retrieval). Candidate Haiku agents: memory-curator, client-scanner, venture-scanner, scout, archiver, daily-ops, metrics-collector, pipeline-tracker. Candidate agy slots: build.md LOAD phase (already uses agy), research.md Phase 0b (already migrated), challenge.md step 4b (already migrated). Look for remaining NLM/Sonnet calls that could route to agy. Output: a mapping of current model → recommended model per skill/agent/command, plus a list of agy migration candidates not yet wired.",
+      "created": "2026-05-27",
+      "description": null,
+      "effort": "M",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1702",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "audit skills/agents/commands model field — downgrade to Haiku where sufficient, wire Gemini (agy) where applicable",
+      "tags": [
+        "model-optimization",
+        "haiku",
+        "gemini",
+        "agy"
+      ],
+      "type": "task",
+      "work_type": "implement"
     }
   ],
   "version": "1"
