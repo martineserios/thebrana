@@ -42783,7 +42783,7 @@
       "parent": "t-1502",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "[adr] ADR-045: backlog web UI transport — CLI shell-out vs axum sidecar",
       "tags": [
