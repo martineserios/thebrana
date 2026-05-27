@@ -19,6 +19,7 @@
 ## Severity Summary
 
 | # | Error | Severity | Status | Comments |
+| E2026-05-27-5 | thebrana: epic-scoped session path migration (t-1630) left two test assertions using `session_state_path()` (legacy path). Tests pass today via empty-branch fallback; any real branch fixture will produce silent false-negatives. Affected: `tool_tests.rs:447`, `session.rs:549`. | **Low** | pending | Fix: use `epic_scoped_state_path(&root, branch)` as assertion anchor in both tests. |
 | E2026-05-25-10 | thebrana: `close.md` Step 9c initiative detection dropped Tier 2b (git log → grep task IDs in commits → look up `initiative` field on those tasks) during implementation. The design doc (`docs/ideas/session-continuity-multi-session.md` §Fix C) still describes Tier 2b as a real step. Close.md implemented 2a + 2c only. On sessions where all tasks complete before close (Tier 2a returns empty) and the branch is `main` or a generic name (Tier 2c can't extract a slug), Tier 3 fires unnecessarily when commit messages contain task IDs that have initiative fields. | **Low** | informational | No immediate fix required — Tier 3 prompt is a safe fallback. Fix: either implement Tier 2b in close.md (task filed) or update ideas doc to explicitly mark it deferred with task reference. |
 | E2026-05-25-9 | proyecto_anita: `admin@palco.com` Supabase password was not stored anywhere — no docs, no secrets, no seed scripts. End-to-end smoke test blocked until password was reset via Management API raw SQL (`UPDATE auth.users SET encrypted_password = crypt(...)`) per the supabase-cli-multiproject.md pattern. | **Low** | informational | Workaround used: reset to `Palco2026!` via Management API. Rule: document default dev credentials (even if ephemeral) in `.env.dev` or a secrets-registry doc. A smoke test that requires resetting prod/dev auth to proceed is a test infrastructure gap. |
 | E2026-05-25-8 | proyecto_anita: `Segments.tsx` `getFilterSummary` destructured `segment.filters` assuming `{ logic, filters }` shape — crashed with `Cannot read properties of undefined (reading 'length')` when any segment row had `filters` as `null` or `{}` (no `filters` key). Runtime crash on page load for any tenant with legacy/malformed segment data. | **Low** | code-fix | Fixed in `94b378d`: replaced `const { logic, filters } = segment.filters` with `const filters = segment.filters?.filters ?? []; const logic = segment.filters?.logic`. Rule: defensive access (`?.` + `?? []`) on any JSONB column destructure — the DB schema allows `null` and partial objects regardless of TypeScript types. |
@@ -3554,3 +3555,19 @@ Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Con
 **Root pattern:** Procedure files have two zones — imperative body (tool calls, phase steps, which a tool-name grep cleans) and a declarative rules section (natural-language summary, which requires a separate short-name grep). Both zones must be checked for every tool migration.
 
 **Status:** code-fix — fixed inline.
+
+---
+
+## E2026-05-27-5 — epic-scoped path migration left two test assertions on legacy path
+
+**Severity:** Low
+**Discovery:** 2026-05-27 — debrief-analyst after t-1630 (epic-scoped session state path)
+**Affected files:**
+- `system/cli/rust/crates/brana-mcp/tests/tool_tests.rs:447` — `test_session_write_creates_state_file`
+- `system/cli/rust/crates/brana-cli/src/commands/session.rs:549` — `test_atomic_write_no_tmp_left`
+
+**Bug:** Both tests use `session_state_path(&root)` (the legacy `session-state.json` path) as their existence/assertion anchor. After t-1630, `write_state()` routes to `session-state-{epic}.json` on conforming epic branches. Both tests pass today only because their fixture branch is an empty string, which falls back to the legacy path. Any fixture change that provides a real branch name (e.g., `"t-1630-session-epic"`) would cause the assertions to check the wrong file — silently false-negatives.
+
+**Fix:** Update both tests to use `epic_scoped_state_path(&root, branch)` as the assertion path, parameterized with the same branch the fixture writes with. Alternatively, document the empty-branch fallback assumption explicitly in each test's comment.
+
+**Status:** pending

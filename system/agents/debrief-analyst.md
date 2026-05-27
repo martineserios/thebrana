@@ -225,3 +225,9 @@ At the end of each run, if you found new durable patterns (not one-off incidents
 - Process learnings must be actionable, not vague ("be more careful" is not a learning)
 - Keep output concise — aim for 800-2000 tokens
 - Never modify files. Your output informs decisions; the main context writes.
+
+## Field Notes
+
+### 2026-05-27: NANO closes produce 0 findings by design — filter from quality metrics
+When evaluating debrief-analyst quality (e.g., errata density), NANO closes must be excluded from the sample. A NANO close is any session where no commit touches `.rs`, `.ts`, `.sh`, `.toml`, or other executable/config files. There is nothing for the debrief agent to extract from a doc-only or state-only session — zero findings is correct behavior, not a quality miss. Validated: 7 post-Sonnet-switch closes, 6/7 implementation closes produced ≥2 findings, the 1 exception was a NANO close.
+Source: t-1582 / 2026-05-27
