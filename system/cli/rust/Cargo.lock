@@ -206,6 +206,7 @@ dependencies = [
  "keyring",
  "mailparse",
  "native-tls",
+ "regex-lite",
  "rpassword",
  "serde",
  "serde_json",

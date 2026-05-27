@@ -182,7 +182,7 @@ pub struct SessionMetrics {
 }
 
 /// The full session state (v1 schema).
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct SessionState {
     pub version: u32,
     #[serde(default)]

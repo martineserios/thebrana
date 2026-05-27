@@ -9,7 +9,7 @@ use anyhow::{Context, Result};
 pub use brana_core::session::mark_consumed;
 use brana_core::session::{
     compute_insights, current_branch, epic_scoped_state_path, read_history, read_state,
-    render_text, session_history_path, session_state_path, write_state, Blocker, NextCategory,
+    render_text, session_history_path, write_state, Blocker, NextCategory,
     NextItem, SessionState,
 };
 use chrono::Utc;
@@ -392,7 +392,7 @@ pub fn cmd_initiative_clear_marker() -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use brana_core::session::{read_state, render_text, session_history_path, session_state_path,
+    use brana_core::session::{read_state, render_text, session_history_path,
         write_state, Backprop, DocDrift, SessionMeta, SessionMetrics, TestStatus};
     use serial_test::serial;
     use std::env;
@@ -546,7 +546,7 @@ mod tests {
         let root = Path::new("/home/user/myrepo");
 
         write_state(root, &sample_state()).unwrap();
-        let tmp_path = session_state_path(root).with_extension("tmp");
+        let tmp_path = epic_scoped_state_path(root, sample_state().branch.as_deref().unwrap_or("")).with_extension("tmp");
         assert!(!tmp_path.exists());
     }
 

@@ -444,7 +444,7 @@ fn test_session_write_creates_state_file() {
 
     brana_core::session::write_state(&root, &payload).unwrap();
 
-    let state_path = brana_core::session::session_state_path(&root);
+    let state_path = brana_core::session::epic_scoped_state_path(&root, payload.branch.as_deref().unwrap_or(""));
     assert!(state_path.exists(), "session-state.json should exist after write");
 }
 
@@ -458,16 +458,8 @@ fn test_session_write_auto_fills_written_at_on_empty() {
         version: 1,
         written_at: "2026-04-06T12:00:00Z".to_string(),
         branch: Some("main".to_string()),
-        session_label: None,
-        consumed_at: None,
         accomplished: vec!["thing A".to_string()],
-        learnings: Vec::new(),
-        next: Vec::new(),
-        blockers: Vec::new(),
-        backprop: None,
-        doc_drift: None,
-        state: None,
-        metrics: None,
+        ..Default::default()
     };
 
     brana_core::session::write_state(&root, &state).unwrap();
