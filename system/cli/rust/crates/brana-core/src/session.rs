@@ -8,6 +8,7 @@
 use anyhow::{Context, Result};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::fs;
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
@@ -74,6 +75,21 @@ impl NextItem {
             NextCategory::Watch => "watch",
         }
     }
+}
+
+/// Deduplicate a `next[]` list: first by `task_id` (exact), then by case-folded
+/// trimmed text. First occurrence wins. Order is preserved.
+pub fn dedup_next_items(items: Vec<NextItem>) -> Vec<NextItem> {
+    let mut seen_task_ids: HashSet<String> = HashSet::new();
+    let mut seen_texts: HashSet<String> = HashSet::new();
+    items.into_iter().filter(|item| {
+        if let Some(ref id) = item.task_id {
+            if !seen_task_ids.insert(id.clone()) {
+                return false;
+            }
+        }
+        seen_texts.insert(item.text.trim().to_lowercase())
+    }).collect()
 }
 
 /// A blocker item.
@@ -197,17 +213,17 @@ impl SessionState {
         Ok(())
     }
 
-    /// Strip non-existent filesystem paths from `doc_drift.stale_docs`.
+    /// Strip non-existent filesystem paths from `doc_drift.stale_docs`, deduplicate
+    /// `next[]` items, and enforce write-side invariants.
     ///
-    /// Called by `write_state()` as a safety net so procedural drift in close
-    /// doesn't pollute the next session's drift signals. Paths that don't exist
-    /// at write time are heuristic artifacts that have already been invalidated.
+    /// Called by `write_state()` on every write path (merge and non-merge).
     pub fn sanitize(mut self) -> Self {
         // Invariant: consumed_at is set by session-start, never persisted by a write.
         self.consumed_at = None;
         if let Some(ref mut drift) = self.doc_drift {
             drift.stale_docs.retain(|p| Path::new(p).exists());
         }
+        self.next = dedup_next_items(self.next);
         self
     }
 
@@ -373,10 +389,13 @@ pub fn merge_states(existing: &SessionState, new: &SessionState) -> SessionState
     }
     merged.learnings = learnings;
 
-    // next: dedup by .text (existing wins on collision)
+    // next: dedup by task_id (if present) and exact text (existing wins on collision)
     let mut next = existing.next.clone();
     for item in &new.next {
-        if !next.iter().any(|x| x.text == item.text) {
+        let task_id_collision = item.task_id.as_ref()
+            .map(|id| next.iter().any(|x| x.task_id.as_ref() == Some(id)))
+            .unwrap_or(false);
+        if !task_id_collision && !next.iter().any(|x| x.text == item.text) {
             next.push(item.clone());
         }
     }
@@ -1423,5 +1442,123 @@ mod tests {
         let state: SessionState = serde_json::from_str(json)
             .expect("old JSON without initiative must deserialize");
         assert!(state.initiative.is_none(), "initiative must default to None when absent");
+    }
+
+    // ── dedup_next_items ─────────────────────────────────────────────────
+
+    #[test]
+    fn dedup_next_keeps_unique_items() {
+        let items = vec![
+            NextItem { text: "do x".to_string(), task_id: None, category: NextCategory::FollowUp },
+            NextItem { text: "do y".to_string(), task_id: None, category: NextCategory::Maintenance },
+        ];
+        let result = dedup_next_items(items);
+        assert_eq!(result.len(), 2);
+    }
+
+    #[test]
+    fn dedup_next_removes_duplicate_task_id() {
+        let items = vec![
+            NextItem { text: "first text".to_string(), task_id: Some("t-99".to_string()), category: NextCategory::FollowUp },
+            NextItem { text: "different text".to_string(), task_id: Some("t-99".to_string()), category: NextCategory::FollowUp },
+        ];
+        let result = dedup_next_items(items);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].text, "first text", "first occurrence wins on task_id collision");
+    }
+
+    #[test]
+    fn dedup_next_removes_duplicate_normalized_text() {
+        let items = vec![
+            NextItem { text: "MEMORY.md at ~185 lines".to_string(), task_id: None, category: NextCategory::Watch },
+            NextItem { text: "MEMORY.md at ~185 lines".to_string(), task_id: None, category: NextCategory::Watch },
+        ];
+        let result = dedup_next_items(items);
+        assert_eq!(result.len(), 1);
+    }
+
+    #[test]
+    fn dedup_next_normalizes_whitespace_and_case() {
+        let items = vec![
+            NextItem { text: "Run brana knowledge reindex".to_string(), task_id: None, category: NextCategory::Maintenance },
+            NextItem { text: "  run brana knowledge reindex  ".to_string(), task_id: None, category: NextCategory::Maintenance },
+        ];
+        let result = dedup_next_items(items);
+        assert_eq!(result.len(), 1);
+    }
+
+    #[test]
+    fn dedup_next_task_id_wins_over_text_match() {
+        // Item A has task_id; item B has same text but no task_id → both kept (different dedup keys)
+        let items = vec![
+            NextItem { text: "fix t-99".to_string(), task_id: Some("t-99".to_string()), category: NextCategory::FollowUp },
+            NextItem { text: "fix t-99".to_string(), task_id: None, category: NextCategory::Maintenance },
+        ];
+        let result = dedup_next_items(items);
+        // Both share text "fix t-99" → text dedup fires, only first kept
+        assert_eq!(result.len(), 1);
+    }
+
+    // ── sanitize deduplicates next ────────────────────────────────────────
+
+    #[test]
+    fn sanitize_deduplicates_next_by_task_id() {
+        let state = SessionState {
+            next: vec![
+                NextItem { text: "do t-1693".to_string(), task_id: Some("t-1693".to_string()), category: NextCategory::FollowUp },
+                NextItem { text: "also t-1693".to_string(), task_id: Some("t-1693".to_string()), category: NextCategory::FollowUp },
+            ],
+            ..SessionState::minimal(None)
+        };
+        let sanitized = state.sanitize();
+        assert_eq!(sanitized.next.len(), 1);
+        assert_eq!(sanitized.next[0].text, "do t-1693");
+    }
+
+    #[test]
+    fn sanitize_deduplicates_next_by_normalized_text() {
+        let state = SessionState {
+            next: vec![
+                NextItem { text: "Backlog cleanup needed".to_string(), task_id: None, category: NextCategory::Maintenance },
+                NextItem { text: "backlog cleanup needed".to_string(), task_id: None, category: NextCategory::Maintenance },
+            ],
+            ..SessionState::minimal(None)
+        };
+        let sanitized = state.sanitize();
+        assert_eq!(sanitized.next.len(), 1);
+    }
+
+    #[test]
+    fn write_state_deduplicates_next_within_payload() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        // Write a state with duplicate next items (different day → no same-day merge)
+        let state = SessionState {
+            next: vec![
+                NextItem { text: "check MEMORY.md".to_string(), task_id: None, category: NextCategory::Watch },
+                NextItem { text: "check MEMORY.md".to_string(), task_id: None, category: NextCategory::Watch },
+            ],
+            ..make_state("2026-05-27T10:00:00Z")
+        };
+        write_state(root, &state).unwrap();
+        let loaded = read_state(root).unwrap();
+        assert_eq!(loaded.next.len(), 1, "duplicate next items must be deduped on write");
+    }
+
+    // ── merge_states task_id dedup ────────────────────────────────────────
+
+    #[test]
+    fn merge_states_deduplicates_next_by_task_id() {
+        let existing = SessionState {
+            next: vec![NextItem { text: "first text".to_string(), task_id: Some("t-42".to_string()), category: NextCategory::FollowUp }],
+            ..SessionState::minimal(None)
+        };
+        let new = SessionState {
+            next: vec![NextItem { text: "different text for same task".to_string(), task_id: Some("t-42".to_string()), category: NextCategory::FollowUp }],
+            ..SessionState::minimal(None)
+        };
+        let merged = merge_states(&existing, &new);
+        assert_eq!(merged.next.len(), 1, "same task_id from different closes must merge to one item");
+        assert_eq!(merged.next[0].text, "first text", "existing item wins on task_id collision in merge");
     }
 }
