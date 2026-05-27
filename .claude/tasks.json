@@ -39824,7 +39824,7 @@
       "parent": null,
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "tech-debt",
       "subject": "Add weight-adaptive branching to close.md Step 1 gate",
       "tags": [
@@ -41134,7 +41134,7 @@
       "parent": "t-1626",
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "stream": "roadmap",
       "subject": "write_state: regex-based epic slug extraction from branch name + stderr fallback warning",
       "tags": [
@@ -42871,7 +42871,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "in_progress",
+      "status": "completed",
       "strategy": null,
       "stream": "dev",
       "subject": "[skill] /brana:decide — lightweight recommendation skill (criteria, scenarios, good practices)",

@@ -7,6 +7,7 @@
 
 use anyhow::{Context, Result};
 use chrono::Utc;
+use regex_lite::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs;
@@ -35,9 +36,38 @@ pub fn resolve_memory_dir(project_root: &Path) -> PathBuf {
         .join("memory")
 }
 
-/// Resolve the session-state.json path for the current project.
+/// Resolve the session-state.json path for the current project (legacy fallback).
 pub fn session_state_path(project_root: &Path) -> PathBuf {
     resolve_memory_dir(project_root).join("session-state.json")
+}
+
+/// Resolve the session state path scoped to the epic slug extracted from `branch`.
+///
+/// Branch convention: `{epic}/{type}/t-{N}-{slug}` where type ∈ {feat,fix,chore,...}.
+/// Produces `session-state-{epic}.json` on match, `session-state.json` with a stderr
+/// warning on no match (main, old-style branches, empty string).
+pub fn epic_scoped_state_path(project_root: &Path, branch: &str) -> PathBuf {
+    static RE: std::sync::OnceLock<Regex> = std::sync::OnceLock::new();
+    let re = RE.get_or_init(|| {
+        Regex::new(r"^([a-z0-9][a-z0-9-]+)/(feat|fix|chore|research|test|docs|refactor)/t-[0-9]+-")
+            .expect("epic branch regex is valid")
+    });
+    let memory_dir = resolve_memory_dir(project_root);
+    if let Some(caps) = re.captures(branch) {
+        let slug = &caps[1];
+        memory_dir.join(format!("session-state-{slug}.json"))
+    } else {
+        if !branch.is_empty() {
+            eprintln!("brana: branch {branch:?} does not match epic convention, falling back to session-state.json");
+        }
+        memory_dir.join("session-state.json")
+    }
+}
+
+fn read_state_at(path: &Path) -> Option<SessionState> {
+    fs::read_to_string(path)
+        .ok()
+        .and_then(|data| serde_json::from_str(&data).ok())
 }
 
 /// Resolve the session-history.jsonl path for the current project.
@@ -252,18 +282,19 @@ impl SessionState {
 // ── I/O ─────────────────────────────────────────────────────────────────
 
 /// Read the current session state, if it exists.
+/// Uses the current git branch to resolve the epic-scoped state file.
 pub fn read_state(project_root: &Path) -> Option<SessionState> {
-    let path = session_state_path(project_root);
-    fs::read_to_string(&path)
-        .ok()
-        .and_then(|data| serde_json::from_str(&data).ok())
+    let branch = current_branch().unwrap_or_default();
+    let path = epic_scoped_state_path(project_root, &branch);
+    read_state_at(&path)
 }
 
 /// Write session state atomically (.tmp → rename).
 /// Archives the previous state to history JSONL before overwriting.
 /// Non-existent paths in `doc_drift.stale_docs` are silently stripped before write.
 pub fn write_state(project_root: &Path, state: &SessionState) -> Result<()> {
-    let state_path = session_state_path(project_root);
+    let branch = state.branch.as_deref().unwrap_or("");
+    let state_path = epic_scoped_state_path(project_root, branch);
     let history_path = session_history_path(project_root);
 
     // Ensure directory exists
@@ -276,7 +307,7 @@ pub fn write_state(project_root: &Path, state: &SessionState) -> Result<()> {
     // local = next UTC day) and prevents valid same-day merges.
     // Branch check prevents feat-A accomplishments bleeding into main when branches are
     // switched within the same directory on the same calendar day.
-    let state_to_write = if let Some(existing) = read_state(project_root) {
+    let state_to_write = if let Some(existing) = read_state_at(&state_path) {
         let same_day = chrono::DateTime::parse_from_rfc3339(&existing.written_at)
             .ok()
             .zip(chrono::DateTime::parse_from_rfc3339(&state.written_at).ok())
@@ -535,7 +566,8 @@ pub fn merge_states(existing: &SessionState, new: &SessionState) -> SessionState
 /// guarantee. Does NOT append to history (consumed_at is a read-side marker, not a
 /// new session write).
 pub fn mark_consumed(project_root: &Path) -> Result<()> {
-    let path = session_state_path(project_root);
+    let branch = current_branch().unwrap_or_default();
+    let path = epic_scoped_state_path(project_root, &branch);
     let content = fs::read_to_string(&path).context("reading session-state.json")?;
     let mut state: SessionState = serde_json::from_str(&content).context("parsing session-state.json")?;
 
@@ -1560,5 +1592,79 @@ mod tests {
         let merged = merge_states(&existing, &new);
         assert_eq!(merged.next.len(), 1, "same task_id from different closes must merge to one item");
         assert_eq!(merged.next[0].text, "first text", "existing item wins on task_id collision in merge");
+    }
+
+    // ── epic_scoped_state_path ────────────────────────────────────────────
+
+    #[test]
+    fn epic_scoped_path_conforming_branch() {
+        let dir = tempdir().unwrap();
+        let path = epic_scoped_state_path(dir.path(), "thebrana/feat/t-1630-slug-extract");
+        assert!(path.to_str().unwrap().ends_with("session-state-thebrana.json"),
+            "conforming branch should use epic slug: {:?}", path);
+    }
+
+    #[test]
+    fn epic_scoped_path_conforming_other_type() {
+        let dir = tempdir().unwrap();
+        let path = epic_scoped_state_path(dir.path(), "myepic/fix/t-42-something");
+        assert!(path.to_str().unwrap().ends_with("session-state-myepic.json"),
+            "fix/ branch should use epic slug: {:?}", path);
+    }
+
+    #[test]
+    fn epic_scoped_path_old_style_falls_back() {
+        let dir = tempdir().unwrap();
+        let path = epic_scoped_state_path(dir.path(), "feat/t-123-foo");
+        assert!(path.to_str().unwrap().ends_with("session-state.json"),
+            "old-style feat/t-NNN branch must fall back: {:?}", path);
+    }
+
+    #[test]
+    fn epic_scoped_path_main_falls_back() {
+        let dir = tempdir().unwrap();
+        let path = epic_scoped_state_path(dir.path(), "main");
+        assert!(path.to_str().unwrap().ends_with("session-state.json"),
+            "main branch must fall back: {:?}", path);
+    }
+
+    #[test]
+    fn epic_scoped_path_empty_falls_back() {
+        let dir = tempdir().unwrap();
+        let path = epic_scoped_state_path(dir.path(), "");
+        assert!(path.to_str().unwrap().ends_with("session-state.json"),
+            "empty branch must fall back: {:?}", path);
+    }
+
+    #[test]
+    fn write_state_uses_epic_scoped_path() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        let state = SessionState {
+            branch: Some("myepic/feat/t-1-something".to_string()),
+            ..make_state("2026-05-27T10:00:00Z")
+        };
+        write_state(root, &state).unwrap();
+        let memory_dir = resolve_memory_dir(root);
+        assert!(memory_dir.join("session-state-myepic.json").exists(),
+            "write_state must use epic-scoped filename");
+        assert!(!memory_dir.join("session-state.json").exists(),
+            "write_state must NOT write to fallback file when epic slug is extractable");
+    }
+
+    #[test]
+    fn mark_consumed_stamps_same_path_as_write_state() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        // Use current branch so mark_consumed (which calls current_branch()) agrees with write_state.
+        let branch = current_branch().unwrap_or_default();
+        let state = SessionState {
+            branch: Some(branch),
+            ..make_state("2026-05-27T10:00:00Z")
+        };
+        write_state(root, &state).unwrap();
+        mark_consumed(root).unwrap();
+        let loaded = read_state(root).unwrap();
+        assert!(loaded.consumed_at.is_some(), "mark_consumed must stamp consumed_at on the same file write_state produced");
     }
 }

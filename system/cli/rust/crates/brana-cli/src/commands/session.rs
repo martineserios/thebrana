@@ -8,9 +8,9 @@ use crate::commands::handoff;
 use anyhow::{Context, Result};
 pub use brana_core::session::mark_consumed;
 use brana_core::session::{
-    compute_insights, current_branch, read_history, read_state, render_text,
-    session_history_path, session_state_path, write_state, Blocker, NextCategory, NextItem,
-    SessionState,
+    compute_insights, current_branch, epic_scoped_state_path, read_history, read_state,
+    render_text, session_history_path, session_state_path, write_state, Blocker, NextCategory,
+    NextItem, SessionState,
 };
 use chrono::Utc;
 use std::fs;
@@ -51,9 +51,10 @@ pub fn cmd_session_write(file: Option<PathBuf>, minimal: bool) -> anyhow::Result
 
     write_state(&root, &state)?;
 
+    let branch = current_branch().unwrap_or_default();
     println!(
         "{{\"ok\":true,\"path\":\"{}\"}}",
-        session_state_path(&root).display()
+        epic_scoped_state_path(&root, &branch).display()
     );
     Ok(())
 }
@@ -110,7 +111,8 @@ pub fn cmd_session_history(limit: usize) -> anyhow::Result<()> {
 /// `brana session path`
 pub fn cmd_session_path() -> anyhow::Result<()> {
     let root = require_project_root()?;
-    println!("{}", session_state_path(&root).display());
+    let branch = current_branch().unwrap_or_default();
+    println!("{}", epic_scoped_state_path(&root, &branch).display());
     Ok(())
 }
 
