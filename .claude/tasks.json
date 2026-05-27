@@ -42916,7 +42916,7 @@
     {
       "id": "t-1696",
       "subject": "[migrate] challenge.md migration scope: extend NLM→agy to research.md and notebooklm-source.md",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "tags": [
         "brana",
