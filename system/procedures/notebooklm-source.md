@@ -3,6 +3,8 @@
 
 A guided workflow. Claude does the heavy lifting (reading, reformatting, validating, writing files). The user handles what only a browser can do (creating notebooks, uploading files, running Audio Overview). Every step is labeled so both sides know who acts next.
 
+> **NLM-native skill.** This skill manages Google NotebookLM notebooks directly — creating notebooks, preparing sources for upload, and querying live notebooks. The `mcp__notebooklm__*` calls here are intentionally NLM-specific and cannot be replaced with `mcp__brana__agy_delegate`. If the NotebookLM MCP server is unavailable, this skill cannot run; agy (`mcp__brana__agy_delegate`) serves the retrieval use case instead (see `/brana:research` Phase 0b and `/brana:challenge` step 4b).
+
 ## Usage
 
 `/brana:notebooklm-source [subcommand] [args]`

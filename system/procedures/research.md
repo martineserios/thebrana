@@ -5,7 +5,7 @@ The atomic research primitive. Takes a topic, doc number, creator, or lead. Chec
 
 ## Usage
 
-`/brana:research [target] [--nlm] [--refresh [scope]] [--strategy research|evaluate|learn|investigate]`
+`/brana:research [target] [--no-agy] [--nlm] [--refresh [scope]] [--strategy research|evaluate|learn|investigate]`
 
 ### Strategies
 
@@ -26,7 +26,8 @@ Target options:
 - `registry` — report on registry health (trust tier distribution, stale sources, cadence overdue)
 
 Flags:
-- `--nlm` — Enhance with NotebookLM. Before web research, query relevant notebooks for prior knowledge. After research, prepare findings as a NotebookLM-optimized source file.
+- `--no-agy` — Skip Phase 0b agy detail extraction (Gemini Flash). By default, agy retrieval runs before web research to surface documented brana constraints. Pass `--no-agy` if brana docs are not relevant to the target.
+- `--nlm` — After research, prepare findings as a NotebookLM-optimized source file (step 18). Does not affect agy retrieval.
 - `--refresh [scope]` — Batch refresh mode (replaces `/refresh-knowledge`). Launches parallel scout agents grouped by topic to research updates for dimension docs. Scope: `all` (default), `high`, `medium`, `low`, `venture`, or a doc number. See "Batch Refresh Mode" section below.
 - `--depth quick|standard|deep` — Controls scout hop count and recursion. See depth table below.
 
@@ -175,45 +176,42 @@ Register these steps: LOAD, ROUTE, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TR
 
    **CLAUDE:** If internal search finds substantial prior knowledge, summarize it before proceeding: "Internal docs cover [topics]. Researching externally to [deepen/validate/discover gaps]."
 
-5. **Phase 0b — NotebookLM detail extraction (only when `--nlm` flag is present).**
-
-   **CLAUDE:** Check if NotebookLM MCP is available and authenticated:
-   ```
-   Call mcp__notebooklm__get_health
-   → If not authenticated or unavailable, skip Phase 0 with a note: "NotebookLM not available, proceeding with web research only."
-   ```
-
-   **CLAUDE:** Search local library for notebooks relevant to the target:
-   ```
-   Call mcp__notebooklm__search_notebooks with the target topic/keywords
-   ```
-
-   **CLAUDE:** For each relevant notebook found (max 2):
-   ```
-   Call mcp__notebooklm__select_notebook
-   ```
+5. **Phase 0b — agy detail extraction (Gemini Flash via brana compute). Runs by default; skip only if `--no-agy` flag is set or `mcp__brana__agy_delegate` returns an error.**
 
    **Prompting strategy (critical — determines quality):**
-   - Extract the most specific technical noun from the target. Use that as query anchor.
+   - Extract the most specific technical noun from the research target. Use that as query anchor.
    - **Never** start queries with broad system names ("brana system", "the architecture") — this triggers canned overview responses from Gemini.
    - Use enumeration framing ("list every", "for each X give Y") — not "explain" or "summarize".
 
+   **Pass 1 — Constraint extraction:**
    ```
-   Call mcp__notebooklm__ask_question:
-   "List all specific numbers, thresholds, version constraints, structural details,
-    and named dependencies from your sources about [specific technical noun].
-    For each, cite which source and section. If you cannot find something verbatim
-    in your sources, say so explicitly rather than stating it as fact."
+   Call mcp__brana__agy_delegate with:
+   prompt: "You are reviewing the brana system. List every specific constraint,
+    threshold, requirement, and documented rule that relates to [specific technical
+    noun from the research target]. For each, give the exact number or rule and note
+    which context it comes from. If you cannot find something verbatim, say so
+    explicitly rather than stating it as fact. Do not summarize — enumerate."
    ```
 
-   **Canned-response detection:** If the response is < 150 words, matches a generic system overview, or doesn't contain specific facts, discard and retry once with a more specific anchor term. If retry fails, note "Gemini returned no grounded details" and proceed without.
+   **Canned-response detection:** If response < 150 words, matches a generic system overview, or contains no specific facts, discard and retry once with a more specific anchor term. If retry fails, note "agy returned no grounded details" and proceed without.
 
-   **CLAUDE:** Compile NotebookLM responses as "Prior Details" — granular facts already documented. Tag each claim `[NLM]`. This shapes the web research:
+   **Pass 2 — Adjacent constraints (if Pass 1 returned results):**
+   ```
+   Call mcp__brana__agy_delegate with:
+   prompt: "You are reviewing the brana system. What documented requirements,
+    version constraints, and named dependencies are adjacent to [topic from Pass 1]?
+    Include specific thresholds, tool names, and file paths. If inferring beyond
+    documented knowledge, mark it [INFERENCE]."
+   ```
+
+   **On error:** If `mcp__brana__agy_delegate` returns an error (response starts with `"Error:"`), skip Phase 0b silently and proceed without agy retrieval.
+
+   **CLAUDE:** Compile agy responses as "Prior Details" — granular facts already documented. Tag each claim `[AGY-UNVERIFIED]`. This shapes the web research:
    - Specific claims to verify or update
    - Gaps in granular detail to fill
    - Numbers or thresholds to cross-check
 
-   Write prior details to `/tmp/research-{target}-nlm-prior.md`. Include in the triage context so web findings are compared against existing knowledge.
+   Write prior details to `/tmp/research-{target}-agy-prior.md`. Include in the triage context so web findings are compared against existing knowledge.
 
 6. **Select relevant sources.** Based on target type:
    - **Doc mode**: filter registry sources where `relevance` includes the doc number
@@ -232,7 +230,7 @@ Register these steps: LOAD, ROUTE, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TR
    - **Budget**: max 5 scouts for topic mode, max 8 for doc/creator mode (security scout counts toward budget). **`--depth` override**: `quick` = max 3 scouts total; `deep` = max 12 scouts total.
    - Scout spawn prompt MUST include: "Return ALL findings as structured markdown in your response. Start with a summary line: 'X HIGH, Y MEDIUM, Z LOW findings.' Then list each finding. Do NOT use WebFetch."
    - **When internal context exists (Phase 0)**: include in scout prompts: "Internal docs say the following about this topic: [summary from Phase 0 internal]. Tag findings that confirm internal decisions as [CONFIRMED-INTERNAL], findings that contradict as [CONTRADICTS-INTERNAL], and findings that answer open questions as [ANSWERS-INTERNAL]."
-   - **When `--nlm` prior details exist**: include in scout prompts: "Compare findings against these claims from NotebookLM: [summary from Phase 0b]. Tag confirmations as [CONFIRMED], contradictions as [CONTRADICTS-NLM]."
+   - **When agy prior details exist (Phase 0b)**: include in scout prompts: "Compare findings against these claims from agy: [summary from Phase 0b]. Tag confirmations as [CONFIRMED], contradictions as [CONTRADICTS-AGY]."
 
 8. **Phase 2 — Triage (main context reads temp files incrementally).** For each temp file from Phase 1:
    - Read ONE temp file at a time (never all at once)
@@ -252,10 +250,10 @@ Register these steps: LOAD, ROUTE, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TR
    If similarity > 0.92, mark finding as "already known" and skip deep dive.
    Threshold 0.92 per challenger review — 0.85 risks suppressing contradictions.
    **Fallback:** If MCP unavailable, skip dedup and proceed to deep dive for all HIGH findings.
-   - **When `--nlm` prior details exist**, cross-check NLM claims against scout findings:
-     - `[CONFIRMED]` — web finding corroborates NLM claim (higher confidence)
-     - `[CONTRADICTS-NLM]` — web finding disagrees with NLM claim (NLM may be wrong, investigate)
-     - `[NLM-ONLY]` — NLM claim with no web corroboration (flag in report, do not treat as ground truth). This catches Gemini's hallucination pattern: confidently stating specific details that no other source confirms.
+   - **When agy prior details exist (Phase 0b)**, cross-check agy claims against scout findings:
+     - `[CONFIRMED]` — web finding corroborates agy claim (higher confidence)
+     - `[CONTRADICTS-AGY]` — web finding disagrees with agy claim (agy may be wrong, investigate)
+     - `[AGY-ONLY]` — agy claim with no web corroboration (flag in report, do not treat as ground truth). This catches Gemini's hallucination pattern: confidently stating specific details that no other source confirms.
 
 9. **Phase 3 — Deep Dive (targeted WebFetch, max 3 scouts).** For HIGH-priority URLs from Phase 2:
    - Launch max 3 scouts, each gets max 2 WebFetch calls. **`--depth` override**: `quick` = max 1 scout; `deep` = max 5 scouts.
