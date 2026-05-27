@@ -1489,7 +1489,7 @@ mod tests {
 
     #[test]
     fn dedup_next_task_id_wins_over_text_match() {
-        // Item A has task_id; item B has same text but no task_id → both kept (different dedup keys)
+        // Item A has task_id; item B has same text but no task_id → text dedup fires after task_id check; only A kept
         let items = vec![
             NextItem { text: "fix t-99".to_string(), task_id: Some("t-99".to_string()), category: NextCategory::FollowUp },
             NextItem { text: "fix t-99".to_string(), task_id: None, category: NextCategory::Maintenance },

@@ -29,7 +29,7 @@ Adversarial review with two modes. **Standard:** Opus stress-tests reasoning, Ge
    | Stakeholder breadth | Anything visible externally | "just me" / "one other person" / "wider team" / "external users" |
    | Constraints already locked | Mid-project decisions | "nothing locked yet" / specific commitments listed |
    | Hard ceiling on scope | Sprawling proposals | "S" / "M" / "L" / "explicitly unbounded" |
-   | Gemini grounding | Brana-domain decisions | "yes — check brana docs" / "skip — no Brana docs apply" |
+   | Gemini grounding | Brana-domain decisions — user wants to skip | "run agy (default)" / "skip — no Brana docs apply" |
 
    Use the answers to:
    - Calibrate severity (high deadline pressure → demote long-term observations to LOW)
@@ -95,7 +95,7 @@ Adversarial review with two modes. **Standard:** Opus stress-tests reasoning, Ge
    **On error:** If `mcp__brana__agy_delegate` returns an error (response starts with `"Error:"`), skip 4b silently and proceed without Gemini retrieval.
 
    **4c. Compliance check** (Claude, main context — after both 4a and 4b complete):
-   - Take the constraints retrieved by Gemini in 3b
+   - Take the constraints retrieved by Gemini in 4b
    - Check the challenge target against each retrieved constraint
    - Flag violations as findings with source attribution
    - This is where the adversarial reasoning happens — Claude judges, Gemini retrieves

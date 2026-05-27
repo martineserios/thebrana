@@ -3496,3 +3496,31 @@ Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Con
 **Fix:** Renamed `company_id:` → `tenant_id:` in `clients-dev.yaml` and updated the comment from "company_id matches" to "tenant_id matches" (commit `083243f`).
 
 **Status:** code-fix — fixed in `083243f`.
+
+---
+
+## E2026-05-27-1 — challenge.md step 4c references "step 3b" (stale cross-reference)
+
+**Severity:** Low
+**Discovery:** 2026-05-27 — debrief-analyst after t-1695 (challenge.md NLM → agy migration)
+**Affected files:** `system/procedures/challenge.md:98`
+
+**Bug:** Step 4c reads "Take the constraints retrieved by Gemini in **3b**" — a stale reference from old step numbering. The Gemini retrieval step is 4b in the current procedure. Practitioners following the procedure will look for a non-existent step 3b.
+
+**Fix:** Changed "in 3b" → "in 4b" (same commit as t-1695 inline fix).
+
+**Status:** code-fix — fixed inline.
+
+---
+
+## E2026-05-27-2 — challenge.md step 2 Gemini grounding row uses opt-in framing but behavior is opt-out
+
+**Severity:** Low
+**Discovery:** 2026-05-27 — debrief-analyst after t-1695 (challenge.md NLM → agy migration)
+**Affected files:** `system/procedures/challenge.md:32`
+
+**Bug:** The scope discovery table row for "Gemini grounding" lists options `"yes — check brana docs"` / `"skip — no Brana docs apply"` — phrasing that implies Gemini is off by default and must be opted in. After t-1695, the actual behavior is the opposite: Gemini (agy) runs by default and the user opts out. The mismatch between the table row and the rules section creates confusion about which framing governs.
+
+**Fix:** Relabeled the table row to reflect opt-out framing: `"run agy (default)"` / `"skip — no Brana docs apply"`. Updated the "When to ask" column to "Brana-domain decisions — user wants to skip".
+
+**Status:** code-fix — fixed inline.
