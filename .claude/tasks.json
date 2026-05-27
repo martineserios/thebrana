@@ -42912,6 +42912,32 @@
       ],
       "type": "task",
       "work_type": "implement"
+    },
+    {
+      "id": "t-1696",
+      "subject": "[migrate] challenge.md migration scope: extend NLM→agy to research.md and notebooklm-source.md",
+      "status": "pending",
+      "type": "task",
+      "tags": [
+        "brana",
+        "procedure",
+        "gemini",
+        "cleanup"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-05-27",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "t-1695 migrated challenge.md from mcp__notebooklm__* to mcp__brana__agy_delegate. Debrief-analyst found that system/procedures/research.md and system/procedures/notebooklm-source.md still reference mcp__notebooklm__* with no fallback. These should be migrated to agy_delegate for consistency — same two-pass retrieval pattern (constraint extraction + adjacent constraints), same [AGY-UNVERIFIED] tagging, same opt-out via scope step 2. Scope: (1) read both files, (2) replace mcp__notebooklm__* calls with mcp__brana__agy_delegate pattern, (3) update confidence tier tables if present, (4) grep ALL procedure files after to confirm no NLM references remain.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
     }
   ],
   "version": "1"

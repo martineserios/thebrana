@@ -182,3 +182,7 @@ Source: Fix C session_initiative.rs / debrief-analyst 2026-05-25
 After adding fields to a brana-core struct (e.g. `SessionState`), single-crate tests (`cargo test -p brana-core`) pass because the test fixtures live in the same crate. The cross-crate cascade only surfaces when brana-cli tests run against the updated struct — test fixtures like `sample_state()` in `commands/session.rs` silently miss the new fields and fail with `E0063: missing fields`. Rule: any PR that adds fields to a shared struct must validate with `cargo test -p brana-core -p brana-cli` before merge.
 Source: t-1690 / 2026-05-26
 
+### 2026-05-27: Tool migration scope — grep ALL procedure files, not just the target
+When migrating a tool reference across procedure files (e.g. `mcp__notebooklm__*` → `mcp__brana__agy_delegate`), grep all of `system/procedures/` after the change and review every hit. t-1695 migrated `challenge.md` but `research.md` and `notebooklm-source.md` survived the sweep undetected. Rule: end the task with `grep -r "mcp__<old_tool>" system/procedures/` and resolve or file a child task for every remaining hit before marking done.
+Source: t-1695 / debrief-analyst 2026-05-27
+
