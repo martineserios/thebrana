@@ -643,9 +643,9 @@ Priority tiers:
 - **Date-stamp everything.** All findings include the date they were found (YYYY-MM-DD format).
 - **Source attribution.** Every finding must link back to the source URL.
 - **Security-first for infrastructure research.** Include a security scout in Phase 1 when researching tools that could become production infrastructure.
-- **NLM claims are unverified until corroborated.** Gemini is a detail-extraction engine — it recovers specifics Claude compresses but introduces math errors, attribution confusion, and hallucinated references. Tag `[NLM-ONLY]` claims in reports. Never treat NLM output as ground truth.
-- **Anchor NLM queries to technical nouns.** Use specific tool names, hook names, thresholds as anchors. Broad system-level framing ("brana system", "the architecture") triggers canned overview responses.
-- **Detect canned NLM responses.** If Gemini returns < 150 words or a generic overview, rephrase with a more specific anchor and retry once. Two failures = skip NLM for this query.
+- **agy claims are unverified until corroborated.** Gemini is a detail-extraction engine — it recovers specifics Claude compresses but introduces math errors, attribution confusion, and hallucinated references. Tag `[AGY-ONLY]` claims in reports. Never treat agy output as ground truth.
+- **Anchor agy queries to technical nouns.** Use specific tool names, hook names, thresholds as anchors. Broad system-level framing ("brana system", "the architecture") triggers canned overview responses.
+- **Detect canned agy responses.** If Gemini returns < 150 words or a generic overview, rephrase with a more specific anchor and retry once. Two failures = skip agy for this query.
 - **Step registry.** Follow the [guided-execution protocol](../_shared/guided-execution.md). Register steps on entry, update as each phase completes.
 
 ---

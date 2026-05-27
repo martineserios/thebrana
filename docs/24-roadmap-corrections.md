@@ -3524,3 +3524,19 @@ Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Con
 **Fix:** Relabeled the table row to reflect opt-out framing: `"run agy (default)"` / `"skip — no Brana docs apply"`. Updated the "When to ask" column to "Brana-domain decisions — user wants to skip".
 
 **Status:** code-fix — fixed inline.
+
+---
+
+## E2026-05-27-3 — research.md Rules section retained stale NLM labels after Phase 0b migration
+
+**Severity:** Medium
+**Discovery:** 2026-05-27 — debrief-analyst after t-1696 (research.md NLM→agy migration)
+**Affected files:** `system/procedures/research.md` (Rules section, lines 646-648 at time of discovery)
+
+**Bug:** Phase 0b and the scout integration (lines 232, 252-255) were correctly migrated to `mcp__brana__agy_delegate` with `[AGY-UNVERIFIED]` / `[AGY-ONLY]` / `[CONTRADICTS-AGY]` tags. The Rules section at the bottom of the file was not touched — it still read "NLM claims are unverified...", "Anchor NLM queries...", "Detect canned NLM responses...", and `[NLM-ONLY]` tag. Rules sections use natural language short names that a raw `mcp__notebooklm__*` grep does not catch.
+
+**Fix:** Updated the 3 rule bullets to use agy-equivalent language: `[AGY-ONLY]`, "Anchor agy queries", "Detect canned agy responses". Fixed inline at close.
+
+**Root pattern:** Procedure files have two zones — imperative body (tool calls, phase steps, which a tool-name grep cleans) and a declarative rules section (natural-language summary, which requires a separate short-name grep). Both zones must be checked for every tool migration.
+
+**Status:** code-fix — fixed inline.
