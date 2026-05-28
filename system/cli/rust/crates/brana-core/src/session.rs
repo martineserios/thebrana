@@ -1667,4 +1667,90 @@ mod tests {
         let loaded = read_state(root).unwrap();
         assert!(loaded.consumed_at.is_some(), "mark_consumed must stamp consumed_at on the same file write_state produced");
     }
+
+    // ── write_state same-day merge path (t-1498) ─────────────────────────
+    //
+    // These tests read from the explicit scoped path rather than using read_state()
+    // (which calls current_branch()) to avoid breakage when tests run on epic branches.
+
+    fn read_at_branch(root: &std::path::Path, branch: &str) -> Option<SessionState> {
+        let path = epic_scoped_state_path(root, branch);
+        read_state_at(&path)
+    }
+
+    #[test]
+    fn write_state_merges_on_same_day_same_branch() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        // First close: one accomplished item, one next item.
+        let first = SessionState {
+            accomplished: vec!["did X".to_string()],
+            next: vec![NextItem { text: "follow-up A".to_string(), task_id: None, category: NextCategory::FollowUp }],
+            ..make_state("2026-05-25T10:00:00Z")
+        };
+        write_state(root, &first).unwrap();
+
+        // Second close: different accomplished, different next — same day, same branch.
+        let second = SessionState {
+            accomplished: vec!["did Y".to_string()],
+            next: vec![NextItem { text: "follow-up B".to_string(), task_id: None, category: NextCategory::FollowUp }],
+            ..make_state("2026-05-25T15:30:00Z")
+        };
+        write_state(root, &second).unwrap();
+
+        // Read from the path that matches the state's branch ("main" → session-state.json).
+        let loaded = read_at_branch(root, "main").expect("state must exist after same-day merge");
+        assert!(loaded.accomplished.contains(&"did X".to_string()), "first close accomplished must survive merge");
+        assert!(loaded.accomplished.contains(&"did Y".to_string()), "second close accomplished must be in merged state");
+        assert!(loaded.next.iter().any(|n| n.text == "follow-up A"), "first close next item must survive merge");
+        assert!(loaded.next.iter().any(|n| n.text == "follow-up B"), "second close next item must be in merged state");
+    }
+
+    #[test]
+    fn write_state_replaces_on_different_day() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        // Yesterday's close.
+        let yesterday = SessionState {
+            accomplished: vec!["did X yesterday".to_string()],
+            ..make_state("2026-05-24T10:00:00Z")
+        };
+        write_state(root, &yesterday).unwrap();
+
+        // Today's close — different day → replace mode.
+        let today = SessionState {
+            accomplished: vec!["did Y today".to_string()],
+            ..make_state("2026-05-25T10:00:00Z")
+        };
+        write_state(root, &today).unwrap();
+
+        let loaded = read_at_branch(root, "main").expect("state must exist after different-day write");
+        assert!(!loaded.accomplished.contains(&"did X yesterday".to_string()), "yesterday's accomplished must NOT survive different-day write");
+        assert!(loaded.accomplished.contains(&"did Y today".to_string()), "today's accomplished must be present");
+    }
+
+    #[test]
+    fn write_state_replaces_on_different_branch() {
+        let dir = tempdir().unwrap();
+        let root = dir.path();
+        // Same day but different epic branches — no cross-branch merge.
+        let branch_a = SessionState {
+            branch: Some("memory-arch/feat/t-1-foo".to_string()),
+            accomplished: vec!["work on A".to_string()],
+            ..make_state("2026-05-25T10:00:00Z")
+        };
+        write_state(root, &branch_a).unwrap();
+
+        let branch_b = SessionState {
+            branch: Some("session-continuity/feat/t-2-bar".to_string()),
+            accomplished: vec!["work on B".to_string()],
+            ..make_state("2026-05-25T15:00:00Z")
+        };
+        write_state(root, &branch_b).unwrap();
+
+        // Each epic-scoped state is separate — branch_a's file must not contain branch_b's work.
+        let loaded_a = read_at_branch(root, "memory-arch/feat/t-1-foo").expect("branch A state must exist");
+        assert!(loaded_a.accomplished.contains(&"work on A".to_string()));
+        assert!(!loaded_a.accomplished.contains(&"work on B".to_string()), "different-branch write must not bleed into branch A state");
+    }
 }
