@@ -51,7 +51,11 @@ Weekly cadence review — portfolio health, zombie cleanup, metrics delta, ship 
 ### Steps
 
 1. **Detect stage and business model** from CLAUDE.md / docs/metrics/
-2. **Spawn metrics-collector agent** to gather current metrics from all data sources (Google Sheets, docs/metrics/, tasks.json)
+2. **Spawn metrics-collector agent** via ruflo for cost attribution:
+   ```
+   mcp__ruflo__agent_spawn(agentType: "brana:metrics-collector", model: "haiku", domain: "{venture_slug}", task: "Gather current metrics from Google Sheets, docs/metrics/, tasks.json")
+   ```
+   Collect the returned agentId for cost queries. Fall back to `Agent(subagent_type: "brana:metrics-collector")` if ruflo is unavailable.
 3. **Portfolio health:** read tasks.json across portfolio clients, compute progress per project
 4. **Zombie cleanup:** identify tasks older than 30 days with no activity — present for archival or reprioritization
 5. **Metrics delta:** compare current metrics vs last week's stored values
