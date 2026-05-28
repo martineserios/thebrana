@@ -43597,6 +43597,34 @@
       ],
       "type": "task",
       "work_type": "test"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "CON-1 LOW from reconcile 2026-05-28. Two reflection docs claim Haiku(8)/Sonnet(2)/Opus(1) = 11 agents but actual is Haiku(9)/Sonnet(3)/Opus(0) = 12 agents. debrief-analyst is now sonnet not opus. Files: docs/reflections/ARCHITECTURE.md:103 and docs/reflections/14-mastermind-architecture.md:221. Fix: update both lines to match actual agent model breakdown and remove Opus claim.",
+      "created": "2026-05-28",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1720",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "[docs] Fix stale agent model distribution in ARCHITECTURE.md + 14-mastermind-architecture.md",
+      "tags": [
+        "docs",
+        "agents",
+        "consistency"
+      ],
+      "type": "task",
+      "work_type": "chore"
     }
   ],
   "version": "1"
