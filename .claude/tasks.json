@@ -37192,7 +37192,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "[sitrep] Read session-history for same-day close recovery — merge next[] from all same-day sessions",
       "tags": [
         "sitrep",
@@ -37382,7 +37382,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "[cli] brana session write merge mode — merge same-day sessions instead of replace",
       "tags": [
         "ideation",
@@ -42515,7 +42515,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "[sdd] Initiative-aware session continuity — 3-tier persistence model",
       "tags": [
@@ -43615,7 +43615,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "[docs] Fix stale agent model distribution in ARCHITECTURE.md + 14-mastermind-architecture.md",
       "tags": [
@@ -43625,6 +43625,63 @@
       ],
       "type": "task",
       "work_type": "chore"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "User wants to test agy (Gemini Flash) as optional second opinion in /brana:decide. Flag: --agy. Off by default. When passed, delegates the question to agy and surfaces its answer alongside the default recommendation. Test before enabling by default.",
+      "created": "2026-05-28",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1721",
+      "kind": "feature",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "stream": "ops",
+      "subject": "decide skill: add --agy flag to delegate to Gemini Flash (not default)",
+      "tags": [
+        "decide",
+        "agy",
+        "skill"
+      ],
+      "type": "task",
+      "work_type": "implement"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "On any epic branch (e.g. memory-arch/feat/t-*), read_state(root) calls current_branch() which returns the epic branch name. This causes read_state to look for session-state-memory-arch.json, but test fixtures write states with branch: Some(main) going to session-state.json. Pre-existing before t-1498 — all 331 tests pass on main. Fix: read_state should use state.branch for path resolution, not current_branch().",
+      "created": "2026-05-28",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1722",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P2",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "Fix: read_state branch-path divergence on epic branches causes pre-existing test failures",
+      "tags": [
+        "session",
+        "rust",
+        "testing"
+      ],
+      "type": "task"
     }
   ],
   "version": "1"
