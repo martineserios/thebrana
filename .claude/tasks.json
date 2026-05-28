@@ -43559,7 +43559,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "[hook] Upgrade branch-name-warn from advisory to hard-block",
       "tags": [
@@ -43587,7 +43587,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "[test] Add positive assertion for warn_if_stale_binary",
       "tags": [
