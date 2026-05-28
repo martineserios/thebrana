@@ -84,7 +84,11 @@ Explore the idea space. Run these in parallel:
 - Report: "Found N related items" (list briefly)
 
 **2b. Auto-research** — if the seed mentions any tool, platform, framework, or technical concept:
-- Spawn a scout agent (subagent_type: Explore, model: haiku) to search codebase
+- Spawn a scout agent via ruflo for cost tracking:
+  ```
+  mcp__ruflo__agent_spawn(agentType: "Explore", model: "haiku", domain: "{active_project}", task: "Search codebase for: {seed keywords}")
+  ```
+  Fall back to `Agent(subagent_type: "Explore", model: "haiku")` if ruflo is unavailable.
 - Run WebSearch for the concept (1-2 queries max)
 - Summarize findings in 3-5 bullets
 - If a library is mentioned, use context7 MCP to get latest docs
