@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-25T03:19:45Z",
+  "generated": "2026-05-28T13:04:48Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -519,7 +519,12 @@
         "system/cli/rust/crates/brana-mcp/",
         "system/cli/rust/crates/brana-core/src/",
         "system/cli/rust/crates/brana-core/src/session.rs",
-        "system/cli/rust/crates/brana-mcp/src/tools/session_write.rs"
+        "system/cli/rust/crates/brana-mcp/src/tools/session_write.rs",
+        "system/procedures/challenge.md:98",
+        "system/procedures/challenge.md:32",
+        "system/procedures/research.md",
+        "system/cli/rust/crates/brana-mcp/tests/tool_tests.rs:447",
+        "system/cli/rust/crates/brana-cli/src/commands/session.rs:549"
       ]
     },
     "docs/25-self-documentation.md": {
@@ -847,6 +852,26 @@
     },
     "docs/architecture/decisions/ADR-042-knowledge-ingest-canonical-entry-point-gemini-routing.md": {
       "title": "ADR-042: Knowledge Pipeline — `ingest` as Canonical URL Entry Point + Gemini Routing for Tier 1/2",
+      "type": "ADR",
+      "impl_files": []
+    },
+    "docs/architecture/decisions/ADR-043-session-labels-breadcrumb.md": {
+      "title": "ADR-043 — session_labels: structured breadcrumb for same-day merges",
+      "type": "ADR",
+      "impl_files": []
+    },
+    "docs/architecture/decisions/ADR-044-initiative-accumulator.md": {
+      "title": "ADR-044 — Initiative accumulator: cross-day session continuity",
+      "type": "ADR",
+      "impl_files": []
+    },
+    "docs/architecture/decisions/ADR-045-backlog-ui-transport.md": {
+      "title": "ADR-045 — Backlog web UI transport: CLI shell-out vs axum sidecar",
+      "type": "ADR",
+      "impl_files": []
+    },
+    "docs/architecture/decisions/ADR-046-smart-search-load-default.md": {
+      "title": "ADR-046: Keep smart:false as LOAD Default (smart:true Deferred)",
       "type": "ADR",
       "impl_files": []
     },
@@ -8288,6 +8313,18 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-043-session-labels-breadcrumb.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/decisions/ADR-044-initiative-accumulator.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/developer-quickstart.md",
       "type": "references",
       "computed": false
@@ -12290,9 +12327,9 @@
     }
   ],
   "stats": {
-    "nodes": 406,
-    "edges": 1598,
+    "nodes": 410,
+    "edges": 1600,
     "typed_edges": 570,
-    "orphans": 108
+    "orphans": 112
   }
 }
