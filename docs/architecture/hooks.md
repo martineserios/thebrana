@@ -245,26 +245,6 @@ Multiple hooks can register for the same event. They run sequentially; if any Pr
 > Archived 2026-05-09: 5 oldest entries (2026-04-08 × 2, 2026-04-09, 2026-04-12 nvm PATH, 2026-04-12 worktree-gate checkout/switch) moved to ruflo field-notes namespace (t-1388).
 > Archived 2026-05-11: 5 entries (2026-04-10 × 5: doc-gate bash command, git checkout HEAD recovery, branch switches ephemeral, main-guard+doc-gate combo, tasks.json stash theirs) moved to ruflo knowledge namespace.
 
-### 2026-04-12: Mock PATH isolation — bash + minimal tools must be in mock bin
-When testing bash scripts with a stripped PATH (to simulate missing tools), stripping PATH to just the mock dir causes "bash: command not found" when the script calls `bash <subscript>` or uses `dirname`/`pwd` for SCRIPT_DIR detection. Fix: symlink bash, dirname, and pwd from the system into the mock bin, then exclude only the specific tool being hidden. A `populate_bin <dir> [exclude...]` helper makes this reusable across tests. Rule: never strip PATH to only `$mock/bin` without first populating the tools the script needs to boot.
-Source: tests/bootstrap/test-install.sh, t-1150 2026-04-12
-
-### 2026-04-13: UserPromptSubmit hooks fire before Claude processes input
-`UserPromptSubmit` is a CC hook event that fires before Claude sees the user's message — earlier than `PreToolUse` (which fires before a tool call). Input JSON: `{"prompt": "..."}`. Always returns `{"continue": true}` (cannot block). Use for: detecting which skill is being invoked before heavy work starts, pre-flight env checks, prompt-level advisory warnings. `preflight-model.sh` is the first brana `UserPromptSubmit` hook — it detects heavy skill invocations and warns if extra-usage is disabled. Register in `hooks.json` with matcher `""` (no tool matcher, fires on every user message).
-Source: t-1085, 2026-04-13
-
-### 2026-04-20: BRANA_RECAP_OFF — env-var opt-out for session-start hook output
-`session-start.sh` injects `HANDOFF_CONTEXT` (previous session summary) and `VENTURE_CONTEXT` (auto-delegate to daily-ops) as `additionalContext`. Both sites are now gated behind `[ -z "${BRANA_RECAP_OFF:-}" ]`. Set `"BRANA_RECAP_OFF": "1"` in `~/.claude/settings.json` env section to suppress the recap. Pattern is reusable: any noisy hook section (CC changelog, intelligence feed nudges) can be silenced the same way — pick a descriptive env var name, add the guard inline. Removing the key re-enables immediately.
-Source: 2026-04-20, feat/brana-recap-off
-
-### 2026-04-21: Shared lib pattern for hook cross-cutting concerns (t-1310, t-1317)
-When 2+ hooks duplicate the same logic, extract into `system/hooks/lib/<name>.sh`. Source with `source "${SCRIPT_DIR}/lib/<name>.sh" 2>/dev/null || true` — the `|| true` means the hook continues with degraded behavior if the lib is missing. Two libs now live there: `git-helpers.sh` (resolves `git -C <path>` in commands to the correct lookup dir) and `layer1-paths.sh` (classifies Layer 1 files). Pattern for adding a third: write the function in `lib/`, source it, replace the inline code, add a `validate.sh` Check Nb that verifies hooks using the helper actually source the lib.
-Source: t-1310, t-1317, 2026-04-21
-
-### 2026-04-21: worktree-gate non-behavioral dirty exception (t-1320)
-When only `.claude/tasks.json` is dirty, `worktree-gate.sh` now emits a warn (continue:true with hint) instead of a deny on `git checkout -b` / `git switch -c`. The gate parses the full dirty file list and checks each against a non-behavioral allowlist (currently just `tasks.json`). Mixed dirty (behavioral + tasks.json) still denies. Pattern: classify dirty files by behavioral vs. state before deciding gate severity.
-Source: t-1320, 2026-04-21
-
 ### 2026-04-13: commit-msg-verify.sh — advisory commit hygiene (non-blocking)
 Warns when a git commit message mentions filenames (e.g. `fix auth.rs`) that are not in the staged diff (`git diff --cached --name-only`). This catches the common mistake of describing more than was actually staged. Implementation note: extracting filenames from `-m` commit messages requires grepping from `.tool_input.command` on stdin; use `python3 -c "import json,sys; ..."` not `printf` for JSON generation in tests (printf interprets `\n` as literal newline, breaking the JSON string). Test assertions on the "unstaged files" warning must exclude the "Staged files:" section, which legitimately contains hook filenames.
 Source: t-1129, 2026-04-13
@@ -331,3 +311,7 @@ Source: t-1450, session 2026-05-18
 ### 2026-05-19: Same-commit hook-doc backprop is recurring — needs enforcement, not just policy
 t-1480 shipped `rust-skills-guard.sh` + `skill-sentinel.sh` without updating `docs/architecture/hooks.md` inventory or gate classification. The rule "document behavioral changes in same commit" (feedback_always-document-behavioral-changes.md) already exists but was not followed. Cleanup cost: a full follow-up session (read 2 scripts, 3 doc edits, reconcile run). Enforcement gap: `/brana:close` does not grep the session's commit range for `system/hooks/*.sh` additions without a corresponding `docs/architecture/hooks.md` change. t-1490 tracks adding this grep gate to `/brana:close` Step 3b or Step 8.
 Source: close session 2026-05-19
+
+### 2026-05-28: Advisory hooks need an escalation task filed at ship time
+`branch-name-warn.sh` shipped as advisory (`continue:true`) with a comment "escalate to hard-block after migration" — but no escalation task was filed. Without a task, the advisory phase silently becomes permanent. Rule: when shipping any advisory hook, file an escalation task in the same commit or immediately after (t-1718 was filed post-hoc at session close). Link the task ID in the hook header comment so the escalation condition is visible at the source.
+Source: t-1620 / close session 2026-05-28
