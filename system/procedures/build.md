@@ -803,7 +803,13 @@ If MCP unavailable, skip silently. Hive-mind is transient awareness, not critica
 
    **Trivial/Small builds:** Skip CC Tasks. Progress tracked inline in conversation.
 
-   **Agent delegation rule:** When spawning an Agent tool call for any subtask implementation, include the delegation TDD checklist in the prompt:
+   **Agent delegation rule:** When spawning an agent for any subtask implementation, prefer ruflo for cost attribution and cross-session learning:
+   ```
+   mcp__ruflo__agent_spawn(agentType: "claude", domain: "{project_slug}", model: "sonnet", task: "{subtask description + TDD checklist}")
+   ```
+   Fall back to native `Agent(subagent_type: "claude", prompt: "...")` if ruflo is unavailable.
+
+   Always include the delegation TDD checklist — append it verbatim from `system/skills/_shared/delegation-tdd-checklist.md` to the task/prompt:
    > Include the acceptance criteria from `system/skills/_shared/delegation-tdd-checklist.md` verbatim at the end of this prompt. Do not mark the subtask done until all criteria are met.
 
    Never delegate implementation without explicit TDD acceptance criteria — agents that receive "implement X" without a checklist produce code without tests.
