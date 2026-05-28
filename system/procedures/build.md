@@ -1357,6 +1357,12 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
      ```
    If ruflo unavailable, append to project's auto memory MEMORY.md.
 
+   After storing learnings, call:
+   ```
+   mcp__ruflo__autopilot_learn()
+   ```
+   This seeds the autopilot pattern registry from completed task outcomes — no params needed.
+
 4. **Knowledge maintenance** (after tests pass, before docs/merge):
 
    a. **Field notes**: Review session learnings from the build. If any practical discoveries emerged (unexpected behavior, workarounds, integration gotchas, performance findings), prompt the user:
