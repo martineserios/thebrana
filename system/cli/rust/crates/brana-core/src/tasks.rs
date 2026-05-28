@@ -1587,7 +1587,7 @@ mod tests {
         std::fs::create_dir_all(&dir).ok();
         let path = dir.join("valid.json");
         std::fs::write(&path, r#"{"version":"1","project":"test","tasks":[
-            {"id":"t-1","subject":"Test","status":"pending","type":"task","stream":"roadmap","tags":["a"],"context":"ctx"}
+            {"id":"t-1","subject":"Test","status":"pending","type":"task","tags":["a"],"context":"ctx"}
         ]}"#).unwrap();
         let errors = validate_schema(&path);
         assert!(errors.is_empty(), "expected no errors, got: {:?}", errors);
@@ -1741,7 +1741,7 @@ mod tests {
         use tempfile::NamedTempFile;
         use std::io::Write;
         let mut f = NamedTempFile::new().unwrap();
-        write!(f, r#"{{"version":1,"project":"p","tasks":[{{"id":"t-1","subject":"s","status":"pending","type":"task","stream":"x","tags":[],"blocked_by":[],"isc":["All tests passing","Docs updated"]}}]}}"#).unwrap();
+        write!(f, r#"{{"version":1,"project":"p","tasks":[{{"id":"t-1","subject":"s","status":"pending","type":"task","tags":[],"blocked_by":[],"isc":["All tests passing","Docs updated"]}}]}}"#).unwrap();
         let errs = validate_schema(f.path());
         assert!(errs.is_empty(), "unexpected errors: {errs:?}");
     }
@@ -1751,7 +1751,7 @@ mod tests {
         use tempfile::NamedTempFile;
         use std::io::Write;
         let mut f = NamedTempFile::new().unwrap();
-        write!(f, r#"{{"version":1,"project":"p","tasks":[{{"id":"t-1","subject":"s","status":"pending","type":"task","stream":"x","tags":[],"blocked_by":[],"isc":"not-an-array"}}]}}"#).unwrap();
+        write!(f, r#"{{"version":1,"project":"p","tasks":[{{"id":"t-1","subject":"s","status":"pending","type":"task","tags":[],"blocked_by":[],"isc":"not-an-array"}}]}}"#).unwrap();
         let errs = validate_schema(f.path());
         assert!(errs.iter().any(|e| e.contains("isc") && e.contains("array")), "expected isc error, got: {errs:?}");
     }
@@ -1761,7 +1761,7 @@ mod tests {
         use tempfile::NamedTempFile;
         use std::io::Write;
         let mut f = NamedTempFile::new().unwrap();
-        write!(f, r#"{{"version":1,"project":"p","tasks":[{{"id":"t-1","subject":"s","status":"pending","type":"task","stream":"x","tags":[],"blocked_by":[],"isc":[42,"valid"]}}]}}"#).unwrap();
+        write!(f, r#"{{"version":1,"project":"p","tasks":[{{"id":"t-1","subject":"s","status":"pending","type":"task","tags":[],"blocked_by":[],"isc":[42,"valid"]}}]}}"#).unwrap();
         let errs = validate_schema(f.path());
         assert!(errs.iter().any(|e| e.contains("isc")), "expected isc error, got: {errs:?}");
     }
@@ -2130,7 +2130,7 @@ mod tests {
 
     #[test]
     fn test_complexity_score_minimal() {
-        let task = json!({"description": "fix typo", "blocked_by": [], "stream": "bugs", "tags": [], "effort": "S"});
+        let task = json!({"description": "fix typo", "blocked_by": [], "tags": [], "effort": "S"});
         let score = complexity_score(&task);
         assert!(score < 0.3, "minimal task should score < 0.3, got {score}");
     }
@@ -2171,9 +2171,9 @@ mod tests {
     #[test]
     fn test_queue_candidates_basic() {
         let tasks = vec![
-            json!({"id": "t-001", "status": "pending", "type": "task", "subject": "First", "priority": "P1", "effort": "S", "stream": "bugs", "blocked_by": [], "tags": [], "description": "fix"}),
-            json!({"id": "t-002", "status": "pending", "type": "task", "subject": "Second", "priority": "P2", "effort": "M", "stream": "roadmap", "blocked_by": [], "tags": [], "description": "build feature"}),
-            json!({"id": "t-003", "status": "completed", "type": "task", "subject": "Done", "priority": "P0", "effort": "S", "stream": "bugs", "blocked_by": [], "tags": [], "description": "done"}),
+            json!({"id": "t-001", "status": "pending", "type": "task", "subject": "First", "priority": "P1", "effort": "S", "blocked_by": [], "tags": [], "description": "fix"}),
+            json!({"id": "t-002", "status": "pending", "type": "task", "subject": "Second", "priority": "P2", "effort": "M", "blocked_by": [], "tags": [], "description": "build feature"}),
+            json!({"id": "t-003", "status": "completed", "type": "task", "subject": "Done", "priority": "P0", "effort": "S", "blocked_by": [], "tags": [], "description": "done"}),
         ];
         let q = queue_candidates(&tasks, 5);
         assert_eq!(q.len(), 2); // only pending
@@ -2183,9 +2183,9 @@ mod tests {
     #[test]
     fn test_queue_candidates_respects_max() {
         let tasks = vec![
-            json!({"id": "t-001", "status": "pending", "type": "task", "subject": "A", "priority": "P1", "blocked_by": [], "tags": [], "description": "", "stream": "roadmap", "effort": null}),
-            json!({"id": "t-002", "status": "pending", "type": "task", "subject": "B", "priority": "P2", "blocked_by": [], "tags": [], "description": "", "stream": "roadmap", "effort": null}),
-            json!({"id": "t-003", "status": "pending", "type": "task", "subject": "C", "priority": "P3", "blocked_by": [], "tags": [], "description": "", "stream": "roadmap", "effort": null}),
+            json!({"id": "t-001", "status": "pending", "type": "task", "subject": "A", "priority": "P1", "blocked_by": [], "tags": [], "description": "", "effort": null}),
+            json!({"id": "t-002", "status": "pending", "type": "task", "subject": "B", "priority": "P2", "blocked_by": [], "tags": [], "description": "", "effort": null}),
+            json!({"id": "t-003", "status": "pending", "type": "task", "subject": "C", "priority": "P3", "blocked_by": [], "tags": [], "description": "", "effort": null}),
         ];
         let q = queue_candidates(&tasks, 2);
         assert_eq!(q.len(), 2);
@@ -2194,8 +2194,8 @@ mod tests {
     #[test]
     fn test_queue_candidates_skips_blocked() {
         let tasks = vec![
-            json!({"id": "t-001", "status": "pending", "type": "task", "subject": "Blocked", "priority": "P1", "blocked_by": ["t-002"], "tags": [], "description": "", "stream": "roadmap", "effort": null}),
-            json!({"id": "t-002", "status": "pending", "type": "task", "subject": "Blocker", "priority": "P2", "blocked_by": [], "tags": [], "description": "", "stream": "roadmap", "effort": null}),
+            json!({"id": "t-001", "status": "pending", "type": "task", "subject": "Blocked", "priority": "P1", "blocked_by": ["t-002"], "tags": [], "description": "", "effort": null}),
+            json!({"id": "t-002", "status": "pending", "type": "task", "subject": "Blocker", "priority": "P2", "blocked_by": [], "tags": [], "description": "", "effort": null}),
         ];
         let q = queue_candidates(&tasks, 5);
         assert_eq!(q.len(), 1);

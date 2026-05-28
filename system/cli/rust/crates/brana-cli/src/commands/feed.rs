@@ -295,7 +295,6 @@ fn poll_one(feed: &FeedEntry) -> Result<usize> {
                         let ctx = format!("URL: {link}");
                         let json = serde_json::json!({
                             "subject": subj,
-                            "stream": "research",
                             "type": "task",
                             "tags": ["feed", &feed.name],
                             "context": ctx,
