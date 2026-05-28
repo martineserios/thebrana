@@ -9,9 +9,22 @@
 | **Architect** | `docs/` | Research, design, plan — dimension/reflection/roadmap docs |
 | **Operator** | `system/` | Build, deploy, maintain — skills, hooks, rules, agents |
 
-Branch conventions preserve the separation:
-- `docs/*` branches: spec work (no `system/` edits)
-- `feat/*` branches: implementation (should also touch `docs/` when behavior changes)
+**Branch naming convention:**
+```
+{epic-slug}/{work-type}/t-{NNN}-{description-slug}
+```
+
+- **epic-slug** — kebab-case theme grouping the task (e.g. `session`, `backlog-git`, `harness`)
+- **work-type** — one of: `feat` · `fix` · `chore` · `research` · `test` · `docs` · `refactor`
+- **t-{NNN}** — backlog task ID (required for all implementation branches)
+- **description-slug** — 2–4 word kebab summary
+
+Examples:
+- `session/fix/t-1700-epic-scoped-path-assertion`
+- `harness/chore/t-1717-context-budget-skip-reference`
+- `backlog-git/feat/t-1619-branch-convention-docs`
+
+Special branches (no task ID required): `main`, `docs/{topic}` (spec-only, no `system/` edits).
 
 ## Inbox
 
