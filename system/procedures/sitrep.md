@@ -105,6 +105,20 @@ If status is `completed` or `cancelled`, suppress the item from display. If any 
 
 If `brana session read --json` returns nothing, fall back to `brana handoff last` (legacy markdown).
 
+**4a. Same-day session-history recovery (belt-and-suspenders):**
+
+Call session history to catch any same-day closes whose `next[]` items may have been missed if the merge path was bypassed:
+
+```
+mcp__brana__session_history(limit: 3)
+```
+
+Or CLI fallback: `brana session history --limit 3 --json`
+
+Filter the returned entries to those whose `written_at` date (local timezone) matches today's date. For each same-day entry, check if any of its `next[]` items are absent from the current session-state `next[]` (compare by text and task_id). Surface any unique items under a separate "Also from earlier today:" block — do not merge them into the primary next[] display to avoid confusion with the authoritative merged state.
+
+Skip silently if session history returns nothing or no same-day entries exist.
+
 **4b. Initiative accumulator (if session has initiative field):**
 
 Resolve `$INITIATIVE_SLUG` via two sources in order (first hit wins):
