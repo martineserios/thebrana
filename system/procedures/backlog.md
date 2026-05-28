@@ -922,6 +922,14 @@ Tasks must have `spawn` field set (see ADR-003 for schema). Tasks without `spawn
    ```
 6. **User confirms**
 7. **Execute wave-by-wave:**
+
+   **7a. Swarm init** (once per execute run, before first wave):
+   ```
+   mcp__ruflo__swarm_init(topology: "mesh", maxAgents: {max_parallel}, strategy: "adaptive")
+   ```
+   Captures the swarmId for use in agent_spawn calls below.
+   **Fallback:** If ruflo unavailable, skip swarm init — use native Task tool per task as before.
+
    - **Knowledge injection (per task, before spawning):**
      Query ruflo for domain context related to the task:
      ```
@@ -934,10 +942,37 @@ Tasks must have `spawn` field set (see ADR-003 for schema). Tasks without `spawn
      ```
      - If results found (score >= 0.4): format as a `## Knowledge context` section with one bullet per result (`- {key}: {value preview}`). Prepend to the agent prompt.
      - If no results or ruflo unavailable: skip silently. Knowledge injection is best-effort — never blocks spawning.
-   - For each task in the wave, spawn a subagent via the Task tool:
+
+   **7b. Per-task claim** (before spawning each agent):
+   ```
+   mcp__ruflo__claims_claim(
+     issueId: "task:{task.id}",
+     claimant: "agent:{swarmId}:{task.id}",
+     context: "{task.subject}"
+   )
+   ```
+   If claim fails (another agent holds it), skip this task in the wave — it may be running in a parallel session.
+
+   - For each task in the wave, spawn a subagent via ruflo (preferred) or Task tool (fallback):
+     ```
+     mcp__ruflo__agent_spawn(
+       agentType: "{agent_config.type or 'claude'}",
+       model: "{computed model from routing table}",
+       domain: "{project_slug}",
+       task: "{task subject + description + knowledge context}",
+       swarmId: "{swarmId from 7a}"
+     )
+     mcp__ruflo__coordination_orchestrate(
+       task: "{task.subject}",
+       agents: ["{agentId}"],
+       strategy: "parallel"
+     )
+     ```
+     **Fallback (ruflo unavailable):** use native Task tool:
      - `subagent_type`: from `agent_config.type` (default: `"general-purpose"`)
-     - `model`: from `agent_config.model` (default: haiku for research, sonnet for code)
-     - `prompt`: task subject + description + relevant context (file paths, dependencies) + knowledge context (from injection above, if available)
+     - `model`: from `agent_config.model`
+     - `prompt`: task subject + description + relevant context + knowledge context
+
    - **Non-code tasks** (research, analysis, manual):
      - Agent produces a summary/deliverable
      - Write `agent_result` to tasks.json: `{status: "completed", summary: "...", completed_at: "..."}`
@@ -950,6 +985,17 @@ Tasks must have `spawn` field set (see ADR-003 for schema). Tasks without `spawn
      - Write `agent_result`: `{status: "failed", error: "...", completed_at: "..."}`
      - Task stays `in_progress`. Dependents remain blocked.
      - Log error and continue with remaining tasks in wave
+
+   **7c. Per-task release or mark-stealable** (after each task completes or fails):
+   - On completion:
+     ```
+     mcp__ruflo__claims_release(issueId: "task:{task.id}", claimant: "agent:{swarmId}:{task.id}", reason: "completed")
+     ```
+   - On failure (agent timed out or errored):
+     ```
+     mcp__ruflo__claims_mark-stealable(issueId: "task:{task.id}", reason: "stale", context: "{error summary}")
+     ```
+   Skip silently if ruflo unavailable — claims are advisory, never blocking.
 8. **Write-back phase** (code tasks, sequential):
    - For each completed code task:
      - Read `/tmp/task-{id}-output.json`
