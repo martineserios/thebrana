@@ -43183,7 +43183,7 @@
       "parent": null,
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "Fix brana:gemini agent type missing — create system/agents/gemini.md definition",
       "tags": [
@@ -43513,6 +43513,34 @@
         "cost-optimization"
       ],
       "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "system/agents/CALIBRATION.md has type:reference in its frontmatter but the pre-commit budget script (system/scripts/git-hooks/pre-commit:109-113) counts ALL .md files in agents/ including type:reference files. CALIBRATION.md contributes 105 bytes to the budget even though it is not a real agent. Fix: in the agent descriptions loop, skip files where frontmatter contains type:reference. Grep: sed -n 1,5p system/agents/CALIBRATION.md. Budget was at 28671/28672 after adding gemini.md — 1 byte under limit. Excluding CALIBRATION.md would give 28671-105=28566, restoring headroom for future agents.",
+      "created": "2026-05-28",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1717",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "fix(budget): pre-commit context budget should skip type:reference agent files",
+      "tags": [
+        "harness-engineering",
+        "context-budget",
+        "pre-commit"
+      ],
+      "type": "task",
+      "work_type": "fix"
     }
   ],
   "version": "1"
