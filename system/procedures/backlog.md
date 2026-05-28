@@ -527,6 +527,24 @@ Begin work on a task or freeform description. Accepts task IDs, phase IDs, or na
      Skip silently. Don't block task start.
 
    **5e.** If user selects a skill, note it in the task's `context` field for the build loop.
+
+   **5f. Agent pool check** (code tasks, effort M+ only — skip for S/XL and non-code):
+   Check if warm pool agents are available for background delegation:
+   ```
+   mcp__ruflo__agent_pool(action: "status", agentType: "claude")
+   ```
+   If pool has idle agents (`idle > 0`):
+   ```
+   AskUserQuestion:
+     question: "Pool has {idle} warm agent(s). Run in-session or delegate to background pool?"
+     header: "Execution mode"
+     options:
+       - "In-session (default — interactive, you see progress)"
+       - "Background pool (fire and forget — check results later)"
+   ```
+   If user selects **background**: spawn with `mcp__ruflo__agent_spawn(agentType: "claude", domain: "{project}", model: "sonnet", task: "{task subject + strategy}")` and stop — do NOT enter `/brana:build`.
+   If user selects **in-session**, pool is empty, or ruflo unavailable: proceed to step 6.
+
 6. **Determine execution mode:**
    - `code`: check git status clean → create branch `{prefix}{id}-{slug}` → set status + started date + branch field → **enter `/brana:build` with the task's strategy** (build_step: classify)
    - `external`: set status + started date, show task description
