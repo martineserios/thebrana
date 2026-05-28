@@ -225,6 +225,18 @@ All should return valid JSON without crashing.
 ./validate.sh
 ```
 
+## Real-World Example: branch-name-warn.sh
+
+`system/hooks/branch-name-warn.sh` is the canonical hard-block PreToolUse gate in this repo. It intercepts `git switch -c`, `git checkout -b`, and `git branch` and blocks branch creation when the name does not follow `{epic}/{work-type}/t-{NNN}-{slug}`. Useful as a reference for any blocking gate.
+
+Key patterns it uses:
+- Fast exit for non-`Bash` tools
+- Escape hatch (`--force-name` in the command) for authorized bypasses
+- Hard-block via stderr message + `{"continue": false}`
+- `case` exemptions for special branches (`main`, `docs/*`, `hotfix/*`)
+
+Reference: `system/hooks/branch-name-warn.sh`, tests: `system/hooks/tests/test-branch-name-warn.sh`.
+
 ## Checklist
 
 1. Create `system/hooks/{name}.sh` following the safety conventions

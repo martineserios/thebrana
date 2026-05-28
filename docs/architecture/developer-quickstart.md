@@ -232,6 +232,8 @@ claude --plugin-dir ./system
 
 Trigger the hook by writing a `.py` file in the session. Check output in `/tmp/brana-session-*.jsonl` if you add logging.
 
+> **Hard-block reference:** `system/hooks/branch-name-warn.sh` is the canonical example of a blocking PreToolUse gate. It enforces branch naming convention on the `Bash` matcher and is a good template for any gate that must block rather than warn.
+
 ---
 
 ## The Full Deploy Cycle

@@ -218,7 +218,7 @@ Agents are safety nets, not replacements. The community builds skills (portable,
 
 ### Agent Boundaries
 
-Each agent description includes "Not for..." constraints that disambiguate auto-delegation routing. When multiple agents cover adjacent domains (e.g., scout vs memory-curator for research, client-scanner vs venture-scanner for diagnostics), explicit negative boundaries prevent the model from routing to the wrong agent. Model distribution: Haiku (8 agents — fast, cheap tasks), Opus (1 agent — debrief-analyst — where reasoning depth justifies the cost), Sonnet (2 agents — challenger, pr-reviewer — adversarial review and code understanding).
+Each agent description includes "Not for..." constraints that disambiguate auto-delegation routing. When multiple agents cover adjacent domains (e.g., scout vs memory-curator for research, client-scanner vs venture-scanner for diagnostics), explicit negative boundaries prevent the model from routing to the wrong agent. Model distribution: Haiku (9 agents — fast, cheap tasks), Sonnet (3 agents — challenger, debrief-analyst, pr-reviewer — adversarial review, session synthesis, and code understanding). No Opus agents.
 
 > **Dynamic model routing ([ADR-018](../architecture/decisions/ADR-018-dynamic-model-routing.md)):** The agent roster's model assignments are defaults. ADR-018 adds per-message complexity scoring (0.0–1.0) that can override static assignments at runtime — e.g., routing a complex question to Opus even when the default agent model is Sonnet. Extended to chat sessions via [ADR-019](../architecture/decisions/ADR-019-brana-chat-sessions.md): Tier 3 operator sessions use dynamic routing, Tier 1/2 are locked to their tier's model ceiling.
 
