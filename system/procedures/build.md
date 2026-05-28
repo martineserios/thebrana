@@ -136,6 +136,7 @@ Pull relevant architecture, decision knowledge, and skill matches into context b
    mcp__ruflo__memory_search(query: "{query}", namespace: "knowledge", limit: 5, threshold: 0.3)
    mcp__ruflo__memory_search(query: "{query}", namespace: "pattern",   limit: 3, threshold: 0.3)
    ```
+   Use `smart: false` (default). `smart: true` is **rejected** — t-1699 spike (2026-05-28) measured: smart:false 56-95ms / top-sim 0.57-0.64 on-topic; smart:true 275-879ms / top-sim 0.47 with irrelevant MMR-diversified results (Feynman physics as #1 for "hook enforcement" query). MMR diversity param not exposed by ruflo schema — cannot tune. Re-investigate only if ruflo exposes `mmr_lambda` or equivalent.
    Merge results, rank by similarity. Results span: knowledge (dimension docs, ADRs, feature briefs, reflections — all indexed here), pattern (past session learnings).
 2b. **Graph edge traversal** (after ruflo search, if `docs/spec-graph.json` exists):
    Collect doc paths from knowledge results. Map ruflo key → file path:
