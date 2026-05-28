@@ -4,6 +4,7 @@ use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::process::Command;
+use std::time::SystemTime;
 
 use brana_core::knowledge_pipeline::{
     self as kp, DRAFT_CAP, UrlStatus,
@@ -11,6 +12,45 @@ use brana_core::knowledge_pipeline::{
 use std::io::IsTerminal as _;
 
 use crate::util::{find_project_root, home};
+
+/// Warn if the installed binary predates source changes in system/cli/rust/crates/.
+/// No-ops silently when the source tree can't be located (non-dev environments).
+fn warn_if_stale_binary() {
+    let binary_mtime = std::env::current_exe()
+        .ok()
+        .and_then(|p| std::fs::metadata(p).ok())
+        .and_then(|m| m.modified().ok());
+    let Some(binary_mtime) = binary_mtime else { return };
+
+    let crates_root = std::env::var("BRANA_SRC_ROOT")
+        .ok()
+        .map(PathBuf::from)
+        .or_else(|| {
+            let h = home();
+            let p = h.join("enter_thebrana/thebrana/system/cli/rust/crates");
+            p.exists().then_some(p)
+        });
+    let Some(crates_root) = crates_root else { return };
+
+    // Check the files most likely to change during knowledge pipeline work.
+    let sentinels = [
+        "brana-core/src/knowledge_pipeline.rs",
+        "brana-cli/src/commands/knowledge.rs",
+        "brana-core/src/tasks.rs",
+    ];
+    let newest_src: Option<SystemTime> = sentinels.iter()
+        .filter_map(|rel| std::fs::metadata(crates_root.join(rel)).ok())
+        .filter_map(|m| m.modified().ok())
+        .max();
+
+    if let Some(src_mtime) = newest_src {
+        if binary_mtime < src_mtime {
+            eprintln!("⚠  brana: installed binary is stale — source changed after last build.");
+            eprintln!("   Rebuild: cd {}/.. && cargo build -p brana-cli && cp target/debug/brana ~/.local/bin/brana",
+                crates_root.display());
+        }
+    }
+}
 
 pub fn cmd_reindex(changed: bool, files: Vec<PathBuf>) -> Result<()> {
     use anyhow::anyhow;
@@ -299,6 +339,7 @@ pub fn cmd_process(
     reset_url: Option<String>,
     dry_run: bool,
 ) -> Result<()> {
+    warn_if_stale_binary();
     let knowledge_root = kp::find_brana_knowledge_root()
         .ok_or_else(|| anyhow::anyhow!(
             "brana-knowledge repo not found. Checked: $BRANA_KNOWLEDGE_ROOT, \
@@ -1595,5 +1636,16 @@ mod tests {
     fn test_run_gate_tier2_directive_returns_none() {
         let msg = run_gate_message("brana knowledge process --tier2");
         assert!(msg.is_none(), "tier2 should auto-advance (no gate), got: {msg:?}");
+    }
+
+    // ── warn_if_stale_binary ─────────────────────────────────────────────
+
+    #[test]
+    fn test_stale_binary_no_panic_when_source_absent() {
+        // Should silently no-op when crates root doesn't exist.
+        // BRANA_SRC_ROOT points to a nonexistent path.
+        std::env::set_var("BRANA_SRC_ROOT", "/nonexistent/path/crates");
+        warn_if_stale_binary(); // must not panic
+        std::env::remove_var("BRANA_SRC_ROOT");
     }
 }
