@@ -106,9 +106,12 @@ if [ -d "${SYSTEM_DIR}/skills" ] && [ -d "${SYSTEM_DIR}/hooks" ]; then
     done
 
     # Agent descriptions (loaded into context — see 24-roadmap-corrections.md error #7)
+    # Skip type:reference files (e.g. CALIBRATION.md) — not real agents, not loaded as agent defs
     for agent_file in "${SYSTEM_DIR}"/agents/*.md; do
         [ -f "$agent_file" ] || continue
-        AGENT_DESC_SIZE=$(sed -n '/^---$/,/^---$/p' "$agent_file" | grep '^description:' | wc -c)
+        FRONTMATTER=$(sed -n '/^---$/,/^---$/p' "$agent_file")
+        echo "$FRONTMATTER" | grep -q '^type: reference' && continue
+        AGENT_DESC_SIZE=$(echo "$FRONTMATTER" | grep '^description:' | wc -c)
         BUDGET=$((BUDGET + AGENT_DESC_SIZE))
     done
 
