@@ -1,7 +1,7 @@
 
 # Fix
 
-Structured bug fixing workflow. Five steps: REPRODUCE → DIAGNOSE → FIX → VERIFY → COMMIT. Enforces test-first debugging — no source changes until a failing test exists.
+Structured bug fixing workflow. Five steps: REPRODUCE → DIAGNOSE → FIX → VERIFY → COMMIT → (HARDEN). Enforces test-first debugging — no source changes until a failing test exists. HARDEN is optional: fires when the same errata class has appeared 2+ times — offers to convert the pattern into a PreToolUse gate.
 
 ## Usage
 
@@ -19,6 +19,7 @@ TaskCreate: "/brana:fix — DIAGNOSE"   (blocked by REPRODUCE)
 TaskCreate: "/brana:fix — FIX"        (blocked by DIAGNOSE)
 TaskCreate: "/brana:fix — VERIFY"     (blocked by FIX)
 TaskCreate: "/brana:fix — COMMIT"     (blocked by VERIFY)
+TaskCreate: "/brana:fix — HARDEN"     (blocked by COMMIT, optional)
 ```
 
 Mark each `in_progress` when starting, `completed` when done. Resume after compression by calling `TaskList` and finding the `in_progress` step.
@@ -29,7 +30,7 @@ After creating the step registry, call `/goal` unless `--no-goal` was passed:
 /goal "fix {task-id}: reproduce → diagnose → fix → verify → commit"
 ```
 
-The COMMIT step is the natural terminator — self-terminate when the commit is complete.
+COMMIT is the natural terminator for single fixes. HARDEN fires only when recurrence is detected — skip it otherwise and self-terminate after COMMIT.
 
 ## Procedure
 
@@ -114,6 +115,71 @@ Goal: confirm the fix works and introduced no regressions.
 
 ---
 
+---
+
+### Step 6: HARDEN (conditional)
+
+Goal: convert a recurring errata class into a structural PreToolUse gate so it cannot recur.
+
+**Trigger check** (run immediately after COMMIT):
+
+```bash
+# Extract 2-3 keywords from the current fix subject/tags
+KEYWORDS="{keyword1} {keyword2}"
+# Count prior field notes matching the same class
+grep -c "$KEYWORDS" ~/.claude/CLAUDE.md \
+  "$(git rev-parse --show-toplevel)/.claude/CLAUDE.md" 2>/dev/null | \
+  awk -F: '{s+=$2} END {print s}'
+```
+
+If count ≥ 2: proceed. Otherwise: skip HARDEN entirely — mark the CC Task `completed` and self-terminate.
+
+**Harden flow (only if triggered):**
+
+1. **Identify the invariant.** State in one sentence what structural condition would have prevented every instance:
+   > "Every write to `{path}` must have `{field}` absent / `{condition}` true."
+
+2. **Identify the interception point.** Which CC tool event catches the violation before it lands?
+   - `Write` / `Edit` to a specific file or path pattern → `PreToolUse` on `Write`/`Edit`
+   - `Bash` command matching a pattern (e.g., `git commit`, `cargo build`) → `PreToolUse` on `Bash`
+   - MCP tool call → `PreToolUse` on `mcp__*`
+
+3. **Offer via AskUserQuestion — never proceed without explicit yes:**
+   ```
+   AskUserQuestion(
+     question: "This errata class ({class}) has appeared {N} times. Convert to a PreToolUse gate?\n\nProposed invariant: {invariant}\nInterception: PreToolUse on {tool} matching {pattern}",
+     options: ["Yes — draft the hook", "No — skip hardening"]
+   )
+   ```
+
+4. **If yes — draft the hook script:**
+   - File: `system/scripts/hooks/{errata-slug}-gate.sh`
+   - Pattern: check the invariant, exit 1 with a clear message if violated, exit 0 otherwise
+   - Add entry to `system/.claude-plugin/hooks.json` under `PreToolUse`
+   - Template:
+     ```bash
+     #!/usr/bin/env bash
+     # Gate: {invariant description}
+     # Errata: {errata-id} — fires when {condition}
+     INPUT=$(cat)
+     # ... extract relevant fields from $INPUT ...
+     if {violation_condition}; then
+       echo "{errata-id}: {what was wrong} — {how to fix}" >&2
+       exit 1
+     fi
+     exit 0
+     ```
+
+5. **Write a test** in `system/scripts/tests/test-{errata-slug}-gate.sh`:
+   - One test: input that SHOULD be blocked → assert exit 1
+   - One test: valid input → assert exit 0
+
+6. **Present the complete diff** (hook script + hooks.json entry + test) to the user for review before writing any file.
+
+7. **After approval:** write files, run `chmod +x` on the hook script, verify `./validate.sh` passes.
+
+---
+
 ## Rules
 
 - **Test before source.** Never touch implementation until a failing test exists. The test is the spec.
@@ -121,6 +187,7 @@ Goal: confirm the fix works and introduced no regressions.
 - **3-strike rule.** If 3 attempts have failed, stop and run `/brana:challenge` before continuing.
 - **Minimal change.** The smallest fix that makes the test pass is the right fix.
 - **No refactor during fix.** File a separate task for cleanup discovered during the fix.
+- **HARDEN is offer-only.** Never write hook files without an explicit "yes" from AskUserQuestion. Draft and present first.
 
 ## Resume After Compression
 
