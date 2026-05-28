@@ -123,6 +123,21 @@
       },
       {
         "matcher": "Bash",
+        "if": "Bash(git *)",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 3000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/branch-name-warn.sh"
+            ],
+            "continueOnBlock": true
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
