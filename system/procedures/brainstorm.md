@@ -343,6 +343,15 @@ This gate catches brainstorms that identified engineering disciplines in SHAPE b
 otherwise forget to create the corresponding backlog tasks. It's the last checkpoint before
 planning commits the idea to structured execution.
 
+**M+ challenger review** — before backlog planning, run a hive-mind 3-worker challenge on the shaped idea:
+```
+mcp__ruflo__hive-mind_spawn(count: 3, role: "specialist", prefix: "brainstorm-challenger")
+mcp__ruflo__hive-mind_consensus(action: "propose", strategy: "quorum", quorumPreset: "majority", type: "brainstorm-findings", value: "{shaped idea summary}")
+```
+Worker roles: convergent (what must hold?), systems (second-order effects?), critical (failure modes?).
+Findings confirmed by ≥2 workers surface as HIGH confidence — present these before the backlog question.
+**Fallback:** If ruflo unavailable, invoke `Skill(skill="brana:challenge", args="{shaped idea title}")` instead.
+
 ---
 
 ```
