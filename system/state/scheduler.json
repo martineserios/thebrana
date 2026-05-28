@@ -217,6 +217,18 @@
       "timeoutSeconds": 300,
       "captureOutput": true,
       "_comment": "t-1136: nightly Tier 1+2 LinkedIn URL relevance filter + cluster assignment. Enabled 2026-04-12 after dry-run passed clean. Tier 3 is manual only."
+    },
+    "content-harvest": {
+      "type": "skill",
+      "skill": "/brana:harvest 7d --auto",
+      "project": "~/enter_thebrana/ventures/linkedin",
+      "schedule": "Sun *-*-* 22:00:00",
+      "model": "sonnet",
+      "allowedTools": "Read,Glob,Grep,Bash",
+      "enabled": true,
+      "timeoutSeconds": 600,
+      "captureOutput": true,
+      "_comment": "t-680: weekly content harvest. Synced from template 2026-05-25 (t-1680) — was silently missing from live."
     }
   }
 }
