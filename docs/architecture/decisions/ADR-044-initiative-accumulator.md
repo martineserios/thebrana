@@ -1,3 +1,6 @@
+---
+status: accepted
+---
 # ADR-044 — Initiative accumulator: cross-day session continuity
 
 **Status:** Accepted  

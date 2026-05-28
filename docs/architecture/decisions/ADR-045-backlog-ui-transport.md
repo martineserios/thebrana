@@ -1,3 +1,6 @@
+---
+status: accepted
+---
 # ADR-045 — Backlog web UI transport: CLI shell-out vs axum sidecar
 
 **Status:** Accepted  

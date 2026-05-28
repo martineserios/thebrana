@@ -1,3 +1,6 @@
+---
+status: accepted
+---
 # ADR-046: Keep smart:false as LOAD Default (smart:true Deferred)
 
 **Status:** Accepted  

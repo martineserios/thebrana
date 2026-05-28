@@ -1,3 +1,6 @@
+---
+status: accepted
+---
 # ADR-043 — session_labels: structured breadcrumb for same-day merges
 
 **Status:** Accepted  
