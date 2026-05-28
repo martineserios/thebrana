@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-28T13:04:48Z",
+  "generated": "2026-05-28T16:44:56Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -560,7 +560,8 @@
       "type": "Roadmap",
       "impl_files": [
         "system/agents/{name",
-        "system/agents/"
+        "system/agents/",
+        "system/agents/gemini.md"
       ]
     },
     "docs/architecture/bootstrap.md": {
@@ -1313,7 +1314,6 @@
         "system/skills/",
         "system/hooks/",
         "system/hooks/tests/test-post-tool-use-test-signal.sh",
-        "system/hooks/lib/<name>.sh",
         "system/hooks",
         "system/hooks/foo.sh"
       ]

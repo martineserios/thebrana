@@ -27,6 +27,7 @@
 | PreToolUse | `Bash` | `doc-gate.sh` | 5000ms |
 | PreToolUse | `Bash` | `main-guard.sh` | 5000ms |
 | PreToolUse | `Bash` | `branch-verify.sh` | 5000ms |
+| PreToolUse | `Bash` | `branch-name-warn.sh` | 3000ms |
 | PreToolUse | `Bash` | `no-attribution-commit.sh` | 3000ms |
 | PreToolUse | `Bash` | `commit-msg-verify.sh` | 3000ms |
 | PreToolUse | `Read|Grep|Glob` | `guard-explore.sh` | 5000ms |
@@ -44,6 +45,12 @@
 | UserPromptSubmit | `` | `signal-capture.sh` | 3000ms |
 
 ## Hook Scripts
+
+### `branch-name-warn.sh`
+
+Branch Name Guard — PreToolUse hook for Bash (git branch creation)
+
+**Gate:** Blocking
 
 ### `branch-verify.sh`
 

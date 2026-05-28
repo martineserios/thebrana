@@ -51,7 +51,7 @@ Expand brana's use of CC hook events from 5 to 8+, adding native TaskCompleted, 
 | Event | Hook | Registered In |
 |-------|------|---------------|
 | PreToolUse (Write\|Edit) | pre-tool-use.sh | plugin hooks.json |
-| PreToolUse (Bash) | worktree-gate.sh | plugin hooks.json |
+| PreToolUse (Bash) | worktree-gate.sh, branch-name-warn.sh | plugin hooks.json |
 | PostToolUse (Write\|Edit\|Bash) | post-tool-use.sh | bootstrap settings.json |
 | PostToolUse (Write\|Edit) | post-sale.sh, post-tasks-validate.sh | bootstrap settings.json |
 | PostToolUse (ExitPlanMode) | post-plan-challenge.sh | bootstrap settings.json |

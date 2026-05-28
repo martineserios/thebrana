@@ -2,7 +2,7 @@
 
 # Agent Reference
 
-**12 agents** defined in `system/agents/`.
+**13 agents** defined in `system/agents/`.
 
 | Agent | Model | Memory | Color | Description |
 |-------|-------|--------|-------|-------------|
@@ -11,7 +11,8 @@
 | challenger | sonnet | yes | red | Adversarially review a plan, architecture decision, or approach. Stress-test bef |
 | client-scanner | haiku | yes | teal | Scan client project structure, detect tech stack, check brana alignment. Use whe |
 | daily-ops | haiku | yes | green | Daily venture focus card — health snapshot, pending actions, experiments. Use  |
-| debrief-analyst | sonnet | yes | blue | Extract errata, learnings, and patterns from a work session. Classify into errat |
+| debrief-analyst | sonnet | yes | blue | Extract errata, learnings, and patterns from a work session. Use at end of imple |
+| gemini | haiku | — | blue | Delegate to agy (Gemini Flash). Use for research, boilerplate, doc drafts, batch |
 | memory-curator | haiku | yes | purple | Recall patterns from knowledge system, cross-pollinate across clients, check kno |
 | metrics-collector | haiku | yes | indigo | Collect venture metrics from snapshots, experiments, pipeline, financials. Use w |
 | pipeline-tracker | haiku | yes | amber | Pipeline status — deal stages, overdue follow-ups, conversion trends. Use when |
@@ -45,7 +46,7 @@ Archive project patterns and knowledge when retiring. Categorize as transferable
 
 ## challenger
 
-Adversarially review a plan, architecture decision, or approach. Stress-test before commitment. Use when a significant decision is being made or a plan is being finalized. Not for: data collection, project diagnostics, session debrief.
+Adversarially review a plan, architecture decision, or approach. Stress-test before commitment. Use when a significant decision is being made. Not for: data collection, project diagnostics.
 
 **Model:** sonnet
 
@@ -100,7 +101,7 @@ Daily venture focus card — health snapshot, pending actions, experiments. Use 
 
 ## debrief-analyst
 
-Extract errata, learnings, and patterns from a work session. Classify into errata, process learnings, and issues. Use at end of implementation sessions or when notable learnings emerge. Not for: adversarial review, project scanning, knowledge recall.
+Extract errata, learnings, and patterns from a work session. Use at end of implementation sessions or when notable learnings emerge. Not for: adversarial review, project scanning, knowledge recall.
 
 **Model:** sonnet
 
@@ -117,9 +118,24 @@ Extract errata, learnings, and patterns from a work session. Classify into errat
 **Disallowed:** Write, Edit, NotebookEdit
 
 
+## gemini
+
+Delegate to agy (Gemini Flash). Use for research, boilerplate, doc drafts, batch summarization. Not for: knowledge recall, project diagnostics.
+
+**Model:** haiku
+
+**Max turns:** 15
+
+**Permission mode:** auto
+
+**Color:** blue
+
+**Tools:** Bash, Read, mcp__brana__agy_delegate, mcp__brana__backlog_set
+
+
 ## memory-curator
 
-Recall patterns from knowledge system, cross-pollinate across clients, check knowledge health. Use when starting work on a topic, encountering a familiar problem, or periodic knowledge checks. Not for: codebase search, project scanning, web research.
+Recall patterns from knowledge system, cross-pollinate across clients, check knowledge health. Use when starting work on a topic or periodic checks. Not for: codebase search, project scanning.
 
 **Model:** haiku
 

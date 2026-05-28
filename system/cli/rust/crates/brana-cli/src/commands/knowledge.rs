@@ -15,6 +15,21 @@ use crate::util::{find_project_root, home};
 
 /// Warn if the installed binary predates source changes in system/cli/rust/crates/.
 /// No-ops silently when the source tree can't be located (non-dev environments).
+const STALE_BINARY_SENTINELS: &[&str] = &[
+    "brana-core/src/knowledge_pipeline.rs",
+    "brana-cli/src/commands/knowledge.rs",
+    "brana-core/src/tasks.rs",
+];
+
+/// Returns true when any sentinel source file in `crates_root` is newer than `binary_mtime`.
+fn stale_binary_check(crates_root: &std::path::Path, binary_mtime: SystemTime) -> bool {
+    let newest_src: Option<SystemTime> = STALE_BINARY_SENTINELS.iter()
+        .filter_map(|rel| std::fs::metadata(crates_root.join(rel)).ok())
+        .filter_map(|m| m.modified().ok())
+        .max();
+    newest_src.is_some_and(|src| binary_mtime < src)
+}
+
 fn warn_if_stale_binary() {
     let binary_mtime = std::env::current_exe()
         .ok()
@@ -32,23 +47,10 @@ fn warn_if_stale_binary() {
         });
     let Some(crates_root) = crates_root else { return };
 
-    // Check the files most likely to change during knowledge pipeline work.
-    let sentinels = [
-        "brana-core/src/knowledge_pipeline.rs",
-        "brana-cli/src/commands/knowledge.rs",
-        "brana-core/src/tasks.rs",
-    ];
-    let newest_src: Option<SystemTime> = sentinels.iter()
-        .filter_map(|rel| std::fs::metadata(crates_root.join(rel)).ok())
-        .filter_map(|m| m.modified().ok())
-        .max();
-
-    if let Some(src_mtime) = newest_src {
-        if binary_mtime < src_mtime {
-            eprintln!("⚠  brana: installed binary is stale — source changed after last build.");
-            eprintln!("   Rebuild: cd {}/.. && cargo build -p brana-cli && cp target/debug/brana ~/.local/bin/brana",
-                crates_root.display());
-        }
+    if stale_binary_check(&crates_root, binary_mtime) {
+        eprintln!("⚠  brana: installed binary is stale — source changed after last build.");
+        eprintln!("   Rebuild: cd {}/.. && cargo build -p brana-cli && cp target/debug/brana ~/.local/bin/brana",
+            crates_root.display());
     }
 }
 
@@ -1644,8 +1646,35 @@ mod tests {
     fn test_stale_binary_no_panic_when_source_absent() {
         // Should silently no-op when crates root doesn't exist.
         // BRANA_SRC_ROOT points to a nonexistent path.
-        std::env::set_var("BRANA_SRC_ROOT", "/nonexistent/path/crates");
+        unsafe { std::env::set_var("BRANA_SRC_ROOT", "/nonexistent/path/crates"); }
         warn_if_stale_binary(); // must not panic
-        std::env::remove_var("BRANA_SRC_ROOT");
+        unsafe { std::env::remove_var("BRANA_SRC_ROOT"); }
+    }
+
+    #[test]
+    fn test_stale_binary_detects_newer_source() {
+        use std::time::{Duration, SystemTime};
+        // Build a temp crates_root with one sentinel file.
+        let tmp = std::env::temp_dir()
+            .join(format!("brana-stale-test-{}", std::process::id()));
+        let sentinel_dir = tmp.join("brana-core/src");
+        std::fs::create_dir_all(&sentinel_dir).unwrap();
+        std::fs::write(sentinel_dir.join("knowledge_pipeline.rs"), "// sentinel").unwrap();
+
+        // A binary_mtime at epoch is older than any real file — must be detected as stale.
+        let ancient = SystemTime::UNIX_EPOCH + Duration::from_secs(1);
+        assert!(
+            stale_binary_check(&tmp, ancient),
+            "should report stale when source is newer than binary"
+        );
+
+        // A binary_mtime far in the future must NOT be detected as stale.
+        let future = SystemTime::now() + Duration::from_secs(3600);
+        assert!(
+            !stale_binary_check(&tmp, future),
+            "should not report stale when binary is newer than source"
+        );
+
+        let _ = std::fs::remove_dir_all(&tmp);
     }
 }

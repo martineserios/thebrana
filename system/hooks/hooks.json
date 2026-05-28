@@ -131,8 +131,7 @@
             "args": [
               "bash",
               "${CLAUDE_PLUGIN_ROOT}/hooks/branch-name-warn.sh"
-            ],
-            "continueOnBlock": true
+            ]
           }
         ]
       },

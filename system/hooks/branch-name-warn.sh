@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
-# Branch Name Warn — PreToolUse hook for Bash (git branch creation)
+# Branch Name Guard — PreToolUse hook for Bash (git branch creation)
 #
-# Warns when a new branch name does not match the project convention:
+# Hard-blocks when a new branch name does not match the project convention:
 #   {epic-slug}/{work-type}/t-{NNN}-{description-slug}
 #
-# Advisory only (continue: true). Escalate to hard-block once existing
-# branches are migrated (see t-1620).
+# Shipped as advisory (t-1620). Upgraded to hard-block (t-1718).
 #
 # Intercepts: git switch -c, git checkout -b, git branch <name>
 # Skips: main, master, docs/*, hotfix/* (special branches)
@@ -27,16 +26,16 @@ pass_through() {
     exit 0
 }
 
-warn() {
+block() {
     local branch="$1"
-    cat >&2 <<WARN
-⚠  branch-name-warn: '$branch' does not match convention.
+    cat >&2 <<BLOCK
+✗  branch-name-guard: '$branch' does not match convention.
    Expected: {epic-slug}/{work-type}/t-{NNN}-{description}
    work-type ∈ feat|fix|chore|research|test|docs|refactor
    Example:  session/fix/t-1700-epic-scoped-assertion
-   Use --force-name to suppress this warning.
-WARN
-    echo '{"continue": true}'
+   Use --force-name to bypass this gate.
+BLOCK
+    echo '{"continue": false}'
     exit 0
 }
 
@@ -72,4 +71,4 @@ esac
 CONVENTION='^[a-z0-9][a-z0-9-]+/(feat|fix|chore|research|test|docs|refactor)/t-[0-9]+-'
 echo "$BRANCH" | grep -qE "$CONVENTION" && pass_through
 
-warn "$BRANCH"
+block "$BRANCH"
