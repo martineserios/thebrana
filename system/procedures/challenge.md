@@ -50,10 +50,25 @@ Adversarial review with two modes. **Standard:** Opus stress-tests reasoning, Ge
    **4a. Challenger(s)** — Two modes based on step 1 detection:
 
    **Standard mode** (default, no `--council` flag):
-   Spawn one Opus subagent using the Agent tool:
-   - `model: "opus"`, `subagent_type: "general-purpose"`
-   - Provide: the plan/approach being challenged + relevant code/files + the chosen flavor
-   - Key instruction: "Be specific and actionable. Don't nitpick — focus on things that would actually cause problems or wasted effort. Suggest concrete alternatives for each concern. Rate each finding: CRITICAL (would block success), WARNING (risk but manageable), OBSERVATION (minor, for consideration)."
+   Spawn a 3-worker hive-mind quorum (convergent + systems + critical perspectives) via ruflo:
+   ```
+   mcp__ruflo__hive-mind_spawn(count: 3, role: "specialist", prefix: "challenger")
+   ```
+   Assign each worker a distinct cognitive lens:
+   - **Worker 1 (convergent):** Synthesize constraints — what is definitely true, what rules must hold?
+   - **Worker 2 (systems):** Map second-order effects — what else breaks, what cascades?
+   - **Worker 3 (critical):** Adversarial — what are the failure modes, hidden debt, worst-case paths?
+
+   After all 3 workers respond, collect findings via quorum consensus:
+   ```
+   mcp__ruflo__hive-mind_consensus(action: "propose", strategy: "quorum", quorumPreset: "majority", type: "findings", value: "{merged findings}")
+   ```
+   A finding that appears in ≥2 of 3 workers is HIGH confidence. Single-worker findings are OBSERVATION.
+
+   **Fallback:** If ruflo unavailable, spawn one Opus subagent (`model: "opus"`, `subagent_type: "general-purpose"`) — same prompt and rating instructions as before.
+
+   For all workers/fallback — provide: the plan/approach being challenged + relevant code/files + the chosen flavor.
+   Key instruction: "Be specific and actionable. Don't nitpick — focus on things that would actually cause problems or wasted effort. Suggest concrete alternatives for each concern. Rate each finding: CRITICAL (would block success), WARNING (risk but manageable), OBSERVATION (minor, for consideration)."
 
    **Council mode** (`--council` flag set in step 1):
    Spawn 4 agents in parallel using the Agent tool. Each receives a distinct role; no agent sees another's output — synthesis is step 5's job. Use `subagent_type: "brana:challenger"` for each.
