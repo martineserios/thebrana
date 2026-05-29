@@ -119,14 +119,14 @@ pub fn session_start_marker_path(project_root: &Path) -> PathBuf {
 }
 
 /// Write the initiative marker atomically. Called by `brana backlog start` when the
-/// started task has a non-null `initiative` field.
+/// started task has a non-null `epic` field.
 pub fn write_initiative_marker(project_root: &Path, slug: &str, task_id: &str) -> Result<()> {
     let path = session_start_marker_path(project_root);
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
     }
     let json = serde_json::json!({
-        "initiative": slug,
+        "epic": slug,
         "task_id": task_id,
         "written_at": Utc::now().to_rfc3339()
     });
@@ -141,7 +141,7 @@ pub fn read_initiative_marker(project_root: &Path) -> Option<String> {
     let path = session_start_marker_path(project_root);
     let data = std::fs::read_to_string(&path).ok()?;
     let v: serde_json::Value = serde_json::from_str(&data).ok()?;
-    v["initiative"].as_str().map(|s| s.to_string())
+    v["epic"].as_str().map(|s| s.to_string())
 }
 
 /// Delete the initiative marker. Called by close Step 9c Tier 1 after consuming the slug.
@@ -153,14 +153,14 @@ pub fn clear_initiative_marker(project_root: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Write the initiative marker if the task JSON has a non-empty `initiative` field.
+/// Write the initiative marker if the task JSON has a non-empty `epic` field.
 /// Called by `brana run` after setting the task to in_progress. No-op when the field is absent or null.
 pub fn maybe_write_initiative_marker(
     project_root: &Path,
     task_id: &str,
     task: &serde_json::Value,
 ) -> Result<()> {
-    if let Some(slug) = task["initiative"].as_str() {
+    if let Some(slug) = task["epic"].as_str() {
         if !slug.is_empty() {
             write_initiative_marker(project_root, slug, task_id)?;
         }
@@ -323,7 +323,7 @@ mod tests {
             branch: Some("main".to_string()),
             session_label: Some(label.to_string()),
             session_labels: vec![label.to_string()],
-            initiative: None,
+            epic: None,
             consumed_at: None,
             accomplished: accomplished.iter().map(|s| s.to_string()).collect(),
             learnings: learnings.iter().map(|s| s.to_string()).collect(),
@@ -480,15 +480,15 @@ mod tests {
     }
 
     #[test]
-    fn maybe_write_marker_when_initiative_present() {
+    fn maybe_write_marker_when_epic_present() {
         let dir = tempdir().unwrap();
-        let task = serde_json::json!({"id": "t-999", "initiative": "rust-cli"});
+        let task = serde_json::json!({"id": "t-999", "epic": "rust-cli"});
         maybe_write_initiative_marker(dir.path(), "t-999", &task).unwrap();
         assert_eq!(read_initiative_marker(dir.path()).as_deref(), Some("rust-cli"));
     }
 
     #[test]
-    fn maybe_write_marker_noop_when_initiative_absent() {
+    fn maybe_write_marker_noop_when_epic_absent() {
         let dir = tempdir().unwrap();
         let task = serde_json::json!({"id": "t-999"});
         maybe_write_initiative_marker(dir.path(), "t-999", &task).unwrap();
@@ -496,9 +496,9 @@ mod tests {
     }
 
     #[test]
-    fn maybe_write_marker_noop_when_initiative_null() {
+    fn maybe_write_marker_noop_when_epic_null() {
         let dir = tempdir().unwrap();
-        let task = serde_json::json!({"id": "t-999", "initiative": null});
+        let task = serde_json::json!({"id": "t-999", "epic": null});
         maybe_write_initiative_marker(dir.path(), "t-999", &task).unwrap();
         assert!(read_initiative_marker(dir.path()).is_none());
     }

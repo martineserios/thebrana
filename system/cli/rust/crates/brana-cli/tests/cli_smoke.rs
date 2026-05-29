@@ -256,27 +256,27 @@ fn backlog_add_priority_and_context_flags_persist() {
     assert_eq!(added["effort"].as_str(), Some("S"));
 }
 
-// ── Backlog: initiative model (Wave 4B) ──────────────────────────────────
+// ── Backlog: epic model (Wave 4B) ──────────────────────────────────
 
 const FOCUS_FIXTURE: &str = r#"{
   "version": "1",
   "project": "test",
   "tasks": [
-    {"id":"t-001","subject":"initiative task","type":"task","status":"pending","priority":"P2","effort":"S","initiative":"cc-alignment","work_type":"implement","tags":[],"created":"2026-01-01"},
+    {"id":"t-001","subject":"epic task","type":"task","status":"pending","priority":"P2","effort":"S","epic":"cc-alignment","work_type":"implement","tags":[],"created":"2026-01-01"},
     {"id":"t-002","subject":"overflow task","type":"task","status":"pending","priority":"P1","effort":"S","tags":[],"created":"2026-01-01"},
     {"id":"t-003","subject":"research task","type":"task","status":"pending","priority":"P2","effort":"M","work_type":"research","tags":[],"created":"2026-01-01"}
   ]
 }"#;
 
 #[test]
-fn backlog_focus_shows_initiative_header() {
+fn backlog_focus_shows_epic_header() {
     let tmp = tempfile::tempdir().unwrap();
     let claude_dir = tmp.path().join(".claude");
     std::fs::create_dir_all(&claude_dir).unwrap();
     std::fs::write(claude_dir.join("tasks.json"), FOCUS_FIXTURE).unwrap();
     std::fs::write(
         claude_dir.join("tasks-config.json"),
-        r#"{"active_initiative":"cc-alignment"}"#,
+        r#"{"active_epic":"cc-alignment"}"#,
     ).unwrap();
     brana()
         .args(["backlog", "focus"])
@@ -300,7 +300,7 @@ fn backlog_set_active_updates_config() {
     assert!(cfg_path.exists(), "tasks-config.json should be created");
     let cfg: serde_json::Value =
         serde_json::from_str(&std::fs::read_to_string(&cfg_path).unwrap()).unwrap();
-    assert_eq!(cfg["active_initiative"].as_str(), Some("test-initiative"));
+    assert_eq!(cfg["active_epic"].as_str(), Some("test-initiative"));
 }
 
 #[test]
@@ -316,7 +316,7 @@ fn backlog_add_with_work_type_persists() {
             "backlog", "add",
             "--subject", "wire new filter",
             "--work-type", "implement",
-            "--initiative", "cc-alignment",
+            "--epic", "cc-alignment",
             "--effort", "S",
             "--file",
         ])
@@ -327,7 +327,7 @@ fn backlog_add_with_work_type_persists() {
     let val: serde_json::Value = serde_json::from_str(&written).unwrap();
     let added = &val["tasks"][0];
     assert_eq!(added["work_type"].as_str(), Some("implement"));
-    assert_eq!(added["initiative"].as_str(), Some("cc-alignment"));
+    assert_eq!(added["epic"].as_str(), Some("cc-alignment"));
 }
 
 #[test]

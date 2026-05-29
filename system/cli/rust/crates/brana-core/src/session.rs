@@ -194,9 +194,9 @@ pub struct SessionState {
     /// All session labels merged into today's state (breadcrumb for multi-session days).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub session_labels: Vec<String>,
-    /// Active initiative slug at close time (used by session_initiative::upsert_initiative).
+    /// Active epic slug at close time (used by session_initiative::upsert_initiative).
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub initiative: Option<String>,
+    pub epic: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub consumed_at: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -265,7 +265,7 @@ impl SessionState {
             branch,
             session_label: None,
             session_labels: Vec::new(),
-            initiative: None,
+            epic: None,
             consumed_at: None,
             accomplished: Vec::new(),
             learnings: Vec::new(),
@@ -853,7 +853,7 @@ mod tests {
             branch: Some("main".to_string()),
             session_label: Some("test session".to_string()),
             session_labels: Vec::new(),
-            initiative: None,
+            epic: None,
             consumed_at: None,
             accomplished: vec!["did thing A".to_string()],
             learnings: vec!["learned X".to_string()],
@@ -980,7 +980,7 @@ mod tests {
             branch: None,
             session_label: None,
             session_labels: Vec::new(),
-            initiative: None,
+            epic: None,
             consumed_at: None,
             accomplished: accomplished.into_iter().map(String::from).collect(),
             learnings: learnings.into_iter().map(String::from).collect(),
@@ -1460,20 +1460,20 @@ mod tests {
     fn initiative_field_roundtrip() {
         // Serialize with initiative set, deserialize, assert equality.
         let mut state = SessionState::minimal(None);
-        state.initiative = Some("session-continuity".to_string());
+        state.epic = Some("session-continuity".to_string());
         let json = serde_json::to_string(&state).unwrap();
         let back: SessionState = serde_json::from_str(&json).unwrap();
-        assert_eq!(back.initiative.as_deref(), Some("session-continuity"));
+        assert_eq!(back.epic.as_deref(), Some("session-continuity"));
     }
 
     #[test]
-    fn initiative_backward_compat_missing_field() {
-        // Old session-state.json without initiative field must deserialize to None.
+    fn epic_backward_compat_missing_field() {
+        // Old session-state.json without epic field must deserialize to None.
         // Prevents silent regression if #[serde(default)] is accidentally removed.
         let json = r#"{"version":1,"written_at":"2026-05-25T10:00:00Z","session_label":"old label"}"#;
         let state: SessionState = serde_json::from_str(json)
-            .expect("old JSON without initiative must deserialize");
-        assert!(state.initiative.is_none(), "initiative must default to None when absent");
+            .expect("old JSON without epic must deserialize");
+        assert!(state.epic.is_none(), "epic must default to None when absent");
     }
 
     // ── dedup_next_items ─────────────────────────────────────────────────

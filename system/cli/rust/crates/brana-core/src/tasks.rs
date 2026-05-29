@@ -83,11 +83,11 @@ pub fn text_match(task: &Value, needle: &str) -> bool {
         })
 }
 
-/// Walk task's parent chain and inherit `initiative` from the first ancestor
-/// that has one. Does nothing if the task already has an initiative set.
+/// Walk task's parent chain and inherit `epic` from the first ancestor
+/// that has one. Does nothing if the task already has an epic set.
 pub fn inherit_initiative(task: &mut Value, all: &[Value]) {
-    // Don't override explicit initiative
-    if task["initiative"].as_str().map(|s| !s.is_empty()).unwrap_or(false) {
+    // Don't override explicit epic
+    if task["epic"].as_str().map(|s| !s.is_empty()).unwrap_or(false) {
         return;
     }
     // Walk up parent chain
@@ -100,9 +100,9 @@ pub fn inherit_initiative(task: &mut Value, all: &[Value]) {
         match parent {
             None => break,
             Some(p) => {
-                if let Some(init) = p["initiative"].as_str() {
+                if let Some(init) = p["epic"].as_str() {
                     if !init.is_empty() {
-                        task["initiative"] = Value::String(init.to_string());
+                        task["epic"] = Value::String(init.to_string());
                         return;
                     }
                 }
@@ -121,7 +121,7 @@ pub struct TaskFilter<'a> {
     pub effort: Option<&'a str>,
     pub search: Option<&'a str>,
     pub types: Vec<&'a str>,
-    pub initiative: Option<&'a str>,
+    pub epic: Option<&'a str>,
     pub work_type: Option<&'a str>,
 }
 
@@ -134,7 +134,7 @@ impl Default for TaskFilter<'_> {
             effort: None,
             search: None,
             types: vec!["task", "subtask"],
-            initiative: None,
+            epic: None,
             work_type: None,
         }
     }
@@ -179,8 +179,8 @@ pub fn filter_tasks_by<'a>(tasks: &'a [Value], all: &[Value], filter: &TaskFilte
                     return false;
                 }
             }
-            if let Some(init) = filter.initiative {
-                if t["initiative"].as_str().unwrap_or("") != init {
+            if let Some(init) = filter.epic {
+                if t["epic"].as_str().unwrap_or("") != init {
                     return false;
                 }
             }
@@ -205,7 +205,7 @@ pub fn filter_tasks<'a>(
     effort: Option<&str>,
     search: Option<&str>,
     types: &[&str],
-    initiative: Option<&str>,
+    epic: Option<&str>,
     work_type: Option<&str>,
 ) -> Vec<&'a Value> {
     filter_tasks_by(tasks, all, &TaskFilter {
@@ -215,7 +215,7 @@ pub fn filter_tasks<'a>(
         effort,
         search,
         types: types.to_vec(),
-        initiative,
+        epic,
         work_type,
     })
 }
@@ -712,7 +712,7 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
         "priority" | "effort" | "status" | "type" | "level" | "strategy"
         | "build_step" | "execution" | "branch" | "subject" | "parent"
         | "started" | "completed" | "created" | "github_issue"
-        | "initiative" | "work_type" | "spawn" | "spawn_strategy" => {
+        | "epic" | "work_type" | "spawn" | "spawn_strategy" => {
             if field == "priority" {
                 validate_priority(value)?;
             }
@@ -764,7 +764,7 @@ pub fn compute_stats(tasks: &[Value], all: &[Value]) -> Value {
     let mut by_priority: HashMap<String, usize> = HashMap::new();
     let mut by_type: HashMap<String, usize> = HashMap::new();
     let mut by_work_type: HashMap<String, usize> = HashMap::new();
-    let mut by_initiative: HashMap<String, usize> = HashMap::new();
+    let mut by_epic: HashMap<String, usize> = HashMap::new();
 
     for t in tasks {
         let raw = raw_status(t, "unknown").to_string();
@@ -780,8 +780,8 @@ pub fn compute_stats(tasks: &[Value], all: &[Value]) -> Value {
         if let Some(wt) = t["work_type"].as_str() {
             *by_work_type.entry(wt.to_string()).or_default() += 1;
         }
-        if let Some(init) = t["initiative"].as_str() {
-            *by_initiative.entry(init.to_string()).or_default() += 1;
+        if let Some(init) = t["epic"].as_str() {
+            *by_epic.entry(init.to_string()).or_default() += 1;
         }
     }
 
@@ -792,7 +792,7 @@ pub fn compute_stats(tasks: &[Value], all: &[Value]) -> Value {
         "by_priority": by_priority,
         "by_type": by_type,
         "by_work_type": by_work_type,
-        "by_initiative": by_initiative,
+        "by_epic": by_epic,
     })
 }
 
@@ -1415,7 +1415,7 @@ mod tests {
 
     #[test]
     fn test_focus_score_initiative_boost() {
-        let boosted = json!({"priority": "P2", "effort": "S", "blocked_by": [], "initiative": "cc-alignment"});
+        let boosted = json!({"priority": "P2", "effort": "S", "blocked_by": [], "epic": "cc-alignment"});
         let plain   = json!({"priority": "P0", "effort": "S", "blocked_by": []});
         // P2 + 500 boost = 690 > P0 + 0 = 390
         assert!(focus_score(&boosted, 500.0) > focus_score(&plain, 0.0));
@@ -1445,13 +1445,13 @@ mod tests {
     #[test]
     fn test_filter_tasks_by_initiative() {
         let tasks = vec![
-            json!({"id": "t-1", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "initiative": "cc-alignment"}),
-            json!({"id": "t-2", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "initiative": "notebooklm"}),
-            json!({"id": "t-3", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "initiative": "cc-alignment"}),
+            json!({"id": "t-1", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "epic": "cc-alignment"}),
+            json!({"id": "t-2", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "epic": "notebooklm"}),
+            json!({"id": "t-3", "status": "pending", "type": "task", "tags": [], "blocked_by": [], "epic": "cc-alignment"}),
         ];
         let result = filter_tasks(&tasks, &tasks, None, None, None, None, None, &["task", "subtask"], Some("cc-alignment"), None);
         assert_eq!(result.len(), 2);
-        assert!(result.iter().all(|t| t["initiative"] == "cc-alignment"));
+        assert!(result.iter().all(|t| t["epic"] == "cc-alignment"));
     }
 
     #[test]
@@ -1472,20 +1472,20 @@ mod tests {
 
     #[test]
     fn test_inherit_initiative_from_parent() {
-        let parent = json!({"id": "ph-001", "initiative": "cc-alignment", "type": "phase"});
+        let parent = json!({"id": "ph-001", "epic": "cc-alignment", "type": "phase"});
         let all = vec![parent.clone()];
         let mut task = json!({"id": "t-001", "parent": "ph-001"});
         inherit_initiative(&mut task, &all);
-        assert_eq!(task["initiative"].as_str(), Some("cc-alignment"));
+        assert_eq!(task["epic"].as_str(), Some("cc-alignment"));
     }
 
     #[test]
     fn test_inherit_initiative_does_not_override_explicit() {
-        let parent = json!({"id": "ph-001", "initiative": "cc-alignment", "type": "phase"});
+        let parent = json!({"id": "ph-001", "epic": "cc-alignment", "type": "phase"});
         let all = vec![parent.clone()];
-        let mut task = json!({"id": "t-001", "parent": "ph-001", "initiative": "memory-arch"});
+        let mut task = json!({"id": "t-001", "parent": "ph-001", "epic": "memory-arch"});
         inherit_initiative(&mut task, &all);
-        assert_eq!(task["initiative"].as_str(), Some("memory-arch"), "explicit initiative must not be overridden");
+        assert_eq!(task["epic"].as_str(), Some("memory-arch"), "explicit epic must not be overridden");
     }
 
     #[test]
@@ -1494,19 +1494,19 @@ mod tests {
         let all = vec![parent.clone()];
         let mut task = json!({"id": "t-001", "parent": "ph-001"});
         inherit_initiative(&mut task, &all);
-        assert!(task["initiative"].is_null() || task.get("initiative").is_none(),
-            "no inheritance when parent has no initiative");
+        assert!(task["epic"].is_null() || task.get("epic").is_none(),
+            "no inheritance when parent has no epic");
     }
 
     #[test]
     fn test_inherit_initiative_grandparent() {
-        let grandparent = json!({"id": "in-001", "initiative": "rust-cli", "type": "initiative"});
+        let grandparent = json!({"id": "in-001", "epic": "rust-cli", "type": "initiative"});
         let parent = json!({"id": "ph-001", "parent": "in-001", "type": "phase"});
         let all = vec![grandparent.clone(), parent.clone()];
         let mut task = json!({"id": "t-001", "parent": "ph-001"});
         inherit_initiative(&mut task, &all);
-        assert_eq!(task["initiative"].as_str(), Some("rust-cli"),
-            "should inherit from grandparent when parent has no initiative");
+        assert_eq!(task["epic"].as_str(), Some("rust-cli"),
+            "should inherit from grandparent when parent has no epic");
     }
 
     // ── t-1542: level field tests ────────────────────────────────────────
@@ -2667,10 +2667,10 @@ mod tests {
     #[test]
     fn task_filter_by_initiative() {
         let tasks = vec![
-            json!({"id": "t-a", "type": "task", "status": "pending", "tags": [], "blocked_by": [], "initiative": "cc-alignment"}),
-            json!({"id": "t-b", "type": "task", "status": "pending", "tags": [], "blocked_by": [], "initiative": "ruflo"}),
+            json!({"id": "t-a", "type": "task", "status": "pending", "tags": [], "blocked_by": [], "epic": "cc-alignment"}),
+            json!({"id": "t-b", "type": "task", "status": "pending", "tags": [], "blocked_by": [], "epic": "ruflo"}),
         ];
-        let f = TaskFilter { initiative: Some("cc-alignment"), types: vec!["task"], ..Default::default() };
+        let f = TaskFilter { epic: Some("cc-alignment"), types: vec!["task"], ..Default::default() };
         let result = filter_tasks_by(&tasks, &tasks, &f);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0]["id"], "t-a");

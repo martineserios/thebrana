@@ -87,7 +87,7 @@ pub fn cmd_query(
     priority: Option<String>, effort: Option<String>, search: Option<String>,
     count: bool, output: String, theme: &themes::Theme,
     task_type: Option<String>, parent: Option<String>, branch: Option<String>,
-    work_type: Option<String>, initiative: Option<String>,
+    work_type: Option<String>, epic: Option<String>,
 ) -> anyhow::Result<()> {
     let tf = find_tasks_file().context("tasks.json not found")?;
     let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
@@ -110,7 +110,7 @@ pub fn cmd_query(
             effort: effort.as_deref(),
             search: search.as_deref(),
             types: types.clone(),
-            initiative: initiative.as_deref(),
+            epic: epic.as_deref(),
             work_type: work_type.as_deref(),
             ..Default::default()
         },
@@ -164,15 +164,15 @@ pub fn cmd_focus(
     top: usize,
     json_out: bool,
     work_type: Option<&str>,
-    initiative_override: Option<&str>,
+    epic_override: Option<&str>,
 ) -> anyhow::Result<()> {
     let tf = find_tasks_file().context("tasks.json not found")?;
     let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
 
     let cfg = load_tasks_config();
-    let active = initiative_override
+    let active = epic_override
         .map(|s| s.to_string())
-        .or_else(|| cfg["active_initiative"].as_str().map(|s| s.to_string()));
+        .or_else(|| cfg["active_epic"].as_str().map(|s| s.to_string()));
 
     let mut scored: Vec<_> = data.tasks.iter()
         .filter(|t| matches!(t["type"].as_str().unwrap_or("task"), "task" | "subtask"))
@@ -180,7 +180,7 @@ pub fn cmd_focus(
         .filter(|t| work_type.map_or(true, |wt| t["work_type"].as_str().unwrap_or("") == wt))
         .map(|t| {
             let boost = active.as_deref()
-                .filter(|a| t["initiative"].as_str() == Some(a))
+                .filter(|a| t["epic"].as_str() == Some(a))
                 .map_or(0.0, |_| 500.0);
             (t, tasks::focus_score(t, boost))
         })
@@ -190,7 +190,7 @@ pub fn cmd_focus(
     if json_out {
         let out: Vec<_> = scored.iter().take(top).map(|(t, score)| {
             serde_json::json!({"task": t, "focus_score": score,
-                "active_initiative": active.as_deref()})
+                "active_epic": active.as_deref()})
         }).collect();
         println!("{}", serde_json::to_string(&out).unwrap());
         return Ok(());
@@ -202,11 +202,11 @@ pub fn cmd_focus(
     }
 
     if let Some(ref slug) = active {
-        // Active-initiative path: ★ tasks first, then P0/P1 overflow
-        let (initiative_tasks, overflow): (Vec<_>, Vec<_>) = scored.iter().partition(|(t, _)| {
-            t["initiative"].as_str() == Some(slug.as_str())
+        // Active-epic path: ★ tasks first, then P0/P1 overflow
+        let (epic_tasks, overflow): (Vec<_>, Vec<_>) = scored.iter().partition(|(t, _)| {
+            t["epic"].as_str() == Some(slug.as_str())
         });
-        let initiative_shown = initiative_tasks.len().min(top);
+        let initiative_shown = epic_tasks.len().min(top);
         let overflow_slots = top.saturating_sub(initiative_shown);
         let overflow_shown: Vec<_> = overflow.iter()
             .filter(|(t, _)| matches!(t["priority"].as_str(), Some("P0") | Some("P1")))
@@ -215,7 +215,7 @@ pub fn cmd_focus(
 
         println!("\n{}Focus — active: {}{}", themes::ansi(theme.color("header")), slug, themes::RESET);
         let mut rank = 1;
-        for (t, score) in initiative_tasks.iter().take(top) {
+        for (t, score) in epic_tasks.iter().take(top) {
             let pri = t["priority"].as_str().unwrap_or("—");
             let eff = t["effort"].as_str().unwrap_or("—");
             println!(
@@ -243,7 +243,7 @@ pub fn cmd_focus(
             }
         }
     } else {
-        // No active initiative — show top N by score
+        // No active epic — show top N by score
         println!("\n{}Focus — today's pick{}", themes::ansi(theme.color("header")), themes::RESET);
         for (rank, (t, score)) in scored.iter().take(top).enumerate() {
             let pri = t["priority"].as_str().unwrap_or("—");
@@ -435,12 +435,12 @@ fn save_tasks_config(cfg: &serde_json::Value) -> anyhow::Result<()> {
         .with_context(|| format!("failed to write {}", path.display()))
 }
 
-/// Set active_initiative in tasks-config.json.
+/// Set active_epic in tasks-config.json.
 pub fn cmd_set_active(slug: &str) -> anyhow::Result<()> {
     let mut cfg = load_tasks_config();
-    cfg["active_initiative"] = serde_json::Value::String(slug.to_string());
+    cfg["active_epic"] = serde_json::Value::String(slug.to_string());
     save_tasks_config(&cfg)?;
-    println!("{}", serde_json::json!({"ok": true, "active_initiative": slug}));
+    println!("{}", serde_json::json!({"ok": true, "active_epic": slug}));
     Ok(())
 }
 
@@ -487,7 +487,7 @@ pub fn cmd_add(
     priority: Option<String>,
     context: Option<String>,
     file: Option<PathBuf>,
-    initiative: Option<String>,
+    epic: Option<String>,
     work_type: Option<String>,
 ) -> anyhow::Result<()> {
     let tf = match file {
@@ -531,7 +531,7 @@ pub fn cmd_add(
         if let Some(ref p) = parent { obj.insert("parent".into(), serde_json::Value::String(p.clone())); }
         if let Some(ref pr) = priority { obj.insert("priority".into(), serde_json::Value::String(pr.clone())); }
         if let Some(ref c) = context { obj.insert("context".into(), serde_json::Value::String(c.clone())); }
-        if let Some(ref i) = initiative { obj.insert("initiative".into(), serde_json::Value::String(i.clone())); }
+        if let Some(ref i) = epic { obj.insert("epic".into(), serde_json::Value::String(i.clone())); }
         if let Some(ref wt) = work_type { obj.insert("work_type".into(), serde_json::Value::String(wt.clone())); }
         serde_json::to_string(&obj).unwrap()
     } else {
@@ -587,12 +587,12 @@ pub fn cmd_add(
         }
     }
 
-    // t-1543: inherit initiative from parent chain if not explicitly set
+    // t-1543: inherit epic from parent chain if not explicitly set
     tasks::inherit_initiative(&mut new_task, &tasks_arr);
 
     let subject = new_task["subject"].as_str().unwrap_or("untitled").to_string();
     let task_level = new_task["level"].as_str().unwrap_or("task").to_string();
-    let has_initiative = new_task["initiative"].as_str().map(|s| !s.is_empty()).unwrap_or(false);
+    let has_epic = new_task["epic"].as_str().map(|s| !s.is_empty()).unwrap_or(false);
 
     val["tasks"].as_array_mut()
         .ok_or_else(|| {
@@ -603,9 +603,9 @@ pub fn cmd_add(
     tasks::save_tasks(&tf, &val).map_err(|e| anyhow::anyhow!("{e}"))?;
     println!("{}", serde_json::json!({"ok": true, "id": id, "subject": subject}));
 
-    // t-1543: suggest initiative when adding phase/milestone without one
-    if matches!(task_level.as_str(), "phase" | "milestone") && !has_initiative {
-        eprintln!("  Tip: link to an initiative — `brana backlog set {id} initiative <slug>`");
+    // t-1543: suggest epic when adding phase/milestone without one
+    if matches!(task_level.as_str(), "phase" | "milestone") && !has_epic {
+        eprintln!("  Tip: link to an epic — `brana backlog set {id} epic <slug>`");
     }
     Ok(())
 }

@@ -628,9 +628,9 @@ pub enum BacklogCmd {
         /// Filter by work type: implement, research, design, infra, chore, review
         #[arg(long, value_enum)]
         work_type: Option<TaskWorkType>,
-        /// Filter by initiative slug
+        /// Filter by epic slug
         #[arg(long)]
-        initiative: Option<String>,
+        epic: Option<String>,
     },
     /// Smart daily pick
     Focus {
@@ -643,9 +643,9 @@ pub enum BacklogCmd {
         /// Filter by work type: implement, research, design, infra, chore, review
         #[arg(long, value_enum)]
         work_type: Option<TaskWorkType>,
-        /// Override active initiative slug (defaults to tasks-config.json active_initiative)
+        /// Override active epic slug (defaults to tasks-config.json active_epic)
         #[arg(long)]
-        initiative: Option<String>,
+        epic: Option<String>,
     },
     /// Free-text search
     Search {
@@ -720,10 +720,10 @@ pub enum BacklogCmd {
         #[arg(long)]
         file: Option<PathBuf>,
     },
-    /// Set the active initiative in tasks-config.json
+    /// Set the active epic in tasks-config.json
     #[command(name = "set-active")]
     SetActive {
-        /// Initiative slug (e.g. "cc-alignment", "notebooklm")
+        /// Epic slug (e.g. "cc-alignment", "backlog-schema-v2")
         slug: String,
     },
     /// Add a new task from JSON or shorthand flags
@@ -761,9 +761,9 @@ pub enum BacklogCmd {
         /// Path to tasks.json (auto-detected if omitted)
         #[arg(long)]
         file: Option<PathBuf>,
-        /// Initiative slug (e.g., "cc-alignment", "notebooklm")
+        /// Epic slug (e.g., "cc-alignment", "backlog-schema-v2")
         #[arg(long)]
-        initiative: Option<String>,
+        epic: Option<String>,
         /// Work type: implement, research, design, infra, chore, review
         #[arg(long)]
         work_type: Option<String>,

@@ -256,7 +256,7 @@ fn convert_handoff_entry(entry: &handoff::HandoffEntry) -> SessionState {
         branch,
         session_label: Some(label),
         session_labels: Vec::new(),
-        initiative: None,
+        epic: None,
         consumed_at: Some(written_at),
         accomplished,
         learnings,
@@ -453,7 +453,7 @@ mod tests {
                 delegation_count: 3,
             }),
             session_labels: vec![],
-            initiative: None,
+            epic: None,
         }
     }
 

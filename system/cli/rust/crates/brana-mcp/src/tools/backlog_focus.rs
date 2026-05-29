@@ -12,8 +12,8 @@ pub struct Input {
     /// Optional tag filter
     pub tag: Option<String>,
 
-    /// Override active initiative slug (defaults to tasks-config.json active_initiative)
-    pub initiative: Option<String>,
+    /// Override active epic slug (defaults to tasks-config.json active_epic)
+    pub epic: Option<String>,
 
     /// Filter by work_type: implement, research, design, ops, review
     pub work_type: Option<String>,
@@ -29,13 +29,13 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
             let data = brana_core::tasks::load_tasks(&tf)
                 .map_err(|e| pmcp::Error::validation(e))?;
 
-            // Load active_initiative from config
+            // Load active_epic from config
             let home = std::env::var("HOME").unwrap_or_default();
             let cfg_path = std::path::PathBuf::from(&home).join(".claude/tasks-config.json");
-            let active: Option<String> = input.initiative.clone().or_else(|| {
+            let active: Option<String> = input.epic.clone().or_else(|| {
                 std::fs::read_to_string(&cfg_path).ok()
                     .and_then(|c| serde_json::from_str::<serde_json::Value>(&c).ok())
-                    .and_then(|v| v["active_initiative"].as_str().map(|s| s.to_string()))
+                    .and_then(|v| v["active_epic"].as_str().map(|s| s.to_string()))
             });
 
             let mut scored: Vec<_> = data.tasks.iter()
@@ -55,7 +55,7 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 })
                 .map(|t| {
                     let boost = active.as_deref()
-                        .filter(|a| t["initiative"].as_str() == Some(a))
+                        .filter(|a| t["epic"].as_str() == Some(a))
                         .map_or(0.0, |_| 500.0);
                     let score = brana_core::tasks::focus_score(t, boost);
                     (t, score)
@@ -74,10 +74,10 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
 
             Ok(serde_json::json!({
                 "count": tasks.len(),
-                "active_initiative": active,
+                "active_epic": active,
                 "tasks": tasks,
             }))
         })
     })
-    .with_description("Get top focus tasks ranked by initiative match + priority + effort + blocking depth.")
+    .with_description("Get top focus tasks ranked by epic match + priority + effort + blocking depth.")
 }

@@ -27,8 +27,8 @@ pub struct Input {
     /// Filter by parent task ID
     pub parent: Option<String>,
 
-    /// Filter by initiative slug
-    pub initiative: Option<String>,
+    /// Filter by epic slug
+    pub epic: Option<String>,
 
     /// Filter by work_type: implement, research, design, ops, review
     pub work_type: Option<String>,
@@ -57,7 +57,7 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                     effort: input.effort.as_deref(),
                     search: input.search.as_deref(),
                     types: types.clone(),
-                    initiative: input.initiative.as_deref(),
+                    epic: input.epic.as_deref(),
                     work_type: input.work_type.as_deref(),
                     ..Default::default()
                 },
