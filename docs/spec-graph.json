@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-28T17:00:10Z",
+  "generated": "2026-05-29T17:07:53Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -887,7 +887,8 @@
         "system/rules/",
         "system/hooks/hooks.json",
         "system/hooks/my-hook.sh",
-        "system/scripts/bootstrap-hooks.sh"
+        "system/scripts/bootstrap-hooks.sh",
+        "system/hooks/branch-name-warn.sh"
       ]
     },
     "docs/architecture/extending-agents.md": {
@@ -906,7 +907,9 @@
       "impl_files": [
         "system/hooks/{name",
         "system/hooks/hooks.json",
-        "system/hooks/my-hook.sh"
+        "system/hooks/my-hook.sh",
+        "system/hooks/branch-name-warn.sh",
+        "system/hooks/tests/test-branch-name-warn.sh"
       ]
     },
     "docs/architecture/extending-skills.md": {
