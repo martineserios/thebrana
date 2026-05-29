@@ -37700,7 +37700,7 @@
       ],
       "branch": null,
       "completed": null,
-      "context": "ADR must decide and document: (1) Transport layer: CLI shell-out vs axum sidecar — per spike t-1509 + benchmark t-1508. Include numeric latency threshold (e.g. <300ms P95 = shell-out proceed). (2) Kanban column field: which field drives swim lanes — status, classify() synthetic, or stream? (3) HTTP response envelope schema: must match brana backlog query --output json shape so MS2 shell-out components migrate cleanly to HTTP. (4) UI test toolchain: Playwright vs Vitest+Testing Library — with setup plan. (5) Multi-project extension surface: one-liner defining what extension points are reserved (separate tasks.json paths? project field filter?). All MS2+ work blocks on this ADR. Exit criterion for MS1: ADR committed + benchmark result recorded.",
+      "context": "ADR-045-backlog-ui-transport.md accepted 2026-05-27 covers transport decision (CLI shell-out), response schema, and atomicity constraints. Blockers t-1508 and t-1509 completed. No new ADR needed — ADR-045 is sufficient.",
       "created": "2026-05-19",
       "description": null,
       "effort": "S",
@@ -37713,7 +37713,7 @@
       "parent": "t-1502",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "[DDD] ADR: brana backlog web UI — transport, atomicity, schema, toolchain",
       "tags": [
         "web-ui",
