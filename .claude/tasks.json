@@ -43671,7 +43671,7 @@
       "notes": null,
       "order": null,
       "parent": null,
-      "priority": "P2",
+      "priority": "P1",
       "started": null,
       "status": "pending",
       "strategy": null,
@@ -43682,6 +43682,62 @@
         "testing"
       ],
       "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "filter_tasks() 10-arg form was replaced by TaskFilter struct + filter_tasks_by() in t-1529 (af1d9d6). Wrapper preserved for backward compat but not tagged #[deprecated]. ~15 test call sites in tasks.rs still use the old form. Steps: (1) tag filter_tasks() #[deprecated] in tasks.rs, (2) migrate all test call sites to TaskFilter + filter_tasks_by(), (3) verify no remaining direct calls outside tests, (4) cargo test green.",
+      "created": "2026-05-29",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1723",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "[cli] Deprecate filter_tasks() and migrate test call sites to TaskFilter",
+      "tags": [
+        "cli",
+        "rust",
+        "api-evolution"
+      ],
+      "type": "task",
+      "work_type": "refactor"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "ruflo agent_execute fails with No LLM provider configured because the MCP server subprocess does not inherit CC session env. Fix: add ANTHROPIC_API_KEY to the ruflo MCP launch env in .mcp.json env block or system/scripts/ruflo-mcp.sh wrapper. This unblocks t-1599 (hive-mind calibration smoke test) -> t-1598 (cost attribution ledger) -> t-1602 (hive-mind calibration ADR). Estimated 15 min. See also: pattern:thebrana:mcp-subprocess-credential-isolation",
+      "created": "2026-05-29",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1724",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P1",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "[ops] Add ANTHROPIC_API_KEY to ruflo MCP process env",
+      "tags": [
+        "ruflo",
+        "mcp",
+        "config"
+      ],
+      "type": "task",
+      "work_type": "ops"
     }
   ],
   "version": "1"
