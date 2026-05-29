@@ -112,7 +112,90 @@ pub fn inherit_initiative(task: &mut Value, all: &[Value]) {
     }
 }
 
+/// Named filter criteria replacing the 10-positional-arg `filter_tasks` signature.
+#[derive(Debug, Clone)]
+pub struct TaskFilter<'a> {
+    pub tag: Option<&'a str>,
+    pub status: Option<&'a str>,
+    pub priority: Option<&'a str>,
+    pub effort: Option<&'a str>,
+    pub search: Option<&'a str>,
+    pub types: Vec<&'a str>,
+    pub initiative: Option<&'a str>,
+    pub work_type: Option<&'a str>,
+}
+
+impl Default for TaskFilter<'_> {
+    fn default() -> Self {
+        TaskFilter {
+            tag: None,
+            status: None,
+            priority: None,
+            effort: None,
+            search: None,
+            types: vec!["task", "subtask"],
+            initiative: None,
+            work_type: None,
+        }
+    }
+}
+
+/// Filter tasks using a `TaskFilter` struct (preferred API).
+pub fn filter_tasks_by<'a>(tasks: &'a [Value], all: &[Value], filter: &TaskFilter<'_>) -> Vec<&'a Value> {
+    tasks
+        .iter()
+        .filter(|t| {
+            let tt = t["level"].as_str().unwrap_or_else(|| t["type"].as_str().unwrap_or("task"));
+            if !filter.types.contains(&tt) {
+                return false;
+            }
+            if let Some(s) = filter.status {
+                let _ = all;
+                if raw_status(t, "") != s {
+                    return false;
+                }
+            }
+            if let Some(tag) = filter.tag {
+                let tags: Vec<&str> = t["tags"]
+                    .as_array()
+                    .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
+                    .unwrap_or_default();
+                if !tags.contains(&tag) {
+                    return false;
+                }
+            }
+            if let Some(p) = filter.priority {
+                if t["priority"].as_str().unwrap_or("") != p {
+                    return false;
+                }
+            }
+            if let Some(e) = filter.effort {
+                if t["effort"].as_str().unwrap_or("") != e {
+                    return false;
+                }
+            }
+            if let Some(q) = filter.search {
+                if !text_match(t, q) {
+                    return false;
+                }
+            }
+            if let Some(init) = filter.initiative {
+                if t["initiative"].as_str().unwrap_or("") != init {
+                    return false;
+                }
+            }
+            if let Some(wt) = filter.work_type {
+                if t["work_type"].as_str().unwrap_or("") != wt {
+                    return false;
+                }
+            }
+            true
+        })
+        .collect()
+}
+
 /// Filter tasks by multiple criteria (AND logic).
+/// Thin wrapper around `filter_tasks_by` — prefer that for new call sites.
 pub fn filter_tasks<'a>(
     tasks: &'a [Value],
     all: &[Value],
@@ -125,60 +208,16 @@ pub fn filter_tasks<'a>(
     initiative: Option<&str>,
     work_type: Option<&str>,
 ) -> Vec<&'a Value> {
-    tasks
-        .iter()
-        .filter(|t| {
-            // level field takes priority over type for hierarchy filtering.
-            // Falls back to type when level is absent (backward compat).
-            let tt = t["level"].as_str().unwrap_or_else(|| t["type"].as_str().unwrap_or("task"));
-            if !types.contains(&tt) {
-                return false;
-            }
-            if let Some(s) = status {
-                // Use raw_status: predicates compare the raw enum field, never
-                // classify() output. See tasks.spec.md / t-1340 / t-1346.
-                let _ = all; // kept in signature for back-compat
-                if raw_status(t, "") != s {
-                    return false;
-                }
-            }
-            if let Some(tag) = tag {
-                let tags: Vec<&str> = t["tags"]
-                    .as_array()
-                    .map(|a| a.iter().filter_map(|v| v.as_str()).collect())
-                    .unwrap_or_default();
-                if !tags.contains(&tag) {
-                    return false;
-                }
-            }
-            if let Some(p) = priority {
-                if t["priority"].as_str().unwrap_or("") != p {
-                    return false;
-                }
-            }
-            if let Some(e) = effort {
-                if t["effort"].as_str().unwrap_or("") != e {
-                    return false;
-                }
-            }
-            if let Some(q) = search {
-                if !text_match(t, q) {
-                    return false;
-                }
-            }
-            if let Some(init) = initiative {
-                if t["initiative"].as_str().unwrap_or("") != init {
-                    return false;
-                }
-            }
-            if let Some(wt) = work_type {
-                if t["work_type"].as_str().unwrap_or("") != wt {
-                    return false;
-                }
-            }
-            true
-        })
-        .collect()
+    filter_tasks_by(tasks, all, &TaskFilter {
+        tag,
+        status,
+        priority,
+        effort,
+        search,
+        types: types.to_vec(),
+        initiative,
+        work_type,
+    })
 }
 
 /// Sort by priority (P0 first), then status (in_progress first), then order.
@@ -2596,5 +2635,59 @@ mod tests {
     fn test_set_field_spawn_accepted_not_unknown() {
         let mut task = json!({"id": "t-1"});
         assert!(set_field(&mut task, "spawn", "subagent", false).is_ok());
+    }
+
+    // ── TaskFilter struct API (t-1529) ───────────────────────────────────────
+
+    #[test]
+    fn task_filter_default_types() {
+        let f = TaskFilter::default();
+        assert_eq!(f.types, vec!["task", "subtask"]);
+        assert!(f.tag.is_none());
+        assert!(f.status.is_none());
+    }
+
+    #[test]
+    fn task_filter_by_tag() {
+        let tasks = sample_tasks();
+        let f = TaskFilter { tag: Some("scheduler"), types: vec!["task", "subtask"], ..Default::default() };
+        let result = filter_tasks_by(&tasks, &tasks, &f);
+        assert_eq!(result.len(), 2);
+    }
+
+    #[test]
+    fn task_filter_by_status() {
+        let tasks = sample_tasks();
+        let f = TaskFilter { status: Some("in_progress"), types: vec!["task", "subtask"], ..Default::default() };
+        let result = filter_tasks_by(&tasks, &tasks, &f);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0]["id"], "t-002");
+    }
+
+    #[test]
+    fn task_filter_by_initiative() {
+        let tasks = vec![
+            json!({"id": "t-a", "type": "task", "status": "pending", "tags": [], "blocked_by": [], "initiative": "cc-alignment"}),
+            json!({"id": "t-b", "type": "task", "status": "pending", "tags": [], "blocked_by": [], "initiative": "ruflo"}),
+        ];
+        let f = TaskFilter { initiative: Some("cc-alignment"), types: vec!["task"], ..Default::default() };
+        let result = filter_tasks_by(&tasks, &tasks, &f);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0]["id"], "t-a");
+    }
+
+    #[test]
+    fn task_filter_wrapper_parity() {
+        let tasks = sample_tasks();
+        let old = filter_tasks(&tasks, &tasks, Some("scheduler"), Some("pending"), None, None, None, &["task", "subtask"], None, None);
+        let new = filter_tasks_by(&tasks, &tasks, &TaskFilter {
+            tag: Some("scheduler"),
+            status: Some("pending"),
+            types: vec!["task", "subtask"],
+            ..Default::default()
+        });
+        let old_ids: Vec<_> = old.iter().map(|t| t["id"].as_str().unwrap()).collect();
+        let new_ids: Vec<_> = new.iter().map(|t| t["id"].as_str().unwrap()).collect();
+        assert_eq!(old_ids, new_ids);
     }
 }

@@ -38276,7 +38276,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "[cli] TaskFilter struct refactor — replace filter_tasks() positional args",
       "tags": [

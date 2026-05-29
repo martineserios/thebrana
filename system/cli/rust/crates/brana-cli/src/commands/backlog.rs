@@ -26,11 +26,16 @@ pub fn cmd_next(
         vec!["task", "subtask"]
     };
 
-    let mut candidates = tasks::filter_tasks(
+    let mut candidates = tasks::filter_tasks_by(
         &data.tasks, &data.tasks,
-        tag.as_deref(), Some("pending"),
-        priority.as_deref(), effort.as_deref(), None,
-        &types, None, None,
+        &tasks::TaskFilter {
+            tag: tag.as_deref(),
+            status: Some("pending"),
+            priority: priority.as_deref(),
+            effort: effort.as_deref(),
+            types: types.clone(),
+            ..Default::default()
+        },
     );
 
     // filter_tasks does raw-status matching (tasks.spec.md). For "next up"
@@ -97,11 +102,18 @@ pub fn cmd_query(
     // Multi-tag support: split by comma for AND logic
     let tag_list: Option<Vec<&str>> = tag.as_deref().map(|t| t.split(',').collect());
 
-    let mut results = tasks::filter_tasks(
+    let mut results = tasks::filter_tasks_by(
         &data.tasks, &data.tasks,
-        None, status.as_deref(),
-        priority.as_deref(), effort.as_deref(), search.as_deref(),
-        &types, initiative.as_deref(), work_type.as_deref(),
+        &tasks::TaskFilter {
+            status: status.as_deref(),
+            priority: priority.as_deref(),
+            effort: effort.as_deref(),
+            search: search.as_deref(),
+            types: types.clone(),
+            initiative: initiative.as_deref(),
+            work_type: work_type.as_deref(),
+            ..Default::default()
+        },
     );
 
     // Apply multi-tag AND filter
@@ -253,9 +265,13 @@ pub fn cmd_focus(
 pub fn cmd_search(text: &str, theme: &themes::Theme, json_out: bool) -> anyhow::Result<()> {
     let tf = find_tasks_file().context("tasks.json not found")?;
     let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
-    let results = tasks::filter_tasks(
+    let results = tasks::filter_tasks_by(
         &data.tasks, &data.tasks,
-        None, None, None, None, Some(text), &["task", "subtask"], None, None,
+        &tasks::TaskFilter {
+            search: Some(text),
+            types: vec!["task", "subtask"],
+            ..Default::default()
+        },
     );
     if json_out {
         println!("{}", serde_json::to_string(&results).unwrap());

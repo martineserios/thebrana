@@ -49,16 +49,18 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
             let tag_list: Option<Vec<&str>> = input.tag.as_deref()
                 .map(|t| t.split(',').collect());
 
-            let mut results = brana_core::tasks::filter_tasks(
+            let mut results = brana_core::tasks::filter_tasks_by(
                 &data.tasks, &data.tasks,
-                None,
-                input.status.as_deref(),
-                input.priority.as_deref(),
-                input.effort.as_deref(),
-                input.search.as_deref(),
-                &types,
-                input.initiative.as_deref(),
-                input.work_type.as_deref(),
+                &brana_core::tasks::TaskFilter {
+                    status: input.status.as_deref(),
+                    priority: input.priority.as_deref(),
+                    effort: input.effort.as_deref(),
+                    search: input.search.as_deref(),
+                    types: types.clone(),
+                    initiative: input.initiative.as_deref(),
+                    work_type: input.work_type.as_deref(),
+                    ..Default::default()
+                },
             );
 
             if let Some(ref tags) = tag_list {

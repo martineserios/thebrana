@@ -17,10 +17,13 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
             let data = brana_core::tasks::load_tasks(&tf)
                 .map_err(|e| pmcp::Error::validation(e))?;
 
-            let results = brana_core::tasks::filter_tasks(
+            let results = brana_core::tasks::filter_tasks_by(
                 &data.tasks, &data.tasks,
-                None, None, None, None, Some(&input.query),
-                &["task", "subtask", "phase", "milestone"], None, None,
+                &brana_core::tasks::TaskFilter {
+                    search: Some(&input.query),
+                    types: vec!["task", "subtask", "phase", "milestone"],
+                    ..Default::default()
+                },
             );
 
             Ok(serde_json::json!({
