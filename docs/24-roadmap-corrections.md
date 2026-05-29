@@ -19,6 +19,10 @@
 ## Severity Summary
 
 | # | Error | Severity | Status | Comments |
+| E2026-05-29-4 | thebrana: `close.md` Steps 9c Tier 2a/2b and `sitrep.md §4b` read `.initiative // empty` via jq from task JSON. After t-1614 migration converts `tasks.json` keys from `"initiative"` → `"epic"`, these reads silently return empty — breaking initiative detection and causing Tier 3 interactive prompts on every close. Ordering constraint: t-1616 (procedure rename) must complete before t-1614 (data migration) is deployed. | **High** | pending | Block t-1614 on t-1616. Files: `close.md:826,835`, `sitrep.md:122,125,128,130`. |
+| E2026-05-29-3 | thebrana: `docs/reference/brana-cli.md` (7+ occurrences), `docs/architecture/decisions/ADR-044-initiative-accumulator.md`, and `docs/architecture/features/task-management-system.md:106` still reference `--initiative` flag and `active_initiative` config key. These were renamed to `--epic` / `active_epic` in the t-1613 Rust rename. Will mislead users reading the reference docs. | **Medium** | pending | Fix in t-1616 — procedure/skill/docs sweep for old flag names. |
+| E2026-05-29-2 | thebrana: `system/cli/rust/crates/brana-mcp/tests/tool_tests.rs:134` section comment still reads `// ── Wave 4B: initiative model tests ──`. The surrounding test functions were renamed but the section comment was not. Cosmetic inconsistency. | **Low** | pending | Fix inline during t-1616 sweep. |
+| E2026-05-29-1 | thebrana: `system/cli/rust/crates/brana-mcp/src/tools/backlog_stats.rs:37` MCP tool description still advertises "initiative" in the tool's `.with_description()` string exposed to MCP callers. Behavioral rename was complete but this string literal was missed by the grep sweep. | **Low** | pending | Fix inline during t-1616 sweep or as 1-line patch. |
 | E2026-05-28-10 | proyecto_anita: `tool-contracts.md §3` (`tracy_customer_lookup`) referenced `contacts.customer_location_id` as an existing cache column before migration `20260528000001_add_customer_location_id_to_contacts.sql` was written. During t-1082 implementation, `parsed.ctx?.contact?.customer_location_id` (Path 1) was coded assuming the DB column existed, creating a forward reference. Any agent conversation that happened to have a non-null `customer_location_id` in ctx would return a stale Path 1 hit from an unverified source. | **Low** | code-fix | Migration t-1081 applied to dev (`jwzpeaidchtdibcxttcm`) 2026-05-28; column `bigint, nullable` confirmed. Forward reference closed. TODO comment added in KF for write-back via v3-api PATCH once migration reaches prod. |
 | E2026-05-28-9 | proyecto_anita/palco: `chess-api-auth.md` documents Chess `/web/api/chess/v1/auth/login` success response as `{"sessionId": "<opaque token>"}` and authenticated call as `Cookie: JSESSIONID=<sessionId>`. Live probe (2026-05-28) confirmed actual response is `{"sessionId": "JSESSIONID=<token>"}` — the `JSESSIONID=` prefix is embedded inside the value. Following the doc literally produces `Cookie: JSESSIONID=JSESSIONID=<token>` (double prefix), which Chess rejects. Correct usage: use `sessionId` value directly as the cookie string (it is already `JSESSIONID=<token>`), OR strip the prefix before prepending `JSESSIONID=`. | **Low** | pending | Fix: update `chess-api-auth.md` response example to show `"sessionId": "JSESSIONID=<token>"` and correct the authenticated call snippet to `Cookie: <sessionId>` with an explanation. Filed field note in doc. |
 | E2026-05-28-8 | nexeye: Geo fields (`fire_lat`, `fire_lon`, `fire_range_m`, `fire_accuracy_m`, `fire_azimuth_deg`, `fire_elevation_deg`, `ptz_moving`) were silently dropped between the fp_filter stage and the DB write queue. `enqueue_for_db_write()` in `db_write_queue.py` only forwarded fixed keys from `detection_event`; geo fields added by the inference worker were never promoted to the top-level Redis XADD payload. `_transform_record()` in `db_write_worker.py` similarly lacked geo field extraction. Detections would write to DB with all geo columns NULL. | **Medium** | code-fix | Fixed 2026-05-28 (challenger C1): `enqueue_for_db_write()` now promotes non-null geo fields to top-level string keys before XADD. `_transform_record()` extracts and type-coerces geo floats + ptz_moving bool from Redis strings. Non-geo detections unaffected via `if val is not None` guards. Commits `facabe6d`. |
@@ -3634,3 +3638,66 @@ Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Con
 **Root pattern:** When two active programs (A/B) coexist in the same repo with separate stack decisions, any architectural recommendation must be prefixed with a program check. "Which program does this module belong to?" before proposing any infra choice.
 
 **Status:** code-fix — fixed inline.
+
+---
+
+## E2026-05-29-1 — backlog_stats.rs MCP description string still says "initiative"
+
+**Severity:** Low
+**Discovery:** 2026-05-29 — debrief-analyst after t-1613 (initiative→epic Rust rename)
+**Affected files:** `system/cli/rust/crates/brana-mcp/src/tools/backlog_stats.rs:37`
+
+**Bug:** The `.with_description("Get aggregate statistics for backlog tasks (by status, priority, type, work_type, initiative).")` string was not updated during the t-1613 rename sweep. The MCP tool description exposed to callers still advertises the old `initiative` field name.
+
+**Fix:** Change "initiative" to "epic" in the description string. One-line patch.
+
+**Status:** pending — fix inline during t-1616 sweep.
+
+---
+
+## E2026-05-29-2 — tool_tests.rs section comment "Wave 4B: initiative model tests" not renamed
+
+**Severity:** Low
+**Discovery:** 2026-05-29 — debrief-analyst after t-1613
+**Affected files:** `system/cli/rust/crates/brana-mcp/tests/tool_tests.rs:134`
+
+**Bug:** `// ── Wave 4B: initiative model tests ──` section comment was not updated during the rename sweep. The test functions immediately below it were renamed but the section header still says "initiative". Cosmetic inconsistency.
+
+**Fix:** Update comment to `// ── Wave 4B: epic model tests ──`.
+
+**Status:** pending — fix inline during t-1616 sweep.
+
+---
+
+## E2026-05-29-3 — docs/reference/brana-cli.md and ADR-044 carry stale --initiative flag names
+
+**Severity:** Medium
+**Discovery:** 2026-05-29 — debrief-analyst + doc-check after t-1613
+**Affected files:**
+- `docs/reference/brana-cli.md` (7+ occurrences: --initiative flag, active_initiative config key)
+- `docs/architecture/decisions/ADR-044-initiative-accumulator.md` (multiple occurrences)
+- `docs/architecture/features/task-management-system.md:106`
+
+**Bug:** All three files reference `--initiative` flag and `active_initiative` config key by old name. The Rust CLI rename (t-1613) updated the implementation but not the documentation. Users following `brana-cli.md` will get "unexpected argument '--initiative'" at runtime.
+
+**Fix:** Grep all three files for `initiative` and rename to `epic` / `active_epic`. Distinguish from `level: "initiative"` type values (those remain unchanged).
+
+**Status:** pending — tracked in t-1616 (procedure/skills/docs sweep).
+
+---
+
+## E2026-05-29-4 — close.md and sitrep.md jq reads .initiative will break after t-1614 migration
+
+**Severity:** High
+**Discovery:** 2026-05-29 — debrief-analyst after t-1613
+**Affected files:**
+- `system/procedures/close.md:826,835` — Tier 2a/2b Step 9c: `jq -r '.[].initiative // empty'`
+- `system/procedures/sitrep.md:122,125,128,130` — §4b session state initiative field reads
+
+**Bug:** Once t-1614 migration converts `tasks.json` from `"initiative":` → `"epic":`, these jq reads silently return empty. Tier 2a/2b detection returns 0 signals; Tier 3 interactive prompt fires on every close.
+
+**Ordering constraint:** t-1616 (rename procedure jq reads) MUST complete before t-1614 (data migration) is deployed.
+
+**Fix:** `close.md:826` → `jq -r '.[].epic // empty'`; `close.md:835` → `jq -r '.epic // empty'`; same in sitrep.md.
+
+**Status:** pending — t-1616 must precede t-1614.

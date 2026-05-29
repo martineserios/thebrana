@@ -41013,7 +41013,7 @@
       "parent": "t-1611",
       "priority": "P1",
       "started": null,
-      "status": "in_progress",
+      "status": "pending",
       "strategy": null,
       "subject": "Migration script: typed JSON parse-and-rewrite initiative→epic with tests",
       "tags": [],
@@ -44775,6 +44775,58 @@
         "dx"
       ],
       "work_type": "research"
+    },
+    {
+      "id": "t-1750",
+      "subject": "Analyze what brana can leverage from Opus 4.8",
+      "status": "pending",
+      "type": "task",
+      "tags": [
+        "research",
+        "model",
+        "opus",
+        "ai-native"
+      ],
+      "description": null,
+      "effort": "M",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-05-29",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Opus 4.8 (claude-opus-4-8[1m]) is now the default model with 1M context window and Fast mode (/fast). Investigate: (1) which brana skills/agents benefit most from extended context, (2) whether Fast mode changes the compute model for long sessions, (3) any new CC-specific integrations shipped with the 4.8 release, (4) whether cross-client memory recall or session compression behaves differently at 1M context. Goal: surface concrete improvements to skills, hooks, or agent configurations. Source: CC runtime context 2026-05-29.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
+    },
+    {
+      "id": "t-1751",
+      "subject": "session-end-persist.sh metrics patch overwrites close.md fields",
+      "status": "pending",
+      "type": "task",
+      "tags": [
+        "hooks",
+        "session",
+        "metrics",
+        "bug"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-05-29",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "session-end-persist.sh line: `jq --argjson m \"$METRICS_PATCH\" '.metrics = $m'` replaces the entire metrics object with only flywheel fields (events, corrections, test_writes, correction_rate, test_write_rate, cascade_rate, delegation_count). This drops close.md-specific fields that were written at close time: behavioral_files_changed, doc_files_changed, doc_prompts_accepted, doc_prompts_skipped, propose_count, ask_open_count, propose_rate. Fix: use `jq --argjson m \"$METRICS_PATCH\" '.metrics = (.metrics + $m)'` to merge instead of replace. File: system/hooks/session-end-persist.sh.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
     }
   ],
   "version": "1"
