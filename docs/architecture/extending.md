@@ -290,3 +290,9 @@ After deploy:
    - Agent: trigger its auto-delegation condition or spawn manually
 
 For hooks, check `/tmp/brana-session-*.jsonl` for logged events.
+
+## Field Notes
+
+### 2026-05-30: --plugin-dir reads root plugin.json, NOT .claude-plugin/plugin.json
+CC launched with `--plugin-dir ./system` reads `system/plugin.json` (root). `system/.claude-plugin/plugin.json` is marketplace-install metadata only. These serve two decoupled CC mechanisms: SKILL.md directory scanning (populates the system-reminder) works regardless of `plugin.json` content; `Skill()` tool routing requires `"skills": "./skills/"` in the manifest CC is actually loading. Symptom: skills appear in available-skills list but `Skill("brana:X")` fails with "Unknown skill". Fix: add `"skills"` + `"commands"` fields to `system/plugin.json`, sync cache to `~/.claude/plugins/cache/brana/brana/1.0.0/plugin.json` (no `.claude-plugin/` segment), restart CC.
+Source: E2026-05-30-3, commit 2ca0c99

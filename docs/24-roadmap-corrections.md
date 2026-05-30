@@ -19,6 +19,9 @@
 ## Severity Summary
 
 | # | Error | Severity | Status | Comments |
+| E2026-05-30-5 | thebrana: E2026-05-24-12 was marked `code-fix` but `t-1671` applied `"skills"` field to `system/.claude-plugin/plugin.json` (marketplace metadata), NOT `system/plugin.json` (the `--plugin-dir` runtime manifest that CC actually reads). The Skill() routing failure recurred the very next session. `2ca0c99` is the actual fix — applied to root `system/plugin.json`. Cache sync path in E2026-05-24-12's comment also wrong: `.claude-plugin/plugin.json` → root `plugin.json`. | **Low** | code-fix | Fixed in `2ca0c99`: added `"skills"` + `"commands"` to `system/plugin.json`. E2026-05-24-12 status was premature; this entry supersedes its fix note. |
+| E2026-05-30-4 | thebrana: `CLAUDE.md` field note 2026-05-24 (t-1671) states "Root cause: `system/.claude-plugin/plugin.json` had no `"skills"` field" and "Cache synced at `~/.claude/plugins/cache/brana/brana/1.0.0/.claude-plugin/plugin.json`." Both are wrong. Root cause: `system/plugin.json` (root, read by `--plugin-dir`) had no `"skills"` field. Cache sync path has no `.claude-plugin/` segment. Misleads future investigators into applying the same wrong fix. | **Low** | pending | Fix: mark the 2026-05-24 field note as SUPERSEDED inline; add corrected note. Human-authored layer — cannot be updated by `/brana:close`. Surface to user for manual edit. |
+| E2026-05-30-3 | thebrana: `docs/reference/configuration.md:271` says "Plugin manifest. Located at `system/.claude-plugin/plugin.json`." Cache sync note at line 308 also references `~/.claude/plugins/cache/brana/brana/1.0.0/.claude-plugin/plugin.json`. Both are wrong for `--plugin-dir` mode: CC reads `system/plugin.json` (root) and the cache root file is `~/.claude/plugins/cache/brana/brana/1.0.0/plugin.json` (no `.claude-plugin/` subdirectory). The `.claude-plugin/` file is marketplace-install metadata only. | **Low** | pending | Fix: update §plugin.json in configuration.md to distinguish the two files — root manifest (for `--plugin-dir`) vs marketplace manifest (for `claude plugin install`). Correct cache sync path. Run `/brana:reconcile --scope propagation` after. |
 | E2026-05-30-2 | proyecto_anita: `services/frontend-v2/tests/e2e/views/metrics.spec.ts` used `waitForSelector('h1')` as auth-guard but `Metrics.tsx` renders `<h2>Métricas y Analíticas</h2>`, not h1. The wait timed out silently and all 3 metrics render assertions failed. Fixed: selector changed to `'h1, h2'`. | **Low** | code-fix | Fixed in ac7ed48 (test(e2e): fix selector mismatches). |
 | E2026-05-30-1 | proyecto_anita: `TemplateCreateV2.tsx` mutation calls `supabase.from('profiles').select('tenant_id').eq('id', user.id).single()` directly inside the submit handler. This call is subject to RLS — if `profiles` has no `SELECT` policy for `auth.uid() = id`, PostgREST returns no rows and the mutation throws "No se encontró la compañía" before any `POST /rest/v1/templates` fires. `useAuth()` bypasses this by caching `profile.tenant_id` at login time; the mutation should read from auth context instead. Confirmed via E2E: templates POST never fires despite the form being valid. | **Medium** | pending | Fix: remove direct `supabase.from('profiles')` call in mutation; read `tenant_id` from `useAuth()` context instead (consistent with rest of codebase). Verify via E2E: templates POST should fire after fix. |
 | E2026-05-29-4 | thebrana: `close.md` Steps 9c Tier 2a/2b and `sitrep.md §4b` read `.initiative // empty` via jq from task JSON. After t-1614 migration converts `tasks.json` keys from `"initiative"` → `"epic"`, these reads silently return empty — breaking initiative detection and causing Tier 3 interactive prompts on every close. Ordering constraint: t-1616 (procedure rename) must complete before t-1614 (data migration) is deployed. | **High** | code-fix | Fixed in 9d333ce (t-1616 sweep): close.md jq reads updated to `.epic`, sitrep.md §4b field reference updated. t-1614 migrate-epic CLI ready. |
@@ -3703,3 +3706,58 @@ Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Con
 **Fix:** `close.md:826` → `jq -r '.[].epic // empty'`; `close.md:835` → `jq -r '.epic // empty'`; same in sitrep.md.
 
 **Status:** pending — t-1616 must precede t-1614.
+
+---
+
+## E2026-05-30-3 — configuration.md §plugin.json cites wrong file location for --plugin-dir usage
+
+**Severity:** Low
+**Discovery:** 2026-05-30 — debrief-analyst after diagnosing recurring "Unknown skill: brana:close"
+**Affected files:**
+- `docs/reference/configuration.md:271` — "Located at `system/.claude-plugin/plugin.json`"
+- `docs/reference/configuration.md:308` — cache sync path uses `.claude-plugin/plugin.json` segment
+
+**Bug:** The doc says the plugin manifest is at `system/.claude-plugin/plugin.json`. CC loaded via `--plugin-dir ./system` reads `system/plugin.json` (the root-level file). `system/.claude-plugin/plugin.json` is the marketplace-install metadata, read by `claude plugin install` — not by the `--plugin-dir` runtime. The cache sync note also points to the wrong cache path (`…/.claude-plugin/plugin.json` instead of the root `plugin.json`). A maintainer following this doc will edit the wrong file, and the Skill() routing failure will recur.
+
+**Fix:** Update §plugin.json to:
+1. Distinguish `system/plugin.json` (runtime, read by `--plugin-dir`) from `system/.claude-plugin/plugin.json` (marketplace install metadata)
+2. State that `"skills"` and `"commands"` fields go in `system/plugin.json`
+3. Correct cache sync path to `~/.claude/plugins/cache/brana/brana/1.0.0/plugin.json` (no `.claude-plugin/` subdirectory)
+
+**Status:** pending — update configuration.md §plugin.json; run `/brana:reconcile --scope propagation` after.
+
+---
+
+## E2026-05-30-4 — CLAUDE.md 2026-05-24 field note (t-1671) states wrong root-cause and wrong cache path
+
+**Severity:** Low
+**Discovery:** 2026-05-30 — debrief-analyst, recurring "Unknown skill" failure
+**Affected files:**
+- `.claude/CLAUDE.md` — field note block "2026-05-24: plugin.json missing "skills" field — Skill() tool couldn't find brana skills (FIXED t-1671)"
+
+**Bug:** The field note says "Root cause: `system/.claude-plugin/plugin.json` had no `"skills"` or `"commands"` field." and "Cache synced at `~/.claude/plugins/cache/brana/brana/1.0.0/.claude-plugin/plugin.json`." Both are wrong. The actual root cause is that `system/plugin.json` (root, the file CC reads via `--plugin-dir ./system`) had no `"skills"` field. t-1671 fixed the schema table in configuration.md and the wrong `.claude-plugin/` file. Any future investigator reading this note will apply the same wrong fix. Cache path has an incorrect `.claude-plugin/` segment.
+
+**Fix:** Mark the 2026-05-24 block as SUPERSEDED (inline, same style as the "Skill tool uses bare name" entry). Add corrected note:
+- Root cause: `system/plugin.json` (root) had no `"skills"` field
+- Fix: `2ca0c99` added `"skills": "./skills/"` + `"commands"` to `system/plugin.json`
+- Cache sync: `~/.claude/plugins/cache/brana/brana/1.0.0/plugin.json` (no `.claude-plugin/` subdirectory)
+- Invocation: `Skill("brana:close")` (namespace-prefixed)
+
+**Status:** pending — CLAUDE.md is Layer 1 (human-authored only); update manually.
+
+---
+
+## E2026-05-30-5 — E2026-05-24-12 prematurely marked code-fix; t-1671 fixed wrong file
+
+**Severity:** Low
+**Discovery:** 2026-05-30 — recurring "Unknown skill: brana:close" failure traced to t-1671 applying fix to wrong file
+**Affected files:**
+- `docs/24-roadmap-corrections.md` — E2026-05-24-12 status + comment
+- `system/.claude-plugin/plugin.json` — was edited by t-1671 (correct schema table, wrong runtime manifest)
+- `system/plugin.json` — was NOT edited by t-1671 (no `"skills"` field until `2ca0c99`)
+
+**Bug:** E2026-05-24-12 was filed as `code-fix` with comment "Fixed 2026-05-24 (t-1671)". The actual fix in t-1671 added `"skills"` to `system/.claude-plugin/plugin.json` (marketplace metadata). CC running via `--plugin-dir ./system` reads `system/plugin.json` (root). The `"skills"` field was absent from the root file, causing `Skill()` routing to fail every session. The issue went undetected because SKILL.md scanning (which populates the system-reminder) works independently of `plugin.json` content — skills appear in autocomplete but fail at invocation. E2026-05-24-12's `code-fix` status was premature.
+
+**Fix:** `2ca0c99` is the actual fix (adds `"skills"` + `"commands"` to `system/plugin.json` and syncs cache). E2026-05-24-12's comment updated implicitly by E2026-05-30-5 — this entry supersedes its fix note.
+
+**Status:** code-fix — fixed in `2ca0c99` (2026-05-30).
