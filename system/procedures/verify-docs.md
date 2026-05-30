@@ -5,26 +5,38 @@ Run a structural assumption-freshness check + surface a random sample of assumpt
 
 ## When to use
 
-- **Quarterly** — primary cadence. Run, manually inspect the sample, record drift rate.
+- **Quarterly** — primary cadence. Run both `--scope docs` and `--scope claudemd`.
 - **Before a major architecture change** — sanity-check assumption claims in the docs you're about to revise.
 - **After a tier backfill** — confirm structural staleness clears with the new tiers.
+- **After a CLAUDE.md edit** — run `--scope claudemd` to confirm no volatile content was introduced.
 - **On demand** — when you suspect a doc says X but code does Y.
 
 ## Process
 
-### 1. Run the structural + sampling check
+### 1a. Run the structural + sampling check (scope: docs)
 
 ```
 Bash: bash system/scripts/verify-docs.sh --sample 5
 ```
 
-If you want reproducibility (e.g., sharing a sample with a teammate), pass `--seed N`.
-
-For automation/scripting, use `--json`:
+If you want reproducibility, pass `--seed N`. For automation/scripting:
 
 ```
 Bash: bash system/scripts/verify-docs.sh --json --sample 5 > /tmp/verify-docs-$(date -I).json
 ```
+
+### 1b. Run the CLAUDE.md portfolio scan (scope: claudemd)
+
+```
+Bash: bash system/scripts/verify-docs.sh --scope claudemd
+```
+
+Detects three violation types across all portfolio `CLAUDE.md` files (excluding worktrees):
+- **DATED_STATUS** — status lines with embedded 202X-MM-DD dates
+- **PRICING** — service cost lines (`ARS N/mes`, `$N/mes`)
+- **TRACKER_TABLE** — work-tracker tables (Status + Priority/Effort/Sprint/Assigned)
+
+For JSON output: `bash system/scripts/verify-docs.sh --scope claudemd --json`
 
 ### 2. Read the sample
 

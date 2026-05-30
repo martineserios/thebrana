@@ -24,6 +24,8 @@ t-441 (deferred) wants an LLM check for semantic drift, but only if the manual d
 - `--sample N` — number of assumption rows to surface for manual review (default: 5).
 - `--json` — emit JSON instead of human-readable output. Used by future automation (e.g., quarterly report).
 - `--seed N` — RNG seed for reproducible sampling (default: time-based).
+- `--scope docs` — default. Run assumption-row structural check + sample.
+- `--scope claudemd` — scan portfolio CLAUDE.md files for volatile-content violations.
 
 ## Outputs
 
