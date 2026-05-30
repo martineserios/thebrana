@@ -81,14 +81,21 @@ If the task has a non-empty `context` field, display it under the active task in
 ### 4. Session state (previous session)
 
 ```bash
-brana session read --json
+brana session read --all --json
 ```
 
-If JSON is available, extract structured fields directly:
+Returns a JSON array of `{epic, state}` objects — one per epic-scoped session file written in the last 30 days.  
+- `epic` is the slug string (e.g. `"session"`, `"harness"`) or `"(orphan)"` for closes from `main` or non-epic branches.
+- If only one block is returned, behaviour is identical to the previous single-file read (no regression).
+- When multiple blocks are returned, render each under its own section header: `=== {epic} ===`.
+
+If `--all` returns an empty array, fall back to `brana session read --json` (current-branch only), then to `brana handoff last` (legacy markdown).
+
+For each `state` block, extract structured fields directly:
 - **accomplished** → what was already done (array of strings)
 - **next** → planned follow-ups (array of `{text, task_id, category}`)
 - **blockers** → anything stalling progress (array of `{text, task_id}`)
-- **consumed_at** → if non-null, this state was already loaded by session-start (don't re-present)
+- **consumed_at** → if non-null, this state was already loaded by session-start (don't re-present). The `consumed_at` check applies **per-epic block** — a consumed epic block is still shown but de-emphasised.
 - **metrics** → session flywheel metrics (events, corrections, test writes)
 
 **Task-ID staleness filter** — before displaying `next[]` items, suppress stale references:
@@ -102,8 +109,6 @@ If status is `completed` or `cancelled`, suppress the item from display. If any 
 - `backprop.needed: true` + `backprop.files` non-empty → show: "Backprop needed for: {files}"
 - `doc_drift.stale_docs` non-empty → show: "Stale docs from last session: {list}"
 - `state.test_status.failing > 0` → show: "⚠ {N} failing tests at last close"
-
-If `brana session read --json` returns nothing, fall back to `brana handoff last` (legacy markdown).
 
 **4a. Same-day session-history recovery (belt-and-suspenders):**
 

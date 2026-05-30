@@ -62,7 +62,7 @@ fi
 INVOKED_SKILL=$(echo "$PROMPT" | grep -oE '/brana:[a-z]+' | head -1)
 WARNING="PREFLIGHT WARNING: Extra-usage disabled (${EU_REASON})."
 WARNING="$WARNING ${INVOKED_SKILL} uses extended context and will fail around the 200K-token mark with an API error."
-WARNING="$WARNING Run /model to switch to standard Opus 4.6 or Sonnet 4.6 before proceeding."
+WARNING="$WARNING Run /model to switch to standard Opus 4.7 or Sonnet 4.6 before proceeding."
 WARNING="$WARNING Silence with: BRANA_1M_WARN_OFF=1"
 
 jq -n --arg ctx "$WARNING" '{"continue":true,"additionalContext":$ctx}'

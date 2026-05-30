@@ -409,7 +409,7 @@ fn is_executable(path: &Path) -> bool {
 
 // ── Main command handler ──────────────────────────────────────────────────────
 
-pub fn cmd_doctor(theme: &themes::Theme) {
+pub fn cmd_doctor(theme: &themes::Theme, run_validate: bool) {
     let ok = theme.icon("done");
     let fail = theme.icon("blocked");
 
@@ -462,6 +462,34 @@ pub fn cmd_doctor(theme: &themes::Theme) {
         println!("\x1b[32mHealth: {passed}/{total} checks passed\x1b[0m\n");
     } else {
         println!("\x1b[33mHealth: {passed}/{total} checks passed\x1b[0m\n");
+    }
+
+    if run_validate {
+        run_validate_sh(&project_root);
+    }
+}
+
+/// Run validate.sh from the project root and stream its output.
+fn run_validate_sh(project_root: &Path) {
+    let validate_sh = project_root.join("validate.sh");
+    println!("\n\x1b[1mbrana doctor --validate\x1b[0m\n{}\n", "=".repeat(40));
+    if !validate_sh.exists() {
+        println!("\x1b[31mvalidate.sh not found at {}\x1b[0m", validate_sh.display());
+        return;
+    }
+    let status = Command::new("bash")
+        .arg(&validate_sh)
+        .current_dir(project_root)
+        .status();
+    match status {
+        Ok(s) if s.success() => {},
+        Ok(s) => {
+            let code = s.code().unwrap_or(1);
+            println!("\n\x1b[31mvalidate.sh exited with code {code}\x1b[0m");
+        }
+        Err(e) => {
+            println!("\x1b[31mFailed to run validate.sh: {e}\x1b[0m");
+        }
     }
 }
 

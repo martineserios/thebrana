@@ -149,7 +149,7 @@ EU_WARNING=""
 if [ -z "${BRANA_1M_WARN_OFF:-}" ] && [ -f "$HOME/.claude.json" ]; then
     EU_REASON=$(jq -r '.cachedExtraUsageDisabledReason // empty' "$HOME/.claude.json" 2>/dev/null) || EU_REASON=""
     if [ -n "$EU_REASON" ]; then
-        EU_WARNING="Extra-usage disabled (${EU_REASON}). 1M-context models will fail around the 200k-token mark with an API error mid-skill. Run /model to switch to standard Opus 4.6 or Sonnet 4.6 before invoking /brana:close or other heavy skills. Silence: BRANA_1M_WARN_OFF=1"
+        EU_WARNING="Extra-usage disabled (${EU_REASON}). 1M-context models will fail around the 200k-token mark with an API error mid-skill. Run /model to switch to standard Opus 4.7 or Sonnet 4.6 before invoking /brana:close or other heavy skills. Silence: BRANA_1M_WARN_OFF=1"
     fi
 fi
 

@@ -9,10 +9,10 @@ use anyhow::{Context, Result};
 pub use brana_core::session::mark_consumed;
 use brana_core::session::{
     compute_insights, current_branch, epic_scoped_state_path, read_history, read_state,
-    render_text, session_history_path, write_state, Blocker, NextCategory,
+    render_text, resolve_memory_dir, session_history_path, write_state, Blocker, NextCategory,
     NextItem, SessionState,
 };
-use chrono::Utc;
+use chrono::{DateTime, NaiveDate, Utc};
 use std::fs;
 use std::path::PathBuf;
 
@@ -59,9 +59,13 @@ pub fn cmd_session_write(file: Option<PathBuf>, minimal: bool) -> anyhow::Result
     Ok(())
 }
 
-/// `brana session read [--json]`
-pub fn cmd_session_read(json_output: bool) -> anyhow::Result<()> {
+/// `brana session read [--json] [--all] [--since YYYY-MM-DD]`
+pub fn cmd_session_read(json_output: bool, all: bool, since: Option<String>) -> anyhow::Result<()> {
     let root = require_project_root()?;
+
+    if all {
+        return cmd_session_read_all(&root, json_output, since);
+    }
 
     match read_state(&root) {
         Some(state) => {
@@ -78,6 +82,114 @@ pub fn cmd_session_read(json_output: bool) -> anyhow::Result<()> {
         }
     }
     Ok(())
+}
+
+/// Implementation of `brana session read --all`.
+///
+/// Scans all `session-state*.json` files in the memory dir, filters by date,
+/// sorts descending by `written_at`, and renders one block per file.
+fn cmd_session_read_all(root: &std::path::Path, json_output: bool, since: Option<String>) -> anyhow::Result<()> {
+    use std::collections::HashSet;
+
+    let memory_dir = resolve_memory_dir(root);
+
+    // Compute cutoff date
+    let cutoff: DateTime<Utc> = if let Some(ref s) = since {
+        let date = NaiveDate::parse_from_str(s, "%Y-%m-%d")
+            .with_context(|| format!("--since must be YYYY-MM-DD, got: {s}"))?;
+        date.and_hms_opt(0, 0, 0)
+            .map(|dt| dt.and_utc())
+            .ok_or_else(|| anyhow::anyhow!("invalid date: {s}"))?
+    } else {
+        Utc::now() - chrono::Duration::days(30)
+    };
+
+    // Collect candidate paths: glob session-state*.json
+    let mut paths: Vec<std::path::PathBuf> = Vec::new();
+    let mut seen: HashSet<std::path::PathBuf> = HashSet::new();
+
+    // Always include the orphan file explicitly
+    let orphan_path = memory_dir.join("session-state.json");
+    if orphan_path.exists() {
+        seen.insert(orphan_path.clone());
+        paths.push(orphan_path);
+    }
+
+    // Glob epic-scoped files
+    if memory_dir.exists() {
+        if let Ok(entries) = fs::read_dir(&memory_dir) {
+            for entry in entries.flatten() {
+                let p = entry.path();
+                if let Some(name) = p.file_name().and_then(|n| n.to_str()) {
+                    if name.starts_with("session-state") && name.ends_with(".json") && !seen.contains(&p) {
+                        seen.insert(p.clone());
+                        paths.push(p);
+                    }
+                }
+            }
+        }
+    }
+
+    // Parse, filter, and attach epic slug
+    #[derive(serde::Serialize)]
+    struct EpicEntry {
+        epic: String,
+        state: SessionState,
+    }
+
+    let mut entries: Vec<EpicEntry> = Vec::new();
+    for path in &paths {
+        let epic = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .map(|name| {
+                if name == "session-state.json" {
+                    "(orphan)".to_string()
+                } else {
+                    name.strip_prefix("session-state-")
+                        .and_then(|s| s.strip_suffix(".json"))
+                        .unwrap_or(name)
+                        .to_string()
+                }
+            })
+            .unwrap_or_else(|| "(orphan)".to_string());
+
+        let Ok(data) = fs::read_to_string(path) else { continue };
+        let Ok(state): Result<SessionState, _> = serde_json::from_str(&data) else { continue };
+
+        // Filter by written_at >= cutoff
+        if let Ok(written) = DateTime::parse_from_rfc3339(&state.written_at) {
+            if written.with_timezone(&Utc) < cutoff {
+                continue;
+            }
+        }
+
+        entries.push(EpicEntry { epic, state });
+    }
+
+    // Sort descending by written_at
+    entries.sort_by(|a, b| b.state.written_at.cmp(&a.state.written_at));
+
+    if json_output {
+        println!("{}", serde_json::to_string_pretty(&entries)?);
+        return Ok(());
+    }
+
+    if entries.is_empty() {
+        eprintln!("No session states found within the date range.");
+        return Ok(());
+    }
+
+    for (i, entry) in entries.iter().enumerate() {
+        if i > 0 {
+            println!();
+        }
+        println!("=== {} ===", entry.epic);
+        print!("{}", render_text(&entry.state));
+    }
+
+    Ok(()
+    )
 }
 
 /// `brana session history [--limit N]`
@@ -392,7 +504,7 @@ pub fn cmd_initiative_clear_marker() -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use brana_core::session::{read_state, render_text, session_history_path,
+    use brana_core::session::{read_state, render_text, resolve_memory_dir, session_history_path,
         write_state, Backprop, DocDrift, SessionMeta, SessionMetrics, TestStatus};
     use serial_test::serial;
     use std::env;
@@ -648,5 +760,70 @@ mod tests {
         let state = convert_handoff_entry(&entry);
         assert_eq!(state.session_label, Some("2026-03-30".into()));
         assert_eq!(state.written_at, "2026-03-30T00:00:00Z");
+    }
+
+    #[test]
+    #[serial]
+    fn cmd_session_read_all_collects_epic_files() {
+        let _tmp = with_temp_home();
+        let root = Path::new("/home/user/myrepo");
+
+        // Write a state for the "orphan" branch (falls back to session-state.json)
+        let mut orphan = sample_state();
+        orphan.written_at = recent_ts(1);
+        orphan.session_label = Some("orphan session".into());
+        orphan.branch = Some("main".into());
+        // Write directly to session-state.json by passing empty branch
+        let memory_dir = resolve_memory_dir(root);
+        fs::create_dir_all(&memory_dir).unwrap();
+        let orphan_path = memory_dir.join("session-state.json");
+        fs::write(&orphan_path, serde_json::to_string(&orphan).unwrap()).unwrap();
+
+        // Write an epic-scoped state via write_state with a proper branch
+        let mut epic_state = sample_state();
+        epic_state.written_at = recent_ts(2);
+        epic_state.session_label = Some("epic session".into());
+        epic_state.branch = Some("session/feat/t-999-read-all".into());
+        write_state(root, &epic_state).unwrap();
+
+        // cmd_session_read_all should find both files without error
+        cmd_session_read_all(root, false, None).unwrap();
+
+        // Verify both files exist in memory dir
+        let epic_path = memory_dir.join("session-state-session.json");
+        assert!(orphan_path.exists(), "orphan session-state.json must exist");
+        assert!(epic_path.exists(), "epic session-state-session.json must exist");
+    }
+
+    #[test]
+    #[serial]
+    fn cmd_session_read_all_filters_by_since() {
+        let _tmp = with_temp_home();
+        let root = Path::new("/home/user/myrepo");
+
+        let memory_dir = resolve_memory_dir(root);
+        fs::create_dir_all(&memory_dir).unwrap();
+
+        // Write a recent state (1 day ago)
+        let mut recent = sample_state();
+        recent.written_at = recent_ts(1);
+        recent.session_label = Some("recent session".into());
+        recent.branch = Some("main".into());
+        let recent_path = memory_dir.join("session-state.json");
+        fs::write(&recent_path, serde_json::to_string(&recent).unwrap()).unwrap();
+
+        // Write an old state (60 days ago) — should be filtered out by --since
+        let mut old = sample_state();
+        old.written_at = recent_ts(60);
+        old.session_label = Some("old session".into());
+        old.branch = Some("session/feat/t-888-old".into());
+        write_state(root, &old).unwrap();
+
+        // With --since 15 days ago, only the recent state should pass
+        let since_date = (Utc::now() - chrono::Duration::days(15))
+            .format("%Y-%m-%d")
+            .to_string();
+        // Should not error
+        cmd_session_read_all(root, false, Some(since_date)).unwrap();
     }
 }

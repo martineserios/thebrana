@@ -42335,7 +42335,7 @@
       "parent": "t-1633",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "subject": "brana session read --all: scan all session-state-*.json + session-state.json, one block per epic",
       "tags": [
@@ -42362,7 +42362,7 @@
       "parent": "t-1633",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "stream": "roadmap",
       "subject": "sitrep procedure: add --all flag invocation + 30-day filter + cross-epic summary block",
       "tags": [
@@ -44369,7 +44369,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "Add command discovery — runtime skill/agent/hook listing (like SuperClaude /sc)",
       "tags": [
@@ -44399,7 +44399,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "Improve onboarding UX — one-command install + brana doctor validation",
       "tags": [
@@ -46002,7 +46002,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "[verify-docs] add CLAUDE.md portfolio health scan — grep dated status + pricing violations",
       "tags": [
@@ -46031,7 +46031,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "bulk backlog hygiene — reconcile 300+ stale pending tasks with committed fixes",
       "tags": [

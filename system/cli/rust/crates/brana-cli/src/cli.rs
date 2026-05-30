@@ -103,7 +103,11 @@ pub enum Commands {
         cmd: OpsCmd,
     },
     /// System health check
-    Doctor,
+    Doctor {
+        /// Also run validate.sh structural checks
+        #[arg(long)]
+        validate: bool,
+    },
     /// Validate a tasks.json file (JSON + schema)
     Validate {
         /// Path to tasks.json
@@ -420,6 +424,12 @@ pub enum SessionCmd {
         /// Output raw JSON instead of human-readable text
         #[arg(long)]
         json: bool,
+        /// Show all epic-scoped session files (last 30 days, or --since YYYY-MM-DD)
+        #[arg(long)]
+        all: bool,
+        /// Filter sessions since this date (YYYY-MM-DD). Requires --all.
+        #[arg(long)]
+        since: Option<String>,
     },
     /// List past sessions from history
     History {

@@ -35,7 +35,7 @@ fn main() {
         Commands::Version => run_or_exit(commands::misc::cmd_version()),
         Commands::Transcribe { file, model } => run_or_exit(commands::misc::cmd_transcribe(&file, &model)),
         Commands::Files { cmd } => run_or_exit(commands::files::cmd_files(cmd)),
-        Commands::Doctor => commands::doctor::cmd_doctor(&theme),
+        Commands::Doctor { validate } => commands::doctor::cmd_doctor(&theme, validate),
         Commands::Validate { file } => run_or_exit(commands::misc::cmd_validate(&file)),
         Commands::Portfolio => run_or_exit(commands::misc::cmd_portfolio()),
         Commands::Run { task_id, spawn } => run_or_exit(commands::run::cmd_run(&task_id, spawn)),
@@ -129,7 +129,7 @@ fn main() {
         },
         Commands::Session { cmd } => match cmd {
             SessionCmd::Write { file, minimal } => run_or_exit(commands::session::cmd_session_write(file, minimal)),
-            SessionCmd::Read { json } => run_or_exit(commands::session::cmd_session_read(json)),
+            SessionCmd::Read { json, all, since } => run_or_exit(commands::session::cmd_session_read(json, all, since)),
             SessionCmd::History { limit } => run_or_exit(commands::session::cmd_session_history(limit)),
             SessionCmd::Path => run_or_exit(commands::session::cmd_session_path()),
             SessionCmd::Migrate => run_or_exit(commands::session::cmd_session_migrate()),
