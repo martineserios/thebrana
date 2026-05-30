@@ -7,6 +7,9 @@ On entry, create a CC Task step registry. Follow the [guided-execution protocol]
 
 Register these steps: LOAD, REVIEW (subcommand-specific), EXTRACT, EVALUATE, PERSIST.
 
+<!-- ruflo preamble -->
+ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo__memory_store")
+
 ## Step 0 — LOAD
 
 Pull relevant business context into memory before the review. Budget: 30K tokens max.

@@ -65,6 +65,9 @@ Register steps based on scope:
 
 **Plan mode:** Enter plan mode for scanning steps (SCAN-SPECS, SCAN-IMPL, DIFF, SEC-SCAN, PROP-SCAN). Exit plan mode before presenting results.
 
+<!-- ruflo preamble -->
+ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__memory_store,mcp__ruflo__memory_delete")
+
 ## Process
 
 ### Step 0: Orient + Route

@@ -17,6 +17,11 @@ allowed-tools:
   - AskUserQuestion
   - mcp__ruflo__hooks_intelligence_pattern-search
   - mcp__ruflo__hive-mind_memory
+  - mcp__ruflo__memory_search_unified
+  - mcp__ruflo__autopilot_predict
+  - mcp__ruflo__claims_board
+  - mcp__brana__session_history
+  - ToolSearch
 status: stable
 growth_stage: evergreen
 ---

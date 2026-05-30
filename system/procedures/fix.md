@@ -32,6 +32,9 @@ After creating the step registry, call `/goal` unless `--no-goal` was passed:
 
 COMMIT is the natural terminator for single fixes. HARDEN fires only when recurrence is detected — skip it otherwise and self-terminate after COMMIT.
 
+<!-- ruflo preamble -->
+ToolSearch("select:mcp__ruflo__autopilot_learn")
+
 ## Procedure
 
 ### Step 1: REPRODUCE

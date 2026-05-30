@@ -16,6 +16,7 @@ allowed-tools:
   - AskUserQuestion
   - mcp__ruflo__memory_search_unified
   - mcp__ruflo__autopilot_predict
+  - ToolSearch
 status: stable
 growth_stage: evergreen
 ---

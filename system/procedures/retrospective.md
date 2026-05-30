@@ -9,6 +9,9 @@ Spec: [memory-taxonomy-ddd.md](../../docs/architecture/features/memory-taxonomy-
 
 ---
 
+<!-- ruflo preamble -->
+ToolSearch("select:mcp__ruflo__memory_search")
+
 ## Step 1 — Collect the learning
 
 If `$ARGUMENTS` is non-empty, use it as the learning text. Otherwise ask:

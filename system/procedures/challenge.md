@@ -45,6 +45,9 @@ Adversarial review with two modes. **Standard:** Opus stress-tests reasoning, Ge
    - Migration/performance/estimates → **Assumption buster**: "What are you assuming that might not be true?"
    - Code/security review → **Adversarial reviewer**: Find concrete problems, security issues, performance concerns.
 
+<!-- ruflo preamble -->
+ToolSearch("select:mcp__ruflo__hive-mind_spawn,mcp__ruflo__hive-mind_consensus,mcp__ruflo__hive-mind_shutdown")
+
 4. **Launch challengers in parallel:**
 
    **4a. Challenger(s)** — Two modes based on step 1 detection:

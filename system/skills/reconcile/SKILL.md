@@ -23,6 +23,8 @@ allowed-tools:
   - Write
   - mcp__ruflo__memory_search
   - mcp__ruflo__memory_delete
+  - mcp__ruflo__memory_store
+  - ToolSearch
 status: stable
 growth_stage: evergreen
 ---

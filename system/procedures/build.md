@@ -111,6 +111,9 @@ This applies to EVERY step — CLASSIFY, SPECIFY, DECOMPOSE, BUILD, CLOSE. No ex
 
 ---
 
+<!-- ruflo preamble -->
+ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo__claims_claim,mcp__ruflo__claims_release")
+
 ## Step 0: LOAD
 
 Pull relevant architecture, decision knowledge, and skill matches into context before building. Budget: 30K tokens max.

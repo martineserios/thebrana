@@ -21,6 +21,12 @@ allowed-tools:
   - mcp__ruflo__claims_claim
   - mcp__ruflo__claims_release
   - mcp__ruflo__claims_list
+  - mcp__ruflo__agent_spawn
+  - mcp__ruflo__swarm_init
+  - mcp__ruflo__claims_mark-stealable
+  - mcp__ruflo__coordination_orchestrate
+  - mcp__ruflo__agent_pool
+  - ToolSearch
 status: stable
 growth_stage: evergreen
 ---

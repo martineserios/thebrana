@@ -15,6 +15,8 @@ allowed-tools:
   - Glob
   - Grep
   - AskUserQuestion
+  - mcp__ruflo__memory_search
+  - ToolSearch
 status: stable
 growth_stage: evergreen
 ---

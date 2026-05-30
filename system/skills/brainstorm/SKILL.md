@@ -26,6 +26,10 @@ allowed-tools:
   - mcp__context7__query-docs
   - mcp__ruflo__memory_search
   - mcp__ruflo__memory_store
+  - mcp__ruflo__agent_spawn
+  - mcp__ruflo__hive-mind_spawn
+  - mcp__ruflo__hive-mind_consensus
+  - ToolSearch
 status: stable
 growth_stage: evergreen
 ---

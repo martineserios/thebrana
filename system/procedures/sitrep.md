@@ -26,6 +26,9 @@ Multiple filters combine with AND. When any filter is active, show a **Filter:**
 - After returning from a tangent or interruption
 - Proactively: anytime you're unsure whether to continue, stop, or switch
 
+<!-- ruflo preamble -->
+ToolSearch("select:mcp__ruflo__memory_search_unified,mcp__ruflo__autopilot_predict,mcp__ruflo__claims_board,mcp__ruflo__hive-mind_memory,mcp__brana__session_history")
+
 ## Process
 
 Gather from 7 sources in parallel, then synthesize into one snapshot. No writes — this is read-only.

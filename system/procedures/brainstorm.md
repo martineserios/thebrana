@@ -25,6 +25,9 @@ On entry, create a CC Task step registry. Follow the [guided-execution protocol]
 
 Register these steps: LOAD, SEED, EXPAND, DISCUSS, SHAPE, OUTPUT, EXTRACT, EVALUATE, PERSIST.
 
+<!-- ruflo preamble -->
+ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo__hive-mind_spawn,mcp__ruflo__hive-mind_consensus")
+
 ## Procedure
 
 ### Step 0 — LOAD

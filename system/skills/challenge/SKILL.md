@@ -16,7 +16,12 @@ allowed-tools:
   - mcp__notebooklm__ask_question
   - mcp__notebooklm__search_notebooks
   - mcp__notebooklm__get_health
+  - mcp__ruflo__hive-mind_spawn
+  - mcp__ruflo__hive-mind_consensus
+  - mcp__ruflo__hive-mind_shutdown
+  - mcp__brana__agy_delegate
   - AskUserQuestion
+  - ToolSearch
 disable-model-invocation: true
 context: fork
 status: stable

@@ -1599,6 +1599,29 @@ fi
 echo ""
 fi  # should_run 35
 
+# Check 36 — procedure files with mcp__ruflo__ calls must have a <!-- ruflo preamble --> block
+# Any procedure with ruflo calls but no preamble will silently throw InputValidationError at runtime
+if should_run 36; then
+echo "Check 36: ruflo preamble in procedures..."
+PROCS_DIR="$SCRIPT_DIR/system/procedures"
+MISSING_PREAMBLE=()
+if [ -d "$PROCS_DIR" ]; then
+    while IFS= read -r -d '' proc_file; do
+        if grep -q "mcp__ruflo__" "$proc_file" 2>/dev/null; then
+            if ! grep -q "ruflo preamble" "$proc_file" 2>/dev/null; then
+                MISSING_PREAMBLE+=("$(basename "$proc_file")")
+            fi
+        fi
+    done < <(find "$PROCS_DIR" -name "*.md" -print0 2>/dev/null)
+fi
+if [ "${#MISSING_PREAMBLE[@]}" -gt 0 ]; then
+    fail "Check 36: procedures with mcp__ruflo__ calls missing <!-- ruflo preamble --> block: ${MISSING_PREAMBLE[*]}"
+else
+    pass "Check 36: all procedures with ruflo calls have preamble block"
+fi
+echo ""
+fi  # should_run 36
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."

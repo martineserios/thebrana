@@ -26,7 +26,9 @@ allowed-tools:
   - mcp__ruflo__memory_search
   - mcp__ruflo__embeddings_compare
   - mcp__ruflo__memory_store
+  - mcp__ruflo__agent_spawn
   - AskUserQuestion
+  - ToolSearch
   - EnterPlanMode
   - TaskList
   - ExitPlanMode

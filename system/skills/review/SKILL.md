@@ -17,6 +17,8 @@ allowed-tools:
   - AskUserQuestion
   - mcp__ruflo__memory_search
   - mcp__ruflo__memory_store
+  - mcp__ruflo__agent_spawn
+  - ToolSearch
 status: stable
 growth_stage: evergreen
 ---

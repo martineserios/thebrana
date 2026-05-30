@@ -19,6 +19,8 @@ allowed-tools:
   - Read
   - Write
   - Agent
+  - mcp__ruflo__autopilot_learn
+  - ToolSearch
 status: stable
 growth_stage: evergreen
 ---

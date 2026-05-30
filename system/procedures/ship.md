@@ -29,6 +29,9 @@ ROLLBACK is conditional — only executed if VERIFY or MONITOR fails.
 
 ---
 
+<!-- ruflo preamble -->
+ToolSearch("select:mcp__ruflo__hive-mind_spawn,mcp__ruflo__hive-mind_consensus,mcp__ruflo__hive-mind_shutdown")
+
 ## Steps
 
 ### Step 0: Goal injection

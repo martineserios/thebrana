@@ -33,6 +33,9 @@ multi-step stateful refactors · memory/session writes.
 
 ---
 
+<!-- ruflo preamble -->
+ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__memory_store")
+
 ## ROUTE
 
 **Validate the 4-question routing heuristic:**

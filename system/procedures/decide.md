@@ -14,6 +14,9 @@ AskUserQuestion: "What's the decision? One sentence."
 
 ---
 
+<!-- ruflo preamble -->
+ToolSearch("select:mcp__ruflo__memory_search_unified")
+
 ## Step 2 — Check context (optional, fast)
 
 If task selection ("what to work on?"): run `brana backlog next 2>/dev/null | head -5`.

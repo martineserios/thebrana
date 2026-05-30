@@ -20,6 +20,10 @@ allowed-tools:
   - TaskCreate
   - TaskList
   - TaskUpdate
+  - mcp__ruflo__hive-mind_spawn
+  - mcp__ruflo__hive-mind_consensus
+  - mcp__ruflo__hive-mind_shutdown
+  - ToolSearch
 status: experimental
 growth_stage: seed
 ---
