@@ -4,11 +4,18 @@
 
 ## CC Plugin Requirements
 
-A Claude Code plugin is a directory with a `.claude-plugin/plugin.json` manifest. CC discovers the plugin from this manifest and loads its contents (skills, hooks, agents, commands).
+A Claude Code plugin can be loaded in two ways: via `--plugin-dir` (dev/local mode) or from the marketplace cache. The two modes read different manifest locations.
 
-### plugin.json
+### plugin.json — Two Manifest Locations
 
-The manifest lives at `system/.claude-plugin/plugin.json`:
+| Mode | Manifest path | When used |
+|------|--------------|-----------|
+| `--plugin-dir ./system` | `system/plugin.json` | Dev and production (this repo) |
+| Marketplace install | `system/.claude-plugin/plugin.json` | Marketplace discovery metadata |
+
+For `--plugin-dir ./system`, CC reads **`system/plugin.json`** at the plugin root. The `.claude-plugin/plugin.json` file is marketplace-install metadata only; it is not read in `--plugin-dir` mode.
+
+**`system/plugin.json`** (runtime manifest — required for Skill() routing):
 
 ```json
 {
@@ -20,7 +27,9 @@ The manifest lives at `system/.claude-plugin/plugin.json`:
   },
   "repository": "https://github.com/martineserios/thebrana",
   "license": "MIT",
-  "keywords": ["ai", "development", "tdd", "skills", "agents", "hooks"]
+  "keywords": ["ai", "development", "tdd", "skills", "agents", "hooks"],
+  "skills": "./skills/",
+  "commands": ["./commands/repo-cleanup.md"]
 }
 ```
 
@@ -39,9 +48,10 @@ The manifest lives at `system/.claude-plugin/plugin.json`:
 CC expects specific subdirectories inside the plugin root:
 
 ```
-system/                           Plugin root
+system/                           Plugin root (--plugin-dir target)
+├── plugin.json                   ← Runtime manifest (required for --plugin-dir)
 ├── .claude-plugin/
-│   └── plugin.json               ← Manifest (required)
+│   └── plugin.json               ← Marketplace metadata (separate file)
 ├── skills/                       ← Slash commands (/brana:*)
 │   ├── build/SKILL.md
 │   ├── close/SKILL.md
@@ -158,7 +168,7 @@ When adding something new, ask:
 
 ## Version Management
 
-The plugin version lives in `system/.claude-plugin/plugin.json`. Follow semver:
+The plugin version lives in `system/plugin.json` (runtime manifest). Follow semver:
 
 - **Patch** (1.0.1): Bug fixes to existing skills/hooks/agents
 - **Minor** (1.1.0): New skills, agents, or hooks. Non-breaking changes.

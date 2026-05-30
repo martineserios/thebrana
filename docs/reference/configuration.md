@@ -268,7 +268,14 @@ Scheduled job configuration. Template at `system/scheduler/scheduler.template.js
 
 ## plugin.json
 
-Plugin manifest. Located at `system/.claude-plugin/plugin.json`.
+Plugin manifest. Two files exist — different purposes:
+
+| File | Mode | Purpose |
+|------|------|---------|
+| `system/plugin.json` | `--plugin-dir ./system` (dev + production) | **Runtime manifest** — CC reads this to load skills, commands, hooks |
+| `system/.claude-plugin/plugin.json` | Marketplace install | Marketplace discovery metadata only — not read in `--plugin-dir` mode |
+
+For this repo, `system/plugin.json` is the authoritative manifest.
 
 ### Schema
 
@@ -305,4 +312,4 @@ The plugin name determines the skill namespace. All skills in `system/skills/` a
 
 Install writes `~/.claude/plugins/installed_plugins.json` directly — no `/plugin` commands required. See `install.sh` for the canonical install path.
 
-> **Cache sync note:** The plugin cache at `~/.claude/plugins/cache/brana/brana/1.0.0/.claude-plugin/plugin.json` is a **real file copy** (not a symlink to source). After any `plugin.json` change, run `bootstrap.sh` (or `cp system/.claude-plugin/plugin.json ~/.claude/plugins/cache/brana/brana/1.0.0/.claude-plugin/plugin.json`) and restart Claude Code to activate.
+> **Cache sync note:** The plugin cache at `~/.claude/plugins/cache/brana/brana/1.0.0/plugin.json` is a **real file copy** (not a symlink to source). After any `system/plugin.json` change, run `bootstrap.sh` (or `cp system/plugin.json ~/.claude/plugins/cache/brana/brana/1.0.0/plugin.json`) and restart Claude Code to activate. The `.claude-plugin/` subdirectory in the cache holds marketplace metadata — do not confuse with the runtime manifest at the cache root.

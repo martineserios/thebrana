@@ -8,7 +8,7 @@ Brana operates as two deployment layers plus a knowledge repo:
 
 ```
 thebrana/system/                      PLUGIN (loaded by Claude Code)
-├── .claude-plugin/plugin.json        manifest
+├── plugin.json                       runtime manifest (--plugin-dir mode)
 ├── skills/                           /brana:* slash commands
 ├── commands/                         agent commands
 ├── hooks/hooks.json + *.sh           event hooks (35 scripts)
@@ -171,7 +171,8 @@ Located at `thebrana/docs/architecture/`:
 
 | File | Purpose |
 |------|---------|
-| `system/.claude-plugin/plugin.json` | Plugin manifest — name, version, entry point |
+| `system/plugin.json` | Runtime plugin manifest — name, version, skills/commands routing (--plugin-dir mode) |
+| `system/.claude-plugin/plugin.json` | Marketplace metadata manifest — separate file, not read by --plugin-dir |
 | `system/CLAUDE.md` | Mastermind identity — principles, agents table, portfolio |
 | `system/hooks/hooks.json` | Plugin hook registration (PreToolUse, SessionStart, SessionEnd) |
 | `system/statusline.sh` | Status bar for terminal |

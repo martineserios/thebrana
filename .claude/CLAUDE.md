@@ -165,7 +165,7 @@ Source: t-1637 / debrief-analyst 2026-05-24
 Source: t-1637 session close 2026-05-24
 
 ### 2026-05-24: plugin.json missing "skills" field — Skill() tool couldn't find brana skills (FIXED t-1671)
-Root cause: `system/.claude-plugin/plugin.json` had no `"skills"` or `"commands"` field. The available-skills system-reminder IS populated (via SKILL.md scanning), but the Skill() tool routing requires the field in plugin.json. Fix: added `"skills": "./skills/"` and `"commands": ["./commands/repo-cleanup.md"]`. Cache synced at `~/.claude/plugins/cache/brana/brana/1.0.0/.claude-plugin/plugin.json`. **Requires CC restart to activate.** After restart, invocation form is `Skill("brana:close")` (namespace-prefixed). Bare `Skill("close")` behavior unconfirmed.
+Root cause: `system/plugin.json` (the `--plugin-dir` runtime manifest) had no `"skills"` or `"commands"` field. The available-skills system-reminder IS populated (via SKILL.md scanning), but the Skill() tool routing requires the field in plugin.json. Fix: added `"skills": "./skills/"` and `"commands": ["./commands/repo-cleanup.md"]`. Cache synced at `~/.claude/plugins/cache/brana/brana/1.0.0/plugin.json`. **Requires CC restart to activate.** After restart, invocation form is `Skill("brana:close")` (namespace-prefixed). Bare `Skill("close")` behavior unconfirmed. Note: `system/.claude-plugin/plugin.json` is marketplace metadata only — not read by `--plugin-dir` mode (E2026-05-30-3/4).
 Source: t-1671 / 2026-05-24
 
 ### 2026-05-24: Edit closing-brace anchor — use full last-test context, not bare `}` lines

@@ -1576,6 +1576,29 @@ fi
 echo ""
 fi  # should_run 34
 
+# Check 35 — system/plugin.json must have skills and commands fields (t-1753)
+# Without these, Skill() routing fails silently even though SKILL.md scanning
+# still populates the available-skills system-reminder.
+if should_run 35; then
+echo "Check 35: system/plugin.json required fields..."
+PLUGIN_JSON="$SCRIPT_DIR/system/plugin.json"
+if [ ! -f "$PLUGIN_JSON" ]; then
+    fail "Check 35: system/plugin.json not found — --plugin-dir mode requires this manifest"
+elif ! command -v jq &>/dev/null; then
+    warn "Check 35: jq not available — cannot validate system/plugin.json fields"
+else
+    MISSING_FIELDS=()
+    jq -e '.skills' "$PLUGIN_JSON" > /dev/null 2>&1 || MISSING_FIELDS+=("skills")
+    jq -e '.commands' "$PLUGIN_JSON" > /dev/null 2>&1 || MISSING_FIELDS+=("commands")
+    if [ "${#MISSING_FIELDS[@]}" -gt 0 ]; then
+        fail "Check 35: system/plugin.json missing required field(s): ${MISSING_FIELDS[*]} — Skill() routing fails without 'skills'; commands won't register without 'commands' (t-1753)"
+    else
+        pass "Check 35: system/plugin.json has required fields: skills + commands"
+    fi
+fi
+echo ""
+fi  # should_run 35
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
