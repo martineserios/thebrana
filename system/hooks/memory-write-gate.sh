@@ -51,7 +51,7 @@ WARNING="⚠ Direct write to typed memory file: $FNAME
 
 Route through the CLI (ADR-038):
 
-  brana memory write \\
+  $ brana memory write \\
     --type ${TYPE} \\
     --scope project \\
     --slug ${SLUG} \\
