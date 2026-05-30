@@ -36046,7 +36046,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "in_progress",
+      "status": "completed",
       "subject": "[hook] validate.sh lint: detect brana CLI calls in hooks without cd GIT_ROOT subshell",
       "tags": [
         "ideation",
@@ -44940,6 +44940,63 @@
       ],
       "type": "task",
       "work_type": "docs"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "Extend tests/scripts/test-validate-brana-cd-wrapper.sh with Test 11 (hook file with brana cmd in string literal without $ → violation) and Test 12 (with $ prefix → no violation). Triggered by false-positive incident 2026-05-30 where memory-write-gate.sh WARNING string fired Check 30.",
+      "created": "2026-05-30",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1756",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "[test] Check 30 false-positive regression: string literal without/with $ prefix",
+      "tags": [
+        "test",
+        "validate",
+        "check-30"
+      ],
+      "type": "task",
+      "work_type": "implement"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "Create tests/scripts/test-validate-plugin-json-fields.sh with 3 cases: (1) plugin.json missing both skills+commands → fail, (2) missing one field → fail, (3) both present → pass. Check 35 added 2026-05-30 (t-1753) with no test coverage.",
+      "created": "2026-05-30",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1757",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "[test] Check 35 test file: system/plugin.json required fields",
+      "tags": [
+        "test",
+        "validate",
+        "check-35",
+        "plugin"
+      ],
+      "type": "task",
+      "work_type": "implement"
     }
   ],
   "version": "1"
