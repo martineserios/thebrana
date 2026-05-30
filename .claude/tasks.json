@@ -44958,7 +44958,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "[test] Check 30 false-positive regression: string literal without/with $ prefix",
       "tags": [
@@ -44986,7 +44986,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "[test] Check 35 test file: system/plugin.json required fields",
       "tags": [
