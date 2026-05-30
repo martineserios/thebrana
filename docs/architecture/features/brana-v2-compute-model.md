@@ -151,3 +151,4 @@ See `claude-gemini-orchestration.md §Phase 4` for full protocol and scoring bre
 | `system/skills/gemini/SKILL.md` + `system/procedures/gemini.md` | /brana:gemini skill |
 | `system/scheduler/templates/agy-sweep.sh.template` | Layer A sweep template |
 | `system/rules/delegation-routing.md` | Routing rule (always-load) |
+| `docs/architecture/features/ruflo-integration-map.md` | Tool-group map, ToolSearch preambles, hive-mind quorum gate specs |
