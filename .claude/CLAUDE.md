@@ -75,7 +75,6 @@ Special branches (no task ID required): `main`, `docs/{topic}` (spec-only, no `s
 - Implementation changes update docs in the same commit (no separate back-propagation step)
 - When adding new docs, update `docs/README.md`
 - Ruflo namespaces: query `knowledge` + `pattern` in parallel (use `namespace: "all"` only with `threshold: 0.55` in v3.6 — session records score constant 0.5 and contaminate below that). `specs` namespace is unindexed — skip.
-<!-- TODO: move to .claude/rules/tdd-enforcement.md → "After any code change, run the relevant test suite before marking the task done." -->
 - Use `.claude/CLAUDE.local.md` (gitignored) for personal/machine-specific overrides — loaded last, wins on conflict. Never commit it.
 
 <!-- Field Notes archived to ~/.claude/projects/*/memory/ and ruflo patterns. Query via /brana:memory. New gotchas go there, not here. -->
