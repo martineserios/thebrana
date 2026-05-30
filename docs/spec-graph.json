@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-29T17:07:53Z",
+  "generated": "2026-05-30T16:51:32Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -460,6 +460,10 @@
       "title": "24 — Roadmap Corrections & Errata (ARCHIVED)",
       "type": "Roadmap",
       "impl_files": [
+        "system/.claude-plugin/plugin.json",
+        "system/plugin.json",
+        "system/cli/rust/crates/brana-mcp/tests/tool_tests.rs:134",
+        "system/cli/rust/crates/brana-mcp/src/tools/backlog_stats.rs:37",
         "system/scheduler/brana-scheduler-runner.sh",
         "system/cli/rust/crates/",
         "system/procedures/",
@@ -524,7 +528,9 @@
         "system/procedures/challenge.md:32",
         "system/procedures/research.md",
         "system/cli/rust/crates/brana-mcp/tests/tool_tests.rs:447",
-        "system/cli/rust/crates/brana-cli/src/commands/session.rs:549"
+        "system/cli/rust/crates/brana-cli/src/commands/session.rs:549",
+        "system/procedures/close.md:826",
+        "system/procedures/sitrep.md:122"
       ]
     },
     "docs/25-self-documentation.md": {
@@ -929,7 +935,9 @@
         "system/hooks/my-hook.sh",
         "system/settings.json",
         "system/agents/my-agent.md",
-        "system/rules/delegation-routing.md"
+        "system/rules/delegation-routing.md",
+        "system/plugin.json",
+        "system/.claude-plugin/plugin.json"
       ]
     },
     "docs/architecture/features/acquire-skills-guide.md": {
@@ -1362,6 +1370,7 @@
       "title": "Plugin Structure",
       "type": "Roadmap",
       "impl_files": [
+        "system/plugin.json",
         "system/.claude-plugin/plugin.json",
         "system/skills/",
         "system/hooks/",
@@ -1401,6 +1410,7 @@
       "impl_files": [
         "system/rules/",
         "system/",
+        "system/plugin.json",
         "system/.claude-plugin/plugin.json",
         "system/CLAUDE.md",
         "system/hooks/hooks.json",
@@ -2488,6 +2498,7 @@
       "type": "Roadmap",
       "impl_files": [
         "system/scheduler/scheduler.template.json",
+        "system/plugin.json",
         "system/.claude-plugin/plugin.json",
         "system/skills/"
       ]
