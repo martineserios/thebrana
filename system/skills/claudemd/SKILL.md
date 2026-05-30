@@ -1,7 +1,7 @@
 ---
 name: claudemd
 description: "Audit or generate a CLAUDE.md for any project. Natural companion to /brana:align — run audit after align on brownfield projects."
-effort: small
+effort: low
 model: sonnet
 keywords: [CLAUDE.md, project-instructions, context, bloat, audit, generate, init]
 task_strategies: [investigation, greenfield]
