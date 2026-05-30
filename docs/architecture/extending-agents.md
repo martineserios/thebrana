@@ -129,7 +129,7 @@ The `model` field controls cost, speed, and reasoning depth:
 Current brana agent model assignments:
 
 - **Haiku:** scout, memory-curator, client-scanner, venture-scanner, daily-ops, metrics-collector, pipeline-tracker, archiver
-- **Sonnet:** challenger, pr-reviewer
+- **Sonnet:** challenger, pr-reviewer, build-evaluator
 - **Opus:** debrief-analyst
 
 Default to `haiku` unless the task requires deeper reasoning. Upgrading a model is cheap to try — downgrading after users depend on quality is not.

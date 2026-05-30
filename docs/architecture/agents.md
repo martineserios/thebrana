@@ -25,6 +25,7 @@
 | pipeline-tracker | Haiku | Pipeline tracking, deal events |
 | pr-reviewer | Sonnet | PR creation (auto-triggered via hook) |
 | gemini | Haiku | `/brana:gemini` skill invoked — research and doc delegation via agy |
+| build-evaluator | Sonnet | Explicitly invoked at close step to grade implementation vs AC |
 
 ## Agent Groups
 
@@ -32,7 +33,7 @@
 |-------|--------|---------|
 | Knowledge | memory-curator, scout | Pattern recall, fast research |
 | Diagnostic | client-scanner, venture-scanner | Project assessment |
-| Review | challenger, debrief-analyst, pr-reviewer | Quality and learning |
+| Review | challenger, debrief-analyst, pr-reviewer, build-evaluator | Quality and learning |
 | Business | daily-ops, metrics-collector, pipeline-tracker | Venture operations |
 | Lifecycle | archiver | Client retirement |
 | Execution | gemini | Gemini delegation via agy |

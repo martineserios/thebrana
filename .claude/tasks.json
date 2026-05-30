@@ -22487,7 +22487,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Ratchet gate automation — scripts to measure A/B/C metrics",
       "tags": [
         "operating-model",
@@ -44251,7 +44251,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "Audit brana context-budget hooks vs RTK — identify redundant compression logic",
       "tags": [
@@ -44459,7 +44459,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "in_progress",
+      "status": "completed",
       "strategy": null,
       "subject": "Implement Router-as-Haiku + Worker-as-Sonnet/Opus cost routing in brana:build/execute",
       "tags": [
@@ -44489,7 +44489,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "in_progress",
+      "status": "completed",
       "strategy": null,
       "subject": "Harness simplification audit — what brana components can Claude 4 replace?",
       "tags": [
@@ -44579,7 +44579,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "Evaluator-after-build agent — grade build output against original acceptance criteria",
       "tags": [

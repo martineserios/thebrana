@@ -1019,6 +1019,8 @@ Tasks must have `spawn` field set (see ADR-003 for schema). Tasks without `spawn
 
 ### Model routing
 
+See `system/skills/_shared/model-routing.md` for the canonical Router-as-Haiku pattern. Summary below.
+
 Before spawning an agent for a task, compute a complexity score (0.0–1.0):
 
 | Input | Score contribution | Max |
