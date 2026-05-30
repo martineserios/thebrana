@@ -178,6 +178,41 @@ EOF
 result=$(check30 "$TMPROOT/hooks")
 assert_nonempty "bare call in mixed hook detected" "$result"
 
+# ── Test 11: String literal with bare `brana` (no $ prefix) → violation ──────
+echo "Test 11: WARNING string with bare \`brana <cmd>\` (no \$ prefix) → flagged"
+setup
+cat > "$TMPROOT/hooks/warning-bare.sh" << 'EOF'
+#!/usr/bin/env bash
+# Reproduces memory-write-gate.sh false-positive incident (t-1439).
+# A WARNING heredoc with bare `brana memory write` inside a multi-line string.
+WARNING="Route through the CLI:
+
+  brana memory write \\
+    --type feedback \\
+    --slug my-slug"
+echo "$WARNING" >&2
+echo '{"continue": false}'
+EOF
+result=$(check30 "$TMPROOT/hooks")
+assert_nonempty "bare brana in string literal detected (no \$ prefix)" "$result"
+
+# ── Test 12: String literal with `$ brana` prefix → no violation ─────────────
+echo "Test 12: WARNING string with \`\$ brana <cmd>\` (\$ prefix) → not flagged"
+setup
+cat > "$TMPROOT/hooks/warning-dollar.sh" << 'EOF'
+#!/usr/bin/env bash
+# Fix convention: prefix with $ so Check 30 grep does not match.
+WARNING="Route through the CLI:
+
+  $ brana memory write \\
+    --type feedback \\
+    --slug my-slug"
+echo "$WARNING" >&2
+echo '{"continue": false}'
+EOF
+result=$(check30 "$TMPROOT/hooks")
+assert_empty "\$ brana prefix passes — no false positive" "$result"
+
 echo ""
 echo "=== Results: $PASS passed, $FAIL failed, $TOTAL total ==="
 [ "$FAIL" -eq 0 ] && exit 0 || exit 1
