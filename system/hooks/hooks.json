@@ -270,6 +270,19 @@
         ]
       },
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 3000,
+            "args": [
+              "bash",
+              "${CLAUDE_PLUGIN_ROOT}/hooks/bash-output-compress.sh"
+            ]
+          }
+        ]
+      },
+      {
         "matcher": "Write|Edit",
         "hooks": [
           {

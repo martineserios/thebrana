@@ -463,7 +463,7 @@ fn test_session_write_auto_fills_written_at_on_empty() {
     };
 
     brana_core::session::write_state(&root, &state).unwrap();
-    let loaded = brana_core::session::read_state(&root).unwrap();
+    let loaded = brana_core::session::read_state_from(&root, "main").unwrap();
     assert_eq!(loaded.accomplished, vec!["thing A"]);
 }
 
@@ -503,7 +503,7 @@ fn test_session_write_rejects_invalid_version() {
 #[test]
 fn test_session_read_returns_none_when_no_state() {
     let (_dir, root) = fixture_project_root();
-    assert!(brana_core::session::read_state(&root).is_none());
+    assert!(brana_core::session::read_state_from(&root, "main").is_none());
 }
 
 #[test]
@@ -514,7 +514,7 @@ fn test_session_read_returns_full_state() {
         serde_json::from_value(minimal_session_json("2026-04-06T10:00:00Z")).unwrap();
     brana_core::session::write_state(&root, &state).unwrap();
 
-    let loaded = brana_core::session::read_state(&root).unwrap();
+    let loaded = brana_core::session::read_state_from(&root, "feat/t-976").unwrap();
     assert_eq!(loaded.version, 1);
     assert_eq!(loaded.branch, Some("feat/t-976".to_string()));
     assert_eq!(loaded.accomplished, vec!["implemented session tools"]);
@@ -528,7 +528,7 @@ fn test_session_read_specific_field_via_json() {
         serde_json::from_value(minimal_session_json("2026-04-06T10:00:00Z")).unwrap();
     brana_core::session::write_state(&root, &state).unwrap();
 
-    let loaded = brana_core::session::read_state(&root).unwrap();
+    let loaded = brana_core::session::read_state_from(&root, "feat/t-976").unwrap();
     let as_value = serde_json::to_value(&loaded).unwrap();
     // Simulate the MCP tool's optional field extraction
     assert_eq!(as_value["branch"], "feat/t-976");

@@ -281,12 +281,18 @@ impl SessionState {
 
 // ── I/O ─────────────────────────────────────────────────────────────────
 
+/// Read session state for an explicit branch.
+/// Resolves the state file path from the given branch name rather than the live git branch.
+/// Use in tests and branch-aware callers. Production code uses [`read_state`].
+pub fn read_state_from(project_root: &Path, branch: &str) -> Option<SessionState> {
+    let path = epic_scoped_state_path(project_root, branch);
+    read_state_at(&path)
+}
+
 /// Read the current session state, if it exists.
 /// Uses the current git branch to resolve the epic-scoped state file.
 pub fn read_state(project_root: &Path) -> Option<SessionState> {
-    let branch = current_branch().unwrap_or_default();
-    let path = epic_scoped_state_path(project_root, &branch);
-    read_state_at(&path)
+    read_state_from(project_root, &current_branch().unwrap_or_default())
 }
 
 /// Write session state atomically (.tmp → rename).
@@ -909,7 +915,7 @@ mod tests {
 
         write_state(root, &state).unwrap();
 
-        let loaded = read_state(root).expect("state should exist after write");
+        let loaded = read_state_from(root, "main").expect("state should exist after write");
         assert_eq!(loaded.written_at, "2026-04-06T10:00:00Z");
         assert_eq!(loaded.branch, Some("main".to_string()));
         assert_eq!(loaded.accomplished, vec!["did thing A"]);
@@ -934,7 +940,7 @@ mod tests {
     #[test]
     fn read_state_missing_returns_none() {
         let dir = tempdir().unwrap();
-        assert!(read_state(dir.path()).is_none());
+        assert!(read_state_from(dir.path(), "main").is_none());
     }
 
     #[test]
@@ -1184,7 +1190,7 @@ mod tests {
 
         write_state(root, &state).unwrap();
 
-        let loaded = read_state(root).unwrap();
+        let loaded = read_state_from(root, "main").unwrap();
         let stale = &loaded.doc_drift.as_ref().unwrap().stale_docs;
         assert_eq!(stale.len(), 1, "non-existent path should be filtered out");
         assert!(stale[0].ends_with("existing.md"), "real path should be kept");
@@ -1206,7 +1212,7 @@ mod tests {
 
         write_state(root, &state).unwrap();
 
-        let loaded = read_state(root).unwrap();
+        let loaded = read_state_from(root, "main").unwrap();
         let stale = &loaded.doc_drift.as_ref().unwrap().stale_docs;
         assert!(stale.is_empty(), "all non-existent paths should be filtered");
     }
@@ -1232,7 +1238,7 @@ mod tests {
 
         write_state(root, &state).unwrap();
 
-        let loaded = read_state(root).unwrap();
+        let loaded = read_state_from(root, "main").unwrap();
         let stale = &loaded.doc_drift.as_ref().unwrap().stale_docs;
         assert_eq!(stale.len(), 2, "all existing paths should be preserved");
     }
@@ -1387,7 +1393,7 @@ mod tests {
         let mut state = make_state("2026-04-05T10:00:00Z");
         state.consumed_at = Some("2026-04-05T08:00:00Z".to_string());
         write_state(root, &state).unwrap();
-        let loaded = read_state(root).expect("state must exist after write");
+        let loaded = read_state_from(root, "main").expect("state must exist after write");
         assert!(loaded.consumed_at.is_none(), "write_state must clear consumed_at regardless of call site");
     }
 
@@ -1573,7 +1579,7 @@ mod tests {
             ..make_state("2026-05-27T10:00:00Z")
         };
         write_state(root, &state).unwrap();
-        let loaded = read_state(root).unwrap();
+        let loaded = read_state_from(root, "main").unwrap();
         assert_eq!(loaded.next.len(), 1, "duplicate next items must be deduped on write");
     }
 
@@ -1669,14 +1675,6 @@ mod tests {
     }
 
     // ── write_state same-day merge path (t-1498) ─────────────────────────
-    //
-    // These tests read from the explicit scoped path rather than using read_state()
-    // (which calls current_branch()) to avoid breakage when tests run on epic branches.
-
-    fn read_at_branch(root: &std::path::Path, branch: &str) -> Option<SessionState> {
-        let path = epic_scoped_state_path(root, branch);
-        read_state_at(&path)
-    }
 
     #[test]
     fn write_state_merges_on_same_day_same_branch() {
@@ -1699,7 +1697,7 @@ mod tests {
         write_state(root, &second).unwrap();
 
         // Read from the path that matches the state's branch ("main" → session-state.json).
-        let loaded = read_at_branch(root, "main").expect("state must exist after same-day merge");
+        let loaded = read_state_from(root, "main").expect("state must exist after same-day merge");
         assert!(loaded.accomplished.contains(&"did X".to_string()), "first close accomplished must survive merge");
         assert!(loaded.accomplished.contains(&"did Y".to_string()), "second close accomplished must be in merged state");
         assert!(loaded.next.iter().any(|n| n.text == "follow-up A"), "first close next item must survive merge");
@@ -1724,7 +1722,7 @@ mod tests {
         };
         write_state(root, &today).unwrap();
 
-        let loaded = read_at_branch(root, "main").expect("state must exist after different-day write");
+        let loaded = read_state_from(root, "main").expect("state must exist after different-day write");
         assert!(!loaded.accomplished.contains(&"did X yesterday".to_string()), "yesterday's accomplished must NOT survive different-day write");
         assert!(loaded.accomplished.contains(&"did Y today".to_string()), "today's accomplished must be present");
     }
@@ -1749,7 +1747,7 @@ mod tests {
         write_state(root, &branch_b).unwrap();
 
         // Each epic-scoped state is separate — branch_a's file must not contain branch_b's work.
-        let loaded_a = read_at_branch(root, "memory-arch/feat/t-1-foo").expect("branch A state must exist");
+        let loaded_a = read_state_from(root, "memory-arch/feat/t-1-foo").expect("branch A state must exist");
         assert!(loaded_a.accomplished.contains(&"work on A".to_string()));
         assert!(!loaded_a.accomplished.contains(&"work on B".to_string()), "different-branch write must not bleed into branch A state");
     }

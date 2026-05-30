@@ -335,7 +335,7 @@ AskUserQuestion:
   header: "Governance Gate"
   options:
     - "Yes — include DDD/TDD/SDD/Docs tasks" → proceed to backlog plan
-    - "No — skip governance tasks"           → proceed to backlog plan without them
+    - "Override (skip + file tech-debt task)" → skip governance tasks AND add a P2 tech-debt task to backlog: 'Add DDD/TDD/SDD/Docs coverage to {idea slug} plan'
     - "Back to SHAPE"                        → return to Phase 4 to reassess
 ```
 

@@ -87,6 +87,17 @@ At the end of each run, if you identified new calibration-worthy patterns, appen
 - Keep output concise — aim for 500-1500 tokens
 - Never modify files. Your output is advice, not action.
 
+## Discipline Check (M+ efforts)
+
+For any plan or backlog doc with effort M or higher, ALWAYS check:
+- **DDD:** Does the plan include at least one ADR task that blocks implementation tasks?
+- **TDD:** Are tests written before implementation? (test tasks must appear before or on the same day as impl tasks)
+- **SDD:** Is there at least one spec/docs update task per feature, blocked_by impl?
+- **Docs:** Is there at least one `/brana:docs` invocation or user guide task per feature?
+
+Score ≥3 (WARNING) for each missing discipline. Score 4 (CRITICAL) if ALL FOUR are missing.
+Include in your challenge report under a "## Discipline Coverage" heading before Verdict.
+
 ## Calibration
 
 See [CALIBRATION.md](CALIBRATION.md) for:

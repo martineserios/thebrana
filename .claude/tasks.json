@@ -33150,7 +33150,7 @@
       "parent": null,
       "priority": "P1",
       "started": null,
-      "status": "in_progress",
+      "status": "completed",
       "subject": "[system] DDD/TDD/SDD/Docs disciplines no enforced automáticamente en /brana:brainstorm ni caught por challenger",
       "tags": [
         "discipline",
@@ -44639,7 +44639,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "in_progress",
+      "status": "completed",
       "strategy": null,
       "subject": "PostToolUse Bash output compression hook — RTK-style context trimming for verbose CLI output",
       "tags": [
@@ -44816,7 +44816,7 @@
       "parent": null,
       "priority": "P1",
       "started": null,
-      "status": "in_progress",
+      "status": "completed",
       "strategy": null,
       "subject": "Fix: read_state branch-path divergence on epic branches causes pre-existing test failures",
       "tags": [
@@ -46041,6 +46041,30 @@
       ],
       "type": "task",
       "work_type": "chore"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "ruflo exposes ~95 tools across: hive-mind (10), swarm (4), agent spawn/manage/wasm/DAA (~37), coordination (7), workflow (12), task/job (9), claims/work-stealing (12), progress (4). Goal: map which of these complement our existing skills+hooks+agy system and identify concrete leverage points.\n\nKey questions to answer:\n1. hive-mind vs CC Workflow tool — when to use each? ruflo hive-mind_spawn vs CC Agent()? Overlap vs complement?\n2. Can ruflo workflow_* replace or augment the CC Workflow harness for long-running jobs?\n3. claims + work-stealing — useful for multi-session task handoff? Pairs with brana session continuity?\n4. DAA (dynamic adaptive agents) — does daa_agent_adapt add anything over CC agent reruns?\n5. coordination_orchestrate + coordination_load_balance — useful for brana skill fan-outs?\n6. progress_watch — can replace or complement Monitor tool for background jobs?\n7. agy (Gemini Flash via brana-mcp) + ruflo managed_agent — two-tier delegation: ruflo for orchestration shell, agy for cheap LLM subtasks?\n8. WASM agents — sandboxed execution for untrusted skill logic?\n\nDesired output: integration map (keep / replace / complement / skip per tool group) + 2-3 concrete implementation proposals ranked by leverage.",
+      "created": "2026-05-30",
+      "description": null,
+      "effort": "L",
+      "epic": "ruflo-integration",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1766",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P3",
+      "started": "2026-05-30",
+      "status": "in_progress",
+      "strategy": "spike",
+      "subject": "Analyze ruflo orchestration surface — design integration with skills, agy, and CC agents/workflows",
+      "tags": [],
+      "type": "research"
     }
   ],
   "version": "1"
