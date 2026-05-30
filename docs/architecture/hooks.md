@@ -77,7 +77,7 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | `preflight-model.sh` | UserPromptSubmit | `""` (all) | Advisory (non-blocking): warns when a heavy skill (`/brana:close`, `/brana:brainstorm`, `/brana:build`) is invoked while extra-usage is disabled. Silence: `BRANA_1M_WARN_OFF=1`. |
 | `context-inject.sh` | UserPromptSubmit | `""` (all) | Advisory: detects t-NNN task IDs and file paths in the prompt. Injects task subject/description/context (max 3 IDs) and file `head -20` content (max 3 paths). Absolute, relative (resolved to project root), and `~` paths supported. |
 | `signal-capture.sh` | UserPromptSubmit | `""` (all) | Advisory: detects explicit ratings (N/5, N/10, emoji) and implicit sentiment (English + Spanish phrases) in user prompts. Writes to `~/.claude/ratings/ratings.jsonl`; dumps failure context to `FAILURES/`. |
-| `session-start.sh` | SessionStart | `""` (all) | Pattern recall (1 parallel job, 2s budget), task context, venture detection, recurring error surfacing |
+| `session-start.sh` | SessionStart | `""` (all) | Pattern recall (1 parallel job, 2s budget), task context, venture detection, recurring error surfacing, extra-usage warning. Reads `effort.level` from hook JSON (`CLAUDE_CODE_SESSION_ID` env fallback for session_id). Skips ruflo search at effort=low. |
 | `session-end.sh` | SessionEnd | `""` (all) | Orchestrator — forks 3 sub-scripts: `session-end-metrics.sh` (flywheel metrics), `session-end-persist.sh` (ruflo + auto-memory), `session-end-drift.sh` (sync-state, spec graph, decisions log) |
 | `stopfailure-logger.sh` | StopFailure | `""` (all) | Log API errors (rate limit, auth, billing) to JSONL |
 
@@ -304,3 +304,7 @@ Source: t-1620 / close session 2026-05-28
 ### 2026-05-28: Hook advisory→hard-block requires TWO sync points — shell and hooks.json
 Escalating a PreToolUse hook from advisory to blocking requires changes in two places: (1) the shell script's output (`continue:false` instead of `continue:true`), and (2) `hooks.json`'s `continueOnBlock:true` field (must be removed). Both must be in sync. Updating only the shell script leaves `continueOnBlock:true` in hooks.json, which CC interprets as "keep running even if blocked" — effectively undoing the escalation. Also: `brana reference generate` must be run after any `docs/architecture/hooks.md` edit to keep `docs/reference/hooks.md` in sync (validate.sh Check 29).
 Source: t-1718 / close session 2026-05-28
+
+### 2026-05-30: Model version strings in hook warnings need periodic refresh (t-1711)
+`preflight-model.sh` and `session-start.sh` embed the model name in their extra-usage warning ("Run /model to switch to standard Opus X.Y or Sonnet X.Y"). When Anthropic retires or renames a model, these strings go stale and direct users to a non-existent model. t-1711 caught Opus 4.6 → Opus 4.7 several sessions after the fact. Rule: when a Claude model family is deprecated or a new family ships, grep `system/hooks/` for hardcoded model names and update in the same patch that updates other model references.
+Source: t-1711 / close session 2026-05-30

@@ -13,6 +13,7 @@
 | PostToolUse | `Bash` | `post-pr-review.sh` | 5000ms |
 | PostToolUse | `Bash` | `task-completed.sh` | 5000ms |
 | PostToolUse | `Bash` | `hallucination-detect.sh` | 3000ms |
+| PostToolUse | `Bash` | `bash-output-compress.sh` | 3000ms |
 | PostToolUse | `Write|Edit` | `post-sale.sh` | 5000ms |
 | PostToolUse | `Write|Edit` | `post-tasks-validate.sh` | 5000ms |
 | PostToolUse | `Write|Edit` | `post-hooks-json.sh` | 10000ms |
@@ -45,6 +46,12 @@
 | UserPromptSubmit | `` | `signal-capture.sh` | 3000ms |
 
 ## Hook Scripts
+
+### `bash-output-compress.sh`
+
+No strict mode — hooks must never fail and block the session.
+
+**Gate:** Advisory
 
 ### `branch-name-warn.sh`
 
