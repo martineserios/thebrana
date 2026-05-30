@@ -133,13 +133,13 @@ Resolve `$INITIATIVE_SLUG` via two sources in order (first hit wins):
 1. **Session JSON** — `epic` field in the session state (set by close Step 9c)
 2. **Session-start marker** (fallback, when session JSON lacks the field):
    ```bash
-   brana session initiative read-marker 2>/dev/null
+   brana session epic read-marker 2>/dev/null
    ```
    Use this when the active task was started in the current session (marker written by `brana run`) but not yet closed (no session-state.json epic field).
 
 If `$INITIATIVE_SLUG` is non-empty, load the cross-day arc:
 ```bash
-brana session initiative read "$INITIATIVE_SLUG" --json
+brana session epic read "$INITIATIVE_SLUG" --json
 ```
 
 Surface in the sitrep output:
@@ -148,7 +148,7 @@ Surface in the sitrep output:
 - **Open next ({N}):** items from `acc.next[]` with non-completed task_ids (apply the same task-ID staleness filter from Source 4 — suppress completed/cancelled items; these span multiple sessions)
 - **Recently resolved ({N}):** last 3 from `acc.resolved[]`
 
-If `brana session initiative read` returns nothing (epic not yet seeded), skip silently.
+If `brana session epic read` returns nothing (epic not yet seeded), skip silently.
 
 ### 5. Conversation scan
 

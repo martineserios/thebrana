@@ -9,7 +9,7 @@ use crate::session::{resolve_memory_dir, NextItem, SessionState};
 // ── Path helpers ─────────────────────────────────────────────────────────
 
 pub fn initiative_dir(project_root: &Path) -> PathBuf {
-    resolve_memory_dir(project_root).join("session-initiatives")
+    resolve_memory_dir(project_root).join("session-epics")
 }
 
 pub fn initiative_path(project_root: &Path, slug: &str) -> PathBuf {
@@ -115,7 +115,7 @@ impl InitiativeAccumulator {
 // ── Session-start initiative marker (written by `brana backlog start`) ───
 
 pub fn session_start_marker_path(project_root: &Path) -> PathBuf {
-    resolve_memory_dir(project_root).join("session-initiative-marker.json")
+    resolve_memory_dir(project_root).join("session-epic-marker.json")
 }
 
 /// Write the initiative marker atomically. Called by `brana backlog start` when the

@@ -815,11 +815,11 @@ If no task was claimed or `claims_release` fails (MCP down), skip silently.
 
 **Tier 1 (session-start marker):** Read the marker written by `brana run` at session start:
 ```bash
-TIER1_SLUG=$(brana session initiative read-marker 2>/dev/null)
+TIER1_SLUG=$(brana session epic read-marker 2>/dev/null)
 ```
 If non-empty, use it as `$INITIATIVE_SLUG` silently and skip Tier 2a/2b/2c/3. Then clear the marker:
 ```bash
-brana session initiative clear-marker 2>/dev/null || true
+brana session epic clear-marker 2>/dev/null || true
 ```
 If empty, fall through to Tier 2a.
 
@@ -866,7 +866,7 @@ If the user skips: proceed to Step 10 without writing an epic file.
 
 Read the current accumulator's text-only `next[]` items:
 ```bash
-brana session initiative read "$INITIATIVE_SLUG" --json \
+brana session epic read "$INITIATIVE_SLUG" --json \
   | jq -r '.next[] | select(.task_id == null) | .text'
 ```
 
@@ -885,14 +885,14 @@ If no items were addressed, pass `"[]"` as `$RESOLVED_TEXTS`.
 # completed_task_ids = comma-separated IDs of tasks completed this session
 COMPLETED=$(git log --oneline -20 | grep -oE 't-[0-9]+' | sort -u | tr '\n' ',' | sed 's/,$//')
 
-brana session initiative upsert "$INITIATIVE_SLUG" \
+brana session epic upsert "$INITIATIVE_SLUG" \
   --completed "$COMPLETED" \
   --resolved-texts "$RESOLVED_TEXTS"
 ```
 
 Also add `"epic": "$INITIATIVE_SLUG"` to the Step 9 JSON payload so the session-state.json carries the slug (used by sitrep §4b to load the accumulator).
 
-**Fallback:** If `brana session initiative upsert` fails, log and continue. Session-state.json and session-history.jsonl are the authoritative records.
+**Fallback:** If `brana session epic upsert` fails, log and continue. Session-state.json and session-history.jsonl are the authoritative records.
 
 ### Step 10: Store session metadata
 

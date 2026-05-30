@@ -452,18 +452,18 @@ pub enum SessionCmd {
         #[arg(long)]
         json: bool,
     },
-    /// Initiative accumulator — upsert, read, or archive cross-day initiative state
-    Initiative {
+    /// Epic accumulator — upsert, read, or archive cross-day epic state
+    Epic {
         #[command(subcommand)]
-        cmd: InitiativeCmd,
+        cmd: EpicCmd,
     },
 }
 
 #[derive(Subcommand)]
-pub enum InitiativeCmd {
-    /// Merge current session state into the initiative accumulator
+pub enum EpicCmd {
+    /// Merge current session state into the epic accumulator
     Upsert {
-        /// Initiative slug (e.g. "rust-cli")
+        /// Epic slug (e.g. "rust-cli")
         slug: String,
         /// Comma-separated list of task IDs completed this session (for Pass 1 pruning)
         #[arg(long, default_value = "")]
@@ -472,22 +472,22 @@ pub enum InitiativeCmd {
         #[arg(long, default_value = "[]")]
         resolved_texts: String,
     },
-    /// Print the current initiative accumulator
+    /// Print the current epic accumulator
     Read {
-        /// Initiative slug
+        /// Epic slug
         slug: String,
         /// Output raw JSON
         #[arg(long)]
         json: bool,
     },
-    /// Archive the initiative accumulator (move to archive/ with datestamp)
+    /// Archive the epic accumulator (move to archive/ with datestamp)
     Archive {
-        /// Initiative slug
+        /// Epic slug
         slug: String,
     },
-    /// Read the session-start initiative marker (written by `brana run`)
+    /// Read the session-start epic marker (written by `brana run`)
     ReadMarker,
-    /// Clear the session-start initiative marker (called by close Step 9c after consuming the slug)
+    /// Clear the session-start epic marker (called by close Step 9c after consuming the slug)
     ClearMarker,
 }
 

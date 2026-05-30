@@ -416,10 +416,10 @@ fn extract_field(body: &str, field: &str) -> Option<String> {
     None
 }
 
-// ── Initiative accumulator commands ─────────────────────────────────────
+// ── Epic accumulator commands ─────────────────────────────────────────────
 
-/// `brana session initiative upsert <slug> [--completed t-1,t-2] [--resolved-texts '[...]']`
-pub fn cmd_initiative_upsert(slug: &str, completed_csv: &str, resolved_texts_json: &str) -> anyhow::Result<()> {
+/// `brana session epic upsert <slug> [--completed t-1,t-2] [--resolved-texts '[...]']`
+pub fn cmd_epic_upsert(slug: &str, completed_csv: &str, resolved_texts_json: &str) -> anyhow::Result<()> {
     use brana_core::session_initiative::{upsert_initiative, ResolvedTextInput};
     let root = require_project_root()?;
     let state = read_state(&root)
@@ -441,16 +441,16 @@ pub fn cmd_initiative_upsert(slug: &str, completed_csv: &str, resolved_texts_jso
     Ok(())
 }
 
-/// `brana session initiative read <slug> [--json]`
-pub fn cmd_initiative_read(slug: &str, json_output: bool) -> anyhow::Result<()> {
+/// `brana session epic read <slug> [--json]`
+pub fn cmd_epic_read(slug: &str, json_output: bool) -> anyhow::Result<()> {
     use brana_core::session_initiative::read_initiative;
     let root = require_project_root()?;
     let acc = read_initiative(&root, slug)
-        .ok_or_else(|| anyhow::anyhow!("No initiative accumulator found for '{slug}'"))?;
+        .ok_or_else(|| anyhow::anyhow!("No epic accumulator found for '{slug}'"))?;
     if json_output {
         println!("{}", serde_json::to_string_pretty(&acc)?);
     } else {
-        println!("Initiative: {}", acc.slug);
+        println!("Epic:       {}", acc.slug);
         println!("Sessions:   {}", acc.sessions_count);
         println!("Last close: {}", acc.last_closed);
         if !acc.accomplished.is_empty() {
@@ -469,8 +469,8 @@ pub fn cmd_initiative_read(slug: &str, json_output: bool) -> anyhow::Result<()> 
     Ok(())
 }
 
-/// `brana session initiative archive <slug>`
-pub fn cmd_initiative_archive(slug: &str) -> anyhow::Result<()> {
+/// `brana session epic archive <slug>`
+pub fn cmd_epic_archive(slug: &str) -> anyhow::Result<()> {
     use brana_core::session_initiative::archive_initiative;
     let root = require_project_root()?;
     archive_initiative(&root, slug)?;
@@ -478,9 +478,9 @@ pub fn cmd_initiative_archive(slug: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
-/// `brana session initiative read-marker`
-/// Prints the initiative slug from the session-start marker, or empty string if absent.
-pub fn cmd_initiative_read_marker() -> anyhow::Result<()> {
+/// `brana session epic read-marker`
+/// Prints the epic slug from the session-start marker, or empty string if absent.
+pub fn cmd_epic_read_marker() -> anyhow::Result<()> {
     use brana_core::session_initiative::read_initiative_marker;
     let root = require_project_root()?;
     match read_initiative_marker(&root) {
@@ -490,8 +490,8 @@ pub fn cmd_initiative_read_marker() -> anyhow::Result<()> {
     Ok(())
 }
 
-/// `brana session initiative clear-marker`
-pub fn cmd_initiative_clear_marker() -> anyhow::Result<()> {
+/// `brana session epic clear-marker`
+pub fn cmd_epic_clear_marker() -> anyhow::Result<()> {
     use brana_core::session_initiative::clear_initiative_marker;
     let root = require_project_root()?;
     clear_initiative_marker(&root)?;

@@ -139,12 +139,12 @@ fn main() {
                 Ok(())
             })()),
             SessionCmd::Insights { limit, json } => run_or_exit(commands::session::cmd_session_insights(limit, json)),
-            SessionCmd::Initiative { cmd } => match cmd {
-                InitiativeCmd::Upsert { slug, completed, resolved_texts } => run_or_exit(commands::session::cmd_initiative_upsert(&slug, &completed, &resolved_texts)),
-                InitiativeCmd::Read { slug, json } => run_or_exit(commands::session::cmd_initiative_read(&slug, json)),
-                InitiativeCmd::Archive { slug } => run_or_exit(commands::session::cmd_initiative_archive(&slug)),
-                InitiativeCmd::ReadMarker => run_or_exit(commands::session::cmd_initiative_read_marker()),
-                InitiativeCmd::ClearMarker => run_or_exit(commands::session::cmd_initiative_clear_marker()),
+            SessionCmd::Epic { cmd } => match cmd {
+                EpicCmd::Upsert { slug, completed, resolved_texts } => run_or_exit(commands::session::cmd_epic_upsert(&slug, &completed, &resolved_texts)),
+                EpicCmd::Read { slug, json } => run_or_exit(commands::session::cmd_epic_read(&slug, json)),
+                EpicCmd::Archive { slug } => run_or_exit(commands::session::cmd_epic_archive(&slug)),
+                EpicCmd::ReadMarker => run_or_exit(commands::session::cmd_epic_read_marker()),
+                EpicCmd::ClearMarker => run_or_exit(commands::session::cmd_epic_clear_marker()),
             },
         },
         Commands::Knowledge { cmd } => match cmd {

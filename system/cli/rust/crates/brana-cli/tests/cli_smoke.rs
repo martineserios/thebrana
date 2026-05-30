@@ -392,3 +392,23 @@ fn ratings_json_fixture_shows_breakdown() {
     assert_eq!(parsed["positive"].as_u64(), Some(1));
     assert_eq!(parsed["negative"].as_u64(), Some(1));
 }
+
+// ── session epic (t-1758) ────────────────────────────────────────────────
+
+#[test]
+fn session_epic_subcommand_exists() {
+    // `brana session epic --help` must succeed — verifies the subcommand was wired up.
+    brana()
+        .args(["session", "epic", "--help"])
+        .assert()
+        .success();
+}
+
+#[test]
+fn session_initiative_subcommand_removed() {
+    // The old `brana session initiative` subcommand must no longer exist.
+    brana()
+        .args(["session", "initiative", "--help"])
+        .assert()
+        .failure();
+}
