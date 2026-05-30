@@ -3761,3 +3761,18 @@ Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Con
 **Fix:** `2ca0c99` is the actual fix (adds `"skills"` + `"commands"` to `system/plugin.json` and syncs cache). E2026-05-24-12's comment updated implicitly by E2026-05-30-5 — this entry supersedes its fix note.
 
 **Status:** code-fix — fixed in `2ca0c99` (2026-05-30).
+
+---
+
+## E2026-05-30-6 — subagent-context.sh decisions block silently no-ops on every spawn
+
+**Severity:** Low
+**Discovery:** 2026-05-30 — debrief-analyst session review
+**Affected files:**
+- `system/hooks/subagent-context.sh` lines 58-72
+
+**Bug:** The hook's "last 3 decisions" section checks for `system/state/decisions/*.jsonl` and injects entries into subagent context. The directory exists but hasn't been written to since 2026-04-14 (the decisions log was effectively abandoned as a workflow step). The block silently no-ops on every `SubagentStart` event, consuming cycles and adding dead code complexity. The t-1711 simplification audit (High confidence) identified this as a removal candidate.
+
+**Fix:** Remove lines 58-72 from `subagent-context.sh` (the decisions-dir block). The active-task and branch injection in parts 1-3 should remain. Alternatively: formally document and reactivate the decisions log convention.
+
+**Status:** pending — removal tracked via t-1711 audit findings.

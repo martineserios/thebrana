@@ -816,6 +816,8 @@ If MCP unavailable, skip silently. Hive-mind is transient awareness, not critica
 
    Never delegate implementation without explicit TDD acceptance criteria — agents that receive "implement X" without a checklist produce code without tests.
 
+   **Scope drift prevention:** Agents drift into adjacent artifacts at task boundary seams — they fill gaps they perceive, not gaps they were given. Before delegating any M+ task, add an explicit "Out of scope" callout naming specific files or dirs the agent must not touch. Example: `"Do NOT create backlog-reconcile.sh — that is tracked separately under t-1765."` (promoted 2026-05-30 from session debrief)
+
 3. **For each task** (in dependency order):
    a. **Mark CC Task in_progress** (if created): `TaskUpdate: status → in_progress`
    b. **Skill check** (Medium/Large builds only): run `brana skills suggest --query "<subtask subject and key terms>"`. If a match scores > 0.3, mention it: "Skill available: /brana:{name} ({reason}). Use it?" If the user says yes, invoke the skill for this subtask. If no match, proceed without mentioning.
