@@ -36046,7 +36046,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "completed",
+      "status": "in_progress",
       "subject": "[hook] validate.sh lint: detect brana CLI calls in hooks without cd GIT_ROOT subshell",
       "tags": [
         "ideation",
