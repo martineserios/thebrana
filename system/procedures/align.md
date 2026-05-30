@@ -180,6 +180,16 @@ Skip if `.claude/settings.local.json` already has both `attribution.commit` and 
 ### Venture foundation items
 
 **F1 — Description:** Create/merge CLAUDE.md with business context (stage, domain, team, framework).
+
+**Content constraints (mirrors code errata #141):** Apply `claudemd.md` Step 2 include/exclude rules. Specifically omit:
+- Operational rosters (instructor lists, employee tables, contact lists) → these belong in `docs/` or external sheets
+- Pricing tables — frequently-changing (ARS inflation, per-client tiers) → belongs in `docs/` or operational tools
+- Open questions / discovery gaps → route to `docs/preguntas-{client}.md` (or `docs/open-questions.md`), not CLAUDE.md
+- Status snapshots with dates ("as of Mayo 2026") → frequently-changing, belongs in MEMORY.md or task context
+- Anything CC can ask about or read from docs/
+
+Goal: CLAUDE.md should be <60 lines after F1. If it exceeds 80 lines, invoke `Skill("brana:claudemd", args="audit .claude/CLAUDE.md")` before proceeding to VERIFY.
+
 **F2 — Decision log:** `mkdir -p docs/decisions`. Create ADR-001 for framework selection.
 **F3 — Metrics:** `mkdir -p docs/metrics`. Create README with stage-appropriate metric tables.
 **F4 — Cadence:** `mkdir -p docs/meetings`. Create cadence.md with stage-appropriate meeting schedule.

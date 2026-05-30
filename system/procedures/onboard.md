@@ -264,6 +264,14 @@ Consolidate transcripts → write to `inbox/transcripts-YYYY-MM-DD.md` → use a
   2. What stage? Discovery / Validation / Growth / Scale. Revenue? Team size?
   3. Current tools and processes?
   4. Pain points?
+
+> **Discovery output routing — what goes WHERE:**
+> - Business identity, domain, pain points, roadmap → CLAUDE.md (via `brana:claudemd generate`)
+> - Operational rosters (staff/instructor lists, pricing tables) → `docs/` or external sheet — NOT CLAUDE.md
+> - Open questions → `docs/preguntas-{client}.md` (or `docs/open-questions.md`) — NOT CLAUDE.md
+> - Status snapshots ("as of [date]") → MEMORY.md — NOT CLAUDE.md
+> Never write discovery findings directly into CLAUDE.md. Route through `brana:claudemd generate` which enforces the include/exclude rules.
+
 - Classify stage using the four-stage model:
   - **Discovery:** No revenue, 1-3 people, exploring problem space
   - **Validation:** Some revenue, <$1M ARR, running experiments
@@ -331,7 +339,11 @@ Classify each as: **present**, **partial**, **missing**.
 3. {second priority}
 ```
 
-If no `.claude/CLAUDE.md` exists and this is a new project, offer to create an initial one.
+If no `.claude/CLAUDE.md` exists and this is a new project, offer to create one — delegate to the claudemd skill, do NOT write it inline:
+```
+Skill("brana:claudemd", args="generate")
+```
+The claudemd generate flow will interview the user and apply the correct include/exclude constraints. Never write CLAUDE.md content directly from onboard output.
 
 ## Rules
 
