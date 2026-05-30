@@ -44827,6 +44827,34 @@
         "bug"
       ],
       "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "Final step in the initiative→epic rename. t-1613 renamed Rust task field, t-1616 renamed procedure/doc references. This task renames the CLI subcommand itself: session.rs SessionCmd::Initiative→Epic, brana-cli.md §brana session initiative, session_initiative module name (optional). Follow t-1613 commit as reference. NOT blocking t-1614 data migration.",
+      "created": "2026-05-30",
+      "description": null,
+      "effort": "S",
+      "epic": "backlog-schema-v2",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1752",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P2",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "Rename brana session initiative subcommand → brana session epic (CLI + docs)",
+      "tags": [
+        "backlog-schema-v2",
+        "cli"
+      ],
+      "type": "task",
+      "work_type": "implement"
     }
   ],
   "version": "1"
