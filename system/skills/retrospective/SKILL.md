@@ -7,7 +7,7 @@ task_strategies: [feature, bug-fix, refactor, spike]
 stream_affinity: [roadmap, tech-debt, research]
 argument-hint: "[learning text]"
 group: learning
-model: sonnet
+model: haiku
 allowed-tools:
   - Bash
   - Read

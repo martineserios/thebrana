@@ -45122,6 +45122,34 @@
       "subject": "bump /brana:brainstorm model from sonnet to opus",
       "tags": [],
       "type": "chore"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "--since=6h shows prior-session commits when multiple closes happen same day. Session started clean (confirmed via git status at session start), but COMMIT_COUNT=14. Fix: store session-start commit hash in session state, use HEAD@{session-start}..HEAD boundary instead of time-based heuristic.",
+      "created": "2026-05-30",
+      "description": null,
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1763",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "fix(close): COMMIT_COUNT heuristic breaks on multi-close same day",
+      "tags": [
+        "close",
+        "procedure",
+        "heuristic"
+      ],
+      "type": "task",
+      "work_type": "fix"
     }
   ],
   "version": "1"

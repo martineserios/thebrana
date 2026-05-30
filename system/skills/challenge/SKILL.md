@@ -1,6 +1,7 @@
 ---
 name: challenge
 description: "Adversarial review — Opus stress-tests reasoning, Gemini checks knowledge. Use before plan or architecture decisions."
+model: haiku
 effort: max
 keywords: [adversarial, review, stress-test, pre-mortem, simplicity, assumptions, council]
 task_strategies: [feature, refactor, migration, greenfield]

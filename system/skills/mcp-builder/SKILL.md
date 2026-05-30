@@ -5,6 +5,7 @@ group: brana
 keywords: [mcp, server, development, typescript]
 task_strategies: [feature, greenfield, spike]
 stream_affinity: [roadmap, tech-debt]
+model: haiku
 effort: high
 allowed-tools: [Bash, Read, Glob, Grep, Edit, Write]
 status: stable

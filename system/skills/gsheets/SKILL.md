@@ -11,6 +11,7 @@ allowed-tools:
   - Read
   - Bash
   - AskUserQuestion
+model: haiku
 status: stable
 growth_stage: evergreen
 ---

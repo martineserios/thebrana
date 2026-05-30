@@ -1,6 +1,7 @@
 ---
 name: memory
 description: "Knowledge system ops — recall, pollinate, audit docs. Subcommands: recall, pollinate, review. Use for pattern queries, cross-client transfer, or audits."
+model: haiku
 effort: medium
 keywords: [knowledge, recall, patterns, cross-pollinate, audit, memory]
 task_strategies: [investigation, spike]

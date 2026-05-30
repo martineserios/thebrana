@@ -2,7 +2,7 @@
 name: gemini
 description: "Delegate to agy (Gemini worker) — ROUTE→ENRICH→DELEGATE→APPLY→EXTRACT→PERSIST. Use for research, boilerplate, doc drafts, batch summarization."
 effort: medium
-model: sonnet
+model: haiku
 keywords: [gemini, agy, delegate, research, boilerplate, batch, summarize, offload, worker, parallel]
 task_strategies: [spike, investigation]
 stream_affinity: [research, roadmap]
