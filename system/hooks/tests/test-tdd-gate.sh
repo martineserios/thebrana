@@ -248,6 +248,56 @@ assert_allows ".md in repo root passes through" \
 assert_allows "CLAUDE.md passes through" \
     "$(make_input Edit "$MD_DIR/.claude/CLAUDE.md" "$MD_DIR")"
 
+# === system/hooks/*.sh per-hook test requirement (t-1768) ===
+
+setup_hooks_project() {
+    local dir="$1"
+    mkdir -p "$dir/system/hooks/tests" "$dir/system/hooks/lib"
+    git -C "$dir" init -q 2>/dev/null
+    echo '#!/bin/bash' > "$dir/system/hooks/existing-hook.sh"
+    echo '#!/bin/bash' > "$dir/system/hooks/tests/test-existing-hook.sh"
+    git -C "$dir" add -A && git -C "$dir" commit -q -m "init" 2>/dev/null
+}
+
+# --- Test 20: Write new hook with NO per-hook test → advisory warning (non-blocking) ---
+HOOKS1="$TMPDIR/hooks1"
+setup_hooks_project "$HOOKS1"
+result20=$(echo "$(make_input Write "$HOOKS1/system/hooks/new-hook.sh" "$HOOKS1")" \
+    | BRANA_HOOK_PROFILE=standard bash "$HOOK" 2>/dev/null)
+if echo "$result20" | jq -e '.continue == true' >/dev/null 2>&1 \
+   && echo "$result20" | jq -e '.additionalContext != null' >/dev/null 2>&1; then
+    echo "  PASS: New system/hooks/*.sh with no test → advisory (non-blocking)"
+    ((PASS++))
+else
+    echo "  FAIL: New system/hooks/*.sh with no test → expected advisory, got: $result20"
+    ((FAIL++))
+fi
+
+# --- Test 21: Write hook WITH per-hook test on disk → allow silently ---
+HOOKS2="$TMPDIR/hooks2"
+setup_hooks_project "$HOOKS2"
+echo '#!/bin/bash' > "$HOOKS2/system/hooks/tests/test-new-hook.sh"
+assert_allows "system/hooks/*.sh with per-hook test present → allow" \
+    "$(make_input Write "$HOOKS2/system/hooks/new-hook.sh" "$HOOKS2")"
+
+# --- Test 22: Write to system/hooks/tests/ → pass through ---
+HOOKS3="$TMPDIR/hooks3"
+setup_hooks_project "$HOOKS3"
+assert_allows "system/hooks/tests/*.sh always passes through" \
+    "$(make_input Write "$HOOKS3/system/hooks/tests/test-foo.sh" "$HOOKS3")"
+
+# --- Test 23: Write to system/hooks/lib/ → pass through ---
+HOOKS4="$TMPDIR/hooks4"
+setup_hooks_project "$HOOKS4"
+assert_allows "system/hooks/lib/*.sh always passes through" \
+    "$(make_input Write "$HOOKS4/system/hooks/lib/helpers.sh" "$HOOKS4")"
+
+# --- Test 24: Edit existing hook WITH per-hook test → allow ---
+HOOKS5="$TMPDIR/hooks5"
+setup_hooks_project "$HOOKS5"
+assert_allows "Edit existing hook with per-hook test present → allow" \
+    "$(make_input Edit "$HOOKS5/system/hooks/existing-hook.sh" "$HOOKS5")"
+
 # --- Summary ---
 echo ""
 echo "Results: $PASS passed, $FAIL failed"

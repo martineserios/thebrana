@@ -117,6 +117,28 @@ case "$LANG" in
         ;;
 esac
 
+# Step 5.5: system/hooks/*.sh — per-hook test advisory (non-blocking, t-1768)
+# Runs BEFORE the general tests/ check so the project-level tests/ dir cannot
+# short-circuit the per-hook requirement (existing tests ≠ new hook has a test).
+case "$LANG" in
+    shell)
+        case "$FILE_PATH" in
+            */system/hooks/lib/*|*/system/hooks/tests/*) pass_through ;;
+            */system/hooks/*.sh)
+                HOOKS_GIT_ROOT=$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null) || pass_through
+                HOOKS_NAME=$(basename "$FILE_PATH" .sh)
+                HOOKS_TEST="${HOOKS_GIT_ROOT}/system/hooks/tests/test-${HOOKS_NAME}.sh"
+                if [ ! -f "$HOOKS_TEST" ]; then
+                    WARN="TDD advisory (t-1768): system/hooks/${HOOKS_NAME}.sh has no per-hook test file. Create system/hooks/tests/test-${HOOKS_NAME}.sh alongside this hook."
+                    jq -n --arg ctx "$WARN" '{"continue":true,"additionalContext":$ctx}'
+                    exit 0
+                fi
+                pass_through
+                ;;
+        esac
+        ;;
+esac
+
 # Step 6: Find git root
 GIT_ROOT=$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null) || pass_through
 [ -z "$GIT_ROOT" ] && pass_through
