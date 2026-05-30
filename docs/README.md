@@ -148,6 +148,9 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [cascade-throttle.md](architecture/features/cascade-throttle.md) | Cascade throttle for failure detection |
 | [scheduler.md](architecture/features/scheduler.md) | Scheduled jobs system |
 | [scheduler-hardening.md](architecture/features/scheduler-hardening.md) | Scheduler hardening and reliability |
+| [brana-v2-compute-model.md](architecture/features/brana-v2-compute-model.md) | Compute hierarchy: Claude/Ruflo/Gemini stack, routing rules, phase map |
+| [claude-gemini-orchestration.md](architecture/features/claude-gemini-orchestration.md) | Gemini layer A/B/C, ENRICH+PERSIST lifecycle, compounding loop |
+| [ruflo-integration-map.md](architecture/features/ruflo-integration-map.md) | Ruflo tool-group map, ToolSearch preambles, hive-mind quorum gate specs |
 | [plugin-packaging.md](architecture/features/plugin-packaging.md) | Plugin packaging for marketplace |
 | [test-lint-feedback-hook.md](architecture/features/test-lint-feedback-hook.md) | Test/lint feedback hook |
 | [tasks-portfolio.md](architecture/features/tasks-portfolio.md) | Cross-project portfolio view |
