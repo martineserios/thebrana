@@ -2,6 +2,7 @@
 # verify-docs.sh — Periodic doc verification surface (t-441 prereq).
 # Wraps validate.sh --assumptions-only and surfaces a random sample of
 # assumption rows for manual semantic review.
+# --scope claudemd: scan portfolio CLAUDE.md files for volatile-content violations.
 # Spec: system/scripts/verify-docs.spec.md
 set -euo pipefail
 
@@ -9,24 +10,29 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="${BRANA_REPO_ROOT:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
 VALIDATE="$REPO_ROOT/validate.sh"
 DOCS_DIR="$REPO_ROOT/docs"
+PORTFOLIO_ROOT="${BRANA_PORTFOLIO_ROOT:-$(cd "$REPO_ROOT/.." && pwd)}"
 
 # ── Args ───────────────────────────────────────────────────
 SAMPLE=5
 JSON=false
 SEED="${RANDOM}${RANDOM}"
+SCOPE="docs"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --sample) SAMPLE="$2"; shift 2 ;;
-        --json)   JSON=true; shift ;;
-        --seed)   SEED="$2"; shift 2 ;;
+        --sample)  SAMPLE="$2"; shift 2 ;;
+        --json)    JSON=true; shift ;;
+        --seed)    SEED="$2"; shift 2 ;;
+        --scope)   SCOPE="$2"; shift 2 ;;
         -h|--help)
             cat <<EOF
-Usage: verify-docs.sh [--sample N] [--json] [--seed N]
+Usage: verify-docs.sh [--sample N] [--json] [--seed N] [--scope docs|claudemd]
 
-  --sample N   Number of assumption rows to surface (default: 5)
-  --json       Emit JSON output
-  --seed N     RNG seed for reproducible sampling
+  --sample N       Number of assumption rows to surface (default: 5)
+  --json           Emit JSON output
+  --seed N         RNG seed for reproducible sampling
+  --scope docs     Run assumption-row structural check + sample (default)
+  --scope claudemd Scan portfolio CLAUDE.md files for volatile-content violations
 EOF
             exit 0 ;;
         *) echo "Unknown arg: $1" >&2; exit 2 ;;
