@@ -1622,6 +1622,33 @@ fi
 echo ""
 fi  # should_run 36
 
+# Check 37 — stale model version strings in system/hooks/*.sh (t-1769)
+# Hook warning text often embeds model names (e.g. "Opus 4.6"). When a model
+# family ships or retires, these drift silently. Flag known retired patterns.
+if should_run 37; then
+echo "Check 37: stale model version strings in hook scripts..."
+HOOKS_DIR="$SCRIPT_DIR/system/hooks"
+STALE_MODEL_HITS=()
+# Patterns that are known-retired: Opus 4.5 and older, Sonnet 3.x and older
+STALE_PATTERNS=("opus-4\.5" "opus-4\.4" "opus-4\.3" "opus 4\.5" "opus 4\.4" "opus 4\.3" "sonnet-3\." "sonnet 3\." "Opus 4\.5" "Opus 4\.4" "Opus 4\.3" "Sonnet 3\." "claude-3\." "Claude 3\.")
+if [ -d "$HOOKS_DIR" ]; then
+    while IFS= read -r -d '' hook_file; do
+        for pattern in "${STALE_PATTERNS[@]}"; do
+            if grep -qE "$pattern" "$hook_file" 2>/dev/null; then
+                STALE_MODEL_HITS+=("$(basename "$hook_file"):$pattern")
+                break
+            fi
+        done
+    done < <(find "$HOOKS_DIR" -maxdepth 1 -name "*.sh" -print0 2>/dev/null)
+fi
+if [ "${#STALE_MODEL_HITS[@]}" -gt 0 ]; then
+    warn "Check 37: stale model version string(s) in hook scripts: ${STALE_MODEL_HITS[*]}"
+else
+    pass "Check 37: no stale model version strings in hook scripts"
+fi
+echo ""
+fi  # should_run 37
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
