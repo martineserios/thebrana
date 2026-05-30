@@ -34,5 +34,5 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
             Ok(stats)
         })
     })
-    .with_description("Get aggregate statistics for backlog tasks (by status, priority, type, work_type, initiative).")
+    .with_description("Get aggregate statistics for backlog tasks (by status, priority, type, work_type, epic).")
 }

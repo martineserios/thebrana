@@ -131,7 +131,7 @@ fn test_search() {
     assert_eq!(results[0]["id"], "t-001");
 }
 
-// ── Wave 4B: initiative model tests ─────────────────────────────────────
+// ── Wave 4B: epic model tests ─────────────────────────────────────────────
 
 #[test]
 fn test_focus_score_epic_boost() {

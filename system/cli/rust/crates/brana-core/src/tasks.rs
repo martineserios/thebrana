@@ -626,6 +626,17 @@ pub fn validate_work_type(value: &str) -> Result<(), String> {
     }
 }
 
+/// Rename the `initiative` key to `epic` on a single task object (t-1614 schema migration).
+/// Preserves `level: "initiative"` and `type: "initiative"` values — only the KEY is renamed.
+pub fn migrate_initiative_to_epic(mut task: Value) -> Value {
+    if let Some(obj) = task.as_object_mut() {
+        if let Some(val) = obj.remove("initiative") {
+            obj.insert("epic".to_string(), val);
+        }
+    }
+    task
+}
+
 /// Validate that tasks with effort M/L/XL have a non-empty context. See t-939 and tasks.spec.md.
 pub fn validate_context_for_effort(effort: Option<&str>, context: Option<&str>) -> Result<(), String> {
     match effort {
@@ -2689,5 +2700,33 @@ mod tests {
         let old_ids: Vec<_> = old.iter().map(|t| t["id"].as_str().unwrap()).collect();
         let new_ids: Vec<_> = new.iter().map(|t| t["id"].as_str().unwrap()).collect();
         assert_eq!(old_ids, new_ids);
+    }
+
+    // ── t-1614: migrate_initiative_to_epic ───────────────────────────────────
+
+    #[test]
+    fn migrate_renames_initiative_key_to_epic() {
+        let task = json!({"id": "in-001", "level": "initiative", "initiative": "backlog-git-alignment"});
+        let result = migrate_initiative_to_epic(task);
+        assert_eq!(result["epic"], "backlog-git-alignment");
+        assert!(result.get("initiative").is_none(), "old key must be gone");
+        assert_eq!(result["level"], "initiative", "level value must not change");
+    }
+
+    #[test]
+    fn migrate_noop_when_no_initiative_key() {
+        let task = json!({"id": "t-001", "type": "task", "epic": "existing"});
+        let result = migrate_initiative_to_epic(task);
+        assert_eq!(result["epic"], "existing");
+        assert!(result.get("initiative").is_none());
+    }
+
+    #[test]
+    fn migrate_preserves_type_initiative_value() {
+        let task = json!({"id": "in-002", "type": "initiative", "initiative": "some-epic"});
+        let result = migrate_initiative_to_epic(task);
+        assert_eq!(result["epic"], "some-epic", "initiative key renamed to epic");
+        assert_eq!(result["type"], "initiative", "type value must not change");
+        assert!(result.get("initiative").is_none());
     }
 }

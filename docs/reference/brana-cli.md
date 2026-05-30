@@ -92,10 +92,10 @@ brana backlog burndown [--period week|month|day]
 
 ## brana backlog focus
 
-Smart daily pick ranked by initiative match + priority + effort + blocking depth.
+Smart daily pick ranked by epic match + priority + effort + blocking depth.
 
 ```
-brana backlog focus [--top <N>] [--json] [--work-type <TYPE>] [--initiative <SLUG>]
+brana backlog focus [--top <N>] [--json] [--work-type <TYPE>] [--epic <SLUG>]
 ```
 
 ### Flags
@@ -105,15 +105,15 @@ brana backlog focus [--top <N>] [--json] [--work-type <TYPE>] [--initiative <SLU
 | `--top` | 3 | Number of tasks to show |
 | `--json` | false | Output JSON array |
 | `--work-type` | — | Filter by cognitive mode: implement, research, design, ops, review |
-| `--initiative` | — | Override active initiative (defaults to tasks-config.json `active_initiative`) |
+| `--epic` | — | Override active epic (defaults to tasks-config.json `active_epic`) |
 
-When `active_initiative` is set, focus shows ★-marked tasks from that initiative first, then P0/P1 overflow from other initiatives.
+When `active_epic` is set, focus shows ★-marked tasks from that epic first, then P0/P1 overflow from other epics.
 
 ### Examples
 
 ```bash
 brana backlog focus
-brana backlog focus --top 5 --initiative cc-alignment
+brana backlog focus --top 5 --epic cc-alignment
 brana backlog focus --work-type implement
 ```
 
@@ -121,7 +121,7 @@ brana backlog focus --work-type implement
 
 ## brana backlog set active
 
-Set the active initiative for the current session and beyond.
+Set the active epic for the current session and beyond.
 
 ```
 brana backlog set active <SLUG>
@@ -134,7 +134,7 @@ brana backlog set active cc-alignment
 brana backlog set active notebooklm
 ```
 
-Writes `active_initiative` to `~/.claude/tasks-config.json`.
+Writes `active_epic` to `~/.claude/tasks-config.json`.
 
 ---
 
@@ -151,13 +151,13 @@ brana backlog query [OPTIONS]
 | Flag | Description |
 |------|-------------|
 | `--work-type <TYPE>` | Filter by cognitive mode: implement, research, design, ops, review |
-| `--initiative <SLUG>` | Filter by initiative slug (exact match) |
+| `--epic <SLUG>` | Filter by epic slug (exact match) |
 
 ### Examples
 
 ```bash
 brana backlog query --work-type implement --status pending
-brana backlog query --initiative cc-alignment --priority P0
+brana backlog query --epic cc-alignment --priority P0
 ```
 
 ---
@@ -174,13 +174,13 @@ brana backlog add [OPTIONS]
 
 | Flag | Description |
 |------|-------------|
-| `--initiative <SLUG>` | Assign to an initiative (e.g. "cc-alignment") |
+| `--epic <SLUG>` | Assign to an epic (e.g. "cc-alignment") |
 | `--work-type <TYPE>` | Cognitive mode: implement, research, design, ops, review |
 
 ### Examples
 
 ```bash
-brana backlog add --subject "wire new filter" --initiative cc-alignment --work-type implement --effort M
+brana backlog add --subject "wire new filter" --epic cc-alignment --work-type implement --effort M
 ```
 
 ---

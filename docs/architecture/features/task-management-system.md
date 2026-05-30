@@ -70,15 +70,15 @@ See ADR-002 for architecture decision. Key components:
 4. PostToolUse hook (validation + rollup — deterministic enforcement)
 5. Session start + status line integration (passive visibility)
 
-## v3 Design: Initiative Model
+## v3 Design: Epic Model
 
-**Context:** 1488 tasks across 20 files with no active-initiative concept, 49% null priorities, 11 overlapping streams, and a focus score that rewarded staleness over direction.
+**Context:** 1488 tasks across 20 files with no active-epic concept, 49% null priorities, 11 overlapping streams, and a focus score that rewarded staleness over direction.
 
 ### Fields added
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `initiative` | string (slug) | Optional. Groups tasks by named initiative: "cc-alignment", "notebooklm", etc. |
+| `epic` | string (slug) | Optional. Groups tasks by named epic: "cc-alignment", "notebooklm", etc. |
 | `work_type` | enum | Optional. Cognitive mode: `implement` / `research` / `design` / `ops` / `review` |
 
 ### Fields removed
@@ -89,11 +89,11 @@ See ADR-002 for architecture decision. Key components:
 | `strategy` | Null on >95% of tasks. Replaced by `work_type`. |
 | `execution` | Null on >95% of tasks. `execution=manual` → `work_type=ops`. |
 
-### Active initiative config
+### Active epic config
 
-`~/.claude/tasks-config.json` gains an `active_initiative` field:
+`~/.claude/tasks-config.json` gains an `active_epic` field:
 ```json
-{ "active_initiative": "cc-alignment", "theme": "emoji" }
+{ "active_epic": "cc-alignment", "theme": "emoji" }
 ```
 
 Set with: `brana backlog set active <slug>`
@@ -102,8 +102,8 @@ Set with: `brana backlog set active <slug>`
 
 ```
 OLD: priority_weight + (days_since_created × 2) − effort_penalty − (blocked_depth × 50)
-NEW: initiative_boost + priority_weight − effort_penalty − (blocked_depth × 50)
-     initiative_boost = +500 if task.initiative == active_initiative, else 0
+NEW: epic_boost + priority_weight − effort_penalty − (blocked_depth × 50)
+     epic_boost = +500 if task.epic == active_epic, else 0
 ```
 
 Staleness removed — it was rewarding neglect over direction.
@@ -140,7 +140,7 @@ Five idempotent scripts in `system/scripts/migrate/`:
 ## Field Notes
 
 ### 2026-05-19: filter_tasks() positional params — refactor before next schema field
-Adding `initiative` + `work_type` required updating ~10 call sites with `None, None`. The function now has 6 positional optional params. Any future schema field addition hits the same call-site tax. Refactor to `TaskFilter { stream, status, priority, types, initiative, work_type }` with `..Default::default()` before adding the 7th filter. See t-1529.
+Adding `epic` + `work_type` required updating ~10 call sites with `None, None`. The function now has 6 positional optional params. Any future schema field addition hits the same call-site tax. Refactor to `TaskFilter { stream, status, priority, types, epic, work_type }` with `..Default::default()` before adding the 7th filter. See t-1529.
 Source: backlog-redesign session 2026-05-19
 
 ### 2026-05-19: ValueEnum parity — update in same commit as core enum

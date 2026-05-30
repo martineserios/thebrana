@@ -23,10 +23,10 @@ Tasks have two new optional fields:
 
 | Field | Values | Purpose |
 |-------|--------|---------|
-| `initiative` | slug string (e.g. `"cc-alignment"`) | Groups tasks under a named initiative |
+| `epic` | slug string (e.g. `"cc-alignment"`) | Groups tasks under a named epic |
 | `work_type` | `implement` / `research` / `design` / `ops` / `review` | Cognitive mode — what kind of work this is |
 
-**Active initiative** is set in `~/.claude/tasks-config.json` → `active_initiative`. When set, `backlog_focus` / `brana backlog focus` shows ★-marked tasks from that initiative first, then P0/P1 overflow from others.
+**Active epic** is set in `~/.claude/tasks-config.json` → `active_epic`. When set, `backlog_focus` / `brana backlog focus` shows ★-marked tasks from that epic first, then P0/P1 overflow from others.
 
 **Stream taxonomy** (v3 — 3 values):
 
@@ -43,18 +43,18 @@ Tasks have two new optional fields:
 | Get task | `backlog_get(task_id: "t-123")` |
 | Get field | `backlog_get(task_id: "t-123", field: "status")` |
 | Query tasks | `backlog_query(status: "pending", stream: "dev")` or `backlog_query(kind: "fix")` |
-| Filter by initiative | `backlog_query(initiative: "cc-alignment")` |
+| Filter by epic | `backlog_query(epic: "cc-alignment")` |
 | Filter by work type | `backlog_query(work_type: "implement", status: "pending")` |
 | Multi-tag AND | `backlog_query(tag: "dx,cli")` |
 | Filter by parent | `backlog_query(parent: "ph-001", task_type: "task")` |
 | Search | `backlog_search(query: "enforcement")` |
 | Aggregate stats | `backlog_stats()` |
 | Set field | `backlog_set(task_id: "t-123", field: "status", value: "in_progress")` |
-| Set initiative | `backlog_set(task_id: "t-123", field: "initiative", value: "cc-alignment")` |
+| Set epic | `backlog_set(task_id: "t-123", field: "epic", value: "cc-alignment")` |
 | Add/remove tag | `backlog_set(task_id: "t-123", field: "tags", value: "+newtag")` |
 | Append text | `backlog_set(task_id: "t-123", field: "context", value: "note", append: true)` |
 | Create task | `backlog_add(subject: "...", kind: "feature", task_type: "task")` |
-| Create with initiative | `backlog_add(subject: "...", initiative: "cc-alignment", work_type: "implement")` |
+| Create with epic | `backlog_add(subject: "...", epic: "cc-alignment", work_type: "implement")` |
 | Focus (top tasks) | `backlog_focus(top: 5)` or `backlog_focus(work_type: "research")` |
 
 ### CLI fallback (when MCP unavailable)
@@ -71,31 +71,31 @@ Tasks have two new optional fields:
 | Next unblocked task | `brana backlog next --kind feature --tag Y` |
 | Next by stream | `brana backlog next --stream dev` |
 | Query tasks | `brana backlog query --status pending --kind fix --output json` |
-| Filter by initiative | `brana backlog query --initiative cc-alignment` |
+| Filter by epic | `brana backlog query --epic cc-alignment` |
 | Filter by work type | `brana backlog query --work-type implement --status pending` |
 | Multi-tag AND query | `brana backlog query --tag "dx,cli" --count` |
 | Filter by parent | `brana backlog query --parent ph-001 --type task` |
 | Get full task | `brana backlog get <id>` |
 | Get single field | `brana backlog get <id> --field status` |
-| Focus (active initiative) | `brana backlog focus` |
+| Focus (active epic) | `brana backlog focus` |
 | Focus by work type | `brana backlog focus --work-type research` |
-| Focus override initiative | `brana backlog focus --initiative cc-alignment` |
+| Focus override epic | `brana backlog focus --epic cc-alignment` |
 
 ### Write operations
 
 | Operation | CLI command |
 |-----------|------------|
 | Set any field | `brana backlog set <id> <field> <value>` |
-| Set initiative | `brana backlog set <id> initiative cc-alignment` |
+| Set epic | `brana backlog set <id> epic cc-alignment` |
 | Set work type | `brana backlog set <id> work_type implement` |
-| **Set active initiative** | `brana backlog set-active <slug>` |
+| **Set active epic** | `brana backlog set-active <slug>` |
 | Set to null | `brana backlog set <id> priority null` |
 | Append to text | `brana backlog set <id> context --append "note"` |
 | Add/remove tag | `brana backlog set <id> tags +newtag` / `tags -oldtag` |
 | Add blocked_by | `brana backlog set <id> blocked_by +t-100` |
 | Create task (JSON) | `brana backlog add --json '{"subject":"...","kind":"feature","type":"task"}'` |
 | Create task (shorthand) | `brana backlog add --subject "..." --kind feature --type task --tags "a,b" --effort S` |
-| Create with initiative | `brana backlog add --subject "..." --initiative cc-alignment --work-type implement` |
+| Create with epic | `brana backlog add --subject "..." --epic cc-alignment --work-type implement` |
 | Create initiative | `brana backlog add --subject "..." --kind feature --type initiative` |
 | Create task (from file) | `brana backlog add --json @/tmp/task.json` |
 | Create task (stdin) | `echo '{"subject":"..."}' \| brana backlog add --json -` |
@@ -243,17 +243,17 @@ Interactive phase planning. Builds the hierarchy conversationally.
 1. **Detect project** from CWD (git root -> basename) or argument
 2. **Read tasks.json** — if it doesn't exist, create with empty tasks array
 3. **If phase title provided**, use it. Otherwise ask: "What phase are you planning?"
-3a. **Initiative** — read `active_initiative` from `~/.claude/tasks-config.json`. If set, assign it to the phase (and all tasks will inherit via `inherit_initiative()`). If unset, ask via AskUserQuestion:
+3a. **Epic** — read `active_epic` from `~/.claude/tasks-config.json`. If set, assign it to the phase (and all tasks will inherit via `inherit_initiative()`). If unset, ask via AskUserQuestion:
     ```
-    question: "Assign this phase to an initiative?"
-    header: "Initiative"
+    question: "Assign this phase to an epic?"
+    header: "Epic"
     options:
-      - "Use active: {active_initiative}" (if one is set)
+      - "Use active: {active_epic}" (if one is set)
       - "Enter slug manually"
-      - "Skip — no initiative"
+      - "Skip — no epic"
     ```
-    Assign the initiative to the phase task; child milestones and tasks inherit automatically at write-time.
-4. **Create the phase task** (type: phase) with next available ph-N id; include `initiative` if set in step 3a
+    Assign the epic to the phase task; child milestones and tasks inherit automatically at write-time.
+4. **Create the phase task** (type: phase) with next available ph-N id; include `epic` if set in step 3a
 5. **Ask for milestones:** "What are the key milestones in this phase?"
 6. **For each milestone**, ask: "Break down {milestone} into tasks?"
    - If yes: ask for tasks and their `work_type` (implement / research / design — infer from description if obvious, confirm with user), create with parent → milestone id
@@ -322,7 +322,7 @@ Interactive phase planning. Builds the hierarchy conversationally.
 
 ### Defaults
 - `work_type`: inferred from task kind (implement → feature/fix/refactor, research → research/docs, design → design); ask if ambiguous
-- `initiative`: inherited from phase (set in step 3a); null if skipped
+- `epic`: inherited from phase (set in step 3a); null if skipped
 - Execution: code (if project has .git), manual (otherwise)
 - Priority/effort: null (user provides later if needed)
 - Status: pending for all new tasks

@@ -119,15 +119,15 @@ Filter the returned entries to those whose `written_at` date (local timezone) ma
 
 Skip silently if session history returns nothing or no same-day entries exist.
 
-**4b. Initiative accumulator (if session has initiative field):**
+**4b. Epic accumulator (if session has epic field):**
 
 Resolve `$INITIATIVE_SLUG` via two sources in order (first hit wins):
-1. **Session JSON** — `initiative` field in the session state (set by close Step 9c)
+1. **Session JSON** — `epic` field in the session state (set by close Step 9c)
 2. **Session-start marker** (fallback, when session JSON lacks the field):
    ```bash
    brana session initiative read-marker 2>/dev/null
    ```
-   Use this when the active task was started in the current session (marker written by `brana run`) but not yet closed (no session-state.json initiative field).
+   Use this when the active task was started in the current session (marker written by `brana run`) but not yet closed (no session-state.json epic field).
 
 If `$INITIATIVE_SLUG` is non-empty, load the cross-day arc:
 ```bash
@@ -135,12 +135,12 @@ brana session initiative read "$INITIATIVE_SLUG" --json
 ```
 
 Surface in the sitrep output:
-- **Initiative:** `{slug}` — {sessions_count} sessions, last closed {last_closed}
+- **Epic:** `{slug}` — {sessions_count} sessions, last closed {last_closed}
 - **Arc accomplished ({N}):** first 3 items from `acc.accomplished[]`
 - **Open next ({N}):** items from `acc.next[]` with non-completed task_ids (apply the same task-ID staleness filter from Source 4 — suppress completed/cancelled items; these span multiple sessions)
 - **Recently resolved ({N}):** last 3 from `acc.resolved[]`
 
-If `brana session initiative read` returns nothing (initiative not yet seeded), skip silently.
+If `brana session initiative read` returns nothing (epic not yet seeded), skip silently.
 
 ### 5. Conversation scan
 

@@ -1592,6 +1592,30 @@ mod tests {
     }
 }
 
+/// `brana backlog migrate-epic` — rename `initiative` field → `epic` across tasks.json (t-1614).
+pub fn cmd_backlog_migrate_epic(dry_run: bool, file: Option<PathBuf>) -> anyhow::Result<()> {
+    let tf = match file {
+        Some(f) => f,
+        None => find_tasks_file().context("tasks.json not found")?,
+    };
+    let mut val = tasks::load_raw(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+    let task_arr = val["tasks"].as_array_mut().context("tasks is not an array")?;
+    let mut migrated = 0usize;
+    for task in task_arr.iter_mut() {
+        if task.as_object().map_or(false, |o| o.contains_key("initiative")) {
+            *task = tasks::migrate_initiative_to_epic(task.clone());
+            migrated += 1;
+        }
+    }
+    if dry_run {
+        println!("{}", serde_json::json!({"dry_run": true, "would_migrate": migrated}));
+        return Ok(());
+    }
+    tasks::save_tasks(&tf, &val).map_err(|e| anyhow::anyhow!("{e}"))?;
+    println!("{}", serde_json::json!({"ok": true, "migrated": migrated, "file": tf.display().to_string()}));
+    Ok(())
+}
+
 pub fn cmd_rollup(file: Option<PathBuf>, dry_run: bool) -> anyhow::Result<()> {
     let tf = match file {
         Some(f) => f,

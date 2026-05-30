@@ -7,7 +7,7 @@ Run migration scripts when a schema change requires bulk updates across multiple
 - New optional field added to the task schema
 - Field renamed or removed (deprecation)
 - Enum vocabulary collapsed or expanded (e.g. stream 11→3)
-- Bulk assignment of a new classification (e.g. initiative, work_type backfill)
+- Bulk assignment of a new classification (e.g. epic, work_type backfill)
 - Moving tasks between backlogs (e.g. personal task extraction)
 
 Do NOT write a migration for:
@@ -76,7 +76,7 @@ Key rules:
 
 `{verb}-{noun}.py` — alphabetical order = safe topological order for dependent scripts.
 
-Examples: `assign-initiatives-portfolio.py`, `drop-deprecated-fields.py`, `infer-work-type.py`
+Examples: `assign-epics-portfolio.py`, `drop-deprecated-fields.py`, `infer-work-type.py`
 
 ## Run order and dependencies
 
@@ -92,10 +92,10 @@ drop-deprecated-fields.py  (no deps, but run after remap-streams so stream is cl
 infer-work-type.py         (depends on stream being correct — run after remap-streams)
 ```
 
-New migrations for initiative assignment:
+New migrations for epic assignment:
 ```
-assign-initiatives-thebrana.py   (depends on thebrana tasks.json being migrated)
-assign-initiatives-portfolio.py  (independent of thebrana)
+assign-epics-thebrana.py   (depends on thebrana tasks.json being migrated)
+assign-epics-portfolio.py  (independent of thebrana)
 ```
 
 ## Adding a new project to BACKLOG_PATHS
@@ -130,10 +130,10 @@ for rel in paths:
 print('OK: work_type coverage complete')
 "
 
-# 2. Spot-check an initiative query
-brana backlog query --initiative backlog-ui 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d), 'tasks')"
+# 2. Spot-check an epic query
+brana backlog query --epic backlog-ui 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d), 'tasks')"
 
-# 3. Verify active initiative + focus output
+# 3. Verify active epic + focus output
 brana backlog focus
 
 # 4. Run test suite
@@ -149,8 +149,8 @@ cd system/cli/rust && cargo test 2>&1 | tail -3
 | `remap-streams.py` | Collapses 11-value stream taxonomy to 3 (dev/ops/research) |
 | `drop-deprecated-fields.py` | Removes build_step, strategy, execution; infers work_type=ops from execution=manual |
 | `infer-work-type.py` | Fills null work_type via subject patterns → stream fallback → implement catch-all |
-| `assign-initiatives-thebrana.py` | Tags thebrana current-work clusters with initiative slugs (explicit IDs only) |
-| `assign-initiatives-portfolio.py` | Tags all pending/in_progress tasks per project with one initiative slug |
+| `assign-epics-thebrana.py` | Tags thebrana current-work clusters with epic slugs (explicit IDs only) |
+| `assign-epics-portfolio.py` | Tags all pending/in_progress tasks per project with one epic slug |
 
 ## Field Notes
 

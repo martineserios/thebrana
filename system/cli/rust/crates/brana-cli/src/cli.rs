@@ -776,7 +776,7 @@ pub enum BacklogCmd {
         #[arg(long)]
         field: Option<String>,
     },
-    /// Aggregate stats by status, priority, type, work_type, initiative
+    /// Aggregate stats by status, priority, type, work_type, epic
     Stats,
     /// Tag inventory, filtering, and bulk management
     Tags {
@@ -856,6 +856,16 @@ pub enum BacklogCmd {
     Complete {
         /// Task ID (e.g. t-463)
         task_id: String,
+        /// Path to tasks.json (auto-detected if omitted)
+        #[arg(long)]
+        file: Option<PathBuf>,
+    },
+    /// One-time schema migration: rename 'initiative' field → 'epic' in tasks.json (t-1614)
+    #[command(name = "migrate-epic")]
+    MigrateEpic {
+        /// Show what would change without writing
+        #[arg(long)]
+        dry_run: bool,
         /// Path to tasks.json (auto-detected if omitted)
         #[arg(long)]
         file: Option<PathBuf>,

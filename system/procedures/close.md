@@ -808,7 +808,7 @@ If no task was claimed or `claims_release` fails (MCP down), skip silently.
 
 > Skip entirely if `$CLOSE_MODE == "NANO"`.
 
-**Detect active initiative (3-tier cascade, run in order, stop at first hit):**
+**Detect active epic (3-tier cascade, run in order, stop at first hit):**
 
 **Tier 1 (session-start marker):** Read the marker written by `brana run` at session start:
 ```bash
@@ -820,25 +820,25 @@ brana session initiative clear-marker 2>/dev/null || true
 ```
 If empty, fall through to Tier 2a.
 
-**Tier 2a:** Query in-progress tasks for a common initiative:
+**Tier 2a:** Query in-progress tasks for a common epic:
 ```bash
 brana backlog query --status in_progress --json 2>/dev/null \
-  | jq -r '.[].initiative // empty' | sort -u
+  | jq -r '.[].epic // empty' | sort -u
 ```
 Collect non-empty results into the signal set; continue regardless.
 
-**Tier 2b:** Extract task IDs from recent commits and look up their initiative fields:
+**Tier 2b:** Extract task IDs from recent commits and look up their epic fields:
 ```bash
 git log --oneline -20 \
   | grep -oE 't-[0-9]+' | sort -u \
   | while read id; do
-      brana backlog get "$id" --json 2>/dev/null | jq -r '.initiative // empty'
+      brana backlog get "$id" --json 2>/dev/null | jq -r '.epic // empty'
     done \
   | sort -u | grep -v '^$'
 ```
 Add all non-empty results to the signal set. Fixes false Tier 3 prompts when all
 in_progress tasks completed before close but this session's commits reference tasks that
-carry an initiative field.
+carry an epic field.
 
 **Converge 2a + 2b:** Deduplicate the signal set.
 - Exactly 1 unique non-empty slug → use it silently as `$INITIATIVE_SLUG`. Done.
@@ -848,16 +848,16 @@ carry an initiative field.
 ```bash
 git branch --show-current | sed 's|.*/||'
 ```
-Use result if it matches a known initiative slug (non-empty, no special chars) and the 2a+2b signal set was empty. Add to signal set and re-converge: exactly 1 unique → use silently. 0 or 2+ → fall through to Tier 3.
+Use result if it matches a known epic slug (non-empty, no special chars) and the 2a+2b signal set was empty. Add to signal set and re-converge: exactly 1 unique → use silently. 0 or 2+ → fall through to Tier 3.
 
 **Tier 3 (ask):** If all tiers returned 0 or conflicting results, ask once:
 ```
 AskUserQuestion(
-  question: "Which initiative does this session belong to? (skip = no initiative file)",
+  question: "Which epic does this session belong to? (skip = no epic file)",
   options: ["<detected slugs if any>", "Skip"]
 )
 ```
-If the user skips: proceed to Step 10 without writing an initiative file.
+If the user skips: proceed to Step 10 without writing an epic file.
 
 **Pass 2 — LLM pruning of text-only next[] items (run before upsert):**
 
@@ -887,7 +887,7 @@ brana session initiative upsert "$INITIATIVE_SLUG" \
   --resolved-texts "$RESOLVED_TEXTS"
 ```
 
-Also add `"initiative": "$INITIATIVE_SLUG"` to the Step 9 JSON payload so the session-state.json carries the slug (used by sitrep §4b to load the accumulator).
+Also add `"epic": "$INITIATIVE_SLUG"` to the Step 9 JSON payload so the session-state.json carries the slug (used by sitrep §4b to load the accumulator).
 
 **Fallback:** If `brana session initiative upsert` fails, log and continue. Session-state.json and session-history.jsonl are the authoritative records.
 
