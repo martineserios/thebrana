@@ -863,6 +863,122 @@ fn strip_code_fences(s: &str) -> &str {
     s.trim()
 }
 
+// ── append_event_log_entry ──────────────────────────────────────────────────
+
+/// Append a URL entry to the event-log at `path`.
+///
+/// - Creates the file with a `# Event Log` title if absent.
+/// - Inserts a `## YYYY-MM-DD` section for `date` if not already present.
+/// - Appends `- HH:MM — <url> [#tag1 #tag2]` under that section.
+///
+/// This is the testable core. Public `append_event_log_entry` resolves the
+/// real log path and current datetime before delegating here.
+pub fn append_event_log_entry_at(
+    path: &Path,
+    date: &str,
+    time: &str,
+    url: &str,
+    tags: &[&str],
+) -> Result<()> {
+    // Build the entry line: `- HH:MM — <url>` with optional ` #tag1 #tag2`
+    let tag_suffix = if tags.is_empty() {
+        String::new()
+    } else {
+        format!(
+            " {}",
+            tags.iter()
+                .map(|t| format!("#{t}"))
+                .collect::<Vec<_>>()
+                .join(" ")
+        )
+    };
+    let entry_line = format!("- {time} \u{2014} {url}{tag_suffix}");
+    let date_header = format!("## {date}");
+
+    // Read current content, or start with the canonical title
+    let existing = if path.exists() {
+        std::fs::read_to_string(path)
+            .with_context(|| format!("reading {}", path.display()))?
+    } else {
+        String::new()
+    };
+
+    // Build new content
+    let new_content = if existing.is_empty() {
+        // New file: add title, date header, entry
+        format!("# Event Log\n\n{date_header}\n\n{entry_line}\n")
+    } else if existing.contains(&date_header) {
+        // Date section exists — append entry after the last line in that section.
+        // Strategy: find the date header, then insert the new entry at the end
+        // of that section (before the next ## header or end-of-file).
+        let mut lines: Vec<&str> = existing.lines().collect();
+        // Find the line index of the date header
+        let header_idx = lines
+            .iter()
+            .position(|l| l.trim() == date_header)
+            .expect("header must be found after contains() check");
+
+        // Find the insertion point: last non-empty line inside the section
+        // (before the next ## header or end of file)
+        let section_end = lines[header_idx + 1..]
+            .iter()
+            .position(|l| l.starts_with("## "))
+            .map(|rel| header_idx + 1 + rel)
+            .unwrap_or(lines.len());
+
+        // Find the last non-empty line in the section to place entry after it
+        let last_content_idx = lines[header_idx + 1..section_end]
+            .iter()
+            .rposition(|l| !l.trim().is_empty())
+            .map(|rel| header_idx + 1 + rel + 1) // insert after
+            .unwrap_or(section_end); // section is empty — insert at end
+
+        lines.insert(last_content_idx, &entry_line);
+        let mut result = lines.join("\n");
+        // Preserve trailing newline if original had one
+        if existing.ends_with('\n') && !result.ends_with('\n') {
+            result.push('\n');
+        }
+        result
+    } else {
+        // No section for this date — append a new section at end
+        let trimmed = existing.trim_end_matches('\n');
+        format!("{trimmed}\n\n{date_header}\n\n{entry_line}\n")
+    };
+
+    // Ensure parent directory exists
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .with_context(|| format!("creating dir {}", parent.display()))?;
+    }
+
+    std::fs::write(path, &new_content)
+        .with_context(|| format!("writing {}", path.display()))?;
+
+    Ok(())
+}
+
+/// Append a URL entry to the project's event-log.md.
+///
+/// Resolves the log path from `project_root` using `resolve_memory_dir`,
+/// then delegates to `append_event_log_entry_at` with the current date/time.
+pub fn append_event_log_entry(
+    project_root: &Path,
+    url: &str,
+    tags: &[&str],
+) -> Result<PathBuf> {
+    use crate::session::resolve_memory_dir;
+    use chrono::Local;
+
+    let memory_dir = resolve_memory_dir(project_root);
+    let log_path = memory_dir.join("event-log.md");
+    let now = Local::now();
+    let date = now.format("%Y-%m-%d").to_string();
+    let time = now.format("%H:%M").to_string();
+    append_event_log_entry_at(&log_path, &date, &time, url, tags)?;
+    Ok(log_path)
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // Tests
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1181,6 +1297,108 @@ mod tests {
     fn test_resolve_agy_binary_does_not_panic() {
         // Just verify it doesn't panic — None is ok in CI without agy installed
         let _ = resolve_agy_binary();
+    }
+
+    // ── append_event_log_entry_at ─────────────────────────────────────
+
+    #[test]
+    fn test_append_entry_correct_format() {
+        // TDD: appends `- HH:MM — <url> #tag1 #tag2` under today's date header
+        let dir = TempDir::new().unwrap();
+        let log_path = dir.path().join("event-log.md");
+        let date = "2026-05-31";
+        let time = "14:30";
+        let url = "https://example.com/article";
+        let tags = vec!["ai", "learning"];
+        append_event_log_entry_at(&log_path, date, time, url, &tags).unwrap();
+        let content = std::fs::read_to_string(&log_path).unwrap();
+        assert!(content.contains(&format!("## {date}")), "missing date header");
+        assert!(
+            content.contains(&format!("- {time} \u{2014} {url} #ai #learning")),
+            "missing entry line: {content}"
+        );
+    }
+
+    #[test]
+    fn test_append_creates_date_header_if_missing() {
+        // TDD: creates `## YYYY-MM-DD` section when log has no entry for today
+        let dir = TempDir::new().unwrap();
+        let log_path = dir.path().join("event-log.md");
+        std::fs::write(
+            &log_path,
+            "# Event Log\n\n## 2026-01-01\n\n- 09:00 \u{2014} https://old.example.com\n",
+        ).unwrap();
+        let date = "2026-05-31";
+        let time = "10:00";
+        let url = "https://new.example.com";
+        append_event_log_entry_at(&log_path, date, time, url, &[]).unwrap();
+        let content = std::fs::read_to_string(&log_path).unwrap();
+        assert!(content.contains(&format!("## {date}")), "new date header missing");
+        assert!(content.contains(&format!("- {time} \u{2014} {url}")), "entry line missing");
+        // Old section must still be present
+        assert!(content.contains("## 2026-01-01"), "old date header lost");
+    }
+
+    #[test]
+    fn test_append_no_duplicate_date_header() {
+        // TDD: when today's date header already exists, appends without duplicating
+        let dir = TempDir::new().unwrap();
+        let log_path = dir.path().join("event-log.md");
+        let date = "2026-05-31";
+        std::fs::write(
+            &log_path,
+            &format!("# Event Log\n\n## {date}\n\n- 09:00 \u{2014} https://first.example.com\n"),
+        ).unwrap();
+        let time = "10:00";
+        let url = "https://second.example.com";
+        append_event_log_entry_at(&log_path, date, time, url, &[]).unwrap();
+        let content = std::fs::read_to_string(&log_path).unwrap();
+        let header = format!("## {date}");
+        let count = content.matches(&header).count();
+        assert_eq!(count, 1, "date header duplicated: {content}");
+        assert!(content.contains("https://first.example.com"), "first entry lost");
+        assert!(content.contains("https://second.example.com"), "second entry missing");
+    }
+
+    #[test]
+    fn test_append_creates_log_file_if_absent() {
+        // TDD: creates event-log.md with a title header when file does not exist
+        let dir = TempDir::new().unwrap();
+        let log_path = dir.path().join("event-log.md");
+        let date = "2026-05-31";
+        let time = "08:00";
+        let url = "https://brand-new.example.com";
+        append_event_log_entry_at(&log_path, date, time, url, &["fresh"]).unwrap();
+        let content = std::fs::read_to_string(&log_path).unwrap();
+        assert!(content.contains("# Event Log"), "title header missing");
+        assert!(content.contains(&format!("## {date}")), "date header missing");
+        assert!(
+            content.contains(&format!("- {time} \u{2014} {url} #fresh")),
+            "entry missing: {content}"
+        );
+    }
+
+    #[test]
+    fn test_append_no_tags_omits_hash_suffix() {
+        // TDD: entry line has no trailing space or hash when tags is empty
+        let dir = TempDir::new().unwrap();
+        let log_path = dir.path().join("event-log.md");
+        let date = "2026-05-31";
+        let time = "09:15";
+        let url = "https://notags.example.com";
+        append_event_log_entry_at(&log_path, date, time, url, &[]).unwrap();
+        let content = std::fs::read_to_string(&log_path).unwrap();
+        let expected_line = format!("- {time} \u{2014} {url}");
+        assert!(
+            content.contains(&expected_line),
+            "expected bare line, got: {content}"
+        );
+        for line in content.lines() {
+            if line.contains(url) {
+                assert!(!line.ends_with(' '), "trailing space: {line:?}");
+                assert!(!line.ends_with('#'), "trailing hash: {line:?}");
+            }
+        }
     }
 
     #[test]

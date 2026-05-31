@@ -176,6 +176,9 @@ fn main() {
         Commands::Graph { cmd } => run_or_exit(commands::graph::cmd_graph(cmd)),
         Commands::Reference { cmd } => run_or_exit(commands::reference::cmd_reference(cmd)),
         Commands::Decisions { cmd } => run_or_exit(commands::decisions::cmd_decisions(cmd)),
+        Commands::Log { entry, tags } => {
+            run_or_exit(commands::log::cmd_log(&entry, tags.as_deref()))
+        }
         Commands::Deploy => {
             println!("brana deploy = merge to main");
             println!();

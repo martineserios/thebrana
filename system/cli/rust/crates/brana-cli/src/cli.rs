@@ -198,6 +198,14 @@ pub enum Commands {
         #[command(subcommand)]
         cmd: DecisionsCmd,
     },
+    /// Append a URL (or free-text note) to the project's event-log.md
+    Log {
+        /// URL or text to append (https:// URLs are captured as-is)
+        entry: String,
+        /// Comma-separated hashtags (without #), e.g. "ai,rust"
+        #[arg(long, short = 't')]
+        tags: Option<String>,
+    },
     /// How to deploy brana (hint — deploy = merge to main)
     Deploy,
     /// Signal ratings dashboard — view ratings.jsonl breakdown and recent signals

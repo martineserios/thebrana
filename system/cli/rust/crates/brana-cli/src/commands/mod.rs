@@ -7,6 +7,7 @@ pub mod graph;
 pub mod handoff;
 pub mod inbox;
 pub mod knowledge;
+pub mod log;
 pub mod memory;
 pub mod misc;
 pub mod ops;
