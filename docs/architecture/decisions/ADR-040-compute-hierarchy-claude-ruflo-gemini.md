@@ -87,8 +87,10 @@ must be updated in the same commit.
 
 ### 7. Weight-adaptive close
 
-`/brana:close` classifies each session as FULL or LIGHT before deciding whether to spawn
-debrief-analyst. Classification is based on `git diff --name-only` output — not
+**Status: IMPLEMENTED** (2026-05-31, t-1800). Validated via validate.sh Checks 41–43.
+
+`/brana:close` classifies each session as NANO, LIGHT, or FULL before deciding whether
+to spawn debrief-analyst. Classification is based on `git diff --name-only` output — not
 `--stat`, which gives line counts requiring fragile parsing.
 
 **FULL** triggers when ANY of these is true:
@@ -96,17 +98,17 @@ debrief-analyst. Classification is based on `git diff --name-only` output — no
 - Any changed file matches: `.rs .ts .tsx .js .jsx .py .sh .toml .yaml .yml`
 - Any `.json` under `system/` or `.claude/` (behavioral config)
 
-**LIGHT** when ALL changed files are: `.md`, `state/*.json`/`tasks.json`, or `inbox/`
+**NANO** (extension added post-ADR): exactly 1 commit AND ≤5 files AND no code/config
+files changed. Write handoff note only — skip Steps 3–8 entirely.
 
-**Escape hatches:** `--light` forces LIGHT; `--full` forces FULL.
+**LIGHT** when ALL changed files are: `.md`, `state/*.json`, or `inbox/`
+
+**Escape hatches:** `--light` forces LIGHT; `--full` forces FULL; `--nano` forces NANO.
 
 Ambiguous cases (authoritative):
 - `.sh` hook edits → FULL (behavioral, high-stakes)
-- `tasks.json` only → LIGHT (state file)
+- `tasks.json` only → NANO (state file, single commit — not LIGHT; upgraded 2026-05-31)
 - `settings.json` → FULL (behavioral config)
-
-Status: `[NOT YET IMPLEMENTED — Phase 0]`. The extension list above is committed to code
-in `close.md`, not inferred from prose.
 
 ---
 
@@ -140,8 +142,8 @@ Is this brana-system work?
 
 - Phases 2–6 of brana-v2-compute-model may now be implemented; this ADR is their gate.
 - Delegation wiring must enforce decisions 1–5 structurally — code, not convention.
-- Decision 6 (Sonnet for debrief) is an immediate 3-line change; applies before Phase 0 is done.
-- Decision 7 (weight-adaptive close) is Phase 0 implementation; tests required before marking done.
+- Decision 6 (Sonnet for debrief): ✓ DONE — `debrief-analyst.md` has `model: sonnet`.
+- Decision 7 (weight-adaptive close): ✓ DONE — implemented in `close.md`; validate.sh Checks 41–43 added (t-1800).
 - Any future agent type added to the system must be assessed against decisions 2–4 before wiring.
 
 ## Non-Actions
