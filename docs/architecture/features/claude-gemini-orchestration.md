@@ -38,8 +38,11 @@ mcp__ruflo__memory_search(query: "{task}", namespace: "knowledge", limit: 3)
 mcp__ruflo__memory_search(query: "{task}", namespace: "pattern",   limit: 3)
 ```
 
-Both queries run in parallel. Results above similarity 0.3 are compiled into a context
-string (2–5 bullets) and injected into the `agy_delegate` `context` field.
+Both queries run in parallel. Results above similarity **0.45** are compiled into a context
+string (2–5 bullets) and injected into the `agy_delegate` `context` field. If all results
+score below 0.45, skip injection entirely and proceed without context (do not pad with
+low-relevance results). Threshold raised from 0.3 after live test showed unrelated queries
+returning top results at 0.38 (2026-05-30 challenge report W3).
 
 **Convention-sensitive hard-block:** for boilerplate generation, test scaffolding, and ADR
 drafts — if ruflo is unavailable or returns zero `source:thebrana` results, abort with:

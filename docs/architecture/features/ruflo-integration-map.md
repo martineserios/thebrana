@@ -123,7 +123,7 @@ mcp__ruflo__hive-mind_consensus(action: "propose", strategy: "quorum",
 | Alternatives | Name ≥2 alternatives not considered. Specific trade-offs required — no abstract hand-waving. |
 | Blast-radius | Top 3 second-order effects on other system components. Name the components. |
 
-Fires in: `challenger.md`. Blocked by: t-1638 (quorum ADR after calibration).
+Fires in: `challenger.md`. Quorum threshold: **majority (2/3)** — working assumption; re-calibrate if ruflo subscription auth unblocks t-1599-style run.
 
 ### Gate 2 — backlog plan (L+ phases, before write)
 

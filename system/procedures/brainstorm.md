@@ -355,7 +355,7 @@ mcp__ruflo__hive-mind_consensus(action: "propose", strategy: "quorum", quorumPre
 ```
 Worker roles: convergent (what must hold?), systems (second-order effects?), critical (failure modes?).
 Findings confirmed by ≥2 workers surface as HIGH confidence — present these before the backlog question.
-**Fallback:** If ruflo unavailable, invoke `Skill(skill="brana:challenge", args="{shaped idea title}")` instead.
+**Fallback:** If ruflo unavailable, run inline — Claude performs the three roles (convergent, systems, critical) sequentially in main context, self-assesses ≥2-role agreement as HIGH confidence.
 
 ---
 

@@ -68,9 +68,9 @@ ToolSearch("select:mcp__ruflo__hive-mind_init,mcp__ruflo__hive-mind_spawn,mcp__r
    ```
    mcp__ruflo__hive-mind_consensus(action: "propose", strategy: "quorum", quorumPreset: "majority", type: "findings", value: "{merged findings}")
    ```
-   A finding that appears in ≥2 of 3 workers is HIGH confidence. Single-worker findings are OBSERVATION.
+   A finding that appears in ≥2 of 3 workers is HIGH confidence. Single-worker findings are OBSERVATION. (`majority` is the working assumption — re-calibrate if ruflo subscription auth becomes available.)
 
-   **Fallback:** If ruflo unavailable, spawn one Opus subagent (`model: "opus"`, `subagent_type: "general-purpose"`) — same prompt and rating instructions as before.
+   **Fallback:** If ruflo unavailable, run the challenge inline — Claude performs all three cognitive roles (convergent, systems, critical) sequentially in main context, then self-assesses which findings two roles would have agreed on (HIGH) vs single-role only (OBSERVATION).
 
    For all workers/fallback — provide: the plan/approach being challenged + relevant code/files + the chosen flavor.
    Key instruction: "Be specific and actionable. Don't nitpick — focus on things that would actually cause problems or wasted effort. Suggest concrete alternatives for each concern. Rate each finding: CRITICAL (would block success), WARNING (risk but manageable), OBSERVATION (minor, for consideration)."
