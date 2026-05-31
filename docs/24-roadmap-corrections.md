@@ -19,6 +19,8 @@
 ## Severity Summary
 
 | # | Error | Severity | Status | Comments |
+| E2026-05-31-2 | thebrana: CC `hooks.json` schema dropped the `args` array form — `command` string required. All 38 plugin hooks (PreToolUse×13, PostToolUse×11, PostToolUseFailure×1, UserPromptSubmit×3, SessionStart×2, SubagentStart×2, SubagentStop×1, TaskCompleted×1, SessionEnd×1, StopFailure×1, ConfigChange×1) broke silently. `/doctor` surfaced 38 "expected string, received undefined" errors at `hooks[*][0].command`. | **Medium** | code-fix | Converted all `args: ["bash", "script.sh"]` to `command: "bash script.sh"` (Python one-liner) + bootstrap.sh. Fixed 2026-05-31. docs/architecture/hooks.md promoted with migration note. |
+| E2026-05-31-1 | thebrana: `ruflo-integration-map.md §Hive-mind Quorum Gate Spec` line 113 still read `Skill("brana:challenge")` after C4 challenge fix. C4 correctly updated procedure bodies (challenge.md, brainstorm.md) and the tool-group table row, but this section fallback was a third occurrence missed by the targeted edit. Debrief-analyst caught it at close. | **Low** | code-fix | Fixed at close: replaced with inline multi-role reasoning note. |
 | E2026-05-30-5 | thebrana: E2026-05-24-12 was marked `code-fix` but `t-1671` applied `"skills"` field to `system/.claude-plugin/plugin.json` (marketplace metadata), NOT `system/plugin.json` (the `--plugin-dir` runtime manifest that CC actually reads). The Skill() routing failure recurred the very next session. `2ca0c99` is the actual fix — applied to root `system/plugin.json`. Cache sync path in E2026-05-24-12's comment also wrong: `.claude-plugin/plugin.json` → root `plugin.json`. | **Low** | code-fix | Fixed in `2ca0c99`: added `"skills"` + `"commands"` to `system/plugin.json`. E2026-05-24-12 status was premature; this entry supersedes its fix note. |
 | E2026-05-30-4 | thebrana: `CLAUDE.md` field note 2026-05-24 (t-1671) states "Root cause: `system/.claude-plugin/plugin.json` had no `"skills"` field" and "Cache synced at `~/.claude/plugins/cache/brana/brana/1.0.0/.claude-plugin/plugin.json`." Both are wrong. Root cause: `system/plugin.json` (root, read by `--plugin-dir`) had no `"skills"` field. Cache sync path has no `.claude-plugin/` segment. Misleads future investigators into applying the same wrong fix. | **Low** | code-fix | CLAUDE.md Field Notes section stripped entirely in 6444a0a — stale field note no longer exists; errata moot. No doc fix required. |
 | E2026-05-30-3 | thebrana: `docs/reference/configuration.md:271` says "Plugin manifest. Located at `system/.claude-plugin/plugin.json`." Cache sync note at line 308 also references `~/.claude/plugins/cache/brana/brana/1.0.0/.claude-plugin/plugin.json`. Both are wrong for `--plugin-dir` mode: CC reads `system/plugin.json` (root) and the cache root file is `~/.claude/plugins/cache/brana/brana/1.0.0/plugin.json` (no `.claude-plugin/` subdirectory). The `.claude-plugin/` file is marketplace-install metadata only. | **Low** | code-fix | Fixed in this session: `docs/reference/configuration.md` §plugin.json updated to correctly distinguish runtime manifest (`system/plugin.json`, `--plugin-dir` mode) vs marketplace manifest (`system/.claude-plugin/plugin.json`). Cache sync path corrected. |
@@ -3776,3 +3778,18 @@ Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Con
 **Fix:** Remove lines 58-72 from `subagent-context.sh` (the decisions-dir block). The active-task and branch injection in parts 1-3 should remain. Alternatively: formally document and reactivate the decisions log convention.
 
 **Status:** code-fix — lines 58-72 removed from subagent-context.sh (2026-05-30).
+
+---
+
+## E2026-05-31-1 — ruflo-integration-map §Quorum Gate Spec fallback not updated by C4 fix
+
+**Severity:** Low
+**Discovery:** 2026-05-31 — debrief-analyst session review at close
+**Affected files:**
+- `docs/architecture/features/ruflo-integration-map.md` line 113
+
+**Bug:** C4 challenge fix correctly replaced `Skill("brana:challenge")` in the tool-group table row and in procedure bodies (challenge.md, brainstorm.md fallback text). However, §Hive-mind Quorum Gate Spec contained a third occurrence — "Fallback when ruflo unavailable: `Skill("brana:challenge")` for all gates." — which was not updated. The table-row edit and the procedure-body edits were targeted; a grep for all occurrences in the same doc was not run.
+
+**Fix:** Line replaced with "inline multi-role reasoning — Claude runs convergent, systems, and critical roles sequentially in main context."
+
+**Status:** code-fix — fixed at session close 2026-05-31.

@@ -25,6 +25,16 @@ Hooks receive session context as JSON on stdin, return JSON on stdout. A hook ca
 
 All brana hooks follow a safety principle: they never fail fatally. Every hook uses `|| true` fallbacks and graceful degradation.
 
+### Hook entry format
+
+Each hook entry in `hooks.json` requires a `command` field (string), not `args` (array):
+
+```json
+{ "type": "command", "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/script.sh", "timeout": 5000 }
+```
+
+The `args: ["bash", "path"]` array form was removed from CC's hook schema. Using `args` causes a silent load failure — `/doctor` reports "expected string, received undefined" for every entry. Fix: join the array into a space-separated string under `command`. (E2026-05-31-2, promoted 2026-05-31)
+
 ## Plugin/bootstrap split (CC bug #24529)
 
 CC v2.1.x silently drops PostToolUse and PostToolUseFailure events from plugin `hooks.json`. Only PreToolUse, SessionStart, and SessionEnd fire reliably from plugins.
