@@ -18,9 +18,9 @@
 
 set -euo pipefail
 
-FEED_LOG="$HOME/.claude/scheduler/feed-log.jsonl"
-SUMMARIES="$HOME/.claude/scheduler/feed-summaries.jsonl"
-WATERMARK="$HOME/.claude/scheduler/state/feed-summarize-watermark"
+FEED_LOG="${FEED_LOG:-$HOME/.claude/scheduler/feed-log.jsonl}"
+SUMMARIES="${SUMMARIES:-$HOME/.claude/scheduler/feed-summaries.jsonl}"
+WATERMARK="${WATERMARK:-$HOME/.claude/scheduler/state/feed-summarize-watermark}"
 CLAUDE_BIN="${CLAUDE_BIN:-$HOME/.local/bin/claude}"
 MAX_CONTENT_CHARS=3000
 FETCH_TIMEOUT=15

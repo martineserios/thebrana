@@ -1675,6 +1675,116 @@ fi
 echo ""
 fi  # should_run 38
 
+# Check 39 — hooks.json must not use args[] array form (CC dropped it; command string required)
+# Catching this prevents silent hook failure where all enforcement stops with no observable error.
+if should_run 39; then
+echo "Check 39: hooks.json hook command format..."
+HOOKS_JSON="$SCRIPT_DIR/system/hooks/hooks.json"
+if [ ! -f "$HOOKS_JSON" ]; then
+    warn "Check 39: hooks.json not found — skipping"
+elif ! command -v jq &>/dev/null; then
+    warn "Check 39: jq not available — skipping hooks.json format check"
+else
+    ARGS_COUNT=$(jq '[.hooks | .[][] | .hooks[]? | select(.args != null)] | length' "$HOOKS_JSON" 2>/dev/null || echo 0)
+    BADCMD_COUNT=$(jq '[.hooks | .[][] | .hooks[]? | select((.command | type) != "string" or .command == "")] | length' "$HOOKS_JSON" 2>/dev/null || echo 0)
+    if [ "${ARGS_COUNT:-0}" -gt 0 ]; then
+        fail "Check 39: hooks.json has $ARGS_COUNT hook(s) using args[] array form — CC requires command string. Run: jq '.hooks | .[][] | .hooks[]? | select(.args != null)' hooks.json to find offenders."
+    elif [ "${BADCMD_COUNT:-0}" -gt 0 ]; then
+        fail "Check 39: hooks.json has $BADCMD_COUNT hook(s) with missing or non-string command — expected string, received undefined (E2026-05-31-2). Run: jq '.hooks | .[][] | .hooks[]? | select((.command | type) != \"string\")' hooks.json"
+    else
+        pass "Check 39: hooks.json all hooks use command string form"
+    fi
+fi
+echo ""
+fi  # should_run 39
+
+# Check 40 — AskUserQuestion option blocks must include description: for every label:
+# Missing description silently degrades UI (less context shown); accumulates across sessions.
+if should_run 40; then
+echo "Check 40: AskUserQuestion option description fields..."
+PROCS_DIR="$SCRIPT_DIR/system/procedures"
+MISSING_DESC_FILES=()
+if [ -d "$PROCS_DIR" ]; then
+    while IFS= read -r -d '' proc_file; do
+        if grep -q "AskUserQuestion" "$proc_file" 2>/dev/null; then
+            # Find label: lines not followed by description: within 2 lines
+            if python3 - "$proc_file" << 'PYEOF' 2>/dev/null
+import sys, re
+text = open(sys.argv[1]).read()
+AQU = re.compile(r'AskUserQuestion[:\(].*?(?=\n(?:#{1,4} |\Z))', re.DOTALL)
+OPT = re.compile(r'^(\s+- )(?:"[^"]*"|label: "[^"]*")$')
+DESC = re.compile(r'^\s+description:', re.IGNORECASE)
+found = False
+for m in AQU.finditer(text):
+    lines = m.group().split('\n')
+    for i, line in enumerate(lines):
+        if OPT.match(line):
+            j = i + 1
+            while j < len(lines) and not lines[j].strip(): j += 1
+            nxt = lines[j] if j < len(lines) else ''
+            if not DESC.match(nxt):
+                found = True; break
+    if found: break
+sys.exit(0 if found else 1)
+PYEOF
+            then
+                MISSING_DESC_FILES+=("$(basename "$proc_file")")
+            fi
+        fi
+    done < <(find "$PROCS_DIR" -name "*.md" -print0 2>/dev/null)
+fi
+if [ "${#MISSING_DESC_FILES[@]}" -gt 0 ]; then
+    warn "Check 40: AskUserQuestion options missing description: field in: ${MISSING_DESC_FILES[*]}"
+else
+    pass "Check 40: all AskUserQuestion options have description: field"
+fi
+echo ""
+fi  # should_run 40
+
+# Check 41 — feed-summarize.sh --dry-run smoke test (t-1796)
+# Verifies dedup logic, watermark bypass (--force), and SUMMARIZE_FEEDS filter
+# without invoking claude -p. Catches regressions in the feed-summarize pipeline.
+if should_run 41; then
+echo "Check 41: feed-summarize.sh --dry-run smoke test..."
+FEED_SUMMARIZE_SH="$SYSTEM_DIR/scripts/feed-summarize.sh"
+if [ ! -f "$FEED_SUMMARIZE_SH" ]; then
+    warn "Check 41: feed-summarize.sh not found at $FEED_SUMMARIZE_SH — skipping"
+else
+    TMP_FIXTURE=$(mktemp /tmp/validate-feed-fixture-XXXXXX.jsonl)
+    TMP_SUMMARIES=$(mktemp /tmp/validate-feed-summaries-XXXXXX.jsonl)
+    TMP_WATERMARK=$(mktemp /tmp/validate-feed-watermark-XXXXXX)
+    trap 'rm -f "$TMP_FIXTURE" "$TMP_SUMMARIES" "$TMP_WATERMARK"' EXIT
+    printf '%s\n' \
+        '{"feed":"anthropic-news","title":"Claude 4 Released","link":"https://www.anthropic.com/news/claude-4","published":"2026-01-01","polled_at":"2026-01-01T12:00:00Z"}' \
+        '{"feed":"anthropic-news","title":"New API Features","link":"https://www.anthropic.com/news/api-features","published":"2026-01-02","polled_at":"2026-01-02T12:00:00Z"}' \
+        '{"feed":"anthropic-news","title":"Pricing Update","link":"https://www.anthropic.com/news/pricing","published":"2026-01-03","polled_at":"2026-01-03T12:00:00Z"}' \
+        > "$TMP_FIXTURE"
+
+    DRY_OUT=$(FEED_LOG="$TMP_FIXTURE" SUMMARIES="$TMP_SUMMARIES" WATERMARK="$TMP_WATERMARK" \
+        bash "$FEED_SUMMARIZE_SH" --dry-run --force 2>&1) || true
+
+    MISSING=0
+    for url in \
+        "https://www.anthropic.com/news/claude-4" \
+        "https://www.anthropic.com/news/api-features" \
+        "https://www.anthropic.com/news/pricing"; do
+        if [[ "$DRY_OUT" != *"$url"* ]]; then
+            echo "  missing URL in dry-run output: $url"
+            MISSING=$((MISSING + 1))
+        fi
+    done
+
+    if [ "$MISSING" -gt 0 ]; then
+        fail "Check 41: feed-summarize.sh --dry-run missing $MISSING expected URL(s) — fixture test failed"
+    elif [[ "$DRY_OUT" != *"[dry-run]"* ]]; then
+        fail "Check 41: feed-summarize.sh --dry-run output missing [dry-run] marker"
+    else
+        pass "Check 41: feed-summarize.sh --dry-run output contains all 3 expected URLs"
+    fi
+fi
+echo ""
+fi  # should_run 41
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
