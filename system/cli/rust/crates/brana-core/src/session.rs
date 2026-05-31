@@ -163,7 +163,7 @@ pub struct SessionMeta {
 }
 
 /// Session metrics from telemetry JSONL.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct SessionMetrics {
     #[serde(default)]
     pub events: u32,
@@ -179,6 +179,33 @@ pub struct SessionMetrics {
     pub cascade_rate: f64,
     #[serde(default)]
     pub delegation_count: u32,
+    /// Gate B/C measurement — EXTRACT step outcomes at close time.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub extract_metrics: Option<ExtractMetrics>,
+}
+
+/// EXTRACT step outcomes — Gate B/C measurement (ADR-027 §10).
+/// Populated by close Step 3 (EXTRACT) and Steps 5–6 (PERSIST/FIELD-NOTES).
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct ExtractMetrics {
+    /// Total learnings classified in Step 3.
+    #[serde(default)]
+    pub learnings_classified: u32,
+    /// Patterns presented to the user via AskUserQuestion (Steps 5–6).
+    #[serde(default)]
+    pub patterns_presented: u32,
+    /// Patterns accepted (stored to ruflo or memory file).
+    #[serde(default)]
+    pub patterns_accepted: u32,
+    /// Patterns skipped by the user.
+    #[serde(default)]
+    pub patterns_skipped: u32,
+    /// Field notes presented.
+    #[serde(default)]
+    pub field_notes_presented: u32,
+    /// Field notes kept (any action other than Skip).
+    #[serde(default)]
+    pub field_notes_kept: u32,
 }
 
 /// The full session state (v1 schema).
@@ -501,6 +528,7 @@ pub fn merge_states(existing: &SessionState, new: &SessionState) -> SessionState
                     if events > 0 { cascades as f64 / events as f64 } else { 0.0 }
                 },
                 delegation_count: em.delegation_count + nm.delegation_count,
+                ..Default::default()
             })
         }
         (Some(em), None) => Some(em.clone()),
@@ -1006,6 +1034,7 @@ mod tests {
                 test_write_rate: 0.0,
                 cascade_rate: 0.0,
                 delegation_count: 0,
+                ..Default::default()
             }),
         }
     }
@@ -1308,6 +1337,7 @@ mod tests {
                 events: 10, corrections: 2, test_writes: 3,
                 correction_rate: 0.0, test_write_rate: 0.0,
                 cascade_rate: 0.0, delegation_count: 1,
+                ..Default::default()
             }),
             ..SessionState::minimal(None)
         };
@@ -1316,6 +1346,7 @@ mod tests {
                 events: 5, corrections: 1, test_writes: 2,
                 correction_rate: 0.0, test_write_rate: 0.0,
                 cascade_rate: 0.0, delegation_count: 0,
+                ..Default::default()
             }),
             ..SessionState::minimal(None)
         };
@@ -1338,6 +1369,7 @@ mod tests {
                 events: 100, corrections: 0, test_writes: 0,
                 correction_rate: 0.0, test_write_rate: 0.0,
                 cascade_rate: 0.10, delegation_count: 0,
+                ..Default::default()
             }),
             ..SessionState::minimal(None)
         };
@@ -1346,6 +1378,7 @@ mod tests {
                 events: 10, corrections: 0, test_writes: 0,
                 correction_rate: 0.0, test_write_rate: 0.0,
                 cascade_rate: 0.50, delegation_count: 0,
+                ..Default::default()
             }),
             ..SessionState::minimal(None)
         };

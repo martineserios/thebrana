@@ -701,12 +701,26 @@ Build a JSON object from all evidence gathered in previous steps, write it to a 
     "cascade_rate": 0.0, "delegation_count": 0,
     "behavioral_files_changed": 0, "doc_files_changed": 0,
     "doc_prompts_accepted": 0, "doc_prompts_skipped": 0,
-    "propose_count": 0, "ask_open_count": 0, "propose_rate": 0.0
+    "propose_count": 0, "ask_open_count": 0, "propose_rate": 0.0,
+    "extract_metrics": {
+      "learnings_classified": 0,
+      "patterns_presented": 0,
+      "patterns_accepted": 0,
+      "patterns_skipped": 0,
+      "field_notes_presented": 0,
+      "field_notes_kept": 0
+    }
   }
 }
 ```
 
 **Metrics field:** Leave the `metrics` object with zero defaults. The `session-end.sh` hook computes actual metrics from the session JSONL telemetry and patches them into session-state.json after the session ends (via `session-end-persist.sh`). The zero defaults are safe fallbacks if the hook doesn't run.
+
+**extract_metrics field (Gate B/C measurement — ADR-027 §10):** Count during close Steps 3–6. Track from conversation context, not telemetry:
+- `learnings_classified`: count of findings classified in Step 3 EXTRACT
+- `patterns_presented` / `patterns_accepted` / `patterns_skipped`: from Step 5 PATTERNS AskUserQuestion responses
+- `field_notes_presented` / `field_notes_kept`: from Step 6 FIELD-NOTES AskUserQuestion responses (kept = any action other than Skip/Archive)
+Write the actual counts before calling `brana session write`.
 
 **Propose-first metrics** — count from conversation context (no telemetry file needed):
 - `propose_count`: AskUserQuestion calls where the first option had "(Recommended)" or was a clear default
