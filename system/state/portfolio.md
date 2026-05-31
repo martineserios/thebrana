@@ -75,6 +75,7 @@
 | Tenant → full client upgrade: when a tenant grows into a multi-project engagement, rewrite CLAUDE.md with named Programs (A/B) + scaffold per-project dirs before any new-scope work. Split prevents conflating unrelated scopes in context loading. | `proyecto_anita memory: feedback_tenant_to_client_upgrade_pattern.md` | proyecto_anita (Palco upgrade 2026-05-08), any SaaS tenant growing into a broader engagement |
 | LLM JSON output needs code-fence stripping before parsing (~24% failure rate) — strip ` ```json ` / ` ``` ` before `serde_json::from_str` or equivalent; omitting this causes ~1-in-4 parse failures on real LLM output | `thebrana memory: feedback_llm-json-strip-code-fences.md` | thebrana (brana-mcp agy_delegate), proyecto_anita, brapsoclaw, any project parsing LLM-generated JSON |
 | Service startup poll over sleep — 20×0.5s poll loop replaces fixed `sleep N` for subprocess service readiness; avoids worst-case over-sleep and race condition under-sleep | `thebrana memory: pattern_service-startup-poll-over-sleep_2026-05-25.md` | thebrana (browser CDP), nexeye, any project spawning subprocess services that need a readiness check |
+| Deferred MCP tool schemas require `<!-- ruflo preamble -->` + ToolSearch before any `mcp__<server>__<tool>()` call — calling without it throws `InputValidationError` silently; validate.sh Check 36 enforces this | `thebrana memory: pattern_deferred-mcp-toolsearch-preamble_2026-05-30.md` + ruflo: `pattern:brana:deferred-mcp-toolsearch-preamble` | thebrana, any CC project using MCP servers with deferred tool loading |
 
 ## Clients (paid work — external stakeholder)
 
@@ -126,6 +127,16 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Client:** External (not personal venture)
 - **Status:** On hold — 2026-05-08
 - **Goal:** Personal trading edge for the client; build indicators, eventually automate
+
+### bemol (elefeme)
+- **Type:** Paid client — home-visit music instruction business management system
+- **Domain:** ~10 instructors, ~40 students, GBA Norte (Nordelta, Tigre, Martínez) + CABA. Classes at student's home. Billing per-class, payment monthly. elefeme is sole operator.
+- **Location:** `~/enter_thebrana/clients/bemol/`
+- **Status:** Discovery — 2026-05-30. Onboarded, scaffold created, setup_bemol.js ready to run.
+- **Spreadsheet (original):** `1QNiDqujcgLFZ5NFQ6Q403Xd9DBh0v9lv1Z0JrNGylkg`
+- **New spreadsheet:** `1kWzthNcCNuHZ6OL7afgft18hrsjlUtWJ4TkjkPHBRJU` (blank, needs script run)
+- **Phase 1:** Better Google Sheets (setup_bemol.js — Apps Script). Phase 2: web platform (TBD).
+- **Details:** `clients/bemol/.claude/CLAUDE.md`, `docs/preguntas-elefeme.md` (discovery questions), `tools/setup_bemol.js`
 
 ### mandawa (ARCHIVED 2026-05-08)
 - **Type:** Paid client
