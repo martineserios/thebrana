@@ -55,23 +55,6 @@ if [ -f "$HOME/.claude/plans/"*.md 2>/dev/null ]; then
   fi
 fi
 
-# 4. Last 3 decisions from decision log (if exists)
-DECISION_DIR="system/state/decisions"
-if [ -d "$DECISION_DIR" ]; then
-  RECENT_DECISIONS=$(ls -t "$DECISION_DIR"/*.jsonl 2>/dev/null | head -3)
-  if [ -n "$RECENT_DECISIONS" ]; then
-    DECISIONS_TEXT=""
-    while IFS= read -r decision_file; do
-      if [ -f "$decision_file" ]; then
-        # Extract the decision content (last 60 chars for brevity)
-        decision_summary=$(tail -1 "$decision_file" 2>/dev/null | jq -r '.decision // .content // empty' 2>/dev/null | cut -c1-60)
-        [ -n "$decision_summary" ] && DECISIONS_TEXT="${DECISIONS_TEXT}• ${decision_summary}... "
-      fi
-    done <<< "$RECENT_DECISIONS"
-    [ -n "$DECISIONS_TEXT" ] && CONTEXT_PARTS+=("Recent decisions: $DECISIONS_TEXT")
-  fi
-fi
-
 # Combine all parts with line breaks
 CONTEXT=$(IFS=$'\n'; echo "${CONTEXT_PARTS[*]}")
 ESCAPED=$(echo "$CONTEXT" | jq -Rs '.')

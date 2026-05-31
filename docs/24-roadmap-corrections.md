@@ -3775,4 +3775,4 @@ Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Con
 
 **Fix:** Remove lines 58-72 from `subagent-context.sh` (the decisions-dir block). The active-task and branch injection in parts 1-3 should remain. Alternatively: formally document and reactivate the decisions log convention.
 
-**Status:** pending — removal tracked via t-1711 audit findings.
+**Status:** code-fix — lines 58-72 removed from subagent-context.sh (2026-05-30).
