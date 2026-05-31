@@ -16,9 +16,17 @@ set -euo pipefail
 FEED_LOG="$HOME/.claude/scheduler/feed-log.jsonl"
 WATERMARK="$HOME/.claude/scheduler/state/feed-index-watermark"
 DIGEST="$HOME/.claude/intelligence-feed-digest.md"
+SUMMARIES="$HOME/.claude/scheduler/feed-summaries.jsonl"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FORMAT_ENRICHED="$SCRIPT_DIR/feed-format-enriched.py"
+
 TMP_ENTRIES=$(mktemp)
 
 trap 'rm -f "$TMP_ENTRIES"' EXIT
+
+# Feeds with full content in the entry (cc-changelog: summary field; claude-code-releases: content field)
+# and feeds needing pre-generated summaries (anthropic-news: feed-summaries.jsonl)
+HIGH_SIGNAL_FEEDS="cc-changelog claude-code-releases anthropic-news"
 
 mkdir -p "$(dirname "$WATERMARK")"
 
@@ -77,16 +85,25 @@ FEEDS=$(jq -r '.feed' "$TMP_ENTRIES" | sort -u)
     echo ""
 
     while IFS= read -r feed; do
-        # Count entries for this feed
         FEED_COUNT=$(jq -r "select(.feed == \"$feed\")" "$TMP_ENTRIES" | jq -rs 'length')
         echo "## $feed ($FEED_COUNT)"
         echo ""
 
-        # Print entries (most recent first, max 20 per feed)
-        jq -r "select(.feed == \"$feed\") | \"\(.published // .polled_at | split(\"T\")[0]) — [\(.title | gsub(\"[\\n\\r]\"; \" \"))](\(.link))\"" \
-            "$TMP_ENTRIES" | tail -20
+        # High-signal: enriched output with stripped HTML content / LLM summaries
+        IS_HIGH_SIGNAL=0
+        for hs in $HIGH_SIGNAL_FEEDS; do
+            [ "$feed" = "$hs" ] && IS_HIGH_SIGNAL=1 && break
+        done
 
-        echo ""
+        if [ "$IS_HIGH_SIGNAL" = "1" ] && [ -f "$FORMAT_ENRICHED" ]; then
+            jq -c "select(.feed == \"$feed\")" "$TMP_ENTRIES" \
+                | python3 "$FORMAT_ENRICHED" "${SUMMARIES:-}" 10
+        else
+            # Low-signal feeds: title + link only (max 20 per feed)
+            jq -r "select(.feed == \"$feed\") | \"\(.published // .polled_at | split(\"T\")[0]) — [\(.title | gsub(\"[\\n\\r]\"; \" \"))](\(.link))\"" \
+                "$TMP_ENTRIES" | tail -20
+            echo ""
+        fi
     done <<< "$FEEDS"
 } > "$DIGEST"
 
