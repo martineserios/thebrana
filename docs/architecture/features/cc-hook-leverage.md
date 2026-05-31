@@ -52,15 +52,17 @@ Expand brana's use of CC hook events from 5 to 8+, adding native TaskCompleted, 
 |-------|------|---------------|
 | PreToolUse (Write\|Edit) | pre-tool-use.sh | plugin hooks.json |
 | PreToolUse (Bash) | worktree-gate.sh, branch-name-warn.sh | plugin hooks.json |
-| PostToolUse (Write\|Edit\|Bash) | post-tool-use.sh | bootstrap settings.json |
-| PostToolUse (Write\|Edit) | post-sale.sh, post-tasks-validate.sh | bootstrap settings.json |
-| PostToolUse (ExitPlanMode) | post-plan-challenge.sh | bootstrap settings.json |
-| PostToolUse (Bash) | post-pr-review.sh, task-completed.sh | bootstrap settings.json |
-| PostToolUseFailure | post-tool-use-failure.sh | bootstrap settings.json |
-| **TaskCompleted** | step-completed.sh | plugin hooks.json + bootstrap |
+| PostToolUse (Write\|Edit\|Bash) | post-tool-use.sh | plugin hooks.json ⚠ |
+| PostToolUse (Write\|Edit) | post-sale.sh, post-tasks-validate.sh | plugin hooks.json ⚠ |
+| PostToolUse (ExitPlanMode) | post-plan-challenge.sh | plugin hooks.json ⚠ |
+| PostToolUse (Bash) | post-pr-review.sh, task-completed.sh | plugin hooks.json ⚠ |
+| PostToolUseFailure | post-tool-use-failure.sh | plugin hooks.json ⚠ |
+| **TaskCompleted** | step-completed.sh | plugin hooks.json |
 | **SubagentStart** | subagent-context.sh | plugin hooks.json |
 | SessionStart | session-start.sh | plugin hooks.json |
 | SessionEnd | session-end.sh → session-end-metrics.sh + session-end-persist.sh + session-end-drift.sh | plugin hooks.json |
+
+⚠ = Registered in plugin hooks.json but dispatch from plugin unconfirmed in CC v2.1.x (CC #24529). See Known Limitations.
 
 ### Skill Model Routing
 
@@ -83,7 +85,7 @@ brana backlog set t-XXX status completed
 
 ## Known Limitations
 
-- **PostToolUse plugin dispatch bug (CC #24529)** — PostToolUse hooks must be installed via bootstrap.sh → settings.json, not plugin hooks.json. TaskCompleted and SubagentStart are NOT PostToolUse, so they work in plugin hooks.json.
+- **PostToolUse plugin dispatch (CC #24529, unresolved as of 2026-05-31)** — PostToolUse/PostToolUseFailure hooks are registered in `plugin hooks.json` (migrated from bootstrap settings.json during E2026-05-31-2). However, `validate.sh` warns CC v2.1.x may not dispatch these events from plugin hooks. If post-tool-use hooks stop firing, re-add them to settings.json via bootstrap.sh until CC #24529 is confirmed resolved. TaskCompleted and SubagentStart are NOT PostToolUse and work reliably from plugin hooks.json.
 - **task-completed.sh uses grep matching** — detects `brana backlog set <id> status completed` via regex on Bash command. Fragile if CLI syntax changes. Native CC TaskCompleted fires for CC Tasks only, not brana backlog tasks.
 - **SubagentStart injection only works when a task is in_progress** — if no active task, hook returns silently. Agents spawned outside of task context don't receive injection.
 - **Model override is static** — set in frontmatter, not dynamic. Can't downgrade mid-skill based on task complexity. contextModifier (t-509, deferred) would enable dynamic routing.

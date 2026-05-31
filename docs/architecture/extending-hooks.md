@@ -144,15 +144,16 @@ Multiple hooks can register for the same event and matcher. They run sequentiall
 
 ## Plugin Hooks vs Bootstrap-Installed Hooks
 
-All events now work via the plugin `hooks.json` (CC #24529 was resolved — PostToolUse and PostToolUseFailure previously required bootstrap workaround). Register all new hooks in `system/hooks/hooks.json` using `${CLAUDE_PLUGIN_ROOT}` paths.
+Register all hooks in `system/hooks/hooks.json` using `${CLAUDE_PLUGIN_ROOT}` paths.
 
-| Event | Register in |
-|-------|-------------|
-| All events | `system/hooks/hooks.json` |
+| Event | Register in | Dispatch status |
+|-------|-------------|-----------------|
+| All events except PostToolUse/PostToolUseFailure | `system/hooks/hooks.json` | Confirmed working |
+| `PostToolUse`, `PostToolUseFailure` | `system/hooks/hooks.json` | ⚠ Unconfirmed in CC v2.1.x — validate.sh warns these may not dispatch from plugin (CC #24529 unresolved as of 2026-05-31) |
 
-`bootstrap.sh` may still install some hooks to `~/.claude/settings.json` for identity-layer needs (hooks that must run even without the plugin). Check `bootstrap.sh` if you need a hook that survives plugin reinstall.
+`bootstrap.sh` removes any `PostToolUse`/`PostToolUseFailure` entries from `~/.claude/settings.json` since they were migrated to hooks.json. If you need these hooks to reliably fire, verify CC #24529 status first — if still open, re-add them to settings.json via bootstrap.sh.
 
-> **Historical note:** Before CC #24529 was fixed, PostToolUse and PostToolUseFailure required bootstrap installation. Some legacy references to this workaround may still exist in docs and scripts — they reflect past state, not current requirements. See [posttooluse-workaround.md](posttooluse-workaround.md) for the full history.
+> **Status of CC #24529:** As of CC v2.1.x, `validate.sh` warns that `PostToolUse` and `PostToolUseFailure` do not dispatch from plugin `hooks.json`. The hooks are registered there but may not fire. Check `validate.sh` output after any CC upgrade — if the warning disappears, dispatch is confirmed working.
 
 ## The 10-Second Timeout Constraint
 
@@ -241,7 +242,7 @@ Reference: `system/hooks/branch-name-warn.sh`, tests: `system/hooks/tests/test-b
 
 1. Create `system/hooks/{name}.sh` following the safety conventions
 2. Make it executable: `chmod +x system/hooks/{name}.sh`
-3. Register in `system/hooks/hooks.json` (all events — CC #24529 resolved). Only use `bootstrap.sh` for identity-layer hooks that must survive plugin reinstall.
+3. Register in `system/hooks/hooks.json`. For `PostToolUse`/`PostToolUseFailure`, verify CC #24529 status first — as of CC v2.1.x these may not dispatch from plugin (see §Plugin Hooks vs Bootstrap-Installed Hooks above).
 4. Run `./validate.sh`
 5. Test locally with piped JSON
 6. Test in a live session with `claude --plugin-dir ./system`
