@@ -20,6 +20,21 @@ use std::path::{Path, PathBuf};
 
 use crate::util::home;
 
+// ── Layer C agy contract ──────────────────────────────────────────────────────
+//
+// call_gemini_json() is a CLI-native (Layer C) shell-out — not Layer B (MCP/agy_delegate).
+// Guarantees enforced here: version pin, 120s timeout, stdio isolation, "Error:" detection.
+// Guarantees NOT enforced here: /tmp/ invariant, structured JSON error types (Layer B only).
+// Callers MUST call check_agy_version() once per batch before spawning concurrent workers.
+
+/// agy version this CLI layer is tested against.
+/// Must match AGY_PINNED_VERSION in brana-mcp/src/tools/agy_delegate.rs.
+/// Upgrade procedure: bump → re-run adversarial spike → confirm JSON contract → commit.
+pub const AGY_CLI_PINNED_VERSION: &str = "1.0.3";
+
+/// Hard ceiling per agy call — matches ADR-041 §5.
+pub const AGY_CLI_TIMEOUT_SECS: u64 = 120;
+
 // ── State types ──────────────────────────────────────────────────────────────
 
 /// Processing status of a single URL through the pipeline tiers.
@@ -1700,5 +1715,59 @@ mod tests {
         let result = ingest_urls(&[url], None, &mut state);
         assert_eq!(result.queued, 0);
         assert_eq!(result.duplicates, 1);
+    }
+
+    // ── append_event_log_entry_at ─────────────────────────────────────────
+
+    #[test]
+    fn append_event_log_creates_new_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("event-log.md");
+        append_event_log_entry_at(&path, "2026-05-31", "14:00", "https://example.com", &[]).unwrap();
+        let content = std::fs::read_to_string(&path).unwrap();
+        assert!(content.contains("# Event Log"));
+        assert!(content.contains("## 2026-05-31"));
+        assert!(content.contains("- 14:00 \u{2014} https://example.com"));
+    }
+
+    #[test]
+    fn append_event_log_adds_tags() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("event-log.md");
+        append_event_log_entry_at(&path, "2026-05-31", "14:00", "https://example.com", &["ai", "rust"]).unwrap();
+        let content = std::fs::read_to_string(&path).unwrap();
+        assert!(content.contains("#ai #rust"), "tags should appear as #tag format");
+    }
+
+    #[test]
+    fn append_event_log_appends_to_existing_date_section() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("event-log.md");
+        // Write initial entry
+        append_event_log_entry_at(&path, "2026-05-31", "10:00", "https://first.com", &[]).unwrap();
+        // Append second entry on same date
+        append_event_log_entry_at(&path, "2026-05-31", "11:00", "https://second.com", &[]).unwrap();
+        let content = std::fs::read_to_string(&path).unwrap();
+        // Date header appears exactly once
+        assert_eq!(content.matches("## 2026-05-31").count(), 1);
+        assert!(content.contains("https://first.com"));
+        assert!(content.contains("https://second.com"));
+        // Second entry appears after first
+        let first_pos = content.find("https://first.com").unwrap();
+        let second_pos = content.find("https://second.com").unwrap();
+        assert!(second_pos > first_pos);
+    }
+
+    #[test]
+    fn append_event_log_adds_new_date_section() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("event-log.md");
+        append_event_log_entry_at(&path, "2026-05-30", "10:00", "https://yesterday.com", &[]).unwrap();
+        append_event_log_entry_at(&path, "2026-05-31", "10:00", "https://today.com", &[]).unwrap();
+        let content = std::fs::read_to_string(&path).unwrap();
+        assert!(content.contains("## 2026-05-30"));
+        assert!(content.contains("## 2026-05-31"));
+        assert!(content.contains("https://yesterday.com"));
+        assert!(content.contains("https://today.com"));
     }
 }

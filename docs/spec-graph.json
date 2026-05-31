@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-31T13:57:04Z",
+  "generated": "2026-05-31T15:50:17Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -345,6 +345,11 @@
     },
     "brana-knowledge/dimensions/meta-whatsapp-templates.md": {
       "title": "Meta WhatsApp Template Classification — Empirical Formula",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/new-topic.md": {
+      "title": "",
       "type": "Dimension",
       "impl_files": []
     },
@@ -846,6 +851,7 @@
       "title": "ADR-040: brana Compute Hierarchy — Claude / Ruflo / Gemini",
       "type": "ADR",
       "impl_files": [
+        "system/scheduler/outputs/",
         "system/"
       ]
     },
@@ -1092,6 +1098,11 @@
       "impl_files": [
         "system/scripts/second-phase-check.sh"
       ]
+    },
+    "docs/architecture/features/knowledge-pipeline-compute.md": {
+      "title": "Knowledge Pipeline — Compute Routing",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/architecture/features/linkedin-content-implementation.md": {
       "title": "LinkedIn Content Pipeline — Implementation Design",
@@ -1893,6 +1904,11 @@
     },
     "docs/dimensions/meta-whatsapp-templates.md": {
       "title": "Meta WhatsApp Template Classification — Empirical Formula",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/dimensions/new-topic.md": {
+      "title": "",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -12333,9 +12349,9 @@
     }
   ],
   "stats": {
-    "nodes": 410,
+    "nodes": 413,
     "edges": 1598,
     "typed_edges": 568,
-    "orphans": 116
+    "orphans": 119
   }
 }
