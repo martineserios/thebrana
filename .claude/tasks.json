@@ -47089,6 +47089,34 @@
       "strategy": null,
       "build_step": null,
       "description": null
+    },
+    {
+      "subject": "Verify PostToolUse dispatch after E2026-05-31-2 migration — smoke test + re-add to settings.json if dead",
+      "kind": "fix",
+      "type": "task",
+      "priority": "P0",
+      "tags": [
+        "hooks",
+        "harness-v2",
+        "regression"
+      ],
+      "effort": "S",
+      "description": "E2026-05-31-2 migrated PostToolUse/PostToolUseFailure hooks from bootstrap settings.json to plugin hooks.json. bootstrap.sh now removes them from settings.json. validate.sh warns CC v2.1.x may not dispatch from plugin. These hooks (post-tool-use.sh, post-sale.sh, post-tasks-validate.sh, post-plan-challenge.sh, post-pr-review.sh, task-completed.sh, post-tool-use-failure.sh) may all be silently non-firing. Smoke test: add a trivial log write to post-tool-use.sh, run a tool, check for the log entry. If not firing: re-add PostToolUse entries to settings.json via bootstrap.sh until CC #24529 is confirmed resolved. Two-phase migration pattern required.",
+      "id": "t-1807",
+      "status": "pending",
+      "execution": "code",
+      "created": "2026-05-31",
+      "blocked_by": [],
+      "parent": null,
+      "order": null,
+      "branch": null,
+      "github_issue": null,
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "context": null,
+      "strategy": null,
+      "build_step": null
     }
   ],
   "version": "1"
