@@ -1785,6 +1785,62 @@ fi
 echo ""
 fi  # should_run 41
 
+# Check 42 — debrief-analyst agent must use model: sonnet (ADR-040 §6, t-1801)
+if should_run 42; then
+echo "Check 42: debrief-analyst model: sonnet..."
+DEBRIEF_AGENT="$SYSTEM_DIR/agents/debrief-analyst.md"
+if [ ! -f "$DEBRIEF_AGENT" ]; then
+    warn "Check 42: debrief-analyst.md not found — skipping"
+else
+    DEBRIEF_MODEL=$(grep -m1 '^model:' "$DEBRIEF_AGENT" | awk '{print $2}' | tr -d '"')
+    if [ "$DEBRIEF_MODEL" = "sonnet" ]; then
+        pass "Check 42: debrief-analyst model: sonnet ✓"
+    else
+        fail "Check 42: debrief-analyst model is '$DEBRIEF_MODEL' — must be 'sonnet' (ADR-040 §6)"
+    fi
+fi
+echo ""
+fi  # should_run 42
+
+# Check 43 — close.md must contain weight classification block (NANO/LIGHT/FULL) (ADR-040 §7, t-1802)
+if should_run 43; then
+echo "Check 43: close.md weight classification block..."
+CLOSE_PROC="$SYSTEM_DIR/procedures/close.md"
+if [ ! -f "$CLOSE_PROC" ]; then
+    warn "Check 43: close.md not found at $CLOSE_PROC — skipping"
+else
+    MISSING_MODES=()
+    grep -q "CLOSE_MODE=\"FULL\""  "$CLOSE_PROC" || MISSING_MODES+=("FULL")
+    grep -q "CLOSE_MODE=\"LIGHT\"" "$CLOSE_PROC" || MISSING_MODES+=("LIGHT")
+    grep -q "CLOSE_MODE=\"NANO\""  "$CLOSE_PROC" || MISSING_MODES+=("NANO")
+    if [ ${#MISSING_MODES[@]} -eq 0 ]; then
+        pass "Check 43: close.md has NANO/LIGHT/FULL weight classification ✓"
+    else
+        fail "Check 43: close.md missing CLOSE_MODE assignment(s): ${MISSING_MODES[*]} (ADR-040 §7)"
+    fi
+fi
+echo ""
+fi  # should_run 43
+
+# Check 44 — close.md tasks.json ambiguous case must route to NANO (not LIGHT) (ADR-040 §7, t-1803)
+if should_run 44; then
+echo "Check 44: close.md tasks.json → NANO routing..."
+CLOSE_PROC="$SYSTEM_DIR/procedures/close.md"
+if [ ! -f "$CLOSE_PROC" ]; then
+    warn "Check 44: close.md not found at $CLOSE_PROC — skipping"
+else
+    # tasks.json-only case must be documented as NANO (not LIGHT) in the ambiguous cases block
+    if grep -q "tasks\.json.*NANO" "$CLOSE_PROC"; then
+        pass "Check 44: close.md tasks.json ambiguous case routes to NANO ✓"
+    elif grep -q "tasks\.json.*LIGHT" "$CLOSE_PROC"; then
+        fail "Check 44: close.md tasks.json ambiguous case still shows LIGHT — must be NANO (ADR-040 §7 updated 2026-05-31)"
+    else
+        warn "Check 44: close.md tasks.json ambiguous case not found — verify manually"
+    fi
+fi
+echo ""
+fi  # should_run 44
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
