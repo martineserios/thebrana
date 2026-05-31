@@ -143,7 +143,7 @@ Is this brana-system work?
 - Phases 2–6 of brana-v2-compute-model may now be implemented; this ADR is their gate.
 - Delegation wiring must enforce decisions 1–5 structurally — code, not convention.
 - Decision 6 (Sonnet for debrief): ✓ DONE — `debrief-analyst.md` has `model: sonnet`.
-- Decision 7 (weight-adaptive close): ✓ DONE — implemented in `close.md`; validate.sh Checks 41–43 added (t-1800).
+- Decision 7 (weight-adaptive close): ✓ DONE — implemented in `close.md`; validate.sh Checks 42–44 added (t-1800/1801/1802/1803).
 - Any future agent type added to the system must be assessed against decisions 2–4 before wiring.
 
 ## Non-Actions
