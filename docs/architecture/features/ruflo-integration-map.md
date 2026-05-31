@@ -50,6 +50,10 @@ containing `mcp__ruflo__` calls.
 **Use `smart: false` on all LOAD calls.** Re-evaluate only if ruflo exposes tunable
 `mmr_lambda` + warmup. See t-1697 (closed).
 
+All procedure call sites omit the `smart:` parameter intentionally — `false` is ruflo's
+default. If ruflo ever changes this default, add `smart: false` explicitly to every
+`mcp__ruflo__memory_search(...)` call across all procedures.
+
 ---
 
 ## ToolSearch Preamble Spec
@@ -106,7 +110,7 @@ ToolSearch("select:mcp__ruflo__hive-mind_init,mcp__ruflo__hive-mind_spawn,mcp__r
 3 workers per gate. Quorum threshold: **majority (2/3)**. ≥2 confirm = HIGH confidence
 (blocking). 1 only = LOW (informational). All workers are Claude instances (ADR-040 §4).
 
-Fallback when ruflo unavailable: `Skill("brana:challenge")` for all gates.
+Fallback when ruflo unavailable: inline multi-role reasoning — Claude runs convergent, systems, and critical roles sequentially in main context. Procedures own their fallback logic; no recursive skill invocation.
 
 Invoke pattern:
 ```
@@ -157,18 +161,45 @@ Fires in: `close.md` before writing the handoff.
 
 ---
 
+## Partial Availability
+
+Ruflo is not all-or-nothing. Individual tool groups can fail independently (MCP SIGTERM bug
+#40207, timeout on a single tool-group). Procedures must handle partial failures without
+assuming global ruflo state.
+
+| Scenario | Symptom | Action |
+|---|---|---|
+| `memory_search` fails, hive-mind works | LOAD step errors; spawn succeeds | Skip ENRICH, proceed without context. Note "ENRICH skipped" in output. |
+| `hive-mind_spawn` fails, `memory_search` works | `"Hive-mind not initialized"` or timeout | ENRICH still ran; use inline fallback for quorum reasoning. ENRICH results are still valid. |
+| `hive-mind_consensus` fails after spawn | Workers responded; consensus call errors | Collect worker responses manually, apply majority logic inline. |
+| `claims_claim` fails | Claim not registered | Proceed unclaimed (no coordination guarantees); log warning. |
+| All ruflo tools fail | Every `mcp__ruflo__*` call errors | Full CC fallback per procedure. `/mcp` to reconnect if needed (CC SIGTERM bug). |
+
+**Key rule:** A failed tool-group does not imply ruflo is down. Try the specific fallback
+before concluding ruflo is unavailable.
+
+---
+
 ## Implementation Sequence
 
-| Priority | Task | Effort | Blocked by |
+| Priority | Task | Effort | Status |
 |---|---|---|---|
-| 1 | Add ToolSearch preamble to 7 procedures | XS | — |
-| 2 | Wire `progress_watch` in `backlog.md` execute after `agent_spawn` | S | preamble |
-| 3 | Hive-mind quorum Gates 1–4 | M | preamble + t-1638 |
+| 1 | Add ToolSearch preamble to 7 procedures | XS | ✅ done |
+| 2 | Wire `progress_watch` in `backlog.md` execute after `agent_spawn` | S | pending |
+| 3 | Hive-mind quorum Gates 3+4 (ship + close) | M | pending — preambles ready |
 
 ---
 
 ## Risks
 
 - **ToolSearch latency** — loading 8 schemas adds ~200ms. Acceptable for human-facing skills; avoid in hooks.
-- **Hive-mind in subscription mode** — `agent_execute` requires `ANTHROPIC_API_KEY`; falls back to `Skill("brana:challenge")` if `hive-mind_spawn` fails.
-- **Quorum thresholds** — t-1638 locks thresholds after t-1599 calibration. Gate 1 blocked until then.
+- **Hive-mind in subscription mode** — `hive-mind_spawn` requires ruflo workers; inline fallback fires when unavailable.
+- **smart: false default drift** — all call sites rely on ruflo's default. If default changes, add explicit `smart: false` to every `memory_search` call.
+
+---
+
+## Field Notes
+
+### 2026-05-31: agy version spike protocol
+Before bumping `AGY_PINNED_VERSION` in `agy_delegate.rs`, run 4 behavioral checks against the installed binary: (1) `--version` output is a bare version string, (2) `-p "<prompt>"` produces output on stdout with exit 0, (3) `-p ""` produces `Error: ` prefix on stdout with exit 0, (4) invalid flag produces exit 2. All four must match the contract baked into `validate_output()`. If any differ, update the validation logic before bumping the pin.
+Source: C2 fix — agy 1.0.2→1.0.3 spike (2026-05-31)

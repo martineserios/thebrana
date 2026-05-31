@@ -108,10 +108,14 @@ AskUserQuestion (batch up to 4 questions):
   question: "What's the scale? Quick experiment or long-term investment?"
   header: "Scale"
   options:
-    - "Quick experiment (hours/days)"
-    - "Small project (1-2 weeks)"
-    - "Significant investment (weeks+)"
-    - "Not sure yet"
+    - label: "Quick experiment (hours/days)"
+      description: "Low-commitment exploration — validate before committing resources."
+    - label: "Small project (1-2 weeks)"
+      description: "Well-scoped project; fits in a sprint or two."
+    - label: "Significant investment (weeks+)"
+      description: "Multi-week commitment requiring planning and phasing."
+    - label: "Not sure yet"
+      description: "Scale unclear — explore more before estimating."
 
   question: "What does success look like?"
   header: "Success"
@@ -120,10 +124,14 @@ AskUserQuestion (batch up to 4 questions):
   question: "Any constraints or non-negotiables?"
   header: "Constraints"
   options:
-    - "Budget limited"
-    - "Time pressure"
-    - "Must integrate with existing system"
-    - "None / not sure"
+    - label: "Budget limited"
+      description: "Cost is a hard constraint — prioritize cheap solutions."
+    - label: "Time pressure"
+      description: "Deadline is fixed — scope must fit the time."
+    - label: "Must integrate with existing system"
+      description: "Compatibility with existing system is non-negotiable."
+    - label: "None / not sure"
+      description: "No hard constraints identified yet."
 ```
 
 ### Phase 3 — Discuss & Challenge
@@ -166,10 +174,14 @@ AskUserQuestion:
   question: "Playing devil's advocate: {counter-position}. What's wrong with this argument?"
   header: "Counter"
   options:
-    - "That's actually a good point"     → explore the counter-position together
-    - "Here's why that won't work..."    → free text defense
-    - "Both could work — help me decide" → comparative analysis
-    - "Skip — I'm confident in my direction"
+    - label: "That's actually a good point"
+      description: "Explore the counter-position together."
+    - label: "Here's why that won't work..."
+      description: "Defend your approach with free text."
+    - label: "Both could work — help me decide"
+      description: "Run a comparative analysis of the two approaches."
+    - label: "Skip — I'm confident in my direction"
+      description: "Bypass this challenge and proceed as planned."
 ```
 
 #### Round 3+ — Follow the thread
@@ -198,10 +210,14 @@ AskUserQuestion:
   question: "Keep discussing, or ready to shape this into something concrete?"
   header: "Continue?"
   options:
-    - "Keep going — I want to explore {aspect}"
-    - "Challenge me harder on {topic}"
-    - "Ready to shape it"               → proceed to Phase 4
-    - "Let me think — save what we have" → jump to Phase 5 with current state
+    - label: "Keep going — I want to explore {aspect}"
+      description: "Continue the discussion on a specific aspect of the idea."
+    - label: "Challenge me harder on {topic}"
+      description: "Push back more forcefully on a specific assumption."
+    - label: "Ready to shape it"
+      description: "Move to Phase 4 and turn the idea into a concrete doc."
+    - label: "Let me think — save what we have"
+      description: "Save current state and jump to Phase 5 without shaping."
 ```
 
 If the user mentions a new concept during any round, **auto-research it**
@@ -281,10 +297,14 @@ AskUserQuestion:
   question: "How does this look? What should we adjust?"
   header: "Review"
   options:
-    - "Looks good — save it"
-    - "Adjust the direction"       → loop back to specific section
-    - "Research more on {topic}"   → run targeted research, then re-present
-    - "Scrap it — not worth pursuing"
+    - label: "Looks good — save it"
+      description: "Save the shaped idea doc and proceed to Phase 5."
+    - label: "Adjust the direction"
+      description: "Loop back to a specific section for refinement."
+    - label: "Research more on {topic}"
+      description: "Run targeted research on a specific topic, then re-present."
+    - label: "Scrap it — not worth pursuing"
+      description: "Abandon the idea without saving."
 ```
 
 Allow multiple refinement loops. Each loop re-presents the updated summary.
@@ -364,9 +384,12 @@ AskUserQuestion:
   question: "Plan this idea into the backlog?"
   header: "Backlog"
   options:
-    - "Yes — plan phases & tasks"  → invoke /brana:backlog plan with the idea as input
-    - "Not yet — just save the doc"
-    - "Quick add (flat task only)"  → single task via backlog_add() (MCP) or brana backlog add
+    - label: "Yes — plan phases & tasks"
+      description: "Invoke /brana:backlog plan with the idea as input."
+    - label: "Not yet — just save the doc"
+      description: "Save the brainstorm doc without creating backlog tasks."
+    - label: "Quick add (flat task only)"
+      description: "Create a single task via backlog_add() without full planning."
 ```
 
 **If "Yes — plan phases & tasks"** (default, recommended):

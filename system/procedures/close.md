@@ -47,8 +47,10 @@ AskUserQuestion:
   question: "system/state/ has uncommitted edits. Commit now before closing?"
   header: "State files dirty"
   options:
-    - "Yes — auto-commit (chore(state): commit state files at session close)"
-    - "No — skip and continue"
+    - label: "Yes — auto-commit (chore(state): commit state files at session close)"
+      description: "Stage and commit all system/state/ edits with standard message."
+    - label: "No — skip and continue"
+      description: "Leave state files uncommitted and proceed with close."
 ```
 
 If "Yes":
@@ -200,9 +202,12 @@ Detect behavioral changes that lack corresponding documentation updates.
      question: "Behavioral files changed without docs. Update now?"
      header: "Doc-update check"
      options:
-       - "Draft doc updates now"
-       - "Add to session handoff (defer)"
-       - "Skip"
+       - label: "Draft doc updates now"
+         description: "Read changed behavioral files and write doc updates inline."
+       - label: "Add to session handoff (defer)"
+         description: "Record doc update as a next[] item for the next session."
+       - label: "Skip"
+         description: "Defer with a low-priority reminder in next[] (not silently dropped)."
      context: |
        Changed behavioral files:
        - {file} → {suggested doc target}
@@ -413,13 +418,20 @@ When writing a `field-note_{slug}.md`, add a one-liner to MEMORY.md under `## Fi
    ```
    "Capture as field note? '{brief summary of learning}' → {target-doc-name}"
    Options:
-     - "Promote (integrate into doc body)"
-     - "Relate (cross-reference existing sections)"
-     - "Trigger (file research task)"
-     - "Contradict (flag assumption for review)"
-     - "Keep (append to Field Notes section)"
-     - "Archive (memory only, defer)"
-     - "Skip"
+     - label: "Promote (integrate into doc body)"
+       description: "Integrate into doc prose; bump SemVer minor in frontmatter."
+     - label: "Relate (cross-reference existing sections)"
+       description: "Add bidirectional cross-reference links; no new content."
+     - label: "Trigger (file research task)"
+       description: "File a research task and link its ID from Field Notes."
+     - label: "Contradict (flag assumption for review)"
+       description: "Mark documented assumption as disputed for next reconcile."
+     - label: "Keep (append to Field Notes section)"
+       description: "Append to ## Field Notes section of the target doc."
+     - label: "Archive (memory only, defer)"
+       description: "Store in ruflo field-notes namespace only; no doc edit."
+     - label: "Skip"
+       description: "Discard silently — not worth recording."
    ```
    Batch up to 4 field notes per AskUserQuestion call. Pick at most 4 of these 7 options per question — the most plausible ones for the specific note. "Keep" stays available as the most common path; the other actions are lighter-weight when the note doesn't fit a tail section.
 
@@ -562,8 +574,10 @@ Scan the session for feature ideas — new CLI commands, hook improvements, skil
      header: "Feature ideas from this session"
      multiSelect: true
      options:
-       - "[component] brief description" — one per idea
-       - "Skip all"
+       - label: "[component] brief description"
+         description: "Add this idea to the backlog with component tag and description."
+       - label: "Skip all"
+         description: "Discard all feature ideas from this session."
    ```
 
 4. **For each selected idea**, add via CLI:
@@ -1130,7 +1144,13 @@ git -C "$MAIN_ROOT" stash list --date=iso-strict 2>/dev/null \
 **If any stashes returned:** list them, then prompt once:
 ```
 AskUserQuestion: "Found N stashes older than 7 days. Drop them?"
-Options: ["Drop all", "Review each", "Skip"]
+Options:
+  - label: "Drop all"
+    description: "Delete all stashes older than 7 days immediately."
+  - label: "Review each"
+    description: "Inspect each stash individually before deciding whether to drop."
+  - label: "Skip"
+    description: "Leave all old stashes in place."
 ```
 
 For "Review each": iterate per-stash with its own AskUserQuestion (batch up to 4). For "Drop all": `git stash drop stash@{N}` for each, in reverse order to preserve indices.
@@ -1174,8 +1194,10 @@ AskUserQuestion:
   header: "Follow-ups"
   multiSelect: true
   options:
-    - one per actionable follow-up: "{follow-up description}" → creates a task via brana backlog add
-    - "Skip all"
+    - label: "{follow-up description}"
+      description: "Create a backlog task for this follow-up action."
+    - label: "Skip all"
+      description: "Discard all follow-up suggestions — nothing to file."
 ```
 
 For each selected follow-up:

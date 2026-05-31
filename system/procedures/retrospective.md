@@ -178,10 +178,14 @@ AskUserQuestion:
   question: "Classified as {type}. Review the draft and confirm routing."
   header: "Memory routing"
   options:
-    - "Approve — {type} → {destination}"
-    - "Override type → Pattern"
-    - "Override type → Knowledge"
-    - "Skip — don't store"
+    - label: "Approve — {type} → {destination}"
+      description: "Accept the classified type and route to the suggested destination."
+    - label: "Override type → Pattern"
+      description: "Reclassify as Pattern and route to pattern memory."
+    - label: "Override type → Knowledge"
+      description: "Reclassify as Knowledge and route to knowledge staging."
+    - label: "Skip — don't store"
+      description: "Discard this learning — don't store anywhere."
 ```
 
 On "Approve":

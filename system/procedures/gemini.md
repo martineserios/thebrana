@@ -122,6 +122,13 @@ Use for: research sweep, competitive analysis, batch summarization.
 fire normally. agy output never lands in the repo without Claude's explicit Write/Edit call.
 Use for: boilerplate generation, doc draft, test scaffolding.
 
+**Reference-response detection (before applying either path):** If the agy output is
+< 150 words and contains a file path pattern (starts with `/`, contains `/tmp/`, or
+contains `/brain/`), agy may have written the result to disk instead of returning it.
+Read the referenced path with the Read tool and use that content as the actual output.
+If the path does not exist or is unreadable, surface the error to the user — do not
+silently proceed with the reference string as if it were the result.
+
 Present the applied result to the user before proceeding to EXTRACT.
 
 ---

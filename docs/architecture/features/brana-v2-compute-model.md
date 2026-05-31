@@ -152,3 +152,11 @@ See `claude-gemini-orchestration.md §Phase 4` for full protocol and scoring bre
 | `system/scheduler/templates/agy-sweep.sh.template` | Layer A sweep template |
 | `system/rules/delegation-routing.md` | Routing rule (always-load) |
 | `docs/architecture/features/ruflo-integration-map.md` | Tool-group map, ToolSearch preambles, hive-mind quorum gate specs |
+
+---
+
+## Field Notes
+
+### 2026-05-31: Subscription mode blocks ruflo calibration tasks
+`ruflo agent_execute` and hive-mind LLM workers require `ANTHROPIC_API_KEY`. In subscription mode (no API credits) these tools fail with auth errors. Any backlog task whose DoD requires running N plans through ruflo workers is permanently blocked until API key access is granted. Resolution: cancel the task, document the working assumption (e.g. `majority` quorum threshold) as "pending re-calibration if API key available", and move on. Do not defer indefinitely — stale "pending" tasks pollute the roadmap.
+Source: C3 resolution — t-1599 + t-1638 cancelled 2026-05-31

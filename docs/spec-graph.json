@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-30T16:51:32Z",
+  "generated": "2026-05-31T13:57:04Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -530,7 +530,8 @@
         "system/cli/rust/crates/brana-mcp/tests/tool_tests.rs:447",
         "system/cli/rust/crates/brana-cli/src/commands/session.rs:549",
         "system/procedures/close.md:826",
-        "system/procedures/sitrep.md:122"
+        "system/procedures/sitrep.md:122",
+        "system/hooks/subagent-context.sh"
       ]
     },
     "docs/25-self-documentation.md": {
@@ -1209,6 +1210,11 @@
         "system/cli/rust/src/commands/knowledge.rs"
       ]
     },
+    "docs/architecture/features/ruflo-integration-map.md": {
+      "title": "Ruflo Integration Map",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/architecture/features/scheduler-hardening.md": {
       "title": "Feature: Scheduler Hardening (Wave 1)",
       "type": "Roadmap",
@@ -1426,6 +1432,22 @@
         "system/hooks/session-start-venture.sh",
         "system/hooks/session-end.sh",
         "system/hooks/lib/"
+      ]
+    },
+    "docs/architecture/t-1711-simplification-audit.md": {
+      "title": "Harness Simplification Audit (t-1711)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/hooks/hallucination-detect.sh",
+        "system/hooks/guard-explore.sh",
+        "system/hooks/bash-output-compress.sh",
+        "system/skills/_shared/smart-router.md",
+        "system/procedures/build.md:369-374",
+        "system/hooks/subagent-context.sh",
+        "system/state/decisions",
+        "system/hooks/preflight-model.sh",
+        "system/hooks/session-start.sh",
+        "system/hooks/tests/"
       ]
     },
     "docs/architecture/testing-validation.md": {
@@ -2025,6 +2047,13 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/guide/onboarding.md": {
+      "title": "Brana Onboarding — One-Command Install",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/"
+      ]
+    },
     "docs/guide/philosophy.md": {
       "title": "Philosophy",
       "type": "Roadmap",
@@ -2215,17 +2244,6 @@
       "type": "Roadmap",
       "impl_files": []
     },
-    "docs/ideas/brana-v2-compute-model.md": {
-      "title": "brana v2 Compute Model",
-      "type": "Roadmap",
-      "impl_files": [
-        "system/",
-        "system/agents/debrief-analyst.md",
-        "system/procedures/close.md",
-        "system/cli/rust/crates/brana-mcp/src/tools/agy_delegate.rs",
-        "system/skills/gemini/SKILL.md"
-      ]
-    },
     "docs/ideas/build-enhancements-from-osmani.md": {
       "title": "Build Command Enhancements — Inspired by addyosmani/agent-skills",
       "type": "Roadmap",
@@ -2348,21 +2366,6 @@
     },
     "docs/ideas/resilient-pattern-store.md": {
       "title": "Resilient Pattern Store — Hybrid Dual-Write",
-      "type": "Roadmap",
-      "impl_files": []
-    },
-    "docs/ideas/ruflo-native-integration.md": {
-      "title": "Ruflo Native Integration",
-      "type": "Roadmap",
-      "impl_files": [
-        "system/hooks/pre-tool-use.sh",
-        "system/hooks/session-end.sh",
-        "system/hooks/session-start.sh",
-        "system/hooks/lib/file-claims.sh"
-      ]
-    },
-    "docs/ideas/ruflo-v36-integration.md": {
-      "title": "Ruflo v3.6 Integration — thebrana v1.20",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -2525,6 +2528,7 @@
         "system/rules/git-discipline.md",
         "system/rules/inbox-convention.md",
         "system/rules/lifecycle-gate-assessment.md",
+        "system/rules/m-plus-discipline-enforcement.md",
         "system/rules/no-phantom-dependencies.md",
         "system/rules/parallel-bash.md",
         "system/rules/research-discipline.md",
@@ -8387,6 +8391,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/brana-v2-compute-model.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/build-loop-redesign.md",
       "type": "references",
       "computed": false
@@ -8394,6 +8404,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/features/cascade-throttle.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/claude-gemini-orchestration.md",
       "type": "references",
       "computed": false
     },
@@ -8430,6 +8446,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/features/research-stream.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/features/ruflo-integration-map.md",
       "type": "references",
       "computed": false
     },
@@ -11170,24 +11192,6 @@
       "computed": false
     },
     {
-      "from": "docs/ideas/ruflo-native-integration.md",
-      "to": "links.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/ideas/ruflo-native-integration.md",
-      "to": "resilient-pattern-store.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/ideas/ruflo-native-integration.md",
-      "to": "skill-auto-router.md",
-      "type": "references",
-      "computed": false
-    },
-    {
       "from": "docs/ideas/session-aware-loop-integration.md",
       "to": "brana-operating-model.md",
       "type": "references",
@@ -12326,24 +12330,12 @@
       "to": "dimensions/50-respond-io-platform.md",
       "type": "supersedes",
       "computed": false
-    },
-    {
-      "from": "docs/ideas/brana-v2-compute-model.md",
-      "to": "docs/ideas/brana-efficiency-without-power-loss.md",
-      "type": "supersedes",
-      "computed": false
-    },
-    {
-      "from": "docs/ideas/brana-v2-compute-model.md",
-      "to": "docs/ideas/claude-gemini-orchestration.md",
-      "type": "supersedes",
-      "computed": false
     }
   ],
   "stats": {
     "nodes": 410,
-    "edges": 1600,
-    "typed_edges": 570,
-    "orphans": 112
+    "edges": 1598,
+    "typed_edges": 568,
+    "orphans": 116
   }
 }

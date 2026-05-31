@@ -261,10 +261,14 @@ Before anything else, check if this work already exists or relates to existing w
    ```
    question: "Found related tasks. What to do?"
    options:
-     - "This IS {id} — start it" (if exact match)
-     - "Create new + link as related to {id}"
-     - "Merge into {id}"
-     - "No relation — create new"
+     - label: "This IS {id} — start it" (if exact match)
+       description: "The existing task matches exactly — start it directly."
+     - label: "Create new + link as related to {id}"
+       description: "Add a new task and mark it related to the existing one."
+     - label: "Merge into {id}"
+       description: "Don't create a new task; add this scope to the existing task."
+     - label: "No relation — create new"
+       description: "Create a standalone task with no relation to the found task."
    ```
 4. **If no matches**, proceed silently.
 5. **If entering via `/brana:backlog start`**, skip cross-reference (task already identified).
@@ -326,8 +330,10 @@ AskUserQuestion:
   question: "Readiness check failed for {task_id}: {list of failures}. Fix before building?"
   header: "Readiness"
   options:
-    - "Fix now — I'll update the task"
-    - "Skip — reason required"
+    - label: "Fix now — I'll update the task"
+      description: "Pause; update the task to match current state, then re-run checks."
+    - label: "Skip — reason required"
+      description: "Continue without fixing; provide a justification for the log."
 ```
 If "Fix now": wait for user, then re-read the task and re-run checks.
 If "Skip — reason required": require free text. Log to task notes and decision log:
@@ -381,11 +387,16 @@ Use AskUserQuestion:
 ```
 question: "Detected: {strategy}. Correct?"
 options:
-  - "{detected strategy} (Recommended)"
-  - "Feature"
-  - "Bug fix"
-  - "Refactor"
-  - "Spike"
+  - label: "{detected strategy} (Recommended)"
+    description: "Use the auto-detected build strategy."
+  - label: "Feature"
+    description: "New functionality — will need tests and docs."
+  - label: "Bug fix"
+    description: "Corrects a defect in existing behavior."
+  - label: "Refactor"
+    description: "Restructures code without changing behavior."
+  - label: "Spike"
+    description: "Time-boxed exploration to validate an approach."
 ```
 Header: "Strategy"
 
@@ -611,9 +622,12 @@ When the user says "draft it", "ready", "let's spec this", "move on", or similar
      · ADR: {ADR-NNN-slug.md, or 'none — no load-bearing decision'}
      · feature spec: {path}"
    options:
-     - "Confirm — proceed to user review"
-     - "Missing artifact — back to draft (specify which)"
-     - "Decision is load-bearing — extract ADR first"
+     - label: "Confirm — proceed to user review"
+       description: "All artifacts present — move to user acceptance review."
+     - label: "Missing artifact — back to draft (specify which)"
+       description: "Return to draft mode to produce the missing artifact."
+     - label: "Decision is load-bearing — extract ADR first"
+       description: "Pause implementation and write an ADR before continuing."
    ```
    The "Decision is load-bearing" option loops back to step 2 to extract the ADR before continuing. This gate exists to catch the failure mode where a real architectural choice gets buried inside a feature spec and never surfaces to ADR review.
 
@@ -829,9 +843,12 @@ If MCP unavailable, skip silently. Hive-mind is transient awareness, not critica
           question: "No test files written yet for this subtask. Tests are part of the plan — write them before implementing. What to do?"
           header: "TDD gate"
           options:
-            - "Write tests now (Recommended)"
-            - "Skip — not a testable change (config, docs, markup)"
-            - "Skip — reason required"
+            - label: "Write tests now (Recommended)"
+              description: "Add tests before proceeding to implementation."
+            - label: "Skip — not a testable change (config, docs, markup)"
+              description: "This change type doesn't warrant tests."
+            - label: "Skip — reason required"
+              description: "Skip tests but provide justification for the task log."
         ```
         If "Write tests now": loop back to step 3d.
         If "Skip — not testable": proceed (no log needed for config/docs/markup).
@@ -988,8 +1005,10 @@ Before implementing the fix, verify a failing test was written in REPRODUCE:
     question: "No failing test written yet. The test IS the spec — write it before fixing. What to do?"
     header: "TDD gate"
     options:
-      - "Write test now (Recommended)"
-      - "Skip — no test framework available"
+      - label: "Write test now (Recommended)"
+        description: "Add a failing test before implementing the fix."
+      - label: "Skip — no test framework available"
+        description: "No testing infrastructure available for this target."
   ```
   If "Write test now": loop back to REPRODUCE step 3.
   If "Skip": log reason and proceed.

@@ -248,9 +248,12 @@ Interactive phase planning. Builds the hierarchy conversationally.
     question: "Assign this phase to an epic?"
     header: "Epic"
     options:
-      - "Use active: {active_epic}" (if one is set)
-      - "Enter slug manually"
-      - "Skip — no epic"
+      - label: "Use active: {active_epic}" (if one is set)
+        description: "Assign the currently active epic to this task."
+      - label: "Enter slug manually"
+        description: "Type the epic slug directly."
+      - label: "Skip — no epic"
+        description: "Leave this task without an epic assignment."
     ```
     Assign the epic to the phase task; child milestones and tasks inherit automatically at write-time.
 4. **Create the phase task** (type: phase) with next available ph-N id; include `epic` if set in step 3a
@@ -273,9 +276,12 @@ Interactive phase planning. Builds the hierarchy conversationally.
      ```
      question: "Found existing tasks that overlap with proposed phase tasks:"
      options:
-       - "Link {new-subject} → blocked_by {existing-id} {existing-subject} (tag overlap: {shared})"
-       - "Merge {new-subject} into {existing-id} (duplicate)"
-       - "No relation — keep all as-is"
+       - label: "Link {new-subject} → blocked_by {existing-id} {existing-subject} (tag overlap: {shared})"
+         description: "Create the task and mark it blocked by the overlapping existing task."
+       - label: "Merge {new-subject} into {existing-id} (duplicate)"
+         description: "Don't create a new task; add this scope to the existing task instead."
+       - label: "No relation — keep all as-is"
+         description: "Create the task independently with no relation."
      ```
    - **If no overlaps found**, skip silently
    - **Never auto-link or auto-merge** — always ask the user
@@ -293,9 +299,12 @@ Interactive phase planning. Builds the hierarchy conversationally.
        question: "Plan has code tasks but no test tasks. Tests are part of planning (DDD→SDD→TDD). Add test tasks?"
        header: "TDD gate"
        options:
-         - "Add test tasks now (Recommended)"
-         - "Skip — tests are inline with implementation (Small tasks)"
-         - "Skip — not testable (scripts, config, docs only)"
+         - label: "Add test tasks now (Recommended)"
+           description: "Create separate test tasks linked to implementation tasks."
+         - label: "Skip — tests are inline with implementation (Small tasks)"
+           description: "Tests will be written alongside code in a single task."
+         - label: "Skip — not testable (scripts, config, docs only)"
+           description: "This work type doesn't require separate test tasks."
      ```
      If "Add test tasks now": loop back to step 6 to add test tasks before code tasks (with `blocked_by` linking code → tests).
      If "Skip — inline": proceed (Small tasks write tests inline per BUILD step 3d).
@@ -309,8 +318,10 @@ Interactive phase planning. Builds the hierarchy conversationally.
       question: "Phase has M+ effort tasks. Run /brana:challenge before writing?"
       header: "Challenge gate"
       options:
-        - "Yes — challenge the plan now (Recommended)"
-        - "Skip — already challenged or S-only work"
+        - label: "Yes — challenge the plan now (Recommended)"
+          description: "Run /brana:challenge on this plan before writing tasks."
+        - label: "Skip — already challenged or S-only work"
+          description: "Proceed without a challenge pass."
     ```
     - If "Yes": invoke `/brana:challenge` on the current plan. Address all HIGH findings before proceeding. MEDIUM findings may be noted as risks in task context fields.
     - If "Skip": proceed.
@@ -443,8 +454,10 @@ ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo_
      question: "Phase has {N} parallelizable tasks (avg effort: {avg}). Run as batch or interactive?"
      header: "Mode"
      options:
-       - "Batch — /brana:backlog execute {id} (Recommended)"
-       - "Interactive — pick one task to start"
+       - label: "Batch — /brana:backlog execute {id} (Recommended)"
+         description: "Execute all tasks in the plan sequentially via backlog execute."
+       - label: "Interactive — pick one task to start"
+         description: "Choose one task to start now and defer the rest."
    ```
    - If batch: invoke `Skill(skill="brana:backlog", args="execute {id}")` — stop here
    - If interactive: present unblocked children for selection → continue to step 2 with chosen task
@@ -496,9 +509,12 @@ ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo_
        question: "Suggested skill for this task:"
        header: "Skill"
        options:
-         - "/brana:{top_name} (score: {score})" (Recommended)
-         - "/brana:{second_name} (score: {score})" (if available)
-         - "Skip — none needed"
+         - label: "/brana:{top_name} (score: {score})" (Recommended)
+           description: "Use the top-matching skill for this task type."
+         - label: "/brana:{second_name} (score: {score})" (if available)
+           description: "Use the second-best matching skill instead."
+         - label: "Skip — none needed"
+           description: "No skill acquisition needed; proceed without one."
      ```
 
    - **Top result between mention_threshold and suggest_threshold (0.3–0.5):**
@@ -512,8 +528,10 @@ ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo_
        question: "No local skill matches this task. Search externally?"
        header: "Gap"
        options:
-         - "Search externally"
-         - "Skip"
+         - label: "Search externally"
+           description: "Search skills.sh or marketplace for a matching skill."
+         - label: "Skip"
+           description: "Proceed without installing a skill."
      ```
      If user selects "Search externally":
      ```
@@ -542,8 +560,10 @@ ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo_
      question: "Pool has {idle} warm agent(s). Run in-session or delegate to background pool?"
      header: "Execution mode"
      options:
-       - "In-session (default — interactive, you see progress)"
-       - "Background pool (fire and forget — check results later)"
+       - label: "In-session (default — interactive, you see progress)"
+         description: "Run agents inline — visible progress, blocks until done."
+       - label: "Background pool (fire and forget — check results later)"
+         description: "Dispatch to background workers; results available later."
    ```
    If user selects **background**: spawn with `mcp__ruflo__agent_spawn(agentType: "claude", domain: "{project}", model: "sonnet", task: "{task subject + strategy}")` and stop — do NOT enter `/brana:build`.
    If user selects **in-session**, pool is empty, or ruflo unavailable: proceed to step 6.
@@ -615,10 +635,14 @@ Complete the current task. For code tasks that went through `/brana:build`, the 
      ```
      question: "This task produced deliverables. Generate documentation?"
      options:
-       - "Tech doc + user guide" (writes both from templates)
-       - "Tech doc only"
-       - "User guide only"
-       - "Skip docs"
+       - label: "Tech doc + user guide"
+         description: "Generate both architecture and user-facing docs from templates."
+       - label: "Tech doc only"
+         description: "Generate architecture/reference docs only."
+       - label: "User guide only"
+         description: "Generate user-facing guide docs only."
+       - label: "Skip docs"
+         description: "No documentation needed for this implementation."
      ```
      If user selects any doc option, generate using templates at `system/skills/build/templates/tech-doc.md` and/or `system/skills/build/templates/user-guide.md`. Output to `docs/architecture/features/{task-slug}.md` and/or `docs/guide/features/{task-slug}.md`.
 6. **Update task:** status → completed, completed → today's date, clear build_step
