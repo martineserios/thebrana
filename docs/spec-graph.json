@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-31T15:50:17Z",
+  "generated": "2026-05-31T17:15:36Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -9042,12 +9042,6 @@
       "computed": false
     },
     {
-      "from": "docs/architecture/extending-hooks.md",
-      "to": "posttooluse-workaround.md",
-      "type": "references",
-      "computed": false
-    },
-    {
       "from": "docs/architecture/extending.md",
       "to": "bootstrap.md",
       "type": "references",
@@ -12350,8 +12344,8 @@
   ],
   "stats": {
     "nodes": 413,
-    "edges": 1598,
+    "edges": 1597,
     "typed_edges": 568,
-    "orphans": 119
+    "orphans": 120
   }
 }
