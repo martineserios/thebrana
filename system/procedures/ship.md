@@ -16,7 +16,7 @@ Push a build out the door. Six steps: pre-flight, deploy, document, verify, moni
 
 On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
 
-Register these steps: PRE-FLIGHT, DEPLOY, DOCUMENT, VERIFY, MONITOR, ROLLBACK.
+Register these steps: PRE-FLIGHT, GATE-3, DEPLOY, DOCUMENT, VERIFY, MONITOR, ROLLBACK.
 
 ROLLBACK is conditional — only executed if VERIFY or MONITOR fails.
 
@@ -83,7 +83,45 @@ Run all safety checks before touching anything external.
 
    If any check failed, change the prompt to include the failure summary and add a "Deploy anyway (force)" option.
 
-   **If user selects Abort → stop. Do not proceed to Step 2.**
+   **If user selects Abort → stop. Do not proceed to Step 1b.**
+
+### Step 1b: Gate 3 — Hive-mind pre-merge quorum
+
+Run after pre-flight passes and user confirms deploy, before any external action.
+
+Spawn a 3-worker hive-mind quorum:
+
+```
+mcp__ruflo__hive-mind_shutdown(force: true)
+mcp__ruflo__hive-mind_init(consensus: "quorum", topology: "hierarchical")
+mcp__ruflo__hive-mind_spawn(count: 3, role: "specialist", prefix: "gate-3")
+```
+
+Assign each worker a distinct focus:
+- **Worker 1 (regression):** What existing functionality is most at risk? Name specific files or behaviors.
+- **Worker 2 (security):** What security concerns does this change introduce or expose?
+- **Worker 3 (completeness):** Is the implementation done? What was intended but not finished?
+
+Provide each worker with: the diff summary, relevant changed files, and task AC (if available).
+
+Collect findings via quorum consensus:
+
+```
+mcp__ruflo__hive-mind_consensus(action: "propose", strategy: "quorum",
+  quorumPreset: "majority", type: "pre-merge", value: "{merged findings}")
+mcp__ruflo__hive-mind_shutdown()
+```
+
+Quorum threshold: **majority (2/3)**. ≥2 workers flagging the same concern = HIGH confidence (blocking). 1 worker only = OBSERVATION (informational).
+
+**If HIGH confidence finding raised:**
+```
+AskUserQuestion: "Gate 3 raised a blocking concern: {finding}. How to proceed?"
+Options: ["Fix before deploy", "Override and deploy anyway", "Abort"]
+```
+If Abort → stop. If Override → proceed with finding noted.
+
+**Fallback (ruflo unavailable):** Claude runs all three roles sequentially in main context, self-assesses ≥2-role agreement as HIGH, single-role as OBSERVATION. Same gate logic applies.
 
 ### Step 2: Deploy — Push it out
 

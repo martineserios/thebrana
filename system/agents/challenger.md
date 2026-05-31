@@ -98,6 +98,8 @@ For any plan or backlog doc with effort M or higher, ALWAYS check:
 Score ≥3 (WARNING) for each missing discipline. Score 4 (CRITICAL) if ALL FOUR are missing.
 Include in your challenge report under a "## Discipline Coverage" heading before Verdict.
 
+Also enumerate every function, file, and JSON key the plan touches — flag any that appear in the codebase but are absent from the scope list. Treat unnamed surfaces as a fail-the-shape signal. Include these under a "## Surface Coverage" sub-heading within the Discipline Coverage section.
+
 ## Calibration
 
 See [CALIBRATION.md](CALIBRATION.md) for:
