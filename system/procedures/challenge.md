@@ -46,7 +46,7 @@ Adversarial review with two modes. **Standard:** Opus stress-tests reasoning, Ge
    - Code/security review → **Adversarial reviewer**: Find concrete problems, security issues, performance concerns.
 
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__hive-mind_spawn,mcp__ruflo__hive-mind_consensus,mcp__ruflo__hive-mind_shutdown")
+ToolSearch("select:mcp__ruflo__hive-mind_init,mcp__ruflo__hive-mind_spawn,mcp__ruflo__hive-mind_consensus,mcp__ruflo__hive-mind_shutdown")
 
 4. **Launch challengers in parallel:**
 
@@ -55,6 +55,8 @@ ToolSearch("select:mcp__ruflo__hive-mind_spawn,mcp__ruflo__hive-mind_consensus,m
    **Standard mode** (default, no `--council` flag):
    Spawn a 3-worker hive-mind quorum (convergent + systems + critical perspectives) via ruflo:
    ```
+   mcp__ruflo__hive-mind_shutdown(force: true)
+   mcp__ruflo__hive-mind_init(consensus: "quorum", topology: "hierarchical")
    mcp__ruflo__hive-mind_spawn(count: 3, role: "specialist", prefix: "challenger")
    ```
    Assign each worker a distinct cognitive lens:

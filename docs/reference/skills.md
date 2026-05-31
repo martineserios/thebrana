@@ -2,7 +2,7 @@
 
 # Skill Reference
 
-**33 skills** loaded from `system/skills/`.
+**34 skills** loaded from `system/skills/`.
 
 ## Skill Frontmatter Reference
 
@@ -32,6 +32,7 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:client-retire` | execution | Archive a client's patterns and mark them as historical. Use when retiring a cli |
 | `/brana:close` | session | End a session — extract learnings, write handoff, store patterns, detect doc dri |
 | `/brana:decide` | thinking | Decision support — criteria, scenarios, patterns, recommendation. |
+| `/brana:discover` | core | Runtime catalog — list all installed skills, agents, and active hooks. Use when  |
 | `/brana:do` | brana | Alias for /brana:backlog start with freeform text. Routes to the best skill or c |
 | `/brana:docs` | core | Generate and update living documentation — tech docs, user guides, philosophy ov |
 | `/brana:export-pdf` | utility | Convert a markdown file to PDF using mdpdf. Use when exporting proposals, SOPs,  |
@@ -69,7 +70,7 @@ Manage the backlog — plan, track, navigate phases and streams. Use when planni
 
 **Arguments:** `[status|add|start|done|next|roadmap|plan|triage|tags|context|theme|sync] [args]`
 
-**Allowed tools:** Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, Task, mcp__ruflo__memory_search, mcp__ruflo__claims_claim, mcp__ruflo__claims_release, mcp__ruflo__claims_list
+**Allowed tools:** Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, Task, mcp__ruflo__memory_search, mcp__ruflo__claims_claim, mcp__ruflo__claims_release, mcp__ruflo__claims_list, mcp__ruflo__agent_spawn, mcp__ruflo__swarm_init, mcp__ruflo__claims_mark-stealable, mcp__ruflo__coordination_orchestrate, mcp__ruflo__agent_pool, ToolSearch
 
 ### `/brana:cargo-machete`
 
@@ -105,7 +106,7 @@ Unified maintenance — detect drift, run security checks, cascade spec propagat
 
 **Arguments:** `[--scope consistency|security|propagation|knowledge|all]`
 
-**Allowed tools:** AskUserQuestion, Bash, Edit, EnterPlanMode, ExitPlanMode, Glob, Grep, Read, Skill, Task, TaskList, Write, mcp__ruflo__memory_search, mcp__ruflo__memory_delete
+**Allowed tools:** AskUserQuestion, Bash, Edit, EnterPlanMode, ExitPlanMode, Glob, Grep, Read, Skill, Task, TaskList, Write, mcp__ruflo__memory_search, mcp__ruflo__memory_delete, mcp__ruflo__memory_store, ToolSearch
 
 ### `/brana:rust-skills`
 
@@ -135,6 +136,12 @@ Capture events — links, calls, meetings, ideas — into an append-only log. Bu
 
 ## core
 
+### `/brana:discover`
+
+Runtime catalog — list all installed skills, agents, and active hooks. Use when you want to know what's available.
+
+**Allowed tools:** Bash
+
 ### `/brana:docs`
 
 Generate and update living documentation — tech docs, user guides, philosophy overview. Composable building block for CLOSE and other skills.
@@ -149,7 +156,7 @@ Situational awareness — where am I, what was I doing, what's next. Context rec
 
 **Arguments:** `[--tag <tag>] [--stream <stream>] [--kind <kind>] [--priority <p>]`
 
-**Allowed tools:** Bash, Read, Glob, Grep, Task, AskUserQuestion, mcp__ruflo__hooks_intelligence_pattern-search, mcp__ruflo__hive-mind_memory
+**Allowed tools:** Bash, Read, Glob, Grep, Task, AskUserQuestion, mcp__ruflo__hooks_intelligence_pattern-search, mcp__ruflo__hive-mind_memory, mcp__ruflo__memory_search_unified, mcp__ruflo__autopilot_predict, mcp__ruflo__claims_board, mcp__brana__session_history, ToolSearch
 
 
 ## execution
@@ -172,7 +179,7 @@ Build anything — features, bug fixes, refactors, spikes, migrations. Auto-dete
 
 **Depends on:** `/brana:backlog`, `/brana:challenge`, `/brana:retrospective`
 
-**Allowed tools:** Agent, AskUserQuestion, Bash, Edit, EnterPlanMode, Glob, Grep, Read, Skill, Task, TaskCreate, TaskList, TaskUpdate, WebFetch, WebSearch, Write, mcp__ruflo__hive-mind_memory, mcp__ruflo__memory_search, mcp__ruflo__memory_store
+**Allowed tools:** Agent, AskUserQuestion, Bash, Edit, EnterPlanMode, Glob, Grep, Read, Skill, Task, TaskCreate, TaskList, TaskUpdate, WebFetch, WebSearch, Write, mcp__ruflo__hive-mind_memory, mcp__ruflo__memory_search, mcp__ruflo__memory_store, mcp__ruflo__agent_spawn, mcp__ruflo__claims_claim, mcp__ruflo__claims_release, ToolSearch
 
 ### `/brana:claudemd`
 
@@ -198,7 +205,7 @@ Structured bug fix — reproduce (failing test), diagnose, fix (minimal change),
 
 **Depends on:** `/brana:backlog`
 
-**Allowed tools:** AskUserQuestion, Bash, Edit, Glob, Grep, Read, Write, Agent
+**Allowed tools:** AskUserQuestion, Bash, Edit, Glob, Grep, Read, Write, Agent, mcp__ruflo__autopilot_learn, ToolSearch
 
 ### `/brana:gemini`
 
@@ -222,7 +229,7 @@ Ship a build — pre-flight checks, deploy, document, verify, monitor. Use when 
 
 **Arguments:** `[target or task-id]`
 
-**Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Task, TaskCreate, TaskList, TaskUpdate
+**Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Task, TaskCreate, TaskList, TaskUpdate, mcp__ruflo__hive-mind_spawn, mcp__ruflo__hive-mind_consensus, mcp__ruflo__hive-mind_shutdown, ToolSearch
 
 
 ## learning
@@ -233,7 +240,7 @@ Adversarial review — Opus stress-tests reasoning, Gemini checks knowledge. Use
 
 **Arguments:** `[target description] [--council]`
 
-**Allowed tools:** Task, Read, Glob, Grep, mcp__notebooklm__ask_question, mcp__notebooklm__search_notebooks, mcp__notebooklm__get_health, AskUserQuestion
+**Allowed tools:** Task, Read, Glob, Grep, mcp__notebooklm__ask_question, mcp__notebooklm__search_notebooks, mcp__notebooklm__get_health, mcp__ruflo__hive-mind_spawn, mcp__ruflo__hive-mind_consensus, mcp__ruflo__hive-mind_shutdown, mcp__brana__agy_delegate, AskUserQuestion, ToolSearch
 
 ### `/brana:memory`
 
@@ -249,7 +256,7 @@ Research a topic, doc, or creator — check sources, follow references, produce 
 
 **Arguments:** `[topic|doc-number|creator:name|--refresh] [scope] [--strategy research|evaluate|learn|investigate] [--depth quick|standard|deep]`
 
-**Allowed tools:** Read, Glob, Grep, Bash, Write, WebSearch, WebFetch, Task, mcp__notebooklm__ask_question, mcp__notebooklm__list_notebooks, mcp__notebooklm__select_notebook, mcp__notebooklm__search_notebooks, mcp__notebooklm__get_health, mcp__ruflo__memory_search, mcp__ruflo__embeddings_compare, mcp__ruflo__memory_store, AskUserQuestion, EnterPlanMode, TaskList, ExitPlanMode
+**Allowed tools:** Read, Glob, Grep, Bash, Write, WebSearch, WebFetch, Task, mcp__notebooklm__ask_question, mcp__notebooklm__list_notebooks, mcp__notebooklm__select_notebook, mcp__notebooklm__search_notebooks, mcp__notebooklm__get_health, mcp__ruflo__memory_search, mcp__ruflo__embeddings_compare, mcp__ruflo__memory_store, mcp__ruflo__agent_spawn, AskUserQuestion, ToolSearch, EnterPlanMode, TaskList, ExitPlanMode
 
 ### `/brana:retrospective`
 
@@ -257,7 +264,7 @@ Store a learning — classify type, route to canonical destination. Use after di
 
 **Arguments:** `[learning text]`
 
-**Allowed tools:** Bash, Read, Write, Glob, Grep, AskUserQuestion
+**Allowed tools:** Bash, Read, Write, Glob, Grep, AskUserQuestion, mcp__ruflo__memory_search, ToolSearch
 
 
 ## session
@@ -268,7 +275,7 @@ End a session — extract learnings, write handoff, store patterns, detect doc d
 
 **Arguments:** `[focus-hint]`
 
-**Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Agent, Task, TaskList, Skill, mcp__ruflo__memory_store, mcp__ruflo__memory_search, mcp__ruflo__hive-mind_memory, mcp__ruflo__claims_release, mcp__ruflo__claims_list
+**Allowed tools:** Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Agent, Task, TaskList, Skill, mcp__ruflo__memory_store, mcp__ruflo__memory_search, mcp__ruflo__hive-mind_memory, mcp__ruflo__claims_release, mcp__ruflo__claims_list, ToolSearch
 
 
 ## thinking
@@ -279,7 +286,7 @@ Interactive idea maturation — explore, research, shape raw ideas into actionab
 
 **Arguments:** `[idea or topic]`
 
-**Allowed tools:** Read, Glob, Grep, Bash, Write, Edit, Agent, WebSearch, WebFetch, AskUserQuestion, Task, TaskList, Skill, mcp__context7__resolve-library-id, mcp__context7__query-docs, mcp__ruflo__memory_search, mcp__ruflo__memory_store
+**Allowed tools:** Read, Glob, Grep, Bash, Write, Edit, Agent, WebSearch, WebFetch, AskUserQuestion, Task, TaskList, Skill, mcp__context7__resolve-library-id, mcp__context7__query-docs, mcp__ruflo__memory_search, mcp__ruflo__memory_store, mcp__ruflo__agent_spawn, mcp__ruflo__hive-mind_spawn, mcp__ruflo__hive-mind_consensus, ToolSearch
 
 ### `/brana:decide`
 
@@ -287,7 +294,7 @@ Decision support — criteria, scenarios, patterns, recommendation.
 
 **Arguments:** `[question or options, e.g. 'should I do A or B' / 'what to work on next']`
 
-**Allowed tools:** Bash, Read, Glob, Grep, AskUserQuestion, mcp__ruflo__memory_search_unified, mcp__ruflo__autopilot_predict
+**Allowed tools:** Bash, Read, Glob, Grep, AskUserQuestion, mcp__ruflo__memory_search_unified, mcp__ruflo__autopilot_predict, ToolSearch
 
 
 ## tools
@@ -342,5 +349,5 @@ Business review — weekly health check, monthly close, or ad-hoc audit. Subcomm
 
 **Arguments:** `[weekly|monthly|check]`
 
-**Allowed tools:** Read, Write, Glob, Grep, Bash, AskUserQuestion, mcp__ruflo__memory_search, mcp__ruflo__memory_store
+**Allowed tools:** Read, Write, Glob, Grep, Bash, AskUserQuestion, mcp__ruflo__memory_search, mcp__ruflo__memory_store, mcp__ruflo__agent_spawn, ToolSearch
 

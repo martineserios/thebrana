@@ -34,7 +34,7 @@ containing `mcp__ruflo__` calls.
 | **swarm** | 4 | 2 | COMPLEMENT | skip (no coordination shell) | Designed in `backlog.md` step 7a. ToolSearch preamble missing. |
 | **claims** | 12 | 2 | COMPLEMENT | skip silently | Designed in `backlog.md` start/done/execute. ToolSearch preamble missing. |
 | **coordination** (orchestrate + load_balance) | 2 of 7 | 2 | COMPLEMENT | sequential wave execution | Designed in `backlog.md` step 7b. Remaining 5 coordination tools → SKIP. ToolSearch preamble missing. |
-| **hive-mind** (spawn + consensus + memory) | 3 of 10 | 2 | COMPLEMENT | `Skill("brana:challenge")` | Partially wired in `brainstorm.md` Phase 5b. Expand to 4 gates (see below). ToolSearch preamble missing in challenger, backlog plan, ship, close. |
+| **hive-mind** (init + spawn + consensus + memory + shutdown) | 5 of 10 | 2 | COMPLEMENT | Procedure-defined (inline Claude reasoning) | Wired in `challenge.md` + `brainstorm.md`. Preamble ready in `ship.md`. `close.md` uses `hive-mind_memory` only (session announce). Expand Gates 3+4 when ship/close quorum calls land. |
 | **progress** | 4 | 2 | COMPLEMENT | CC `Monitor` tool | Not yet designed. Add to `backlog.md` execute after `agent_spawn` — stream completion events. |
 | **task/job** | 9 | 1 | **SKIP** | `brana backlog` CLI | tasks.json is authoritative. Parallel task system creates sync complexity. ADR-040 §1. |
 | **workflow** | 12 | 3 | SKIP (now) | CC Workflow harness | Potential for persistent/resumable jobs surviving session death. Revisit when a concrete cross-session scenario emerges. Needs ADR. |
@@ -66,7 +66,7 @@ ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo_
 **brainstorm.md** (Step 0 LOAD, Phase 5b M+ gate):
 ```
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo__hive-mind_spawn,mcp__ruflo__hive-mind_consensus")
+ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo__hive-mind_init,mcp__ruflo__hive-mind_spawn,mcp__ruflo__hive-mind_consensus,mcp__ruflo__hive-mind_shutdown")
 ```
 
 **build.md** (LOAD step):
@@ -78,7 +78,7 @@ ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo_
 **challenger.md** (entry):
 ```
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__hive-mind_spawn,mcp__ruflo__hive-mind_consensus,mcp__ruflo__hive-mind_shutdown")
+ToolSearch("select:mcp__ruflo__hive-mind_init,mcp__ruflo__hive-mind_spawn,mcp__ruflo__hive-mind_consensus,mcp__ruflo__hive-mind_shutdown")
 ```
 
 **research.md** (LOAD step):
@@ -87,16 +87,16 @@ ToolSearch("select:mcp__ruflo__hive-mind_spawn,mcp__ruflo__hive-mind_consensus,m
 ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn")
 ```
 
-**close.md** (coverage gate):
+**close.md** (session announcement only — uses hive-mind_memory, not spawn):
 ```
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__hive-mind_spawn,mcp__ruflo__hive-mind_consensus,mcp__ruflo__hive-mind_shutdown")
+ToolSearch("select:mcp__ruflo__memory_store,mcp__ruflo__memory_search,mcp__ruflo__hive-mind_memory,mcp__ruflo__claims_release")
 ```
 
-**ship.md** (pre-merge gate):
+**ship.md** (pre-merge gate — spawn calls not yet wired, preamble ready):
 ```
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__hive-mind_spawn,mcp__ruflo__hive-mind_consensus,mcp__ruflo__hive-mind_shutdown")
+ToolSearch("select:mcp__ruflo__hive-mind_init,mcp__ruflo__hive-mind_spawn,mcp__ruflo__hive-mind_consensus,mcp__ruflo__hive-mind_shutdown")
 ```
 
 ---

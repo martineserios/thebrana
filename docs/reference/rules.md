@@ -2,7 +2,7 @@
 
 # Rules Reference
 
-**26 rules** in `system/rules/`.
+**27 rules** in `system/rules/`.
 
 | File | Title | Summary |
 |------|-------|--------|
@@ -18,6 +18,7 @@
 | `git-discipline.md` | Git Discipline | ## One rule |
 | `inbox-convention.md` | Inbox Convention | `inbox/` is a gitignored drop zone for files needing processing (audio, PDFs, data, screenshots). Or... |
 | `lifecycle-gate-assessment.md` | Always Assess Lifecycle Gates Before Starting | Before starting any task, assess which DDD/SDD/TDD lifecycle steps apply — even S-effort fixes. |
+| `m-plus-discipline-enforcement.md` | M+ Discipline Enforcement | Any plan, backlog, or build output for efforts M or larger MUST include all four disciplines: |
 | `no-phantom-dependencies.md` | Never Reference Non-Existent Docs in Skill LOAD Steps | Never build a skill whose LOAD step references a doc that doesn't exist yet. |
 | `parallel-bash.md` | Parallel Bash Resilience | Claude Code cancels all sibling Bash tool calls when one exits non-zero. Guard independent parallel ... |
 | `research-discipline.md` | Research Discipline | When starting research on any topic: |
@@ -115,6 +116,13 @@ Use `[doc NN](relative-path.md)` — never bare "doc NN". Relative paths from so
 **File:** `system/rules/lifecycle-gate-assessment.md`
 
 Before starting any task, assess which DDD/SDD/TDD lifecycle steps apply — even S-effort fixes.
+
+
+## M+ Discipline Enforcement
+
+**File:** `system/rules/m-plus-discipline-enforcement.md`
+
+Any plan, backlog, or build output for efforts M or larger MUST include all four disciplines:
 
 
 ## Never Reference Non-Existent Docs in Skill LOAD Steps

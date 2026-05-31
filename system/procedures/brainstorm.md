@@ -26,7 +26,7 @@ On entry, create a CC Task step registry. Follow the [guided-execution protocol]
 Register these steps: LOAD, SEED, EXPAND, DISCUSS, SHAPE, OUTPUT, EXTRACT, EVALUATE, PERSIST.
 
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo__hive-mind_spawn,mcp__ruflo__hive-mind_consensus")
+ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo__hive-mind_init,mcp__ruflo__hive-mind_spawn,mcp__ruflo__hive-mind_consensus,mcp__ruflo__hive-mind_shutdown")
 
 ## Procedure
 
@@ -348,6 +348,8 @@ planning commits the idea to structured execution.
 
 **M+ challenger review** — before backlog planning, run a hive-mind 3-worker challenge on the shaped idea:
 ```
+mcp__ruflo__hive-mind_shutdown(force: true)
+mcp__ruflo__hive-mind_init(consensus: "quorum", topology: "hierarchical")
 mcp__ruflo__hive-mind_spawn(count: 3, role: "specialist", prefix: "brainstorm-challenger")
 mcp__ruflo__hive-mind_consensus(action: "propose", strategy: "quorum", quorumPreset: "majority", type: "brainstorm-findings", value: "{shaped idea summary}")
 ```

@@ -2,12 +2,13 @@
 
 # Agent Reference
 
-**13 agents** defined in `system/agents/`.
+**14 agents** defined in `system/agents/`.
 
 | Agent | Model | Memory | Color | Description |
 |-------|-------|--------|-------|-------------|
 | challenger-calibration | inherit | — | — | Severity scoring guide with few-shot examples and hard thresholds for the challe |
 | archiver | haiku | yes | gray | Archive project patterns and knowledge when retiring. Categorize as transferable |
+| build-evaluator | sonnet | — | yellow | Grade completed implementation against task acceptance criteria. Use at close st |
 | challenger | sonnet | yes | red | Adversarially review a plan, architecture decision, or approach. Stress-test bef |
 | client-scanner | haiku | yes | teal | Scan client project structure, detect tech stack, check brana alignment. Use whe |
 | daily-ops | haiku | yes | green | Daily venture focus card — health snapshot, pending actions, experiments. Use  |
@@ -42,6 +43,23 @@ Archive project patterns and knowledge when retiring. Categorize as transferable
 **Color:** gray
 
 **Tools:** Bash, Read, Glob, Grep
+
+
+## build-evaluator
+
+Grade completed implementation against task acceptance criteria. Use at close step after a build. Not for: plan review, code quality, style, PR gating.
+
+**Model:** sonnet
+
+**Max turns:** 8
+
+**Permission mode:** plan
+
+**Color:** yellow
+
+**Tools:** Read, Glob, Grep
+
+**Disallowed:** Write, Edit, NotebookEdit, Bash
 
 
 ## challenger

@@ -1649,6 +1649,32 @@ fi
 echo ""
 fi  # should_run 37
 
+# Check 38 — agy installed version must match AGY_PINNED_VERSION in agy_delegate.rs
+# Version drift causes every mcp__brana__agy_delegate call to hard-error. Catches upgrade
+# without re-running adversarial spike (C2 from 2026-05-30 challenge report).
+if should_run 38; then
+echo "Check 38: agy installed version vs pinned constant..."
+AGY_DELEGATE_SRC="$SCRIPT_DIR/system/cli/rust/crates/brana-mcp/src/tools/agy_delegate.rs"
+if [ ! -f "$AGY_DELEGATE_SRC" ]; then
+    warn "Check 38: agy_delegate.rs not found at expected path — skipping"
+elif ! command -v agy &>/dev/null; then
+    warn "Check 38: agy not installed — skipping version check"
+else
+    AGY_INSTALLED=$(agy --version 2>/dev/null || echo "")
+    AGY_PINNED=$(grep 'AGY_PINNED_VERSION.*str' "$AGY_DELEGATE_SRC" | grep -o '"[^"]*"' | tr -d '"' || echo "")
+    if [ -z "$AGY_INSTALLED" ]; then
+        warn "Check 38: agy --version returned empty — cannot verify pin"
+    elif [ -z "$AGY_PINNED" ]; then
+        warn "Check 38: could not extract AGY_PINNED_VERSION from agy_delegate.rs"
+    elif [ "$AGY_INSTALLED" != "$AGY_PINNED" ]; then
+        fail "Check 38: agy version mismatch — installed=$AGY_INSTALLED pinned=$AGY_PINNED — re-run adversarial spike then bump AGY_PINNED_VERSION in agy_delegate.rs"
+    else
+        pass "Check 38: agy installed version matches pinned constant ($AGY_INSTALLED)"
+    fi
+fi
+echo ""
+fi  # should_run 38
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
