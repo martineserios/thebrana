@@ -369,16 +369,11 @@ Analyze the description (and task metadata if from `/brana:backlog start`) to pr
 
 **Level 1 — Signal match.** Apply the table above. If stream or description keywords produce a clear match (one strategy scores highest), propose it with confidence: high.
 
-**Level 2 — LLM classify.** If no signal matches or multiple strategies tie:
-- Build a brief classification prompt from task context:
-  "Task: {subject}. Description: {description}. Tags: {tags}. Classify into ONE of: feature, bug-fix, greenfield, refactor, spike, migration, investigation. Respond with strategy_name."
-- If LLM returns a strategy with reasonable confidence, propose it with confidence: medium.
+**Level 2 — Ask user.** If no signal matches or multiple strategies tie, present all viable options via AskUserQuestion.
 
-**Level 3 — Ask user.** If Level 2 is also ambiguous, present all viable options via AskUserQuestion (this is the existing confirmation step).
+The existing AskUserQuestion confirmation always runs regardless of level — but with Level 1, the recommended option is pre-selected. Without Level 1, all options are equal weight.
 
-The existing AskUserQuestion confirmation always runs regardless of level — but with Level 1/2, the recommended option is pre-selected. Without Level 1/2, all options are equal weight.
-
-> See `system/skills/_shared/smart-router.md` for the shared 3-level pattern. /build and /research both use this pattern.
+> See `system/skills/_shared/smart-router.md` for the shared 2-level pattern. /build and /research both use this pattern.
 
 ### Confirmation
 
@@ -1526,10 +1521,9 @@ When `/brana:backlog start <id>` invokes this skill:
 
 2. **Skip cross-reference** (task already identified).
 
-3. **CLASSIFY uses the 3-level smart router** (signal match → LLM classify → ask user):
+3. **CLASSIFY uses the 2-level smart router** (signal match → ask user):
    - Level 1 — stream as primary signal: `roadmap` → feature, `bugs` → bug fix, `tech-debt` → refactor, `experiments` → spike, `research` → investigation. Description signals override if clearer.
-   - Level 2 — LLM classify if stream/description are ambiguous.
-   - Level 3 — AskUserQuestion if still unclear.
+   - Level 2 — AskUserQuestion if signal is ambiguous or missing.
 
 4. **Branch created from task convention:**
    - `roadmap` → `feat/{id}-{slug}`
@@ -1602,7 +1596,7 @@ Claude proposes the size. User can override: "this is bigger than it looks" or "
 
 ## Rules
 
-1. **CLASSIFY is mandatory.** Uses the 3-level smart router (signal → LLM → ask). Never skip the confirmation step. Never silently apply a strategy.
+1. **CLASSIFY is mandatory.** Uses the 2-level smart router (signal → ask). Never skip the confirmation step. Never silently apply a strategy.
 2. **TDD always** (except spike). Write the test before the code. The PreToolUse hook enforces this on feat/* branches.
 3. **User controls pace in SPECIFY.** Never auto-advance from research to draft. Wait for the signal.
 4. **Challenger is context-isolated.** Always spawn a separate agent for the challenger review. Never self-review.

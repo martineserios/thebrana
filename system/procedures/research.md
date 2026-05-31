@@ -88,7 +88,7 @@ ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn")
    | **learn** | "I'm starting with X tech" | Dimension doc + gotchas + learning path |
    | **investigate** | "Why is X broken?" | Root cause + fix recommendation |
 
-   **Smart router (3-level):**
+   **Smart router (2-level):**
 
    **Level 1 — Signal match.** Check `$ARGUMENTS` for keyword patterns:
    - `--strategy <name>` → use explicit strategy
@@ -97,18 +97,7 @@ ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn")
    - Contains "broken" / "why" / "failing" / "debug" / "error" / "not working" / "fix" → **investigate**
    - No match → proceed to Level 2
 
-   **Level 2 — LLM classification.** If no signal match, classify from context:
-   ```
-   Given this research request: "{$ARGUMENTS}"
-   Classify as exactly one of: research, evaluate, learn, investigate.
-   - research: general knowledge gathering ("what is X", "how does X work", topic exploration)
-   - evaluate: comparing options to make a decision ("X vs Y", "should we use X")
-   - learn: onboarding to a new technology ("I need to learn X", "getting started with X")
-   - investigate: debugging or root-cause analysis ("X is broken", "why does X fail")
-   Reply with ONLY the strategy name.
-   ```
-
-   **Level 3 — Ask user.** If still ambiguous (e.g., request could be research or evaluate):
+   **Level 2 — Ask user.** If still ambiguous (e.g., request could be research or evaluate):
    ```
    AskUserQuestion: "What's your goal with this research?"
    Options: ["Research — learn what X is", "Evaluate — decide between options", "Learn — onboard to new tech", "Investigate — debug a problem"]

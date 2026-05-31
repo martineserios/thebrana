@@ -31,7 +31,6 @@
 | PreToolUse | `Bash` | `branch-name-warn.sh` | 3000ms |
 | PreToolUse | `Bash` | `no-attribution-commit.sh` | 3000ms |
 | PreToolUse | `Bash` | `commit-msg-verify.sh` | 3000ms |
-| PreToolUse | `Read|Grep|Glob` | `guard-explore.sh` | 5000ms |
 | PreToolUse | `Write|Edit` | `rust-skills-guard.sh` | 3000ms |
 | SessionEnd | `` | `session-end.sh` | 10000ms |
 | SessionStart | `` | `session-start.sh` | 10000ms |

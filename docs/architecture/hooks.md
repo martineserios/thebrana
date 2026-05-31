@@ -66,7 +66,7 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | `rust-skills-guard.sh` | PreToolUse | `Write\|Edit` | Block `*.rs` writes until `brana:rust-skills` is loaded this session. Sentinel: `/tmp/brana-rust-skills-loaded-{SESSION_ID}` (written by `skill-sentinel.sh`). Bypass: `/tmp/brana-rust-skills-guard-bypass`. Enforcement complement to build.md step 4a advisory gate. t-1480. |
 | `no-attribution-commit.sh` | PreToolUse | `Bash` | Block `git commit` and `gh pr create` calls containing forbidden attribution signatures (Co-Authored-By, Signed-off-by). Keeps commit history clean. |
 | `commit-msg-verify.sh` | PreToolUse | `Bash` | Advisory (non-blocking): warns when commit message mentions filenames not in the staged diff. Catches commit messages that describe more than what was actually staged. |
-| `guard-explore.sh` | PreToolUse | `Read\|Grep\|Glob` | Log reads without prior search (logging only, no blocking) |
+| `guard-explore.sh` | ~~PreToolUse~~ | ~~`Read\|Grep\|Glob`~~ | **Deregistered 2026-05-30** (t-1711). Gated behind "strict" profile — never ran in standard sessions. Observation period complete (t-639 2026-03-31). |
 | `subagent-context.sh` | SubagentStart | `""` (all) | Inject active task + branch + plan + recent decisions into spawned agents |
 | `subagent-tracker.sh` | SubagentStart+SubagentStop | `""` (all) | Track agent spawns and completions to session JSONL |
 | `step-completed.sh` | TaskCompleted | `""` (all) | Track CC Task completions for guided execution |

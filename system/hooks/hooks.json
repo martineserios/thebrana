@@ -163,19 +163,6 @@
         ]
       },
       {
-        "matcher": "Read|Grep|Glob",
-        "hooks": [
-          {
-            "type": "command",
-            "timeout": 5000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/guard-explore.sh"
-            ]
-          }
-        ]
-      },
-      {
         "matcher": "Write|Edit",
         "hooks": [
           {

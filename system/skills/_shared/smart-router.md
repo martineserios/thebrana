@@ -1,11 +1,11 @@
 # Smart Router — Shared Strategy Detection
 
-Reusable 3-level routing pattern for skills with multiple strategies.
+Reusable 2-level routing pattern for skills with multiple strategies.
 Referenced by: /brana:build, /brana:research.
 
-## The 3 Levels
+## The 2 Levels
 
-### Level 1: Signal Match (~60-70% of cases)
+### Level 1: Signal Match (~70-80% of cases)
 
 Deterministic rules checked first. Each skill defines its own signal table.
 
@@ -17,39 +17,22 @@ ROUTER_SIGNAL(task, signals):
   return null  # escalate to Level 2
 ```
 
-### Level 2: LLM Classify (~25-30%)
+### Level 2: Ask User (~20-30%)
 
-When signals are ambiguous, use a brief classification prompt:
-
-```
-ROUTER_LLM(task, strategies):
-  prompt = """
-  Task: {task.subject}
-  Description: {task.description}
-  Tags: {task.tags}
-  Context: {task.context}
-  
-  Classify into ONE of: {strategies | join(", ")}
-  
-  Respond with: strategy_name (confidence: high/medium/low)
-  """
-  result = LLM(prompt)
-  if result.confidence in ["high", "medium"]:
-    return {strategy: result.strategy, confidence: result.confidence, level: 2}
-  return null  # escalate to Level 3
-```
-
-### Level 3: Ask User (~5-10%)
-
-When LLM confidence is low:
+When signals are ambiguous or no signal matches:
 
 ```
 ROUTER_ASK(strategies):
   AskUserQuestion:
     question: "Which strategy fits this task?"
     options: [one per strategy with description]
-  return {strategy: user_choice, confidence: "confirmed", level: 3}
+  return {strategy: user_choice, confidence: "confirmed", level: 2}
 ```
+
+> **Why not an intermediate LLM-classify step?** Claude IS the LLM — it applies its
+> reasoning naturally when reading the task and signal table. A separate "classify" prompt
+> adds latency without adding signal. Level 1 handles well-structured tasks; Level 2 handles
+> everything else with a direct user question. (t-1711 cleanup)
 
 ## Mid-Workflow Rerouting
 
