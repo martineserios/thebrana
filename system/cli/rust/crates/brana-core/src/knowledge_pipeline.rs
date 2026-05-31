@@ -578,6 +578,42 @@ pub fn ingest_urls(urls: &[String], source: Option<&str>, state: &mut PipelineSt
 
 // ── Gemini CLI shell-out (call_gemini_json — ADR-040 Tier1/Tier2 routing) ────
 
+/// Check that the installed agy binary matches [`AGY_CLI_PINNED_VERSION`].
+/// Call once per batch before spawning concurrent workers to fail fast.
+pub fn check_agy_version() -> Result<()> {
+    let bin = resolve_agy_binary().ok_or_else(|| {
+        anyhow::anyhow!("agy binary not found — install with: npm install -g agy")
+    })?;
+    check_agy_version_with_bin(&bin.to_string_lossy())
+}
+
+/// Testable core of the version check — accepts an explicit binary path.
+pub fn check_agy_version_with_bin(bin: &str) -> Result<()> {
+    let out = std::process::Command::new(bin)
+        .arg("--version")
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .output()
+        .with_context(|| "running agy --version")?;
+
+    if !out.status.success() {
+        bail!(
+            "agy --version unavailable — cannot verify version pin {AGY_CLI_PINNED_VERSION}. \
+             Binary exists but --version flag failed."
+        );
+    }
+
+    let version = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    if version != AGY_CLI_PINNED_VERSION {
+        bail!(
+            "agy version mismatch: expected {AGY_CLI_PINNED_VERSION}, got {version} — \
+             update AGY_CLI_PINNED_VERSION in knowledge_pipeline.rs after re-running adversarial spike"
+        );
+    }
+    Ok(())
+}
+
 /// Resolve the `agy` (Gemini CLI) binary path.
 ///
 /// Resolution order:
@@ -610,14 +646,13 @@ pub fn resolve_agy_binary() -> Option<PathBuf> {
 }
 
 /// Call the `agy` Gemini CLI with `-p "<prompt>"` and return the parsed JSON response.
-/// Timeout: 60 seconds (Gemini Flash is fast).
 ///
-/// Unlike the claude CLI, agy writes plain text directly to stdout (no envelope).
-/// Stdout is parsed as JSON after stripping code fences.
+/// Layer C contract: version pin and [`AGY_CLI_TIMEOUT_SECS`] enforced. Caller must
+/// invoke [`check_agy_version`] once before the first call in a batch. The /tmp/
+/// invariant and structured failure types are Layer B (`agy_delegate.rs`) only.
 ///
-/// # Stdio isolation
-/// Both stdout and stderr are piped — never inherited from the parent process.
-/// This prevents stdout bleed into any parent JSON-RPC or MCP stream.
+/// Stdout is parsed as JSON after stripping code fences. Both stdout and stderr are
+/// piped to prevent bleed into any parent JSON-RPC or MCP stream.
 pub fn call_gemini_json(prompt: &str) -> Result<serde_json::Value> {
     let binary = resolve_agy_binary().ok_or_else(|| {
         anyhow::anyhow!(
@@ -634,7 +669,7 @@ pub fn call_gemini_json(prompt: &str) -> Result<serde_json::Value> {
         .spawn()
         .with_context(|| format!("spawning agy binary at {}", binary.display()))?;
 
-    let timeout = std::time::Duration::from_secs(60);
+    let timeout = std::time::Duration::from_secs(AGY_CLI_TIMEOUT_SECS);
     let start = std::time::Instant::now();
     loop {
         match child.try_wait() {
@@ -643,7 +678,7 @@ pub fn call_gemini_json(prompt: &str) -> Result<serde_json::Value> {
                 if start.elapsed() > timeout {
                     let _ = child.kill();
                     let _ = child.wait();
-                    bail!("agy timed out after 60s");
+                    bail!("agy timed out after {AGY_CLI_TIMEOUT_SECS}s");
                 }
                 std::thread::sleep(std::time::Duration::from_millis(100));
             }
@@ -1312,6 +1347,52 @@ mod tests {
     fn test_resolve_agy_binary_does_not_panic() {
         // Just verify it doesn't panic — None is ok in CI without agy installed
         let _ = resolve_agy_binary();
+    }
+
+    // ── check_agy_version_with_bin ────────────────────────────────────
+
+    #[cfg(unix)]
+    fn write_fake_agy(script_body: &str, label: &str) -> std::path::PathBuf {
+        let path = std::path::PathBuf::from(format!(
+            "/tmp/fake-agy-kp-{label}-{}.sh",
+            std::process::id()
+        ));
+        std::fs::write(&path, format!("#!/bin/sh\n{script_body}\n")).unwrap();
+        std::process::Command::new("chmod")
+            .args(["+x", path.to_str().unwrap()])
+            .output()
+            .unwrap();
+        path
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_check_agy_version_accepts_pinned() {
+        let bin = write_fake_agy(&format!("echo '{AGY_CLI_PINNED_VERSION}'"), "ver-ok");
+        let result = check_agy_version_with_bin(bin.to_str().unwrap());
+        let _ = std::fs::remove_file(&bin);
+        assert!(result.is_ok(), "pinned version should pass: {:?}", result.err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_check_agy_version_rejects_mismatch() {
+        let bin = write_fake_agy("echo '0.0.0'", "ver-bad");
+        let result = check_agy_version_with_bin(bin.to_str().unwrap());
+        let _ = std::fs::remove_file(&bin);
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("version mismatch"), "should report mismatch: {err}");
+        assert!(err.contains(AGY_CLI_PINNED_VERSION), "should name expected: {err}");
+        assert!(err.contains("0.0.0"), "should name actual: {err}");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_check_agy_version_rejects_nonzero_exit() {
+        let bin = write_fake_agy("exit 1", "ver-nonzero");
+        let result = check_agy_version_with_bin(bin.to_str().unwrap());
+        let _ = std::fs::remove_file(&bin);
+        assert!(result.is_err(), "non-zero exit should fail version check");
     }
 
     // ── append_event_log_entry_at ─────────────────────────────────────
