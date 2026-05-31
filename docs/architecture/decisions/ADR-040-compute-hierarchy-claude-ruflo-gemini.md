@@ -1,6 +1,6 @@
 ---
 status: accepted
-produced_by: docs/ideas/brana-v2-compute-model.md
+produced_by: docs/architecture/features/brana-v2-compute-model.md
 depends_on: []
 ---
 # ADR-040: brana Compute Hierarchy — Claude / Ruflo / Gemini
@@ -64,12 +64,16 @@ instances coordinated via ruflo hive-mind.
 
 ### 5. /tmp/ invariant is absolute
 
-All Gemini output lands in `/tmp/` only. The MCP server hardcodes this path. Callers
-cannot override it. Claude reads `/tmp/result.md` and applies changes to the repo via
-`Write`/`Edit` — the CC hooks fire normally, no bypass.
+All Gemini output from **Layer B** (MCP/skill-driven) lands in `/tmp/` only. The MCP
+server hardcodes this path. Callers cannot override it. Claude reads `/tmp/result.md`
+and applies changes to the repo via `Write`/`Edit` — the CC hooks fire normally, no bypass.
 
 This invariant prevents direct Gemini writes to the codebase and ensures CC hook
 enforcement is always active on any change that lands in the repo.
+
+> **Exception (ADR-041 §3):** Layer A (scheduled sweeps) writes to
+> `system/scheduler/outputs/` instead — `/tmp/` is not persistent across reboots and
+> sweep output must survive until `/brana:close` processes it.
 
 ### 6. Sonnet for debrief-analyst
 

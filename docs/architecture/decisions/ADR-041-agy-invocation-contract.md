@@ -9,6 +9,10 @@ depends_on: [ADR-040]
 **Date:** 2026-05-24
 **Task:** t-1656 (brana-v2-compute-model initiative, Phase 3)
 
+> **Note:** This ADR records the initial decisions only. Operational values that evolve
+> post-acceptance (version pin, ENRICH threshold, artifact reference pattern) are tracked
+> in the live spec: `docs/architecture/features/claude-gemini-orchestration.md`.
+
 ---
 
 ## Context

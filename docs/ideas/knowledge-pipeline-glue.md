@@ -1,12 +1,13 @@
 ---
 title: Knowledge Pipeline Glue
-status: idea
+status: promoted
+promoted_to: docs/architecture/decisions/ADR-042-knowledge-ingest-canonical-entry-point-gemini-routing.md
 created: 2026-05-24
 ---
 
 # Knowledge Pipeline Glue
 
-> Brainstormed 2026-05-24. Status: idea → ready to plan.
+> Brainstormed 2026-05-24. Promoted to ADR-042 on 2026-05-24.
 > Builds on: [`layered-input-processing.md`](./layered-input-processing.md) (closes the unimplemented gap).
 > Related: ADR-040 (compute routing — Gemini for bulk classification).
 

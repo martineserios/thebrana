@@ -125,7 +125,7 @@ via Write/Edit tools — CC hooks fire normally on every repo change.
 
 ## Version Pinning Discipline
 
-`AGY_PINNED_VERSION = "1.0.2"` in `agy_delegate.rs`. Checked at every Layer B invocation.
+`AGY_PINNED_VERSION = "1.0.3"` in `agy_delegate.rs`. Checked at every Layer B invocation.
 Mismatch → hard error (not warning). Upgrade procedure: bump constant → re-run adversarial
 spike → confirm output contract unchanged → commit. Never bump without re-running the spike.
 
@@ -144,7 +144,7 @@ back-to-back calls. Layer A sweep files removed by `/brana:close` after EXTRACT.
 
 ## agy Version
 
-Pinned: `1.0.2`  
+Pinned: `1.0.3`  
 Binary: `~/.local/bin/agy`  
 Version flag: `agy --version` → stdout, exit 0.
 

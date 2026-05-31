@@ -2,7 +2,7 @@
 title: brana v2 Compute Model — Living Spec
 status: active
 created: 2026-05-24
-source: docs/ideas/brana-v2-compute-model.md
+source: canonical
 depends_on: ADR-040, ADR-041
 ---
 

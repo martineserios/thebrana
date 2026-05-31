@@ -2,6 +2,7 @@
 status: accepted
 produced_by: docs/ideas/knowledge-pipeline-glue.md
 depends_on: [ADR-040]
+operationalized_by: docs/architecture/features/knowledge-pipeline-compute.md
 ---
 # ADR-042: Knowledge Pipeline — `ingest` as Canonical URL Entry Point + Gemini Routing for Tier 1/2
 
