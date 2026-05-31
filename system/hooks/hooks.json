@@ -7,10 +7,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool-use.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool-use.sh"
           }
         ]
       },
@@ -20,10 +17,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/tdd-gate.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/tdd-gate.sh"
           }
         ]
       },
@@ -33,11 +27,8 @@
           {
             "type": "command",
             "timeout": 3000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/feedback-gate.sh"
-            ],
-            "continueOnBlock": true
+            "continueOnBlock": true,
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/feedback-gate.sh"
           }
         ]
       },
@@ -47,11 +38,8 @@
           {
             "type": "command",
             "timeout": 3000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/memory-write-gate.sh"
-            ],
-            "continueOnBlock": true
+            "continueOnBlock": true,
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/memory-write-gate.sh"
           }
         ]
       },
@@ -61,10 +49,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/plan-mode-gate.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/plan-mode-gate.sh"
           }
         ]
       },
@@ -74,10 +59,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/worktree-gate.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/worktree-gate.sh"
           }
         ]
       },
@@ -87,10 +69,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/doc-gate.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/doc-gate.sh"
           }
         ]
       },
@@ -100,10 +79,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/main-guard.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/main-guard.sh"
           }
         ]
       },
@@ -114,10 +90,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/branch-verify.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/branch-verify.sh"
           }
         ]
       },
@@ -128,10 +101,7 @@
           {
             "type": "command",
             "timeout": 3000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/branch-name-warn.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/branch-name-warn.sh"
           }
         ]
       },
@@ -141,10 +111,7 @@
           {
             "type": "command",
             "timeout": 3000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/no-attribution-commit.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/no-attribution-commit.sh"
           }
         ]
       },
@@ -155,10 +122,7 @@
           {
             "type": "command",
             "timeout": 3000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/commit-msg-verify.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/commit-msg-verify.sh"
           }
         ]
       },
@@ -168,10 +132,7 @@
           {
             "type": "command",
             "timeout": 3000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/rust-skills-guard.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/rust-skills-guard.sh"
           }
         ]
       }
@@ -183,10 +144,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/post-tool-use.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/post-tool-use.sh"
           }
         ]
       },
@@ -196,10 +154,7 @@
           {
             "type": "command",
             "timeout": 2000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/skill-sentinel.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/skill-sentinel.sh"
           }
         ]
       },
@@ -209,11 +164,8 @@
           {
             "type": "command",
             "timeout": 5000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/post-plan-challenge.sh"
-            ],
-            "continueOnBlock": true
+            "continueOnBlock": true,
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/post-plan-challenge.sh"
           }
         ]
       },
@@ -223,10 +175,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/post-pr-review.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/post-pr-review.sh"
           }
         ]
       },
@@ -236,10 +185,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/task-completed.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/task-completed.sh"
           }
         ]
       },
@@ -249,10 +195,7 @@
           {
             "type": "command",
             "timeout": 3000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/hallucination-detect.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/hallucination-detect.sh"
           }
         ]
       },
@@ -262,10 +205,7 @@
           {
             "type": "command",
             "timeout": 3000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/bash-output-compress.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/bash-output-compress.sh"
           }
         ]
       },
@@ -275,10 +215,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/post-sale.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/post-sale.sh"
           }
         ]
       },
@@ -288,11 +225,8 @@
           {
             "type": "command",
             "timeout": 5000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/post-tasks-validate.sh"
-            ],
-            "continueOnBlock": true
+            "continueOnBlock": true,
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/post-tasks-validate.sh"
           }
         ]
       },
@@ -302,10 +236,7 @@
           {
             "type": "command",
             "timeout": 10000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/post-hooks-json.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/post-hooks-json.sh"
           }
         ]
       },
@@ -316,10 +247,7 @@
             "type": "command",
             "timeout": 3000,
             "async": true,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/memory-index-sync.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/memory-index-sync.sh"
           }
         ]
       }
@@ -331,10 +259,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/post-tool-use-failure.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/post-tool-use-failure.sh"
           }
         ]
       }
@@ -346,10 +271,7 @@
           {
             "type": "command",
             "timeout": 3000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/preflight-model.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/preflight-model.sh"
           }
         ]
       },
@@ -359,10 +281,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/context-inject.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/context-inject.sh"
           }
         ]
       },
@@ -372,10 +291,7 @@
           {
             "type": "command",
             "timeout": 3000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/signal-capture.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/signal-capture.sh"
           }
         ]
       }
@@ -387,10 +303,7 @@
           {
             "type": "command",
             "timeout": 10000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh"
           }
         ]
       },
@@ -399,11 +312,8 @@
         "hooks": [
           {
             "type": "command",
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/scripts/cc-changelog-check.sh"
-            ],
-            "async": true
+            "async": true,
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/cc-changelog-check.sh"
           }
         ]
       }
@@ -415,10 +325,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/subagent-context.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/subagent-context.sh"
           }
         ]
       },
@@ -428,10 +335,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/subagent-tracker.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/subagent-tracker.sh"
           }
         ]
       }
@@ -443,10 +347,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/subagent-tracker.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/subagent-tracker.sh"
           }
         ]
       }
@@ -458,10 +359,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/step-completed.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/step-completed.sh"
           }
         ]
       }
@@ -473,10 +371,7 @@
           {
             "type": "command",
             "timeout": 10000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/session-end.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/session-end.sh"
           }
         ]
       }
@@ -488,10 +383,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/stopfailure-logger.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/stopfailure-logger.sh"
           }
         ]
       }
@@ -503,10 +395,7 @@
           {
             "type": "command",
             "timeout": 3000,
-            "args": [
-              "bash",
-              "${CLAUDE_PLUGIN_ROOT}/hooks/config-change-guard.sh"
-            ]
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/config-change-guard.sh"
           }
         ]
       }
