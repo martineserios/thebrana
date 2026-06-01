@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-01T20:17:37Z",
+  "generated": "2026-06-01T20:35:02Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -466,6 +466,8 @@
       "type": "Roadmap",
       "impl_files": [
         "system/procedures/research.md",
+        "system/cli/rust/crates/brana-cli/src/commands/knowledge.rs",
+        "system/scripts/verify-docs.sh",
         "system/.claude-plugin/plugin.json",
         "system/plugin.json",
         "system/cli/rust/crates/brana-mcp/tests/tool_tests.rs:134",
@@ -503,7 +505,6 @@
         "system/hooks/hooks.json",
         "system/scripts/generate-reference.py",
         "system/hooks/",
-        "system/cli/rust/crates/brana-cli/src/commands/knowledge.rs",
         "system/procedures/claudemd.md",
         "system/hooks/feedback-gate.sh",
         "system/skills/claudemd/SKILL.md",
@@ -1980,6 +1981,11 @@
         "system/state/decisions/{date",
         "system/state/decisions/archive/"
       ]
+    },
+    "docs/field-notes/verify-docs-log.md": {
+      "title": "",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/google-sheets-mcp-setup.md": {
       "title": "Google Sheets MCP Integration Guide",
@@ -12343,9 +12349,9 @@
     }
   ],
   "stats": {
-    "nodes": 413,
+    "nodes": 414,
     "edges": 1597,
     "typed_edges": 568,
-    "orphans": 120
+    "orphans": 121
   }
 }

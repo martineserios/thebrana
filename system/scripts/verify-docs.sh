@@ -39,6 +39,124 @@ EOF
     esac
 done
 
+# ── CLAUDE.md portfolio scan (--scope claudemd) ────────────
+run_claudemd_scan() {
+    if [ ! -d "$PORTFOLIO_ROOT" ]; then
+        echo "verify-docs: PORTFOLIO_ROOT not found at $PORTFOLIO_ROOT" >&2
+        exit 2
+    fi
+
+    local -a viols_dated=() viols_pricing=() viols_tracker=()
+    local total_files=0 f rel hit
+
+    while IFS= read -r f; do
+        total_files=$((total_files + 1))
+        rel="${f#$PORTFOLIO_ROOT/}"
+
+        # DATED_STATUS: lines with embedded 202X-MM-DD dates, excluding frontmatter key:value
+        while IFS= read -r hit; do
+            [ -n "$hit" ] && viols_dated+=("$rel|$hit")
+        done < <(grep -nE '202[0-9]-[0-9]{2}-[0-9]{2}' "$f" \
+                 | grep -vE '^[0-9]+:[[:space:]]*[a-z_]+:[[:space:]]' || true)
+
+        # PRICING: $N/mes, ARS N/mes, USD N/mes
+        while IFS= read -r hit; do
+            [ -n "$hit" ] && viols_pricing+=("$rel|$hit")
+        done < <(grep -nE '(\$[0-9]|ARS[[:space:]]+[0-9]|USD[[:space:]]+[0-9])[^/]*/mes' "$f" || true)
+
+        # TRACKER_TABLE: table header lines with Status + work-tracker columns
+        while IFS= read -r hit; do
+            [ -n "$hit" ] && viols_tracker+=("$rel|$hit")
+        done < <(grep -nE '^\|.*\bStatus\b.*\|' "$f" \
+                 | grep -E '\b(Priority|Effort|Sprint|Assigned)\b' || true)
+
+    done < <(find "$PORTFOLIO_ROOT" -name "CLAUDE.md" \
+                  -not -path "*worktree*" 2>/dev/null | sort)
+
+    local total_v=$(( ${#viols_dated[@]} + ${#viols_pricing[@]} + ${#viols_tracker[@]} ))
+
+    if [ "$JSON" = true ]; then
+        local dated_json="[]" pricing_json="[]" tracker_json="[]"
+        [ ${#viols_dated[@]} -gt 0 ] && dated_json=$(
+            printf '%s\n' "${viols_dated[@]}" | jq -R -s '
+                split("\n") | map(select(length > 0)) | map(
+                    . as $r | ($r | index("|")) as $i |
+                    {file: $r[0:$i], match: $r[($i+1):]})' || true)
+        [ ${#viols_pricing[@]} -gt 0 ] && pricing_json=$(
+            printf '%s\n' "${viols_pricing[@]}" | jq -R -s '
+                split("\n") | map(select(length > 0)) | map(
+                    . as $r | ($r | index("|")) as $i |
+                    {file: $r[0:$i], match: $r[($i+1):]})' || true)
+        [ ${#viols_tracker[@]} -gt 0 ] && tracker_json=$(
+            printf '%s\n' "${viols_tracker[@]}" | jq -R -s '
+                split("\n") | map(select(length > 0)) | map(
+                    . as $r | ($r | index("|")) as $i |
+                    {file: $r[0:$i], match: $r[($i+1):]})' || true)
+        jq -n \
+            --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --argjson files "$total_files" \
+            --argjson total "$total_v" \
+            --argjson dated "$dated_json" \
+            --argjson pricing "$pricing_json" \
+            --argjson tracker "$tracker_json" \
+            '{
+                timestamp: $ts,
+                scope: "claudemd",
+                files_scanned: $files,
+                total_violations: $total,
+                violations: {
+                    DATED_STATUS: $dated,
+                    PRICING: $pricing,
+                    TRACKER_TABLE: $tracker
+                }
+            }'
+    else
+        echo "=== verify-docs --scope claudemd ==="
+        echo ""
+        printf "Scanned %d CLAUDE.md files\n" "$total_files"
+        echo ""
+        if [ "$total_v" -eq 0 ]; then
+            echo "PASS — 0 volatile-content violations found."
+        else
+            printf "VIOLATIONS: %d total\n\n" "$total_v"
+            local v file match
+            if [ ${#viols_dated[@]} -gt 0 ]; then
+                printf "DATED_STATUS (%d) — status lines with embedded dates:\n" "${#viols_dated[@]}"
+                for v in "${viols_dated[@]}"; do
+                    file="${v%%|*}"; match="${v#*|}"
+                    printf "  %s:%s\n" "$file" "$match"
+                done
+                echo ""
+            fi
+            if [ ${#viols_pricing[@]} -gt 0 ]; then
+                printf "PRICING (%d) — service cost lines:\n" "${#viols_pricing[@]}"
+                for v in "${viols_pricing[@]}"; do
+                    file="${v%%|*}"; match="${v#*|}"
+                    printf "  %s:%s\n" "$file" "$match"
+                done
+                echo ""
+            fi
+            if [ ${#viols_tracker[@]} -gt 0 ]; then
+                printf "TRACKER_TABLE (%d) — work-tracker table headers:\n" "${#viols_tracker[@]}"
+                for v in "${viols_tracker[@]}"; do
+                    file="${v%%|*}"; match="${v#*|}"
+                    printf "  %s:%s\n" "$file" "$match"
+                done
+                echo ""
+            fi
+        fi
+        echo "Action: remove volatile content from CLAUDE.md — move to portfolio.md or project docs."
+    fi
+
+    [ "$total_v" -eq 0 ] && return 0 || return 1
+}
+
+# ── Short-circuit for --scope claudemd ─────────────────────
+if [ "$SCOPE" = "claudemd" ]; then
+    run_claudemd_scan
+    exit $?
+fi
+
 # ── Pre-flight ─────────────────────────────────────────────
 if [ ! -f "$VALIDATE" ]; then
     echo "verify-docs: validate.sh not found at $VALIDATE" >&2
