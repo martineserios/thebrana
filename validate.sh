@@ -1031,7 +1031,8 @@ with open(spec_graph_path) as f:
     graph = json.load(f)
 
 nodes = set(graph.get('nodes', {}).keys())
-typed_edges = graph.get('typed_edges', [])
+all_edges = graph.get('edges', [])
+typed_edges = [e for e in all_edges if e.get('type')]
 issues = 0
 
 # Check 1: orphaned typed edges (from/to reference non-existent nodes)
@@ -1171,7 +1172,8 @@ from collections import Counter
 with open('$SPEC_GRAPH') as f:
     graph = json.load(f)
 
-edges = graph.get('typed_edges', [])
+all_edges = graph.get('edges', [])
+edges = [e for e in all_edges if e.get('type')]
 counts = Counter()
 for edge in edges:
     counts[edge.get('from', '')] += 1
