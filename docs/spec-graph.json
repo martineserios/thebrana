@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-01T22:20:34Z",
+  "generated": "2026-06-01T23:13:55Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -7661,6 +7661,12 @@
     },
     {
       "from": "docs/24-roadmap-corrections.md",
+      "to": ":space:.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/24-roadmap-corrections.md",
       "to": "architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
       "type": "references",
       "computed": false
@@ -12366,7 +12372,7 @@
   ],
   "stats": {
     "nodes": 415,
-    "edges": 1598,
+    "edges": 1599,
     "typed_edges": 568,
     "orphans": 121
   }
