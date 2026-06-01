@@ -3820,3 +3820,40 @@ Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Con
 **Fix:** Append to ADR-043 §Phase A step 5: "Register `/super-admin/*` as a sibling of the `AppLayout` route in `<Routes>`, not nested inside it. Nesting causes `AppLayout`'s sidebar to render instead of `SuperAdminLayout`." Also captured in `frontend-conventions.md` field note 2026-06-01.
 
 **Status:** pending — ADR-043 §Phase A step 5 needs a one-line clarification note.
+
+---
+
+## E2026-06-01-2 — `getAdminJwt()` calls deprecated Tracy admin signin endpoint
+
+**Severity:** High
+**Discovery:** 2026-06-01 — challenge review of kapso-secret-management.md (t-1129 session)
+**Affected files:**
+- `services/kapso-functions/src/lib/tracy-admin-auth.js` — `SIGNIN_PATH` constant + request body
+
+**Bug:** `getAdminJwt()` calls `POST /api/commerce/admin/backoffice-users/signin` with body `{ email, apiKey }`. The correct endpoint (corrected by Shilton 2026-05-13, documented in `docs/integrations/tracy-commerce-api-v1.md`) is `POST /api/commerce/admin/backoffice-users/signin-password` with body `{ email, password }`. No `apiKey` credential exists in QA — both admin auth paths use password auth. Every `getAdminJwt()` invocation is likely hitting the wrong surface or receiving 404/401.
+
+**Impact:** All admin-gated operations depending on `getAdminJwt()` are broken in production: `tracy-signup`, `tracy-link-user-to-location`. `tracy-customer-lookup` uses its own password-based auth path so is unaffected.
+
+**Fix:** Update `tracy-admin-auth.js`: change `SIGNIN_PATH` to `/api/commerce/admin/backoffice-users/signin-password`, change request body from `{ email, apiKey }` to `{ email, password }`, update env var read from `TRACY_ADMIN_API_KEY_${upper}` to `TRACY_ADMIN_PASSWORD_${upper}`. Folded into t-1129 scope (credential blob `tracy_admin_api_key` → `tracy_admin_password`).
+
+**Status:** pending — fix scoped to t-1129.
+
+---
+
+## E2026-06-01-3 — Deployed KF bundles carry stale Masuno marketplace IDs post credential rotation
+
+**Severity:** High
+**Discovery:** 2026-06-01 — challenge review of kapso-secret-management.md (t-1129 session)
+**Affected files:**
+- `services/kapso-functions/src/tracy-search.js` — `MARKETPLACE_BY_TENANT = { palco: 271, pdb: 272 }`
+- `services/kapso-functions/src/ruta-a-handler.js` — same map
+- `services/kapso-functions/src/tracy-checkout.js` — `MARKETPLACE_DISTRIBUTOR_BY_TENANT = { palco: 57, pdb: 58 }` (values may be correct but Delorenzi missing)
+
+**Bug:** Credentials were rotated from Masuno to Anita-exclusive environments 2026-05-28 (Shilton). Correct `marketplace_id` values: Palco=289, PDB=291, Delorenzi=293. Deployed KF bundles still contain the old Masuno IDs 271/272. `tenants.yaml` was updated to 289/291 on 2026-06-01 (commit `69f5077`) but the hardcoded maps in KF source were not updated. Additionally, Delorenzi has no entry in any of the maps, meaning any Delorenzi conversation fails immediately with `UNKNOWN_TENANT`.
+
+**Impact:** All Tracy catalog searches and order placements via the agent are hitting the Masuno marketplace instead of the Anita-exclusive marketplace for Palco and PDB traffic. Delorenzi is completely blocked.
+
+**Fix:** Replace hardcoded maps with `vars.ctx?.tenant?.marketplace_id` / `vars.ctx?.tenant?.marketplace_distributor_id` from workflow context (already populated correctly by `build-conversation-context.js` from `tenants.yaml`). Add Delorenzi to `tenants.yaml`. Folded into t-1129 scope. A targeted fix ahead of the full t-1129 migration is recommended given production impact.
+
+**Status:** pending — fix scoped to t-1129; recommend prioritising marketplace ID fix ahead of credential abstraction.
+
