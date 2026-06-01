@@ -1,6 +1,6 @@
 ---
 description: M+ effort plans must include DDD/TDD/SDD/Docs tasks as blockers. Missing discipline = tech debt.
-globs: ["docs/**/*.md", "system/procedures/*.md"]
+paths: ["docs/**/*.md", "system/procedures/*.md"]
 alwaysApply: false
 ---
 

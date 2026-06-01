@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-01T22:04:16Z",
+  "generated": "2026-06-01T22:20:34Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -2592,14 +2592,21 @@
         "system/scripts/statusline-slow-cache.sh"
       ]
     },
+    "docs/reference/skill-retirement.md": {
+      "title": "Skill Retirement Checklist",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/skills/<name>/",
+        "system/procedures/<name>.md",
+        "system/plugin.json"
+      ]
+    },
     "docs/reference/skills.md": {
       "title": "Skill Reference",
       "type": "Roadmap",
       "impl_files": [
         "system/skills/",
-        "system/skills/<name>/SKILL.md",
-        "system/procedures/<name>.md",
-        "system/plugin.json"
+        "system/skills/<name>/SKILL.md"
       ]
     },
     "docs/reflections/08-diagnosis.md": {
@@ -11283,6 +11290,12 @@
       "computed": false
     },
     {
+      "from": "docs/reference/skill-retirement.md",
+      "to": "skills.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/reference/skills.md",
       "to": "docs/architecture/testing-validation.md",
       "type": "references",
@@ -12352,8 +12365,8 @@
     }
   ],
   "stats": {
-    "nodes": 414,
-    "edges": 1597,
+    "nodes": 415,
+    "edges": 1598,
     "typed_edges": 568,
     "orphans": 121
   }
