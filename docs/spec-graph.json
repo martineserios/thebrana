@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-01T21:22:53Z",
+  "generated": "2026-06-01T22:04:16Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -2597,7 +2597,9 @@
       "type": "Roadmap",
       "impl_files": [
         "system/skills/",
-        "system/skills/<name>/SKILL.md"
+        "system/skills/<name>/SKILL.md",
+        "system/procedures/<name>.md",
+        "system/plugin.json"
       ]
     },
     "docs/reflections/08-diagnosis.md": {
