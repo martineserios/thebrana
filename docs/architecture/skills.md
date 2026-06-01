@@ -132,6 +132,14 @@ Community skills install with `quarantine: true` in frontmatter and read-only to
 
 ## Field Notes
 
+### 2026-06-01: Skill retirement requires updating 10 locations in one commit
+When retiring a skill, the full checklist: SKILL.md + procedure file (delete), skills.md row, guide/commands/index.md row, brana-cli.md row, component-index.md row, architecture feature docs, guide workflow docs, ideas/skill-tiering.md row, scripts.md section (if has a script). Do all in one commit — leaving any behind creates a window where docs reference deleted files.
+Source: notebooklm-source retirement / close session 2026-06-01 / t-1813
+
+### 2026-06-01: Procedure preamble ToolSearch audit — grep, not positional extraction
+brana procedures place the `<!-- ruflo preamble -->` / `ToolSearch(...)` block inside the document body (after `##` headings), not before the first heading. An audit script that extracts "pre-heading content" misses all ToolSearch declarations and reports false gaps for every procedure. Correct approach: `grep -n 'ToolSearch\|mcp__brana__' "$file"` and compare sets directly.
+Source: E2026-06-01-2 preamble audit / close session 2026-06-01
+
 ### 2026-05-14: system/skills/memory/ naming collision with auto-memory store
 `system/skills/memory/` (the memory skill dir) shares a path component with `~/.claude/projects/.../memory/` (the auto-memory store). At least one writer created `system/skills/memory/MEMORY.md` — a spurious auto-memory index that doesn't belong in the skill tree. Deleted as a stale artifact. Risk of recurrence: any tool that walks `system/skills/` looking for `memory/` subdirs could land here. Guard: pre-commit should reject `system/skills/**/MEMORY.md`.
 Source: sitrep investigation / close session 2026-05-14

@@ -102,6 +102,12 @@ Reuses the same Perl pattern as `validate.sh` `check_assumption_freshness` (arou
 7. `--seed 42` is reproducible — same seed twice → identical sample order.
 8. Exits 2 if `validate.sh` is missing.
 
+## Field Notes
+
+### 2026-06-01: DATED_STATUS pattern produces ~50% false positives from filename references
+The `grep -nE '202[0-9]-[0-9]{2}-[0-9]{2}'` pattern for DATED_STATUS fires on any line containing a date, including markdown link references to dated filenames (e.g., `transcripts/2026-05-07-tcp.md`). The frontmatter exclusion only strips `key: YYYY-MM-DD` lines. Acceptable for quarterly manual review — operator skips the obvious filename references. If false-positive rate becomes noisy: add `grep -vE '\[.*\]\(.*202[0-9].*\)'` to exclude markdown link lines. Do not over-engineer a one-shot audit tool.
+Source: first --scope claudemd run / close session 2026-06-01
+
 ## Out of scope
 
 - LLM-assisted semantic check (t-441).
