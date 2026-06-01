@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-01T19:20:43Z",
+  "generated": "2026-06-01T20:17:37Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -465,6 +465,7 @@
       "title": "24 — Roadmap Corrections & Errata (ARCHIVED)",
       "type": "Roadmap",
       "impl_files": [
+        "system/procedures/research.md",
         "system/.claude-plugin/plugin.json",
         "system/plugin.json",
         "system/cli/rust/crates/brana-mcp/tests/tool_tests.rs:134",
@@ -531,7 +532,6 @@
         "system/cli/rust/crates/brana-mcp/src/tools/session_write.rs",
         "system/procedures/challenge.md:98",
         "system/procedures/challenge.md:32",
-        "system/procedures/research.md",
         "system/cli/rust/crates/brana-mcp/tests/tool_tests.rs:447",
         "system/cli/rust/crates/brana-cli/src/commands/session.rs:549",
         "system/procedures/close.md:826",
