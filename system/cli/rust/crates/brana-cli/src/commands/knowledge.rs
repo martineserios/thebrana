@@ -2,8 +2,10 @@
 
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
+use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::process::Command;
+use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 
 use brana_core::knowledge_pipeline::{
@@ -439,6 +441,27 @@ pub fn cmd_process(
 // ── Tier 1 ────────────────────────────────────────────────────────────────
 
 const TIER1_BATCH: usize = 50;
+const TIER1_CONCURRENCY: usize = 5;
+
+fn build_tier1_prompt(entry: &kp::UrlEventEntry, dim_list: &str) -> String {
+    format!(
+        "You are classifying a LinkedIn post for relevance to a personal knowledge base \
+about AI systems, agent design, developer tooling, and knowledge management.\n\n\
+Author: {}\nTitle signal: {}\nTags: {}\n\n\
+Score the relevance 1-5 where:\n\
+1 = personal update, marketing, unrelated\n\
+2 = tangentially related, low signal\n\
+3 = relevant, worth reading\n\
+4 = directly relevant to known topics (memory, agents, CLI tooling, CC patterns)\n\
+5 = high-signal, likely new dimension content\n\n\
+Known dimension topics: {}\n\n\
+Respond with JSON only: {{\"score\": N, \"reason\": \"one sentence\"}}",
+        entry.author,
+        entry.title_signal,
+        entry.tags.join(" "),
+        dim_list,
+    )
+}
 
 fn run_tier1(
     knowledge_root: &std::path::Path,
@@ -457,45 +480,56 @@ fn run_tier1(
         return Ok(());
     }
 
+    let n_workers = TIER1_CONCURRENCY.min(batch.len());
     println!(
         "\n  \x1b[1mTier 1 — Relevance filter\x1b[0m{}",
         if dry_run { " [dry-run]" } else { "" }
     );
-    println!("  Processing {} URL(s) (batch cap: {TIER1_BATCH})\n", batch.len());
+    println!(
+        "  Processing {} URL(s) (batch cap: {TIER1_BATCH}, workers: {n_workers})\n",
+        batch.len()
+    );
+
+    if dry_run {
+        for entry in &batch {
+            println!(
+                "  [dry-run] would score: {} (author: {}, tags: {})",
+                entry.url, entry.author, entry.tags.join(" "),
+            );
+        }
+        return Ok(());
+    }
+
+    kp::check_agy_version()?;
+
+    // Build work queue: (entry, prompt) pairs
+    let tasks: Vec<(kp::UrlEventEntry, String)> = batch
+        .iter()
+        .map(|e| (e.clone(), build_tier1_prompt(e, &dim_list)))
+        .collect();
+
+    let queue = Arc::new(Mutex::new(VecDeque::from(tasks)));
+    let (tx, rx) = std::sync::mpsc::channel::<(kp::UrlEventEntry, Result<serde_json::Value>)>();
+
+    let handles: Vec<_> = (0..n_workers)
+        .map(|_| {
+            let queue = Arc::clone(&queue);
+            let tx = tx.clone();
+            std::thread::spawn(move || loop {
+                let work = { queue.lock().unwrap().pop_front() };
+                let Some((entry, prompt)) = work else { break };
+                let result = kp::call_gemini_json(&prompt);
+                let _ = tx.send((entry, result));
+            })
+        })
+        .collect();
+    drop(tx);
 
     let mut passed = 0usize;
     let mut filtered = 0usize;
 
-    for entry in &batch {
-        let prompt = format!(
-            "You are classifying a LinkedIn post for relevance to a personal knowledge base \
-about AI systems, agent design, developer tooling, and knowledge management.\n\n\
-Author: {}\nTitle signal: {}\nTags: {}\n\n\
-Score the relevance 1-5 where:\n\
-1 = personal update, marketing, unrelated\n\
-2 = tangentially related, low signal\n\
-3 = relevant, worth reading\n\
-4 = directly relevant to known topics (memory, agents, CLI tooling, CC patterns)\n\
-5 = high-signal, likely new dimension content\n\n\
-Known dimension topics: {}\n\n\
-Respond with JSON only: {{\"score\": N, \"reason\": \"one sentence\"}}",
-            entry.author,
-            entry.title_signal,
-            entry.tags.join(" "),
-            dim_list,
-        );
-
-        if dry_run {
-            println!(
-                "  [dry-run] would score: {} (author: {}, tags: {})",
-                entry.url,
-                entry.author,
-                entry.tags.join(" "),
-            );
-            continue;
-        }
-
-        match kp::call_gemini_json(&prompt) {
+    for (entry, result) in rx {
+        match result {
             Ok(json) => {
                 let score = json.get("score").and_then(|v| v.as_u64()).unwrap_or(0) as u8;
                 let reason = json
@@ -515,7 +549,7 @@ Respond with JSON only: {{\"score\": N, \"reason\": \"one sentence\"}}",
                 let icon = if score >= 3 { "✓" } else { "✗" };
                 println!("  {icon} [{score}] {} — {reason}", entry.author);
 
-                let url_entry = kp::UrlEntry {
+                state.urls.insert(entry.url.clone(), kp::UrlEntry {
                     status,
                     tier1_score: Some(score),
                     tier1_reason: Some(reason),
@@ -523,27 +557,26 @@ Respond with JSON only: {{\"score\": N, \"reason\": \"one sentence\"}}",
                     author: Some(entry.author.clone()),
                     title_signal: Some(entry.title_signal.clone()),
                     tags: entry.tags.clone(),
+                    platform: Some(kp::classify_platform(&entry.url).to_string()),
                     ..kp::UrlEntry::new_unprocessed(None)
-                };
-                state.urls.insert(entry.url.clone(), url_entry);
+                });
+                // Checkpoint: survive mid-batch crashes
+                kp::save_state(state_path, state)?;
             }
             Err(e) => {
                 eprintln!("  \x1b[33m  ⚠ LLM call failed for {}: {e:#}\x1b[0m", entry.url);
-                // Mark as unprocessed with a placeholder so we don't re-attempt endlessly
-                // in this batch, but will retry on next run (not saved to state on error)
             }
         }
     }
 
-    if !dry_run {
-        let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
-        state.last_tier1_run = Some(now);
-        kp::save_state(state_path, state)?;
-        println!(
-            "\n  Tier 1 done — {} passed, {} filtered. State saved.",
-            passed, filtered
-        );
+    for h in handles {
+        let _ = h.join();
     }
+
+    let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+    state.last_tier1_run = Some(now);
+    kp::save_state(state_path, state)?;
+    println!("\n  Tier 1 done — {} passed, {} filtered. State saved.", passed, filtered);
 
     Ok(())
 }
