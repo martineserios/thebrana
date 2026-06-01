@@ -366,6 +366,45 @@ brana knowledge promote brana-knowledge/drafts/2026-05-24-agent-tooling.md
 
 ---
 
+## brana knowledge process
+
+Run a pipeline stage: tier1 relevance filter, tier2 clustering, or generate cluster report.
+Requires `agy` CLI (`npm install -g agy`) for LLM calls.
+
+### Usage
+
+```bash
+brana knowledge process --tier1          # score URLs 1-5, filter below threshold
+brana knowledge process --tier2          # cluster tier1-passed URLs into topics
+brana knowledge process --report         # generate dimension draft from clusters
+brana knowledge process --status         # print pipeline state summary (no writes)
+```
+
+### Tier1 behavior (parallel)
+
+Tier1 runs up to **5 concurrent workers** against the agy Gemini Flash CLI. Each URL is
+scored 1–5 for relevance to brana's known dimension topics (AI systems, agent design,
+developer tooling, knowledge management). URLs scoring ≥ 3 are promoted to `tier1_passed`.
+
+- **Checkpoint saves** after every URL — a crash or timeout mid-batch does not lose work.
+- **Version check** — runs `agy --version` once before spawning workers; fails fast if the
+  installed version doesn't match the pinned constraint.
+- **Platform tagging** — each entry is tagged with its detected platform (linkedin, github,
+  arxiv, youtube, etc.).
+- **Batch cap**: 50 URLs per run. Run again if the queue is larger.
+
+### Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--dry-run` | false | Show what would be scored without calling agy or writing state |
+| `--tier1` | — | Run Tier1 relevance filter |
+| `--tier2` | — | Run Tier2 clustering |
+| `--report` | — | Generate cluster report / dimension drafts |
+| `--status` | — | Print pipeline state counts |
+
+---
+
 ## brana knowledge run
 
 Auto-advance tier1 and tier2 automatically; stops at human gates (cluster report, draft

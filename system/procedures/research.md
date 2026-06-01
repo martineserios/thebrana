@@ -50,7 +50,7 @@ Register these steps: LOAD, ROUTE, LOAD-REGISTRY, INTERNAL-SEARCH, WIDE-SCAN, TR
 **Plan mode:** Enter plan mode for INTERNAL-SEARCH, WIDE-SCAN, and TRIAGE (Phases 0-2). Exit plan mode before DEEP-DIVE (Phase 3) which may involve writing temp files.
 
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn")
+ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__brana__agy_delegate")
 
 ## Procedure
 
