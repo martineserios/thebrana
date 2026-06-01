@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-01T20:35:02Z",
+  "generated": "2026-06-01T21:22:53Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -468,6 +468,7 @@
         "system/procedures/research.md",
         "system/cli/rust/crates/brana-cli/src/commands/knowledge.rs",
         "system/scripts/verify-docs.sh",
+        "system/scripts/tests/test-verify-docs.sh",
         "system/.claude-plugin/plugin.json",
         "system/plugin.json",
         "system/cli/rust/crates/brana-mcp/tests/tool_tests.rs:134",
