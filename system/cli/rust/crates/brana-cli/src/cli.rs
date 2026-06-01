@@ -202,10 +202,11 @@ pub enum Commands {
         #[command(subcommand)]
         cmd: DecisionsCmd,
     },
-    /// Append a URL (or free-text note) to the project's event-log.md
+    /// Append one or more URLs (or free-text notes) to the project's event-log.md
     Log {
-        /// URL or text to append (https:// URLs are captured as-is)
-        entry: String,
+        /// URL(s) or text to append. Duplicate URLs are silently skipped.
+        #[arg(required = true)]
+        entries: Vec<String>,
         /// Comma-separated hashtags (without #), e.g. "ai,rust"
         #[arg(long, short = 't')]
         tags: Option<String>,

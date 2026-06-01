@@ -522,3 +522,38 @@ brana session initiative read-marker
 # Clear marker after consuming the slug at close
 brana session initiative clear-marker
 ```
+
+## brana log
+
+Append one or more URLs (or free-text notes) to the project's event-log.md. Duplicate URLs are silently skipped.
+
+```
+brana log <ENTRIES>... [--tags <TAGS>]
+```
+
+| Argument | Description |
+|----------|-------------|
+| `<ENTRIES>...` | One or more URLs or free-text strings to append |
+| `--tags`, `-t` | Comma-separated hashtags (without `#`), e.g. `"ai,rust"` |
+
+Each entry is written as `- HH:MM — <entry> [#tag1 #tag2]` under the current date's `## YYYY-MM-DD` section.
+
+### Examples
+
+```bash
+# Single URL
+brana log https://example.com/article
+
+# Multiple URLs in one call — duplicates skipped automatically
+brana log https://a.com https://b.com https://c.com
+
+# With tags
+brana log https://example.com/post --tags "ai,mcp"
+
+# Free-text note
+brana log "Spoke with team about caching strategy"
+```
+
+### Deduplication
+
+Before appending, `brana log` reads the current event-log.md and collects all existing `https://` URLs. Any incoming URL that already appears in the log is skipped with a `skipped (duplicate): <url>` message to stderr. Free-text (non-URL) entries are always appended without dedup checks.

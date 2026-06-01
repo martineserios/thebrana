@@ -5,20 +5,65 @@
 //! Sections are grouped under `## YYYY-MM-DD` date headers.
 
 use anyhow::{Context, Result};
-use std::path::PathBuf;
+use std::collections::HashSet;
+use std::path::{Path, PathBuf};
 
 use brana_core::knowledge_pipeline::append_event_log_entry;
+use brana_core::session::resolve_memory_dir;
 
-pub fn cmd_log(entry: &str, tags: Option<&str>) -> Result<()> {
+pub fn cmd_log(entries: &[String], tags: Option<&str>) -> Result<()> {
     let root = require_project_root()?;
     let tag_list = parse_tags(tags);
     let tag_refs: Vec<&str> = tag_list.iter().map(String::as_str).collect();
-    let log_path = append_event_log_entry(&root, entry, &tag_refs)?;
-    println!("logged to {}", log_path.display());
+
+    let existing = read_existing_urls(&root)?;
+
+    let mut logged = 0usize;
+    let mut skipped = 0usize;
+    let mut log_path_out: Option<PathBuf> = None;
+
+    for entry in entries {
+        if entry.starts_with("https://") && existing.contains(entry.as_str()) {
+            eprintln!("skipped (duplicate): {entry}");
+            skipped += 1;
+            continue;
+        }
+        let path = append_event_log_entry(&root, entry, &tag_refs)?;
+        log_path_out = Some(path);
+        logged += 1;
+    }
+
+    if entries.len() == 1 {
+        if let Some(path) = log_path_out {
+            println!("logged to {}", path.display());
+        }
+    } else {
+        println!("logged {logged}, skipped {skipped} duplicate(s)");
+    }
+
     Ok(())
 }
 
-/// Parse `--tags "ai,rust"` into `["ai", "rust"]`, trimming whitespace.
+/// Collect all https:// URLs already present in the project event-log.md.
+/// Used for deduplication. Returns empty set if the file does not exist.
+fn read_existing_urls(root: &Path) -> Result<HashSet<String>> {
+    let log_path = resolve_memory_dir(root).join("event-log.md");
+    if !log_path.exists() {
+        return Ok(HashSet::new());
+    }
+    let content = std::fs::read_to_string(&log_path)
+        .with_context(|| format!("reading {}", log_path.display()))?;
+    let urls = content
+        .lines()
+        .filter_map(|line| {
+            line.split_whitespace()
+                .find(|t| t.starts_with("https://"))
+                .map(|u| u.trim_end_matches(')').trim_end_matches(',').to_string())
+        })
+        .collect();
+    Ok(urls)
+}
+
 fn parse_tags(tags: Option<&str>) -> Vec<String> {
     match tags {
         None | Some("") => Vec::new(),
@@ -72,5 +117,12 @@ mod tests {
     #[test]
     fn test_parse_tags_skips_empty_segments() {
         assert_eq!(parse_tags(Some("ai,,rust")), vec!["ai", "rust"]);
+    }
+
+    #[test]
+    fn test_read_existing_urls_empty_when_no_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let result = read_existing_urls(dir.path()).unwrap();
+        assert!(result.is_empty());
     }
 }
