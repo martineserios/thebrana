@@ -14,7 +14,6 @@
 | **venture** | Business operations | review, client-retire |
 | **session** | Session lifecycle | close |
 | **capture** | Event capture | log |
-| **tools** | External integrations | notebooklm-source |
 | **utility** | Specialized tools | scheduler, gsheets, export-pdf |
 
 ## Skill Tiering (ADR-034)

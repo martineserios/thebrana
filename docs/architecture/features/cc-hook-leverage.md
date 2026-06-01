@@ -68,7 +68,7 @@ Expand brana's use of CC hook events from 5 to 8+, adding native TaskCompleted, 
 
 | Model | Skills |
 |-------|--------|
-| haiku | acquire-skills, cargo-machete, client-retire, do, export-pdf, log, meta-templates, notebooklm-source, onboard, plugin, rust-skills, scheduler, sitrep, verify-docs |
+| haiku | acquire-skills, cargo-machete, client-retire, do, export-pdf, log, meta-templates, onboard, plugin, rust-skills, scheduler, sitrep, verify-docs |
 | sonnet | align, backlog, brainstorm, build, claudemd, close, docs, fix, reconcile, research, retrospective, review, ship |
 | inherit | challenge, gsheets, mcp-builder, memory |
 

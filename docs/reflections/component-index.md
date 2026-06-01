@@ -74,7 +74,6 @@ See `system/skills/*/SKILL.md` for full skill definitions.
 | /brana:ship | Deployment | Ship a build — pre-flight, deploy, verify, monitor |
 | /brana:log | Operations | Event capture (links, calls, ideas) |
 | /brana:memory | Knowledge | Recall, pollinate, review, audit |
-| /brana:notebooklm-source | Integration | Prepare sources for NotebookLM |
 | /brana:onboard | Setup | Scan and diagnose a project |
 | /brana:plugin | System | Manage Claude Code plugins |
 | /brana:reconcile | Maintenance | Detect spec-vs-implementation drift |

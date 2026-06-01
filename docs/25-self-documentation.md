@@ -519,7 +519,6 @@ Commands for non-code project management. These operate on business project stru
 > | `/brana:financial-model` | Revenue projections, scenario analysis, P&L template, unit economics |
 > | `/brana:proposal` | Generate a client proposal — interview-driven, structured markdown with cost breakdown |
 > | `/brana:meta-template` | Write Meta WhatsApp templates optimized for Utility classification |
-| `/brana:notebooklm-source` | Prepare and format sources for NotebookLM upload | **When feeding research into NotebookLM** |
 | `/brana:gsheets` | Google Sheets operations via MCP: read, write, create, list, share | **When working with spreadsheet data** |
 
 ### When to Use What — The Workflow Map

@@ -131,7 +131,6 @@ brana backlog set active <SLUG>
 
 ```bash
 brana backlog set active cc-alignment
-brana backlog set active notebooklm
 ```
 
 Writes `active_epic` to `~/.claude/tasks-config.json`.

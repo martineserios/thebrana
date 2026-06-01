@@ -24,14 +24,6 @@ Three-phase architecture with scout agents:
 
 Maximum 14 scouts total across all phases.
 
-## With NotebookLM
-
-```
-/brana:research context engineering --nlm
-```
-
-Queries NotebookLM notebooks for prior knowledge before web research. Uses specific technical nouns as query anchors to avoid generic "canned" responses.
-
 ## Batch refresh (`--refresh`)
 
 Refreshes dimension docs in `brana-knowledge/dimensions/` by launching parallel scout agents grouped by topic. Scopes: `all`, `high`, `medium`, `low`, `venture`, or a specific doc number.
@@ -49,7 +41,6 @@ Refreshes dimension docs in `brana-knowledge/dimensions/` by launching parallel 
 |-------|----------------|
 | `/brana:memory` | Stores research findings as patterns |
 | `/brana:reconcile --scope propagation` | Propagates research updates through doc layers |
-| `/brana:notebooklm-source` | Prepares findings as NotebookLM sources |
 
 ## Tips
 

@@ -80,7 +80,6 @@ All brana commands, grouped by workflow.
 |---------|-------------|
 | `/brana:export-pdf` | Convert markdown to PDF |
 | `/brana:gsheets` | Google Sheets operations |
-| `/brana:notebooklm-source` | Prepare sources for NotebookLM |
 | `/brana:scheduler` | Scheduled jobs |
 | `/brana:client-retire` | Archive a project |
 

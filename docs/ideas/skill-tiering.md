@@ -35,7 +35,6 @@ Each gets a stub SKILL.md (~15 lines: frontmatter + 1-line body) and a procedure
 | Skill | Lines | Usage frequency |
 |-------|-------|----------------|
 | reconcile | 580 | Weekly |
-| notebooklm-source | 436 | Rare |
 | review | 363 | Monthly |
 | onboard | 348 | Per new project |
 | plugin | 268 | Rare |
