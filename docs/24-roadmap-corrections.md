@@ -3803,3 +3803,18 @@ Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Con
 **Fix:** Line replaced with "inline multi-role reasoning — Claude runs convergent, systems, and critical roles sequentially in main context."
 
 **Status:** code-fix — fixed at session close 2026-05-31.
+
+---
+
+## E2026-06-01-1 — ADR-043 Phase A step 5 omits React Router layout isolation requirement
+
+**Severity:** Low
+**Discovery:** 2026-06-01 — debrief-analyst session review at close
+**Affected files:**
+- `docs/decisions/ADR-043-platform-operator-role-model.md` §Phase A step 5
+
+**Bug:** ADR-043 Phase A step 5 says "Wire frontend `/super-admin` route shell" with no specification of where in the React Router tree the route must be registered. Any engineer following the checklist would naturally nest the route inside the existing `AppLayout <Route>`, causing super-admin pages to render inside the wrong shell (tenant sidebar + header). The required placement is as a **sibling** of the `AppLayout` route at the top level of `<Routes>`.
+
+**Fix:** Append to ADR-043 §Phase A step 5: "Register `/super-admin/*` as a sibling of the `AppLayout` route in `<Routes>`, not nested inside it. Nesting causes `AppLayout`'s sidebar to render instead of `SuperAdminLayout`." Also captured in `frontend-conventions.md` field note 2026-06-01.
+
+**Status:** pending — ADR-043 §Phase A step 5 needs a one-line clarification note.
