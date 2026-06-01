@@ -1839,6 +1839,45 @@ fi
 echo ""
 fi  # should_run 44
 
+# Check 45 — mcp__brana__ calls in procedure bodies must be covered by ToolSearch preamble (t-1811)
+# Three sessions in a row found gaps: challenge.md, research.md, gemini.md, build.md.
+# Each body call to a deferred mcp__brana__ tool that is absent from ToolSearch silently
+# throws InputValidationError at runtime. This check catches all future gaps automatically.
+if should_run 45; then
+echo "Check 45: mcp__brana__ ToolSearch preamble coverage in procedures..."
+PROCS_DIR="$SCRIPT_DIR/system/procedures"
+PREAMBLE_GAPS=()
+if [ -d "$PROCS_DIR" ]; then
+    while IFS= read -r -d '' proc_file; do
+        # Extract mcp__brana__ tool names from non-ToolSearch lines (body calls).
+        # || true guards against pipefail exit when grep -o finds no matches.
+        body_tools=$(grep -v 'ToolSearch(' "$proc_file" 2>/dev/null \
+            | grep -o 'mcp__brana__[a-zA-Z_]*' | sort -u) || true
+        if [ -z "$body_tools" ]; then
+            continue
+        fi
+        # Extract mcp__brana__ tool names from any ToolSearch line (covers both
+        # preamble block form ToolSearch("select:...") and step-local prose form
+        # ToolSearch query: "select:...").
+        preamble_tools=$(grep 'ToolSearch' "$proc_file" 2>/dev/null \
+            | grep -o 'mcp__brana__[a-zA-Z_]*' | sort -u) || true
+        # Find tools in body but not in preamble
+        while IFS= read -r tool; do
+            [ -z "$tool" ] && continue
+            if ! echo "$preamble_tools" | grep -qF "$tool"; then
+                PREAMBLE_GAPS+=("$(basename "$proc_file"):$tool")
+            fi
+        done <<< "$body_tools"
+    done < <(find "$PROCS_DIR" -name "*.md" -print0 2>/dev/null)
+fi
+if [ "${#PREAMBLE_GAPS[@]}" -gt 0 ]; then
+    fail "Check 45: mcp__brana__ calls in procedures missing from ToolSearch preamble: ${PREAMBLE_GAPS[*]}"
+else
+    pass "Check 45: all mcp__brana__ procedure body calls covered by ToolSearch preamble"
+fi
+echo ""
+fi  # should_run 45
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
