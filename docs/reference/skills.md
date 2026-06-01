@@ -2,7 +2,7 @@
 
 # Skill Reference
 
-**34 skills** loaded from `system/skills/`.
+**33 skills** loaded from `system/skills/`.
 
 ## Skill Frontmatter Reference
 
@@ -43,7 +43,6 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:mcp-builder` | brana | MCP server development guide — build, test, and deploy MCP servers. |
 | `/brana:memory` | learning | Knowledge system ops — recall, pollinate, audit docs. Subcommands: recall, polli |
 | `/brana:meta-templates` | utility | Manage Meta WhatsApp templates — submit, status, audit, pull, appeal. Use for an |
-| `/brana:notebooklm-source` | tools | Prepare and format sources for NotebookLM — Claude reads, reformats, writes file |
 | `/brana:onboard` | execution | Scan and diagnose a project, or scaffold a new client from scratch. Works for co |
 | `/brana:plugin` | brana | Manage Claude Code plugins — add marketplaces, install, update, remove, list. Us |
 | `/brana:reconcile` | brana | Unified maintenance — detect drift, run security checks, cascade spec propagatio |
@@ -240,7 +239,7 @@ Adversarial review — Opus stress-tests reasoning, Gemini checks knowledge. Use
 
 **Arguments:** `[target description] [--council]`
 
-**Allowed tools:** Task, Read, Glob, Grep, mcp__notebooklm__ask_question, mcp__notebooklm__search_notebooks, mcp__notebooklm__get_health, mcp__ruflo__hive-mind_spawn, mcp__ruflo__hive-mind_consensus, mcp__ruflo__hive-mind_shutdown, mcp__brana__agy_delegate, AskUserQuestion, ToolSearch
+**Allowed tools:** Task, Read, Glob, Grep, mcp__ruflo__hive-mind_spawn, mcp__ruflo__hive-mind_consensus, mcp__ruflo__hive-mind_shutdown, mcp__brana__agy_delegate, AskUserQuestion, ToolSearch
 
 ### `/brana:memory`
 
@@ -256,7 +255,7 @@ Research a topic, doc, or creator — check sources, follow references, produce 
 
 **Arguments:** `[topic|doc-number|creator:name|--refresh] [scope] [--strategy research|evaluate|learn|investigate] [--depth quick|standard|deep]`
 
-**Allowed tools:** Read, Glob, Grep, Bash, Write, WebSearch, WebFetch, Task, mcp__notebooklm__ask_question, mcp__notebooklm__list_notebooks, mcp__notebooklm__select_notebook, mcp__notebooklm__search_notebooks, mcp__notebooklm__get_health, mcp__ruflo__memory_search, mcp__ruflo__embeddings_compare, mcp__ruflo__memory_store, mcp__ruflo__agent_spawn, AskUserQuestion, ToolSearch, EnterPlanMode, TaskList, ExitPlanMode
+**Allowed tools:** Read, Glob, Grep, Bash, Write, WebSearch, WebFetch, Task, mcp__ruflo__memory_search, mcp__ruflo__embeddings_compare, mcp__ruflo__memory_store, mcp__ruflo__agent_spawn, AskUserQuestion, ToolSearch, EnterPlanMode, TaskList, ExitPlanMode
 
 ### `/brana:retrospective`
 
@@ -295,15 +294,6 @@ Decision support — criteria, scenarios, patterns, recommendation.
 **Arguments:** `[question or options, e.g. 'should I do A or B' / 'what to work on next']`
 
 **Allowed tools:** Bash, Read, Glob, Grep, AskUserQuestion, mcp__ruflo__memory_search_unified, mcp__ruflo__autopilot_predict, ToolSearch
-
-
-## tools
-
-### `/brana:notebooklm-source`
-
-Prepare and format sources for NotebookLM — Claude reads, reformats, writes files; user uploads in browser. Step-by-step with clear handoff points.
-
-**Allowed tools:** Read, Write, Edit, Glob, Grep, Bash, Task, mcp__notebooklm__ask_question, mcp__notebooklm__add_notebook, mcp__notebooklm__list_notebooks, mcp__notebooklm__select_notebook, mcp__notebooklm__get_notebook, mcp__notebooklm__search_notebooks, mcp__notebooklm__get_health, mcp__notebooklm__get_library_stats, mcp__notebooklm__setup_auth, AskUserQuestion
 
 
 ## utility

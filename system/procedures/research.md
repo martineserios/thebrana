@@ -27,7 +27,6 @@ Target options:
 
 Flags:
 - `--no-agy` — Skip Phase 0b agy detail extraction (Gemini Flash). By default, agy retrieval runs before web research to surface documented brana constraints. Pass `--no-agy` if brana docs are not relevant to the target.
-- `--nlm` — After research, prepare findings as a NotebookLM-optimized source file (step 18). Does not affect agy retrieval.
 - `--refresh [scope]` — Batch refresh mode (replaces `/refresh-knowledge`). Launches parallel scout agents grouped by topic to research updates for dimension docs. Scope: `all` (default), `high`, `medium`, `low`, `venture`, or a doc number. See "Batch Refresh Mode" section below.
 - `--depth quick|standard|deep` — Controls scout hop count and recursion. See depth table below.
 
@@ -466,35 +465,14 @@ Output: root cause + fix recommendation. Optionally append a FieldNote (`## Fiel
     - Trust tier promotions/demotions (with reasoning)
     - Do NOT modify the YAML directly — present proposals for user approval
 
-18. **Prepare NotebookLM source (only when `--nlm` flag is present).**
-
-    **CLAUDE:** Format the research findings as a NotebookLM-optimized Markdown file following the `/brana:notebooklm-source` template:
-    - Executive summary (2-3 sentences: topic, date, key takeaway)
-    - H2 sections per finding cluster (not per individual finding)
-    - Bold key terms and named entities
-    - Bullet points for discrete facts
-    - Tables for comparisons or structured data
-    - Key Takeaways section at the end
-    - Strip all internal cross-references (`[doc NN](path)` → descriptive text)
-
-    **CLAUDE:** Write to `/tmp/notebooklm-research-{target}.md`.
-
-    **CLAUDE:** Report:
-    - Word count and validation score
-    - "Research findings ready for NotebookLM at `/tmp/notebooklm-research-{target}.md`."
-
-    **YOU:** Upload the file to a NotebookLM notebook. If a relevant notebook exists, add it as a new source. If not, create a new notebook for this topic.
-
-    If prior knowledge was used from Phase 0, note which findings are **new** vs **confirmations** vs **contradictions** of existing notebook content. This helps the user decide whether to replace an old source or add alongside it.
-
-19. **Write to knowledge base (user approval required).** If findings are significant enough to warrant a new dimension doc or major update to an existing one:
+18. **Write to knowledge base (user approval required).** If findings are significant enough to warrant a new dimension doc or major update to an existing one:
     - For a **new topic**: propose creating a new dimension doc in `~/enter_thebrana/brana-knowledge/dimensions/{topic-slug}.md`. Use topic-based filename (not numbered). Present the proposed doc structure and get user approval before writing.
     - For an **existing doc update**: propose specific edits to the relevant dimension doc. Present the changes and get user approval.
     - After writing, commit in brana-knowledge (the post-commit hook auto-reindexes for retrieval).
     - After writing, regenerate INDEX.md: `~/enter_thebrana/thebrana/system/scripts/generate-index.sh`
     - **Skip this step** if findings are minor (LOW severity only) or if the user declines.
 
-20. **Step EXTRACT — Identify what was learned.** At research end, distill findings into typed knowledge units.
+19. **Step EXTRACT — Identify what was learned.** At research end, distill findings into typed knowledge units.
 
     1. Compare initial research question against findings — what was answered, what remains open
     2. Classify each finding:
@@ -509,7 +487,7 @@ Output: root cause + fix recommendation. Optionally append a FieldNote (`## Fiel
        - **ADR** — architectural decision implied by research findings
     4. Flag sources not yet in `brana-knowledge/research-sources.yaml` for addition
 
-21. **Step EVALUATE — Score and gate each finding.**
+20. **Step EVALUATE — Score and gate each finding.**
 
     Score each extracted finding (0-10) and apply the gate:
 

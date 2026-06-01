@@ -47219,6 +47219,31 @@
       "build_step": null,
       "description": null,
       "epic": "harness-core"
+    },
+    {
+      "id": "t-1811",
+      "subject": "Add validate.sh check: ToolSearch preamble coverage vs procedure body calls",
+      "status": "pending",
+      "type": "task",
+      "tags": [
+        "harness-core",
+        "validate",
+        "toolsearch"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": "P1",
+      "parent": null,
+      "created": "2026-06-01",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Three sessions in a row found procedure ToolSearch preambles missing deferred tools actually called in the body (challenge.md, research.md, gemini.md, build.md). Each fix is one-off. A validate.sh check that diffs mcp__* calls in procedure body vs preamble ToolSearch lines would catch all future gaps automatically. Pattern: grep each system/procedures/*.md for mcp__* calls, cross-check against ToolSearch(\"select:...\") lines, exit non-zero on any gap.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
     }
   ],
   "version": "1"

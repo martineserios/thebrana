@@ -13,9 +13,6 @@ allowed-tools:
   - Read
   - Glob
   - Grep
-  - mcp__notebooklm__ask_question
-  - mcp__notebooklm__search_notebooks
-  - mcp__notebooklm__get_health
   - mcp__ruflo__hive-mind_spawn
   - mcp__ruflo__hive-mind_consensus
   - mcp__ruflo__hive-mind_shutdown
