@@ -87,7 +87,7 @@ Build the enriched context string from ruflo results (2–5 bullet points, one p
 Load the agy_delegate tool:
 
 ```
-ToolSearch query: "select:mcp__brana__agy_delegate"
+ToolSearch query: "select:mcp__brana__agy_delegate,mcp__brana__backlog_set"
 ```
 
 Call `mcp__brana__agy_delegate` with:

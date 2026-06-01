@@ -85,6 +85,10 @@ pub struct UrlEntry {
     /// Provenance source tag (e.g. "telegram", "ingest", "event-log").
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
+    /// Post body fetched by a browser pre-pass. When set, tier1 scores from
+    /// content instead of metadata — avoids auth-wall false negatives on LinkedIn.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fetched_content: Option<String>,
 }
 
 impl UrlEntry {
@@ -102,6 +106,7 @@ impl UrlEntry {
             tags: Vec::new(),
             platform: None,
             source: None,
+            fetched_content: None,
         }
     }
 }

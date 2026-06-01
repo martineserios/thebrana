@@ -692,6 +692,8 @@ Respond with JSON only:\n\
                     entry.cluster_topic = Some(cluster_topic);
                     entry.dimension_target = Some(dim_target);
                 }
+                // Checkpoint: survive mid-batch crashes
+                kp::save_state(state_path, state)?;
             }
             Err(e) => {
                 eprintln!("  \x1b[33m  ⚠ LLM call failed for {url}: {e:#}\x1b[0m");
