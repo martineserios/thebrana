@@ -30,7 +30,9 @@ The marathon approach: add `acceptance_criteria` as a structured field to the ba
 
 ### MCP Tool Search — test before tuning
 
-Empirical test first (1 session, 5 skill flows, measure ruflo invocation drop), then write server `instructions` informed by data, then `alwaysLoad` the core tools. Don't tune without a baseline.
+Empirical test first (1 session, 5 skill flows, measure ruflo invocation drop), then write server `instructions` informed by data, then `alwaysLoad: true` on the right server. Don't tune without a baseline.
+
+> **2026-06-02 errata:** `alwaysLoad` is a **server-level boolean** (all tools or none) — not a per-tool array. Set `alwaysLoad: true` on the brana server (~16 tools, all session-relevant, low context cost). Do NOT set it on ruflo (200+ tools — would blow context budget). Spike t-1773 validated this. Implemented in t-1777.
 
 ### cc-changelog-check is dormant infrastructure
 
@@ -91,7 +93,7 @@ Tiered adoption plan across five clusters, ordered by effort and dependencies.
 **D1+D2: MCP Tool Search + server instructions**
 - First: empirical test (1 hour — enable Tool Search, run 5 skill flows, measure)
 - Then: write ruflo server `instructions` field (2KB) based on test data
-- Then: `alwaysLoad` the 5-6 core tools called every session
+- Then: `alwaysLoad: true` on the **brana server** (server-level boolean — all 16 tools or none; brana chosen because all its tools are session-relevant and schema is small; ruflo stays deferred — 200+ tools) ✓ done in t-1777
 - Also: consume `CLAUDE_PROJECT_DIR` in brana-mcp and ruflo (1-line change each)
 
 ### Tier 3 — Foundation work (1+ week)
@@ -121,7 +123,7 @@ Tiered adoption plan across five clusters, ordered by effort and dependencies.
 | Risk | Mitigation |
 |------|-----------|
 | `/goal` trivial self-termination | Requires structured `acceptance_criteria` — schema first, `/goal` after |
-| MCP Tool Search degrades ruflo reliability | Empirical test before enabling; `alwaysLoad` core tools as fallback |
+| MCP Tool Search degrades ruflo reliability | Empirical test before enabling; `alwaysLoad: true` on brana server as fallback (server-level, not per-tool) |
 | `continueOnBlock` on wrong gates makes enforcement unpredictable | Strict taxonomy: enforcement=hard-stop, advisory=continueOnBlock |
 | exec-form migration breaks hooks that need shell features | Audit each hook — only migrate those that don't use pipes/env expansion |
 
