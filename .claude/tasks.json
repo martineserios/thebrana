@@ -3708,7 +3708,7 @@
     {
       "blocked_by": null,
       "branch": "harness-core/feat/t-203-pattern-promotion",
-      "completed": null,
+      "completed": "2026-06-02",
       "context": "Synergies: t-149 (Agent Memory System), t-150 (Agent Cognition), t-099 (Knowledge Graphs). Requires session-start to log recalled patterns, session-end to check if they helped. Claude-flow confidence field.",
       "created": "2026-03-05",
       "description": "When session-start recalls a correction pattern and session completes without that error recurring, promote confidence. When error recurs despite pattern, demote. Natural selection for useful patterns.",
@@ -3723,7 +3723,7 @@
       "parent": null,
       "priority": "P1",
       "started": "2026-06-02",
-      "status": "in_progress",
+      "status": "completed",
       "subject": "Cross-session pattern promotion pipeline",
       "tags": [
         "hooks",
