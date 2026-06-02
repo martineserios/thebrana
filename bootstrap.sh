@@ -466,13 +466,14 @@ MCP_SERVERS="{}"
 
 # ruflo (required — core memory backbone)
 RUFLO_WRAPPER="$SYSTEM_DIR/scripts/ruflo-mcp.sh"
+RUFLO_INSTRUCTIONS="Ruflo is the memory and agent backbone. Namespaces: 'knowledge' (facts, patterns, learnings), 'pattern' (reusable skill patterns), 'session' (ephemeral — threshold 0.55+, never namespace 'all' below 0.55). Core: memory_search, memory_store, agentdb_hierarchical-store/recall, pattern-search/store. Agents: agent_spawn, swarm_init, coordination_orchestrate. Claims: claims_claim/release/mark-stealable. Stubs to avoid: aidefence_*, ruvllm_*, wasm_*, neural_*, daa_*, hive-mind_*, embeddings_rabitq_*."
 if [ -x "$RUFLO_WRAPPER" ] || [ -f "$RUFLO_WRAPPER" ]; then
-    MCP_SERVERS=$(echo "$MCP_SERVERS" | jq --arg cmd "$RUFLO_WRAPPER" \
-        '.ruflo = {"command": $cmd, "args": ["mcp", "start"], "env": {"CLAUDE_FLOW_TOOL_GROUPS": "memory,agentdb,embeddings,hooks"}}')
+    MCP_SERVERS=$(echo "$MCP_SERVERS" | jq --arg cmd "$RUFLO_WRAPPER" --arg instr "$RUFLO_INSTRUCTIONS" \
+        '.ruflo = {"command": $cmd, "args": ["mcp", "start"], "instructions": $instr, "env": {"CLAUDE_FLOW_TOOL_GROUPS": "memory,agentdb,embeddings,hooks"}}')
     echo "  + ruflo → $RUFLO_WRAPPER"
 elif [ -n "$CF_BIN" ]; then
-    MCP_SERVERS=$(echo "$MCP_SERVERS" | jq --arg cmd "$CF_BIN" \
-        '.ruflo = {"command": $cmd, "args": ["mcp", "start"], "env": {"CLAUDE_FLOW_TOOL_GROUPS": "memory,agentdb,embeddings,hooks"}}')
+    MCP_SERVERS=$(echo "$MCP_SERVERS" | jq --arg cmd "$CF_BIN" --arg instr "$RUFLO_INSTRUCTIONS" \
+        '.ruflo = {"command": $cmd, "args": ["mcp", "start"], "instructions": $instr, "env": {"CLAUDE_FLOW_TOOL_GROUPS": "memory,agentdb,embeddings,hooks"}}')
     echo "  + ruflo → $CF_BIN (direct, no PID lock)"
 else
     echo "  — ruflo (not found, skip)"

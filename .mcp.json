@@ -2,6 +2,7 @@
   "mcpServers": {
     "brana": {
       "command": "/home/martineserios/.local/bin/brana-mcp",
+      "alwaysLoad": true,
       "env": {
         "MCP_CONNECTION_NONBLOCKING": "1"
       }
@@ -12,6 +13,7 @@
         "mcp",
         "start"
       ],
+      "instructions": "Ruflo is the memory and agent backbone. Namespaces: 'knowledge' (facts, patterns, learnings — use for recall and storage), 'pattern' (reusable code/skill patterns — use for cross-session promotion), 'session' (ephemeral session state — query with threshold 0.55+, never use namespace 'all' below 0.55 as session records score constant 0.5 and contaminate results). Core tools: memory_search (recall), memory_store (persist), agentdb_hierarchical-store/recall (structured context), pattern-search/store (skill patterns). Agent tools: agent_spawn, swarm_init, coordination_orchestrate. Claims: claims_claim/release/mark-stealable (advisory task locking). Stub tools to avoid (not implemented): aidefence_*, ruvllm_*, wasm_*, neural_*, daa_*, hive-mind_*, embeddings_rabitq_*. Prefer memory_search over agentdb_graph-query for most recall tasks.",
       "env": {
         "MCP_CONNECTION_NONBLOCKING": "1"
       }
