@@ -3874,3 +3874,22 @@ Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Con
 **Fix:** Saved as `feedback_backlog_do_not_production_cutover.md` in auto-memory. Rule: for any task with a deferred production step, surface the specific action and wait for explicit user confirmation ("yes, flip the crons", "yes, delete those jobs") before proceeding.
 
 **Status:** code-fix — memory saved, crons reverted. No lasting production impact.
+
+---
+
+## E2026-06-02-2 — PDB inline JWT in tracy-auth.js pointed at Masuno env 272 instead of Anita-exclusive 291
+
+**Severity:** Medium
+**Discovery:** 2026-06-02 — Palco Ecosistema session (Vercel + PDB env migration)
+**Affected files:**
+- `services/kapso-functions/src/tracy-auth.js` — `INLINE_QA_JWTS.PDB` JWT contained `marketplaceId=272` (Masuno shared), `ecommerceUserId` and `customerLocationId` from the old shared env
+
+**Bug:** When PDB was migrated to Anita-exclusive Tracy env 291 (ecommerceUserId=84605, customerLocationId=771042), the inline Hito-1 fallback JWT in `tracy-auth.js` was not updated. The Hito-2 programmatic signin path masked the stale fallback. Any rollback to Hito-1 for PDB would have silently authenticated against Palco's shared Masuno marketplace (272) instead of PDB's exclusive env (291) — resulting in PDB orders landing in the wrong Tracy marketplace with no error at auth time.
+
+**Root cause:** Inline credential fallbacks are static and not updated by the credential rotation that updates `tenants.yaml`. The two sources diverged silently: `tenants.yaml` was updated to 289/291 (2026-06-01), `tracy-auth.js` `INLINE_QA_JWTS` was not.
+
+**Fix:** Applied in commit `c3e1871` — PDB JWT regenerated with env 291 credentials (ecommerceUserId=84605, customerLocationId=771042). Comment added on each `INLINE_QA_JWTS` entry documenting its expected marketplaceId to make future staleness visible in code review.
+
+**Related:** E2026-06-01-3 (stale marketplace IDs in tracy-search.js/ruta-a-handler.js — same root cause, different files).
+
+**Status:** code-fix — applied c3e1871. PDB Hito-1 path now correct.
