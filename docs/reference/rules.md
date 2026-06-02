@@ -2,7 +2,7 @@
 
 # Rules Reference
 
-**27 rules** in `system/rules/`.
+**28 rules** in `system/rules/`.
 
 | File | Title | Summary |
 |------|-------|--------|
@@ -16,6 +16,7 @@
 | `doc-linking.md` | Doc Linking | Use `[doc NN](relative-path.md)` — never bare "doc NN". Relative paths from source file. Dimension... |
 | `field-note-routing.md` | field-note-routing | — |
 | `git-discipline.md` | Git Discipline | ## One rule |
+| `hard-deny-manifest.md` | Hard Deny Manifest | Canonical list of commands that are **unconditionally blocked** in auto mode via `settings.autoMode.... |
 | `inbox-convention.md` | Inbox Convention | `inbox/` is a gitignored drop zone for files needing processing (audio, PDFs, data, screenshots). Or... |
 | `lifecycle-gate-assessment.md` | Always Assess Lifecycle Gates Before Starting | Before starting any task, assess which DDD/SDD/TDD lifecycle steps apply — even S-effort fixes. |
 | `m-plus-discipline-enforcement.md` | M+ Discipline Enforcement | Any plan, backlog, or build output for efforts M or larger MUST include all four disciplines: |
@@ -102,6 +103,13 @@ Use `[doc NN](relative-path.md)` — never bare "doc NN". Relative paths from so
 **File:** `system/rules/git-discipline.md`
 
 ## One rule
+
+
+## Hard Deny Manifest
+
+**File:** `system/rules/hard-deny-manifest.md`
+
+Canonical list of commands that are **unconditionally blocked** in auto mode via `settings.autoMode.hard_deny`. These are never-justified actions — no user intent, context, or explicit allow excepti
 
 
 ## Inbox Convention
