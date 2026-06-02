@@ -337,13 +337,15 @@ Before writing, verify the pattern passed the "different codebase?" filter. If t
 returned a finding marked as "field note" (client-specific), skip Step 5b for that finding
 and route it to Step 6 (field notes) instead.
 
-**Before writing**, activate the sentinel so `feedback-gate.sh` passes through:
+**Before writing**, activate both sentinels so `feedback-gate.sh` and `memory-write-gate.sh` pass through:
 ```bash
 touch /tmp/brana-close-active
+touch /tmp/brana-memory-write-active
 ```
-**After all Step 5b writes are done**, clean up:
+**After all Step 5b writes are done**, clean up both:
 ```bash
 rm -f /tmp/brana-close-active
+rm -f /tmp/brana-memory-write-active
 ```
 
 **Slug:** derive from `{short-title}` — lowercase, hyphens, no special chars, max 40 chars.
@@ -1000,18 +1002,20 @@ Proceed to classification audit only after the overflow pre-pass completes.
 
    > **Note:** Never route to `system/rules/` or `~/.claude/rules/`. `system/rules/` is BEHAVIORAL_PATHS and requires a worktree — flag as a rule candidate for the user to create via `/brana:build` instead. `~/.claude/rules/` is cleaned by `bootstrap.sh` on every run (rules are loaded via the plugin, not the identity layer).
 
-3. **Before executing any writes**, activate the sentinel so `feedback-gate.sh` passes through:
+3. **Before executing any writes**, activate both sentinels so `feedback-gate.sh` and `memory-write-gate.sh` pass through:
    ```bash
    touch /tmp/brana-close-active
+   touch /tmp/brana-memory-write-active
    ```
 
 4. **Execute moves** — for directives, write to the appropriate memory file and delete from MEMORY.md.
 
 5. **Feature ideas** — search existing tasks first: `backlog_search(query: "keyword")` (MCP) or `brana backlog search "keyword"`. If duplicate, just delete. If new, `backlog_add(subject: "...", work_type: "...", type: "task")` (MCP) or `brana backlog add --json '{"subject":"...","work_type":"...","type":"task"}'`
 
-6. **After all writes are complete**, clean up the sentinel:
+6. **After all writes are complete**, clean up both sentinels:
    ```bash
    rm -f /tmp/brana-close-active
+   rm -f /tmp/brana-memory-write-active
    ```
 
 7. **Report** — entries moved, deleted, kept, and feature ideas extracted
@@ -1233,6 +1237,10 @@ This ensures sitrep surfaces all follow-ups from the close report at the start o
 ### 2026-05-06: feedback-gate stops close mid-flow on Step 11 memory writes [→ t-1350]
 Step 5b documents the sentinel (`touch /tmp/brana-close-active`) for feedback_*.md writes, but Step 11 memory-review writes hit the same gate without a wrapper. Every close that writes memory files in Step 11 stalls the agent loop. Sentinel touch/rm must wrap Step 11 memory writes too.
 Source: close session 2026-05-06 / feedback-gate sentinel gap
+
+### 2026-06-02: memory-write-gate uses a different sentinel than feedback-gate [→ t-1132]
+`feedback-gate.sh` checks `/tmp/brana-close-active`. `memory-write-gate.sh` checks `/tmp/brana-memory-write-active`. Close Steps 5b and 11 only set `brana-close-active` — `memory-write-gate.sh` always fired and stopped every typed memory write. Fix: both sentinel touch/rm blocks in Steps 5b and 11 now set both sentinels. Any future gate that adds a new sentinel must also be added to these blocks.
+Source: t-1132 2026-06-02
 
 ### 2026-05-19: Procedure decision points must never silently drop items
 Any branch in a procedure that lets the user "skip" an action must still write a lower-priority `next[]` entry. "Skip" means "don't act now" — not "forget this forever." Four leakage points were found in close.md (Steps 3b, 4, 8, 12) where items were silently dropped. Rule: every decision branch preserves context in `next[]`; only the priority/category changes.
