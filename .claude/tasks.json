@@ -46326,7 +46326,7 @@
       "parent": "t-1410",
       "priority": "P0",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "[adr] acceptance_criteria schema — gate for /goal auto-loop",
       "tags": [
         "cc-features",
@@ -46379,7 +46379,7 @@
       "parent": "t-1410",
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "subject": "[impl] Add acceptance_criteria field to backlog schema — Rust CLI + brana-mcp",
       "tags": [
         "cc-features",
