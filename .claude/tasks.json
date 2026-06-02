@@ -44206,7 +44206,7 @@
       "blocked_by": [],
       "branch": "harness-core/refactor/t-1702-model-field-audit",
       "build_step": null,
-      "completed": null,
+      "completed": "2026-06-02",
       "context": "Check every skill (system/skills/*/SKILL.md), agent (system/agents/*.md), and command (system/commands/*.md) for their model field. Goal: (1) downgrade to claude-haiku-4-5 wherever Sonnet/Opus is used but the task is lightweight enough for Haiku (e.g. simple query, fast ops, read-only agents); (2) identify where Gemini via agy_delegate could replace or supplement Sonnet calls (e.g. research phases, knowledge retrieval). Candidate Haiku agents: memory-curator, client-scanner, venture-scanner, scout, archiver, daily-ops, metrics-collector, pipeline-tracker. Candidate agy slots: build.md LOAD phase (already uses agy), research.md Phase 0b (already migrated), challenge.md step 4b (already migrated). Look for remaining NLM/Sonnet calls that could route to agy. Output: a mapping of current model → recommended model per skill/agent/command, plus a list of agy migration candidates not yet wired.",
       "created": "2026-05-27",
       "description": null,
@@ -44220,7 +44220,7 @@
       "parent": null,
       "priority": "P1",
       "started": "2026-06-02",
-      "status": "in_progress",
+      "status": "completed",
       "strategy": "refactor",
       "subject": "audit skills/agents/commands model field — downgrade to Haiku where sufficient, wire Gemini (agy) where applicable",
       "tags": [
