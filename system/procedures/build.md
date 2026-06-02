@@ -112,7 +112,7 @@ This applies to EVERY step — CLASSIFY, SPECIFY, DECOMPOSE, BUILD, CLOSE. No ex
 ---
 
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo__claims_claim,mcp__ruflo__claims_release,mcp__ruflo__memory_store,mcp__ruflo__autopilot_learn")
+ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo__claims_claim,mcp__ruflo__claims_release,mcp__ruflo__memory_store,mcp__ruflo__autopilot_learn,mcp__brana__agy_delegate")
 
 ## Step 0: LOAD
 
@@ -170,7 +170,16 @@ Pull relevant architecture, decision knowledge, and skill matches into context b
        print(n)
    " "{doc_path}" "{already_loaded_1}" "{already_loaded_2}" ...
    ```
-   For each returned neighbor: read its first 50 lines for context.
+   For each returned neighbor:
+   - Count lines: `wc -l < {neighbor_path}`
+   - **If > 100 lines AND `mcp__brana__agy_delegate` is available:** call agy for targeted extraction:
+     ```
+     mcp__brana__agy_delegate(
+       task: "Read this doc and extract the key architectural constraints, ADR decisions, and prior patterns relevant to: {task_subject}\n\n{full_doc_content}"
+     )
+     ```
+     Use the agy response as context. Skip the `head -50` fallback.
+   - **Else:** read first 50 lines via `head -50 {neighbor_path}`.
    - **Cap:** max 3 graph-derived docs total (across all ruflo results). `depends_on` edges checked before `informs`.
    - **Skip if:** spec-graph.json doesn't exist, no knowledge results from ruflo, or graph query returns no neighbors.
    - This is best-effort enrichment — never blocks LOAD.
