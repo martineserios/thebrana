@@ -300,6 +300,28 @@ else
     echo "  ! settings.json or jq not available (skipping undercover mode)"
 fi
 
+# --- Step 4c2: MCP nonblocking startup env var ---
+# MCP_CONNECTION_NONBLOCKING=1 lets ruflo and other MCP servers initialize in
+# the background — tools available ~2s after session start instead of blocking.
+echo "MCP nonblocking startup (settings.json env):"
+if [ -f "$SETTINGS_FILE" ] && command -v jq &>/dev/null; then
+    CURRENT_NONBLOCKING=$(jq -r '.env.MCP_CONNECTION_NONBLOCKING // ""' "$SETTINGS_FILE" 2>/dev/null)
+    if [ "$CURRENT_NONBLOCKING" = "1" ]; then
+        echo "  = MCP_CONNECTION_NONBLOCKING already set"
+    else
+        CHANGES=$((CHANGES + 1))
+        if $CHECK_ONLY; then
+            echo "  ~ settings.json env.MCP_CONNECTION_NONBLOCKING (would set to '1')"
+        else
+            jq '.env.MCP_CONNECTION_NONBLOCKING = "1"' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" \
+                && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+            echo "  ~ settings.json env.MCP_CONNECTION_NONBLOCKING = '1'"
+        fi
+    fi
+else
+    echo "  ! settings.json or jq not available (skipping)"
+fi
+
 # --- Step 4d: Git pre-commit hook (no-attribution backstop) ---
 # Deploys the pre-commit hook template to ~/.config/git/hooks/. Does NOT
 # automatically set core.hooksPath globally — that's an opt-in (printed below).
