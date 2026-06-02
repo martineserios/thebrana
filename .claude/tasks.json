@@ -46391,7 +46391,7 @@
     },
     {
       "blocked_by": [],
-      "branch": null,
+      "branch": "harness-core/feat/t-1779-build-goal-stop-hook",
       "completed": null,
       "context": "Blocked by t-1777 (schema field must exist before skill can read it). This is the Tier 3 capstone of t-1410 — it closes the build loop so tasks become self-validating. Risk: /goal trivial self-termination if criteria are vague. Mitigation from idea doc: acceptance_criteria must be structured assertions (testable), not prose. Stop hook must grep for concrete evidence, not just ask Claude to confirm. Ref docs/ideas/cc-feature-adoption-v2.1.136-142.md Tier 3 section.",
       "created": "2026-05-30",
@@ -46405,8 +46405,8 @@
       "order": 0,
       "parent": "t-1410",
       "priority": "P1",
-      "started": null,
-      "status": "pending",
+      "started": "2026-06-02",
+      "status": "in_progress",
       "subject": "[skill] /brana:build reads acceptance_criteria → generates /goal + Stop hook validates",
       "tags": [
         "cc-features",
@@ -46414,7 +46414,8 @@
         "build",
         "goal"
       ],
-      "type": "task"
+      "type": "task",
+      "strategy": "feature"
     },
     {
       "blocked_by": [],
