@@ -1,3 +1,6 @@
+---
+paths: bootstrap.sh
+---
 # Hard Deny Manifest
 
 Canonical list of commands that are **unconditionally blocked** in auto mode via

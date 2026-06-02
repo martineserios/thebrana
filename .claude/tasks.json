@@ -46181,7 +46181,7 @@
     {
       "blocked_by": [],
       "branch": null,
-      "completed": null,
+      "completed": "2026-06-02",
       "context": null,
       "created": "2026-05-30",
       "description": "Add MCP_CONNECTION_NONBLOCKING=1 to the env block in ~/.claude/settings.json. Eliminates session startup blocking on ruflo and other MCP servers — they initialize in background, tools available ~2s after session start instead of blocking the entire startup. One-line change. Update bootstrap.sh if settings.json is regenerated from a template so the variable persists across reinstalls.",
@@ -46195,7 +46195,7 @@
       "parent": "t-1410",
       "priority": "P0",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "[impl] Set MCP_CONNECTION_NONBLOCKING=1 in settings.json env block",
       "tags": [
         "cc-features",
@@ -46221,7 +46221,7 @@
       "parent": "t-1410",
       "priority": "P0",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "[impl] hard_deny manifest — move never-ever rules to autoMode.hard_deny",
       "tags": [
         "cc-features",
@@ -46247,7 +46247,7 @@
       "parent": "t-1410",
       "priority": "P0",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "[spike] MCP Tool Search empirical baseline — 5 skill flows, measure ruflo invocation rate",
       "tags": [
         "cc-features",
@@ -46352,7 +46352,7 @@
       "parent": "t-1410",
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "[impl] Wire ruflo server instructions + alwaysLoad 5-6 core tools",
       "tags": [
         "cc-features",
