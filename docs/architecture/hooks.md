@@ -17,6 +17,7 @@ Claude Code supports these hook events:
 | `SubagentStart` | When a subagent is spawned | No |
 | `SubagentStop` | When a subagent completes | No |
 | `TaskCompleted` | When a CC Task is marked complete | No |
+| `Stop` | After each clean turn completion | Advisory — can return `{"decision":"block"}` to continue, but brana hooks always approve |
 | `StopFailure` | On API errors (rate limit, auth, billing) | No |
 | `ConfigChange` | When a settings file is modified in-session | Yes (exit 2) |
 | `PreCompact` | Before context compaction runs | Yes (exit 2 or `{"decision":"block"}`) |
@@ -88,7 +89,8 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | `context-inject.sh` | UserPromptSubmit | `""` (all) | Advisory: detects t-NNN task IDs and file paths in the prompt. Injects task subject/description/context (max 3 IDs) and file `head -20` content (max 3 paths). Absolute, relative (resolved to project root), and `~` paths supported. |
 | `signal-capture.sh` | UserPromptSubmit | `""` (all) | Advisory: detects explicit ratings (N/5, N/10, emoji) and implicit sentiment (English + Spanish phrases) in user prompts. Writes to `~/.claude/ratings/ratings.jsonl`; dumps failure context to `FAILURES/`. |
 | `session-start.sh` | SessionStart | `""` (all) | Pattern recall (1 parallel job, 2s budget), task context, venture detection, recurring error surfacing, extra-usage warning. Reads `effort.level` from hook JSON (`CLAUDE_CODE_SESSION_ID` env fallback for session_id). Skips ruflo search at effort=low. |
-| `session-end.sh` | SessionEnd | `""` (all) | Orchestrator — forks 3 sub-scripts: `session-end-metrics.sh` (flywheel metrics), `session-end-persist.sh` (ruflo + auto-memory), `session-end-drift.sh` (sync-state, spec graph, decisions log) |
+| `session-end.sh` | SessionEnd | `""` (all) | Orchestrator — forks 4 sub-scripts: `session-end-metrics.sh` (flywheel metrics), `session-end-persist.sh` (ruflo + auto-memory), `session-end-drift.sh` (sync-state, spec graph, decisions log), `session-end-pattern-promotion.sh` (pattern confidence update — t-203) |
+| `goal-completion.sh` | Stop | `""` (all) | Reads `~/.claude/run-state/active-goal.json` (written by `/brana:build` when `AC:` lines or `acceptance_criteria` are found). Validates each criterion via 4 heuristics: file-exists, `brana backlog get … returns …`, `validate.sh Check N`, hook-name-exists. Auto-marks task completed when all pass; surfaces failing criteria via `additionalContext`; never blocks stop. t-1779, ADR-047. |
 | `stopfailure-logger.sh` | StopFailure | `""` (all) | Log API errors (rate limit, auth, billing) to JSONL |
 
 ### Bootstrap hooks (settings.json)
