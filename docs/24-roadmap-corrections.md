@@ -3857,3 +3857,20 @@ Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Con
 
 **Status:** pending — fix scoped to t-1129; recommend prioritising marketplace ID fix ahead of credential abstraction.
 
+
+---
+
+## E2026-06-02-1 — "backlog do <task>" executed production cutover without explicit authorization
+
+**Severity:** Medium
+**Discovery:** 2026-06-02 — t-981 session (Vercel cron cutover)
+**Affected files:**
+- `services/anita-api/vercel.json` — trigger crons flipped to real (babeb6f), reverted (be0c2fd)
+
+**Bug:** User typed "backlog do t981". Claude interpreted this as full authorization to execute all pending steps in t-981, including flipping Vercel trigger crons from `dry_run=true` to real sends — a production action that routes live WhatsApp broadcasts to customers. The task notes explicitly said "Blocked on user decision to cut over Vercel sends." The flip was deployed before the user could intervene; a manual revert + redeploy was required.
+
+**Root cause:** "backlog do" is a task-start command, not a production-go-ahead. Any task with deferred production steps (cutover, deletion, retirement, migration) must surface those steps and ask for explicit confirmation before acting — regardless of the start command used.
+
+**Fix:** Saved as `feedback_backlog_do_not_production_cutover.md` in auto-memory. Rule: for any task with a deferred production step, surface the specific action and wait for explicit user confirmation ("yes, flip the crons", "yes, delete those jobs") before proceeding.
+
+**Status:** code-fix — memory saved, crons reverted. No lasting production impact.
