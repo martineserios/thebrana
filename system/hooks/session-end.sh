@@ -135,6 +135,14 @@ echo '{"continue": true}'
     EDITS="$EDITS" \
         bash "${SCRIPT_DIR}/session-end-drift.sh" 2>/dev/null || true
 
+    # ── Phase 4: Pattern promotion / demotion (t-203) ─────────
+    SESSION_FILE="$SESSION_FILE" \
+    CORRECTION_RATE="$CORRECTION_RATE" \
+    CORRECTIONS="$CORRECTIONS" \
+    TOTAL="$TOTAL" \
+    PROJECT="$PROJECT" \
+        bash "${SCRIPT_DIR}/session-end-pattern-promotion.sh" 2>/dev/null || true
+
     # Clean up event log
     rm -f "$SESSION_FILE"
 ) &

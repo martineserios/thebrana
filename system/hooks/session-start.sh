@@ -121,6 +121,9 @@ if [ -n "$CF" ] && [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
         if [ -n "$CP_LINES" ]; then
             echo "$CP_LINES" > "$TMPDIR_SS/corrections"
         fi
+        # Store recalled pattern keys for promotion tracking (t-203)
+        RECALLED_KEYS=$(echo "$CF_OUTPUT" | jq -c '[.[]? | select((.key // "" | test("correction|pattern"; "i")) or (.value | fromjson? | .confidence >= 0.7)) | .key] // []' 2>/dev/null) || RECALLED_KEYS="[]"
+        echo "$RECALLED_KEYS" > "$TMPDIR_SS/recalled-keys"
     ) &
     PIDS="$PIDS $!"
 else
@@ -655,14 +658,16 @@ _mark "hook-end"
 (
     SESSION_FILE="/tmp/brana-session-${SESSION_ID}.jsonl"
 
-    # Log recalled patterns to session file for promotion tracking
+    # Log recalled patterns to session file for promotion tracking (t-203)
     if [ -n "$CONTEXT" ]; then
+        RECALLED_KEYS_SS=$(cat "$TMPDIR_SS/recalled-keys" 2>/dev/null) || RECALLED_KEYS_SS="[]"
         jq -n -c \
             --argjson ts "$(date +%s 2>/dev/null || echo 0)" \
             --arg tool "session-start" \
             --arg outcome "recall" \
             --arg detail "$CONTEXT" \
-            '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail}' >> "$SESSION_FILE" 2>/dev/null || true
+            --argjson keys "${RECALLED_KEYS_SS:-[]}" \
+            '{ts: $ts, tool: $tool, outcome: $outcome, detail: $detail, keys: $keys}' >> "$SESSION_FILE" 2>/dev/null || true
     fi
 
     # Log venture detection to session file
