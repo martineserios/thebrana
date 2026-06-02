@@ -322,6 +322,29 @@ else
     echo "  ! settings.json or jq not available (skipping)"
 fi
 
+# --- Step 4c3: autoMode.hard_deny — never-ever rules ---
+# Synced from system/rules/hard-deny-manifest.md. Blocks unconditionally in auto mode.
+echo "Hard deny rules (settings.json autoMode):"
+if [ -f "$SETTINGS_FILE" ] && command -v jq &>/dev/null; then
+    DESIRED_HARD_DENY='["Bash(git push --force origin main*)","Bash(git push --force origin master*)","Bash(git push -f origin main*)","Bash(git push -f origin master*)","Bash(git commit --no-verify*)","Bash(git commit -n *)","Bash(git branch -D main*)","Bash(git branch -D master*)"]'
+    CURRENT_HARD_DENY=$(jq -c '.autoMode.hard_deny // []' "$SETTINGS_FILE" 2>/dev/null)
+    if [ "$CURRENT_HARD_DENY" = "$DESIRED_HARD_DENY" ]; then
+        echo "  = autoMode.hard_deny (unchanged)"
+    else
+        CHANGES=$((CHANGES + 1))
+        if $CHECK_ONLY; then
+            echo "  ~ autoMode.hard_deny (would set ${#DESIRED_HARD_DENY} rules)"
+        else
+            jq --argjson rules "$DESIRED_HARD_DENY" '.autoMode.hard_deny = $rules' \
+                "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" \
+                && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+            echo "  ~ autoMode.hard_deny (8 rules written)"
+        fi
+    fi
+else
+    echo "  ! settings.json or jq not available (skipping)"
+fi
+
 # --- Step 4d: Git pre-commit hook (no-attribution backstop) ---
 # Deploys the pre-commit hook template to ~/.config/git/hooks/. Does NOT
 # automatically set core.hooksPath globally — that's an opt-in (printed below).

@@ -156,6 +156,20 @@ Before writing implementation code on a new feature or fix, answer:
 If no to either: write the spec or test first. No exceptions for "small" changes.
 ```
 
+### CC-native hard deny (`autoMode.hard_deny`)
+
+For commands that are **never justified under any circumstances**, use CC's native
+`autoMode.hard_deny` instead of a hook or rule. Hard deny blocks unconditionally
+in auto mode — user intent, explicit allows, and context cannot override it.
+
+The canonical list lives in [`system/rules/hard-deny-manifest.md`](../../system/rules/hard-deny-manifest.md)
+and is synced to `~/.claude/settings.json` by `bootstrap.sh` (Step 4c3).
+Each entry requires a **Why hard deny** rationale in the manifest.
+
+Use hard deny when: the answer is the same every time, user intent cannot make it
+safe (force-push to main, `--no-verify` commits, force-delete protected branches).
+Use soft_deny or a hook when: context can make the action OK.
+
 ### "Never do X" hard rule
 
 ```markdown
