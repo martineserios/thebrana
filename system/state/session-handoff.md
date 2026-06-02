@@ -3,6 +3,37 @@
 ## North star
 Exponential leverage: foundational platform tasks first, then maximize results from them.
 
+---
+
+## 2026-06-02 — harness-core foundational run (t-1702, t-1779, t-203)
+
+**Mode:** FULL · 15 commits · 23 files · 3 tasks completed
+
+### Accomplished
+
+- **t-1702** (refactor): Model field audit — all 33 skills + 13 agents correctly assigned, no downgrades. One agy gap fixed: `build.md` LOAD step 2b now uses `agy_delegate` for graph-neighbor docs >100 lines. `brainstorm.md` ToolSearch updated.
+
+- **t-1779** (feat): Full `/goal` auto-loop per ADR-047. `build.md` Step 0 reads `acceptance_criteria` + `AC:` lines, writes `~/.claude/run-state/active-goal.json`, calls `/goal`. New `goal-completion.sh` Stop hook: 4-heuristic criteria validation, auto-completes tasks on full pass. `Stop` event wired in `hooks.json`. 6 tests pass.
+
+- **t-203** (feat): Pattern promotion pipeline. `session-start.sh` now writes recalled pattern KEYS to JSONL. New `session-end-pattern-promotion.sh` Phase 4: promote/demote ±0.1 conf based on correction_rate thresholds (<0.05 / >0.25). Audit log at `~/.claude/logs/pattern-promotion.jsonl`. 6 tests pass.
+
+- **Errata:** E2026-06-02-3 — stale task context claiming build.md already uses agy (false; fixed).
+- **Patterns:** audit-no-changes-valid-outcome, promotion-pipeline-needs-keys-not-text, commit-state-files-before-branch
+
+### Next
+
+1. **t-1713** (M, knowledge-pipeline, P1) — Scheduled memory consolidation (Auto Dream)
+2. **t-1781** (M, knowledge-pipeline, P1) — `brana knowledge process-url` via ruflo browser
+3. **maintenance** — Update `docs/architecture/hooks.md`: add goal-completion.sh + session-end-pattern-promotion.sh
+4. **maintenance** — `/brana:reconcile --scope propagation` (E2026-06-02-3)
+5. **t-1778** (in-progress) — acceptance_criteria Rust impl; unblocks t-1779 full field support
+
+### Watch
+
+- `goal-completion.sh` Stop hook is live — first real test next session with `AC:` lines in context.
+- Pattern promotion log: `~/.claude/logs/pattern-promotion.jsonl` — check after a few sessions.
+- Auto-state files (spec-graph.json, tasks-config.json) get dirty from backlog ops → **commit before branching** or worktree-gate blocks.
+
 ## What was done
 
 | Task | Status | Summary |
