@@ -46364,7 +46364,7 @@
     },
     {
       "blocked_by": [],
-      "branch": null,
+      "branch": "cli-backlog-schema/feat/t-1778-acceptance-criteria",
       "completed": null,
       "context": "Blocked by t-1776 (ADR must lock schema shape before Rust impl). Part of the /goal auto-loop: backlog stores criteria → /brana:build generates /goal → Stop hook validates completion. The Rust three-commit TDD pattern applies: spec stub → failing tests (todo!()) → passing impl. Use #[serde(default)] to avoid breaking existing tasks.json deserialization. Ref feedback_rust-tdd-three-commit-pattern.md and feedback_serde-default-required-for-cli-backfill.md.",
       "created": "2026-05-30",
