@@ -119,18 +119,29 @@ ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo_
 Pull relevant architecture, decision knowledge, and skill matches into context before building. Budget: 30K tokens max.
 
 0. **Goal injection** (task_id known only — skip for freeform builds):
-   Read the task's `context` field. Extract every line that starts with `AC:` (case-sensitive).
-   ```bash
-   # Via CLI (if MCP unavailable):
-   brana backlog get {task_id} | python3 -c "
-   import json, sys
-   t = json.load(sys.stdin)
-   lines = [l[3:].strip() for l in (t.get('context') or '').splitlines() if l.startswith('AC:')]
-   print('; '.join(lines))
-   "
-   ```
-   - **If AC: lines found:** call `/goal {criteria}` where `{criteria}` is the joined AC: text (semicolons between multiple criteria). This anchors every response in the session to the acceptance criteria without requiring repetition.
-   - **If no AC: lines:** proceed without `/goal` — no regression.
+   Collect acceptance criteria from two sources (merge, deduplicate):
+   - **Source 1 — `acceptance_criteria` field** (preferred; available after t-1778 ships):
+     ```bash
+     brana backlog get {task_id} --field acceptance_criteria 2>/dev/null
+     # Returns JSON array or null. Parse with: jq -r '.[]?' if array, skip if null.
+     ```
+   - **Source 2 — `AC:` lines in context** (fallback; always available):
+     ```bash
+     brana backlog get {task_id} | python3 -c "
+     import json, sys
+     t = json.load(sys.stdin)
+     lines = [l[3:].strip() for l in (t.get('context') or '').splitlines() if l.startswith('AC:')]
+     print('\n'.join(lines))
+     "
+     ```
+   Merge both sources. If either yields criteria:
+   - **Call** `/goal "{task.subject} — Done when: {criteria joined with ' AND '}"` to anchor the session.
+   - **Write** `~/.claude/run-state/active-goal.json`:
+     ```json
+     {"task_id": "{task_id}", "cwd": "{git_root}", "criteria": ["{criterion1}", "{criterion2}"]}
+     ```
+     This state file is read by the Stop hook (`goal-completion.sh`) to auto-complete the task.
+   - **If no criteria found in either source:** proceed without `/goal` — no regression.
    - **Skip for:** freeform builds (no task_id), spike strategy, investigation strategy.
 
 1. **Build query** from available context: `"{project} {task.subject} {task.tags joined} {user_input}"`
