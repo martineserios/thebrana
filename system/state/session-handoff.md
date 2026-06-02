@@ -5,6 +5,20 @@ Exponential leverage: foundational platform tasks first, then maximize results f
 
 ---
 
+## 2026-06-02 — docs maintenance (hooks.md inventory)
+
+**Mode:** NANO · 1 commit · 1 file
+
+### Accomplished
+- `docs/architecture/hooks.md`: added `Stop` event to events table; added `goal-completion.sh` to Plugin hooks inventory; updated `session-end.sh` row to mention Phase 4 (`session-end-pattern-promotion.sh`).
+
+### Next
+1. **t-1713** (M, knowledge-pipeline, P1) — Scheduled memory consolidation (Auto Dream)
+2. **t-1781** (M, knowledge-pipeline, P1) — `brana knowledge process-url` via ruflo browser
+3. **maintenance** — `/brana:reconcile --scope propagation` (E2026-06-02-3)
+
+---
+
 ## 2026-06-02 — harness-core foundational run (t-1702, t-1779, t-203)
 
 **Mode:** FULL · 15 commits · 23 files · 3 tasks completed
