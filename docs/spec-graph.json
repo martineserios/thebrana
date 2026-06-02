@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-01T23:13:55Z",
+  "generated": "2026-06-02T04:17:14Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -891,6 +891,11 @@
       "type": "ADR",
       "impl_files": []
     },
+    "docs/architecture/decisions/ADR-047-acceptance-criteria-schema.md": {
+      "title": "ADR-047: acceptance_criteria Schema — Gate for /goal Auto-Loop",
+      "type": "ADR",
+      "impl_files": []
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -1326,6 +1331,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/architecture/field-notes/t-1773-toolsearch-baseline.md": {
+      "title": "Field Note: MCP Tool Search Empirical Baseline",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/architecture/glossary.md": {
       "title": "Domain Glossary — Operating Model",
       "type": "Roadmap",
@@ -1407,6 +1417,7 @@
       "impl_files": [
         "system/",
         "system/procedures/",
+        "system/rules/hard-deny-manifest.md",
         "system/rules/README.md"
       ]
     },
@@ -12371,9 +12382,9 @@
     }
   ],
   "stats": {
-    "nodes": 415,
+    "nodes": 417,
     "edges": 1599,
     "typed_edges": 568,
-    "orphans": 121
+    "orphans": 123
   }
 }
