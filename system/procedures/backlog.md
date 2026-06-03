@@ -675,11 +675,16 @@ All interactive confirmations use the **AskUserQuestion** tool for a selectable 
 1. **Parse description** from argument. If no description provided: scan recent conversation turns for actionable items — problems discussed, ideas proposed, improvements suggested, or work identified. Draft a subject + description from the strongest candidate and present it: "Add task: '{subject}'? [Confirm / Edit / Cancel]". If no actionable item found in conversation, ask for a description.
 2. Read tasks.json (all pending tasks, active milestones, tag vocabulary)
 3. **URL auto-detection:** if the description contains `https://`, suggest `kind: research`, auto-extract the URL to the `context` field (format: `URL: {url}`), and skip the kind/milestone prompt.
-4. **First question batch** — use a single AskUserQuestion with up to 4 questions:
+3a. **Epic assignment** — tasks must always have an epic (no orphans allowed):
+   - Read `active_epic` from `~/.claude/tasks-config.json`. If set, **auto-assign silently** and note "(assigned to epic: {active_epic})" — skip the epic question in step 4.
+   - Else: infer epic from subject/tags (e.g., "harness" tag → "harness" epic, "backlog" tag → "backlog-git-alignment", "research" tag → most-recent research epic in tasks.json). If confident, set as the default suggestion in step 4.
+   - No inference possible → add **Epic** to the first question batch in step 4. Options: distinct epics from tasks.json (sorted by recency) + "Create new…" (user types via Other input). **There is no skip option — every task must have an epic.**
+   - "Create new…" → accept slug from free-text input; confirm: "Create epic '{slug}'? It will appear in backlog focus and filters."
+4. **First question batch** — use a single AskUserQuestion with up to 4 questions (omit Epic question if active_epic was auto-assigned in step 3a; omit Milestone if URL auto-detected or no active milestones):
    - **Kind** (skip if URL auto-detected): `feature`, `fix`, `refactor`, `research`, `docs`, `design`, `ops`. Header: "Kind"
    - **Tags**: suggest tags from description keywords matched against existing vocabulary. Options: "Accept {suggested}" (recommended), "Edit", "Skip". Header: "Tags"
    - **Effort**: suggest from description complexity (S/M/L/XL). Options: each size with description. Header: "Effort"
-   - **Milestone** (skip if URL auto-detected or no active milestones): options from active milestones + "None". Header: "Milestone"
+   - **Epic** (only if not auto-assigned in step 3a): options = inferred slug (recommended, if any) + top epics from tasks.json + "Create new…". Header: "Epic"
 5. Auto-assign next id, set defaults. Auto-classify `strategy` from description/kind/tags (same heuristic as `/brana:backlog start`). Leave `build_step` null.
 6. **Dependency scan** — cross-reference all pending tasks:
    - Match by **tag overlap** (2+ shared tags with the new task)
@@ -699,7 +704,7 @@ All interactive confirmations use the **AskUserQuestion** tool for a selectable 
    - If the user provides text, store it in the `context` field
    - If skipped, proceed without context
 8. Priority: **leave null** (user sets manually via `/brana:backlog triage` or direct edit)
-9. **Final confirmation** — AskUserQuestion: "Add {id} '{subject}' [{tags}, {effort}] under {milestone}? blocked_by: [{deps}]" Options: "Confirm" (recommended), "Edit", "Cancel". Header: "Confirm"
+9. **Final confirmation** — AskUserQuestion: "Add {id} '{subject}' [{tags}, {effort}] epic:{epic} under {milestone}? blocked_by: [{deps}]" Options: "Confirm" (recommended), "Edit", "Cancel". Header: "Confirm"
 10. Write tasks.json
 11. **GitHub sync** (if `github_sync.enabled` in `~/.claude/tasks-config.json`):
     - Run `system/scripts/gh-sync.sh create {task-id} {tasks-json-path}`. Read issue number from stdout, write to task's `github_issue` field.
