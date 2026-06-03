@@ -563,6 +563,7 @@ mod tests {
                 test_write_rate: 0.11,
                 cascade_rate: 0.0,
                 delegation_count: 3,
+                extract_metrics: None,
             }),
             session_labels: vec![],
             epic: None,
