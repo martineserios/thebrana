@@ -37,8 +37,14 @@ ToolSearch("select:mcp__ruflo__hive-mind_init,mcp__ruflo__hive-mind_spawn,mcp__r
 ### Step 0: Goal injection
 
 Set session orientation before any checks run:
-- **If task_id known:** extract `AC:` lines from task context (same pattern as `build.md` Step 0 sub-step 0). If found, call `/goal {criteria}`.
-- **If no task_id or no `AC:` lines:** call `/goal "ship {target}: all checks pass, deployed, verified"` where `{target}` is the npm package name, task subject, or branch name.
+- **If task_id known:** extract `AC:` lines from task context (same pattern as `build.md` Step 0 sub-step 0). If found:
+  - Call `/goal "ship {task-id} — Done when: {criteria joined with ' AND '}"`.
+  - Write `~/.claude/run-state/active-goal.json`:
+    ```json
+    {"task_id": "{task_id}", "cwd": "{git_root}", "session_id": "$BRANA_SESSION_ID", "criteria": ["{criterion1}", "{criterion2}"]}
+    ```
+    The Stop hook (`goal-completion.sh`) will auto-complete the task when criteria pass.
+- **If no task_id or no `AC:` lines:** call `/goal "ship {target}: all checks pass, deployed, verified"` where `{target}` is the npm package name, task subject, or branch name. No `active-goal.json` write — narrative goal only.
 - Skip for `bootstrap` invocation — the goal is implicit.
 
 ### Step 1: Pre-flight — Is this safe to deploy?
