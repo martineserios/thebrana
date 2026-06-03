@@ -46818,7 +46818,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "strategy": null,
       "stream": "dev",
       "subject": "[fix] brana knowledge process --draft: sanitize cluster names containing / to avoid malformed filenames",
