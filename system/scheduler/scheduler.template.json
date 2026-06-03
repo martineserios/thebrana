@@ -91,6 +91,16 @@
       "captureOutput": true,
       "_comment": "t-1075: weekly L2 memory lint+heal — dedup, contradiction detection, frontmatter imputation. Runs after knowledge-decay (13:00). Enable only after --dry-run validation."
     },
+    "memory-consolidation": {
+      "type": "command",
+      "command": "./system/scripts/memory-consolidation.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "Mon,Tue,Wed,Thu,Fri,Sat *-*-* 15:30:00",
+      "enabled": true,
+      "timeoutSeconds": 120,
+      "captureOutput": true,
+      "_comment": "t-1834: threshold-triggered L3 consolidation — debrief-flag consumption + frontmatter date normalization. OR trigger: >24h OR >=5 sessions. Does NOT call lint-heal.sh (no lock collision). Runs Mon-Sat only (Sun handled by lint-heal at 15:00 which resets session counter)."
+    },
     "export-patterns": {
       "type": "command",
       "command": "./system/scripts/sync-state.sh export --auto-commit",
