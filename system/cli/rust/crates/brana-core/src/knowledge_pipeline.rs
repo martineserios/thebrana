@@ -1034,6 +1034,93 @@ pub fn append_event_log_entry(
     Ok(log_path)
 }
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Semantic dedup — ruflo-backed pre-filter for Tier1 (t-1668)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Parse ruflo `memory search` stdout to determine if any results were returned.
+/// Returns `true` when the output contains `[INFO] Found N results` where N > 0.
+/// This is the sole source of truth for whether a topic is already in the knowledge base.
+pub fn parse_semantic_dedup_output(output: &str) -> bool {
+    output.lines().any(|line| {
+        let line = line.trim();
+        if let Some(rest) = line.strip_prefix("[INFO] Found ") {
+            if let Some(n_str) = rest.split_whitespace().next() {
+                return n_str.parse::<u32>().map(|n| n > 0).unwrap_or(false);
+            }
+        }
+        false
+    })
+}
+
+/// Resolve the ruflo binary path.
+/// Priority: `RUFLO_BIN` env var → NVM node version directories → PATH.
+pub fn resolve_ruflo_binary() -> Option<PathBuf> {
+    if let Ok(v) = std::env::var("RUFLO_BIN") {
+        let p = PathBuf::from(&v);
+        if p.exists() {
+            return Some(p);
+        }
+    }
+    // Scan NVM node version directories (ruflo is not always on PATH in subshells)
+    let nvm_root = std::env::var("NVM_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| home().join(".nvm"));
+    let nvm_versions = nvm_root.join("versions/node");
+    if let Ok(entries) = std::fs::read_dir(&nvm_versions) {
+        for entry in entries.flatten() {
+            let candidate = entry.path().join("bin/ruflo");
+            if candidate.exists() {
+                return Some(candidate);
+            }
+        }
+    }
+    // Fall back to PATH
+    if let Ok(out) = std::process::Command::new("which").arg("ruflo").output() {
+        if out.status.success() {
+            let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            if !path.is_empty() {
+                return Some(PathBuf::from(path));
+            }
+        }
+    }
+    None
+}
+
+/// Check if a URL's topic is already well-represented in the knowledge base.
+///
+/// Calls `ruflo memory search` at the given similarity threshold. Returns `true`
+/// when at least one result is found (topic covered). Safe default is `false`
+/// (novel) when ruflo is unavailable or the call fails — the LLM scorer then
+/// decides normally.
+///
+/// Threshold 0.85 calibrated from t-1589: max distinct-pair similarity = 0.59,
+/// gap = 0.26. Only near-exact topic duplicates are caught, not loose overlaps.
+pub fn check_semantic_dedup(title_signal: &str, threshold: f64) -> bool {
+    let Some(ruflo) = resolve_ruflo_binary() else {
+        return false;
+    };
+    let threshold_str = format!("{:.2}", threshold);
+    match std::process::Command::new(&ruflo)
+        .args([
+            "memory", "search",
+            "-q", title_signal,
+            "-n", "knowledge",
+            "-l", "1",
+            "--threshold", &threshold_str,
+        ])
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .output()
+    {
+        Ok(out) if out.status.success() => {
+            parse_semantic_dedup_output(&String::from_utf8_lossy(&out.stdout))
+        }
+        _ => false,
+    }
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // Tests
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1856,4 +1943,35 @@ mod tests {
         assert!(content.contains("https://yesterday.com"));
         assert!(content.contains("https://today.com"));
     }
+
+    // ── semantic dedup output parsing (t-1668) ───────────────────────
+
+    #[test]
+    fn test_parse_semantic_dedup_found_results_returns_true() {
+        let output = "[INFO] Searching: \"MCP tutorial\" (semantic)\n\n  Search time: 758ms\n\n+---+-------+\n| Key | Score |\n+---+-------+\n| k1 |  0.91 |\n+---+-------+\n\n[INFO] Found 1 results\n";
+        assert!(parse_semantic_dedup_output(output));
+    }
+
+    #[test]
+    fn test_parse_semantic_dedup_found_zero_returns_false() {
+        let output = "[INFO] Searching: \"novel topic\" (semantic)\n\n  Search time: 123ms\n\n[INFO] Found 0 results\n";
+        assert!(!parse_semantic_dedup_output(output));
+    }
+
+    #[test]
+    fn test_parse_semantic_dedup_empty_output_returns_false() {
+        assert!(!parse_semantic_dedup_output(""));
+    }
+
+    #[test]
+    fn test_parse_semantic_dedup_error_output_returns_false() {
+        assert!(!parse_semantic_dedup_output("Error: connection refused\n"));
+    }
+
+    #[test]
+    fn test_resolve_ruflo_binary_does_not_panic() {
+        // None is acceptable in environments where ruflo is not installed.
+        let _ = resolve_ruflo_binary();
+    }
+
 }

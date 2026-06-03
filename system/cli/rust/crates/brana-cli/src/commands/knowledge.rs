@@ -480,13 +480,13 @@ fn run_tier1(
         return Ok(());
     }
 
-    let n_workers = TIER1_CONCURRENCY.min(batch.len());
+    // n_workers computed after dedup — see below
     println!(
         "\n  \x1b[1mTier 1 — Relevance filter\x1b[0m{}",
         if dry_run { " [dry-run]" } else { "" }
     );
     println!(
-        "  Processing {} URL(s) (batch cap: {TIER1_BATCH}, workers: {n_workers})\n",
+        "  Candidates: {} URL(s) (batch cap: {TIER1_BATCH})\n",
         batch.len()
     );
 
@@ -502,8 +502,47 @@ fn run_tier1(
 
     kp::check_agy_version()?;
 
+    // ── Semantic dedup pre-filter (t-1668) ────────────────────────────────────
+    // Before paying for LLM scoring, reject URLs whose topic is already well-
+    // represented in the knowledge base (similarity ≥ 0.85 at ruflo threshold).
+    const DEDUP_THRESHOLD: f64 = 0.85; // calibrated from t-1589
+    let mut dedup_filtered = 0usize;
+    let mut llm_batch: Vec<kp::UrlEventEntry> = Vec::with_capacity(batch.len());
+
+    for entry in batch {
+        if kp::check_semantic_dedup(&entry.title_signal, DEDUP_THRESHOLD) {
+            println!("  ⟳ [dedup] {} — topic already in knowledge base", entry.author);
+            state.urls.insert(entry.url.clone(), kp::UrlEntry {
+                status: UrlStatus::Irrelevant,
+                tier1_score: Some(0),
+                tier1_reason: Some("semantic dedup: topic already in brana-knowledge".to_string()),
+                logged_date: Some(entry.logged_date.clone()),
+                author: Some(entry.author.clone()),
+                title_signal: Some(entry.title_signal.clone()),
+                tags: entry.tags.clone(),
+                platform: Some(kp::classify_platform(&entry.url).to_string()),
+                ..kp::UrlEntry::new_unprocessed(None)
+            });
+            dedup_filtered += 1;
+        } else {
+            llm_batch.push(entry);
+        }
+    }
+    if dedup_filtered > 0 {
+        kp::save_state(state_path, state)?;
+        println!("  Dedup: {} URL(s) skipped (topic already in knowledge base)", dedup_filtered);
+    }
+    if llm_batch.is_empty() {
+        println!("  Tier 1: all URLs filtered by semantic dedup.");
+        return Ok(());
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
+    let n_workers = TIER1_CONCURRENCY.min(llm_batch.len());
+    println!("  LLM scoring: {} URL(s), workers: {n_workers}\n", llm_batch.len());
+
     // Build work queue: (entry, prompt) pairs
-    let tasks: Vec<(kp::UrlEventEntry, String)> = batch
+    let tasks: Vec<(kp::UrlEventEntry, String)> = llm_batch
         .iter()
         .map(|e| (e.clone(), build_tier1_prompt(e, &dim_list)))
         .collect();
