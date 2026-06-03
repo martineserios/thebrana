@@ -55,6 +55,15 @@ echo "$COMMAND" | grep -qE 'git\s+add\b' || pass_through
 # Step 3: Escape hatch
 echo "$COMMAND" | grep -q '\-\-force-main' && pass_through
 
+# Step 3.5: Compound branch-creation + git add — pass through.
+# If the command creates a new branch (git switch -c / git checkout -b) BEFORE
+# git add, the add will execute on the new branch (not main). The branch-at-staging
+# check would be wrong here — the staging happens after the switch.
+pre_add=$(echo "$COMMAND" | sed 's/git[[:space:]]\+add.*//')
+if echo "$pre_add" | grep -qE '(git[[:space:]]+switch[[:space:]]+-c|git[[:space:]]+checkout[[:space:]]+-b)[[:space:]]+\S+'; then
+    pass_through
+fi
+
 # Step 4: Find git root and check branch
 # If the command uses `git -C <path>`, check that repo's branch (worktree support).
 # Otherwise fall back to CWD (the session's working directory).

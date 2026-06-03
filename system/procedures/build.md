@@ -150,7 +150,7 @@ Pull relevant architecture, decision knowledge, and skill matches into context b
    mcp__ruflo__memory_search(query: "{query}", namespace: "knowledge", limit: 5, threshold: 0.3)
    mcp__ruflo__memory_search(query: "{query}", namespace: "pattern",   limit: 3, threshold: 0.3)
    ```
-   Use `smart: false` (default). `smart: true` is **rejected** — t-1699 spike (2026-05-28): smart:false 56-95ms / top-sim 0.57-0.64 on-topic; smart:true 275-879ms / top-sim 0.47 off-topic (Feynman physics as #1 for "hook enforcement"). MMR runs before limit slice (`afterMmrCount` fixed), so `limit:1` mitigation also fails — same wrong top result. MMR diversity param not exposed in ruflo schema (confirmed). Re-investigate only if ruflo exposes `mmr_lambda` or equivalent.
+   Use `smart: false` (default). `smart: true` is **not recommended for precision recall** — t-1699 spike (2026-05-28): smart:false 56-95ms / top-sim 0.57-0.64 on-topic; smart:true 275-879ms / top-sim 0.47 off-topic (MMR over-diversifies; Feynman physics surfaced as #1 for "hook enforcement"). MMR runs before limit slice (`afterMmrCount` fixed), so `limit:1` mitigation also fails. MMR diversity param not exposed in ruflo schema (confirmed). ControllerRegistry ESM crash fixed in v3.10.36/Node 22 (2026-06-03) — smart:true is now operational but still degrades precision. Use it only when topic diversity is the explicit goal. Re-evaluate if ruflo exposes `mmr_lambda` or equivalent.
    Merge results, rank by similarity. Results span: knowledge (dimension docs, ADRs, feature briefs, reflections — all indexed here), pattern (past session learnings).
 2b. **Graph edge traversal** (after ruflo search, if `docs/spec-graph.json` exists):
    Collect doc paths from knowledge results. Map ruflo key → file path:
