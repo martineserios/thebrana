@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-03T14:25:39Z",
+  "generated": "2026-06-03T14:48:36Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1576,6 +1576,15 @@
       "title": "Content Lens",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/conventions/ac-criteria.md": {
+      "title": "AC: Criteria — Authoring Guide",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/hooks/goal-completion.sh",
+        "system/hooks/",
+        "system/scheduler/scheduler.template.json"
+      ]
     },
     "docs/dimensions/01-brana-system-analysis.md": {
       "title": "01 - Brana System Analysis",
@@ -8662,6 +8671,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "conventions/ac-criteria.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "domain/MODEL-001-brana-core.md",
       "type": "references",
       "computed": false
@@ -12412,9 +12427,9 @@
     }
   ],
   "stats": {
-    "nodes": 419,
-    "edges": 1601,
+    "nodes": 420,
+    "edges": 1602,
     "typed_edges": 568,
-    "orphans": 124
+    "orphans": 125
   }
 }
