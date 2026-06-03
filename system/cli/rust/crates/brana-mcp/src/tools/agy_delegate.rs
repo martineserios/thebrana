@@ -13,7 +13,7 @@ use std::process::Stdio;
 use std::time::Instant;
 use tokio::process::Command;
 
-const AGY_PINNED_VERSION: &str = "1.0.3";
+const AGY_PINNED_VERSION: &str = "1.0.4";
 const AGY_TIMEOUT_SECS: u64 = 120;
 
 #[derive(Debug, Deserialize, JsonSchema)]
