@@ -3934,3 +3934,38 @@ Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Con
 **Fix:** Add unit test: mock KV returns JWT with `marketplaceId: 271`, configured `marketplace_id` is `289`. Assert: (a) `kv.delete` called once, (b) function falls through to fresh signin, (c) `stale_marketplace_token` warn event emitted. Pattern mirrors existing `tracy-auth.test.js` structure.
 
 **Status:** pending — tracked as t-1213 (if created).
+
+---
+
+## E2026-06-03-3 — Stage 0c subtask descriptions implied source changes for 6/7 KFs — all 6 were no-ops
+
+**Severity:** Low
+**Discovery:** 2026-06-03 — Stage 0c close debrief (t-1184–t-1190)
+**Affected files:**
+- `.claude/tasks.json` — t-1184, t-1185, t-1186, t-1187, t-1188, t-1190 task descriptions
+- `platform/agent/docs/plan.md` — Stage 0c subtask list
+
+**Bug:** Tasks t-1184–t-1188 and t-1190 were titled "Refactor {kf}.js — add getTenantCreds dual-read for tracy credentials", implying source code changes were needed in each KF. In reality, all 6 KFs delegate auth entirely to `tracyAuthHandler` (already updated in Stage 0b). Only `tracy-customer-lookup.js` (t-1189) owns a private `getAdminToken()` and needed actual changes. The 6 other tasks were source no-ops — only transitive bundle rebuilds were required.
+
+**Root cause:** Stage 0c subtask authoring was based on "these KFs use Tracy credentials" rather than "these KFs own their own auth flow." The correct authoring predicate was: grep for `getAdminToken\|getEcomToken\|TRACY_ADMIN_EMAIL` across KF sources before creating per-KF subtasks. Only KFs with a positive hit need source changes.
+
+**Impact:** 6 phantom "refactor" task descriptions created orientation cost. In a parallel-worktree session, these would have caused "completed but no diff" confusion.
+
+**Fix (process):** For any future "wire X into remaining KFs" task sprint, add a preflight grep: `grep -rl "getAdminToken\|TRACY_ADMIN_EMAIL" services/kapso-functions/src/` — only create source-change subtasks for files with positive hits. Bundle-only tasks should be explicitly labeled "rebuild + deploy (source no-op)".
+
+**Status:** pending — process fix; no code change required.
+
+---
+
+## E2026-06-03-4 — Test gap: getAdminToken() dual-read path in tracy-customer-lookup.js not unit tested
+
+**Severity:** Low
+**Discovery:** 2026-06-03 — Stage 0c close debrief (t-1189)
+**Affected files:**
+- `services/kapso-functions/src/tracy-customer-lookup.js` — `getAdminToken()` function (dual-read path added in 5b62c6c)
+
+**Bug:** The dual-read pattern added to `getAdminToken()` in t-1189 has no unit tests. Specifically: (1) UNKNOWN_TENANT → return null (no throw, falls to Path 3); (2) transient error (TENANT_CREDS_TIMEOUT/FETCH_ERROR) → alertFallback called + env var fallback used; (3) admin creds absent → return null. The pattern is structurally identical to what was tested in `tracy-auth.test.js` but those tests cover `tracyAuthHandler`, not `getAdminToken`.
+
+**Fix:** Add to `tracy-customer-lookup.test.js` (or create it): mock `getTenantCreds` for UNKNOWN_TENANT case → assert `getAdminToken` returns null; mock FETCH_ERROR → assert `alertFallback` called and env var creds used. Mirror the credential-type tests from `tracy-auth.test.js`.
+
+**Status:** pending — test task to be created.
