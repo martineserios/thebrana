@@ -290,6 +290,61 @@ For each **errata** finding:
 | Code bug (fixed this session) | `code-fix` | Already done |
 | Code bug (not fixed) | `pending` | Next session |
 
+**After writing each errata entry that the user approves**, run a debrief-flag extraction pass.
+Scan the approved errata text for memory filenames using this pattern:
+`\b(feedback|project|user|field-note)_[\w-]+\.md\b`
+
+For each match that exists under `~/.claude/projects/*/memory/`:
+
+```bash
+python3 - "$ERRATA_TEXT" << 'PYEOF'
+import re, json, os, sys
+from datetime import datetime, timezone
+
+errata_text = sys.argv[1]
+FLAGS = os.path.expanduser("~/.swarm/debrief-flags.jsonl")
+MEMORY_ROOT = os.path.expanduser("~/.claude/projects")
+
+pattern = re.compile(r'\b(feedback|project|user|field-note)_[\w-]+\.md\b')
+matches = set(pattern.findall(errata_text) if False else pattern.findall(errata_text))
+# Re-extract full filenames (findall returns groups with the alternation above)
+matches = set(re.findall(r'\b(?:feedback|project|user|field-note)_[\w-]+\.md\b', errata_text))
+
+now = datetime.now(timezone.utc).isoformat()
+written = 0
+for fname in sorted(matches):
+    # Verify the file exists somewhere under MEMORY_ROOT
+    found = False
+    for root, dirs, files in os.walk(MEMORY_ROOT):
+        if fname in files:
+            found = True
+            break
+    if not found:
+        continue
+    flag = {
+        "timestamp": now,
+        "type": "contradiction",
+        "file": fname,
+        "action": "archive",
+        "acted_on": False,
+        "confidence": "high",
+        "session": "main",
+        "source": "debrief-analyst"
+    }
+    with open(FLAGS, "a") as f:
+        f.write(json.dumps(flag) + "\n")
+    written += 1
+
+if written:
+    print(f"debrief-flags: {written} flag(s) written to {FLAGS}")
+PYEOF
+```
+
+Skip silently if no matches, if the file doesn't exist under MEMORY_ROOT, or if Python fails.
+This extraction only runs on **approved** errata — errata the user accepts and that the
+debrief-analyst names a specific memory file. General behavioral contradictions without a
+filename produce no flag (v1 constraint).
+
 **After writing any errata**, auto-insert a reconcile reminder into the Step 9 `next[]` payload — this ensures sitrep surfaces it even if the user skips the Step 12 task offer:
 ```json
 {"text": "Run /brana:reconcile --scope propagation (errata {E-IDs} filed this session)", "task_id": null, "category": "maintenance"}
@@ -787,6 +842,33 @@ The CLI auto-fills `written_at` (if empty) and `branch` (from git). `consumed_at
 - If `brana session write` fails, log error and continue — the session-end hook will capture a minimal fallback
 - Do NOT write to `session-handoff.md` — it's deprecated (read-only archive)
 - Do NOT write `.needs-backprop` — absorbed into the backprop field
+
+### Step 9a-ii: Increment memory-consolidation session counter
+
+After `brana session write` completes, atomically increment `session_count_since_run` in
+`~/.swarm/lint-heal-state.json`. This feeds the OR-trigger for `memory-consolidation.sh`.
+
+```bash
+python3 - << 'PYEOF'
+import json, os, tempfile
+STATE = os.path.expanduser("~/.swarm/lint-heal-state.json")
+try:
+    with open(STATE) as f:
+        d = json.load(f)
+except (FileNotFoundError, json.JSONDecodeError):
+    d = {"last_run_ts": 0, "session_count_since_run": 0, "last_run_date": "", "last_consolidation_ts": 0}
+d["session_count_since_run"] = d.get("session_count_since_run", 0) + 1
+d.setdefault("last_consolidation_ts", 0)
+tmp = STATE + ".tmp"
+with open(tmp, "w") as f:
+    json.dump(d, f, indent=2)
+    f.write("\n")
+os.replace(tmp, STATE)
+print(f"session_count_since_run → {d['session_count_since_run']}")
+PYEOF
+```
+
+Skip silently if the state file directory doesn't exist or Python fails — non-critical.
 
 ### Step 9b: Ruflo MCP — session mirror + cross-session signals
 
