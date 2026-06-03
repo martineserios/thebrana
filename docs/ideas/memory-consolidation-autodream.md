@@ -1,7 +1,7 @@
 # Memory Consolidation — Auto Dream Integration
 
-> Brainstormed 2026-06-02. Challenger review 2026-06-03 (5 findings addressed). Status: idea.
-> Backlog task: t-1713
+> Brainstormed 2026-06-02. Challenger review 2026-06-03 (5 findings addressed). Status: implemented (t-1834).
+> Backlog task: t-1834 (t-1713 cancelled — thin orchestrator approach, superseded by this spec)
 > Related: [`memory-consolidation-kairos.md`](./memory-consolidation-kairos.md) (Lint+Heal methodology, L0–L4 depth layers)
 > Related: [`dated-memory-files.md`](./dated-memory-files.md) (memory write gateway)
 
