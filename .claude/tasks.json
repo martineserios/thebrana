@@ -5384,7 +5384,7 @@
     {
       "blocked_by": [],
       "branch": null,
-      "completed": null,
+      "completed": "2026-06-03",
       "context": "URL: https://www.linkedin.com/posts/walid-boulanouar_if-i-had-to-rebuild-my-second-brain-from-share-7436639823878299648-mulc\nKarpathy refs from event-log: charlywargnier post (2026-04-03 14:35), iamdgarcia post (2026-04-03 22:51), sergiuandrade autoresearch post (2026-03-14). Cole Medin: AI second brain with Claude Code (2026-04-02 06:29). Directly relevant to brana knowledge architecture + auto-research pipeline.\n\n## Deep Dive Findings (2026-04-04)\n\n### Architecture\n3-file system: prepare.py (locked eval), train.py (agent workspace, 710 lines), program.md (human intent).\nLoop: edit→commit→run 5min→measure val_bpb→keep or git reset→repeat. ~100 experiments/night.\n\n### Transferable Patterns\n1. Shrink search space, not grow agent (630 lines total)\n2. Fixed time budget + scalar metric (5min, val_bpb)\n3. Evaluation locking (ratchet — only improvements persist)\n4. program.md = human intent layer (markdown, version-controlled)\n5. Git as experiment log (commits=successes, resets=failures)\n\n### Brana Gaps Identified\n- No automated quality metric (need scalar health score)\n- No time-boxed experimentation pattern\n- Intent layer (dimension docs) is richer but scattered vs. single program.md\n\n### Actionable\n- Ratchet pattern for skill quality (validate.sh gate)\n- Prototype /brana:experiment (time-boxed change→measure→keep/revert)\n- Scalar metrics: skill match accuracy, retrieval precision, task completion rate\n- Long-term: autonomous knowledge research loop\n\n### Sources\ngithub.com/karpathy/autoresearch, DataCamp guide, Cerebras blog (anti-cheating), SkyPilot (scaling)\n\n## Karpathy Second Brain (not autoresearch) — 2026-04-04\n\n### Original Design (Karpathy, Jan 2026)\n3-layer: raw/ (Obsidian Clipper) → LLM compile (summaries, backlinks, concept articles) → Obsidian interface.\n~100 articles, ~400K words — fits in context window, no RAG needed.\nSelf-healing: LLM health checks, gap filling, query results written back.\nSource: x.com/karpathy/status/2015883857489522876\n\n### Plugin: llm-knowledge-bases (rvk7895)\nCommands: /kb-init, /kb compile, /kb query (3 tiers), /kb lint, /research, /research-deep.\nMinimal: markdown backlinks only, no embeddings.\ngithub.com/rvk7895/llm-knowledge-bases\n\n### Cole Medin: second-brain-starter\nAdds proactive autonomy: Gmail/Slack/Asana polling, 4 autonomy levels (Observer→Partner).\n3 memory files: SOUL.md, USER.md, MEMORY.md. Hybrid FastEmbed + SQLite search.\ngithub.com/coleam00/second-brain-starter\n\n### Brana Gaps Identified\n1. Auto-compile from inbox/ (scheduled watcher → auto /research)\n2. Knowledge-grows-from-use (post-query write-back hook)\n3. Gap-detection health check (coverage scan across dimensions)\n4. Context-window-first retrieval (load relevant dims before falling back to RAG)",
       "created": "2026-03-09",
       "description": "Research LinkedIn post: https://www.linkedin.com/posts/walid-boulanouar_if-i-had-to-rebuild-my-second-brain-from-share-7436639823878299648-mulc",
@@ -5399,7 +5399,7 @@
       "parent": null,
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Karpathy second brain + autoresearch — design patterns for brana",
       "tags": [
         "linkedin",
@@ -14723,7 +14723,8 @@
         "claude-code",
         "releases",
         "memory",
-        "harness-engineering"
+        "harness-engineering",
+        "powerhouse +wave1"
       ],
       "type": "task",
       "work_type": "research"
@@ -21259,7 +21260,8 @@
       "tags": [
         "security",
         "audit",
-        "hooks"
+        "hooks",
+        "powerhouse +wave3"
       ],
       "type": "task",
       "work_type": "research"
@@ -30085,7 +30087,9 @@
       "started": null,
       "status": "pending",
       "subject": "knowledge process: enable parallel batch execution for tier1/tier2",
-      "tags": [],
+      "tags": [
+        "powerhouse +wave2"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -40445,7 +40449,8 @@
       "tags": [
         "schema-migration",
         "hook",
-        "enforcement"
+        "enforcement",
+        "powerhouse +wave3"
       ],
       "type": "task",
       "work_type": "implement"
@@ -40635,19 +40640,20 @@
       "execution": "code",
       "github_issue": null,
       "id": "t-1572",
-      "notes": null,
+      "notes": "Cancelled 2026-06-03: smart:true confirmed no-op — ControllerRegistry bug still present in ruflo 3.10.3. Falls back to smart:false silently. No schema exposure for MMR tuning. Adding the param would have zero runtime effect.",
       "order": null,
       "parent": "t-1546",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "strategy": null,
       "subject": "Add smart:true to LOAD calls in 4 procedures",
       "tags": [
         "ruflo",
         "ruflo-v36",
         "procedures",
-        "memory-search"
+        "memory-search",
+        "powerhouse +wave1"
       ],
       "type": "task"
     },
@@ -40967,7 +40973,8 @@
       "tags": [
         "claude-gemini-orchestration",
         "mcp",
-        "rust"
+        "rust",
+        "powerhouse +wave4"
       ],
       "type": "task",
       "work_type": "implement"
@@ -41076,7 +41083,11 @@
       "status": "pending",
       "strategy": null,
       "subject": "Phase 1 — Wiring Layer",
-      "tags": "ruflo,phase-1",
+      "tags": [
+        "ruflo",
+        "phase-1",
+        "powerhouse +wave4"
+      ],
       "type": "milestone"
     },
     {
@@ -41261,7 +41272,11 @@
       "status": "pending",
       "strategy": null,
       "subject": "Phase 2 — Agent Cost Attribution + Hive-Mind",
-      "tags": "ruflo,phase-2",
+      "tags": [
+        "ruflo",
+        "phase-2",
+        "powerhouse +wave4"
+      ],
       "type": "milestone"
     },
     {
@@ -43248,9 +43263,9 @@
     },
     {
       "blocked_by": [],
-      "branch": null,
+      "branch": "knowledge-pipeline/feat/t-1668-semantic-dedup-tier1",
       "build_step": null,
-      "completed": null,
+      "completed": "2026-06-03",
       "context": "Before scoring a URL in Tier1, call ruflo_search(url.title_signal, namespace:\"knowledge\", limit:2, threshold:0.85). If similarity>=0.85: mark_url(Irrelevant). Catches \"yet another MCP tutorial\" even if specific URL was never seen. Threshold 0.85 calibrated from t-1589. Tests: mock search result >0.85 → verify Irrelevant status set.",
       "created": "2026-05-24",
       "description": null,
@@ -43259,18 +43274,19 @@
       "execution": "code",
       "github_issue": null,
       "id": "t-1668",
-      "notes": null,
+      "notes": "Implemented: parse_semantic_dedup_output + resolve_ruflo_binary + check_semantic_dedup in brana-core. Wired into run_tier1 pre-filter. 4 unit tests green, 359 total. Threshold 0.85 from t-1589. Safe default false when ruflo unavailable.",
       "order": null,
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "Ruflo semantic dedup before Tier1 — skip URLs whose topic is already in brana-knowledge",
       "tags": [
         "knowledge-pipeline",
         "ruflo",
-        "dedup"
+        "dedup",
+        "powerhouse +wave1"
       ],
       "type": "task",
       "work_type": "implement"
@@ -44072,7 +44088,7 @@
       "execution": "code",
       "github_issue": null,
       "id": "t-1697",
-      "notes": null,
+      "notes": "2026-06-03 re-verification: smartFallback error still active ('Duplicate export of ControllerRegistry'). smart:true returns identical results + latency to smart:false. The 3.10.3 fix noted in context is not active in this instance. Re-test only if ruflo is upgraded to 3.11+.",
       "order": null,
       "parent": null,
       "priority": "P3",
@@ -44557,7 +44573,8 @@
         "memory",
         "scheduler",
         "harness-engineering",
-        "auto-dream"
+        "auto-dream",
+        "powerhouse +wave1"
       ],
       "type": "task"
     },
@@ -46098,7 +46115,7 @@
       "blocked_by": [],
       "branch": null,
       "build_step": null,
-      "completed": null,
+      "completed": "2026-06-03",
       "context": "tdd-gate.sh only fires on Rust/CLI paths. New shell hook scripts in system/hooks/ bypass it entirely. Fix: if a new *.sh is staged in system/hooks/ and no system/hooks/tests/test-<name>.sh is co-staged, warn (non-blocking). Observed: bash-output-compress.sh landed without test in same commit (close-2026-05-30).",
       "created": "2026-05-30",
       "description": null,
@@ -46107,18 +46124,19 @@
       "execution": "code",
       "github_issue": null,
       "id": "t-1768",
-      "notes": null,
+      "notes": "Already implemented in tdd-gate.sh Step 5.5 + shell branch Step 9. Tests 20-24 cover it. 26/26 passing. Closed without additional work.",
       "order": null,
       "parent": null,
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "[hook] extend tdd-gate.sh to cover new system/hooks/*.sh files",
       "tags": [
         "tdd-gate",
         "hooks",
-        "quality"
+        "quality",
+        "powerhouse +wave3"
       ],
       "type": "task",
       "work_type": "implement"
@@ -46464,7 +46482,9 @@
       "status": "pending",
       "strategy": null,
       "subject": "[cli] brana knowledge process-url — fetch URL via ruflo browser agent, extract insight, store to ruflo",
-      "tags": [],
+      "tags": [
+        "powerhouse +wave2"
+      ],
       "type": "task",
       "work_type": "implement"
     },
@@ -46802,7 +46822,9 @@
       "strategy": null,
       "stream": "dev",
       "subject": "[fix] brana knowledge process --draft: sanitize cluster names containing / to avoid malformed filenames",
-      "tags": []
+      "tags": [
+        "powerhouse +wave2"
+      ]
     },
     {
       "blocked_by": [],
@@ -47056,7 +47078,9 @@
       "strategy": null,
       "stream": "roadmap",
       "subject": "[cli] brana knowledge process --limit N — bypass 10-draft cap for bulk drafting",
-      "tags": []
+      "tags": [
+        "powerhouse +wave2"
+      ]
     },
     {
       "blocked_by": [
@@ -47672,6 +47696,185 @@
         "ux"
       ],
       "type": "task"
+    },
+    {
+      "id": "t-1827",
+      "subject": "Powerhouse Foundation — auto-learning, throughput, harness, multi-agent",
+      "status": "pending",
+      "type": "initiative",
+      "tags": [
+        "powerhouse",
+        "foundation",
+        "auto-learning",
+        "multi-agent"
+      ],
+      "description": null,
+      "effort": "XL",
+      "priority": "P1",
+      "parent": null,
+      "created": "2026-06-03",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Four-wave compounding stack. Low output early, exponential after session ~30.\n\nWave 1 — Auto-Learning Engine: t-1713, t-1572, t-1668, t-653\nWave 2 — Knowledge Throughput: t-1202, t-1781, t-1804, t-1794 (fix first)\nWave 3 — Harness Hardening: t-1768, t-1565, t-889\nWave 4 — Multi-Agent Unlock: t-1587, t-1583, t-1594\n\nStart: Wave 1 + Wave 3 in parallel (no blockers, S-M effort). Wave 2 follows. Wave 4 after harness is solid.\n\nCompounding logic:\n- Better memory recall → richer context per session → higher-quality builds → faster learning → repeat\n- Sessions 1-10: foundation laying\n- Sessions 10-30: compounding\n- Sessions 30+: exponential (3-5x output)",
+      "notes": "Wave 1 progress: t-1572 cancelled (smart:true no-op), t-1668 completed 2026-06-03.",
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
+    },
+    {
+      "id": "t-1828",
+      "subject": "Document smart:true usage guidance — precision vs diversity tradeoff",
+      "status": "completed",
+      "type": "task",
+      "tags": [
+        "ruflo",
+        "docs"
+      ],
+      "description": "smart:true is operational on ruflo v3.10.36/Node 22 (ControllerRegistry bug fixed 2026-06-03). Cold-start ~3.6s, MMR over-diversifies → low similarity scores. Use smart:false for precision recall; smart:true only when diversity is the explicit goal. t-1699 tracks cold-start/MMR quality fix.",
+      "effort": "XS",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-06-03",
+      "started": null,
+      "completed": "2026-06-03",
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": "Updated build.md:153 (smart:true now operational but not recommended for precision). Updated ruflo pattern in memory. project_ruflo-agentdb-status.md updated earlier in session.",
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
+    },
+    {
+      "id": "t-1829",
+      "subject": "Design and build /brana:experiment skill — time-boxed change→measure→keep/revert",
+      "status": "pending",
+      "type": "task",
+      "tags": [
+        "brana",
+        "experiment",
+        "ratchet",
+        "skill"
+      ],
+      "description": "Ratchet pattern from Karpathy autoresearch: time-boxed experiments with scalar metric gate. Change → measure → keep if improvement, revert if not. Analogous to autoresearch 5min/val_bpb loop applied to brana skill/hook quality.",
+      "effort": "L",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-03",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "From t-332 research (Karpathy autoresearch patterns, 2026-04-04). Ratchet: only improvements persist (git reset on failure). Needs scalar metric to gate keep/revert decision. Pair with scalar-metrics task. AC: /brana:experiment skill exists and runs a time-boxed experiment loop with automatic revert on metric regression.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
+    },
+    {
+      "id": "t-1830",
+      "subject": "Define and instrument scalar health metrics for brana — skill match accuracy, retrieval precision, task completion rate",
+      "status": "pending",
+      "type": "task",
+      "tags": [
+        "brana",
+        "metrics",
+        "health",
+        "quality"
+      ],
+      "description": "Brana gap from Karpathy autoresearch analysis: no automated quality metric. Need a scalar health score to gate experiments (ratchet) and track system health over time. Three candidate metrics: skill match accuracy (right skill surfaced for task), retrieval precision (ruflo top-1 on-topic rate), task completion rate (tasks closed / started per week).",
+      "effort": "M",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-03",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "From t-332 research (2026-04-04). Prerequisite for /brana:experiment ratchet (t-1829). AC: validate.sh reports a scalar health score. AC: score is comparable across sessions.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
+    },
+    {
+      "id": "t-1831",
+      "subject": "Auto-compile from inbox/ — scheduled watcher triggers /brana:research on dropped files",
+      "status": "pending",
+      "type": "task",
+      "tags": [
+        "brana",
+        "inbox",
+        "auto-research",
+        "knowledge"
+      ],
+      "description": "Brana gap: no automated pipeline from inbox/ drop to knowledge base. Files dropped in inbox/ should trigger auto-research → dimension doc update → ruflo index. Inspired by Karpathy 3-layer second brain (raw → compile → interface) and Cole Medin polling pattern.",
+      "effort": "M",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-06-03",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "From t-332 research (2026-04-04). Karpathy: raw/ → LLM compile → Obsidian. Cole Medin: Gmail/Slack polling, 4 autonomy levels. Brana gap 1 of 4. AC: file dropped in inbox/ → /brana:research triggered → knowledge stored in ruflo within 1 session cycle.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
+    },
+    {
+      "id": "t-1832",
+      "subject": "Knowledge-grows-from-use — post-query write-back hook for ruflo",
+      "status": "pending",
+      "type": "task",
+      "tags": [
+        "brana",
+        "ruflo",
+        "knowledge",
+        "hook"
+      ],
+      "description": "Brana gap: retrieved knowledge isn't written back with usage signal. Karpathy second brain pattern: query results written back to strengthen accessed nodes. Post-query hook should record which knowledge entries were surfaced and used, increasing their confidence weight over time.",
+      "effort": "M",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-06-03",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "From t-332 research (2026-04-04). Karpathy: self-healing via LLM health checks + query write-back. Cole Medin: 4 autonomy levels (Observer→Partner). Brana gap 2 of 4. AC: memory_search results trigger a post-query confidence update on accessed keys.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
+    },
+    {
+      "id": "t-1833",
+      "subject": "Fix branch-verify hook: compound git switch -c && git add blocked on main",
+      "status": "completed",
+      "type": "task",
+      "tags": [
+        "hook",
+        "branch-verify",
+        "bug"
+      ],
+      "description": "branch-verify hook fires on the current branch before the command executes. Compound commands like `git switch -c feat/... && git add ...` fail because hook sees 'main' at pre-execution time, even though the intent is to switch first. git switch -c alone also gets stopped (hook blocks continuation even on branch-creation-only commands). Very frequent failure — blocks normal workflow.",
+      "effort": "S",
+      "priority": "P1",
+      "parent": null,
+      "created": "2026-06-03",
+      "started": null,
+      "completed": "2026-06-03",
+      "blocked_by": [],
+      "branch": "harness/fix/t-1833-branch-verify-compound-fix",
+      "context": "Reproduction: from main, run `git switch -c feat/X && git add .claude/rules/Y && git commit -m ...` → hook blocks with \"cannot stage behavioral files on main\". Hook sees branch=main at pre-execute time. Also: bare `git switch -c feat/X` gets \"PreToolUse:Bash hook stopped continuation\" even though it only creates a branch (no staging). AC: compound git switch -c + git add commands succeed when branch-creation is the first operation. AC: bare git switch -c is never blocked.",
+      "notes": "Fixed branch-verify.sh Step 3.5: compound git switch -c && git add now passes. 3 new tests (18-20). Pre-existing failures Tests 9/10 (git add . / -A) are separate issue.",
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
     }
   ],
   "version": "1"
