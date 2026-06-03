@@ -18,6 +18,7 @@
 
 ## Severity Summary
 
+| E2026-06-03-10 | thebrana: `git status --porcelain` without `-uall` collapses new untracked directories into `parent/` token, silently bypassing `branch-verify.sh`'s behavioral-file guard for `git add .` / `git add -A`. Tests 9/10 had been failing since written. | **Medium** | code-fix | Fixed in 1aaf5ed: added `-uall` to porcelain call in broad-add branch. All 20 branch-verify tests now pass. |
 | E2026-06-03-7 | proyecto_anita: `clients/dgrx/services/dgrx-api/src/dgrx_api/services/sinks/pdf_generator.py` used the Unicode ellipsis character `'…'` (U+2026) for product name truncation in the DGRX cotizador PDF. fpdf2's core fonts (Helvetica, Courier, Times) only support Latin-1 (ISO 8859-1) — any character > U+00FF throws `FPDFUnicodeEncodingException` at render time. Assumption: fpdf2 handles any Unicode text; Reality: core fonts are Latin-1 only; Unicode chars must be avoided unless a TTF font is loaded. | **Low** | code-fix | Fixed in 0b2bd8c: replaced `name[:24] + "…"` with `name[:24] + "..."` (ASCII 3 dots). Rule: when using fpdf2 with core fonts, use only ASCII characters for punctuation/symbols. Load a TTF font (`pdf.add_font(...)`) if Unicode output is required. |
 | E2026-06-03-6 | thebrana: `system/hooks/branch-verify.sh` falsely denied compound `git switch -c feat/X && git add behavioral-file` commands on main. The hook checks `git branch --show-current` at hook-invocation time — before the shell executes any part of the command. For compound commands where a branch switch precedes `git add`, the hook always saw `main` and denied, even though the `git add` would execute on the new branch. User reported "happens very frequently" during normal development. | **Medium** | code-fix | Fixed in 7fe4fcd: added Step 3.5 to branch-verify.sh — if `git switch -c` or `git checkout -b` precedes `git add` in the command string, pass through. Tests 18–20 added in test-branch-verify.sh (t-1833). |
 | E2026-06-03-1 | thebrana: `system/hooks/worktree-gate.sh` deny message for DIRTY state says to use `git stash` — but `git stash` only stashes tracked-file modifications. New untracked files (created but never staged) are not stashed, leaving them in the working tree and causing `git switch -c` to fail or trigger the hook again. The workaround requires `git stash push -u -m "..."` (`-u` = include untracked). Without the `-u` hint in the error message, users will retry plain stash and hit the same failure repeatedly. | **Low** | code-fix | Fixed in 53a59b6: deny message now explicitly says `git stash push -u -m 'wip'` with inline note that `-u` includes untracked files and plain `git stash` will trigger the gate again. |
@@ -3999,6 +4000,21 @@ Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Con
 **Fix:** Added inline comment to the constant: `// Changing this requires: cargo build --release in brana-mcp/ + restart Claude Code`. Applied in this reconcile run.
 
 **Status:** code-fix — applied in chore/reconcile-20260603.
+
+---
+
+## E2026-06-03-10 — `git status --porcelain` collapses new untracked directories — hook file scanning silently misses behavioral files
+
+**Severity:** Medium
+**Discovery:** 2026-06-03 — branch-verify.sh Tests 9/10 failing (this session)
+**Affected files:**
+- `system/hooks/branch-verify.sh` line 112 — broad-add working-tree scan
+
+**Bug:** `git status --porcelain` (without `-uall`) folds an entirely-new untracked subdirectory into a single `?? parent/` token instead of listing individual files. `branch-verify.sh` used this to enumerate candidate behavioral files for `git add .` / `git add -A`. When a behavioral file lived in a directory that had never been tracked (e.g. `system/hooks/another.sh` in a fresh test repo), the hook saw `?? system/` — a bare directory token that `is_behavioral()` did not match — and silently allowed the add. Tests 9 and 10 exercised exactly this scenario and had been failing since they were written.
+
+**Fix:** Changed `git status --porcelain` to `git status --porcelain -uall` in the broad-add branch (line 112). With `-uall`, git lists each untracked file individually regardless of directory structure. All 20 branch-verify tests now pass.
+
+**Status:** code-fix — applied in fix(hooks): 1aaf5ed.
 
 ---
 
