@@ -343,7 +343,7 @@ Priority order (first match wins):
 1. `unprocessed > 0` → `brana knowledge process --tier1`
 2. `tier1_passed > 0` → `brana knowledge process --tier2`
 3. drafts on disk → `brana knowledge promote <path>`
-4. `tier2_clustered > 0` (no drafts) → `brana knowledge process --report`
+4. `tier2_clustered > 0` (no drafts) → `brana knowledge process --draft` or `--report`
 5. all current → `brana knowledge ingest <url>`
 
 ### Usage
@@ -373,11 +373,30 @@ Requires `agy` CLI (`npm install -g agy`) for LLM calls.
 ### Usage
 
 ```bash
-brana knowledge process --tier1          # score URLs 1-5, filter below threshold
-brana knowledge process --tier2          # cluster tier1-passed URLs into topics
-brana knowledge process --report         # generate dimension draft from clusters
-brana knowledge process --status         # print pipeline state summary (no writes)
+brana knowledge process --tier1                  # score URLs 1-5, filter below threshold
+brana knowledge process --tier2                  # cluster tier1-passed URLs into topics
+brana knowledge process --report                 # generate dimension draft from clusters
+brana knowledge process --status                 # print pipeline state summary (no writes)
+brana knowledge process --draft "agent tooling"  # draft a specific cluster topic
+brana knowledge process --draft                  # auto-select and draft undrafted clusters
+brana knowledge process --draft --limit 3        # auto-draft top 3 undrafted clusters
 ```
+
+### Tier3 draft behavior
+
+`--draft` generates a markdown draft doc from a Tier2 cluster. It operates in two modes:
+
+- **Explicit topic** (`--draft "agent tooling"`): Drafts the named cluster. Cluster names with
+  `/` or spaces are sanitized to slug form (e.g. `agent tooling` → `agent-tooling.md`).
+- **Auto-select** (`--draft` with no topic): Scans for undrafted clusters (URLs with status
+  `tier2_clustered`), ranks them by URL count, and drafts the top `--limit` clusters.
+
+| Flag | Default | Behavior |
+|------|---------|---------|
+| `--draft [TOPIC]` | absent | Draft a named cluster, or omit TOPIC to auto-select |
+| `--limit N` | 1 | How many clusters to auto-draft when no TOPIC is given |
+
+Draft files are written to `brana-knowledge/drafts/` and tracked in `pipeline-state.json`.
 
 ### Tier1 behavior (parallel)
 
@@ -400,6 +419,8 @@ developer tooling, knowledge management). URLs scoring ≥ 3 are promoted to `ti
 | `--tier1` | — | Run Tier1 relevance filter |
 | `--tier2` | — | Run Tier2 clustering |
 | `--report` | — | Generate cluster report / dimension drafts |
+| `--draft [TOPIC]` | — | Draft a specific cluster topic; omit TOPIC to auto-select undrafted clusters |
+| `--limit N` | 1 | Max clusters to auto-draft when `--draft` is given without a topic |
 | `--status` | — | Print pipeline state counts |
 
 ---
