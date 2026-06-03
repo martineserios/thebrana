@@ -730,6 +730,20 @@ If all checks pass, proceed silently.
 2. **Break spec into ordered tasks** with acceptance criteria.
    - Each task is small enough for one commit
    - Titles are imperative: "Implement X", "Add Y"
+   - **AC: syntax** — use these parseable forms for auto-verification at session end:
+     ```
+     AC: {path} exists                                → H1: file exists
+     AC: brana backlog get {id} returns {value}       → H2: task field check
+     AC: validate.sh Check {N} passes                 → H3: validate check
+     AC: hook {name}.sh exists in system/hooks/       → H4: hook file exists
+     AC: file {path} contains "{string}"              → H5: file content check
+     AC: jq '{expr}' {file} returns "{value}"         → H6: JSON field check
+     AC: "{command}" passes                            → H7: test command (allowlisted)
+     AC: changes to {file} committed                  → H8: git log check
+     AC: commit message contains "{string}"           → H8: git log --grep check
+     # Any other form → UNKNOWN (manual sign-off required)
+     # Full reference: docs/conventions/ac-criteria.md
+     ```
    - Dependencies are explicit
    - **Include documentation tasks** — for feature/greenfield/migration strategies, the task breakdown MUST include:
      - A user guide task (`docs/guide/features/{slug}.md`)

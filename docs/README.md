@@ -165,6 +165,14 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [skill-routing-in-backlog-start.md](architecture/features/skill-routing-in-backlog-start.md) | Semantic skill suggestion at task start (ADR-026, t-833) |
 | [operating-model.md](architecture/features/operating-model.md) | Operating model: auto-learning loop, 6-job taxonomy, unified maintenance, knowledge graph |
 
+## Conventions (docs/conventions/)
+
+Authoring guides for brana-specific syntax and patterns.
+
+| File | Contents |
+|------|----------|
+| [ac-criteria.md](conventions/ac-criteria.md) | AC: criteria authoring guide — supported heuristics H1–H8, H7 allowlist, sandbox rules, UNKNOWN fallback |
+
 ## Ideas (docs/ideas/)
 
 Exploratory design notes and integration proposals. Not committed to the roadmap.
