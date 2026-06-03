@@ -48068,6 +48068,30 @@
       "order": 0,
       "github_issue": null,
       "execution": "code"
+    },
+    {
+      "id": "t-1841",
+      "subject": "MEMORY.md consolidation: merge overflow entries into topic files (207 lines)",
+      "status": "pending",
+      "type": "task",
+      "tags": [
+        "memory",
+        "maintenance"
+      ],
+      "description": "MEMORY.md is at 207 lines (over 200-line cap). No dead links. Consolidate older feedback/pattern entries into dedicated topic files or promote recurring patterns to CLAUDE.md. Target: under 180 lines.",
+      "effort": "S",
+      "priority": null,
+      "parent": null,
+      "created": "2026-06-03",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
     }
   ],
   "version": "1"
