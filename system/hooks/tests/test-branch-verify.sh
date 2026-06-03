@@ -189,6 +189,28 @@ setup_repo "$REPO17" "main" "system/hooks/regression.sh"
 assert_deny "No cd prefix on main → CWD used (regression for existing behavior)" \
     "$(make_add_input "$REPO17" "system/hooks/regression.sh")"
 
+# ── t-1833: compound branch-creation + git add ───────────────────────────────
+
+# --- Test 18: compound 'git switch -c feat/X && git add behavioral' → pass
+# git add runs on the new branch (not main) — should not be blocked.
+REPO18="$TMPDIR_BASE/repo18"
+setup_repo "$REPO18" "main" ".claude/rules/my-rule.md"
+assert_pass "compound git switch -c + git add → passes (add runs on new branch)" \
+    "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"git switch -c feat/test && git add .claude/rules/my-rule.md\"},\"cwd\":\"$REPO18\"}"
+
+# --- Test 19: git add BEFORE git switch -c → still denies
+# The add would run on main; the switch comes too late.
+REPO19="$TMPDIR_BASE/repo19"
+setup_repo "$REPO19" "main" ".claude/rules/my-rule.md"
+assert_deny "git add before git switch -c → denies (add runs on main)" \
+    "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"git add .claude/rules/my-rule.md && git switch -c feat/test\"},\"cwd\":\"$REPO19\"}"
+
+# --- Test 20: compound 'git checkout -b feat/X && git add behavioral' → pass
+REPO20="$TMPDIR_BASE/repo20"
+setup_repo "$REPO20" "main" "system/hooks/my-hook.sh"
+assert_pass "compound git checkout -b + git add → passes (add runs on new branch)" \
+    "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"git checkout -b feat/test && git add system/hooks/my-hook.sh\"},\"cwd\":\"$REPO20\"}"
+
 # --- Summary ---
 echo ""
 echo "$PASS/$TOTAL passed"
