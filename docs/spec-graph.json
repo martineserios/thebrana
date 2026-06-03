@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-02T04:17:14Z",
+  "generated": "2026-06-03T14:48:36Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -465,6 +465,8 @@
       "title": "24 — Roadmap Corrections & Errata (ARCHIVED)",
       "type": "Roadmap",
       "impl_files": [
+        "system/hooks/worktree-gate.sh",
+        "system/cli/rust/crates/brana-mcp/src/tools/agy_delegate.rs",
         "system/procedures/research.md",
         "system/cli/rust/crates/brana-cli/src/commands/knowledge.rs",
         "system/scripts/verify-docs.sh",
@@ -1575,6 +1577,15 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/conventions/ac-criteria.md": {
+      "title": "AC: Criteria — Authoring Guide",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/hooks/goal-completion.sh",
+        "system/hooks/",
+        "system/scheduler/scheduler.template.json"
+      ]
+    },
     "docs/dimensions/01-brana-system-analysis.md": {
       "title": "01 - Brana System Analysis",
       "type": "Roadmap",
@@ -2363,6 +2374,14 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/ideas/goal-completion-heuristics-h5-h8.md": {
+      "title": "Goal-Completion Heuristics H5–H8 + AC: Authoring Guide",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/hooks/goal-completion.sh",
+        "system/scheduler/scheduler.template.json"
+      ]
+    },
     "docs/ideas/inbox-to-dimensions-pipeline.md": {
       "title": "Inbox → Dimensions Pipeline — Shape",
       "type": "Roadmap",
@@ -2382,6 +2401,13 @@
       "title": "Layered Input Processing — Batch + Express Pipelines",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/ideas/memory-consolidation-autodream.md": {
+      "title": "Memory Consolidation — Auto Dream Integration",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/memory-consolidation.sh"
+      ]
     },
     "docs/ideas/memory-consolidation-kairos.md": {
       "title": "Memory Consolidation — Lint + Heal Shape",
@@ -2560,6 +2586,7 @@
         "system/rules/doc-linking.md",
         "system/rules/field-note-routing.md",
         "system/rules/git-discipline.md",
+        "system/rules/hard-deny-manifest.md",
         "system/rules/inbox-convention.md",
         "system/rules/lifecycle-gate-assessment.md",
         "system/rules/m-plus-discipline-enforcement.md",
@@ -8644,6 +8671,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "conventions/ac-criteria.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "domain/MODEL-001-brana-core.md",
       "type": "references",
       "computed": false
@@ -11187,6 +11220,18 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/memory-consolidation-autodream.md",
+      "to": "docs/ideas/dated-memory-files.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/memory-consolidation-autodream.md",
+      "to": "docs/ideas/memory-consolidation-kairos.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/memory-consolidation-kairos.md",
       "to": "docs/ideas/inbox-to-dimensions-pipeline.md",
       "type": "references",
@@ -12382,9 +12427,9 @@
     }
   ],
   "stats": {
-    "nodes": 417,
-    "edges": 1599,
+    "nodes": 420,
+    "edges": 1602,
     "typed_edges": 568,
-    "orphans": 123
+    "orphans": 125
   }
 }

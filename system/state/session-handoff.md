@@ -1,4 +1,26 @@
-# Session Handoff — 2026-06-02
+# Session Handoff — 2026-06-03
+
+---
+
+## 2026-06-03 — H5-H8 goal-completion heuristics + AC criteria (t-1828, t-1830)
+
+**Mode:** FULL · 6 commits · 14 files · 3 tasks completed (t-1821, t-1822, t-1823)
+
+### Accomplished
+- **H5-H8 heuristics** in `system/hooks/goal-completion.sh`: file-contains, jq-query, command-exits-0 (allowlisted), git-log. Coverage: ~41% (H1-H4) → ~88% (H1-H8). Tests: 15/15 pass.
+- **`docs/conventions/ac-criteria.md`** — new reference doc, all 9 AC: parseable forms with sandbox rules and H7 allowlist.
+- **`system/procedures/build.md`** — AC: syntax block added in DECOMPOSE step.
+- **`docs/architecture/hooks.md`** — inventory row updated: 8 heuristics, session binding, stale guard.
+- **Correction**: MCP "task not found" is a CWD resolution issue in worktrees (not in-memory state) — debrief-analyst corrected the session summary's diagnosis.
+
+### Next
+1. **t-1826** (S, backlog-git-alignment) — `backlog add` should always assign epic — NOT completed (interrupted during LOAD)
+2. **t-1824** (S, harness) — Research `/workflows` command and dynamic workflows in CC
+3. **t-1825** (M, harness) — Research: skills as orchestrators of agent teams
+4. **maintenance** — `/brana:reconcile --scope consistency,propagation` (system/hooks/ changed + errata E2026-06-03-1/2 pending)
+5. **stash review** — `stash@{0}` on t-1827 branch has tasks.json + spec-graph.json changes (91 lines) — pop or drop before next t-1827 resumption
+
+---
 
 ## North star
 Exponential leverage: foundational platform tasks first, then maximize results from them.

@@ -105,6 +105,110 @@ else
 fi
 TOTAL=$((TOTAL + 1))
 
+# ── H5 Tests ──────────────────────────────────────────────────────────────────
+
+# ── Test 7: H5 file-contains — string present → PASS ─────────────────────────
+echo "Test 7: H5 file-contains — string present"
+mkdir -p "$TMPDIR_TEST/docs"
+echo "Status: Accepted" > "$TMPDIR_TEST/docs/test.md"
+cat > "$TMPDIR_TEST/.claude/run-state/active-goal.json" <<EOF
+{"task_id":"t-h5a","cwd":"$TMPDIR_TEST","criteria":["file docs/test.md contains \"Status: Accepted\""]}
+EOF
+assert_continue "H5 file-contains present → continue:true" "$(make_stop_input "$TMPDIR_TEST")"
+
+# ── Test 8: H5 file-contains — string absent → FAIL (but still continue) ─────
+echo "Test 8: H5 file-contains — string absent → FAILED criterion"
+cat > "$TMPDIR_TEST/.claude/run-state/active-goal.json" <<EOF
+{"task_id":"t-h5b","cwd":"$TMPDIR_TEST","criteria":["file docs/test.md contains \"Status: Rejected\""]}
+EOF
+assert_continue "H5 file-contains absent → continue:true (never blocks)" "$(make_stop_input "$TMPDIR_TEST")"
+
+# ── H6 Tests ──────────────────────────────────────────────────────────────────
+
+# ── Test 9: H6 jq query — match → PASS ───────────────────────────────────────
+echo "Test 9: H6 jq query — matching value"
+echo '{"enabled": false}' > "$TMPDIR_TEST/config.json"
+cat > "$TMPDIR_TEST/.claude/run-state/active-goal.json" <<EOF
+{"task_id":"t-h6a","cwd":"$TMPDIR_TEST","criteria":["jq '.enabled' config.json returns \"false\""]}
+EOF
+assert_continue "H6 jq match → continue:true" "$(make_stop_input "$TMPDIR_TEST")"
+
+# ── Test 10: H6 jq query — mismatch → FAIL (but still continue) ──────────────
+echo "Test 10: H6 jq query — mismatch"
+cat > "$TMPDIR_TEST/.claude/run-state/active-goal.json" <<EOF
+{"task_id":"t-h6b","cwd":"$TMPDIR_TEST","criteria":["jq '.enabled' config.json returns \"true\""]}
+EOF
+assert_continue "H6 jq mismatch → continue:true (never blocks)" "$(make_stop_input "$TMPDIR_TEST")"
+
+# ── Test 11: H6 jq query — jq error on nonexistent file → UNKNOWN ────────────
+echo "Test 11: H6 jq query — jq error → UNKNOWN (continue)"
+cat > "$TMPDIR_TEST/.claude/run-state/active-goal.json" <<EOF
+{"task_id":"t-h6c","cwd":"$TMPDIR_TEST","criteria":["jq '.foo' nonexistent.json returns \"bar\""]}
+EOF
+assert_continue "H6 jq error → continue:true (UNKNOWN, not FAILED)" "$(make_stop_input "$TMPDIR_TEST")"
+
+# ── H7 Tests ──────────────────────────────────────────────────────────────────
+
+# ── Test 12: H7 allowlisted command — non-matching → UNKNOWN ─────────────────
+echo "Test 12: H7 non-allowlisted command → UNKNOWN"
+cat > "$TMPDIR_TEST/.claude/run-state/active-goal.json" <<EOF
+{"task_id":"t-h7a","cwd":"$TMPDIR_TEST","criteria":["\"rm -rf /\" passes"]}
+EOF
+assert_continue "H7 non-allowlisted → continue:true (UNKNOWN, never executed)" "$(make_stop_input "$TMPDIR_TEST")"
+
+# ── Test 13: H7 allowlisted command — pytest passes ──────────────────────────
+echo "Test 13: H7 allowlisted command — pytest exits 0 (mocked)"
+# Create a fake pytest that exits 0
+mkdir -p "$TMPDIR_TEST/bin"
+echo '#!/usr/bin/env bash' > "$TMPDIR_TEST/bin/pytest"
+echo 'exit 0' >> "$TMPDIR_TEST/bin/pytest"
+chmod +x "$TMPDIR_TEST/bin/pytest"
+OLD_PATH="$PATH"
+export PATH="$TMPDIR_TEST/bin:$PATH"
+cat > "$TMPDIR_TEST/.claude/run-state/active-goal.json" <<EOF
+{"task_id":"t-h7b","cwd":"$TMPDIR_TEST","criteria":["\"pytest\" passes"]}
+EOF
+assert_continue "H7 allowlisted pytest exits 0 → continue:true" "$(make_stop_input "$TMPDIR_TEST")"
+export PATH="$OLD_PATH"
+
+# ── H8 Tests ──────────────────────────────────────────────────────────────────
+
+# ── Test 14: H8 changes-committed — file has commits → PASS ──────────────────
+echo "Test 14: H8 changes-to committed — file has git log"
+GIT_TEST_DIR=$(mktemp -d)
+(
+    cd "$GIT_TEST_DIR"
+    git init -q
+    git config user.email "test@test.com"
+    git config user.name "Test"
+    touch tracked-file.sh
+    git add tracked-file.sh
+    git commit -q -m "add tracked-file.sh"
+)
+cat > "$TMPDIR_TEST/.claude/run-state/active-goal.json" <<EOF
+{"task_id":"t-h8a","cwd":"$GIT_TEST_DIR","criteria":["changes to tracked-file.sh committed"]}
+EOF
+assert_continue "H8 changes-committed present → continue:true" "$(make_stop_input "$GIT_TEST_DIR")"
+rm -rf "$GIT_TEST_DIR"
+
+# ── Test 15: H8 commit-message-contains → PASS ───────────────────────────────
+echo "Test 15: H8 commit-message-contains — string in log"
+GIT_TEST_DIR2=$(mktemp -d)
+(
+    cd "$GIT_TEST_DIR2"
+    git init -q
+    git config user.email "test@test.com"
+    git config user.name "Test"
+    touch somefile.sh
+    git add somefile.sh
+    git commit -q -m "feat(harness): implement t-1828 heuristics"
+)
+cat > "$TMPDIR_TEST/.claude/run-state/active-goal.json" <<EOF
+{"task_id":"t-h8b","cwd":"$GIT_TEST_DIR2","criteria":["commit message contains \"t-1828\""]}
+EOF
+assert_continue "H8 commit-message-contains → continue:true" "$(make_stop_input "$GIT_TEST_DIR2")"
+rm -rf "$GIT_TEST_DIR2"
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo ""
 echo "Results: $PASS/$TOTAL passed, $FAIL failed"

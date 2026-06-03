@@ -115,6 +115,92 @@ for i in $(seq 0 $((CRITERIA_COUNT - 1))); do
         continue
     fi
 
+    # ── Heuristic 5: file {path} contains "{string}" ──────────────────────────
+    if echo "$criterion" | grep -qiE '^file .+ contains "'; then
+        path=$(echo "$criterion" | grep -oE 'file [^ ]+' | awk '{print $2}')
+        search=$(echo "$criterion" | grep -oE '"[^"]+"' | head -1 | tr -d '"')
+        # Sandbox: reject absolute paths and path traversal
+        if [ -n "$path" ] && [ -n "$search" ] && \
+           ! echo "$path" | grep -qE '^/|\.\.' ; then
+            target="${WORK_DIR}/${path}"
+            if [ -f "$target" ] && grep -qF "$search" "$target" 2>/dev/null; then
+                PASSED=$((PASSED + 1))
+            else
+                FAILED=$((FAILED + 1))
+                FAILED_LIST="$FAILED_LIST\n  ✗ $criterion"
+            fi
+        else
+            UNKNOWN=$((UNKNOWN + 1))
+            UNKNOWN_LIST="$UNKNOWN_LIST\n  ? $criterion"
+        fi
+        continue
+    fi
+
+    # ── Heuristic 6: jq '{expr}' {file} returns "{value}" ────────────────────
+    if echo "$criterion" | grep -qiE "^jq '.+' .+ returns"; then
+        expr=$(echo "$criterion" | grep -oE "'[^']+'" | head -1 | tr -d "'")
+        file=$(echo "$criterion" | sed "s/jq '[^']*' //" | grep -oE '[^ ]+' | head -1)
+        expected=$(echo "$criterion" | grep -oE 'returns "[^"]+"' | grep -oE '"[^"]+"' | head -1 | tr -d '"')
+        # Sandbox: reject absolute paths and path traversal
+        if [ -n "$expr" ] && [ -n "$file" ] && [ -n "$expected" ] && \
+           ! echo "$file" | grep -qE '^/|\.\.' ; then
+            target="${WORK_DIR}/${file}"
+            result=$(jq -r "$expr" "$target" 2>/dev/null) || { UNKNOWN=$((UNKNOWN + 1)); UNKNOWN_LIST="$UNKNOWN_LIST\n  ? $criterion"; continue; }
+            if [ "$result" = "$expected" ]; then
+                PASSED=$((PASSED + 1))
+            else
+                FAILED=$((FAILED + 1))
+                FAILED_LIST="$FAILED_LIST\n  ✗ $criterion"
+            fi
+        else
+            UNKNOWN=$((UNKNOWN + 1))
+            UNKNOWN_LIST="$UNKNOWN_LIST\n  ? $criterion"
+        fi
+        continue
+    fi
+
+    # ── Heuristic 7: "{command}" passes ──────────────────────────────────────
+    if echo "$criterion" | grep -qiE '^"[^"]+" passes$'; then
+        cmd=$(echo "$criterion" | grep -oE '"[^"]+"' | head -1 | tr -d '"')
+        # Allowlist: only execute known-safe test commands
+        if echo "$cmd" | grep -qE '^(cargo test|pytest|python -m pytest|bun test|npm test|yarn test|bash tests/|\./tests/)'; then
+            if (cd "$WORK_DIR" && eval "$cmd" >/dev/null 2>&1); then
+                PASSED=$((PASSED + 1))
+            else
+                FAILED=$((FAILED + 1))
+                FAILED_LIST="$FAILED_LIST\n  ✗ $criterion"
+            fi
+        else
+            UNKNOWN=$((UNKNOWN + 1))
+            UNKNOWN_LIST="$UNKNOWN_LIST\n  ? $criterion"
+        fi
+        continue
+    fi
+
+    # ── Heuristic 8: git log check ────────────────────────────────────────────
+    if echo "$criterion" | grep -qiE "^changes to .+ committed$"; then
+        file=$(echo "$criterion" | sed 's/^[Cc]hanges to //' | sed 's/ [Cc]ommitted$//')
+        result=$(cd "$WORK_DIR" && git log --oneline -- "$file" 2>/dev/null | head -1) || result=""
+        if [ -n "$result" ]; then
+            PASSED=$((PASSED + 1))
+        else
+            FAILED=$((FAILED + 1))
+            FAILED_LIST="$FAILED_LIST\n  ✗ $criterion"
+        fi
+        continue
+    fi
+    if echo "$criterion" | grep -qiE '^commit message contains "'; then
+        search=$(echo "$criterion" | grep -oE '"[^"]+"' | head -1 | tr -d '"')
+        result=$(cd "$WORK_DIR" && git log --oneline --grep="$search" 2>/dev/null | head -1) || result=""
+        if [ -n "$result" ]; then
+            PASSED=$((PASSED + 1))
+        else
+            FAILED=$((FAILED + 1))
+            FAILED_LIST="$FAILED_LIST\n  ✗ $criterion"
+        fi
+        continue
+    fi
+
     # ── Fallback: unknown pattern — cannot auto-validate ─────────────────────
     UNKNOWN=$((UNKNOWN + 1))
     UNKNOWN_LIST="$UNKNOWN_LIST\n  ? $criterion"
