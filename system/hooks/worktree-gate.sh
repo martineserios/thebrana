@@ -184,7 +184,7 @@ if [ -n "$DIRTY" ]; then
     if [ "$NON_BEHAVIORAL_ONLY" = true ] && [ -n "$ALL_DIRTY_FILES" ]; then
         warn ".claude/tasks.json has uncommitted changes. Commit it first: \`git add .claude/tasks.json && git commit -m 'chore(tasks): update'\`. Proceeding — changes will carry forward to the new branch."
     else
-        deny "Worktree required: $DIRTY detected. Use \`git worktree add ../<repo>-${BRANCH_NAME} -b ${BRANCH_NAME}\` or \`claude --worktree ${BRANCH_NAME}\` instead of \`${USED_CMD}\`. See git-discipline rule."
+        deny "Worktree required: $DIRTY detected. Stash first with \`git stash push -u -m 'wip'\` (-u includes untracked files; plain \`git stash\` omits them and will trigger this gate again). Then use \`git worktree add ../<repo>-${BRANCH_NAME} -b ${BRANCH_NAME}\` or \`claude --worktree ${BRANCH_NAME}\` instead of \`${USED_CMD}\`. See git-discipline rule."
     fi
 elif [ "$WORKTREE_COUNT" -gt 1 ]; then
     WT_LIST=$(git -C "$GIT_ROOT" worktree list --porcelain 2>/dev/null | grep '^worktree ' | sed 's/^worktree /  /' | head -5)
