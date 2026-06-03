@@ -109,7 +109,7 @@ if echo "$COMMAND" | grep -qE 'git\s+add\s+(-A|--all|\.)(\s|$)'; then
         [ -z "$status_line" ] && continue
         file="${status_line:3}"
         add_behavioral "$file"
-    done < <(git -C "$GIT_ROOT" status --porcelain 2>/dev/null)
+    done < <(git -C "$GIT_ROOT" status --porcelain -uall 2>/dev/null)
 else
     # Explicit paths — strip the 'git add' prefix and any flags
     args_str=$(echo "$COMMAND" | sed 's/.*git[[:space:]]\+add[[:space:]]*//')
