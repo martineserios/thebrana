@@ -326,3 +326,7 @@ Source: session 2026-03-15, chore(skills)
 ### 2026-03-31: CLI wiring is a 3-step chain — missing any step = silent failure
 Adding a CLI-callable function requires: (1) implement the function in `commands/*.rs`, (2) add the enum variant to `cli.rs`, (3) match the variant in `main.rs`. `mark_consumed()` had step 1 + unit tests but steps 2-3 were missing — the function existed but was unreachable from the binary. Always test binary dispatch (`brana <cmd> --help`), not just unit tests.
 Source: session 2026-03-31, reconcile finding #2
+
+### 2026-06-03: Rust version-pin constants require cargo build + MCP redeploy to take effect
+Editing `AGY_PINNED_VERSION` (or any Rust constant) in source has zero runtime effect until the crate is recompiled and the binary redeployed. The running `brana-mcp` MCP server continues using the old compiled binary — producing confusing errors like "expected 1.0.3, got 1.0.4" after bumping the pin to 1.0.4 in source. Fix: `cargo build --release` in `brana-mcp/` then restart Claude Code (MCP server). Add `// NOTE: bump requires cargo build + redeploy` comment near any version-pin constants.
+Source: brana session 2026-06-03, t-1823 (errata E2026-06-03-2)
