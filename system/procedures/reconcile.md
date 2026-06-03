@@ -114,6 +114,20 @@ cd $THEBRANA && git worktree add "$THEBRANA/../thebrana-$BRANCH" -b "$BRANCH"
 
 If a branch with that name already exists (second reconcile in one day), append a counter: `-2`, `-3`, etc.
 
+#### 0d: Assert branch
+
+After worktree creation, verify the worktree is on the expected branch before doing any work:
+
+```bash
+ACTUAL=$(git -C "$THEBRANA/../thebrana-$BRANCH" branch --show-current 2>/dev/null)
+if [ "$ACTUAL" != "$BRANCH" ]; then
+  echo "ABORT: worktree is on '$ACTUAL', expected '$BRANCH'. Run git switch -c $BRANCH inside the worktree." >&2
+  exit 1
+fi
+```
+
+This catches cases where `git worktree add` silently reused an existing branch at a different HEAD, or where the worktree branch was switched mid-session.
+
 ### Step 1: Scan specs (the "should" state)
 
 Read the spec surface — everything that describes what the implementation should look like. Spawn parallel scout agents to scan each area efficiently.
