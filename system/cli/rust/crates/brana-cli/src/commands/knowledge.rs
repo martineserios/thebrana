@@ -888,7 +888,7 @@ Output: markdown section only (no frontmatter, no preamble).",
         "---\nstatus: draft\ncreated: {now_date}\nsources:\n{sources_yaml}\ncluster_topic: {topic}\ndraft_author: llm\nreview_due: {review_due}\npromotion_target: dimensions/{dim_target}.md\n---\n\n{body_text}\n"
     );
 
-    let topic_slug = topic.replace(' ', "-").to_lowercase();
+    let topic_slug = sanitize_topic_slug(topic);
     let draft_filename = format!("{now_date}-{topic_slug}.md");
     let draft_path = knowledge_root.join("drafts").join(&draft_filename);
 
@@ -1291,6 +1291,14 @@ pub fn cmd_ingest(
     }
 
     Ok(())
+}
+
+pub(crate) fn sanitize_topic_slug(topic: &str) -> String {
+    topic
+        .replace(" / ", "-")
+        .replace('/', "-")
+        .replace(' ', "-")
+        .to_lowercase()
 }
 
 #[cfg(test)]
@@ -1750,5 +1758,34 @@ mod tests {
         );
 
         let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    // ── sanitize_topic_slug ──────────────────────────────────────────────
+
+    #[test]
+    fn test_sanitize_slug_spaces() {
+        assert_eq!(sanitize_topic_slug("AI agents"), "ai-agents");
+    }
+
+    #[test]
+    fn test_sanitize_slug_slash_with_spaces() {
+        // "SPDD / software process design" must not produce a path-separator slash
+        let slug = sanitize_topic_slug("SPDD / software process design");
+        assert!(!slug.contains('/'), "slug must not contain '/' — got: {slug}");
+        assert_eq!(slug, "spdd-software-process-design");
+    }
+
+    #[test]
+    fn test_sanitize_slug_bare_slash() {
+        let slug = sanitize_topic_slug("context/window");
+        assert!(!slug.contains('/'), "slug must not contain '/'");
+        assert_eq!(slug, "context-window");
+    }
+
+    #[test]
+    fn test_sanitize_slug_second_brain_pkm() {
+        let slug = sanitize_topic_slug("second brain / PKM architecture");
+        assert!(!slug.contains('/'), "slug must not contain '/'");
+        assert_eq!(slug, "second-brain-pkm-architecture");
     }
 }
