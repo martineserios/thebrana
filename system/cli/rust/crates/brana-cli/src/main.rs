@@ -159,9 +159,9 @@ fn main() {
             KnowledgeCmd::Search { query, limit, namespace, json } => {
                 run_or_exit(commands::knowledge::cmd_search(&query, limit, &namespace, json))
             }
-            KnowledgeCmd::Process { tier1, tier2, draft, report, status, reset_url, dry_run } => {
+            KnowledgeCmd::Process { tier1, tier2, draft, report, status, reset_url, dry_run, limit } => {
                 run_or_exit(commands::knowledge::cmd_process(
-                    tier1, tier2, draft, report, status, reset_url, dry_run,
+                    tier1, tier2, draft, report, status, reset_url, dry_run, limit,
                 ))
             }
             KnowledgeCmd::Promote { draft_path, dry_run } => {

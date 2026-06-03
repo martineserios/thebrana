@@ -342,6 +342,7 @@ pub fn cmd_process(
     status: bool,
     reset_url: Option<String>,
     dry_run: bool,
+    limit: usize,
 ) -> Result<()> {
     warn_if_stale_binary();
     let knowledge_root = kp::find_brana_knowledge_root()
@@ -430,9 +431,23 @@ pub fn cmd_process(
         run_tier2(&knowledge_root, &state_path, &mut state, dry_run)?;
     }
 
-    // ── --draft <topic> ───────────────────────────────────────────────
+    // ── --draft [topic] ──────────────────────────────────────────────
     if let Some(topic) = draft {
-        run_tier3(&topic, &knowledge_root, &state_path, &mut state, dry_run)?;
+        if topic.is_empty() {
+            // Auto-select mode: draft up to `limit` undrafted clusters
+            let undrafted = list_undrafted_clusters(&state);
+            if undrafted.is_empty() {
+                println!("  No undrafted clusters found. Run --tier2 first.");
+            } else {
+                let to_draft: Vec<_> = undrafted.into_iter().take(limit).collect();
+                println!("\n  \x1b[1mAuto-drafting {} cluster(s)\x1b[0m", to_draft.len());
+                for t in &to_draft {
+                    run_tier3(t, &knowledge_root, &state_path, &mut state, dry_run)?;
+                }
+            }
+        } else {
+            run_tier3(&topic, &knowledge_root, &state_path, &mut state, dry_run)?;
+        }
     }
 
     Ok(())
@@ -1107,7 +1122,7 @@ pub fn cmd_run() -> Result<()> {
     // Auto-advance: tier1
     if directive.contains("--tier1") {
         println!("  \x1b[1mbrana knowledge run\x1b[0m — auto-advancing tier1...\n");
-        cmd_process(true, false, None, false, false, None, false)?;
+        cmd_process(true, false, None, false, false, None, false, 1)?;
 
         // Reload and check again
         let state2 = kp::load_state(&state_path)?;
@@ -1115,7 +1130,7 @@ pub fn cmd_run() -> Result<()> {
 
         if directive2.contains("--tier2") {
             println!("\n  Auto-advancing tier2...\n");
-            cmd_process(false, true, None, false, false, None, false)?;
+            cmd_process(false, true, None, false, false, None, false, 1)?;
 
             // Reload after tier2 and emit gate
             let state3 = kp::load_state(&state_path)?;
@@ -1137,7 +1152,7 @@ pub fn cmd_run() -> Result<()> {
     // Auto-advance: tier2 only
     if directive.contains("--tier2") {
         println!("  \x1b[1mbrana knowledge run\x1b[0m — auto-advancing tier2...\n");
-        cmd_process(false, true, None, false, false, None, false)?;
+        cmd_process(false, true, None, false, false, None, false, 1)?;
 
         // Reload after tier2 and emit gate
         let state2 = kp::load_state(&state_path)?;
@@ -1291,6 +1306,23 @@ pub fn cmd_ingest(
     }
 
     Ok(())
+}
+
+/// Return cluster topics that have Tier2Clustered URLs but no Tier3Drafted URLs,
+/// sorted by source count descending (highest-signal clusters first).
+fn list_undrafted_clusters(state: &kp::PipelineState) -> Vec<String> {
+    use std::collections::HashMap;
+    let mut counts: HashMap<String, usize> = HashMap::new();
+    for entry in state.urls.values() {
+        if entry.status == kp::UrlStatus::Tier2Clustered {
+            if let Some(topic) = &entry.cluster_topic {
+                *counts.entry(topic.clone()).or_insert(0) += 1;
+            }
+        }
+    }
+    let mut topics: Vec<(String, usize)> = counts.into_iter().collect();
+    topics.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+    topics.into_iter().map(|(t, _)| t).collect()
 }
 
 pub(crate) fn sanitize_topic_slug(topic: &str) -> String {
@@ -1787,5 +1819,59 @@ mod tests {
         let slug = sanitize_topic_slug("second brain / PKM architecture");
         assert!(!slug.contains('/'), "slug must not contain '/'");
         assert_eq!(slug, "second-brain-pkm-architecture");
+    }
+
+    // ── list_undrafted_clusters ──────────────────────────────────────────
+
+    fn clustered(topic: &str, suffix: &str) -> (String, kp::UrlEntry) {
+        let url = format!("https://li.com/{suffix}");
+        let mut e = kp::UrlEntry::new_unprocessed(None);
+        e.status = kp::UrlStatus::Tier2Clustered;
+        e.cluster_topic = Some(topic.into());
+        (url, e)
+    }
+
+    fn drafted(topic: &str, suffix: &str) -> (String, kp::UrlEntry) {
+        let url = format!("https://li.com/{suffix}");
+        let mut e = kp::UrlEntry::new_unprocessed(None);
+        e.status = kp::UrlStatus::Tier3Drafted;
+        e.cluster_topic = Some(topic.into());
+        e.draft_path = Some("/drafts/x.md".into());
+        (url, e)
+    }
+
+    #[test]
+    fn test_list_undrafted_empty() {
+        assert!(list_undrafted_clusters(&kp::PipelineState::default()).is_empty());
+    }
+
+    #[test]
+    fn test_list_undrafted_returns_clustered() {
+        let mut state = kp::PipelineState::default();
+        let (url, entry) = clustered("ai-agents", "p1");
+        state.urls.insert(url, entry);
+        assert_eq!(list_undrafted_clusters(&state), vec!["ai-agents"]);
+    }
+
+    #[test]
+    fn test_list_undrafted_excludes_drafted() {
+        let mut state = kp::PipelineState::default();
+        let (url, entry) = drafted("context-engineering", "p2");
+        state.urls.insert(url, entry);
+        assert!(list_undrafted_clusters(&state).is_empty());
+    }
+
+    #[test]
+    fn test_list_undrafted_sorted_by_count() {
+        let mut state = kp::PipelineState::default();
+        for i in 0..3usize {
+            let (url, entry) = clustered("popular", &format!("pop/{i}"));
+            state.urls.insert(url, entry);
+        }
+        let (url, entry) = clustered("rare", "rare/1");
+        state.urls.insert(url, entry);
+        let result = list_undrafted_clusters(&state);
+        assert_eq!(result[0], "popular");
+        assert_eq!(result[1], "rare");
     }
 }

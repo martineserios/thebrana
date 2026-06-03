@@ -325,9 +325,13 @@ pub enum KnowledgeCmd {
         /// Tier 2: assign tier1-passed URLs to dimension clusters, produce report
         #[arg(long)]
         tier2: bool,
-        /// Tier 3: synthesise an approved cluster into a draft dimension doc
-        #[arg(long)]
+        /// Tier 3: synthesise a cluster into a draft. Provide a topic name for a specific
+        /// cluster, or omit to auto-select (combine with --limit N for bulk drafting).
+        #[arg(long, num_args = 0..=1, default_missing_value = "")]
         draft: Option<String>,
+        /// Max clusters to auto-draft when --draft is used without a topic (default: 1)
+        #[arg(long, default_value_t = 1)]
+        limit: usize,
         /// Print the current cluster report
         #[arg(long)]
         report: bool,
