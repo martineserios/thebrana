@@ -70,13 +70,15 @@ thebrana/system/                              PLUGIN (loaded by Claude Code)
 │   ├── research/SKILL.md                     ← Research topics + --refresh for dimension updates
 │   ├── memory/SKILL.md                       ← Knowledge ops: recall, pollinate, review, audit
 │   └── ...                                   ← +18 more (challenge, reconcile, harvest, log, pipeline, plugin, etc.)
-├── agents/                                   ← 11 specialized sub-agents
+├── agents/                                   ← 13 specialized sub-agents
 │   ├── scout.md                              ← Haiku-powered fast research agent
 │   ├── memory-curator.md                     ← Knowledge lifecycle management
 │   ├── client-scanner.md                    ← Project structure analysis
 │   ├── venture-scanner.md                    ← Business project analysis
 │   ├── challenger.md                         ← Sonnet adversarial review (read-only)
-│   ├── debrief-analyst.md                    ← Opus session learning extraction
+│   ├── build-evaluator.md                    ← Sonnet implementation grading against AC
+│   ├── debrief-analyst.md                    ← Sonnet session learning extraction
+│   ├── gemini.md                             ← Haiku Gemini delegation gateway
 │   ├── archiver.md                           ← Knowledge backup and export
 │   ├── daily-ops.md                          ← Daily operational checks for venture clients
 │   ├── metrics-collector.md                  ← Gather data for venture skills
@@ -205,7 +207,9 @@ Skills are user-invocable workflows (`/command`). Agents auto-delegate when the 
 | **client-scanner** | Haiku | Project structure analysis for onboarding/alignment | Read-only |
 | **venture-scanner** | Haiku | Business project analysis for venture onboarding | Read-only |
 | **challenger** | Sonnet | Adversarial review: stress-test plans and architecture decisions before commitment | Read-only (no Write/Edit/Bash) |
-| **debrief-analyst** | Opus | Session learning extraction, errata identification | Read-only |
+| **build-evaluator** | Sonnet | Grade completed implementation against task acceptance criteria | Read-only |
+| **debrief-analyst** | Sonnet | Session learning extraction, errata identification | Read-only |
+| **gemini** | Haiku | Gemini Flash delegation — research, boilerplate, batch summarization | Bash (agy CLI) |
 | **archiver** | Haiku | Knowledge backup and export | Read, Bash |
 | **daily-ops** | Haiku | Daily operational checks for venture clients | Read-only |
 | **metrics-collector** | Haiku | Gather data for /brana:review (weekly, monthly, ad-hoc check) | Read-only |
@@ -218,7 +222,7 @@ Agents are safety nets, not replacements. The community builds skills (portable,
 
 ### Agent Boundaries
 
-Each agent description includes "Not for..." constraints that disambiguate auto-delegation routing. When multiple agents cover adjacent domains (e.g., scout vs memory-curator for research, client-scanner vs venture-scanner for diagnostics), explicit negative boundaries prevent the model from routing to the wrong agent. Model distribution: Haiku (9 agents — fast, cheap tasks), Sonnet (3 agents — challenger, debrief-analyst, pr-reviewer — adversarial review, session synthesis, and code understanding). No Opus agents.
+Each agent description includes "Not for..." constraints that disambiguate auto-delegation routing. When multiple agents cover adjacent domains (e.g., scout vs memory-curator for research, client-scanner vs venture-scanner for diagnostics), explicit negative boundaries prevent the model from routing to the wrong agent. Model distribution: Haiku (9 agents — fast, cheap tasks), Sonnet (4 agents — build-evaluator, challenger, debrief-analyst, pr-reviewer — implementation grading, adversarial review, session synthesis, and code understanding). No Opus agents.
 
 > **Dynamic model routing ([ADR-018](../architecture/decisions/ADR-018-dynamic-model-routing.md)):** The agent roster's model assignments are defaults. ADR-018 adds per-message complexity scoring (0.0–1.0) that can override static assignments at runtime — e.g., routing a complex question to Opus even when the default agent model is Sonnet. Extended to chat sessions via [ADR-019](../architecture/decisions/ADR-019-brana-chat-sessions.md): Tier 3 operator sessions use dynamic routing, Tier 1/2 are locked to their tier's model ceiling.
 
