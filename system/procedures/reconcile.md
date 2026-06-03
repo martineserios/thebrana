@@ -590,3 +590,11 @@ Source: /brana:reconcile --scope consistency, 2026-04-09
 ### 2026-04-09: Exclude docs/archive from scan scope
 Scan agents must exclude `docs/archive/**` and `docs/reflections/archive/**`. Stale archived content produces false positives — the archive copy of doc 14 said "13 rules" while the live doc already had "14 rules". Always include the full file path in findings so archive hits are obvious before fixes are applied.
 Source: /brana:reconcile --scope consistency, 2026-04-09
+
+### 2026-06-03: `brana graph build` must run from main repo root — not a git worktree
+Running `brana graph build` from inside a worktree (e.g., `thebrana-chore/reconcile-YYYYMMDD/`) resolves `brana-knowledge/` relative to the worktree path, silently losing all 158+ dimension nodes. Always run `brana graph build` from the main repo checkout (`~/enter_thebrana/thebrana/`). PROP-2 step now explicitly documents this. t-1835 tracks adding a worktree-detection guard to the CLI.
+Source: /brana:reconcile --scope propagation, 2026-06-03
+
+### 2026-06-03: Errata same-day numbering can collide across concurrent sessions
+Multiple sessions closing on the same day independently assign E{date}-N starting from 1, producing duplicate IDs across client repos or parallel thebrana sessions. The Step 4 pre-write dedup check in close.md already documents querying `git show HEAD:errata-doc` for LAST_N — but this only works within one repo. Cross-repo errata written to the same file on the same day must also check the index table at the top of docs/24-roadmap-corrections.md, not just the latest commit.
+Source: /brana:reconcile --scope propagation merge conflict resolution, 2026-06-03
