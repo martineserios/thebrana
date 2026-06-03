@@ -3999,3 +3999,20 @@ Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Con
 **Fix:** Added inline comment to the constant: `// Changing this requires: cargo build --release in brana-mcp/ + restart Claude Code`. Applied in this reconcile run.
 
 **Status:** code-fix — applied in chore/reconcile-20260603.
+
+---
+
+## E2026-06-03-9 — `${CLAUDE_PLUGIN_ROOT}` in `~/.claude/settings.json` hooks is not expanded (plugin-only variable)
+
+**Severity:** Low
+**Discovery:** 2026-06-03 — this session; PostToolUse:Bash hook error surfaced after Claude Code version update enforced plugin variable scoping
+**Affected files:**
+- `~/.claude/settings.json` → `.hooks` section (non-repo; not tracked in git)
+
+**Bug:** The `hooks` section in `~/.claude/settings.json` had 38 entries using `${CLAUDE_PLUGIN_ROOT}` (e.g. `bash ${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool-use.sh`). This variable is only expanded when a hook is defined inside a plugin's `hooks/hooks.json` — Claude Code does not expand it in global `settings.json` context. Claude Code began enforcing this with a hard error: "Hook command references ${CLAUDE_PLUGIN_ROOT} but the hook is not associated with a plugin." The hooks had been duplicated from `system/hooks/hooks.json` into `settings.json` at some point when `brana@brana` was disabled, carrying over the plugin-only variable.
+
+**Root cause:** The `brana@brana` plugin was set to `false` in `enabledPlugins`. The intended architecture is: hooks live exclusively in `system/hooks/hooks.json` (loaded by the plugin), never in `settings.json`. When the plugin was disabled, hooks were copy-pasted into `settings.json` without converting `${CLAUDE_PLUGIN_ROOT}` to absolute paths.
+
+**Fix:** Re-enabled `"brana@brana": true`, removed the entire `hooks` section from `~/.claude/settings.json`, and ran `./bootstrap.sh --sync-plugin` to sync the plugin cache (several hook scripts had diverged). Hooks now load exclusively from the plugin's `hooks/hooks.json` where `${CLAUDE_PLUGIN_ROOT}` is correctly resolved.
+
+**Status:** code-fix — applied this session.
