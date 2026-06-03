@@ -77,6 +77,12 @@ If `--goal` was passed, derive the slug (lowercase, hyphenated from the seed) an
 /goal "brainstorm {slug}: explore → challenge → shape → save — idea doc committed at docs/ideas/{slug}.md"
 ```
 
+Then write `~/.claude/run-state/active-goal.json`:
+```json
+{"task_id": "{task_id_if_known_or_omit_field}", "cwd": "{git_root}", "session_id": "$BRANA_SESSION_ID", "criteria": ["file docs/ideas/{slug}.md exists"]}
+```
+The Stop hook (`goal-completion.sh`) will auto-complete the task when the idea doc is committed.
+
 ### Phase 2 — Expand
 
 Explore the idea space. Run these in parallel:

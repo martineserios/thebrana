@@ -24,11 +24,33 @@ TaskCreate: "/brana:fix — HARDEN"     (blocked by COMMIT, optional)
 
 Mark each `in_progress` when starting, `completed` when done. Resume after compression by calling `TaskList` and finding the `in_progress` step.
 
-After creating the step registry, call `/goal` unless `--no-goal` was passed:
+After creating the step registry, call `/goal` and write `active-goal.json` unless `--no-goal` was passed.
 
+If a task_id is known, first extract `AC:` lines from task context:
+```bash
+brana backlog get {task_id} | python3 -c "
+import json, sys
+t = json.load(sys.stdin)
+lines = [l[3:].strip() for l in (t.get('context') or '').splitlines() if l.startswith('AC:')]
+print('\n'.join(lines))
+"
 ```
-/goal "fix {task-id}: reproduce → diagnose → fix → verify → commit"
-```
+
+- **If AC: criteria found:**
+  ```
+  /goal "fix {task-id} — Done when: {criteria joined with ' AND '}"
+  ```
+  Write `~/.claude/run-state/active-goal.json`:
+  ```json
+  {"task_id": "{task_id}", "cwd": "{git_root}", "session_id": "$BRANA_SESSION_ID", "criteria": ["{criterion1}", "{criterion2}"]}
+  ```
+  The Stop hook (`goal-completion.sh`) will auto-complete the task when criteria pass.
+
+- **If no AC: criteria (or no task_id):**
+  ```
+  /goal "fix {task-id}: reproduce → diagnose → fix → verify → commit"
+  ```
+  No `active-goal.json` write — the narrative goal is for session anchoring only.
 
 COMMIT is the natural terminator for single fixes. HARDEN fires only when recurrence is detected — skip it otherwise and self-terminate after COMMIT.
 

@@ -138,7 +138,7 @@ Pull relevant architecture, decision knowledge, and skill matches into context b
    - **Call** `/goal "{task.subject} — Done when: {criteria joined with ' AND '}"` to anchor the session.
    - **Write** `~/.claude/run-state/active-goal.json`:
      ```json
-     {"task_id": "{task_id}", "cwd": "{git_root}", "criteria": ["{criterion1}", "{criterion2}"]}
+     {"task_id": "{task_id}", "cwd": "{git_root}", "session_id": "$BRANA_SESSION_ID", "criteria": ["{criterion1}", "{criterion2}"]}
      ```
      This state file is read by the Stop hook (`goal-completion.sh`) to auto-complete the task.
    - **If no criteria found in either source:** proceed without `/goal` — no regression.
@@ -491,10 +491,29 @@ brana backlog search "<subject keywords>" | grep -E "sdd|spec|ddd|test"
    ```
    Adapt the steps to the detected strategy (bug fix uses REPRODUCE → DIAGNOSE → FIX → CLOSE, etc.).
 2. **Get approval** via AskUserQuestion:
+
+   **For S/XS tasks:**
    ```
    question: "Build steps above. Proceed?"
    options: ["Approve", "Adjust", "Cancel"]
    ```
+
+   **For M+ tasks**, include a premortem option:
+   ```
+   question: "Build steps above. Proceed?"
+   options:
+     - "Approve — start building"
+     - "Run premortem first — assume this fails, find out why (uses /brana:challenge --premortem)"
+     - "Adjust the plan"
+     - "Cancel"
+   ```
+
+   If "Run premortem first" is chosen:
+   - Invoke `/brana:challenge --premortem` with the planned task/spec as target.
+   - After the premortem report is presented, re-ask the approval question.
+   - Premortem findings become context — the user decides whether to adjust the plan or proceed.
+   - This is NOT a blocking gate: the user can review premortem findings and proceed anyway.
+
 3. **If the user adjusts**, incorporate changes and re-present.
 4. **Proceed to the first step** of the approved strategy.
 

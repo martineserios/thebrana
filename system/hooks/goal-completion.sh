@@ -12,14 +12,22 @@ CWD=$(echo "$INPUT" | jq -r '.cwd // ""' 2>/dev/null) || CWD=""
 GOAL_FILE="$HOME/.claude/run-state/active-goal.json"
 [ ! -f "$GOAL_FILE" ] && { echo '{"continue": true}'; exit 0; }
 
+# Stale guard — goal files older than 48h are from abandoned/crashed sessions
+[ $(( $(date +%s) - $(stat -c '%Y' "$GOAL_FILE" 2>/dev/null || echo 0) )) -gt 172800 ] && { rm -f "$GOAL_FILE"; echo '{"continue": true}'; exit 0; }
+# Session binding — only fire for the session that set this goal
+SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // ""' 2>/dev/null) || SESSION_ID=""
+GOAL_SESSION=$(jq -r '.session_id // ""' "$GOAL_FILE" 2>/dev/null) || GOAL_SESSION=""
+[ -n "$GOAL_SESSION" ] && [ -n "$SESSION_ID" ] && [ "$SESSION_ID" != "$GOAL_SESSION" ] && { echo '{"continue": true}'; exit 0; }
+
 TASK_ID=$(jq -r '.task_id // ""' "$GOAL_FILE" 2>/dev/null) || TASK_ID=""
 GOAL_CWD=$(jq -r '.cwd // ""' "$GOAL_FILE" 2>/dev/null) || GOAL_CWD=""
 CRITERIA_JSON=$(jq -r '.criteria // []' "$GOAL_FILE" 2>/dev/null) || CRITERIA_JSON="[]"
 
 [ -z "$TASK_ID" ] && { echo '{"continue": true}'; exit 0; }
 
-# Only fire for the repo that started the goal
-[ -n "$GOAL_CWD" ] && [ -n "$CWD" ] && [ "$CWD" != "$GOAL_CWD" ] && { echo '{"continue": true}'; exit 0; }
+# Only fire for the repo that started the goal — exit if CWD unknown or mismatched
+[ -z "$GOAL_CWD" ] && { echo '{"continue": true}'; exit 0; }
+[ -n "$CWD" ] && [ "$CWD" != "$GOAL_CWD" ] && { echo '{"continue": true}'; exit 0; }
 
 WORK_DIR="${GOAL_CWD:-$CWD}"
 
