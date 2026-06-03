@@ -3900,3 +3900,36 @@ Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Con
 **Related:** E2026-06-01-3 (stale marketplace IDs in tracy-search.js/ruta-a-handler.js — same root cause, different files).
 
 **Status:** code-fix — applied c3e1871. PDB Hito-1 path now correct.
+
+
+---
+
+## E2026-06-03-1 — `makeAgentToolPayload` default `marketplace_id=289` masks UNKNOWN_TENANT error class in tests
+
+**Severity:** Low
+**Discovery:** 2026-06-03 — t-297 fix session (tracy-search UNKNOWN_TENANT test)
+**Affected files:**
+- `services/kapso-functions/tests/tracy-search.test.js` — UNKNOWN_TENANT test for `nonexistent_co` tenant
+
+**Bug:** `makeAgentToolPayload({ tenant_id: 'nonexistent_co' })` defaults `marketplace_id: 289` in the built payload. This means the ctx has a valid marketplace context. `tracy_search` never reaches the tenant-lookup/UNKNOWN_TENANT branch — it fails earlier with `JWT_NOT_CONFIGURED` (no credentials for the fake tenant). The test asserted `UNKNOWN_TENANT` but was receiving `JWT_NOT_CONFIGURED` — a different error class that happens to have no side-effects in this context.
+
+**Impact:** The UNKNOWN_TENANT branch was untested. A future refactor to the tenant-lookup path could silently regress without failing any test.
+
+**Fix:** Pass `null` as second arg to force no-marketplace in the test payload: `makeAgentToolPayload({ tenant_id: 'nonexistent_co', query: 'quilmes' }, null)`. Applied in commit `ccd311b`.
+
+**Status:** code-fix — applied ccd311b.
+
+---
+
+## E2026-06-03-2 — Test gap: stale-token-delete branch in tracy-auth self-healing (t-1209) not unit tested
+
+**Severity:** Low
+**Discovery:** 2026-06-03 — session debrief
+**Affected files:**
+- `services/kapso-functions/src/tracy-auth.js` — t-1209 parallel KV read + JWT decode + stale-delete path
+
+**Bug:** The critical remediation path (`env.KV.delete(kvKey)` on marketplaceId mismatch) is covered only by smoke test (Section 10/11 in `smoke-tracy-qa.js`). No unit test exercises the stale-token-delete branch specifically. If a future refactor changes the JWT claim name (`marketplaceId` → `marketplace_id`) or the comparison logic, the code would silently skip deletion — reinstating the same class of stale-token bug.
+
+**Fix:** Add unit test: mock KV returns JWT with `marketplaceId: 271`, configured `marketplace_id` is `289`. Assert: (a) `kv.delete` called once, (b) function falls through to fresh signin, (c) `stale_marketplace_token` warn event emitted. Pattern mirrors existing `tracy-auth.test.js` structure.
+
+**Status:** pending — tracked as t-1213 (if created).

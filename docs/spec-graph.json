@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-03T15:48:39Z",
+  "generated": "2026-06-03T20:22:12Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -465,6 +465,7 @@
       "title": "24 — Roadmap Corrections & Errata (ARCHIVED)",
       "type": "Roadmap",
       "impl_files": [
+        "system/hooks/branch-verify.sh",
         "system/hooks/worktree-gate.sh",
         "system/cli/rust/crates/brana-mcp/src/tools/agy_delegate.rs",
         "system/procedures/research.md",
@@ -488,7 +489,6 @@
         "system/procedures/align.md",
         "system/commands/maintain-specs.md",
         "system/scripts/git-hooks/pre-commit",
-        "system/hooks/branch-verify.sh",
         "system/hooks/session-start.sh",
         "system/hooks/session-end.sh",
         "system/skills/pattern-recall/SKILL.md",
