@@ -1254,6 +1254,18 @@ Source: 2026-05-25 brainstorm + close procedure update
 `brana session write` always replaces `session-state.json` unconditionally. When two sessions close on the same project the same day, the second write erases the first's `accomplished`/`next`/`learnings`. The archive (`session-history.jsonl`) captures both, but nothing reads it for continuity. Fix: merge mode when `written_at` is today, replace mode for new days (t-1461).
 Source: close session 2026-05-19 / brainstorm session-continuity
 
+### 2026-06-03: `.claude/sessions/` handoff files must NOT be git-committed — they leak secrets
+`handoff-2026-06-03.md` was committed in project `proyecto-anita` (commit `24d954a`) with `ANITA_ADMIN_SECRET` in plaintext. The same secret also leaked into `tasks.json` notes. Required: secret rotation + `git filter-repo` history scrub + force push.
+
+**Rule — three parts:**
+
+1. **Never `git add .claude/sessions/`** at session close. The project's `.gitignore` must include `.claude/sessions/`. If missing, add it before writing the handoff.
+2. **Never write secret values into handoff files.** Reference where the secret lives (`.env.dev`, Secret Manager, Kapso dashboard) — never the value itself. If a secret value appears in conversation context, redact it before writing the handoff (`<redacted — see .env.dev>`).
+3. **Check `.gitignore` before the close commit.** If `.claude/sessions/` is not in `.gitignore`, add it in a separate commit first, then write the handoff.
+
+**Why this keeps happening:** The procedure says "Do NOT write to `session-handoff.md` (deprecated)" but said nothing about `.claude/sessions/handoff-*.md`. Gap closed by this field note. A future procedure update should add `.claude/sessions/` to the standard gitignore template for all projects.
+Source: 2026-06-03 — proyecto-anita secret leak; history scrubbed same session
+
 ---
 
 ## Resume After Compression
