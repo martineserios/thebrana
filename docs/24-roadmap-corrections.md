@@ -3969,3 +3969,33 @@ Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Con
 **Fix:** Add to `tracy-customer-lookup.test.js` (or create it): mock `getTenantCreds` for UNKNOWN_TENANT case → assert `getAdminToken` returns null; mock FETCH_ERROR → assert `alertFallback` called and env var creds used. Mirror the credential-type tests from `tracy-auth.test.js`.
 
 **Status:** pending — test task to be created.
+
+---
+
+## E2026-06-03-7 — worktree-gate.sh deny message omits `git stash push -u` hint for untracked files
+
+**Severity:** Low
+**Discovery:** 2026-06-03 — harness session (t-1828)
+**Affected files:**
+- `system/hooks/worktree-gate.sh` line 187 — dirty-state deny message
+
+**Bug:** When worktree-gate blocks a branch switch due to dirty working tree, the deny message suggests `git worktree add` or `claude --worktree` but omits the stash alternative. Users who want to stash-then-switch use bare `git stash`, which silently omits untracked files. The correct command is `git stash push -u` (the `-u` flag includes untracked files). Without this hint, users lose untracked work when they stash and switch.
+
+**Fix:** Added `git stash push -u` hint to the deny message in worktree-gate.sh line 187. Applied in this reconcile run.
+
+**Status:** code-fix — applied in chore/reconcile-20260603.
+
+---
+
+## E2026-06-03-8 — AGY_PINNED_VERSION constant change requires binary rebuild (invisible at runtime without it)
+
+**Severity:** Low
+**Discovery:** 2026-06-03 — harness session (t-1828); surfaced when bumping 1.0.3 → 1.0.4
+**Affected files:**
+- `system/cli/rust/crates/brana-mcp/src/tools/agy_delegate.rs` line 16 — `AGY_PINNED_VERSION` constant
+
+**Bug:** Editing `AGY_PINNED_VERSION` in source has no effect until `cargo build --release` is run in `brana-mcp/` and Claude Code is restarted (the binary is what gets loaded at runtime). A source-only edit looks like success but the running binary still enforces the old version. This caused a version mismatch error to persist after the source was updated to `"1.0.4"`.
+
+**Fix:** Added inline comment to the constant: `// Changing this requires: cargo build --release in brana-mcp/ + restart Claude Code`. Applied in this reconcile run.
+
+**Status:** code-fix — applied in chore/reconcile-20260603.

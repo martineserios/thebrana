@@ -13,8 +13,7 @@ use std::process::Stdio;
 use std::time::Instant;
 use tokio::process::Command;
 
-// NOTE: bumping this requires `cargo build --release` in brana-mcp/ + MCP server redeploy.
-// The running binary won't pick up the new version until rebuilt and restarted.
+// Changing this requires: cargo build --release in brana-mcp/ + restart Claude Code (binary change is invisible until redeployed)
 const AGY_PINNED_VERSION: &str = "1.0.4";
 const AGY_TIMEOUT_SECS: u64 = 120;
 
