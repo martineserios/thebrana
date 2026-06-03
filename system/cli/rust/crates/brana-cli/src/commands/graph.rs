@@ -108,9 +108,42 @@ fn require_root() -> anyhow::Result<PathBuf> {
     find_project_root().ok_or_else(|| anyhow::anyhow!("Not in a git repo"))
 }
 
+/// Abort if `root` is a linked git worktree.
+/// In a worktree `.git` is a plain file; in the main checkout it is a directory.
+/// Running graph build from a worktree silently loses all brana-knowledge/ nodes
+/// because that sibling directory doesn't exist relative to the worktree path.
+fn assert_main_worktree(root: &Path) -> anyhow::Result<()> {
+    let git_entry = root.join(".git");
+    if !git_entry.is_file() {
+        return Ok(());
+    }
+    // Read gitdir pointer to find main repo path for the helpful error message.
+    let gitdir_line = fs::read_to_string(&git_entry).unwrap_or_default();
+    let main_hint = gitdir_line
+        .trim()
+        .strip_prefix("gitdir: ")
+        .and_then(|p| {
+            // e.g. "/home/user/repo/.git/worktrees/NAME" → strip /worktrees/NAME → parent
+            let pb = std::path::Path::new(p);
+            pb.ancestors()
+                .find(|a| a.ends_with(".git"))
+                .and_then(|g| g.parent())
+                .map(|p| p.display().to_string())
+        })
+        .unwrap_or_else(|| "the main repo checkout".to_string());
+    anyhow::bail!(
+        "brana graph build must run from the main repo root, not a git worktree.\n\
+         Current: {}\n\
+         Run instead: cd {} && brana graph build",
+        root.display(),
+        main_hint,
+    )
+}
+
 fn cmd_build(output: Option<PathBuf>) -> anyhow::Result<()> {
     use anyhow::Context;
     let root = require_root()?;
+    assert_main_worktree(&root)?;
     let ontology = load_ontology(&root)?;
     let graph = build_graph(&root, &ontology);
 
@@ -2063,5 +2096,39 @@ informs:
         ];
         let unknown = find_unknown_edge_types(&edges, &known);
         assert!(unknown.is_empty());
+    }
+
+    // ── assert_main_worktree ────────────────────────────────────────
+
+    #[test]
+    fn main_repo_passes_worktree_guard() {
+        let dir = tempfile::tempdir().unwrap();
+        // .git is a directory → main repo checkout
+        fs::create_dir(dir.path().join(".git")).unwrap();
+        assert!(assert_main_worktree(dir.path()).is_ok());
+    }
+
+    #[test]
+    fn linked_worktree_is_rejected() {
+        let dir = tempfile::tempdir().unwrap();
+        // Simulate a linked worktree: .git is a file with gitdir pointer
+        let main_git = dir.path().join("main/.git");
+        fs::create_dir_all(&main_git).unwrap();
+        let wt_dir = dir.path().join("worktree");
+        fs::create_dir_all(&wt_dir).unwrap();
+        let gitdir_content = format!(
+            "gitdir: {}/worktrees/my-wt\n",
+            main_git.display()
+        );
+        fs::write(wt_dir.join(".git"), &gitdir_content).unwrap();
+        let err = assert_main_worktree(&wt_dir).unwrap_err();
+        assert!(err.to_string().contains("git worktree"));
+    }
+
+    #[test]
+    fn no_git_dir_passes_worktree_guard() {
+        let dir = tempfile::tempdir().unwrap();
+        // No .git at all → not a worktree (non-git project)
+        assert!(assert_main_worktree(dir.path()).is_ok());
     }
 }
