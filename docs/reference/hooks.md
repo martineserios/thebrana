@@ -221,6 +221,12 @@ session-end-metrics.sh — Compute session metrics from JSONL event file.
 
 **Gate:** Advisory
 
+### `session-end-pattern-promotion.sh`
+
+session-end-pattern-promotion.sh — Promote or demote recalled patterns (t-203).
+
+**Gate:** Advisory
+
 ### `session-end-persist.sh`
 
 session-end-persist.sh — Store session summary to ruflo (L1) + auto-memory (L0).
@@ -319,6 +325,7 @@ Blocking hooks that support `/tmp/brana-*` sentinel file bypasses for procedure-
 | `rust-skills-guard.sh` | `/tmp/brana-rust-skills-loaded-${SESSION_ID}` | Step 6: Check skill-loaded sentinel (session-scoped) |
 | `rust-skills-guard.sh` | `/tmp/brana-rust-skills-guard-bypass` | Step 7: Block — rust-skills not loaded |
 | `session-end-metrics.sh` | `/tmp/brana-metrics-filtered-XXXXXX.jsonl` | Events from a different repo are excluded. |
+| `session-end-pattern-promotion.sh` | `/tmp/brana-session-{id}.jsonl` | Input (env vars): |
 | `session-end.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | Respond immediately — all processing in background |
 | `session-end.sh` | `/tmp/brana-metrics-XXXXXX.env` | ── Phase 1: Compute metrics ────────────────────────────── |
 | `session-start.sh` | `/tmp/brana-startup-timing.log.` | in parallel (2s timeout), collect results, emit JSON. Fork logging |
