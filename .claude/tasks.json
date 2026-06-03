@@ -47879,7 +47879,7 @@
     {
       "id": "t-1834",
       "subject": "Implement memory-consolidation.sh — threshold-triggered memory consolidation with debrief integration",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "tags": [
         "memory",
@@ -47896,12 +47896,13 @@
       "started": null,
       "completed": null,
       "blocked_by": [],
-      "branch": null,
+      "branch": "knowledge-pipeline/feat/t-1834-memory-consolidation-autodream",
       "context": "Implement the architecture from docs/ideas/memory-consolidation-autodream.md (challenger-reviewed 2026-06-03). This is brana's own Kairos/autoDream equivalent — Auto Dream is feature-flagged off in CC and not shipping soon.\n\nAC: system/scripts/memory-consolidation.sh exists\nAC: file ~/.swarm/lint-heal-state.json contains \"last_consolidation_ts\"\nAC: memory-consolidation job entry exists in system/scheduler/scheduler.template.json\nAC: system/scripts/memory-consolidation.sh contains \"debrief-flags.jsonl\"\nAC: \"cargo test\" passes OR shell tests pass for threshold OR logic\n\n6 implementation steps (from spec doc):\n1. Extend lint-heal-state.json schema — add last_consolidation_ts: 0 field\n2. Add to /brana:close: (a) increment session_count_since_run; (b) regex-scan errata for memory filenames; (c) append to ~/.swarm/debrief-flags.jsonl\n3. Write system/scripts/memory-consolidation.sh — threshold check (OR logic: >24h OR >=5 sessions) + debrief-flag consumption + date normalization (frontmatter only) + consolidation log + update last_consolidation_ts\n4. Register memory-consolidation in scheduler.template.json (Mon-Sat 15:30, enabled: true)\n5. Write ADR — trigger model, state file extension, flag schema, scope split vs lint-heal\n6. Write tests — threshold OR logic, flag-consumption idempotency, regex false-positive guard, date normalization edge cases\n\nKey constraints (all from challenger review):\n- Does NOT call lint-heal.sh (avoids lock collision)\n- Date normalization on frontmatter created:/updated: fields ONLY — never body prose\n- OR trigger logic (not AND) — ensures 24h fallback covers drift when close is skipped\n- Atomic state file writes (tmp + mv)\n- Debrief-flag consumption is idempotent (checks file existence before archiving)",
-      "notes": null,
+      "notes": "Fully implemented 2026-06-03. Pipeline end-to-end: close.md writes debrief flags + increments session counter → memory-consolidation.sh consumes flags + triggers on OR logic. 7 tests green. ADR-048 written. Merged to main.",
       "order": 0,
       "github_issue": null,
-      "execution": "code"
+      "execution": "code",
+      "build_step": null
     }
   ],
   "version": "1"

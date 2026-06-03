@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-03T20:22:12Z",
+  "generated": "2026-06-03T21:31:03Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -895,6 +895,11 @@
     },
     "docs/architecture/decisions/ADR-047-acceptance-criteria-schema.md": {
       "title": "ADR-047: acceptance_criteria Schema — Gate for /goal Auto-Loop",
+      "type": "ADR",
+      "impl_files": []
+    },
+    "docs/architecture/decisions/ADR-048-memory-consolidation-trigger-model.md": {
+      "title": "ADR-048 — Memory Consolidation Trigger Model and Scope Split",
       "type": "ADR",
       "impl_files": []
     },
@@ -12427,9 +12432,9 @@
     }
   ],
   "stats": {
-    "nodes": 420,
+    "nodes": 421,
     "edges": 1602,
     "typed_edges": 568,
-    "orphans": 125
+    "orphans": 126
   }
 }
