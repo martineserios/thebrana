@@ -67,6 +67,13 @@ esac
 # Step 3: Extract file path and session ID
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || pass_through
 [ -z "$FILE_PATH" ] && pass_through
+
+# Step 3a: Skip out-of-repo paths (CC auto-memory, ~/.claude/*, /tmp/*, etc.)
+# No project quality gates apply to files outside the repo.
+case "$FILE_PATH" in
+    "$HOME/.claude/"*|/tmp/*) pass_through ;;
+esac
+
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null) || true
 
 # Step 3b: Cascade throttle check
