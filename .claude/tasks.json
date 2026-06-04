@@ -30085,7 +30085,7 @@
       "parent": null,
       "priority": "P1",
       "started": "2026-06-03",
-      "status": "in_progress",
+      "status": "completed",
       "subject": "knowledge process: enable parallel batch execution for tier1/tier2",
       "tags": [
         "powerhouse +wave2"
@@ -48084,6 +48084,54 @@
       "priority": null,
       "parent": null,
       "created": "2026-06-03",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
+    },
+    {
+      "id": "t-1842",
+      "subject": "Merge knowledge-pipeline/refactor/t-1202-parallel-tier1-tier2 to main",
+      "status": "completed",
+      "type": "task",
+      "tags": [
+        "merge",
+        "knowledge-pipeline"
+      ],
+      "description": null,
+      "effort": "XS",
+      "priority": "P1",
+      "parent": null,
+      "created": "2026-06-04",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
+    },
+    {
+      "id": "t-1843",
+      "subject": "MEMORY.md consolidation pass 2: reduce 183→<175 lines (8 over cap)",
+      "status": "pending",
+      "type": "task",
+      "tags": [
+        "memory",
+        "maintenance"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-06-04",
       "started": null,
       "completed": null,
       "blocked_by": [],
