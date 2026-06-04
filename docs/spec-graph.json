@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-04T21:54:02Z",
+  "generated": "2026-06-04T21:58:38Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -465,6 +465,7 @@
       "title": "24 — Roadmap Corrections & Errata (ARCHIVED)",
       "type": "Roadmap",
       "impl_files": [
+        "system/hooks/another.sh",
         "system/hooks/memory-write-gate.sh",
         "system/hooks/branch-verify.sh",
         "system/hooks/worktree-gate.sh",

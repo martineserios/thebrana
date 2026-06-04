@@ -54,8 +54,9 @@ echo "$COMMAND" | grep -q '\-\-force-name' && pass_through
 BRANCH=""
 if echo "$COMMAND" | grep -qE 'git\s+(switch\s+-c|checkout\s+-b)\s'; then
     BRANCH=$(echo "$COMMAND" | sed -n 's/.*git[[:space:]]\+\(switch[[:space:]]\+-c\|checkout[[:space:]]\+-b\)[[:space:]]\+\([^[:space:]]*\).*/\2/p')
-elif echo "$COMMAND" | grep -qE 'git\s+branch\s+[^-]'; then
+elif echo "$COMMAND" | grep -qE 'git\s+branch\s+[a-zA-Z0-9_]' && ! echo "$COMMAND" | grep -qE '[|;&>]'; then
     # git branch <name> [start-point] — first non-flag arg is the name
+    # Exclude piped/chained commands (git branch | grep ...) which are reads, not creates
     BRANCH=$(echo "$COMMAND" | sed -n 's/.*git[[:space:]]\+branch[[:space:]]\+\([^-][^[:space:]]*\).*/\1/p')
 fi
 

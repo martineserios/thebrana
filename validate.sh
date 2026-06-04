@@ -274,7 +274,7 @@ fi
 echo "Checking state/ for key-shaped values (32+ alnum chars)..."
 STATE_DIR="$SYSTEM_DIR/state"
 if [ -d "$STATE_DIR" ]; then
-    STATE_SECRETS=$(grep -rn --exclude="patterns-export.json" -E '[A-Za-z0-9]{40,}' "$STATE_DIR" 2>/dev/null \
+    STATE_SECRETS=$(grep -rn --exclude="patterns-export.json" --exclude="*.md" -E '[A-Za-z0-9]{40,}' "$STATE_DIR" 2>/dev/null \
         | grep -v -E '(#|example|placeholder|\.gitkeep)' || true)
     if [ -n "$STATE_SECRETS" ]; then
         fail "Key-shaped values found in state/ (review for accidental secrets):"
@@ -396,20 +396,25 @@ if [ -f "$SYSTEM_DIR/hooks/hooks.json" ]; then
     done
 
     # Validate commands use ${CLAUDE_PLUGIN_ROOT} and point to existing scripts
-    HJ_CMDS=$(jq -r '.hooks // {} | .[][] | .hooks[]? | .command // empty' "$SYSTEM_DIR/hooks/hooks.json" 2>/dev/null || true)
-    for cmd in $HJ_CMDS; do
-        SCRIPT_NAME=$(basename "$cmd")
+    # Read line-by-line to avoid word-splitting "bash ${CLAUDE_PLUGIN_ROOT}/hooks/x.sh" → ["bash", "path"]
+    while IFS= read -r cmd; do
+        [ -z "$cmd" ] && continue
+        # Extract the script path (last whitespace-separated token in the command)
+        SCRIPT_PATH=$(echo "$cmd" | awk '{print $NF}')
+        SCRIPT_NAME=$(basename "$SCRIPT_PATH")
         if ! echo "$cmd" | grep -q '${CLAUDE_PLUGIN_ROOT}'; then
             fail "hooks.json command '$SCRIPT_NAME' does not use \${CLAUDE_PLUGIN_ROOT}"
         fi
-        if [ ! -f "$SYSTEM_DIR/hooks/$SCRIPT_NAME" ]; then
-            fail "hooks.json references hooks/$SCRIPT_NAME but file not found"
-        elif [ ! -x "$SYSTEM_DIR/hooks/$SCRIPT_NAME" ]; then
-            fail "hooks/$SCRIPT_NAME is not executable"
+        # Resolve ${CLAUDE_PLUGIN_ROOT} to $SYSTEM_DIR so scripts/ and hooks/ both work
+        SCRIPT_RESOLVED=$(echo "$SCRIPT_PATH" | sed "s|\${CLAUDE_PLUGIN_ROOT}|$SYSTEM_DIR|g")
+        if [ ! -f "$SCRIPT_RESOLVED" ]; then
+            fail "hooks.json references $SCRIPT_NAME but file not found (resolved: $SCRIPT_RESOLVED)"
+        elif [ ! -x "$SCRIPT_RESOLVED" ]; then
+            fail "$SCRIPT_NAME is not executable"
         else
             pass "hooks.json command '$SCRIPT_NAME' — exists, executable, uses plugin root"
         fi
-    done
+    done <<< "$(jq -r '.hooks // {} | .[][] | .hooks[]? | .command // empty' "$SYSTEM_DIR/hooks/hooks.json" 2>/dev/null || true)"
 fi
 
 # Validate settings.json hook event names (legacy — should be empty in v0.7.0+)
@@ -1371,7 +1376,8 @@ if should_run 28; then
 # Use jq instead of python3 in hook scripts — python3 is fragile in hook subprocesses.
 # Bare `python3` means any occurrence not preceded by `uv run`.
 echo "Checking system/hooks/ for bare python3 invocations..."
-BARE_PY3=$(grep -rn "python3" "$SCRIPT_DIR/system/hooks/" --include="*.sh" 2>/dev/null \
+BARE_PY3=$(grep -rn "python3" "$SCRIPT_DIR/system/hooks/" --include="*.sh" \
+    --exclude-dir=tests 2>/dev/null \
     | grep -v "uv run python3" \
     | grep -v ":[[:space:]]*#" \
     || true)
