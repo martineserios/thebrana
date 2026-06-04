@@ -599,6 +599,21 @@ pub fn merge_states(existing: &SessionState, new: &SessionState) -> SessionState
 /// so routing through it would defeat the purpose. Uses the same .tmp→rename atomic
 /// guarantee. Does NOT append to history (consumed_at is a read-side marker, not a
 /// new session write).
+pub fn mark_consumed_for(project_root: &Path, branch: &str) -> Result<()> {
+    let path = epic_scoped_state_path(project_root, branch);
+    let content = fs::read_to_string(&path).context("reading session-state.json")?;
+    let mut state: SessionState = serde_json::from_str(&content).context("parsing session-state.json")?;
+
+    state.consumed_at = Some(Utc::now().to_rfc3339());
+
+    let tmp = path.with_extension("tmp");
+    let json = serde_json::to_string_pretty(&state)?;
+    fs::write(&tmp, &json)?;
+    fs::rename(&tmp, &path)?;
+
+    Ok(())
+}
+
 pub fn mark_consumed(project_root: &Path) -> Result<()> {
     let branch = current_branch().unwrap_or_default();
     let path = epic_scoped_state_path(project_root, &branch);
