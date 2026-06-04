@@ -48048,7 +48048,7 @@
     {
       "id": "t-1840",
       "subject": "[ci] add cargo test --workspace to pre-merge checklist to catch test-only compile errors",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "tags": [
         "ci",
@@ -48073,7 +48073,7 @@
     {
       "id": "t-1841",
       "subject": "MEMORY.md consolidation: merge overflow entries into topic files (207 lines)",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "tags": [
         "memory",

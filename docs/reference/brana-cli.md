@@ -411,6 +411,19 @@ developer tooling, knowledge management). URLs scoring ≥ 3 are promoted to `ti
   arxiv, youtube, etc.).
 - **Batch cap**: 50 URLs per run. Run again if the queue is larger.
 
+### Tier2 behavior (parallel)
+
+Tier2 runs up to **3 concurrent workers** for cluster assignment. Each `tier1_passed` URL
+is sent to Gemini with the list of known dimension slugs and asked to assign a
+`cluster_topic` (short label) and `dimension_target` (existing slug or new topic).
+
+- **Checkpoint saves** after every URL — a crash mid-batch does not lose assignments.
+- **Output**: assigns each URL a `cluster_topic` slug and `dimension_target`; promotes
+  status to `tier2_clustered`.
+- **Cluster report**: written to `~/.claude/knowledge-pipeline-report.md` at completion.
+  Shows topic groupings with URL counts and dimension targets.
+- No batch cap — processes all `tier1_passed` URLs in one run.
+
 ### Flags
 
 | Flag | Default | Description |

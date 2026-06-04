@@ -733,46 +733,52 @@ fn run_tier2(
     );
     println!("  Processing {} URL(s)\n", candidates.len());
 
+    if dry_run {
+        for (url, _, _, _) in &candidates {
+            println!("  [dry-run] would cluster: {url}");
+        }
+        return Ok(());
+    }
+
     // Cluster assignments: topic_slug → list of URLs
     let mut clusters: std::collections::HashMap<String, Vec<String>> =
         std::collections::HashMap::new();
     let mut dim_targets: std::collections::HashMap<String, String> =
         std::collections::HashMap::new();
 
-    for (url, author, title_signal, tags) in &candidates {
-        let prompt = format!(
-            "You are assigning a LinkedIn post to the nearest topic in a knowledge base.\n\n\
-Author: {author}\nTitle signal: {title_signal}\nTags: {}\n\n\
-Existing dimension topics:\n{dim_list_str}\n\n\
-Assign this post to the best-matching dimension, or flag as \"new-topic\" \
-if it doesn't fit any existing dimension.\n\n\
-Respond with JSON only:\n\
-{{\"dimension_target\": \"slug or new-topic\", \"cluster_topic\": \"short label\", \"reason\": \"one sentence\"}}",
-            tags.join(" "),
-        );
+    // Build work queue: (url, author, prompt) triples
+    let tasks: Vec<(String, String, String)> = candidates
+        .iter()
+        .map(|(url, author, title_signal, tags)| {
+            let prompt = build_tier2_prompt(author, title_signal, tags, &dim_list_str);
+            (url.clone(), author.clone(), prompt)
+        })
+        .collect();
 
-        if dry_run {
-            println!("  [dry-run] would cluster: {url}");
-            continue;
-        }
+    let n_workers = TIER2_CONCURRENCY.min(tasks.len());
+    println!("  Workers: {n_workers}\n");
 
-        match kp::call_gemini_json(&prompt) {
+    let queue = Arc::new(Mutex::new(VecDeque::from(tasks)));
+    let (tx, rx) = std::sync::mpsc::channel::<(String, String, Result<serde_json::Value>)>();
+
+    let handles: Vec<_> = (0..n_workers)
+        .map(|_| {
+            let queue = Arc::clone(&queue);
+            let tx = tx.clone();
+            std::thread::spawn(move || loop {
+                let work = { queue.lock().unwrap().pop_front() };
+                let Some((url, author, prompt)) = work else { break };
+                let result = kp::call_gemini_json(&prompt);
+                let _ = tx.send((url, author, result));
+            })
+        })
+        .collect();
+    drop(tx);
+
+    for (url, author, result) in rx {
+        match result {
             Ok(json) => {
-                let dim_target = json
-                    .get("dimension_target")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("new-topic")
-                    .to_string();
-                let cluster_topic = json
-                    .get("cluster_topic")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("unknown")
-                    .to_string();
-                let reason = json
-                    .get("reason")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("")
-                    .to_string();
+                let (dim_target, cluster_topic, reason) = parse_tier2_json(&json);
 
                 println!("  → [{cluster_topic}] {author} — {reason}");
 
@@ -782,7 +788,7 @@ Respond with JSON only:\n\
                     .push(url.clone());
                 dim_targets.insert(cluster_topic.clone(), dim_target.clone());
 
-                if let Some(entry) = state.urls.get_mut(url) {
+                if let Some(entry) = state.urls.get_mut(&url) {
                     entry.status = UrlStatus::Tier2Clustered;
                     entry.cluster_topic = Some(cluster_topic);
                     entry.dimension_target = Some(dim_target);
@@ -796,8 +802,8 @@ Respond with JSON only:\n\
         }
     }
 
-    if dry_run {
-        return Ok(());
+    for h in handles {
+        let _ = h.join();
     }
 
     // Write cluster report
