@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-04T21:16:56Z",
+  "generated": "2026-06-04T21:43:04Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -465,6 +465,7 @@
       "title": "24 — Roadmap Corrections & Errata (ARCHIVED)",
       "type": "Roadmap",
       "impl_files": [
+        "system/hooks/another.sh",
         "system/hooks/memory-write-gate.sh",
         "system/hooks/branch-verify.sh",
         "system/hooks/worktree-gate.sh",
@@ -541,8 +542,7 @@
         "system/cli/rust/crates/brana-cli/src/commands/session.rs:549",
         "system/procedures/close.md:826",
         "system/procedures/sitrep.md:122",
-        "system/hooks/subagent-context.sh",
-        "system/hooks/another.sh"
+        "system/hooks/subagent-context.sh"
       ]
     },
     "docs/25-self-documentation.md": {
