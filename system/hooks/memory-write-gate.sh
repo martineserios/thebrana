@@ -32,8 +32,9 @@ esac
 
 # Allow Claude Code's auto-memory system — ~/.claude/projects/*/memory/ writes
 # are managed by the system prompt's auto-memory instructions, not brana memory write.
+# Use $HOME and /home/* as fallback in case $HOME is unset in hook env.
 case "$FILE_PATH" in
-    "$HOME/.claude/projects/"*) pass_through ;;
+    "$HOME/.claude/"*|/home/*/.claude/*) pass_through ;;
 esac
 
 FNAME=$(basename "$FILE_PATH")
@@ -69,5 +70,7 @@ For cross-project patterns: --type pattern (writes to ~/.claude/memory/)
 Bypass: touch /tmp/brana-memory-write-active before the write (removed after)."
 
 ESCAPED=$(echo "$WARNING" | jq -Rs '.' 2>/dev/null) || ESCAPED='"[memory-write-gate warning]"'
-echo "{\"continue\": false, \"additionalContext\": $ESCAPED}"
+# Use permissionDecision:deny (not continue:false) so continueOnBlock:true in hooks.json is respected.
+# continue:false is a hard stop that ignores continueOnBlock — it would kill CC auto-memory writes.
+jq -n --argjson reason "$ESCAPED" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$reason}}'
 exit 0
