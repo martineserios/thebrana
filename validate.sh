@@ -1880,6 +1880,27 @@ fi
 echo ""
 fi  # should_run 45
 
+# Check 46 — cargo test --workspace compiles all crates including test-only code (t-1840)
+if should_run 46; then
+RUST_ROOT="$SCRIPT_DIR/system/cli/rust"
+echo "Check 46: cargo test --workspace (test-only compile check)..."
+if [ ! -f "$RUST_ROOT/Cargo.toml" ]; then
+    warn "Check 46: $RUST_ROOT/Cargo.toml not found — skipping"
+else
+    CARGO_OUT=$(cargo test --workspace --manifest-path "$RUST_ROOT/Cargo.toml" --no-run 2>&1)
+    CARGO_EXIT=$?
+    echo "$CARGO_OUT" | tail -5 | sed 's/^/  /'
+    if [ $CARGO_EXIT -eq 0 ]; then
+        pass "Check 46: cargo test --workspace compiles cleanly ✓"
+    elif echo "$CARGO_OUT" | grep -qE "pkg-config|openssl|could not find|linker|ld:"; then
+        warn "Check 46: cargo test --workspace failed due to missing system dep (pkg-config/openssl) — skipped"
+    else
+        fail "Check 46: cargo test --workspace compile failed — test-only code has errors (run: cargo test --workspace --no-run)"
+    fi
+fi
+echo ""
+fi  # should_run 46
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."

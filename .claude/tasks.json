@@ -30069,7 +30069,7 @@
     },
     {
       "blocked_by": [],
-      "branch": null,
+      "branch": "knowledge-pipeline/refactor/t-1202-parallel-tier1-tier2",
       "completed": null,
       "context": "Currently brana knowledge process --tier1 processes one batch of 50 URLs serially via Claude CLI. With large intake batches (40+ URLs as of 2026-04-13), parallel execution would reduce total tier1 time significantly. Approach: split unprocessed URLs into concurrent batches, spawn multiple claude -p calls in parallel (std::thread::scope pattern already used in brana-cli). Key files: system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs (tier1 batch logic), system/cli/rust/crates/brana-cli/src/commands/knowledge.rs (CLI entrypoint). Constraint: respect pipeline lock to avoid state corruption.",
       "created": "2026-04-13",
@@ -30084,14 +30084,15 @@
       "order": null,
       "parent": null,
       "priority": "P1",
-      "started": null,
-      "status": "pending",
+      "started": "2026-06-03",
+      "status": "in_progress",
       "subject": "knowledge process: enable parallel batch execution for tier1/tier2",
       "tags": [
         "powerhouse +wave2"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "strategy": "refactor"
     },
     {
       "blocked_by": [],
@@ -48047,7 +48048,7 @@
     {
       "id": "t-1840",
       "subject": "[ci] add cargo test --workspace to pre-merge checklist to catch test-only compile errors",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "tags": [
         "ci",
@@ -48072,7 +48073,7 @@
     {
       "id": "t-1841",
       "subject": "MEMORY.md consolidation: merge overflow entries into topic files (207 lines)",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "tags": [
         "memory",

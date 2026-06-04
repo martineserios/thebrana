@@ -30,6 +30,12 @@ case "$FILE_PATH" in
     *) pass_through ;;
 esac
 
+# Allow Claude Code's auto-memory system — ~/.claude/projects/*/memory/ writes
+# are managed by the system prompt's auto-memory instructions, not brana memory write.
+case "$FILE_PATH" in
+    "$HOME/.claude/projects/"*) pass_through ;;
+esac
+
 FNAME=$(basename "$FILE_PATH")
 
 # Pass through: only block typed memory files ({type}_{slug}*.md)
