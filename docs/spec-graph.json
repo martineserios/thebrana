@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-04T21:58:38Z",
+  "generated": "2026-06-04T22:42:14Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -9236,6 +9236,12 @@
     },
     {
       "from": "docs/architecture/features/memory-taxonomy-sdd.md",
+      "to": "docs/architecture/decisions/ADR-038-memory-write-gate-and-per-pattern-files.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/memory-taxonomy-sdd.md",
       "to": "memory-taxonomy-ddd.md",
       "type": "references",
       "computed": false
@@ -12435,7 +12441,7 @@
   ],
   "stats": {
     "nodes": 421,
-    "edges": 1602,
+    "edges": 1603,
     "typed_edges": 568,
     "orphans": 126
   }
