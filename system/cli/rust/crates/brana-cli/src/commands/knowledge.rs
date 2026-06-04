@@ -637,6 +637,47 @@ fn run_tier1(
 
 // ── Tier 2 ────────────────────────────────────────────────────────────────
 
+const TIER2_CONCURRENCY: usize = 3;
+
+/// Build the cluster-assignment prompt for a single URL.
+fn build_tier2_prompt(
+    author: &str,
+    title_signal: &str,
+    tags: &[String],
+    dim_list: &str,
+) -> String {
+    format!(
+        "You are assigning a LinkedIn post to the nearest topic in a knowledge base.\n\n\
+Author: {author}\nTitle signal: {title_signal}\nTags: {}\n\n\
+Existing dimension topics:\n{dim_list}\n\n\
+Assign this post to the best-matching dimension, or flag as \"new-topic\" \
+if it doesn't fit any existing dimension.\n\n\
+Respond with JSON only:\n\
+{{\"dimension_target\": \"slug or new-topic\", \"cluster_topic\": \"short label\", \"reason\": \"one sentence\"}}",
+        tags.join(" "),
+    )
+}
+
+/// Extract (dim_target, cluster_topic, reason) from a Gemini cluster-assignment response.
+fn parse_tier2_json(json: &serde_json::Value) -> (String, String, String) {
+    let dim_target = json
+        .get("dimension_target")
+        .and_then(|v| v.as_str())
+        .unwrap_or("new-topic")
+        .to_string();
+    let cluster_topic = json
+        .get("cluster_topic")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown")
+        .to_string();
+    let reason = json
+        .get("reason")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    (dim_target, cluster_topic, reason)
+}
+
 fn backfill_linkedin_fields(state: &mut kp::PipelineState) -> usize {
     let mut backfilled = 0usize;
     for (url, entry) in state.urls.iter_mut() {
@@ -1873,5 +1914,73 @@ mod tests {
         let result = list_undrafted_clusters(&state);
         assert_eq!(result[0], "popular");
         assert_eq!(result[1], "rare");
+    }
+
+    // ── tier2 parallel helpers ───────────────────────────────────────
+
+    #[test]
+    fn test_tier2_concurrency_is_3() {
+        assert_eq!(TIER2_CONCURRENCY, 3);
+    }
+
+    #[test]
+    fn test_parse_tier2_json_complete_response() {
+        let json = serde_json::json!({
+            "dimension_target": "agent-memory",
+            "cluster_topic": "memory-systems",
+            "reason": "Post discusses vector storage and retrieval."
+        });
+        let (dim, topic, reason) = parse_tier2_json(&json);
+        assert_eq!(dim, "agent-memory");
+        assert_eq!(topic, "memory-systems");
+        assert_eq!(reason, "Post discusses vector storage and retrieval.");
+    }
+
+    #[test]
+    fn test_parse_tier2_json_missing_dimension_defaults_to_new_topic() {
+        let json = serde_json::json!({
+            "cluster_topic": "unknown-area",
+            "reason": "No matching dimension found."
+        });
+        let (dim, _topic, _reason) = parse_tier2_json(&json);
+        assert_eq!(dim, "new-topic");
+    }
+
+    #[test]
+    fn test_parse_tier2_json_missing_cluster_topic_defaults_to_unknown() {
+        let json = serde_json::json!({
+            "dimension_target": "cli-tooling",
+            "reason": "Relevant."
+        });
+        let (_dim, topic, _reason) = parse_tier2_json(&json);
+        assert_eq!(topic, "unknown");
+    }
+
+    #[test]
+    fn test_parse_tier2_json_missing_reason_defaults_to_empty() {
+        let json = serde_json::json!({
+            "dimension_target": "cli-tooling",
+            "cluster_topic": "rust-cli"
+        });
+        let (_dim, _topic, reason) = parse_tier2_json(&json);
+        assert_eq!(reason, "");
+    }
+
+    #[test]
+    fn test_build_tier2_prompt_contains_author_and_title() {
+        let tags = vec!["rust".to_string(), "cli".to_string()];
+        let prompt = build_tier2_prompt("Alice", "Building CLIs in Rust", &tags, "- cli-tooling\n- agent-memory");
+        assert!(prompt.contains("Alice"), "prompt must contain author");
+        assert!(prompt.contains("Building CLIs in Rust"), "prompt must contain title_signal");
+        assert!(prompt.contains("rust cli"), "prompt must contain joined tags");
+        assert!(prompt.contains("cli-tooling"), "prompt must contain dim list");
+    }
+
+    #[test]
+    fn test_build_tier2_prompt_requests_json_response() {
+        let prompt = build_tier2_prompt("Bob", "AI agents", &[], "- agent-memory");
+        assert!(prompt.contains("Respond with JSON only"), "prompt must request JSON response");
+        assert!(prompt.contains("dimension_target"), "prompt must mention dimension_target key");
+        assert!(prompt.contains("cluster_topic"), "prompt must mention cluster_topic key");
     }
 }
