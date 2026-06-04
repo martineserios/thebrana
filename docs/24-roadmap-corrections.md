@@ -18,6 +18,8 @@
 
 ## Severity Summary
 
+| E2026-06-04-7 | proyecto_anita: `supabase/migrations/20260603000001_tenant_credentials.sql` exists in the repo but was never applied to either Supabase project (`zvpzgpjlhrvouquxorya` prod, `jwzpeaidchtdibcxttcm` dev). All `getTenantCreds()` calls in deployed Kapso Functions silently failed with PostgREST 404 — the error was indistinguishable from "unknown tenant" at the KF layer. The entire credential chain (tracy-auth, tracy-customer-lookup, warm-tenant-cache) was broken in production with no alert. Pre-deploy checklist for KFs had no gate checking that Supabase tables required by `getTenantCreds` exist. | **High** | code-fix | Applied migration to both projects. Added to `kapso-deploy-freshness.md §New function checklist`: "For any KF that imports `getTenantCreds`, verify `SELECT COUNT(*) FROM tenant_credentials` returns on the target Supabase project before deploying." |
+| E2026-06-04-6 | proyecto_anita: `services/kapso-functions/src/tracy-customer-lookup.js` had a local `getAdminToken()` function with wrong API paths: used `/admin/backoffice-users/signin-password` instead of `/api/commerce/admin/backoffice-users/signin-password`, and `/admin/customer-locations/search` instead of `/api/commerce/admin/customer-locations/search`. The correct implementation existed in `lib/tracy-admin-auth.js` since Stage 0b. Path 2 (admin customer-location lookup) failed on every invocation since the KF was deployed, silently falling through to Path 3. E2026-06-03-4 documented a test gap for this function — the deeper structural bug (wrong base path) was missed at that review. | **High** | code-fix | Fixed in `bd60f1c`: removed local `getAdminToken()`, replaced with `import { getAdminJwt } from './lib/tracy-admin-auth.js'`. Added to `tracy-auth-credential-types.md`: "Never implement an inline admin token helper in a KF source file — always import `{ getAdminJwt }` from `lib/tracy-admin-auth.js`." |
 | E2026-06-04-5 | thebrana: `docs/architecture/hooks.md` 2026-05-28 field note documented `{"continue": false}` as the correct output for escalating a PreToolUse advisory hook to blocking. Reality: `continue:false` is a CC hard-stop signal that bypasses `continueOnBlock:true` in hooks.json entirely — it kills agent continuation on every match, regardless of that setting. The correct advisory pattern is `permissionDecision:deny` + `continueOnBlock:true`; hard-blocking uses `permissionDecision:deny` with `continueOnBlock` absent. Using `continue:false` made `memory-write-gate.sh` unconditionally stop agent continuation on every typed-memory write, even for permitted CC auto-memory paths where the path exemption did match. Root-cause finding this session (fixed in 4aa6f6f; E2026-06-04-1 documented only the path-exemption scope issue). | **Medium** | code-fix | Updated `memory-write-gate.sh` to return `permissionDecision:deny`. Corrected the 2026-05-28 field note in `docs/architecture/hooks.md` to document the correct advisory→blocking escalation: always use `permissionDecision:deny`; `continueOnBlock:true` presence/absence is the advisory toggle; never use `continue:false`. |
 | E2026-06-04-4 | thebrana: `docs/spec-graph.json` node `docs/24-roadmap-corrections.md` has `system/hooks/another.sh` in its `impl_files` list. This file does not exist on disk — it was used as a test path in branch-verify test scenarios (E2026-06-03-10) and was incorrectly extracted by `brana graph build` from the errata doc body text. The ghost reference caused `git status` to show `docs/spec-graph.json` as dirty before any work began (because the graph builder always regenerates impl_files from doc content), blocking branch creation until the file was discarded with `git checkout -- docs/spec-graph.json`. | **Low** | code-fix | Removed `system/hooks/another.sh` from `impl_files` in `docs/spec-graph.json`. Fix applied this session. Future: add a validate.sh check that rejects impl_files entries pointing to non-existent paths. |
 | E2026-06-04-3 | proyecto_anita: Cloud Run `JWT_SECRET_KEY` (bound from GCP Secret Manager `agent-jwt-signing-secret`) and Vercel `JWT_SECRET` (set independently in Vercel env vars) are separate secrets with different values. KF pre-issued JWTs signed against the Cloud Run key are immediately invalid on Vercel — every agent route returns 401 until all tenant JWTs are re-issued with the Vercel secret. Affected this session: 4 JWTs (palco, pdb, delorenzi-parana, delorenzi-quilmes) × 2 KFs (build-conversation-context, tracy-customer-lookup) required unplanned re-issuance. | **Medium** | code-fix | JWTs re-issued via `tools/issue_agent_jwt.py` using Vercel JWT_SECRET. Rule added to `vercel-deploy.md §Phase 2a checklist`: re-issue all tenant JWTs with Vercel JWT_SECRET before cutting V3_API_BASE_URL over. |
@@ -4020,6 +4022,46 @@ Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Con
 **Fix:** Changed `git status --porcelain` to `git status --porcelain -uall` in the broad-add branch (line 112). With `-uall`, git lists each untracked file individually regardless of directory structure. All 20 branch-verify tests now pass.
 
 **Status:** code-fix — applied in fix(hooks): 1aaf5ed.
+
+---
+
+## E2026-06-04-7 — `tenant_credentials` migration never applied to prod/dev — entire KF credential chain silently broken
+
+**Severity:** High
+**Discovery:** 2026-06-04 — P0 hotfix cluster; first symptom was `warm-tenant-cache` returning UNKNOWN_TENANT errors
+**Affected files:**
+- `supabase/migrations/20260603000001_tenant_credentials.sql` — existed in repo, not applied
+- `services/kapso-functions/src/lib/tenant-creds.js` — `getTenantCreds()` caller
+- All KFs importing `getTenantCreds`: tracy-auth, tracy-customer-lookup, warm-tenant-cache, build-conversation-context, tracy-signup, tracy-link-user-to-location
+
+**Bug:** The migration file `20260603000001_tenant_credentials.sql` was committed to the repo as part of Stage 0b but was never applied to either Supabase project (`zvpzgpjlhrvouquxorya` prod, `jwzpeaidchtdibcxttcm` dev). `getTenantCreds()` calls `GET /rest/v1/tenant_credentials?slug=eq.{slug}` via PostgREST — when the table doesn't exist, PostgREST returns HTTP 404. The function throws `TENANT_CREDS_FETCH_ERROR`, which caused each KF to fall back to env var credentials (often stale or absent). No alert surfaced the missing table — the error was swallowed or masked by env var fallback.
+
+**Impact:** The entire credential chain — Tracy ecommerce auth, Tracy admin auth (Path 2), KV cache warm — was broken in production for all 3 tenants (palco, pdb, delorenzi) since Stage 0b shipped. The only working path was the env var fallback, which was stale or absent.
+
+**Fix:** Applied migration to both projects via Supabase Management API. Seeded credentials for all 3 tenants. Added to `kapso-deploy-freshness.md §New function checklist`: "For any KF that imports `getTenantCreds`, verify `SELECT COUNT(*) FROM tenant_credentials` returns ≥ 0 on the target Supabase project before deploying. Also verify `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` are set as KF secrets."
+
+**Status:** code-fix — applied 2026-06-04.
+
+---
+
+## E2026-06-04-6 — `tracy-customer-lookup.js` local `getAdminToken` used wrong API paths (missing `/api/commerce/` prefix)
+
+**Severity:** High
+**Discovery:** 2026-06-04 — P0 hotfix cluster; Path 2 admin lookup silently failing, Path 3 ecommerce fallback used for all contacts
+**Affected files:**
+- `services/kapso-functions/src/tracy-customer-lookup.js` — local `getAdminToken()` function (now removed)
+
+**Bug:** `tracy-customer-lookup.js` contained a local `getAdminToken()` function that hardcoded wrong Tracy API paths:
+- Used: `POST /admin/backoffice-users/signin-password` — missing `/api/commerce/` prefix
+- Should be: `POST /api/commerce/admin/backoffice-users/signin-password`
+- Used: `POST /admin/customer-locations/search` — missing `/api/commerce/` prefix
+- Should be: `POST /api/commerce/admin/customer-locations/search`
+
+The correct implementation existed in `lib/tracy-admin-auth.js` since Stage 0b. The local function was a silent duplicate that diverged in both the signin path and the search path. Every Path 2 invocation received 404 from Tracy, fell through to Path 3, and the issue was never surfaced (Path 3 succeeded when an ecommerce JWT was available). E2026-06-03-4 documented a test gap for `getAdminToken` but missed the structural bug — wrong base path — because the review focused on the dual-read pattern, not the API path.
+
+**Fix:** Removed local `getAdminToken()` from `tracy-customer-lookup.js`. Now imports `{ getAdminJwt }` from `lib/tracy-admin-auth.js` (correct implementation). Added to `tracy-auth-credential-types.md §Code discipline`: "Never implement an inline admin token helper in a KF source file — always `import { getAdminJwt } from './lib/tracy-admin-auth.js'`. Any local duplicate will diverge from the canonical implementation and fail silently."
+
+**Status:** code-fix — applied in `bd60f1c` 2026-06-04.
 
 ---
 
