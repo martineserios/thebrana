@@ -125,16 +125,6 @@
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/commit-msg-verify.sh"
           }
         ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "timeout": 3000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/rust-skills-guard.sh"
-          }
-        ]
       }
     ],
     "PostToolUse": [

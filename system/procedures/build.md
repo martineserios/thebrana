@@ -230,11 +230,8 @@ Pull relevant architecture, decision knowledge, and skill matches into context b
      - "Search marketplace for alternatives"
      - "Skip"
    ```
-   - **"Load now"**: read the matched skill's procedure file into context:
-     ```bash
-     find ~/.claude/skills system/skills -name "*.md" -path "*{skill-slug}*" | head -1 | xargs head -200
-     ```
-     Continue the build with the skill's knowledge loaded. No restart needed.
+   - **"Load now"**: invoke the skill via `Skill(skill="{matched-skill-name}")`.
+     The Skill tool loads the full procedure and writes the session sentinel. No restart needed.
    - **"Search marketplace"**: invoke acquire-skills:
      ```
      Skill(skill="brana:acquire-skills", args="{tech keywords}")
