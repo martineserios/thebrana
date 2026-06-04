@@ -504,8 +504,9 @@ pub fn cmd_epic_clear_marker() -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use brana_core::session::{read_state, render_text, resolve_memory_dir, session_history_path,
-        write_state, Backprop, DocDrift, SessionMeta, SessionMetrics, TestStatus};
+    use brana_core::session::{mark_consumed_for, read_state_from, render_text, resolve_memory_dir,
+        session_history_path, write_state, Backprop, DocDrift, SessionMeta, SessionMetrics,
+        TestStatus};
     use serial_test::serial;
     use std::env;
     use std::path::Path;
@@ -579,7 +580,7 @@ mod tests {
         let state = sample_state();
         write_state(root, &state).unwrap();
 
-        let loaded = read_state(root).unwrap();
+        let loaded = read_state_from(root, "feat/t-798-session-state-structs").unwrap();
         assert_eq!(loaded.version, 1);
         assert_eq!(loaded.branch, Some("feat/t-798-session-state-structs".into()));
         assert_eq!(loaded.accomplished.len(), 1);
@@ -609,7 +610,7 @@ mod tests {
         state2.written_at = recent_ts(1);
         write_state(root, &state2).unwrap();
 
-        let current = read_state(root).unwrap();
+        let current = read_state_from(root, "feat/t-798-session-state-structs").unwrap();
         assert_eq!(current.session_label, Some("second session".into()));
 
         let history = read_history(root, 10);
@@ -625,10 +626,10 @@ mod tests {
 
         let state = sample_state();
         write_state(root, &state).unwrap();
-        assert!(read_state(root).unwrap().consumed_at.is_none());
+        assert!(read_state_from(root, "feat/t-798-session-state-structs").unwrap().consumed_at.is_none());
 
-        mark_consumed(root).unwrap();
-        assert!(read_state(root).unwrap().consumed_at.is_some());
+        mark_consumed_for(root, "feat/t-798-session-state-structs").unwrap();
+        assert!(read_state_from(root, "feat/t-798-session-state-structs").unwrap().consumed_at.is_some());
     }
 
     #[test]
