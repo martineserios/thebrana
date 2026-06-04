@@ -181,6 +181,8 @@ As of 2026-04-01, three hook scripts integrate with ruflo MCP via `cf-env.sh`:
 
 Differentiator: "Does bypassing this gate corrupt an invariant that cannot be repaired in the same session?" Yes → enforcement. No → advisory. When adding a new hook, declare its class in the hook file header comment.
 
+**Hook output format — never use `continue:false`:** `{"continue": false}` is a CC hard-stop that bypasses `continueOnBlock:true` in hooks.json entirely — it kills agent continuation regardless of that setting. Always output `permissionDecision:deny` instead; the `continueOnBlock` field in hooks.json is the sole advisory toggle. Advisory hooks: `permissionDecision:deny` + `continueOnBlock:true` in hooks.json. Enforcement hooks: `permissionDecision:deny` with `continueOnBlock:true` absent. `continue:false` has no safe use case in brana hooks. (Validated 2026-06-04 — E2026-06-04-5; see field note below.)
+
 **Gate classification (all PreToolUse and blocking PostToolUse hooks):**
 
 | Hook | Matcher | Class | `continueOnBlock` | Invariant / why |
@@ -338,3 +340,7 @@ Source: E2026-06-03-9 / close session 2026-06-03
 ### 2026-06-04: rust-skills-guard.sh deregistered — stop-and-continue loop on fresh sessions
 `rust-skills-guard.sh` blocked Write/Edit on `*.rs` files until `/brana:rust-skills` was loaded this session. On every fresh session the sentinel (`/tmp/brana-rust-skills-loaded-{SESSION_ID}`) is absent, so the first `.rs` edit attempt was blocked and the agent loop halted with "Execution stopped by hook" — requiring the user to type "continue" to resume. The gate-per-file granularity was too disruptive relative to the protection it provided. **Resolution**: hook de-wired from `hooks.json` (PreToolUse Write|Edit matcher removed). `rust-skills-guard.sh` script preserved on disk for reference. The advisory gate in `build.md §4a` still reminds the agent to load rust-skills before editing `.rs` files. t-1845 tracks a SessionStart-based auto-load that would write the sentinel automatically when the branch references a Rust crate.
 Source: t-1202 / close session 2026-06-04
+
+### 2026-06-04: hooks.md gate table must be updated in the same commit as hooks.json wiring
+`memory-write-gate.sh` was live in `hooks.json` for multiple sessions without a row in the gate classification table, misleading any audit of advisory vs. enforcement boundaries. Added in t-1848 as a follow-up. Rule: when a hook is added to or removed from `hooks.json`, the gate classification table row must be in the same commit. A future validate.sh check should cross-reference registered hook scripts in hooks.json against table rows in this file — see t-1849.
+Source: t-1848 / close session 2026-06-04

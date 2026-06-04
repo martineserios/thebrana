@@ -48261,6 +48261,56 @@
         "tdd"
       ],
       "type": "task"
+    },
+    {
+      "id": "t-1849",
+      "subject": "[validate] test-validate-sh.sh regression harness",
+      "status": "pending",
+      "type": "task",
+      "tags": [
+        "harness",
+        "validate",
+        "tdd"
+      ],
+      "description": "Minimal fixture that stubs a hooks.json and repo structure, then asserts validate.sh exits 0 with no false FAILs. Minimum cases: check 9 with a multi-token hook command (bash + path), check 28 with a test script using python3 (--exclude-dir=tests), check 6b with a .md file containing a long ID. Guards against word-split and path-resolution regressions introduced by ec2edad.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-04",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
+    },
+    {
+      "id": "t-1850",
+      "subject": "[validate] check hooks.json vs hooks.md gate table parity",
+      "status": "pending",
+      "type": "task",
+      "tags": [
+        "harness",
+        "validate",
+        "hooks"
+      ],
+      "description": "Add a validate.sh check: every hook script registered in hooks.json must have a corresponding row in the hooks.md gate classification table. Cross-reference by script filename. Alert if any registered hook is missing from the table or any table row references a script not in hooks.json. Prevents the memory-write-gate.sh gap (t-1848 follow-up) from recurring silently.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-04",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
     }
   ],
   "version": "1"
