@@ -2,15 +2,16 @@
 
 **Task:** t-1270  
 **Wave:** 1 — Design record  
-**Status:** draft  
+**Status:** superseded (taxonomy types, see ADR-038)  
 **Date:** 2026-04-14  
-**Depends on:** [memory-taxonomy-ddd.md](memory-taxonomy-ddd.md)
+**Depends on:** [memory-taxonomy-ddd.md](memory-taxonomy-ddd.md)  
+**Superseded by:** [ADR-038](../decisions/ADR-038-memory-write-gate-and-per-pattern-files.md) — ADR-038 defines the authoritative 7-type routing table (feedback/project/user/pattern/convention/field-note/adr). This SDD's 6-type classify() interface remains a valid implementation record for the write path, but the type taxonomy and routing table are governed by ADR-038.
 
 ---
 
 ## Overview
 
-This doc specifies how the 6-type taxonomy (DDD) is implemented:
+This doc specifies how the original 6-type taxonomy (DDD) was implemented. **The type taxonomy is superseded by ADR-038's 7-type routing table** — see the Superseded by note above. The classify() interface, write path, and hook spec remain valid implementation references.
 
 1. `classify()` — the routing function interface
 2. File formats — `patterns.md`, `knowledge-staging.md`
