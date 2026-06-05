@@ -18,6 +18,7 @@
 
 ## Severity Summary
 
+| E2026-06-05-1 | proyecto_anita: `POST /api/commerce/admin/customer-locations/search` filter params are non-functional — returns unfiltered results regardless of filter value. Original `lookupByLogisticCode` always returned `items[0].id` (location 766028) for any clientId. Correct FK is `contacts.cliente = Tracy.erpIds[0]`, not `logisticCodes[0].code`. | **Medium** | code-fix | Client-side erpIds validation + `tools/backfill_customer_location_ids.py` for bulk index. Rule: never rely on Tracy filter params — validate client-side. |
 | E2026-06-04-7 | proyecto_anita: `supabase/migrations/20260603000001_tenant_credentials.sql` exists in the repo but was never applied to either Supabase project (`zvpzgpjlhrvouquxorya` prod, `jwzpeaidchtdibcxttcm` dev). All `getTenantCreds()` calls in deployed Kapso Functions silently failed with PostgREST 404 — the error was indistinguishable from "unknown tenant" at the KF layer. The entire credential chain (tracy-auth, tracy-customer-lookup, warm-tenant-cache) was broken in production with no alert. Pre-deploy checklist for KFs had no gate checking that Supabase tables required by `getTenantCreds` exist. | **High** | code-fix | Applied migration to both projects. Added to `kapso-deploy-freshness.md §New function checklist`: "For any KF that imports `getTenantCreds`, verify `SELECT COUNT(*) FROM tenant_credentials` returns on the target Supabase project before deploying." |
 | E2026-06-04-6 | proyecto_anita: `services/kapso-functions/src/tracy-customer-lookup.js` had a local `getAdminToken()` function with wrong API paths: used `/admin/backoffice-users/signin-password` instead of `/api/commerce/admin/backoffice-users/signin-password`, and `/admin/customer-locations/search` instead of `/api/commerce/admin/customer-locations/search`. The correct implementation existed in `lib/tracy-admin-auth.js` since Stage 0b. Path 2 (admin customer-location lookup) failed on every invocation since the KF was deployed, silently falling through to Path 3. E2026-06-03-4 documented a test gap for this function — the deeper structural bug (wrong base path) was missed at that review. | **High** | code-fix | Fixed in `bd60f1c`: removed local `getAdminToken()`, replaced with `import { getAdminJwt } from './lib/tracy-admin-auth.js'`. Added to `tracy-auth-credential-types.md`: "Never implement an inline admin token helper in a KF source file — always import `{ getAdminJwt }` from `lib/tracy-admin-auth.js`." |
 | E2026-06-04-5 | thebrana: `docs/architecture/hooks.md` 2026-05-28 field note documented `{"continue": false}` as the correct output for escalating a PreToolUse advisory hook to blocking. Reality: `continue:false` is a CC hard-stop signal that bypasses `continueOnBlock:true` in hooks.json entirely — it kills agent continuation on every match, regardless of that setting. The correct advisory pattern is `permissionDecision:deny` + `continueOnBlock:true`; hard-blocking uses `permissionDecision:deny` with `continueOnBlock` absent. Using `continue:false` made `memory-write-gate.sh` unconditionally stop agent continuation on every typed-memory write, even for permitted CC auto-memory paths where the path exemption did match. Root-cause finding this session (fixed in 4aa6f6f; E2026-06-04-1 documented only the path-exemption scope issue). | **Medium** | code-fix | Updated `memory-write-gate.sh` to return `permissionDecision:deny`. Corrected the 2026-05-28 field note in `docs/architecture/hooks.md` to document the correct advisory→blocking escalation: always use `permissionDecision:deny`; `continueOnBlock:true` presence/absence is the advisory toggle; never use `continue:false`. |
@@ -4079,3 +4080,26 @@ The correct implementation existed in `lib/tracy-admin-auth.js` since Stage 0b. 
 **Fix:** Re-enabled `"brana@brana": true`, removed the entire `hooks` section from `~/.claude/settings.json`, and ran `./bootstrap.sh --sync-plugin` to sync the plugin cache (several hook scripts had diverged). Hooks now load exclusively from the plugin's `hooks/hooks.json` where `${CLAUDE_PLUGIN_ROOT}` is correctly resolved.
 
 **Status:** code-fix — applied this session.
+
+---
+
+## E2026-06-05-1 — Tracy admin `customer-locations/search` filter params are non-functional
+
+**Severity:** Medium
+**Discovery:** 2026-06-05 — t-1229/t-1230 probe; filter probe + backfill dev run
+**Affected files:**
+- `services/kapso-functions/src/tracy-customer-lookup.js` — Path 2 lookupByLogisticCode
+- `tools/backfill_customer_location_ids.py` — new backfill tool
+
+**Bug:** `POST /api/commerce/admin/customer-locations/search` accepts `filter` body params but silently ignores them — returns unfiltered results regardless of filter value. Tested: `{"erpId":"201265"}`, `{"erpIds":["201265"]}`, `{"erpId":{"eq":"201265"}}`, `{"query":"201265"}`, even `{"erpId":"99999999"}` — all return identical first-page (5 items) unfiltered. The original `lookupByLogisticCode` implementation returned `items[0].id` (always location 766028 — first alphabetically) for ANY `clientId`, meaning every Path 2 call would write `customer_location_id=766028` to contacts regardless of the actual client.
+
+**Root cause:** Tracy API filter params are documented but not implemented on this endpoint. Client-side validation is required.
+
+**Fix:**
+1. `lookupByLogisticCode` now requests `take=50` and validates erpIds client-side: `items.find(item => item.erpIds.includes(String(clientId)))`.
+2. New `tools/backfill_customer_location_ids.py` downloads all 4601+ locations (5 pages of 1000) and builds a local erpId→locationId index for accurate bulk matching. Backfilled 1433 palco + 343 pdb contacts in dev.
+3. Correct FK confirmed: `contacts.cliente = Tracy.erpIds[0]` (NOT `logisticCodes[0].code` as previously assumed).
+
+**Rule:** Never rely on Tracy admin search filter params to narrow results. Always validate returned erpIds client-side. For bulk lookups, paginate all locations and build a local index.
+
+**Status:** code-fix — applied 2026-06-05.
