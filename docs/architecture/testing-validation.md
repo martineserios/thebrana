@@ -530,6 +530,22 @@ ESCAPED=$(echo "$reason" | jq -Rs '.' 2>/dev/null) || ESCAPED='"[hook blocked]"'
 jq -n --argjson reason "$ESCAPED" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$reason}}'
 ```
 
+### Check 48: hooks.json ↔ hooks.md Gate Table Parity (t-1850)
+
+Cross-references PreToolUse scripts in `hooks.json` against the gate classification table in `docs/architecture/hooks.md`, and vice versa. Catches two gap types:
+
+- **48a:** PreToolUse script registered in `hooks.json` but missing a gate table row — no enforcement/advisory classification on record
+- **48b:** Gate table row references a script not wired in `hooks.json` under any event — stale documentation or deployment gap
+
+Both gap types are `WARN` (not `FAIL`): a gap is a documentation debt, not a functional breakage (e.g., `guard-explore.sh` is table-documented but intentionally not yet wired).
+
+- **PASS:** all PreToolUse hooks have table rows; all table rows reference registered hooks
+- **WARN:** any gap found — output shows gap type and script name
+
+**Common failures:** adding a new hook to `hooks.json` without a gate table row; documenting a planned hook in the table before wiring it.
+
+**Fix:** add the missing row to `docs/architecture/hooks.md` gate classification table, or remove the stale row and its `hooks.json` entry.
+
 ## Field Notes
 
 ### 2026-03-30: Fixture-based test design scales for bash validation

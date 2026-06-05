@@ -196,5 +196,88 @@ else
 fi
 
 echo ""
+
+# ── T4: Check 48 — hooks.json vs hooks.md gate table parity ──────────────
+# Check 48a: PreToolUse script in hooks.json must have a gate table row.
+# Check 48b: Gate table row must reference a script in hooks.json.
+# Both are WARN (not FAIL) — gaps are documentation debt, not functional breaks.
+
+echo "=== T4: Check 48 — gate table parity ==="
+
+# Inline logic extraction: mirror Check 48's extraction functions
+# (avoids running validate.sh --check 48, which needs full system context)
+
+check48_missing_from_table() {
+    local ptu_scripts="$1"   # newline-separated
+    local gate_scripts="$2"  # newline-separated
+    while IFS= read -r script; do
+        [ -z "$script" ] && continue
+        if ! echo "$gate_scripts" | grep -qF "$script"; then
+            echo "MISSING_FROM_TABLE: $script"
+        fi
+    done <<< "$ptu_scripts"
+}
+
+check48_not_in_hooksjson() {
+    local gate_scripts="$1"   # newline-separated
+    local all_scripts="$2"    # newline-separated
+    while IFS= read -r script; do
+        [ -z "$script" ] && continue
+        if ! echo "$all_scripts" | grep -qF "$script"; then
+            echo "NOT_IN_HOOKSJSON: $script"
+        fi
+    done <<< "$gate_scripts"
+}
+
+# T4a: PTU script in hooks.json not in gate table → should surface gap
+PTU_SCRIPTS="my-new-hook.sh"
+GATE_SCRIPTS="pre-tool-use.sh
+tdd-gate.sh"
+ALL_SCRIPTS="my-new-hook.sh
+pre-tool-use.sh
+tdd-gate.sh"
+result=$(check48_missing_from_table "$PTU_SCRIPTS" "$GATE_SCRIPTS")
+TOTAL=$((TOTAL + 1))
+if echo "$result" | grep -q "MISSING_FROM_TABLE: my-new-hook.sh"; then
+    echo "  PASS: T4a — PTU script missing from gate table is detected"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL: T4a — expected MISSING_FROM_TABLE gap, got: $result"
+    FAIL=$((FAIL + 1))
+fi
+
+# T4b: gate table row not in hooks.json → should surface gap
+GATE_SCRIPTS2="guard-explore.sh
+pre-tool-use.sh"
+ALL_SCRIPTS2="pre-tool-use.sh"  # guard-explore.sh not wired
+result2=$(check48_not_in_hooksjson "$GATE_SCRIPTS2" "$ALL_SCRIPTS2")
+TOTAL=$((TOTAL + 1))
+if echo "$result2" | grep -q "NOT_IN_HOOKSJSON: guard-explore.sh"; then
+    echo "  PASS: T4b — gate table row not in hooks.json is detected"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL: T4b — expected NOT_IN_HOOKSJSON gap, got: $result2"
+    FAIL=$((FAIL + 1))
+fi
+
+# T4c: clean state — no gaps → both checks return empty
+PTU_OK="pre-tool-use.sh
+tdd-gate.sh"
+GATE_OK="pre-tool-use.sh
+tdd-gate.sh"
+ALL_OK="pre-tool-use.sh
+tdd-gate.sh"
+result3a=$(check48_missing_from_table "$PTU_OK" "$GATE_OK")
+result3b=$(check48_not_in_hooksjson "$GATE_OK" "$ALL_OK")
+TOTAL=$((TOTAL + 1))
+if [ -z "$result3a" ] && [ -z "$result3b" ]; then
+    echo "  PASS: T4c — clean state produces no gaps"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL: T4c — clean state should have no gaps; got: '$result3a' / '$result3b'"
+    FAIL=$((FAIL + 1))
+fi
+
+echo ""
 echo "=== Results: $PASS passed, $FAIL failed, $TOTAL total ==="
 [ "$FAIL" -eq 0 ] && exit 0 || exit 1
