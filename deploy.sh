@@ -20,6 +20,8 @@ echo ""
 
 # Step 1: Validate first
 echo "Running validation..."
+OPENSSL_LIB_DIR="${OPENSSL_LIB_DIR:-/usr/lib/x86_64-linux-gnu}" \
+OPENSSL_INCLUDE_DIR="${OPENSSL_INCLUDE_DIR:-/usr/include/openssl}" \
 "$SCRIPT_DIR/validate.sh" || { echo "DEPLOY ABORTED: validation failed"; exit 1; }
 echo ""
 

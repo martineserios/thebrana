@@ -6,19 +6,6 @@
 
 | Event | Matcher | Script | Timeout |
 |-------|---------|--------|--------|
-| ConfigChange | `` | `config-change-guard.sh` | 3000ms |
-| PostToolUse | `` | `post-tool-use.sh` | 5000ms |
-| PostToolUse | `Skill` | `skill-sentinel.sh` | 2000ms |
-| PostToolUse | `ExitPlanMode` | `post-plan-challenge.sh` | 5000ms |
-| PostToolUse | `Bash` | `post-pr-review.sh` | 5000ms |
-| PostToolUse | `Bash` | `task-completed.sh` | 5000ms |
-| PostToolUse | `Bash` | `hallucination-detect.sh` | 3000ms |
-| PostToolUse | `Bash` | `bash-output-compress.sh` | 3000ms |
-| PostToolUse | `Write|Edit` | `post-sale.sh` | 5000ms |
-| PostToolUse | `Write|Edit` | `post-tasks-validate.sh` | 5000ms |
-| PostToolUse | `Write|Edit` | `post-hooks-json.sh` | 10000ms |
-| PostToolUse | `Write|Edit` | `memory-index-sync.sh` | 3000ms |
-| PostToolUseFailure | `` | `post-tool-use-failure.sh` | 5000ms |
 | PreToolUse | `Write|Edit` | `pre-tool-use.sh` | 5000ms |
 | PreToolUse | `Write|Edit` | `tdd-gate.sh` | 5000ms |
 | PreToolUse | `Write|Edit` | `feedback-gate.sh` | 3000ms |
@@ -31,18 +18,31 @@
 | PreToolUse | `Bash` | `branch-name-warn.sh` | 3000ms |
 | PreToolUse | `Bash` | `no-attribution-commit.sh` | 3000ms |
 | PreToolUse | `Bash` | `commit-msg-verify.sh` | 3000ms |
-| SessionEnd | `` | `session-end.sh` | 10000ms |
+| PostToolUse | `` | `post-tool-use.sh` | 5000ms |
+| PostToolUse | `Skill` | `skill-sentinel.sh` | 2000ms |
+| PostToolUse | `ExitPlanMode` | `post-plan-challenge.sh` | 5000ms |
+| PostToolUse | `Bash` | `post-pr-review.sh` | 5000ms |
+| PostToolUse | `Bash` | `task-completed.sh` | 5000ms |
+| PostToolUse | `Bash` | `hallucination-detect.sh` | 3000ms |
+| PostToolUse | `Bash` | `bash-output-compress.sh` | 3000ms |
+| PostToolUse | `Write|Edit` | `post-sale.sh` | 5000ms |
+| PostToolUse | `Write|Edit` | `post-tasks-validate.sh` | 5000ms |
+| PostToolUse | `Write|Edit` | `post-hooks-json.sh` | 10000ms |
+| PostToolUse | `Write|Edit` | `memory-index-sync.sh` | 3000ms |
+| PostToolUseFailure | `` | `post-tool-use-failure.sh` | 5000ms |
+| UserPromptSubmit | `` | `preflight-model.sh` | 3000ms |
+| UserPromptSubmit | `` | `context-inject.sh` | 5000ms |
+| UserPromptSubmit | `` | `signal-capture.sh` | 3000ms |
 | SessionStart | `` | `session-start.sh` | 10000ms |
 | SessionStart | `` | `cc-changelog-check.sh` | — |
-| Stop | `` | `goal-completion.sh` | 8000ms |
-| StopFailure | `` | `stopfailure-logger.sh` | 5000ms |
 | SubagentStart | `` | `subagent-context.sh` | 5000ms |
 | SubagentStart | `` | `subagent-tracker.sh` | 5000ms |
 | SubagentStop | `` | `subagent-tracker.sh` | 5000ms |
 | TaskCompleted | `` | `step-completed.sh` | 5000ms |
-| UserPromptSubmit | `` | `preflight-model.sh` | 3000ms |
-| UserPromptSubmit | `` | `context-inject.sh` | 5000ms |
-| UserPromptSubmit | `` | `signal-capture.sh` | 3000ms |
+| SessionEnd | `` | `session-end.sh` | 10000ms |
+| Stop | `` | `goal-completion.sh` | 8000ms |
+| StopFailure | `` | `stopfailure-logger.sh` | 5000ms |
+| ConfigChange | `` | `config-change-guard.sh` | 3000ms |
 
 ## Hook Scripts
 
@@ -56,7 +56,7 @@ No strict mode — hooks must never fail and block the session.
 
 Branch Name Guard — PreToolUse hook for Bash (git branch creation)
 
-**Gate:** Blocking
+**Gate:** Advisory
 
 ### `branch-verify.sh`
 
@@ -98,7 +98,7 @@ Documentation Enforcement Gate — PreToolUse hook for Bash (git commit)
 
 PreToolUse: Blocking gate on feedback_*.md writes — Wave 2.
 
-**Gate:** Blocking
+**Gate:** Advisory
 
 ### `goal-completion.sh`
 
