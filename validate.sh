@@ -1907,6 +1907,87 @@ fi
 echo ""
 fi  # should_run 46
 
+if should_run 47; then
+# Check 47 — PreToolUse hooks must not output continue:false (E2026-06-04-5)
+# continue:false is a session-level hard-stop that bypasses continueOnBlock:true,
+# killing the entire agent loop instead of just denying the tool call.
+# PreToolUse blocking requires permissionDecision:deny (hookSpecificOutput format).
+echo "Checking PreToolUse hooks for continue:false output..."
+HJ="$SYSTEM_DIR/hooks/hooks.json"
+C47_HITS=""
+if [ -f "$HJ" ]; then
+    while IFS= read -r cmd; do
+        [ -z "$cmd" ] && continue
+        SCRIPT_PATH=$(echo "$cmd" | awk '{print $NF}')
+        SCRIPT_RESOLVED=$(echo "$SCRIPT_PATH" | sed "s|\${CLAUDE_PLUGIN_ROOT}|$SYSTEM_DIR|g")
+        [ -f "$SCRIPT_RESOLVED" ] || continue
+        SCRIPT_NAME=$(basename "$SCRIPT_RESOLVED")
+        # Detect continue:false in non-comment, non-pass_through lines
+        hits=$(grep -n '"continue"[[:space:]]*:[[:space:]]*false\|echo.*continue.*false' \
+            "$SCRIPT_RESOLVED" 2>/dev/null \
+            | grep -v ':[[:space:]]*#\|pass_through\|# .*continue' \
+            || true)
+        if [ -n "$hits" ]; then
+            C47_HITS="${C47_HITS}  ${SCRIPT_NAME}:
+$(echo "$hits" | sed 's/^/    /')
+"
+        fi
+    done <<< "$(jq -r '.hooks.PreToolUse[]? | .hooks[]? | .command // empty' "$HJ" 2>/dev/null || true)"
+fi
+if [ -n "$C47_HITS" ]; then
+    printf '%s' "$C47_HITS"
+    fail "Check 47: PreToolUse hook(s) output {\"continue\": false} — use permissionDecision:deny instead (E2026-06-04-5; see docs/architecture/hooks.md §Hook output format)"
+else
+    pass "Check 47: PreToolUse hooks — no continue:false output patterns found"
+fi
+echo ""
+fi  # should_run 47
+
+if should_run 48; then
+# Check 48 — hooks.json PreToolUse scripts must all have a row in hooks.md gate table (t-1850)
+echo "Check 48: hooks.json vs hooks.md gate table parity..."
+HJ="$SYSTEM_DIR/hooks/hooks.json"
+HOOKS_MD="$SCRIPT_DIR/docs/architecture/hooks.md"
+C48_WARNS=""
+if [ -f "$HJ" ] && [ -f "$HOOKS_MD" ]; then
+    # Extract unique PreToolUse script names from hooks.json
+    PTU_SCRIPTS=$(jq -r '.hooks.PreToolUse[]?.hooks[]?.command // empty' "$HJ" \
+        | awk '{print $NF}' | sed 's|.*/||' | sort -u)
+    # Extract all scripts registered under any event in hooks.json
+    ALL_SCRIPTS=$(jq -r '.hooks | to_entries[] | .value[]?.hooks[]?.command // empty' "$HJ" \
+        | awk '{print $NF}' | sed 's|.*/||' | sort -u)
+    # Extract unique script names from gate classification table in hooks.md
+    GATE_SCRIPTS=$(awk '/Gate classification.*all PreToolUse/{f=1; next} f && /^\*\*[^|]/{exit} f' "$HOOKS_MD" \
+        | grep -E '^\| `[a-zA-Z0-9_-]+\.sh`' \
+        | grep -v '~~' \
+        | sed 's/| `\([a-zA-Z0-9_.-]*\.sh\)`.*/\1/' \
+        | sort -u)
+    # Check 48a: every PreToolUse script must appear in gate table
+    while IFS= read -r script; do
+        [ -z "$script" ] && continue
+        if ! echo "$GATE_SCRIPTS" | grep -qF "$script"; then
+            C48_WARNS="${C48_WARNS}  hooks.json PreToolUse script missing from hooks.md gate table: ${script}
+"
+        fi
+    done <<< "$PTU_SCRIPTS"
+    # Check 48b: every gate table row must reference a script in hooks.json (any event)
+    while IFS= read -r script; do
+        [ -z "$script" ] && continue
+        if ! echo "$ALL_SCRIPTS" | grep -qF "$script"; then
+            C48_WARNS="${C48_WARNS}  gate table row not wired in hooks.json: ${script}
+"
+        fi
+    done <<< "$GATE_SCRIPTS"
+fi
+if [ -n "$C48_WARNS" ]; then
+    printf '%s' "$C48_WARNS"
+    warn "Check 48: gate table parity gap(s) found — update hooks.md or hooks.json"
+else
+    pass "Check 48: hooks.json ↔ hooks.md gate table — parity OK"
+fi
+echo ""
+fi  # should_run 48
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."

@@ -30,8 +30,9 @@ FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null) 
 # Layer 1 guard: CLAUDE.md is human-authored, never LLM-written.
 # Unconditional — no sentinel bypass, no override bypass.
 if is_layer1_file "$FILE_PATH" 2>/dev/null; then
-    ESCAPED=$(printf '{"continue": false, "additionalContext": "🚫 CLAUDE.md is Layer 1 (human-authored only). Add conventions via PR — /brana:close must not write here."}')
-    echo "$ESCAPED"
+    REASON="feedback-gate: $(basename "$FILE_PATH") is Layer 1 (human-authored only). Add conventions via PR — /brana:close must not write here."
+    ESCAPED=$(echo "$REASON" | jq -Rs '.' 2>/dev/null) || ESCAPED='"[feedback-gate Layer 1 block]"'
+    jq -n --argjson reason "$ESCAPED" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$reason}}'
     exit 0
 fi
 
@@ -57,20 +58,11 @@ if [ -f /tmp/brana-close-active ]; then
     pass_through
 fi
 
-# Blocking response — continue:false, inject routing context
-WARNING="🚫 feedback_*.md write BLOCKED: $(basename "$FILE_PATH")
+# Blocking response — permissionDecision:deny with routing context
+# Use permissionDecision:deny (not continue:false) so continueOnBlock:true in hooks.json is respected.
+WARNING="feedback-gate: $(basename "$FILE_PATH") is a legacy path. Use /brana:retrospective to classify and route: Rule (always/never) → system/rules/; Decision → ADR stub; Reference → portfolio.md; Pattern → patterns.md; Knowledge → knowledge-staging.md. To bypass: set BRANA_MEMORY_OVERRIDE=1 (logs to override-log.md)."
 
-feedback_*.md is a legacy path. Use /brana:retrospective to classify and route:
+ESCAPED=$(echo "$WARNING" | jq -Rs '.' 2>/dev/null) || ESCAPED='"[feedback-gate block — jq unavailable]"'
 
-  Rule (always/never)    → system/rules/ draft (human gate)
-  Decision (why X/Y)     → ADR stub (human gate)
-  Reference (where X is) → ~/.claude/memory/portfolio.md
-  Pattern (reusable fix) → ~/.claude/memory/patterns.md
-  Knowledge (domain fact) → ~/.claude/memory/knowledge-staging.md
-
-To bypass: set BRANA_MEMORY_OVERRIDE=1 in your shell (logs to override-log.md)."
-
-ESCAPED=$(echo "$WARNING" | jq -Rs '.' 2>/dev/null) || ESCAPED='"[feedback-gate warning — jq unavailable]"'
-
-echo "{\"continue\": false, \"additionalContext\": $ESCAPED}"
+jq -n --argjson reason "$ESCAPED" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$reason}}'
 exit 0

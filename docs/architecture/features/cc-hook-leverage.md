@@ -42,7 +42,7 @@ Expand brana's use of CC hook events from 5 to 8+, adding native TaskCompleted, 
 | `bootstrap.sh` | Identity layer — PostToolUse hooks + TaskCompleted registered in settings.json |
 | `system/scripts/cc-changelog-check.sh` | Scheduled script — checks npm for CC version changes, writes report |
 | `system/hooks/session-start.sh` | Surfaces CC changelog report on session start |
-| `system/skills/*/SKILL.md` | 27 skills with `model:` frontmatter (14 haiku, 13 sonnet) |
+| `system/skills/*/SKILL.md` | 34 skills with `model:` frontmatter (19 haiku, 14 sonnet) |
 
 ## API Surface
 
@@ -50,7 +50,7 @@ Expand brana's use of CC hook events from 5 to 8+, adding native TaskCompleted, 
 
 | Event | Hook | Registered In |
 |-------|------|---------------|
-| PreToolUse (Write\|Edit) | pre-tool-use.sh | plugin hooks.json |
+| PreToolUse (Write\|Edit) | pre-tool-use.sh, tdd-gate.sh, feedback-gate.sh, memory-write-gate.sh | plugin hooks.json |
 | PreToolUse (Bash) | worktree-gate.sh, branch-name-warn.sh | plugin hooks.json |
 | PostToolUse (Write\|Edit\|Bash) | post-tool-use.sh | plugin hooks.json ⚠ |
 | PostToolUse (Write\|Edit) | post-sale.sh, post-tasks-validate.sh | plugin hooks.json ⚠ |
@@ -74,10 +74,22 @@ Expand brana's use of CC hook events from 5 to 8+, adding native TaskCompleted, 
 
 ## Testing
 
-No automated tests — shell hooks are verified by observing behavior during normal usage. The task-completed.sh hook was tested live when completing t-199.
+Hook scripts now have automated test coverage in `system/hooks/tests/`. The test suite covers 36 hooks as of 2026-06-04.
 
+Run all hook tests:
 ```bash
-# Manual verification: complete a task and check for rollup + GitHub close
+for t in system/hooks/tests/test-*.sh; do bash "$t"; done
+```
+
+Run a specific hook test:
+```bash
+bash system/hooks/tests/test-task-completed.sh
+bash system/hooks/tests/test-branch-name-warn.sh
+```
+
+Manual verification for task-completed.sh:
+```bash
+# Complete a task and check for rollup + GitHub close
 brana backlog set t-XXX status completed
 # Check /tmp/brana-task-sync.log for GitHub close
 # Check /tmp/brana-decisions.log for decision log entry

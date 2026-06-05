@@ -76,6 +76,8 @@ Every hook must write valid JSON to stdout. Four response patterns:
 
 Use the `permissionDecision` format for PreToolUse (blocking a specific tool call). Use `stopReason` for ConfigChange and non-tool-use events where you want to halt the session. Most existing hooks use the `permissionDecision` format — prefer that for any new PreToolUse gate.
 
+> **⚠ Never use `{"continue": false}` for PreToolUse hooks.** `continue:false` is a CC hard-stop that bypasses `continueOnBlock:true` in hooks.json entirely — it kills agent continuation regardless of that setting, making advisory hooks accidentally block unconditionally. Always output `permissionDecision:deny` for PreToolUse; `continueOnBlock` in hooks.json is the sole advisory toggle. `continue:false` is only valid for `ConfigChange` and `UserPromptSubmit` events. (E2026-06-04-5; see also `docs/architecture/hooks.md §Hook output format`.)
+
 ### Exit Codes
 
 Always exit 0. A non-zero exit code causes Claude Code to treat the hook as failed, which may disrupt the session. Handle errors internally and fall back to `{"continue": true}`.
@@ -233,7 +235,7 @@ All should return valid JSON without crashing.
 Key patterns it uses:
 - Fast exit for non-`Bash` tools
 - Escape hatch (`--force-name` in the command) for authorized bypasses
-- Hard-block via stderr message + `{"continue": false}`
+- Hard-block via `permissionDecision:deny` output (⚠ not `continue:false` — see Output JSON §Block (PreToolUse))
 - `case` exemptions for special branches (`main`, `docs/*`, `hotfix/*`)
 
 Reference: `system/hooks/branch-name-warn.sh`, tests: `system/hooks/tests/test-branch-name-warn.sh`.
@@ -246,4 +248,4 @@ Reference: `system/hooks/branch-name-warn.sh`, tests: `system/hooks/tests/test-b
 4. Run `./validate.sh`
 5. Test locally with piped JSON
 6. Test in a live session with `claude --plugin-dir ./system`
-7. Add entry to `docs/architecture/hooks.md`
+7. Add entry to `docs/architecture/hooks.md` and add a row to the gate classification table (enforcement vs advisory, `continueOnBlock` value, invariant)
