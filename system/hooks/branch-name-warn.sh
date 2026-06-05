@@ -28,14 +28,10 @@ pass_through() {
 
 block() {
     local branch="$1"
-    cat >&2 <<BLOCK
-✗  branch-name-guard: '$branch' does not match convention.
-   Expected: {epic-slug}/{work-type}/t-{NNN}-{description}
-   work-type ∈ feat|fix|chore|research|test|docs|refactor
-   Example:  session/fix/t-1700-epic-scoped-assertion
-   Use --force-name to bypass this gate.
-BLOCK
-    echo '{"continue": false}'
+    local reason="branch-name-guard: '$branch' does not match convention. Expected: {epic-slug}/{work-type}/t-{NNN}-{description} | work-type ∈ feat|fix|chore|research|test|docs|refactor | Example: session/fix/t-1700-epic-scoped-assertion | Use --force-name to bypass."
+    local ESCAPED
+    ESCAPED=$(echo "$reason" | jq -Rs '.' 2>/dev/null) || ESCAPED='"[branch-name-guard blocked]"'
+    jq -n --argjson reason "$ESCAPED" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$reason}}'
     exit 0
 }
 

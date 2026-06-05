@@ -69,7 +69,7 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | `tdd-gate.sh` | PreToolUse | `Write\|Edit` | TDD baseline — blocks impl writes when no test exists in project. Ordering enforcement (tests before impl) lives in procedure gates, not here |
 | `plan-mode-gate.sh` | PreToolUse | `EnterPlanMode` | Enforce plan mode for non-trivial builds |
 | `worktree-gate.sh` | PreToolUse | `Bash` | Gate A: block `git checkout -b` / `git switch -c` when dirty or worktrees active — **exception**: if the only dirty file is `.claude/tasks.json`, emits a warn (continue:true) instead of deny (t-1320). Gate B: block `git commit` when /tmp >95% full; warn on cross-session staged files |
-| `branch-name-warn.sh` | PreToolUse | `Bash(git *)` | Hard-block: rejects `git switch -c` / `git checkout -b` / `git branch <name>` when the new name doesn't match `{epic-slug}/{work-type}/t-{NNN}-` convention. Skips: main, master, docs/*, hotfix/*. Escape hatch: `--force-name`. Shipped advisory (t-1620), upgraded to block (t-1718). |
+| `branch-name-warn.sh` | PreToolUse | `Bash(git *)` | Hard-block: rejects `git switch -c` / `git checkout -b` / `git branch <name>` when the new name doesn't match `{epic-slug}/{work-type}/t-{NNN}-` convention. Skips: main, master, docs/*, hotfix/*. Escape hatch: `--force-name`. Shipped advisory (t-1620), upgraded to block (t-1718). Uses `permissionDecision:deny` (corrected from `continue:false` — E2026-06-04-5). |
 | `doc-gate.sh` | PreToolUse | `Bash` | Block `git commit` on any branch when behavioral files (skills, hooks, agents, commands, cli, rules) are staged but no docs change is present. Spec-before-code enforcement. |
 | `main-guard.sh` | PreToolUse | `Bash` | Block behavioral commits on main/master. Forces work onto feat/fix/* branches for proper gate enforcement. Uses `lib/git-helpers.sh` → `resolve_lookup_dir()` for worktree-aware repo detection. |
 | `branch-verify.sh` | PreToolUse | `Bash` | Block `git add` of behavioral files when on main/master. Uses `lib/git-helpers.sh` → `resolve_lookup_dir()` to extract `git -C <path>` from the command and check the target repo's branch. Escape hatch: `# --force-main` comment. |
@@ -194,6 +194,7 @@ Differentiator: "Does bypassing this gate corrupt an invariant that cannot be re
 | `feedback-gate.sh` (non-L1) | Write\|Edit | **Advisory** | Yes | Feedback memory is LLM-writable; rejection becomes context for retry |
 | `memory-write-gate.sh` | Write\|Edit | **Advisory** | Yes | Memory routing nudge — routes typed-memory writes through `brana memory write`; CC auto-memory paths exempt |
 | `plan-mode-gate.sh` | EnterPlanMode | **Advisory** | Yes | Planning encouragement; skipping plan mode is recoverable |
+| `branch-name-warn.sh` | Bash | **Enforcement** | Never | Branch naming convention; wrong names persist in git history; `--force-name` escape hatch for authorized overrides |
 | `worktree-gate.sh` | Bash | **Enforcement** | Never | Branch discipline: behavioral changes must go through a worktree branch |
 | `doc-gate.sh` | Bash | **Enforcement** | Never | Spec-in-same-commit: behavioral commits without docs corrupt the change record |
 | `main-guard.sh` | Bash | **Enforcement** | Never | Behavioral commits must never land on main directly |
