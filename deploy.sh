@@ -87,16 +87,21 @@ if [ -f "$SYSTEM_DIR/statusline.sh" ]; then
 fi
 
 # Step 5: Merge settings.json (brana base + user overlay)
-if [ -f "$TARGET_DIR/settings.json" ]; then
-    # Additive hooks merge: brana hooks overlay user hooks, user wins for everything else.
-    # Without this, user's empty hooks: {} would overwrite brana's hook configs.
-    # See 24-roadmap-corrections.md error #1 for details.
-    MERGED=$(jq -s '(.[0].hooks // {}) as $brana | (.[1].hooks // {}) as $user | .[0] * .[1] * {hooks: ($user * $brana)}' "$SYSTEM_DIR/settings.json" "$TARGET_DIR/settings.json")
-    echo "$MERGED" > "$TARGET_DIR/settings.json"
-    echo "  ✓ settings.json (merged — user settings preserved, hooks additive)"
+# system/settings.json removed in v1.0.0 — hooks now live in hooks.json only
+if [ -f "$SYSTEM_DIR/settings.json" ]; then
+    if [ -f "$TARGET_DIR/settings.json" ]; then
+        # Additive hooks merge: brana hooks overlay user hooks, user wins for everything else.
+        # Without this, user's empty hooks: {} would overwrite brana's hook configs.
+        # See 24-roadmap-corrections.md error #1 for details.
+        MERGED=$(jq -s '(.[0].hooks // {}) as $brana | (.[1].hooks // {}) as $user | .[0] * .[1] * {hooks: ($user * $brana)}' "$SYSTEM_DIR/settings.json" "$TARGET_DIR/settings.json")
+        echo "$MERGED" > "$TARGET_DIR/settings.json"
+        echo "  ✓ settings.json (merged — user settings preserved, hooks additive)"
+    else
+        cp "$SYSTEM_DIR/settings.json" "$TARGET_DIR/settings.json"
+        echo "  ✓ settings.json (new)"
+    fi
 else
-    cp "$SYSTEM_DIR/settings.json" "$TARGET_DIR/settings.json"
-    echo "  ✓ settings.json (new)"
+    echo "  = settings.json (system/settings.json absent — user settings untouched)"
 fi
 
 # Step 6: Deploy scheduler
