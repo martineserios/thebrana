@@ -515,6 +515,21 @@ cat /tmp/brana-session-*.jsonl | jq .
 
 This file is created by `post-tool-use.sh` and consumed by `session-end.sh` to compute flywheel metrics.
 
+### Check 47: PreToolUse Hooks Must Not Use continue:false
+
+Scans all scripts registered under PreToolUse events in `hooks.json` for `{"continue": false}` output patterns. `continue:false` is a session-level hard-stop that terminates the agent loop entirely, bypassing `continueOnBlock:true` — it must never be used for PreToolUse blocking. The correct PreToolUse blocking format is `permissionDecision:deny`.
+
+- **PASS:** no PreToolUse-registered hook scripts contain `continue:false` output patterns
+- **FAIL:** any matching line found — output shows script name, line number, and offending line
+
+**Common failures:** upgrading a hook from advisory to hard-block and using `{"continue": false}` as the block signal. Root cause documented as E2026-06-04-5 (2026-06-04).
+
+**Fix:** replace blocking output with:
+```bash
+ESCAPED=$(echo "$reason" | jq -Rs '.' 2>/dev/null) || ESCAPED='"[hook blocked]"'
+jq -n --argjson reason "$ESCAPED" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$reason}}'
+```
+
 ## Field Notes
 
 ### 2026-03-30: Fixture-based test design scales for bash validation

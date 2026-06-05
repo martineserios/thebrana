@@ -1907,6 +1907,42 @@ fi
 echo ""
 fi  # should_run 46
 
+if should_run 47; then
+# Check 47 — PreToolUse hooks must not output continue:false (E2026-06-04-5)
+# continue:false is a session-level hard-stop that bypasses continueOnBlock:true,
+# killing the entire agent loop instead of just denying the tool call.
+# PreToolUse blocking requires permissionDecision:deny (hookSpecificOutput format).
+echo "Checking PreToolUse hooks for continue:false output..."
+HJ="$SYSTEM_DIR/hooks/hooks.json"
+C47_HITS=""
+if [ -f "$HJ" ]; then
+    while IFS= read -r cmd; do
+        [ -z "$cmd" ] && continue
+        SCRIPT_PATH=$(echo "$cmd" | awk '{print $NF}')
+        SCRIPT_RESOLVED=$(echo "$SCRIPT_PATH" | sed "s|\${CLAUDE_PLUGIN_ROOT}|$SYSTEM_DIR|g")
+        [ -f "$SCRIPT_RESOLVED" ] || continue
+        SCRIPT_NAME=$(basename "$SCRIPT_RESOLVED")
+        # Detect continue:false in non-comment, non-pass_through lines
+        hits=$(grep -n '"continue"[[:space:]]*:[[:space:]]*false\|echo.*continue.*false' \
+            "$SCRIPT_RESOLVED" 2>/dev/null \
+            | grep -v ':[[:space:]]*#\|pass_through\|# .*continue' \
+            || true)
+        if [ -n "$hits" ]; then
+            C47_HITS="${C47_HITS}  ${SCRIPT_NAME}:
+$(echo "$hits" | sed 's/^/    /')
+"
+        fi
+    done <<< "$(jq -r '.hooks.PreToolUse[]? | .hooks[]? | .command // empty' "$HJ" 2>/dev/null || true)"
+fi
+if [ -n "$C47_HITS" ]; then
+    printf '%s' "$C47_HITS"
+    fail "Check 47: PreToolUse hook(s) output {\"continue\": false} — use permissionDecision:deny instead (E2026-06-04-5; see docs/architecture/hooks.md §Hook output format)"
+else
+    pass "Check 47: PreToolUse hooks — no continue:false output patterns found"
+fi
+echo ""
+fi  # should_run 47
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
