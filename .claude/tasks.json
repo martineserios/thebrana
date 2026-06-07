@@ -48265,7 +48265,7 @@
     {
       "id": "t-1849",
       "subject": "[validate] test-validate-sh.sh regression harness",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "tags": [
         "harness",
@@ -48290,7 +48290,7 @@
     {
       "id": "t-1850",
       "subject": "[validate] check hooks.json vs hooks.md gate table parity",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "tags": [
         "harness",
@@ -48311,6 +48311,33 @@
       "order": 0,
       "github_issue": null,
       "execution": "code"
+    },
+    {
+      "id": "t-1851",
+      "subject": "Research the new Claude Code /loop command deeply",
+      "status": "pending",
+      "type": "task",
+      "tags": [
+        "research",
+        "claude-code",
+        "loop",
+        "harness"
+      ],
+      "description": "Deep dive into the /loop slash command introduced in Claude Code — how it works, the self-paced dynamic mode (ScheduleWakeup), fixed-interval mode, use cases, and how it could be leveraged in brana workflows (e.g. babysitting deploys, polling CI, recurring ops).",
+      "effort": "M",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-07",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "AC: understand all /loop modes (fixed interval vs self-paced), how ScheduleWakeup integrates, use cases for recurring tasks and polling, any integration with skills/hooks\nAC: document findings in a reference note or knowledge entry\nskill_gap_checked: true (score < 0.3, user chose: skip)",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "strategy": "spike"
     }
   ],
   "version": "1"

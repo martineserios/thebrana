@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-04T23:13:20Z",
+  "generated": "2026-06-06T20:45:06Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1039,7 +1039,8 @@
         "system/hooks/subagent-context.sh",
         "system/hooks/hooks.json",
         "system/scripts/cc-changelog-check.sh",
-        "system/hooks/session-start.sh"
+        "system/hooks/session-start.sh",
+        "system/hooks/tests/"
       ]
     },
     "docs/architecture/features/chat-agents-monitoring.md": {
@@ -1497,13 +1498,14 @@
         "system/skills/{dep",
         "system/procedures/backlog.md",
         "system/procedures/build.md",
+        "system/scripts/",
+        "system/hooks/",
+        "system/hooks/tests/",
         "system/skills/_shared/guided-execution.md",
         "system/skills/X/",
         "system/skills/",
-        "system/hooks/",
         "system/agents/",
-        "system/rules/",
-        "system/scripts/"
+        "system/rules/"
       ]
     },
     "docs/archive/24-roadmap-corrections.md": {
