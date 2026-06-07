@@ -18,6 +18,8 @@
 
 ## Severity Summary
 
+| E2026-06-07-2 | proyecto_anita (dgrx): `clients/dgrx/services/dgrx-api/src/dgrx_api/services/sinks/sheet_log.py` uses `googleapiclient.discovery.build("sheets", "v4", ...)` at lines 18 and 129. Same blocking-event-loop pattern fixed in `interes_log.py` this session — not propagated to its sibling sink. Every `Pipeline.create` webhook that routes through `SheetLogSink` makes a blocking synchronous HTTP call on the asyncio event loop. | **Medium** | pending | Port `sheet_log.py` to `httpx.AsyncClient` + direct REST pattern from the now-fixed `interes_log.py`. Apply fix-adjacent-sibling audit rule: after fixing a library-misuse pattern, grep siblings before committing. |
+| E2026-06-07-1 | proyecto_anita (dgrx): `googleapiclient.discovery.build()` is incompatible with asyncio services — it makes a blocking synchronous HTTP request to download the full API discovery document on every call (httplib2, no timeout). Used in `interes_log.py` on initial scaffold. Manifested as `deal_router.routed` never logging after the Interés sink was wired (event loop blocked). Took two fix iterations: first `run_in_executor` wrapper (insufficient — no timeout, consumes thread-pool slot), then full replacement with `httpx.AsyncClient` direct REST calls. This constraint was undocumented in DGRX CLAUDE.md and cloud-run-deploy.md Gotchas. | **Medium** | code-fix | Fixed in `464659b`. Rule: for any Google API call in an async Python service, use `httpx.AsyncClient` + direct REST endpoint + `google.auth.default()` for token acquisition. Never use `googleapiclient.discovery.build()` in async code. Document in `cloud-run-deploy.md §Gotchas`. |
 | E2026-06-05-1 | proyecto_anita: `POST /api/commerce/admin/customer-locations/search` filter params are non-functional — returns unfiltered results regardless of filter value. Original `lookupByLogisticCode` always returned `items[0].id` (location 766028) for any clientId. Correct FK is `contacts.cliente = Tracy.erpIds[0]`, not `logisticCodes[0].code`. | **Medium** | code-fix | Client-side erpIds validation + `tools/backfill_customer_location_ids.py` for bulk index. Rule: never rely on Tracy filter params — validate client-side. |
 | E2026-06-04-7 | proyecto_anita: `supabase/migrations/20260603000001_tenant_credentials.sql` exists in the repo but was never applied to either Supabase project (`zvpzgpjlhrvouquxorya` prod, `jwzpeaidchtdibcxttcm` dev). All `getTenantCreds()` calls in deployed Kapso Functions silently failed with PostgREST 404 — the error was indistinguishable from "unknown tenant" at the KF layer. The entire credential chain (tracy-auth, tracy-customer-lookup, warm-tenant-cache) was broken in production with no alert. Pre-deploy checklist for KFs had no gate checking that Supabase tables required by `getTenantCreds` exist. | **High** | code-fix | Applied migration to both projects. Added to `kapso-deploy-freshness.md §New function checklist`: "For any KF that imports `getTenantCreds`, verify `SELECT COUNT(*) FROM tenant_credentials` returns on the target Supabase project before deploying." |
 | E2026-06-04-6 | proyecto_anita: `services/kapso-functions/src/tracy-customer-lookup.js` had a local `getAdminToken()` function with wrong API paths: used `/admin/backoffice-users/signin-password` instead of `/api/commerce/admin/backoffice-users/signin-password`, and `/admin/customer-locations/search` instead of `/api/commerce/admin/customer-locations/search`. The correct implementation existed in `lib/tracy-admin-auth.js` since Stage 0b. Path 2 (admin customer-location lookup) failed on every invocation since the KF was deployed, silently falling through to Path 3. E2026-06-03-4 documented a test gap for this function — the deeper structural bug (wrong base path) was missed at that review. | **High** | code-fix | Fixed in `bd60f1c`: removed local `getAdminToken()`, replaced with `import { getAdminJwt } from './lib/tracy-admin-auth.js'`. Added to `tracy-auth-credential-types.md`: "Never implement an inline admin token helper in a KF source file — always import `{ getAdminJwt }` from `lib/tracy-admin-auth.js`." |
@@ -4103,3 +4105,54 @@ The correct implementation existed in `lib/tracy-admin-auth.js` since Stage 0b. 
 **Rule:** Never rely on Tracy admin search filter params to narrow results. Always validate returned erpIds client-side. For bulk lookups, paginate all locations and build a local index.
 
 **Status:** code-fix — applied 2026-06-05.
+
+## E2026-06-07-1 — `googleapiclient.discovery.build()` blocks asyncio event loop in Cloud Run
+
+**Severity:** Medium
+**Discovery:** 2026-06-07 — dgrx interes_log session; `deal_router.routed` never logged when Interés sink active
+**Affected files:**
+- `clients/dgrx/services/dgrx-api/src/dgrx_api/services/sinks/interes_log.py` — original scaffold used `build("sheets", "v4")` (FIXED 464659b)
+- `clients/dgrx/services/dgrx-api/src/dgrx_api/services/sinks/sheet_log.py` — same pattern, unfixed (see E2026-06-07-2)
+
+**Bug:** `googleapiclient.discovery.build("sheets", "v4", credentials=creds)` downloads the full Sheets API discovery document via a blocking synchronous httplib2 request on every call. In an asyncio service (FastAPI, Cloud Run), this blocks the event loop indefinitely — there is no timeout and no async alternative in `google-api-python-client`. `run_in_executor` wrapping is an insufficient fix because it still uses a thread-pool slot with no timeout guarantee and doesn't address the root cause.
+
+**Root cause:** `googleapiclient` was designed for synchronous Python. The discovery download pattern is fundamental to the library — not an edge case.
+
+**Fix:** Replace `googleapiclient` entirely with direct `httpx.AsyncClient` REST calls. Pattern:
+1. `google.auth.default(scopes=[...])` + `creds.refresh(google.auth.transport.requests.Request())` → bearer token
+2. `async with httpx.AsyncClient(timeout=30) as client: resp = await client.post(url, params=params, headers=headers, json=body)`
+
+**Rule:** Never use `googleapiclient.discovery.build()` in any async Python service. For any Google API in FastAPI/Cloud Run: use `httpx.AsyncClient` + direct REST endpoint.
+
+**Status:** code-fix — applied 2026-06-07 (interes_log.py fixed; sheet_log.py tracked as E2026-06-07-2).
+
+## E2026-06-07-2 — `sheet_log.py` uses same blocking `googleapiclient` pattern (unfixed sibling)
+
+**Severity:** Medium
+**Discovery:** 2026-06-07 — fix-adjacent-sibling audit after interes_log.py fix
+**Affected files:**
+- `clients/dgrx/services/dgrx-api/src/dgrx_api/services/sinks/sheet_log.py` — lines 18 (`from googleapiclient.discovery import build`) and 129 (`service = build("sheets", "v4", credentials=creds)`)
+
+**Bug:** `SheetLogSink` is wired into `_DEFAULT_SINKS` and runs on every `Pipeline.create` event. Each call to `_write_row()` calls `build("sheets", "v4", ...)` which makes a blocking synchronous HTTP discovery download. This blocks the asyncio event loop on every webhook invocation.
+
+**Root cause:** The `interes_log.py` fix was not propagated to the sibling sink `sheet_log.py`. Fix-adjacent-sibling audit was not applied.
+
+**Fix:** Port `sheet_log.py` to use the same `httpx.AsyncClient` + direct REST pattern from the fixed `interes_log.py`. Also apply: ADC fallback (remove hard dependency on `GOOGLE_SERVICE_ACCOUNT_JSON`), and verify `valueInputOption=RAW` for any date columns.
+
+**Status:** pending — tracked for next session.
+
+## E2026-06-07-3 — `warm-tenant-cache` does NOT eliminate per-KF SUPABASE secrets for `getTenantCreds`
+
+**Severity:** Low
+**Discovery:** 2026-06-07 — t-1247 platform credentials session; architecture clarification when wiring SUPABASE secrets
+**Affected files:**
+- `platform/agent/docs/tool-contracts.md` — warm-tenant-cache section underdocuments cache-miss path ownership
+- `.claude/rules/kapso-deploy-freshness.md` — new-function checklist references the requirement but not this distinction
+
+**Bug (architecture misunderstanding):** `warm-tenant-cache` KF handles invalidation and pre-warm only (delete KV keys, then re-fetch from Supabase). It does NOT proxy the cache-miss fallback path for other KFs. When any KF calls `getTenantCreds(env, slug, fn_name)` and the KV key `cfg:{slug}` is absent, `lib/tenant-creds.js` calls `env.SUPABASE_URL` and `env.SUPABASE_SERVICE_KEY` directly from the **calling KF's env**. These vars are not inherited across KFs. If absent, `getTenantCreds` fails with a runtime error. This means every KF that imports `getTenantCreds` must carry its own `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` secrets — `warm-tenant-cache` does not absorb this responsibility.
+
+**Root cause:** `tool-contracts.md` warm-tenant-cache section describes what it does (invalidate + pre-warm) but does not state the invariant that every caller of `getTenantCreds` must independently hold Supabase credentials. Without an explicit "each KF needs its own secrets" statement, the architecture looks like warm-tenant-cache centralizes the Supabase fetch.
+
+**Fix:** Update `platform/agent/docs/tool-contracts.md` warm-tenant-cache section to state: "This KF is invalidation + pre-warm only — it does NOT act as a proxy for cache-miss fallback. Each KF that calls `getTenantCreds` must have `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` set as its own secrets." Also update `kapso-deploy-freshness.md §New function checklist` to cross-reference this.
+
+**Status:** pending — doc update needed.
