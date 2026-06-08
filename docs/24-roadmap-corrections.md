@@ -18,8 +18,8 @@
 
 ## Severity Summary
 
-| E2026-06-08-7 | somos_mirada: `features/meta-template-mgmt/seeds/w10_control_alta.yaml` filename mismatches the internal `name: w10_alta_medica` field. The seed was renamed during submission to work around a Meta name cooldown on deleted templates, but the filename was not updated. | **Low** | pending | Rename `w10_control_alta.yaml` → `w10_alta_medica.yaml` and update the reference in `features/meta-account-hygiene/templates.md` entry #31. |
-| E2026-06-08-6 | somos_mirada: `features/lifecycle-workflows/technical-spec.md` §"Dependencias y orden de implementación" and the plantillas table (lines 188–211) still mark W3/W8/W10 as pending or PENDING after all three workflows were implemented and all 4 templates approved as UTILITY (2026-06-08). Reads as open action items when work is complete. | **Low** | pending | Update lines 188–211: mark W3/W8/W10 as implemented; change template status table to `approved` with the live template names/IDs. |
+| E2026-06-08-7 | somos_mirada: `features/meta-template-mgmt/seeds/w10_control_alta.yaml` filename mismatches the internal `name: w10_alta_medica` field. The seed was renamed during submission to work around a Meta name cooldown on deleted templates, but the filename was not updated. | **Low** | code-fix (2026-06-08) | Renamed to `w10_alta_medica.yaml`; templates.md #31 seed reference updated. |
+| E2026-06-08-6 | somos_mirada: `features/lifecycle-workflows/technical-spec.md` §"Dependencias y orden de implementación" and the plantillas table (lines 188–211) still mark W3/W8/W10 as pending or PENDING after all three workflows were implemented and all 4 templates approved as UTILITY (2026-06-08). Reads as open action items when work is complete. | **Low** | code-fix (2026-06-08) | Section replaced with "todos implementados — 2026-06-08"; plantillas table updated with real names and ✅ UTILITY status. |
 | E2026-06-08-5 | thebrana: `no-attribution-commit.sh` includes bare `"Anthropic"` as a forbidden token, blocking any commit message that mentions the company name in a descriptive context (e.g., registering Anthropic-published RSS feeds, referencing Anthropic research). The hook's intent is to block AI co-author attribution trailers (Co-Authored-By, Generated with, Signed-off-by), but the bare name matches legitimate subject lines. The workaround is to rephrase the commit to omit the name, which obscures what was actually done. | **Low** | pending | Narrow the `"Anthropic"` entry in `no-attribution-commit.sh` to structural attribution patterns only: `"Generated.*[Aa]nthrop"`, `"[Pp]owered.*[Aa]nthrop"`, or `"anthropic\.com"`. Remove bare `"Anthropic"` token from the forbidden list. |
 
 | E2026-06-08-4 | thebrana: After t-1621 added `review → review` and `refactor → refactor` to the branch-name mapping in `system/procedures/backlog.md`, the two vocabulary lists drifted: `.claude/CLAUDE.md` line 18 lists valid branch work-type prefixes as `feat · fix · chore · research · test · docs · refactor` (missing `review`); `backlog.md` line 27 lists valid `work_type` enum values as `implement / research / design / ops / review` (missing `refactor`). An agent following CLAUDE.md would not know `review` is a valid branch prefix; a task with `work_type: refactor` has no listed schema entry despite the mapping handling it. | **Low** | pending | Fix: (1) add `review` to CLAUDE.md line 18 work-type list; (2) add `refactor` to `backlog.md` line 27 `work_type` enum. Both docs should enumerate the same complete set. |
@@ -3957,7 +3957,7 @@ Remove the bare `"Anthropic"` token. The Co-Authored-By and Signed-off-by traile
 
 **Fix:** Update lines 188–211: mark W3/W8/W10 as implemented; change template status table entries to `approved` with the live template names (w3_seguimiento_presupuesto, w8_followup_3sem, w8_followup_6sem, w10_alta_medica).
 
-**Status:** pending — spec doc not updated at implementation time.
+**Status:** code-fix (2026-06-08) — section replaced with "todos implementados — 2026-06-08"; table updated with real approved names and ✅ UTILITY status in commit `e29bc16`.
 
 ---
 
@@ -3973,4 +3973,4 @@ Remove the bare `"Anthropic"` token. The Co-Authored-By and Signed-off-by traile
 
 **Fix:** Rename `features/meta-template-mgmt/seeds/w10_control_alta.yaml` → `w10_alta_medica.yaml`. Update the `**Seed:**` reference in `features/meta-account-hygiene/templates.md` entry #31.
 
-**Status:** pending — low operational risk (seed already submitted), but filename inconsistency is confusing.
+**Status:** code-fix (2026-06-08) — renamed to `w10_alta_medica.yaml`; templates.md #31 seed reference updated in commit `e29bc16`.
