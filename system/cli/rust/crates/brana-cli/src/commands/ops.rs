@@ -11,6 +11,7 @@ use crate::util::{find_project_root, home, load_scheduler, load_status};
 // ── ops commands ────────────────────────────────────────────────────────
 
 pub fn cmd_ops_status(theme: &themes::Theme, all: bool) -> anyhow::Result<()> {
+    print_cc_agents_status(theme);
     print_env_status(theme, "local", &load_scheduler(), &load_status());
 
     if all {
@@ -25,6 +26,56 @@ pub fn cmd_ops_status(theme: &themes::Theme, all: bool) -> anyhow::Result<()> {
         }
     }
     Ok(())
+}
+
+fn print_cc_agents_status(theme: &themes::Theme) {
+    let output = Command::new("claude")
+        .args(["agents", "--json"])
+        .output();
+
+    let json_bytes = match output {
+        Ok(ref o) if o.status.success() && !o.stdout.is_empty() => &o.stdout,
+        _ => return,
+    };
+
+    let agents: Vec<serde_json::Value> = match serde_json::from_slice(json_bytes) {
+        Ok(v) => v,
+        Err(_) => return,
+    };
+
+    if agents.is_empty() {
+        return;
+    }
+
+    println!("\n{}CC Agents{}", themes::ansi(theme.color("header")), themes::RESET);
+
+    for agent in &agents {
+        let status = agent["status"].as_str().unwrap_or("unknown");
+        let waiting_for = agent["waitingFor"].as_str().unwrap_or("");
+        let cwd = agent["cwd"].as_str().unwrap_or("?");
+        let project = std::path::Path::new(cwd)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or(cwd);
+        let pid = agent["pid"].as_u64().unwrap_or(0);
+
+        let (ic, col) = if !waiting_for.is_empty() {
+            (theme.icon("blocked"), themes::ansi("red"))
+        } else {
+            match status {
+                "busy" => (theme.icon("pending"), themes::ansi("yellow")),
+                "idle" => (theme.icon("done"), themes::ansi("dim")),
+                _ => (theme.icon("pending"), themes::ansi("dim")),
+            }
+        };
+
+        if !waiting_for.is_empty() {
+            println!("{col}  {ic} {status:<8} {project:<20} BLOCKED: {waiting_for}  (pid {pid}){}", themes::RESET);
+        } else {
+            println!("{col}  {ic} {status:<8} {project:<20} (pid {pid}){}", themes::RESET);
+        }
+    }
+    println!();
 }
 
 fn print_env_status(
