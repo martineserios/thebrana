@@ -16,6 +16,7 @@ Source of truth for every component. Read these when you need exact behavior.
 | [scripts.md](reference/scripts.md) | Shell scripts (bootstrap.sh, validate.sh, etc.) |
 | [configuration.md](reference/configuration.md) | Config files: plugin.json, hooks.json, settings.json, scheduler.json |
 | [brana-cli.md](reference/brana-cli.md) | brana CLI — backlog triage-stale, stale, burndown subcommands |
+| [skill-validation-checklist.md](reference/skill-validation-checklist.md) | 12-point checklist for validating brana skills (derived from 12-Factor Agents) |
 
 ## docs/guide/ -- How-to guides
 
