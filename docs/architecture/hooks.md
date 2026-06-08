@@ -398,3 +398,11 @@ All hook `command` fields in `hooks.json` previously referenced `${CLAUDE_PLUGIN
 
 **Rule**: any new hook entry in `hooks.json` must use `bash "$HOME/.claude/hooks/<name>.sh"`. Never reference `${CLAUDE_PLUGIN_ROOT}/hooks/` in `hooks.json` command fields (except `hooks-auto-deploy.sh`). Run `make hooks-deploy` once after adding; the auto-deploy hook handles subsequent syncs.
 Source: t-1840 / close session 2026-06-08
+
+### 2026-06-08: Use `chore` not `ops` for feed registration and operational config tasks (harness-core)
+`branch-name-guard` rejects `ops` as a work-type prefix — it is not in the valid list (`feat|fix|chore|research|test|docs|refactor`). Feed registration tasks (e.g., writing entries to `~/.claude/scheduler/feeds.json`) and other operational/infrastructure changes under any epic should use `chore`. The CLAUDE.md docs list the valid types but do not warn about common near-misses like `ops` and `infra`. Until E2026-06-08-4 and E2026-06-08-5 are resolved, treat any "this should be infra/ops work" as `chore`.
+Source: t-1140 / close session 2026-06-08
+
+### 2026-06-08: `~/.claude/scheduler/feeds.json` is runtime-only — not git-tracked, lost on machine rebuild
+Feed sources registered via `brana feed add` write to `~/.claude/scheduler/feeds.json`, which is outside the repo and gitignored. This file will not survive a fresh machine setup or a `~/.claude/` wipe. If the feed list has long-term value (e.g., research blog monitoring), it needs a bootstrap-time provisioning step. Options: (1) commit a `system/scheduler/feeds.template.json` and have `bootstrap.sh` copy it on first install; (2) track feed registrations in `system/cli/rust/crates/brana-core/src/` and emit feeds.json on `brana bootstrap`. Currently, feeds registered this session are ephemeral. t-1140 registered: HN RSS (hn-claude-code, hn-claude-agents, hn-hive-mind) + Anthropic research blog.
+Source: t-1140 / close session 2026-06-08

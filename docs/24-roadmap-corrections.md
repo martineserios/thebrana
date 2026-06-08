@@ -18,6 +18,8 @@
 
 ## Severity Summary
 
+| E2026-06-08-5 | thebrana: `no-attribution-commit.sh` includes bare `"Anthropic"` as a forbidden token, blocking any commit message that mentions the company name in a descriptive context (e.g., registering Anthropic-published RSS feeds, referencing Anthropic research). The hook's intent is to block AI co-author attribution trailers (Co-Authored-By, Generated with, Signed-off-by), but the bare name matches legitimate subject lines. The workaround is to rephrase the commit to omit the name, which obscures what was actually done. | **Low** | pending | Narrow the `"Anthropic"` entry in `no-attribution-commit.sh` to structural attribution patterns only: `"Generated.*[Aa]nthrop"`, `"[Pp]owered.*[Aa]nthrop"`, or `"anthropic\.com"`. Remove bare `"Anthropic"` token from the forbidden list. |
+
 | E2026-06-08-4 | thebrana: After t-1621 added `review → review` and `refactor → refactor` to the branch-name mapping in `system/procedures/backlog.md`, the two vocabulary lists drifted: `.claude/CLAUDE.md` line 18 lists valid branch work-type prefixes as `feat · fix · chore · research · test · docs · refactor` (missing `review`); `backlog.md` line 27 lists valid `work_type` enum values as `implement / research / design / ops / review` (missing `refactor`). An agent following CLAUDE.md would not know `review` is a valid branch prefix; a task with `work_type: refactor` has no listed schema entry despite the mapping handling it. | **Low** | pending | Fix: (1) add `review` to CLAUDE.md line 18 work-type list; (2) add `refactor` to `backlog.md` line 27 `work_type` enum. Both docs should enumerate the same complete set. |
 
 | E2026-06-08-3 | proyecto_anita (dgrx): Cloud Scheduler OIDC token silently overrides static `Authorization` header. `dgrx-bigin-channel-renew` had both OIDC token attachment AND static `Authorization: Bearer <bigin-webhook-token>` header. GCP overwrites the static header with the OIDC JWT on every execution — endpoint receives OIDC JWT, `hmac.compare_digest` fails, 401 on every run. Silent — no GCP error or warning. Returned 401 for weeks before alert was wired. | **Medium** | code-fix | Fixed: `gcloud scheduler jobs update http dgrx-bigin-channel-renew --clear-auth-token`. Field note added to `.claude/rules/cloud-run-deploy.md §2026-06-08`. Rule: OIDC and static Authorization are mutually exclusive on Cloud Scheduler — OIDC always wins. Use `--clear-auth-token` when the endpoint uses non-OIDC token auth. |
@@ -3917,3 +3919,25 @@ The correct fix is an OS-level `flock(1)` mutex, not WAL mode. WAL mode is a jou
 **Fix:** Add a field note to `bash-python.md`: "Never pipe output into `python3 << 'PYEOF'` — bash heredoc takes over stdin, discarding the pipe. Save to a temp file first: `curl ... > /tmp/out.json && python3 << 'PYEOF' ... data = json.load(open('/tmp/out.json')) ... PYEOF`"
 
 **Status:** code-fix — field note added to `bash-python.md` this session.
+
+---
+
+## E2026-06-08-5 — `no-attribution-commit.sh` blocks bare "Anthropic" token in commit subjects
+
+**Severity:** Low
+**Discovery:** 2026-06-08 — harness-core session; t-1140 feed registration commit blocked
+**Affected files:**
+- `system/hooks/no-attribution-commit.sh` — forbidden_patterns list includes bare `"Anthropic"` token
+
+**Bug:** `no-attribution-commit.sh` includes `"Anthropic"` as a plain string in its forbidden token list, case-sensitively matching any commit message that contains the word. The hook's intent is to block AI co-author attribution trailers (Co-Authored-By, Generated with Claude, Signed-off-by, etc.) and prevent vendor-attributed commits from polluting the git history. However, the bare `"Anthropic"` pattern fires on legitimate descriptive commit subjects — e.g., "register hn-claude-anthropic, hn-claude-code, anthropic-research feed sources" — where the word describes the topic, not an attribution relationship.
+
+**Impact:** Commits mentioning Anthropic in a factual/descriptive context (referencing papers, tools, feeds, or documentation produced by Anthropic) are blocked and require rephrasing to strip the name. The rephrased commit message is less accurate about what was actually done. The enforcement overhead — discovering the hook, rephrasing, retrying — adds friction that compounds when multiple team members hit it.
+
+**Fix:** Narrow the `"Anthropic"` entry to structural attribution patterns that cannot appear in descriptive subject lines:
+- `"Generated.*[Aa]nthrop"` — catches "Generated with Anthropic" and variants
+- `"[Pp]owered.*[Aa]nthrop"` — catches "Powered by Anthropic"
+- `"anthropic\.com"` — catches URL-based attribution
+
+Remove the bare `"Anthropic"` token. The Co-Authored-By and Signed-off-by trailer patterns already in the list cover the primary attribution risk.
+
+**Status:** pending — `system/hooks/no-attribution-commit.sh` forbidden_patterns list needs narrowing.
