@@ -18,6 +18,10 @@
 set -uo pipefail
 
 input=$(cat)
+
+# Test-mode sentinel bypass — see no-attribution-commit.sh for rationale.
+[ -f /tmp/brana-test-mode ] && { echo '{"continue":true}'; exit 0; }
+
 command=$(echo "$input" | jq -r '.tool_input.command // .input.command // empty' 2>/dev/null)
 
 # Only inspect git commit calls that have an inline message (-m flag)
