@@ -21,6 +21,12 @@ set -uo pipefail
 # Read JSON from stdin
 input=$(cat)
 
+# Test-mode sentinel bypass — skip hook during test harness runs.
+# touch /tmp/brana-test-mode before running hook tests that contain forbidden
+# tokens in their payloads (e.g. echo '{"command":"git commit -m \"Claude Code\""}').
+# Same pattern as /tmp/brana-memory-write-active and /tmp/brana-close-active.
+[ -f /tmp/brana-test-mode ] && exit 0
+
 # Extract the bash command (handles both .tool_input.command and .input.command)
 command=$(echo "$input" | jq -r '.tool_input.command // .input.command // empty' 2>/dev/null)
 
