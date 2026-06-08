@@ -143,6 +143,9 @@ echo '{"continue": true}'
     PROJECT="$PROJECT" \
         bash "${SCRIPT_DIR}/session-end-pattern-promotion.sh" 2>/dev/null || true
 
+    # ── Ambient signal: window title ─────────────────────────
+    printf "\033]0;brana: session saved ✓\007" > /dev/tty 2>/dev/null || true
+
     # Clean up event log
     rm -f "$SESSION_FILE"
 ) &

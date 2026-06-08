@@ -59,4 +59,7 @@ CWD: ${CWD}"
     esac
 fi
 
+# ── Ambient signal: window title ─────────────────────────
+printf "\033]0;brana: ✗ stopped — check session\007" > /dev/tty 2>/dev/null || true
+
 exit 0
