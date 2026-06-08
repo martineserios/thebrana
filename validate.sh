@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-shopt -s nullglob
+shopt -s nullglob  # TRAP: never store --include=*glob in a scalar var — use a bash array (see Check 50)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SYSTEM_DIR="$SCRIPT_DIR/system"
