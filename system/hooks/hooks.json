@@ -135,6 +135,16 @@
             "command": "bash \"$HOME/.claude/hooks/branch-checkout-warn.sh\""
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 2000,
+            "command": "bash \"$HOME/.claude/hooks/bash-risk-classifier.sh\""
+          }
+        ]
       }
     ],
     "PostToolUse": [
