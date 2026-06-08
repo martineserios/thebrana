@@ -40445,7 +40445,7 @@
       "parent": null,
       "priority": "P1",
       "started": "2026-06-08",
-      "status": "in_progress",
+      "status": "completed",
       "strategy": "feature",
       "subject": "[cli] pre-merge schema grep gate — block field-removal branches with live producer references",
       "tags": [
@@ -49147,7 +49147,7 @@
     {
       "id": "t-1883",
       "subject": "Guard sync-state.sh against cross-project active_epic contamination",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "tags": [
         "ops",
@@ -49158,15 +49158,16 @@
       "priority": "P3",
       "parent": null,
       "created": "2026-06-08",
-      "started": null,
+      "started": "2026-06-08",
       "completed": null,
       "blocked_by": [],
-      "branch": null,
+      "branch": "harness/fix/t-1883-sync-state-active-epic-guard",
       "context": null,
       "notes": null,
       "order": 0,
       "github_issue": null,
-      "execution": "code"
+      "execution": "code",
+      "epic": "harness-core"
     }
   ],
   "version": "1"
