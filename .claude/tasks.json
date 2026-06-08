@@ -48612,7 +48612,7 @@
     {
       "id": "t-1862",
       "subject": "PreToolUse gate for writes to settings.json and hooks.json (tool-layer self-modification)",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "tags": [
         "security",
@@ -48625,7 +48625,7 @@
       "parent": null,
       "created": "2026-06-08",
       "started": "2026-06-08",
-      "completed": null,
+      "completed": "2026-06-08",
       "blocked_by": [],
       "branch": "harness/feat/t-1862-pretooluse-tool-selfmod-gate",
       "context": "2026-06-08: Surfaced in t-887 synthesis (item 55). Identified as ungated risk — a compromised MCP tool could add an MCP server to config, available next session. Related to SEC-8 added in t-889.",
@@ -48633,7 +48633,8 @@
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "strategy": "feature"
+      "strategy": "feature",
+      "build_step": ""
     },
     {
       "id": "t-1863",
