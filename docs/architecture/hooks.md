@@ -365,6 +365,10 @@ Source: t-1202 / close session 2026-06-04
 `memory-write-gate.sh` was live in `hooks.json` for multiple sessions without a row in the gate classification table, misleading any audit of advisory vs. enforcement boundaries. Added in t-1848 as a follow-up. Rule: when a hook is added to or removed from `hooks.json`, the gate classification table row must be in the same commit. A future validate.sh check should cross-reference registered hook scripts in hooks.json against table rows in this file — see t-1849.
 Source: t-1848 / close session 2026-06-04
 
+### 2026-06-08: `branch-verify.sh` — commit-message tokens leak into file-path tokenizer via compound operator tail (t-1817)
+When `branch-verify.sh` parses `git add <files>` from a compound command like `git add docs/README.md && git commit -m 'fix system/hooks/branch-verify.sh'`, the sed expression `sed 's/.*git add //'` leaves the entire command tail including the commit message. Space-splitting then matched message words (`system/hooks/branch-verify.sh`) against behavioral path globs, producing a false deny. Fix: add `| sed 's/[;&|].*//'` immediately after isolating the git-add argument list, before tokenizing on spaces. Tests 21–22 cover `&&` and `;` compound cases (22/22 pass after fix). Rule: any hook extracting positional path args from a raw Bash command string must treat `&&`, `;`, `|`, `||` as stop tokens before splitting. (E2026-06-01-8)
+Source: t-1817 / close session 2026-06-08
+
 ### 2026-06-08: Hook commands in git working tree cause branch-dependent failures (E2026-06-08-1)
 All hook `command` fields in `hooks.json` previously referenced `${CLAUDE_PLUGIN_ROOT}/hooks/*.sh` — paths inside the git working tree. A `git stash`, `git checkout`, or branch switch can remove or replace these files, silently breaking every hook. The symptom that triggered discovery: Stop hook fired on `goal-completion.sh: No such file or directory` after a branch switch. Pre-existing drift confirmed: `pre-compact.sh` was absent from `~/.claude/hooks/` (had drifted between main and a feature branch).
 
