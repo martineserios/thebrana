@@ -89,7 +89,7 @@ Skills are user-invocable workflows (`/command`). Agents auto-delegate when the 
 
 **Pattern B: Agent preloads skill knowledge.** Agents can have skills preloaded via the `skills:` YAML field — full skill content injected at startup. Use sparingly: only for small domain knowledge skills where the agent always needs that context.
 
-**Pattern C: Auto-delegation fills skill invocation gaps.** Skills aren't invoked 56% of the time even when available. Explicit "Use when..." descriptions raise invocation from 53% to 79%. Agents fill the remaining gap via auto-delegation. **Key insight:** static markdown in context (CLAUDE.md/AGENTS.md) achieves **100%** availability — passive context always beats skill-based retrieval. The knowledge architecture should prioritize what goes in always-loaded context based on availability risk.
+**Pattern C: Auto-delegation fills skill invocation gaps.** Skills aren't invoked 56% of the time even when available. Explicit "Use when..." descriptions raise invocation from 53% to 79%. Agents fill the remaining gap via auto-delegation *(brana-internal measurement, 2026-03-14; auto-delegation reliability varies in practice — explicit invocation is the reliable trigger)*. **Key insight:** static markdown in context (CLAUDE.md/AGENTS.md) achieves **100%** availability — passive context always beats skill-based retrieval. The knowledge architecture should prioritize what goes in always-loaded context based on availability risk.
 
 **Pattern D: Multi-agent workflows.** Agents cannot spawn other agents (subagent limitation). Orchestration stays in the main context via skills that use the Task tool to spawn multiple agents in parallel. The skill is the conductor; agents are the musicians. Agent Teams (experimental) offer peer-to-peer coordination at 2x token cost — reserve for genuinely parallel multi-file work.
 
@@ -290,7 +290,7 @@ Plain Claude Code gives project-specific context and auto memory. This system ad
 
 From Anthropic's research (see [35-context-engineering-principles.md](../../brana-knowledge/dimensions/35-context-engineering-principles.md)):
 
-- **Context rot is gradual.** All models degrade as context fills — some as early as 50K of 1M. The ~26KB context budget is a first-order constraint.
+- **Context rot is gradual.** All models degrade as context fills — some as early as 50K of 1M. The ~26KB context budget is the current working default for startup context injection; no universal ceiling exists — adjust when compaction interrupts task flow.
 - **Just-in-time loading.** Keep always-loaded instructions minimal. Load data on demand via skills.
 - **Sub-agent summaries.** When sub-agents explore extensively, they return 1,000-2,000 token summaries — protecting the main context.
 - **Context budget guard.** Four thresholds (55/70/85%) with escalating interventions. WebFetch costs 50-100K tokens/call — prefer WebSearch.
@@ -341,8 +341,8 @@ Spec: [memory-taxonomy-sdd.md](../architecture/features/memory-taxonomy-sdd.md)
 |---|---|---|---|
 | 1 | Three-layer separation (identity/intelligence/context) is correct decomposition | Layers leak or overlap, need redesign | 2026-03-14 |
 | 2 | Ruflo is enhancement, not hard dependency | Graceful degradation section needs rewrite | 2026-03-14 |
-| 3 | ~26KB context budget is the right ceiling | Model upgrades or context rot research changes the math | 2026-03-14 |
-| 4 | Agent auto-delegation fills 79→95% skill gap | Gap is larger, need different routing strategy | 2026-03-14 |
+| 3 | ~26KB is a working default for startup injection, not a universal ceiling | Model upgrades or context rot research changes the math | 2026-03-14 |
+| 4 | Agent auto-delegation fills 79→95% skill gap (brana-internal; explicit invocation is the reliable trigger) | Gap is larger, need different routing strategy | 2026-03-14 |
 | 5 | Single-operator memory model works | Multi-user access needs locking, not just append | 2026-03-14 |
 
 ## Changelog
