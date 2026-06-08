@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-08T21:22:57Z",
+  "generated": "2026-06-08T23:08:57Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1379,11 +1379,12 @@
         "system/scripts/",
         "system/skills/",
         "system/hooks/tests/test-post-tool-use-test-signal.sh",
-        "system/hooks",
-        "system/hooks/foo.sh",
         "system/hooks/branch-verify.sh",
         "system/scheduler/feeds.template.json",
-        "system/cli/rust/crates/brana-core/src/"
+        "system/cli/rust/crates/brana-core/src/",
+        "system/hooks",
+        "system/hooks/hooks-auto-deploy.sh",
+        "system/hooks/branch-checkout-warn.sh"
       ]
     },
     "docs/architecture/knowledge-system-extending.md": {
@@ -7732,6 +7733,12 @@
     },
     {
       "from": "docs/24-roadmap-corrections.md",
+      "to": "\"$SCRIPT_NAME\" != *.sh.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/24-roadmap-corrections.md",
       "to": "00-user-practices.md",
       "type": "references",
       "computed": false
@@ -12563,7 +12570,7 @@
   ],
   "stats": {
     "nodes": 427,
-    "edges": 1615,
+    "edges": 1616,
     "typed_edges": 570,
     "orphans": 126
   }
