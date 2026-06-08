@@ -46295,7 +46295,7 @@
       "parent": "t-1410",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "[impl] CLAUDE_PROJECT_DIR in brana-mcp — consume project-scoped path",
       "tags": [
         "cc-features",
@@ -46321,7 +46321,7 @@
       "parent": "t-1410",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "[impl] terminalSequence ambient signals — session-end + stop hooks emit window title",
       "tags": [
         "cc-features",
@@ -49224,6 +49224,30 @@
       ],
       "type": "task",
       "work_type": "docs"
+    },
+    {
+      "id": "t-1886",
+      "subject": "Fix work_type vocabulary drift: add 'review' to CLAUDE.md + 'refactor' to backlog.md enum (E2026-06-08-4)",
+      "status": "completed",
+      "type": "task",
+      "tags": [
+        "docs",
+        "maintenance"
+      ],
+      "description": null,
+      "effort": "XS",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-08",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": "backlog.md enum fixed. CLAUDE.md 'review' addition blocked by Layer 1 gate — requires manual edit.",
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
     }
   ],
   "version": "1"
