@@ -144,6 +144,37 @@ Pull relevant architecture, decision knowledge, and skill matches into context b
    - **If no criteria found in either source:** proceed without `/goal` — no regression.
    - **Skip for:** freeform builds (no task_id), spike strategy, investigation strategy.
 
+0.5. **Tech-stack pre-detection** (task_id present only — skip when no task_id):
+   Run tech detection _before_ the ruflo search so the loaded skill's context is available to interpret results.
+   <!-- SUNSET: Remove this step when Skill Registry (t-608) ships — same as Steps 4 and 4a. -->
+
+   **Step A — Tech detection** (3-signal chain; first match wins — skip 0.5 entirely if no signal fires):
+   - **Signal 1** — task description + tags: scan for tech keywords (`"Rust"`, `"[rust]"`, `".rs"`, `"Cargo"`, `"Python"`, `"[python]"`, `".py"`, `"TypeScript"`, `"[typescript]"`, `".ts"`, `".tsx"`, `"Next.js"`, etc.)
+   - **Signal 2** — project manifest files: `Cargo.toml` → Rust; `pyproject.toml` or `uv.lock` → Python; `package.json` + `tsconfig.json` → TypeScript
+   - **Signal 3** — file path extensions in task description/context: `.rs` → Rust, `.py` → Python, `.ts`/`.tsx` → TypeScript
+
+   **Step B — Skill match**: scan installed `SKILL.md` files for `keywords` overlap with detected tech. If no match: skip 0.5 silently (no message).
+
+   **Step C — Ask** (delegate to `skill-routing.md` gate, same as Step 4):
+   ```
+   question: "Detected {tech} context. Load {skill} before search?"
+   header: "Skill Gap"
+   options:
+     - "Load {skill} now (Recommended)"
+     - "Search marketplace for alternatives"
+     - "Skip"
+   ```
+   On any terminal choice (Load / Skip / Search), write breadcrumb to prevent Step 4a re-firing:
+   ```bash
+   brana backlog set {task_id} context --append "skill_gap_checked: true (step 0.5, pre-detection, $(date +%Y-%m-%d))"
+   ```
+
+   **Guard rails:**
+   - Skip when no `task_id` present (no task metadata to seed detection)
+   - Skip if task context already contains `skill_gap_checked` (step 0.5 or backlog Step 5 already ran)
+   - Only trigger for `code` execution tasks (skip external/manual)
+   - If zero signals fire in Step A: skip 0.5 silently
+
 1. **Build query** from available context: `"{project} {task.subject} {task.tags joined} {user_input}"`
 2. **Primary — ruflo MCP (run both in parallel — `namespace: "all"` only returns session records; `specs` namespace is unindexed):**
    ```
@@ -245,9 +276,7 @@ Pull relevant architecture, decision knowledge, and skill matches into context b
 
    **Guard rails:**
    - Only trigger for `code` execution tasks (skip external/manual)
-   - Only trigger once per LOAD invocation (don't re-offer if user skipped)
-   - If entering via `/brana:backlog start` AND the task's context contains `skill_gap_checked`: skip (backlog step 5 already handled it)
-   - If entering via `/brana:backlog start` but NO `skill_gap_checked` in context: run 4a anyway (safety net — step 5 may have been skipped)
+   - If task context contains `skill_gap_checked`: skip 4a entirely (step 0.5 pre-detection or backlog Step 5 already ran)
    - If zero signals fire in Step 1: skip 4a entirely (no tech inferred)
 
 5. **Summarize loaded knowledge** as a brief context preamble (2-5 bullets). Do not show raw results — synthesize what's relevant to the build task (prior decisions, related architecture, known constraints).
