@@ -14940,7 +14940,7 @@
       "parent": "t-657",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Spike: evaluate install friction — bootstrap vs one-liner vs pipx vs cargo",
       "tags": [
         "harness-engineering",
@@ -21228,7 +21228,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Extract 12-Factor Agents checklist for brana skill validation",
       "tags": [
         "harness-engineering",
@@ -21284,7 +21284,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Document harness engineering positioning evidence (Kitaru, pauliusztin, 12FA)",
       "tags": [
         "harness-engineering",
