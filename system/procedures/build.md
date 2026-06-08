@@ -962,15 +962,20 @@ Before entering CLOSE, verify all mandatory artifacts exist on the branch:
 1. **Tests:** `git diff --name-only main...HEAD` must include test files (`*test*`, `*spec*`, `tests/`, `__tests__/`)
 2. **Docs:** at least one doc file in the diff (`docs/`)
 3. **All subtasks completed:** no `in_progress` or `pending` subtasks remain
+4. **validate.sh passes (MEASURE gate):** run `./validate.sh` from repo root; require exit 0.
+   ```bash
+   ./validate.sh
+   ```
+   This is the objective, manipulation-resistant MEASURE signal — the loop only advances to CLOSE when the external validator agrees. If non-zero: display the failing check output, fix before proceeding. Opt-out requires written justification.
 
 Check each, collect failures, then gate:
 ```
-question: "BUILD→CLOSE gate. Missing: {list of failures}. Fix before closing?"
+question: "BUILD→CLOSE gate. Missing or failing: {list of failures}. Fix before closing?"
 options: ["Fix now", "Skip gate — reason required"]
 ```
-If all pass, proceed silently. If "Skip gate": require reason. Log: `brana backlog set {id} notes --append "BUILD→CLOSE gate skipped: {reason}"`.
+If all pass (including validate.sh exit 0), proceed silently. If "Skip gate": require reason. Log: `brana backlog set {id} notes --append "BUILD→CLOSE gate skipped: {reason}"`.
 
-Bug fix and refactor strategies: skip doc check (only require tests).
+Bug fix and refactor strategies: skip doc check (require tests + validate.sh).
 Spike and investigation: skip this gate entirely.
 
 ### Four Questions Gate (all strategies except spike/investigation)
