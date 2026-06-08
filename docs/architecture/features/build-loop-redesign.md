@@ -387,6 +387,9 @@ See Decision Record for the full list. Key resolutions:
 
 ## Field Notes
 
+### 2026-06-08: Post-merge targeted validate added to CLOSE step 10b (t-1485)
+`system/scripts/check-selector.sh` maps changed files → validate.sh check numbers; step 10b runs targeted checks after merge (advisory). Checks 1-14 are not individually filterable — any 1-14 trigger runs the full core block once via the `core()` helper in check-selector.sh.
+
 ### 2026-06-08: Pre-edit challenger gate added for procedure/skill files (t-1431)
 BUILD step 3b2: before the first Edit to `system/procedures/*.md` or `system/skills/*/SKILL.md`, challenger runs on the spec automatically (any effort, advisory). The post-build Challenger Gate is separate — both fire on procedure/skill edits.
 
