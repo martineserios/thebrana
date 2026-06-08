@@ -48804,7 +48804,7 @@
     {
       "id": "t-1870",
       "subject": "Insert Challenger Gate section in system/procedures/build.md",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "tags": [
         "challenger",
@@ -48818,11 +48818,11 @@
       "parent": "t-1869",
       "created": "2026-06-08",
       "started": "2026-06-08",
-      "completed": null,
+      "completed": "2026-06-08",
       "blocked_by": [],
       "branch": "platform-v2/feat/t-1870-challenger-gate-build-md",
       "context": "AC: Section exists between docs generation and CLOSE in all non-spike/investigation strategies\nAC: Invocation rules implemented (M+ mandatory, S sensitive mandatory, S regular soft-default prompt)\nAC: Input contract enforced in the Challenger spawn call (only trusted content passed)\nAC: Repair loop with max-2-iterations hard cap implemented\nAC: Override path requires reason logged to task context\nInsertion point: after 'Docs — generate here, not in CLOSE' section, before '### CLOSE'\nLoopTrap: Challenger reads ONLY task spec + git diff + task context — never raw web fetch or external API responses (P4 Authority Override defense)\nMax 2 iterations hard cap prevents P7 Recursive Decomposition\nSpec_says field in findings output is mandatory — gives repair BUILD a precise target\n2026-06-08: brainstorm challenge confirmed input contract and iteration cap are the two load-bearing implementation details",
-      "notes": null,
+      "notes": "Challenger Gate section inserted in build.md. All AC green. Feature/BugFix/Refactor/Greenfield/Migration all wired.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -48846,9 +48846,7 @@
       "created": "2026-06-08",
       "started": null,
       "completed": null,
-      "blocked_by": [
-        "t-1870"
-      ],
+      "blocked_by": [],
       "branch": null,
       "context": "AC: User guide explains what Challenger gate is and when it fires\nAC: Override path documented with note that reason is logged",
       "notes": null,
@@ -48895,9 +48893,7 @@
       "created": "2026-06-08",
       "started": null,
       "completed": null,
-      "blocked_by": [
-        "t-1870"
-      ],
+      "blocked_by": [],
       "branch": null,
       "context": "AC: Challenger gate fires on M+ build (observed in session)\nAC: Input to Challenger verified to contain only trusted content\nAC: RECONSIDER verdict blocks CLOSE (verified by inspection)\nAC: Override path produces reason entry in task context field\nAC: Max-2-iterations cap confirmed in procedure text",
       "notes": null,
@@ -48923,9 +48919,7 @@
       "created": "2026-06-08",
       "started": null,
       "completed": null,
-      "blocked_by": [
-        "t-1870"
-      ],
+      "blocked_by": [],
       "branch": null,
       "context": null,
       "notes": null,
