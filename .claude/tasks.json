@@ -48947,7 +48947,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "strategy": null,
       "subject": "[hook] Auto-update hooks.md inventory on hook script add",
       "tags": [
