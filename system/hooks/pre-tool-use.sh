@@ -108,6 +108,7 @@ REL_PATH="${FILE_PATH#"$GIT_ROOT/"}"
 
 case "$REL_PATH" in
     docs/*) pass_through ;;
+    system/*) pass_through ;;
     test/*|tests/*|__tests__/*|*/test/*|*/tests/*|*/__tests__/*) pass_through ;;
     *.test.*|*.spec.*) pass_through ;;
     *.md) pass_through ;;
