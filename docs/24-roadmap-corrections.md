@@ -18,6 +18,9 @@
 
 ## Severity Summary
 
+| E2026-06-08-11 | thebrana: `validate.sh` Check 46 used `CARGO_OUT=$(cmd); CARGO_EXIT=$?` — under `set -euo pipefail`, if `cargo test --no-run` returns nonzero (e.g., pkg-config missing), bash exits immediately on the command substitution; `CARGO_EXIT=$?` never runs. Script exited with code 101, leaving all subsequent checks unrun and the deploy pipeline interrupted without a useful error message. Same root cause as E2026-04-20-2 (`((N++))` under `set -e`). | **Medium** | code-fix (2026-06-08) | Changed to `if CARGO_OUT=$(cmd); then CARGO_EXIT=0; else CARGO_EXIT=$?; fi` in commit `ad6ad16a`. |
+| E2026-06-08-10 | thebrana: `validate.sh` Check 9 was never updated after E2026-06-08-1 migrated hook command paths from `bash ${CLAUDE_PLUGIN_ROOT}/hooks/x.sh` to `bash "$HOME/.claude/hooks/x.sh"`. The old `grep -q '${CLAUDE_PLUGIN_ROOT}'` branch never matched; `awk '{print $NF}'` extracted script names with a trailing `"` from JSON-escaped strings; inline `bash -c '...'` commands caused `basename` to extract `true}'` as a "script name", producing a false FAIL on every hook. All deploy-blocker FAILs this session were caused by this stale check. | **Medium** | code-fix (2026-06-08) | Rewrote Check 9 to handle both path formats, strip quotes with `tr -d '"'`, skip `bash -c` inline commands, skip non-`.sh` tokens. Committed `025e7918`. |
+
 | E2026-06-08-9 | thebrana: `system/procedures/build.md` Step 0.5 was drafted without a breadcrumb write path for terminal user choices. When the skill-routing.md gate returns any terminal choice (load-now / skip / never-ask-again), the `skill_gap_checked: true` token must be written to task context — otherwise Step 4a fires again on the same task and the user sees a duplicate skill-gap prompt. The gap was only caught during the mandatory pre-edit challenger review before the procedure was committed. | **Low** | code-fix (2026-06-08) | Fixed inline during t-1903: added "On any terminal choice: `brana backlog set {task_id} context --append 'skill_gap_checked: true (step 0.5, ...)'`" to all terminal branches of Step 0.5 in `system/procedures/build.md`. The pre-edit challenger review is what surfaced this — confirms the mandatory challenger gate for procedure edits. |
 
 | E2026-06-08-8 | thebrana: Lesson #68 and `docs/architecture/agents.md` state "`bypassPermissions` bypasses sandboxing" — but this applies only to hook-enforced sandboxing. CC's path-trust sandbox (which anchors tool access to the initial session CWD) is a distinct, lower-level boundary evaluated before hooks. Worktrees placed at `/tmp/wt-*/` are outside the path-trust boundary: `Edit`, `Write`, and `Bash` are blocked regardless of `mode: bypassPermissions`. Engineers planning `Agent(isolation: "worktree")` work for parallel file editing will conclude `bypassPermissions` solves the access problem — it does not for `/tmp/`-rooted paths. Silent failure: the agent loads, spawns, and then every file-mutation tool call is denied. | **Medium** | resolved (2026-06-08) | Applied: (1) `docs/architecture/agents.md` field note added — two-tier sandboxing clarification with path-trust explanation; (2) Lesson #68 annotated with supersession note pointing to E2026-06-08-8 and path-trust caveat. **t-1898 resolved 2026-06-08:** CC 2.1.161 changelog confirms the `/tmp/wt-*/` path-trust block was fixed upstream — `isolation: worktree` agents can now edit files inside their own worktree. `EnterWorktree` does extend logical trust for pinned-CWD agents switching into `.claude/worktrees/<name>` paths, but is not needed for the `isolation: worktree` use case. `docs/architecture/agents.md` field note updated to reflect CC 2.1.161 resolution. |
@@ -3995,3 +3998,61 @@ Remove the bare `"Anthropic"` token. The Co-Authored-By and Signed-off-by traile
 **Fix:** Rename `features/meta-template-mgmt/seeds/w10_control_alta.yaml` → `w10_alta_medica.yaml`. Update the `**Seed:**` reference in `features/meta-account-hygiene/templates.md` entry #31.
 
 **Status:** code-fix (2026-06-08) — renamed to `w10_alta_medica.yaml`; templates.md #31 seed reference updated in commit `e29bc16`.
+
+---
+
+## E2026-06-08-10 — `validate.sh` Check 9 not updated after E2026-06-08-1 hook path migration
+
+**Severity:** Medium
+**Discovery:** 2026-06-08 — reconcile propagation pass; Check 9 false-failed on every hook in the deploy run
+**Affected files:**
+- `validate.sh` Check 9 (hook command path extraction and validation)
+
+**Bug:** E2026-06-08-1 migrated hook command paths from `bash ${CLAUDE_PLUGIN_ROOT}/hooks/x.sh` to `bash "$HOME/.claude/hooks/x.sh"`. Check 9 was never updated. Three cascading failures resulted:
+1. `grep -q '${CLAUDE_PLUGIN_ROOT}'` always returned 1 for new-format commands → every hook fell to the `else` branch which called `fail()` unconditionally.
+2. `awk '{print $NF}'` on a JSON-escaped string like `"bash \"$HOME/.claude/hooks/x.sh\""` extracted the script path with a trailing `"` → `basename` produced `x.sh"` which failed the extension check.
+3. Inline `bash -c '...'` commands (goal-completion.sh hook entry) caused `basename` to extract `true}'` as a "script name" → FAIL on a non-`.sh` token.
+
+All 12+ deploy-blocker FAILs were false positives caused by this stale check. No real hook issues were present.
+
+**Root cause:** validate.sh has no test coverage for its own checks. When E2026-06-08-1 changed the hook path format, nothing flagged that Check 9's grep pattern was now stale. The structural migration and its validator assumption diverged silently.
+
+**Fix:** Rewrote Check 9 to:
+- Handle both `${CLAUDE_PLUGIN_ROOT}` (old) and `$HOME/.claude/hooks/` (new) path formats
+- Strip trailing quotes with `tr -d '"'` before calling `basename`
+- Skip `bash -c` inline command entries early (`grep -q "bash -c " && continue`)
+- Skip non-`.sh` tokens (`[[ "$SCRIPT_NAME" != *.sh ]] && continue`)
+
+Committed `025e7918`. Also added `PreCompact` to KNOWN_EVENTS (sub-fix of E2026-04-20-3: `pre-compact.sh` was deployed but `PreCompact` was absent from the allowlist, causing a separate FAIL on that hook).
+
+**Status:** code-fix (2026-06-08) — Check 9 rewritten in commit `025e7918`; PreCompact added to KNOWN_EVENTS in commit `18a7b168`.
+
+---
+
+## E2026-06-08-11 — `validate.sh` Check 46 `set -e` exits before `CARGO_EXIT=$?` assignment
+
+**Severity:** Medium
+**Discovery:** 2026-06-08 — reconcile propagation pass; validate.sh exited with code 101 mid-run
+**Affected files:**
+- `validate.sh` Check 46 (~line 1904) — cargo test invocation
+
+**Bug:** Same root cause as E2026-04-20-2. Check 46 used:
+```bash
+CARGO_OUT=$(cargo test --workspace --manifest-path "$RUST_ROOT/Cargo.toml" --no-run 2>&1)
+CARGO_EXIT=$?
+```
+Under `set -euo pipefail`, if `cargo test --no-run` returns nonzero (in this case, due to missing `pkg-config` for a C library dependency), bash immediately exits the script with cargo's exit code. The `CARGO_EXIT=$?` assignment on the next line never executes. The script exits with code 101 (cargo's exit code), leaving all checks after Check 46 unrun and the deploy pipeline interrupted without a meaningful validate.sh error message.
+
+**Impact:** The script appeared to "crash" mid-run. An operator seeing exit code 101 would investigate cargo, not validate.sh — the real issue was the pattern itself, not the cargo failure.
+
+**Fix:** Changed to:
+```bash
+if CARGO_OUT=$(cargo test --workspace --manifest-path "$RUST_ROOT/Cargo.toml" --no-run 2>&1); then
+    CARGO_EXIT=0
+else
+    CARGO_EXIT=$?
+fi
+```
+The `if`/`else` form captures the exit code without triggering `set -e`. This is the same fix pattern used for `((N++))` in E2026-04-20-2.
+
+**Status:** code-fix (2026-06-08) — committed `ad6ad16a`.

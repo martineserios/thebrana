@@ -305,30 +305,8 @@ Multiple hooks can register for the same event. They run sequentially; if any Pr
 
 
 > Archived 2026-05-28: 5 entries (2026-04-13 commit-msg-verify advisory, 2026-05-09 × 4: stderr blocking, jq encoding, script-body-immediate, TDD fixture bleed) moved to ruflo field-notes namespace.
-> Archived 2026-06-08: 5 entries (2026-05-11 docs/architecture routing, 2026-05-14 PreCompact no-use-case, 2026-05-14 CC malware-assessment Read x572, 2026-05-15 tool-enumeration dark spots, 2026-05-15 NotebookEdit notebook_path) moved to ruflo field-notes namespace.
-
-### 2026-05-15: branch-verify.sh parent-dir glob fires on non-behavioral staged files [→ t-1424]
-`is_behavioral()` has a reverse-direction check: `case "$bpath" in ${file}|${file}/*)`. If `file="system"` (bare dir name, e.g. from parsing text after a `git add` substring in a Bash command payload), `system/hooks` matches the glob `system/*` and the hook denies with "Files: system". Neither `.claude/tasks.json` nor `docs/ideas/*.md` is behavioral, but staging them alongside any command text containing "git add" + "system/" triggers this. Fix in t-1424: remove the reverse-direction case. Real staging always produces full blob paths (`system/hooks/foo.sh`), never bare parent dirs.
-Source: t-1424, session 2026-05-15 (E2026-05-15-2)
-
-### 2026-05-15: Worktree workflow confirmed for system/hooks/ changes — no friction
-Feature branch via worktree + merge --no-ff with regression test included worked cleanly for a protected behavioral change. The worktree-gate fires, worktree is created, changes are committed and merged, worktree is reaped. No edge cases observed. Aligns with `feedback_worktree-for-rules.md`. Continue this pattern for all `system/hooks/` and `system/skills/` behavioral changes.
-Source: t-1397, session 2026-05-15
-
-### 2026-05-18: Background Phase 5 jobs write to inherited stdout — tests must extract first JSON line
-`session-start.sh` forks its background Phase 5 block (`index-skills.sh`, `sync-state.sh`) via `( ... ) & disown`. `disown` removes the job from the shell job table but does NOT close the inherited stdout file descriptor. In test contexts using bash process substitution (`OUTPUT=$(bash hook.sh <<< input)`), the background job's stdout ("No skills to index.") appends to the same capture buffer after the JSON response, making `jq .` fail. Fix for consumers: `grep '^{' | head -1 | jq ...` extracts only the first JSON line. Fix for new hook code: redirect background work to a log file — `( work ) >>/tmp/brana-bg.log 2>&1 &` — to prevent stdout pollution.
-Source: t-1434 Test 18, session 2026-05-18
-
-**Hook test helpers** (`tests/hooks/_helpers.sh`) encode this distinction: `run_hook()` pipes input and merges stderr (for hooks with clean stdout); `run_hook_json()` extracts the first `{`-prefixed line with stderr suppressed (for hooks that spawn background jobs); `run_hook_timed()` is the timed JSON-extracting variant that returns `elapsed_ms|json`. Use `run_hook_json()` for `session-start.sh` and any hook that forks background work. Use `run_hook()` for all others.
-Source: t-1441, session 2026-05-18
-
-### 2026-05-18: brana skills list normalized to brana: prefix (fixed t-1440)
-~~`brana skills list` returned unprefixed names (`close`, `sitrep`) while `brana skills usage` returned prefixed names (`brana:close`).~~ Fixed by t-1440: `brana skills list` now emits `brana:`-prefixed names, aligned with CC's canonical `/brana:close` invocation surface. `brana:` prefix is the canonical form for all skill name references across `list`, `usage`, and `search`.
-Source: t-1437 (diagnosis), t-1440 (fix), session 2026-05-18
-
-### 2026-05-18: Hook-chain export list parity — audit parent `export` before assuming child receives vars
-When wiring a multi-stage hook chain (e.g., session-end.sh → session-end-persist.sh), the child's read logic and tests can pass while production is silent — because test harnesses set env vars directly, bypassing the parent's export. The parent's `export` list is the only thing that matters in production. Checklist: for every env var a child script reads, verify it appears in the parent's `export` list. Child-side tests that `export FOO=value` before calling the child will pass regardless. t-1264 classify-then-route was dead code for ~6 weeks because PATTERN_LEARNINGS/KNOWLEDGE_FINDINGS were missing from session-end.sh's export.
-Source: t-1450, session 2026-05-18
+> Archived 2026-06-08 batch 1: 5 entries (2026-05-11 docs/architecture routing, 2026-05-14 PreCompact no-use-case, 2026-05-14 CC malware-assessment Read x572, 2026-05-15 tool-enumeration dark spots, 2026-05-15 NotebookEdit notebook_path) moved to ruflo field-notes namespace.
+> Archived 2026-06-08 batch 2: 5 entries (2026-05-15 branch-verify.sh parent-dir glob, 2026-05-15 worktree workflow confirmed, 2026-05-18 bg Phase 5 stdout, 2026-05-18 skills list brana: prefix, 2026-05-18 hook-chain export parity) — archived to make room at cap.
 
 ### 2026-05-19: Same-commit hook-doc backprop is recurring — needs enforcement, not just policy
 t-1480 shipped `rust-skills-guard.sh` + `skill-sentinel.sh` without updating `docs/architecture/hooks.md` inventory or gate classification. The rule "document behavioral changes in same commit" (feedback_always-document-behavioral-changes.md) already exists but was not followed. Cleanup cost: a full follow-up session (read 2 scripts, 3 doc edits, reconcile run). Enforcement gap: `/brana:close` does not grep the session's commit range for `system/hooks/*.sh` additions without a corresponding `docs/architecture/hooks.md` change. t-1490 tracks adding this grep gate to `/brana:close` Step 3b or Step 8.
@@ -397,3 +375,11 @@ Source: t-1889 / close session 2026-06-08
 ### 2026-06-08: `hooks-auto-deploy.sh` misses hooks added via `git merge` — deploy gap on worktree merges
 `hooks-auto-deploy.sh` fires on `PostToolUse Write|Edit` — it only syncs `system/hooks/` to `~/.claude/hooks/` when a hook file is edited directly in the main worktree. When a hook is introduced on a feature branch and merged via `git merge`, the PostToolUse event never fires for the new file. The merged script lands in `system/hooks/` tracked but absent from `~/.claude/hooks/`, causing `No such file or directory` errors at next hook invocation. Discovered when `bash-risk-classifier.sh` (added via `Merge harness-core/feat/t-1112-bash-risk-classifier`) generated repeated PreToolUse failures in a subsequent session. Fix applied: manual `cp + chmod +x`. **Rule**: after any `git merge` that adds hook scripts, verify deploy parity: `diff <(ls system/hooks/*.sh | xargs -n1 basename | sort) <(ls ~/.claude/hooks/*.sh | xargs -n1 basename | sort)`. A validate.sh check (not yet added) would catch this automatically — see [validate.sh Check N — system/hooks vs ~/.claude/hooks diff].
 Source: t-1112 deploy gap / close session 2026-06-08
+
+### 2026-06-08: validate.sh Check 9 silently diverges from hook path format after structural migrations
+When a structural migration changes the hook command format in `hooks.json` (e.g., E2026-06-08-1 changed `bash ${CLAUDE_PLUGIN_ROOT}/hooks/x.sh` → `bash "$HOME/.claude/hooks/x.sh"`), validate.sh's Check 9 path-extraction and grep patterns must be updated in the same commit. The old `grep -q '${CLAUDE_PLUGIN_ROOT}'` branch never matched the new format; trailing `"` from JSON escaping reached `basename`; inline `bash -c '...'` commands produced `true}'` as a "script name." All 12+ FAILs in the 2026-06-08 deploy were false positives from this stale check. **Rule**: any PR that changes hook command format in `hooks.json` must also update Check 9's path-extraction logic and run `./validate.sh` before merge. See E2026-06-08-10 (t-1907 tracks regression tests). [→ t-1907]
+Source: E2026-06-08-10 / reconcile session 2026-06-08
+
+### 2026-06-08: Source repo hook scripts can silently lose +x — no detection mechanism exists
+`hooks-auto-deploy.sh` deploys hook scripts from `system/hooks/` to `~/.claude/hooks/`. Both `system/hooks/hooks-auto-deploy.sh` and `system/hooks/branch-checkout-warn.sh` lost their `+x` bit in the source repo at some point (exact cause unknown — likely a `git checkout` or `cp` without `--preserve`). The deployed copies retained +x from a prior deploy, so production continued working. However, validate.sh has no check for `system/hooks/*.sh` being executable. The source-repo loss is invisible until a fresh machine setup or a `./validate.sh --full` run is expected to catch it. **Rule**: after any worktree merge or bulk `cp` into `system/hooks/`, run `ls -la system/hooks/*.sh | grep -v '^-rwx'` to spot missing +x. validate.sh Check [→ t-1906] tracks adding an automated check. [→ t-1906]
+Source: 2026-06-08 reconcile — hooks-auto-deploy.sh + branch-checkout-warn.sh both found at 644
