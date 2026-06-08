@@ -265,6 +265,28 @@ else
 fi
 rm -rf "$TMPDIR9"
 
+# Test 10: Passes through on system/* files (brana implementation paths)
+echo "  Test 10: passes through on system/* files on feat/* branches..."
+TMPDIR10=$(mktemp -d)
+(
+    cd "$TMPDIR10"
+    git init -q
+    git commit --allow-empty -m "init" -q
+    git checkout -b feat/test -q
+    mkdir -p docs/decisions system/hooks
+) >/dev/null 2>&1
+OUTPUT10=$(run_pre_hook "$(jq -n \
+    --arg tool "Edit" \
+    --arg cwd "$TMPDIR10" \
+    --arg fp "$TMPDIR10/system/hooks/pre-tool-use.sh" \
+    '{tool_name: $tool, cwd: $cwd, tool_input: {file_path: $fp}}')")
+if echo "$OUTPUT10" | jq -e '.continue == true' >/dev/null 2>&1; then
+    pass "pre-tool-use — passes through on system/* files"
+else
+    fail "pre-tool-use — should allow system/* files, got: $OUTPUT10"
+fi
+rm -rf "$TMPDIR10"
+
 fi # end pre-tool-use tests
 echo ""
 
