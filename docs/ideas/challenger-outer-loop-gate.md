@@ -1,6 +1,6 @@
 ---
 title: Challenger as Mandatory Outer Loop Gate in /brana:build
-status: idea
+status: implemented
 created: 2026-06-08
 task: t-1856
 tags: [build, challenger, loop, reflexion, quality-gate]
