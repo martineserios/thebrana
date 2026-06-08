@@ -1,3 +1,36 @@
+# Session Handoff — 2026-06-08
+
+---
+
+## 2026-06-08 — ph-1254 KF architecture refactor (ADR-044 C1+W2+F3)
+
+**Mode:** FULL · 8 commits · Branch: main (worktree feat/ph-1254 merged) · Programs: agent-v4, platform-transition
+
+### Accomplished
+
+- **C1** — per-tenant workflow split: `anita-v4-palco` + `anita-v4-pdb` deployed with `set_tenant_slug` (`set_variable` node, `variable_value:"palco"|"pdb"`). `tenants.flow_id_v4` updated to per-tenant flow IDs.
+- **W2** — `getTenantCreds` enriched: `vendor_table`, `billing_cutoffs`, `handoff_categories` now in `cfg:{slug}` KV blob. 5 KF bundles rebuilt.
+- **F3 / BCC** — `build_conversation_context` reads `vars.tenant_slug` (from C1), loads KV config (W2), calls `resolveContact` via `ANITA_API_BASE_URL + generateHonoJWT`. Eliminated `EXTERNAL_ID_TO_SLUG` map and `V3_API_BASE_URL` dependency.
+- **tracy-customer-lookup** — `supabasePatch` writes `customer_location_id` directly to Supabase via `ANITA_API_BASE_URL + generateHonoJWT`. Test suite added (105 lines, Path 1/2/not-found/write-back).
+- **Dev backfill exhausted**: palco 1909 + pdb 88 contacts unmatched — Chess ERP IDs not in Tracy. Root cause: new clients added to Chess after Greencode's initial Tracy setup.
+- **Greencode meeting doc**: `docs/meetings/2026-06-08-greencode-contact-coverage.md` — palco 70%/pdb 87% Tracy coverage, 4 asks (bulk load, verify old accounts, continuous sync webhook, PDB ERP source).
+- **Kapso remote-map drift fixed**: `warm-tenant-cache` hash synced after deploy.
+
+### Pending
+
+1. **t-1229** (P0, manual gate) — Path 2 live verification: send WhatsApp from PERONA RODRIGO 541167390652 (cliente:201265), SALINAS GUIDO NAHUEL 541130694260 (cliente:7033), or DAMIANA PAZ 541159513743 (cliente:7095). Check Kapso logs for `status:customer_location_resolved path:2`.
+2. **t-1230** (P1, gate: t-1229) — Prod backfill `contacts.customer_location_id` — requires explicit go-ahead. Same 1909/88 contacts will stay unmatched until Greencode provisions new clients in Tracy.
+3. **t-1206** — Greencode coordination meeting — doc ready, schedule with Greencode.
+4. **t-496, t-499, t-500, t-501** — Layer 1/4/5/6 QA (deferred — needs stable state + PDB QA contact).
+
+### Errata
+
+- `curl|python3 << 'PYEOF'` pipe+heredoc conflict — bash heredoc takes over stdin. Save to temp file first. Added to `bash-python.md`.
+- `app.kapso.ai` uses `X-API-Key` not `Authorization: Bearer` — stale note corrected in `kapso-deploy-freshness.md`.
+- `remote-map` hash update script must run from repo root (CWD-relative paths).
+
+---
+
 # Session Handoff — 2026-06-03
 
 ---
