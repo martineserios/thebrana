@@ -34,19 +34,24 @@ case "$command" in
         ;;
 esac
 
-# Forbidden patterns — case-insensitive
+# Forbidden patterns — case-insensitive fixed strings.
+# Match structural attribution forms only, not bare product/company names.
+# Bare "Anthropic" was removed (E2026-06-08-5): it false-positived on
+# legitimate subjects like "fix: update per Anthropic safety guidelines".
+# anthropic.com and co-authorship trailers already cover the real cases.
 forbidden_patterns=(
     "Co-Authored-By"
     "Co-authored-by"
     "co-authored-by"
     "Signed-off-by"
     "🤖 Generated with"
-    "Generated with .Claude Code."
+    "Generated with Claude"
+    "Generated with Anthropic"
+    "Powered by Anthropic"
     "Claude Code"
     "Claude AI"
     "claude.ai/code"
     "anthropic.com"
-    "Anthropic"
 )
 
 violations=()
