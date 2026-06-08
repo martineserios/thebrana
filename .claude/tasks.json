@@ -1,5 +1,5 @@
 {
-  "last_modified": "2026-06-08T09:25:02.946803050-03:00",
+  "last_modified": "2026-06-08T13:11:03.944083125-03:00",
   "project": "thebrana",
   "tasks": [
     {
@@ -35962,7 +35962,7 @@
     {
       "blocked_by": [],
       "branch": null,
-      "completed": null,
+      "completed": "2026-06-08",
       "context": "Adopts 10 features from CC v2.1.136–v2.1.142 into the thebrana system. Shaped from brainstorm 2026-05-15. Idea doc: docs/ideas/cc-feature-adoption-v2.1.136-142.md. Three milestones: hook hardening (Tier 0+1), 1-liner bundle (Tier 1), /goal from task context (Tier 2).",
       "created": "2026-05-15",
       "description": null,
@@ -35976,7 +35976,7 @@
       "parent": null,
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "CC Feature Adoption — v2.1.136–v2.1.142",
       "tags": [
         "hooks",
@@ -36420,7 +36420,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Document hook entry schema: settings.json command-string vs hooks.json args[] (E2026-05-17-2)",
       "tags": [
         "hooks",
@@ -41857,7 +41857,7 @@
       "blocked_by": [],
       "branch": null,
       "build_step": null,
-      "completed": null,
+      "completed": "2026-06-08",
       "context": "Define and enforce branch naming convention: {epic-slug}/{work-type}/t-{NNN}-{description}. Work-types closed list: feat|fix|chore|research|test|docs|refactor. Hook warns (not blocks) on non-conforming branches. brana backlog start suggests branch name.",
       "created": "2026-05-22",
       "description": null,
@@ -41871,7 +41871,7 @@
       "parent": "t-1608",
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "Phase 2 — Branch strategy: convention + enforcement",
       "tags": [],
@@ -41881,7 +41881,7 @@
       "blocked_by": [],
       "branch": null,
       "build_step": null,
-      "completed": null,
+      "completed": "2026-06-08",
       "context": "Convention: {epic-slug}/{work-type}/t-{NNN}-{description}. Valid work-types: feat|fix|chore|research|test|docs|refactor. Document in CLAUDE.md. Validation hook warns on non-conforming branches (hard-block after adoption period). brana backlog start outputs suggested branch name from task.epic + work_type + id + subject-slug.",
       "created": "2026-05-22",
       "description": null,
@@ -41895,7 +41895,7 @@
       "parent": "t-1617",
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "Branch naming convention + warn hook",
       "tags": [],
@@ -49058,7 +49058,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "brana ops status — surface waitingFor for blocked CC agent sessions",
       "tags": [
         "ops",
@@ -49084,7 +49084,7 @@
       "parent": null,
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Audit brana skills/hooks for --tools flags — verify behavior post CC v2.1.162",
       "tags": [
         "hooks",
@@ -49226,28 +49226,28 @@
       "work_type": "docs"
     },
     {
+      "blocked_by": [],
+      "branch": null,
+      "completed": null,
+      "context": null,
+      "created": "2026-06-08",
+      "description": null,
+      "effort": "XS",
+      "execution": "code",
+      "github_issue": null,
       "id": "t-1886",
-      "subject": "Fix work_type vocabulary drift: add 'review' to CLAUDE.md + 'refactor' to backlog.md enum (E2026-06-08-4)",
+      "notes": "backlog.md enum fixed. CLAUDE.md 'review' addition blocked by Layer 1 gate — requires manual edit.",
+      "order": 0,
+      "parent": null,
+      "priority": "P2",
+      "started": null,
       "status": "completed",
-      "type": "task",
+      "subject": "Fix work_type vocabulary drift: add 'review' to CLAUDE.md + 'refactor' to backlog.md enum (E2026-06-08-4)",
       "tags": [
         "docs",
         "maintenance"
       ],
-      "description": null,
-      "effort": "XS",
-      "priority": "P2",
-      "parent": null,
-      "created": "2026-06-08",
-      "started": null,
-      "completed": null,
-      "blocked_by": [],
-      "branch": null,
-      "context": null,
-      "notes": "backlog.md enum fixed. CLAUDE.md 'review' addition blocked by Layer 1 gate — requires manual edit.",
-      "order": 0,
-      "github_issue": null,
-      "execution": "code"
+      "type": "task"
     }
   ],
   "version": "1"
