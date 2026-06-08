@@ -693,6 +693,29 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
             }
             Ok(())
         }
+        "acceptance_criteria" => {
+            if task[field].is_null() {
+                task[field] = Value::Array(vec![]);
+            }
+            if let Some(stripped) = value.strip_prefix('+') {
+                let arr = task[field].as_array_mut()
+                    .ok_or_else(|| format!("{field} is not an array"))?;
+                let v = Value::String(stripped.to_string());
+                if !arr.contains(&v) { arr.push(v); }
+            } else if let Some(stripped) = value.strip_prefix('-') {
+                let arr = task[field].as_array_mut()
+                    .ok_or_else(|| format!("{field} is not an array"))?;
+                arr.retain(|v| v.as_str() != Some(stripped));
+            } else {
+                let parsed: Value = serde_json::from_str(value)
+                    .map_err(|_| format!("acceptance_criteria must be a JSON array or use +item/-item (got: {value})"))?;
+                if !parsed.is_array() {
+                    return Err(format!("acceptance_criteria must be a JSON array or use +item/-item (got: {value})"));
+                }
+                task[field] = parsed;
+            }
+            Ok(())
+        }
         "context" | "notes" | "description" => {
             if append {
                 let existing = task[field].as_str().unwrap_or("").to_string();

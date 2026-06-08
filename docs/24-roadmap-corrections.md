@@ -18,26 +18,6 @@
 
 ## Severity Summary
 
-| E2026-06-07-4 | proyecto_anita: `backlog_query(epic: "agent-v4")` returned 1 task when 33 tasks belonged to the program. Root cause: 32 tasks had `initiative: agent-v4` (old field) and the `agent-v4` tag, but NOT `epic: agent-v4`. The brana CLI `backlog_query(epic:)` filter matches only the `epic` field — it does not cross-reference `initiative:` or tags. Convention/CLAUDE.md never documented that `epic:` is the machine-readable grouping field; `initiative:` was the old name and is now vestigial. Sprint planning and epic focus views silently omitted 97% of agent-v4 tasks until `epic:` was backfilled on all 32. | **Medium** | code-fix (backfill done) | Backfilled `epic: agent-v4` on 32 tasks via `backlog_batch`. Doc fix needed: `task-convention.md` must state that `epic:` is the required field for program grouping; `initiative:` is deprecated and no longer read by query/focus tools. |
-| E2026-06-07-2 | proyecto_anita (dgrx): `clients/dgrx/services/dgrx-api/src/dgrx_api/services/sinks/sheet_log.py` uses `googleapiclient.discovery.build("sheets", "v4", ...)` at lines 18 and 129. Same blocking-event-loop pattern fixed in `interes_log.py` this session — not propagated to its sibling sink. Every `Pipeline.create` webhook that routes through `SheetLogSink` makes a blocking synchronous HTTP call on the asyncio event loop. | **Medium** | pending | Port `sheet_log.py` to `httpx.AsyncClient` + direct REST pattern from the now-fixed `interes_log.py`. Apply fix-adjacent-sibling audit rule: after fixing a library-misuse pattern, grep siblings before committing. |
-| E2026-06-07-1 | proyecto_anita (dgrx): `googleapiclient.discovery.build()` is incompatible with asyncio services — it makes a blocking synchronous HTTP request to download the full API discovery document on every call (httplib2, no timeout). Used in `interes_log.py` on initial scaffold. Manifested as `deal_router.routed` never logging after the Interés sink was wired (event loop blocked). Took two fix iterations: first `run_in_executor` wrapper (insufficient — no timeout, consumes thread-pool slot), then full replacement with `httpx.AsyncClient` direct REST calls. This constraint was undocumented in DGRX CLAUDE.md and cloud-run-deploy.md Gotchas. | **Medium** | code-fix | Fixed in `464659b`. Rule: for any Google API call in an async Python service, use `httpx.AsyncClient` + direct REST endpoint + `google.auth.default()` for token acquisition. Never use `googleapiclient.discovery.build()` in async code. Document in `cloud-run-deploy.md §Gotchas`. |
-| E2026-06-05-1 | proyecto_anita: `POST /api/commerce/admin/customer-locations/search` filter params are non-functional — returns unfiltered results regardless of filter value. Original `lookupByLogisticCode` always returned `items[0].id` (location 766028) for any clientId. Correct FK is `contacts.cliente = Tracy.erpIds[0]`, not `logisticCodes[0].code`. | **Medium** | code-fix | Client-side erpIds validation + `tools/backfill_customer_location_ids.py` for bulk index. Rule: never rely on Tracy filter params — validate client-side. |
-| E2026-06-04-7 | proyecto_anita: `supabase/migrations/20260603000001_tenant_credentials.sql` exists in the repo but was never applied to either Supabase project (`zvpzgpjlhrvouquxorya` prod, `jwzpeaidchtdibcxttcm` dev). All `getTenantCreds()` calls in deployed Kapso Functions silently failed with PostgREST 404 — the error was indistinguishable from "unknown tenant" at the KF layer. The entire credential chain (tracy-auth, tracy-customer-lookup, warm-tenant-cache) was broken in production with no alert. Pre-deploy checklist for KFs had no gate checking that Supabase tables required by `getTenantCreds` exist. | **High** | code-fix | Applied migration to both projects. Added to `kapso-deploy-freshness.md §New function checklist`: "For any KF that imports `getTenantCreds`, verify `SELECT COUNT(*) FROM tenant_credentials` returns on the target Supabase project before deploying." |
-| E2026-06-04-6 | proyecto_anita: `services/kapso-functions/src/tracy-customer-lookup.js` had a local `getAdminToken()` function with wrong API paths: used `/admin/backoffice-users/signin-password` instead of `/api/commerce/admin/backoffice-users/signin-password`, and `/admin/customer-locations/search` instead of `/api/commerce/admin/customer-locations/search`. The correct implementation existed in `lib/tracy-admin-auth.js` since Stage 0b. Path 2 (admin customer-location lookup) failed on every invocation since the KF was deployed, silently falling through to Path 3. E2026-06-03-4 documented a test gap for this function — the deeper structural bug (wrong base path) was missed at that review. | **High** | code-fix | Fixed in `bd60f1c`: removed local `getAdminToken()`, replaced with `import { getAdminJwt } from './lib/tracy-admin-auth.js'`. Added to `tracy-auth-credential-types.md`: "Never implement an inline admin token helper in a KF source file — always import `{ getAdminJwt }` from `lib/tracy-admin-auth.js`." |
-| E2026-06-04-5 | thebrana: `docs/architecture/hooks.md` 2026-05-28 field note documented `{"continue": false}` as the correct output for escalating a PreToolUse advisory hook to blocking. Reality: `continue:false` is a CC hard-stop signal that bypasses `continueOnBlock:true` in hooks.json entirely — it kills agent continuation on every match, regardless of that setting. The correct advisory pattern is `permissionDecision:deny` + `continueOnBlock:true`; hard-blocking uses `permissionDecision:deny` with `continueOnBlock` absent. Using `continue:false` made `memory-write-gate.sh` unconditionally stop agent continuation on every typed-memory write, even for permitted CC auto-memory paths where the path exemption did match. Root-cause finding this session (fixed in 4aa6f6f; E2026-06-04-1 documented only the path-exemption scope issue). | **Medium** | code-fix | Updated `memory-write-gate.sh` to return `permissionDecision:deny`. Corrected the 2026-05-28 field note in `docs/architecture/hooks.md` to document the correct advisory→blocking escalation: always use `permissionDecision:deny`; `continueOnBlock:true` presence/absence is the advisory toggle; never use `continue:false`. |
-| E2026-06-04-4 | thebrana: `docs/spec-graph.json` node `docs/24-roadmap-corrections.md` has `system/hooks/another.sh` in its `impl_files` list. This file does not exist on disk — it was used as a test path in branch-verify test scenarios (E2026-06-03-10) and was incorrectly extracted by `brana graph build` from the errata doc body text. The ghost reference caused `git status` to show `docs/spec-graph.json` as dirty before any work began (because the graph builder always regenerates impl_files from doc content), blocking branch creation until the file was discarded with `git checkout -- docs/spec-graph.json`. | **Low** | code-fix | Removed `system/hooks/another.sh` from `impl_files` in `docs/spec-graph.json`. Fix applied this session. Future: add a validate.sh check that rejects impl_files entries pointing to non-existent paths. |
-| E2026-06-04-3 | proyecto_anita: Cloud Run `JWT_SECRET_KEY` (bound from GCP Secret Manager `agent-jwt-signing-secret`) and Vercel `JWT_SECRET` (set independently in Vercel env vars) are separate secrets with different values. KF pre-issued JWTs signed against the Cloud Run key are immediately invalid on Vercel — every agent route returns 401 until all tenant JWTs are re-issued with the Vercel secret. Affected this session: 4 JWTs (palco, pdb, delorenzi-parana, delorenzi-quilmes) × 2 KFs (build-conversation-context, tracy-customer-lookup) required unplanned re-issuance. | **Medium** | code-fix | JWTs re-issued via `tools/issue_agent_jwt.py` using Vercel JWT_SECRET. Rule added to `vercel-deploy.md §Phase 2a checklist`: re-issue all tenant JWTs with Vercel JWT_SECRET before cutting V3_API_BASE_URL over. |
-| E2026-06-04-2 | proyecto_anita: Wave 2 migration scaffold commit `ad1eabf` (t-1148) underspecified `services/anita-web/package.json` — missing `react-hook-form`, `@hookform/resolvers`, `react-day-picker`, `embla-carousel-react`, `recharts`, `cmdk`, `vaul`, `input-otp`, `react-resizable-panels`, `next-themes`, `sonner`. These are transitive deps of the 47 UI components copied from `frontend-v2`. t-1231 PR 1 required mid-session `npm install --legacy-peer-deps` to unblock. A "dep surface audit" step was missing from the Wave 2 sprint spec: enumerate all transitive deps of copied UI components before each PR sprint starts. | **Low** | code-fix | Packages installed in t-1231 session. Fix for future PRs: add dep audit checklist to Wave 2 t-1232/t-1233/t-1234 task specs. |
-| E2026-06-04-1 | thebrana: `system/hooks/memory-write-gate.sh` blocked Claude Code's auto-memory system writes to `~/.claude/projects/*/memory/`. The hook was written to gate brana-procedure-driven typed-memory writes (requiring `/tmp/brana-memory-write-active` sentinel). The CC auto-memory system also writes `feedback_*.md`, `pattern_*.md`, etc. to the same path family — without any sentinel. The gate returned `{"continue": false}` on every such write, stopping agent continuation silently. Manifested as: every `/brana:close` memory-write step required user to type "retry"/"continue" after each Write call. | **Medium** | code-fix | Fixed in 8f1382e: added early pass-through for `$HOME/.claude/projects/*` path family ordered before the sentinel check. ADR-038 §C and hooks.md updated to document the exception. |
-| E2026-06-03-10 | thebrana: `git status --porcelain` without `-uall` collapses new untracked directories into `parent/` token, silently bypassing `branch-verify.sh`'s behavioral-file guard for `git add .` / `git add -A`. Tests 9/10 had been failing since written. | **Medium** | code-fix | Fixed in 1aaf5ed: added `-uall` to porcelain call in broad-add branch. All 20 branch-verify tests now pass. |
-| E2026-06-03-7 | proyecto_anita: `clients/dgrx/services/dgrx-api/src/dgrx_api/services/sinks/pdf_generator.py` used the Unicode ellipsis character `'…'` (U+2026) for product name truncation in the DGRX cotizador PDF. fpdf2's core fonts (Helvetica, Courier, Times) only support Latin-1 (ISO 8859-1) — any character > U+00FF throws `FPDFUnicodeEncodingException` at render time. Assumption: fpdf2 handles any Unicode text; Reality: core fonts are Latin-1 only; Unicode chars must be avoided unless a TTF font is loaded. | **Low** | code-fix | Fixed in 0b2bd8c: replaced `name[:24] + "…"` with `name[:24] + "..."` (ASCII 3 dots). Rule: when using fpdf2 with core fonts, use only ASCII characters for punctuation/symbols. Load a TTF font (`pdf.add_font(...)`) if Unicode output is required. |
-| E2026-06-03-6 | thebrana: `system/hooks/branch-verify.sh` falsely denied compound `git switch -c feat/X && git add behavioral-file` commands on main. The hook checks `git branch --show-current` at hook-invocation time — before the shell executes any part of the command. For compound commands where a branch switch precedes `git add`, the hook always saw `main` and denied, even though the `git add` would execute on the new branch. User reported "happens very frequently" during normal development. | **Medium** | code-fix | Fixed in 7fe4fcd: added Step 3.5 to branch-verify.sh — if `git switch -c` or `git checkout -b` precedes `git add` in the command string, pass through. Tests 18–20 added in test-branch-verify.sh (t-1833). |
-| E2026-06-03-1 | thebrana: `system/hooks/worktree-gate.sh` deny message for DIRTY state says to use `git stash` — but `git stash` only stashes tracked-file modifications. New untracked files (created but never staged) are not stashed, leaving them in the working tree and causing `git switch -c` to fail or trigger the hook again. The workaround requires `git stash push -u -m "..."` (`-u` = include untracked). Without the `-u` hint in the error message, users will retry plain stash and hit the same failure repeatedly. | **Low** | code-fix | Fixed in 53a59b6: deny message now explicitly says `git stash push -u -m 'wip'` with inline note that `-u` includes untracked files and plain `git stash` will trigger the gate again. |
-| E2026-06-03-5 | proyecto_anita: `platform/agent/docs/architecture.md` line 35 and `platform/agent/docs/tenant-config-schema.md` §1 both described YAML files as the agent's runtime config source. Reality since ADR-042 (2026-05-20): `build_conversation_context` KF calls `GET /v3/agent/tenants/{slug}/config` → v3-api reads Supabase `tenants` table. The YAML files are ops/seed artifacts only — the Docker build copy (`services/v3-api/config/agent-v4/tenants.yaml`) was also missing the entire delorenzi tenant block (34 lines). Any operator reading the pre-fix docs would edit YAML expecting it to affect runtime, and miss that the seed step (`python tools/seed_agent_tenant_config.py --tenant {slug}`) is required. | **Low** | code-fix | Fixed in dc3b376 (architecture.md) + 402a0c3 (Docker copy sync) + dc3b376 (tenant-config-schema.md §1 rewrite). architecture.md line 35 now says "Loads tenant config from Supabase tenants table (via GET /v3/agent/tenants/{slug}/config)". Schema doc §1 now shows the full runtime data flow diagram. t-1211 tracks delorenzi onboarding gate (EXTERNAL_ID_TO_SLUG wiring). |
-| E2026-06-03-4 | proyecto_anita: `services/kapso-functions/src/tracy-auth.js` used admin credentials (`tracy_email` / `tracy_password`) for `/api/commerce/auth/signin` in Anita-exclusive Tracy environments (289=Palco, 291=PDB). In Masuno shared envs (271/272), admin credentials accidentally worked on the ecommerce signin endpoint — a quirk of Masuno's permissive config. In Anita-exclusive envs, the same call returns 401. The bug was masked by a valid KV-cached JWT from the old Masuno environment; it surfaced when that token expired. Any Hito-2 signin attempt after token expiry would fail with 401, breaking the entire commercial agent flow. | **Medium** | code-fix | Fixed in 79757ae: renamed fields to `tracy_ecommerce_email` / `tracy_ecommerce_password` with backwards-compat fallback to old field names for legacy rows. Auth architecture section added to `docs/integrations/tracy-commerce-api-v1.md` documenting admin vs ecommerce credential separation. Rule: when a tenant migrates to a new Tracy environment, probe `/auth/signin` with ecommerce credentials before deploying — do not rely on KV-cached tokens to mask credential type mismatches. |
-| E2026-06-03-3 | proyecto_anita: KV-cached Tracy JWTs mask credential-type migration bugs until token TTL expires — a "works for N hours then breaks" failure pattern. When `tracy-auth.js` was deployed to env 289 with wrong credential types, the cached JWT from env 271 continued to return on cache hits. The mis-wired ecommerce signin code was never exercised during cache validity window, making E2026-06-03-4 invisible until the cache cold-started. Same pattern can recur on any KV-cached external credential across any environment migration. | **Medium** | code-fix | Documented in `docs/integrations/tracy-commerce-api-v1.md` §failure modes. Rule: add explicit KV cache flush step to tenant environment migration runbook (t-1204 tracks KV invalidation tooling). Do not wait for TTL expiry after environment migration — flush `cfg:{slug}` key manually. |
-| E2026-06-03-2 | thebrana: Editing `AGY_PINNED_VERSION` constant in `system/cli/rust/crates/brana-mcp/src/tools/agy_delegate.rs` has no runtime effect until `brana-mcp` is recompiled and redeployed. This session bumped from `"1.0.3"` to `"1.0.4"` in source, but the running MCP server binary still expected `1.0.3`. Every `mcp__brana__agy_delegate` call failed with "agy version mismatch" — Gemini skipped in all challenge runs. No documentation warns that rebuild+redeploy is required. | **Low** | code-fix | Fixed in c7f22d2: added 2-line comment block above the constant: "NOTE: bumping this requires `cargo build --release` in brana-mcp/ + MCP server redeploy. The running binary won't pick up the new version until rebuilt and restarted." `cargo build --release` + Claude Code restart still tracked as t-1823. |
-| E2026-06-02-3 | thebrana: t-1702 task context (`context` field) stated "Candidate agy slots: build.md LOAD phase (already uses agy)". Audit during t-1702 confirmed agy was NOT wired to `build.md` at all — no `agy_delegate` call or ToolSearch entry existed. The stale claim was written when the task was created (2026-05-27) before the actual wiring happened, but the wiring never occurred. Any agent reading the context before starting work would skip build.md as an agy candidate, missing the real gap. | **Low** | code-fix | Fixed during t-1702: added `mcp__brana__agy_delegate` to build.md ToolSearch preamble and wired agy_delegate for graph-neighbor docs >100 lines in LOAD step 2b. |
 | E2026-06-01-1 | thebrana: `system/procedures/research.md` ToolSearch preamble (line 53) listed only `mcp__ruflo__memory_search,mcp__ruflo__agent_spawn`. Phase 0b (lines ~180, ~192) calls `mcp__brana__agy_delegate`, which is a deferred tool and requires a ToolSearch preload. The same bug existed in `challenge.md` (fixed in e63de62) but was not replicated to `research.md`. Every `/brana:research` run that reaches Phase 0b silently degrades to no-agy mode. | **Medium** | code-fix | Fixed in this session: added `mcp__brana__agy_delegate` to the ToolSearch select string at line 53 of `system/procedures/research.md`. |
 | E2026-06-01-2 | thebrana: Any procedure that calls a deferred MCP tool (`mcp__brana__*` or other non-default tools) must include it in that procedure's ToolSearch preamble — not just the ruflo tools. The preamble was treated as "load ruflo" rather than "load all deferred tools this procedure touches." `challenge.md` and `research.md` both failed this way. Other procedure files may have the same gap. | **Low** | code-fix | Fixed 2026-06-01: full audit of all 48 `system/procedures/*.md` files completed. Fixes applied in prior commits: `challenge.md` + `research.md` (agy_delegate, 2f1f87e), `gemini.md` PERSIST step (backlog_set, 3c97a06). Audit confirmed no remaining gaps. |
 | E2026-06-01-3 | thebrana: `run_tier2` in `system/cli/rust/crates/brana-cli/src/commands/knowledge.rs` processed tier1-passed URLs in a for loop, updating each entry's `status`, `cluster_topic`, and `dimension_target` in-memory, but called `save_state()` only once after the entire loop. A mid-batch crash (Gemini timeout, SIGKILL) would lose all cluster assignments accumulated so far. `run_tier1` had per-entry checkpoint since fb486d0; `run_tier2` was never updated to match. | **Low** | code-fix | Fixed in 3c97a06: added `kp::save_state(state_path, state)?` inside the `Ok(json)` branch of the `run_tier2` loop, immediately after each entry's status update. Parity with `run_tier1` line 564 pattern. |
@@ -115,9 +95,9 @@
 | E2026-05-19-9 | proyecto_anita: Adding new input modality (audio) to agent prompt without explicit "treat-as-text" inheritance rule caused agent to invent process-narration for the new path ("Entendí tu audio") — same narration behavior the session was trying to suppress | **Medium** | code-fix | Fixed same session: changed audio path response to direct answer, added ❌ "Entendí tu audio" → ✅ direct response example. Rule: any new modality introduction must include "respond identically to text — do not acknowledge the modality" as an explicit inline rule. Affected: `platform/agent/config/prompt/v4.md` (audio transcription section) |
 | E2026-05-19-8 | proyecto_anita: REGLA 1 narration suppression implemented as phrase-enumeration (9 ❌ examples) — insufficient; agent generalized to novel narration variants. Turn-level structural constraint ("zero text in same turn as tool call" with 2-turn ❌ vs 1-turn ✅ pattern) was the effective fix | **Medium** | code-fix | Fixed same session: commit 5384b62 added turn-level invariant to REGLA 1. Key insight: for LLM behavior constraints relative to tool calls, encode the structural invariant (turn shape), not just forbidden phrases. Phrase enumeration is reinforcement, not the primary rule. Affected: `platform/agent/config/prompt/v4.md` REGLA 1 |
 | E2026-05-19-7 | proyecto_anita: `.claude/rules/prompt-deploy-freshness.md` had 7 stale `config/agent-v4/` path references after ADR-041 moved config to `platform/agent/config/` — rule was misrouting operators to nonexistent paths | **High** | code-fix | Fixed 2026-05-19: all path references updated to `platform/agent/config/prompt/v4.md` and `platform/agent/config/tenants.yaml`. Rule: directory-move ADRs must include a path-sweep section grepping `tools/`, `.claude/rules/`, `docs/`, `Makefile` for old paths and patching all hits in the same PR as the move. Affected: `.claude/rules/prompt-deploy-freshness.md` |
-| E2026-05-19-6 | thebrana: `build.md` step 4a does not enumerate which skill families are mandatory per file type. | **Medium** | code-fix | Fixed 2026-05-20 (reconcile): step 4a 3-signal chain + dynamic SKILL.md keyword matching covers domain routing without a hardcoded table. Cargo.toml present → Rust (Signal 2); keywords in SKILL.md resolve the skill. See `system/procedures/build.md` step 4a. |
-| E2026-05-19-5 | thebrana: memory-taxonomy-sdd.md uses 6-type taxonomy diverging from ADR-038 7-type routing table. | **Medium** | code-fix | Fixed 2026-05-20 (reconcile propagation): `memory-taxonomy-sdd.md` frontmatter updated to `Status: superseded (taxonomy types, see ADR-038)` with Superseded-by note pointing to ADR-038. Overview updated to flag 6-type as original; ADR-038 governs current taxonomy. See `docs/architecture/features/memory-taxonomy-sdd.md`. |
-| E2026-05-19-4 | thebrana: `build.md` step 4a skill-load gate fires on "If NO skills results returned" — satisfied by adjacent-domain pattern/knowledge hits from ruflo. Agent skipped `brana:rust-skills` when ruflo returned memory taxonomy patterns (no Rust results). Gate must require domain-matching skill result, not any non-empty result set. | **High** | code-fix | Fixed 2026-05-20 (reconcile propagation): step 4a Step 3 now reads "If any key contains one of the matched skill's `keywords` → skill knowledge already in context → skip 4a. If NO key matches → skill knowledge absent → proceed." This is a keyword-intersection check, not a result-presence check. Adjacent-domain LOAD results (memory taxonomy patterns) will NOT satisfy the gate unless they contain the skill's tech keywords (e.g., `rust`, `cargo`). See `system/procedures/build.md` step 4a Step 3. |
+| E2026-05-19-6 | thebrana: `build.md` step 4a does not enumerate which skill families are mandatory per file type — inference fails when ruflo returns adjacent-domain results (memory taxonomy patterns vs Rust-domain skills). Implicit assumption that agent infers `*.rs` → `brana:rust-skills` fails under partial ruflo result sets. | **Medium** | pending | Fix: add explicit domain-mapping table in `build.md` step 4a — `*.rs` → `brana:rust-skills`, `*.py` → `brana:python-skills`, `*.sh` → `brana:shell-skills`. Alternatively enforce via PreToolUse hook that blocks Write/Edit on `*.rs` until rust-skills was loaded this session. Affected: `system/procedures/build.md` step 4a. |
+| E2026-05-19-5 | thebrana: ADR-038 introduces MEMORY.md auto-generation as an ADR-level constraint — prior `pattern_memory-index-auto-generated.md` and `pattern_memory-routing-taxonomy.md` carried this as patterns, not a spec. `docs/architecture/features/memory-taxonomy-sdd.md` uses a 6-type taxonomy that diverges from ADR-038's 7-type routing table (feedback/project/user/pattern/convention/field-note/adr). | **Medium** | pending | Fix: add ADR-038 reference to `memory-taxonomy-sdd.md`; mark SDD type names as "superseded by ADR-038 routing table." Pattern files become worked examples. Affected: `docs/architecture/features/memory-taxonomy-sdd.md`. |
+| E2026-05-19-4 | thebrana: `build.md` step 4a skill-load gate fires on "If NO skills results returned" — satisfied by adjacent-domain pattern/knowledge hits from ruflo. Agent skipped `brana:rust-skills` when ruflo returned memory taxonomy patterns (no Rust results). Gate must require domain-matching skill result, not any non-empty result set. | **High** | pending | Fix: change step 4a condition to "if no skill matching the task surface (Rust/Python/shell/etc.) was loaded." Add explicit domain-mapping table. Or move enforcement to PreToolUse hook that blocks `*.rs` writes until rust-skills is loaded. Affected: `system/procedures/build.md` step 4a. Discovery: t-1466 tests written without rust-skills loaded — user correction required. |
 | E2026-05-19-3 | proyecto_anita: `tracy_search` was missing from `flow_agent_function_tools` in `agent_anita_v4` manifest — t-958 structural fix shipped non-functional; agent received `requires_clarification:true` correctly but could not call `tracy_search` on turn 2 ("Tool 'tracy_search' is not available") | **Medium** | code-fix | Fixed same session: inserted `tracy_search` as first entry in `flow_agent_function_tools` in `workflows/anita-v4-agent/definition.json`. Rule: when a pipeline-only tool becomes agent-callable via a prompt instruction change, update the tool manifest in the same changeset. Affected: `workflows/anita-v4-agent/definition.json`, `kapso-deploy-freshness.md` |
 | E2026-05-19-2 | proyecto_anita: `CONSUMIBLE_SUFFIX_REGEX` in `tracy-search.js` treats `SIN RUBRO` as "no real price" proxy — reality: most "Brahma" QA results (8/10) are SIN RUBRO with prices ranging $167–$518; the correct `BRAHMA-CERVEZAS` product (articleId 506577) has `defaultPrice=0` due to QA pricing gap — category ≠ price proxy | **Medium** | pending | Tracy QA behavior: correct-category product has price=0; mix packs in wrong category have real prices. Degraded path correctly surfaces mix pack, but for wrong reason. Fix requires Greencode to: (a) clarify if SIN RUBRO ERP 908xxx/909xxx are orderable in prod, (b) identify an `isOrderable` or equivalent field, (c) explain BRAHMA-CERVEZAS price=0 in QA. Affected: `services/kapso-functions/src/tracy-search.js` CONSUMIBLE_SUFFIX_REGEX, `docs/agent-v4/tracy-catalog-model.md`. Added to 2026-05-20 Greencode agenda Punto 4 |
 | E2026-05-19-1 | proyecto_anita: `deploy_prompt.py` and `check_prompt_deploy_drift.py` both assumed a single agent node with `node_type == "agent"` — broke when `agent_query_rewrite` node was added in t-909; both tools threw "expected 1 agent node, found 2" | **Medium** | code-fix | Fixed in this session: both tools now target `agent_anita_v4` by node ID first, fall back to single-agent detection. `find_agent_node()` in each script: `by_id = [n for n in nodes if n.get("id") == "agent_anita_v4"]`. Field note added to `prompt-deploy-freshness.md` §"How drift detection works". Affected: `tools/agent-v4/deploy_prompt.py`, `tools/agent-v4/check_prompt_deploy_drift.py`, `.claude/rules/prompt-deploy-freshness.md` |
@@ -137,7 +117,7 @@
 | E2026-05-17-5 | proyecto_anita: PostgREST content-range header format `0-0/N` — count is after `/`, not directly parseable with `grep -oP '\d+'` which matches `0` not `N`. Caused all 26 table row-count queries to return ERROR in initial audit script | **Medium** | code-fix | Fix: `grep -i "content-range:" | sed 's/.*\///' | tr -d '[:space:]\r'` extracts the total count after `/`. Applied in t-883 live audit script. Affects any shell script doing PostgREST count queries with `Prefer: count=exact`. |
 | E2026-05-17-4 | proyecto_anita: Supabase CLI v2.75.0 (Ubuntu apt package) doesn't support `--project-ref` flag for `supabase db push` — flag was added in v2.x.x; silent failure or command not found | **Medium** | code-fix | Fix: install v2.98.2 directly from GitHub releases to `~/.local/bin/supabase`. Command: `wget https://github.com/supabase/cli/releases/download/v2.98.2/supabase_linux_amd64.tar.gz`. Use `~/.local/bin/supabase` explicitly when apt version is stale. |
 | E2026-05-17-3 | proyecto_anita: `supabase db push` migration history drift — 12 local-only + 5 remote-only migrations not in CLI history because they were applied via Supabase Studio SQL editor, which bypasses CLI tracking | **High** | code-fix | Fix: `supabase migration repair --status applied {version}` for each local-only migration; create stub files for remote-only migrations. Full repair: 26/26 Local=Remote after t-885. Rule: any migration applied via SQL editor must be immediately followed by `supabase migration repair --status applied {version}` to prevent drift. |
-| E2026-05-15-3 | thebrana: `brana backlog set` array-field syntax undocumented — `[]` is rejected; use `+val`/`-val`; negative values need `--` separator (`brana backlog set t-NNN blocked_by -- -t-MMM`) | **Low** | code-fix | Fixed 2026-05-20 (reconcile propagation): `feedback_brana-backlog-set-positional.md` already contains the array-field semantics section. `brana backlog set t-NNN blocked_by +t-MMM` (add) and `brana backlog set t-NNN blocked_by -- -t-MMM` (remove, `--` separator required for negative-looking values) are documented. |
+| E2026-05-15-3 | thebrana: `brana backlog set` array-field syntax undocumented — `[]` is rejected; use `+val`/`-val`; negative values need `--` separator (`brana backlog set t-NNN blocked_by -- -t-MMM`) | **Low** | pending | Update `feedback_brana-backlog-set-positional.md` with array-field semantics |
 | E2026-05-15-2 | thebrana: `branch-verify.sh` reverse-direction parent-dir match (`case "$bpath" in ${file}|${file}/*`) flags bare dir name `system` as behavioral — false positives on `.claude/tasks.json` + `docs/ideas/*` staging; also triggers when a Bash command payload contains the substring `git add` followed by the word `system/` | **Medium** | pending | Fix: remove reverse-direction case (line 82-88) — actual blob paths from staging always include full subpath. Add regression test asserting `.claude/tasks.json` + `docs/ideas/foo.md` pass `is_behavioral()`. Track: t-1424 |
 | E2026-05-15-1 | proyecto_anita: `prompt-deploy-freshness.md` doesn't mandate pre-edit drift check — operator may edit v4.md while deployed definition.json is ahead, then push a regression | **Medium** | pending |
 | E2026-05-14-6 | proyecto_anita: ADR-039 GCP split had no expiry condition — hybrid Cloud Run + Vercel state could persist indefinitely after Phase 3, contradicting "terminal state is Vercel" | **Medium** | code-fix | Added 90-day tripwire from Phase 3 completion in ADR-039 §coordination. Agent v4 routes (`agent_contacts`, `agent_conversations`, `agent_sheets`) must migrate to Vercel within 90 days of Phase 3; failure triggers a forced decision. Affected: `docs/decisions/ADR-039-vercel-platform-migration.md` |
@@ -3880,313 +3860,20 @@ Caught during test spec writing (Case 2 of `test-close-weight-adaptive.md`). Con
 
 ---
 
-## E2026-06-02-1 — "backlog do <task>" executed production cutover without explicit authorization
+## E2026-06-07-6 — "WAL mode handles concurrent writes" claim in ruflo-agentdb-status was wrong; PID lock removal caused two corruption events
 
 **Severity:** Medium
-**Discovery:** 2026-06-02 — t-981 session (Vercel cron cutover)
+**Discovery:** 2026-06-07 — t-1858 ruflo DB corruption investigation
 **Affected files:**
-- `services/anita-api/vercel.json` — trigger crons flipped to real (babeb6f), reverted (be0c2fd)
+- `~/.claude/projects/-home-martineserios-enter-thebrana-thebrana/memory/project_ruflo-agentdb-status.md` — "PID lock removed (t-988) — AgentDB v3 bridge uses better-sqlite3 with WAL mode. PID file now advisory only."
+- `system/scripts/ruflo-mcp.sh` — carried advisory-only PID file until this session
 
-**Bug:** User typed "backlog do t981". Claude interpreted this as full authorization to execute all pending steps in t-981, including flipping Vercel trigger crons from `dry_run=true` to real sends — a production action that routes live WhatsApp broadcasts to customers. The task notes explicitly said "Blocked on user decision to cut over Vercel sends." The flip was deployed before the user could intervene; a manual revert + redeploy was required.
+**Bug:** After the April 2026 corruption event (t-982), the recovery note claimed that upgrading to better-sqlite3 + WAL mode resolved the concurrency safety issue and the PID lock was removed. This was incorrect. SQLite WAL mode allows multiple concurrent readers and ONE writer at a time — it does NOT serialize multiple concurrent writers. CC spawns one ruflo MCP process per session; 8 simultaneous sessions produced 8 concurrent writers, causing two B-tree corruption events (memory.db.corrupt-2026-04-06 and memory.db.corrupt-2026-06-07, losing ~6 weeks of memory data between May 12–June 7).
 
-**Root cause:** "backlog do" is a task-start command, not a production-go-ahead. Any task with deferred production steps (cutover, deletion, retirement, migration) must surface those steps and ask for explicit confirmation before acting — regardless of the start command used.
+The correct fix is an OS-level `flock(1)` mutex, not WAL mode. WAL mode is a journal mode, not a concurrency control mechanism.
 
-**Fix:** Saved as `feedback_backlog_do_not_production_cutover.md` in auto-memory. Rule: for any task with a deferred production step, surface the specific action and wait for explicit user confirmation ("yes, flip the crons", "yes, delete those jobs") before proceeding.
+**Fix applied:** `system/scripts/ruflo-mcp.sh` — replaced advisory PID file with `flock -n` on `~/.swarm/ruflo-mcp.lock`. Second instance exits 1 immediately. DB recovered: 6054 entries from May 12 backup + 1398 entries from corrupt DB dump using INSERT OR IGNORE. Test added: `tests/scripts/test-ruflo-mcp-single-instance.sh`.
 
-**Status:** code-fix — memory saved, crons reverted. No lasting production impact.
+**Note:** `sqlite3 .recover` (referenced in the original t-982 recovery note) is NOT available in the installed sqlite3 build. The actual recovery mechanism was `.dump` + INSERT OR IGNORE into a clean backup — not `.recover`.
 
----
-
-## E2026-06-02-2 — PDB inline JWT in tracy-auth.js pointed at Masuno env 272 instead of Anita-exclusive 291
-
-**Severity:** Medium
-**Discovery:** 2026-06-02 — Palco Ecosistema session (Vercel + PDB env migration)
-**Affected files:**
-- `services/kapso-functions/src/tracy-auth.js` — `INLINE_QA_JWTS.PDB` JWT contained `marketplaceId=272` (Masuno shared), `ecommerceUserId` and `customerLocationId` from the old shared env
-
-**Bug:** When PDB was migrated to Anita-exclusive Tracy env 291 (ecommerceUserId=84605, customerLocationId=771042), the inline Hito-1 fallback JWT in `tracy-auth.js` was not updated. The Hito-2 programmatic signin path masked the stale fallback. Any rollback to Hito-1 for PDB would have silently authenticated against Palco's shared Masuno marketplace (272) instead of PDB's exclusive env (291) — resulting in PDB orders landing in the wrong Tracy marketplace with no error at auth time.
-
-**Root cause:** Inline credential fallbacks are static and not updated by the credential rotation that updates `tenants.yaml`. The two sources diverged silently: `tenants.yaml` was updated to 289/291 (2026-06-01), `tracy-auth.js` `INLINE_QA_JWTS` was not.
-
-**Fix:** Applied in commit `c3e1871` — PDB JWT regenerated with env 291 credentials (ecommerceUserId=84605, customerLocationId=771042). Comment added on each `INLINE_QA_JWTS` entry documenting its expected marketplaceId to make future staleness visible in code review.
-
-**Related:** E2026-06-01-3 (stale marketplace IDs in tracy-search.js/ruta-a-handler.js — same root cause, different files).
-
-**Status:** code-fix — applied c3e1871. PDB Hito-1 path now correct.
-
-
----
-
-## E2026-06-03-1 — `makeAgentToolPayload` default `marketplace_id=289` masks UNKNOWN_TENANT error class in tests
-
-**Severity:** Low
-**Discovery:** 2026-06-03 — t-297 fix session (tracy-search UNKNOWN_TENANT test)
-**Affected files:**
-- `services/kapso-functions/tests/tracy-search.test.js` — UNKNOWN_TENANT test for `nonexistent_co` tenant
-
-**Bug:** `makeAgentToolPayload({ tenant_id: 'nonexistent_co' })` defaults `marketplace_id: 289` in the built payload. This means the ctx has a valid marketplace context. `tracy_search` never reaches the tenant-lookup/UNKNOWN_TENANT branch — it fails earlier with `JWT_NOT_CONFIGURED` (no credentials for the fake tenant). The test asserted `UNKNOWN_TENANT` but was receiving `JWT_NOT_CONFIGURED` — a different error class that happens to have no side-effects in this context.
-
-**Impact:** The UNKNOWN_TENANT branch was untested. A future refactor to the tenant-lookup path could silently regress without failing any test.
-
-**Fix:** Pass `null` as second arg to force no-marketplace in the test payload: `makeAgentToolPayload({ tenant_id: 'nonexistent_co', query: 'quilmes' }, null)`. Applied in commit `ccd311b`.
-
-**Status:** code-fix — applied ccd311b.
-
----
-
-## E2026-06-03-2 — Test gap: stale-token-delete branch in tracy-auth self-healing (t-1209) not unit tested
-
-**Severity:** Low
-**Discovery:** 2026-06-03 — session debrief
-**Affected files:**
-- `services/kapso-functions/src/tracy-auth.js` — t-1209 parallel KV read + JWT decode + stale-delete path
-
-**Bug:** The critical remediation path (`env.KV.delete(kvKey)` on marketplaceId mismatch) is covered only by smoke test (Section 10/11 in `smoke-tracy-qa.js`). No unit test exercises the stale-token-delete branch specifically. If a future refactor changes the JWT claim name (`marketplaceId` → `marketplace_id`) or the comparison logic, the code would silently skip deletion — reinstating the same class of stale-token bug.
-
-**Fix:** Add unit test: mock KV returns JWT with `marketplaceId: 271`, configured `marketplace_id` is `289`. Assert: (a) `kv.delete` called once, (b) function falls through to fresh signin, (c) `stale_marketplace_token` warn event emitted. Pattern mirrors existing `tracy-auth.test.js` structure.
-
-**Status:** pending — tracked as t-1213 (if created).
-
----
-
-## E2026-06-03-3 — Stage 0c subtask descriptions implied source changes for 6/7 KFs — all 6 were no-ops
-
-**Severity:** Low
-**Discovery:** 2026-06-03 — Stage 0c close debrief (t-1184–t-1190)
-**Affected files:**
-- `.claude/tasks.json` — t-1184, t-1185, t-1186, t-1187, t-1188, t-1190 task descriptions
-- `platform/agent/docs/plan.md` — Stage 0c subtask list
-
-**Bug:** Tasks t-1184–t-1188 and t-1190 were titled "Refactor {kf}.js — add getTenantCreds dual-read for tracy credentials", implying source code changes were needed in each KF. In reality, all 6 KFs delegate auth entirely to `tracyAuthHandler` (already updated in Stage 0b). Only `tracy-customer-lookup.js` (t-1189) owns a private `getAdminToken()` and needed actual changes. The 6 other tasks were source no-ops — only transitive bundle rebuilds were required.
-
-**Root cause:** Stage 0c subtask authoring was based on "these KFs use Tracy credentials" rather than "these KFs own their own auth flow." The correct authoring predicate was: grep for `getAdminToken\|getEcomToken\|TRACY_ADMIN_EMAIL` across KF sources before creating per-KF subtasks. Only KFs with a positive hit need source changes.
-
-**Impact:** 6 phantom "refactor" task descriptions created orientation cost. In a parallel-worktree session, these would have caused "completed but no diff" confusion.
-
-**Fix (process):** For any future "wire X into remaining KFs" task sprint, add a preflight grep: `grep -rl "getAdminToken\|TRACY_ADMIN_EMAIL" services/kapso-functions/src/` — only create source-change subtasks for files with positive hits. Bundle-only tasks should be explicitly labeled "rebuild + deploy (source no-op)".
-
-**Status:** pending — process fix; no code change required.
-
----
-
-## E2026-06-03-4 — Test gap: getAdminToken() dual-read path in tracy-customer-lookup.js not unit tested
-
-**Severity:** Low
-**Discovery:** 2026-06-03 — Stage 0c close debrief (t-1189)
-**Affected files:**
-- `services/kapso-functions/src/tracy-customer-lookup.js` — `getAdminToken()` function (dual-read path added in 5b62c6c)
-
-**Bug:** The dual-read pattern added to `getAdminToken()` in t-1189 has no unit tests. Specifically: (1) UNKNOWN_TENANT → return null (no throw, falls to Path 3); (2) transient error (TENANT_CREDS_TIMEOUT/FETCH_ERROR) → alertFallback called + env var fallback used; (3) admin creds absent → return null. The pattern is structurally identical to what was tested in `tracy-auth.test.js` but those tests cover `tracyAuthHandler`, not `getAdminToken`.
-
-**Fix:** Add to `tracy-customer-lookup.test.js` (or create it): mock `getTenantCreds` for UNKNOWN_TENANT case → assert `getAdminToken` returns null; mock FETCH_ERROR → assert `alertFallback` called and env var creds used. Mirror the credential-type tests from `tracy-auth.test.js`.
-
-**Status:** pending — test task to be created.
-
----
-
-## E2026-06-03-7 — worktree-gate.sh deny message omits `git stash push -u` hint for untracked files
-
-**Severity:** Low
-**Discovery:** 2026-06-03 — harness session (t-1828)
-**Affected files:**
-- `system/hooks/worktree-gate.sh` line 187 — dirty-state deny message
-
-**Bug:** When worktree-gate blocks a branch switch due to dirty working tree, the deny message suggests `git worktree add` or `claude --worktree` but omits the stash alternative. Users who want to stash-then-switch use bare `git stash`, which silently omits untracked files. The correct command is `git stash push -u` (the `-u` flag includes untracked files). Without this hint, users lose untracked work when they stash and switch.
-
-**Fix:** Added `git stash push -u` hint to the deny message in worktree-gate.sh line 187. Applied in this reconcile run.
-
-**Status:** code-fix — applied in chore/reconcile-20260603.
-
----
-
-## E2026-06-03-8 — AGY_PINNED_VERSION constant change requires binary rebuild (invisible at runtime without it)
-
-**Severity:** Low
-**Discovery:** 2026-06-03 — harness session (t-1828); surfaced when bumping 1.0.3 → 1.0.4
-**Affected files:**
-- `system/cli/rust/crates/brana-mcp/src/tools/agy_delegate.rs` line 16 — `AGY_PINNED_VERSION` constant
-
-**Bug:** Editing `AGY_PINNED_VERSION` in source has no effect until `cargo build --release` is run in `brana-mcp/` and Claude Code is restarted (the binary is what gets loaded at runtime). A source-only edit looks like success but the running binary still enforces the old version. This caused a version mismatch error to persist after the source was updated to `"1.0.4"`.
-
-**Fix:** Added inline comment to the constant: `// Changing this requires: cargo build --release in brana-mcp/ + restart Claude Code`. Applied in this reconcile run.
-
-**Status:** code-fix — applied in chore/reconcile-20260603.
-
----
-
-## E2026-06-03-10 — `git status --porcelain` collapses new untracked directories — hook file scanning silently misses behavioral files
-
-**Severity:** Medium
-**Discovery:** 2026-06-03 — branch-verify.sh Tests 9/10 failing (this session)
-**Affected files:**
-- `system/hooks/branch-verify.sh` line 112 — broad-add working-tree scan
-
-**Bug:** `git status --porcelain` (without `-uall`) folds an entirely-new untracked subdirectory into a single `?? parent/` token instead of listing individual files. `branch-verify.sh` used this to enumerate candidate behavioral files for `git add .` / `git add -A`. When a behavioral file lived in a directory that had never been tracked (e.g. `system/hooks/another.sh` in a fresh test repo), the hook saw `?? system/` — a bare directory token that `is_behavioral()` did not match — and silently allowed the add. Tests 9 and 10 exercised exactly this scenario and had been failing since they were written.
-
-**Fix:** Changed `git status --porcelain` to `git status --porcelain -uall` in the broad-add branch (line 112). With `-uall`, git lists each untracked file individually regardless of directory structure. All 20 branch-verify tests now pass.
-
-**Status:** code-fix — applied in fix(hooks): 1aaf5ed.
-
----
-
-## E2026-06-04-7 — `tenant_credentials` migration never applied to prod/dev — entire KF credential chain silently broken
-
-**Severity:** High
-**Discovery:** 2026-06-04 — P0 hotfix cluster; first symptom was `warm-tenant-cache` returning UNKNOWN_TENANT errors
-**Affected files:**
-- `supabase/migrations/20260603000001_tenant_credentials.sql` — existed in repo, not applied
-- `services/kapso-functions/src/lib/tenant-creds.js` — `getTenantCreds()` caller
-- All KFs importing `getTenantCreds`: tracy-auth, tracy-customer-lookup, warm-tenant-cache, build-conversation-context, tracy-signup, tracy-link-user-to-location
-
-**Bug:** The migration file `20260603000001_tenant_credentials.sql` was committed to the repo as part of Stage 0b but was never applied to either Supabase project (`zvpzgpjlhrvouquxorya` prod, `jwzpeaidchtdibcxttcm` dev). `getTenantCreds()` calls `GET /rest/v1/tenant_credentials?slug=eq.{slug}` via PostgREST — when the table doesn't exist, PostgREST returns HTTP 404. The function throws `TENANT_CREDS_FETCH_ERROR`, which caused each KF to fall back to env var credentials (often stale or absent). No alert surfaced the missing table — the error was swallowed or masked by env var fallback.
-
-**Impact:** The entire credential chain — Tracy ecommerce auth, Tracy admin auth (Path 2), KV cache warm — was broken in production for all 3 tenants (palco, pdb, delorenzi) since Stage 0b shipped. The only working path was the env var fallback, which was stale or absent.
-
-**Fix:** Applied migration to both projects via Supabase Management API. Seeded credentials for all 3 tenants. Added to `kapso-deploy-freshness.md §New function checklist`: "For any KF that imports `getTenantCreds`, verify `SELECT COUNT(*) FROM tenant_credentials` returns ≥ 0 on the target Supabase project before deploying. Also verify `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` are set as KF secrets."
-
-**Status:** code-fix — applied 2026-06-04.
-
----
-
-## E2026-06-04-6 — `tracy-customer-lookup.js` local `getAdminToken` used wrong API paths (missing `/api/commerce/` prefix)
-
-**Severity:** High
-**Discovery:** 2026-06-04 — P0 hotfix cluster; Path 2 admin lookup silently failing, Path 3 ecommerce fallback used for all contacts
-**Affected files:**
-- `services/kapso-functions/src/tracy-customer-lookup.js` — local `getAdminToken()` function (now removed)
-
-**Bug:** `tracy-customer-lookup.js` contained a local `getAdminToken()` function that hardcoded wrong Tracy API paths:
-- Used: `POST /admin/backoffice-users/signin-password` — missing `/api/commerce/` prefix
-- Should be: `POST /api/commerce/admin/backoffice-users/signin-password`
-- Used: `POST /admin/customer-locations/search` — missing `/api/commerce/` prefix
-- Should be: `POST /api/commerce/admin/customer-locations/search`
-
-The correct implementation existed in `lib/tracy-admin-auth.js` since Stage 0b. The local function was a silent duplicate that diverged in both the signin path and the search path. Every Path 2 invocation received 404 from Tracy, fell through to Path 3, and the issue was never surfaced (Path 3 succeeded when an ecommerce JWT was available). E2026-06-03-4 documented a test gap for `getAdminToken` but missed the structural bug — wrong base path — because the review focused on the dual-read pattern, not the API path.
-
-**Fix:** Removed local `getAdminToken()` from `tracy-customer-lookup.js`. Now imports `{ getAdminJwt }` from `lib/tracy-admin-auth.js` (correct implementation). Added to `tracy-auth-credential-types.md §Code discipline`: "Never implement an inline admin token helper in a KF source file — always `import { getAdminJwt } from './lib/tracy-admin-auth.js'`. Any local duplicate will diverge from the canonical implementation and fail silently."
-
-**Status:** code-fix — applied in `bd60f1c` 2026-06-04.
-
----
-
-## E2026-06-03-9 — `${CLAUDE_PLUGIN_ROOT}` in `~/.claude/settings.json` hooks is not expanded (plugin-only variable)
-
-**Severity:** Low
-**Discovery:** 2026-06-03 — this session; PostToolUse:Bash hook error surfaced after Claude Code version update enforced plugin variable scoping
-**Affected files:**
-- `~/.claude/settings.json` → `.hooks` section (non-repo; not tracked in git)
-
-**Bug:** The `hooks` section in `~/.claude/settings.json` had 38 entries using `${CLAUDE_PLUGIN_ROOT}` (e.g. `bash ${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool-use.sh`). This variable is only expanded when a hook is defined inside a plugin's `hooks/hooks.json` — Claude Code does not expand it in global `settings.json` context. Claude Code began enforcing this with a hard error: "Hook command references ${CLAUDE_PLUGIN_ROOT} but the hook is not associated with a plugin." The hooks had been duplicated from `system/hooks/hooks.json` into `settings.json` at some point when `brana@brana` was disabled, carrying over the plugin-only variable.
-
-**Root cause:** The `brana@brana` plugin was set to `false` in `enabledPlugins`. The intended architecture is: hooks live exclusively in `system/hooks/hooks.json` (loaded by the plugin), never in `settings.json`. When the plugin was disabled, hooks were copy-pasted into `settings.json` without converting `${CLAUDE_PLUGIN_ROOT}` to absolute paths.
-
-**Fix:** Re-enabled `"brana@brana": true`, removed the entire `hooks` section from `~/.claude/settings.json`, and ran `./bootstrap.sh --sync-plugin` to sync the plugin cache (several hook scripts had diverged). Hooks now load exclusively from the plugin's `hooks/hooks.json` where `${CLAUDE_PLUGIN_ROOT}` is correctly resolved.
-
-**Status:** code-fix — applied this session.
-
----
-
-## E2026-06-05-1 — Tracy admin `customer-locations/search` filter params are non-functional
-
-**Severity:** Medium
-**Discovery:** 2026-06-05 — t-1229/t-1230 probe; filter probe + backfill dev run
-**Affected files:**
-- `services/kapso-functions/src/tracy-customer-lookup.js` — Path 2 lookupByLogisticCode
-- `tools/backfill_customer_location_ids.py` — new backfill tool
-
-**Bug:** `POST /api/commerce/admin/customer-locations/search` accepts `filter` body params but silently ignores them — returns unfiltered results regardless of filter value. Tested: `{"erpId":"201265"}`, `{"erpIds":["201265"]}`, `{"erpId":{"eq":"201265"}}`, `{"query":"201265"}`, even `{"erpId":"99999999"}` — all return identical first-page (5 items) unfiltered. The original `lookupByLogisticCode` implementation returned `items[0].id` (always location 766028 — first alphabetically) for ANY `clientId`, meaning every Path 2 call would write `customer_location_id=766028` to contacts regardless of the actual client.
-
-**Root cause:** Tracy API filter params are documented but not implemented on this endpoint. Client-side validation is required.
-
-**Fix:**
-1. `lookupByLogisticCode` now requests `take=50` and validates erpIds client-side: `items.find(item => item.erpIds.includes(String(clientId)))`.
-2. New `tools/backfill_customer_location_ids.py` downloads all 4601+ locations (5 pages of 1000) and builds a local erpId→locationId index for accurate bulk matching. Backfilled 1433 palco + 343 pdb contacts in dev.
-3. Correct FK confirmed: `contacts.cliente = Tracy.erpIds[0]` (NOT `logisticCodes[0].code` as previously assumed).
-
-**Rule:** Never rely on Tracy admin search filter params to narrow results. Always validate returned erpIds client-side. For bulk lookups, paginate all locations and build a local index.
-
-**Status:** code-fix — applied 2026-06-05.
-
-## E2026-06-07-1 — `googleapiclient.discovery.build()` blocks asyncio event loop in Cloud Run
-
-**Severity:** Medium
-**Discovery:** 2026-06-07 — dgrx interes_log session; `deal_router.routed` never logged when Interés sink active
-**Affected files:**
-- `clients/dgrx/services/dgrx-api/src/dgrx_api/services/sinks/interes_log.py` — original scaffold used `build("sheets", "v4")` (FIXED 464659b)
-- `clients/dgrx/services/dgrx-api/src/dgrx_api/services/sinks/sheet_log.py` — same pattern, unfixed (see E2026-06-07-2)
-
-**Bug:** `googleapiclient.discovery.build("sheets", "v4", credentials=creds)` downloads the full Sheets API discovery document via a blocking synchronous httplib2 request on every call. In an asyncio service (FastAPI, Cloud Run), this blocks the event loop indefinitely — there is no timeout and no async alternative in `google-api-python-client`. `run_in_executor` wrapping is an insufficient fix because it still uses a thread-pool slot with no timeout guarantee and doesn't address the root cause.
-
-**Root cause:** `googleapiclient` was designed for synchronous Python. The discovery download pattern is fundamental to the library — not an edge case.
-
-**Fix:** Replace `googleapiclient` entirely with direct `httpx.AsyncClient` REST calls. Pattern:
-1. `google.auth.default(scopes=[...])` + `creds.refresh(google.auth.transport.requests.Request())` → bearer token
-2. `async with httpx.AsyncClient(timeout=30) as client: resp = await client.post(url, params=params, headers=headers, json=body)`
-
-**Rule:** Never use `googleapiclient.discovery.build()` in any async Python service. For any Google API in FastAPI/Cloud Run: use `httpx.AsyncClient` + direct REST endpoint.
-
-**Status:** code-fix — applied 2026-06-07 (interes_log.py fixed; sheet_log.py tracked as E2026-06-07-2).
-
-## E2026-06-07-2 — `sheet_log.py` uses same blocking `googleapiclient` pattern (unfixed sibling)
-
-**Severity:** Medium
-**Discovery:** 2026-06-07 — fix-adjacent-sibling audit after interes_log.py fix
-**Affected files:**
-- `clients/dgrx/services/dgrx-api/src/dgrx_api/services/sinks/sheet_log.py` — lines 18 (`from googleapiclient.discovery import build`) and 129 (`service = build("sheets", "v4", credentials=creds)`)
-
-**Bug:** `SheetLogSink` is wired into `_DEFAULT_SINKS` and runs on every `Pipeline.create` event. Each call to `_write_row()` calls `build("sheets", "v4", ...)` which makes a blocking synchronous HTTP discovery download. This blocks the asyncio event loop on every webhook invocation.
-
-**Root cause:** The `interes_log.py` fix was not propagated to the sibling sink `sheet_log.py`. Fix-adjacent-sibling audit was not applied.
-
-**Fix:** Port `sheet_log.py` to use the same `httpx.AsyncClient` + direct REST pattern from the fixed `interes_log.py`. Also apply: ADC fallback (remove hard dependency on `GOOGLE_SERVICE_ACCOUNT_JSON`), and verify `valueInputOption=RAW` for any date columns.
-
-**Status:** pending — tracked for next session.
-
-## E2026-06-07-3 — `warm-tenant-cache` does NOT eliminate per-KF SUPABASE secrets for `getTenantCreds`
-
-**Severity:** Low
-**Discovery:** 2026-06-07 — t-1247 platform credentials session; architecture clarification when wiring SUPABASE secrets
-**Affected files:**
-- `platform/agent/docs/tool-contracts.md` — warm-tenant-cache section underdocuments cache-miss path ownership
-- `.claude/rules/kapso-deploy-freshness.md` — new-function checklist references the requirement but not this distinction
-
-**Bug (architecture misunderstanding):** `warm-tenant-cache` KF handles invalidation and pre-warm only (delete KV keys, then re-fetch from Supabase). It does NOT proxy the cache-miss fallback path for other KFs. When any KF calls `getTenantCreds(env, slug, fn_name)` and the KV key `cfg:{slug}` is absent, `lib/tenant-creds.js` calls `env.SUPABASE_URL` and `env.SUPABASE_SERVICE_KEY` directly from the **calling KF's env**. These vars are not inherited across KFs. If absent, `getTenantCreds` fails with a runtime error. This means every KF that imports `getTenantCreds` must carry its own `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` secrets — `warm-tenant-cache` does not absorb this responsibility.
-
-**Root cause:** `tool-contracts.md` warm-tenant-cache section describes what it does (invalidate + pre-warm) but does not state the invariant that every caller of `getTenantCreds` must independently hold Supabase credentials. Without an explicit "each KF needs its own secrets" statement, the architecture looks like warm-tenant-cache centralizes the Supabase fetch.
-
-**Fix:** Update `platform/agent/docs/tool-contracts.md` warm-tenant-cache section to state: "This KF is invalidation + pre-warm only — it does NOT act as a proxy for cache-miss fallback. Each KF that calls `getTenantCreds` must have `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` set as its own secrets." Also update `kapso-deploy-freshness.md §New function checklist` to cross-reference this.
-
-**Status:** pending — doc update needed.
-
-## E2026-06-07-4 — `backlog_query(epic:)` silently excludes tasks carrying only `initiative:` field
-
-**Severity:** Medium
-**Discovery:** 2026-06-07 — agent-v4 backlog review; `backlog_query(epic: "agent-v4")` returned 1 task; `backlog_query(tags: ["agent-v4"])` returned 83 pending + 10 in_progress
-
-**Affected files:**
-- `task-convention.md` (global rule) — `epic:` vs `initiative:` distinction never documented
-- All 32 tasks with `initiative: agent-v4` but missing `epic: agent-v4`
-
-**Bug (convention gap):** `backlog_query(epic:)` matches only the `epic` field. The `initiative:` field was the prior name for program grouping; it was renamed to `epic:` at some point but tasks created before the rename were never updated. No convention doc stated that `epic:` is the machine-readable filter field and `initiative:` is vestigial. A session starting with "show me all agent-v4 work" would see 1 task instead of 33 — 97% invisible.
-
-**Root cause:** Field rename in the brana CLI schema was not accompanied by a migration of existing task records or a note in `task-convention.md` that `initiative:` is no longer the query key.
-
-**Fix applied:** `backlog_batch` used to backfill `epic: agent-v4` on 32 tasks. Doc fix needed: `task-convention.md` must add: "The `epic:` field is the machine-readable program grouping key used by `backlog_query(epic:)`, `backlog_focus`, and sprint views. The `initiative:` field is deprecated — do not use for new tasks. All new tasks belonging to a named program must have `epic: <slug>` set at creation time."
-
-**Status:** code-fix (backfill done) — doc update pending
-
-## E2026-06-07-5 — Phase 9-C migration fixed trigger function body but omitted trigger re-attachment on renamed table
-
-**Severity:** Medium
-**Discovery:** 2026-06-07 — t-1239 trigger fix session; broken trigger found when seeding `tenant_credentials`
-**Affected files:**
-- `supabase/migrations/20260527000001_phase9c_recreate_functions_tenant_id.sql` — recreated `add_contact_field_definitions_for_company` with correct `p_tenant_id` param but emitted no `DROP TRIGGER / CREATE TRIGGER` for the `tenants` table
-- `.claude/rules/supabase-cli-multiproject.md` — existing field note (2026-05-22) covers "grep trigger bodies for old column name" but not "re-attach trigger after table rename"
-
-**Bug:** Phase 9-B renamed `companies` → `tenants`. Phase 9-C correctly updated `add_contact_field_definitions_for_company`'s function body from `p_company_id` to `p_tenant_id`. But neither migration included `DROP TRIGGER ... ON public.tenants / CREATE TRIGGER ... ON public.tenants` statements. The trigger binding was silently broken from 2026-05-27 until 2026-06-07. Any INSERT into `tenants` during that window fired no trigger (field defs not created) or produced a runtime error depending on Supabase's trigger resolution. A `SET session_replication_role = replica` workaround on 2026-06-04 deferred visibility for 3 more days.
-
-**Root cause:** The migration authoring convention ("grep PL/pgSQL trigger bodies for old column name") was applied correctly but does not cover the table rename case. Function body fix ≠ trigger binding fix. The trigger name (`trigger_add_contact_field_definitions`) remained registered but pointed to a function signature that was valid in isolation — the error only surfaced at DML time when the function tried to reference renamed schema.
-
-**Fix applied:** `supabase/migrations/20260608000001_fix_contact_field_def_trigger.sql` (committed 2026-06-07) — DROPs old function signatures, RECREATEs with `p_tenant_id`, attaches trigger to `public.tenants`. Verified via test INSERT (24 field defs created). Applied to dev (`jwzpeaidchtdibcxttcm`).
-
-**Status:** code-fix (dev) — legacy prod (`zvpzgpjlhrvouquxorya`) needs separate assessment (trigger may also be stale there if Phase 9-C was applied to prod).
+**Status:** code-fix (fix merged to main) — memory file needs updating to reflect correct concurrency model.
