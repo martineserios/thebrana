@@ -147,3 +147,11 @@ Source: sitrep investigation / close session 2026-05-14
 ### 2026-05-14: MCP tools in allowed-tools are project-scoped — use CLI when procedure already calls it
 `allowed-tools` grants permission but not availability. MCP servers are registered per-project (`.mcp.json`). A skill loaded globally via plugin that lists a project-scoped MCP tool (e.g. `mcp__brana__backlog_set`) will silently fail in any session where that server isn't running. Root cause of 22 `backlog_set` failures: `/brana:fix` ran in `proyecto_anita` where brana-mcp wasn't registered. Fix: if the procedure already uses the CLI equivalent, don't add the MCP tool to `allowed-tools` — it adds failure surface with zero benefit.
 Source: fix/mcp-backlog-allowed-tools / close session 2026-05-14
+
+### 2026-06-08: Pre-edit challenger review catches category-1 spec gaps before a procedure ships
+Invoke `brana:challenger` on the procedure spec **before** opening any Edit tool call — this is the mandatory pre-edit gate. The adversarial read catches structural gaps (missing write paths, ambiguous guard conditions, undefined fallbacks) that the author is blind to because they hold context. Challenger caught the missing `skill_gap_checked` write path in build.md Step 0.5 before it was committed; without the review, the token would never have been written and Step 0.5 would loop on every `/brana:build` invocation. The fix cost at draft time is one agent call; the fix cost after shipping is a debrief errata cycle + confusion for anyone following the procedure literally.
+Source: t-1903 / E2026-06-08-9 / close session 2026-06-08
+
+### 2026-06-08: Guard conditions in shared procedures must use testable artifact checks, not intent labels
+"Skip for freeform tasks" is ambiguous — different callers have different definitions of "freeform." Use observable artifact checks instead: "Skip when `task_id` is absent." The condition is binary, independent of caller intent, and stays correct even as the set of callers grows beyond the original use case. Applied: build.md Step 0.5 guard changed from "skip for freeform tasks" → "skip when no task_id". General rule: if a guard condition can be rephrased as "when artifact X is present/absent," do so.
+Source: t-1903 challenger review / close session 2026-06-08

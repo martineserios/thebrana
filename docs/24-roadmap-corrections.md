@@ -18,6 +18,8 @@
 
 ## Severity Summary
 
+| E2026-06-08-9 | thebrana: `system/procedures/build.md` Step 0.5 was drafted without a breadcrumb write path for terminal user choices. When the skill-routing.md gate returns any terminal choice (load-now / skip / never-ask-again), the `skill_gap_checked: true` token must be written to task context — otherwise Step 4a fires again on the same task and the user sees a duplicate skill-gap prompt. The gap was only caught during the mandatory pre-edit challenger review before the procedure was committed. | **Low** | code-fix (2026-06-08) | Fixed inline during t-1903: added "On any terminal choice: `brana backlog set {task_id} context --append 'skill_gap_checked: true (step 0.5, ...)'`" to all terminal branches of Step 0.5 in `system/procedures/build.md`. The pre-edit challenger review is what surfaced this — confirms the mandatory challenger gate for procedure edits. |
+
 | E2026-06-08-8 | thebrana: Lesson #68 and `docs/architecture/agents.md` state "`bypassPermissions` bypasses sandboxing" — but this applies only to hook-enforced sandboxing. CC's path-trust sandbox (which anchors tool access to the initial session CWD) is a distinct, lower-level boundary evaluated before hooks. Worktrees placed at `/tmp/wt-*/` are outside the path-trust boundary: `Edit`, `Write`, and `Bash` are blocked regardless of `mode: bypassPermissions`. Engineers planning `Agent(isolation: "worktree")` work for parallel file editing will conclude `bypassPermissions` solves the access problem — it does not for `/tmp/`-rooted paths. Silent failure: the agent loads, spawns, and then every file-mutation tool call is denied. | **Medium** | code-fix (2026-06-08) | Applied: (1) `docs/architecture/agents.md` field note added — two-tier sandboxing clarification with path-trust explanation; (2) Lesson #68 annotated with supersession note pointing to E2026-06-08-8 and path-trust caveat. Remaining open: t-1898 — research whether `EnterWorktree`/`ExitWorktree` can extend path-trust boundary (untested). |
 
 | E2026-06-08-7 | somos_mirada: `features/meta-template-mgmt/seeds/w10_control_alta.yaml` filename mismatches the internal `name: w10_alta_medica` field. The seed was renamed during submission to work around a Meta name cooldown on deleted templates, but the filename was not updated. | **Low** | code-fix (2026-06-08) | Renamed to `w10_alta_medica.yaml`; templates.md #31 seed reference updated. |
@@ -3962,6 +3964,21 @@ Remove the bare `"Anthropic"` token. The Co-Authored-By and Signed-off-by traile
 **Fix:** Update lines 188–211: mark W3/W8/W10 as implemented; change template status table entries to `approved` with the live template names (w3_seguimiento_presupuesto, w8_followup_3sem, w8_followup_6sem, w10_alta_medica).
 
 **Status:** code-fix (2026-06-08) — section replaced with "todos implementados — 2026-06-08"; table updated with real approved names and ✅ UTILITY status in commit `e29bc16`.
+
+---
+
+## E2026-06-08-9 — `build.md` Step 0.5 draft had no breadcrumb write path for terminal choices
+
+**Severity:** Low
+**Discovery:** 2026-06-08 — thebrana session close debrief (t-1903)
+**Affected files:**
+- `system/procedures/build.md` — Step 0.5 all three terminal branches (load-now, skip, never-ask-again) lacked a `brana backlog set context --append 'skill_gap_checked: true'` call
+
+**Bug:** Step 0.5 was drafted to skip when `skill_gap_checked` was already present in task context. However, none of the three terminal branches in the skill-routing.md gate *wrote* the `skill_gap_checked` token. The result: step 0.5 would always fire again on the next `/brana:build` invocation for the same task (token never written → guard never satisfied → prompt loops). Step 4a downstream also checks `skill_gap_checked` before prompting — it would have become a duplicate trigger. The gap was not noticed during authoring because the author held context that "the token would be written" without making it explicit.
+
+**Fix:** Added to all three terminal branches of Step 0.5: `brana backlog set {task_id} context --append "skill_gap_checked: true (step 0.5, {choice})"`. Caught by the mandatory pre-edit challenger review; incorporated before `system/procedures/build.md` was committed.
+
+**Status:** code-fix (2026-06-08) — fixed inline in t-1903 before the procedure was committed.
 
 ---
 

@@ -476,40 +476,40 @@ brana knowledge run
 ## brana session
 
 Unified session state management. Subcommands: `write`, `read`, `history`, `path`,
-`migrate`, `mark-consumed`, `insights`, `initiative`.
+`migrate`, `mark-consumed`, `insights`, `epic`.
 
 ---
 
-## brana session initiative
+## brana session epic
 
-Initiative accumulator — merge, read, or archive cross-day initiative state. An
-initiative accumulator aggregates `accomplished[]`, `next[]`, and `resolved[]` items
-across multiple sessions that share the same initiative slug.
+Epic accumulator — merge, read, archive, or focus cross-day epic state. An
+epic accumulator aggregates `accomplished[]`, `next[]`, and `resolved[]` items
+across multiple sessions that share the same epic slug.
 
 ### Subcommands
 
 #### upsert
 
-Merge current session state into the named initiative accumulator. Runs Pass 1 pruning:
+Merge current session state into the named epic accumulator. Runs Pass 1 pruning:
 task IDs supplied via `--completed` are moved from `next[]` to `resolved[]` with a
 `"task completed"` note.
 
 ```bash
-brana session initiative upsert <SLUG> [--completed <TASK_IDS>] [--resolved-texts <JSON>]
+brana session epic upsert <SLUG> [--completed <TASK_IDS>] [--resolved-texts <JSON>]
 ```
 
 | Argument / Flag | Required | Description |
 |-----------------|----------|-------------|
-| `<SLUG>` | yes | Kebab-case initiative identifier (e.g. `"session-continuity"`) |
+| `<SLUG>` | yes | Kebab-case epic identifier (e.g. `"session-continuity"`) |
 | `--completed` | no | Comma-separated task IDs completed this session — Pass 1 pruning (default: `""`) |
 | `--resolved-texts` | no | JSON array of Pass 2 resolved text items: `'[{"text":"...","resolution":"..."}]'` (default: `"[]"`) |
 
 #### read
 
-Print the current initiative accumulator for a slug.
+Print the current epic accumulator for a slug.
 
 ```bash
-brana session initiative read <SLUG> [--json]
+brana session epic read <SLUG> [--json]
 ```
 
 | Flag | Description |
@@ -518,20 +518,20 @@ brana session initiative read <SLUG> [--json]
 
 #### archive
 
-Archive the initiative accumulator (move to `archive/` with datestamp). Use when an
-initiative is fully complete.
+Archive the epic accumulator (move to `archive/` with datestamp). Use when an
+epic is fully complete.
 
 ```bash
-brana session initiative archive <SLUG>
+brana session epic archive <SLUG>
 ```
 
 #### read-marker
 
-Read the session-start marker written by `brana run`. Outputs the initiative slug, or
+Read the session-start marker written by `brana run`. Outputs the epic slug, or
 empty string if no marker exists. Used by close Step 9c Tier 1 and sitrep Step 4b.
 
 ```bash
-brana session initiative read-marker
+brana session epic read-marker
 ```
 
 #### clear-marker
@@ -539,29 +539,75 @@ brana session initiative read-marker
 Delete the session-start marker. Called by close Step 9c after the slug is consumed.
 
 ```bash
-brana session initiative clear-marker
+brana session epic clear-marker
 ```
+
+#### focus
+
+Set a **persistent** epic focus that survives across sessions. Unlike the transient
+session-start marker (written by `brana run`, cleared at close), the focus file is
+only removed by `brana session epic unfocus`. Used as close Step 9c Tier 0 — takes
+priority over all other epic detection tiers.
+
+```bash
+brana session epic focus <SLUG>
+```
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `<SLUG>` | yes | Kebab-case epic slug to persist as the active focus |
+
+#### unfocus
+
+Remove the persistent epic focus. After this call, close Step 9c Tier 0 returns empty
+and falls through to Tier 1 (session-start marker).
+
+```bash
+brana session epic unfocus
+```
+
+#### status
+
+Show the current epic focus (persistent file) alongside any active session-start marker.
+Useful for debugging the Tier 0/Tier 1 cascade at close.
+
+```bash
+brana session epic status [--json]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output `{"focus":"<slug-or-null>"}` JSON instead of formatted text. If focus slug has no accumulator file, prints a warning to stderr. |
 
 ### Examples
 
 ```bash
-# Upsert at close — merge this session into "session-continuity" initiative
-brana session initiative upsert session-continuity --completed t-1461,t-1683
+# Upsert at close — merge this session into "harness-core" epic
+brana session epic upsert harness-core --completed t-1900,t-1903
 
-# Read initiative state (human-readable)
-brana session initiative read session-continuity
+# Read epic state (human-readable)
+brana session epic read harness-core
 
-# Read initiative state as JSON (used by sitrep.md §4b)
-brana session initiative read session-continuity --json
+# Read epic state as JSON (used by sitrep.md §4b)
+brana session epic read harness-core --json
 
-# Archive when initiative is complete
-brana session initiative archive session-continuity
+# Archive when epic is complete
+brana session epic archive harness-core
 
 # Read session-start marker (written by brana run, used by close Tier 1)
-brana session initiative read-marker
+brana session epic read-marker
 
 # Clear marker after consuming the slug at close
-brana session initiative clear-marker
+brana session epic clear-marker
+
+# Set persistent focus — survives session restarts, used as Tier 0
+brana session epic focus harness-core
+
+# Show focus + marker status (for debugging close Tier 0/Tier 1 cascade)
+brana session epic status --json
+
+# Remove persistent focus
+brana session epic unfocus
 ```
 
 ## brana log
