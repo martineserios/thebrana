@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-08T00:28:54Z",
+  "generated": "2026-06-08T12:47:50Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -470,11 +470,7 @@
       "title": "24 — Roadmap Corrections & Errata (ARCHIVED)",
       "type": "Roadmap",
       "impl_files": [
-        "system/hooks/another.sh",
-        "system/hooks/memory-write-gate.sh",
-        "system/hooks/branch-verify.sh",
-        "system/hooks/worktree-gate.sh",
-        "system/cli/rust/crates/brana-mcp/src/tools/agy_delegate.rs",
+        "system/hooks/hooks.json",
         "system/procedures/research.md",
         "system/cli/rust/crates/brana-cli/src/commands/knowledge.rs",
         "system/scripts/verify-docs.sh",
@@ -496,6 +492,7 @@
         "system/procedures/align.md",
         "system/commands/maintain-specs.md",
         "system/scripts/git-hooks/pre-commit",
+        "system/hooks/branch-verify.sh",
         "system/hooks/session-start.sh",
         "system/hooks/session-end.sh",
         "system/skills/pattern-recall/SKILL.md",
@@ -512,7 +509,6 @@
         "system/skills/decide/SKILL.md",
         "system/procedures/onboard.md",
         "system/scheduler/scheduler.template.json",
-        "system/hooks/hooks.json",
         "system/scripts/generate-reference.py",
         "system/hooks/",
         "system/procedures/claudemd.md",
@@ -547,7 +543,8 @@
         "system/cli/rust/crates/brana-cli/src/commands/session.rs:549",
         "system/procedures/close.md:826",
         "system/procedures/sitrep.md:122",
-        "system/hooks/subagent-context.sh"
+        "system/hooks/subagent-context.sh",
+        "system/scripts/ruflo-mcp.sh"
       ]
     },
     "docs/25-self-documentation.md": {
@@ -909,6 +906,16 @@
       "title": "ADR-048 — Memory Consolidation Trigger Model and Scope Split",
       "type": "ADR",
       "impl_files": []
+    },
+    "docs/architecture/decisions/ADR-049-mandatory-challenger-gate-build-close.md": {
+      "title": "ADR-049: Mandatory Challenger Gate at BUILD→CLOSE Boundary",
+      "type": "ADR",
+      "impl_files": [
+        "system/procedures/build.md",
+        "system/agents/challenger.md",
+        "system/",
+        "system/agents/CALIBRATION.md"
+      ]
     },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
@@ -1363,11 +1370,11 @@
         "system/hooks/hooks.json",
         "system/",
         "system/hooks/lib/git-helpers.spec.md",
+        "system/hooks/",
         "system/hooks/lib/profile.sh",
         "system/cli/",
         "system/scripts/",
         "system/skills/",
-        "system/hooks/",
         "system/hooks/tests/test-post-tool-use-test-signal.sh",
         "system/hooks",
         "system/hooks/foo.sh"
@@ -2155,7 +2162,9 @@
     "docs/guide/workflows/build.md": {
       "title": "Building Things",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/"
+      ]
     },
     "docs/guide/workflows/capture.md": {
       "title": "Capturing Events",
@@ -2333,6 +2342,15 @@
       "title": "CC Feature Adoption — v2.1.76–v2.1.81",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/ideas/challenger-outer-loop-gate.md": {
+      "title": "Challenger as Mandatory Outer Loop Gate in /brana:build",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/procedures/build.md",
+        "system/",
+        "system/agents/CALIBRATION.md"
+      ]
     },
     "docs/ideas/claude-gemini-orchestration.md": {
       "title": "Claude-Gemini Orchestrator-Worker Integration",
@@ -5505,6 +5523,18 @@
     {
       "from": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
       "to": "docs/reflections/31-assurance.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-049-mandatory-challenger-gate-build-close.md",
+      "to": "docs/architecture/features/build-loop-redesign.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-049-mandatory-challenger-gate-build-close.md",
+      "to": "system/procedures/build.md",
       "type": "informs",
       "computed": false
     },
@@ -9079,6 +9109,18 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-049-mandatory-challenger-gate-build-close.md",
+      "to": "brana-knowledge/dimensions/60-agent-loop-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-049-mandatory-challenger-gate-build-close.md",
+      "to": "docs/architecture/features/build-loop-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/developer-quickstart.md",
       "to": "docs/reference/hooks.md",
       "type": "references",
@@ -11161,6 +11203,12 @@
       "computed": false
     },
     {
+      "from": "docs/guide/workflows/build.md",
+      "to": "docs/architecture/agents/CALIBRATION.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/guide/workflows/spec-graph.md",
       "to": "path",
       "type": "references",
@@ -12452,9 +12500,9 @@
     }
   ],
   "stats": {
-    "nodes": 423,
-    "edges": 1603,
-    "typed_edges": 568,
-    "orphans": 128
+    "nodes": 425,
+    "edges": 1608,
+    "typed_edges": 570,
+    "orphans": 127
   }
 }
