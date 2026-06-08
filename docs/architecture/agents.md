@@ -95,6 +95,10 @@ The `model` field controls cost and capability. The `description` includes expli
 
 ## Field Notes
 
+### 2026-06-08: CC path-trust sandbox blocks worktree agents at /tmp/wt-*/ — bypassPermissions does not help [→ research t-1898]
+`isolation: worktree` agents are placed at `/tmp/wt-*/` by CC's Agent tool. CC's path-trust sandbox anchors allowed tool paths to the initial session CWD — `/tmp/wt-*/` is outside that boundary. `Edit`, `Write`, and `Bash` are blocked at the path-trust layer (before hooks, before `bypassPermissions`). Setting `permissionMode: bypassPermissions` bypasses hook-enforced sandboxing but not path-trust. Worktree agents can read files but cannot mutate them. Candidate fix: `EnterWorktree`/`ExitWorktree` deferred CC tools may extend the trust boundary — untested as of 2026-06-08. Until resolved, do not assign file-mutation work to `isolation: worktree` agents. (E2026-06-08-8)
+Source: t-1806 investigation 2026-06-08
+
 ### 2026-05-11: Agent file count != functional agent count — filter by model: frontmatter
 `ls system/agents/` returns 13 files but only 12 are functional agents. `CALIBRATION.md` is a calibration doc for challenger-calibration and has no `model:` frontmatter line. Any tool or doc that counts agents by file count will overcount by 1. Correct count: `grep -l '^model:' system/agents/*.md | wc -l`. Generalizes: always filter by the defining frontmatter field, not raw file count.
 Source: reconcile consistency scan 2026-05-11
