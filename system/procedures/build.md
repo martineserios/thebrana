@@ -1687,6 +1687,25 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    git branch -d feat/{branch-name}
    ```
 
+10b. **Post-merge targeted validate** (t-1485) — after the merge completes, derive which checks apply to the changed files and run only those:
+   ```bash
+   # Get files changed in the merge (guard: HEAD~1 may not exist on first commit)
+   CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || true)
+
+   # Map files → check numbers
+   CHECKS=$(echo "$CHANGED" | bash system/scripts/check-selector.sh | tr '\n' ' ')
+
+   if [ -n "$CHECKS" ]; then
+       echo "Running targeted checks for changed files: $CHECKS"
+       for check in $CHECKS; do
+           ./validate.sh --check "$check" || echo "⚠ Check $check failed — review before shipping"
+       done
+   else
+       echo "No targeted checks detected for changed files — skipping."
+   fi
+   ```
+   Present any failures inline. This is advisory (individual check failures surface as warnings, not blocks) — the full `./validate.sh` run at the BUILD→CLOSE gate is the authoritative pass. Skip for spike and investigation strategies.
+
 11. **Reconcile check** (post-merge, before docs):
    If `docs/spec-graph.json` exists, check whether merged files appear in any spec-graph node's `impl_files`. If matches found, offer to run `/brana:reconcile`:
    ```
