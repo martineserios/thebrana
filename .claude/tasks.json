@@ -1,5 +1,5 @@
 {
-  "last_modified": "2026-06-08T13:11:03.944083125-03:00",
+  "last_modified": "2026-06-08T13:27:36.941722832-03:00",
   "project": "thebrana",
   "tasks": [
     {
@@ -14871,7 +14871,7 @@
     {
       "blocked_by": [],
       "branch": null,
-      "completed": null,
+      "completed": "2026-06-08",
       "context": null,
       "created": "2026-03-26",
       "description": null,
@@ -14885,7 +14885,7 @@
       "parent": "t-656",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Command Discovery",
       "tags": [
         "harness-engineering",
@@ -15144,7 +15144,7 @@
       "parent": "t-659",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Build brana help — runtime skill/agent/hook catalog",
       "tags": [
         "harness-engineering",
