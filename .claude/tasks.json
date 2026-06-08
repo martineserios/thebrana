@@ -48506,7 +48506,7 @@
     },
     {
       "blocked_by": [],
-      "branch": null,
+      "branch": "ops/fix/t-1858-ruflo-db-malformation",
       "completed": null,
       "context": "Recurring error: mcp__ruflo__memory_store fails with \"database disk image is malformed\". Seen 37x in session error log. Needs diagnosis: identify which DB file, check integrity, repair or rebuild.",
       "created": "2026-06-07",
