@@ -48976,7 +48976,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "strategy": null,
       "subject": "[docs] Move test-hooks.sh to tests/scripts/ for consistent test organization",
       "tags": [
