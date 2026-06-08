@@ -24,7 +24,7 @@ Tasks have two new optional fields:
 | Field | Values | Purpose |
 |-------|--------|---------|
 | `epic` | slug string (e.g. `"cc-alignment"`) | Groups tasks under a named epic |
-| `work_type` | `implement` / `research` / `design` / `ops` / `review` | Cognitive mode — what kind of work this is |
+| `work_type` | `implement` / `research` / `design` / `ops` / `review` / `refactor` | Cognitive mode — what kind of work this is |
 
 **Active epic** is set in `~/.claude/tasks-config.json` → `active_epic`. When set, `backlog_focus` / `brana backlog focus` shows ★-marked tasks from that epic first, then P0/P1 overflow from others.
 
