@@ -1988,6 +1988,37 @@ fi
 echo ""
 fi  # should_run 48
 
+# Check 49 — every system/hooks/*.sh must appear in hooks.md inventory (t-1875)
+if should_run 49; then
+echo "Check 49: system/hooks/*.sh inventory coverage in hooks.md..."
+HOOKS_DIR="$SCRIPT_DIR/system/hooks"
+HOOKS_MD="$SCRIPT_DIR/docs/architecture/hooks.md"
+C49_WARNS=""
+if [ -d "$HOOKS_DIR" ] && [ -f "$HOOKS_MD" ]; then
+    # Script names from hooks.md inventory table (normal + strikethrough forms)
+    # sed extracts first-column backtick script only (avoids greedy match picking last)
+    INVENTORY=$(awk '/^## Hook inventory/{f=1; next} f && /^## /{exit} f' "$HOOKS_MD" \
+        | grep -E '^\| (~~)?`[a-zA-Z0-9_.-]+\.sh`' \
+        | sed 's/^[^`]*`\([^`]*\.sh\)`.*/\1/' \
+        | sort -u)
+    # Top-level scripts only (lib/ excluded)
+    while IFS= read -r script_path; do
+        script=$(basename "$script_path")
+        if ! echo "$INVENTORY" | grep -qxF "$script"; then
+            C49_WARNS="${C49_WARNS}  hooks.md inventory missing entry for: ${script}
+"
+        fi
+    done < <(find "$HOOKS_DIR" -maxdepth 1 -name "*.sh" | sort)
+fi
+if [ -n "$C49_WARNS" ]; then
+    printf '%s' "$C49_WARNS"
+    warn "Check 49: hook script(s) missing from hooks.md inventory — add a row to the Hook inventory table in docs/architecture/hooks.md"
+else
+    pass "Check 49: all system/hooks/*.sh scripts covered in hooks.md inventory"
+fi
+echo ""
+fi  # should_run 49
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
