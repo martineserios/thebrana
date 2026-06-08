@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-08T15:02:03Z",
+  "generated": "2026-06-08T16:57:26Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -470,6 +470,7 @@
       "title": "24 — Roadmap Corrections & Errata (ARCHIVED)",
       "type": "Roadmap",
       "impl_files": [
+        "system/procedures/backlog.md",
         "system/hooks/hooks.json",
         "system/procedures/research.md",
         "system/cli/rust/crates/brana-cli/src/commands/knowledge.rs",
@@ -484,7 +485,6 @@
         "system/procedures/",
         "system/skills/",
         "system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs",
-        "system/procedures/backlog.md",
         "system/procedures/build.md",
         "system/",
         "system/rules/",
@@ -544,7 +544,8 @@
         "system/procedures/close.md:826",
         "system/procedures/sitrep.md:122",
         "system/hooks/subagent-context.sh",
-        "system/scripts/ruflo-mcp.sh"
+        "system/scripts/ruflo-mcp.sh",
+        "system/hooks/no-attribution-commit.sh"
       ]
     },
     "docs/25-self-documentation.md": {
@@ -1377,7 +1378,10 @@
         "system/skills/",
         "system/hooks/tests/test-post-tool-use-test-signal.sh",
         "system/hooks",
-        "system/hooks/foo.sh"
+        "system/hooks/foo.sh",
+        "system/hooks/branch-verify.sh",
+        "system/scheduler/feeds.template.json",
+        "system/cli/rust/crates/brana-core/src/"
       ]
     },
     "docs/architecture/knowledge-system-extending.md": {
@@ -2601,7 +2605,8 @@
         "system/scheduler/scheduler.template.json",
         "system/plugin.json",
         "system/.claude-plugin/plugin.json",
-        "system/skills/"
+        "system/skills/",
+        "system/hooks/hooks.json"
       ]
     },
     "docs/reference/hooks.md": {
@@ -2676,6 +2681,11 @@
         "system/procedures/<name>.md",
         "system/plugin.json"
       ]
+    },
+    "docs/reference/skill-validation-checklist.md": {
+      "title": "Skill Validation Checklist",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/reference/skills.md": {
       "title": "Skill Reference",
@@ -2799,6 +2809,13 @@
       "title": "Research: Native CC Tasks vs Ruflo Tasks for PM Use Cases",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/research/2026-06-08-install-friction-spike.md": {
+      "title": "Spike: Install Friction Evaluation — bootstrap vs one-liner vs pipx vs cargo",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/"
+      ]
     },
     "docs/research/cc-unreleased-features-tracker.md": {
       "title": "CC Unreleased Features Tracker",
@@ -6662,6 +6679,12 @@
       "computed": false
     },
     {
+      "from": "brana-knowledge/dimensions/46-cc-harness-ecosystem.md",
+      "to": "brana-knowledge/thebrana/docs/reference/skill-validation-checklist.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "brana-knowledge/dimensions/47-ontology-engineering-ai-systems.md",
       "to": "46-cc-harness-ecosystem.md",
       "type": "references",
@@ -7744,12 +7767,6 @@
     {
       "from": "docs/24-roadmap-corrections.md",
       "to": "39-architecture-redesign.md",
-      "type": "references",
-      "computed": false
-    },
-    {
-      "from": "docs/24-roadmap-corrections.md",
-      "to": ":space:.md",
       "type": "references",
       "computed": false
     },
@@ -8884,6 +8901,12 @@
     {
       "from": "docs/README.md",
       "to": "reference/scripts.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "reference/skill-validation-checklist.md",
       "type": "references",
       "computed": false
     },
@@ -10304,6 +10327,12 @@
       "computed": false
     },
     {
+      "from": "docs/dimensions/46-cc-harness-ecosystem.md",
+      "to": "docs/thebrana/docs/reference/skill-validation-checklist.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/dimensions/47-ontology-engineering-ai-systems.md",
       "to": "46-cc-harness-ecosystem.md",
       "type": "references",
@@ -11414,6 +11443,12 @@
       "computed": false
     },
     {
+      "from": "docs/reference/configuration.md",
+      "to": "docs/architecture/hooks.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/reference/rules.md",
       "to": "relative-path.md",
       "type": "references",
@@ -11427,6 +11462,12 @@
     },
     {
       "from": "docs/reference/skill-retirement.md",
+      "to": "skills.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reference/skill-validation-checklist.md",
       "to": "skills.md",
       "type": "references",
       "computed": false
@@ -12434,6 +12475,24 @@
       "computed": false
     },
     {
+      "from": "docs/research/2026-06-08-install-friction-spike.md",
+      "to": "docs/architecture/bootstrap.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/2026-06-08-install-friction-spike.md",
+      "to": "docs/architecture/decisions/ADR-022-brana-cli.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/2026-06-08-install-friction-spike.md",
+      "to": "docs/guide/getting-started.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/research/miessler-pai-deep-dive.md",
       "to": "miessler-pai-comparison.md",
       "type": "references",
@@ -12501,9 +12560,9 @@
     }
   ],
   "stats": {
-    "nodes": 425,
-    "edges": 1608,
+    "nodes": 427,
+    "edges": 1615,
     "typed_edges": 570,
-    "orphans": 127
+    "orphans": 126
   }
 }

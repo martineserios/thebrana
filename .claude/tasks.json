@@ -49267,7 +49267,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "[hook] Narrow no-attribution-commit.sh to structural attribution patterns",
       "tags": [
@@ -49296,7 +49296,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "[chore] Add feeds.json bootstrap provisioning step",
       "tags": [
@@ -49325,7 +49325,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "[hook] Add negative test cases to bash-risk-classifier.sh",
       "tags": [
