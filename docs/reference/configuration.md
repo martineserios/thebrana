@@ -313,3 +313,39 @@ The plugin name determines the skill namespace. All skills in `system/skills/` a
 Install writes `~/.claude/plugins/installed_plugins.json` directly — no `/plugin` commands required. See `install.sh` for the canonical install path.
 
 > **Cache sync note:** The plugin cache at `~/.claude/plugins/cache/brana/brana/1.0.0/plugin.json` is a **real file copy** (not a symlink to source). After any `system/plugin.json` change, run `bootstrap.sh` (or `cp system/plugin.json ~/.claude/plugins/cache/brana/brana/1.0.0/plugin.json`) and restart Claude Code to activate. The `.claude-plugin/` subdirectory in the cache holds marketplace metadata — do not confuse with the runtime manifest at the cache root.
+
+## Hook entry schema
+
+Hooks can be defined in two places. Both use the same entry format but differ in variable support and which events fire reliably.
+
+### Entry format (`command` string — not `args` array)
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      { "type": "command", "command": "bash \"/absolute/path/to/hook.sh\"", "timeout": 5000 }
+    ]
+  }
+}
+```
+
+**Common mistake (E2026-05-17-2):** Using `"args": ["bash", "script.sh"]` causes CC to reject the entry with a validation error. The `args` array form was removed from CC's hook schema — use `"command"` (string) everywhere.
+
+```json
+// ✗ Wrong — CC rejects with "expected string, received undefined"
+{ "type": "command", "args": ["bash", "/path/to/hook.sh"] }
+
+// ✓ Correct
+{ "type": "command", "command": "bash \"/path/to/hook.sh\"" }
+```
+
+### settings.json vs hooks.json
+
+| | `~/.claude/settings.json` | Plugin `hooks.json` (`system/hooks/hooks.json`) |
+|---|---|---|
+| **Path variables** | Absolute paths only — `${CLAUDE_PLUGIN_ROOT}` not expanded | `${CLAUDE_PLUGIN_ROOT}` available |
+| **Reliable events** | PostToolUse, PostToolUseFailure, UserPromptSubmit | PreToolUse, SessionStart, SessionEnd (CC bug #24529 drops PostToolUse from plugins) |
+| **When to use** | Plugin disabled, or events the plugin can't fire reliably | Normal operation with brana plugin enabled |
+
+For brana: PostToolUse hooks (task-completed, post-tool-use, etc.) live in `settings.json`; PreToolUse gates (branch-verify, main-guard, etc.) live in `system/hooks/hooks.json`. See [docs/architecture/hooks.md](../architecture/hooks.md) for the full inventory.
