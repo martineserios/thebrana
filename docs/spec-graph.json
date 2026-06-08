@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-08T00:05:59Z",
+  "generated": "2026-06-08T00:28:54Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -231,6 +231,11 @@
     },
     "brana-knowledge/dimensions/59-mobile-apps-claude-code.md": {
       "title": "Mobile App Development with Claude Code",
+      "type": "Dimension",
+      "impl_files": []
+    },
+    "brana-knowledge/dimensions/60-agent-loop-architecture.md": {
+      "title": "Agent Loop Architecture — Self-Contained Loops That Act, Measure, Judge, Assimilate",
       "type": "Dimension",
       "impl_files": []
     },
@@ -1823,6 +1828,11 @@
     },
     "docs/dimensions/59-mobile-apps-claude-code.md": {
       "title": "Mobile App Development with Claude Code",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/dimensions/60-agent-loop-architecture.md": {
+      "title": "Agent Loop Architecture — Self-Contained Loops That Act, Measure, Judge, Assimilate",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -12442,9 +12452,9 @@
     }
   ],
   "stats": {
-    "nodes": 421,
+    "nodes": 423,
     "edges": 1603,
     "typed_edges": 568,
-    "orphans": 126
+    "orphans": 128
   }
 }
