@@ -175,11 +175,18 @@ brana backlog add [OPTIONS]
 |------|-------------|
 | `--epic <SLUG>` | Assign to an epic (e.g. "cc-alignment") |
 | `--work-type <TYPE>` | Cognitive mode: implement, research, design, ops, review |
+| `--acceptance-criteria <CRITERION>` | Repeatable. Machine-readable pass/fail assertion stored as `acceptance_criteria[]`. Each criterion is read by `goal-completion.sh` Stop hook to auto-mark the task complete. See ADR-047. |
 
 ### Examples
 
 ```bash
 brana backlog add --subject "wire new filter" --epic cc-alignment --work-type implement --effort M
+
+# With acceptance criteria (for /goal auto-loop)
+brana backlog add \
+  --subject "add rate limiting" \
+  --acceptance-criteria "validate.sh Check 50 passes" \
+  --acceptance-criteria "brana backlog get t-NNN returns status:completed"
 ```
 
 ---

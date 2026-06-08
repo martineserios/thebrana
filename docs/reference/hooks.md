@@ -6,6 +6,21 @@
 
 | Event | Matcher | Script | Timeout |
 |-------|---------|--------|--------|
+| ConfigChange | `` | `config-change-guard.sh` | 3000ms |
+| PostToolUse | `` | `post-tool-use.sh` | 5000ms |
+| PostToolUse | `Skill` | `skill-sentinel.sh` | 2000ms |
+| PostToolUse | `ExitPlanMode` | `post-plan-challenge.sh` | 5000ms |
+| PostToolUse | `Bash` | `post-pr-review.sh` | 5000ms |
+| PostToolUse | `Bash` | `task-completed.sh` | 5000ms |
+| PostToolUse | `Bash` | `hallucination-detect.sh` | 3000ms |
+| PostToolUse | `Bash` | `bash-output-compress.sh` | 3000ms |
+| PostToolUse | `Write|Edit` | `post-sale.sh` | 5000ms |
+| PostToolUse | `Write|Edit` | `post-tasks-validate.sh` | 5000ms |
+| PostToolUse | `Write|Edit` | `post-hooks-json.sh` | 10000ms |
+| PostToolUse | `Write|Edit` | `memory-index-sync.sh` | 3000ms |
+| PostToolUse | `Write|Edit` | `hooks-auto-deploy.sh` | 5000ms |
+| PostToolUseFailure | `` | `post-tool-use-failure.sh` | 5000ms |
+| PreCompact | `` | `pre-compact.sh` | 8000ms |
 | PreToolUse | `Write|Edit` | `pre-tool-use.sh` | 5000ms |
 | PreToolUse | `Write|Edit` | `tdd-gate.sh` | 5000ms |
 | PreToolUse | `Write|Edit` | `feedback-gate.sh` | 3000ms |
@@ -18,37 +33,31 @@
 | PreToolUse | `Bash` | `branch-name-warn.sh` | 3000ms |
 | PreToolUse | `Bash` | `no-attribution-commit.sh` | 3000ms |
 | PreToolUse | `Bash` | `commit-msg-verify.sh` | 3000ms |
-| PostToolUse | `` | `post-tool-use.sh` | 5000ms |
-| PostToolUse | `Skill` | `skill-sentinel.sh` | 2000ms |
-| PostToolUse | `ExitPlanMode` | `post-plan-challenge.sh` | 5000ms |
-| PostToolUse | `Bash` | `post-pr-review.sh` | 5000ms |
-| PostToolUse | `Bash` | `task-completed.sh` | 5000ms |
-| PostToolUse | `Bash` | `hallucination-detect.sh` | 3000ms |
-| PostToolUse | `Bash` | `bash-output-compress.sh` | 3000ms |
-| PostToolUse | `Write|Edit` | `post-sale.sh` | 5000ms |
-| PostToolUse | `Write|Edit` | `post-tasks-validate.sh` | 5000ms |
-| PostToolUse | `Write|Edit` | `post-hooks-json.sh` | 10000ms |
-| PostToolUse | `Write|Edit` | `memory-index-sync.sh` | 3000ms |
-| PostToolUseFailure | `` | `post-tool-use-failure.sh` | 5000ms |
-| UserPromptSubmit | `` | `preflight-model.sh` | 3000ms |
-| UserPromptSubmit | `` | `context-inject.sh` | 5000ms |
-| UserPromptSubmit | `` | `signal-capture.sh` | 3000ms |
+| PreToolUse | `Bash` | `branch-checkout-warn.sh` | 3000ms |
+| SessionEnd | `` | `session-end.sh` | 10000ms |
 | SessionStart | `` | `session-start.sh` | 10000ms |
 | SessionStart | `` | `cc-changelog-check.sh` | — |
+| Stop | `` | `goal-completion.sh"; [ -f "$f" ] && bash "$f" || echo "{\"continue\": true}"'` | 8000ms |
+| StopFailure | `` | `stopfailure-logger.sh` | 5000ms |
 | SubagentStart | `` | `subagent-context.sh` | 5000ms |
 | SubagentStart | `` | `subagent-tracker.sh` | 5000ms |
 | SubagentStop | `` | `subagent-tracker.sh` | 5000ms |
 | TaskCompleted | `` | `step-completed.sh` | 5000ms |
-| SessionEnd | `` | `session-end.sh` | 10000ms |
-| Stop | `` | `goal-completion.sh` | 8000ms |
-| StopFailure | `` | `stopfailure-logger.sh` | 5000ms |
-| ConfigChange | `` | `config-change-guard.sh` | 3000ms |
+| UserPromptSubmit | `` | `preflight-model.sh` | 3000ms |
+| UserPromptSubmit | `` | `context-inject.sh` | 5000ms |
+| UserPromptSubmit | `` | `signal-capture.sh` | 3000ms |
 
 ## Hook Scripts
 
 ### `bash-output-compress.sh`
 
 No strict mode — hooks must never fail and block the session.
+
+**Gate:** Advisory
+
+### `branch-checkout-warn.sh`
+
+PreToolUse — warn when checking out a named local branch in the thebrana repo.
 
 **Gate:** Advisory
 
@@ -115,6 +124,12 @@ No strict mode — hooks must never fail and block the session.
 ### `hallucination-detect.sh`
 
 No strict mode — hooks must never fail and block the session.
+
+**Gate:** Advisory
+
+### `hooks-auto-deploy.sh`
+
+PostToolUse — auto-deploy hooks to ~/.claude/hooks/ when a hook file is edited on main.
 
 **Gate:** Advisory
 
@@ -187,6 +202,12 @@ No strict mode — failure hooks especially must never fail themselves.
 ### `post-tool-use.sh`
 
 No strict mode — hooks must never fail and block the session.
+
+**Gate:** Advisory
+
+### `pre-compact.sh`
+
+No strict mode — hooks must always return valid JSON.
 
 **Gate:** Advisory
 
@@ -317,6 +338,7 @@ Blocking hooks that support `/tmp/brana-*` sentinel file bypasses for procedure-
 | `post-tool-use-failure.sh` | `/tmp/brana-cascade` | Only for Edit/Write — Bash commands aren't file-targeted, so flags would be orphaned. |
 | `post-tool-use.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | Default test_fail to 0 when pass count was parsed (all-pass case) |
 | `post-tool-use.sh` | `/tmp/brana-cascade/${SESSION_ID}-${PATH_HASH}` | If a previously-cascading file succeeds, remove the flag to stop warning fatigue. |
+| `pre-compact.sh` | `/tmp/brana-session-${SESSION_ID}*.jsonl` | ── Session summary (brana session read) ────────────────── |
 | `pre-tool-use.sh` | `/tmp/brana-cascade/${SESSION_ID}-${PATH_HASH}` | If post-tool-use-failure.sh flagged this file as cascading, inject a nudge (not a deny). |
 | `rust-skills-guard.sh` | `/tmp/brana-rust-skills-loaded-{SESSION_ID}` | this file becomes a generic guard wrapper. |
 | `rust-skills-guard.sh` | `/tmp/brana-rust-skills-guard-bypass` | Written by skill-sentinel.sh when Skill(brana:rust-skills) completes. |
