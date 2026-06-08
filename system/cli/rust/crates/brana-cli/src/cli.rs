@@ -790,6 +790,9 @@ pub enum BacklogCmd {
         /// Work type: implement, research, design, infra, chore, review
         #[arg(long)]
         work_type: Option<String>,
+        /// Acceptance criterion (repeatable: --acceptance-criteria "item1" --acceptance-criteria "item2")
+        #[arg(long, action = clap::ArgAction::Append)]
+        acceptance_criteria: Vec<String>,
     },
     /// Get full task JSON or a single field
     Get {

@@ -489,6 +489,7 @@ pub fn cmd_add(
     file: Option<PathBuf>,
     epic: Option<String>,
     work_type: Option<String>,
+    acceptance_criteria: Vec<String>,
 ) -> anyhow::Result<()> {
     let tf = match file {
         Some(f) => f,
@@ -533,6 +534,12 @@ pub fn cmd_add(
         if let Some(ref c) = context { obj.insert("context".into(), serde_json::Value::String(c.clone())); }
         if let Some(ref i) = epic { obj.insert("epic".into(), serde_json::Value::String(i.clone())); }
         if let Some(ref wt) = work_type { obj.insert("work_type".into(), serde_json::Value::String(wt.clone())); }
+        if !acceptance_criteria.is_empty() {
+            let ac_arr: Vec<serde_json::Value> = acceptance_criteria.iter()
+                .map(|s| serde_json::Value::String(s.clone()))
+                .collect();
+            obj.insert("acceptance_criteria".into(), serde_json::Value::Array(ac_arr));
+        }
         serde_json::to_string(&obj).unwrap()
     } else {
         eprintln!("{{\"ok\":false,\"error\":\"provide --json or --subject\"}}");

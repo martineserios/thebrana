@@ -29,6 +29,9 @@ pub struct Input {
 
     /// Context — required for effort M, L, or XL (t-939)
     pub context: Option<String>,
+
+    /// Acceptance criteria items
+    pub acceptance_criteria: Option<Vec<String>>,
 }
 
 fn default_type() -> String { "task".into() }
@@ -82,6 +85,7 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 "order": 0,
                 "github_issue": null,
                 "execution": "code",
+                "acceptance_criteria": input.acceptance_criteria,
             });
 
             val["tasks"].as_array_mut()
