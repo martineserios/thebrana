@@ -18,6 +18,7 @@
 
 ## Severity Summary
 
+| E2026-06-07-4 | proyecto_anita: `backlog_query(epic: "agent-v4")` returned 1 task when 33 tasks belonged to the program. Root cause: 32 tasks had `initiative: agent-v4` (old field) and the `agent-v4` tag, but NOT `epic: agent-v4`. The brana CLI `backlog_query(epic:)` filter matches only the `epic` field — it does not cross-reference `initiative:` or tags. Convention/CLAUDE.md never documented that `epic:` is the machine-readable grouping field; `initiative:` was the old name and is now vestigial. Sprint planning and epic focus views silently omitted 97% of agent-v4 tasks until `epic:` was backfilled on all 32. | **Medium** | code-fix (backfill done) | Backfilled `epic: agent-v4` on 32 tasks via `backlog_batch`. Doc fix needed: `task-convention.md` must state that `epic:` is the required field for program grouping; `initiative:` is deprecated and no longer read by query/focus tools. |
 | E2026-06-07-2 | proyecto_anita (dgrx): `clients/dgrx/services/dgrx-api/src/dgrx_api/services/sinks/sheet_log.py` uses `googleapiclient.discovery.build("sheets", "v4", ...)` at lines 18 and 129. Same blocking-event-loop pattern fixed in `interes_log.py` this session — not propagated to its sibling sink. Every `Pipeline.create` webhook that routes through `SheetLogSink` makes a blocking synchronous HTTP call on the asyncio event loop. | **Medium** | pending | Port `sheet_log.py` to `httpx.AsyncClient` + direct REST pattern from the now-fixed `interes_log.py`. Apply fix-adjacent-sibling audit rule: after fixing a library-misuse pattern, grep siblings before committing. |
 | E2026-06-07-1 | proyecto_anita (dgrx): `googleapiclient.discovery.build()` is incompatible with asyncio services — it makes a blocking synchronous HTTP request to download the full API discovery document on every call (httplib2, no timeout). Used in `interes_log.py` on initial scaffold. Manifested as `deal_router.routed` never logging after the Interés sink was wired (event loop blocked). Took two fix iterations: first `run_in_executor` wrapper (insufficient — no timeout, consumes thread-pool slot), then full replacement with `httpx.AsyncClient` direct REST calls. This constraint was undocumented in DGRX CLAUDE.md and cloud-run-deploy.md Gotchas. | **Medium** | code-fix | Fixed in `464659b`. Rule: for any Google API call in an async Python service, use `httpx.AsyncClient` + direct REST endpoint + `google.auth.default()` for token acquisition. Never use `googleapiclient.discovery.build()` in async code. Document in `cloud-run-deploy.md §Gotchas`. |
 | E2026-06-05-1 | proyecto_anita: `POST /api/commerce/admin/customer-locations/search` filter params are non-functional — returns unfiltered results regardless of filter value. Original `lookupByLogisticCode` always returned `items[0].id` (location 766028) for any clientId. Correct FK is `contacts.cliente = Tracy.erpIds[0]`, not `logisticCodes[0].code`. | **Medium** | code-fix | Client-side erpIds validation + `tools/backfill_customer_location_ids.py` for bulk index. Rule: never rely on Tracy filter params — validate client-side. |
@@ -4156,3 +4157,36 @@ The correct implementation existed in `lib/tracy-admin-auth.js` since Stage 0b. 
 **Fix:** Update `platform/agent/docs/tool-contracts.md` warm-tenant-cache section to state: "This KF is invalidation + pre-warm only — it does NOT act as a proxy for cache-miss fallback. Each KF that calls `getTenantCreds` must have `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` set as its own secrets." Also update `kapso-deploy-freshness.md §New function checklist` to cross-reference this.
 
 **Status:** pending — doc update needed.
+
+## E2026-06-07-4 — `backlog_query(epic:)` silently excludes tasks carrying only `initiative:` field
+
+**Severity:** Medium
+**Discovery:** 2026-06-07 — agent-v4 backlog review; `backlog_query(epic: "agent-v4")` returned 1 task; `backlog_query(tags: ["agent-v4"])` returned 83 pending + 10 in_progress
+
+**Affected files:**
+- `task-convention.md` (global rule) — `epic:` vs `initiative:` distinction never documented
+- All 32 tasks with `initiative: agent-v4` but missing `epic: agent-v4`
+
+**Bug (convention gap):** `backlog_query(epic:)` matches only the `epic` field. The `initiative:` field was the prior name for program grouping; it was renamed to `epic:` at some point but tasks created before the rename were never updated. No convention doc stated that `epic:` is the machine-readable filter field and `initiative:` is vestigial. A session starting with "show me all agent-v4 work" would see 1 task instead of 33 — 97% invisible.
+
+**Root cause:** Field rename in the brana CLI schema was not accompanied by a migration of existing task records or a note in `task-convention.md` that `initiative:` is no longer the query key.
+
+**Fix applied:** `backlog_batch` used to backfill `epic: agent-v4` on 32 tasks. Doc fix needed: `task-convention.md` must add: "The `epic:` field is the machine-readable program grouping key used by `backlog_query(epic:)`, `backlog_focus`, and sprint views. The `initiative:` field is deprecated — do not use for new tasks. All new tasks belonging to a named program must have `epic: <slug>` set at creation time."
+
+**Status:** code-fix (backfill done) — doc update pending
+
+## E2026-06-07-5 — Phase 9-C migration fixed trigger function body but omitted trigger re-attachment on renamed table
+
+**Severity:** Medium
+**Discovery:** 2026-06-07 — t-1239 trigger fix session; broken trigger found when seeding `tenant_credentials`
+**Affected files:**
+- `supabase/migrations/20260527000001_phase9c_recreate_functions_tenant_id.sql` — recreated `add_contact_field_definitions_for_company` with correct `p_tenant_id` param but emitted no `DROP TRIGGER / CREATE TRIGGER` for the `tenants` table
+- `.claude/rules/supabase-cli-multiproject.md` — existing field note (2026-05-22) covers "grep trigger bodies for old column name" but not "re-attach trigger after table rename"
+
+**Bug:** Phase 9-B renamed `companies` → `tenants`. Phase 9-C correctly updated `add_contact_field_definitions_for_company`'s function body from `p_company_id` to `p_tenant_id`. But neither migration included `DROP TRIGGER ... ON public.tenants / CREATE TRIGGER ... ON public.tenants` statements. The trigger binding was silently broken from 2026-05-27 until 2026-06-07. Any INSERT into `tenants` during that window fired no trigger (field defs not created) or produced a runtime error depending on Supabase's trigger resolution. A `SET session_replication_role = replica` workaround on 2026-06-04 deferred visibility for 3 more days.
+
+**Root cause:** The migration authoring convention ("grep PL/pgSQL trigger bodies for old column name") was applied correctly but does not cover the table rename case. Function body fix ≠ trigger binding fix. The trigger name (`trigger_add_contact_field_definitions`) remained registered but pointed to a function signature that was valid in isolation — the error only surfaced at DML time when the function tried to reference renamed schema.
+
+**Fix applied:** `supabase/migrations/20260608000001_fix_contact_field_def_trigger.sql` (committed 2026-06-07) — DROPs old function signatures, RECREATEs with `p_tenant_id`, attaches trigger to `public.tenants`. Verified via test INSERT (24 field defs created). Applied to dev (`jwzpeaidchtdibcxttcm`).
+
+**Status:** code-fix (dev) — legacy prod (`zvpzgpjlhrvouquxorya`) needs separate assessment (trigger may also be stale there if Phase 9-C was applied to prod).
