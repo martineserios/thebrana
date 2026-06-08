@@ -3880,4 +3880,4 @@ The correct fix is an OS-level `flock(1)` mutex, not WAL mode. WAL mode is a jou
 
 **Note:** `sqlite3 .recover` (referenced in the original t-982 recovery note) is NOT available in the installed sqlite3 build. The actual recovery mechanism was `.dump` + INSERT OR IGNORE into a clean backup — not `.recover`.
 
-**Status:** code-fix (fix merged to main) — memory file needs updating to reflect correct concurrency model.
+**Status:** resolved — code-fix merged to main (2026-06-07); memory file `project_ruflo-agentdb-status.md` updated to reflect correct concurrency model (flock mutex, not WAL advisory); spec-graph regenerated (2026-06-08, t-1859).
