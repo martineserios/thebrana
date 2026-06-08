@@ -211,6 +211,22 @@ setup_repo "$REPO20" "main" "system/hooks/my-hook.sh"
 assert_pass "compound git checkout -b + git add → passes (add runs on new branch)" \
     "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"git checkout -b feat/test && git add system/hooks/my-hook.sh\"},\"cwd\":\"$REPO20\"}"
 
+# ── t-1817: compound operator tokens in explicit-path branch ─────────────────
+
+# --- Test 21: 'git add safe.txt && git commit -m "fix system/hooks/..."' → pass
+# Without the compound-operator strip, system/hooks/branch-verify.sh appearing
+# in the commit message would be tokenized and falsely trigger a deny.
+REPO21="$TMPDIR_BASE/repo21"
+setup_repo "$REPO21" "main" "docs/README.md"
+assert_pass "git add non-behavioral && git commit -m with behavioral path in msg → passes" \
+    "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"git add docs/README.md && git commit -m 'fix system/hooks/branch-verify.sh'\"},\"cwd\":\"$REPO21\"}"
+
+# --- Test 22: semicolon-separated compound: 'git add safe.txt; git commit -m ...' → pass
+REPO22="$TMPDIR_BASE/repo22"
+setup_repo "$REPO22" "main" "docs/README.md"
+assert_pass "git add non-behavioral; git commit -m with behavioral path in msg → passes" \
+    "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"git add docs/README.md; git commit -m 'fix system/hooks/branch-verify.sh'\"},\"cwd\":\"$REPO22\"}"
+
 # --- Summary ---
 echo ""
 echo "$PASS/$TOTAL passed"
