@@ -290,6 +290,40 @@ rm -rf "$TMPDIR10"
 fi # end pre-tool-use tests
 echo ""
 
+# ─── PreCompact Tests ───
+
+echo "Testing pre-compact (context preservation)..."
+COMPACT_HOOK="$HOOKS_DIR/pre-compact.sh"
+
+if [ ! -x "$COMPACT_HOOK" ]; then
+    fail "pre-compact.sh — not executable or missing"
+else
+
+# Test 11: PreCompact returns continue: true with additionalContext
+echo "  Test 11: pre-compact returns continue + additionalContext..."
+OUTPUT11=$(jq -n \
+    --arg sid "test-compact-session" \
+    --arg cwd "$HOME" \
+    '{session_id: $sid, cwd: $cwd, trigger: "auto", hook_event_name: "PreCompact"}' | \
+    timeout 10 bash "$COMPACT_HOOK" 2>/dev/null)
+if echo "$OUTPUT11" | jq -e '.continue == true and (.additionalContext | type == "string")' >/dev/null 2>&1; then
+    pass "pre-compact — continue: true, additionalContext is a string"
+else
+    fail "pre-compact — expected continue+additionalContext, got: $OUTPUT11"
+fi
+
+# Test 12: PreCompact handles missing CWD gracefully
+echo "  Test 12: pre-compact passes through on empty input..."
+OUTPUT12=$(echo '{}' | timeout 10 bash "$COMPACT_HOOK" 2>/dev/null)
+if echo "$OUTPUT12" | jq -e '.continue == true' >/dev/null 2>&1; then
+    pass "pre-compact — graceful pass-through on empty input"
+else
+    fail "pre-compact — should pass through on empty input, got: $OUTPUT12"
+fi
+
+fi # end pre-compact tests
+echo ""
+
 # Summary
 echo "=== Hook Smoke Summary ==="
 echo "Passed: $PASSED"
