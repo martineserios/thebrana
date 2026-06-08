@@ -3881,3 +3881,35 @@ The correct fix is an OS-level `flock(1)` mutex, not WAL mode. WAL mode is a jou
 **Note:** `sqlite3 .recover` (referenced in the original t-982 recovery note) is NOT available in the installed sqlite3 build. The actual recovery mechanism was `.dump` + INSERT OR IGNORE into a clean backup — not `.recover`.
 
 **Status:** resolved — code-fix merged to main (2026-06-07); memory file `project_ruflo-agentdb-status.md` updated to reflect correct concurrency model (flock mutex, not WAL advisory); spec-graph regenerated (2026-06-08, t-1859).
+
+---
+
+## E2026-06-08-1 — ADR-044 §F3 specifies `SUPABASE_JWT_SECRET` for KF→Hono JWT signing — should be `JWT_SECRET`
+
+**Severity:** Medium
+**Discovery:** 2026-06-08 — ph-1254 Wave 2 session close debrief
+**Affected files:**
+- `docs/decisions/ADR-044-kf-architecture-refactor.md` §F3 — line: "Replace `V3_API_JWT_*` lookup with a KF-generated JWT signed from `SUPABASE_JWT_SECRET`"
+
+**Bug:** ADR-044 §F3 says KFs calling Hono (`unsubscribe_contact`, `ops-alerting`) should generate JWTs signed with `SUPABASE_JWT_SECRET`. The implementation correctly uses `JWT_SECRET` instead, matched to `auth.ts` Path 1 (`jwtVerify(token, new TextEncoder().encode(env.JWT_SECRET))`). If the ADR spec were followed literally — using `SUPABASE_JWT_SECRET` — the token would fail Path 1 (wrong secret) and fall through to Path 2 (`SUPABASE_JWT_SECRET` path), which expects a `sub` claim for a `profiles` table lookup. No `sub` claim → 401. The spec is wrong, the implementation is correct.
+
+**Impact:** Future developer reading ADR-044 will provision `SUPABASE_JWT_SECRET` as the signing secret on KFs that call Hono. Tokens will always 401 until they read the Hono `auth.ts` source to understand the dual-path distinction.
+
+**Fix:** Update ADR-044 §F3: change "signed from `SUPABASE_JWT_SECRET`" → "signed from `JWT_SECRET`" for KFs calling Hono. Add a note clarifying the two-secret rule: `JWT_SECRET` for KF→Hono calls (Path 1, `tenant_id` slug claim), `SUPABASE_JWT_SECRET` for KF→PostgREST calls (Path 2, requires `sub` + `company_id` UUID). Also update the secret inventory table: `unsubscribe_contact` and `ops-alerting` After column should read `ANITA_API_BASE_URL` + `JWT_SECRET` (not `SUPABASE_JWT_SECRET`).
+
+**Status:** pending — ADR-044 §F3 and secret inventory table need corrections.
+
+---
+
+## E2026-06-08-2 — `bash-python.md` missing: `curl | python3 << heredoc` pipe+stdin conflict
+
+**Severity:** Low
+**Discovery:** 2026-06-08 — ph-1254 Wave 2 session; curl output piped into python3 heredoc
+**Affected files:**
+- `.claude/rules/bash-python.md` — documents heredoc usage but not the pipe+heredoc stdin conflict
+
+**Bug:** Existing rule documents two patterns — `python3 -c "..."` expansion risk and Makefile heredoc incompatibility — but does not document that `curl <url> | python3 << 'PYEOF' ... PYEOF` is broken. Bash assigns the heredoc as stdin for the process, which discards the piped curl output entirely. Python reads the heredoc block as stdin instead of curl's JSON response. No error is raised — Python just gets different content than expected.
+
+**Fix:** Add a field note to `bash-python.md`: "Never pipe output into `python3 << 'PYEOF'` — bash heredoc takes over stdin, discarding the pipe. Save to a temp file first: `curl ... > /tmp/out.json && python3 << 'PYEOF' ... data = json.load(open('/tmp/out.json')) ... PYEOF`"
+
+**Status:** code-fix — field note added to `bash-python.md` this session.
