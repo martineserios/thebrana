@@ -28,13 +28,31 @@ All brana hooks follow a safety principle: they never fail fatally. Every hook u
 
 ### Hook entry format
 
-Each hook entry in `hooks.json` requires a `command` field (string), not `args` (array):
+Each hook entry requires a `command` field (string). The `args` array form was removed from CC's hook schema — using it causes a silent load failure (`/doctor` reports "expected string, received undefined"). Fix: join the array into a space-separated string under `command`. (E2026-05-31-2)
 
 ```json
 { "type": "command", "command": "bash \"$HOME/.claude/hooks/script.sh\"", "timeout": 5000 }
 ```
 
-The `args: ["bash", "path"]` array form was removed from CC's hook schema. Using `args` causes a silent load failure — `/doctor` reports "expected string, received undefined" for every entry. Fix: join the array into a space-separated string under `command`. (E2026-05-31-2, promoted 2026-05-31)
+#### settings.json vs hooks.json — schema comparison
+
+Both files accept the same hook entry schema (`command` string, not `args` array), but they differ in two critical ways:
+
+| | `~/.claude/settings.json` | `system/hooks/hooks.json` (plugin) |
+|---|---|---|
+| **Variable expansion** | No `${CLAUDE_PLUGIN_ROOT}` — use absolute paths only | `${CLAUDE_PLUGIN_ROOT}` available |
+| **Reliable events** | PostToolUse, PostToolUseFailure, UserPromptSubmit | PreToolUse, SessionStart, SessionEnd (CC bug #24529 drops PostToolUse from plugins) |
+| **When to use** | Plugin disabled, or for events the plugin can't fire | Normal operation with plugin enabled |
+
+**Common mistake (E2026-05-17-2):** Using `"args": ["bash", "script.sh"]` in `settings.json` causes CC to reject the entry with a validation error. The user-level settings.json schema requires `"command": "bash script.sh"` (string). The `args[]` form was only valid in older plugin hooks.json versions and is now removed everywhere.
+
+```json
+// ✗ Wrong — rejected by CC schema validation
+{ "type": "command", "args": ["bash", "/home/user/.claude/hooks/my-hook.sh"] }
+
+// ✓ Correct — both settings.json and hooks.json
+{ "type": "command", "command": "bash \"/home/user/.claude/hooks/my-hook.sh\"" }
+```
 
 ## Plugin/bootstrap split (CC bug #24529)
 
