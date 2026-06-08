@@ -27540,7 +27540,7 @@
       "parent": "t-1103",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Command risk classifier hook — Aum Pattern 10, brana complement to CC permission tiers",
       "tags": [
         "cc-alignment",
@@ -28342,7 +28342,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Intelligence feed: expand sources (Anthropic research, HN, Nitter/X)",
       "tags": [
         "scheduler",
