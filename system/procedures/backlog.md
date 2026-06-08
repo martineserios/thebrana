@@ -601,21 +601,23 @@ Branch name follows the project convention (CLAUDE.md §Branch naming):
 ```
 
 **Computing the branch name:**
-1. `epic-slug` — from `task.epic`. If empty: warn "Task t-NNN has no epic set — set it first: `brana backlog set t-NNN epic <slug>`" and ask user to provide it or set a placeholder.
-2. `work-type` — map `task.work_type` → git prefix:
+1. `epic-slug` — from `task.epic`. If empty: emit warning and stop: "⚠ Task t-NNN has no epic set. Set it first: `brana backlog set t-NNN epic <slug>`, then re-run start." Do not create a branch with a placeholder epic.
+2. `work-type` — map `task.work_type` → git prefix (exhaustive; covers all values found in data):
    - `implement` → `feat`
    - `fix` → `fix`
-   - `chore` → `chore`
+   - `refactor` → `refactor`
    - `research` → `research`
    - `test` → `test`
-   - `refactor` → `refactor`
-   - `design` / `docs` → `docs`
-   - `ops` / other → `chore`
-3. `subject-slug` — first 4–5 words of `task.subject`, lowercased, non-alphanumeric replaced with `-`, consecutive dashes collapsed. Strip leading articles ("a", "an", "the").
+   - `chore` / `ops` / `infra` / `dev` → `chore`
+   - `design` / `docs` / `document` → `docs`
+   - `review` → `review`
+   - any other → `feat`
+3. `subject-slug` — first 3–4 words of `task.subject`, lowercased, non-alphanumeric replaced with `-`, consecutive dashes collapsed. Strip leading articles ("a", "an", "the"). Aim for ≤4 words (CLAUDE.md convention).
 
 **Display the suggestion before creating:**
 ```
-Suggested branch: harness-core/feat/t-1621-backlog-start-branch-suggest
+Suggested branch: {epic-slug}/{work-type}/t-{NNN}-{subject-slug}
+# Example: harness-core/feat/t-1621-backlog-start-branch-suggest
 ```
 
 ```bash
