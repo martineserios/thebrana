@@ -502,6 +502,19 @@ pub enum EpicCmd {
     ReadMarker,
     /// Clear the session-start epic marker (called by close Step 9c after consuming the slug)
     ClearMarker,
+    /// Set persistent epic focus (survives session close, cleared only by unfocus)
+    Focus {
+        /// Epic slug to focus on (e.g. "session-continuity")
+        slug: String,
+    },
+    /// Clear persistent epic focus
+    Unfocus,
+    /// Show current epic focus state (persistent focus + transient marker)
+    Status {
+        /// Output raw JSON
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Subcommand)]
