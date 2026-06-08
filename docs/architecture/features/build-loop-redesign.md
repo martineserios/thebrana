@@ -342,6 +342,12 @@ session-start.sh (hook, automatic)
 ├── CLASSIFY → strategy selection
 ├── Strategy-specific steps (SPECIFY/REPRODUCE/QUESTION/etc.)
 ├── BUILD (TDD: test first, implement, verify)
+├── Challenger Gate (mandatory semantic eval before CLOSE — see ADR-049)
+│   ├── M+ effort: runs automatically
+│   ├── S + sensitive paths (system/, hooks/, decisions/): runs automatically
+│   ├── S + regular paths: prompt, default = run
+│   ├── Input: task spec + git diff + AC only (trusted content)
+│   └── Blocks CLOSE on score ≥ 4 (RECONSIDER); repair loop max 2 iterations
 └── CLOSE (retrospect, docs, merge)
 
 /brana:close (session end)
