@@ -49790,7 +49790,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "strategy": null,
       "subject": "[validate] Add +x permission check for source repo hook scripts",
       "tags": [
@@ -49846,7 +49846,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "strategy": null,
       "subject": "[validate] Check 16: update docs/guide/cli.md stale changelog section",
       "tags": [
@@ -49874,7 +49874,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "strategy": null,
       "subject": "[validate] Check 31a: patterns.md at 49/50 capacity — archive or increase cap",
       "tags": [
@@ -49902,7 +49902,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "strategy": null,
       "subject": "[validate] Check 34: 3 scheduler jobs in system/scheduler/ not registered in live cron",
       "tags": [
