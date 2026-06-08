@@ -16514,7 +16514,7 @@
       "parent": "t-719",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Phase 1: Config + Session Hooks",
       "tags": [
         "session-loops",
@@ -16596,7 +16596,7 @@
       "parent": "t-720",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Design session-loops.json schema + validation",
       "tags": [
         "session-loops",

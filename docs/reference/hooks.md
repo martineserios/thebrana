@@ -34,6 +34,7 @@
 | PreToolUse | `Bash` | `no-attribution-commit.sh` | 3000ms |
 | PreToolUse | `Bash` | `commit-msg-verify.sh` | 3000ms |
 | PreToolUse | `Bash` | `branch-checkout-warn.sh` | 3000ms |
+| PreToolUse | `Bash` | `bash-risk-classifier.sh` | 2000ms |
 | SessionEnd | `` | `session-end.sh` | 10000ms |
 | SessionStart | `` | `session-start.sh` | 10000ms |
 | SessionStart | `` | `cc-changelog-check.sh` | — |
@@ -50,6 +51,12 @@
 ## Hook Scripts
 
 ### `bash-output-compress.sh`
+
+No strict mode — hooks must never fail and block the session.
+
+**Gate:** Advisory
+
+### `bash-risk-classifier.sh`
 
 No strict mode — hooks must never fail and block the session.
 
