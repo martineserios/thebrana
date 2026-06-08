@@ -623,3 +623,13 @@ Source: close 2026-05-19 / t-1460 test-sync-state.sh
 ### 2026-05-19: pre-commit secret scanner must also exclude sanitized placeholders
 After `sanitize_export_json` replaces values with `<redacted>` or `<token>`, the scanner still matches `API_KEY=<redacted>` because the exclusion filter didn't know about those placeholders. Fixed by adding `<redacted>|<token>` to Check 5's `grep -v` exclusion filter (pre-commit.sh + installed .git/hooks/pre-commit). Note: the installed hook is a copy — both must be updated in sync; editing only the working-tree `pre-commit.sh` has no effect on the running hook.
 Source: close 2026-05-19 / pre-commit.sh Check 5 fix
+
+### 2026-06-08: Check 50 — schema-removals.json gate for removed fields (t-1565)
+`system/state/schema-removals.json` is a data-driven registry of schema fields that have been removed. Each active entry specifies a `grep_pattern`, `grep_whole_word`, `grep_include_globs` (scoped to producer write-path files like `*_add.rs`, `*_stats.rs`), and `search_dir`. validate.sh Check 50 greps each active entry across its registered surfaces and fails (warn) if found outside comment lines. This prevents re-introduction of removed fields on any branch without CI catching it.
+
+**Trigger for adding an entry:** whenever a task drops a schema field from the CLI/MCP layer, add an entry with `status: active` and the appropriate scoping. The first entry is `stream` (removed in t-1540).
+
+**nullglob trap:** validate.sh has `shopt -s nullglob`. Passing `--include` glob patterns via an unquoted variable causes them to be swallowed when no matching files exist in CWD. Fix: build `--include` flags into a bash array and expand with `"${array[@]}"`. This pattern is now in the Check 50 implementation — copy it for future checks with glob-based file scoping.
+
+**Backslash-in-regex trap:** `@tsv` in jq doubles all backslashes. Storing `\bpattern\b` in the JSON then extracting via `@tsv | read` produces `\\b` which grep -E treats as a literal backslash, not a word boundary. Fix: use `grep_whole_word: true` flag + `grep -w` (whole-word) instead of `\b` in patterns. No backslashes needed in the registry values.
+Source: t-1565, session 2026-06-08
