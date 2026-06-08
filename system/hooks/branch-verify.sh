@@ -117,7 +117,7 @@ else
         [ -z "$arg" ] && continue
         case "$arg" in -*)  continue ;; esac
         add_behavioral "$arg"
-    done < <(echo "$args_str" | sed 's/[;&|].*//' | tr ' ' '\n')
+    done < <(echo "$args_str" | sed 's/[;&|].*//' | tr ' ' '\n')  # only first git-add segment checked
 fi
 
 [ -z "$BEHAVIORAL_FILES" ] && pass_through
