@@ -332,12 +332,16 @@ Blocking hooks that support `/tmp/brana-*` sentinel file bypasses for procedure-
 
 | Hook | Sentinel | Context |
 |------|----------|--------|
+| `commit-msg-verify.sh` | `/tmp/brana-test-mode` | Test-mode sentinel bypass — see no-attribution-commit.sh for rationale. |
 | `feedback-gate.sh` | `/tmp/brana-close-active` | Whitelist: /brana:close Step 5b writes git-durable backup files — sentinel set by procedure |
 | `guard-explore.sh` | `/tmp/brana-search-${SESSION_ID}.log` | Extract tool name and file path |
 | `guard-explore.sh` | `/tmp/brana-explore-${SESSION_ID}.log` | Extract tool name and file path |
 | `memory-write-gate.sh` | `/tmp/brana-memory-write-active` | Spec: ADR-038 §C (CLI gateway), ADR-037 §Wave2 (enforcement) |
 | `memory-write-gate.sh` | `/tmp/brana-memory-write-active` | Sentinel bypass — procedure explicitly authorized this direct write |
 | `memory-write-gate.sh` | `/tmp/brana-memory-write-active` | Derive the routing hint from the filename |
+| `no-attribution-commit.sh` | `/tmp/brana-test-mode` | Test-mode sentinel bypass — skip hook during test harness runs. |
+| `no-attribution-commit.sh` | `/tmp/brana-memory-write-active` | tokens in their payloads (e.g. echo '{"command":"git commit -m \"Claude Code\""}'). |
+| `no-attribution-commit.sh` | `/tmp/brana-test-mode` | Same pattern as /tmp/brana-memory-write-active and /tmp/brana-close-active. |
 | `post-plan-challenge.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | Log to session JSONL |
 | `post-pr-review.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | Log to session JSONL |
 | `post-sale.sh` | `/tmp/brana-session-${SESSION_ID}.jsonl` | Log to session JSONL |

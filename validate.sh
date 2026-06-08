@@ -352,7 +352,7 @@ echo ""
 
 # Check 9: Hook scripts
 echo "Checking hook scripts..."
-KNOWN_EVENTS="PreToolUse PostToolUse PreToolUseFailure PostToolUseFailure Stop Notification SubagentStop SubagentNotification SessionStart SessionPause SessionEnd StopFailure SubagentStart TaskCompleted UserPromptSubmit ConfigChange"
+KNOWN_EVENTS="PreToolUse PostToolUse PreToolUseFailure PostToolUseFailure Stop Notification SubagentStop SubagentNotification SessionStart SessionPause SessionEnd StopFailure SubagentStart TaskCompleted UserPromptSubmit ConfigChange PreCompact"
 
 # Validate each .sh file in hooks/
 for hook_script in "$SYSTEM_DIR"/hooks/*.sh; do
