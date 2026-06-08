@@ -49143,6 +49143,30 @@
       "github_issue": null,
       "execution": "code",
       "epic": "session-dx"
+    },
+    {
+      "id": "t-1883",
+      "subject": "Guard sync-state.sh against cross-project active_epic contamination",
+      "status": "pending",
+      "type": "task",
+      "tags": [
+        "ops",
+        "dx"
+      ],
+      "description": "sync-state.sh pulls active_epic from ~/.claude/tasks-config.json unconditionally. If a client project session set active_epic to their slug (e.g. platform-v2), thebrana sessions inherit it silently. Fix: read active_epic from the repo copy (system/state/tasks-config.json) when syncing, or add a validation step that warns if the deployed epic slug doesn't appear in the thebrana backlog.",
+      "effort": "S",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-06-08",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
     }
   ],
   "version": "1"
