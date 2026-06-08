@@ -48729,7 +48729,7 @@
     {
       "id": "t-1867",
       "subject": "Write ADR: mandatory Challenger gate in /brana:build",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "tags": [
         "challenger",
@@ -48743,11 +48743,11 @@
       "parent": "t-1866",
       "created": "2026-06-08",
       "started": "2026-06-08",
-      "completed": null,
+      "completed": "2026-06-08",
       "blocked_by": [],
       "branch": "platform-v2/docs/t-1867-challenger-gate-adr",
       "context": "AC: ADR file exists in docs/architecture/decisions/\nAC: Decision record frozen (do not modify after acceptance section)\nAC: Input contract explicitly listed (what Challenger reads / does not read)\nAC: Iteration cap (max 2) explicitly stated\nBrainstorm: docs/ideas/challenger-outer-loop-gate.md",
-      "notes": null,
+      "notes": "ADR-049 written and committed. All AC green.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -48771,9 +48771,7 @@
       "created": "2026-06-08",
       "started": null,
       "completed": null,
-      "blocked_by": [
-        "t-1867"
-      ],
+      "blocked_by": [],
       "branch": null,
       "context": "AC: Challenger gate appears in the build loop architecture diagram\nAC: Invocation rules table present (M+/sensitive/S soft-default)\nAC: Repair loop described",
       "notes": null,
@@ -48820,9 +48818,7 @@
       "created": "2026-06-08",
       "started": null,
       "completed": null,
-      "blocked_by": [
-        "t-1867"
-      ],
+      "blocked_by": [],
       "branch": null,
       "context": "AC: Section exists between docs generation and CLOSE in all non-spike/investigation strategies\nAC: Invocation rules implemented (M+ mandatory, S sensitive mandatory, S regular soft-default prompt)\nAC: Input contract enforced in the Challenger spawn call (only trusted content passed)\nAC: Repair loop with max-2-iterations hard cap implemented\nAC: Override path requires reason logged to task context\nInsertion point: after 'Docs — generate here, not in CLOSE' section, before '### CLOSE'\nLoopTrap: Challenger reads ONLY task spec + git diff + task context — never raw web fetch or external API responses (P4 Authority Override defense)\nMax 2 iterations hard cap prevents P7 Recursive Decomposition\nSpec_says field in findings output is mandatory — gives repair BUILD a precise target\n2026-06-08: brainstorm challenge confirmed input contract and iteration cap are the two load-bearing implementation details",
       "notes": null,
