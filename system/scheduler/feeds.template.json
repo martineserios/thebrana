@@ -1,0 +1,62 @@
+[
+  {
+    "name": "claude-code-releases",
+    "url": "https://github.com/anthropics/claude-code/releases.atom",
+    "action": "log",
+    "enabled": true
+  },
+  {
+    "name": "sdk-python-releases",
+    "url": "https://github.com/anthropics/anthropic-sdk-python/releases.atom",
+    "action": "log",
+    "enabled": true
+  },
+  {
+    "name": "sdk-typescript-releases",
+    "url": "https://github.com/anthropics/anthropic-sdk-typescript/releases.atom",
+    "action": "log",
+    "enabled": true
+  },
+  {
+    "name": "anthropic-news",
+    "url": "https://raw.githubusercontent.com/taobojlen/anthropic-rss-feed/main/anthropic_news_rss.xml",
+    "action": "log",
+    "enabled": true
+  },
+  {
+    "name": "cc-changelog",
+    "url": "https://claude-code-changelog-rss.stevenmenke.workers.dev/feed.xml",
+    "action": "log",
+    "enabled": true
+  },
+  {
+    "name": "reddit-claudeai",
+    "url": "https://www.reddit.com/r/ClaudeAI.rss",
+    "action": "log",
+    "enabled": true
+  },
+  {
+    "name": "reddit-localllama",
+    "url": "https://www.reddit.com/r/LocalLLaMA.rss",
+    "action": "log",
+    "enabled": true
+  },
+  {
+    "name": "hn-claude-anthropic",
+    "url": "https://hnrss.org/newest?q=claude+anthropic",
+    "action": "log",
+    "enabled": true
+  },
+  {
+    "name": "hn-claude-code",
+    "url": "https://hnrss.org/newest?q=claude+code",
+    "action": "log",
+    "enabled": true
+  },
+  {
+    "name": "anthropic-research",
+    "url": "https://www.anthropic.com/research.rss",
+    "action": "log",
+    "enabled": true
+  }
+]
