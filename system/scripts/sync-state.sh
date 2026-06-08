@@ -119,6 +119,13 @@ cmd_push() {
     ensure_state_dir
     local changed=false
 
+    # Capture repo's active_epic before sync — used by the contamination guard below (t-1883)
+    local _repo_epic_before=""
+    local _tasks_config_repo="$STATE_DIR/tasks-config.json"
+    if [ -f "$_tasks_config_repo" ] && command -v jq &>/dev/null; then
+        _repo_epic_before=$(jq -r '.active_epic // empty' "$_tasks_config_repo" 2>/dev/null || true)
+    fi
+
     # Global files
     for i in "${!CACHE_PATHS[@]}"; do
         local base
@@ -133,6 +140,26 @@ cmd_push() {
             fi
         fi
     done
+
+    # active_epic cross-project contamination guard (t-1883):
+    # ~/.claude/tasks-config.json is global — any project's session can overwrite active_epic.
+    # If the cache value differs from what the repo had before this push, revert active_epic
+    # to the repo's previous value and warn. To change active_epic intentionally, use
+    # `brana backlog active <slug>` which writes to both cache and repo simultaneously.
+    if [ -n "$_repo_epic_before" ] && [ -f "$_tasks_config_repo" ] && command -v jq &>/dev/null; then
+        local _cache_epic
+        _cache_epic=$(jq -r '.active_epic // empty' "$HOME/.claude/tasks-config.json" 2>/dev/null || true)
+        if [ -n "$_cache_epic" ] && [ "$_cache_epic" != "$_repo_epic_before" ]; then
+            log "⚠ active_epic cross-project contamination blocked: cache='$_cache_epic' != repo='$_repo_epic_before'"
+            log "  Preserving repo value '$_repo_epic_before'. Use 'brana backlog active <slug>' to change explicitly."
+            local _tmp="${_tasks_config_repo}.guard.$$"
+            if jq --arg epic "$_repo_epic_before" '.active_epic = $epic' "$_tasks_config_repo" > "$_tmp" 2>/dev/null; then
+                mv "$_tmp" "$_tasks_config_repo"
+            else
+                rm -f "$_tmp"
+            fi
+        fi
+    fi
 
     # Companion files per project (via tasks-portfolio.json)
     local portfolio="$HOME/.claude/tasks-portfolio.json"
