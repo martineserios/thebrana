@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-08T17:09:05Z",
+  "generated": "2026-06-08T20:08:44Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1033,7 +1033,9 @@
     "docs/architecture/features/build-loop-redesign.md": {
       "title": "Feature: Build Loop Redesign",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/scripts/check-selector.sh"
+      ]
     },
     "docs/architecture/features/cascade-throttle.md": {
       "title": "Feature: Cascade Throttle",
