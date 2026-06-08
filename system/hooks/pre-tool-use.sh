@@ -70,13 +70,24 @@ FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null) 
 
 # Step 3a: Skip out-of-repo paths (CC auto-memory, ~/.claude/*, /tmp/*, etc.)
 # No project quality gates apply to files outside the repo.
+# Exception: settings.json falls through to Step 3b — tool-layer guard applies everywhere.
 case "$FILE_PATH" in
+    "$HOME/.claude/settings.json"|"$HOME/.claude/settings.local.json") ;;
     "$HOME/.claude/"*|/tmp/*) pass_through ;;
+esac
+
+# Step 3b: Tool-layer config guard (t-1862)
+# ~/.claude/settings.json controls which MCP servers and hooks load in every future session.
+# Direct writes are a self-modification risk — use system/ + bootstrap.sh instead.
+case "$FILE_PATH" in
+    "$HOME/.claude/settings.json"|"$HOME/.claude/settings.local.json")
+        deny "Tool-layer guard: $(basename "$FILE_PATH") controls MCP servers and hooks for all future sessions. Edit system/ and run bootstrap.sh instead (CLAUDE.md §Rules)."
+        ;;
 esac
 
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null) || true
 
-# Step 3b: Cascade throttle check
+# Step 3c: Cascade throttle check (was 3b)
 # If post-tool-use-failure.sh flagged this file as cascading, inject a nudge (not a deny).
 CASCADE_CONTEXT=""
 if [ -n "$SESSION_ID" ] && [ -n "$FILE_PATH" ]; then

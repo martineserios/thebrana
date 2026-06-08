@@ -324,6 +324,72 @@ fi
 fi # end pre-compact tests
 echo ""
 
+# ─── Tool-layer config guard (t-1862) ──────────────────────────────────────
+echo "--- Tool-layer config guard (pre-tool-use.sh) ---"
+
+# Helper: build a test repo with docs/decisions/ opt-in on a feat/* branch
+make_feat_repo() {
+    local dir="$1"
+    (
+        cd "$dir"
+        git init -q
+        git commit --allow-empty -m "init" -q
+        git checkout -b feat/test -q
+        mkdir -p docs/decisions
+    ) >/dev/null 2>&1
+}
+
+# Test 13: Write to ~/.claude/settings.json → denied (highest-risk global config)
+echo "  Test 13: write to settings.json is denied..."
+TMPDIR13=$(mktemp -d)
+make_feat_repo "$TMPDIR13"
+OUTPUT13=$(run_pre_hook "$(jq -n \
+    --arg tool "Write" \
+    --arg cwd "$TMPDIR13" \
+    --arg fp "$HOME/.claude/settings.json" \
+    '{tool_name: $tool, cwd: $cwd, tool_input: {file_path: $fp}}')")
+if echo "$OUTPUT13" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1; then
+    pass "pre-tool-use — settings.json write denied (tool-layer guard)"
+else
+    fail "pre-tool-use — settings.json write should be denied, got: $OUTPUT13"
+fi
+rm -rf "$TMPDIR13"
+
+# Test 14: Write to hooks.json → allowed but warns (normal dev path)
+echo "  Test 14: write to hooks/hooks.json passes through with warning..."
+TMPDIR14=$(mktemp -d)
+make_feat_repo "$TMPDIR14"
+mkdir -p "$TMPDIR14/system/hooks"
+OUTPUT14=$(run_pre_hook "$(jq -n \
+    --arg tool "Write" \
+    --arg cwd "$TMPDIR14" \
+    --arg fp "$TMPDIR14/system/hooks/hooks.json" \
+    '{tool_name: $tool, cwd: $cwd, tool_input: {file_path: $fp}}')")
+if echo "$OUTPUT14" | jq -e '.continue == true' >/dev/null 2>&1; then
+    pass "pre-tool-use — hooks.json write allowed (passes through with warning)"
+else
+    fail "pre-tool-use — hooks.json write should pass through, got: $OUTPUT14"
+fi
+rm -rf "$TMPDIR14"
+
+# Test 15: Write to .mcp.json → allowed but warns
+echo "  Test 15: write to .mcp.json passes through with warning..."
+TMPDIR15=$(mktemp -d)
+make_feat_repo "$TMPDIR15"
+OUTPUT15=$(run_pre_hook "$(jq -n \
+    --arg tool "Write" \
+    --arg cwd "$TMPDIR15" \
+    --arg fp "$TMPDIR15/.mcp.json" \
+    '{tool_name: $tool, cwd: $cwd, tool_input: {file_path: $fp}}')")
+if echo "$OUTPUT15" | jq -e '.continue == true' >/dev/null 2>&1; then
+    pass "pre-tool-use — .mcp.json write allowed (passes through with warning)"
+else
+    fail "pre-tool-use — .mcp.json write should pass through, got: $OUTPUT15"
+fi
+rm -rf "$TMPDIR15"
+
+echo ""
+
 # Summary
 echo "=== Hook Smoke Summary ==="
 echo "Passed: $PASSED"
