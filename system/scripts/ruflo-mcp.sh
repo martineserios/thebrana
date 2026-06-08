@@ -16,11 +16,24 @@ else
     cd "$HOME"
 fi
 
-# Advisory PID file for diagnostics (not a mutex — AgentDB v3 uses WAL)
-LOCKFILE="$HOME/.swarm/ruflo-mcp.pid"
+# Hard mutex: only ONE ruflo instance may write to memory.db at a time.
+# SQLite WAL allows concurrent readers but concurrent writers corrupt B-trees —
+# confirmed by the May 2026 corruption event (memory.db.corrupt-2026-04-06,
+# memory.db.corrupt-2026-06-07). Advisory PID file was insufficient; replaced
+# with flock. If CC spawns multiple sessions, only the first gets ruflo;
+# later sessions see "failed" in /mcp — run /mcp reconnect to retry after the
+# prior session closes.
+LOCKFILE="$HOME/.swarm/ruflo-mcp.lock"
+PIDFILE="$HOME/.swarm/ruflo-mcp.pid"
 mkdir -p "$HOME/.swarm"
-echo $$ > "$LOCKFILE"
-trap 'rm -f "$LOCKFILE"' EXIT
+exec 9>"$LOCKFILE"
+if ! flock -n 9; then
+    existing_pid="$(cat "$PIDFILE" 2>/dev/null || echo unknown)"
+    echo "[ruflo-mcp] Another instance is running (PID: $existing_pid). Exiting to prevent DB corruption." >&2
+    exit 1
+fi
+echo $$ > "$PIDFILE"
+trap 'rm -f "$LOCKFILE" "$PIDFILE"' EXIT
 
 # Resolution order:
 #   1. nvm default node's bin/
