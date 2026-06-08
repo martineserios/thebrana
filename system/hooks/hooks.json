@@ -7,7 +7,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool-use.sh"
+            "command": "bash \"$HOME/.claude/hooks/pre-tool-use.sh\""
           }
         ]
       },
@@ -17,7 +17,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/tdd-gate.sh"
+            "command": "bash \"$HOME/.claude/hooks/tdd-gate.sh\""
           }
         ]
       },
@@ -28,7 +28,7 @@
             "type": "command",
             "timeout": 3000,
             "continueOnBlock": true,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/feedback-gate.sh"
+            "command": "bash \"$HOME/.claude/hooks/feedback-gate.sh\""
           }
         ]
       },
@@ -39,7 +39,7 @@
             "type": "command",
             "timeout": 3000,
             "continueOnBlock": true,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/memory-write-gate.sh"
+            "command": "bash \"$HOME/.claude/hooks/memory-write-gate.sh\""
           }
         ]
       },
@@ -49,7 +49,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/plan-mode-gate.sh"
+            "command": "bash \"$HOME/.claude/hooks/plan-mode-gate.sh\""
           }
         ]
       },
@@ -59,7 +59,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/worktree-gate.sh"
+            "command": "bash \"$HOME/.claude/hooks/worktree-gate.sh\""
           }
         ]
       },
@@ -69,7 +69,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/doc-gate.sh"
+            "command": "bash \"$HOME/.claude/hooks/doc-gate.sh\""
           }
         ]
       },
@@ -79,7 +79,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/main-guard.sh"
+            "command": "bash \"$HOME/.claude/hooks/main-guard.sh\""
           }
         ]
       },
@@ -90,7 +90,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/branch-verify.sh"
+            "command": "bash \"$HOME/.claude/hooks/branch-verify.sh\""
           }
         ]
       },
@@ -101,7 +101,7 @@
           {
             "type": "command",
             "timeout": 3000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/branch-name-warn.sh"
+            "command": "bash \"$HOME/.claude/hooks/branch-name-warn.sh\""
           }
         ]
       },
@@ -111,7 +111,7 @@
           {
             "type": "command",
             "timeout": 3000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/no-attribution-commit.sh"
+            "command": "bash \"$HOME/.claude/hooks/no-attribution-commit.sh\""
           }
         ]
       },
@@ -122,7 +122,17 @@
           {
             "type": "command",
             "timeout": 3000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/commit-msg-verify.sh"
+            "command": "bash \"$HOME/.claude/hooks/commit-msg-verify.sh\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 3000,
+            "command": "bash \"$HOME/.claude/hooks/branch-checkout-warn.sh\""
           }
         ]
       }
@@ -134,7 +144,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/post-tool-use.sh"
+            "command": "bash \"$HOME/.claude/hooks/post-tool-use.sh\""
           }
         ]
       },
@@ -144,7 +154,7 @@
           {
             "type": "command",
             "timeout": 2000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/skill-sentinel.sh"
+            "command": "bash \"$HOME/.claude/hooks/skill-sentinel.sh\""
           }
         ]
       },
@@ -155,7 +165,7 @@
             "type": "command",
             "timeout": 5000,
             "continueOnBlock": true,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/post-plan-challenge.sh"
+            "command": "bash \"$HOME/.claude/hooks/post-plan-challenge.sh\""
           }
         ]
       },
@@ -165,7 +175,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/post-pr-review.sh"
+            "command": "bash \"$HOME/.claude/hooks/post-pr-review.sh\""
           }
         ]
       },
@@ -175,7 +185,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/task-completed.sh"
+            "command": "bash \"$HOME/.claude/hooks/task-completed.sh\""
           }
         ]
       },
@@ -185,7 +195,7 @@
           {
             "type": "command",
             "timeout": 3000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/hallucination-detect.sh"
+            "command": "bash \"$HOME/.claude/hooks/hallucination-detect.sh\""
           }
         ]
       },
@@ -195,7 +205,7 @@
           {
             "type": "command",
             "timeout": 3000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/bash-output-compress.sh"
+            "command": "bash \"$HOME/.claude/hooks/bash-output-compress.sh\""
           }
         ]
       },
@@ -205,7 +215,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/post-sale.sh"
+            "command": "bash \"$HOME/.claude/hooks/post-sale.sh\""
           }
         ]
       },
@@ -216,7 +226,7 @@
             "type": "command",
             "timeout": 5000,
             "continueOnBlock": true,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/post-tasks-validate.sh"
+            "command": "bash \"$HOME/.claude/hooks/post-tasks-validate.sh\""
           }
         ]
       },
@@ -226,7 +236,7 @@
           {
             "type": "command",
             "timeout": 10000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/post-hooks-json.sh"
+            "command": "bash \"$HOME/.claude/hooks/post-hooks-json.sh\""
           }
         ]
       },
@@ -237,7 +247,18 @@
             "type": "command",
             "timeout": 3000,
             "async": true,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/memory-index-sync.sh"
+            "command": "bash \"$HOME/.claude/hooks/memory-index-sync.sh\""
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 5000,
+            "async": true,
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/hooks-auto-deploy.sh"
           }
         ]
       }
@@ -249,7 +270,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/post-tool-use-failure.sh"
+            "command": "bash \"$HOME/.claude/hooks/post-tool-use-failure.sh\""
           }
         ]
       }
@@ -261,7 +282,7 @@
           {
             "type": "command",
             "timeout": 3000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/preflight-model.sh"
+            "command": "bash \"$HOME/.claude/hooks/preflight-model.sh\""
           }
         ]
       },
@@ -271,7 +292,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/context-inject.sh"
+            "command": "bash \"$HOME/.claude/hooks/context-inject.sh\""
           }
         ]
       },
@@ -281,7 +302,7 @@
           {
             "type": "command",
             "timeout": 3000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/signal-capture.sh"
+            "command": "bash \"$HOME/.claude/hooks/signal-capture.sh\""
           }
         ]
       }
@@ -293,7 +314,7 @@
           {
             "type": "command",
             "timeout": 10000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh"
+            "command": "bash \"$HOME/.claude/hooks/session-start.sh\""
           }
         ]
       },
@@ -303,7 +324,7 @@
           {
             "type": "command",
             "async": true,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/cc-changelog-check.sh"
+            "command": "bash $HOME/.claude/scripts/cc-changelog-check.sh"
           }
         ]
       }
@@ -315,7 +336,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/subagent-context.sh"
+            "command": "bash \"$HOME/.claude/hooks/subagent-context.sh\""
           }
         ]
       },
@@ -325,7 +346,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/subagent-tracker.sh"
+            "command": "bash \"$HOME/.claude/hooks/subagent-tracker.sh\""
           }
         ]
       }
@@ -337,7 +358,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/subagent-tracker.sh"
+            "command": "bash \"$HOME/.claude/hooks/subagent-tracker.sh\""
           }
         ]
       }
@@ -349,7 +370,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/step-completed.sh"
+            "command": "bash \"$HOME/.claude/hooks/step-completed.sh\""
           }
         ]
       }
@@ -361,7 +382,7 @@
           {
             "type": "command",
             "timeout": 10000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/session-end.sh"
+            "command": "bash \"$HOME/.claude/hooks/session-end.sh\""
           }
         ]
       }
@@ -373,7 +394,7 @@
           {
             "type": "command",
             "timeout": 8000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/goal-completion.sh"
+            "command": "bash -c 'f=\"$HOME/.claude/hooks/goal-completion.sh\"; [ -f \"$f\" ] && bash \"$f\" || echo \"{\\\"continue\\\": true}\"'"
           }
         ]
       }
@@ -385,7 +406,7 @@
           {
             "type": "command",
             "timeout": 5000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/stopfailure-logger.sh"
+            "command": "bash \"$HOME/.claude/hooks/stopfailure-logger.sh\""
           }
         ]
       }
@@ -397,7 +418,7 @@
           {
             "type": "command",
             "timeout": 8000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/pre-compact.sh"
+            "command": "bash \"$HOME/.claude/hooks/pre-compact.sh\""
           }
         ]
       }
@@ -409,7 +430,7 @@
           {
             "type": "command",
             "timeout": 3000,
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/config-change-guard.sh"
+            "command": "bash \"$HOME/.claude/hooks/config-change-guard.sh\""
           }
         ]
       }
