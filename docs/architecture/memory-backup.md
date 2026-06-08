@@ -106,6 +106,10 @@ cd ~ && ruflo memory init --force
 | `system/state/patterns-export.json` | JSON export (git-tracked) |
 | `.swarm/memory.db` | Project-local swarm DB (legacy, separate) |
 
+## Changelog
+
+- 2026-06-08: t-1883 — `sync-state.sh push` now guards `active_epic` against cross-project contamination. See ADR-015 for details.
+
 ## Known Issues
 
 - **Ruflo CLI `memory export`** delegates to non-existent MCP tool `memory_export`. Use `sync-state.sh export` instead.

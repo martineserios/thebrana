@@ -425,4 +425,5 @@ cd thebrana && ./bootstrap.sh
 
 ## Changelog
 
+- 2026-06-08: t-1883 added active_epic contamination guard to `cmd_push`. Before the sync loop, captures the repo's `active_epic`; after syncing, reverts it if the cache value differs and warns. Prevents client project sessions from overwriting thebrana's active epic via the shared `~/.claude/tasks-config.json`. Use `brana backlog active <slug>` to change it intentionally.
 - 2026-03-31: t-614 reduced repo sync scope. `sessions.md`, `session-handoff.md`, and `MEMORY-snapshot.md` no longer copied to `.claude/memory/` in repo — they stay in auto memory only. `sync-state.sh snapshot` subcommand removed. Companion file sync limited to `event-log.md`. Handoff rotation added (keep last 10 entries). Rationale: `sessions.md` was 390KB of telemetry noise in git, `MEMORY-snapshot.md` was redundant (MEMORY.md always loaded by CC), and duplicated handoff files drifted apart.
