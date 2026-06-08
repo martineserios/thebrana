@@ -569,7 +569,7 @@ ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo_
    If user selects **in-session**, pool is empty, or ruflo unavailable: proceed to step 6.
 
 6. **Determine execution mode:**
-   - `code`: check git status clean → create branch `{prefix}{id}-{slug}` → set status + started date + branch field → **enter `/brana:build` with the task's strategy** (build_step: classify)
+   - `code`: check git status clean → compute and display branch name (see Branch creation below) → create branch → set status + started date + branch field → **enter `/brana:build` with the task's strategy** (build_step: classify)
    - `external`: set status + started date, show task description
    - `manual`: set status + started date, show checklist from description
 7. **Write tasks.json** (status: in_progress, started: today, strategy: confirmed)
@@ -586,7 +586,7 @@ ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo_
    - If task has no `github_issue`: run `system/scripts/gh-sync.sh create {task-id} {tasks-json-path}`. Read issue number from stdout, write to task's `github_issue` field.
    - If task has `github_issue`: run `system/scripts/gh-sync.sh pull-context {issue-number}`. If comments returned, replace `## GitHub Comments` section in task's `context` field.
    - If sync fails (exit code 1 or 2): warn "GitHub sync failed. Task started locally." — do NOT block start.
-9. **Report:** "Started t-008 'Implement JWT middleware' as **feature**. Branch: feat/t-008-jwt-middleware."
+9. **Report:** "Started t-008 'Implement JWT middleware' as **feature**. Branch: harness-core/feat/t-008-implement-jwt-middleware."
 10. **For code tasks:** invoke `/brana:build` immediately using the Skill tool:
    ```
    Skill(skill="brana:build", args="{task-id}")
@@ -595,17 +595,42 @@ ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__ruflo_
 
 ### Branch creation
 
+Branch name follows the project convention (CLAUDE.md §Branch naming):
+```
+{epic-slug}/{work-type}/t-{NNN}-{subject-slug}
+```
+
+**Computing the branch name:**
+1. `epic-slug` — from `task.epic`. If empty: emit warning and stop: "⚠ Task t-NNN has no epic set. Set it first: `brana backlog set t-NNN epic <slug>`, then re-run start." Do not create a branch with a placeholder epic.
+2. `work-type` — map `task.work_type` → git prefix (exhaustive; covers all values found in data):
+   - `implement` / `feat` → `feat`
+   - `fix` → `fix`
+   - `refactor` → `refactor`
+   - `research` → `research`
+   - `test` → `test`
+   - `chore` / `ops` / `infra` / `dev` → `chore`
+   - `design` / `docs` / `document` → `docs`
+   - `review` → `review`
+   - any other → `feat`
+3. `subject-slug` — first 3–4 words of `task.subject`, lowercased, non-alphanumeric replaced with `-`, consecutive dashes collapsed. Strip leading articles ("a", "an", "the"). Strip leading/trailing dashes. Aim for ≤4 words (CLAUDE.md convention).
+
+**Display the suggestion before creating:**
+```
+Suggested branch: {epic-slug}/{work-type}/t-{NNN}-{subject-slug}
+# Example: harness-core/feat/t-1621-backlog-start-branch-suggest
+```
+
 ```bash
 # Check for existing branch
-git branch --list "feat/t-008-*" 2>/dev/null
+git branch --list "*t-{NNN}-*" 2>/dev/null
 # If exists: "Branch already exists. Resume?" -> checkout
 # If not: create new
-git checkout -b feat/t-008-jwt-middleware
+git checkout -b {epic-slug}/{work-type}/t-{NNN}-{subject-slug}
 ```
 
 Integrate with worktree pattern if on a different branch:
 ```bash
-git worktree add ../project-feat-t-008 -b feat/t-008-jwt-middleware
+git worktree add ../<repo>-{epic-slug}/{work-type}/t-{NNN}-{subject-slug} -b {epic-slug}/{work-type}/t-{NNN}-{subject-slug}
 ```
 
 ---
