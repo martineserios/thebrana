@@ -1904,8 +1904,11 @@ echo "Check 46: cargo test --workspace (test-only compile check)..."
 if [ ! -f "$RUST_ROOT/Cargo.toml" ]; then
     warn "Check 46: $RUST_ROOT/Cargo.toml not found — skipping"
 else
-    CARGO_OUT=$(cargo test --workspace --manifest-path "$RUST_ROOT/Cargo.toml" --no-run 2>&1)
-    CARGO_EXIT=$?
+    if CARGO_OUT=$(cargo test --workspace --manifest-path "$RUST_ROOT/Cargo.toml" --no-run 2>&1); then
+        CARGO_EXIT=0
+    else
+        CARGO_EXIT=$?
+    fi
     echo "$CARGO_OUT" | tail -5 | sed 's/^/  /'
     if [ $CARGO_EXIT -eq 0 ]; then
         pass "Check 46: cargo test --workspace compiles cleanly ✓"
