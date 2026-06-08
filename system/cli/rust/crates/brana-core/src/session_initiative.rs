@@ -153,6 +153,46 @@ pub fn clear_initiative_marker(project_root: &Path) -> Result<()> {
     Ok(())
 }
 
+// ── Persistent focus marker ───────────────────────────────────────────────
+// session-epic-focus.json — written by `brana session epic focus <slug>`,
+// cleared only by `brana session epic unfocus`. Not cleared at session close.
+
+pub fn session_focus_path(project_root: &Path) -> PathBuf {
+    resolve_memory_dir(project_root).join("session-epic-focus.json")
+}
+
+/// Write (or overwrite) the persistent focus marker atomically.
+pub fn write_focus_marker(project_root: &Path, slug: &str) -> Result<()> {
+    let path = session_focus_path(project_root);
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let json = serde_json::json!({
+        "epic": slug,
+        "written_at": Utc::now().to_rfc3339()
+    });
+    let tmp = path.with_extension(format!("tmp.{}", std::process::id()));
+    std::fs::write(&tmp, serde_json::to_string_pretty(&json)?)?;
+    std::fs::rename(&tmp, &path)?;
+    Ok(())
+}
+
+/// Read the focus slug. Returns None when the file is absent or unparseable.
+pub fn read_focus_marker(project_root: &Path) -> Option<String> {
+    let data = std::fs::read_to_string(session_focus_path(project_root)).ok()?;
+    let v: serde_json::Value = serde_json::from_str(&data).ok()?;
+    v["epic"].as_str().map(|s| s.to_string())
+}
+
+/// Delete the focus marker. No-op if the file is absent.
+pub fn clear_focus_marker(project_root: &Path) -> Result<()> {
+    let path = session_focus_path(project_root);
+    if path.exists() {
+        std::fs::remove_file(&path)?;
+    }
+    Ok(())
+}
+
 /// Write the initiative marker if the task JSON has a non-empty `epic` field.
 /// Called by `brana run` after setting the task to in_progress. No-op when the field is absent or null.
 pub fn maybe_write_initiative_marker(
@@ -501,6 +541,55 @@ mod tests {
         let task = serde_json::json!({"id": "t-999", "epic": null});
         maybe_write_initiative_marker(dir.path(), "t-999", &task).unwrap();
         assert!(read_initiative_marker(dir.path()).is_none());
+    }
+
+    // ── Focus marker tests ────────────────────────────────────────────────
+
+    #[test]
+    fn focus_write_read_roundtrip() {
+        let dir = tempdir().unwrap();
+        write_focus_marker(dir.path(), "session-continuity").unwrap();
+        let slug = read_focus_marker(dir.path());
+        assert_eq!(slug.as_deref(), Some("session-continuity"));
+    }
+
+    #[test]
+    fn focus_clear_removes_file() {
+        let dir = tempdir().unwrap();
+        write_focus_marker(dir.path(), "rust-cli").unwrap();
+        assert!(read_focus_marker(dir.path()).is_some());
+        clear_focus_marker(dir.path()).unwrap();
+        assert!(read_focus_marker(dir.path()).is_none());
+    }
+
+    #[test]
+    fn focus_read_returns_none_when_absent() {
+        let dir = tempdir().unwrap();
+        assert!(read_focus_marker(dir.path()).is_none());
+    }
+
+    #[test]
+    fn focus_clear_noop_on_missing_file() {
+        let dir = tempdir().unwrap();
+        clear_focus_marker(dir.path()).unwrap(); // must not error
+    }
+
+    #[test]
+    fn focus_overwrite_replaces_slug() {
+        let dir = tempdir().unwrap();
+        write_focus_marker(dir.path(), "epic-a").unwrap();
+        write_focus_marker(dir.path(), "epic-b").unwrap();
+        assert_eq!(read_focus_marker(dir.path()).as_deref(), Some("epic-b"));
+    }
+
+    #[test]
+    fn focus_path_is_distinct_from_marker_path() {
+        let dir = tempdir().unwrap();
+        let focus = session_focus_path(dir.path());
+        let marker = session_start_marker_path(dir.path());
+        assert_ne!(focus, marker);
+        assert!(focus.to_str().unwrap().contains("session-epic-focus.json"));
+        assert!(marker.to_str().unwrap().contains("session-epic-marker.json"));
     }
 
     #[test]

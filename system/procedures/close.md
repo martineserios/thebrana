@@ -923,7 +923,14 @@ If no task was claimed or `claims_release` fails (MCP down), skip silently.
 
 > Skip entirely if `$CLOSE_MODE == "NANO"`.
 
-**Detect active epic (3-tier cascade, run in order, stop at first hit):**
+**Detect active epic (4-tier cascade, run in order, stop at first hit):**
+
+**Tier 0 (persistent focus):** Read the persistent focus file written by `brana session epic focus`:
+```bash
+TIER0_SLUG=$(brana session epic status --json 2>/dev/null | jq -r '.focus // empty')
+```
+If non-empty, use it as `$INITIATIVE_SLUG` silently and skip Tier 1/2a/2b/2c/3. Do NOT clear it — the focus file is persistent and only removed by `brana session epic unfocus`.
+If empty, fall through to Tier 1.
 
 **Tier 1 (session-start marker):** Read the marker written by `brana run` at session start:
 ```bash

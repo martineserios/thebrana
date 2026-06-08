@@ -145,6 +145,9 @@ fn main() {
                 EpicCmd::Archive { slug } => run_or_exit(commands::session::cmd_epic_archive(&slug)),
                 EpicCmd::ReadMarker => run_or_exit(commands::session::cmd_epic_read_marker()),
                 EpicCmd::ClearMarker => run_or_exit(commands::session::cmd_epic_clear_marker()),
+                EpicCmd::Focus { slug } => run_or_exit(commands::session::cmd_epic_focus(&slug)),
+                EpicCmd::Unfocus => run_or_exit(commands::session::cmd_epic_unfocus()),
+                EpicCmd::Status { json } => run_or_exit(commands::session::cmd_epic_status(json)),
             },
         },
         Commands::Knowledge { cmd } => match cmd {

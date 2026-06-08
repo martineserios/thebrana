@@ -49600,8 +49600,8 @@
     },
     {
       "blocked_by": [],
-      "branch": null,
-      "build_step": null,
+      "branch": "session/feat/t-1900-epic-focus-unfocus-status",
+      "build_step": "build",
       "completed": null,
       "context": "Initiative Redesign v3. Add brana session epic focus <slug> / unfocus / status commands. Writes to session-epic-focus.json (distinct from session-epic-marker.json). Persistent — not cleared at close, only by unfocus. Close §9c reads focus file first, falls back to transient marker, then skips (no ask). Two-file model: session-epic-marker.json (transient, existing) + session-epic-focus.json (persistent, new). Also add silent failure guard: when focus read returns a slug, verify accumulator exists, log once if not. Blocks backlog-add default-epic task and close.md simplification task.",
       "created": "2026-06-08",
@@ -49614,9 +49614,9 @@
       "order": null,
       "parent": null,
       "priority": "P3",
-      "started": null,
-      "status": "pending",
-      "strategy": null,
+      "started": "2026-06-08",
+      "status": "in_progress",
+      "strategy": "feature",
       "subject": "session epic focus/unfocus/status + session-epic-focus.json persistent marker",
       "tags": [
         "harness-core",

@@ -499,6 +499,65 @@ pub fn cmd_epic_clear_marker() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// `brana session epic focus <slug>`
+pub fn cmd_epic_focus(slug: &str) -> anyhow::Result<()> {
+    use brana_core::session_initiative::write_focus_marker;
+    let root = require_project_root()?;
+    write_focus_marker(&root, slug)?;
+    println!("{{\"ok\":true,\"epic\":\"{slug}\",\"action\":\"focus-set\"}}");
+    Ok(())
+}
+
+/// `brana session epic unfocus`
+pub fn cmd_epic_unfocus() -> anyhow::Result<()> {
+    use brana_core::session_initiative::clear_focus_marker;
+    let root = require_project_root()?;
+    clear_focus_marker(&root)?;
+    println!("{{\"ok\":true,\"action\":\"focus-cleared\"}}");
+    Ok(())
+}
+
+/// `brana session epic status [--json]`
+///
+/// Shows both the persistent focus and the transient marker.
+/// Silent failure guard: if focus slug is set but the accumulator is absent, logs a warning.
+pub fn cmd_epic_status(json_output: bool) -> anyhow::Result<()> {
+    use brana_core::session_initiative::{
+        read_focus_marker, read_initiative, read_initiative_marker,
+    };
+    let root = require_project_root()?;
+
+    let focus = read_focus_marker(&root);
+    let marker = read_initiative_marker(&root);
+
+    // Silent failure guard: focus slug set but no accumulator
+    if let Some(ref slug) = focus {
+        if read_initiative(&root, slug).is_none() {
+            eprintln!(
+                "warning: focus epic '{slug}' has no accumulator — run `brana session epic upsert {slug}` after a session close to create one"
+            );
+        }
+    }
+
+    if json_output {
+        let obj = serde_json::json!({
+            "focus": focus,
+            "marker": marker,
+        });
+        println!("{}", serde_json::to_string_pretty(&obj)?);
+    } else {
+        println!(
+            "focus:  {}",
+            focus.as_deref().unwrap_or("(none — run `brana session epic focus <slug>` to set)")
+        );
+        println!(
+            "marker: {}",
+            marker.as_deref().unwrap_or("(none — set by `brana run` when starting a task)")
+        );
+    }
+    Ok(())
+}
+
 // ── Tests ────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
