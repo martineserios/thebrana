@@ -395,18 +395,29 @@ if [ -f "$SYSTEM_DIR/hooks/hooks.json" ]; then
         fi
     done
 
-    # Validate commands use ${CLAUDE_PLUGIN_ROOT} and point to existing scripts
-    # Read line-by-line to avoid word-splitting "bash ${CLAUDE_PLUGIN_ROOT}/hooks/x.sh" → ["bash", "path"]
+    # Validate commands point to existing scripts.
+    # Two formats are valid (E2026-06-08-1 migrated from plugin-root to deployed-path):
+    #   Old: bash ${CLAUDE_PLUGIN_ROOT}/hooks/x.sh  → resolve via $SYSTEM_DIR
+    #   New: bash "$HOME/.claude/hooks/x.sh"        → resolve via $HOME expansion
     while IFS= read -r cmd; do
         [ -z "$cmd" ] && continue
-        # Extract the script path (last whitespace-separated token in the command)
-        SCRIPT_PATH=$(echo "$cmd" | awk '{print $NF}')
+        # Skip inline bash -c commands (not a path-based script reference)
+        echo "$cmd" | grep -q "bash -c " && continue
+        # Strip surrounding/embedded quotes from last token to get a clean path
+        SCRIPT_PATH=$(echo "$cmd" | awk '{print $NF}' | tr -d '"')
         SCRIPT_NAME=$(basename "$SCRIPT_PATH")
-        if ! echo "$cmd" | grep -q '${CLAUDE_PLUGIN_ROOT}'; then
-            fail "hooks.json command '$SCRIPT_NAME' does not use \${CLAUDE_PLUGIN_ROOT}"
+        # Skip if extracted name doesn't look like a shell script
+        [[ "$SCRIPT_NAME" != *.sh ]] && continue
+        if echo "$cmd" | grep -q '${CLAUDE_PLUGIN_ROOT}'; then
+            # Old format: resolve plugin root
+            SCRIPT_RESOLVED=$(echo "$SCRIPT_PATH" | sed "s|\${CLAUDE_PLUGIN_ROOT}|$SYSTEM_DIR|g")
+        elif echo "$cmd" | grep -q '\$HOME\|'"$HOME"; then
+            # New deployed-path format: expand $HOME
+            SCRIPT_RESOLVED=$(echo "$SCRIPT_PATH" | sed "s|\$HOME|$HOME|g")
+        else
+            fail "hooks.json command '$SCRIPT_NAME' uses unknown path format (expected \${CLAUDE_PLUGIN_ROOT} or \$HOME/.claude/hooks/)"
+            continue
         fi
-        # Resolve ${CLAUDE_PLUGIN_ROOT} to $SYSTEM_DIR so scripts/ and hooks/ both work
-        SCRIPT_RESOLVED=$(echo "$SCRIPT_PATH" | sed "s|\${CLAUDE_PLUGIN_ROOT}|$SYSTEM_DIR|g")
         if [ ! -f "$SCRIPT_RESOLVED" ]; then
             fail "hooks.json references $SCRIPT_NAME but file not found (resolved: $SCRIPT_RESOLVED)"
         elif [ ! -x "$SCRIPT_RESOLVED" ]; then
