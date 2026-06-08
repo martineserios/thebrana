@@ -2019,6 +2019,51 @@ fi
 echo ""
 fi  # should_run 49
 
+# Check 50 — removed schema fields must not appear in producer surfaces (t-1565)
+if should_run 50; then
+echo "Check 50: schema-removals.json — removed fields must not appear in producer surfaces..."
+SCHEMA_REMOVALS="$SCRIPT_DIR/system/state/schema-removals.json"
+if [ ! -f "$SCHEMA_REMOVALS" ]; then
+    pass "Check 50: system/state/schema-removals.json not found — skipping"
+elif ! command -v jq &>/dev/null; then
+    warn "Check 50: jq not available — cannot check schema-removals.json"
+else
+    C50_FAILS=0
+    while IFS=$'\t' read -r field pattern whole_word globs_json search_dir; do
+        [ -z "$field" ] && continue
+        word_flag=""
+        [ "$whole_word" = "true" ] && word_flag="-w"
+        # Build --include flags as a bash array (avoids nullglob expansion of unquoted globs)
+        declare -a c50_include=()
+        while IFS= read -r glob; do
+            c50_include+=("--include=$glob")
+        done < <(echo "$globs_json" | jq -r '.[]' 2>/dev/null)
+        # shellcheck disable=SC2086 — $word_flag is intentionally unquoted (may be empty)
+        hits=$(grep -rn $word_flag "$pattern" "$SCRIPT_DIR/$search_dir" "${c50_include[@]}" 2>/dev/null \
+               | grep -v '^[^:]*:[0-9]*:[[:space:]]*//' \
+               || true)
+        if [ -n "$hits" ]; then
+            echo "  Removed field '$field' still found in producer surfaces:"
+            echo "$hits" | sed 's/^/    /'
+            C50_FAILS=$((C50_FAILS + 1))
+        fi
+    done < <(
+        jq -r '.removed_fields[] | select(.status == "active") |
+               [.field, .grep_pattern,
+                (.grep_whole_word // false | tostring),
+                (.grep_include_globs | tojson),
+                .search_dir] | @tsv' \
+               "$SCHEMA_REMOVALS" 2>/dev/null || true
+    )
+    if [ "$C50_FAILS" -gt 0 ]; then
+        warn "Check 50: $C50_FAILS removed schema field(s) found in producer surfaces — remove them or add to allowlist. Registry: $SCHEMA_REMOVALS"
+    else
+        pass "Check 50: no removed schema fields found in producer surfaces"
+    fi
+fi
+echo ""
+fi  # should_run 50
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."

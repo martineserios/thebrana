@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "doc": "Registry of removed schema fields. Each active entry is grepped across its producer surfaces by validate.sh Check 50. Add an entry here when removing a field from the task schema so future branches cannot silently re-introduce it. See E2026-05-20-6 and t-1565.",
+  "removed_fields": [
+    {
+      "field": "stream",
+      "grep_pattern": "stream",
+      "grep_whole_word": true,
+      "grep_include_globs": ["*_add.rs", "*_stats.rs"],
+      "search_dir": "system/cli/rust/crates/",
+      "status": "active",
+      "removed_in": "t-1540",
+      "removed_date": "2026-05-20",
+      "note": "stream field removed from task schema; replaced by work_type. Caused two re-injection regressions (E2026-05-20-5/6) before this gate was added."
+    }
+  ]
+}
