@@ -31,7 +31,7 @@ All brana hooks follow a safety principle: they never fail fatally. Every hook u
 Each hook entry in `hooks.json` requires a `command` field (string), not `args` (array):
 
 ```json
-{ "type": "command", "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/script.sh", "timeout": 5000 }
+{ "type": "command", "command": "bash \"$HOME/.claude/hooks/script.sh\"", "timeout": 5000 }
 ```
 
 The `args: ["bash", "path"]` array form was removed from CC's hook schema. Using `args` causes a silent load failure — `/doctor` reports "expected string, received undefined" for every entry. Fix: join the array into a space-separated string under `command`. (E2026-05-31-2, promoted 2026-05-31)
@@ -78,6 +78,7 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | `rust-skills-guard.sh` | ~~PreToolUse~~ | ~~`Write\|Edit`~~ | **Deregistered 2026-06-04**. Blocked `*.rs` writes until `brana:rust-skills` was loaded. Removed because it caused a stop-and-continue loop on every fresh session (sentinel absent → every `.rs` edit blocked). t-1845 tracks a SessionStart-based auto-load replacement. |
 | `no-attribution-commit.sh` | PreToolUse | `Bash` | Block `git commit` and `gh pr create` calls containing forbidden attribution signatures (Co-Authored-By, Signed-off-by). Keeps commit history clean. |
 | `commit-msg-verify.sh` | PreToolUse | `Bash` | Advisory (non-blocking): warns when commit message mentions filenames not in the staged diff. Catches commit messages that describe more than what was actually staged. |
+| `branch-checkout-warn.sh` | PreToolUse | `Bash` | **Advisory**: warns when the command matches a named local branch checkout (not file restores, tags, or commit hashes). Nudges toward `git worktree add` instead. Main-branch and remote-tracking checkouts pass silently. Added 2026-06-08 (t-1840). |
 | `guard-explore.sh` | ~~PreToolUse~~ | ~~`Read\|Grep\|Glob`~~ | **Deregistered 2026-05-30** (t-1711). Gated behind "strict" profile — never ran in standard sessions. Observation period complete (t-639 2026-03-31). |
 | `subagent-context.sh` | SubagentStart | `""` (all) | Inject active task + branch + plan + recent decisions into spawned agents |
 | `subagent-tracker.sh` | SubagentStart+SubagentStop | `""` (all) | Track agent spawns and completions to session JSONL |
@@ -86,6 +87,7 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | `hallucination-detect.sh` | PostToolUse | `Bash` | Advisory: warns when a commit message contains completion keywords (fix/done/complete/close/resolve) but no test files were staged. Never blocks. |
 | `bash-output-compress.sh` | PostToolUse | `Bash` | Advisory: if Bash output exceeds 100 lines or 8000 chars, injects compressed view (first 30 + truncation marker + last 10) via `additionalContext`. Saves context budget on verbose CLI output. Never blocks. t-1716. |
 | `skill-sentinel.sh` | PostToolUse | `Skill` | Write skill-loaded sentinel `/tmp/brana-{skill}-loaded-{SESSION_ID}` when a gated skill completes. Extension point: add entries to GATED_SKILLS case block for new skill gates. t-1480. |
+| `hooks-auto-deploy.sh` | PostToolUse | `Write\|Edit` | Bootstrap agent: auto-syncs `system/hooks/` → `~/.claude/hooks/` via `rsync -a --delete` whenever hook files are written, on main branch only. Only hook that retains `${CLAUDE_PLUGIN_ROOT}` in its command (bootstrap circularity guard — cannot self-deploy from the deployed copy). Added 2026-06-08 (t-1840). |
 | `preflight-model.sh` | UserPromptSubmit | `""` (all) | Advisory (non-blocking): warns when a heavy skill (`/brana:close`, `/brana:brainstorm`, `/brana:build`) is invoked while extra-usage is disabled. Silence: `BRANA_1M_WARN_OFF=1`. |
 | `context-inject.sh` | UserPromptSubmit | `""` (all) | Advisory: detects t-NNN task IDs and file paths in the prompt. Injects task subject/description/context (max 3 IDs) and file `head -20` content (max 3 paths). Absolute, relative (resolved to project root), and `~` paths supported. |
 | `signal-capture.sh` | UserPromptSubmit | `""` (all) | Advisory: detects explicit ratings (N/5, N/10, emoji) and implicit sentiment (English + Spanish phrases) in user prompts. Writes to `~/.claude/ratings/ratings.jsonl`; dumps failure context to `FAILURES/`. |
@@ -201,6 +203,7 @@ Differentiator: "Does bypassing this gate corrupt an invariant that cannot be re
 | `branch-verify.sh` | Bash | **Enforcement** | Never | Behavioral files must not be staged on main (caught before main-guard) |
 | `no-attribution-commit.sh` | Bash | **Enforcement** | Never | Attribution lines in commits are a hard quality rule; no safe recovery path |
 | `commit-msg-verify.sh` | Bash | **Advisory** | Yes | Commit hygiene guidance; loop continues with a formatted message suggestion |
+| `branch-checkout-warn.sh` | Bash | **Advisory** | Yes | Worktree encouragement; branch checkout is recoverable — nudge only, not a hard gate |
 | `guard-explore.sh` | Read\|Grep\|Glob | **Advisory** | Yes | Search-before-read nudge; currently logging only — not yet blocking |
 | `post-plan-challenge.sh` | ExitPlanMode | **Advisory** | Yes | Challenger suggestion after plan exit; loop continues with review context |
 | `post-tasks-validate.sh` | Write\|Edit | **Advisory** | Yes | Task format validation after write; loop continues with correction context |
@@ -225,7 +228,7 @@ Differentiator: "Does bypassing this gate corrupt an invariant that cannot be re
 
 ## Hook registration format
 
-Plugin hooks use `${CLAUDE_PLUGIN_ROOT}` for paths:
+Plugin hooks use `$HOME/.claude/hooks/` for stable runtime paths (outside the git working tree):
 
 ```json
 {
@@ -233,7 +236,7 @@ Plugin hooks use `${CLAUDE_PLUGIN_ROOT}` for paths:
     {
       "event": "PreToolUse",
       "matcher": "Write|Edit",
-      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool-use.sh",
+      "command": "bash \"$HOME/.claude/hooks/pre-tool-use.sh\"",
       "timeout": 5000
     }
   ]
@@ -345,3 +348,15 @@ Source: t-1202 / close session 2026-06-04
 ### 2026-06-04: hooks.md gate table must be updated in the same commit as hooks.json wiring
 `memory-write-gate.sh` was live in `hooks.json` for multiple sessions without a row in the gate classification table, misleading any audit of advisory vs. enforcement boundaries. Added in t-1848 as a follow-up. Rule: when a hook is added to or removed from `hooks.json`, the gate classification table row must be in the same commit. A future validate.sh check should cross-reference registered hook scripts in hooks.json against table rows in this file — see t-1849.
 Source: t-1848 / close session 2026-06-04
+
+### 2026-06-08: Hook commands in git working tree cause branch-dependent failures (E2026-06-08-1)
+All hook `command` fields in `hooks.json` previously referenced `${CLAUDE_PLUGIN_ROOT}/hooks/*.sh` — paths inside the git working tree. A `git stash`, `git checkout`, or branch switch can remove or replace these files, silently breaking every hook. The symptom that triggered discovery: Stop hook fired on `goal-completion.sh: No such file or directory` after a branch switch. Pre-existing drift confirmed: `pre-compact.sh` was absent from `~/.claude/hooks/` (had drifted between main and a feature branch).
+
+**Root cause**: no stable deploy target existed outside git; `make hooks-deploy` (rsync -a --delete) was a manual step, easily skipped.
+
+**Fix (t-1840, 2026-06-08)**: all hook commands migrated from `bash ${CLAUDE_PLUGIN_ROOT}/hooks/X.sh` to `bash "$HOME/.claude/hooks/X.sh"`. `$HOME/.claude/hooks/` is outside any git working tree — branch switches are invisible to it. `hooks-auto-deploy.sh` (PostToolUse) auto-syncs on main-branch writes. `branch-checkout-warn.sh` (PreToolUse) nudges toward worktrees to prevent future drift.
+
+**Exception**: `hooks-auto-deploy.sh` itself retains `bash ${CLAUDE_PLUGIN_ROOT}/hooks/hooks-auto-deploy.sh` — bootstrap circularity guard. The deployed copy cannot deploy itself.
+
+**Rule**: any new hook entry in `hooks.json` must use `bash "$HOME/.claude/hooks/<name>.sh"`. Never reference `${CLAUDE_PLUGIN_ROOT}/hooks/` in `hooks.json` command fields (except `hooks-auto-deploy.sh`). Run `make hooks-deploy` once after adding; the auto-deploy hook handles subsequent syncs.
+Source: t-1840 / close session 2026-06-08

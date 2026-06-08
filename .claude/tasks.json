@@ -2268,7 +2268,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "MCP Server",
       "tags": [
         "mcp-tooling"
@@ -2294,7 +2294,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Agent Orchestration",
       "tags": [
         "ai-agent-systems"
@@ -2347,7 +2347,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Claude Code Origins",
       "tags": [
         "claude-code-enhancement"
@@ -2373,7 +2373,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "AI Learning Path",
       "tags": [
         "general-ai-learning"
@@ -2399,7 +2399,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Model Capabilities",
       "tags": [
         "general-ai-learning"
@@ -2425,7 +2425,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Prompt Template",
       "tags": [
         "prompt-engineering"
@@ -2451,7 +2451,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Agent Swarms",
       "tags": [
         "ai-agent-systems"
@@ -2477,7 +2477,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Code Review Agents",
       "tags": [
         "ai-agent-systems"
@@ -2503,7 +2503,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Claude Code Workflows",
       "tags": [
         "claude-code-enhancement"
@@ -2529,7 +2529,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Agent Framework",
       "tags": [
         "ai-agent-systems"
@@ -2555,7 +2555,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Semantic Data Layer",
       "tags": [
         "knowledge-graphs"
@@ -2581,7 +2581,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Agent Web APIs",
       "tags": [
         "ai-agent-systems"
@@ -2607,7 +2607,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "AI Tooling",
       "tags": [
         "ai-agent-systems"
@@ -2633,7 +2633,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "LLM Fine-Tuning",
       "tags": [
         "prompt-engineering"
@@ -2659,7 +2659,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "GitHub Deprecation",
       "tags": [
         "devops-ci"
@@ -2685,7 +2685,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Agent Security",
       "tags": [
         "ai-agent-systems"
@@ -2711,7 +2711,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Agent Best Practices",
       "tags": [
         "ai-agent-systems"
@@ -2737,7 +2737,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "CLAUDE.md Engineering",
       "tags": [
         "claude-code-enhancement",
@@ -2764,7 +2764,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Security Testing",
       "tags": [
         "security"
@@ -2790,7 +2790,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Infrastructure Trends",
       "tags": [
         "devops-ci"
@@ -2816,7 +2816,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "CI/CD Planning",
       "tags": [
         "devops-ci"
@@ -2842,7 +2842,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "MLOps Infrastructure",
       "tags": [
         "devops-ci"
@@ -2868,7 +2868,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Data Infrastructure",
       "tags": [
         "devops-ci"
@@ -2894,7 +2894,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Claude Code DevTools",
       "tags": [
         "claude-code-enhancement"
@@ -2920,7 +2920,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Agent Challenges",
       "tags": [
         "ai-agent-systems"
@@ -2946,7 +2946,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Agent Ecosystem",
       "tags": [
         "ai-agent-systems"
@@ -2972,7 +2972,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Dev Workflow",
       "tags": [
         "ai-agent-systems"
@@ -2998,7 +2998,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Creator Interview",
       "tags": [
         "claude-code-enhancement"
@@ -3024,7 +3024,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "AI Evolution",
       "tags": [
         "claude-code-enhancement",
@@ -3051,7 +3051,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Developer Tools",
       "tags": [
         "claude-code-enhancement"
@@ -3077,7 +3077,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "AI Engineering",
       "tags": [
         "claude-code-enhancement"
@@ -3103,7 +3103,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Developer Productivity",
       "tags": [
         "claude-code-enhancement"
@@ -3129,7 +3129,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Agent Memory System",
       "tags": [
         "ai-agent-systems"
@@ -3155,7 +3155,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Agent Cognition",
       "tags": [
         "ai-agent-systems"
@@ -3181,7 +3181,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Claude Code Project",
       "tags": [
         "claude-code-enhancement"
@@ -3233,7 +3233,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "OSS Growth",
       "tags": [
         "not-relevant"
@@ -3259,7 +3259,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "RLM Minimal",
       "tags": [
         "not-relevant"
@@ -3285,7 +3285,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "System Design",
       "tags": [
         "devops-ci"
@@ -48519,7 +48519,7 @@
       "order": 0,
       "parent": null,
       "priority": "P1",
-      "started": null,
+      "started": "2026-06-08",
       "status": "in_progress",
       "subject": "[ops] Investigate and fix ruflo DB malformation (recurring mcp__ruflo__memory_store failures)",
       "tags": [
@@ -48926,6 +48926,91 @@
         "build",
         "docs",
         "platform-v2"
+      ],
+      "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "Triggered from 2026-06-08 session: 3 hook scripts added/modified without hooks.md update (branch-checkout-warn.sh, hooks-auto-deploy.sh, pre-tool-use.sh)",
+      "created": "2026-06-08",
+      "description": null,
+      "effort": "S",
+      "epic": "platform-v2",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1875",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "[hook] Auto-update hooks.md inventory on hook script add",
+      "tags": [
+        "hook",
+        "docs",
+        "automation"
+      ],
+      "type": "task",
+      "work_type": "implement"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": null,
+      "created": "2026-06-08",
+      "description": null,
+      "effort": "XS",
+      "epic": "platform-v2",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1876",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "[docs] Move test-hooks.sh to tests/scripts/ for consistent test organization",
+      "tags": [
+        "docs",
+        "testing",
+        "cleanup"
+      ],
+      "type": "task",
+      "work_type": "ops"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": null,
+      "created": "2026-06-08",
+      "description": "Add a validate.sh check (or CI step) that greps registered hook script names in hooks.json and verifies each has a row in docs/architecture/hooks.md inventory and gate classification table. Prevents the recurring pattern where a hook ships live but the doc is updated in a follow-up session. Extends the t-1849 concept to be machine-enforced.",
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1877",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P2",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "hooks.md auto-update gate: cross-reference hooks.json registrations against inventory table",
+      "tags": [
+        "hook",
+        "harness",
+        "docs"
       ],
       "type": "task"
     }
