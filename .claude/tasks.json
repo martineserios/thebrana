@@ -48757,7 +48757,7 @@
     {
       "id": "t-1868",
       "subject": "Update docs/architecture/features/build-loop-redesign.md with Challenger gate",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "tags": [
         "challenger",
@@ -48770,12 +48770,12 @@
       "priority": "P2",
       "parent": "t-1866",
       "created": "2026-06-08",
-      "started": null,
-      "completed": null,
+      "started": "2026-06-08",
+      "completed": "2026-06-08",
       "blocked_by": [],
-      "branch": null,
+      "branch": "platform-v2/docs/t-1868-t-1871-doc-updates",
       "context": "AC: Challenger gate appears in the build loop architecture diagram\nAC: Invocation rules table present (M+/sensitive/S soft-default)\nAC: Repair loop described",
-      "notes": null,
+      "notes": "Challenger gate added to architecture diagram in build-loop-redesign.md.",
       "order": 0,
       "github_issue": null,
       "execution": "code"
@@ -48831,7 +48831,7 @@
     {
       "id": "t-1871",
       "subject": "Update docs/guide/workflows/build.md with Challenger gate (user-facing)",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "tags": [
         "challenger",
@@ -48844,12 +48844,12 @@
       "priority": "P2",
       "parent": "t-1869",
       "created": "2026-06-08",
-      "started": null,
-      "completed": null,
+      "started": "2026-06-08",
+      "completed": "2026-06-08",
       "blocked_by": [],
-      "branch": null,
+      "branch": "platform-v2/docs/t-1868-t-1871-doc-updates",
       "context": "AC: User guide explains what Challenger gate is and when it fires\nAC: Override path documented with note that reason is logged",
-      "notes": null,
+      "notes": "Challenger gate section added to docs/guide/workflows/build.md.",
       "order": 0,
       "github_issue": null,
       "execution": "code"

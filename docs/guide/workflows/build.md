@@ -49,10 +49,37 @@ The `/brana:build` command handles all development work -- features, bug fixes, 
 | `/brana:close` | Session-level close (build's CLOSE is per-task) |
 | `/brana:fix` | Focused bug-fix flow: REPRODUCE → DIAGNOSE → FIX → VERIFY → COMMIT. Use when you know it's a bug and want a tighter loop than `/brana:build`. |
 
-## Key rules
+## Challenger gate
+
+Before CLOSE, an independent Challenger agent reviews the implementation against the spec. This is separate from the `/brana:challenge` invocation during SPECIFY — it's a mandatory BUILD exit review.
+
+**When it runs:**
+
+| Situation | Behavior |
+|---|---|
+| M+ effort task | Runs automatically — no prompt |
+| Any task touching `system/`, `.claude/hooks/`, or `docs/architecture/decisions/` | Runs automatically |
+| S-effort, regular paths | Prompt appears, default is "Run Challenger" |
+| Spike or investigation | Skipped |
+
+**What it reviews:**
+- Are all acceptance criteria met? (from task context `AC:` lines)
+- Does the diff match the spec — no scope creep or miss?
+- Any security antipatterns?
+
+Challenger reads only trusted content: the task spec, the git diff, and the AC list. It never reads raw web responses or external API output.
+
+**When it blocks:**
+A finding scored 4 or higher (WARNING/CRITICAL per [CALIBRATION.md](../../architecture/agents/CALIBRATION.md)) returns verdict `RECONSIDER` and blocks CLOSE. You get three choices:
+- **Fix now** — findings are saved to the task context and BUILD re-runs; Challenger reviews again (max 2 passes)
+- **Override** — provide a reason; it's logged and CLOSE proceeds
+- **Abandon** — task marked blocked
+
+**Key rules:**
 
 - **CLASSIFY is mandatory** -- always confirmed with user before proceeding
 - **TDD always** (except spike) -- tests before implementation
 - **You control the pace** during SPECIFY -- brana researches and presents, you decide when to move on
 - **Shipped without docs means not shipped** -- every build produces documentation
+- **Challenger gate before every CLOSE** -- independent semantic review, not just structural validation
 - **Don't auto-merge** -- user decides when to merge
