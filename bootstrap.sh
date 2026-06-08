@@ -419,6 +419,18 @@ if [ -d "$SCHED_SRC" ]; then
         fi
     fi
 
+    # Feeds template — only if feeds.json doesn't exist (t-1888)
+    # feeds.json is runtime-only and not git-tracked; this ensures it survives machine rebuilds.
+    if [ ! -f "$SCHED_DIR/feeds.json" ] && [ -f "$SCHED_SRC/feeds.template.json" ]; then
+        CHANGES=$((CHANGES + 1))
+        if ! $CHECK_ONLY; then
+            cp "$SCHED_SRC/feeds.template.json" "$SCHED_DIR/feeds.json"
+            echo "  + scheduler/feeds.json (new — provisioned from template)"
+        else
+            echo "  + scheduler/feeds.json (would create from template)"
+        fi
+    fi
+
     # PATH symlink
     if ! $CHECK_ONLY; then
         mkdir -p "$HOME/.local/bin"
