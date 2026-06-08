@@ -883,6 +883,32 @@ If MCP unavailable, skip silently. Hive-mind is transient awareness, not critica
 3. **For each task** (in dependency order):
    a. **Mark CC Task in_progress** (if created): `TaskUpdate: status → in_progress`
    b. **Skill check** (Medium/Large builds only): run `brana skills suggest --query "<subtask subject and key terms>"`. If a match scores > 0.3, mention it: "Skill available: /brana:{name} ({reason}). Use it?" If the user says yes, invoke the skill for this subtask. If no match, proceed without mentioning.
+   b2. **Pre-edit challenger: procedure and skill files** — Before the first Edit to any `system/procedures/*.md` or `system/skills/*/SKILL.md` file in this build (any effort, any strategy), run challenger on the spec:
+      ```
+      Agent(
+        subagent_type="brana:challenger",
+        prompt="Pre-edit challenger review for {task_id}: {task_subject}.
+
+      Spec: {task description + context field}
+      Planned change: {what you're about to edit and why}
+      Target file(s): {matching paths}
+
+      Review: (1) Is this the right change for the stated problem? (2) Any unintended side-effects on model behavior? (3) Does this conflict with existing patterns or adjacent procedures?
+      Return numbered findings or 'Proceed — no issues found.'"
+      )
+      ```
+      Present findings inline. If any finding is RECONSIDER-severity, ask:
+      ```
+      AskUserQuestion:
+        question: "Pre-edit challenger raised concern(s) about {file}. How to proceed?"
+        header: "Challenger"
+        options:
+          - label: "Adjust the plan first (Recommended)"
+            description: "Revise the spec or scope, then re-enter BUILD."
+          - label: "Proceed anyway"
+            description: "Proceed with the original plan; findings noted."
+      ```
+      This gate fires once per build (not per subtask). The post-build Challenger Gate (before CLOSE) is separate — both gates run for procedure/skill edits; this pre-edit gate is advisory, the post-build gate has blocking rules. (t-1431)
    c. **State what you'll change** — which files, why, how it maps to acceptance criteria
    d. **Write failing test** — the acceptance criteria become test assertions
    d2. **Gate: TEST → IMPLEMENT** — Before writing any implementation code, verify test files were created or modified in this subtask. Check `git diff --name-only` and `git diff --cached --name-only` for test file patterns (`*test*`, `*spec*`, `tests/`, `__tests__/`).

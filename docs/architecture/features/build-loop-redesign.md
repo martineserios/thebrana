@@ -387,6 +387,9 @@ See Decision Record for the full list. Key resolutions:
 
 ## Field Notes
 
+### 2026-06-08: Pre-edit challenger gate added for procedure/skill files (t-1431)
+BUILD step 3b2: before the first Edit to `system/procedures/*.md` or `system/skills/*/SKILL.md`, challenger runs on the spec automatically (any effort, advisory). The post-build Challenger Gate is separate — both fire on procedure/skill edits.
+
 ### 2026-04-10: SDD spec applies to procedure/.md files too
 The SPECIFY gate added in this feature (SPECIFY → DECOMPOSE) was violated on t-1108 (checkpoint/resume) because the change was "just markdown." Procedure files that change runtime behavior ARE features — file type doesn't determine whether a spec is needed; behavioral impact does.
 Source: t-1108
