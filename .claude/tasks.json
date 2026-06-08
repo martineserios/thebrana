@@ -49013,6 +49013,33 @@
         "docs"
       ],
       "type": "task"
+    },
+    {
+      "blocked_by": [],
+      "branch": null,
+      "build_step": null,
+      "completed": null,
+      "context": "2026-06-08: Added from session close ideation — follow-up to t-1840 hook stability work",
+      "created": "2026-06-08",
+      "description": "Create test-hooks.sh (or extend existing test suite) as a validate.sh check that runs every registered hook against canonical inputs and asserts expected output. Wire it to CI / pre-merge gate so broken hooks are caught before landing on main. Analog of the existing test-post-tool-use-failure-detail.sh but for all hooks. Should cover: PreToolUse pass-through, advisory deny, enforcement deny, Stop hook response format.",
+      "effort": "M",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-1878",
+      "notes": null,
+      "order": null,
+      "parent": null,
+      "priority": "P2",
+      "started": null,
+      "status": "pending",
+      "strategy": null,
+      "subject": "test-hooks.sh CI gate: validate all hooks run cleanly against known inputs",
+      "tags": [
+        "hook",
+        "harness",
+        "test"
+      ],
+      "type": "task"
     }
   ],
   "version": "1"
