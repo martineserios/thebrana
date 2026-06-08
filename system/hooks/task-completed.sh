@@ -84,6 +84,12 @@ for TASK_ID in $TASK_IDS; do
     fi
 done
 
+# ── Ambient signal: window title (last completed task) ───
+LAST_ID=$(echo "$TASK_IDS" | awk 'NR==1' 2>/dev/null)
+if [ -n "$LAST_ID" ]; then
+    printf "\033]0;brana: %s done\007" "$LAST_ID" > /dev/tty 2>/dev/null || true
+fi
+
 if [ -n "$MESSAGES" ]; then
     ESCAPED=$(echo "$MESSAGES" | jq -Rs '.')
     echo "{\"continue\": true, \"additionalContext\": $ESCAPED}"
