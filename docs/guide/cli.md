@@ -257,6 +257,9 @@ system/cli/rust/src/
 
 ## Changelog
 
+- 2026-05-24: Knowledge tier-1/tier-2 pipeline added; `call_gemini_json()` routes eligible tasks to Gemini Flash (t-1667). `brana backlog focus --top N` propagated to CLI guide.
+- 2026-05-13: Backlog v2 schema: `kind` field replaces `stream`, `initiative` type added, `stream` deprecated. `brana backlog complete` alias documented.
+- 2026-05-06: `brana transcribe` now auto-injects `LD_LIBRARY_PATH=$HOME/.local/lib` — no manual env var needed (t-1282).
 - 2026-04-08: `find_tasks_file` auto-init: creates empty `{"tasks":[]}` on first use. CWD fallback added for non-git projects (t-1090).
 - 2026-03-18: Added `brana files` subcommand (t-574). Pure Rust SHA-256, manifest tracking.
 - 2026-03-18: Modular CLI refactor (t-568). Split cli.rs into commands/ modules.

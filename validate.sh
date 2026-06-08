@@ -374,6 +374,11 @@ for hook_script in "$SYSTEM_DIR"/hooks/*.sh; do
         continue
     fi
 
+    if [ ! -x "$hook_script" ]; then
+        fail "hooks/$hook_name — not executable (run: chmod +x system/hooks/$hook_name)"
+        continue
+    fi
+
     pass "hooks/$hook_name — valid script"
 done
 
@@ -1455,8 +1460,8 @@ KNOWLEDGE_STAGING_FILE="$MEMORY_DIR/knowledge-staging.md"
 
 if [ -f "$PATTERNS_FILE" ]; then
     PATTERN_COUNT=$(grep -c '^## ' "$PATTERNS_FILE" 2>/dev/null) || PATTERN_COUNT=0
-    _P_WARN=40
-    _P_CAP=50
+    _P_WARN=80
+    _P_CAP=100
     if [ "$PATTERN_COUNT" -ge "$_P_CAP" ]; then
         # Auto-prune: remove oldest quarantine entries until count < cap
         _pruned=0
