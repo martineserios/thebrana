@@ -60,7 +60,7 @@ Before the Challenger, a separate `build-evaluator` agent grades the implementat
 - **PASS WITH GAPS** — some criteria partial; warns but proceeds
 - **FAIL** — one or more criteria MISSED; blocks CLOSE (max 2 repair iterations, same pattern as Challenger)
 
-Write `AC:` lines during SPECIFY for this gate to activate. See [AC: syntax](../../architecture/decisions/ADR-041-ac-convention.md) for machine-parseable forms.
+Write `AC:` lines during SPECIFY for this gate to activate. See [AC: syntax](../../conventions/ac-criteria.md) for machine-parseable forms.
 
 ---
 
