@@ -1989,4 +1989,36 @@ mod tests {
         assert!(prompt.contains("dimension_target"), "prompt must mention dimension_target key");
         assert!(prompt.contains("cluster_topic"), "prompt must mention cluster_topic key");
     }
+
+    // ── build_tier1_prompt ───────────────────────────────────────────────────
+
+    fn make_url_event_entry(author: &str, title_signal: &str, tags: &[&str]) -> kp::UrlEventEntry {
+        kp::UrlEventEntry {
+            url: "https://linkedin.com/posts/test".to_string(),
+            author: author.to_string(),
+            title_signal: title_signal.to_string(),
+            tags: tags.iter().map(|s| s.to_string()).collect(),
+            logged_date: "2026-06-09".to_string(),
+        }
+    }
+
+    #[test]
+    fn test_build_tier1_prompt_contains_author_and_title() {
+        let entry = make_url_event_entry("carol", "Building agent memory systems", &["agents", "memory"]);
+        let prompt = build_tier1_prompt(&entry, "- agent-memory\n- cli-tooling");
+        assert!(prompt.contains("carol"), "prompt must contain author");
+        assert!(prompt.contains("Building agent memory systems"), "prompt must contain title_signal");
+        assert!(prompt.contains("agents memory"), "prompt must contain joined tags");
+        assert!(prompt.contains("agent-memory"), "prompt must contain dim list");
+        assert!(prompt.contains("cli-tooling"), "prompt must contain all dims");
+    }
+
+    #[test]
+    fn test_build_tier1_prompt_requests_json_with_score_and_reason() {
+        let entry = make_url_event_entry("dave", "Rust async patterns", &[]);
+        let prompt = build_tier1_prompt(&entry, "- rust-tooling");
+        assert!(prompt.contains("Respond with JSON only"), "prompt must request JSON response");
+        assert!(prompt.contains("\"score\""), "prompt must mention score key");
+        assert!(prompt.contains("\"reason\""), "prompt must mention reason key");
+    }
 }
