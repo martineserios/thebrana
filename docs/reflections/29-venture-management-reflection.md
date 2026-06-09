@@ -153,7 +153,7 @@ Existing tags (`project:`, `tech:`, `type:`, `outcome:`) continue to work. Busin
 
 Venture skills produce distributed artifacts across sessions: growth-check snapshots, monthly financials, pipeline deals, event logs, and task portfolios. These live in project repos and ruflo memory — losing either means losing operational continuity.
 
-`sync-state.sh` ([ADR-015](../architecture/decisions/ADR-015-state-sync.md)) handles transfer:
+`sync-state.sh` ([ADR-015](../architecture/decisions/ADR-015-state-consolidation-plugin-first.md)) handles transfer:
 - `push` persists session state (MEMORY.md, tasks.json, ruflo memory entries) to project repos
 - `pull` restores state on a new machine
 - `export`/`import` handles ruflo patterns separately (embedding-dependent)
