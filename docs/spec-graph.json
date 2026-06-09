@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-08T23:08:57Z",
+  "generated": "2026-06-09T00:15:22Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -9400,6 +9400,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/hooks.md",
+      "to": "topic_rust-cargo-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/overview.md",
       "to": "agents.md",
       "type": "references",
@@ -12570,7 +12576,7 @@
   ],
   "stats": {
     "nodes": 427,
-    "edges": 1616,
+    "edges": 1617,
     "typed_edges": 570,
     "orphans": 126
   }
