@@ -87,7 +87,7 @@ Skills are user-invocable workflows (`/command`). Agents auto-delegate when the 
 
 **Pattern A: Skill spawns agent as worker.** Orchestrator skills delegate focused work to agents via the Task tool. The skill controls the workflow; the agent does the heavy lifting in a forked context. Example: `/brana:build` spawns memory-curator for recall and debrief-analyst for end-of-cycle extraction.
 
-**Pattern B: Agent preloads skill knowledge.** Agents can have skills preloaded via the `skills:` YAML field — full skill content injected at startup. Use sparingly: only for small domain knowledge skills where the agent always needs that context.
+**Pattern B: Agent preloads skill knowledge.** Agents embed skill content directly in a `## Preloaded Knowledge` section in the agent body — full skill content is present at startup without any invocation. Note: the `skills:` YAML frontmatter field is **silently ignored by Claude Code** — adding it has no effect (E2026-06-09-1). Use the body section instead. Use sparingly: only for small domain knowledge skills where the agent always needs that context.
 
 **Pattern C: Auto-delegation fills skill invocation gaps.** Skills aren't invoked 56% of the time even when available. Explicit "Use when..." descriptions raise invocation from 53% to 79%. Agents fill the remaining gap via auto-delegation *(brana-internal measurement, 2026-03-14; auto-delegation reliability varies in practice — explicit invocation is the reliable trigger)*. **Key insight:** static markdown in context (CLAUDE.md/AGENTS.md) achieves **100%** availability — passive context always beats skill-based retrieval. The knowledge architecture should prioritize what goes in always-loaded context based on availability risk.
 
