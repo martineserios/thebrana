@@ -1807,10 +1807,8 @@ When `/brana:backlog start <id>` invokes this skill:
    - Level 1 — stream as primary signal: `roadmap` → feature, `bugs` → bug fix, `tech-debt` → refactor, `experiments` → spike, `research` → investigation. Description signals override if clearer.
    - Level 2 — AskUserQuestion if signal is ambiguous or missing.
 
-4. **Branch created from task convention:**
-   - `roadmap` → `feat/{id}-{slug}`
-   - `bugs` → `fix/{id}-{slug}`
-   - `tech-debt` → `refactor/{id}-{slug}`
+4. **Branch created from task convention** (handled by `/brana:backlog start` — see backlog.md §Branch creation):
+   `{epic-slug}/{work-type}/t-{NNN}-{subject-slug}`
 
 5. **CLOSE auto-completes the task.**
 

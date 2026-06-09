@@ -67,8 +67,11 @@ CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null) || pass_
 CMD_UNQUOTED=$(echo "$CMD" | sed "s/'[^']*'//g; s/\"[^\"]*\"//g")
 IS_CHECKOUT=false
 IS_COMMIT=false
+IS_STASH=false
 echo "$CMD_UNQUOTED" | grep -qE '(git\s+checkout\s+.*-b\s|git\s+switch\s+.*-c\s|git\s+checkout\s+.*-b$|git\s+switch\s+.*-c$)' && IS_CHECKOUT=true
 echo "$CMD_UNQUOTED" | grep -qE 'git\s+commit' && IS_COMMIT=true
+# If the compound command includes git stash, the user is handling dirty state — skip dirty check later
+echo "$CMD_UNQUOTED" | grep -qE 'git\s+stash' && IS_STASH=true
 # Track which branch-creation command was actually used (for error messages)
 IS_SWITCH_C=false
 echo "$CMD_UNQUOTED" | grep -qE '(git\s+switch\s+.*-c\s|git\s+switch\s+.*-c$)' && IS_SWITCH_C=true
@@ -164,6 +167,11 @@ BRANCH_NAME=$(echo "$CMD" | grep -oP '(checkout\s+-b|switch\s+-c)\s+\K\S+' 2>/de
 # Step 8: Decide
 USED_CMD="git checkout -b"
 [ "$IS_SWITCH_C" = "true" ] && USED_CMD="git switch -c"
+
+if [ -n "$DIRTY" ] && [ "$IS_STASH" = true ]; then
+    # Compound command includes git stash — user is handling dirty state themselves. Allow.
+    pass_through
+fi
 
 if [ -n "$DIRTY" ]; then
     # If only non-behavioral state files (tasks.json) are dirty, warn instead of blocking.
