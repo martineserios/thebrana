@@ -14577,7 +14577,7 @@
       "parent": "t-641",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "in_progress",
       "subject": "Build cost tracking — log token spend per build, compare solo vs harness runs",
       "tags": [
         "harness-engineering",
@@ -49977,12 +49977,12 @@
       "execution": "code",
       "github_issue": null,
       "id": "t-1913",
-      "notes": null,
+      "notes": "Fix was already applied in a prior session — bare \"Anthropic\" removed from forbidden_patterns in no-attribution-commit.sh, replaced with structural patterns (Generated with Anthropic, Powered by Anthropic, anthropic.com). Comment in hook references E2026-06-08-5. Task completed retroactively 2026-06-09.",
       "order": 0,
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "fix(hook): narrow 'Anthropic' token in no-attribution-commit.sh to attribution patterns only",
       "tags": [
         "hook",

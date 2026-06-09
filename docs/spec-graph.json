@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-09T15:26:34Z",
+  "generated": "2026-06-09T15:36:45Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -9313,6 +9313,24 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/lint-heal-deterministic.md",
+      "to": "$count -lt 2.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/lint-heal-deterministic.md",
+      "to": "DRY_RUN -eq 0.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/lint-heal-deterministic.md",
+      "to": "cond.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/memory-pattern-redesign.md",
       "to": "docs/architecture/decisions/ADR-039-pattern-quality-filter-and-per-pattern-files.md",
       "type": "references",
@@ -12579,7 +12597,7 @@
   ],
   "stats": {
     "nodes": 427,
-    "edges": 1617,
+    "edges": 1620,
     "typed_edges": 570,
     "orphans": 126
   }
