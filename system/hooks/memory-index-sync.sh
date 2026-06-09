@@ -32,7 +32,8 @@ DESC=$(echo "$FRONT" | grep -E '^description:' | sed 's/^description:[[:space:]]
 # Skip files without a name field — not a canonical memory file
 [ -z "${NAME:-}" ] && exit 0
 
-POINTER="- [${NAME}](${FILENAME}) — ${DESC:-(no description)}"
+STEM="${FILENAME%.md}"
+POINTER="- [${STEM}](${FILENAME}) — ${DESC:-(no description)}"
 
 # Append only if this filename is not already referenced
 if [ -f "$MEMORY_FILE" ]; then

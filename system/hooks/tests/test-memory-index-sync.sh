@@ -130,7 +130,7 @@ DIR=$(mk_memory_dir t4)
 mk_memory_file "$DIR" "My Pattern" "feedback_my_pattern.md" "Useful pattern about X"
 write_input "Write" "$DIR/feedback_my_pattern.md" | bash "$HOOK" 2>/dev/null || true
 assert_memory_contains "pointer line added" "$DIR/MEMORY.md" "feedback_my_pattern.md"
-assert_memory_contains "name in pointer" "$DIR/MEMORY.md" "My Pattern"
+assert_memory_contains "filename stem as label" "$DIR/MEMORY.md" "[feedback_my_pattern]"
 assert_memory_contains "description in pointer" "$DIR/MEMORY.md" "Useful pattern about X"
 
 echo "Test: no duplicate on second write of same file"
@@ -173,6 +173,15 @@ write_input "Write" "$DIR/feedback_beta.md" | bash "$HOOK" 2>/dev/null || true
 assert_line_count "two pointers for two files" "$DIR/MEMORY.md" 2
 assert_memory_contains "alpha present" "$DIR/MEMORY.md" "feedback_alpha.md"
 assert_memory_contains "beta present" "$DIR/MEMORY.md" "feedback_beta.md"
+
+echo "Test: label uses filename stem when name: frontmatter differs"
+# t-1911: name: field may differ from filename stem (e.g. topic_rust-cargo-patterns.md has name: rust-cargo-patterns)
+# The hook must use the filename stem as the link label, not the name: value.
+DIR=$(mk_memory_dir t9)
+mk_memory_file "$DIR" "rust-cargo-patterns" "topic_rust-cargo-patterns.md" "Cargo build patterns"
+write_input "Write" "$DIR/topic_rust-cargo-patterns.md" | bash "$HOOK" 2>/dev/null || true
+assert_memory_contains "filename stem used as label" "$DIR/MEMORY.md" "[topic_rust-cargo-patterns]"
+assert_memory_not_contains "name: value not used as label" "$DIR/MEMORY.md" "[rust-cargo-patterns]"
 
 # ── Summary ──────────────────────────────────────────────
 echo ""
