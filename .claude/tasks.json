@@ -14473,10 +14473,7 @@
       "work_type": "research"
     },
     {
-      "blocked_by": [
-        "t-644",
-        "t-649"
-      ],
+      "blocked_by": [],
       "branch": null,
       "completed": null,
       "context": "Anthropic key finding: self-evaluation bias — agents praise their own work even when mediocre. Separate evaluator with Playwright/screenshots catches bugs builder misses. This is the biggest quality gap in brana today.\nDesign questions: evaluator model (sonnet vs opus?), interaction method (Playwright MCP? CLI?), threshold model (hard pass/fail per criterion vs score), iteration count (Anthropic used 5-15).\n2026-03-26: Deep analysis of Anthropic article.\nQA is cheap: 3 evaluator rounds = $10.39 (8.3% of total $124.70 build). Each wasted build iteration costs $36-71. Evaluator pays for itself immediately.\nIteration dynamics: 5-15 iterations, non-linear. Generator must choose refine vs pivot strategically. Keep all iterations — best may not be last. Need plateau detection for termination.\nSelf-eval bias: even separate evaluators 'talk themselves into approving' unless prompt is tuned from log analysis. Hard thresholds + feedback loop, not just thresholds.\nFile-based contracts between agents, not structured APIs. Simpler, debuggable.\nSDK compaction handles multi-hour sessions automatically — essential for autonomous evaluator.",
@@ -14600,12 +14597,12 @@
       "id": "t-649",
       "kind": "research",
       "level": "task",
-      "notes": null,
+      "notes": "Spike built on research branch. SDK approach validated but blocked on API key. CC subagent redesign chosen for t-645 — same separation-of-concerns, works within subscription.",
       "order": null,
       "parent": "t-641",
       "priority": "P2",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Spike: Agent SDK for autonomous evaluator + long-running builds",
       "tags": [
         "harness-engineering",
