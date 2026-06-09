@@ -223,7 +223,7 @@ if [ -n "$BRANA_CLI" ] && [ -x "$BRANA_CLI" ]; then
               cascade_rate:($cascade_rate|tonumber),
               delegation_count:$delegations}' 2>/dev/null) || METRICS_PATCH=""
         if [ -n "$METRICS_PATCH" ]; then
-            jq --argjson m "$METRICS_PATCH" '.metrics = $m' "$SESSION_STATE_PATH" \
+            jq --argjson m "$METRICS_PATCH" '.metrics = (.metrics + $m)' "$SESSION_STATE_PATH" \
                 > "${SESSION_STATE_PATH}.tmp" 2>/dev/null && \
                 mv "${SESSION_STATE_PATH}.tmp" "$SESSION_STATE_PATH" 2>/dev/null || true
         fi
