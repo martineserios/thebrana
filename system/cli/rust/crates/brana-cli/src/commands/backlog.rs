@@ -1249,6 +1249,173 @@ pub fn find_shipped_pending<'a>(
         .collect()
 }
 
+// ── initiatives + epics ─────────────────────────────────────────────────
+
+#[derive(Debug)]
+pub struct InitiativeStat {
+    pub id: String,
+    pub slug: String,
+    pub subject: String,
+    pub priority: String,
+    pub status: String,
+    pub total: usize,
+    pub p1: usize,
+    pub p2: usize,
+    pub p3: usize,
+    pub blocked: usize,
+    pub done: usize,
+}
+
+#[derive(Debug)]
+pub struct EpicStat {
+    pub slug: String,
+    pub total: usize,
+    pub p1: usize,
+    pub p2: usize,
+    pub blocked: usize,
+    pub done: usize,
+}
+
+pub fn collect_initiative_stats(tasks: &[serde_json::Value]) -> Vec<InitiativeStat> {
+    let initiative_tasks: Vec<&serde_json::Value> = tasks.iter()
+        .filter(|t| t["type"].as_str() == Some("initiative"))
+        .collect();
+
+    let mut stats = Vec::new();
+    for ini in &initiative_tasks {
+        let slug = match ini["epic"].as_str() { Some(s) => s, None => continue };
+        let id = ini["id"].as_str().unwrap_or("?").to_string();
+        let subject = ini["subject"].as_str().unwrap_or("").to_string();
+        let priority = ini["priority"].as_str().unwrap_or("—").to_string();
+        let status = ini["status"].as_str().unwrap_or("pending").to_string();
+
+        let children: Vec<&serde_json::Value> = tasks.iter()
+            .filter(|t| t["type"].as_str() != Some("initiative"))
+            .filter(|t| t["epic"].as_str() == Some(slug))
+            .collect();
+
+        let total = children.len();
+        let p1 = children.iter().filter(|t| t["priority"].as_str() == Some("P1")).count();
+        let p2 = children.iter().filter(|t| t["priority"].as_str() == Some("P2")).count();
+        let p3 = children.iter().filter(|t| t["priority"].as_str() == Some("P3")).count();
+        let blocked = children.iter().filter(|t| {
+            t["blocked_by"].as_array().map_or(false, |b| !b.is_empty())
+                && t["status"].as_str() != Some("completed")
+        }).count();
+        let done = children.iter().filter(|t| t["status"].as_str() == Some("completed")).count();
+
+        stats.push(InitiativeStat { id, slug: slug.to_string(), subject, priority, status, total, p1, p2, p3, blocked, done });
+    }
+    stats.sort_by(|a, b| a.slug.cmp(&b.slug));
+    stats
+}
+
+pub fn collect_epic_stats(tasks: &[serde_json::Value]) -> Vec<EpicStat> {
+    let mut slugs: Vec<&str> = tasks.iter()
+        .filter(|t| t["type"].as_str() != Some("initiative"))
+        .filter_map(|t| t["epic"].as_str())
+        .filter(|s| !s.is_empty())
+        .collect::<std::collections::HashSet<_>>()
+        .into_iter()
+        .collect();
+    slugs.sort();
+
+    slugs.iter().map(|slug| {
+        let members: Vec<&serde_json::Value> = tasks.iter()
+            .filter(|t| t["type"].as_str() != Some("initiative"))
+            .filter(|t| t["epic"].as_str() == Some(slug))
+            .collect();
+        let total = members.len();
+        let p1 = members.iter().filter(|t| t["priority"].as_str() == Some("P1")).count();
+        let p2 = members.iter().filter(|t| t["priority"].as_str() == Some("P2")).count();
+        let blocked = members.iter().filter(|t| {
+            t["blocked_by"].as_array().map_or(false, |b| !b.is_empty())
+                && t["status"].as_str() != Some("completed")
+        }).count();
+        let done = members.iter().filter(|t| t["status"].as_str() == Some("completed")).count();
+        EpicStat { slug: slug.to_string(), total, p1, p2, blocked, done }
+    }).collect()
+}
+
+pub fn cmd_initiatives(theme: &themes::Theme, json_out: bool) -> anyhow::Result<()> {
+    let tf = find_tasks_file().context("tasks.json not found")?;
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+    let stats = collect_initiative_stats(&data.tasks);
+
+    if json_out {
+        let out: Vec<serde_json::Value> = stats.iter().map(|s| serde_json::json!({
+            "id": s.id, "slug": s.slug, "subject": s.subject,
+            "priority": s.priority, "status": s.status,
+            "total": s.total, "p1": s.p1, "p2": s.p2, "p3": s.p3,
+            "blocked": s.blocked, "done": s.done,
+        })).collect();
+        println!("{}", serde_json::to_string(&out).unwrap());
+        return Ok(());
+    }
+
+    if stats.is_empty() {
+        println!("\n  No initiatives found (no tasks with type=initiative).\n");
+        return Ok(());
+    }
+
+    println!("\n{}Initiatives{}", themes::ansi(theme.color("header")), themes::RESET);
+    for s in &stats {
+        let pct = if s.total > 0 { s.done * 100 / s.total } else { 0 };
+        let bar = theme.bar(s.done, s.total, 10);
+        let flags = format!("P1:{} P2:{} P3:{} blocked:{}", s.p1, s.p2, s.p3, s.blocked);
+        println!(
+            "{}  {} {}  {} {}  {}%  {}{}\n    {}  {}",
+            themes::ansi(theme.color("header")),
+            s.id, s.slug,
+            themes::RESET,
+            s.subject,
+            pct,
+            bar,
+            themes::RESET,
+            flags,
+            format!("{} tasks done/{}", s.done, s.total),
+        );
+    }
+    println!();
+    Ok(())
+}
+
+pub fn cmd_epics(theme: &themes::Theme, json_out: bool) -> anyhow::Result<()> {
+    let tf = find_tasks_file().context("tasks.json not found")?;
+    let data = tasks::load_tasks(&tf).map_err(|e| anyhow::anyhow!("{e}"))?;
+    let stats = collect_epic_stats(&data.tasks);
+
+    if json_out {
+        let out: Vec<serde_json::Value> = stats.iter().map(|s| serde_json::json!({
+            "slug": s.slug, "total": s.total, "p1": s.p1, "p2": s.p2,
+            "blocked": s.blocked, "done": s.done,
+        })).collect();
+        println!("{}", serde_json::to_string(&out).unwrap());
+        return Ok(());
+    }
+
+    if stats.is_empty() {
+        println!("\n  No epics found.\n");
+        return Ok(());
+    }
+
+    println!("\n{}Epics{}", themes::ansi(theme.color("header")), themes::RESET);
+    for s in &stats {
+        let pct = if s.total > 0 { s.done * 100 / s.total } else { 0 };
+        let bar = theme.bar(s.done, s.total, 10);
+        println!(
+            "{}  {:<28}{}  {} {pct:>3}%  P1:{} P2:{} blocked:{}",
+            themes::ansi(theme.color("header")),
+            s.slug,
+            themes::RESET,
+            bar,
+            s.p1, s.p2, s.blocked,
+        );
+    }
+    println!();
+    Ok(())
+}
+
 // ── tests ───────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -1528,6 +1695,84 @@ mod tests {
     fn test_find_shipped_pending_empty_inputs() {
         let result = find_shipped_pending(&[], &[]);
         assert!(result.is_empty());
+    }
+
+    // ── collect_initiative_stats ─────────────────────────────────────
+
+    fn initiative_mock() -> Vec<serde_json::Value> {
+        vec![
+            json!({"id":"in-001","type":"initiative","subject":"Backlog UI","epic":"backlog-ui","status":"in_progress","priority":"P1","blocked_by":[]}),
+            json!({"id":"t-10","type":"task","subject":"Task A","epic":"backlog-ui","status":"completed","priority":"P1","blocked_by":[]}),
+            json!({"id":"t-11","type":"task","subject":"Task B","epic":"backlog-ui","status":"pending","priority":"P2","blocked_by":["t-10"]}),
+            json!({"id":"t-12","type":"task","subject":"Task C","epic":"backlog-ui","status":"pending","priority":"P3","blocked_by":[]}),
+            json!({"id":"in-002","type":"initiative","subject":"Memory Arch","epic":"memory-arch","status":"pending","priority":"P2","blocked_by":[]}),
+            json!({"id":"t-20","type":"task","subject":"Task M","epic":"memory-arch","status":"pending","priority":"P1","blocked_by":[]}),
+        ]
+    }
+
+    #[test]
+    fn initiatives_groups_by_epic_slug() {
+        let tasks = initiative_mock();
+        let stats = collect_initiative_stats(&tasks);
+        assert_eq!(stats.len(), 2);
+        let bu = stats.iter().find(|s| s.slug == "backlog-ui").unwrap();
+        assert_eq!(bu.total, 3);
+        assert_eq!(bu.done, 1);
+        assert_eq!(bu.p1, 1);
+        assert_eq!(bu.p2, 1);
+        assert_eq!(bu.p3, 1);
+        assert_eq!(bu.blocked, 1); // t-11 has non-empty blocked_by and is not completed
+    }
+
+    #[test]
+    fn initiatives_excludes_initiative_tasks_from_children() {
+        let tasks = initiative_mock();
+        let stats = collect_initiative_stats(&tasks);
+        let ma = stats.iter().find(|s| s.slug == "memory-arch").unwrap();
+        assert_eq!(ma.total, 1); // only t-20, not in-002 itself
+    }
+
+    #[test]
+    fn initiatives_empty_when_no_initiative_type() {
+        let tasks = vec![
+            json!({"id":"t-1","type":"task","epic":"foo","status":"pending","priority":"P2","blocked_by":[]}),
+        ];
+        let stats = collect_initiative_stats(&tasks);
+        assert!(stats.is_empty());
+    }
+
+    // ── collect_epic_stats ───────────────────────────────────────────
+
+    #[test]
+    fn epics_groups_non_initiative_tasks_by_slug() {
+        let tasks = initiative_mock();
+        let stats = collect_epic_stats(&tasks);
+        // backlog-ui: 3 tasks, memory-arch: 1 task
+        assert_eq!(stats.len(), 2);
+        let bu = stats.iter().find(|s| s.slug == "backlog-ui").unwrap();
+        assert_eq!(bu.total, 3);
+        assert_eq!(bu.done, 1);
+    }
+
+    #[test]
+    fn epics_sorted_alphabetically() {
+        let tasks = initiative_mock();
+        let stats = collect_epic_stats(&tasks);
+        let slugs: Vec<&str> = stats.iter().map(|s| s.slug.as_str()).collect();
+        let mut sorted = slugs.clone();
+        sorted.sort();
+        assert_eq!(slugs, sorted);
+    }
+
+    #[test]
+    fn epics_skips_tasks_without_epic() {
+        let tasks = vec![
+            json!({"id":"t-1","type":"task","epic":null,"status":"pending","priority":"P2","blocked_by":[]}),
+            json!({"id":"t-2","type":"task","epic":"foo","status":"pending","priority":"P2","blocked_by":[]}),
+        ];
+        let stats = collect_epic_stats(&tasks);
+        assert_eq!(stats.len(), 1);
+        assert_eq!(stats[0].slug, "foo");
     }
 
     // ── t-1544: priority default P3 at write time ────────────────────
