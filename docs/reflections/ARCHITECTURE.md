@@ -288,7 +288,7 @@ Plain Claude Code gives project-specific context and auto memory. This system ad
 
 ## Context Engineering: Architectural Implications
 
-From Anthropic's research (see [35-context-engineering-principles.md](../../brana-knowledge/dimensions/35-context-engineering-principles.md)):
+From Anthropic's research (see [35-context-engineering-principles.md](../../../brana-knowledge/dimensions/35-context-engineering-principles.md)):
 
 - **Context rot is gradual.** All models degrade as context fills — some as early as 50K of 1M. The ~26KB context budget is the current working default for startup context injection; no universal ceiling exists — adjust when compaction interrupts task flow.
 - **Just-in-time loading.** Keep always-loaded instructions minimal. Load data on demand via skills.

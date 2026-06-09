@@ -789,7 +789,7 @@ Four enforcement levels, each stronger than the last:
 
 Convention sets expectations. Skills provide the workflow. Hooks enforce the gate. Linters validate the structure.
 
-**Active alignment:** The `/brana:align` skill (see [27-project-alignment-methodology.md](~/enter_thebrana/brana-knowledge/dimensions/27-project-alignment-methodology.md)) actively creates the structure projects need for enforcement — it's the bridge between "the mastermind can enforce" and "the project is ready for enforcement."
+**Active alignment:** The `/brana:align` skill (see [27-project-alignment-methodology.md](../../../brana-knowledge/dimensions/27-project-alignment-methodology.md)) actively creates the structure projects need for enforcement — it's the bridge between "the mastermind can enforce" and "the project is ready for enforcement."
 
 See [32-lifecycle.md](./32-lifecycle.md) for the full DDD → SDD → TDD development workflow, discipline ordering, detailed enforcement mechanisms, multi-agent context isolation, and the connection to the learning loop. See [11-ecosystem-skills-plugins.md](../../../brana-knowledge/dimensions/11-ecosystem-skills-plugins.md) section 5 for the enforcement tools landscape.
 

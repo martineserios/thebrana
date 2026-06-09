@@ -1060,6 +1060,11 @@ MEM_PATH="$HOME/.claude/projects/{project-slug}/memory/MEMORY.md"
 LINE_COUNT=$(wc -l < "$MEM_PATH" 2>/dev/null || echo 0)
 ```
 
+**Trimming entries requires two steps** — index-only edits are silently reversed by `mcp__brana__memory_index` at the next session start (it rescans the filesystem and re-adds any `.md` file present in the memory directory):
+1. `rm` the `.md` file from disk first.
+2. Then remove the index line from MEMORY.md.
+Removing only the index line without deleting the file is a no-op. (E2026-06-08-2)
+
 If `LINE_COUNT > 175`:
 1. Read the index. For each entry with a file link (`[Title](file.md)`), verify the file exists:
    ```bash
