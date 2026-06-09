@@ -390,14 +390,13 @@ pass_imputation() {
 
         # Check for frontmatter block (need ≥2 lines with ---)
         local fm_count
-        fm_count=$(grep -c "^---$" "$f" 2>/dev/null || echo 0)
+        fm_count=$(grep -c "^---$" "$f" 2>/dev/null || true)
         [[ "$fm_count" -lt 2 ]] && continue
 
         local has_name has_type has_desc
-        # Use grep -cm1 + head -1 to ensure single-line numeric output
-        has_name=$(grep -cm1 "^name:" "$f" 2>/dev/null | head -1 || echo 0)
-        has_type=$(grep -cm1 "^type:" "$f" 2>/dev/null | head -1 || echo 0)
-        has_desc=$(grep -cm1 "^description:" "$f" 2>/dev/null | head -1 || echo 0)
+        has_name=$(grep -cm1 "^name:" "$f" 2>/dev/null || true)
+        has_type=$(grep -cm1 "^type:" "$f" 2>/dev/null || true)
+        has_desc=$(grep -cm1 "^description:" "$f" 2>/dev/null || true)
 
         # Skip if all fields present
         [[ "$has_name" -gt 0 && "$has_type" -gt 0 && "$has_desc" -gt 0 ]] && continue
@@ -579,7 +578,7 @@ pass_staging_cap() {
     local warn_at cap count msg=""
     warn_at=$(grep '<!-- cap:' "$STAGING_FILE" | grep -oP 'warn-at: \K[0-9]+' || echo "20")
     cap=$(grep '<!-- cap:' "$STAGING_FILE" | grep -oP 'cap: \K[0-9]+' || echo "30")
-    count=$(grep -c '^## ' "$STAGING_FILE" || echo 0)
+    count=$(grep -c '^## ' "$STAGING_FILE" || true)
 
     if [[ "$count" -ge "$cap" ]]; then
         msg="knowledge-staging.md has $count entries — AT CAP ($cap). Promote or prune immediately."
@@ -704,7 +703,7 @@ main() {
     update_state
 
     log "Done. Dedup=$dedup_count Imputed=$imputed_count"
-    [[ "$DRY_RUN" -eq 0 ]] && log "Report: $REPORT_FILE"
+    if [[ "$DRY_RUN" -eq 0 ]]; then log "Report: $REPORT_FILE"; fi
 }
 
 main "$@"
