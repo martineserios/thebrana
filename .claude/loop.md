@@ -80,6 +80,8 @@ grep -oP '\[.*?\]\(\K[^)]+' ~/.claude/projects/-home-martineserios-enter-thebran
 
 Flag: MEMORY.md > 180 lines (approaching truncation), missing memory files.
 
+> **Trimming entries requires two steps** — `mcp__brana__memory_index` rescans the filesystem at every session start and re-adds any `.md` file present in the memory directory. Removing only the index line is a no-op reversed on the next startup. To truly remove an entry: (1) `rm` the `.md` file from disk, then (2) remove the index line from MEMORY.md. (E2026-06-08-2)
+
 ### 6. Intelligence Feed
 
 ```bash
