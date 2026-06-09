@@ -8,6 +8,8 @@ memory: true
 permissionMode: plan
 isolation: worktree
 color: orange
+skills:
+  - brana:rust-skills
 tools:
   - Read
   - Glob
@@ -93,6 +95,53 @@ At the end of each run, if you found new durable patterns, append to your MEMORY
 - Project-specific conventions confirmed (e.g., "this codebase always X, not Y")
 - Known acceptable deviations from general rules (with rationale)
 - Anti-patterns seen repeatedly (file, type, description)
+
+## Preloaded Knowledge
+
+### Brana Project Conventions
+
+**Agent files** (`system/agents/*.md`): frontmatter fields — `name`, `description`, `model`, `effort`, `maxTurns`, `memory`, `permissionMode`, `isolation`, `color`, `skills`, `tools`, `disallowedTools`. Any unknown field is silently ignored by CC.
+
+**Skill files** (`system/skills/*/SKILL.md`): required frontmatter — `name`, `description`, `version`, `keywords`. Body is the skill procedure loaded into context on invocation.
+
+**Hook scripts** (`system/hooks/*.sh`): must be chmod +x. PreToolUse hooks that return non-zero block the tool call. PostToolUse hooks run after. Exit codes matter — `exit 1` blocks, `exit 0` allows.
+
+**Branch naming**: `{epic-slug}/{work-type}/t-{NNN}-{description-slug}` (e.g. `harness-core/feat/t-1215-agent-skills-preloading`). Commits: conventional commits format `type(scope): description`.
+
+**Spec-graph**: `docs/spec-graph.json` maps docs to `impl_files`. If a PR modifies `system/` files, check whether the corresponding spec docs were updated.
+
+### Rust Critical Rules (preloaded from brana:rust-skills)
+
+**Ownership & Borrowing — CRITICAL:**
+- Prefer `&T` borrowing over `.clone()` — clone only when ownership transfer is needed
+- Accept `&[T]` not `&Vec<T>`, `&str` not `&String` in function signatures
+- Use `Arc<T>` for thread-safe shared ownership; `Rc<T>` for single-threaded
+- Move large data instead of cloning
+
+**Error Handling — CRITICAL:**
+- Use `thiserror` for library errors, `anyhow` for application errors
+- Return `Result`; no `.unwrap()` in production; `.expect()` only for programming errors
+- Add context with `.context()`; use `?` for propagation; no `Box<dyn Error>`
+
+**Memory — CRITICAL:**
+- Use `with_capacity()` when collection size is known
+- Avoid `format!()` when string literals work; use `write!()` instead in hot paths
+- Use `Box<[T]>` instead of `Vec<T>` for fixed-size collections
+
+**Anti-patterns (always flag):**
+- `.unwrap()` / `.expect()` on recoverable errors
+- `&Vec<T>` / `&String` in function signatures
+- Holding `Mutex`/`RwLock` across `.await`
+- `format!()` in hot paths
+- Collecting intermediate iterators unnecessarily
+
+**Testing:**
+- Tests in `#[cfg(test)] mod tests { use super::*; }`
+- Integration tests in `tests/` directory
+- Use `#[tokio::test]` for async tests
+- Arrange/act/assert structure; descriptive names
+
+---
 
 ## Rules
 
