@@ -174,6 +174,24 @@ assert_pass "T10: git commit on clean repo passes worktree gate" \
 
 # ──────────────────────────────────────────────────────────────
 echo ""
+echo "── IS_STASH passthrough (t-1928) ────────────────────────"
+# Regression: compound commands containing 'git stash' must pass through on a
+# dirty repo — the user is explicitly handling dirty state inline. Tests the
+# IS_STASH branch added in t-1927 (lines 171-174 of worktree-gate.sh).
+# ──────────────────────────────────────────────────────────────
+
+DIRTY_REPO5=$(setup_dirty_repo "dirty-repo-e")
+
+# T11: git stash && git checkout -b on dirty repo → allowed (IS_STASH=true)
+assert_pass "T11: 'git stash && git checkout -b' on dirty repo passes (IS_STASH)" \
+    "$(make_input "git stash && git checkout -b feat/new-feature" "$DIRTY_REPO5")"
+
+# T12: git stash push -u && git checkout -b on dirty repo → allowed
+assert_pass "T12: 'git stash push -u && git checkout -b' on dirty repo passes (IS_STASH)" \
+    "$(make_input "git stash push -u && git checkout -b fix/t-123-quick-fix" "$DIRTY_REPO5")"
+
+# ──────────────────────────────────────────────────────────────
+echo ""
 echo "── Results ──────────────────────────────────────────────"
 echo "  Total: $TOTAL  Pass: $PASS  Fail: $FAIL"
 [ "$FAIL" -eq 0 ] || exit 1
