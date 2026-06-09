@@ -463,6 +463,75 @@ else
     FAIL=$((FAIL + 1))
 fi
 
+# ── 13. Ruflo stale lock cleanup (t-1921) ───────────────
+
+echo ""
+echo "--- Ruflo stale lock cleanup ---"
+
+REPO_LOCK="$TMPDIR/lock-proj"
+setup_repo "$REPO_LOCK"
+
+# Helper: create a dead PID by starting and killing a subprocess
+dead_pid() {
+    sleep 60 &
+    local p=$!
+    kill "$p" 2>/dev/null
+    wait "$p" 2>/dev/null || true
+    echo "$p"
+}
+
+# Test 13a: stale lock (dead PID) → lock file removed
+SWARM_DIR_A="$FAKE_HOME/.swarm"
+mkdir -p "$SWARM_DIR_A"
+DEAD_PID=$(dead_pid)
+echo "$DEAD_PID" > "$SWARM_DIR_A/ruflo-mcp.pid"
+touch "$SWARM_DIR_A/ruflo-mcp.lock"
+run_hook "$(make_session_input "sess-lock-dead" "$REPO_LOCK")" >/dev/null
+TOTAL=$((TOTAL + 1))
+if [ ! -f "$SWARM_DIR_A/ruflo-mcp.lock" ]; then
+    echo "  PASS: Stale lock (dead PID) → lock file removed"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL: Stale lock (dead PID) → lock file should have been removed"
+    FAIL=$((FAIL + 1))
+fi
+rm -f "$SWARM_DIR_A/ruflo-mcp.pid"
+
+# Test 13b: live lock (live PID) → lock file preserved
+mkdir -p "$SWARM_DIR_A"
+echo "$$" > "$SWARM_DIR_A/ruflo-mcp.pid"
+touch "$SWARM_DIR_A/ruflo-mcp.lock"
+run_hook "$(make_session_input "sess-lock-live" "$REPO_LOCK")" >/dev/null
+TOTAL=$((TOTAL + 1))
+if [ -f "$SWARM_DIR_A/ruflo-mcp.lock" ]; then
+    echo "  PASS: Live lock (live PID) → lock file preserved"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL: Live lock (live PID) → lock file should not have been removed"
+    FAIL=$((FAIL + 1))
+fi
+rm -f "$SWARM_DIR_A/ruflo-mcp.lock" "$SWARM_DIR_A/ruflo-mcp.pid"
+
+# Test 13c: lock with no PID file → lock file removed
+mkdir -p "$SWARM_DIR_A"
+touch "$SWARM_DIR_A/ruflo-mcp.lock"
+# No ruflo-mcp.pid written
+run_hook "$(make_session_input "sess-lock-nopid" "$REPO_LOCK")" >/dev/null
+TOTAL=$((TOTAL + 1))
+if [ ! -f "$SWARM_DIR_A/ruflo-mcp.lock" ]; then
+    echo "  PASS: Lock with no PID file → lock file removed"
+    PASS=$((PASS + 1))
+else
+    echo "  FAIL: Lock with no PID file → lock file should have been removed"
+    FAIL=$((FAIL + 1))
+fi
+
+# Test 13d: no lock file → hook runs cleanly, returns continue
+# (no setup needed — FAKE_HOME/.swarm may not exist)
+rm -rf "$FAKE_HOME/.swarm"
+assert_continue "No lock file → hook continues normally" \
+    "$(make_session_input "sess-lock-none" "$REPO_LOCK")"
+
 # ── Summary ─────────────────────────────────────────────
 echo ""
 echo "$PASS/$TOTAL passed"

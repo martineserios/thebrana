@@ -141,6 +141,20 @@ find /tmp/brana-claims -name "ts" -mmin +60 2>/dev/null | while read f; do
     rm -rf "$(dirname "$f")"
 done
 
+# ── Stale ruflo MCP lock detection (t-1921) ──────────────
+# If the ruflo server died without cleanup, it leaves stale lock+pid files.
+# The next startup sees the lock, skips restart, and all mcp__ruflo__* calls
+# return -32000. Fix: remove the lock when the recorded PID is no longer alive.
+RUFLO_LOCK="$HOME/.swarm/ruflo-mcp.lock"
+RUFLO_PID_FILE="$HOME/.swarm/ruflo-mcp.pid"
+if [ -f "$RUFLO_LOCK" ]; then
+    _RUFLO_PID=$(cat "$RUFLO_PID_FILE" 2>/dev/null | tr -dc '0-9') || true
+    if [ -z "$_RUFLO_PID" ] || ! kill -0 "$_RUFLO_PID" 2>/dev/null; then
+        rm -f "$RUFLO_LOCK" 2>/dev/null || true
+    fi
+    unset _RUFLO_PID
+fi
+
 # ── Extra-usage disabled warning (t-1034) ────────────────
 # CC caches extra-usage state in ~/.claude.json. If it's disabled,
 # 1M-context models fail around the 200k-token mark with an
