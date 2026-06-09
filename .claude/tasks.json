@@ -14563,7 +14563,7 @@
       "blocked_by": [],
       "branch": null,
       "completed": null,
-      "context": "Anthropic cost data: solo=$9/20min, full harness=$200/6hr. Need our own baselines to know when harness overhead is justified vs overkill. Integrate with RTK gain metrics and decision log cost entries.",
+      "context": "Anthropic cost data: solo=$9/20min, full harness=$200/6hr. Need our own baselines to know when harness overhead is justified vs overkill. Integrate with RTK gain metrics and decision log cost entries.\n2026-06-09: Research complete. CC transcript JSONL (~/.claude/projects/{hash}/{session_uuid}.jsonl) has per-turn message.usage with input/cache_create/cache_read/output tokens. This session: $4.37 / 83 turns. Anchor via BRANA_SESSION_ID + start timestamp in run-state. Implementation: S-effort bash+Python script. Findings in docs/architecture/features/build-cost-tracking.md.",
       "created": "2026-03-26",
       "description": "Track token cost per /brana:build run. Log: total tokens, duration, agent spawns, model routing decisions. Compare solo (no evaluator) vs full harness runs. Anthropic benchmark: 20x cost for substantially higher quality.",
       "effort": "M",
