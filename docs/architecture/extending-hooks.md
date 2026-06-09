@@ -122,7 +122,7 @@ Hooks are registered in `system/hooks/hooks.json` with this structure:
 | `event` (key) | The CC lifecycle event. See Event Types table above for all valid values. |
 | `matcher` | Pipe-separated tool names (`"Write\|Edit"`) or empty string (`""`) for all tools. Not applicable to session events — leave `""`. |
 | `type` | Always `"command"` |
-| `command` | Path to the script. Must use `${CLAUDE_PLUGIN_ROOT}` for plugin-relative resolution. |
+| `command` | Path to the script (string). Must use `${CLAUDE_PLUGIN_ROOT}` for plugin-relative resolution. **The `args:[]` array form was removed from CC's hook schema (E2026-05-31-2) — using it causes a silent load failure.** |
 | `timeout` | Max execution time in milliseconds. 5,000ms for tool hooks, 10,000ms for session hooks, 3,000ms for lightweight gates. |
 | `async` | Optional boolean. When `true`, CC does not wait for the hook to complete before continuing. Use for fire-and-forget work (memory indexing, telemetry) where blocking the session is unacceptable. Output and return value are ignored. |
 

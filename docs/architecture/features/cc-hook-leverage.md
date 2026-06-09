@@ -98,6 +98,7 @@ brana backlog set t-XXX status completed
 ## Known Limitations
 
 - **PostToolUse plugin dispatch (CC #24529, unresolved as of 2026-05-31)** — PostToolUse/PostToolUseFailure hooks are registered in `plugin hooks.json` (migrated from bootstrap settings.json during E2026-05-31-2). However, `validate.sh` warns CC v2.1.x may not dispatch these events from plugin hooks. If post-tool-use hooks stop firing, re-add them to settings.json via bootstrap.sh until CC #24529 is confirmed resolved. TaskCompleted and SubagentStart are NOT PostToolUse and work reliably from plugin hooks.json.
+- **`args:[]` hook schema removed (E2026-05-31-2)** — All hook entries must use `"command": "bash script.sh"` (string), not `"args": ["bash", "script.sh"]` (array). The array form causes a silent load failure; `validate.sh` Check 51 now catches this at validation time.
 - **task-completed.sh uses grep matching** — detects `brana backlog set <id> status completed` via regex on Bash command. Fragile if CLI syntax changes. Native CC TaskCompleted fires for CC Tasks only, not brana backlog tasks.
 - **SubagentStart injection only works when a task is in_progress** — if no active task, hook returns silently. Agents spawned outside of task context don't receive injection.
 - **Model override is static** — set in frontmatter, not dynamic. Can't downgrade mid-skill based on task complexity. contextModifier (t-509, deferred) would enable dynamic routing.
