@@ -50321,6 +50321,31 @@
       "strategy": null,
       "build_step": null,
       "description": null
+    },
+    {
+      "id": "t-1927",
+      "subject": "follow-up fixes: build.md branch naming, worktree-gate stash, MEMORY.md housekeeping",
+      "status": "completed",
+      "type": "task",
+      "tags": [
+        "harness",
+        "hooks",
+        "procedures"
+      ],
+      "description": null,
+      "effort": "S",
+      "priority": "P1",
+      "parent": null,
+      "created": "2026-06-09",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Three follow-ups from 2026-06-09 session: (1) build.md Entry via /brana:backlog start section has old stream-based branch naming (roadmap→feat/, bugs→fix/, tech-debt→refactor/) — update to reference new epic-slug/work-type/t-NNN-slug convention from backlog.md §Branch creation. (2) worktree-gate.sh fires deny on compound commands like 'git stash && git checkout -b foo' because hook evaluates before stash executes — add IS_STASH detection to skip dirty check when compound cmd has git stash before checkout. (3) MEMORY.md at 193 lines approaching 200-line cap — promote feedback entries to topic files, target <175.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
     }
   ],
   "version": "1"
