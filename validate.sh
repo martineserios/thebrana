@@ -431,6 +431,16 @@ if [ -f "$SYSTEM_DIR/hooks/hooks.json" ]; then
             pass "hooks.json command '$SCRIPT_NAME' — exists, executable, uses plugin root"
         fi
     done <<< "$(jq -r '.hooks // {} | .[][] | .hooks[]? | .command // empty' "$SYSTEM_DIR/hooks/hooks.json" 2>/dev/null || true)"
+
+    # Check 51: hooks.json entries must use command:string, not args:[] (t-1787)
+    # CC schema requires command:string; args:[] was an old format that breaks silently.
+    C51_BAD=$(jq -r '[.hooks // {} | .[][] | .hooks[]? | select(.args != null)] | length' \
+        "$SYSTEM_DIR/hooks/hooks.json" 2>/dev/null || echo "0")
+    if [ "${C51_BAD:-0}" -gt 0 ]; then
+        fail "Check 51: hooks.json has $C51_BAD hook entry/entries using args:[] instead of command:string — CC schema requires command:string"
+    else
+        pass "Check 51: hooks.json — all entries use command:string schema"
+    fi
 fi
 
 # Validate settings.json hook event names (legacy — should be empty in v0.7.0+)
