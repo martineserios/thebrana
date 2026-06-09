@@ -1552,7 +1552,7 @@ mod tests {
         cmd_add(
             Some(r#"{"subject":"no priority in json"}"#.into()),
             None, None, None, None, None, None, None, None,
-            None, Some(f.path().to_path_buf()), None, None,
+            None, Some(f.path().to_path_buf()), None, None, vec![],
         ).unwrap();
         let task = read_first_task(&f);
         assert_eq!(task["priority"].as_str(), Some("P3"),
@@ -1565,7 +1565,7 @@ mod tests {
         cmd_add(
             Some(r#"{"subject":"explicit null priority","priority":null}"#.into()),
             None, None, None, None, None, None, None, None,
-            None, Some(f.path().to_path_buf()), None, None,
+            None, Some(f.path().to_path_buf()), None, None, vec![],
         ).unwrap();
         let task = read_first_task(&f);
         assert_eq!(task["priority"].as_str(), Some("P3"),
@@ -1578,7 +1578,7 @@ mod tests {
         cmd_add(
             Some(r#"{"subject":"explicit priority","priority":"P1"}"#.into()),
             None, None, None, None, None, None, None, None,
-            None, Some(f.path().to_path_buf()), None, None,
+            None, Some(f.path().to_path_buf()), None, None, vec![],
         ).unwrap();
         let task = read_first_task(&f);
         assert_eq!(task["priority"].as_str(), Some("P1"),
@@ -1591,7 +1591,7 @@ mod tests {
         cmd_add(
             Some(r#"{"subject":"urgent","priority":"P0"}"#.into()),
             None, None, None, None, None, None, None, None,
-            None, Some(f.path().to_path_buf()), None, None,
+            None, Some(f.path().to_path_buf()), None, None, vec![],
         ).unwrap();
         let task = read_first_task(&f);
         assert_eq!(task["priority"].as_str(), Some("P0"),

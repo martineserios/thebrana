@@ -17,7 +17,7 @@ On entry, create a CC Task step registry. Follow the [guided-execution protocol]
 Register these steps: GATE, GATHER, EXTRACT, DOC-CHECK, ERRATA, PATTERNS, FIELD-NOTES, IDEATE, DRIFT, HANDOFF, RUFLO-SYNC, METADATA, MEMORY-REVIEW, WORKTREE-REAP, PENDING-RECONCILE, STASH-CLEANUP, REPORT.
 
 <!-- ruflo preamble -->
-ToolSearch("select:mcp__ruflo__memory_store,mcp__ruflo__memory_search,mcp__ruflo__hive-mind_memory,mcp__ruflo__claims_release")
+ToolSearch("select:mcp__ruflo__memory_store,mcp__ruflo__memory_search,mcp__ruflo__hive-mind_memory,mcp__ruflo__claims_release,mcp__brana__memory_index")
 
 ## Steps
 
