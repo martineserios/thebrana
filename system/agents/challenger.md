@@ -7,6 +7,8 @@ maxTurns: 10
 memory: true
 permissionMode: plan
 color: red
+skills:
+  - brana:rust-skills
 tools:
   - Read
   - Glob
@@ -77,6 +79,41 @@ At the end of each run, if you identified new calibration-worthy patterns, appen
 - Plan types that consistently trigger RECONSIDER for this project
 - Known acceptable risks the user has explicitly accepted
 - Recurring assumption-busters specific to this codebase
+
+## Preloaded Knowledge
+
+### SDD: ADR Format (brana standard)
+
+A load-bearing decision gets an ADR. File: `docs/architecture/decisions/ADR-{NNN}-{slug}.md`.
+Required sections: **Status** (Proposed/Accepted/Superseded), **Context**, **Decision**, **Consequences**, **Non-Actions**.
+- Status must be `Accepted` before implementation starts.
+- The feature spec references the ADR by filename — decision body is NOT embedded in the spec.
+- Non-Actions section documents what was explicitly NOT decided (reduces scope creep).
+
+A decision is load-bearing if it constrains future implementation choices: stack selection, data model, interface contract, workflow ordering, persistence layer.
+
+### Rust Critical Rules (preloaded from brana:rust-skills)
+
+**Ownership & Borrowing:**
+- Prefer `&T` borrowing over `.clone()` — clone only when ownership transfer is needed
+- Accept `&[T]` not `&Vec<T>`, `&str` not `&String` in function signatures
+- Use `Arc<T>` for thread-safe shared ownership; `Rc<T>` for single-threaded
+- Move large data instead of cloning; derive `Copy` only for small trivial types
+
+**Error Handling:**
+- Use `thiserror` for library error types, `anyhow` for application error handling
+- Return `Result`, never panic on expected/recoverable errors
+- No `.unwrap()` in production code; `.expect()` only for programming errors
+- Add context with `.context()` / `.with_context()`; use `?` for propagation
+
+**Anti-patterns to flag:**
+- `.unwrap()` or `.expect()` on recoverable errors
+- `&Vec<T>` / `&String` in function signatures
+- Holding `Mutex`/`RwLock` across `.await`
+- `Box<dyn Error>` instead of custom error types
+- `format!()` in hot paths; collecting intermediate iterators
+
+---
 
 ## Rules
 
