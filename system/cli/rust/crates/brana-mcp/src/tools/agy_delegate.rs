@@ -13,7 +13,8 @@ use std::process::Stdio;
 use std::time::Instant;
 use tokio::process::Command;
 
-// Changing this requires: cargo build --release in brana-mcp/ + restart Claude Code (binary change is invisible until redeployed)
+// Version is informational — mismatch emits a `version_warning` field but does NOT block delegation.
+// Update when re-running the adversarial spike to validate a new agy version.
 const AGY_PINNED_VERSION: &str = "1.0.4";
 const AGY_TIMEOUT_SECS: u64 = 120;
 
@@ -46,10 +47,11 @@ pub fn build() -> TypedTool<
 > {
     TypedTool::new("agy_delegate", |input: Input, _extra| {
         Box::pin(async move {
-            // Step 0: version pin — hard-error if agy version doesn't match constant.
-            check_version()
-                .await
-                .map_err(|e| pmcp::Error::validation(e))?;
+            // Step 0: version check — warn in response but do NOT block delegation.
+            // Pinning was too strict: any agy update would break delegation until
+            // brana-mcp was rebuilt. Callers (challenge, build) need agy to work
+            // across version updates; they can inspect `version_warning` if needed.
+            let version_warning = check_version().await.err();
 
             // Build prompt from task + optional context + optional output format.
             let prompt = build_prompt(
@@ -84,11 +86,17 @@ pub fn build() -> TypedTool<
                     .to_string(),
                 )),
                 Ok(Err(e)) => Err(pmcp::Error::validation(e)),
-                Ok(Ok(output)) => Ok(serde_json::json!({
-                    "ok": true,
-                    "output": output,
-                    "elapsed_ms": elapsed_ms,
-                })),
+                Ok(Ok(output)) => {
+                    let mut resp = serde_json::json!({
+                        "ok": true,
+                        "output": output,
+                        "elapsed_ms": elapsed_ms,
+                    });
+                    if let Some(warn) = version_warning {
+                        resp["version_warning"] = serde_json::Value::String(warn);
+                    }
+                    Ok(resp)
+                }
             }
         })
     })
