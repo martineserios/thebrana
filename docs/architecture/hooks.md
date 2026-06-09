@@ -83,7 +83,7 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 
 | Hook | Event | Matcher | Purpose |
 |------|-------|---------|---------|
-| `pre-tool-use.sh` | PreToolUse | `Write\|Edit` | Spec-before-code gate + cascade throttle |
+| `pre-tool-use.sh` | PreToolUse | `Write\|Edit` | Spec-before-code gate + cascade throttle. Step 3b: unconditionally denies writes to `~/.claude/settings.json` and `settings.local.json` — tool-layer self-modification risk (t-1862) |
 | `tdd-gate.sh` | PreToolUse | `Write\|Edit` | TDD baseline — blocks impl writes when no test exists in project. Ordering enforcement (tests before impl) lives in procedure gates, not here |
 | `plan-mode-gate.sh` | PreToolUse | `EnterPlanMode` | Enforce plan mode for non-trivial builds |
 | `worktree-gate.sh` | PreToolUse | `Bash` | Gate A: block `git checkout -b` / `git switch -c` when dirty or worktrees active — **exception**: if the only dirty file is `.claude/tasks.json`, emits a warn (continue:true) instead of deny (t-1320). Gate B: block `git commit` when /tmp >95% full; warn on cross-session staged files |
