@@ -184,7 +184,10 @@ fn collect_hook_paths_rec(
         serde_json::Value::Object(map) => {
             if let Some(serde_json::Value::String(cmd)) = map.get("command") {
                 let resolved = cmd.replace("${CLAUDE_PLUGIN_ROOT}", &plugin_root.to_string_lossy());
-                out.insert(PathBuf::from(resolved));
+                let home = std::env::var("HOME").unwrap_or_default();
+                let resolved = resolved.replace("$HOME", &home);
+                let path = extract_script_path(&resolved).unwrap_or(resolved);
+                out.insert(PathBuf::from(path));
             }
             for v in map.values() {
                 collect_hook_paths_rec(v, plugin_root, out);
@@ -197,6 +200,53 @@ fn collect_hook_paths_rec(
         }
         _ => {}
     }
+}
+
+/// Extract the script path from a shell command string like `bash "/path/to/script.sh"`.
+/// Also handles `bash -c '... /path/to/script.sh ...'` by searching for the .sh path.
+fn extract_script_path(cmd: &str) -> Option<String> {
+    let cmd = cmd.trim();
+    let rest = if cmd.starts_with("bash ") || cmd.starts_with("sh ") {
+        cmd.splitn(2, ' ').nth(1)?.trim()
+    } else {
+        return None;
+    };
+    // bash -c: scan the full command for a .sh path (e.g. f="$HOME/.../script.sh")
+    if rest.starts_with("-c") {
+        return extract_sh_path_from_inline(cmd);
+    }
+    if rest.starts_with('"') {
+        let inner = &rest[1..];
+        let end = inner.find('"').unwrap_or(inner.len());
+        Some(inner[..end].to_string())
+    } else if rest.starts_with('\'') {
+        let inner = &rest[1..];
+        let end = inner.find('\'').unwrap_or(inner.len());
+        Some(inner[..end].to_string())
+    } else {
+        Some(rest.split_whitespace().next()?.to_string())
+    }
+}
+
+/// Find the first `*.sh` path in an inline `bash -c '...'` command.
+fn extract_sh_path_from_inline(cmd: &str) -> Option<String> {
+    // Look for a quoted path ending in .sh
+    for delim in ['"', '\''] {
+        let mut pos = 0;
+        while let Some(start) = cmd[pos..].find(delim) {
+            let abs = pos + start + 1;
+            if abs >= cmd.len() { break; }
+            let inner = &cmd[abs..];
+            if let Some(end) = inner.find(delim) {
+                let candidate = &inner[..end];
+                if candidate.ends_with(".sh") && (candidate.starts_with('/') || candidate.starts_with('$')) {
+                    return Some(candidate.to_string());
+                }
+            }
+            pos = abs;
+        }
+    }
+    None
 }
 
 /// Check 4: MCP server command paths in `.mcp.json` exist.
