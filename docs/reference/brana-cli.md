@@ -119,6 +119,45 @@ brana backlog focus --work-type implement
 
 ---
 
+## brana backlog initiatives
+
+Initiative health dashboard — groups `type=initiative` tasks, shows child task counts by priority, blocked count, progress bar, and % done.
+
+```
+brana backlog initiatives [--json]
+```
+
+### Examples
+
+```bash
+brana backlog initiatives
+brana backlog initiatives --json
+```
+
+Each initiative shows: ID, epic slug, subject, P1/P2/P3 counts, blocked count, progress bar, % done.
+Children are linked via the `epic` slug field (not `parent` ID).
+
+---
+
+## brana backlog epics
+
+Epic health dashboard — all distinct epic slugs across tasks, sorted alphabetically, with task counts, progress bars, P1/P2 counts, and blocked count.
+
+```
+brana backlog epics [--json]
+```
+
+### Examples
+
+```bash
+brana backlog epics
+brana backlog epics --json
+```
+
+Excludes `type=initiative` tasks from counts (initiative tasks are the grouping key, not children).
+
+---
+
 ## brana backlog set active
 
 Set the active epic for the current session and beyond.
