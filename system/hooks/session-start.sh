@@ -210,6 +210,20 @@ if [ -f "$SENTINEL_FILE" ]; then
     rm -f "$SENTINEL_FILE" 2>/dev/null || true
 fi
 
+# ── Stale binary detection ────────────────────────────────
+STALE_BINARY_WARNING=""
+_BRANA_BIN=$(command -v brana 2>/dev/null) || true
+if [ -n "${_BRANA_BIN:-}" ] && [ -x "$_BRANA_BIN" ]; then
+    _BIN_MTIME=$(stat -c %Y "$_BRANA_BIN" 2>/dev/null) || _BIN_MTIME=0
+    _LAST_CLI_CT=$(git -C "$GIT_ROOT" log --format="%ct" -1 -- system/cli/ 2>/dev/null) || _LAST_CLI_CT=""
+    if [ -n "$_LAST_CLI_CT" ] && [ "${_BIN_MTIME:-0}" -lt "$_LAST_CLI_CT" ]; then
+        _BIN_DATE=$(date -d "@$_BIN_MTIME" "+%Y-%m-%d %H:%M" 2>/dev/null) || _BIN_DATE="unknown"
+        _COMMIT_DATE=$(date -d "@$_LAST_CLI_CT" "+%Y-%m-%d %H:%M" 2>/dev/null) || _COMMIT_DATE="unknown"
+        STALE_BINARY_WARNING="brana binary (built $_BIN_DATE) predates last system/cli commit ($_COMMIT_DATE). Rebuild: cd system/cli/rust && cargo build --release"
+    fi
+fi
+unset _BRANA_BIN _BIN_MTIME _LAST_CLI_CT _BIN_DATE _COMMIT_DATE
+
 # ── Task context injection ──────────────────────────────
 TASK_CONTEXT=""
 TASKS_FILE=""
@@ -619,6 +633,10 @@ fi
 if [ -n "$SENTINEL_WARNING" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
 }[Bootstrap] $SENTINEL_WARNING"
+fi
+if [ -n "$STALE_BINARY_WARNING" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}[Stale binary] $STALE_BINARY_WARNING"
 fi
 if [ -n "$LINT_HEAL_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
