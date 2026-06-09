@@ -98,7 +98,7 @@ Evidence must be specific: a file path + line number, a function name, or a test
 
 ## Invocation
 
-This agent is explicitly invoked — it does NOT auto-trigger. The close step or the user calls it:
+This agent is auto-invoked by the Evaluator Gate in `build.md` when `AC:` lines are present in task context. It can also be invoked directly by the user:
 
 ```
 Agent(
