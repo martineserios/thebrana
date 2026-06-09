@@ -148,12 +148,13 @@ Pull relevant architecture, decision knowledge, and skill matches into context b
    Run tech detection _before_ the ruflo search so the loaded skill's context is available to interpret results.
    <!-- SUNSET: Remove this step when Skill Registry (t-608) ships — same as Steps 4 and 4a. -->
 
-   **Step A — Tech detection** (3-signal chain; first match wins — skip 0.5 entirely if no signal fires):
-   - **Signal 1** — task description + tags: scan for tech keywords (`"Rust"`, `"[rust]"`, `".rs"`, `"Cargo"`, `"Python"`, `"[python]"`, `".py"`, `"TypeScript"`, `"[typescript]"`, `".ts"`, `".tsx"`, `"Next.js"`, etc.)
-   - **Signal 2** — project manifest files: `Cargo.toml` → Rust; `pyproject.toml` or `uv.lock` → Python; `package.json` + `tsconfig.json` → TypeScript
-   - **Signal 3** — file path extensions in task description/context: `.rs` → Rust, `.py` → Python, `.ts`/`.tsx` → TypeScript
+   **Step A — Tech detection** (3-signal chain; first match wins — skip 0.5 entirely if no signal fires).
+   Use the **domain-mapping table** in step 4a for canonical signal→tech→skill mappings.
+   - **Signal 1** — task description + tags: match against "File signals" column of the domain-mapping table.
+   - **Signal 2** — project manifest files: match manifest filenames against the table.
+   - **Signal 3** — file path extensions in task description/context: match extensions against the table.
 
-   **Step B — Skill match**: scan installed `SKILL.md` files for `keywords` overlap with detected tech. If no match: skip 0.5 silently (no message).
+   **Step B — Skill match**: look up detected tech in the domain-mapping table. If no row matches or the mapped skill is not installed: skip 0.5 silently (no message).
 
    **Step C — Ask** (delegate to `skill-routing.md` gate, same as Step 4):
    ```
@@ -240,17 +241,28 @@ Pull relevant architecture, decision knowledge, and skill matches into context b
 4a. **JIT skill acquisition** — deterministic tech detection + SKILL.md keywords gate. Triggers when a domain skill is installed but its knowledge was absent from LOAD results.
    <!-- SUNSET: Remove steps 4 and 4a entirely when Skill Registry (t-608) ships. Replace with skill_suggest(tech_context) calls. -->
 
+   **Domain-mapping table** — canonical signal→tech→skill→match-keywords (t-1915):
+
+   | File signals | Tech | Skill (if installed) | Match keywords for Step 3 |
+   |---|---|---|---|
+   | `.rs`, `Cargo.toml`, tag `rust` | Rust | `brana:rust-skills` | `rust`, `cargo`, `.rs` |
+   | `.py`, `pyproject.toml`, `uv.lock`, tag `python` | Python | `brana:python-skills` | `python`, `pyproject`, `.py` |
+   | `.ts`, `.tsx`, `tsconfig.json`, tag `typescript` | TypeScript | `brana:nextjs-patterns` | `typescript`, `nextjs`, `.ts`, `.tsx` |
+   | `.sh`, `#!/usr/bin/env bash`, tag `shell` | Shell | `brana:shell-skills` | `shell`, `bash`, `.sh` |
+   | `supabase/`, `supabase.ts`, tag `supabase` | Supabase | `supabase:supabase` | `supabase` |
+
+   Use this table in Steps 1–3 below. Match keywords are domain-specific — a Rust task must match Rust keywords, not any keyword from the table.
+
    **Step 1 — Tech detection** (3-signal chain; first match wins — skip 4a entirely if no signal fires):
-   - **Signal 1** — Task description + tags: scan for tech keywords (`"Rust"`, `"[rust]"`, `".rs"`, `"Cargo"`, `"Python"`, `"[python]"`, `".py"`, `"TypeScript"`, `"[typescript]"`, `".ts"`, `".tsx"`, `"Next.js"`, etc.)
-   - **Signal 2** — Project manifest files (filesystem-verifiable, most reliable):
-     - `Cargo.toml` present → Rust
-     - `pyproject.toml` or `uv.lock` present → Python
-     - `package.json` + `tsconfig.json` present → TypeScript
-   - **Signal 3** — File paths in task description/context: extract extensions from mentioned paths (`.rs` → Rust, `.py` → Python, `.ts`/`.tsx` → TypeScript)
+   - **Signal 1** — Task description + tags: scan for tech keywords using the "File signals" column above.
+   - **Signal 2** — Project manifest files (filesystem-verifiable, most reliable): check presence of files in the "File signals" column (Cargo.toml, pyproject.toml/uv.lock, package.json+tsconfig.json).
+   - **Signal 3** — File paths in task description/context: extract extensions from mentioned paths and match against the table.
 
-   **Step 2 — Skill match**: scan installed `SKILL.md` files for `keywords` overlap with detected tech terms. If no match: skip 4a (no skill to offer).
+   **Step 2 — Skill match**: look up the detected tech in the domain-mapping table. If no row matches or the mapped skill is not installed: skip 4a silently.
 
-   **Step 3 — Tech-aware LOAD check**: inspect LOAD result keys (from steps 2 and 2b above). If any key contains one of the matched skill's `keywords` → skill knowledge already in context → skip 4a. If NO key matches → skill knowledge absent → proceed to Step 4.
+   **Step 3 — Domain-match LOAD check**: inspect LOAD result keys (from steps 2 and 2b above). A result satisfies the check ONLY if its key contains a keyword from the **"Match keywords"** column for the detected tech. Adjacent-domain keywords do NOT satisfy the check — a Python hit does not count as a Rust skill load.
+   - Any key contains a match keyword for detected tech → skill knowledge already in context → **skip 4a**.
+   - No key matches → skill knowledge absent → **proceed to Step 4**.
 
    **Step 4 — Ask**:
    ```
