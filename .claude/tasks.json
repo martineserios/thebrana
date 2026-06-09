@@ -49915,7 +49915,7 @@
     },
     {
       "blocked_by": [],
-      "branch": null,
+      "branch": "harness-core/fix/t-1911-memory-index-sync-filename-stem",
       "build_step": null,
       "completed": null,
       "context": "memory-index-sync.sh uses name: frontmatter value as the link label in MEMORY.md. When name: differs from filename stem (e.g. name: rust-cargo-patterns in topic_rust-cargo-patterns.md), hook-generated entries have wrong labels needing manual correction. Fix: use filename stem (strip .md extension) as label. Discovered 2026-06-08 at close.",
@@ -49925,12 +49925,12 @@
       "execution": "code",
       "github_issue": null,
       "id": "t-1911",
-      "notes": null,
+      "notes": "Fixed: changed STEM variable approach — filename.md → filename stem. Tests updated: 14/14 pass. Deployed to ~/.claude/hooks/.",
       "order": null,
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "[hook] fix memory-index-sync.sh to use filename stem as link label (not name: frontmatter)",
       "tags": [
