@@ -14474,9 +14474,9 @@
     },
     {
       "blocked_by": [],
-      "branch": null,
+      "branch": "harness-core/feat/t-645-post-build-evaluator-agent",
       "completed": null,
-      "context": "Anthropic key finding: self-evaluation bias — agents praise their own work even when mediocre. Separate evaluator with Playwright/screenshots catches bugs builder misses. This is the biggest quality gap in brana today.\nDesign questions: evaluator model (sonnet vs opus?), interaction method (Playwright MCP? CLI?), threshold model (hard pass/fail per criterion vs score), iteration count (Anthropic used 5-15).\n2026-03-26: Deep analysis of Anthropic article.\nQA is cheap: 3 evaluator rounds = $10.39 (8.3% of total $124.70 build). Each wasted build iteration costs $36-71. Evaluator pays for itself immediately.\nIteration dynamics: 5-15 iterations, non-linear. Generator must choose refine vs pivot strategically. Keep all iterations — best may not be last. Need plateau detection for termination.\nSelf-eval bias: even separate evaluators 'talk themselves into approving' unless prompt is tuned from log analysis. Hard thresholds + feedback loop, not just thresholds.\nFile-based contracts between agents, not structured APIs. Simpler, debuggable.\nSDK compaction handles multi-hour sessions automatically — essential for autonomous evaluator.",
+      "context": "Anthropic key finding: self-evaluation bias — agents praise their own work even when mediocre. Separate evaluator with Playwright/screenshots catches bugs builder misses. This is the biggest quality gap in brana today.\nDesign questions: evaluator model (sonnet vs opus?), interaction method (Playwright MCP? CLI?), threshold model (hard pass/fail per criterion vs score), iteration count (Anthropic used 5-15).\n2026-03-26: Deep analysis of Anthropic article.\nQA is cheap: 3 evaluator rounds = $10.39 (8.3% of total $124.70 build). Each wasted build iteration costs $36-71. Evaluator pays for itself immediately.\nIteration dynamics: 5-15 iterations, non-linear. Generator must choose refine vs pivot strategically. Keep all iterations — best may not be last. Need plateau detection for termination.\nSelf-eval bias: even separate evaluators 'talk themselves into approving' unless prompt is tuned from log analysis. Hard thresholds + feedback loop, not just thresholds.\nFile-based contracts between agents, not structured APIs. Simpler, debuggable.\nSDK compaction handles multi-hour sessions automatically — essential for autonomous evaluator.\nAC: system/procedures/build.md contains \"### Evaluator Gate\" section\nAC: gate spawns brana:build-evaluator when AC: lines present in task context\nAC: FAIL verdict blocks CLOSE with AskUserQuestion (fix/override/abandon)\nAC: PASS and PASS WITH GAPS allow CLOSE to proceed\nAC: gate skipped silently when no AC: lines present\nAC: evaluator verdict logged to task notes\nAC: repair loop capped at 2 iterations\nAC: validate.sh check passes",
       "created": "2026-03-26",
       "description": "After /brana:build BUILD step completes, spawn a separate evaluator agent (sonnet) that runs the app, interacts via browser/CLI/tests, and grades against spec acceptance criteria. Fails block CLOSE step. Core insight: generators cannot reliably self-evaluate.",
       "effort": "L",
@@ -14485,12 +14485,12 @@
       "id": "t-645",
       "kind": "feature",
       "level": "task",
-      "notes": null,
+      "notes": "Evaluator: PASS (2026-06-09). Challenger: PROCEED WITH CHANGES — fixed build-evaluator.md invocation doc contradiction. Merged to main.",
       "order": null,
       "parent": "t-641",
       "priority": "P0",
-      "started": null,
-      "status": "pending",
+      "started": "2026-06-09",
+      "status": "completed",
       "subject": "Post-build evaluator agent — separate generator from grader",
       "tags": [
         "harness-engineering",
@@ -14498,7 +14498,9 @@
         "agents"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "implement",
+      "strategy": "feature",
+      "build_step": "build"
     },
     {
       "blocked_by": [
@@ -47235,7 +47237,7 @@
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "strategy": null,
       "subject": "chore: /brana:reconcile --scope propagation — ADR-040/041/042 updated",
       "tags": [
@@ -50028,7 +50030,7 @@
       "parent": null,
       "priority": "P1",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "fix(proc): add domain-mapping table and fix step 4a gate condition in build.md",
       "tags": [
         "procedure",
@@ -50339,6 +50341,56 @@
       "blocked_by": [],
       "branch": null,
       "context": "Three follow-ups from 2026-06-09 session: (1) build.md Entry via /brana:backlog start section has old stream-based branch naming (roadmap→feat/, bugs→fix/, tech-debt→refactor/) — update to reference new epic-slug/work-type/t-NNN-slug convention from backlog.md §Branch creation. (2) worktree-gate.sh fires deny on compound commands like 'git stash && git checkout -b foo' because hook evaluates before stash executes — add IS_STASH detection to skip dirty check when compound cmd has git stash before checkout. (3) MEMORY.md at 193 lines approaching 200-line cap — promote feedback entries to topic files, target <175.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
+    },
+    {
+      "id": "t-1928",
+      "subject": "[hook] Add test for IS_STASH passthrough in worktree-gate.sh",
+      "status": "completed",
+      "type": "task",
+      "tags": [
+        "hook",
+        "test",
+        "ideation"
+      ],
+      "description": "Add shell test that verifies compound `git stash && git checkout -b foo` passes through worktree-gate with a dirty working tree. No regression test currently covers the IS_STASH branch added in t-1927.",
+      "effort": "S",
+      "priority": null,
+      "parent": null,
+      "created": "2026-06-09",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code"
+    },
+    {
+      "id": "t-1929",
+      "subject": "[rule] Run /brana:reconcile after CLAUDE.md convention changes",
+      "status": "completed",
+      "type": "task",
+      "tags": [
+        "rule",
+        "reconcile",
+        "ideation"
+      ],
+      "description": "build.md still used old stream-based branch naming after CLAUDE.md was updated to {epic-slug}/{work-type}/t-{NNN} convention. Add a procedure note or rule: after any CLAUDE.md naming convention change, run /brana:reconcile --scope propagation to catch stale references in procedure files.",
+      "effort": "S",
+      "priority": null,
+      "parent": null,
+      "created": "2026-06-09",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
       "notes": null,
       "order": 0,
       "github_issue": null,
