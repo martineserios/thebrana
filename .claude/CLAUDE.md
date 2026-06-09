@@ -15,7 +15,7 @@
 ```
 
 - **epic-slug** — kebab-case theme grouping the task (e.g. `session`, `backlog-git`, `harness`)
-- **work-type** — one of: `feat` · `fix` · `chore` · `research` · `test` · `docs` · `refactor`
+- **work-type** — one of: `feat` · `fix` · `chore` · `research` · `test` · `docs` · `refactor` · `review`
 - **t-{NNN}** — backlog task ID (required for all implementation branches)
 - **description-slug** — 2–4 word kebab summary
 
