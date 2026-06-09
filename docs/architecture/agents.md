@@ -88,13 +88,17 @@ Instructions for the agent...
 | `permissionMode` | enum | default | `plan` requires plan approval before edits; `bypassPermissions` skips prompts |
 | `isolation` | enum | none | `worktree` gives agent a clean git worktree (auto-cleaned if no changes) |
 | `color` | string | none | UI color hint for the agent bubble in Claude Code |
-| `skills` | list | none | Domain skills to preload at agent spawn — injects their SKILL.md body as preloaded context |
 | `tools` | list | all | Allowlist of tools the agent may call |
 | `disallowedTools` | list | none | Blocklist — overrides `tools` allowlist |
 
 The `model` field controls cost and capability. The `description` includes explicit "Use when" and "Not for" guidance to help with routing decisions.
 
+> **Domain knowledge injection:** `skills:` is NOT a native CC frontmatter field and is silently ignored. To preload domain knowledge into an agent, embed an explicit `## Preloaded Knowledge` section in the agent body. See `system/agents/pr-reviewer.md` as a reference implementation. (E2026-06-09-1)
+
 ## Field Notes
+
+### 2026-06-09: `skills:` frontmatter field silently ignored — use `## Preloaded Knowledge` body section (E2026-06-09-1)
+`skills:` is not a native CC agent frontmatter field. Adding it has no effect and produces no error. Discovered when `challenger.md` had `skills: [rust-skills]` that was never injected (t-1215). The correct mechanism: add a `## Preloaded Knowledge` section to the agent body with embedded content. `pr-reviewer.md` is the reference — it embeds Rust conventions and testing patterns directly in the body. Challenger should embed only process/convention knowledge (language-agnostic); tech skills load on demand via skill-routing.
 
 ### 2026-06-08: CC path-trust sandbox — two-tier model; isolation:worktree fix in CC 2.1.161 (E2026-06-08-8, resolved)
 `bypassPermissions` bypasses **hook-enforced** sandboxing only — not CC's path-trust sandbox, which anchors allowed tool paths to the initial session CWD. Before CC 2.1.161, `isolation: worktree` agents placed at `/tmp/wt-*/` were outside the path-trust boundary and could not mutate files. **Fixed in CC 2.1.161** — `isolation: worktree` agents can now edit files inside their own worktree (current: 2.1.168). `EnterWorktree` extends logical trust for pinned-CWD agents to `.claude/worktrees/<name>` paths but is not needed for `isolation: worktree` agents. Two-tier model: path-trust (CWD-anchored, evaluated first) → hook gates (pre-tool-use.sh etc., higher-level).
