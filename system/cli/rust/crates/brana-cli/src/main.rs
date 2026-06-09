@@ -84,6 +84,8 @@ fn main() {
             }
             BacklogCmd::Complete { task_id, file } => run_or_exit(commands::backlog::cmd_set(&task_id, "status", "completed", false, file)),
             BacklogCmd::MigrateEpic { dry_run, file } => run_or_exit(commands::backlog::cmd_backlog_migrate_epic(dry_run, file)),
+            BacklogCmd::Initiatives { json } => run_or_exit(commands::backlog::cmd_initiatives(&theme, json)),
+            BacklogCmd::Epics { json } => run_or_exit(commands::backlog::cmd_epics(&theme, json)),
         },
         Commands::Ops { cmd } => match cmd {
             OpsCmd::Status { all } => run_or_exit(commands::ops::cmd_ops_status(&theme, all)),

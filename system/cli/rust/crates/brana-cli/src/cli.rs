@@ -909,6 +909,18 @@ pub enum BacklogCmd {
         #[arg(long)]
         file: Option<PathBuf>,
     },
+    /// Initiative health dashboard — progress bars, P1/P2/P3 counts, % done (t-1737)
+    Initiatives {
+        /// Output JSON array instead of themed table
+        #[arg(long)]
+        json: bool,
+    },
+    /// Epic health dashboard — all epic slugs with task counts and progress (t-1743)
+    Epics {
+        /// Output JSON array instead of themed table
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Subcommand)]
