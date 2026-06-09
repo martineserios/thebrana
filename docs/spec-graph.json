@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-09T15:39:49Z",
+  "generated": "2026-06-09T16:16:53Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -470,6 +470,7 @@
       "title": "24 — Roadmap Corrections & Errata (ARCHIVED)",
       "type": "Roadmap",
       "impl_files": [
+        "system/procedures/close.md",
         "system/procedures/challenge.md",
         "system/agents/challenger.md",
         "system/procedures/build.md",
@@ -520,7 +521,6 @@
         "system/skills/align/procedures/align.md",
         "system/hooks/tests/test-main-guard.sh",
         "system/cli/rust/crates/brana-cli/src/commands/",
-        "system/procedures/close.md",
         "system/cli/rust/crates/brana-cli/src/commands/skills.rs",
         "system/procedures/migrate.md",
         "system/scripts/migrate/remap-streams.py",
@@ -1032,6 +1032,11 @@
         "system/skills/build/templates/tech-doc.md",
         "system/skills/build/templates/user-guide.md"
       ]
+    },
+    "docs/architecture/features/build-cost-tracking.md": {
+      "title": "Feature: Build Cost Tracking",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/architecture/features/build-loop-redesign.md": {
       "title": "Feature: Build Loop Redesign",
@@ -12596,9 +12601,9 @@
     }
   ],
   "stats": {
-    "nodes": 427,
+    "nodes": 428,
     "edges": 1620,
     "typed_edges": 570,
-    "orphans": 126
+    "orphans": 127
   }
 }
