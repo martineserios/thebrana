@@ -88,6 +88,7 @@ Instructions for the agent...
 | `permissionMode` | enum | default | `plan` requires plan approval before edits; `bypassPermissions` skips prompts |
 | `isolation` | enum | none | `worktree` gives agent a clean git worktree (auto-cleaned if no changes) |
 | `color` | string | none | UI color hint for the agent bubble in Claude Code |
+| `skills` | list | none | Domain skills to preload at agent spawn — injects their SKILL.md body as preloaded context |
 | `tools` | list | all | Allowlist of tools the agent may call |
 | `disallowedTools` | list | none | Blocklist — overrides `tools` allowlist |
 
