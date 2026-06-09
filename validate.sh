@@ -2093,6 +2093,20 @@ fi
 echo ""
 fi  # should_run 50
 
+# Check 52 — build.md must contain Evaluator Gate section (t-645)
+if should_run 52; then
+echo "Check 52: build.md Evaluator Gate section..."
+BUILD_MD="$SYSTEM_DIR/procedures/build.md"
+if [ ! -f "$BUILD_MD" ]; then
+    warn "Check 52: system/procedures/build.md not found — skipping"
+elif grep -q "### Evaluator Gate" "$BUILD_MD"; then
+    pass "Check 52: build.md Evaluator Gate section present"
+else
+    fail "Check 52: build.md missing '### Evaluator Gate' section — t-645 wires brana:build-evaluator into BUILD→CLOSE gate"
+fi
+echo ""
+fi  # should_run 52
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."

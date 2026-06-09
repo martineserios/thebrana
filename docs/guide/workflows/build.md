@@ -49,6 +49,21 @@ The `/brana:build` command handles all development work -- features, bug fixes, 
 | `/brana:close` | Session-level close (build's CLOSE is per-task) |
 | `/brana:fix` | Focused bug-fix flow: REPRODUCE → DIAGNOSE → FIX → VERIFY → COMMIT. Use when you know it's a bug and want a tighter loop than `/brana:build`. |
 
+## Evaluator gate
+
+Before the Challenger, a separate `build-evaluator` agent grades the implementation against your task's `AC:` lines. This is an objective pass/fail check — did you build what the spec said?
+
+**When it runs:** automatically when `AC:` lines are present in task context. Skipped silently otherwise.
+
+**Verdicts:**
+- **PASS** — all criteria met; proceeds to Challenger Gate
+- **PASS WITH GAPS** — some criteria partial; warns but proceeds
+- **FAIL** — one or more criteria MISSED; blocks CLOSE (max 2 repair iterations, same pattern as Challenger)
+
+Write `AC:` lines during SPECIFY for this gate to activate. See [AC: syntax](../../architecture/decisions/ADR-041-ac-convention.md) for machine-parseable forms.
+
+---
+
 ## Challenger gate
 
 Before CLOSE, an independent Challenger agent reviews the implementation against the spec. This is separate from the `/brana:challenge` invocation during SPECIFY — it's a mandatory BUILD exit review.

@@ -1060,6 +1060,86 @@ Skill(skill="brana:docs", args="{strategy-appropriate args}")
 
 Skip for spike and investigation strategies.
 
+### Evaluator Gate
+
+**Applies to:** all strategies except spike and investigation. **Requires** `AC:` lines in task context — skipped silently otherwise.
+
+#### Check for AC lines
+
+```bash
+AC_LINES=$(brana backlog get {task_id} | jq -r '.context // ""' | grep '^AC:' | sed 's/^AC: //')
+```
+
+If `AC_LINES` is empty: log inline "Evaluator gate: no AC: lines — skipped" and proceed to Challenger Gate.
+
+#### Spawn call
+
+```
+Agent(
+  subagent_type="brana:build-evaluator",
+  prompt="Evaluate t-{task_id}: {task_subject}.
+
+Acceptance criteria:
+{AC_LINES}
+
+Modified files (git diff --name-only main...HEAD):
+{MODIFIED_FILES}
+
+Grade each criterion MET / PARTIAL / MISSED with file:line evidence.
+Return structured verdict: PASS, PASS WITH GAPS, or FAIL."
+)
+```
+
+Where `MODIFIED_FILES` = output of `git diff --name-only main...HEAD` (from the worktree).
+
+#### Verdict handling
+
+| Verdict | Action |
+|---------|--------|
+| **PASS** | Log to task notes; proceed to Challenger Gate |
+| **PASS WITH GAPS** | Surface gaps inline; log to task notes; proceed to Challenger Gate |
+| **FAIL** | Block CLOSE — trigger repair loop below |
+
+Always log: `brana backlog set {task_id} notes --append "Evaluator: {verdict} ({date}), {N} criteria checked"`
+
+#### Repair loop (max 2 iterations)
+
+**Iteration 1 — FAIL verdict:**
+```
+AskUserQuestion:
+  question: "Evaluator: FAIL. {N} criteria MISSED: {list}. How to proceed?"
+  header: "Evaluator blocked"
+  options:
+    - label: "Fix now — loop back to BUILD (Recommended)"
+      description: "Missed criteria appended to task context. Re-enter BUILD, then Evaluator re-runs."
+    - label: "Override — proceed anyway (reason required)"
+      description: "Reason logged to task context. CLOSE proceeds with annotation."
+    - label: "Abandon — mark task blocked"
+      description: "Task status set to blocked."
+```
+
+If "Fix now":
+1. Append missed criteria to task context: `brana backlog set {task_id} context --append "Evaluator FAIL (iteration 1, {date}): MISSED — {criteria list}"`
+2. Re-enter BUILD. Missed criteria visible as task context.
+3. After BUILD completes → validate.sh → Evaluator iteration 2.
+
+**Iteration 2 — if still FAIL:** No further auto-loop. Present unconditionally:
+```
+AskUserQuestion:
+  question: "Evaluator: FAIL (iteration 2). Criteria still missing after one repair pass."
+  header: "Unresolved"
+  options:
+    - label: "Override — proceed (reason required)"
+      description: "Reason logged. CLOSE proceeds."
+    - label: "Abandon — mark task blocked"
+      description: "Task blocked."
+```
+Log: `brana backlog set {task_id} notes --append "Evaluator gate: 2 iterations, unresolved. Outcome: {override/abandoned}"`
+
+If "Override" (either iteration): require reason, log: `brana backlog set {task_id} context --append "Evaluator override ({date}): {reason}"`.
+
+---
+
 ### Challenger Gate
 
 **Applies to:** all strategies except spike and investigation.
