@@ -225,6 +225,18 @@ All subtasks complete. Dry-run passed clean (0 dedup, 0 contradictions, 0 frontm
   in the script noting the limitation for future path changes.
 - **Mtime comparison** uses `stat -c %Y` (Linux). The host is Linux; no macOS
   portability needed for this script (it's a server-side scheduler job).
+- **`grep -c` double-output on no-match** (fixed t-1925): `grep -c PATTERN file`
+  exits 1 when no lines match but still prints the count (`0`). The original
+  `|| echo 0` fallback fired on that exit 1, producing `"0\n0"` — two values — which
+  broke `[[ $count -lt 2 ]]` with an arithmetic syntax error. Fix: use
+  `grep -cm1 ... 2>/dev/null || true` so the exit code is always 0 and no double
+  echo occurs. Pass 3 was silently a no-op for all files before this fix.
+- **`[[ DRY_RUN -eq 0 ]] && cmd` as last statement** (fixed t-1925): with `set -e`,
+  a `[[ cond ]] && cmd` compound as the final statement of a function propagates the
+  `[[ ]]` exit code when the condition is false. In dry-run mode (`DRY_RUN=1`) the
+  condition `[[ DRY_RUN -eq 0 ]]` evaluated false (exit 1), causing `main()` to
+  return 1 and the script to exit non-zero despite succeeding. Fix: replace all such
+  final guards with `if [[ DRY_RUN -eq 0 ]]; then cmd; fi` form.
 
 ## Out of scope (L2)
 

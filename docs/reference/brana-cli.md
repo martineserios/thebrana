@@ -644,3 +644,11 @@ brana log "Spoke with team about caching strategy"
 ### Deduplication
 
 Before appending, `brana log` reads the current event-log.md and collects all existing `https://` URLs. Any incoming URL that already appears in the log is skipped with a `skipped (duplicate): <url>` message to stderr. Free-text (non-URL) entries are always appended without dedup checks.
+
+---
+
+## Removed
+
+### delegate_python (removed)
+
+The internal `delegate_python()` function that shelled out to `uv run brana` for commands needing Rich tables, portfolio reads, or complex git operations has been removed. All formerly-delegated commands are now implemented natively in Rust. The Python CLI fallback path no longer exists.

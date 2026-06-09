@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-08T23:08:57Z",
+  "generated": "2026-06-09T15:26:34Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -470,6 +470,8 @@
       "title": "24 — Roadmap Corrections & Errata (ARCHIVED)",
       "type": "Roadmap",
       "impl_files": [
+        "system/procedures/challenge.md",
+        "system/agents/challenger.md",
         "system/procedures/build.md",
         "system/procedures/backlog.md",
         "system/hooks/hooks.json",
@@ -581,6 +583,7 @@
       "type": "Roadmap",
       "impl_files": [
         "system/agents/{name",
+        "system/agents/pr-reviewer.md",
         "system/agents/",
         "system/agents/gemini.md"
       ]
@@ -9400,6 +9403,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/hooks.md",
+      "to": "topic_rust-cargo-patterns.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/overview.md",
       "to": "agents.md",
       "type": "references",
@@ -12095,7 +12104,7 @@
     },
     {
       "from": "docs/reflections/29-venture-management-reflection.md",
-      "to": "docs/architecture/decisions/ADR-015-state-sync.md",
+      "to": "docs/architecture/decisions/ADR-015-state-consolidation-plugin-first.md",
       "type": "references",
       "computed": false
     },
@@ -12570,7 +12579,7 @@
   ],
   "stats": {
     "nodes": 427,
-    "edges": 1616,
+    "edges": 1617,
     "typed_edges": 570,
     "orphans": 126
   }

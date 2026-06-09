@@ -131,6 +131,7 @@ Registers the brana plugin with CC's plugin system so it loads automatically wit
 | **7c** | Snapshots `system/` to `~/.claude/plugins/cache/brana/brana/<version>/`. CC reads from this cache. |
 | **7d** | Checks `~/.local/bin/brana` mtime vs newest `*.rs` source. Warns if binary predates source (stale binary = silent failures). |
 | **7e** | Registers in `~/.claude/plugins/installed_plugins.json` with current git SHA and version |
+| **7f** | Writes `~/.claude/installed_plugins.json` (the simple registry CC uses for `brana doctor` check 2). Step 7e writes the verbose `plugins/installed_plugins.json`; step 7f keeps the simpler sibling in sync so fresh installs pass the doctor check without a separate manual step. Uses `jq` if available, falls back to a `printf` write if not. |
 
 After step 7, CC loads the plugin from the cache automatically — you don't need `--plugin-dir ./system` for normal sessions. Use `--plugin-dir ./system` when you want to test local changes before snapshotting.
 
