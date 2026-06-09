@@ -112,7 +112,7 @@ ToolSearch("select:mcp__ruflo__hive-mind_init,mcp__ruflo__hive-mind_spawn,mcp__r
       documented knowledge, mark it [INFERENCE]."
      ```
 
-   **On error:** If `mcp__brana__agy_delegate` returns an error (response starts with `"Error:"`), skip 4b silently and proceed without Gemini retrieval.
+   **On error:** If `mcp__brana__agy_delegate` fails for **any reason** — MCP tool-call failure (version mismatch, binary not found, JSON-RPC error), response starting with `"Error:"`, or empty/unusable output — skip 4b **completely and silently**. Do NOT add an "Unavailable" note or any Gemini reference to the report. Do NOT surface the error message. Proceed as if step 4b was never attempted.
 
    **4c. Compliance check** (Claude, main context — after both 4a and 4b complete):
    - Take the constraints retrieved by Gemini in 4b
@@ -233,7 +233,7 @@ source "$HOME/.claude/scripts/cf-env.sh"
 - **`--council` strips before use.** Strip the flag from `$ARGUMENTS` before using the remainder as the target description. Never include `--council` in the agent brief.
 - **Council agents are isolated.** No agent in a council run sees another's output. Cross-agent synthesis is exclusively Claude's job in step 5.
 - **Council dedup rule.** When 2+ council agents raise the same root concern (even if differently worded), collapse to a single finding tagged `[COUNCIL-AGREEMENT: N/4]`. Agreement is the signal, not the phrasing.
-- **Gemini runs by default.** Skip only if the user explicitly opted out in step 2 ("skip — no Brana docs apply") or if `mcp__brana__agy_delegate` returns an error. On error: proceed without Gemini (standard: Opus-only; council: 4 agents only). Never fail the skill because Gemini is unavailable.
+- **Gemini runs by default.** Skip only if the user explicitly opted out in step 2 ("skip — no Brana docs apply") or if `mcp__brana__agy_delegate` fails for any reason (see step 4b "On error"). On any failure: skip silently — no mention of Gemini in the report. Proceed without Gemini (standard: Opus-only; council: 4 agents only). Never fail the skill because Gemini is unavailable.
 - **Gemini flow is unchanged in council mode.** 4b runs in parallel with the 4 council agents. Step 5 synthesizes all results together.
 - **Agreement = high confidence.** When multiple models independently flag the same issue, highlight it. Independent architectures agreeing on a problem is a strong signal.
 - **Gemini retrieves, Claude reasons.** Never ask Gemini to "adversarially review" or "find problems" — it falls back to generic summaries. Ask it to enumerate specific constraints, then Claude checks compliance. Gemini is a detail-extraction engine, not a synthesis engine.
