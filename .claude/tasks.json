@@ -50943,9 +50943,9 @@
       "github_issue": "1022",
       "started": "2026-06-10",
       "completed": null,
-      "notes": null,
+      "notes": "Evaluator: PASS (2026-06-10), 2/2 AC + scope extension MET — step 10c conditional deploys with file:line evidence, test 6/6, field note documents scope.\nChallenger gate: fix-now iteration 1 (2026-06-10). F1 sev4 real bug — $CHANGED inherited from 10b's shell never survives separate bash invocations; 10c now recomputes via ORIG_HEAD (ff-safe) with HEAD~1 fallback and a manual-verify warning on empty set. F6 explicit exit-on-failure. F4 (text-presence vs behavioral test) accepted as known gap — the procedure's executor is the model; instruction-surface asserts are the testable layer. F5 confirmed gate-path extension as justified follow-through.",
       "strategy": "feature",
-      "build_step": "classify"
+      "build_step": "build"
     },
     {
       "subject": "Fix or retire stale skill-suite tests: test_build_close_docs, test_source_tiered_trust",
@@ -51146,21 +51146,21 @@
       ],
       "context": "Discovered at close 2026-06-10: validate.sh structural layout test (9d7d5de8) confirms dir structure but does not check phase file content. Risk: a phase file could be silently emptied or missing required headers with no test catching it. Add to validate.sh: for each phases/*.md file in big-four skills, assert it contains at least one heading matching the phases registry in SKILL.md (e.g. ### Step N:), and that any [[include]] cross-ref paths resolve on disk.",
       "id": "t-1956",
-      "status": "pending",
+      "status": "completed",
       "execution": "code",
       "created": "2026-06-10",
       "blocked_by": [],
       "priority": "P3",
       "parent": null,
       "order": null,
-      "branch": null,
+      "branch": "harness/test/t-1956-validate-phase-split-headers",
       "github_issue": null,
-      "started": null,
-      "completed": null,
-      "notes": null,
-      "strategy": null,
-      "build_step": null,
-      "description": null
+      "started": "2026-06-10",
+      "completed": "2026-06-10",
+      "notes": "2026-06-10: Check 57 added to validate.sh + canary unit test tests/scripts/test-validate-check57-phase-content.sh (6/6). TDD red->green commits 9cad8793/eaab7537, merged --no-ff to main. Assumption documented: heading assertion = at least one ##/### heading per registered phase file (registry rows carry no canonical heading text, so exact-match would be brittle) — confirm if stricter matching wanted.",
+      "strategy": "feature",
+      "build_step": "classify",
+      "description": "Extend validate.sh: for each phases/*.md file in the big-four phase-split skills, assert the file contains at least one required section heading matching the PHASES registry in its SKILL.md, and that [[include]]/cross-ref paths referenced by phase files resolve on disk. Guards against silently emptied or header-stripped phase files (gap found at 2026-06-10 close; structural layout test 9d7d5de8 only checks dir layout)."
     },
     {
       "subject": "doc(backlog SKILL): add field note for deleted vs cancelled task status",
