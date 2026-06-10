@@ -236,6 +236,8 @@ done
 # only until the cleanup below finally ran, then the whole discipline shell
 # silently undeployed. README.md is the authoring contract, not a rule —
 # excluded (no frontmatter, would always-load as noise).
+# NOTE: ~/.claude/rules/ is brana-managed — sync_dir deletes files absent
+# from system/rules/, so hand-placed rule files there will be removed.
 echo "Rules:"
 if [ -d "$SYSTEM_DIR/rules" ]; then
     sync_dir "$SYSTEM_DIR/rules" "$TARGET_DIR/rules" "rules/"
