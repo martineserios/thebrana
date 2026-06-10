@@ -207,3 +207,9 @@ If context was compressed during a plan or execute flow:
 
 ---
 
+## Field Notes
+
+### 2026-06-10: `deleted` is not a valid task status — use `cancelled`
+`brana backlog set <id> status deleted` returns `{"ok":false,"error":"invalid status \"deleted\" — must be pending/in_progress/completed/cancelled or null"}`. The correct status for superseded, extracted, or migrated tasks is `cancelled`. When marking tasks cancelled, add a context note explaining why: `brana backlog set <id> context --append "[t-NNN] cancelled: moved to clients/proyecto-anita/..."`. There is no `deleted` status in the CLI schema (E2026-06-10-6).
+Source: t-1950 client migration 2026-06-10
+
