@@ -2234,6 +2234,52 @@ fi
 echo ""
 fi  # should_run 56
 
+# Check 57 — phase-split phase files: section headers + resolvable cross-refs (t-1956)
+# The layout test (test_skill_phase_layout.sh) asserts dir shape and line counts but
+# not content: a phase file could be silently emptied, or a relative cross-ref could
+# dangle, with nothing catching it. For each big-four skill, every registered phase
+# file must have at least one ##/### heading, and every ./ or ../ markdown link in it
+# must resolve on disk. Bare-filename and {placeholder} links are doc examples — ignored.
+# Logic mirrored in tests/scripts/test-validate-check57-phase-content.sh (canary test).
+if should_run 57; then
+echo "Check 57: phase-split phase file content integrity..."
+C57_FAILS=0
+for c57_name in build close backlog reconcile; do
+    c57_dir="$SYSTEM_DIR/skills/$c57_name"
+    c57_sk="$c57_dir/SKILL.md"
+    if [ ! -f "$c57_sk" ] || ! grep -q "<!-- PHASES -->" "$c57_sk"; then
+        warn "Check 57: $c57_name has no PHASES registry — content check skipped (layout test owns registry shape)"
+        continue
+    fi
+    c57_registered=$(sed -n '/<!-- PHASES -->/,/<!-- \/PHASES -->/p' "$c57_sk" \
+        | grep -oE 'phases/[a-z0-9-]+\.md' | sort -u)
+    [ -n "$c57_registered" ] || continue
+    while IFS= read -r c57_rel; do
+        c57_pf="$c57_dir/$c57_rel"
+        if [ ! -f "$c57_pf" ]; then
+            fail "Check 57: $c57_name/$c57_rel registered in PHASES but missing on disk"
+            C57_FAILS=$(( C57_FAILS + 1 ))
+            continue
+        fi
+        if ! grep -qE '^##+ ' "$c57_pf"; then
+            fail "Check 57: $c57_name/$c57_rel has no ##/### section heading (silently emptied?)"
+            C57_FAILS=$(( C57_FAILS + 1 ))
+        fi
+        while IFS= read -r c57_lnk; do
+            [ -z "$c57_lnk" ] && continue
+            if [ ! -e "$(dirname "$c57_pf")/$c57_lnk" ]; then
+                fail "Check 57: $c57_name/$c57_rel links to $c57_lnk — target does not resolve"
+                C57_FAILS=$(( C57_FAILS + 1 ))
+            fi
+        done < <(grep -ohE '\]\(\.\.?/[^)#]+\.md' "$c57_pf" | sed 's/^](//' || true)
+    done <<< "$c57_registered"
+done
+if [ "$C57_FAILS" -eq 0 ]; then
+    pass "Check 57: big-four phase files all have section headings and resolvable cross-refs"
+fi
+echo ""
+fi  # should_run 57
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
