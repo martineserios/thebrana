@@ -42,7 +42,7 @@ The `silent: true` flag means no output unless something needs attention. The `w
 
 ## Research findings
 
-- CronCreate is main-context only — skills can't invoke it (CC platform constraint as of v2.1.87)
+- CronCreate is available within skill procedures (constraint dissolved — confirmed CC v2.1.87+, skill procedures run in main context, empirically tested 2026-06-09). See ADR-050 §Context.
 - t-705 (loop provider) already exists in the backlog, blocked by t-703 (provider abstraction)
 - Session hooks (start/end) are shipped and extensible — natural spawn/kill points
 - No watch patterns exist in any brana skill — greenfield opportunity
@@ -51,7 +51,7 @@ The `silent: true` flag means no output unless something needs attention. The `w
 ## Risks
 
 - **Invisible magic** → Mitigated by opt-in config file (`session-loops.json`). Users author it explicitly.
-- **CronCreate skill restriction** → Hooks-only now. Defer skill embedding until CC opens the API.
+- ~~**CronCreate skill restriction** → Hooks-only now.~~ Constraint dissolved (see E2026-06-10-1 / ADR-050). Skill embedding is now unblocked.
 - **Short session utility** → Value comes from usefulness per fire, not frequency. Even 1 fire is enough.
 - **Loop noise** → Default to silent mode. Only surface output when something needs attention.
 - **Config drift** → Config is per-project, version-controlled. No hidden global state.
@@ -71,7 +71,7 @@ The `silent: true` flag means no output unless something needs attention. The `w
 - Integrates with CronCreate, shows active watches
 
 ### Phase 3 — Skill embedding
-- Depends on CC opening CronCreate to skills
+- ~~Depends on CC opening CronCreate to skills~~ — constraint dissolved (E2026-06-10-1). Unblocked.
 - `/brana:build` auto-starts test watcher on BUILD step
 - `/brana:review` auto-starts drift watcher
 - Skills declare loop specs in frontmatter, main context fulfills
