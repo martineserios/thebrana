@@ -295,7 +295,7 @@ fn extract_links(
 ) -> (Vec<String>, Vec<String>, Vec<(String, String)>) {
     let link_re = regex_lite::Regex::new(r"\[([^\]]*)\]\(([^)]+)\)").unwrap();
     let wikilink_re = regex_lite::Regex::new(r"\[\[([^\]]+)\]\]").unwrap();
-    let system_re = regex_lite::Regex::new(r#"system/[^\s,)}\]"']+"#).unwrap();
+    let system_re = regex_lite::Regex::new(r#"system/[^\s,){}\]"']+"#).unwrap();
     // Typed link: [Label type](path.md)
     let typed_re = regex_lite::Regex::new(
         r"\[([^\]]+)\s+(assumes|implements|informs|enriches|supersedes)\]\(([^)]+)\)",
@@ -1670,6 +1670,18 @@ informs:
         assert_eq!(typed.len(), 1);
         assert_eq!(typed[0].0, "supersedes");
         assert_eq!(typed[0].1, "old-doc.md");
+    }
+
+    #[test]
+    fn extract_links_skips_template_placeholders() {
+        // system/procedures/{name}.md is a doc template, not a real file
+        let content = "Use `system/procedures/{name}.md` as the procedure path.";
+        let root = Path::new("/fake/root");
+        let (_, impl_files, _) = extract_links(content, "docs/test.md", root);
+        assert!(
+            !impl_files.iter().any(|p| p.contains('{')),
+            "template placeholder leaked into impl_files: {impl_files:?}"
+        );
     }
 
     #[test]
