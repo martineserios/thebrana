@@ -9,7 +9,8 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-BUILD_PROC="$REPO_ROOT/system/procedures/build.md"
+source "$SCRIPT_DIR/../lib/effective_body.sh"
+BUILD_PROC="$(effective_body_file build "$REPO_ROOT")"
 
 PASS=0
 FAIL=0

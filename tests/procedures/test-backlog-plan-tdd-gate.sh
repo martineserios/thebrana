@@ -8,7 +8,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-BACKLOG_PROC="$REPO_ROOT/system/procedures/backlog.md"
+source "$SCRIPT_DIR/../lib/effective_body.sh"
+BACKLOG_PROC="$(effective_body_file backlog "$REPO_ROOT")"
 
 PASS=0
 FAIL=0
