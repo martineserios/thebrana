@@ -13,6 +13,8 @@ After completing: update task to `completed` with notes.
 
 Fields: id, subject, description, tags, status, kind, stream (deprecated), type, parent, priority, effort, execution, blocked_by, branch, github_issue, created, started, completed, notes, context, strategy, build_step. Types: in-/ph-/ms-/t-/st-. Status: pending/in_progress/completed/cancelled. Kind (v2): feature/fix/refactor/research/docs/design/ops. Strategy: auto-classified from description.
 
+Cancelling a parent task does NOT auto-cancel children. When cancelling a parent, manually cancel or re-parent all children. `brana backlog tree <parent-id>` shows the subtree.
+
 Reads: free. Writes: confirm first.
 
 Branch: feature=feat/, fix=fix/, refactor=refactor/, docs=docs/, research=research/, ops=chore/. Format: `{prefix}{id}-{slug}`.
