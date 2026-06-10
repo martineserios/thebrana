@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-10T11:25:43Z",
+  "generated": "2026-06-10T12:35:06Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -106,7 +106,7 @@
       "impl_files": []
     },
     "brana-knowledge/dimensions/33-research-methodology.md": {
-      "title": "33 \u2014 Research Methodology: Recursive Knowledge Discovery",
+      "title": "33 — Research Methodology: Recursive Knowledge Discovery",
       "type": "Dimension",
       "impl_files": []
     },
@@ -121,37 +121,37 @@
       "impl_files": []
     },
     "brana-knowledge/dimensions/36-claw-ecosystem-chat-interface.md": {
-      "title": "36 \u2014 Claw Ecosystem: Chat Interface Research",
+      "title": "36 — Claw Ecosystem: Chat Interface Research",
       "type": "Dimension",
       "impl_files": []
     },
     "brana-knowledge/dimensions/38-design-thinking.md": {
-      "title": "38 \u2014 Design Thinking",
+      "title": "38 — Design Thinking",
       "type": "Dimension",
       "impl_files": []
     },
     "brana-knowledge/dimensions/39-kapso-ai-platform.md": {
-      "title": "39 \u2014 Kapso AI Platform: Builder SDK, Agents, Flows & CLI",
+      "title": "39 — Kapso AI Platform: Builder SDK, Agents, Flows & CLI",
       "type": "Dimension",
       "impl_files": []
     },
     "brana-knowledge/dimensions/40-product-discovery-literature.md": {
-      "title": "40 \u2014 Product Discovery & Validation Literature",
+      "title": "40 — Product Discovery & Validation Literature",
       "type": "Dimension",
       "impl_files": []
     },
     "brana-knowledge/dimensions/41-growth-metrics-market-strategy-literature.md": {
-      "title": "41 \u2014 Growth, Metrics & Market Strategy Literature",
+      "title": "41 — Growth, Metrics & Market Strategy Literature",
       "type": "Dimension",
       "impl_files": []
     },
     "brana-knowledge/dimensions/42-product-operations-literature.md": {
-      "title": "42 \u2014 Product Operations & Management Literature",
+      "title": "42 — Product Operations & Management Literature",
       "type": "Dimension",
       "impl_files": []
     },
     "brana-knowledge/dimensions/44-systems-thinking-nature.md": {
-      "title": "44 \u2014 Systems Thinking & Natural Systems",
+      "title": "44 — Systems Thinking & Natural Systems",
       "type": "Dimension",
       "impl_files": []
     },
@@ -178,32 +178,32 @@
       "impl_files": []
     },
     "brana-knowledge/dimensions/49-agent-era-systems-patterns.md": {
-      "title": "49 \u2014 Agent-Era Systems Patterns",
+      "title": "49 — Agent-Era Systems Patterns",
       "type": "Dimension",
       "impl_files": []
     },
     "brana-knowledge/dimensions/50-auto-learning-patterns.md": {
-      "title": "49 \u2014 Auto-Learning Patterns for Agent Harnesses",
+      "title": "49 — Auto-Learning Patterns for Agent Harnesses",
       "type": "Dimension",
       "impl_files": []
     },
     "brana-knowledge/dimensions/50-respond-io-platform.md": {
-      "title": "50 \u2014 Respond.io Platform (refactored)",
+      "title": "50 — Respond.io Platform (refactored)",
       "type": "Dimension",
       "impl_files": []
     },
     "brana-knowledge/dimensions/51-chatwoot-platform.md": {
-      "title": "51 \u2014 Chatwoot Platform (refactored)",
+      "title": "51 — Chatwoot Platform (refactored)",
       "type": "Dimension",
       "impl_files": []
     },
     "brana-knowledge/dimensions/53-bigin-crm-platform.md": {
-      "title": "53 \u2014 Bigin CRM Platform (refactored)",
+      "title": "53 — Bigin CRM Platform (refactored)",
       "type": "Dimension",
       "impl_files": []
     },
     "brana-knowledge/dimensions/54-meta-whatsapp-template-api.md": {
-      "title": "Meta WhatsApp Template API \u2014 Programmatic Submission",
+      "title": "Meta WhatsApp Template API — Programmatic Submission",
       "type": "Dimension",
       "impl_files": []
     },
@@ -220,12 +220,12 @@
       ]
     },
     "brana-knowledge/dimensions/57-chess-erp-api.md": {
-      "title": "Chess ERP API \u2014 Platform Knowledge",
+      "title": "Chess ERP API — Platform Knowledge",
       "type": "Dimension",
       "impl_files": []
     },
     "brana-knowledge/dimensions/58-claude-code-changelog-2026.md": {
-      "title": "Claude Code \u2014 Changelog & Feature Audit 2026",
+      "title": "Claude Code — Changelog & Feature Audit 2026",
       "type": "Dimension",
       "impl_files": []
     },
@@ -235,7 +235,7 @@
       "impl_files": []
     },
     "brana-knowledge/dimensions/60-agent-loop-architecture.md": {
-      "title": "Agent Loop Architecture \u2014 Self-Contained Loops That Act, Measure, Judge, Assimilate",
+      "title": "Agent Loop Architecture — Self-Contained Loops That Act, Measure, Judge, Assimilate",
       "type": "Dimension",
       "impl_files": []
     },
@@ -265,7 +265,7 @@
       "impl_files": []
     },
     "brana-knowledge/dimensions/bigin-case-study.md": {
-      "title": "Bigin CRM \u2014 Platform Case Study",
+      "title": "Bigin CRM — Platform Case Study",
       "type": "Dimension",
       "impl_files": []
     },
@@ -284,7 +284,7 @@
       ]
     },
     "brana-knowledge/dimensions/chatwoot-case-study.md": {
-      "title": "Chatwoot \u2014 Platform Case Study",
+      "title": "Chatwoot — Platform Case Study",
       "type": "Dimension",
       "impl_files": []
     },
@@ -301,7 +301,7 @@
       "impl_files": []
     },
     "brana-knowledge/dimensions/contract-operations-platforms.md": {
-      "title": "Contract / Operations Platforms \u2014 Data Modeling Patterns",
+      "title": "Contract / Operations Platforms — Data Modeling Patterns",
       "type": "Dimension",
       "impl_files": []
     },
@@ -326,7 +326,7 @@
       "impl_files": []
     },
     "brana-knowledge/dimensions/feynman-methodology.md": {
-      "title": "Feynman Methodology \u2014 Learning, Teaching, and Thinking",
+      "title": "Feynman Methodology — Learning, Teaching, and Thinking",
       "type": "Dimension",
       "impl_files": []
     },
@@ -344,12 +344,12 @@
       ]
     },
     "brana-knowledge/dimensions/meta-whatsapp-template-classification.md": {
-      "title": "standalone \u2014 superseded by dimensions/meta-whatsapp-templates.md (which has supersedes: pointing here)",
+      "title": "standalone — superseded by dimensions/meta-whatsapp-templates.md (which has supersedes: pointing here)",
       "type": "Dimension",
       "impl_files": []
     },
     "brana-knowledge/dimensions/meta-whatsapp-templates.md": {
-      "title": "Meta WhatsApp Template Classification \u2014 Empirical Formula",
+      "title": "Meta WhatsApp Template Classification — Empirical Formula",
       "type": "Dimension",
       "impl_files": []
     },
@@ -374,12 +374,12 @@
       "impl_files": []
     },
     "brana-knowledge/dimensions/respond-io-case-study.md": {
-      "title": "Respond.io \u2014 Platform Case Study",
+      "title": "Respond.io — Platform Case Study",
       "type": "Dimension",
       "impl_files": []
     },
     "brana-knowledge/dimensions/ruvnet-case-study.md": {
-      "title": "RuvNet \u2014 Case Study",
+      "title": "RuvNet — Case Study",
       "type": "Dimension",
       "impl_files": []
     },
@@ -399,7 +399,7 @@
       "impl_files": []
     },
     "brana-knowledge/dimensions/tolaria-case-study.md": {
-      "title": "Tolaria \u2014 Case Study",
+      "title": "Tolaria — Case Study",
       "type": "Dimension",
       "impl_files": []
     },
@@ -414,7 +414,7 @@
       "impl_files": []
     },
     "brana-knowledge/dimensions/ycloud-case-study.md": {
-      "title": "YCloud \u2014 Case Study",
+      "title": "YCloud — Case Study",
       "type": "Dimension",
       "impl_files": []
     },
@@ -460,16 +460,17 @@
       "impl_files": []
     },
     "docs/24-roadmap-corrections.audit-2026-03-02.md": {
-      "title": "Audit Report \u2014 2026-03-02",
+      "title": "Audit Report — 2026-03-02",
       "type": "Roadmap",
       "impl_files": [
         "system/skills/"
       ]
     },
     "docs/24-roadmap-corrections.md": {
-      "title": "24 \u2014 Roadmap Corrections & Errata (ARCHIVED)",
+      "title": "24 — Roadmap Corrections & Errata (ARCHIVED)",
       "type": "Roadmap",
       "impl_files": [
+        "system/procedures/{name",
         "system/rules/task-convention.md",
         "system/procedures/close.md",
         "system/procedures/challenge.md",
@@ -567,7 +568,7 @@
       ]
     },
     "docs/39-architecture-redesign.md": {
-      "title": "39 \u2014 Architecture Redesign: Unified Repo + Knowledge System",
+      "title": "39 — Architecture Redesign: Unified Repo + Knowledge System",
       "type": "Roadmap",
       "impl_files": [
         "system/commands/",
@@ -625,7 +626,7 @@
       ]
     },
     "docs/architecture/decisions/ADR-002-scheduler-thin-layer-over-systemd.md": {
-      "title": "ADR-002: Scheduler \u2014 thin layer over systemd timers",
+      "title": "ADR-002: Scheduler — thin layer over systemd timers",
       "type": "ADR",
       "impl_files": []
     },
@@ -664,7 +665,7 @@
       ]
     },
     "docs/architecture/decisions/ADR-008-smart-tasks-add-suggest-only.md": {
-      "title": "ADR-008: Smart /brana:backlog add \u2014 suggest-only pattern",
+      "title": "ADR-008: Smart /brana:backlog add — suggest-only pattern",
       "type": "ADR",
       "impl_files": []
     },
@@ -679,7 +680,7 @@
       "impl_files": []
     },
     "docs/architecture/decisions/ADR-011-skills-bundling.md": {
-      "title": "ADR-011: Skills Bundling \u2014 Ship Scripts Alongside SKILL.md",
+      "title": "ADR-011: Skills Bundling — Ship Scripts Alongside SKILL.md",
       "type": "ADR",
       "impl_files": [
         "system/scripts/",
@@ -688,7 +689,7 @@
       ]
     },
     "docs/architecture/decisions/ADR-012-acquire-skills.md": {
-      "title": "ADR-012: Acquire Skills \u2014 Manual Skill Discovery and Installation",
+      "title": "ADR-012: Acquire Skills — Manual Skill Discovery and Installation",
       "type": "ADR",
       "impl_files": [
         "system/skills/acquired/",
@@ -696,7 +697,7 @@
       ]
     },
     "docs/architecture/decisions/ADR-013-event-log.md": {
-      "title": "ADR-013: Event Log \u2014 Single-File Capture Layer",
+      "title": "ADR-013: Event Log — Single-File Capture Layer",
       "type": "ADR",
       "impl_files": []
     },
@@ -743,7 +744,7 @@
       "impl_files": []
     },
     "docs/architecture/decisions/ADR-019-brana-chat-sessions.md": {
-      "title": "ADR-019: Brana Chat Sessions \u2014 Channel-Agnostic Agent Interface",
+      "title": "ADR-019: Brana Chat Sessions — Channel-Agnostic Agent Interface",
       "type": "ADR",
       "impl_files": []
     },
@@ -753,7 +754,7 @@
       "impl_files": []
     },
     "docs/architecture/decisions/ADR-022-brana-cli.md": {
-      "title": "ADR-022: Brana CLI \u2014 Standalone Terminal Interface",
+      "title": "ADR-022: Brana CLI — Standalone Terminal Interface",
       "type": "ADR",
       "impl_files": [
         "system/cli/aliases.sh",
@@ -761,7 +762,7 @@
       ]
     },
     "docs/architecture/decisions/ADR-023-rust-cli-dispatcher.md": {
-      "title": "ADR-023: Rust CLI Dispatcher \u2014 Single Binary Entry Point",
+      "title": "ADR-023: Rust CLI Dispatcher — Single Binary Entry Point",
       "type": "ADR",
       "impl_files": []
     },
@@ -778,7 +779,7 @@
       ]
     },
     "docs/architecture/decisions/ADR-026-full-rust-mcp-architecture.md": {
-      "title": "ADR-026: Full Rust + MCP Architecture \u2014 Cargo Workspace with pmcp",
+      "title": "ADR-026: Full Rust + MCP Architecture — Cargo Workspace with pmcp",
       "type": "ADR",
       "impl_files": [
         "system/__init__.py",
@@ -829,12 +830,14 @@
       "impl_files": []
     },
     "docs/architecture/decisions/ADR-034-skill-tiering.md": {
-      "title": "ADR-034: Skill Tiering \u2014 Universal Stubs",
+      "title": "ADR-034: Skill Tiering — Universal Stubs",
       "type": "ADR",
-      "impl_files": []
+      "impl_files": [
+        "system/procedures/{name"
+      ]
     },
     "docs/architecture/decisions/ADR-035-skill-usage-telemetry.md": {
-      "title": "ADR-035: Skill Usage Telemetry \u2014 `brana skills usage`",
+      "title": "ADR-035: Skill Usage Telemetry — `brana skills usage`",
       "type": "ADR",
       "impl_files": []
     },
@@ -849,7 +852,7 @@
       "impl_files": []
     },
     "docs/architecture/decisions/ADR-038-memory-write-gateway.md": {
-      "title": "ADR-038: Unified Memory Write Gateway \u2014 Dated Files, Routing Taxonomy, CLI Gateway, MEMORY.md Ownership",
+      "title": "ADR-038: Unified Memory Write Gateway — Dated Files, Routing Taxonomy, CLI Gateway, MEMORY.md Ownership",
       "type": "ADR",
       "impl_files": []
     },
@@ -859,7 +862,7 @@
       "impl_files": []
     },
     "docs/architecture/decisions/ADR-040-compute-hierarchy-claude-ruflo-gemini.md": {
-      "title": "ADR-040: brana Compute Hierarchy \u2014 Claude / Ruflo / Gemini",
+      "title": "ADR-040: brana Compute Hierarchy — Claude / Ruflo / Gemini",
       "type": "ADR",
       "impl_files": [
         "system/scheduler/outputs/",
@@ -867,7 +870,7 @@
       ]
     },
     "docs/architecture/decisions/ADR-041-agy-invocation-contract.md": {
-      "title": "ADR-041: agy Invocation Contract \u2014 Layer A vs B, Routing, /tmp/ Invariant, Version Pinning",
+      "title": "ADR-041: agy Invocation Contract — Layer A vs B, Routing, /tmp/ Invariant, Version Pinning",
       "type": "ADR",
       "impl_files": [
         "system/scheduler/outputs/{ts",
@@ -876,22 +879,22 @@
       ]
     },
     "docs/architecture/decisions/ADR-042-knowledge-ingest-canonical-entry-point-gemini-routing.md": {
-      "title": "ADR-042: Knowledge Pipeline \u2014 `ingest` as Canonical URL Entry Point + Gemini Routing for Tier 1/2",
+      "title": "ADR-042: Knowledge Pipeline — `ingest` as Canonical URL Entry Point + Gemini Routing for Tier 1/2",
       "type": "ADR",
       "impl_files": []
     },
     "docs/architecture/decisions/ADR-043-session-labels-breadcrumb.md": {
-      "title": "ADR-043 \u2014 session_labels: structured breadcrumb for same-day merges",
+      "title": "ADR-043 — session_labels: structured breadcrumb for same-day merges",
       "type": "ADR",
       "impl_files": []
     },
     "docs/architecture/decisions/ADR-044-initiative-accumulator.md": {
-      "title": "ADR-044 \u2014 Initiative accumulator: cross-day session continuity",
+      "title": "ADR-044 — Initiative accumulator: cross-day session continuity",
       "type": "ADR",
       "impl_files": []
     },
     "docs/architecture/decisions/ADR-045-backlog-ui-transport.md": {
-      "title": "ADR-045 \u2014 Backlog web UI transport: CLI shell-out vs axum sidecar",
+      "title": "ADR-045 — Backlog web UI transport: CLI shell-out vs axum sidecar",
       "type": "ADR",
       "impl_files": []
     },
@@ -901,17 +904,17 @@
       "impl_files": []
     },
     "docs/architecture/decisions/ADR-047-acceptance-criteria-schema.md": {
-      "title": "ADR-047: acceptance_criteria Schema \u2014 Gate for /goal Auto-Loop",
+      "title": "ADR-047: acceptance_criteria Schema — Gate for /goal Auto-Loop",
       "type": "ADR",
       "impl_files": []
     },
     "docs/architecture/decisions/ADR-048-memory-consolidation-trigger-model.md": {
-      "title": "ADR-048 \u2014 Memory Consolidation Trigger Model and Scope Split",
+      "title": "ADR-048 — Memory Consolidation Trigger Model and Scope Split",
       "type": "ADR",
       "impl_files": []
     },
     "docs/architecture/decisions/ADR-049-mandatory-challenger-gate-build-close.md": {
-      "title": "ADR-049: Mandatory Challenger Gate at BUILD\u2192CLOSE Boundary",
+      "title": "ADR-049: Mandatory Challenger Gate at BUILD→CLOSE Boundary",
       "type": "ADR",
       "impl_files": [
         "system/procedures/build.md",
@@ -921,7 +924,7 @@
       ]
     },
     "docs/architecture/decisions/ADR-050-loop-request-protocol.md": {
-      "title": "ADR-050: Loop-Request Protocol \u2014 Suggest-and-Confirm, No Auto-Spawn",
+      "title": "ADR-050: Loop-Request Protocol — Suggest-and-Confirm, No Auto-Spawn",
       "type": "ADR",
       "impl_files": [
         "system/procedures/build.md",
@@ -987,7 +990,7 @@
       ]
     },
     "docs/architecture/features/acquire-skills-guide.md": {
-      "title": "Feature: Acquire Skills \u2014 User Guide",
+      "title": "Feature: Acquire Skills — User Guide",
       "type": "Roadmap",
       "impl_files": [
         "system/skills/"
@@ -1007,7 +1010,7 @@
       "impl_files": []
     },
     "docs/architecture/features/brana-cli.md": {
-      "title": "Feature: Brana CLI \u2014 Standalone Terminal Interface",
+      "title": "Feature: Brana CLI — Standalone Terminal Interface",
       "type": "Roadmap",
       "impl_files": [
         "system/cli/rust/src/files.rs",
@@ -1061,7 +1064,7 @@
       ]
     },
     "docs/architecture/features/cc-hook-leverage.md": {
-      "title": "Feature: CC Hook Leverage \u2014 Expanded Event Coverage",
+      "title": "Feature: CC Hook Leverage — Expanded Event Coverage",
       "type": "Roadmap",
       "impl_files": [
         "system/hooks/task-completed.sh",
@@ -1130,7 +1133,7 @@
       "impl_files": []
     },
     "docs/architecture/features/inbox-to-dimensions-pipeline.md": {
-      "title": "Feature: Inbox \u2192 Dimensions Pipeline \u2014 Tiered Research",
+      "title": "Feature: Inbox → Dimensions Pipeline — Tiered Research",
       "type": "Roadmap",
       "impl_files": [
         "system/cli/rust/crates/brana-cli/src/knowledge.rs",
@@ -1140,24 +1143,24 @@
       ]
     },
     "docs/architecture/features/knowledge-architecture-v2.md": {
-      "title": "Knowledge Architecture v2 \u2014 Feature Brief",
+      "title": "Knowledge Architecture v2 — Feature Brief",
       "type": "Roadmap",
       "impl_files": [
         "system/scripts/second-phase-check.sh"
       ]
     },
     "docs/architecture/features/knowledge-pipeline-compute.md": {
-      "title": "Knowledge Pipeline \u2014 Compute Routing",
+      "title": "Knowledge Pipeline — Compute Routing",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/architecture/features/linkedin-content-implementation.md": {
-      "title": "LinkedIn Content Pipeline \u2014 Implementation Design",
+      "title": "LinkedIn Content Pipeline — Implementation Design",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/architecture/features/lint-heal-deterministic.md": {
-      "title": "Feature: Lint+Heal L2 \u2014 Deterministic Memory Consolidation",
+      "title": "Feature: Lint+Heal L2 — Deterministic Memory Consolidation",
       "type": "Roadmap",
       "impl_files": [
         "system/procedures/memory.md",
@@ -1173,7 +1176,7 @@
       "impl_files": []
     },
     "docs/architecture/features/memory-migration-manifest.md": {
-      "title": "Memory Migration Manifest \u2014 Phase A",
+      "title": "Memory Migration Manifest — Phase A",
       "type": "Roadmap",
       "impl_files": [
         "system/rules/"
@@ -1185,14 +1188,14 @@
       "impl_files": []
     },
     "docs/architecture/features/memory-taxonomy-ddd.md": {
-      "title": "Memory Taxonomy \u2014 Domain Design",
+      "title": "Memory Taxonomy — Domain Design",
       "type": "Roadmap",
       "impl_files": [
         "system/rules/"
       ]
     },
     "docs/architecture/features/memory-taxonomy-sdd.md": {
-      "title": "Memory Taxonomy \u2014 Solution Design",
+      "title": "Memory Taxonomy — Solution Design",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -1208,12 +1211,12 @@
       ]
     },
     "docs/architecture/features/neix-ai-consulting-proposal.md": {
-      "title": "Feature: NEIX AI Consulting \u2014 One-Pager & Benefit Unit Model",
+      "title": "Feature: NEIX AI Consulting — One-Pager & Benefit Unit Model",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/architecture/features/operating-model.md": {
-      "title": "Operating Model \u2014 Technical Documentation",
+      "title": "Operating Model — Technical Documentation",
       "type": "Roadmap",
       "impl_files": [
         "system/cli/rust/src/commands/graph.rs",
@@ -1223,12 +1226,12 @@
       ]
     },
     "docs/architecture/features/personal-bot-oci-deploy.md": {
-      "title": "Oracle Cloud Free Tier \u2014 Personal Bot Deployment",
+      "title": "Oracle Cloud Free Tier — Personal Bot Deployment",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/architecture/features/plugin-packaging.md": {
-      "title": "Feature: Plugin Packaging \u2014 Distribute thebrana as CC Plugin",
+      "title": "Feature: Plugin Packaging — Distribute thebrana as CC Plugin",
       "type": "Roadmap",
       "impl_files": [
         "system/",
@@ -1377,7 +1380,7 @@
       "impl_files": []
     },
     "docs/architecture/glossary.md": {
-      "title": "Domain Glossary \u2014 Operating Model",
+      "title": "Domain Glossary — Operating Model",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -1470,6 +1473,7 @@
       "type": "Roadmap",
       "impl_files": [
         "system/skills/{name",
+        "system/procedures/{name",
         "system/commands/",
         "system/skills/acquired/{name",
         "system/skills/memory/",
@@ -1543,7 +1547,7 @@
       ]
     },
     "docs/archive/24-roadmap-corrections.md": {
-      "title": "24 \u2014 Roadmap Corrections & Errata",
+      "title": "24 — Roadmap Corrections & Errata",
       "type": "Roadmap",
       "impl_files": [
         "system/",
@@ -1589,7 +1593,7 @@
       ]
     },
     "docs/archive/posttooluse-workaround.md": {
-      "title": "PostToolUse Workaround (CC #24529) \u2014 RESOLVED",
+      "title": "PostToolUse Workaround (CC #24529) — RESOLVED",
       "type": "Roadmap",
       "impl_files": [
         "system/hooks/hooks.json",
@@ -1606,7 +1610,7 @@
       ]
     },
     "docs/backlog-urls.md": {
-      "title": "Backlog URLs \u2014 AI Systems & Claude Code Enhancement",
+      "title": "Backlog URLs — AI Systems & Claude Code Enhancement",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -1621,7 +1625,7 @@
       "impl_files": []
     },
     "docs/conventions/ac-criteria.md": {
-      "title": "AC: Criteria \u2014 Authoring Guide",
+      "title": "AC: Criteria — Authoring Guide",
       "type": "Roadmap",
       "impl_files": [
         "system/hooks/goal-completion.sh",
@@ -1732,7 +1736,7 @@
       "impl_files": []
     },
     "docs/dimensions/33-research-methodology.md": {
-      "title": "33 \u2014 Research Methodology: Recursive Knowledge Discovery",
+      "title": "33 — Research Methodology: Recursive Knowledge Discovery",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -1747,37 +1751,37 @@
       "impl_files": []
     },
     "docs/dimensions/36-claw-ecosystem-chat-interface.md": {
-      "title": "36 \u2014 Claw Ecosystem: Chat Interface Research",
+      "title": "36 — Claw Ecosystem: Chat Interface Research",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/dimensions/38-design-thinking.md": {
-      "title": "38 \u2014 Design Thinking",
+      "title": "38 — Design Thinking",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/dimensions/39-kapso-ai-platform.md": {
-      "title": "39 \u2014 Kapso AI Platform: Builder SDK, Agents, Flows & CLI",
+      "title": "39 — Kapso AI Platform: Builder SDK, Agents, Flows & CLI",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/dimensions/40-product-discovery-literature.md": {
-      "title": "40 \u2014 Product Discovery & Validation Literature",
+      "title": "40 — Product Discovery & Validation Literature",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/dimensions/41-growth-metrics-market-strategy-literature.md": {
-      "title": "41 \u2014 Growth, Metrics & Market Strategy Literature",
+      "title": "41 — Growth, Metrics & Market Strategy Literature",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/dimensions/42-product-operations-literature.md": {
-      "title": "42 \u2014 Product Operations & Management Literature",
+      "title": "42 — Product Operations & Management Literature",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/dimensions/44-systems-thinking-nature.md": {
-      "title": "44 \u2014 Systems Thinking & Natural Systems",
+      "title": "44 — Systems Thinking & Natural Systems",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -1804,32 +1808,32 @@
       "impl_files": []
     },
     "docs/dimensions/49-agent-era-systems-patterns.md": {
-      "title": "49 \u2014 Agent-Era Systems Patterns",
+      "title": "49 — Agent-Era Systems Patterns",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/dimensions/50-auto-learning-patterns.md": {
-      "title": "49 \u2014 Auto-Learning Patterns for Agent Harnesses",
+      "title": "49 — Auto-Learning Patterns for Agent Harnesses",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/dimensions/50-respond-io-platform.md": {
-      "title": "50 \u2014 Respond.io Platform (refactored)",
+      "title": "50 — Respond.io Platform (refactored)",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/dimensions/51-chatwoot-platform.md": {
-      "title": "51 \u2014 Chatwoot Platform (refactored)",
+      "title": "51 — Chatwoot Platform (refactored)",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/dimensions/53-bigin-crm-platform.md": {
-      "title": "53 \u2014 Bigin CRM Platform (refactored)",
+      "title": "53 — Bigin CRM Platform (refactored)",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/dimensions/54-meta-whatsapp-template-api.md": {
-      "title": "Meta WhatsApp Template API \u2014 Programmatic Submission",
+      "title": "Meta WhatsApp Template API — Programmatic Submission",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -1846,12 +1850,12 @@
       ]
     },
     "docs/dimensions/57-chess-erp-api.md": {
-      "title": "Chess ERP API \u2014 Platform Knowledge",
+      "title": "Chess ERP API — Platform Knowledge",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/dimensions/58-claude-code-changelog-2026.md": {
-      "title": "Claude Code \u2014 Changelog & Feature Audit 2026",
+      "title": "Claude Code — Changelog & Feature Audit 2026",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -1861,7 +1865,7 @@
       "impl_files": []
     },
     "docs/dimensions/60-agent-loop-architecture.md": {
-      "title": "Agent Loop Architecture \u2014 Self-Contained Loops That Act, Measure, Judge, Assimilate",
+      "title": "Agent Loop Architecture — Self-Contained Loops That Act, Measure, Judge, Assimilate",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -1891,7 +1895,7 @@
       "impl_files": []
     },
     "docs/dimensions/bigin-case-study.md": {
-      "title": "Bigin CRM \u2014 Platform Case Study",
+      "title": "Bigin CRM — Platform Case Study",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -1910,7 +1914,7 @@
       ]
     },
     "docs/dimensions/chatwoot-case-study.md": {
-      "title": "Chatwoot \u2014 Platform Case Study",
+      "title": "Chatwoot — Platform Case Study",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -1927,7 +1931,7 @@
       "impl_files": []
     },
     "docs/dimensions/contract-operations-platforms.md": {
-      "title": "Contract / Operations Platforms \u2014 Data Modeling Patterns",
+      "title": "Contract / Operations Platforms — Data Modeling Patterns",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -1952,7 +1956,7 @@
       "impl_files": []
     },
     "docs/dimensions/feynman-methodology.md": {
-      "title": "Feynman Methodology \u2014 Learning, Teaching, and Thinking",
+      "title": "Feynman Methodology — Learning, Teaching, and Thinking",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -1970,12 +1974,12 @@
       ]
     },
     "docs/dimensions/meta-whatsapp-template-classification.md": {
-      "title": "standalone \u2014 superseded by dimensions/meta-whatsapp-templates.md (which has supersedes: pointing here)",
+      "title": "standalone — superseded by dimensions/meta-whatsapp-templates.md (which has supersedes: pointing here)",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/dimensions/meta-whatsapp-templates.md": {
-      "title": "Meta WhatsApp Template Classification \u2014 Empirical Formula",
+      "title": "Meta WhatsApp Template Classification — Empirical Formula",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -2000,12 +2004,12 @@
       "impl_files": []
     },
     "docs/dimensions/respond-io-case-study.md": {
-      "title": "Respond.io \u2014 Platform Case Study",
+      "title": "Respond.io — Platform Case Study",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/dimensions/ruvnet-case-study.md": {
-      "title": "RuvNet \u2014 Case Study",
+      "title": "RuvNet — Case Study",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -2025,7 +2029,7 @@
       "impl_files": []
     },
     "docs/dimensions/tolaria-case-study.md": {
-      "title": "Tolaria \u2014 Case Study",
+      "title": "Tolaria — Case Study",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -2040,7 +2044,7 @@
       "impl_files": []
     },
     "docs/dimensions/ycloud-case-study.md": {
-      "title": "YCloud \u2014 Case Study",
+      "title": "YCloud — Case Study",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -2064,7 +2068,7 @@
       "impl_files": []
     },
     "docs/guide/cli.md": {
-      "title": "Brana CLI \u2014 User & Developer Guide",
+      "title": "Brana CLI — User & Developer Guide",
       "type": "Roadmap",
       "impl_files": [
         "system/cli/themes.json",
@@ -2141,7 +2145,7 @@
       "impl_files": []
     },
     "docs/guide/onboarding.md": {
-      "title": "Brana Onboarding \u2014 One-Command Install",
+      "title": "Brana Onboarding — One-Command Install",
       "type": "Roadmap",
       "impl_files": [
         "system/"
@@ -2155,7 +2159,7 @@
       ]
     },
     "docs/guide/python-to-rust-migration.md": {
-      "title": "Python to Rust Migration \u2014 What Changed and Why",
+      "title": "Python to Rust Migration — What Changed and Why",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -2267,7 +2271,7 @@
       ]
     },
     "docs/ideas/agent-definition-gaps.md": {
-      "title": "Agent Definition Gaps \u2014 Unused CC Frontmatter Fields",
+      "title": "Agent Definition Gaps — Unused CC Frontmatter Fields",
       "type": "Roadmap",
       "impl_files": [
         "system/agents/"
@@ -2309,7 +2313,7 @@
       "impl_files": []
     },
     "docs/ideas/brana-cli-mcp-layer.md": {
-      "title": "Brana CLI MCP Layer \u2014 Architecture Decision",
+      "title": "Brana CLI MCP Layer — Architecture Decision",
       "type": "Roadmap",
       "impl_files": [
         "system/cli/rust/",
@@ -2327,7 +2331,7 @@
       ]
     },
     "docs/ideas/brana-efficiency-without-power-loss.md": {
-      "title": "Brana Efficiency \u2014 Reduce Usage Without Losing Power",
+      "title": "Brana Efficiency — Reduce Usage Without Losing Power",
       "type": "Roadmap",
       "impl_files": [
         "system/agents/debrief-analyst.md",
@@ -2340,7 +2344,7 @@
       "impl_files": []
     },
     "docs/ideas/build-enhancements-from-osmani.md": {
-      "title": "Build Command Enhancements \u2014 Inspired by addyosmani/agent-skills",
+      "title": "Build Command Enhancements — Inspired by addyosmani/agent-skills",
       "type": "Roadmap",
       "impl_files": [
         "system/procedures/build.md",
@@ -2348,7 +2352,7 @@
       ]
     },
     "docs/ideas/build-skill-gate-hardening.md": {
-      "title": "Build Skill Gate Hardening \u2014 Step 4a",
+      "title": "Build Skill Gate Hardening — Step 4a",
       "type": "Roadmap",
       "impl_files": [
         "system/procedures/build.md",
@@ -2356,12 +2360,12 @@
       ]
     },
     "docs/ideas/cc-feature-adoption-v2.1.136-142.md": {
-      "title": "CC Feature Adoption \u2014 v2.1.136\u2013v2.1.142",
+      "title": "CC Feature Adoption — v2.1.136–v2.1.142",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/ideas/cc-feature-adoption-v2.1.76-81.md": {
-      "title": "CC Feature Adoption \u2014 v2.1.76\u2013v2.1.81",
+      "title": "CC Feature Adoption — v2.1.76–v2.1.81",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -2385,7 +2389,7 @@
       ]
     },
     "docs/ideas/cloud-scheduler-provider-abstraction.md": {
-      "title": "Brana Cloud Scheduler \u2014 Provider-Abstracted Job Orchestration",
+      "title": "Brana Cloud Scheduler — Provider-Abstracted Job Orchestration",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -2395,12 +2399,12 @@
       "impl_files": []
     },
     "docs/ideas/content-skill-seed-to-post.md": {
-      "title": "/brana:content \u2014 Seed-to-Post Guided Workflow",
+      "title": "/brana:content — Seed-to-Post Guided Workflow",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/ideas/dated-memory-files.md": {
-      "title": "Unified Knowledge Routing Gateway \u2014 `brana memory write`",
+      "title": "Unified Knowledge Routing Gateway — `brana memory write`",
       "type": "Roadmap",
       "impl_files": [
         "system/brana-mcp/"
@@ -2412,14 +2416,14 @@
       "impl_files": []
     },
     "docs/ideas/dynamic-skill-routing.md": {
-      "title": "Dynamic Skill Routing \u2014 Investigation Report (t-608)",
+      "title": "Dynamic Skill Routing — Investigation Report (t-608)",
       "type": "Roadmap",
       "impl_files": [
         "system/mcp/skill-registry/"
       ]
     },
     "docs/ideas/enforcement-vs-injection.md": {
-      "title": "Enforcement vs Injection \u2014 The Harness Architecture Fork",
+      "title": "Enforcement vs Injection — The Harness Architecture Fork",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -2429,12 +2433,12 @@
       "impl_files": []
     },
     "docs/ideas/goal-adoption-brana-skills.md": {
-      "title": "/goal Adoption \u2014 brana Skills",
+      "title": "/goal Adoption — brana Skills",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/ideas/goal-completion-heuristics-h5-h8.md": {
-      "title": "Goal-Completion Heuristics H5\u2013H8 + AC: Authoring Guide",
+      "title": "Goal-Completion Heuristics H5–H8 + AC: Authoring Guide",
       "type": "Roadmap",
       "impl_files": [
         "system/hooks/goal-completion.sh",
@@ -2442,12 +2446,12 @@
       ]
     },
     "docs/ideas/inbox-to-dimensions-pipeline.md": {
-      "title": "Inbox \u2192 Dimensions Pipeline \u2014 Shape",
+      "title": "Inbox → Dimensions Pipeline — Shape",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/ideas/knowledge-insights-digest.md": {
-      "title": "Knowledge Pipeline \u2014 Research Session Digest",
+      "title": "Knowledge Pipeline — Research Session Digest",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -2457,24 +2461,24 @@
       "impl_files": []
     },
     "docs/ideas/layered-input-processing.md": {
-      "title": "Layered Input Processing \u2014 Batch + Express Pipelines",
+      "title": "Layered Input Processing — Batch + Express Pipelines",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/ideas/memory-consolidation-autodream.md": {
-      "title": "Memory Consolidation \u2014 Auto Dream Integration",
+      "title": "Memory Consolidation — Auto Dream Integration",
       "type": "Roadmap",
       "impl_files": [
         "system/scripts/memory-consolidation.sh"
       ]
     },
     "docs/ideas/memory-consolidation-kairos.md": {
-      "title": "Memory Consolidation \u2014 Lint + Heal Shape",
+      "title": "Memory Consolidation — Lint + Heal Shape",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/ideas/memory-pattern-learning-redesign.md": {
-      "title": "Memory Architecture Redesign \u2014 Pattern Learning that Actually Works",
+      "title": "Memory Architecture Redesign — Pattern Learning that Actually Works",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -2484,7 +2488,7 @@
       "impl_files": []
     },
     "docs/ideas/resilient-pattern-store.md": {
-      "title": "Resilient Pattern Store \u2014 Hybrid Dual-Write",
+      "title": "Resilient Pattern Store — Hybrid Dual-Write",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -2494,12 +2498,12 @@
       "impl_files": []
     },
     "docs/ideas/session-continuity-multi-session.md": {
-      "title": "Session Continuity \u2014 Multi-Session & Cross-Project",
+      "title": "Session Continuity — Multi-Session & Cross-Project",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/ideas/session-memory-cc-alignment.md": {
-      "title": "Session Memory \u2014 CC Alignment Shape",
+      "title": "Session Memory — CC Alignment Shape",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -2509,7 +2513,7 @@
       "impl_files": []
     },
     "docs/ideas/skill-lifecycle-manager.md": {
-      "title": "Skill Lifecycle Manager \u2014 Revised Design",
+      "title": "Skill Lifecycle Manager — Revised Design",
       "type": "Roadmap",
       "impl_files": [
         "system/skills/",
@@ -2523,9 +2527,10 @@
       "impl_files": []
     },
     "docs/ideas/skill-tiering.md": {
-      "title": "Skill Tiering \u2014 Core Plugin + On-Demand Procedures",
+      "title": "Skill Tiering — Core Plugin + On-Demand Procedures",
       "type": "Roadmap",
       "impl_files": [
+        "system/procedures/{name",
         "system/procedures/",
         "system/procedures/backlog.md",
         "system/skills/",
@@ -2533,7 +2538,7 @@
       ]
     },
     "docs/ideas/statusline-v2-backlog-intelligence.md": {
-      "title": "Statusline v2 \u2014 Backlog-Aware Intelligence",
+      "title": "Statusline v2 — Backlog-Aware Intelligence",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -2548,17 +2553,17 @@
       "impl_files": []
     },
     "docs/personal/abdaal-productivity-research.md": {
-      "title": "Ali Abdaal \u2014 Feel-Good Productivity & Life Design",
+      "title": "Ali Abdaal — Feel-Good Productivity & Life Design",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/personal/bradley-ppv-research.md": {
-      "title": "August Bradley \u2014 PPV (Pillars, Pipelines, Vaults)",
+      "title": "August Bradley — PPV (Pillars, Pipelines, Vaults)",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/personal/forte-para-basb-research.md": {
-      "title": "Tiago Forte \u2014 PARA & Building a Second Brain",
+      "title": "Tiago Forte — PARA & Building a Second Brain",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -2568,12 +2573,12 @@
       "impl_files": []
     },
     "docs/personal/miessler-telos-research.md": {
-      "title": "Miessler PAI \u2014 Personal Space Design Research",
+      "title": "Miessler PAI — Personal Space Design Research",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/personal/personal-os-design.md": {
-      "title": "Personal OS \u2014 Framework & Design",
+      "title": "Personal OS — Framework & Design",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -2788,7 +2793,7 @@
       ]
     },
     "docs/research/2026-04-08-cc-alignment-findings.md": {
-      "title": "CC Alignment Findings \u2014 Decisions Needed",
+      "title": "CC Alignment Findings — Decisions Needed",
       "type": "Roadmap",
       "impl_files": [
         "system/procedures/close.md",
@@ -2797,24 +2802,24 @@
       ]
     },
     "docs/research/2026-04-08-claude-code-leak-analysis.md": {
-      "title": "Claude Code Source Leak \u2014 Strategic Analysis for Brana Alignment",
+      "title": "Claude Code Source Leak — Strategic Analysis for Brana Alignment",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/research/2026-04-08-url-batch-findings.md": {
-      "title": "URL Batch Research \u2014 2026-04-08",
+      "title": "URL Batch Research — 2026-04-08",
       "type": "Roadmap",
       "impl_files": [
         "system/ontology.yaml"
       ]
     },
     "docs/research/2026-05-07-batch-api-knowledge-pipeline.md": {
-      "title": "Batch API Integration \u2014 Knowledge Pipeline Tier 1",
+      "title": "Batch API Integration — Knowledge Pipeline Tier 1",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/research/2026-05-07-loop-validation-t938.md": {
-      "title": "Auto-learning Loop Validation \u2014 t-938",
+      "title": "Auto-learning Loop Validation — t-938",
       "type": "Roadmap",
       "impl_files": [
         "system/procedures/",
@@ -2828,7 +2833,7 @@
       "impl_files": []
     },
     "docs/research/2026-06-08-install-friction-spike.md": {
-      "title": "Spike: Install Friction Evaluation \u2014 bootstrap vs one-liner vs pipx vs cargo",
+      "title": "Spike: Install Friction Evaluation — bootstrap vs one-liner vs pipx vs cargo",
       "type": "Roadmap",
       "impl_files": [
         "system/"
@@ -2840,30 +2845,46 @@
       "impl_files": []
     },
     "docs/research/knowledge-retrieval-tax.md": {
-      "title": "Knowledge Retrieval Tax \u2014 Positioning Frame",
+      "title": "Knowledge Retrieval Tax — Positioning Frame",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/research/miessler-pai-comparison.md": {
-      "title": "Miessler PAI vs Brana Personal OS \u2014 Research & Comparison",
+      "title": "Miessler PAI vs Brana Personal OS — Research & Comparison",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/research/miessler-pai-deep-dive.md": {
-      "title": "Miessler PAI \u2014 Deep Dive Research",
+      "title": "Miessler PAI — Deep Dive Research",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/research/multi-agent-orchestration-investigation.md": {
-      "title": "Multi-Agent Orchestration \u2014 Investigation Report",
+      "title": "Multi-Agent Orchestration — Investigation Report",
       "type": "Roadmap",
       "impl_files": []
     },
     "docs/research/t-407-claude-systems-marketplace.md": {
-      "title": "Investigation: Brana OS \u2014 Process-Powered Framework for Claude Systems",
+      "title": "Investigation: Brana OS — Process-Powered Framework for Claude Systems",
       "type": "Roadmap",
       "impl_files": [
         "system/"
+      ]
+    },
+    "docs/reviews/architecture-review-2026-06-10.md": {
+      "title": "Architecture Review — 2026-06-10",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/",
+        "system/hooks/pre-tool-use.sh",
+        "system/state/schema-removals.json",
+        "system/agents/challenger.md",
+        "system/scripts/",
+        "system/procedures/",
+        "system/state/decisions/",
+        "system/rules/reconcile-after-convention-change.md",
+        "system/state/",
+        "system/scheduler/"
       ]
     },
     "docs/reviews/token-baseline.md": {
@@ -9006,6 +9027,24 @@
       "computed": false
     },
     {
+      "from": "docs/README.md",
+      "to": "reviews/architecture-review-2026-06-10.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "reviews/token-baseline.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "reviews/weekly-2026-04-17.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/agents.md",
       "to": "docs/reference/agents.md",
       "type": "references",
@@ -11508,6 +11547,12 @@
       "computed": false
     },
     {
+      "from": "docs/ideas/session-aware-loop-integration.md",
+      "to": "docs/architecture/decisions/ADR-050-loop-request-protocol.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/ideas/session-continuity-multi-session.md",
       "to": "docs/ideas/session-memory-cc-alignment.md",
       "type": "references",
@@ -12679,9 +12724,9 @@
     }
   ],
   "stats": {
-    "nodes": 429,
-    "edges": 1632,
+    "nodes": 430,
+    "edges": 1636,
     "typed_edges": 581,
-    "orphans": 125
+    "orphans": 126
   }
 }
