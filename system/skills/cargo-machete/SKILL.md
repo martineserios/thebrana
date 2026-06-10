@@ -11,4 +11,4 @@ allowed-tools: [Bash, Read, Glob, Grep, Edit]
 status: stable
 ---
 <!-- PROCEDURE_FILE: procedures/cargo-machete.md -->
-Read and execute the full procedure from `system/procedures/cargo-machete.md`.
+Read and execute the full procedure from `../../procedures/cargo-machete.md` resolved against this skill's base directory (the path announced when the skill loads) — i.e. `{base-dir}/../../procedures/cargo-machete.md`. This form is valid in both the repo layout and the deployed-plugin layout.

@@ -18,5 +18,5 @@ growth_stage: prototype
 
 <!-- PROCEDURE_FILE: procedures/verify-docs.md -->
 This skill's full procedure is in a separate file for startup performance (ADR-034).
-Read and execute `system/procedures/verify-docs.md` from the plugin root directory.
+Read and execute `../../procedures/verify-docs.md` resolved against this skill's base directory (the path announced when the skill loads) — i.e. `{base-dir}/../../procedures/verify-docs.md`. This form is valid in both the repo layout and the deployed-plugin layout.
 If the path doesn't resolve, use Glob to find `**/procedures/verify-docs.md`.

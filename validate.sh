@@ -2107,6 +2107,36 @@ fi
 echo ""
 fi  # should_run 52
 
+# Check 53 — skill procedure-pointer stubs must resolve in both layouts (t-1931)
+# Stubs saying "system/procedures/X.md from the plugin root" break in the deployed
+# plugin layout (no system/ prefix) and steer models into base-dir-relative misses
+# (72 logged Read failures). The only form valid in BOTH layouts is base-dir-relative:
+# <skill-base>/../../procedures/X.md
+if should_run 53; then
+echo "Check 53: skill procedure-pointer stubs..."
+C53_FAILS=0
+for sk in "$SYSTEM_DIR"/skills/*/SKILL.md; do
+    [ -f "$sk" ] || continue
+    marker=$(sed -n 's/.*PROCEDURE_FILE: \([^ ]*\) .*/\1/p' "$sk" | head -1)
+    [ -n "$marker" ] || continue
+    proc_name=$(basename "$marker")
+    skill_dir=$(dirname "$sk")
+    skill_name=$(basename "$skill_dir")
+    if ! grep -q '\.\./\.\./procedures/'"$proc_name" "$sk"; then
+        fail "Check 53: $skill_name/SKILL.md stub must reference ../../procedures/$proc_name (base-dir-relative — valid in repo and deployed layouts)"
+        C53_FAILS=$(( C53_FAILS + 1 ))
+    fi
+    if [ ! -f "$skill_dir/../../procedures/$proc_name" ]; then
+        fail "Check 53: $skill_dir/../../procedures/$proc_name does not exist (phantom procedure pointer)"
+        C53_FAILS=$(( C53_FAILS + 1 ))
+    fi
+done
+if [ "$C53_FAILS" -eq 0 ]; then
+    pass "Check 53: all procedure-pointer stubs are base-dir-relative and resolvable"
+fi
+echo ""
+fi  # should_run 53
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
