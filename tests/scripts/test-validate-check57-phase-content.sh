@@ -49,7 +49,30 @@ assert_contains() {
 # No PHASES registry markers → emit nothing (layout test owns registry shape).
 check57_violations() {
     local skill_dir="$1"
-    : # stub — not implemented yet (red)
+    local sk="$skill_dir/SKILL.md"
+    [ -f "$sk" ] || return 0
+    grep -q "<!-- PHASES -->" "$sk" || return 0
+
+    local registered rel pf lnk
+    registered=$(sed -n '/<!-- PHASES -->/,/<!-- \/PHASES -->/p' "$sk" \
+        | grep -oE 'phases/[a-z0-9-]+\.md' | sort -u)
+    [ -n "$registered" ] || return 0
+
+    while IFS= read -r rel; do
+        pf="$skill_dir/$rel"
+        if [ ! -f "$pf" ]; then
+            echo "MISSING: $rel"
+            continue
+        fi
+        if ! grep -qE '^##+ ' "$pf"; then
+            echo "NO-HEADING: $rel"
+        fi
+        # Relative cross-refs only: markdown links starting with ./ or ../
+        # (bare filenames and {placeholders} are doc examples, not refs)
+        while IFS= read -r lnk; do
+            [ -e "$(dirname "$pf")/$lnk" ] || echo "DANGLING: $rel -> $lnk"
+        done < <(grep -ohE '\]\(\.\.?/[^)#]+\.md' "$pf" | sed 's/^](//' || true)
+    done <<< "$registered"
 }
 
 mk_skill() {
