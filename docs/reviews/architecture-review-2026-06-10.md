@@ -89,6 +89,15 @@ Close the loop first (2–3 focused sessions): recall-at-task-start, metrics con
 - Challenger flavor-selection logic duplicated between `/brana:challenge` skill and `challenger.md` agent — extractable to shared doc (LOW).
 - Skill SKILL.md→procedure references: 0 broken paths; the Read-failure pattern correlates with procedure size, not bad paths (INFO).
 
+### Appendix A.1 — post-review findings (optimization sessions, 2026-06-10)
+
+- (t-1935) Agent-memory root cause was deeper than the missing directory: `memory: true` is an **invalid CC frontmatter value** — the field takes a scope string (`user|project|local`); booleans silently no-op. 13 agents affected, not 11. Plugin agents resolve memory dirs colon→dash (`brana-challenger/`); agent definitions are cached at session start (frontmatter changes need a fresh session).
+- (t-1936) Recall was dead twice over: `cf-env.sh` still resolved the CRLF-shebang npm bin (t-1934 fixed the .mjs scripts only), and the namespace-less `client:$PROJECT` query returned only constant-0.5 session rows. `ruflo-cli.sh` now encodes both cures at one choke point. The session-start 2s timeout could never succeed — ONNX load alone takes ~1.6s.
+- (t-1937) Session-start's phase-3 wait budget (2s) silently killed parallel jobs that didn't overlap phase 2 — partial results, no warning. Metrics namespace `access_count` moved 0→2: the flywheel read side is alive.
+- (t-1938) §4's "14 hooks.json↔hooks.md mismatches" were **trailing-quote parser ghosts** in Check 48 itself; only one was genuine (the stale guard-explore row). Also: validate.sh Check 22's perl falls back to STDIN when a glob expands empty — observed hanging 46 minutes under an open-socket stdin; guarded.
+- (t-1946) §4's deployment drift ("1 rule missing") understated the disease: t-760 (2026-03-30) had disabled rules deployment entirely on the false assumption that CC plugins load rules — no rules component exists in the plugin spec. The pre-t-760 copies survived until bootstrap's cleanup ran 2026-06-10, then the entire discipline shell silently undeployed. Bootstrap deploys rules again.
+- (ops) The dead `CF_EXIT=$? after || true` pattern appeared in THREE places (session-start, session-end-persist, and was the reason persist failures were never detected) — grep-worthy bug class for future audits.
+
 ## Appendix B — evidence numbers (REALITY pass, 2026-06-10)
 
 | Layer | Key numbers |
