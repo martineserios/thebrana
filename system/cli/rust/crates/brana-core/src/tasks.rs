@@ -778,8 +778,25 @@ pub fn set_fields_atomic(
     fields: &[(String, String)],
     append: bool,
 ) -> Result<serde_json::Map<String, Value>, Vec<String>> {
-    let _ = (task, fields, append);
-    Ok(serde_json::Map::new()) // stub — not implemented yet (t-1958 red)
+    let snapshot = task.clone();
+    let mut updated = serde_json::Map::new();
+    let mut errors = Vec::new();
+
+    for (field, value) in fields {
+        match set_field(task, field, value, append) {
+            Ok(()) => {
+                updated.insert(field.clone(), task[field.as_str()].clone());
+            }
+            Err(e) => errors.push(format!("{field}: {e}")),
+        }
+    }
+
+    if errors.is_empty() {
+        Ok(updated)
+    } else {
+        *task = snapshot;
+        Err(errors)
+    }
 }
 
 /// Collect tag inventory: tag -> {total, pending, active, done, blocked}.
