@@ -22,8 +22,17 @@ echo ""
 
 echo "Phase 1: Procedure structure"
 
-BACKLOG_PROC="$SYSTEM_DIR/procedures/backlog.md"
-BUILD_PROC="$SYSTEM_DIR/procedures/build.md"
+# t-1942: big-four bodies live in skills/{name}/SKILL.md + phases/*.md — concat the effective body
+effective_body_file() {
+    local n="$1" tmp
+    tmp=$(mktemp "${TMPDIR:-/tmp}/effective-body-$n.XXXXXX")
+    [ -f "$SYSTEM_DIR/procedures/$n.md" ] && cat "$SYSTEM_DIR/procedures/$n.md" >> "$tmp"
+    [ -f "$SYSTEM_DIR/skills/$n/SKILL.md" ] && cat "$SYSTEM_DIR/skills/$n/SKILL.md" >> "$tmp"
+    [ -d "$SYSTEM_DIR/skills/$n/phases" ] && cat "$SYSTEM_DIR/skills/$n"/phases/*.md >> "$tmp" 2>/dev/null
+    echo "$tmp"
+}
+BACKLOG_PROC="$(effective_body_file backlog)"
+BUILD_PROC="$(effective_body_file build)"
 
 # 1a. backlog.md has MANDATORY marker on low-score path
 if grep -q "MANDATORY acquisition offer" "$BACKLOG_PROC" 2>/dev/null; then
