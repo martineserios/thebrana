@@ -42,7 +42,7 @@
 ### Accomplished
 - **H5-H8 heuristics** in `system/hooks/goal-completion.sh`: file-contains, jq-query, command-exits-0 (allowlisted), git-log. Coverage: ~41% (H1-H4) → ~88% (H1-H8). Tests: 15/15 pass.
 - **`docs/conventions/ac-criteria.md`** — new reference doc, all 9 AC: parseable forms with sandbox rules and H7 allowlist.
-- **`system/procedures/build.md`** — AC: syntax block added in DECOMPOSE step.
+- **`system/skills/build/phases/decompose.md` (was system/procedures/build.md pre-t-1942)** — AC: syntax block added in DECOMPOSE step.
 - **`docs/architecture/hooks.md`** — inventory row updated: 8 heuristics, session binding, stale guard.
 - **Correction**: MCP "task not found" is a CWD resolution issue in worktrees (not in-memory state) — debrief-analyst corrected the session summary's diagnosis.
 

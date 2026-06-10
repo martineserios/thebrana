@@ -11,7 +11,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 SYSTEM_DIR="${1:-$REPO_ROOT/system}"
 
-ALLOWLIST="build close backlog reconcile"
+# big-four exception ended with t-1942 phase split
+ALLOWLIST=""
 
 pass=0; fail=0
 

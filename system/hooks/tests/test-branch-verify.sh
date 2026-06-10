@@ -115,11 +115,11 @@ setup_repo "$REPO7" "main" "system/skills/my-skill.md"
 assert_deny "Main branch with skills file denies" \
     "$(make_add_input "$REPO7" "system/skills/my-skill.md")"
 
-# --- Test 8: On main, system/procedures/ → deny ---
+# --- Test 8: On main, system/skills phase file → deny ---
 REPO8="$TMPDIR_BASE/repo8"
-setup_repo "$REPO8" "main" "system/procedures/build.md"
+setup_repo "$REPO8" "main" "system/skills/build/phases/build-loop.md"
 assert_deny "Main branch with procedures file denies" \
-    "$(make_add_input "$REPO8" "system/procedures/build.md")"
+    "$(make_add_input "$REPO8" "system/skills/build/phases/build-loop.md")"
 
 # --- Test 9: On main, git add . with behavioral changes → deny ---
 REPO9="$TMPDIR_BASE/repo9"

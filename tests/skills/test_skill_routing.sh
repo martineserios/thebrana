@@ -8,9 +8,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BACKLOG_SKILL="$REPO_ROOT/system/skills/backlog/SKILL.md"
-# Body assertions read the effective body: procedure while the big-four stub remains (t-1941/t-1942)
-BACKLOG_BODY="$REPO_ROOT/system/procedures/backlog.md"
-grep -q PROCEDURE_FILE "$BACKLOG_SKILL" || BACKLOG_BODY="$BACKLOG_SKILL"
+# Body assertions read the effective body across layouts (t-1941/t-1942)
+source "$SCRIPT_DIR/../lib/effective_body.sh"
+BACKLOG_BODY="$(effective_body_file backlog "$REPO_ROOT")"
 
 PASS=0
 FAIL=0

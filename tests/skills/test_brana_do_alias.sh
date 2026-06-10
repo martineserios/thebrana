@@ -11,8 +11,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 DO_SKILL="$REPO_ROOT/system/skills/do/SKILL.md"
 BACKLOG_SKILL="$REPO_ROOT/system/skills/backlog/SKILL.md"
-BACKLOG_BODY="$REPO_ROOT/system/procedures/backlog.md"
-grep -q PROCEDURE_FILE "$BACKLOG_SKILL" || BACKLOG_BODY="$BACKLOG_SKILL"
+source "$SCRIPT_DIR/../lib/effective_body.sh"
+BACKLOG_BODY="$(effective_body_file backlog "$REPO_ROOT")"
 
 PASS=0
 FAIL=0

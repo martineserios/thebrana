@@ -69,7 +69,7 @@ Manage the backlog — plan, track, navigate phases and streams. Use when planni
 
 **Arguments:** `[status|add|start|done|next|roadmap|plan|triage|tags|context|theme|sync] [args]`
 
-**Allowed tools:** Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, Task, mcp__ruflo__memory_search, mcp__ruflo__claims_claim, mcp__ruflo__claims_release, mcp__ruflo__claims_list, mcp__ruflo__agent_spawn, mcp__ruflo__swarm_init, mcp__ruflo__claims_mark-stealable, mcp__ruflo__coordination_orchestrate, mcp__ruflo__agent_pool, ToolSearch
+**Allowed tools:** Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, Task, mcp__ruflo__memory_search, mcp__ruflo__claims_claim, mcp__ruflo__claims_release, mcp__ruflo__claims_list, mcp__ruflo__agent_spawn, mcp__ruflo__swarm_init, mcp__ruflo__claims_mark-stealable, mcp__ruflo__coordination_orchestrate, mcp__ruflo__agent_pool, TaskCreate, TaskList, TaskUpdate, ToolSearch
 
 ### `/brana:cargo-machete`
 

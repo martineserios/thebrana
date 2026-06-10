@@ -20,11 +20,13 @@
 
 Skills are **inline by default**: the full procedure body lives in `system/skills/{name}/SKILL.md` after the frontmatter. Native Claude Code lazy-loads SKILL.md bodies (frontmatter-only at session start), so inlining costs nothing at startup and removes the stub→Read hop that was the recurring failure layer behind procedure-Read errors.
 
-**Transitional exception — the big four:** `build`, `close`, `backlog`, `reconcile` keep the old stub pattern (frontmatter + Read instruction pointing at `../../procedures/{name}.md`, base-dir-relative) until their phase-split lands (t-1942) — their bodies exceed reliable single-load size. No other stub may exist; `tests/skills/test_skill_inline_layout.sh` enforces a named allowlist.
+**Phase-split layout — the big four:** `build`, `close`, `backlog`, `reconcile` exceed reliable single-load size, so each is a slim SKILL.md (flow overview, rules, and a machine-readable `<!-- PHASES -->` registry mapping steps/subcommands/scopes to files) plus per-phase bodies in `system/skills/{name}/phases/*.md` (each ≤400 lines). The SKILL.md's Phase Protocol governs loading: Read a phase file at every step boundary, never execute a phase from memory, and on resume-after-compression Read the current step's phase file first. Stubs no longer exist anywhere; `tests/skills/test_skill_inline_layout.sh` (empty allowlist) and `tests/skills/test_skill_phase_layout.sh` enforce both layouts.
 
-`system/procedures/` retains only the big-four bodies and knowledge docs that have no SKILL.md counterpart (migrate.md). Acquired skills under `system/skills/acquired/` are inline too — same rule, no exceptions beyond the big four.
+`system/procedures/` retains only knowledge docs with no SKILL.md counterpart (migrate.md). Acquired skills under `system/skills/acquired/` are inline — same rule. Shared sections referenced by multiple procedures live in `system/skills/_shared/` (e.g. `challenger-gate.md`, extracted in t-1942 so the bug-fix and refactor strategies don't lose the gate across phase files).
 
-History: ADR-034 originally stubbed all skills because CC loaded full SKILL.md content at startup (bug #14882, ~34K tokens, 4-minute cold starts). The ADR's Risks clause anticipated the reversal — CC fixed the loading behavior, so the bodies merged back (t-1941).
+Tests and validate.sh read a skill's **effective body** — the layout-agnostic concatenation of SKILL.md + phases/*.md (in PHASES-registry order) — via `tests/lib/effective_body.sh` and validate.sh's `effective_body()`.
+
+History: ADR-034 originally stubbed all skills because CC loaded full SKILL.md content at startup (bug #14882, ~34K tokens, 4-minute cold starts). The ADR's Risks clause anticipated the reversal — CC fixed the loading behavior, so the bodies merged back (t-1941), and the big-four stub exception ended when their phase-split landed (t-1942).
 
 ## Skill Anatomy
 
@@ -50,13 +52,18 @@ allowed-tools:
 Instructions for Claude when this skill is invoked...
 ```
 
-For the big-four transitional stubs only, the body is a Read instruction:
+For the big four, the SKILL.md body is the slim overview and the phase bodies live next to it:
 
 ```markdown
-Read the procedure file before executing: `../../procedures/{name}.md`
+<!-- PHASES -->
+| Step | File | Load when |
+|------|------|-----------|
+| LOAD | phases/load.md | Skill entry — always first |
+| ... | ... | ... |
+<!-- /PHASES -->
 ```
 
-> The path `../../procedures/{name}.md` is base-dir-relative (from `system/skills/{name}/SKILL.md`) and resolves correctly in both the repo layout and the deployed-plugin layout. Do not use the absolute repo-root form `system/procedures/{name}.md` — it breaks when the skill loads from the plugin. Do not create new stubs — new skills are always inline (see Skill Layout above).
+> Phase paths (`phases/{file}`) are base-dir-relative from `system/skills/{name}/SKILL.md` and resolve identically in the repo layout and the deployed-plugin layout. Do not use the absolute repo-root form — it breaks when the skill loads from the plugin. Do not create stubs — new skills are always inline; only split into phases when a body exceeds reliable single-load size (~500 lines).
 
 Key fields:
 - **`allowed-tools`** restricts which tools Claude can use during execution. Skills without Write, Edit, or Bash are read-only.

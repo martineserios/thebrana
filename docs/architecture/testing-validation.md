@@ -251,9 +251,9 @@ Always run regardless of flags (`--assumptions-only`, `--scale-triggers`, `--sem
 
 Three sub-checks verifying the JIT skill acquisition flow is correctly wired. All are **Fail** (not Warn).
 
-- **23a**: `system/procedures/backlog.md` contains "MANDATORY acquisition offer" in step 5d
-- **23b**: `system/procedures/backlog.md` writes a `skill_gap_checked` breadcrumb to task context
-- **23c**: `system/procedures/build.md` step 4a reads `skill_gap_checked` as a safety net when backlog step 5 is skipped
+- **23a**: the backlog effective body (SKILL.md + phases/*.md, t-1942) contains "MANDATORY acquisition offer" in step 5d
+- **23b**: the backlog effective body writes a `skill_gap_checked` breadcrumb to task context
+- **23c**: the build effective body step 4a reads `skill_gap_checked` as a safety net when backlog step 5 is skipped
 
 ### Check 24: `.mcp.json` Entries
 

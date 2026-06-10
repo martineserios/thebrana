@@ -33,4 +33,4 @@ Invoke `/brana:backlog start` with the arguments treated as freeform text (step 
 Skill(skill="brana:backlog", args="start $ARGUMENTS")
 ```
 
-All routing, skill matching, task creation, and batch detection logic lives in `/brana:backlog start`. See `system/procedures/backlog.md` § `/brana:backlog start` → step 1a.
+All routing, skill matching, task creation, and batch detection logic lives in `/brana:backlog start`. See `system/skills/backlog/phases/start.md` § `/brana:backlog start` → step 1a.
