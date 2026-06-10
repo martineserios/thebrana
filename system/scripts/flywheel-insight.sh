@@ -20,6 +20,13 @@ set -u
 PROJECT="${1:?usage: flywheel-insight.sh <project> [db_path]}"
 DB_PATH="${2:-$HOME/.swarm/memory.db}"
 
+# Entry guard: $PROJECT is interpolated into a sqlite LIKE pattern below.
+# Non-slug characters (quotes, %) would silently degrade to "no metrics".
+if ! [[ "$PROJECT" =~ ^[a-zA-Z0-9_.-]+$ ]]; then
+    echo "no prior session metrics (invalid project name: $PROJECT)"
+    exit 0
+fi
+
 [ -f "$DB_PATH" ] || { echo "no prior session metrics for $PROJECT"; exit 0; }
 
 # Key discovery only — read-only sqlite, ordered by recency. The actual row
@@ -49,6 +56,10 @@ PRIOR_KEY=$(echo "$KEYS" | sed -n 2p)
 LATEST_JSON=$(cd "$HOME" && timeout 8 $CF memory retrieve -k "$LATEST_KEY" --namespace metrics --value-only --path "$DB_PATH" 2>/dev/null) || LATEST_JSON=""
 LATEST_JSON=$(echo "$LATEST_JSON" | sed -n '/^{/,$p' | head -1)
 
+# Known non-goal: if the session-start phase-3 kill fires between the
+# retrieve completing and this script printing, the access_count bump has
+# already landed (retrieve is synchronous) — only the observation line is
+# lost for that session. Acceptable: the loop-closure metric still moves.
 PRIOR_JSON=""
 if [ -n "$PRIOR_KEY" ]; then
     PRIOR_JSON=$(sqlite3 -readonly "$DB_PATH" \

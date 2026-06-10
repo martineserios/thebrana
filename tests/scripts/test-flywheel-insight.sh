@@ -100,13 +100,25 @@ fi
 make_fixture
 sqlite3 "$FIXTURE_DB" "INSERT INTO memory_entries (id,key,namespace,content,created_at) VALUES
   ('b1','flywheel:testproj:only','metrics','{\"project\":\"testproj\",\"correction_rate\":\"0.15\",\"edits\":3,\"failures\":0}',1000);"
-bash "$INSIGHT" testproj "$FIXTURE_DB" > /dev/null 2>&1
+OUT5=$(bash "$INSIGHT" testproj "$FIXTURE_DB" 2>&1)
 AC=$(sqlite3 "$FIXTURE_DB" "SELECT access_count FROM memory_entries WHERE id='b1';")
 TOTAL=$((TOTAL+1))
 if [ "${AC:-0}" -gt 0 ]; then
     PASS=$((PASS+1)); echo "  PASS: T5: access_count bumped by the read ($AC)"
 else
     FAIL=$((FAIL+1)); echo "  FAIL: T5: access_count still $AC after read"
+fi
+
+# T6 — retrieve path actually parsed (fields present in observation)
+assert_contains "T6: observation built from retrieved fields" "correction_rate 0.15" "$OUT5"
+
+# T7 — non-slug project name degrades loudly-gracefully, never hits SQL
+OUT=$(bash "$INSIGHT" "bad'name" "$FIXTURE_DB" 2>&1); RC=$?
+TOTAL=$((TOTAL+1))
+if [ "$RC" -eq 0 ] && [[ "$OUT" == *"invalid project name"* ]]; then
+    PASS=$((PASS+1)); echo "  PASS: T7: apostrophe project name guarded"
+else
+    FAIL=$((FAIL+1)); echo "  FAIL: T7: rc=$RC out=$OUT"
 fi
 
 echo ""
