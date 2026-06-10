@@ -10900,7 +10900,7 @@
       "blocked_by": [],
       "branch": null,
       "completed": null,
-      "context": null,
+      "context": "2026-06-09: non-advancement conditions to be designed in t-730 ADR (safety framework for when automation must NOT fire). Revisit deferral after t-730 lands.",
       "created": "2026-03-15",
       "description": "CC fires TaskCompleted when a CC Task (step registry task) is marked complete. Hook could auto-start the next pending step in the registry, removing manual step transitions in multi-step skills like /brana:build and /brana:close.",
       "effort": "M",
@@ -14581,7 +14581,8 @@
       "tags": [
         "harness-engineering",
         "observability",
-        "token-optimization"
+        "token-optimization",
+        "deferred"
       ],
       "type": "task",
       "work_type": "research"
@@ -16111,7 +16112,7 @@
       ],
       "branch": null,
       "completed": null,
-      "context": null,
+      "context": "2026-06-09: t-724 (session-loops consumer) cancelled. Disposition of this task to be adjudicated in t-730 ADR — native /loop + durable CronCreate may obsolete it (challenger finding MED-4).",
       "created": "2026-03-30",
       "description": null,
       "effort": "M",
@@ -16620,12 +16621,12 @@
       "id": "t-724",
       "kind": "feature",
       "level": "task",
-      "notes": null,
+      "notes": "2026-06-09: cancelled — orphan of phase t-720 (cancelled 2026-04-04). session-loops.json infra superseded by native /loop + CronCreate (durable mode). Runtime-watcher scope re-scoped into t-730.",
       "order": null,
       "parent": "t-720",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Extend session-start.sh — read config, spawn loops via CronCreate",
       "tags": [
         "session-loops",
@@ -16650,12 +16651,12 @@
       "id": "t-725",
       "kind": "feature",
       "level": "task",
-      "notes": null,
+      "notes": "2026-06-09: cancelled — orphan of phase t-720. Loop cleanup superseded by native /loop lifecycle; lifecycle contract to be specified in t-730 ADR.",
       "order": null,
       "parent": "t-720",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Extend session-end.sh — cleanup active loops via CronDelete",
       "tags": [
         "session-loops",
@@ -16680,12 +16681,12 @@
       "id": "t-726",
       "kind": "feature",
       "level": "task",
-      "notes": null,
+      "notes": "2026-06-09: cancelled — orphan of phase t-720. Presets superseded by native /loop ad-hoc invocation.",
       "order": null,
       "parent": "t-720",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Ship 2-3 default presets (uncommitted changes, test watcher, task sync)",
       "tags": [
         "session-loops",
@@ -16710,12 +16711,12 @@
       "id": "t-727",
       "kind": "feature",
       "level": "task",
-      "notes": null,
+      "notes": "2026-06-09: cancelled — orphan of phase t-721. /brana:watch superseded by native /loop skill.",
       "order": null,
       "parent": "t-721",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Write /brana:watch SKILL.md — ad-hoc watch spawner with presets",
       "tags": [
         "session-loops",
@@ -16740,12 +16741,12 @@
       "id": "t-728",
       "kind": "feature",
       "level": "task",
-      "notes": null,
+      "notes": "2026-06-09: cancelled — orphan of phase t-721. Presets superseded by native /loop; any brana-aware presets to be adjudicated in t-730 ADR.",
       "order": null,
       "parent": "t-721",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Brana-aware presets: test, commit, drift, task-sync watchers",
       "tags": [
         "session-loops",
@@ -16770,12 +16771,12 @@
       "id": "t-729",
       "kind": "feature",
       "level": "task",
-      "notes": null,
+      "notes": "2026-06-09: cancelled — orphan of phase t-721. Dashboard gap noted as deliberate non-action; must appear in t-730 ADR non-actions section (challenger finding LOW-6, 2026-06-09).",
       "order": null,
       "parent": "t-721",
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "cancelled",
       "subject": "Active watch dashboard — list/cancel running session loops",
       "tags": [
         "session-loops",
@@ -16786,12 +16787,10 @@
       "work_type": "chore"
     },
     {
-      "blocked_by": [
-        "t-727"
-      ],
+      "blocked_by": [],
       "branch": null,
       "completed": null,
-      "context": null,
+      "context": "2026-06-09: REVIVED from cancelled phase t-722 (initiative t-719, cancelled 2026-04-04 as 'superseded by ADR-027' — supersession covered only the knowledge loop; runtime-watcher scope was dropped, not absorbed). Re-scoped onto native substrate after challenger review (verdict RECONSIDER → narrowed to design-first).\nEVIDENCE: CronCreate verified working from within a skill flow 2026-06-09 (job 20a4a021 created+deleted during brana:backlog execution). CronCreate now supports durable:true (survives restarts). Cron docs recommend Monitor tool for live watching — evaluate as alternative.\nAC: ADR drafted with explicit GO/NO-GO verdict on auto-spawned watchers (value vs token cost vs build's own TDD loop — challenger HIGH-2; ADR may legitimately conclude no-go → cancel t-731)\nAC: lifecycle contract specified — spawn/kill conditions for skill end, /brana:close, context compaction, branch/task switch (challenger HIGH-3)\nAC: fulfillment mechanism documented with alternatives compared: CronCreate vs ScheduleWakeup vs Monitor vs background Bash\nAC: t-517 non-advancement conditions designed (when automation must NOT fire)\nAC: ADR-027 Phase A gate status checked — rollout gated on evidence per ratchet philosophy (challenger MED-5)\nAC: t-705 disposition decided (challenger MED-4)\nAC: non-actions section covers dashboard (t-729) and session-persistent loop config (challenger LOW-6)\nAC: surfaces enumerated: build/review SKILL.md+procedures, system/procedures/scheduler.md, docs/ideas/cc-feature-adoption-v2.1.76-81.md (still states old constraint — needs errata), docs/ideas/cloud-scheduler-provider-abstraction.md",
       "created": "2026-03-30",
       "description": null,
       "effort": "M",
@@ -16802,26 +16801,27 @@
       "level": "task",
       "notes": null,
       "order": null,
-      "parent": "t-722",
+      "parent": null,
       "priority": "P3",
       "started": null,
       "status": "pending",
-      "subject": "Design skill loop-request protocol (frontmatter spec)",
+      "subject": "Design loop-request protocol ADR — go/no-go on skill-embedded watchers (native CronCreate//loop)",
       "tags": [
         "session-loops",
         "scheduler",
         "dx"
       ],
       "type": "task",
-      "work_type": "implement"
+      "work_type": "design"
     },
     {
       "blocked_by": [
-        "t-730"
+        "t-730",
+        "t-1930"
       ],
       "branch": null,
       "completed": null,
-      "context": null,
+      "context": "2026-06-09: CONTINGENT on t-730 ADR go/no-go verdict — cancel this task if the ADR concludes watchers are not worth building (duplicate of build TDD loop / token cost). Detached from cancelled parent t-722. Scope per original Phase 3: /brana:build auto-spawns test watcher, /brana:review auto-spawns drift watcher, per protocol designed in t-730.",
       "created": "2026-03-30",
       "description": null,
       "effort": "M",
@@ -16832,7 +16832,7 @@
       "level": "task",
       "notes": null,
       "order": null,
-      "parent": "t-722",
+      "parent": null,
       "priority": "P3",
       "started": null,
       "status": "pending",
@@ -50395,6 +50395,35 @@
       "order": 0,
       "github_issue": null,
       "execution": "code"
+    },
+    {
+      "id": "t-1930",
+      "subject": "Tests for loop-request protocol wiring (per t-730 ADR)",
+      "status": "pending",
+      "type": "task",
+      "tags": [
+        "session-loops",
+        "tests",
+        "harness-engineering"
+      ],
+      "description": "Validate.sh checks / procedure tests for whatever protocol t-730's ADR specifies (frontmatter schema validation, lifecycle-contract enforcement, non-fire conditions). Must exist before t-731 implementation per TDD gate.",
+      "effort": "S",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-06-09",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-730"
+      ],
+      "branch": null,
+      "context": "2026-06-09: Created by TDD gate during t-719-revival replan. CONTINGENT on t-730 ADR go verdict — cancel alongside t-731 if no-go.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "epic": "harness-core",
+      "work_type": "implement"
     }
   ],
   "version": "1"

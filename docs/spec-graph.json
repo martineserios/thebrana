@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-09T20:59:39Z",
+  "generated": "2026-06-10T02:35:45Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -11281,7 +11281,7 @@
     },
     {
       "from": "docs/guide/workflows/build.md",
-      "to": "docs/architecture/decisions/ADR-041-ac-convention.md",
+      "to": "docs/conventions/ac-criteria.md",
       "type": "references",
       "computed": false
     },
@@ -12610,6 +12610,6 @@
     "nodes": 428,
     "edges": 1621,
     "typed_edges": 570,
-    "orphans": 127
+    "orphans": 126
   }
 }
