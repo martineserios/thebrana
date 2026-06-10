@@ -57,39 +57,39 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                         }
                     };
 
-                    let mut updated = serde_json::Map::new();
-                    let mut errors = Vec::new();
+                    // Sorted order: HashMap iteration is random, which made
+                    // pre-fix partial applies nondeterministic (t-1958)
+                    let mut fields: Vec<(String, String)> = op.fields.iter()
+                        .map(|(k, v)| (k.clone(), v.clone()))
+                        .collect();
+                    fields.sort();
 
-                    for (field, value) in &op.fields {
-                        match brana_core::tasks::set_field(task, field, value, op.append) {
-                            Ok(()) => {
-                                updated.insert(field.clone(), task[field.as_str()].clone());
-                            }
-                            Err(e) => {
-                                errors.push(format!("{field}: {e}"));
-                            }
+                    // All-or-nothing per op: a failed op leaves the task untouched
+                    match brana_core::tasks::set_fields_atomic(task, &fields, op.append) {
+                        Ok(updated) => {
+                            results.push(serde_json::json!({
+                                "id": op.task_id,
+                                "ok": true,
+                                "fields": updated,
+                            }));
                         }
-                    }
-
-                    if errors.is_empty() {
-                        results.push(serde_json::json!({
-                            "id": op.task_id,
-                            "ok": true,
-                            "fields": updated,
-                        }));
-                    } else {
-                        results.push(serde_json::json!({
-                            "id": op.task_id,
-                            "ok": false,
-                            "fields": updated,
-                            "errors": errors,
-                        }));
+                        Err(errors) => {
+                            results.push(serde_json::json!({
+                                "id": op.task_id,
+                                "ok": false,
+                                "fields": {},
+                                "errors": errors,
+                            }));
+                        }
                     }
                 }
             }
 
-            brana_core::tasks::save_tasks(&tf, &val)
-                .map_err(|e| pmcp::Error::validation(e))?;
+            let any_ok = results.iter().any(|r| r["ok"] == true);
+            if any_ok {
+                brana_core::tasks::save_tasks(&tf, &val)
+                    .map_err(|e| pmcp::Error::validation(e))?;
+            }
 
             let all_ok = results.iter().all(|r| r["ok"] == true);
 

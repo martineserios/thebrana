@@ -770,6 +770,35 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
     }
 }
 
+/// Apply multiple field updates to a task atomically: either every field
+/// applies, or the task is left untouched and all field errors are returned.
+/// Fields are applied in caller-supplied order (t-1958).
+pub fn set_fields_atomic(
+    task: &mut Value,
+    fields: &[(String, String)],
+    append: bool,
+) -> Result<serde_json::Map<String, Value>, Vec<String>> {
+    let snapshot = task.clone();
+    let mut updated = serde_json::Map::new();
+    let mut errors = Vec::new();
+
+    for (field, value) in fields {
+        match set_field(task, field, value, append) {
+            Ok(()) => {
+                updated.insert(field.clone(), task[field.as_str()].clone());
+            }
+            Err(e) => errors.push(format!("{field}: {e}")),
+        }
+    }
+
+    if errors.is_empty() {
+        Ok(updated)
+    } else {
+        *task = snapshot;
+        Err(errors)
+    }
+}
+
 /// Collect tag inventory: tag -> {total, pending, active, done, blocked}.
 pub fn tag_inventory(tasks: &[Value], all: &[Value]) -> Vec<(String, HashMap<String, usize>)> {
     let mut map: HashMap<String, HashMap<String, usize>> = HashMap::new();

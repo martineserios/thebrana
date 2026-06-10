@@ -583,3 +583,71 @@ fn test_session_history_limit_applied() {
     let history = brana_core::session::read_history(&root, 2);
     assert_eq!(history.len(), 2, "limit of 2 should be respected");
 }
+
+// ── t-1958: batch ops must be atomic per-op (all fields or none) ─────────
+
+#[test]
+fn test_set_fields_atomic_rolls_back_on_unknown_field() {
+    // Exact repro from 2026-06-10: a typo'd field name alongside valid fields
+    // and a context replace must leave the task byte-identical, not half-applied.
+    let dir = tempfile::tempdir().unwrap();
+    let path = fixture_tasks(dir.path());
+    let mut val = brana_core::tasks::load_raw(&path).unwrap();
+    let tasks = val["tasks"].as_array_mut().unwrap();
+    let task = tasks.iter_mut().find(|t| t["id"] == "t-001").unwrap();
+    let before = task.clone();
+
+    let fields = vec![
+        ("context".to_string(), "REPLACED".to_string()),
+        ("context_append".to_string(), "true".to_string()),
+        ("status".to_string(), "in_progress".to_string()),
+    ];
+    let errs = brana_core::tasks::set_fields_atomic(task, &fields, false)
+        .expect_err("op with unknown field must fail");
+
+    assert!(errs.iter().any(|e| e.contains("context_append")), "errors: {errs:?}");
+    assert_eq!(*task, before, "failed op must leave task untouched");
+}
+
+#[test]
+fn test_set_fields_atomic_applies_all_when_valid() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = fixture_tasks(dir.path());
+    let mut val = brana_core::tasks::load_raw(&path).unwrap();
+    let tasks = val["tasks"].as_array_mut().unwrap();
+    let task = tasks.iter_mut().find(|t| t["id"] == "t-001").unwrap();
+
+    let fields = vec![
+        ("status".to_string(), "in_progress".to_string()),
+        ("priority".to_string(), "P1".to_string()),
+    ];
+    let updated = brana_core::tasks::set_fields_atomic(task, &fields, false)
+        .expect("all-valid op must succeed");
+
+    assert_eq!(task["status"], "in_progress");
+    assert_eq!(task["priority"], "P1");
+    assert_eq!(updated.get("status").unwrap(), "in_progress");
+    assert_eq!(updated.get("priority").unwrap(), "P1");
+}
+
+#[test]
+fn test_set_fields_atomic_reports_all_errors() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = fixture_tasks(dir.path());
+    let mut val = brana_core::tasks::load_raw(&path).unwrap();
+    let tasks = val["tasks"].as_array_mut().unwrap();
+    let task = tasks.iter_mut().find(|t| t["id"] == "t-002").unwrap();
+    let before = task.clone();
+
+    let fields = vec![
+        ("bogus_a".to_string(), "x".to_string()),
+        ("status".to_string(), "completed".to_string()),
+        ("bogus_b".to_string(), "y".to_string()),
+    ];
+    let errs = brana_core::tasks::set_fields_atomic(task, &fields, false)
+        .expect_err("op with unknown fields must fail");
+
+    assert!(errs.iter().any(|e| e.contains("bogus_a")), "errors: {errs:?}");
+    assert!(errs.iter().any(|e| e.contains("bogus_b")), "errors: {errs:?}");
+    assert_eq!(*task, before, "failed op must leave task untouched");
+}
