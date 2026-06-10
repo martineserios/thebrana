@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # No strict mode — hooks must never fail and block the session.
 
+# retire-when: default model ≥ Fable-class
+#   Compensates for weaker models claiming completion ("fixed", "done") in
+#   commit messages without touching test files. Frontier models rarely do
+#   this; audit with: grep -r "retire-when:" system/  (t-1945)
 # Brana PostToolUse hook — hallucination detection (t-677).
 # Fires after Bash tool calls. Warns when a commit message contains completion
 # keywords (fix/done/complete/close/resolve) but no test files were modified.
