@@ -229,15 +229,20 @@ for stale_dir in skills commands agents; do
 done
 
 # --- Step 2: Rules ---
-# Rules are loaded by the plugin (system/rules/). Bootstrap no longer copies them
-# to ~/.claude/rules/ to avoid double-loading and divergence. (t-760, 2026-03-30)
-echo "Rules: loaded by plugin (skipping bootstrap copy)"
-if [ -d "$TARGET_DIR/rules" ] && ! $CHECK_ONLY; then
-    rule_count=$(ls "$TARGET_DIR/rules"/*.md 2>/dev/null | wc -l)
-    if [ "$rule_count" -gt 0 ]; then
-        echo "  Cleaning stale bootstrap rules ($rule_count files)..."
-        rm -f "$TARGET_DIR/rules"/*.md
-        rmdir "$TARGET_DIR/rules" 2>/dev/null || true
+# Rules MUST deploy to ~/.claude/rules/ — CC plugins cannot provide rules
+# (no rules component in the plugin spec; verified against plugins-reference
+# docs 2026-06-10, t-1946). t-760 assumed the plugin loads system/rules/ and
+# stopped copying — that assumption was false: the deployed copies survived
+# only until the cleanup below finally ran, then the whole discipline shell
+# silently undeployed. README.md is the authoring contract, not a rule —
+# excluded (no frontmatter, would always-load as noise).
+# NOTE: ~/.claude/rules/ is brana-managed — sync_dir deletes files absent
+# from system/rules/, so hand-placed rule files there will be removed.
+echo "Rules:"
+if [ -d "$SYSTEM_DIR/rules" ]; then
+    sync_dir "$SYSTEM_DIR/rules" "$TARGET_DIR/rules" "rules/"
+    if ! $CHECK_ONLY; then
+        rm -f "$TARGET_DIR/rules/README.md" 2>/dev/null || true
     fi
 fi
 
