@@ -63,7 +63,7 @@ Special branches (no task ID required): `main`, `docs/{topic}` (spec-only, no `s
 |------|------|-------------------|
 | **thebrana** (here) | Design + Build | Research, plan, implement, deploy |
 | **brana-knowledge** | Knowledge base | General knowledge, research, backups |
-| **clients/** | Paid work | External stakeholder projects (`~/enter_thebrana/clients/`) |
+| **clients/** | Paid work | External stakeholder projects (`~/enter_thebrana/clients/`). Each client = own git repo. Venture-affiliated clients group under `clients/{venture-slug}/` (e.g. `clients/proyecto-anita/dgrx`) — grouping dir is NOT a repo; affiliation marker `> Venture: {slug}` in the client's `.claude/CLAUDE.md` |
 | **ventures/** | Your IP | Side projects, learning, monetizing (`~/enter_thebrana/ventures/`) |
 | **personal/** | Personal OS | Journal, goals, identity (`~/enter_thebrana/personal/`) |
 

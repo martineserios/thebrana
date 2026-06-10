@@ -60,8 +60,8 @@
 | CRM Bulk async ingestion (CSV→ZIP→upload→job→poll→result, cost break-even >5K records, cadence design) | `brana-knowledge/dimensions/crm-bulk-async-ingestion.md` | proyecto_anita (Bigin nightly writes), any system writing thousands of CRM records |
 | Declarative query / COQL (SQL-like on non-SQL stores, operator taxonomy, dot-notation joins, no aggregations) | `brana-knowledge/dimensions/declarative-query-coql.md` | proyecto_anita (Bigin segmentation), any SaaS with SOQL/COQL-style query API |
 | Bigin CRM case study (modules, pricing, webhooks, rate limits, DGRX application, Kommo comparison) | `brana-knowledge/dimensions/bigin-case-study.md` | proyecto_anita (DGRX CRM layer), mya, any Anita tenant needing CRM UI |
-| Glide as MVP backend (Tables + UI + API eliminates Postgres/admin/auth for pilots) | `ventures/proyecto_anita/clients/mya/docs/ideas/mvp-architecture.md` | mya, any B2B2C MVP |
-| Lovable → Claude Code handoff (30 min scaffold, GitHub push, Claude wires APIs) | `ventures/proyecto_anita/clients/mya/docs/ideas/mvp-architecture.md` | mya, any frontend-heavy client |
+| Glide as MVP backend (Tables + UI + API eliminates Postgres/admin/auth for pilots) | `clients/proyecto-anita/mya/docs/ideas/mvp-architecture.md` | mya, any B2B2C MVP |
+| Lovable → Claude Code handoff (30 min scaffold, GitHub push, Claude wires APIs) | `clients/proyecto-anita/mya/docs/ideas/mvp-architecture.md` | mya, any frontend-heavy client |
 | NanoClaw/ZeroClaw/Claw ecosystem (architecture, Docker isolation, Agent SDK) | `brana-knowledge/dimensions/36-claw-ecosystem-chat-interface.md` | brapsoclaw, any chat agent project |
 | WhatsApp Difusiones Comerciales (Meta nativo ~2025, $0.0618/msg, sin scheduling/Excel/métricas) | `ventures/proyecto_anita/memory/event-log.md` | proyecto_anita, somos_mirada, mya, brapsoclaw |
 | LLM agent test strategy patterns (tests don't make agents good · replay-based shadow · defer structural guards) | `llm-agent-test-strategy-patterns.md` | proyecto_anita (Agent v4), mya, brapsoclaw, somos_mirada, any LLM agent shipping to prod |
@@ -88,12 +88,12 @@ For detailed facts, read each client's own docs. This is a routing index only.
 
 ### mya (MirÁyAhorrÁ)
 - **Type:** B2B2C hyperlocal promo platform — dietéticas/almacenes channel, AMBA
-- **Location:** `~/enter_thebrana/ventures/proyecto_anita/clients/mya/` (movido 2026-05-06, sigue convención las_lupes — tracked dentro de proyecto_anita)
+- **Location:** `~/enter_thebrana/clients/proyecto-anita/mya/` (repo standalone desde 2026-06-10, migración t-1950 — revierte la decisión 2026-05-06 de trackear dentro de proyecto_anita; razón: aislamiento de memoria + git por cliente)
 - **Status:** Propuesta v2.7 enviada · esperando respuesta. Pricing: $6,100 fijo piloto + addons aparte (AI Flyer Gen, Meta Business Verification, P2 Escalado) + soporte $600-1,000/mes. Calendar 6 sem, ~103h.
 - **Stack:** Next.js 14 + Lovable scaffold + Supabase (sin Auth — Retool autentica admin) + Retool + Cloudflare R2 + Kapso. Pilot sin pipeline de generación (cliente sube flyer manual PNG/PDF)
 - **Tipo de tenant:** B2B2C hyperlocal — distinto perfil que distribuidoras (Palco/PDB/Delorenzi) y que Las Lupes (4-pillar mayorista). Validar tenant typology cuando arranque P0
-- **Alignment report:** `ventures/proyecto_anita/clients/mya/.claude/alignment-report.md`
-- **Details:** `ventures/proyecto_anita/clients/mya/docs/proposal.md` (v2.7), `solucion-tecnica.md`, `quote.md`, `scope-v1.md`, `decisions/ADR-001-tech-stack.md`
+- **Alignment report:** `clients/proyecto-anita/mya/.claude/alignment-report.md`
+- **Details:** `clients/proyecto-anita/mya/docs/proposal.md` (v2.7), `solucion-tecnica.md`, `quote.md`, `scope-v1.md`, `decisions/ADR-001-tech-stack.md`
 
 ### batrade (BA Trade — The BATRADE SRL)
 - **Type:** Broker internacional de granos — intermediario buyer/seller, redacción de contratos, ejecución logística, cobro
@@ -145,13 +145,28 @@ For detailed facts, read each client's own docs. This is a routing index only.
 ### las_lupes (Las Lupes)
 - **Type:** Paid client — librería/papelería mayorista + e-commerce B2C
 - **Domain:** 700 mayoristas + 18K consumers Tienda Nube + 1131 contactos engagement + leads cursos. Catálogo visual complejo (Diamond Painting, stencils)
-- **Location:** `~/enter_thebrana/ventures/proyecto_anita/clients/las_lupes/` (decisión 2026-04-29: queda dentro de proyecto_anita por integración técnica con plataforma Anita, pero scaffold y rigor son full standalone-client)
+- **Location:** `~/enter_thebrana/clients/proyecto-anita/las-lupes/` (repo standalone desde 2026-06-10, migración t-1950 — supersede la decisión 2026-04-29 de vivir dentro de proyecto_anita; la integración técnica con la plataforma sigue en el repo del venture)
 - **Stack:** Anita v3-api + Kapso + Bigin + Tienda Nube API + bridge Contabilium (vía Alberto interno Las Lupes)
 - **Status:** Propuesta enviada 2026-05-08 · esperando respuesta de Charlie. TCP no involucrado en este proyecto.
 - **Tipo de tenant:** **NO es distribuidor** (Palco/PDB/Delorenzi son ese caso especial). Las Lupes valida hipótesis "Anita como plataforma" más allá del patrón distribuidor — 4 pillars (B2B Mayorista + Cart Recovery B2C + Engagement Lifecycle + Multichannel diferido) vs 1 pillar de distribuidoras
 - **Stakeholders:** Charlie (Carlos Larrain, decision maker), Lupe (operación), Alberto Ibarguren (dev interno — NO vendor)
 - **Decisiones locked (2026-04-28):** T1 Path A 1 número WhatsApp + Chat Nube OFF · T2 Alberto bridge absorbe descuentos · T3 réplica inbound Chat Nube en prompt · T4 combos vía Contabilium "producto agrupado"
-- **Details:** `clients/las_lupes/.claude/CLAUDE.md`, `clients/las_lupes/solucion-tecnica.md` (v2), `clients/las_lupes/transcripts/2026-04-28-charlie-alberto-tecnico.md`, `clients/las_lupes/research/tiendanube-integration.md`
+- **Details:** `clients/proyecto-anita/las-lupes/.claude/CLAUDE.md`, `solucion-tecnica.md` (v2), `transcripts/2026-04-28-charlie-alberto-tecnico.md`, `research/tiendanube-integration.md`
+
+### dgrx (DGRX)
+- **Type:** Paid client (venture: proyecto_anita) — importadora B2B de alimentos a granel
+- **Location:** `~/enter_thebrana/clients/proyecto-anita/dgrx/` (repo standalone desde 2026-06-10, t-1950)
+- **Stack:** Kapso (3 inboxes) + Bigin CRM + dgrx-api (FastAPI, Cloud Run `avid-booth-496715-t9`) + anita-whatsapp vendoreado
+- **Status:** Onboarding — Meta BV → WABAs → go-live (backlog t-809 en el repo del cliente)
+- **Details:** `.claude/CLAUDE.md`, `docs/technical-solution.md`, `deploy/deploy-dgrx.sh`
+
+### palco-ecosistema (Palco — Programa B)
+- **Type:** Paid client (venture: proyecto_anita) — ecosistema de automatización Grupo Palco
+- **Location:** `~/enter_thebrana/clients/proyecto-anita/palco/` (repo standalone desde 2026-06-10, t-1950)
+- **Split:** este repo = Programa B (ecosistema P1-P7 + chess-sync). Programa A (tenant de la plataforma Anita) vive en `ventures/proyecto_anita/tenants/palco/`
+- **Status:** En diseño — propuesta a armar; Chess Data Mart como fundación
+- **Details:** `.claude/CLAUDE.md`, `projects/ecosistema/README.md`
+
 
 ## Ventures (your IP — side projects, learning, monetizing)
 
@@ -161,7 +176,7 @@ For detailed facts, read each client's own docs. This is a routing index only.
 - **Remote:** `https://github.com/martineserios/proyecto-anita.git`
 - **Stack:** FastAPI + Supabase + Kapso + React 18 + Cloud Run
 - **Status:** Production. Tenants: Palco + PDB (cliente amigo de validación). **Delorenzi = primer cliente oficial post-validación** (cerrado 2026-04-23, ARS 1.35M/mes × 3m, 2 ops Gualeguaychú+Paraná, target primer mensaje 2026-06-01). Otros: DGRX (onboarding 2026-04-16), Las Lupes (propuesta enviada 2026-05-08 · esperando respuesta · deal NO cerrado)
-- **Details:** `.claude/CLAUDE.md`, `docs/decisions/`, `clients/` (per-client docs)
+- **Details:** `.claude/CLAUDE.md`, `docs/decisions/`. Per-client engagements viven en `~/enter_thebrana/clients/proyecto-anita/{dgrx,las-lupes,mya,palco}` (repos standalone desde 2026-06-10, t-1950); tenant config (Palco/PDB/Delorenzi) sigue en `tenants/`
 
 ### linkedin
 - **Type:** Client acquisition funnel — content pipeline, profile, network, consulting
