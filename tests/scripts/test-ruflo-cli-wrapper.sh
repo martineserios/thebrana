@@ -72,7 +72,12 @@ assert_contains "T4b: explicit threshold preserved" "--threshold 0.4" "$OUT"
 
 # T5 — node + .js resolution, never the shebang bin
 OUT=$(RUFLO_CLI_DRYRUN=1 bash "$WRAPPER" memory stats 2>&1)
-assert_contains "T5: resolves to a .js entry via node" ".js" "$OUT"
+TOTAL=$((TOTAL+1))
+if [[ "$OUT" =~ ^/.*/node\ /.*\.js\  ]]; then
+    PASS=$((PASS+1)); echo "  PASS: T5: resolves to node + *.js entry"
+else
+    FAIL=$((FAIL+1)); echo "  FAIL: T5: expected '<node path> <*.js> ...', got: $OUT"
+fi
 assert_not_contains "T5b: never execs bin/ruflo directly" "bin/ruflo " "$OUT"
 
 # T6 — non-search subcommands pass through

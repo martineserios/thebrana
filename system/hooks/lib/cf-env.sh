@@ -7,10 +7,10 @@
 # searches, so no caller needs to know either rule.
 
 CF=""
-for _cf_candidate in \
-    "$HOME/.claude/scripts/ruflo-cli.sh" \
-    "${CLAUDE_PROJECT_DIR:-}/system/scripts/ruflo-cli.sh"; do
-    [ -n "$_cf_candidate" ] && [ -x "$_cf_candidate" ] && CF="$_cf_candidate" && break
+_cf_candidates="$HOME/.claude/scripts/ruflo-cli.sh"
+[ -n "${CLAUDE_PROJECT_DIR:-}" ] && _cf_candidates="$_cf_candidates ${CLAUDE_PROJECT_DIR}/system/scripts/ruflo-cli.sh"
+for _cf_candidate in $_cf_candidates; do
+    [ -x "$_cf_candidate" ] && CF="$_cf_candidate" && break
 done
 
 # Last-resort fallbacks (wrapper missing — may hit the CRLF-shebang bin, t-1934)
