@@ -651,3 +651,46 @@ fn test_set_fields_atomic_reports_all_errors() {
     assert!(errs.iter().any(|e| e.contains("bogus_b")), "errors: {errs:?}");
     assert_eq!(*task, before, "failed op must leave task untouched");
 }
+
+// ── t-1960: kind must be settable post-creation, with enum validation ────
+
+#[test]
+fn test_set_field_kind_valid() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = fixture_tasks(dir.path());
+    let mut val = brana_core::tasks::load_raw(&path).unwrap();
+    let tasks = val["tasks"].as_array_mut().unwrap();
+    let task = tasks.iter_mut().find(|t| t["id"] == "t-001").unwrap();
+
+    brana_core::tasks::set_field(task, "kind", "fix", false)
+        .expect("kind must be settable");
+    assert_eq!(task["kind"], "fix");
+}
+
+#[test]
+fn test_set_field_kind_invalid_rejected() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = fixture_tasks(dir.path());
+    let mut val = brana_core::tasks::load_raw(&path).unwrap();
+    let tasks = val["tasks"].as_array_mut().unwrap();
+    let task = tasks.iter_mut().find(|t| t["id"] == "t-001").unwrap();
+
+    let err = brana_core::tasks::set_field(task, "kind", "bogus", false)
+        .expect_err("invalid kind must be rejected");
+    assert!(err.contains("invalid kind"), "got: {err}");
+    assert!(task.get("kind").map_or(true, |v| v.is_null()), "kind must not be set on error");
+}
+
+#[test]
+fn test_set_field_kind_null_clears() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = fixture_tasks(dir.path());
+    let mut val = brana_core::tasks::load_raw(&path).unwrap();
+    let tasks = val["tasks"].as_array_mut().unwrap();
+    let task = tasks.iter_mut().find(|t| t["id"] == "t-001").unwrap();
+
+    brana_core::tasks::set_field(task, "kind", "docs", false).unwrap();
+    brana_core::tasks::set_field(task, "kind", "null", false)
+        .expect("kind null must clear");
+    assert!(task["kind"].is_null());
+}
