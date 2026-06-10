@@ -1993,10 +1993,10 @@ C48_WARNS=""
 if [ -f "$HJ" ] && [ -f "$HOOKS_MD" ]; then
     # Extract unique PreToolUse script names from hooks.json
     PTU_SCRIPTS=$(jq -r '.hooks.PreToolUse[]?.hooks[]?.command // empty' "$HJ" \
-        | awk '{print $NF}' | sed 's|.*/||' | sort -u)
+        | awk '{print $NF}' | tr -d '"'"'"'' | sed 's|.*/||' | sort -u)
     # Extract all scripts registered under any event in hooks.json
     ALL_SCRIPTS=$(jq -r '.hooks | to_entries[] | .value[]?.hooks[]?.command // empty' "$HJ" \
-        | awk '{print $NF}' | sed 's|.*/||' | sort -u)
+        | awk '{print $NF}' | tr -d '"'"'"'' | sed 's|.*/||' | sort -u)
     # Extract unique script names from gate classification table in hooks.md
     GATE_SCRIPTS=$(awk '/Gate classification.*all PreToolUse/{f=1; next} f && /^\*\*[^|]/{exit} f' "$HOOKS_MD" \
         | grep -E '^\| `[a-zA-Z0-9_-]+\.sh`' \
@@ -2022,7 +2022,7 @@ if [ -f "$HJ" ] && [ -f "$HOOKS_MD" ]; then
 fi
 if [ -n "$C48_WARNS" ]; then
     printf '%s' "$C48_WARNS"
-    warn "Check 48: gate table parity gap(s) found — update hooks.md or hooks.json"
+    fail "Check 48: gate table parity gap(s) found — update hooks.md or hooks.json (promoted WARN→FAIL, t-1938)"
 else
     pass "Check 48: hooks.json ↔ hooks.md gate table — parity OK"
 fi

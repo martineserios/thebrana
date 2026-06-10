@@ -95,6 +95,30 @@ if [ -n "$TMP_USE_PCT" ] && [ "$TMP_USE_PCT" -ge 80 ] 2>/dev/null; then
     TMP_WARNING="⚠ /tmp is ${TMP_USE_PCT}% full (${TMP_AVAIL} free). CC sandbox files may fill it — clean stale sessions manually if needed: du -sh /tmp/claude-* | sort -rh"
 fi
 
+# ── Loud failures (t-1938): surface what last session swallowed ──────────
+# 1. Memory persist failures logged by session-end-persist.sh
+RUN_STATE_DIR="${BRANA_RUN_STATE_DIR:-$HOME/.claude/run-state}"
+PERSIST_FAIL_CONTEXT=""
+PF_LOG="$RUN_STATE_DIR/persist-failures.log"
+if [ -s "$PF_LOG" ]; then
+    PF_COUNT=$(wc -l < "$PF_LOG" 2>/dev/null | tr -d ' ') || PF_COUNT="?"
+    PF_LAST=$(tail -1 "$PF_LOG" 2>/dev/null) || PF_LAST=""
+    PERSIST_FAIL_CONTEXT="⚠ [Memory persist] $PF_COUNT failed memory write(s) since last surfaced — most recent: $PF_LAST. The learning loop lost data; check ruflo health (brana doctor)."
+    # rotate: keep forensics, clear the active log so this surfaces once
+    cat "$PF_LOG" >> "${PF_LOG}.surfaced" 2>/dev/null || true
+    : > "$PF_LOG" 2>/dev/null || true
+fi
+
+# 2. Scheduler job failures (review §4: feed-ruflo-index failed 2 days unnoticed)
+SCHED_STATUS="${BRANA_SCHED_STATUS:-$HOME/.claude/scheduler/last-status.json}"
+SCHED_FAIL_CONTEXT=""
+if [ -f "$SCHED_STATUS" ]; then
+    SCHED_FAILS=$(jq -r 'to_entries[] | select(.value.status != null and (.value.status | test("SUCCESS|SKIPPED") | not)) | "\(.key) (\(.value.status), \(.value.timestamp // "?"))"' "$SCHED_STATUS" 2>/dev/null | head -3) || SCHED_FAILS=""
+    if [ -n "$SCHED_FAILS" ]; then
+        SCHED_FAIL_CONTEXT="⚠ [Scheduler] failing job(s): $(echo "$SCHED_FAILS" | tr '\n' ';' | sed 's/;$//'). Check: brana ops logs <job>."
+    fi
+fi
+
 # ══════════════════════════════════════════════════════════
 # PHASE 1: Launch slow operations in parallel
 # ══════════════════════════════════════════════════════════
@@ -645,6 +669,14 @@ fi
 if [ -n "$FLYWHEEL_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
 }$FLYWHEEL_CONTEXT"
+fi
+if [ -n "$PERSIST_FAIL_CONTEXT" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}$PERSIST_FAIL_CONTEXT"
+fi
+if [ -n "$SCHED_FAIL_CONTEXT" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}$SCHED_FAIL_CONTEXT"
 fi
 if [ -n "$LOOP_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS

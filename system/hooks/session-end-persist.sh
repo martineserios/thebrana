@@ -47,6 +47,15 @@ KNOWLEDGE_FINDINGS="${KNOWLEDGE_FINDINGS:-[]}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CF_WARNING=""
 
+# Loud failure (t-1938): memory-write failures land in a run-state log that
+# session-start surfaces next session. set +e stays (storage is non-fatal),
+# but silent is no longer an option.
+PERSIST_FAIL_LOG="$HOME/.claude/run-state/persist-failures.log"
+log_persist_failure() {
+    mkdir -p "$(dirname "$PERSIST_FAIL_LOG")" 2>/dev/null || true
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $PROJECT $1" >> "$PERSIST_FAIL_LOG" 2>/dev/null || true
+}
+
 if [ "$STORED_L1" != "true" ]; then
     # Source cf-env.sh to get $CF
     # HOME-based config takes priority over bundled lib/ (enables test isolation via fake HOME)
@@ -63,14 +72,16 @@ if [ "$STORED_L1" != "true" ]; then
         TAGS="client:$PROJECT,type:session-summary,outcome:$OUTCOME,confidence:quarantine"
 
         CF_ERR=$(cd "$HOME" && timeout 5 $CF memory store -k "$KEY" -v "$VALUE" \
-            --namespace session --tags "$TAGS" 2>&1) || true
-        CF_EXIT=$?
+            --namespace session --tags "$TAGS" 2>&1)
+        CF_EXIT=$?   # captured BEFORE any || true — the old pattern read 0 forever (t-1938)
         if [ $CF_EXIT -eq 0 ]; then
             STORED_L1=true
         elif [ $CF_EXIT -eq 124 ]; then
             CF_WARNING="Session summary store timed out (>5s). Try: ruflo memory store -k '$KEY'"
+            log_persist_failure "L1 session store TIMEOUT (key $KEY)"
         else
             CF_WARNING="Session summary store failed (exit $CF_EXIT). Try: ruflo memory store -k '$KEY'"
+            log_persist_failure "L1 session store FAILED exit $CF_EXIT (key $KEY)"
         fi
 
         # Wave 4: flywheel metrics as separate key
@@ -93,10 +104,13 @@ if [ "$STORED_L1" != "true" ]; then
                   lint_passes:$lint_passes,lint_fails:$lint_fails,
                   delegations:$delegations,edits:$edits,failures:$failures}' 2>/dev/null) || FW_VALUE="{}"
             (cd "$HOME" && timeout 5 $CF memory store -k "$FW_KEY" -v "$FW_VALUE" \
-                --namespace metrics --tags "client:$PROJECT,type:flywheel" 2>/dev/null) || true
+                --namespace metrics --tags "client:$PROJECT,type:flywheel" 2>/dev/null)
+            FW_EXIT=$?
+            [ $FW_EXIT -ne 0 ] && log_persist_failure "flywheel metrics store FAILED exit $FW_EXIT (key $FW_KEY)"
         fi
     else
         CF_WARNING="ruflo not found. Session summary not persisted."
+        log_persist_failure "L1 session store SKIPPED — ruflo not found"
     fi
 
     # Log CF warning to session file for diagnostics

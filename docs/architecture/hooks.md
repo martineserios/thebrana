@@ -98,7 +98,6 @@ When CC fixes #24529, all hooks move back to `hooks.json`. See [PostToolUse Work
 | `bash-risk-classifier.sh` | PreToolUse | `Bash` | Advisory: classifies Bash commands into T2 (risky) and T3 (critical) risk tiers. T3 catches catastrophic-scope patterns (rm -rf /, dd to physical disk). T2 catches recoverable risks (git push --force, sudo rm, system dir writes). Adds `additionalContext` warning — never blocks. t-1112. |
 | `commit-msg-verify.sh` | PreToolUse | `Bash` | Advisory (non-blocking): warns when commit message mentions filenames not in the staged diff. Catches commit messages that describe more than what was actually staged. Sentinel bypass: `/tmp/brana-test-mode` (t-1895). |
 | `branch-checkout-warn.sh` | PreToolUse | `Bash` | **Advisory**: warns when the command matches a named local branch checkout (not file restores, tags, or commit hashes). Nudges toward `git worktree add` instead. Main-branch and remote-tracking checkouts pass silently. Added 2026-06-08 (t-1840). |
-| `guard-explore.sh` | ~~PreToolUse~~ | ~~`Read\|Grep\|Glob`~~ | **Deregistered 2026-05-30** (t-1711). Gated behind "strict" profile — never ran in standard sessions. Observation period complete (t-639 2026-03-31). |
 | `subagent-context.sh` | SubagentStart | `""` (all) | Inject active task + branch + plan + recent decisions into spawned agents |
 | `subagent-tracker.sh` | SubagentStart+SubagentStop | `""` (all) | Track agent spawns and completions to session JSONL |
 | `step-completed.sh` | TaskCompleted | `""` (all) | Track CC Task completions for guided execution |
@@ -240,7 +239,6 @@ Differentiator: "Does bypassing this gate corrupt an invariant that cannot be re
 | `bash-risk-classifier.sh` | Bash | **Advisory** | Yes | Risk classification nudge; T3 alert is informational, tool still executes |
 | `commit-msg-verify.sh` | Bash | **Advisory** | Yes | Commit hygiene guidance; loop continues with a formatted message suggestion |
 | `branch-checkout-warn.sh` | Bash | **Advisory** | Yes | Worktree encouragement; branch checkout is recoverable — nudge only, not a hard gate |
-| `guard-explore.sh` | Read\|Grep\|Glob | **Advisory** | Yes | Search-before-read nudge; currently logging only — not yet blocking |
 | `post-plan-challenge.sh` | ExitPlanMode | **Advisory** | Yes | Challenger suggestion after plan exit; loop continues with review context |
 | `post-tasks-validate.sh` | Write\|Edit | **Advisory** | Yes | Task format validation after write; loop continues with correction context |
 
@@ -299,6 +297,9 @@ Bootstrap hooks use absolute paths in `~/.claude/settings.json`:
 Multiple hooks can register for the same event. They run sequentially; if any PreToolUse hook blocks, the tool call is denied.
 
 ## Field Notes
+
+### 2026-06-10: loud failures — persist-failure surfacing, scheduler alerts, Check 48 promoted (t-1938)
+Three silences got voices. (1) `session-end-persist.sh` had the dead `CF_EXIT=$?`-after-`|| true` pattern — ruflo write failures were never even *detected*, let alone reported; failures now append to `~/.claude/run-state/persist-failures.log`, which session-start surfaces as `⚠ [Memory persist]` and rotates. (2) Scheduler job failures (review §4: feed-ruflo-index dead 2 days unnoticed) now surface at session start from `~/.claude/scheduler/last-status.json` as `⚠ [Scheduler]`. (3) validate.sh Check 48 promoted WARN→FAIL — its 14 "mismatches" were trailing-quote parser ghosts (fixed with `tr -d '"'`); the one genuine gap (stale `guard-explore.sh` gate-table row) removed. Audit: only Check 22's perl had the zero-arg-glob STDIN hang exposure (guarded in t-1937); the other perl calls take single-var args.
 
 ### 2026-06-10: flywheel read path — session-start consumes last session's metrics (t-1937)
 527 flywheel:* rows were written at session-end and never read (access_count=0 namespace-wide — "observability theater", architecture review §4). `system/scripts/flywheel-insight.sh` closes the loop: sqlite read-only key discovery (recency-ordered), ONE sanctioned `memory retrieve` on the latest row (bumps access_count — the loop-closure metric), prior row via read-only sqlite for trend, one `[Flywheel]` observation line injected at session start. Phase-3 wait budget raised 2s→5s: a single ruflo CLI node startup costs ~1.5–2s, and the 2s budget silently killed whichever parallel job didn't overlap phase 2 — partial results with no warning.
