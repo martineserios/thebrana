@@ -230,3 +230,8 @@ Your previous `~/.claude/CLAUDE.md` is at `~/.claude/CLAUDE.md.bootstrap-backup`
 - [`plugin-lifecycle.md`](plugin-lifecycle.md) — how CC loads the plugin at session start
 - [`developer-quickstart.md`](developer-quickstart.md) — full deploy cycle for new components
 - [`docs/reference/scripts.md`](../reference/scripts.md) — all helper scripts deployed by bootstrap
+
+## Field Notes
+
+### 2026-06-10: rules deployment restored — t-760's plugin assumption was false (t-1946, E2026-06-10)
+t-760 (2026-03-30) stopped bootstrap from copying `system/rules/` to `~/.claude/rules/` on the assumption that the plugin loads them. **CC plugins cannot provide rules** — no rules component exists in the plugin spec (verified against plugins-reference docs 2026-06-10). The deployed copies survived on disk until bootstrap's t-760 cleanup step finally ran (2026-06-10), then the entire discipline shell silently undeployed — zero rules loaded for new sessions. Bootstrap now syncs `system/rules/` → `~/.claude/rules/` again (README.md excluded — authoring contract, not a rule; it has no frontmatter and would always-load as noise). Also removed the dead Cursor-legacy `alwaysApply:` field from 3 rules — `paths:` scoping was the operative contract all along.

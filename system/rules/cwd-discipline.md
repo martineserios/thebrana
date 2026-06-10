@@ -1,6 +1,5 @@
 ---
 paths: ["system/**", ".claude/**", "docs/**"]
-alwaysApply: true
 ---
 
 # CWD Discipline
