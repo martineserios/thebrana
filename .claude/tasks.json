@@ -50400,7 +50400,7 @@
     {
       "id": "t-1930",
       "subject": "Tests for loop-request protocol wiring (per t-730 ADR)",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "tags": [
         "session-loops",
@@ -50415,9 +50415,9 @@
       "started": null,
       "completed": null,
       "blocked_by": [],
-      "branch": null,
+      "branch": "harness-core/feat/t-1930-loop-request-tests",
       "context": "2026-06-09: Created by TDD gate during t-719-revival replan. CONTINGENT on t-730 ADR go verdict — cancel alongside t-731 if no-go.",
-      "notes": null,
+      "notes": "Added validate.sh checks 54 (build.md loop-suggestion L/XL gate), 55 (close.md CronList+CronDelete sweep), 56 (durable:false constraint). All three fail now — t-731 implementation turns them green.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -50456,7 +50456,7 @@
     {
       "id": "t-1932",
       "subject": "Investigate + dedup standalone ~/.claude/skills/ copies (no procedures dir — stub fallback only)",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "tags": [
         "skills",
@@ -50474,7 +50474,7 @@
       "blocked_by": [],
       "branch": null,
       "context": "2026-06-10: Found during t-1931 challenger review. Writer unknown — check acquire-skills flow, brana skills CLI, CC marketplace install. Related decision: feedback_no-duplicate-plugin-loading.\nAC: writer of ~/.claude/skills/ copies identified and documented\nAC: duplicates removed OR sync includes procedures/ (decision logged)",
-      "notes": null,
+      "notes": "Writer: deploy.sh line 50 (cp -r system/skills/ ~/.claude/skills/). Last run 2026-06-08. Removed ~/.claude/skills/ manually. Fixed deploy.sh to skip skills/ copy. bootstrap.sh already handles cleanup on run. Decision: remove duplicates (option a) — plugin serves skills with correct paths.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
