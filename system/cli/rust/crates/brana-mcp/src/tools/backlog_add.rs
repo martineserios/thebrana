@@ -27,6 +27,9 @@ pub struct Input {
     /// Parent task ID
     pub parent: Option<String>,
 
+    /// Work kind: feature, fix, refactor, research, docs, design, ops
+    pub kind: Option<String>,
+
     /// Context — required for effort M, L, or XL (t-939)
     pub context: Option<String>,
 
@@ -51,6 +54,10 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 brana_core::tasks::validate_priority(p)
                     .map_err(pmcp::Error::validation)?;
             }
+            if let Some(k) = input.kind.as_deref() {
+                brana_core::tasks::validate_kind(k)
+                    .map_err(pmcp::Error::validation)?;
+            }
             brana_core::tasks::validate_context_for_effort(
                 input.effort.as_deref(),
                 input.context.as_deref(),
@@ -70,6 +77,7 @@ pub fn build() -> TypedTool<Input, impl Fn(Input, RequestHandlerExtra) -> std::p
                 "subject": input.subject,
                 "status": "pending",
                 "type": input.task_type,
+                "kind": input.kind,
                 "tags": tags,
                 "description": input.description,
                 "effort": input.effort,

@@ -51221,7 +51221,8 @@
       "epic": "cli-backlog-schema",
       "work_type": "implement",
       "strategy": "bug-fix",
-      "build_step": "reproduce"
+      "build_step": "reproduce",
+      "kind": "fix"
     },
     {
       "id": "t-1959",
@@ -51274,7 +51275,8 @@
       "order": 0,
       "github_issue": null,
       "execution": "code",
-      "epic": "cli-backlog-schema"
+      "epic": "cli-backlog-schema",
+      "kind": "fix"
     }
   ],
   "version": "1"

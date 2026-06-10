@@ -557,6 +557,13 @@ pub fn cmd_add(
             anyhow::bail!("{e}");
         }
     }
+
+    if let Some(k) = new_task["kind"].as_str() {
+        if let Err(e) = tasks::validate_kind(k) {
+            eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
+            anyhow::bail!("{e}");
+        }
+    }
     if let Some(s) = new_task["status"].as_str() {
         if let Err(e) = tasks::validate_status(s) {
             eprintln!("{{\"ok\":false,\"error\":\"{e}\"}}");
