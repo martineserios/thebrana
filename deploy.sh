@@ -35,8 +35,10 @@ if [ -f "$TARGET_DIR/CLAUDE.md" ]; then
 fi
 
 # Step 3: Remove brana-managed directories (clean deploy)
+# NOTE: skills/ is intentionally excluded — served by the plugin (t-1932, 2026-06-10).
+# Copying skills/ here creates stale SKILL.md-only copies that shadow the plugin and
+# duplicate every skill in the index. bootstrap.sh removes any residual skills/ copy.
 echo "Cleaning brana-managed directories..."
-rm -rf "$TARGET_DIR/skills"
 rm -rf "$TARGET_DIR/rules"
 rm -rf "$TARGET_DIR/agents"
 rm -rf "$TARGET_DIR/hooks"
@@ -46,11 +48,6 @@ rm -rf "$TARGET_DIR/scripts"
 echo "Deploying files..."
 cp "$SYSTEM_DIR/CLAUDE.md" "$TARGET_DIR/CLAUDE.md"
 echo "  ✓ CLAUDE.md"
-
-cp -r "$SYSTEM_DIR/skills" "$TARGET_DIR/skills"
-# Make bundled skill scripts executable
-find "$TARGET_DIR/skills" \( -name "*.sh" -o -name "*.py" \) -exec chmod +x {} +
-echo "  ✓ skills/"
 
 cp -r "$SYSTEM_DIR/rules" "$TARGET_DIR/rules"
 echo "  ✓ rules/"
@@ -167,7 +164,7 @@ echo ""
 echo "=== Deploy Complete ==="
 echo "Deployed to: $TARGET_DIR"
 echo "  - CLAUDE.md (mastermind identity)"
-echo "  - $(find "$TARGET_DIR/skills" -name "SKILL.md" | wc -l) skills"
+echo "  - skills: served by plugin (not copied by deploy.sh)"
 echo "  - $(find "$TARGET_DIR/rules" -name "*.md" | wc -l) rules"
 echo "  - $(find "$TARGET_DIR/agents" -name "*.md" | wc -l) agents"
 echo "  - $(find "$TARGET_DIR/hooks" -name "*.sh" | wc -l) hooks"
