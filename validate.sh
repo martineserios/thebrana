@@ -48,6 +48,21 @@ should_run() {
     [ "$base" = "$CHECK_FILTER" ]
 }
 
+# effective_body NAME: prints the full effective procedure body of a skill,
+# regardless of layout (t-1942). Handles all three layouts:
+#   stub        — body in system/procedures/NAME.md
+#   phase-split — body in system/skills/NAME/SKILL.md + phases/*.md
+#   inline      — body in system/skills/NAME/SKILL.md only
+effective_body() {
+    local n="$1"
+    [ -f "$SYSTEM_DIR/procedures/$n.md" ] && cat "$SYSTEM_DIR/procedures/$n.md"
+    [ -f "$SYSTEM_DIR/skills/$n/SKILL.md" ] && cat "$SYSTEM_DIR/skills/$n/SKILL.md"
+    if [ -d "$SYSTEM_DIR/skills/$n/phases" ]; then
+        cat "$SYSTEM_DIR/skills/$n"/phases/*.md 2>/dev/null
+    fi
+    return 0
+}
+
 # ── Checks 1-14: Core validation ─────────────────────────────────────────
 # Skip when running subset flags or when --check targets a check >= 15.
 # Note: individual checks 1-14 are not separately filterable; --check N for
@@ -420,7 +435,7 @@ if [ -f "$SYSTEM_DIR/hooks/hooks.json" ]; then
     while IFS= read -r cmd; do
         [ -z "$cmd" ] && continue
         # Skip inline bash -c commands (not a path-based script reference)
-        echo "$cmd" | grep -q "bash -c " && continue
+        grep -q "bash -c " <<< "$cmd" && continue
         # Strip surrounding/embedded quotes from last token to get a clean path
         SCRIPT_PATH=$(echo "$cmd" | awk '{print $NF}' | tr -d '"')
         SCRIPT_NAME=$(basename "$SCRIPT_PATH")
@@ -731,9 +746,9 @@ for skill_dir in "$SYSTEM_DIR"/skills/*/; do
     output=$(check_allowed_tools_consistency "$skill_file" 2>&1) || true
     if [ -n "$output" ]; then
         while IFS= read -r line; do
-            if echo "$line" | grep -q "FAIL:"; then
+            if grep -q "FAIL:" <<< "$line"; then
                 fail "$(echo "$line" | sed 's/^  FAIL: //')"
-            elif echo "$line" | grep -q "WARN:"; then
+            elif grep -q "WARN:" <<< "$line"; then
                 warn "$(echo "$line" | sed 's/^  WARN: //')"
             fi
         done <<< "$output"
@@ -753,7 +768,7 @@ for skill_dir in "$SYSTEM_DIR"/skills/*/; do
     output=$(check_file_path_references "$skill_file" 2>&1) || true
     if [ -n "$output" ]; then
         while IFS= read -r line; do
-            if echo "$line" | grep -q "FAIL:"; then
+            if grep -q "FAIL:" <<< "$line"; then
                 fail "$(echo "$line" | sed 's/^  FAIL: //')"
             fi
         done <<< "$output"
@@ -773,7 +788,7 @@ for skill_dir in "$SYSTEM_DIR"/skills/*/; do
     output=$(check_frontmatter_schema "$skill_file" 2>&1) || true
     if [ -n "$output" ]; then
         while IFS= read -r line; do
-            if echo "$line" | grep -q "FAIL:"; then
+            if grep -q "FAIL:" <<< "$line"; then
                 fail "$(echo "$line" | sed 's/^  FAIL: //')"
             fi
         done <<< "$output"
@@ -793,7 +808,7 @@ for skill_dir in "$SYSTEM_DIR"/skills/*/; do
     output=$(check_step_registry "$skill_file" 2>&1) || true
     if [ -n "$output" ]; then
         while IFS= read -r line; do
-            if echo "$line" | grep -q "WARN:"; then
+            if grep -q "WARN:" <<< "$line"; then
                 warn "$(echo "$line" | sed 's/^  WARN: //')"
             fi
         done <<< "$output"
@@ -1296,37 +1311,38 @@ fi  # end of checks 19-22 conditional (! $RUN_ASSUMPTIONS_ONLY)
 if should_run 23; then
 # Check 23: Skill routing contract — procedures must have acquire-skills trigger
 echo "Checking skill routing contract..."
-BACKLOG_PROC="$SYSTEM_DIR/procedures/backlog.md"
-BUILD_PROC="$SYSTEM_DIR/procedures/build.md"
+# Effective bodies are layout-agnostic: stub / phase-split / inline (t-1942)
+BACKLOG_BODY=$(effective_body backlog)
+BUILD_BODY=$(effective_body build)
 
-if [ -f "$BACKLOG_PROC" ]; then
-    # backlog.md step 5d must have MANDATORY acquisition offer
-    if grep -q "MANDATORY acquisition offer" "$BACKLOG_PROC"; then
-        pass "Check 23a: backlog.md has MANDATORY acquisition offer in step 5d"
+if [ -n "$BACKLOG_BODY" ]; then
+    # backlog step 5d must have MANDATORY acquisition offer
+    if grep -q "MANDATORY acquisition offer" <<< "$BACKLOG_BODY"; then
+        pass "Check 23a: backlog body has MANDATORY acquisition offer in step 5d"
     else
-        fail "Check 23a: backlog.md missing MANDATORY acquisition offer — acquire-skills won't trigger on low scores"
+        fail "Check 23a: backlog body missing MANDATORY acquisition offer — acquire-skills won't trigger on low scores"
     fi
 
-    # backlog.md must write skill_gap_checked breadcrumb
-    if grep -q "skill_gap_checked" "$BACKLOG_PROC"; then
-        pass "Check 23b: backlog.md writes skill_gap_checked breadcrumb"
+    # backlog must write skill_gap_checked breadcrumb
+    if grep -q "skill_gap_checked" <<< "$BACKLOG_BODY"; then
+        pass "Check 23b: backlog body writes skill_gap_checked breadcrumb"
     else
-        fail "Check 23b: backlog.md missing skill_gap_checked breadcrumb — build.md safety net won't work"
+        fail "Check 23b: backlog body missing skill_gap_checked breadcrumb — build safety net won't work"
     fi
 else
-    fail "Check 23a: backlog.md procedure not found"
-    fail "Check 23b: backlog.md procedure not found"
+    fail "Check 23a: backlog effective body empty"
+    fail "Check 23b: backlog effective body empty"
 fi
 
-if [ -f "$BUILD_PROC" ]; then
-    # build.md step 4a must check for skill_gap_checked (not unconditional skip)
-    if grep -q "skill_gap_checked" "$BUILD_PROC"; then
-        pass "Check 23c: build.md step 4a checks skill_gap_checked breadcrumb"
+if [ -n "$BUILD_BODY" ]; then
+    # build step 4a must check for skill_gap_checked (not unconditional skip)
+    if grep -q "skill_gap_checked" <<< "$BUILD_BODY"; then
+        pass "Check 23c: build step 4a checks skill_gap_checked breadcrumb"
     else
-        fail "Check 23c: build.md step 4a missing skill_gap_checked guard — no safety net if backlog step 5 skipped"
+        fail "Check 23c: build step 4a missing skill_gap_checked guard — no safety net if backlog step 5 skipped"
     fi
 else
-    fail "Check 23c: build.md procedure not found"
+    fail "Check 23c: build effective body empty"
 fi
 echo ""
 fi  # should_run 23
@@ -1657,12 +1673,12 @@ while IFS= read -r -d '' proc_file; do
         */SKILL.md) content=$(awk 'fm==2{print} /^---$/{fm++}' "$proc_file"); label="skills/$(basename "$(dirname "$proc_file")")" ;;
         *) content=$(cat "$proc_file"); label=$(basename "$proc_file") ;;
     esac
-    if echo "$content" | grep -q "mcp__ruflo__" 2>/dev/null; then
-        if ! echo "$content" | grep -q "ruflo preamble" 2>/dev/null; then
+    if grep -q "mcp__ruflo__" 2>/dev/null <<< "$content"; then
+        if ! grep -q "ruflo preamble" 2>/dev/null <<< "$content"; then
             MISSING_PREAMBLE+=("$label")
         fi
     fi
-done < <(find "$PROCS_DIR" -name "*.md" -print0 2>/dev/null; find "$SCRIPT_DIR/system/skills" -mindepth 2 -maxdepth 3 -name "SKILL.md" -print0 2>/dev/null)
+done < <(find "$PROCS_DIR" -name "*.md" -print0 2>/dev/null; find "$SCRIPT_DIR/system/skills" -mindepth 2 -maxdepth 3 -name "SKILL.md" -print0 2>/dev/null; find "$SCRIPT_DIR/system/skills" -mindepth 3 -maxdepth 3 -path "*/phases/*.md" -print0 2>/dev/null)
 if [ "${#MISSING_PREAMBLE[@]}" -gt 0 ]; then
     fail "Check 36: procedures with mcp__ruflo__ calls missing <!-- ruflo preamble --> block: ${MISSING_PREAMBLE[*]}"
 else
@@ -1780,7 +1796,7 @@ PYEOF
                 MISSING_DESC_FILES+=("$(basename "$proc_file")")
             fi
         fi
-    done < <(find "$PROCS_DIR" -name "*.md" -print0 2>/dev/null; find "$SCRIPT_DIR/system/skills" -mindepth 2 -maxdepth 3 -name "SKILL.md" -print0 2>/dev/null)
+    done < <(find "$PROCS_DIR" -name "*.md" -print0 2>/dev/null; find "$SCRIPT_DIR/system/skills" -mindepth 2 -maxdepth 3 -name "SKILL.md" -print0 2>/dev/null; find "$SCRIPT_DIR/system/skills" -mindepth 3 -maxdepth 3 -path "*/phases/*.md" -print0 2>/dev/null)
 fi
 if [ "${#MISSING_DESC_FILES[@]}" -gt 0 ]; then
     warn "Check 40: AskUserQuestion options missing description: field in: ${MISSING_DESC_FILES[*]}"
@@ -1854,14 +1870,14 @@ fi  # should_run 42
 # Check 43 — close.md must contain weight classification block (NANO/LIGHT/FULL) (ADR-040 §7, t-1802)
 if should_run 43; then
 echo "Check 43: close.md weight classification block..."
-CLOSE_PROC="$SYSTEM_DIR/procedures/close.md"
-if [ ! -f "$CLOSE_PROC" ]; then
-    warn "Check 43: close.md not found at $CLOSE_PROC — skipping"
+CLOSE_BODY=$(effective_body close)
+if [ -z "$CLOSE_BODY" ]; then
+    warn "Check 43: close effective body empty — skipping"
 else
     MISSING_MODES=()
-    grep -q "CLOSE_MODE=\"FULL\""  "$CLOSE_PROC" || MISSING_MODES+=("FULL")
-    grep -q "CLOSE_MODE=\"LIGHT\"" "$CLOSE_PROC" || MISSING_MODES+=("LIGHT")
-    grep -q "CLOSE_MODE=\"NANO\""  "$CLOSE_PROC" || MISSING_MODES+=("NANO")
+    grep -q 'CLOSE_MODE="FULL"'  <<< "$CLOSE_BODY" || MISSING_MODES+=("FULL")
+    grep -q 'CLOSE_MODE="LIGHT"' <<< "$CLOSE_BODY" || MISSING_MODES+=("LIGHT")
+    grep -q 'CLOSE_MODE="NANO"'  <<< "$CLOSE_BODY" || MISSING_MODES+=("NANO")
     if [ ${#MISSING_MODES[@]} -eq 0 ]; then
         pass "Check 43: close.md has NANO/LIGHT/FULL weight classification ✓"
     else
@@ -1874,14 +1890,14 @@ fi  # should_run 43
 # Check 44 — close.md tasks.json ambiguous case must route to NANO (not LIGHT) (ADR-040 §7, t-1803)
 if should_run 44; then
 echo "Check 44: close.md tasks.json → NANO routing..."
-CLOSE_PROC="$SYSTEM_DIR/procedures/close.md"
-if [ ! -f "$CLOSE_PROC" ]; then
-    warn "Check 44: close.md not found at $CLOSE_PROC — skipping"
+CLOSE_BODY=$(effective_body close)
+if [ -z "$CLOSE_BODY" ]; then
+    warn "Check 44: close effective body empty — skipping"
 else
     # tasks.json-only case must be documented as NANO (not LIGHT) in the ambiguous cases block
-    if grep -q "tasks\.json.*NANO" "$CLOSE_PROC"; then
+    if grep -q "tasks\.json.*NANO" <<< "$CLOSE_BODY"; then
         pass "Check 44: close.md tasks.json ambiguous case routes to NANO ✓"
-    elif grep -q "tasks\.json.*LIGHT" "$CLOSE_PROC"; then
+    elif grep -q "tasks\.json.*LIGHT" <<< "$CLOSE_BODY"; then
         fail "Check 44: close.md tasks.json ambiguous case still shows LIGHT — must be NANO (ADR-040 §7 updated 2026-05-31)"
     else
         warn "Check 44: close.md tasks.json ambiguous case not found — verify manually"
@@ -1919,7 +1935,7 @@ if [ -d "$PROCS_DIR" ]; then
                 PREAMBLE_GAPS+=("$(basename "$proc_file"):$tool")
             fi
         done <<< "$body_tools"
-    done < <(find "$PROCS_DIR" -name "*.md" -print0 2>/dev/null)
+    done < <(find "$PROCS_DIR" -name "*.md" -print0 2>/dev/null; find "$SCRIPT_DIR/system/skills" -mindepth 3 -maxdepth 3 -path "*/phases/*.md" -print0 2>/dev/null)
 fi
 if [ "${#PREAMBLE_GAPS[@]}" -gt 0 ]; then
     fail "Check 45: mcp__brana__ calls in procedures missing from ToolSearch preamble: ${PREAMBLE_GAPS[*]}"
@@ -2113,11 +2129,11 @@ fi  # should_run 50
 # Check 52 — build.md must contain Evaluator Gate section (t-645)
 if should_run 52; then
 echo "Check 52: build.md Evaluator Gate section..."
-BUILD_MD="$SYSTEM_DIR/procedures/build.md"
-if [ ! -f "$BUILD_MD" ]; then
-    warn "Check 52: system/procedures/build.md not found — skipping"
-elif grep -q "### Evaluator Gate" "$BUILD_MD"; then
-    pass "Check 52: build.md Evaluator Gate section present"
+BUILD_BODY52=$(effective_body build)
+if [ -z "$BUILD_BODY52" ]; then
+    warn "Check 52: build effective body empty — skipping"
+elif grep -q "### Evaluator Gate" <<< "$BUILD_BODY52"; then
+    pass "Check 52: build body Evaluator Gate section present"
 else
     fail "Check 52: build.md missing '### Evaluator Gate' section — t-645 wires brana:build-evaluator into BUILD→CLOSE gate"
 fi
@@ -2159,11 +2175,11 @@ fi  # should_run 53
 # This check ensures the suggestion point exists in the procedure before t-731 closes.
 if should_run 54; then
 echo "Check 54: build.md loop-suggestion step (ADR-050)..."
-BUILD_MD="$SYSTEM_DIR/procedures/build.md"
-if [ ! -f "$BUILD_MD" ]; then
-    warn "Check 54: system/procedures/build.md not found — skipping"
-elif grep -q "loop.*suggest\|suggest.*loop\|loop suggestion" "$BUILD_MD" && grep -q "L/XL\|XL.*only\|effort.*L\|large.*build" "$BUILD_MD"; then
-    pass "Check 54: build.md contains loop-suggestion step gated to L/XL effort"
+BUILD_BODY54=$(effective_body build)
+if [ -z "$BUILD_BODY54" ]; then
+    warn "Check 54: build effective body empty — skipping"
+elif grep -q "loop.*suggest\|suggest.*loop\|loop suggestion" <<< "$BUILD_BODY54" && grep -q "L/XL\|XL.*only\|effort.*L\|large.*build" <<< "$BUILD_BODY54"; then
+    pass "Check 54: build body contains loop-suggestion step gated to L/XL effort"
 else
     fail "Check 54: build.md missing loop-suggestion step gated to L/XL effort (ADR-050 §Protocol, t-731)"
 fi
@@ -2175,11 +2191,11 @@ fi  # should_run 54
 # This check ensures the sweep line exists in the close procedure before t-731 closes.
 if should_run 55; then
 echo "Check 55: close.md session-loop sweep (ADR-050)..."
-CLOSE_MD="$SYSTEM_DIR/procedures/close.md"
-if [ ! -f "$CLOSE_MD" ]; then
-    warn "Check 55: system/procedures/close.md not found — skipping"
-elif grep -q "CronList" "$CLOSE_MD" && grep -q "CronDelete" "$CLOSE_MD"; then
-    pass "Check 55: close.md contains session-loop sweep (CronList + CronDelete)"
+CLOSE_BODY55=$(effective_body close)
+if [ -z "$CLOSE_BODY55" ]; then
+    warn "Check 55: close effective body empty — skipping"
+elif grep -q "CronList" <<< "$CLOSE_BODY55" && grep -q "CronDelete" <<< "$CLOSE_BODY55"; then
+    pass "Check 55: close body contains session-loop sweep (CronList + CronDelete)"
 else
     fail "Check 55: close.md missing session-loop sweep — must call CronList then CronDelete for any spawned loops (ADR-050 §Lifecycle contract, t-731)"
 fi
@@ -2192,11 +2208,11 @@ fi  # should_run 55
 # silently omitted when the suggestion step is added.
 if should_run 56; then
 echo "Check 56: build.md loop-suggestion durable:false constraint (ADR-050)..."
-BUILD_MD="$SYSTEM_DIR/procedures/build.md"
-if [ ! -f "$BUILD_MD" ]; then
-    warn "Check 56: system/procedures/build.md not found — skipping"
-elif grep -q "durable.*false\|durable: false" "$BUILD_MD"; then
-    pass "Check 56: build.md loop-suggestion states durable:false"
+BUILD_BODY56=$(effective_body build)
+if [ -z "$BUILD_BODY56" ]; then
+    warn "Check 56: build effective body empty — skipping"
+elif grep -q "durable.*false\|durable: false" <<< "$BUILD_BODY56"; then
+    pass "Check 56: build body loop-suggestion states durable:false"
 else
     fail "Check 56: build.md loop-suggestion missing durable:false constraint — all skill-suggested loops must be session-scoped (ADR-050 §Protocol)"
 fi

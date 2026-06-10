@@ -28,6 +28,18 @@ core() { checks+=(1); }   # 1-14 block (not individually filterable)
 for file in "${files[@]}"; do
     [ -z "$file" ] && continue
     case "$file" in
+        system/skills/build/SKILL.md|system/skills/build/phases/*.md)
+            core; checks+=(33 23 36 40 45 52 54 56)  # build effective body (t-1942 phase split)
+            ;;
+        system/skills/close/SKILL.md|system/skills/close/phases/*.md)
+            core; checks+=(33 23 36 40 43 44 45 55)  # close effective body (t-1942 phase split)
+            ;;
+        system/skills/backlog/SKILL.md|system/skills/backlog/phases/*.md)
+            core; checks+=(33 23 36 40 45)           # backlog effective body (t-1942 phase split)
+            ;;
+        system/skills/reconcile/SKILL.md|system/skills/reconcile/phases/*.md)
+            core; checks+=(33 23 36 40 45)           # reconcile effective body (t-1942 phase split)
+            ;;
         system/skills/*/SKILL.md)
             core; checks+=(33)       # core(1+5+7+12), SKILL.md keywords
             ;;
