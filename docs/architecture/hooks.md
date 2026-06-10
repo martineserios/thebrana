@@ -300,6 +300,9 @@ Multiple hooks can register for the same event. They run sequentially; if any Pr
 
 ## Field Notes
 
+### 2026-06-10: session-start recall — namespace-scoped via ruflo-cli.sh wrapper (t-1936)
+Session-start pattern recall was dead twice over: `$CF` resolved to the npm bin with the CRLF shebang (env: 'node\r' — t-1934 fixed .mjs scripts but not cf-env.sh), and the namespace-less `client:$PROJECT` query returned only constant-0.5 session rows that downstream jq filters discarded. Fix: all `$CF` calls route through `system/scripts/ruflo-cli.sh` (execs node + resolved .js; injects `--threshold 0.55` on namespace-less `memory search` so callers never need the session-row rule), and session-start queries `--namespace pattern --threshold 0.3 --limit 5` with an 8s timeout (ONNX load alone ~1.6s; old 2s timeout could never succeed). jq expressions updated to the `{results:[...]}` CLI output shape — the old `.[]?` matched nothing silently. Recall failures now surface a FAILED warning instead of passing as empty.
+
 > Archived 2026-05-09: 5 oldest entries (2026-04-08 × 2, 2026-04-09, 2026-04-12 nvm PATH, 2026-04-12 worktree-gate checkout/switch) moved to ruflo field-notes namespace (t-1388).
 > Archived 2026-05-11: 5 entries (2026-04-10 × 5: doc-gate bash command, git checkout HEAD recovery, branch switches ephemeral, main-guard+doc-gate combo, tasks.json stash theirs) moved to ruflo knowledge namespace.
 

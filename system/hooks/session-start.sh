@@ -107,22 +107,32 @@ PIDS=""
 # Skip on low effort — 2s network query is non-critical for quick tasks.
 if [ -n "$CF" ] && [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
     (
-        CF_OUTPUT=$(cd "$HOME" && timeout 2 $CF memory search --query "client:$PROJECT" --format json 2>&1) || true
-        CF_EXIT=$?
-        CONTEXT=$(echo "$CF_OUTPUT" | grep -v '^\[' || true)
+        # Namespace-scoped recall (t-1936): the old namespace-less "client:$PROJECT"
+        # query returned only constant-0.5 session rows, which the jq filters below
+        # discarded — recall was empty every session. The pattern namespace excludes
+        # session rows structurally; 0.3 matches the build LOAD threshold. Timeout
+        # raised 2s→8s: ONNX model load alone takes ~1.6s, search ~2s total.
+        CF_OUTPUT=$(cd "$HOME" && timeout 8 $CF memory search --query "$PROJECT build patterns corrections learnings" --namespace pattern --threshold 0.3 --limit 5 --format json 2>&1)
+        CF_EXIT=$?   # captured BEFORE any || true — was dead code reading 0 forever
+        # CLI emits ONNX/INFO noise before the JSON object — keep JSON only.
+        CF_JSON=$(echo "$CF_OUTPUT" | sed -n '/^{/,$p')
+        # Format as readable lines; output shape is {results: [{key, score, preview}]}
+        CONTEXT=$(echo "$CF_JSON" | jq -r '.results[]? | "- \(.key) (score \(.score * 100 | floor / 100)): \(.preview)"' 2>/dev/null) || CONTEXT=""
         if [ $CF_EXIT -eq 124 ]; then
             echo "TIMEOUT" > "$TMPDIR_SS/cf-warning"
-        elif [ $CF_EXIT -ne 0 ] && [ -z "$CONTEXT" ]; then
+        elif [ -z "$CF_JSON" ]; then
+            # No JSON at all — invocation failed (loud, not silent: see t-1936/t-1938)
             echo "FAILED" > "$TMPDIR_SS/cf-warning"
         fi
         echo "$CONTEXT" > "$TMPDIR_SS/cf-context"
-        # Extract corrections from same result (entries with "correction" in key or confidence >= 0.8)
-        CP_LINES=$(echo "$CF_OUTPUT" | jq -r '.[]? | select((.key // "" | test("correction"; "i")) or (.value | fromjson? | .confidence >= 0.8)) | (.key + ": " + (.value | fromjson? | .solution // "unknown"))' 2>/dev/null | head -3) || CP_LINES=""
+        # Extract corrections from same result (correction-keyed entries)
+        CP_LINES=$(echo "$CF_JSON" | jq -r '.results[]? | select(.key | test("correction"; "i")) | (.key + ": " + .preview)' 2>/dev/null | head -3) || CP_LINES=""
         if [ -n "$CP_LINES" ]; then
             echo "$CP_LINES" > "$TMPDIR_SS/corrections"
         fi
-        # Store recalled pattern keys for promotion tracking (t-203)
-        RECALLED_KEYS=$(echo "$CF_OUTPUT" | jq -c '[.[]? | select((.key // "" | test("correction|pattern"; "i")) or (.value | fromjson? | .confidence >= 0.7)) | .key] // []' 2>/dev/null) || RECALLED_KEYS="[]"
+        # Store recalled pattern keys for promotion tracking (t-203).
+        # Everything returned is a pattern-namespace hit — collect all keys.
+        RECALLED_KEYS=$(echo "$CF_JSON" | jq -c '[.results[]?.key] // []' 2>/dev/null) || RECALLED_KEYS="[]"
         echo "$RECALLED_KEYS" > "$TMPDIR_SS/recalled-keys"
     ) &
     PIDS="$PIDS $!"
@@ -547,9 +557,9 @@ fi
 if [ -f "$TMPDIR_SS/cf-warning" ]; then
     CF_WARN_TYPE=$(cat "$TMPDIR_SS/cf-warning" 2>/dev/null) || true
     if [ "$CF_WARN_TYPE" = "TIMEOUT" ]; then
-        CF_WARNING="Memory search timed out (>2s). Patterns not recalled. Try: ruflo memory search --query 'client:$PROJECT'"
+        CF_WARNING="Memory search timed out (>8s). Patterns not recalled. Try: ~/.claude/scripts/ruflo-cli.sh memory search --query \"$PROJECT patterns\" --namespace pattern --threshold 0.3"
     elif [ "$CF_WARN_TYPE" = "FAILED" ]; then
-        CF_WARNING="Memory search failed. Try: ruflo memory search --query 'client:$PROJECT'"
+        CF_WARNING="Memory search FAILED (ruflo invocation error — check ~/.claude/scripts/ruflo-cli.sh). Patterns not recalled this session."
     fi
 fi
 
