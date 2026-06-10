@@ -49,7 +49,6 @@ Hooks fire on Claude Code lifecycle events. Plugin `hooks.json` registers PreToo
 | `tdd-gate.sh` | PreToolUse | Write\|Edit | **TDD gate** | Blocks implementation file writes on all branches when no test file exists (feat/fix filter removed per ADR-031 revision 2026-04-04). |
 | `plan-mode-gate.sh` | PreToolUse | EnterPlanMode | Build flow | Blocks EnterPlanMode when active /brana:build session exists. |
 | `worktree-gate.sh` | PreToolUse | Bash | Git safety | Denies `git checkout -b` when dirty, blocks commit when /tmp >95% full. |
-| `guard-explore.sh` | PreToolUse | Read\|Grep\|Glob | Read logging | Logs reads without prior search (logging only, no blocking). |
 | `session-start.sh` | SessionStart | Every session | Context injection | Recalls patterns from ruflo, injects task context, detects venture projects, checks for pending learnings, warns if /tmp >80% full, warns if 1M model active with extra-usage disabled (t-1034). |
 | `session-end.sh` | SessionEnd | Every session | Metrics persistence | Computes flywheel metrics, stores session summary to ruflo and auto memory. Responds instantly, forks heavy work to background. |
 | `subagent-context.sh` | SubagentStart | Agent spawn | Context injection | Injects active task, branch, plan, recent decisions into spawned agents. |

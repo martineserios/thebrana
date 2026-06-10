@@ -264,14 +264,12 @@ Harness simplification check — every component encodes assumptions about model
    |-----------|-----------|----------|
    | `pre-tool-use.sh` (spec gate) | "Model won't follow TDD without enforcement" | Discipline |
    | `worktree-gate.sh` | "Model creates branches in dirty repos" | Safety |
-   | `guard-explore.sh` | "Model reads without searching first" | Efficiency |
    | `context-budget rule (55%)` | "Context quality degrades past 55%" | Context |
    | `sdd-tdd rule` | "Model skips tests without explicit rule" | Discipline |
    | `git-discipline rule` | "Model commits to main without rule" | Safety |
    | Hook profile tiers | "Some hooks aren't needed in all contexts" | Optimization |
 
 3. **Test assumptions against current model** — for each component:
-   - Check guard-explore logs: `/tmp/brana-explore-*.log` (if available)
    - Check session flywheel metrics (correction_rate, test_write_rate) from ruflo
    - Review recent session handoffs for discipline violations
    - Note which model is in use (Opus 4.6 vs Sonnet 4.6 vs Haiku)
@@ -296,7 +294,6 @@ Harness simplification check — every component encodes assumptions about model
    |-----------|-----------|---------|----------|
    | spec gate | TDD needs enforcement | Keep | correction_rate still >15% |
    | worktree-gate | Dirty repo branching | Relax | 0 violations in 30 days |
-   | guard-explore | Blind reads | TBD | Logging started {date}, review {date+7d} |
    | context-budget 55% | Quality degrades early | Relax | Opus 4.6 1M context, 55% may be too conservative |
 
    ### Recommended actions

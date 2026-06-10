@@ -122,12 +122,6 @@ Brana Stop hook — validate /goal criteria and auto-complete task.
 
 **Gate:** Advisory
 
-### `guard-explore.sh`
-
-No strict mode — hooks must never fail and block the session.
-
-**Gate:** Advisory
-
 ### `hallucination-detect.sh`
 
 No strict mode — hooks must never fail and block the session.
@@ -334,8 +328,6 @@ Blocking hooks that support `/tmp/brana-*` sentinel file bypasses for procedure-
 |------|----------|--------|
 | `commit-msg-verify.sh` | `/tmp/brana-test-mode` | Test-mode sentinel bypass — see no-attribution-commit.sh for rationale. |
 | `feedback-gate.sh` | `/tmp/brana-close-active` | Whitelist: /brana:close Step 5b writes git-durable backup files — sentinel set by procedure |
-| `guard-explore.sh` | `/tmp/brana-search-${SESSION_ID}.log` | Extract tool name and file path |
-| `guard-explore.sh` | `/tmp/brana-explore-${SESSION_ID}.log` | Extract tool name and file path |
 | `memory-write-gate.sh` | `/tmp/brana-memory-write-active` | Spec: ADR-038 §C (CLI gateway), ADR-037 §Wave2 (enforcement) |
 | `memory-write-gate.sh` | `/tmp/brana-memory-write-active` | Sentinel bypass — procedure explicitly authorized this direct write |
 | `memory-write-gate.sh` | `/tmp/brana-memory-write-active` | Derive the routing hint from the filename |

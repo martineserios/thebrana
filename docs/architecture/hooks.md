@@ -155,7 +155,7 @@ Hooks support tiered execution via the `BRANA_HOOK_PROFILE` environment variable
 |------|-----------|-------------|----------|
 | `minimal` | Nothing (all profiled hooks skip) | `max` | Fast CI runs, debugging hook issues |
 | `standard` | `pre-tool-use.sh`, `worktree-gate.sh` | `high` | Default — production behavior, backward compatible |
-| `strict` | All standard + `guard-explore.sh` | `low` | Observation mode — collects read pattern data |
+| `strict` | All standard (reserved for future observability hooks) | `low` | Observation mode — guard-explore.sh deleted t-1943 |
 
 **Default:** `standard` (no env var needed, no behavior change from pre-profile state).
 
@@ -174,18 +174,6 @@ hook_should_run "standard" || { pass_through; exit 0; }
 
 Only 3 hooks use profiles today. Hooks without profile gates (session-start, session-end, subagent-context, etc.) always run regardless of tier.
 
-## Guard-explore (read pattern observability)
-
-`guard-explore.sh` fires on every `Read`, `Grep`, and `Glob` call. It tracks whether agents search before reading implementation files — a quality signal from Agentic Scripts research (80% tool call reduction with search-first patterns).
-
-**Current mode: logging only.** No blocking. After 1 week of data collection, enforcement can be enabled.
-
-**How it works:**
-1. **Grep/Glob calls** — recorded to `/tmp/brana-search-{SESSION_ID}.log`
-2. **Read calls on impl files** (`src/`, `lib/`, `system/cli/`, `system/scripts/`) — checks if any search preceded it. If not, logs to `/tmp/brana-explore-{SESSION_ID}.log`
-3. **Whitelisted files** always pass through: `*.md`, configs (`*.json`, `*.yaml`, `*.toml`), test files, `docs/`, `.claude/`, `system/skills/`, `system/hooks/`
-
-**Analyzing results:** After a week, review `/tmp/brana-explore-*.log` files to see how often reads happen without searches. High counts indicate search-first enforcement would reduce wasted tool calls.
 
 ## Subagent context injection
 

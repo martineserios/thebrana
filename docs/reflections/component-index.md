@@ -91,7 +91,6 @@ See `system/skills/*/SKILL.md` for full skill definitions.
 | tdd-gate.sh | PreToolUse | TDD enforcement — blocks impl writes without tests |
 | plan-mode-gate.sh | PreToolUse | Gate EnterPlanMode access |
 | worktree-gate.sh | PreToolUse | Enforce worktree usage on dirty repos |
-| guard-explore.sh | PreToolUse | Log reads without prior search (logging only) |
 | session-start.sh | SessionStart | Pattern recall + task context |
 | session-end.sh | SessionEnd | Flywheel metrics + learning flush |
 | subagent-context.sh | SubagentStart | Inject context into subagents |

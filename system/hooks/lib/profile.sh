@@ -9,7 +9,7 @@
 # Tiers (ordered by strictness):
 #   minimal  — only essential gates (write safety, spec-before-code)
 #   standard — default, all production hooks (backward compatible)
-#   strict   — adds observability hooks (guard-explore, future auditing)
+#   strict   — reserved for future observability hooks (guard-explore deleted t-1943)
 #
 # Set via: BRANA_HOOK_PROFILE=minimal|standard|strict
 # Default: standard (no behavior change from pre-profile state)

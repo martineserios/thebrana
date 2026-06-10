@@ -51,7 +51,6 @@ Steps 4–9 repeat for every tool call within a turn. Steps 1–3 run once per t
 | `PreToolUse` (Write\|Edit) | Step 6 | `pre-tool-use.sh`, `tdd-gate.sh` — doc/test gates |
 | `PreToolUse` (Bash) | Step 6 | `doc-gate.sh`, `main-guard.sh`, `branch-verify.sh`, `worktree-gate.sh`, `no-attribution-commit.sh`, `commit-msg-verify.sh` |
 | `PreToolUse` (EnterPlanMode) | Step 6 | `plan-mode-gate.sh` |
-| `PreToolUse` (Read\|Grep\|Glob) | Step 6 | `guard-explore.sh` |
 | `PostToolUse` (any) | After Step 7 | `post-tool-use.sh` |
 | `PostToolUse` (Bash) | After Step 7 | `task-completed.sh`, `post-pr-review.sh` |
 | `PostToolUse` (Write\|Edit) | After Step 7 | `post-sale.sh`, `post-tasks-validate.sh` |
