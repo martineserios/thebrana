@@ -626,6 +626,17 @@ pub fn validate_work_type(value: &str) -> Result<(), String> {
     }
 }
 
+/// Validate a kind value (t-1960). Canonical list matches the CLI TaskKind enum;
+/// used by every write path (CLI add/set, MCP add/set/batch) so they cannot drift.
+pub fn validate_kind(value: &str) -> Result<(), String> {
+    match value {
+        "feature" | "fix" | "refactor" | "research" | "docs" | "design" | "ops" | "null" | "" => Ok(()),
+        other => Err(format!(
+            "invalid kind {other:?} — must be feature/fix/refactor/research/docs/design/ops or null"
+        )),
+    }
+}
+
 /// Rename the `initiative` key to `epic` on a single task object (t-1614 schema migration).
 /// Preserves `level: "initiative"` and `type: "initiative"` values — only the KEY is renamed.
 pub fn migrate_initiative_to_epic(mut task: Value) -> Value {
@@ -746,7 +757,7 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
         "priority" | "effort" | "status" | "type" | "level" | "strategy"
         | "build_step" | "execution" | "branch" | "subject" | "parent"
         | "started" | "completed" | "created" | "github_issue"
-        | "epic" | "work_type" | "spawn" | "spawn_strategy" => {
+        | "epic" | "work_type" | "kind" | "spawn" | "spawn_strategy" => {
             if field == "priority" {
                 validate_priority(value)?;
             }
@@ -755,6 +766,9 @@ pub fn set_field(task: &mut Value, field: &str, value: &str, append: bool) -> Re
             }
             if field == "work_type" {
                 validate_work_type(value)?;
+            }
+            if field == "kind" {
+                validate_kind(value)?;
             }
             if field == "level" {
                 validate_level(value)?;
