@@ -126,6 +126,8 @@ mkdir -p "$TARGET_DIR"
 # Agent memory (t-1935): agents with `memory: user` persist to this directory.
 # CC docs don't guarantee auto-creation, so pre-create it — a missing directory
 # means agents silently never persist memory (architecture review 2026-06-10 §4).
+# Per-agent subdirs (brana-<name>/) appear lazily on each agent's first run —
+# a sparse directory here is expected, not a regression.
 mkdir -p "$TARGET_DIR/agent-memory"
 
 CHANGES=0
