@@ -24,8 +24,243 @@ context: fork
 status: stable
 growth_stage: evergreen
 ---
+# Challenge
 
-<!-- PROCEDURE_FILE: procedures/challenge.md -->
-This skill's full procedure is in a separate file for startup performance (ADR-034).
-Read and execute `../../procedures/challenge.md` resolved against this skill's base directory (the path announced when the skill loads) — i.e. `{base-dir}/../../procedures/challenge.md`. This form is valid in both the repo layout and the deployed-plugin layout.
-If the path doesn't resolve, use Glob to find `**/procedures/challenge.md`.
+Adversarial review with two modes. **Standard:** Opus stress-tests reasoning, Gemini retrieves documented constraints — both run independently, Claude merges and judges. **Council (`--council`):** Four parallel perspective agents (devil's advocate, optimist, pragmatist, operator) plus Gemini — Claude synthesizes across all five.
+
+1. **Gather context** about what to challenge:
+   - If `$ARGUMENTS` provided, use it as the description of what to challenge.
+   - If `$ARGUMENTS` contains `--council`: strip `--council` from the target description, activate **council mode** — step 4a spawns 4 parallel perspective agents instead of one Opus agent. All other steps unchanged.
+   - If no arguments: **conversation-context inference** — scan recent conversation turns (both user and assistant) to identify the most significant unchalllenged decision, plan, or proposal. Priority order:
+     1. A plan or architecture decision being actively discussed
+     2. A proposal the user described or asked about
+     3. Your own most recent substantive recommendation
+     4. A trade-off or choice where alternatives weren't explored
+   - Extract: the decision/plan itself, the key constraints mentioned, and any assumptions stated or implied.
+   - Frame it naturally: "I see we're discussing [X]. Let me stress-test that." — not "Let me challenge my last answer."
+   - If the conversation has no substantive decision context (e.g., session just started, only greetings), then ask what to target.
+
+2. **Scope discovery** — before launching challengers, ask 2-4 targeted questions that could change the challenge outcome.
+
+   First, think (silently): given what's being challenged, what dimensions are non-obvious but consequential? What does Claude not know yet that would change which findings matter?
+
+   Then surface 2-4 questions via a single AskUserQuestion call. Choose from the dimensions below — pick the ones most relevant to the target. Skip generic process questions.
+
+   | Dimension | When to ask | Example option set |
+   |---|---|---|
+   | Deadline pressure | Plan or implementation work | "this week" / "this month" / "no fixed date" |
+   | Cost of being wrong | Architecture or migration | "cheap (refactor)" / "expensive (data migration)" / "catastrophic (prod incident)" |
+   | What's been tried | Recurring problem or refactor | "first attempt" / "one prior approach" / "multiple stalled attempts" |
+   | Stakeholder breadth | Anything visible externally | "just me" / "one other person" / "wider team" / "external users" |
+   | Constraints already locked | Mid-project decisions | "nothing locked yet" / specific commitments listed |
+   | Hard ceiling on scope | Sprawling proposals | "S" / "M" / "L" / "explicitly unbounded" |
+   | Gemini grounding | Brana-domain decisions — user wants to skip | "run agy (Recommended)" / "skip — no Brana docs apply" |
+
+   Use the answers to:
+   - Calibrate severity (high deadline pressure → demote long-term observations to LOW)
+   - Choose flavor in step 3 (e.g., "multiple stalled attempts" → assumption-buster, not pre-mortem)
+   - Brief the Opus challenger ("user has these constraints already locked: …")
+   - Decide whether to run Gemini (skip if user says "no Brana docs apply")
+
+   Skip step 2 entirely if: the target is trivial, the user said "no scope ambiguity" / "just challenge it", or the conversation already established these dimensions naturally.
+
+3. **Choose challenge flavor** based on context (and scope answers from step 2):
+   - Architecture/design decisions → **Pre-mortem**: "Imagine this solution failed in production 3 months from now. What went wrong?"
+   - Implementation plans → **Simplicity challenger**: "Can you achieve the same outcome with half the complexity?"
+   - Migration/performance/estimates → **Assumption buster**: "What are you assuming that might not be true?"
+   - Code/security review → **Adversarial reviewer**: Find concrete problems, security issues, performance concerns.
+
+<!-- ruflo preamble -->
+ToolSearch("select:mcp__ruflo__hive-mind_init,mcp__ruflo__hive-mind_spawn,mcp__ruflo__hive-mind_consensus,mcp__ruflo__hive-mind_shutdown,mcp__brana__agy_delegate")
+
+4. **Launch challengers in parallel:**
+
+   **4a. Challenger(s)** — Two modes based on step 1 detection:
+
+   **Standard mode** (default, no `--council` flag):
+   Spawn a 3-worker hive-mind quorum (convergent + systems + critical perspectives) via ruflo:
+   ```
+   mcp__ruflo__hive-mind_shutdown(force: true)
+   mcp__ruflo__hive-mind_init(consensus: "quorum", topology: "hierarchical")
+   mcp__ruflo__hive-mind_spawn(count: 3, role: "specialist", prefix: "challenger")
+   ```
+   Assign each worker a distinct cognitive lens:
+   - **Worker 1 (convergent):** Synthesize constraints — what is definitely true, what rules must hold?
+   - **Worker 2 (systems):** Map second-order effects — what else breaks, what cascades?
+   - **Worker 3 (critical):** Adversarial — what are the failure modes, hidden debt, worst-case paths?
+
+   After all 3 workers respond, collect findings via quorum consensus:
+   ```
+   mcp__ruflo__hive-mind_consensus(action: "propose", strategy: "quorum", quorumPreset: "majority", type: "findings", value: "{merged findings}")
+   ```
+   A finding that appears in ≥2 of 3 workers is HIGH confidence. Single-worker findings are OBSERVATION. (`majority` is the working assumption — re-calibrate if ruflo subscription auth becomes available.)
+
+   **Fallback:** If ruflo unavailable, run the challenge inline — Claude performs all three cognitive roles (convergent, systems, critical) sequentially in main context, then self-assesses which findings two roles would have agreed on (HIGH) vs single-role only (OBSERVATION).
+
+   For all workers/fallback — provide: the plan/approach being challenged + relevant code/files + the chosen flavor.
+   Key instruction: "Be specific and actionable. Don't nitpick — focus on things that would actually cause problems or wasted effort. Suggest concrete alternatives for each concern. Rate each finding: CRITICAL (would block success), WARNING (risk but manageable), OBSERVATION (minor, for consideration)."
+
+   **Council mode** (`--council` flag set in step 1):
+   Spawn 4 agents in parallel using the Agent tool. Each receives a distinct role; no agent sees another's output — synthesis is step 5's job. Use `subagent_type: "brana:challenger"` for each.
+
+   | Role | Brief to include in agent prompt |
+   |------|----------------------------------|
+   | **Devil's advocate** | Find every way this could fail, backfire, or create hidden debt. Focus on worst-case scenarios and failure modes others would overlook. |
+   | **Optimist** | Find what's undervalued. What hidden advantages exist? What assumptions are overly conservative? What could go better than the plan assumes? |
+   | **Pragmatist** | Focus on what's actually buildable within the stated constraints. What scope traps exist? What will cost 10× more effort than estimated? What shortcuts are safe vs. risky? |
+   | **Operator** | You will execute this plan as Claude in a future session. What is unclear, ambiguous, or underspecified? What will cause you to make a wrong judgment call at runtime? |
+
+   For each: provide the plan/approach + chosen flavor + role brief. Key instruction: "Rate findings CRITICAL / WARNING / OBSERVATION. Be specific, no nitpicking. Suggest concrete alternatives for each concern."
+
+   **4b. Gemini detail retriever** — Query agy (Gemini Flash via brana compute). Runs by default; skip only if the user explicitly opted out in step 2 or if `mcp__brana__agy_delegate` returns an error.
+
+   Run a **two-pass retrieval** in parallel with step 4a:
+
+   **Pass 1 — Constraint extraction** (Gemini's strength: detail retrieval, not reasoning):
+   - Extract specific technical nouns from the challenge target (hook names, tool names, thresholds, module names). Use these as query anchors — never "the brana system" or broad abstractions.
+   - Call `mcp__brana__agy_delegate` with:
+     ```
+     prompt: "You are reviewing the brana system. List every specific constraint,
+      threshold, requirement, and documented rule that relates to [specific technical
+      noun from the plan]. For each, give the exact number or rule and note which
+      context it comes from. If you cannot find something verbatim, say so explicitly
+      rather than stating it as fact. Do not summarize — enumerate."
+     ```
+   - **Canned-response detection:** If the response is < 150 words, matches a generic system overview pattern, or doesn't contain any specific numbers/constraints, discard and retry once with a more specific anchor term from the plan. If retry also fails, note "Gemini returned no grounded constraints" and proceed without.
+
+   **Pass 2 — Adjacent constraints** (if Pass 1 returned results):
+   - Call `mcp__brana__agy_delegate`:
+     ```
+     prompt: "You are reviewing the brana system. What documented requirements,
+      version constraints, and named dependencies are adjacent to [topic from Pass 1]?
+      Include specific thresholds, tool names, and file paths. If inferring beyond
+      documented knowledge, mark it [INFERENCE]."
+     ```
+
+   **On error:** If `mcp__brana__agy_delegate` fails for **any reason** — MCP tool-call failure (version mismatch, binary not found, JSON-RPC error), response starting with `"Error:"`, or empty/unusable output — skip 4b **completely and silently**. Do NOT add an "Unavailable" note or any Gemini reference to the report. Do NOT surface the error message. Proceed as if step 4b was never attempted.
+
+   **4c. Compliance check** (Claude, main context — after both 4a and 4b complete):
+   - Take the constraints retrieved by Gemini in 4b
+   - Check the challenge target against each retrieved constraint
+   - Flag violations as findings with source attribution
+   - This is where the adversarial reasoning happens — Claude judges, Gemini retrieves
+
+5. **Merge and present findings with confidence tiers.** Await all agents (and Gemini if running) before synthesizing. Each finding gets a confidence tier based on its source:
+
+   | Source | Confidence | Why |
+   |--------|-----------|-----|
+   | Agreement (Opus + Gemini) | **HIGH** | Two models, different architectures, same concern |
+   | Council agreement (2+ of 4 agents) | **HIGH** `[COUNCIL-AGREEMENT: N/4]` | Independent perspectives, same root concern |
+   | Opus-only / single council agent | **MEDIUM** | Strong reasoning, may lack doc grounding |
+   | Gemini with source citation | **MEDIUM** `[AGY-UNVERIFIED]` | Good retrieval, but citation needs verification |
+   | Gemini citing external tools/practices not in docs | **LOW** `[AGY-UNVERIFIED]` | Hallucination risk — Gemini invents plausible references |
+   | Compliance check (4c) | **HIGH** | Claude reasoning on Gemini-retrieved constraints |
+
+   **Standard mode report:**
+   ```
+   ## Challenge Report
+
+   **Target:** [what was challenged]
+   **Flavor:** [pre-mortem / simplicity / assumption / adversarial]
+
+   ### Critical Findings (would block success)
+   - [Finding] — Source: Opus / Compliance-check — Confidence: HIGH/MEDIUM
+
+   ### Warnings (risk but manageable)
+   - [Finding] — Source: Opus / Compliance-check — Confidence: HIGH/MEDIUM
+
+   ### Observations (minor, for consideration)
+   - [Finding] — Source: Gemini [AGY-UNVERIFIED] — Confidence: LOW/MEDIUM
+
+   ### Agreement (highest confidence)
+   - [Where both challengers raised the same concern]
+
+   ### Gemini Constraint Retrieval
+   - [Constraints retrieved by Gemini — available for manual verification]
+
+   ### Verdict
+   PROCEED / PROCEED WITH CHANGES / RECONSIDER
+   ```
+
+   **Council mode report** (when `--council` was set):
+
+   Dedup first: for each finding raised by 2+ agents, collapse to one entry tagged `[COUNCIL-AGREEMENT: N/4]`. These are the highest-confidence signals regardless of severity.
+
+   ```
+   ## Challenge Report (Council)
+
+   **Target:** [what was challenged]
+   **Mode:** Council — devil's advocate · optimist · pragmatist · operator
+   **Flavor:** [pre-mortem / simplicity / assumption / adversarial]
+
+   ### Critical Findings (would block success)
+   - [Finding] [COUNCIL-AGREEMENT: 3/4] — Confidence: HIGH
+   - [Finding] — Source: Devil's advocate — Confidence: MEDIUM
+
+   ### Warnings (risk but manageable)
+   - [Finding] [COUNCIL-AGREEMENT: 2/4] — Confidence: HIGH
+   - [Finding] — Source: Pragmatist — Confidence: MEDIUM
+
+   ### Observations (minor, for consideration)
+   - [Finding] — Source: Optimist — Confidence: MEDIUM
+
+   ### Perspectives Summary
+   **Devil's advocate:** [top 1-2 concerns]
+   **Optimist:** [top 1-2 undervalued aspects]
+   **Pragmatist:** [top 1-2 scope/effort risks]
+   **Operator:** [top 1-2 runtime ambiguities]
+
+   ### Cross-cutting Themes
+   - [Concern raised across 3+ perspectives, even if differently framed]
+
+   ### Gemini Constraint Retrieval
+   - [Constraints retrieved by Gemini — available for manual verification]
+
+   ### Verdict
+   PROCEED / PROCEED WITH CHANGES / RECONSIDER
+   ```
+
+6. **Let the user decide** which concerns to address. Do not auto-apply changes.
+
+7. **Log findings to decision log** (before storing to memory):
+
+   ```bash
+   brana decisions log --agent challenger --entry-type concern \
+     --content "{target}: {key finding summary}" \
+     --severity "{highest finding severity}" \
+     --refs "{task-id if applicable}" 2>/dev/null || true
+   ```
+
+   Log one entry per CRITICAL or WARNING finding. OBSERVATION-level findings are not logged.
+
+8. **Store challenge outcome** in ReasoningBank after the user decides:
+
+   ```bash
+source "$HOME/.claude/scripts/cf-env.sh"
+```
+
+   Store the outcome:
+   ```bash
+   cd $HOME && $CF memory store \
+     -k "challenge:{PROJECT}:{short-topic}" \
+     -v '{"flavor": "pre-mortem|simplicity|assumption|adversarial", "target": "what was challenged", "findings": "key concerns raised", "decision": "accepted|rejected|partial", "confidence": 0.5, "transferable": false, "recall_count": 0}' \
+     --namespace pattern \
+     --tags "client:PROJECT,type:challenge,outcome:accepted|rejected|partial,confidence:quarantine"
+   ```
+
+   If ruflo is unavailable, append to `~/.claude/projects/{project-hash}/memory/MEMORY.md`.
+
+## Rules
+
+- **No arguments = conversation inference.** Empty `/brana:challenge` scans the conversation for the most significant unchalllenged decision or plan — from either user or assistant. Never ask "what should I challenge?" unless the conversation truly has no decision context (session just started, only greetings).
+- **Ask for clarification on scope**, not on target. If you know WHAT to challenge but not HOW DEEP, ask.
+- **All challengers run in parallel.** Don't wait for one to finish before starting others. Launch all agents and Gemini simultaneously.
+- **`--council` strips before use.** Strip the flag from `$ARGUMENTS` before using the remainder as the target description. Never include `--council` in the agent brief.
+- **Council agents are isolated.** No agent in a council run sees another's output. Cross-agent synthesis is exclusively Claude's job in step 5.
+- **Council dedup rule.** When 2+ council agents raise the same root concern (even if differently worded), collapse to a single finding tagged `[COUNCIL-AGREEMENT: N/4]`. Agreement is the signal, not the phrasing.
+- **Gemini runs by default.** Skip only if the user explicitly opted out in step 2 ("skip — no Brana docs apply") or if `mcp__brana__agy_delegate` fails for any reason (see step 4b "On error"). On any failure: skip silently — no mention of Gemini in the report. Proceed without Gemini (standard: Opus-only; council: 4 agents only). Never fail the skill because Gemini is unavailable.
+- **Gemini flow is unchanged in council mode.** 4b runs in parallel with the 4 council agents. Step 5 synthesizes all results together.
+- **Agreement = high confidence.** When multiple models independently flag the same issue, highlight it. Independent architectures agreeing on a problem is a strong signal.
+- **Gemini retrieves, Claude reasons.** Never ask Gemini to "adversarially review" or "find problems" — it falls back to generic summaries. Ask it to enumerate specific constraints, then Claude checks compliance. Gemini is a detail-extraction engine, not a synthesis engine.
+- **Anchor Gemini queries to technical nouns.** Use specific terms from the plan (hook names, tool names, thresholds) as query anchors. Never start a Gemini query with broad system names — this triggers canned overview responses.
+- **Tag all Gemini-only claims.** Any finding sourced exclusively from Gemini must carry `[AGY-UNVERIFIED]`. The user decides whether to verify against source docs.

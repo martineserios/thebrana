@@ -104,7 +104,7 @@ if tools:
 
 # ── Helper: strip fenced code blocks from markdown ──
 _strip_code_blocks() {
-    awk '/^```/{skip=!skip; next} !skip{print}'
+    awk '/^[[:space:]]*```/{skip=!skip; next} !skip{print}'  # indented fences count (list items)
 }
 
 # ── Check B: file path reference validation ──
