@@ -18,7 +18,7 @@
 // If namespace is omitted, defaults to "knowledge".
 
 import { spawn, execSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 
@@ -64,6 +64,19 @@ const RUFLO = process.env.RUFLO_BIN || resolveRuflo();
 if (!RUFLO) {
   console.error('ERROR: ruflo not found. Install with: npm install -g ruflo');
   process.exit(1);
+}
+
+// ruflo npm tarballs (≤3.10.40) ship bin/ruflo.js with a CRLF shebang and the
+// installed file can lose its exec bit — executing the bin directly fails with
+// EACCES or `env: 'node\r': No such file or directory`. Resolve to the
+// underlying .js and run it with the node interpreter instead.
+function rufloCommand(args) {
+  let target = RUFLO;
+  try { target = realpathSync(RUFLO); } catch {}
+  if (/\.(js|mjs|cjs)$/.test(target)) {
+    return [process.execPath, [target, ...args]];
+  }
+  return [RUFLO, args];
 }
 
 // ── MCP JSON-RPC stdio client ───────────────────────────────────
@@ -213,8 +226,9 @@ async function main() {
     process.exit(0);
   }
 
-  // Spawn ruflo MCP server
-  const proc = spawn(RUFLO, ['mcp', 'start'], {
+  // Spawn ruflo MCP server (via node interpreter — see rufloCommand)
+  const [rufloCmd, rufloArgs] = rufloCommand(['mcp', 'start']);
+  const proc = spawn(rufloCmd, rufloArgs, {
     stdio: ['pipe', 'pipe', 'pipe'],
     cwd: homedir(),
     env: { ...process.env }
