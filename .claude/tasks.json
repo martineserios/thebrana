@@ -50482,6 +50482,34 @@
       "execution": "code",
       "epic": "harness-core",
       "work_type": "research"
+    },
+    {
+      "subject": "propagate learnings on close, asking the user",
+      "work_type": "feature",
+      "type": "task",
+      "tags": [
+        "close",
+        "learnings",
+        "propagation"
+      ],
+      "effort": "M",
+      "context": "During somos_mirada session 2026-06-10: after /brana:close extracted a learning (Meta UTILITY anchor rule), user had to manually trigger propagation to the meta-templates skill procedure. The close skill should detect learnings that map to installed skills/procedures and offer to propagate them inline.",
+      "id": "t-1933",
+      "status": "pending",
+      "execution": "code",
+      "created": "2026-06-10",
+      "blocked_by": [],
+      "priority": "P3",
+      "parent": null,
+      "order": null,
+      "branch": null,
+      "github_issue": null,
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "strategy": null,
+      "build_step": null,
+      "description": null
     }
   ],
   "version": "1"
