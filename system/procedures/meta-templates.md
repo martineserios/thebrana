@@ -89,7 +89,7 @@ The CLI handles its own output (rich tables, panels). Surface its stdout/stderr 
 
 #### `submit`
 
-If submitting a re-engagement template (cartera_pasiva variants, etc.), warn the user that Meta's ML may classify it as Marketing. Suggest using `--dry-run` first to inspect the API body, then submit, then poll `status` for the verdict.
+If submitting a re-engagement template (cartera_pasiva variants, etc.), warn the user that Meta's ML may classify it as Marketing. To maintain UTILITY classification, the template body must include an explicit transactional anchor referencing a prior service interaction — e.g. "en seguimiento a tu consulta" or "en seguimiento a la información que te enviamos". Templates without this anchor (generic "retomo el contacto" phrasing) will typically be reclassified as MARKETING. Appeals for UTILITY reclassification are unreliable and slow — always have a UTILITY-framed backup variant ready before submitting. Suggest using `--dry-run` first to inspect the API body, then submit, then poll `status` for the verdict.
 
 After successful submission, remind the user that approval/rejection arrives async — they can check with `status --name <name>` later.
 
