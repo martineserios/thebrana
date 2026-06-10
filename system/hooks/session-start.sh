@@ -113,9 +113,13 @@ fi
 SCHED_STATUS="${BRANA_SCHED_STATUS:-$HOME/.claude/scheduler/last-status.json}"
 SCHED_FAIL_CONTEXT=""
 if [ -f "$SCHED_STATUS" ]; then
-    SCHED_FAILS=$(jq -r 'to_entries[] | select(.value.status != null and (.value.status | test("SUCCESS|SKIPPED") | not)) | "\(.key) (\(.value.status), \(.value.timestamp // "?"))"' "$SCHED_STATUS" 2>/dev/null | head -3) || SCHED_FAILS=""
-    if [ -n "$SCHED_FAILS" ]; then
-        SCHED_FAIL_CONTEXT="⚠ [Scheduler] failing job(s): $(echo "$SCHED_FAILS" | tr '\n' ';' | sed 's/;$//'). Check: brana ops logs <job>."
+    SCHED_FAILS_ALL=$(jq -r 'to_entries[] | select(.value.status != null and (.value.status | test("SUCCESS|SKIPPED") | not)) | "\(.key) (\(.value.status), \(.value.timestamp // "?"))"' "$SCHED_STATUS" 2>/dev/null) || SCHED_FAILS_ALL=""
+    if [ -n "$SCHED_FAILS_ALL" ]; then
+        SCHED_FAIL_TOTAL=$(echo "$SCHED_FAILS_ALL" | wc -l | tr -d ' ')
+        SCHED_FAILS=$(echo "$SCHED_FAILS_ALL" | head -3)
+        SCHED_MORE=""
+        [ "$SCHED_FAIL_TOTAL" -gt 3 ] 2>/dev/null && SCHED_MORE=" (+$((SCHED_FAIL_TOTAL - 3)) more — brana ops status)"
+        SCHED_FAIL_CONTEXT="⚠ [Scheduler] failing job(s): $(echo "$SCHED_FAILS" | tr '\n' ';' | sed 's/;$//')${SCHED_MORE}. Check: brana ops logs <job>."
     fi
 fi
 

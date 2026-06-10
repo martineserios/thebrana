@@ -50,7 +50,7 @@ CF_WARNING=""
 # Loud failure (t-1938): memory-write failures land in a run-state log that
 # session-start surfaces next session. set +e stays (storage is non-fatal),
 # but silent is no longer an option.
-PERSIST_FAIL_LOG="$HOME/.claude/run-state/persist-failures.log"
+PERSIST_FAIL_LOG="${BRANA_RUN_STATE_DIR:-$HOME/.claude/run-state}/persist-failures.log"
 log_persist_failure() {
     mkdir -p "$(dirname "$PERSIST_FAIL_LOG")" 2>/dev/null || true
     echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $PROJECT $1" >> "$PERSIST_FAIL_LOG" 2>/dev/null || true
