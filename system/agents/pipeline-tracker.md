@@ -4,7 +4,7 @@ description: "Pipeline status — deal stages, overdue follow-ups, conversion tr
 model: haiku
 effort: low
 maxTurns: 8
-memory: true
+memory: user
 permissionMode: plan
 color: amber
 tools:

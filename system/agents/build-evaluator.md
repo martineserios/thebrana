@@ -4,7 +4,6 @@ description: "Grade completed implementation against task acceptance criteria. U
 model: sonnet
 effort: medium
 maxTurns: 8
-memory: false
 permissionMode: plan
 color: yellow
 tools:

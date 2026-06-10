@@ -4,7 +4,7 @@ description: "Review PR diffs for code quality, bugs, and style issues. Auto-tri
 model: sonnet
 effort: medium
 maxTurns: 15
-memory: true
+memory: user
 permissionMode: plan
 isolation: worktree
 color: orange

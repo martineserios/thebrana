@@ -4,7 +4,7 @@ description: "Scan client project structure, detect tech stack, check brana alig
 model: haiku
 effort: low
 maxTurns: 8
-memory: true
+memory: user
 permissionMode: plan
 color: teal
 tools:

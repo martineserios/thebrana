@@ -4,7 +4,7 @@ description: "Collect venture metrics from snapshots, experiments, pipeline, fin
 model: haiku
 effort: low
 maxTurns: 8
-memory: true
+memory: user
 permissionMode: plan
 color: indigo
 tools:

@@ -4,7 +4,7 @@ description: "Daily venture focus card — health snapshot, pending actions, exp
 model: haiku
 effort: low
 maxTurns: 8
-memory: true
+memory: user
 permissionMode: plan
 color: green
 tools:
