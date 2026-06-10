@@ -123,7 +123,7 @@ Extract errata, learnings, and patterns from a work session. Use at end of imple
 
 **Tools:** Bash, Read, Glob, Grep
 
-**Disallowed:** Write, Edit, NotebookEdit
+**Disallowed:** NotebookEdit
 
 
 ## gemini
