@@ -16820,7 +16820,7 @@
         "t-730",
         "t-1930"
       ],
-      "branch": null,
+      "branch": "harness-core/feat/t-731-loop-suggest-confirm",
       "completed": null,
       "context": "2026-06-10: RE-SCOPED by ADR-050 (t-730 verdict: NO-GO on auto-spawn, GO on suggest-and-confirm). Scope: (1) build.md BUILD-start suggestion point for L/XL builds only, (2) close.md session-loop sweep line (CronList+CronDelete), (3) errata line in docs/ideas/cc-feature-adoption-v2.1.76-81.md, (4) supersession pointer in docs/ideas/session-aware-loop-integration.md. Constraints in ADR-050 protocol table: max 1 suggestion/invocation, durable:false always, interval never 5-19min.\nAC: build.md contains loop-suggestion step gated to L/XL effort\nAC: close.md contains session-loop sweep line\nAC: cc-feature-adoption doc has errata noting constraint dissolved (verified 2026-06-09)\nAC: validate.sh passes",
       "created": "2026-03-30",
@@ -16831,12 +16831,12 @@
       "id": "t-731",
       "kind": "feature",
       "level": "task",
-      "notes": null,
+      "notes": "Wired loop suggest-and-confirm per ADR-050. build.md: L/XL-gated suggestion step with durable:false + interval constraints. close.md: Step 11f session-loop sweep (CronList+CronDelete). Errata lines in cc-feature-adoption and session-aware-loop-integration docs. Checks 54-56 pass.",
       "order": null,
       "parent": null,
       "priority": "P3",
       "started": null,
-      "status": "pending",
+      "status": "completed",
       "subject": "Wire loop suggest-and-confirm protocol per ADR-050 (build + close procedures)",
       "tags": [
         "session-loops",
