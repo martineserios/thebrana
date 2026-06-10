@@ -16788,8 +16788,8 @@
     },
     {
       "blocked_by": [],
-      "branch": null,
-      "completed": null,
+      "branch": "harness-core/docs/t-730-loop-request-protocol",
+      "completed": "2026-06-10",
       "context": "2026-06-09: REVIVED from cancelled phase t-722 (initiative t-719, cancelled 2026-04-04 as 'superseded by ADR-027' — supersession covered only the knowledge loop; runtime-watcher scope was dropped, not absorbed). Re-scoped onto native substrate after challenger review (verdict RECONSIDER → narrowed to design-first).\nEVIDENCE: CronCreate verified working from within a skill flow 2026-06-09 (job 20a4a021 created+deleted during brana:backlog execution). CronCreate now supports durable:true (survives restarts). Cron docs recommend Monitor tool for live watching — evaluate as alternative.\nAC: ADR drafted with explicit GO/NO-GO verdict on auto-spawned watchers (value vs token cost vs build's own TDD loop — challenger HIGH-2; ADR may legitimately conclude no-go → cancel t-731)\nAC: lifecycle contract specified — spawn/kill conditions for skill end, /brana:close, context compaction, branch/task switch (challenger HIGH-3)\nAC: fulfillment mechanism documented with alternatives compared: CronCreate vs ScheduleWakeup vs Monitor vs background Bash\nAC: t-517 non-advancement conditions designed (when automation must NOT fire)\nAC: ADR-027 Phase A gate status checked — rollout gated on evidence per ratchet philosophy (challenger MED-5)\nAC: t-705 disposition decided (challenger MED-4)\nAC: non-actions section covers dashboard (t-729) and session-persistent loop config (challenger LOW-6)\nAC: surfaces enumerated: build/review SKILL.md+procedures, system/procedures/scheduler.md, docs/ideas/cc-feature-adoption-v2.1.76-81.md (still states old constraint — needs errata), docs/ideas/cloud-scheduler-provider-abstraction.md",
       "created": "2026-03-30",
       "description": null,
@@ -16799,12 +16799,12 @@
       "id": "t-730",
       "kind": "feature",
       "level": "task",
-      "notes": null,
+      "notes": "2026-06-10: ADR-050 drafted (Proposed) — NO-GO on auto-spawned watchers, GO on suggest-and-confirm protocol. All 8 AC addressed: go/no-go verdict, lifecycle contract, mechanism comparison, t-517 non-advancement conditions (4 rules), ADR-027 gate check (Phase A unmeasured — ratchet upheld), t-705 disposition (defer to t-703), non-actions (dashboard, watch skill, persistent config), surfaces enumerated. Commit 783f8cb7 on harness-core/docs/t-730-loop-request-protocol.",
       "order": null,
       "parent": null,
       "priority": "P3",
-      "started": null,
-      "status": "pending",
+      "started": "2026-06-09",
+      "status": "completed",
       "subject": "Design loop-request protocol ADR — go/no-go on skill-embedded watchers (native CronCreate//loop)",
       "tags": [
         "session-loops",
@@ -16812,7 +16812,8 @@
         "dx"
       ],
       "type": "task",
-      "work_type": "design"
+      "work_type": "design",
+      "strategy": "investigation"
     },
     {
       "blocked_by": [
@@ -16821,10 +16822,10 @@
       ],
       "branch": null,
       "completed": null,
-      "context": "2026-06-09: CONTINGENT on t-730 ADR go/no-go verdict — cancel this task if the ADR concludes watchers are not worth building (duplicate of build TDD loop / token cost). Detached from cancelled parent t-722. Scope per original Phase 3: /brana:build auto-spawns test watcher, /brana:review auto-spawns drift watcher, per protocol designed in t-730.",
+      "context": "2026-06-10: RE-SCOPED by ADR-050 (t-730 verdict: NO-GO on auto-spawn, GO on suggest-and-confirm). Scope: (1) build.md BUILD-start suggestion point for L/XL builds only, (2) close.md session-loop sweep line (CronList+CronDelete), (3) errata line in docs/ideas/cc-feature-adoption-v2.1.76-81.md, (4) supersession pointer in docs/ideas/session-aware-loop-integration.md. Constraints in ADR-050 protocol table: max 1 suggestion/invocation, durable:false always, interval never 5-19min.\nAC: build.md contains loop-suggestion step gated to L/XL effort\nAC: close.md contains session-loop sweep line\nAC: cc-feature-adoption doc has errata noting constraint dissolved (verified 2026-06-09)\nAC: validate.sh passes",
       "created": "2026-03-30",
       "description": null,
-      "effort": "M",
+      "effort": "S",
       "epic": "harness-core",
       "github_issue": null,
       "id": "t-731",
@@ -16836,7 +16837,7 @@
       "priority": "P3",
       "started": null,
       "status": "pending",
-      "subject": "Wire /brana:build + /brana:review loop auto-spawn",
+      "subject": "Wire loop suggest-and-confirm protocol per ADR-050 (build + close procedures)",
       "tags": [
         "session-loops",
         "scheduler",
@@ -50424,6 +50425,35 @@
       "execution": "code",
       "epic": "harness-core",
       "work_type": "implement"
+    },
+    {
+      "id": "t-1931",
+      "subject": "Fix skill procedure-pointer stubs — base-dir-relative path (72× logged read failures)",
+      "status": "in_progress",
+      "type": "task",
+      "tags": [
+        "skills",
+        "dx",
+        "hooks",
+        "recurring-error"
+      ],
+      "description": "All 30 PROCEDURE_FILE stubs in system/skills/*/SKILL.md say \"Read system/procedures/X.md from the plugin root directory\". This is wrong in the deployed plugin layout (no system/ prefix — procedures/ sits at plugin root) and ambiguous in-repo, so models resolve relative to the announced skill base dir and fail: 44× <base>/procedures/X, 28× <base>/system/procedures/X, plus ~/.claude variants. Fix: instruct base-dir-relative resolution — <base-dir>/../../procedures/X.md — which resolves correctly in BOTH layouts (repo: system/skills/N → system/procedures/N.md; deployed: skills/N → procedures/N.md). Add validate.sh check asserting stub form + target existence to prevent regression.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-10",
+      "started": "2026-06-10",
+      "completed": null,
+      "blocked_by": [],
+      "branch": "harness-core/fix/t-1931-skill-procedure-pointers",
+      "context": "2026-06-10: Hit live this session — backlog skill stub sent Read to <base>/procedures/backlog.md (does not exist); recovered via find. Session-start error log: Read tool-fail close procedures x44 + x28, backlog x3.\nAC: file system/skills/backlog/SKILL.md contains \"../../procedures/backlog.md\"\nAC: all 30 PROCEDURE_FILE stubs use base-dir-relative form\nAC: validate.sh passes (including new stub-resolution check)\nAC: changes to system/skills committed",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "work_type": "implement",
+      "strategy": "bug-fix",
+      "epic": "harness-core"
     }
   ],
   "version": "1"
