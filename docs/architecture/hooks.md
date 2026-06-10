@@ -174,17 +174,6 @@ hook_should_run "standard" || { pass_through; exit 0; }
 
 Only 3 hooks use profiles today. Hooks without profile gates (session-start, session-end, subagent-context, etc.) always run regardless of tier.
 
-## Guard-explore (read pattern observability)
-
-
-**Current mode: logging only.** No blocking. After 1 week of data collection, enforcement can be enabled.
-
-**How it works:**
-1. **Grep/Glob calls** — recorded to `/tmp/brana-search-{SESSION_ID}.log`
-2. **Read calls on impl files** (`src/`, `lib/`, `system/cli/`, `system/scripts/`) — checks if any search preceded it. If not, logs to `/tmp/brana-explore-{SESSION_ID}.log`
-3. **Whitelisted files** always pass through: `*.md`, configs (`*.json`, `*.yaml`, `*.toml`), test files, `docs/`, `.claude/`, `system/skills/`, `system/hooks/`
-
-**Analyzing results:** After a week, review `/tmp/brana-explore-*.log` files to see how often reads happen without searches. High counts indicate search-first enforcement would reduce wasted tool calls.
 
 ## Subagent context injection
 

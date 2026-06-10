@@ -537,7 +537,7 @@ Cross-references PreToolUse scripts in `hooks.json` against the gate classificat
 - **48a:** PreToolUse script registered in `hooks.json` but missing a gate table row — no enforcement/advisory classification on record
 - **48b:** Gate table row references a script not wired in `hooks.json` under any event — stale documentation or deployment gap
 
-Both gap types are `WARN` (not `FAIL`): a gap is a documentation debt, not a functional breakage (e.g., `guard-explore.sh` is table-documented but intentionally not yet wired).
+Both gap types are `WARN` (not `FAIL`): a gap is a documentation debt, not a functional breakage (e.g., a hook that is table-documented but intentionally not yet wired).
 
 - **PASS:** all PreToolUse hooks have table rows; all table rows reference registered hooks
 - **WARN:** any gap found — output shows gap type and script name
