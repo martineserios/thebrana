@@ -51176,7 +51176,7 @@
       ],
       "context": "E2026-06-10-6: brana backlog `deleted` status is not valid — CLI rejects it at runtime. The field note was written to system/skills/backlog/SKILL.md during the 2026-06-10 close but the branch-verify hook blocked staging it on main. Needs a micro-branch: git switch -c docs/backlog/t-XXXX-deleted-status-field-note, then commit.",
       "id": "t-1957",
-      "status": "in_progress",
+      "status": "completed",
       "execution": "code",
       "created": "2026-06-10",
       "blocked_by": [],
@@ -51187,7 +51187,7 @@
       "github_issue": null,
       "started": null,
       "completed": null,
-      "notes": null,
+      "notes": "2026-06-10: field note committed on harness/docs/t-1957-deleted-status-field-note, merged --no-ff to main.",
       "strategy": null,
       "build_step": null,
       "description": null
