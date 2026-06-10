@@ -2137,6 +2137,55 @@ fi
 echo ""
 fi  # should_run 53
 
+# Check 54 — build.md must contain a loop-suggestion step gated to L/XL effort (ADR-050 / t-731)
+# Skills may suggest a loop only at BUILD start for L/XL builds (one per invocation, durable:false).
+# This check ensures the suggestion point exists in the procedure before t-731 closes.
+if should_run 54; then
+echo "Check 54: build.md loop-suggestion step (ADR-050)..."
+BUILD_MD="$SYSTEM_DIR/procedures/build.md"
+if [ ! -f "$BUILD_MD" ]; then
+    warn "Check 54: system/procedures/build.md not found — skipping"
+elif grep -q "loop.*suggest\|suggest.*loop\|loop suggestion" "$BUILD_MD" && grep -q "L/XL\|XL.*only\|effort.*L\|large.*build" "$BUILD_MD"; then
+    pass "Check 54: build.md contains loop-suggestion step gated to L/XL effort"
+else
+    fail "Check 54: build.md missing loop-suggestion step gated to L/XL effort (ADR-050 §Protocol, t-731)"
+fi
+echo ""
+fi  # should_run 54
+
+# Check 55 — close.md must contain a session-loop sweep (CronList + CronDelete) (ADR-050 / t-731)
+# /brana:close is the backstop that cleans up any loops spawned during the session.
+# This check ensures the sweep line exists in the close procedure before t-731 closes.
+if should_run 55; then
+echo "Check 55: close.md session-loop sweep (ADR-050)..."
+CLOSE_MD="$SYSTEM_DIR/procedures/close.md"
+if [ ! -f "$CLOSE_MD" ]; then
+    warn "Check 55: system/procedures/close.md not found — skipping"
+elif grep -q "CronList" "$CLOSE_MD" && grep -q "CronDelete" "$CLOSE_MD"; then
+    pass "Check 55: close.md contains session-loop sweep (CronList + CronDelete)"
+else
+    fail "Check 55: close.md missing session-loop sweep — must call CronList then CronDelete for any spawned loops (ADR-050 §Lifecycle contract, t-731)"
+fi
+echo ""
+fi  # should_run 55
+
+# Check 56 — build.md loop suggestion must state durable:false constraint (ADR-050 / t-731)
+# All skill-suggested loops must be session-scoped (durable:false). Cross-session loops
+# require explicit user request per ADR-050 — this check prevents the constraint from being
+# silently omitted when the suggestion step is added.
+if should_run 56; then
+echo "Check 56: build.md loop-suggestion durable:false constraint (ADR-050)..."
+BUILD_MD="$SYSTEM_DIR/procedures/build.md"
+if [ ! -f "$BUILD_MD" ]; then
+    warn "Check 56: system/procedures/build.md not found — skipping"
+elif grep -q "durable.*false\|durable: false" "$BUILD_MD"; then
+    pass "Check 56: build.md loop-suggestion states durable:false"
+else
+    fail "Check 56: build.md loop-suggestion missing durable:false constraint — all skill-suggested loops must be session-scoped (ADR-050 §Protocol)"
+fi
+echo ""
+fi  # should_run 56
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."
