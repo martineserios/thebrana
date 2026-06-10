@@ -50429,7 +50429,7 @@
     {
       "id": "t-1931",
       "subject": "Fix skill procedure-pointer stubs — base-dir-relative path (72× logged read failures)",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "tags": [
         "skills",
@@ -50443,17 +50443,45 @@
       "parent": null,
       "created": "2026-06-10",
       "started": "2026-06-10",
-      "completed": null,
+      "completed": "2026-06-10",
       "blocked_by": [],
       "branch": "harness-core/fix/t-1931-skill-procedure-pointers",
       "context": "2026-06-10: Hit live this session — backlog skill stub sent Read to <base>/procedures/backlog.md (does not exist); recovered via find. Session-start error log: Read tool-fail close procedures x44 + x28, backlog x3.\nAC: file system/skills/backlog/SKILL.md contains \"../../procedures/backlog.md\"\nAC: all 30 PROCEDURE_FILE stubs use base-dir-relative form\nAC: validate.sh passes (including new stub-resolution check)\nAC: changes to system/skills committed",
-      "notes": null,
+      "notes": "2026-06-10: Fixed all 33 stubs to base-dir-relative ../../procedures/X.md (valid in repo + deployed layouts). Added validate.sh Check 53 (red 33 → green 0; full suite passes). Merged 5bbe2220; plugin cache synced via bootstrap --sync-plugin and fix verified resolving in deployed layout. Standalone ~/.claude/skills/ layout (procedures-less) split to t-1932 — those copies were equally broken before this fix; Glob fallback unchanged as their safety net.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "work_type": "implement",
       "strategy": "bug-fix",
       "epic": "harness-core"
+    },
+    {
+      "id": "t-1932",
+      "subject": "Investigate + dedup standalone ~/.claude/skills/ copies (no procedures dir — stub fallback only)",
+      "status": "pending",
+      "type": "task",
+      "tags": [
+        "skills",
+        "dx",
+        "plugin",
+        "recurring-error"
+      ],
+      "description": "~/.claude/skills/ contains SKILL.md-only copies of all 33 brana skills (mtime 2026-06-08, all identical — bulk-synced by an unidentified mechanism; not bootstrap.sh, not index-skills.sh). They shadow the plugin skills (both 'backlog' and 'brana:backlog' appear as available skills) but have NO procedures/ sibling, so the t-1931 base-dir-relative pointer cannot resolve there — only the Glob fallback works, and only when CWD is inside thebrana. Identify the writer, then either (a) remove the duplicates (per no-duplicate-plugin-loading decision), or (b) make the sync include procedures/. Also: 3 of the logged Read failures came from this layout.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-10",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "2026-06-10: Found during t-1931 challenger review. Writer unknown — check acquire-skills flow, brana skills CLI, CC marketplace install. Related decision: feedback_no-duplicate-plugin-loading.\nAC: writer of ~/.claude/skills/ copies identified and documented\nAC: duplicates removed OR sync includes procedures/ (decision logged)",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "epic": "harness-core",
+      "work_type": "research"
     }
   ],
   "version": "1"
