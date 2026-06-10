@@ -102,7 +102,7 @@ After cleanup: ~Y (target: <300, healthy: <100)
 
 Ask the user with AskUserQuestion:
 - Option A: Apply all changes (delete redundant, leave moves as TODOs with comments)
-- Option B: Show me a cleaned version to review first
+- Option B: Show me a cleaned version to review first (Recommended — safe, non-destructive)
 - Option C: Just the report, I'll edit manually
 
 If A or B: produce the cleaned CLAUDE.md. For each "move" item, replace with a comment:
@@ -188,7 +188,7 @@ Omit any section with no content. Do not add headers for empty sections.
 ## Step 4: REVIEW
 
 Show the generated CLAUDE.md to the user before writing.
-Ask: "Write to ./CLAUDE.md?" with options: yes / yes and add to git / edit first / cancel.
+Ask: "Write to ./CLAUDE.md?" with options: yes and add to git (Recommended) / yes / edit first / cancel.
 
 Write only on explicit approval.
 

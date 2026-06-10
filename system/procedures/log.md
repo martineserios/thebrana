@@ -74,7 +74,7 @@ Quick append — the default mode.
    - Check if any URL already exists in a research task's description, context, or notes
    - For each **new** URL (not already in any task):
      - Use AskUserQuestion: "Found {N} new URL(s). Create research tasks?"
-       - Options: "Yes — create tasks", "No — just log"
+       - Options: "Yes — create tasks (Recommended)", "No — just log"
      - If yes: for each URL, run `/brana:backlog add` with stream=research, the URL in context, and tags from the log entry
    - For URLs that already exist in tasks: note "(already tracked as {task-id})" silently in the log entry
 

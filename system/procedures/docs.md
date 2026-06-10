@@ -43,7 +43,7 @@ Write to `docs/architecture/features/{feature-slug}.md` using the template at `s
 2. If a tech doc already exists for this feature:
    - Read it
    - Show diff preview of proposed changes
-   - Ask: "Update existing doc?" via AskUserQuestion
+   - Ask: "Update existing doc?" via AskUserQuestion — options: "Show diff preview (Recommended)", "Apply changes directly"
 3. If no doc exists:
    - Fill template from gathered context
    - Write the file

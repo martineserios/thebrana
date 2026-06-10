@@ -333,7 +333,7 @@ Score each finding (0-10) on two axes:
 **Gate by size:**
 - **SMALL:** Auto-persist (no prompt). Metric snapshots, event log entries.
 - **MEDIUM:** Inline eval — dedup via `mcp__ruflo__memory_search(query: "{finding summary}", namespace: "knowledge", limit: 2)` and `mcp__ruflo__memory_search(query: "{finding summary}", namespace: "pattern", limit: 2)`. If top result similarity > 0.9, skip or merge. Present remaining to user via AskUserQuestion.
-- **LARGE:** Present to user with recommendation via AskUserQuestion. For strategic shifts or cross-client patterns, suggest `/brana:challenge` review.
+- **LARGE:** Present to user with recommendation via AskUserQuestion (default option: "Promote — this is worth keeping (Recommended)"). For strategic shifts or cross-client patterns, suggest `/brana:challenge` review.
 
 ## Step G — PERSIST
 

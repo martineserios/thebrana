@@ -218,7 +218,7 @@ Traverses docs via formal `[doc NN](path)` links and flags factual contradiction
 
 3. **Interactive approve-merges flow** (for duplicate and contradiction candidates only):
    - List each HIGH/MEDIUM candidate with: source file(s), the conflict or duplication, proposed action (archive/merge/update).
-   - For each: ask user to approve, skip, or edit the proposed action using AskUserQuestion with options `["approve", "skip", "edit action"]`.
+   - For each: ask user to approve, skip, or edit the proposed action using AskUserQuestion with options `["approve (Recommended)", "skip", "edit action"]`.
    - Only apply approved fixes. Don't touch skipped items.
 
 4. **Apply approved fixes:**

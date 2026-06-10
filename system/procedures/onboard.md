@@ -44,11 +44,11 @@ Gather the minimum needed to create the project root.
 | display_name | "Display name?" | free text | titlecase of slug |
 | type | "Project type?" | code / venture / hybrid | code |
 | description | "One-line description?" | free text | — |
-| category | "Category?" | client (paid work) / venture (your IP — side project, learning, monetizing) / personal | client |
+| category | "Category?" | client (paid work — Recommended for new client projects) / venture (your IP — side project, learning, monetizing) / personal | client |
 | base_path | "Location?" | auto from category: `clients/` / `ventures/` / `personal/` (all under `~/enter_thebrana/`) / custom path | auto |
 | github | "Create GitHub remote?" | yes / no | no |
 | github_org | (only if github=yes) "GitHub org?" | martineserios / other | martineserios |
-| github_visibility | (only if github=yes) "Visibility?" | private (recommended) / public | private |
+| github_visibility | (only if github=yes) "Visibility?" | private (Recommended) / public | private |
 
 ### Flag overrides (skip prompts)
 

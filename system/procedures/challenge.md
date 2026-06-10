@@ -29,7 +29,7 @@ Adversarial review with two modes. **Standard:** Opus stress-tests reasoning, Ge
    | Stakeholder breadth | Anything visible externally | "just me" / "one other person" / "wider team" / "external users" |
    | Constraints already locked | Mid-project decisions | "nothing locked yet" / specific commitments listed |
    | Hard ceiling on scope | Sprawling proposals | "S" / "M" / "L" / "explicitly unbounded" |
-   | Gemini grounding | Brana-domain decisions — user wants to skip | "run agy (default)" / "skip — no Brana docs apply" |
+   | Gemini grounding | Brana-domain decisions — user wants to skip | "run agy (Recommended)" / "skip — no Brana docs apply" |
 
    Use the answers to:
    - Calibrate severity (high deadline pressure → demote long-term observations to LOW)

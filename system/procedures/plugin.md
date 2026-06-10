@@ -94,7 +94,7 @@ Install a plugin from a known marketplace.
 
 5. Present to user with AskUserQuestion:
    - question: "Install <name> v<version> from <marketplace>?\n<description>"
-   - options: ["Install", "Cancel"]
+   - options: ["Install (Recommended)", "Cancel"]
 
 6. If confirmed, snapshot the plugin source to cache:
    ```bash
@@ -178,7 +178,7 @@ Uninstall a plugin.
 
 3. Confirm with AskUserQuestion:
    - question: "Remove plugin '<name>'? This deletes cached files."
-   - options: ["Remove", "Cancel"]
+   - options: ["Remove", "Cancel (Recommended)"]
 
 4. Delete the cache directory:
    ```bash
@@ -215,7 +215,7 @@ Update all installed plugins or a specific one.
 
 4. Confirm with AskUserQuestion:
    - question: "Apply updates?"
-   - options: ["Update all", "Pick which", "Skip"]
+   - options: ["Update all (Recommended)", "Pick which", "Skip"]
 
 5. For each confirmed update, re-run the install snapshot (same as `install` step 6-8).
 

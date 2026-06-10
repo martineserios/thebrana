@@ -6,7 +6,7 @@
 
 ## Step 1 — Get the question
 
-Use the skill arg if provided. If the conversation makes the question obvious, use that. Otherwise ask:
+Use the skill arg if provided. If the conversation makes the question obvious, use that (Recommended). Otherwise ask:
 
 ```
 AskUserQuestion: "What's the decision? One sentence."
