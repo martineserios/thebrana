@@ -350,10 +350,13 @@ if [ -d "$PROCEDURES_DIR" ]; then
     TOTAL_ASK=0
     MISSING_REC=0
     MISSING_FILES=""
-    for proc_file in "$PROCEDURES_DIR"/*.md "$SYSTEM_DIR"/skills/*/SKILL.md "$SYSTEM_DIR"/skills/acquired/*/SKILL.md; do
+    for proc_file in "$PROCEDURES_DIR"/*.md "$SYSTEM_DIR"/skills/*/SKILL.md "$SYSTEM_DIR"/skills/acquired/*/SKILL.md "$SYSTEM_DIR"/skills/*/phases/*.md; do
         [ -f "$proc_file" ] || continue
         proc_name=$(basename "$proc_file")
-        case "$proc_file" in */SKILL.md) proc_name="skills/$(basename "$(dirname "$proc_file")")";; esac
+        case "$proc_file" in
+            */SKILL.md) proc_name="skills/$(basename "$(dirname "$proc_file")")";;
+            */phases/*) proc_name="skills/$(basename "$(dirname "$(dirname "$proc_file")")")/phases/$(basename "$proc_file")";;
+        esac
         # Count AskUserQuestion occurrences
         count=$(grep -c "AskUserQuestion" "$proc_file" 2>/dev/null || true)
         if [ "$count" -gt 0 ]; then
