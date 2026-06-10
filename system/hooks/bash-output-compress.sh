@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # No strict mode — hooks must never fail and block the session.
 
+# retire-when: default model ≥ Fable-class
+#   Compensates for context-window pressure on smaller models by truncating
+#   Bash output — at the cost of hiding diagnostic detail the model may need
+#   (t-1711 flagged exactly that). Frontier models manage long outputs
+#   natively; audit with: grep -r "retire-when:" system/  (t-1945)
 # PostToolUse hook — compress verbose Bash output to save context budget (t-1716).
 # Fires after every Bash tool call.
 # If the output exceeds 100 lines OR 8000 chars, injects a compressed view via

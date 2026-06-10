@@ -284,6 +284,22 @@ Bootstrap hooks use absolute paths in `~/.claude/settings.json`:
 
 Multiple hooks can register for the same event. They run sequentially; if any PreToolUse hook blocks, the tool call is denied.
 
+## Retire-when annotations (t-1945)
+
+Hooks or rules that exist to compensate for **weaker-model behavior** (not for
+structural invariants) carry a machine-greppable retirement condition near the
+top of the file:
+
+```
+# retire-when: default model ≥ Fable-class
+```
+
+When the default session model meets the condition, the artifact is a deletion
+candidate — the audit is mechanical: `grep -r "retire-when:" system/`. Current
+set: `hallucination-detect.sh`, `bash-output-compress.sh`. Gates that protect
+unrepairable invariants (main-guard, tdd-gate, no-attribution) are NOT
+model-compensation and never carry this annotation.
+
 ## Field Notes
 
 ### 2026-06-10: loud failures — persist-failure surfacing, scheduler alerts, Check 48 promoted (t-1938)
