@@ -881,6 +881,22 @@ mcp__ruflo__hive-mind_memory(
 ```
 If MCP unavailable, skip silently. Hive-mind is transient awareness, not critical path.
 
+**Loop suggestion (L/XL builds only — one per invocation, ADR-050):**
+For effort L or XL tasks only, once per build invocation, optionally suggest a session loop:
+```
+AskUserQuestion:
+  question: "Long build detected. Start a session loop to nag about uncommitted changes every 20 min?"
+  header: "Loop?"
+  options:
+    - label: "Yes — start loop"
+      description: "Runs: git status --porcelain (exits 0 if clean). durable:false — dies with session."
+    - label: "No thanks"
+      description: "Skip. Will not ask again this session."
+```
+If "Yes": invoke `CronCreate` with `durable: false`, interval ≥20 min (past cache TTL) or ≤4 min (within TTL) — never 5–19 min (ScheduleWakeup worst-of-both). Prompt must reference a machine-verifiable check (`git status --porcelain`, `validate.sh`, test exit code) — never open-ended assessment. If user declines, drop silently; never re-ask in the same session.
+
+Skip this step for: S/XS builds, spike/investigation strategies, and any invocation where the loop was already offered this session (check `~/.claude/run-state/loop-offered-{task_id}` sentinel).
+
 1. **Create branch** (if not already on one):
    ```bash
    git checkout -b feat/{task-id}-{slug}

@@ -58,7 +58,7 @@ Persistent directory at `~/.claude/plugins/data/{id}/` that survives plugin upda
 
 Session-scoped scheduling via `CronCreate`/`CronList`/`CronDelete`.
 
-- Skills can't invoke CronCreate — only main conversation can
+- ~~Skills can't invoke CronCreate — only main conversation can~~ ← **constraint dissolved** (verified 2026-06-09, ADR-050 §Context). Skill procedures run in main context; CronCreate is available.
 - Cron prompts CAN invoke skills (`"prompt": "/brana:build check-ci"` works)
 - Each fire costs API tokens — no discount
 - 3-day expiry non-configurable, no retry on failure

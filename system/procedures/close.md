@@ -1257,6 +1257,20 @@ For "Review each": iterate per-stash with its own AskUserQuestion (batch up to 4
 
 **Skip if:** `git stash list` is empty, or no stashes are older than 7 days.
 
+### Step 11f: Session-loop sweep (ADR-050)
+
+Clean up any cron loops that were spawned during this session. This is the backstop — individual skill CLOSE steps should delete their own loops, but this step catches anything left over.
+
+```
+ToolSearch("select:CronList,CronDelete")
+```
+
+1. List active crons: call `CronList` (deferred tool — load schema first via ToolSearch above).
+2. If any entries exist: delete each non-durable loop with `CronDelete`. Skip any with `durable: true` — those were explicitly requested by the user and survive intentionally.
+3. If `CronList` returns empty or the tool is unavailable: skip silently. Non-durable loops are killed by session end anyway.
+
+**Track for Step 12 report:** `{N} session loops swept` (or "none").
+
 ### Step 12: Report
 
 ```markdown
