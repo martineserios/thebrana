@@ -99,7 +99,7 @@ ToolSearch("select:mcp__ruflo__memory_search,mcp__ruflo__agent_spawn,mcp__brana_
    **Level 2 — Ask user.** If still ambiguous (e.g., request could be research or evaluate):
    ```
    AskUserQuestion: "What's your goal with this research?"
-   Options: ["Research — learn what X is", "Evaluate — decide between options", "Learn — onboard to new tech", "Investigate — debug a problem"]
+   Options: ["Research — learn what X is (Recommended)", "Evaluate — decide between options", "Learn — onboard to new tech", "Investigate — debug a problem"]
    ```
 
    Set `$STRATEGY` (default: `research`). Log: "Strategy: {$STRATEGY}. Proceeding with shared research flow."

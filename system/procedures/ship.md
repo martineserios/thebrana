@@ -84,7 +84,7 @@ Run all safety checks before touching anything external.
 
    ```
    AskUserQuestion: "Pre-flight passed. Deploy?"
-   Options: ["Deploy now", "Abort"]
+   Options: ["Deploy now (Recommended)", "Abort"]
    ```
 
    If any check failed, change the prompt to include the failure summary and add a "Deploy anyway (force)" option.

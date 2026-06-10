@@ -220,7 +220,7 @@ AskUserQuestion:
       description: "Continue the discussion on a specific aspect of the idea."
     - label: "Challenge me harder on {topic}"
       description: "Push back more forcefully on a specific assumption."
-    - label: "Ready to shape it"
+    - label: "Ready to shape it (Recommended)"
       description: "Move to Phase 4 and turn the idea into a concrete doc."
     - label: "Let me think — save what we have"
       description: "Save current state and jump to Phase 5 without shaping."
@@ -303,7 +303,7 @@ AskUserQuestion:
   question: "How does this look? What should we adjust?"
   header: "Review"
   options:
-    - label: "Looks good — save it"
+    - label: "Looks good — save it (Recommended)"
       description: "Save the shaped idea doc and proceed to Phase 5."
     - label: "Adjust the direction"
       description: "Loop back to a specific section for refinement."

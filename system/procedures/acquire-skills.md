@@ -68,7 +68,7 @@ Gaps (no matching skill):
 
 Use **AskUserQuestion** to confirm:
 - question: "Search marketplaces for these gaps?"
-- options: ["All gaps", "Pick which ones", "Skip"]
+- options: ["All gaps (Recommended)", "Pick which ones", "Skip"]
 
 If "Skip": report and exit.
 If "Pick which ones": let user select from gap list.

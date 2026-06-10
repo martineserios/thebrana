@@ -179,7 +179,7 @@ If count ≥ 2: proceed. Otherwise: skip HARDEN entirely — mark the CC Task `c
    ```
    AskUserQuestion(
      question: "This errata class ({class}) has appeared {N} times. Convert to a PreToolUse gate?\n\nProposed invariant: {invariant}\nInterception: PreToolUse on {tool} matching {pattern}",
-     options: ["Yes — draft the hook", "No — skip hardening"]
+     options: ["Yes — draft the hook (Recommended)", "No — skip hardening"]
    )
    ```
 

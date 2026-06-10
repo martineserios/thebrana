@@ -545,7 +545,7 @@ Identify dimension docs that are old AND unused.
    "N stale dimensions found (>90 days, no recent search hits).
    Select which to mark stale (adds `stale: true` to frontmatter) or dismiss:"
    ```
-   Options: one per stale doc (filename + age), plus "Skip — take no action".
+   Options: one per stale doc (filename + age), plus "Skip — take no action (Recommended)".
 6. For each selected doc, add `stale: true` to its YAML frontmatter (or report only if the doc lives in brana-knowledge and the user prefers manual edits there).
 
 ### KNOW-2: Event log bloat [INTERACTIVE if >20 old entries]

@@ -178,7 +178,7 @@ AskUserQuestion:
   question: "Classified as {type}. Review the draft and confirm routing."
   header: "Memory routing"
   options:
-    - label: "Approve — {type} → {destination}"
+    - label: "Approve — {type} → {destination} (Recommended)"
       description: "Accept the classified type and route to the suggested destination."
     - label: "Override type → Pattern"
       description: "Reclassify as Pattern and route to pattern memory."
