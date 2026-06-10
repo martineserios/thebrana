@@ -25,7 +25,7 @@
             "enabled": true,
             "timeoutSeconds": 60,
             "captureOutput": true,
-            "_comment": "ADR-015: daily safety net — sync operational state from cache to repos"
+            "_comment": "ADR-015: daily safety net \u2014 sync operational state from cache to repos"
         },
         "agentdb-watch": {
             "type": "command",
@@ -55,7 +55,7 @@
             "maxRetries": 1,
             "timeoutSeconds": 60,
             "captureOutput": true,
-            "_comment": "Weekly CC changelog diff — writes ~/.claude/cc-changelog-report.md if changes found (t-512)"
+            "_comment": "Weekly CC changelog diff \u2014 writes ~/.claude/cc-changelog-report.md if changes found (t-512)"
         },
         "reindex-knowledge": {
             "type": "command",
@@ -66,7 +66,7 @@
             "maxRetries": 1,
             "timeoutSeconds": 10800,
             "captureOutput": true,
-            "_comment": "Weekly full reindex — runs at noon Sun (moved from 2am: cold-boot MCP unavailable, t-1101)"
+            "_comment": "Weekly full reindex \u2014 runs at noon Sun (moved from 2am: cold-boot MCP unavailable, t-1101)"
         },
         "knowledge-decay": {
             "type": "skill",
@@ -79,7 +79,7 @@
             "maxRetries": 1,
             "timeoutSeconds": 600,
             "captureOutput": true,
-            "_comment": "t-936/t-1102: weekly DECAY — stale dimensions, event log bloat, ruflo noise. Runs after reindex-knowledge (noon)."
+            "_comment": "t-936/t-1102: weekly DECAY \u2014 stale dimensions, event log bloat, ruflo noise. Runs after reindex-knowledge (noon)."
         },
         "reindex-patterns": {
             "type": "command",
@@ -89,7 +89,7 @@
             "enabled": true,
             "timeoutSeconds": 3600,
             "captureOutput": true,
-            "_comment": "Weekly pattern namespace reindex — runs at 3am (after knowledge reindex), ~1h max (t-857)"
+            "_comment": "Weekly pattern namespace reindex \u2014 runs at 3am (after knowledge reindex), ~1h max (t-857)"
         },
         "export-patterns": {
             "type": "command",
@@ -128,7 +128,7 @@
             "schedule": "Mon..Fri *-*-* 08:48:00",
             "model": "haiku",
             "enabled": false,
-            "_comment": "Daily morning focus card — disabled locally (runs on Oracle for Telegram)"
+            "_comment": "Daily morning focus card \u2014 disabled locally (runs on Oracle for Telegram)"
         },
         "link-check": {
             "type": "command",
@@ -157,7 +157,7 @@
             "maxRetries": 1,
             "timeoutSeconds": 300,
             "captureOutput": true,
-            "_comment": "t-1139: fetch anthropic-news article URLs, summarize via claude -p → feed-summaries.jsonl (feed-index joins at 19:00)"
+            "_comment": "t-1139: fetch anthropic-news article URLs, summarize via claude -p \u2192 feed-summaries.jsonl (feed-index joins at 19:00)"
         },
         "feed-index": {
             "type": "command",
@@ -167,7 +167,7 @@
             "enabled": true,
             "timeoutSeconds": 60,
             "captureOutput": true,
-            "_comment": "t-1009: daily intelligence digest — feed-log.jsonl → ~/.claude/intelligence-feed-digest.md"
+            "_comment": "t-1009: daily intelligence digest \u2014 feed-log.jsonl \u2192 ~/.claude/intelligence-feed-digest.md"
         },
         "feed-ruflo-index": {
             "type": "command",
@@ -187,7 +187,7 @@
             "enabled": true,
             "timeoutSeconds": 300,
             "captureOutput": true,
-            "_comment": "t-1075: weekly L2 memory lint+heal — dedup, contradiction detection, frontmatter imputation. Runs after knowledge-decay (13:00)."
+            "_comment": "t-1075: weekly L2 memory lint+heal \u2014 dedup, contradiction detection, frontmatter imputation. Runs after knowledge-decay (13:00)."
         },
         "index-assumptions": {
             "type": "command",
@@ -239,7 +239,37 @@
             "enabled": true,
             "timeoutSeconds": 600,
             "captureOutput": true,
-            "_comment": "t-680: weekly content harvest. Synced from template 2026-05-25 (t-1680) — was silently missing from live."
+            "_comment": "t-680: weekly content harvest. Synced from template 2026-05-25 (t-1680) \u2014 was silently missing from live."
+        },
+        "daily-digest": {
+            "type": "command",
+            "command": "./system/scheduler/brana-scheduler-digest.sh",
+            "project": "~/enter_thebrana/thebrana",
+            "schedule": "*-*-* 09:30:00",
+            "enabled": false,
+            "timeoutSeconds": 30,
+            "captureOutput": false,
+            "_comment": "t-688: daily Telegram digest summarizing all scheduler runs. Enable on Oracle only (requires ~/.hub-secrets)."
+        },
+        "inbox-poll": {
+            "type": "command",
+            "command": "brana inbox poll",
+            "project": "~/enter_thebrana/thebrana",
+            "schedule": "*-*-* 09:00:00",
+            "enabled": false,
+            "timeoutSeconds": 60,
+            "captureOutput": true,
+            "_comment": "t-585: poll Gmail for new newsletter emails."
+        },
+        "memory-consolidation": {
+            "type": "command",
+            "command": "./system/scripts/memory-consolidation.sh",
+            "project": "~/enter_thebrana/thebrana",
+            "schedule": "Mon,Tue,Wed,Thu,Fri,Sat *-*-* 15:30:00",
+            "enabled": true,
+            "timeoutSeconds": 120,
+            "captureOutput": true,
+            "_comment": "t-1834: threshold-triggered L3 consolidation \u2014 debrief-flag consumption + frontmatter date normalization. OR trigger: >24h OR >=5 sessions. Does NOT call lint-heal.sh (no lock collision). Runs Mon-Sat only (Sun handled by lint-heal at 15:00 which resets session counter)."
         }
     }
 }
