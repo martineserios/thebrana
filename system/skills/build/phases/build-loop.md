@@ -83,7 +83,7 @@ Skip this step for: S/XS builds, spike/investigation strategies, and any invocat
 3. **For each task** (in dependency order):
    a. **Mark CC Task in_progress** (if created): `TaskUpdate: status → in_progress`
    b. **Skill check** (Medium/Large builds only): run `brana skills suggest --query "<subtask subject and key terms>"`. If a match scores > 0.3, mention it: "Skill available: /brana:{name} ({reason}). Use it?" If the user says yes, invoke the skill for this subtask. If no match, proceed without mentioning.
-   b2. **Pre-edit challenger: procedure and skill files** — Before the first Edit to any `system/procedures/*.md` or `system/skills/*/SKILL.md` file in this build (any effort, any strategy), run challenger on the spec:
+   b2. **Pre-edit challenger: procedure and skill files** — Before the first Edit to any `system/procedures/*.md`, `system/skills/*/SKILL.md`, or `system/skills/*/phases/*.md` file in this build (any effort, any strategy), run challenger on the spec:
       ```
       Agent(
         subagent_type="brana:challenger",

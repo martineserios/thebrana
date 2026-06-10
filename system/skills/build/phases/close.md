@@ -154,6 +154,22 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
    ```
    Present any failures inline. This is advisory (individual check failures surface as warnings, not blocks) — the full `./validate.sh` run at the BUILD→CLOSE gate is the authoritative pass. Skip for spike and investigation strategies.
 
+10c. **Post-merge auto-deploy** (t-1948) — deploy what the merge changed, immediately after the targeted validate. No-op when the merged diff touches neither surface:
+   ```bash
+   # $CHANGED from step 10b (files changed in the merge)
+   # Hooks: deploy when the diff touches system/hooks/ (no-op when it doesn't)
+   if grep -q "^system/hooks/" <<< "$CHANGED"; then
+       make hooks-deploy && echo "Hooks deployed."
+   fi
+   # Plugin cache: sync when the diff touches system/skills/ or system/procedures/
+   # (ADR-034 deploy requirement — a merge without the sync leaves the deployed
+   # plugin pointing at stale or deleted files)
+   if grep -qE "^system/(skills|procedures)/" <<< "$CHANGED"; then
+       ./bootstrap.sh --sync-plugin
+   fi
+   ```
+   Run from the main repo root (the checkout where the merge landed), not a worktree. If either deploy ran, remind: sessions in flight still hold the pre-deploy skill/hook state — restart them to pick up the change. If a deploy command fails, surface the error and stop — a half-deployed merge is worse than a known-undeployed one.
+
 11. **Reconcile check** (post-merge, before docs):
    If `docs/spec-graph.json` exists, check whether merged files appear in any spec-graph node's `impl_files`. If matches found, offer to run `/brana:reconcile`:
    ```

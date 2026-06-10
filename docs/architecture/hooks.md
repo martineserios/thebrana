@@ -380,6 +380,10 @@ All hook `command` fields in `hooks.json` previously referenced `${CLAUDE_PLUGIN
 **Rule**: any new hook entry in `hooks.json` must use `bash "$HOME/.claude/hooks/<name>.sh"`. Never reference `${CLAUDE_PLUGIN_ROOT}/hooks/` in `hooks.json` command fields (except `hooks-auto-deploy.sh`). Run `make hooks-deploy` once after adding; the auto-deploy hook handles subsequent syncs.
 Source: t-1840 / close session 2026-06-08
 
+### 2026-06-10: Merges never auto-deployed — CLOSE step 10c closes the gap (t-1948)
+`hooks-auto-deploy.sh` fires on main-branch *writes*, but worktree merges land on main without a PostToolUse write event — every hook fix merged via worktree silently stayed undeployed until someone remembered `make hooks-deploy`. The same gap applied to the plugin cache (`./bootstrap.sh --sync-plugin`) for `system/skills|procedures` changes (ADR-034 deploy requirement). Fix: `/brana:build` CLOSE step 10c (`system/skills/build/phases/close.md`) now derives both deploys from the merged diff — `make hooks-deploy` when it touches `system/hooks/`, `--sync-plugin` when it touches `system/skills|procedures/`; no-op otherwise. Test: `tests/procedures/test-build-close-deploy.sh`.
+Source: t-1948 / pattern_hook-merge-does-not-autodeploy 2026-06-10
+
 ### 2026-06-08: Use `chore` not `ops` for feed registration and operational config tasks (harness-core)
 `branch-name-guard` rejects `ops` as a work-type prefix — it is not in the valid list (`feat|fix|chore|research|test|docs|refactor`). Feed registration tasks (e.g., writing entries to `~/.claude/scheduler/feeds.json`) and other operational/infrastructure changes under any epic should use `chore`. The CLAUDE.md docs list the valid types but do not warn about common near-misses like `ops` and `infra`. Until E2026-06-08-4 and E2026-06-08-5 are resolved, treat any "this should be infra/ops work" as `chore`.
 Source: t-1140 / close session 2026-06-08
