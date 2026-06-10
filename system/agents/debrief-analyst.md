@@ -4,7 +4,7 @@ description: "Extract errata, learnings, and patterns from a work session. Use a
 model: sonnet
 effort: high
 maxTurns: 15
-memory: true
+memory: user
 permissionMode: plan
 color: blue
 tools:

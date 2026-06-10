@@ -4,7 +4,7 @@ description: "Diagnose a business project — classify stage, recommend framewor
 model: haiku
 effort: medium
 maxTurns: 12
-memory: true
+memory: user
 permissionMode: plan
 color: cyan
 tools:

@@ -4,7 +4,6 @@ description: "Delegate to agy (Gemini Flash). Use for research, boilerplate, doc
 model: haiku
 effort: low
 maxTurns: 15
-memory: false
 permissionMode: auto
 color: blue
 tools:

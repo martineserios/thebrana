@@ -4,7 +4,7 @@ description: "Archive project patterns and knowledge when retiring. Categorize a
 model: haiku
 effort: low
 maxTurns: 8
-memory: true
+memory: user
 permissionMode: plan
 color: gray
 tools:

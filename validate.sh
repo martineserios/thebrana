@@ -157,7 +157,19 @@ for agent_file in "$SYSTEM_DIR"/agents/*.md; do
 
     if [ "$has_name" != "yes" ]; then fail "agents/$agent_name.md missing 'name' field"; fi
     if [ "$has_desc" != "yes" ]; then fail "agents/$agent_name.md missing 'description' field"; fi
-    if [ "$has_name" = "yes" ] && [ "$has_desc" = "yes" ]; then
+
+    # memory: must be a scope string (user|project|local) or absent. Booleans are
+    # silently ignored by CC — agents lose memory with no error (t-1935).
+    memory_val=$(echo "$frontmatter" | { grep -E '^memory:' || true; } | head -1 | sed 's/^memory:[[:space:]]*//' | tr -d '[:space:]')
+    memory_ok="yes"
+    if [ -n "$memory_val" ]; then
+        case "$memory_val" in
+            user|project|local) ;;
+            *) memory_ok="no"; fail "agents/$agent_name.md — invalid memory scope '$memory_val' (must be user|project|local; booleans are silently ignored by CC — t-1935)" ;;
+        esac
+    fi
+
+    if [ "$has_name" = "yes" ] && [ "$has_desc" = "yes" ] && [ "$memory_ok" = "yes" ]; then
         pass "agents/$agent_name.md — valid frontmatter"
     fi
 done

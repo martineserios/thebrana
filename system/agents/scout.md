@@ -4,7 +4,7 @@ description: "Fast research for codebase exploration and web search. Use when fi
 model: haiku
 effort: low
 maxTurns: 20
-memory: true
+memory: user
 permissionMode: plan
 color: yellow
 tools:

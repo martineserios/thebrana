@@ -4,7 +4,7 @@ description: "Adversarially review a plan, architecture decision, or approach. S
 model: sonnet
 effort: max
 maxTurns: 10
-memory: true
+memory: user
 permissionMode: plan
 color: red
 tools:

@@ -4,7 +4,7 @@ description: "Recall patterns from knowledge system, cross-pollinate across clie
 model: haiku
 effort: low
 maxTurns: 10
-memory: true
+memory: user
 permissionMode: plan
 color: purple
 tools:
