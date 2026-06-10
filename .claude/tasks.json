@@ -50414,9 +50414,7 @@
       "created": "2026-06-09",
       "started": null,
       "completed": null,
-      "blocked_by": [
-        "t-730"
-      ],
+      "blocked_by": [],
       "branch": null,
       "context": "2026-06-09: Created by TDD gate during t-719-revival replan. CONTINGENT on t-730 ADR go verdict — cancel alongside t-731 if no-go.",
       "notes": null,
