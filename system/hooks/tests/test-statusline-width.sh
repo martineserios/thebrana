@@ -144,7 +144,7 @@ OUTPUT=$(run_statusline 200)
 STRIPPED=$(strip_ansi "$OUTPUT")
 assert_contains "has model" "Opus 4" "$STRIPPED"
 assert_contains "has project" "wt-t-1020" "$STRIPPED"
-assert_contains "has CTX%" "CTX 42%" "$STRIPPED"
+assert_contains "has CTX%" "42%" "$STRIPPED"
 assert_contains "has lines added" "+156" "$STRIPPED"
 assert_contains "has lines removed" "-23" "$STRIPPED"
 
@@ -167,7 +167,7 @@ OUTPUT_80=$(run_statusline 80)
 STRIPPED_80=$(strip_ansi "$OUTPUT_80")
 # Must keep: model, project, CTX%
 assert_contains "80col: has model" "Opus 4" "$STRIPPED_80"
-assert_contains "80col: has CTX%" "CTX 42%" "$STRIPPED_80"
+assert_contains "80col: has CTX%" "42%" "$STRIPPED_80"
 # Lines segment is low priority — should be dropped at 80 cols
 # (model ~10 + project ~15 + branch ~30 + CTX ~10 + lines ~15 = ~80, tight)
 
@@ -187,7 +187,7 @@ OUTPUT_40=$(run_statusline 40)
 STRIPPED_40=$(strip_ansi "$OUTPUT_40")
 # Must keep: model, project, CTX% (the always-keep segments)
 assert_contains "40col: has model" "Opus 4" "$STRIPPED_40"
-assert_contains "40col: has CTX%" "CTX" "$STRIPPED_40"
+assert_contains "40col: has CTX%" "%" "$STRIPPED_40"
 # Should NOT have lines, phase, session score, scheduler
 assert_not_contains "40col: no lines" "+156" "$STRIPPED_40"
 assert_not_contains "40col: no session score" "S:" "$STRIPPED_40"
@@ -230,7 +230,7 @@ OUTPUT_FULL_80=$(run_statusline 80 make_full_input)
 STRIPPED_FULL_80=$(strip_ansi "$OUTPUT_FULL_80")
 # Always-keep segments must survive
 assert_contains "full-80: has model" "Opus 4" "$STRIPPED_FULL_80"
-assert_contains "full-80: has CTX%" "CTX" "$STRIPPED_FULL_80"
+assert_contains "full-80: has CTX%" "%" "$STRIPPED_FULL_80"
 
 LEN_FULL_80=$(visible_len "$OUTPUT_FULL_80")
 TOTAL=$((TOTAL + 1))

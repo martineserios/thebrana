@@ -11,4 +11,4 @@ allowed-tools: [Bash, Read, Glob, Grep, Edit, Write]
 status: stable
 ---
 <!-- PROCEDURE_FILE: procedures/rust-skills.md -->
-Read and execute the full procedure from `system/procedures/rust-skills.md`.
+Read and execute the full procedure from `../../procedures/rust-skills.md` resolved against this skill's base directory (the path announced when the skill loads) — i.e. `{base-dir}/../../procedures/rust-skills.md`. This form is valid in both the repo layout and the deployed-plugin layout.

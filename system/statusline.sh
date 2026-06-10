@@ -15,7 +15,8 @@ CTX_PCT=${CTX_PCT:-0}
 
 # ── ANSI palette ─────────────────────────────────────────
 R='\033[0m' D='\033[2m' B='\033[1m'
-Cw='\033[97m' Cy='\033[36m' Co='\033[33m' Cr='\033[31m'
+Cw='\033[97m' Cy='\033[36m' Cg='\033[32m' Co='\033[38;5;208m' Cr='\033[31m'
+BGg='\033[42m' BGo='\033[48;5;208m' BGr='\033[41m' BGe='\033[100m'
 S="${D}│${R}"
 
 # ── Project name ─────────────────────────────────────────
@@ -25,18 +26,28 @@ PROJ_NAME=$(basename "${GIT_ROOT:-$CWD}")
 # ── Branch ───────────────────────────────────────────────
 BRANCH=$(cd "$CWD" 2>/dev/null && git branch --show-current 2>/dev/null)
 
-# ── CTX color ────────────────────────────────────────────
+# ── CTX bar ──────────────────────────────────────────────
 COMPACT_THRESHOLD=${BRANA_AUTOCOMPACT_THRESHOLD:-85}
 UNTIL_COMPACT=$(( COMPACT_THRESHOLD - CTX_PCT ))
 
-if   (( UNTIL_COMPACT <= 0  )); then CTX_SHOW="${Cr}${B}🔴 CTX ${CTX_PCT}%${R}"
-elif (( UNTIL_COMPACT <= 15 )); then CTX_SHOW="${Cr}⚠ CTX ${CTX_PCT}% ${D}·${UNTIL_COMPACT}c${R}"
-elif (( UNTIL_COMPACT <= 30 )); then CTX_SHOW="${Co}⚠ CTX ${CTX_PCT}%${R}"
-elif (( UNTIL_COMPACT <= 45 )); then CTX_SHOW="${Co}CTX ${CTX_PCT}%${R}"
-else                                  CTX_SHOW="${D}CTX ${CTX_PCT}%${R}"; fi
+BAR_WIDTH=8
+FILLED=$(( CTX_PCT * BAR_WIDTH / 100 ))
+EMPTY=$(( BAR_WIDTH - FILLED ))
+BAR_FILL=$(printf "%${FILLED}s")
+BAR_EMPTY=$(printf "%${EMPTY}s")
+
+if   (( UNTIL_COMPACT <= 0  )); then
+    CTX_SHOW="🔴 ${BGr}${BAR_FILL}${BGe}${BAR_EMPTY}${R} ${Cr}${B}${CTX_PCT}%${R} ${D}⚠${R}"
+elif (( CTX_PCT >= 75 )); then
+    CTX_SHOW="${Cr}${B}COMPACT${R} ${BGo}${BAR_FILL}${BGe}${BAR_EMPTY}${R} ${Co}${CTX_PCT}%${R}"
+elif (( CTX_PCT >= 55 )); then
+    CTX_SHOW="🟡 ${BGo}${BAR_FILL}${BGe}${BAR_EMPTY}${R} ${Co}${CTX_PCT}%${R}"
+else
+    CTX_SHOW="🟢 ${BGg}${BAR_FILL}${BGe}${BAR_EMPTY}${R} ${D}${CTX_PCT}%${R}"
+fi
 
 # ── Output ───────────────────────────────────────────────
 printf '%b' "🧠 ${B}${Cw}${MODEL}${R} ${S} 📂 ${Cy}${PROJ_NAME}${R}"
-[ -n "$BRANCH" ] && printf '%b' " ${S} 🌿 ${Co}${BRANCH}${R}"
+[ -n "$BRANCH" ] && printf '%b' " ${S} @ ${Co}${BRANCH}${R}"
 printf '%b' " ${S} ${CTX_SHOW}"
 echo
