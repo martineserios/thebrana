@@ -23,6 +23,16 @@ Most skills are situational (weekly or less). A small subset is used in nearly e
 
 Stubs preserve full frontmatter (name, description, group, keywords, allowed-tools, status) for discovery, routing, and the skill index. The procedure file path is resolved relative to the plugin root using Glob if needed.
 
+**Amended (2026-06-10, t-1941):** The Risks clause fired — native Claude Code now lazy-loads SKILL.md bodies (frontmatter-only at session start), so the stub's extra Read hop no longer buys startup time and is itself the failure layer behind recurring procedure-Read errors. Procedure bodies merge back into SKILL.md for every 1:1 case:
+
+- **Default:** SKILL.md carries the full procedure body inline. No stub, no `system/procedures/{name}.md` counterpart.
+- **Transitional exception (big four):** `build`, `close`, `backlog`, `reconcile` keep stubs until their phase-split lands (t-1942) — their bodies exceed reliable single-load size. No other stub may be created; validate.sh enforces a named allowlist.
+- **`system/procedures/` retains** only preloaded knowledge docs with no SKILL.md counterpart (e.g. fastapi.md, supabase.md) and the big-four bodies.
+
+**Deploy requirement:** the plugin cache (`~/.claude/plugins/cache/brana/brana/1.0.0/`) is an rsync copy made by bootstrap.sh. The bootstrap sync is part of the migration itself — a merge without the sync leaves deployed stubs pointing at deleted procedure files. Sessions in flight during the migration window may observe a split state; restart them.
+
+**Rollback:** revert the t-1941 merge commit, then re-run the bootstrap sync. Both steps are required — reverting without re-syncing leaves the cache on the inlined layout.
+
 ## Consequences
 
 **Positive:**
