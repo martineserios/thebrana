@@ -8,6 +8,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BACKLOG_SKILL="$REPO_ROOT/system/skills/backlog/SKILL.md"
+# Body assertions read the effective body: procedure while the big-four stub remains (t-1941/t-1942)
+BACKLOG_BODY="$REPO_ROOT/system/procedures/backlog.md"
+grep -q PROCEDURE_FILE "$BACKLOG_SKILL" || BACKLOG_BODY="$BACKLOG_SKILL"
 
 PASS=0
 FAIL=0
@@ -45,29 +48,29 @@ assert_contains "memory_search in allowed-tools" "mcp__ruflo__memory_search" "$B
 
 # ── Test 2: Step 5 references memory_search MCP call ──
 echo "Test 2: Step 5 uses MCP routing"
-assert_contains "step 5 calls memory_search" "memory_search" "$BACKLOG_SKILL"
-assert_contains "step 5 uses namespace skills" 'namespace.*skills\|ns.*skills\|"skills"' "$BACKLOG_SKILL"
+assert_contains "step 5 calls memory_search" "memory_search" "$BACKLOG_BODY"
+assert_contains "step 5 uses namespace skills" 'namespace.*skills\|ns.*skills\|"skills"' "$BACKLOG_BODY"
 
 # ── Test 3: CLI fallback exists ──
 echo "Test 3: CLI fallback"
-assert_contains "CLI fallback present" "brana skills suggest" "$BACKLOG_SKILL"
-assert_contains "fallback is conditional" "unavailable\|fallback\|down" "$BACKLOG_SKILL"
+assert_contains "CLI fallback present" "brana skills suggest" "$BACKLOG_BODY"
+assert_contains "fallback is conditional" "unavailable\|fallback\|down" "$BACKLOG_BODY"
 
 # ── Test 4: Results presentation uses AskUserQuestion ──
 echo "Test 4: User confirmation via AskUserQuestion"
-assert_contains "AskUserQuestion for suggestion" "AskUserQuestion" "$BACKLOG_SKILL"
-assert_contains "skip option exists" "Skip\|none needed\|Skip.*none" "$BACKLOG_SKILL"
+assert_contains "AskUserQuestion for suggestion" "AskUserQuestion" "$BACKLOG_BODY"
+assert_contains "skip option exists" "Skip\|none needed\|Skip.*none" "$BACKLOG_BODY"
 
 # ── Test 5: Threshold-based behavior ──
 echo "Test 5: Threshold-based confidence tiers"
 # The spec should mention different behaviors for high/mid/low confidence
-assert_contains "high confidence suggest" "suggest.*threshold\|score.*0\\.5\|suggest_threshold" "$BACKLOG_SKILL"
-assert_contains "low confidence marketplace" "marketplace\|acquire-skills\|externally" "$BACKLOG_SKILL"
+assert_contains "high confidence suggest" "suggest.*threshold\|score.*0\\.5\|suggest_threshold" "$BACKLOG_BODY"
+assert_contains "low confidence marketplace" "marketplace\|acquire-skills\|externally" "$BACKLOG_BODY"
 
 # ── Test 6: No auto-invoke ──
 echo "Test 6: No silent/auto routing"
 # Step 5 should NOT contain auto-invoke or silent route
-AUTO_INVOKE=$(grep -c "auto.invoke\|silent.*route\|auto.*run" "$BACKLOG_SKILL" 2>/dev/null || true)
+AUTO_INVOKE=$(grep -c "auto.invoke\|silent.*route\|auto.*run" "$BACKLOG_BODY" 2>/dev/null || true)
 assert "no auto-invoke in step 5" "0" "${AUTO_INVOKE:-0}"
 
 # ── Test 7: index-skills.sh exists and skills namespace is indexable ──
