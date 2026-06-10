@@ -27,7 +27,7 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:brainstorm` | thinking | Interactive idea maturation — explore, research, shape raw ideas into actionable |
 | `/brana:build` | execution | Build anything — features, bug fixes, refactors, spikes, migrations. Auto-detect |
 | `/brana:cargo-machete` | brana | Detect and remove unused dependencies in Rust projects using cargo-machete. |
-| `/brana:challenge` | learning | Adversarial review — Opus stress-tests reasoning, Gemini checks knowledge. Use b |
+| `/brana:challenge` | learning | Adversarial review — Fable 5 stress-tests reasoning, Gemini checks knowledge. Us |
 | `/brana:claudemd` | execution | Audit or generate a CLAUDE.md for any project. Natural companion to /brana:align |
 | `/brana:client-retire` | execution | Archive a client's patterns and mark them as historical. Use when retiring a cli |
 | `/brana:close` | session | End a session — extract learnings, write handoff, store patterns, detect doc dri |
@@ -235,7 +235,7 @@ Ship a build — pre-flight checks, deploy, document, verify, monitor. Use when 
 
 ### `/brana:challenge`
 
-Adversarial review — Opus stress-tests reasoning, Gemini checks knowledge. Use before plan or architecture decisions.
+Adversarial review — Fable 5 stress-tests reasoning, Gemini checks knowledge. Use before plan or architecture decisions.
 
 **Arguments:** `[target description] [--council]`
 

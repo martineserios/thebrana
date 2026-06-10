@@ -6,9 +6,9 @@ Cost-aware agent spawning. Referenced by: /brana:build, /brana:backlog execute.
 
 The Router-as-Haiku pattern separates two concerns:
 1. **Classification (Haiku)** — compute the complexity score and pick a model tier. Fast, cheap, deterministic.
-2. **Execution (Haiku/Sonnet/Opus)** — do the actual work at the right tier.
+2. **Execution (Haiku/Sonnet/Fable)** — do the actual work at the right tier.
 
-Never spawn a Sonnet/Opus agent when a Haiku agent can do the job. The cost difference is 10-80× depending on the model pair.
+Never spawn a Sonnet/Fable agent when a Haiku agent can do the job. The cost difference is 10-80× depending on the model pair.
 
 ## Complexity Score (0.0–1.0)
 
@@ -26,7 +26,7 @@ Never spawn a Sonnet/Opus agent when a Haiku agent can do the job. The cost diff
 |-------|-------|---------|
 | < 0.3 | haiku | Simple tasks: chores, docs updates, small fixes, S effort |
 | 0.3–0.7 | sonnet | Standard tasks: features, M effort, most implementation |
-| > 0.7 | opus | Complex tasks: architecture, L/XL effort, cross-cutting changes |
+| > 0.7 | fable | Complex tasks: architecture, L/XL effort, cross-cutting changes |
 
 ## Override Precedence
 
@@ -40,7 +40,7 @@ When delegating a subtask to an agent:
 
 ```
 score = complexity_score(task)
-model = score < 0.3 ? "haiku" : score < 0.7 ? "sonnet" : "opus"
+model = score < 0.3 ? "haiku" : score < 0.7 ? "sonnet" : "fable"
 
 # Override check
 if task.agent_config?.model: model = task.agent_config.model
