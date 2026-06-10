@@ -12,7 +12,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-RETRO_PROC="$REPO_ROOT/system/procedures/retrospective.md"
+RETRO_PROC="$REPO_ROOT/system/skills/retrospective/SKILL.md"  # body inlined (t-1941)
 RETRO_SKILL="$REPO_ROOT/system/skills/retrospective/SKILL.md"
 DDD="$REPO_ROOT/docs/architecture/features/memory-taxonomy-ddd.md"
 SDD="$REPO_ROOT/docs/architecture/features/memory-taxonomy-sdd.md"
@@ -108,12 +108,12 @@ assert_not_contains "procedure does NOT auto-write rules to system/rules/" \
     "auto.*write.*system/rules|write.*system/rules.*auto" "$RETRO_PROC"
 echo ""
 
-# ── Test 3: Pattern type → patterns.md ───────────────────────────────────────
-echo "Test 3: Pattern → patterns.md append"
-assert_contains "procedure routes pattern to patterns.md" \
-    "patterns\.md" "$RETRO_PROC"
-assert_contains "procedure appends (not overwrites) patterns.md" \
-    "append" "$RETRO_PROC"
+# ── Test 3: Pattern type → per-pattern files (replaced patterns.md, dedup replaced cap) ──
+echo "Test 3: Pattern → per-pattern files"
+assert_contains "procedure routes pattern to per-pattern files" \
+    "pattern_.*\.md|per-pattern" "$RETRO_PROC"
+assert_contains "procedure never overwrites per-pattern files" \
+    "Never overwrite per-pattern" "$RETRO_PROC"
 echo ""
 
 # ── Test 4: Knowledge type → knowledge-staging.md ────────────────────────────
@@ -144,16 +144,18 @@ echo ""
 
 # ── Test 8: No feedback_*.md creation ────────────────────────────────────────
 echo "Test 8: feedback_*.md no longer written by retrospective"
-assert_not_contains "procedure does not write feedback_*.md" \
-    "feedback_.*\.md" "$RETRO_PROC"
+# feedback_{slug}.md is allowed ONLY as the user-approved promotion path (Step 8);
+# the routing ban must remain explicit in the Rules section.
+assert_contains "rules ban feedback_ prefix as routing destination" \
+    "no feedback_ prefix files" "$RETRO_PROC"
 echo ""
 
 # ── Test 9: Cap enforcement — patterns.md ────────────────────────────────────
-echo "Test 9: Cap enforcement — patterns.md"
-assert_contains "procedure warns at 40 patterns" \
-    "40" "$RETRO_PROC"
-assert_contains "procedure blocks at 50 patterns" \
-    "50" "$RETRO_PROC"
+echo "Test 9: Pattern dedup replaces cap"
+assert_contains "dedup check replaces pattern cap" \
+    "dedup.*replaces cap|replaces cap" "$RETRO_PROC"
+assert_contains "no cap on per-pattern files" \
+    "No cap, no pruning" "$RETRO_PROC"
 echo ""
 
 # ── Test 10: Cap enforcement — knowledge-staging.md ──────────────────────────

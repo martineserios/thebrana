@@ -9,6 +9,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BACKLOG_SKILL="$REPO_ROOT/system/skills/backlog/SKILL.md"
+BACKLOG_BODY="$REPO_ROOT/system/procedures/backlog.md"
+grep -q PROCEDURE_FILE "$BACKLOG_SKILL" || BACKLOG_BODY="$BACKLOG_SKILL"
 ACQUIRE_SKILL="$REPO_ROOT/system/skills/acquire-skills/SKILL.md"
 
 PASS=0
@@ -43,26 +45,26 @@ echo "=== test_marketplace_auto_trigger.sh ==="
 
 # ── Test 1: Backlog step 5 mentions acquire-skills on low confidence ──
 echo "Test 1: Low-confidence triggers marketplace"
-assert_contains "acquire-skills referenced in step 5" "acquire-skills" "$BACKLOG_SKILL"
-assert_contains "externally search option" "Search externally|externally" "$BACKLOG_SKILL"
+assert_contains "acquire-skills referenced in step 5" "acquire-skills" "$BACKLOG_BODY"
+assert_contains "externally search option" "Search externally|externally" "$BACKLOG_BODY"
 
 # ── Test 2: AskUserQuestion gate (no auto-install) ──
 echo "Test 2: User confirmation required"
-assert_contains "AskUserQuestion before external search" "AskUserQuestion" "$BACKLOG_SKILL"
-assert_contains "skip option for marketplace" "Skip" "$BACKLOG_SKILL"
+assert_contains "AskUserQuestion before external search" "AskUserQuestion" "$BACKLOG_BODY"
+assert_contains "skip option for marketplace" "Skip" "$BACKLOG_BODY"
 
 # ── Test 3: acquire-skills skill exists and is callable ──
 echo "Test 3: acquire-skills infrastructure"
 assert "acquire-skills SKILL.md exists" "true" "$([ -f "$ACQUIRE_SKILL" ] && echo true || echo false)"
-assert_contains "acquire-skills has Skill invocation" "Skill.*acquire|acquire-skills" "$BACKLOG_SKILL"
+assert_contains "acquire-skills has Skill invocation" "Skill.*acquire|acquire-skills" "$BACKLOG_BODY"
 
 # ── Test 4: Threshold-based trigger ──
 echo "Test 4: Trigger condition"
-assert_contains "threshold condition for gap" "0\\.3|mention_threshold|< mention" "$BACKLOG_SKILL"
+assert_contains "threshold condition for gap" "0\\.3|mention_threshold|< mention" "$BACKLOG_BODY"
 
 # ── Test 5: Only triggers for code execution tasks ──
 echo "Test 5: Code execution guard"
-assert_contains "code execution check" "code.*execution|execution.*code|task.*code|execution is" "$BACKLOG_SKILL"
+assert_contains "code execution check" "code.*execution|execution.*code|task.*code|execution is" "$BACKLOG_BODY"
 
 echo ""
 echo "=== Results: $PASS/$TOTAL passed, $FAIL failed ==="

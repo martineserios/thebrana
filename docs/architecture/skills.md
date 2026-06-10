@@ -16,20 +16,15 @@
 | **capture** | Event capture | log |
 | **utility** | Specialized tools | scheduler, gsheets, export-pdf |
 
-## Skill Tiering (ADR-034)
+## Skill Layout (ADR-034, amended 2026-06-10)
 
-Skills are split into two tiers to reduce startup context loading (~34K to ~8K tokens):
+Skills are **inline by default**: the full procedure body lives in `system/skills/{name}/SKILL.md` after the frontmatter. Native Claude Code lazy-loads SKILL.md bodies (frontmatter-only at session start), so inlining costs nothing at startup and removes the stub→Read hop that was the recurring failure layer behind procedure-Read errors.
 
-| Tier | Count | SKILL.md | Procedure location |
-|------|-------|----------|--------------------|
-| **Core** | 7 | Full (frontmatter + procedure) | Inline in SKILL.md |
-| **Extended** | 20 | Stub (frontmatter + Read instruction) | `../../procedures/{name}.md` (base-dir-relative) |
+**Transitional exception — the big four:** `build`, `close`, `backlog`, `reconcile` keep the old stub pattern (frontmatter + Read instruction pointing at `../../procedures/{name}.md`, base-dir-relative) until their phase-split lands (t-1942) — their bodies exceed reliable single-load size. No other stub may exist; `tests/skills/test_skill_inline_layout.sh` enforces a named allowlist.
 
-**Core skills** (always loaded): build, backlog, close, research, brainstorm, sitrep, do
+`system/procedures/` retains only the big-four bodies and knowledge docs that have no SKILL.md counterpart (migrate.md). Acquired skills under `system/skills/acquired/` are inline too — same rule, no exceptions beyond the big four.
 
-**Extended skills** use a stub SKILL.md that preserves full frontmatter (for discovery, routing, and the skill index) but replaces the procedure body with a Read instruction pointing to `../../procedures/{name}.md` (resolved from the skill's base directory). This form works in both the repo layout and the deployed-plugin layout. The procedure is loaded on invoke via the Read tool (~200ms overhead).
-
-If CC fixes #14882 (frontmatter-only loading), tiering becomes unnecessary — merge stubs back.
+History: ADR-034 originally stubbed all skills because CC loaded full SKILL.md content at startup (bug #14882, ~34K tokens, 4-minute cold starts). The ADR's Risks clause anticipated the reversal — CC fixed the loading behavior, so the bodies merged back (t-1941).
 
 ## Skill Anatomy
 
@@ -55,13 +50,13 @@ allowed-tools:
 Instructions for Claude when this skill is invoked...
 ```
 
-For extended skills, the body is replaced with a Read instruction:
+For the big-four transitional stubs only, the body is a Read instruction:
 
 ```markdown
 Read the procedure file before executing: `../../procedures/{name}.md`
 ```
 
-> The path `../../procedures/{name}.md` is base-dir-relative (from `system/skills/{name}/SKILL.md`) and resolves correctly in both the repo layout and the deployed-plugin layout. Do not use the absolute repo-root form `system/procedures/{name}.md` — it breaks when the skill loads from the plugin.
+> The path `../../procedures/{name}.md` is base-dir-relative (from `system/skills/{name}/SKILL.md`) and resolves correctly in both the repo layout and the deployed-plugin layout. Do not use the absolute repo-root form `system/procedures/{name}.md` — it breaks when the skill loads from the plugin. Do not create new stubs — new skills are always inline (see Skill Layout above).
 
 Key fields:
 - **`allowed-tools`** restricts which tools Claude can use during execution. Skills without Write, Edit, or Bash are read-only.

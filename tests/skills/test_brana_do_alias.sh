@@ -11,6 +11,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 DO_SKILL="$REPO_ROOT/system/skills/do/SKILL.md"
 BACKLOG_SKILL="$REPO_ROOT/system/skills/backlog/SKILL.md"
+BACKLOG_BODY="$REPO_ROOT/system/procedures/backlog.md"
+grep -q PROCEDURE_FILE "$BACKLOG_SKILL" || BACKLOG_BODY="$BACKLOG_SKILL"
 
 PASS=0
 FAIL=0
@@ -65,7 +67,7 @@ assert_contains "description mentions freeform" "freeform|natural language|text"
 # ── Test 5: Uses memory_search for routing ──
 echo "Test 5: Routing via memory_search"
 assert_contains "calls memory_search" "memory_search" "$DO_SKILL"
-assert_contains "uses skills namespace" "skills" "$DO_SKILL"
+assert_contains "routing (skills namespace) lives in backlog start" "skills" "$BACKLOG_BODY"
 
 echo ""
 echo "=== Results: $PASS/$TOTAL passed, $FAIL failed ==="

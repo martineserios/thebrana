@@ -8,7 +8,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-FIX_PROC="$REPO_ROOT/system/procedures/fix.md"
+FIX_PROC="$REPO_ROOT/system/skills/fix/SKILL.md"  # body inlined (t-1941)
 FIX_WORKFLOW="$REPO_ROOT/docs/guide/workflows/fix.md"
 
 PASS=0
