@@ -28,8 +28,8 @@ echo "=== Skill inline layout (t-1941) — $SYSTEM_DIR ==="
 
 [ -d "$SYSTEM_DIR/skills" ] || { echo "  FAIL: $SYSTEM_DIR/skills not found"; exit 1; }
 
-# 1. No stub outside the big-four allowlist
-for sk in "$SYSTEM_DIR"/skills/*/SKILL.md; do
+# 1. No stub outside the big-four allowlist (native + acquired)
+for sk in "$SYSTEM_DIR"/skills/*/SKILL.md "$SYSTEM_DIR"/skills/acquired/*/SKILL.md; do
     [ -f "$sk" ] || continue
     name="$(basename "$(dirname "$sk")")"
     if grep -q "PROCEDURE_FILE" "$sk"; then
@@ -61,13 +61,13 @@ done
 for proc in "$SYSTEM_DIR"/procedures/*.md; do
     [ -f "$proc" ] || continue
     name="$(basename "$proc" .md)"
-    if [ -d "$SYSTEM_DIR/skills/$name" ] && ! in_allowlist "$name"; then
+    if { [ -d "$SYSTEM_DIR/skills/$name" ] || [ -d "$SYSTEM_DIR/skills/acquired/$name" ]; } && ! in_allowlist "$name"; then
         bad "procedures/$name.md still exists alongside skills/$name/ — should be inlined and deleted"
     fi
 done
 
 # 4. Inlined SKILL.md files have intact frontmatter (two --- delimiters, name: present)
-for sk in "$SYSTEM_DIR"/skills/*/SKILL.md; do
+for sk in "$SYSTEM_DIR"/skills/*/SKILL.md "$SYSTEM_DIR"/skills/acquired/*/SKILL.md; do
     [ -f "$sk" ] || continue
     name="$(basename "$(dirname "$sk")")"
     grep -q "PROCEDURE_FILE" "$sk" && continue

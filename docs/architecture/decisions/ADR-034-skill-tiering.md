@@ -27,7 +27,7 @@ Stubs preserve full frontmatter (name, description, group, keywords, allowed-too
 
 - **Default:** SKILL.md carries the full procedure body inline. No stub, no `system/procedures/{name}.md` counterpart.
 - **Transitional exception (big four):** `build`, `close`, `backlog`, `reconcile` keep stubs until their phase-split lands (t-1942) — their bodies exceed reliable single-load size. No other stub may be created; validate.sh enforces a named allowlist.
-- **`system/procedures/` retains** only preloaded knowledge docs with no SKILL.md counterpart (e.g. fastapi.md, supabase.md) and the big-four bodies.
+- **`system/procedures/` retains** only the big-four bodies and knowledge docs with no SKILL.md counterpart (migrate.md). Acquired skills (`system/skills/acquired/*/`) were also 1:1 stub→procedure pairs and are inlined the same way — their curated stub frontmatter (provenance, allowed-tools) wins over the upstream frontmatter embedded in the procedure file.
 
 **Deploy requirement:** the plugin cache (`~/.claude/plugins/cache/brana/brana/1.0.0/`) is an rsync copy made by bootstrap.sh. The bootstrap sync is part of the migration itself — a merge without the sync leaves deployed stubs pointing at deleted procedure files. Sessions in flight during the migration window may observe a split state; restart them.
 

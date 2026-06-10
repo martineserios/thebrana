@@ -335,7 +335,7 @@ if [ -d "$PROCEDURES_DIR" ]; then
     TOTAL_ASK=0
     MISSING_REC=0
     MISSING_FILES=""
-    for proc_file in "$PROCEDURES_DIR"/*.md "$SYSTEM_DIR"/skills/*/SKILL.md; do
+    for proc_file in "$PROCEDURES_DIR"/*.md "$SYSTEM_DIR"/skills/*/SKILL.md "$SYSTEM_DIR"/skills/acquired/*/SKILL.md; do
         [ -f "$proc_file" ] || continue
         proc_name=$(basename "$proc_file")
         case "$proc_file" in */SKILL.md) proc_name="skills/$(basename "$(dirname "$proc_file")")";; esac
@@ -1662,7 +1662,7 @@ while IFS= read -r -d '' proc_file; do
             MISSING_PREAMBLE+=("$label")
         fi
     fi
-done < <(find "$PROCS_DIR" -name "*.md" -print0 2>/dev/null; find "$SCRIPT_DIR/system/skills" -mindepth 2 -maxdepth 2 -name "SKILL.md" -print0 2>/dev/null)
+done < <(find "$PROCS_DIR" -name "*.md" -print0 2>/dev/null; find "$SCRIPT_DIR/system/skills" -mindepth 2 -maxdepth 3 -name "SKILL.md" -print0 2>/dev/null)
 if [ "${#MISSING_PREAMBLE[@]}" -gt 0 ]; then
     fail "Check 36: procedures with mcp__ruflo__ calls missing <!-- ruflo preamble --> block: ${MISSING_PREAMBLE[*]}"
 else
@@ -1780,7 +1780,7 @@ PYEOF
                 MISSING_DESC_FILES+=("$(basename "$proc_file")")
             fi
         fi
-    done < <(find "$PROCS_DIR" -name "*.md" -print0 2>/dev/null; find "$SCRIPT_DIR/system/skills" -mindepth 2 -maxdepth 2 -name "SKILL.md" -print0 2>/dev/null)
+    done < <(find "$PROCS_DIR" -name "*.md" -print0 2>/dev/null; find "$SCRIPT_DIR/system/skills" -mindepth 2 -maxdepth 3 -name "SKILL.md" -print0 2>/dev/null)
 fi
 if [ "${#MISSING_DESC_FILES[@]}" -gt 0 ]; then
     warn "Check 40: AskUserQuestion options missing description: field in: ${MISSING_DESC_FILES[*]}"
@@ -2132,7 +2132,7 @@ fi  # should_run 52
 if should_run 53; then
 echo "Check 53: skill procedure-pointer stubs..."
 C53_FAILS=0
-for sk in "$SYSTEM_DIR"/skills/*/SKILL.md; do
+for sk in "$SYSTEM_DIR"/skills/*/SKILL.md "$SYSTEM_DIR"/skills/acquired/*/SKILL.md; do
     [ -f "$sk" ] || continue
     marker=$(sed -n 's/.*PROCEDURE_FILE: \([^ ]*\) .*/\1/p' "$sk" | head -1)
     [ -n "$marker" ] || continue
