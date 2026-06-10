@@ -51248,6 +51248,33 @@
       "order": 0,
       "github_issue": null,
       "execution": "code"
+    },
+    {
+      "id": "t-1960",
+      "subject": "kind field not settable after creation — add to set_field allowlist with enum validation",
+      "status": "pending",
+      "type": "task",
+      "tags": [
+        "cli",
+        "backlog",
+        "schema",
+        "bug"
+      ],
+      "description": "brana_core::tasks::set_field rejects \"kind\" as unknown on every write path (CLI brana backlog set, MCP backlog_set, MCP backlog_batch), so a task's kind is immutable after backlog_add. kind drives branch-prefix mapping and strategy classification (tasks.rs reads it at lines ~1051/1083/1203), so a misclassified-at-creation task cannot be corrected — hit live 2026-06-10 trying to set kind=fix on t-1958. Fix: add \"kind\" to the string-field arm of set_field with a validate_kind enum check (feature/fix/refactor/research/docs/design/ops per task-convention; verify the canonical list against backlog_add's accepted values first so the two paths agree — see feedback_enum-validation-three-write-paths). TDD: test set kind valid value, test invalid value rejected, test null clears.",
+      "effort": "S",
+      "priority": "P3",
+      "parent": null,
+      "created": "2026-06-10",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Discovered during t-1958 (its in-session workaround: proceed without kind; strategy field carried the classification). AC: brana backlog set t-X kind fix succeeds and rejects invalid enums identically across CLI set, MCP set, and MCP batch paths.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "epic": "cli-backlog-schema"
     }
   ],
   "version": "1"
