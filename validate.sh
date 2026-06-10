@@ -1255,7 +1255,7 @@ count_field_notes() {
         $in = 1 if /^##\s+Field\s+Notes/;
         $in = 0 if $in && /^##\s/ && !/^##\s+Field\s+Notes/;
         print if $in && /^[-*]\s/;
-    ' "$dir"/*.md "$dir"/**/*.md 2>/dev/null | wc -l)
+    ' "$dir"/*.md "$dir"/**/*.md < /dev/null 2>/dev/null | wc -l)
     echo "${count:-0}"
 }
 

@@ -141,6 +141,22 @@ else
     echo "" > "$TMPDIR_SS/cf-context"
 fi
 
+# Job 1b: flywheel insight — read last session's metrics, surface one
+# observation (t-1937). This is the flywheel READ path: before it, 527
+# flywheel:* rows had access_count=0 (computed every session-end, never read).
+if [ "${EFFORT_LEVEL:-normal}" != "low" ]; then
+    (
+        FW_SCRIPT=""
+        for _fw in "$HOME/.claude/scripts/flywheel-insight.sh" "${CLAUDE_PLUGIN_ROOT:-$SCRIPT_DIR/..}/scripts/flywheel-insight.sh"; do
+            [ -x "$_fw" ] && FW_SCRIPT="$_fw" && break
+        done
+        if [ -n "$FW_SCRIPT" ]; then
+            timeout 12 bash "$FW_SCRIPT" "$PROJECT" > "$TMPDIR_SS/flywheel-insight" 2>/dev/null || true
+        fi
+    ) &
+    PIDS="$PIDS $!"
+fi
+
 # ══════════════════════════════════════════════════════════
 # PHASE 2: Fast local checks (while parallel jobs run)
 # ══════════════════════════════════════════════════════════
@@ -521,19 +537,22 @@ No weekly review found. Consider running /brana:review weekly."
 fi
 
 # ══════════════════════════════════════════════════════════
-# PHASE 3: Collect parallel results (max 2s combined wait)
+# PHASE 3: Collect parallel results (max 5s combined wait)
 # ══════════════════════════════════════════════════════════
 _mark "phase3-wait-start"
 
 # Wait for all parallel jobs with a hard deadline.
-# If any job is still running after 2s, kill it and proceed with partial results.
+# If any job is still running after the budget, kill it and proceed with
+# partial results. Budget 2s→5s (t-1937): a single ruflo CLI node startup
+# costs ~1.5-2s; with the recall job (ONNX load ~1.6s) and flywheel insight
+# running in parallel, 2s killed whichever job didn't overlap phase 2.
 if [ -n "$PIDS" ]; then
     WAIT_START=$(date +%s%3N 2>/dev/null || echo 0)
     for pid in $PIDS; do
         # Calculate remaining budget
         NOW_MS=$(date +%s%3N 2>/dev/null || echo 0)
         ELAPSED_MS=$((NOW_MS - WAIT_START))
-        REMAINING_MS=$((2000 - ELAPSED_MS))
+        REMAINING_MS=$((5000 - ELAPSED_MS))
         if [ "$REMAINING_MS" -le 0 ]; then
             # Budget exhausted — kill remaining jobs
             kill $pid 2>/dev/null || true
@@ -569,6 +588,15 @@ if [ -f "$TMPDIR_SS/corrections" ]; then
     if [ -n "$CP_LINES" ]; then
         CORRECTION_CONTEXT="[Correction patterns — high confidence, apply early if similar errors arise]
 $CP_LINES"
+    fi
+fi
+
+# Flywheel observation (t-1937) — one metrics-derived line per session
+FLYWHEEL_CONTEXT=""
+if [ -f "$TMPDIR_SS/flywheel-insight" ]; then
+    FW_LINE=$(head -1 "$TMPDIR_SS/flywheel-insight" 2>/dev/null) || true
+    if [ -n "$FW_LINE" ]; then
+        FLYWHEEL_CONTEXT="[Flywheel] $FW_LINE"
     fi
 fi
 
@@ -613,6 +641,10 @@ fi
 if [ -n "$CORRECTION_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
 }$CORRECTION_CONTEXT"
+fi
+if [ -n "$FLYWHEEL_CONTEXT" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}$FLYWHEEL_CONTEXT"
 fi
 if [ -n "$LOOP_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS

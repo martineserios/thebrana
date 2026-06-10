@@ -300,6 +300,9 @@ Multiple hooks can register for the same event. They run sequentially; if any Pr
 
 ## Field Notes
 
+### 2026-06-10: flywheel read path — session-start consumes last session's metrics (t-1937)
+527 flywheel:* rows were written at session-end and never read (access_count=0 namespace-wide — "observability theater", architecture review §4). `system/scripts/flywheel-insight.sh` closes the loop: sqlite read-only key discovery (recency-ordered), ONE sanctioned `memory retrieve` on the latest row (bumps access_count — the loop-closure metric), prior row via read-only sqlite for trend, one `[Flywheel]` observation line injected at session start. Phase-3 wait budget raised 2s→5s: a single ruflo CLI node startup costs ~1.5–2s, and the 2s budget silently killed whichever parallel job didn't overlap phase 2 — partial results with no warning.
+
 ### 2026-06-10: session-start recall — namespace-scoped via ruflo-cli.sh wrapper (t-1936)
 Session-start pattern recall was dead twice over: `$CF` resolved to the npm bin with the CRLF shebang (env: 'node\r' — t-1934 fixed .mjs scripts but not cf-env.sh), and the namespace-less `client:$PROJECT` query returned only constant-0.5 session rows that downstream jq filters discarded. Fix: all `$CF` calls route through `system/scripts/ruflo-cli.sh` (execs node + resolved .js; injects `--threshold 0.55` on namespace-less `memory search` so callers never need the session-row rule), and session-start queries `--namespace pattern --threshold 0.3 --limit 5` with an 8s timeout (ONNX load alone ~1.6s; old 2s timeout could never succeed). jq expressions updated to the `{results:[...]}` CLI output shape — the old `.[]?` matched nothing silently. Recall failures now surface a FAILED warning instead of passing as empty.
 
