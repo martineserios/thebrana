@@ -23,11 +23,11 @@ Skills are split into two tiers to reduce startup context loading (~34K to ~8K t
 | Tier | Count | SKILL.md | Procedure location |
 |------|-------|----------|--------------------|
 | **Core** | 7 | Full (frontmatter + procedure) | Inline in SKILL.md |
-| **Extended** | 20 | Stub (frontmatter + Read instruction) | `system/procedures/{name}.md` |
+| **Extended** | 20 | Stub (frontmatter + Read instruction) | `../../procedures/{name}.md` (base-dir-relative) |
 
 **Core skills** (always loaded): build, backlog, close, research, brainstorm, sitrep, do
 
-**Extended skills** use a stub SKILL.md that preserves full frontmatter (for discovery, routing, and the skill index) but replaces the procedure body with a Read instruction pointing to `system/procedures/{name}.md`. The procedure is loaded on invoke via the Read tool (~200ms overhead).
+**Extended skills** use a stub SKILL.md that preserves full frontmatter (for discovery, routing, and the skill index) but replaces the procedure body with a Read instruction pointing to `../../procedures/{name}.md` (resolved from the skill's base directory). This form works in both the repo layout and the deployed-plugin layout. The procedure is loaded on invoke via the Read tool (~200ms overhead).
 
 If CC fixes #14882 (frontmatter-only loading), tiering becomes unnecessary — merge stubs back.
 
@@ -58,8 +58,10 @@ Instructions for Claude when this skill is invoked...
 For extended skills, the body is replaced with a Read instruction:
 
 ```markdown
-Read the procedure file before executing: `system/procedures/{name}.md`
+Read the procedure file before executing: `../../procedures/{name}.md`
 ```
+
+> The path `../../procedures/{name}.md` is base-dir-relative (from `system/skills/{name}/SKILL.md`) and resolves correctly in both the repo layout and the deployed-plugin layout. Do not use the absolute repo-root form `system/procedures/{name}.md` — it breaks when the skill loads from the plugin.
 
 Key fields:
 - **`allowed-tools`** restricts which tools Claude can use during execution. Skills without Write, Edit, or Bash are read-only.
