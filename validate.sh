@@ -335,9 +335,10 @@ if [ -d "$PROCEDURES_DIR" ]; then
     TOTAL_ASK=0
     MISSING_REC=0
     MISSING_FILES=""
-    for proc_file in "$PROCEDURES_DIR"/*.md; do
+    for proc_file in "$PROCEDURES_DIR"/*.md "$SYSTEM_DIR"/skills/*/SKILL.md; do
         [ -f "$proc_file" ] || continue
         proc_name=$(basename "$proc_file")
+        case "$proc_file" in */SKILL.md) proc_name="skills/$(basename "$(dirname "$proc_file")")";; esac
         # Count AskUserQuestion occurrences
         count=$(grep -c "AskUserQuestion" "$proc_file" 2>/dev/null || true)
         if [ "$count" -gt 0 ]; then
@@ -353,9 +354,9 @@ if [ -d "$PROCEDURES_DIR" ]; then
     if [ "$TOTAL_ASK" -eq 0 ]; then
         pass "No AskUserQuestion calls in procedures"
     elif [ -z "$MISSING_FILES" ]; then
-        pass "All procedures with AskUserQuestion have (Recommended) ($TOTAL_ASK total)"
+        pass "All procedures/skill bodies with AskUserQuestion have (Recommended) ($TOTAL_ASK total)"
     else
-        warn "Procedures with AskUserQuestion but no (Recommended):$MISSING_FILES"
+        warn "Procedures/skill bodies with AskUserQuestion but no (Recommended):$MISSING_FILES"
     fi
 else
     pass "No procedures directory"
@@ -1646,18 +1647,22 @@ fi  # should_run 35
 # Check 36 — procedure files with mcp__ruflo__ calls must have a <!-- ruflo preamble --> block
 # Any procedure with ruflo calls but no preamble will silently throw InputValidationError at runtime
 if should_run 36; then
-echo "Check 36: ruflo preamble in procedures..."
+echo "Check 36: ruflo preamble in procedures and skill bodies..."
 PROCS_DIR="$SCRIPT_DIR/system/procedures"
 MISSING_PREAMBLE=()
-if [ -d "$PROCS_DIR" ]; then
-    while IFS= read -r -d '' proc_file; do
-        if grep -q "mcp__ruflo__" "$proc_file" 2>/dev/null; then
-            if ! grep -q "ruflo preamble" "$proc_file" 2>/dev/null; then
-                MISSING_PREAMBLE+=("$(basename "$proc_file")")
-            fi
+while IFS= read -r -d '' proc_file; do
+    # For SKILL.md, check the body only — mcp__ruflo__ in frontmatter allowed-tools
+    # does not require a preamble (no call site there)
+    case "$proc_file" in
+        */SKILL.md) content=$(awk 'fm==2{print} /^---$/{fm++}' "$proc_file"); label="skills/$(basename "$(dirname "$proc_file")")" ;;
+        *) content=$(cat "$proc_file"); label=$(basename "$proc_file") ;;
+    esac
+    if echo "$content" | grep -q "mcp__ruflo__" 2>/dev/null; then
+        if ! echo "$content" | grep -q "ruflo preamble" 2>/dev/null; then
+            MISSING_PREAMBLE+=("$label")
         fi
-    done < <(find "$PROCS_DIR" -name "*.md" -print0 2>/dev/null)
-fi
+    fi
+done < <(find "$PROCS_DIR" -name "*.md" -print0 2>/dev/null; find "$SCRIPT_DIR/system/skills" -mindepth 2 -maxdepth 2 -name "SKILL.md" -print0 2>/dev/null)
 if [ "${#MISSING_PREAMBLE[@]}" -gt 0 ]; then
     fail "Check 36: procedures with mcp__ruflo__ calls missing <!-- ruflo preamble --> block: ${MISSING_PREAMBLE[*]}"
 else
@@ -1775,7 +1780,7 @@ PYEOF
                 MISSING_DESC_FILES+=("$(basename "$proc_file")")
             fi
         fi
-    done < <(find "$PROCS_DIR" -name "*.md" -print0 2>/dev/null)
+    done < <(find "$PROCS_DIR" -name "*.md" -print0 2>/dev/null; find "$SCRIPT_DIR/system/skills" -mindepth 2 -maxdepth 2 -name "SKILL.md" -print0 2>/dev/null)
 fi
 if [ "${#MISSING_DESC_FILES[@]}" -gt 0 ]; then
     warn "Check 40: AskUserQuestion options missing description: field in: ${MISSING_DESC_FILES[*]}"
