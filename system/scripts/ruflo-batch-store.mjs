@@ -12,10 +12,29 @@
  *   cat entries.json | node ruflo-batch-store.mjs
  *   generate-entries.sh | node ruflo-batch-store.mjs
  */
-import { spawn } from 'node:child_process';
+import { spawn, execSync } from 'node:child_process';
+import { realpathSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 
 const RUFLO = process.env.RUFLO_BIN || 'ruflo';
+
+// ruflo npm tarballs (≤3.10.40) ship bin/ruflo.js with a CRLF shebang and the
+// installed file can lose its exec bit — executing the bin directly fails with
+// EACCES or `env: 'node\r': No such file or directory`. Resolve to the
+// underlying .js and run it with the node interpreter instead.
+function rufloCommand(args) {
+  let target = RUFLO;
+  try {
+    if (!target.includes('/')) {
+      target = execSync(`which ${target}`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }).trim() || target;
+    }
+    target = realpathSync(target);
+  } catch {}
+  if (/\.(js|mjs|cjs)$/.test(target)) {
+    return [process.execPath, [target, ...args]];
+  }
+  return [RUFLO, args];
+}
 
 // Read all stdin into a string
 async function readStdin() {
@@ -114,8 +133,9 @@ async function main() {
 
   console.error(`[batch-store] ${entries.length} entries to store`);
 
-  // Spawn ruflo MCP server
-  const proc = spawn(RUFLO, ['mcp', 'start'], {
+  // Spawn ruflo MCP server (via node interpreter — see rufloCommand)
+  const [rufloCmd, rufloArgs] = rufloCommand(['mcp', 'start']);
+  const proc = spawn(rufloCmd, rufloArgs, {
     stdio: ['pipe', 'pipe', 'pipe'],
     cwd: process.env.HOME,
     env: { ...process.env }
