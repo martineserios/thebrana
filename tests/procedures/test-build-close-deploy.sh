@@ -32,6 +32,8 @@ check "CLOSE syncs the plugin cache post-merge"            "bootstrap.sh --sync-
 check "cache sync is gated on skills/procedures in diff"   'system/(skills|procedures)/'
 check "deploy step documents the no-op case"               "no-op when"
 check "deploy step warns about in-flight sessions"         "[Rr]estart"
+check "10c recomputes CHANGED itself (not 10b's shell)"    "ORIG_HEAD"
+check "deploy failures stop with explicit error"           "ERROR.*failed"
 
 echo ""
 echo "Results: $PASS passed, $FAIL failed"

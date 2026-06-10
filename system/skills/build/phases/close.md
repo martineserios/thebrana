@@ -156,19 +156,27 @@ Runs at the end of: feature, bug fix, greenfield, refactor, migration. NOT spike
 
 10c. **Post-merge auto-deploy** (t-1948) — deploy what the merge changed, immediately after the targeted validate. No-op when the merged diff touches neither surface:
    ```bash
-   # $CHANGED from step 10b (files changed in the merge)
+   # Recompute the merged change set — self-contained, do NOT rely on step 10b's
+   # shell ($CHANGED does not survive across separate bash invocations).
+   # ORIG_HEAD is set by the merge in step 10 (covers --no-ff and ff alike);
+   # HEAD~1 fallback assumes the --no-ff merge this procedure mandates.
+   CHANGED=$(git diff --name-only ORIG_HEAD HEAD 2>/dev/null        || git diff --name-only HEAD~1 HEAD 2>/dev/null || true)
+   if [ -z "$CHANGED" ]; then
+       echo "⚠ Could not derive merged change set (shallow clone / no prior commit) — verify deploys manually: make hooks-deploy, ./bootstrap.sh --sync-plugin"
+   fi
    # Hooks: deploy when the diff touches system/hooks/ (no-op when it doesn't)
    if grep -q "^system/hooks/" <<< "$CHANGED"; then
-       make hooks-deploy && echo "Hooks deployed."
+       make hooks-deploy || { echo "ERROR: make hooks-deploy failed — fix before continuing; a half-deployed merge is worse than a known-undeployed one"; exit 1; }
+       echo "Hooks deployed."
    fi
    # Plugin cache: sync when the diff touches system/skills/ or system/procedures/
    # (ADR-034 deploy requirement — a merge without the sync leaves the deployed
    # plugin pointing at stale or deleted files)
    if grep -qE "^system/(skills|procedures)/" <<< "$CHANGED"; then
-       ./bootstrap.sh --sync-plugin
+       ./bootstrap.sh --sync-plugin || { echo "ERROR: --sync-plugin failed — fix before continuing"; exit 1; }
    fi
    ```
-   Run from the main repo root (the checkout where the merge landed), not a worktree. If either deploy ran, remind: sessions in flight still hold the pre-deploy skill/hook state — restart them to pick up the change. If a deploy command fails, surface the error and stop — a half-deployed merge is worse than a known-undeployed one.
+   Run from the main repo root (the checkout where the merge landed), not a worktree. If either deploy ran, remind: sessions in flight still hold the pre-deploy skill/hook state — restart them to pick up the change.
 
 11. **Reconcile check** (post-merge, before docs):
    If `docs/spec-graph.json` exists, check whether merged files appear in any spec-graph node's `impl_files`. If matches found, offer to run `/brana:reconcile`:
