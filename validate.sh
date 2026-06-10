@@ -58,7 +58,19 @@ effective_body() {
     [ -f "$SYSTEM_DIR/procedures/$n.md" ] && cat "$SYSTEM_DIR/procedures/$n.md"
     [ -f "$SYSTEM_DIR/skills/$n/SKILL.md" ] && cat "$SYSTEM_DIR/skills/$n/SKILL.md"
     if [ -d "$SYSTEM_DIR/skills/$n/phases" ]; then
-        cat "$SYSTEM_DIR/skills/$n"/phases/*.md 2>/dev/null
+        # PHASES-registry order (procedure order); unregistered files appended in glob order
+        local _eb_sk="$SYSTEM_DIR/skills/$n/SKILL.md" _eb_listed="" _eb_rel _eb_pf
+        if [ -f "$_eb_sk" ] && grep -q "<!-- PHASES -->" "$_eb_sk"; then
+            _eb_listed=$(sed -n '/<!-- PHASES -->/,/<!-- \/PHASES -->/p' "$_eb_sk" | grep -oE 'phases/[a-z0-9-]+\.md')
+            while IFS= read -r _eb_rel; do
+                [ -f "$SYSTEM_DIR/skills/$n/$_eb_rel" ] && cat "$SYSTEM_DIR/skills/$n/$_eb_rel"
+            done <<< "$_eb_listed"
+        fi
+        for _eb_pf in "$SYSTEM_DIR/skills/$n"/phases/*.md; do
+            [ -f "$_eb_pf" ] || continue
+            _eb_rel="phases/$(basename "$_eb_pf")"
+            grep -qx "$_eb_rel" <<< "$_eb_listed" 2>/dev/null || cat "$_eb_pf"
+        done
     fi
     return 0
 }

@@ -188,6 +188,24 @@ OUT=$(run "system/procedures/reconcile.md")
 for n in 23 36 40 45; do
     assert_contains "procedures/*.md → $n" "$n" "$OUT"
 done
+
+# t-1942 phase-split paths: SKILL.md + phases/*.md map to effective-body checks
+OUT=$(run "system/skills/build/phases/load.md")
+for n in 33 23 36 40 45 52 54 56; do
+    assert_contains "build phases → $n" "$n" "$OUT"
+done
+OUT=$(run "system/skills/close/SKILL.md")
+for n in 33 23 36 40 43 44 45 55; do
+    assert_contains "close SKILL.md → $n" "$n" "$OUT"
+done
+OUT=$(run "system/skills/backlog/phases/start.md")
+for n in 33 23 36 40 45; do
+    assert_contains "backlog phases → $n" "$n" "$OUT"
+done
+OUT=$(run "system/skills/reconcile/phases/security.md")
+for n in 33 23 36 40 45; do
+    assert_contains "reconcile phases → $n" "$n" "$OUT"
+done
 assert_not_contains "procedures/*.md → no 43" "43" "$OUT"
 assert_not_contains "procedures/*.md → no 44" "44" "$OUT"
 
