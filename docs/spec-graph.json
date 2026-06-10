@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-10T02:35:45Z",
+  "generated": "2026-06-10T10:54:58Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -919,6 +919,14 @@
         "system/agents/challenger.md",
         "system/",
         "system/agents/CALIBRATION.md"
+      ]
+    },
+    "docs/architecture/decisions/ADR-050-loop-request-protocol.md": {
+      "title": "ADR-050: Loop-Request Protocol — Suggest-and-Confirm, No Auto-Spawn",
+      "type": "ADR",
+      "impl_files": [
+        "system/procedures/build.md",
+        "system/procedures/close.md"
       ]
     },
     "docs/architecture/developer-quickstart.md": {
@@ -2646,6 +2654,7 @@
         "system/rules/m-plus-discipline-enforcement.md",
         "system/rules/no-phantom-dependencies.md",
         "system/rules/parallel-bash.md",
+        "system/rules/reconcile-after-convention-change.md",
         "system/rules/research-discipline.md",
         "system/rules/ruflo-stub-guard.md",
         "system/rules/rules-over-hooks-for-gates.md",
@@ -3740,6 +3749,66 @@
     {
       "from": "docs/architecture/decisions/ADR-039-pattern-quality-filter-and-per-pattern-files.md",
       "to": "docs/architecture/features/memory-taxonomy-sdd.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-050-loop-request-protocol.md",
+      "to": "docs/architecture/decisions/ADR-001-reconcile-command-for-spec-implementation-drift.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-050-loop-request-protocol.md",
+      "to": "docs/architecture/decisions/ADR-021-knowledge-architecture-v2.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-050-loop-request-protocol.md",
+      "to": "docs/architecture/decisions/ADR-027-auto-learning-loop.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-050-loop-request-protocol.md",
+      "to": "docs/architecture/decisions/ADR-028-ontology-v2.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-050-loop-request-protocol.md",
+      "to": "docs/architecture/decisions/ADR-029-six-job-taxonomy.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-050-loop-request-protocol.md",
+      "to": "docs/architecture/decisions/ADR-030-maintenance-unification.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-050-loop-request-protocol.md",
+      "to": "docs/architecture/decisions/ADR-031-doc-enforcement-hook.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-050-loop-request-protocol.md",
+      "to": "docs/architecture/decisions/ADR-032-smart-router.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-050-loop-request-protocol.md",
+      "to": "docs/architecture/features/operating-model.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-050-loop-request-protocol.md",
+      "to": "docs/ideas/cc-feature-adoption-v2.1.76-81.md",
       "type": "depends_on",
       "computed": false
     },
@@ -5564,6 +5633,12 @@
     {
       "from": "docs/architecture/decisions/ADR-049-mandatory-challenger-gate-build-close.md",
       "to": "system/procedures/build.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-050-loop-request-protocol.md",
+      "to": "docs/ideas/session-aware-loop-integration.md",
       "type": "informs",
       "computed": false
     },
@@ -12607,9 +12682,9 @@
     }
   ],
   "stats": {
-    "nodes": 428,
-    "edges": 1621,
-    "typed_edges": 570,
-    "orphans": 126
+    "nodes": 429,
+    "edges": 1632,
+    "typed_edges": 581,
+    "orphans": 125
   }
 }

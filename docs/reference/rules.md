@@ -2,7 +2,7 @@
 
 # Rules Reference
 
-**28 rules** in `system/rules/`.
+**29 rules** in `system/rules/`.
 
 | File | Title | Summary |
 |------|-------|--------|
@@ -22,6 +22,7 @@
 | `m-plus-discipline-enforcement.md` | M+ Discipline Enforcement | Any plan, backlog, or build output for efforts M or larger MUST include all four disciplines: |
 | `no-phantom-dependencies.md` | Never Reference Non-Existent Docs in Skill LOAD Steps | Never build a skill whose LOAD step references a doc that doesn't exist yet. |
 | `parallel-bash.md` | Parallel Bash Resilience | Claude Code cancels all sibling Bash tool calls when one exits non-zero. Guard independent parallel ... |
+| `reconcile-after-convention-change.md` | Run Reconcile After CLAUDE.md Convention Changes | After any change to naming conventions in `.claude/CLAUDE.md` (branch prefixes, slug formats, task I... |
 | `research-discipline.md` | Research Discipline | When starting research on any topic: |
 | `ruflo-stub-guard.md` | Ruflo Stub Guard | Never use these ruflo commands as authoritative signals. They return hardcoded or unimplemented outp... |
 | `rules-over-hooks-for-gates.md` | Rules Over Hooks for Behavioral Gates | Prefer a rule file over a hook for "always do X before Y" behavioral constraints. |
@@ -145,6 +146,13 @@ Never build a skill whose LOAD step references a doc that doesn't exist yet.
 **File:** `system/rules/parallel-bash.md`
 
 Claude Code cancels all sibling Bash tool calls when one exits non-zero. Guard independent parallel commands:
+
+
+## Run Reconcile After CLAUDE.md Convention Changes
+
+**File:** `system/rules/reconcile-after-convention-change.md`
+
+After any change to naming conventions in `.claude/CLAUDE.md` (branch prefixes, slug formats, task ID patterns, etc.), run:
 
 
 ## Research Discipline
