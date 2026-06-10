@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-10T12:35:06Z",
+  "generated": "2026-06-10T22:11:54Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -470,13 +470,13 @@
       "title": "24 — Roadmap Corrections & Errata (ARCHIVED)",
       "type": "Roadmap",
       "impl_files": [
-        "system/procedures/{name",
+        "system/procedures/backlog.md",
+        "system/procedures/challenge.md",
+        "system/procedures/",
         "system/rules/task-convention.md",
         "system/procedures/close.md",
-        "system/procedures/challenge.md",
         "system/agents/challenger.md",
         "system/procedures/build.md",
-        "system/procedures/backlog.md",
         "system/hooks/hooks.json",
         "system/procedures/research.md",
         "system/cli/rust/crates/brana-cli/src/commands/knowledge.rs",
@@ -488,7 +488,6 @@
         "system/cli/rust/crates/brana-mcp/src/tools/backlog_stats.rs:37",
         "system/scheduler/brana-scheduler-runner.sh",
         "system/cli/rust/crates/",
-        "system/procedures/",
         "system/skills/",
         "system/cli/rust/crates/brana-core/src/knowledge_pipeline.rs",
         "system/",
@@ -584,9 +583,8 @@
       "title": "Agents Architecture",
       "type": "Roadmap",
       "impl_files": [
-        "system/agents/{name",
-        "system/agents/pr-reviewer.md",
         "system/agents/",
+        "system/agents/pr-reviewer.md",
         "system/agents/gemini.md"
       ]
     },
@@ -833,7 +831,9 @@
       "title": "ADR-034: Skill Tiering — Universal Stubs",
       "type": "ADR",
       "impl_files": [
-        "system/procedures/{name"
+        "system/procedures/",
+        "system/skills/",
+        "system/skills/_shared/"
       ]
     },
     "docs/architecture/decisions/ADR-035-skill-usage-telemetry.md": {
@@ -873,7 +873,6 @@
       "title": "ADR-041: agy Invocation Contract — Layer A vs B, Routing, /tmp/ Invariant, Version Pinning",
       "type": "ADR",
       "impl_files": [
-        "system/scheduler/outputs/{ts",
         "system/scheduler/outputs/",
         "system/"
       ]
@@ -950,7 +949,7 @@
       "title": "Extending Agents",
       "type": "Roadmap",
       "impl_files": [
-        "system/agents/{name",
+        "system/agents/",
         "system/skills/_shared/delegation-tdd-checklist.md",
         "system/procedures/build.md",
         "system/CLAUDE.md"
@@ -960,7 +959,7 @@
       "title": "Extending Hooks",
       "type": "Roadmap",
       "impl_files": [
-        "system/hooks/{name",
+        "system/hooks/",
         "system/hooks/hooks.json",
         "system/hooks/my-hook.sh",
         "system/hooks/branch-name-warn.sh",
@@ -971,7 +970,7 @@
       "title": "Extending Skills",
       "type": "Roadmap",
       "impl_files": [
-        "system/skills/{name"
+        "system/skills/"
       ]
     },
     "docs/architecture/extending.md": {
@@ -1393,11 +1392,13 @@
         "system/hooks/lib/git-helpers.spec.md",
         "system/hooks/",
         "system/hooks/lib/profile.sh",
-        "system/cli/",
-        "system/scripts/",
-        "system/skills/",
         "system/hooks/tests/test-post-tool-use-test-signal.sh",
+        "system/scripts/flywheel-insight.sh",
+        "system/scripts/ruflo-cli.sh",
         "system/hooks/branch-verify.sh",
+        "system/skills|procedures",
+        "system/skills/build/phases/close.md",
+        "system/skills|procedures/",
         "system/scheduler/feeds.template.json",
         "system/cli/rust/crates/brana-core/src/",
         "system/hooks",
@@ -1414,7 +1415,7 @@
         "system/skills/close/SKILL.md",
         "system/skills/research/SKILL.md",
         "system/scripts/index-assumptions.sh",
-        "system/scripts/index-{your-namespace"
+        "system/scripts/index-"
       ]
     },
     "docs/architecture/memory-backup.md": {
@@ -1472,13 +1473,13 @@
       "title": "Skills Architecture",
       "type": "Roadmap",
       "impl_files": [
-        "system/skills/{name",
-        "system/procedures/{name",
+        "system/skills/",
+        "system/procedures/",
+        "system/skills/acquired/",
+        "system/skills/_shared/",
         "system/commands/",
-        "system/skills/acquired/{name",
         "system/skills/memory/",
-        "system/skills/memory/MEMORY.md",
-        "system/skills/"
+        "system/skills/memory/MEMORY.md"
       ]
     },
     "docs/architecture/system-documentation-map.md": {
@@ -1532,15 +1533,12 @@
         "system/hooks/hooks.json",
         "system/hooks/lib/",
         "system/commands/",
-        "system/skills/{dep",
-        "system/procedures/backlog.md",
-        "system/procedures/build.md",
+        "system/skills/",
         "system/scripts/",
         "system/hooks/",
         "system/hooks/tests/",
         "system/skills/_shared/guided-execution.md",
         "system/skills/X/",
-        "system/skills/",
         "system/agents/",
         "system/rules/",
         "system/state/schema-removals.json"
@@ -2053,7 +2051,7 @@
       "type": "Roadmap",
       "impl_files": [
         "system/scheduler/scheduler.template.json",
-        "system/state/decisions/{date",
+        "system/state/decisions/",
         "system/state/decisions/archive/"
       ]
     },
@@ -2084,7 +2082,7 @@
       "title": "Concepts",
       "type": "Roadmap",
       "impl_files": [
-        "system/skills/{name",
+        "system/skills/",
         "system/hooks/",
         "system/rules/",
         "system/agents/",
@@ -2530,7 +2528,6 @@
       "title": "Skill Tiering — Core Plugin + On-Demand Procedures",
       "type": "Roadmap",
       "impl_files": [
-        "system/procedures/{name",
         "system/procedures/",
         "system/procedures/backlog.md",
         "system/skills/",
