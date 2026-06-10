@@ -51253,7 +51253,7 @@
     {
       "id": "t-1960",
       "subject": "kind field not settable after creation — add to set_field allowlist with enum validation",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "tags": [
         "cli",
@@ -51267,11 +51267,11 @@
       "parent": null,
       "created": "2026-06-10",
       "started": null,
-      "completed": null,
+      "completed": "2026-06-10",
       "blocked_by": [],
       "branch": null,
       "context": "Discovered during t-1958 (its in-session workaround: proceed without kind; strategy field carried the classification). AC: brana backlog set t-X kind fix succeeds and rejects invalid enums identically across CLI set, MCP set, and MCP batch paths.",
-      "notes": null,
+      "notes": "2026-06-10: validate_kind added to brana-core; kind wired into set_field (CLI set + MCP set + batch) and validated at both creation paths (CLI add post-parse, MCP add — which also gained the missing kind param). TDD ac14f825 -> c0a46041, 3 new tests, workspace suite green. Verified live: invalid kind rejected, t-1958/t-1960 reclassified kind=fix. Binaries deployed.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
