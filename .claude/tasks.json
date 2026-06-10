@@ -51195,7 +51195,7 @@
     {
       "id": "t-1958",
       "subject": "backlog_batch op is not atomic — invalid field errors but valid fields still apply (context replace can wipe data)",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "tags": [
         "cli",
@@ -51209,15 +51209,19 @@
       "priority": "P2",
       "parent": null,
       "created": "2026-06-10",
-      "started": null,
-      "completed": null,
+      "started": "2026-06-10",
+      "completed": "2026-06-10",
       "blocked_by": [],
-      "branch": null,
+      "branch": "cli-backlog-schema/fix/t-1958-backlog-batch-atomic",
       "context": "Discovered during t-1955. Data was recovered from conversation history — original context had been read minutes earlier. Severity: silent data loss on any batch call with a typo'd field name alongside context/notes.",
-      "notes": null,
+      "notes": "2026-06-10: fixed via set_fields_atomic in brana_core::tasks (snapshot + rollback per op, sorted field order, fields:{} on failure, skip save when all ops fail). TDD red 35d0a6bb -> green 36ab6f78, 3 new tests, full workspace suite green. Merged --no-ff to main; brana + brana-mcp binaries deployed to ~/.local/bin (running MCP server keeps old inode until CC restart).",
       "order": 0,
       "github_issue": null,
-      "execution": "code"
+      "execution": "code",
+      "epic": "cli-backlog-schema",
+      "work_type": "implement",
+      "strategy": "bug-fix",
+      "build_step": "reproduce"
     },
     {
       "id": "t-1959",
