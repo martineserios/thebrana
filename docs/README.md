@@ -190,6 +190,14 @@ Exploratory design notes and integration proposals. Not committed to the roadmap
 | [lens.md](content/lens.md) | Positioning filter — pillars, dual test, anti-topics, components shelf |
 | [ideas.md](content/ideas.md) | Content idea seeds (capped at 10 active) |
 
+## Reviews (docs/reviews/)
+
+| File | Contents |
+|------|----------|
+| [architecture-review-2026-06-10.md](reviews/architecture-review-2026-06-10.md) | Full-system architecture review — 4-axis layer audit, write-only memory diagnosis, strategic options (close loop → extract public core) |
+| [token-baseline.md](reviews/token-baseline.md) | Token cost baseline measurements |
+| [weekly-2026-04-17.md](reviews/weekly-2026-04-17.md) | Weekly review 2026-04-17 |
+
 ## Research and spec docs (docs/ root)
 
 Design specifications and research from the original enter repo, now part of thebrana.
