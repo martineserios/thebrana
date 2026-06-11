@@ -51447,7 +51447,7 @@
     {
       "id": "t-1967",
       "subject": "session-start.sh reminder count surfacing",
-      "status": "pending",
+      "status": "completed",
       "type": "subtask",
       "kind": "feature",
       "tags": [],
@@ -51456,20 +51456,21 @@
       "priority": "P2",
       "parent": "t-1962",
       "created": "2026-06-10",
-      "started": null,
+      "started": "2026-06-10",
       "completed": null,
       "blocked_by": [
         "t-1965",
         "t-1966"
       ],
-      "branch": null,
+      "branch": "async-close/feat/t-1967-session-start-reminder-count",
       "context": null,
-      "notes": null,
+      "notes": "2026-06-10: 11/11 tests green (counts, high suffix, silent on missing/empty/corrupt/zero, valid JSON always). jq read ~2ms, well under 50ms budget. No regression in test-stale-binary.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
-      "epic": "async-close"
+      "epic": "async-close",
+      "strategy": "feature"
     },
     {
       "id": "t-1968",
