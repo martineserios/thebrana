@@ -261,16 +261,28 @@ Both hooks (layer 1, mid-session) and cron (layer 2, 2am) write `reminders.json`
 
 ---
 
-## Implementation order
+## Implementation plan — t-1962 shape (2026-06-10)
 
-1. **`system/hooks/lib/remind.sh`** — shell helper (no Rust, instant)
-2. **`system/cron/close-extraction.sh`** — nightly cron script
-3. **Track 1 (close-instant)** — modify `close/SKILL.md` to default snapshot + queue
-4. **Wire session-start.sh** — surface pending reminder count
-5. **`brana remind` CLI** (t-1962) — after remind.sh is stable
+Shaping decisions, superseding the earlier "Implementation order" draft:
 
-## Open questions (deferred to implementation)
+1. **Rust directly, no shell v1.** The earlier lean ("shell v1, Rust v2") is reversed: the schema is now stable, the brana Rust CLI has the serde/JSON infra, and a shell version would be throwaway work violating the CLI-composable convention.
+2. **Scope of t-1962 = the reminder subsystem**, not just the CLI. A CLI with nothing writing to the store has no value. Ships: store schema + `remind.sh` + Rust CLI + session-start surfacing.
+3. **Cron batch sources excluded.** The four batch sources (§above) ship with async-close Track 2 — its task tree is planned after t-1962 proves the store.
 
-- `brana remind` — Rust CLI subcommand or shell script? (lean: shell for v1, Rust for v2)
-- Session notes mechanism — how does the user/hook write notes during a session?
-- Cross-project reminder dedup — same pattern across projects should merge, not duplicate
+### Task tree (epic: async-close)
+
+```
+t-1962  brana remind — reminder system (M)
+├─ t-1964  ADR: reminder store architecture          (S, docs)   gates all impl
+├─ t-1965  remind.sh write helper — tests + impl     (S)  blocked_by: t-1964
+├─ t-1966  brana remind CLI (Rust) — TDD             (M)  blocked_by: t-1964
+├─ t-1967  session-start.sh count surfacing          (S)  blocked_by: t-1965, t-1966
+└─ t-1968  Docs: architecture + user guide           (S)  blocked_by: t-1967
+```
+
+t-1965 and t-1966 are parallelizable after the ADR. M+ disciplines: DDD = t-1964, TDD = embedded in t-1965/t-1966 acceptance criteria, SDD + Docs = t-1968.
+
+### Remaining open questions (deferred)
+
+- Session notes mechanism — how does the user/hook write notes during a session? (v2 of extraction input)
+- Track 1 (close-instant) + cron script tasks — planned after t-1962 ships
