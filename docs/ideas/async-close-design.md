@@ -1,6 +1,6 @@
 # Async-First Close — Design Spec
 
-> Research spike t-1961. Branch: async-close/research/t-1961-async-close-queue-schema.
+> Research spike t-1961. Status: **implemented** — superseded by [ADR-052](../architecture/decisions/ADR-052-close-queue-architecture.md) (schema/ids amended per challenger) and the [feature brief](../architecture/features/async-close.md).
 > Idea doc: docs/ideas/async-first-close.md
 
 ## Questions answered

@@ -1,6 +1,6 @@
 # Async-First Close + Nightly Extraction Cron
 
-> Brainstormed 2026-06-10. Status: idea.
+> Brainstormed 2026-06-10. Status: **shipped** (2026-06-11) — see [feature brief](../architecture/features/async-close.md) and [ADR-052](../architecture/decisions/ADR-052-close-queue-architecture.md). Tracks 1+2 live; batch sources (t-1976) pending.
 
 ## Problem
 
