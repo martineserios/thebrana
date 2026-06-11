@@ -51339,7 +51339,7 @@
     {
       "id": "t-1963",
       "subject": "Research: reminder system design — queue schema, sources, surfacing points",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "research",
       "tags": [
@@ -51354,8 +51354,8 @@
       "started": null,
       "completed": null,
       "blocked_by": [],
-      "branch": null,
-      "context": "Idea doc: docs/ideas/async-first-close.md (section: Reminder system). Part of the async-first close + nightly extraction cron design — the cron flags learnings that need human routing; the reminder system holds them instead of blocking close or session start. Design output gates t-1962 implementation. Related: t-1961 (async close queue/cron research) — the reminder sources depend on what the extraction cron produces, so coordinate schemas.",
+      "branch": "async-close/research/t-1963-reminder-system-design",
+      "context": "Idea doc: docs/ideas/async-first-close.md (section: Reminder system). Part of the async-first close + nightly extraction cron design — the cron flags learnings that need human routing; the reminder system holds them instead of blocking close or session start. Design output gates t-1962 implementation. Related: t-1961 (async close queue/cron research) — the reminder sources depend on what the extraction cron produces, so coordinate schemas.\nSpike complete. Design in docs/ideas/async-close-design.md §\"Reminder system — full design\". Key decisions: (1) lifecycle pending→resolved/snoozed/expired, expiry surfaces in weekly review as trigger-tuning feedback. (2) Four batch sources defined with concrete trigger conditions + open hook layer via remind.sh. (3) Dedup via dedup_key + occurrences counter; ≥3 occurrences auto-bumps priority; cross-project matches flagged as rule candidates. (4) Surfacing contracts: session-start (count only, <50ms), CLI (list/resolve/snooze), sitrep (top 2 high), weekly review (expired digest). (5) Atomic rename for concurrent writes, flock deferred. Unblocks t-1962.",
       "notes": null,
       "order": 0,
       "github_issue": null,

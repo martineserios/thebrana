@@ -188,6 +188,79 @@ write_reminder() {
 
 ---
 
+## Reminder system — full design (t-1963)
+
+> Extends Q4 above. Covers lifecycle, sources, dedup, and surfacing contracts.
+
+### Lifecycle state machine
+
+```
+                    ┌──────────┐
+   write_reminder → │ pending  │ ←──────────────┐
+                    └────┬─────┘                │
+              ┌──────────┼──────────┐           │ snooze expires
+              ▼          ▼          ▼           │ (cron or session-start
+        ┌──────────┐ ┌─────────┐ ┌─────────┐    │  flips back to pending)
+        │ resolved │ │ snoozed ─┼─┘         │
+        └──────────┘ └─────────┘ ┌──────────┐
+                                 │ expired  │ ← auto after 30 days pending
+                                 └──────────┘
+```
+
+| State | Meaning | Transition |
+|-------|---------|-----------|
+| `pending` | Active, surfaced at session start / sitrep | → resolved, snoozed, expired |
+| `snoozed` | Hidden until `snoozed_until` | → pending (auto, when timestamp passes) |
+| `resolved` | Done — kept 14 days for audit, then pruned | terminal |
+| `expired` | 30 days pending without action — auto-archived, surfaced once in a weekly digest | terminal |
+
+**Expiry is not deletion.** Expired reminders get one last surfacing in `/brana:review weekly` ("N reminders expired unactioned — were they noise?") — this is the feedback loop that tunes trigger conditions over time. Repeatedly-expired trigger types are candidates for removal.
+
+### The four sources — trigger conditions
+
+| # | Source | Trigger condition | Example reminder | Priority |
+|---|--------|------------------|------------------|----------|
+| 1 | **Nightly cron — pattern routing** | Extraction finds LARGE/novel pattern (scope ≥5 or novelty ≥5 on EVALUATE axes) | "Pattern from 06-10 session needs classification: 'hook sentinel dual-write'" | high |
+| 2 | **Accumulated errata** | Same errata topic appears in ≥3 sessions within 30 days (cron greps errata doc dates) | "Errata 'tasks.json stash conflict' hit 3× this month — promote to rule?" | high |
+| 3 | **Deferred doc updates** | Close/build writes `doc update deferred` to next[] AND ≥3 sessions pass without the doc changing (cron checks git log for the file) | "docs/architecture/hooks.md flagged stale 3 sessions ago, still unchanged" | medium |
+| 4 | **Stale close queue** | Queue entry `processed=false` AND `timestamp` >3 days old (cron self-monitoring) | "2 close snapshots unprocessed >3 days — extraction cron may be failing" | high |
+
+Plus the open layer: **any hook** can write via `remind.sh` (event-based, layer 1). The four above are the built-in batch sources (layer 2).
+
+### Cross-project dedup
+
+Reminders carry a `dedup_key` (optional): `{source}:{topic-slug}`. Before appending, `write_reminder` checks for an existing `pending` reminder with the same `dedup_key`:
+
+- **Match found:** increment its `occurrences` counter and update `last_seen` — do NOT append a duplicate
+- **No match:** append as new
+
+```json
+{
+  "dedup_key": "errata-accumulation:tasks-json-stash",
+  "occurrences": 3,
+  "last_seen": "2026-06-10T23:15:00Z"
+}
+```
+
+Occurrence count feeds priority escalation: `occurrences ≥3 AND priority=medium` → auto-bump to `high`. Cross-project patterns (same dedup_key from different `project` values) get a `cross-project: [p1, p2]` annotation — these are the strongest rule candidates.
+
+### Surfacing contracts
+
+| Surface | What it shows | Contract |
+|---------|--------------|----------|
+| `session-start.sh` | Count only: "Reminders: N pending (M high)" | Read-only, <50ms budget, never blocks startup |
+| `brana remind list` | Full table: id, age, priority, text, action | Sorted: priority desc, then created asc |
+| `brana remind resolve <id>` | Marks resolved | Writes `resolved_at`, keeps 14 days |
+| `brana remind snooze <id> <dur>` | Sets `snoozed_until` | Accepts 1d/3d/1w format |
+| `/brana:sitrep` | Top 2 high-priority pending | Inline in focus section, with `action` command shown |
+| `/brana:review weekly` | Expired digest + occurrence stats | Feedback loop for trigger tuning |
+
+### File locking
+
+Both hooks (layer 1, mid-session) and cron (layer 2, 2am) write `reminders.json`. Concurrent write risk is low (different times) but non-zero (parallel sessions). Contract: write via `jq ... > tmp && mv tmp file` (atomic rename, already in remind.sh) — last-writer-wins is acceptable for append-mostly data since appends read-modify-write the full file within one jq call. If corruption is ever observed, upgrade to `flock`.
+
+---
+
 ## Implementation order
 
 1. **`system/hooks/lib/remind.sh`** — shell helper (no Rust, instant)
