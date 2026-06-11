@@ -3297,7 +3297,7 @@
       "blocked_by": [],
       "branch": null,
       "completed": null,
-      "context": "URL: https://www.linkedin.com/posts/akash-g-7a5224246_knowledgegraphs-neo4j-ontology-share-7427272928578269185-FOks | Author: Akash G. | Source tier: low | Original: #17",
+      "context": "URL: https://www.linkedin.com/posts/akash-g-7a5224246_knowledgegraphs-neo4j-ontology-share-7427272928578269185-FOks | Author: Akash G. | Source tier: low | Original: #17\n2026-06-11: knowledge-structure audit — spec ontology (brana-ontology.yaml v1.5) and memory taxonomy (ADR-038) are two disjoint TBoxes with no mapping ('Pattern' defined differently in each); unify before any graph build. Memory files have no typed relations (9% have wiki-links, ~30% broken) — graph work should start by making relations first-class in memory frontmatter.",
       "created": "2026-03-03",
       "description": "Knowledge graph architecture with Neo4j — no AI agent focus",
       "effort": null,
@@ -51673,19 +51673,19 @@
       "description": "session-start.sh surfaces yesterday daily-summary when present: \"[Yesterday] N patterns, M errata. Review: ~/.claude/sessions/daily-summary-{date}.md\". Pure read, [ -s ] guarded, silent when absent, <50ms — same pattern as the shipped reminder count (t-1967).",
       "context": "AC: tests mirror test-reminder-count.sh — present/absent/empty/corrupt all leave hook JSON valid",
       "id": "t-1975",
-      "status": "pending",
+      "status": "completed",
       "created": "2026-06-10",
       "tags": [],
       "blocked_by": [
         "t-1974"
       ],
       "order": null,
-      "branch": null,
+      "branch": "async-close/feat/t-1975-yesterday-line",
       "github_issue": null,
-      "started": null,
+      "started": "2026-06-11",
       "completed": null,
-      "notes": null,
-      "strategy": null,
+      "notes": "2026-06-11: 10/10 tests; today-preferred-over-yesterday file selection (cron stamps today's date at 2am); no regression in reminder-count or stale-binary suites. Built in worktree ../thebrana-t-1975 (parallel session had uncommitted work in main checkout).",
+      "strategy": "feature",
       "build_step": null
     },
     {
