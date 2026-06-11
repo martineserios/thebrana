@@ -51281,7 +51281,7 @@
     {
       "id": "t-1961",
       "subject": "Research: async-first close — queue schema + cron contract design",
-      "status": "in_progress",
+      "status": "completed",
       "type": "task",
       "kind": "research",
       "tags": [
