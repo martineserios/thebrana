@@ -1,0 +1,67 @@
+//! `brana close-queue` — CLI surface for the close queue (t-1972, ADR-052).
+//! Thin marshalling layer: all mutation logic lives in `brana_core::queue`.
+
+use anyhow::{Result, anyhow};
+use brana_core::queue::{self, NewEntry};
+use std::path::PathBuf;
+
+/// Store lives per-user, cross-project: `~/.claude/close-queue.json`.
+fn store_path() -> PathBuf {
+    brana_core::util::home().join(".claude").join("close-queue.json")
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn cmd_append(
+    project: String,
+    branch: String,
+    git_root: String,
+    git_range: String,
+    snapshot_path: String,
+    commit_count: u64,
+    snapshot_truncated: bool,
+    session_notes_path: Option<String>,
+) -> Result<()> {
+    let r = queue::append(
+        &store_path(),
+        NewEntry {
+            project,
+            branch,
+            git_root,
+            git_range,
+            snapshot_path,
+            commit_count,
+            snapshot_truncated,
+            session_notes_path,
+        },
+    )
+    .map_err(|e| anyhow!(e))?;
+    if r.deduplicated {
+        eprintln!("close-queue: range already queued — returning existing entry");
+    }
+    println!("{}", serde_json::to_string_pretty(&r.entry)?);
+    Ok(())
+}
+
+pub fn cmd_list(unprocessed: bool) -> Result<()> {
+    let entries = queue::list(&store_path(), unprocessed).map_err(|e| anyhow!(e))?;
+    println!("{}", serde_json::to_string_pretty(&entries)?);
+    Ok(())
+}
+
+pub fn cmd_mark_processed(id: &str, summary_path: &str) -> Result<()> {
+    let e = queue::mark_processed(&store_path(), id, summary_path).map_err(|e| anyhow!(e))?;
+    println!("{}", serde_json::to_string_pretty(&e)?);
+    Ok(())
+}
+
+pub fn cmd_mark_failed(id: &str, error: &str) -> Result<()> {
+    let e = queue::mark_failed(&store_path(), id, error).map_err(|e| anyhow!(e))?;
+    println!("{}", serde_json::to_string_pretty(&e)?);
+    Ok(())
+}
+
+pub fn cmd_prune() -> Result<()> {
+    let removed = queue::prune(&store_path()).map_err(|e| anyhow!(e))?;
+    println!("{removed}");
+    Ok(())
+}

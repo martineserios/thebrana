@@ -1,4 +1,5 @@
 pub mod backlog;
+pub mod close_queue;
 pub mod decisions;
 pub mod doctor;
 pub mod feed;
