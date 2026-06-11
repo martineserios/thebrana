@@ -68,6 +68,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | [system-documentation-map.md](architecture/system-documentation-map.md) | Documentation structure map |
 | [memory-backup.md](architecture/memory-backup.md) | Memory backup, recovery, and reindex procedures |
 | [context-budget.md](architecture/context-budget.md) | CC context thresholds (autocompact constants, session memory) |
+| [workflow-primitive.md](architecture/workflow-primitive.md) | Verified `Workflow` tool API surface, smoke-test evidence, opt-in rule |
 
 ### Extending brana
 
