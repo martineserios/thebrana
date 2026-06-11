@@ -51277,6 +51277,92 @@
       "execution": "code",
       "epic": "cli-backlog-schema",
       "kind": "fix"
+    },
+    {
+      "id": "t-1961",
+      "subject": "Research: async-first close — queue schema + cron contract design",
+      "status": "pending",
+      "type": "task",
+      "kind": "research",
+      "tags": [
+        "session"
+      ],
+      "description": "Design the queue schema (close-queue.json), snapshot format, and nightly cron contract for async-first close. Validate that diff-only context is sufficient for extraction worker. Define failure modes and recovery path.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-10",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Idea doc: docs/ideas/async-first-close.md. The goal is async close: close-instant writes snapshot + queue in 30s, nightly 2am cron processes snapshots and routes learnings. This research task gates implementation. Key questions: (1) is git diff alone enough context for the extraction LLM pass? (2) what fields does close-queue.json need? (3) how does the cron handle multiple queued sessions?",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "epic": "async-close",
+      "work_type": "research"
+    },
+    {
+      "id": "t-1962",
+      "subject": "Feature: brana remind — CLI reminder system for deferred learnings",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "cli",
+        "session",
+        "learning-loop"
+      ],
+      "description": "Add `brana remind` subcommand to surface and manage deferred learnings from the async close nightly cron. Subcommands: list, resolve, snooze. Reminder sources: large patterns pending routing, accumulated errata across sessions, deferred doc updates, stale close queue. Integrate into `brana backlog status`, session-start hook, and /brana:sitrep.",
+      "effort": "M",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-10",
+      "started": null,
+      "completed": null,
+      "blocked_by": [
+        "t-1961",
+        "t-1963"
+      ],
+      "branch": null,
+      "context": "Triggered by the async-first close brainstorm (docs/ideas/async-first-close.md). The nightly extraction cron identifies large/novel patterns that need human routing before storing — instead of prompting at session close or session start, these go to a reminder queue surfaced by the CLI. This is a standalone feature but tightly coupled to the async close architecture.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "epic": "async-close"
+    },
+    {
+      "id": "t-1963",
+      "subject": "Research: reminder system design — queue schema, sources, surfacing points",
+      "status": "pending",
+      "type": "task",
+      "kind": "research",
+      "tags": [
+        "session",
+        "cli"
+      ],
+      "description": "Research and design the brana reminder system before implementing the `brana remind` CLI (t-1962). Define: reminder schema (close-reminders.json), the four reminder sources (large patterns pending routing, accumulated errata across sessions, deferred doc updates, stale close queue), lifecycle (created → surfaced → resolved/snoozed), and surfacing points (brana backlog status, session-start hook, /brana:sitrep).",
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-10",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Idea doc: docs/ideas/async-first-close.md (section: Reminder system). Part of the async-first close + nightly extraction cron design — the cron flags learnings that need human routing; the reminder system holds them instead of blocking close or session start. Design output gates t-1962 implementation. Related: t-1961 (async close queue/cron research) — the reminder sources depend on what the extraction cron produces, so coordinate schemas.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "epic": "async-close",
+      "work_type": "research"
     }
   ],
   "version": "1"
