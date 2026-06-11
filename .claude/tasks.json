@@ -51308,7 +51308,7 @@
     {
       "id": "t-1962",
       "subject": "Feature: brana remind — CLI reminder system for deferred learnings",
-      "status": "pending",
+      "status": "completed",
       "type": "task",
       "kind": "feature",
       "tags": [
@@ -51329,7 +51329,7 @@
       ],
       "branch": null,
       "context": "Shaping decisions (2026-06-10): Rust subcommand directly — no shell v1 (schema stable, serde infra exists). Scope: store schema + remind.sh + CLI + session-start surfacing. Cron batch sources EXCLUDED — they ship with async-close Track 2 (tasks created after t-1962 proves the store). Subtasks: t-1964 (ADR) → t-1965 (remind.sh) + t-1966 (Rust CLI) → t-1967 (session-start) → t-1968 (docs).\nTriggered by the async-first close brainstorm (docs/ideas/async-first-close.md). Design: docs/ideas/async-close-design.md. The nightly extraction cron identifies large/novel patterns needing human routing — the reminder system holds them instead of blocking close or session start. Standalone feature, tightly coupled to async close architecture.\n2026-06-10: Shape persisted to docs/ideas/async-close-design.md §\"Implementation plan — t-1962 shape\" — task tree, Rust-not-shell decision, subsystem scope. That section is the authoritative shape; task contexts mirror it.\n2026-06-10 challenger review (RECONSIDER verdict): write architecture FLIPPED — all store mutation in Rust (brana remind write), remind.sh is thin arg-marshalling wrapper. Resolves 3 CRITICALs (no-flock silent loss, static tmp collision, jq-failure store death) + dedup fragility in one decision. Dependency change: t-1965 now blocked_by t-1966 (wrapper needs the CLI). session-start = pure jq count, no Rust invocation, no transition writes; brana remind list is the only transition-persisting path. Full report findings reflected in design doc §\"Write architecture (revised)\".",
-      "notes": null,
+      "notes": "2026-06-10: all subtasks shipped — ADR-051, Rust CLI (race-tested), hook wrapper, session-start surfacing, docs. Track 2 (nightly cron batch sources) remains separate.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
@@ -51442,7 +51442,7 @@
       "execution": "code",
       "acceptance_criteria": null,
       "epic": "async-close",
-      "build_step": "CLOSE"
+      "build_step": null
     },
     {
       "id": "t-1967",
