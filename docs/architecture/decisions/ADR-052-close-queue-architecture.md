@@ -5,13 +5,13 @@ depends_on:
 informs:
   - docs/ideas/async-first-close.md
   - docs/architecture/features/reminder-system.md
-status: proposed
+status: accepted
 ---
 
 # ADR-052: Close Queue — Rust-Owned Writes, agy Extraction Contract
 
 **Date:** 2026-06-10
-**Status:** Proposed (gate: must be Accepted before t-1972 starts)
+**Status:** Accepted
 **Tasks:** t-1970 (phase), t-1971 (this ADR), t-1972 (queue CLI), t-1973 (close skill), t-1974 (cron), t-1975 (surfacing), t-1976 (batch sources), t-1977 (docs)
 **Source:** async-close design (docs/ideas/async-close-design.md Q1–Q3) + plan challenger review 2026-06-10 (verdict: PROCEED WITH CHANGES — 4 CRITICAL, 4 HIGH findings, all resolved here)
 
