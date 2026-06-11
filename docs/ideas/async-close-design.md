@@ -272,26 +272,37 @@ Occurrence count feeds priority escalation: `occurrences ≥3 AND priority=mediu
 
 ---
 
-## Implementation plan — t-1962 shape (2026-06-10)
+## Implementation plan — t-1962 shape (2026-06-10, rev 2 post-challenger)
 
-Shaping decisions, superseding the earlier "Implementation order" draft:
+Shaping decisions, superseding the earlier "Implementation order" draft. Rev 2 incorporates the challenger review (verdict: RECONSIDER — see §"Write architecture (revised)").
 
 1. **Rust directly, no shell v1.** The earlier lean ("shell v1, Rust v2") is reversed: the schema is now stable, the brana Rust CLI has the serde/JSON infra, and a shell version would be throwaway work violating the CLI-composable convention.
-2. **Scope of t-1962 = the reminder subsystem**, not just the CLI. A CLI with nothing writing to the store has no value. Ships: store schema + `remind.sh` + Rust CLI + session-start surfacing.
-3. **Cron batch sources excluded.** The four batch sources (§above) ship with async-close Track 2 — its task tree is planned after t-1962 proves the store.
+2. **Rust owns ALL writes** (challenger flip): `brana remind write` is the single mutation path — locking, dedup, validation, atomic write. `remind.sh` is a thin arg-marshalling wrapper, no jq.
+3. **Scope of t-1962 = the reminder subsystem**, not just the CLI. A CLI with nothing writing to the store has no value. Ships: store schema + Rust CLI (write/list/resolve/snooze) + `remind.sh` wrapper + session-start surfacing.
+4. **Cron batch sources excluded.** The four batch sources (§above) ship with async-close Track 2 — its task tree is planned after t-1962 proves the store.
 
-### Task tree (epic: async-close)
+### Task tree (epic: async-close) — sequential after the flip
 
 ```
 t-1962  brana remind — reminder system (M)
-├─ t-1964  ADR: reminder store architecture          (S, docs)   gates all impl
-├─ t-1965  remind.sh write helper — tests + impl     (S)  blocked_by: t-1964
-├─ t-1966  brana remind CLI (Rust) — TDD             (M)  blocked_by: t-1964
-├─ t-1967  session-start.sh count surfacing          (S)  blocked_by: t-1965, t-1966
-└─ t-1968  Docs: architecture + user guide           (S)  blocked_by: t-1967
+├─ t-1964  ADR: reminder store architecture              (S, docs)  gates all impl
+├─ t-1966  brana remind CLI (Rust) — write/list/resolve/ (M)  blocked_by: t-1964
+│          snooze, TDD incl. concurrent-write race test
+├─ t-1965  remind.sh thin wrapper → brana remind write   (S)  blocked_by: t-1964, t-1966
+├─ t-1967  session-start.sh count surfacing (pure jq)    (S)  blocked_by: t-1965, t-1966
+└─ t-1968  Docs: architecture + user guide               (S)  blocked_by: t-1967
 ```
 
-t-1965 and t-1966 are parallelizable after the ADR. M+ disciplines: DDD = t-1964, TDD = embedded in t-1965/t-1966 acceptance criteria, SDD + Docs = t-1968.
+The flip serialized the chain — the wrapper depends on the CLI existing (was parallel in rev 1). Critical path: ADR → Rust CLI → wrapper → session-start → docs. M+ disciplines: DDD = t-1964, TDD = embedded in t-1965/t-1966 acceptance criteria (incl. concurrent-write race test), SDD + Docs = t-1968.
+
+### ADR must pin (challenger requirements)
+
+- Write path: single owner (`brana remind write`), advisory file lock, parse-before-write validation, mktemp-same-dir atomic rename
+- Read paths: session-start = pure jq count (no Rust invocation, no writes); `brana remind list` = only transition persister
+- Serde: no `deny_unknown_fields`; post-v1 fields `Option<T>` + `#[serde(default)]`; version via `serde_json::Value` before strict parse
+- Ids random (short uuid, not content-derived); timestamps UTC RFC3339
+- `dedup_key` is a named param of the write interface (Q4 signature and lifecycle spec aligned)
+- Race-condition test is part of TDD scope, not just CRUD unit tests
 
 ### Remaining open questions (deferred)
 
