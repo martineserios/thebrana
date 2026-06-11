@@ -43,6 +43,8 @@ Gaps in the literature: no published prior art for suggest-and-confirm loop prot
 | `/loop` (+ ScheduleWakeup dynamic mode) | Recurring, in-session, context-bound | Interactive, reacts to session state, cheap per beat | Non-deterministic, not resumable, dies with session |
 | `Workflow` tool (deterministic JS orchestration; opt-in via "ultracode" or explicit request) | One-shot fan-out/pipeline of subagents in clean contexts | Deterministic, resumable (journal), scales past one context window, schema-validated outputs, saveable to `.claude/workflows/` | Not recurring; heavyweight; explicit opt-in required |
 
+**Verified 2026-06-11 (resolves challenger C3):** smoke test `wf_859926e3-bd2` confirmed `parallel()`, schema-validated `agent()` output, and `isolation: 'worktree'` (auto-created under `.claude/worktrees/`, auto-cleaned). Full API surface + opt-in rule documented in [workflow-primitive.md](../architecture/workflow-primitive.md). The skill-instructions opt-in path makes a user-started foreman a legitimate Workflow dispatcher.
+
 **Mapping:** wheel-turning, babysitting, queue-watching → `/loop`. Heavy bounded phases (audit sweeps, batch queue drains, challenger panels, migration fan-outs) → `Workflow`. **Composed:** a loop iteration is the trigger ("queue has 14 entries"), a workflow is the muscle ("process all 14 with adversarial verify"), and the loop returns to watching.
 
 Cost cautions:
