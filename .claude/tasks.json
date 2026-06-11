@@ -51391,7 +51391,7 @@
     {
       "id": "t-1965",
       "subject": "remind.sh thin wrapper — marshal args to brana remind write",
-      "status": "pending",
+      "status": "completed",
       "type": "subtask",
       "kind": "feature",
       "tags": [],
@@ -51400,20 +51400,22 @@
       "priority": "P2",
       "parent": "t-1962",
       "created": "2026-06-10",
-      "started": null,
+      "started": "2026-06-10",
       "completed": null,
       "blocked_by": [
         "t-1964",
         "t-1966"
       ],
-      "branch": null,
-      "context": null,
-      "notes": null,
+      "branch": "async-close/feat/t-1965-remind-sh-wrapper",
+      "context": "skill_gap_checked: true (top score 0.1 < 0.3, autonomous: skipped external search — plain bash wrapper)",
+      "notes": "2026-06-10: 13/13 tests green (marshalling, dedup passthrough, missing-binary warn+exit0, no-jq structural check). validate.sh single error is pre-existing agy pin mismatch — filed t-1969.",
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
-      "epic": "async-close"
+      "epic": "async-close",
+      "strategy": "feature",
+      "build_step": null
     },
     {
       "id": "t-1966",
@@ -51494,6 +51496,33 @@
       "execution": "code",
       "acceptance_criteria": null,
       "epic": "async-close"
+    },
+    {
+      "id": "t-1969",
+      "subject": "Re-pin agy version: adversarial spike for 1.0.7, bump AGY_PINNED_VERSION",
+      "status": "pending",
+      "type": "task",
+      "kind": "ops",
+      "tags": [
+        "cli",
+        "agy",
+        "validate"
+      ],
+      "description": "validate.sh Check 38 fails: installed agy 1.0.7 vs pinned 1.0.4 in agy_delegate.rs. Per the pin protocol: re-run the adversarial spike against 1.0.7, then bump AGY_PINNED_VERSION. Pre-existing failure, surfaced during t-1965 validation 2026-06-10.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-10",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": null,
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"
