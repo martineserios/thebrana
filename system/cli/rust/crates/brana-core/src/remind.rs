@@ -8,7 +8,6 @@
 
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
-use std::fs::OpenOptions;
 use std::path::Path;
 
 pub const STORE_VERSION: u64 = 1;
@@ -84,37 +83,12 @@ fn now() -> DateTime<Utc> {
 
 /// Hex-encode 8 random bytes from the OS → `r-xxxxxxxxxxxxxxxx`.
 fn random_id() -> String {
-    let mut buf = [0u8; 8];
-    // /dev/urandom is always present on Linux; fall back to time+pid mix.
-    if std::fs::File::open("/dev/urandom")
-        .and_then(|mut f| std::io::Read::read_exact(&mut f, &mut buf))
-        .is_err()
-    {
-        let t = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_nanos() as u64
-            ^ ((std::process::id() as u64) << 32);
-        buf = t.to_le_bytes();
-    }
-    let hex: String = buf.iter().map(|b| format!("{b:02x}")).collect();
-    format!("r-{hex}")
+    crate::util::random_store_id("r")
 }
 
 /// Take an exclusive advisory lock on `<store>.lock`. Held until drop.
 fn lock_store(path: &Path) -> Result<std::fs::File, String> {
-    let lock_path = path.with_extension("json.lock");
-    if let Some(dir) = lock_path.parent() {
-        std::fs::create_dir_all(dir).map_err(|e| format!("create store dir failed: {e}"))?;
-    }
-    let f = OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(false)
-        .open(&lock_path)
-        .map_err(|e| format!("open lock file failed: {e}"))?;
-    f.lock().map_err(|e| format!("lock failed: {e}"))?;
-    Ok(f)
+    crate::util::lock_sidecar(path)
 }
 
 /// Read + parse the store. Missing file → empty v1 store.
@@ -147,20 +121,7 @@ fn read_store(path: &Path) -> Result<Store, String> {
 
 /// Same-dir tmp + atomic rename (the store dir, never /tmp).
 fn write_store(path: &Path, store: &Store) -> Result<(), String> {
-    let content =
-        serde_json::to_string_pretty(store).map_err(|e| format!("serialize failed: {e}"))?;
-    let dir = path.parent().ok_or("store path has no parent directory")?;
-    std::fs::create_dir_all(dir).map_err(|e| format!("create store dir failed: {e}"))?;
-    let file_name = path
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or("reminders");
-    let tmp = dir.join(format!("{}.{}.tmp", file_name, std::process::id()));
-    std::fs::write(&tmp, content).map_err(|e| format!("write tmp failed: {e}"))?;
-    std::fs::rename(&tmp, path).map_err(|e| {
-        let _ = std::fs::remove_file(&tmp);
-        format!("atomic rename failed: {e}")
-    })
+    crate::util::write_json_atomic(path, store)
 }
 
 /// Append a reminder (or dedup-increment an existing pending/snoozed one).
