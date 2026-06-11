@@ -4,13 +4,13 @@ depends_on:
   - docs/ideas/cc-feature-adoption-v2.1.76-81.md
 informs:
   - docs/ideas/session-aware-loop-integration.md
-status: proposed
+status: accepted
 ---
 
 # ADR-050: Loop-Request Protocol — Suggest-and-Confirm, No Auto-Spawn
 
 **Date:** 2026-06-10
-**Status:** Proposed
+**Status:** Accepted (2026-06-11)
 **Tasks:** t-730 (design), t-731 (implementation — re-scoped by this ADR), t-1930 (tests), t-517 (non-advancement conditions)
 **Source:** Revival review of cancelled initiative t-719; challenger review 2026-06-09 (verdict: RECONSIDER → design-first)
 
@@ -46,7 +46,7 @@ A skill procedure may include a **loop suggestion** step, constrained as follows
 | **Suggestion moments** | Only at strategy-defined points: BUILD start (long builds, effort L/XL only), CLOSE of a multi-session task. Max one suggestion per skill invocation. |
 | **Form** | One AskUserQuestion or inline mention. Decline = drop silently, never re-ask in the same session. |
 | **Mechanism choice** | Event-shaped need (watch file/process/output) → `Monitor` or background Bash. Time-shaped hygiene (uncommitted-changes nag) → `CronCreate`, interval ≥20 min (past cache TTL, amortized) or ≤4 min (within TTL) — never 5–19 min (worst-of-both per ScheduleWakeup economics). |
-| **Durability** | `durable: false` always. Session-scoped loops die with the session — no cross-session zombies. `durable: true` requires explicit user request, never a skill suggestion. |
+| **Durability** | `durable: false` always. Session-scoped loops die with the session — no cross-session zombies. `durable: true` requires explicit user request, never a skill suggestion. The factory foreman ([loop-native redesign](../../research/2026-06-11-loop-native-redesign.md)) falls under this rule: per-session, with cross-session continuity via a SessionStart suggestion when agent-ready tasks exist — not via `durable: true`. A durable foreman remains possible later through the explicit-request exception; nothing is built for it until supervised runs produce evidence. |
 | **Lifecycle contract** | Spawn: only post-confirmation. Kill: (a) the suggesting skill's CLOSE/REPORT step runs `CronList` and deletes loops it spawned; (b) `/brana:close` sweeps any remaining session loops (one procedure line); (c) session end kills non-durable loops by construction. Branch switch: loops are not branch-aware in v1 — the close-step sweep is the backstop. |
 | **Prompt content** | Loop prompts must be self-contained and reference machine-verifiable checks (`validate.sh`, `git status --porcelain`, test exit codes) — never "assess whether progress is being made" (LoopTrap defense). |
 

@@ -14,7 +14,7 @@ How should thebrana be redesigned so its pipelines (build, close→sitrep, chall
 
 ### Finding 0 — Prior art is internal: ADR-050 already governs loops
 
-ADR-050 "loop-request-protocol" (accepted 2026-06-10) constrains any redesign:
+[ADR-050](../architecture/decisions/ADR-050-loop-request-protocol.md) "loop-request-protocol" (proposed 2026-06-10, accepted 2026-06-11 after challenger review of this doc) constrains any redesign:
 
 - **Suggest-and-confirm, never auto-spawn.** Skills may suggest a loop (BUILD start for L/XL, CLOSE of multi-session tasks) via one AskUserQuestion max.
 - **Cache-aware intervals:** ≤4 min (inside 5-min prompt-cache TTL) or ≥20 min. Never 5–19 min.
@@ -68,6 +68,8 @@ Backlog as the source of work; the workflow-loop pair as the engine. A curated, 
                                  │      ├─ AC verified → mark done, pick next
                                  └────── ✋ gate / ambiguity / failed verify
 ```
+
+**Foreman lifetime (decided 2026-06-11, resolves challenger W1):** the foreman is per-session — it dies with the session, per [ADR-050](../architecture/decisions/ADR-050-loop-request-protocol.md)'s durability rule. The "always-on factory" feel comes from a SessionStart hook line that suggests starting the foreman when agent-ready tasks exist (suggestion is persistent; loop is not). A `durable: true` foreman stays available via ADR-050's explicit-user-request exception, but nothing is designed or built for unattended operation until supervised runs produce evidence — an unattended foreman would stall on human-only gates (merges, raised hands) anyway.
 
 ### Load-bearing existing assets
 
