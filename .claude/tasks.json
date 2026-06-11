@@ -51281,7 +51281,7 @@
     {
       "id": "t-1961",
       "subject": "Research: async-first close — queue schema + cron contract design",
-      "status": "pending",
+      "status": "in_progress",
       "type": "task",
       "kind": "research",
       "tags": [
@@ -51295,8 +51295,8 @@
       "started": null,
       "completed": null,
       "blocked_by": [],
-      "branch": null,
-      "context": "Idea doc: docs/ideas/async-first-close.md. The goal is async close: close-instant writes snapshot + queue in 30s, nightly 2am cron processes snapshots and routes learnings. This research task gates implementation. Key questions: (1) is git diff alone enough context for the extraction LLM pass? (2) what fields does close-queue.json need? (3) how does the cron handle multiple queued sessions?",
+      "branch": "async-close/research/t-1961-async-close-queue-schema",
+      "context": "Idea doc: docs/ideas/async-first-close.md. The goal is async close: close-instant writes snapshot + queue in 30s, nightly 2am cron processes snapshots and routes learnings. This research task gates implementation. Key questions: (1) is git diff alone enough context for the extraction LLM pass? (2) what fields does close-queue.json need? (3) how does the cron handle multiple queued sessions?\nSpike complete. Key findings: (1) git diff+log is 80% sufficient for extraction — conversation-level insights deferred to optional session-notes mechanism. (2) close-queue.json schema designed (id, timestamp, branch, git_root, git_range, snapshot_path, processed, failed, retry_count). (3) Cron processes entries chronologically, sequential LLM passes, 3-retry failure loop. (4) Reminder system uses two-layer design: hook-based (real-time, via remind.sh helper) + cron-based (nightly batch). Both write to ~/.claude/reminders.json. Shell helper in system/hooks/lib/remind.sh makes hook integration trivial. Design doc: docs/ideas/async-close-design.md.",
       "notes": null,
       "order": 0,
       "github_issue": null,

@@ -69,9 +69,13 @@ Current FULL close behavior. Reserved for milestones, releases, or manual deep d
 If daily summary exists → surfaced in startup context (already wired to session-start hook).
 Large patterns pending routing → shown as reminders (see Reminder system below).
 
-## Reminder system (brana CLI extension)
+## Reminder system (brana CLI extension + hook integration)
 
-The nightly extraction identifies learnings that need human review before routing (LARGE patterns, novel ADR candidates). Instead of blocking close or prompting at session start, these go into a reminder queue surfaced by the CLI.
+The reminder system has two layers: (1) **event-based** — hooks write reminders in real-time when conditions match; (2) **batch-based** — nightly cron writes reminders for large/novel patterns pending human routing. Both write to the same `~/.claude/reminders.json` store.
+
+A shell helper (`system/hooks/lib/remind.sh`) lets any hook write a reminder in one line — no hook needs to know about the store format. This makes the reminder system trivially extensible: any new hook can add a reminder trigger without a schema migration.
+
+The nightly extraction identifies learnings that need human review before routing (LARGE patterns, novel ADR candidates). Instead of blocking close or prompting at session start, these go into the same reminder queue.
 
 **Proposed: `brana remind` command**
 

@@ -1,0 +1,203 @@
+# Async-First Close — Design Spec
+
+> Research spike t-1961. Branch: async-close/research/t-1961-async-close-queue-schema.
+> Idea doc: docs/ideas/async-first-close.md
+
+## Questions answered
+
+### Q1: Is git diff + commit log sufficient for nightly extraction?
+
+**Answer: 80% yes — sufficient to start.**
+
+| Learning type | Captured in diff+log? | Notes |
+|---|---|---|
+| Code patterns (reusable solutions) | ✓ | Visible in diff content |
+| Bug fixes / errata | ✓ | Commit msg + diff |
+| Workarounds | ✓ | Usually commented in code |
+| Rejected approaches | ✗ | Lives in conversation only |
+| Debugging insights | ✗ | Conversation context, not code |
+| "Aha moments" | ✗ | Conversation-level |
+
+The 20% gap (conversation-level insights) is addressed separately via an optional "session notes" mechanism — a lightweight scratch file the user or hooks write to during the session. This is additive and not required for v1.
+
+**Decision:** diff + `git log --oneline` is the v1 extraction input. Add `session_notes_path` to the queue schema as optional from day one so it can be populated later.
+
+---
+
+### Q2: close-queue.json schema
+
+**File location:** `~/.claude/close-queue.json` (per-user, cross-project)
+
+```json
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "close-20260610T231500Z-thebrana",
+      "timestamp": "2026-06-10T23:15:00Z",
+      "branch": "feat/t-1234-feature",
+      "project": "thebrana",
+      "git_root": "/home/martineserios/enter_thebrana/thebrana",
+      "git_range": "abc123def..789012abc",
+      "commit_count": 3,
+      "snapshot_path": "~/.claude/sessions/snap-20260610-2315.diff",
+      "session_notes_path": null,
+      "processed": false,
+      "processed_at": null,
+      "summary_path": null,
+      "failed": false,
+      "retry_count": 0,
+      "error": null
+    }
+  ]
+}
+```
+
+**Field rationale:**
+- `id`: deterministic — `close-{ISO8601}-{project}` — idempotent on replay
+- `git_range`: `HEAD~N..HEAD` captured at close time (not relying on HEAD at cron time — N commits might have accumulated by then)
+- `snapshot_path`: full diff saved locally; cron reads it without requiring git access at the same commit
+- `session_notes_path`: null in v1; populated if a session-notes feature ships later
+- `failed` + `retry_count` + `error`: failure tracking for the cron retry loop
+
+**Snapshot format:** plain text (`git diff HEAD~N..HEAD` output), saved to `~/.claude/sessions/snap-{YYYYMMDD}-{HHMM}.diff`. Kept 14 days, deleted by cron after successful processing.
+
+---
+
+### Q3: Cron handling multiple queued sessions
+
+**Processing order:** chronological (oldest first) — ensures learnings are extracted in the order they happened, preventing temporal confusion in errata docs.
+
+**Concurrency:** sequential, not parallel — one LLM pass at a time. Keeps cost predictable.
+
+**Algorithm:**
+```
+READ close-queue.json
+FOR each entry WHERE processed=false AND failed_retries<3:
+  1. Read snapshot_path
+  2. LLM pass: extract learnings (errata / patterns / field-notes)
+  3. Route SMALL learnings → ruflo/memory (auto)
+  4. Route LARGE/novel learnings → reminders.json (for human review)
+  5. Mark entry processed=true, set summary_path, set processed_at
+  6. Delete snapshot file if >14 days old OR mark for deletion
+WRITE daily-summary-{date}.md with all extracted learnings
+WRITE close-queue.json with updated entries
+```
+
+**Failure handling:**
+- If LLM call fails: `failed=true`, `retry_count++`, `error=message`
+- Next cron run: retries up to 3x
+- After 3 failures: writes a "processing failed" reminder → human resolves manually
+
+**Retention:** entries older than 30 days (processed or failed) are pruned from the queue on each cron run.
+
+---
+
+### Q4: Reminder system — hook integration design (per user addition)
+
+**Core insight from user:** the reminder system must be hook-friendly so that any event can trigger a reminder. Two layers:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Layer 1: Event-based (hooks, real-time during session)  │
+│   PostToolUse → condition match → write reminder        │
+│   session-end hooks → check patterns → write reminder   │
+│   PreToolUse → overdue check → surface reminder         │
+└────────────────────┬────────────────────────────────────┘
+                     │ both write to
+┌────────────────────▼────────────────────────────────────┐
+│ ~/.claude/reminders.json  (append-only, cross-project)  │
+└────────────────────┬────────────────────────────────────┘
+                     │ surfaced by
+┌────────────────────▼────────────────────────────────────┐
+│ Layer 2: Batch-based (nightly cron — async close)       │
+│   session snapshot → LLM extraction → large patterns   │
+│   → reminders.json (pending human review)               │
+└─────────────────────────────────────────────────────────┘
+                     │ read by
+┌────────────────────▼────────────────────────────────────┐
+│ Surfacing: session-start hook / sitrep / brana remind   │
+└─────────────────────────────────────────────────────────┘
+```
+
+**reminders.json schema:**
+
+```json
+{
+  "version": 1,
+  "reminders": [
+    {
+      "id": "r-20260610T231500Z-hooks-edit",
+      "created": "2026-06-10T23:15:00Z",
+      "source": "hook:PostToolUse",
+      "trigger": "edit:system/hooks/*.sh",
+      "project": "thebrana",
+      "text": "Edited hooks 3× this session. Run validate.sh before next session.",
+      "action": "brana validate --scope hooks",
+      "priority": "medium",
+      "status": "pending",
+      "snoozed_until": null,
+      "resolved_at": null,
+      "tags": ["hooks", "validation"]
+    }
+  ]
+}
+```
+
+**Hook write contract (shell helper — `system/hooks/lib/remind.sh`):**
+
+```bash
+#!/usr/bin/env bash
+# write_reminder TEXT ACTION PRIORITY [PROJECT] [TAGS_CSV]
+# Usage: write_reminder "Run validate.sh" "brana validate" "medium" "thebrana" "hooks,validation"
+write_reminder() {
+    local text="$1" action="$2" priority="${3:-medium}"
+    local project="${4:-unknown}" tags="${5:-}"
+    local reminder_file="$HOME/.claude/reminders.json"
+    local id="r-$(date -u +%Y%m%dT%H%M%SZ)-$(echo "$text" | md5sum | cut -c1-6)"
+
+    # Init file if missing
+    [ -f "$reminder_file" ] || echo '{"version":1,"reminders":[]}' > "$reminder_file"
+
+    jq --arg id "$id" --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+       --arg src "${HOOK_NAME:-hook:unknown}" \
+       --arg project "$project" --arg text "$text" \
+       --arg action "$action" --arg priority "$priority" \
+       --argjson tags "$(echo "$tags" | jq -Rc 'split(",") | map(select(length>0))')" \
+    '.reminders += [{
+      "id": $id, "created": $ts, "source": $src,
+      "project": $project, "text": $text, "action": $action,
+      "priority": $priority, "status": "pending",
+      "snoozed_until": null, "resolved_at": null, "tags": $tags
+    }]' "$reminder_file" > /tmp/reminders.tmp && mv /tmp/reminders.tmp "$reminder_file"
+}
+```
+
+**Example hook triggers:**
+- `PostToolUse` on `Edit/Write` matching `system/hooks/*.sh` ≥3 times → "Run validate.sh"
+- `session-end.sh` → task in_progress with no commits on that branch → "t-NNN left in_progress with no commits"
+- Nightly cron → LARGE pattern needing classification → "Pattern from [date] session needs routing"
+- `PostToolUse` on `Bash` matching `git stash push` → "You stashed changes — remember to pop or clean up"
+
+**Surfacing:**
+- `session-start.sh`: if `pending` reminders > 0 → `"Reminders: N pending. Run 'brana remind list' to view."` in additionalContext
+- `brana remind list`: shows all pending/snoozed reminders, sorted by priority+created
+- `brana remind resolve <id>`: marks resolved
+- `brana remind snooze <id> 3d`: sets `snoozed_until` to 3 days from now
+- `/brana:sitrep`: surfaces top 1-2 `high` priority reminders in focus section
+
+---
+
+## Implementation order
+
+1. **`system/hooks/lib/remind.sh`** — shell helper (no Rust, instant)
+2. **`system/cron/close-extraction.sh`** — nightly cron script
+3. **Track 1 (close-instant)** — modify `close/SKILL.md` to default snapshot + queue
+4. **Wire session-start.sh** — surface pending reminder count
+5. **`brana remind` CLI** (t-1962) — after remind.sh is stable
+
+## Open questions (deferred to implementation)
+
+- `brana remind` — Rust CLI subcommand or shell script? (lean: shell for v1, Rust for v2)
+- Session notes mechanism — how does the user/hook write notes during a session?
+- Cross-project reminder dedup — same pattern across projects should merge, not duplicate
