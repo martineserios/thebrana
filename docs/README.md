@@ -141,6 +141,7 @@ Contributor-facing docs. System design, decisions, and feature briefs.
 | File | Contents |
 |------|----------|
 | [build-loop-redesign.md](architecture/features/build-loop-redesign.md) | Build loop: 42->25 skills, 4-step loop, 7 strategies |
+| [reminder-system.md](architecture/features/reminder-system.md) | Reminder store: Rust-owned writes, two-layer sources, session-start surfacing |
 | [task-management-system.md](architecture/features/task-management-system.md) | Task management: JSON data layer, NL interface |
 | [event-log.md](architecture/features/event-log.md) | Event log: /brana:log skill |
 | [smart-tasks-add.md](architecture/features/smart-tasks-add.md) | Smart /brana:backlog add: suggest-only pattern |
