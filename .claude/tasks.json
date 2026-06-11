@@ -51743,6 +51743,34 @@
       "notes": null,
       "strategy": null,
       "build_step": null
+    },
+    {
+      "id": "t-1978",
+      "subject": "Extract close-mode classification to close-classify.sh — kill replicate-the-logic test drift",
+      "status": "completed",
+      "type": "task",
+      "kind": "refactor",
+      "tags": [
+        "close",
+        "testing",
+        "dx"
+      ],
+      "description": "tests/procedures/test-close-weight-adaptive.sh replicates the classification bash from gate-and-evidence.md and rotted silently (predated NANO; found at t-1973). Fix: single source of truth — extract classification into system/scripts/close-classify.sh; gate-and-evidence.md Step 1 calls the script; the test executes the real script instead of a copy. No replication → no drift.",
+      "effort": "S",
+      "priority": "P2",
+      "parent": "t-1970",
+      "created": "2026-06-11",
+      "started": "2026-06-11",
+      "completed": null,
+      "blocked_by": [],
+      "branch": "async-close/refactor/t-1978-close-classify-extract",
+      "context": null,
+      "notes": "2026-06-11: classification extracted to system/scripts/close-classify.sh; gate-and-evidence.md and test both execute it directly. Drift now structurally impossible for this logic.",
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null,
+      "epic": "async-close"
     }
   ],
   "version": "1"
