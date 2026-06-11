@@ -7,7 +7,7 @@ always-load: true
 
 - **<55% context:** proceed normally
 - **55-70% (orange zone (⚠ in statusline)):** prefer summaries over full file reads, avoid loading new large files, consider delegating next steps to subagent. **Read `/tmp/brana-context-*.md`** for session context instead of re-querying memory/ruflo/handoff.
-- **70-85%:** `/compact` before the next expensive operation
+- **70-85%:** `/compact` before the next expensive operation. **Task in flight?** Offer `/brana:close --continue` via AskUserQuestion FIRST — snapshot + handoff before compression (ADR-053 §5 Layer 1; the pre-compact hook is only the silent safety net).
 - **>85%:** delegate to a fresh subagent, don't attempt in main context
 
 Context rot is a gradient, not a cliff. Earlier intervention = better output.

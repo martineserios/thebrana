@@ -32,6 +32,28 @@ source "${SCRIPT_DIR}/lib/resolve-brana.sh" 2>/dev/null || true
 BRANCH=$(git -C "$GIT_ROOT" branch --show-current 2>/dev/null) || BRANCH="unknown"
 PROJECT=$(basename "$GIT_ROOT")
 
+# ── Silent close snapshot (ADR-053 §5 Layer 2, t-1988) ─────────────
+# Snapshot the session diff before compaction so nothing is lost if the
+# user never ran /brana:close --continue (Layer 1 is the interactive ask
+# in the agent loop — context-budget rule). Guards:
+#   - idempotent per HEAD: marker file keyed on project + commit hash
+#   - NEVER blocks compaction: every failure path falls through silently
+SNAPSHOT_NOTE=""
+SNAPSHOT_SCRIPT="${BRANA_SNAPSHOT_SCRIPT:-${SCRIPT_DIR}/../scripts/close-snapshot.sh}"
+HEAD_HASH=$(git -C "$GIT_ROOT" rev-parse --short HEAD 2>/dev/null) || HEAD_HASH=""
+if [ -n "$HEAD_HASH" ] && [ -x "$SNAPSHOT_SCRIPT" ]; then
+    GUARD_DIR="${BRANA_PRECOMPACT_GUARD_DIR:-$HOME/.claude/sessions/.precompact-guards}"
+    GUARD="$GUARD_DIR/${PROJECT}-${HEAD_HASH}"
+    if [ ! -f "$GUARD" ]; then
+        COMMIT_COUNT=$(git -C "$GIT_ROOT" log --oneline --since="6 hours ago" 2>/dev/null | wc -l | tr -d ' ') || COMMIT_COUNT=0
+        if bash "$SNAPSHOT_SCRIPT" --git-root "$GIT_ROOT" --branch "$BRANCH" \
+                --project "$PROJECT" --commit-count "${COMMIT_COUNT:-0}" >/dev/null 2>&1; then
+            mkdir -p "$GUARD_DIR" 2>/dev/null && touch "$GUARD" 2>/dev/null
+            SNAPSHOT_NOTE="Pre-compaction snapshot saved and queued (HEAD $HEAD_HASH) — nothing from this session is lost to compaction."
+        fi
+    fi
+fi
+
 # ── Active tasks ──────────────────────────────────────────
 TASKS_BLOCK=""
 if [ -x "$BRANA" ]; then
