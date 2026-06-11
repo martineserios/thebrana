@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-10T22:38:30Z",
+  "generated": "2026-06-11T16:53:10Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -930,6 +930,18 @@
         "system/procedures/close.md"
       ]
     },
+    "docs/architecture/decisions/ADR-051-reminder-store-architecture.md": {
+      "title": "ADR-051: Reminder Store — Rust-Owned Writes, Two-Layer Sources",
+      "type": "ADR",
+      "impl_files": [
+        "system/hooks/lib/remind.sh"
+      ]
+    },
+    "docs/architecture/decisions/ADR-052-close-queue-architecture.md": {
+      "title": "ADR-052: Close Queue — Rust-Owned Writes, agy Extraction Contract",
+      "type": "ADR",
+      "impl_files": []
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -1245,6 +1257,16 @@
       "title": "Feature: Project-Level Metadata",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/architecture/features/reminder-system.md": {
+      "title": "Feature: Reminder System — Two-Layer Sources, Rust-Owned Store",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/hooks/lib/remind.sh",
+        "system/cli/rust/crates/brana-core/src/remind.rs",
+        "system/cli/rust/crates/brana-cli/src/commands/remind.rs",
+        "system/hooks/session-start.sh"
+      ]
     },
     "docs/architecture/features/research-stream.md": {
       "title": "Feature: Research Stream in /brana:backlog",
@@ -2130,6 +2152,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/guide/features/reminder-system.md": {
+      "title": "Reminders — brana remind",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/guide/getting-started.md": {
       "title": "Getting Started",
       "type": "Roadmap",
@@ -2298,6 +2325,21 @@
         "system/skills/deprecation-and-migration/SKILL.md",
         "system/procedures/deprecation-and-migration.md",
         "system/agents/"
+      ]
+    },
+    "docs/ideas/async-close-design.md": {
+      "title": "Async-First Close — Design Spec",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/hooks/lib/remind.sh"
+      ]
+    },
+    "docs/ideas/async-first-close.md": {
+      "title": "Async-First Close + Nightly Extraction Cron",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/hooks/lib/remind.sh",
+        "system/cron/close-extraction.sh"
       ]
     },
     "docs/ideas/brana-backlog-v2-schema.md": {
@@ -2836,6 +2878,11 @@
         "system/"
       ]
     },
+    "docs/research/2026-06-11-loop-native-redesign.md": {
+      "title": "Loop-Native Redesign of thebrana",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/research/cc-unreleased-features-tracker.md": {
       "title": "CC Unreleased Features Tracker",
       "type": "Roadmap",
@@ -2883,6 +2930,11 @@
         "system/state/",
         "system/scheduler/"
       ]
+    },
+    "docs/reviews/knowledge-structure-audit-2026-06-11.md": {
+      "title": "Knowledge Structure Audit — Ontology Analysis",
+      "type": "Roadmap",
+      "impl_files": []
     },
     "docs/reviews/token-baseline.md": {
       "title": "Token Consumption Baseline",
@@ -3828,6 +3880,36 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-051-reminder-store-architecture.md",
+      "to": "docs/architecture/decisions/ADR-004-session-handoff-self-learning-loop.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-051-reminder-store-architecture.md",
+      "to": "docs/ideas/async-close-design.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-052-close-queue-architecture.md",
+      "to": "docs/architecture/decisions/ADR-004-session-handoff-self-learning-loop.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-052-close-queue-architecture.md",
+      "to": "docs/architecture/decisions/ADR-051-reminder-store-architecture.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-052-close-queue-architecture.md",
+      "to": "docs/ideas/async-close-design.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/acquire-skills-guide.md",
       "to": "docs/architecture/decisions/ADR-012-acquire-skills.md",
       "type": "depends_on",
@@ -4364,6 +4446,24 @@
     {
       "from": "docs/architecture/features/project-metadata.md",
       "to": "docs/architecture/features/tasks-portfolio.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/reminder-system.md",
+      "to": "docs/architecture/decisions/ADR-004-session-handoff-self-learning-loop.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/reminder-system.md",
+      "to": "docs/architecture/decisions/ADR-051-reminder-store-architecture.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/reminder-system.md",
+      "to": "docs/ideas/async-close-design.md",
       "type": "depends_on",
       "computed": false
     },
@@ -5658,6 +5758,24 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-051-reminder-store-architecture.md",
+      "to": "docs/ideas/async-first-close.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-052-close-queue-architecture.md",
+      "to": "docs/architecture/features/reminder-system.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-052-close-queue-architecture.md",
+      "to": "docs/ideas/async-first-close.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/acquire-skills.md",
       "to": "docs/architecture/features/acquire-skills-guide.md",
       "type": "informs",
@@ -5732,6 +5850,12 @@
     {
       "from": "docs/architecture/features/lint-heal-deterministic.md",
       "to": "docs/ideas/inbox-to-dimensions-pipeline.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/reminder-system.md",
+      "to": "docs/ideas/async-first-close.md",
       "type": "informs",
       "computed": false
     },
@@ -8695,6 +8819,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/reminder-system.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/research-stream.md",
       "type": "references",
       "computed": false
@@ -9026,6 +9156,12 @@
     {
       "from": "docs/README.md",
       "to": "reviews/architecture-review-2026-06-10.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "reviews/knowledge-structure-audit-2026-06-11.md",
       "type": "references",
       "computed": false
     },
@@ -9464,6 +9600,18 @@
     {
       "from": "docs/architecture/features/memory-taxonomy-sdd.md",
       "to": "memory-taxonomy-ddd.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/reminder-system.md",
+      "to": "docs/architecture/decisions/ADR-051-reminder-store-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/reminder-system.md",
+      "to": "docs/guide/features/reminder-system.md",
       "type": "references",
       "computed": false
     },
@@ -11298,6 +11446,18 @@
       "computed": false
     },
     {
+      "from": "docs/guide/features/reminder-system.md",
+      "to": "docs/architecture/decisions/ADR-051-reminder-store-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/features/reminder-system.md",
+      "to": "docs/architecture/features/reminder-system.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/guide/getting-started.md",
       "to": "commands/",
       "type": "references",
@@ -12660,6 +12820,30 @@
       "computed": false
     },
     {
+      "from": "docs/reviews/knowledge-structure-audit-2026-06-11.md",
+      "to": "feedback_bash-unmatched-glob-set-e-trap.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reviews/knowledge-structure-audit-2026-06-11.md",
+      "to": "memory-routing-taxonomy.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reviews/knowledge-structure-audit-2026-06-11.md",
+      "to": "parallel-bash.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reviews/knowledge-structure-audit-2026-06-11.md",
+      "to": "wiki-links.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "brana-knowledge/dimensions/bigin-case-study.md",
       "to": "dimensions/53-bigin-crm-platform.md",
       "type": "supersedes",
@@ -12721,9 +12905,9 @@
     }
   ],
   "stats": {
-    "nodes": 430,
-    "edges": 1636,
-    "typed_edges": 581,
-    "orphans": 126
+    "nodes": 438,
+    "edges": 1658,
+    "typed_edges": 593,
+    "orphans": 127
   }
 }
