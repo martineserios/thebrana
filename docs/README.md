@@ -196,6 +196,7 @@ Exploratory design notes and integration proposals. Not committed to the roadmap
 | File | Contents |
 |------|----------|
 | [architecture-review-2026-06-10.md](reviews/architecture-review-2026-06-10.md) | Full-system architecture review — 4-axis layer audit, write-only memory diagnosis, strategic options (close loop → extract public core) |
+| [knowledge-structure-audit-2026-06-11.md](reviews/knowledge-structure-audit-2026-06-11.md) | Ontology audit of knowledge structure — disjoint spec/memory TBoxes, missing typed relations, no lifecycle facet on memory; recommendations feed t-156 |
 | [token-baseline.md](reviews/token-baseline.md) | Token cost baseline measurements |
 | [weekly-2026-04-17.md](reviews/weekly-2026-04-17.md) | Weekly review 2026-04-17 |
 
