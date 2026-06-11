@@ -51418,7 +51418,7 @@
     {
       "id": "t-1966",
       "subject": "brana remind CLI (Rust) — write/list/resolve/snooze, tests first",
-      "status": "pending",
+      "status": "completed",
       "type": "subtask",
       "kind": "feature",
       "tags": [],
@@ -51432,14 +51432,15 @@
       "blocked_by": [
         "t-1964"
       ],
-      "branch": null,
+      "branch": "async-close/feat/t-1966-brana-remind-cli",
       "context": "Schema + surfacing contracts: docs/ideas/async-close-design.md §\"Reminder system — full design\". Store: ~/.claude/reminders.json. Decision (shaping 2026-06-10): Rust directly, no shell v1 — schema is stable, serde infra exists in brana CLI. Follow rust-tdd-three-commit-pattern. AC: brana remind list shows pending sorted by priority desc then created asc\\nAC: resolve sets resolved_at, snooze accepts 1d/3d/1w\\nAC: snoozed reminders flip to pending when snoozed_until passes\\nAC: pending >30 days transitions to expired on read\\nAC: all tests green",
-      "notes": null,
+      "notes": "2026-06-10: core remind.rs (14 tests incl. 8-thread race test) + CLI write/list/resolve/snooze (6 smoke tests) green; release binary deployed and live-verified. Lock = sidecar reminders.json.lock via std File::lock (store inode replaced by atomic rename, so locking store itself unsafe).",
       "order": 0,
       "github_issue": null,
       "execution": "code",
       "acceptance_criteria": null,
-      "epic": "async-close"
+      "epic": "async-close",
+      "build_step": "CLOSE"
     },
     {
       "id": "t-1967",
