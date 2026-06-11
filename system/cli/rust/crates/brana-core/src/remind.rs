@@ -1,0 +1,519 @@
+//! Reminder store — single Rust-owned mutation path (ADR-051).
+//!
+//! Store: `~/.claude/reminders.json` (caller passes the path).
+//! Every mutation takes an exclusive advisory lock on a sidecar
+//! `<store>.lock` file (the store itself is replaced by atomic rename,
+//! so locking the store inode would not serialize writers).
+//! Writes are parse-before-write validated and use same-dir tmp + rename.
+
+use chrono::{DateTime, Duration, Utc};
+use serde::{Deserialize, Serialize};
+use std::fs::OpenOptions;
+use std::path::Path;
+
+pub const STORE_VERSION: u64 = 1;
+/// Pending reminders older than this auto-expire on `list`.
+const EXPIRE_DAYS: i64 = 30;
+/// Occurrences at or above this bump medium → high.
+const ESCALATE_AT: u64 = 3;
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum Priority {
+    Low,
+    Medium,
+    High,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum Status {
+    Pending,
+    Resolved,
+    Snoozed,
+    Expired,
+}
+
+/// One reminder entry. Evolution rules (ADR-051): no deny_unknown_fields,
+/// every post-v1 field must be Option<T> or #[serde(default)].
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Reminder {
+    pub id: String,
+    pub text: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub action: Option<String>,
+    pub priority: Priority,
+    pub status: Status,
+    pub created: DateTime<Utc>,
+    pub last_seen: DateTime<Utc>,
+    pub occurrences: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dedup_key: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub project: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub snoozed_until: Option<DateTime<Utc>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolved_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Store {
+    pub version: u64,
+    pub reminders: Vec<Reminder>,
+}
+
+/// Input for `write_reminder`.
+#[derive(Debug, Default)]
+pub struct NewReminder {
+    pub text: String,
+    pub action: Option<String>,
+    pub priority: Option<Priority>,
+    pub dedup_key: Option<String>,
+    pub project: Option<String>,
+    pub tags: Vec<String>,
+}
+
+// ── implementation ──────────────────────────────────────────────────────
+
+fn now() -> DateTime<Utc> {
+    Utc::now()
+}
+
+/// Hex-encode 8 random bytes from the OS → `r-xxxxxxxxxxxxxxxx`.
+fn random_id() -> String {
+    let mut buf = [0u8; 8];
+    // /dev/urandom is always present on Linux; fall back to time+pid mix.
+    if std::fs::File::open("/dev/urandom")
+        .and_then(|mut f| std::io::Read::read_exact(&mut f, &mut buf))
+        .is_err()
+    {
+        let t = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as u64
+            ^ ((std::process::id() as u64) << 32);
+        buf = t.to_le_bytes();
+    }
+    let hex: String = buf.iter().map(|b| format!("{b:02x}")).collect();
+    format!("r-{hex}")
+}
+
+/// Take an exclusive advisory lock on `<store>.lock`. Held until drop.
+fn lock_store(path: &Path) -> Result<std::fs::File, String> {
+    let lock_path = path.with_extension("json.lock");
+    if let Some(dir) = lock_path.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| format!("create store dir failed: {e}"))?;
+    }
+    let f = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(false)
+        .open(&lock_path)
+        .map_err(|e| format!("open lock file failed: {e}"))?;
+    f.lock().map_err(|e| format!("lock failed: {e}"))?;
+    Ok(f)
+}
+
+/// Read + parse the store. Missing file → empty v1 store.
+/// Unparseable file → Err (parse-before-write: never clobber it).
+fn read_store(path: &Path) -> Result<Store, String> {
+    if !path.exists() {
+        return Ok(Store {
+            version: STORE_VERSION,
+            reminders: Vec::new(),
+        });
+    }
+    let raw = std::fs::read_to_string(path).map_err(|e| format!("read store failed: {e}"))?;
+    if raw.trim().is_empty() {
+        return Ok(Store {
+            version: STORE_VERSION,
+            reminders: Vec::new(),
+        });
+    }
+    // Version check via Value before strict parse (ADR-051 §4).
+    let val: serde_json::Value =
+        serde_json::from_str(&raw).map_err(|e| format!("store is not valid JSON: {e}"))?;
+    let version = val.get("version").and_then(|v| v.as_u64()).unwrap_or(1);
+    if version > STORE_VERSION {
+        return Err(format!(
+            "store version {version} is newer than supported {STORE_VERSION} — upgrade brana"
+        ));
+    }
+    serde_json::from_value(val).map_err(|e| format!("store schema mismatch: {e}"))
+}
+
+/// Same-dir tmp + atomic rename (the store dir, never /tmp).
+fn write_store(path: &Path, store: &Store) -> Result<(), String> {
+    let content =
+        serde_json::to_string_pretty(store).map_err(|e| format!("serialize failed: {e}"))?;
+    let dir = path.parent().ok_or("store path has no parent directory")?;
+    std::fs::create_dir_all(dir).map_err(|e| format!("create store dir failed: {e}"))?;
+    let file_name = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("reminders");
+    let tmp = dir.join(format!("{}.{}.tmp", file_name, std::process::id()));
+    std::fs::write(&tmp, content).map_err(|e| format!("write tmp failed: {e}"))?;
+    std::fs::rename(&tmp, path).map_err(|e| {
+        let _ = std::fs::remove_file(&tmp);
+        format!("atomic rename failed: {e}")
+    })
+}
+
+/// Append a reminder (or dedup-increment an existing pending/snoozed one).
+/// Returns the written/updated reminder.
+pub fn write_reminder(path: &Path, new: NewReminder) -> Result<Reminder, String> {
+    if new.text.trim().is_empty() {
+        return Err("reminder text must not be empty".into());
+    }
+    let _lock = lock_store(path)?;
+    let mut store = read_store(path)?;
+    let ts = now();
+
+    // Dedup: match on dedup_key among non-terminal entries.
+    if let Some(key) = new.dedup_key.as_deref()
+        && let Some(existing) = store.reminders.iter_mut().find(|r| {
+            r.dedup_key.as_deref() == Some(key)
+                && matches!(r.status, Status::Pending | Status::Snoozed)
+        })
+    {
+        existing.occurrences += 1;
+        existing.last_seen = ts;
+        if existing.occurrences >= ESCALATE_AT && existing.priority == Priority::Medium {
+            existing.priority = Priority::High;
+        }
+        let out = existing.clone();
+        write_store(path, &store)?;
+        return Ok(out);
+    }
+
+    let reminder = Reminder {
+        id: random_id(),
+        text: new.text,
+        action: new.action,
+        priority: new.priority.unwrap_or(Priority::Medium),
+        status: Status::Pending,
+        created: ts,
+        last_seen: ts,
+        occurrences: 1,
+        dedup_key: new.dedup_key,
+        project: new.project,
+        tags: new.tags,
+        snoozed_until: None,
+        resolved_at: None,
+    };
+    store.reminders.push(reminder.clone());
+    write_store(path, &store)?;
+    Ok(reminder)
+}
+
+/// The ONLY path that computes AND persists state transitions (ADR-051 §3):
+/// snooze expiry (snoozed → pending) and 30-day pending → expired.
+/// Returns the post-transition reminder list.
+pub fn list(path: &Path) -> Result<Vec<Reminder>, String> {
+    let _lock = lock_store(path)?;
+    let mut store = read_store(path)?;
+    let ts = now();
+    let mut changed = false;
+    for r in &mut store.reminders {
+        match r.status {
+            Status::Snoozed => {
+                if r.snoozed_until.is_none_or(|u| u <= ts) {
+                    r.status = Status::Pending;
+                    r.snoozed_until = None;
+                    changed = true;
+                }
+            }
+            Status::Pending => {
+                if ts - r.created > Duration::days(EXPIRE_DAYS) {
+                    r.status = Status::Expired;
+                    changed = true;
+                }
+            }
+            _ => {}
+        }
+    }
+    if changed {
+        write_store(path, &store)?;
+    }
+    Ok(store.reminders)
+}
+
+/// Mark a reminder resolved.
+pub fn resolve(path: &Path, id: &str) -> Result<Reminder, String> {
+    let _lock = lock_store(path)?;
+    let mut store = read_store(path)?;
+    let r = store
+        .reminders
+        .iter_mut()
+        .find(|r| r.id == id)
+        .ok_or_else(|| format!("no reminder with id {id}"))?;
+    r.status = Status::Resolved;
+    r.resolved_at = Some(now());
+    let out = r.clone();
+    write_store(path, &store)?;
+    Ok(out)
+}
+
+/// Parse "1d" / "3d" / "1w" style durations.
+pub fn parse_duration(s: &str) -> Result<Duration, String> {
+    let s = s.trim();
+    let (num, unit) = s.split_at(s.len().saturating_sub(1));
+    let n: i64 = num
+        .parse()
+        .map_err(|_| format!("invalid duration {s:?} — use forms like 1d, 3d, 1w"))?;
+    if n <= 0 {
+        return Err(format!("duration must be positive, got {s:?}"));
+    }
+    match unit {
+        "d" => Ok(Duration::days(n)),
+        "w" => Ok(Duration::weeks(n)),
+        "h" => Ok(Duration::hours(n)),
+        _ => Err(format!("invalid duration unit in {s:?} — use d, w, or h")),
+    }
+}
+
+/// Snooze a reminder for a duration ("1d", "3d", "1w").
+pub fn snooze(path: &Path, id: &str, dur: &str) -> Result<Reminder, String> {
+    let dur = parse_duration(dur)?;
+    let _lock = lock_store(path)?;
+    let mut store = read_store(path)?;
+    let r = store
+        .reminders
+        .iter_mut()
+        .find(|r| r.id == id)
+        .ok_or_else(|| format!("no reminder with id {id}"))?;
+    if r.status == Status::Resolved {
+        return Err(format!("reminder {id} is already resolved"));
+    }
+    r.status = Status::Snoozed;
+    r.snoozed_until = Some(now() + dur);
+    let out = r.clone();
+    write_store(path, &store)?;
+    Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    fn store_path(dir: &tempfile::TempDir) -> PathBuf {
+        dir.path().join("reminders.json")
+    }
+
+    fn new(text: &str) -> NewReminder {
+        NewReminder {
+            text: text.into(),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn write_creates_store_with_pending_reminder() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let r = write_reminder(&path, new("run validate.sh")).unwrap();
+        assert_eq!(r.status, Status::Pending);
+        assert_eq!(r.occurrences, 1);
+        assert_eq!(r.priority, Priority::Medium);
+        assert!(r.id.starts_with("r-"));
+        let raw: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(raw["version"], 1);
+        assert_eq!(raw["reminders"].as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn write_rejects_empty_text() {
+        let dir = tempfile::TempDir::new().unwrap();
+        assert!(write_reminder(&store_path(&dir), new("  ")).is_err());
+    }
+
+    #[test]
+    fn dedup_key_increments_occurrences_not_entries() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let mk = || NewReminder {
+            text: "edited hooks — run validate".into(),
+            dedup_key: Some("hooks-validate".into()),
+            ..Default::default()
+        };
+        write_reminder(&path, mk()).unwrap();
+        let r2 = write_reminder(&path, mk()).unwrap();
+        assert_eq!(r2.occurrences, 2);
+        assert_eq!(list(&path).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn three_occurrences_escalate_medium_to_high() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let mk = || NewReminder {
+            text: "x".into(),
+            dedup_key: Some("k".into()),
+            ..Default::default()
+        };
+        write_reminder(&path, mk()).unwrap();
+        write_reminder(&path, mk()).unwrap();
+        let r3 = write_reminder(&path, mk()).unwrap();
+        assert_eq!(r3.occurrences, 3);
+        assert_eq!(r3.priority, Priority::High);
+    }
+
+    #[test]
+    fn resolved_entry_does_not_absorb_dedup_writes() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let mk = || NewReminder {
+            text: "x".into(),
+            dedup_key: Some("k".into()),
+            ..Default::default()
+        };
+        let r1 = write_reminder(&path, mk()).unwrap();
+        resolve(&path, &r1.id).unwrap();
+        let r2 = write_reminder(&path, mk()).unwrap();
+        assert_ne!(r1.id, r2.id);
+        assert_eq!(r2.occurrences, 1);
+        assert_eq!(list(&path).unwrap().len(), 2);
+    }
+
+    #[test]
+    fn parse_before_write_never_clobbers_corrupt_store() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        std::fs::write(&path, "{not json").unwrap();
+        assert!(write_reminder(&path, new("x")).is_err());
+        // original content untouched
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "{not json");
+    }
+
+    #[test]
+    fn newer_store_version_is_rejected() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        std::fs::write(&path, r#"{"version": 99, "reminders": []}"#).unwrap();
+        let err = write_reminder(&path, new("x")).unwrap_err();
+        assert!(err.contains("version 99"));
+    }
+
+    #[test]
+    fn unknown_fields_are_tolerated() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        write_reminder(&path, new("x")).unwrap();
+        // Simulate a future writer adding fields.
+        let mut val: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        val["future_top_level"] = serde_json::json!("hi");
+        val["reminders"][0]["future_field"] = serde_json::json!(42);
+        std::fs::write(&path, serde_json::to_string(&val).unwrap()).unwrap();
+        assert_eq!(list(&path).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn resolve_and_snooze_transition_status() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let a = write_reminder(&path, new("a")).unwrap();
+        let b = write_reminder(&path, new("b")).unwrap();
+        let ra = resolve(&path, &a.id).unwrap();
+        assert_eq!(ra.status, Status::Resolved);
+        assert!(ra.resolved_at.is_some());
+        let rb = snooze(&path, &b.id, "1d").unwrap();
+        assert_eq!(rb.status, Status::Snoozed);
+        assert!(rb.snoozed_until.unwrap() > Utc::now());
+        assert!(resolve(&path, "r-nope").is_err());
+        assert!(snooze(&path, &b.id, "5x").is_err());
+    }
+
+    #[test]
+    fn snooze_resolved_reminder_is_rejected() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let a = write_reminder(&path, new("a")).unwrap();
+        resolve(&path, &a.id).unwrap();
+        assert!(snooze(&path, &a.id, "1d").is_err());
+    }
+
+    #[test]
+    fn parse_duration_forms() {
+        assert_eq!(parse_duration("1d").unwrap(), Duration::days(1));
+        assert_eq!(parse_duration("3d").unwrap(), Duration::days(3));
+        assert_eq!(parse_duration("1w").unwrap(), Duration::weeks(1));
+        assert_eq!(parse_duration("2h").unwrap(), Duration::hours(2));
+        assert!(parse_duration("0d").is_err());
+        assert!(parse_duration("-1d").is_err());
+        assert!(parse_duration("d").is_err());
+        assert!(parse_duration("").is_err());
+        assert!(parse_duration("1m").is_err());
+    }
+
+    #[test]
+    fn list_transitions_expired_snooze_back_to_pending_and_persists() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let a = write_reminder(&path, new("a")).unwrap();
+        snooze(&path, &a.id, "1d").unwrap();
+        // Rewind snoozed_until into the past directly in the file.
+        let mut val: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        val["reminders"][0]["snoozed_until"] = serde_json::json!("2020-01-01T00:00:00Z");
+        std::fs::write(&path, serde_json::to_string(&val).unwrap()).unwrap();
+        let out = list(&path).unwrap();
+        assert_eq!(out[0].status, Status::Pending);
+        // Persisted, not just computed:
+        let raw = std::fs::read_to_string(&path).unwrap();
+        assert!(raw.contains("\"pending\""));
+        assert!(!raw.contains("snoozed_until"));
+    }
+
+    #[test]
+    fn list_expires_pending_older_than_30_days_and_persists() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        write_reminder(&path, new("old")).unwrap();
+        let mut val: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        val["reminders"][0]["created"] = serde_json::json!("2020-01-01T00:00:00Z");
+        std::fs::write(&path, serde_json::to_string(&val).unwrap()).unwrap();
+        let out = list(&path).unwrap();
+        assert_eq!(out[0].status, Status::Expired);
+        assert!(std::fs::read_to_string(&path).unwrap().contains("\"expired\""));
+    }
+
+    /// The test this module exists for (ADR-051 §6): two concurrent writers,
+    /// both appends survive. Without the lock this fails via last-writer-wins.
+    #[test]
+    fn concurrent_writers_both_appends_survive() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let n_threads = 8;
+        let writes_per_thread = 5;
+        let handles: Vec<_> = (0..n_threads)
+            .map(|t| {
+                let p = path.clone();
+                std::thread::spawn(move || {
+                    for i in 0..writes_per_thread {
+                        write_reminder(
+                            &p,
+                            NewReminder {
+                                text: format!("writer {t} item {i}"),
+                                ..Default::default()
+                            },
+                        )
+                        .unwrap();
+                    }
+                })
+            })
+            .collect();
+        for h in handles {
+            h.join().unwrap();
+        }
+        let out = list(&path).unwrap();
+        assert_eq!(out.len(), n_threads * writes_per_thread);
+    }
+}
