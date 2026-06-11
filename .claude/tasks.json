@@ -51729,18 +51729,18 @@
       "description": "docs/architecture/features/async-close.md (tracks, queue lifecycle, cron contract, failure handling) + docs/guide/features/async-close.md (what close does now, --full, reading daily summaries, queue troubleshooting). Update docs/README.md index; mark idea docs as shipped.",
       "context": "Includes verifying close/SKILL.md phase registry reflects Track 1 (challenger L12).",
       "id": "t-1977",
-      "status": "pending",
+      "status": "completed",
       "created": "2026-06-10",
       "tags": [],
       "blocked_by": [
         "t-1975"
       ],
       "order": null,
-      "branch": null,
+      "branch": "async-close/docs/t-1977-async-close-docs",
       "github_issue": null,
-      "started": null,
+      "started": "2026-06-11",
       "completed": null,
-      "notes": null,
+      "notes": "2026-06-11: feature brief + user guide shipped, README indexed, idea docs marked shipped/implemented, SKILL.md registry verified (challenger L12).",
       "strategy": null,
       "build_step": null
     },
@@ -51771,6 +51771,68 @@
       "execution": "code",
       "acceptance_criteria": null,
       "epic": "async-close"
+    },
+    {
+      "id": "t-1979",
+      "subject": "Apply challenger pre-mortem fixes to shipped async-close loop",
+      "status": "pending",
+      "type": "task",
+      "kind": "fix",
+      "tags": [
+        "async-close",
+        "challenger",
+        "reliability"
+      ],
+      "description": "The 2026-06-11 challenger pre-mortem on the close-queue loop produced 12 accepted/refined findings, but t-1973/t-1974 were completed in a parallel session before the dispositions landed — the fixes are likely NOT in the shipped implementation. Audit the implementation against the disposition list and apply the gaps.",
+      "effort": "M",
+      "priority": "P1",
+      "parent": "t-1970",
+      "created": "2026-06-11",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "Full dispositions: t-1974 context (10 items, 2026-06-11 entry) + t-1973 context (2 items) + docs/research/2026-06-11-loop-native-redesign.md Part 3. Highest priority first: (1) stale-queue dead-man check in session-start.sh as pure jq — covers ALL silent-death modes, 3/3 challenger quorum; (2) cron-side dedup_key nightly:{type}:{slugify(title)}; (3) scheduler registration validate.sh check; (4) 6h-window replacement with session-state written_at anchor. Verify each against shipped code first — some may already be in.\nAC: every disposition item either verified-present in shipped code or implemented\nAC: session-start.sh stale-queue jq check exists and fires on a synthetic >3d entry\nAC: validate.sh checks close-extraction job presence in deployed scheduler.json\n2026-06-11: validate.sh on merged main shows 2 real errors to include in this audit — (a) Check 43: close.md missing CLOSE_MODE assignments FULL/LIGHT/NANO (ADR-040 §7) — regression from t-1973 close rework, mode logic likely moved to phases/ files without updating close.md or the check; (b) Check 38: agy version mismatch installed=1.0.7 pinned=1.0.4 — re-run adversarial spike, bump AGY_PINNED_VERSION in agy_delegate.rs. The secrets/50KB FAILs are false positives from the live t-1977 worktree parked INSIDE the repo at system/cli/thebrana-t-1977 — do not delete (in_progress); will clear when that session ends. Worktrees must be created as SIBLINGS (../) not inside the repo.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
+    },
+    {
+      "id": "t-1980",
+      "subject": "Close modes as a flag — /brana:close --continue | --finish | --patterns",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "close",
+        "skill",
+        "async-close"
+      ],
+      "description": "Split /brana:close into explicit close modes selected via flag, instead of one monolithic close. Core three: (1) --continue: pause-style close — write snapshot + handoff, keep task in_progress and branch alive, skip learnings extraction; resume next session. (2) --finish: full close — extract learnings, store patterns, drift detection, task completed, merge/cleanup. (3) --patterns: store patterns/learnings only — no handoff, no task state changes, no git ops. Builds on the async-close Track 1 INSTANT default (close-snapshot.sh + close-queue) — modes decide what runs now vs what gets queued for nightly extraction.",
+      "effort": "M",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-11",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "2026-06-11: Mode ideas beyond the core three — --block (record blocker, set blocked_by, surface at next session start); --abort (abandon work: task back to pending with reason, branch parked/discarded); --handoff (handoff doc only, for machine/agent switch); --eod (end-of-day: aggregate all of today's sessions into one daily summary); --ship (close then enter ship pipeline); --review (close + queue code-review of the branch). Consider auto-detection as default when no flag given: dirty tree + in_progress task → continue; branch merged → finish. Implementation note: modes should map onto the existing close pipeline stages (snapshot → queue → extract → handoff → task-state → git) as include/exclude masks, not separate code paths — close-classify.sh (t-1978) is the single source of truth to extend.\n2026-06-11 (refinement): Reframe from \"lighter vs fuller closes\" to ORIENTED closes — each mode is a purpose profile, not a weight level. The orientation decides what gets persisted and what state the work is left in. Also: closes are ON DEMAND, scenario-triggered — not only at session end. Scenarios that demand a close mid-session: context budget hitting orange/red zone (orient: continue — snapshot + handoff before /compact or fresh session); hitting a blocker (orient: block); switching to an urgent task (orient: continue on current, then start other); discovery worth keeping regardless of task outcome (orient: patterns); work proven wrong mid-flight (orient: abort). Design implication: the skill needs (a) a scenario→orientation mapping table, (b) flag override for explicit choice, (c) detection heuristics (git state, context %, task status) proposing the orientation when invoked bare. /brana:close becomes \"persist the right things for THIS situation, now\" rather than \"end the session\".\n2026-06-11 (UX): Bare /brana:close (no flag) → NEVER pick silently. Present options via AskUserQuestion: detected/recommended orientation first (from scenario heuristics), then the 2-3 next-most-likely for the current state, plus built-in Other for the full mode list when applicable. Each option labeled with its flag name (e.g. \"Continue (--continue)\") so repeated use teaches the flags — the picker doubles as progressive disclosure; long-run the user types flags directly and skips the prompt. Flag given → no prompt, execute immediately.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": [
+        "/brana:close accepts orientation flags; flag given → execute immediately, no prompt",
+        "bare /brana:close → AskUserQuestion picker: recommended orientation (scenario-detected) first, 2-3 likely alternatives, Other for full list; options labeled with flag names",
+        "--continue leaves task in_progress and writes resumable handoff",
+        "--finish runs full extraction + task completion",
+        "--patterns stores patterns only, no task/git side effects",
+        "INSTANT execution model (snapshot now, extraction queued nightly) preserved within whichever orientation runs",
+        "modes documented in the close skill doc"
+      ]
     }
   ],
   "version": "1"
