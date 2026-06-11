@@ -13,6 +13,7 @@ pub mod misc;
 pub mod ops;
 pub mod ratings;
 pub mod reference;
+pub mod remind;
 pub mod run;
 pub mod session;
 pub mod skills;

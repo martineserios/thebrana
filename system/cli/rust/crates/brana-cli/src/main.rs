@@ -129,6 +129,14 @@ fn main() {
                 run_or_exit(commands::memory::cmd_memory_index(&scope))
             }
         },
+        Commands::Remind { cmd } => match cmd {
+            RemindCmd::Write { text, action, priority, dedup_key, project, tags } => {
+                run_or_exit(commands::remind::cmd_write(&text, action, priority, dedup_key, project, tags))
+            }
+            RemindCmd::List { status } => run_or_exit(commands::remind::cmd_list(status)),
+            RemindCmd::Resolve { id } => run_or_exit(commands::remind::cmd_resolve(&id)),
+            RemindCmd::Snooze { id, duration } => run_or_exit(commands::remind::cmd_snooze(&id, &duration)),
+        },
         Commands::Session { cmd } => match cmd {
             SessionCmd::Write { file, minimal } => run_or_exit(commands::session::cmd_session_write(file, minimal)),
             SessionCmd::Read { json, all, since } => run_or_exit(commands::session::cmd_session_read(json, all, since)),
