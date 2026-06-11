@@ -292,6 +292,24 @@ if [ -n "${_BRANA_BIN:-}" ] && [ -x "$_BRANA_BIN" ]; then
 fi
 unset _BRANA_BIN _BIN_MTIME _LAST_CLI_CT _BIN_DATE _COMMIT_DATE
 
+# ── Pending reminder count (t-1967, ADR-051 §3) ──────────
+# Pure jq read — no Rust invocation (binary startup blows the <50ms budget),
+# no transition writes. Count may be slightly stale (can include technically
+# expired reminders) — accepted. Silent on missing/empty/corrupt store or 0.
+REMINDER_CONTEXT=""
+_REMINDER_STORE="$HOME/.claude/reminders.json"
+if [ -s "$_REMINDER_STORE" ]; then
+    _R_COUNTS=$(jq -r '[.reminders[]? | select(.status == "pending")] | "\(length) \([.[] | select(.priority == "high")] | length)"' "$_REMINDER_STORE" 2>/dev/null) || _R_COUNTS=""
+    _R_PENDING="${_R_COUNTS%% *}"
+    _R_HIGH="${_R_COUNTS##* }"
+    if [ -n "$_R_PENDING" ] && [ "$_R_PENDING" -gt 0 ] 2>/dev/null; then
+        REMINDER_CONTEXT="$_R_PENDING pending"
+        [ "${_R_HIGH:-0}" -gt 0 ] 2>/dev/null && REMINDER_CONTEXT="$REMINDER_CONTEXT ($_R_HIGH high)"
+        REMINDER_CONTEXT="$REMINDER_CONTEXT. brana remind list"
+    fi
+fi
+unset _REMINDER_STORE _R_COUNTS _R_PENDING _R_HIGH
+
 # ── Task context injection ──────────────────────────────
 TASK_CONTEXT=""
 TASKS_FILE=""
@@ -729,6 +747,10 @@ fi
 if [ -n "$STALE_BINARY_WARNING" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
 }[Stale binary] $STALE_BINARY_WARNING"
+fi
+if [ -n "$REMINDER_CONTEXT" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}[Reminders] Reminders: $REMINDER_CONTEXT"
 fi
 if [ -n "$LINT_HEAL_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS

@@ -192,6 +192,11 @@ pub enum Commands {
         #[command(subcommand)]
         cmd: GraphCmd,
     },
+    /// Reminder store — Rust-owned writes with locking (ADR-051)
+    Remind {
+        #[command(subcommand)]
+        cmd: RemindCmd,
+    },
     /// Reference doc generation — generate docs/reference/ from source metadata
     Reference {
         #[command(subcommand)]
@@ -1077,5 +1082,63 @@ pub enum MemoryCmd {
         /// Scope to index: project | global
         #[arg(long, default_value = "project")]
         scope: String,
+    },
+}
+
+#[derive(Clone, ValueEnum)]
+pub enum RemindPriority {
+    Low,
+    Medium,
+    High,
+}
+
+#[derive(Clone, ValueEnum)]
+pub enum RemindStatus {
+    Pending,
+    Resolved,
+    Snoozed,
+    Expired,
+}
+
+#[derive(Subcommand)]
+pub enum RemindCmd {
+    /// Append a reminder (dedup-key match increments occurrences instead)
+    Write {
+        /// Reminder text (what to surface to the human)
+        #[arg(long)]
+        text: String,
+        /// Suggested action/command
+        #[arg(long)]
+        action: Option<String>,
+        /// Priority (default: medium)
+        #[arg(long)]
+        priority: Option<RemindPriority>,
+        /// Dedup key — matching pending/snoozed entry gets occurrences+1
+        #[arg(long)]
+        dedup_key: Option<String>,
+        /// Originating project slug
+        #[arg(long)]
+        project: Option<String>,
+        /// Comma-separated tags
+        #[arg(long)]
+        tags: Option<String>,
+    },
+    /// List reminders — the only path that persists state transitions
+    List {
+        /// Filter by status
+        #[arg(long)]
+        status: Option<RemindStatus>,
+    },
+    /// Mark a reminder resolved
+    Resolve {
+        /// Reminder id (r-…)
+        id: String,
+    },
+    /// Snooze a reminder (durations: 1d, 3d, 1w, 2h)
+    Snooze {
+        /// Reminder id (r-…)
+        id: String,
+        /// Duration: <n>d | <n>w | <n>h
+        duration: String,
     },
 }
