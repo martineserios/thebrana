@@ -51328,7 +51328,7 @@
         "t-1963"
       ],
       "branch": null,
-      "context": "Shaping decisions (2026-06-10): Rust subcommand directly — no shell v1 (schema stable, serde infra exists). Scope: store schema + remind.sh + CLI + session-start surfacing. Cron batch sources EXCLUDED — they ship with async-close Track 2 (tasks created after t-1962 proves the store). Subtasks: t-1964 (ADR) → t-1965 (remind.sh) + t-1966 (Rust CLI) → t-1967 (session-start) → t-1968 (docs).\nTriggered by the async-first close brainstorm (docs/ideas/async-first-close.md). Design: docs/ideas/async-close-design.md. The nightly extraction cron identifies large/novel patterns needing human routing — the reminder system holds them instead of blocking close or session start. Standalone feature, tightly coupled to async close architecture.\n2026-06-10: Shape persisted to docs/ideas/async-close-design.md §\"Implementation plan — t-1962 shape\" — task tree, Rust-not-shell decision, subsystem scope. That section is the authoritative shape; task contexts mirror it.",
+      "context": "Shaping decisions (2026-06-10): Rust subcommand directly — no shell v1 (schema stable, serde infra exists). Scope: store schema + remind.sh + CLI + session-start surfacing. Cron batch sources EXCLUDED — they ship with async-close Track 2 (tasks created after t-1962 proves the store). Subtasks: t-1964 (ADR) → t-1965 (remind.sh) + t-1966 (Rust CLI) → t-1967 (session-start) → t-1968 (docs).\nTriggered by the async-first close brainstorm (docs/ideas/async-first-close.md). Design: docs/ideas/async-close-design.md. The nightly extraction cron identifies large/novel patterns needing human routing — the reminder system holds them instead of blocking close or session start. Standalone feature, tightly coupled to async close architecture.\n2026-06-10: Shape persisted to docs/ideas/async-close-design.md §\"Implementation plan — t-1962 shape\" — task tree, Rust-not-shell decision, subsystem scope. That section is the authoritative shape; task contexts mirror it.\n2026-06-10 challenger review (RECONSIDER verdict): write architecture FLIPPED — all store mutation in Rust (brana remind write), remind.sh is thin arg-marshalling wrapper. Resolves 3 CRITICALs (no-flock silent loss, static tmp collision, jq-failure store death) + dedup fragility in one decision. Dependency change: t-1965 now blocked_by t-1966 (wrapper needs the CLI). session-start = pure jq count, no Rust invocation, no transition writes; brana remind list is the only transition-persisting path. Full report findings reflected in design doc §\"Write architecture (revised)\".",
       "notes": null,
       "order": 0,
       "github_issue": null,
@@ -51390,12 +51390,12 @@
     },
     {
       "id": "t-1965",
-      "subject": "remind.sh write helper — tests + impl",
+      "subject": "remind.sh thin wrapper — marshal args to brana remind write",
       "status": "pending",
       "type": "subtask",
       "kind": "feature",
       "tags": [],
-      "description": "system/hooks/lib/remind.sh: write_reminder() with init-if-missing, dedup_key match → occurrences increment + last_seen update, ≥3 occurrences auto-bump medium→high, atomic rename write. Test via validate.sh harness pattern (write, dedup, escalation cases).",
+      "description": "system/hooks/lib/remind.sh: thin wrapper only — argument marshalling + call to `brana remind write --text ... --action ... --priority ... --dedup-key ...`. NO jq, NO JSON mutation in bash (challenger 2026-06-10: bash write path rejected, 3 CRITICALs). Test: wrapper passes args correctly, degrades gracefully if brana binary missing (warn to stderr, exit 0 — hooks never block).",
       "effort": "S",
       "priority": "P2",
       "parent": "t-1962",
@@ -51403,7 +51403,8 @@
       "started": null,
       "completed": null,
       "blocked_by": [
-        "t-1964"
+        "t-1964",
+        "t-1966"
       ],
       "branch": null,
       "context": null,
@@ -51416,12 +51417,12 @@
     },
     {
       "id": "t-1966",
-      "subject": "brana remind CLI (Rust) — list/resolve/snooze, tests first",
+      "subject": "brana remind CLI (Rust) — write/list/resolve/snooze, tests first",
       "status": "pending",
       "type": "subtask",
       "kind": "feature",
       "tags": [],
-      "description": "Rust subcommand in brana binary: remind list (priority desc, created asc; pending+snoozed-expired-filter), remind resolve <id> (sets resolved_at), remind snooze <id> <dur> (1d/3d/1w parsing). Snooze-expiry flip to pending on read. 30-day pending → expired transition on read. TDD: serde schema tests, transition tests, duration parsing tests before impl.",
+      "description": "Rust subcommand owning ALL store mutation: remind write (file lock, dedup_key match → occurrences increment + priority escalation, parse-before-write validation, mktemp-same-dir atomic write), remind list (computes+persists transitions under lock: snooze expiry, 30-day expired; priority desc/created asc), remind resolve, remind snooze (1d/3d/1w). Serde: no deny_unknown_fields, post-v1 fields Option+default, version via serde_json::Value first. Random short-uuid ids. UTC RFC3339. TDD incl. concurrent-write race test.",
       "effort": "M",
       "priority": "P2",
       "parent": "t-1962",

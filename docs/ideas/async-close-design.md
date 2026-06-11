@@ -255,9 +255,20 @@ Occurrence count feeds priority escalation: `occurrences ≥3 AND priority=mediu
 | `/brana:sitrep` | Top 2 high-priority pending | Inline in focus section, with `action` command shown |
 | `/brana:review weekly` | Expired digest + occurrence stats | Feedback loop for trigger tuning |
 
-### File locking
+### Write architecture (revised after challenger review 2026-06-10)
 
-Both hooks (layer 1, mid-session) and cron (layer 2, 2am) write `reminders.json`. Concurrent write risk is low (different times) but non-zero (parallel sessions). Contract: write via `jq ... > tmp && mv tmp file` (atomic rename, already in remind.sh) — last-writer-wins is acceptable for append-mostly data since appends read-modify-write the full file within one jq call. If corruption is ever observed, upgrade to `flock`.
+**All writes go through `brana remind write` (Rust).** The original bash-jq write path was rejected by adversarial review — three CRITICAL findings, all variations of one root cause: concurrent jq read-modify-write from parallel sessions silently loses reminders (last-writer-wins on a full-file rewrite), which is exactly the catastrophic failure mode. The "upgrade to flock if corruption is observed" valve can't fire: lost appends leave a structurally valid file, so the loss is invisible.
+
+- `remind.sh` is a **thin wrapper**: argument marshalling + `brana remind write --text ... --action ... --priority ... --dedup-key ...`. No jq, no JSON mutation in bash.
+- Rust owns: file locking (advisory lock on the store), dedup (`dedup_key` match → occurrences increment), validation (parse-before-write, never replace store with invalid output), atomic write (`mktemp` in the same directory as the store — `/tmp` is tmpfs, cross-filesystem `mv` is non-atomic).
+- `dedup_key` is a named parameter of the write interface (optional; empty = no dedup) — the Q4 signature and lifecycle spec now agree.
+- Serde structs: no `deny_unknown_fields`; all post-v1 fields `Option<T>` + `#[serde(default)]`; parse `version` from `serde_json::Value` before strict deserialization.
+
+### Read paths and transitions (clarified)
+
+- **session-start.sh:** pure jq pending-count — `jq '[.reminders[] | select(.status=="pending")] | length'` guarded by `[ -s file ]`. No Rust invocation (binary startup blows the <50ms budget — same reason session-start already uses the brana-query fast path), no transition writes. Count may be slightly stale (includes technically-expired) — accepted.
+- **`brana remind list`** is the only path that computes AND persists state transitions (snooze expiry, 30-day pending→expired), under the same write lock. All timestamps UTC RFC3339.
+- Reminder `id` is random (`uuid` short form), not content-derived — md5-of-text collides within same-second writes.
 
 ---
 
