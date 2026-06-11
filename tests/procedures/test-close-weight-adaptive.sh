@@ -27,29 +27,21 @@ assert_mode() {
     fi
 }
 
-# Replicate the classification bash from phases/gate-and-evidence.md Step 1
-# verbatim. Args: COMMIT_COUNT, CHANGED_FILES (newline-separated), ARGUMENTS.
+# Single source of truth (t-1978): the test executes the REAL classification
+# script — the same one the close gate calls. No replicated logic to rot.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CLASSIFY="$SCRIPT_DIR/../../system/scripts/close-classify.sh"
+if [ ! -x "$CLASSIFY" ]; then
+    echo "FAIL: $CLASSIFY missing or not executable"
+    exit 1
+fi
+
+# Args: COMMIT_COUNT, CHANGED_FILES (newline-separated), ARGUMENTS.
 classify() {
     local COMMIT_COUNT="${1:-1}"
     local CHANGED_FILES="$2"
     local ARGUMENTS="${3:-}"
-    local CLOSE_MODE BEHAVIORAL_JSON FILE_COUNT
-
-    FILE_COUNT=$(echo "$CHANGED_FILES" | grep -c . || echo 0)
-    BEHAVIORAL_JSON=$(echo "$CHANGED_FILES" | grep -E '^(system|\.claude)/.*\.json$' \
-                     | grep -v '^\.claude/tasks\.json$' || true)
-
-    if [[ "$ARGUMENTS" == *"--light"* ]]; then CLOSE_MODE="LIGHT"
-    elif [[ "$ARGUMENTS" == *"--full"* ]]; then CLOSE_MODE="FULL"
-    elif [[ "$ARGUMENTS" == *"--nano"* ]]; then CLOSE_MODE="NANO"
-    elif [[ "${COMMIT_COUNT:-0}" -ge 2 ]]; then CLOSE_MODE="INSTANT"
-    elif echo "$CHANGED_FILES" | grep -qE '\.(rs|ts|tsx|js|jsx|py|sh|toml|yaml|yml)$'; then CLOSE_MODE="INSTANT"
-    elif [[ -n "$BEHAVIORAL_JSON" ]]; then CLOSE_MODE="INSTANT"
-    elif [[ "${COMMIT_COUNT:-0}" -eq 1 ]] && [[ "${FILE_COUNT:-0}" -le 5 ]]; then CLOSE_MODE="NANO"
-    else CLOSE_MODE="LIGHT"
-    fi
-
-    echo "$CLOSE_MODE"
+    echo "$CHANGED_FILES" | bash "$CLASSIFY" --commit-count "$COMMIT_COUNT" --arguments "$ARGUMENTS"
 }
 
 echo "=== test-close-weight-adaptive.sh ==="

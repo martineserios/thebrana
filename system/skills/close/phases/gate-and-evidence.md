@@ -55,28 +55,17 @@ Since Track 1 (t-1973), sessions that previously auto-classified FULL now classi
 extracts from the queued diff instead. FULL (the in-session deep debrief) runs **only**
 on explicit `--full`.
 
+The classification logic lives in `system/scripts/close-classify.sh` — the
+**single source of truth**, executed directly by both this gate and
+`tests/procedures/test-close-weight-adaptive.sh`. Never inline or replicate the
+matrix here (a replicated copy rotted silently once — t-1978).
+
 ```bash
 COMMIT_COUNT=$(git log --oneline --since="6 hours ago" 2>/dev/null | wc -l | tr -d ' ')
 CHANGED_FILES=$(git diff --name-only HEAD~"${COMMIT_COUNT:-1}"..HEAD 2>/dev/null)
-FILE_COUNT=$(echo "$CHANGED_FILES" | grep -c . || echo 0)
-# Behavioral JSON: system/ or .claude/ JSON files, excluding tasks.json (state file)
-BEHAVIORAL_JSON=$(echo "$CHANGED_FILES" | grep -E '^(system|\.claude)/.*\.json$' \
-                 | grep -v '^\.claude/tasks\.json$')
 
-# Escape hatches take priority
-if [[ "$ARGUMENTS" == *"--light"* ]]; then CLOSE_MODE="LIGHT"
-elif [[ "$ARGUMENTS" == *"--full"* ]]; then CLOSE_MODE="FULL"
-elif [[ "$ARGUMENTS" == *"--nano"* ]]; then CLOSE_MODE="NANO"
-# INSTANT (was auto-FULL pre-Track-1): ≥2 commits in this session
-elif [[ "${COMMIT_COUNT:-0}" -ge 2 ]]; then CLOSE_MODE="INSTANT"
-# INSTANT: any code or behavioral config file changed
-elif echo "$CHANGED_FILES" | grep -qE '\.(rs|ts|tsx|js|jsx|py|sh|toml|yaml|yml)$'; then CLOSE_MODE="INSTANT"
-elif [[ -n "$BEHAVIORAL_JSON" ]]; then CLOSE_MODE="INSTANT"
-# NANO: exactly 1 commit, ≤5 files, no code/config files, only .md / tasks.json / state files
-elif [[ "${COMMIT_COUNT:-0}" -eq 1 ]] && [[ "${FILE_COUNT:-0}" -le 5 ]]; then CLOSE_MODE="NANO"
-# LIGHT: only .md, tasks.json, state/*.json, or inbox/ changed
-else CLOSE_MODE="LIGHT"
-fi
+CLOSE_MODE=$(echo "$CHANGED_FILES" | bash "$(git rev-parse --show-toplevel)/system/scripts/close-classify.sh" \
+    --commit-count "${COMMIT_COUNT:-0}" --arguments "$ARGUMENTS")
 ```
 
 Ambiguous cases (authoritative — do not infer):
