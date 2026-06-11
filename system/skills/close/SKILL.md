@@ -53,7 +53,7 @@ The procedure body lives in per-phase files under `phases/` (this skill's base d
 | Steps (registry names) | File | Load when |
 |------|------|-----------|
 | GATE, GATHER, EXTRACT, DOC-CHECK (Steps 0–3b) | phases/gate-and-evidence.md | Skill entry — always first |
-| ERRATA, PATTERNS (Steps 4–5) | phases/errata-and-patterns.md | Entering the parallel findings block (FULL/LIGHT closes) |
+| ERRATA, PATTERNS (Steps 4–5) | phases/errata-and-patterns.md | Entering the parallel findings block (`--full` and LIGHT closes only) |
 | FIELD-NOTES, IDEATE (Steps 6–7) | phases/notes-and-ideation.md | With the parallel findings block |
 | DRIFT (Step 8) | phases/doc-drift.md | With the parallel findings block |
 | HANDOFF, RUFLO-SYNC (Steps 9–9c) | phases/session-state.md | After findings block completes |
@@ -61,7 +61,7 @@ The procedure body lives in per-phase files under `phases/` (this skill's base d
 | WORKTREE-REAP, PENDING-RECONCILE, STASH-CLEANUP, REPORT (Steps 11b–12 + session close) | phases/cleanup.md | Final phase — always last |
 <!-- /PHASES -->
 
-Steps 4–8 run in parallel: when entering that block, Read all three of `errata-and-patterns.md`, `notes-and-ideation.md`, and `doc-drift.md` before dispatching the parallel work. NANO closes skip them entirely (the gate phase says when).
+Steps 4–8 run in parallel: when entering that block, Read all three of `errata-and-patterns.md`, `notes-and-ideation.md`, and `doc-drift.md` before dispatching the parallel work. NANO and INSTANT closes skip them entirely (the gate phase says when). Since Track 1 (ADR-052), the default for code sessions is **INSTANT** — snapshot + `brana close-queue append` + handoff, extraction deferred to the nightly cron; Steps 4–8 run in-session only on explicit `--full` (plus the LIGHT inline scan).
 
 In the deployed-plugin layout the same relative paths apply: `{base-dir}/phases/{file}`. If a path doesn't resolve, use Glob: `**/skills/close/phases/{file}`.
 
