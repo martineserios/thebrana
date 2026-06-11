@@ -51617,19 +51617,19 @@
       "description": "close/SKILL.md default path: git diff snapshot (capped per ADR-052) → brana queue append → template-filled handoff, no LLM, 30s. --full unchanged.",
       "context": "Scope (challenger C3 + surface scan): enumerate ALL mode branches — NANO skips queue, FULL queues, LIGHT per ADR-052; brana session write (Step 9) RETAINED; touched phase files include gate-and-evidence.md, cleanup.md, session-state.md — verify each, do not regress NANO/LIGHT.\nAC: regression tests prove NANO and LIGHT paths unchanged\nAC: snapshot capped at 500KB with truncated flag\nAC: queue append via brana queue only (no jq)\nAC: close completes <30s on a large-diff session",
       "id": "t-1973",
-      "status": "pending",
+      "status": "completed",
       "created": "2026-06-10",
       "tags": [],
       "blocked_by": [
         "t-1972"
       ],
       "order": null,
-      "branch": null,
+      "branch": "async-close/feat/t-1973-close-instant-default",
       "github_issue": null,
-      "started": null,
+      "started": "2026-06-11",
       "completed": null,
-      "notes": null,
-      "strategy": null,
+      "notes": "2026-06-11: evaluator PASS all 8 ACs. INSTANT mode replaces auto-FULL (snapshot via close-snapshot.sh + brana close-queue append + handoff); FULL only via --full; NANO never queues; brana session write retained. 32 mode assertions (NANO/LIGHT regression net + FULL-requires---full invariant sweep) + 16 snapshot tests. Pre-existing drift fixed: mode test predated NANO.",
+      "strategy": "feature",
       "build_step": null
     },
     {
