@@ -86,7 +86,8 @@ check "missing binary warns on stderr" "yes" "$([ -s "$stderr_file" ] && echo ye
 check "missing binary writes no store" "no" "$([ -f "$FAKE_HOME2/.claude/reminders.json" ] && echo yes || echo no)"
 
 # ── 6. no jq, no JSON mutation in the wrapper itself ──────────────────
-check "wrapper contains no jq calls" "0" "$(grep -c '\bjq\b' "$LIB")"
+# Comments may mention jq (the prohibition itself does); executable lines may not.
+check "wrapper contains no jq calls" "0" "$(grep -v '^\s*#' "$LIB" | grep -c '\bjq\b')"
 
 echo ""
 echo "test-remind-lib: $PASS/$TOTAL passed, $FAIL failed"
