@@ -310,6 +310,22 @@ if [ -s "$_REMINDER_STORE" ]; then
 fi
 unset _REMINDER_STORE _R_COUNTS _R_PENDING _R_HIGH
 
+# ── Daily extraction summary (t-1975, ADR-052) ────────────
+# Pure read of the newest of today's/yesterday's daily-summary file (the
+# 2am cron writes today's date). Silent when absent or empty.
+YESTERDAY_CONTEXT=""
+_DS_FILE="$HOME/.claude/sessions/daily-summary-$(date +%F).md"
+[ -s "$_DS_FILE" ] || _DS_FILE="$HOME/.claude/sessions/daily-summary-$(date -d yesterday +%F 2>/dev/null).md"
+if [ -s "$_DS_FILE" ]; then
+    _DS_LEARN=$(grep -c '^- \[' "$_DS_FILE" 2>/dev/null) || _DS_LEARN=0
+    if [ "${_DS_LEARN:-0}" -gt 0 ] 2>/dev/null; then
+        YESTERDAY_CONTEXT="$_DS_LEARN learning(s) extracted overnight. Review: $_DS_FILE"
+    else
+        YESTERDAY_CONTEXT="extraction ran, nothing notable. $_DS_FILE"
+    fi
+fi
+unset _DS_FILE _DS_LEARN
+
 # ── Task context injection ──────────────────────────────
 TASK_CONTEXT=""
 TASKS_FILE=""
@@ -751,6 +767,10 @@ fi
 if [ -n "$REMINDER_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
 }[Reminders] Reminders: $REMINDER_CONTEXT"
+fi
+if [ -n "$YESTERDAY_CONTEXT" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}[Yesterday] $YESTERDAY_CONTEXT"
 fi
 if [ -n "$LINT_HEAL_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS

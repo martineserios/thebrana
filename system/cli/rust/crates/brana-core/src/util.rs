@@ -393,3 +393,65 @@ mod tests {
         assert_eq!(result, Some(f));
     }
 }
+
+// ── Shared JSON-store primitives (ADR-051/052 pattern) ─────────────────
+
+/// Hex-encode 8 random bytes from the OS → `{prefix}-xxxxxxxxxxxxxxxx`.
+/// Falls back to a time+pid mix if /dev/urandom is unavailable.
+pub fn random_store_id(prefix: &str) -> String {
+    let mut buf = [0u8; 8];
+    if std::fs::File::open("/dev/urandom")
+        .and_then(|mut f| std::io::Read::read_exact(&mut f, &mut buf))
+        .is_err()
+    {
+        let t = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as u64
+            ^ ((std::process::id() as u64) << 32);
+        buf = t.to_le_bytes();
+    }
+    let hex: String = buf.iter().map(|b| format!("{b:02x}")).collect();
+    format!("{prefix}-{hex}")
+}
+
+/// Take an exclusive advisory lock on `<store>.lock` (sidecar — the store
+/// inode itself is replaced by atomic rename, so locking it would not
+/// serialize the next writer). Held until the returned File drops.
+pub fn lock_sidecar(store_path: &std::path::Path) -> Result<std::fs::File, String> {
+    let lock_path = store_path.with_extension("json.lock");
+    if let Some(dir) = lock_path.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| format!("create store dir failed: {e}"))?;
+    }
+    let f = std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(false)
+        .open(&lock_path)
+        .map_err(|e| format!("open lock file failed: {e}"))?;
+    f.lock().map_err(|e| format!("lock failed: {e}"))?;
+    Ok(f)
+}
+
+/// Serialize `value` and write it to `path` atomically: temp file created
+/// in the store's own directory (same filesystem → rename is atomic),
+/// PID-scoped name, rename over the target.
+pub fn write_json_atomic<T: serde::Serialize>(
+    path: &std::path::Path,
+    value: &T,
+) -> Result<(), String> {
+    let content =
+        serde_json::to_string_pretty(value).map_err(|e| format!("serialize failed: {e}"))?;
+    let dir = path.parent().ok_or("store path has no parent directory")?;
+    std::fs::create_dir_all(dir).map_err(|e| format!("create store dir failed: {e}"))?;
+    let file_name = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("store");
+    let tmp = dir.join(format!("{}.{}.tmp", file_name, std::process::id()));
+    std::fs::write(&tmp, content).map_err(|e| format!("write tmp failed: {e}"))?;
+    std::fs::rename(&tmp, path).map_err(|e| {
+        let _ = std::fs::remove_file(&tmp);
+        format!("atomic rename failed: {e}")
+    })
+}

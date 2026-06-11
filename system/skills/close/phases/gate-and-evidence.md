@@ -45,43 +45,55 @@ git commit -m "chore(state): commit state files at session close"
 - Add only a **Next:** section from conversation context
 - Skip to Step 9 (Write handoff note)
 
-**Weight classification (NANO / LIGHT / FULL):**
+**Weight classification (NANO / LIGHT / INSTANT / FULL) — ADR-052 §5:**
 
 Classify the session depth before spawning any agent. Use `git diff --name-only` — not
 `--stat`, which outputs line counts requiring fragile extension parsing.
 
+Since Track 1 (t-1973), sessions that previously auto-classified FULL now classify
+**INSTANT**: snapshot + queue + handoff, no in-session extraction — the nightly cron
+extracts from the queued diff instead. FULL (the in-session deep debrief) runs **only**
+on explicit `--full`.
+
+The classification logic lives in `system/scripts/close-classify.sh` — the
+**single source of truth**, executed directly by both this gate and
+`tests/procedures/test-close-weight-adaptive.sh`. Never inline or replicate the
+matrix here (a replicated copy rotted silently once — t-1978).
+
 ```bash
 COMMIT_COUNT=$(git log --oneline --since="6 hours ago" 2>/dev/null | wc -l | tr -d ' ')
 CHANGED_FILES=$(git diff --name-only HEAD~"${COMMIT_COUNT:-1}"..HEAD 2>/dev/null)
-FILE_COUNT=$(echo "$CHANGED_FILES" | grep -c . || echo 0)
-# Behavioral JSON: system/ or .claude/ JSON files, excluding tasks.json (state file)
-BEHAVIORAL_JSON=$(echo "$CHANGED_FILES" | grep -E '^(system|\.claude)/.*\.json$' \
-                 | grep -v '^\.claude/tasks\.json$')
 
-# Escape hatches take priority
-if [[ "$ARGUMENTS" == *"--light"* ]]; then CLOSE_MODE="LIGHT"
-elif [[ "$ARGUMENTS" == *"--full"* ]]; then CLOSE_MODE="FULL"
-elif [[ "$ARGUMENTS" == *"--nano"* ]]; then CLOSE_MODE="NANO"
-# FULL: ≥2 commits in this session
-elif [[ "${COMMIT_COUNT:-0}" -ge 2 ]]; then CLOSE_MODE="FULL"
-# FULL: any code or behavioral config file changed
-elif echo "$CHANGED_FILES" | grep -qE '\.(rs|ts|tsx|js|jsx|py|sh|toml|yaml|yml)$'; then CLOSE_MODE="FULL"
-elif [[ -n "$BEHAVIORAL_JSON" ]]; then CLOSE_MODE="FULL"
-# NANO: exactly 1 commit, ≤5 files, no code/config files, only .md / tasks.json / state files
-elif [[ "${COMMIT_COUNT:-0}" -eq 1 ]] && [[ "${FILE_COUNT:-0}" -le 5 ]]; then CLOSE_MODE="NANO"
-# LIGHT: only .md, tasks.json, state/*.json, or inbox/ changed
-else CLOSE_MODE="LIGHT"
-fi
+CLOSE_MODE=$(echo "$CHANGED_FILES" | bash "$(git rev-parse --show-toplevel)/system/scripts/close-classify.sh" \
+    --commit-count "${COMMIT_COUNT:-0}" --arguments "$ARGUMENTS")
 ```
 
 Ambiguous cases (authoritative — do not infer):
-- `.sh` edit → FULL (behavioral, high-stakes)
+- `.sh` edit → INSTANT (behavioral, high-stakes — cron extracts tonight; `--full` for in-session debrief)
 - `tasks.json` only → NANO (state file, single commit — write handoff and skip Steps 4-8)
-- `settings.json` → FULL (behavioral config — matches `^\.claude/.*\.json$`)
+- `settings.json` → INSTANT (behavioral config — matches `^\.claude/.*\.json$`)
 
-**NANO mode:** write handoff note (Step 9) only. Skip Steps 3–8 entirely (no debrief agent, no errata, no patterns, no field notes, no ideation, no drift). NANO sessions have nothing worth extracting — the overhead costs more than the signal.
+**NANO mode:** write handoff note (Step 9) only. Skip Steps 3–8 entirely (no debrief agent, no errata, no patterns, no field notes, no ideation, no drift). NANO sessions have nothing worth extracting — the overhead costs more than the signal. **NANO does not queue** (ADR-052 §5).
 
-Announce: `Close mode: $CLOSE_MODE` before proceeding to Step 2.
+Announce: `Close mode: $CLOSE_MODE` before proceeding to Step 1b.
+
+### Step 1b: Snapshot + queue (INSTANT / LIGHT / FULL — never NANO)
+
+Queue the session diff for tonight's extraction cron (ADR-052; one line, never blocks):
+
+```bash
+bash {GIT_ROOT}/system/scripts/close-snapshot.sh \
+    --git-root "$(git rev-parse --show-toplevel)" \
+    --branch "$(git branch --show-current)" \
+    --project "$(basename "$(git rev-parse --show-toplevel)")" \
+    --commit-count "${COMMIT_COUNT:-0}"
+```
+
+The script captures `git diff HEAD~N..HEAD` to `~/.claude/sessions/snap-*.diff`
+(500KB cap), appends a queue entry via `brana close-queue append` (dedup-safe —
+re-running close on the same range is a no-op), and degrades to a stderr warning
++ exit 0 if the brana binary is missing. Do not gate close on its output.
+Zero commits → it exits silently without queueing.
 
 ### Step 2: Gather evidence
 
@@ -108,7 +120,13 @@ Collect from multiple sources:
 
 Branch on `$CLOSE_MODE` from Step 1.
 
-**FULL mode** — spawn `debrief-analyst` (Sonnet):
+**INSTANT mode** — skip Steps 3–8 entirely. No debrief agent, no errata, no
+patterns, no field notes, no ideation, no drift: the queued snapshot carries the
+session's diff to tonight's extraction cron (Track 2), which routes findings to
+the reminder store. Proceed directly to Step 9 (handoff — `brana session write`
+runs as always).
+
+**FULL mode** (explicit `--full` only) — spawn `debrief-analyst` (Sonnet):
 
 ```
 Agent(subagent_type="debrief-analyst", prompt="Debrief this session. Focus on: what was built, any errata or spec mismatches found, process learnings. Check git log and conversation context.")

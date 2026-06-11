@@ -192,6 +192,11 @@ pub enum Commands {
         #[command(subcommand)]
         cmd: GraphCmd,
     },
+    /// Close queue — session snapshots awaiting nightly extraction (ADR-052)
+    CloseQueue {
+        #[command(subcommand)]
+        cmd: CloseQueueCmd,
+    },
     /// Reminder store — Rust-owned writes with locking (ADR-051)
     Remind {
         #[command(subcommand)]
@@ -1141,4 +1146,50 @@ pub enum RemindCmd {
         /// Duration: <n>d | <n>w | <n>h
         duration: String,
     },
+}
+
+#[derive(Subcommand)]
+pub enum CloseQueueCmd {
+    /// Append a close snapshot entry (dedup_key no-op if same range already queued)
+    Append {
+        #[arg(long)]
+        project: String,
+        #[arg(long)]
+        branch: String,
+        #[arg(long)]
+        git_root: String,
+        /// Commit range captured at close time (e.g. abc123..def456)
+        #[arg(long)]
+        git_range: String,
+        /// Path to the saved diff (tilde is expanded to absolute at write)
+        #[arg(long)]
+        snapshot_path: String,
+        #[arg(long, default_value = "0")]
+        commit_count: u64,
+        /// Set when the diff was truncated at the 500KB cap
+        #[arg(long)]
+        snapshot_truncated: bool,
+        #[arg(long)]
+        session_notes_path: Option<String>,
+    },
+    /// List queue entries (chronological)
+    List {
+        /// Only entries not yet processed
+        #[arg(long)]
+        unprocessed: bool,
+    },
+    /// Mark an entry successfully processed
+    MarkProcessed {
+        id: String,
+        #[arg(long)]
+        summary_path: String,
+    },
+    /// Mark an entry failed (increments retry_count)
+    MarkFailed {
+        id: String,
+        #[arg(long)]
+        error: String,
+    },
+    /// Remove processed/failed entries older than 30 days
+    Prune,
 }

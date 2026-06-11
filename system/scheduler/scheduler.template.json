@@ -25,7 +25,7 @@
       "enabled": true,
       "timeoutSeconds": 60,
       "captureOutput": true,
-      "_comment": "ADR-015: daily safety net — sync operational state from cache to repos."
+      "_comment": "ADR-015: daily safety net \u2014 sync operational state from cache to repos."
     },
     "agentdb-watch": {
       "type": "command",
@@ -55,7 +55,7 @@
       "maxRetries": 1,
       "timeoutSeconds": 60,
       "captureOutput": true,
-      "_comment": "Weekly CC changelog diff — writes ~/.claude/cc-changelog-report.md if changes found (t-512)"
+      "_comment": "Weekly CC changelog diff \u2014 writes ~/.claude/cc-changelog-report.md if changes found (t-512)"
     },
     "reindex-knowledge": {
       "type": "command",
@@ -79,7 +79,7 @@
       "maxRetries": 1,
       "timeoutSeconds": 600,
       "captureOutput": true,
-      "_comment": "t-936/t-1102: weekly DECAY — stale dimensions, event log bloat, ruflo noise. Runs after reindex-knowledge (noon)."
+      "_comment": "t-936/t-1102: weekly DECAY \u2014 stale dimensions, event log bloat, ruflo noise. Runs after reindex-knowledge (noon)."
     },
     "lint-heal": {
       "type": "command",
@@ -89,7 +89,7 @@
       "enabled": true,
       "timeoutSeconds": 300,
       "captureOutput": true,
-      "_comment": "t-1075: weekly L2 memory lint+heal — dedup, contradiction detection, frontmatter imputation. Runs after knowledge-decay (13:00). Enable only after --dry-run validation."
+      "_comment": "t-1075: weekly L2 memory lint+heal \u2014 dedup, contradiction detection, frontmatter imputation. Runs after knowledge-decay (13:00). Enable only after --dry-run validation."
     },
     "memory-consolidation": {
       "type": "command",
@@ -99,7 +99,7 @@
       "enabled": true,
       "timeoutSeconds": 120,
       "captureOutput": true,
-      "_comment": "t-1834: threshold-triggered L3 consolidation — debrief-flag consumption + frontmatter date normalization. OR trigger: >24h OR >=5 sessions. Does NOT call lint-heal.sh (no lock collision). Runs Mon-Sat only (Sun handled by lint-heal at 15:00 which resets session counter)."
+      "_comment": "t-1834: threshold-triggered L3 consolidation \u2014 debrief-flag consumption + frontmatter date normalization. OR trigger: >24h OR >=5 sessions. Does NOT call lint-heal.sh (no lock collision). Runs Mon-Sat only (Sun handled by lint-heal at 15:00 which resets session counter)."
     },
     "export-patterns": {
       "type": "command",
@@ -131,7 +131,7 @@
       "enabled": true,
       "timeoutSeconds": 3600,
       "captureOutput": true,
-      "_comment": "t-857: weekly index of feedback_*.md / project_*.md pattern files across all project memory dirs into ruflo. Runs at 03:00 Sun — well before reindex-knowledge (12:00) so fresh patterns are available for knowledge-decay (13:00)."
+      "_comment": "t-857: weekly index of feedback_*.md / project_*.md pattern files across all project memory dirs into ruflo. Runs at 03:00 Sun \u2014 well before reindex-knowledge (12:00) so fresh patterns are available for knowledge-decay (13:00)."
     },
     "second-phase-review": {
       "type": "command",
@@ -169,7 +169,7 @@
       "schedule": "Mon..Fri *-*-* 08:48:00",
       "model": "haiku",
       "enabled": false,
-      "_comment": "Daily morning focus card — disabled locally (runs on Oracle for Telegram). Enable only on venture projects."
+      "_comment": "Daily morning focus card \u2014 disabled locally (runs on Oracle for Telegram). Enable only on venture projects."
     },
     "link-check": {
       "type": "command",
@@ -219,7 +219,7 @@
       "enabled": true,
       "timeoutSeconds": 60,
       "captureOutput": true,
-      "_comment": "t-1009: daily intelligence digest from feed-log.jsonl → ~/.claude/intelligence-feed-digest.md. Runs after last feed-poll (18:00)."
+      "_comment": "t-1009: daily intelligence digest from feed-log.jsonl \u2192 ~/.claude/intelligence-feed-digest.md. Runs after last feed-poll (18:00)."
     },
     "feed-ruflo-index": {
       "type": "command",
@@ -260,6 +260,18 @@
       "timeoutSeconds": 300,
       "captureOutput": true,
       "_comment": "t-1136: nightly Tier 1+2 LinkedIn URL relevance filter + cluster assignment. Enable manually after dry-run passes clean. Tier 3 is manual only."
+    },
+    "close-extraction": {
+      "type": "command",
+      "command": "./system/cron/close-extraction.sh",
+      "project": "~/enter_thebrana/thebrana",
+      "schedule": "*-*-* 02:00:00",
+      "enabled": true,
+      "timeoutSeconds": 1800,
+      "maxRetries": 1,
+      "retryBackoffSec": 300,
+      "captureOutput": true,
+      "_comment": "ADR-052 Track 2: nightly extraction \u2014 agy pass per queued close snapshot, learnings to reminders, daily summary. Exits non-zero on agy failure so health surfaces it."
     }
   }
 }

@@ -129,6 +129,25 @@ fn main() {
                 run_or_exit(commands::memory::cmd_memory_index(&scope))
             }
         },
+        Commands::CloseQueue { cmd } => match cmd {
+            CloseQueueCmd::Append {
+                project, branch, git_root, git_range, snapshot_path,
+                commit_count, snapshot_truncated, session_notes_path,
+            } => run_or_exit(commands::close_queue::cmd_append(
+                project, branch, git_root, git_range, snapshot_path,
+                commit_count, snapshot_truncated, session_notes_path,
+            )),
+            CloseQueueCmd::List { unprocessed } => {
+                run_or_exit(commands::close_queue::cmd_list(unprocessed))
+            }
+            CloseQueueCmd::MarkProcessed { id, summary_path } => {
+                run_or_exit(commands::close_queue::cmd_mark_processed(&id, &summary_path))
+            }
+            CloseQueueCmd::MarkFailed { id, error } => {
+                run_or_exit(commands::close_queue::cmd_mark_failed(&id, &error))
+            }
+            CloseQueueCmd::Prune => run_or_exit(commands::close_queue::cmd_prune()),
+        },
         Commands::Remind { cmd } => match cmd {
             RemindCmd::Write { text, action, priority, dedup_key, project, tags } => {
                 run_or_exit(commands::remind::cmd_write(&text, action, priority, dedup_key, project, tags))
