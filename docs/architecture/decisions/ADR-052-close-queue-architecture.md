@@ -23,19 +23,19 @@ Track 1 makes session close a 30-second snapshot + queue append; Track 2 is a ni
 
 ### 1. Queue store: Rust-owned mutation (extends ADR-051)
 
-`~/.claude/close-queue.json` is mutated **only** by `brana queue` subcommands:
+`~/.claude/close-queue.json` is mutated **only** by `brana close-queue` subcommands (named `close-queue`, not `queue` — `brana queue` already exists as the task-spawn command; discovered at t-1972 implementation, amended 2026-06-11):
 
-- `brana queue append --project … --branch … --git-root … --git-range … --snapshot-path … [--commit-count N] [--session-notes-path …]`
-- `brana queue list [--unprocessed]`
-- `brana queue mark-processed <id> --summary-path …`
-- `brana queue mark-failed <id> --error …` (increments `retry_count`)
-- `brana queue prune` (entries >30 days old, processed or failed)
+- `brana close-queue append --project … --branch … --git-root … --git-range … --snapshot-path … [--commit-count N] [--session-notes-path …]`
+- `brana close-queue list [--unprocessed]`
+- `brana close-queue mark-processed <id> --summary-path …`
+- `brana close-queue mark-failed <id> --error …` (increments `retry_count`)
+- `brana close-queue prune` (entries >30 days old, processed or failed)
 
 The Rust write path owns: sidecar advisory lock (`close-queue.json.lock` — never the store inode, which atomic rename replaces), parse-before-write validation, mktemp-in-store-dir + atomic rename, serde evolution rules identical to ADR-051 §4 (no `deny_unknown_fields`, post-v1 fields `Option<T>`/default, version via `serde_json::Value`, UTC RFC3339).
 
 ### 2. Cron never touches JSON directly (challenger C4)
 
-`close-extraction.sh` interacts with the queue **exclusively** through `brana queue` subcommands — zero jq reads, zero file writes to the store. Each subcommand locks-and-rewrites atomically; the cron re-reads via `brana queue list --unprocessed` per iteration rather than caching the queue in a shell variable across mutations. A session closing mid-cron-run appends safely because `append` and `mark-processed` serialize on the same lock.
+`close-extraction.sh` interacts with the queue **exclusively** through `brana close-queue` subcommands — zero jq reads, zero file writes to the store. Each subcommand locks-and-rewrites atomically; the cron re-reads via `brana close-queue list --unprocessed` per iteration rather than caching the queue in a shell variable across mutations. A session closing mid-cron-run appends safely because `append` and `mark-processed` serialize on the same lock.
 
 ### 3. Entry identity: random id + dedup_key (challenger H5)
 
@@ -95,7 +95,7 @@ The nightly worker is `agy -p` (Gemini Flash, Layer A — delegation-routing des
 ```
 
 **Failure handling — pinned, not implementation judgment:**
-- Output missing, empty, or unparseable as the schema above → `brana queue mark-failed <id> --error …`; **never** write partial results, **never** mark processed
+- Output missing, empty, or unparseable as the schema above → `brana close-queue mark-failed <id> --error …`; **never** write partial results, **never** mark processed
 - agy binary unreachable → all entries left unprocessed, entries touched get `mark-failed`, cron exits non-zero so `brana ops` health surfaces the failure
 - After 3 failed retries on an entry → write a processing-failure reminder via `write_reminder`; human resolves
 
@@ -105,7 +105,7 @@ The nightly worker is `agy -p` (Gemini Flash, Layer A — delegation-routing des
 
 ### 7. Cron contract (design Q3, hardened)
 
-Chronological (oldest first), sequential (one LLM pass at a time), per entry: read snapshot → agy pass → validate output → route to reminders → `mark-processed` with `summary_path`. Then: append (never replace — challenger M9) to `~/.claude/sessions/daily-summary-{date}.md`, `brana queue prune`, delete snapshot files of processed entries older than 14 days. Stale-queue self-monitor: any entry unprocessed >3 days → reminder (dedup_key `stale-close-queue` so it counts occurrences instead of spamming).
+Chronological (oldest first), sequential (one LLM pass at a time), per entry: read snapshot → agy pass → validate output → route to reminders → `mark-processed` with `summary_path`. Then: append (never replace — challenger M9) to `~/.claude/sessions/daily-summary-{date}.md`, `brana close-queue prune`, delete snapshot files of processed entries older than 14 days. Stale-queue self-monitor: any entry unprocessed >3 days → reminder (dedup_key `stale-close-queue` so it counts occurrences instead of spamming).
 
 ### 8. Acceptance gate
 
@@ -124,6 +124,6 @@ t-1972 (queue CLI) must not start until this ADR's status is **Accepted** (chall
 ## Consequences
 
 - A second store ships with day-one locking and the race test as part of TDD scope — no deferred-hardening debt
-- The cron is a thin orchestrator: all state mutation lives in two already-tested Rust surfaces (`brana queue`, `brana remind`)
+- The cron is a thin orchestrator: all state mutation lives in two already-tested Rust surfaces (`brana close-queue`, `brana remind`)
 - Extraction quality is bounded by Gemini Flash until the revisit trigger fires; the cost of being wrong is review noise, not corrupted memory
 - close gets faster for every mode without losing the FULL escape hatch
