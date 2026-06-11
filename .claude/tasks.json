@@ -51589,19 +51589,19 @@
       "description": "Rust-owned mutation of ~/.claude/close-queue.json per ADR-052. Mirror brana_core::remind structure: sidecar lock, parse-before-write, same-dir tmp+rename, serde evolution rules (no deny_unknown_fields, Option for post-v1, version via Value). TDD inline red-first.",
       "context": "AC: concurrent-append race test passes (parallel closes, all entries survive)\nAC: duplicate dedup_key policy test per ADR-052\nAC: snapshot_path stored absolute — tilde-expansion test\nAC: corrupt store never clobbered (parse-before-write test)\nAC: spec docs updated in same commits (SDD)\nBlocked until ADR-052 status=Accepted (challenger C1).",
       "id": "t-1972",
-      "status": "pending",
+      "status": "completed",
       "created": "2026-06-10",
       "tags": [],
       "blocked_by": [
         "t-1971"
       ],
       "order": null,
-      "branch": null,
+      "branch": "async-close/feat/t-1972-brana-queue-cli",
       "github_issue": null,
-      "started": null,
+      "started": "2026-06-11",
       "completed": null,
-      "notes": null,
-      "strategy": null,
+      "notes": "2026-06-11: 16 core tests (2 race tests) + 5 CLI smoke green. Evaluator PASS — git_root tilde gap closed same-day. ADR-052 amended: command is 'brana close-queue' ('brana queue' taken by task-spawn). util.rs gained shared store primitives; remind refactored onto them.",
+      "strategy": "feature",
       "build_step": null
     },
     {
