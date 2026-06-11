@@ -58,8 +58,8 @@ check "exits 0 on happy path" "0" "$rc"
 check "snapshot file created" "1" "$(ls "$H1/.claude/sessions/"snap-*.diff 2>/dev/null | wc -l | tr -d ' ')"
 QJSON=$(HOME="$H1" "$REAL_BRANA" close-queue list)
 check "queue entry created" "1" "$(echo "$QJSON" | grep -c '"id"')"
-check "project marshalled" "1" "$(echo "$QJSON" | grep -c testproj)"
-check "git_range recorded" "1" "$(echo "$QJSON" | grep -c '\.\.')"
+check "project marshalled" "1" "$(echo "$QJSON" | grep -c '"project": "testproj"')"
+check "git_range recorded" "1" "$(echo "$QJSON" | grep -c '"git_range"')"
 check "not truncated" "1" "$(echo "$QJSON" | grep -c '"snapshot_truncated": false')"
 # snapshot content is a real diff
 SNAPFILE=$(ls "$H1/.claude/sessions/"snap-*.diff | head -1)
@@ -87,10 +87,14 @@ check "zero commits exits 0" "0" "$?"
 check "zero commits writes no queue" "0" "$(HOME="$H3" "$REAL_BRANA" close-queue list | grep -c '"id"')"
 
 # ── 5. missing binary → warn stderr, exit 0, close never blocks ──────
+# Copy the script to an isolated dir so its sibling-release-build fallback
+# cannot resolve — only $BRANA and PATH remain, both dead ends here.
 H4="$TMPDIR/home4"; mkdir -p "$H4"
+ISO="$TMPDIR/iso"; mkdir -p "$ISO"
+cp "$SNAP" "$ISO/close-snapshot.sh"
 stderr_file="$TMPDIR/stderr"
 rc=99
-HOME="$H4" BRANA="$TMPDIR/missing" PATH="/usr/bin:/bin" bash "$SNAP" --git-root "$R1" --branch feat/x --project p --commit-count 1 >/dev/null 2>"$stderr_file" && rc=0 || rc=$?
+HOME="$H4" BRANA="$TMPDIR/missing" PATH="/usr/bin:/bin" bash "$ISO/close-snapshot.sh" --git-root "$R1" --branch feat/x --project p --commit-count 1 >/dev/null 2>"$stderr_file" && rc=0 || rc=$?
 check "missing binary exits 0" "0" "$rc"
 check "missing binary warns" "yes" "$([ -s "$stderr_file" ] && echo yes || echo no)"
 
