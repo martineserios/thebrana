@@ -319,10 +319,13 @@ mod tests {
         let dir = tempfile::TempDir::new().unwrap();
         let mut e = new_entry("feat/x", "a..b");
         e.snapshot_path = "~/.claude/sessions/snap.diff".into();
+        e.git_root = "~/enter_thebrana/thebrana".into();
         e.session_notes_path = Some("~/.claude/notes.md".into());
         let r = append(&store_path(&dir), e).unwrap();
         assert!(!r.entry.snapshot_path.starts_with('~'));
         assert!(r.entry.snapshot_path.starts_with('/'));
+        assert!(!r.entry.git_root.starts_with('~'));
+        assert!(r.entry.git_root.starts_with('/'));
         assert!(!r.entry.session_notes_path.unwrap().starts_with('~'));
     }
 
