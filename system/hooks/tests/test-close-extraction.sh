@@ -161,7 +161,19 @@ EOF
 run_cron "$H7" env FAKE_AGY_OUTPUT="$GOOD_OUTPUT" >/dev/null 2>&1
 check "snapshot deleted 14d after processing" "no" "$([ -f "$SNAP7" ] && echo yes || echo no)"
 
-# ── 8. structural: cron never touches the store file directly ─────────
+# ── 8. truncated snapshot → processed normally, never failed ──────────
+H8="$TMPDIR/h8"; mkdir -p "$H8/.claude/sessions"
+SNAP8="$H8/.claude/sessions/snap-trunc.diff"
+printf 'diff --git a/y b/y\n+++ b/y\n+partial' > "$SNAP8"
+HOME="$H8" "$REAL_BRANA" close-queue append --project testproj --branch feat-t \
+    --git-root /tmp --git-range t1..t2 --snapshot-path "$SNAP8" --commit-count 1 \
+    --snapshot-truncated >/dev/null
+FAKE_AGY_OUTPUT="$GOOD_OUTPUT" run_cron "$H8" env FAKE_AGY_OUTPUT="$GOOD_OUTPUT" >/dev/null 2>&1
+Q8=$(HOME="$H8" "$REAL_BRANA" close-queue list)
+check "truncated snapshot processed" "1" "$(echo "$Q8" | grep -c '"processed": true')"
+check "truncated snapshot not failed" "0" "$(echo "$Q8" | grep -c '"failed": true')"
+
+# ── 9. structural: cron never touches the store file directly ─────────
 check "cron never references close-queue.json path" "0" "$(grep -v '^\s*#' "$CRON" | grep -c 'close-queue\.json')"
 
 echo ""
