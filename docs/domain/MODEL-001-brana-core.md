@@ -378,6 +378,8 @@ All other contexts are independent:
 | **Blocked chain** | The transitive dependency path preventing a task from starting | Backlog |
 | **Burndown** | Time-bucketed view of created vs completed tasks | Backlog |
 | **Rollup** | Auto-completing a parent when all children are done | Backlog |
+| **Propagation gap** | A knowledge artifact (spec status, doc checkbox, promise, memory claim) contradicting the system's actual state after work completes | Close / Knowledge |
+| **Knowledge debt** | Accumulated undetected propagation gaps — docs claiming a state the system is no longer in (ADR-056) | Close / Knowledge |
 | **Classification** | Computed status: done, active, blocked, parked, pending | Backlog |
 | **Feed** | An RSS/Atom source being monitored for new entries | Feeds |
 | **Conditional poll** | HTTP request with ETag/Last-Modified to avoid re-fetching unchanged feeds | Feeds |
