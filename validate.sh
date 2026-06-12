@@ -1882,21 +1882,31 @@ fi
 echo ""
 fi  # should_run 42
 
-# Check 43 — close.md must contain weight classification block (NANO/LIGHT/FULL) (ADR-040 §7, t-1802)
+# Check 43 — close weight classification: the matrix lives in close-classify.sh
+# (single source of truth since t-1978); the close gate must execute that script,
+# never inline the matrix (ADR-040 §7, t-1802; updated t-1980 — the old check
+# grepped the close body for CLOSE_MODE="..." literals that moved into the
+# script at t-1978 and had been failing ever since: validate-self-test-gap).
 if should_run 43; then
-echo "Check 43: close.md weight classification block..."
+echo "Check 43: close weight classification (close-classify.sh + gate wiring)..."
+CLASSIFY_SH="$SYSTEM_DIR/scripts/close-classify.sh"
 CLOSE_BODY=$(effective_body close)
-if [ -z "$CLOSE_BODY" ]; then
+if [ ! -f "$CLASSIFY_SH" ]; then
+    fail "Check 43: $CLASSIFY_SH missing — close weight matrix has no source of truth"
+elif [ -z "$CLOSE_BODY" ]; then
     warn "Check 43: close effective body empty — skipping"
 else
     MISSING_MODES=()
-    grep -q 'CLOSE_MODE="FULL"'  <<< "$CLOSE_BODY" || MISSING_MODES+=("FULL")
-    grep -q 'CLOSE_MODE="LIGHT"' <<< "$CLOSE_BODY" || MISSING_MODES+=("LIGHT")
-    grep -q 'CLOSE_MODE="NANO"'  <<< "$CLOSE_BODY" || MISSING_MODES+=("NANO")
-    if [ ${#MISSING_MODES[@]} -eq 0 ]; then
-        pass "Check 43: close.md has NANO/LIGHT/FULL weight classification ✓"
+    grep -q 'CLOSE_MODE="FULL"'  "$CLASSIFY_SH" || MISSING_MODES+=("FULL")
+    grep -q 'CLOSE_MODE="LIGHT"' "$CLASSIFY_SH" || MISSING_MODES+=("LIGHT")
+    grep -q 'CLOSE_MODE="NANO"'  "$CLASSIFY_SH" || MISSING_MODES+=("NANO")
+    grep -q 'LIGHT-INLINE' "$CLASSIFY_SH" || MISSING_MODES+=("LIGHT-INLINE")
+    if ! grep -q 'close-classify\.sh' <<< "$CLOSE_BODY"; then
+        fail "Check 43: close gate does not reference close-classify.sh — matrix must not be inlined (t-1978)"
+    elif [ ${#MISSING_MODES[@]} -eq 0 ]; then
+        pass "Check 43: close-classify.sh owns NANO/LIGHT/LIGHT-INLINE/FULL and the gate executes it ✓"
     else
-        fail "Check 43: close.md missing CLOSE_MODE assignment(s): ${MISSING_MODES[*]} (ADR-040 §7)"
+        fail "Check 43: close-classify.sh missing mode(s): ${MISSING_MODES[*]} (ADR-040 §7, ADR-053)"
     fi
 fi
 echo ""
