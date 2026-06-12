@@ -993,6 +993,9 @@ pub enum FeedCmd {
         /// Action on new entries: log (default) or task
         #[arg(long, default_value = "log")]
         action: String,
+        /// Days without a new entry before the digest flags this feed stale (default 14)
+        #[arg(long)]
+        stale_after_days: Option<u32>,
     },
     /// List all registered feeds
     List,
