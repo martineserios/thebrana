@@ -532,6 +532,54 @@ rm -rf "$FAKE_HOME/.swarm"
 assert_continue "No lock file → hook continues normally" \
     "$(make_session_input "sess-lock-none" "$REPO_LOCK")"
 
+# ── 14. close-queue dead-man check (t-1979 disposition #1) ──────────────
+# Pure-jq staleness check: must fire with NO brana binary on PATH —
+# dead cron, missing binary, and unregistered job all manifest as a
+# stale queue, and the check must not depend on the thing it monitors.
+REPO_CQ="$TMPDIR/cq-proj"
+mkdir -p "$REPO_CQ"
+
+CQ_OLD=$(date -u -d '4 days ago' +%Y-%m-%dT%H:%M:%SZ)
+CQ_FRESH=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+cq_entry() { # $1=id $2=timestamp $3=processed
+    printf '{"id":"%s","dedup_key":"p:b:%s","timestamp":"%s","branch":"b","project":"p","git_root":"/tmp","git_range":"a..b","commit_count":1,"snapshot_path":"/tmp/%s.diff","processed":%s,"retry_count":0}' \
+        "$1" "$1" "$2" "$1" "$3"
+}
+
+printf '{"version":1,"entries":[%s]}' "$(cq_entry cq1 "$CQ_OLD" false)" \
+    > "$FAKE_HOME/.claude/close-queue.json"
+assert_context_contains "Stale close-queue entry (>3d) → dead-man warning" \
+    "Close queue" \
+    "$(make_session_input "sess-cq-stale" "$REPO_CQ")"
+
+# fresh unprocessed entry → no warning
+printf '{"version":1,"entries":[%s]}' "$(cq_entry cq2 "$CQ_FRESH" false)" \
+    > "$FAKE_HOME/.claude/close-queue.json"
+TOTAL=$((TOTAL + 1))
+OUT_CQ=$(run_hook "$(make_session_input "sess-cq-fresh" "$REPO_CQ")")
+if echo "$OUT_CQ" | jq -r '.additionalContext // ""' 2>/dev/null | grep -q "Close queue"; then
+    echo "  FAIL: Fresh close-queue entry → no dead-man warning"
+    FAIL=$((FAIL + 1))
+else
+    echo "  PASS: Fresh close-queue entry → no dead-man warning"
+    PASS=$((PASS + 1))
+fi
+
+# old but processed entry → no warning
+printf '{"version":1,"entries":[%s]}' "$(cq_entry cq3 "$CQ_OLD" true)" \
+    > "$FAKE_HOME/.claude/close-queue.json"
+TOTAL=$((TOTAL + 1))
+OUT_CQ=$(run_hook "$(make_session_input "sess-cq-processed" "$REPO_CQ")")
+if echo "$OUT_CQ" | jq -r '.additionalContext // ""' 2>/dev/null | grep -q "Close queue"; then
+    echo "  FAIL: Processed old close-queue entry → no dead-man warning"
+    FAIL=$((FAIL + 1))
+else
+    echo "  PASS: Processed old close-queue entry → no dead-man warning"
+    PASS=$((PASS + 1))
+fi
+rm -f "$FAKE_HOME/.claude/close-queue.json"
+
 # ── Summary ─────────────────────────────────────────────
 echo ""
 echo "$PASS/$TOTAL passed"
