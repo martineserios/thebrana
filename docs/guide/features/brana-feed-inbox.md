@@ -39,7 +39,7 @@ brana inbox poll
 
 | Command | Options | Description |
 |---------|---------|-------------|
-| `feed add <url>` | `--name NAME`, `--action log\|task` | Register a feed. Name derived from URL if omitted. Action: `log` (default) or `task` |
+| `feed add <url>` | `--name NAME`, `--action log\|task`, `--stale-after-days N` | Register a feed. Name derived from URL if omitted. Action: `log` (default) or `task`. `--stale-after-days`: digest flags the feed if no new entry for N days (default 14) |
 | `feed list` | — | Show all registered feeds |
 | `feed poll [NAME]` | `--all` | Poll one feed by name, or all with `--all` |
 | `feed remove <name>` | — | Remove a feed and its state |
@@ -94,6 +94,46 @@ brana ops enable inbox-poll   # daily at 09:00
 | YouTube | `https://youtube.com/feeds/videos.xml?channel_id={ID}` |
 | GitHub releases | `https://github.com/{owner}/{repo}/releases.atom` |
 | Reddit | `https://reddit.com/r/{sub}/.rss` |
+
+## Staleness Detection (ADR-055)
+
+A feed that stops producing entries is flagged in the daily digest — silence is no longer invisible (the anthropic-news scraper once stalled for 9 days and missed the Fable 5 launch; this is the fix).
+
+- Each feed has a `stale_after_days` threshold (default **14**; set per feed via `brana feed add --stale-after-days N` or by editing `feeds.json`).
+- `feed-index.sh` checks the newest entry per feed on every run — **including days with no new entries** — and appends a `⚠ Stale feeds` section to `~/.claude/intelligence-feed-digest.md`.
+- Registered feeds with zero log entries show as `no entries yet`.
+- Scraper-fed sources outside feeds.json (e.g. `kapso-changelog`) are covered via the `EXTRA_STALE_FEEDS` constant in `system/scripts/feed-index.sh`.
+
+### Changing a feed's source URL
+
+Never edit the URL in place — the new source emits different entry IDs and the next poll floods the log with months-old "new" entries. Canonical swap:
+
+```bash
+brana feed remove <name>     # resets state incl. last_entry_ids
+brana feed add <new-url> --name <name> [--stale-after-days N]
+```
+
+## Tech-Stack Changelogs (ADR-055)
+
+The registry tracks the changelogs of technologies used across the portfolio, not just Claude/AI news:
+
+| Feed | Source | Threshold |
+|------|--------|-----------|
+| `supabase-changelog` | GitHub Discussions changelog atom | 14d (default) |
+| `nextjs-releases` | vercel/next.js releases.atom | 14d |
+| `vercel-changelog` | vercel.com/atom | 14d |
+| `rust-releases` | rust-lang/rust releases.atom | 56d (~6-week cadence) |
+| `kapso-changelog` | scraper job `kapso-changelog-check.sh` → docs.kapso.ai/changelog.md (no RSS exists) | 21d via EXTRA_STALE_FEEDS |
+
+### Adding a feed when you adopt a new technology
+
+`/brana:onboard` and `/brana:align` run a **feed coverage check** after stack detection: detected technologies are diffed against `brana feed list` (a tech is covered when a feed name starts with its slug), and uncovered ones are offered for registration. Between those runs, register manually:
+
+```bash
+brana feed add https://github.com/{org}/{repo}/releases.atom --name {tech}-changelog
+```
+
+Prefer official GitHub `releases.atom`; for platforms without RSS, check whether their docs serve raw markdown (Mintlify sites do: try `{docs-url}/changelog.md`) and follow the `kapso-changelog-check.sh` scraper pattern.
 
 ## Setup: Gmail Accounts
 
