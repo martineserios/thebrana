@@ -2,7 +2,7 @@
 
 # Skill Reference
 
-**33 skills** loaded from `system/skills/`.
+**34 skills** loaded from `system/skills/`.
 
 ## Skill Frontmatter Reference
 
@@ -24,6 +24,7 @@ Canonical source: [`docs/architecture/testing-validation.md`](../architecture/te
 | `/brana:acquire-skills` | brana | Find and install skills for project tech gaps. Use when entering a project with  |
 | `/brana:align` | execution | Align a project to brana practices — assess gaps, plan, implement, verify. Auto- |
 | `/brana:backlog` | brana | Manage the backlog — plan, track, navigate phases and streams. Use when planning |
+| `/brana:bash-defensive-patterns` | brana | Master defensive Bash programming techniques for production-grade scripts. Use w |
 | `/brana:brainstorm` | thinking | Interactive idea maturation — explore, research, shape raw ideas into actionable |
 | `/brana:build` | execution | Build anything — features, bug fixes, refactors, spikes, migrations. Auto-detect |
 | `/brana:cargo-machete` | brana | Detect and remove unused dependencies in Rust projects using cargo-machete. |
@@ -70,6 +71,12 @@ Manage the backlog — plan, track, navigate phases and streams. Use when planni
 **Arguments:** `[status|add|start|done|next|roadmap|plan|triage|tags|context|theme|sync] [args]`
 
 **Allowed tools:** Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, Task, mcp__ruflo__memory_search, mcp__ruflo__claims_claim, mcp__ruflo__claims_release, mcp__ruflo__claims_list, mcp__ruflo__agent_spawn, mcp__ruflo__swarm_init, mcp__ruflo__claims_mark-stealable, mcp__ruflo__coordination_orchestrate, mcp__ruflo__agent_pool, TaskCreate, TaskList, TaskUpdate, ToolSearch
+
+### `/brana:bash-defensive-patterns`
+
+Master defensive Bash programming techniques for production-grade scripts. Use when writing robust shell scripts, CI/CD pipelines, or system utilities requiring fault tolerance and safety.
+
+**Allowed tools:** [Read, Glob, Grep, AskUserQuestion]
 
 ### `/brana:cargo-machete`
 
