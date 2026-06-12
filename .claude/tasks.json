@@ -51848,6 +51848,7 @@
       "created": "2026-06-11",
       "description": "Read-only CLI subcommand the factory foreman runs before dispatching a task to an autonomous workflow. Checks the definition-of-ready from docs/research/2026-06-11-loop-native-redesign.md Part 2: (1) at least one AC: line in context that is machine-verifiable (contains a command, test reference, or file condition — heuristic v1: rejects lines with no verifiable token like 'works well'), (2) non-empty context beyond AC lines (tasks-need-rich-context), (3) effort is S or M, (4) no pending-ambiguity marker (open Q: lines in context or blocked status). Exit 0 = ready, exit 1 = not ready with per-check report; --json for the foreman.",
       "effort": "S",
+      "epic": "loop-native",
       "execution": "code",
       "github_issue": null,
       "id": "t-1981",
@@ -51865,8 +51866,7 @@
         "cli",
         "backlog"
       ],
-      "type": "task",
-      "epic": "loop-native"
+      "type": "task"
     },
     {
       "acceptance_criteria": null,
@@ -51877,6 +51877,7 @@
       "created": "2026-06-11",
       "description": "Make 'autonomous' a first-class validated value of the execution field (today: free string, only 'code' used, no consumer). Add enum validation (code | autonomous) at all three write paths per the enum-validation-three-write-paths learning: brana-cli backlog set, brana-mcp backlog_set, brana-mcp backlog_add. Document semantics: autonomous = task is intended for foreman dispatch; brana backlog lint is the consumer that verifies readiness (label alone grants nothing — guard testable state, not intent labels).",
       "effort": "S",
+      "epic": "loop-native",
       "execution": "code",
       "github_issue": null,
       "id": "t-1982",
@@ -51885,8 +51886,8 @@
       "order": 0,
       "parent": null,
       "priority": "P2",
-      "started": null,
-      "status": "pending",
+      "started": "2026-06-12",
+      "status": "in_progress",
       "subject": "execution: autonomous — validated enum value across all three write paths",
       "tags": [
         "loop-native",
@@ -51894,8 +51895,7 @@
         "cli",
         "backlog"
       ],
-      "type": "task",
-      "epic": "loop-native"
+      "type": "task"
     },
     {
       "acceptance_criteria": [
@@ -52162,12 +52162,14 @@
     {
       "acceptance_criteria": null,
       "blocked_by": [],
-      "branch": null,
+      "branch": "loop-native/research/t-1991-factory-manual-rehearsal",
+      "build_step": "experiment",
       "completed": null,
       "context": "2026-06-11: No blockers — can run anytime. Workflow primitive verified by smoke test wf_859926e3-bd2 (docs/architecture/workflow-primitive.md). Findings route to: t-1981 context (lint heuristics), research doc Part 2, and the step-state contract ADR if checkpointing pain appears.\nAC: one S task moved to completed by a Workflow crew, merged by the human\nAC: every AC: line of the target task verified by command/test exit code, not self-assertion\nAC: rehearsal findings appended to t-1981 context and the research doc",
       "created": "2026-06-12",
       "description": "Roadmap step 1 of the loop-native redesign (docs/research/2026-06-11-loop-native-redesign.md). Human curates one S task to definition-of-ready by hand (the human IS the lint for this run), then: \"ultracode: complete this task per its AC, worktree-isolated, verify each AC\" — a Workflow crew plans, implements in a worktree, and machine-verifies each AC: line. Purpose: produce evidence about what machine-verifiable AC and rich context look like in practice, before the lint heuristics (t-1981) and foreman recipe are built.",
       "effort": "S",
+      "epic": "loop-native",
       "execution": "code",
       "github_issue": null,
       "id": "t-1991",
@@ -52176,8 +52178,9 @@
       "order": 0,
       "parent": null,
       "priority": "P2",
-      "started": null,
-      "status": "pending",
+      "started": "2026-06-12",
+      "status": "in_progress",
+      "strategy": "spike",
       "subject": "Factory manual rehearsal — one curated S task completed autonomously per its AC",
       "tags": [
         "loop-native",
@@ -52185,8 +52188,6 @@
         "rehearsal"
       ],
       "type": "task",
-      "epic": "loop-native",
-      "strategy": "spike",
       "work_type": "research"
     },
     {
@@ -52198,6 +52199,7 @@
       "created": "2026-06-12",
       "description": "Roadmap step 4 of the loop-native redesign — \"the real architectural change\". Every pipeline step ends by writing {checkpoint, next_step, gate_pending}; loops pause at gates instead of forcing them. Open question from the research doc: lives in session-state.json or a new run-state file (relates to the two-file do-not-clear model). Challenger pass required before acceptance.",
       "effort": "M",
+      "epic": "loop-native",
       "execution": "code",
       "github_issue": null,
       "id": "t-1992",
@@ -52214,8 +52216,7 @@
         "factory",
         "adr"
       ],
-      "type": "task",
-      "epic": "loop-native"
+      "type": "task"
     },
     {
       "acceptance_criteria": null,
@@ -52226,6 +52227,7 @@
       "created": "2026-06-12",
       "description": "Design a close-queue-style store for the factory hand-raising protocol (loop-native redesign Part 2). ADR-052's close-queue schema (git_range, snapshot_path, session_notes_path) is session-extraction-specific and does not map to \"workflow has a question\". This ADR designs the question-shaped sibling: entry schema (task_id, question, evidence, raised_at), states (pending/answered), drain semantics (human answers in batch, answered tasks become dispatchable), notification hook, and CLI surface (brana queue subcommands pattern per t-1974 challenger C4 — no raw jq).",
       "effort": "M",
+      "epic": "loop-native",
       "execution": "code",
       "github_issue": null,
       "id": "t-1993",
@@ -52243,8 +52245,7 @@
         "adr",
         "queue"
       ],
-      "type": "task",
-      "epic": "loop-native"
+      "type": "task"
     },
     {
       "acceptance_criteria": null,
@@ -52260,6 +52261,7 @@
       "created": "2026-06-12",
       "description": "Roadmap step 5 of the loop-native redesign. The factory foreman: a /loop recipe (prompt convention, not a skill) whose beat is: skip if a crew is running → query pending autonomous tasks → brana backlog lint the top candidate → dispatch the saved task-crew workflow by name → idle report otherwise. Per-session per ADR-050 durability rule; cross-session continuity via a SessionStart hook line suggesting the foreman when agent-ready tasks exist. Prompt body contains CLI calls and named-workflow references ONLY — never slash commands (CC #54086). Draft prompt contract lives in the research doc Part 2.",
       "effort": "M",
+      "epic": "loop-native",
       "execution": "code",
       "github_issue": null,
       "id": "t-1994",
@@ -52276,8 +52278,7 @@
         "factory",
         "foreman"
       ],
-      "type": "task",
-      "epic": "loop-native"
+      "type": "task"
     },
     {
       "acceptance_criteria": null,
@@ -52290,6 +52291,7 @@
       "created": "2026-06-12",
       "description": "Roadmap step 6 of the loop-native redesign: generalize from single-task foreman dispatch to a work queue with multiple concurrent task-crews (worktree-isolated). Shape deliberately TBD — depends on what the foreman (t-1994) teaches about dispatch, hand-raising volume, and merge throughput.",
       "effort": "L",
+      "epic": "loop-native",
       "execution": "code",
       "github_issue": null,
       "id": "t-1995",
@@ -52306,8 +52308,7 @@
         "factory",
         "queue"
       ],
-      "type": "task",
-      "epic": "loop-native"
+      "type": "task"
     },
     {
       "blocked_by": [],
@@ -52536,10 +52537,10 @@
       "branch": "harness-core/feat/t-2003-propagate-step-close",
       "build_step": "specify",
       "completed": null,
-      "context": "AC: step PROPAGATE registrado en close SKILL.md + phase file propio\\nAC: detecta los 7 gaps del caso t-1306 si se re-simula (test de procedimiento)\\nAC: cada gap detectado termina en fix aplicado o next[] — cero descartes silenciosos\\nAC: NANO closes lo saltean (mismo gate que steps 3-8)\nHallazgo relacionado (misma sesión): close-snapshot.sh no existe en repos de venture (system/scripts/ es del repo thebrana) — los closes INSTANT en proyectos cliente no encolan el diff para la extracción nocturna, o sea la deuda de conocimiento de Steps 3-8 diferidos nunca se paga ahí. Verificar el path resolution del script en el phase file gate-and-evidence.md (Step 1b) o distribuirlo.\n2026-06-12: companion skill confirmed: /brana:reconcile (propagation domain — task also proposes /brana:reconcile --scope propagation variant)\n2026-06-12 premortem (challenger, verdict RECONSIDER): 4 CRITICALs to resolve in spec/ADR — (1) steps-3-8 gate = dead feature, INSTANT is default; pick --finish inline fast-path / nightly-cron queue / FULL-only. (2) AC '7 gaps' must split deterministic (scriptable: uncommitted tasks.json, status regex, [ ] count) vs LLM-judgment (manual eval, not CI). (3) origin case is a CLIENT repo — declare deployment boundary; client layout lacks system/, reconcile, spec-graph. (4) categories a-b duplicate reconcile --scope propagation; new value is c-e but underspecified; (e) has no persistent challenger-findings store. HIGH: insert BEFORE Step 9 (session-state write owns next[], single brana session write, replace-not-merge); avoid name collision with reconcile 'propagation' scope (suggest propagation-debt). Full report in session transcript.",
+      "context": "AC: step PROPAGATE registrado en close SKILL.md + phase file propio\\nAC: detecta los 7 gaps del caso t-1306 si se re-simula (test de procedimiento)\\nAC: cada gap detectado termina en fix aplicado o next[] — cero descartes silenciosos\\nAC: NANO closes lo saltean (mismo gate que steps 3-8)\nHallazgo relacionado (misma sesión): close-snapshot.sh no existe en repos de venture (system/scripts/ es del repo thebrana) — los closes INSTANT en proyectos cliente no encolan el diff para la extracción nocturna, o sea la deuda de conocimiento de Steps 3-8 diferidos nunca se paga ahí. Verificar el path resolution del script en el phase file gate-and-evidence.md (Step 1b) o distribuirlo.\n2026-06-12: companion skill confirmed: /brana:reconcile (propagation domain — task also proposes /brana:reconcile --scope propagation variant)\n2026-06-12 premortem (challenger, verdict RECONSIDER): 4 CRITICALs to resolve in spec/ADR — (1) steps-3-8 gate = dead feature, INSTANT is default; pick --finish inline fast-path / nightly-cron queue / FULL-only. (2) AC '7 gaps' must split deterministic (scriptable: uncommitted tasks.json, status regex, [ ] count) vs LLM-judgment (manual eval, not CI). (3) origin case is a CLIENT repo — declare deployment boundary; client layout lacks system/, reconcile, spec-graph. (4) categories a-b duplicate reconcile --scope propagation; new value is c-e but underspecified; (e) has no persistent challenger-findings store. HIGH: insert BEFORE Step 9 (session-state write owns next[], single brana session write, replace-not-merge); avoid name collision with reconcile 'propagation' scope (suggest propagation-debt). Full report in session transcript.\n2026-06-12: design decisions (user): layered gate L1 deterministic inline (all closes except NANO/--abort) + L2 session-bounded LLM audit (--finish/--full) + L3 nightly cron deep audit for INSTANT closes — ALL THREE in v1. Portable inline checks (client repos supported v1). All 5 categories bounded: (c) Documentation-Plan-named docs only, (d) project .claude/memory only, (e) session-bounded. Insertion: Step 8b post-DRIFT pre-HANDOFF (next[] written once at Step 9).",
       "created": "2026-06-12",
       "description": "Cada vez que terminamos trabajo, verificar que conclusiones, desarrollos nuevos y todo lo tocado quedó PROPAGADO en todos los lugares que lo referencian — la deuda de conocimiento no detectada es peligrosa. Caso real (2026-06-12, proyecto_anita t-1306): tras cerrar un feature con 18 commits, una auditoría manual encontró 7 gaps de propagación que el close no detectó: (1) spec con Status obsoleto ('live run pending' tras correr 2 veces), (2) shape con fila de fase desactualizada, (3) puntero a test-strategy.md prometido en el Documentation Plan del spec y nunca escrito, (4) nota de compatibilidad en capture-format.md ruteada por challenger y nunca escrita, (5) ADR comprometido 'al cerrar F1' y nunca creado, (6) memoria de proyecto con estado stale ('pending go' tras el cierre), (7) tasks.json sin commitear. Propuesta: nuevo step PROPAGATE en /brana:close (post-HANDOFF, pre-REPORT) que audite: (a) artefactos comprometidos — parsear checklists '[ ]' en Documentation Plans de specs tocados y promesas 'al cerrar X' en shapes/ADRs; (b) status fields de specs/shapes tocados vs estado real del task; (c) referencias cruzadas — docs canónicos (test-strategy, capture-format, etc.) que deberían mencionar lo nuevo; (d) memorias de proyecto con claims contradichos por el estado actual (e.g. 'pending' de tasks completados); (e) challenger findings ruteados 'elsewhere' que no aterrizaron. Output: lista de gaps con fix propuesto, aplicar inline o a next[] — nunca silencioso. Considerar también versión standalone invocable (/brana:reconcile --scope propagation) para auditorías fuera de close.",
-      "effort": "M",
+      "effort": "L",
       "execution": "code",
       "github_issue": "1024",
       "id": "t-2003",
@@ -52563,25 +52564,25 @@
     },
     {
       "blocked_by": [],
-      "branch": null,
+      "branch": "async-close/fix/t-2004-scheduler-flock-wait",
       "build_step": null,
       "completed": null,
-      "context": null,
+      "context": "skill_gap_checked: true (acquired bash-defensive-patterns via marketplace, 2026-06-12). Skill files ride on this branch.",
       "created": "2026-06-12",
       "description": "Found 2026-06-12: laptop slept through 02:00; Persistent=true correctly fired close-extraction at wake (07:16), but the catch-up run collided with morning jobs and brana-scheduler-runner.sh flock -n skipped it (exit 0, SKIPPED, no retry) — silently lost until next night. Fix: flock -w <timeout> (e.g. 600s) so queued runs serialize instead of dropping, or reschedule skipped runs (systemd OnActiveSec). Decide: all jobs wait, or only catch-up runs. Also fix close-extraction.sh fail_entry message: agy invocation failed (exit $?) — $? inside then-branch reports 0, not the real code.",
       "effort": "S",
       "epic": "async-close",
       "execution": "code",
-      "github_issue": null,
+      "github_issue": "1025",
       "id": "t-2004",
       "kind": "fix",
       "notes": null,
       "order": null,
       "parent": null,
       "priority": "P1",
-      "started": null,
-      "status": "pending",
-      "strategy": null,
+      "started": "2026-06-12",
+      "status": "in_progress",
+      "strategy": "bug-fix",
       "subject": "Scheduler runner: mutex skip silently drops catch-up runs — wait for lock instead",
       "tags": [
         "scheduler",
@@ -52855,6 +52856,7 @@
       "created": "2026-06-12",
       "description": "Evidence-based revisit of the factory's v1 AC-gaming defense (human reviews every autonomous merge). Trigger: 5 autonomous task completions with all ACs verified and zero human-caught intent violations. At that point convene a challenger panel on deliberate defenses (AC phrasing lint, intent-vs-letter spot checks, adversarial verify in the task-crew workflow) and decide whether to relax, keep, or harden human review. Pattern mirrors ADR-052 §6's revisit trigger.",
       "effort": "S",
+      "epic": "loop-native",
       "execution": "code",
       "github_issue": null,
       "id": "t-2014",
@@ -52872,8 +52874,7 @@
         "adr",
         "safety"
       ],
-      "type": "task",
-      "epic": "loop-native"
+      "type": "task"
     }
   ],
   "version": "1"

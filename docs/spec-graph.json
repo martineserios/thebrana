@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-12T16:37:55Z",
+  "generated": "2026-06-12T17:03:46Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -956,8 +956,8 @@
         "system/scheduler/brana-scheduler-notify.sh"
       ]
     },
-    "docs/architecture/decisions/ADR-054-tech-stack-feed-tracking.md": {
-      "title": "ADR-054: Tech-Stack Changelog Tracking in the Intelligence Feed",
+    "docs/architecture/decisions/ADR-055-tech-stack-feed-tracking.md": {
+      "title": "ADR-055: Tech-Stack Changelog Tracking in the Intelligence Feed",
       "type": "ADR",
       "impl_files": [
         "system/scheduler/feeds.template.json"
@@ -1397,11 +1397,12 @@
         "system/scripts/feed-index.sh",
         "system/scripts/kapso-changelog-check.sh",
         "system/cli/rust/crates/brana-cli/src/commands/feed.rs",
+        "system/scripts/feed-ruflo-index.sh",
         "system/state/scheduler.json",
         "system/scheduler/scheduler.template.json",
         "system/scheduler/feeds.template.json",
-        "system/skills/onboard/",
-        "system/skills/align/",
+        "system/skills/onboard/SKILL.md",
+        "system/skills/align/SKILL.md",
         "system/hooks/tests/test-feed-index.sh"
       ]
     },
@@ -2208,7 +2209,9 @@
     "docs/guide/features/brana-feed-inbox.md": {
       "title": "brana feed + brana inbox",
       "type": "Roadmap",
-      "impl_files": []
+      "impl_files": [
+        "system/scripts/feed-index.sh"
+      ]
     },
     "docs/guide/features/build-close-auto-docs.md": {
       "title": "Auto-Generated Feature Docs",
@@ -4829,7 +4832,7 @@
     },
     {
       "from": "docs/architecture/features/t-2001-feed-tech-stack.md",
-      "to": "docs/architecture/decisions/ADR-054-tech-stack-feed-tracking.md",
+      "to": "docs/architecture/decisions/ADR-055-tech-stack-feed-tracking.md",
       "type": "depends_on",
       "computed": false
     },
@@ -9137,6 +9140,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/t-2001-feed-tech-stack.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/task-management-system.md",
       "type": "references",
       "computed": false
@@ -9772,6 +9781,18 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/brana-feed-inbox.md",
+      "to": "docs/architecture/decisions/ADR-055-tech-stack-feed-tracking.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/brana-feed-inbox.md",
+      "to": "t-2001-feed-tech-stack.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/cascade-throttle.md",
       "to": "docs/.claude/tasks.json",
       "type": "references",
@@ -9954,6 +9975,12 @@
     {
       "from": "docs/architecture/features/staleness-and-memory-pipeline.md",
       "to": "docs/architecture/25-self-documentation.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/t-2001-feed-tech-stack.md",
+      "to": "docs/architecture/decisions/ADR-055-tech-stack-feed-tracking.md",
       "type": "references",
       "computed": false
     },
@@ -13320,7 +13347,7 @@
   ],
   "stats": {
     "nodes": 449,
-    "edges": 1710,
+    "edges": 1714,
     "typed_edges": 619,
     "orphans": 124
   }
