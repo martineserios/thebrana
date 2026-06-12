@@ -78,3 +78,7 @@ Premortem run 2026-06-11 (context-isolated challenger, verdict RECONSIDER → re
 - **H6:** `--patterns` undetectable from git state → excluded from auto-candidates (ADR-053 §6)
 - **H7:** ADR-052 §5 contradiction → documented exception (ADR-053 §3)
 - **M9/M10:** dedup edge covered by ADR-052 §3 semantics + regression test; no PHASES registry renumbering (no new phase file)
+
+## Amendment (ADR-056, 2026-06-12)
+
+`--finish` now runs the in-session L2 propagation audit (close Step 8b) despite its INSTANT weight — the one exception to "INSTANT = no in-session LLM work". All non-NANO closes run the ~1s deterministic L1 checks; queued closes that skipped L2 are audited by the nightly cron (L3). See ADR-056.

@@ -4,6 +4,8 @@ depends_on:
   - docs/ideas/close-oriented-modes.md
 informs:
   - docs/architecture/features/close-oriented-modes.md
+amended_by:
+  - docs/architecture/decisions/ADR-056-propagate-close-step.md
 status: accepted
 ---
 

@@ -170,6 +170,7 @@ ToolSearch("select:CronList,CronDelete")
 **Memory reviewed:** {N entries deleted}, {M feature ideas extracted}
 **Worktrees reaped:** {N reaped}, {M skipped (unclean)} — or "none" if only 1 worktree
 **Doc drift detected:** {yes/no}
+**Propagation gaps:** {N found} ({M fixed inline + committed, K → next[]}) — or "skipped (NANO/abort)"
 **Auto-reconcile:** {triggered (N issues) / skipped}
 **Handoff note updated:** {path}
 

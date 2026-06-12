@@ -89,6 +89,9 @@ if [ "$SNAP_SIZE" -gt "$MAX_SNAPSHOT_BYTES" ]; then
     TRUNCATED_FLAG="--snapshot-truncated"
 fi
 
+# --propagate on EVERY queued close (ADR-056 §4 fail-safe): at snapshot time
+# (Step 1b) the in-session L2 audit hasn't run yet and may fail — Step 8b
+# clears the flag via `close-queue mark-propagated` only on L2 success.
 if ! "$BRANA_BIN" close-queue append \
     --project "$PROJECT" \
     --branch "$BRANCH" \
@@ -96,6 +99,7 @@ if ! "$BRANA_BIN" close-queue append \
     --git-range "$GIT_RANGE" \
     --snapshot-path "$SNAP_FILE" \
     --commit-count "$COMMIT_COUNT" \
+    --propagate \
     ${TRUNCATED_FLAG:+$TRUNCATED_FLAG} >/dev/null; then
     echo "close-snapshot: queue append failed — snapshot saved at $SNAP_FILE, close continues" >&2
     exit 0

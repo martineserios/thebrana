@@ -1193,12 +1193,25 @@ pub enum CloseQueueCmd {
         snapshot_truncated: bool,
         #[arg(long)]
         session_notes_path: Option<String>,
+        /// Queue for the nightly L3 propagation audit (ADR-056 — cleared by
+        /// mark-propagated when the in-session L2 audit completed)
+        #[arg(long)]
+        propagate: bool,
     },
     /// List queue entries (chronological)
     List {
         /// Only entries not yet processed
         #[arg(long)]
         unprocessed: bool,
+    },
+    /// Clear the propagate flag after a successful in-session L2 audit (ADR-056)
+    MarkPropagated {
+        #[arg(long)]
+        project: String,
+        #[arg(long)]
+        branch: String,
+        #[arg(long)]
+        git_range: String,
     },
     /// Mark an entry successfully processed
     MarkProcessed {

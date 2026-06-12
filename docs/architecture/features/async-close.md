@@ -44,12 +44,14 @@ done                          │    mark-processed / mark-failed
 
 ### Close modes (Track 1, ADR-052 §5)
 
-| Mode | Trigger | Queues? | Extraction |
-|------|---------|---------|-----------|
-| NANO | 1 commit, ≤5 non-code files | no | none (below threshold) |
-| LIGHT | non-code spread | yes | inline scan at close |
-| INSTANT | auto: ≥2 commits or code/behavioral changes | yes | nightly cron |
-| FULL | explicit `--full` only | yes | in-session debrief agent |
+| Mode | Trigger | Queues? | Extraction | Propagation audit (ADR-056) |
+|------|---------|---------|-----------|------------------------------|
+| NANO | 1 commit, ≤5 non-code files | no | none (below threshold) | skipped |
+| LIGHT | non-code spread | yes | inline scan at close | L1 inline; L3 nightly |
+| INSTANT | auto: ≥2 commits or code/behavioral changes | yes | nightly cron | L1 inline; L2 in-session on `--finish`, else L3 nightly |
+| FULL | explicit `--full` only | yes | in-session debrief agent | L1 + L2 in-session |
+
+Every queued close carries `propagate: true` (fail-safe); a successful in-session L2 audit clears it via `brana close-queue mark-propagated` so the nightly L3 pass skips that entry.
 
 Classification logic lives in `system/scripts/close-classify.sh` — the single source of truth executed by both the close gate and its test (t-1978; a replicated copy rotted silently once).
 
@@ -65,6 +67,8 @@ The cron touches the queue **only** through CLI subcommands — zero direct JSON
 ### Extraction contract (ADR-052 §6)
 
 agy (Gemini Flash, Layer A — **provisional**, revisit after ~2 weeks of summary review) must return `{"learnings": [{type, size, title, body, confidence}]}`. Empty/malformed output or an unreachable binary → `mark-failed` (one retry per night, never partial writes, never silently processed); 3 strikes → high-priority failure reminder. All learnings route to reminders (LARGE→high, SMALL→low, dedup-keyed) — none auto-write to memory in v1; the human routes at review.
+
+Entries flagged `propagate: true` additionally get a propagation pass (ADR-056): same validate-or-mark-failed discipline, output contract `{"gaps": [{category, title, evidence, proposed_fix}]}`, repo state read at cron time with post-close commits surfaced for already-resolved-gap suppression. Gaps route to reminders tagged `propagation` (dedup `prop:{project}:{slug}`).
 
 ### Failure surfacing
 

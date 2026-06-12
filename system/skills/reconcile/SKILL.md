@@ -42,6 +42,8 @@ Unified maintenance command for the brana system. Four domains, one entry point.
 
 `--scope all` runs every domain sequentially.
 
+> **Sibling note (ADR-056):** the close skill's Step 8b **PROPAGATE** is a different surface despite the similar name — it audits promise-fulfillment and state-contradiction debt (unchecked Documentation Plan items, stale Status fields, contradicted memories) at close time. This `propagation` scope cascades errata and validates the spec graph on demand. Neither replaces the other.
+
 **Replaces:** `/brana:audit` (merged into security domain).
 
 ## Usage

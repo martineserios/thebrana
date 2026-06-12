@@ -20,6 +20,7 @@ pub fn cmd_append(
     commit_count: u64,
     snapshot_truncated: bool,
     session_notes_path: Option<String>,
+    propagate: bool,
 ) -> Result<()> {
     let r = queue::append(
         &store_path(),
@@ -32,6 +33,7 @@ pub fn cmd_append(
             commit_count,
             snapshot_truncated,
             session_notes_path,
+            propagate,
         },
     )
     .map_err(|e| anyhow!(e))?;
@@ -50,6 +52,13 @@ pub fn cmd_list(unprocessed: bool) -> Result<()> {
 
 pub fn cmd_mark_processed(id: &str, summary_path: &str) -> Result<()> {
     let e = queue::mark_processed(&store_path(), id, summary_path).map_err(|e| anyhow!(e))?;
+    println!("{}", serde_json::to_string_pretty(&e)?);
+    Ok(())
+}
+
+pub fn cmd_mark_propagated(project: &str, branch: &str, git_range: &str) -> Result<()> {
+    let e = queue::mark_propagated(&store_path(), project, branch, git_range)
+        .map_err(|e| anyhow!(e))?;
     println!("{}", serde_json::to_string_pretty(&e)?);
     Ok(())
 }

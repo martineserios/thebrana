@@ -137,13 +137,16 @@ fn main() {
         Commands::CloseQueue { cmd } => match cmd {
             CloseQueueCmd::Append {
                 project, branch, git_root, git_range, snapshot_path,
-                commit_count, snapshot_truncated, session_notes_path,
+                commit_count, snapshot_truncated, session_notes_path, propagate,
             } => run_or_exit(commands::close_queue::cmd_append(
                 project, branch, git_root, git_range, snapshot_path,
-                commit_count, snapshot_truncated, session_notes_path,
+                commit_count, snapshot_truncated, session_notes_path, propagate,
             )),
             CloseQueueCmd::List { unprocessed } => {
                 run_or_exit(commands::close_queue::cmd_list(unprocessed))
+            }
+            CloseQueueCmd::MarkPropagated { project, branch, git_range } => {
+                run_or_exit(commands::close_queue::cmd_mark_propagated(&project, &branch, &git_range))
             }
             CloseQueueCmd::MarkProcessed { id, summary_path } => {
                 run_or_exit(commands::close_queue::cmd_mark_processed(&id, &summary_path))

@@ -46,6 +46,11 @@ pub struct Entry {
     pub retry_count: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    /// ADR-056: entry awaits the nightly L3 propagation audit. Set at append
+    /// (fail-safe — every queueing close), cleared by `mark_propagated` when
+    /// the in-session L2 audit completed successfully.
+    #[serde(default)]
+    pub propagate: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -65,6 +70,7 @@ pub struct NewEntry {
     pub commit_count: u64,
     pub snapshot_truncated: bool,
     pub session_notes_path: Option<String>,
+    pub propagate: bool,
 }
 
 /// Outcome of `append` — distinguishes a fresh entry from a dedup no-op.
@@ -164,6 +170,7 @@ pub fn append(path: &Path, new: NewEntry) -> Result<AppendResult, String> {
         failed: false,
         retry_count: 0,
         error: None,
+        propagate: new.propagate,
     };
     store.entries.push(entry.clone());
     crate::util::write_json_atomic(path, &store)?;
@@ -221,6 +228,31 @@ pub fn mark_failed(path: &Path, id: &str, error: &str) -> Result<Entry, String> 
     e.failed = true;
     e.retry_count += 1;
     e.error = Some(error.to_string());
+    let out = e.clone();
+    crate::util::write_json_atomic(path, &store)?;
+    Ok(out)
+}
+
+/// Clear the `propagate` flag on the unprocessed entry matching the dedup
+/// key (`{project}:{branch}:{git_range}`). Called by close Step 8b after a
+/// successful in-session L2 audit (ADR-056 §4) so the nightly L3 pass skips
+/// this entry. Errors when no unprocessed entry matches — processed entries
+/// never match (extraction already ran; clearing is meaningless).
+pub fn mark_propagated(
+    path: &Path,
+    project: &str,
+    branch: &str,
+    git_range: &str,
+) -> Result<Entry, String> {
+    let _lock = crate::util::lock_sidecar(path)?;
+    let mut store = read_store(path)?;
+    let dedup_key = format!("{project}:{branch}:{git_range}");
+    let e = store
+        .entries
+        .iter_mut()
+        .find(|e| e.dedup_key == dedup_key && !e.processed)
+        .ok_or_else(|| format!("no unprocessed queue entry with dedup_key {dedup_key}"))?;
+    e.propagate = false;
     let out = e.clone();
     crate::util::write_json_atomic(path, &store)?;
     Ok(out)
@@ -442,6 +474,58 @@ mod tests {
         val["entries"][0]["future_entry_field"] = serde_json::json!(42);
         std::fs::write(&path, serde_json::to_string(&val).unwrap()).unwrap();
         assert_eq!(list(&path, false).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn append_with_propagate_sets_flag_and_default_is_false() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let mut e = new_entry("feat/x", "a..b");
+        e.propagate = true;
+        let r = append(&path, e).unwrap();
+        assert!(r.entry.propagate);
+        let r2 = append(&path, new_entry("feat/y", "c..d")).unwrap();
+        assert!(!r2.entry.propagate); // NewEntry::default → false
+    }
+
+    #[test]
+    fn legacy_entries_without_propagate_field_default_false() {
+        // ADR-056 backward compat: stores written before the field existed.
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        append(&path, new_entry("feat/x", "a..b")).unwrap();
+        let mut val: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        val["entries"][0].as_object_mut().unwrap().remove("propagate");
+        std::fs::write(&path, serde_json::to_string(&val).unwrap()).unwrap();
+        let entries = list(&path, false).unwrap();
+        assert!(!entries[0].propagate);
+    }
+
+    #[test]
+    fn mark_propagated_clears_flag_on_unprocessed_match() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let mut e = new_entry("feat/x", "a..b");
+        e.propagate = true;
+        append(&path, e).unwrap();
+        let out = mark_propagated(&path, "thebrana", "feat/x", "a..b").unwrap();
+        assert!(!out.propagate);
+        assert!(!list(&path, false).unwrap()[0].propagate); // persisted
+    }
+
+    #[test]
+    fn mark_propagated_errors_when_no_unprocessed_match() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        // no entry at all
+        assert!(mark_propagated(&path, "thebrana", "feat/x", "a..b").is_err());
+        // processed entries never match — L2 ran after extraction is nonsensical
+        let mut e = new_entry("feat/x", "a..b");
+        e.propagate = true;
+        let r = append(&path, e).unwrap();
+        mark_processed(&path, &r.entry.id, "/s.md").unwrap();
+        assert!(mark_propagated(&path, "thebrana", "feat/x", "a..b").is_err());
     }
 
     /// ADR-052 race test: parallel closes all survive (distinct ranges), and
