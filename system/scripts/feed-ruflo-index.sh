@@ -64,7 +64,29 @@ echo "[feed-ruflo-index] Converting $NEW_COUNT new entries (lines $START_LINE–
 
 # ── Convert to mcp-index format ───────────────────────────────────────────────
 
-sed -n "${START_LINE},${TOTAL_LINES}p" "$FEED_LOG" | jq -c '
+# Skip malformed JSON lines (t-2008) — a partial write from any appender would
+# otherwise abort jq under pipefail, strand the watermark, and retry forever.
+TMP_WINDOW=$(mktemp /tmp/feed-ruflo-window-XXXXXX.jsonl)
+trap 'rm -f "$TMP_SECTIONS" "$TMP_WINDOW"' EXIT
+sed -n "${START_LINE},${TOTAL_LINES}p" "$FEED_LOG" > "$TMP_WINDOW"
+TMP_VALID=$(mktemp)
+while IFS= read -r line; do
+    [ -z "$line" ] && continue
+    echo "$line" | jq . >/dev/null 2>&1 && echo "$line" >> "$TMP_VALID" || true
+done < "$TMP_WINDOW"
+mv "$TMP_VALID" "$TMP_WINDOW"
+
+VALID_COUNT=$(wc -l < "$TMP_WINDOW" | tr -d ' ')
+if [ "$VALID_COUNT" -eq 0 ]; then
+    echo "[feed-ruflo-index] No valid JSON entries after filtering"
+    if [ -z "$DRY_RUN_FLAG" ]; then
+        echo "$TOTAL_LINES" > "$WATERMARK"
+        echo "[feed-ruflo-index] Watermark updated to line $TOTAL_LINES"
+    fi
+    exit 0
+fi
+
+jq -c '
   . as $e |
   ($e.feed) as $feed |
   (
@@ -82,7 +104,7 @@ sed -n "${START_LINE},${TOTAL_LINES}p" "$FEED_LOG" | jq -c '
     namespace: "knowledge",
     tags: ["type:feed", ("feed:" + $feed), "source:intelligence-feed"]
   }
-' > "$TMP_SECTIONS"
+' "$TMP_WINDOW" > "$TMP_SECTIONS"
 
 SECTION_COUNT=$(wc -l < "$TMP_SECTIONS" | tr -d ' ')
 echo "[feed-ruflo-index] $SECTION_COUNT sections ready for indexing"
