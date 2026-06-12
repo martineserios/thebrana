@@ -18,10 +18,17 @@
 
 set -uo pipefail
 
+# systemd/cron environments may not export HOME — everything below
+# (stores, summaries, write_reminder) depends on it (t-1979 #6).
+: "${HOME:=$(getent passwd "$(id -u)" | cut -d: -f6)}"
+export HOME
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MAX_RETRIES=3
 STALE_DAYS=3
-SNAPSHOT_RETENTION_DAYS=14
+SNAPSHOT_RETENTION_DAYS=30
+MAX_LEARNINGS_PER_ENTRY=3
+MIN_CONFIDENCE=0.5
 
 # ── binary resolution ──────────────────────────────────────────────────
 BRANA_BIN="${BRANA:-}"
@@ -117,15 +124,16 @@ print(json.dumps(entries[0]) if entries else '')")
     }
 
     if [ ! -f "$SNAP" ]; then
-        fail_entry "snapshot file missing: $SNAP"
+        fail_entry "snapshot-missing: $SNAP"
         continue
     fi
 
+    # Contract portion of the prompt is a versioned file (t-1979 #7) — prompt
+    # drift is reviewable in git instead of buried in shell string edits.
     PROMPT="You are extracting learnings from a coding session diff for project '$PROJECT' (branch $BRANCH, commits $RANGE)."
     [ "$TRUNCATED" = "true" ] && PROMPT="$PROMPT The diff was truncated at 500KB — extract from what is present, do not flag the truncation."
-    PROMPT="$PROMPT Return ONLY a JSON object, no markdown fences, matching exactly:
-{\"learnings\": [{\"type\": \"errata|pattern|field-note\", \"size\": \"SMALL|LARGE\", \"title\": \"...\", \"body\": \"...\", \"confidence\": 0.0}]}
-Rules: SMALL = incremental/known-class insight; LARGE = novel pattern or decision-worthy finding. Only include learnings actually evidenced in the diff (bug fixes, workarounds, API mismatches, reusable patterns). Empty array if nothing notable.
+    PROMPT="$PROMPT
+$(cat "$SCRIPT_DIR/prompts/close-extraction.txt")
 
 --- DIFF ---
 $(cat "$SNAP")"
@@ -135,15 +143,23 @@ $(cat "$SNAP")"
     "$AGY" -p "$PROMPT" > "$OUT_FILE" 2>/dev/null || AGY_EXIT=$?
     if [ "$AGY_EXIT" -ne 0 ]; then
         # $? inside an `if ! cmd` branch reports the negated test (always 0) — capture explicitly (t-2004)
-        fail_entry "agy invocation failed (exit $AGY_EXIT)"
+        # Categorized reasons (t-1979 #4) so failure analysis can group causes.
+        if [ "$AGY_EXIT" -eq 124 ] || [ "$AGY_EXIT" -eq 137 ]; then
+            fail_entry "timeout: agy invocation timed out (exit $AGY_EXIT)"
+        elif grep -qiE '429|rate.?limit|resource_exhausted' "$OUT_FILE" 2>/dev/null; then
+            fail_entry "rate-limit: agy rate-limited (exit $AGY_EXIT)"
+        else
+            fail_entry "agy-error: agy invocation failed (exit $AGY_EXIT)"
+        fi
         rm -f "$OUT_FILE"
         continue
     fi
 
     # Validate output contract (ADR-052 §6): parseable JSON with .learnings array.
-    LEARNINGS=$(python3 - "$OUT_FILE" <<'PYEOF'
+    LEARNINGS=$(python3 - "$OUT_FILE" "$MIN_CONFIDENCE" "$MAX_LEARNINGS_PER_ENTRY" <<'PYEOF'
 import json, sys, re
 raw = open(sys.argv[1]).read().strip()
+min_conf, cap = float(sys.argv[2]), int(sys.argv[3])
 # tolerate accidental markdown fences
 raw = re.sub(r'^```(json)?\s*|\s*```$', '', raw)
 try:
@@ -154,12 +170,15 @@ try:
         assert l["type"] in ("errata", "pattern", "field-note")
         assert l["size"] in ("SMALL", "LARGE")
         assert l["title"].strip()
+    # low-confidence filter + per-entry cap (t-1979 #7) — after contract
+    # validation so a malformed low-conf item still fails the whole output
+    ls = [l for l in ls if float(l.get("confidence", 1.0)) >= min_conf][:cap]
     print(json.dumps(ls))
 except Exception:
     sys.exit(1)
 PYEOF
 ) || {
-        fail_entry "agy output failed contract validation"
+        fail_entry "schema-invalid: agy output failed contract validation"
         rm -f "$OUT_FILE"
         continue
     }
@@ -178,7 +197,7 @@ PYEOF
         write_reminder \
             --text "[$L_TYPE/$L_SIZE] $L_TITLE — $L_BODY" \
             --priority "$L_PRIO" \
-            --dedup-key "extract:$PROJECT:$L_SLUG" \
+            --dedup-key "extract:$PROJECT:$L_TYPE:$L_SLUG" \
             --project "$PROJECT" \
             --tags "extraction,$L_TYPE" || true
         i=$((i + 1))
@@ -199,6 +218,21 @@ for l in json.load(sys.stdin):
     PROCESSED=$((PROCESSED + 1))
 done
 
+# ── weekly unrouted-learnings review nudge (t-1979 #8) ─────────────────
+# Auto-routing to memory stays deferred per ADR-052 §6 — the human is the
+# router until the worker is proven. Dedup per ISO week, not per night.
+PENDING_EXTRACT=$("$BRANA_BIN" remind list | python3 -c "
+import json, sys
+rs = json.load(sys.stdin)
+print(sum(1 for r in rs if 'extraction' in (r.get('tags') or []) and r.get('status', 'pending') == 'pending'))" 2>/dev/null) || PENDING_EXTRACT=0
+if [ "${PENDING_EXTRACT:-0}" -gt 0 ]; then
+    write_reminder \
+        --text "$PENDING_EXTRACT extracted learning(s) awaiting human routing to memory — review the daily summaries" \
+        --action "brana remind list && ls ~/.claude/sessions/daily-summary-*.md" \
+        --priority low \
+        --dedup-key "weekly-learnings-review:$(date +%G-W%V)" || true
+fi
+
 # ── housekeeping: prune old terminal entries, delete old snapshots ─────
 "$BRANA_BIN" close-queue list | python3 -c "
 import json, sys, datetime, os
@@ -210,6 +244,12 @@ for e in json.load(sys.stdin):
         if ts < cutoff and e.get('snapshot_path') and os.path.isfile(e['snapshot_path']):
             os.remove(e['snapshot_path'])"
 "$BRANA_BIN" close-queue prune >/dev/null
+
+# Defensive, status-blind sweep (t-1979 #5/#9): failed and orphaned snapshots
+# age out at 30d regardless of queue bookkeeping, as do old daily summaries —
+# aligned with the 30d entry retention in queue.rs (PRUNE_DAYS).
+find "$HOME/.claude/sessions" -maxdepth 1 -name 'snap-*.diff' -mtime +30 -delete 2>/dev/null || true
+find "$HOME/.claude/sessions" -maxdepth 1 -name 'daily-summary-*.md' -mtime +30 -delete 2>/dev/null || true
 
 echo "close-extraction: processed=$PROCESSED failed=$FAILED stale=$STALE_COUNT"
 exit "$EXIT_CODE"

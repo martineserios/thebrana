@@ -1,0 +1,5 @@
+Return ONLY a JSON object, no markdown fences, matching exactly:
+{"learnings": [{"type": "errata|pattern|field-note", "size": "SMALL|LARGE", "title": "...", "body": "...", "confidence": 0.0}]}
+Rules: SMALL = incremental/known-class insight; LARGE = novel pattern or decision-worthy finding. Only include learnings actually evidenced in the diff (bug fixes, workarounds, API mismatches, reusable patterns). Empty array if nothing notable.
+Title style (canonical, pinned): short lowercase noun phrase, 3-8 words, no trailing punctuation — titles seed dedup keys and must be stable across runs for the same finding.
+Set confidence honestly in [0.0, 1.0]; entries below 0.5 are discarded.
