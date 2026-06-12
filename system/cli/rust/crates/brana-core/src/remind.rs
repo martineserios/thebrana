@@ -56,6 +56,15 @@ pub struct Reminder {
     pub snoozed_until: Option<DateTime<Utc>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub resolved_at: Option<DateTime<Utc>>,
+    /// When to push (ADR-054 §3). None → pull-only reminder, never dispatched.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub due: Option<DateTime<Utc>>,
+    /// Explicit routing. None/empty → priority defaults; ["all"] → broadcast.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub channels: Option<Vec<String>>,
+    /// Dispatch idempotency marker: non-null → never dispatched again (ADR-054 §3).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dispatched_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -73,6 +82,8 @@ pub struct NewReminder {
     pub dedup_key: Option<String>,
     pub project: Option<String>,
     pub tags: Vec<String>,
+    pub due: Option<DateTime<Utc>>,
+    pub channels: Option<Vec<String>>,
 }
 
 // ── implementation ──────────────────────────────────────────────────────
@@ -165,6 +176,9 @@ pub fn write_reminder(path: &Path, new: NewReminder) -> Result<Reminder, String>
         tags: new.tags,
         snoozed_until: None,
         resolved_at: None,
+        due: new.due,
+        channels: new.channels,
+        dispatched_at: None,
     };
     store.reminders.push(reminder.clone());
     write_store(path, &store)?;
@@ -444,6 +458,108 @@ mod tests {
         let out = list(&path).unwrap();
         assert_eq!(out[0].status, Status::Expired);
         assert!(std::fs::read_to_string(&path).unwrap().contains("\"expired\""));
+    }
+
+    // ── t-1997: due / channels / dispatched_at (ADR-054 §3) ────────────
+
+    /// Back-compat fixture: a literal pre-t-1997 store. Do not regenerate
+    /// from current structs — its point is that old JSON keeps parsing.
+    const PRE_T1997_STORE: &str = r#"{"version":1,"reminders":[{"id":"r-0011223344556677","text":"old entry","priority":"medium","status":"pending","created":"2026-06-01T00:00:00Z","last_seen":"2026-06-01T00:00:00Z","occurrences":1}]}"#;
+
+    #[test]
+    fn pre_t1997_store_parses_unchanged() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        std::fs::write(&path, PRE_T1997_STORE).unwrap();
+        let out = list(&path).unwrap();
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].status, Status::Pending);
+        assert!(out[0].due.is_none());
+        assert!(out[0].channels.is_none());
+        assert!(out[0].dispatched_at.is_none());
+    }
+
+    #[test]
+    fn rewrite_does_not_add_new_fields_to_old_entries() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        std::fs::write(&path, PRE_T1997_STORE).unwrap();
+        // Force a full store rewrite by appending a plain reminder.
+        write_reminder(&path, new("fresh")).unwrap();
+        let raw = std::fs::read_to_string(&path).unwrap();
+        assert!(!raw.contains("\"due\""));
+        assert!(!raw.contains("\"channels\""));
+        assert!(!raw.contains("\"dispatched_at\""));
+    }
+
+    #[test]
+    fn write_with_due_and_channels_roundtrips_as_rfc3339_utc() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let due: DateTime<Utc> = "2026-06-12T18:00:00Z".parse().unwrap();
+        let r = write_reminder(
+            &path,
+            NewReminder {
+                text: "call Ramon".into(),
+                due: Some(due),
+                channels: Some(vec!["telegram".into(), "desktop".into()]),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(r.due, Some(due));
+        assert_eq!(
+            r.channels,
+            Some(vec!["telegram".to_string(), "desktop".to_string()])
+        );
+        assert!(r.dispatched_at.is_none());
+        // Wire format: due is an RFC3339 string that parses back to the same UTC instant.
+        let raw: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        let wire = raw["reminders"][0]["due"].as_str().unwrap();
+        assert_eq!(wire.parse::<DateTime<Utc>>().unwrap(), due);
+        assert_eq!(
+            raw["reminders"][0]["channels"],
+            serde_json::json!(["telegram", "desktop"])
+        );
+        // Reads back intact through the full list path.
+        let out = list(&path).unwrap();
+        assert_eq!(out[0].due, Some(due));
+    }
+
+    /// ADR-051 §6 spirit, t-1997 edition: interleaved writers carrying the
+    /// new fields — every append and every field survives.
+    #[test]
+    fn concurrent_writers_with_new_fields_survive() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = store_path(&dir);
+        let n_threads = 4;
+        let writes_per_thread = 5;
+        let handles: Vec<_> = (0..n_threads)
+            .map(|t| {
+                let p = path.clone();
+                std::thread::spawn(move || {
+                    for i in 0..writes_per_thread {
+                        write_reminder(
+                            &p,
+                            NewReminder {
+                                text: format!("writer {t} item {i}"),
+                                due: Some("2026-06-12T15:00:00Z".parse().unwrap()),
+                                channels: Some(vec![format!("ch-{t}")]),
+                                ..Default::default()
+                            },
+                        )
+                        .unwrap();
+                    }
+                })
+            })
+            .collect();
+        for h in handles {
+            h.join().unwrap();
+        }
+        let out = list(&path).unwrap();
+        assert_eq!(out.len(), n_threads * writes_per_thread);
+        assert!(out.iter().all(|r| r.due.is_some() && r.channels.is_some()));
     }
 
     /// The test this module exists for (ADR-051 §6): two concurrent writers,
