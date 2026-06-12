@@ -3,13 +3,13 @@ depends_on:
   - docs/architecture/decisions/ADR-056-propagate-close-step.md
   - docs/architecture/decisions/ADR-052-close-queue-architecture.md
   - docs/architecture/decisions/ADR-053-close-oriented-modes.md
-status: decomposing
+status: building
 ---
 
 # Feature: PROPAGATE Close Step — Layered Propagation-Debt Audit
 
 **Date:** 2026-06-12
-**Status:** decomposing
+**Status:** building
 **Task:** t-2003
 
 ## Problem
