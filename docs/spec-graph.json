@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-12T17:22:42Z",
+  "generated": "2026-06-12T23:18:16Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -2626,6 +2626,11 @@
     },
     "docs/ideas/mission-control.md": {
       "title": "Brana Mission Control",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/ideas/reminders-schedule-tasks-integral.md": {
+      "title": "Reminders, Scheduling, Tasks — Integral Design Model",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -11737,6 +11742,12 @@
       "computed": false
     },
     {
+      "from": "docs/domain/MODEL-001-brana-core.md",
+      "to": "docs/architecture/decisions/ADR-054-reminder-delivery-channels.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/google-sheets-mcp-setup.md",
       "to": "dimensions/34-venture-operating-system.md",
       "type": "references",
@@ -13346,9 +13357,9 @@
     }
   ],
   "stats": {
-    "nodes": 449,
-    "edges": 1714,
+    "nodes": 450,
+    "edges": 1715,
     "typed_edges": 619,
-    "orphans": 124
+    "orphans": 125
   }
 }
