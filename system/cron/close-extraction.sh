@@ -180,10 +180,22 @@ PYEOF
     GAPS="[]"
     if [ "$PROPAGATE" = "true" ]; then
         GROOT=$(echo "$ENTRY" | python3 -c "import json,sys; print(json.load(sys.stdin)['git_root'])")
-        POST_COMMITS=$(git -C "$GROOT" log --oneline "$RANGE..HEAD" 2>/dev/null | head -20)
+        # Repo-state gathering only when git_root still exists (SEC-2: no git/file
+        # ops on unvalidated paths). A vanished root is NORMAL — worktree closes
+        # are reaped after merge — so degrade to diff-only audit, never fail_entry.
+        POST_COMMITS=""
+        TASK_STATE="unavailable"
+        if [ -d "$GROOT/.git" ]; then
+            POST_COMMITS=$(git -C "$GROOT" log --oneline "$RANGE..HEAD" 2>/dev/null | head -20)
+            # Current task state (best-effort — challenger W2: feeds category (b) detection)
+            TASK_STATE=$(cd "$GROOT" && "$BRANA_BIN" backlog query --status in_progress --output json 2>/dev/null | head -c 2000)
+            [ -n "$TASK_STATE" ] || TASK_STATE="unavailable"
+        else
+            GROOT=""
+        fi
         DOC_STATE=""
         for f in $(grep -oE '^diff --git a/[^ ]+' "$SNAP" | sed 's|^diff --git a/||' | grep '\.md$' | head -10); do
-            [ -f "$GROOT/$f" ] || continue
+            [ -n "$GROOT" ] && [ -f "$GROOT/$f" ] || continue
             DOC_STATE="$DOC_STATE
 --- $f (current) ---
 $(grep -m1 -iE '^[*]*status' "$GROOT/$f" 2>/dev/null)
@@ -201,7 +213,7 @@ $(head -40 "$m")"
         done
         PROP_DIFF=$(printf '%s' "$DIFF_CONTENT" | head -c 60000)
         PROP_PROMPT="You are auditing knowledge-propagation debt for project '$PROJECT' (branch $BRANCH, commits $RANGE).
-Below: (1) the session diff, (2) CURRENT content of touched specs' Status + Documentation Plan sections, (3) current project memory files, (4) post-close commits ($RANGE..HEAD).
+Below: (1) the session diff, (2) CURRENT content of touched specs' Status + Documentation Plan sections, (3) current in-progress task state, (4) current project memory files, (5) post-close commits ($RANGE..HEAD).
 Detect gaps in categories: (a) unfulfilled committed artifacts ('- [ ]' items, 'al cerrar'/'on close' promises), (b) Status fields contradicting completed work, (c) docs named in 'Existing docs to update' lines not updated, (d) memory claims contradicted by current state. Suppress any gap the current state or post-close commits show as already resolved. Return ONLY JSON, no markdown fences, matching exactly:
 {\"gaps\": [{\"category\": \"a|b|c|d\", \"title\": \"...\", \"evidence\": \"...\", \"proposed_fix\": \"...\"}]}
 Empty array if no gaps.
@@ -210,6 +222,8 @@ Empty array if no gaps.
 $PROP_DIFF
 --- CURRENT DOC STATE ---
 $DOC_STATE
+--- TASK STATE ---
+$TASK_STATE
 --- MEMORY ---
 $MEM_STATE
 --- POST-CLOSE COMMITS ---
