@@ -1,12 +1,13 @@
 ---
 title: Knowledge Base Redesign — One Schema, Three Consumers
-status: idea
+status: planned
 created: 2026-06-12
+planned: 2026-06-12 (phase t-2021)
 ---
 
 # Knowledge Base Redesign — One Schema, Three Consumers
 
-> Brainstormed 2026-06-12 (from t-156 Knowledge Graphs). Status: shaped — challenger-reviewed, backlog planning deferred to a future session.
+> Brainstormed 2026-06-12 (from t-156 Knowledge Graphs, now cancelled into the phase). Status: planned — challenger-reviewed twice (idea 2026-06-12, task tree 2026-06-12), backlog written as phase t-2021.
 
 ## Problem
 
@@ -124,8 +125,19 @@ DEFERRED (ADR-028 measurement-gated, auto-promote on first use)
 
 **Governance (confirmed, M+ mandatory):** DDD — the Phase 0 ADR blocks all impl. TDD — graph-build/indexer/validate tests before each impl task. SDD — knowledge-system-extending.md, ARCHITECTURE.md, brana-ontology.yaml updates blocked_by impl. Docs — tech doc + guide via /brana:docs.
 
-**Related task filed:** t-2006 — promote `/brana:log` events into typed event notes (blocked by Phase 0 ADR).
+**Related task:** t-2039 — promote `/brana:log` events into typed event notes (Phase 2; heuristic defined in the Phase 0 ADR). *Correction 2026-06-12: this doc originally cited t-2006, which is an unrelated completed feed-index test task — stale reference, fixed at planning time.*
 
-## Next step
+## Backlog (planned 2026-06-12)
 
-Run `/brana:backlog plan "Knowledge Base Redesign"` with this doc as input — deliberately deferred on 2026-06-12.
+Phase **t-2021** "Knowledge Base Redesign — One Schema, Three Consumers" (epic: knowledge-pipeline, tag: `kb-redesign`). A second challenger pass on the task tree (verdict: proceed with amendments) added per-phase test gates, the hard-block mechanism spec for the memory-write gate, and moved the ontology update into Phase 0.
+
+| Milestone | Tasks |
+|---|---|
+| t-2022 Phase 0 — Unit-of-Knowledge ADR | t-2027 ADR (corpus root first) · t-2028 ADR-042 amendment · t-2029 absorb 6 idea docs · t-2030 ontology.yaml |
+| t-2023 Phase 1 — Enforcement before convention | t-2031 [test] · t-2032 validate.sh · t-2033 graph.rs classify-by-type · t-2034 index-knowledge.sh · t-2035 memory-write hard gate |
+| t-2024 Phase 2 — Convention-forward authoring | t-2036 [test] · t-2037 close routing · t-2038 research/inbox atoms · t-2039 event promotion · t-2040 type audit @50 |
+| t-2025 Phase 3 — Heal the stock | t-2041 ideas sweep · t-2042 top-5 dimensions · t-2043 memory reconciliation · t-2044 roadmap merge |
+| t-2026 Phase 4 — Dividends | t-2045 [test] · t-2046 LOAD traversal · t-2047 graph impact |
+| Cross-phase | t-2048 spec sync · t-2049 tech doc + guide |
+
+Superseded: t-156, t-1253, t-1259, t-1262 (cancelled with pointer notes).
