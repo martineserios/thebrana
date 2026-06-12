@@ -86,7 +86,10 @@ FAKE_AGY_OUTPUT="$GOOD_OUTPUT" run_cron "$H1" env FAKE_AGY_OUTPUT="$GOOD_OUTPUT"
 check "happy path exits 0" "0" "$?"
 check "entry marked processed" "1" "$(HOME="$H1" "$REAL_BRANA" close-queue list | grep -c '"processed": true')"
 RJSON=$(HOME="$H1" "$REAL_BRANA" remind list)
-check "two reminders written" "2" "$(echo "$RJSON" | grep -c '"id"')"
+check "two extraction reminders written" "2" "$(echo "$RJSON" | python3 -c "
+import json,sys
+rs=json.load(sys.stdin)
+print(sum(1 for r in rs if 'extraction' in r.get('tags',[])))")"
 check "LARGE learning → high priority" "1" "$(echo "$RJSON" | python3 -c "
 import json,sys
 rs=json.load(sys.stdin)
@@ -156,7 +159,7 @@ import json,sys
 rs=json.load(sys.stdin)
 print(sum(1 for r in rs if r.get('dedup_key')=='stale-close-queue'))")"
 
-# ── 7. snapshot cleanup: processed >14d → snapshot file deleted ────────
+# ── 7. snapshot cleanup: processed >30d → snapshot file deleted ────────
 H7="$TMPDIR/h7"; mkdir -p "$H7"
 seed_entry "$H7" feat-done a..b >/dev/null
 FAKE_AGY_OUTPUT="$GOOD_OUTPUT" run_cron "$H7" env FAKE_AGY_OUTPUT="$GOOD_OUTPUT" >/dev/null 2>&1
@@ -166,13 +169,13 @@ python3 - "$H7/.claude/close-queue.json" <<'EOF'
 import json, sys, datetime
 p = sys.argv[1]
 d = json.load(open(p))
-old = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=20)).isoformat()
+old = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=35)).isoformat()
 for e in d["entries"]:
     e["processed_at"] = old
 json.dump(d, open(p, "w"))
 EOF
 run_cron "$H7" env FAKE_AGY_OUTPUT="$GOOD_OUTPUT" >/dev/null 2>&1
-check "snapshot deleted 14d after processing" "no" "$([ -f "$SNAP7" ] && echo yes || echo no)"
+check "snapshot deleted 30d after processing" "no" "$([ -f "$SNAP7" ] && echo yes || echo no)"
 
 # ── 8. truncated snapshot → processed normally, never failed ──────────
 H8="$TMPDIR/h8"; mkdir -p "$H8/.claude/sessions"
@@ -265,6 +268,105 @@ check "invalid gaps output → marked failed" "1" "$(echo "$Q13" | grep -c '"fai
 # ── 14. structural: cron never touches the store file directly ─────────
 check "cron never references close-queue.json path" "0" "$(grep -v '^\s*#' "$CRON" | grep -c 'close-queue\.json')"
 
+# ── 15. dedup key embeds learning type (t-1979 #2) ─────────────────────
+# Cron-side key must discriminate by type so a pattern and an errata with
+# the same title don't collide.
+check "dedup key embeds learning type" "1" "$(echo "$RJSON" | python3 -c "
+import json,sys
+rs=json.load(sys.stdin)
+print(sum(1 for r in rs if (r.get('dedup_key') or '').startswith('extract:testproj:pattern:')))")"
+
+# ── 16. categorized failure reasons (t-1979 #4) ────────────────────────
+H12="$TMPDIR/h12"; mkdir -p "$H12"
+seed_entry "$H12" feat-schema a..b >/dev/null
+FAKE_AGY_OUTPUT="$BAD" run_cron "$H12" env FAKE_AGY_OUTPUT="$BAD" >/dev/null 2>&1
+check "contract failure categorized schema-invalid" "1" "$(HOME="$H12" "$REAL_BRANA" close-queue list | python3 -c "
+import json,sys
+print(sum(1 for e in json.load(sys.stdin) if (e.get('error') or '').startswith('schema-invalid')))")"
+
+H12T="$TMPDIR/h12t"; mkdir -p "$H12T"
+seed_entry "$H12T" feat-tmo a..b >/dev/null
+run_cron "$H12T" env FAKE_AGY_EXIT=124 >/dev/null 2>&1
+check "exit 124 categorized timeout" "1" "$(HOME="$H12T" "$REAL_BRANA" close-queue list | python3 -c "
+import json,sys
+print(sum(1 for e in json.load(sys.stdin) if (e.get('error') or '').startswith('timeout')))")"
+
+H12R="$TMPDIR/h12r"; mkdir -p "$H12R"
+seed_entry "$H12R" feat-rate a..b >/dev/null
+RATE_OUT="$TMPDIR/rate.txt"; echo 'Error: 429 RESOURCE_EXHAUSTED rate limit exceeded' > "$RATE_OUT"
+FAKE_AGY_OUTPUT="$RATE_OUT" run_cron "$H12R" env FAKE_AGY_OUTPUT="$RATE_OUT" FAKE_AGY_EXIT=1 >/dev/null 2>&1
+check "429 output categorized rate-limit" "1" "$(HOME="$H12R" "$REAL_BRANA" close-queue list | python3 -c "
+import json,sys
+print(sum(1 for e in json.load(sys.stdin) if (e.get('error') or '').startswith('rate-limit')))")"
+
+H12E="$TMPDIR/h12e"; mkdir -p "$H12E"
+seed_entry "$H12E" feat-err a..b >/dev/null
+run_cron "$H12E" env FAKE_AGY_EXIT=7 >/dev/null 2>&1
+check "plain nonzero exit categorized agy-error" "1" "$(HOME="$H12E" "$REAL_BRANA" close-queue list | python3 -c "
+import json,sys
+print(sum(1 for e in json.load(sys.stdin) if (e.get('error') or '').startswith('agy-error')))")"
+
+# ── 17. confidence filter + cap 3 (t-1979 #7) ──────────────────────────
+H13="$TMPDIR/h13"; mkdir -p "$H13"
+seed_entry "$H13" feat-many a..b >/dev/null
+MANY="$TMPDIR/many.json"
+cat > "$MANY" <<'EOF'
+{"learnings": [
+  {"type": "pattern", "size": "LARGE", "title": "keeper one", "body": "b1", "confidence": 0.9},
+  {"type": "pattern", "size": "SMALL", "title": "low conf dropme", "body": "b2", "confidence": 0.3},
+  {"type": "errata", "size": "SMALL", "title": "keeper two", "body": "b3", "confidence": 0.8},
+  {"type": "field-note", "size": "SMALL", "title": "keeper three", "body": "b4", "confidence": 0.7},
+  {"type": "pattern", "size": "SMALL", "title": "overflow four", "body": "b5", "confidence": 0.6}
+]}
+EOF
+FAKE_AGY_OUTPUT="$MANY" run_cron "$H13" env FAKE_AGY_OUTPUT="$MANY" >/dev/null 2>&1
+R13=$(HOME="$H13" "$REAL_BRANA" remind list)
+check "confidence<0.5 learning filtered" "0" "$(echo "$R13" | grep -c 'dropme')"
+check "learnings capped at 3 per entry" "3" "$(echo "$R13" | python3 -c "
+import json,sys
+rs=json.load(sys.stdin)
+print(sum(1 for r in rs if 'extraction' in r.get('tags',[])))")"
+
+# ── 18. weekly unrouted-learnings reminder (t-1979 #8) ─────────────────
+check "weekly unrouted-learnings reminder written" "1" "$(HOME="$H13" "$REAL_BRANA" remind list | python3 -c "
+import json,sys
+rs=json.load(sys.stdin)
+print(sum(1 for r in rs if (r.get('dedup_key') or '').startswith('weekly-learnings-review:')))")"
+
+# ── 19. defensive snapshot sweep — age-based, status-blind (t-1979 #5) ──
+H15="$TMPDIR/h15"; mkdir -p "$H15/.claude/sessions"
+ORPHAN="$H15/.claude/sessions/snap-orphan.diff"
+FRESH="$H15/.claude/sessions/snap-fresh.diff"
+printf 'old' > "$ORPHAN"; touch -d '35 days ago' "$ORPHAN"
+printf 'new' > "$FRESH"
+seed_entry "$H15" feat-sweep a..b >/dev/null
+FAKE_AGY_OUTPUT="$GOOD_OUTPUT" run_cron "$H15" env FAKE_AGY_OUTPUT="$GOOD_OUTPUT" >/dev/null 2>&1
+check "orphan snapshot >30d swept" "no" "$([ -f "$ORPHAN" ] && echo yes || echo no)"
+check "fresh snapshot kept by sweep" "yes" "$([ -f "$FRESH" ] && echo yes || echo no)"
+
+# failed (never-processed) snapshot also swept once old
+H15F="$TMPDIR/h15f"; mkdir -p "$H15F"
+seed_entry "$H15F" feat-failsweep a..b >/dev/null
+run_cron "$H15F" env FAKE_AGY_EXIT=1 >/dev/null 2>&1
+SNAP15="$H15F/.claude/sessions/snap-seed-feat-failsweep.diff"
+touch -d '35 days ago' "$SNAP15"
+run_cron "$H15F" env FAKE_AGY_EXIT=1 >/dev/null 2>&1
+check "failed-entry snapshot swept at >30d" "no" "$([ -f "$SNAP15" ] && echo yes || echo no)"
+
+# ── 20. daily-summary 30d prune (t-1979 #9) ────────────────────────────
+OLD_SUMMARY="$H15/.claude/sessions/daily-summary-2026-01-01.md"
+printf 'old summary' > "$OLD_SUMMARY"; touch -d '35 days ago' "$OLD_SUMMARY"
+FAKE_AGY_OUTPUT="$GOOD_OUTPUT" run_cron "$H15" env FAKE_AGY_OUTPUT="$GOOD_OUTPUT" >/dev/null 2>&1
+check "daily summary >30d pruned" "no" "$([ -f "$OLD_SUMMARY" ] && echo yes || echo no)"
+check "today's summary kept" "yes" "$(ls "$H15/.claude/sessions/"daily-summary-$(date +%Y-%m-%d).md >/dev/null 2>&1 && echo yes || echo no)"
+
+# ── 21. cron preamble exports HOME (t-1979 #6) ─────────────────────────
+check "cron exports HOME explicitly" "1" "$(grep -c '^export HOME' "$CRON")"
+
+# ── 22. extraction prompt is a versioned file (t-1979 #7) ──────────────
+PROMPT_FILE="$SCRIPT_DIR/../../cron/prompts/close-extraction.txt"
+check "versioned prompt file exists" "yes" "$([ -f "$PROMPT_FILE" ] && echo yes || echo no)"
+check "cron reads the versioned prompt file" "1" "$(grep -v '^\s*#' "$CRON" | grep -c 'prompts/close-extraction.txt')"
 
 echo ""
 echo "test-close-extraction: $PASS/$TOTAL passed, $FAIL failed"

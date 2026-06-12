@@ -2289,6 +2289,38 @@ fi
 echo ""
 fi  # should_run 57
 
+# Check 58 — close-extraction job registered in scheduler (t-1979 #3, ADR-052 §7)
+# The nightly extraction cron dying silently was the pre-mortem's core failure
+# mode: an unregistered job looks identical to a healthy idle one. The job must
+# exist and be enabled in both the template and the deployed scheduler state.
+if should_run 58; then
+echo "Check 58: close-extraction scheduler registration..."
+C58_FAILS=0
+for c58_f in "$SYSTEM_DIR/scheduler/scheduler.template.json" "$SYSTEM_DIR/state/scheduler.json"; do
+    if [ ! -f "$c58_f" ]; then
+        fail "Check 58: $c58_f missing — scheduler registration unverifiable"
+        C58_FAILS=$(( C58_FAILS + 1 ))
+        continue
+    fi
+    if ! jq -e '.jobs["close-extraction"]' "$c58_f" >/dev/null 2>&1; then
+        fail "Check 58: close-extraction job not registered in $c58_f"
+        C58_FAILS=$(( C58_FAILS + 1 ))
+    elif [ "$(jq -r '.jobs["close-extraction"].enabled // true' "$c58_f")" = "false" ]; then
+        warn "Check 58: close-extraction job present but disabled in $c58_f"
+    fi
+done
+# Live deployed scheduler (warn-not-fail: absent on CI / fresh machines; Check 34
+# owns template-vs-live drift, this asserts the one job that must never vanish)
+C58_LIVE="$HOME/.claude/scheduler/scheduler.json"
+if [ -f "$C58_LIVE" ] && ! jq -e '.jobs["close-extraction"]' "$C58_LIVE" >/dev/null 2>&1; then
+    warn "Check 58: close-extraction missing from live deployed $C58_LIVE — re-run bootstrap/deploy"
+fi
+if [ "$C58_FAILS" -eq 0 ]; then
+    pass "Check 58: close-extraction job registered (template + committed state)"
+fi
+echo ""
+fi  # should_run 58
+
 # ── Optional: Golden-path drift (--golden flag) ──────────────────────────
 if $RUN_GOLDEN; then
     echo "Check 27: Golden-path drift..."

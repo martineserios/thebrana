@@ -123,6 +123,25 @@ if [ -f "$SCHED_STATUS" ]; then
     fi
 fi
 
+# 3. Close-queue dead-man check (t-1979 disposition #1, challenger 3/3 quorum).
+# Pure jq, read-only — deliberately independent of the brana binary: a dead
+# cron, a missing binary, and an unregistered job all manifest as a stale
+# queue, and the monitor must not depend on the thing it monitors.
+CQ_STALE_CONTEXT=""
+CQ_FILE="$HOME/.claude/close-queue.json"
+if [ -f "$CQ_FILE" ]; then
+    CQ_CUTOFF=$(date -u -d '3 days ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || CQ_CUTOFF=""
+    if [ -n "$CQ_CUTOFF" ]; then
+        # RFC3339 UTC timestamps compare correctly as strings at day granularity
+        CQ_STALE=$(jq -r --arg cutoff "$CQ_CUTOFF" \
+            '[.entries[]? | select((.processed // false) | not) | select(.timestamp < $cutoff)] | length' \
+            "$CQ_FILE" 2>/dev/null) || CQ_STALE=0
+        if [ "${CQ_STALE:-0}" -gt 0 ] 2>/dev/null; then
+            CQ_STALE_CONTEXT="⚠ [Close queue] $CQ_STALE entr(ies) unprocessed >3 days — extraction cron dead, binary missing, or job unregistered. Check: brana ops logs close-extraction && brana close-queue list --unprocessed"
+        fi
+    fi
+fi
+
 # ══════════════════════════════════════════════════════════
 # PHASE 1: Launch slow operations in parallel
 # ══════════════════════════════════════════════════════════
@@ -715,6 +734,10 @@ fi
 if [ -n "$SCHED_FAIL_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
 }$SCHED_FAIL_CONTEXT"
+fi
+if [ -n "$CQ_STALE_CONTEXT" ]; then
+    OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
+}$CQ_STALE_CONTEXT"
 fi
 if [ -n "$LOOP_CONTEXT" ]; then
     OUTPUT_PARTS="${OUTPUT_PARTS:+$OUTPUT_PARTS
