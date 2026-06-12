@@ -181,7 +181,20 @@ Q9=$(HOME="$H9" "$REAL_BRANA" close-queue list)
 check "agy failure reason carries real exit code" "1" "$(echo "$Q9" | grep -c 'exit 7')"
 check "agy failure reason never reports exit 0" "0" "$(echo "$Q9" | grep -c 'exit 0')"
 
-# ── 10. structural: cron never touches the store file directly ─────────
+# ── 10. large snapshot (>128KB argv limit) → processed, not failed (t-2055) ──
+# A diff bigger than MAX_ARG_STRLEN poisons the entry if inlined whole into argv:
+# exec fails E2BIG before agy even runs. The cron must truncate to MAX_DIFF_BYTES.
+H10="$TMPDIR/h10"; mkdir -p "$H10/.claude/sessions"
+SNAP10="$H10/.claude/sessions/snap-big.diff"
+{ printf 'diff --git a/big b/big\n+++ b/big\n+'; head -c 200000 /dev/zero | tr '\0' 'x'; echo; } > "$SNAP10"
+HOME="$H10" "$REAL_BRANA" close-queue append --project testproj --branch feat-big \
+    --git-root /tmp --git-range b1..b2 --snapshot-path "$SNAP10" --commit-count 1 >/dev/null
+FAKE_AGY_OUTPUT="$GOOD_OUTPUT" run_cron "$H10" env FAKE_AGY_OUTPUT="$GOOD_OUTPUT" >/dev/null 2>&1
+Q10=$(HOME="$H10" "$REAL_BRANA" close-queue list)
+check "large snapshot processed (argv limit avoided)" "1" "$(echo "$Q10" | grep -c '"processed": true')"
+check "large snapshot not failed" "0" "$(echo "$Q10" | grep -c '"failed": true')"
+
+# ── 11. structural: cron never touches the store file directly ─────────
 check "cron never references close-queue.json path" "0" "$(grep -v '^\s*#' "$CRON" | grep -c 'close-queue\.json')"
 
 echo ""

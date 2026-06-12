@@ -22,6 +22,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MAX_RETRIES=3
 STALE_DAYS=3
 SNAPSHOT_RETENTION_DAYS=14
+# Max diff bytes inlined into the agy prompt — must stay safely under the
+# kernel's per-argv-string cap MAX_ARG_STRLEN (131072 bytes); see t-2055.
+MAX_DIFF_BYTES=100000
 
 # ── binary resolution ──────────────────────────────────────────────────
 BRANA_BIN="${BRANA:-}"
@@ -121,14 +124,22 @@ print(json.dumps(entries[0]) if entries else '')")
         continue
     fi
 
+    # Inline at most MAX_DIFF_BYTES of the diff: a single argv string is capped at
+    # MAX_ARG_STRLEN (~128KB) — inlining a larger diff makes exec fail E2BIG before
+    # agy even runs, poisoning the entry (t-2055). Stdin is not a viable carrier:
+    # agy drops large stdin payloads and goes agentic looking for the diff.
+    SNAP_BYTES=$(wc -c < "$SNAP")
+    DIFF_CONTENT=$(head -c "$MAX_DIFF_BYTES" "$SNAP")
+
     PROMPT="You are extracting learnings from a coding session diff for project '$PROJECT' (branch $BRANCH, commits $RANGE)."
     [ "$TRUNCATED" = "true" ] && PROMPT="$PROMPT The diff was truncated at 500KB — extract from what is present, do not flag the truncation."
+    [ "$SNAP_BYTES" -gt "$MAX_DIFF_BYTES" ] && PROMPT="$PROMPT Only the first ${MAX_DIFF_BYTES} bytes of the diff are included — extract from what is present, do not flag the truncation."
     PROMPT="$PROMPT Return ONLY a JSON object, no markdown fences, matching exactly:
 {\"learnings\": [{\"type\": \"errata|pattern|field-note\", \"size\": \"SMALL|LARGE\", \"title\": \"...\", \"body\": \"...\", \"confidence\": 0.0}]}
 Rules: SMALL = incremental/known-class insight; LARGE = novel pattern or decision-worthy finding. Only include learnings actually evidenced in the diff (bug fixes, workarounds, API mismatches, reusable patterns). Empty array if nothing notable.
 
 --- DIFF ---
-$(cat "$SNAP")"
+$DIFF_CONTENT"
 
     OUT_FILE="/tmp/close-extract-$$-${EID}.json"
     AGY_EXIT=0
