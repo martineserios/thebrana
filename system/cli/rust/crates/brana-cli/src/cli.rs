@@ -825,6 +825,17 @@ pub enum BacklogCmd {
         #[arg(long)]
         field: Option<String>,
     },
+    /// Definition-of-ready check for autonomous dispatch (exit 0 ready, 1 not)
+    Lint {
+        /// Task ID
+        task_id: String,
+        /// Emit {ready, checks, warnings} as JSON
+        #[arg(long)]
+        json: bool,
+        /// Path to tasks.json (auto-detected if omitted)
+        #[arg(long)]
+        file: Option<PathBuf>,
+    },
     /// Aggregate stats by status, priority, type, work_type, epic
     Stats,
     /// Tag inventory, filtering, and bulk management

@@ -26,8 +26,143 @@ pub struct LintReport {
 /// Run the four definition-of-ready checks against `task`.
 ///
 /// `all_tasks` is needed to resolve `blocked_by` references (check 4).
-pub fn lint_task(_task: &Value, _all_tasks: &[Value]) -> LintReport {
-    unimplemented!("t-1981: red phase")
+pub fn lint_task(task: &Value, all_tasks: &[Value]) -> LintReport {
+    let context = task["context"].as_str().unwrap_or("");
+    let ac_lines: Vec<&str> = context.lines()
+        .map(str::trim)
+        .filter(|l| l.starts_with("AC:"))
+        .collect();
+
+    // Check 1 — at least one AC: line with a machine-verifiable token.
+    let verifiable = ac_lines.iter().filter(|l| is_verifiable(l)).count();
+    let check1 = LintCheck {
+        name: "machine-verifiable-ac".into(),
+        pass: verifiable >= 1,
+        reason: if ac_lines.is_empty() {
+            "no AC: lines in context".into()
+        } else {
+            format!("{verifiable} of {} AC line(s) machine-verifiable", ac_lines.len())
+        },
+    };
+
+    // Check 2 — non-empty context beyond AC: lines.
+    let non_ac: Vec<&str> = context.lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty() && !l.starts_with("AC:"))
+        .collect();
+    let check2 = LintCheck {
+        name: "rich-context".into(),
+        pass: !non_ac.is_empty(),
+        reason: if non_ac.is_empty() {
+            "no context beyond AC: lines (tasks-need-rich-context)".into()
+        } else {
+            format!("{} non-AC context line(s)", non_ac.len())
+        },
+    };
+
+    // Check 3 — effort S or M; L/XL must be decomposed first.
+    let effort = task["effort"].as_str().unwrap_or("");
+    let check3 = LintCheck {
+        name: "effort-s-or-m".into(),
+        pass: matches!(effort, "S" | "M"),
+        reason: if effort.is_empty() {
+            "effort not set".into()
+        } else {
+            format!("effort is {effort}")
+        },
+    };
+
+    // Check 4 — no open ambiguity: Q:/open Q: lines or unresolved blockers.
+    let open_questions = context.lines()
+        .map(str::trim)
+        .filter(|l| {
+            let lower = l.to_lowercase();
+            lower.starts_with("q:") || lower.starts_with("open q:")
+        })
+        .count();
+    let unresolved: Vec<&str> = task["blocked_by"].as_array()
+        .map(|a| a.iter().filter_map(|v| v.as_str())
+            .filter(|id| !blocker_resolved(id, all_tasks))
+            .collect())
+        .unwrap_or_default();
+    let check4 = LintCheck {
+        name: "no-open-ambiguity".into(),
+        pass: open_questions == 0 && unresolved.is_empty(),
+        reason: match (open_questions, unresolved.is_empty()) {
+            (0, true) => "no open questions or unresolved blockers".into(),
+            (n, true) => format!("{n} open Q: line(s) in context"),
+            (0, false) => format!("unresolved blocker(s): {}", unresolved.join(", ")),
+            (n, false) => format!("{n} open Q: line(s); unresolved blocker(s): {}", unresolved.join(", ")),
+        },
+    };
+
+    let checks = vec![check1, check2, check3, check4];
+    let ready = checks.iter().all(|c| c.pass);
+    let warnings = collect_warnings(task, &ac_lines);
+    LintReport { ready, checks, warnings }
+}
+
+/// True if a blocker id resolves to a completed or cancelled task.
+/// Conservative: an id we can't find counts as unresolved.
+fn blocker_resolved(id: &str, all_tasks: &[Value]) -> bool {
+    all_tasks.iter()
+        .find(|t| t["id"].as_str() == Some(id))
+        .map(|t| matches!(t["status"].as_str(), Some("completed" | "cancelled")))
+        .unwrap_or(false)
+}
+
+/// v1 heuristic: an AC line is machine-verifiable if it names a command, exit
+/// code, flag, test/assertion shape (t-1991 finding 1), exact-output verb, or
+/// file condition. "works well" matches nothing and fails.
+fn is_verifiable(line: &str) -> bool {
+    let lower = line.to_lowercase();
+    if lower.contains('`') || lower.contains("--") || lower.contains('/') {
+        return true;
+    }
+    const TOKENS: &[&str] = &[
+        "exit", "exits", "exit code",
+        "cargo ", "npm ", "pytest", "brana ", "git ", "bash ", "validate.sh",
+        "test", "assert", "coverage",
+        "emits", "returns", "outputs", "prints",
+        "file exists",
+    ];
+    if TOKENS.iter().any(|t| lower.contains(t)) {
+        return true;
+    }
+    // File condition: any whitespace token with a dotted extension (e.g. lint.md).
+    lower.split_whitespace().any(|w| {
+        w.rsplit_once('.')
+            .is_some_and(|(stem, ext)| !stem.is_empty()
+                && (1..=4).contains(&ext.len())
+                && ext.chars().all(|c| c.is_ascii_alphabetic()))
+    })
+}
+
+/// Non-gating advisories from t-1991 rehearsal findings 2 and 3.
+fn collect_warnings(task: &Value, ac_lines: &[&str]) -> Vec<String> {
+    let mut warnings = Vec::new();
+
+    // Finding 2 — AC implies an interface change not explicitly enumerated.
+    const SURFACE: &[&str] = &["param", "field", "interface", "schema", "endpoint", "api", "input"];
+    const CHANGE: &[&str] = &["add", "new", "change", "extend", "accept"];
+    if ac_lines.iter().any(|l| {
+        let lower = l.to_lowercase();
+        SURFACE.iter().any(|s| lower.contains(s)) && CHANGE.iter().any(|c| lower.contains(c))
+    }) {
+        warnings.push("AC may imply an interface change — enumerate it explicitly in the description (t-1991 finding 2)".into());
+    }
+
+    // Finding 3 — compiled-language tasks: code-size effort != wall-clock effort.
+    const COMPILED: &[&str] = &["rust", "cargo", "compile"];
+    let tags_text = task["tags"].as_array()
+        .map(|a| a.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>().join(" "))
+        .unwrap_or_default();
+    let haystack = format!("{} {}", tags_text, task["description"].as_str().unwrap_or("")).to_lowercase();
+    if COMPILED.iter().any(|t| haystack.contains(t)) {
+        warnings.push("compiled-language task: build-cycle cost may exceed effort label (t-1991 finding 3)".into());
+    }
+
+    warnings
 }
 
 // ── tests ───────────────────────────────────────────────────────────────
