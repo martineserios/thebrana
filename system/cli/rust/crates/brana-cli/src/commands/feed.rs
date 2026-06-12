@@ -146,6 +146,12 @@ fn cmd_add(url: &str, name: Option<String>, action: &str, stale_after_days: Opti
         anyhow::bail!("action must be 'log' or 'task', got '{action}'");
     }
 
+    // feed-index.sh staleness pass parses "name:threshold" — a colon in the
+    // name would silently corrupt the parse (challenger t-2001 finding 1)
+    if name.contains(':') {
+        anyhow::bail!("feed name must not contain ':' (got '{name}') — use a hyphen-slug");
+    }
+
     feeds.push(FeedEntry {
         name: name.clone(),
         url: url.to_string(),
@@ -368,6 +374,17 @@ mod tests {
         // SAFETY: all callers are #[serial], so no concurrent env mutation
         unsafe { env::set_var("HOME", tmp.path()) };
         tmp
+    }
+
+    #[test]
+    #[serial]
+    fn test_cmd_add_rejects_colon_in_name() {
+        // feed-index.sh parses "name:threshold:notice" — a colon in a feed
+        // name would silently corrupt the staleness parse (challenger t-2001)
+        let _tmp = with_temp_home();
+        let result = cmd_add("https://example.com/feed.xml", Some("foo:bar".into()), "log", None);
+        assert!(result.is_err());
+        assert!(load_feeds().is_empty());
     }
 
     #[test]
