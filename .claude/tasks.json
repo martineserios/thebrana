@@ -52312,7 +52312,7 @@
       "description": "Decide the channel-based delivery architecture for timed reminders: channel registry schema, routing/broadcast semantics, dispatch ownership, idempotency.",
       "effort": "S",
       "priority": "P1",
-      "context": "Extends ADR-051 (reminder store, Rust-owned writes) and ADR-002 (systemd scheduler). Research 2026-06-12 (decision log): calendar sync DEFERRED — calendar becomes a future channel type. Design: channel registry (~/.claude/reminder-channels.json) with named channels (telegram/desktop/ntfy) + priority-based defaults; reminders gain optional due (RFC3339) + channels fields (Option<T>, ADR-051 §4-compliant); 'all' = broadcast. Settle: dispatch ownership Rust-side (one owning binary, adapters as thin shell exec), dispatched-state idempotency (no re-ping on re-run), registry schema versioning. Telegram adapter exists in brana-scheduler-notify.sh:69 — extract, don't duplicate. Security note: inbound calendar read deferred due to 2026 prompt-injection RCE findings.\\nAC: ADR-053 accepted and committed\\nAC: registry schema + dispatch semantics specified",
+      "context": "Extends ADR-051 (reminder store, Rust-owned writes) and ADR-002 (systemd scheduler). Research 2026-06-12 (decision log): calendar sync DEFERRED — calendar becomes a future channel type. Design: channel registry (~/.claude/reminder-channels.json) with named channels (telegram/desktop/ntfy) + priority-based defaults; reminders gain optional due (RFC3339) + channels fields (Option<T>, ADR-051 §4-compliant); 'all' = broadcast. Settle: dispatch ownership Rust-side (one owning binary, adapters as thin shell exec), dispatched-state idempotency (no re-ping on re-run), registry schema versioning. Telegram adapter exists in brana-scheduler-notify.sh:69 — extract, don't duplicate. Security note: inbound calendar read deferred due to 2026 prompt-injection RCE findings.\\nAC: ADR-053 accepted and committed\\nAC: registry schema + dispatch semantics specified\n2026-06-12: skill_gap_checked: true (scores <0.3; user: rust skill suffices for this epic — load brana:rust-skills at impl tasks t-1997/t-1998, not needed for ADR drafting). Skill retrieval improvement filed as t-2002.",
       "epic": "reminders",
       "work_type": "design",
       "id": "t-1996",
@@ -52327,7 +52327,7 @@
       "started": null,
       "completed": null,
       "notes": null,
-      "strategy": null,
+      "strategy": "feature",
       "build_step": null
     },
     {
@@ -52487,6 +52487,36 @@
         "feeds.json tracks changelog/release feeds for cross-project technologies (incl. Kapso)",
         "documented mechanism to register a feed when a new technology/platform is adopted"
       ]
+    },
+    {
+      "subject": "Skill retrieval: two-axis search (technology + work-type/pattern)",
+      "kind": "feature",
+      "type": "task",
+      "tags": [
+        "skills",
+        "routing",
+        "dx"
+      ],
+      "description": "Improve brana skills suggest / skill routing retrieval quality: search along two axes — WHAT technology (rust, postgres, ...) and HOW/work-pattern (ADR drafting, TDD, refactor) — and merge results. Current keyword scoring returns noise (e.g. 0.17 matches like webhook-handler-patterns for a Rust ADR task).",
+      "effort": "M",
+      "priority": "P2",
+      "context": "2026-06-12: surfaced during t-1996 start — skill gap check returned irrelevant low-score matches for a Rust CLI design task; correct answer (brana:rust-skills) not surfaced because retrieval doesn't index by technology. User: 'search by technology and also by the type of work/pattern. What and how — both might require different skills.' Hook timing is good (gap check fires, user gets a choice) — retrieval quality is the gap. Consider: tag skills with tech + work-type facets, query both axes, union results; ruflo skills namespace semantic search as second signal when up.\\nAC: rust task suggests rust-skills above threshold\\nAC: work-pattern queries (e.g. 'ADR', 'migration') surface matching workflow skills",
+      "epic": "harness",
+      "work_type": "implement",
+      "id": "t-2002",
+      "status": "pending",
+      "execution": "code",
+      "created": "2026-06-12",
+      "blocked_by": [],
+      "parent": null,
+      "order": null,
+      "branch": null,
+      "github_issue": null,
+      "started": null,
+      "completed": null,
+      "notes": null,
+      "strategy": null,
+      "build_step": null
     }
   ],
   "version": "1"
