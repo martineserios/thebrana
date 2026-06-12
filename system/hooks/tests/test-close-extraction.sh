@@ -27,10 +27,13 @@ check() {
 }
 
 # Fake agy that prints the contents of $FAKE_AGY_OUTPUT (or nothing).
+# With $FAKE_AGY_STDIN_DUMP set, copies its stdin there (to assert the prompt
+# body arrives via stdin, not argv — t-2064).
 make_fake_agy() {
     local path="$1"
     cat > "$path" <<'EOF'
 #!/usr/bin/env bash
+[ -n "${FAKE_AGY_STDIN_DUMP:-}" ] && cat > "$FAKE_AGY_STDIN_DUMP"
 [ -n "${FAKE_AGY_OUTPUT:-}" ] && cat "$FAKE_AGY_OUTPUT"
 exit "${FAKE_AGY_EXIT:-0}"
 EOF
@@ -183,6 +186,22 @@ check "agy failure reason never reports exit 0" "0" "$(echo "$Q9" | grep -c 'exi
 
 # ── 10. structural: cron never touches the store file directly ─────────
 check "cron never references close-queue.json path" "0" "$(grep -v '^\s*#' "$CRON" | grep -c 'close-queue\.json')"
+
+# ── 11. large snapshot (>MAX_ARG_STRLEN 128KB) → still processed (t-2064) ──
+# The diff must reach agy via stdin: a single argv element over ~128KB makes
+# exec fail with E2BIG before agy ever runs.
+H11="$TMPDIR/h11"; mkdir -p "$H11/.claude/sessions"
+SNAP11="$H11/.claude/sessions/snap-large.diff"
+{ printf 'diff --git a/big b/big\n+++ b/big\n+BIGDIFF-MARKER\n'; head -c 200000 /dev/zero | tr '\0' 'x'; } > "$SNAP11"
+HOME="$H11" "$REAL_BRANA" close-queue append --project testproj --branch feat-big \
+    --git-root /tmp --git-range b1..b2 --snapshot-path "$SNAP11" --commit-count 3 >/dev/null
+DUMP11="$TMPDIR/stdin-dump-11"
+FAKE_AGY_OUTPUT="$GOOD_OUTPUT" run_cron "$H11" \
+    env FAKE_AGY_OUTPUT="$GOOD_OUTPUT" FAKE_AGY_STDIN_DUMP="$DUMP11" >/dev/null 2>&1
+Q11=$(HOME="$H11" "$REAL_BRANA" close-queue list)
+check "large snapshot processed" "1" "$(echo "$Q11" | grep -c '"processed": true')"
+check "large snapshot not failed" "0" "$(echo "$Q11" | grep -c '"failed": true')"
+check "diff body reaches agy via stdin" "1" "$(grep -c 'BIGDIFF-MARKER' "$DUMP11" 2>/dev/null)"
 
 echo ""
 echo "test-close-extraction: $PASS/$TOTAL passed, $FAIL failed"
