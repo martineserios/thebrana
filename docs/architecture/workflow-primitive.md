@@ -44,3 +44,9 @@ Path 3 is what legitimizes the factory crew: a foreman recipe the user starts (v
 - Headless/cron runs may lack interactively-authenticated MCP servers — reinforces the per-session foreman decision in [ADR-050](decisions/ADR-050-loop-request-protocol.md).
 - Subagents return raw data (their final text is the return value, not a user-facing message) — AC verdicts should use `schema` for machine-checkable output.
 - Stability caveat: this documents the surface as of CC ~v2.1.x, 2026-06-11. Re-verify on major CC upgrades before extending factory designs that lean on uncommon corners (nesting, budget, resume).
+
+## Field Notes
+
+### 2026-06-12: changed worktrees persist after the run — and hold their branch checked out
+"Auto-removed if unchanged" is exactly literal: a worktree where the agent committed work survives the run under `.claude/worktrees/wf_*`, keeping its branch checked out — which blocks any later `git checkout`/worktree of that branch until someone runs `git worktree remove`. Crews must end with an explicit release step, or the dispatcher must sweep before re-dispatching on the same branch. Also observed: agent stalls are recoverable via `TaskStop` + `Workflow({scriptPath, resumeFromRunId})` — completed agents return cached from the journal.
+Source: t-1991 rehearsal, runs wf_46d92cbc-9fb / wf_6da3db8d-72e
