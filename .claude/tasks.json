@@ -52189,7 +52189,7 @@
       "blocked_by": [],
       "branch": null,
       "completed": null,
-      "context": "2026-06-11: Challenger O3 on the redesign: ADR-050 §t-517 already defines non-advancement conditions (machine-verifiable checkpoint, never cross a human gate, max 3 auto-advances, validate.sh at last gate). FIRST verify whether this ADR is fresh design or an implementation/extension of t-517's settled conditions — do not re-design what ADR-050 already decided.\nAC: ADR drafted in docs/architecture/decisions/ with explicit relation to ADR-050 §t-517 stated\nAC: storage location decided (session-state.json vs run-state file) with rationale\nAC: challenger review run on the draft, dispositions recorded\nAC: validate.sh passes\n2026-06-11: Challenger O2 — the AC-gaming deferral (human reviews all merges while the worker is unproven) gets a concrete sunset trigger, not a vague \"revisit later\": after 5 autonomous tasks complete with all ACs verified and zero human-caught intent violations, convene the AC-gaming challenger panel and decide deliberate defenses. Pattern mirrors ADR-052 §6's revisit trigger.",
+      "context": "2026-06-11: Challenger O3 on the redesign: ADR-050 §t-517 already defines non-advancement conditions (machine-verifiable checkpoint, never cross a human gate, max 3 auto-advances, validate.sh at last gate). FIRST verify whether this ADR is fresh design or an implementation/extension of t-517's settled conditions — do not re-design what ADR-050 already decided.\nAC: ADR drafted in docs/architecture/decisions/ with explicit relation to ADR-050 §t-517 stated\nAC: storage location decided (session-state.json vs run-state file) with rationale\nAC: challenger review run on the draft, dispositions recorded\nAC: validate.sh passes\n2026-06-11: Challenger O2 — the AC-gaming deferral (human reviews all merges while the worker is unproven) gets a concrete sunset trigger, not a vague \"revisit later\": after 5 autonomous tasks complete with all ACs verified and zero human-caught intent violations, convene the AC-gaming challenger panel and decide deliberate defenses. Pattern mirrors ADR-052 §6's revisit trigger.\n2026-06-12: O2 sunset review moved to its own task t-2014 (blocked_by t-1994) — the previous append's trigger would have died with this task's completion. t-1992 keeps only the DESIGN-TIME AC-gaming challenger panel.",
       "created": "2026-06-12",
       "description": "Roadmap step 4 of the loop-native redesign — \"the real architectural change\". Every pipeline step ends by writing {checkpoint, next_step, gate_pending}; loops pause at gates instead of forcing them. Open question from the research doc: lives in session-state.json or a new run-state file (relates to the two-file do-not-clear model). Challenger pass required before acceptance.",
       "effort": "M",
@@ -52466,7 +52466,7 @@
       "blocked_by": [],
       "branch": "harness-core/feat/t-2001-intelligence-feed-tech-stack",
       "build_step": "build",
-      "completed": null,
+      "completed": "2026-06-12",
       "context": "2026-06-12: anthropic-news source is a third-party GitHub scraper — last entry 06-03, missed Fable 5 announcement (06-09). Feeds registry: ~/.claude/scheduler/feeds.json (template: system/scheduler/feeds.template.json). Pipeline: feed-poll → feed-summarize → feed-index (system/scripts/feed-index.sh, writes ~/.claude/intelligence-feed-digest.md) → feed-ruflo-index. HIGH_SIGNAL_FEEDS list in feed-index.sh must include any new changelog feeds. Survey actual tech stack across thebrana + clients/ + ventures/ before picking feeds — Kapso explicitly requested.\nAC: anthropic-news fixed or digest flags stale feeds (no entries > N days)\nAC: feeds.json tracks changelog/release feeds for cross-project technologies (incl. Kapso)\nAC: documented mechanism to register a feed when a new technology/platform is adopted\n2026-06-12: PARALLEL SESSION interleaving occurred in shared working tree (reminders epic, now closed). t-2001 work moved to worktree .claude/worktrees/t-2001. ADR renumbered 054→055 (collision). Spec: docs/architecture/features/t-2001-feed-tech-stack.md. Subtasks t-2006..t-2013; deploy ordering: t-2009 (Rust binary) before t-2010 (config). Earlier tasks.json rollback lost first t-2007 — recreated as t-2006.\nSprint contract 2026-06-12: Scope: full t-2001 (staleness + tech feeds + Kapso scraper + adoption step + docs). ISC: [test-feed-index.sh exits 0 incl. staleness+no-new-entries case; cargo test -p brana-cli passes; live feeds.json has 4 new feeds + Olshansk anthropic-news (jq true) AND template updated; brana feed poll --all clean; test-kapso-changelog-check.sh passes + job in template AND system/state/scheduler.json; onboard+align SKILL.md contain feed coverage step; guide documents staleness+adoption, tech doc shipped]. Out of scope: Meta WhatsApp, one-project feeds, log rotation, non-digest alerting.",
       "created": "2026-06-12",
       "description": "Improve the intelligence feed pipeline (t-1009 lineage). Three parts: (1) Fix silent staleness — anthropic-news feed (third-party scraper taobojlen/anthropic-rss-feed) has been stale since 2026-06-03 and missed the Fable 5 launch (06-09); replace the source or add staleness detection that flags feeds with no new entries for N days in the digest. (2) Extend feeds.json beyond Claude/AI news to the technologies used across projects — changelogs/release feeds are the high-signal content (e.g. Kapso, Supabase, Vercel/Next.js, and others derived from client/venture stacks). (3) Nice-to-have: an adoption hook — when a new technology/platform is adopted in any project (e.g. during /brana:onboard or /brana:align, or when a client CLAUDE.md gains a new stack entry), register its changelog/release feed in feeds.json so coverage stays current automatically.",
@@ -52476,12 +52476,12 @@
       "github_issue": "1023",
       "id": "t-2001",
       "kind": "feature",
-      "notes": "BUILD→CLOSE gate: validate.sh Check 38 (agy pin 1.0.4 vs installed 1.0.7) skipped — pre-existing on main, unrelated to t-2001 diff. Check 29 (stale reference docs) was real fallout and fixed via brana reference generate.\nEvaluator: PASS (2026-06-12), 3/3 criteria MET — AC1 both paths (swap + staleness), AC2 four feeds + Kapso scraper (documented choice), AC3 three-layer (skills + procedure + guide)\nChallenger gate: PROCEED WITH CHANGES (2026-06-12) — finding 1 (colon guard) fixed + tested; finding 2 (content rendering) verified closed: feed-format-enriched.py strips HTML, no shell/LLM surface. Findings 3-5 informational.",
+      "notes": "BUILD→CLOSE gate: validate.sh Check 38 (agy pin 1.0.4 vs installed 1.0.7) skipped — pre-existing on main, unrelated to t-2001 diff. Check 29 (stale reference docs) was real fallout and fixed via brana reference generate.\nEvaluator: PASS (2026-06-12), 3/3 criteria MET — AC1 both paths (swap + staleness), AC2 four feeds + Kapso scraper (documented choice), AC3 three-layer (skills + procedure + guide)\nChallenger gate: PROCEED WITH CHANGES (2026-06-12) — finding 1 (colon guard) fixed + tested; finding 2 (content rendering) verified closed: feed-format-enriched.py strips HTML, no shell/LLM surface. Findings 3-5 informational.\nRetrospective: parallel-session shared-tree thrash cost ~30min (ADR renumber, orphaned commits, tasks.json rollback) — worktree isolation from the start is the fix (memory updated). Mintlify changelog.md discovery made the Kapso scraper trivial vs HTML parsing. All gates green: Evaluator PASS 3/3, Challenger PROCEED-WITH-CHANGES (both findings closed).",
       "order": 0,
       "parent": null,
       "priority": "P2",
       "started": "2026-06-12",
-      "status": "in_progress",
+      "status": "completed",
       "strategy": "feature",
       "subject": "Intelligence feed: track cross-project tech stack + fix anthropic-news stall + adoption hook",
       "tags": [
@@ -52834,6 +52834,36 @@
         "docs"
       ],
       "type": "subtask"
+    },
+    {
+      "acceptance_criteria": null,
+      "blocked_by": [
+        "t-1994"
+      ],
+      "branch": null,
+      "completed": null,
+      "context": "2026-06-12: Created from challenger O2 (loop-native redesign). Blocked_by t-1994 so it surfaces in backlog focus the moment the foreman ships — a deferral with a home that is alive when the trigger can fire (deferred-not-solved defense). Threshold 5 is the challenger's example number, kept deliberately; adjust with evidence. Future upgrade path (human-flagged as interesting): mechanize the counter in the foreman recipe itself — foreman tracks clean completions and the [Factory] banner suggests this review at 5 (was option B in the O2 discussion); adopt when the recipe is stable. Design-time AC-gaming panel stays in t-1992 — this task is the separate post-usage sunset review.\nAC: panel convened with completion evidence (list of the 5 tasks, their ACs, verification method)\nAC: explicit decision recorded: relax / keep / harden human merge review, with rationale\nAC: decision propagated to t-1994 foreman recipe docs if review policy changes",
+      "created": "2026-06-12",
+      "description": "Evidence-based revisit of the factory's v1 AC-gaming defense (human reviews every autonomous merge). Trigger: 5 autonomous task completions with all ACs verified and zero human-caught intent violations. At that point convene a challenger panel on deliberate defenses (AC phrasing lint, intent-vs-letter spot checks, adversarial verify in the task-crew workflow) and decide whether to relax, keep, or harden human review. Pattern mirrors ADR-052 §6's revisit trigger.",
+      "effort": "S",
+      "execution": "code",
+      "github_issue": null,
+      "id": "t-2014",
+      "kind": "design",
+      "notes": null,
+      "order": 0,
+      "parent": null,
+      "priority": "P3",
+      "started": null,
+      "status": "pending",
+      "subject": "AC-gaming defenses review — sunset trigger for the human-reviews-all-merges deferral",
+      "tags": [
+        "loop-native",
+        "factory",
+        "adr",
+        "safety"
+      ],
+      "type": "task"
     }
   ],
   "version": "1"

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-12T10:37:24Z",
+  "generated": "2026-06-12T16:37:55Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -942,6 +942,27 @@
       "type": "ADR",
       "impl_files": []
     },
+    "docs/architecture/decisions/ADR-053-close-oriented-modes.md": {
+      "title": "ADR-053: Oriented Close Modes — Orientation Forces Weight, Flag Wins Over Classification",
+      "type": "ADR",
+      "impl_files": [
+        "system/scripts/close-abort.sh"
+      ]
+    },
+    "docs/architecture/decisions/ADR-054-reminder-delivery-channels.md": {
+      "title": "ADR-054: Reminder Delivery Channels — Notify Context, Timed Dispatch",
+      "type": "ADR",
+      "impl_files": [
+        "system/scheduler/brana-scheduler-notify.sh"
+      ]
+    },
+    "docs/architecture/decisions/ADR-054-tech-stack-feed-tracking.md": {
+      "title": "ADR-054: Tech-Stack Changelog Tracking in the Intelligence Feed",
+      "type": "ADR",
+      "impl_files": [
+        "system/scheduler/feeds.template.json"
+      ]
+    },
     "docs/architecture/developer-quickstart.md": {
       "title": "Developer Quickstart",
       "type": "Roadmap",
@@ -1124,6 +1145,20 @@
       "title": "Feature: CLI as Composable Tool",
       "type": "Roadmap",
       "impl_files": []
+    },
+    "docs/architecture/features/close-oriented-modes.md": {
+      "title": "Feature: Oriented Close Modes",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/close-classify.sh",
+        "system/scripts/close-abort.sh",
+        "system/skills/close/SKILL.md",
+        "system/skills/close/phases/gate-and-evidence.md",
+        "system/skills/close/phases/session-state.md",
+        "system/skills/close/phases/errata-and-patterns.md",
+        "system/skills/close/phases/cleanup.md",
+        "system/hooks/pre-compact.sh"
+      ]
     },
     "docs/architecture/features/context-budget-real-limits.md": {
       "title": "Feature: Context Budget Real Limits",
@@ -1353,6 +1388,21 @@
       "impl_files": [
         "system/statusline.sh",
         "system/hooks/post-tasks-validate.sh"
+      ]
+    },
+    "docs/architecture/features/t-2001-feed-tech-stack.md": {
+      "title": "Feature: Intelligence feed — tech-stack tracking, staleness detection, adoption hook",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/feed-index.sh",
+        "system/scripts/kapso-changelog-check.sh",
+        "system/cli/rust/crates/brana-cli/src/commands/feed.rs",
+        "system/state/scheduler.json",
+        "system/scheduler/scheduler.template.json",
+        "system/scheduler/feeds.template.json",
+        "system/skills/onboard/",
+        "system/skills/align/",
+        "system/hooks/tests/test-feed-index.sh"
       ]
     },
     "docs/architecture/features/t-527-next-limit.md": {
@@ -2177,6 +2227,11 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/guide/features/close-oriented-modes.md": {
+      "title": "Oriented Close Modes",
+      "type": "Roadmap",
+      "impl_files": []
+    },
     "docs/guide/features/reminder-system.md": {
       "title": "Reminders — brana remind",
       "type": "Roadmap",
@@ -2453,6 +2508,20 @@
         "system/rules/delegation-routing.md"
       ]
     },
+    "docs/ideas/close-oriented-modes.md": {
+      "title": "Oriented Close Modes (`/brana:close --<mode>`)",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/close-classify.sh",
+        "system/scripts/close-abort.sh",
+        "system/skills/close/SKILL.md",
+        "system/skills/close/phases/gate-and-evidence.md",
+        "system/skills/close/phases/session-state.md",
+        "system/skills/close/phases/errata-and-patterns.md",
+        "system/skills/close/phases/cleanup.md",
+        "system/hooks/pre-compact.sh"
+      ]
+    },
     "docs/ideas/cloud-scheduler-provider-abstraction.md": {
       "title": "Brana Cloud Scheduler — Provider-Abstracted Job Orchestration",
       "type": "Roadmap",
@@ -2512,6 +2581,11 @@
     },
     "docs/ideas/inbox-to-dimensions-pipeline.md": {
       "title": "Inbox → Dimensions Pipeline — Shape",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/ideas/knowledge-base-redesign.md": {
+      "title": "Knowledge Base Redesign — One Schema, Three Consumers",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -2673,7 +2747,10 @@
       "type": "Roadmap",
       "impl_files": [
         "system/cli/rust/crates/brana-cli/",
-        "system/skills/"
+        "system/skills/",
+        "system/hooks/lib/remind.sh",
+        "system/scripts/close-snapshot.sh",
+        "system/cron/close-extraction.sh"
       ]
     },
     "docs/reference/commands.md": {
@@ -3935,6 +4012,66 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-053-close-oriented-modes.md",
+      "to": "docs/architecture/decisions/ADR-004-session-handoff-self-learning-loop.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-053-close-oriented-modes.md",
+      "to": "docs/architecture/decisions/ADR-051-reminder-store-architecture.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-053-close-oriented-modes.md",
+      "to": "docs/architecture/decisions/ADR-052-close-queue-architecture.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-053-close-oriented-modes.md",
+      "to": "docs/ideas/async-close-design.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-053-close-oriented-modes.md",
+      "to": "docs/ideas/close-oriented-modes.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-054-reminder-delivery-channels.md",
+      "to": "docs/architecture/decisions/ADR-002-scheduler-thin-layer-over-systemd.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-054-reminder-delivery-channels.md",
+      "to": "docs/architecture/decisions/ADR-004-session-handoff-self-learning-loop.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-054-reminder-delivery-channels.md",
+      "to": "docs/architecture/decisions/ADR-051-reminder-store-architecture.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-054-reminder-delivery-channels.md",
+      "to": "docs/domain/MODEL-001-brana-core.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-054-reminder-delivery-channels.md",
+      "to": "docs/ideas/async-close-design.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
       "from": "docs/architecture/features/acquire-skills-guide.md",
       "to": "docs/architecture/decisions/ADR-012-acquire-skills.md",
       "type": "depends_on",
@@ -4657,6 +4794,54 @@
     {
       "from": "docs/architecture/features/statusline-test-coverage.md",
       "to": "system/statusline.sh",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/t-2001-feed-tech-stack.md",
+      "to": "docs/architecture/decisions/ADR-002-tasks-as-data-layer.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/t-2001-feed-tech-stack.md",
+      "to": "docs/architecture/decisions/ADR-003-agent-driven-task-execution.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/t-2001-feed-tech-stack.md",
+      "to": "docs/architecture/decisions/ADR-022-brana-cli.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/t-2001-feed-tech-stack.md",
+      "to": "docs/architecture/decisions/ADR-023-rust-cli-dispatcher.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/t-2001-feed-tech-stack.md",
+      "to": "docs/architecture/decisions/ADR-024-content-polling-keyring-credentials.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/t-2001-feed-tech-stack.md",
+      "to": "docs/architecture/decisions/ADR-054-tech-stack-feed-tracking.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/t-2001-feed-tech-stack.md",
+      "to": "docs/architecture/features/brana-cli.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/t-2001-feed-tech-stack.md",
+      "to": "docs/architecture/features/brana-feed-inbox.md",
       "type": "depends_on",
       "computed": false
     },
@@ -5826,6 +6011,18 @@
     },
     {
       "from": "docs/architecture/decisions/ADR-052-close-queue-architecture.md",
+      "to": "docs/ideas/async-first-close.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-053-close-oriented-modes.md",
+      "to": "docs/architecture/features/close-oriented-modes.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/decisions/ADR-054-reminder-delivery-channels.md",
       "to": "docs/ideas/async-first-close.md",
       "type": "informs",
       "computed": false
@@ -9599,6 +9796,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/features/close-oriented-modes.md",
+      "to": "docs/architecture/decisions/ADR-053-close-oriented-modes.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/features/context-budget-real-limits.md",
       "to": "docs/architecture/dimensions/35-context-engineering-principles.md",
       "type": "references",
@@ -11495,6 +11698,18 @@
       "computed": false
     },
     {
+      "from": "docs/domain/MODEL-001-brana-core.md",
+      "to": "docs/architecture/decisions/ADR-052-close-queue-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/domain/MODEL-001-brana-core.md",
+      "to": "docs/architecture/decisions/ADR-053-close-oriented-modes.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/google-sheets-mcp-setup.md",
       "to": "dimensions/34-venture-operating-system.md",
       "type": "references",
@@ -11509,6 +11724,12 @@
     {
       "from": "docs/google-sheets-mcp-setup.md",
       "to": "venture-guide.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/commands/index.md",
+      "to": "docs/guide/features/close-oriented-modes.md",
       "type": "references",
       "computed": false
     },
@@ -11569,6 +11790,12 @@
     {
       "from": "docs/guide/features/async-close.md",
       "to": "reminder-system.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/features/close-oriented-modes.md",
+      "to": "docs/architecture/decisions/ADR-053-close-oriented-modes.md",
       "type": "references",
       "computed": false
     },
@@ -11731,6 +11958,18 @@
     {
       "from": "docs/ideas/brana-cli-mcp-layer.md",
       "to": "docs/ideas/dynamic-skill-routing.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/close-oriented-modes.md",
+      "to": "docs/architecture/decisions/ADR-053-close-oriented-modes.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/close-oriented-modes.md",
+      "to": "docs/architecture/features/close-oriented-modes.md",
       "type": "references",
       "computed": false
     },
@@ -11911,6 +12150,18 @@
     {
       "from": "docs/personal/miessler-telos-research.md",
       "to": "docs/research/miessler-pai-deep-dive.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reference/brana-cli.md",
+      "to": "docs/architecture/features/async-close.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/reference/brana-cli.md",
+      "to": "docs/architecture/features/reminder-system.md",
       "type": "references",
       "computed": false
     },
@@ -13068,9 +13319,9 @@
     }
   ],
   "stats": {
-    "nodes": 441,
-    "edges": 1681,
-    "typed_edges": 599,
-    "orphans": 126
+    "nodes": 449,
+    "edges": 1710,
+    "typed_edges": 619,
+    "orphans": 124
   }
 }
