@@ -150,3 +150,7 @@ Encoding channels as `tags: ["ch:telegram"]`. Rejected: stringly-typed routing i
 - No notification history/audit log beyond `dispatched_at` and the systemd journal.
 - No registry mutation CLI (`brana notify` reads; humans edit the file).
 - No recurring reminders in v1 (`due` is a single instant; recurrence belongs to the scheduler's cron layer if ever needed).
+
+## Changelog
+
+- 2026-06-12: §3 schema (due/channels/dispatched_at) + §4 parse_at/--at/--channels/`brana remind due` shipped (t-1997, 7deb1145). Dispatch (--dispatch, registry, adapters) pending t-1998; scheduler t-1999; docs t-2000.

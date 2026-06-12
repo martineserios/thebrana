@@ -1130,6 +1130,12 @@ pub enum RemindCmd {
         /// Comma-separated tags
         #[arg(long)]
         tags: Option<String>,
+        /// When to push: RFC3339, HH:MM (today, local), or "YYYY-MM-DD HH:MM" (local)
+        #[arg(long)]
+        at: Option<String>,
+        /// Comma-separated delivery channels (e.g. telegram,desktop; "all" = broadcast)
+        #[arg(long)]
+        channels: Option<String>,
     },
     /// List reminders — the only path that persists state transitions
     List {
@@ -1137,6 +1143,8 @@ pub enum RemindCmd {
         #[arg(long)]
         status: Option<RemindStatus>,
     },
+    /// List dispatch-eligible reminders: pending, past-due, never dispatched
+    Due,
     /// Mark a reminder resolved
     Resolve {
         /// Reminder id (r-…)
