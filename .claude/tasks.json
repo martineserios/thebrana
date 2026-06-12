@@ -53224,7 +53224,7 @@
     },
     {
       "blocked_by": [],
-      "branch": null,
+      "branch": "knowledge-pipeline/docs/t-2027-adr-unit-of-knowledge",
       "build_step": null,
       "completed": null,
       "context": "Phase 0 keystone — blocks ALL implementation. FIRST section to resolve: corpus root (brana-knowledge/ as vault? convention-forward vs big-bang? folder layout) — if this stalls, everything stalls. Then: C-minimal note types (atoms: claim/pattern/event/source; synthesis: hub/decision; deferred per ADR-028 gating: constraint/question), temporal fields (created/valid_from/review_due — finally executes ADR-021's accepted-but-unimplemented mandate), frontmatter schema (type: + relations: using ontology relationship types per ADR-028), old→new mapping (dimension→hub+atoms, reflection→hub-of-hubs, idea→question/claim+hub, ADR→decision, feedback→pattern/claim or ruflo-only, field-note→claim, log entries→event, project context→hub-of-events), migration completion gate, and the event-promotion heuristic (which /brana:log entries deserve typed event notes — consumed by event-promotion task). Hard constraint: ~/.claude/projects/*/memory/ cannot relocate (CC harness-fixed) — conforms as satellite shelf. Source: docs/ideas/knowledge-base-redesign.md.\nAC: corpus root decided with rationale and migration completion gate defined\nAC: frontmatter schema specified (type + relations + temporal fields)\nAC: old→new mapping covers all 6 current stores\nAC: event-promotion heuristic defined",
@@ -53240,9 +53240,9 @@
       "order": null,
       "parent": "t-2022",
       "priority": "P1",
-      "started": null,
-      "status": "pending",
-      "strategy": null,
+      "started": "2026-06-12",
+      "status": "in_progress",
+      "strategy": "feature",
       "subject": "ADR: unit of knowledge — corpus root, C-minimal types, frontmatter schema, lifecycle, migration gate",
       "tags": [
         "kb-redesign"
