@@ -1,6 +1,6 @@
-# ADR-054: Tech-Stack Changelog Tracking in the Intelligence Feed
+# ADR-055: Tech-Stack Changelog Tracking in the Intelligence Feed
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-06-12
 **Task:** t-2001
 **Extends:** the t-585 feed architecture (docs/architecture/features/brana-feed-inbox.md) and ADR-024.
@@ -20,7 +20,7 @@ Constraints inherited from t-585 (frozen decision record): feeds.json is the sin
 
 1. **Staleness detection lives in feed-index.sh** (the digest builder), not the Rust poller. Per enabled feed, compute the newest entry date in feed-log.jsonl; if older than the feed's `stale_after_days` (default **14**), append a `⚠ Stale feeds` section to the digest. Feeds with zero log entries are listed as "no entries yet". The digest is the surface the user already reviews — a stall can no longer be silent.
 2. **`stale_after_days: Option<u32>` becomes a first-class field on `FeedEntry`** (Rust), `#[serde(skip_serializing_if = "Option::is_none", default)]` — backward compatible with existing feeds.json, survives CLI rewrites. Slow-cadence feeds override it (e.g. rust-releases: 56).
-3. **anthropic-news swaps source** to the Olshansk/rss-feeds scraper (`feed_anthropic_news.xml`, Claude-powered, hourly, verified live 2026-06-12). Same feed name — history continuity in feed-log.jsonl. `stale_after_days: 7`.
+3. **anthropic-news swaps source** to the Olshansk/rss-feeds scraper (`feed_anthropic_news.xml`, Claude-powered, hourly, verified live 2026-06-12). Same feed name — history continuity in feed-log.jsonl. `stale_after_days: 7`. Swap executes as `brana feed remove` + `brana feed add` (never a bare URL edit) — resets `last_entry_ids`, preventing a re-emission flood from the new generator's divergent entry IDs.
 4. **Tech-stack feeds register through the existing registry** (no new abstraction): supabase-changelog (GitHub Discussions atom), nextjs-releases (releases.atom), vercel-changelog (vercel.com/atom), rust-releases (releases.atom). Template (`system/scheduler/feeds.template.json`) and live config both updated.
 5. **Kapso gets a scraper scheduler job** (`kapso-changelog-check.sh`, pattern: cc-changelog-check.sh) that diffs docs.kapso.ai/changelog and appends `FeedLogEntry`-shaped lines (feed: `kapso-changelog`) to feed-log.jsonl, upstream of feed-index. Joins `HIGH_SIGNAL_FEEDS`.
 6. **Adoption mechanism is a skill step, not a new command** (work-preferences: automation through usage). `/brana:onboard` and `/brana:align` gain a "feed coverage check": diff the detected stack against `brana feed list`, offer `brana feed add` for gaps. Documented in the feature tech doc as the canonical procedure.
