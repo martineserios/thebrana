@@ -237,7 +237,7 @@
       "project": "~/enter_thebrana/thebrana",
       "schedule": "*-*-* 19:15:00",
       "enabled": true,
-      "timeoutSeconds": 300,
+      "timeoutSeconds": 1800,
       "captureOutput": true,
       "_comment": "t-1138: store new feed entries to ruflo memory_entries for semantic search. Runs 15min after feed-index (19:00). Entries searchable after next session start."
     },
