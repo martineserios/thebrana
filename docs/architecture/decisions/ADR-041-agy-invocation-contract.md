@@ -87,10 +87,15 @@ explicit Write/Edit call.
 
 `agy_delegate.rs` pins `const AGY_PINNED_VERSION: &str = "1.0.7"` (1.0.1 → 1.0.4 → 1.0.7;
 1.0.7 spike re-run 2026-06-12, t-1979: clean stdout JSON, no fences, exit 0). Version is
-checked at every invocation via `agy --version`. Mismatch → hard error:
+checked at every invocation via `agy --version`. Mismatch is **informational, not blocking**
+(aligned with shipped behavior, t-1979): the response gains a `version_warning` field —
 
 > "agy version mismatch: expected {pinned}, got {actual} — update AGY_PINNED_VERSION in
 > agy_delegate.rs after re-running adversarial spike"
+
+— and validate.sh Check 38 surfaces the drift at validation time. Delegation proceeds:
+blocking every call on a version bump proved worse than surfacing the warning (the
+original "hard error" wording predated the `version_warning` implementation).
 
 **Upgrade procedure:** bump pin constant → re-run adversarial spike → confirm output contract
 unchanged → commit. Do not bump without re-running the spike — agy is closed-source with no

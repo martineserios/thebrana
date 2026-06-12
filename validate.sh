@@ -2309,8 +2309,14 @@ for c58_f in "$SYSTEM_DIR/scheduler/scheduler.template.json" "$SYSTEM_DIR/state/
         warn "Check 58: close-extraction job present but disabled in $c58_f"
     fi
 done
+# Live deployed scheduler (warn-not-fail: absent on CI / fresh machines; Check 34
+# owns template-vs-live drift, this asserts the one job that must never vanish)
+C58_LIVE="$HOME/.claude/scheduler/scheduler.json"
+if [ -f "$C58_LIVE" ] && ! jq -e '.jobs["close-extraction"]' "$C58_LIVE" >/dev/null 2>&1; then
+    warn "Check 58: close-extraction missing from live deployed $C58_LIVE — re-run bootstrap/deploy"
+fi
 if [ "$C58_FAILS" -eq 0 ]; then
-    pass "Check 58: close-extraction job registered (template + deployed state)"
+    pass "Check 58: close-extraction job registered (template + committed state)"
 fi
 echo ""
 fi  # should_run 58
