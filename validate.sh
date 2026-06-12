@@ -1882,21 +1882,28 @@ fi
 echo ""
 fi  # should_run 42
 
-# Check 43 — close.md must contain weight classification block (NANO/LIGHT/FULL) (ADR-040 §7, t-1802)
+# Check 43 — close-mode weight classification single source of truth (ADR-040 §7, t-1802;
+# t-1978 extracted the logic from close.md into close-classify.sh — validate the script,
+# and that the skill defers to it instead of carrying a replicated copy)
 if should_run 43; then
-echo "Check 43: close.md weight classification block..."
-CLOSE_BODY=$(effective_body close)
-if [ -z "$CLOSE_BODY" ]; then
-    warn "Check 43: close effective body empty — skipping"
+echo "Check 43: close-classify.sh weight classification..."
+CLASSIFY_SCRIPT="$SCRIPT_DIR/system/scripts/close-classify.sh"
+if [ ! -f "$CLASSIFY_SCRIPT" ]; then
+    fail "Check 43: system/scripts/close-classify.sh missing — close-mode classification has no source of truth (t-1978)"
 else
     MISSING_MODES=()
-    grep -q 'CLOSE_MODE="FULL"'  <<< "$CLOSE_BODY" || MISSING_MODES+=("FULL")
-    grep -q 'CLOSE_MODE="LIGHT"' <<< "$CLOSE_BODY" || MISSING_MODES+=("LIGHT")
-    grep -q 'CLOSE_MODE="NANO"'  <<< "$CLOSE_BODY" || MISSING_MODES+=("NANO")
+    grep -q 'CLOSE_MODE="FULL"'    "$CLASSIFY_SCRIPT" || MISSING_MODES+=("FULL")
+    grep -q 'CLOSE_MODE="LIGHT"'   "$CLASSIFY_SCRIPT" || MISSING_MODES+=("LIGHT")
+    grep -q 'CLOSE_MODE="NANO"'    "$CLASSIFY_SCRIPT" || MISSING_MODES+=("NANO")
+    grep -q 'CLOSE_MODE="INSTANT"' "$CLASSIFY_SCRIPT" || MISSING_MODES+=("INSTANT")
+    CLOSE_BODY=$(effective_body close)
+    if [ -n "$CLOSE_BODY" ] && ! grep -q 'close-classify\.sh' <<< "$CLOSE_BODY"; then
+        MISSING_MODES+=("skill-reference")
+    fi
     if [ ${#MISSING_MODES[@]} -eq 0 ]; then
-        pass "Check 43: close.md has NANO/LIGHT/FULL weight classification ✓"
+        pass "Check 43: close-classify.sh has NANO/LIGHT/INSTANT/FULL and the skill defers to it ✓"
     else
-        fail "Check 43: close.md missing CLOSE_MODE assignment(s): ${MISSING_MODES[*]} (ADR-040 §7)"
+        fail "Check 43: close-mode classification gaps: ${MISSING_MODES[*]} (ADR-040 §7 / ADR-052 §5)"
     fi
 fi
 echo ""
