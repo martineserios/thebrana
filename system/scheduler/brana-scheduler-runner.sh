@@ -69,6 +69,7 @@ DEFAULTS_TIMEOUT=$(jq -r '.defaults.timeoutSeconds // 300' "$CONFIG")
 
 DEFAULTS_RETRIES=$(jq -r '.defaults.maxRetries // 0' "$CONFIG")
 DEFAULTS_BACKOFF=$(jq -r '.defaults.retryBackoffSec // 30' "$CONFIG")
+DEFAULTS_LOCK_WAIT=$(jq -r '.defaults.lockWaitSeconds // 600' "$CONFIG")
 
 MODEL=$(echo "$JOB" | jq -r --arg dflt "$DEFAULTS_MODEL" '.model // $dflt')
 ALLOWED_TOOLS=$(echo "$JOB" | jq -r --arg dflt "$DEFAULTS_TOOLS" '.allowedTools // $dflt')
@@ -76,6 +77,7 @@ LOG_RETENTION=$(echo "$JOB" | jq -r --arg dflt "$DEFAULTS_RETENTION" '.logRetent
 TIMEOUT_SECS=$(echo "$JOB" | jq -r --arg dflt "$DEFAULTS_TIMEOUT" '.timeoutSeconds // $dflt')
 MAX_RETRIES=$(echo "$JOB" | jq -r --arg dflt "$DEFAULTS_RETRIES" '.maxRetries // $dflt')
 RETRY_BACKOFF=$(echo "$JOB" | jq -r --arg dflt "$DEFAULTS_BACKOFF" '.retryBackoffSec // $dflt')
+LOCK_WAIT_SECS=$(echo "$JOB" | jq -r --arg dflt "$DEFAULTS_LOCK_WAIT" '.lockWaitSeconds // $dflt')
 
 # captureOutput: store run summary in ruflo memory (default true)
 # Use has() pattern — jq '//' treats false as falsy
@@ -130,10 +132,11 @@ if [ "$JOB_TYPE" = "skill" ]; then
 fi
 
 for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
-    # Acquire project lock (non-blocking — skip if locked)
+    # Acquire project lock (bounded wait — t-2004: flock -n silently dropped
+    # Persistent=true catch-up runs that collided with morning jobs at wake)
     exec 9>"$LOCKFILE"
-    if ! flock -n 9; then
-        echo "SKIPPED: Another scheduled job is running in $PROJECT_SLUG" >> "$LOGFILE"
+    if ! flock -w "$LOCK_WAIT_SECS" 9; then
+        echo "SKIPPED: lock still held after ${LOCK_WAIT_SECS}s by another job in $PROJECT_SLUG" >> "$LOGFILE"
         write_status "SKIPPED" 0
         exit 0  # Graceful skip — not a failure (prevents systemd OnFailure)
     fi

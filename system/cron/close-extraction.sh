@@ -131,8 +131,11 @@ Rules: SMALL = incremental/known-class insight; LARGE = novel pattern or decisio
 $(cat "$SNAP")"
 
     OUT_FILE="/tmp/close-extract-$$-${EID}.json"
-    if ! "$AGY" -p "$PROMPT" > "$OUT_FILE" 2>/dev/null; then
-        fail_entry "agy invocation failed (exit $?)"
+    AGY_EXIT=0
+    "$AGY" -p "$PROMPT" > "$OUT_FILE" 2>/dev/null || AGY_EXIT=$?
+    if [ "$AGY_EXIT" -ne 0 ]; then
+        # $? inside an `if ! cmd` branch reports the negated test (always 0) — capture explicitly (t-2004)
+        fail_entry "agy invocation failed (exit $AGY_EXIT)"
         rm -f "$OUT_FILE"
         continue
     fi
