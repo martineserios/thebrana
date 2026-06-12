@@ -52477,7 +52477,7 @@
       "completed": null,
       "blocked_by": [],
       "branch": "harness-core/feat/t-2001-intelligence-feed-tech-stack",
-      "context": "2026-06-12: anthropic-news source is a third-party GitHub scraper — last entry 06-03, missed Fable 5 announcement (06-09). Feeds registry: ~/.claude/scheduler/feeds.json (template: system/scheduler/feeds.template.json). Pipeline: feed-poll → feed-summarize → feed-index (system/scripts/feed-index.sh, writes ~/.claude/intelligence-feed-digest.md) → feed-ruflo-index. HIGH_SIGNAL_FEEDS list in feed-index.sh must include any new changelog feeds. Survey actual tech stack across thebrana + clients/ + ventures/ before picking feeds — Kapso explicitly requested.\nAC: anthropic-news fixed or digest flags stale feeds (no entries > N days)\nAC: feeds.json tracks changelog/release feeds for cross-project technologies (incl. Kapso)\nAC: documented mechanism to register a feed when a new technology/platform is adopted",
+      "context": "2026-06-12: anthropic-news source is a third-party GitHub scraper — last entry 06-03, missed Fable 5 announcement (06-09). Feeds registry: ~/.claude/scheduler/feeds.json (template: system/scheduler/feeds.template.json). Pipeline: feed-poll → feed-summarize → feed-index (system/scripts/feed-index.sh, writes ~/.claude/intelligence-feed-digest.md) → feed-ruflo-index. HIGH_SIGNAL_FEEDS list in feed-index.sh must include any new changelog feeds. Survey actual tech stack across thebrana + clients/ + ventures/ before picking feeds — Kapso explicitly requested.\nAC: anthropic-news fixed or digest flags stale feeds (no entries > N days)\nAC: feeds.json tracks changelog/release feeds for cross-project technologies (incl. Kapso)\nAC: documented mechanism to register a feed when a new technology/platform is adopted\n2026-06-12: PARALLEL SESSION ACTIVE in this working tree (reminders epic t-1996+). Commits must be atomic: git checkout <branch> && git add && git commit in ONE Bash call — HEAD switches between tool calls. ADR renumbered 054→055 (collision). Spec: docs/architecture/features/t-2001-feed-tech-stack.md, ADR-055.",
       "notes": null,
       "order": 0,
       "github_issue": "1023",
@@ -52490,7 +52490,7 @@
       "epic": "harness-core",
       "strategy": "feature",
       "work_type": "implement",
-      "build_step": "specify"
+      "build_step": "decompose"
     },
     {
       "subject": "Skill retrieval: two-axis search (technology + work-type/pattern)",
@@ -52549,8 +52549,9 @@
       "started": null,
       "completed": null,
       "notes": null,
-      "strategy": null,
-      "build_step": null
+      "strategy": "feature",
+      "build_step": null,
+      "epic": "harness-core"
     },
     {
       "subject": "Scheduler runner: mutex skip silently drops catch-up runs — wait for lock instead",
@@ -52609,6 +52610,60 @@
       "notes": null,
       "strategy": null,
       "build_step": null
+    },
+    {
+      "id": "t-2006",
+      "subject": "Promote /brana:log events into typed event notes",
+      "status": "pending",
+      "type": "task",
+      "kind": "feature",
+      "tags": [
+        "knowledge-graphs",
+        "log",
+        "knowledge-pipeline"
+      ],
+      "description": "Improve /brana:log so significant logged events can be promoted into first-class `event` atoms (immutable, timestamped, typed relations) per the knowledge-base-redesign idea. Scope: selection criteria for which logged events are significant, event-note frontmatter schema, storage location, and the promotion mechanic (inline during /brana:log vs batch during /brana:close or consolidation).",
+      "effort": "M",
+      "priority": "P2",
+      "parent": null,
+      "created": "2026-06-12",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "2026-06-12: from knowledge-base-redesign brainstorm (docs/ideas/knowledge-base-redesign.md). Events are the temporal backbone of the redesigned knowledge base: immutable atoms that never go stale and anchor causality edges (event → informs → decision). /brana:log already captures an append-only event log — promotion into typed notes is the missing piece. Event frontmatter schema must follow the Unit-of-Knowledge ADR (redesign Phase 0) — don't implement before that ADR lands.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
+    },
+    {
+      "id": "t-2007",
+      "subject": "Write failing staleness tests for feed-index.sh",
+      "status": "pending",
+      "type": "subtask",
+      "kind": "feature",
+      "tags": [
+        "feed",
+        "test",
+        "tdd"
+      ],
+      "description": "TDD red: extend system/hooks/tests/test-feed-index.sh with staleness fixtures (temp feeds.json + feed-log.jsonl): stale feed flagged; fresh feed not flagged; per-feed stale_after_days override respected; zero-entry feed listed as \"no entries yet\"; stale section written even on a no-new-entries day (early-exit bypass); no stale section when all fresh.",
+      "effort": "S",
+      "priority": null,
+      "parent": "t-2001",
+      "created": "2026-06-12",
+      "started": null,
+      "completed": null,
+      "blocked_by": [],
+      "branch": null,
+      "context": "AC: file system/hooks/tests/test-feed-index.sh contains \"stale\"\nAC: changes to system/hooks/tests/test-feed-index.sh committed\nPer spec Design §Staleness control flow: GNU date -d only; fixture feeds.json must include a stale_after_days override entry.",
+      "notes": null,
+      "order": 0,
+      "github_issue": null,
+      "execution": "code",
+      "acceptance_criteria": null
     }
   ],
   "version": "1"
