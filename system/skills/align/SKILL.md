@@ -157,6 +157,8 @@ grep -q "^## Docs" .claude/CLAUDE.md 2>/dev/null && echo "heading exists — mer
 
 Goal: CLAUDE.md should be <60 lines after F2. If it exceeds 80 lines, run `/brana:claudemd` audit before proceeding to VERIFY.
 **F3 — Rules:** Copy relevant rules from `~/.claude/rules/`. Stack-specific rules get path scoping.
+
+**Feed coverage check (ADR-055, code projects only):** after the stack is recorded in F2, diff it against `brana feed list` — a tech is covered when a registered feed name starts with its slug (fuzzy prefix: `supabase` matches `supabase-changelog`). Offer `brana feed add <url> --name <tech-slug>-changelog` for major uncovered technologies in one multiSelect question. Advisory; skip silently if `brana` is unavailable. Full procedure: [brana-feed-inbox guide](../../../docs/guide/features/brana-feed-inbox.md).
 **F4 — Commits:** Document conventional commits in CLAUDE.md.
 **F5 — Inbox:** Ensure `inbox/` exists and is gitignored. Create if missing:
 ```bash

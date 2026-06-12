@@ -325,6 +325,16 @@ Fallback: grep `~/.claude/projects/*/memory/MEMORY.md` and `~/.claude/memory/por
 
 For attribution: check `cat .claude/settings.local.json 2>/dev/null | uv run python3 -c "import json,sys; s=json.load(sys.stdin); print('ok' if s.get('attribution',{}).get('commit','x')=='' and s.get('attribution',{}).get('pr','x')=='' else 'missing')"`. Flag as **missing** if absent or not empty strings.
 
+**Feed coverage check (ADR-055) — for code projects only:** diff the detected stack against the intelligence feed registry:
+```bash
+brana feed list 2>/dev/null || true
+```
+A technology counts as covered when a registered feed name starts with its slug (fuzzy prefix: `supabase` matches `supabase-changelog`). For each major uncovered technology that has a public changelog/releases feed (GitHub `releases.atom` is the usual form), include it in the gap report and offer registration in ONE multiSelect AskUserQuestion (never one question per tech):
+```bash
+brana feed add <feed-url> --name <tech-slug>-changelog
+```
+Advisory only — skip silently if `brana` is unavailable or the stack list is empty. Full procedure: [brana-feed-inbox guide](../../../docs/guide/features/brana-feed-inbox.md).
+
 **For venture clients** — assess against stage-appropriate items:
 - Foundation (description, decision log, metrics, cadence)
 - Validation items (hypothesis, MVP, experiments, burn rate)
