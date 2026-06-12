@@ -5,7 +5,7 @@ The `brana` binary is the primary CLI for brana operations. Built in Rust at
 `bootstrap.sh`.
 
 Top-level subcommands: `backlog`, `skills`, `ops`, `doctor`, `validate`, `portfolio`,
-`run`, `queue`, `agents`, `transcribe`, `files`, `version`.
+`run`, `queue`, `agents`, `transcribe`, `files`, `version`, `remind`, `close-queue`.
 
 ---
 
@@ -648,6 +648,41 @@ brana session epic status --json
 # Remove persistent focus
 brana session epic unfocus
 ```
+
+## brana remind
+
+Reminder store (`~/.claude/reminders.json`) — the ONLY mutation path (ADR-051). Sidecar advisory lock, parse-before-write, atomic rename. Hooks write via `system/hooks/lib/remind.sh` (`write_reminder`); session-start surfaces the pending count read-only.
+
+```
+brana remind write --text <TEXT> [--action <CMD>] [--priority low|medium|high] [--dedup-key <KEY>] [--project <SLUG>] [--tags <CSV>]
+brana remind list [--status pending|resolved|snoozed|expired]
+brana remind resolve <ID>
+brana remind snooze <ID> <DURATION>     # 1d, 3d, 1w, 2h
+```
+
+- `--dedup-key` match on a pending/snoozed entry increments `occurrences` instead of duplicating; ≥3 occurrences bumps medium → high.
+- `list` is the only path that computes AND persists lifecycle transitions (snooze expiry, 30-day pending → expired).
+- Ids are random (`r-…`); timestamps UTC RFC3339.
+
+See [reminder-system](../architecture/features/reminder-system.md).
+
+## brana close-queue
+
+Close-snapshot queue (`~/.claude/close-queue.json`) — the ONLY mutation path (ADR-052). Written at session close by `system/scripts/close-snapshot.sh`; consumed by the nightly `system/cron/close-extraction.sh` (which must use these subcommands exclusively — never raw JSON reads).
+
+```
+brana close-queue append --project <SLUG> --branch <NAME> --git-root <DIR> --git-range <A..B> --snapshot-path <FILE> [--commit-count <N>] [--snapshot-truncated] [--session-notes-path <FILE>]
+brana close-queue list [--unprocessed]          # chronological
+brana close-queue mark-processed <ID> --summary-path <FILE>
+brana close-queue mark-failed <ID> --error <MSG>   # retry_count++
+brana close-queue prune                          # processed/failed >30d
+```
+
+- `append` is dedup-safe: an unprocessed entry with the same `dedup_key` (`{project}:{branch}:{git_range}`) is returned as a no-op.
+- Tilde paths are expanded to absolute at write time; snapshots are capped at 500KB upstream (`snapshot_truncated`).
+- Ids are random (`q-…`). `mark-failed` is rejected on already-processed entries.
+
+See [async-close](../architecture/features/async-close.md).
 
 ## brana log
 

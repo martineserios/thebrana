@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-11T16:53:10Z",
+  "generated": "2026-06-12T10:37:24Z",
   "generator": "brana graph build",
   "ontology_version": "1.5",
   "nodes": {
@@ -1020,6 +1020,19 @@
       "type": "Roadmap",
       "impl_files": []
     },
+    "docs/architecture/features/async-close.md": {
+      "title": "Feature: Async-First Close — Instant Close, Nightly Extraction",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/scripts/close-classify.sh",
+        "system/cli/rust/crates/brana-core/src/queue.rs",
+        "system/scripts/close-snapshot.sh",
+        "system/cron/close-extraction.sh",
+        "system/skills/close/phases/gate-and-evidence.md",
+        "system/hooks/session-start.sh",
+        "system/scheduler/scheduler.template.json"
+      ]
+    },
     "docs/architecture/features/brana-cli.md": {
       "title": "Feature: Brana CLI — Standalone Terminal Interface",
       "type": "Roadmap",
@@ -1564,6 +1577,13 @@
         "system/agents/",
         "system/rules/",
         "system/state/schema-removals.json"
+      ]
+    },
+    "docs/architecture/workflow-primitive.md": {
+      "title": "Workflow Primitive — Verified API Surface",
+      "type": "Roadmap",
+      "impl_files": [
+        "system/Node"
       ]
     },
     "docs/archive/24-roadmap-corrections.md": {
@@ -2127,6 +2147,11 @@
     },
     "docs/guide/ecosystem.md": {
       "title": "Brana Workspace Ecosystem",
+      "type": "Roadmap",
+      "impl_files": []
+    },
+    "docs/guide/features/async-close.md": {
+      "title": "Async Close — what changed about ending a session",
       "type": "Roadmap",
       "impl_files": []
     },
@@ -3930,6 +3955,36 @@
     {
       "from": "docs/architecture/features/agentdb-v3-upgrade-evaluation.md",
       "to": "docs/architecture/decisions/ADR-005-agentdb-v3-unified-knowledge-backend.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/async-close.md",
+      "to": "docs/architecture/decisions/ADR-004-session-handoff-self-learning-loop.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/async-close.md",
+      "to": "docs/architecture/decisions/ADR-051-reminder-store-architecture.md",
+      "type": "depends_on",
+      "computed": true
+    },
+    {
+      "from": "docs/architecture/features/async-close.md",
+      "to": "docs/architecture/decisions/ADR-052-close-queue-architecture.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/async-close.md",
+      "to": "docs/architecture/features/reminder-system.md",
+      "type": "depends_on",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/async-close.md",
+      "to": "docs/ideas/async-close-design.md",
       "type": "depends_on",
       "computed": false
     },
@@ -5784,6 +5839,12 @@
     {
       "from": "docs/architecture/features/agentdb-v3-upgrade-evaluation.md",
       "to": "docs/architecture/features/resilient-pattern-store.md",
+      "type": "informs",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/async-close.md",
+      "to": "docs/ideas/async-first-close.md",
       "type": "informs",
       "computed": false
     },
@@ -8765,6 +8826,12 @@
     },
     {
       "from": "docs/README.md",
+      "to": "architecture/features/async-close.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
       "to": "architecture/features/brana-v2-compute-model.md",
       "type": "references",
       "computed": false
@@ -8958,6 +9025,12 @@
     {
       "from": "docs/README.md",
       "to": "architecture/testing-validation.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/README.md",
+      "to": "architecture/workflow-primitive.md",
       "type": "references",
       "computed": false
     },
@@ -9406,6 +9479,12 @@
       "computed": false
     },
     {
+      "from": "docs/architecture/decisions/ADR-050-loop-request-protocol.md",
+      "to": "docs/research/2026-06-11-loop-native-redesign.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/architecture/developer-quickstart.md",
       "to": "docs/reference/hooks.md",
       "type": "references",
@@ -9474,6 +9553,18 @@
     {
       "from": "docs/architecture/features/acquire-skills-guide.md",
       "to": "docs/architecture/decisions/ADR-012-acquire-skills.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/async-close.md",
+      "to": "docs/architecture/decisions/ADR-052-close-queue-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/features/async-close.md",
+      "to": "docs/guide/features/async-close.md",
       "type": "references",
       "computed": false
     },
@@ -9810,6 +9901,18 @@
     {
       "from": "docs/architecture/testing-validation.md",
       "to": "path",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/workflow-primitive.md",
+      "to": "decisions/ADR-050-loop-request-protocol.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/architecture/workflow-primitive.md",
+      "to": "docs/research/2026-06-11-loop-native-redesign.md",
       "type": "references",
       "computed": false
     },
@@ -11446,6 +11549,30 @@
       "computed": false
     },
     {
+      "from": "docs/guide/features/async-close.md",
+      "to": "docs/architecture/decisions/ADR-051-reminder-store-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/features/async-close.md",
+      "to": "docs/architecture/decisions/ADR-052-close-queue-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/features/async-close.md",
+      "to": "docs/architecture/features/async-close.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/guide/features/async-close.md",
+      "to": "reminder-system.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/guide/features/reminder-system.md",
       "to": "docs/architecture/decisions/ADR-051-reminder-store-architecture.md",
       "type": "references",
@@ -11574,6 +11701,30 @@
     {
       "from": "docs/ideas/agent-observability-learning.md",
       "to": "docs/architecture/features/chat-agents-monitoring.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/async-close-design.md",
+      "to": "docs/architecture/decisions/ADR-052-close-queue-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/async-close-design.md",
+      "to": "docs/architecture/features/async-close.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/async-first-close.md",
+      "to": "docs/architecture/decisions/ADR-052-close-queue-architecture.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/ideas/async-first-close.md",
+      "to": "docs/architecture/features/async-close.md",
       "type": "references",
       "computed": false
     },
@@ -12814,6 +12965,18 @@
       "computed": false
     },
     {
+      "from": "docs/research/2026-06-11-loop-native-redesign.md",
+      "to": "docs/architecture/decisions/ADR-050-loop-request-protocol.md",
+      "type": "references",
+      "computed": false
+    },
+    {
+      "from": "docs/research/2026-06-11-loop-native-redesign.md",
+      "to": "docs/architecture/workflow-primitive.md",
+      "type": "references",
+      "computed": false
+    },
+    {
       "from": "docs/research/miessler-pai-deep-dive.md",
       "to": "miessler-pai-comparison.md",
       "type": "references",
@@ -12905,9 +13068,9 @@
     }
   ],
   "stats": {
-    "nodes": 438,
-    "edges": 1658,
-    "typed_edges": 593,
-    "orphans": 127
+    "nodes": 441,
+    "edges": 1681,
+    "typed_edges": 599,
+    "orphans": 126
   }
 }
