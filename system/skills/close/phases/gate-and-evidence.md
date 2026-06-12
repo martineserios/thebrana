@@ -77,6 +77,8 @@ CLOSE_MODE=$(echo "$CHANGED_FILES" | bash "$(git rev-parse --show-toplevel)/syst
 | `--patterns` | LIGHT-INLINE | unchanged | skipped |
 | `--abort` | NANO | → `pending` + reason (via close-abort.sh) | script handles branch |
 
+**`--finish` runs the in-session L2 propagation audit** (Step 8b, ADR-056) even though its weight is INSTANT — expect a short LLM pass over touched specs/memories before the handoff. This is the one deliberate exception to "INSTANT = no in-session LLM work"; surface it in the picker's `--finish` description so the user isn't surprised by the latency. Other INSTANT closes run only the ~1s deterministic L1 checks and defer the deep audit to the nightly cron.
+
 **HARD GUARD — flag given means decision made.** If `$ARGUMENTS` contains ANY orientation or weight flag (`--continue`, `--finish`, `--patterns`, `--abort`, `--light`, `--full`, `--nano`): SKIP the entire "Bare-invocation detection and picker" block below. Do not show a picker, do not run detection — execute the flagged close immediately.
 
 **Bare-invocation detection and picker** (no flag in `$ARGUMENTS` only):

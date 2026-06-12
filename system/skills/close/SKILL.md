@@ -70,6 +70,7 @@ The procedure body lives in per-phase files under `phases/` (this skill's base d
 | ERRATA, PATTERNS (Steps 4–5) | phases/errata-and-patterns.md | Entering the parallel findings block (`--full`, LIGHT, and LIGHT-INLINE closes) |
 | FIELD-NOTES, IDEATE (Steps 6–7) | phases/notes-and-ideation.md | With the parallel findings block |
 | DRIFT (Step 8) | phases/doc-drift.md | With the parallel findings block |
+| PROPAGATE (Step 8b) | phases/propagate.md | Every close except NANO and `--abort` — after the findings block (or directly after Step 3 on INSTANT), before HANDOFF |
 | HANDOFF, RUFLO-SYNC (Steps 9–9c) | phases/session-state.md | After findings block completes |
 | METADATA, MEMORY-REVIEW (Steps 10–11) | phases/metadata-and-memory.md | After session state is written |
 | WORKTREE-REAP, PENDING-RECONCILE, STASH-CLEANUP, REPORT (Steps 11b–12 + session close) | phases/cleanup.md | Final phase — always last |
@@ -77,13 +78,15 @@ The procedure body lives in per-phase files under `phases/` (this skill's base d
 
 Steps 4–8 run in parallel: when entering that block, Read all three of `errata-and-patterns.md`, `notes-and-ideation.md`, and `doc-drift.md` before dispatching the parallel work. NANO and INSTANT closes skip them entirely; LIGHT-INLINE (`--patterns`) reads only `errata-and-patterns.md` and runs Steps 4–5 (the gate phase says when). Since Track 1 (ADR-052), the default for code sessions is **INSTANT** — snapshot + `brana close-queue append` + handoff, extraction deferred to the nightly cron; Steps 4–8 run in-session only on explicit `--full` (plus the LIGHT inline scan and the `--patterns` inline extraction).
 
+**Step 8b PROPAGATE is gated separately** (ADR-056 — orientation/weight-keyed, NOT the Steps 4–8 gate): its L1 deterministic checks run on every close except NANO and `--abort` — including INSTANT; its L2 LLM audit runs on `--finish` and `--full`; queued closes that skipped L2 get the nightly L3 propagation pass instead (`propagate` flag on the queue entry, fail-safe). Sibling note: `/brana:reconcile --scope propagation` is a different surface — it cascades errata and validates the spec graph on demand; PROPAGATE audits promise-fulfillment and state-contradiction debt at close time.
+
 In the deployed-plugin layout the same relative paths apply: `{base-dir}/phases/{file}`. If a path doesn't resolve, use Glob: `**/skills/close/phases/{file}`.
 
 ## Step Registry
 
 On entry, create a CC Task step registry. Follow the [guided-execution protocol](../_shared/guided-execution.md).
 
-Register these steps: GATE, GATHER, EXTRACT, DOC-CHECK, ERRATA, PATTERNS, FIELD-NOTES, IDEATE, DRIFT, HANDOFF, RUFLO-SYNC, METADATA, MEMORY-REVIEW, WORKTREE-REAP, PENDING-RECONCILE, STASH-CLEANUP, REPORT.
+Register these steps: GATE, GATHER, EXTRACT, DOC-CHECK, ERRATA, PATTERNS, FIELD-NOTES, IDEATE, DRIFT, PROPAGATE, HANDOFF, RUFLO-SYNC, METADATA, MEMORY-REVIEW, WORKTREE-REAP, PENDING-RECONCILE, STASH-CLEANUP, REPORT.
 
 <!-- ruflo preamble -->
 ToolSearch("select:mcp__ruflo__memory_store,mcp__ruflo__memory_search,mcp__ruflo__hive-mind_memory,mcp__ruflo__claims_release,mcp__brana__memory_index")

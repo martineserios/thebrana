@@ -15,7 +15,7 @@ ToolSearch("select:mcp__ruflo__claims_release,mcp__ruflo__hive-mind_memory,mcp__
 | `--abort` | nothing here — close-abort.sh already set the task to pending with the reason |
 | `auto` (bare) | existing behavior: completion only when the work actually completed |
 
-Build a JSON object from all evidence gathered in previous steps, write it to a temp file, and call `brana session write`. The LLM never writes session files directly — the CLI validates the schema and handles atomic writes + history archival.
+Build a JSON object from all evidence gathered in previous steps, write it to a temp file, and call `brana session write`. The LLM never writes session files directly — the CLI validates the schema and handles atomic writes + history archival. Evidence feeders include Step 8b PROPAGATE: every propagation gap that wasn't fixed inline lands here as a `next[]` entry with `category: "maintenance"` (ADR-056 — zero silent drops; this is the single `next[]` write, which is why PROPAGATE runs before this step).
 
 **Build the JSON payload:**
 
