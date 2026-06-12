@@ -5,13 +5,13 @@ depends_on:
   - docs/domain/MODEL-001-brana-core.md
 informs:
   - docs/ideas/async-first-close.md
-status: proposed
+status: accepted
 ---
 
 # ADR-054: Reminder Delivery Channels — Notify Context, Timed Dispatch
 
 **Date:** 2026-06-12
-**Status:** Proposed
+**Status:** Accepted
 **Tasks:** t-1996 (this ADR), t-1997 (schema + CLI), t-1998 (registry + adapters + dispatch), t-1999 (scheduler wiring), t-2000 (docs)
 **Source:** Reminders/scheduler/calendar research 2026-06-12 (4-scout sweep + decision log); calendar sync deferred per user decision (decision log 2026-06-12)
 
