@@ -84,6 +84,8 @@ assert "valid JSON with continue:true" \
     "echo '$OUT' | jq -e '.continue == true' >/dev/null 2>&1"
 assert "snapshot stub called once" "[ \"\$(grep -c . '$CALL_LOG')\" = 1 ]"
 assert "stub received --git-root of the repo" "grep -q -- '--git-root $REPO' '$CALL_LOG'"
+assert "additionalContext carries the snapshot notice" \
+    "echo '$OUT' | jq -r '.additionalContext // \"\"' | grep -q 'snapshot saved'"
 
 echo ""
 echo "Idempotency: same HEAD again → no second call"
@@ -110,6 +112,15 @@ assert "exit 0 despite snapshot failure" "[ $RC -eq 0 ]"
 assert "valid JSON despite snapshot failure" \
     "echo '$OUT' | jq -e '.continue == true' >/dev/null 2>&1"
 assert "failing stub was attempted" "[ \"\$(grep -c . '$CALL_LOG')\" = 1 ]"
+assert "no false notice on failure" \
+    "! echo '$OUT' | jq -r '.additionalContext // \"\"' | grep -q 'snapshot saved'"
+
+echo ""
+echo "Guard-the-attempt: failure then retry at same HEAD → no second attempt"
+OUT=$(run_hook "$REPO" "$FAILING_STUB" sess-b)
+assert "exit 0 on retry" "[ $? -eq 0 ]"
+assert "still exactly one attempt (guard wrote on failure too)" \
+    "[ \"\$(grep -c . '$CALL_LOG')\" = 1 ]"
 
 echo ""
 echo "Non-git cwd → pass-through, no snapshot attempt"

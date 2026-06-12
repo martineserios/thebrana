@@ -45,10 +45,13 @@ if [ -n "$HEAD_HASH" ] && [ -x "$SNAPSHOT_SCRIPT" ]; then
     GUARD_DIR="${BRANA_PRECOMPACT_GUARD_DIR:-$HOME/.claude/sessions/.precompact-guards}"
     GUARD="$GUARD_DIR/${PROJECT}-${HEAD_HASH}"
     if [ ! -f "$GUARD" ]; then
+        # Guard the ATTEMPT, not the success: one snapshot try per HEAD. A
+        # failed try would fail identically on the next compaction seconds
+        # later; close-snapshot.sh degrades gracefully on its own.
+        mkdir -p "$GUARD_DIR" 2>/dev/null && touch "$GUARD" 2>/dev/null
         COMMIT_COUNT=$(git -C "$GIT_ROOT" log --oneline --since="6 hours ago" 2>/dev/null | wc -l | tr -d ' ') || COMMIT_COUNT=0
         if bash "$SNAPSHOT_SCRIPT" --git-root "$GIT_ROOT" --branch "$BRANCH" \
                 --project "$PROJECT" --commit-count "${COMMIT_COUNT:-0}" >/dev/null 2>&1; then
-            mkdir -p "$GUARD_DIR" 2>/dev/null && touch "$GUARD" 2>/dev/null
             SNAPSHOT_NOTE="Pre-compaction snapshot saved and queued (HEAD $HEAD_HASH) — nothing from this session is lost to compaction."
         fi
     fi
@@ -95,6 +98,12 @@ if [ -n "$SESSION_BLOCK" ]; then
 
 Recent session work:
 $SESSION_BLOCK"
+fi
+
+if [ -n "$SNAPSHOT_NOTE" ]; then
+    CONTEXT="$CONTEXT
+
+$SNAPSHOT_NOTE"
 fi
 
 CONTEXT="$CONTEXT
